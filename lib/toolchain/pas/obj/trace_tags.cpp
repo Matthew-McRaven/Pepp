@@ -168,8 +168,17 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
       if (auto errc = frame.serialize(archive, frame, h); errc.code != std::errc()) return errc;
     }
   } else if constexpr (archive_type::kind() == zpp::bits::kind::in &&
-                       !std::is_const_v<std::remove_reference_t<decltype(commands)>>)
-    return std::errc{};
+                       !std::is_const_v<std::remove_reference_t<decltype(commands)>>) {
+    quint16 size = 0;
+    if (auto errc = archive(size); errc.code != std::errc()) return errc;
+    for (int i = 0; i < size; ++i) {
+      quint32 addr = 0;
+      if (auto errc = archive(addr); errc.code != std::errc()) return errc;
+      pepp::debug::CommandFrame frame;
+      if (auto errc = frame.serialize(archive, frame, h); errc.code != std::errc()) return errc;
+      commands[addr] = std::move(frame);
+    }
+  }
   return std::errc{};
 }
 
@@ -204,7 +213,7 @@ void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node
 
   // for (const auto &cmd : as_const(type_decls)) qDebug().noquote() << cmd;
   // for (const auto &cmd : as_const(global_decls)) qDebug().noquote() << cmd;
-  for (const auto &cmd : as_const(rest_decls)) qDebug().noquote() << cmd;
+  // for (const auto &cmd : as_const(rest_decls)) qDebug().noquote() << cmd;
 
   // Perform type declarations immediately, and produce a directed graph of struct definitions.
   for (auto it = type_decls.begin(); it != type_decls.end(); it++) {
@@ -232,7 +241,7 @@ void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node
   CommandMap commands;
   for (auto it = rest_decls.begin(); it != rest_decls.end(); it++) parseNonGlobal(it, info, commands);
 
-  // qDebug() << info;
+  qDebug() << info;
   pepp::debug::types::SerializationHelper h;
   // TODO: extract all strings from commands into h. Info will serialize them for us. Then we can use those indices in
   // stack_ops serialization.
@@ -241,6 +250,31 @@ void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node
   for (auto addr = commands.keyBegin(); addr != commands.keyEnd(); addr++)
     qDebug().noquote() << *addr << commands[*addr];
   trace->append_data((const char *)data.data(), data.size());
+}
+
+pas::obj::common::DebugInfo pas::obj::common::readDebugCommands(ELFIO::elfio &elf) {
+  DebugInfo ret;
+  auto trace = detail::getTraceSection(elf);
+  if (trace == nullptr) {
+    qDebug() << "No trace section found in ELF file";
+    return ret;
+  } else qDebug() << "Found valid trace sections";
+
+  auto span = std::span<const char>(trace->get_data(), trace->get_stream_size());
+  auto in = zpp::bits::input(span);
+  pepp::debug::types::SerializationHelper h;
+  ret.typeInfo = std::make_shared<pepp::debug::types::TypeInfo>();
+
+  qDebug() << *ret.typeInfo;
+  if (auto errc = ret.typeInfo->serialize(in, *ret.typeInfo, &h); errc != std::errc())
+    throw std::logic_error("Failed to deserialize type info from trace section");
+  qDebug() << *ret.typeInfo;
+
+  if (auto errc = serialize(in, ret.commands, h); errc != std::errc())
+    throw std::logic_error("Failed to deserialize command packets");
+  for (auto addr = ret.commands.keyBegin(); addr != ret.commands.keyEnd(); addr++)
+    qDebug().noquote() << *addr << ret.commands[*addr];
+  return ret;
 }
 
 ELFIO::section *pas::obj::common::detail::getTraceSection(ELFIO::elfio &elf) {

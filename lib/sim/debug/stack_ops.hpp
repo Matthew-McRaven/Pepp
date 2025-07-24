@@ -25,7 +25,7 @@ struct MemoryOp {
     const char *op_name = meta.valueToKey((int)op);
     return QString("%1 %2 as (%3)").arg(op_name).arg(name).arg(types::to_string(unbox(type)));
   }
-  static std::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) {
+  static zpp::bits::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
       if (auto errc = archive((quint8)self.op); errc != std::errc()) return errc;
@@ -42,8 +42,9 @@ struct MemoryOp {
       quint16 tmp2 = 0;
       if (auto errc = archive(tmp2); errc.code != std::errc()) return errc;
       self.type = h.type_for_index(tmp2);
+      return std::errc();
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
-    throw std::logic_error("Unreachable");
+    else throw std::logic_error("Unreachable");
   }
 };
 
@@ -54,7 +55,7 @@ struct FrameManagement {
     const char *op_name = meta.valueToKey((int)op);
     return QString("%1").arg(op_name);
   }
-  static constexpr std::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) {
+  static constexpr zpp::bits::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) return archive((quint8)self.op);
     else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
@@ -63,7 +64,7 @@ struct FrameManagement {
       self.op = static_cast<Opcodes>(tmp);
       return std::errc();
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
-    throw std::logic_error("Unreachable");
+    else throw std::logic_error("Unreachable");
   }
 };
 
@@ -74,7 +75,7 @@ struct FrameActive {
     const char *op_name = meta.valueToKey((int)Opcodes::MARK_ACTIVE);
     return QString("%1 %2").arg(op_name).arg(active);
   }
-  static constexpr std::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) {
+  static constexpr zpp::bits::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) {
     return archive(self.active);
   }
 };
@@ -99,8 +100,30 @@ static zpp::bits::errc serialize_op(auto &archive, auto &type, pepp::debug::type
     return std::visit(detail::SerializeVistor{h, archive}, type);
   } else {
     // TODO: Read in the type
+    quint8 index = 0;
+    if (auto errc = archive(index); errc.code != std::errc()) return errc;
+    switch (index) {
+    case 0: {
+      MemoryOp tmp;
+      if (auto errc = tmp.serialize(archive, tmp, h); errc.code != std::errc()) return errc;
+      type = std::move(tmp);
+      return std::errc();
+    }
+    case 1: {
+      FrameManagement tmp;
+      if (auto errc = tmp.serialize(archive, tmp, h); errc.code != std::errc()) return errc;
+      type = std::move(tmp);
+      return std::errc();
+    }
+    case 2: {
+      FrameActive tmp;
+      if (auto errc = tmp.serialize(archive, tmp, h); errc.code != std::errc()) return errc;
+      type = std::move(tmp);
+      return std::errc();
+    }
+    }
+    throw std::logic_error("Not implemented");
   }
-  throw std::logic_error("Not implemented");
 }
 
 // Used to store the translation of a single command like @params#my#names#here

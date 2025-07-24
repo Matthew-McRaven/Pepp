@@ -899,6 +899,7 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QObject *parent) : Pep_ISA(env, par
   // Scopes must be present to allow adding BPs on source programs before assembly
   _dbg->line_maps->addScope("user");
   _dbg->line_maps->addScope("os");
+  _dbg->stack_trace->setDebugInfo(pas::obj::common::readDebugCommands(*_elf));
 }
 
 QString Pep_ASMB::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep10ASMB.qml"; }
@@ -1013,6 +1014,7 @@ bool Pep_ASMB::_onAssemble(bool doLoad) {
   _dbg->line_maps->addScope("user", std::move(helper.address2Lines(false)));
   _dbg->line_maps->addScope("os", std::move(helper.address2Lines(true)));
   _dbg->static_symbol_model->setFromElf(elf.get());
+  _dbg->stack_trace->setDebugInfo(pas::obj::common::readDebugCommands(*elf));
   auto user = helper.listing(false), os = helper.listing(true);
   _userList = std::accumulate(user.begin(), user.end(), QString(), to_string);
   _osList = std::accumulate(os.begin(), os.end(), QString(), to_string);
