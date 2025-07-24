@@ -5,6 +5,7 @@
 #include <spdlog/logger.h>
 #include "sim/debug/expr_parser.hpp"
 #include "sim/debug/line_map.hpp"
+#include "toolchain/pas/obj/trace_tags.hpp"
 #include "toolchain/symtab/symbolmodel.hpp"
 #include "watchexpressionmodel.hpp"
 
@@ -86,6 +87,15 @@ private:
   ScopedLines2Addresses *_lines2address = nullptr;
 };
 
+class StackTracer {
+  pas::obj::common::DebugInfo _debug_info;
+
+public:
+  explicit StackTracer() = default;
+  inline void setDebugInfo(pas::obj::common::DebugInfo debug_info) { _debug_info = debug_info; }
+  pas::obj::common::DebugInfo const &debugInfo() const { return _debug_info; }
+};
+
 class Environment;
 class Debugger {
 public:
@@ -98,6 +108,7 @@ public:
   std::unique_ptr<pepp::debug::WatchExpressionEditor> watch_expressions = nullptr;
   std::unique_ptr<ScopedLines2Addresses> line_maps = nullptr;
   std::unique_ptr<StaticSymbolModel> static_symbol_model = nullptr;
+  std::unique_ptr<StackTracer> stack_trace = nullptr;
 
   void notifyCall(quint16 pc);
   void notifyRet(quint16 pc);
