@@ -279,6 +279,7 @@ pepp::debug::Debugger::Debugger(Environment *env) : env(env), _logger(spdlog::ge
   watch_expressions = std::make_unique<pepp::debug::WatchExpressionEditor>(&*cache, env);
   line_maps = std::make_unique<ScopedLines2Addresses>();
   static_symbol_model = std::make_unique<StaticSymbolModel>();
+  stack_trace = std::make_unique<StackTracer>();
 }
 
 using namespace Qt::StringLiterals;
