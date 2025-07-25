@@ -51,12 +51,16 @@ Item {
             width: implicitButtonWidth
         }
         TabButton {
+            text: "System Info"
+            width: implicitButtonWidth
+        }
+        TabButton {
             text: "Dependencies"
             width: implicitButtonWidth
         }
     }
 
-    //  Figure contents
+    //  All Screens, selection based on current index
     StackLayout {
         currentIndex: helpBar.currentIndex
         anchors {
@@ -65,6 +69,7 @@ Item {
             right: parent.right
             bottom: parent.bottom
         }
+        //  Pep About screen
         Item {
             id: pepAbout
             Layout.fillHeight: true
@@ -77,27 +82,44 @@ Item {
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 0
-                    Text {
-                        id: title
-                        color: palette.windowText
-                        Layout.margins: root.sideMargin
-                        onLinkActivated: link => {
-                            Qt.openUrlExternally(link)
+                    RowLayout {
+                        Rectangle {
+                            // Rectangle is only for testing. When image works, remove this control
+                            color: "yellow"
+                            width: logo.width
+                            height: logo.height
+
+                            Image {
+                                id: logo
+                                source: "file:///E:\Projects\QTProjects\Pepp\lib\help\about\icon.png"
+                                fillMode: Image.PreserveAspectFit
+                                width: 75
+                                height: logo.width
+                            }
                         }
-                        // Too much text to assign in binding, so build it inline instead.
-                        Component.onCompleted: {
-                            let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(
-                                Version.version_str_full)
-                            let url = "https://github.com/Matthew-McRaven/Pepp/commit/"
-                            + Version.git_sha
-                            let line1 = "Based on <a href=\"" + url + "\">"
-                            line1 += Version.git_tag
-                            !== "unknown" ? Version.git_tag : Version.git_sha.substring(
-                                                0, 7)
-                            line1 += "</a>."
-                            text = line0 + line1
+                        Text {
+                            id: title
+                            color: palette.windowText
+                            Layout.margins: root.sideMargin
+                            onLinkActivated: link => {
+                                Qt.openUrlExternally(link)
+                            }
+                            // Too much text to assign in binding, so build it inline instead.
+                            Component.onCompleted: {
+                                let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(
+                                    Version.version_str_full)
+                                let url = "https://github.com/Matthew-McRaven/Pepp/commit/"
+                                + Version.git_sha
+                                let line1 = "Based on <a href=\"" + url + "\">"
+                                line1 += Version.git_tag
+                                !== "unknown" ? Version.git_tag : Version.git_sha.substring(
+                                                    0, 7)
+                                line1 += "</a>."
+                                text = line0 + line1
+                            }
                         }
-                    }
+                    } //  RowLayout-logo
+
                     Label {
                         Layout.fillWidth: true
                         Layout.topMargin: root.paragraphSpace
@@ -188,13 +210,16 @@ Item {
                             TextArea {
                                 id: license
                                 readOnly: true
-                                text: "qrc:/LICENSE_FULL" //"qrc:/qt/qml/Pepp/LICENSE" //"qrc:/LICENSE_FULL"
+                                text: FileReader.readFile(
+                                          ":/about/LICENSE_FULL")
                             }
+                            ScrollBar.vertical.policy: ScrollBar.AlwaysOn
                         } //  ScrollView
                     }
                 } //ColumnLayout
             } //  Rectangle
         } //  Item - pepAbout
+        //  Change Log screen
         Item {
             id: changeLog
             Layout.fillHeight: true
@@ -209,7 +234,24 @@ Item {
                     text: "Change Log"
                 } //  End of replacement
             }
-        }
+        } //  Item - changeLog
+        //  System Info screen
+        Item {
+            id: systemInfo
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            Rectangle {
+                anchors.fill: parent
+                color: palette.base
+                border.width: 1
+                border.color: palette.shadow
+                Text {
+                    // Replace this control with system info screen
+                    text: "System info"
+                } //  End of replacement
+            }
+        } //  Item - systemInfo
+        //  Third party license screen
         Item {
             id: thirdParty
             Layout.fillHeight: true
@@ -243,7 +285,9 @@ Item {
                                     projectCombo.onCurrentIndexChanged)
                             }
 
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: 160
+                            Layout.minimumWidth: 160
+                            Layout.maximumWidth: 160
                             model: Dependencies
                             currentIndex: 0
                             textRole: "name"
@@ -254,6 +298,10 @@ Item {
                                 let url = model.data(index, DependencyRoles.URL)
                                 projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
                             }
+                        }
+                        Item {
+                            id: spacer
+                            Layout.fillWidth: true
                         }
                     } //Row
                     RowLayout {
@@ -281,7 +329,6 @@ Item {
                         TextArea {
                             id: projectLicense
                             readOnly: true
-                            //wrapMode: Text.WordWrap
                         }
                     } //  ScrollView
                 } //ColumnLayout
