@@ -29,9 +29,36 @@ const char *const about::g_GIT_TAG() { return GIT_TAG_tmp; }
 #define VERSION_MINOR @Pepp_VERSION_MINOR@
 #define VERSION_PATCH @Pepp_VERSION_PATCH@
 #define CLEAN @GIT_CLEAN@
+#define CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@"
+#define CXX_COMPILER_VERSION "@CMAKE_CXX_COMPILER_VERSION@"
+#define BUILD_SYSTEM_NAME "@CMAKE_HOST_SYSTEM_NAME@"
+#define BUILD_SYSTEM_VERSION "@CMAKE_HOST_SYSTEM_VERSION@"
+#define BUILD_SYSTEM_PROCESSOR "@CMAKE_HOST_SYSTEM_PROCESSOR@"
+#define BUILD_TIMESTAMP "@BUILD_TIMESTAMP@"
 // clang-format on
 
 int about::g_MAJOR_VERSION() { return VERSION_MAJOR; }
 int about::g_MINOR_VERSION() { return VERSION_MINOR; }
 int about::g_PATCH_VERSION() { return VERSION_PATCH; }
 bool about::g_GIT_LOCAL_CHANGES() { return CLEAN; }
+const char* about::g_CXX_COMPILER_ID() {
+    return CXX_COMPILER_ID;
+}
+
+const char* about::g_CXX_COMPILER_VERSION() {
+    return CXX_COMPILER_VERSION;
+}
+
+const char* about::g_BUILD_SYSTEM_NAME() {
+    return BUILD_SYSTEM_NAME;
+}
+const char* about::g_BUILD_SYSTEM_VERSION() {
+    return BUILD_SYSTEM_VERSION;
+}
+const char* about::g_BUILD_SYSTEM_PROCESSOR() {
+    return BUILD_SYSTEM_PROCESSOR;
+}
+const char* about::g_BUILD_TIMESTAMP() {
+    return BUILD_TIMESTAMP;
+}
+
