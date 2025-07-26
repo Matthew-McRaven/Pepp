@@ -236,11 +236,6 @@ Labs.MenuBar {
             icon.source: fixSuffix(actions.build.execute.icon.source, wrapper.darkMode)
             shortcut: actions.build.execute.shortcut
         }
-        Labs.MenuSeparator {}
-        Labs.MenuItem {
-            text: actions.help.about.text
-            onTriggered: actions.help.about.trigger()
-        }
     }
     Labs.Menu {
         title: qsTr("&Debug")
@@ -314,6 +309,13 @@ Labs.MenuBar {
         Labs.MenuItem {
             text: actions.view.fullscreen.text
             onTriggered: actions.view.fullscreen.trigger()
+        }
+    }
+    Labs.Menu {
+        title: qsTr("&Help")
+        Labs.MenuItem {
+            text: actions.help.about.text
+            onTriggered: actions.help.about.trigger()
         }
     }
     // Only meant for testing the app, not meant for deployment to users!
