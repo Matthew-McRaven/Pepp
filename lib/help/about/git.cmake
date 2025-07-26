@@ -283,3 +283,5 @@ function(git_local_changes _var)
             PARENT_SCOPE)
     endif()
 endfunction()
+
+string(TIMESTAMP BUILD_TIMESTAMP "%b %d %Y %H:%M:%S")
