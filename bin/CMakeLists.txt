@@ -15,7 +15,10 @@ else ()
     # Future platform-specific logic for icons.
 endif ()
 
-qt6_add_executable(pepp ${sources} ${guis} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
+qt6_add_executable(pepp ${sources} ${guis}
+    ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
+    ${CMAKE_SOURCE_DIR}/data/app_icon/app_icon.qrc
+)
 
 
 target_link_libraries(pepp PRIVATE cli catch Qt6::Core Qt6::Gui
@@ -58,7 +61,10 @@ endif ()
 
 # Skip term target on platforms where it is not needed.
 if(NOT (EMSCRIPTEN OR IOS) )
-    qt6_add_executable(pepp-term ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
+    qt6_add_executable(pepp-term ${sources}
+        ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
+        ${CMAKE_SOURCE_DIR}/data/app_icon/app_icon.qrc
+    )
     target_link_libraries(pepp-term PRIVATE cli Qt6::Core catch test-lib-all pepp-lib catch)
     set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
     target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")

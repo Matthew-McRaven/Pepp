@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -83,17 +84,17 @@ Item {
                     anchors.fill: parent
                     spacing: 0
                     RowLayout {
-                        Rectangle {
+                        Item {
                             // Rectangle is only for testing. When image works, remove this control
-                            color: "yellow"
-                            width: logo.width
-                            height: logo.height
+                            width: logo.width + 10
+                            height: logo.height + 10
 
                             Image {
                                 id: logo
-                                source: "file:///E:\Projects\QTProjects\Pepp\lib\help\about\icon.png"
+                                source: "qrc:/app_icon/icon.svg"
+                                anchors.centerIn: parent
                                 fillMode: Image.PreserveAspectFit
-                                width: 75
+                                width: 50
                                 height: logo.width
                             }
                         }
@@ -102,16 +103,20 @@ Item {
                             color: palette.windowText
                             Layout.margins: root.sideMargin
                             onLinkActivated: link => {
-                                Qt.openUrlExternally(link);
+                                Qt.openUrlExternally(link)
                             }
                             // Too much text to assign in binding, so build it inline instead.
                             Component.onCompleted: {
-                                let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(Version.version_str_full);
-                                let url = "https://github.com/Matthew-McRaven/Pepp/commit/" + Version.git_sha;
-                                let line1 = "Based on <a href=\"" + url + "\">";
-                                line1 += Version.git_tag !== "unknown" ? Version.git_tag : Version.git_sha.substring(0, 7);
-                                line1 += "</a>.";
-                                text = line0 + line1;
+                                let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(
+                                    Version.version_str_full)
+                                let url = "https://github.com/Matthew-McRaven/Pepp/commit/"
+                                + Version.git_sha
+                                let line1 = "Based on <a href=\"" + url + "\">"
+                                line1 += Version.git_tag
+                                !== "unknown" ? Version.git_tag : Version.git_sha.substring(
+                                                    0, 7)
+                                line1 += "</a>."
+                                text = line0 + line1
                             }
                         }
                     } //  RowLayout-logo
@@ -206,7 +211,8 @@ Item {
                             TextArea {
                                 id: license
                                 readOnly: true
-                                text: FileReader.readFile(":/about/LICENSE_FULL")
+                                text: FileReader.readFile(
+                                          ":/about/LICENSE_FULL")
                             }
                             ScrollBar.vertical.policy: ScrollBar.AlwaysOn
                         } //  ScrollView
@@ -280,9 +286,10 @@ Item {
                             id: projectCombo
                             Component.onCompleted: {
                                 // Force the correct license to be selected on load.
-                                projectCombo.onCurrentIndexChanged();
+                                projectCombo.onCurrentIndexChanged()
                                 // onCurrentIndexChanged not called automatically, so we must connect to the appropriate signal.
-                                projectCombo.currentIndexChanged.connect(projectCombo.onCurrentIndexChanged);
+                                projectCombo.currentIndexChanged.connect(
+                                    projectCombo.onCurrentIndexChanged)
                             }
 
                             Layout.preferredWidth: 160
@@ -292,10 +299,11 @@ Item {
                             currentIndex: 0
                             textRole: "name"
                             function onCurrentIndexChanged() {
-                                let index = model.index(currentIndex, 0);
-                                projectLicense.text = model.data(index, DependencyRoles.LicenseText);
-                                let url = model.data(index, DependencyRoles.URL);
-                                projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>";
+                                let index = model.index(currentIndex, 0)
+                                projectLicense.text = model.data(
+                                            index, DependencyRoles.LicenseText)
+                                let url = model.data(index, DependencyRoles.URL)
+                                projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
                             }
                         }
                         Item {
@@ -316,7 +324,7 @@ Item {
                             Layout.fillWidth: true
                             color: palette.windowText
                             onLinkActivated: link => {
-                                Qt.openUrlExternally(link);
+                                Qt.openUrlExternally(link)
                             }
                         }
                     }
