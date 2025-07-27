@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -22,6 +21,7 @@ import QtQuick.Controls
 import QtQuick.Window
 import edu.pepp 1.0
 import "../about" as About
+import "qrc:/qt/qml/edu/pepp/help/builtins" as Builtins
 
 Item {
     id: root
@@ -103,20 +103,16 @@ Item {
                             color: palette.windowText
                             Layout.margins: root.sideMargin
                             onLinkActivated: link => {
-                                Qt.openUrlExternally(link)
+                                Qt.openUrlExternally(link);
                             }
                             // Too much text to assign in binding, so build it inline instead.
                             Component.onCompleted: {
-                                let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(
-                                    Version.version_str_full)
-                                let url = "https://github.com/Matthew-McRaven/Pepp/commit/"
-                                + Version.git_sha
-                                let line1 = "Based on <a href=\"" + url + "\">"
-                                line1 += Version.git_tag
-                                !== "unknown" ? Version.git_tag : Version.git_sha.substring(
-                                                    0, 7)
-                                line1 += "</a>."
-                                text = line0 + line1
+                                let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(Version.version_str_full);
+                                let url = "https://github.com/Matthew-McRaven/Pepp/commit/" + Version.git_sha;
+                                let line1 = "Based on <a href=\"" + url + "\">";
+                                line1 += Version.git_tag !== "unknown" ? Version.git_tag : Version.git_sha.substring(0, 7);
+                                line1 += "</a>.";
+                                text = line0 + line1;
                             }
                         }
                     } //  RowLayout-logo
@@ -211,8 +207,7 @@ Item {
                             TextArea {
                                 id: license
                                 readOnly: true
-                                text: FileReader.readFile(
-                                          ":/about/LICENSE_FULL")
+                                text: FileReader.readFile(":/about/LICENSE_FULL")
                             }
                             ScrollBar.vertical.policy: ScrollBar.AlwaysOn
                         } //  ScrollView
@@ -230,10 +225,10 @@ Item {
                 color: palette.base
                 border.width: 1
                 border.color: palette.shadow
-                Text {
-                    // Replace this control with Change control screen
-                    text: "Change Log"
-                } //  End of replacement
+                Builtins.ChangelogViewer {
+                    focus: true
+                    anchors.fill: parent
+                }
             }
         } //  Item - changeLog
         //  System Info screen
@@ -286,10 +281,9 @@ Item {
                             id: projectCombo
                             Component.onCompleted: {
                                 // Force the correct license to be selected on load.
-                                projectCombo.onCurrentIndexChanged()
+                                projectCombo.onCurrentIndexChanged();
                                 // onCurrentIndexChanged not called automatically, so we must connect to the appropriate signal.
-                                projectCombo.currentIndexChanged.connect(
-                                    projectCombo.onCurrentIndexChanged)
+                                projectCombo.currentIndexChanged.connect(projectCombo.onCurrentIndexChanged);
                             }
 
                             Layout.preferredWidth: 160
@@ -299,11 +293,10 @@ Item {
                             currentIndex: 0
                             textRole: "name"
                             function onCurrentIndexChanged() {
-                                let index = model.index(currentIndex, 0)
-                                projectLicense.text = model.data(
-                                            index, DependencyRoles.LicenseText)
-                                let url = model.data(index, DependencyRoles.URL)
-                                projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
+                                let index = model.index(currentIndex, 0);
+                                projectLicense.text = model.data(index, DependencyRoles.LicenseText);
+                                let url = model.data(index, DependencyRoles.URL);
+                                projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>";
                             }
                         }
                         Item {
@@ -324,7 +317,7 @@ Item {
                             Layout.fillWidth: true
                             color: palette.windowText
                             onLinkActivated: link => {
-                                Qt.openUrlExternally(link)
+                                Qt.openUrlExternally(link);
                             }
                         }
                     }
