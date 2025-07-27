@@ -11,18 +11,51 @@ ColumnLayout {
             Qt.openUrlExternally(link);
         }
         Component.onCompleted: {
+            const url = "https://github.com/Matthew-McRaven/Pepp/issues";
+            const l1 = `Report any issues to our <a href=\"${url}\">issue tracker</a>`;
+            const l2 = "Please include a copy of the diagnositc information on this page.";
+
+            text = `${l1}<br/>${l2}`;
+        }
+    }
+
+    Item {
+        implicitHeight: 30
+    }
+
+    Text {
+        onLinkActivated: link => {
+            Qt.openUrlExternally(link);
+        }
+        Component.onCompleted: {
             let url = "https://github.com/Matthew-McRaven/Pepp/commit/" + Version.git_sha;
             text = `Pepp build: <a href=\"${url}\">${Version.git_sha.substring(0, 7)}</a>`;
         }
     }
     Text {
         Component.onCompleted: {
-            text = `Built on: ${Version.build_timestamp}`;
+            text = `Qt Version: ${Version.qt_version},debug=${Version.qt_debug},shared=${Version.qt_shared}`;
         }
     }
     Text {
         Component.onCompleted: {
-            text = `Build OS ID: ${Version.build_system}`;
+            text = `Machine OS: ${Version.target_platform}`;
+        }
+    }
+    Text {
+        Component.onCompleted: {
+            text = `Machine ABI: ${Version.target_abi}`;
+        }
+    }
+
+    Text {
+        Component.onCompleted: {
+            text = `Build date: ${Version.build_timestamp}`;
+        }
+    }
+    Text {
+        Component.onCompleted: {
+            text = `Build OS: ${Version.build_system}`;
         }
     }
     Text {
@@ -34,14 +67,9 @@ ColumnLayout {
         Layout.fillHeight: true
     }
 
-    // Want to know
     // Link to our issue reporting thing. Add a template which tells you to submit a screenshot of this information.
+    // Want to know
     /* OS info;
-     *   Name, version, architecture
      *   Window manager
-     *
-     * Build information:
-     *   Qt build # with URL
-     *   Qt debug/shared/static
      */
 }

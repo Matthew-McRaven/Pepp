@@ -43,8 +43,13 @@ class Version : public QObject {
   Q_PROPERTY(int version_patch READ version_patch CONSTANT)
   Q_PROPERTY(QString version_str_full READ version_str_full CONSTANT)
   Q_PROPERTY(QString build_timestamp READ build_timestamp CONSTANT)
+  // Properties of the machine running the application
+  Q_PROPERTY(QString target_platform READ target_platform CONSTANT)
+  Q_PROPERTY(QString target_abi READ target_abi CONSTANT)
   // Properties of our dependencies
   Q_PROPERTY(QString qt_version READ qt_version CONSTANT)
+  Q_PROPERTY(QString qt_debug READ qt_debug CONSTANT)
+  Q_PROPERTY(QString qt_shared READ qt_shared CONSTANT)
   // Properties of our build system
   Q_PROPERTY(QString cxx_compiler READ cxx_compiler CONSTANT)
   Q_PROPERTY(QString build_system READ build_system CONSTANT)
@@ -62,8 +67,12 @@ public:
   static int version_patch();
   static QString version_str_full();
   static QString build_timestamp();
+  static QString target_platform();
+  static QString target_abi();
 
   static QString qt_version();
+  static QString qt_debug();
+  static QString qt_shared();
 
   static QString cxx_compiler();
   static QString build_system();
