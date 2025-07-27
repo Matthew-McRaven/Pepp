@@ -13,7 +13,7 @@ ColumnLayout {
         Component.onCompleted: {
             const url = "https://github.com/Matthew-McRaven/Pepp/issues";
             const l1 = `Report any issues to our <a href=\"${url}\">issue tracker</a>`;
-            const l2 = "Please include a copy of the diagnositc information on this page.";
+            const l2 = "Please include a copy of the diagnostic information on this page.";
 
             text = `${l1}<br/>${l2}`;
         }
