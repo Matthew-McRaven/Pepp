@@ -16,27 +16,39 @@
 
 #include <catch.hpp>
 
+#include "help/builtins/figure.hpp"
+#include "help/builtins/registry.hpp"
 #include "sim/debug/expr_parser.hpp"
 #include "sim/debug/expr_rtti.hpp"
+#include "toolchain/helpers/asmb.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
+#include "toolchain/pas/obj/trace_tags.hpp"
+
+QSharedPointer<const builtins::Book> book(builtins::Registry &reg) {
+  QString bookName = "Computer Systems, 6th Edition";
+  auto book = reg.findBook(bookName);
+  return book;
+}
 
 TEST_CASE("Serialize stack ops", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   using P = types::Primitives;
-  SECTION("Emits non-zero bytes") {
-    types::TypeInfo nti;
-    auto members = std::vector<std::tuple<QString, types::BoxedType, quint16>>{
-        {"alpha", nti.box(types::Primitives::u8), 0},
-        {"beta", nti.box(types::Primitives::u16), 1},
-        {"gamma", nti.box(types::Primitives::i32), 3},
-    };
-    pepp::debug::types::Type _struct = types::Struct{2, members};
-    nti.register_direct(_struct);
-    nti.register_indirect("hi_world");
-    auto [data, in, out] = zpp::bits::data_in_out();
-    CHECK(nti.serialize(out, nti) == std::errc());
-    CHECK(data.size() > 4);
-    types::TypeInfo reread;
-    CHECK(reread.serialize(in, reread) == std::errc());
-    CHECK(nti == reread);
-  }
+
+  auto bookReg = builtins::Registry();
+  auto bookPtr = book(bookReg);
+  auto os_fig = bookPtr->findFigure("os", "pep10os");
+  auto registry = helpers::registry(bookPtr, {});
+  REQUIRE(os_fig.get() != nullptr);
+  auto text = os_fig->findFragment("pep")->contents();
+  REQUIRE(text.size() > 100);
+  helpers::AsmHelper asm_helper(registry, text, pepp::Architecture::PEP10);
+  asm_helper.setUserText("");
+  REQUIRE(asm_helper.assemble());
+  auto elf = asm_helper.elf();
+  REQUIRE(!elf.isNull());
+  auto debugInfo = pas::obj::common::readDebugCommands(*elf);
+  CHECK(debugInfo.commands.size() > 0);
+  qDebug() << "Debug commands:\n";
+  for (auto addr = debugInfo.commands.keyBegin(); addr != debugInfo.commands.keyEnd(); addr++)
+    qDebug().noquote() << *addr << debugInfo.commands[*addr];
 }
