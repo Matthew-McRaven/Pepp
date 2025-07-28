@@ -1,3 +1,4 @@
+# Should we delete this .gitignore file?
 *
 !*.svg
 !.gitignore
@@ -6,3 +7,4 @@
 !*.png
 !*.ico
 !*.icns
+!*.qrc

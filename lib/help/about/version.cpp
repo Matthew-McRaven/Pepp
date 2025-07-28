@@ -26,3 +26,35 @@ QString about::Version::version_str_full() {
   using namespace Qt::StringLiterals;
   return u"%1.%2.%3"_s.arg(version_major()).arg(version_minor()).arg(version_patch());
 }
+
+QString about::Version::build_timestamp() {
+  using namespace Qt::StringLiterals;
+  return u"%1"_s.arg(about::g_BUILD_TIMESTAMP());
+}
+
+QString about::Version::qt_version() { return QLibraryInfo::version().toString(); }
+QString about::Version::qt_debug() { return QLibraryInfo::isDebugBuild() ? "true" : "false"; }
+QString about::Version::qt_shared() { return QLibraryInfo::isSharedBuild() ? "true" : "false"; }
+
+QString about::Version::cxx_compiler() {
+  static const auto ret = QStringLiteral("%1 %2").arg(about::g_CXX_COMPILER_ID()).arg(about::g_CXX_COMPILER_VERSION());
+  return ret;
+}
+
+QString about::Version::build_system() {
+  static const auto ret = QStringLiteral("%1 %2 %3")
+                              .arg(about::g_BUILD_SYSTEM_NAME())
+                              .arg(about::g_BUILD_SYSTEM_VERSION())
+                              .arg(about::g_BUILD_SYSTEM_PROCESSOR());
+  return ret;
+}
+
+QString about::Version::target_platform() {
+  static const auto ret = QStringLiteral("%1").arg(QSysInfo::prettyProductName());
+  return ret;
+}
+
+QString about::Version::target_abi() {
+  static const auto ret = QStringLiteral("%1").arg(QSysInfo::buildAbi());
+  return ret;
+}

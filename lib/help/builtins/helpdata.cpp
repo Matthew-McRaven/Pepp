@@ -6,18 +6,6 @@
 using namespace Qt::StringLiterals;
 constexpr int shift = 16;
 
-QSharedPointer<HelpEntry> about_root() {
-  // relative to this the directroy in which HelpRoot.qml is located.
-  auto ret = QSharedPointer<HelpEntry>::create(HelpCategory::Category::About, -1, "About", "../about/About.qml");
-  QList<QSharedPointer<HelpEntry>> children;
-  if (auto changedb = QFileInfo(":/changelog/changelog.db"); changedb.exists()) {
-    children.append(
-        QSharedPointer<HelpEntry>::create(HelpCategory::Category::About, -1, "Changelog", "ChangelogViewer.qml"));
-  }
-  if (children.size() != 0) ret->addChildren(children);
-  return ret;
-}
-
 QSharedPointer<HelpEntry> writing_root() {
   using enum pepp::Architecture;
   using enum pepp::Abstraction;
@@ -112,7 +100,7 @@ QString removeLeading0(const QString &str) {
 QSharedPointer<HelpEntry> examples_root(const builtins::Registry &reg) {
   auto books = reg.books();
   QList<QSharedPointer<HelpEntry>> children;
-  for (const auto &book : books) {
+  for (const auto &book : std::as_const(books)) {
     for (const auto &figure : book->figures()) {
       // Skip explicitly hidden figures (like the assembler).
       if (figure->isHidden()) continue;
