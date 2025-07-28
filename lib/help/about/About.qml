@@ -228,6 +228,9 @@ Item {
                 Builtins.ChangelogViewer {
                     focus: true
                     anchors.fill: parent
+                    paragraphSpace: root.paragraphSpace
+                    tabSize: root.sideMargin
+                    pointSize: fontMetrics.height
                 }
             }
         } //  Item - changeLog
