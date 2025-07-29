@@ -310,11 +310,6 @@ ApplicationWindow {
         id: aboutDialog
         parent: Overlay.overlay
         anchors.centerIn: parent
-    }
-    About.AboutDialog {
-        id: whatsNewDialog
-        parent: Overlay.overlay
-        anchors.centerIn: parent
 
         // Do not create binding to settings directly, so that we don't get modified when the setting is updated.
         function getMin() {
@@ -330,21 +325,26 @@ ApplicationWindow {
             return copy;
         }
 
+        //  Version settings
         Settings {
             id: whatsNewDialogSettings
             property string lastOpenedVersion
         }
+
+        //  Clears settings based on developer menu option
         function onClearLastVersion() {
             whatsNewDialogSettings.lastOpenedVersion = "";
             whatsNewDialogSettings.sync();
         }
+
+        //  Trigger About dialog if version has changed since last opening.
         Component.onCompleted: {
             actions.appdev.clearChangelogCache.triggered.connect(onClearLastVersion);
             if (whatsNewDialogSettings.lastOpenedVersion !== Version.version_str_full) {
                 //  Version has changed. Open about to change log tab. Set old version.
                 const version = getMin();
-                whatsNewDialog.setMinimumVersion(version);
-                whatsNewDialog.setTab(AboutDialog.TabType.ChangeLog);//1);
+                aboutDialog.setMinimumVersion(version);
+                aboutDialog.setTab(AboutDialog.TabType.ChangeLog);
                 open();
             }
             whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full;
