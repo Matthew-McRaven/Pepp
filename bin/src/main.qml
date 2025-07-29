@@ -166,7 +166,17 @@ ApplicationWindow {
         anchors.right: sidebar.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        color: palette.shadow
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop {
+                position: 0.0
+                color: Qt.darker(palette.shadow, 1.25)
+            }
+            GradientStop {
+                position: 1.0
+                color: Qt.lighter(palette.shadow, 1.15)
+            }
+        }
     }
 
     Top.SideBar {
