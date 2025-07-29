@@ -27,6 +27,16 @@ Item {
     id: root
     focus: true
 
+    function setTab(tab) {
+        helpBar.currentIndex = tab;
+        //changeLog.min = changeLog.max;
+
+    }
+
+    function setMinimumVersion(minVersion) {
+        changeLog.min = minVersion;
+    }
+
     implicitWidth: 500
     implicitHeight: 800
     property int implicitButtonWidth: 100
@@ -45,19 +55,19 @@ Item {
         width: parent.width
         TabButton {
             text: "Pepp"
-            width: implicitButtonWidth
+            width: root.implicitButtonWidth
         }
         TabButton {
             text: "Change Log"
-            width: implicitButtonWidth
+            width: root.implicitButtonWidth
         }
         TabButton {
             text: "System Info"
-            width: implicitButtonWidth
+            width: root.implicitButtonWidth
         }
         TabButton {
             text: "Dependencies"
-            width: implicitButtonWidth
+            width: root.implicitButtonWidth
         }
     }
 
@@ -217,17 +227,17 @@ Item {
         } //  Item - pepAbout
         //  Change Log screen
         Item {
-            id: changeLog
+            //id: changeLog
             Layout.fillHeight: true
             Layout.fillWidth: true
             Rectangle {
                 anchors.fill: parent
-                color: palette.base
-                border.width: 1
-                border.color: palette.shadow
+
                 Builtins.ChangelogViewer {
+                    id: changeLog
                     focus: true
                     anchors.fill: parent
+
                     paragraphSpace: root.paragraphSpace
                     tabSize: root.sideMargin
                     pointSize: fontMetrics.height

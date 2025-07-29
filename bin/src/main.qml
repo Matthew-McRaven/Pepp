@@ -311,31 +311,25 @@ ApplicationWindow {
         parent: Overlay.overlay
         anchors.centerIn: parent
     }
-    Dialog {
+    About.AboutDialog {
         id: whatsNewDialog
-        title: qsTr("What's New")
         parent: Overlay.overlay
         anchors.centerIn: parent
-        modal: true
-        width: 700
-        clip: true
-        height: 700
-        contentItem: Builtins.ChangelogViewer {
-            focus: true
-            // Do not create binding to settings directly, so that we don't get modified when the setting is updated.
-            min: {
-                // By making a copy of the value before binding, we can avoid propogating updates to settings.
-                var copy;
-                if (whatsNewDialogSettings.lastOpenedVersion === "")
-                    copy = Version.version_str_full;
-                else {
-                    copy = whatsNewDialogSettings.lastOpenedVersion;
-                }
-                // We still need to use a binding, or the model filtering will be unlinked from combo boxes.
-                min = Qt.binding(() => copy);
+
+        // Do not create binding to settings directly, so that we don't get modified when the setting is updated.
+        function getMin() {
+            // By making a copy of the value before binding, we can avoid propogating updates to settings.
+            var copy;
+            if (whatsNewDialogSettings.lastOpenedVersion === "")
+                copy = Version.version_str_full;
+            else {
+                copy = whatsNewDialogSettings.lastOpenedVersion;
             }
+
+            //  Version string
+            return copy;
         }
-        standardButtons: Dialog.Close
+
         Settings {
             id: whatsNewDialogSettings
             property string lastOpenedVersion
@@ -346,8 +340,13 @@ ApplicationWindow {
         }
         Component.onCompleted: {
             actions.appdev.clearChangelogCache.triggered.connect(onClearLastVersion);
-            if (whatsNewDialogSettings.lastOpenedVersion !== Version.version_str_full)
+            if (whatsNewDialogSettings.lastOpenedVersion !== Version.version_str_full) {
+                //  Version has changed. Open about to change log tab. Set old version.
+                const version = getMin();
+                whatsNewDialog.setMinimumVersion(version);
+                whatsNewDialog.setTab(AboutDialog.TabType.ChangeLog);//1);
                 open();
+            }
             whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full;
         }
     }

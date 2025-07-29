@@ -61,15 +61,15 @@ Rectangle {
                 model: ChangelogFilterModel {
                     sourceModel: baseModel
                     max: filterModel.max
-                    onMaxChanged: minVer.update()
+                    onMaxChanged: minVer.update();
                 }
                 // Activated only occurs with user interaction and not programtic manipulation of current index.
                 // This prevents spurious updates to the model.
-                onActivated: filterModel.min = currentText
+                onActivated: filterModel.min = currentText;
                 Component.onCompleted: update()
                 function update() {
-                    const index = find(filterModel.min)
-                    currentIndex = Qt.binding(() => index)
+                    const index = find(filterModel.min);
+                    currentIndex = Qt.binding(() => index);
                 }
             }
             ComboBox {
@@ -78,15 +78,15 @@ Rectangle {
                 model: ChangelogFilterModel {
                     sourceModel: baseModel
                     min: filterModel.min
-                    onMinChanged: maxVer.update()
+                    onMinChanged: maxVer.update();
                 }
                 // Activated only occurs with user interaction and not programtic manipulation of current index.
                 // This prevents spurious updates to the model.
-                onActivated: filterModel.max = currentText
+                onActivated: filterModel.max = currentText;
                 Component.onCompleted: update()
                 function update() {
-                    const index = find(filterModel.max)
-                    currentIndex = Qt.binding(() => index)
+                    const index = find(filterModel.max);
+                    currentIndex = Qt.binding(() => index);
                 }
             }
         }   //  GridLayout
@@ -130,7 +130,7 @@ Rectangle {
                     text: `<a href="${verDelegate.link}">${version.version}</a> -- ${verDelegate.dateStr()}`
                     font.bold: true
                     font.pixelSize: wrapper.pointSize
-                    onLinkActivated: Qt.openUrlExternally(verDelegate.link)
+                    onLinkActivated: Qt.openUrlExternally(verDelegate.link);
                     color: palette.windowText
                 }
                 //  Summary of changes
@@ -184,7 +184,7 @@ Rectangle {
                                 color: palette.windowText
                                 onLinkActivated: {
                                     if (changeDelegate.link.length > 0)
-                                        Qt.openUrlExternally(changeDelegate.link)
+                                        Qt.openUrlExternally(changeDelegate.link);
                                 }
                             }   //  delegate: Text
                         }   //  Repeater - details
