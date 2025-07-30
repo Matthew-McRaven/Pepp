@@ -29,7 +29,6 @@ Item {
 
     function setTab(tab) {
         helpBar.currentIndex = tab;
-        //changeLog.min = changeLog.max;
 
     }
 
@@ -227,7 +226,7 @@ Item {
         } //  Item - pepAbout
         //  Change Log screen
         Item {
-            //id: changeLog
+            
             Layout.fillHeight: true
             Layout.fillWidth: true
             Rectangle {
