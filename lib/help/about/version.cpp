@@ -15,6 +15,9 @@
  */
 
 #include "./version.hpp"
+#include <QClipboard>
+#include <QGuiApplication>
+
 about::Version::Version(QObject *parent) : QObject(parent) {}
 QString about::Version::git_sha() { return about::g_GIT_SHA1(); }
 QString about::Version::git_tag() { return about::g_GIT_TAG(); }
@@ -51,6 +54,18 @@ QStringList about::diagnostics() {
   static const auto ret = QStringList{l1, l2, l3, l4};
   return ret;
 }
+
+QString about::Version::diagnostic_str() {
+  using namespace Qt::StringLiterals;
+  return diagnostics().join("\n");
+}
+
+void about::Version::copy_diagnostics_to_clipboard() {
+  // Only attempt clipboard access if the application has a clipboard.
+  QClipboard *clipboard = QGuiApplication::clipboard();
+  if (clipboard) clipboard->setText(diagnostic_str());
+}
+
 QString about::Version::version_str_full() {
   using namespace Qt::StringLiterals;
   return u"%1.%2.%3"_s.arg(version_major()).arg(version_minor()).arg(version_patch());
