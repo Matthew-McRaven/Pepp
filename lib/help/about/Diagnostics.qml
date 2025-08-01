@@ -6,7 +6,9 @@ import QtQuick.Window
 import edu.pepp 1.0
 
 ColumnLayout {
+
     Text {
+
         onLinkActivated: link => {
             Qt.openUrlExternally(link);
         }
@@ -64,12 +66,20 @@ ColumnLayout {
         }
     }
     Item {
+        implicitHeight: 30
+    }
+    Button {
+        text: "Copy to Clipboard"
+        onClicked: {
+            Version.copy_diagnostics_to_clipboard();
+        }
+    }
+    Item {
         Layout.fillHeight: true
     }
 
-    // Link to our issue reporting thing. Add a template which tells you to submit a screenshot of this information.
-    // Want to know
-    /* OS info;
-     *   Window manager
+    // Still want to add the following fields at some point
+    /*
+     *   Window manager, to debug Wayland issues.
      */
 }
