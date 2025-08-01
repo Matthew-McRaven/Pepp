@@ -123,17 +123,16 @@ else ()
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=0")
 endif ()
 
-if (ENABLE_TERM_TESTS)
-    configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
-    qt6_add_executable(test-term test/about.cpp test/asmrun.cpp test/ls.cpp test/get.cpp test/test_main.cpp test/samples.qrc test/samples.cpp)
+
+option(ENABLE_TERM_TESTS "Enable shell tests of pepp" ON)
+if(ENABLE_TERM_TESTS AND NOT (EMSCRIPTEN OR IOS))
     # Needed to find config file.
-    target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-    add_dependencies(pepp test-term Qt6::Core catch)
-    option(ENABLE_TERM_TESTS "Enable shell tests of pepp" OFF)
-    if (ENABLE_TERM_TESTS)
-        add_test(NAME test-term COMMAND test-term)
-        set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")
-    endif ()
+    qt6_add_executable(test-term test/about.cpp test/asmrun.cpp test/ls.cpp test/get.cpp test/test_main.cpp test/samples.qrc test/samples.cpp)
+    target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_LIST_DIR}/test)
+    target_link_libraries(test-term PRIVATE cli catch Qt6::Core)
+    add_dependencies(test-term pepp-lib pepp-libplugin pepp)
+    add_test(NAME test-term COMMAND test-term)
+    set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")
 endif ()
 
 # Add main GUI module, qml sources, resources, and add demo applications.
