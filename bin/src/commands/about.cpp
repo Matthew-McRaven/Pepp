@@ -25,20 +25,29 @@ AboutTask::AboutTask(QObject *parent) : Task(parent) {}
 
 void AboutTask::run() {
   using namespace Qt::StringLiterals;
-  std::cout << u"Pepp Terminal, Version %1\nBased on commit %2\n\n"_s.arg(about::versionString())
-                   .arg(about::g_GIT_SHA1())
-                   .toStdString();
-  std::cout << "Report issues or check for updates:\n";
+  static const auto build_system = QStringLiteral("%1 %2 %3")
+                                       .arg(about::g_BUILD_SYSTEM_NAME())
+                                       .arg(about::g_BUILD_SYSTEM_VERSION())
+                                       .arg(about::g_BUILD_SYSTEM_PROCESSOR());
+  static const auto compiler_id =
+      QStringLiteral("%1 %2").arg(about::g_CXX_COMPILER_ID()).arg(about::g_CXX_COMPILER_VERSION());
+
+  std::cout << u"Pepp Terminal, Version %1"_s.arg(about::versionString()).toStdString();
+  for (const auto &line : about::diagnostics()) std::cout << "\n\t" << line.toStdString();
+  std::cout << "\n\nReport issues or check for updates:\n";
   std::cout << "\t" << about::projectRepoURL().toStdString() << "\n\n";
   std::cout << "Authors:\n";
   for (const auto &maintainer : about::maintainers())
     std::cout << "\t" << maintainer.name.toStdString() << " <" << maintainer.email.toStdString() << "> \n";
   std::cout << "\nLicensing:\n";
   auto lines = Catch::TextFlow::Column(about::licenseNotice().toStdString());
-  for (const auto &line : lines) {
+  lines.width(72);
+  for (const auto &line : lines)
     std::cout << "\t" << QString::fromStdString(line).replace("\n", "\n\t").toStdString() << "\n";
-  }
-  std::cout << "\n\n\tFor further licensing info, execute this program with the "
-               "`license` subcommand.\n";
+  std::cout << "\n";
+  lines = Catch::TextFlow::Column("For further licensing info, execute this program with the `license` subcommand.\n");
+  lines.width(72);
+  for (const auto &line : lines)
+    std::cout << "\t" << QString::fromStdString(line).replace("\n", "\n\t").toStdString() << "\n";
   return emit finished(0);
 }
