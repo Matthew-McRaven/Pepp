@@ -32,6 +32,8 @@ int g_MINOR_VERSION();
 int g_PATCH_VERSION();
 bool g_GIT_LOCAL_CHANGES();
 
+QStringList diagnostics();
+
 class Version : public QObject {
   Q_OBJECT
   // Properties of pepp
