@@ -15,6 +15,7 @@ class ScintillaAsmEditBase : public ScintillaEditBase {
   Q_PROPERTY(pepp::settings::Palette *theme READ theme WRITE setTheme NOTIFY themeChanged)
   Q_PROPERTY(
       bool lineNumbersVisible READ lineNumbersVisible WRITE setLineNumbersVisible NOTIFY lineNumbersVisibleChanged);
+  Q_PROPERTY(int caretBlink READ caretBlink WRITE setCaretBlink NOTIFY caretBlinkChanged);
   QML_ELEMENT
 
 public:
@@ -47,6 +48,7 @@ signals:
   void themeChanged();
   void lineNumbersVisibleChanged();
   void modifyLine(int line, Action action);
+  void caretBlinkChanged();
 
 private:
   const int errorStyle = STYLE_LASTPREDEFINED + 1;
@@ -71,5 +73,8 @@ private:
 
   bool lineNumbersVisible() const;
   void setLineNumbersVisible(bool visible);
+
+  int caretBlink() const;
+  void setCaretBlink(int blink);
   // Defer style update so that we can layer multiple changes over defaults.
 };

@@ -49,6 +49,7 @@ FocusScope {
     // public properties
     property alias text: editor.text
     property alias readOnly: editor.readOnly
+    property alias caretBlink: editor.caretBlink
     property alias editorFont: editor.font
     property alias language: editor.language
     // private properties, used only for technical details...

@@ -137,7 +137,10 @@ Item {
             editorFont: editorFM.font
             language: wrapper.lexerLang
             readOnly: false
-            Component.onCompleted: readOnly = true
+            Component.onCompleted: {
+                readOnly = true;
+                textArea.caretBlink = 0;
+            }
             function updateText(newText) {
                 textArea.readOnly = false;
                 textArea.text = newText;

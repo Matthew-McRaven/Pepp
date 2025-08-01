@@ -275,6 +275,7 @@ FocusScope {
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
                         focus: mode === "debugger" && sourceSelector.currentIndex === 0
+                        caretBlink: 0
                     }
                     Text.ScintillaAsmEdit {
                         id: osList
@@ -286,6 +287,7 @@ FocusScope {
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
                         focus: mode === "debugger" && sourceSelector.currentIndex === 1
+                        caretBlink: 0
                     }
                 }
             }

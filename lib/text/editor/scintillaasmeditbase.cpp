@@ -187,6 +187,15 @@ void ScintillaAsmEditBase::setLineNumbersVisible(bool visible) {
   emit lineNumbersVisibleChanged();
 }
 
+int ScintillaAsmEditBase::caretBlink() const { return (int)send(SCI_GETCARETPERIOD); }
+
+void ScintillaAsmEditBase::setCaretBlink(int blink) {
+  if (caretBlink() == blink) return;
+  else if (blink < 0) blink = 0; // Don't allow negative blink
+  send(SCI_SETCARETPERIOD, blink);
+  emit caretBlinkChanged();
+}
+
 sptr_t c2i(const QColor &color) { return ColourRGBAFromQColor(color).AsInteger(); }
 // Editor ignores alpha, so we need do do alpha compositing ourselves
 // See: https://en.wikipedia.org/wiki/Alpha_compositing
