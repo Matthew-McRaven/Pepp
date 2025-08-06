@@ -9,6 +9,3 @@ Consequently, if the `CPr` subtraction operation overflows and sets the V bit, t
 
 With this adjustment, the compare operation extends the range of valid comparisons.
 Even though there is an overflow, the N bit is set as if there were no overflow so that a subsequent conditional branch will operate as expected.
-
-[Scroll to topics](#Topics).
-

@@ -41,33 +41,31 @@ QSharedPointer<HelpEntry> debugging_root() {
 
 QSharedPointer<HelpEntry> systemcalls_root() {
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Writing System Calls", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_scalls.md"_s)}};
   root->isWIP = true;
   return root;
 }
 
 QSharedPointer<HelpEntry> greencard10_root() {
-  auto c_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Setting the C bit on subtraction",
-                                                 "MDText.qml");
-  c_bit->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
-  auto n_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1,
-                                                 "Setting the N bit on <mono>CPr</mono>", "MDText.qml");
+  auto c_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "C bit on SUBr", "MDText.qml");
+  c_bit->props = QVariantMap{{"file", QVariant(u":/help/pep10/c_bit.md"_s)}};
+  c_bit->sortName = "001";
+  auto n_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "N bit for CPBr", "MDText.qml");
   n_bit->props = QVariantMap{{"file", QVariant(u":/help/pep10/n_bit.md"_s)}};
+  n_bit->sortName = "002";
   auto addr = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Addressing Modes", "MDText.qml");
-  addr->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
+  addr->props = QVariantMap{{"file", QVariant(u":/help/pep10/addr_modes.md"_s)}};
+  addr->sortName = "003";
   auto reg = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Register field", "MDText.qml");
-  reg->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
-  auto mmio = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Memory-mapped IO", "MDText.qml");
-  mmio->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
+  reg->props = QVariantMap{{"file", QVariant(u":/help/pep10/register_fields.md"_s)}};
+  reg->sortName = "004";
   auto alu = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "ALU Functions", "MDText.qml");
-  alu->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
+  alu->props = QVariantMap{{"file", QVariant(u":/help/pep10/alu_func.md"_s)}};
+  alu->sortName = "005";
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/10 Reference", "Greencard.qml");
-  QVector<QSharedPointer<HelpEntry>> children{c_bit, n_bit, addr, reg, mmio, alu};
-  for (auto &c : children) c->isWIP = true;
+  QVector<QSharedPointer<HelpEntry>> children{c_bit, n_bit, addr, reg, alu};
   root->addChildren(children);
-  root->isWIP = true;
-  // TODO: probably need to add props...
   return root;
 }
 
