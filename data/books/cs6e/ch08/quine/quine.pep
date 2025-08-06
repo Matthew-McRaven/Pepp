@@ -8,6 +8,7 @@ limit:   .EQUATE 6           ; Number of bytes to copy #2h
          STWA    baseAddr,s
          @DECI   dstAddr,s   ; Determine target address using DECI
          LDWA    dstAddr,s   ; offset <- dstAddr - baseAddr
+         BREQ    halt        ; If dstAddr == 0, stop replicating
          SUBA    baseAddr,s
          STWA    offset,s
          CALL    calcLim     ;limit <- &last_instruction - baseAddr
@@ -39,6 +40,9 @@ stop:    LDWA    dstAddr,s
          ADDSP   8,i         ; #dstAddr#offset#baseAddr#limit
          STWA    0,s
          RET
+halt:    LDWA    0xDEAD,i
+         STBA    pwrOff,d
+self:    BR      self        ; If pwrOff is broken, enter infinite loop.
 ; Use retAddr - 3 to compute baseAddress
 calcBase:LDWA    0,s
          SUBA    3,i
