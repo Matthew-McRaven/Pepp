@@ -188,7 +188,12 @@ Item {
             top: parent.top
             right: parent.right
             bottom: parent.bottom
+            topMargin: 0
+            leftMargin: 20
+            rightMargin: 20
+            bottomMargin: 20
         }
+        ScrollBar.vertical: ScrollBar {}
         clip: true
         Loader {
             id: contentLoader
@@ -210,6 +215,11 @@ Item {
                 }
 
                 ignoreUnknownSignals: true
+            }
+            onLoaded: {
+                // Offset by some small amount to disappear scrollbar when content is not large enough.
+                const height = Math.max(contentFlickable.height - 1, contentLoader?.item?.implicitHeight ?? 0);
+                contentFlickable.contentHeight = Qt.binding(() => height);
             }
         }
     }
