@@ -20,11 +20,29 @@ Item {
         syncView: tableView
         clip: true
         textRole: "display"
-        delegate: Text {
+        delegate: Label {
             text: model.display
-            horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             font.bold: true
+            topPadding: 2
+            bottomPadding: 2
+            leftPadding: 7.5
+            rightPadding: 7.5
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
+            background: Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                border.color: palette.mid
+                border.width: 1
+                // Must set all 4 anchors manually. As soon as you override one of left/right or top/bottom margin, the other becomes unset.
+                // Since we need special handling for first row and column, we must override all margins.
+                anchors.leftMargin: model.column === 0 ? 0 : -border.width / 2
+                anchors.rightMargin: -border.width / 2
+                anchors.topMargin: model.row === 0 ? 0 : -border.width / 2
+                anchors.bottomMargin: -border.width / 2
+                z: 1
+            }
         }
     }
     TextMetrics {
@@ -45,7 +63,6 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         boundsBehavior: Flickable.StopAtBounds
-        columnSpacing: 5
         model: GreencardFilterModel {
             hideStatus: root.hideStatus
             hideMnemonic: root.hideMnemonic
@@ -57,19 +74,38 @@ Item {
         columnWidthProvider: function (column) {
             if (column === 0) {
                 // Pick the largest of 9 monospaced characters OR the size of "Instruction"
-                return Math.max(tm.width, 9 * fm.averageCharacterWidth) + 10;
+                return Math.max(tm.width, 10 * fm.averageCharacterWidth) + 10;
             }
             // Auto-compute other columns
             return -1;
         }
 
-        delegate: Text {
+        delegate: Label {
             // Prevent 0-width columns, which causes many errors to be emitted to the console.
             text: model.display ? model.display : " "
             font: model.useMonoRole ? settings.extPalette.baseMono.font : settings.extPalette.base.font
-            Layout.fillWidth: column == 0
             textFormat: model.useMarkdown ? Text.MarkdownText : Text.PlainText
+            topPadding: 2
+            bottomPadding: 2
+            leftPadding: 7.5
+            rightPadding: 7.5
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignLeft
+            background: Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                border.color: palette.mid
+                border.width: 1
+                // Must set all 4 anchors manually. As soon as you override one of left/right or top/bottom margin, the other becomes unset.
+                // Since we need special handling for first row and column, we must override all margins.
+                anchors.leftMargin: model.column === 0 ? 0 : -border.width / 2
+                anchors.rightMargin: -border.width / 2
+                anchors.topMargin: model.row === 0 ? 0 : -border.width / 2
+                anchors.bottomMargin: -border.width / 2
+                z: 1
+            }
         }
+
         ScrollBar.vertical: ScrollBar {
             policy: tableView.contentHeight + horizontalHeader.height > root.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
         }
