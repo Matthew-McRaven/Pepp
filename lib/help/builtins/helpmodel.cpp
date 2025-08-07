@@ -22,11 +22,11 @@ HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
 
   // If you update the following array, YOU MUST UPDATE THE INDEX OF VARIABLE TOO!!!
   _roots = {
-      writing_root(),     debugging_root(),     systemcalls_root(),
-      greencard10_root(), examples_root(*_reg), macros_root(*_reg),
+      starting_root(),      ui_root(),          editing_root(),  debugging_root(), greencard10_root(),
+      examples_root(*_reg), macros_root(*_reg), advanced_root(),
   };
-  _indexOfFigs = 4;
-  _indexOfMacros = 5;
+  _indexOfFigs = 5;
+  _indexOfMacros = 6;
 
   for (auto &root : _roots) addToIndex(root);
   QObject::connect(set.general(), &pepp::settings::GeneralCategory::showDebugComponentsChanged, this,

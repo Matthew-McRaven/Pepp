@@ -54,13 +54,7 @@ Item {
     ColumnLayout {
         id: figureLayout
         spacing: 10
-        anchors {
-            topMargin: 0
-            leftMargin: 20
-            rightMargin: 20
-            bottomMargin: 20
-            fill: parent
-        }
+        anchors.fill: parent
         ComboBox {
             id: fragmentSelector
             Layout.alignment: Qt.AlignTop

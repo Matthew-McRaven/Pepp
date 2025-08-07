@@ -1,19 +1,8 @@
-Pep/10: Assembly Language Documentation code 
-
-Assembly Language
-
-Reference: _Computer Systems_, Chapters 5, 6.
-
-An assembly language program is a sequence of lines, each line containing either an instruction from the Pep/9 instruction set specfied by a mnemonic, or a pseudo-operation, also called a pseudo-op or dot command.
-The assembly language program must end with the pseudo-op `.END`.
-
-Topics: [Writing an assembly language program](#Writing), [The Run Source option](#Run), [Trace tag warnings](#Trace).
-
-### Writing an assembly language program
+# Writing an assembly language program
 
 Writing an assembly language program is a four-step process.
 
-#### Step 1.
+## Step 1.
 
 With this Pep/9 application, you write the assembly language program using the built-in text editor in the Source Code pane.
 The following figure shows the source program after entering the program from Figure 5.19 of the textbook.
@@ -25,7 +14,7 @@ For example, the above program could be entered as follows.
 
 ![fig0519unformatted](qrc:/help-asm/images/fig0519unformatted.png)
 
-#### Step 2.
+## Step 2.
 
 After writing the assembly language program, assemble it by selecting Build→Assemble Source from the menu or clicking on the hammer icon in the tool bar.
 
@@ -55,36 +44,14 @@ Your source code will be assembled and replaced with the standard formatted sour
 
 ![formatfromlisting](qrc:/help-asm/images/formatfromlisting.png)
 
-#### Step 3.
+## Step 3.
 
 Load your program by selecting Build→Load Object Code from the menu.
 
 ![load](qrc:/help-asm/images/load.png)
 
-#### Step 4.
+## Step 4.
 
 To execute the program select Build→Execute from the menu.
 
 ![execute](qrc:/help-asm/images/execute.png)
-
-[Scroll to topics](#Topics).
-
-### The Run Source option
-
-The three steps — Assemble, Load, Execute — are combined in the single option called Run Source.
-You can initiate a run by selecting Build→Run Source from the menu or by clicking on the Run Source icon in the tool bar.
-
-![runsource](qrc:/help-asm/images/runsource.png) ![runicon](qrc:/help-asm/images/runicon.png)
-
-[Scroll to topics](#Topics).
-
-### Trace tag warnings
-
-If your program assembles correctly but there is an error in your trace tags, a trace tag warning is displayed.
-For example, here is what happens if you make an error in one of the trace tags in the program from Figure 5.27.
-
-![fig0527tracetagwarning](qrc:/help-asm/images/fig0527tracetagwarning.png)
-
-Programs with trace tag warnings have assembled correctly and will still run. In the debugger, you can still single step through the program, set break points, and trace memory in the Memory Dump pane. However, the symbolic trace feature that shows the C memory model graphically in the Memory Trace pane is disabled until you fix the trace tag error and reassemble your program.
-
-[Scroll to topics](#Topics).

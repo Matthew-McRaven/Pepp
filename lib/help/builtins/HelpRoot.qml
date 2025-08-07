@@ -91,10 +91,23 @@ Item {
     // There was an issue in WASM where the titles clipper the center area
     TextMetrics {
         id: textMetrics
-        text: "Computer Systems, 200th edition"
+        text: "       Computer Systems, 200th edition really"
+    }
+
+    Rectangle {
+        anchors {
+            left: parent.left
+            top: parent.top
+            bottom: parent.bottom
+            right: controlPanel.right
+        }
+        color: palette.base
+        border.width: 1
+        border.color: palette.shadow
     }
     ColumnLayout {
         id: controlPanel
+        width: textMetrics.width
         anchors {
             left: parent.left
             top: parent.top
@@ -119,10 +132,9 @@ Item {
                 }
             }
         }
-
         TreeView {
             id: treeView
-            Layout.minimumWidth: textMetrics.width
+            Layout.preferredWidth: textMetrics.width
             selectionModel: ItemSelectionModel {}
             Layout.fillHeight: true
             clip: true
@@ -144,7 +156,8 @@ Item {
 
             delegate: TreeViewDelegate {
                 id: treeDelegate
-                width: TreeView.availableWidth
+                implicitWidth: textMetrics.width
+
                 // Default background does not fill entire delegate.
                 background: Rectangle {
                     anchors {
@@ -154,7 +167,7 @@ Item {
                     }
                     width: treeView.width
 
-                    color: model.isExternal ? "red" : palette.base
+                    color: model.isExternal ? "red" : "transparent"
                     border {
                         color: treeDelegate.current ? palette.highlight : "transparent"
                         width: 2
@@ -173,7 +186,7 @@ Item {
                         treeView.expandRecursively(row);
                     }
                 }
-
+                font: textMetrics.font
                 function makeActive() {
                     root.selected = treeDelegate.treeView.index(row, column);
                     treeDelegate.treeView.selectionModel.setCurrentIndex(root.selected, ItemSelectionModel.NoUpdate);
@@ -188,7 +201,12 @@ Item {
             top: parent.top
             right: parent.right
             bottom: parent.bottom
+            topMargin: 0
+            leftMargin: 20
+            rightMargin: 20
+            bottomMargin: 20
         }
+        ScrollBar.vertical: ScrollBar {}
         clip: true
         Loader {
             id: contentLoader
@@ -210,6 +228,11 @@ Item {
                 }
 
                 ignoreUnknownSignals: true
+            }
+            onLoaded: {
+                // Offset by some small amount to disappear scrollbar when content is not large enough.
+                const height = Math.max(contentFlickable.height - 1, contentLoader?.item?.implicitHeight ?? 0);
+                contentFlickable.contentHeight = Qt.binding(() => height);
             }
         }
     }
