@@ -6,7 +6,7 @@ namespace builtins {
 class Registry;
 }
 class HelpEntry;
-QSharedPointer<HelpEntry> navigating_root();
+QSharedPointer<HelpEntry> starting_root();
 QSharedPointer<HelpEntry> ui_root();
 QSharedPointer<HelpEntry> editing_root();
 QSharedPointer<HelpEntry> debugging_root();
