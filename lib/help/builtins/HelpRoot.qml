@@ -91,10 +91,11 @@ Item {
     // There was an issue in WASM where the titles clipper the center area
     TextMetrics {
         id: textMetrics
-        text: "Computer Systems, 200th edition"
+        text: "       Computer Systems, 200th edition really"
     }
     ColumnLayout {
         id: controlPanel
+        width: textMetrics.width
         anchors {
             left: parent.left
             top: parent.top
@@ -119,10 +120,9 @@ Item {
                 }
             }
         }
-
         TreeView {
             id: treeView
-            Layout.minimumWidth: textMetrics.width
+            Layout.preferredWidth: textMetrics.width
             selectionModel: ItemSelectionModel {}
             Layout.fillHeight: true
             clip: true
@@ -144,7 +144,8 @@ Item {
 
             delegate: TreeViewDelegate {
                 id: treeDelegate
-                width: TreeView.availableWidth
+                implicitWidth: textMetrics.width
+
                 // Default background does not fill entire delegate.
                 background: Rectangle {
                     anchors {
@@ -173,7 +174,7 @@ Item {
                         treeView.expandRecursively(row);
                     }
                 }
-
+                font: textMetrics.font
                 function makeActive() {
                     root.selected = treeDelegate.treeView.index(row, column);
                     treeDelegate.treeView.selectionModel.setCurrentIndex(root.selected, ItemSelectionModel.NoUpdate);
