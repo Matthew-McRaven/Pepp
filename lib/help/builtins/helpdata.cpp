@@ -278,7 +278,7 @@ QSharedPointer<HelpEntry> advanced_root() {
   brk_cond->sortName = "d";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Advanced Topics", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/advanced/_root.md"_s)}};
   root->isWIP = true;
   root->addChildren({brk_view, watch_expr, dbg_expr, brk_cond});
   return root;
