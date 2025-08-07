@@ -93,6 +93,18 @@ Item {
         id: textMetrics
         text: "       Computer Systems, 200th edition really"
     }
+
+    Rectangle {
+        anchors {
+            left: parent.left
+            top: parent.top
+            bottom: parent.bottom
+            right: controlPanel.right
+        }
+        color: palette.base
+        border.width: 1
+        border.color: palette.shadow
+    }
     ColumnLayout {
         id: controlPanel
         width: textMetrics.width
@@ -155,7 +167,7 @@ Item {
                     }
                     width: treeView.width
 
-                    color: model.isExternal ? "red" : palette.base
+                    color: model.isExternal ? "red" : "transparent"
                     border {
                         color: treeDelegate.current ? palette.highlight : "transparent"
                         width: 2
