@@ -2,24 +2,27 @@ Navigating Pepp
         Switching application modes
         Hiding / unhiding panels
         Input / Output
-        Endless loop
+        Changing Settings / Colors
         Textbook examples
         File extensions
-        Changing Settings / Colors
+        Byte Conversion
 Editing Programs
         Machine Language, ISA3
                 Writing Programs
                 Running Programs
-        Assembly Language, ASMB3
+        Assembly Language, Asmb3
         Assembly Language, OS4
                 Writing System Calls / Writing Trap Handles
-        Assembly Language, ASMB5
+        Assembly Language, Asmb5
+                Using system calls
+        Advanced Topics
+                Debug Expressions in Comments
 Debugging Programs
         The CPU Display
         The Memory Dump
         Tracing (level) code
         Breakpoints
-        Byte Converters
+        Endless loop
         Advanced Topics
                 Expression Evaluators
                 Conditional Breakpoints
