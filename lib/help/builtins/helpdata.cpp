@@ -77,7 +77,7 @@ QSharedPointer<HelpEntry> ui_root() {
   asmedit->isWIP = true;
   asmedit->sortName = "c";
 
-  auto asmlist = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assember Listing", "MDText.qml");
+  auto asmlist = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembler Listing", "MDText.qml");
   asmlist->props = QVariantMap{{"file", QVariant(u":/help/ui/asmb_list.md"_s)}};
   asmlist->isWIP = true;
   asmlist->sortName = "d";
@@ -241,7 +241,7 @@ QSharedPointer<HelpEntry> debugging_root() {
   step->isWIP = true;
   step->sortName = "0";
   auto trace_isa =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Tracing Maching Language", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Tracing Machine Language", "MDText.qml");
   trace_isa->props = QVariantMap{{"file", QVariant(u":/help/debug/isa.md"_s)}};
   trace_isa->isWIP = true;
   trace_isa->sortName = "1";
@@ -313,7 +313,7 @@ QSharedPointer<HelpEntry> greencard10_root() {
   alu->sortName = "005";
   auto mmio = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Memory-Mapped IO", "MDText.qml");
   mmio->props = QVariantMap{{"file", QVariant(u":/help/pep10/mmio.md"_s)}};
-  mmio->sortName = "005";
+  mmio->sortName = "006";
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/10 Reference", "Greencard.qml");
   QVector<QSharedPointer<HelpEntry>> children{c_bit, n_bit, addr, reg, alu, mmio};

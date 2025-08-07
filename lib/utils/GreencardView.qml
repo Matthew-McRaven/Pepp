@@ -73,7 +73,7 @@ Item {
         }
         columnWidthProvider: function (column) {
             if (column === 0) {
-                // Pick the largest of 9 monospaced characters OR the size of "Instruction"
+                // Pick the largest of the size of "Instruction" OR 10 monospaced characters
                 return Math.max(tm.width, 10 * fm.averageCharacterWidth) + 10;
             }
             // Auto-compute other columns
