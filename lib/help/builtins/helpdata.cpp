@@ -48,7 +48,7 @@ QSharedPointer<HelpEntry> starting_root() {
   extensions->sortName = "h";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Getting Started", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/start/_root.md"_s)}};
   root->addChildren({abstractions, new_projects, managing_projects, modes, hiding, settings, examples, extensions});
   return root;
 }
@@ -131,7 +131,7 @@ QSharedPointer<HelpEntry> editing_root() {
 
   auto isa3 =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Machine Language, ISA3", "MDText.qml");
-  isa3->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
+  isa3->props = QVariantMap{{"file", QVariant(u":/help/edit/_isa3.md"_s)}};
   isa3->isWIP = true;
   isa3->sortName = "3a";
   auto isa3_writing =
@@ -147,7 +147,7 @@ QSharedPointer<HelpEntry> editing_root() {
 
   auto asmb3 =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language, Asmb3", "MDText.qml");
-  asmb3->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
+  asmb3->props = QVariantMap{{"file", QVariant(u":/help/edit/asmb_edit.md"_s)}};
   asmb3->isWIP = true;
   asmb3->sortName = "3b";
   auto asmb3_symbols = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Symbols", "MDText.qml");
@@ -158,7 +158,7 @@ QSharedPointer<HelpEntry> editing_root() {
 
   auto os4 =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language, OS4", "MDText.qml");
-  os4->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
+  os4->props = QVariantMap{{"file", QVariant(u":/help/edit/_os4.md"_s)}};
   os4->isWIP = true;
   os4->sortName = "4";
   auto scalls =
@@ -201,7 +201,7 @@ QSharedPointer<HelpEntry> editing_root() {
 
   auto asmb5 =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language, Asmb5", "MDText.qml");
-  asmb5->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_progs.md"_s)}};
+  asmb5->props = QVariantMap{{"file", QVariant(u":/help/edit/asmb_edit.md"_s)}};
   asmb5->isWIP = true;
   asmb5->sortName = "5";
   auto asmb5_writing =
@@ -217,7 +217,7 @@ QSharedPointer<HelpEntry> editing_root() {
   asmb5->addChildren({using_macros, asmb5_writing, asmb5_trace});
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Editing Programs", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_progs.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/edit/_root.md"_s)}};
   root->isWIP = true;
   root->addChildren({mc2, isa3, asmb3, os4, asmb5});
   return root;
@@ -239,15 +239,19 @@ QSharedPointer<HelpEntry> debugging_root() {
   trace_asmb->props = QVariantMap{{"file", QVariant(u":/help/debug/asmb.md"_s)}};
   trace_asmb->isWIP = true;
   trace_asmb->sortName = "2";
+  auto bps = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Using Breakpoints", "MDText.qml");
+  bps->props = QVariantMap{{"file", QVariant(u":/help/debug/breakpoints.md"_s)}};
+  bps->isWIP = true;
+  bps->sortName = "3";
   auto endless = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Endless Loops", "MDText.qml");
   endless->props = QVariantMap{{"file", QVariant(u":/help/debug/loops.md"_s)}};
   endless->isWIP = true;
-  endless->sortName = "3";
+  endless->sortName = "4";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Debugging Programs", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/debug/_root.md"_s)}};
   root->isWIP = true;
-  root->addChildren({step, trace_isa, trace_asmb, endless});
+  root->addChildren({step, trace_isa, trace_asmb, bps, endless});
   return root;
 }
 
@@ -274,7 +278,7 @@ QSharedPointer<HelpEntry> advanced_root() {
   brk_cond->sortName = "d";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Advanced Topics", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help//blank.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
   root->isWIP = true;
   root->addChildren({brk_view, watch_expr, dbg_expr, brk_cond});
   return root;
@@ -296,9 +300,12 @@ QSharedPointer<HelpEntry> greencard10_root() {
   auto alu = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "ALU Functions", "MDText.qml");
   alu->props = QVariantMap{{"file", QVariant(u":/help/pep10/alu_func.md"_s)}};
   alu->sortName = "005";
+  auto mmio = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Memory-Mapped IO", "MDText.qml");
+  mmio->props = QVariantMap{{"file", QVariant(u":/help/pep10/mmio.md"_s)}};
+  mmio->sortName = "005";
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/10 Reference", "Greencard.qml");
-  QVector<QSharedPointer<HelpEntry>> children{c_bit, n_bit, addr, reg, alu};
+  QVector<QSharedPointer<HelpEntry>> children{c_bit, n_bit, addr, reg, alu, mmio};
   root->addChildren(children);
   return root;
 }
@@ -354,7 +361,7 @@ QSharedPointer<HelpEntry> examples_root(const builtins::Registry &reg) {
   }
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Figures", "MDText.qml");
   root->isExternal = reg.usingExternalFigures();
-  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/figures.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/figures.md"_s)}};
   root->addChildren(children);
   return root;
 }

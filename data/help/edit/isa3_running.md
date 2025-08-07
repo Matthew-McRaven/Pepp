@@ -1,7 +1,6 @@
-# First Level Heading
+# The Run Object option
 
-Paragraph.
+The two steps — Load, Execute — are combined in the single option called Run Object.
+You can initiate a run by selecting Build→Run Object from the menu.
 
-## Second Level Heading
-
-Paragraph.
+![runobject](qrc:/help-asm/images/runobject.png)
