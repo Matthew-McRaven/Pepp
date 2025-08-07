@@ -240,13 +240,13 @@ QSharedPointer<HelpEntry> debugging_root() {
   step->props = QVariantMap{{"file", QVariant(u":/help/debug/step.md"_s)}};
   step->isWIP = true;
   step->sortName = "0";
-  auto trace_isa = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1,
-                                                     "Tracing Maching Language Programs", "MDText.qml");
+  auto trace_isa =
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Tracing Maching Language", "MDText.qml");
   trace_isa->props = QVariantMap{{"file", QVariant(u":/help/debug/isa.md"_s)}};
   trace_isa->isWIP = true;
   trace_isa->sortName = "1";
-  auto trace_asmb = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1,
-                                                      "Tracing Assembly Language Programs", "MDText.qml");
+  auto trace_asmb =
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Tracing Assembly Language", "MDText.qml");
   trace_asmb->props = QVariantMap{{"file", QVariant(u":/help/debug/asmb.md"_s)}};
   trace_asmb->isWIP = true;
   trace_asmb->sortName = "2";
