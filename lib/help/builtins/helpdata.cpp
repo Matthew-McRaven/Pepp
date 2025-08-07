@@ -46,10 +46,15 @@ QSharedPointer<HelpEntry> starting_root() {
   extensions->props = QVariantMap{{"file", QVariant(u":/help/start/extensions.md"_s)}};
   extensions->isWIP = true;
   extensions->sortName = "h";
+  auto getting_help = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Getting Help", "MDText.qml");
+  getting_help->props = QVariantMap{{"file", QVariant(u":/help/start/help.md"_s)}};
+  getting_help->isWIP = true;
+  getting_help->sortName = "i";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Getting Started", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/start/_root.md"_s)}};
-  root->addChildren({abstractions, new_projects, managing_projects, modes, hiding, settings, examples, extensions});
+  root->addChildren(
+      {abstractions, new_projects, managing_projects, modes, hiding, settings, examples, extensions, getting_help});
   return root;
 }
 
@@ -216,10 +221,16 @@ QSharedPointer<HelpEntry> editing_root() {
   asmb5_trace->sortName = "5b";
   asmb5->addChildren({using_macros, asmb5_writing, asmb5_trace});
 
+  auto auto_format =
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Automatic Formatting", "MDText.qml");
+  auto_format->props = QVariantMap{{"file", QVariant(u":/help/edit/autoformat.md"_s)}};
+  auto_format->isWIP = true;
+  auto_format->sortName = "0";
+
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Editing Programs", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/edit/_root.md"_s)}};
   root->isWIP = true;
-  root->addChildren({mc2, isa3, asmb3, os4, asmb5});
+  root->addChildren({auto_format, mc2, isa3, asmb3, os4, asmb5});
   return root;
 }
 
