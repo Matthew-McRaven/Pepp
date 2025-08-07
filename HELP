@@ -1,29 +1,39 @@
 Navigating Pepp
         Switching application modes
         Hiding / unhiding panels
-        Input / Output
         Changing Settings / Colors
-        Textbook examples
         File extensions
-        Byte Conversion
-Editing Programs
-        Machine Language, ISA3
-                Writing Programs
-                Running Programs
-        Assembly Language, Asmb3
-        Assembly Language, OS4
-                Writing System Calls / Writing Trap Handles
-        Assembly Language, Asmb5
-                Using system calls
-        Advanced Topics
-                Debug Expressions in Comments
-Debugging Programs
+        Textbook examples
+Introduction to UI Stuff
+        Byte Converters
+        Object Code Editor
+        Source Editor
+        Listing
+        Symbol Table
         The CPU Display
         The Memory Dump
-        Tracing (level) code
-        Breakpoints
+        Stack Trace
+        Program Input / Output
+Editing Programs
+        Machine Language, ISA3
+        Assembly Language, Asmb3
+                Using Macros       (*)
+                Symbols            (*)
+        Assembly Language, OS4
+                Using Macros       (*)
+                Writing System Calls / Writing Trap Handles
+        Assembly Language, Asmb5
+                Using Macros       (*)
+                Using system calls
+                Trace tags
+Debugging Programs
+        Stepping through programs
+        Tracing machine code
+        Tracing assembly code
         Endless loop
-        Advanced Topics
-                Expression Evaluators
-                Conditional Breakpoints
+Advanced Topics
+        Debug Expressions in Comments
+        Watch Expressions
+        Viewing Breakpoints
+        Conditional Breakpoints
 Pep N reference
