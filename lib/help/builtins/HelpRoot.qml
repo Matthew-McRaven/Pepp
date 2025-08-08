@@ -194,48 +194,60 @@ Item {
             }
         }
     }
-    Flickable {
-        id: contentFlickable
+    //  Background
+    Rectangle {
         anchors {
             left: controlPanel.right
             top: parent.top
             right: parent.right
             bottom: parent.bottom
             topMargin: 0
-            leftMargin: 20
+            leftMargin: 10
             rightMargin: 20
-            bottomMargin: 20
         }
-        ScrollBar.vertical: ScrollBar {}
-        clip: true
-        Loader {
-            id: contentLoader
-            anchors.fill: parent
-            Connections {
-                target: contentLoader.item
-
-                function onAddProject(feats, texts, mode, os, tests) {
-                    const abs = filterModel.get(filterCombo.currentIndex).value.abstraction;
-                    const arch = filterModel.get(filterCombo.currentIndex).value.architecture;
-                    root.addProject(arch, abs, feats, texts, true);
-                    if (tests && tests[0])
-                        root.setCharIn(tests[0].input);
-                    root.switchToMode(mode ?? "Editor");
-                }
-
-                function onRenameCurrentProject(name) {
-                    root.renameCurrentProject(name);
-                }
-
-                ignoreUnknownSignals: true
-            }
-            onLoaded: {
-                // Offset by some small amount to disappear scrollbar when content is not large enough.
-                const height = Math.max(contentFlickable.height - 1, contentLoader?.item?.implicitHeight ?? 0);
-                contentFlickable.contentHeight = Qt.binding(() => height);
-            }
+        color: palette.base
+        border {
+            color: palette.windowText
+            width: 1
         }
-    }
+
+        Flickable {
+            id: contentFlickable
+            ScrollBar.vertical: ScrollBar {}
+            clip: true
+            anchors {
+                fill: parent
+                margins: 1
+            }
+            Loader {
+                id: contentLoader
+                anchors.fill: parent
+                Connections {
+                    target: contentLoader.item
+
+                    function onAddProject(feats, texts, mode, os, tests) {
+                        const abs = filterModel.get(filterCombo.currentIndex).value.abstraction;
+                        const arch = filterModel.get(filterCombo.currentIndex).value.architecture;
+                        root.addProject(arch, abs, feats, texts, true);
+                        if (tests && tests[0])
+                            root.setCharIn(tests[0].input);
+                        root.switchToMode(mode ?? "Editor");
+                    }
+
+                    function onRenameCurrentProject(name) {
+                        root.renameCurrentProject(name);
+                    }
+
+                    ignoreUnknownSignals: true
+                }
+                onLoaded: {
+                    // Offset by some small amount to disappear scrollbar when content is not large enough.
+                    const height = Math.max(contentFlickable.height - 1, contentLoader?.item?.implicitHeight ?? 0);
+                    contentFlickable.contentHeight = Qt.binding(() => height);
+                }
+            }   //  Loader
+        }   //  Flickable
+    }   //  Rectangle - background
 
     signal addProject(int level, int abstraction, string feats, var text, bool reuse)
 

@@ -53,7 +53,7 @@ Item {
 
     ColumnLayout {
         id: figureLayout
-        spacing: 10
+        spacing: 0
         anchors.fill: parent
         ComboBox {
             id: fragmentSelector
@@ -141,20 +141,26 @@ Item {
                 textArea.readOnly = true;
             }
         }
-        Row {
+        RowLayout {
             id: copyRow
-            Layout.alignment: Qt.AlignBottom
-            Layout.preferredHeight: 20
-            Layout.maximumHeight: 30
+
+            Layout.preferredHeight: button.height
+            Layout.minimumHeight: Layout.preferredHeight
+            Layout.maximumHeight: helpText.contentHeight
             Layout.fillWidth: true
-            spacing: 10
+            spacing: 0
             //  Copy button logic
             Button {
                 id: button
                 visible: enabled
                 enabled: wrapper.payload.defaultFragmentName.length > 0
                 text: "Copy to New Project"
-                anchors.horizontalCenter: copyRow.center
+                topPadding: 5
+                bottomPadding: 5
+
+                Layout.alignment: Qt.AlignVCenter
+                Layout.fillHeight: true
+
                 onClicked: {
                     const pl = wrapper.payload;
                     const name = pl.defaultFragmentName;
@@ -165,9 +171,14 @@ Item {
             }
             //  Figure title
             Text {
-                width: copyRow.width - button.width - copyRow.spacing
+                id: helpText
+                Layout.leftMargin: 10
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+
                 textFormat: Text.RichText
                 text: "<b>" + wrapper.title + ":</b> " + wrapper.payload.description
+                color: palette.windowText
                 wrapMode: Text.WordWrap
             }
         }
