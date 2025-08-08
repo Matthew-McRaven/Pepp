@@ -589,6 +589,7 @@ bool Pep_ISA::onDebuggingStop() {
 
 bool Pep_ISA::onISARemoveAllBreakpoints() {
   _dbg->bps->clearBPs();
+  emit projectBreakpointsCleared();
   return true;
 }
 
