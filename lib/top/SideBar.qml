@@ -67,19 +67,11 @@ Column {
             display: AbstractButton.TextUnderIcon
 
             background: Rectangle {
-                border.width: del.borderSize
+                border.width: del.hovered ? del.borderSize : 0
                 border.color: palette.shadow
                 anchors.leftMargin: 4
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0
-                        color: del.down ? palette.highlight : (del.checked ? palette.button.darker(1.3) : palette.light.lighter(1.1))
-                    }
-                    GradientStop {
-                        position: 1
-                        color: del.down ? palette.highlight : (del.checked ? palette.button.darker(1.4) : palette.light.darker(1.1))
-                    }
-                }
+                //  Show selected button color first. Show hover box second. Otherwise, use default
+                color: del.checked ? palette.button.lighter(1.2) : (del.hovered ? palette.highlight : palette.button)
             }
             Rectangle {
                 visible: del.checked
