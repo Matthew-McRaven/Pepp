@@ -85,7 +85,10 @@ void ScintillaAsmEditBase::onLineAction(int line, Action action) {
   }
 }
 
-void ScintillaAsmEditBase::onClearAllBreakpoints() { send(SCI_MARKERDELETEALL); }
+void ScintillaAsmEditBase::onClearAllBreakpoints() {
+  send(SCI_MARKERDELETEALL, conditionalBPStyle);
+  send(SCI_MARKERDELETEALL, BPStyle);
+}
 
 void ScintillaAsmEditBase::onRequestAllBreakpoints() {
   int totalLines = send(SCI_GETLINECOUNT);

@@ -119,6 +119,8 @@ signals:
   void allowedStepsChanged();
   void charInChanged();
   void charOutChanged();
+  // Called by onISARemoveAllBreakpoints so we can remove breakpoints from editors.
+  void projectBreakpointsCleared();
 
   void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);

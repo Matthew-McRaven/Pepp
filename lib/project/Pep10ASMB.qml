@@ -102,6 +102,10 @@ FocusScope {
         project.modifyUserList.connect(userList.editor.onLineAction);
         project.modifyOSList.connect(osList.editor.onLineAction);
         // Update breakpoints on switch
+        project.projectBreakpointsCleared.connect(userList.editor.onClearAllBreakpoints);
+        project.projectBreakpointsCleared.connect(osList.editor.onClearAllBreakpoints);
+        project.projectBreakpointsCleared.connect(userAsmEdit.editor.onClearAllBreakpoints);
+        project.projectBreakpointsCleared.connect(osAsmEdit.editor.onClearAllBreakpoints);
         project.clearListingBreakpoints.connect(userList.editor.onClearAllBreakpoints);
         project.clearListingBreakpoints.connect(osList.editor.onClearAllBreakpoints);
         project.requestSourceBreakpoints.connect(userAsmEdit.editor.onRequestAllBreakpoints);
