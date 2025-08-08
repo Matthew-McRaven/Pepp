@@ -47,12 +47,13 @@ Column {
             return "edit.svg";
         }
     }
-
     Repeater {
         id: sidebarRepeater
         // If there is no current project, display a Welcome mode.
         model: root.modesModel ?? defaultSidebarModel
         delegate: Button {
+            id: del
+            property int borderSize: 1
             enabled: root.enabled
             checkable: true
             width: 100
@@ -64,6 +65,33 @@ Column {
             icon.height: 42
             icon.width: 42
             display: AbstractButton.TextUnderIcon
+
+            background: Rectangle {
+                border.width: del.borderSize
+                border.color: palette.shadow
+                anchors.leftMargin: 4
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0
+                        color: del.down ? palette.highlight : (del.checked ? palette.button.darker(1.3) : palette.light.lighter(1.1))
+                    }
+                    GradientStop {
+                        position: 1
+                        color: del.down ? palette.highlight : (del.checked ? palette.button.darker(1.4) : palette.light.darker(1.1))
+                    }
+                }
+            }
+            Rectangle {
+                visible: del.checked
+                anchors.left: del.background.left
+                anchors.top: del.background.top
+                anchors.bottom: del.background.bottom
+                anchors.margins: 0
+                anchors.topMargin: del.borderSize
+                anchors.bottomMargin: del.borderSize
+                width: 4
+                color: palette.highlight
+            }
         }
     }
 
