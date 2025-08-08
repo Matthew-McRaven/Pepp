@@ -53,7 +53,7 @@ Column {
         model: root.modesModel ?? defaultSidebarModel
         delegate: Button {
             id: del
-            property int borderSize: 1
+            property int borderSize: 2
             enabled: root.enabled
             checkable: true
             width: 100
@@ -67,11 +67,11 @@ Column {
             display: AbstractButton.TextUnderIcon
 
             background: Rectangle {
-                border.width: del.hovered ? del.borderSize : 0
-                border.color: palette.shadow
+                border.width: (del.hovered && !del.checked) ? del.borderSize : 0
+                border.color: (del.hovered && !del.checked) ? palette.highlight : palette.shadow
                 anchors.leftMargin: 4
                 //  Show selected button color first. Show hover box second. Otherwise, use default
-                color: del.checked ? palette.button.lighter(1.2) : (del.hovered ? palette.highlight : palette.button)
+                color: del.checked ? palette.button.lighter(1.2) : palette.button
             }
             Rectangle {
                 visible: del.checked
@@ -83,6 +83,7 @@ Column {
                 anchors.bottomMargin: del.borderSize
                 width: 4
                 color: palette.highlight
+                radius: del.borderSize
             }
         }
     }
