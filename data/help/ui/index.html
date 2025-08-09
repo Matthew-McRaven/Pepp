@@ -1,0 +1,233 @@
+<h1>User Interface Overview</h1>
+<p>
+  This section describes the operation of each UI component in the Pepp. Each
+  component is documented separately in its own page, focusing on what the
+  component does and how to interact with it. The workflows involving these
+  components are covered in later sections.
+</p>
+
+<p>These symbols are used to indicate the availability of each component:</p>
+<table border="1" cellspacing="0" cellpadding="4">
+  <tr>
+    <th>Symbol</th>
+    <th>State</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Not available</td>
+    <td>
+      The component is not visible by deault not can it be enabled via the
+      <a href="">pane visibility controls</a>.
+    </td>
+  </tr>
+  <tr>
+    <td>○</td>
+    <td>Hidden by default</td>
+    <td>
+      The component exists but is not visible by default; it can be enabled via
+      the <a href="">pane visibility controls</a>.
+    </td>
+  </tr>
+  <tr>
+    <td>●</td>
+    <td>Visible by default</td>
+    <td>The component is present and visible by default.</td>
+  </tr>
+</table>
+
+<p>
+  The table below summarizes the availability of each component by level of
+  abstraction and mode:
+</p>
+<table border="1" cellspacing="0" cellpadding="4">
+  <tr>
+    <th rowspan="2">Component</th>
+    <th colspan="2">Mc2</th>
+    <th colspan="2">ISA3</th>
+    <th colspan="2">Asmb3</th>
+    <th colspan="2">OS4</th>
+    <th colspan="2">Asmb5</th>
+  </tr>
+  <tr>
+    <th>Editor</th>
+    <th>Debugger</th>
+    <th>Editor</th>
+    <th>Debugger</th>
+    <th>Editor</th>
+    <th>Debugger</th>
+    <th>Editor</th>
+    <th>Debugger</th>
+    <th>Editor</th>
+    <th>Debugger</th>
+  </tr>
+  <tr>
+    <td><a href="#">Byte Converters</a></td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+  </tr>
+  <tr>
+    <td><a href="#">Source Editor</a></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+  </tr>
+  <tr>
+    <td><a href="#">Listing</a></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+  </tr>
+  <tr>
+    <td><a href="#">Object Code</a></td>
+    <td></td>
+    <td></td>
+    <td>●</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+  </tr>
+  <tr>
+    <td><a href="#">Symbol Table</a></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+  </tr>
+  <tr>
+    <td><a href="#">Watch Expressions</a></td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+  </tr>
+  <tr>
+    <td><a href="#">Breakpoint Viewer</a></td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+    <td>○</td>
+  </tr>
+  <tr>
+    <td><a href="#">Batch Input</a></td>
+    <td></td>
+    <td></td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+    <td>●</td>
+  </tr>
+  <tr>
+    <td><a href="#">Batch Output</a></td>
+    <td></td>
+    <td></td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+  </tr>
+  <tr>
+    <td><a href="#">CPU Dump</a></td>
+    <td></td>
+    <td></td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+  </tr>
+  <tr>
+    <td><a href="#">Stack Trace</a></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+  </tr>
+  <tr>
+    <td><a href="#">Memory Dump</a></td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+    <td>○</td>
+    <td>●</td>
+  </tr>
+  <tr>
+    <td><a href="#">Instructions</a></td>
+    <td></td>
+    <td></td>
+    <td>●</td>
+    <td>○</td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+</table>

@@ -52,14 +52,12 @@ QSharedPointer<HelpEntry> starting_root() {
 QSharedPointer<HelpEntry> ui_root() {
   auto converters =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Byte Converters", "MDText.qml");
-  converters->props = QVariantMap{{"file", QVariant(u":/help/ui/converters.md"_s)}};
-  converters->isWIP = true;
+  converters->props = QVariantMap{{"file", QVariant(u":/help/ui/converters.html"_s)}};
   converters->sortName = "a";
 
   auto objedit =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Object Code Editor", "MDText.qml");
-  objedit->props = QVariantMap{{"file", QVariant(u":/help/ui/object_code.md"_s)}};
-  objedit->isWIP = true;
+  objedit->props = QVariantMap{{"file", QVariant(u":/help/ui/object_code.html"_s)}};
   objedit->sortName = "b";
 
   auto asmedit =
@@ -74,18 +72,16 @@ QSharedPointer<HelpEntry> ui_root() {
   asmlist->sortName = "d";
 
   auto symtab = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Symbol Table", "MDText.qml");
-  symtab->props = QVariantMap{{"file", QVariant(u":/help/ui/symtab.md"_s)}};
+  symtab->props = QVariantMap{{"file", QVariant(u":/help/ui/symtab.html"_s)}};
   symtab->isWIP = true;
   symtab->sortName = "e";
 
   auto cpudump = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "CPU Display", "MDText.qml");
-  cpudump->props = QVariantMap{{"file", QVariant(u":/help/ui/cpu_pane.md"_s)}};
-  cpudump->isWIP = true;
+  cpudump->props = QVariantMap{{"file", QVariant(u":/help/ui/cpu_pane.html"_s)}};
   cpudump->sortName = "f";
 
   auto memdump = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Memory Display", "MDText.qml");
-  memdump->props = QVariantMap{{"file", QVariant(u":/help/ui/hexdump.md"_s)}};
-  memdump->isWIP = true;
+  memdump->props = QVariantMap{{"file", QVariant(u":/help/ui/hexdump.html"_s)}};
   memdump->sortName = "g";
 
   auto stkdump = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Stack Trace", "MDText.qml");
@@ -99,9 +95,9 @@ QSharedPointer<HelpEntry> ui_root() {
   iopane->isWIP = true;
   iopane->sortName = "i";
 
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "UI Panels", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
-  root->isWIP = true;
+  auto root =
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "User Interface Overview", "MDText.qml");
+  root->props = QVariantMap{{"file", QVariant(u":/help/ui/index.html"_s)}};
   root->addChildren({converters, objedit, asmedit, asmlist, symtab, cpudump, memdump, stkdump, iopane});
 
   return root;

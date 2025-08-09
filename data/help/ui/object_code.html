@@ -1,0 +1,29 @@
+<h1>Object Code Editor</h1>
+<p>
+  The object code editor is a text editor for entering program bytes directly in
+  hexadecimal format. It accepts only valid hexadecimal characters and the
+  sentinel characters <code>z</code> and <code>Z</code>.
+</p>
+
+<p>
+  In a feature new to Pep/10, both the sentiel and whitespace are optional. Both
+  are automatically inserted when needed by the Pep/10 operating system. This
+  improvement has been transparently backported to Pep/8 and Pep/9.
+</p>
+
+<p>
+  It features an overwrite mode, which can be toggled via the
+  <kbd>Insert</kbd> key. This allows you to replace existing bytes without
+  shifting the surrounding content.
+</p>
+<p>
+  As an editor, it is always read-only in <strong>Debugger</strong> mode.
+  Outside of <strong>ISA3</strong>, it is also read-only because it is a
+  generated output from assembling Pep/10 source programs.
+</p>
+<p>
+  <img
+    src="qrc:/help_images/ui/object.png"
+    alt="Object Code Editor displaying program bytes"
+  />
+</p>
