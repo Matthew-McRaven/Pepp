@@ -1,0 +1,63 @@
+<h1>Changing the Style</h1>
+<p>
+  Pep allows you to customize the look and feel of the application, including
+  fonts and colors. These options are available in the
+  <b>Preferences</b> dialog.
+</p>
+<p>
+  <img
+    src="qrc:/help_images/start/settings.png"
+    alt="Fonts and Colors preferences"
+  />
+</p>
+
+<h2>Themes</h2>
+<p>
+  The application includes both a default <b>Light</b> theme and a default
+  <b>Dark</b> theme. You can switch between them with the
+  <b>Current Palette</b> combo box, or you can create and use a custom theme.
+</p>
+
+<h2>Fonts &amp; Colors</h2>
+<p>
+  The Fonts &amp; Colors section controls the style for the entire application,
+  including the editor, debugger, and circuit views. The default themes cannot
+  be modified directly, but you can create an editable copy of any existing
+  theme.
+</p>
+<p>Once copied, you can:</p>
+<ul>
+  <li>
+    Modify <b>colors</b> for specific interface elements (e.g., buttons,
+    highlights, text).
+  </li>
+  <li>Adjust font family and size for individual components.</li>
+  <li>Apply font overrides (bold, italic, underline, strikethrough).</li>
+</ul>
+<p>
+  Changes apply immediately, but require user input (e.g., <b>Save</b>) to be
+  persisted.
+</p>
+
+<h2>Managing Palettes</h2>
+<ul>
+  <li><b>Copy</b> — Duplicate the current palette for customization.</li>
+  <li><b>Save</b> — Write back changes to your currently selected palette.</li>
+  <li><b>Rename</b> — Change the palette name.</li>
+  <li>
+    <b>Import / Export</b> — Save your palette to a file or load one from disk.
+    These options make it easy to share color schemes or transfer them between
+    systems.
+  </li>
+</ul>
+
+<h2>Restoring Defaults</h2>
+<p>
+  If you make changes that make the UI difficult or impossible to read, you can
+  restore the default fonts and colors in two ways:
+</p>
+<ul>
+  <li>Use the <b>Help → Restore Fonts &amp; Colors</b> menu item.</li>
+  <li>Launch Pep with the reset command-line flag:</li>
+</ul>
+<pre>pep --reset-style</pre>

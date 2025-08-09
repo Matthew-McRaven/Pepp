@@ -8,7 +8,7 @@ TextArea {
     property int architecture: Architecture.PEP10 // Silence QML warning about non-existent property
 
     width: parent.width
-    textFormat: Text.MarkdownText
+    textFormat: Text.RichText
     wrapMode: Text.WordWrap
     readOnly: true
     Component.onCompleted: {

@@ -1,0 +1,125 @@
+<h1>Levels of Abstraction</h1>
+
+<table cellspacing="30">
+  <tr>
+    <td valign="top">
+      <img
+        src="qrc:/help_images/start/abstractions.png"
+        height="750"
+        alt="Levels of Abstraction diagram"
+      />
+    </td>
+    <td valign="top">
+      <p>
+        Pep/10 supports multiple levels of abstraction described in the
+        <a href="#">Computer Systems textbook</a>, each providing a different
+        view of the computing process. Each level uses different workflows and
+        user interface elements for writing and debugging programs.
+      </p>
+
+      <h2>Supported Levels</h2>
+      <p>
+        While <i>Computer Systems</i>, 6th edition describes seven levels of
+        abstraction, only the following levels are supported in this IDE.
+      </p>
+
+      <table border="1" cellspacing="0" cellpadding="4">
+        <tr>
+          <th>Abbreviation</th>
+          <th>Name</th>
+          <th>Described in chapters</th>
+          <th>Notes</th>
+        </tr>
+        <tr>
+          <td><b>Mc2</b></td>
+          <td>Micro Code</td>
+          <td>11</td>
+          <td>
+            Microcode controls the CPU’s datapath; used to implement the
+            fetch–execute cycle and define instruction behavior at the hardware
+            control level.
+          </td>
+        </tr>
+        <tr>
+          <td><b>ISA3</b></td>
+          <td>Instruction Set Architecture</td>
+          <td>4</td>
+          <td>
+            Machine instructions written in hexadecimal object code, focusing on
+            instruction semantics without binary encoding details.
+          </td>
+        </tr>
+        <tr>
+          <td><b>Asmb3</b></td>
+          <td>Assembly Language, bare metal</td>
+          <td>5, 12</td>
+          <td>
+            “Bare metal” mode without operating system support; teaches symbols
+            and macros before system calls.
+          </td>
+        </tr>
+        <tr>
+          <td><b>OS4</b></td>
+          <td>Operating System</td>
+          <td>8</td>
+          <td>
+            Introduces system calls and trap handling; shows OS mediation
+            between user programs and hardware.
+          </td>
+        </tr>
+        <tr>
+          <td><b>Asmb5</b></td>
+          <td>Assembly Language, with full OS</td>
+          <td>6</td>
+          <td>
+            Assembly programs using system calls; may be generated from
+            high-level languages like C, emphasizing translation and runtime
+            services.
+          </td>
+        </tr>
+      </table>
+
+      <h2>Supported Architectures</h2>
+      <p>
+        This IDE is designed from the ground up to support Pep/10, the
+        architecture introduced in the 6th edition of <i>Computer Systems</i>,
+        and is the recommended architecture for new projects.
+      </p>
+      <p>
+        For backwards compatibility, both Pep/9 and Pep/8 remain available.
+        These earlier architectures retain their original instruction sets and
+        memory layouts, ensuring that existing course materials and example
+        programs can still be used without modification.
+      </p>
+
+      <table border="1" cellspacing="0" cellpadding="4">
+        <tr>
+          <th>Architecture</th>
+          <th>Textbook Edition</th>
+          <th>Notes</th>
+        </tr>
+        <tr>
+          <td><b>Pep/10</b></td>
+          <td>6th Edition</td>
+          <td>
+            Recommended for new projects, including a powerful macro assembler
+            and the regular instruction set.
+          </td>
+        </tr>
+        <tr>
+          <td><b>Pep/9</b></td>
+          <td>5th Edition</td>
+          <td>Introduces memory-mapped input/output.</td>
+        </tr>
+        <tr>
+          <td><b>Pep/8</b></td>
+          <td>4th Edition</td>
+          <td>
+            Legacy architecture with reduced instruction set and earlier toolset
+            support.
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
