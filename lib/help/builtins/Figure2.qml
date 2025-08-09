@@ -27,6 +27,7 @@ Item {
     property int architecture: Architecture.PEP10 // Silence QML warning about non-existent property
     property string curFragName: undefined
     property var curFragment: undefined
+    property bool renderBG: false
     NuAppSettings {
         id: settings
     }
@@ -163,18 +164,22 @@ Item {
                 textArea.readOnly = true;
             }
         }
+
         Rectangle {
             Layout.preferredHeight: button.height
             Layout.minimumHeight: Layout.preferredHeight
             Layout.maximumHeight: Math.max(button.height, helpText.contentHeight)
             Layout.fillWidth: true
             color: palette.window
-            border {
-                width: 1
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 1
                 color: palette.shadow
             }
 
-             //  Copy button logic
+            //  Copy button logic
             RowLayout {
                 spacing: 0
                 anchors.left: parent.left

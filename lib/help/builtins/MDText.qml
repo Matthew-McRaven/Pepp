@@ -5,6 +5,7 @@ import edu.pepp 1.0
 TextArea {
     id: root
     required property string file
+    property bool renderBG: true
     property int architecture: Architecture.PEP10 // Silence QML warning about non-existent property
     signal navigateTo(string url)
     width: parent.width

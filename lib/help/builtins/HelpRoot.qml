@@ -251,9 +251,8 @@ Item {
                     ignoreUnknownSignals: true
                 }
                 onLoaded: {
-                    // Offset by some small amount to disappear scrollbar when content is not large enough.
-                    const height = Math.max(contentFlickable.height /*- 1*/, contentLoader?.item?.implicitHeight ?? 0);
-                    contentFlickable.contentHeight = Qt.binding(() => height);
+                    contentFlickable.contentHeight = Qt.binding(() => Math.max(contentFlickable.height, contentLoader?.item?.implicitHeight ?? 0));
+                    contentFlickable.anchors.margins = (contentLoader?.item?.renderBG ?? true) ? 1 : 0;
                 }
             }   //  Loader
         }   //  Flickable
