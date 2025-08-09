@@ -33,6 +33,8 @@ public:
   // Display name in help system; path to QML file which can display it.
   QString displayName, sortName;
   QString delegate;
+  // Used to lookup this help entry in the model without knowing the full name.
+  QString slug;
   // Props which will be injected into the delegate.
   QVariantMap props = {};
   void addChild(QSharedPointer<HelpEntry> child);
@@ -61,6 +63,7 @@ public:
   int columnCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
+  QModelIndex indexFromSlug(const QString &slug);
 protected slots:
   void onReloadFigures();
 
@@ -96,6 +99,7 @@ public:
   void setAbstraction(pepp::Abstraction abstraction);
   bool showWIPItems() const;
   void setShowWIPItems(bool show);
+  Q_INVOKABLE QModelIndex indexFromSlug(const QString &slug);
 
 protected:
   bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;

@@ -238,6 +238,16 @@ Item {
                         root.renameCurrentProject(name);
                     }
 
+                    // Links starting with slug:// are interpeted as links from one help page to another.
+                    function onNavigateTo(link) {
+                        if (link.startsWith("slug:")) {
+                            const idx = helpModel.indexFromSlug(link);
+                            if (idx.valid)
+                                root.selected = Qt.binding(() => idx);
+                        } else
+                            Qt.openUrlExternally(link);
+                    }
+
                     ignoreUnknownSignals: true
                 }
                 onLoaded: {
@@ -259,6 +269,7 @@ Item {
 
     onSelectedChanged: {
         const props = helpModel.data(selected, HelpModel.Props);
+        treeView.selectionModel.setCurrentIndex(root.selected, ItemSelectionModel.NoUpdate);
         if (props)
             props["architecture"] = helpModel.architecture ?? Architecture.PEP10;
         const url = helpModel.data(selected, HelpModel.Delegate);

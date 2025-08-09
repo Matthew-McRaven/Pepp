@@ -11,39 +11,49 @@ QSharedPointer<HelpEntry> starting_root() {
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Levels of Abstraction", "MDText.qml");
   abstractions->props = QVariantMap{{"file", QVariant(u":/help/start/abstractions.html"_s)}};
   abstractions->sortName = "a";
+  abstractions->slug = "abstract";
   auto new_projects =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Creating a New Project", "MDText.qml");
   new_projects->props = QVariantMap{{"file", QVariant(u":/help/start/new_projects.html"_s)}};
   new_projects->sortName = "b";
+  new_projects->slug = "new";
   auto managing_projects =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Managing Projects", "MDText.qml");
   managing_projects->props = QVariantMap{{"file", QVariant(u":/help/start/managing_projects.html"_s)}};
   managing_projects->sortName = "c";
+  managing_projects->slug = "manage";
   auto modes = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Switching Modes", "MDText.qml");
   modes->props = QVariantMap{{"file", QVariant(u":/help/start/modes.html"_s)}};
   modes->sortName = "d";
+  modes->slug = "modes";
   auto hiding =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Hiding/Showing Panes", "MDText.qml");
   hiding->props = QVariantMap{{"file", QVariant(u":/help/start/pane_visibility.html"_s)}};
   hiding->sortName = "e";
+  hiding->slug = "hide";
   auto settings =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Changing Settings & Colors", "MDText.qml");
   settings->props = QVariantMap{{"file", QVariant(u":/help/start/settings.html"_s)}};
   settings->sortName = "f";
+  settings->slug = "settings";
   auto examples =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Textbook Examples", "MDText.qml");
   examples->props = QVariantMap{{"file", QVariant(u":/help/start/examples.html"_s)}};
   examples->sortName = "g";
+  examples->slug = "ext";
   auto extensions =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "File Extensions", "MDText.qml");
   extensions->props = QVariantMap{{"file", QVariant(u":/help/start/extensions.html"_s)}};
   extensions->sortName = "h";
+  extensions->slug = "extensions";
   auto getting_help = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Getting Help", "MDText.qml");
   getting_help->props = QVariantMap{{"file", QVariant(u":/help/start/help.html"_s)}};
   getting_help->sortName = "i";
+  getting_help->slug = "help";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Getting Started", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/start/index.html"_s)}};
+  root->slug = "start";
   root->addChildren(
       {abstractions, new_projects, managing_projects, modes, hiding, settings, examples, extensions, getting_help});
   return root;
@@ -54,52 +64,61 @@ QSharedPointer<HelpEntry> ui_root() {
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Byte Converters", "MDText.qml");
   converters->props = QVariantMap{{"file", QVariant(u":/help/ui/converters.html"_s)}};
   converters->sortName = "a";
+  converters->slug = "convert";
 
   auto objedit =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Object Code Editor", "MDText.qml");
   objedit->props = QVariantMap{{"file", QVariant(u":/help/ui/object_code.html"_s)}};
   objedit->sortName = "b";
+  objedit->slug = "obj";
 
   auto asmedit =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language Editor", "MDText.qml");
   asmedit->props = QVariantMap{{"file", QVariant(u":/help/ui/asmb_edit.md"_s)}};
   asmedit->isWIP = true;
   asmedit->sortName = "c";
+  asmedit->slug = "asmb";
 
   auto asmlist = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembler Listing", "MDText.qml");
   asmlist->props = QVariantMap{{"file", QVariant(u":/help/ui/asmb_list.md"_s)}};
   asmlist->isWIP = true;
   asmlist->sortName = "d";
+  asmlist->slug = "list";
 
   auto symtab = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Symbol Table", "MDText.qml");
   symtab->props = QVariantMap{{"file", QVariant(u":/help/ui/symtab.html"_s)}};
   symtab->isWIP = true;
   symtab->sortName = "e";
+  symtab->slug = "sym";
 
   auto cpudump = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "CPU Display", "MDText.qml");
   cpudump->props = QVariantMap{{"file", QVariant(u":/help/ui/cpu_pane.html"_s)}};
   cpudump->sortName = "f";
+  cpudump->slug = "cpu";
 
   auto memdump = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Memory Display", "MDText.qml");
   memdump->props = QVariantMap{{"file", QVariant(u":/help/ui/hexdump.html"_s)}};
   memdump->sortName = "g";
+  memdump->slug = "mem";
 
   auto stkdump = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Stack Trace", "MDText.qml");
   stkdump->props = QVariantMap{{"file", QVariant(u":/help/ui/stacktrace.md"_s)}};
   stkdump->isWIP = true;
   stkdump->sortName = "h";
+  stkdump->slug = "stack";
 
   auto iopane =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Program Input/Output", "MDText.qml");
   iopane->props = QVariantMap{{"file", QVariant(u":/help/ui/io.md"_s)}};
   iopane->isWIP = true;
   iopane->sortName = "i";
+  iopane->slug = "io";
 
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "User Interface Overview", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/ui/index.html"_s)}};
+  root->slug = "ui";
   root->addChildren({converters, objedit, asmedit, asmlist, symtab, cpudump, memdump, stkdump, iopane});
-
   return root;
 }
 
@@ -217,6 +236,7 @@ QSharedPointer<HelpEntry> editing_root() {
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Editing Programs", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/edit/_root.md"_s)}};
   root->isWIP = true;
+  root->slug = "editor";
   root->addChildren({auto_format, mc2, isa3, asmb3, os4, asmb5});
   return root;
 }
@@ -249,6 +269,7 @@ QSharedPointer<HelpEntry> debugging_root() {
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Debugging Programs", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/debug/_root.md"_s)}};
   root->isWIP = true;
+  root->slug = "debugger";
   root->addChildren({step, trace_isa, trace_asmb, bps, endless});
   return root;
 }
