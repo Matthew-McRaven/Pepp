@@ -18,8 +18,16 @@ endif ()
 qt6_add_executable(pepp ${sources} ${guis}
     ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
     ${CMAKE_SOURCE_DIR}/data/app_icon/app_icon.qrc
-    ${CMAKE_SOURCE_DIR}/data/help_images/macos/help_images.qrc
 )
+
+# Include additional help images
+file(GLOB_RECURSE help_image_files CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/help_images/macos/*.png")
+qt_add_resources(pepp "help_images"
+        PREFIX "/help_images"
+        BASE "${PROJECT_DATA_DIR}/help_images/macos"
+        FILES ${help_image_files}
+)
+
 
 
 target_link_libraries(pepp PRIVATE cli catch Qt6::Core Qt6::Gui
