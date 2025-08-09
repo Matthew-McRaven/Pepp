@@ -10,49 +10,40 @@ QSharedPointer<HelpEntry> starting_root() {
   auto abstractions =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Levels of Abstraction", "MDText.qml");
   abstractions->props = QVariantMap{{"file", QVariant(u":/help/start/abstractions.html"_s)}};
-  abstractions->isWIP = true;
   abstractions->sortName = "a";
   auto new_projects =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Creating a New Project", "MDText.qml");
   new_projects->props = QVariantMap{{"file", QVariant(u":/help/start/new_projects.html"_s)}};
-  new_projects->isWIP = true;
   new_projects->sortName = "b";
   auto managing_projects =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Managing Projects", "MDText.qml");
   managing_projects->props = QVariantMap{{"file", QVariant(u":/help/start/managing_projects.html"_s)}};
-  managing_projects->isWIP = true;
   managing_projects->sortName = "c";
   auto modes = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Switching Modes", "MDText.qml");
   modes->props = QVariantMap{{"file", QVariant(u":/help/start/modes.html"_s)}};
-  modes->isWIP = true;
   modes->sortName = "d";
   auto hiding =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Hiding/Showing Panes", "MDText.qml");
   hiding->props = QVariantMap{{"file", QVariant(u":/help/start/pane_visibility.html"_s)}};
-  hiding->isWIP = true;
   hiding->sortName = "e";
   auto settings =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Changing Settings & Colors", "MDText.qml");
   settings->props = QVariantMap{{"file", QVariant(u":/help/start/settings.html"_s)}};
-  settings->isWIP = true;
   settings->sortName = "f";
   auto examples =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Textbook Examples", "MDText.qml");
   examples->props = QVariantMap{{"file", QVariant(u":/help/start/examples.html"_s)}};
-  examples->isWIP = true;
   examples->sortName = "g";
   auto extensions =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "File Extensions", "MDText.qml");
   extensions->props = QVariantMap{{"file", QVariant(u":/help/start/extensions.html"_s)}};
-  extensions->isWIP = true;
   extensions->sortName = "h";
   auto getting_help = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Getting Help", "MDText.qml");
   getting_help->props = QVariantMap{{"file", QVariant(u":/help/start/help.html"_s)}};
-  getting_help->isWIP = true;
   getting_help->sortName = "i";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Getting Started", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/start/_root.html"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/start/index.html"_s)}};
   root->addChildren(
       {abstractions, new_projects, managing_projects, modes, hiding, settings, examples, extensions, getting_help});
   return root;
