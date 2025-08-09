@@ -157,7 +157,9 @@ Item {
             delegate: TreeViewDelegate {
                 id: treeDelegate
                 implicitWidth: textMetrics.width
-
+                Component.onCompleted: {
+                    contentItem.textFormat = Text.MarkdownText;
+                }
                 // Default background does not fill entire delegate.
                 background: Rectangle {
                     anchors {

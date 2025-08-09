@@ -178,22 +178,22 @@ QSharedPointer<HelpEntry> editing_root() {
   scalls->isWIP = true;
   scalls->sortName = "4a";
   auto dot_section =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The .SECTION pseudo-op", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The `.SECTION` pseudo-op", "MDText.qml");
   dot_section->props = QVariantMap{{"file", QVariant(u":/help/edit/os4_section.md"_s)}};
   dot_section->isWIP = true;
   dot_section->sortName = "4b";
   auto dot_export =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The .EXPORT pseudo-op", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The `.EXPORT` pseudo-op", "MDText.qml");
   dot_export->props = QVariantMap{{"file", QVariant(u":/help/edit/os4_export.md"_s)}};
   dot_export->isWIP = true;
   dot_export->sortName = "4c";
   auto dot_scall =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The .SCALL pseudo-op", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The `.SCALL` pseudo-op", "MDText.qml");
   dot_scall->props = QVariantMap{{"file", QVariant(u":/help/edit/os4_scall.md"_s)}};
   dot_scall->isWIP = true;
   dot_scall->sortName = "4d";
   auto dot_org =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The .ORG pseudo-op", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The `.ORG` pseudo-op", "MDText.qml");
   dot_org->props = QVariantMap{{"file", QVariant(u":/help/edit/os4_org.md"_s)}};
   dot_org->isWIP = true;
   dot_org->sortName = "4e";
@@ -204,7 +204,7 @@ QSharedPointer<HelpEntry> editing_root() {
   traps->isWIP = true;
   traps->sortName = "5a";
   auto dot_burn =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The .BURN pseudo-op", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The `.BURN` pseudo-op", "MDText.qml");
   dot_burn->props = QVariantMap{{"file", QVariant(u":/help/edit/os4_burn.md"_s)}};
   dot_burn->isWIP = true;
   dot_burn->sortName = "5b";
@@ -304,10 +304,10 @@ QSharedPointer<HelpEntry> advanced_root() {
 }
 
 QSharedPointer<HelpEntry> greencard10_root() {
-  auto c_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "C bit on SUBr", "MDText.qml");
+  auto c_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "`C` bit on `SUBr`", "MDText.qml");
   c_bit->props = QVariantMap{{"file", QVariant(u":/help/pep10/c_bit.md"_s)}};
   c_bit->sortName = "001";
-  auto n_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "N bit for CPBr", "MDText.qml");
+  auto n_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "`N` bit for `CPBr`", "MDText.qml");
   n_bit->props = QVariantMap{{"file", QVariant(u":/help/pep10/n_bit.md"_s)}};
   n_bit->sortName = "002";
   auto addr = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Addressing Modes", "MDText.qml");
