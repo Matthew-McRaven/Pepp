@@ -233,7 +233,7 @@ QSharedPointer<HelpEntry> editing_root() {
   auto_format->isWIP = true;
   auto_format->sortName = "0";
 
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Editing Programs", "MDText.qml");
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The `Editor` Mode", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/edit/_root.md"_s)}};
   root->isWIP = true;
   root->slug = "editor";
@@ -266,7 +266,7 @@ QSharedPointer<HelpEntry> debugging_root() {
   endless->isWIP = true;
   endless->sortName = "4";
 
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Debugging Programs", "MDText.qml");
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The `Debugger` Mode", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/debug/_root.md"_s)}};
   root->isWIP = true;
   root->slug = "debugger";
