@@ -207,7 +207,7 @@ Item {
         }
         color: palette.base
         border {
-            color: palette.windowText
+            color: palette.shadow
             width: 1
         }
 
@@ -217,7 +217,7 @@ Item {
             clip: true
             anchors {
                 fill: parent
-                margins: 1
+                margins: 0
             }
             Loader {
                 id: contentLoader
@@ -242,7 +242,7 @@ Item {
                 }
                 onLoaded: {
                     // Offset by some small amount to disappear scrollbar when content is not large enough.
-                    const height = Math.max(contentFlickable.height - 1, contentLoader?.item?.implicitHeight ?? 0);
+                    const height = Math.max(contentFlickable.height /*- 1*/, contentLoader?.item?.implicitHeight ?? 0);
                     contentFlickable.contentHeight = Qt.binding(() => height);
                 }
             }   //  Loader
