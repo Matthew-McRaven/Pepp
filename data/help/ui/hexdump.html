@@ -3,27 +3,38 @@
 <table>
   <tr>
     <td>
-      <img src="qrc:/help_images/ui/memdump.png"
-           alt="Memory Dump with address column, byte cells, ASCII column, and tooltip"
-           border="1">
+      <img
+        src="qrc:/help_images/ui/memdump.png"
+        alt="Memory Dump with address column, byte cells, ASCII column, and tooltip"
+        border="1"
+      />
     </td>
-    <td >
+    <td>
       <h2>Anatomy of a Row</h2>
-      <p>
-        Each row has three parts, separated by vertical bars:
-      </p>
+      <p>Each row has three parts, separated by vertical bars:</p>
       <ul>
         <li><b>Left:</b> The address (hex) of the first byte in the row.</li>
-        <li><b>Middle:</b> Eight byte cells showing the row’s bytes; each cell is one byte.</li>
-        <li><b>Right:</b> The ASCII rendering of the eight bytes, with non-printable characters shown as periods (<code>.</code>).</li>
+        <li>
+          <b>Middle:</b> Eight byte cells showing the row’s bytes; each cell is
+          one byte.
+        </li>
+        <li>
+          <b>Right:</b> The ASCII rendering of the eight bytes, with
+          non-printable characters shown as periods (<code>.</code>).
+        </li>
       </ul>
       <p>
-        Hover over any byte cell to see a tooltip with the decoded value in hex, unsigned decimal, binary, and the opcode interpretation.
+        Hover over any byte cell to see a tooltip with the decoded value in hex,
+        unsigned decimal, binary, and the opcode interpretation.
       </p>
 
       <h2>Highlights</h2>
       <ul>
-        <li><b>Red:</b> Bytes written since the last step. If a single step (including step over/out) executes multiple instructions, all bytes written during that step are highlighted.</li>
+        <li>
+          <b>Red:</b> Bytes written since the last step. If a single step
+          (including step over/out) executes multiple instructions, all bytes
+          written during that step are highlighted.
+        </li>
         <li><b>Orange:</b> The current value of <b>SP</b>.</li>
         <li><b>Blue:</b> The current value of <b>PC</b>.</li>
       </ul>
@@ -35,7 +46,10 @@
       <ul>
         <li>Use the vertical scrollbar to move through memory.</li>
         <li>Enter an address in the field at the bottom to jump directly.</li>
-        <li>Use the <b>SP</b> and <b>PC</b> buttons to jump to the current stack pointer and program counter, respectively.</li>
+        <li>
+          Use the <b>SP</b> and <b>PC</b> buttons to jump to the current stack
+          pointer and program counter, respectively.
+        </li>
       </ul>
     </td>
   </tr>
