@@ -10,13 +10,12 @@
       />
     </td>
     <td>
-      <h2>Anatomy of a Row</h2>
+      <h2>Anatomy of a Memory Row</h2>
       <p>Each row has three parts, separated by vertical bars:</p>
       <ul>
         <li><b>Left:</b> The address (hex) of the first byte in the row.</li>
         <li>
-          <b>Middle:</b> Eight byte cells showing the row’s bytes; each cell is
-          one byte.
+          <b>Middle:</b> Eight cells, each representing a single byte in the row.
         </li>
         <li>
           <b>Right:</b> The ASCII rendering of the eight bytes, with
@@ -45,7 +44,7 @@
       <h2>Navigation</h2>
       <ul>
         <li>Use the vertical scrollbar to move through memory.</li>
-        <li>Enter an address in the field at the bottom to jump directly.</li>
+        <li>Enter an address in the "Scroll to" field at the bottom to jump directly to a specific memory address.</li>
         <li>
           Use the <b>SP</b> and <b>PC</b> buttons to jump to the current stack
           pointer and program counter, respectively.

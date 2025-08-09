@@ -13,7 +13,7 @@
 </p>
 
 <p>
-  The values in the CPU pane are those <i>after</i> the instruction in the
+  The values in the CPU pane are <i>after</i> the instruction in the
   instruction specifier has executed. In the von Neumann cycle, the program
   counter increments before the instruction executes, so the PC shows the
   address of the <i>next</i> instruction to execute.
@@ -22,7 +22,7 @@
 <blockquote>
   <b>Note:</b> For <i>dyadic</i> instructions, the <b>Operand Specifier</b> and
   <b>(Operand)</b> rows are populated. The operand specifier is stored during
-  instruction decoding, while the operand itself is not part of the CPU
+  instruction decoding. The operand itself is not part of the CPU
   state—except in the case of immediate addressing, where it <i>is</i> the
   operand specifier. For convenience, the CPU pane computes the operand from the
   addressing mode and displays it in parentheses to indicate that it is not an
