@@ -271,7 +271,7 @@ Item {
     onSelectedChanged: {
         const props = helpModel.data(selected, HelpModel.Props);
         treeView.selectionModel.setCurrentIndex(root.selected, ItemSelectionModel.NoUpdate);
-        if (props)
+        if (props && !("architecture" in props))
             props["architecture"] = helpModel.architecture ?? Architecture.PEP10;
         const url = helpModel.data(selected, HelpModel.Delegate);
         if (url !== undefined)

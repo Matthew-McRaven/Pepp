@@ -22,7 +22,7 @@ HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
 
   // If you update the following array, YOU MUST UPDATE THE INDEX OF VARIABLE TOO!!!
   _roots = {
-      starting_root(),      ui_root(),          editing_root(),  debugging_root(), greencard10_root(),
+      starting_root(),      ui_root(),          workflows_root(), greencard10_root(), greencard9_root(),
       examples_root(*_reg), macros_root(*_reg), advanced_root(),
   };
   _indexOfFigs = 5;
