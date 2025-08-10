@@ -466,26 +466,49 @@ FocusScope {
             }
         }
     }
+    //  Button list of available views
     ListView {
         id: visibilityBar
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
+            leftMargin: 5
         }
         height: 15
+        spacing: 5
         orientation: Qt.Horizontal
         model: [dock_source, dock_listing, dock_object, dock_symbol, dock_watch, dock_breakpoints, dock_input, dock_output, dock_cpu, dock_stack, dock_hexdump]
-        delegate: CheckBox {
-            text: modelData.title
-            checked: modelData.isOpen
-            onClicked: {
-                modelData.visibility[wrapper.mode] = checked;
-                checked ? modelData.open() : modelData.close();
+        delegate: Button {
+            id: button
+            Layout.alignment: Qt.AlignVCenter
+            checkable: true
+            down: modelData.isOpen
+            display: AbstractButton.TextOnly
+
+            contentItem: Label {
+                text: modelData.title
+                //  Highlight color used for button down
+                color: button.down ? palette.highlightedText : palette.buttonText;
             }
-            Layout.alignment: Qt.AlignBottom
-        }
-    }
+
+            background: Rectangle {
+                //  Highlight color used for button down
+                color: button.down ? palette.highlight : palette.button
+                border.width: 1
+                //  Highlight color used for button down
+                border.color: button.hovered ? palette.highlight : "transparent"
+                radius: 5
+            }
+
+            onClicked: {
+                //  Flip current state and update model and display
+                const nextMode = !modelData.visibility[wrapper.mode];
+                modelData.visibility[wrapper.mode] = nextMode;
+                nextMode ? modelData.open() : modelData.close();
+            }
+        }   //  delegate: Button
+    }   //  ListView
 
     // Only enable binding from the actions to this project if this project is focused.
     Connections {
