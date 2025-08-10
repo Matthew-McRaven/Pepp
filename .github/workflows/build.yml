@@ -70,6 +70,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git lfs fetch --include="data/help_images/"
           git lfs checkout data/help_images
+          ls -lahR data/help_images
       # Local github runner doesn't have node installed.
       - if: env.ACT
         name: Install Node if running locally using `nektos/act`
