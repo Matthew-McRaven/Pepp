@@ -145,16 +145,6 @@ QSharedPointer<HelpEntry> editing_root() {
   isa3->props = QVariantMap{{"file", QVariant(u":/help/edit/_isa3.md"_s)}};
   isa3->isWIP = true;
   isa3->sortName = "3a";
-  auto isa3_writing =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Writing Programs", "MDText.qml");
-  isa3_writing->props = QVariantMap{{"file", QVariant(u":/help/edit/isa3_writing.md"_s)}};
-  isa3_writing->isWIP = true;
-  isa3_writing->sortName = "1";
-  auto isa3_run = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Running Programs", "MDText.qml");
-  isa3_run->props = QVariantMap{{"file", QVariant(u":/help/edit/isa3_running.md"_s)}};
-  isa3_run->isWIP = true;
-  isa3_run->sortName = "2";
-  isa3->addChildren({isa3_writing, isa3_run});
 
   auto asmb3 =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language, Asmb3", "MDText.qml");
@@ -234,7 +224,7 @@ QSharedPointer<HelpEntry> editing_root() {
   auto_format->sortName = "0";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "The `Editor` Mode", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/edit/_root.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/edit/index.html"_s)}};
   root->isWIP = true;
   root->slug = "editor";
   root->addChildren({auto_format, mc2, isa3, asmb3, os4, asmb5});
