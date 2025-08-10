@@ -155,6 +155,7 @@ if (ONLY STREQUAL "BUILD")
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Pepp IDE")
     set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "Pepp")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
     # Assuming you're targeting multiple platforms, you might want to conditionally set the generator
     if (WIN32)
         set(CPACK_GENERATOR "IFW") # or "ZIP" for a simple zip archive
@@ -218,6 +219,8 @@ if (ONLY STREQUAL "BUILD")
         # Need monolithic install to keep directory structure stable.
         set(CPACK_MONOLITHIC_INSTALL on)
         set(CPACK_GENERATOR "DragNDrop") # for a macOS .dmg
+        set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE TRUE)
+        install(FILES "${CMAKE_SOURCE_DIR}/LICENSE" DESTINATION . RENAME "LICENSE.txt")
         # Will still need to notarize & staple the DMG in CI.
         if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
             message("Mac OS architecture: arm64")
