@@ -62,6 +62,14 @@ jobs:
           submodules: 'true'
           # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
           lfs: 'false'
+      - name: Download help images via LFS
+        # Always needed for WASM build because they go to the web. Deployments need help images too.
+        if: ${{ contains(inputs.name, 'EMSDK') || inputs.sign_artifacts}}
+        # In the future, may want to filter to specific file extensions to reduce LFS BW.
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git lfs fetch --include="data/help_images/"
+          git lfs checkout data/help_images
       # Local github runner doesn't have node installed.
       - if: env.ACT
         name: Install Node if running locally using `nektos/act`
