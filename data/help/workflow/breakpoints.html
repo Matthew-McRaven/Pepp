@@ -1,0 +1,60 @@
+<h1>Using Breakpoints</h1>
+
+<blockquote>
+<b>Applies to:</b> Mc2, ISA3, Asmb3, OS4, Asmb5
+</blockquote>
+
+<h2>Add / Remove Breakpoints</h2>
+<p>
+Click in the breakpoint gutter (the narrow strip to the left of code) next to an executable statement to toggle a breakpoint.
+A red marker indicates an active breakpoint. Click again to remove it.
+</p>
+
+<p>
+In <b>Asmb3</b>, <b>OS4</b>, and <b>Asmb5</b>, breakpoints are synchronized between the <b>Source</b> and <b>Listing</b> panes.
+Setting (or clearing) a breakpoint in one pane updates the other automatically.
+</p>
+
+<p>
+<img src="qrc:/help_images/workflows/bp_set.png" alt="Breakpoints set in the listing/source gutter" border="1">
+</p>
+
+<h2>Run to a Breakpoint</h2>
+<p>
+To execute until the next breakpoint, use <b>Debug → Continue</b> (or the toolbar icon). While this example uses Continue,
+breakpoints can be hit under <i>any</i> step mode; see <a href="step_modes.html">Step Modes</a>.
+</p>
+<table>
+  <tr>
+    <td>
+      <img src="qrc:/help_images/workflows/bp_continue_menu.png"
+           alt="Continue command in the Debug menu" border="1">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="qrc:/help_images/workflows/bp_continue_toolbar.png"
+           alt="Continue button in the toolbar" border="1">
+    </td>
+  </tr>
+</table>
+
+<h2>When a Breakpoint is Hit</h2>
+<p>
+Execution pauses <i>before</i> the breakpointed instruction runs. The current statement is highlighted, and the surrounding
+debugging views (CPU dump, memory dump, stack trace, I/O panes) reflect the state at that point.
+</p>
+<p>
+<img src="qrc:/help_images/workflows/bp_hit.png" alt="Paused at breakpoint: current line highlighted" border="1">
+</p>
+
+<h2>Managing Breakpoints</h2>
+<ul>
+  <li><b>Clear All:</b> Use <b>Debug → Clear All Breakpoints</b> to remove all breakpoints at once.</li>
+</ul>
+<p>
+<img src="qrc:/help_images/workflows/bp_clear_all.png" alt="Clear All Breakpoints menu item" border="1">
+</p>
+<p>
+For bulk review and edits (enable/disable, navigate, delete), use the <a href="#">Breakpoint Viewer Advanced Topic</a>.
+</p>

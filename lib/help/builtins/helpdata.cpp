@@ -130,52 +130,40 @@ QSharedPointer<HelpEntry> workflows_root() {
   int as10 = bitmask(PEP10, ASMB5);
   int p10 = mc10 | oc10 | as10;
 
-  auto mc2 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Microcode, Mc2", "MDText.qml");
-  mc2->props = QVariantMap{{"file", QVariant(u":/help/workflow/mc2.md"_s)}};
+  auto mc2 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Microcode", "MDText.qml");
+  mc2->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
   mc2->isWIP = true;
   mc2->sortName = "2";
 
-  auto isa3 =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Machine Language, ISA3", "MDText.qml");
-  isa3->props = QVariantMap{{"file", QVariant(u":/help/workflow/isa3.md"_s)}};
+  auto isa3 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Machine Language", "MDText.qml");
+  isa3->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
   isa3->isWIP = true;
   isa3->sortName = "3a";
 
-  auto asmb3 =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language, Asmb3", "MDText.qml");
-  asmb3->props = QVariantMap{{"file", QVariant(u":/help/workflow/asmb.md"_s)}};
-  asmb3->isWIP = true;
-  asmb3->sortName = "3b";
-
-  auto os4 =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language, OS4", "MDText.qml");
-  os4->props = QVariantMap{{"file", QVariant(u":/help/workflow/os4.md"_s)}};
-  os4->isWIP = true;
-  os4->sortName = "4";
-
-  auto asmb5 =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language, Asmb5", "MDText.qml");
-  asmb5->props = QVariantMap{{"file", QVariant(u":/help/workflow/asmb.md"_s)}};
-  asmb5->isWIP = true;
-  asmb5->sortName = "5";
+  auto asmb = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language", "MDText.qml");
+  asmb->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
+  asmb->isWIP = true;
+  asmb->sortName = "5";
 
   auto auto_format =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Automatic Formatting", "MDText.qml");
-  auto_format->props = QVariantMap{{"file", QVariant(u":/help/workflow/autoformat.md"_s)}};
-  auto_format->isWIP = true;
+  auto_format->props = QVariantMap{{"file", QVariant(u":/help/workflow/autoformat.html"_s)}};
   auto_format->sortName = "0a";
+
+  auto breakpoints = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Breakpoints", "MDText.qml");
+  breakpoints->props = QVariantMap{{"file", QVariant(u":/help/workflow/breakpoints.html"_s)}};
+  breakpoints->sortName = "0b";
 
   auto step =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Stepping through Programs", "MDText.qml");
-  step->props = QVariantMap{{"file", QVariant(u":/help/workflow/step.md"_s)}};
-  step->isWIP = true;
-  step->sortName = "0b";
+  step->props = QVariantMap{{"file", QVariant(u":/help/workflow/step.html"_s)}};
+  step->sortName = "0c";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Common Workflows", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/workflow/index.html"_s)}};
   root->isWIP = true;
-  root->slug = "editor";
-  root->addChildren({auto_format, step, mc2, isa3, asmb3, os4, asmb5});
+  root->slug = "flows";
+  root->addChildren({auto_format, breakpoints, step, mc2, isa3, asmb});
   return root;
 }
 

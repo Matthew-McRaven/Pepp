@@ -1,0 +1,69 @@
+<h1>Step Modes </h1>
+<p>
+Pepp provides four debugging step operations: <b>Single Step</b>, <b>Step Into</b>, <b>Step Over</b>, and <b>Step Out</b>.
+These control how the debugger executes <code>CALL</code> and <code>SCALL</code> instructions, and how it resumes after them.
+They can be used from the <b>Debug</b> menu or toolbar, and each has an associated keyboard shortcut.
+</p>
+
+<table cellspacing="0" cellpadding="4">
+  <tr>
+    <td>
+      <img src="qrc:/help_images/workflows/step_menu.png" alt="Debug menu with numbered callouts" border="1">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="qrc:/help_images/workflows/step_toolbar.png" alt="Toolbar with numbered callouts" border="1">
+    </td>
+  </tr>
+</table>
+
+<h3>Operation Reference</h3>
+<table border="1" cellpadding="4" cellspacing="0">
+  <tr>
+    <th>#</th>
+    <th>Operation</th>
+    <th>Neither <code>CALL</code> nor <code>SCALL</code></th>
+    <th><code>CALL</code></th>
+    <th><code>SCALL</code></th>
+  </tr>
+  <tr>
+    <td>1</td><td>Single Step</td><td>Step Over</td><td>Step Into</td><td>Step Over</td>
+  </tr>
+  <tr>
+    <td>2</td><td>Step Into</td><td>Step Over</td><td colspan="2">Step Into</td>
+  </tr>
+  <tr>
+    <td>3</td><td>Step Over</td><td colspan="3">Step Over</td>
+  </tr>
+  <tr>
+    <td>4</td><td>Step Out</td><td>Step Over</td><td colspan="2">Step Out of</td>
+  </tr>
+</table>
+
+
+
+<h2>Single Step</h2>
+<p>
+Executes one von Neumann cycle. If the current instruction is a <code>CALL</code>, acts as <b>Step Into</b>;
+otherwise acts as <b>Step Over</b>. This is the most common operation for line-by-line debugging.
+</p>
+
+<h2>Step Into</h2>
+<p>
+Executes the next instruction. If it is a <code>CALL</code> or <code>SCALL</code>, begins tracing inside the callee or OS trap handler.
+Useful when you want to examine internal behavior.
+</p>
+
+
+<h2>Step Over</h2>
+<p>
+Executes the next instruction. If it is a <code>CALL</code> or <code>SCALL</code>, runs it to completion as if it were a single instruction.
+Useful when you do not need to see the internal execution of the callee or OS trap.
+</p>
+
+<h2>Step Out</h2>
+<p>
+Resumes execution until the current <code>CALL</code> or <code>SCALL</code> returns to its caller.
+This is useful when you have stepped into a function or trap but now want to return to the higher level.
+</p>
