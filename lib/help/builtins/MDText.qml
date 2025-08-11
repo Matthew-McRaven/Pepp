@@ -17,7 +17,7 @@ TextArea {
         root.text = content;
     }
     onLinkActivated: link => {
-        // # is an anchor in the current file, which I do not currently know hot to navigate to.
+        // # is an anchor in the current file, which I do not currently know how to navigate to.
         if (link.startsWith("#")) {} else {
             root.navigateTo(link);
         }
