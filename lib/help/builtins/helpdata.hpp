@@ -19,4 +19,5 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg);
 int bitmask(pepp::Architecture arch);
 int bitmask(pepp::Abstraction level);
 int bitmask(pepp::Architecture arch, pepp::Abstraction level);
+int bitmask_all_levels(pepp::Architecture arch);
 bool masked(int lhs, int rhs);

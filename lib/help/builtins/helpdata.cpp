@@ -155,7 +155,6 @@ QSharedPointer<HelpEntry> workflows_root() {
   step->props = QVariantMap{{"file", QVariant(u":/help/workflow/step.html"_s)}};
   step->slug = "step";
   step->sortName = "0c";
-
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Common Workflows", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/workflow/index.html"_s)}};
   root->slug = "flows";
@@ -286,8 +285,9 @@ QSharedPointer<HelpEntry> greencard10_root() {
   mc->sortName = "3";
   mc->addChildren({alu});
 
+  int p10 = bitmask_all_levels(pepp::Architecture::PEP10);
   auto root =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/10 Reference", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, p10, "Pep/10 Reference", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
   root->slug = "p10";
   root->addChildren({isa, asmb, os, mc});
@@ -356,8 +356,9 @@ QSharedPointer<HelpEntry> greencard9_root() {
   mc->sortName = "3";
   mc->addChildren({alu});
 
+  int p9 = bitmask_all_levels(pepp::Architecture::PEP9);
   auto root =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/9 Reference", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, p9, "Pep/9 Reference", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
   root->slug = "p9";
   root->addChildren({isa, asmb, os, mc});
@@ -424,7 +425,7 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   auto mask = bitmask(pepp::Architecture::PEP10) << shift | 0xff;
   auto books = reg.books();
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
   root->isExternal = reg.usingExternalFigures();
 
   QMap<QString, QSharedPointer<HelpEntry>> families;
@@ -432,7 +433,7 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   auto addOrGet = [&families](const QString &name, int inner_mask) {
     if (!families.contains(name)) {
       families[name] = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, inner_mask, name, "MDText.qml");
-      families[name]->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
+      families[name]->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
     }
     return families[name];
   };
@@ -527,4 +528,9 @@ bool masked(int lhs, int rhs) {
   int mask_upper = (rhs & lhs & ~shift_mask);
   int mask_lower = (rhs & lhs & shift_mask);
   return mask_upper > 0 && mask_lower > 0;
+}
+
+int bitmask_all_levels(pepp::Architecture arch) {
+  int level_mask = (1 << shift) - 1;
+  return bitmask(arch) << shift | (-1 & level_mask);
 }
