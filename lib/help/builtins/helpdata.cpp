@@ -126,28 +126,34 @@ QSharedPointer<HelpEntry> workflows_root() {
   auto mc2 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Microcode", "MDText.qml");
   mc2->props = QVariantMap{{"file", QVariant(u":/help/workflow/mc2.md"_s)}};
   mc2->isWIP = true;
+  mc2->slug = "mc2";
   mc2->sortName = "2";
 
   auto isa3 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Machine Language", "MDText.qml");
   isa3->props = QVariantMap{{"file", QVariant(u":/help/workflow/isa3.html"_s)}};
+  isa3->slug = "isa3";
   isa3->sortName = "3a";
 
   auto asmb = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language", "MDText.qml");
   asmb->props = QVariantMap{{"file", QVariant(u":/help/workflow/asmb.html"_s)}};
+  asmb->slug = "asmb";
   asmb->sortName = "5";
 
   auto auto_format =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Automatic Formatting", "MDText.qml");
   auto_format->props = QVariantMap{{"file", QVariant(u":/help/workflow/autoformat.html"_s)}};
+  auto_format->slug = "format";
   auto_format->sortName = "0a";
 
   auto breakpoints = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Breakpoints", "MDText.qml");
   breakpoints->props = QVariantMap{{"file", QVariant(u":/help/workflow/breakpoints.html"_s)}};
+  breakpoints->slug = "breakpoints";
   breakpoints->sortName = "0b";
 
   auto step =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Stepping through Programs", "MDText.qml");
   step->props = QVariantMap{{"file", QVariant(u":/help/workflow/step.html"_s)}};
+  step->slug = "step";
   step->sortName = "0c";
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Common Workflows", "MDText.qml");
@@ -161,6 +167,7 @@ QSharedPointer<HelpEntry> advanced_root() {
   auto brk_view =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Viewing Breakpoints", "MDText.qml");
   brk_view->props = QVariantMap{{"file", QVariant(u":/help/advanced/view_bp.md"_s)}};
+  brk_view->slug = "view_bp";
   brk_view->isWIP = true;
   brk_view->sortName = "a";
   auto watch_expr =
@@ -187,6 +194,7 @@ QSharedPointer<HelpEntry> advanced_root() {
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Advanced Topics", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/advanced/_root.md"_s)}};
   root->isWIP = true;
+  root->slug = "adv";
   root->addChildren({brk_view, watch_expr, dbg_expr, brk_cond, endless});
   return root;
 }
@@ -206,10 +214,12 @@ QSharedPointer<HelpEntry> greencard10_root() {
   reg->sortName = "004";
   auto mmio = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Memory-Mapped IO", "MDText.qml");
   mmio->props = QVariantMap{{"file", QVariant(u":/help/pep9/mmio.md"_s)}};
+  mmio->slug = "mmio";
   mmio->sortName = "006";
   auto isa = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Instruction Set Architecture",
                                                "Greencard.qml");
   isa->props = QVariantMap{{"architecture", QVariant((int)pepp::Architecture::PEP10)}};
+  isa->slug = "isa";
   isa->sortName = "0";
   isa->addChildren({c_bit, n_bit, addr, reg, mmio});
 
@@ -279,6 +289,7 @@ QSharedPointer<HelpEntry> greencard10_root() {
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/10 Reference", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
+  root->slug = "p10";
   root->addChildren({isa, asmb, os, mc});
   return root;
 }
@@ -348,6 +359,7 @@ QSharedPointer<HelpEntry> greencard9_root() {
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/9 Reference", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
+  root->slug = "p9";
   root->addChildren({isa, asmb, os, mc});
   return root;
 }
