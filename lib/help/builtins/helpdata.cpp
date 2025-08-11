@@ -129,7 +129,7 @@ QSharedPointer<HelpEntry> workflows_root() {
   mc2->sortName = "2";
 
   auto isa3 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Machine Language", "MDText.qml");
-  isa3->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
+  isa3->props = QVariantMap{{"file", QVariant(u":/help/workflow/isa3.html"_s)}};
   isa3->isWIP = true;
   isa3->sortName = "3a";
 
