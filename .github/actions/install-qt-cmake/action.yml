@@ -48,4 +48,4 @@ runs:
         cache: true
         extra: "--base https://mirrors.ocf.berkeley.edu/qt"
         tools: 'tools_ifw,qt.tools.ifw.47'
-        modules: 'qtshadertools'
+        modules: 'qtshadertools qtimageformats'
