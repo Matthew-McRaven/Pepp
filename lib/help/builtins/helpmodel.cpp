@@ -22,7 +22,7 @@ HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
 
   // If you update the following array, YOU MUST UPDATE THE INDEX OF VARIABLE TOO!!!
   _roots = {
-      starting_root(),      ui_root(),          editing_root(),  debugging_root(), greencard10_root(),
+      starting_root(),      ui_root(),          workflows_root(), greencard10_root(), greencard9_root(),
       examples_root(*_reg), macros_root(*_reg), advanced_root(),
   };
   _indexOfFigs = 5;
@@ -109,6 +109,32 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   return ret;
 }
 
+QModelIndex HelpModel::indexFromSlug(const QString &slug) {
+  QString editable = slug;
+  editable.replace("slug://", "");
+  QStringList parts = editable.split("/");
+  QModelIndex parent;
+  QList<QSharedPointer<HelpEntry>> entries = _roots;
+  while (!parts.isEmpty() && !entries.isEmpty()) {
+    auto part = parts.takeFirst();
+    bool found = false;
+    int row = 0;
+    for (auto &entry : entries) {
+      if (entry->slug == part && parts.isEmpty()) {
+        return index(row, 0, parent);
+      } else if (entry->slug == part) {
+        found = true;
+        entries = entry->_children;
+        parent = index(row, 0, parent);
+        break;
+      }
+      row++;
+    }
+    if (!found) break;
+  }
+  return {};
+}
+
 void HelpModel::onReloadFigures() {
   beginResetModel();
   auto &figs = _roots[_indexOfFigs];
@@ -174,6 +200,17 @@ void HelpFilterModel::setShowWIPItems(bool show) {
   _showWIPItems = show;
   invalidateRowsFilter();
   emit showWIPItemsChanged();
+}
+
+QModelIndex HelpFilterModel::indexFromSlug(const QString &slug) {
+  auto sm = sourceModel();
+  if (!sm) return {};
+  auto casted = qobject_cast<HelpModel *>(sm);
+  if (!casted) return {};
+  auto source_idx = casted->indexFromSlug(slug);
+  if (!source_idx.isValid()) return {};
+  if (!filterAcceptsRow(source_idx.row(), source_idx.parent())) return {};
+  return mapFromSource(source_idx);
 }
 
 bool HelpFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {

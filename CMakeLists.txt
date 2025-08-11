@@ -94,6 +94,24 @@ if (ONLY STREQUAL "BUILD")
     else()
        message("Using Qt helpers for byteswap")
     endif()
+    # Determine if our build environment contains WEBP. Never try to use a user' machines non-bundled image formats
+    # because I only want to compile one set of images into the application. If webp exists at compile time,
+    # I can bundle it.
+    try_run(PEPP_WEBP_RETCODE PEPP_COMPILES_IMGFMT
+        SOURCES ${CMAKE_CURRENT_LIST_DIR}/config/compile_tests/probe_webp.cpp
+        LINK_LIBRARIES Qt6::Gui
+        RUN_OUTPUT_STDOUT_VARIABLE PEPP_WEBP_RUN_STDOUT
+        RUN_OUTPUT_STDERR_VARIABLE PEPP_WEBP_RUN_STDERR
+        COMPILE_OUTPUT_VARIABLE PEPP_WEBP_COMPILE_LOG
+    )
+    if(PEPP_WEBP_RETCODE EQUAL 0)
+       message("Using webp for help images")
+       add_compile_definitions(PEPP_HAS_WEBP)
+       set(PEPP_HAS_WEBP TRUE)
+    else()
+       message("Using png for help images")
+    endif()
+
     # Needed to generate documentation, changelogs
     find_package(Python COMPONENTS Interpreter)
 
@@ -137,6 +155,7 @@ if (ONLY STREQUAL "BUILD")
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Pepp IDE")
     set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "Pepp")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
     # Assuming you're targeting multiple platforms, you might want to conditionally set the generator
     if (WIN32)
         set(CPACK_GENERATOR "IFW") # or "ZIP" for a simple zip archive
@@ -200,6 +219,8 @@ if (ONLY STREQUAL "BUILD")
         # Need monolithic install to keep directory structure stable.
         set(CPACK_MONOLITHIC_INSTALL on)
         set(CPACK_GENERATOR "DragNDrop") # for a macOS .dmg
+        set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE TRUE)
+        install(FILES "${CMAKE_SOURCE_DIR}/LICENSE" DESTINATION . RENAME "LICENSE.txt")
         # Will still need to notarize & staple the DMG in CI.
         if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
             message("Mac OS architecture: arm64")

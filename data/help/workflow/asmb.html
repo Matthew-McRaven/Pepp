@@ -1,0 +1,75 @@
+<h1>Assembly Language (Asmb) Workflow</h1>
+
+<blockquote>
+<b>Applies to:</b> Asmb3, OS4, Asmb5
+</blockquote>
+
+<h2>Writing and Running Assembly Programs</h2>
+
+<p><b>1) Write your program</b><br>
+Enter assembly language code in the <b>Source Code</b> pane, one instruction or dot command per line.
+At least one space is required between a mnemonic and its operand.
+Formatting is flexible, but you can standardize it using <a href="slug://flows/format">Automatic Formatting</a>.
+</p>
+<p><img src="qrc:/help_images/workflows/asmb_source.png" alt="Formatted source" border="1"></td></p>
+
+
+<p><b>2) Assemble</b><br>
+Use <b>Build → Assemble Source</b> or the toolbar button to translate the program.
+On success, object code appears in the <b>Object Code</b> pane and a formatted listing in the <b>Assembler Listing</b> pane.
+</p>
+<table border="1" cellspacing="0" cellpadding="4">
+  <tr>
+    <td><img src="qrc:/help_images/workflows/asmb_assemble_menu.png" alt="Assemble Source menu item" border="1"></td>
+    <td><img src="qrc:/help_images/workflows/asmb_assemble_toolbar.png" alt="Assemble Source toolbar icon" border="1"></td>
+  </tr>
+</table>
+<p>
+If there are errors, they appear inline in the source editor.
+You can remove them via <b>Edit → Remove Error Messages</b> before reassembling, though errors will be automatically cleared on success.
+Assembly errors will prevent the program from being simulated or debugged.
+</p>
+<p><img src="qrc:/help_images/workflows/asmb_errors.png" alt="Assembler source with errors" border="1"></p>
+
+
+<p><b>3) Execute</b><br>
+Use <b>Build → Execute</b> or the toolbar button to run in <strong>Debugger</strong> mode.
+Program input must be placed into the <a href="slug://ui/io">input</a> pane for <a href="slug://p10/isa/mmio">memory-mapped IO</a> to work correctly.
+</p>
+<p>
+using <b>Build → Execute</b> will automatically reassemble your program if changes have been made since the last assembly.
+</p>
+<table border="1" cellspacing="0" cellpadding="4">
+  <tr>
+    <td>Execute Command</td>
+    <td><img src="qrc:/help_images/workflows/asmb_execute.png" alt="Execute menu item" border="1"></td>
+  </tr>
+  <tr>
+    <td>Output</td>
+    <td><img src="qrc:/help_images/workflows/asmb_output.png" alt="Program output" border="1"></td>
+  </tr>
+</table>
+
+<h2>Debugging Assembly Programs</h2>
+
+<p><b>1) Start debugging</b><br>
+Use <b>Debug → Start Debugging</b> to clear memory, assemble and load your program, and enter <strong>Debugger</strong> mode.
+</p>
+<p><img src="qrc:/help_images/workflows/asmb_debug_start.png" alt="Start Debugging menu item" border="1"></p>
+
+<p><b>2) Initial state</b><br>
+The <a href="#">Program Trace</a> highlights the next source statement to execute in blue.
+You may also pre-fill the <a href="slug://ui/io">input</a> pane for programs using input instructions.
+</p>
+<p><img src="qrc:/help_images/workflows/asmb_debug_initial.png" alt="Initial trace state" border="1"></p>
+
+<p><b>3) Step through execution</b><br>
+Use any <a href="slug://flows/step">Step Mode</a> to advance through your program.
+The listing higlights the next statement to execute.
+The Memory Trace higlights bytes in red that were modified by the last step, as in <a href="slug://flows/isa3">ISA workflows</a>,.
+</p>
+<p>Related views: <a href="slug://ui/cpu">CPU Dump</a>, <a href="slug://ui/mem">Memory Dump</a>.</p>
+
+<p><b>4) Stop debugging</b><br>
+To end the session early, use <b>Debug → Stop Debugging</b> or the toolbar icon.
+</p>

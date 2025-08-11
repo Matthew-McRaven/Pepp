@@ -1,0 +1,49 @@
+<h1>Switching Modes</h1>
+<p>
+  Pep is a modal IDE, meaning the interface changes depending on the task you
+  are performing. The mode selector appears as a vertical bar of icons on the
+  left side of the window. The <b>Welcome</b> and <b>Help</b> modes are always
+  visible, with additional modes available depending on the selected project.
+</p>
+<p>
+  <img src="qrc:/help_images/start/modes.png" alt="Mode selector" />
+</p>
+
+<h2>Available Modes</h2>
+<ul>
+  <li>
+    <b>Welcome</b> — Create a new project, open an existing one, or select
+    examples from the help system.
+  </li>
+  <li>
+    <b>Help</b> — You are here. View the built-in help documentation, including
+    examples that can be copied directly into a new project.
+  </li>
+  <li>
+    <b>Editor</b> — Edit your project’s source or object code. This mode also
+    includes tools for assembling and loading programs.
+  </li>
+  <li>
+    <b>Debugger</b> — Simulate, step through, and inspect the execution of code
+    in your project.
+  </li>
+</ul>
+
+<h2>Changing Modes</h2>
+<p>
+  Clicking an icon immediately switches to that mode, preserving the current
+  state of the active project. For example, you can switch between
+  <b>Editor</b> and <b>Debugger</b> without restarting or losing your position
+  in the editor. Switching modes is <b>global</b>, meaning the selected mode
+  will be used for all open projects.
+</p>
+<p>
+  The set of available modes depends on the active project’s architecture and
+  level of abstraction—some modes are not supported for all project types. For
+  example, the microcode editor’s datapath view is not available at other levels
+  of abstraction.
+</p>
+<p>
+  Some actions—such as creating a new project from the Welcome
+  screen—automatically switch you into the <b>Editor</b> mode.
+</p>

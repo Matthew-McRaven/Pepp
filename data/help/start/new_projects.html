@@ -1,0 +1,83 @@
+<h1>Creating a New Project</h1>
+<p>
+  Upon opening the application, you will be greeted with the
+  <b>Welcome</b> screen, which will guide you through project creation. A
+  <b>project</b> is a self-contained workspace that holds your source code and
+  the tools needed to edit, simulate, and debug your program.
+</p>
+<p>
+  You can create a new project from the <b>Welcome</b> mode by selecting a
+  combination of textbook edition and level of abstraction. Each button opens a
+  new project tab fresh editor and simulator environment tailored to your
+  selection. You can switch between projects by switching tabs.
+</p>
+<p>
+  <img
+    src="qrc:/help_images/start/welcome.png"
+    alt="Welcome screen"
+    width="800"
+  />
+</p>
+<p>
+  You can have multiple projects open at once. Each is simulated, edited, and
+  debugged independently. You can return to the <b>Welcome</b> screen at any
+  time (see <a href="slug://start/modes">Switching Modes</a>) to start another
+  project.
+</p>
+<p>
+  <b>Note:</b> After creating a project, you cannot change its type. To switch
+  architectures or levels of abstraction, create a new project.
+</p>
+
+<h2>Choosing an Edition</h2>
+<p>
+  The edition selector at the top of the screen corresponds to editions of
+  <i>Computer Systems</i>; you should choose the one matching your course
+  materials. If you are an independent student, we recommend choosing the sixth
+  edition.
+</p>
+<p>
+  Only one edition can be active at a time. Selecting an edition updates the
+  available project types listed inside of buttons below.
+</p>
+
+<h2>Selecting a Project Type</h2>
+<p>
+  Each button in the grid represents a specific architecture and level of
+  abstraction. When you choose a project type, the new environment will contain
+  the editors, instruction set, and debugger features appropriate for that
+  configuration. For descriptions of the available features in each project
+  type, see <a href="slug://flows">Common Workflows</a>.
+</p>
+<p>Some sample project types are:</p>
+<ul>
+  <li>
+    <b>Pep/10, ISA3, Bare Metal</b> — For low-level object-code programming
+    without an operating system. It features a hex editor for object code and
+    streamlined debugging facilities for simple programs.
+  </li>
+  <li>
+    <b>Pep/10, Asmb5, Full OS</b> — For writing translations of C programs to
+    assembly language or writing assembly programs with system calls. It
+    features a source and listing pane, capable of
+    <a href="slug://flows/step">advanced stepping modes</a> and simulating OS interactions.
+  </li>
+  <li>
+    <b>RISC-V, Asmb3, Bare Metal</b> — For writing assembly language in the
+    RISC-V instruction set without operating system support.
+  </li>
+</ul>
+
+<h1>Other Ways to Create a Project</h1>
+<p>You can also start a new project by:</p>
+<ul>
+  <li>Selecting <b>File → New</b> (empty project).</li>
+  <li>
+    Opening a file with <b>File → Open</b> (project loads with the file’s
+    content).
+  </li>
+  <li>
+    Copying an example from the help system (project loads with the example’s
+    code).
+  </li>
+</ul>

@@ -23,4 +23,4 @@ Number,GitRef,Date,Blurb
 0.10.4,,2025-07-04,"This version modifies the Pep/10 process control block and fixes Mac OS file saving"
 0.10.5,,2025-07-18,"This version improves integration with Windows"
 0.10.6,,2025-07-30,"This version streamlines the about dialog and includes minor Windows installer fixes"
-0.10.7,,??,"This is a WIP version implementing the graphical stack trace"
+0.10.7,,2025-08-10,"This version introduces a revised help system with additional information on how to use this application"

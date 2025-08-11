@@ -157,7 +157,9 @@ Item {
             delegate: TreeViewDelegate {
                 id: treeDelegate
                 implicitWidth: textMetrics.width
-
+                Component.onCompleted: {
+                    contentItem.textFormat = Text.MarkdownText;
+                }
                 // Default background does not fill entire delegate.
                 background: Rectangle {
                     anchors {
@@ -238,12 +240,21 @@ Item {
                         root.renameCurrentProject(name);
                     }
 
+                    // Links starting with slug:// are interpeted as links from one help page to another.
+                    function onNavigateTo(link) {
+                        if (link.startsWith("slug:")) {
+                            const idx = helpModel.indexFromSlug(link);
+                            if (idx.valid)
+                                root.selected = Qt.binding(() => idx);
+                        } else
+                            Qt.openUrlExternally(link);
+                    }
+
                     ignoreUnknownSignals: true
                 }
                 onLoaded: {
-                    // Offset by some small amount to disappear scrollbar when content is not large enough.
-                    const height = Math.max(contentFlickable.height /*- 1*/, contentLoader?.item?.implicitHeight ?? 0);
-                    contentFlickable.contentHeight = Qt.binding(() => height);
+                    contentFlickable.contentHeight = Qt.binding(() => Math.max(contentFlickable.height, contentLoader?.item?.implicitHeight ?? 0));
+                    contentFlickable.anchors.margins = (contentLoader?.item?.renderBG ?? true) ? 1 : 0;
                 }
             }   //  Loader
         }   //  Flickable
@@ -259,7 +270,8 @@ Item {
 
     onSelectedChanged: {
         const props = helpModel.data(selected, HelpModel.Props);
-        if (props)
+        treeView.selectionModel.setCurrentIndex(root.selected, ItemSelectionModel.NoUpdate);
+        if (props && !("architecture" in props))
             props["architecture"] = helpModel.architecture ?? Architecture.PEP10;
         const url = helpModel.data(selected, HelpModel.Delegate);
         if (url !== undefined)
