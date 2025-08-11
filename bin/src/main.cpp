@@ -28,6 +28,7 @@
 #include "commands/get.hpp"
 #include "commands/gui.hpp"
 #include "commands/license.hpp"
+#include "commands/ls-imgfmt.hpp"
 #include "commands/ls-qrc.hpp"
 #include "commands/ls.hpp"
 #include "commands/microasm.hpp"
@@ -81,6 +82,7 @@ int main(int argc, char **argv) {
 
   registerList(app, task, shared_flags);
   registerListQRC(app, task, shared_flags);
+  registerListImageFormats(app, task, shared_flags);
   registerGet(app, task, shared_flags);
 
   registerAsm(app, task, shared_flags);
