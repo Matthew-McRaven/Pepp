@@ -1,4 +1,5 @@
 <h1>Step Modes </h1>
+
 <p>
 Pepp provides four debugging step operations: <b>Single Step</b>, <b>Step Into</b>, <b>Step Over</b>, and <b>Step Out</b>.
 These control how the debugger executes <code>CALL</code> and <code>SCALL</code> instructions, and how it resumes after them.
@@ -18,30 +19,9 @@ They can be used from the <b>Debug</b> menu or toolbar, and each has an associat
   </tr>
 </table>
 
-<h3>Operation Reference</h3>
-<table border="1" cellpadding="4" cellspacing="0">
-  <tr>
-    <th>#</th>
-    <th>Operation</th>
-    <th>Neither <code>CALL</code> nor <code>SCALL</code></th>
-    <th><code>CALL</code></th>
-    <th><code>SCALL</code></th>
-  </tr>
-  <tr>
-    <td>1</td><td>Single Step</td><td>Step Over</td><td>Step Into</td><td>Step Over</td>
-  </tr>
-  <tr>
-    <td>2</td><td>Step Into</td><td>Step Over</td><td colspan="2">Step Into</td>
-  </tr>
-  <tr>
-    <td>3</td><td>Step Over</td><td colspan="3">Step Over</td>
-  </tr>
-  <tr>
-    <td>4</td><td>Step Out</td><td>Step Over</td><td colspan="2">Step Out of</td>
-  </tr>
-</table>
-
-
+<blockquote>
+<b>Applies to:</b> ISA3, Asmb3, OS4, Asmb5
+</blockquote>
 
 <h2>Single Step</h2>
 <p>
@@ -67,3 +47,28 @@ Useful when you do not need to see the internal execution of the callee or OS tr
 Resumes execution until the current <code>CALL</code> or <code>SCALL</code> returns to its caller.
 This is useful when you have stepped into a function or trap but now want to return to the higher level.
 </p>
+
+
+
+<h2>Summary</h3>
+<table border="1" cellpadding="4" cellspacing="0">
+  <tr>
+    <th>#</th>
+    <th>Operation</th>
+    <th>Neither <code>CALL</code> nor <code>SCALL</code></th>
+    <th><code>CALL</code></th>
+    <th><code>SCALL</code></th>
+  </tr>
+  <tr>
+    <td>1</td><td>Single Step</td><td>Step Over</td><td>Step Into</td><td>Step Over</td>
+  </tr>
+  <tr>
+    <td>2</td><td>Step Into</td><td>Step Over</td><td colspan="2">Step Into</td>
+  </tr>
+  <tr>
+    <td>3</td><td>Step Over</td><td colspan="3">Step Over</td>
+  </tr>
+  <tr>
+    <td>4</td><td>Step Out</td><td>Step Over</td><td colspan="2">Step Out of</td>
+  </tr>
+</table>

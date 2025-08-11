@@ -124,18 +124,16 @@ QSharedPointer<HelpEntry> workflows_root() {
   int p10 = mc10 | oc10 | as10;
 
   auto mc2 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Microcode", "MDText.qml");
-  mc2->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
+  mc2->props = QVariantMap{{"file", QVariant(u":/help/workflow/mc2.md"_s)}};
   mc2->isWIP = true;
   mc2->sortName = "2";
 
   auto isa3 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Machine Language", "MDText.qml");
   isa3->props = QVariantMap{{"file", QVariant(u":/help/workflow/isa3.html"_s)}};
-  isa3->isWIP = true;
   isa3->sortName = "3a";
 
   auto asmb = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language", "MDText.qml");
-  asmb->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
-  asmb->isWIP = true;
+  asmb->props = QVariantMap{{"file", QVariant(u":/help/workflow/asmb.html"_s)}};
   asmb->sortName = "5";
 
   auto auto_format =
@@ -154,7 +152,6 @@ QSharedPointer<HelpEntry> workflows_root() {
 
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Common Workflows", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/workflow/index.html"_s)}};
-  root->isWIP = true;
   root->slug = "flows";
   root->addChildren({auto_format, breakpoints, step, mc2, isa3, asmb});
   return root;
