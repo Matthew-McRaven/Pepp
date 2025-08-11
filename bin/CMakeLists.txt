@@ -35,7 +35,7 @@ target_link_libraries(pepp PRIVATE cli catch Qt6::Core Qt6::Gui
     test-lib-all pepp-lib pepp-libplugin KDAB::kddockwidgets kddockwidgetsplugin
 )
 qt_import_qml_plugins(pepp)
-qt_import_plugins(pepp INCLUDE pepp-libplugin kddockwidgetsplugin)
+qt_import_plugins(pepp INCLUDE pepp-libplugin kddockwidgetsplugin INCLUDE_BY_TYPE imageformats)
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
 # Must occur before install scripts, otherwise MacOS builds will fail.
 set_target_properties(pepp PROPERTIES
