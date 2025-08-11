@@ -72,18 +72,11 @@ QSharedPointer<HelpEntry> ui_root() {
   objedit->sortName = "b";
   objedit->slug = "obj";
 
-  auto asmedit =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Language Editor", "MDText.qml");
-  asmedit->props = QVariantMap{{"file", QVariant(u":/help/ui/asmb_edit.md"_s)}};
+  auto asmedit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembly Editor", "MDText.qml");
+  asmedit->props = QVariantMap{{"file", QVariant(u":/help/ui/asmb.md"_s)}};
   asmedit->isWIP = true;
   asmedit->sortName = "c";
   asmedit->slug = "asmb";
-
-  auto asmlist = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Assembler Listing", "MDText.qml");
-  asmlist->props = QVariantMap{{"file", QVariant(u":/help/ui/asmb_list.md"_s)}};
-  asmlist->isWIP = true;
-  asmlist->sortName = "d";
-  asmlist->slug = "list";
 
   auto symtab = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Symbol Table", "MDText.qml");
   symtab->props = QVariantMap{{"file", QVariant(u":/help/ui/symtab.html"_s)}};
@@ -118,7 +111,7 @@ QSharedPointer<HelpEntry> ui_root() {
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "User Interface Overview", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/ui/index.html"_s)}};
   root->slug = "ui";
-  root->addChildren({converters, objedit, asmedit, asmlist, symtab, cpudump, memdump, stkdump, iopane});
+  root->addChildren({converters, objedit, asmedit, symtab, cpudump, memdump, stkdump, iopane});
   return root;
 }
 
