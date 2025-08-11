@@ -24,6 +24,9 @@ void GetQRCTask::run() {
   if (!_src.startsWith(":/")) adjusted = ":/" + _src;
   QFileInfo src_info(adjusted);
   QFileInfo dst_info(_dst);
+  // Make relative paths relative to $PWD.
+  if (!dst_info.isAbsolute()) dst_info = QFileInfo(QDir::current(), _dst);
+
   if (!QFile::copy(src_info.absoluteFilePath(), dst_info.absoluteFilePath())) {
     std::cerr << "Error copying file: " << src_info.absoluteFilePath().toStdString() << " to "
               << dst_info.absoluteFilePath().toStdString() << std::endl;
