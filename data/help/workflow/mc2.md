@@ -17,7 +17,7 @@ However, you may prefer to enter a microcode statement with a minimum of typing.
 Simply set the control signals for the statement with the input widgets in the CPU pane and then click the Copy to Microcode button.
 For example, suppose you are at the following point writing your program.
 
-[copycode1](qrc:/help-micro/images/copycode1.png)
+[copycode1](../../../../../../help-micro/images/copycode1.png)
 
 You could enter this text on the keyboard
 
@@ -27,47 +27,47 @@ for the next cycle. However, instead of typing the text you can interactively ma
 In the following figure, the user has entered 6 for control signal A, 7 for control signal B, and checked the MARCk check box.
 The user can see that data is on the ABus and BBus because they are colored solid red, and that data from them will be clocked into the MAR because the line from the MARCk checkbox is solid black instead of gray.
 
-[copycode2](qrc:/help-micro/images/copycode2.png)
+[copycode2](../../../../../../help-micro/images/copycode2.png)
 
 At this point, the user clicks the Copy to Microcode button.
 
-[copycode3](qrc:/help-micro/images/copycode3.png)
+[copycode3](../../../../../../help-micro/images/copycode3.png)
 
 The effect is that the microcode text corresponding to the settings in the CPU pane is generated and inserted in the microcode pane as the following figure shows.
 
-[copycode4](qrc:/help-micro/images/copycode4.png)
+[copycode4](../../../../../../help-micro/images/copycode4.png)
 
 #### Automatic un/commenting
 
 The automatic un/commenting feature allows you comment and uncomment a group of contiguous lines of code.
 For example, suppose you have entered the follwing lines of code in the Microcode pane.
 
-[comment1](qrc:/help-micro/images/comment1.png)
+[comment1](../../../../../../help-micro/images/comment1.png)
 
 To comment the first two lines of code, first select them with the editor.
 Any line that is partially selected will be affected by the operation.
 In the following figure, the first line is completely selected and the second line is partially selected.
 The second line will also be affected by the automatic comment operation.
 
-[comment2](qrc:/help-micro/images/comment2.png)
+[comment2](../../../../../../help-micro/images/comment2.png)
 
 Now, select Edit→Un/Comment Line from the main menu, or press the equivalent keyboard shortcut for your platform.
 
-[comment3](qrc:/help-micro/images/comment3.png)
+[comment3](../../../../../../help-micro/images/comment3.png)
 
 Any selected lines that are uncommented will be commented, and any selected lines that are commented will be uncommented.
 
-[comment4](qrc:/help-micro/images/comment4.png)
+[comment4](../../../../../../help-micro/images/comment4.png)
 
 A handy feature of this tool is when a microprogram has more than one unit test.
 In such cases, the first unit test is usually uncommented and the remaining tests are commented.
 You can comment the first unit test and uncomment the second unit test in one operation by selecting _both_ tests.
 
-[comment5](qrc:/help-micro/images/comment5.png)
+[comment5](../../../../../../help-micro/images/comment5.png)
 
 When you perform the operation, the first test is commented and the second test is uncommented.
 
-[comment6](qrc:/help-micro/images/comment6.png)
+[comment6](../../../../../../help-micro/images/comment6.png)
 
 ### Running a microprogram
 
@@ -77,30 +77,30 @@ See the section Debugging Use for how to debug your microprogram.
 
 Suppose you have entered the following microcode in the Microcode pane.
 
-[microcodeprogram](qrc:/help-micro/images/microcodeprogram.png)
+[microcodeprogram](../../../../../../help-micro/images/microcodeprogram.png)
 
 To run your program select Build→Run from the menu or click the corresponding Run icon on the toolbar.
 
-[runmenu](qrc:/help-micro/images/runmenu.png) [runicon](qrc:/help-micro/images/runicon.png)
+[runmenu](../../../../../../help-micro/images/runmenu.png) [runicon](../../../../../../help-micro/images/runicon.png)
 
 Pep/9 CPU will attempt to microassemble your microcode program.
 If there are no errors, it will show the object code in the Object Code pane and execute the microcode.
 
-[microcodeobject](qrc:/help-micro/images/microcodeobject.png)
+[microcodeobject](../../../../../../help-micro/images/microcodeobject.png)
 
 If you simply want to check for microcode errors without executing the program select Build→Build Microcode from the menu or click the corresponding Build Microcode icon on the toolbar.
 
-[buildmenu](qrc:/help-micro/images/buildmenu.png) [buildicon](qrc:/help-micro/images/buildicon.png)
+[buildmenu](../../../../../../help-micro/images/buildmenu.png) [buildicon](../../../../../../help-micro/images/buildicon.png)
 
 If there are errors, they will appear in red in the Microcode pane.
 The following figure shows the error message that appears when a comma is omitted after the first control signal.
 
-[errormessage](qrc:/help-micro/images/errormessage.png)
+[errormessage](../../../../../../help-micro/images/errormessage.png)
 
 If you would like, you can select Edit→Remove Error Messages from the menu to delete the error message.
 Then, you can correct your error and try to run your program again.
 
-[removeerrormessages](qrc:/help-micro/images/removeerrormessages.png)
+[removeerrormessages](../../../../../../help-micro/images/removeerrormessages.png)
 
 It is not necessary to remove the error message before correcting your program, as error messages are automatically removed when you rerun your program.
 
@@ -114,7 +114,7 @@ The `UnitPost` statement tests whether a memory cell or CPU register has a speci
 
 If a unit test fails, a dialog alert is activated.
 
-[postconditionerror](qrc:/help-micro/images/postconditionerrordialog.png)
+[postconditionerror](../../../../../../help-micro/images/postconditionerrordialog.png)
 
 When you dismiss the dialog box, a detailed error message is displayed in the Microcode pane.
 
@@ -122,7 +122,7 @@ In the following figure, the programmer ommitted the CCk clock signal in the sec
 Consequently, the C bit was not clocked into its cell. The `UnitPost` statement specifies that C must be 1 at the conclusion of the unit test.
 The error was triggerred because C was 0.
 
-[postconditionerror](qrc:/help-micro/images/postconditionerror.png)
+[postconditionerror](../../../../../../help-micro/images/postconditionerror.png)
 
 There can be as many `UnitPre` and `UnitPost` statements as you like placed anywhere in the microprogram listing without affecting the unit test.
 However, the convention is to place the `UnitPre` statements followed by the `UnitPost` statements before the first cycle statement in the microprogram.
