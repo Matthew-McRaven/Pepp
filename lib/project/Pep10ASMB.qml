@@ -495,6 +495,7 @@ FocusScope {
             background: Rectangle {
                 //  Highlight color used for button down
                 color: button.down ? palette.highlight : palette.button
+                opacity: .25
                 border.width: 1
                 //  Highlight color used for button down
                 border.color: button.hovered ? palette.highlight : "transparent"
