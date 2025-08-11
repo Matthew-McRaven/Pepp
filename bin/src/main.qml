@@ -18,6 +18,7 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import QtCore
 import Qt.labs.platform as P// Make sure app fails to start if this is missing.
 import Qt.labs.qmlmodels as M// "
