@@ -69,7 +69,8 @@ jobs:
         # In the future, may want to filter to specific file extensions to reduce LFS BW.
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git lfs fetch --include="data/help_images/"
+          git lfs install --local
+          git lfs fetch --include="data/help_images/**"
           git lfs checkout data/help_images
           ls -lahR data/help_images
       # Local github runner doesn't have node installed.

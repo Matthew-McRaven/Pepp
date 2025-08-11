@@ -23,7 +23,7 @@ This view is visible in the Editor mode by default.
 You can also use the <a href="slug://ui/convert">byte converters</a> to help convert between different data representations.
 </p>
 <p>
-  <img src="../../../../../../help_images/workflows/isa3_editor.png" alt="Object code entered in the editor" border="1">
+  <img src="qrc:/help_images/workflows/isa3_editor.png" alt="Object code entered in the editor" border="1">
 </p>
 
 <p><b>2) Load the program</b><br>
@@ -31,7 +31,7 @@ Use <b>Build → Load Object Code</b> to load the program into memory. A load bu
 </p>
 <table border="1" cellspacing="0" cellpadding="4">
   <tr>
-    <td align="center"><img src="../../../../../../help_images/workflows/isa3_load.png" alt="Load Object Code menu item" border="1"></td>
+    <td align="center"><img src="qrc:/help_images/workflows/isa3_load.png" alt="Load Object Code menu item" border="1"></td>
   </tr>
 </table>
 
@@ -51,8 +51,8 @@ Program output appears in the Output pane.
     <th>Output</th>
   </tr>
   <tr>
-    <td><img src="../../../../../../help_images/workflows/isa3_execute_menu.png" alt="Execute menu item" border="1"></td>
-    <td><img src="../../../../../../help_images/workflows/isa3_output.png" alt="Program output" border="1"></td>
+    <td><img src="qrc:/help_images/workflows/isa3_execute_menu.png" alt="Execute menu item" border="1"></td>
+    <td><img src="qrc:/help_images/workflows/isa3_output.png" alt="Program output" border="1"></td>
   </tr>
 </table>
 
@@ -62,22 +62,22 @@ Program output appears in the Output pane.
 
 <p><b>1) Start debugging</b><br>
 Use <b>Debug → Start Debugging Object</b> to clear memory to zero, load the program at <code>0000</code>, and enter <strong>Debugger</strong> mode.</p>
-<p><img src="../../../../../../help_images/workflows/isa3_debug_start.png" alt="Start Debugging Object" border="1"></p>
+<p><img src="qrc:/help_images/workflows/isa3_debug_start.png" alt="Start Debugging Object" border="1"></p>
 
 <p><b>2) Initial state</b><br>
 At start, <code>PC = 0000</code>. The next instruction is highlighted in blue in the <a href="slug://ui/mem">Memory Dump</a>.</p>
-<p><img src="../../../../../../help_images/workflows/isa3_debug_highlight.png" alt="Initial trace state with PC at 0000" border="1"></p>
+<p><img src="qrc:/help_images/workflows/isa3_debug_highlight.png" alt="Initial trace state with PC at 0000" border="1"></p>
 
 <p><b>3) Step through execution</b><br>
 Use any <a href="#">Step Mode</a> to advance. Blue = instruction to execute next; red = bytes written by the last step.</p>
 <table border="1" cellspacing="0" cellpadding="4">
   <tr>
     <td>Before Step</td>
-    <td align="center"><img src="../../../../../../help_images/workflows/isa3_debug_write1.png" alt="State before step" border="1"></td>
+    <td align="center"><img src="qrc:/help_images/workflows/isa3_debug_write1.png" alt="State before step" border="1"></td>
   </tr>
   <tr>
     <td>After Step</td>
-    <td align="center"><img src="../../../../../../help_images/workflows/isa3_debug_write2.png" alt="State after step (writes highlighted red)" border="1"></td>
+    <td align="center"><img src="qrc:/help_images/workflows/isa3_debug_write2.png" alt="State after step (writes highlighted red)" border="1"></td>
   </tr>
 </table>
 <p>Related views: <a href="slug://ui/cpu">CPU Dump</a>, <a href="slug://ui/mem">Memory Dump</a>.</p>
@@ -86,6 +86,6 @@ Use any <a href="#">Step Mode</a> to advance. Blue = instruction to execute next
 To end the session early, use <b>Debug → Stop Debugging</b> or the toolbar icon.</p>
 <table border="1" cellspacing="0" cellpadding="4">
   <tr>
-    <td align="center"><img src="../../../../../../help_images/workflows/isa3_debug_stop.png" alt="Stop Debugging menu item" border="1"></td>
+    <td align="center"><img src="qrc:/help_images/workflows/isa3_debug_stop.png" alt="Stop Debugging menu item" border="1"></td>
   </tr>
 </table>
