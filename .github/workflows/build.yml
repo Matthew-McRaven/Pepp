@@ -65,6 +65,7 @@ jobs:
       - name: Download help images via LFS
         # Always needed for WASM build because they go to the web. Deployments need help images too.
         if: ${{ contains(inputs.name, 'EMSDK') || inputs.sign_artifacts}}
+        shell: bash
         # In the future, may want to filter to specific file extensions to reduce LFS BW.
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
