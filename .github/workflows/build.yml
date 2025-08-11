@@ -134,11 +134,8 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git lfs install --local
-          GIT_TRACE=1 git lfs pull --include="data/help_images/**"
+          git lfs pull --include="data/help_images/**"
           ls -lahR data/help_images
-      - name: Validate help images
-        shell: bash
-        run: ls -lahR data/help_images
 
       - name: Configure CMake
         shell: bash
