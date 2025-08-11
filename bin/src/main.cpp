@@ -25,6 +25,7 @@
 #include "commands/asm.hpp"
 #include "commands/dumpbooks.hpp"
 #include "commands/dumptex.hpp"
+#include "commands/get-qrc.hpp"
 #include "commands/get.hpp"
 #include "commands/gui.hpp"
 #include "commands/license.hpp"
@@ -82,6 +83,7 @@ int main(int argc, char **argv) {
 
   registerList(app, task, shared_flags);
   registerListQRC(app, task, shared_flags);
+  registerGetQRC(app, task, shared_flags);
   registerListImageFormats(app, task, shared_flags);
   registerGet(app, task, shared_flags);
 

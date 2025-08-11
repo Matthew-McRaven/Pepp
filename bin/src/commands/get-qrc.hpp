@@ -18,17 +18,25 @@
 #include "../shared.hpp"
 #include "../task.hpp"
 
-class ListImageFormatsTask : public Task {
+class GetQRCTask : public Task {
 public:
-  ListImageFormatsTask(QObject *parent = nullptr);
+  GetQRCTask(QString source, QString dest, QObject *parent = nullptr);
   void run() override;
+
+private:
+  QString _src, _dst;
 };
 
-void registerListImageFormats(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
-  static auto list_imgfmt = app.add_subcommand("ls-imgfmt", "Produce list of supported image formats");
-  list_imgfmt->group("");
-  list_imgfmt->callback([&]() {
+void registerGetQRC(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
+  static std::string source = "", dest = "";
+  static auto get_qrc = app.add_subcommand("get-qrc", "Extract a single file from ");
+  get_qrc->add_option("qrc-source", source, "File relative to :/ to extract");
+  get_qrc->add_option("dest", dest, "File relative to PWD into which qrc-source will be copied");
+  get_qrc->group("");
+  get_qrc->callback([&]() {
     flags.kind = detail::SharedFlags::Kind::TERM;
-    task = [&](QObject *parent) { return new ListImageFormatsTask(parent); };
+    task = [&](QObject *parent) {
+      return new GetQRCTask(QString::fromStdString(source), QString::fromStdString(dest), parent);
+    };
   });
 }

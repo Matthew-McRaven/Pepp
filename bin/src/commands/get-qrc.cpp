@@ -14,21 +14,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-#include "../shared.hpp"
-#include "../task.hpp"
+#include "get-qrc.hpp"
+#include <iostream>
 
-class ListImageFormatsTask : public Task {
-public:
-  ListImageFormatsTask(QObject *parent = nullptr);
-  void run() override;
-};
+GetQRCTask::GetQRCTask(QString source, QString dest, QObject *parent) : Task(parent), _src(source), _dst(dest) {}
 
-void registerListImageFormats(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
-  static auto list_imgfmt = app.add_subcommand("ls-imgfmt", "Produce list of supported image formats");
-  list_imgfmt->group("");
-  list_imgfmt->callback([&]() {
-    flags.kind = detail::SharedFlags::Kind::TERM;
-    task = [&](QObject *parent) { return new ListImageFormatsTask(parent); };
-  });
+void GetQRCTask::run() {
+  QString adjusted = _src;
+  if (!_src.startsWith(":/")) adjusted = ":/" + _src;
+  QFileInfo src_info(adjusted);
+  QFileInfo dst_info(_dst);
+  if (!QFile::copy(src_info.absoluteFilePath(), dst_info.absoluteFilePath())) {
+    std::cerr << "Error copying file: " << src_info.absoluteFilePath().toStdString() << " to "
+              << dst_info.absoluteFilePath().toStdString() << std::endl;
+    return emit finished(1);
+  }
+  std::cout.flush();
+  return emit finished(0);
 }
