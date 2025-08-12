@@ -102,7 +102,6 @@ ApplicationWindow {
             syncEditors();
             pm.onSave(currentProjectRow);
         });
-        actions.appdev.reloadFigures.triggered.connect(help.reloadFiguresRequested);
         projectSelect.message.connect(message);
         message.connect(text => footer.text = text);
         message.connect(() => messageTimer.restart());

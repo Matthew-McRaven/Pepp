@@ -157,76 +157,7 @@ Item {
                         Layout.maximumWidth: 2 * implicitWidth
                         text: qsTr("Check GitHub for updates")
                         onClicked: {
-                            Qt.openUrlExternally(
-                                        "https://github.com/Matthew-McRaven/Pepp/releases")
-                        }
-                    }
-                }
-            }
-            GroupBox {
-                visible: category.showDebugComponents
-                enabled: category.showDebugComponents
-                label: GroupBoxLabel {
-                    text: qsTr("App Developer Options")
-                    backgroundColor: bg.color
-                }
-                Layout.fillWidth: true
-                GridLayout {
-                    anchors.fill: parent
-                    columns: 2
-                    CheckBox {
-                        id: allowExternFigures
-                        visible: !PlatformDetector.isWASM
-                        enabled: !PlatformDetector.isWASM
-                        checked: category.allowExternalFigures
-                        onClicked: category.allowExternalFigures = allowExternFigures.checked
-                    }
-                    Label {
-                        visible: !PlatformDetector.isWASM
-                        enabled: !PlatformDetector.isWASM
-                        text: "Use external figures"
-                    }
-
-                    TextField {
-                        id: externFigurePath
-                        visible: !PlatformDetector.isWASM
-                        enabled: category.allowExternalFigures
-                                 && !PlatformDetector.isWASM
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 160
-                        placeholderText: "/path/to/books/directory/"
-                        text: category.externalFigureDirectory
-                    }
-
-                    Button {
-                        visible: !PlatformDetector.isWASM
-                        enabled: category.allowExternalFigures
-                                 && !PlatformDetector.isWASM
-                        text: qsTr("Choose directory...")
-                        onClicked: figureLoader.item.open()
-                        Connections {
-                            target: figureLoader.item
-
-                            function onAccepted() {
-                                let path = decodeURIComponent(
-                                        figureLoader.item.selectedFolder)
-                                path = path.replace(/^(file:\/{2})/, "")
-                                category.externalFigureDirectory = path
-                            }
-                        }
-
-                        Loader {
-                            id: figureLoader
-                            Component.onCompleted: {
-                                const props = {
-                                    "title": "Select Figure Directory"
-                                }
-                                if (!PlatformDetector.isWASM) {
-                                    setSource("qrc:/qt/qml/edu/pepp/settings/NativeFolderDialog.qml",
-                                              props)
-                                }
-                            }
-                            asynchronous: false
+                            Qt.openUrlExternally("https://github.com/Matthew-McRaven/Pepp/releases");
                         }
                     }
                 }

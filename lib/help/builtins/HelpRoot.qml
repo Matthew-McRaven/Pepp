@@ -10,7 +10,6 @@ Item {
     // Treat as read-only inputs. If changed, they should force updates to the combo boxes.
     property var architecture: 0
     property var abstraction: 0
-    signal reloadFiguresRequested
     NuAppSettings {
         id: settings
     }
@@ -150,7 +149,6 @@ Item {
                 onArchitectureChanged: root.selected = treeView.index(0, 0)
                 Component.onCompleted: {
                     helpModel.sort(0, Qt.AscendingOrder);
-                    reloadFiguresRequested.connect(helpModel.model.onReloadFigures);
                 }
             }
 
