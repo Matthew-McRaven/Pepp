@@ -142,7 +142,6 @@ Item {
                     color: palette.shadow
                 }
                 z: -1
-
             }
         }   //  RowLayout
         Editor.ScintillaAsmEdit {
@@ -199,7 +198,7 @@ Item {
                         const pl = wrapper.payload;
                         const name = pl.defaultFragmentName;
                         const text = pl.fragments[name].content;
-                        wrapper.addProject("", text, "Editor", pl?.defaultOS?.fragments["pep"]?.content, pl?.tests);
+                        wrapper.addProject(pl.arch, pl.level, "", text, "Editor", pl?.defaultOS?.fragments["pep"]?.content, pl?.tests);
                         wrapper.renameCurrentProject(wrapper.title);
                     }
                 }   //  Button
@@ -223,6 +222,6 @@ Item {
         id: editorFM
         font: settings.extPalette.baseMono.font
     }
-    signal addProject(string feats, string text, string switchToMode, var optionalOS, var tests)
+    signal addProject(int arch, int abs, string feats, string text, string switchToMode, var optionalOS, var tests)
     signal renameCurrentProject(string newName)
 }

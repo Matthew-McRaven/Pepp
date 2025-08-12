@@ -12,7 +12,7 @@ QSharedPointer<HelpEntry> workflows_root();
 QSharedPointer<HelpEntry> advanced_root();
 QSharedPointer<HelpEntry> greencard10_root();
 QSharedPointer<HelpEntry> greencard9_root();
-QSharedPointer<HelpEntry> examples_root(const builtins::Registry &reg);
+std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry &reg);
 QSharedPointer<HelpEntry> problems_root(const builtins::Registry &reg);
 QSharedPointer<HelpEntry> os_root();
 QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg);

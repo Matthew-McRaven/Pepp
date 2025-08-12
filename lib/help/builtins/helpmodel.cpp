@@ -21,20 +21,16 @@ HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
   _reg = helpers::registry_with_assemblers(true, figDirectory);
 
   // If you update the following array, YOU MUST UPDATE THE INDEX OF VARIABLE TOO!!!
+  auto ex = examples_root(*_reg);
+  static_assert(ex.max_size() == 3);
   _roots = {
-      starting_root(),      ui_root(),          workflows_root(), greencard10_root(), greencard9_root(),
-      examples_root(*_reg), macros_root(*_reg), advanced_root(),
+      starting_root(), ui_root(), workflows_root(),   greencard10_root(), greencard9_root(), ex[0],
+      ex[1],           ex[2],     macros_root(*_reg), advanced_root(),
   };
   _indexOfFigs = 5;
-  _indexOfMacros = 6;
+  _indexOfMacros = 8;
 
   for (auto &root : _roots) addToIndex(root);
-  QObject::connect(set.general(), &pepp::settings::GeneralCategory::showDebugComponentsChanged, this,
-                   &HelpModel::onReloadFigures);
-  QObject::connect(set.general(), &pepp::settings::GeneralCategory::allowExternalFiguresChanged, this,
-                   &HelpModel::onReloadFigures);
-  QObject::connect(set.general(), &pepp::settings::GeneralCategory::externalFigureDirectoryChanged, this,
-                   &HelpModel::onReloadFigures);
 }
 
 QModelIndex HelpModel::index(int row, int column, const QModelIndex &parent) const {
@@ -135,26 +131,6 @@ QModelIndex HelpModel::indexFromSlug(const QString &slug) {
   return {};
 }
 
-void HelpModel::onReloadFigures() {
-  beginResetModel();
-  auto &figs = _roots[_indexOfFigs];
-  auto &macros = _roots[_indexOfMacros];
-  // Must remove from index otherwise we might deref free'd in data()
-  removeFromIndex(figs);
-  removeFromIndex(macros);
-
-  // Cleanup old entries before their associated registry is destroyed to prevent dangling pointers.
-  figs.clear();
-  macros.clear();
-
-  // Construct registry with new settings
-  _reg = helpers::registry_with_assemblers(true, pepp::settings::AppSettings().general()->figureDirectory());
-  // Re-construct figures and macros in-place, inserting them into our pointer index.
-  addToIndex(figs = examples_root(*_reg));
-  addToIndex(macros = macros_root(*_reg));
-  endResetModel();
-}
-
 void HelpModel::addToIndex(QSharedPointer<HelpEntry> entry) {
   _indices.insert(reinterpret_cast<ptrdiff_t>(entry.data()));
   for (auto &child : entry->_children) addToIndex(child);
@@ -216,6 +192,9 @@ QModelIndex HelpFilterModel::indexFromSlug(const QString &slug) {
 bool HelpFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
   auto sm = sourceModel();
   if (!sm) return false;
+  if (_abstraction == pepp::Abstraction::NO_ABS && _architecture == pepp::Architecture::NO_ARCH) {
+    return true;
+  }
   int32_t mask = bitmask(_architecture, _abstraction);
   auto index = sm->index(source_row, 0, source_parent);
   auto tags = sm->data(index, (int)HelpModel::Roles::Tags).toUInt();

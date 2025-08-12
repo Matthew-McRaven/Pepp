@@ -64,8 +64,6 @@ public:
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
   QModelIndex indexFromSlug(const QString &slug);
-protected slots:
-  void onReloadFigures();
 
 private:
   QList<QSharedPointer<HelpEntry>> _roots;

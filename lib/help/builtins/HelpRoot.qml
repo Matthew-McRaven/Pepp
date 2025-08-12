@@ -84,6 +84,10 @@ Item {
             "key": "Pep/9, MC2",
             "value": make(Architecture.PEP9, Abstraction.MC2)
         });
+        filterModel.append({
+            "key": "Show All",
+            "value": make(Architecture.NO_ARCH, Abstraction.NO_ABS)
+        });
     }
 
     // Make sure the drawer is always at least as wide as the text
@@ -121,6 +125,10 @@ Item {
                 Label {
                     text: "Filter to: "
                 }
+                // Must not use use any form of: filterModel.get(<index>).value
+                // We now have a a FilterModel with that matches everything ("Show All").
+                // Previously, the value was always a single valid (arch, abstraction).
+                // Now that this is no longer the case, this information needs to be tracked inside child components.
                 Comp.DisableableComboBox {
                     id: filterCombo
                     textRole: "key"
@@ -225,9 +233,7 @@ Item {
                 Connections {
                     target: contentLoader.item
 
-                    function onAddProject(feats, texts, mode, os, tests) {
-                        const abs = filterModel.get(filterCombo.currentIndex).value.abstraction;
-                        const arch = filterModel.get(filterCombo.currentIndex).value.architecture;
+                    function onAddProject(arch, abs, feats, texts, mode, os, tests) {
                         root.addProject(arch, abs, feats, texts, true);
                         if (tests && tests[0])
                             root.setCharIn(tests[0].input);
@@ -258,7 +264,7 @@ Item {
         }   //  Flickable
     }   //  Rectangle - background
 
-    signal addProject(int level, int abstraction, string feats, var text, bool reuse)
+    signal addProject(int arch, int abstraction, string feats, var text, bool reuse)
 
     signal renameCurrentProject(string name)
 
