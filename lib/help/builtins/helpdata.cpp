@@ -431,7 +431,7 @@ std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry 
       throw std::invalid_argument(e);
     }
 
-    QString title = u"%1th Edition Figures"_s.arg(match);
+    QString title = u"Figures, %1th Edition"_s.arg(match);
     auto root =
         QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, bitmask_all_levels(arch), title, "MDText.qml");
     root->isExternal = reg.usingExternalFigures();
