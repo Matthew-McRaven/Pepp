@@ -8,7 +8,7 @@ Item {
     id: root
     property var category: undefined
     property int activeCategory: 0
-    property int buttonWidth: 50
+    property int buttonWidth: currentPaletteLabel.implicitWidth
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
     NuAppSettings {
@@ -53,7 +53,8 @@ Item {
             GridLayout {
                 columns: 4
                 Label {
-                    text: "Current Palette: "
+                    id: currentPaletteLabel
+                    text: "Current Palette:"
                     Layout.alignment: Qt.AlignHCenter
                 }
                 ComboBox {
@@ -76,7 +77,8 @@ Item {
                         if (currentIndex === -1)
                             currentIndex = 0;
                     }
-
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
                     textRole: "display"
                     valueRole: "path"
                     ToolTip.visible: hovered
@@ -103,13 +105,12 @@ Item {
                         renameDialog.open();
                     }
                 }
-                Item {}
                 Button {
                     id: copyButton
                     //  System themes can never have state change
                     //  If non-system theme has changes, they must be saved before a copy can be made
                     text: comboBox.isSystemTheme ? "Copy" : "Save"
-                    Layout.minimumWidth: root.buttonWidth
+                    Layout.minimumWidth: currentPaletteLabel.implicitWidth
                     onPressed: {
                         if (comboBox.isSystemTheme) {
                             const curIdx = comboBox.currentIndex;
