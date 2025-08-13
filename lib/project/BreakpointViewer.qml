@@ -45,7 +45,7 @@ Item {
         anchors.top: horizontalHeader.bottom
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: 2
+        anchors.margins: 0//2
         boundsBehavior: Flickable.StopAtBounds
         resizableColumns: true
         clip: true
