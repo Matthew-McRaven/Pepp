@@ -16,10 +16,12 @@ ColumnLayout {
     property real minimumHeight: scrollViewMinHeight
     property real scrollViewMinHeight: 100
 
+    spacing: 0
+
     ScrollView {
         id: scrollView
         Layout.minimumHeight: root.scrollViewMinHeight
-        Layout.margins: 2
+        Layout.margins: 0 //2
         Layout.fillWidth: true
         Layout.fillHeight: true
         contentHeight: Math.max(area.contentHeight, height)
@@ -28,7 +30,7 @@ ColumnLayout {
             font: settings.extPalette.baseMono.font
             background: Rectangle {
                 color: palette.base
-                border.color: palette.text
+                border.color: palette.shadow
                 border.width: 1
             }
         }

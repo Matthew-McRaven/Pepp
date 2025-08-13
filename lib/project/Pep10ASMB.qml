@@ -475,7 +475,7 @@ FocusScope {
             bottom: parent.bottom
             leftMargin: 5
         }
-        height: 15
+        height: 30
         spacing: 5
         orientation: Qt.Horizontal
         model: [dock_source, dock_listing, dock_object, dock_symbol, dock_watch, dock_breakpoints, dock_input, dock_output, dock_cpu, dock_stack, dock_hexdump]
