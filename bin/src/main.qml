@@ -254,12 +254,34 @@ ApplicationWindow {
                         spacing: 5
                         orientation: Qt.Horizontal
                         model: projectLoader.item?.widgets ?? []
+                        reuseItems: false
                         delegate: Button {
                             id: button
                             Layout.alignment: Qt.AlignVCenter
                             checkable: true
                             down: modelData.isOpen
                             display: AbstractButton.TextOnly
+                            property bool isNotify: modelData.needsAttention ?? false
+                            property real flashFactor: 0.0
+                            SequentialAnimation on flashFactor {
+                                id: flashAnim
+                                loops: 10
+
+                                NumberAnimation {
+                                    from: 1.0
+                                    to: 0.0
+                                    duration: 500
+                                    easing.type: Easing.InOutQuad
+                                }
+                                NumberAnimation {
+                                    from: 0.0
+                                    to: 1.0
+                                    duration: 500
+                                    easing.type: Easing.InOutQuad
+                                }
+
+                                onStopped: button.flashFactor = 1.0
+                            }
 
                             contentItem: Label {
                                 text: modelData.title
@@ -269,7 +291,8 @@ ApplicationWindow {
 
                             background: Rectangle {
                                 //  Highlight color used for button down
-                                color: button.down ? palette.highlight : palette.button
+                                property color flashColor: Qt.rgba(settings.extPalette.error.background.r, settings.extPalette.error.background.g, settings.extPalette.error.background.b, button.flashFactor)
+                                color: button.isNotify ? Qt.tint(palette.button, flashColor) : (button.down ? palette.highlight : palette.button)
                                 opacity: .25
                                 border.width: 1
                                 //  Highlight color used for button down
@@ -281,6 +304,11 @@ ApplicationWindow {
                                 //  Flip current state and update model and display
                                 modelData.visibility[window.mode] = !modelData.visibility[window.mode];
                                 modelData.visibility[window.mode] ? modelData.open() : modelData.close();
+                            }
+                            Component.onCompleted: {
+                                modelData.needsAttentionChanged.connect(() => {
+                                    modelData.needsAttention ? (flashAnim.stop(), flashAnim.start()) : flashAnim.stop();
+                                });
                             }
                         }   //  delegate: Button
                     }   //  ListView

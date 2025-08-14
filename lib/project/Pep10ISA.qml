@@ -86,6 +86,9 @@ FocusScope {
         dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(regmemcol_width, memdump_height));
         wrapper.needsDock = Qt.binding(() => false);
         modeVisibilityChange();
+        for (const x of widgets) {
+            x.needsAttention = false;
+        }
     }
 
     Component.onCompleted: {
@@ -103,6 +106,7 @@ FocusScope {
     }
     KDDW.DockingArea {
         id: dockWidgetArea
+        property bool needsAttention: false
         KDDW.LayoutSaver {
             id: layoutSaver
         }
@@ -117,6 +121,7 @@ FocusScope {
         uniqueName: Math.ceil(Math.random() * 1000000000).toString(16)
         KDDW.DockWidget {
             id: dock_object
+            property bool needsAttention: false
             title: "Object Code"
             uniqueName: `ObjectCode-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -133,6 +138,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_greencard
+            property bool needsAttention: false
             title: "Instructions"
             uniqueName: `Instructions-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -154,22 +160,32 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_message
+            property bool needsAttention: false
             title: "Messages"
             uniqueName: `Messages-${dockWidgetArea.uniqueName}`
             property var visibility: {
                 "editor": true,
                 "debugger": true
             }
+            onFocusChanged: {
+                console.log("I am focused:", focus);
+                if (focus) {
+                    needsAttention = false;
+                }
+            }
+
             ProjectLog {
                 id: projectLog
                 anchors.fill: parent
                 Component.onCompleted: {
                     wrapper.project.message.connect(projectLog.appendMessage);
+                    wrapper.project.message.connect(() => (dock_message.needsAttention = Qt.binding(() => true)));
                 }
             }
         }
         KDDW.DockWidget {
             id: dock_input
+            property bool needsAttention: false
             title: "Batch Input"
             uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -195,6 +211,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_output
+            property bool needsAttention: false
             title: "Batch Output"
             uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -210,6 +227,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_cpu
+            property bool needsAttention: false
             title: "CPU Dump"
             uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -231,6 +249,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_hexdump
+            property bool needsAttention: false
             title: "Memory Dump"
             uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
             property var visibility: {

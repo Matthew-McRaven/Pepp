@@ -6,6 +6,7 @@ import edu.pepp
 ColumnLayout {
     id: root
     spacing: 0
+    focus: true
     Button {
         text: "Clear Messages"
         onClicked: {
