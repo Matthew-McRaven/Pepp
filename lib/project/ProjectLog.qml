@@ -8,6 +8,9 @@ ColumnLayout {
     spacing: 0
     Button {
         text: "Clear Messages"
+        onClicked: {
+            logTextArea.text = "";
+        }
     }
     TextArea {
         id: logTextArea
