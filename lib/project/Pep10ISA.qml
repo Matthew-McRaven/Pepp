@@ -17,7 +17,7 @@ FocusScope {
     // WASM version's active focus is broken with docks.
     required property bool isActive
     property bool needsDock: true
-    property var widgets: [dock_object, dock_greencard, dock_input, dock_output, dock_cpu, dock_hexdump]
+    property var widgets: [dock_object, dock_greencard, dock_input, dock_output, dock_message, dock_cpu, dock_hexdump]
 
     focus: true
     signal requestModeSwitchTo(string mode)
@@ -72,6 +72,7 @@ FocusScope {
         dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(greencard_width, parent.height - io_height));
         dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - regmemcol_width, io_height));
         dock_input.addDockWidgetAsTab(dock_output, StartHidden);
+        dock_input.addDockWidgetAsTab(dock_message, PreserveCurrent);
         dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(regmemcol_width, reg_height));
         dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(regmemcol_width, memdump_height));
         wrapper.needsDock = Qt.binding(() => false);
@@ -137,6 +138,22 @@ FocusScope {
                 hideMnemonic: true
                 dyadicAddressing: true
                 //visible: mode === "editor"
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_message
+            title: "Messages"
+            uniqueName: `Messages-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
+            ProjectLog {
+                id: projectLog
+                anchors.fill: parent
+                Component.onCompleted: {
+                    wrapper.project.message.connect(projectLog.appendMessage);
+                }
             }
         }
         KDDW.DockWidget {

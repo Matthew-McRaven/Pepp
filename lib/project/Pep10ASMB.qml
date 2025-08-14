@@ -8,6 +8,7 @@ import "qrc:/qt/qml/edu/pepp/memory/io" as IO
 import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
 import "qrc:/qt/qml/edu/pepp/toolchain/symtab" as SymTab
 import "qrc:/qt/qml/edu/pepp/sim/debug" as Debug
+import "."
 import edu.pepp 1.0
 import com.kdab.dockwidgets 2 as KDDW
 
@@ -19,7 +20,7 @@ FocusScope {
     // WASM version's active focus is broken with docks.
     required property bool isActive
     property bool needsDock: true
-    property var widgets: [dock_source, dock_listing, dock_object, dock_symbol, dock_watch, dock_breakpoints, dock_input, dock_output, dock_cpu, dock_stack, dock_hexdump]
+    property var widgets: [dock_source, dock_listing, dock_object, dock_symbol, dock_watch, dock_breakpoints, dock_input, dock_output, dock_message, dock_cpu, dock_stack, dock_hexdump]
     focus: true
     NuAppSettings {
         id: settings
@@ -62,6 +63,7 @@ FocusScope {
         dockWidgetArea.addDockWidget(dock_listing, KDDW.KDDockWidgets.Location_OnBottom, dock_source, Qt.size(editor_width, editor_height));
         // Dock IOs to right of editors
         dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(io_width, editor_height));
+        dock_input.addDockWidgetAsTab(dock_message, PreserveCurrent);
         dockWidgetArea.addDockWidget(dock_output, KDDW.KDDockWidgets.Location_OnBottom, dock_input, Qt.size(io_width, editor_height));
         // Dock "helpers" below everything
         dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnBottom, null, Qt.size(editor_width, bottom_height));
@@ -355,6 +357,22 @@ FocusScope {
                 anchors.fill: parent
                 model: project?.breakpointModel ?? null
                 lineInfo: project?.lines2addr ?? null
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_message
+            title: "Messages"
+            uniqueName: `Messages-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
+            ProjectLog {
+                id: projectLog
+                anchors.fill: parent
+                Component.onCompleted: {
+                    wrapper.project.message.connect(projectLog.appendMessage);
+                }
             }
         }
         KDDW.DockWidget {

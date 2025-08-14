@@ -103,10 +103,6 @@ ApplicationWindow {
             pm.onSave(currentProjectRow);
         });
         actions.appdev.reloadFigures.triggered.connect(help.reloadFiguresRequested);
-        projectSelect.message.connect(message);
-        //message.connect(text => footer.text = text);
-        //message.connect(() => messageTimer.restart());
-        //messageTimer.restart();
         sidebar.switchToMode("Welcome");
         pm.rowCountChanged.connect(noOpenProjectCheck);
     }
@@ -131,17 +127,6 @@ ApplicationWindow {
         window: window
         settings: settings
     }
-
-    signal message(string message)
-    /*footer: Label {
-        anchors.leftMargin: 10
-        text: "test message"
-        Timer {
-            id: messageTimer
-            interval: 10000
-            onTriggered: window.footer.text = ""
-        }
-    }*/
 
     Top.ToolBar {
         id: toolbar
