@@ -17,6 +17,8 @@ FocusScope {
     required property var project
     required property var actions
     required property string mode
+    // Please only use inside modeVisibilityChange.
+    property string previousMode: ""
     // WASM version's active focus is broken with docks.
     required property bool isActive
     property bool needsDock: true
@@ -26,13 +28,19 @@ FocusScope {
         id: settings
     }
     onModeChanged: modeVisibilityChange()
-
+    KDDW.LayoutSaver {
+        id: layoutSaver
+    }
     function modeVisibilityChange() {
+
         // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
         if (needsDock) {
             return;
         } else if (!(mode === "editor" || mode === "debugger")) {
             return;
+        }
+        if (previousMode) {
+            layoutSaver.saveToFile(`${previousMode}-${dockWidgetArea.uniqueName}.json`);
         }
         // visibility model preserves user changes within a mode.
         for (const x of widgets) {
@@ -41,6 +49,10 @@ FocusScope {
                 x.open();
             else if (!visible && x.isOpen)
                 x.close();
+        }
+        previousMode = mode;
+        if (previousMode) {
+            layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`);
         }
     }
 
