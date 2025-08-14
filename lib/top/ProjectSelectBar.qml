@@ -11,8 +11,6 @@ Item {
     property var projectModel: pm
     property int popupX: 0
     property int popupY: 0
-    // Propogate a status message from current project to main window.
-    signal message(string message)
     clip: true
     visible: !requestHide && (pm.count > 0)
     implicitHeight: flickable.contentHeight
@@ -216,16 +214,11 @@ Item {
         }
     }
     function setCurrentProject(index) {
-        if (root.currentProject?.message !== undefined) {
-            root.currentProject.message.disconnect(root.message);
-        }
         const proj = pm.data(pm.index(index, 0), ProjectModel.ProjectPtrRole);
         if (proj) {
             root.currentProject = Qt.binding(() => proj);
             projectBar.currentIndex = index;
         }
-        if (root.currentProject?.message)
-            root.currentProject.message.connect(root.message);
     }
 
     function switchToProject(index, force) {
