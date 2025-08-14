@@ -8,7 +8,7 @@ Item {
     id: root
     property var category: undefined
     property int activeCategory: 0
-    property int buttonWidth: 80
+    property int buttonWidth: currentPaletteLabel.implicitWidth
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
     NuAppSettings {
@@ -50,172 +50,113 @@ Item {
         ColumnLayout {
             id: layout
             anchors.fill: parent
-
-            ColumnLayout {
-                id: colLayout
-                spacing: 0
-                Layout.fillWidth: true
-
-                //  Screen elements are laid out vertically
-                RowLayout {
-                    id: selector
-
-                    Layout.minimumWidth: Math.max(buttons.childrenRect.width,
-                                                  selector.childrenRect.width)
-                    Layout.maximumWidth: Layout.minimumWidth
-                    Layout.minimumHeight: childrenRect.height
-                    Layout.maximumHeight: Layout.minimumHeight
-                    Layout.leftMargin: -5
-
-                    //  Name of file type to manage
-                    Label {
-                        id: textfont
-                        text: "Current Palette:"
-                        Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignRight
-                    }
-
-                    //  List of file times at custom data Path
-                    //  Path set in model.
-                    ComboBox {
-                        id: comboBox
-
-                        //  Make combo box span 2 button widths
-                        Layout.minimumWidth:  importBtn.x - delButton.x + buttonWidth  //root.comboBoxWidth
-                        model: PaletteManager {
-                            id: onDisk
-                        }
-                        textRole: "display"
-                        valueRole: "path"
-                        ToolTip.visible: hovered
-                        ToolTip.text: currentValue ?? ""
-                        property bool isSystemTheme: true
-                        property bool isMonoFont: false
-
-                        // Must not start at 0, otherwise it will always reset to the default theme.
-                        currentIndex: -1
-                        Component.onCompleted: {
-                            const startTheme = settings.theme.themePath;
-                            for (var row = 0; row < onDisk.rowCount(); row++) {
-                                const index = onDisk.index(row, 0);
-                                const rowPath = onDisk.data(index, onDisk.path);
-                                // As a side-effect, will reload from disk
-                                if (rowPath === startTheme) {
-                                    currentIndex = row;
-                                    break;
-                                }
-                            }
-                            // Reset to default theme if previously selected theme does not exist.
-                            if (currentIndex === -1)
-                                currentIndex = 0;
-                        }
-
-                        onCurrentValueChanged: settings.loadPalette(currentValue)
-                        onCurrentIndexChanged: {
-                            const idx = onDisk.index(currentIndex, 0);
-                            isSystemTheme = Qt.binding(() => onDisk.data(idx, onDisk.isSystem));
-                            isMonoFont = Qt.binding(() => onDisk.data(idx, onDisk.isMonoFont));
-                        }
-                    }
-                    Button {
-                        id: renameBtn
-                        text: "Rename"
-                        Layout.minimumWidth: root.buttonWidth
-                        Layout.maximumWidth: Layout.minimumWidth
-                        enabled: !comboBox.isSystemFile
-                        palette {
-                            buttonText: comboBox.isSystemFile ? root.palette.placeholderText : root.palette.buttonText
-                        }
-                        onPressed: {
-                            renameDialog.open()
-                        }
-                    }
-                }   //  RowLayout - selector
-
-                RowLayout {
-                    id: buttons
-
-                    //  Right align buttons. Use width of largest row for both rows
-                    Layout.minimumWidth: Math.max(buttons.childrenRect.width,
-                                                  selector.childrenRect.width)
-                    Layout.maximumWidth: Layout.minimumWidth
-                    Layout.minimumHeight: childrenRect.height
-                    Layout.maximumHeight: childrenRect.height
-                    Layout.leftMargin: -5
-                    Layout.topMargin: 5
-
-                    //  Spacer to align buttons
-                    Item {
-                        Layout.fillHeight: true
-                        Layout.fillWidth: true
-                    }
-                    Button {
-                        id: copyButton
-                        //  System themes can never have state change
-                        //  If non-system theme has changes, they must be saved before a copy can be made
-                        text: comboBox.isSystemFile ? "Copy" : "Save"
-                        Layout.minimumWidth: root.buttonWidth
-                        Layout.maximumWidth: Layout.minimumWidth
-
-                        onPressed: {
-                            if (comboBox.isSystemTheme) {
-                                const curIdx = comboBox.currentIndex;
-                                // Copy also creates the duplicate item for us!
-                                const index = onDisk.copy(comboBox.currentIndex);
-                                if (index != -1) {
-                                    comboBox.currentIndex = index;
-                                    requestRename();
-                                }
-                            } else {
-                                fileio.save(comboBox.currentValue, settings.extPalette.jsonString());
-                            }
-                        }
-                        signal requestRename
-                    }
-                    Button {
-                        id: delButton
-                        text: "Delete"
-                        Layout.minimumWidth: root.buttonWidth
-                        Layout.maximumWidth: Layout.minimumWidth
-                        enabled: !comboBox.isSystemFile
-
-                        onClicked: {
-                            const index = comboBox.currentIndex;
-                            if (index != -1) {
-                                onDisk.deleteTheme(index);
-                                comboBox.currentIndex = Math.min(index, comboBox.count - 1);
-                            }
-                        }
-                        palette {
-                            buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
-                        }
-                    }
-                    Button {
-                        id: importBtn
-                        text: "Import"
-                        Layout.minimumWidth: root.buttonWidth
-                        Layout.maximumWidth: Layout.minimumWidth
-                        onClicked: importLoader.item.open()
-                    }
-                    Button {
-                        id: exportBtn
-                        text: "Export"
-                        Layout.minimumWidth: root.buttonWidth
-                        Layout.maximumWidth: Layout.minimumWidth
-                        // Now allows export of system themes. This makes it easier to keep theme files up-to-date.
-                        onClicked: exportLoader.item.open()
-                        palette {
-                            buttonText: root.palette.buttonText
-                        }
-                    }
-                }   //  RowLayout - buttons
-
-                //  Spacer if control is larger than 2 rows of buttons
-                Item {
-                    id: verticalSpacer
-                    Layout.fillHeight: true
+            GridLayout {
+                columns: 4
+                Label {
+                    id: currentPaletteLabel
+                    text: "Current Palette:"
+                    Layout.alignment: Qt.AlignHCenter
                 }
-            } //  ColumnLayout - colLayout
+                ComboBox {
+                    id: comboBox
+                    model: PaletteManager {
+                        id: onDisk
+                    }
+                    Component.onCompleted: {
+                        const startTheme = settings.theme.themePath;
+                        for (var row = 0; row < onDisk.rowCount(); row++) {
+                            const index = onDisk.index(row, 0);
+                            const rowPath = onDisk.data(index, onDisk.path);
+                            // As a side-effect, will reload from disk
+                            if (rowPath === startTheme) {
+                                currentIndex = row;
+                                break;
+                            }
+                        }
+                        // Reset to default theme if previously selected theme does not exist.
+                        if (currentIndex === -1)
+                            currentIndex = 0;
+                    }
+                    Layout.columnSpan: 2
+                    Layout.fillWidth: true
+                    textRole: "display"
+                    valueRole: "path"
+                    ToolTip.visible: hovered
+                    ToolTip.text: currentValue ?? ""
+                    property bool isSystemTheme: true
+                    property bool isMonoFont: false
+                    // Must not start at 0, otherwise it will always reset to the default theme.
+                    currentIndex: -1
+                    onCurrentValueChanged: settings.loadPalette(currentValue)
+                    onCurrentIndexChanged: {
+                        const idx = onDisk.index(currentIndex, 0);
+                        isSystemTheme = Qt.binding(() => onDisk.data(idx, onDisk.isSystem));
+                        isMonoFont = Qt.binding(() => onDisk.data(idx, onDisk.isMonoFont));
+                    }
+                }
+                Button {
+                    text: "Rename"
+                    Layout.minimumWidth: root.buttonWidth
+                    enabled: !comboBox.isSystemTheme
+                    palette {
+                        buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
+                    }
+                    onPressed: {
+                        renameDialog.open();
+                    }
+                }
+                Button {
+                    id: copyButton
+                    //  System themes can never have state change
+                    //  If non-system theme has changes, they must be saved before a copy can be made
+                    text: comboBox.isSystemTheme ? "Copy" : "Save"
+                    Layout.minimumWidth: currentPaletteLabel.implicitWidth
+                    onPressed: {
+                        if (comboBox.isSystemTheme) {
+                            const curIdx = comboBox.currentIndex;
+                            // Copy also creates the duplicate item for us!
+                            const index = onDisk.copy(comboBox.currentIndex);
+                            if (index != -1) {
+                                comboBox.currentIndex = index;
+                                requestRename();
+                            }
+                        } else {
+                            fileio.save(comboBox.currentValue, settings.extPalette.jsonString());
+                        }
+                    }
+                    signal requestRename
+                }
+                Button {
+                    id: del
+                    text: "Delete"
+                    Layout.minimumWidth: root.buttonWidth
+                    enabled: !comboBox.isSystemTheme
+                    onClicked: {
+                        const index = comboBox.currentIndex;
+                        if (index != -1) {
+                            onDisk.deleteTheme(index);
+                            comboBox.currentIndex = Math.min(index, comboBox.count - 1);
+                        }
+                    }
+                    palette {
+                        buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
+                    }
+                }
+                Button {
+                    text: "Import"
+                    Layout.minimumWidth: root.buttonWidth
+                    onClicked: importLoader.item.open()
+                }
+                Button {
+                    text: "Export"
+                    Layout.minimumWidth: root.buttonWidth
+                    // Now allows export of system themes. This makes it easier to keep theme files up-to-date.
+                    onClicked: exportLoader.item.open()
+                    palette {
+                        buttonText: root.palette.buttonText
+                    }
+                }
+            }
 
             TabBar {
                 id: tabBar
