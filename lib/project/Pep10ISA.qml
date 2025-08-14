@@ -17,6 +17,7 @@ FocusScope {
     // WASM version's active focus is broken with docks.
     required property bool isActive
     property bool needsDock: true
+    property var widgets: [dock_object, dock_greencard, dock_input, dock_output, dock_cpu, dock_hexdump]
 
     focus: true
     signal requestModeSwitchTo(string mode)
@@ -34,7 +35,7 @@ FocusScope {
             return;
         }
         // visibility model preserves user changes within a mode.
-        for (const x of visibilityBar.model) {
+        for (const x of widgets) {
             const visible = x.visibility[mode];
             if (visible && !x.isOpen)
                 x.open();
@@ -57,7 +58,7 @@ FocusScope {
         const StartHidden = 1;
         const PreserveCurrent = 2;
 
-        const total_height = parent.height - visibilityBar.height;
+        const total_height = parent.height;
 
         const reg_height = registers.childrenRect.height;
         const regmemcol_width = registers.implicitWidth;
@@ -249,7 +250,7 @@ FocusScope {
         height: 30
         spacing: 5
         orientation: Qt.Horizontal
-        model: [dock_object, dock_greencard, dock_input, dock_output, dock_cpu, dock_hexdump]
+        model: wrapper.widgets
         delegate: Button {
             id: button
             Layout.alignment: Qt.AlignVCenter
@@ -260,7 +261,7 @@ FocusScope {
             contentItem: Label {
                 text: modelData.title
                 //  Highlight color used for button down
-                color: button.down ? palette.highlightedText : palette.buttonText;
+                color: button.down ? palette.highlightedText : palette.buttonText
             }
 
             background: Rectangle {
