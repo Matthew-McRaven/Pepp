@@ -102,7 +102,6 @@ ApplicationWindow {
             syncEditors();
             pm.onSave(currentProjectRow);
         });
-        actions.appdev.reloadFigures.triggered.connect(help.reloadFiguresRequested);
         sidebar.switchToMode("Welcome");
         pm.rowCountChanged.connect(noOpenProjectCheck);
     }
