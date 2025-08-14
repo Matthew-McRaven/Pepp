@@ -223,42 +223,83 @@ ApplicationWindow {
             Repeater {
                 id: delegateRepeater
                 model: pm
-                delegate: Loader {
-                    id: projectLoader
-                    Layout.fillHeight: true
-                    Layout.fillWidth: true
-                    Component.onCompleted: {
-                        const delegate = model.project.delegatePath();
-                        setSource(delegate, {
-                            "project": model.project,
-                            "mode": Qt.binding(() => window.mode),
-                            "actions": window.actionRef,
-                            "isActive": false
-                        });
-                        // Do not attempt to put docking widgets in main area until size is non-0.
-                        // Instead, listen for updates in attemptDock, and perform docking as soon as we have real sizes.
-                        widthChanged.connect(attemptDock);
-                        heightChanged.connect(attemptDock);
-                    }
-                    function attemptDock() {
-                        if (height == 0 || width == 0) {} else if (item !== null && item.needsDock) {
-                            item.dock();
-                            // Once docked, stop handling docking attempts for each resize.
-                            widthChanged.disconnect(attemptDock);
-                            heightChanged.disconnect(attemptDock);
+                delegate: ColumnLayout {
+                    Loader {
+                        id: projectLoader
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        Component.onCompleted: {
+                            const delegate = model.project.delegatePath();
+                            setSource(delegate, {
+                                "project": model.project,
+                                "mode": Qt.binding(() => window.mode),
+                                "actions": window.actionRef,
+                                "isActive": false
+                            });
+                            // Do not attempt to put docking widgets in main area until size is non-0.
+                            // Instead, listen for updates in attemptDock, and perform docking as soon as we have real sizes.
+                            widthChanged.connect(attemptDock);
+                            heightChanged.connect(attemptDock);
                         }
-                    }
-                    onLoaded: {
-                        projectLoader.item.isActive = Qt.binding(() => model.row === projectSelect.currentProjectRow);
-                    }
+                        function attemptDock() {
+                            if (height == 0 || width == 0) {} else if (item !== null && item.needsDock) {
+                                item.dock();
+                                // Once docked, stop handling docking attempts for each resize.
+                                widthChanged.disconnect(attemptDock);
+                                heightChanged.disconnect(attemptDock);
+                            }
+                        }
+                        onLoaded: {
+                            projectLoader.item.isActive = Qt.binding(() => model.row === projectSelect.currentProjectRow);
+                        }
 
-                    Connections {
-                        target: projectLoader.item
-                        enabled: model.row == projectSelect.currentProjectRow
-                        function onRequestModeSwitchTo(mode) {
-                            sidebar.switchToMode(mode);
+                        Connections {
+                            target: projectLoader.item
+                            enabled: model.row == projectSelect.currentProjectRow
+                            function onRequestModeSwitchTo(mode) {
+                                sidebar.switchToMode(mode);
+                            }
                         }
                     }
+                    //  Button list of available views
+                    ListView {
+                        id: visibilityBar
+                        Layout.minimumHeight: 30
+                        Layout.fillWidth: true
+                        Layout.leftMargin: 5
+                        spacing: 5
+                        orientation: Qt.Horizontal
+                        model: projectLoader.item?.widgets ?? []
+                        delegate: Button {
+                            id: button
+                            Layout.alignment: Qt.AlignVCenter
+                            checkable: true
+                            down: modelData.isOpen
+                            display: AbstractButton.TextOnly
+
+                            contentItem: Label {
+                                text: modelData.title
+                                //  Highlight color used for button down
+                                color: button.down ? palette.highlightedText : palette.buttonText
+                            }
+
+                            background: Rectangle {
+                                //  Highlight color used for button down
+                                color: button.down ? palette.highlight : palette.button
+                                opacity: .25
+                                border.width: 1
+                                //  Highlight color used for button down
+                                border.color: button.hovered ? palette.highlight : "transparent"
+                                radius: 5
+                            }
+
+                            onClicked: {
+                                //  Flip current state and update model and display
+                                modelData.visibility[window.mode] = !modelData.visibility[window.mode];
+                                modelData.visibility[window.mode] ? modelData.open() : modelData.close();
+                            }
+                        }   //  delegate: Button
+                    }   //  ListView
                 }
             }
         }

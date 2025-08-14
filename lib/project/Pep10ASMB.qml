@@ -198,7 +198,7 @@ FocusScope {
             top: parent.top
             left: parent.left
             right: parent.right
-            bottom: visibilityBar.top
+            bottom: parent.bottom
         }
         // Need application-wide unique ID, otherwise opening a new project will confuse the global name resolution algorithm.
         // TODO: Not gauranteed to be unique, but should be good enough for our purposes.
@@ -467,50 +467,6 @@ FocusScope {
             }
         }
     }
-    //  Button list of available views
-    ListView {
-        id: visibilityBar
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-            leftMargin: 5
-        }
-        height: 30
-        spacing: 5
-        orientation: Qt.Horizontal
-        model: wrapper.widgets
-        delegate: Button {
-            id: button
-            Layout.alignment: Qt.AlignVCenter
-            checkable: true
-            down: modelData.isOpen
-            display: AbstractButton.TextOnly
-
-            contentItem: Label {
-                text: modelData.title
-                //  Highlight color used for button down
-                color: button.down ? palette.highlightedText : palette.buttonText
-            }
-
-            background: Rectangle {
-                //  Highlight color used for button down
-                color: button.down ? palette.highlight : palette.button
-                opacity: .25
-                border.width: 1
-                //  Highlight color used for button down
-                border.color: button.hovered ? palette.highlight : "transparent"
-                radius: 5
-            }
-
-            onClicked: {
-                //  Flip current state and update model and display
-                const nextMode = !modelData.visibility[wrapper.mode];
-                modelData.visibility[wrapper.mode] = nextMode;
-                nextMode ? modelData.open() : modelData.close();
-            }
-        }   //  delegate: Button
-    }   //  ListView
 
     // Only enable binding from the actions to this project if this project is focused.
     Connections {
