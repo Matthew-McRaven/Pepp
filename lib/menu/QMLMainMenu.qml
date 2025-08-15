@@ -108,6 +108,13 @@ MenuBar {
             height: enabled ? implicitHeight : 0
             icon.source: fixSuffix(actions.build.assembleThenFormat.icon.source, wrapper.darkMode)
         }
+        ShortcutMenuItem {
+            action: actions.edit.clearEditorErrors
+            enabled: action.enabled
+            visible: enabled
+            height: enabled ? implicitHeight : 0
+            icon.source: fixSuffix(actions.edit.clearEditorErrors.icon.source, wrapper.darkMode)
+        }
     }
     Menu {
         id: build

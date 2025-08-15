@@ -200,6 +200,14 @@ Labs.MenuBar {
             visible: enabled
             icon.source: fixSuffix(actions.build.assembleThenFormat.icon.source, wrapper.darkMode)
         }
+        Labs.MenuItem {
+            text: actions.edit.clearEditorErrors.text
+            onTriggered: actions.edit.clearEditorErrors.trigger()
+            icon.source: fixSuffix(actions.edit.clearEditorErrors.icon.source, wrapper.darkMode)
+            shortcut: actions.edit.clearEditorErrors.shortcut
+            enabled: actions.edit.clearEditorErrors.enabled
+            visible: enabled
+        }
     }
     Labs.Menu {
         id: build

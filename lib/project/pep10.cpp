@@ -1105,6 +1105,11 @@ void Pep_ASMB::onBPConditionChanged(quint16 address, bool conditional) {
   }
 }
 
+void Pep_ASMB::onClearEditorErrors() {
+  _errors = {};
+  emit errorsChanged();
+}
+
 void Pep_ASMB::prepareSim() {
   using enum pepp::Architecture;
   // Must assemble first, otherwise we might load an outdated version of the OS

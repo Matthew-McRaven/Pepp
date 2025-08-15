@@ -221,6 +221,7 @@ public slots:
   void onModifyUserList(int line, Action action);
   void onModifyOSList(int line, Action action);
   void onBPConditionChanged(quint16 address, bool conditional);
+  void onClearEditorErrors();
 signals:
   void userAsmTextChanged();
   void osAsmTextChanged();

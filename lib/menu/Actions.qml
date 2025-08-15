@@ -120,6 +120,15 @@ QtObject {
             text: qsTr("Pr&eferences")
             icon.source: `image://icons/file/settings${dark ? '' : '_dark'}.svg`
         }
+        readonly property var clearEditorErrors: Action {
+            text: qsTr("Clear Editor Errors")
+            icon.source: `image://icons/blank.svg`
+            enabled: (project?.onClearEditorErrors ?? undefined) !== undefined
+            onTriggered: {
+                if (project.onClearEditorErrors)
+                    project.onClearEditorErrors();
+            }
+        }
     }
 
     readonly property var build: QtObject {
