@@ -131,6 +131,9 @@ FocusScope {
         project.updateGUI.connect(bpViewer.updateGUI);
         project.markedClean.connect(wrapper.markClean);
         userAsmEdit.onDirtiedChanged.connect(wrapper.markDirty);
+        for (const x of widgets) {
+            x.needsAttention = false;
+        }
     }
 
     signal requestModeSwitchTo(string mode)
@@ -220,6 +223,7 @@ FocusScope {
         uniqueName: Math.ceil(Math.random() * 1000000000).toString(16)
         KDDW.DockWidget {
             id: dock_source
+
             title: "Source Editor"
             uniqueName: `SourceEditor-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -263,6 +267,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_listing
+
             title: "Listing"
             uniqueName: `Listing-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -314,6 +319,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_object
+
             title: "Object Code"
             uniqueName: `ObjectCode-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -330,6 +336,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_symbol
+
             title: qsTr(`Symbol Table: ${sourceSelector.currentText}`)
             uniqueName: `SymbolTable-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -345,6 +352,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_watch
+
             title: qsTr(`Watch Expressions`)
             uniqueName: `WatchExpressions-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -359,6 +367,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_breakpoints
+
             title: qsTr(`Breakpoint Viewer`)
             uniqueName: `BreakpointViewer-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -374,22 +383,31 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_message
+
             title: "Messages"
             uniqueName: `Messages-${dockWidgetArea.uniqueName}`
             property var visibility: {
                 "editor": true,
                 "debugger": true
             }
+            onFocusChanged: {
+                console.log("I am focused:", focus);
+                if (focus) {
+                    needsAttention = false;
+                }
+            }
             ProjectLog {
                 id: projectLog
                 anchors.fill: parent
                 Component.onCompleted: {
                     wrapper.project.message.connect(projectLog.appendMessage);
+                    wrapper.project.message.connect(() => (dock_message.needsAttention = Qt.binding(() => true)));
                 }
             }
         }
         KDDW.DockWidget {
             id: dock_input
+
             title: "Batch Input"
             uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -415,6 +433,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_output
+
             title: "Batch Output"
             uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -430,6 +449,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_cpu
+
             title: "CPU Dump"
             uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -451,6 +471,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_hexdump
+
             title: "Memory Dump"
             uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -487,6 +508,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_stack
+
             title: "Stack Trace"
             uniqueName: `StackTrace-${dockWidgetArea.uniqueName}`
             property var visibility: {
