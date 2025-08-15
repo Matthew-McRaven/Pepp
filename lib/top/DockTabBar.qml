@@ -9,8 +9,9 @@
   Contact KDAB at <info@kdab.com> for commercial licensing options.
 */
 
-import QtQuick 2.9
-import QtQuick.Controls 2.9
+//  Removed versions since HoverHandler is not in earlier controls
+import QtQuick
+import QtQuick.Controls
 import edu.pepp
 import "qrc:/kddockwidgets/qtquick/views/qml/" as KDDW
 
@@ -88,6 +89,7 @@ KDDW.TabBarBase {
 
         width: parent.width
         position: (root.groupCpp && root.groupCpp.tabsAtBottom) ? TabBar.Footer : TabBar.Header
+        hoverEnabled: false
 
         onCurrentIndexChanged: {
             // Tells the C++ backend that the current dock widget has changed
@@ -115,32 +117,82 @@ KDDW.TabBarBase {
                 required property string title
                 readonly property int tabIndex: index
                 property color error: settings.extPalette.error.background
+                property real flashFactor: warningLogic.flashFactor
                 property color flashColor: Qt.rgba(error.r, error.g, error.b, flashFactor)
+                property var dockObj: tabBarCpp.dockWidgetObject(index)
                 text: title
-                property var dockObj: tabBarCpp.dockWidgetObject(tabIndex)
-                background: Rectangle {
-                    color: (dockObj && dockObj.needsAttention) ? Qt.tint(palette.button, flashColor) : palette.button
-                }
-                property real flashFactor: 0.0
-                SequentialAnimation on flashFactor {
-                    id: flashAnim
-                    loops: 10
+                hoverEnabled: true
 
-                    NumberAnimation {
-                        from: 1.0
-                        to: 0.0
-                        duration: 500
-                        easing.type: Easing.InOutQuad
-                    }
-                    NumberAnimation {
-                        from: 0.0
-                        to: 1.0
-                        duration: 500
-                        easing.type: Easing.InOutQuad
-                    }
+                background: Item {
+                    id: tbBackground
 
-                    onStopped: btn.flashFactor = 1.0
-                }
+                    //  Control that flashes red when there are errors
+                    Rectangle {
+                        id: warningLogic
+                        property real flashFactor: 0.0
+                        anchors.fill: tbBackground
+                        implicitHeight: 21
+                        topLeftRadius: 5
+                        topRightRadius: topLeftRadius
+                        z: 1    //  Must appear on top for effect to work
+                        visible: (dockObj && dockObj.needsAttention)
+                        color: (dockObj && dockObj.needsAttention) ? Qt.tint(palette.button, flashColor) : "transparent"
+                        opacity: .25
+                        border.width: 1
+                        border.color: "transparent"
+
+                        SequentialAnimation on flashFactor {
+                            id: flashAnim
+                            loops: 10
+
+                            NumberAnimation {
+                                from: 1.0
+                                to: 0.0
+                                duration: 500
+                                easing.type: Easing.InOutQuad
+                            }
+                            NumberAnimation {
+                                from: 0.0
+                                to: 1.0
+                                duration: 500
+                                easing.type: Easing.InOutQuad
+                            }
+
+                            onStopped: btn.flashFactor = 1.0
+                        }
+                    }
+                    //  Standard background copied from Fusion control
+                    Rectangle {
+                        id: originalFusion
+                        anchors.fill: tbBackground
+                        implicitHeight: 21
+                        topLeftRadius: 5
+                        topRightRadius: topLeftRadius
+
+                        //  Event is getting eaten by parent somewhere. Hover never triggers in TabButton or HoverHandler
+                        HoverHandler {
+                            id: mouse
+                            blocking: true
+                        }
+
+                        border.width: 1
+                        border.color: btn.hovered ? palette.highlight : Qt.darker(palette.window, 1.3)
+                        gradient: Gradient {
+                            GradientStop {
+                                position: 0
+                                color: btn.checked ? Qt.lighter(btn.palette.button, 1.04) : Qt.darker(btn.palette.button, 1.08)
+                            }
+                            GradientStop {
+                                position: btn.checked ? 0 : 0.85
+                                color: btn.checked ? Qt.lighter(btn.palette.button, 1.04) : Qt.darker(btn.palette.button, 1.08)
+                            }
+                            GradientStop {
+                                position: 1
+                                color: btn.checked ? btn.palette.button : Qt.darker(btn.palette.button, 1.16)
+                            }
+                        }
+                    }
+                }   //  background: Item
                 function onNeedsAttentionChanged() {
                     if (dockObj?.needsAttention ?? false) {
                         if (dockObj.isCurrentTab())
@@ -150,7 +202,6 @@ KDDW.TabBarBase {
                     } else if (btn && flashAnim)
                         flashAnim.stop();
                 }
-
                 Component.onCompleted: {
                     dockObj.needsAttentionChanged.connect(onNeedsAttentionChanged);
                 }
@@ -158,7 +209,7 @@ KDDW.TabBarBase {
                     if (dockObj)
                         dockObj.needsAttentionChanged.disconnect(onNeedsAttentionChanged);
                 }
-            }
-        }
-    }
+            }   //TabButton
+        }   //  Repeater
+    }   //  TabBar
 }
