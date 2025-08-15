@@ -292,7 +292,7 @@ ApplicationWindow {
                             background: Rectangle {
                                 //  Highlight color used for button down
                                 property color flashColor: Qt.rgba(settings.extPalette.error.background.r, settings.extPalette.error.background.g, settings.extPalette.error.background.b, button.flashFactor)
-                                color: button.isNotify ? Qt.tint(palette.button, flashColor) : (button.down ? palette.highlight : palette.button)
+                                color: (button.isNotify && !modelData.isOpen) ? Qt.tint(palette.button, flashColor) : (button.down ? palette.highlight : palette.button)
                                 opacity: .25
                                 border.width: 1
                                 //  Highlight color used for button down
@@ -302,13 +302,23 @@ ApplicationWindow {
 
                             onClicked: {
                                 //  Flip current state and update model and display
-                                modelData.visibility[window.mode] = !modelData.visibility[window.mode];
-                                modelData.visibility[window.mode] ? modelData.open() : modelData.close();
-                                modelData.visibility[window.mode] ? modelData.setAsCurrentTab() : undefined;
+                                const nextMode = !modelData.visibility[window.mode];
+                                modelData.visibility[window.mode] = nextMode;
+                                if (nextMode) {
+                                    modelData.open();
+                                    modelData.setAsCurrentTab();
+                                    modelData.needsAttention = Qt.binding(() => false);
+                                } else {
+                                    modelData.close();
+                                }
                             }
                             Component.onCompleted: {
                                 modelData.needsAttentionChanged.connect(() => {
-                                    modelData.needsAttention ? (flashAnim.stop(), flashAnim.start()) : flashAnim.stop();
+                                    if (modelData.needsAttention) {
+                                        if (!modelData.isOpen)
+                                            flashAnim.start();
+                                    } else
+                                        flashAnim.stop();
                                 });
                             }
                         }   //  delegate: Button
