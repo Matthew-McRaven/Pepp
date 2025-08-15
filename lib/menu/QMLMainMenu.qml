@@ -15,18 +15,17 @@ MenuBar {
     // cascade through icon.source in menu bar.
     function fixSuffix(source, useDark) {
         // Coerce to JS string so that replace works correctly.
-        const withoutColor = ("" + source).replace(/_dark/i, "")
-        const ret = withoutColor.replace(/\.svg/i,
-                                         `${useDark ? "_dark" : ""}.svg`)
-        return ret
+        const withoutColor = ("" + source).replace(/_dark/i, "");
+        const ret = withoutColor.replace(/\.svg/i, `${useDark ? "_dark" : ""}.svg`);
+        return ret;
     }
     function indexOf(menu, menuItem) {
         for (var i = 0; i < menu.count; i++) {
             if (menu.itemAt(i) === menuItem) {
-                return i
+                return i;
             }
         }
-        return menu.count
+        return menu.count;
     }
 
     TextMetrics {
@@ -41,15 +40,13 @@ MenuBar {
         ShortcutMenuItem {
             id: new_
             action: actions.file.new_
-            icon.source: fixSuffix(actions.file.new_.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.file.new_.icon.source, wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.file.save
             text: "&Save"
-            icon.source: fixSuffix(actions.file.save.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.file.save.icon.source, wrapper.darkMode)
         }
         MenuSeparator {
             id: _closePrev
@@ -60,37 +57,40 @@ MenuBar {
         ShortcutMenuItem {
             action: actions.file.closeAllButCurrent
         }
+        MenuSeparator {}
+        ShortcutMenuItem {
+            action: actions.edit.prefs
+            icon.source: fixSuffix(actions.edit.prefs.icon.source, wrapper.darkMode)
+        }
+        ShortcutMenuItem {
+            action: actions.help.about
+        }
     }
     Menu {
         title: qsTr("&Edit")
         ShortcutMenuItem {
             action: actions.edit.undo
-            icon.source: fixSuffix(actions.edit.undo.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.edit.undo.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.edit.redo
-            icon.source: fixSuffix(actions.edit.redo.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.edit.redo.icon.source, wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.edit.cut
             enabled: action.enabled
-            icon.source: fixSuffix(actions.edit.cut.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.edit.cut.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.edit.copy
             enabled: action.enabled
-            icon.source: fixSuffix(actions.edit.copy.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.edit.copy.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.edit.paste
             enabled: action.enabled
-            icon.source: fixSuffix(actions.edit.paste.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.edit.paste.icon.source, wrapper.darkMode)
         }
         // Formatting magic!
         MenuSeparator {}
@@ -106,18 +106,7 @@ MenuBar {
             enabled: action.enabled
             visible: enabled
             height: enabled ? implicitHeight : 0
-            icon.source: fixSuffix(
-                             actions.build.assembleThenFormat.icon.source,
-                             wrapper.darkMode)
-        }
-        MenuSeparator {}
-        ShortcutMenuItem {
-            action: actions.edit.prefs
-            icon.source: fixSuffix(actions.edit.prefs.icon.source,
-                                   wrapper.darkMode)
-        }
-        ShortcutMenuItem {
-            action: actions.help.about
+            icon.source: fixSuffix(actions.build.assembleThenFormat.icon.source, wrapper.darkMode)
         }
     }
     Menu {
@@ -129,30 +118,26 @@ MenuBar {
             visible: enabled
             height: enabled ? implicitHeight : 0
             onEnabledChanged: contentItem.enabled = enabled
-            icon.source: fixSuffix(actions.build.loadObject.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.build.loadObject.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.build.assemble
             enabled: action.enabled
             visible: enabled
             height: enabled ? implicitHeight : 0
-            icon.source: fixSuffix(actions.build.assemble.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.build.assemble.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.build.assembleThenLoad
             enabled: action.enabled
             visible: enabled
             height: enabled ? implicitHeight : 0
-            icon.source: fixSuffix(actions.build.assembleThenLoad.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.build.assembleThenLoad.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.build.execute
             enabled: action.enabled
-            icon.source: fixSuffix(actions.build.execute.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.build.execute.icon.source, wrapper.darkMode)
         }
     }
     Menu {
@@ -160,46 +145,39 @@ MenuBar {
         ShortcutMenuItem {
             action: actions.debug.start
             enabled: action.enabled
-            icon.source: fixSuffix(actions.debug.start.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.debug.start.icon.source, wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.debug.continue_
             enabled: action.enabled
-            icon.source: fixSuffix(actions.debug.continue_.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.debug.continue_.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.debug.pause
             enabled: action.enabled
-            icon.source: fixSuffix(actions.debug.pause.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.debug.pause.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.debug.stop
             enabled: action.enabled
-            icon.source: fixSuffix(actions.debug.stop.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.debug.stop.icon.source, wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.debug.stepInto
             enabled: action.enabled
-            icon.source: fixSuffix(actions.debug.stepInto.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.debug.stepInto.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.debug.stepOver
             enabled: action.enabled
-            icon.source: fixSuffix(actions.debug.stepOver.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.debug.stepOver.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.debug.stepOut
             enabled: action.enabled
-            icon.source: fixSuffix(actions.debug.stepOut.icon.source,
-                                   wrapper.darkMode)
+            icon.source: fixSuffix(actions.debug.stepOut.icon.source, wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
