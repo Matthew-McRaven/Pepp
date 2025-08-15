@@ -304,6 +304,7 @@ ApplicationWindow {
                                 //  Flip current state and update model and display
                                 modelData.visibility[window.mode] = !modelData.visibility[window.mode];
                                 modelData.visibility[window.mode] ? modelData.open() : modelData.close();
+                                modelData.visibility[window.mode] ? modelData.setAsCurrentTab() : undefined;
                             }
                             Component.onCompleted: {
                                 modelData.needsAttentionChanged.connect(() => {
