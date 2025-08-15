@@ -7,12 +7,6 @@ ColumnLayout {
     id: root
     spacing: 0
     focus: true
-    Button {
-        text: "Clear Messages"
-        onClicked: {
-            logTextArea.text = "";
-        }
-    }
     ScrollView {
         id: view
         Layout.fillWidth: true
@@ -29,5 +23,8 @@ ColumnLayout {
 
     function appendMessage(message) {
         TextDocumentAppender.appendText(logTextArea.textDocument, message);
+    }
+    function clearMessages() {
+        logTextArea.text = "";
     }
 }

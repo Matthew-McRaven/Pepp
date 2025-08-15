@@ -534,6 +534,7 @@ bool Pep_ISA::onLoadObject() {
   _memory->setSP(sp);
   _memory->setPC(pc, pc + (isUnary ? 0 : 2));
   _memory->clearModifiedAndUpdateGUI();
+  emit clearMessages();
   return true;
 }
 
@@ -550,6 +551,7 @@ bool Pep_ISA::onExecute() {
   prepareSim();
   _state = State::NormalExec;
   _stepsSinceLastInteraction = 0;
+  emit clearMessages();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
@@ -561,6 +563,7 @@ bool Pep_ISA::onDebuggingStart() {
   prepareSim();
   _state = State::DebugPaused;
   _stepsSinceLastInteraction = 0;
+  emit clearMessages();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
@@ -940,6 +943,7 @@ static constexpr auto to_string = [](const QString &acc, const auto &line) {
 };
 
 bool Pep_ASMB::onAssemble(bool doLoad) {
+  emit clearMessages();
   using enum pepp::Architecture;
   _userList = _osList = "";
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
@@ -1006,6 +1010,7 @@ bool Pep_ASMB::onAssembleThenLoad() {
 }
 
 bool Pep_ASMB::onAssembleThenFormat() {
+  emit clearMessages();
   using enum pepp::Architecture;
   _userList = _osList = "";
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
@@ -1149,6 +1154,7 @@ void Pep_ASMB::prepareSim() {
   _flags->onUpdateGUI();
   _registers->onUpdateGUI();
   _dbg->watch_expressions->onSimulationStart();
+  emit clearMessages();
 }
 
 void Pep_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
