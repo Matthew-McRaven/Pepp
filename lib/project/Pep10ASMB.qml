@@ -28,9 +28,7 @@ FocusScope {
         id: settings
     }
     onModeChanged: modeVisibilityChange()
-    KDDW.LayoutSaver {
-        id: layoutSaver
-    }
+
     function modeVisibilityChange() {
 
         // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
@@ -208,6 +206,9 @@ FocusScope {
 
     KDDW.DockingArea {
         id: dockWidgetArea
+        KDDW.LayoutSaver {
+            id: layoutSaver
+        }
         anchors {
             top: parent.top
             left: parent.left
