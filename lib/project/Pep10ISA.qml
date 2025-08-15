@@ -106,7 +106,6 @@ FocusScope {
     }
     KDDW.DockingArea {
         id: dockWidgetArea
-        property bool needsAttention: false
         KDDW.LayoutSaver {
             id: layoutSaver
         }
@@ -121,7 +120,6 @@ FocusScope {
         uniqueName: Math.ceil(Math.random() * 1000000000).toString(16)
         KDDW.DockWidget {
             id: dock_object
-            property bool needsAttention: false
             title: "Object Code"
             uniqueName: `ObjectCode-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -138,7 +136,6 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_greencard
-            property bool needsAttention: false
             title: "Instructions"
             uniqueName: `Instructions-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -160,7 +157,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_message
-            property bool needsAttention: false
+
             title: "Messages"
             uniqueName: `Messages-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -185,7 +182,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_input
-            property bool needsAttention: false
+
             title: "Batch Input"
             uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -211,7 +208,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_output
-            property bool needsAttention: false
+
             title: "Batch Output"
             uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -227,7 +224,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_cpu
-            property bool needsAttention: false
+
             title: "CPU Dump"
             uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -249,7 +246,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_hexdump
-            property bool needsAttention: false
+
             title: "Memory Dump"
             uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
             property var visibility: {

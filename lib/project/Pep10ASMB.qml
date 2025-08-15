@@ -223,7 +223,7 @@ FocusScope {
         uniqueName: Math.ceil(Math.random() * 1000000000).toString(16)
         KDDW.DockWidget {
             id: dock_source
-            property bool needsAttention: false
+
             title: "Source Editor"
             uniqueName: `SourceEditor-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -267,7 +267,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_listing
-            property bool needsAttention: false
+
             title: "Listing"
             uniqueName: `Listing-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -319,7 +319,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_object
-            property bool needsAttention: false
+
             title: "Object Code"
             uniqueName: `ObjectCode-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -336,7 +336,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_symbol
-            property bool needsAttention: false
+
             title: qsTr(`Symbol Table: ${sourceSelector.currentText}`)
             uniqueName: `SymbolTable-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -352,7 +352,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_watch
-            property bool needsAttention: false
+
             title: qsTr(`Watch Expressions`)
             uniqueName: `WatchExpressions-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -367,7 +367,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_breakpoints
-            property bool needsAttention: false
+
             title: qsTr(`Breakpoint Viewer`)
             uniqueName: `BreakpointViewer-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -383,7 +383,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_message
-            property bool needsAttention: false
+
             title: "Messages"
             uniqueName: `Messages-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -407,7 +407,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_input
-            property bool needsAttention: false
+
             title: "Batch Input"
             uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -433,7 +433,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_output
-            property bool needsAttention: false
+
             title: "Batch Output"
             uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -449,7 +449,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_cpu
-            property bool needsAttention: false
+
             title: "CPU Dump"
             uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -471,7 +471,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_hexdump
-            property bool needsAttention: false
+
             title: "Memory Dump"
             uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
             property var visibility: {
@@ -508,7 +508,7 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_stack
-            property bool needsAttention: false
+
             title: "Stack Trace"
             uniqueName: `StackTrace-${dockWidgetArea.uniqueName}`
             property var visibility: {

@@ -54,6 +54,7 @@ public:
   ~CustomViewFactory() override;
 
   QUrl titleBarFilename() const override { return QUrl("qrc:/qt/qml/edu/pepp/top/DockTitleBar.qml"); }
+  QUrl tabbarFilename() const override { return QUrl("qrc:/qt/qml/edu/pepp/top/DockTabBar.qml"); }
 };
 CustomViewFactory::~CustomViewFactory() = default;
 
