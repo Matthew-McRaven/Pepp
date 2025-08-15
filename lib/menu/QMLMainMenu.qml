@@ -57,13 +57,9 @@ MenuBar {
         ShortcutMenuItem {
             action: actions.file.closeAllButCurrent
         }
-        MenuSeparator {}
         ShortcutMenuItem {
             action: actions.edit.prefs
             icon.source: fixSuffix(actions.edit.prefs.icon.source, wrapper.darkMode)
-        }
-        ShortcutMenuItem {
-            action: actions.help.about
         }
     }
     Menu {
@@ -202,6 +198,17 @@ MenuBar {
             action: actions.sim.clearMemory
         }
     }
+    Menu {
+        title: qsTr("&Help")
+        ShortcutMenuItem {
+            action: actions.help.about
+        }
+        MenuSeparator {}
+        ShortcutMenuItem {
+            action: actions.help.resetSettings
+        }
+    }
+
     // Only meant for testing the app, not meant for deployment to users!
     Menu {
         title: qsTr("App D&ev")

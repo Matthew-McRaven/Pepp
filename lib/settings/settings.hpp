@@ -276,7 +276,7 @@ public:
   SimulatorCategory *simulator() const;
   KeyMapCategory *keymap() const;
   Q_INVOKABLE void loadPalette(const QString &path);
-  void resetToDefault();
+  Q_INVOKABLE void resetToDefault();
 public slots:
   void sync();
 signals:

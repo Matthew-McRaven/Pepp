@@ -325,6 +325,11 @@ Labs.MenuBar {
             text: actions.help.about.text
             onTriggered: actions.help.about.trigger()
         }
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: actions.help.resetSettings.text
+            onTriggered: actions.help.resetSettings.trigger()
+        }
     }
     // Only meant for testing the app, not meant for deployment to users!
     Labs.Menu {

@@ -307,6 +307,12 @@ QtObject {
             text: qsTr("&About")
             icon.source: "image://icons/blank.svg"
         }
+        readonly property var resetSettings: Action {
+            property string nativeText: ""
+            text: qsTr("&Reset Settings to Default")
+            icon.source: "image://icons/blank.svg"
+            onShortcutChanged: updateNativeText(this)
+        }
     }
 
     readonly property var appdev: QtObject {
