@@ -12,7 +12,7 @@ include(FetchContent)
 FetchContent_Declare(
     monaspace
     GIT_REPOSITORY https://github.com/githubnext/monaspace.git
-    GIT_TAG 3bf3e8f7bd01462dd810bd0ab0b1b59e6674cc5c
+    GIT_TAG v1.200
     # Don't fetch entire history, just the commit we care about.
     GIT_SHALLOW 1
 )
