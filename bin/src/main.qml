@@ -97,6 +97,7 @@ ApplicationWindow {
 
         actions.edit.prefs.triggered.connect(preferencesDialog.open);
         actions.help.about.triggered.connect(aboutDialog.open);
+        actions.help.resetSettings.triggered.connect(onResetSettings);
         actions.view.fullscreen.triggered.connect(onToggleFullScreen);
         actions.file.save.triggered.connect(() => {
             syncEditors();
@@ -566,5 +567,8 @@ ApplicationWindow {
         }
     }
     function onToggleFullScreen() {
+    }
+    function onResetSettings() {
+        settings.resetToDefault();
     }
 }

@@ -200,6 +200,14 @@ Labs.MenuBar {
             visible: enabled
             icon.source: fixSuffix(actions.build.assembleThenFormat.icon.source, wrapper.darkMode)
         }
+        Labs.MenuItem {
+            text: actions.edit.clearEditorErrors.text
+            onTriggered: actions.edit.clearEditorErrors.trigger()
+            icon.source: fixSuffix(actions.edit.clearEditorErrors.icon.source, wrapper.darkMode)
+            shortcut: actions.edit.clearEditorErrors.shortcut
+            enabled: actions.edit.clearEditorErrors.enabled
+            visible: enabled
+        }
     }
     Labs.Menu {
         id: build
@@ -316,6 +324,11 @@ Labs.MenuBar {
         Labs.MenuItem {
             text: actions.help.about.text
             onTriggered: actions.help.about.trigger()
+        }
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: actions.help.resetSettings.text
+            onTriggered: actions.help.resetSettings.trigger()
         }
     }
     // Only meant for testing the app, not meant for deployment to users!

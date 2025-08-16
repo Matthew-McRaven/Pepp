@@ -120,6 +120,15 @@ QtObject {
             text: qsTr("Pr&eferences")
             icon.source: `image://icons/file/settings${dark ? '' : '_dark'}.svg`
         }
+        readonly property var clearEditorErrors: Action {
+            text: qsTr("Clear Editor Errors")
+            icon.source: `image://icons/blank.svg`
+            enabled: (project?.onClearEditorErrors ?? undefined) !== undefined
+            onTriggered: {
+                if (project.onClearEditorErrors)
+                    project.onClearEditorErrors();
+            }
+        }
     }
 
     readonly property var build: QtObject {
@@ -297,6 +306,12 @@ QtObject {
         readonly property var about: Action {
             text: qsTr("&About")
             icon.source: "image://icons/blank.svg"
+        }
+        readonly property var resetSettings: Action {
+            property string nativeText: ""
+            text: qsTr("&Restore Default Settings")
+            icon.source: "image://icons/blank.svg"
+            onShortcutChanged: updateNativeText(this)
         }
     }
 

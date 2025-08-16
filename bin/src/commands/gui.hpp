@@ -35,6 +35,7 @@ void registerGUI(auto &app, task_factory_t &task, detail::SharedFlags &flags, gu
   gui->prefix_command(true);
   static auto launch_file = gui->add_option("open-file", open_file);
   gui->set_help_flag();
+  gui->add_flag("--reset-settings", gui_args.resetSettings, "Reset settings to default on startup");
   gui->callback([&]() {
     flags.kind = detail::SharedFlags::Kind::GUI;
     gui_args.argvs = gui->remaining_for_passthrough();

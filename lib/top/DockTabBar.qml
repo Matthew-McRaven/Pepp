@@ -117,7 +117,7 @@ KDDW.TabBarBase {
                 property color error: settings.extPalette.error.background
                 property color flashColor: Qt.rgba(error.r, error.g, error.b, flashFactor)
                 text: title
-                property var dockObj: tabBarCpp.dockWidgetObject(index)
+                property var dockObj: tabBarCpp.dockWidgetObject(tabIndex)
                 background: Rectangle {
                     color: (dockObj && dockObj.needsAttention) ? Qt.tint(palette.button, flashColor) : palette.button
                 }
@@ -141,14 +141,22 @@ KDDW.TabBarBase {
 
                     onStopped: btn.flashFactor = 1.0
                 }
+                function onNeedsAttentionChanged() {
+                    if (dockObj?.needsAttention ?? false) {
+                        if (dockObj.isCurrentTab())
+                            dockObj.needsAttention = Qt.binding(() => false);
+                        else if (dockObj.isOpen)
+                            flashAnim.start();
+                    } else if (btn && flashAnim)
+                        flashAnim.stop();
+                }
+
                 Component.onCompleted: {
-                    dockObj.needsAttentionChanged.connect(() => {
-                        if (dockObj.needsAttention) {
-                            if (dockObj.isOpen)
-                                flashAnim.start();
-                        } else
-                            flashAnim.stop();
-                    });
+                    dockObj.needsAttentionChanged.connect(onNeedsAttentionChanged);
+                }
+                Component.onDestruction: {
+                    if (dockObj)
+                        dockObj.needsAttentionChanged.disconnect(onNeedsAttentionChanged);
                 }
             }
         }

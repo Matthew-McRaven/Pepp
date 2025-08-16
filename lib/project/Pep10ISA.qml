@@ -177,6 +177,7 @@ FocusScope {
                 Component.onCompleted: {
                     wrapper.project.message.connect(projectLog.appendMessage);
                     wrapper.project.message.connect(() => (dock_message.needsAttention = Qt.binding(() => true)));
+                    wrapper.project.clearMessages.connect(projectLog.clearMessages);
                 }
             }
         }

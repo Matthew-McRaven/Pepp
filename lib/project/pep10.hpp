@@ -124,6 +124,7 @@ signals:
 
   void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
+  void clearMessages();
   void deferredExecution(std::function<bool()> step);
   void overwriteEditors();
 
@@ -220,6 +221,7 @@ public slots:
   void onModifyUserList(int line, Action action);
   void onModifyOSList(int line, Action action);
   void onBPConditionChanged(quint16 address, bool conditional);
+  void onClearEditorErrors();
 signals:
   void userAsmTextChanged();
   void osAsmTextChanged();
