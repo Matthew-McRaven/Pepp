@@ -117,7 +117,7 @@ KDDW.TabBarBase {
                 required property string title
                 readonly property int tabIndex: index
                 property color error: settings.extPalette.error.background
-                property real flashFactor: warningLogic.flashFactor
+                property alias flashFactor: warningLogic.flashFactor
                 property color flashColor: Qt.rgba(error.r, error.g, error.b, flashFactor)
                 property var dockObj: tabBarCpp.dockWidgetObject(index)
                 text: title
