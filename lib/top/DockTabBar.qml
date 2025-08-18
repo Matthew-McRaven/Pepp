@@ -108,6 +108,7 @@ KDDW.TabBarBase {
         }
 
         Repeater {
+            id: repeater
             /// The list of tabs is stored in a C++ model. This repeater populates our TabBar.
             model: root.groupCpp ? root.groupCpp.tabBar.dockWidgetModel : 0
             TabButton {
@@ -164,12 +165,16 @@ KDDW.TabBarBase {
                     Rectangle {
                         id: originalFusion
                         anchors.fill: tbBackground
+                        //Kdocs overlaps internal tabs which clips right and left border. Adjust border for middle tabs on hover.
+                        anchors.leftMargin: btn.isTabHovered && !btn.checked && btn.index !== 0 ? 1 : 0
+                        anchors.rightMargin: btn.isTabHovered && !btn.checked && btn.index !== repeater.model.rows ? 1 : 0
                         implicitHeight: 21
                         topLeftRadius: 5
                         topRightRadius: topLeftRadius
 
                         border.width: 1
-                        border.color: btn.isTabHovered ? palette.highlight : Qt.darker(palette.window, 1.3)
+                        border.color: btn.isTabHovered && !btn.checked
+                                      ? palette.highlight : Qt.darker(palette.window, 1.3)
                         gradient: Gradient {
                             GradientStop {
                                 position: 0
