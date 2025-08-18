@@ -89,7 +89,6 @@ KDDW.TabBarBase {
 
         width: parent.width
         position: (root.groupCpp && root.groupCpp.tabsAtBottom) ? TabBar.Footer : TabBar.Header
-        hoverEnabled: false
 
         onCurrentIndexChanged: {
             // Tells the C++ backend that the current dock widget has changed
@@ -120,8 +119,8 @@ KDDW.TabBarBase {
                 property alias flashFactor: warningLogic.flashFactor
                 property color flashColor: Qt.rgba(error.r, error.g, error.b, flashFactor)
                 property var dockObj: tabBarCpp.dockWidgetObject(index)
+                property bool isTabHovered: tabBarCpp.hoveredTabIndex === tabIndex
                 text: title
-                hoverEnabled: true
 
                 background: Item {
                     id: tbBackground
@@ -169,14 +168,8 @@ KDDW.TabBarBase {
                         topLeftRadius: 5
                         topRightRadius: topLeftRadius
 
-                        //  Event is getting eaten by parent somewhere. Hover never triggers in TabButton or HoverHandler
-                        HoverHandler {
-                            id: mouse
-                            blocking: true
-                        }
-
                         border.width: 1
-                        border.color: btn.hovered ? palette.highlight : Qt.darker(palette.window, 1.3)
+                        border.color: btn.isTabHovered ? palette.highlight : Qt.darker(palette.window, 1.3)
                         gradient: Gradient {
                             GradientStop {
                                 position: 0
