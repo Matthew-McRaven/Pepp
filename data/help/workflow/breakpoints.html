@@ -41,8 +41,8 @@ breakpoints can be hit under <i>any</i> step mode; see <a href="slug://flows/ste
 
 <h2>When a Breakpoint is Hit</h2>
 <p>
-Execution pauses <i>before</i> the breakpointed instruction runs. The current statement is highlighted, and the surrounding
-debugging views (CPU dump, memory dump, stack trace, I/O panes) reflect the state at that point.
+Execution pauses <i>before</i> the instruction with a breakpoint runs. The current statement is highlighted, and the surrounding
+debugging views (CPU dump, memory dump, stack trace, I/O panes) reflect the system state before the instructions executes.
 </p>
 <p>
 <img src="qrc:/help_images/workflows/bp_hit.png" alt="Paused at breakpoint: current line highlighted" border="1">
@@ -50,7 +50,8 @@ debugging views (CPU dump, memory dump, stack trace, I/O panes) reflect the stat
 
 <h2>Managing Breakpoints</h2>
 <ul>
-  <li><b>Clear All:</b> Use <b>Debug → Clear All Breakpoints</b> to remove all breakpoints at once.</li>
+  <li><b>Clear All:</b> When debugging, it is common to enter a large number of breakpoints throughout the code.
+  Use <b>Debug → Clear All Breakpoints</b> to remove all breakpoints at once.</li>
 </ul>
 <p>
 <img src="qrc:/help_images/workflows/bp_clear_all.png" alt="Clear All Breakpoints menu item" border="1">

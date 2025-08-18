@@ -1,7 +1,11 @@
 <h1>Step Modes </h1>
 
+<blockquote>
+<b>Applies to:</b> ISA3, Asmb3, OS4, Asmb5
+</blockquote>
+
 <p>
-Pepp provides four debugging step operations: <b>Single Step</b>, <b>Step Into</b>, <b>Step Over</b>, and <b>Step Out</b>.
+Pepp provides four debugging step operations: <b>Single Step</b> (1), <b>Step Into</b> (2), <b>Step Over</b> (3), and <b>Step Out</b> (4).
 These control how the debugger executes <code>CALL</code> and <code>SCALL</code> instructions, and how it resumes after them.
 They can be used from the <b>Debug</b> menu or toolbar, and each has an associated keyboard shortcut.
 </p>
@@ -19,20 +23,17 @@ They can be used from the <b>Debug</b> menu or toolbar, and each has an associat
   </tr>
 </table>
 
-<blockquote>
-<b>Applies to:</b> ISA3, Asmb3, OS4, Asmb5
-</blockquote>
-
 <h2>Single Step</h2>
 <p>
-Executes one von Neumann cycle. If the current instruction is a <code>CALL</code>, acts as <b>Step Into</b>;
-otherwise acts as <b>Step Over</b>. This is the most common operation for line-by-line debugging.
+Executes one von Neumann cycle. This is the most common operation for line-by-line debugging. Generally,
+this operation will execute a single line of code. If the current instruction is a <code>CALL</code>, Single Step acts as <b>Step Into</b>.
+Otherwise, Single Step acts as <b>Step Over</b>.
 </p>
 
 <h2>Step Into</h2>
 <p>
 Executes the next instruction. If it is a <code>CALL</code> or <code>SCALL</code>, begins tracing inside the callee or OS trap handler.
-Useful when you want to examine internal behavior.
+Useful when you want to examine state changes in the stack, return value of the call, or internal behavior of the operating system call.
 </p>
 
 
@@ -60,15 +61,27 @@ This is useful when you have stepped into a function or trap but now want to ret
     <th><code>SCALL</code></th>
   </tr>
   <tr>
-    <td>1</td><td>Single Step</td><td>Step Over</td><td>Step Into</td><td>Step Over</td>
+    <td>1</td>
+    <td style="font-weight: normal">Single Step</td>
+    <td style="font-weight: normal">Step Over</td>
+    <td style="font-weight: normal">Step Into</td>
+    <td style="font-weight: normal">Step Over</td>
   </tr>
   <tr>
-    <td>2</td><td>Step Into</td><td>Step Over</td><td colspan="2">Step Into</td>
+    <td>2</td>
+    <td style="font-weight: normal">Step Into</td>
+    <td style="font-weight: normal">Step Over</td>
+    <td colspan="2" style="font-weight: normal">Step Into</td>
   </tr>
   <tr>
-    <td>3</td><td>Step Over</td><td colspan="3">Step Over</td>
+    <td>3</td>
+    <td style="font-weight: normal">Step Over</td>
+    <td colspan="3" style="font-weight: normal">Step Over</td>
   </tr>
   <tr>
-    <td>4</td><td>Step Out</td><td>Step Over</td><td colspan="2">Step Out of</td>
+    <td>4</td>
+    <td style="font-weight: normal">Step Out</td>
+    <td style="font-weight: normal">Step Over</td>
+    <td colspan="2" style="font-weight: normal">Step Out of</td>
   </tr>
 </table>
