@@ -7,11 +7,14 @@ import edu.pepp 1.0
 Item {
     id: root
     property real topOffset: 0
+    property real horizontalMargins: 10
+    property real verticalMargins: 0
     property string loadingFileName: ""
     property var loadingFileContent: ""
     property list<int> filterEdition: []
     property list<int> filterAbstraction: []
     readonly property bool filtering: filterEdition.length !== 0 && filterAbstraction.length !== 0
+
     NuAppSettings {
         id: settings
     }
@@ -45,98 +48,113 @@ Item {
 
     signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
 
-    //  File selector logic
-    MouseArea { // Can't be inside filenameHeader with anchors.fill:parent because it is a layout.
-        id: mouseArea
-        anchors.fill: filenameHeader
-        hoverEnabled: filenameHeader.visible
-    }
-    RowLayout {
-        id: filenameHeader
-        spacing: fm.averageCharacterWidth
-        visible: !!root.loadingFileName
+    Rectangle {
+        id: background
 
+        //  Layout
         anchors {
             top: parent.top
             left: parent.left
-            leftMargin: 10
             right: parent.right
-            topMargin: visible ? -root.topOffset : 0
-        }
-
-        Label {
-            text: `Loading from file:`
-            font: fm.font
-            Layout.alignment: Qt.AlignVCenter
-        }
-        Text {
-            text: settings.general.fileNameFor(root.loadingFileName)
-            font: fnameFM.font
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
-            // Put tooltip near the text rather than the whole row. Tooltip placement can be bad on the row.
-            ToolTip.visible: mouseArea.containsMouse && root.loadingFileName
-            ToolTip.text: root.loadingFileName
-            color: palette.link
-        }
-        Item {
-            Layout.fillWidth: true
-        }
-
-        height: visible ? implicitHeight : 0
-    }
-
-    //  Control to select edition
-    EditionSelector {
-        id: header
-
-        topOffset: root.topOffset
-        filterEdition: root.filterEdition
-        font: fm.font
-        spacing: fm.averageCharacterWidth
-
-        anchors {
-            top: filenameHeader.bottom
-            left: parent.left
-            leftMargin: 10
-            right: parent.right
-            topMargin: filenameHeader.visible ? 0 : -root.topOffset
-        }
-    }
-
-    ScrollView {
-        id: sv
-        clip: true
-        anchors {
-            top: header.bottom
-            topMargin: 20
             bottom: parent.bottom
-            left: parent.left
-            right: parent.right
-            margins: 10
+
+            //  Indentation from edge
+            leftMargin: root.horizontalMargins
+            rightMargin: root.horizontalMargins
+            topMargin: root.verticalMargins
+            bottomMargin: root.verticalMargins
         }
-        NewProject {
-            //  Grid layout
-            columns: Math.min(3, Math.max(2, sv.width / (projectTM.width * 1.1)))
-            rowSpacing: 35
-            columnSpacing: 5
-            width: sv.width
 
-            //  Cell layout
-            cellRadius: fm.font.pointSize / 2
-            cellWidth: projectTM.width
-            font: projectFM.font
+        //  Colors
+        color: palette.base
+        border.color: palette.midlight
+        border.width: 1
 
-            //  Data
-            model: projects
-            loadingFileContent: root.loadingFileContent
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.leftMargin: root.spacing
+            anchors.topMargin: anchors.leftMargin
 
-            onAddProject: function (arch, abs, feats, content, reuse) {
-                //  Bubble up event from child control
-                root.addProject(arch, abs, feats, content, reuse);
-            }
+                RowLayout {
+                    id: filenameHeader
+                    spacing: fm.averageCharacterWidth
+                    visible: !!root.loadingFileName
+                    Layout.fillWidth: true
+                    Layout.minimumHeight: filenameHeader.visible ? implicitHeight : 0
+                    Layout.maximumHeight: Layout.minimumHeight
 
+
+                    Label {
+                        text: `Loading from file:`
+                        font: fm.font
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+                    Text {
+                        id: fileName
+                        text: settings.general.fileNameFor(root.loadingFileName)
+                        font: fnameFM.font
+                        Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+                        // Put tooltip near the text rather than the whole row. Tooltip placement can be bad on the row.
+                        ToolTip.visible: mouseArea.containsMouse && root.loadingFileName
+                        ToolTip.text: root.loadingFileName
+                        color: palette.link
+
+                        //  Can't be inside filenameHeader with anchors.fill:parent
+                        //  because it is a layout. Nest in Text instead.
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: fileName
+                            hoverEnabled: filenameHeader.visible
+                        }
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                }   //  RowLayout
+
+            //  Control to select edition
+            EditionSelector {
+                id: header
+
+                topOffset: root.topOffset
+                filterEdition: root.filterEdition
+                font: fm.font
+                spacing: fm.averageCharacterWidth
+
+                Layout.fillWidth: true
+            }   //  EditionSelector
+
+            ScrollView {
+                id: sv
+                clip: true
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+
+                NewProject {
+                    //  Grid layout
+                    columns: Math.min(3, Math.max(2, sv.width / (projectTM.width * 1.1)))
+                    rowSpacing: 35
+                    columnSpacing: 5
+                    width: sv.width
+
+                    //  Cell layout
+                    cellRadius: fm.font.pointSize / 2
+                    cellWidth: projectTM.width
+                    font: projectFM.font
+
+                    //  Data
+                    model: projects
+                    loadingFileContent: root.loadingFileContent
+
+                    onAddProject: function (arch, abs, feats, content, reuse) {
+                        //  Bubble up event from child control
+                        root.addProject(arch, abs, feats, content, reuse);
+                    }
+
+                }   //  NewProject
+            }   //  ScrollView
         }
-    }   //  ScrollView
+    }
 
     ProjectTypeFilterModel {
         id: projects
