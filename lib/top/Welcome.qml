@@ -27,6 +27,12 @@ Item {
         id: newFm
         //font.pointSize: 48
     }
+    TextMetrics {
+        id: newTM
+        font: newFm.font
+        //font.pointSize: newFm.font.pointSize * 1.2
+        text: "Bare Metal"
+    }
 
     FontMetrics {
         id: fm
@@ -63,12 +69,6 @@ Item {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
-
-            //  Indentation from edge
-            leftMargin: root.horizontalMargins
-            rightMargin: root.horizontalMargins
-            topMargin: root.verticalMargins
-            bottomMargin: root.verticalMargins
         }
 
         //  Colors
@@ -76,88 +76,94 @@ Item {
         border.color: palette.midlight
         border.width: 1
 
+        //  Welcome screen is wrapped in column layout to assist with alignment
         ColumnLayout {
             anchors.fill: parent
-            anchors.leftMargin: root.spacing
-            anchors.topMargin: anchors.leftMargin
+            anchors.leftMargin: root.horizontalMargins
+            anchors.rightMargin: root.horizontalMargins
+            anchors.topMargin: root.verticalMargins
+            anchors.bottomMargin: root.verticalMargins
 
-                RowLayout {
-                    id: filenameHeader
-                    spacing: fm.averageCharacterWidth
-                    visible: !!root.loadingFileName
+            spacing: 5
+
+            RowLayout {
+                id: filenameHeader
+                spacing: fm.averageCharacterWidth
+                visible: !!root.loadingFileName
+                Layout.fillWidth: true
+                Layout.minimumHeight: filenameHeader.visible ? implicitHeight : 0
+                Layout.maximumHeight: Layout.minimumHeight
+
+
+                Label {
+                    text: `Loading from file:`
+                    font: fm.font
+                    Layout.alignment: Qt.AlignVCenter
+                }
+                Text {
+                    id: fileName
+                    text: settings.general.fileNameFor(root.loadingFileName)
+                    font: fnameFM.font
+                    Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+                    // Put tooltip near the text rather than the whole row. Tooltip placement can be bad on the row.
+                    ToolTip.visible: mouseArea.containsMouse && root.loadingFileName
+                    ToolTip.text: root.loadingFileName
+                    color: palette.link
+
+                    //  Can't be inside filenameHeader with anchors.fill:parent
+                    //  because it is a layout. Nest in Text instead.
+                    MouseArea {
+                        id: mouseArea
+                        anchors.fill: fileName
+                        hoverEnabled: filenameHeader.visible
+                    }
+                }
+                Item {
                     Layout.fillWidth: true
-                    Layout.minimumHeight: filenameHeader.visible ? implicitHeight : 0
-                    Layout.maximumHeight: Layout.minimumHeight
-
-
-                    Label {
-                        text: `Loading from file:`
-                        font: fm.font
-                        Layout.alignment: Qt.AlignVCenter
-                    }
-                    Text {
-                        id: fileName
-                        text: settings.general.fileNameFor(root.loadingFileName)
-                        font: fnameFM.font
-                        Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
-                        // Put tooltip near the text rather than the whole row. Tooltip placement can be bad on the row.
-                        ToolTip.visible: mouseArea.containsMouse && root.loadingFileName
-                        ToolTip.text: root.loadingFileName
-                        color: palette.link
-
-                        //  Can't be inside filenameHeader with anchors.fill:parent
-                        //  because it is a layout. Nest in Text instead.
-                        MouseArea {
-                            id: mouseArea
-                            anchors.fill: fileName
-                            hoverEnabled: filenameHeader.visible
-                        }
-                    }
-                    Item {
-                        Layout.fillWidth: true
-                    }
-                }   //  RowLayout
+                }
+            }   //  RowLayout
 
             //  Control to select edition
             EditionSelector {
                 id: header
 
-                //topOffset: root.topOffset
                 filterEdition: root.filterEdition
                 font: newFm.font
 
                 Layout.fillWidth: true
             }   //  EditionSelector
 
-            ScrollView {
-                id: sv
+            Label {
+                text: "New Projects"
+                Layout.topMargin: 5
+            }
+
+            NewProject {
+                id: project
                 clip: true
                 Layout.fillHeight: true
                 Layout.fillWidth: true
 
-                NewProject {
-                    //  Grid layout
-                    columns: Math.min(3, Math.max(2, sv.width / (projectTM.width * 1.1)))
-                    rowSpacing: 35
-                    columnSpacing: 5
-                    width: sv.width
+                //  Grid layout
+                //columns: 4 //Math.min(4, Math.max(2, sv.width / (projectTM.width * 1.1)))
+                rowSpacing: 10
+                columnSpacing: 10
 
-                    //  Cell layout
-                    cellRadius: fm.font.pointSize / 2
-                    cellWidth: projectTM.width
-                    font: projectFM.font
+                //  Cell layout
+                cellRadius: 5
+                cellWidth: newTM.width * 2
+                cellHeight: newTM.height * 5
+                font: newTM.font
 
-                    //  Data
-                    model: projects
-                    loadingFileContent: root.loadingFileContent
+                //  Data
+                model: projects
+                loadingFileContent: root.loadingFileContent
 
-                    onAddProject: function (arch, abs, feats, content, reuse) {
-                        //  Bubble up event from child control
-                        root.addProject(arch, abs, feats, content, reuse);
-                    }
-
-                }   //  NewProject
-            }   //  ScrollView
+                onAddProject: function (arch, abs, feats, content, reuse) {
+                    //  Bubble up event from child control
+                    root.addProject(arch, abs, feats, content, reuse);
+                }
+            }   //  NewProject
         }
     }
 
