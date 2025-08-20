@@ -45,40 +45,6 @@ Item {
 
     signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
 
-    component EditionButton: Button {
-        id: control
-        required property int edition
-        property real leftRadius: 0
-        property real rightRadius: 0
-        readonly property var p: enabled ? root.palette : root.palette.disabled
-        down: settings.general.defaultEdition == control.edition
-        enabled: root.filterEdition.length === 0 || root.filterEdition.includes(control.edition)
-        font: fm.font
-        background: Rectangle {
-            id: background
-            color: control.enabled ? (control.down ? palette.highlight : (control.hovered ? palette.light : palette.button)) : palette.shadow
-            topLeftRadius: control.leftRadius
-            topRightRadius: control.rightRadius
-            bottomLeftRadius: control.leftRadius
-            bottomRightRadius: control.rightRadius
-            gradient: Gradient {
-                GradientStop {
-                    position: 0.0
-                    color: Qt.lighter(background.color, 1.1)
-                }
-                GradientStop {
-                    position: 1.0
-                    color: Qt.darker(background.color, 1.1)
-                }
-            }
-            border.color: Qt.darker(palette.button, 1.1)
-            border.width: 1
-        }
-        onReleased: {
-            settings.general.defaultEdition = control.edition;
-        }
-    }
-
     MouseArea { // Can't be inside filenameHeader with anchors.fill:parent because it is a layout.
         id: mouseArea
         anchors.fill: filenameHeader
@@ -118,43 +84,21 @@ Item {
         height: visible ? implicitHeight : 0
     }
 
-    Flow {
+    //  Control to select edition
+    EditionSelector {
         id: header
+
+        topOffset: root.topOffset
+        filterEdition: root.filterEdition
+        fm: fm
         spacing: fm.averageCharacterWidth
+
         anchors {
             top: filenameHeader.bottom
             left: parent.left
             leftMargin: 10
             right: parent.right
             topMargin: filenameHeader.visible ? 0 : -root.topOffset
-        }
-        Label {
-            text: `Computer Systems`
-            font: fm.font
-        }
-        Row {
-            spacing: -1 // -border.width
-            EditionButton {
-                text: "Sixth"
-                edition: 6
-                leftRadius: fm.font.pointSize / 4
-            }
-            EditionButton {
-                text: "Fifth"
-                edition: 5
-                rightRadius: settings.general.showDebugComponents ? 0 : fm.font.pointSize / 4
-            }
-            EditionButton {
-                visible: settings.general.showDebugComponents
-                text: "Fourth"
-                edition: 4
-                rightRadius: fm.font.pointSize / 4
-            }
-        }
-        Label {
-            Layout.fillWidth: true
-            text: `Edition`
-            font: fm.font
         }
     }
 
