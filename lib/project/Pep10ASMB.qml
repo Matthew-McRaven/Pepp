@@ -451,7 +451,7 @@ FocusScope {
         KDDW.DockWidget {
             id: dock_cpu
 
-            title: "CPU Dump"
+            title: "CPU"
             uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
             property var visibility: {
                 "editor": false,
