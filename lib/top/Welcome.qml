@@ -22,6 +22,12 @@ Item {
         id: utils
     }
 
+    //  Font metrics for new layout
+    FontMetrics {
+        id: newFm
+        //font.pointSize: 48
+    }
+
     FontMetrics {
         id: fm
         font.pointSize: 48
@@ -116,10 +122,9 @@ Item {
             EditionSelector {
                 id: header
 
-                topOffset: root.topOffset
+                //topOffset: root.topOffset
                 filterEdition: root.filterEdition
-                font: fm.font
-                spacing: fm.averageCharacterWidth
+                font: newFm.font
 
                 Layout.fillWidth: true
             }   //  EditionSelector
