@@ -9,13 +9,14 @@ Item {
 
     property real topOffset: 0
     property list<int> filterEdition: []
-    required property FontMetrics fm
+    required property var font
     property real spacing: 0
 
     //  Required for accurate spacing in parent layout
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
 
+    //  Custom control used for Flow below
     component EditionButton: Button {
         id: control
         required property int edition
@@ -24,7 +25,7 @@ Item {
         readonly property var p: enabled ? root.palette : root.palette.disabled
         down: settings.general.defaultEdition == control.edition
         enabled: root.filterEdition.length === 0 || root.filterEdition.includes(control.edition)
-        font: root.fm.font
+        font: root.font
         background: Rectangle {
             id: background
             color: control.enabled ? (control.down ? palette.highlight : (control.hovered ? palette.light : palette.button)) : palette.shadow
@@ -50,6 +51,7 @@ Item {
         }
     }
 
+    //  Edition selection string. Provide automatic line breaks if view is too narrow
     Flow {
         id: header
         spacing: root.spacing
@@ -62,31 +64,31 @@ Item {
 
         Label {
             text: `Computer Systems`
-            font: root.fm.font
+            font: root.font
         }
         Row {
             spacing: -1
             EditionButton {
                 text: "Sixth"
                 edition: 6
-                leftRadius: root.fm.font.pointSize / 4
+                leftRadius: root.font.pointSize / 4
             }
             EditionButton {
                 text: "Fifth"
                 edition: 5
-                rightRadius: settings.general.showDebugComponents ? 0 : root.fm.font.pointSize / 4
+                rightRadius: settings.general.showDebugComponents ? 0 : root.font.pointSize / 4
             }
             EditionButton {
                 visible: settings.general.showDebugComponents
                 text: "Fourth"
                 edition: 4
-                rightRadius: root.fm.font.pointSize / 4
+                rightRadius: root.font.pointSize / 4
             }
         }
         Label {
             Layout.fillWidth: true
             text: `Edition`
-            font: root.fm.font
+            font: root.font
         }
     }
 }

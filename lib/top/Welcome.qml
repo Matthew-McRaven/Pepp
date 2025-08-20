@@ -45,6 +45,7 @@ Item {
 
     signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
 
+    //  File selector logic
     MouseArea { // Can't be inside filenameHeader with anchors.fill:parent because it is a layout.
         id: mouseArea
         anchors.fill: filenameHeader
@@ -90,7 +91,7 @@ Item {
 
         topOffset: root.topOffset
         filterEdition: root.filterEdition
-        fm: fm
+        font: fm.font
         spacing: fm.averageCharacterWidth
 
         anchors {
@@ -113,49 +114,29 @@ Item {
             right: parent.right
             margins: 10
         }
-        GridLayout {
-            id: list
-            width: sv.width
+        NewProject {
+            //  Grid layout
+            columns: Math.min(3, Math.max(2, sv.width / (projectTM.width * 1.1)))
             rowSpacing: 35
             columnSpacing: 5
-            columns: Math.min(3, Math.max(2, sv.width / (projectTM.width * 1.1)))
-            Repeater {
-                model: projects
-                delegate: RowLayout {
-                    required property var model
-                    Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-                    Layout.minimumWidth: projectTM.width * 1.1
-                    Layout.maximumWidth: projectTM.width * 3.3
-                    Layout.fillWidth: true
-                    RoundButton {
-                        id: button
-                        Layout.fillWidth: true
-                        font: projectFM.font
-                        visible: !model.placeholder
-                        text: model.text
-                        onReleased: root.addProject(model.architecture, model.abstraction, "", root.loadingFileContent, false)
-                        enabled: (model.complete || model.partiallyComplete) && (root.filterAbstraction.length === 0 || root.filterAbstraction.includes(model.abstraction))
-                        palette.disabled.button: parent.palette.shadow
-                        hoverEnabled: true
-                        ToolTip.visible: (hovered || down) && model.description
-                        ToolTip.delay: 500
-                        ToolTip.text: qsTr(model.description)
-                        radius: fm.font.pointSize / 2
-                    }
-                    Item {
-                        visible: model.placeholder
-                        Layout.fillWidth: true
-                    }
-                }
+            width: sv.width
+
+            //  Cell layout
+            cellRadius: fm.font.pointSize / 2
+            cellWidth: projectTM.width
+            font: projectFM.font
+
+            //  Data
+            model: projects
+            loadingFileContent: root.loadingFileContent
+
+            onAddProject: function (arch, abs, feats, content, reuse) {
+                //  Bubble up event from child control
+                root.addProject(arch, abs, feats, content, reuse);
             }
-            Item {
-                id: spacer
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                Layout.columnSpan: list.columns
-            }
+
         }
-    }
+    }   //  ScrollView
 
     ProjectTypeFilterModel {
         id: projects
