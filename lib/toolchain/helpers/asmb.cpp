@@ -5,6 +5,7 @@
 #include "help/builtins/registry.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/macro/parse.hpp"
+#include "toolchain/pas/ast/generic/attr_keeepalive.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pep9.hpp"
 #include "toolchain/pas/obj/common.hpp"
@@ -44,6 +45,7 @@ void helpers::AsmHelper::setUserText(QString user) { _user = user; }
 
 bool helpers::AsmHelper::assemble() {
   using enum pepp::Architecture;
+  using ka = pas::ast::generic::KeepAlive;
   _callViaRets.clear();
   switch (_arch) {
   case PEP9: {
@@ -56,6 +58,7 @@ bool helpers::AsmHelper::assemble() {
     if (_user) {
       auto userTarget = pipeline->pipelines[1].first;
       _userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+      if (_userRoot) _userRoot->set(ka{{_osRoot}}); // Extend lifetime of OS to match user program
     }
     return result;
   };
@@ -71,6 +74,7 @@ bool helpers::AsmHelper::assemble() {
       auto userTarget = pipeline->pipelines[1].first;
       _userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
       if (_userRoot) pas::ops::pepp::annotateRetOps<isa::Pep10>(_callViaRets, *_userRoot);
+      if (_userRoot) _userRoot->set(ka{{_osRoot}}); // Extend lifetime of OS to match user program
     }
     return result;
   };

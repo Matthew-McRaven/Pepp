@@ -196,6 +196,10 @@ quint32 symbol::value::ExternalPointer::size() const { return _ptrSize; }
 
 symbol::value::MaskedBits symbol::value::ExternalPointer::value() const {
   auto locked_table = symbol_table.lock();
+  if (!locked_table) {
+    qWarning() << "ExternalPointer: symbol table is not available.";
+    return {.byteCount = 0, .bitPattern = 0, .mask = 0};
+  }
   if (locked_table.isNull()) return {.byteCount = 0, .bitPattern = 0, .mask = 0};
   return symbol_pointer->value->value();
 }
