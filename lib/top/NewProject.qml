@@ -86,7 +86,7 @@ Item {
             }   //  contentItem: ColumnLayout
 
             hoverEnabled: true
-            ToolTip.visible: (hovered || down) && wr.model.description
+            ToolTip.visible: (btn.hovered || btn.down) && wr.model.description
             ToolTip.delay: 500
             ToolTip.text: qsTr(wr.model.description)
         }   //  RoundButton

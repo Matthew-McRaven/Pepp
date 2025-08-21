@@ -131,6 +131,7 @@ ApplicationWindow {
     Top.ToolBar {
         id: toolbar
         visible: !(window.mode === "welcome" || window.mode === "help")
+        height: visible ? implicitHeight : 0
         anchors.top: parent.top
         anchors.left: sidebar.right
         anchors.right: parent.right
@@ -140,6 +141,7 @@ ApplicationWindow {
     Top.ProjectSelectBar {
         id: projectSelect
         requestHide: window.mode === "welcome" || window.mode === "help"
+        height: visible ? implicitHeight : 0
         anchors.right: parent.right
         anchors.left: sidebar.right
         anchors.top: toolbar.bottom

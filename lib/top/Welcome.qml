@@ -8,7 +8,7 @@ Item {
     id: root
     property real topOffset: 0
     property real horizontalMargins: 10
-    property real verticalMargins: 0
+    property real verticalMargins: 10
     property string loadingFileName: ""
     property var loadingFileContent: ""
     property list<int> filterEdition: []
@@ -30,7 +30,6 @@ Item {
     TextMetrics {
         id: newTM
         font: newFm.font
-        //font.pointSize: newFm.font.pointSize * 1.2
         text: "Bare Metal"
     }
 
@@ -135,7 +134,7 @@ Item {
 
             Label {
                 text: "New Projects"
-                Layout.topMargin: 5
+                Layout.topMargin: 10
             }
 
             NewProject {
