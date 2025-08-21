@@ -66,7 +66,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     text: wr.model.levelText
                     font.bold: true
-                    font.pointSize: root.font.fontSize * 2
+                    font.pointSize: root.font.pointSize * 1.2
                     color: wr.model.complete ? palette.accent : settings.extPalette.brightText.background // "#aaa"
                 }
                 Label {

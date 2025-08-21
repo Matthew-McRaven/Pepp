@@ -161,8 +161,19 @@ Item {
                     root.addProject(arch, abs, feats, content, reuse);
                 }
             }   //  NewProject
-            Item {
-                id: spacer
+
+            RecentFiles {
+                id: recent
+
+                //  layout
+                Layout.fillWidth: true
+                Layout.topMargin: 20
+                spacing: 5
+
+                font: newTM.font
+            }   //  RecentFiles
+
+            Item {  //  spacer
                 Layout.fillHeight: true
                 Layout.fillWidth: true
             }

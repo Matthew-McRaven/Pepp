@@ -131,7 +131,6 @@ ApplicationWindow {
     Top.ToolBar {
         id: toolbar
         visible: !(window.mode === "welcome" || window.mode === "help")
-        height: visible ? childrenRect.height : 0
         anchors.top: parent.top
         anchors.left: sidebar.right
         anchors.right: parent.right
