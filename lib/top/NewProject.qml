@@ -7,12 +7,10 @@ import QtQuick.Layouts
 Item {
     id: root
 
-    //  Grid layout
-    property int columns: 8
-    property real rowSpacing: 0
-    property real columnSpacing: 0
+    //  Control layout
+    property real spacing: 0
 
-    //  Grid cell layout
+    //  Cell layout
     property real cellRadius: 0
     property real cellWidth: 0
     property real cellHeight: 0
@@ -26,82 +24,85 @@ Item {
     signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
 
     implicitHeight: childrenRect.height
-    implicitWidth: root.columns * (root.cellWidth + root.rowSpacing)
+    implicitWidth: childrenRect.width
 
-    component ProjectButton: RoundButton {
-        id: btn
-        implicitHeight: root.cellHeight
-        implicitWidth: root.cellWidth
-
+    component ProjectButton: Item {
+        id: wr
         //  Declare required properties
         required property int index
         required property var model
 
-        radius: root.cellRadius
-        font: root.font
+        implicitHeight: root.cellHeight
+        implicitWidth: root.cellWidth
 
-        //border.width: 1
-        //border.color: (mouse.containsMouse && !btn.future) ? palette.accent : palette.mid
-        //color: palette.window
+        //  Button outline on hover
+        Rectangle {
+            anchors.fill: wr
+            radius: root.cellRadius
+            visible: (btn.hovered && wr.model.complete)
+            border.width: 2
+            border.color: palette.accent
+            color: "transparent"
+            z: 1
+        }
 
-        onReleased: root.addProject(model.architecture, model.abstraction, "", root.loadingFileContent, false)
-        enabled: (model.complete || model.partiallyComplete) && (root.filterAbstraction.length === 0 || root.filterAbstraction.includes(model.abstraction))
+        RoundButton {
+            id: btn
 
-        contentItem: ColumnLayout {
-            anchors.centerIn: btn
-            spacing: 0
-            Item {  //  Spacer
-                Layout.fillHeight: true
-            }
-            Label {
-                Layout.alignment: Qt.AlignHCenter
-                text: btn.model.levelText
-                font.bold: true
-                font.pointSize: root.font.fontSize * 2
-                color: btn.model.placeholder ? palette.mid : palette.accent
-            }
-            Label {
-                Layout.alignment: Qt.AlignHCenter
-                text: "<b>" + btn.model.text + "</b> (Chap " + btn.model.chapter + ")"
-                textFormat: Text.StyledText
-                color: btn.model.placeholder ? palette.mid : palette.text
-            }
-            Label {
-                Layout.alignment: Qt.AlignHCenter
-                text: btn.model.details
-                color: btn.model.placeholder ? palette.mid : palette.text
-            }
-            Item {  //  Spacer
-                Layout.fillHeight: true
-            }
-        }   //  contentItem: ColumnLayout
+            anchors.fill: wr
+            radius: root.cellRadius
+            font: root.font
 
-        hoverEnabled: true
-        ToolTip.visible: (hovered || down) && model.description
-        ToolTip.delay: 500
-        ToolTip.text: qsTr(model.description)
-    }   //  component ProjectBox
+            onReleased: root.addProject(wr.model.architecture, wr.model.abstraction, "", root.loadingFileContent, false)
+            enabled: (wr.model.complete || wr.model.partiallyComplete) && (root.filterAbstraction.length === 0 || root.filterAbstraction.includes(wr.model.abstraction))
+
+            contentItem: ColumnLayout {
+                anchors.centerIn: btn
+                spacing: 0
+                Item {  //  Spacer
+                    Layout.fillHeight: true
+                }
+                Label {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: wr.model.levelText
+                    font.bold: true
+                    font.pointSize: root.font.fontSize * 2
+                    color: wr.model.complete ? palette.accent : settings.extPalette.brightText.background // "#aaa"
+                }
+                Label {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "<b>" + wr.model.text + "</b> (Chap " + wr.model.chapter + ")"
+                    textFormat: Text.StyledText
+                    color: wr.model.complete ? palette.text : settings.extPalette.brightText.background
+                }
+                Label {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: wr.model.details
+                    color: wr.model.complete ? palette.text : settings.extPalette.brightText.background
+                }
+                Item {  //  Spacer
+                    Layout.fillHeight: true
+                }
+            }   //  contentItem: ColumnLayout
+
+            hoverEnabled: true
+            ToolTip.visible: (hovered || down) && wr.model.description
+            ToolTip.delay: 500
+            ToolTip.text: qsTr(wr.model.description)
+        }   //  RoundButton
+    }   //  component ProjectButton
 
     //  Layout of projects that may be picked by user.
-    GridLayout {
-        id: grid
+    ListView {
+        id: layout
+
+        implicitHeight: root.cellHeight
 
         width: root.width
-        rowSpacing: root.rowSpacing
-        columnSpacing: root.columnSpacing
-        //columns: root.columns
-        layoutDirection: GridLayout.LeftToRight
+        orientation: ListView.Horizontal
+        spacing: root.spacing
 
-        Repeater {
-            model: root.model
-            delegate: ProjectButton {
-            }
-        }
-        Item {
-            id: spacer
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-            //Layout.columnSpan: Math.max(0,grid.columns)
-        }
+        model: root.model
+        delegate: ProjectButton{}
     }
 }

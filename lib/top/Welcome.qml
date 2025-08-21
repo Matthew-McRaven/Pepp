@@ -141,13 +141,10 @@ Item {
             NewProject {
                 id: project
                 clip: true
-                Layout.fillHeight: true
-                Layout.fillWidth: true
 
-                //  Grid layout
-                //columns: 4 //Math.min(4, Math.max(2, sv.width / (projectTM.width * 1.1)))
-                rowSpacing: 10
-                columnSpacing: 10
+                //  layout
+                Layout.fillWidth: true
+                spacing: 10
 
                 //  Cell layout
                 cellRadius: 5
@@ -164,7 +161,12 @@ Item {
                     root.addProject(arch, abs, feats, content, reuse);
                 }
             }   //  NewProject
-        }
+            Item {
+                id: spacer
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+            }
+        }   //  ColumnLayout
     }
 
     ProjectTypeFilterModel {
