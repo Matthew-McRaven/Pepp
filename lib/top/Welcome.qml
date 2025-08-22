@@ -139,7 +139,7 @@ Item {
 
             NewProject {
                 id: project
-                clip: true
+                //clip: true
 
                 //  layout
                 Layout.fillWidth: true

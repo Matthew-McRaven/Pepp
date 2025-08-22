@@ -23,9 +23,11 @@ Item {
 
     signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
 
-    implicitHeight: childrenRect.height
-    implicitWidth: childrenRect.width
+    //  Layout does not work without implicit height and width
+    implicitHeight: Math.min(layout.height,(root.cellHeight + spacing) * Math.min(2,layout.rowCnt))
+    implicitWidth: Math.max(layout.width,(root.cellWidth + spacing) * layout.columns) + spacing
 
+    //  Component shown in each cell of gridview
     component ProjectButton: Item {
         id: wr
         //  Declare required properties
@@ -67,7 +69,7 @@ Item {
                     text: wr.model.levelText
                     font.bold: true
                     font.pointSize: root.font.pointSize * 1.2
-                    color: wr.model.complete ? palette.accent : settings.extPalette.brightText.background // "#aaa"
+                    color: wr.model.complete ? palette.accent : settings.extPalette.brightText.background
                 }
                 Label {
                     Layout.alignment: Qt.AlignHCenter
@@ -92,17 +94,56 @@ Item {
         }   //  RoundButton
     }   //  component ProjectButton
 
-    //  Layout of projects that may be picked by user.
-    ListView {
-        id: layout
+    ScrollView {
+        id: sv
 
-        implicitHeight: root.cellHeight
+        clip: true
+        anchors.fill: root
 
-        width: root.width
-        orientation: ListView.Horizontal
-        spacing: root.spacing
+        //  Scroll bar settings
+        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-        model: root.model
-        delegate: ProjectButton{}
-    }
+        //  Grid containing buttons
+        GridLayout {
+            id: layout
+
+            property int rowCnt: 1
+            property int cells: root.model.rowCount()
+
+            //  Spacing between cells
+            rowSpacing: root.spacing
+            columnSpacing: root.spacing
+
+            //  There can be between 1 and 8 columns per row. If too narrow, only
+            //  show visible projects and wrap
+            columns: Math.min(8, Math.max(1, Math.floor(sv.width / (root.cellWidth + root.spacing))))
+            Repeater {
+                model: root.model
+                delegate:
+                    ProjectButton{}
+            }   //  Repeater
+        }   //  GridLayout
+
+        Component.onCompleted: {
+            //  GridLayout does not automatically calculate number of rows
+            //  based on total cells / columns.
+            rowChange();
+        }
+        onWidthChanged: {
+            //  GridLayout does not automatically calculate number of rows
+            //  based on total cells / columns.
+            rowChange();
+        }
+
+        function rowChange()
+        {
+            //  There is always a single row at minimum
+            layout.rowCnt = Math.max(1,Math.ceil(layout.cells/layout.columns));
+            //console.log("Cells", layout.cells,"Cols",layout.columns,"Rows",layout.rowCnt)
+            //console.log("root.width / root.height", root.width, root.height)
+            //console.log("sv.width / sv.height", sv.width, sv.height)
+            //console.log("layout.width / layout.height", layout.width, layout.height)
+        }
+    }   //ScrollView
 }
