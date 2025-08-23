@@ -21,4 +21,5 @@ import "qrc:/kddockwidgets/qtquick/views/qml/" as KDDW
 KDDW.TitleBar {
     id: root
     hideButtons: true
+    color: palette.window
 }
