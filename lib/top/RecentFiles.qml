@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material    //  Used by TabBar
 import QtQuick.Layouts
 
 Item {
@@ -21,38 +22,71 @@ Item {
             id: bar
             implicitWidth: root.width
             currentIndex: root.recentFiles.length > 0 ? 0 : 1
+
+            //  This erases underline that spans page under tabs
+            Material.accent: "transparent"
             TabButton {
                 id: tab1
                 visible: root.recentFiles.length > 0
-                text: "Recent"
                 width: root.recentFiles.length > 0 ? root.buttonWidth : 0
-                background: Rectangle {
-                    anchors.bottomMargin: -1
-                    topRightRadius: 5
-                    topLeftRadius: topRightRadius
-                    color: tab1.checked ? palette.accent : palette.window
-                    opacity: tab1.checked ? .25 : 1
 
-                    border.width: 1
-                    border.color: root.borderColor
+                contentItem: Text {
+                    id: txt1
+                    text: "Recent"
+                    horizontalAlignment: Text.AlignHCenter
+                    color: tab1.checked ? palette.text : settings.extPalette.brightText.background
                 }
-            }
+
+                //  Replace existing tab background
+                background: Rectangle {
+                    id: bg1
+                    anchors.fill: tab1
+
+                    //  Show underline when active
+                    Rectangle {
+                        visible: tab1.checked
+                        anchors.bottom: bg1.bottom
+                        anchors.bottomMargin:  4
+                        anchors.horizontalCenter: bg1.horizontalCenter
+
+                        height: 4
+                        width: txt1.contentWidth
+                        color: palette.highlight
+                        radius: 2
+                    }
+                }   //  background: Rectangle
+            }   //  TabButton - tab1
             TabButton {
                 id: tab2
-                text: "Favorites"
                 width: root.buttonWidth
-                background: Rectangle {
-                    anchors.bottomMargin: -1
-                    topRightRadius: 5
-                    topLeftRadius: topRightRadius
-                    color: tab2.checked ? palette.accent : palette.window
-                    opacity: tab2.checked ? .25 : 1
 
-                    border.width: 1
-                    border.color: root.borderColor
+                contentItem: Text {
+                    id: txt2
+                    text: "Favorites"
+                    horizontalAlignment: Text.AlignHCenter
+                    color: tab2.checked ? palette.text : settings.extPalette.brightText.background
                 }
-            }
-        }
+
+                //  Replace existing tab background
+                background: Rectangle {
+                    id: bg2
+                    anchors.fill: tab2
+
+                    //  Show underline when active
+                    Rectangle {
+                        visible: tab2.checked
+                        anchors.bottom: bg2.bottom
+                        anchors.bottomMargin:  4
+                        anchors.horizontalCenter: bg2.horizontalCenter
+
+                        height: 4
+                        width: txt2.contentWidth
+                        color: palette.highlight
+                        radius: 2
+                    }
+                }   //  background: Rectangle
+            }   //  TabButton - tab2
+        }   //  TabBar
 
         StackLayout {
             Layout.fillWidth: true
