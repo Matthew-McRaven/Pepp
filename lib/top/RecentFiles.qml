@@ -126,7 +126,7 @@ Item {
                         //  Delegate for file listing
                         Rectangle {
                             id: btn
-                            implicitHeight: Math.max(60,childrenRect.height)
+                            implicitHeight: Math.max(80,childrenRect.height)
                             implicitWidth: 300
 
                             Layout.topMargin: root.spacing
@@ -156,6 +156,7 @@ Item {
                                 }
                                 Label {
                                     //  File name
+                                    id: name
                                     Layout.fillWidth: true
                                     text: settings.general.fileNameFor(btn.model.path)
                                     font.bold: true
@@ -164,13 +165,23 @@ Item {
                                 }
                                 Label {
                                     //  Architecture details
+                                    id: arch
                                     Layout.fillWidth: true
                                     text: "<b>" + existingProject.archText(btn.model.arch) + "</b>: " + existingProject.abstractText(btn.model.abstraction)
                                 }
-                                Label {
+                                Text {
                                     //  Full file path
+                                    id: path
                                     text: btn.model.path
                                     Layout.fillWidth: true
+                                    textFormat: Text.PlainText
+                                    maximumLineCount: 2
+                                    lineHeight: 0.85
+                                    wrapMode: Text.Wrap
+                                    elide: Text.ElideRight
+
+                                    //  Wrapped text did not change line count
+                                    //Component.onCompleted: console.log("path height", path.contentHeight, path.height, path.lineCount)
                                 }
                                 Item{
                                     //  Spacer
