@@ -81,6 +81,8 @@ QtObject {
             icon.source: `image://icons/file/undo${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Undo
             onShortcutChanged: updateNativeText(this)
+            enabled: !!activeFocusItem && !!activeFocusItem["undo"] && (!activeFocusItem.readOnly ?? true)
+            onTriggered: activeFocusItem.undo()
         }
         readonly property var redo: Action {
             property string nativeText: ""
@@ -88,6 +90,8 @@ QtObject {
             icon.source: `image://icons/file/redo${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Redo
             onShortcutChanged: updateNativeText(this)
+            enabled: !!activeFocusItem && !!activeFocusItem["redo"] && (!activeFocusItem.readOnly ?? true)
+            onTriggered: activeFocusItem.redo()
         }
         readonly property var copy: Action {
             property string nativeText: ""
