@@ -389,6 +389,7 @@ void ScintillaEditBase::keyPressEvent(QKeyEvent *event) {
   bool consumed = false;
 
   int firstCol = getFirstVisibleColumn(), firstRow = getFirstVisibleLine();
+  if (key == SCK_RETURN && !(shift || ctrl || alt)) send(SCI_ADDUNDOACTION, 0, UNDO_NONE);
   bool added = sqt->KeyDownWithModifiers(static_cast<Keys>(key), ModifierFlags(shift, ctrl, alt), &consumed) != 0;
   if (!consumed) consumed = added;
 
@@ -411,7 +412,9 @@ void ScintillaEditBase::keyPressEvent(QKeyEvent *event) {
         const int ucWidth = text.at(i).isHighSurrogate() ? 2 : 1;
         const QString oneCharUTF16 = text.mid(i, ucWidth);
         const QByteArray oneChar = sqt->BytesForDocument(oneCharUTF16);
-
+        if (oneCharUTF16 == " " || oneCharUTF16 == "\t" || oneCharUTF16 == "\n") {
+          send(SCI_ADDUNDOACTION, 0, UNDO_NONE);
+        }
         sqt->InsertCharacter(std::string_view(oneChar.data(), oneChar.length()), CharacterSource::DirectInput);
         i += ucWidth;
       }
