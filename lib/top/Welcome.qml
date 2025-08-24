@@ -28,7 +28,6 @@ Item {
     //  Font metrics for new layout
     FontMetrics {
         id: newFm
-        //font.pointSize: 48
     }
     TextMetrics {
         id: newTM
@@ -38,14 +37,8 @@ Item {
 
     FontMetrics {
         id: fm
-        font.pointSize: 48
-    }
-    FontMetrics {
-        id: fnameFM
-        font {
-            family: fm.font.family
-            pointSize: 3 * fm.font.pointSize / 4
-        }
+        font.pointSize: newFm.font.pointSize * 1.2
+        font.bold: true
     }
 
     Rectangle {
@@ -81,17 +74,17 @@ Item {
                 Layout.fillWidth: true
                 Layout.minimumHeight: filenameHeader.visible ? implicitHeight : 0
                 Layout.maximumHeight: Layout.minimumHeight
+                Layout.bottomMargin: filenameHeader.visible ? 10 : 0
 
-
-                Label {
-                    text: `Loading from file:`
+                Text {
+                    text: `Please pick Pep version and architecture for file:`
                     font: fm.font
                     Layout.alignment: Qt.AlignVCenter
                 }
                 Text {
                     id: fileName
                     text: settings.general.fileNameFor(root.loadingFileName)
-                    font: fnameFM.font
+                    font: fm.font
                     Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
                     // Put tooltip near the text rather than the whole row. Tooltip placement can be bad on the row.
                     ToolTip.visible: mouseArea.containsMouse && root.loadingFileName
@@ -156,6 +149,10 @@ Item {
                 Layout.fillWidth: true
                 Layout.topMargin: 20
                 spacing: 5
+
+                //  When opening file from menu, allow user to select
+                //  archicture. Hide other controls
+                visible: !filenameHeader.visible
 
                 font: newTM.font
 
