@@ -14,6 +14,9 @@ Item {
     property color borderColor: settings.extPalette.brightText.background
     property var recentFiles: settings.general.recentFiles
 
+    signal openFile(string path, int arch, int abstraction)
+
+    //  Layout does not work without implicit height and width
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
 
@@ -135,9 +138,23 @@ Item {
                             required property var model
 
                             radius: 5
-                            border.width: 1
-                            border.color: root.borderColor
                             color: palette.window
+
+                            //  Change outline when hovered
+                            border.width: mouse.containsMouse ? 2 : 1
+                            border.color: mouse.containsMouse ? palette.accent : root.borderColor
+
+                            MouseArea {
+                                id: mouse
+                                anchors.fill: btn
+                                hoverEnabled: true
+
+                                onClicked: {
+                                    //  Signal that file is ready to be opened
+                                    root.openFile(btn.model.path ,btn.model.arch, btn.model.abstraction)
+                                }
+                            }
+
                             ColumnLayout {
 
                                 anchors.left: btn.left

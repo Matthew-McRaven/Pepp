@@ -140,10 +140,6 @@ Item {
         {
             //  There is always a single row at minimum
             layout.rowCnt = Math.max(1,Math.ceil(layout.cells/layout.columns));
-            //console.log("Cells", layout.cells,"Cols",layout.columns,"Rows",layout.rowCnt)
-            //console.log("root.width / root.height", root.width, root.height)
-            //console.log("sv.width / sv.height", sv.width, sv.height)
-            //console.log("layout.width / layout.height", layout.width, layout.height)
         }
     }   //ScrollView
 }

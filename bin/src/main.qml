@@ -95,6 +95,10 @@ ApplicationWindow {
         help.setCharIn.connect(i => setProjectCharIn(i));
         help.renameCurrentProject.connect(pm.renameCurrentProject);
 
+        //  Open existing file
+        welcome.openFile.connect(window.onOpenFile);
+        welcome.openFile.connect(() => sidebar.switchToMode("Editor"));
+
         actions.edit.prefs.triggered.connect(preferencesDialog.open);
         actions.help.about.triggered.connect(aboutDialog.open);
         actions.help.resetSettings.triggered.connect(onResetSettings);
@@ -190,7 +194,6 @@ ApplicationWindow {
         anchors.left: sidebar.right
         Top.Welcome {
             id: welcome
-            topOffset: toolbar.height
             Layout.fillHeight: true
             Layout.fillWidth: true
         }

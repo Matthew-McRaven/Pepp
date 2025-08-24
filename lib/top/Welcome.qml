@@ -6,7 +6,7 @@ import edu.pepp 1.0
 
 Item {
     id: root
-    property real topOffset: 0
+
     property real horizontalMargins: 10
     property real verticalMargins: 10
     property string loadingFileName: ""
@@ -14,6 +14,9 @@ Item {
     property list<int> filterEdition: []
     property list<int> filterAbstraction: []
     readonly property bool filtering: filterEdition.length !== 0 && filterAbstraction.length !== 0
+
+    signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
+    signal openFile(string path, int arch, int abstraction)
 
     NuAppSettings {
         id: settings
@@ -38,26 +41,12 @@ Item {
         font.pointSize: 48
     }
     FontMetrics {
-        id: projectFM
-        font {
-            family: fm.font.family
-            pointSize: 3 * fm.font.pointSize / 4
-        }
-    }
-    FontMetrics {
         id: fnameFM
         font {
             family: fm.font.family
             pointSize: 3 * fm.font.pointSize / 4
         }
     }
-    TextMetrics {
-        id: projectTM
-        font: projectFM.font
-        text: "Level Asmb5"
-    }
-
-    signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
 
     Rectangle {
         id: background
@@ -139,7 +128,6 @@ Item {
 
             NewProject {
                 id: project
-                //clip: true
 
                 //  layout
                 Layout.fillWidth: true
@@ -170,6 +158,12 @@ Item {
                 spacing: 5
 
                 font: newTM.font
+
+                onOpenFile: function (path, arch, abs) {
+                    //  Bubble up event from child control
+                    root.openFile(path,arch, abs);
+                }
+
             }   //  RecentFiles
 
             Item {  //  spacer
