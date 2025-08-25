@@ -24,7 +24,7 @@ Item {
     ColumnLayout {
         TabBar {
             id: bar
-            implicitWidth: root.width
+            implicitWidth: Math.max(root.width, root.buttonWidth * 2 + root.spacing)
             currentIndex: root.recentFiles.length > 0 ? 0 : 1
 
             //  This erases underline that spans page under tabs
