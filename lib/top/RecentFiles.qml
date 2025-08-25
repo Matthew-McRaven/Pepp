@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material    //  Used by TabBar
 import QtQuick.Layouts
+import edu.pepp 1.0
 
 Item {
     id: root
@@ -49,7 +50,7 @@ Item {
                     Rectangle {
                         visible: tab1.checked
                         anchors.bottom: bg1.bottom
-                        anchors.bottomMargin:  4
+                        anchors.bottomMargin: 4
                         anchors.horizontalCenter: bg1.horizontalCenter
 
                         height: 4
@@ -79,7 +80,7 @@ Item {
                     Rectangle {
                         visible: tab2.checked
                         anchors.bottom: bg2.bottom
-                        anchors.bottomMargin:  4
+                        anchors.bottomMargin: 4
                         anchors.horizontalCenter: bg2.horizontalCenter
 
                         height: 4
@@ -101,21 +102,30 @@ Item {
                 Layout.fillWidth: true
 
                 function abstractText(value) {
-                    switch(value) {
-                    case 20: return "MC2";
-                    case 30: return "ISA3";
-                    case 31: return "ASMB3";
-                    case 40: return "OS4";
-                    case 50: return "ASMB5";
+                    switch (value) {
+                    case 20:
+                        return "MC2";
+                    case 30:
+                        return "ISA3";
+                    case 31:
+                        return "ASMB3";
+                    case 40:
+                        return "OS4";
+                    case 50:
+                        return "ASMB5";
                     }
                 }
 
                 function archText(value) {
-                    switch(value) {
-                    case 100: return "Pep/10"
-                    case 1000: return "RISC-V"
-                    case 90: return "Pep/9"
-                    case 80: return "Pep/8"
+                    switch (value) {
+                    case 100:
+                        return "Pep/10";
+                    case 1000:
+                        return "RISC-V";
+                    case 90:
+                        return "Pep/9";
+                    case 80:
+                        return "Pep/8";
                     }
                 }
 
@@ -129,7 +139,7 @@ Item {
                         //  Delegate for file listing
                         Rectangle {
                             id: btn
-                            implicitHeight: Math.max(80,childrenRect.height)
+                            implicitHeight: Math.max(80, childrenRect.height)
                             implicitWidth: 300
 
                             Layout.topMargin: root.spacing
@@ -151,7 +161,7 @@ Item {
 
                                 onClicked: {
                                     //  Signal that file is ready to be opened
-                                    root.openFile(btn.model.path ,btn.model.arch, btn.model.abstraction)
+                                    root.openFile(btn.model.path, btn.model.arch, btn.model.abstraction);
                                 }
                             }
 
@@ -167,7 +177,7 @@ Item {
                                 implicitWidth: childrenRect.width
                                 spacing: 0
 
-                                Item{
+                                Item {
                                     //  Spacer
                                     Layout.fillHeight: true
                                 }
@@ -200,7 +210,7 @@ Item {
                                     //  Wrapped text did not change line count
                                     //Component.onCompleted: console.log("path height", path.contentHeight, path.height, path.lineCount)
                                 }
-                                Item{
+                                Item {
                                     //  Spacer
                                     Layout.fillHeight: true
                                 }
@@ -219,28 +229,18 @@ Item {
                     Repeater {
                         id: repeaterFavorite
                         Layout.fillWidth: true
-                        model: ListModel {
-                            id: modelFavorite
-                            ListElement {
-                                project: "4.20"
-                                path: "/pep/directory/fig420.pep"
-                            }
-                            ListElement {
-                                project: "4.26"
-                                path: "/pep/directory/fig426.pep"
-                            }
-                            ListElement {
-                                project: "4.27"
-                                path: "/pep/directory/fig427.pep"
-                            }
+                        model: FavoriteFigureModel {
+                            id: favModel
                         }
+
                         Rectangle {
                             id: btn2
                             implicitHeight: 50
                             implicitWidth: 300
                             required property int index
-                            required property string project
-                            required property string path
+                            required property var figure
+                            required property string name
+                            required property string description
 
                             radius: 5
                             border.width: 1
@@ -264,11 +264,11 @@ Item {
 
                                     Label {
                                         //id: proj
-                                        text: "<b>Figure:<b> " + btn2.project
+                                        text: "<b>Figure:<b> " + btn2.name
                                         color: root.borderColor
                                     }
                                     Label {
-                                        text: btn2.path
+                                        text: btn2.description
                                     }
                                 }
                             }
