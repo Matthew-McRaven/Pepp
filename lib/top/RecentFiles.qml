@@ -103,28 +103,28 @@ Item {
 
                 function abstractText(value) {
                     switch (value) {
-                    case 20:
+                    case Abstraction.MC2:
                         return "MC2";
-                    case 30:
+                    case Abstraction.ISA3:
                         return "ISA3";
-                    case 31:
+                    case Abstraction.ASMB3:
                         return "ASMB3";
-                    case 40:
+                    case Abstraction.OS4:
                         return "OS4";
-                    case 50:
+                    case Abstraction.ASMB5:
                         return "ASMB5";
                     }
                 }
 
                 function archText(value) {
                     switch (value) {
-                    case 100:
+                    case Architecture.PEP10:
                         return "Pep/10";
-                    case 1000:
+                    case Architecture.RISCV:
                         return "RISC-V";
-                    case 90:
+                    case Architecture.PEP9:
                         return "Pep/9";
-                    case 80:
+                    case Architecture.PEP8:
                         return "Pep/8";
                     }
                 }
