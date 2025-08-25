@@ -142,7 +142,7 @@ Item {
                             implicitHeight: Math.max(80, childrenRect.height)
                             implicitWidth: 300
 
-                            Layout.topMargin: root.spacing
+                            Layout.topMargin: 0//root.spacing
 
                             required property int index
                             required property var model
@@ -235,18 +235,33 @@ Item {
 
                         Rectangle {
                             id: btn2
-                            implicitHeight: 50
+                            implicitHeight: Math.max(80, childrenRect.height)
                             implicitWidth: 300
+
                             required property int index
                             required property var figure
                             required property string name
+                            required property string type
                             required property string description
 
                             radius: 5
-                            border.width: 1
-                            border.color: root.borderColor
                             color: palette.window
-                            RowLayout {
+
+                            //  Change outline when hovered
+                            border.width: mouse2.containsMouse ? 2 : 1
+                            border.color: mouse2.containsMouse ? palette.accent : root.borderColor
+
+                            MouseArea {
+                                id: mouse2
+                                anchors.fill: btn2
+                                hoverEnabled: true
+
+                                onClicked: {
+                                    //  Signal that file is ready to be opened
+                                    //root.openFile(btn.model.path, btn.model.arch, btn.model.abstraction);
+                                }
+                            }
+                            ColumnLayout {
 
                                 anchors.left: btn2.left
                                 anchors.top: btn2.top
@@ -254,22 +269,33 @@ Item {
                                 anchors.bottom: btn2.bottom
                                 anchors.margins: 10
 
+                                implicitHeight: childrenRect.height
+                                implicitWidth: childrenRect.width
                                 spacing: 0
 
-                                Column {
+                                Item {
+                                    //  Spacer
                                     Layout.fillHeight: true
+                                }
+                                Label {
                                     Layout.fillWidth: true
-                                    Layout.leftMargin: 10
-                                    Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
-                                    Label {
-                                        //id: proj
-                                        text: "<b>Figure:<b> " + btn2.name
-                                        color: root.borderColor
-                                    }
-                                    Label {
-                                        text: btn2.description
-                                    }
+                                    text: "<b>Figure:<b> " + btn2.name
+                                    font.pointSize: root.font.pointSize * 1.2
+                                    color: palette.accent
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+
+                                    text: btn2.description
+                                    maximumLineCount: 2
+                                    lineHeight: 0.85
+                                    wrapMode: Text.Wrap
+                                    elide: Text.ElideLeft
+                                }
+                                Item {
+                                    //  Spacer
+                                    Layout.fillHeight: true
                                 }
                             }
                         }
