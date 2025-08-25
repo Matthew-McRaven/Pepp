@@ -57,6 +57,7 @@ Item {
 
             onReleased: root.addProject(wr.model.architecture, wr.model.abstraction, "", root.loadingFileContent, false)
             enabled: (wr.model.complete || wr.model.partiallyComplete) && (root.filterAbstraction.length === 0 || root.filterAbstraction.includes(wr.model.abstraction))
+            visible: !wr.model.placeholder
 
             contentItem: ColumnLayout {
                 anchors.centerIn: btn
@@ -101,13 +102,15 @@ Item {
         anchors.fill: root
 
         //  Scroll bar settings
-        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+        ScrollBar.vertical.policy: layout.rowCnt > 2 ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         //  Grid containing buttons
         GridLayout {
             id: layout
 
+            //  Grid control does not return number of rows. Rows prorperty only sets maximum rows.
+            //  Must recalculate rows manually with rowChange() below.
             property int rowCnt: 1
             property int cells: root.model.rowCount()
 
