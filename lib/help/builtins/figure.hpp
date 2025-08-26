@@ -92,6 +92,9 @@ public:
   QString defaultFragmentName() const;
   void setDefaultFragmentName(QString name);
 
+  Q_INVOKABLE QString defaultFragmentText() const;
+  Q_INVOKABLE QString defaultOSText() const;
+
 signals:
   void isOSChanged();
   void isHiddenChanged();
