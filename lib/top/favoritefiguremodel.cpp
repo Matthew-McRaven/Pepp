@@ -19,7 +19,7 @@ QVariant FavoriteFigureModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid() || index.row() < 0 || index.row() >= _figures.size()) return {};
   auto fig = _figures.at(index.row());
   switch (role) {
-  case (int)Roles::FigurePtrRole: return QVariant::fromValue(fig);
+  case (int)Roles::FigurePtrRole: return QVariant::fromValue(fig.get());
   case (int)Roles::NameRole: return u"%1.%2"_s.arg(fig->chapterName(), fig->figureName());
   case (int)Roles::TypeRole: return fig->defaultFragmentName();
   case (int)Roles::DescriptionRole: return fig->description();
