@@ -446,8 +446,6 @@ void init_pep9(QList<ProjectType> &vec) {
               .level = Abstraction::ISA3,
               .state = CompletionState::COMPLETE,
               .edition = 5});
-  vec.append(
-      {.arch = a, .level = Abstraction::ASMB3, .state = CompletionState::COMPLETE, .edition = 5, .placeholder = true});
   vec.append({.name = "Pep/9",
               .levelText = "Asmb5",
               .details = "Full OS",
@@ -498,8 +496,6 @@ void init_pep8(QList<ProjectType> &vec) {
               .level = Abstraction::ISA3,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
-  vec.append(
-      {.arch = a, .level = Abstraction::ISA3, .state = CompletionState::INCOMPLETE, .edition = 4, .placeholder = true});
   vec.append({.name = "Pep/8",
               .levelText = "Asmb5",
               .details = "Full OS",
@@ -532,11 +528,6 @@ void init_pep8(QList<ProjectType> &vec) {
 void init_riscv(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::RISCV;
   using pepp::Abstraction;
-  vec.append({.arch = a,
-              .level = Abstraction::ASMB3,
-              .state = CompletionState::INCOMPLETE,
-              .edition = 6,
-              .placeholder = true});
   vec.append({.name = "RISC-V",
               .levelText = "Asmb3",
               .details = "Bare Metal",
