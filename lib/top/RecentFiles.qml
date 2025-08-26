@@ -29,6 +29,11 @@ Item {
 
             //  This erases underline that spans page under tabs
             Material.accent: "transparent"
+            background: Rectangle {
+                //  Default background is a very light gray. Eliminate
+                color: "transparent"
+            }
+
             TabButton {
                 id: tab1
                 visible: root.recentFiles.length > 0
