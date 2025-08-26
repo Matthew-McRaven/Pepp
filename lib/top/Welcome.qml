@@ -146,6 +146,7 @@ Item {
                 id: recent
 
                 //  layout
+                Layout.fillHeight: true
                 Layout.fillWidth: true
                 Layout.topMargin: 20
                 spacing: 5
@@ -162,11 +163,6 @@ Item {
                 }
 
             }   //  RecentFiles
-
-            Item {  //  spacer
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-            }
         }   //  ColumnLayout
     }
 

@@ -10,6 +10,8 @@ Item {
     id: root
     property int spacing: 10
     property int buttonWidth: 75
+    property int cellHeight: 80
+    property int cellWidth: 300
     required property var font
 
     property color borderColor: settings.extPalette.brightText.background
@@ -21,7 +23,29 @@ Item {
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
 
+    /*Component.onCompleted: {
+        //  GridLayout does not automatically calculate number of rows
+        //  based on total cells / columns.
+        console.log("onCompleted");
+        sizeChanged();
+    }
+
+    onWidthChanged: { console.log("onWidth");sizeChanged();}
+    onHeightChanged: { console.log("onHeight");sizeChanged();}
+
+    function sizeChanged()
+    {
+        //if(bar.currentIndex === 0)
+        //  There is always a single row at minimum
+        console.log("layout.cells",layout.cells,"layout.rowCnt",layout.rowCnt,"layout.colCnt",layout.colCnt);
+        console.log("layout.height",layout.height,"layout.width",layout.width);
+        console.log("ep.height",ep.height,"ep.width",ep.width);
+        //console.log("sl.height",sl.height,"sl.width",sl.width);
+        console.log("root.height",root.height,"root.width",root.width);
+    }*/
+
     ColumnLayout {
+        anchors.fill: root
         TabBar {
             id: bar
             implicitWidth: Math.max(root.width, root.buttonWidth * 2 + root.spacing)
@@ -98,13 +122,21 @@ Item {
         }   //  TabBar
 
         StackLayout {
+            id: sl
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: bar.currentIndex
+
             //  Existing Project
-            Rectangle {
-                id: existingProject
+            ScrollView {
+                id: ep
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.bottomMargin: ep.effectiveScrollBarHeight
+                Layout.minimumHeight: root.cellHeight
+
+                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+                ScrollBar.horizontal.policy: ep.width < layout.width ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
 
                 function abstractText(value) {
                     switch (value) {
@@ -134,22 +166,40 @@ Item {
                     }
                 }
 
-                ColumnLayout {
-                    Layout.fillWidth: true
+                //  Grid sizing is based on number of cells allocated over rows and columns
+                //  Scroll view will show scroll bars if GridLayout does not fit
+                //  NOT NOT SIZE GridLayout BASED ON PARENT WIDTH OR HEIGHT
+                GridLayout {
+                    id: layout
+
+                    //  Grid control does not return number of rows. Rows prorperty only sets maximum rows.
+                    //  Must recalculate rows manually with rowChange() below.
+                    property int cells: root.recentFiles.length
+
+                    //  Spacing between cells
+                    rowSpacing: root.spacing
+                    columnSpacing: root.spacing
+                    columns: Math.ceil(cells / rows)
+                    rows: Math.min(cells, Math.max(1, Math.floor((ep.height + root.spacing) / (root.cellHeight + root.spacing))))
+
+                    implicitHeight: rows * root.cellHeight + (rows-1) * root.spacing
+                    implicitWidth: columns * root.cellWidth + (columns-1) * root.spacing
+
+                    //  For file listing, show from top to bottom.
+                    flow: GridLayout.TopToBottom
+
                     Repeater {
                         id: repeaterExisting
-                        Layout.fillWidth: true
-                        model: settings.general.recentFiles
+
+                        model: root.recentFiles
 
                         //  Delegate for file listing
-                        Rectangle {
+                        delegate: Rectangle {
                             id: btn
-                            implicitHeight: Math.max(80, childrenRect.height)
-                            implicitWidth: 300
+                            implicitHeight: root.cellHeight
+                            implicitWidth: root.cellWidth
+                            Layout.topMargin: 0
 
-                            Layout.topMargin: 0//root.spacing
-
-                            required property int index
                             required property var model
 
                             radius: 5
@@ -199,7 +249,7 @@ Item {
                                     //  Architecture details
                                     id: arch
                                     Layout.fillWidth: true
-                                    text: "<b>" + existingProject.archText(btn.model.arch) + "</b>: " + existingProject.abstractText(btn.model.abstraction)
+                                    text: "<b>" + ep.archText(btn.model.arch) + "</b>: " + ep.abstractText(btn.model.abstraction)
                                 }
                                 Text {
                                     //  Full file path
@@ -211,9 +261,6 @@ Item {
                                     lineHeight: 0.85
                                     wrapMode: Text.Wrap
                                     elide: Text.ElideRight
-
-                                    //  Wrapped text did not change line count
-                                    //Component.onCompleted: console.log("path height", path.contentHeight, path.height, path.lineCount)
                                 }
                                 Item {
                                     //  Spacer
@@ -222,8 +269,8 @@ Item {
                             }   //  ColumnLayout
                         }   //  Rectangle - delegate
                     }   //  Repeater
-                }   //  ColumnLayout
-            }
+                }   //  GridLayout
+            }   //  ScrollView
             //  Favorites
             Rectangle {
                 id: favoriteProject
@@ -240,8 +287,8 @@ Item {
 
                         Rectangle {
                             id: btn2
-                            implicitHeight: Math.max(80, childrenRect.height)
-                            implicitWidth: 300
+                            implicitHeight: root.cellHeight
+                            implicitWidth: root.cellWidth
 
                             required property int index
                             required property var figure
