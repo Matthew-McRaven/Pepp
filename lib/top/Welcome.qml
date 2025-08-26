@@ -146,7 +146,7 @@ Item {
                 id: recent
 
                 //  layout
-                Layout.fillHeight: true
+                Layout.fillHeight: !filenameHeader.visible
                 Layout.fillWidth: true
                 Layout.topMargin: 20
                 spacing: 5
@@ -166,6 +166,12 @@ Item {
                     root.addProject(arch, abs, feats, content, reuse);
                 }
             }   //  RecentFiles
+            Item {
+                //  Only used for loading file. Otherwise, elements are spead across screen by layout
+                Layout.fillHeight: filenameHeader.visible
+                Layout.fillWidth: filenameHeader.visible
+                visible: filenameHeader.visible
+            }
         }   //  ColumnLayout
     }
 
