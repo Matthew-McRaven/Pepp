@@ -161,7 +161,10 @@ Item {
                     //  Bubble up event from child control
                     root.openFile(path,arch, abs);
                 }
-
+                onAddProject: function (arch, abs, feats, content, reuse) {
+                    //  Bubble up event from child control
+                    root.addProject(arch, abs, feats, content, reuse);
+                }
             }   //  RecentFiles
         }   //  ColumnLayout
     }

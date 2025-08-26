@@ -18,6 +18,7 @@ Item {
     property var recentFiles: settings.general.recentFiles
 
     signal openFile(string path, int arch, int abstraction)
+    signal addProject(int arch, int abs, string feats, string text, string switchToMode, var optionalOS, var tests)
 
     //  Layout does not work without implicit height and width
     implicitHeight: childrenRect.height
@@ -315,8 +316,11 @@ Item {
                                 hoverEnabled: true
 
                                 onClicked: {
-                                    //  Signal that file is ready to be opened
-                                    //root.openFile(btn.model.path, btn.model.arch, btn.model.abstraction);
+                                    //  Signal that new project is ready to be opened
+                                    const content = btn2.figure.defaultFragmentText();
+                                    const os = btn2.figure.defaultOSText();
+
+                                    root.addProject(btn2.figure.arch, btn2.figure.level, "", content, "Editor", os, btn2.figure?.tests);
                                 }
                             }
                             ColumnLayout {
