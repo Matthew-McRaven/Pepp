@@ -23,27 +23,6 @@ Item {
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
 
-    /*Component.onCompleted: {
-        //  GridLayout does not automatically calculate number of rows
-        //  based on total cells / columns.
-        console.log("onCompleted");
-        sizeChanged();
-    }
-
-    onWidthChanged: { console.log("onWidth");sizeChanged();}
-    onHeightChanged: { console.log("onHeight");sizeChanged();}
-
-    function sizeChanged()
-    {
-        //if(bar.currentIndex === 0)
-        //  There is always a single row at minimum
-        console.log("layout.cells",layout.cells,"layout.rowCnt",layout.rowCnt,"layout.colCnt",layout.colCnt);
-        console.log("layout.height",layout.height,"layout.width",layout.width);
-        console.log("ep.height",ep.height,"ep.width",ep.width);
-        //console.log("sl.height",sl.height,"sl.width",sl.width);
-        console.log("root.height",root.height,"root.width",root.width);
-    }*/
-
     ColumnLayout {
         anchors.fill: root
         TabBar {
@@ -122,7 +101,7 @@ Item {
         }   //  TabBar
 
         StackLayout {
-            id: sl
+            //id: sl
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: bar.currentIndex
@@ -193,7 +172,7 @@ Item {
 
                         model: root.recentFiles
 
-                        //  Delegate for file listing
+                        //  Delegate for each file listing
                         delegate: Rectangle {
                             id: btn
                             implicitHeight: root.cellHeight
@@ -270,14 +249,40 @@ Item {
                         }   //  Rectangle - delegate
                     }   //  Repeater
                 }   //  GridLayout
-            }   //  ScrollView
+            }   //  ScrollView - ep
             //  Favorites
-            Rectangle {
-                id: favoriteProject
+            ScrollView {
+                id: fp
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.bottomMargin: fp.effectiveScrollBarHeight
+                Layout.minimumHeight: root.cellHeight
 
-                ColumnLayout {
-                    Layout.fillWidth: true
+                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+                ScrollBar.horizontal.policy: fp.width < layout2.width ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+
+                //  Grid sizing is based on number of cells allocated over rows and columns
+                //  Scroll view will show scroll bars if GridLayout does not fit
+                //  NOT NOT SIZE GridLayout BASED ON PARENT WIDTH OR HEIGHT
+                GridLayout {
+                    id: layout2
+
+                    //  Grid control does not return number of rows. Rows prorperty only sets maximum rows.
+                    //  Must recalculate rows manually with rowChange() below.
+                    property int cells: favModel.rowCount()
+
+                    //  Spacing between cells
+                    rowSpacing: root.spacing
+                    columnSpacing: root.spacing
+                    columns: Math.ceil(cells / rows)
+                    rows: Math.min(cells, Math.max(1, Math.floor((fp.height + root.spacing) / (root.cellHeight + root.spacing))))
+
+                    implicitHeight: rows * root.cellHeight + (rows-1) * root.spacing
+                    implicitWidth: columns * root.cellWidth + (columns-1) * root.spacing
+
+                    //  For file listing, show from top to bottom.
+                    flow: GridLayout.TopToBottom
+
                     Repeater {
                         id: repeaterFavorite
                         Layout.fillWidth: true
@@ -285,7 +290,8 @@ Item {
                             id: favModel
                         }
 
-                        Rectangle {
+                        //  Delegate for each favorite folder
+                        delegate: Rectangle {
                             id: btn2
                             implicitHeight: root.cellHeight
                             implicitWidth: root.cellWidth
@@ -349,12 +355,11 @@ Item {
                                     //  Spacer
                                     Layout.fillHeight: true
                                 }
-                            }
-                        }
+                            }   //  ColumnLayout
+                        }   //  delegate: Rectangle = btn2
                     }   //  Repeater
-                }   //  ColumnLayout
-            }
-        }
+                }   //  GridLayout
+            }   //  ScrollView - fp
+        }   //  StackLayout
     }   //  ColumnLayout
-
 }
