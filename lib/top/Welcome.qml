@@ -16,6 +16,7 @@ Item {
     readonly property bool filtering: filterEdition.length !== 0 && filterAbstraction.length !== 0
 
     signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
+    signal setCharIn(string text)
     signal openFile(string path, int arch, int abstraction)
 
     NuAppSettings {
@@ -159,11 +160,15 @@ Item {
 
                 onOpenFile: function (path, arch, abs) {
                     //  Bubble up event from child control
-                    root.openFile(path,arch, abs);
+                    root.openFile(path, arch, abs);
                 }
                 onAddProject: function (arch, abs, feats, content, reuse) {
                     //  Bubble up event from child control
                     root.addProject(arch, abs, feats, content, reuse);
+                }
+                onSetCharIn: function (text) {
+                    //  Bubble up event from child control
+                    root.setCharIn(text);
                 }
             }   //  RecentFiles
             Item {

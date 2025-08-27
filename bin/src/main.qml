@@ -89,6 +89,7 @@ ApplicationWindow {
     Component.onCompleted: {
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject);
+        welcome.setCharIn.connect(i => setProjectCharIn(i));
         welcome.addProject.connect(() => sidebar.switchToMode("Editor"));
         help.addProject.connect(pm.onAddProject);
         help.switchToMode.connect(sidebar.switchToMode);

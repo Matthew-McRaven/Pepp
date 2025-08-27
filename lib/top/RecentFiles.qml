@@ -18,7 +18,8 @@ Item {
     property var recentFiles: settings.general.recentFiles
 
     signal openFile(string path, int arch, int abstraction)
-    signal addProject(int arch, int abs, string feats, string text, string switchToMode, var optionalOS, var tests)
+    signal addProject(int arch, int abs, string feats, string text, var optionalOS)
+    signal setCharIn(string text)
 
     //  Layout does not work without implicit height and width
     implicitHeight: childrenRect.height
@@ -316,11 +317,14 @@ Item {
                                 hoverEnabled: true
 
                                 onClicked: {
+                                    const fig = btn2.figure;
                                     //  Signal that new project is ready to be opened
-                                    const content = btn2.figure.defaultFragmentText();
-                                    const os = btn2.figure.defaultOSText();
-
-                                    root.addProject(btn2.figure.arch, btn2.figure.level, "", content, "Editor", os, btn2.figure?.tests);
+                                    const content = fig.defaultFragmentText();
+                                    const os = fig.defaultOSText();
+                                    const tests = fig.tests;
+                                    root.addProject(fig.arch, fig.level, "", content, os);
+                                    if (tests && tests[0])
+                                        root.setCharIn(tests[0].input);
                                 }
                             }
                             ColumnLayout {
