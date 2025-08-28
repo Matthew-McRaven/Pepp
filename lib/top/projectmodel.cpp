@@ -551,6 +551,9 @@ int ProjectTypeModel::rowCount(const QModelIndex &parent) const { return _projec
 int ProjectTypeModel::columnCount(const QModelIndex &parent) const { return 1; }
 
 QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
+  static const auto arch_enum = QMetaEnum::fromType<pepp::Architecture>();
+  static const auto abs_enum = QMetaEnum::fromType<pepp::Abstraction>();
+  using namespace Qt::StringLiterals;
   if (!index.isValid() || index.row() >= _projects.size() || index.column() > 1) return {};
   switch (role) {
   case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
@@ -558,6 +561,11 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::ArchitectureRole): return static_cast<int>(_projects[index.row()].arch);
   case static_cast<int>(Roles::EditionRole): return static_cast<int>(_projects[index.row()].edition);
   case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
+  case static_cast<int>(Roles::CombinedArchLevelRole): {
+    QString arch_str = archAsPrettyString(_projects[index.row()].arch);
+    QString abs_str = abs_enum.valueToKey((int)_projects[index.row()].level);
+    return u"%1, %2"_s.arg(arch_str, abs_str);
+  }
   case static_cast<int>(Roles::CompleteRole): return _projects[index.row()].state == CompletionState::COMPLETE;
   case static_cast<int>(Roles::PartiallyCompleteRole): return _projects[index.row()].state == CompletionState::PARTIAL;
   case static_cast<int>(Roles::PlaceholderRole): return static_cast<int>(_projects[index.row()].placeholder);
@@ -574,6 +582,7 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
       {(int)ProjectTypeModel::Roles::DescriptionRole, "description"},
       {(int)ProjectTypeModel::Roles::ArchitectureRole, "architecture"},
       {(int)ProjectTypeModel::Roles::EditionRole, "edition"},
+      {(int)ProjectTypeModel::Roles::CombinedArchLevelRole, "archAndAbs"},
       {(int)ProjectTypeModel::Roles::LevelRole, "abstraction"},
       {(int)ProjectTypeModel::Roles::CompleteRole, "complete"},
       {(int)ProjectTypeModel::Roles::PartiallyCompleteRole, "partiallyComplete"},

@@ -85,6 +85,7 @@ public:
     DescriptionRole,
     ArchitectureRole,
     LevelRole,
+    CombinedArchLevelRole,
     CompleteRole,
     PartiallyCompleteRole,
     ColumnTypeRole,

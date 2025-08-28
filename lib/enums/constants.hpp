@@ -66,6 +66,7 @@ public:
   ArchitectureHelper(QObject *parent = nullptr);
   Q_INVOKABLE static QString string(Architecture architecture);
 };
+QString archAsPrettyString(ArchitectureHelper::Architecture architecture);
 using Architecture = ArchitectureHelper::Architecture;
 class ArchitectureUtils : public QObject {
   Q_OBJECT
