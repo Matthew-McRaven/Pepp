@@ -288,7 +288,7 @@ QSharedPointer<HelpEntry> greencard10_root() {
   int p10 = bitmask_all_levels(pepp::Architecture::PEP10);
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, p10, "Pep/10 Reference", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/index.html"_s)}};
   root->slug = "p10";
   root->addChildren({isa, asmb, os, mc});
   return root;
