@@ -400,7 +400,7 @@ void init_pep10(QList<ProjectType> &vec) {
   vec.append({.name = "Pep/10",
               .levelText = "Asmb5",
               .details = "Full OS",
-              .chapter = "6",
+              .chapter = "5,6",
               .description = "Develop and debug assembly language programs alongside Pep/10's operating system.\nThis "
                              "level enables you to utilize OS features using system calls for enhanced functionality.",
               .arch = a,
@@ -409,7 +409,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .edition = 6});
   vec.append({.name = "Pep/10",
               .levelText = "OS4",
-              .chapter = "7,8",
+              .chapter = "8",
               .description = "Missing",
               .arch = a,
               .level = Abstraction::OS4,
@@ -418,7 +418,7 @@ void init_pep10(QList<ProjectType> &vec) {
   vec.append({.name = "Pep/10",
               .levelText = "Mc2",
               .details = "1-Byte Bus",
-              .chapter = "10",
+              .chapter = "11",
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MC2,
@@ -449,7 +449,7 @@ void init_pep9(QList<ProjectType> &vec) {
   vec.append({.name = "Pep/9",
               .levelText = "Asmb5",
               .details = "Full OS",
-              .chapter = "7",
+              .chapter = "5,6",
               .description =
                   "Develop and debug assembly language programs alongside Pep/9's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
@@ -459,7 +459,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .edition = 5});
   vec.append({.name = "Pep/9",
               .levelText = "OS4",
-              .chapter = "7,8",
+              .chapter = "8",
               .description = "Missing",
               .arch = a,
               .level = Abstraction::OS4,
@@ -468,7 +468,7 @@ void init_pep9(QList<ProjectType> &vec) {
   vec.append({.name = "Pep/9",
               .levelText = "Mc2",
               .details = "1-Byte Bus",
-              .chapter = "10",
+              .chapter = "12",
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MC2,
@@ -477,7 +477,7 @@ void init_pep9(QList<ProjectType> &vec) {
   vec.append({.name = "Pep/9",
               .levelText = "Mc2",
               .details = "2-Byte Bus",
-              .chapter = "11",
+              .chapter = "12",
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MC2,
@@ -499,7 +499,7 @@ void init_pep8(QList<ProjectType> &vec) {
   vec.append({.name = "Pep/8",
               .levelText = "Asmb5",
               .details = "Full OS",
-              .chapter = "5",
+              .chapter = "5,6",
               .description =
                   "Develop and debug assembly language programs alongside Pep/8's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
@@ -509,7 +509,7 @@ void init_pep8(QList<ProjectType> &vec) {
               .edition = 4});
   vec.append({.name = "Pep/8",
               .levelText = "OS4",
-              .chapter = "10",
+              .chapter = "8",
               .description = "Missing",
               .arch = a,
               .level = Abstraction::OS4,
@@ -518,7 +518,7 @@ void init_pep8(QList<ProjectType> &vec) {
   vec.append({.name = "Pep/8",
               .levelText = "Mc2",
               .details = "1-Byte Bus",
-              .chapter = "11",
+              .chapter = "12",
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MC2,
