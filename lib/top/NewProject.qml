@@ -41,7 +41,7 @@ Item {
         Rectangle {
             anchors.fill: wr
             radius: root.cellRadius
-            visible: (btn.hovered && wr.model.complete)
+            visible: (btn.hovered && btn.enabled)
             border.width: 2
             border.color: palette.accent
             color: "transparent"
@@ -70,18 +70,18 @@ Item {
                     text: wr.model.levelText
                     font.bold: true
                     font.pointSize: root.font.pointSize * 1.2
-                    color: wr.model.complete ? palette.accent : settings.extPalette.brightText.background
+                    color: btn.enabled ? palette.accent : settings.extPalette.brightText.background
                 }
                 Label {
                     Layout.alignment: Qt.AlignHCenter
                     text: "<b>" + wr.model.text + "</b> (Chap " + wr.model.chapter + ")"
                     textFormat: Text.StyledText
-                    color: wr.model.complete ? palette.text : settings.extPalette.brightText.background
+                    color: btn.enabled ? palette.text : settings.extPalette.brightText.background
                 }
                 Label {
                     Layout.alignment: Qt.AlignHCenter
                     text: wr.model.details
-                    color: wr.model.complete ? palette.text : settings.extPalette.brightText.background
+                    color: btn.enabled ? palette.text : settings.extPalette.brightText.background
                 }
                 Item {  //  Spacer
                     Layout.fillHeight: true
