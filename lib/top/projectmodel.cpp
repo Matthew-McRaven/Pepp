@@ -395,7 +395,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Develop and debug assembly language programs in bare metal mode.",
               .arch = a,
               .level = Abstraction::ASMB3,
-              .state = CompletionState::COMPLETE,
+              .state = CompletionState::PARTIAL,
               .edition = 6});
   vec.append({.name = "Pep/10",
               .levelText = "Asmb5",
@@ -405,7 +405,7 @@ void init_pep10(QList<ProjectType> &vec) {
                              "level enables you to utilize OS features using system calls for enhanced functionality.",
               .arch = a,
               .level = Abstraction::ASMB5,
-              .state = CompletionState::COMPLETE,
+              .state = CompletionState::PARTIAL,
               .edition = 6});
   vec.append({.name = "Pep/10",
               .levelText = "OS4",
@@ -455,7 +455,7 @@ void init_pep9(QList<ProjectType> &vec) {
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
               .arch = a,
               .level = Abstraction::ASMB5,
-              .state = CompletionState::COMPLETE,
+              .state = CompletionState::PARTIAL,
               .edition = 5});
   vec.append({.name = "Pep/9",
               .levelText = "OS4",
