@@ -24,8 +24,8 @@ Item {
     signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
 
     //  Layout does not work without implicit height and width
-    implicitHeight: Math.min(layout.height,(root.cellHeight + spacing) * Math.min(2,layout.rowCnt))
-    implicitWidth: Math.max(layout.width,(root.cellWidth + spacing) * layout.columns) + spacing
+    implicitHeight: Math.min(layout.height, (root.cellHeight + spacing) * Math.min(2, layout.rowCnt))
+    implicitWidth: Math.max(layout.width, (root.cellWidth + spacing) * layout.columns) + spacing
 
     //  Component shown in each cell of gridview
     component ProjectButton: Item {
@@ -123,8 +123,7 @@ Item {
             columns: Math.min(8, Math.max(1, Math.floor(sv.width / (root.cellWidth + root.spacing))))
             Repeater {
                 model: root.model
-                delegate:
-                    ProjectButton{}
+                delegate: ProjectButton {}
             }   //  Repeater
         }   //  GridLayout
 
@@ -139,10 +138,9 @@ Item {
             rowChange();
         }
 
-        function rowChange()
-        {
+        function rowChange() {
             //  There is always a single row at minimum
-            layout.rowCnt = Math.max(1,Math.ceil(layout.cells/layout.columns));
+            layout.rowCnt = Math.max(1, Math.ceil(layout.cells / layout.columns));
         }
     }   //ScrollView
 }
