@@ -63,7 +63,11 @@ enum class CompletionState {
 };
 
 struct ProjectType {
-  QString name{}, description{};
+  QString name{};
+  QString levelText{};
+  QString details{};
+  QString chapter{};
+  QString description{};
   pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   CompletionState state = CompletionState::INCOMPLETE;
@@ -85,7 +89,10 @@ public:
     PartiallyCompleteRole,
     ColumnTypeRole,
     EditionRole,
-    PlaceholderRole
+    PlaceholderRole,
+    LevelTextRole,
+    DetailsRole,
+    ChapterRole,
   };
   Q_ENUM(Roles);
   explicit ProjectTypeModel(QObject *parent = nullptr);

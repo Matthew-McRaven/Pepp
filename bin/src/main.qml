@@ -89,11 +89,16 @@ ApplicationWindow {
     Component.onCompleted: {
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject);
+        welcome.setCharIn.connect(i => setProjectCharIn(i));
         welcome.addProject.connect(() => sidebar.switchToMode("Editor"));
         help.addProject.connect(pm.onAddProject);
         help.switchToMode.connect(sidebar.switchToMode);
         help.setCharIn.connect(i => setProjectCharIn(i));
         help.renameCurrentProject.connect(pm.renameCurrentProject);
+
+        //  Open existing file
+        welcome.openFile.connect(window.onOpenFile);
+        welcome.openFile.connect(() => sidebar.switchToMode("Editor"));
 
         actions.edit.prefs.triggered.connect(preferencesDialog.open);
         actions.help.about.triggered.connect(aboutDialog.open);
@@ -131,6 +136,7 @@ ApplicationWindow {
     Top.ToolBar {
         id: toolbar
         visible: !(window.mode === "welcome" || window.mode === "help")
+        height: visible ? implicitHeight : 0
         anchors.top: parent.top
         anchors.left: sidebar.right
         anchors.right: parent.right
@@ -140,6 +146,7 @@ ApplicationWindow {
     Top.ProjectSelectBar {
         id: projectSelect
         requestHide: window.mode === "welcome" || window.mode === "help"
+        height: visible ? implicitHeight : 0
         anchors.right: parent.right
         anchors.left: sidebar.right
         anchors.top: toolbar.bottom
@@ -188,7 +195,6 @@ ApplicationWindow {
         anchors.left: sidebar.right
         Top.Welcome {
             id: welcome
-            topOffset: toolbar.height
             Layout.fillHeight: true
             Layout.fillWidth: true
         }

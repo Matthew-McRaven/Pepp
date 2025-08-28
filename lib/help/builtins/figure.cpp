@@ -135,3 +135,13 @@ bool builtins::Figure::addFragment(const Fragment *frag) {
 QString builtins::Figure::defaultFragmentName() const { return _defaultFragmentName; }
 
 void builtins::Figure::setDefaultFragmentName(QString name) { _defaultFragmentName = name; }
+
+QString builtins::Figure::defaultFragmentText() const {
+  if (_namedFragments.contains(_defaultFragmentName)) return _namedFragments[_defaultFragmentName]->contentsFn();
+  return QString{};
+}
+
+QString builtins::Figure::defaultOSText() const {
+  if (_defaultOS) return _defaultOS->defaultFragmentText();
+  return QString{};
+}
