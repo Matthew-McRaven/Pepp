@@ -35,60 +35,6 @@ Item {
         filterCombo.activated(idx);
     }
     property var selected
-    function make(arch, abs) {
-        return {
-            "architecture": arch,
-            "abstraction": abs
-        };
-    }
-
-    // Duplicated in GeneralCategoryDelegate. Must manually propogate changes between files.
-    Component.onCompleted: {
-        filterModel.append({
-            "key": "Pep/10, ISA3",
-            "value": make(Architecture.PEP10, Abstraction.ISA3)
-        });
-        filterModel.append({
-            "key": "Pep/10, ASMB3",
-            "value": make(Architecture.PEP10, Abstraction.ASMB3)
-        });
-        filterModel.append({
-            "key": "Pep/10, ASMB5",
-            "value": make(Architecture.PEP10, Abstraction.ASMB5)
-        });
-        filterModel.append({
-            "key": "Pep/10, OS4",
-            "value": make(Architecture.PEP10, Abstraction.OS4)
-        });
-        filterModel.append({
-            "key": "Pep/10, MC2",
-            "value": make(Architecture.PEP10, Abstraction.MC2)
-        });
-        filterModel.append({
-            "key": "RISC-V, ASMB3",
-            "value": make(Architecture.RISCV, Abstraction.ASMB3)
-        });
-        filterModel.append({
-            "key": "Pep/9, ISA3",
-            "value": make(Architecture.PEP9, Abstraction.ISA3)
-        });
-        filterModel.append({
-            "key": "Pep/9, ASMB5",
-            "value": make(Architecture.PEP9, Abstraction.ASMB5)
-        });
-        filterModel.append({
-            "key": "Pep/9, OS4",
-            "value": make(Architecture.PEP9, Abstraction.OS4)
-        });
-        filterModel.append({
-            "key": "Pep/9, MC2",
-            "value": make(Architecture.PEP9, Abstraction.MC2)
-        });
-        filterModel.append({
-            "key": "Show All",
-            "value": make(Architecture.NO_ARCH, Abstraction.NO_ABS)
-        });
-    }
 
     // Make sure the drawer is always at least as wide as the text
     // There was an issue in WASM where the titles clipper the center area
@@ -131,10 +77,13 @@ Item {
                 // Now that this is no longer the case, this information needs to be tracked inside child components.
                 Comp.DisableableComboBox {
                     id: filterCombo
-                    textRole: "key"
-                    valueRole: "value"
-                    model: ListModel {
+                    textRole: "archAndAbs"
+                    model: ProjectTypeFilterModel {
                         id: filterModel
+                        edition: 0
+                        showIncomplete: settings.general.showDebugComponents
+                        showPartiallyComplete: settings.general.showDebugComponents
+                        sourceModel: ProjectTypeModel {}
                     }
                 }
             }
@@ -150,8 +99,8 @@ Item {
                 id: helpModel
                 model: HelpModel {}
                 // Sane defaults
-                architecture: filterCombo.currentValue.architecture
-                abstraction: filterCombo.currentValue.abstraction
+                architecture: filterCombo.currentValue.architecture ?? 0
+                abstraction: filterCombo.currentValue.abstraction ?? 0
                 showWIPItems: settings.general.showDebugComponents
                 onAbstractionChanged: root.selected = treeView.index(0, 0)
                 onArchitectureChanged: root.selected = treeView.index(0, 0)

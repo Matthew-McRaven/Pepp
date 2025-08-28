@@ -288,7 +288,7 @@ QSharedPointer<HelpEntry> greencard10_root() {
   int p10 = bitmask_all_levels(pepp::Architecture::PEP10);
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, p10, "Pep/10 Reference", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
+  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/index.html"_s)}};
   root->slug = "p10";
   root->addChildren({isa, asmb, os, mc});
   return root;
@@ -443,7 +443,9 @@ std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry 
 }
 
 QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
-  auto mask = bitmask(pepp::Architecture::PEP10) << shift | 0xff;
+  auto abs_mask =
+      bitmask(pepp::Abstraction::ASMB3) | bitmask(pepp::Abstraction::OS4) | bitmask(pepp::Abstraction::ASMB5);
+  auto mask = bitmask(pepp::Architecture::PEP10) << shift | abs_mask;
   auto books = reg.books();
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
