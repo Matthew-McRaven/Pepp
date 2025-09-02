@@ -346,7 +346,7 @@ Item {
                                 Label {
                                     Layout.fillWidth: true
 
-                                    text: "<b>Figure:<b> " + btn2.name
+                                    text: `<b>Figure ${btn2.name} <b>`
                                     font.pointSize: root.font.pointSize * 1.2
                                     color: palette.accent
                                 }
