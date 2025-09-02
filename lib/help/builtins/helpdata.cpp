@@ -2,6 +2,7 @@
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
 #include "helpmodel.hpp"
+#include "utils/textutils.hpp"
 
 using namespace Qt::StringLiterals;
 constexpr int shift = 16;
@@ -381,14 +382,6 @@ QString lexerLang(pepp::Architecture arch, pepp::Abstraction level) {
   default: return "";
   }
   return QStringLiteral("%1 %2").arg(archStr, levelStr);
-}
-
-QString removeLeading0(const QString &str) {
-  for (int it = 0; it < str.size(); it++) {
-    if (str.at(it) != '0') return str.mid(it);
-  }
-  // Should be unreacheable, but here for safety.
-  return str;
 }
 
 std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry &reg) {
