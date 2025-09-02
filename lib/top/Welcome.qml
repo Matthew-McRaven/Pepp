@@ -110,7 +110,7 @@ Item {
                 id: header
 
                 filterEdition: root.filterEdition
-                font: newFm.font
+                font: FontUtils.fromFont(newFm.font).h1().bold().italicize().font()
 
                 Layout.fillWidth: true
             }   //  EditionSelector
