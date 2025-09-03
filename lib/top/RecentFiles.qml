@@ -40,6 +40,7 @@ ColumnLayout {
             contentItem: Text {
                 id: txt1
                 text: "Recent"
+                font: FontUtils.fromFont(root.font).h3().font()
                 horizontalAlignment: Text.AlignHCenter
                 color: tab1.checked ? palette.text : settings.extPalette.brightText.background
             }
@@ -70,6 +71,7 @@ ColumnLayout {
             contentItem: Text {
                 id: txt2
                 text: "Favorites"
+                font: FontUtils.fromFont(root.font).h3().font()
                 horizontalAlignment: Text.AlignHCenter
                 color: tab2.checked ? palette.text : settings.extPalette.brightText.background
             }
