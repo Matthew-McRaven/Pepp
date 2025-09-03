@@ -116,8 +116,10 @@ Item {
             }   //  EditionSelector
 
             Label {
-                text: "New Projects"
+                text: "Create Project"
                 Layout.topMargin: 10
+                font: FontUtils.fromFont(newFm.font).h3().font()
+                anchors.leftMargin: recent.spacing
             }
 
             NewProject {
