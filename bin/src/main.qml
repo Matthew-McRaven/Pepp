@@ -300,7 +300,7 @@ ApplicationWindow {
                                 //  Highlight color used for button down
                                 property color flashColor: Qt.rgba(settings.extPalette.error.background.r, settings.extPalette.error.background.g, settings.extPalette.error.background.b, button.flashFactor)
                                 color: (button.isNotify && !modelData.isOpen) ? Qt.tint(palette.button, flashColor) : (button.down ? palette.highlight : palette.button)
-                                opacity: .25
+                                opacity: .7
                                 border.width: 1
                                 //  Highlight color used for button down
                                 border.color: button.hovered ? palette.highlight : "transparent"
