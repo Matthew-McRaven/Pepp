@@ -118,6 +118,7 @@ Item {
             Label {
                 text: "Create Project"
                 Layout.topMargin: 10
+                visible: !root.loadingFileName
                 font: FontUtils.fromFont(newFm.font).h3().font()
                 anchors.leftMargin: recent.spacing
             }
