@@ -179,3 +179,5 @@ Changed,Major,0.11.0,943,"Overhaul ""Welcome"" mode, reducing button sizes and a
 Changed,,0.11.0,944,"Hide project types & help items for levels of abstraction introduced after chapter 4"
 Fixed,,0.11.0, 942,"Change coloring of docking widget title bars to match the window base color"
 Fixed,,0.11.0,922,"Enable undo & redo for assembly code editors"
+Fixed,,0.11.1,946,"Increase font size of headers in ""Welcome"" mode"
+Fixed,,0.11.1,946,"Remove leading 0's from figure names in ""Welcome"" mode"

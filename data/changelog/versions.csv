@@ -26,3 +26,4 @@ Number,GitRef,Date,Blurb
 0.10.7,,2025-08-10,"This version introduces a revised help system with additional information on how to use this application"
 0.10.8,,2025-08-19,"This version improves visibilty of changes in non-visible project UI components"
 0.11.0,,2025-08-27,"This release contains the necessary subset of features to support Chapter 4 of Computer Systems, sixth edition."
+0.11.1,,??,"This release contains minor visual improves for the ""Welcome"" mode"
