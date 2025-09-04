@@ -11,7 +11,7 @@ Item {
     property int value: initialValue
     function setValue(value) {
         if (value >= 0 && value <= 255)
-            wrapper.value = value
+            wrapper.value = value;
     }
 
     height: childrenRect.height
@@ -28,7 +28,7 @@ Item {
             width: metrics.averageCharacterWidth * maximumLength * 1.5
             font: metrics.font
             onEditingFinished: {
-                wrapper.setValue(parseInt(dec.text, 10))
+                wrapper.setValue(parseInt(dec.text, 10));
             }
             validator: RegularExpressionValidator {
                 regularExpression: /(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)/
@@ -43,7 +43,7 @@ Item {
             width: metrics.averageCharacterWidth * maximumLength * 1.5
             font: metrics.font
             onEditingFinished: {
-                wrapper.setValue(parseInt(hex.text, 16))
+                wrapper.setValue(parseInt(hex.text, 16));
             }
             validator: RegularExpressionValidator {
                 regularExpression: /0x[0-9a-fA-F]{1,2}/
@@ -58,7 +58,7 @@ Item {
             width: metrics.averageCharacterWidth * maximumLength * 1.5
             font: metrics.font
             onEditingFinished: {
-                wrapper.setValue(parseInt(bin.text, 2))
+                wrapper.setValue(parseInt(bin.text, 2));
             }
             validator: RegularExpressionValidator {
                 regularExpression: /[01]{1,8}/
@@ -67,18 +67,16 @@ Item {
             ToolTip.visible: hovered
         }
         TextField {
+            id: ascii
             CharCheck {
                 id: check
             }
-            id: ascii
-            text: check.isCharSupported(String.fromCharCode(wrapper.value),
-                                        ascii.font) ? String.fromCharCode(
-                                                          wrapper.value) : "�"
+            text: check.isCharSupported(String.fromCharCode(wrapper.value), ascii.font) ? String.fromCharCode(wrapper.value) : "�"
             maximumLength: 1
             width: metrics.averageCharacterWidth * maximumLength * 4
             font: check.noMerge(metrics.font)
             onEditingFinished: {
-                wrapper.setValue(ascii.text.charCodeAt(0) ?? 0)
+                wrapper.setValue(ascii.text.charCodeAt(0) ?? 0);
             }
             ToolTip.text: qsTr("ASCII")
             ToolTip.visible: hovered
@@ -98,20 +96,19 @@ Item {
                 popup.contentItem.implicitHeight = Qt.binding(function () {
                     // According to <QtRoot>/qml/QtQuick/Controls/Basic/ComboBox.qml:
                     // This computation gets the height of the nested list view.
-                    const actualContentHeight = popup.contentItem.contentHeight
-                                              - popup.topMargin - popup.bottomMargin
+                    const actualContentHeight = popup.contentItem.contentHeight - popup.topMargin - popup.bottomMargin;
                     // Prevent divide-by-0, since it would prevent execution of the rest of this fn.
-                    const numRows = model?.rowCount() ?? 1
-                    const actualRowHeight = actualContentHeight / numRows
-                    return actualRowHeight * 10
-                })
-                wrapper.setValue(wrapper.value)
+                    const numRows = model?.rowCount() ?? 1;
+                    const actualRowHeight = actualContentHeight / numRows;
+                    return actualRowHeight * 10;
+                });
+                wrapper.setValue(wrapper.value);
             }
             // Use on-activated to avoid binding loop from onCurrentIndexChanged.
             // activated only triggers on user interaction, wherease currentIndexChanged
             // triggers on any (programatic) update to currentIndex.
             onActivated: {
-                wrapper.setValue(model.opcodeFromIndex(currentIndex))
+                wrapper.setValue(model.opcodeFromIndex(currentIndex));
             }
             ToolTip.text: qsTr("Opcode")
             ToolTip.visible: hovered
