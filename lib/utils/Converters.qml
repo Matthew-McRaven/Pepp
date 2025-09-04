@@ -38,7 +38,7 @@ Item {
         }
         TextField {
             id: hex
-            text: `0x${wrapper.value.toString(16).padStart(2, '0')}`
+            text: `0x${wrapper.value.toString(16).padStart(2, '0').toUpperCase()}`
             maximumLength: 4
             width: metrics.averageCharacterWidth * maximumLength * 1.5
             font: metrics.font
