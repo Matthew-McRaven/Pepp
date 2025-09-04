@@ -138,6 +138,7 @@ Item {
                 //  Data
                 model: projects
                 loadingFileContent: root.loadingFileContent
+                filterAbstraction: root.filterAbstraction
 
                 onAddProject: function (arch, abs, feats, content, reuse) {
                     //  Bubble up event from child control
