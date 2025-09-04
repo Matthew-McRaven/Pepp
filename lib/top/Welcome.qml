@@ -110,14 +110,17 @@ Item {
                 id: header
 
                 filterEdition: root.filterEdition
-                font: newFm.font
+                font: FontUtils.fromFont(newFm.font).h1().bold().italicize().font()
 
                 Layout.fillWidth: true
             }   //  EditionSelector
 
             Label {
-                text: "New Projects"
+                text: "Create Project"
                 Layout.topMargin: 10
+                visible: !root.loadingFileName
+                font: FontUtils.fromFont(newFm.font).h3().font()
+                anchors.leftMargin: recent.spacing
             }
 
             NewProject {
@@ -136,6 +139,7 @@ Item {
                 //  Data
                 model: projects
                 loadingFileContent: root.loadingFileContent
+                filterAbstraction: root.filterAbstraction
 
                 onAddProject: function (arch, abs, feats, content, reuse) {
                     //  Bubble up event from child control

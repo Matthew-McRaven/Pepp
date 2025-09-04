@@ -4,74 +4,57 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Item {
+//  Edition selection in ComboBox
+Flow {
     id: root
-
     property list<int> filterEdition: []
     required property var font
-
-    //  Required for accurate spacing in parent layout
-    implicitHeight: childrenRect.height
-    implicitWidth: childrenRect.width
-
-    //  Edition selection in ComboBox
-    RowLayout {
-        id: header
-        spacing: 0
-        implicitHeight: childrenRect.height
-        implicitWidth: childrenRect.width
-
-        anchors {
-            //  Do not set bottom equal to root, or layout will break
-            left: root.left
-            right: root.right
-            top: root.top
-        }
-
-        Label {
-            id: label
-            text: `Computer Systems Edition: `
-            font: root.font
-        }
-        ComboBox {
-            id: comboBox
-
-            editable: false
-            currentIndex: 0 //  Always default to latest version
-            textRole: "text"
-            valueRole: "edition"
-            model: ListModel {
-                id: model
-                ListElement {
-                    text: "Sixth"
-                    edition: 6
-                }
-                ListElement {
-                    text: "Fifth"
-                    edition: 5
-                }
-                ListElement {
-                    text: "Fourth"
-                    edition: 4
-                }
+    Label {
+        id: label
+        text: `Computer Systems, `
+        font: root.font
+    }
+    ComboBox {
+        id: comboBox
+        height: label.height
+        editable: false
+        currentIndex: 0 //  Always default to latest version
+        textRole: "text"
+        valueRole: "edition"
+        font: root.font
+        model: ListModel {
+            id: model
+            ListElement {
+                text: "Sixth"
+                edition: 6
             }
-
-            onCurrentIndexChanged: {
-                //  Cannot user currentValue since this is value before change.
-                //  Must lookup value based on index, which is current.
-                settings.general.defaultEdition = valueAt(currentIndex);
+            ListElement {
+                text: "Fifth"
+                edition: 5
             }
-            Component.onCompleted: {
-                //  Set initial edition (latest)
-                settings.general.defaultEdition = valueAt(currentIndex);
-
-                //console.log("comboBox height", comboBox.height,"label.height", label.height);
+            ListElement {
+                text: "Fourth"
+                edition: 4
             }
-        }   //
-
-        Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
         }
-    }   //  Flow
-}
+        // font: root.font
+        onCurrentIndexChanged: {
+            //  Cannot user currentValue since this is value before change.
+            //  Must lookup value based on index, which is current.
+            settings.general.defaultEdition = valueAt(currentIndex);
+        }
+        Component.onCompleted: {
+            //  Set initial edition (latest)
+            settings.general.defaultEdition = valueAt(currentIndex);
+
+            //console.log("comboBox height", comboBox.height,"label.height", label.height);
+        }
+    }   //
+    Label {
+        text: " Edition"
+        font: root.font
+    }
+    Item {
+        Layout.fillWidth: true
+    }
+}   //  Row Layout

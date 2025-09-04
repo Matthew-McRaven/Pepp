@@ -1,5 +1,6 @@
 #include "favoritefiguremodel.hpp"
 #include "figure.hpp"
+#include "textutils.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 FavoriteFigureModel::FavoriteFigureModel(QObject *parent) : QAbstractListModel(parent) {
   _registry = helpers::builtins_registry(false);
@@ -16,11 +17,12 @@ int FavoriteFigureModel::rowCount(const QModelIndex &parent) const { return _fig
 
 QVariant FavoriteFigureModel::data(const QModelIndex &index, int role) const {
   using namespace Qt::StringLiterals;
+  static const auto rl0 = removeLeading0;
   if (!index.isValid() || index.row() < 0 || index.row() >= _figures.size()) return {};
   auto fig = _figures.at(index.row());
   switch (role) {
   case (int)Roles::FigurePtrRole: return QVariant::fromValue(fig.get());
-  case (int)Roles::NameRole: return u"%1.%2"_s.arg(fig->chapterName(), fig->figureName());
+  case (int)Roles::NameRole: return u"%1.%2"_s.arg(rl0(fig->chapterName()), rl0(fig->figureName()));
   case (int)Roles::TypeRole: return fig->defaultFragmentName();
   case (int)Roles::DescriptionRole: return fig->description();
   }
