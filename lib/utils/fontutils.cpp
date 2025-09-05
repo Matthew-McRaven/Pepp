@@ -24,8 +24,18 @@ FontUtilsHelper *FontUtilsHelper::bold() {
   return this;
 }
 
+FontUtilsHelper *FontUtilsHelper::nobold() {
+  this->_font.setBold(false);
+  return this;
+}
+
 FontUtilsHelper *FontUtilsHelper::italicize() {
   this->_font.setItalic(true);
+  return this;
+}
+
+FontUtilsHelper *FontUtilsHelper::noitalicize() {
+  this->_font.setItalic(false);
   return this;
 }
 

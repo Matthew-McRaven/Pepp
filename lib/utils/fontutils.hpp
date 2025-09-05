@@ -13,7 +13,9 @@ public:
   Q_INVOKABLE FontUtilsHelper *h2();
   Q_INVOKABLE FontUtilsHelper *h3();
   Q_INVOKABLE FontUtilsHelper *bold();
+  Q_INVOKABLE FontUtilsHelper *nobold();
   Q_INVOKABLE FontUtilsHelper *italicize();
+  Q_INVOKABLE FontUtilsHelper *noitalicize();
   Q_INVOKABLE QFont font();
 
 private:

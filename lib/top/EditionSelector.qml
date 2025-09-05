@@ -9,6 +9,7 @@ Flow {
     id: root
     property list<int> filterEdition: []
     required property var font
+    property font noItalic: FontUtils.fromFont(root.font).noitalicize().font()
     Label {
         id: label
         text: `Computer Systems, `
@@ -21,7 +22,7 @@ Flow {
         currentIndex: 0 //  Always default to latest version
         textRole: "text"
         valueRole: "edition"
-        font: root.font
+        font: root.noItalic
         model: ListModel {
             id: model
             ListElement {
@@ -52,7 +53,7 @@ Flow {
     }   //
     Label {
         text: " Edition"
-        font: root.font
+        font: root.noItalic
     }
     Item {
         Layout.fillWidth: true
