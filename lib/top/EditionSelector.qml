@@ -23,18 +23,19 @@ Flow {
         textRole: "text"
         valueRole: "edition"
         font: root.noItalic
+        implicitContentWidthPolicy: ComboBox.WidestText
         model: ListModel {
             id: model
             ListElement {
-                text: "Sixth"
+                text: "Sixth Edition"
                 edition: 6
             }
             ListElement {
-                text: "Fifth"
+                text: "Fifth Edition"
                 edition: 5
             }
             ListElement {
-                text: "Fourth"
+                text: "Fourth Edition"
                 edition: 4
             }
         }
@@ -50,10 +51,6 @@ Flow {
 
             //console.log("comboBox height", comboBox.height,"label.height", label.height);
         }
-    }   //
-    Label {
-        text: " Edition"
-        font: root.noItalic
     }
     Item {
         Layout.fillWidth: true
