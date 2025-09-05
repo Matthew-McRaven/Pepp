@@ -80,7 +80,7 @@ Item {
                 }
                 Label {
                     Layout.alignment: Qt.AlignHCenter
-                    text: `Chapter ${wr.model.chapter}`
+                    text: `Chapter${/[,-]/.test(wr.model.chapter) ? "s" : ""} ${wr.model.chapter}`
                     color: btn.enabled ? palette.text : settings.extPalette.brightText.background
                 }
                 Item {  //  Spacer
