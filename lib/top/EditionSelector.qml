@@ -9,6 +9,7 @@ Flow {
     id: root
     property list<int> filterEdition: []
     required property var font
+    property font noItalic: FontUtils.fromFont(root.font).noitalicize().font()
     Label {
         id: label
         text: `Computer Systems, `
@@ -21,19 +22,20 @@ Flow {
         currentIndex: 0 //  Always default to latest version
         textRole: "text"
         valueRole: "edition"
-        font: root.font
+        font: root.noItalic
+        implicitContentWidthPolicy: ComboBox.WidestText
         model: ListModel {
             id: model
             ListElement {
-                text: "Sixth"
+                text: "Sixth Edition"
                 edition: 6
             }
             ListElement {
-                text: "Fifth"
+                text: "Fifth Edition"
                 edition: 5
             }
             ListElement {
-                text: "Fourth"
+                text: "Fourth Edition"
                 edition: 4
             }
         }
@@ -49,10 +51,6 @@ Flow {
 
             //console.log("comboBox height", comboBox.height,"label.height", label.height);
         }
-    }   //
-    Label {
-        text: " Edition"
-        font: root.font
     }
     Item {
         Layout.fillWidth: true

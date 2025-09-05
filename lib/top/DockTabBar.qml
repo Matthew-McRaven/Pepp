@@ -173,8 +173,7 @@ KDDW.TabBarBase {
                         topRightRadius: topLeftRadius
 
                         border.width: 1
-                        border.color: btn.isTabHovered && !btn.checked
-                                      ? palette.highlight : Qt.darker(palette.window, 1.3)
+                        border.color: btn.isTabHovered && !btn.checked ? palette.highlight : Qt.darker(palette.window, 1.3)
                         gradient: Gradient {
                             GradientStop {
                                 position: 0
@@ -191,6 +190,18 @@ KDDW.TabBarBase {
                         }
                     }
                 }   //  background: Item
+                //  Show underline when active
+                Rectangle {
+                    visible: btn.checked
+                    anchors.bottom: tbBackground.bottom
+                    anchors.bottomMargin: 2
+                    anchors.horizontalCenter: tbBackground.horizontalCenter
+
+                    height: 2
+                    width: btn.implicitContentWidth
+                    color: palette.highlight
+                    radius: 2
+                } // Rectangle
                 function onNeedsAttentionChanged() {
                     if (dockObj?.needsAttention ?? false) {
                         if (dockObj.isCurrentTab())
