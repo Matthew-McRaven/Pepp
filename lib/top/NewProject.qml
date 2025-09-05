@@ -74,7 +74,7 @@ Item {
                 }
                 Label {
                     Layout.alignment: Qt.AlignHCenter
-                    text: `<b>${wr.model.text}</b>, ${wr.model.details}`
+                    text: `<b>${wr.model.text}</b>${wr.model.details ? ", " + wr.model.details : ""}`
                     textFormat: Text.StyledText
                     color: btn.enabled ? palette.text : settings.extPalette.brightText.background
                 }
