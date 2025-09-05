@@ -201,7 +201,7 @@ KDDW.TabBarBase {
                     width: btn.implicitContentWidth
                     color: palette.highlight
                     radius: 2
-                }
+                } // Rectangle
                 function onNeedsAttentionChanged() {
                     if (dockObj?.needsAttention ?? false) {
                         if (dockObj.isCurrentTab())
@@ -217,7 +217,7 @@ KDDW.TabBarBase {
                 Component.onDestruction: {
                     if (dockObj)
                         dockObj.needsAttentionChanged.disconnect(onNeedsAttentionChanged);
-                } // Rectangle
+                }
             }   //TabButton
         }   //  Repeater
     }   //  TabBar
