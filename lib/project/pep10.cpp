@@ -763,7 +763,9 @@ void Pep_ISA::prepareSim() {
   _registers->onUpdateGUI();
   updateMemPCSP();
   _memory->clearModifiedAndUpdateGUI();
-  //_memory->onUpdateGUI();
+  // Must update GUI so that initial PC/SP highlights are memoized for later clears.
+  // Otherwise, we get #951. _tb is already assumed to be non-null from earlier _tb->clear
+  _memory->onUpdateGUI(_tb->cend());
 }
 
 void Pep_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
