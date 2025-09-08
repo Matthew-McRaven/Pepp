@@ -118,9 +118,9 @@ Item {
             Label {
                 text: "Create Project"
                 Layout.topMargin: 10
+                Layout.leftMargin: recent.spacing
                 visible: !root.loadingFileName
                 font: FontUtils.fromFont(newFm.font).h3().font()
-                anchors.leftMargin: recent.spacing
             }
 
             NewProject {
@@ -132,7 +132,7 @@ Item {
 
                 //  Cell layout
                 cellRadius: 5
-                cellWidth: newTM.width * 2
+                cellWidth: newTM.width * 2.2
                 cellHeight: newTM.height * 5
                 font: newTM.font
 

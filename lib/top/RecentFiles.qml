@@ -144,12 +144,11 @@ ColumnLayout {
 
             //  Grid sizing is based on number of cells allocated over rows and columns
             //  Scroll view will show scroll bars if GridLayout does not fit
-            //  NOT NOT SIZE GridLayout BASED ON PARENT WIDTH OR HEIGHT
+            //  DO NOT SIZE GridLayout BASED ON PARENT WIDTH OR HEIGHT
             GridLayout {
                 id: layout
 
-                //  Grid control does not return number of rows. Rows prorperty only sets maximum rows.
-                //  Must recalculate rows manually with rowChange() below.
+                //  Cache total cells for row and column determination
                 property int cells: root.recentFiles.length
 
                 //  Spacing between cells
@@ -264,7 +263,7 @@ ColumnLayout {
             GridLayout {
                 id: layout2
 
-                //  Grid control does not return number of rows. Rows prorperty only sets maximum rows.
+                //  Grid control does not return number of rows. Rows property only sets maximum rows.
                 //  Must recalculate rows manually with rowChange() below.
                 property int cells: favModel.rowCount()
 
