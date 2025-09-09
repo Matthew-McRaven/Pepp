@@ -24,7 +24,7 @@ Item {
     signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
 
     //  Layout does not work without implicit height and width
-    implicitHeight: Math.min(layout.height, (root.cellHeight + spacing) * Math.min(2, layout.rowCnt))
+    implicitHeight: Math.min(layout.height, (root.cellHeight + spacing) * Math.min(2, layout.rows))
     implicitWidth: Math.max(layout.width, (root.cellWidth + spacing) * layout.columns) + spacing
 
     //  Component shown in each cell of gridview
@@ -102,16 +102,16 @@ Item {
         anchors.fill: root
 
         //  Scroll bar settings
-        ScrollBar.vertical.policy: layout.rowCnt > 2 ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+        ScrollBar.vertical.policy: layout.rows > 2 ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-        //  Grid containing buttons
+        //  Grid sizing is based on number of cells allocated over rows and columns
+        //  Scroll view will show scroll bars if GridLayout does not fit
+        //  DO NOT SIZE GridLayout BASED ON PARENT WIDTH OR HEIGHT
         GridLayout {
             id: layout
 
-            //  Grid control does not return number of rows. Rows prorperty only sets maximum rows.
-            //  Must recalculate rows manually with rowChange() below.
-            property int rowCnt: 1
+            //  Cache total cells for row and column determination
             property int cells: root.model.rowCount()
 
             //  Spacing between cells
@@ -121,26 +121,11 @@ Item {
             //  There can be between 1 and 8 columns per row. If too narrow, only
             //  show visible projects and wrap
             columns: Math.min(8, Math.max(1, Math.floor(sv.width / (root.cellWidth + root.spacing))))
+            rows: Math.max(1, Math.ceil(layout.cells / layout.columns));
             Repeater {
                 model: root.model
                 delegate: ProjectButton {}
             }   //  Repeater
         }   //  GridLayout
-
-        Component.onCompleted: {
-            //  GridLayout does not automatically calculate number of rows
-            //  based on total cells / columns.
-            rowChange();
-        }
-        onWidthChanged: {
-            //  GridLayout does not automatically calculate number of rows
-            //  based on total cells / columns.
-            rowChange();
-        }
-
-        function rowChange() {
-            //  There is always a single row at minimum
-            layout.rowCnt = Math.max(1, Math.ceil(layout.cells / layout.columns));
-        }
     }   //ScrollView
 }
