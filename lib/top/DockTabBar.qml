@@ -17,6 +17,8 @@ import "qrc:/kddockwidgets/qtquick/views/qml/" as KDDW
 
 KDDW.TabBarBase {
     id: root
+    property real tabHeight: 27
+
     NuAppSettings {
         id: settings
     }
@@ -88,6 +90,7 @@ KDDW.TabBarBase {
         id: tabBar
 
         width: parent.width
+        implicitHeight: root.tabHeight
         position: (root.groupCpp && root.groupCpp.tabsAtBottom) ? TabBar.Footer : TabBar.Header
 
         onCurrentIndexChanged: {
@@ -126,12 +129,15 @@ KDDW.TabBarBase {
                 background: Item {
                     id: tbBackground
 
+                    //  Affects height of toolbar button
+                    implicitHeight: root.tabHeight
+
                     //  Control that flashes red when there are errors
                     Rectangle {
                         id: warningLogic
                         property real flashFactor: 0.0
                         anchors.fill: tbBackground
-                        implicitHeight: 21
+                        implicitHeight: parent.implicitHeight - 4   //  Leave space for underline
                         topLeftRadius: 5
                         topRightRadius: topLeftRadius
                         z: 1    //  Must appear on top for effect to work
@@ -168,7 +174,7 @@ KDDW.TabBarBase {
                         //Kdocs overlaps internal tabs which clips right and left border. Adjust border for middle tabs on hover.
                         anchors.leftMargin: btn.isTabHovered && !btn.checked && btn.index !== 0 ? 1 : 0
                         anchors.rightMargin: btn.isTabHovered && !btn.checked && btn.index !== repeater.model.rows ? 1 : 0
-                        implicitHeight: 21
+                        implicitHeight: root.tabHeight // Set at root level
                         topLeftRadius: 5
                         topRightRadius: topLeftRadius
 
