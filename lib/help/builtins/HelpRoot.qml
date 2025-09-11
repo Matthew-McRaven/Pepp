@@ -112,6 +112,8 @@ Item {
             delegate: TreeViewDelegate {
                 id: treeDelegate
                 implicitWidth: textMetrics.width
+                font: textMetrics.font
+
                 Component.onCompleted: {
                     contentItem.textFormat = Text.MarkdownText;
                 }
@@ -130,20 +132,11 @@ Item {
                         width: 2
                     }
                 }
-                onCurrentChanged: {
-                    if (current) {
-                        makeActive();
-                    }
-                }
-                onClicked: {
-                    makeActive();
-                    if (treeView.isExpanded(row)) {
-                        treeView.collapseRecursively(row);
-                    } else {
-                        treeView.expandRecursively(row);
-                    }
-                }
-                font: textMetrics.font
+
+                //  Cannot override collapse or expand in onClicked, or it overrides default
+                //  control behavior.
+                onClicked: makeActive();
+
                 function makeActive() {
                     root.selected = treeDelegate.treeView.index(row, column);
                     treeDelegate.treeView.selectionModel.setCurrentIndex(root.selected, ItemSelectionModel.NoUpdate);
