@@ -9,10 +9,10 @@ Flow {
     id: root
     property list<int> filterEdition: []
     required property var font
-    property font noItalic: FontUtils.fromFont(root.font).noitalicize().font()
+    required property font noItalic
     Label {
         id: label
-        text: `Computer Systems, `
+        text: `Computer Systems   `
         font: root.font
     }
     ComboBox {

@@ -111,6 +111,7 @@ Item {
 
                 filterEdition: root.filterEdition
                 font: FontUtils.fromFont(newFm.font).h1().bold().italicize().font()
+                noItalic: FontUtils.fromFont(newFm.font).h2().noitalicize().font()
 
                 Layout.fillWidth: true
             }   //  EditionSelector
