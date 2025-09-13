@@ -1,0 +1,129 @@
+#include "./string_pool.hpp"
+#include <bit>
+#include <string_view>
+
+pepp::tc::alloc::PooledString::PooledString(int16_t page, uint16_t offset, uint16_t length)
+    : _page(page), _offset(offset), _length(length) {}
+
+bool pepp::tc::alloc::PooledString::valid() const { return _page != INVALID_PAGE; }
+
+std::strong_ordering pepp::tc::alloc::PooledString::operator<=>(const PooledString &other) const {
+  if (auto cmp = _length <=> other._length; cmp != 0) return cmp;
+  else if (auto cmp = _page <=> other._page; cmp != 0) return cmp;
+  return _offset <=> other._offset;
+}
+
+bool pepp::tc::alloc::PooledString::operator==(const PooledString &other) const {
+  return _page == other._page && _offset == other._offset && _length == other._length;
+}
+
+pepp::tc::alloc::PooledString::operator bool() const { return valid(); }
+
+bool pepp::tc::alloc::PooledString::Comparator::operator()(const PooledString &ident_lhs,
+                                                           const PooledString &ident_rhs) const {
+  auto lhs = context->find(ident_lhs), rhs = context->find(ident_rhs);
+  if (!lhs) throw std::invalid_argument("PooledString::Comparator given bad lhs");
+  if (!rhs) throw std::invalid_argument("PooledString::Comparator given bad rhs");
+  return this->operator()(*lhs, *rhs);
+}
+
+bool pepp::tc::alloc::PooledString::Comparator::operator()(const PooledString &ident_lhs, std::string_view rhs) const {
+  if (!context) throw std::invalid_argument("PooledString::Comparator context must not be null");
+  auto lhs = context->find(ident_lhs);
+  if (!lhs) throw std::invalid_argument("PooledString::Comparator given bad lhs");
+  return this->operator()(*lhs, rhs);
+}
+
+bool pepp::tc::alloc::PooledString::Comparator::operator()(std::string_view lhs, const PooledString &ident_rhs) const {
+  if (!context) throw std::invalid_argument("PooledString::Comparator context must not be null");
+  auto rhs = context->find(ident_rhs);
+  if (!rhs) throw std::invalid_argument("PooledString::Comparator given bad rhs");
+  return this->operator()(lhs, *rhs);
+}
+
+bool pepp::tc::alloc::PooledString::Comparator::operator()(std::string_view lhs, std::string_view rhs) const {
+  if (lhs.size() != rhs.size()) return lhs.size() < rhs.size();
+  return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+pepp::tc::alloc::StringPool::StringPool() : _identifiers(PooledString::Comparator{this}) {}
+
+pepp::tc::alloc::StringPool::const_iterator pepp::tc::alloc::StringPool::begin() { return _identifiers.cbegin(); }
+pepp::tc::alloc::StringPool::const_iterator pepp::tc::alloc::StringPool::end() { return _identifiers.cend(); }
+
+pepp::tc::alloc::StringPool::const_iterator pepp::tc::alloc::StringPool::cbegin() const {
+  return _identifiers.cbegin();
+}
+pepp::tc::alloc::StringPool::const_iterator pepp::tc::alloc::StringPool::cend() const { return _identifiers.cend(); }
+
+std::optional<pepp::tc::alloc::PooledString> pepp::tc::alloc::StringPool::find(std::string_view str) const {
+  auto item = _identifiers.find(str);
+  if (item == _identifiers.end()) return std::nullopt;
+  return *item;
+}
+
+std::optional<std::string_view> pepp::tc::alloc::StringPool::find(const PooledString &id) const {
+  if (!id.valid() || id._page >= _pages.size()) return std::nullopt;
+  if (auto &_page = _pages[id._page]; id._offset + id._length > _page.length) return std::nullopt;
+  else return std::string_view(&_page.data[id._offset], id._length);
+}
+
+bool pepp::tc::alloc::StringPool::contains(std::string_view str) const { return _identifiers.contains(str); }
+
+bool pepp::tc::alloc::StringPool::contains(const PooledString &id) const { return _identifiers.contains(id); }
+
+pepp::tc::alloc::PooledString pepp::tc::alloc::StringPool::insert(std::string_view str, AddNullTerminator terminator) {
+  if (auto existing = _identifiers.find(str); existing != _identifiers.end()) return *existing;
+  else if (auto suffix = longest_suffix_of(str); suffix) throw std::runtime_error("Not yet implemented");
+  else return allocate(str, terminator);
+}
+
+pepp::tc::alloc::PooledString pepp::tc::alloc::StringPool::longest_suffix_of(std::string_view str) {
+  for (auto it = _identifiers.lower_bound(str); it != _identifiers.cend(); it++)
+    if (auto it_str = find(*it); it_str && it_str->ends_with(str)) return *it;
+  return PooledString();
+}
+
+pepp::tc::alloc::PooledString pepp::tc::alloc::StringPool::allocate(std::string_view str,
+                                                                    AddNullTerminator terminator) {
+  // Calculate how long the string is to determine which kind of page to allocate into.
+  auto str_length = str.size();
+  bool is_null_terminated = !str.empty() && str.back() == '\0';
+  bool needs_null_terminator = (terminator == AddNullTerminator::Always) ||
+                               (terminator == AddNullTerminator::IfNotPresent && !is_null_terminated);
+  if (needs_null_terminator) ++str_length;
+  if (str_length >= MAX_PAGE_SIZE) throw std::invalid_argument("String too long to allocate");
+
+  // Check existing pages for space, allocating the string in the first page that has enough space.
+  // If I were smarter, I might try different algos other than first-fit to reduce fragmentation.
+  for (std::size_t it = 0; it < _pages.size(); ++it)
+    if (auto &page = _pages[it]; page.next + str_length <= page.length) {
+      auto offset = page.append(str, needs_null_terminator);
+      return *_identifiers.insert(PooledString(it, offset, str_length)).first;
+    }
+
+  // Allocate a page that is at minimum MIN_PAGE_SIZE, but is rounded up to the next power of 2 if larger.
+  // e.g., a 257 byte string will allocate into a 512 byte page.
+  // By using a power-of-2 allocation strategy, I hope to reduce the number of page allocations.
+  auto page_size = std::bit_ceil(std::max(MIN_PAGE_SIZE, str_length));
+  _pages.push_back(Page(page_size, str_length));
+  auto &page = _pages.back();
+  page.append(str, needs_null_terminator);
+  return *_identifiers.insert(PooledString(_pages.size(), 0, str_length)).first;
+}
+
+pepp::tc::alloc::StringPool::Page::Page(size_t length, size_t memset_from) : data(new char[length]) {
+  if (length < MIN_PAGE_SIZE) throw std::invalid_argument("Allocation smaller than MIN_PAGE_SIZE");
+  else if (length > MAX_PAGE_SIZE) throw std::invalid_argument("Allocation larger than MAX_PAGE_SIZE");
+  // Optimization to avoid 0-ing data if you plan on immediately allocating
+  else if (memset_from < length) memset(data.get(), memset_from, length - memset_from);
+}
+
+size_t pepp::tc::alloc::StringPool::Page::append(std::string_view str, bool add_null_terminator) {
+  auto ret = next;
+  if (next + str.size() > length) throw std::runtime_error("Page overflow");
+  memcpy(&data[next], str.data(), str.size());
+  next += str.size();
+  if (add_null_terminator) data[next++] = '\0';
+  return ret;
+}
