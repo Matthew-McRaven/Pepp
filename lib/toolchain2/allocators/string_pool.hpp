@@ -9,10 +9,13 @@ class StringPool;
 struct PooledString {
   PooledString() = default;
   bool valid() const;
-  // Sort by length first, then page, then offset.
+  // Sorting works like sorting pointers: page, offset, length.
+  // The comparator builds on top of this to sort strings by length for the purpose of sorting the set nicely.
   std::strong_ordering operator<=>(const PooledString &other) const;
   bool operator==(const PooledString &other) const;
-  operator bool() const;
+  uint16_t page() const;
+  uint16_t offset() const;
+  uint16_t length() const;
 
 private:
   PooledString(int16_t page, uint16_t offset, uint16_t length);
@@ -47,23 +50,30 @@ public:
   std::optional<std::string_view> find(const PooledString &id) const;
   bool contains(std::string_view str) const;
   bool contains(const PooledString &id) const;
+  size_t count() const;
+
+  // The number of bytes required to concatenate all the strings together with the current pooling applied.
+  size_t pooled_byte_size() const;
+  // Number of bytes required to hold all strings without pooling.
+  size_t unpooled_byte_size() const;
 
   enum class AddNullTerminator { Always, Never, IfNotPresent };
 
+  // Find the longest identifier which str is a suffix of.
+  // Returns an invalid identifier if no such identifier exists.
+  PooledString longest_container_of(std::string_view str);
   // If str is already in the pool, returns the existing identifier.
   // Otherwise, it attempts to return a substring of an existing identifier.
   // If no substring exists, it will will allocate space for a new string.
-  PooledString insert(std::string_view str, AddNullTerminator terminator = AddNullTerminator::IfNotPresent);
-  // Find the longest identifier which str is a suffix of.
-  // Returns an invalid identifier if no such identifier exists.
-  PooledString longest_suffix_of(std::string_view str);
+  PooledString insert(std::string_view str, AddNullTerminator terminator = AddNullTerminator::Never);
 
-private:
-  PooledString allocate(std::string_view str, AddNullTerminator terminator);
   static constexpr size_t MIN_PAGE_SIZE = 256;   // Default allocation size for a single page.
   static constexpr size_t MAX_PAGE_SIZE = 65535; // Maximum number of bytes than can be stored in a single page.
-  static_assert(MIN_PAGE_SIZE <= MAX_PAGE_SIZE, "PAGE_SIZE must fit in uint16_t");
+private:
+  // Force-allocate space for a new string.
+  PooledString allocate(std::string_view str, AddNullTerminator terminator);
 
+  static_assert(MIN_PAGE_SIZE <= MAX_PAGE_SIZE, "PAGE_SIZE must fit in uint16_t");
   // Holds many strings, one after the other.
   // Lengths will be rounded up to the nearest power-of-2.
   struct Page {

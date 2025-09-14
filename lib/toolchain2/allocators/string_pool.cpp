@@ -8,16 +8,20 @@ pepp::tc::alloc::PooledString::PooledString(int16_t page, uint16_t offset, uint1
 bool pepp::tc::alloc::PooledString::valid() const { return _page != INVALID_PAGE; }
 
 std::strong_ordering pepp::tc::alloc::PooledString::operator<=>(const PooledString &other) const {
-  if (auto cmp = _length <=> other._length; cmp != 0) return cmp;
-  else if (auto cmp = _page <=> other._page; cmp != 0) return cmp;
-  return _offset <=> other._offset;
+  if (auto cmp = _page <=> other._page; cmp != 0) return cmp;
+  else if (auto cmp = _offset <=> other._offset; cmp != 0) return cmp;
+  return _length <=> other._length;
 }
 
 bool pepp::tc::alloc::PooledString::operator==(const PooledString &other) const {
   return _page == other._page && _offset == other._offset && _length == other._length;
 }
 
-pepp::tc::alloc::PooledString::operator bool() const { return valid(); }
+uint16_t pepp::tc::alloc::PooledString::page() const { return _page; }
+
+uint16_t pepp::tc::alloc::PooledString::offset() const { return _offset; }
+
+uint16_t pepp::tc::alloc::PooledString::length() const { return _length; }
 
 bool pepp::tc::alloc::PooledString::Comparator::operator()(const PooledString &ident_lhs,
                                                            const PooledString &ident_rhs) const {
@@ -72,15 +76,33 @@ bool pepp::tc::alloc::StringPool::contains(std::string_view str) const { return 
 
 bool pepp::tc::alloc::StringPool::contains(const PooledString &id) const { return _identifiers.contains(id); }
 
-pepp::tc::alloc::PooledString pepp::tc::alloc::StringPool::insert(std::string_view str, AddNullTerminator terminator) {
-  if (auto existing = _identifiers.find(str); existing != _identifiers.end()) return *existing;
-  else if (auto suffix = longest_suffix_of(str); suffix) throw std::runtime_error("Not yet implemented");
-  else return allocate(str, terminator);
+size_t pepp::tc::alloc::StringPool::count() const { return _identifiers.size(); }
+
+size_t pepp::tc::alloc::StringPool::pooled_byte_size() const {
+  size_t ret = 0;
+  for (const auto &page : _pages) ret += page.next;
+  return ret;
 }
 
-pepp::tc::alloc::PooledString pepp::tc::alloc::StringPool::longest_suffix_of(std::string_view str) {
-  for (auto it = _identifiers.lower_bound(str); it != _identifiers.cend(); it++)
-    if (auto it_str = find(*it); it_str && it_str->ends_with(str)) return *it;
+size_t pepp::tc::alloc::StringPool::unpooled_byte_size() const {
+  size_t ret = 0;
+  for (const auto &ident : _identifiers)
+    if (auto str = find(ident); str) ret += str->size();
+  return ret;
+}
+
+pepp::tc::alloc::PooledString pepp::tc::alloc::StringPool::insert(std::string_view str, AddNullTerminator terminator) {
+  if (auto existing = _identifiers.find(str); existing != _identifiers.end()) return *existing;
+  else if (auto superstring = longest_container_of(str); superstring.valid()) {
+    auto superstring_view = find(superstring);
+    auto substr_offset = superstring_view->find(str) + superstring._offset;
+    return *_identifiers.insert(PooledString(superstring._page, substr_offset, str.size())).first;
+  } else return allocate(str, terminator);
+}
+
+pepp::tc::alloc::PooledString pepp::tc::alloc::StringPool::longest_container_of(std::string_view target) {
+  for (auto it = _identifiers.lower_bound(target); it != _identifiers.cend(); it++)
+    if (auto str = find(*it); str && str->find(target) != std::string::npos) return *it;
   return PooledString();
 }
 
@@ -109,14 +131,14 @@ pepp::tc::alloc::PooledString pepp::tc::alloc::StringPool::allocate(std::string_
   _pages.push_back(Page(page_size, str_length));
   auto &page = _pages.back();
   page.append(str, needs_null_terminator);
-  return *_identifiers.insert(PooledString(_pages.size(), 0, str_length)).first;
+  return *_identifiers.insert(PooledString(_pages.size() - 1, 0, str_length)).first;
 }
 
-pepp::tc::alloc::StringPool::Page::Page(size_t length, size_t memset_from) : data(new char[length]) {
+pepp::tc::alloc::StringPool::Page::Page(size_t length, size_t memset_from) : length(length), data(new char[length]) {
   if (length < MIN_PAGE_SIZE) throw std::invalid_argument("Allocation smaller than MIN_PAGE_SIZE");
   else if (length > MAX_PAGE_SIZE) throw std::invalid_argument("Allocation larger than MAX_PAGE_SIZE");
   // Optimization to avoid 0-ing data if you plan on immediately allocating
-  else if (memset_from < length) memset(data.get(), memset_from, length - memset_from);
+  else if (memset_from < length) memset(data.get() + memset_from, 0, length - memset_from);
 }
 
 size_t pepp::tc::alloc::StringPool::Page::append(std::string_view str, bool add_null_terminator) {
