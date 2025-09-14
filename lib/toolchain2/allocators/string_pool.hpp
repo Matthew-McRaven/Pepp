@@ -42,13 +42,8 @@ private:
 class StringPool {
 public:
   using PooledStringSet = std::set<PooledString, PooledString::Comparator>;
-  using const_iterator = PooledStringSet::const_iterator;
   StringPool();
 
-  const_iterator begin();
-  const_iterator end();
-  const_iterator cbegin() const;
-  const_iterator cend() const;
   std::optional<pepp::tc::alloc::PooledString> find(std::string_view str) const;
   std::optional<std::string_view> find(const PooledString &id) const;
   bool contains(std::string_view str) const;

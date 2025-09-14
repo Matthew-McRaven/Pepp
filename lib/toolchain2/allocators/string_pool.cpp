@@ -53,14 +53,6 @@ bool pepp::tc::alloc::PooledString::Comparator::operator()(std::string_view lhs,
 
 pepp::tc::alloc::StringPool::StringPool() : _identifiers(PooledString::Comparator{this}) {}
 
-pepp::tc::alloc::StringPool::const_iterator pepp::tc::alloc::StringPool::begin() { return _identifiers.cbegin(); }
-pepp::tc::alloc::StringPool::const_iterator pepp::tc::alloc::StringPool::end() { return _identifiers.cend(); }
-
-pepp::tc::alloc::StringPool::const_iterator pepp::tc::alloc::StringPool::cbegin() const {
-  return _identifiers.cbegin();
-}
-pepp::tc::alloc::StringPool::const_iterator pepp::tc::alloc::StringPool::cend() const { return _identifiers.cend(); }
-
 std::optional<pepp::tc::alloc::PooledString> pepp::tc::alloc::StringPool::find(std::string_view str) const {
   auto item = _identifiers.find(str);
   if (item == _identifiers.end()) return std::nullopt;
