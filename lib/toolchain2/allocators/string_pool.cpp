@@ -1,6 +1,7 @@
 #include "./string_pool.hpp"
 #include <bit>
-#include <string_view>
+#include <cstring>
+#include <stdexcept>
 
 pepp::tc::alloc::PooledString::PooledString(int16_t page, uint16_t offset, uint16_t length)
     : _page(page), _offset(offset), _length(length) {}

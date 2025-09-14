@@ -85,7 +85,9 @@ TEST_CASE("Allocator String Pooling", "[scope:asm][kind:unit][arch:pep10][!throw
   SECTION("Fallback to insertion order-sorting for strings of same length") {
     Pool p;
     // 'H' is lexicographically before 'h', so normally "Hi" would sort before "hi".
-    CHECK((p.insert("hi") < p.insert("Hi")));
+    auto first = p.insert("hi");
+    auto second = p.insert("Hi");
+    CHECK(first < second);
   }
   SECTION("Page probing for gaps") {
     Pool p;

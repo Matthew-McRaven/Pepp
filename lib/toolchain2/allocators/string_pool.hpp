@@ -1,6 +1,9 @@
 #pragma once
+#include <memory>
+#include <optional>
 #include <set>
 #include <stdint.h>
+#include <string_view>
 #include <vector>
 
 namespace pepp::tc::alloc {
@@ -69,11 +72,7 @@ public:
 
   static constexpr size_t MIN_PAGE_SIZE = 256;   // Default allocation size for a single page.
   static constexpr size_t MAX_PAGE_SIZE = 65535; // Maximum number of bytes than can be stored in a single page.
-private:
-  // Force-allocate space for a new string.
-  PooledString allocate(std::string_view str, AddNullTerminator terminator);
 
-  static_assert(MIN_PAGE_SIZE <= MAX_PAGE_SIZE, "PAGE_SIZE must fit in uint16_t");
   // Holds many strings, one after the other.
   // Lengths will be rounded up to the nearest power-of-2.
   struct Page {
@@ -88,6 +87,11 @@ private:
     size_t append(std::string_view str, bool add_null_terminator = false);
   };
 
+private:
+  // Force-allocate space for a new string.
+  PooledString allocate(std::string_view str, AddNullTerminator terminator);
+
+  static_assert(MIN_PAGE_SIZE <= MAX_PAGE_SIZE, "PAGE_SIZE must fit in uint16_t");
   std::vector<Page> _pages = {};
   // Sort identifiers by string_view so that we can have cheap heterogenous comparisons with string_view
   PooledStringSet _identifiers = {};
