@@ -1,4 +1,6 @@
 #include "./string_pool.hpp"
+#include <QStringList>
+#include <api2/memory/address.hpp>
 #include <bit>
 #include <cstring>
 #include <stdexcept>
@@ -83,6 +85,12 @@ qsizetype pepp::tc::support::StringPool::unpooled_byte_size() const {
   return ret;
 }
 
+pepp::tc::support::PooledString pepp::tc::support::StringPool::longest_container_of(QStringView target) {
+  for (auto it = _identifiers.lower_bound(target); it != _identifiers.cend(); it++)
+    if (auto str = find(*it); str && str->indexOf(target) != -1) return *it;
+  return PooledString();
+}
+
 pepp::tc::support::PooledString pepp::tc::support::StringPool::insert(QStringView str, AddNullTerminator terminator) {
   if (auto existing = _identifiers.find(str); existing != _identifiers.end()) return *existing;
   else if (auto superstring = longest_container_of(str); superstring.valid()) {
@@ -92,11 +100,34 @@ pepp::tc::support::PooledString pepp::tc::support::StringPool::insert(QStringVie
   } else return allocate(str, terminator);
 }
 
-pepp::tc::support::PooledString pepp::tc::support::StringPool::longest_container_of(QStringView target) {
-  for (auto it = _identifiers.lower_bound(target); it != _identifiers.cend(); it++)
-    if (auto str = find(*it); str && str->indexOf(target) != -1) return *it;
-  return PooledString();
+pepp::tc::support::StringPool::Page::Page(qsizetype length, qsizetype memset_from)
+    : length(length), data(new char16_t[length]) {
+  if (length < MIN_PAGE_SIZE) throw std::invalid_argument("Allocation smaller than MIN_PAGE_SIZE");
+  else if (length > MAX_PAGE_SIZE) throw std::invalid_argument("Allocation larger than MAX_PAGE_SIZE");
+  // Optimization to avoid 0-ing data if you plan on immediately allocating
+  else if (memset_from < length) memset(data.get() + memset_from, 0, (length - memset_from) * sizeof(data[0]));
 }
+
+qsizetype pepp::tc::support::StringPool::Page::append(QStringView str, bool add_null_terminator) {
+  auto ret = next;
+  if (next + str.size() > length) throw std::runtime_error("Page overflow");
+  memcpy(&data[next], str.data(), str.size() * sizeof(data[0]));
+  next += str.size();
+  if (add_null_terminator) data[next++] = '\0';
+  return ret;
+}
+
+using Page = pepp::tc::support::StringPool::Page;
+std::vector<Page>::const_iterator pepp::tc::support::StringPool::pages_cbegin() const { return _pages.cbegin(); }
+
+std::vector<Page>::const_iterator pepp::tc::support::StringPool::pages_cend() const { return _pages.cend(); }
+
+using PooledStringSet = pepp::tc::support::StringPool::PooledStringSet;
+PooledStringSet::const_iterator pepp::tc::support::StringPool::identifiers_cbegin() const {
+  return _identifiers.cbegin();
+}
+
+PooledStringSet::const_iterator pepp::tc::support::StringPool::identifiers_cend() const { return _identifiers.cend(); }
 
 pepp::tc::support::PooledString pepp::tc::support::StringPool::allocate(QStringView str, AddNullTerminator terminator) {
   // Calculate how long the string is to determine which kind of page to allocate into.
@@ -125,19 +156,31 @@ pepp::tc::support::PooledString pepp::tc::support::StringPool::allocate(QStringV
   return *_identifiers.insert(PooledString(_pages.size() - 1, 0, str_length)).first;
 }
 
-pepp::tc::support::StringPool::Page::Page(qsizetype length, qsizetype memset_from)
-    : length(length), data(new char16_t[length]) {
-  if (length < MIN_PAGE_SIZE) throw std::invalid_argument("Allocation smaller than MIN_PAGE_SIZE");
-  else if (length > MAX_PAGE_SIZE) throw std::invalid_argument("Allocation larger than MAX_PAGE_SIZE");
-  // Optimization to avoid 0-ing data if you plan on immediately allocating
-  else if (memset_from < length) memset(data.get() + memset_from, 0, (length - memset_from) * sizeof(data[0]));
+QString pepp::tc::support::AnnotatedPage::to_string() const {
+  QStringList lines;
+  for (const auto &id : identifiers) {
+    QStringView str_view = QStringView(&page->data[id.offset()], id.length());
+    lines.push_back(
+        QStringLiteral("    [%1,%2]: %3").arg(id.offset(), 4).arg(id.offset() + id.length(), 4).arg(str_view));
+  }
+  return lines.join('\n');
 }
 
-qsizetype pepp::tc::support::StringPool::Page::append(QStringView str, bool add_null_terminator) {
-  auto ret = next;
-  if (next + str.size() > length) throw std::runtime_error("Page overflow");
-  memcpy(&data[next], str.data(), str.size() * sizeof(data[0]));
-  next += str.size();
-  if (add_null_terminator) data[next++] = '\0';
+std::vector<pepp::tc::support::AnnotatedPage> pepp::tc::support::annotated_pages(const StringPool &pool) {
+  std::vector<AnnotatedPage> ret;
+  for (auto it = pool.pages_cbegin(); it != pool.pages_cend(); ++it) ret.push_back(AnnotatedPage{&*it, {}});
+  for (auto it = pool.identifiers_cbegin(); it != pool.identifiers_cend(); ++it)
+    if (it->page() < ret.size()) ret[it->page()].identifiers.push_back(*it);
+  for (auto &page : ret)
+    // Sort identifiers by offset rather than by length, which is how they were ordered in the above set.
+    std::sort(page.identifiers.begin(), page.identifiers.end(), [](const PooledString &a, const PooledString &b) {
+      using namespace sim::api2::memory;
+      Interval<int16_t> a_range(a.offset(), a.offset() + a.length());
+      Interval<int16_t> b_range(b.offset(), b.offset() + b.length());
+      // If one string is contained by the other, sort the longer string first. Then sort by start address.
+      if (contains(b_range, a_range)) return false;
+      else if (contains(a_range, b_range)) return true;
+      else return a_range < b_range;
+    });
   return ret;
 }

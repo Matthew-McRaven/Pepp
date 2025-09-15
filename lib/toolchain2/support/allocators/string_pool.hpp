@@ -1,10 +1,9 @@
 #pragma once
-#include <QStringView>
+#include <QString>
 #include <memory>
 #include <optional>
 #include <set>
 #include <stdint.h>
-#include <string_view>
 #include <vector>
 
 namespace pepp::tc::support {
@@ -83,6 +82,12 @@ public:
     qsizetype append(QStringView str, bool add_null_terminator = false);
   };
 
+  // Helpers to access underlying pages & identifiers, useful for writing debugger algos that "dump" the string pool.
+  std::vector<Page>::const_iterator pages_cbegin() const;
+  std::vector<Page>::const_iterator pages_cend() const;
+  PooledStringSet::const_iterator identifiers_cbegin() const;
+  PooledStringSet::const_iterator identifiers_cend() const;
+
 private:
   // Force-allocate space for a new string.
   // Will enforce
@@ -93,4 +98,15 @@ private:
   // Sort identifiers by string_view so that we can have cheap heterogenous comparisons with string_view
   PooledStringSet _identifiers = {};
 };
+
+// A page + the pooled strings within it.
+// Not uses within the string pool, but useful for debugging.
+struct AnnotatedPage {
+  const StringPool::Page *page;
+  std::vector<PooledString> identifiers;
+  QString to_string() const;
+};
+
+std::vector<AnnotatedPage> annotated_pages(const StringPool &pool);
+
 } // namespace pepp::tc::support

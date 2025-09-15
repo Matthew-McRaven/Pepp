@@ -15,6 +15,7 @@
  */
 
 #include "toolchain2/support/allocators/string_pool.hpp"
+#include <QDebug>
 #include <QString>
 #include <catch.hpp>
 
@@ -114,5 +115,21 @@ TEST_CASE("Allocator String Pooling", "[kind:unit][arch:*][!throws][tc2]") {
     Pool p;
     auto s = QString(Pool::MAX_PAGE_SIZE + 1, 'a');
     REQUIRE_THROWS_AS(p.insert(s), std::invalid_argument);
+  }
+  SECTION("Printing allocated strings does not crash") {
+    Pool p;
+    p.insert(u"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et "
+             u"dolore magna aliqua");
+    p.insert(u"Lorem ipsum dolor sit amet, consectetur adipiscing elit,");
+    p.insert(u"em ipsum dolor sit amet");
+    p.insert(u"amet, consectetur adipiscing elit");
+    p.insert(u"ed do eiusmod tempor incididunt ut labore et dolore magna aliqua");
+    p.insert(u"adipiscing elit, sed do");
+    auto pages = pepp::tc::support::annotated_pages(p);
+    CHECK(pages.size() == 1);
+    auto as_str = pages[0].to_string();
+    CHECK(as_str.size() > 4);
+    // qDebug().noquote().nospace() << as_str;
+    // CHECK(0);
   }
 }
