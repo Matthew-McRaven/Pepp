@@ -12,7 +12,7 @@ bool pepp::tc::lex::MicroLexer::input_remains() const { return _cursor.input_rem
 std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::MicroLexer::next_token() {
   using LocationInterval = support::LocationInterval;
   static const QRegularExpression lineNum("[0-9]+\\.");
-  static const QRegularExpression identifier("[a-zA-Z][a-zA-Z0-9_]*");
+  static const QRegularExpression identifier("[a-zA-Z_][a-zA-Z0-9_]*");
   static const QRegularExpression symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
   static const QRegularExpression decimal("[0-9]+");
   static const QRegularExpression hexadecimal("0[xX][0-9a-fA-F]+");
@@ -109,16 +109,4 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::MicroLexer::next_token() {
   if (print_tokens && current_token) qDebug().noquote().nospace() << "Token:" << current_token->repr();
   _cursor.skip(0);
   return current_token;
-}
-
-pepp::tc::support::LocationInterval pepp::tc::lex::MicroLexer::synchronize() {
-  auto start = _cursor.location();
-  while (input_remains()) {
-    if (auto next = _cursor.peek(); next == "\n") {
-      _cursor.advance(1);
-      _cursor.newline();
-      break;
-    } else _cursor.advance(1);
-  }
-  return {start, _cursor.location()};
 }

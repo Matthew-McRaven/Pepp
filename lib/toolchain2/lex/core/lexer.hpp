@@ -26,7 +26,8 @@ struct ALexer {
   virtual std::shared_ptr<Token> next_token() = 0;
   // If you received an invalid/error token, call this method to advance to the next point where we can resume
   // tokenization. This will return the interval which was skipped over.
-  virtual support::LocationInterval synchronize() = 0;
+  // The default behavior is to read until the next newline.
+  virtual support::LocationInterval synchronize();
 
   void register_listener(Listener *listener);
   support::Location current_location() const;

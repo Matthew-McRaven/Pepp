@@ -12,7 +12,7 @@ pepp::tc::lex::MacroInvocation::MacroInvocation(support::LocationInterval loc, s
 
 int pepp::tc::lex::MacroInvocation::type() const { return TYPE; }
 
-pepp::tc::lex::CharacterConstant::CharacterConstant(support::LocationInterval loc, QChar value)
+pepp::tc::lex::CharacterConstant::CharacterConstant(support::LocationInterval loc, QString value)
     : Token(loc), value(value) {}
 
 int pepp::tc::lex::CharacterConstant::type() const { return TYPE; }

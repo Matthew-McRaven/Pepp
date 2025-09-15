@@ -22,18 +22,18 @@ struct MacroInvocation : public Identifier {
 };
 
 struct CharacterConstant : public Token {
-  CharacterConstant(support::LocationInterval loc, QChar value);
+  CharacterConstant(support::LocationInterval loc, QString value);
   static constexpr int TYPE = static_cast<int>(AsmTokenType::CharacterConstant);
   int type() const override;
   QString type_name() const override;
   QString to_string() const override;
   QString repr() const override;
 
-  QChar value;
+  QString value;
 };
 
 // We are going to cheat with string constants. You should drop the quotes when making an ID out of this.
-// While the lexer MUST check that escape sequences are valid, it does NOT need to convert them into actual characters.
+// While the lexer MUST check that escape sequences are valid, it does NOT need to convert them into bytes.
 struct StringConstant : public Identifier {
   StringConstant(support::LocationInterval loc, support::StringPool *pool, support::PooledString id);
   static constexpr int TYPE = static_cast<int>(AsmTokenType::StringConstant);
