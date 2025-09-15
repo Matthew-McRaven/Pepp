@@ -35,7 +35,7 @@ QString pepp::tc::lex::Empty::type_name() const { return "Empty"; }
 
 QString pepp::tc::lex::Empty::to_string() const { return "\n"; }
 
-QString pepp::tc::lex::Empty::repr() const { return "Empty()"; }
+QString pepp::tc::lex::Empty::repr() const { return QStringLiteral("%1()").arg(type_name()); }
 
 pepp::tc::lex::Integer::Integer(support::LocationInterval loc, uint64_t val, Format fmt)
     : Token(loc), format(fmt), value(val) {}

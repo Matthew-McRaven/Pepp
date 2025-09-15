@@ -18,7 +18,8 @@
 
 #include "../../ir/ucode/pep_common.hpp"
 #include "../../lex/core/buffer.hpp"
-#include "../../lex/ucode/pep_common.hpp"
+#include "../../lex/ucode/pep_lexer.hpp"
+#include "../../lex/ucode/pep_tokens.hpp"
 
 namespace pepp::tc::parse {
 // 0-indexed line number and an error message for that line.

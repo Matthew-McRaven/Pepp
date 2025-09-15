@@ -1,36 +1,7 @@
-#include "./pep_common.hpp"
+#include "./pep_lexer.hpp"
 #include <QRegularExpression>
 #include "../core/common_tokens.hpp"
-
-pepp::tc::lex::LineNumber::LineNumber(support::LocationInterval loc, int lineNo) : Token(loc), line(lineNo) {}
-
-int pepp::tc::lex::LineNumber::type() const { return TYPE; }
-
-QString pepp::tc::lex::LineNumber::type_name() const { return "LineNumber"; }
-
-QString pepp::tc::lex::LineNumber::to_string() const { return QStringLiteral("%1.").arg(line); }
-
-QString pepp::tc::lex::LineNumber::repr() const { return QStringLiteral("LineNumber(%1)").arg(line); }
-
-pepp::tc::lex::UnitPre::UnitPre(support::LocationInterval loc) : Token(loc) {}
-
-int pepp::tc::lex::UnitPre::type() const { return TYPE; }
-
-QString pepp::tc::lex::UnitPre::type_name() const { return "UnitPre"; }
-
-QString pepp::tc::lex::UnitPre::to_string() const { return "UnitPre:"; }
-
-QString pepp::tc::lex::UnitPre::repr() const { return "UnitPre()"; }
-
-pepp::tc::lex::UnitPost::UnitPost(support::LocationInterval loc) : Token(loc) {}
-
-int pepp::tc::lex::UnitPost::type() const { return TYPE; }
-
-QString pepp::tc::lex::UnitPost::type_name() const { return "UnitPost"; }
-
-QString pepp::tc::lex::UnitPost::to_string() const { return "UnitPost:"; }
-
-QString pepp::tc::lex::UnitPost::repr() const { return "UnitPost()"; }
+#include "./pep_tokens.hpp"
 
 pepp::tc::lex::MicroLexer::MicroLexer(std::shared_ptr<support::StringPool> identifier_pool,
                                       support::SeekableData &&data)
