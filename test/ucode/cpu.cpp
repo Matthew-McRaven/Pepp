@@ -16,8 +16,7 @@
 #include <catch.hpp>
 
 #include "targets/pep9/mc2/cpu.hpp"
-#include "toolchain/ucode/parser.hpp"
-#include "toolchain/ucode/uarch.hpp"
+#include "toolchain2/targets/pep/uarch.hpp"
 
 namespace {
 template <typename CPU> std::pair<sim::memory::Dense<quint16>, CPU> make() {
@@ -41,14 +40,15 @@ template <typename T> quint8 read(sim::api2::memory::Target<T> &mem, T addr) {
 }
 } // namespace
 TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
-  using uarch = pepp::ucode::Pep9ByteBus;
-  using regs = pepp::ucode::Pep9Registers;
-  using Code = pepp::ucode::Pep9ByteBus::Code;
+  using uarch = pepp::tc::arch::Pep9ByteBus;
+  using regs = pepp::tc::arch::Pep9Registers;
+  using Code = pepp::tc::arch::Pep9ByteBus::Code;
+  using Parser = pepp::tc::parse::MicroParser<uarch, regs>;
   SECTION("Register set preconditions") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
     QString source = "UnitPre: x=0x2345, mem[0xfffe]=7";
-    auto result = pepp::ucode::parse<uarch, regs>(source);
+    auto result = Parser(source).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 2) == 0);
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0);
@@ -84,7 +84,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
     QString source = "UnitPre: mem[0xFEFF]=0x17";
-    auto result = pepp::ucode::parse<uarch, regs>(source);
+    auto result = Parser(source).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 0) == 0x0);
     cpu.setConstantRegisters();
@@ -133,14 +133,15 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
 }
 
 TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
-  using uarch = pepp::ucode::Pep9WordBus;
-  using regs = pepp::ucode::Pep9Registers;
-  using Code = pepp::ucode::Pep9WordBus::Code;
+  using uarch = pepp::tc::arch::Pep9WordBus;
+  using regs = pepp::tc::arch::Pep9Registers;
+  using Code = pepp::tc::arch::Pep9WordBus::Code;
+  using Parser = pepp::tc::parse::MicroParser<uarch, regs>;
   SECTION("Register set preconditions") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
     QString source = "UnitPre: x=0x2345, mem[0xfffe]=7";
-    auto result = pepp::ucode::parse<uarch, regs>(source);
+    auto result = Parser(source).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 2) == 0);
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0);
@@ -176,7 +177,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUWordBus>();
     cpu.setTarget(&mem, nullptr);
     QString source = "UnitPre: mem[0xFEFE]=0x67, mem[0xFEFF]=0x17";
-    auto result = pepp::ucode::parse<uarch, regs>(source);
+    auto result = Parser(source).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 0) == 0x0);
     cpu.setConstantRegisters();

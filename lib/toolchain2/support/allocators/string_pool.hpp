@@ -1,4 +1,5 @@
 #pragma once
+#include <QStringView>
 #include <memory>
 #include <optional>
 #include <set>
@@ -6,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-namespace pepp::tc::alloc {
+namespace pepp::tc::support {
 
 class StringPool;
 struct PooledString {
@@ -32,10 +33,10 @@ private:
     using is_transparent = std::true_type;
     // Sort by length, then by lexicographical_compare instead of only by lexicography.
     // This is useful for cheaply implemtning longest_suffix_of.
-    bool operator()(const PooledString &lhs, const PooledString &rhs) const;
-    bool operator()(const PooledString &lhs, std::string_view rhs) const;
-    bool operator()(std::string_view lhs, const PooledString &rhs) const;
-    bool operator()(std::string_view lhs, std::string_view rhs) const;
+    bool operator()(PooledString lhs, PooledString rhs) const;
+    bool operator()(PooledString lhs, QStringView rhs) const;
+    bool operator()(QStringView lhs, PooledString rhs) const;
+    bool operator()(QStringView lhs, QStringView rhs) const;
   };
 };
 
@@ -44,29 +45,29 @@ public:
   using PooledStringSet = std::set<PooledString, PooledString::Comparator>;
   StringPool();
 
-  std::optional<pepp::tc::alloc::PooledString> find(std::string_view str) const;
-  std::optional<std::string_view> find(const PooledString &id) const;
-  bool contains(std::string_view str) const;
+  std::optional<PooledString> find(QStringView str) const;
+  std::optional<QStringView> find(const PooledString &id) const;
+  bool contains(QStringView str) const;
   bool contains(const PooledString &id) const;
-  size_t count() const;
+  qsizetype count() const;
 
   // The number of bytes required to concatenate all the strings together with the current pooling applied.
-  size_t pooled_byte_size() const;
+  qsizetype pooled_byte_size() const;
   // Number of bytes required to hold all strings without pooling.
-  size_t unpooled_byte_size() const;
+  qsizetype unpooled_byte_size() const;
 
   enum class AddNullTerminator { Always, Never, IfNotPresent };
 
   // Find the longest identifier which str is a suffix of.
   // Returns an invalid identifier if no such identifier exists.
-  PooledString longest_container_of(std::string_view str);
+  PooledString longest_container_of(QStringView str);
   // If str is already in the pool, returns the existing identifier.
   // Otherwise, it attempts to return a substring of an existing identifier.
   // If no substring exists, it will will allocate space for a new string.
-  PooledString insert(std::string_view str, AddNullTerminator terminator = AddNullTerminator::Never);
+  PooledString insert(QStringView str, AddNullTerminator terminator = AddNullTerminator::Never);
 
-  static constexpr size_t MIN_PAGE_SIZE = 256;   // Default allocation size for a single page.
-  static constexpr size_t MAX_PAGE_SIZE = 65535; // Maximum number of bytes than can be stored in a single page.
+  static constexpr qsizetype MIN_PAGE_SIZE = 256;   // Default allocation size for a single page.
+  static constexpr qsizetype MAX_PAGE_SIZE = 65535; // Maximum number of bytes than can be stored in a single page.
 
   // Holds many strings, one after the other.
   // Lengths will be rounded up to the nearest power-of-2.
@@ -74,21 +75,22 @@ public:
     // Will only set bytes to 0 in the range [memset_from, length)
     // This optimization allows you to avoid a memset when you plan on immediately copying data, saving substantial time
     // on large allocations.
-    explicit Page(size_t length, size_t memset_from = 0);
-    size_t length = 0, next = 0;
+    explicit Page(qsizetype length, qsizetype memset_from = 0);
+    qsizetype length = 0, next = 0;
     // Automatically allocated on construction
-    std::unique_ptr<char[]> data = nullptr;
+    std::unique_ptr<char16_t[]> data = nullptr;
     // Copy data into next free space, advancing next.
-    size_t append(std::string_view str, bool add_null_terminator = false);
+    qsizetype append(QStringView str, bool add_null_terminator = false);
   };
 
 private:
   // Force-allocate space for a new string.
-  PooledString allocate(std::string_view str, AddNullTerminator terminator);
+  // Will enforce
+  PooledString allocate(QStringView str, AddNullTerminator terminator);
 
   static_assert(MIN_PAGE_SIZE <= MAX_PAGE_SIZE, "PAGE_SIZE must fit in uint16_t");
   std::vector<Page> _pages = {};
   // Sort identifiers by string_view so that we can have cheap heterogenous comparisons with string_view
   PooledStringSet _identifiers = {};
 };
-} // namespace pepp::tc::alloc
+} // namespace pepp::tc::support

@@ -14,9 +14,9 @@ void MicroRunTask::setErrName(std::string fname) { _errName = fname; }
 
 void MicroRunTask::run() {
   using namespace Qt::StringLiterals;
-  using uarch1 = pepp::ucode::Pep9ByteBus;
-  using uarch2 = pepp::ucode::Pep9WordBus;
-  using regs = pepp::ucode::Pep9Registers;
+  using uarch1 = pepp::tc::arch::Pep9ByteBus;
+  using uarch2 = pepp::tc::arch::Pep9WordBus;
+  using regs = pepp::tc::arch::Pep9Registers;
 
   sim::api2::device::ID id = 0;
   auto nextID = [&id]() { return id++; };
@@ -54,8 +54,8 @@ void MicroRunTask::run() {
     auto cpu = targets::pep9::mc2::CPUByteBus(desc_cpu, nextID);
     cpu.setTarget(&mem, nullptr);
     cpu.setConstantRegisters();
-    auto code_asm = pepp::ucode::parse<uarch1, regs>(source_text);
-    auto test_asm = pepp::ucode::parse<uarch1, regs>(unit_test_text);
+    auto code_asm = pepp::tc::parse::MicroParser<uarch1, regs>(source_text).parse();
+    auto test_asm = pepp::tc::parse::MicroParser<uarch1, regs>(unit_test_text).parse();
     if (!code_asm.errors.empty()) {
       std::cerr << "Assembly failed, check error log" << std::endl;
       errors.append("Source assembly failed with errors:");
@@ -65,8 +65,8 @@ void MicroRunTask::run() {
       errors.append("Test assembly failed with errors:");
       for (auto const &[line, message] : test_asm.errors) errors.append(u"%1: %2"_s.arg(line).arg(message.trimmed()));
     } else {
-      auto mc = pepp::ucode::microcodeFor<uarch1, regs>(code_asm);
-      auto test = pepp::ucode::tests<uarch1, regs>(test_asm);
+      auto mc = pepp::tc::parse::microcodeFor<uarch1, regs>(code_asm);
+      auto test = pepp::tc::parse::tests<uarch1, regs>(test_asm);
       cpu.setMicrocode(std::move(mc));
       cpu.applyPreconditions(test.pre);
       for (int cycle = 1; cpu.status() != targets::pep9::mc2::CPUByteBus::Status::Halted;) cpu.clock(cycle++);
@@ -86,8 +86,8 @@ void MicroRunTask::run() {
     auto cpu = targets::pep9::mc2::CPUWordBus(desc_cpu, nextID);
     cpu.setTarget(&mem, nullptr);
     cpu.setConstantRegisters();
-    auto code_asm = pepp::ucode::parse<uarch2, regs>(source_text);
-    auto test_asm = pepp::ucode::parse<uarch2, regs>(unit_test_text);
+    auto code_asm = pepp::tc::parse::MicroParser<uarch2, regs>(source_text).parse();
+    auto test_asm = pepp::tc::parse::MicroParser<uarch2, regs>(unit_test_text).parse();
     if (!code_asm.errors.empty()) {
       std::cerr << "Assembly failed, check error log" << std::endl;
       errors.append("Source assembly failed with errors:");
@@ -97,8 +97,8 @@ void MicroRunTask::run() {
       errors.append("Test assembly failed with errors:");
       for (auto const &[line, message] : test_asm.errors) errors.append(u"%1: %2"_s.arg(line).arg(message.trimmed()));
     } else {
-      auto mc = pepp::ucode::microcodeFor<uarch2, regs>(code_asm);
-      auto test = pepp::ucode::tests<uarch2, regs>(test_asm);
+      auto mc = pepp::tc::parse::microcodeFor<uarch2, regs>(code_asm);
+      auto test = pepp::tc::parse::tests<uarch2, regs>(test_asm);
       cpu.setMicrocode(std::move(mc));
       cpu.applyPreconditions(test.pre);
       for (int cycle = 1; cpu.status() != targets::pep9::mc2::CPUWordBus::Status::Halted;) cpu.clock(cycle++);
