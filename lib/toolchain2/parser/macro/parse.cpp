@@ -18,18 +18,11 @@
 #include "./parse.hpp"
 #include <tuple>
 
-// This is a hack to get around QT using keywords such as emit.
-#undef emit
+#include <QRegularExpression>
 
-#include "antlr4-runtime.h"
-
-#include "detail/MacroLexer.h"
-#include "detail/MacroLexerErrorListener.h"
-#include "detail/MacroParser.h"
-
-using namespace antlr4;
-using namespace macro;
-using namespace macro::detail;
+//
+static const QRegularExpression macrodecl =
+    QRegularExpression(R"(^[ \t]*@([a-zA-Z][a-zA-Z0-9_]*)[ \t]+([0-9]|1[0-6])[ \t]*$)");
 
 std::tuple<bool, QString, quint8> macro::analyze_macro_definition(QString macro_text) {
   /*
@@ -54,25 +47,15 @@ std::tuple<bool, QString, quint8> macro::analyze_macro_definition(QString macro_
    * @deci 2 ;My comment
    *
    */
-  // Append a newline to ensure that our find operation always succeds.
-  auto as_std = macro_text.toUtf8().toStdString() + "\n";
-  // Include the newline in the text we pass to the lexer to make our grammar simpler.
-  std::string text = as_std.substr(0, as_std.find("\n") + 1);
-  ANTLRInputStream input(text);
-  MacroLexer lexer(&input);
-  // Remove listener that writes to stderr.
-  lexer.removeErrorListeners();
-  MacroLexerErrorListener listener{};
-  lexer.addErrorListener(&listener);
 
-  CommonTokenStream tokens(&lexer);
-  MacroParser parser(&tokens);
-  auto *tree = parser.decl();
-  if (listener.hadError()) return {false, QString(), 0};
-  // Strip ampersand to be left with macro name as identifier.
-  auto name = QString::fromStdString(tree->AT_IDENTIFIER()->getText()).replace("@", "");
-  bool arg_convert = true;
-  auto arg_count = QString ::fromStdString(tree->UNSIGNED_DECIMAL()->getText()).toInt(&arg_convert, 10);
+  QStringView first_line;
+  if (macro_text.indexOf("\n") == -1) first_line = macro_text;
+  else first_line = QStringView(macro_text).left(macro_text.indexOf("\n"));
+  auto match = macrodecl.matchView(first_line);
 
-  return {arg_convert, name.toUpper(), arg_count};
+  if (!match.hasMatch()) return {false, QString(), 0};
+  auto name = match.captured(1).toUpper();
+  bool success = false;
+  auto arg_count = match.captured(2).toInt(&success);
+  return {success, name.toUpper(), arg_count};
 }
