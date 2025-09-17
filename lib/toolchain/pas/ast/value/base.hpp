@@ -32,8 +32,7 @@ public:
   virtual bool isWide() const = 0;       // Does the argument fit in a quint64?
   virtual bool isText() const = 0;       // Is the argument ASCII or UTF-8 text?
   virtual bool isIdentifier() const = 0; // Is the argument an unquoted string that is not a symbol?
-  virtual bool isSigned() const = 0;     // If read as a number, should the value be
-                                         // stored in a signed typed
+  virtual bool isSigned() const = 0;     // If read as a number, should the value be stored in a signed typed
   virtual QSharedPointer<Base> clone() const = 0;
   virtual void value(bits::span<quint8> dest, bits::Order destEndian = bits::Order::BigEndian) const = 0;
   // Size and requiredBytes may mismatch if size<8 and arg is bigger than
