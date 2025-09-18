@@ -4,7 +4,6 @@
 #include "enums/isa/pep10.hpp"
 #include "help/builtins/registry.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
-#include "toolchain/macro/parse.hpp"
 #include "toolchain/pas/ast/generic/attr_keeepalive.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pep9.hpp"
