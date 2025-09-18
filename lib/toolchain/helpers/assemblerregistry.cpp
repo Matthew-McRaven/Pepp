@@ -66,7 +66,7 @@ template <typename ISA> QString formatL(QVariant assembled) {
     qWarning("Unexpected variant type");
     return "";
   }
-  auto node = assembled.value<QSharedPointer<pas::ast::Node>>();
+  auto node = assembled.value<QSharedPointer<const pas::ast::Node>>();
   auto listing = pas::ops::pepp::formatListing<ISA>(*node);
   return listing.join("\n");
 }
