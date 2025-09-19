@@ -6,7 +6,7 @@ FavoriteFigureModel::FavoriteFigureModel(QObject *parent) : QAbstractListModel(p
   _registry = helpers::builtins_registry(false);
   auto _6e = helpers::book(6, &*_registry);
   static const std::vector<std::pair<const char *, const char *>> figs = {
-      {"04", "20"}, {"04", "24"}, {"04", "26"}, {"04", "27"}};
+      {"05", "03"}, {"05", "06"}, {"05", "07"}, {"05", "10"}};
   for (const auto &[ch, fig] : figs) {
     auto f = _6e->findFigure(QString::fromLatin1(ch), QString::fromLatin1(fig));
     if (f) _figures.append(f);
