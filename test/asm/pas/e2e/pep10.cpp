@@ -46,7 +46,7 @@ void loadBookMacros(QSharedPointer<const builtins::Book> book, QSharedPointer<ma
 }
 
 void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
-  static const QStringList nonunary = {"DECI", "CHARI", "CHARO", "STRO", "DECO", "PRINTF"};
+  static const QStringList nonunary = {"DECI", "CHARI", "CHARO", "STRO", "DECO", "PRINTF", "HEXO"};
   for (auto &macro : nonunary)
     registry->registerMacro(macro::types::Core,
                             QSharedPointer<macro::Declaration>::create(macro, 2, "LDWA 0,i\nSCALL $1, $2", "pep/10"));

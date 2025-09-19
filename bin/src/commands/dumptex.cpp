@@ -21,6 +21,15 @@
 
 DumpTexTask::DumpTexTask(QString dir, QObject *parent) : Task(parent), _dir(dir) {}
 
+// Stupid hack so that trimmed does not clobber leading spacing...
+QString rstrip(const QString &str, const char *skip = " \r\n\t") {
+  int n = str.size() - 1;
+  for (; n >= 0; --n) {
+    if (0 == strchr(skip, str.at(n).toLatin1())) return str.left(n + 1);
+  }
+  return "";
+}
+
 void DumpTexTask::run() {
   using namespace Qt::StringLiterals;
 
@@ -37,7 +46,7 @@ void DumpTexTask::run() {
     for (const auto &element : figure->typesafeFragments()) {
       if (element->exportPath.isEmpty()) continue;
       auto disk_path = base_output_path.absoluteFilePath(element->exportPath);
-      auto contents = element->contents().trimmed() + "\n";
+      auto contents = rstrip(element->contents()) + "\n";
       QFile file(disk_path);
       if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << "Failed to open file for writing: " << disk_path;

@@ -145,7 +145,7 @@ QString selectLines(QString &input, int startLine, int endLine) {
   auto startIdx = absolute_index(lineStarts, startLine, 0),
        endIdx = absolute_index(lineStarts, endLine, input.size() - 1);
   if (endIdx < startIdx) std::swap(startIdx, endIdx);
-  return input.mid(startIdx, endIdx);
+  return input.mid(lineStarts[startIdx], lineStarts[endIdx]);
 }
 
 QString loadFromFile(QString path) { return read(path); }
