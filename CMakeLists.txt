@@ -159,6 +159,18 @@ if (ONLY STREQUAL "BUILD")
     # Assuming you're targeting multiple platforms, you might want to conditionally set the generator
     if (WIN32)
         set(CPACK_GENERATOR "IFW") # or "ZIP" for a simple zip archive
+        FetchContent_Declare(vcredist_x64
+          URL "https://aka.ms/vs/17/release/VC_redist.x64.exe"
+          DOWNLOAD_NO_EXTRACT TRUE
+          DOWNLOAD_NAME "VC_redist.x64.exe"
+        )
+        FetchContent_Populate(vcredist_x64)
+        set(VCREDIST14_X64_EXE "${vcredist_x64_SOURCE_DIR}/VC_redist.x64.exe")
+        if(NOT EXISTS "${VCREDIST14_X64_EXE}")
+            message(FATAL_ERROR "Failed to fetch VC_redist.x64.exe: ${VCREDIST14_X64_EXE}")
+        endif()
+        # Put the redistributable EXEs into the payload of a component named "vcruntime"
+        install(FILES "${VCREDIST14_X64_EXE}" DESTINATION "vcredist" COMPONENT vcruntime)
 
         # QT IFW could be installed at a couple of locations. Try and detect recent versions first at any location.
         set(VERSIONS "4.10;4.9;4.8;4.7;4.6")
