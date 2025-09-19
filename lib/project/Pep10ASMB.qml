@@ -91,8 +91,16 @@ FocusScope {
         // Without this workaround the text editor will not receive focus on subsequent key presses.
         if (PlatformDetector.isWASM)
             batchInput.forceFocusEditor();
-        // Delay giving focus to editor until the next frame to ensure that ou
+        // Delay giving focus to editor until the next frame. Any editor that becomes visible without being focused will be incorrectly painted
         Qt.callLater(() => userAsmEdit.forceEditorFocus());
+        // Cover the "average" case where editors are focused when switching modes.
+        wrapper.modeChanged.connect(() => {
+            const os = sourceSelector.currentIndex === 1;
+            if (mode === "editor")
+                Qt.callLater(() => os ? osAsmEdit.forceEditorFocus() : userAsmEdit.forceEditorFocus());
+            else if (mode === "debugger")
+                Qt.callLater(() => os ? osList.forceEditorFocus() : userList.forceEditorFocus());
+        });
     }
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
