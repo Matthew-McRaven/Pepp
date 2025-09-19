@@ -158,8 +158,13 @@ FocusScope {
     }
 
     function onSwitchTo(os) {
-        sourceSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
-        listingSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
+        if (wrapper.project.ignoreOS) {
+            sourceSelector.currentIndex = 0;
+            listingSelector.currentIndex = 0;
+        } else {
+            sourceSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
+            listingSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
+        }
     }
 
     function displayErrors() {
@@ -239,6 +244,7 @@ FocusScope {
                     onActivated: function (new_index) {
                         listingSelector.currentIndex = Qt.binding(() => new_index);
                     }
+                    visible: !wrapper.project.ignoreOS
                 }
                 StackLayout {
                     currentIndex: sourceSelector.currentIndex
@@ -280,7 +286,7 @@ FocusScope {
                     id: listingSelector
                     model: ["User", "OS"]
                     Layout.fillWidth: true
-                    visible: !sourceSelector.visible
+                    visible: !sourceSelector.visible && !wrapper.project.ignoreOS
                     onActivated: function (new_index) {
                         sourceSelector.currentIndex = Qt.binding(() => new_index);
                     }

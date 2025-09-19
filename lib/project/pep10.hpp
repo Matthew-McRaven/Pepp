@@ -82,6 +82,9 @@ public:
   Q_INVOKABLE QString charOut() const;
   virtual bool isEmpty() const;
 
+  virtual bool ignoreOS() const;
+  virtual bool pcInOS() const;
+
   pepp::debug::types::TypeInfo *type_info() override;
   pepp::debug::types::TypeInfo const *type_info() const override;
   uint8_t read_mem_u8(uint32_t address) const override;
@@ -188,6 +191,7 @@ class Pep_ASMB final : public Pep_ISA {
   Q_PROPERTY(StaticSymbolModel *staticSymbolModel READ staticSymbolModel CONSTANT)
   Q_PROPERTY(pepp::debug::WatchExpressionEditor *watchExpressions READ watchExpressions CONSTANT)
   Q_PROPERTY(ScopedLines2Addresses *lines2addr READ line2addr CONSTANT)
+  Q_PROPERTY(bool ignoreOS READ ignoreOS CONSTANT)
   QML_UNCREATABLE("Can only be created through Project::")
   using Action = ScintillaAsmEditBase::Action;
 
@@ -203,6 +207,7 @@ public:
   Q_INVOKABLE void setOSAsmText(const QString &osAsmText);
   Q_INVOKABLE QString osList() const;
   Q_INVOKABLE const QList<Error *> errors() const;
+  bool ignoreOS() const override;
   bool isEmpty() const override;
   Q_INVOKABLE StaticSymbolModel *staticSymbolModel() const;
   Q_INVOKABLE pepp::debug::WatchExpressionEditor *watchExpressions() const;
