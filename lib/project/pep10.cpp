@@ -420,6 +420,29 @@ QString Pep_ISA::charOut() const {
 
 bool Pep_ISA::isEmpty() const { return _objectCodeText.isEmpty(); }
 
+bool Pep_ISA::ignoreOS() const { return true; }
+
+bool Pep_ISA::pcInOS() const {
+  using enum pepp::Architecture;
+  quint16 pc;
+  // Update cpu-dependent fields in memory before triggering a GUI update.
+  switch (_env.arch) {
+  case PEP9: {
+    auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
+    break;
+  }
+  case PEP10: {
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
+    break;
+  }
+  default: throw std::logic_error("Unimplemented");
+  }
+  // TODO: total hack; this should be tied to ELF info but I am short on time.
+  return pc > 0x8000;
+}
+
 pepp::debug::types::TypeInfo *Pep_ISA::type_info() { return &_typeInfo; }
 
 pepp::debug::types::TypeInfo const *Pep_ISA::type_info() const { return &_typeInfo; }
@@ -567,6 +590,7 @@ bool Pep_ISA::onDebuggingStart() {
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
+  if (pcInOS() && ignoreOS()) emit deferredExecution([this]() { return !pcInOS(); });
   return true;
 }
 
@@ -596,10 +620,17 @@ bool Pep_ISA::onISARemoveAllBreakpoints() {
   return true;
 }
 
-template <typename CPU, typename ISA> auto generateStepCondition(targets::isa::System *system, qint16 offset) {
+template <typename CPU, typename ISA>
+auto generateStepCondition(targets::isa::System *system, qint16 offset, bool ignoreOS) {
   auto cpu = static_cast<CPU *>(system->cpu());
   auto targetDepth = std::clamp<quint32>(cpu->depth() + (qint32)offset, 0, 0xffff);
-  auto ret = [cpu, targetDepth]() { return cpu->depth() <= targetDepth; };
+  auto ret = [cpu, targetDepth, ignoreOS]() {
+    quint16 pc = 0;
+    targets::isa::readRegister<ISA>(cpu->regs(), ISA::Register::PC, pc, gs);
+    // TODO: hack - this should be tied to ELF info but I am short on time.
+    // True stops executing. Add a mask that prevents us from stopping (true) if we are in OS space and ignoring OS.
+    return cpu->depth() <= targetDepth && (!ignoreOS || pc < 0x8000);
+  };
   return std::function<bool(void)>(ret);
 }
 
@@ -813,10 +844,12 @@ bool Pep_ISA::stepDepthHelper(qint16 offset) {
   emit allowedStepsChanged();
   switch (_system->architecture()) {
   case PEP9:
-    emit deferredExecution(generateStepCondition<targets::pep9::isa::CPU, isa::Pep9>(&*_system, offset));
+    emit deferredExecution(
+        generateStepCondition<targets::pep9::isa::CPU, isa::Pep9>(&*_system, offset, this->ignoreOS()));
     break;
   case PEP10:
-    emit deferredExecution(generateStepCondition<targets::pep10::isa::CPU, isa::Pep10>(&*_system, offset));
+    emit deferredExecution(
+        generateStepCondition<targets::pep10::isa::CPU, isa::Pep10>(&*_system, offset, this->ignoreOS()));
     break;
   default: throw std::logic_error("Unimplemented architecture");
   }
@@ -904,6 +937,8 @@ const QList<Error *> Pep_ASMB::errors() const {
   for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
   return ret;
 }
+
+bool Pep_ASMB::ignoreOS() const { return _env.level != pepp::Abstraction::OS4; }
 
 bool Pep_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 

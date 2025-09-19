@@ -91,8 +91,16 @@ FocusScope {
         // Without this workaround the text editor will not receive focus on subsequent key presses.
         if (PlatformDetector.isWASM)
             batchInput.forceFocusEditor();
-        // Delay giving focus to editor until the next frame to ensure that ou
+        // Delay giving focus to editor until the next frame. Any editor that becomes visible without being focused will be incorrectly painted
         Qt.callLater(() => userAsmEdit.forceEditorFocus());
+        // Cover the "average" case where editors are focused when switching modes.
+        wrapper.modeChanged.connect(() => {
+            const os = sourceSelector.currentIndex === 1;
+            if (mode === "editor")
+                Qt.callLater(() => os ? osAsmEdit.forceEditorFocus() : userAsmEdit.forceEditorFocus());
+            else if (mode === "debugger")
+                Qt.callLater(() => os ? osList.forceEditorFocus() : userList.forceEditorFocus());
+        });
     }
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
@@ -158,8 +166,13 @@ FocusScope {
     }
 
     function onSwitchTo(os) {
-        sourceSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
-        listingSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
+        if (wrapper.project.ignoreOS) {
+            sourceSelector.currentIndex = 0;
+            listingSelector.currentIndex = 0;
+        } else {
+            sourceSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
+            listingSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
+        }
     }
 
     function displayErrors() {
@@ -239,6 +252,7 @@ FocusScope {
                     onActivated: function (new_index) {
                         listingSelector.currentIndex = Qt.binding(() => new_index);
                     }
+                    visible: !wrapper.project.ignoreOS
                 }
                 StackLayout {
                     currentIndex: sourceSelector.currentIndex
@@ -280,7 +294,7 @@ FocusScope {
                     id: listingSelector
                     model: ["User", "OS"]
                     Layout.fillWidth: true
-                    visible: !sourceSelector.visible
+                    visible: !sourceSelector.visible && !wrapper.project.ignoreOS
                     onActivated: function (new_index) {
                         sourceSelector.currentIndex = Qt.binding(() => new_index);
                     }

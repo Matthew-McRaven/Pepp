@@ -395,7 +395,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Develop and debug assembly language programs in bare metal mode.",
               .arch = a,
               .level = Abstraction::ASMB3,
-              .state = CompletionState::PARTIAL,
+              .state = CompletionState::COMPLETE,
               .edition = 6});
   vec.append({.name = "Pep/10",
               .levelText = "Asmb5",
