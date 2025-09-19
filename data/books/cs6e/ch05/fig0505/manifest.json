@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "05:05",
+  "arch": "pep10",
+  "abstraction": "ASMB3",
+  "default_os": "os:pep10baremetal",
+  "description": "The listing of an assembly language program to add two numbers and output their sum. It is the assembly-language version of Figure 4.26.",
+  "tests": [
+    "io0"
+  ],
+  "fragments": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "export": "ch-Assembly-Language/fig{ch}{fig}.pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}

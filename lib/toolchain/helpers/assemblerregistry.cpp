@@ -1,6 +1,7 @@
 #include "assemblerregistry.hpp"
 #include "settings/settings.hpp"
 #include "toolchain/helpers/asmb.hpp"
+#include "toolchain/pas/ast/generic/attr_keeepalive.hpp"
 #include "toolchain/pas/operations/pepp/string.hpp"
 
 struct PepAssembler : public builtins::Registry::Assembler {
@@ -13,10 +14,20 @@ struct PepAssembler : public builtins::Registry::Assembler {
       qWarning("Unsupported architecture for assembler");
       return {};
     }
+    // Arbitrary, small, non-zero value.
+    if (os.length() <= 5) {
+      qWarning("OS looks empty");
+      return {};
+    }
     helpers::AsmHelper assembler(macros, os, _arch);
     assembler.setUserText(user);
     if (!assembler.assemble()) {
       qWarning("Failed to assemble!!");
+      return {};
+    }
+    auto _errors = assembler.errors();
+    if (!_errors.isEmpty()) {
+      qWarning("Assembler errors: %s", qPrintable(_errors.join("\n")));
       return {};
     }
     auto root = assembler.userRoot();

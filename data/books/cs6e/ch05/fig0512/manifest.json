@@ -5,7 +5,7 @@
   "arch": "pep10",
   "abstraction": "ASMB5",
   "default_os": "os:pep10os",
-  "description": "A program identical to that of Figure 5.11 but with the <code>STRO</code> instruction.",
+  "description": "A program in full OS mode to output Hi.",
   "tests": [
     "io0"
   ],
@@ -22,6 +22,7 @@
     {
       "name": "pepl",
       "format": "pepl",
+      "export": "ch-Assembly-Language/fig{ch}{fig}.pepl",
       "from": {
         "element": "pep"
       }

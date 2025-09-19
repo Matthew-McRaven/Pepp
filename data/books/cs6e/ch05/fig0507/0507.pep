@@ -1,12 +1,8 @@
-;File: fig0507.pep
-;Computer Systems, Fifth edition
-;Figure 5.7
-;
-         LDWA    0x000F,d    ;A <- first number
-         ADDA    0x0011,d    ;Add the two numbers
-         ORA     0x0013,d    ;Convert sum to character
-         STBA    0xFFFE,d    ;Output the character
-         STBA    0xFFFF,d    ;Store byte to power off port
-         .WORD   5           ;Decimal 5
-         .WORD   3           ;Decimal 3
-         .WORD   0x0030      ;Mask for ASCII char
+         LDBA    charIn,d    ;Load first char from input port
+         STBA    char_1,d    ;Store first char to char_1
+         LDBA    charIn,d    ;Load from input port
+         STBA    charOut,d   ;Store to output port
+         LDBA    char_1,d    ;Load first char from char_1
+         STBA    charOut,d   ;Store first char to output port
+         STBA    pwrOff,d    ;Store to power off port
+char_1:  .BLOCK  1           ;One byte storage for first char

@@ -5,7 +5,7 @@
   "arch": "pep10",
   "abstraction": "ASMB5",
   "default_os": "os:pep10os",
-  "description": "A nonsense program that illustrates the underlying von Neumann nature of the machine.",
+  "description": "A program to input the width and height of a rectangle and compute its perimeter.",
   "tests": [
     "io0"
   ],
@@ -24,6 +24,22 @@
       "format": "pepl",
       "from": {
         "element": "pep"
+      }
+    },
+    {
+      "format": "pepl",
+      "export": "ch-Assembly-Language/fig{ch}{fig}_1.pepl",
+      "from": {
+        "element": "pep",
+        "lines": [0, 25]
+      }
+    },
+    {
+      "format": "pepl",
+      "export": "ch-Assembly-Language/fig{ch}{fig}_2.pepl",
+      "from": {
+        "element": "pep",
+        "lines": [25, -1]
       }
     },
     {

@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "05:20",
+  "arch": "pep10",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep10os",
+  "description": "The source code of a program with system call macros that is equivalent to the program in Figure 5.16",
+  "tests": [
+    "io0"
+  ],
+  "fragments": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "export": "ch-Assembly-Language/fig{ch}{fig}.pep",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "format": "pepl",
+      "export": "ch-Assembly-Language/fig{ch}{fig}_1.pepl",
+      "from": {
+        "element": "pep",
+        "lines": [0, 32]
+      }
+    },
+    {
+      "format": "pepl",
+      "export": "ch-Assembly-Language/fig{ch}{fig}_2.pepl",
+      "from": {
+        "element": "pep",
+        "lines": [32, -1]
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}

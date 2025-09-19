@@ -1,2 +1,0 @@
-Every time the OS (DECO) moves around, the output changes.
-Every time opcodes are changed, the output also changes.

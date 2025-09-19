@@ -5,7 +5,7 @@
   "arch": "pep10",
   "abstraction": "ASMB3",
   "default_os": "os:pep10baremetal",
-  "description": "A program to output <code>Hi</code> using immediate addressing.",
+  "description": "A program to output Hi using immediate addressing.",
   "tests": [
     "io0"
   ],
@@ -22,6 +22,7 @@
     {
       "name": "pepl",
       "format": "pepl",
+      "export": "ch-Assembly-Language/fig{ch}{fig}.pepl",
       "from": {
         "element": "pep"
       }

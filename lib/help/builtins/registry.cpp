@@ -141,11 +141,12 @@ int absolute_index(QList<int> &list, int index, int _default = 0) {
 
 QString selectLines(QString &input, int startLine, int endLine) {
   QList<int> lineStarts = {0};
-  for (int line = 0, pos = -1; (pos = input.indexOf('\n', pos + 1)) != -1; ++line) lineStarts.append(pos + 1);
+  for (int pos = -1; (pos = input.indexOf('\n', pos + 1)) != -1;) lineStarts.append(pos + 1);
+  lineStarts.append(input.size() + 1);
   auto startIdx = absolute_index(lineStarts, startLine, 0),
        endIdx = absolute_index(lineStarts, endLine, input.size() - 1);
   if (endIdx < startIdx) std::swap(startIdx, endIdx);
-  return input.mid(startIdx, endIdx);
+  return input.mid(lineStarts[startIdx], lineStarts[endIdx] - lineStarts[startIdx]);
 }
 
 QString loadFromFile(QString path) { return read(path); }

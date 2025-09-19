@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "05:08",
+  "arch": "pep10",
+  "abstraction": "ASMB3",
+  "default_os": "os:pep10baremetal",
+  "description": "An assembly language program with macros to input two characters and output them in reverse order.",
+  "tests": [
+    "io0"
+  ],
+  "fragments": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "export": "ch-Assembly-Language/fig{ch}{fig}.pep",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "export": "ch-Assembly-Language/fig{ch}{fig}.pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}
