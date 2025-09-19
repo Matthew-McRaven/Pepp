@@ -215,6 +215,9 @@ ApplicationWindow {
                 id: delegateRepeater
                 model: pm
                 delegate: ColumnLayout {
+                    // syncEditors depended on delegateRepeater containing a list of loaders.
+                    // Adding this property fulfills that API requirements.
+                    property var item: projectLoader.item
                     Loader {
                         id: projectLoader
                         Layout.fillHeight: true
