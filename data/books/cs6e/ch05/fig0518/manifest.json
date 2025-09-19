@@ -1,11 +1,11 @@
 {
   "version": 2,
   "type": "figure",
-  "name": "05:10",
+  "name": "05:18",
   "arch": "pep10",
-  "abstraction": "ASMB3",
-  "default_os": "os:pep10baremetal",
-  "description": "A program to output Hi using immediate addressing.",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep10os",
+  "description": "The HEXO system call.",
   "tests": [
     "io0"
   ],

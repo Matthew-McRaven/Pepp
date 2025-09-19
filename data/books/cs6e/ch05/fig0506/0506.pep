@@ -1,12 +1,11 @@
-;File: fig0506.pep
-;Computer Systems, Fifth edition
-;Figure 5.6
-;
-         LDBA    0xFFFD,d    ;Input first character
-         STBA    0x0015,d    ;Store first character
-         LDBA    0xFFFD,d    ;Input second character
-         STBA    0xFFFE,d    ;Output second character
-         LDBA    0x0015,d    ;Load first character
-         STBA    0xFFFE,d    ;Output first character
-         STBA    0xFFFF,d    ;Store byte to power off port
-         .BLOCK  1           ;Storage for first character
+         LDBA    charIn,d    ;Input first digit
+         STWA    num,d       ;Store to num
+         LDBA    charIn,d    ;Input second digit
+         ADDA    num,d       ;Add num to second digit
+         ANDA    andMask,d   ;Zero out the left nybble
+         ORA     orMask,d    ;Convert sum to ASCII character
+         STBA    charOut,d   ;Output sum
+         STBA    pwrOff,d    ;Shut down
+num:     .BLOCK  2
+andMask: .WORD   0x000F
+orMask:  .WORD   0x0030

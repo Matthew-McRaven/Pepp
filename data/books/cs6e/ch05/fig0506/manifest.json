@@ -5,7 +5,7 @@
   "arch": "pep10",
   "abstraction": "ASMB3",
   "default_os": "os:pep10baremetal",
-  "description": "An assembly language program to input two characters and output them in reverse order. It is the assembly language version of Figure 4.35.",
+  "description": "An assembly language program with symbols to input two numbers and output their sum.",
   "tests": [
     "io0"
   ],
@@ -22,6 +22,7 @@
     {
       "name": "pepl",
       "format": "pepl",
+      "export": "ch-Assembly-Language/fig{ch}{fig}.pepl",
       "from": {
         "element": "pep"
       }
