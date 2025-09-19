@@ -193,7 +193,7 @@ QtObject {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
                 window.syncEditors();
                 project.onAssembleThenFormat();
-                project.onOverwriteEditors();
+                project.overwriteEditors();
             }
             text: qsTr("&Format Source Code")
             // Use blank icon to force menu items to line up.
