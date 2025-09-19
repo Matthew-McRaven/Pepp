@@ -209,22 +209,38 @@ if (ONLY STREQUAL "BUILD")
             message("Using installer script: ${INSTALLER_SCRIPT}")
         endif()
 
-
         include(CPackIFW)
-        cpack_add_component(Pepp
-                DISPLAY_NAME Pepp
+        cpack_add_component(vcruntime
+                DISPLAY_NAME "Microsoft Visual C++ 2015–2022 Redistributable"
+                NAME vcruntime
                 REQUIRED
         )
+        cpack_add_component(Pepp
+                DISPLAY_NAME "Pepp IDE"
+                NAME "Pepp"
+                REQUIRED
+        )
+
         # For single component projects, must set CPACK_COMPONENTS_ALL per this issue, else SCRIPT is unset
         # https://gitlab.kitware.com/cmake/cmake/-/issues/22528
-        set (CPACK_COMPONENTS_ALL Pepp)
+        set (CPACK_COMPONENTS_ALL Pepp vcruntime)
+        cpack_ifw_configure_component(vcruntime
+                FORCED_INSTALLATION
+                REQUIRES_ADMIN_RIGHTS
+                NAME         "vcruntime"
+                DISPLAY_NAME "Microsoft Visual C++ 2015–2022 Redistributable"
+                SCRIPT       "${CMAKE_CURRENT_LIST_DIR}/config/installer/vcredist.qs"
+        )
         cpack_ifw_configure_component(Pepp
                 FORCED_INSTALLATION
                 REQUIRES_ADMIN_RIGHTS
-                NAME "Pepp"
-                LICENSES "GPL-3.0" "${PROJECT_SOURCE_DIR}/data/about/dep/pepp-gpl.txt"
+                NAME         "pepp"
+                DISPLAY_NAME "Pepp IDE"
+                LICENSES     "GPL-3.0" "${PROJECT_SOURCE_DIR}/data/about/dep/pepp-gpl.txt"
                 SCRIPT       "${INSTALLER_SCRIPT}"
+                DEPENDS      "vcruntime"
         )
+
 
 
     elseif (APPLE)
