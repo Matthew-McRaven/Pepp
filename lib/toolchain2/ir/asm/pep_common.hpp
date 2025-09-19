@@ -25,6 +25,7 @@ struct LinearIR {
 struct EmptyLine : public LinearIR {};
 
 struct CommentLine : public LinearIR {
+  CommentLine(attr::Comment c) : comment(std::move(c)) {}
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::Comment comment;
@@ -37,12 +38,15 @@ struct AddressableLine : public LinearIR {
 };
 
 struct MonadicInstruction : public AddressableLine {
+  MonadicInstruction(attr::Pep10Mnemonic m) : mnemonic(m) {}
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::Pep10Mnemonic mnemonic;
 };
 
 struct DyadicInstruction : public AddressableLine {
+  DyadicInstruction(attr::Pep10Mnemonic m, attr::Pep10AddrMode am, attr::Argument arg)
+      : mnemonic(m), addr_mode(am), argument(arg) {}
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::Pep10Mnemonic mnemonic;

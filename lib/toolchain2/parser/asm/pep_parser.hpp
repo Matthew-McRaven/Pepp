@@ -15,6 +15,8 @@ struct PepParser {
 
 private:
   std::shared_ptr<pas::ast::value::Base> argument();
+  std::shared_ptr<ir::LinearIR> instruction();
+  std::shared_ptr<ir::LinearIR> dot_command();
 
   std::shared_ptr<support::StringPool> _pool;
   std::shared_ptr<lex::PepLexer> _lexer;
