@@ -159,6 +159,18 @@ if (ONLY STREQUAL "BUILD")
     # Assuming you're targeting multiple platforms, you might want to conditionally set the generator
     if (WIN32)
         set(CPACK_GENERATOR "IFW") # or "ZIP" for a simple zip archive
+        FetchContent_Declare(vcredist_x64
+          URL "https://aka.ms/vs/17/release/VC_redist.x64.exe"
+          DOWNLOAD_NO_EXTRACT TRUE
+          DOWNLOAD_NAME "VC_redist.x64.exe"
+        )
+        FetchContent_Populate(vcredist_x64)
+        set(VCREDIST14_X64_EXE "${vcredist_x64_SOURCE_DIR}/VC_redist.x64.exe")
+        if(NOT EXISTS "${VCREDIST14_X64_EXE}")
+            message(FATAL_ERROR "Failed to fetch VC_redist.x64.exe: ${VCREDIST14_X64_EXE}")
+        endif()
+        # Put the redistributable EXEs into the payload of a component named "vcruntime"
+        install(FILES "${VCREDIST14_X64_EXE}" DESTINATION "vcredist" COMPONENT vcruntime)
 
         # QT IFW could be installed at a couple of locations. Try and detect recent versions first at any location.
         set(VERSIONS "4.10;4.9;4.8;4.7;4.6")
@@ -197,22 +209,38 @@ if (ONLY STREQUAL "BUILD")
             message("Using installer script: ${INSTALLER_SCRIPT}")
         endif()
 
-
         include(CPackIFW)
-        cpack_add_component(Pepp
-                DISPLAY_NAME Pepp
+        cpack_add_component(vcruntime
+                DISPLAY_NAME "Microsoft Visual C++ 2015–2022 Redistributable"
+                NAME vcruntime
                 REQUIRED
         )
+        cpack_add_component(Pepp
+                DISPLAY_NAME "Pepp IDE"
+                NAME "Pepp"
+                REQUIRED
+        )
+
         # For single component projects, must set CPACK_COMPONENTS_ALL per this issue, else SCRIPT is unset
         # https://gitlab.kitware.com/cmake/cmake/-/issues/22528
-        set (CPACK_COMPONENTS_ALL Pepp)
+        set (CPACK_COMPONENTS_ALL Pepp vcruntime)
+        cpack_ifw_configure_component(vcruntime
+                FORCED_INSTALLATION
+                REQUIRES_ADMIN_RIGHTS
+                NAME         "vcruntime"
+                DISPLAY_NAME "Microsoft Visual C++ 2015–2022 Redistributable"
+                SCRIPT       "${CMAKE_CURRENT_LIST_DIR}/config/installer/vcredist.qs"
+        )
         cpack_ifw_configure_component(Pepp
                 FORCED_INSTALLATION
                 REQUIRES_ADMIN_RIGHTS
-                NAME "Pepp"
-                LICENSES "GPL-3.0" "${PROJECT_SOURCE_DIR}/data/about/dep/pepp-gpl.txt"
+                NAME         "pepp"
+                DISPLAY_NAME "Pepp IDE"
+                LICENSES     "GPL-3.0" "${PROJECT_SOURCE_DIR}/data/about/dep/pepp-gpl.txt"
                 SCRIPT       "${INSTALLER_SCRIPT}"
+                DEPENDS      "vcruntime"
         )
+
 
 
     elseif (APPLE)

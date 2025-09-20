@@ -119,13 +119,13 @@ jobs:
       matrix:
         config:
           - { name: "Ubuntu 22.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.15.3", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", artifact_key: "artifact-linux"}
-          - { name: "Ubuntu 22.04; GCC + CodeQL", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.15.3", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", codeql: True, variant: 'debug'}
+          - { name: "Ubuntu 22.04; GCC + CodeQL", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.15.3", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", codeql: True, release_variant: 'debug'}
           - { name: "Ubuntu 22.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.15.3",  compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja" }
           - { name: "Ubuntu 22.04; EMSDK 3.1.70", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.15.3", compiler_launcher: "ccache", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.9.1/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
           # See: https://bugreports.qt.io/browse/QTBUG-118086
           - { name: "MacOS-15 ARM64", cache_name: 'macos-clang-arm', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-arm", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
           - { name: "MacOS-15 x86-64", cache_name: 'macos-clang-x86', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-x86", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
-          - { name: "Windows Latest; MSVC", cache_name: 'windows-msvc', runs-on: "windows-latest" , compiler_launcher: "ccache", artifact_key: "artifact-windows"}
+          - { name: "Windows Latest; MSVC", cache_name: 'windows-msvc', runs-on: "windows-latest" , compiler_launcher: "ccache", artifact_key: "artifact-windows", debug_variant: 'Release', release_variant: 'Release'}
 
     permissions:
       actions: read
