@@ -37,6 +37,7 @@ private:
   QSharedPointer<ELFIO::elfio> _elf;
   // RET's that are being abused to act like a CALL via a double push.
   QSet<quint16> _callViaRets = {};
+  QMap<size_t, QString> lexErrs = {};
 };
 
 } // namespace helpers

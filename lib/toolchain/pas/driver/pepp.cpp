@@ -21,15 +21,16 @@ pas::driver::ParseResult pas::driver::pepp::detail::antlr4_pep10(const std::stri
   lexer.removeErrorListeners();
   lexer.addErrorListener(&listener);
   ::parse::PeppParser parser(&tokens);
+  parser.removeErrorListeners();
+  parser.addErrorListener(&listener);
   auto *tree = parser.prog();
   ::parse::PeppASTConverter converter(parent);
   auto ast = converter.visit(tree);
   ret.root = std::any_cast<QSharedPointer<pas::ast::Node>>(ast);
-  if (listener.hadError()) {
-    ret.hadError = true;
-    ret.errors.push_back("Partial parse failure");
-    return ret;
-  }
+  auto errs = listener.errors();
+  ret.hadError = !errs.empty();
+  for (const auto &err : errs) ret.errors[err.first] = QString::fromStdString(err.second);
+
   return ret;
 }
 
@@ -47,14 +48,15 @@ pas::driver::ParseResult pas::driver::pepp::detail::antlr4_pep9(const std::strin
   lexer.removeErrorListeners();
   lexer.addErrorListener(&listener);
   ::parse::PeppParser parser(&tokens);
+  parser.removeErrorListeners();
+  parser.addErrorListener(&listener);
   auto *tree = parser.prog();
   ::parse::PeppASTConverter9 converter(parent);
   auto ast = converter.visit(tree);
   ret.root = std::any_cast<QSharedPointer<pas::ast::Node>>(ast);
-  if (listener.hadError()) {
-    ret.hadError = true;
-    ret.errors.push_back("Partial parse failure");
-    return ret;
-  }
+  auto errs = listener.errors();
+  ret.hadError = !errs.empty();
+  for (const auto &err : errs) ret.errors[err.first] = QString::fromStdString(err.second);
+
   return ret;
 }

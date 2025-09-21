@@ -65,8 +65,8 @@ createParser(bool hideEnd) {
     auto errors = ops::generic::CollectErrors();
     ast::apply_recurse(*ret.root, errors);
     ret.hadError |= errors.errors.size() != 0;
-    for (auto &error : errors.errors)
-        ret.errors.push_back(error.second.message);
+    for (auto &error : errors.errors) ret.errors[error.first.value.line] = error.second.message;
+
     return ret;
   };
 }
