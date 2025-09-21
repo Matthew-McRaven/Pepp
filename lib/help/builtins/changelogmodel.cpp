@@ -76,6 +76,7 @@ void ChangelogModel::loadFromDB() {
       while (q.next()) {
         // Unpack SQL values based on query order.
         auto version = versions[q.value(0).toInt()];
+        if (version == nullptr) qFatal("Change references unknown version");
         int type = q.value(1).toInt();
         int priority = q.value(2).toInt();
         QString message = q.value(4).toString();
