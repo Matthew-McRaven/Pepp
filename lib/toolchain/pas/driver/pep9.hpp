@@ -43,6 +43,7 @@ public:
     auto body = source.value<repr::Source>().value;
     auto parser = pas::driver::pepp::createParser<isa::Pep9, ParserTag>(false);
     auto parsed = parser(body, nullptr);
+    for (const auto &[line, err] : parsed.errors.asKeyValueRange()) _errors[line] = err;
     int it = 0;
     auto children = pas::ast::children(*parsed.root);
     for (auto child : children) {
@@ -52,6 +53,9 @@ public:
     return !parsed.hadError;
   }
   Stage toStage() override { return Stage::RegisterExports; }
+  bool hadNonASTErrors() override { return !_errors.empty(); }
+  QMap<size_t, QString> nonASTErrors() override { return _errors; }
+  QMap<size_t, QString> _errors;
 };
 
 class TransformRegisterExports : public driver::Transform<Stage> {

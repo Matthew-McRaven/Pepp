@@ -86,7 +86,7 @@ TEST_CASE("Format Pepp listing", "[scope:asm][kind:unit][arch:pep10]") {
   }));
   DYNAMIC_SECTION("") {
     auto parsed = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(source, nullptr);
-    auto str = parsed.errors.join("\n").toStdString();
+    auto str = QStringList(parsed.errors.values()).join("\n").toStdString();
     REQUIRE_FALSE(parsed.hadError);
     pas::ops::generic::groupSections(*parsed.root, pas::ops::pepp::isAddressable<isa::Pep10>);
     pas::ops::pepp::assignAddresses<isa::Pep10>(*parsed.root);

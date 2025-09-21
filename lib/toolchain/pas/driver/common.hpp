@@ -39,7 +39,7 @@ struct ANTLRParserTag {};
 struct ParseResult {
   bool hadError;
   QSharedPointer<pas::ast::Node> root;
-  QStringList errors;
+  QMap<size_t, QString> errors;
 };
 struct Globals {
   QMap<QString, QSharedPointer<symbol::Entry>> table;
@@ -81,6 +81,8 @@ template <typename stage> class Transform {
 public:
   virtual bool operator()(QSharedPointer<Globals>, QSharedPointer<Target<stage>>) = 0;
   virtual stage toStage() = 0;
+  virtual bool hadNonASTErrors() { return false; }
+  virtual QMap<size_t, QString> nonASTErrors() { return {}; }
 };
 
 template <typename stage> struct Pipeline {
@@ -88,6 +90,7 @@ template <typename stage> struct Pipeline {
   using target_ptr = QSharedPointer<Target<stage>>;
   using transform_list = QList<QSharedPointer<Transform<stage>>>;
   QList<QPair<target_ptr, transform_list>> pipelines;
+  QMap<size_t, QString> lexErrors;
   bool assemble(stage target);
 };
 
@@ -98,10 +101,15 @@ template <typename stage> struct Pipeline {
 template <typename stage> bool Pipeline<stage>::assemble(stage targetStage) {
   for (auto &[target, ops] : this->pipelines) {
     for (auto &op : ops) {
-      // Must explicitly deref op, or will attempt to call operator() on
-      // QSharedPointer<>.
+      // Must explicitly deref op, or will attempt to call operator() on QSharedPointer<>.
       if (op->operator()(globals, target)) target->stage = op->toStage();
-      else return false;
+      else {
+        if (op->hadNonASTErrors()) {
+          const auto kvs = op->nonASTErrors();
+          for (const auto &[line, err] : kvs.asKeyValueRange()) lexErrors[line] = err;
+        }
+        return false;
+      }
       if ((int)target->stage > (int)targetStage) break;
     }
   }

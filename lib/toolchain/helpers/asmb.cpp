@@ -55,10 +55,12 @@ bool helpers::AsmHelper::assemble() {
     auto result = pipeline->assemble(pas::driver::pep9::Stage::End);
     auto osTarget = pipeline->pipelines[0].first;
     _osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+    if (!_osRoot && pipeline->lexErrors.size() > 0) this->lexErrs = pipeline->lexErrors;
     if (_user) {
       auto userTarget = pipeline->pipelines[1].first;
       _userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
       if (_userRoot) _userRoot->set(ka{{_osRoot}}); // Extend lifetime of OS to match user program
+      if (pipeline->lexErrors.size() > 0) this->lexErrs = pipeline->lexErrors;
     }
     return result;
   };
@@ -70,11 +72,15 @@ bool helpers::AsmHelper::assemble() {
     auto osTarget = pipeline->pipelines[0].first;
     _osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
     if (_osRoot) pas::ops::pepp::annotateRetOps<isa::Pep10>(_callViaRets, *_osRoot);
+    else if (!_osRoot && pipeline->lexErrors.size() > 0) this->lexErrs = pipeline->lexErrors;
     if (_user) {
       auto userTarget = pipeline->pipelines[1].first;
       _userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
       if (_userRoot) pas::ops::pepp::annotateRetOps<isa::Pep10>(_callViaRets, *_userRoot);
       if (_userRoot) _userRoot->set(ka{{_osRoot}}); // Extend lifetime of OS to match user program
+      if (pipeline->lexErrors.size() > 0) {
+        this->lexErrs = pipeline->lexErrors;
+      }
     }
     return result;
   };
@@ -88,6 +94,15 @@ QStringList helpers::AsmHelper::errors() {
   auto osErrors = _osRoot.isNull() ? ErrList{} : pas::ops::generic::collectErrors(*_osRoot);
   ErrList userErrors = _user && !_userRoot.isNull() ? pas::ops::generic::collectErrors(*_userRoot) : ErrList{};
   QStringList ret;
+  if (!lexErrs.empty() && !_osRoot) {
+    ret << "OS Lexical Errors:\n";
+    for (const auto &err : lexErrs.asKeyValueRange()) {
+      ret << ";Line " << QString::number(err.first + 1) << "\n";
+      auto splitOS = _os.split("\n");
+      if (err.first < splitOS.size()) ret << splitOS[err.first];
+      ret << " ;ERROR: " << err.second << "\n";
+    }
+  }
   if (!osErrors.empty()) {
     ret << "OS Errors:\n";
     auto splitOS = _os.split("\n");
@@ -96,6 +111,15 @@ QStringList helpers::AsmHelper::errors() {
       ret << splitOS[err.first.value.line] << " ;ERROR: " << err.second.message << "\n";
     }
     if (_user) ret << "User Errors:\n";
+  }
+  if (!lexErrs.empty() && !_userRoot) {
+    ret << "User Lexical Errors:\n";
+    for (const auto &err : lexErrs.asKeyValueRange()) {
+      ret << ";Line " << QString::number(err.first + 1) << "\n";
+      auto splitOS = _os.split("\n");
+      if (err.first < splitOS.size()) ret << splitOS[err.first];
+      ret << " ;ERROR: " << err.second << "\n";
+    }
   }
   if (!userErrors.empty()) {
     auto splitUser = _user->split("\n");
@@ -114,9 +138,13 @@ QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
   ErrList userErrors = _user && !_userRoot.isNull() ? pas::ops::generic::collectErrors(*_userRoot) : ErrList{};
   auto ret = QList<QPair<int, QString>>{};
   if (!userErrors.empty()) {
-    auto splitUser = _user->split("\n");
     for (const auto &err : userErrors) {
       ret.push_back({err.first.value.line, err.second.message});
+    }
+  }
+  if (lexErrs.size() > 0) {
+    for (const auto &err : lexErrs.asKeyValueRange()) {
+      ret.push_back({(int)err.first, err.second});
     }
   }
   return ret;
