@@ -15,6 +15,7 @@
       "format": "pep",
       "isDefault": true,
       "copy": "assembly",
+      "export": "ch-Assembly-Language/fig{ch}{fig}.pep",
       "from": {
         "file": "{ch}{fig}.pep"
       }
