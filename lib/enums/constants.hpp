@@ -47,7 +47,7 @@ public:
   Q_INVOKABLE QString string(Abstraction abstraction) const;
 };
 using Abstraction = AbstractionHelper::Abstraction;
-
+QString abstractionAsPrettyString(AbstractionHelper::Abstraction abstraction);
 class ArchitectureHelper : public QObject {
   Q_GADGET
   QML_NAMED_ELEMENT(Architecture)

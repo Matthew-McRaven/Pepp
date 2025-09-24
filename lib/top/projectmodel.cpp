@@ -145,12 +145,7 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
 QString ProjectModel::describe(int index) const {
   using enum pepp::Architecture;
   if (index < 0 || index >= _projects.size()) return {};
-  QMap<pepp::Architecture, QString> arch_map = {
-      {PEP10, "Pep/10"},
-      {PEP9, "Pep/9"},
-      {PEP8, "Pep/8"},
-      {RISCV, "RISC-V"},
-  };
+
   auto abs_enum = QMetaEnum::fromType<pepp::Abstraction>();
   pepp::Architecture arch;
   pepp::Abstraction abs;
@@ -162,7 +157,7 @@ QString ProjectModel::describe(int index) const {
     abs = asmb->abstraction();
   } else return "";
   QString abs_str = abs_enum.valueToKey((int)abs);
-  return QStringLiteral("%1, %2").arg(arch_map[arch], abs_str);
+  return QStringLiteral("%1, %2").arg(pepp::archAsPrettyString(arch), pepp::abstractionAsPrettyString(abs));
 }
 
 int ProjectModel::rowOf(const QObject *item) const {
@@ -563,7 +558,7 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
   case static_cast<int>(Roles::CombinedArchLevelRole): {
     QString arch_str = archAsPrettyString(_projects[index.row()].arch);
-    QString abs_str = abs_enum.valueToKey((int)_projects[index.row()].level);
+    QString abs_str = abstractionAsPrettyString(_projects[index.row()].level);
     return u"%1, %2"_s.arg(arch_str, abs_str);
   }
   case static_cast<int>(Roles::CompleteRole): return _projects[index.row()].state == CompletionState::COMPLETE;
