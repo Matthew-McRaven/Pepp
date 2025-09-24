@@ -190,8 +190,10 @@ Item {
                     function onNavigateTo(link) {
                         if (link.startsWith("slug:")) {
                             const idx = helpModel.indexFromSlug(link);
-                            if (idx.valid)
+                            if (idx.valid) {
                                 root.selected = Qt.binding(() => idx);
+                                treeView.expandToIndex(root.selected);
+                            }
                         } else
                             Qt.openUrlExternally(link);
                     }
