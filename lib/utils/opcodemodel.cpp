@@ -24,8 +24,8 @@ qsizetype OpcodeModel::indexFromOpcode(quint8 opcode) const {
 }
 
 quint8 OpcodeModel::opcodeFromIndex(qsizetype index) const {
-  if (index > 0 && index < _mnemonics.size()) return _mnemonics[index].opcode;
-  return -1;
+  if (index < 0 || index >= _mnemonics.size()) return -1;
+  else return _mnemonics[index].opcode;
 }
 
 void OpcodeModel::appendRow(QString mnemonic, quint8 opcode) {
