@@ -164,7 +164,7 @@ if (ONLY STREQUAL "BUILD")
           DOWNLOAD_NO_EXTRACT TRUE
           DOWNLOAD_NAME "VC_redist.x64.exe"
         )
-        FetchContent_Populate(vcredist_x64)
+        FetchContent_MakeAvailable(vcredist_x64)
         set(VCREDIST14_X64_EXE "${vcredist_x64_SOURCE_DIR}/VC_redist.x64.exe")
         if(NOT EXISTS "${VCREDIST14_X64_EXE}")
             message(FATAL_ERROR "Failed to fetch VC_redist.x64.exe: ${VCREDIST14_X64_EXE}")
