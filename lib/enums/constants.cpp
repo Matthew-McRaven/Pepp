@@ -28,7 +28,7 @@ QString pepp::abstractionAsPrettyString(AbstractionHelper::Abstraction abstracti
   case AbstractionHelper::Abstraction::OS4: return "OS4";
   case AbstractionHelper::Abstraction::ASMB5: return "Asmb5";
   }
-  qDebug() << "Unknown abstraction in in abstractionAsPrettyString";
+  qDebug() << "Unknown abstraction in abstractionAsPrettyString";
   return "Unknown";
 }
 
