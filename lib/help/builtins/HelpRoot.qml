@@ -13,27 +13,36 @@ Item {
     NuAppSettings {
         id: settings
     }
+    function updateFilterCombo() {
+        var comboIdx;
+        for (var i = 0; i < filterModel.rowCount(); i++) {
+            const idx = filterModel.index(i, 0);
+            const arch = filterModel.data(idx, ProjectTypeModel.ArchitectureRole);
+            const abs = filterModel.data(idx, ProjectTypeModel.LevelRole);
+            //console.log(`Target is (${root.abstraction}, ${root.architecture}) found (${abs}, ${arch})`);
+            if (root.abstraction === abs && root.architecture === arch) {
+                comboIdx = i;
+                break;
+            }
+        }
+        //console.log(`Update filter combo to ${root.abstraction}, ${root.architecture}, idx is ${comboIdx}`);
+        if (comboIdx !== undefined) {
+            filterCombo.currentIndex = comboIdx;
+            filterCombo.activated(comboIdx);
+        }
+    }
+    Timer {
+        id: filterComboCoalesce
+        interval: 0
+        repeat: false
+        onTriggered: root.updateFilterCombo()
+    }
 
-    onArchitectureChanged: {
-        var idx = 0;
-        for (var i = 0; i < filterModel.count; i++) {
-            const v = filterModel.get(i).value;
-            if (root.abstraction === v.abstraction && root.architecture === v.architecture)
-                idx = i;
-        }
-        filterCombo.currentIndex = idx;
-        filterCombo.activated(idx);
-    }
-    onAbstractionChanged: {
-        var idx = 0;
-        for (var i = 0; i < filterModel.count; i++) {
-            const v = filterModel.get(i).value;
-            if (root.abstraction === v.abstraction && root.architecture === v.architecture)
-                idx = i;
-        }
-        filterCombo.currentIndex = idx;
-        filterCombo.activated(idx);
-    }
+    // When both are changed on the same frame, we would normally trigger twice.
+    // Using a 0-length timer will coalesce these into a single update because we must enter the event loop to process the timer.
+    onArchitectureChanged: filterComboCoalesce.restart()
+    onAbstractionChanged: filterComboCoalesce.restart()
+
     property var selected
 
     // Make sure the drawer is always at least as wide as the text

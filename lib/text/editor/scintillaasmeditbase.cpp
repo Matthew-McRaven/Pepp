@@ -331,3 +331,5 @@ void ScintillaAsmEditBase::paste() { send(SCI_PASTE); }
 void ScintillaAsmEditBase::undo() { send(SCI_UNDO); }
 
 void ScintillaAsmEditBase::redo() { send(SCI_REDO); }
+
+void ScintillaAsmEditBase::selectAll() { send(SCI_SELECTALL); }

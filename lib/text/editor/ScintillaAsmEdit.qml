@@ -105,6 +105,12 @@ FocusScope {
                 root.dirtied = Qt.binding(() => true);
             }
         }
+        // TODO: For performance reasons, this should not be handled in QML.
+        // However, I'm not sure how my shortcut editor is going to work, so I will use this workaround for now.
+        Keys.onPressed: function (event) {
+            if (event.matches(StandardKey.SelectAll))
+                editor.selectAll();
+        }
     }
     ScrollBar {
         id: verticalScrollBar

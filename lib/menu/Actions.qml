@@ -208,7 +208,7 @@ QtObject {
                 window.syncEditors();
                 project.onExecute();
             }
-            text: qsTr("&Execute")
+            text: qsTr("&Run")
             icon.source: `image://icons/debug/start_normal${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
             shortcut: "Ctrl+Shift+R"
             onShortcutChanged: updateNativeText(this)

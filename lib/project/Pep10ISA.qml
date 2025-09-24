@@ -39,6 +39,10 @@ FocusScope {
         if (previousMode) {
             layoutSaver.saveToFile(`${previousMode}-${dockWidgetArea.uniqueName}.json`);
         }
+        if (mode) {
+            layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`);
+            previousMode = mode;
+        }
         // visibility model preserves user changes within a mode.
         for (const x of widgets) {
             const visible = x.visibility[mode];
@@ -46,10 +50,6 @@ FocusScope {
                 x.open();
             else if (!visible && x.isOpen)
                 x.close();
-        }
-        previousMode = mode;
-        if (previousMode) {
-            layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`);
         }
     }
     // Must be called when the project in the model is marked non-dirty
@@ -76,12 +76,16 @@ FocusScope {
         const greencard_width = parent.width * .3;
 
         const io_height = Math.max(200, total_height * .1);
+        const io_width = (parent.width - regmemcol_width - regmemcol_width);
 
         dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(parent.width - greencard_width - regmemcol_width, parent.height - io_height));
         dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(greencard_width, parent.height - io_height));
         dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - regmemcol_width, io_height));
-        dock_input.addDockWidgetAsTab(dock_output, StartHidden);
-        dock_input.addDockWidgetAsTab(dock_message, PreserveCurrent);
+        // Dock IOs to right of editors
+        dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(io_width, io_height));
+        dockWidgetArea.addDockWidget(dock_message, KDDW.KDDockWidgets.Location_OnLeft, dock_input, Qt.size(io_width, io_height));
+        dockWidgetArea.addDockWidget(dock_output, KDDW.KDDockWidgets.Location_OnRight, dock_input, Qt.size(io_width / 2, io_height));
+
         dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(regmemcol_width, reg_height));
         dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(regmemcol_width, memdump_height));
         wrapper.needsDock = Qt.binding(() => false);

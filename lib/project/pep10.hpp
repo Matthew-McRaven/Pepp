@@ -218,7 +218,7 @@ public:
   QString contentsForExtension(const QString &ext) const override;
 public slots:
   bool onDebuggingStart() override;
-  bool onAssemble(bool doLoad = false);
+  bool onAssemble(bool doLoad = false); // Wraps _onAssembler with an emit clearMessages().
   bool onAssembleThenLoad();
   bool onAssembleThenFormat();
   void onModifyUserSource(int line, Action action);
@@ -247,6 +247,8 @@ protected:
   void prepareSim() override;
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
   void updatePCLine();
+  // Contains the real logic of onAssemble, but does not emit clearMessages.
+  bool _onAssemble(bool doLoad = false);
 
   QString _userAsmText = {}, _osAsmText = {};
   QString _userList = {}, _osList = {};

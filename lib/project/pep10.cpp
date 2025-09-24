@@ -513,6 +513,7 @@ QString Pep_ISA::contentsForExtension(const QString &ext) const {
 }
 
 bool Pep_ISA::onLoadObject() {
+  emit clearMessages();
   static ObjectUtilities utils;
   _tb->clear();
   // Only enable trace while running the program to prevent spurious changed highlights.
@@ -557,7 +558,6 @@ bool Pep_ISA::onLoadObject() {
   _memory->setSP(sp);
   _memory->setPC(pc, pc + (isUnary ? 0 : 2));
   _memory->clearModifiedAndUpdateGUI();
-  emit clearMessages();
   return true;
 }
 
@@ -571,10 +571,10 @@ bool Pep_ISA::onFormatObject() {
 }
 
 bool Pep_ISA::onExecute() {
+  emit clearMessages();
   prepareSim();
   _state = State::NormalExec;
   _stepsSinceLastInteraction = 0;
-  emit clearMessages();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
@@ -583,10 +583,10 @@ bool Pep_ISA::onExecute() {
 }
 
 bool Pep_ISA::onDebuggingStart() {
+  emit clearMessages();
   prepareSim();
   _state = State::DebugPaused;
   _stepsSinceLastInteraction = 0;
-  emit clearMessages();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
@@ -981,6 +981,10 @@ static constexpr auto to_string = [](const QString &acc, const auto &line) {
 
 bool Pep_ASMB::onAssemble(bool doLoad) {
   emit clearMessages();
+  return _onAssemble(doLoad);
+}
+
+bool Pep_ASMB::_onAssemble(bool doLoad) {
   using enum pepp::Architecture;
   _userList = _osList = "";
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
@@ -1038,8 +1042,9 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
 }
 
 bool Pep_ASMB::onAssembleThenLoad() {
+  emit clearMessages();
   _system->bus()->clear(0);
-  onAssemble(true);
+  _onAssemble(true);
   _system->doReloadEntries();
   _memory->clearModifiedAndUpdateGUI();
   _tb->clear();
@@ -1151,7 +1156,7 @@ void Pep_ASMB::prepareSim() {
   using enum pepp::Architecture;
   // Must assemble first, otherwise we might load an outdated version of the OS
   // via _system->init(). Specifically, outdated memory-mapped vector values.
-  if (!onAssemble(true)) return;
+  if (!_onAssemble(true)) return;
   _system->bus()->clear(0);
   _system->init();
   _tb->clear();
@@ -1196,7 +1201,6 @@ void Pep_ASMB::prepareSim() {
   _flags->onUpdateGUI();
   _registers->onUpdateGUI();
   _dbg->watch_expressions->onSimulationStart();
-  emit clearMessages();
 }
 
 void Pep_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
