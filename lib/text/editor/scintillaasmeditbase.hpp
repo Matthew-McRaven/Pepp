@@ -43,6 +43,7 @@ public slots:
   Q_INVOKABLE void paste();
   Q_INVOKABLE void undo();
   Q_INVOKABLE void redo();
+  Q_INVOKABLE void selectAll();
 signals:
   void lexerLanguageChanged();
   void themeChanged();
