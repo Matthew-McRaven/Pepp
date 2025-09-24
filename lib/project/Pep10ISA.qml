@@ -39,6 +39,10 @@ FocusScope {
         if (previousMode) {
             layoutSaver.saveToFile(`${previousMode}-${dockWidgetArea.uniqueName}.json`);
         }
+        if (mode) {
+            layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`);
+            previousMode = mode;
+        }
         // visibility model preserves user changes within a mode.
         for (const x of widgets) {
             const visible = x.visibility[mode];
@@ -46,10 +50,6 @@ FocusScope {
                 x.open();
             else if (!visible && x.isOpen)
                 x.close();
-        }
-        previousMode = mode;
-        if (previousMode) {
-            layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`);
         }
     }
     // Must be called when the project in the model is marked non-dirty
