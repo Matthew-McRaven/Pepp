@@ -31,7 +31,7 @@ FocusScope {
     function addEOLAnnotations(lst) {
         editor.clearAllEOLAnnotations();
         // See styles at: https://scintilla.org/ScintillaDoc.html#EndOfLineAnnotations
-        let style = lst.length === 0 ? 0x0 : 0x2;
+        let style = lst.length === 0 ? 0x0 : 0x1;
         editor.setEOLAnnotationsVisible(style);
         for (var i = 0; i < lst.length; i++) {
             editor.addEOLAnnotation(lst[i].line, lst[i].message);
