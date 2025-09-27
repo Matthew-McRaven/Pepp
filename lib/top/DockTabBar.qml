@@ -209,6 +209,8 @@ KDDW.TabBarBase {
                     radius: 2
                 } // Rectangle
                 function onNeedsAttentionChanged() {
+                    // Sometimes btn is null when this is method is called, so we have a bad access on dockObj.
+                    const dockObj = btn?.dockObj;
                     if (dockObj?.needsAttention ?? false) {
                         if (dockObj.isCurrentTab())
                             dockObj.needsAttention = Qt.binding(() => false);

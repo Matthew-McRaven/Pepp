@@ -314,8 +314,8 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_MARKERSETBACK, conditionalBPStyle, c2i(_theme->error()->foreground()));
 
   // Set the selection / highlighting for lines
-  send(SCI_SETSELFORE, STYLE_DEFAULT, c2i(_theme->alternateBase()->foreground()));
-  send(SCI_SETSELBACK, STYLE_DEFAULT, c2i(_theme->alternateBase()->background()));
+  send(SCI_SETSELFORE, STYLE_DEFAULT, c2i(_theme->highlight()->foreground()));
+  send(SCI_SETSELBACK, STYLE_DEFAULT, c2i(_theme->highlight()->background()));
   // Set the indicator style to a plain underline
   send(SCI_INDICSETSTYLE, 0, INDIC_ROUNDBOX);
   send(SCI_INDICSETFORE, 0, c2i(_theme->alternateBase()->foreground()));
