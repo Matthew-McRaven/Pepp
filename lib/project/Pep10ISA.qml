@@ -28,30 +28,39 @@ FocusScope {
         project ? save() : null;
     }
     onModeChanged: modeVisibilityChange()
+    // The mode may have changed while the window was not active.
+    onIsActiveChanged: modeVisibilityChange()
 
     function modeVisibilityChange() {
-        // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
-        if (needsDock) {
+        if (!isActive) {
+            // If the window is not active / visible, restore does not work correctly, causing #974.
+            return;
+        } else if (needsDock) {
+            // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
             return;
         } else if (!(mode === "editor" || mode === "debugger")) {
             return;
+        } else if (previousMode === mode) {
+            // Do not attempt to lay out if mode has not changed. Possible if window was inactive.
+            return;
         }
-        if (previousMode) {
+
+        if (previousMode)
             layoutSaver.saveToFile(`${previousMode}-${dockWidgetArea.uniqueName}.json`);
+        // Only use the visibility model when restoring for the first time.
+        if (!layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`)) {
+            for (const x of widgets) {
+                // visibility model preserves user changes within a mode.
+                const visible = x.visibility[mode];
+                if (visible && !x.isOpen)
+                    x.open();
+                else if (!visible && x.isOpen)
+                    x.close();
+            }
         }
-        if (mode) {
-            layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`);
-            previousMode = mode;
-        }
-        // visibility model preserves user changes within a mode.
-        for (const x of widgets) {
-            const visible = x.visibility[mode];
-            if (visible && !x.isOpen)
-                x.open();
-            else if (!visible && x.isOpen)
-                x.close();
-        }
+        previousMode = mode;
     }
+
     // Must be called when the project in the model is marked non-dirty
     function markClean() {
         objEdit.dirtied = Qt.binding(() => false);
