@@ -29,4 +29,4 @@ Number,GitRef,Date,Blurb
 0.11.1,,2025-09-09,"This release contains minor visual improvements for the ""Welcome"" mode"
 0.11.2,,2025-09-19,"This release fixes a CTD on Windows platforms without a MSVC++ redistributable already installed"
 0.12.0,,2025-09-21,"This release contains the necessary subset of features to support the Asmb3 figures in Chapter 5 of Computer Systems, sixth edition"
-0.12.1,,??,"This release improves the user experience for editing and debugging Asmb3 programs"
+0.12.1,,2025-09-28,"This release improves the user experience for editing and debugging Asmb3 programs"
