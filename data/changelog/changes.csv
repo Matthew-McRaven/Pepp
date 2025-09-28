@@ -196,3 +196,5 @@ Fixed,,0.12.1,965,"Do not tab (Messages, Batch Input) panes in the editor and de
 Fixed,,0.12.1,966,"Avoid layout delay bugs when switching between modes with multiple open projects"
 Fixed,,0.12.1,967,"Enable ""Select All"" shortcut for assembler editors"
 Fixed,,0.12.1,969,"Avoid flashing ""Messages"" pane when it contains no new messages"
+Fixed,,0.12.1,973,"Improve selection contrast in assembler text editors"
+Fixed,,0.12.1,974,"Precent spurious resizes when switching between modes"
