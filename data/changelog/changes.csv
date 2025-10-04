@@ -199,3 +199,4 @@ Fixed,,0.12.1,969,"Avoid flashing ""Messages"" pane when it contains no new mess
 Fixed,,0.12.1,973,"Improve selection contrast in assembler text editors"
 Fixed,,0.12.1,974,"Precent spurious resizes when switching between modes"
 Added,,0.12.2,977,"Enable Asmb5 projects"
+Changed,,0.13.0,979,"Upgrade application to use Qt 6.9.3"

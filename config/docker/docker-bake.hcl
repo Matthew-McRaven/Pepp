@@ -11,7 +11,7 @@ group "img" {
 
 
 variable "VERSION" {
-  default = "v0.15.3"
+  default = "v0.15.4"
 }
 
 target "gcc" {
@@ -76,6 +76,6 @@ target "image_utils" {
   context = "./image_utils"
   dockerfile = "Dockerfile"
   tags = ["ghcr.io/matthew-mcraven/pepp/image-utils:${VERSION}"]
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = ["linux/amd64"]
   target = "output"
 }

@@ -26,7 +26,7 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
 ARG QT_MINOR="9"
-ARG QT_PATCH="1"
+ARG QT_PATCH="3"
 # major/minor
 ARG QT_RELEASE="6.${QT_MINOR}"
 # major/minor/patch

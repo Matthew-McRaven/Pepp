@@ -2,7 +2,7 @@ name: 'Install CMake & Qt'
 inputs:
   qt_version:
     required: true
-    default: '6.9.1'
+    default: '6.9.3'
   cache-key-prefix:
     required: false
 runs:
