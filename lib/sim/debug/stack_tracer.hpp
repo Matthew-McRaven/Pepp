@@ -95,7 +95,7 @@ public:
   // const_iterator end() const { return _stacks.cend(); }
   std::size_t size() const { return 0; /*_stacks.size();*/ }
   bool empty() const { return size() == 0; }
-  enum class InstructionType { CALL, RET, TRAP, TRAPRET, ADDITIVE, ASSIGNMENT };
+  enum class InstructionType { CALL, RET, TRAP, TRAPRET, ALLOCATE, DEALLOCATE, ASSIGNMENT };
   void notifyInstruction(quint16 pc, InstructionType type);
 
 private:
