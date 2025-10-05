@@ -284,27 +284,22 @@ pepp::debug::Debugger::Debugger(Environment *env) : env(env), _logger(spdlog::ge
 
 using namespace Qt::StringLiterals;
 void pepp::debug::Debugger::notifyCall(quint16 pc) {
-  _logger->info("CALL  at {:#04x}", pc);
   if (stack_trace && stack_trace->canTrace()) stack_trace->notifyInstruction(pc, StackTracer::InstructionType::CALL);
 }
 
 void pepp::debug::Debugger::notifyRet(quint16 pc) {
-  _logger->info("RET   at {:#04x}", pc);
   if (stack_trace && stack_trace->canTrace()) stack_trace->notifyInstruction(pc, StackTracer::InstructionType::RET);
 }
 
 void pepp::debug::Debugger::notifyTrapCall(quint16 pc) {
-  _logger->info("SCALL at {:#04x}", pc);
   if (stack_trace && stack_trace->canTrace()) stack_trace->notifyInstruction(pc, StackTracer::InstructionType::TRAP);
 }
 
 void pepp::debug::Debugger::notifyTrapRet(quint16 pc) {
-  _logger->info("SRET at {:#04x}", pc);
   if (stack_trace && stack_trace->canTrace()) stack_trace->notifyInstruction(pc, StackTracer::InstructionType::TRAPRET);
 }
 
 void pepp::debug::Debugger::notifyAddSP(quint16 pc) {
-  _logger->info("ADD   at {:#04x}", pc);
   if (stack_trace && stack_trace->canTrace())
     stack_trace->notifyInstruction(pc, StackTracer::InstructionType::ADDITIVE);
 }
@@ -315,7 +310,7 @@ void pepp::debug::Debugger::notifySubSP(quint16 pc) {
 }
 
 void pepp::debug::Debugger::notifySetSP(quint16 pc) {
-  _logger->info("SET   at {:#04x}", pc);
+
   if (stack_trace && stack_trace->canTrace())
     stack_trace->notifyInstruction(pc, StackTracer::InstructionType::ASSIGNMENT);
 }

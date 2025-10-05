@@ -1,6 +1,6 @@
 #pragma once
+#include <spdlog/logger.h>
 #include "toolchain/pas/obj/trace_tags.hpp"
-
 namespace pepp::debug {
 class Record {
 public:
@@ -76,8 +76,8 @@ class StackTracer {
   // using const_iterator = typename container::const_iterator;
 
 public:
-  explicit StackTracer() = default;
-  bool canTrace() const { return !_debug_info.commands.empty() && _debug_info.typeInfo != nullptr; }
+  explicit StackTracer();
+  bool canTrace() const { return true; /*!_debug_info.commands.empty() && _debug_info.typeInfo != nullptr;*/ }
   inline void setDebugInfo(pas::obj::common::DebugInfo debug_info) { _debug_info = debug_info; }
   pas::obj::common::DebugInfo const &debugInfo() const { return _debug_info; }
   // Stack &activeStack();
@@ -99,6 +99,7 @@ public:
   void notifyInstruction(quint16 pc, InstructionType type);
 
 private:
+  std::shared_ptr<spdlog::logger> _logger;
   // container _stacks;
   std::size_t _activeIndex = 0;
 };

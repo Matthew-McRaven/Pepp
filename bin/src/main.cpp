@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
     return logger;
   };
   auto logger_debugger = create("debugger");
+  auto logger_stack_debugger = create("debugger::stack");
   logger_debugger->set_level(spdlog::level::warn);
 #if defined(SPDLOG_ACTIVE_LEVEL)
   spdlog::set_level((spdlog::level::level_enum)SPDLOG_ACTIVE_LEVEL);
