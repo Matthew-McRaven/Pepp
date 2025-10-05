@@ -15,6 +15,7 @@ void writeDebugCommands(ELFIO::elfio &elf, std::list<pas::ast::Node *> roots);
 struct DebugInfo {
   std::shared_ptr<pepp::debug::types::TypeInfo> typeInfo; // Type information for the debug session.
   QMap<quint32, pepp::debug::CommandFrame> commands;      // Maps address to command packets.
+  operator QStringList() const;
 };
 
 DebugInfo readDebugCommands(ELFIO::elfio &elf);

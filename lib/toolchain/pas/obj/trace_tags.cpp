@@ -290,3 +290,12 @@ ELFIO::section *pas::obj::common::detail::getOrAddTraceSection(ELFIO::elfio &elf
   }
   return trace;
 }
+
+pas::obj::common::DebugInfo::operator QStringList() const {
+  QStringList ret;
+  ret.reserve(static_cast<int>(commands.size()));
+  for (const auto &[addr, frame] : std::as_const(commands).asKeyValueRange()) {
+    ret << QString("[0x%1]: %2").arg(addr, 4, 16, QChar('0')).arg(QString(frame));
+  }
+  return ret;
+}
