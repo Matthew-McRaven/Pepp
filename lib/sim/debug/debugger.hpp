@@ -5,6 +5,7 @@
 #include <spdlog/logger.h>
 #include "sim/debug/expr_parser.hpp"
 #include "sim/debug/line_map.hpp"
+#include "sim/debug/stack_tracer.hpp"
 #include "toolchain/pas/obj/trace_tags.hpp"
 #include "toolchain/symtab/symbolmodel.hpp"
 #include "watchexpressionmodel.hpp"
@@ -85,15 +86,6 @@ private:
   std::vector<EditableWatchExpression::VolatileCache> _volatiles;
   BreakpointSet *_breakpoints = nullptr;
   ScopedLines2Addresses *_lines2address = nullptr;
-};
-
-class StackTracer {
-  pas::obj::common::DebugInfo _debug_info;
-
-public:
-  explicit StackTracer() = default;
-  inline void setDebugInfo(pas::obj::common::DebugInfo debug_info) { _debug_info = debug_info; }
-  pas::obj::common::DebugInfo const &debugInfo() const { return _debug_info; }
 };
 
 class Environment;
