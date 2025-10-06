@@ -36,7 +36,7 @@ void ReadElfTask::run() {
   if (_opts.program_headers) programHeaders(elf);
   if (_opts.symbols) symbols(elf);
   if (_opts.notes) notes(elf);
-  if (_opts.debug) debug(elf);
+  if (_opts.debug_line) debug_line(elf);
 
   return emit finished(0);
 }
@@ -67,12 +67,21 @@ void ReadElfTask::symbols(ELFIO::elfio &elf) const {
 
 void ReadElfTask::notes(ELFIO::elfio &elf) const { ELFIO::dump::notes(std::cout, elf); }
 
-void ReadElfTask::debug(ELFIO::elfio &elf) const {
+void ReadElfTask::debug_line(ELFIO::elfio &elf) const {
+  static const int columns = 8;
   using namespace Qt::StringLiterals;
   auto sec = pas::obj::common::detail::getLineMappingSection(elf);
   if (sec == nullptr) return;
   std::cout << "Line mapping section (" << sec->get_name() << ")" << std::endl;
   auto linemaps = pas::obj::common::getLineMappings(elf);
   std::sort(linemaps.begin(), linemaps.end());
-  for (const auto &map : linemaps) std::cout << ((QString)map).toStdString() << std::endl;
+  int ctr = 0;
+  for (const auto &map : linemaps) {
+    std::cout << ((QString)map).toStdString();
+    if (ctr++ % columns == columns - 1) std::cout << std::endl;
+    else std::cout << " ";
+  }
+  if (ctr % columns != 0) std::cout << std::endl;
 }
+
+void ReadElfTask::debug_info(ELFIO::elfio &elf) const {}
