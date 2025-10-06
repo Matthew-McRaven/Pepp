@@ -34,6 +34,7 @@ public:
     bool debug_line = false;
     bool debug_info = false;
     std::string elffile;
+    std::string dump_strs;
   };
   ReadElfTask(Options &opts, QObject *parent = nullptr);
   void run() override;
@@ -46,6 +47,7 @@ private:
   void notes(ELFIO::elfio &) const;
   void debug_line(ELFIO::elfio &) const;
   void debug_info(ELFIO::elfio &) const;
+  void dump_strs(ELFIO::elfio &) const;
   Options &_opts;
 };
 
@@ -56,6 +58,10 @@ void registerReadelf(auto &app, task_factory_t &task, detail::SharedFlags &flags
   static auto file_header = readelf->add_flag("-h,--file-header", opts.file_header, "Display the ELF file header");
   static auto program_headers =
       readelf->add_flag("-l,--program-headers", opts.program_headers, "Display the program headers");
+  static auto dump_strs = readelf->add_option("-p,--string-dump", opts.dump_strs,
+                                              "Displays the contents of the indicated section as printable strings.\
+A number identifies a particular section by index in the section table; any other string identifies all sections\
+with that name in the object file.");
   static auto section_headers =
       readelf->add_flag("-S,--section-headers", opts.section_headers, "Display the section headers");
   static auto symbols = readelf->add_flag("-s,--symbols", opts.symbols, "Display the symbol tables");

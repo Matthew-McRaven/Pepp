@@ -39,7 +39,7 @@ void ReadElfTask::run() {
   if (_opts.notes) notes(elf);
   if (_opts.debug_line) debug_line(elf);
   if (_opts.debug_info) debug_info(elf);
-
+  if (!_opts.dump_strs.empty()) dump_strs(elf);
   return emit finished(0);
 }
 
@@ -97,4 +97,44 @@ void ReadElfTask::debug_info(ELFIO::elfio &elf) const {
     std::cout << fmt::format("  {:04x}: {}\n", addr, QString(frame).toStdString());
   }
   std::cout << std::endl << std::endl;
+}
+using Elf_Xword = ELFIO::Elf_Xword;
+void print_one(Elf_Xword idx, std::string_view sv) { std::cout << fmt::format("  [{:04x}] {}\n", idx, sv); }
+void dump_strings(const ELFIO::section *sec) {
+  using namespace Qt::StringLiterals;
+  std::cout << "String dump of section (" << sec->get_name() << ")" << std::endl;
+  const char *data = sec->get_data();
+  if (data == nullptr) return;
+  auto size = sec->get_size();
+  std::optional<int> start_idx = std::nullopt;
+
+  // TODO: probably should handle non-printable characters too.
+  for (Elf_Xword i = 0; i < size; ++i) {
+    if (data[i] == '\0') {
+      if (start_idx && i > start_idx) {
+        std::string_view sv(data + *start_idx, i - *start_idx);
+        print_one(*start_idx, sv);
+      }
+      start_idx = std::nullopt;
+    } else {
+      if (!start_idx) start_idx = i;
+    }
+  }
+  if (start_idx && size > *start_idx) {
+    std::string_view sv(data + *start_idx, size - *start_idx);
+    print_one(*start_idx, sv);
+  }
+  std::cout << std::endl;
+}
+void ReadElfTask::dump_strs(ELFIO::elfio &elf) const {
+  bool okay = false;
+  auto sec_idx = QString::fromStdString(_opts.dump_strs).toUInt(&okay);
+  if (okay) {
+    if (sec_idx > 0 && sec_idx < elf.sections.size()) dump_strings(elf.sections[sec_idx]);
+    else std::cerr << "No such section index: " << sec_idx << std::endl;
+  } else {
+    for (const auto &sec : std::as_const(elf.sections)) {
+      if (sec->get_name() == _opts.dump_strs) dump_strings(sec.get());
+    }
+  }
 }
