@@ -125,9 +125,9 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
     auto [_, ihnd] = info.register_indirect(name);
     auto type = info.box(pepp::debug::types::Primitives::u16);
     packet.ops.emplace_back(StackOp{MemoryOp{opcode, name, type}});
-  } else if (cmd == "locals" || cmd == "param") {
+  } else if (cmd == "locals" || cmd == "param" || cmd == "params") {
     // Add stack frame init or deinit ops, since params create/delete a stack frame.
-    if (cmd == "param") {
+    if (cmd == "param" || cmd == "params") {
       if (is_push) packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::ADD_FRAME}});
       else packet.ops.emplace_back(StackOp{FrameActive{false}});
     }
@@ -146,11 +146,14 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
     }
 
     // Add stack frame init or deinit ops, since params create/delete a stack frame.
-    if (cmd == "param") {
+    if (cmd == "param" || cmd == "params") {
       if (is_push) packet.ops.emplace_back(StackOp{FrameActive{true}});
       else packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::REMOVE_FRAME}});
     }
-  } else return;
+  } else {
+    qDebug() << "Unhandled debug command:" << it->command;
+    return;
+  }
 
   if (const auto maybe_address = it->address; maybe_address) {
     auto address = *maybe_address;
