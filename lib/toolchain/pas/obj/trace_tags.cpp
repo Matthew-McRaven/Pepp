@@ -5,7 +5,7 @@
 #include "toolchain/pas/operations/generic/trace_tags.hpp"
 #include "zpp_bits.h"
 
-static const auto traceStr = ".debug_trace";
+static const auto traceStr = ".debug_info";
 
 std::optional<pepp::debug::types::Primitives> primitive_from_arg(const QStringView &view) {
   using enum pepp::debug::types::Primitives;
