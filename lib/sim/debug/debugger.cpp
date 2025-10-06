@@ -283,33 +283,37 @@ pepp::debug::Debugger::Debugger(Environment *env) : env(env), _logger(spdlog::ge
 }
 
 using namespace Qt::StringLiterals;
-void pepp::debug::Debugger::notifyCall(quint16 pc) {
-  if (stack_trace && stack_trace->canTrace()) stack_trace->notifyInstruction(pc, StackTracer::InstructionType::CALL);
-}
-
-void pepp::debug::Debugger::notifyRet(quint16 pc) {
-  if (stack_trace && stack_trace->canTrace()) stack_trace->notifyInstruction(pc, StackTracer::InstructionType::RET);
-}
-
-void pepp::debug::Debugger::notifyTrapCall(quint16 pc) {
-  if (stack_trace && stack_trace->canTrace()) stack_trace->notifyInstruction(pc, StackTracer::InstructionType::TRAP);
-}
-
-void pepp::debug::Debugger::notifyTrapRet(quint16 pc) {
-  if (stack_trace && stack_trace->canTrace()) stack_trace->notifyInstruction(pc, StackTracer::InstructionType::TRAPRET);
-}
-
-void pepp::debug::Debugger::notifyAddSP(quint16 pc) {
+void pepp::debug::Debugger::notifyCall(quint16 pc, quint16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
-    stack_trace->notifyInstruction(pc, StackTracer::InstructionType::DEALLOCATE);
+    stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::CALL);
 }
 
-void pepp::debug::Debugger::notifySubSP(quint16 pc) {
+void pepp::debug::Debugger::notifyRet(quint16 pc, quint16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
-    stack_trace->notifyInstruction(pc, StackTracer::InstructionType::ALLOCATE);
+    stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::RET);
 }
 
-void pepp::debug::Debugger::notifySetSP(quint16 pc) {
+void pepp::debug::Debugger::notifyTrapCall(quint16 pc, quint16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
-    stack_trace->notifyInstruction(pc, StackTracer::InstructionType::ASSIGNMENT);
+    stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::TRAP);
+}
+
+void pepp::debug::Debugger::notifyTrapRet(quint16 pc, quint16 spAfter) {
+  if (stack_trace && stack_trace->canTrace())
+    stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::TRAPRET);
+}
+
+void pepp::debug::Debugger::notifyAddSP(quint16 pc, quint16 spAfter) {
+  if (stack_trace && stack_trace->canTrace())
+    stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::DEALLOCATE);
+}
+
+void pepp::debug::Debugger::notifySubSP(quint16 pc, quint16 spAfter) {
+  if (stack_trace && stack_trace->canTrace())
+    stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::ALLOCATE);
+}
+
+void pepp::debug::Debugger::notifySetSP(quint16 pc, quint16 spAfter) {
+  if (stack_trace && stack_trace->canTrace())
+    stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::ASSIGNMENT);
 }

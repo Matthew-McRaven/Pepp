@@ -69,6 +69,21 @@ private:
   quint32 _baseAddress = -1;
 };
 */
+/*
+ * This can take three forms relevant to stack tracing:
+ *   (a) Replace a stack modifying instruction with a different instruction
+ *   (b) Replace a non-stack instruction with a stack instruction
+ *   (c) Modify the number of bytes de/allocated via operand specifier replacement
+ *
+ * Cases (a) and (b) are covered by the simulator posting events to the stack tracing SW on stack modifying
+ * instructions. The event could be compared against the trace commands. If the trace command does not make sense for
+ * the instruction (e.g., deactivate a frame on an alloc), we can halt tracing / enter an invalid state. Alternatively,
+ * if there is no event, we can enter an invalid state.
+ *
+ * These methods do not cover (c), since the tracer is unaware of the number of bytes actually allocated.
+ * So, the simulator needs to notify the debugger of the new SP after each instruction.
+ * We can compare the number of bytes actually de/allocated to the trace command to catch errors.
+ */
 class StackTracer {
   pas::obj::common::DebugInfo _debug_info;
   // using container = std::vector<std::shared_ptr<Stack>>;
@@ -78,7 +93,10 @@ class StackTracer {
 public:
   explicit StackTracer();
   bool canTrace() const { return true; /*!_debug_info.commands.empty() && _debug_info.typeInfo != nullptr;*/ }
-  inline void setDebugInfo(pas::obj::common::DebugInfo debug_info) { _debug_info = debug_info; }
+  inline void setDebugInfo(pas::obj::common::DebugInfo debug_info) {
+    _debug_info = debug_info;
+    _lastSP = std::nullopt;
+  }
   pas::obj::common::DebugInfo const &debugInfo() const { return _debug_info; }
   // Stack &activeStack();
   // Stack const &activeStack() const;
@@ -96,11 +114,15 @@ public:
   std::size_t size() const { return 0; /*_stacks.size();*/ }
   bool empty() const { return size() == 0; }
   enum class InstructionType { CALL, RET, TRAP, TRAPRET, ALLOCATE, DEALLOCATE, ASSIGNMENT };
-  void notifyInstruction(quint16 pc, InstructionType type);
+  // PC of the instruction that is being executed. SP is the sp *after* the instruction was executed.
+  // I need the modified SP so that I can check that the # of bytes de/allocated matches the debug info.
+  // This is not very "physical", because I am examining processor state mid-instruction from the debugger.
+  void notifyInstruction(quint16 pc, quint16 spAfter, InstructionType type);
 
 private:
   std::shared_ptr<spdlog::logger> _logger;
   // container _stacks;
+  std::optional<quint16> _lastSP;
   std::size_t _activeIndex = 0;
 };
 } // namespace pepp::debug

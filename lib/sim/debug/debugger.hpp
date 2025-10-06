@@ -102,13 +102,14 @@ public:
   std::unique_ptr<StaticSymbolModel> static_symbol_model = nullptr;
   std::unique_ptr<StackTracer> stack_trace = nullptr;
 
-  void notifyCall(quint16 pc);
-  void notifyRet(quint16 pc);
-  void notifyTrapCall(quint16 pc);
-  void notifyTrapRet(quint16 pc);
-  void notifyAddSP(quint16 pc);
-  void notifySubSP(quint16 pc);
-  void notifySetSP(quint16 pc);
+  // Per the note on StackTracer, I need the sp *after* the instruction was executed, but the pc from before.
+  void notifyCall(quint16 pc, quint16 spAfter);
+  void notifyRet(quint16 pc, quint16 spAfter);
+  void notifyTrapCall(quint16 pc, quint16 spAfter);
+  void notifyTrapRet(quint16 pc, quint16 spAfter);
+  void notifyAddSP(quint16 pc, quint16 spAfter);
+  void notifySubSP(quint16 pc, quint16 spAfter);
+  void notifySetSP(quint16 pc, quint16 spAfter);
 
 private:
   std::shared_ptr<spdlog::logger> _logger;
