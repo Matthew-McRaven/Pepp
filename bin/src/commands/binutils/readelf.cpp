@@ -18,9 +18,10 @@
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_dump.hpp>
 #include <iostream>
-#include "toolchain/pas/obj/common.hpp"
 #include "help/builtins/figure.hpp"
 #include "toolchain/helpers/asmb.hpp"
+#include "toolchain/pas/obj/common.hpp"
+#include "toolchain/pas/obj/trace_tags.hpp"
 
 ReadElfTask::ReadElfTask(Options &opts, QObject *parent) : Task(parent), _opts(opts) {}
 
@@ -37,6 +38,7 @@ void ReadElfTask::run() {
   if (_opts.symbols) symbols(elf);
   if (_opts.notes) notes(elf);
   if (_opts.debug_line) debug_line(elf);
+  if (_opts.debug_info) debug_info(elf);
 
   return emit finished(0);
 }
@@ -76,12 +78,23 @@ void ReadElfTask::debug_line(ELFIO::elfio &elf) const {
   auto linemaps = pas::obj::common::getLineMappings(elf);
   std::sort(linemaps.begin(), linemaps.end());
   int ctr = 0;
+  std::cout << "  ";
   for (const auto &map : linemaps) {
     std::cout << ((QString)map).toStdString();
-    if (ctr++ % columns == columns - 1) std::cout << std::endl;
+    if (ctr++ % columns == columns - 1) std::cout << std::endl << "  ";
     else std::cout << " ";
   }
   if (ctr % columns != 0) std::cout << std::endl;
+  std::cout << std::endl;
 }
 
-void ReadElfTask::debug_info(ELFIO::elfio &elf) const {}
+void ReadElfTask::debug_info(ELFIO::elfio &elf) const {
+  auto sec = pas::obj::common::detail::getTraceSection(elf);
+  if (sec == nullptr) return;
+  std::cout << "Debug info section (" << sec->get_name() << ")" << std::endl;
+  auto info = pas::obj::common::readDebugCommands(elf);
+  for (const auto &[addr, frame] : std::as_const(info.commands).asKeyValueRange()) {
+    std::cout << fmt::format("  {:04x}: {}\n", addr, QString(frame).toStdString());
+  }
+  std::cout << std::endl << std::endl;
+}
