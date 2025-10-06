@@ -23,6 +23,8 @@
 #include "./task.hpp"
 #include "commands/about.hpp"
 #include "commands/asm.hpp"
+#include "commands/binutils/addr2line.hpp"
+#include "commands/binutils/readelf.hpp"
 #include "commands/dumpbooks.hpp"
 #include "commands/dumptex.hpp"
 #include "commands/get-qrc.hpp"
@@ -34,7 +36,6 @@
 #include "commands/ls.hpp"
 #include "commands/microasm.hpp"
 #include "commands/microrun.hpp"
-#include "commands/readelf/readelf.hpp"
 #include "commands/run.hpp"
 #include "commands/selftest.hpp"
 #include "commands/throughput.hpp"
@@ -93,7 +94,10 @@ int main(int argc, char **argv) {
   registerMicroAsm(app, task, shared_flags);
   registerRun(app, task, shared_flags);
   registerMicroRun(app, task, shared_flags);
+  // binutils like programs
   registerReadelf(app, task, shared_flags);
+  registerAddr2Line(app, task, shared_flags);
+
   gui_args args{.argvs = {argv[0]}};
   registerGUI(app, task, shared_flags, args);
   auto resetSettings = app.add_flag("--reset-settings", args.resetSettings, "Reset settings to default");
