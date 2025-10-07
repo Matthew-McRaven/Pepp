@@ -66,7 +66,15 @@ bool RunTask::loadToElf() {
   }
   QFile objF(QString::fromStdString(_objIn));
   if (!objF.open(QIODevice::ReadOnly | QIODevice::Text)) {
-    std::cerr << "Failed to open object code: " << _objIn << std::endl;
+    const QFileInfo fi(objF);
+    std::cerr << "Failed to open object code";
+    std::cerr << "\n  path:        " << _objIn << "\n  absPath:     " << fi.absoluteFilePath().toStdString()
+              << "\n  exists:      " << fi.exists()
+              << "\n  perms:       " << QString::number(int(fi.permissions()), 8).toStdString()
+              << "\n  isReadable:  " << fi.isReadable() << "\n  error:       " << objF.error() << " ("
+              << objF.errorString().toStdString() << ")"
+              << "\n  cwd:         " << QDir::currentPath().toStdString()
+              << "\n  appDir:      " << QCoreApplication::applicationDirPath().toStdString();
     return false;
   }
   auto objText = objF.readAll().toStdString();
