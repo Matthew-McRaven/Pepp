@@ -86,6 +86,14 @@ inline QString to_string(const StackOp &op) {
 }
 
 namespace detail {
+struct ToOpcodeVisitor {
+  Opcodes operator()(const FrameActive &) { return Opcodes::MARK_ACTIVE; }
+  Opcodes operator()(const auto &obj) { return obj.op; }
+};
+} // namespace detail
+inline Opcodes to_opcode(const StackOp &op) { return std::visit(detail::ToOpcodeVisitor{}, op); }
+
+namespace detail {
 template <typename T> struct SerializeVistor {
   pepp::debug::types::SerializationHelper &h;
   T &archive;

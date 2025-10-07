@@ -3,11 +3,59 @@
 
 pepp::debug::StackTracer::StackTracer() : _logger(spdlog::get("debugger::stack")) {}
 
+void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_info) {
+  _debug_info = debug_info;
+  _lastSP = std::nullopt;
+  using namespace pepp::debug::types;
+  BoxedType u16 = _debug_info.typeInfo->box(types::Primitives::u16);
+  BoxedType i16 = _debug_info.typeInfo->box(types::Primitives::i16);
+  BoxedType u8 = _debug_info.typeInfo->box(types::Primitives::u8);
+  _call = CommandFrame{.packets = {CommandPacket{
+                           .modifiers = {}, .ops = {MemoryOp{.op = Opcodes::PUSH, .name = "retAddr", .type = u16}}}}};
+  _ret = CommandFrame{.packets = {CommandPacket{
+                          .modifiers = {}, .ops = {MemoryOp{.op = Opcodes::POP, .name = "retAddr", .type = u16}}}}};
+  _scall = CommandFrame{
+      .packets = {CommandPacket{
+          .modifiers = {},
+          .ops = {FrameManagement{.op = Opcodes::ADD_FRAME}, MemoryOp{.op = Opcodes::PUSH, .name = "IR", .type = u8},
+                  MemoryOp{.op = Opcodes::PUSH, .name = "SP", .type = u16},
+                  MemoryOp{.op = Opcodes::PUSH, .name = "PC", .type = u16},
+                  MemoryOp{.op = Opcodes::PUSH, .name = "X", .type = i16},
+                  MemoryOp{.op = Opcodes::PUSH, .name = "A", .type = i16},
+                  MemoryOp{.op = Opcodes::PUSH, .name = "NZVC", .type = u8}, FrameActive{.active = true}}}}};
+  _sret = CommandFrame{.packets = {CommandPacket{.modifiers = {},
+                                                 .ops = {FrameActive{.active = false},
+                                                         MemoryOp{.op = Opcodes::POP, .name = "NZVC", .type = u8},
+                                                         MemoryOp{.op = Opcodes::POP, .name = "A", .type = i16},
+                                                         MemoryOp{.op = Opcodes::POP, .name = "X", .type = i16},
+                                                         MemoryOp{.op = Opcodes::POP, .name = "PC", .type = u16},
+                                                         MemoryOp{.op = Opcodes::POP, .name = "SP", .type = u16},
+                                                         MemoryOp{.op = Opcodes::POP, .name = "IR", .type = u8},
+                                                         FrameManagement{.op = Opcodes::REMOVE_FRAME}}}}};
+}
+
+std::optional<const pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) const {
+  for (const auto &stack : _stacks)
+    if (stack->contains(addr)) return stack.get();
+  return std::nullopt;
+}
+
+std::optional<pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) {
+  for (auto &stack : _stacks)
+    if (stack->contains(addr)) return stack.get();
+  return std::nullopt;
+}
+
+namespace {
+static const pepp::debug::CommandFrame call = pepp::debug::CommandFrame{.packets = {pepp::debug::CommandPacket{}}};
+}
 void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, InstructionType type) {
   std::string cmds_str = "";
+  std::optional<const pepp::debug::CommandFrame *> cf = std::nullopt;
   if (auto cmds = _debug_info.commands.find(pc); cmds != _debug_info.commands.end()) {
-    cmds_str = QString(cmds.value()).toStdString();
+    cf = &cmds.value();
   }
+
   std::string sp_str = "";
   if (_lastSP) {
     qint16 diff = qint16(spAfter) - qint16(*_lastSP);
@@ -15,15 +63,131 @@ void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, In
   } else {
     sp_str = fmt::format("SP:{:04x}     ", spAfter);
   }
+  quint16 spBefore = _lastSP.value_or(spAfter);
   _lastSP = spAfter;
 
+  // Set to non-null if you want the active stack to be changed after processing stack commands.
+  // If you want to change to stack *before* processing stack commands, do it yourself below.
+  std::optional<decltype(spAfter)> futureStack = std::nullopt;
+  std::string operation;
   switch (type) {
-  case InstructionType::CALL: _logger->info("CALL    at PC:{:04x} {}  {}", pc, sp_str, cmds_str); break;
-  case InstructionType::RET: _logger->info("RET     at PC:{:04x} {}  {}", pc, sp_str, cmds_str); break;
-  case InstructionType::TRAP: _logger->info("SCALL   at PC:{:04x} {}  {}", pc, sp_str, cmds_str); break;
-  case InstructionType::TRAPRET: _logger->info("SRET    at PC:{:04x} {}  {}", pc, sp_str, cmds_str); break;
-  case InstructionType::ALLOCATE: _logger->info("ALLOC   at PC:{:04x} {}  {}", pc, sp_str, cmds_str); break;
-  case InstructionType::DEALLOCATE: _logger->info("DEALLOC at PC:{:04x} {}  {}", pc, sp_str, cmds_str); break;
-  case InstructionType::ASSIGNMENT: _logger->info("SET     at PC:{:04x} {}  {}", pc, sp_str, cmds_str); break;
+  case InstructionType::CALL:
+    operation = "CALL";
+    if (!cf) cf = &_call;
+    break;
+  case InstructionType::RET:
+    operation = "RET";
+    if (!cf) cf = &_ret;
+    break;
+  case InstructionType::TRAPRET:
+    operation = "SRET";
+    futureStack = spAfter;
+    spAfter = spBefore + 10;
+    if (!cf) cf = &_sret;
+    break;
+  case InstructionType::ALLOCATE: operation = "ALLOC"; break;
+  case InstructionType::DEALLOCATE: operation = "DEALLOC"; break;
+  case InstructionType::TRAP: {
+    operation = "SCALL";
+    spBefore = spAfter + 10;
+    _activeStack = getOrAddStack(spBefore);
+    if (!cf) cf = &_scall;
+    break;
   }
+  case InstructionType::ASSIGNMENT:
+    operation = "SET";
+    _activeStack = getOrAddStack(spAfter);
+    if (!cf) cf = &_movasp;
+    break;
+  }
+  if (cf) cmds_str = QString(*cf.value()).toStdString();
+
+  _logger->info("{: <7} at PC:{:04x} {}  {}", operation, pc, sp_str, cmds_str);
+  if (cf) {
+    processCommandFrame(**cf, spBefore, spAfter);
+    if (futureStack) _activeStack = getOrAddStack(*futureStack);
+  } else { // TODO: mark self as invalid. We had no command for this PC, nor could we synthesize one.
+  }
+}
+
+void pepp::debug::StackTracer::popRecord(quint16 expectedSize) {
+  if (!_activeStack) _logger->warn("        No active stack to return from!");
+  else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("        Top frame is null");
+  else if (auto trecord = tframe->top(); !trecord) _logger->warn("        Top frame record is null");
+  else if (trecord->size != expectedSize)
+    _logger->warn("{: <4} Top frame record was {}B, expected {}B", "", trecord->size, expectedSize);
+  else tframe->popRecord();
+}
+
+void pepp::debug::StackTracer::pushRecord(QString name, quint32 address, quint16 size) {
+  if (!_activeStack) _logger->warn("{: <4} No active stack to push to!", "");
+  else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+  else tframe->pushRecord(Record{.address = address, .size = size, .name = name});
+}
+
+void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, quint16 spBefore, quint16 spAfter) {
+  qint16 expectedDelta = spAfter - spBefore, actualDelta = 0;
+  for (const auto &packet : frame.packets) {
+    for (const auto &op : packet.ops) {
+      switch (to_opcode(op)) {
+      case Opcodes::INVALID: _logger->error("{: <6} Attempting to execute invalid command!", ""); return;
+      case Opcodes::PUSH: {
+        auto memop = std::get<MemoryOp>(op);
+        quint16 size = types::bitness(unbox(memop.type)) / 8;
+        pushRecord(memop.name, spBefore, size);
+        spBefore -= size, actualDelta -= size;
+        _logger->info("{: <7} ALLOC'ed {} bytes", "", size);
+        break;
+      }
+      case Opcodes::POP: {
+        auto memop = std::get<MemoryOp>(op);
+        quint16 size = types::bitness(unbox(memop.type)) / 8;
+        popRecord(size);
+        spBefore += size, actualDelta += size;
+        _logger->info("{: <7} DEALLOC'ed {} bytes", "", size);
+        break;
+      }
+      case Opcodes::CALL: [[fallthrough]];
+      case Opcodes::RET: _logger->error("{: <6} Supposed to be unused", ""); return;
+      case Opcodes::MARK_ACTIVE: {
+        auto faop = std::get<FrameActive>(op);
+        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        else tframe->setActive(faop.active);
+        _logger->info("{: <7} MARK_ACTIVE {}", "", faop.active);
+        break;
+      }
+      case Opcodes::ADD_FRAME: {
+        auto fmop = std::get<FrameManagement>(op);
+        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
+        else _activeStack->pushFrame();
+        _logger->info("{: <7} PUSH_FRAME", "");
+        break;
+      }
+      case Opcodes::REMOVE_FRAME: {
+        auto fmop = std::get<FrameManagement>(op);
+        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        else if (!tframe->empty()) _logger->warn("{: <4} Top frame is not empty", "");
+        else _activeStack->popFrame();
+        _logger->info("{: <7} POP_FRAME", "");
+        break;
+      }
+      }
+    }
+  }
+  if (expectedDelta != actualDelta && !frame.packets.empty())
+    _logger->warn("{: <4} delta SP of {:<+5}, expected {:<+5}", "", actualDelta, expectedDelta);
+}
+
+pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(quint32 address) {
+  std::optional<pepp::debug::Stack *> stack = stackAtAddress(address);
+  if (stack) return stack.value();
+  auto new_stack = std::make_shared<pepp::debug::Stack>(address);
+  new_stack->pushFrame();
+  Q_ASSERT(new_stack->size() > 0);
+  _stacks.push_back(new_stack);
+  std::sort(_stacks.begin(), _stacks.end(),
+            [](auto &lhs, auto &rhs) { return lhs->base_address() < rhs->base_address(); });
+  return new_stack.get();
 }
