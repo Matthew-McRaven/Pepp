@@ -19,6 +19,8 @@
 #include "enums/isa/pep10.hpp"
 #include "enums/isa/pep9.hpp"
 
+targets::isa::IllegalOpcode::IllegalOpcode() : std::runtime_error("Illegal Opcode") {}
+
 template <> quint8 targets::isa::packCSR<isa::Pep10>(bool n, bool z, bool v, bool c) {
   return (n << 3) | (z << 2) | (v << 1) | (c << 0);
 }

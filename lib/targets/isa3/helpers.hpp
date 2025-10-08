@@ -23,6 +23,10 @@
 #include "utils/bits/swap.hpp"
 
 namespace targets::isa {
+class IllegalOpcode : public std::runtime_error {
+public:
+  IllegalOpcode();
+};
 template <typename ISA, typename Address>
 sim::api2::memory::Result readRegister(sim::api2::memory::Target<Address> *target, typename ISA::Register reg,
                                        quint16 &value, sim::api2::memory::Operation op) {

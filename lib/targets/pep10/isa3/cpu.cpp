@@ -721,7 +721,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
   default:
     writeReg(Register::PC, pc);
     _status = Status::IllegalOpcode;
-    throw std::runtime_error("Illegal Opcode");
+    throw ::targets::isa::IllegalOpcode();
   }
 
   // Increment PC and writeback
