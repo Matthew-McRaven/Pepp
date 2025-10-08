@@ -81,7 +81,7 @@ public:
   bool empty() const { return _frames.empty(); }
   Frame &pushFrame() {
     // Consolidate consecutive empty frames.
-    if (!(!_frames.empty() && _frames.back().empty())) _frames.push_back(Frame{});
+    if (_frames.empty() || !_frames.back().empty()) _frames.push_back(Frame{});
     return _frames.back();
   }
   void popFrame() { _frames.pop_back(); }
@@ -145,7 +145,10 @@ private:
   std::shared_ptr<spdlog::logger> _logger;
   void popRecord(quint16 expectedSize);
   void pushRecord(QString name, quint32 address, quint16 size);
-  void processCommandFrame(const pepp::debug::CommandFrame &, quint16 spBefore, quint16 spAfter);
+  // spBefore is prior to executing the instruction, spAfter is after executing it.
+  // spFuture is the stack which we should switch to after processing this command frame.
+  void processCommandFrame(const pepp::debug::CommandFrame &, quint16 spBefore, quint16 spAfter,
+                           std::optional<quint16> spFuture);
   std::string to_string(int left_pad) const;
   // Keep stacks sorted by base address so we can do a binary search.
   container _stacks;

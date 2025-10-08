@@ -134,8 +134,7 @@ void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, In
 
   _logger->info("{: <7} at PC:{:04x} {}  {}", operation, pc, sp_str, cmds_str);
   if (cf) {
-    processCommandFrame(**cf, spBefore, spAfter);
-    if (futureStack) _activeStack = getOrAddStack(*futureStack);
+    processCommandFrame(**cf, spBefore, spAfter, futureStack);
   } else { // TODO: mark self as invalid. We had no command for this PC, nor could we synthesize one.
   }
 }
@@ -155,7 +154,8 @@ void pepp::debug::StackTracer::pushRecord(QString name, quint32 address, quint16
   else tframe->pushRecord(Record{.address = address, .size = size, .name = name});
 }
 
-void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, quint16 spBefore, quint16 spAfter) {
+void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, quint16 spBefore, quint16 spAfter,
+                                                   std::optional<quint16> spFuture) {
   qint16 expectedDelta = spAfter - spBefore, actualDelta = 0;
   for (const auto &packet : frame.packets) {
     for (const auto &op : packet.ops) {
@@ -230,6 +230,10 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
       }
       }
     }
+  }
+  if (spFuture) {
+    _activeStack = getOrAddStack(*spFuture);
+    _logger->info("{: <7} SWITCH to SP:{:04x}", "", *spFuture);
   }
   _logger->info("\n{}", to_string(10));
   if (expectedDelta != actualDelta && !frame.packets.empty())
