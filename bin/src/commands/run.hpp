@@ -19,6 +19,7 @@
 #include "../shared.hpp"
 #include "../task.hpp"
 #include "elfio/elfio.hpp"
+#include "spdlog/logger.h"
 
 class RunTask : public Task {
   // Task interface
@@ -43,6 +44,7 @@ private:
   std::optional<std::string> _osIn;
   bool _forceBm = false;
   QMap<std::string, quint16> _regOverrides;
+  spdlog::logger _log{"Pepp"};
 };
 
 void registerRun(auto &app, task_factory_t &task, detail::SharedFlags &flags) {

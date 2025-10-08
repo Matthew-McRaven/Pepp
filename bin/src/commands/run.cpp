@@ -15,11 +15,15 @@
  */
 
 #include "run.hpp"
+#include "../basic_lazy_sink.hpp"
 #include "../shared.hpp"
 #include "help/builtins/figure.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/simple_bus.hpp"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
 #include "targets/isa3/helpers.hpp"
 #include "targets/isa3/system.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
@@ -33,7 +37,20 @@ auto gs = sim::api2::memory::Operation{
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 
-RunTask::RunTask(int ed, std::string fname, QObject *parent) : Task(parent), _ed(ed), _objIn(fname) {}
+RunTask::RunTask(int ed, std::string fname, QObject *parent) : Task(parent), _ed(ed), _objIn(fname) {
+  auto console_sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
+  console_sink->set_level(spdlog::level::warn);
+  console_sink->set_pattern("%v%");
+
+  QFileInfo pepo(QString::fromStdString(fname));
+  QString errFName = pepo.path() + "/" + pepo.completeBaseName() + ".err.txt";
+  auto file_sink = std::make_shared<spdlog::sinks::basic_lazy_file_sink_mt>(errFName.toStdString(), true);
+  file_sink->set_level(spdlog::level::warn);
+  file_sink->set_pattern("%v");
+  _log.sinks().push_back(console_sink);
+  _log.sinks().push_back(file_sink);
+  _log.flush_on(spdlog::level::warn);
+}
 
 bool RunTask::loadToElf() {
   auto ret = QSharedPointer<ELFIO::elfio>::create();
@@ -61,20 +78,15 @@ bool RunTask::loadToElf() {
   helpers::AsmHelper helper(macroRegistry, osContents);
   auto result = helper.assemble();
   if (!result) {
-    std::cerr << "OS assembly failed" << std::endl;
+    _log.error("OS assembly failed");
     return false;
   }
   QFile objF(QString::fromStdString(_objIn));
   if (!objF.open(QIODevice::ReadOnly | QIODevice::Text)) {
     const QFileInfo fi(objF);
-    std::cerr << "Failed to open object code";
-    std::cerr << "\n  path:        " << _objIn << "\n  absPath:     " << fi.absoluteFilePath().toStdString()
-              << "\n  exists:      " << fi.exists()
-              << "\n  perms:       " << QString::number(int(fi.permissions()), 8).toStdString()
-              << "\n  isReadable:  " << fi.isReadable() << "\n  error:       " << objF.error() << " ("
-              << objF.errorString().toStdString() << ")"
-              << "\n  cwd:         " << QDir::currentPath().toStdString()
-              << "\n  appDir:      " << QCoreApplication::applicationDirPath().toStdString();
+    _log.error("Failed to open object code");
+    _log.error("  path: {}\n  absPath: {}", _objIn, fi.absoluteFilePath().toStdString());
+    _log.error("  erno: {}\n  errpr: {}", (int)objF.error(), objF.errorString().toStdString());
     return false;
   }
   auto objText = objF.readAll().toStdString();
@@ -101,7 +113,7 @@ void RunTask::run() {
       break;
     default:
       static const char *const e = "Unhandled book";
-      qCritical(e);
+      _log.critical(e);
       throw std::logic_error(e);
     }
     bool ok = true;
@@ -110,7 +122,7 @@ void RunTask::run() {
     auto regEnu = enu.keyToValue(transformed.c_str(), &ok);
     if (!ok) {
       static const char *const e = "Invalid register";
-      qCritical(e);
+      _log.critical(e);
       throw std::logic_error(e);
     }
     auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
@@ -145,25 +157,22 @@ void RunTask::run() {
     std::cout << u"%1=%2"_s.arg(regName).arg(QString::number(tmp, 16), 4, '0').toStdString() << " ";
   };
   bool noMMI = false;
+
   try {
     while (system->currentTick() < _maxSteps && !endpoint->next_value().has_value())
       system->tick(sim::api2::Scheduler::Mode::Jump);
   } catch (const sim::api2::memory::Error &e) {
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
       noMMI = true;
-    } else
-      std::cerr << "Memory error: " << e.what() << std::endl;
-  }
-  if (noMMI) {
-    std::cout << "Program requested data from charIn, but no data is present. "
-                 "Terminating.\n";
+    } else _log.error("Memory error: {}", e.what());
   } catch (const targets::isa::IllegalOpcode &e) {
-    std::cerr << "Program attempted to execute an illegal opcode.\nTerminating" << std::endl;
+    _log.error("Program attempted to execute an illegal opcode.\nTerminating");
     return emit finished(12);
   }
+
+  if (noMMI) _log.error("Program requested data from charIn, but no data is present.");
   if (system->currentTick() >= _maxSteps) {
-    std::cout << "Exceeded max number of steps. Possible infinite loop\n";
-    // Write to console that an infinite loop was detected.
+    _log.error("Exceeded max number of steps. Possible infinite loop");
   }
   if (auto charOut = system->output("charOut"); !_charOut.empty() && charOut) {
     auto charOutEndpoint = charOut->endpoint();
