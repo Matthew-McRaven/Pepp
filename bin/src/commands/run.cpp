@@ -157,6 +157,9 @@ void RunTask::run() {
   if (noMMI) {
     std::cout << "Program requested data from charIn, but no data is present. "
                  "Terminating.\n";
+  } catch (const targets::isa::IllegalOpcode &e) {
+    std::cerr << "Program attempted to execute an illegal opcode.\nTerminating" << std::endl;
+    return emit finished(12);
   }
   if (system->currentTick() >= _maxSteps) {
     std::cout << "Exceeded max number of steps. Possible infinite loop\n";
