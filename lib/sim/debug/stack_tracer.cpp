@@ -170,16 +170,16 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         else tframe->setActive(true);
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
-        pushRecord(memop.name, spBefore, size);
         spBefore -= size, actualDelta -= size;
+        pushRecord(memop.name, spBefore, size);
         _logger->info("{: <7} CALL'ed {} bytes", "", size);
         break;
       }
       case Opcodes::PUSH: {
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
-        pushRecord(memop.name, spBefore, size);
         spBefore -= size, actualDelta -= size;
+        pushRecord(memop.name, spBefore, size);
         _logger->info("{: <7} ALLOC'ed {} bytes", "", size);
         break;
       }
