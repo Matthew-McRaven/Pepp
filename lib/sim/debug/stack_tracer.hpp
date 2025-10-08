@@ -64,7 +64,7 @@ public:
   quint32 base_address() const { return _baseAddress; }
   quint32 top_address() const {
     quint32 address = 0;
-    for (const auto &it : std::as_const(_frames)) address = qMax(address, it.top_address());
+    for (const auto &it : std::as_const(_frames)) address = qMin(address, it.top_address());
     return address;
   }
   bool contains(quint32 address) const {
