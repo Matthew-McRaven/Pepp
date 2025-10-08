@@ -1,19 +1,49 @@
 #include "stack_tracer.hpp"
 #include <spdlog/spdlog.h>
+#include "fmt/ranges.h"
+
+pepp::debug::Frame::operator std::vector<std::string>() const {
+  const auto end = _records.size();
+  const char fill_char = _active ? '=' : '-';
+  if (end == 0) return {};
+  std::vector<std::string> inner(end + 2);
+
+  // Must reverse order to maintain correct order.
+  for (int it = 0; it < end; it++)
+    inner[(end - it - 1) + 1] = fmt::format("{0} {1} {0}", fill_char, std::string(_records[it]));
+  inner[0] = inner.back() = std::string(19, fill_char);
+  return inner;
+}
+
+std::vector<std::string> pepp::debug::Stack::to_string(int left_pad) const {
+  int count = 0;
+  for (const auto &frame : _frames) count += frame.size() + 2;
+  std::vector<std::string> ret(count);
+  auto lpad = std::string(left_pad, ' ');
+
+  int it = 0;
+  for (auto frame = _frames.rbegin(); frame != _frames.rend(); ++frame) {
+    auto lines = std::vector<std::string>(*frame);
+    for (const auto &line : lines) ret[it++] = lpad + line;
+  }
+  return ret;
+}
 
 pepp::debug::StackTracer::StackTracer() : _logger(spdlog::get("debugger::stack")) {}
 
 void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_info) {
   _debug_info = debug_info;
   _lastSP = std::nullopt;
+  _activeStack = nullptr;
+  _stacks.clear();
   using namespace pepp::debug::types;
   BoxedType u16 = _debug_info.typeInfo->box(types::Primitives::u16);
   BoxedType i16 = _debug_info.typeInfo->box(types::Primitives::i16);
   BoxedType u8 = _debug_info.typeInfo->box(types::Primitives::u8);
   _call = CommandFrame{.packets = {CommandPacket{
-                           .modifiers = {}, .ops = {MemoryOp{.op = Opcodes::PUSH, .name = "retAddr", .type = u16}}}}};
+                           .modifiers = {}, .ops = {MemoryOp{.op = Opcodes::CALL, .name = "retAddr", .type = u16}}}}};
   _ret = CommandFrame{.packets = {CommandPacket{
-                          .modifiers = {}, .ops = {MemoryOp{.op = Opcodes::POP, .name = "retAddr", .type = u16}}}}};
+                          .modifiers = {}, .ops = {MemoryOp{.op = Opcodes::RET, .name = "retAddr", .type = u16}}}}};
   _scall = CommandFrame{
       .packets = {CommandPacket{
           .modifiers = {},
@@ -131,12 +161,38 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
     for (const auto &op : packet.ops) {
       switch (to_opcode(op)) {
       case Opcodes::INVALID: _logger->error("{: <6} Attempting to execute invalid command!", ""); return;
+      case Opcodes::CALL: {
+        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        // If frame is already active, then call  initiates new frame AND marks it active.
+        else if (tframe->active()) _activeStack->pushFrame().setActive(true);
+        // Otherwise it just activates the frame
+        else tframe->setActive(true);
+        auto memop = std::get<MemoryOp>(op);
+        quint16 size = types::bitness(unbox(memop.type)) / 8;
+        pushRecord(memop.name, spBefore, size);
+        spBefore -= size, actualDelta -= size;
+        _logger->info("{: <7} CALL'ed {} bytes", "", size);
+        break;
+      }
       case Opcodes::PUSH: {
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
         pushRecord(memop.name, spBefore, size);
         spBefore -= size, actualDelta -= size;
         _logger->info("{: <7} ALLOC'ed {} bytes", "", size);
+        break;
+      }
+      case Opcodes::RET: {
+        auto memop = std::get<MemoryOp>(op);
+        quint16 size = types::bitness(unbox(memop.type)) / 8;
+        popRecord(size);
+        spBefore += size, actualDelta += size;
+        _logger->info("{: <7} RET'ed {} bytes", "", size);
+        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        else if (tframe->empty()) _activeStack->popFrame();
+        else tframe->setActive(false);
         break;
       }
       case Opcodes::POP: {
@@ -147,8 +203,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         _logger->info("{: <7} DEALLOC'ed {} bytes", "", size);
         break;
       }
-      case Opcodes::CALL: [[fallthrough]];
-      case Opcodes::RET: _logger->error("{: <6} Supposed to be unused", ""); return;
+
       case Opcodes::MARK_ACTIVE: {
         auto faop = std::get<FrameActive>(op);
         if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
@@ -176,8 +231,34 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
       }
     }
   }
+  _logger->info("\n{}", to_string(10));
   if (expectedDelta != actualDelta && !frame.packets.empty())
     _logger->warn("{: <4} delta SP of {:<+5}, expected {:<+5}", "", actualDelta, expectedDelta);
+}
+
+std::string pepp::debug::StackTracer::to_string(int left_pad) const {
+  std::list<std::vector<std::string>> temp_stacks;
+  std::size_t longest = 0;
+  for (const auto &stack : _stacks) {
+    auto vec = stack->to_string(0);
+    longest = std::max(vec.size(), longest);
+    temp_stacks.emplace(temp_stacks.begin(), std::move(vec));
+  }
+  if (longest == 0) return "";
+  std::vector<std::string> joined_lines(longest);
+
+  std::ranges::reverse(temp_stacks);
+
+  for (const auto &temp_stack : temp_stacks) {
+    int it = 0;
+    for (const auto &line : temp_stack) {
+      if (joined_lines[it].empty()) joined_lines[it++] = line;
+      else joined_lines[it++] += std::string("    ") + line;
+    }
+    for (; it < joined_lines.size(); it++) joined_lines[it] += std::string(19, ' ');
+  }
+  std::string joiner = fmt::format("\n{}", std::string(left_pad, ' '));
+  return fmt::format("{}{}\n", joiner, fmt::join(joined_lines.begin(), joined_lines.end(), joiner));
 }
 
 pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(quint32 address) {

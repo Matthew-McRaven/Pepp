@@ -6,6 +6,7 @@ class Record {
 public:
   quint32 address, size;
   QString name;
+  inline operator std::string() const { return fmt::format("{: <7}    {:04x}", name.toStdString(), address); }
 };
 
 class Frame {
@@ -41,6 +42,7 @@ public:
     if (_records.empty()) return nullptr;
     return &_records.back();
   }
+  operator std::vector<std::string>() const;
 
 private:
   container _records = {};
@@ -77,12 +79,13 @@ public:
   const_iterator end() const { return _frames.cend(); }
   std::size_t size() const { return _frames.size(); }
   bool empty() const { return _frames.empty(); }
-  void pushFrame() {
+  Frame &pushFrame() {
     // Consolidate consecutive empty frames.
-    if (!_frames.empty() && _frames.back().empty()) return;
-    else _frames.push_back(Frame{});
+    if (!(!_frames.empty() && _frames.back().empty())) _frames.push_back(Frame{});
+    return _frames.back();
   }
   void popFrame() { _frames.pop_back(); }
+  std::vector<std::string> to_string(int left_pad) const;
 
 private:
   container _frames = {};
@@ -143,7 +146,7 @@ private:
   void popRecord(quint16 expectedSize);
   void pushRecord(QString name, quint32 address, quint16 size);
   void processCommandFrame(const pepp::debug::CommandFrame &, quint16 spBefore, quint16 spAfter);
-
+  std::string to_string(int left_pad) const;
   // Keep stacks sorted by base address so we can do a binary search.
   container _stacks;
   std::optional<quint16> _lastSP;
