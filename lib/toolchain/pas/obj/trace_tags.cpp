@@ -127,10 +127,8 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
     packet.ops.emplace_back(StackOp{MemoryOp{opcode, name, type}});
   } else if (cmd == "locals" || cmd == "param" || cmd == "params") {
     // Add stack frame init or deinit ops, since params create/delete a stack frame.
-    if (cmd == "param" || cmd == "params") {
-      if (is_push) packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::ADD_FRAME}});
-      else packet.ops.emplace_back(StackOp{FrameActive{false}});
-    }
+    if ((cmd == "param" || cmd == "params") && is_push)
+      packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::ADD_FRAME}});
 
     const auto opcode = is_push ? Opcodes::PUSH : Opcodes::POP;
     for (const auto &arg : std::as_const(args)) {
@@ -146,10 +144,9 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
     }
 
     // Add stack frame init or deinit ops, since params create/delete a stack frame.
-    if (cmd == "param" || cmd == "params") {
-      if (is_push) packet.ops.emplace_back(StackOp{FrameActive{true}});
-      else packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::REMOVE_FRAME}});
-    }
+    if ((cmd == "param" || cmd == "params") && !is_push)
+      packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::REMOVE_FRAME}});
+
   } else {
     qDebug() << "Unhandled debug command:" << it->command;
     return;
