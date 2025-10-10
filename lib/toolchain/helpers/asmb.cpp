@@ -97,36 +97,33 @@ QStringList helpers::AsmHelper::errors() {
   if (!lexErrs.empty() && !_osRoot) {
     ret << "OS Lexical Errors:\n";
     for (const auto &err : lexErrs.asKeyValueRange()) {
-      ret << ";Line " << QString::number(err.first + 1) << "\n";
       auto splitOS = _os.split("\n");
-      if (err.first < splitOS.size()) ret << splitOS[err.first];
-      ret << " ;ERROR: " << err.second << "\n";
+      ret << QStringLiteral(";Line %1").arg(QString::number(err.first + 1));
+      ret << QStringLiteral("%1 ;ERROR: %2").arg(splitOS[err.first]).arg(err.second);
     }
   }
   if (!osErrors.empty()) {
     ret << "OS Errors:\n";
     auto splitOS = _os.split("\n");
     for (const auto &err : osErrors) {
-      ret << ";Line " << QString::number(err.first.value.line + 1) << "\n";
-      ret << splitOS[err.first.value.line] << " ;ERROR: " << err.second.message << "\n";
+      ret << QStringLiteral(";Line %1").arg(QString::number(err.first.value.line + 1));
+      ret << QStringLiteral("%1 ;ERROR: %2").arg(splitOS[err.first.value.line]).arg(err.second.message);
     }
-    if (_user) ret << "User Errors:\n";
   }
-  if (!lexErrs.empty() && !_userRoot) {
+  if (!lexErrs.empty() && !_userRoot && _user) {
     ret << "User Lexical Errors:\n";
     for (const auto &err : lexErrs.asKeyValueRange()) {
-      ret << ";Line " << QString::number(err.first + 1) << "\n";
-      auto splitOS = _os.split("\n");
-      if (err.first < splitOS.size()) ret << splitOS[err.first];
-      ret << " ;ERROR: " << err.second << "\n";
+      auto splitUser = _user->split("\n");
+      ret << QStringLiteral(";Line %1").arg(QString::number(err.first + 1));
+      ret << QStringLiteral("%1 ;ERROR: %2").arg(splitUser[err.first]).arg(err.second);
     }
   }
   if (!userErrors.empty()) {
+    ret << "User Errors:\n";
     auto splitUser = _user->split("\n");
     for (const auto &err : userErrors) {
-      ret << ";Line " << QString::number(err.first.value.line + 1) << "\n";
-      if (err.first.value.line < userErrors.size()) ret << splitUser[err.first.value.line];
-      ret << " ;ERROR: " << err.second.message << "\n";
+      ret << QStringLiteral(";Line %1").arg(QString::number(err.first.value.line + 1));
+      ret << QStringLiteral("%1 ;ERROR: %2").arg(splitUser[err.first.value.line]).arg(err.second.message);
     }
   }
   return ret;
