@@ -43,8 +43,6 @@ Item {
     onArchitectureChanged: filterComboCoalesce.restart()
     onAbstractionChanged: filterComboCoalesce.restart()
 
-    property var selected
-
     // Make sure the drawer is always at least as wide as the text
     // There was an issue in WASM where the titles clipper the center area
     TextMetrics {
@@ -100,7 +98,17 @@ Item {
         TreeView {
             id: treeView
             Layout.preferredWidth: textMetrics.width
-            selectionModel: ItemSelectionModel {}
+            selectionModel: ItemSelectionModel {
+                onCurrentIndexChanged: {
+                    treeView.expandToIndex(currentIndex);
+                    const props = helpModel.data(currentIndex, HelpModel.Props);
+                    if (props && !("architecture" in props))
+                        props["architecture"] = helpModel.architecture ?? Architecture.PEP10;
+                    const url = helpModel.data(currentIndex, HelpModel.Delegate);
+                    if (url !== undefined)
+                        contentLoader.setSource(url, props);
+                }
+            }
             Layout.fillHeight: true
             clip: true
             boundsMovement: Flickable.StopAtBounds
@@ -111,8 +119,15 @@ Item {
                 architecture: filterCombo.currentValue.architecture ?? 0
                 abstraction: filterCombo.currentValue.abstraction ?? 0
                 showWIPItems: settings.general.showDebugComponents
-                onAbstractionChanged: root.selected = treeView.index(0, 0)
-                onArchitectureChanged: root.selected = treeView.index(0, 0)
+                onAbstractionChanged: {
+                    const idx = treeView.index(0, 0);
+                    treeView.selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect);
+                }
+
+                onArchitectureChanged: {
+                    const idx = treeView.index(0, 0);
+                    treeView.selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect);
+                }
                 Component.onCompleted: {
                     helpModel.sort(0, Qt.AscendingOrder);
                 }
@@ -144,11 +159,11 @@ Item {
 
                 //  Cannot override collapse or expand in onClicked, or it overrides default
                 //  control behavior.
-                onClicked: makeActive();
+                onClicked: makeActive()
 
                 function makeActive() {
-                    root.selected = treeDelegate.treeView.index(row, column);
-                    treeDelegate.treeView.selectionModel.setCurrentIndex(root.selected, ItemSelectionModel.NoUpdate);
+                    const idx = treeDelegate.treeView.index(row, column);
+                    treeDelegate.treeView.selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect);
                 }
             }
         }
@@ -199,10 +214,8 @@ Item {
                     function onNavigateTo(link) {
                         if (link.startsWith("slug:")) {
                             const idx = helpModel.indexFromSlug(link);
-                            if (idx.valid) {
-                                root.selected = Qt.binding(() => idx);
-                                treeView.expandToIndex(root.selected);
-                            }
+                            if (idx.valid)
+                                treeView.selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect);
                         } else
                             Qt.openUrlExternally(link);
                     }
@@ -224,14 +237,4 @@ Item {
     signal setCharIn(string text)
 
     signal switchToMode(string mode)
-
-    onSelectedChanged: {
-        const props = helpModel.data(selected, HelpModel.Props);
-        treeView.selectionModel.setCurrentIndex(root.selected, ItemSelectionModel.NoUpdate);
-        if (props && !("architecture" in props))
-            props["architecture"] = helpModel.architecture ?? Architecture.PEP10;
-        const url = helpModel.data(selected, HelpModel.Delegate);
-        if (url !== undefined)
-            contentLoader.setSource(url, props);
-    }
 }
