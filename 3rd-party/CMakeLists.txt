@@ -1,3 +1,5 @@
+include(ExternalProject)
+
 add_subdirectory(catch)
 ADD_SUBDIRECTORY(elfio)
 ADD_SUBDIRECTORY(cli)
@@ -29,6 +31,22 @@ set(KDDockWidgets_STATIC TRUE CACHE BOOL "" FORCE)
 set(KDDockWidgets_QML_MODULE TRUE CACHE BOOL "" FORCE)
 set(KDAB_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(KDDockWidgets/)
+
+# CXXGraph has some annoying packaging "stuff" for being a header-only library (e.g., a CPM.cmake requirement).
+# So, I grabbed the most recent release, and disable the ability to compile/update/install it.
+# Using a release because the release sets the correct values for the config header version.
+ExternalProject_Add(cxxgraph_helper
+  SOURCE_DIR        ${CMAKE_CURRENT_LIST_DIR}/cxxgraph
+  CONFIGURE_COMMAND ""      # no configure step (header-only)
+  BUILD_COMMAND     ""      # no build step
+  INSTALL_COMMAND   ""      # no install step
+  UPDATE_COMMAND    ""      # disable VCS updates
+)
+# External project is UTILITY, which has issues with connecting to my existing targets.
+# Create a dummy target which propogates include directories and ensures that the code is cloned.
+add_library(cxxgraph INTERFACE)
+target_include_directories(cxxgraph INTERFACE ${CMAKE_CURRENT_LIST_DIR}/cxxgraph/include)
+add_dependencies(cxxgraph cxxgraph_helper)
 
 # Inject --bind flag into KDDockWidgets targets on WASM builds
 if(EMSCRIPTEN)

@@ -60,6 +60,7 @@ TEST_CASE("Serialize type info", "[scope:debug][kind:unit][arch:*]") {
     };
     pepp::debug::types::Type _struct = types::Struct{2, members};
     nti.register_direct(_struct);
+    nti.register_indirect("hi_world");
     auto [data, in, out] = zpp::bits::data_in_out();
     CHECK(nti.serialize(out, nti) == std::errc());
     CHECK(data.size() > 4);

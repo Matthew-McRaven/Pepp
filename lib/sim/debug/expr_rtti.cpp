@@ -4,7 +4,8 @@
 
 pepp::debug::types::TypeInfo::TypeInfo() {
   Type never = types::Never{};
-  _indirectTypes.emplace_back(box(never));
+  _indirectTypes.indirectTypes[IndirectHandle(0)] = Versioned<OptType>{box(never)};
+  _nameToIndirect[0] = IndirectHandle(0);
   auto register_primitive = [this](types::Primitives t) {
     auto hnd = DirectHandle(t);
     auto shared = pepp::debug::types::box(t);
@@ -39,7 +40,7 @@ pepp::debug::types::TypeInfo::DirectHandle::DirectHandle(Primitives t)
   case Primitives::u32: break;
   default:
     // If you hit this, you need to update TypeInfo CTOR to register the primitive and then add a case
-    throw std::logic_error("Unreachable cae in DirectHandle CTOR");
+    throw std::logic_error("Unreachable case in DirectHandle CTOR");
   }
 }
 
@@ -110,10 +111,10 @@ pepp::debug::types::TypeInfo::register_indirect(const QString &name) {
   QMutexLocker locker(&_mut);
   if (const auto it = _nameToIndirect.find(name); it != _nameToIndirect.end()) return {false, it->second};
   else {
-    IndirectHandle hnd((quint16)_indirectTypes.size());
+    IndirectHandle hnd((quint16)_nameToIndirect.size());
     Type t = types::Never{};
     auto [boxed_type, _] = add_or_get_direct(t);
-    _indirectTypes.emplace_back(Versioned<OptType>{boxed_type});
+    _indirectTypes.indirectTypes[hnd] = (Versioned<OptType>{boxed_type});
     _nameToIndirect[name] = hnd;
     return {true, hnd};
   }
@@ -129,9 +130,11 @@ pepp::debug::types::TypeInfo::get_indirect(const QString &name) const {
 void pepp::debug::types::TypeInfo::set_indirect_type(const IndirectHandle &indirect, const DirectHandle &direct) {
   auto type = type_from(direct); // Locks a mutex so it must occur before our critical section
   QMutexLocker locker(&_mut);
-  if (indirect._index < 1 || indirect._index >= _indirectTypes.size())
+  if (indirect._index < 1 || indirect._index >= _nameToIndirect.size())
     throw std::out_of_range("Invalid indirect handle");
-  else if (auto &item = _indirectTypes[indirect._index]; item.type != type) item.type = type, item.version++;
+  else if (auto it = _indirectTypes.indirectTypes.find(indirect); it == _indirectTypes.indirectTypes.end())
+    _indirectTypes.indirectTypes[indirect] = Versioned<OptType>{type};
+  else it->second.type = type, it->second.version++;
 }
 
 void pepp::debug::types::TypeInfo::set_indirect_type(const QString &name, const DirectHandle &direct) {
@@ -144,14 +147,20 @@ void pepp::debug::types::TypeInfo::set_indirect_type(const QString &name, const 
 void pepp::debug::types::TypeInfo::clear_indirect_types() {
   QMutexLocker locker(&_mut);
   Type t = types::Never{};
-  auto never = box(t); // Reset all indirect types to Never.
-  std::fill(_indirectTypes.begin(), _indirectTypes.end(), Versioned<OptType>{never});
+  auto never = box(t);
+  _indirectTypes.indirectTypes.clear();
+  _indirectTypes.indirectTypes[IndirectHandle(0)] = Versioned<OptType>{never};
 }
 
 pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::type_from(IndirectHandle handle) const {
-  QMutexLocker locker(&_mut);
-  if (handle._index < 0 || handle._index >= _indirectTypes.size()) throw std::out_of_range("Invalid handle index");
-  else return _indirectTypes[handle._index].type;
+  Type t = types::Never{};
+  {
+    QMutexLocker locker(&_mut); // box uses a mutex, so we need to free the mutex before that return.
+    if (handle._index < 0 || handle._index >= _nameToIndirect.size()) throw std::out_of_range("Invalid handle index");
+    else if (auto it = _indirectTypes.indirectTypes.find(handle); it != _indirectTypes.indirectTypes.end())
+      return it->second.type;
+  }
+  return box(t).value();
 }
 
 pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::type_from(DirectHandle handle) const {
@@ -163,9 +172,14 @@ pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::type_from(DirectHand
 
 pepp::debug::Versioned<pepp::debug::types::OptType>
 pepp::debug::types::TypeInfo::versioned_from(IndirectHandle handle) const {
-  QMutexLocker locker(&_mut);
-  if (handle._index < 0 || handle._index >= _indirectTypes.size()) throw std::out_of_range("Invalid handle index");
-  else return _indirectTypes[handle._index];
+  Type t = types::Never{};
+  {
+    QMutexLocker locker(&_mut); // box uses a mutex, so we need to free the mutex before that return.
+    if (handle._index < 0 || handle._index >= _nameToIndirect.size()) throw std::out_of_range("Invalid handle index");
+    else if (auto it = _indirectTypes.indirectTypes.find(handle); it != _indirectTypes.indirectTypes.end())
+      return it->second;
+  }
+  return Versioned<OptType>{box(t).value()};
 }
 
 uint32_t pepp::debug::types::TypeInfo::version_of(IndirectHandle) const {
@@ -208,7 +222,17 @@ void pepp::debug::types::TypeInfo::extract_strings(StringInternPool &f) const {
 
 std::weak_ordering pepp::debug::types::TypeInfo::operator<=>(const TypeInfo &rhs) const {
   if (auto r = _directTypes <=> rhs._directTypes; r != 0) return r;
-  return _nameToIndirect <=> rhs._nameToIndirect;
+  else if (auto r = _nameToIndirect <=> rhs._nameToIndirect; r != 0) return r;
+  // Roll our own comparison for this map so that I can ignore versions for indirect types.
+  // Iterators are already sorted by key using std::less, so direct comparison is fine.
+  else if (auto r = _indirectTypes.indirectTypes.size() <=> rhs._indirectTypes.indirectTypes.size(); r != 0) return r;
+  auto lhs_it = _indirectTypes.indirectTypes.begin(), rhs_it = rhs._indirectTypes.indirectTypes.begin();
+  while (lhs_it != _indirectTypes.indirectTypes.end() && rhs_it != rhs._indirectTypes.indirectTypes.end()) {
+    if (auto cmp = lhs_it->first <=> rhs_it->first; cmp != 0) return cmp;
+    else if (auto cmp = lhs_it->second.type <=> rhs_it->second.type; cmp != 0) return cmp;
+    ++lhs_it, ++rhs_it;
+  }
+  return std::weak_ordering::equivalent;
 }
 
 bool pepp::debug::types::TypeInfo::operator==(const TypeInfo &rhs) const {
@@ -236,3 +260,30 @@ pepp::debug::types::TypeInfo::add_or_get_direct(Type &t) {
 std::strong_ordering pepp::debug::types::OptType::operator<=>(const OptType &rhs) const { return type <=> rhs.type; }
 
 bool pepp::debug::types::OptType::operator==(const OptType &rhs) const { return type == rhs.type; }
+
+// Replace all literal \n characters with "\n" literally.
+QString sanitize_bash_n(QString str) { return str.replace("\n", "\\n"); }
+
+QDebug pepp::debug::types::operator<<(QDebug debug, const TypeInfo &h) {
+  debug.noquote() << "Direct Types:\n";
+  for (const auto &[key, value] : h._directTypes) {
+    debug.noquote()
+        << QStringLiteral("%1 -> %2\n").arg(value.first.index(), 5).arg(sanitize_bash_n(types::to_string(unbox(key))));
+  }
+  debug.noquote() << "\nIndirect Types:\n";
+  for (const auto &[key, value] : h._nameToIndirect) {
+    auto it = h._indirectTypes.indirectTypes.find(value);
+    QString filler = "(not registered)";
+    if (it != h._indirectTypes.indirectTypes.end()) filler = sanitize_bash_n(types::to_string(unbox(it->second.type)));
+    debug.noquote() << QStringLiteral("%1 (%2) -> %3\n").arg(value.index(), 3).arg(key.toStdString(), 10).arg(filler);
+  }
+  return debug;
+}
+
+std::ostream &pepp::debug::types::operator<<(std::ostream &os, const TypeInfo::IndirectHandle &h) {
+  return os << "IndirectHandle(" << h._index << ")";
+}
+
+std::istream &pepp::debug::types::operator>>(std::istream &, TypeInfo::IndirectHandle &) {
+  throw std::runtime_error("IndirectHandle does not support input");
+}

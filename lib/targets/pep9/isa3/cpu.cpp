@@ -194,13 +194,13 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
 
   case mn::RET:
     _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (_dbg) _dbg->notifyRet(pc - 1);
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
     if (swap) tmp = bits::byteswap(tmp);
     pc = tmp;
-    writeReg(Register::SP, sp + 2);
+    writeReg(Register::SP, sp += 2);
     decrDepth();
+    if (_dbg) _dbg->notifyRet(pc - 1, sp);
     break;
   case mn::RETTR:
     // Fill ctx with all register's current values.
@@ -235,11 +235,12 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     if (swap) tmp = bits::byteswap(tmp);
     _memory->write(static_cast<quint16>(::isa::Pep9::MemoryVectors::SystemStackPtr),
                    {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    decrDepth();
     if (_dbg) {
       _dbg->bps->notifyPCChanged(readReg(Register::PC));
-      _dbg->notifyTrapRet(pc - 1);
+      _dbg->notifyTrapRet(pc - 1, readReg(Register::SP));
     }
-    decrDepth();
+    // Skip "normal" return path, since we've already written to PC.
     return {.pause = 0, .delay = 1};
 
   case mn::MOVSPA: writeReg(Register::A, sp); break;
@@ -415,7 +416,6 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     // Read trap handler pc.
     _memory->read(static_cast<quint16>(::isa::Pep9::MemoryVectors::TrapHandler), {reinterpret_cast<quint8 *>(&tmp), 2},
                   rw_d);
-    if (_dbg) _dbg->notifyTrapCall(startPC);
     if (swap) tmp = bits::byteswap(tmp);
     pc = tmp;
     // Though not part of the specification, clear out the index register to
@@ -424,6 +424,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     // so we have to fix it here.
     writeReg(Register::X, 0);
     incrDepth();
+    if (_dbg) _dbg->notifyTrapCall(startPC, readReg(Register::SP));
     break;
   default:
     writeReg(Register::PC, pc);
@@ -465,22 +466,22 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
   case mn::BRV: pc = v ? operand : pc; break;
   case mn::BRC: pc = c ? operand : pc; break;
   case mn::CALL:
-    if (_dbg) _dbg->notifyCall(pc - 3);
     // Write PC to stack
     tmp = swap ? bits::byteswap(pc) : pc;
     _memory->write(sp -= 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     pc = operand;
     writeReg(Register::SP, sp);
     incrDepth();
+    if (_dbg) _dbg->notifyCall(pc - 3, sp);
     break;
 
   case mn::ADDSP:
-    writeReg(Register::SP, sp + operand);
-    if (_dbg) _dbg->notifyAddSP(pc - 3);
+    writeReg(Register::SP, sp += operand);
+    if (_dbg) _dbg->notifyAddSP(pc - 3, sp);
     break;
   case mn::SUBSP:
-    writeReg(Register::SP, sp - operand);
-    if (_dbg) _dbg->notifySubSP(pc - 3);
+    writeReg(Register::SP, sp -= operand);
+    if (_dbg) _dbg->notifySubSP(pc - 3, sp);
     break;
 
   case mn::ADDA:

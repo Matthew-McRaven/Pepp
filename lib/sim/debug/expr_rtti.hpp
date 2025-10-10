@@ -1,4 +1,5 @@
 #pragma once
+#include <QtCore/qdebug.h>
 #include <QtCore/qmutex.h>
 #include <map>
 #include <zpp_bits.h>
@@ -36,10 +37,14 @@ public:
     bool operator==(const DirectHandle &rhs) const;
     std::strong_ordering operator<=>(const DirectHandle &rhs) const;
     MetaType metatype() const;
+    // Helper to pretty-print the handle.
+    quint16 index() const { return ((_metatype & 0x7) << 13) | (_type & 0x1FFF); }
+    inline operator QString() const { return QStringLiteral("DirectHandle(%1)").arg(index()); }
 
   private:
     friend class TypeInfo;
     DirectHandle(MetaType, quint16);
+
     // Must be allowed to cast to MetaType
     quint16 _metatype : 3;
     // Remaining 13 bits to distingush within the metatype.
@@ -56,9 +61,11 @@ public:
   BoxedType box(types::Primitives);           // Primitive types should be registered by default in CTOR.
 
   // A token you can give back to this class to get a type in the future.
-  // Secretly an index into the _handles vector.
-  // The underlying type for the indirect handle can be changed at any time.
-  // Essentially enables forward declared types.
+  // The underlying type for the indirect handle may be changed at any time.
+  // IndirectHandle{0} must always correspond to never.
+  // I expect it to be used one of two ways:
+  // 1) forward declarations. types are initialized to Never and filled in as we reach declarations.
+  // 2) Association names to types (e.g., trace tags and typedefs), types should be filled immediately.
   struct IndirectHandle {
     IndirectHandle() = default;
     IndirectHandle(const IndirectHandle &) = default;
@@ -67,18 +74,29 @@ public:
     IndirectHandle &operator=(IndirectHandle &&) = default;
     bool operator==(const IndirectHandle &rhs) const;
     std::strong_ordering operator<=>(const IndirectHandle &rhs) const;
+    friend std::ostream &operator<<(std::ostream &, const IndirectHandle &);
+    friend std::istream &operator>>(std::istream &is, IndirectHandle &h);
+    // Helper to pretty-print the handle.
+    inline quint16 index() const { return _index; }
+    inline operator QString() const { return QStringLiteral("IndirectHandle(%1)").arg(_index); }
 
   private:
     explicit IndirectHandle(quint16 index);
     friend class TypeInfo;
     quint16 _index = 0;
   };
+
+  // Allows us to have multiple sets of {name:type} bindings, which will be useful when switching between source files.
+  struct IndirectScope {
+    // [0] must always be set, and must always be Never.
+    std::map<TypeInfo::IndirectHandle, Versioned<OptType>> indirectTypes;
+  };
   // [0] is true if the name was not yet registered.
   // [1] unconditionally contains the handle for that name, regardless of registration status.
   std::pair<bool, IndirectHandle> register_indirect(const QString &);
   // Return handle for a name if it exists, else nullopt.
   std::optional<IndirectHandle> get_indirect(const QString &) const;
-  // While DirectHandle will be converted to a BoxedType internally, it prevents you from passing any old pointer in.
+  // While DirectHandle will be converted to a BoxedType internally, it prevents you from passing any pointer in.
   void set_indirect_type(const IndirectHandle &, const DirectHandle &);
   void set_indirect_type(const QString &, const DirectHandle &);
   // Set all indirect types to Never.
@@ -115,8 +133,7 @@ private:
 
   // Members for indirect types
   std::map<QString, IndirectHandle> _nameToIndirect;
-  // [0] must always be Never, because I have trust issues with null objects.
-  std::vector<Versioned<OptType>> _indirectTypes;
+  IndirectScope _indirectTypes;
   void extract_strings(StringInternPool &f) const;
 
 public:
@@ -124,18 +141,20 @@ public:
   // idempotent. _indirectTypes are ignored because they are tied to simulator state and not the set of declared types.
   std::weak_ordering operator<=>(const TypeInfo &rhs) const;
   bool operator==(const TypeInfo &rhs) const;
-
-  static zpp::bits::errc serialize(auto &archive, auto &self) {
+  friend QDebug operator<<(QDebug debug, const TypeInfo &h);
+  static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *h = nullptr) {
+    SerializationHelper tmp;
+    if (!h) h = &tmp; // If no helper is provided, use a temporary one.
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
-      SerializationHelper h;
+
       // Pool & intern strings before serializing.
-      self.extract_strings(h._strs);
-      auto s = std::span(h._strs.data(), h._strs.size());
+      self.extract_strings(h->_strs);
+      auto s = std::span(h->_strs.data(), h->_strs.size());
       if (auto errc = archive(s); errc.code != std::errc()) return errc;
 
       // Extract toplological sorting info into SerializationHelper
-      for (const auto &[key, value] : self._directTypes) h._type_to_index[key] = value.second;
+      for (const auto &[key, value] : self._directTypes) h->_type_to_index[key] = value.second;
       // Extract & sort boxed types by their topological index.
       std::vector<BoxedType> b;
       std::transform(self._directTypes.begin(), self._directTypes.end(), std::back_inserter(b),
@@ -148,47 +167,71 @@ public:
       if (auto errc = archive((quint16)b.size()); errc.code != std::errc()) return errc;
       for (const auto &item : b) {
         auto t = unbox(item); // Unbox first because otherwise we can't take a ref.
-        if (auto errc = types::serialize(archive, t, &h); errc.code != std::errc()) return errc;
+        if (auto errc = types::serialize(archive, t, h); errc.code != std::errc()) return errc;
       }
 
-      // Serialize indirect types registrations. Don't serialize the types because these are tied to simulator state.
+      // Serialize indirect types registrations.
       if (auto errc = archive((quint16)self._nameToIndirect.size()); errc.code != std::errc()) return errc;
       for (const auto &[name, hnd] : self._nameToIndirect) {
-        if (auto errc = archive(h.index_for_string(name)); errc.code != std::errc()) return errc;
+        if (auto errc = archive(h->index_for_string(name)); errc.code != std::errc()) return errc;
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
+      }
+
+      // Serialize the indirect types for each scope
+      if (auto errc = archive((quint16)self._indirectTypes.indirectTypes.size()); errc.code != std::errc()) return errc;
+      for (const auto &[hnd, type] : self._indirectTypes.indirectTypes) {
+        if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
+        auto type_index = h->index_for_type(type.type);
+        if (auto errc = archive(type_index); errc.code != std::errc()) return errc;
       }
       return std::errc();
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
-      SerializationHelper h;
       quint16 type_count = 0;
       // Load string pool.
-      if (auto errc = archive(h._strs.container()); errc.code != std::errc()) return errc;
+      if (auto errc = archive(h->_strs.container()); errc.code != std::errc()) return errc;
 
       // Load type count, then load each type.
       else if (auto errc = archive(type_count); errc.code != std::errc()) return errc;
       for (int it = 0; it < type_count; ++it) {
         Type t;
-        if (auto errc = types::serialize(archive, t, &h); errc.code != std::errc()) return errc;
-        h._type_to_index[self.box(t)] = it;
+        if (auto errc = types::serialize(archive, t, h); errc.code != std::errc()) return errc;
+        h->_type_to_index[self.box(t)] = it;
       }
 
-      // Load indirect types.
+      // Load indirect type registrations.
       quint16 indirect_handle_count = 0;
       if (auto errc = archive(indirect_handle_count); errc.code != std::errc()) return errc;
-      self._indirectTypes.resize(indirect_handle_count);
       for (int it = 0; it < indirect_handle_count; ++it) {
         quint32 string_idx = 0;
         if (auto errc = archive(string_idx); errc.code != std::errc()) return errc;
-        QString name = h.string_for_index(string_idx);
+        QString name = h->string_for_index(string_idx);
 
         quint16 index = 0;
         if (auto errc = archive(index); errc.code != std::errc()) return errc;
 
         self._nameToIndirect[name] = IndirectHandle{index};
       }
+
+      // Load indirect types for each scope
+      quint16 tmp = 0;
+      if (auto errc = archive(tmp); errc.code != std::errc()) return errc;
+      for (auto it = 0; it < tmp; it++) {
+        IndirectHandle hnd;
+        if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
+        quint16 type_index = 0;
+        if (auto errc = archive(type_index); errc.code != std::errc()) return errc;
+        auto type = h->type_for_index(type_index);
+        self._indirectTypes.indirectTypes[hnd] = Versioned<OptType>{type};
+      }
+
       return std::errc{};
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
   }
 };
+
+QDebug operator<<(QDebug debug, const TypeInfo &h);
+std::ostream &operator<<(std::ostream &os, const TypeInfo::IndirectHandle &h);
+std::istream &operator>>(std::istream &, TypeInfo::IndirectHandle &);
+
 } // namespace pepp::debug::types

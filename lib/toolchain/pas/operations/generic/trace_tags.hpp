@@ -27,31 +27,11 @@ struct TraceMatch {
   QString command;
   QStringList args;
   operator QString() const;
-  static auto serialize(auto &archive, auto &self) {
-    using archive_type = std::remove_cvref_t<decltype(archive)>;
-
-    if constexpr (archive_type::kind() == zpp::bits::kind::in) {
-      std::string command;
-      std::vector<std::string> args;
-      auto ret = archive(command, args);
-      if (zpp::bits::failure(ret)) return ret;
-      self.command = QString::fromStdString(command);
-      self.args = {};
-      for (auto &arg : args) self.args.append(QString::fromStdString(arg));
-      return ret;
-    } else if constexpr (archive_type::kind() == zpp::bits::kind::out) {
-      std::string out = self.command.toStdString();
-      (void)archive(out);
-      std::vector<std::string> args;
-      for (auto &arg : self.args) args.push_back(arg.toStdString());
-      return archive(args);
-    }
-  }
 };
 // Matches type declaration (i.e., #2d) or array declaration (i.e., #2d10a)
 bool isTypeTag(const QStringView &str);
 
-std::optional<std::vector<TraceMatch>> parseTraceCommand(const QString &comment);
+std::optional<std::list<TraceMatch>> parseTraceCommand(const QString &comment);
 
 QString infer_command(const ast::Node &node, const QStringList &args);
 
@@ -61,14 +41,15 @@ struct Command {
   TraceMatch command;
   std::vector<TraceMatch> modifiers;
   std::optional<quint32> address;
+  std::optional<QString> symbolDecl;
+  bool isPush = false;
   operator QString() const;
-  static auto serialize(auto &archive, auto &self) { return archive(self.address, self.command, self.modifiers); }
 };
 
 struct ExtractTraceTags : public pas::ops::MutatingOp<void> {
-  std::vector<Command> commands;
-  std::vector<TraceMatch> wip_commands;
+  std::list<Command> commands;
+  std::list<TraceMatch> wip_commands;
   void operator()(ast::Node &node) override;
 };
-std::vector<Command> extractTraceTags(ast::Node &node);
+std::list<Command> extractTraceTags(ast::Node &node);
 } // namespace pas::ops::generic

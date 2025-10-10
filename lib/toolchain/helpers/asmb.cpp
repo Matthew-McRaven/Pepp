@@ -148,31 +148,36 @@ QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
 }
 
 QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>> userObj) {
+
   using enum pepp::Architecture;
   switch (_arch) {
   case PEP9:
     _elf = pas::obj::pep9::createElf();
     pas::obj::pep9::writeOS(*_elf, *_osRoot);
     pas::obj::common::writeLineMapping(*_elf, *_osRoot);
-    pas::obj::common::writeDebugCommands(*_elf, *_osRoot);
     if (_userRoot) {
       pas::obj::pep9::writeUser(*_elf, *_userRoot);
       pas::obj::common::writeLineMapping(*_elf, *_userRoot);
-      pas::obj::common::writeDebugCommands(*_elf, *_userRoot);
     } else if (userObj) pas::obj::pep9::writeUser(*_elf, *userObj);
+
+    if (_userRoot) pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot, &*_userRoot});
+    else pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
     break;
   case PEP10:
     _elf = pas::obj::pep10::createElf();
     pas::obj::pep10::combineSections(*_osRoot);
     pas::obj::pep10::writeOS(*_elf, *_osRoot);
     pas::obj::common::writeLineMapping(*_elf, *_osRoot);
-    pas::obj::common::writeDebugCommands(*_elf, *_osRoot);
+
     if (_userRoot) {
       pas::obj::pep10::combineSections(*_userRoot);
       pas::obj::pep10::writeUser(*_elf, *_userRoot);
       pas::obj::common::writeLineMapping(*_elf, *_userRoot);
-      pas::obj::common::writeDebugCommands(*_elf, *_userRoot);
     } else if (userObj) pas::obj::pep10::writeUser(*_elf, *userObj);
+
+    if (_userRoot) pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot, &*_userRoot});
+    else pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
+
     break;
   default: throw std::logic_error("Unimplemented arch");
   }

@@ -9,6 +9,7 @@
 #include "toolchain/pas/ast/pepp/attr_instruction.hpp"
 #include "toolchain/pas/operations/generic/is.hpp"
 #include "toolchain/pas/operations/pepp/is.hpp"
+#include "toolchain/symbol/entry.hpp"
 
 QString format(const QString &cmd, const QStringList &args) {
   using namespace Qt::StringLiterals;
@@ -20,14 +21,14 @@ QString format(const QString &cmd, const QStringList &args) {
 
 pas::ops::generic::TraceMatch::operator QString() const { return format(command, args); }
 
-std::optional<std::vector<pas::ops::generic::TraceMatch>> pas::ops::generic::parseTraceCommand(const QString &comment) {
+std::optional<std::list<pas::ops::generic::TraceMatch>> pas::ops::generic::parseTraceCommand(const QString &comment) {
   static const QRegularExpression re("[#@]([=<>()/!~%^&*\\-+\\.|$]|\\w)*(\\w)+");
   static const QRegularExpression space("\\W+");
 
   auto match = re.globalMatch(comment);
   if (!match.hasNext()) return std::nullopt;
 
-  std::vector<pas::ops::generic::TraceMatch> ret;
+  std::list<pas::ops::generic::TraceMatch> ret;
   QString cmd;
   QStringList args;
 
@@ -90,9 +91,56 @@ QString pas::ops::generic::infer_command(const ast::Node &node, const QStringLis
   else return "params";
 }
 
+bool isPush(const pas::ast::Node &node) {
+  using namespace pas::ast::generic;
+  using namespace pas::ops;
+  if (pepp::isNonUnary<isa::Pep10>()(node)) {
+    auto instr = node.get<pas::ast::pepp::Instruction<isa::Pep10>>();
+    switch (instr.value) {
+    case isa::Pep10::Mnemonic::SUBSP: [[fallthrough]];
+    case isa::Pep10::Mnemonic::CALL: return true;
+    default: break;
+    }
+  } else if (pepp::isNonUnary<isa::Pep9>()(node)) {
+    auto instr = node.get<pas::ast::pepp::Instruction<isa::Pep9>>();
+    switch (instr.value) {
+    case isa::Pep9::Mnemonic::SUBSP: [[fallthrough]];
+    case isa::Pep9::Mnemonic::CALL: return true;
+    default: break;
+    }
+  }
+  return false;
+}
+
+bool isCall(const pas::ast::Node &node) {
+  using namespace pas::ast::generic;
+  using namespace pas::ops;
+  if (pepp::isNonUnary<isa::Pep10>()(node))
+    return node.get<pas::ast::pepp::Instruction<isa::Pep10>>().value == isa::Pep10::Mnemonic::CALL;
+  else if (pepp::isNonUnary<isa::Pep9>()(node))
+    return node.get<pas::ast::pepp::Instruction<isa::Pep9>>().value == isa::Pep9::Mnemonic::CALL;
+  return false;
+}
+
+bool isRet(const pas::ast::Node &node) {
+  using namespace pas::ast::generic;
+  using namespace pas::ops;
+  if (pepp::isUnary<isa::Pep10>()(node))
+    return node.get<pas::ast::pepp::Instruction<isa::Pep10>>().value == isa::Pep10::Mnemonic::RET;
+  else if (pepp::isUnary<isa::Pep9>()(node))
+    return node.get<pas::ast::pepp::Instruction<isa::Pep9>>().value == isa::Pep9::Mnemonic::RET;
+  return false;
+}
+
 void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
   using namespace pas::ast::generic;
-  std::optional<std::vector<pas::ops::generic::TraceMatch>> match = std::nullopt;
+  std::optional<std::list<pas::ops::generic::TraceMatch>> match = std::nullopt;
+
+  std::optional<uint32_t> address = std::nullopt;
+  if (node.has<Address>()) address = node.get<Address>().value.start;
+
+  if (isCall(node)) commands.push_back(Command{{"call", {}}, {}, address, {}, true});
+  else if (isRet(node)) commands.push_back(Command{{"ret", {}}, {}, address, {}, false});
 
   if (node.has<IsMacroComment>()) return;
   else if (node.has<Comment>()) match = pas::ops::generic::parseTraceCommand(node.get<Comment>().value);
@@ -103,11 +151,10 @@ void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
                         std::make_move_iterator(match->end()));
   } else return;
 
-  std::optional<uint32_t> address = std::nullopt;
-  if (node.has<Address>()) address = node.get<Address>().value.start;
-
   // If line is not a comment, then we assign all queued commands to this line, clearing the queue.
   if (!isComment()(node)) {
+    std::optional<QString> symbol_decl = std::nullopt;
+    if (node.has<SymbolDeclaration>()) symbol_decl = node.get<SymbolDeclaration>().value->name;
     QString cmd_str = "";
     for (const auto &cmd : wip_commands) {
       cmd_str = cmd.command;
@@ -115,13 +162,13 @@ void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
       TraceMatch m{.command = cmd_str, .args = cmd.args};
       if (is_modifier(cmd_str)) {
         if (commands.size() > 0) commands.back().modifiers.push_back(m);
-      } else commands.push_back(Command{m, {}, address});
+      } else commands.push_back(Command{m, {}, address, symbol_decl, isPush(node)});
     }
     wip_commands.clear();
   }
 }
 
-std::vector<pas::ops::generic::Command> pas::ops::generic::extractTraceTags(ast::Node &node) {
+std::list<pas::ops::generic::Command> pas::ops::generic::extractTraceTags(ast::Node &node) {
   ExtractTraceTags visitor;
   pas::ast::apply_recurse(node, visitor);
   // for (const auto &cmd : visitor.commands) qDebug().noquote() << (QString)cmd;
