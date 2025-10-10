@@ -430,9 +430,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
   default:
     writeReg(Register::PC, pc);
     _status = Status::IllegalOpcode;
-    static const char *const e = "Illegal opcode";
-    qCritical(e);
-    throw std::logic_error(e);
+    throw ::targets::isa::IllegalOpcode();
   }
   writeReg(Register::PC, pc);
   if (_dbg) _dbg->bps->notifyPCChanged(pc);

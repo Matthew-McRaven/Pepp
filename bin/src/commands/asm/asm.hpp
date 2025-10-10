@@ -16,6 +16,7 @@
 
 #pragma once
 #include "../../task.hpp"
+#include "spdlog/logger.h"
 
 class AsmTask : public Task {
 public:
@@ -35,4 +36,5 @@ private:
   bool forceBm = false;
   std::optional<std::string> osIn, peplOut, elfOut, osListOut, errOut, pepoOut;
   std::list<std::string> macroDirs;
+  spdlog::logger _log{"Pepp"};
 };
