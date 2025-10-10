@@ -47,8 +47,7 @@ RunTask::RunTask(int ed, std::string fname, QObject *parent) : Task(parent), _ed
   auto file_sink = std::make_shared<spdlog::sinks::basic_lazy_file_sink_mt>(errFName.toStdString(), true);
   file_sink->set_level(spdlog::level::warn);
   file_sink->set_pattern("%v");
-  _log.sinks().push_back(console_sink);
-  _log.sinks().push_back(file_sink);
+  _log.sinks() = {console_sink, file_sink};
   _log.flush_on(spdlog::level::warn);
 }
 
