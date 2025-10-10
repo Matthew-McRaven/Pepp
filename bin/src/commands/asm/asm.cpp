@@ -15,15 +15,32 @@
  */
 #include "asm.hpp"
 #include <iostream>
+#include "../../basic_lazy_sink.hpp"
 #include "../../shared.hpp"
 #include "enums/isa/pep10.hpp"
 #include "help/builtins/figure.hpp"
+#include "spdlog/sinks/stdout_sinks.h"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/operations/pepp/bytes.hpp"
 
-AsmTask::AsmTask(int ed, std::string userFname, QObject *parent) : Task(parent), ed(ed), userIn(userFname) {}
+AsmTask::AsmTask(int ed, std::string userFname, QObject *parent) : Task(parent), ed(ed), userIn(userFname) {
+  auto console_sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
+  console_sink->set_level(spdlog::level::warn);
+  console_sink->set_pattern("%v%");
+
+  QString fname = QString::fromStdString(userFname);
+  if (errOut) fname = QString::fromStdString(*errOut);
+  else if (pepoOut) fname = QString::fromStdString(*pepoOut);
+  QFileInfo base(fname);
+  QString errFName = base.path() + "/" + base.completeBaseName() + ".err.txt";
+  auto file_sink = std::make_shared<spdlog::sinks::basic_lazy_file_sink_mt>(errFName.toStdString(), true);
+  file_sink->set_level(spdlog::level::warn);
+  file_sink->set_pattern("%v");
+  _log.sinks() = {console_sink, file_sink};
+  _log.flush_on(spdlog::level::warn);
+}
 
 void AsmTask::setBm(bool forceBm) { this->forceBm = forceBm; }
 
@@ -51,7 +68,7 @@ void AsmTask::run() {
   {
     QFile uIn(QString::fromStdString(userIn)); // auto-closes
     if (!uIn.exists()) {
-      std::cerr << "Source file does not exist.\n";
+      _log.error("Source file does not exist.\n");
       emit finished(3);
     }
     uIn.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -69,7 +86,7 @@ void AsmTask::run() {
   } else {
     QFile oIn(QString::fromStdString(*osIn)); // auto-closes
     if (!oIn.exists()) {
-      std::cerr << "OS file does not exist.\n";
+      _log.error("OS file does not exist.\n");
       emit finished(4);
     }
     oIn.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -79,23 +96,8 @@ void AsmTask::run() {
   helper.setUserText(userContents);
   auto result = helper.assemble();
   if (!result) {
-    std::cerr << "Assembly failed, check error log" << std::endl;
-    QString errFName;
-    if (errOut) {
-      errFName = QString::fromStdString(*errOut);
-    } else {
-      QFileInfo err(QString::fromStdString(userIn));
-      errFName = err.path() + "/" + err.completeBaseName() + ".err.txt";
-    }
-    QFile errF(errFName);
-
-    if (errF.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-      auto ts = QTextStream(&errF);
-      for (auto &error : helper.errors())
-        ts << error;
-    } else {
-      std::cerr << "Failed to open error log for writing: " << errFName.toStdString() << std::endl;
-    }
+    _log.error("Assembly failed: ");
+    for (auto &error : helper.errors()) _log.error("  {}", error.toStdString());
     return emit finished(6);
   }
   // Assembly succeded!
@@ -116,8 +118,7 @@ void AsmTask::run() {
   QFile pepoF(pepoFName);
   if (pepoF.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
     QTextStream(&pepoF) << userBytesStr << "\n";
-  } else
-    std::cerr << "Failed to open object code for writing: " << pepoFName.toStdString() << std::endl;
+  } else _log.error("Failed to open object code for writing:  {}", pepoFName.toStdString());
 
   try {
     auto lines = helper.listing(false);
@@ -128,10 +129,9 @@ void AsmTask::run() {
       auto ts = QTextStream(&peplF);
       for (auto &line : lines)
         ts << line << "\n";
-    } else
-      std::cerr << "Failed to open listing for writing: " << peplFName.toStdString() << std::endl;
+    } else _log.error("Failed to open listing for writing:  {}", peplFName.toStdString());
   } catch (std::exception &e) {
-    std::cerr << "Failed to generate user listing due to internal bug.\n";
+    _log.error("Failed to generate user listing due to internal bug.");
   }
   if (osListOut) {
     try {
@@ -142,10 +142,9 @@ void AsmTask::run() {
         for (auto &line : lines)
           ts << line << "\n";
         peplF.close();
-      } else
-        std::cerr << "Failed to open listing for writing: " << *osListOut << std::endl;
+      } else _log.error("Failed to open OS listing for writing:  {}", *osListOut);
     } catch (std::exception &e) {
-      std::cerr << "Failed to generate listing due to internal bug.\n";
+      _log.error("Failed to generate os listing due to internal bug.");
     }
   }
 
