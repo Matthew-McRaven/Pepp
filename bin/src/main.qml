@@ -200,8 +200,9 @@ ApplicationWindow {
         }
         Builtins.HelpRoot {
             id: help
-            abstraction: currentProject?.abstraction ?? Abstraction.NONE
-            architecture: currentProject?.architecture ?? Architecture.NONE
+            // Prefer using project's environment, then the environment we stored in settings before giving up entirely.
+            abstraction: currentProject?.abstraction ?? settings.general.defaultAbstraction ?? Abstraction.NO_ABS
+            architecture: currentProject?.architecture ?? settings.general.defaultArch ?? Architecture.NO_ARCH
             topOffset: toolbar.height
             Layout.fillHeight: true
             Layout.fillWidth: true

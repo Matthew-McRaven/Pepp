@@ -6,6 +6,7 @@ import "qrc:/qt/qml/edu/pepp/utils" as Comp
 
 Item {
     id: root
+    Component.onCompleted: updateFilterCombo()
     property real topOffset: 0
     // Treat as read-only inputs. If changed, they should force updates to the combo boxes.
     property var architecture: 0
@@ -29,6 +30,9 @@ Item {
         if (comboIdx !== undefined) {
             filterCombo.currentIndex = comboIdx;
             filterCombo.activated(comboIdx);
+        } else {
+            filterCombo.currentIndex = 0;
+            filterCombo.activated(0);
         }
     }
     Timer {
