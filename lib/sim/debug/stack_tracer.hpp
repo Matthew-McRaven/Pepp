@@ -1,12 +1,16 @@
 #pragma once
 #include <spdlog/logger.h>
+#include "expr_eval.hpp"
+#include "expr_parser.hpp"
 #include "toolchain/pas/obj/trace_tags.hpp"
 namespace pepp::debug {
 class Record {
 public:
+  // Size is really just a cached value over expr;
   quint32 address, size;
   QString name;
-  inline operator std::string() const { return fmt::format("{: <7}    {:04x}", name.toStdString(), address); }
+  std::shared_ptr<pepp::debug::Term> expr;
+  operator std::string() const;
 };
 
 class Frame {
@@ -108,6 +112,7 @@ private:
  * We can compare the number of bytes actually de/allocated to the trace command to catch errors.
  */
 class StackTracer {
+  pepp::debug::Environment *_env = nullptr;
   pas::obj::common::DebugInfo _debug_info;
   using container = std::vector<std::shared_ptr<Stack>>;
   using iterator = typename container::iterator;
@@ -116,7 +121,11 @@ class StackTracer {
 public:
   explicit StackTracer();
   bool canTrace() const { return !_debug_info.commands.empty() && _debug_info.typeInfo != nullptr; }
-  void setDebugInfo(pas::obj::common::DebugInfo debug_info);
+  void setDebugInfo(pas::obj::common::DebugInfo debug_info, pepp::debug::Environment *env);
+  // If debug info is re-used between simulations, call this to clear state.
+  void clearStacks();
+  // Call at the same time as WatchExpressionEditor::update_volatile_values
+  void update_volatile_values();
   pas::obj::common::DebugInfo const &debugInfo() const { return _debug_info; }
   Stack &activeStack();
   Stack const &activeStack() const;
@@ -144,13 +153,14 @@ private:
   Stack *getOrAddStack(quint32 address);
   std::shared_ptr<spdlog::logger> _logger;
   void popRecord(quint16 expectedSize);
-  void pushRecord(QString name, quint32 address, quint16 size);
+  void pushRecord(QString name, quint32 address, pepp::debug::types::BoxedType type);
   // spBefore is prior to executing the instruction, spAfter is after executing it.
   // spFuture is the stack which we should switch to after processing this command frame.
   void processCommandFrame(const pepp::debug::CommandFrame &, quint16 spBefore, quint16 spAfter,
                            std::optional<quint16> spFuture);
   std::string to_string(int left_pad) const;
   // Keep stacks sorted by base address so we can do a binary search.
+  pepp::debug::ExpressionCache _exprCache;
   container _stacks;
   std::optional<quint16> _lastSP;
   // Cache the last active stack to avoid searching every time.

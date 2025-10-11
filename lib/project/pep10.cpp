@@ -272,6 +272,7 @@ Pep_ISA::Pep_ISA(project::Environment env, QObject *parent, bool initializeSyste
     bindToSystem();
   }
   connect(this, &Pep_ISA::deferredExecution, this, &Pep_ISA::onDeferredExecution, Qt::QueuedConnection);
+  connect(this, &Pep_ISA::updateGUI, [this](const auto &arg) { _dbg->stack_trace->update_volatile_values(); });
 }
 
 void Pep_ISA::bindToSystem() {
@@ -781,6 +782,7 @@ void Pep_ISA::prepareSim() {
   _system->init();
   _tb->clear();
   _dbg->bps->clearHit();
+  _dbg->stack_trace->clearStacks();
   auto pwrOff = _system->output("pwrOff");
   auto charOut = _system->output("charOut");
   charOut->clear(0);
@@ -900,7 +902,7 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QObject *parent) : Pep_ISA(env, par
   // Scopes must be present to allow adding BPs on source programs before assembly
   _dbg->line_maps->addScope("user");
   _dbg->line_maps->addScope("os");
-  _dbg->stack_trace->setDebugInfo(pas::obj::common::readDebugCommands(*_elf));
+  _dbg->stack_trace->setDebugInfo(pas::obj::common::readDebugCommands(*_elf), this);
 }
 
 QString Pep_ASMB::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep10ASMB.qml"; }
@@ -1016,7 +1018,7 @@ bool Pep_ASMB::_onAssemble(bool doLoad) {
   _dbg->line_maps->addScope("os", std::move(helper.address2Lines(true)));
   _dbg->static_symbol_model->setFromElf(elf.get());
   auto cmds = pas::obj::common::readDebugCommands(*elf);
-  _dbg->stack_trace->setDebugInfo(cmds);
+  _dbg->stack_trace->setDebugInfo(cmds, this);
   // Use StringFunc to defer evaluation of the string list unless spdlog is going to accept the message.
   spdlog::get("debugger")->info("Loading debug info: \n\t\t{}", [&cmds]() {
     return QStringList(cmds).join("\n\t\t").toStdString();
@@ -1169,6 +1171,7 @@ void Pep_ASMB::prepareSim() {
   _system->init();
   _tb->clear();
   _dbg->bps->clearHit();
+  _dbg->stack_trace->clearStacks();
   auto pwrOff = _system->output("pwrOff");
   auto charOut = _system->output("charOut");
   charOut->clear(0);
@@ -1256,7 +1259,6 @@ void Pep_ASMB::updatePCLine() {
 }
 
 void Pep_ISA::updateBPAtAddress(quint32 address, Action action) {
-
   auto as_quint16 = static_cast<quint16>(address);
   switch (action) {
   case ScintillaAsmEditBase::Action::ToggleBP:

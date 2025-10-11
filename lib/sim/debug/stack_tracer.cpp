@@ -1,6 +1,20 @@
 #include "stack_tracer.hpp"
 #include <spdlog/spdlog.h>
+#include "./expr_tokenizer.hpp"
+#include "expr_ast.hpp"
+#include "expr_ast_ops.hpp"
+#include "expr_parser.hpp"
 #include "fmt/ranges.h"
+
+pepp::debug::Record::operator std::string() const {
+  auto cached = expr ? expr->evaluator().cache() : pepp::debug::EvaluationCache{};
+  std::string value_as_string = "";
+  if (cached.value) {
+    value_as_string = fmt::format("{:x}", pepp::debug::value_bits<quint16>(*cached.value));
+  }
+
+  return fmt::format("{: <7} |{: ^6}| {:04x}", name.toStdString(), value_as_string, address);
+}
 
 pepp::debug::Frame::operator std::vector<std::string>() const {
   const auto end = _records.size();
@@ -11,7 +25,7 @@ pepp::debug::Frame::operator std::vector<std::string>() const {
   // Must reverse order to maintain correct order.
   for (int it = 0; it < end; it++)
     inner[(end - it - 1) + 1] = fmt::format("{0} {1} {0}", fill_char, std::string(_records[it]));
-  inner[0] = inner.back() = std::string(19, fill_char);
+  inner[0] = inner.back() = std::string(19 + 6, fill_char);
   return inner;
 }
 
@@ -31,8 +45,9 @@ std::vector<std::string> pepp::debug::Stack::to_string(int left_pad) const {
 
 pepp::debug::StackTracer::StackTracer() : _logger(spdlog::get("debugger::stack")) {}
 
-void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_info) {
+void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_info, Environment *env) {
   _debug_info = debug_info;
+  _env = env;
   _lastSP = std::nullopt;
   _activeStack = nullptr;
   _stacks.clear();
@@ -62,6 +77,26 @@ void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_in
                                                          MemoryOp{.op = Opcodes::POP, .name = "SP", .type = u16},
                                                          MemoryOp{.op = Opcodes::POP, .name = "IR", .type = u8},
                                                          FrameManagement{.op = Opcodes::REMOVE_FRAME}}}}};
+}
+
+void pepp::debug::StackTracer::clearStacks() {
+  _lastSP = std::nullopt;
+  _activeStack = nullptr;
+  _stacks.clear();
+}
+
+void pepp::debug::StackTracer::update_volatile_values() {
+  if (_env == nullptr) return;
+  // Propogate dirtiness from volatiles to their parents.
+  for (auto &ptr : _exprCache) {
+    auto eval = ptr->evaluator();
+    eval.cache().mark_clean(false);
+    // Only attempt to re-evaluate if the term depends on volatiles.
+    if (!eval.cache().depends_on_volatiles()) continue;
+    auto old_v = eval.cache();
+    auto new_v = eval.evaluate(CachePolicy::UseNonVolatiles, *_env);
+    if (*old_v.value != new_v) eval.cache().mark_dirty();
+  }
 }
 
 std::optional<const pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) const {
@@ -148,10 +183,18 @@ void pepp::debug::StackTracer::popRecord(quint16 expectedSize) {
   else tframe->popRecord();
 }
 
-void pepp::debug::StackTracer::pushRecord(QString name, quint32 address, quint16 size) {
+void pepp::debug::StackTracer::pushRecord(QString name, quint32 address, types::BoxedType type) {
   if (!_activeStack) _logger->warn("{: <4} No active stack to push to!", "");
   else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
-  else tframe->pushRecord(Record{.address = address, .size = size, .name = name});
+  else {
+    auto HexHint = pepp::debug::detail::UnsignedConstant::Format::Hex;
+    auto addr = _exprCache.add_or_return(Constant((quint16)address, HexHint));
+    auto memlookup = _exprCache.add_or_return(MemoryReadCastDeref(addr, type));
+    if (_env) memlookup->evaluator().evaluate(CachePolicy::UseNever, *_env);
+    quint32 size = types::bitness(unbox(type)) / 8;
+    auto rec = Record{.address = address, .size = size, .name = name, .expr = memlookup};
+    tframe->pushRecord(std::move(rec));
+  }
 }
 
 void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, quint16 spBefore, quint16 spAfter,
@@ -171,7 +214,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
         spBefore -= size, actualDelta -= size;
-        pushRecord(memop.name, spBefore, size);
+        pushRecord(memop.name, spBefore, memop.type);
         _logger->info("{: <7} CALL'ed {} bytes", "", size);
         break;
       }
@@ -179,7 +222,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
         spBefore -= size, actualDelta -= size;
-        pushRecord(memop.name, spBefore, size);
+        pushRecord(memop.name, spBefore, memop.type);
         _logger->info("{: <7} ALLOC'ed {} bytes", "", size);
         break;
       }
@@ -259,7 +302,7 @@ std::string pepp::debug::StackTracer::to_string(int left_pad) const {
       if (joined_lines[it].empty()) joined_lines[it++] = line;
       else joined_lines[it++] += std::string("    ") + line;
     }
-    for (; it < joined_lines.size(); it++) joined_lines[it] += std::string(19, ' ');
+    for (; it < joined_lines.size(); it++) joined_lines[it] += std::string(19 + 6, ' ');
   }
   std::string joiner = fmt::format("\n{}", std::string(left_pad, ' '));
   return fmt::format("{}{}\n", joiner, fmt::join(joined_lines.begin(), joined_lines.end(), joiner));
