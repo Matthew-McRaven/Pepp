@@ -78,7 +78,6 @@ Rectangle {
         id: del
         required property string name
         required property var activationModel
-        width: Math.max(implicitWidth, root.width)
         Label {
             Layout.leftMargin: tm.addressWidth + (tm.valueWidth - implicitWidth) / 2
             Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
@@ -112,7 +111,6 @@ Rectangle {
         id: del
         required property string name
         required property var activationModel
-        width: Math.max(implicitWidth, root.width)
         spacing: 0
         MemoryStack {
             id: localStack
@@ -172,29 +170,38 @@ Rectangle {
         ScrollBar.vertical.policy: ScrollBar.AsNeeded
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-        ColumnLayout {
+        // Construct the columns (globals/stack, heap) individually, then align those columns in a row.
+        // This ordering allows the heap to "grow" into the horizontal space next to the stack.
+        // The old Column then Row ordering would cause a scrollbar to appear if either the stack or heap was large.
+        RowLayout {
             id: column
             anchors.fill: parent
             width: Math.max(implicitWidth, root.width)
-            NonStackRenderer {
-                name: "Globals"
-                activationModel: activationModel
-            }
-            NonStackRenderer {
-                name: "Heap"
-                activationModel: activationModel
-            }
+            ColumnLayout {
+                Layout.alignment: Qt.AlignTop
+                NonStackRenderer {
+                    name: "Globals"
+                    activationModel: activationModel
+                }
+                Item {
+                    Layout.fillHeight: true
 
-            Item {
-                Layout.fillHeight: true
+                    Layout.preferredHeight: 41
+                    Layout.minimumHeight: 41
+                }
+                StackRenderer {
+                    name: "Stack"
+                    activationModel: activationModel
+                }
+            } // ColumnLayout
+            ColumnLayout {
+                Layout.alignment: Qt.AlignTop
+                NonStackRenderer {
+                    name: "Heap"
+                    activationModel: activationModel
+                }
+            } // ColumnLayout
+        } // RowLayout
 
-                Layout.preferredHeight: 41
-                Layout.minimumHeight: 41
-            }
-            StackRenderer {
-                name: "Stack"
-                activationModel: activationModel
-            }
-        } //  ColumnLayout
     } //  ScrollView
 }
