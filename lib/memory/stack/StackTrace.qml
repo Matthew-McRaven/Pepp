@@ -105,6 +105,24 @@ Rectangle {
             boldBorderWidth: tm.boldBorderWidth
 
             itemModel: activationModel
+            Rectangle {
+                anchors.fill: parent
+                // TODO: future self trying to fix alignment issues on Mac OS
+                // It seems like the actual bold stack frames draw "outside" their rectangle.
+                // This means that fillining our parent with a margin of 0 would still leave some pixels uncovered.
+                // This is a good test for any future rendering improvements.
+                anchors.bottomMargin: -4
+                color: "orange"
+                Text {
+                    anchors.centerIn: parent
+                    text: "Coming soon"
+                    color: "black"
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
+                    width: parent.width * 0.8
+                }
+                z: 10
+            }
         }
     }
     component StackRenderer: ColumnLayout {
