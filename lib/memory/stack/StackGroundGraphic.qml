@@ -4,6 +4,7 @@ import QtQuick.Shapes
 Item {
     id: root
     property alias graphicWidth: graphicShape.width
+    implicitHeight: graphicShape.height
 
     Shape {
         id: graphicShape
