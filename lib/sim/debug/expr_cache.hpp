@@ -63,6 +63,12 @@ template <typename Item> struct Cache {
     return _set.size();
   };
 
+  // Only as safe as the underlying container is for concurrent access.
+  inline auto cbegin() const { return _set.cbegin(); }
+  inline auto cend() const { return _set.cend(); }
+  inline auto begin() const { return _set.begin(); }
+  inline auto end() const { return _set.end(); }
+
 private:
   mutable QMutex _mut;
   Set _set{};

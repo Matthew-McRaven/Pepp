@@ -53,6 +53,10 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const MemoryRead &
   is_constant_expression = false;
 }
 
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const MemoryReadCastDeref &node) {
+  is_constant_expression = false;
+}
+
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Parenthesized &node) { node.term->accept(*this); }
 
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const DirectCast &node) { node.arg->accept(*this); }
@@ -93,6 +97,9 @@ void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const UnaryPrefix 
 }
 
 void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const MemoryRead &node) { is_volatile_expression = true; }
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const MemoryReadCastDeref &node) {
+  is_volatile_expression = true;
+}
 
 void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const Parenthesized &node) { node.term->accept(*this); }
 
@@ -131,6 +138,11 @@ void pepp::debug::detail::GatherVolatileTerms::accept(UnaryPrefix &node) {
 }
 
 void pepp::debug::detail::GatherVolatileTerms::accept(MemoryRead &node) {
+  volatiles.insert(node.shared_from_this());
+  node.arg->accept(*this);
+}
+
+void pepp::debug::detail::GatherVolatileTerms::accept(MemoryReadCastDeref &node) {
   volatiles.insert(node.shared_from_this());
   node.arg->accept(*this);
 }

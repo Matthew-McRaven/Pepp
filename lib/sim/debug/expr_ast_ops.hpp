@@ -19,6 +19,7 @@ struct IsConstantExpressionVisitor : public ConstantTermVisitor {
   void accept(const MemberAccess &node) override;
   void accept(const UnaryPrefix &node) override;
   void accept(const MemoryRead &node) override;
+  void accept(const MemoryReadCastDeref &node) override;
   void accept(const Parenthesized &node) override;
   void accept(const DirectCast &node) override;
   void accept(const IndirectCast &node) override;
@@ -32,6 +33,7 @@ struct IsVolatileExpressionVisitor : public ConstantTermVisitor {
   void accept(const MemberAccess &node) override;
   void accept(const UnaryPrefix &node) override;
   void accept(const MemoryRead &node) override;
+  void accept(const MemoryReadCastDeref &node) override;
   void accept(const Parenthesized &node) override;
   void accept(const DirectCast &node) override;
   void accept(const IndirectCast &node) override;
@@ -49,6 +51,7 @@ struct GatherVolatileTerms : public MutatingTermVisitor {
   void accept(MemberAccess &node) override;
   void accept(UnaryPrefix &node) override;
   void accept(MemoryRead &node) override;
+  void accept(MemoryReadCastDeref &node) override;
   void accept(Parenthesized &node) override;
   void accept(DirectCast &node) override;
   void accept(IndirectCast &node) override;

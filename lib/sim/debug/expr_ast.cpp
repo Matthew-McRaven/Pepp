@@ -755,3 +755,72 @@ void pepp::debug::DebuggerVariable::accept(MutatingTermVisitor &visitor) { visit
 
 void pepp::debug::DebuggerVariable::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
 
+pepp::debug::MemoryReadCastDeref::MemoryReadCastDeref(std::shared_ptr<Term> arg, types::BoxedType cast_to)
+    : _cast_to(cast_to), arg(arg) {
+  _state.set_depends_on_volatiles(true);
+}
+
+std::strong_ordering pepp::debug::MemoryReadCastDeref::operator<=>(const Term &rhs) const {
+  if (type() == rhs.type()) return this->operator<=>(static_cast<const MemoryReadCastDeref &>(rhs));
+  return type() <=> rhs.type();
+}
+
+std::strong_ordering pepp::debug::MemoryReadCastDeref::operator<=>(const MemoryReadCastDeref &rhs) const {
+  if (auto cmp = _cast_to <=> rhs._cast_to; cmp != 0) return cmp;
+  return *arg <=> *rhs.arg;
+}
+
+uint16_t pepp::debug::MemoryReadCastDeref::depth() const { return arg->depth() + 1; }
+
+pepp::debug::Term::Type pepp::debug::MemoryReadCastDeref::type() const { return Term::Type::MemoryReadCastDeref; }
+
+QString pepp::debug::MemoryReadCastDeref::to_string() const {
+  return QString("*(%1)%2").arg(pepp::debug::types::to_string(types::unbox(_cast_to)), arg->to_string());
+}
+
+void pepp::debug::MemoryReadCastDeref::link() { arg->add_dependent(weak_from_this()); }
+
+int pepp::debug::MemoryReadCastDeref::cv_qualifiers() const { return CVQualifiers::Volatile; }
+
+void pepp::debug::MemoryReadCastDeref::mark_dirty() { _state.mark_dirty(); }
+
+bool pepp::debug::MemoryReadCastDeref::dirty() const { return _state.dirty(); }
+
+void pepp::debug::MemoryReadCastDeref::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::MemoryReadCastDeref::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+
+pepp::debug::Value pepp::debug::MemoryReadCastDeref::evaluate(CachePolicy mode, Environment &env) {
+  using namespace pepp::debug::operators;
+  if (_state.value.has_value()) {
+    using enum CachePolicy;
+    switch (mode) {
+    case UseNever: break;
+    case UseNonVolatiles: break;
+    case UseAlways:
+      if (_state.dirty()) break;
+    case UseDirtyAlways: return *_state.value;
+    }
+  }
+
+  auto eval = arg->evaluator();
+  auto v = eval.evaluate(mode, env);
+  auto address = value_bits(v);
+  auto bytecount = bitness(unbox(this->_cast_to)) / 8;
+
+  quint64 readBuf = 0;
+  switch (bytecount) {
+  case 1: readBuf = env.read_mem_u8(address); break;
+  case 4: readBuf |= (quint32)(env.read_mem_u16(address += 2) << 16); [[fallthrough]];
+  case 2: readBuf |= env.read_mem_u16(address); break;
+  default: throw std::logic_error("MemoryRead: Unsupported size");
+  }
+  auto mem_bits = from_bits(unbox(this->_cast_to), readBuf);
+  auto casted = operators::op2_typecast(*env.type_info(), mem_bits, this->_cast_to);
+  quint64 vb = value_bits(casted);
+
+  _state.mark_clean();
+  return *(_state.value = casted);
+}
+
+pepp::debug::EvaluationCache pepp::debug::MemoryReadCastDeref::cached() const { return _state; }
