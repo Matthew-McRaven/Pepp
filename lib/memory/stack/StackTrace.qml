@@ -7,6 +7,7 @@ Rectangle {
     id: root
     color: palette.base
     required property var stackTracer
+    signal updateGUI
     NuAppSettings {
         id: settings
     }
@@ -26,6 +27,9 @@ Rectangle {
     RootActivationModel {
         id: stackActModel
         stackTracer: root.stackTracer
+        Component.onCompleted: {
+            root.updateGUI.connect(stackActModel.update_volatile_values);
+        }
     }
 
     // Create C++ items using the magic of QQmlPropertyList and DefaultProperty

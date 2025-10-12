@@ -272,7 +272,6 @@ Pep_ISA::Pep_ISA(project::Environment env, QObject *parent, bool initializeSyste
     bindToSystem();
   }
   connect(this, &Pep_ISA::deferredExecution, this, &Pep_ISA::onDeferredExecution, Qt::QueuedConnection);
-  connect(this, &Pep_ISA::updateGUI, [this](const auto &arg) { _dbg->stack_trace->update_volatile_values(); });
 }
 
 void Pep_ISA::bindToSystem() {
