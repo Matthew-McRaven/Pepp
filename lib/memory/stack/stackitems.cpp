@@ -91,55 +91,73 @@ QModelIndex ActivationModel::index(int row, int column, const QModelIndex &paren
   else if (row < 0 || column < 0) return QModelIndex();
   else if (column >= 1) return QModelIndex(); // We only have one column.
 
-  if (!parent.isValid()) {                                                   // We are a pointer to a "Stack"
-    if (row >= static_cast<int>(_stackTracer->size())) return QModelIndex(); // Out of bounds
+  if (!parent.isValid()) { // We are a stack
+    if (row >= static_cast<int>(_stackTracer->size())) return QModelIndex();
     return createIndex(row, 0, _stackTracer->at(row));
-  } else if (auto ptr = parent.internalPointer(); _stackTracer->pointerIsStack(ptr)) { // We are a frame
-    auto stack = static_cast<pepp::debug::Stack *>(parent.internalPointer());
-    if (row >= static_cast<int>(stack->size())) return QModelIndex(); // Out of bounds
-    return createIndex(row, 0, stack->at(row));
-  } else { // We are a record
-    auto frame = static_cast<pepp::debug::Frame *>(parent.internalPointer());
-    if (row >= static_cast<int>(frame->size())) return QModelIndex(); // Out of bounds
-    return createIndex(row, 0, frame->at(row));
   }
+  auto ptr = static_cast<pepp::debug::LayoutNode *>(parent.internalPointer());
+  if (auto asStack = dynamic_cast<pepp::debug::Stack *>(ptr); asStack) { // parent is stack, we are a frame
+    if (row >= static_cast<int>(asStack->size())) return QModelIndex();
+    return createIndex(row, 0, asStack->at(row));
+  } else if (auto asFrame = dynamic_cast<pepp::debug::Frame *>(ptr); asFrame) { // parent is frame, we are a slot
+    if (row >= static_cast<int>(asFrame->size())) return QModelIndex();
+    return createIndex(row, 0, asFrame->at(row));
+  } else return QModelIndex(); // Should not be possible
 }
 
 QModelIndex ActivationModel::parent(const QModelIndex &child) const {
   if (!child.isValid()) return QModelIndex();
+  else if (!_stackTracer) return QModelIndex();
 
-  auto ptr = child.internalPointer();
+  auto ptr = static_cast<pepp::debug::LayoutNode *>(child.internalPointer());
   int stackIdx = 0;
-  // TODO: Time complexity of this algo is O(n^3) b/c I can't dyanmic_cast.
-  // Stack/Frame/Record do not share a base class. I will definitely want to do a refactor there.
-  for (const auto &stack : *_stackTracer) {
-    if (stack.get() == ptr) return QModelIndex();
-    int frameIdx = 0;
-    for (const auto &frame : *stack) {
-      if (&frame == ptr) return createIndex(stackIdx, 0, stack.get());
-      int recordIdx = 0;
-      for (const auto &record : frame) {
-        if (&record == ptr) return createIndex(frameIdx, 0, &frame);
-        recordIdx++;
+  if (auto asStack = dynamic_cast<pepp::debug::Stack *>(ptr); asStack) { // We are a stack, parent does not exist
+    return QModelIndex();
+  } else if (auto asFrame = dynamic_cast<pepp::debug::Frame *>(ptr); asFrame) { // We are a frame, parent is a stack
+    auto parent = asFrame->parent();
+
+    std::optional<std::size_t> parentRow = std::nullopt;
+    std::size_t stackIdx = 0;
+    for (const auto &stack : *_stackTracer) {
+      if (stack.get() == parent) {
+        parentRow = stackIdx;
+        break;
+      }
+      stackIdx++;
+    }
+
+    if (!parentRow) return QModelIndex();
+    return createIndex(*parentRow, 0, parent);
+  } else if (auto asSlot = dynamic_cast<pepp::debug::Slot *>(ptr); asSlot) { // We are a slot, parent is a frame
+    auto parentFrame = asSlot->parent();
+    if (!parentFrame) return QModelIndex();
+    auto parentStack = parentFrame->parent();
+    if (!parentStack) return QModelIndex();
+
+    std::optional<std::size_t> parentRow = std::nullopt;
+    std::size_t frameIdx = 0;
+    for (const auto &frame : *parentStack) {
+      if (&frame == parentFrame) {
+        parentRow = frameIdx;
+        break;
       }
       frameIdx++;
     }
-    stackIdx++;
-  }
 
-  return QModelIndex();
+    if (!parentRow) return QModelIndex();
+    return createIndex(*parentRow, 0, parentFrame);
+  } else return QModelIndex();
 }
 
 int ActivationModel::rowCount(const QModelIndex &parent) const {
-  if (!parent.isValid()) { // We are a pointer to a "Stack"
-    return _stackTracer->size();
-  } else if (auto ptr = parent.internalPointer(); _stackTracer->pointerIsStack(ptr)) { // We are a frame
-    auto stack = static_cast<pepp::debug::Stack *>(parent.internalPointer());
-    return stack->size();
-  } else { // We are a record
-    auto frame = static_cast<pepp::debug::Frame *>(parent.internalPointer());
-    return frame->size();
-  }
+  if (!parent.isValid()) return _stackTracer->size();
+
+  auto ptr = static_cast<pepp::debug::LayoutNode *>(parent.internalPointer());
+  if (auto asStack = dynamic_cast<pepp::debug::Stack *>(ptr); asStack) { // parent is stack
+    return asStack->size();
+  } else if (auto asFrame = dynamic_cast<pepp::debug::Frame *>(ptr); asFrame) { // parent is frame
+    return asFrame->size();
+  } else return 0; // parent is record?
 }
 
 int ActivationModel::columnCount(const QModelIndex &parent) const { return 1; }

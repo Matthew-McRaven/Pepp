@@ -56,8 +56,6 @@ public:
   // This is not very "physical", because I am examining processor state mid-instruction from the debugger.
   void notifyInstruction(quint16 pc, quint16 spAfter, InstructionType type);
 
-  bool pointerIsStack(void *ptr) const;
-
 private:
   std::optional<Stack *> stackAtAddress(quint32);
   Stack *getOrAddStack(quint32 address);

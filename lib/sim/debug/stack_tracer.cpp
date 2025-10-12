@@ -152,12 +152,6 @@ void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, In
   }
 }
 
-bool pepp::debug::StackTracer::pointerIsStack(void *ptr) const {
-  for (const auto &stack : _stacks)
-    if (stack.get() == ptr) return true;
-  return false;
-}
-
 std::optional<const pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) const {
   for (const auto &stack : _stacks)
     if (stack->contains(addr)) return stack.get();
