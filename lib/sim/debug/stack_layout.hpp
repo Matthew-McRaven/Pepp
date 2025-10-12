@@ -4,13 +4,28 @@
 #include "toolchain/pas/obj/trace_tags.hpp"
 namespace pepp::debug {
 // Empty baseclass so that Slot/Frame/Stack can be identified via dynamic_cast.
-class LayoutNode {};
+class LayoutNode {
+public:
+  LayoutNode() = default;
+  // Disable copy-swap to prevent slicing.
+  LayoutNode(const LayoutNode &) = delete;
+  LayoutNode &operator=(const LayoutNode &) = delete;
+  LayoutNode(LayoutNode &&) = delete;
+  LayoutNode &operator=(LayoutNode &&) = delete;
+  virtual ~LayoutNode() = default;
+};
 class Stack;
 class Frame;
 
-class Slot {
+class Slot final : public LayoutNode {
 public:
   Slot(quint32 address, quint32 size, QString name, std::shared_ptr<pepp::debug::Term> expr, Frame *parent);
+  // Copying is not safe because we cannot clone expr, but we want to keep move for speed.
+  Slot(const Slot &) = delete;
+  Slot &operator=(const Slot &) = delete;
+  Slot(Slot &&other);
+  Slot &operator=(Slot &&other);
+  ~Slot() override = default;
 
   quint32 address() const;
   quint32 size() const;
@@ -31,13 +46,20 @@ private:
   Frame *_parent = nullptr;
 };
 
-class Frame {
+class Frame final : public LayoutNode {
   using container = std::vector<Slot>;
   using iterator = typename container::iterator;
   using const_iterator = typename container::const_iterator;
 
 public:
   Frame(quint32 baseAddress, Stack *parent);
+  // Records cannot be copied, and we are a container of records. Keep move for performance
+  Frame(const Frame &) = delete;
+  Frame &operator=(const Frame &) = delete;
+  Frame(Frame &&other);
+  Frame &operator=(Frame &&other);
+  ~Frame() override = default;
+
   Stack *parent();
   bool active() const;
   void setActive(bool active);
@@ -62,19 +84,25 @@ public:
   operator std::vector<std::string>() const;
 
 private:
-  container _slots = {};
   bool _active = false;
   quint32 _baseAddress = -1;
   Stack *_parent = nullptr;
+  container _slots = {};
 };
 
-class Stack {
+class Stack final : public LayoutNode {
   using container = std::vector<Frame>;
   using iterator = typename container::iterator;
   using const_iterator = typename container::const_iterator;
 
 public:
   Stack(quint32 baseAddress);
+  // Same note on rule-of-5 as Frame
+  Stack(const Stack &) = delete;
+  Stack &operator=(const Stack &) = delete;
+  Stack(Stack &&other);
+  Stack &operator=(Stack &&other);
+  ~Stack() override = default;
 
   quint32 base_address() const;
   quint32 top_address() const;

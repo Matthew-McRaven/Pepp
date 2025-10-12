@@ -16,6 +16,29 @@ static constexpr int FRAME_RENDER_WIDTH = SLOT_RENDER_WIDTH + 4;
 pepp::debug::Slot::Slot(quint32 address, quint32 size, QString name, std::shared_ptr<Term> expr, Frame *parent)
     : _address(address), _size(size), _name(std::move(name)), _expr(std::move(expr)), _parent(parent) {}
 
+pepp::debug::Slot::Slot(Slot &&other)
+    : _address(other._address), _size(other._size), _name(std::move(other._name)), _expr(std::move(other._expr)),
+      _parent(other._parent) {
+  other._address = 0;
+  other._size = 0;
+  other._parent = nullptr;
+}
+
+pepp::debug::Slot &pepp::debug::Slot::operator=(Slot &&other) {
+  if (this != &other) {
+    _address = other._address;
+    _size = other._size;
+    _name = std::move(other._name);
+    _expr = std::move(other._expr);
+    _parent = other._parent;
+
+    other._address = 0;
+    other._size = 0;
+    other._parent = nullptr;
+  }
+  return *this;
+}
+
 quint32 pepp::debug::Slot::address() const { return _address; }
 
 quint32 pepp::debug::Slot::size() const { return _size; }
@@ -41,6 +64,28 @@ pepp::debug::Slot::operator std::string() const {
 }
 
 pepp::debug::Frame::Frame(quint32 baseAddress, Stack *parent) : _baseAddress(baseAddress), _parent(parent) {}
+
+pepp::debug::Frame::Frame(Frame &&other)
+    : _baseAddress(other._baseAddress), _parent(other._parent), _active(other._active),
+      _slots(std::move(other._slots)) {
+  other._baseAddress = 0;
+  other._parent = nullptr;
+  other._active = false;
+}
+
+pepp::debug::Frame &pepp::debug::Frame::operator=(Frame &&other) {
+  if (this != &other) {
+    _baseAddress = other._baseAddress;
+    _parent = other._parent;
+    _active = other._active;
+    _slots = std::move(other._slots);
+
+    other._baseAddress = 0;
+    other._parent = nullptr;
+    other._active = false;
+  }
+  return *this;
+}
 
 pepp::debug::Stack *pepp::debug::Frame::parent() { return _parent; }
 
@@ -106,6 +151,19 @@ pepp::debug::Frame::operator std::vector<std::string>() const {
 
 pepp::debug::Stack::Stack(quint32 baseAddress) : _baseAddress(baseAddress) {}
 
+pepp::debug::Stack::Stack(Stack &&other) : _baseAddress(other._baseAddress), _frames(std::move(other._frames)) {
+  other._baseAddress = 0;
+}
+
+pepp::debug::Stack &pepp::debug::Stack::operator=(Stack &&other) {
+  if (this != &other) {
+    _baseAddress = other._baseAddress;
+    _frames = std::move(other._frames);
+    other._baseAddress = 0;
+  }
+  return *this;
+}
+
 quint32 pepp::debug::Stack::base_address() const { return _baseAddress; }
 
 quint32 pepp::debug::Stack::top_address() const {
@@ -120,7 +178,7 @@ pepp::debug::Frame &pepp::debug::Stack::pushFrame() {
   // Consolidate consecutive empty frames.
   if (_frames.empty() || !_frames.back().empty()) {
     auto newFrame = Frame{top_address(), this};
-    _frames.push_back(newFrame);
+    _frames.emplace_back(std::move(newFrame));
   };
   return _frames.back();
 }
