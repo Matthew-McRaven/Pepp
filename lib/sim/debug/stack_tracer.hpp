@@ -29,6 +29,17 @@ class StackTracer {
   using const_iterator = typename container::const_iterator;
 
 public:
+  enum class Errors {
+    OK,
+    MissingCommandPacket, // PC not found in debug info, but notifyInstruction was called
+    NoActiveStack,        // Op assuming an active stack got a nullptr
+    ToSFrameNull,         // No frames allocated on the current stack
+    ToSFrameNotEmpty,     // REMOVE_FRAME expects the top frame to be empty, but the frame still had contents
+    ToSSlotNull,          // The top slot of the top frame was null / the top frame was empty
+    PopSizeMismatch,      // The number of bytes being popped did not match the size of the top slot
+    DeltaMismatch,        // The total number of bytes allocated / deallocated did not match the change in SP.
+    InvalidOp,            // Command packet was malformed.
+  };
   explicit StackTracer();
   bool canTrace() const;
   pas::obj::common::DebugInfo const &debugInfo() const;
@@ -37,6 +48,7 @@ public:
   void clearStacks();
   // Call at the same time as WatchExpressionEditor::update_volatile_values
   void update_volatile_values();
+  Errors error() const;
 
   std::optional<Stack const *> stackAtAddress(quint32) const;
 
@@ -66,6 +78,7 @@ private:
   void processCommandFrame(const pepp::debug::CommandFrame &, quint16 spBefore, quint16 spAfter,
                            std::optional<quint16> spFuture);
   std::string to_string(int left_pad) const;
+  Errors _error = Errors::OK;
   std::shared_ptr<spdlog::logger> _logger;
   // Keep stacks sorted by base address so we can do a binary search.
   pepp::debug::ExpressionCache _exprCache;

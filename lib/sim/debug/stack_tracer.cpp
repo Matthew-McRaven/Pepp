@@ -19,6 +19,7 @@ void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_in
   _lastSP = std::nullopt;
   _activeStack = nullptr;
   _stacks.clear();
+  _error = Errors::OK;
   using namespace pepp::debug::types;
   BoxedType u16 = _debug_info.typeInfo->box(types::Primitives::u16);
   BoxedType i16 = _debug_info.typeInfo->box(types::Primitives::i16);
@@ -51,6 +52,7 @@ void pepp::debug::StackTracer::clearStacks() {
   _lastSP = std::nullopt;
   _activeStack = nullptr;
   _stacks.clear();
+  _error = Errors::OK;
 }
 
 void pepp::debug::StackTracer::update_volatile_values() {
@@ -66,6 +68,8 @@ void pepp::debug::StackTracer::update_volatile_values() {
     if (*old_v.value != new_v) eval.cache().mark_dirty();
   }
 }
+
+pepp::debug::StackTracer::Errors pepp::debug::StackTracer::error() const { return _error; }
 
 pepp::debug::StackTracer::const_iterator pepp::debug::StackTracer::cbegin() const { return _stacks.cbegin(); }
 
@@ -145,10 +149,13 @@ void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, In
   }
   if (cf) cmds_str = QString(*cf.value()).toStdString();
 
-  _logger->info("{: <7} at PC:{:04x} {}  {}", operation, pc, sp_str, cmds_str);
-  if (cf) {
+  // Do not attempt to process if there is no command frame or if the stack is already broken.
+  if (cf && _error == Errors::OK) {
+    _logger->info("{: <7} at PC:{:04x} {}  {}", operation, pc, sp_str, cmds_str);
     processCommandFrame(**cf, spBefore, spAfter, futureStack);
-  } else { // TODO: mark self as invalid. We had no command for this PC, nor could we synthesize one.
+  } else if (!cf) { // If command frame is missing, enter error state.
+    _error = Errors::MissingCommandPacket;
+    _logger->warn("Missing command packet");
   }
 }
 
@@ -177,8 +184,9 @@ pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(quint32 address) {
 }
 
 void pepp::debug::StackTracer::pushSlot(QString name, quint32 address, types::BoxedType type) {
-  if (!_activeStack) _logger->warn("{: <4} No active stack to push to!", "");
-  else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+  if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack to push to!", "");
+  else if (auto tframe = _activeStack->top(); !tframe)
+    _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
   else {
     auto HexHint = pepp::debug::detail::UnsignedConstant::Format::Hex;
     auto addr = _exprCache.add_or_return(Constant((quint16)address, HexHint));
@@ -190,24 +198,33 @@ void pepp::debug::StackTracer::pushSlot(QString name, quint32 address, types::Bo
 }
 
 void pepp::debug::StackTracer::popSlot(quint16 expectedSize) {
-  if (!_activeStack) _logger->warn("        No active stack to return from!");
-  else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("        Top frame is null");
-  else if (auto trecord = tframe->top(); !trecord) _logger->warn("        Top frame record is null");
+  if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("        No active stack to return from!");
+  else if (auto tframe = _activeStack->top(); !tframe)
+    _error = Errors::ToSFrameNull, _logger->warn("        Top frame is null");
+  else if (auto trecord = tframe->top(); !trecord)
+    _error = Errors::ToSSlotNull, _logger->warn("        Top frame slot is null");
   else if (trecord->size() != expectedSize)
-    _logger->warn("{: <4} Top frame record was {}B, expected {}B", "", trecord->size(), expectedSize);
+    _error = Errors::PopSizeMismatch,
+    _logger->warn("{: <4} Top frame slot was {}B, expected {}B", "", trecord->size(), expectedSize);
   else tframe->popSlot();
 }
 
 void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, quint16 spBefore, quint16 spAfter,
                                                    std::optional<quint16> spFuture) {
+  if (_error != Errors::OK) return; // Early return to prevent processing an already-broken stack.
+
   qint16 expectedDelta = spAfter - spBefore, actualDelta = 0;
   for (const auto &packet : frame.packets) {
     for (const auto &op : packet.ops) {
       switch (to_opcode(op)) {
-      case Opcodes::INVALID: _logger->error("{: <6} Attempting to execute invalid command!", ""); return;
+      case Opcodes::INVALID:
+        _error = Errors::InvalidOp;
+        _logger->error("{: <6} Attempting to execute invalid command!", "");
+        return;
       case Opcodes::CALL: {
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
-        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe)
+          _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
         // If frame is already active, then call  initiates new frame AND marks it active.
         else if (tframe->active()) _activeStack->pushFrame().setActive(true);
         // Otherwise it just activates the frame
@@ -233,8 +250,9 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         popSlot(size);
         spBefore += size, actualDelta += size;
         _logger->info("{: <7} RET'ed {} bytes", "", size);
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
-        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe)
+          _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
         else if (tframe->empty()) _activeStack->popFrame();
         else tframe->setActive(false);
         break;
@@ -250,24 +268,27 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
 
       case Opcodes::MARK_ACTIVE: {
         auto faop = std::get<FrameActive>(op);
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
-        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe)
+          _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
         else tframe->setActive(faop.active);
         _logger->info("{: <7} MARK_ACTIVE {}", "", faop.active);
         break;
       }
       case Opcodes::ADD_FRAME: {
         auto fmop = std::get<FrameManagement>(op);
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
         else _activeStack->pushFrame();
         _logger->info("{: <7} PUSH_FRAME", "");
         break;
       }
       case Opcodes::REMOVE_FRAME: {
         auto fmop = std::get<FrameManagement>(op);
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
-        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
-        else if (!tframe->empty()) _logger->warn("{: <4} Top frame is not empty", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe)
+          _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
+        else if (!tframe->empty())
+          _error = Errors::ToSFrameNotEmpty, _logger->warn("{: <4} Top frame is not empty", "");
         else _activeStack->popFrame();
         _logger->info("{: <7} POP_FRAME", "");
         break;
@@ -280,8 +301,10 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
     _logger->info("{: <7} SWITCH to SP:{:04x}", "", *spFuture);
   }
   _logger->info("\n{}", to_string(10));
-  if (expectedDelta != actualDelta && !frame.packets.empty())
+  if (expectedDelta != actualDelta && !frame.packets.empty()) {
+    _error = Errors::DeltaMismatch;
     _logger->warn("{: <4} delta SP of {:<+5}, expected {:<+5}", "", actualDelta, expectedDelta);
+  }
 }
 
 std::string pepp::debug::StackTracer::to_string(int left_pad) const {
