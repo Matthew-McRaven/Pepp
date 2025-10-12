@@ -190,6 +190,7 @@ class Pep_ASMB final : public Pep_ISA {
   Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
   Q_PROPERTY(StaticSymbolModel *staticSymbolModel READ staticSymbolModel CONSTANT)
   Q_PROPERTY(pepp::debug::WatchExpressionEditor *watchExpressions READ watchExpressions CONSTANT)
+  Q_PROPERTY(pepp::debug::StackTracer *stackTracer READ stackTracer CONSTANT)
   Q_PROPERTY(ScopedLines2Addresses *lines2addr READ line2addr CONSTANT)
   Q_PROPERTY(bool ignoreOS READ ignoreOS CONSTANT)
   QML_UNCREATABLE("Can only be created through Project::")
@@ -211,6 +212,7 @@ public:
   bool isEmpty() const override;
   Q_INVOKABLE StaticSymbolModel *staticSymbolModel() const;
   Q_INVOKABLE pepp::debug::WatchExpressionEditor *watchExpressions() const;
+  Q_INVOKABLE pepp::debug::StackTracer *stackTracer() const;
   Q_INVOKABLE ScopedLines2Addresses *line2addr() const;
   int allowedDebugging() const override;
   QStringList saveAsOptions() const override { return {"pep", "pepl", "pepo"}; }

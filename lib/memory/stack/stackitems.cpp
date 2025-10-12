@@ -68,6 +68,15 @@ QQmlListProperty<ActivationRecord> ActivationModel::records() {
                                             nullptr, nullptr);
 }
 
+pepp::debug::StackTracer *ActivationModel::stackTracer() const { return _stackTracer; }
+
+void ActivationModel::setStackTracer(pepp::debug::StackTracer *stackTracer) {
+  if (_stackTracer == stackTracer) return;
+  _stackTracer = stackTracer;
+  // TODO: rebuild records from stackTracer.
+  emit stackTracerChanged();
+}
+
 void ActivationModel::append_record(QQmlListProperty<ActivationRecord> *list, ActivationRecord *record) {
   ActivationModel *model = qobject_cast<ActivationModel *>(list->object);
   model->_records.append(record);

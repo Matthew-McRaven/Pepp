@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QtQmlIntegration>
 #include <qqmllist.h>
+#include "stack_tracer.hpp"
 
 class ChangeTypeHelper : public QObject {
   Q_GADGET
@@ -84,6 +85,7 @@ private:
 class ActivationModel : public QObject {
   Q_OBJECT
   Q_PROPERTY(QQmlListProperty<ActivationRecord> records READ records NOTIFY recordsChanged)
+  Q_PROPERTY(pepp::debug::StackTracer *stackTracer READ stackTracer WRITE setStackTracer NOTIFY stackTracerChanged)
   Q_CLASSINFO("DefaultProperty", "records")
   QML_ELEMENT
 
@@ -91,13 +93,17 @@ public:
   explicit ActivationModel(QObject *parent = nullptr);
 
   QQmlListProperty<ActivationRecord> records();
+  pepp::debug::StackTracer *stackTracer() const;
+  void setStackTracer(pepp::debug::StackTracer *stackTracer);
 
 signals:
   void recordsChanged();
+  void stackTracerChanged();
 
 private:
   static void append_record(QQmlListProperty<ActivationRecord> *list, ActivationRecord *record);
   static qsizetype count_record(QQmlListProperty<ActivationRecord> *list);
   static ActivationRecord *at_record(QQmlListProperty<ActivationRecord> *list, qsizetype index);
+  pepp::debug::StackTracer *_stackTracer = nullptr;
   QList<ActivationRecord *> _records;
 };

@@ -539,6 +539,7 @@ FocusScope {
             }
             Stack.StackTrace {
                 anchors.fill: parent
+                stackTracer: project?.stackTracer ?? null
             }
         }
     }

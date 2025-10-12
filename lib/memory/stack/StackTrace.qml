@@ -6,6 +6,7 @@ import edu.pepp 1.0
 Rectangle {
     id: root
     color: palette.base
+    required property var stackTracer
     NuAppSettings {
         id: settings
     }
@@ -22,6 +23,11 @@ Rectangle {
         property double lineHeight: tm.height + 4 // Allow space around text
         property double boldBorderWidth: 4
     }
+    ActivationModel {
+        id: stackActModel
+        stackTracer: root.stackTracer
+    }
+
     // Create C++ items using the magic of QQmlPropertyList and DefaultProperty
     ActivationModel {
         id: activationModel

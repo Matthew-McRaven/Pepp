@@ -950,6 +950,8 @@ StaticSymbolModel *Pep_ASMB::staticSymbolModel() const { return _dbg->static_sym
 
 pepp::debug::WatchExpressionEditor *Pep_ASMB::watchExpressions() const { return _dbg->watch_expressions.get(); }
 
+pepp::debug::StackTracer *Pep_ASMB::stackTracer() const { return _dbg->stack_trace.get(); }
+
 ScopedLines2Addresses *Pep_ASMB::line2addr() const { return _dbg->line_maps.get(); }
 
 int Pep_ASMB::allowedDebugging() const {
