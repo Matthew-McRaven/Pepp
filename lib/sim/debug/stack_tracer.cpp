@@ -2,48 +2,16 @@
 #include <spdlog/spdlog.h>
 #include "./expr_tokenizer.hpp"
 #include "expr_ast.hpp"
-#include "expr_ast_ops.hpp"
 #include "expr_parser.hpp"
 #include "fmt/ranges.h"
 
-pepp::debug::Record::operator std::string() const {
-  auto cached = expr ? expr->evaluator().cache() : pepp::debug::EvaluationCache{};
-  std::string value_as_string = "";
-  if (cached.value) {
-    value_as_string = fmt::format("{:x}", pepp::debug::value_bits<quint16>(*cached.value));
-  }
-
-  return fmt::format("{: <7} |{: ^6}| {:04x}", name.toStdString(), value_as_string, address);
-}
-
-pepp::debug::Frame::operator std::vector<std::string>() const {
-  const auto end = _records.size();
-  const char fill_char = _active ? '=' : '-';
-  if (end == 0) return {};
-  std::vector<std::string> inner(end + 2);
-
-  // Must reverse order to maintain correct order.
-  for (int it = 0; it < end; it++)
-    inner[(end - it - 1) + 1] = fmt::format("{0} {1} {0}", fill_char, std::string(_records[it]));
-  inner[0] = inner.back() = std::string(19 + 6, fill_char);
-  return inner;
-}
-
-std::vector<std::string> pepp::debug::Stack::to_string(int left_pad) const {
-  int count = 0;
-  for (const auto &frame : _frames) count += frame.size() + 2;
-  std::vector<std::string> ret(count);
-  auto lpad = std::string(left_pad, ' ');
-
-  int it = 0;
-  for (auto frame = _frames.rbegin(); frame != _frames.rend(); ++frame) {
-    auto lines = std::vector<std::string>(*frame);
-    for (const auto &line : lines) ret[it++] = lpad + line;
-  }
-  return ret;
-}
-
 pepp::debug::StackTracer::StackTracer() : _logger(spdlog::get("debugger::stack")) {}
+
+bool pepp::debug::StackTracer::canTrace() const {
+  return !_debug_info.commands.empty() && _debug_info.typeInfo != nullptr;
+}
+
+const pas::obj::common::DebugInfo &pepp::debug::StackTracer::debugInfo() const { return _debug_info; }
 
 void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_info, Environment *env) {
   _debug_info = debug_info;
@@ -99,21 +67,31 @@ void pepp::debug::StackTracer::update_volatile_values() {
   }
 }
 
-std::optional<const pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) const {
-  for (const auto &stack : _stacks)
-    if (stack->contains(addr)) return stack.get();
-  return std::nullopt;
-}
+pepp::debug::StackTracer::const_iterator pepp::debug::StackTracer::cbegin() const { return _stacks.cbegin(); }
 
-std::optional<pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) {
-  for (auto &stack : _stacks)
-    if (stack->contains(addr)) return stack.get();
-  return std::nullopt;
+pepp::debug::StackTracer::const_iterator pepp::debug::StackTracer::cend() const { return _stacks.cend(); }
+
+pepp::debug::StackTracer::const_iterator pepp::debug::StackTracer::begin() const { return _stacks.cbegin(); }
+
+pepp::debug::StackTracer::const_iterator pepp::debug::StackTracer::end() const { return _stacks.cend(); }
+
+pepp::debug::StackTracer::iterator pepp::debug::StackTracer::begin() { return _stacks.begin(); }
+
+pepp::debug::StackTracer::iterator pepp::debug::StackTracer::end() { return _stacks.end(); }
+
+std::size_t pepp::debug::StackTracer::size() const { return _stacks.size(); }
+
+bool pepp::debug::StackTracer::empty() const { return size() == 0; }
+
+const pepp::debug::Stack *pepp::debug::StackTracer::at(std::size_t index) const {
+  if (index >= _stacks.size()) return nullptr;
+  return _stacks[index].get();
 }
 
 namespace {
 static const pepp::debug::CommandFrame call = pepp::debug::CommandFrame{.packets = {pepp::debug::CommandPacket{}}};
 }
+
 void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, InstructionType type) {
   std::string cmds_str = "";
   std::optional<const pepp::debug::CommandFrame *> cf = std::nullopt;
@@ -180,16 +158,31 @@ bool pepp::debug::StackTracer::pointerIsStack(void *ptr) const {
   return false;
 }
 
-void pepp::debug::StackTracer::popRecord(quint16 expectedSize) {
-  if (!_activeStack) _logger->warn("        No active stack to return from!");
-  else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("        Top frame is null");
-  else if (auto trecord = tframe->top(); !trecord) _logger->warn("        Top frame record is null");
-  else if (trecord->size != expectedSize)
-    _logger->warn("{: <4} Top frame record was {}B, expected {}B", "", trecord->size, expectedSize);
-  else tframe->popRecord();
+std::optional<const pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) const {
+  for (const auto &stack : _stacks)
+    if (stack->contains(addr)) return stack.get();
+  return std::nullopt;
 }
 
-void pepp::debug::StackTracer::pushRecord(QString name, quint32 address, types::BoxedType type) {
+std::optional<pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) {
+  for (auto &stack : _stacks)
+    if (stack->contains(addr)) return stack.get();
+  return std::nullopt;
+}
+
+pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(quint32 address) {
+  std::optional<pepp::debug::Stack *> stack = stackAtAddress(address);
+  if (stack) return stack.value();
+  auto new_stack = std::make_shared<pepp::debug::Stack>(address);
+  new_stack->pushFrame();
+  Q_ASSERT(new_stack->size() > 0);
+  _stacks.push_back(new_stack);
+  std::sort(_stacks.begin(), _stacks.end(),
+            [](auto &lhs, auto &rhs) { return lhs->base_address() < rhs->base_address(); });
+  return new_stack.get();
+}
+
+void pepp::debug::StackTracer::pushSlot(QString name, quint32 address, types::BoxedType type) {
   if (!_activeStack) _logger->warn("{: <4} No active stack to push to!", "");
   else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
   else {
@@ -198,9 +191,17 @@ void pepp::debug::StackTracer::pushRecord(QString name, quint32 address, types::
     auto memlookup = _exprCache.add_or_return(MemoryReadCastDeref(addr, type));
     if (_env) memlookup->evaluator().evaluate(CachePolicy::UseNever, *_env);
     quint32 size = types::bitness(unbox(type)) / 8;
-    auto rec = Record{.address = address, .size = size, .name = name, .expr = memlookup};
-    tframe->pushRecord(std::move(rec));
+    tframe->pushSlot(std::move(Slot(address, size, name, memlookup, tframe)));
   }
+}
+
+void pepp::debug::StackTracer::popSlot(quint16 expectedSize) {
+  if (!_activeStack) _logger->warn("        No active stack to return from!");
+  else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("        Top frame is null");
+  else if (auto trecord = tframe->top(); !trecord) _logger->warn("        Top frame record is null");
+  else if (trecord->size() != expectedSize)
+    _logger->warn("{: <4} Top frame record was {}B, expected {}B", "", trecord->size(), expectedSize);
+  else tframe->popSlot();
 }
 
 void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, quint16 spBefore, quint16 spAfter,
@@ -220,7 +221,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
         spBefore -= size, actualDelta -= size;
-        pushRecord(memop.name, spBefore, memop.type);
+        pushSlot(memop.name, spBefore, memop.type);
         _logger->info("{: <7} CALL'ed {} bytes", "", size);
         break;
       }
@@ -228,14 +229,14 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
         spBefore -= size, actualDelta -= size;
-        pushRecord(memop.name, spBefore, memop.type);
+        pushSlot(memop.name, spBefore, memop.type);
         _logger->info("{: <7} ALLOC'ed {} bytes", "", size);
         break;
       }
       case Opcodes::RET: {
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
-        popRecord(size);
+        popSlot(size);
         spBefore += size, actualDelta += size;
         _logger->info("{: <7} RET'ed {} bytes", "", size);
         if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
@@ -247,7 +248,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
       case Opcodes::POP: {
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
-        popRecord(size);
+        popSlot(size);
         spBefore += size, actualDelta += size;
         _logger->info("{: <7} DEALLOC'ed {} bytes", "", size);
         break;
@@ -314,14 +315,3 @@ std::string pepp::debug::StackTracer::to_string(int left_pad) const {
   return fmt::format("{}{}\n", joiner, fmt::join(joined_lines.begin(), joined_lines.end(), joiner));
 }
 
-pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(quint32 address) {
-  std::optional<pepp::debug::Stack *> stack = stackAtAddress(address);
-  if (stack) return stack.value();
-  auto new_stack = std::make_shared<pepp::debug::Stack>(address);
-  new_stack->pushFrame();
-  Q_ASSERT(new_stack->size() > 0);
-  _stacks.push_back(new_stack);
-  std::sort(_stacks.begin(), _stacks.end(),
-            [](auto &lhs, auto &rhs) { return lhs->base_address() < rhs->base_address(); });
-  return new_stack.get();
-}
