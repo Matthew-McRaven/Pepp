@@ -156,8 +156,21 @@ private:
 
 class ScopedActivationModel : public QSortFilterProxyModel {
   Q_OBJECT
-  // Q_PROPERTY(ActivationModel *sourceModel READ castedSourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
+  Q_PROPERTY(QModelIndex scopeToIndex READ scopeToIndex WRITE setScopeToIndex NOTIFY scopeToIndexChanged)
   QML_NAMED_ELEMENT(ScopedActivationModel)
+public:
+  explicit ScopedActivationModel(QObject *parent = nullptr);
+  ~ScopedActivationModel() override = default;
+
+  void setSourceModel(QAbstractItemModel *model) override;
+  QModelIndex scopeToIndex() const;
+  void setScopeToIndex(const QModelIndex &index);
+signals:
+  void scopeToIndexChanged();
+
 protected:
-  inline bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override { return true; }
+  bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
+
+private:
+  QModelIndex _scopeToIndex;
 };

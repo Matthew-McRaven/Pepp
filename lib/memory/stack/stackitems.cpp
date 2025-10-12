@@ -223,3 +223,34 @@ void ActivationModel::setStackTracer(pepp::debug::StackTracer *stackTracer) {
 }
 
 void ActivationModel::update_volatile_values() {}
+
+ScopedActivationModel::ScopedActivationModel(QObject *parent) : QSortFilterProxyModel(parent) {}
+
+void ScopedActivationModel::setSourceModel(QAbstractItemModel *model) {
+  if (model == sourceModel() || !model) return;
+  else if (auto casted = dynamic_cast<ActivationModel *>(model); casted) {
+    // TODO: am I accidentally double resetting?
+    beginResetModel();
+    QSortFilterProxyModel::setSourceModel(model);
+    endResetModel();
+  }
+}
+
+QModelIndex ScopedActivationModel::scopeToIndex() const { return _scopeToIndex; }
+
+void ScopedActivationModel::setScopeToIndex(const QModelIndex &index) {
+  if (_scopeToIndex == index) return;
+  _scopeToIndex = index;
+  invalidateFilter();
+  emit scopeToIndexChanged();
+}
+
+bool ScopedActivationModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
+  // If the source parent (or one of its parents) is the scope index, we accept this row.
+  // Otherwise, it is some sibling of the scope index or outside the scope entirely, so we reject it.
+  QModelIndex parent = source_parent;
+  do {
+    if (_scopeToIndex == parent) return true;
+  } while (parent.isValid());
+  return false;
+}
