@@ -163,14 +163,53 @@ int ActivationModel::rowCount(const QModelIndex &parent) const {
 int ActivationModel::columnCount(const QModelIndex &parent) const { return 1; }
 
 QVariant ActivationModel::data(const QModelIndex &index, int role) const {
+  int row = index.row(), col = index.column();
+  if (!index.isValid() || row < 0 || col != 0) return QVariant();
+  auto ptr = static_cast<pepp::debug::LayoutNode *>(index.internalPointer());
+
+  pepp::debug::Slot *asSlot = dynamic_cast<pepp::debug::Slot *>(ptr);
+  pepp::debug::Frame *asFrame = dynamic_cast<pepp::debug::Frame *>(ptr);
+  pepp::debug::Stack *asStack = dynamic_cast<pepp::debug::Stack *>(ptr);
+
+  using AMR = ActivationModelRoles::RoleNames;
   switch (role) {
-  case Qt::DisplayRole: break;
+  case (int)AMR::NodeType:
+    if (asSlot) return 1;
+    else if (asFrame) return 2;
+    else if (asStack) return 3;
+    else return QVariant();
+
+  case (int)AMR::SlotName:
+    if (asSlot) return QVariant::fromValue(asSlot->name());
+    else return QVariant();
+
+  case (int)AMR::SlotAddress:
+    if (asSlot) return QVariant::fromValue(asSlot->address());
+    else return QVariant();
+
+  case (int)AMR::SlotValue:
+    if (asSlot) return QVariant::fromValue(QString::fromStdString(asSlot->value()));
+    else return QVariant();
+
+  case (int)AMR::SlotStatus: {
+    if (asSlot) {
+      auto enumValue =
+          asSlot->is_value_dirty() ? ChangeTypeHelper::ChangeType::Modified : ChangeTypeHelper::ChangeType::None;
+      return QVariant::fromValue(enumValue);
+    } else return QVariant();
+  }
+  case (int)AMR::FrameActive:
+    if (asFrame) return asFrame->active();
+    else return QVariant();
   }
   return QVariant();
 }
 
 QHash<int, QByteArray> ActivationModel::roleNames() const {
-  QHash<int, QByteArray> ret = {{Qt::DisplayRole, "display"}};
+  using AMR = ActivationModelRoles::RoleNames;
+  QHash<int, QByteArray> ret = {{(int)AMR::NodeType, "type"},       {(int)AMR::SlotName, "name"},
+                                {(int)AMR::SlotAddress, "address"}, {(int)AMR::SlotValue, "value"},
+                                {(int)AMR::SlotStatus, "status"},   {(int)AMR::FrameActive, "active"}};
   return ret;
 }
 
@@ -179,7 +218,7 @@ pepp::debug::StackTracer *ActivationModel::stackTracer() const { return _stackTr
 void ActivationModel::setStackTracer(pepp::debug::StackTracer *stackTracer) {
   if (_stackTracer == stackTracer) return;
   _stackTracer = stackTracer;
-  // TODO: rebuild records from stackTracer.
+  // TODO: rebuild records from stackTracer, and emit begin/end reset.
   emit stackTracerChanged();
 }
 

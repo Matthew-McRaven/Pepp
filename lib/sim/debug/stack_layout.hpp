@@ -34,6 +34,9 @@ public:
   std::shared_ptr<const pepp::debug::Term> expr() const;
   Frame *parent();
   const Frame *parent() const;
+  // Helpers to inspect the current value of expr without modifying it.
+  std::string value() const;
+  bool is_value_dirty() const;
 
   // "Stringify" the slot for debugging purposes.
   operator std::string() const;

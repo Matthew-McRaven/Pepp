@@ -49,18 +49,24 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Slot::expr() { return _expr; }
 
 std::shared_ptr<const pepp::debug::Term> pepp::debug::Slot::expr() const { return _expr; }
 
-const pepp::debug::Frame *pepp::debug::Slot::parent() const { return _parent; }
-
-pepp::debug::Frame *pepp::debug::Slot::parent() { return _parent; }
-
-pepp::debug::Slot::operator std::string() const {
+std::string pepp::debug::Slot::value() const {
   auto cached = _expr ? _expr->evaluator().cache() : pepp::debug::EvaluationCache{};
   std::string value_as_string = "";
   if (cached.value) {
     value_as_string = fmt::format("{:x}", pepp::debug::value_bits<quint16>(*cached.value));
   }
+  return value_as_string;
+}
+
+bool pepp::debug::Slot::is_value_dirty() const { return !_expr || _expr->evaluator().dirty(); }
+
+const pepp::debug::Frame *pepp::debug::Slot::parent() const { return _parent; }
+
+pepp::debug::Frame *pepp::debug::Slot::parent() { return _parent; }
+
+pepp::debug::Slot::operator std::string() const {
   // Updates to this format require updates to globals at the top of this file
-  return fmt::format("{: <7} |{: ^6}| {:04x}", _name.toStdString(), value_as_string, _address);
+  return fmt::format("{: <7} |{: ^6}| {:04x}", _name.toStdString(), value(), _address);
 }
 
 pepp::debug::Frame::Frame(quint32 baseAddress, Stack *parent) : _baseAddress(baseAddress), _parent(parent) {}

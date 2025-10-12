@@ -104,6 +104,30 @@ private:
   QList<ActivationRecord *> _records;
 };
 
+class ActivationModelRoles : public QObject {
+  Q_OBJECT
+  QML_ELEMENT
+  QML_UNCREATABLE("")
+public:
+  enum RoleNames {
+    // 1 if slot, 2 if frame, 3 if stack.
+    NodeType = Qt::UserRole + 0,
+    SlotName = Qt::UserRole + 1,
+    SlotAddress = Qt::UserRole + 2,
+    SlotValue = Qt::UserRole + 3,
+    SlotStatus = Qt::UserRole + 4,
+    FrameActive = Qt::UserRole + 5,
+  };
+  Q_ENUM(RoleNames)
+  static ActivationModelRoles *instance();
+  // Prevent copying and assignment
+  ActivationModelRoles(const ActivationModelRoles &) = delete;
+  ActivationModelRoles &operator=(const ActivationModelRoles &) = delete;
+
+private:
+  ActivationModelRoles() : QObject(nullptr) {}
+};
+
 class ActivationModel : public QAbstractItemModel {
   // QAbstractItemModel interface
   Q_OBJECT
