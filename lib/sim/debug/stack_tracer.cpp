@@ -174,6 +174,12 @@ void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, In
   }
 }
 
+bool pepp::debug::StackTracer::pointerIsStack(void *ptr) const {
+  for (const auto &stack : _stacks)
+    if (stack.get() == ptr) return true;
+  return false;
+}
+
 void pepp::debug::StackTracer::popRecord(quint16 expectedSize) {
   if (!_activeStack) _logger->warn("        No active stack to return from!");
   else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("        Top frame is null");

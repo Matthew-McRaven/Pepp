@@ -4,15 +4,19 @@
 #include "expr_parser.hpp"
 #include "toolchain/pas/obj/trace_tags.hpp"
 namespace pepp::debug {
+class Frame;
 class Record {
 public:
   // Size is really just a cached value over expr;
   quint32 address, size;
   QString name;
   std::shared_ptr<pepp::debug::Term> expr;
+  // Frame is responsible for setting this field on pushRecord and clearing on pop.
+  Frame *parent = nullptr;
   operator std::string() const;
 };
 
+class Stack;
 class Frame {
   using container = std::vector<Record>;
   using iterator = typename container::iterator;
@@ -47,11 +51,18 @@ public:
     return &_records.back();
   }
   operator std::vector<std::string>() const;
+  inline const Record *at(std::size_t index) const {
+    if (index >= _records.size()) return nullptr;
+    return &_records[index];
+  }
+  inline Stack *parent() { return _parent; }
+  friend class Stack;
 
 private:
   container _records = {};
   bool _active = false;
   quint32 _baseAddress = -1;
+  Stack *_parent = nullptr;
 };
 
 class Stack {
@@ -60,35 +71,46 @@ class Stack {
   using const_iterator = typename container::const_iterator;
 
 public:
-  Stack(quint32 baseAddress) : _baseAddress(baseAddress) {}
-  Frame *top() {
+  inline Stack(quint32 baseAddress) : _baseAddress(baseAddress) {}
+  inline Frame *top() {
     if (_frames.size() == 0) return nullptr;
     return &_frames.back();
   }
-  quint32 base_address() const { return _baseAddress; }
-  quint32 top_address() const {
+  inline quint32 base_address() const { return _baseAddress; }
+  inline quint32 top_address() const {
     quint32 address = 0;
     for (const auto &it : std::as_const(_frames)) address = qMin(address, it.top_address());
     return address;
   }
-  bool contains(quint32 address) const {
+  inline const Frame *at(std::size_t index) const {
+    if (index >= _frames.size()) return nullptr;
+    return &_frames[index];
+  }
+  inline bool contains(quint32 address) const {
     if (address > base_address()) return false;
     return address >= top_address();
   }
-  const_iterator cbegin() const { return _frames.cbegin(); }
-  const_iterator cend() const { return _frames.cend(); }
-  iterator begin() { return _frames.begin(); }
-  iterator end() { return _frames.end(); }
-  const_iterator begin() const { return _frames.cbegin(); }
-  const_iterator end() const { return _frames.cend(); }
-  std::size_t size() const { return _frames.size(); }
-  bool empty() const { return _frames.empty(); }
-  Frame &pushFrame() {
+  inline const_iterator cbegin() const { return _frames.cbegin(); }
+  inline const_iterator cend() const { return _frames.cend(); }
+  inline iterator begin() { return _frames.begin(); }
+  inline iterator end() { return _frames.end(); }
+  inline const_iterator begin() const { return _frames.cbegin(); }
+  inline const_iterator end() const { return _frames.cend(); }
+  inline std::size_t size() const { return _frames.size(); }
+  inline bool empty() const { return _frames.empty(); }
+  inline Frame &pushFrame() {
     // Consolidate consecutive empty frames.
-    if (_frames.empty() || !_frames.back().empty()) _frames.push_back(Frame{});
+    if (_frames.empty() || !_frames.back().empty()) {
+      auto newFrame = Frame{};
+      newFrame._parent = this;
+      _frames.push_back(newFrame);
+    };
     return _frames.back();
   }
-  void popFrame() { _frames.pop_back(); }
+  inline void popFrame() {
+    _frames.back()._parent = nullptr;
+    _frames.pop_back();
+  }
   std::vector<std::string> to_string(int left_pad) const;
 
 private:
@@ -134,6 +156,10 @@ public:
   void activateStack(quint32 address);
   void activateStack(std::size_t index);
 
+  inline const Stack *at(std::size_t index) const {
+    if (index >= _stacks.size()) return nullptr;
+    return _stacks[index].get();
+  }
   const_iterator cbegin() const { return _stacks.cbegin(); }
   const_iterator cend() const { return _stacks.cend(); }
   iterator begin() { return _stacks.begin(); }
@@ -147,6 +173,8 @@ public:
   // I need the modified SP so that I can check that the # of bytes de/allocated matches the debug info.
   // This is not very "physical", because I am examining processor state mid-instruction from the debugger.
   void notifyInstruction(quint16 pc, quint16 spAfter, InstructionType type);
+
+  bool pointerIsStack(void *ptr) const;
 
 private:
   std::optional<Stack *> stackAtAddress(quint32);

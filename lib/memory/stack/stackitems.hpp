@@ -82,23 +82,19 @@ private:
   QList<RecordLine *> _lines;
 };
 
-class ActivationModel : public QObject {
+class DummyActivationModel : public QObject {
   Q_OBJECT
   Q_PROPERTY(QQmlListProperty<ActivationRecord> records READ records NOTIFY recordsChanged)
-  Q_PROPERTY(pepp::debug::StackTracer *stackTracer READ stackTracer WRITE setStackTracer NOTIFY stackTracerChanged)
   Q_CLASSINFO("DefaultProperty", "records")
-  QML_ELEMENT
+  QML_NAMED_ELEMENT(ActivationModel)
 
 public:
-  explicit ActivationModel(QObject *parent = nullptr);
+  explicit DummyActivationModel(QObject *parent = nullptr);
 
   QQmlListProperty<ActivationRecord> records();
-  pepp::debug::StackTracer *stackTracer() const;
-  void setStackTracer(pepp::debug::StackTracer *stackTracer);
 
 signals:
   void recordsChanged();
-  void stackTracerChanged();
 
 private:
   static void append_record(QQmlListProperty<ActivationRecord> *list, ActivationRecord *record);
@@ -106,4 +102,38 @@ private:
   static ActivationRecord *at_record(QQmlListProperty<ActivationRecord> *list, qsizetype index);
   pepp::debug::StackTracer *_stackTracer = nullptr;
   QList<ActivationRecord *> _records;
+};
+
+class ActivationModel : public QAbstractItemModel {
+  // QAbstractItemModel interface
+  Q_OBJECT
+  Q_PROPERTY(pepp::debug::StackTracer *stackTracer READ stackTracer WRITE setStackTracer NOTIFY stackTracerChanged)
+  QML_NAMED_ELEMENT(RootActivationModel)
+public:
+  QModelIndex index(int row, int column, const QModelIndex &parent) const override;
+  QModelIndex parent(const QModelIndex &child) const override;
+  int rowCount(const QModelIndex &parent) const override;
+  int columnCount(const QModelIndex &parent) const override;
+  QVariant data(const QModelIndex &index, int role) const override;
+  QHash<int, QByteArray> roleNames() const override;
+
+  pepp::debug::StackTracer *stackTracer() const;
+  void setStackTracer(pepp::debug::StackTracer *stackTracer);
+
+public slots:
+  // Call at the same time as WatchExpressionEditor::update_volatile_values
+  void update_volatile_values();
+signals:
+  void stackTracerChanged();
+
+private:
+  pepp::debug::StackTracer *_stackTracer = nullptr;
+};
+
+class ScopedActivationModel : public QSortFilterProxyModel {
+  Q_OBJECT
+  // Q_PROPERTY(ActivationModel *sourceModel READ castedSourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
+  QML_NAMED_ELEMENT(ScopedActivationModel)
+protected:
+  inline bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override { return true; }
 };

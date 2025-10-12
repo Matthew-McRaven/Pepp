@@ -23,7 +23,7 @@ Rectangle {
         property double lineHeight: tm.height + 4 // Allow space around text
         property double boldBorderWidth: 4
     }
-    ActivationModel {
+    RootActivationModel {
         id: stackActModel
         stackTracer: root.stackTracer
     }
