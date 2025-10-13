@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
 #if defined(SPDLOG_ACTIVE_LEVEL)
   spdlog::set_level((spdlog::level::level_enum)SPDLOG_ACTIVE_LEVEL);
 #endif
-  spdlog::set_level(spdlog::level::level_enum::info);
+  // spdlog::set_level(spdlog::level::level_enum::info);
 
   // Get the name of the executable, and see if it ends in term.
   // If so, we should present terminal help on being called with no args.
