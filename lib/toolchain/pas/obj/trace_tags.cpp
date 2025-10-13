@@ -144,8 +144,7 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
     }
 
     // Add stack frame init or deinit ops, since params create/delete a stack frame.
-    if ((cmd == "param" || cmd == "params") && !is_push)
-      packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::REMOVE_FRAME}});
+    if (!is_push) packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::REMOVE_FRAME}});
 
   } else {
     qDebug() << "Unhandled debug command:" << it->command;

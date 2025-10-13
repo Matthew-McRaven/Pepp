@@ -75,7 +75,8 @@ QString pas::ops::generic::infer_command(const ast::Node &node, const QStringLis
     for (const auto &arg : args) allTypes &= isTypeTag(arg);
     if (allTypes) return "global";
     return "struct";
-  } else if (pepp::isNonUnary<isa::Pep10>()(node)) {
+  } else if (node.has<ast::generic::SymbolDeclaration>()) return "locals";
+  else if (pepp::isNonUnary<isa::Pep10>()(node)) {
     auto instr = node.get<pas::ast::pepp::Instruction<isa::Pep10>>();
     switch (instr.value) {
     case isa::detail::pep10::Mnemonic::CALL: return "heap";
@@ -87,8 +88,7 @@ QString pas::ops::generic::infer_command(const ast::Node &node, const QStringLis
     case isa::detail::pep9::Mnemonic::CALL: return "heap";
     default: return "params";
     }
-  } else if (node.has<ast::generic::SymbolDeclaration>()) return "locals";
-  else return "params";
+  } else return "params";
 }
 
 bool isPush(const pas::ast::Node &node) {

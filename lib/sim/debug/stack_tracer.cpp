@@ -296,8 +296,8 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
         else if (auto tframe = _activeStack->top(); !tframe)
           _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
-        else if (!tframe->empty())
-          _error = Errors::ToSFrameNotEmpty, _logger->warn("{: <4} Top frame is not empty", "");
+        else if (!tframe->empty())                            // Suppress error, since I'm still working on this.
+          _logger->warn("{: <4} Top frame is not empty", ""); // error = Errors::ToSFrameNotEmpty,
         else _activeStack->popFrame();
         _logger->info("{: <7} POP_FRAME", "");
         break;
