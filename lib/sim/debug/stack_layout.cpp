@@ -137,6 +137,11 @@ const pepp::debug::Slot *pepp::debug::Frame::at(std::size_t index) const {
   return &_slots[index];
 }
 
+const pepp::debug::Slot *pepp::debug::Frame::reverse_at(std::size_t index) const {
+  if (index >= _slots.size()) return nullptr;
+  return &_slots[_slots.size() - index - 1];
+}
+
 const pepp::debug::Slot *pepp::debug::Frame::top() const {
   if (_slots.empty()) return nullptr;
   return &_slots.back();
@@ -213,6 +218,11 @@ bool pepp::debug::Stack::contains(quint32 address) const {
 const pepp::debug::Frame *pepp::debug::Stack::at(std::size_t index) const {
   if (index >= _frames.size()) return nullptr;
   return &_frames[index];
+}
+
+const pepp::debug::Frame *pepp::debug::Stack::reverse_at(std::size_t index) const {
+  if (index >= _frames.size()) return nullptr;
+  return &_frames[_frames.size() - index - 1];
 }
 
 pepp::debug::Frame *pepp::debug::Stack::top() {

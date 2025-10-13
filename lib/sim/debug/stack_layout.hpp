@@ -82,6 +82,7 @@ public:
   std::size_t size() const;
   bool empty() const;
   const Slot *at(std::size_t index) const;
+  const Slot *reverse_at(std::size_t index) const;
   const Slot *top() const;
 
   operator std::vector<std::string>() const;
@@ -123,6 +124,7 @@ public:
   bool empty() const;
   bool contains(quint32 address) const;
   const Frame *at(std::size_t index) const;
+  const Frame *reverse_at(std::size_t index) const;
   Frame *top();
 
   std::vector<std::string> to_string(int left_pad) const;
