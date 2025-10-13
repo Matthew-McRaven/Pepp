@@ -6,6 +6,8 @@ import edu.pepp 1.0
 Rectangle {
     id: root
     color: palette.base
+    required property var stackTracer
+    signal updateGUI
     NuAppSettings {
         id: settings
     }
@@ -22,113 +24,51 @@ Rectangle {
         property double lineHeight: tm.height + 4 // Allow space around text
         property double boldBorderWidth: 4
     }
-    // Create C++ items using the magic of QQmlPropertyList and DefaultProperty
-    ActivationModel {
-        id: activationModel
-        ActivationRecord {
-            active: false
-            RecordLine {
-                address: 0
-                value: "10"
-                status: ChangeType.Allocated
-                name: "a"
-            }
-            RecordLine {
-                address: 2
-                value: "20"
-                status: ChangeType.Modified
-                name: "b"
+    ScopedActivationModel {
+        id: stackActModel
+        sourceModel: RootActivationModel {
+            id: allStacksModel
+            stackTracer: root.stackTracer
+            Component.onCompleted: {
+                root.updateGUI.connect(allStacksModel.update_volatile_values);
             }
         }
-        ActivationRecord {
-            active: true
-            RecordLine {
-                address: 0x4a
-                value: "30"
-                name: "c1"
-            }
-            RecordLine {
-                address: 0x4b
-                value: "32"
-                name: "c2"
-            }
-        }
-        ActivationRecord {
-            active: true
-            RecordLine {
-                address: 6
-                value: "40"
-                status: ChangeType.Modified
-                name: "d"
-            }
-            RecordLine {
-                address: 7
-                value: "50"
-                name: "e"
-            }
-            RecordLine {
-                address: 9
-                value: "60"
-                status: ChangeType.Modified
-                name: "f"
-            }
-        }
+        scopeToIndex: allStacksModel.activeStackIndex
     }
+
     component NonStackRenderer: ColumnLayout {
         id: del
         required property string name
-        required property var activationModel
         Label {
-            Layout.leftMargin: tm.addressWidth + (tm.valueWidth - implicitWidth) / 2
+            //Layout.leftMargin: tm.addressWidth + (tm.valueWidth - implicitWidth) / 2
             Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
-            Layout.bottomMargin: -10
+            //Layout.bottomMargin: -10
             text: del.name
-            visible: localStack.implicitHeight > 0
+            //visible: localStack.implicitHeight > 0
             Layout.preferredHeight: visible ? implicitHeight : 0
             font.family: tm.font.family
             font.pointSize: tm.font.pointSize * 1.5
             font.bold: true
         }
-        MemoryStack {
-            id: localStack
-            // Because of negative spacing inside, top rect clips tab bar. Add margin to avoid clipping.
-            Layout.topMargin: 4
-            Layout.preferredHeight: implicitHeight
-            Layout.preferredWidth: childrenRect.width
-            Layout.bottomMargin: 15
-
-            //  Font and dimensions - Globals
-            font: tm.font
-            implicitAddressWidth: tm.addressWidth
-            implicitValueWidth: tm.valueWidth
-            implicitLineHeight: tm.lineHeight
-            boldBorderWidth: tm.boldBorderWidth
-
-            itemModel: activationModel
-            Rectangle {
-                anchors.fill: parent
-                // TODO: future self trying to fix alignment issues on Mac OS
-                // It seems like the actual bold stack frames draw "outside" their rectangle.
-                // This means that fillining our parent with a margin of 0 would still leave some pixels uncovered.
-                // This is a good test for any future rendering improvements.
-                anchors.bottomMargin: -4
-                color: "orange"
-                Text {
-                    anchors.centerIn: parent
-                    text: "Coming soon"
-                    color: "black"
-                    wrapMode: Text.WordWrap
-                    horizontalAlignment: Text.AlignHCenter
-                    width: parent.width * 0.8
-                }
-                z: 10
+        Rectangle {
+            Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
+            height: 80
+            width: 100
+            color: "orange"
+            Text {
+                anchors.centerIn: parent
+                text: "Coming soon"
+                color: "black"
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+                width: parent.width * 0.8
             }
+            z: 10
         }
     }
     component StackRenderer: ColumnLayout {
         id: del
         required property string name
-        required property var activationModel
         spacing: 0
         MemoryStack {
             id: localStack
@@ -136,6 +76,7 @@ Rectangle {
             Layout.topMargin: 4
             Layout.preferredHeight: implicitHeight
             Layout.preferredWidth: childrenRect.width
+            Layout.minimumWidth: 250
             Layout.bottomMargin: 15
 
             //  Font and dimensions - Globals
@@ -145,7 +86,7 @@ Rectangle {
             implicitLineHeight: tm.lineHeight
             boldBorderWidth: tm.boldBorderWidth
 
-            itemModel: activationModel
+            itemModel: stackActModel
         }
         StackGroundGraphic {
             id: graphic
@@ -199,7 +140,6 @@ Rectangle {
                 Layout.alignment: Qt.AlignTop
                 NonStackRenderer {
                     name: "Globals"
-                    activationModel: activationModel
                 }
                 Item {
                     Layout.fillHeight: true
@@ -209,14 +149,13 @@ Rectangle {
                 }
                 StackRenderer {
                     name: "Stack"
-                    activationModel: activationModel
                 }
             } // ColumnLayout
+
             ColumnLayout {
                 Layout.alignment: Qt.AlignTop
                 NonStackRenderer {
                     name: "Heap"
-                    activationModel: activationModel
                 }
             } // ColumnLayout
         } // RowLayout

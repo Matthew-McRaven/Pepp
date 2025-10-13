@@ -54,11 +54,16 @@ struct CountEvalVisitor : public pepp::debug::ConstantTermVisitor {
     visited.insert(&node);
     node.lhs->accept(*this);
   }
+
   void accept(const pepp::debug::UnaryPrefix &node) override {
     visited.insert(&node);
     node.arg->accept(*this);
   }
   void accept(const pepp::debug::MemoryRead &node) override {
+    visited.insert(&node);
+    node.arg->accept(*this);
+  }
+  void accept(const pepp::debug::MemoryReadCastDeref &node) override {
     visited.insert(&node);
     node.arg->accept(*this);
   }

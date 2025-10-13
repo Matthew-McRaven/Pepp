@@ -144,6 +144,7 @@ FocusScope {
         onOverwriteEditors();
         project.updateGUI.connect(watchExpr.updateGUI);
         project.updateGUI.connect(bpViewer.updateGUI);
+        project.updateGUI.connect(memoryTrace.updateGUI);
         project.markedClean.connect(wrapper.markClean);
         userAsmEdit.onDirtiedChanged.connect(wrapper.markDirty);
         for (const x of widgets) {
@@ -538,7 +539,9 @@ FocusScope {
                 "debugger": true
             }
             Stack.StackTrace {
+                id: memoryTrace
                 anchors.fill: parent
+                stackTracer: project?.stackTracer ?? null
             }
         }
     }

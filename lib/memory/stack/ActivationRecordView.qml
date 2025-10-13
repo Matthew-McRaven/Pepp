@@ -32,7 +32,7 @@ Item {
     // Sorry all, this bit is cursed.
     // Instead of trying to do the "right thing" and use three columns+repeaters and place a rectangle
     // around the center column inside the middle repeater, I'm opting to only use a single repeater.
-    // This reducs the amount of synchronization code between the repeaters/columns, but it also means
+    // This reduces the amount of synchronization code between the repeaters/columns, but it also means
     // we no longer obviously know where the middle column is.
     // So, as we create our rows, we record the location of the middle column.
     // We'll math out the location of the background rectangle using those values.
@@ -42,7 +42,7 @@ Item {
         y: root.valueY - border.width / 2
         color: "transparent"
         width: root.valueWidth + border.width
-        height: (root.lineModel.lines.length * root.valueHeight) + border.width
+        height: column.height + border.width
         border.color: root.active ? palette.text : "transparent"
         border.width: root.boldBorderWidth
         z: 1
@@ -52,7 +52,7 @@ Item {
         spacing: 0
 
         Repeater {
-            model: root.lineModel.lines
+            model: root.lineModel
             RowLayout {
                 spacing: 0
                 Label {
@@ -62,8 +62,7 @@ Item {
                     Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
 
                     font: root.font
-                    text: `${model.address.toString(16).padStart(
-                              4, '0').toUpperCase()}`
+                    text: `${model.address?.toString(16)?.padStart(4, '0')?.toUpperCase() ?? 0}`
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -90,7 +89,7 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font: root.font
-                        text: model.value
+                        text: model.value ?? ""
                     }
                 }
                 Label {
@@ -101,24 +100,24 @@ Item {
                     Layout.leftMargin: 5
 
                     font: root.font
-                    text: model.name
+                    text: model.name ?? ""
                     color: palette.text
                 }
                 Component.onCompleted: {
                     // Record position of the value column so we can place the background rect.
                     if (model.row === 0) {
                         root.valueX = Qt.binding(function () {
-                            return valueRect.x
-                        })
+                            return valueRect.x;
+                        });
                         root.valueWidth = Qt.binding(function () {
-                            return valueRect.width
-                        })
+                            return valueRect.width;
+                        });
                         root.valueY = Qt.binding(function () {
-                            return valueRect.y
-                        })
+                            return valueRect.y;
+                        });
                         root.valueHeight = Qt.binding(function () {
-                            return valueRect.height
-                        })
+                            return valueRect.height;
+                        });
                     }
                 }
             }

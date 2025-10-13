@@ -26,6 +26,7 @@ public:
     ParenExpr,
     DirectTypeCast,
     IndirectTypeCast,
+    MemoryReadCastDeref, // Combine read, cast, and deref into a single node
   };
   virtual ~Term() = 0;
   virtual uint16_t depth() const = 0;
@@ -289,6 +290,33 @@ private:
   EvaluationCache _state{};
 };
 
+struct MemoryReadCastDeref : public Term {
+  explicit MemoryReadCastDeref(std::shared_ptr<Term> arg, types::BoxedType cast_to);
+  ~MemoryReadCastDeref() override = default;
+  std::strong_ordering operator<=>(const Term &rhs) const override;
+  std::strong_ordering operator<=>(const MemoryReadCastDeref &rhs) const;
+  uint16_t depth() const override;
+  Type type() const override;
+  QString to_string() const override;
+  void link() override;
+  int cv_qualifiers() const override;
+
+  void mark_dirty() override;
+  bool dirty() const override;
+
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
+  const std::shared_ptr<Term> arg;
+
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
+private:
+  EvaluationCache _state{};
+  const types::BoxedType _cast_to;
+};
+
 struct DirectCast : public Term {
   DirectCast(types::BoxedType cast_to, std::shared_ptr<Term> arg);
   ~DirectCast() override = default;
@@ -387,6 +415,7 @@ struct MutatingTermVisitor {
   virtual void accept(MemberAccess &node) = 0;
   virtual void accept(UnaryPrefix &node) = 0;
   virtual void accept(MemoryRead &node) = 0;
+  virtual void accept(MemoryReadCastDeref &node) = 0;
   virtual void accept(Parenthesized &node) = 0;
   virtual void accept(DirectCast &node) = 0;
   virtual void accept(IndirectCast &node) = 0;
@@ -399,6 +428,7 @@ struct ConstantTermVisitor {
   virtual void accept(const MemberAccess &node) = 0;
   virtual void accept(const UnaryPrefix &node) = 0;
   virtual void accept(const MemoryRead &node) = 0;
+  virtual void accept(const MemoryReadCastDeref &node) = 0;
   virtual void accept(const Parenthesized &node) = 0;
   virtual void accept(const DirectCast &node) = 0;
   virtual void accept(const IndirectCast &node) = 0;

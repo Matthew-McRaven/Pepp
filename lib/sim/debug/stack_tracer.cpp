@@ -1,41 +1,25 @@
 #include "stack_tracer.hpp"
 #include <spdlog/spdlog.h>
+#include "./expr_tokenizer.hpp"
+#include "expr_ast.hpp"
+#include "expr_parser.hpp"
 #include "fmt/ranges.h"
-
-pepp::debug::Frame::operator std::vector<std::string>() const {
-  const auto end = _records.size();
-  const char fill_char = _active ? '=' : '-';
-  if (end == 0) return {};
-  std::vector<std::string> inner(end + 2);
-
-  // Must reverse order to maintain correct order.
-  for (int it = 0; it < end; it++)
-    inner[(end - it - 1) + 1] = fmt::format("{0} {1} {0}", fill_char, std::string(_records[it]));
-  inner[0] = inner.back() = std::string(19, fill_char);
-  return inner;
-}
-
-std::vector<std::string> pepp::debug::Stack::to_string(int left_pad) const {
-  int count = 0;
-  for (const auto &frame : _frames) count += frame.size() + 2;
-  std::vector<std::string> ret(count);
-  auto lpad = std::string(left_pad, ' ');
-
-  int it = 0;
-  for (auto frame = _frames.rbegin(); frame != _frames.rend(); ++frame) {
-    auto lines = std::vector<std::string>(*frame);
-    for (const auto &line : lines) ret[it++] = lpad + line;
-  }
-  return ret;
-}
 
 pepp::debug::StackTracer::StackTracer() : _logger(spdlog::get("debugger::stack")) {}
 
-void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_info) {
+bool pepp::debug::StackTracer::canTrace() const {
+  return !_debug_info.commands.empty() && _debug_info.typeInfo != nullptr;
+}
+
+const pas::obj::common::DebugInfo &pepp::debug::StackTracer::debugInfo() const { return _debug_info; }
+
+void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_info, Environment *env) {
   _debug_info = debug_info;
+  _env = env;
   _lastSP = std::nullopt;
   _activeStack = nullptr;
   _stacks.clear();
+  _error = Errors::OK;
   using namespace pepp::debug::types;
   BoxedType u16 = _debug_info.typeInfo->box(types::Primitives::u16);
   BoxedType i16 = _debug_info.typeInfo->box(types::Primitives::i16);
@@ -64,21 +48,63 @@ void pepp::debug::StackTracer::setDebugInfo(pas::obj::common::DebugInfo debug_in
                                                          FrameManagement{.op = Opcodes::REMOVE_FRAME}}}}};
 }
 
-std::optional<const pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) const {
-  for (const auto &stack : _stacks)
-    if (stack->contains(addr)) return stack.get();
+void pepp::debug::StackTracer::clearStacks() {
+  _lastSP = std::nullopt;
+  _activeStack = nullptr;
+  _stacks.clear();
+  _error = Errors::OK;
+}
+
+void pepp::debug::StackTracer::update_volatile_values() {
+  if (_env == nullptr) return;
+  // Propogate dirtiness from volatiles to their parents.
+  for (auto &ptr : _exprCache) {
+    auto eval = ptr->evaluator();
+    eval.cache().mark_clean(false);
+    // Only attempt to re-evaluate if the term depends on volatiles.
+    if (!eval.cache().depends_on_volatiles()) continue;
+    auto old_v = eval.cache();
+    auto new_v = eval.evaluate(CachePolicy::UseNonVolatiles, *_env);
+    if (*old_v.value != new_v) eval.cache().mark_dirty();
+  }
+}
+
+pepp::debug::StackTracer::Errors pepp::debug::StackTracer::error() const { return _error; }
+
+pepp::debug::StackTracer::const_iterator pepp::debug::StackTracer::cbegin() const { return _stacks.cbegin(); }
+
+pepp::debug::StackTracer::const_iterator pepp::debug::StackTracer::cend() const { return _stacks.cend(); }
+
+pepp::debug::StackTracer::const_iterator pepp::debug::StackTracer::begin() const { return _stacks.cbegin(); }
+
+pepp::debug::StackTracer::const_iterator pepp::debug::StackTracer::end() const { return _stacks.cend(); }
+
+pepp::debug::StackTracer::iterator pepp::debug::StackTracer::begin() { return _stacks.begin(); }
+
+pepp::debug::StackTracer::iterator pepp::debug::StackTracer::end() { return _stacks.end(); }
+
+std::size_t pepp::debug::StackTracer::size() const { return _stacks.size(); }
+
+bool pepp::debug::StackTracer::empty() const { return size() == 0; }
+
+const pepp::debug::Stack *pepp::debug::StackTracer::activeStack() const { return _activeStack; }
+
+std::optional<std::size_t> pepp::debug::StackTracer::activeStackIndex() const {
+  if (!_activeStack) return std::nullopt;
+  for (std::size_t i = 0; i < _stacks.size(); i++)
+    if (_stacks[i].get() == _activeStack) return i;
   return std::nullopt;
 }
 
-std::optional<pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) {
-  for (auto &stack : _stacks)
-    if (stack->contains(addr)) return stack.get();
-  return std::nullopt;
+const pepp::debug::Stack *pepp::debug::StackTracer::at(std::size_t index) const {
+  if (index >= _stacks.size()) return nullptr;
+  return _stacks[index].get();
 }
 
 namespace {
 static const pepp::debug::CommandFrame call = pepp::debug::CommandFrame{.packets = {pepp::debug::CommandPacket{}}};
 }
+
 void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, InstructionType type) {
   std::string cmds_str = "";
   std::optional<const pepp::debug::CommandFrame *> cf = std::nullopt;
@@ -132,38 +158,82 @@ void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, In
   }
   if (cf) cmds_str = QString(*cf.value()).toStdString();
 
-  _logger->info("{: <7} at PC:{:04x} {}  {}", operation, pc, sp_str, cmds_str);
-  if (cf) {
+  // Do not attempt to process if there is no command frame or if the stack is already broken.
+  if (cf && _error == Errors::OK) {
+    _logger->info("{: <7} at PC:{:04x} {}  {}", operation, pc, sp_str, cmds_str);
     processCommandFrame(**cf, spBefore, spAfter, futureStack);
-  } else { // TODO: mark self as invalid. We had no command for this PC, nor could we synthesize one.
+  } else if (!cf) { // If command frame is missing, enter error state.
+    _error = Errors::MissingCommandPacket;
+    _logger->warn("Missing command packet");
   }
 }
 
-void pepp::debug::StackTracer::popRecord(quint16 expectedSize) {
-  if (!_activeStack) _logger->warn("        No active stack to return from!");
-  else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("        Top frame is null");
-  else if (auto trecord = tframe->top(); !trecord) _logger->warn("        Top frame record is null");
-  else if (trecord->size != expectedSize)
-    _logger->warn("{: <4} Top frame record was {}B, expected {}B", "", trecord->size, expectedSize);
-  else tframe->popRecord();
+std::optional<const pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) const {
+  for (const auto &stack : _stacks)
+    if (stack->contains(addr)) return stack.get();
+  return std::nullopt;
 }
 
-void pepp::debug::StackTracer::pushRecord(QString name, quint32 address, quint16 size) {
-  if (!_activeStack) _logger->warn("{: <4} No active stack to push to!", "");
-  else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
-  else tframe->pushRecord(Record{.address = address, .size = size, .name = name});
+std::optional<pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) {
+  for (auto &stack : _stacks)
+    if (stack->contains(addr)) return stack.get();
+  return std::nullopt;
+}
+
+pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(quint32 address) {
+  std::optional<pepp::debug::Stack *> stack = stackAtAddress(address);
+  if (stack) return stack.value();
+  auto new_stack = std::make_shared<pepp::debug::Stack>(address);
+  new_stack->pushFrame();
+  Q_ASSERT(new_stack->size() > 0);
+  _stacks.push_back(new_stack);
+  std::sort(_stacks.begin(), _stacks.end(),
+            [](auto &lhs, auto &rhs) { return lhs->base_address() < rhs->base_address(); });
+  return new_stack.get();
+}
+
+void pepp::debug::StackTracer::pushSlot(QString name, quint32 address, types::BoxedType type) {
+  if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack to push to!", "");
+  else if (auto tframe = _activeStack->top(); !tframe)
+    _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
+  else {
+    auto HexHint = pepp::debug::detail::UnsignedConstant::Format::Hex;
+    auto addr = _exprCache.add_or_return(Constant((quint16)address, HexHint));
+    auto memlookup = _exprCache.add_or_return(MemoryReadCastDeref(addr, type));
+    if (_env) memlookup->evaluator().evaluate(CachePolicy::UseNever, *_env);
+    quint32 size = types::bitness(unbox(type)) / 8;
+    tframe->pushSlot(std::move(Slot(address, size, name, memlookup, tframe)));
+  }
+}
+
+void pepp::debug::StackTracer::popSlot(quint16 expectedSize) {
+  if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("        No active stack to return from!");
+  else if (auto tframe = _activeStack->top(); !tframe)
+    _error = Errors::ToSFrameNull, _logger->warn("        Top frame is null");
+  else if (auto trecord = tframe->top(); !trecord)
+    _error = Errors::ToSSlotNull, _logger->warn("        Top frame slot is null");
+  else if (trecord->size() != expectedSize)
+    _error = Errors::PopSizeMismatch,
+    _logger->warn("{: <4} Top frame slot was {}B, expected {}B", "", trecord->size(), expectedSize);
+  else tframe->popSlot();
 }
 
 void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, quint16 spBefore, quint16 spAfter,
                                                    std::optional<quint16> spFuture) {
+  if (_error != Errors::OK) return; // Early return to prevent processing an already-broken stack.
+
   qint16 expectedDelta = spAfter - spBefore, actualDelta = 0;
   for (const auto &packet : frame.packets) {
     for (const auto &op : packet.ops) {
       switch (to_opcode(op)) {
-      case Opcodes::INVALID: _logger->error("{: <6} Attempting to execute invalid command!", ""); return;
+      case Opcodes::INVALID:
+        _error = Errors::InvalidOp;
+        _logger->error("{: <6} Attempting to execute invalid command!", "");
+        return;
       case Opcodes::CALL: {
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
-        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe)
+          _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
         // If frame is already active, then call  initiates new frame AND marks it active.
         else if (tframe->active()) _activeStack->pushFrame().setActive(true);
         // Otherwise it just activates the frame
@@ -171,7 +241,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
         spBefore -= size, actualDelta -= size;
-        pushRecord(memop.name, spBefore, size);
+        pushSlot(memop.name, spBefore, memop.type);
         _logger->info("{: <7} CALL'ed {} bytes", "", size);
         break;
       }
@@ -179,18 +249,19 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
         spBefore -= size, actualDelta -= size;
-        pushRecord(memop.name, spBefore, size);
+        pushSlot(memop.name, spBefore, memop.type);
         _logger->info("{: <7} ALLOC'ed {} bytes", "", size);
         break;
       }
       case Opcodes::RET: {
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
-        popRecord(size);
+        popSlot(size);
         spBefore += size, actualDelta += size;
         _logger->info("{: <7} RET'ed {} bytes", "", size);
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
-        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe)
+          _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
         else if (tframe->empty()) _activeStack->popFrame();
         else tframe->setActive(false);
         break;
@@ -198,7 +269,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
       case Opcodes::POP: {
         auto memop = std::get<MemoryOp>(op);
         quint16 size = types::bitness(unbox(memop.type)) / 8;
-        popRecord(size);
+        popSlot(size);
         spBefore += size, actualDelta += size;
         _logger->info("{: <7} DEALLOC'ed {} bytes", "", size);
         break;
@@ -206,24 +277,27 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
 
       case Opcodes::MARK_ACTIVE: {
         auto faop = std::get<FrameActive>(op);
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
-        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe)
+          _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
         else tframe->setActive(faop.active);
         _logger->info("{: <7} MARK_ACTIVE {}", "", faop.active);
         break;
       }
       case Opcodes::ADD_FRAME: {
         auto fmop = std::get<FrameManagement>(op);
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
         else _activeStack->pushFrame();
         _logger->info("{: <7} PUSH_FRAME", "");
         break;
       }
       case Opcodes::REMOVE_FRAME: {
         auto fmop = std::get<FrameManagement>(op);
-        if (!_activeStack) _logger->warn("{: <4} No active stack!", "");
-        else if (auto tframe = _activeStack->top(); !tframe) _logger->warn("{: <4} Top frame is null", "");
-        else if (!tframe->empty()) _logger->warn("{: <4} Top frame is not empty", "");
+        if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack!", "");
+        else if (auto tframe = _activeStack->top(); !tframe)
+          _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
+        else if (!tframe->empty())                            // Suppress error, since I'm still working on this.
+          _logger->warn("{: <4} Top frame is not empty", ""); // error = Errors::ToSFrameNotEmpty,
         else _activeStack->popFrame();
         _logger->info("{: <7} POP_FRAME", "");
         break;
@@ -236,8 +310,10 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
     _logger->info("{: <7} SWITCH to SP:{:04x}", "", *spFuture);
   }
   _logger->info("\n{}", to_string(10));
-  if (expectedDelta != actualDelta && !frame.packets.empty())
+  if (expectedDelta != actualDelta && !frame.packets.empty()) {
+    _error = Errors::DeltaMismatch;
     _logger->warn("{: <4} delta SP of {:<+5}, expected {:<+5}", "", actualDelta, expectedDelta);
+  }
 }
 
 std::string pepp::debug::StackTracer::to_string(int left_pad) const {
@@ -259,20 +335,9 @@ std::string pepp::debug::StackTracer::to_string(int left_pad) const {
       if (joined_lines[it].empty()) joined_lines[it++] = line;
       else joined_lines[it++] += std::string("    ") + line;
     }
-    for (; it < joined_lines.size(); it++) joined_lines[it] += std::string(19, ' ');
+    for (; it < joined_lines.size(); it++) joined_lines[it] += std::string(19 + 6, ' ');
   }
   std::string joiner = fmt::format("\n{}", std::string(left_pad, ' '));
   return fmt::format("{}{}\n", joiner, fmt::join(joined_lines.begin(), joined_lines.end(), joiner));
 }
 
-pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(quint32 address) {
-  std::optional<pepp::debug::Stack *> stack = stackAtAddress(address);
-  if (stack) return stack.value();
-  auto new_stack = std::make_shared<pepp::debug::Stack>(address);
-  new_stack->pushFrame();
-  Q_ASSERT(new_stack->size() > 0);
-  _stacks.push_back(new_stack);
-  std::sort(_stacks.begin(), _stacks.end(),
-            [](auto &lhs, auto &rhs) { return lhs->base_address() < rhs->base_address(); });
-  return new_stack.get();
-}
