@@ -87,6 +87,15 @@ std::size_t pepp::debug::StackTracer::size() const { return _stacks.size(); }
 
 bool pepp::debug::StackTracer::empty() const { return size() == 0; }
 
+const pepp::debug::Stack *pepp::debug::StackTracer::activeStack() const { return _activeStack; }
+
+std::optional<std::size_t> pepp::debug::StackTracer::activeStackIndex() const {
+  if (!_activeStack) return std::nullopt;
+  for (std::size_t i = 0; i < _stacks.size(); i++)
+    if (_stacks[i].get() == _activeStack) return i;
+  return std::nullopt;
+}
+
 const pepp::debug::Stack *pepp::debug::StackTracer::at(std::size_t index) const {
   if (index >= _stacks.size()) return nullptr;
   return _stacks[index].get();

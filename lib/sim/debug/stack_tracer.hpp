@@ -61,6 +61,8 @@ public:
   std::size_t size() const;
   bool empty() const;
   const Stack *at(std::size_t index) const;
+  const Stack *activeStack() const;
+  std::optional<std::size_t> activeStackIndex() const;
 
   enum class InstructionType { CALL, RET, TRAP, TRAPRET, ALLOCATE, DEALLOCATE, ASSIGNMENT };
   // PC of the instruction that is being executed. SP is the sp *after* the instruction was executed.
