@@ -16,22 +16,43 @@ Item {
     required property double implicitValueWidth
     required property double implicitLineHeight
     required property double boldBorderWidth
-
     Column {
         id: column
         Repeater {
             id: repeater
-            model: root.itemModel.records
-            ActivationRecordView {
-                required property variant model
-                font: root.font
-                implicitAddressWidth: root.implicitAddressWidth
-                implicitValueWidth: root.implicitValueWidth
-                implicitLineHeight: root.implicitLineHeight
-                boldBorderWidth: root.boldBorderWidth
+            model: root.itemModel
+            delegate: Item {
+                id: del
+                required property int row
+                required property int column
+                required property int type
+                required property bool active
+                implicitHeight: arView.implicitHeight
+                implicitWidth: arView.implicitWidth
+                Component.onCompleted: {
+                    computeScopeToIndex();
+                }
+                function computeScopeToIndex() {
+                    const model = root.itemModel;
+                    const idx = model.index(row, column);
+                    scam.scopeToIndex = Qt.binding(() => idx);
+                }
+                ScopedActivationModel {
+                    id: scam
+                    sourceModel: root.itemModel
+                }
 
-                lineModel: model
-                active: model.active
+                ActivationRecordView {
+                    id: arView
+                    font: root.font
+                    active: del.active
+                    implicitAddressWidth: root.implicitAddressWidth
+                    implicitValueWidth: root.implicitValueWidth
+                    implicitLineHeight: root.implicitLineHeight
+                    boldBorderWidth: root.boldBorderWidth
+
+                    lineModel: scam
+                }
             }
         }
     }
