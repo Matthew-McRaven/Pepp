@@ -32,3 +32,4 @@ Number,GitRef,Date,Blurb
 0.12.1,,2025-09-28,"This release improves the user experience for editing and debugging Asmb3 programs"
 0.12.2,,2025-10-02,"This release enables the Asmb5 level assembler and simulator"
 0.13.0,,2025-10-13,"This release improves Asmb5 projects to support Chapter 6 of Computer Systems, sixth edition"
+0.13.1,,2025-10-20,"This release prevents a crash-to-desktop on malformed user programs"
