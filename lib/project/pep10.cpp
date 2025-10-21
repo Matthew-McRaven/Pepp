@@ -741,7 +741,11 @@ void Pep_ISA::onDeferredExecution(std::function<bool()> step) {
   } catch (const std::logic_error &e) {
     err = true;
     emit message(e.what());
+  } catch (const ::targets::isa::IllegalOpcode &e) {
+    err = true;
+    emit message(e.what());
   }
+
   // Only terminates if something written to endpoint or there was an error
   if (endpoint->next_value().has_value() || err) {
     switch (_state) {
