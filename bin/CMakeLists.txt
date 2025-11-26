@@ -34,6 +34,11 @@ qt_add_resources(
   FILES
   ${help_image_files})
 
+get_target_property(_pepp_lib_type pepp-lib TYPE)
+# If using dylib, copy to app frameworks. Static will be compiled in by default.
+if(_pepp_lib_type STREQUAL "STATIC_LIBRARY")
+  set(EXTRA_LIBS_IF_STATIC pepp-libplugin)
+endif()
 target_link_libraries(
   pepp
   PRIVATE cli
@@ -46,6 +51,7 @@ target_link_libraries(
           Qt6::Svg
           Qt6::Xml
           Qt::Widgets
+          ${EXTRA_LIBS_IF_STATIC}
           test-lib-all
           pepp-lib
           KDAB::kddockwidgets
@@ -65,27 +71,6 @@ set_target_properties(
              MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_LIST_DIR}/Info.plist
              WIN32_EXECUTABLE TRUE
              FOLDER "qtc_runnable")
-
-# On non-Windows platforms, create extra files that will explicitly start the
-# graphical or the terminal version. Meaningless on WIN32, since apps are either
-# console or non-console, never both. EMSDK also doesn't let us execute
-# directly, so symlinks are pointless.
-if(NOT (WIN32 OR EMSCRIPTEN))
-  add_custom_command(
-    TARGET pepp
-    POST_BUILD DEPENDS pepp
-    COMMAND ${CMAKE_COMMAND} -E create_symlink $<TARGET_FILE_BASE_NAME:pepp>
-            $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
-    COMMAND chmod +x $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
-    COMMENT "Create terminal target")
-  # Create a helper script which will launch the main executable in GUI mode.
-  file(
-    GENERATE
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/pepp-gui
-    CONTENT
-      "script_name=$0\n script_full_path=$(dirname \"\$0\")\n $script_full_path/$<TARGET_FILE_NAME:pepp> gui"
-  )
-endif()
 
 # Skip term target on platforms where it is not needed.
 if(NOT (EMSCRIPTEN OR IOS))
@@ -116,13 +101,11 @@ if(WIN32)
     COMMAND_EXPAND_LISTS)
   # Must specify antlr, because we can't easily install 3rd-party deps.
   install(
-    TARGETS pepp antlr4_shared pepp-term
+    TARGETS pepp antlr4_shared pepp-term fmt spdlog
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
-  get_target_property(_pepp_lib_type pepp-lib TYPE)
-  # If using dylib, copy to app frameworks. Static will be compiled in by
-  # default.
+  # If using dylib, copy to app frameworks.
   if(_pepp_lib_type STREQUAL "SHARED_LIBRARY")
     install(
       TARGETS pepp-lib
@@ -134,13 +117,19 @@ elseif(APPLE)
   # Install our pepp application antlr4 isn't copied by any target since it is a
   # 3rd-party dependency. we must copy it here in a platform-dependent way.
   install(
-    TARGETS pepp antlr4_shared
+    TARGETS pepp antlr4_shared fmt spdlog
     COMPONENT Pepp
     LIBRARY DESTINATION pepp.app/Contents/Frameworks
     BUNDLE DESTINATION .)
-  get_target_property(_pepp_lib_type pepp-lib TYPE)
-  # If using dylib, copy to app frameworks. Static will be compiled in by
-  # default.
+  # library search path is not updated for "standalone" executables.
+  set_target_properties(pepp-term PROPERTIES INSTALL_RPATH
+                                             "@executable_path/../Frameworks")
+  install(
+    TARGETS pepp-term
+    COMPONENT Pepp
+    BUNDLE DESTINATION pepp.app/Contents/MacOS
+    RUNTIME DESTINATION pepp.app/Contents/MacOS)
+  # If using dylib, copy to app frameworks.
   if(_pepp_lib_type STREQUAL "SHARED_LIBRARY")
     install(
       TARGETS pepp-lib
@@ -148,17 +137,6 @@ elseif(APPLE)
       LIBRARY DESTINATION pepp.app/Contents/Frameworks)
   endif()
   set_target_properties(pepp PROPERTIES OUTPUT_NAME "Pepp")
-  install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/pepp-gui
-    DESTINATION Pepp.app/Contents/MacOS
-    PERMISSIONS
-      OWNER_READ
-      OWNER_WRITE
-      OWNER_EXECUTE
-      GROUP_READ
-      GROUP_EXECUTE
-      WORLD_READ
-      WORLD_EXECUTE)
   target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=1")
 elseif(EMSCRIPTEN)
   # Otherwise use default install logic on Linux for now.
