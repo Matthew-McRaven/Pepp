@@ -79,11 +79,14 @@ if(EMSCRIPTEN)
   endforeach()
 endif()
 
-FetchContent_Declare(
-  monaspace
-  GIT_REPOSITORY https://github.com/githubnext/monaspace.git
-  GIT_TAG v1.200
-  # Don't fetch entire history, just the commit we care about.
-  GIT_SHALLOW 1)
-
-FetchContent_MakeAvailable(monaspace)
+file(
+  DOWNLOAD
+  https://github.com/githubnext/monaspace/releases/download/v1.301/monaspace-static-v1.301.zip
+  "${CMAKE_CURRENT_BINARY_DIR}/monaspace.zip"
+  EXPECTED_HASH
+    "SHA256=e201697c8ef3cfd4559fbfb4b5f60bf7425113729bca28e33b0a9112db1ca579")
+file(ARCHIVE_EXTRACT INPUT ${CMAKE_CURRENT_BINARY_DIR}/monaspace.zip
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/monaspace)
+set(monaspace_SOURCE_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/monaspace"
+    PARENT_SCOPE)

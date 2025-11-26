@@ -114,8 +114,7 @@ qt_add_resources(
   FILES
   ${fonts})
 
-file(GLOB_RECURSE fonts-dl CONFIGURE_DEPENDS
-     "${monaspace_SOURCE_DIR}/fonts/otf/*")
+file(GLOB_RECURSE fonts-dl CONFIGURE_DEPENDS "${monaspace_SOURCE_DIR}/*")
 list(FILTER fonts-dl EXCLUDE REGEX ".*(Extra|Light|Medium|Wide|Semi).*")
 qt_add_resources(
   pepp-lib
@@ -123,7 +122,10 @@ qt_add_resources(
   PREFIX
   "/fonts/mono"
   BASE
-  "${monaspace_SOURCE_DIR}/fonts/otf"
+  "${monaspace_SOURCE_DIR}/"
+  # This will cause issues in IOS, bug we can cross that bridge later. See:
+  # https://doc.qt.io/qt-6/qt-add-resources.html#arguments-of-the-target-based-variant
+  BIG_RESOURCES
   FILES
   ${fonts-dl})
 
