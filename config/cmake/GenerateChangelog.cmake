@@ -19,6 +19,8 @@ if(Python_FOUND)
   # Must use a dummy static library target. Attempting to use this directly in a
   # shared library fails due to missing rules for object code files.
   add_library(pepp-changelog STATIC)
+  # -fPIC is required for a static lib to be linked into shared libs on Linux.
+  set_property(TARGET pepp-changelog PROPERTY POSITION_INDEPENDENT_CODE ON)
   qt_add_resources(
     pepp-changelog
     "changelog"
