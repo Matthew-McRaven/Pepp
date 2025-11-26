@@ -29,7 +29,6 @@
 #include "commands/dumptex.hpp"
 #include "commands/get-qrc.hpp"
 #include "commands/get.hpp"
-#include "commands/gui.hpp"
 #include "commands/license.hpp"
 #include "commands/ls-imgfmt.hpp"
 #include "commands/ls-qrc.hpp"
@@ -104,10 +103,6 @@ int main(int argc, char **argv) {
   registerDumpTex(app, task, shared_flags);
   try {
     app.parse(argc, argv);
-    // If kind is default, then no subcommand was called, forward all arguments.
-    if (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT && !default_term)
-      std::transform(argv + 1, argv + argc, std::back_inserter(args.argvs), [](char *s) { return std::string(s); });
-    else if (!(task || shared_flags.kind == detail::SharedFlags::Kind::GUI)) throw CLI::CallForHelp();
   } catch (const CLI::CallForHelp &e) {
     std::cout << app.help() << std::endl;
     return 0;

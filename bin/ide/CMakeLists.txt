@@ -150,7 +150,3 @@ qt_add_qml_module(
   IMPORT_PATH
   "${CMAKE_BINARY_DIR}/edu/pepp")
 qt6_add_resources(pepp "pepp" PREFIX "/" FILES ${pep10_resource_files})
-
-qt_generate_deploy_qml_app_script(TARGET pepp OUTPUT_SCRIPT deploy_script
-                                  NO_UNSUPPORTED_PLATFORM_ERROR)
-install(SCRIPT ${deploy_script} COMPONENT Pepp)

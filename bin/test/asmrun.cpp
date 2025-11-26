@@ -14,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <config.hpp>
 #include "catch.hpp"
+#include "config.hpp"
 
 TEST_CASE("Terminal, asmrun", "[term][cli]") {
   auto path = term_path();
