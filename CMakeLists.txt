@@ -98,37 +98,10 @@ enable_testing()
 # cases still require we export symbols manually.
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 include(config/cmake/create_targets.cmake)
-# Must be earlier or we have issues creating installers.
-try_compile(PEPP_HAS_RANGES_REVERSE ${CMAKE_BINARY_DIR}/compile_tests
-            ${CMAKE_CURRENT_LIST_DIR}/config/compile_tests/ranges_reverse.cpp)
-if(PEPP_HAS_RANGES_REVERSE)
-  message("Using std::ranges::reverse for byteswap")
-  add_compile_definitions(PEPP_HAS_RANGES_REVERSE)
-else()
-  message("Using Qt helpers for byteswap")
-endif()
-# Determine if our build environment contains WEBP. Never try to use a user'
-# machines non-bundled image formats because I only want to compile one set of
-# images into the application. If webp exists at compile time, I can bundle it.
-try_run(
-  PEPP_WEBP_RETCODE
-  PEPP_COMPILES_IMGFMT
-  SOURCES
-  ${CMAKE_CURRENT_LIST_DIR}/config/compile_tests/probe_webp.cpp
-  LINK_LIBRARIES
-  Qt6::Gui
-  RUN_OUTPUT_STDOUT_VARIABLE
-  PEPP_WEBP_RUN_STDOUT
-  RUN_OUTPUT_STDERR_VARIABLE
-  PEPP_WEBP_RUN_STDERR
-  COMPILE_OUTPUT_VARIABLE PEPP_WEBP_COMPILE_LOG)
-if(PEPP_WEBP_RETCODE EQUAL 0)
-  message("Using webp for help images")
-  add_compile_definitions(PEPP_HAS_WEBP)
-  set(PEPP_HAS_WEBP TRUE)
-else()
-  message("Using png for help images")
-endif()
+
+# Test Qt & STL feature availability
+include(config/compile_tests/TryBuildStdRanges.cmake)
+include(config/compile_tests/TryFindWebP.cmake)
 
 # Needed to generate documentation, changelogs
 find_package(Python COMPONENTS Interpreter)
