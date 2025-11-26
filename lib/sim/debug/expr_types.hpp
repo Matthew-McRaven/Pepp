@@ -8,16 +8,44 @@
 #include <zpp_bits.h>
 #include "./expr_serialize.hpp"
 
-// Forward declare all below types so I can create the variant of shared ptrs.
 namespace pepp::debug::types {
-struct Never;
-struct Primitive;
-struct Pointer;
-struct Array;
-struct Struct;
+
+// Derived from: https://www.foonathan.net/2022/05/recursive-variant-box
+// It allows recursive data structures to have value semantics.
+// Box is nullable, and dereferencing a null Box is undefined behavior.
+template <typename T> class Box {
+  std::shared_ptr<T> _impl; // May be null!
+
+public:
+  using element_type = T;
+  Box() : _impl(nullptr) {}
+  // Construction from a `T`, not a `T*`.
+  // Marked explicit because
+  explicit Box(T &&obj) : _impl(std::make_shared<T>(std::move(obj))) {}
+  explicit Box(const T &obj) : _impl(new T(obj)) {}
+  explicit Box(std::shared_ptr<T> &&obj) : _impl(std::move(obj)) {}
+  // Copy constructor copies `T`.
+  Box(const Box &other) : Box(*other._impl) {}
+  Box &operator=(const Box &other) {
+    *_impl = *other._impl;
+    return *this;
+  }
+  // Move will destroy _impl in other, leaving a nulled-out box.
+  Box(Box &&other) noexcept = default;
+  Box &operator=(Box &&other) noexcept = default;
+  ~Box() = default;
+
+  // Access propagates constness.
+  T &operator*() { return *_impl; }
+  const T &operator*() const { return *_impl; }
+
+  T *operator->() { return _impl.get(); }
+  const T *operator->() const { return _impl.get(); }
+};
+
 // Changes to arg list must be mirrored in `using Type=...` later in file.
-using BoxedType = std::variant<std::shared_ptr<Never>, std::shared_ptr<Primitive>, std::shared_ptr<Pointer>,
-                               std::shared_ptr<Array>, std::shared_ptr<Struct>>;
+using BoxedType =
+    std::variant<Box<struct Never>, Box<struct Primitive>, Box<struct Pointer>, Box<struct Array>, Box<struct Struct>>;
 struct SerializationHelper {
   quint16 index_for_type(const BoxedType &type) const {
     auto it = _type_to_index.find(type);
@@ -82,7 +110,7 @@ struct Primitive {
 struct Pointer {
   static const MetaType meta = MetaType::Pointer;
   quint8 pointer_size = 2;
-  BoxedType to = std::shared_ptr<Never>{nullptr};
+  BoxedType to = Box<Never>();
   std::strong_ordering operator<=>(const Pointer &) const;
   bool operator==(const Pointer &) const;
   constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
@@ -105,7 +133,7 @@ struct Array {
   static const MetaType meta = MetaType::Array;
   quint8 pointer_size = 2;
   quint16 length = 2;
-  BoxedType of = std::shared_ptr<Never>{nullptr};
+  BoxedType of = Box<Never>{nullptr};
   std::strong_ordering operator<=>(const Array &) const;
   bool operator==(const Array &) const;
 
