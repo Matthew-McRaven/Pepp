@@ -78,3 +78,12 @@ if(EMSCRIPTEN)
                                             "${existing_flags} --bind")
   endforeach()
 endif()
+
+FetchContent_Declare(
+  monaspace
+  GIT_REPOSITORY https://github.com/githubnext/monaspace.git
+  GIT_TAG v1.200
+  # Don't fetch entire history, just the commit we care about.
+  GIT_SHALLOW 1)
+
+FetchContent_MakeAvailable(monaspace)

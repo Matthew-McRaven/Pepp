@@ -8,12 +8,6 @@ cmake_policy(SET CMP0118 NEW)
 
 include(FetchContent)
 
-FetchContent_Declare(
-  monaspace
-  GIT_REPOSITORY https://github.com/githubnext/monaspace.git
-  GIT_TAG v1.200
-  # Don't fetch entire history, just the commit we care about.
-  GIT_SHALLOW 1)
 
 # Allow normalized paths (e.g., "toolchain/pas" ) without nesting that directory
 # folder inside a nested "src" hierarchy. May cause linking issues if you do not
@@ -62,7 +56,6 @@ set(PROJECT_DATA_DIR "${CMAKE_CURRENT_LIST_DIR}/data")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
-FetchContent_MakeAvailable(monaspace)
 # We always want universal builds, so do not set on a per-target basis
 find_package(
   Qt6 6.9
