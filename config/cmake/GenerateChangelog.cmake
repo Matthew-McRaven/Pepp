@@ -28,9 +28,6 @@ if(Python_FOUND)
     "changelog"
     BASE
     ${CMAKE_BINARY_DIR}
-    # This will cause issues in IOS, bug we can cross that bridge later. See:
-    # https://doc.qt.io/qt-6/qt-add-resources.html#arguments-of-the-target-based-variant
-    BIG_RESOURCES
     FILES
     ${CMAKE_BINARY_DIR}/changelog.db)
 endif()
