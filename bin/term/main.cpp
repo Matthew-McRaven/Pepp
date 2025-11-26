@@ -98,10 +98,6 @@ int main(int argc, char **argv) {
   registerReadelf(app, task, shared_flags);
   registerAddr2Line(app, task, shared_flags);
 
-  gui_args args{.argvs = {argv[0]}};
-  registerGUI(app, task, shared_flags, args);
-  auto resetSettings = app.add_flag("--reset-settings", args.resetSettings, "Reset settings to default");
-
   // Hidden commands
   registerThroughput(app, task, shared_flags);
   registerDumpBooks(app, task, shared_flags);
@@ -119,20 +115,11 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     return 1;
   }
-  if (shared_flags.kind == detail::SharedFlags::Kind::GUI ||
-      (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT) && !default_term) {
-#if INCLUDE_GUI
-    return gui_main(args);
-#else
-    std::cerr << "GUI is not supported" << std::endl;
-    return 4;
-#endif
-  } else {
-    // TODO: Fix arg passing
-    QCoreApplication a(argc, argv);
-    auto taskInstance = task(&a);
-    QObject::connect(taskInstance, &Task::finished, &a, QCoreApplication::exit, Qt::QueuedConnection);
-    QTimer::singleShot(0, taskInstance, &Task::run);
-    return a.exec();
-  }
+
+  // TODO: Fix arg passing
+  QCoreApplication a(argc, argv);
+  auto taskInstance = task(&a);
+  QObject::connect(taskInstance, &Task::finished, &a, QCoreApplication::exit, Qt::QueuedConnection);
+  QTimer::singleShot(0, taskInstance, &Task::run);
+  return a.exec();
 }
