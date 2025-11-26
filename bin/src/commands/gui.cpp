@@ -38,7 +38,10 @@
 
 #include "settings/settings.hpp"
 
+#ifdef PEPP_LIB_STATIC_BUILD
 Q_IMPORT_PLUGIN(PeppLibPlugin)
+#endif
+
 // Q_IMPORT_PLUGIN(KDDockWidgetsPlugin);
 
 struct default_data : public gui_globals {

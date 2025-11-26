@@ -48,7 +48,6 @@ target_link_libraries(
           Qt::Widgets
           test-lib-all
           pepp-lib
-          pepp-libplugin
           KDAB::kddockwidgets
           kddockwidgetsplugin)
 qt_import_qml_plugins(pepp)
@@ -121,7 +120,16 @@ if(WIN32)
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
-
+  get_target_property(_pepp_lib_type pepp-lib TYPE)
+  # If using dylib, copy to app frameworks. Static will be compiled in by
+  # default.
+  if(_pepp_lib_type STREQUAL "SHARED_LIBRARY")
+    install(
+      TARGETS pepp-lib
+      COMPONENT Pepp
+      RUNTIME DESTINATION bin
+      BUNDLE DESTINATION .)
+  endif()
 elseif(APPLE)
   # Install our pepp application antlr4 isn't copied by any target since it is a
   # 3rd-party dependency. we must copy it here in a platform-dependent way.
@@ -130,6 +138,15 @@ elseif(APPLE)
     COMPONENT Pepp
     LIBRARY DESTINATION pepp.app/Contents/Frameworks
     BUNDLE DESTINATION .)
+  get_target_property(_pepp_lib_type pepp-lib TYPE)
+  # If using dylib, copy to app frameworks. Static will be compiled in by
+  # default.
+  if(_pepp_lib_type STREQUAL "SHARED_LIBRARY")
+    install(
+      TARGETS pepp-lib
+      COMPONENT Pepp
+      LIBRARY DESTINATION pepp.app/Contents/Frameworks)
+  endif()
   set_target_properties(pepp PROPERTIES OUTPUT_NAME "Pepp")
   install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/pepp-gui

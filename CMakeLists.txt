@@ -8,6 +8,8 @@ cmake_policy(SET CMP0118 NEW)
 
 include(FetchContent)
 
+option(BUILD_SHARED_LIBS
+       "Build using shared libraries. May be ignored on some platforms" ON)
 
 # Allow normalized paths (e.g., "toolchain/pas" ) without nesting that directory
 # folder inside a nested "src" hierarchy. May cause linking issues if you do not
@@ -50,7 +52,9 @@ if(EMSCRIPTEN)
   set(QT_WASM_INITIAL_MEMORY
       150MB
       CACHE INTERNAL "" FORCE)
+  set(BUILD_SHARED_LIBS FALSE)
 endif()
+
 message("Performing build")
 set(PROJECT_DATA_DIR "${CMAKE_CURRENT_LIST_DIR}/data")
 set(CMAKE_CXX_STANDARD 20)
@@ -90,25 +94,15 @@ enable_testing()
 # Needed to avoid exporting every symbol in every DLL on Windows. Some corner
 # cases still require we export symbols manually.
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-include(config/cmake/create_targets.cmake)
-
 # Test Qt & STL feature availability
+include(config/cmake/create_targets.cmake)
 include(config/compile_tests/TryBuildStdRanges.cmake)
 include(config/compile_tests/TryFindWebP.cmake)
 
 # Needed to generate documentation, changelogs
 find_package(Python COMPONENTS Interpreter)
 
-add_subdirectory(lib)
-add_subdirectory(test)
-add_subdirectory(bin)
-
-option(FORCE_DISABLE_CHANGEDB
-       "Do not generate changelog DB, even if python is found" OFF)
-# Convert changelog sources to DB, embded in QRC, and inject into library. Do
-# not enable feature if lacking python.
-if(Python_FOUND AND (NOT FORCE_DISABLE_CHANGEDB))
-  message("Generating changelog")
+if(Python_FOUND)
   # Ensure that changelog exists at configure time, otherwise qt_add_resources
   # will fail on some Mac platforms.
   execute_process(
@@ -127,9 +121,13 @@ if(Python_FOUND AND (NOT FORCE_DISABLE_CHANGEDB))
             ${CMAKE_CURRENT_LIST_DIR}/data/changelog/versions.csv
             ${CMAKE_CURRENT_LIST_DIR}/scripts/changelog_tools.py
     COMMENT "Generating changelog SQL"
+    BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+  # Must use a dummy static library target. Attempting to use this directly in a
+  # shared library fails due to missing rules for object code files.
+  add_library(pepp-changelog STATIC)
   qt_add_resources(
-    pepp-lib
+    pepp-changelog
     "changelog"
     PREFIX
     "changelog"
@@ -140,9 +138,11 @@ if(Python_FOUND AND (NOT FORCE_DISABLE_CHANGEDB))
     BIG_RESOURCES
     FILES
     ${CMAKE_CURRENT_BINARY_DIR}/changelog.db)
-else()
-  message("Skipping changelog generation")
 endif()
+
+add_subdirectory(lib)
+add_subdirectory(test)
+add_subdirectory(bin)
 
 # Configure CPack installer generation.
 set(CPACK_PACKAGE_NAME "Pepp")

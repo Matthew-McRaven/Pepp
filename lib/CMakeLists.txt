@@ -38,7 +38,6 @@ qt_add_qml_module(
   "edu.pepp"
   VERSION
   1.0
-  STATIC
   CLASS_NAME
   PeppLibPlugin
   SOURCES
@@ -65,7 +64,8 @@ target_link_libraries(
          zpp_bits
          fmt
          spdlog
-         cxxgraph)
+         cxxgraph
+         pepp-changelog)
 # Will fail to find hpp files without this, see
 # https://bugreports.qt.io/browse/QTBUG-101146.
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
@@ -161,6 +161,12 @@ qt_add_resources(
   ${dependency_licenses}
   ${CMAKE_SOURCE_DIR}/NOTICE
   ${CMAKE_SOURCE_DIR}/LICENSE)
+
+if(BUILD_SHARED_LIBS)
+  target_compile_definitions(pepp-lib PUBLIC "PEPP_LIB_SHARED_BUILD=1")
+else()
+  target_compile_definitions(pepp-lib PUBLIC "PEPP_LIB_STATIC_BUILD=1")
+endif()
 
 # Add book resources
 file(GLOB_RECURSE cs-res-abs CONFIGURE_DEPENDS
