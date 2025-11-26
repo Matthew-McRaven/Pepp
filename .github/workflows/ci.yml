@@ -42,12 +42,6 @@ jobs:
     needs: branch_info
     runs-on: ubuntu-latest
     steps:
-      # Conceptually, we only want to run this job iff we are a release.
-      # However, this greatly complicates that matrix build.
-      # Instead, exit succes on not release, and run my tag logic on release.
-      - name: No-op
-        if: needs.branch_info.outputs.build_release != true
-        run: exit 0
       - name: Check that release tag is well-formatted, and extract the version number
         # Need explity == or the step triggers even if false
         if: needs.branch_info.outputs.build_release == true
@@ -60,16 +54,14 @@ jobs:
           fi
       - name: Clone sources to extract project version
         uses: actions/checkout@v4
-        if: needs.branch_info.outputs.build_release == true
-        # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
         with:
-          lfs: 'false'
-      - uses: lukka/get-cmake@v3.27.9
-        if: needs.branch_info.outputs.build_release == true
+          lfs: 'false' # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+          sparse-checkout: 'CMakeLists.txt'
       - name: Extract the CMake version
-        if: needs.branch_info.outputs.build_release == true
         run: |
-          cmake -B build -S . -DONLY=VERSION
+          ls -lah
+          sed -nE 's/.*project\([[:space:]]*Pepp[[:space:]]+VERSION[[:space:]]+([0-9]+(\.[0-9]+)*)[[:space:]]+LANGUAGES.*/\1/p' CMakeLists.txt > version
+          cat version
           echo "VERSION_CMAKE=$(cat version | xargs)" >> $GITHUB_ENV
       - name: CMake project version == Git tag
         if: needs.branch_info.outputs.build_release == true
