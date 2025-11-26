@@ -39,12 +39,6 @@
 #include "commands/selftest.hpp"
 #include "commands/throughput.hpp"
 
-#if defined(Q_OS_WASM)
-const bool is_wasm = true;
-#else
-const bool is_wasm = false;
-#endif
-
 int main(int argc, char **argv) {
   // Set up some useful loggers
   auto sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
@@ -59,16 +53,16 @@ int main(int argc, char **argv) {
 #if defined(SPDLOG_ACTIVE_LEVEL)
   spdlog::set_level((spdlog::level::level_enum)SPDLOG_ACTIVE_LEVEL);
 #endif
-  // spdlog::set_level(spdlog::level::level_enum::info);
 
   // Get the name of the executable, and see if it ends in term.
   // If so, we should present terminal help on being called with no args.
   QFile execFile(argv[0]);
   QFileInfo execInfo(execFile);
   auto name = execInfo.baseName();
-  bool default_term = name.endsWith("term", Qt::CaseInsensitive) && !is_wasm;
+  auto name_as_stdstr = name.toStdString();
+  bool is_pepp_term = name.endsWith("term", Qt::CaseInsensitive);
   CLI::App app{"Pepp", "pepp"};
-  app.prefix_command(!default_term);
+  app.prefix_command(is_pepp_term);
   app.set_help_flag("-h,--help", "Display this help message and exit.");
 
   auto shared_flags = detail::SharedFlags{.kind = detail::SharedFlags::Kind::DEFAULT};
@@ -101,8 +95,14 @@ int main(int argc, char **argv) {
   registerThroughput(app, task, shared_flags);
   registerDumpBooks(app, task, shared_flags);
   registerDumpTex(app, task, shared_flags);
+
+  auto modified_args = std::vector<const char *>();
+  for (int it = 0; it < argc; ++it) modified_args.push_back(argv[it]);
+  // If being called via symlink, use the symlink name as the command name
+  if (!is_pepp_term) modified_args.insert(modified_args.cbegin() + 1, name_as_stdstr.c_str());
+
   try {
-    app.parse(argc, argv);
+    app.parse(modified_args.size(), modified_args.data());
   } catch (const CLI::CallForHelp &e) {
     std::cout << app.help() << std::endl;
     return 0;
