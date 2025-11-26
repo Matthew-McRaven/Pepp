@@ -77,6 +77,9 @@ find_package(
   QuickControls2
   Xml
   Sql)
+qt_policy(SET QTP0003 NEW) # Use BUILD_SHARED_LIBS as the default library type
+                           # for Qt.
+
 if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8)
   # Qt6.8/WASM stopped building without this flag being set.
   if(EMSCRIPTEN)
