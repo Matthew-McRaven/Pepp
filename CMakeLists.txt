@@ -23,10 +23,12 @@ if(SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   add_link_options(-fsanitize=undefined -fsanitize=address)
 endif()
 
-project(
-  Pepp
-  VERSION 0.13.1
-  LANGUAGES CXX)
+# DO NOT AUTO-FORMAT. CI looks for a line with this format to extract the
+# version.
+# cmake-format: off
+project(Pepp VERSION 0.13.1 LANGUAGES CXX)
+# cmake-format: on
+
 # Only overwrite the install prefix if it is the default value.
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX
