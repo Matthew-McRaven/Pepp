@@ -2,8 +2,9 @@
 #include <QtCore/qmetaobject.h>
 #include <utility>
 #include "./expr_rtti.hpp"
+#include "exports.hpp"
 namespace pepp::debug {
-Q_NAMESPACE
+Q_NAMESPACE_EXPORT(PEPP_EXPORT);
 enum class Opcodes : quint8 {
   INVALID = 0,
   PUSH,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -13,16 +13,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "gui.hpp"
 
-#if INCLUDE_GUI
-
+#include <CLI11.hpp>
 #include <QApplication>
 #include <QFontDatabase>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QTimer>
+#include <QtCore>
+#include <iostream>
 #include <kddockwidgets/Config.h>
 #include <kddockwidgets/core/DockRegistry.h>
 #include <kddockwidgets/core/FloatingWindow.h>
@@ -31,23 +31,23 @@
 #include <kddockwidgets/qtquick/ViewFactory.h>
 #include <kddockwidgets/qtquick/views/DockWidget.h>
 #include <kddockwidgets/qtquick/views/MainWindow.h>
-#include "../iconprovider.hpp"
+#include <spdlog/sinks/stdout_sinks.h>
+#include <spdlog/spdlog.h>
+#include "./iconprovider.hpp"
 #include "help/about/version.hpp"
 //  Testing only
 #include <QDirIterator>
 
 #include "settings/settings.hpp"
 
+#if defined(Q_OS_WASM)
+const bool is_wasm = true;
+#else
+const bool is_wasm = false;
+#endif
+#ifdef PEPP_LIB_STATIC_BUILD
 Q_IMPORT_PLUGIN(PeppLibPlugin)
-// Q_IMPORT_PLUGIN(KDDockWidgetsPlugin);
-
-struct default_data : public gui_globals {
-  default_data() = default;
-  ~default_data() override = default;
-  QTimer interval;
-};
-
-void default_init(QQmlApplicationEngine &engine, default_data *data) { auto *ctx = engine.rootContext(); }
+#endif
 
 class CustomViewFactory : public KDDockWidgets::QtQuick::ViewFactory {
 public:
@@ -93,44 +93,81 @@ public:
     return QObject::eventFilter(obj, event);
   }
 };
-#include "gui.moc"
+#include "main.moc"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 PeppApplication *g_app = nullptr;
-gui_globals *g_globals = nullptr;
 QQmlApplicationEngine *g_engine = nullptr;
 #endif
 
-int gui_main(const gui_args &args) {
+int main(int argc, char **argv) {
+  // Set up some useful loggers
+  auto sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
+  auto create = [&](const char *name) {
+    auto logger = std::make_shared<spdlog::logger>(name, sink);
+    spdlog::register_logger(logger);
+    return logger;
+  };
+  auto logger_debugger = create("debugger");
+  auto logger_stack_debugger = create("debugger::stack");
+  logger_debugger->set_level(spdlog::level::warn);
+#if defined(SPDLOG_ACTIVE_LEVEL)
+  spdlog::set_level((spdlog::level::level_enum)SPDLOG_ACTIVE_LEVEL);
+#endif
+  // spdlog::set_level(spdlog::level::level_enum::info);
+
+  CLI::App cli{"Pepp", "pepp"};
+  cli.set_help_flag("-h,--help", "Display this help message and exit.");
+
+  bool resetSettings = false;
+  auto flagResetSettings = cli.add_flag("--reset-settings", resetSettings, "Reset settings to default");
+  std::string openFile = "";
+  auto flagOpenFile = cli.add_option("open-file", openFile);
+
+  // Hidden commands
+
+  try {
+    cli.parse(argc, argv);
+  } catch (const CLI::CallForHelp &e) {
+    std::cout << cli.help() << std::endl;
+    return 0;
+  } catch (const CLI::ParseError &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
+
   using namespace Qt::StringLiterals;
   // Must forward args for things like QML debugger to work.
-  int argc = args.argvs.size();
-  std::vector<char *> argvs(argc);
-  // Must make copy of strings, since argvs should be editable.
-  std::vector<std::string> arg_strs = args.argvs;
-  for (int it = 0; it < argc; it++) argvs[it] = arg_strs[it].data();
+  auto remaining_argvs = cli.remaining_for_passthrough();
+  int new_argc = remaining_argvs.size();
+  std::vector<char *> new_argvs(argc);
+  for (int it = 0; it < remaining_argvs.size(); it++) new_argvs[it] = remaining_argvs[it].data();
 #ifdef __EMSCRIPTEN__
   // clang-format off
   // Make a persistent FS for themes. `true` to load from disk 2 mem
   EM_ASM(
-  // Request that IDBFS be persisted, even for localhost
-    if (navigator.storage) navigator.storage.persist().then(() => {});
-    if (!FS.analyzePath('/themes').exists) FS.mkdir('/themes');
-    FS.mount(IDBFS, {}, '/themes');
-    FS.syncfs(true, function(err) {
-      if (err) console.error("Error mounting IDBFS /themes:", err);
-    });
-  );
+          // Request that IDBFS be persisted, even for localhost
+      if (navigator.storage) navigator.storage.persist().then(() => {});
+      if (!FS.analyzePath('/themes').exists) FS.mkdir('/themes');
+      FS.mount(IDBFS, {}, '/themes');
+      FS.syncfs(true, function(err) {
+        if (err) console.error("Error mounting IDBFS /themes:", err);
+      });
+      );
   // clang-format on
-  g_app = new PeppApplication(argc, argvs.data());
+  g_app = new PeppApplication(new_argc, new_argvs.data());
+  PeppApplication *app_ptr = g_app;
+  g_engine = new QQmlApplicationEngine;
+  QQmlApplicationEngine &engine = *g_engine;
 #else
-  PeppApplication app(argc, argvs.data());
+  PeppApplication app(new_argc, new_argvs.data());
+  PeppApplication *app_ptr = &app;
+  QQmlApplicationEngine engine;
 #endif
 
-  for (QDirIterator i(":/fonts/", QDirIterator::Subdirectories); i.hasNext();) {
+  for (QDirIterator i(":/fonts/", QDirIterator::Subdirectories); i.hasNext();)
     if (auto f = QFileInfo(i.next()); f.isFile()) QFontDatabase::addApplicationFont(f.absoluteFilePath());
-  }
 
   QApplication::setOrganizationName("Pepperdine University");
   QApplication::setApplicationName("Pepp");
@@ -140,44 +177,11 @@ int gui_main(const gui_args &args) {
       u"%1.%2.%3"_s.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
   QApplication::setApplicationVersion(version);
   QQuickStyle::setStyle("Fusion");
-  if (args.resetSettings) pepp::settings::AppSettings().resetToDefault();
-
-#ifdef __EMSCRIPTEN__
-  // Need to keep pointer to non-downcast type for default_init
-  auto tmp = new default_data;
-  // Global data must outlive engine, or there will be errors, see comment below.
-  g_globals = tmp;
-  g_engine = new QQmlApplicationEngine;
-  QQmlApplicationEngine &engine = *g_engine;
-
-  default_init(engine, tmp);
-#else
-  // Data must outlive QML engine, or you will get TypeErrors on close.
-  // These errors may also appear to be accesses to undefined properties. See
-  // https://tobiasmarciszko.github.io/qml-binding-errors/ for discussion.
-  auto globals = QSharedPointer<default_data>::create();
-  QQmlApplicationEngine engine;
-
-  default_init(engine, globals.get());
-  (void)globals; // Unused, but keeps bound context variables from being removed via DCA.
-#endif
+  if (resetSettings) pepp::settings::AppSettings().resetToDefault();
 
   // TODO: connect to PreferenceModel, read field corresponding to QPalette (Disabled, Text) field.
   engine.addImageProvider(QLatin1String("icons"), new PreferenceAwareImageProvider);
-  static const auto default_entry = u"qrc:/qt/qml/Pepp/src/main.qml"_s;
-  const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
-#ifdef __EMSCRIPTEN__
-  PeppApplication *app_ptr = g_app;
-#else
-  PeppApplication *app_ptr = &app;
-#endif
 
-  QObject::connect(
-      &engine, &QQmlApplicationEngine::objectCreated, app_ptr,
-      [url](QObject *obj, const QUrl &objUrl) {
-        if (!obj && url == objUrl) QCoreApplication::exit(-1);
-      },
-      Qt::QueuedConnection);
   // Configure dock widgets to use QML
   KDDockWidgets::initFrontend(KDDockWidgets::FrontendType::QtQuick);
   auto &config = KDDockWidgets::Config::self();
@@ -201,11 +205,20 @@ int gui_main(const gui_args &args) {
   config.setViewFactory(new CustomViewFactory());
   KDDockWidgets::QtQuick::Platform::instance()->setQmlEngine(&engine);
 
+  // Load main window's QML document
+  const QUrl url(u"qrc:/qt/qml/Pepp/main.qml"_s);
+  QObject::connect(
+      &engine, &QQmlApplicationEngine::objectCreated, app_ptr,
+      [url](QObject *obj, const QUrl &objUrl) {
+        if (!obj && url == objUrl) QCoreApplication::exit(-1);
+      },
+      Qt::QueuedConnection);
   // Don't block the event loop in WASM, especially important if wasm-exceptions are enabled.
   // See: https://doc.qt.io/qt-6/wasm.html#wasm-exceptions
   // See: https://doc.qt.io/qt-6/wasm.html#application-startup-and-the-event-loop
   engine.load(url);
   app_ptr->engine = &engine;
+
   // Intercept close events so that we can prompt to save changes.
   auto window = qobject_cast<QWindow *>(engine.rootObjects().value(0));
   auto filter = new QuitInterceptor;
@@ -213,20 +226,18 @@ int gui_main(const gui_args &args) {
   window->installEventFilter(filter);
   // Windows signals for file open events by passing file as arg to application.
   // I already have a system to deal with file open events, so let's post an event instead.
-  if (args.OpenFile.isLocalFile()) {
-    auto file_string = args.OpenFile.toLocalFile();
+  if (flagOpenFile) {
+    auto asURL = QUrl(openFile.c_str());
+    auto file_string = asURL.toLocalFile();
     // Event must be heap allocated; ownership is assumed by event queue.
     // https://doc.qt.io/qt-6/qcoreapplication.html#postEvent
     QFileOpenEvent *ev = new QFileOpenEvent(file_string);
     QCoreApplication::postEvent(QCoreApplication::instance(), ev);
   }
+
 #ifdef __EMSCRIPTEN__
   return 0;
 #else
   return app.exec();
 #endif
 }
-
-#else
-int gui_main(gui_args) { return 0; }
-#endif

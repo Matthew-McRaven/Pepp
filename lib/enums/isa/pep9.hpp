@@ -17,9 +17,10 @@
 
 #pragma once
 #include <QtCore>
+#include "exports.hpp"
 
 namespace isa::detail::pep9 {
-Q_NAMESPACE
+Q_NAMESPACE_EXPORT(PEPP_EXPORT);
 enum class Mnemonic {
   STOP = 0x0,
   RET = 0x1,

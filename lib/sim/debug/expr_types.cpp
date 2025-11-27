@@ -129,18 +129,18 @@ pepp::debug::types::Struct::find(const QString &member) {
 namespace detail {
 using namespace pepp::debug::types;
 struct BoxVisitor {
-  BoxedType operator()(const Never &v) const { return std::make_shared<Never>(); }
-  BoxedType operator()(const Primitive &v) { return std::make_shared<Primitive>(v); }
-  BoxedType operator()(const Pointer &v) { return std::make_shared<Pointer>(v); }
-  BoxedType operator()(const Array &v) { return std::make_shared<Array>(v); }
-  BoxedType operator()(const Struct &v) { return std::make_shared<Struct>(v); }
+  BoxedType operator()(const Never &v) const { return Box<Never>(Never{}); }
+  BoxedType operator()(const Primitive &v) { return Box<Primitive>(v); }
+  BoxedType operator()(const Pointer &v) { return Box<Pointer>(v); }
+  BoxedType operator()(const Array &v) { return Box<Array>(v); }
+  BoxedType operator()(const Struct &v) { return Box<Struct>(v); }
 };
 struct UnboxVisitor {
-  Type operator()(const std::shared_ptr<Never> &v) const { return *v; }
-  Type operator()(const std::shared_ptr<Primitive> &v) { return *v; }
-  Type operator()(const std::shared_ptr<Pointer> &v) { return *v; }
-  Type operator()(const std::shared_ptr<Array> &v) { return *v; }
-  Type operator()(const std::shared_ptr<Struct> &v) { return *v; }
+  Type operator()(const Box<Never> &v) const { return *v; }
+  Type operator()(const Box<Primitive> &v) { return *v; }
+  Type operator()(const Box<Pointer> &v) { return *v; }
+  Type operator()(const Box<Array> &v) { return *v; }
+  Type operator()(const Box<Struct> &v) { return *v; }
 };
 
 struct IsUnsignedVisitor {
@@ -188,7 +188,7 @@ struct QStringVisitor {
     for (const auto &[name, type, offset] : v.members) members.append(u"%1 %2;"_s.arg(std::visit(*this, type), name));
     return u"struct {\n%1\n}"_s.arg(members.join(u"\n "_s));
   }
-  template <typename T> QString operator()(const std::shared_ptr<T> &v) const { return (*this)(*v); }
+  template <typename T> QString operator()(const Box<T> &v) const { return (*this)(*v); }
 };
 
 struct MetatypeVisitor {
@@ -204,30 +204,28 @@ struct OrderingVisitor {
   std::strong_ordering operator()(const T &lhs, const T &rhs) {
     return lhs <=> rhs;
   }
-  template <typename T> std::strong_ordering operator()(const std::shared_ptr<T> &lhs, const std::shared_ptr<T> &rhs) {
-    return *lhs <=> *rhs;
-  }
-  template <typename T> std::strong_ordering operator()(const std::shared_ptr<T> &lhs, const T &rhs) const {
+  template <typename T> std::strong_ordering operator()(const Box<T> &lhs, const Box<T> &rhs) { return *lhs <=> *rhs; }
+  template <typename T> std::strong_ordering operator()(const Box<T> &lhs, const T &rhs) const {
     return (*lhs) <=> rhs;
   }
 
-  template <typename T> std::strong_ordering operator()(const T &lhs, const std::shared_ptr<T> &rhs) const {
+  template <typename T> std::strong_ordering operator()(const T &lhs, const Box<T> &rhs) const {
     return lhs <=> (*rhs);
   }
 
   template <typename T, typename U>
     requires(!std::is_same_v<T, U>)
-  std::strong_ordering operator()(const std::shared_ptr<T> &, const std::shared_ptr<U> &) {
+  std::strong_ordering operator()(const Box<T> &, const Box<U> &) {
     return T::meta <=> U::meta;
   }
   template <typename T, typename U>
     requires(!std::is_same_v<T, U> && NotSharedPtr<U>)
-  std::strong_ordering operator()(const std::shared_ptr<T> &, const U &) {
+  std::strong_ordering operator()(const Box<T> &, const U &) {
     return T::meta <=> U::meta;
   }
   template <typename T, typename U>
     requires(!std::is_same_v<T, U> && NotSharedPtr<T>)
-  std::strong_ordering operator()(const T &, const std::shared_ptr<U> &) {
+  std::strong_ordering operator()(const T &, const Box<U> &) {
     return T::meta <=> U::meta;
   }
   template <typename T, typename U>

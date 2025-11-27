@@ -421,30 +421,29 @@ void pepp::debug::MemberAccess::link() {
 
 namespace {
 struct MemberAccessVisitor {
+  template <typename T> using Box = pepp::debug::types::Box<T>;
   quint64 v;
   pepp::debug::Environment &env;
-  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Never> &type) const {
-    return pepp::debug::VNever{};
-  }
-  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Primitive> &type) const {
+  pepp::debug::Value operator()(const Box<pepp::debug::types::Never> &type) const { return pepp::debug::VNever{}; }
+  pepp::debug::Value operator()(const Box<pepp::debug::types::Primitive> &type) const {
     auto info = env.type_info();
     pepp::debug::types::Type var_type = pepp::debug::types::Pointer{2, type};
     auto hnd = info->register_direct(var_type);
     return pepp::debug::VPointer{hnd, v};
   }
-  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Pointer> &type) {
+  pepp::debug::Value operator()(const Box<pepp::debug::types::Pointer> &type) {
     auto info = env.type_info();
     pepp::debug::types::Type var_type = pepp::debug::types::Pointer{2, type};
     auto hnd = info->register_direct(var_type);
     return pepp::debug::VPointer{hnd, v};
   }
-  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Array> &type) {
+  pepp::debug::Value operator()(const Box<pepp::debug::types::Array> &type) {
     auto info = env.type_info();
     pepp::debug::types::Type var_type = pepp::debug::types::Pointer{2, type};
     auto hnd = info->register_direct(var_type);
     return pepp::debug::VPointer{hnd, v};
   }
-  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Struct> &type) {
+  pepp::debug::Value operator()(const Box<pepp::debug::types::Struct> &type) {
     auto info = env.type_info();
     pepp::debug::types::Type var_type = pepp::debug::types::Pointer{2, type};
     auto hnd = info->register_direct(var_type);

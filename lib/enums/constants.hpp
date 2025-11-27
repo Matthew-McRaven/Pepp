@@ -20,10 +20,11 @@
 #include <QString>
 #include <QtCore>
 #include <QtQmlIntegration>
+#include "../exports.hpp"
 
 // Must be in separate file to prevent circuluar include in Qt MOC.
 namespace pepp {
-Q_NAMESPACE;
+Q_NAMESPACE_EXPORT(PEPP_EXPORT);
 
 class AbstractionHelper : public QObject {
   Q_GADGET

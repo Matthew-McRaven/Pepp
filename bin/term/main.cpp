@@ -29,7 +29,6 @@
 #include "commands/dumptex.hpp"
 #include "commands/get-qrc.hpp"
 #include "commands/get.hpp"
-#include "commands/gui.hpp"
 #include "commands/license.hpp"
 #include "commands/ls-imgfmt.hpp"
 #include "commands/ls-qrc.hpp"
@@ -39,12 +38,6 @@
 #include "commands/run.hpp"
 #include "commands/selftest.hpp"
 #include "commands/throughput.hpp"
-
-#if defined(Q_OS_WASM)
-const bool is_wasm = true;
-#else
-const bool is_wasm = false;
-#endif
 
 int main(int argc, char **argv) {
   // Set up some useful loggers
@@ -60,16 +53,16 @@ int main(int argc, char **argv) {
 #if defined(SPDLOG_ACTIVE_LEVEL)
   spdlog::set_level((spdlog::level::level_enum)SPDLOG_ACTIVE_LEVEL);
 #endif
-  // spdlog::set_level(spdlog::level::level_enum::info);
 
   // Get the name of the executable, and see if it ends in term.
   // If so, we should present terminal help on being called with no args.
   QFile execFile(argv[0]);
   QFileInfo execInfo(execFile);
   auto name = execInfo.baseName();
-  bool default_term = name.endsWith("term", Qt::CaseInsensitive) && !is_wasm;
+  auto name_as_stdstr = name.toStdString();
+  bool is_pepp_term = name.endsWith("term", Qt::CaseInsensitive);
   CLI::App app{"Pepp", "pepp"};
-  app.prefix_command(!default_term);
+  app.prefix_command(is_pepp_term);
   app.set_help_flag("-h,--help", "Display this help message and exit.");
 
   auto shared_flags = detail::SharedFlags{.kind = detail::SharedFlags::Kind::DEFAULT};
@@ -98,20 +91,18 @@ int main(int argc, char **argv) {
   registerReadelf(app, task, shared_flags);
   registerAddr2Line(app, task, shared_flags);
 
-  gui_args args{.argvs = {argv[0]}};
-  registerGUI(app, task, shared_flags, args);
-  auto resetSettings = app.add_flag("--reset-settings", args.resetSettings, "Reset settings to default");
-
   // Hidden commands
   registerThroughput(app, task, shared_flags);
   registerDumpBooks(app, task, shared_flags);
   registerDumpTex(app, task, shared_flags);
+
+  auto modified_args = std::vector<const char *>();
+  for (int it = 0; it < argc; ++it) modified_args.push_back(argv[it]);
+  // If being called via symlink, use the symlink name as the command name
+  if (!is_pepp_term) modified_args.insert(modified_args.cbegin() + 1, name_as_stdstr.c_str());
+
   try {
-    app.parse(argc, argv);
-    // If kind is default, then no subcommand was called, forward all arguments.
-    if (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT && !default_term)
-      std::transform(argv + 1, argv + argc, std::back_inserter(args.argvs), [](char *s) { return std::string(s); });
-    else if (!(task || shared_flags.kind == detail::SharedFlags::Kind::GUI)) throw CLI::CallForHelp();
+    app.parse(modified_args.size(), modified_args.data());
   } catch (const CLI::CallForHelp &e) {
     std::cout << app.help() << std::endl;
     return 0;
@@ -119,20 +110,11 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     return 1;
   }
-  if (shared_flags.kind == detail::SharedFlags::Kind::GUI ||
-      (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT) && !default_term) {
-#if INCLUDE_GUI
-    return gui_main(args);
-#else
-    std::cerr << "GUI is not supported" << std::endl;
-    return 4;
-#endif
-  } else {
-    // TODO: Fix arg passing
-    QCoreApplication a(argc, argv);
-    auto taskInstance = task(&a);
-    QObject::connect(taskInstance, &Task::finished, &a, QCoreApplication::exit, Qt::QueuedConnection);
-    QTimer::singleShot(0, taskInstance, &Task::run);
-    return a.exec();
-  }
+
+  // TODO: Fix arg passing
+  QCoreApplication a(argc, argv);
+  auto taskInstance = task(&a);
+  QObject::connect(taskInstance, &Task::finished, &a, QCoreApplication::exit, Qt::QueuedConnection);
+  QTimer::singleShot(0, taskInstance, &Task::run);
+  return a.exec();
 }
