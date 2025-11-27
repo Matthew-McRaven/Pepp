@@ -50,7 +50,7 @@ qt_add_qml_module(
   QtQuick
   OUTPUT_DIRECTORY
   "${CMAKE_BINARY_DIR}/edu/pepp")
-
+target_compile_definitions(pepp-lib PRIVATE "PEPP_LIBRARY")
 target_link_libraries(
   pepp-lib
   PUBLIC Qt6::Core
