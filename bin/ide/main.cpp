@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
       });
       );
   // clang-format on
-  g_app = new PeppApplication(argc, argvs.data());
+  g_app = new PeppApplication(new_argc, new_argvs.data());
   PeppApplication *app_ptr = g_app;
   g_engine = new QQmlApplicationEngine;
   QQmlApplicationEngine &engine = *g_engine;
