@@ -256,7 +256,7 @@ if(APPLE)
   if(CODESIGN AND MAC_DEVELOPER_NAME)
     string(STRIP "${MAC_DEVELOPER_NAME}" MAC_DEVELOPER_NAME)
     set(BODY
-        "${CODESIGN} --entitlements ${CMAKE_CURRENT_LIST_DIR}/bin/Entitlements.plist -s ${MAC_DEVELOPER_NAME} -fvvv --deep --timestamp --options=runtime"
+        "${CODESIGN} --entitlements ${CMAKE_CURRENT_LIST_DIR}/bin/ide/Entitlements.plist -s ${MAC_DEVELOPER_NAME} -fvvv --deep --timestamp --options=runtime"
     )
     install(
       CODE "
