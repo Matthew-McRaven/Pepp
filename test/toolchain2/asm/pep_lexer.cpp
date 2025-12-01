@@ -21,8 +21,10 @@
 #include "toolchain2/lex/core/common_tokens.hpp"
 
 using namespace Qt::StringLiterals;
-auto idpool = []() { return std::make_shared<pepp::tc::support::StringPool>(); };
-auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
+namespace {
+static auto idpool = []() { return std::make_shared<pepp::tc::support::StringPool>(); };
+static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
+} // namespace
 auto check_next(pepp::tc::lex::PepLexer &l, int token_type) {
   auto next = l.next_token();
   REQUIRE(next);

@@ -22,7 +22,9 @@
 #include "toolchain2/lex/core/common_tokens.hpp"
 
 using namespace Qt::StringLiterals;
-auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
+namespace {
+static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
+} // namespace
 
 TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
