@@ -59,10 +59,24 @@ void pepp::tc::ir::DyadicInstruction::insert(std::unique_ptr<attr::AAttribute> a
   else AddressableLine::insert(std::move(attr));
 }
 
+pepp::tc::ir::DotAlign::DotAlign(attr::Argument arg) : argument(arg) {}
+
+const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotAlign::attribute(attr::Type type) const {
+  if (type == attr::Type::Argument) return &argument;
+  else return AddressableLine::attribute(type);
+}
+
+void pepp::tc::ir::DotAlign::insert(std::unique_ptr<attr::AAttribute> attr) {
+  if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
+  else AddressableLine::insert(std::move(attr));
+}
+
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotLiteral::attribute(attr::Type type) const {
   if (type == attr::Type::Argument) return &argument;
   else return AddressableLine::attribute(type);
 }
+
+pepp::tc::ir::DotLiteral::DotLiteral(Which kind, attr::Argument arg) : which(kind), argument(arg) {}
 
 void pepp::tc::ir::DotLiteral::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
@@ -74,10 +88,14 @@ const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotBlock::attribute(attr::Ty
   else return AddressableLine::attribute(type);
 }
 
+pepp::tc::ir::DotBlock::DotBlock(attr::Argument arg) : argument(arg) {}
+
 void pepp::tc::ir::DotBlock::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
   else AddressableLine::insert(std::move(attr));
 }
+
+pepp::tc::ir::DotEquate::DotEquate(attr::Argument arg) : symbol(attr::SymbolDeclaration{nullptr}), argument(arg) {}
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotEquate::attribute(attr::Type type) const {
   if (type == attr::Type::SymbolDeclaration) return &symbol;
@@ -88,6 +106,42 @@ const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotEquate::attribute(attr::T
 void pepp::tc::ir::DotEquate::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::SymbolDeclaration) symbol = *(static_cast<attr::SymbolDeclaration *>(attr.release()));
   else if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
+  else LinearIR::insert(std::move(attr));
+}
+
+pepp::tc::ir::DotSCall::DotSCall(attr::Argument arg) : argument(arg) {}
+
+const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotSCall::attribute(attr::Type type) const {
+  if (type == attr::Type::Argument) return &argument;
+  else return LinearIR::attribute(type);
+}
+
+void pepp::tc::ir::DotSCall::insert(std::unique_ptr<attr::AAttribute> attr) {
+  if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
+  else LinearIR::insert(std::move(attr));
+}
+
+pepp::tc::ir::DotImportExport::DotImportExport(Direction dir, attr::Argument arg) : direction(dir), argument(arg) {}
+
+const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotImportExport::attribute(attr::Type type) const {
+  if (type == attr::Type::Argument) return &argument;
+  else return LinearIR::attribute(type);
+}
+
+void pepp::tc::ir::DotImportExport::insert(std::unique_ptr<attr::AAttribute> attr) {
+  if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
+  else LinearIR::insert(std::move(attr));
+}
+
+pepp::tc::ir::DotInputOutput::DotInputOutput(Direction dir, attr::Argument arg) : direction(dir), argument(arg) {}
+
+const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotInputOutput::attribute(attr::Type type) const {
+  if (type == attr::Type::Argument) return &argument;
+  else return LinearIR::attribute(type);
+}
+
+void pepp::tc::ir::DotInputOutput::insert(std::unique_ptr<attr::AAttribute> attr) {
+  if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
   else LinearIR::insert(std::move(attr));
 }
 

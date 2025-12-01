@@ -54,30 +54,73 @@ struct DyadicInstruction : public AddressableLine {
   attr::Argument argument;
 };
 
+enum class DotCommands {
+  ALIGN,
+  ASCII,
+  BLOCK,
+  BYTE,
+  EQUATE,
+  EXPORT,
+  IMPORT,
+  INPUT,
+  ORG,
+  OUTPUT,
+  SCALL,
+  SECTION,
+  WORD,
+};
+
+struct DotAlign : public AddressableLine {
+  DotAlign(attr::Argument arg);
+  const attr::AAttribute *attribute(attr::Type type) const override;
+  void insert(std::unique_ptr<attr::AAttribute> attr) override;
+  attr::Argument argument;
+};
+
 struct DotLiteral : public AddressableLine { // ASCII, byte, word
   enum class Which { ASCII, Byte, Word } which;
+  DotLiteral(Which kind, attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::Argument argument;
 };
 
 struct DotBlock : public AddressableLine { // Block
+  DotBlock(attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::Argument argument;
 };
 
 struct DotEquate : public LinearIR {
+  DotEquate(attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::SymbolDeclaration symbol;
   attr::Argument argument;
 };
-struct DotAlign : public AddressableLine {};
+
 struct DotSection : public LinearIR {};
-struct DotSCall : public LinearIR {};
-struct DotImportExport : public LinearIR {};
-struct DotInputOutput : public LinearIR {};
+struct DotSCall : public LinearIR {
+  DotSCall(attr::Argument arg);
+  const attr::AAttribute *attribute(attr::Type type) const override;
+  void insert(std::unique_ptr<attr::AAttribute> attr) override;
+  attr::Argument argument;
+};
+struct DotImportExport : public LinearIR {
+  enum class Direction { IMPORT, EXPORT } direction;
+  DotImportExport(Direction dir, attr::Argument arg);
+  const attr::AAttribute *attribute(attr::Type type) const override;
+  void insert(std::unique_ptr<attr::AAttribute> attr) override;
+  attr::Argument argument;
+};
+struct DotInputOutput : public LinearIR {
+  enum class Direction { INPUT, OUTPUT } direction;
+  DotInputOutput(Direction dir, attr::Argument arg);
+  const attr::AAttribute *attribute(attr::Type type) const override;
+  void insert(std::unique_ptr<attr::AAttribute> attr) override;
+  attr::Argument argument;
+};
 struct DotOrg : public LinearIR {
   enum class Behavior { BURN, ORG } behavior = Behavior::ORG;
 };

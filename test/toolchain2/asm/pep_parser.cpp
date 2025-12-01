@@ -108,3 +108,113 @@ TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(std::dynamic_pointer_cast<pas::ast::value::Symbolic>(r0->argument.value));
   }
 }
+
+TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using CTT = pepp::tc::lex::CommonTokenType;
+  using ATT = pepp::tc::lex::AsmTokenType;
+  using Parser = pepp::tc::parser::PepParser;
+  using SymbolTable = symbol::Table;
+  using namespace pepp::tc::ir;
+
+  SECTION(".ALIGN") {
+    {
+      auto p = Parser(data(".ALIGN 1"));
+      auto results = p.parse();
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+    {
+      auto p = Parser(data("s: .ALIGN 4"));
+      auto results = p.parse();
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+  }
+
+  SECTION(".ASCII") {
+    {
+      auto p = Parser(data(".ASCII \"hi\""));
+      auto results = p.parse();
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+    }
+    {
+      auto p = Parser(data(".ASCII \"\""));
+      auto results = p.parse();
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+    }
+  }
+
+  SECTION(".BLOCK") {
+    auto p = Parser(data(".BLOCK 7"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotBlock>(results[0]));
+  }
+
+  SECTION(".BYTE") {
+    auto p = Parser(data(".BYTE 255"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+  }
+
+  SECTION(".EQUATE") {
+    {
+      auto p = Parser(data(".EQUATE 16"));
+      auto results = p.parse();
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
+    }
+    {
+      auto p = Parser(data("s: .EQUATE 10"));
+      auto results = p.parse();
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
+    }
+  }
+
+  SECTION(".EXPORT") {
+    auto p = Parser(data(".EXPORT charIn"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotImportExport>(results[0]));
+  }
+
+  SECTION(".IMPORT") {
+    auto p = Parser(data(".IMPORT charIn"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotImportExport>(results[0]));
+  }
+
+  SECTION(".INPUT") {
+    auto p = Parser(data(".INPUT charIn"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotInputOutput>(results[0]));
+  }
+
+  SECTION(".OUTPUT") {
+    auto p = Parser(data(".OUTPUT charOut"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotInputOutput>(results[0]));
+  }
+
+  SECTION(".SCALL") {
+    auto p = Parser(data(".SCALL feed"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotSCall>(results[0]));
+  }
+
+  SECTION(".WORD") {
+    auto p = Parser(data(".WORD 0xFFFF"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+  }
+}

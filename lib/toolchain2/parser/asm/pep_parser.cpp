@@ -48,6 +48,24 @@ std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::argument() {
   } else return nullptr;
 }
 
+std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::numeric_argument() {
+  auto arg = argument();
+  if (!arg->isNumeric()) {
+    throw std::logic_error("Expected a numeric argument");
+  }
+  return arg;
+}
+
+std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::identifier_argument() {
+  lex::Checkpoint cp(*_buffer);
+  static constexpr auto le = bits::Order::LittleEndian;
+  if (auto maybeIdent = _buffer->match<lex::Identifier>(); maybeIdent) {
+    auto entry = _symtab->reference(maybeIdent->to_string());
+    return std::make_shared<pas::ast::value::Symbolic>(entry);
+  }
+  return nullptr;
+}
+
 std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction() {
   using ISA = isa::Pep10;
   std::shared_ptr<pepp::tc::ir::LinearIR> ret = nullptr;
@@ -66,7 +84,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction
     if (!arg) {
       synchronize();
       throw std::logic_error("Invalid argument");
-    } else if (arg->size() > 2) {
+    } else if (arg->requiredBytes() > 2) {
       synchronize();
       throw std::logic_error("Argument must fit in two bytes");
     }
@@ -102,7 +120,123 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction
   return ret;
 }
 
-std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo() { return nullptr; }
+namespace {
+using DC = pepp::tc::ir::DotCommands;
+static const auto dot_map = std::map<std::string, DC>{
+    {"ALIGN", DC::ALIGN},   {"ASCII", DC::ASCII},     {"BLOCK", DC::BLOCK}, {"BYTE", DC::BYTE}, {"EQUATE", DC::EQUATE},
+    {"EXPORT", DC::EXPORT}, {"IMPORT", DC::IMPORT},   {"INPUT", DC::INPUT}, {"ORG", DC::ORG},   {"OUTPUT", DC::OUTPUT},
+    {"SCALL", DC::SCALL},   {"SECTION", DC::SECTION}, {"WORD", DC::WORD}};
+} // namespace
+std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo() {
+  auto dot = _buffer->match<lex::DotCommand>();
+  auto dot_str = dot->to_string().toUpper().toStdString();
+  auto it = dot_map.find(dot_str);
+  if (it == dot_map.cend()) {
+    synchronize();
+    auto formatted = fmt::format("Invalid pseudo-operation \"{}\"", dot_str);
+    throw std::logic_error(formatted);
+  }
+  switch (it->second) {
+  case ir::DotCommands::ALIGN: {
+    auto arg = numeric_argument();
+    quint16 value;
+    bits::span<quint8> buf{(quint8 *)&value, 2};
+    arg->value(buf, bits::hostOrder());
+    if (value == 1 || value == 2 || value == 4 || value == 8) return std::make_shared<ir::DotAlign>(arg);
+    else {
+      synchronize();
+      throw std::logic_error(".ALIGN argument must be (1|2|4|8)");
+    }
+  }
+
+  case ir::DotCommands::ASCII: {
+    if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr) {
+      synchronize();
+      throw std::logic_error(".ASCII requires a string argument");
+    } else {
+      static constexpr auto le = bits::Order::LittleEndian;
+      auto asStr = maybeStr->view().toString();
+      std::shared_ptr<pas::ast::value::Base> arg;
+      if (asStr.size() <= 2) arg = std::make_shared<pas::ast::value::ShortString>(asStr, asStr.size(), le);
+      else arg = std::make_shared<pas::ast::value::LongString>(asStr, le);
+
+      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::ASCII, arg);
+    }
+  }
+  case ir::DotCommands::BLOCK: {
+    auto arg = numeric_argument();
+    return std::make_shared<ir::DotBlock>(arg);
+  }
+  case ir::DotCommands::BYTE: {
+    auto arg = numeric_argument();
+    if (arg->requiredBytes() > 1) {
+      synchronize();
+      throw std::logic_error(".BYTE argument must fit in one byte");
+    }
+    return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Byte, arg);
+  }
+  case ir::DotCommands::EQUATE: {
+    auto arg = argument();
+    if (arg->requiredBytes() > 2) {
+      synchronize();
+      throw std::logic_error(".EQUATE argument must fit in two bytes");
+    }
+    return std::make_shared<ir::DotEquate>(arg);
+  }
+  case ir::DotCommands::EXPORT: {
+    auto arg = identifier_argument();
+    if (!arg) {
+      synchronize();
+      throw std::logic_error(".OUTPUT requires an identifier argument");
+    }
+    return std::make_shared<ir::DotImportExport>(ir::DotImportExport::Direction::EXPORT, arg);
+  }
+  case ir::DotCommands::IMPORT: {
+    auto arg = identifier_argument();
+    if (!arg) {
+      synchronize();
+      throw std::logic_error(".OUTPUT requires an identifier argument");
+    }
+    return std::make_shared<ir::DotImportExport>(ir::DotImportExport::Direction::IMPORT, arg);
+  }
+  case ir::DotCommands::INPUT: {
+    auto arg = identifier_argument();
+    if (!arg) {
+      synchronize();
+      throw std::logic_error(".OUTPUT requires an identifier argument");
+    }
+    return std::make_shared<ir::DotInputOutput>(ir::DotInputOutput::Direction::INPUT, arg);
+  }
+  case ir::DotCommands::ORG:
+  case ir::DotCommands::OUTPUT: {
+    auto arg = identifier_argument();
+    if (!arg) {
+      synchronize();
+      throw std::logic_error(".OUTPUT requires an identifier argument");
+    }
+    return std::make_shared<ir::DotInputOutput>(ir::DotInputOutput::Direction::OUTPUT, arg);
+  }
+  case ir::DotCommands::SCALL: {
+    auto arg = identifier_argument();
+    if (!arg) {
+      synchronize();
+      throw std::logic_error(".SCALL requires an identifier argument");
+    }
+    return std::make_shared<ir::DotSCall>(arg);
+  }
+  case ir::DotCommands::SECTION:
+  case ir::DotCommands::WORD: {
+    auto arg = numeric_argument();
+    if (arg->requiredBytes() > 2) {
+      synchronize();
+      throw std::logic_error(".WORD argument must fit in two bytes");
+    }
+    return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Word, arg);
+  }
+  default: throw std::logic_error("Unreachable");
+  }
+  return nullptr;
+}
 
 std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::line() {
   std::shared_ptr<pepp::tc::ir::LinearIR> ret = nullptr;
@@ -154,5 +288,6 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::statement()
 
 void pepp::tc::parser::PepParser::synchronize() {
   // Scan until we reach a newline.
-  while (_buffer->input_remains() && !(_buffer->match<lex::Empty>() || _buffer->match<lex::EoF>()));
+  static const auto mask = ~(lex::Empty::TYPE | lex::EoF::TYPE);
+  while (_buffer->input_remains() && _buffer->match(mask));
 }
