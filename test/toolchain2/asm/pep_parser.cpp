@@ -1,0 +1,108 @@
+/*
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "toolchain2/parser/asm/pep_parser.hpp"
+#include <catch.hpp>
+#include "toolchain/pas/ast/value/numeric.hpp"
+#include "toolchain2/lex/asm/pep_lexer.hpp"
+#include "toolchain2/lex/asm/pep_tokens.hpp"
+#include "toolchain2/lex/core/common_tokens.hpp"
+
+using namespace Qt::StringLiterals;
+auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
+
+TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using CTT = pepp::tc::lex::CommonTokenType;
+  using ATT = pepp::tc::lex::AsmTokenType;
+  using Parser = pepp::tc::parser::PepParser;
+  using SymbolTable = symbol::Table;
+  using namespace pepp::tc::ir;
+  SECTION("No input") {
+    auto p = Parser(data(" "));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<EmptyLine>(results[0]));
+  }
+  SECTION("Empty lines") {
+    auto p = Parser(data("   \n   "));
+    auto results = p.parse();
+    REQUIRE(results.size() == 2);
+    CHECK(std::dynamic_pointer_cast<EmptyLine>(results[0]));
+    CHECK(std::dynamic_pointer_cast<EmptyLine>(results[1]));
+  }
+  SECTION("Monadic instructions") {
+    auto p = Parser(data("NOTA"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    auto r0 = std::dynamic_pointer_cast<MonadicInstruction>(results[0]);
+    REQUIRE(r0);
+    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::NOTA);
+  }
+  SECTION("Monadic instructions declaring symbols") {
+    auto p = Parser(data("symb: NOTA"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    auto r0 = std::dynamic_pointer_cast<MonadicInstruction>(results[0]);
+    REQUIRE(r0);
+    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::NOTA);
+    auto attr = r0->attribute(attr::Type::SymbolDeclaration);
+    REQUIRE(attr);
+    auto sym = (pepp::tc::ir::attr::SymbolDeclaration *)attr;
+    CHECK(sym->entry->name.toStdString() == "symb");
+    CHECK(sym->entry->state == symbol::DefinitionState::kSingle);
+  }
+  SECTION("Dyadic instructions") {
+    auto p = Parser(data("ADDA 10,i"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
+    REQUIRE(r0);
+    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::ADDA);
+    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
+    CHECK(std::dynamic_pointer_cast<pas::ast::value::Numeric>(r0->argument.value));
+  }
+  SECTION("Dyadic instructions with optional addressing modes") {
+    auto p = Parser(data("BR 10"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
+    REQUIRE(r0);
+    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
+    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
+    CHECK(std::dynamic_pointer_cast<pas::ast::value::Numeric>(r0->argument.value));
+  }
+  SECTION("Dyadic instructions with large argument") {
+    auto p = Parser(data("BR 0xffff"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
+    REQUIRE(r0);
+    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
+    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
+    CHECK(std::dynamic_pointer_cast<pas::ast::value::Numeric>(r0->argument.value));
+  }
+  SECTION("Dyadic instructions with symbolic argument") {
+    auto p = Parser(data("this:BR this,x"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
+    REQUIRE(r0);
+    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
+    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::X);
+    CHECK(std::dynamic_pointer_cast<pas::ast::value::Symbolic>(r0->argument.value));
+  }
+}
