@@ -22,7 +22,6 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::PepLexer::next_token() {
   static const QRegularExpression strConstant(R"("([^\\']|\\[bvnrt\\0"]|\\[xX][0-9a-fA-F]{2})*\")");
   std::shared_ptr<pepp::tc::lex::Token> current_token = nullptr;
   auto loc_start = _cursor.location();
-  bool space_only = true;
   while (input_remains()) {
     auto next = _cursor.peek();
     if (next == "\n") {
