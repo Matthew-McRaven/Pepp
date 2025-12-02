@@ -18,8 +18,8 @@
 #pragma once
 #include "sim/debug/debugger.hpp"
 #include "sim/device/dense.hpp"
-#include "toolchain2/parser/ucode/pep_common.hpp" // TODO: Stop including the parser in the simulator!!
 #include "toolchain2/targets/pep/uarch.hpp"
+#include "toolchain2/ucode/pep_ir.hpp" // TODO: Stop including the parser in the simulator!!
 
 namespace sim::memory {
 template <typename Address> class Output;

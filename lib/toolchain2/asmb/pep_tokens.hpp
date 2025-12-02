@@ -1,5 +1,5 @@
 #pragma once
-#include "../core/common_tokens.hpp"
+#include "../support/lex/tokens.hpp"
 namespace pepp::tc::lex {
 
 enum class AsmTokenType {

@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "./pep_common.hpp"
+#include "./pep_ir.hpp"
 
 pepp::tc::ir::MemTest::MemTest(quint16 addr, quint8 value) : address(addr), size(1) {
   this->value[0] = value;

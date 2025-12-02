@@ -4,6 +4,7 @@
 #include "sim/api2/memory/address.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep9/mc2/cpu.hpp"
+#include "toolchain2/ucode/pep_parser.hpp"
 
 MicroRunTask::MicroRunTask(int ed, std::string fname, int busWidth, QObject *parent)
     : Task(parent), _ed(ed), _busWidth(busWidth), _pecpuIn(fname) {}

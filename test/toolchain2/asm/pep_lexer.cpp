@@ -15,10 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "toolchain2/lex/asm/pep_lexer.hpp"
+#include "toolchain2/asmb/pep_lexer.hpp"
 #include <catch.hpp>
-#include "toolchain2/lex/asm/pep_tokens.hpp"
-#include "toolchain2/lex/core/common_tokens.hpp"
+#include "toolchain2/asmb/pep_tokens.hpp"
 
 using namespace Qt::StringLiterals;
 namespace {

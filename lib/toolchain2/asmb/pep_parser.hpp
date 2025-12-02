@@ -1,10 +1,10 @@
 #pragma once
 #include <memory>
+#include "./pep_ir.hpp"
+#include "./pep_lexer.hpp"
 #include "toolchain/symbol/table.hpp"
-#include "toolchain2/ir/asm/pep_common.hpp"
-#include "toolchain2/lex/asm/pep_lexer.hpp"
-#include "toolchain2/lex/core/buffer.hpp"
 #include "toolchain2/support/allocators/string_pool.hpp"
+#include "toolchain2/support/lex/buffer.hpp"
 
 /*
  * N= { <argument>, <instruction>, <line>, <pseudo>, <statement> }

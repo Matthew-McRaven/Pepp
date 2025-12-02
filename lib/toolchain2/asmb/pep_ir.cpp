@@ -1,4 +1,4 @@
-#include "pep_common.hpp"
+#include "./pep_ir.hpp"
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::LinearIR::attribute(attr::Type type) const {
   for (attr::ListNode *it = extended_attributes.get(); it != nullptr; it = it->next.get())

@@ -1,5 +1,5 @@
 #pragma once
-#include "./common_tokens.hpp"
+#include "./tokens.hpp"
 
 namespace pepp::tc::lex {
 

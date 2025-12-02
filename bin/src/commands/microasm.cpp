@@ -1,6 +1,6 @@
 #include "microasm.hpp"
-#include "toolchain2/parser/ucode/pep_common.hpp"
 #include "toolchain2/targets/pep/uarch.hpp"
+#include "toolchain2/ucode/pep_parser.hpp"
 
 MicroAsmTask::MicroAsmTask(int ed, std::string in, int busWidth, QObject *parent)
     : Task(parent), ed(ed), busWidth(busWidth), in(in) {}

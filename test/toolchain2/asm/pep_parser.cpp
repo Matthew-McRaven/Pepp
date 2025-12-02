@@ -14,12 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "toolchain2/parser/asm/pep_parser.hpp"
+#include "toolchain2/asmb/pep_parser.hpp"
 #include <catch.hpp>
 #include "toolchain/pas/ast/value/numeric.hpp"
-#include "toolchain2/lex/asm/pep_lexer.hpp"
-#include "toolchain2/lex/asm/pep_tokens.hpp"
-#include "toolchain2/lex/core/common_tokens.hpp"
 
 using namespace Qt::StringLiterals;
 namespace {
@@ -28,8 +25,6 @@ static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; }
 
 TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
-  using CTT = pepp::tc::lex::CommonTokenType;
-  using ATT = pepp::tc::lex::AsmTokenType;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = symbol::Table;
   using namespace pepp::tc::ir;
@@ -111,8 +106,6 @@ TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
 
 TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
-  using CTT = pepp::tc::lex::CommonTokenType;
-  using ATT = pepp::tc::lex::AsmTokenType;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = symbol::Table;
   using namespace pepp::tc::ir;

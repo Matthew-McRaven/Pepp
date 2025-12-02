@@ -1,4 +1,4 @@
-#include "./common_tokens.hpp"
+#include "./tokens.hpp"
 
 pepp::tc::lex::Token::Token(support::LocationInterval loc) : _loc(loc) {}
 pepp::tc::lex::Token::~Token() {};

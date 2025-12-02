@@ -17,6 +17,7 @@
 
 #include "targets/pep9/mc2/cpu.hpp"
 #include "toolchain2/targets/pep/uarch.hpp"
+#include "toolchain2/ucode/pep_parser.hpp"
 
 namespace {
 template <typename CPU> std::pair<sim::memory::Dense<quint16>, CPU> make() {

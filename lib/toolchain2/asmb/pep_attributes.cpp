@@ -1,4 +1,4 @@
-#include "./attributes.hpp"
+#include "./pep_attributes.hpp"
 
 pepp::tc::ir::attr::Type pepp::tc::ir::attr::Comment::type() const { return TYPE; }
 

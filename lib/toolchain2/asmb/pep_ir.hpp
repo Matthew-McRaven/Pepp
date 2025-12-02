@@ -1,5 +1,5 @@
 #pragma once
-#include "./attributes.hpp"
+#include "./pep_attributes.hpp"
 #include "toolchain2/support/source/location.hpp"
 
 namespace pepp::tc::ir {

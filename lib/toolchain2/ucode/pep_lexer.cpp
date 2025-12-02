@@ -1,6 +1,6 @@
 #include "./pep_lexer.hpp"
 #include <QRegularExpression>
-#include "../core/common_tokens.hpp"
+#include "../support/lex/tokens.hpp"
 #include "./pep_tokens.hpp"
 
 pepp::tc::lex::MicroLexer::MicroLexer(std::shared_ptr<support::StringPool> identifier_pool,

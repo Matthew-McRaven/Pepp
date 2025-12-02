@@ -16,7 +16,7 @@
 #include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "toolchain/pas/operations/pepp/string.hpp"
 #include "toolchain/pas/operations/pepp/whole_program_sanity.hpp"
-#include "toolchain2/parser/macro/parse.hpp"
+#include "toolchain2/macro/parse.hpp"
 
 void helpers::addMacro(::macro::Registry &registry, std::string directory, QString arch) {
   QDirIterator it(QString::fromStdString(directory), {"*.pepm"}, QDir::Files);

@@ -22,8 +22,8 @@
 #include "sim/device/dense.hpp"
 #include "targets/pep9/mc2/cpu.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
-#include "toolchain2/parser/ucode/pep_common.hpp"
 #include "toolchain2/targets/pep/uarch.hpp"
+#include "toolchain2/ucode/pep_parser.hpp"
 
 namespace {
 static const auto lf = QRegularExpression("\r");

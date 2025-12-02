@@ -1,13 +1,12 @@
 #include "./pep_parser.hpp"
+#include "./pep_attributes.hpp"
+#include "./pep_tokens.hpp"
 #include "fmt/format.h"
 #include "toolchain/pas/ast/value/character.hpp"
 #include "toolchain/pas/ast/value/decimal.hpp"
+#include "toolchain/pas/ast/value/hexadecimal.hpp"
 #include "toolchain/pas/ast/value/numeric.hpp"
 #include "toolchain/pas/ast/value/string.hpp"
-
-#include <toolchain/pas/ast/value/hexadecimal.hpp>
-#include <toolchain2/ir/asm/attributes.hpp>
-#include <toolchain2/lex/asm/pep_tokens.hpp>
 
 pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)
     : _pool(std::make_shared<pepp::tc::support::StringPool>()),

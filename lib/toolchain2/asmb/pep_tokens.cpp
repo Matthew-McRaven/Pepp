@@ -1,4 +1,4 @@
-#include "pep_tokens.hpp"
+#include "./pep_tokens.hpp"
 
 pepp::tc::lex::DotCommand::DotCommand(support::LocationInterval loc, support::StringPool *pool,
                                       support::PooledString id)
