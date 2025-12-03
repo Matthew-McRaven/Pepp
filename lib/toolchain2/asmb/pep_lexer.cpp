@@ -18,8 +18,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::PepLexer::next_token() {
   static const QRegularExpression hexadecimal("0[xX][0-9a-fA-F]+");
   static const QRegularExpression badHex("0[xX]");
   static const QRegularExpression comment(";[^\n]*");
-  static const QRegularExpression charConstant(R"('([^\\']|\\[bvnrt\\0']|\\[xX][0-9a-fA-F]{2})')");
-  static const QRegularExpression strConstant(R"("([^\\']|\\[bvnrt\\0"]|\\[xX][0-9a-fA-F]{2})*\")");
+  static const QRegularExpression charConstant(R"('([^'\\]|\\[bvnrt\\0']|\\[xX][0-9a-fA-F]{2})')");
+  static const QRegularExpression strConstant(R"("([^"\\]|\\[bvnrt\\0"]|\\[xX][0-9a-fA-F]{2})*\")");
   std::shared_ptr<pepp::tc::lex::Token> current_token = nullptr;
   auto loc_start = _cursor.location();
   while (input_remains()) {
@@ -114,9 +114,11 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::PepLexer::next_token() {
         auto text = _cursor.select().mid(1).chopped(1);
         current_token =
             std::make_shared<CharacterConstant>(LocationInterval{loc_start, _cursor.location()}, text.toString());
+        break;
       } else {
         _cursor.advance(1);
         current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+        break;
       }
     } else if (next == "\"") {
       if (auto maybeStr = _cursor.matchView(strConstant); maybeStr.hasMatch()) {
@@ -126,9 +128,11 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::PepLexer::next_token() {
         auto id = _pool->insert(text);
         current_token =
             std::make_shared<StringConstant>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+        break;
       } else {
         _cursor.advance(1);
         current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+        break;
       }
     } else {
       _cursor.advance(1);
