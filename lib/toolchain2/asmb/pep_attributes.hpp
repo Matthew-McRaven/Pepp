@@ -32,6 +32,8 @@ struct Identifier : public AAttribute {
   Identifier(support::StringPool *pool, support::PooledString id) : pool(pool), id(id) {}
   support::StringPool *pool = nullptr;
   support::PooledString id;
+  QStringView view() const;
+  QString to_string() const;
 };
 
 struct Comment : public Identifier {
@@ -83,8 +85,10 @@ struct SymbolDeclaration : public AAttribute {
 struct SectionFlags : public AAttribute {
   static constexpr Type TYPE = Type::SectionFlags;
   Type type() const override;
-  SectionFlags(bool r, bool w, bool x) : r(r), w(w), x(x) {}
-  bool r = false, w = false, x = false;
+  SectionFlags(bool r, bool w, bool x, bool z) : r(r), w(w), x(x), z(z) {}
+  // Must update == if flags changes. Cannot use default due to abstract base class.
+  bool r = false, w = false, x = false, z = false;
+  bool operator==(const SectionFlags &rhs) const;
 };
 
 struct ListNode {
