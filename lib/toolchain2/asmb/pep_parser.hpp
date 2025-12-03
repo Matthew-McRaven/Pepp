@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "./pep_common.hpp"
 #include "./pep_ir.hpp"
 #include "./pep_lexer.hpp"
 #include "toolchain/symbol/table.hpp"
@@ -22,7 +23,7 @@ namespace pepp::tc::parser {
 struct PepParser {
   PepParser(support::SeekableData &&data);
 
-  std::vector<std::shared_ptr<tc::ir::LinearIR>> parse();
+  PepIRProgram parse();
   QSharedPointer<symbol::Table> symbol_table() const;
 
   void debug_print_tokens(bool debug);

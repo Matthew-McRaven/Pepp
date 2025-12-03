@@ -13,8 +13,8 @@ pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)
       _lexer(std::make_shared<lex::PepLexer>(_pool, std::move(data))), _buffer(std::make_shared<lex::Buffer>(&*_lexer)),
       _symtab(QSharedPointer<symbol::Table>::create(2)) {}
 
-std::vector<std::shared_ptr<pepp::tc::ir::LinearIR>> pepp::tc::parser::PepParser::parse() {
-  std::vector<std::shared_ptr<ir::LinearIR>> lines;
+pepp::tc::PepIRProgram pepp::tc::parser::PepParser::parse() {
+  PepIRProgram lines;
 
   while (_buffer->input_remains()) {
     if (auto line = statement(); line) lines.emplace_back(line);
@@ -239,9 +239,9 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo() {
       static constexpr auto le = bits::Order::LittleEndian;
       std::shared_ptr<pas::ast::value::Base> arg;
       auto flags = maybeFlags->view().toString().toLower();
-      bool r = flags.contains("r"), w = flags.contains("w"), x = flags.contains("x");
+      bool r = flags.contains("r"), w = flags.contains("w"), x = flags.contains("x"), z = flags.contains("z");
       return std::make_shared<ir::DotSection>(ir::attr::Identifier(maybeSecName->pool, maybeSecName->id),
-                                              ir::attr::SectionFlags(r, w, x));
+                                              ir::attr::SectionFlags(r, w, x, z));
     }
   }
   case ir::DotCommands::WORD: {
