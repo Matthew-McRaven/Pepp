@@ -8,19 +8,36 @@
 
 namespace pepp::tc::ir::attr {
 
-enum class Type { Invalid = 0, Comment, CommentIndent, Address, Mnemonic, AddressingMode, Argument, SymbolDeclaration };
+enum class Type {
+  Invalid = 0,
+  Identifier,
+  Comment,
+  CommentIndent,
+  Address,
+  Mnemonic,
+  AddressingMode,
+  Argument,
+  SymbolDeclaration,
+  SectionFlags
+};
 
 struct AAttribute {
   virtual ~AAttribute() = default;
   virtual Type type() const = 0;
 };
 
-struct Comment : public AAttribute {
-  static constexpr Type TYPE = Type::Comment;
+struct Identifier : public AAttribute {
+  static constexpr Type TYPE = Type::Identifier;
   Type type() const override;
-  Comment(support::StringPool *pool, support::PooledString id) : pool(pool), id(id) {}
+  Identifier(support::StringPool *pool, support::PooledString id) : pool(pool), id(id) {}
   support::StringPool *pool = nullptr;
   support::PooledString id;
+};
+
+struct Comment : public Identifier {
+  static constexpr Type TYPE = Type::Comment;
+  Type type() const override;
+  Comment(support::StringPool *pool, support::PooledString id) : Identifier(pool, id) {}
 };
 
 struct CommentIndent : public AAttribute {
@@ -41,6 +58,7 @@ struct Pep10Mnemonic : public AAttribute {
   Pep10Mnemonic(isa::Pep10::Mnemonic instruction) : instruction(instruction) {}
   isa::Pep10::Mnemonic instruction = isa::Pep10::Mnemonic::INVALID;
 };
+
 struct Pep10AddrMode : public AAttribute {
   static constexpr Type TYPE = Type::AddressingMode;
   Type type() const override;
@@ -54,11 +72,19 @@ struct Argument : public AAttribute {
   Argument(std::shared_ptr<pas::ast::value::Base> value) : value(std::move(value)) {}
   std::shared_ptr<pas::ast::value::Base> value;
 };
+
 struct SymbolDeclaration : public AAttribute {
   static constexpr Type TYPE = Type::SymbolDeclaration;
   Type type() const override;
   SymbolDeclaration(QSharedPointer<symbol::Entry> entry) : entry(entry) {}
   QSharedPointer<symbol::Entry> entry;
+};
+
+struct SectionFlags : public AAttribute {
+  static constexpr Type TYPE = Type::SectionFlags;
+  Type type() const override;
+  SectionFlags(bool r, bool w, bool x) : r(r), w(w), x(x) {}
+  bool r = false, w = false, x = false;
 };
 
 struct ListNode {

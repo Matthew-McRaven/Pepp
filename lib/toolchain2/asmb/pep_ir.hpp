@@ -100,7 +100,13 @@ struct DotEquate : public LinearIR {
   attr::Argument argument;
 };
 
-struct DotSection : public LinearIR {};
+struct DotSection : public LinearIR {
+  DotSection(attr::Identifier name, attr::SectionFlags flags);
+  const attr::AAttribute *attribute(attr::Type type) const override;
+  void insert(std::unique_ptr<attr::AAttribute> attr) override;
+  attr::Identifier name;
+  attr::SectionFlags flags;
+};
 struct DotSCall : public LinearIR {
   DotSCall(attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;

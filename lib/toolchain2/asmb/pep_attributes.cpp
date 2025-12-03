@@ -1,5 +1,7 @@
 #include "./pep_attributes.hpp"
 
+pepp::tc::ir::attr::Type pepp::tc::ir::attr::Identifier::type() const { return TYPE; }
+
 pepp::tc::ir::attr::Type pepp::tc::ir::attr::Comment::type() const { return TYPE; }
 
 pepp::tc::ir::attr::Type pepp::tc::ir::attr::CommentIndent::type() const { return TYPE; }
@@ -13,3 +15,5 @@ pepp::tc::ir::attr::Type pepp::tc::ir::attr::Pep10AddrMode::type() const { retur
 pepp::tc::ir::attr::Type pepp::tc::ir::attr::Argument::type() const { return TYPE; }
 
 pepp::tc::ir::attr::Type pepp::tc::ir::attr::SymbolDeclaration::type() const { return TYPE; }
+
+pepp::tc::ir::attr::Type pepp::tc::ir::attr::SectionFlags::type() const { return TYPE; }

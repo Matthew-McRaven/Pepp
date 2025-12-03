@@ -24,6 +24,8 @@ std::vector<std::shared_ptr<pepp::tc::ir::LinearIR>> pepp::tc::parser::PepParser
 
 QSharedPointer<symbol::Table> pepp::tc::parser::PepParser::symbol_table() const { return _symtab; }
 
+void pepp::tc::parser::PepParser::debug_print_tokens(bool debug) { _lexer->print_tokens = debug; }
+
 std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::argument() {
   lex::Checkpoint cp(*_buffer);
   static constexpr auto le = bits::Order::LittleEndian;
@@ -223,7 +225,25 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo() {
     }
     return std::make_shared<ir::DotSCall>(arg);
   }
-  case ir::DotCommands::SECTION:
+  case ir::DotCommands::SECTION: {
+    if (auto maybeSecName = _buffer->match<lex::StringConstant>(); !maybeSecName) {
+      synchronize();
+      throw std::logic_error(".SECTION name must be a string");
+    } else if (!_buffer->match_literal(",")) {
+      synchronize();
+      throw std::logic_error(".SECTION requires two arguments");
+    } else if (auto maybeFlags = _buffer->match<lex::StringConstant>(); !maybeFlags) {
+      synchronize();
+      throw std::logic_error(".SECTION flags must be a string");
+    } else {
+      static constexpr auto le = bits::Order::LittleEndian;
+      std::shared_ptr<pas::ast::value::Base> arg;
+      auto flags = maybeFlags->view().toString().toLower();
+      bool r = flags.contains("r"), w = flags.contains("w"), x = flags.contains("x");
+      return std::make_shared<ir::DotSection>(ir::attr::Identifier(maybeSecName->pool, maybeSecName->id),
+                                              ir::attr::SectionFlags(r, w, x));
+    }
+  }
   case ir::DotCommands::WORD: {
     auto arg = numeric_argument();
     if (arg->requiredBytes() > 2) {

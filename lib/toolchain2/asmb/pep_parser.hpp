@@ -25,6 +25,8 @@ struct PepParser {
   std::vector<std::shared_ptr<tc::ir::LinearIR>> parse();
   QSharedPointer<symbol::Table> symbol_table() const;
 
+  void debug_print_tokens(bool debug);
+
 private:
   std::shared_ptr<pas::ast::value::Base> argument();
   std::shared_ptr<pas::ast::value::Base> numeric_argument();

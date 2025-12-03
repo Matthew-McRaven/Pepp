@@ -196,7 +196,36 @@ TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]")
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotInputOutput>(results[0]));
   }
-
+  SECTION(".SECTION") {
+    {
+      auto p = Parser(data(".SECTION \".text\", \"rw\""));
+      auto results = p.parse();
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      REQUIRE(r0->name.pool);
+      auto str_view = r0->name.pool->find(r0->name.id);
+      REQUIRE(str_view.has_value());
+      CHECK(str_view.value().toString().toStdString() == ".text");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == true);
+      CHECK(r0->flags.x == false);
+    }
+    {
+      auto p = Parser(data(".SECTION \".\", \"x\""));
+      auto results = p.parse();
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      REQUIRE(r0->name.pool);
+      auto str_view = r0->name.pool->find(r0->name.id);
+      REQUIRE(str_view.has_value());
+      CHECK(str_view.value().toString().toStdString() == ".");
+      CHECK(r0->flags.r == false);
+      CHECK(r0->flags.w == false);
+      CHECK(r0->flags.x == true);
+    }
+  }
   SECTION(".SCALL") {
     auto p = Parser(data(".SCALL feed"));
     auto results = p.parse();

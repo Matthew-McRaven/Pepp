@@ -287,7 +287,6 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     {
       auto pool = idpool();
       auto l = Lexer(pool, data(".SECTION \".text\", \"rw\""));
-      l.print_tokens = true;
       check_next(l, (int)ATT::DotCommand);
       check_str_sequence(l, ".text");
       check_next(l, (int)CTT::Literal);

@@ -109,6 +109,20 @@ void pepp::tc::ir::DotEquate::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
+pepp::tc::ir::DotSection::DotSection(attr::Identifier name, attr::SectionFlags flags) : name(name), flags(flags) {}
+
+const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotSection::attribute(attr::Type type) const {
+  if (type == attr::Type::Identifier) return &name;
+  else if (type == attr::Type::SectionFlags) return &flags;
+  else return LinearIR::attribute(type);
+}
+
+void pepp::tc::ir::DotSection::insert(std::unique_ptr<attr::AAttribute> attr) {
+  if (attr->type() == attr::Type::Identifier) name = *(static_cast<attr::Identifier *>(attr.release()));
+  else if (attr->type() == attr::Type::SectionFlags) flags = *(static_cast<attr::SectionFlags *>(attr.release()));
+  else LinearIR::insert(std::move(attr));
+}
+
 pepp::tc::ir::DotSCall::DotSCall(attr::Argument arg) : argument(arg) {}
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotSCall::attribute(attr::Type type) const {
