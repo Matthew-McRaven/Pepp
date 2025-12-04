@@ -42,6 +42,12 @@ public:
   virtual quint64 requiredBytes() const = 0; // Minimum number of bytes to represent value
   virtual QString string() const = 0;
   virtual QString rawString() const = 0; // like string(), except without quotation marks.
+  // Helper to extract an truncated integer value without creating the buffer yourself.
+  template <std::integral I> I value(bits::Order destEndian = bits::hostOrder()) const {
+    I ret;
+    value(bits::span<quint8>{(quint8 *)&ret, sizeof(ret)}, destEndian);
+    return ret;
+  }
 
 protected:
   Base(const Base &other) = delete;
