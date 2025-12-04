@@ -1,5 +1,7 @@
 #include "./pep_codegen.hpp"
 #include <elfio/elfio.hpp>
+#include "toolchain/symbol/table.hpp"
+#include "toolchain/symbol/visit.hpp"
 
 std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::PepIRProgram>>
 pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section) {
@@ -8,6 +10,10 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
   ret.emplace_back(std::make_pair(initial_section, pepp::tc::PepIRProgram{}));
   auto *active = &ret[0];
   for (auto &line : prog) {
+    // TODO: Check all symbol usages are not undefined
+    // TODO: Check that all symbol declarations are singly defined
+    // TODO: record alignmnt, .BURN for this section.
+    // TODO: check that all .EQUATE have a symbol.
     auto as_section = std::dynamic_pointer_cast<pepp::tc::ir::DotSection>(line);
     // If no existing section has the same name, create a new section with the provided flags.
     // When the section already exists, ensure that the flags match before switching to that section,
@@ -23,20 +29,68 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
         throw std::logic_error("Modifying flags for an existing section");
       } else active = &*existing_sec;
     }
-    // TODO: record alignmnt, .BURN, .ORG for this section.
+
     active->second.emplace_back(line);
   }
   return ret;
 }
 
-void pepp::tc::assign_addresses(PepIRProgram &prog) {
-  quint16 base_address = 0;
-  // if (burn) base_address = *burn;
-  for (auto &line : prog) {
-    // Register system calls
-    // Gather IOs
-    // Check that all symbol declarations are singly defined
-    // (optional) Check all symbol usages are not undefined
-    // Check that all .EQUATE have a symbol.
+void pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
+  enum class Direction { Forward, Backward } direction = Direction::Forward;
+  for (auto &sec : prog) {
+    quint16 base_address = sec.first.base_address.value_or(0);
+    for (auto &line : sec.second) {
+      quint16 symbol_base = base_address, next_base = base_address, size = line->object_size(base_address);
+      if (!line->has_attribute<ir::attr::Address>()) continue;
+      else if (auto as_org = std::dynamic_pointer_cast<ir::DotOrg>(line); as_org) {
+        base_address = as_org->argument.value->value<quint16>();
+        symbol_base = next_base = base_address;
+      } else if (auto as_equate = std::dynamic_pointer_cast<ir::DotEquate>(line); as_equate) {
+
+        auto symbol = as_equate->symbol.entry;
+        auto argument = as_equate->argument.value;
+        // Re-use from previous assembler
+        if (auto symbolic = dynamic_cast<pas::ast::value::Symbolic *>(&*argument); symbolic != nullptr) {
+          auto other = symbolic->symbol();
+          if (symbol::rootTable(other->parent.sharedFromThis()) == symbol::rootTable(symbol->parent.sharedFromThis())) {
+            symbol->value = QSharedPointer<symbol::value::InternalPointer>::create(sizeof(quint16), other);
+          } else {
+            symbol->value = QSharedPointer<symbol::value::ExternalPointer>::create(
+                sizeof(quint16), other->parent.sharedFromThis(), other);
+          }
+        } else {
+          auto bits = symbol::value::MaskedBits{.byteCount = 2, .bitPattern = 0, .mask = 0xFFFF};
+          argument->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&bits.bitPattern), 8}, bits::hostOrder());
+          symbol->value = QSharedPointer<symbol::value::Constant>::create(bits);
+        }
+        return; // Must return early, or symbol will be clobbered below.
+      } else if (direction == Direction::Forward) {
+        // Must explicitly handle address wrap-around, because math inside set
+        // address widens implicitly.
+        next_base = (base_address + size) % 0x10000;
+        // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
+        // in which case no adjustment is necessary.
+        line->insert(std::make_unique<ir::attr::Address>(base_address, size));
+        base_address = next_base;
+      } else {
+        next_base = (base_address - size) % 0x10000;
+        // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
+        // in which case no adjustment is necessary.
+        auto adjustedAddress = next_base + (size > 0 ? 1 : 0);
+        // If we use newBase, we are off-by-one when size is non-zero.
+        symbol_base = adjustedAddress;
+        line->insert(std::make_unique<ir::attr::Address>(adjustedAddress % 0x10000, size));
+        base_address = next_base;
+      }
+
+      if (auto line_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); line_symbol) {
+        auto isCode = dynamic_cast<ir::DyadicInstruction *>(&*line) || dynamic_cast<ir::MonadicInstruction *>(&*line);
+        line_symbol->entry->value = QSharedPointer<symbol::value::Location>::create(
+            size, sizeof(quint16), symbol_base, 0, isCode ? symbol::Type::kCode : symbol::Type::kObject);
+      }
+    }
   }
 }
+
+// Register system calls
+// Gather IOs

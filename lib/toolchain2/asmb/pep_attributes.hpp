@@ -51,7 +51,9 @@ struct CommentIndent : public AAttribute {
 struct Address : public AAttribute {
   static constexpr Type TYPE = Type::Address;
   Type type() const override;
-  uint16_t address = 0;
+  Address() {}
+  Address(quint16 address, quint16 size) : address(address), size(size) {}
+  quint16 address = 0, size = 0;
 };
 
 struct Pep10Mnemonic : public AAttribute {
