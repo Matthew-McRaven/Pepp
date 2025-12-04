@@ -13,7 +13,6 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
   for (auto &line : prog) {
     // TODO: Check all symbol usages are not undefined
     // TODO: .BURN for this section.
-    // TODO: check that all .EQUATE have a symbol.
 
     // If no existing section has the same name, create a new section with the provided flags.
     // When the section already exists, ensure that the flags match before switching to that section,
@@ -44,13 +43,27 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
   return ret;
 }
 
-void pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
+pepp::tc::IRMemoryAddressTable
+pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
   enum class Direction { Forward, Backward } direction = Direction::Forward;
+
+  // Pre-allocate vector according to the total size of the IR lines in all sections.
+  // This overrserves storage---not all IR lines generate object code---but is a stable upper bound and avoid
+  // reallocation in the address-assignment loop.
+  size_t size = 0;
+  for (const auto &sec : prog) size += sec.second.size();
+
+  // ITEMS ARE NOT INSERTED IN SORTED ORDER. DO NOT USE AS A MAP UNTIL SORTING.
+  // Since all IR lines across all PepIRProgram have unique (C++) addresses, we can blindly append and sort later.
+  // This gives O(1) insert rather than  n* O(nlgn) with the requirement for a manual sort before returning.
+  IRMemoryAddressTable ret;
+  ret.container.reserve(size);
+
   for (auto &sec : prog) {
     quint16 base_address = sec.first.base_address.value_or(0);
     for (auto &line : sec.second) {
-      quint16 symbol_base = base_address, next_base = base_address, size = line->object_size(base_address);
-      if (!line->has_attribute<ir::attr::Address>()) continue;
+      quint16 symbol_base = base_address, next_base = base_address, size = line->object_size(base_address).value_or(0);
+      if (auto maybe_size = line->object_size(base_address); !maybe_size.has_value()) continue;
       else if (auto as_org = std::dynamic_pointer_cast<ir::DotOrg>(line); as_org) {
         base_address = as_org->argument.value->value<quint16>();
         symbol_base = next_base = base_address;
@@ -72,14 +85,14 @@ void pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRPr
           argument->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&bits.bitPattern), 8}, bits::hostOrder());
           symbol->value = QSharedPointer<symbol::value::Constant>::create(bits);
         }
-        return; // Must return early, or symbol will be clobbered below.
+        continue; // Must exit loop early, or symbol will be clobbered below.
       } else if (direction == Direction::Forward) {
         // Must explicitly handle address wrap-around, because math inside set
         // address widens implicitly.
         next_base = (base_address + size) % 0x10000;
         // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
         // in which case no adjustment is necessary.
-        line->insert(std::make_unique<ir::attr::Address>(base_address, size));
+        ret.container.emplace_back(line.get(), ir::attr::Address(base_address, size));
         base_address = next_base;
       } else {
         next_base = (base_address - size) % 0x10000;
@@ -88,7 +101,7 @@ void pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRPr
         auto adjustedAddress = next_base + (size > 0 ? 1 : 0);
         // If we use newBase, we are off-by-one when size is non-zero.
         symbol_base = adjustedAddress;
-        line->insert(std::make_unique<ir::attr::Address>(adjustedAddress % 0x10000, size));
+        ret.container.emplace_back(line.get(), ir::attr::Address(adjustedAddress % 0x10000, size));
         base_address = next_base;
       }
 
@@ -99,6 +112,9 @@ void pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRPr
       }
     }
   }
+  // Establish flat_map invariant, which is that the container is sorted.
+  std::sort(ret.container.begin(), ret.container.end(), detail::IRComparator{});
+  return ret;
 }
 
 // Register system calls

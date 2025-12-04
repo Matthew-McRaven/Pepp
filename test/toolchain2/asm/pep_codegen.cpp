@@ -74,28 +74,28 @@ TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*]
     CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
     auto sections = pepp::tc::split_to_sections(results);
-    pepp::tc::assign_addresses(sections);
+    auto addresses = pepp::tc::assign_addresses(sections);
     CHECK(sections.size() == 3);
 
     CHECK(sections[0].first.name == ".text");
     CHECK(sections[0].second.size() == 5);
     auto s0 = sections[0].second;
-    CHECK(!s0[0]->attribute(attr::Address::TYPE));
-    CHECK(!s0[1]->attribute(attr::Address::TYPE));
-    CHECK(s0[2]->typed_attribute<attr::Address>()->address == 0);
-    CHECK(!s0[3]->attribute(attr::Address::TYPE));
-    CHECK(s0[4]->typed_attribute<attr::Address>()->address == 3);
+    CHECK(addresses.find(&*s0[0]) == addresses.end());
+    CHECK(addresses.find(&*s0[1]) == addresses.end());
+    CHECK(addresses.at(&*s0[2]).address == 0);
+    CHECK(addresses.find(&*s0[3]) == addresses.end());
+    CHECK(addresses.at(&*s0[4]).address == 3);
     CHECK(sections[1].first.name == ".data");
     CHECK(sections[1].second.size() == 3);
     auto s1 = sections[1].second;
-    CHECK(!s1[0]->attribute(attr::Address::TYPE));
-    CHECK(s1[1]->typed_attribute<attr::Address>()->address == 0);
-    CHECK(s1[2]->typed_attribute<attr::Address>()->address == 30);
+    CHECK(addresses.find(&*s1[0]) == addresses.end());
+    CHECK(addresses.at(&*s1[1]).address == 0);
+    CHECK(addresses.at(&*s1[2]).address == 30);
     CHECK(sections[2].first.name == "memvec");
     CHECK(sections[2].second.size() == 3);
     auto s2 = sections[2].second;
-    CHECK(!s2[0]->attribute(attr::Address::TYPE));
-    CHECK(s2[1]->typed_attribute<attr::Address>()->address == 0);
-    CHECK(s2[2]->typed_attribute<attr::Address>()->address == 1);
+    CHECK(addresses.find(&*s2[0]) == addresses.end());
+    CHECK(addresses.at(&*s2[1]).address == 0);
+    CHECK(addresses.at(&*s2[2]).address == 1);
   }
 }

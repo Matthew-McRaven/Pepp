@@ -16,7 +16,7 @@ void pepp::tc::ir::LinearIR::insert(std::unique_ptr<attr::AAttribute> attr) {
   *link = std::move(node);
 }
 
-quint16 pepp::tc::ir::LinearIR::object_size(quint16) const { return 0; }
+std::optional<quint16> pepp::tc::ir::LinearIR::object_size(quint16) const { return std::nullopt; }
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::CommentLine::attribute(attr::Type type) const {
   if (type == attr::Type::Comment) return &comment;
@@ -28,58 +28,50 @@ void pepp::tc::ir::CommentLine::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::AddressableLine::attribute(attr::Type type) const {
-  if (type == attr::Type::Address) return &address;
-  else return LinearIR::attribute(type);
-}
-
-void pepp::tc::ir::AddressableLine::insert(std::unique_ptr<attr::AAttribute> attr) {
-  if (attr->type() == attr::Type::Address) address = *(static_cast<attr::Address *>(attr.release()));
-  else LinearIR::insert(std::move(attr));
-}
-
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::MonadicInstruction::attribute(attr::Type type) const {
   if (type == attr::Type::Mnemonic) return &mnemonic;
-  else return AddressableLine::attribute(type);
+  else return LinearIR::attribute(type);
 }
 
 void pepp::tc::ir::MonadicInstruction::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Mnemonic) mnemonic = *(static_cast<attr::Pep10Mnemonic *>(attr.release()));
-  else AddressableLine::insert(std::move(attr));
+  else LinearIR::insert(std::move(attr));
 }
 
-quint16 pepp::tc::ir::MonadicInstruction::object_size(quint16 base_address) const { return 1; }
+std::optional<quint16> pepp::tc::ir::MonadicInstruction::object_size(quint16 base_address) const { return 1; }
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DyadicInstruction::attribute(attr::Type type) const {
   if (type == attr::Type::Mnemonic) return &mnemonic;
   else if (type == attr::Type::Argument) return &argument;
-  else return AddressableLine::attribute(type);
+  else return LinearIR::attribute(type);
 }
 
 void pepp::tc::ir::DyadicInstruction::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Mnemonic) mnemonic = *(static_cast<attr::Pep10Mnemonic *>(attr.release()));
   if (attr->type() == attr::Type::AddressingMode) addr_mode = *(static_cast<attr::Pep10AddrMode *>(attr.release()));
   else if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
-  else AddressableLine::insert(std::move(attr));
+  else LinearIR::insert(std::move(attr));
 }
 
-quint16 pepp::tc::ir::DyadicInstruction::object_size(quint16) const { return 3; }
+std::optional<quint16> pepp::tc::ir::DyadicInstruction::object_size(quint16) const { return 3; }
 
 pepp::tc::ir::DotAlign::DotAlign(attr::Argument arg) : argument(arg) {}
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotAlign::attribute(attr::Type type) const {
   if (type == attr::Type::Argument) return &argument;
-  else return AddressableLine::attribute(type);
+  else return LinearIR::attribute(type);
 }
 
 void pepp::tc::ir::DotAlign::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
-  else AddressableLine::insert(std::move(attr));
+  else LinearIR::insert(std::move(attr));
 }
 
-quint16 pepp::tc::ir::DotAlign::object_size(quint16 base_address) const {
+std::optional<quint16> pepp::tc::ir::DotAlign::object_size(quint16 base_address) const {
   quint16 align = argument.value->value<quint16>();
-  return (align - (base_address % align)) % align;
+  auto ret = (align - (base_address % align)) % align;
+  // If return value would be 0, choose nullopt to prevent useless address in listing.
+  return ret == 0 ? std::nullopt : std::optional<quint16>(ret);
   // if (direction == Direction::Forward) return (align - (base_address % align)) % align;
   // else if (direction == Direction::Backward) return base_address % align;
   // else return 0;
@@ -87,17 +79,17 @@ quint16 pepp::tc::ir::DotAlign::object_size(quint16 base_address) const {
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotLiteral::attribute(attr::Type type) const {
   if (type == attr::Type::Argument) return &argument;
-  else return AddressableLine::attribute(type);
+  else return LinearIR::attribute(type);
 }
 
 pepp::tc::ir::DotLiteral::DotLiteral(Which kind, attr::Argument arg) : which(kind), argument(arg) {}
 
 void pepp::tc::ir::DotLiteral::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
-  else AddressableLine::insert(std::move(attr));
+  else LinearIR::insert(std::move(attr));
 }
 
-quint16 pepp::tc::ir::DotLiteral::object_size(quint16) const {
+std::optional<quint16> pepp::tc::ir::DotLiteral::object_size(quint16) const {
   switch (which) {
   case Which::ASCII: return argument.value->requiredBytes();
   case Which::Byte: return 1;
@@ -107,17 +99,17 @@ quint16 pepp::tc::ir::DotLiteral::object_size(quint16) const {
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotBlock::attribute(attr::Type type) const {
   if (type == attr::Type::Argument) return &argument;
-  else return AddressableLine::attribute(type);
+  else return LinearIR::attribute(type);
 }
 
 pepp::tc::ir::DotBlock::DotBlock(attr::Argument arg) : argument(arg) {}
 
 void pepp::tc::ir::DotBlock::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
-  else AddressableLine::insert(std::move(attr));
+  else LinearIR::insert(std::move(attr));
 }
 
-quint16 pepp::tc::ir::DotBlock::object_size(quint16) const { return argument.value->value<quint16>(); }
+std::optional<quint16> pepp::tc::ir::DotBlock::object_size(quint16) const { return argument.value->value<quint16>(); }
 
 pepp::tc::ir::DotEquate::DotEquate(attr::SymbolDeclaration symbol, attr::Argument arg)
     : symbol(symbol), argument(arg) {}

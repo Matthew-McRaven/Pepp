@@ -13,7 +13,6 @@ enum class Type {
   Identifier,
   Comment,
   CommentIndent,
-  Address,
   Mnemonic,
   AddressingMode,
   Argument,
@@ -46,14 +45,6 @@ struct CommentIndent : public AAttribute {
   static constexpr Type TYPE = Type::CommentIndent;
   Type type() const override;
   enum class Level { Left, Right, Center } value = Level::Left;
-};
-
-struct Address : public AAttribute {
-  static constexpr Type TYPE = Type::Address;
-  Type type() const override;
-  Address() {}
-  Address(quint16 address, quint16 size) : address(address), size(size) {}
-  quint16 address = 0, size = 0;
 };
 
 struct Pep10Mnemonic : public AAttribute {
@@ -91,6 +82,13 @@ struct SectionFlags : public AAttribute {
   // Must update == if flags changes. Cannot use default due to abstract base class.
   bool r = false, w = false, x = false, z = false;
   bool operator==(const SectionFlags &rhs) const;
+};
+
+// Intentionally NOT an AAttribute, because I do not want it stored in my primary IR.
+// I want it sotred in a side table
+struct Address {
+  Address(quint16 address, quint16 size) : address(address), size(size) {}
+  quint16 address = 0, size = 0;
 };
 
 struct ListNode {
