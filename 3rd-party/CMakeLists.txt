@@ -42,4 +42,4 @@ if(EMSCRIPTEN)
     endforeach()
 endif()
 
-
+include(Flat.cmake)

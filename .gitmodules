@@ -13,3 +13,6 @@
 [submodule "3rd-party/spdlog"]
 	path = 3rd-party/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "3rd-party/flat"]
+	path = 3rd-party/flat
+	url = https://github.com/pubby/flat
