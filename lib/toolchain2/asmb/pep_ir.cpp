@@ -16,6 +16,8 @@ void pepp::tc::ir::LinearIR::insert(std::unique_ptr<attr::AAttribute> attr) {
   *link = std::move(node);
 }
 
+quint16 pepp::tc::ir::LinearIR::object_size(quint16) const { return 0; }
+
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::CommentLine::attribute(attr::Type type) const {
   if (type == attr::Type::Comment) return &comment;
   else return LinearIR::attribute(type);
@@ -46,6 +48,8 @@ void pepp::tc::ir::MonadicInstruction::insert(std::unique_ptr<attr::AAttribute> 
   else AddressableLine::insert(std::move(attr));
 }
 
+quint16 pepp::tc::ir::MonadicInstruction::object_size(quint16 base_address) const { return 1; }
+
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DyadicInstruction::attribute(attr::Type type) const {
   if (type == attr::Type::Mnemonic) return &mnemonic;
   else if (type == attr::Type::Argument) return &argument;
@@ -59,6 +63,8 @@ void pepp::tc::ir::DyadicInstruction::insert(std::unique_ptr<attr::AAttribute> a
   else AddressableLine::insert(std::move(attr));
 }
 
+quint16 pepp::tc::ir::DyadicInstruction::object_size(quint16) const { return 3; }
+
 pepp::tc::ir::DotAlign::DotAlign(attr::Argument arg) : argument(arg) {}
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotAlign::attribute(attr::Type type) const {
@@ -69,6 +75,14 @@ const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotAlign::attribute(attr::Ty
 void pepp::tc::ir::DotAlign::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
   else AddressableLine::insert(std::move(attr));
+}
+
+quint16 pepp::tc::ir::DotAlign::object_size(quint16 base_address) const {
+  quint16 align = argument.value->value<quint16>();
+  return (align - (base_address % align)) % align;
+  // if (direction == Direction::Forward) return (align - (base_address % align)) % align;
+  // else if (direction == Direction::Backward) return base_address % align;
+  // else return 0;
 }
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotLiteral::attribute(attr::Type type) const {
@@ -83,6 +97,14 @@ void pepp::tc::ir::DotLiteral::insert(std::unique_ptr<attr::AAttribute> attr) {
   else AddressableLine::insert(std::move(attr));
 }
 
+quint16 pepp::tc::ir::DotLiteral::object_size(quint16) const {
+  switch (which) {
+  case Which::ASCII: return argument.value->requiredBytes();
+  case Which::Byte: return 1;
+  case Which::Word: return 2;
+  }
+}
+
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotBlock::attribute(attr::Type type) const {
   if (type == attr::Type::Argument) return &argument;
   else return AddressableLine::attribute(type);
@@ -94,6 +116,8 @@ void pepp::tc::ir::DotBlock::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
   else AddressableLine::insert(std::move(attr));
 }
+
+quint16 pepp::tc::ir::DotBlock::object_size(quint16) const { return argument.value->value<quint16>(); }
 
 pepp::tc::ir::DotEquate::DotEquate(attr::Argument arg) : symbol(attr::SymbolDeclaration{nullptr}), argument(arg) {}
 
