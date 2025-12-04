@@ -13,9 +13,14 @@ struct LinearIR {
   // Override this method if you inline an attribute into future IR lines.
   virtual void insert(std::unique_ptr<attr::AAttribute> attr);
 
-  template <typename Attribute> const Attribute *typed_attribute(attr::Type type) const {
+
+  template <typename Attribute> const Attribute *typed_attribute() const {
     static_assert(std::is_base_of_v<attr::AAttribute, Attribute>, "Attribute must derive from attr::AAttribute");
-    return dynamic_cast<const Attribute *>(getAttribute(Attribute::TYPE));
+    return dynamic_cast<const Attribute *>(attribute(Attribute::TYPE));
+  }
+  template <typename Attribute> bool has_attribute() const {
+    static_assert(std::is_base_of_v<attr::AAttribute, Attribute>, "Attribute must derive from attr::AAttribute");
+    return attribute(Attribute::TYPE) != nullptr;
   }
   support::LocationInterval source_interval;
   // Head of linked list of additional attributes
