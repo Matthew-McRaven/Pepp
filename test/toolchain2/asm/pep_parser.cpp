@@ -155,18 +155,10 @@ TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]")
   }
 
   SECTION(".EQUATE") {
-    {
-      auto p = Parser(data(".EQUATE 16"));
-      auto results = p.parse();
-      REQUIRE(results.size() == 1);
-      CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
-    }
-    {
-      auto p = Parser(data("s: .EQUATE 10"));
-      auto results = p.parse();
-      REQUIRE(results.size() == 1);
-      CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
-    }
+    auto p = Parser(data("s: .EQUATE 10"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
   }
 
   SECTION(".EXPORT") {

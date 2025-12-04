@@ -128,7 +128,7 @@ static const auto dot_map = std::map<std::string, DC>{
     {"EXPORT", DC::EXPORT}, {"IMPORT", DC::IMPORT},   {"INPUT", DC::INPUT}, {"ORG", DC::ORG},   {"OUTPUT", DC::OUTPUT},
     {"SCALL", DC::SCALL},   {"SECTION", DC::SECTION}, {"WORD", DC::WORD}};
 } // namespace
-std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo() {
+std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(OptionalSymbol symbol) {
   auto dot = _buffer->match<lex::DotCommand>();
   auto dot_str = dot->to_string().toUpper().toStdString();
   auto it = dot_map.find(dot_str);
@@ -181,8 +181,12 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo() {
     if (arg->requiredBytes() > 2) {
       synchronize();
       throw std::logic_error(".EQUATE argument must fit in two bytes");
+    } else if (!symbol) {
+      synchronize();
+      throw std::logic_error(".EQUATE requires a symbol declaration");
     }
-    return std::make_shared<ir::DotEquate>(arg);
+    QSharedPointer<symbol::Entry> symbol_entry = *symbol;
+    return std::make_shared<ir::DotEquate>(ir::attr::SymbolDeclaration{symbol_entry}, arg);
   }
   case ir::DotCommands::EXPORT: {
     auto arg = identifier_argument();
@@ -257,14 +261,18 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo() {
   return nullptr;
 }
 
-std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::line() {
+std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::line(OptionalSymbol symbol) {
   std::shared_ptr<pepp::tc::ir::LinearIR> ret = nullptr;
   if (auto instr = instruction(); instr) ret = instr;
-  else if (auto dot = pseudo(); dot) ret = dot;
+  else if (auto dot = pseudo(symbol); dot) ret = dot;
   else return nullptr;
 
   if (auto comment = _buffer->match<lex::InlineComment>(); comment)
     ret->insert(std::make_unique<ir::attr::Comment>(comment->pool, comment->id));
+
+  // Avoid re-attaching existing symbol declaration (e.g., .EQUATE in pseudo).
+  if (symbol && !ret->has_attribute<ir::attr::SymbolDeclaration>())
+    ret->insert(std::make_unique<ir::attr::SymbolDeclaration>(*symbol));
   return ret;
 }
 
@@ -288,14 +296,14 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::statement()
       auto formatted = fmt::format("Symbol \"{}\" too long", symbol->to_string().toStdString());
       throw std::logic_error(formatted);
     }
-    ret = line();
+    auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
+    ret = line(symbol_decl);
     if (!ret) {
       auto next = _buffer->peek();
       synchronize();
       // TODO: post an error to the diag table
       throw std::logic_error("Unrecognized token: " + next->repr().toStdString());
     }
-    if (symbol) ret->insert(std::make_unique<ir::attr::SymbolDeclaration>(_symtab->define(symbol->to_string())));
   }
 
   if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains()) {

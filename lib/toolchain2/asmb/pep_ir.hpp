@@ -105,7 +105,7 @@ struct DotBlock : public AddressableLine { // Block
 };
 
 struct DotEquate : public LinearIR {
-  DotEquate(attr::Argument arg);
+  DotEquate(attr::SymbolDeclaration symbol, attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::SymbolDeclaration symbol;
@@ -119,12 +119,14 @@ struct DotSection : public LinearIR {
   attr::Identifier name;
   attr::SectionFlags flags;
 };
+
 struct DotSCall : public LinearIR {
   DotSCall(attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::Argument argument;
 };
+
 struct DotImportExport : public LinearIR {
   enum class Direction { IMPORT, EXPORT } direction;
   DotImportExport(Direction dir, attr::Argument arg);
@@ -132,6 +134,7 @@ struct DotImportExport : public LinearIR {
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::Argument argument;
 };
+
 struct DotInputOutput : public LinearIR {
   enum class Direction { INPUT, OUTPUT } direction;
   DotInputOutput(Direction dir, attr::Argument arg);
@@ -139,10 +142,12 @@ struct DotInputOutput : public LinearIR {
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   attr::Argument argument;
 };
+
 struct DotOrg : public LinearIR {
   enum class Behavior { BURN, ORG } behavior = Behavior::ORG;
   attr::Argument argument;
 };
+
 struct MacroInvocation : public LinearIR {};
 
 bool defines_symbol(const LinearIR &line);

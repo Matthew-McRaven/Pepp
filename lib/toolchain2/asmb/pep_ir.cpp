@@ -119,7 +119,8 @@ void pepp::tc::ir::DotBlock::insert(std::unique_ptr<attr::AAttribute> attr) {
 
 quint16 pepp::tc::ir::DotBlock::object_size(quint16) const { return argument.value->value<quint16>(); }
 
-pepp::tc::ir::DotEquate::DotEquate(attr::Argument arg) : symbol(attr::SymbolDeclaration{nullptr}), argument(arg) {}
+pepp::tc::ir::DotEquate::DotEquate(attr::SymbolDeclaration symbol, attr::Argument arg)
+    : symbol(symbol), argument(arg) {}
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotEquate::attribute(attr::Type type) const {
   if (type == attr::Type::SymbolDeclaration) return &symbol;

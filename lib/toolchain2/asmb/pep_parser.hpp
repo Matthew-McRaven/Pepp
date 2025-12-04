@@ -29,12 +29,13 @@ struct PepParser {
   void debug_print_tokens(bool debug);
 
 private:
+  using OptionalSymbol = std::optional<QSharedPointer<symbol::Entry>>;
   std::shared_ptr<pas::ast::value::Base> argument();
   std::shared_ptr<pas::ast::value::Base> numeric_argument();
   std::shared_ptr<pas::ast::value::Base> identifier_argument();
   std::shared_ptr<ir::LinearIR> instruction();
-  std::shared_ptr<ir::LinearIR> pseudo();
-  std::shared_ptr<ir::LinearIR> line();
+  std::shared_ptr<ir::LinearIR> pseudo(OptionalSymbol symbol);
+  std::shared_ptr<ir::LinearIR> line(OptionalSymbol symbol);
   std::shared_ptr<ir::LinearIR> statement();
 
   void synchronize();
