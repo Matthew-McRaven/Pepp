@@ -1,5 +1,6 @@
 #include "./pep_codegen.hpp"
 #include <elfio/elfio.hpp>
+#include "fmt/format.h"
 #include "toolchain/symbol/table.hpp"
 #include "toolchain/symbol/visit.hpp"
 
@@ -11,7 +12,6 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
   auto *active = &ret[0];
   for (auto &line : prog) {
     // TODO: Check all symbol usages are not undefined
-    // TODO: Check that all symbol declarations are singly defined
     // TODO: .BURN for this section.
     // TODO: check that all .EQUATE have a symbol.
 
@@ -30,6 +30,13 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
       } else active = &*existing_sec;
     } else if (auto as_align = std::dynamic_pointer_cast<pepp::tc::ir::DotAlign>(line); as_align) {
       active->first.alignment = std::max(active->first.alignment, as_align->argument.value->value<quint16>());
+    }
+
+    if (auto symbol_attr = line->typed_attribute<ir::attr::SymbolDeclaration>(); symbol_attr) {
+      if (!symbol_attr->entry->is_singly_defined()) {
+        auto formatted = fmt::format("Multiply defined symbol {}", symbol_attr->entry->name.toStdString());
+        throw std::logic_error(formatted);
+      }
     }
 
     active->second.emplace_back(line);
