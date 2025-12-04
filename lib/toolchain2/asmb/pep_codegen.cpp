@@ -12,12 +12,12 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
   for (auto &line : prog) {
     // TODO: Check all symbol usages are not undefined
     // TODO: Check that all symbol declarations are singly defined
-    // TODO: record alignmnt, .BURN for this section.
+    // TODO: .BURN for this section.
     // TODO: check that all .EQUATE have a symbol.
-    auto as_section = std::dynamic_pointer_cast<pepp::tc::ir::DotSection>(line);
+
     // If no existing section has the same name, create a new section with the provided flags.
     // When the section already exists, ensure that the flags match before switching to that section,
-    if (as_section) {
+    if (auto as_section = std::dynamic_pointer_cast<pepp::tc::ir::DotSection>(line); as_section) {
       auto flags = as_section->flags;
       auto name = as_section->name.to_string();
       auto existing_sec = std::find_if(ret.begin(), ret.end(), [&name](auto &i) { return i.first.name == name; });
@@ -28,6 +28,8 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
       } else if (existing_sec->first.flags != flags) {
         throw std::logic_error("Modifying flags for an existing section");
       } else active = &*existing_sec;
+    } else if (auto as_align = std::dynamic_pointer_cast<pepp::tc::ir::DotAlign>(line); as_align) {
+      active->first.alignment = std::max(active->first.alignment, as_align->argument.value->value<quint16>());
     }
 
     active->second.emplace_back(line);
