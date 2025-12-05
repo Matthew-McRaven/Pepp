@@ -17,7 +17,7 @@
 #include <QtCore>
 #include <bitset>
 #include <stdint.h>
-namespace pepp::ucode {
+namespace pepp::tc::arch {
 namespace detail::pep9_registers {
 Q_NAMESPACE
 enum class NamedRegisters {
@@ -339,4 +339,4 @@ struct Pep9WordBusControl {
     QString toString() const;
   };
 };
-} // namespace pepp::ucode
+} // namespace pepp::tc::arch

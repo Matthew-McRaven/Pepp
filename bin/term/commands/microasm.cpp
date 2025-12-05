@@ -1,6 +1,6 @@
 #include "microasm.hpp"
-#include "toolchain/ucode/parser.hpp"
-#include "toolchain/ucode/uarch.hpp"
+#include "toolchain2/targets/pep/uarch.hpp"
+#include "toolchain2/ucode/pep_parser.hpp"
 
 MicroAsmTask::MicroAsmTask(int ed, std::string in, int busWidth, QObject *parent)
     : Task(parent), ed(ed), busWidth(busWidth), in(in) {}
@@ -10,9 +10,9 @@ void MicroAsmTask::setErrName(std::string fname) { errOut = fname; }
 void MicroAsmTask::setOutCPUName(std::string fname) { pepcpuOut = fname; }
 
 void MicroAsmTask::run() {
-  using uarch1 = pepp::ucode::Pep9ByteBus;
-  using uarch2 = pepp::ucode::Pep9WordBus;
-  using regs = pepp::ucode::Pep9Registers;
+  using uarch1 = pepp::tc::arch::Pep9ByteBus;
+  using uarch2 = pepp::tc::arch::Pep9WordBus;
+  using regs = pepp::tc::arch::Pep9Registers;
   QString source;
   {
     QFile sIn(QString::fromStdString(this->in)); // auto-closes
@@ -25,18 +25,18 @@ void MicroAsmTask::run() {
     sIn.close();
   }
 
-  pepp::ucode::Errors errors;
+  pepp::tc::parse::Errors errors;
   QStringList formatted;
   if (busWidth == 1) {
-    auto result = pepp::ucode::parse<uarch1, regs>(source);
+    auto result = pepp::tc::parse::MicroParser<uarch1, regs>(source).parse();
     if (!result.errors.empty()) errors = result.errors;
     else
-      for (const auto &line : result.program) formatted.append(pepp::ucode::format<uarch1, regs>(line));
+      for (const auto &line : result.program) formatted.append(pepp::tc::ir::format<uarch1, regs>(line));
   } else if (busWidth == 2) {
-    auto result = pepp::ucode::parse<uarch2, regs>(source);
+    auto result = pepp::tc::parse::MicroParser<uarch2, regs>(source).parse();
     if (!result.errors.empty()) errors = result.errors;
     else
-      for (const auto &line : result.program) formatted.append(pepp::ucode::format<uarch2, regs>(line));
+      for (const auto &line : result.program) formatted.append(pepp::tc::ir::format<uarch2, regs>(line));
 
   } else {
     std::cerr << "Invalid bus width :" << busWidth << std::endl;

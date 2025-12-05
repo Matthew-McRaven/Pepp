@@ -22,8 +22,8 @@
 #include "sim/device/dense.hpp"
 #include "targets/pep9/mc2/cpu.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
-#include "toolchain/ucode/parser.hpp"
-#include "toolchain/ucode/uarch.hpp"
+#include "toolchain2/targets/pep/uarch.hpp"
+#include "toolchain2/ucode/pep_parser.hpp"
 
 namespace {
 static const auto lf = QRegularExpression("\r");
@@ -49,10 +49,10 @@ template <typename T> quint8 read(sim::api2::memory::Target<T> &mem, T addr) {
 
 } // namespace
 
-TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:pep10]") {
-  using uarch1 = pepp::ucode::Pep9ByteBus;
-  using uarch2 = pepp::ucode::Pep9WordBus;
-  using regs = pepp::ucode::Pep9Registers;
+TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:pep10][arch:pep9][tc2]") {
+  using uarch1 = pepp::tc::arch::Pep9ByteBus;
+  using uarch2 = pepp::tc::arch::Pep9WordBus;
+  using regs = pepp::tc::arch::Pep9Registers;
   using namespace Qt::StringLiterals;
   auto bookReg = builtins::Registry();
   auto book5 = helpers::book(5, &bookReg);
@@ -74,7 +74,7 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
       CHECK(figure->typesafeTests().size() > 0);
       REQUIRE(source != nullptr);
       if (source->language == "pepcpu1") {
-        auto assembledFig = pepp::ucode::parse<uarch1, regs>(source->contents());
+        auto assembledFig = pepp::tc::parse::MicroParser<uarch1, regs>(source->contents()).parse();
         if (assembledFig.errors.size() > 0) {
           QStringList errors;
           for (const auto &[line, error] : assembledFig.errors) errors.append(u"%1: %2"_s.arg(line).arg(error));
@@ -83,7 +83,7 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
         // Check that all tests assemble too
         for (auto io : figure->typesafeTests()) {
           QString input = io->input.toString().replace(lf, "");
-          auto assembledTest = pepp::ucode::parse<uarch1, regs>(input);
+          auto assembledTest = pepp::tc::parse::MicroParser<uarch1, regs>(input).parse();
           if (assembledTest.errors.size() > 0) {
             QStringList errors;
             for (const auto &[line, error] : assembledTest.errors) errors.append(u"%1: %2"_s.arg(line).arg(error));
@@ -91,7 +91,7 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
           }
         }
       } else if (source->language == "pepcpu2") {
-        auto assembledFig = pepp::ucode::parse<uarch2, regs>(source->contents());
+        auto assembledFig = pepp::tc::parse::MicroParser<uarch2, regs>(source->contents()).parse();
         if (assembledFig.errors.size() > 0) {
           QStringList errors;
           for (const auto &[line, error] : assembledFig.errors) errors.append(u"%1: %2"_s.arg(line).arg(error));
@@ -100,7 +100,7 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
         // Check that all tests assemble too
         for (auto io : figure->typesafeTests()) {
           QString input = io->input.toString().replace(lf, "");
-          auto assembledTest = pepp::ucode::parse<uarch2, regs>(input);
+          auto assembledTest = pepp::tc::parse::MicroParser<uarch2, regs>(input).parse();
           if (assembledTest.errors.size() > 0) {
             QStringList errors;
             for (const auto &[line, error] : assembledTest.errors) errors.append(u"%1: %2"_s.arg(line).arg(error));

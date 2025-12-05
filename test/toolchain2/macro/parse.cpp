@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "toolchain/macro/parse.hpp"
+#include "toolchain2/macro/parse.hpp"
 #include <catch.hpp>
 #include <tuple>
 using namespace Qt::StringLiterals;
-TEST_CASE("Macro parser", "[scope:macro][kind:unit][arch:*]") {
+TEST_CASE("Macro parser", "[scope:macro][kind:unit][arch:*][tc2]") {
   SECTION("Accepts valid spaces") {
     CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 0"_s)));
     CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 	0"_s)));

@@ -16,3 +16,6 @@
 [submodule "3rd-party/cxxgraph"]
 	path = 3rd-party/cxxgraph
 	url = https://github.com/ZigRazor/CXXGraph.git
+[submodule "3rd-party/flat"]
+	path = 3rd-party/flat
+	url = https://github.com/pubby/flat

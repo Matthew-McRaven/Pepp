@@ -18,8 +18,8 @@
 #pragma once
 #include "sim/debug/debugger.hpp"
 #include "sim/device/dense.hpp"
-#include "toolchain/ucode/parser.hpp" // TODO: Stop including the parser in the simulator!!
-#include "toolchain/ucode/uarch.hpp"
+#include "toolchain2/targets/pep/uarch.hpp"
+#include "toolchain2/ucode/pep_ir.hpp" // TODO: Stop including the parser in the simulator!!
 
 namespace sim::memory {
 template <typename Address> class Output;
@@ -34,7 +34,7 @@ class BaseCPU : public sim::api2::tick::Recipient,
                 public sim::api2::trace::Sink,
                 public sim::api2::memory::Initiator<quint16> {
 public:
-  using CSRs = pepp::ucode::Pep9Registers::CSRs;
+  using CSRs = pepp::tc::arch::Pep9Registers::CSRs;
   BaseCPU(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen, quint8 hiddenRegCount);
   virtual ~BaseCPU() = 0;
   BaseCPU(BaseCPU &&other) noexcept = default;
@@ -89,7 +89,7 @@ protected:
 
 class CPUByteBus : public BaseCPU {
 public:
-  using HiddenRegisters = pepp::ucode::Pep9ByteBus::HiddenRegisters;
+  using HiddenRegisters = pepp::tc::arch::Pep9ByteBus::HiddenRegisters;
   CPUByteBus(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen);
   ~CPUByteBus() = default;
   CPUByteBus(CPUByteBus &&other) noexcept = default;
@@ -97,10 +97,10 @@ public:
   CPUByteBus(const CPUByteBus &) = delete;
   CPUByteBus &operator=(const CPUByteBus &) = delete;
 
-  void setMicrocode(std::vector<pepp::ucode::Pep9ByteBus::Code> &&code);
-  const std::span<const pepp::ucode::Pep9ByteBus::Code> microcode();
-  void applyPreconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests);
-  std::vector<bool> testPostconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests);
+  void setMicrocode(std::vector<pepp::tc::arch::Pep9ByteBus::Code> &&code);
+  const std::span<const pepp::tc::arch::Pep9ByteBus::Code> microcode();
+  void applyPreconditions(const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  std::vector<bool> testPostconditions(const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
 
   // Target interface
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
@@ -109,13 +109,13 @@ public:
   bool analyze(sim::api2::trace::PacketIterator iter, sim::api2::trace::Direction) override;
 
 private:
-  std::vector<pepp::ucode::Pep9ByteBus::Code> _microcode;
+  std::vector<pepp::tc::arch::Pep9ByteBus::Code> _microcode;
   quint8 readHidden(HiddenRegisters reg);
   void writeHidden(HiddenRegisters reg, quint8 val);
 };
 class CPUWordBus : public BaseCPU {
 public:
-  using HiddenRegisters = pepp::ucode::Pep9WordBus::HiddenRegisters;
+  using HiddenRegisters = pepp::tc::arch::Pep9WordBus::HiddenRegisters;
   CPUWordBus(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen);
   ~CPUWordBus() = default;
   CPUWordBus(CPUWordBus &&other) noexcept = default;
@@ -123,10 +123,10 @@ public:
   CPUWordBus(const CPUWordBus &) = delete;
   CPUWordBus &operator=(const CPUWordBus &) = delete;
 
-  void setMicrocode(std::vector<pepp::ucode::Pep9WordBus::Code> &&code);
-  const std::span<const pepp::ucode::Pep9WordBus::Code> microcode();
-  void applyPreconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests);
-  std::vector<bool> testPostconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests);
+  void setMicrocode(std::vector<pepp::tc::arch::Pep9WordBus::Code> &&code);
+  const std::span<const pepp::tc::arch::Pep9WordBus::Code> microcode();
+  void applyPreconditions(const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  std::vector<bool> testPostconditions(const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
 
   // Target interface
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
@@ -135,7 +135,7 @@ public:
   bool analyze(sim::api2::trace::PacketIterator iter, sim::api2::trace::Direction) override;
 
 private:
-  std::vector<pepp::ucode::Pep9WordBus::Code> _microcode;
+  std::vector<pepp::tc::arch::Pep9WordBus::Code> _microcode;
   quint8 readHidden(HiddenRegisters reg);
   void writeHidden(HiddenRegisters reg, quint8 val);
 };

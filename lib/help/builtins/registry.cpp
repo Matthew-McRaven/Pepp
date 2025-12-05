@@ -24,7 +24,7 @@
 #include "figure.hpp"
 #include "fragment.hpp"
 #include "toolchain/macro/declaration.hpp"
-#include "toolchain/macro/parse.hpp"
+#include "toolchain2/macro/parse.hpp"
 
 // Helper method to open a file and read all of its bytes
 QByteArray read(QString path) {
