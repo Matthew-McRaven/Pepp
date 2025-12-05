@@ -119,3 +119,33 @@ pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram
 
 // Register system calls
 // Gather IOs
+
+struct RelOpt {
+  enum class Direction { Forward, Backward } dir;
+  size_t previous;
+};
+
+void pepp::tc::relocate_sections(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
+                                 IRMemoryAddressTable &ir_addresses, quint16 initial_base_address) {
+  // Contains the index into prog of the nearest .ORG section, or -1 to indicate no nearest ORG detected yet.
+  auto nearest_org_for_sec = std::vector<ssize_t>(prog.size(), -1);
+  // Index of the most recent section that contains an ORG.
+  ssize_t nearest_org = -1;
+  bool seen_an_org = false;
+  // Detect the .ORGs
+  for (int it = 0; it < prog.size(); it++) {
+    const auto &sec = prog[it];
+    if (sec.first.base_address) nearest_org = it;
+    nearest_org_for_sec[it] = nearest_org;
+    // This was the first .ORG. Group all sections to left with this section!
+    if (!seen_an_org && nearest_org != -1) {
+      std::fill(nearest_org_for_sec.begin(), nearest_org_for_sec.begin() + it, nearest_org);
+      seen_an_org = true;
+    }
+    throw std::logic_error("Unimplemented");
+    std::list<RelOpt> work_list;
+    for (int it = 0; it < prog.size(); it++) {
+      if (nearest_org_for_sec[it] == it) work_list.emplace_front()
+    }
+  }
+}

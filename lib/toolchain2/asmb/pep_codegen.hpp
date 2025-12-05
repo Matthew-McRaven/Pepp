@@ -19,8 +19,14 @@ static const SectionDescriptor default_descriptor = {.name = ".text",
 std::vector<std::pair<SectionDescriptor, PepIRProgram>>
 split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section = default_descriptor);
 
+// Assigning addresses should be O(1) and incur O(1) memory allocations.
+// A pre-sized vector (essentially an arena allocator) is a natural container.
+// A flat_map is a container adaptor which presents a map api over a different ordered container, but you still get a
+// convenient O(lgn) find without lots of evil stl magic.
 using IRMemoryAddressPair = std::pair<ir::LinearIR *, ir::attr::Address>;
 namespace detail {
+// Only compare based on the address of ir::LinearIR *, ignoring ir::attr::Address.
+// We already have a guarentee that all IR are unique.
 struct IRComparator {
   bool operator()(const IRMemoryAddressPair &lhs, const IRMemoryAddressPair &rhs) const {
     return lhs.first < rhs.first;
@@ -35,4 +41,21 @@ using IRMemoryAddressTable = fc::flat_map<std::vector<IRMemoryAddressPair>, deta
 // An .ORG will immediately set the base_address to the argument's value.
 // A separate step (i.e., linking) is required to combine the sections into a single address space.
 IRMemoryAddressTable assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog);
+
+// Sections from assign_addresses generally start at 0, which means that multiple sections overlap in the target address
+// space. A linker could be used to relocate these sections, but not Pep/10 linker exists (yet). relocate_sections is
+// our attempt at a budget in-memory linker.
+//
+// relocate_sections iterates over sections from prog, grouping non-ORG sections contiguously with the nearest ORG
+// section to its left. Sections before the first .ORG are an exception, and are grouped with the nearest .ORG to the
+// right. If no .ORG exists to the
+// For section after a .ORG, the new <base_address> for each section in a section group is the <group_base_address>
+// plus the cumulative size of the processed sections in that group after the .ORG, respecting aligment requirements.
+// For sections before a .ORG, the new <base_address> is the .ORG minus the cumulative size, iterating right-to-left
+// starting in the .ORG section.
+//
+// When a .BURN <num> is present, grouping occurs as-if an extra section was append to prog which contains a .ORG <num>.
+// Addresses in ir_addresses and the symbol table are updated.
+void relocate_sections(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
+                       IRMemoryAddressTable &ir_addresses, quint16 initial_base_address = 0);
 }
