@@ -1,5 +1,6 @@
 #include "./pep_codegen.hpp"
 #include <elfio/elfio.hpp>
+#include <ranges>
 #include "bits/copy.hpp"
 #include "fmt/format.h"
 #include "mmio.hpp"
@@ -107,7 +108,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
       // If this is the first .ORG, we need to insert the the first 0..it sections
       if (first_org_section == -1) {
         first_org_section = it;
-        for (int jt = it - 1; jt >= 0; jt++) sorted_work.emplace_back(SectionAddrInfo{jt, jt + 1});
+        for (int jt = it - 1; jt >= 0; jt--) sorted_work.emplace_back(SectionAddrInfo{jt, jt + 1});
       }
     } else if (first_org_section != -1) sorted_work.emplace_back(SectionAddrInfo{it, it - 1});
   }
@@ -121,38 +122,18 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   if (prog.size() != sorted_work.size()) throw std::logic_error("Layout of sections failed");
 
   // Phase 2: assign addresses for each section to each line of IR.
-  for (auto &sec_idx : sorted_work) {
-    auto &sec = prog[sec_idx.index];
-    // Determine base address for the section base.
-    quint16 base_address = 0;
-    if (sec_idx.index == sec_idx.previous) {
-      // There might be some IR lines before the .ORG that we want to assign addresses to.
-      // We don't have the ability to do forward+backward assignment within a single section,
-      // which would be required to handle section index 0 correctly.
-      if (sec_idx.index == 0) base_address = initial_base_address;
-      // Otherwise just the high address from the previous section
-      else base_address = prog[sec_idx.index - 1].first.high_address;
-      direction = Direction::Forward;
-    } else if (sec_idx.index > sec_idx.previous) {
-      direction = Direction::Forward;
-      base_address = prog[sec_idx.index - 1].first.high_address;
-    } else {
-      direction = Direction::Backward;
-      base_address = prog[sec_idx.index - 1].first.low_address;
-    }
+  quint16 base_address = 0;
 
-    if (direction == Direction::Forward) sec.first.low_address = base_address;
-    else sec.first.high_address = base_address;
-
-    // TODO: I probably need to switch between begin and rbegin based on direction.
-    for (auto &line : sec.second) {
+  // Using templates to type-erase the difference between forward and reverse iterators
+  auto for_lines = [&](auto &&range) {
+    for (auto &line : range) {
       quint16 symbol_base = base_address, next_base = base_address, size = line->object_size(base_address).value_or(0);
 
       // Perform special handling for non-code-generating dot commands
       using Type = ir::LinearIR::Type;
       switch (line->type()) {
       case Type::DotOrg:
-        base_address = std::static_pointer_cast<ir::DotOrg>(line)->argument.value->value<quint16>();
+        base_address = std::static_pointer_cast<ir::DotOrg>(line)->argument.value->template value<quint16>();
         symbol_base = next_base = base_address;
         break;
       case Type::DotEquate: {
@@ -199,16 +180,42 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
         base_address = next_base;
       }
 
-      if (auto line_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); line_symbol) {
+      if (auto line_symbol = line->template typed_attribute<ir::attr::SymbolDeclaration>(); line_symbol) {
         auto isCode = dynamic_cast<ir::DyadicInstruction *>(&*line) || dynamic_cast<ir::MonadicInstruction *>(&*line);
         line_symbol->entry->value = QSharedPointer<symbol::value::Location>::create(
             size, sizeof(quint16), symbol_base, 0, isCode ? symbol::Type::kCode : symbol::Type::kObject);
       }
     }
+  };
 
-    // Next item in sorted_work is going to depend on the "end" address of this section.
-    if (direction == Direction::Forward) sec.first.high_address = base_address;
-    else sec.first.low_address = base_address;
+  for (auto &sec_idx : sorted_work) {
+    auto &sec = prog[sec_idx.index];
+    // Determine base address for the section base.
+    if (sec_idx.index == sec_idx.previous) {
+      // There might be some IR lines before the .ORG that we want to assign addresses to.
+      // We don't have the ability to do forward+backward assignment within a single section,
+      // which would be required to handle section index 0 correctly.
+      if (sec_idx.index == 0) base_address = initial_base_address;
+      // Otherwise just the high address from the previous section
+      else base_address = prog[sec_idx.index - 1].first.high_address;
+      direction = Direction::Forward;
+    } else if (sec_idx.index > sec_idx.previous) {
+      direction = Direction::Forward;
+      base_address = prog[sec_idx.index - 1].first.high_address;
+    } else {
+      direction = Direction::Backward;
+      base_address = prog[sec_idx.index - 1].first.low_address;
+    }
+
+    if (direction == Direction::Forward) {
+      sec.first.low_address = base_address;
+      for_lines(std::views::all(sec.second));
+      sec.first.high_address = base_address;
+    } else {
+      sec.first.high_address = base_address;
+      for_lines(std::views::reverse(sec.second));
+      sec.first.low_address = base_address;
+    }
   }
 
   // Establish flat_map invariant, which is that the container is sorted.
