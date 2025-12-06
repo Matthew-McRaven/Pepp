@@ -128,9 +128,9 @@ struct RelOpt {
 void pepp::tc::relocate_sections(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
                                  IRMemoryAddressTable &ir_addresses, quint16 initial_base_address) {
   // Contains the index into prog of the nearest .ORG section, or -1 to indicate no nearest ORG detected yet.
-  auto nearest_org_for_sec = std::vector<ssize_t>(prog.size(), -1);
+  auto nearest_org_for_sec = std::vector<int64_t>(prog.size(), -1);
   // Index of the most recent section that contains an ORG.
-  ssize_t nearest_org = -1;
+  int64_t nearest_org = -1;
   bool seen_an_org = false;
   // Detect the .ORGs
   for (int it = 0; it < prog.size(); it++) {
