@@ -4,6 +4,21 @@
 
 namespace pepp::tc::ir {
 struct LinearIR {
+  // Every deriving class must have a unique enum entry.
+  enum class Type {
+    Empty,
+    Comment,
+    Monadic,
+    Dyadic,
+    DotAlign,
+    DotAnnotate,
+    DotBlock,
+    DotEquate,
+    DotLiteral,
+    DotOrg,
+    DotSection,
+  };
+
   virtual ~LinearIR() = default;
 
   // Searches the linked list of attributes for one of the given type.
@@ -21,6 +36,12 @@ struct LinearIR {
   // nullopt.
   virtual std::optional<quint16> object_size(quint16 base_address) const;
 
+  // We had a pattern of casting base pointers to derived pointers in IR.
+  // Derived types have wildly different behaviors even if they have the same API.
+  // Instead of using true OO visitor pattern, I've opted for switch(type()) with static casts, which is a poor-mans
+  // visitor.
+  virtual Type type() const = 0;
+
   template <typename Attribute> const Attribute *typed_attribute() const {
     static_assert(std::is_base_of_v<attr::AAttribute, Attribute>, "Attribute must derive from attr::AAttribute");
     return dynamic_cast<const Attribute *>(attribute(Attribute::TYPE));
@@ -34,29 +55,38 @@ struct LinearIR {
   std::unique_ptr<attr::ListNode> extended_attributes;
 };
 
-struct EmptyLine : public LinearIR {};
+struct EmptyLine : public LinearIR {
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::Empty;
+  Type type() const override;
+};
 
 struct CommentLine : public LinearIR {
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::Comment;
   CommentLine(attr::Comment c) : comment(std::move(c)) {}
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
+  Type type() const override;
   attr::Comment comment;
 };
 
 struct MonadicInstruction : public LinearIR {
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::Monadic;
   MonadicInstruction(attr::Pep10Mnemonic m) : mnemonic(m) {}
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
+  Type type() const override;
   attr::Pep10Mnemonic mnemonic;
 };
 
 struct DyadicInstruction : public LinearIR {
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::Dyadic;
   DyadicInstruction(attr::Pep10Mnemonic m, attr::Pep10AddrMode am, attr::Argument arg)
       : mnemonic(m), addr_mode(am), argument(arg) {}
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
+  Type type() const override;
   attr::Pep10Mnemonic mnemonic;
   attr::Pep10AddrMode addr_mode;
   attr::Argument argument;
@@ -79,71 +109,71 @@ enum class DotCommands {
 };
 
 struct DotAlign : public LinearIR {
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::DotAlign;
   DotAlign(attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
+  Type type() const override;
   attr::Argument argument;
 };
 
 struct DotLiteral : public LinearIR { // ASCII, byte, word
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::DotLiteral;
   enum class Which { ASCII, Byte, Word } which;
   DotLiteral(Which kind, attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
+  Type type() const override;
   attr::Argument argument;
 };
 
 struct DotBlock : public LinearIR { // Block
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::DotBlock;
   DotBlock(attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
+  Type type() const override;
   attr::Argument argument;
 };
 
 struct DotEquate : public LinearIR {
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::DotEquate;
   DotEquate(attr::SymbolDeclaration symbol, attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
+  Type type() const override;
   attr::SymbolDeclaration symbol;
   attr::Argument argument;
 };
 
 struct DotSection : public LinearIR {
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::DotSection;
   DotSection(attr::Identifier name, attr::SectionFlags flags);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
+  Type type() const override;
   attr::Identifier name;
   attr::SectionFlags flags;
 };
 
-struct DotSCall : public LinearIR {
-  DotSCall(attr::Argument arg);
+struct DotAnnotate : public LinearIR {
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::DotAnnotate;
+  enum class Which { EXPORT, IMPORT, INPUT, OUTPUT, SCALL } which;
+  // Arg must always be an identifier
+  DotAnnotate(Which dir, attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
-  attr::Argument argument;
-};
-
-struct DotImportExport : public LinearIR {
-  enum class Direction { IMPORT, EXPORT } direction;
-  DotImportExport(Direction dir, attr::Argument arg);
-  const attr::AAttribute *attribute(attr::Type type) const override;
-  void insert(std::unique_ptr<attr::AAttribute> attr) override;
-  attr::Argument argument;
-};
-
-struct DotInputOutput : public LinearIR {
-  enum class Direction { INPUT, OUTPUT } direction;
-  DotInputOutput(Direction dir, attr::Argument arg);
-  const attr::AAttribute *attribute(attr::Type type) const override;
-  void insert(std::unique_ptr<attr::AAttribute> attr) override;
+  Type type() const override;
   attr::Argument argument;
 };
 
 struct DotOrg : public LinearIR {
+  static constexpr LinearIR::Type TYPE = LinearIR::Type::DotOrg;
   enum class Behavior { BURN, ORG } behavior = Behavior::ORG;
+  Type type() const override;
   attr::Argument argument;
 };
 

@@ -194,7 +194,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
       synchronize();
       throw std::logic_error(".OUTPUT requires an identifier argument");
     }
-    return std::make_shared<ir::DotImportExport>(ir::DotImportExport::Direction::EXPORT, arg);
+    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::EXPORT, arg);
   }
   case ir::DotCommands::IMPORT: {
     auto arg = identifier_argument();
@@ -202,7 +202,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
       synchronize();
       throw std::logic_error(".OUTPUT requires an identifier argument");
     }
-    return std::make_shared<ir::DotImportExport>(ir::DotImportExport::Direction::IMPORT, arg);
+    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::IMPORT, arg);
   }
   case ir::DotCommands::INPUT: {
     auto arg = identifier_argument();
@@ -210,7 +210,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
       synchronize();
       throw std::logic_error(".OUTPUT requires an identifier argument");
     }
-    return std::make_shared<ir::DotInputOutput>(ir::DotInputOutput::Direction::INPUT, arg);
+    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::INPUT, arg);
   }
   case ir::DotCommands::ORG:
   case ir::DotCommands::OUTPUT: {
@@ -219,7 +219,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
       synchronize();
       throw std::logic_error(".OUTPUT requires an identifier argument");
     }
-    return std::make_shared<ir::DotInputOutput>(ir::DotInputOutput::Direction::OUTPUT, arg);
+    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::OUTPUT, arg);
   }
   case ir::DotCommands::SCALL: {
     auto arg = identifier_argument();
@@ -227,7 +227,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
       synchronize();
       throw std::logic_error(".SCALL requires an identifier argument");
     }
-    return std::make_shared<ir::DotSCall>(arg);
+    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::SCALL, arg);
   }
   case ir::DotCommands::SECTION: {
     if (auto maybeSecName = _buffer->match<lex::StringConstant>(); !maybeSecName) {

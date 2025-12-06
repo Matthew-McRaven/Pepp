@@ -165,28 +165,28 @@ TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]")
     auto p = Parser(data(".EXPORT charIn"));
     auto results = p.parse();
     REQUIRE(results.size() == 1);
-    CHECK(std::dynamic_pointer_cast<DotImportExport>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotAnnotate>(results[0]));
   }
 
   SECTION(".IMPORT") {
     auto p = Parser(data(".IMPORT charIn"));
     auto results = p.parse();
     REQUIRE(results.size() == 1);
-    CHECK(std::dynamic_pointer_cast<DotImportExport>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotAnnotate>(results[0]));
   }
 
   SECTION(".INPUT") {
     auto p = Parser(data(".INPUT charIn"));
     auto results = p.parse();
     REQUIRE(results.size() == 1);
-    CHECK(std::dynamic_pointer_cast<DotInputOutput>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotAnnotate>(results[0]));
   }
 
   SECTION(".OUTPUT") {
     auto p = Parser(data(".OUTPUT charOut"));
     auto results = p.parse();
     REQUIRE(results.size() == 1);
-    CHECK(std::dynamic_pointer_cast<DotInputOutput>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotAnnotate>(results[0]));
   }
   SECTION(".SECTION") {
     {
@@ -222,7 +222,7 @@ TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]")
     auto p = Parser(data(".SCALL feed"));
     auto results = p.parse();
     REQUIRE(results.size() == 1);
-    CHECK(std::dynamic_pointer_cast<DotSCall>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotAnnotate>(results[0]));
   }
 
   SECTION(".WORD") {

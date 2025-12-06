@@ -18,6 +18,8 @@ void pepp::tc::ir::LinearIR::insert(std::unique_ptr<attr::AAttribute> attr) {
 
 std::optional<quint16> pepp::tc::ir::LinearIR::object_size(quint16) const { return std::nullopt; }
 
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::EmptyLine::type() const { return TYPE; }
+
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::CommentLine::attribute(attr::Type type) const {
   if (type == attr::Type::Comment) return &comment;
   else return LinearIR::attribute(type);
@@ -27,6 +29,8 @@ void pepp::tc::ir::CommentLine::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Comment) comment = *(static_cast<attr::Comment *>(attr.release()));
   else LinearIR::insert(std::move(attr));
 }
+
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::CommentLine::type() const { return TYPE; }
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::MonadicInstruction::attribute(attr::Type type) const {
   if (type == attr::Type::Mnemonic) return &mnemonic;
@@ -39,6 +43,8 @@ void pepp::tc::ir::MonadicInstruction::insert(std::unique_ptr<attr::AAttribute> 
 }
 
 std::optional<quint16> pepp::tc::ir::MonadicInstruction::object_size(quint16 base_address) const { return 1; }
+
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::MonadicInstruction::type() const { return TYPE; }
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DyadicInstruction::attribute(attr::Type type) const {
   if (type == attr::Type::Mnemonic) return &mnemonic;
@@ -54,6 +60,8 @@ void pepp::tc::ir::DyadicInstruction::insert(std::unique_ptr<attr::AAttribute> a
 }
 
 std::optional<quint16> pepp::tc::ir::DyadicInstruction::object_size(quint16) const { return 3; }
+
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::DyadicInstruction::type() const { return TYPE; }
 
 pepp::tc::ir::DotAlign::DotAlign(attr::Argument arg) : argument(arg) {}
 
@@ -77,6 +85,8 @@ std::optional<quint16> pepp::tc::ir::DotAlign::object_size(quint16 base_address)
   // else return 0;
 }
 
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotAlign::type() const { return TYPE; }
+
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotLiteral::attribute(attr::Type type) const {
   if (type == attr::Type::Argument) return &argument;
   else return LinearIR::attribute(type);
@@ -97,6 +107,8 @@ std::optional<quint16> pepp::tc::ir::DotLiteral::object_size(quint16) const {
   }
 }
 
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotLiteral::type() const { return TYPE; }
+
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotBlock::attribute(attr::Type type) const {
   if (type == attr::Type::Argument) return &argument;
   else return LinearIR::attribute(type);
@@ -110,6 +122,8 @@ void pepp::tc::ir::DotBlock::insert(std::unique_ptr<attr::AAttribute> attr) {
 }
 
 std::optional<quint16> pepp::tc::ir::DotBlock::object_size(quint16) const { return argument.value->value<quint16>(); }
+
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotBlock::type() const { return TYPE; }
 
 pepp::tc::ir::DotEquate::DotEquate(attr::SymbolDeclaration symbol, attr::Argument arg)
     : symbol(symbol), argument(arg) {}
@@ -126,6 +140,8 @@ void pepp::tc::ir::DotEquate::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotEquate::type() const { return TYPE; }
+
 pepp::tc::ir::DotSection::DotSection(attr::Identifier name, attr::SectionFlags flags) : name(name), flags(flags) {}
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotSection::attribute(attr::Type type) const {
@@ -140,43 +156,25 @@ void pepp::tc::ir::DotSection::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-pepp::tc::ir::DotSCall::DotSCall(attr::Argument arg) : argument(arg) {}
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotSection::type() const { return TYPE; }
 
-const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotSCall::attribute(attr::Type type) const {
+pepp::tc::ir::DotAnnotate::DotAnnotate(Which which, attr::Argument arg) : which(which), argument(arg) {}
+
+const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotAnnotate::attribute(attr::Type type) const {
   if (type == attr::Type::Argument) return &argument;
   else return LinearIR::attribute(type);
 }
 
-void pepp::tc::ir::DotSCall::insert(std::unique_ptr<attr::AAttribute> attr) {
+void pepp::tc::ir::DotAnnotate::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
   else LinearIR::insert(std::move(attr));
 }
 
-pepp::tc::ir::DotImportExport::DotImportExport(Direction dir, attr::Argument arg) : direction(dir), argument(arg) {}
-
-const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotImportExport::attribute(attr::Type type) const {
-  if (type == attr::Type::Argument) return &argument;
-  else return LinearIR::attribute(type);
-}
-
-void pepp::tc::ir::DotImportExport::insert(std::unique_ptr<attr::AAttribute> attr) {
-  if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
-  else LinearIR::insert(std::move(attr));
-}
-
-pepp::tc::ir::DotInputOutput::DotInputOutput(Direction dir, attr::Argument arg) : direction(dir), argument(arg) {}
-
-const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotInputOutput::attribute(attr::Type type) const {
-  if (type == attr::Type::Argument) return &argument;
-  else return LinearIR::attribute(type);
-}
-
-void pepp::tc::ir::DotInputOutput::insert(std::unique_ptr<attr::AAttribute> attr) {
-  if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
-  else LinearIR::insert(std::move(attr));
-}
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotAnnotate::type() const { return TYPE; }
 
 bool pepp::tc::ir::defines_symbol(const LinearIR &line) {
   auto sym = line.attribute(attr::Type::SymbolDeclaration);
   return sym != nullptr;
 }
+
+pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotOrg::type() const { return TYPE; }

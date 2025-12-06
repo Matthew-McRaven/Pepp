@@ -17,9 +17,14 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(PepIRProgram &prog,
     // TODO: Check all symbol usages are not undefined
     // TODO: .BURN for this section.
 
-    // If no existing section has the same name, create a new section with the provided flags.
-    // When the section already exists, ensure that the flags match before switching to that section,
-    if (auto as_section = std::dynamic_pointer_cast<pepp::tc::ir::DotSection>(line); as_section) {
+    using Type = ir::LinearIR::Type;
+
+    // Compile-time visitor pattern where the only virtual call should be type().
+    switch (line->type()) {
+    case Type::DotSection: {
+      // If no existing section has the same name, create a new section with the provided flags.
+      // When the section already exists, ensure that the flags match before switching to that section,
+      auto as_section = std::static_pointer_cast<pepp::tc::ir::DotSection>(line);
       auto flags = as_section->flags;
       auto name = as_section->name.to_string();
       auto existing_sec =
@@ -31,12 +36,25 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(PepIRProgram &prog,
       } else if (existing_sec->first.flags != flags) {
         throw std::logic_error("Modifying flags for an existing section");
       } else active = &*existing_sec;
-    } else if (auto as_align = std::dynamic_pointer_cast<pepp::tc::ir::DotAlign>(line); as_align) {
+      break;
+    }
+    case Type::DotAlign: {
+      auto as_align = std::static_pointer_cast<pepp::tc::ir::DotAlign>(line);
       active->first.alignment = std::max(active->first.alignment, as_align->argument.value->value<quint16>());
-    } else if (auto as_org = std::dynamic_pointer_cast<pepp::tc::ir::DotOrg>(line); as_org) {
+      break;
+    }
+    case Type::DotAnnotate: {
+      auto as_annotate = std::static_pointer_cast<pepp::tc::ir::DotAnnotate>(line);
+      if (as_annotate->which == ir::DotAnnotate::Which::SCALL)
+        ret.system_calls.emplace_back(as_annotate->argument.value->string().toStdString());
+      break;
+    }
+    case Type::DotOrg: {
+      auto as_org = std::static_pointer_cast<pepp::tc::ir::DotOrg>(line);
       active->first.org_count++;
-    } else if (auto as_scall = std::dynamic_pointer_cast<pepp::tc::ir::DotSCall>(line); as_scall) {
-      ret.system_calls.emplace_back(as_scall->argument.value->string().toStdString());
+      break;
+    }
+    default: break;
     }
 
     if (auto symbol_attr = line->typed_attribute<ir::attr::SymbolDeclaration>(); symbol_attr) {
@@ -124,10 +142,14 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
     for (auto &line : sec.second) {
       quint16 symbol_base = base_address, next_base = base_address, size = line->object_size(base_address).value_or(0);
       if (auto maybe_size = line->object_size(base_address); !maybe_size.has_value()) continue;
-      else if (auto as_org = std::dynamic_pointer_cast<ir::DotOrg>(line); as_org) {
-        base_address = as_org->argument.value->value<quint16>();
+      using Type = ir::LinearIR::Type;
+      switch (line->type()) {
+      case Type::DotOrg:
+        base_address = std::static_pointer_cast<ir::DotOrg>(line)->argument.value->value<quint16>();
         symbol_base = next_base = base_address;
-      } else if (auto as_equate = std::dynamic_pointer_cast<ir::DotEquate>(line); as_equate) {
+        break;
+      case Type::DotEquate: {
+        auto as_equate = std::static_pointer_cast<ir::DotEquate>(line);
         auto symbol = as_equate->symbol.entry;
         auto argument = as_equate->argument.value;
         // Re-use from previous assembler
@@ -145,7 +167,11 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
           symbol->value = QSharedPointer<symbol::value::Constant>::create(bits);
         }
         continue; // Must exit loop early, or symbol will be clobbered below.
-      } else if (direction == Direction::Forward) {
+      }
+      default: break;
+      }
+
+      if (direction == Direction::Forward) {
         // Must explicitly handle address wrap-around, because math inside set
         // address widens implicitly.
         next_base = (base_address + size) % 0x10000;
