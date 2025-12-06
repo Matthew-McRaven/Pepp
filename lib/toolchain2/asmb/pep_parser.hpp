@@ -32,6 +32,7 @@ private:
   using OptionalSymbol = std::optional<QSharedPointer<symbol::Entry>>;
   std::shared_ptr<pas::ast::value::Base> argument();
   std::shared_ptr<pas::ast::value::Base> numeric_argument();
+  std::shared_ptr<pas::ast::value::Base> hex_argument();
   std::shared_ptr<pas::ast::value::Base> identifier_argument();
   std::shared_ptr<ir::LinearIR> instruction();
   std::shared_ptr<ir::LinearIR> pseudo(OptionalSymbol symbol);

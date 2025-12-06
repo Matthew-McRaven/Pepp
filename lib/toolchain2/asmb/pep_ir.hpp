@@ -173,6 +173,10 @@ struct DotAnnotate : public LinearIR {
 struct DotOrg : public LinearIR {
   static constexpr LinearIR::Type TYPE = LinearIR::Type::DotOrg;
   enum class Behavior { BURN, ORG } behavior = Behavior::ORG;
+  // Arg must always be an number
+  DotOrg(Behavior behavior, attr::Argument arg);
+  const attr::AAttribute *attribute(attr::Type type) const override;
+  void insert(std::unique_ptr<attr::AAttribute> attr) override;
   Type type() const override;
   attr::Argument argument;
 };

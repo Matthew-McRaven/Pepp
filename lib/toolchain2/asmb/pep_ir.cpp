@@ -177,4 +177,16 @@ bool pepp::tc::ir::defines_symbol(const LinearIR &line) {
   return sym != nullptr;
 }
 
+pepp::tc::ir::DotOrg::DotOrg(Behavior behavior, attr::Argument arg) : behavior(behavior), argument(arg) {}
+
+const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotOrg::attribute(attr::Type type) const {
+  if (type == attr::Type::Argument) return &argument;
+  else return LinearIR::attribute(type);
+}
+
+void pepp::tc::ir::DotOrg::insert(std::unique_ptr<attr::AAttribute> attr) {
+  if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
+  else LinearIR::insert(std::move(attr));
+}
+
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotOrg::type() const { return TYPE; }

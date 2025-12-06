@@ -183,11 +183,19 @@ TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]")
   }
 
   SECTION(".OUTPUT") {
+    auto p = Parser(data(".ORG 0xfeed"));
+    auto results = p.parse();
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotOrg>(results[0]));
+  }
+
+  SECTION(".OUTPUT") {
     auto p = Parser(data(".OUTPUT charOut"));
     auto results = p.parse();
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotAnnotate>(results[0]));
   }
+
   SECTION(".SECTION") {
     {
       auto p = Parser(data(".SECTION \".text\", \"rw\""));

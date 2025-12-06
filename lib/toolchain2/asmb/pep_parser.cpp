@@ -57,6 +57,13 @@ std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::numeric_argu
   return arg;
 }
 
+std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::hex_argument() {
+  auto arg = argument();
+  if (auto as_hex = std::dynamic_pointer_cast<pas::ast::value::Hexadecimal>(arg); !as_hex)
+    throw std::logic_error("Expected a hexadecimal argument");
+  return arg;
+}
+
 std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::identifier_argument() {
   lex::Checkpoint cp(*_buffer);
   static constexpr auto le = bits::Order::LittleEndian;
@@ -212,7 +219,14 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     }
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::INPUT, arg);
   }
-  case ir::DotCommands::ORG:
+  case ir::DotCommands::ORG: {
+    auto arg = hex_argument();
+    if (!arg) {
+      synchronize();
+      throw std::logic_error(".ORG requires an hexadecimal argument");
+    }
+    return std::make_shared<ir::DotOrg>(ir::DotOrg::Behavior::ORG, arg);
+  }
   case ir::DotCommands::OUTPUT: {
     auto arg = identifier_argument();
     if (!arg) {
