@@ -29,6 +29,8 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
       } else active = &*existing_sec;
     } else if (auto as_align = std::dynamic_pointer_cast<pepp::tc::ir::DotAlign>(line); as_align) {
       active->first.alignment = std::max(active->first.alignment, as_align->argument.value->value<quint16>());
+    } else if (auto as_org = std::dynamic_pointer_cast<pepp::tc::ir::DotOrg>(line); as_org) {
+      active->first.org_count++;
     }
 
     if (auto symbol_attr = line->typed_attribute<ir::attr::SymbolDeclaration>(); symbol_attr) {
@@ -43,8 +45,12 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
   return ret;
 }
 
-pepp::tc::IRMemoryAddressTable
-pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
+struct SectionAddrInfo {
+  int index, previous;
+};
+
+pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
+                                                          quint16 initial_base_address) {
   enum class Direction { Forward, Backward } direction = Direction::Forward;
 
   // Pre-allocate vector according to the total size of the IR lines in all sections.
@@ -52,15 +58,63 @@ pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram
   // reallocation in the address-assignment loop.
   size_t size = 0;
   for (const auto &sec : prog) size += sec.second.size();
-
   // ITEMS ARE NOT INSERTED IN SORTED ORDER. DO NOT USE AS A MAP UNTIL SORTING.
   // Since all IR lines across all PepIRProgram have unique (C++) addresses, we can blindly append and sort later.
   // This gives O(1) insert rather than  n* O(nlgn) with the requirement for a manual sort before returning.
   IRMemoryAddressTable ret;
   ret.container.reserve(size);
 
-  for (auto &sec : prog) {
-    quint16 base_address = sec.first.base_address.value_or(0);
+  // Process all sections affected by one .ORG before processing any sections affected by the next one.
+  // There may be some IR lines in an .ORG section that are before the .ORG and iterating left-to-right lets us assign
+  // addresses to those items correctly.
+  std::vector<SectionAddrInfo> sorted_work;
+  sorted_work.reserve(prog.size());
+
+  // Sections before the first .ORG need to be grouped right rather than left
+  size_t first_org_section = -1;
+  // Record all sections which contain at least one .ORG
+  for (int it = 0; it < prog.size(); it++) {
+    if (prog[it].first.org_count > 0) {
+      sorted_work.emplace_back(SectionAddrInfo{it, it});
+      // If this is the first .ORG, we need to insert the the first 0..it sections
+      if (first_org_section == -1) {
+        first_org_section = it;
+        for (int jt = it - 1; jt >= 0; jt++) sorted_work.emplace_back(SectionAddrInfo{jt, jt + 1});
+      }
+    } else if (first_org_section != -1) sorted_work.emplace_back(SectionAddrInfo{it, it - 1});
+  }
+
+  // No .ORGs. Act as if first section begins with a .ORG and use initial_base_address as base_address.
+  if (first_org_section == -1) {
+    sorted_work.insert(sorted_work.begin(), SectionAddrInfo{0, 0});
+    for (int it = 1; it < prog.size(); it++) sorted_work.emplace_back(SectionAddrInfo{it, it - 1});
+  }
+
+  if (prog.size() != sorted_work.size()) throw std::logic_error("Layout of sections failed");
+
+  for (auto &sec_idx : sorted_work) {
+    auto &sec = prog[sec_idx.index];
+    // Determine base address for the section base.
+    quint16 base_address = 0;
+    if (sec_idx.index == sec_idx.previous) {
+      // There might be some IR lines before the .ORG that we want to assign addresses to.
+      // We don't have the ability to do forward+backward assignment within a single section,
+      // which would be required to handle section index 0 correctly.
+      if (sec_idx.index == 0) base_address = initial_base_address;
+      // Otherwise just the high address from the previous section
+      else base_address = prog[sec_idx.index - 1].first.high_address;
+      direction = Direction::Forward;
+    } else if (sec_idx.index > sec_idx.previous) {
+      direction = Direction::Forward;
+      base_address = prog[sec_idx.index - 1].first.high_address;
+    } else {
+      direction = Direction::Backward;
+      base_address = prog[sec_idx.index - 1].first.low_address;
+    }
+
+    if (direction == Direction::Forward) sec.first.low_address = base_address;
+    else sec.first.high_address = base_address;
+
     for (auto &line : sec.second) {
       quint16 symbol_base = base_address, next_base = base_address, size = line->object_size(base_address).value_or(0);
       if (auto maybe_size = line->object_size(base_address); !maybe_size.has_value()) continue;
@@ -68,7 +122,6 @@ pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram
         base_address = as_org->argument.value->value<quint16>();
         symbol_base = next_base = base_address;
       } else if (auto as_equate = std::dynamic_pointer_cast<ir::DotEquate>(line); as_equate) {
-
         auto symbol = as_equate->symbol.entry;
         auto argument = as_equate->argument.value;
         // Re-use from previous assembler
@@ -111,7 +164,12 @@ pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram
             size, sizeof(quint16), symbol_base, 0, isCode ? symbol::Type::kCode : symbol::Type::kObject);
       }
     }
+
+    // Next item in sorted_work is going to depend on the "end" address of this section.
+    if (direction == Direction::Forward) sec.first.high_address = base_address;
+    else sec.first.low_address = base_address;
   }
+
   // Establish flat_map invariant, which is that the container is sorted.
   std::sort(ret.container.begin(), ret.container.end(), detail::IRComparator{});
   return ret;
@@ -119,32 +177,3 @@ pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram
 
 // Register system calls
 // Gather IOs
-
-struct RelOpt {
-  enum class Direction { Forward, Backward } dir;
-  size_t previous;
-};
-
-void pepp::tc::relocate_sections(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                 IRMemoryAddressTable &ir_addresses, quint16 initial_base_address) {
-  // Contains the index into prog of the nearest .ORG section, or -1 to indicate no nearest ORG detected yet.
-  auto nearest_org_for_sec = std::vector<int64_t>(prog.size(), -1);
-  // Index of the most recent section that contains an ORG.
-  int64_t nearest_org = -1;
-  bool seen_an_org = false;
-  // Detect the .ORGs
-  for (int it = 0; it < prog.size(); it++) {
-    const auto &sec = prog[it];
-    if (sec.first.base_address) nearest_org = it;
-    nearest_org_for_sec[it] = nearest_org;
-    // This was the first .ORG. Group all sections to left with this section!
-    if (!seen_an_org && nearest_org != -1) {
-      std::fill(nearest_org_for_sec.begin(), nearest_org_for_sec.begin() + it, nearest_org);
-      seen_an_org = true;
-    }
-    throw std::logic_error("Unimplemented");
-    std::list<RelOpt> work_list;
-    for (int it = 0; it < prog.size(); it++) {
-    }
-  }
-}

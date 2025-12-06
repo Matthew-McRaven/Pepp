@@ -89,13 +89,13 @@ TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*]
     CHECK(sections[1].second.size() == 3);
     auto s1 = sections[1].second;
     CHECK(addresses.find(&*s1[0]) == addresses.end());
-    CHECK(addresses.at(&*s1[1]).address == 0);
-    CHECK(addresses.at(&*s1[2]).address == 30);
+    CHECK(addresses.at(&*s1[1]).address == 6);
+    CHECK(addresses.at(&*s1[2]).address == 36);
     CHECK(sections[2].first.name == "memvec");
     CHECK(sections[2].second.size() == 3);
     auto s2 = sections[2].second;
     CHECK(addresses.find(&*s2[0]) == addresses.end());
-    CHECK(addresses.at(&*s2[1]).address == 0);
-    CHECK(addresses.at(&*s2[2]).address == 1);
+    CHECK(addresses.at(&*s2[1]).address == 38);
+    CHECK(addresses.at(&*s2[2]).address == 39);
   }
 }
