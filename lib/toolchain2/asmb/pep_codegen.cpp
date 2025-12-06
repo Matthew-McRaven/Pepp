@@ -190,21 +190,40 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
 
   for (auto &sec_idx : sorted_work) {
     auto &sec = prog[sec_idx.index];
-    // Determine base address for the section base.
+
+    // If this section contains the first org, there may be some lines BEFORE that org which need to be assigned
+    // backwards.
+    if (sec_idx.index == first_org_section) {
+      // Split the program into two ranges: the region before the ORG and the rest.
+      auto it = sec.second.begin();
+      for (; it != sec.second.end(); it++)
+        if ((*it)->type() == ir::LinearIR::Type::DotOrg) break;
+
+      auto org_arg = static_pointer_cast<ir::DotOrg>(*it)->argument.value->value<quint16>();
+      // Find index of first ORG and assign BACKWARD from there, exluding the ORG. Set section's low_address.
+      base_address = org_arg - 1, direction = Direction::Backward;
+      for_lines(std::views::reverse(std::ranges::subrange(sec.second.begin(), it)));
+      sec.first.low_address = base_address;
+
+      // Assign rest of section (including ORG) FORWARD. Set section's high_address.
+      base_address = org_arg, direction = Direction::Forward;
+      for_lines(std::views::all(std::ranges::subrange(it, sec.second.end())));
+      sec.first.high_address = base_address;
+      continue; // Skip normal address computations.
+    }
+
+    // Determine base address and direction for the section.
     if (sec_idx.index == sec_idx.previous) {
-      // There might be some IR lines before the .ORG that we want to assign addresses to.
-      // We don't have the ability to do forward+backward assignment within a single section,
-      // which would be required to handle section index 0 correctly.
+      // Program did not contain any ORGs, use address parameter.
       if (sec_idx.index == 0) base_address = initial_base_address;
-      // Otherwise just the high address from the previous section
       else base_address = prog[sec_idx.index - 1].first.high_address;
       direction = Direction::Forward;
     } else if (sec_idx.index > sec_idx.previous) {
       direction = Direction::Forward;
-      base_address = prog[sec_idx.index - 1].first.high_address;
+      base_address = prog[sec_idx.previous].first.high_address;
     } else {
       direction = Direction::Backward;
-      base_address = prog[sec_idx.index - 1].first.low_address;
+      base_address = prog[sec_idx.previous].first.low_address;
     }
 
     if (direction == Direction::Forward) {

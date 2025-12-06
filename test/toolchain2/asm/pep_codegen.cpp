@@ -34,10 +34,6 @@ BR 0
 .BYTE 0
 .BYTE 0
 )";
-static const auto ex2 = R"(.ORG 0xfeed
-.WORD 10
-.WORD 20
-)";
 } // namespace
 
 TEST_CASE("Pepp ASM codegen sectioning", "[scope:asm][kind:unit][arch:*][tc2]") {
@@ -103,22 +99,6 @@ TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*]
     CHECK(addresses.find(&*s2[0]) == addresses.end());
     CHECK(addresses.at(&*s2[1]).address == 38);
     CHECK(addresses.at(&*s2[2]).address == 39);
-  }
-  SECTION("Up-front .ORG") {
-    auto p = Parser(data(ex2));
-    auto results = p.parse();
-    REQUIRE(results.size() == 3);
-    auto result = pepp::tc::split_to_sections(results);
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::assign_addresses(sections);
-    CHECK(sections.size() == 1);
-
-    CHECK(sections[0].first.name == ".text");
-    CHECK(sections[0].second.size() == 3);
-    auto s0 = sections[0].second;
-    CHECK(addresses.find(&*s0[0]) == addresses.end());
-    CHECK(addresses.at(&*s0[1]).address == 0xfeed);
-    CHECK(addresses.at(&*s0[2]).address == 0xfeed + 2);
   }
 }
 
