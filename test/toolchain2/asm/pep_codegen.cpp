@@ -49,7 +49,8 @@ TEST_CASE("Pepp ASM codegen sectioning", "[scope:asm][kind:unit][arch:*][tc2]") 
   CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-  auto sections = pepp::tc::split_to_sections(results);
+  auto result = pepp::tc::split_to_sections(results);
+  auto &sections = result.grouped_ir;
   CHECK(sections.size() == 3);
   CHECK(sections[0].first.name == ".text");
   CHECK(sections[0].second.size() == 5);
@@ -73,7 +74,8 @@ TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*]
     CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-    auto sections = pepp::tc::split_to_sections(results);
+    auto result = pepp::tc::split_to_sections(results);
+    auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     CHECK(sections.size() == 3);
 
@@ -98,4 +100,28 @@ TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*]
     CHECK(addresses.at(&*s2[1]).address == 38);
     CHECK(addresses.at(&*s2[2]).address == 39);
   }
+}
+
+TEST_CASE("Pepp ASM codegen .SCALL", "[scope:asm][kind:unit][arch:*][tc2]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using Parser = pepp::tc::parser::PepParser;
+  using SymbolTable = symbol::Table;
+  using namespace pepp::tc::ir;
+
+  auto p = Parser(data(R"(
+    .SCALL DECI
+    .scall deco)"));
+  auto results = p.parse();
+  REQUIRE(results.size() == 3);
+  auto result = pepp::tc::split_to_sections(results);
+  auto &scalls = result.system_calls;
+  CHECK(scalls.size() == 2);
+  const auto contains = [&](const std::string &target) {
+    auto t = std::find(scalls.cbegin(), scalls.cend(), target);
+    return t != scalls.cend();
+  };
+  CHECK(contains("DECI"));
+  CHECK(!contains("deci"));
+  CHECK(contains("deco"));
+  CHECK(!contains("DECO"));
 }

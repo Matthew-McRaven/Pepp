@@ -19,10 +19,15 @@ struct SectionDescriptor {
 static const SectionDescriptor default_descriptor = {.name = ".text",
                                                      .flags = ir::attr::SectionFlags(true, true, true, false)};
 
+struct SectionAnalysisResults {
+  std::vector<std::pair<SectionDescriptor, PepIRProgram>> grouped_ir;
+  std::vector<std::string> system_calls;
+};
+
 // The returned vector points to the same underlying IR as the (linear) input program.
 // This allows addresses to be propogated to input original. which is useful for generating the listing.
-std::vector<std::pair<SectionDescriptor, PepIRProgram>>
-split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section = default_descriptor);
+
+SectionAnalysisResults split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section = default_descriptor);
 
 // Assigning addresses should be O(1) and incur O(1) memory allocations.
 // A pre-sized vector (essentially an arena allocator) is a natural container.

@@ -8,12 +8,11 @@
 #include "toolchain/symbol/visit.hpp"
 #include "toolchain2/asmb/common_elf.hpp"
 
-std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::PepIRProgram>>
-pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section) {
-  using Pair = std::pair<pepp::tc::SectionDescriptor, pepp::tc::PepIRProgram>;
-  std::vector<Pair> ret;
-  ret.emplace_back(std::make_pair(initial_section, pepp::tc::PepIRProgram{}));
-  auto *active = &ret[0];
+pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section) {
+  SectionAnalysisResults ret;
+  ret.grouped_ir.emplace_back(std::make_pair(initial_section, pepp::tc::PepIRProgram{}));
+  auto &grouped_ir = ret.grouped_ir;
+  auto *active = &grouped_ir[0];
   for (auto &line : prog) {
     // TODO: Check all symbol usages are not undefined
     // TODO: .BURN for this section.
@@ -23,11 +22,12 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
     if (auto as_section = std::dynamic_pointer_cast<pepp::tc::ir::DotSection>(line); as_section) {
       auto flags = as_section->flags;
       auto name = as_section->name.to_string();
-      auto existing_sec = std::find_if(ret.begin(), ret.end(), [&name](auto &i) { return i.first.name == name; });
-      if (existing_sec == ret.end()) {
+      auto existing_sec =
+          std::find_if(grouped_ir.begin(), grouped_ir.end(), [&name](auto &i) { return i.first.name == name; });
+      if (existing_sec == grouped_ir.end()) {
         pepp::tc::SectionDescriptor desc{.name = name.toStdString(), .flags = flags};
-        ret.emplace_back(std::make_pair(desc, pepp::tc::PepIRProgram{}));
-        active = &ret.back();
+        grouped_ir.emplace_back(std::make_pair(desc, pepp::tc::PepIRProgram{}));
+        active = &grouped_ir.back();
       } else if (existing_sec->first.flags != flags) {
         throw std::logic_error("Modifying flags for an existing section");
       } else active = &*existing_sec;
@@ -35,6 +35,8 @@ pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_sectio
       active->first.alignment = std::max(active->first.alignment, as_align->argument.value->value<quint16>());
     } else if (auto as_org = std::dynamic_pointer_cast<pepp::tc::ir::DotOrg>(line); as_org) {
       active->first.org_count++;
+    } else if (auto as_scall = std::dynamic_pointer_cast<pepp::tc::ir::DotSCall>(line); as_scall) {
+      ret.system_calls.emplace_back(as_scall->argument.value->string().toStdString());
     }
 
     if (auto symbol_attr = line->typed_attribute<ir::attr::SymbolDeclaration>(); symbol_attr) {
