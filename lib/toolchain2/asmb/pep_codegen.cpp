@@ -94,6 +94,10 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   std::vector<SectionAddrInfo> sorted_work;
   sorted_work.reserve(prog.size());
 
+  // Phase 1: Determine the order in which sections should be assigned addresses.
+  // This is generally left-to-right, unless there are sections before the first .ORG or the program contains a .BURN,
+  // in which case some subset of sections is assigned right-to-left.
+
   // Sections before the first .ORG need to be grouped right rather than left
   size_t first_org_section = -1;
   // Record all sections which contain at least one .ORG
@@ -108,7 +112,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
     } else if (first_org_section != -1) sorted_work.emplace_back(SectionAddrInfo{it, it - 1});
   }
 
-  // No .ORGs. Act as if first section begins with a .ORG and use initial_base_address as base_address.
+  // Program contained no .ORGs. Act as if first section begins with a .ORG <initial_base_address>.
   if (first_org_section == -1) {
     sorted_work.insert(sorted_work.begin(), SectionAddrInfo{0, 0});
     for (int it = 1; it < prog.size(); it++) sorted_work.emplace_back(SectionAddrInfo{it, it - 1});
@@ -116,6 +120,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
 
   if (prog.size() != sorted_work.size()) throw std::logic_error("Layout of sections failed");
 
+  // Phase 2: assign addresses for each section to each line of IR.
   for (auto &sec_idx : sorted_work) {
     auto &sec = prog[sec_idx.index];
     // Determine base address for the section base.
@@ -139,9 +144,11 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
     if (direction == Direction::Forward) sec.first.low_address = base_address;
     else sec.first.high_address = base_address;
 
+    // TODO: I probably need to switch between begin and rbegin based on direction.
     for (auto &line : sec.second) {
       quint16 symbol_base = base_address, next_base = base_address, size = line->object_size(base_address).value_or(0);
-      if (auto maybe_size = line->object_size(base_address); !maybe_size.has_value()) continue;
+
+      // Perform special handling for non-code-generating dot commands
       using Type = ir::LinearIR::Type;
       switch (line->type()) {
       case Type::DotOrg:
@@ -166,12 +173,14 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
           argument->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&bits.bitPattern), 8}, bits::hostOrder());
           symbol->value = QSharedPointer<symbol::value::Constant>::create(bits);
         }
-        continue; // Must exit loop early, or symbol will be clobbered below.
+        continue; // Must resume loop early, or symbol will be clobbered below.
       }
       default: break;
       }
 
-      if (direction == Direction::Forward) {
+      // Assign addresses to code-generating dot commands and instructions
+      if (auto maybe_size = line->object_size(base_address); !maybe_size.has_value()) continue;
+      else if (direction == Direction::Forward) {
         // Must explicitly handle address wrap-around, because math inside set
         // address widens implicitly.
         next_base = (base_address + size) % 0x10000;
