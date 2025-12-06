@@ -1,8 +1,12 @@
 #include "./pep_codegen.hpp"
 #include <elfio/elfio.hpp>
+#include "bits/copy.hpp"
 #include "fmt/format.h"
+#include "mmio.hpp"
+#include "spdlog/spdlog.h"
 #include "toolchain/symbol/table.hpp"
 #include "toolchain/symbol/visit.hpp"
+#include "toolchain2/asmb/common_elf.hpp"
 
 std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::PepIRProgram>>
 pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section) {
@@ -177,3 +181,117 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
 
 // Register system calls
 // Gather IOs
+
+static QSharedPointer<ELFIO::elfio> create_elf() {
+  SPDLOG_INFO("Creating pep/10 ELF");
+  static const char p10mac[2] = {'p', 'x'};
+  quint16 mac;
+  bits::memcpy_endian({(quint8 *)&mac, 2}, bits::hostOrder(), {(const quint8 *)p10mac, 2}, bits::Order::BigEndian);
+  auto ret = QSharedPointer<ELFIO::elfio>::create();
+  ret->create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
+  ret->set_os_abi(ELFIO::ELFOSABI_NONE);
+  ret->set_type(ELFIO::ET_EXEC);
+  ret->set_machine(mac);
+  // Create strtab/notes early, so that it will be before any code sections.
+  pepp::tc::addStrTab(*ret);
+  return ret;
+}
+QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
+                                              const IRMemoryAddressTable &addrs) {
+
+  ELFIO::segment *activeSeg = nullptr;
+  auto ret = create_elf();
+
+  auto getOrCreateBSS = [&](ir::attr::SectionFlags &flags) {
+    if (activeSeg == nullptr || activeSeg->get_file_size() != 0) {
+      activeSeg = ret->segments.add();
+      activeSeg->set_type(ELFIO::PT_LOAD);
+      ELFIO::Elf_Word elfFlags = 0;
+      elfFlags |= flags.r ? ELFIO::PF_R : 0;
+      elfFlags |= flags.w ? ELFIO::PF_W : 0;
+      elfFlags |= flags.x ? ELFIO::PF_X : 0;
+      activeSeg->set_flags(elfFlags);
+      activeSeg->set_physical_address(-1);
+      activeSeg->set_virtual_address(-1);
+    }
+    return activeSeg;
+  };
+
+  auto getOrCreateBits = [&](ir::attr::SectionFlags &flags) {
+    if (activeSeg == nullptr || activeSeg->get_file_size() == 0 ||
+        !(((activeSeg->get_flags() & ELFIO::PF_R) > 0 == flags.r) &&
+          ((activeSeg->get_flags() & ELFIO::PF_W) > 0 == flags.w) &&
+          ((activeSeg->get_flags() & ELFIO::PF_X) > 0 == flags.x))) {
+      activeSeg = ret->segments.add();
+      activeSeg->set_type(ELFIO::PT_LOAD);
+      ELFIO::Elf_Word elfFlags = 0;
+      elfFlags |= flags.r ? ELFIO::PF_R : 0;
+      elfFlags |= flags.w ? ELFIO::PF_W : 0;
+      elfFlags |= flags.x ? ELFIO::PF_X : 0;
+      activeSeg->set_flags(elfFlags);
+      activeSeg->set_physical_address(-1);
+      activeSeg->set_virtual_address(-1);
+    }
+    return activeSeg;
+  };
+
+  // auto mmios = pas::ops::pepp::gatherIODefinitions(os);
+  std::vector<size_t> section_memory_sizes(prog.size(), 0);
+  for (int it = 0; it < prog.size(); it++) {
+    auto &sec = prog[it].first;
+    section_memory_sizes[it] = sec.high_address - sec.low_address;
+  }
+  QList<obj::IO> mmios;
+  for (int it = 0; it < prog.size(); it++) {
+    if (section_memory_sizes[it] == 0) continue; // 0-sized sections are meaningless, do not emit.
+    auto &sec_desc = prog[it].first;
+
+    SPDLOG_INFO("{} creating", sec_desc.name);
+
+    auto sec = ret->sections.add(sec_desc.name);
+    // All sections from AST correspond to bits in Pep/10 memory, so alloc
+    auto shFlags = ELFIO::SHF_ALLOC;
+    shFlags |= sec_desc.flags.x ? ELFIO::SHF_EXECINSTR : 0;
+    shFlags |= sec_desc.flags.w ? ELFIO::SHF_WRITE : 0;
+    sec->set_flags(shFlags);
+    sec->set_addr_align(sec_desc.alignment);
+    SPDLOG_TRACE("{} sized at {:x}", sec_desc.name, section_memory_sizes[it]);
+
+    if (sec_desc.flags.z) {
+      SPDLOG_TRACE("{} zeroed", fullName);
+      sec->set_type(ELFIO::SHT_NOBITS);
+      sec->set_size(section_memory_sizes[it]);
+    } else {
+      SPDLOG_TRACE("{} assigned {:x} bytes", fullName, bytes.size());
+      std::vector<qint8> bytes(section_memory_sizes[it], 0);
+      // TODO: copy over IR bytes
+      Q_ASSERT(bytes.size() == section_memory_sizes[it]);
+      sec->set_type(ELFIO::SHT_PROGBITS);
+      sec->set_data((const char *)bytes.data(), bytes.size());
+    }
+
+    if (sec_desc.flags.z) getOrCreateBSS(sec_desc.flags);
+    else getOrCreateBits(sec_desc.flags);
+
+    activeSeg->add_section(sec, sec_desc.alignment);
+    activeSeg->set_physical_address(
+        std::min<ELFIO::Elf64_Addr>(activeSeg->get_physical_address(), sec_desc.low_address));
+    activeSeg->set_virtual_address(std::min<ELFIO::Elf64_Addr>(activeSeg->get_virtual_address(), sec_desc.low_address));
+    SPDLOG_TRACE("{} base address set to {:x}", sec_desc.name, sec_desc.low_address);
+
+    // Field not re-computed on its own. Failure to compute will cause readelf to crash.
+    // TODO: in the future, handle alignment correctly?
+    // if (isOS) activeSeg->set_memory_size(activeSeg->get_memory_size() + size);
+  }
+
+  /*ELFIO::section *symTab = nullptr;
+  for (auto &sec : ret->sections)
+    if (sec->get_type() == ELFIO::SHT_SYMTAB && sec->get_name() == "os.symtab") symTab = &*sec;
+  Q_ASSERT(symTab != nullptr);
+  // TODO: populate mmios if mmios is not empty
+  obj::addMMIONoteSection(*ret);
+  ::obj::addMMIODeclarations(*ret, symTab, mmios);*/
+  // pas::obj::common::writeLineMapping(*_elf, *_osRoot);
+  //  pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
+  return ret;
+}

@@ -2,6 +2,10 @@
 #include "flat/flat_map.hpp"
 #include "toolchain2/asmb/pep_common.hpp"
 
+namespace ELFIO {
+class elfio;
+}
+
 namespace pepp::tc {
 
 struct SectionDescriptor {
@@ -49,4 +53,7 @@ using IRMemoryAddressTable = fc::flat_map<std::vector<IRMemoryAddressPair>, deta
 // When a .BURN <num> is present, grouping occurs as-if an extra section was append to prog which contains a .ORG <num>.
 IRMemoryAddressTable assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
                                       quint16 initial_base_address = 0);
+
+QSharedPointer<ELFIO::elfio> to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
+                                    const IRMemoryAddressTable &addrs);
 }
