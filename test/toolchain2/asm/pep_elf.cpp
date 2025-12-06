@@ -54,7 +54,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto result = pepp::tc::split_to_sections(results);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
-    auto elf = pepp::tc::to_elf(sections, addresses);
+    auto elf = pepp::tc::to_elf(sections, addresses, result.mmios);
     CHECK(sections.size() == 3);
     elf->save("dummy.elf");
   }

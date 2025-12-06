@@ -46,8 +46,12 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(PepIRProgram &prog,
     }
     case Type::DotAnnotate: {
       auto as_annotate = std::static_pointer_cast<pepp::tc::ir::DotAnnotate>(line);
-      if (as_annotate->which == ir::DotAnnotate::Which::SCALL)
-        ret.system_calls.emplace_back(as_annotate->argument.value->string().toStdString());
+      auto arg_str = as_annotate->argument.value->string();
+      if (as_annotate->which == ir::DotAnnotate::Which::SCALL) ret.system_calls.emplace_back(arg_str.toStdString());
+      else if (as_annotate->which == ir::DotAnnotate::Which::INPUT)
+        ret.mmios.emplace_back(obj::IO{.name = arg_str, .type = obj::IO::Type::kInput});
+      else if (as_annotate->which == ir::DotAnnotate::Which::OUTPUT)
+        ret.mmios.emplace_back(obj::IO{.name = arg_str, .type = obj::IO::Type::kOutput});
       break;
     }
     case Type::DotOrg: {
@@ -242,7 +246,6 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   return ret;
 }
 
-// Register system calls
 // Gather IOs
 
 static QSharedPointer<ELFIO::elfio> create_elf() {
@@ -260,7 +263,7 @@ static QSharedPointer<ELFIO::elfio> create_elf() {
   return ret;
 }
 QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                              const IRMemoryAddressTable &addrs) {
+                                              const IRMemoryAddressTable &addrs, const std::vector<obj::IO> &mmios) {
 
   ELFIO::segment *activeSeg = nullptr;
   auto ret = create_elf();
@@ -298,13 +301,11 @@ QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescr
     return activeSeg;
   };
 
-  // auto mmios = pas::ops::pepp::gatherIODefinitions(os);
   std::vector<size_t> section_memory_sizes(prog.size(), 0);
   for (int it = 0; it < prog.size(); it++) {
     auto &sec = prog[it].first;
     section_memory_sizes[it] = sec.high_address - sec.low_address;
   }
-  QList<obj::IO> mmios;
   for (int it = 0; it < prog.size(); it++) {
     if (section_memory_sizes[it] == 0) continue; // 0-sized sections are meaningless, do not emit.
     auto &sec_desc = prog[it].first;

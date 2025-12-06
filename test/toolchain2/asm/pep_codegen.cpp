@@ -16,6 +16,7 @@
 
 #include "toolchain2/asmb/pep_codegen.hpp"
 #include <catch.hpp>
+#include "toolchain/link/mmio.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
 
 using namespace Qt::StringLiterals;
@@ -124,4 +125,24 @@ TEST_CASE("Pepp ASM codegen .SCALL", "[scope:asm][kind:unit][arch:*][tc2]") {
   CHECK(!contains("deci"));
   CHECK(contains("deco"));
   CHECK(!contains("DECO"));
+}
+
+TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT", "[scope:asm][kind:unit][arch:*][tc2]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using Parser = pepp::tc::parser::PepParser;
+  using SymbolTable = symbol::Table;
+  using namespace pepp::tc::ir;
+
+  auto p = Parser(data(R"(
+    .INPUT DECI
+    .OUTPUT deco)"));
+  auto results = p.parse();
+  REQUIRE(results.size() == 3);
+  auto result = pepp::tc::split_to_sections(results);
+  auto &mmios = result.mmios;
+  CHECK(mmios.size() == 2);
+  CHECK(mmios[0].name.toStdString() == "DECI");
+  CHECK(mmios[0].type == obj::IO::Type::kInput);
+  CHECK(mmios[1].name.toStdString() == "deco");
+  CHECK(mmios[1].type == obj::IO::Type::kOutput);
 }

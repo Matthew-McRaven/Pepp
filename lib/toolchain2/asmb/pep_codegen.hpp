@@ -1,5 +1,6 @@
 #pragma once
 #include "flat/flat_map.hpp"
+#include "toolchain/link/mmio.hpp"
 #include "toolchain2/asmb/pep_common.hpp"
 
 namespace ELFIO {
@@ -22,11 +23,14 @@ static const SectionDescriptor default_descriptor = {.name = ".text",
 struct SectionAnalysisResults {
   std::vector<std::pair<SectionDescriptor, PepIRProgram>> grouped_ir;
   std::vector<std::string> system_calls;
+  std::vector<obj::IO> mmios;
 };
 
 // The returned vector points to the same underlying IR as the (linear) input program.
 // This allows addresses to be propogated to input original. which is useful for generating the listing.
-
+//
+// Also extracts system-calls and memory-mapped IO declarations since this is the one time we iterate overthe whole IR
+// at once.
 SectionAnalysisResults split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section = default_descriptor);
 
 // Assigning addresses should be O(1) and incur O(1) memory allocations.
@@ -60,5 +64,5 @@ IRMemoryAddressTable assign_addresses(std::vector<std::pair<SectionDescriptor, P
                                       quint16 initial_base_address = 0);
 
 QSharedPointer<ELFIO::elfio> to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                    const IRMemoryAddressTable &addrs);
+                                    const IRMemoryAddressTable &addrs, const std::vector<obj::IO> &mmios);
 }
