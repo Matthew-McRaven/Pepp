@@ -127,7 +127,7 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
   Checkpoint cp(_buf);
 
   while (_buf.input_remains()) {
-    if (_buf.matched_tokens() == 0 && _buf.match((int)MTT::LineNumber)) continue;
+    if (_buf.count_matched_tokens() == 0 && _buf.match((int)MTT::LineNumber)) continue;
     // If we've already determined that the current line is a test case, enter this special state which
     // handles memory and register tests
     else if (code.type == Line::Type::Pre || code.type == Line::Type::Post) {
@@ -180,8 +180,8 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
       else if (_buf.match<Empty>()) return true;
       else if (auto asCom = _buf.match<InlineComment>(); asCom) code.comment = asCom->view().toString();
       else return error = "Unexpected comma, newline, or comment after test", false;
-    } else if (_buf.matched_tokens() == 0 && _buf.match<UnitPre>()) code.type = Line::Type::Pre;
-    else if (_buf.matched_tokens() == 0 && _buf.match<UnitPost>()) code.type = Line::Type::Post;
+    } else if (_buf.count_matched_tokens() == 0 && _buf.match<UnitPre>()) code.type = Line::Type::Pre;
+    else if (_buf.count_matched_tokens() == 0 && _buf.match<UnitPost>()) code.type = Line::Type::Post;
     else if (auto asSym = _buf.match<SymbolDeclaration>(); asSym) {
       if (!uarch::allows_symbols()) return error = "Symbols are forbidden", false;
       auto current = asSym->view();

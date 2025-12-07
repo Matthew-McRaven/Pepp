@@ -8,8 +8,13 @@ bool pepp::tc::lex::Buffer::input_remains() const {
   return _head < _tokens.size() || _lex->input_remains();
 }
 
-size_t pepp::tc::lex::Buffer::buffered_tokens() const { return _tokens.size(); }
-size_t pepp::tc::lex::Buffer::matched_tokens() const { return _head; }
+size_t pepp::tc::lex::Buffer::count_buffered_tokens() const { return _tokens.size(); }
+
+size_t pepp::tc::lex::Buffer::count_matched_tokens() const { return _head; }
+
+bits::span<std::shared_ptr<pepp::tc::lex::Token> const> pepp::tc::lex::Buffer::matched_tokens() const {
+  return bits::span<std::shared_ptr<pepp::tc::lex::Token> const>(_tokens.cbegin(), _tokens.cbegin() + _head);
+}
 
 void pepp::tc::lex::Buffer::clear_tokens() {
   _tokens.clear();

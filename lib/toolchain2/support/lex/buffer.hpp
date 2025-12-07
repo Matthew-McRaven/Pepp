@@ -1,5 +1,6 @@
 #pragma once
 #include "./tokens.hpp"
+#include "utils/bits/span.hpp"
 
 namespace pepp::tc::lex {
 
@@ -34,8 +35,9 @@ public:
   }
   std::shared_ptr<Token> peek_literal(QString);
   bool input_remains() const;
-  size_t buffered_tokens() const;
-  size_t matched_tokens() const;
+  size_t count_buffered_tokens() const;
+  size_t count_matched_tokens() const;
+  bits::span<std::shared_ptr<Token> const> matched_tokens() const;
 
 private:
   ALexer *_lex;
