@@ -1,6 +1,7 @@
 #include "./pep_parser.hpp"
 #include "./pep_attributes.hpp"
 #include "./pep_tokens.hpp"
+#include "common_diag.hpp"
 #include "fmt/format.h"
 #include "toolchain/pas/ast/value/character.hpp"
 #include "toolchain/pas/ast/value/decimal.hpp"
@@ -17,7 +18,11 @@ pepp::tc::PepIRProgram pepp::tc::parser::PepParser::parse() {
   PepIRProgram lines;
 
   while (_buffer->input_remains()) {
-    if (auto line = statement(); line) lines.emplace_back(line);
+    try {
+      if (auto line = statement(); line) lines.emplace_back(line);
+    } catch (ParserError &e) {
+      synchronize();
+    }
   }
   return lines;
 }
@@ -36,7 +41,7 @@ std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::argument() {
       return std::make_shared<pas::ast::value::Hexadecimal>(maybeInteger->value, 2);
     else if (maybeInteger->format == lex::Integer::Format::UnsignedDec)
       return std::make_shared<pas::ast::value::UnsignedDecimal>(maybeInteger->value, 2);
-    else throw std::logic_error("Unrecognized integer format");
+    else throw ParserError(ParserError::NullaryError::Argument_InvalidIntegerFormat, {});
   } else if (auto maybeIdent = _buffer->match<lex::Identifier>(); maybeIdent) {
     auto entry = _symtab->reference(maybeIdent->to_string());
     return std::make_shared<pas::ast::value::Symbolic>(entry);
@@ -51,16 +56,13 @@ std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::argument() {
 
 std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::numeric_argument() {
   auto arg = argument();
-  if (!arg->isNumeric()) {
-    throw std::logic_error("Expected a numeric argument");
-  }
+  if (!arg->isNumeric()) return nullptr;
   return arg;
 }
 
 std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::hex_argument() {
   auto arg = argument();
-  if (auto as_hex = std::dynamic_pointer_cast<pas::ast::value::Hexadecimal>(arg); !as_hex)
-    throw std::logic_error("Expected a hexadecimal argument");
+  if (auto as_hex = std::dynamic_pointer_cast<pas::ast::value::Hexadecimal>(arg); !as_hex) return nullptr;
   return arg;
 }
 
@@ -81,44 +83,25 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction
 
   if (auto instruction = _buffer->match<lex::Identifier>(); !instruction) return cp.rollback(), nullptr;
   else if (auto instr = ISA::parseMnemonic(instruction->to_string()); instr == ISA::Mnemonic::INVALID) {
-    synchronize();
-    auto formatted = fmt::format("Invalid mnemonic \"{}\"", instruction->to_string().toStdString());
-    throw std::logic_error(formatted);
+    throw ParserError(ParserError::UnaryError::Mnemonic_Invalid, instruction->to_string().toStdString(), {});
   } else if (ISA::isMnemonicUnary(instr)) { // Monadic instruction
     ret = std::make_shared<ir::MonadicInstruction>(ir::attr::Pep10Mnemonic(instr));
   } else { // Dyadic instruction
     ISA::AddressingMode am = ISA::AddressingMode::INVALID;
     auto arg = argument();
-    if (!arg) {
-      synchronize();
-      throw std::logic_error("Invalid argument");
-    } else if (arg->requiredBytes() > 2) {
-      synchronize();
-      throw std::logic_error("Argument must fit in two bytes");
-    }
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_Missing, {});
+    else if (arg->requiredBytes() > 2) throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, {});
     // TODO: reject string arguments
     else if (_buffer->match_literal(",")) {
       auto addr_mode = _buffer->match<lex::Identifier>();
-      if (!addr_mode) {
-        synchronize();
-        throw std::logic_error("Expected addressing mode");
-      }
-      am = ISA::parseAddressingMode(addr_mode->to_string().toUpper());
-      if (am == ISA::AddressingMode::INVALID) {
-        synchronize();
-        throw std::logic_error("Invalid addressing mode");
-      }
-      if (!ISA::isValidAddressingMode(instr, am)) {
-        synchronize();
-        auto formatted = fmt::format("Illegal addressing mode \"{}\"for instruction",
-                                     addr_mode->to_string().toUpper().toStdString());
-        throw std::logic_error(formatted);
-      }
+      if (!addr_mode) throw ParserError(ParserError::NullaryError::AddressingMode_Missing, {});
+      auto addr_mode_str = addr_mode->to_string().toUpper();
+      am = ISA::parseAddressingMode(addr_mode_str);
+      if (am == ISA::AddressingMode::INVALID) throw ParserError(ParserError::NullaryError::AddressingMode_Invalid, {});
+      if (!ISA::isValidAddressingMode(instr, am))
+        throw ParserError(ParserError::UnaryError::AddressingMode_InvalidForMnemonic, addr_mode_str.toStdString(), {});
     } else if (!ISA::requiresAddressingMode(instr)) am = ISA::defaultAddressingMode(instr);
-    else {
-      synchronize();
-      throw std::logic_error("Instruction requires addressing mode");
-    }
+    else throw ParserError(ParserError::NullaryError::AddressingMode_Required, {});
     auto ir_instr = ir::attr::Pep10Mnemonic(instr);
     auto ir_addr = ir::attr::Pep10AddrMode(am);
     auto ir_arg = ir::attr::Argument(arg);
@@ -139,11 +122,8 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
   auto dot = _buffer->match<lex::DotCommand>();
   auto dot_str = dot->to_string().toUpper().toStdString();
   auto it = dot_map.find(dot_str);
-  if (it == dot_map.cend()) {
-    synchronize();
-    auto formatted = fmt::format("Invalid pseudo-operation \"{}\"", dot_str);
-    throw std::logic_error(formatted);
-  }
+  if (it == dot_map.cend()) throw ParserError(ParserError::UnaryError::Dot_Invalid, dot_str, {});
+
   switch (it->second) {
   case ir::DotCommands::ALIGN: {
     auto arg = numeric_argument();
@@ -151,17 +131,13 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     bits::span<quint8> buf{(quint8 *)&value, 2};
     arg->value(buf, bits::hostOrder());
     if (value == 1 || value == 2 || value == 4 || value == 8) return std::make_shared<ir::DotAlign>(arg);
-    else {
-      synchronize();
-      throw std::logic_error(".ALIGN argument must be (1|2|4|8)");
-    }
+    else throw ParserError(ParserError::NullaryError::Argument_ExpectedPowerOfTwo, {});
   }
 
   case ir::DotCommands::ASCII: {
-    if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr) {
-      synchronize();
-      throw std::logic_error(".ASCII requires a string argument");
-    } else {
+    if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
+      throw ParserError(ParserError::NullaryError::Argument_ExpectedString, {});
+    else {
       static constexpr auto le = bits::Order::LittleEndian;
       auto asStr = maybeStr->view().toString();
       std::shared_ptr<pas::ast::value::Base> arg;
@@ -177,83 +153,53 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
   }
   case ir::DotCommands::BYTE: {
     auto arg = numeric_argument();
-    if (arg->requiredBytes() > 1) {
-      synchronize();
-      throw std::logic_error(".BYTE argument must fit in one byte");
-    }
+    if (arg->requiredBytes() > 1) throw ParserError(ParserError::NullaryError::Argument_Exceeded1Byte, {});
     return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Byte, arg);
   }
   case ir::DotCommands::EQUATE: {
     auto arg = argument();
-    if (arg->requiredBytes() > 2) {
-      synchronize();
-      throw std::logic_error(".EQUATE argument must fit in two bytes");
-    } else if (!symbol) {
-      synchronize();
-      throw std::logic_error(".EQUATE requires a symbol declaration");
-    }
+    if (arg->requiredBytes() > 2) throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, {});
+    else if (!symbol) throw ParserError(ParserError::NullaryError::SymbolDeclaration_Required, {});
     QSharedPointer<symbol::Entry> symbol_entry = *symbol;
     return std::make_shared<ir::DotEquate>(ir::attr::SymbolDeclaration{symbol_entry}, arg);
   }
   case ir::DotCommands::EXPORT: {
     auto arg = identifier_argument();
-    if (!arg) {
-      synchronize();
-      throw std::logic_error(".OUTPUT requires an identifier argument");
-    }
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::EXPORT, arg);
   }
   case ir::DotCommands::IMPORT: {
     auto arg = identifier_argument();
-    if (!arg) {
-      synchronize();
-      throw std::logic_error(".OUTPUT requires an identifier argument");
-    }
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::IMPORT, arg);
   }
   case ir::DotCommands::INPUT: {
     auto arg = identifier_argument();
-    if (!arg) {
-      synchronize();
-      throw std::logic_error(".OUTPUT requires an identifier argument");
-    }
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::INPUT, arg);
   }
   case ir::DotCommands::ORG: {
     auto arg = hex_argument();
-    if (!arg) {
-      synchronize();
-      throw std::logic_error(".ORG requires an hexadecimal argument");
-    }
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedHex, {});
     return std::make_shared<ir::DotOrg>(ir::DotOrg::Behavior::ORG, arg);
   }
   case ir::DotCommands::OUTPUT: {
     auto arg = identifier_argument();
-    if (!arg) {
-      synchronize();
-      throw std::logic_error(".OUTPUT requires an identifier argument");
-    }
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::OUTPUT, arg);
   }
   case ir::DotCommands::SCALL: {
     auto arg = identifier_argument();
-    if (!arg) {
-      synchronize();
-      throw std::logic_error(".SCALL requires an identifier argument");
-    }
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::SCALL, arg);
   }
   case ir::DotCommands::SECTION: {
-    if (auto maybeSecName = _buffer->match<lex::StringConstant>(); !maybeSecName) {
-      synchronize();
-      throw std::logic_error(".SECTION name must be a string");
-    } else if (!_buffer->match_literal(",")) {
-      synchronize();
-      throw std::logic_error(".SECTION requires two arguments");
-    } else if (auto maybeFlags = _buffer->match<lex::StringConstant>(); !maybeFlags) {
-      synchronize();
-      throw std::logic_error(".SECTION flags must be a string");
-    } else {
+    if (auto maybeSecName = _buffer->match<lex::StringConstant>(); !maybeSecName)
+      throw ParserError(ParserError::NullaryError::Section_StringName, {});
+    else if (!_buffer->match_literal(",")) throw ParserError(ParserError::NullaryError::Section_TwoArgs, {});
+    else if (auto maybeFlags = _buffer->match<lex::StringConstant>(); !maybeFlags)
+      throw ParserError(ParserError::NullaryError::Section_StringFlags, {});
+    else {
       static constexpr auto le = bits::Order::LittleEndian;
       std::shared_ptr<pas::ast::value::Base> arg;
       auto flags = maybeFlags->view().toString().toLower();
@@ -264,10 +210,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
   }
   case ir::DotCommands::WORD: {
     auto arg = numeric_argument();
-    if (arg->requiredBytes() > 2) {
-      synchronize();
-      throw std::logic_error(".WORD argument must fit in two bytes");
-    }
+    if (arg->requiredBytes() > 2) throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, {});
     return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Word, arg);
   }
   default: throw std::logic_error("Unreachable");
@@ -306,24 +249,19 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::statement()
     ret = line;
   } else {
     auto symbol = _buffer->match<lex::SymbolDeclaration>();
-    if (symbol && symbol->to_string().length() > 7) {
-      auto formatted = fmt::format("Symbol \"{}\" too long", symbol->to_string().toStdString());
-      throw std::logic_error(formatted);
-    }
+    if (symbol && symbol->to_string().length() > 7)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_TooLong, {});
+
     auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
     ret = line(symbol_decl);
     if (!ret) {
       auto next = _buffer->peek();
-      synchronize();
-      // TODO: post an error to the diag table
-      throw std::logic_error("Unrecognized token: " + next->repr().toStdString());
+      throw ParserError(ParserError::UnaryError::Token_Invalid, next->repr().toStdString(), {});
     }
   }
 
-  if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains()) {
-    synchronize();
-    throw std::logic_error("Expected \\n");
-  }
+  if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains())
+    throw ParserError(ParserError::NullaryError::Token_MissingNewline, {});
   return ret;
 }
 

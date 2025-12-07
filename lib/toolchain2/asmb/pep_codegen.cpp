@@ -246,8 +246,6 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   return ret;
 }
 
-// Gather IOs
-
 static QSharedPointer<ELFIO::elfio> create_elf() {
   SPDLOG_INFO("Creating pep/10 ELF");
   static const char p10mac[2] = {'p', 'x'};
