@@ -21,7 +21,7 @@ QString pepp::tc::lex::CharacterConstant::type_name() const { return "CharacterC
 
 QString pepp::tc::lex::CharacterConstant::to_string() const { return QStringLiteral("'%1'").arg(value); }
 
-QString pepp::tc::lex::CharacterConstant::repr() const { return QStringLiteral("%1(%2)").arg(type_name()).arg(value); }
+QString pepp::tc::lex::CharacterConstant::repr() const { return QStringLiteral("%1(%2)").arg(type_name(), value); }
 
 pepp::tc::lex::StringConstant::StringConstant(support::LocationInterval loc, support::StringPool *pool,
                                               support::PooledString id)

@@ -2,11 +2,9 @@
 #include "./pep_attributes.hpp"
 #include "./pep_tokens.hpp"
 #include "common_diag.hpp"
-#include "fmt/format.h"
 #include "toolchain/pas/ast/value/character.hpp"
 #include "toolchain/pas/ast/value/decimal.hpp"
 #include "toolchain/pas/ast/value/hexadecimal.hpp"
-#include "toolchain/pas/ast/value/numeric.hpp"
 #include "toolchain/pas/ast/value/string.hpp"
 
 pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)
