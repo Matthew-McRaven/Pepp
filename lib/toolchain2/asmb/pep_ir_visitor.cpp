@@ -186,6 +186,7 @@ pepp::tc::ir::to_object_code(const IRMemoryAddressTable &addresses,
   quint32 object_size = 0, ir_count = 0;
   for (int it = 0; it < prog.size(); it++) {
     const auto &sec = prog[it];
+    if (sec.first.flags.z) continue; // No bytes in ELF for Z section; no relocations possible.
     offsets[it].object_code_size = sec.first.byte_count;
     offsets[it].object_code_offset = object_size;
     object_size += sec.first.byte_count;
@@ -210,16 +211,22 @@ pepp::tc::ir::to_object_code(const IRMemoryAddressTable &addresses,
 
   // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate
   // relocation info.
+  using SectionSpans = ProgramObjectCodeResult::SectionSpans;
   for (int it = 0; it < prog.size(); it++) {
     auto &offset = offsets[it];
-    auto code_begin = ret.object_code.begin() + offset.object_code_offset;
-    auto code_end = code_begin + offset.object_code_size;
-    auto oc_subspan = bits::span<quint8>(code_begin, code_end);
-    auto reloc_begin = ret.relocations.begin() + offset.reloc_offset;
-    auto reloc_end = reloc_begin + offset.reloc_size;
-    auto reloc_subspan = bits::span<void *>(reloc_begin, reloc_end);
-    using SectionSpans = ProgramObjectCodeResult::SectionSpans;
-    ret.section_spans.emplace_back(SectionSpans{oc_subspan, reloc_subspan});
+    const auto &sec = prog[it];
+    // Z sections need entries in section_spans, but those entries should be empty.
+    if (sec.first.flags.z) {
+      ret.section_spans.emplace_back(SectionSpans{{}, {}});
+    } else {
+      auto code_begin = ret.object_code.begin() + offset.object_code_offset;
+      auto code_end = code_begin + offset.object_code_size;
+      auto oc_subspan = bits::span<quint8>(code_begin, code_end);
+      auto reloc_begin = ret.relocations.begin() + offset.reloc_offset;
+      auto reloc_end = reloc_begin + offset.reloc_size;
+      auto reloc_subspan = bits::span<void *>(reloc_begin, reloc_end);
+      ret.section_spans.emplace_back(SectionSpans{oc_subspan, reloc_subspan});
+    }
   }
 
   //  Establish flat-map invariant
