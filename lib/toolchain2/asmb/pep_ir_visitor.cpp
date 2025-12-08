@@ -1,6 +1,8 @@
 #include "./pep_ir_visitor.hpp"
 #include "./pep_format.hpp"
 #include "./pep_ir.hpp"
+#include "utils/bits/copy.hpp"
+#include "utils/bits/swap.hpp"
 
 void pepp::tc::ir::SourceVisitor::visit(const EmptyLine *) { text = ""; }
 
@@ -116,4 +118,68 @@ QString pepp::tc::ir::format_source(const LinearIR *line) {
   SourceVisitor r;
   line->accept(&r);
   return r.text;
+}
+
+pepp::tc::ir::ObjectCodeVisitor::ObjectCodeVisitor(const IRMemoryAddressTable &ir_to_address,
+                                                   bits::span<quint8> out_bytes)
+    : ir_to_address(ir_to_address), out_bytes(out_bytes) {}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const EmptyLine *) {}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const CommentLine *) {}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const MonadicInstruction *line) {
+  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(1)});
+  out_bytes = out_bytes.subspan(1);
+}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const DyadicInstruction *line) {
+  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
+  line->argument.value->value(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
+  out_bytes = out_bytes.subspan(3);
+}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const DotAlign *line) {
+  auto addr_info = ir_to_address.at(static_cast<const DotAlign *const>(line));
+  std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
+  out_bytes = out_bytes.subspan(addr_info.size);
+}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const DotLiteral *line) {
+  auto addr_info = ir_to_address.at(static_cast<const DotLiteral *const>(line));
+  line->argument.value->value(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
+  out_bytes = out_bytes.subspan(addr_info.size);
+}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const DotBlock *line) {
+  auto addr_info = ir_to_address.at(static_cast<const DotBlock *const>(line));
+  std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
+  out_bytes = out_bytes.subspan(addr_info.size);
+}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const DotEquate *) {}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const DotSection *) {}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const DotAnnotate *) {}
+
+void pepp::tc::ir::ObjectCodeVisitor::visit(const DotOrg *) {}
+
+pepp::tc::ir::ObjectCodeResult pepp::tc::ir::to_object_code(const IRMemoryAddressTable addresses,
+                                                            const SectionDescriptor &desc, const PepIRProgram &prog) {
+  ObjectCodeResult ret;
+  ret.object_code.resize(desc.byte_count, 0);
+  ret.ir_to_object_code.container.reserve(prog.size());
+  ObjectCodeVisitor visitor(addresses, bits::span<quint8>(ret.object_code));
+  for (const auto &line : prog) line->accept(&visitor);
+  ret.relocations = std::move(visitor.relocations);
+  ret.ir_to_object_code = std::move(visitor.ir_to_object_code);
+  // Establish flat-map invariant
+  std::sort(ret.ir_to_object_code.container.begin(), ret.ir_to_object_code.container.end(), IR2ObjectComparator{});
+  return ret;
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QString>
+#include "toolchain2/asmb/pep_codegen.hpp"
+#include "utils/bits/span.hpp"
 
 namespace pepp::tc::ir {
 struct LinearIR;
@@ -46,4 +48,42 @@ struct SourceVisitor : public LinearIRVisitor {
   void visit(const DotOrg *) override;
 };
 QString format_source(const LinearIR *);
+
+// Create a lookup data structure that converts IR pointers back to the generated object code.
+// Since IR no longer know their own address, we need to cache the object code because it cannot easily be regenerated.
+using IR2ObjectPair = std::pair<const LinearIR *, bits::span<quint8>>;
+struct IR2ObjectComparator {
+  bool operator()(const IR2ObjectPair &lhs, const IR2ObjectPair &rhs) const { return lhs.first < rhs.first; }
+  bool operator()(ir::LinearIR *const lhs, ir::LinearIR *const rhs) const { return lhs < rhs; }
+  bool operator()(const ir::LinearIR *const lhs, const ir::LinearIR *const rhs) const { return lhs < rhs; }
+};
+using IR2ObjectCodeMap = fc::flat_map<std::vector<IR2ObjectPair>, IR2ObjectComparator>;
+
+struct ObjectCodeVisitor : public LinearIRVisitor {
+  const IRMemoryAddressTable &ir_to_address;
+  // On each call, out_bytes will be shortened by the size of the visited line;
+  bits::span<quint8> out_bytes;
+  std::vector<void *> relocations;
+  IR2ObjectCodeMap ir_to_object_code;
+  ObjectCodeVisitor(const IRMemoryAddressTable &, bits::span<quint8>);
+  void visit(const EmptyLine *) override;
+  void visit(const CommentLine *) override;
+  void visit(const MonadicInstruction *) override;
+  void visit(const DyadicInstruction *) override;
+  void visit(const DotAlign *) override;
+  void visit(const DotLiteral *) override;
+  void visit(const DotBlock *) override;
+  void visit(const DotEquate *) override;
+  void visit(const DotSection *) override;
+  void visit(const DotAnnotate *) override;
+  void visit(const DotOrg *) override;
+};
+
+struct ObjectCodeResult {
+  std::vector<quint8> object_code;
+  std::vector<void *> relocations;
+  IR2ObjectCodeMap ir_to_object_code;
+};
+
+ObjectCodeResult to_object_code(const IRMemoryAddressTable, const SectionDescriptor &desc, const PepIRProgram &prog);
 } // namespace pepp::tc::ir

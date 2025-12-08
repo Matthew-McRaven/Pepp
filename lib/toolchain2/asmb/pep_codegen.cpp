@@ -129,9 +129,10 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   quint16 base_address = 0;
 
   // Using templates to type-erase the difference between forward and reverse iterators
-  auto for_lines = [&](auto &&range) {
+  auto for_lines = [&](auto &&range, SectionDescriptor &sec_desc) {
     for (auto &line : range) {
-      quint16 symbol_base = base_address, next_base = base_address, size = line->object_size(base_address).value_or(0);
+      auto maybe_size = line->object_size(base_address);
+      quint16 symbol_base = base_address, next_base = base_address, size = maybe_size.value_or(0);
 
       // Perform special handling for non-code-generating dot commands
       using Type = ir::LinearIR::Type;
@@ -163,8 +164,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
       default: break;
       }
 
-      // Assign addresses to code-generating dot commands and instructions
-      if (auto maybe_size = line->object_size(base_address); !maybe_size.has_value()) continue;
+      if (!maybe_size.has_value()) continue;
       else if (direction == Direction::Forward) {
         // Must explicitly handle address wrap-around, because math inside set
         // address widens implicitly.
@@ -183,6 +183,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
         ret.container.emplace_back(line.get(), ir::attr::Address(adjustedAddress % 0x10000, size));
         base_address = next_base;
       }
+      sec_desc.byte_count += size;
 
       if (auto line_symbol = line->template typed_attribute<ir::attr::SymbolDeclaration>(); line_symbol) {
         auto isCode = dynamic_cast<ir::DyadicInstruction *>(&*line) || dynamic_cast<ir::MonadicInstruction *>(&*line);
@@ -206,12 +207,12 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
       auto org_arg = static_pointer_cast<ir::DotOrg>(*it)->argument.value->value<quint16>();
       // Find index of first ORG and assign BACKWARD from there, exluding the ORG. Set section's low_address.
       base_address = org_arg - 1, direction = Direction::Backward;
-      for_lines(std::views::reverse(std::ranges::subrange(sec.second.begin(), it)));
+      for_lines(std::views::reverse(std::ranges::subrange(sec.second.begin(), it)), sec.first);
       sec.first.low_address = base_address;
 
       // Assign rest of section (including ORG) FORWARD. Set section's high_address.
       base_address = org_arg, direction = Direction::Forward;
-      for_lines(std::views::all(std::ranges::subrange(it, sec.second.end())));
+      for_lines(std::views::all(std::ranges::subrange(it, sec.second.end())), sec.first);
       sec.first.high_address = base_address;
       continue; // Skip normal address computations.
     }
@@ -232,11 +233,11 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
 
     if (direction == Direction::Forward) {
       sec.first.low_address = base_address;
-      for_lines(std::views::all(sec.second));
+      for_lines(std::views::all(sec.second), sec.first);
       sec.first.high_address = base_address;
     } else {
       sec.first.high_address = base_address;
-      for_lines(std::views::reverse(sec.second));
+      for_lines(std::views::reverse(sec.second), sec.first);
       sec.first.low_address = base_address;
     }
   }

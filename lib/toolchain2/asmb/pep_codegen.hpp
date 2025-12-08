@@ -15,6 +15,9 @@ struct SectionDescriptor {
   quint16 alignment = 1, org_count = 0;
   std::optional<quint16> base_address = std::nullopt;
   quint16 low_address = 0, high_address = 0;
+  // Number of bytes that will be written out to ELF file.
+  // Not high_address-low_address because .ORG can mess with address!
+  quint16 byte_count = 0;
 };
 
 static const SectionDescriptor default_descriptor = {.name = ".text",
@@ -37,7 +40,7 @@ SectionAnalysisResults split_to_sections(PepIRProgram &prog, SectionDescriptor i
 // A pre-sized vector (essentially an arena allocator) is a natural container.
 // A flat_map is a container adaptor which presents a map api over a different ordered container, but you still get a
 // convenient O(lgn) find without lots of evil stl magic.
-using IRMemoryAddressPair = std::pair<ir::LinearIR *, ir::attr::Address>;
+using IRMemoryAddressPair = std::pair<const ir::LinearIR *, ir::attr::Address>;
 namespace detail {
 // Only compare based on the address of ir::LinearIR *, ignoring ir::attr::Address.
 // We already have a guarentee that all IR are unique.
@@ -46,6 +49,7 @@ struct IRComparator {
     return lhs.first < rhs.first;
   }
   bool operator()(ir::LinearIR *const lhs, ir::LinearIR *const &rhs) const { return lhs < rhs; }
+  bool operator()(const ir::LinearIR *const lhs, const ir::LinearIR *const &rhs) const { return lhs < rhs; }
 };
 } // namespace detail
 using IRMemoryAddressTable = fc::flat_map<std::vector<IRMemoryAddressPair>, detail::IRComparator>;
