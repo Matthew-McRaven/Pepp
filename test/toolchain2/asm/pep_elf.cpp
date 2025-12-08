@@ -26,14 +26,14 @@ static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; }
 // First line is empty!!
 static const auto ex1 = R"(
 .SECTION ".text", "rwx"
-LDWA 10,d
+bye:LDWA 10,d
 .SECTION ".data", "rw"
-.block 30
-.word 10
+world:.block 30
+hi:.word 10
 .SECTION ".text", "rwx"
-BR 0
+cruel:BR 0
 .SECTION "memvec", "rw"
-.BYTE 0
+World:.BYTE 0
 .BYTE 0
 )";
 } // namespace

@@ -18,6 +18,12 @@ struct SectionDescriptor {
   // Number of bytes that will be written out to ELF file.
   // Not high_address-low_address because .ORG can mess with address!
   quint16 byte_count = 0;
+  // Symbols need to know which section they are going to be relocated against.
+  // Rather than wait until the elf file has been generated, we can verify (through source code inspection!) the number
+  // that will be assigned to the first non-ELF-plumbing section.
+  // Then, splitting to sections can increment this counter AND update the symbol declaration's links.
+  static constexpr quint16 section_base_index = 3;
+  quint16 section_index = section_base_index;
 };
 
 static const SectionDescriptor default_descriptor = {.name = ".text",

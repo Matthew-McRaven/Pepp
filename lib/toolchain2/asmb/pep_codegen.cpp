@@ -33,6 +33,8 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(PepIRProgram &prog,
           std::find_if(grouped_ir.begin(), grouped_ir.end(), [&name](auto &i) { return i.first.name == name; });
       if (existing_sec == grouped_ir.end()) {
         pepp::tc::SectionDescriptor desc{.name = name.toStdString(), .flags = flags};
+        // Compute the index in the ELF file which this section will become.
+        desc.section_index = desc.section_base_index + ret.grouped_ir.size();
         grouped_ir.emplace_back(std::make_pair(desc, pepp::tc::PepIRProgram{}));
         active = &grouped_ir.back();
       } else if (existing_sec->first.flags != flags) {
@@ -68,6 +70,8 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(PepIRProgram &prog,
         auto formatted = fmt::format("Multiply defined symbol {}", symbol_attr->entry->name.toStdString());
         throw std::logic_error(formatted);
       }
+      // Symbols need to know their defining section to enable relocations.
+      symbol_attr->entry->section_index = active->first.section_index;
     }
 
     active->second.emplace_back(line);
@@ -315,6 +319,7 @@ QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescr
     SPDLOG_INFO("{} creating", sec_desc.name);
 
     auto sec = ret->sections.add(sec_desc.name);
+    if (sec->get_index() != sec_desc.section_index) throw std::logic_error("Mismatch in pre-computed section index");
     // All sections from AST correspond to bits in Pep/10 memory, so alloc
     auto shFlags = ELFIO::SHF_ALLOC;
     shFlags |= sec_desc.flags.x ? ELFIO::SHF_EXECINSTR : 0;
