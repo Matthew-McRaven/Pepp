@@ -17,6 +17,7 @@
 
 #include "toolchain2/asmb/pep_format.hpp"
 #include <catch.hpp>
+#include "toolchain2/asmb/pep_codegen.hpp"
 #include "toolchain2/asmb/pep_format.hpp"
 #include "toolchain2/asmb/pep_lexer.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
@@ -37,7 +38,6 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
   using namespace pepp::tc::lex;
   using pepp::tc::format_source;
   SECTION("Empty Line") {
-
     static const auto txt = "\n";
     auto l = Lexer(idpool(), data(txt));
     auto b = Buffer(&l);
@@ -290,5 +290,60 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto r = p.parse();
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
+  }
+}
+
+TEST_CASE("Pepp ASM listing formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using Buffer = pepp::tc::lex::Buffer;
+  using Checkpoint = pepp::tc::lex::Checkpoint;
+  using Parser = pepp::tc::parser::PepParser;
+  using namespace pepp::tc::lex;
+  using pepp::tc::format_listing;
+  using pepp::tc::format_source;
+  SECTION("Comment-only") {
+    static const auto txt = R"(;******* STRO)";
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    auto result = pepp::tc::split_to_sections(r);
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::assign_addresses(sections);
+    auto object_code = pepp::tc::to_object_code(addresses, sections);
+    auto listing = format_listing(r[0].get(), addresses, object_code);
+    CHECK(listing.size() == 1);
+    CHECK(listing[0].toStdString() == "            ;******* STRO");
+  }
+  SECTION("Monadic and Dyadic Instructions") {
+    // Shows that addresses aren't always 0!
+    static const auto txt = R"(this: NOTA ;hi
+ADDA 15,d ;hi)";
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 2);
+    auto result = pepp::tc::split_to_sections(r);
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::assign_addresses(sections);
+    auto object_code = pepp::tc::to_object_code(addresses, sections);
+    auto listing = format_listing(r[0].get(), addresses, object_code);
+    CHECK(listing.size() == 1);
+    CHECK(listing[0].toStdString() == "0000 1E     this:    NOTA                ;hi");
+    listing = format_listing(r[1].get(), addresses, object_code);
+    CHECK(listing[0].toStdString() == "0001 51000F          ADDA    15,d        ;hi");
+  }
+  SECTION(".BLOCK") {
+    static const auto txt = R"(execErr:   .BLOCK     7  )";
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    auto result = pepp::tc::split_to_sections(r);
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::assign_addresses(sections);
+    auto object_code = pepp::tc::to_object_code(addresses, sections);
+    auto listing = format_listing(r[0].get(), addresses, object_code);
+    CHECK(listing.size() == 3);
+    CHECK(listing[0].toStdString() == "0000 000000 execErr: .BLOCK  7");
+    CHECK(listing[1].toStdString() == "     000000");
+    CHECK(listing[2].toStdString() == "     00");
   }
 }

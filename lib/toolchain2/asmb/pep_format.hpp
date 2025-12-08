@@ -1,5 +1,6 @@
 #pragma once
 #include <QString>
+#include "./pep_common.hpp"
 #include "utils/bits/span.hpp"
 
 namespace pepp::tc {
@@ -9,8 +10,9 @@ struct Token;
 namespace ir {
 struct LinearIR;
 }
-// Relative sizes for each "column" in the listing.
+struct ProgramObjectCodeResult;
 
+// Relative sizes for each "column" in the listing.
 struct FormatOptions {
   static constexpr int col0_width = 9;  // Symbol Declaration
   static constexpr int col1_width = 8;  // Mnemonics, dot commands, macro
@@ -31,4 +33,10 @@ QString format_source(bits::span<std::shared_ptr<lex::Token> const> tokens);
 
 // Format a single IR line as if by format_source(<tokens>).
 QString format_source(const ir::LinearIR *line);
+
+// Format a single line
+QStringList format_listing(const ir::LinearIR *line, const IRMemoryAddressTable &addresses,
+                           const ProgramObjectCodeResult &object_code);
+QStringList format_listing(const PepIRProgram &program, const IRMemoryAddressTable &addresses,
+                           const ProgramObjectCodeResult &object_code);
 } // namespace pepp::tc

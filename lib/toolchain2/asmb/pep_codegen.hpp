@@ -1,5 +1,4 @@
 #pragma once
-#include "flat/flat_map.hpp"
 #include "toolchain/link/mmio.hpp"
 #include "toolchain2/asmb/pep_common.hpp"
 
@@ -41,24 +40,6 @@ struct SectionAnalysisResults {
 // Also extracts system-calls and memory-mapped IO declarations since this is the one time we iterate overthe whole IR
 // at once.
 SectionAnalysisResults split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section = default_descriptor);
-
-// Assigning addresses should be O(1) and incur O(1) memory allocations.
-// A pre-sized vector (essentially an arena allocator) is a natural container.
-// A flat_map is a container adaptor which presents a map api over a different ordered container, but you still get a
-// convenient O(lgn) find without lots of evil stl magic.
-using IRMemoryAddressPair = std::pair<const ir::LinearIR *, ir::attr::Address>;
-namespace detail {
-// Only compare based on the address of ir::LinearIR *, ignoring ir::attr::Address.
-// We already have a guarentee that all IR are unique.
-struct IRComparator {
-  bool operator()(const IRMemoryAddressPair &lhs, const IRMemoryAddressPair &rhs) const {
-    return lhs.first < rhs.first;
-  }
-  bool operator()(ir::LinearIR *const lhs, ir::LinearIR *const &rhs) const { return lhs < rhs; }
-  bool operator()(const ir::LinearIR *const lhs, const ir::LinearIR *const &rhs) const { return lhs < rhs; }
-};
-} // namespace detail
-using IRMemoryAddressTable = fc::flat_map<std::vector<IRMemoryAddressPair>, detail::IRComparator>;
 
 // assign_addresses iterates over sections from prog, grouping non-ORG sections contiguously with the nearest ORG
 // section to its left. Sections before the first .ORG are an exception, and are grouped with the nearest .ORG to the

@@ -1,6 +1,7 @@
 #include "pep_format.hpp"
 #include <QStringList>
 #include <fmt/format.h>
+#include "pep_codegen.hpp"
 #include "toolchain2/asmb/pep_ir_visitor.hpp"
 #include "toolchain2/asmb/pep_tokens.hpp"
 #include "utils/textutils.hpp"
@@ -326,4 +327,52 @@ QString pepp::tc::format_source(const ir::LinearIR *line) {
   SourceVisitor r;
   line->accept(&r);
   return r.text;
+}
+
+// Return min(count, span.size()) bytes formatted as an uppercase hex string.
+// Then, advance the span in place by the number of bytes read.
+QString next_code(bits::span<quint8> &span, quint8 count = 3) {
+  static constexpr char hex[] = "0123456789ABCDEF";
+
+  if (span.empty() || span.data() == nullptr) return "";
+  auto n = std::min<size_t>(span.size(), count);
+  auto subspan = span.first(n);
+  QString ret;
+  ret.resize(n * 2);
+  for (int i = 0; i < n; i++) {
+    const quint8 b = subspan[i];
+    ret[2 * i + 0] = QLatin1Char(hex[(b >> 4) & 0xf]);
+    ret[2 * i + 1] = QLatin1Char(hex[b & 0x0F]);
+  }
+  span = span.subspan(n);
+  return ret;
+}
+
+void format_listing(const pepp::tc::ir::LinearIR *line, const pepp::tc::IRMemoryAddressTable &addresses,
+                    const pepp::tc::ProgramObjectCodeResult &object_code, QStringList &out) {
+  using namespace Qt::StringLiterals;
+  auto source_line = pepp::tc::format_source(line);
+  auto address_it = addresses.find(line);
+  std::optional<quint16> address =
+      address_it == addresses.cend() ? std::nullopt : std::optional<quint16>(address_it->second.address);
+  QString address_str = address.has_value() ? u"%1"_s.arg(address.value(), 4, 16, QChar('0')) : "    ";
+  auto code_it = object_code.ir_to_object_code.find(line);
+  bits::span<quint8> code = code_it == object_code.ir_to_object_code.end() ? bits::span<quint8>{} : code_it->second;
+  auto initial_line = u"%1 %2 %3"_s.arg(address_str, -4).arg(next_code(code), -6).arg(source_line);
+  out.emplaceBack(initial_line);
+  while (!code.empty()) out.emplaceBack(u"     %1"_s.arg(next_code(code)));
+}
+
+QStringList pepp::tc::format_listing(const ir::LinearIR *line, const IRMemoryAddressTable &addresses,
+                                     const ProgramObjectCodeResult &object_code) {
+  QStringList ret;
+  format_listing(line, addresses, object_code, ret);
+  return ret;
+}
+
+QStringList pepp::tc::format_listing(const PepIRProgram &program, const IRMemoryAddressTable &addresses,
+                                     const ProgramObjectCodeResult &object_code) {
+  QStringList ret;
+  for (const auto &line : program) format_listing(&*line, addresses, object_code, ret);
+  return ret;
 }
