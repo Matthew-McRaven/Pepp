@@ -3,6 +3,7 @@
 #include "toolchain2/support/source/location.hpp"
 
 namespace pepp::tc::ir {
+struct LinearIRVisitor;
 struct LinearIR {
   // Every deriving class must have a unique enum entry.
   enum class Type {
@@ -42,6 +43,8 @@ struct LinearIR {
   // visitor.
   virtual Type type() const = 0;
 
+  virtual void accept(LinearIRVisitor *visitor) const = 0;
+
   template <typename Attribute> const Attribute *typed_attribute() const {
     static_assert(std::is_base_of_v<attr::AAttribute, Attribute>, "Attribute must derive from attr::AAttribute");
     return dynamic_cast<const Attribute *>(attribute(Attribute::TYPE));
@@ -58,6 +61,7 @@ struct LinearIR {
 struct EmptyLine : public LinearIR {
   static constexpr LinearIR::Type TYPE = LinearIR::Type::Empty;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
 };
 
 struct CommentLine : public LinearIR {
@@ -66,6 +70,7 @@ struct CommentLine : public LinearIR {
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::Comment comment;
 };
 
@@ -76,6 +81,7 @@ struct MonadicInstruction : public LinearIR {
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::Pep10Mnemonic mnemonic;
 };
 
@@ -87,6 +93,7 @@ struct DyadicInstruction : public LinearIR {
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::Pep10Mnemonic mnemonic;
   attr::Pep10AddrMode addr_mode;
   attr::Argument argument;
@@ -115,6 +122,7 @@ struct DotAlign : public LinearIR {
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::Argument argument;
 };
 
@@ -126,6 +134,7 @@ struct DotLiteral : public LinearIR { // ASCII, byte, word
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::Argument argument;
 };
 
@@ -136,6 +145,7 @@ struct DotBlock : public LinearIR { // Block
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   std::optional<quint16> object_size(quint16 base_address) const override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::Argument argument;
 };
 
@@ -145,6 +155,7 @@ struct DotEquate : public LinearIR {
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::SymbolDeclaration symbol;
   attr::Argument argument;
 };
@@ -155,6 +166,7 @@ struct DotSection : public LinearIR {
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::Identifier name;
   attr::SectionFlags flags;
 };
@@ -167,6 +179,7 @@ struct DotAnnotate : public LinearIR {
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::Argument argument;
 };
 
@@ -178,6 +191,7 @@ struct DotOrg : public LinearIR {
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
   Type type() const override;
+  void accept(LinearIRVisitor *visitor) const override;
   attr::Argument argument;
 };
 

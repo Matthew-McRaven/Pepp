@@ -17,7 +17,9 @@
 
 #include "toolchain2/asmb/pep_format.hpp"
 #include <catch.hpp>
+#include "toolchain2/asmb/pep_ir_visitor.hpp"
 #include "toolchain2/asmb/pep_lexer.hpp"
+#include "toolchain2/asmb/pep_parser.hpp"
 #include "toolchain2/asmb/pep_tokens.hpp"
 #include "toolchain2/support/lex/buffer.hpp"
 
@@ -31,21 +33,59 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Buffer = pepp::tc::lex::Buffer;
   using Checkpoint = pepp::tc::lex::Checkpoint;
+  using Parser = pepp::tc::parser::PepParser;
   using namespace pepp::tc::lex;
   using pepp::tc::format;
+  SECTION("Empty Line") {
+
+    static const auto txt = "\n";
+    auto l = Lexer(idpool(), data(txt));
+    auto b = Buffer(&l);
+    Checkpoint{b};
+    CHECK(b.match<Empty>());
+    auto sp = b.matched_tokens();
+    auto lexer_formatted = format(sp).toStdString();
+    CHECK(lexer_formatted == "");
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
+  }
+  SECTION("Comment-only") {
+    static const auto txt = R"(    ;******* STRO)";
+    auto l = Lexer(idpool(), data(txt));
+    auto b = Buffer(&l);
+    Checkpoint{b};
+    CHECK(b.match<InlineComment>());
+    CHECK(b.match<Empty>());
+    auto sp = b.matched_tokens();
+    auto lexer_formatted = format(sp).toStdString();
+    CHECK(lexer_formatted == R"(;******* STRO)");
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
+  }
   SECTION("Monadic Instruction") {
     {
-      auto l = Lexer(idpool(), data("NOTA ;hi"));
+      static const auto txt = "NOTA ;hi";
+      auto l = Lexer(idpool(), data(txt));
       auto b = Buffer(&l);
       Checkpoint{b};
       CHECK(b.match<Identifier>());
       CHECK(b.match<InlineComment>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      CHECK(format(sp).toStdString() == "         NOTA                ;hi");
+      auto lexer_formatted = format(sp).toStdString();
+      CHECK(lexer_formatted == "         NOTA                ;hi");
+      auto p = Parser(data(txt));
+      auto r = p.parse();
+      CHECK(r.size() == 1);
+      CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
     {
-      auto l = Lexer(idpool(), data("this: NOTA ;hi"));
+      static const auto txt = "this: NOTA ;hi";
+      auto l = Lexer(idpool(), data(txt));
       auto b = Buffer(&l);
       Checkpoint{b};
       CHECK(b.match<SymbolDeclaration>());
@@ -53,12 +93,18 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       CHECK(b.match<InlineComment>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      CHECK(format(sp).toStdString() == "this:    NOTA                ;hi");
+      auto lexer_formatted = format(sp).toStdString();
+      CHECK(lexer_formatted == "this:    NOTA                ;hi");
+      auto p = Parser(data(txt));
+      auto r = p.parse();
+      CHECK(r.size() == 1);
+      CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
   }
   SECTION("Dyadic Instruction w/addressing modes") {
     {
-      auto l = Lexer(idpool(), data("ADDA 15,d ;hi"));
+      static const auto txt = "ADDA 15,d ;hi";
+      auto l = Lexer(idpool(), data(txt));
       auto b = Buffer(&l);
       Checkpoint{b};
       CHECK(b.match<Identifier>());
@@ -68,10 +114,16 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       CHECK(b.match<InlineComment>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      CHECK(format(sp).toStdString() == "         ADDA    15,d        ;hi");
+      auto lexer_formatted = format(sp).toStdString();
+      CHECK(lexer_formatted == "         ADDA    15,d        ;hi");
+      auto p = Parser(data(txt));
+      auto r = p.parse();
+      CHECK(r.size() == 1);
+      CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
     {
-      auto l = Lexer(idpool(), data("this:ADDA this,sfx"));
+      static const auto txt = "this:ADDA this,sfx";
+      auto l = Lexer(idpool(), data(txt));
       auto b = Buffer(&l);
       Checkpoint{b};
       CHECK(b.match<SymbolDeclaration>());
@@ -81,11 +133,17 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       CHECK(b.match<Identifier>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      CHECK(format(sp).toStdString() == "this:    ADDA    this,sfx");
+      auto lexer_formatted = format(sp).toStdString();
+      CHECK(lexer_formatted == "this:    ADDA    this,sfx");
+      auto p = Parser(data(txt));
+      auto r = p.parse();
+      CHECK(r.size() == 1);
+      CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
     // Fix capitalization on addressing modes and mnemonics.
     {
-      auto l = Lexer(idpool(), data("this:addA this,sFx"));
+      static const auto txt = "this:addA this,sFx";
+      auto l = Lexer(idpool(), data(txt));
       auto b = Buffer(&l);
       Checkpoint{b};
       CHECK(b.match<SymbolDeclaration>());
@@ -95,7 +153,12 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       CHECK(b.match<Identifier>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      CHECK(format(sp).toStdString() == "this:    ADDA    this,sfx");
+      auto lexer_formatted = format(sp).toStdString();
+      CHECK(lexer_formatted == "this:    ADDA    this,sfx");
+      auto p = Parser(data(txt));
+      auto r = p.parse();
+      CHECK(r.size() == 1);
+      CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
   }
   SECTION("Dyadic Instruction w/o addressing modes") {
@@ -110,9 +173,77 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     CHECK(format(sp).toStdString() == "this:    ADDA    this");
   }
+  SECTION(".ALIGN") {
+    static const auto txt = R"(execErr:   .ALIGN     8  )";
+    auto l = Lexer(idpool(), data(txt));
+    auto b = Buffer(&l);
+    Checkpoint{b};
+    CHECK(b.match<SymbolDeclaration>());
+    CHECK(b.match<DotCommand>());
+    CHECK(b.match<Integer>());
+    CHECK(b.match<Empty>());
+    auto sp = b.matched_tokens();
+    auto lexer_formatted = format(sp).toStdString();
+    CHECK(lexer_formatted == R"(execErr: .ALIGN  8)");
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
+  }
+  SECTION(".ASCII") {
+    static const auto txt = R"(execErr:   .ascii "Main failed with return value \0"  )";
+    auto l = Lexer(idpool(), data(txt));
+    auto b = Buffer(&l);
+    Checkpoint{b};
+    CHECK(b.match<SymbolDeclaration>());
+    CHECK(b.match<DotCommand>());
+    CHECK(b.match<StringConstant>());
+    CHECK(b.match<Empty>());
+    auto sp = b.matched_tokens();
+    auto lexer_formatted = format(sp).toStdString();
+    CHECK(lexer_formatted == R"(execErr: .ASCII  "Main failed with return value \0")");
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
+  }
+  SECTION(".BLOCK") {
+    static const auto txt = R"(execErr:   .BLOCK     8  )";
+    auto l = Lexer(idpool(), data(txt));
+    auto b = Buffer(&l);
+    Checkpoint{b};
+    CHECK(b.match<SymbolDeclaration>());
+    CHECK(b.match<DotCommand>());
+    CHECK(b.match<Integer>());
+    CHECK(b.match<Empty>());
+    auto sp = b.matched_tokens();
+    auto lexer_formatted = format(sp).toStdString();
+    CHECK(lexer_formatted == R"(execErr: .BLOCK  8)");
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
+  }
+  SECTION(".EQUATE") {
+    static const auto txt = R"(execErr:   .EQUATE     8  )";
+    auto l = Lexer(idpool(), data(txt));
+    auto b = Buffer(&l);
+    Checkpoint{b};
+    CHECK(b.match<SymbolDeclaration>());
+    CHECK(b.match<DotCommand>());
+    CHECK(b.match<Integer>());
+    CHECK(b.match<Empty>());
+    auto sp = b.matched_tokens();
+    auto lexer_formatted = format(sp).toStdString();
+    CHECK(lexer_formatted == R"(execErr: .EQUATE 8)");
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
+  }
   SECTION(".SECTION") {
-    // Illegal assembly code which demonstrates that formatting does not depend on program being correct.
-    auto l = Lexer(idpool(), data(R"(.SECTION "text",    "rx")"));
+    static const auto txt = R"(.SECTION "text",    "rx")";
+    auto l = Lexer(idpool(), data(txt));
     auto b = Buffer(&l);
     Checkpoint{b};
     CHECK(b.match<DotCommand>());
@@ -121,26 +252,43 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<StringConstant>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    CHECK(format(sp).toStdString() == R"(         .SECTION "text", "rx")");
+    auto lexer_formatted = format(sp).toStdString();
+    CHECK(lexer_formatted == R"(         .SECTION "text", "rx")");
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
-  SECTION(".ASCII") {
-    auto l = Lexer(idpool(), data(R"(execErr:   .ascii "Main failed with return value \0"  )"));
+  SECTION(".IMPORT") {
+    static const auto txt = R"(.export     feed  )";
+    auto l = Lexer(idpool(), data(txt));
     auto b = Buffer(&l);
     Checkpoint{b};
-    CHECK(b.match<SymbolDeclaration>());
     CHECK(b.match<DotCommand>());
-    CHECK(b.match<StringConstant>());
+    CHECK(b.match<Identifier>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    CHECK(format(sp).toStdString() == R"(execErr: .ASCII  "Main failed with return value \0")");
+    auto lexer_formatted = format(sp).toStdString();
+    CHECK(lexer_formatted == R"(         .EXPORT feed)");
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
-  SECTION("Comment-only") {
-    auto l = Lexer(idpool(), data(R"(    ;******* STRO)"));
+  SECTION(".ORG") {
+    static const auto txt = R"(.ORG     0xfeed  )";
+    auto l = Lexer(idpool(), data(txt));
     auto b = Buffer(&l);
     Checkpoint{b};
-    CHECK(b.match<InlineComment>());
+    CHECK(b.match<DotCommand>());
+    CHECK(b.match<Integer>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    CHECK(format(sp).toStdString() == R"(;******* STRO)");
+    auto lexer_formatted = format(sp).toStdString();
+    CHECK(lexer_formatted == R"(         .ORG    0xFEED)");
+    auto p = Parser(data(txt));
+    auto r = p.parse();
+    CHECK(r.size() == 1);
+    CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
 }

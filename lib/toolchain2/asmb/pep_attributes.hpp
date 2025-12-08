@@ -82,6 +82,7 @@ struct SectionFlags : public AAttribute {
   // Must update == if flags changes. Cannot use default due to abstract base class.
   bool r = false, w = false, x = false, z = false;
   bool operator==(const SectionFlags &rhs) const;
+  QString to_string() const;
 };
 
 // Intentionally NOT an AAttribute, because I do not want it stored in my primary IR.

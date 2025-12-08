@@ -1,4 +1,5 @@
 #include "./pep_ir.hpp"
+#include "toolchain2/asmb/pep_ir_visitor.hpp"
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::LinearIR::attribute(attr::Type type) const {
   for (attr::ListNode *it = extended_attributes.get(); it != nullptr; it = it->next.get())
@@ -30,6 +31,8 @@ void pepp::tc::ir::CommentLine::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
+void pepp::tc::ir::CommentLine::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
+
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::CommentLine::type() const { return TYPE; }
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::MonadicInstruction::attribute(attr::Type type) const {
@@ -43,6 +46,8 @@ void pepp::tc::ir::MonadicInstruction::insert(std::unique_ptr<attr::AAttribute> 
 }
 
 std::optional<quint16> pepp::tc::ir::MonadicInstruction::object_size(quint16 base_address) const { return 1; }
+
+void pepp::tc::ir::MonadicInstruction::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
 
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::MonadicInstruction::type() const { return TYPE; }
 
@@ -60,6 +65,8 @@ void pepp::tc::ir::DyadicInstruction::insert(std::unique_ptr<attr::AAttribute> a
 }
 
 std::optional<quint16> pepp::tc::ir::DyadicInstruction::object_size(quint16) const { return 3; }
+
+void pepp::tc::ir::DyadicInstruction::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
 
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DyadicInstruction::type() const { return TYPE; }
 
@@ -85,6 +92,8 @@ std::optional<quint16> pepp::tc::ir::DotAlign::object_size(quint16 base_address)
   // else return 0;
 }
 
+void pepp::tc::ir::DotAlign::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
+
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotAlign::type() const { return TYPE; }
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotLiteral::attribute(attr::Type type) const {
@@ -107,6 +116,8 @@ std::optional<quint16> pepp::tc::ir::DotLiteral::object_size(quint16) const {
   }
 }
 
+void pepp::tc::ir::DotLiteral::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
+
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotLiteral::type() const { return TYPE; }
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::DotBlock::attribute(attr::Type type) const {
@@ -122,6 +133,8 @@ void pepp::tc::ir::DotBlock::insert(std::unique_ptr<attr::AAttribute> attr) {
 }
 
 std::optional<quint16> pepp::tc::ir::DotBlock::object_size(quint16) const { return argument.value->value<quint16>(); }
+
+void pepp::tc::ir::DotBlock::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
 
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotBlock::type() const { return TYPE; }
 
@@ -140,6 +153,8 @@ void pepp::tc::ir::DotEquate::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
+void pepp::tc::ir::DotEquate::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
+
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotEquate::type() const { return TYPE; }
 
 pepp::tc::ir::DotSection::DotSection(attr::Identifier name, attr::SectionFlags flags) : name(name), flags(flags) {}
@@ -156,6 +171,8 @@ void pepp::tc::ir::DotSection::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
+void pepp::tc::ir::DotSection::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
+
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotSection::type() const { return TYPE; }
 
 pepp::tc::ir::DotAnnotate::DotAnnotate(Which which, attr::Argument arg) : which(which), argument(arg) {}
@@ -169,6 +186,8 @@ void pepp::tc::ir::DotAnnotate::insert(std::unique_ptr<attr::AAttribute> attr) {
   if (attr->type() == attr::Type::Argument) argument = *(static_cast<attr::Argument *>(attr.release()));
   else LinearIR::insert(std::move(attr));
 }
+
+void pepp::tc::ir::DotAnnotate::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
 
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotAnnotate::type() const { return TYPE; }
 
@@ -189,4 +208,8 @@ void pepp::tc::ir::DotOrg::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
+void pepp::tc::ir::DotOrg::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
+
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotOrg::type() const { return TYPE; }
+
+void pepp::tc::ir::EmptyLine::accept(LinearIRVisitor *visitor) const {}

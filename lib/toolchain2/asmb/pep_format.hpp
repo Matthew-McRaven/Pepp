@@ -12,6 +12,12 @@ static constexpr int col2_width = 12; // Operand specifier + addressing mode, do
 } // namespace indents
 
 namespace pepp::tc {
+// Helper which formats 4 columns of text using the default column width for pep/10.
+// Insert padding betweens columns when they bleed in to each other, and trims right spaces.
+QString format_as_columns(const QString &col0, const QString &col1, const QString &col2, const QString &col3);
+// If you modify this function, you must also modify SourceVisitor.
+// You must then also modify the tests proving equivalence between IR and token formatting.
+//
 // Format a sequence of tokens as Pep/N assembly source code.
 // It does not make semantic checks that the code is correct, and can be used in more cases than assemble+format.
 // If the line is not valid, it will return an empty string. In this case, you will need to reach into the tokenizer and

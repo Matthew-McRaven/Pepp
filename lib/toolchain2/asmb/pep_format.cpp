@@ -24,6 +24,20 @@ enum class States {
 };
 } // namespace
 
+QString pepp::tc::format_as_columns(const QString &col0, const QString &col1, const QString &col2,
+                                    const QString &col3) {
+  using namespace Qt::StringLiterals;
+  return rtrimmed(u"%1%2%3%4"_s
+                      .arg(col0, -indents::col0_width)
+                      // col1 is always identifier-like (dot commands, macros).
+                      // It must not bleed into column 2, or column 2 will later be parsed as part of column 1.
+                      // Conditionally insert a space to prevent that parsing issue.
+                      .arg(col1.size() >= indents::col1_width ? col1 + " " : col1, -indents::col1_width)
+                      .arg(col2, -indents::col2_width)
+                      .arg(col3))
+      .toString();
+}
+
 QString pepp::tc::format(std::span<std::shared_ptr<lex::Token> const> tokens) {
   using CTT = lex::CommonTokenType;
   using ATT = lex::AsmTokenType;
@@ -173,16 +187,6 @@ QString pepp::tc::format(std::span<std::shared_ptr<lex::Token> const> tokens) {
     default: break;
     }
   }
-  using namespace Qt::StringLiterals;
-  if (valid)
-    return rtrimmed(u"%1%2%3%4"_s
-                        .arg(col0, -indents::col0_width)
-                        // col1 is always identifier-like (dot commands, macros).
-                        // It must not bleed into column 2, or column 2 will later be parsed as part of column 1.
-                        // Conditionally insert a space to prevent that parsing issue.
-                        .arg(col1.size() >= indents::col1_width ? col1 + " " : col1, -indents::col1_width)
-                        .arg(col2, -indents::col2_width)
-                        .arg(col3))
-        .toString();
+  if (valid) return format_as_columns(col0, col1, col2, col3);
   return "";
 }

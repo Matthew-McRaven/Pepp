@@ -23,3 +23,9 @@ pepp::tc::ir::attr::Type pepp::tc::ir::attr::SectionFlags::type() const { return
 bool pepp::tc::ir::attr::SectionFlags::operator==(const SectionFlags &rhs) const {
   return r == rhs.r && w == rhs.w && x == rhs.x && z == rhs.z;
 }
+
+QString pepp::tc::ir::attr::SectionFlags::to_string() const {
+  using namespace Qt::StringLiterals;
+  static const QString rs = "r", ws = "w", xs = "x", zs = "z", e = "";
+  return u"%1%2%3%4"_s.arg(r ? rs : e, w ? ws : e, x ? xs : e, z ? zs : e);
+}
