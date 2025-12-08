@@ -67,6 +67,33 @@ using IRMemoryAddressTable = fc::flat_map<std::vector<IRMemoryAddressPair>, deta
 IRMemoryAddressTable assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
                                       quint16 initial_base_address = 0);
 
+// Create a lookup data structure that converts IR pointers back to the generated object code.
+// Since IR no longer know their own address, we need to cache the object code because it cannot easily be regenerated.
+using IR2ObjectPair = std::pair<const ir::LinearIR *, bits::span<quint8>>;
+struct IR2ObjectComparator {
+  bool operator()(const IR2ObjectPair &lhs, const IR2ObjectPair &rhs) const { return lhs.first < rhs.first; }
+  bool operator()(ir::LinearIR *const lhs, ir::LinearIR *const rhs) const { return lhs < rhs; }
+  bool operator()(const ir::LinearIR *const lhs, const ir::LinearIR *const rhs) const { return lhs < rhs; }
+};
+using IR2ObjectCodeMap = fc::flat_map<std::vector<IR2ObjectPair>, IR2ObjectComparator>;
+struct ProgramObjectCodeResult {
+  IR2ObjectCodeMap ir_to_object_code;
+  // A common arena for all section's object code and relocations
+  std::vector<quint8> object_code;
+  std::vector<void *> relocations;
+  struct SectionSpans {
+    bits::span<quint8> object_code;
+    bits::span<void *> relocations;
+  };
+  // Use section indicies from original "prog"
+  // Provides only the object code / relocations for a particular section descriptor.
+  std::vector<SectionSpans> section_spans;
+};
+
+ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable &,
+                                       std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog);
+
 QSharedPointer<ELFIO::elfio> to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                    const IRMemoryAddressTable &addrs, const std::vector<obj::IO> &mmios);
+                                    const IRMemoryAddressTable &addrs, const ProgramObjectCodeResult &object_code,
+                                    const std::vector<obj::IO> &mmios);
 }

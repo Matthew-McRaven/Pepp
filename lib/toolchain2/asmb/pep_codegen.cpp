@@ -4,6 +4,7 @@
 #include "bits/copy.hpp"
 #include "fmt/format.h"
 #include "mmio.hpp"
+#include "pep_ir_visitor.hpp"
 #include "spdlog/spdlog.h"
 #include "toolchain/symbol/table.hpp"
 #include "toolchain/symbol/visit.hpp"
@@ -262,7 +263,9 @@ static QSharedPointer<ELFIO::elfio> create_elf() {
   return ret;
 }
 QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                              const IRMemoryAddressTable &addrs, const std::vector<obj::IO> &mmios) {
+                                              const IRMemoryAddressTable &addrs,
+                                              const ProgramObjectCodeResult &object_code,
+                                              const std::vector<obj::IO> &mmios) {
 
   ELFIO::segment *activeSeg = nullptr;
   auto ret = create_elf();
@@ -326,11 +329,10 @@ QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescr
       sec->set_size(section_memory_sizes[it]);
     } else {
       SPDLOG_TRACE("{} assigned {:x} bytes", fullName, bytes.size());
-      std::vector<qint8> bytes(section_memory_sizes[it], 0);
-      // TODO: copy over IR bytes
-      Q_ASSERT(bytes.size() == section_memory_sizes[it]);
+      auto sec_data = object_code.section_spans[it];
+      // Cannot convert between quint8 and qint8 without reinterpret cast. Sorry for future linter errors.
+      sec->set_data(reinterpret_cast<char *>(sec_data.object_code.data()), sec_data.object_code.size_bytes());
       sec->set_type(ELFIO::SHT_PROGBITS);
-      sec->set_data((const char *)bytes.data(), bytes.size());
     }
 
     if (sec_desc.flags.z) getOrCreateBSS(sec_desc.flags);
@@ -356,5 +358,139 @@ QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescr
   ::obj::addMMIODeclarations(*ret, symTab, mmios);*/
   // pas::obj::common::writeLineMapping(*_elf, *_osRoot);
   //  pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
+  return ret;
+}
+
+namespace pepp::tc {
+struct ObjectCodeVisitor : public ir::LinearIRVisitor {
+  const IRMemoryAddressTable &ir_to_address;
+  // On each call, out_bytes will be shortened by the size of the visited line;
+  bits::span<quint8> out_bytes;
+  std::vector<void *> &relocations;
+  IR2ObjectCodeMap &ir_to_object_code;
+  ObjectCodeVisitor(const IRMemoryAddressTable &, bits::span<quint8>, std::vector<void *> &, IR2ObjectCodeMap &);
+  void visit(const ir::EmptyLine *) override;
+  void visit(const ir::CommentLine *) override;
+  void visit(const ir::MonadicInstruction *) override;
+  void visit(const ir::DyadicInstruction *) override;
+  void visit(const ir::DotAlign *) override;
+  void visit(const ir::DotLiteral *) override;
+  void visit(const ir::DotBlock *) override;
+  void visit(const ir::DotEquate *) override;
+  void visit(const ir::DotSection *) override;
+  void visit(const ir::DotAnnotate *) override;
+  void visit(const ir::DotOrg *) override;
+};
+
+pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(const IRMemoryAddressTable &ir_to_address, bits::span<quint8> out_bytes,
+                                               std::vector<void *> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : ir_to_address(ir_to_address), out_bytes(out_bytes), relocations(relocs), ir_to_object_code(ir_to_object_code) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::EmptyLine *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::CommentLine *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::MonadicInstruction *line) {
+  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(1)});
+  out_bytes = out_bytes.subspan(1);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DyadicInstruction *line) {
+  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
+  line->argument.value->value(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
+  out_bytes = out_bytes.subspan(3);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAlign *line) {
+  auto addr_info = ir_to_address.at(static_cast<const ir::DotAlign *const>(line));
+  std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
+  out_bytes = out_bytes.subspan(addr_info.size);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotLiteral *line) {
+  auto addr_info = ir_to_address.at(static_cast<const ir::DotLiteral *const>(line));
+  line->argument.value->value(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
+  out_bytes = out_bytes.subspan(addr_info.size);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotBlock *line) {
+  auto addr_info = ir_to_address.at(static_cast<const ir::DotBlock *const>(line));
+  std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
+  out_bytes = out_bytes.subspan(addr_info.size);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotEquate *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotSection *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAnnotate *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotOrg *) {}
+} // namespace pepp::tc
+namespace {
+struct SectionOffsets {
+  size_t object_code_offset = 0, object_code_size = 0;
+  size_t reloc_offset = 0, reloc_size = 0;
+};
+} // namespace
+pepp::tc::ProgramObjectCodeResult
+pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
+                         std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
+  ProgramObjectCodeResult ret;
+  using Item = std::pair<SectionDescriptor, PepIRProgram>;
+  std::vector<SectionOffsets> offsets(prog.size(), SectionOffsets{});
+  quint32 object_size = 0, ir_count = 0;
+  for (int it = 0; it < prog.size(); it++) {
+    const auto &sec = prog[it];
+    if (sec.first.flags.z) continue; // No bytes in ELF for Z section; no relocations possible.
+    offsets[it].object_code_size = sec.first.byte_count;
+    offsets[it].object_code_offset = object_size;
+    object_size += sec.first.byte_count;
+    ir_count += sec.second.size();
+  }
+  ret.object_code.resize(object_size, 0);
+  ret.ir_to_object_code.container.reserve(ir_count);
+  ret.section_spans.reserve(prog.size());
+
+  for (int it = 0; it < prog.size(); it++) {
+    const auto &sec = prog[it];
+    auto &offset = offsets[it];
+    auto code_begin = ret.object_code.begin() + offset.object_code_offset;
+    auto code_end = code_begin + offset.object_code_size;
+
+    auto oc_subspan = bits::span<quint8>(code_begin, code_end);
+    ObjectCodeVisitor visitor(addresses, oc_subspan, ret.relocations, ret.ir_to_object_code);
+    offset.reloc_offset = ret.relocations.size();
+    for (const auto &line : sec.second) line->accept(&visitor);
+    offset.reloc_size = offset.reloc_offset - ret.relocations.size();
+  }
+
+  // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate
+  // relocation info.
+  using SectionSpans = ProgramObjectCodeResult::SectionSpans;
+  for (int it = 0; it < prog.size(); it++) {
+    auto &offset = offsets[it];
+    const auto &sec = prog[it];
+    // Z sections need entries in section_spans, but those entries should be empty.
+    if (sec.first.flags.z) {
+      ret.section_spans.emplace_back(SectionSpans{{}, {}});
+    } else {
+      auto code_begin = ret.object_code.begin() + offset.object_code_offset;
+      auto code_end = code_begin + offset.object_code_size;
+      auto oc_subspan = bits::span<quint8>(code_begin, code_end);
+      auto reloc_begin = ret.relocations.begin() + offset.reloc_offset;
+      auto reloc_end = reloc_begin + offset.reloc_size;
+      auto reloc_subspan = bits::span<void *>(reloc_begin, reloc_end);
+      ret.section_spans.emplace_back(SectionSpans{oc_subspan, reloc_subspan});
+    }
+  }
+
+  //  Establish flat-map invariant
+  std::sort(ret.ir_to_object_code.container.begin(), ret.ir_to_object_code.container.end(), IR2ObjectComparator{});
   return ret;
 }

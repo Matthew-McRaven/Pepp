@@ -17,6 +17,7 @@
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
 #include "toolchain2/asmb/pep_codegen.hpp"
+#include "toolchain2/asmb/pep_ir_visitor.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
 
 using namespace Qt::StringLiterals;
@@ -54,7 +55,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto result = pepp::tc::split_to_sections(results);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
-    auto elf = pepp::tc::to_elf(sections, addresses, result.mmios);
+    auto object_code = pepp::tc::to_object_code(addresses, sections);
+    auto elf = pepp::tc::to_elf(sections, addresses, object_code, result.mmios);
     CHECK(sections.size() == 3);
     elf->save("dummy.elf");
   }
