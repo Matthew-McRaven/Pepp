@@ -121,8 +121,9 @@ QString pepp::tc::ir::format_source(const LinearIR *line) {
 }
 
 pepp::tc::ir::ObjectCodeVisitor::ObjectCodeVisitor(const IRMemoryAddressTable &ir_to_address,
-                                                   bits::span<quint8> out_bytes)
-    : ir_to_address(ir_to_address), out_bytes(out_bytes) {}
+                                                   bits::span<quint8> out_bytes, std::vector<void *> &relocs,
+                                                   IR2ObjectCodeMap &ir_to_object_code)
+    : ir_to_address(ir_to_address), out_bytes(out_bytes), relocations(relocs), ir_to_object_code(ir_to_object_code) {}
 
 void pepp::tc::ir::ObjectCodeVisitor::visit(const EmptyLine *) {}
 
@@ -170,16 +171,58 @@ void pepp::tc::ir::ObjectCodeVisitor::visit(const DotAnnotate *) {}
 
 void pepp::tc::ir::ObjectCodeVisitor::visit(const DotOrg *) {}
 
-pepp::tc::ir::ObjectCodeResult pepp::tc::ir::to_object_code(const IRMemoryAddressTable addresses,
-                                                            const SectionDescriptor &desc, const PepIRProgram &prog) {
-  ObjectCodeResult ret;
-  ret.object_code.resize(desc.byte_count, 0);
-  ret.ir_to_object_code.container.reserve(prog.size());
-  ObjectCodeVisitor visitor(addresses, bits::span<quint8>(ret.object_code));
-  for (const auto &line : prog) line->accept(&visitor);
-  ret.relocations = std::move(visitor.relocations);
-  ret.ir_to_object_code = std::move(visitor.ir_to_object_code);
-  // Establish flat-map invariant
+namespace {
+struct SectionOffsets {
+  size_t object_code_offset = 0, object_code_size = 0;
+  size_t reloc_offset = 0, reloc_size = 0;
+};
+} // namespace
+pepp::tc::ir::ProgramObjectCodeResult
+pepp::tc::ir::to_object_code(const IRMemoryAddressTable &addresses,
+                             std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
+  ProgramObjectCodeResult ret;
+  using Item = std::pair<SectionDescriptor, PepIRProgram>;
+  std::vector<SectionOffsets> offsets(prog.size(), SectionOffsets{});
+  quint32 object_size = 0, ir_count = 0;
+  for (int it = 0; it < prog.size(); it++) {
+    const auto &sec = prog[it];
+    offsets[it].object_code_size = sec.first.byte_count;
+    offsets[it].object_code_offset = object_size;
+    object_size += sec.first.byte_count;
+    ir_count += sec.second.size();
+  }
+  ret.object_code.resize(object_size, 0);
+  ret.ir_to_object_code.container.reserve(ir_count);
+  ret.section_spans.reserve(prog.size());
+
+  for (int it = 0; it < prog.size(); it++) {
+    const auto &sec = prog[it];
+    auto &offset = offsets[it];
+    auto code_begin = ret.object_code.begin() + offset.object_code_offset;
+    auto code_end = code_begin + offset.object_code_size;
+
+    auto oc_subspan = bits::span<quint8>(code_begin, code_end);
+    ObjectCodeVisitor visitor(addresses, oc_subspan, ret.relocations, ret.ir_to_object_code);
+    offset.reloc_offset = ret.relocations.size();
+    for (const auto &line : sec.second) line->accept(&visitor);
+    offset.reloc_size = offset.reloc_offset - ret.relocations.size();
+  }
+
+  // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate
+  // relocation info.
+  for (int it = 0; it < prog.size(); it++) {
+    auto &offset = offsets[it];
+    auto code_begin = ret.object_code.begin() + offset.object_code_offset;
+    auto code_end = code_begin + offset.object_code_size;
+    auto oc_subspan = bits::span<quint8>(code_begin, code_end);
+    auto reloc_begin = ret.relocations.begin() + offset.reloc_offset;
+    auto reloc_end = reloc_begin + offset.reloc_size;
+    auto reloc_subspan = bits::span<void *>(reloc_begin, reloc_end);
+    using SectionSpans = ProgramObjectCodeResult::SectionSpans;
+    ret.section_spans.emplace_back(SectionSpans{oc_subspan, reloc_subspan});
+  }
+
+  //  Establish flat-map invariant
   std::sort(ret.ir_to_object_code.container.begin(), ret.ir_to_object_code.container.end(), IR2ObjectComparator{});
   return ret;
 }

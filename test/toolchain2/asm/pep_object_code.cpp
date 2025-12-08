@@ -48,23 +48,26 @@ TEST_CASE("Pepp ASM object code output", "[scope:asm][kind:unit][arch:*][tc2]") 
   auto sectioned_ir = pepp::tc::split_to_sections(full_ir);
   auto &sections = sectioned_ir.grouped_ir;
   auto addresses = pepp::tc::assign_addresses(sections);
-
+  auto object_code = to_object_code(addresses, sections);
   CHECK(sections.size() == 3);
-  auto s0 = to_object_code(addresses, sections[0].first, sections[0].second);
+  CHECK(object_code.section_spans.size() == 3);
+  auto s0 = object_code.section_spans[0];
   CHECK(s0.object_code.size() == 6);
-  CHECK(s0.object_code == std::vector<quint8>{0xC1, 0x00, 0x0A, 0x24, 0x00, 0x00});
+  CHECK(std::vector<quint8>(s0.object_code.begin(), s0.object_code.end()) ==
+        std::vector<quint8>{0xC1, 0x00, 0x0A, 0x24, 0x00, 0x00});
   auto s02 = sections[0].second[2].get();
   auto s03 = sections[0].second[3].get();
-  CHECK(s0.ir_to_object_code.find(s02) != s0.ir_to_object_code.end());
-  CHECK(s0.ir_to_object_code.find(s03) != s0.ir_to_object_code.end());
-  CHECK(s0.ir_to_object_code.at(s02).size() == 3);
-  CHECK(s0.ir_to_object_code.at(s03).size() == 3);
-  auto s1 = to_object_code(addresses, sections[1].first, sections[1].second);
+  CHECK(object_code.ir_to_object_code.find(s02) != object_code.ir_to_object_code.end());
+  CHECK(object_code.ir_to_object_code.find(s03) != object_code.ir_to_object_code.end());
+  CHECK(object_code.ir_to_object_code.at(s02).size() == 3);
+  CHECK(object_code.ir_to_object_code.at(s03).size() == 3);
+  auto s1 = object_code.section_spans[1];
   CHECK(s1.object_code.size() == 30);
   CHECK(s1.object_code[0] == 0);
-  CHECK(s1.ir_to_object_code.at(sections[1].second[1].get()).size() == 30);
+  CHECK(object_code.ir_to_object_code.at(sections[1].second[1].get()).size() == 30);
   CHECK(std::equal(s1.object_code.begin() + 1, s1.object_code.end(), s1.object_code.begin()));
-  auto s2 = to_object_code(addresses, sections[2].first, sections[2].second);
+  auto s2 = object_code.section_spans[2];
   CHECK(s2.object_code.size() == 4);
-  CHECK(s2.object_code == std::vector<quint8>{0x00, 0x0A, 0x00, 0x00});
+  CHECK(std::vector<quint8>(s2.object_code.begin(), s2.object_code.end()) ==
+        std::vector<quint8>{0x00, 0x0A, 0x00, 0x00});
 }

@@ -63,9 +63,9 @@ struct ObjectCodeVisitor : public LinearIRVisitor {
   const IRMemoryAddressTable &ir_to_address;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<quint8> out_bytes;
-  std::vector<void *> relocations;
-  IR2ObjectCodeMap ir_to_object_code;
-  ObjectCodeVisitor(const IRMemoryAddressTable &, bits::span<quint8>);
+  std::vector<void *> &relocations;
+  IR2ObjectCodeMap &ir_to_object_code;
+  ObjectCodeVisitor(const IRMemoryAddressTable &, bits::span<quint8>, std::vector<void *> &, IR2ObjectCodeMap &);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const MonadicInstruction *) override;
@@ -79,11 +79,20 @@ struct ObjectCodeVisitor : public LinearIRVisitor {
   void visit(const DotOrg *) override;
 };
 
-struct ObjectCodeResult {
+struct ProgramObjectCodeResult {
+  IR2ObjectCodeMap ir_to_object_code;
+  // A common arena for all section's object code and relocations
   std::vector<quint8> object_code;
   std::vector<void *> relocations;
-  IR2ObjectCodeMap ir_to_object_code;
+  struct SectionSpans {
+    bits::span<quint8> object_code;
+    bits::span<void *> relocations;
+  };
+  // Use section indicies from original "prog"
+  // Provides only the object code / relocations for a particular section descriptor.
+  std::vector<SectionSpans> section_spans;
 };
 
-ObjectCodeResult to_object_code(const IRMemoryAddressTable, const SectionDescriptor &desc, const PepIRProgram &prog);
+ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable &,
+                                       std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog);
 } // namespace pepp::tc::ir
