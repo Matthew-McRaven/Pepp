@@ -17,7 +17,7 @@
 
 #include "toolchain2/asmb/pep_format.hpp"
 #include <catch.hpp>
-#include "toolchain2/asmb/pep_ir_visitor.hpp"
+#include "toolchain2/asmb/pep_format.hpp"
 #include "toolchain2/asmb/pep_lexer.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
 #include "toolchain2/asmb/pep_tokens.hpp"
@@ -35,7 +35,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Checkpoint = pepp::tc::lex::Checkpoint;
   using Parser = pepp::tc::parser::PepParser;
   using namespace pepp::tc::lex;
-  using pepp::tc::format;
+  using pepp::tc::format_source;
   SECTION("Empty Line") {
 
     static const auto txt = "\n";
@@ -44,7 +44,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     Checkpoint{b};
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    auto lexer_formatted = format(sp).toStdString();
+    auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == "");
     auto p = Parser(data(txt));
     auto r = p.parse();
@@ -59,7 +59,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<InlineComment>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    auto lexer_formatted = format(sp).toStdString();
+    auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(;******* STRO)");
     auto p = Parser(data(txt));
     auto r = p.parse();
@@ -76,7 +76,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       CHECK(b.match<InlineComment>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      auto lexer_formatted = format(sp).toStdString();
+      auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "         NOTA                ;hi");
       auto p = Parser(data(txt));
       auto r = p.parse();
@@ -93,7 +93,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       CHECK(b.match<InlineComment>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      auto lexer_formatted = format(sp).toStdString();
+      auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "this:    NOTA                ;hi");
       auto p = Parser(data(txt));
       auto r = p.parse();
@@ -114,7 +114,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       CHECK(b.match<InlineComment>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      auto lexer_formatted = format(sp).toStdString();
+      auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "         ADDA    15,d        ;hi");
       auto p = Parser(data(txt));
       auto r = p.parse();
@@ -133,7 +133,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       CHECK(b.match<Identifier>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      auto lexer_formatted = format(sp).toStdString();
+      auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "this:    ADDA    this,sfx");
       auto p = Parser(data(txt));
       auto r = p.parse();
@@ -153,7 +153,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       CHECK(b.match<Identifier>());
       CHECK(b.match<Empty>());
       auto sp = b.matched_tokens();
-      auto lexer_formatted = format(sp).toStdString();
+      auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "this:    ADDA    this,sfx");
       auto p = Parser(data(txt));
       auto r = p.parse();
@@ -171,7 +171,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<Identifier>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    CHECK(format(sp).toStdString() == "this:    ADDA    this");
+    CHECK(format_source(sp).toStdString() == "this:    ADDA    this");
   }
   SECTION(".ALIGN") {
     static const auto txt = R"(execErr:   .ALIGN     8  )";
@@ -183,7 +183,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<Integer>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    auto lexer_formatted = format(sp).toStdString();
+    auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(execErr: .ALIGN  8)");
     auto p = Parser(data(txt));
     auto r = p.parse();
@@ -200,7 +200,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<StringConstant>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    auto lexer_formatted = format(sp).toStdString();
+    auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(execErr: .ASCII  "Main failed with return value \0")");
     auto p = Parser(data(txt));
     auto r = p.parse();
@@ -217,7 +217,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<Integer>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    auto lexer_formatted = format(sp).toStdString();
+    auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(execErr: .BLOCK  8)");
     auto p = Parser(data(txt));
     auto r = p.parse();
@@ -234,7 +234,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<Integer>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    auto lexer_formatted = format(sp).toStdString();
+    auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(execErr: .EQUATE 8)");
     auto p = Parser(data(txt));
     auto r = p.parse();
@@ -252,7 +252,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<StringConstant>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    auto lexer_formatted = format(sp).toStdString();
+    auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(         .SECTION "text", "rx")");
     auto p = Parser(data(txt));
     auto r = p.parse();
@@ -268,7 +268,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<Identifier>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    auto lexer_formatted = format(sp).toStdString();
+    auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(         .EXPORT feed)");
     auto p = Parser(data(txt));
     auto r = p.parse();
@@ -284,7 +284,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(b.match<Integer>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
-    auto lexer_formatted = format(sp).toStdString();
+    auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(         .ORG    0xFEED)");
     auto p = Parser(data(txt));
     auto r = p.parse();

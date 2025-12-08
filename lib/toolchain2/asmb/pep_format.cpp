@@ -1,6 +1,7 @@
 #include "pep_format.hpp"
 #include <QStringList>
 #include <fmt/format.h>
+#include "toolchain2/asmb/pep_ir_visitor.hpp"
 #include "toolchain2/asmb/pep_tokens.hpp"
 #include "utils/textutils.hpp"
 
@@ -28,17 +29,17 @@ QString pepp::tc::format_as_columns(const QString &col0, const QString &col1, co
                                     const QString &col3) {
   using namespace Qt::StringLiterals;
   return rtrimmed(u"%1%2%3%4"_s
-                      .arg(col0, -indents::col0_width)
+                      .arg(col0, -FormatOptions::col0_width)
                       // col1 is always identifier-like (dot commands, macros).
                       // It must not bleed into column 2, or column 2 will later be parsed as part of column 1.
                       // Conditionally insert a space to prevent that parsing issue.
-                      .arg(col1.size() >= indents::col1_width ? col1 + " " : col1, -indents::col1_width)
-                      .arg(col2, -indents::col2_width)
+                      .arg(col1.size() >= FormatOptions::col1_width ? col1 + " " : col1, -FormatOptions::col1_width)
+                      .arg(col2, -FormatOptions::col2_width)
                       .arg(col3))
       .toString();
 }
 
-QString pepp::tc::format(std::span<std::shared_ptr<lex::Token> const> tokens) {
+QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tokens) {
   using CTT = lex::CommonTokenType;
   using ATT = lex::AsmTokenType;
 
@@ -189,4 +190,140 @@ QString pepp::tc::format(std::span<std::shared_ptr<lex::Token> const> tokens) {
   }
   if (valid) return format_as_columns(col0, col1, col2, col3);
   return "";
+}
+
+namespace pepp::tc {
+struct SourceVisitor : public ir::LinearIRVisitor {
+  QString text;
+  void visit(const ir::EmptyLine *) override;
+  void visit(const ir::CommentLine *) override;
+  void visit(const ir::MonadicInstruction *) override;
+  void visit(const ir::DyadicInstruction *) override;
+  void visit(const ir::DotAlign *) override;
+  void visit(const ir::DotLiteral *) override;
+  void visit(const ir::DotBlock *) override;
+  void visit(const ir::DotEquate *) override;
+  void visit(const ir::DotSection *) override;
+  void visit(const ir::DotAnnotate *) override;
+  void visit(const ir::DotOrg *) override;
+};
+} // namespace pepp::tc
+
+void pepp::tc::SourceVisitor::visit(const ir::EmptyLine *) { text = ""; }
+
+void pepp::tc::SourceVisitor::visit(const ir::CommentLine *line) {
+  auto comment = ";" + line->comment.to_string();
+  text = format_as_columns(comment, "", "", "");
+}
+
+void pepp::tc::SourceVisitor::visit(const ir::MonadicInstruction *line) {
+  QString symbol = "", mn = "", comment = "";
+  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+    symbol = maybe_symbol->entry->name + ":";
+  mn = isa::Pep10::string(line->mnemonic.instruction);
+  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
+    comment = ";" + maybe_comment->to_string();
+  text = format_as_columns(symbol, mn, "", comment);
+}
+
+void pepp::tc::SourceVisitor::visit(const ir::DyadicInstruction *line) {
+  QStringList arg_list;
+  QString symbol = "", mn = "", comment = "";
+  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+    symbol = maybe_symbol->entry->name + ":";
+  mn = isa::Pep10::string(line->mnemonic.instruction);
+  arg_list.emplaceBack(line->argument.value->string());
+  auto addr_mode = line->addr_mode.addr_mode;
+  if (!isa::Pep10::canElideAddressingMode(line->mnemonic.instruction, addr_mode))
+    arg_list.emplaceBack(isa::Pep10::string(addr_mode));
+  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
+    comment = ";" + maybe_comment->to_string();
+  text = format_as_columns(symbol, mn, arg_list.join(","), comment);
+}
+
+void pepp::tc::SourceVisitor::visit(const ir::DotAlign *line) {
+  QString symbol = "", comment = "";
+  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+    symbol = maybe_symbol->entry->name + ":";
+  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
+    comment = ";" + maybe_comment->to_string();
+  text = format_as_columns(symbol, ".ALIGN", line->argument.value->string(), comment);
+}
+
+void pepp::tc::SourceVisitor::visit(const ir::DotLiteral *line) {
+  QString symbol = "", dot = "", comment = "";
+  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+    symbol = maybe_symbol->entry->name + ":";
+  using Which = ir::DotLiteral::Which;
+  switch (line->which) {
+  case Which::ASCII: dot = ".ASCII"; break;
+  case Which::Byte: dot = ".BYTE"; break;
+  case Which::Word: dot = ".WORD"; break;
+  }
+
+  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
+    comment = ";" + maybe_comment->to_string();
+  text = format_as_columns(symbol, dot, line->argument.value->string(), comment);
+}
+
+void pepp::tc::SourceVisitor::visit(const ir::DotBlock *line) {
+  QString symbol = "", comment = "";
+  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+    symbol = maybe_symbol->entry->name + ":";
+  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
+    comment = ";" + maybe_comment->to_string();
+  text = format_as_columns(symbol, ".BLOCK", line->argument.value->string(), comment);
+}
+
+void pepp::tc::SourceVisitor::visit(const ir::DotEquate *line) {
+  QString comment = "";
+  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
+    comment = ";" + maybe_comment->to_string();
+  text = format_as_columns(line->symbol.entry->name + ":", ".EQUATE", line->argument.value->string(), comment);
+}
+
+void pepp::tc::SourceVisitor::visit(const ir::DotSection *line) {
+  using namespace Qt::StringLiterals;
+  QStringList args;
+  args.emplaceBack(u"\"%1\""_s.arg(line->name.to_string()));
+  args.emplaceBack(u"\"%1\""_s.arg(line->flags.to_string()));
+  QString comment = "";
+  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
+    comment = ";" + maybe_comment->to_string();
+  text = format_as_columns("", ".SECTION", args.join(", "), comment);
+}
+
+void pepp::tc::SourceVisitor::visit(const ir::DotAnnotate *line) {
+  QString dot = "", comment = "";
+  using Which = ir::DotAnnotate::Which;
+  switch (line->which) {
+  case Which::EXPORT: dot = ".EXPORT"; break;
+  case Which::IMPORT: dot = ".IMPORT"; break;
+  case Which::INPUT: dot = ".INPUT"; break;
+  case Which::OUTPUT: dot = ".OUTPUT"; break;
+  case Which::SCALL: dot = ".SCALL"; break;
+  }
+
+  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
+    comment = ";" + maybe_comment->to_string();
+  text = format_as_columns("", dot, line->argument.value->string(), comment);
+}
+
+void pepp::tc::SourceVisitor::visit(const ir::DotOrg *line) {
+  QString dot = "", comment = "";
+  using Behavior = ir::DotOrg::Behavior;
+  switch (line->behavior) {
+  case Behavior::BURN: dot = ".BURN"; break;
+  case Behavior::ORG: dot = ".ORG"; break;
+  }
+
+  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
+    comment = ";" + maybe_comment->to_string();
+  text = format_as_columns("", dot, line->argument.value->string(), comment);
+}
+
+QString pepp::tc::format_source(const ir::LinearIR *line) {
+  SourceVisitor r;
+  line->accept(&r);
+  return r.text;
 }

@@ -31,21 +31,4 @@ struct LinearIRVisitor {
   virtual void visit(const DotOrg *) = 0;
 };
 
-// If you modify this class, you must also modify pep_format.
-// You must then also modify the tests proving equivalence between IR and token formatting.
-struct SourceVisitor : public LinearIRVisitor {
-  QString text;
-  void visit(const EmptyLine *) override;
-  void visit(const CommentLine *) override;
-  void visit(const MonadicInstruction *) override;
-  void visit(const DyadicInstruction *) override;
-  void visit(const DotAlign *) override;
-  void visit(const DotLiteral *) override;
-  void visit(const DotBlock *) override;
-  void visit(const DotEquate *) override;
-  void visit(const DotSection *) override;
-  void visit(const DotAnnotate *) override;
-  void visit(const DotOrg *) override;
-};
-QString format_source(const LinearIR *);
 } // namespace pepp::tc::ir
