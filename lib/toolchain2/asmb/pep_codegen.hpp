@@ -96,4 +96,6 @@ ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable &,
 QSharedPointer<ELFIO::elfio> to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
                                     const IRMemoryAddressTable &addrs, const ProgramObjectCodeResult &object_code,
                                     const std::vector<obj::IO> &mmios);
+
+void write_symbol_table(ELFIO::elfio &, symbol::Table &symbol_table, const QString name = ".symtab");
 }
