@@ -16,17 +16,6 @@
 
 #pragma once
 #include <QtCore>
-#if INCLUDE_GUI
-class QQmlApplicationEngine;
-// Base class for application-specific global handling.
-// Needed because an init_fn has a smaller lexical scope than the calling function,
-// so stack-allocated "globals" fall out of scope.
-struct gui_globals {
-  virtual ~gui_globals() = default;
-};
-// Perform any type-registration, create & bind necessary globals.
-using init_fn = QSharedPointer<gui_globals> (*)(QQmlApplicationEngine &);
-#endif
 
 namespace detail {
 struct SharedFlags {
@@ -35,7 +24,6 @@ struct SharedFlags {
   // or if a subcommand has explicitly chosen a mode.
   enum class Kind { DEFAULT, TERM, GUI };
   Kind kind = Kind::DEFAULT;
-
   int edValue = 6;
 };
 } // namespace detail
