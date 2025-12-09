@@ -103,11 +103,14 @@ int main(int argc, char **argv) {
 
   try {
     app.parse(modified_args.size(), modified_args.data());
+    // If no subcommand was selected (and task is therfore nullptr), we must exit before someone tries to use task.
+    if (task == nullptr) throw CLI::CallForHelp();
   } catch (const CLI::CallForHelp &e) {
     std::cout << app.help() << std::endl;
     return 0;
   } catch (const CLI::ParseError &e) {
     std::cerr << e.what() << std::endl;
+    std::cout << app.help() << std::endl;
     return 1;
   }
 

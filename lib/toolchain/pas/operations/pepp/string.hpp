@@ -31,6 +31,7 @@
 #include "toolchain/pas/operations/pepp/is.hpp"
 #include "toolchain/pas/operations/pepp/size.hpp"
 #include "toolchain/symbol/entry.hpp"
+#include "utils/textutils.hpp"
 
 namespace pas::ops::pepp {
 
@@ -151,12 +152,7 @@ template <typename ISA> QStringList pas::ops::pepp::list(const pas::ast::Node &n
     prettyBytes += u"%1"_s.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0')).toUpper();
 
   auto tempString = u"%1  %2 %3"_s.arg(address, 4).arg(prettyBytes, -byteCharCount).arg(format<ISA>(node, opts.source));
-  // Perform right-strip of string. `QString::trimmed() const` trims both ends.
-  qsizetype lastIndex = tempString.size() - 1;
-  while (QChar(tempString[lastIndex]).isSpace() && lastIndex > 0) lastIndex--;
-  // If line is all spaces, then the string should be empty. Otherwise, we need
-  // to add 1 to last index to convert index (0-based) to size (1-based).
-  ret.push_back(lastIndex == 0 ? u""_s : tempString.left(lastIndex + 1));
+  ret.push_back(rtrimmed(tempString).toString());
   // pretty bytes have been printed, so we can clear this accumulator value for
   // the next line.
   prettyBytes = "";

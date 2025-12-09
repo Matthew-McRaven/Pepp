@@ -90,3 +90,5 @@ file(ARCHIVE_EXTRACT INPUT ${CMAKE_CURRENT_BINARY_DIR}/monaspace.zip
 set(monaspace_SOURCE_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/monaspace"
     PARENT_SCOPE)
+
+include(Flat.cmake)

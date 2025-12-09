@@ -18,10 +18,10 @@
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_dump.hpp>
 #include <iostream>
-#include "help/builtins/figure.hpp"
-#include "toolchain/helpers/asmb.hpp"
 #include "toolchain/pas/obj/common.hpp"
 #include "toolchain/pas/obj/trace_tags.hpp"
+#include "utils/bits/span.hpp"
+#include "utils/bits/strings.hpp"
 
 ReadElfTask::ReadElfTask(Options &opts, QObject *parent) : Task(parent), _opts(opts) {}
 
@@ -40,6 +40,7 @@ void ReadElfTask::run() {
   if (_opts.debug_line) debug_line(elf);
   if (_opts.debug_info) debug_info(elf);
   if (!_opts.dump_strs.empty()) dump_strs(elf);
+  if (!_opts.dump_hex.empty()) dump_hex(elf);
   return emit finished(0);
 }
 
@@ -126,15 +127,64 @@ void dump_strings(const ELFIO::section *sec) {
   }
   std::cout << std::endl;
 }
+
 void ReadElfTask::dump_strs(ELFIO::elfio &elf) const {
   bool okay = false;
-  auto sec_idx = QString::fromStdString(_opts.dump_strs).toUInt(&okay);
-  if (okay) {
-    if (sec_idx > 0 && sec_idx < elf.sections.size()) dump_strings(elf.sections[sec_idx]);
-    else std::cerr << "No such section index: " << sec_idx << std::endl;
-  } else {
-    for (const auto &sec : std::as_const(elf.sections)) {
-      if (sec->get_name() == _opts.dump_strs) dump_strings(sec.get());
+  for (const auto &item : _opts.dump_strs) {
+    auto sec_idx = QString::fromStdString(item).toUInt(&okay);
+    if (okay) {
+      if (sec_idx > 0 && sec_idx < elf.sections.size()) dump_strings(elf.sections[sec_idx]);
+      else std::cerr << "No such section index: " << sec_idx << std::endl;
+    } else {
+      for (const auto &sec : std::as_const(elf.sections)) {
+        if (sec->get_name() == item) dump_strings(sec.get());
+      }
+    }
+  }
+}
+
+// Must also update format placeholder(s) below
+static constexpr int hex_bytes_per_row = 16;
+QList<bits::SeparatorRule> hex_rules = {{.skipFirst = true, .separator = ' ', .modulus = hex_bytes_per_row / 4}};
+size_t print_one_hex_row(bits::span<const quint8> data, size_t offset) {
+  if (data.empty()) return 0;
+  auto n = std::min<size_t>(hex_bytes_per_row, data.size());
+
+  char hex_bytes[hex_bytes_per_row * 2 + 3];
+  auto hex_bytes_span = bits::span<char>(hex_bytes);
+  auto hex_end = bits::bytesToAsciiHex(hex_bytes_span, data.first(n), hex_rules);
+  char ascii_bytes[hex_bytes_per_row];
+  auto ascii_bytes_span = bits::span<char>(ascii_bytes);
+  auto ascii_end = bits::bytesToPrintableAscii(ascii_bytes_span, data.first(n), {});
+  std::cout << fmt::format("  0x{:08x} {:35} {:16}", offset, std::string_view(hex_bytes, hex_end),
+                           std::string_view(ascii_bytes, ascii_end))
+            << std::endl;
+  return n;
+}
+
+void dump_hex_helper(const ELFIO::section *sec) {
+  using namespace Qt::StringLiterals;
+  std::cout << "Hex dump of section (" << sec->get_name() << ")" << std::endl;
+  const char *data = sec->get_data();
+  auto size = sec->get_size();
+  if (data == nullptr) return;
+
+  auto span = bits::span<const quint8>{reinterpret_cast<const quint8 *>(data), (size_t)size};
+  for (int it = 0; it < size; it += hex_bytes_per_row) span = span.subspan(print_one_hex_row(span, it));
+  std::cout << std::endl;
+}
+
+void ReadElfTask::dump_hex(ELFIO::elfio &elf) const {
+  bool okay = false;
+  for (const auto &item : _opts.dump_hex) {
+    auto sec_idx = QString::fromStdString(item).toUInt(&okay);
+    if (okay) {
+      if (sec_idx > 0 && sec_idx < elf.sections.size()) dump_hex_helper(elf.sections[sec_idx]);
+      else std::cerr << "No such section index: " << sec_idx << std::endl;
+    } else {
+      for (const auto &sec : std::as_const(elf.sections)) {
+        if (sec->get_name() == item) dump_hex_helper(sec.get());
+      }
     }
   }
 }
