@@ -54,7 +54,7 @@ private:
 void registerReadelf(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static ReadElfTask::Options opts;
   static auto readelf = app.add_subcommand("readelf", "Display information about ELF files");
-  readelf->set_help_flag("-H,--help");
+  readelf->set_help_flag("-H,--help", "Display this help message and exit.");
   static auto file_header = readelf->add_flag("-h,--file-header", opts.file_header, "Display the ELF file header");
   static auto program_headers =
       readelf->add_flag("-l,--program-headers", opts.program_headers, "Display the program headers");
