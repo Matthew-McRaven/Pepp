@@ -12,10 +12,10 @@ const std::string pepp::tc::ParserError::to_string(NullaryError err) {
   case NullaryError::Argument_ExpectedString: return "Argument must be a string";
   case NullaryError::Argument_ExpectedIdentifier: return "Argument must be an identifier";
   case NullaryError::Argument_ExpectedHex: return "Argument must be a hexadecimal integer";
-  case NullaryError::AddressingMode_Required: return "Instruction requires addressin mode";
+  case NullaryError::AddressingMode_Required: return "Instruction requires addressing mode";
   case NullaryError::AddressingMode_Invalid: return "Invalid addressing mode";
   case NullaryError::AddressingMode_Missing: return "Expected addressing mode";
-  case NullaryError::SymbolDeclaration_Required: return "Reguires a symbol declaration";
+  case NullaryError::SymbolDeclaration_Required: return "Requires a symbol declaration";
   case NullaryError::SymbolDeclaration_TooLong: return "Symbol declaration too long";
   case NullaryError::Section_StringName: return ".SECTION name must be a string";
   case NullaryError::Section_TwoArgs: return ".SECTION requires two arguments";

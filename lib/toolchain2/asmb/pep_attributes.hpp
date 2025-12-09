@@ -86,7 +86,7 @@ struct SectionFlags : public AAttribute {
 };
 
 // Intentionally NOT an AAttribute, because I do not want it stored in my primary IR.
-// I want it sotred in a side table
+// I want it stored in a side table
 struct Address {
   Address(quint16 address, quint16 size) : address(address), size(size) {}
   quint16 address = 0, size = 0;

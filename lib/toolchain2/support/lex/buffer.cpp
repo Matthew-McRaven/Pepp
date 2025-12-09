@@ -62,7 +62,7 @@ pepp::tc::lex::Checkpoint::Checkpoint(Buffer &buf) : _buf(buf) {
 
 pepp::tc::lex::Checkpoint::~Checkpoint() {
   _buf._checkpoints--;
-  // If there are no outstanding checkpoints, rollback is now imossible, so we can clear out old tokens.
+  // If there are no outstanding checkpoints, rollback is now impossible, so we can clear out old tokens.
   if (_buf._checkpoints == 0) _buf.clear_tokens();
 }
 

@@ -410,12 +410,12 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
     SPDLOG_TRACE("{} sized at {:x}", sec_desc.name, section_memory_sizes[it]);
 
     if (sec_desc.flags.z) {
-      SPDLOG_TRACE("{} zeroed", fullName);
+      SPDLOG_TRACE("{} zeroed", sec_desc.name);
       sec->set_type(ELFIO::SHT_NOBITS);
       sec->set_size(section_memory_sizes[it]);
     } else {
-      SPDLOG_TRACE("{} assigned {:x} bytes", fullName, bytes.size());
       auto sec_data = object_code.section_spans[it];
+      SPDLOG_TRACE("{} assigned {:x} bytes", sec_desc.name, sec_data.object_code.size());
       // Cannot convert between quint8 and qint8 without reinterpret cast. Sorry for future linter errors.
       sec->set_data(reinterpret_cast<char *>(sec_data.object_code.data()), sec_data.object_code.size_bytes());
       sec->set_type(ELFIO::SHT_PROGBITS);
