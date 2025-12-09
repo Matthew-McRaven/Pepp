@@ -71,8 +71,8 @@ with that name in the object file.");
   static auto debug_line = readelf->add_flag("--wl", opts.debug_line, "Display debugger line numbers");
   static auto debug_info = readelf->add_flag("--wi", opts.debug_info, "Display debugger trace info");
   static auto headers =
-      readelf->add_flag("-e,--headers", " Display all the headers in the file.  Equivalent to -h -l -S");
-  static auto all = readelf->add_flag("-a,--all", " Equivalent to specifying --file-header, --program-headers,\
+      readelf->add_flag("-e,--headers", "Display all the headers in the file.  Equivalent to -h -l -S");
+  static auto all = readelf->add_flag("-a,--all", "Equivalent to specifying --file-header, --program-headers,\
 --sections, --symbols, --relocs, --dynamic, --notes");
   static auto file = readelf->add_option("elffile", opts.elffile, "Elf file")->expected(1)->required(true);
   readelf->callback([&]() {
