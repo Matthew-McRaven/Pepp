@@ -57,10 +57,26 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     auto object_code = pepp::tc::to_object_code(addresses, sections);
-    auto elf = pepp::tc::to_elf(sections, addresses, object_code, result.mmios);
-    pepp::tc::write_symbol_table(*elf, *symbol_tab);
+    auto elf_result = pepp::tc::to_elf(sections, addresses, object_code, result.mmios);
+    pepp::tc::write_symbol_table(elf_result, *symbol_tab);
 
     CHECK(sections.size() == 3);
-    elf->save("dummy.elf");
+    elf_result.elf->save("dummy.elf");
+  }
+  SECTION("0-sized section") {
+    auto p = Parser(data(R"(
+      .SECTION ".data","rwx"
+      test:BR 10,i)"));
+    auto results = p.parse();
+    auto result = pepp::tc::split_to_sections(results);
+    auto symbol_tab = p.symbol_table();
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::assign_addresses(sections);
+    auto object_code = pepp::tc::to_object_code(addresses, sections);
+    auto elf_result = pepp::tc::to_elf(sections, addresses, object_code, result.mmios);
+    pepp::tc::write_symbol_table(elf_result, *symbol_tab);
+
+    CHECK(sections.size() == 2);
+    elf_result.elf->save("dummy2.elf");
   }
 }

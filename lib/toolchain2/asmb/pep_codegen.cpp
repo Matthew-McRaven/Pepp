@@ -266,17 +266,18 @@ static QSharedPointer<ELFIO::elfio> create_elf() {
   pepp::tc::addStrTab(*ret);
   return ret;
 }
-QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                              const IRMemoryAddressTable &addrs,
-                                              const ProgramObjectCodeResult &object_code,
-                                              const std::vector<obj::IO> &mmios) {
+pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
+                                     const IRMemoryAddressTable &addrs, const ProgramObjectCodeResult &object_code,
+                                     const std::vector<obj::IO> &mmios) {
 
   ELFIO::segment *activeSeg = nullptr;
-  auto ret = create_elf();
+  ElfResult ret;
+  ret.elf = create_elf();
+  ret.section_offsets.resize(prog.size(), 0);
 
   auto getOrCreateBSS = [&](ir::attr::SectionFlags &flags) {
     if (activeSeg == nullptr || activeSeg->get_file_size() != 0) {
-      activeSeg = ret->segments.add();
+      activeSeg = ret.elf->segments.add();
       activeSeg->set_type(ELFIO::PT_LOAD);
       ELFIO::Elf_Word elfFlags = 0;
       elfFlags |= flags.r ? ELFIO::PF_R : 0;
@@ -294,7 +295,7 @@ QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescr
         !(((activeSeg->get_flags() & ELFIO::PF_R) > 0 == flags.r) &&
           ((activeSeg->get_flags() & ELFIO::PF_W) > 0 == flags.w) &&
           ((activeSeg->get_flags() & ELFIO::PF_X) > 0 == flags.x))) {
-      activeSeg = ret->segments.add();
+      activeSeg = ret.elf->segments.add();
       activeSeg->set_type(ELFIO::PT_LOAD);
       ELFIO::Elf_Word elfFlags = 0;
       elfFlags |= flags.r ? ELFIO::PF_R : 0;
@@ -307,19 +308,26 @@ QSharedPointer<ELFIO::elfio> pepp::tc::to_elf(std::vector<std::pair<SectionDescr
     return activeSeg;
   };
 
+  quint32 skipped_sections = 0;
   std::vector<size_t> section_memory_sizes(prog.size(), 0);
   for (int it = 0; it < prog.size(); it++) {
     auto &sec = prog[it].first;
     section_memory_sizes[it] = sec.high_address - sec.low_address;
   }
   for (int it = 0; it < prog.size(); it++) {
-    if (section_memory_sizes[it] == 0) continue; // 0-sized sections are meaningless, do not emit.
+    ret.section_offsets[it] = skipped_sections;
+    if (section_memory_sizes[it] == 0) { // 0-sized sections are meaningless, do not emit.
+      skipped_sections++;
+      continue;
+    }
+
     auto &sec_desc = prog[it].first;
 
     SPDLOG_INFO("{} creating", sec_desc.name);
 
-    auto sec = ret->sections.add(sec_desc.name);
-    if (sec->get_index() != sec_desc.section_index) throw std::logic_error("Mismatch in pre-computed section index");
+    auto sec = ret.elf->sections.add(sec_desc.name);
+    if (sec->get_index() != (sec_desc.section_index - skipped_sections))
+      throw std::logic_error("Mismatch in pre-computed section index");
     // All sections from AST correspond to bits in Pep/10 memory, so alloc
     auto shFlags = ELFIO::SHF_ALLOC;
     shFlags |= sec_desc.flags.x ? ELFIO::SHF_EXECINSTR : 0;
@@ -502,8 +510,9 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
   return ret;
 }
 
-void pepp::tc::write_symbol_table(ELFIO::elfio &elf, symbol::Table &symbol_table, const QString name) {
+void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, symbol::Table &symbol_table, const QString name) {
   using namespace Qt::StringLiterals;
+  auto &elf = *elf_wrapper.elf.get();
   auto strTab = pepp::tc::addStrTab(elf);
   auto symTab = elf.sections.add(u"%1"_s.arg(name).toStdString());
   symTab->set_type(ELFIO::SHT_SYMTAB);
@@ -529,7 +538,13 @@ void pepp::tc::write_symbol_table(ELFIO::elfio &elf, symbol::Table &symbol_table
   ELFIO::symbol_section_accessor symAc(elf, symTab);
   for (auto [name, entry] : symbol_table.entries()) {
     auto nameIdx = findOrCreateStr(name.toStdString());
-    auto secIdx = entry->section_index;
+    // Our sections inserted into ELF do not start at 0, they start at SectionDescriptor::section_base_index.
+    // section_offsets starts at 0, so we need to convert before indexing or risk an out-of-bounds access.
+    auto offset_index = entry->section_index - SectionDescriptor::section_base_index;
+    // But sections before SectionDescriptor::section_base_index are special and never skipped.
+    auto section_index_adjustment =
+        entry->section_index < SectionDescriptor::section_base_index ? elf_wrapper.section_offsets[offset_index] : 0;
+    auto secIdx = entry->section_index - section_index_adjustment;
     auto value = entry->value;
 
     quint8 type = ELFIO::STT_NOTYPE;

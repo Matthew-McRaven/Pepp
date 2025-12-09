@@ -80,9 +80,16 @@ struct ProgramObjectCodeResult {
 ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable &,
                                        std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog);
 
-QSharedPointer<ELFIO::elfio> to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                    const IRMemoryAddressTable &addrs, const ProgramObjectCodeResult &object_code,
-                                    const std::vector<obj::IO> &mmios);
+struct ElfResult {
+  QSharedPointer<ELFIO::elfio> elf;
+  // Some sections in the program are not omitted to to ELF file.
+  // However, we pre-computed section indices in the ELF file in split_to_sections and used these in the symbol table.
+  // [originally computed section index] is the number you need to subtract to get actual index in the output file.
+  std::vector<quint16> section_offsets;
+};
 
-void write_symbol_table(ELFIO::elfio &, symbol::Table &symbol_table, const QString name = ".symtab");
+ElfResult to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog, const IRMemoryAddressTable &addrs,
+                 const ProgramObjectCodeResult &object_code, const std::vector<obj::IO> &mmios);
+
+void write_symbol_table(ElfResult &elf, symbol::Table &symbol_table, const QString name = ".symtab");
 }
