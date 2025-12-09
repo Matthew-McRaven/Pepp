@@ -65,6 +65,25 @@ qsizetype bits::bytesToAsciiHex(span<char> out, span<const quint8> in, QVector<S
   return outIt;
 }
 
+qsizetype bits::bytesToPrintableAscii(span<char> out, span<const quint8> in, QVector<SeparatorRule> separators) {
+  qsizetype outIt = 0;
+  for (int inIt = 0; inIt < in.size(); inIt++) {
+    char i = in[inIt];
+    if (outIt + 1 <= out.size()) {
+      out[outIt++] = QChar::isPrint(i) ? i : '.';
+    } else break;
+
+    if (outIt + 1 > out.size()) break;
+    for (auto &rule : separators) {
+      if ((inIt + 1) % rule.modulus == 0) {
+        out[outIt++] = rule.separator;
+        break;
+      }
+    }
+  }
+  return outIt;
+}
+
 qint8 hex_to_int(char c) {
   if (c >= '0' && c <= '9') return c - '0';
   if (c >= 'A' && c <= 'F') return c - 'A' + 10;

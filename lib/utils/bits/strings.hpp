@@ -76,5 +76,8 @@ struct SeparatorRule {
 
 // Separates every byte with a space.
 qsizetype bytesToAsciiHex(span<char> out, span<const quint8> in, QVector<SeparatorRule> separator);
+// Copy printable ASCII characters from in to out, inserting separators at the appropriate times.
+// Non-printable characters are replaced by a "." / full-stop.
+qsizetype bytesToPrintableAscii(span<char> out, span<const quint8> in, QVector<SeparatorRule> separator);
 std::optional<QList<quint8>> asciiHexToByte(span<const char> in);
 } // namespace bits
