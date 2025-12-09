@@ -90,8 +90,8 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   // Pre-allocate vector according to the total size of the IR lines in all sections.
   // This overrserves storage---not all IR lines generate object code---but is a stable upper bound and avoid
   // reallocation in the address-assignment loop.
-  size_t size = 0;
-  for (const auto &sec : prog) size += sec.second.size();
+  qint64 size = 0;
+  for (const auto &[desc, ir] : prog) size += ir.size();
   // ITEMS ARE NOT INSERTED IN SORTED ORDER. DO NOT USE AS A MAP UNTIL SORTING.
   // Since all IR lines across all PepIRProgram have unique (C++) addresses, we can blindly append and sort later.
   // This gives O(1) insert rather than  n* O(nlgn) with the requirement for a manual sort before returning.
@@ -109,7 +109,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   // in which case some subset of sections is assigned right-to-left.
 
   // Sections before the first .ORG need to be grouped right rather than left
-  size_t first_org_section = -1;
+  qint64 first_org_section = -1;
   // Record all sections which contain at least one .ORG
   for (int it = 0; it < prog.size(); it++) {
     if (prog[it].first.org_count > 0) {
@@ -277,9 +277,13 @@ pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(const IRMemoryAddressTable &ir_to
                                                std::vector<void *> &relocs, IR2ObjectCodeMap &ir_to_object_code)
     : ir_to_address(ir_to_address), out_bytes(out_bytes), relocations(relocs), ir_to_object_code(ir_to_object_code) {}
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::EmptyLine *) {}
+void pepp::tc::ObjectCodeVisitor::visit(const ir::EmptyLine *) {
+  // Does not generate object code
+}
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::CommentLine *) {}
+void pepp::tc::ObjectCodeVisitor::visit(const ir::CommentLine *) {
+  // Does not generate object code
+}
 
 void pepp::tc::ObjectCodeVisitor::visit(const ir::MonadicInstruction *line) {
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction);
@@ -295,33 +299,41 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::DyadicInstruction *line) {
 }
 
 void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAlign *line) {
-  auto addr_info = ir_to_address.at(static_cast<const ir::DotAlign *const>(line));
+  auto addr_info = ir_to_address.at(line);
   std::ranges::fill(out_bytes.first(addr_info.size), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
 }
 
 void pepp::tc::ObjectCodeVisitor::visit(const ir::DotLiteral *line) {
-  auto addr_info = ir_to_address.at(static_cast<const ir::DotLiteral *const>(line));
+  auto addr_info = ir_to_address.at(line);
   line->argument.value->value(out_bytes.first(addr_info.size), bits::Order::BigEndian);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
 }
 
 void pepp::tc::ObjectCodeVisitor::visit(const ir::DotBlock *line) {
-  auto addr_info = ir_to_address.at(static_cast<const ir::DotBlock *const>(line));
+  auto addr_info = ir_to_address.at(line);
   std::ranges::fill(out_bytes.first(addr_info.size), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotEquate *) {}
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotEquate *) {
+  // Does not generate object code
+}
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotSection *) {}
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotSection *) {
+  // Does not generate object code
+}
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAnnotate *) {}
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAnnotate *) {
+  // Does not generate object code
+}
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotOrg *) {}
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotOrg *) {
+  // Does not generate object code
+}
 
 } // namespace pepp::tc
 
@@ -473,7 +485,7 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
   ret.section_spans.reserve(prog.size());
 
   for (int it = 0; it < prog.size(); it++) {
-    const auto &sec = prog[it];
+    const auto &[desc, ir] = prog[it];
     auto &offset = offsets[it];
     auto code_begin = ret.object_code.begin() + offset.object_code_offset;
     auto code_end = code_begin + offset.object_code_size;
@@ -481,7 +493,7 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
     auto oc_subspan = bits::span<quint8>(code_begin, code_end);
     ObjectCodeVisitor visitor(addresses, oc_subspan, ret.relocations, ret.ir_to_object_code);
     offset.reloc_offset = ret.relocations.size();
-    for (const auto &line : sec.second) line->accept(&visitor);
+    for (const auto &line : ir) line->accept(&visitor);
     offset.reloc_size = offset.reloc_offset - ret.relocations.size();
   }
 
@@ -489,10 +501,10 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
   // relocation info.
   using SectionSpans = ProgramObjectCodeResult::SectionSpans;
   for (int it = 0; it < prog.size(); it++) {
+    const auto &[desc, ir] = prog[it];
     auto &offset = offsets[it];
-    const auto &sec = prog[it];
     // Z sections need entries in section_spans, but those entries should be empty.
-    if (sec.first.flags.z) {
+    if (desc.flags.z) {
       ret.section_spans.emplace_back(SectionSpans{{}, {}});
     } else {
       auto code_begin = ret.object_code.begin() + offset.object_code_offset;

@@ -114,6 +114,7 @@ std::optional<quint16> pepp::tc::ir::DotLiteral::object_size(quint16) const {
   case Which::Byte: return 1;
   case Which::Word: return 2;
   }
+  Q_UNREACHABLE();
 }
 
 void pepp::tc::ir::DotLiteral::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
@@ -212,4 +213,4 @@ void pepp::tc::ir::DotOrg::accept(LinearIRVisitor *visitor) const { visitor->vis
 
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::DotOrg::type() const { return TYPE; }
 
-void pepp::tc::ir::EmptyLine::accept(LinearIRVisitor *visitor) const {}
+void pepp::tc::ir::EmptyLine::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }

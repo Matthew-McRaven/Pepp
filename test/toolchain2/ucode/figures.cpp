@@ -26,7 +26,7 @@
 #include "toolchain2/ucode/pep_parser.hpp"
 
 namespace {
-static const auto lf = QRegularExpression("\r");
+const auto lf = QRegularExpression("\r");
 template <typename CPU> std::pair<sim::memory::Dense<quint16>, CPU> make() {
   sim::api2::device::ID id = 0;
   auto nextID = [&id]() { return id++; };

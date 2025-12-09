@@ -115,7 +115,7 @@ TEST_CASE("Pepp ASM codegen .SCALL", "[scope:asm][kind:unit][arch:*][tc2]") {
   auto results = p.parse();
   REQUIRE(results.size() == 3);
   auto result = pepp::tc::split_to_sections(results);
-  auto &scalls = result.system_calls;
+  auto const &scalls = result.system_calls;
   CHECK(scalls.size() == 2);
   const auto contains = [&](const std::string &target) {
     auto t = std::find(scalls.cbegin(), scalls.cend(), target);
