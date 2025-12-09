@@ -252,6 +252,79 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   return ret;
 }
 
+namespace pepp::tc {
+struct ObjectCodeVisitor : public ir::LinearIRVisitor {
+  const IRMemoryAddressTable &ir_to_address;
+  // On each call, out_bytes will be shortened by the size of the visited line;
+  bits::span<quint8> out_bytes;
+  std::vector<void *> &relocations;
+  IR2ObjectCodeMap &ir_to_object_code;
+  ObjectCodeVisitor(const IRMemoryAddressTable &, bits::span<quint8>, std::vector<void *> &, IR2ObjectCodeMap &);
+  void visit(const ir::EmptyLine *) override;
+  void visit(const ir::CommentLine *) override;
+  void visit(const ir::MonadicInstruction *) override;
+  void visit(const ir::DyadicInstruction *) override;
+  void visit(const ir::DotAlign *) override;
+  void visit(const ir::DotLiteral *) override;
+  void visit(const ir::DotBlock *) override;
+  void visit(const ir::DotEquate *) override;
+  void visit(const ir::DotSection *) override;
+  void visit(const ir::DotAnnotate *) override;
+  void visit(const ir::DotOrg *) override;
+};
+
+pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(const IRMemoryAddressTable &ir_to_address, bits::span<quint8> out_bytes,
+                                               std::vector<void *> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : ir_to_address(ir_to_address), out_bytes(out_bytes), relocations(relocs), ir_to_object_code(ir_to_object_code) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::EmptyLine *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::CommentLine *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::MonadicInstruction *line) {
+  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(1)});
+  out_bytes = out_bytes.subspan(1);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DyadicInstruction *line) {
+  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
+  line->argument.value->value(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
+  out_bytes = out_bytes.subspan(3);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAlign *line) {
+  auto addr_info = ir_to_address.at(static_cast<const ir::DotAlign *const>(line));
+  std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
+  out_bytes = out_bytes.subspan(addr_info.size);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotLiteral *line) {
+  auto addr_info = ir_to_address.at(static_cast<const ir::DotLiteral *const>(line));
+  line->argument.value->value(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
+  out_bytes = out_bytes.subspan(addr_info.size);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotBlock *line) {
+  auto addr_info = ir_to_address.at(static_cast<const ir::DotBlock *const>(line));
+  std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
+  out_bytes = out_bytes.subspan(addr_info.size);
+}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotEquate *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotSection *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAnnotate *) {}
+
+void pepp::tc::ObjectCodeVisitor::visit(const ir::DotOrg *) {}
+
+} // namespace pepp::tc
+
 static QSharedPointer<ELFIO::elfio> create_elf() {
   SPDLOG_INFO("Creating pep/10 ELF");
   static const char p10mac[2] = {'p', 'x'};
@@ -373,79 +446,6 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
   //  pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
   return ret;
 }
-
-namespace pepp::tc {
-struct ObjectCodeVisitor : public ir::LinearIRVisitor {
-  const IRMemoryAddressTable &ir_to_address;
-  // On each call, out_bytes will be shortened by the size of the visited line;
-  bits::span<quint8> out_bytes;
-  std::vector<void *> &relocations;
-  IR2ObjectCodeMap &ir_to_object_code;
-  ObjectCodeVisitor(const IRMemoryAddressTable &, bits::span<quint8>, std::vector<void *> &, IR2ObjectCodeMap &);
-  void visit(const ir::EmptyLine *) override;
-  void visit(const ir::CommentLine *) override;
-  void visit(const ir::MonadicInstruction *) override;
-  void visit(const ir::DyadicInstruction *) override;
-  void visit(const ir::DotAlign *) override;
-  void visit(const ir::DotLiteral *) override;
-  void visit(const ir::DotBlock *) override;
-  void visit(const ir::DotEquate *) override;
-  void visit(const ir::DotSection *) override;
-  void visit(const ir::DotAnnotate *) override;
-  void visit(const ir::DotOrg *) override;
-};
-
-pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(const IRMemoryAddressTable &ir_to_address, bits::span<quint8> out_bytes,
-                                               std::vector<void *> &relocs, IR2ObjectCodeMap &ir_to_object_code)
-    : ir_to_address(ir_to_address), out_bytes(out_bytes), relocations(relocs), ir_to_object_code(ir_to_object_code) {}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::EmptyLine *) {}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::CommentLine *) {}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::MonadicInstruction *line) {
-  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction);
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(1)});
-  out_bytes = out_bytes.subspan(1);
-}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DyadicInstruction *line) {
-  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
-  line->argument.value->value(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
-  out_bytes = out_bytes.subspan(3);
-}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAlign *line) {
-  auto addr_info = ir_to_address.at(static_cast<const ir::DotAlign *const>(line));
-  std::ranges::fill(out_bytes.first(addr_info.size), 0);
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
-  out_bytes = out_bytes.subspan(addr_info.size);
-}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotLiteral *line) {
-  auto addr_info = ir_to_address.at(static_cast<const ir::DotLiteral *const>(line));
-  line->argument.value->value(out_bytes.first(addr_info.size), bits::Order::BigEndian);
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
-  out_bytes = out_bytes.subspan(addr_info.size);
-}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotBlock *line) {
-  auto addr_info = ir_to_address.at(static_cast<const ir::DotBlock *const>(line));
-  std::ranges::fill(out_bytes.first(addr_info.size), 0);
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
-  out_bytes = out_bytes.subspan(addr_info.size);
-}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotEquate *) {}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotSection *) {}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAnnotate *) {}
-
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotOrg *) {}
-
-} // namespace pepp::tc
 
 namespace {
 struct SectionOffsets {
