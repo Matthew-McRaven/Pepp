@@ -108,6 +108,7 @@ int main(int argc, char **argv) {
     return 0;
   } catch (const CLI::ParseError &e) {
     std::cerr << e.what() << std::endl;
+    std::cout << app.help() << std::endl;
     return 1;
   }
 
