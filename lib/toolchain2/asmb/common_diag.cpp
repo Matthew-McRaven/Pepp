@@ -12,7 +12,7 @@ const std::string pepp::tc::ParserError::to_string(NullaryError err) {
   case NullaryError::Argument_ExpectedString: return "Argument must be a string";
   case NullaryError::Argument_ExpectedIdentifier: return "Argument must be an identifier";
   case NullaryError::Argument_ExpectedHex: return "Argument must be a hexadecimal integer";
-  case NullaryError::AddressingMode_Required: return "Instruction requires addressing mode";
+  case NullaryError::AddressingMode_Required: return "Addressing mode required for this instruction.";
   case NullaryError::AddressingMode_Invalid: return "Invalid addressing mode";
   case NullaryError::AddressingMode_Missing: return "Expected addressing mode";
   case NullaryError::SymbolDeclaration_Required: return "Requires a symbol declaration";
@@ -28,10 +28,10 @@ const std::string pepp::tc::ParserError::to_string(NullaryError err) {
 
 const std::string pepp::tc::ParserError::to_string(UnaryError err, std::string &arg) {
   switch (err) {
-  case UnaryError::Mnemonic_Invalid: return fmt::format("Invalid mnemonic \"{}\"", arg);
+  case UnaryError::Mnemonic_Invalid: return fmt::format("Invalid mnemonic \"{}\".", arg);
   case UnaryError::AddressingMode_InvalidForMnemonic:
-    return fmt::format("Illegal addressing mode \"{}\"for instruction", arg);
-  case UnaryError::Dot_Invalid: return fmt::format("Invalid pseudo-operation \"{}\"", arg);
+    return fmt::format("Illegal addressing mode \"{}\" for this instruction", arg);
+  case UnaryError::Dot_Invalid: return fmt::format("Invalid pseudo-operation \"{}\".", arg);
   case UnaryError::Token_Invalid: return fmt::format("Unrecognized token: {}", arg);
   }
   Q_UNREACHABLE();
