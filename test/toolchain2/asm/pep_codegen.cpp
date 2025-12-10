@@ -42,15 +42,18 @@ TEST_CASE("Pepp ASM codegen sectioning", "[scope:asm][kind:unit][arch:*][tc2]") 
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = symbol::Table;
   using namespace pepp::tc::ir;
+  pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(ex1));
-  auto results = p.parse();
+  auto results = p.parse(diag);
+  CHECK(diag.count() == 0);
   REQUIRE(results.size() == 11);
   CHECK(std::dynamic_pointer_cast<EmptyLine>(results[0]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[1]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-  auto result = pepp::tc::split_to_sections(results);
+  auto result = pepp::tc::split_to_sections(diag, results);
+  CHECK(diag.count() == 0);
   auto &sections = result.grouped_ir;
   CHECK(sections.size() == 3);
   CHECK(sections[0].first.name == ".text");
@@ -67,15 +70,18 @@ TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*]
   using SymbolTable = symbol::Table;
   using namespace pepp::tc::ir;
   SECTION("No ORG") {
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(ex1));
-    auto results = p.parse();
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
     REQUIRE(results.size() == 11);
     CHECK(std::dynamic_pointer_cast<EmptyLine>(results[0]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[1]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-    auto result = pepp::tc::split_to_sections(results);
+    auto result = pepp::tc::split_to_sections(diag, results);
+    CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     CHECK(sections.size() == 3);
@@ -109,12 +115,15 @@ TEST_CASE("Pepp ASM codegen .SCALL", "[scope:asm][kind:unit][arch:*][tc2]") {
   using SymbolTable = symbol::Table;
   using namespace pepp::tc::ir;
 
+  pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(R"(
     .SCALL DECI
     .scall deco)"));
-  auto results = p.parse();
+  auto results = p.parse(diag);
+  CHECK(diag.count() == 0);
   REQUIRE(results.size() == 3);
-  auto result = pepp::tc::split_to_sections(results);
+  auto result = pepp::tc::split_to_sections(diag, results);
+  CHECK(diag.count() == 0);
   auto const &scalls = result.system_calls;
   CHECK(scalls.size() == 2);
   const auto contains = [&](const std::string &target) {
@@ -133,12 +142,15 @@ TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT", "[scope:asm][kind:unit][arch:*]
   using SymbolTable = symbol::Table;
   using namespace pepp::tc::ir;
 
+  pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(R"(
     .INPUT DECI
     .OUTPUT deco)"));
-  auto results = p.parse();
+  auto results = p.parse(diag);
+  CHECK(diag.count() == 0);
   REQUIRE(results.size() == 3);
-  auto result = pepp::tc::split_to_sections(results);
+  auto result = pepp::tc::split_to_sections(diag, results);
+  CHECK(diag.count() == 0);
   auto &mmios = result.mmios;
   CHECK(mmios.size() == 2);
   CHECK(mmios[0].name.toStdString() == "DECI");

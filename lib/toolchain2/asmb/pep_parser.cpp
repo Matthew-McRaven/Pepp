@@ -12,14 +12,14 @@ pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)
       _lexer(std::make_shared<lex::PepLexer>(_pool, std::move(data))), _buffer(std::make_shared<lex::Buffer>(&*_lexer)),
       _symtab(QSharedPointer<symbol::Table>::create(2)) {}
 
-pepp::tc::PepIRProgram pepp::tc::parser::PepParser::parse() {
+pepp::tc::PepIRProgram pepp::tc::parser::PepParser::parse(DiagnosticTable &diag) {
   PepIRProgram lines;
-
   while (_buffer->input_remains()) {
     try {
       if (auto line = statement(); line) lines.emplace_back(line);
     } catch (ParserError &e) {
       synchronize();
+      diag.add_message(e.loc, e.what());
     }
   }
   return lines;
@@ -39,7 +39,7 @@ std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::argument() {
       return std::make_shared<pas::ast::value::Hexadecimal>(maybeInteger->value, 2);
     else if (maybeInteger->format == lex::Integer::Format::UnsignedDec)
       return std::make_shared<pas::ast::value::UnsignedDecimal>(maybeInteger->value, 2);
-    else throw ParserError(ParserError::NullaryError::Argument_InvalidIntegerFormat, {});
+    else throw ParserError(ParserError::NullaryError::Argument_InvalidIntegerFormat, _buffer->matched_interval());
   } else if (auto maybeIdent = _buffer->match<lex::Identifier>(); maybeIdent) {
     auto entry = _symtab->reference(maybeIdent->to_string());
     return std::make_shared<pas::ast::value::Symbolic>(entry);
@@ -81,25 +81,29 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction
 
   if (auto instruction = _buffer->match<lex::Identifier>(); !instruction) return cp.rollback(), nullptr;
   else if (auto instr = ISA::parseMnemonic(instruction->to_string()); instr == ISA::Mnemonic::INVALID) {
-    throw ParserError(ParserError::UnaryError::Mnemonic_Invalid, instruction->to_string().toStdString(), {});
+    throw ParserError(ParserError::UnaryError::Mnemonic_Invalid, instruction->to_string().toStdString(),
+                      _buffer->matched_interval());
   } else if (ISA::isMnemonicUnary(instr)) { // Monadic instruction
     ret = std::make_shared<ir::MonadicInstruction>(ir::attr::Pep10Mnemonic(instr));
   } else { // Dyadic instruction
     ISA::AddressingMode am = ISA::AddressingMode::INVALID;
     auto arg = argument();
-    if (!arg) throw ParserError(ParserError::NullaryError::Argument_Missing, {});
-    else if (arg->requiredBytes() > 2) throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, {});
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_Missing, _buffer->matched_interval());
+    else if (arg->requiredBytes() > 2)
+      throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
     // TODO: reject string arguments
     else if (_buffer->match_literal(",")) {
       auto addr_mode = _buffer->match<lex::Identifier>();
-      if (!addr_mode) throw ParserError(ParserError::NullaryError::AddressingMode_Missing, {});
+      if (!addr_mode) throw ParserError(ParserError::NullaryError::AddressingMode_Missing, _buffer->matched_interval());
       auto addr_mode_str = addr_mode->to_string().toUpper();
       am = ISA::parseAddressingMode(addr_mode_str);
-      if (am == ISA::AddressingMode::INVALID) throw ParserError(ParserError::NullaryError::AddressingMode_Invalid, {});
+      if (am == ISA::AddressingMode::INVALID)
+        throw ParserError(ParserError::NullaryError::AddressingMode_Invalid, _buffer->matched_interval());
       if (!ISA::isValidAddressingMode(instr, am))
-        throw ParserError(ParserError::UnaryError::AddressingMode_InvalidForMnemonic, addr_mode_str.toStdString(), {});
+        throw ParserError(ParserError::UnaryError::AddressingMode_InvalidForMnemonic, addr_mode_str.toStdString(),
+                          _buffer->matched_interval());
     } else if (!ISA::requiresAddressingMode(instr)) am = ISA::defaultAddressingMode(instr);
-    else throw ParserError(ParserError::NullaryError::AddressingMode_Required, {});
+    else throw ParserError(ParserError::NullaryError::AddressingMode_Required, _buffer->matched_interval());
     auto ir_instr = ir::attr::Pep10Mnemonic(instr);
     auto ir_addr = ir::attr::Pep10AddrMode(am);
     auto ir_arg = ir::attr::Argument(arg);
@@ -120,7 +124,8 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
   auto dot = _buffer->match<lex::DotCommand>();
   auto dot_str = dot->to_string().toUpper().toStdString();
   auto it = dot_map.find(dot_str);
-  if (it == dot_map.cend()) throw ParserError(ParserError::UnaryError::Dot_Invalid, dot_str, {});
+  if (it == dot_map.cend())
+    throw ParserError(ParserError::UnaryError::Dot_Invalid, dot_str, _buffer->matched_interval());
 
   switch (it->second) {
   case ir::DotCommands::ALIGN: {
@@ -128,13 +133,13 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     quint16 value;
     bits::span<quint8> buf{(quint8 *)&value, 2};
     arg->value(buf, bits::hostOrder());
-    if (value == 1 || value == 2 || value == 4 || value == 8) return std::make_shared<ir::DotAlign>(arg);
-    else throw ParserError(ParserError::NullaryError::Argument_ExpectedPowerOfTwo, {});
+    if (!(value == 1 || value == 2 || value == 4 || value == 8))
+      throw ParserError(ParserError::NullaryError::Argument_ExpectedPowerOfTwo, _buffer->matched_interval());
+    return std::make_shared<ir::DotAlign>(arg);
   }
-
   case ir::DotCommands::ASCII: {
     if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
-      throw ParserError(ParserError::NullaryError::Argument_ExpectedString, {});
+      throw ParserError(ParserError::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
     else {
       static constexpr auto le = bits::Order::LittleEndian;
       auto asStr = maybeStr->view().toString();
@@ -151,52 +156,70 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
   }
   case ir::DotCommands::BYTE: {
     auto arg = numeric_argument();
-    if (arg->requiredBytes() > 1) throw ParserError(ParserError::NullaryError::Argument_Exceeded1Byte, {});
+    if (arg->requiredBytes() > 1)
+      throw ParserError(ParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
     return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Byte, arg);
   }
   case ir::DotCommands::EQUATE: {
     auto arg = argument();
-    if (arg->requiredBytes() > 2) throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, {});
-    else if (!symbol) throw ParserError(ParserError::NullaryError::SymbolDeclaration_Required, {});
+    if (arg->requiredBytes() > 2)
+      throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
+    else if (!symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Required, _buffer->matched_interval());
     QSharedPointer<symbol::Entry> symbol_entry = *symbol;
     return std::make_shared<ir::DotEquate>(ir::attr::SymbolDeclaration{symbol_entry}, arg);
   }
   case ir::DotCommands::EXPORT: {
     auto arg = identifier_argument();
-    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::EXPORT, arg);
   }
   case ir::DotCommands::IMPORT: {
     auto arg = identifier_argument();
-    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::IMPORT, arg);
   }
   case ir::DotCommands::INPUT: {
     auto arg = identifier_argument();
-    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::INPUT, arg);
   }
   case ir::DotCommands::ORG: {
     auto arg = hex_argument();
-    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedHex, {});
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedHex, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotOrg>(ir::DotOrg::Behavior::ORG, arg);
   }
   case ir::DotCommands::OUTPUT: {
     auto arg = identifier_argument();
-    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::OUTPUT, arg);
   }
   case ir::DotCommands::SCALL: {
     auto arg = identifier_argument();
-    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, {});
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::SCALL, arg);
   }
   case ir::DotCommands::SECTION: {
     if (auto maybeSecName = _buffer->match<lex::StringConstant>(); !maybeSecName)
-      throw ParserError(ParserError::NullaryError::Section_StringName, {});
-    else if (!_buffer->match_literal(",")) throw ParserError(ParserError::NullaryError::Section_TwoArgs, {});
+      throw ParserError(ParserError::NullaryError::Section_StringName, _buffer->matched_interval());
+    else if (!_buffer->match_literal(","))
+      throw ParserError(ParserError::NullaryError::Section_TwoArgs, _buffer->matched_interval());
     else if (auto maybeFlags = _buffer->match<lex::StringConstant>(); !maybeFlags)
-      throw ParserError(ParserError::NullaryError::Section_StringFlags, {});
+      throw ParserError(ParserError::NullaryError::Section_StringFlags, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     else {
       static constexpr auto le = bits::Order::LittleEndian;
       std::shared_ptr<pas::ast::value::Base> arg;
@@ -208,7 +231,8 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
   }
   case ir::DotCommands::WORD: {
     auto arg = numeric_argument();
-    if (arg->requiredBytes() > 2) throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, {});
+    if (arg->requiredBytes() > 2)
+      throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
     return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Word, arg);
   }
   default: throw std::logic_error("Unreachable");
@@ -248,18 +272,21 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::statement()
   } else {
     auto symbol = _buffer->match<lex::SymbolDeclaration>();
     if (symbol && symbol->to_string().length() > 7)
-      throw ParserError(ParserError::NullaryError::SymbolDeclaration_TooLong, {});
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_TooLong, _buffer->matched_interval());
 
     auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
     ret = line(symbol_decl);
     if (!ret) {
       auto next = _buffer->peek();
-      throw ParserError(ParserError::UnaryError::Token_Invalid, next->repr().toStdString(), {});
+      throw ParserError(ParserError::UnaryError::Token_Invalid, next->repr().toStdString(),
+                        _buffer->matched_interval());
+    } else {
+      ret->source_interval = _buffer->matched_interval();
     }
   }
 
   if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains())
-    throw ParserError(ParserError::NullaryError::Token_MissingNewline, {});
+    throw ParserError(ParserError::NullaryError::Token_MissingNewline, _buffer->matched_interval());
   return ret;
 }
 

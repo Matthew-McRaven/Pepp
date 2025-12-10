@@ -38,6 +38,7 @@ public:
   size_t count_buffered_tokens() const;
   size_t count_matched_tokens() const;
   bits::span<std::shared_ptr<Token> const> matched_tokens() const;
+  support::LocationInterval matched_interval() const;
 
 private:
   ALexer *_lex;

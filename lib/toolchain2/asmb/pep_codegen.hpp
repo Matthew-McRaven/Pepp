@@ -8,6 +8,8 @@ class elfio;
 
 namespace pepp::tc {
 
+class DiagnosticTable;
+
 struct SectionDescriptor {
   std::string name;
   pepp::tc::ir::attr::SectionFlags flags;
@@ -39,7 +41,8 @@ struct SectionAnalysisResults {
 //
 // Also extracts system-calls and memory-mapped IO declarations since this is the one time we iterate overthe whole IR
 // at once.
-SectionAnalysisResults split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section = default_descriptor);
+SectionAnalysisResults split_to_sections(DiagnosticTable &diag, PepIRProgram &prog,
+                                         SectionDescriptor initial_section = default_descriptor);
 
 // assign_addresses iterates over sections from prog, grouping non-ORG sections contiguously with the nearest ORG
 // section to its left. Sections before the first .ORG are an exception, and are grouped with the nearest .ORG to the

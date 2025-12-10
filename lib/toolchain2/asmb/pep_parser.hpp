@@ -4,6 +4,7 @@
 #include "./pep_ir.hpp"
 #include "./pep_lexer.hpp"
 #include "toolchain/symbol/table.hpp"
+#include "toolchain2/asmb/common_diag.hpp"
 #include "toolchain2/support/allocators/string_pool.hpp"
 #include "toolchain2/support/lex/buffer.hpp"
 
@@ -23,7 +24,7 @@ namespace pepp::tc::parser {
 struct PepParser {
   PepParser(support::SeekableData &&data);
 
-  PepIRProgram parse();
+  PepIRProgram parse(DiagnosticTable &);
   QSharedPointer<symbol::Table> symbol_table() const;
 
   void debug_print_tokens(bool debug);

@@ -46,8 +46,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == "");
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
@@ -61,8 +63,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(;******* STRO)");
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
@@ -78,8 +82,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       auto sp = b.matched_tokens();
       auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "         NOTA                ;hi");
+      pepp::tc::DiagnosticTable diag;
       auto p = Parser(data(txt));
-      auto r = p.parse();
+      auto r = p.parse(diag);
+      CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
       CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
@@ -95,8 +101,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       auto sp = b.matched_tokens();
       auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "this:    NOTA                ;hi");
+      pepp::tc::DiagnosticTable diag;
       auto p = Parser(data(txt));
-      auto r = p.parse();
+      auto r = p.parse(diag);
+      CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
       CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
@@ -116,8 +124,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       auto sp = b.matched_tokens();
       auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "         ADDA    15,d        ;hi");
+      pepp::tc::DiagnosticTable diag;
       auto p = Parser(data(txt));
-      auto r = p.parse();
+      auto r = p.parse(diag);
+      CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
       CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
@@ -135,8 +145,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       auto sp = b.matched_tokens();
       auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "this:    ADDA    this,sfx");
+      pepp::tc::DiagnosticTable diag;
       auto p = Parser(data(txt));
-      auto r = p.parse();
+      auto r = p.parse(diag);
+      CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
       CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
@@ -155,8 +167,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       auto sp = b.matched_tokens();
       auto lexer_formatted = format_source(sp).toStdString();
       CHECK(lexer_formatted == "this:    ADDA    this,sfx");
+      pepp::tc::DiagnosticTable diag;
       auto p = Parser(data(txt));
-      auto r = p.parse();
+      auto r = p.parse(diag);
+      CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
       CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
     }
@@ -185,8 +199,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(execErr: .ALIGN  8)");
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
@@ -202,8 +218,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(execErr: .ASCII  "Main failed with return value \0")");
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
@@ -219,8 +237,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(execErr: .BLOCK  8)");
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
@@ -236,8 +256,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(execErr: .EQUATE 8)");
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
@@ -254,8 +276,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(         .SECTION "text", "rx")");
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
@@ -270,8 +294,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(         .EXPORT feed)");
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
@@ -286,8 +312,10 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
     CHECK(lexer_formatted == R"(         .ORG    0xFEED)");
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()).toStdString() == lexer_formatted);
   }
@@ -303,10 +331,13 @@ TEST_CASE("Pepp ASM listing formatting", "[scope:asm][kind:unit][arch:*][tc2]") 
   using pepp::tc::format_source;
   SECTION("Comment-only") {
     static const auto txt = R"(;******* STRO)";
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
-    auto result = pepp::tc::split_to_sections(r);
+    auto result = pepp::tc::split_to_sections(diag, r);
+    CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     auto object_code = pepp::tc::to_object_code(addresses, sections);
@@ -318,10 +349,13 @@ TEST_CASE("Pepp ASM listing formatting", "[scope:asm][kind:unit][arch:*][tc2]") 
     // Shows that addresses aren't always 0!
     static const auto txt = R"(this: NOTA ;hi
 ADDA 15,d ;hi)";
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 2);
-    auto result = pepp::tc::split_to_sections(r);
+    auto result = pepp::tc::split_to_sections(diag, r);
+    CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     auto object_code = pepp::tc::to_object_code(addresses, sections);
@@ -333,10 +367,13 @@ ADDA 15,d ;hi)";
   }
   SECTION(".BLOCK") {
     static const auto txt = R"(execErr:   .BLOCK     7  )";
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(txt));
-    auto r = p.parse();
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
-    auto result = pepp::tc::split_to_sections(r);
+    auto result = pepp::tc::split_to_sections(diag, r);
+    CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     auto object_code = pepp::tc::to_object_code(addresses, sections);

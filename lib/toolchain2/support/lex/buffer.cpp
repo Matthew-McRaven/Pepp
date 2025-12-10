@@ -12,6 +12,14 @@ size_t pepp::tc::lex::Buffer::count_buffered_tokens() const { return _tokens.siz
 
 size_t pepp::tc::lex::Buffer::count_matched_tokens() const { return _head; }
 
+pepp::tc::support::LocationInterval pepp::tc::lex::Buffer::matched_interval() const {
+  auto toks = matched_tokens();
+  if (toks.empty()) return support::LocationInterval();
+  auto lb = toks[0]->location().lower();
+  auto ub = toks.last(1)[0]->location().upper();
+  return support::LocationInterval(lb, ub);
+}
+
 bits::span<std::shared_ptr<pepp::tc::lex::Token> const> pepp::tc::lex::Buffer::matched_tokens() const {
   return bits::span<std::shared_ptr<pepp::tc::lex::Token> const>(_tokens.cbegin(), _tokens.cbegin() + _head);
 }
