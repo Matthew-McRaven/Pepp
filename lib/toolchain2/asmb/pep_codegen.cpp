@@ -337,6 +337,69 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::DotOrg *) {
 
 } // namespace pepp::tc
 
+namespace {
+struct SectionOffsets {
+  size_t object_code_offset = 0, object_code_size = 0;
+  size_t reloc_offset = 0, reloc_size = 0;
+};
+} // namespace
+pepp::tc::ProgramObjectCodeResult
+pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
+                         std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
+  ProgramObjectCodeResult ret;
+  using Item = std::pair<SectionDescriptor, PepIRProgram>;
+  std::vector<SectionOffsets> offsets(prog.size(), SectionOffsets{});
+  quint32 object_size = 0, ir_count = 0;
+  for (int it = 0; it < prog.size(); it++) {
+    const auto &sec = prog[it];
+    if (sec.first.flags.z) continue; // No bytes in ELF for Z section; no relocations possible.
+    offsets[it].object_code_size = sec.first.byte_count;
+    offsets[it].object_code_offset = object_size;
+    object_size += sec.first.byte_count;
+    ir_count += sec.second.size();
+  }
+  ret.object_code.resize(object_size, 0);
+  ret.ir_to_object_code.container.reserve(ir_count);
+  ret.section_spans.reserve(prog.size());
+
+  for (int it = 0; it < prog.size(); it++) {
+    const auto &[desc, ir] = prog[it];
+    auto &offset = offsets[it];
+    auto code_begin = ret.object_code.begin() + offset.object_code_offset;
+    auto code_end = code_begin + offset.object_code_size;
+
+    auto oc_subspan = bits::span<quint8>(code_begin, code_end);
+    ObjectCodeVisitor visitor(addresses, oc_subspan, ret.relocations, ret.ir_to_object_code);
+    offset.reloc_offset = ret.relocations.size();
+    for (const auto &line : ir) line->accept(&visitor);
+    offset.reloc_size = offset.reloc_offset - ret.relocations.size();
+  }
+
+  // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate
+  // relocation info.
+  using SectionSpans = ProgramObjectCodeResult::SectionSpans;
+  for (int it = 0; it < prog.size(); it++) {
+    const auto &[desc, ir] = prog[it];
+    auto &offset = offsets[it];
+    // Z sections need entries in section_spans, but those entries should be empty.
+    if (desc.flags.z) {
+      ret.section_spans.emplace_back(SectionSpans{{}, {}});
+    } else {
+      auto code_begin = ret.object_code.begin() + offset.object_code_offset;
+      auto code_end = code_begin + offset.object_code_size;
+      auto oc_subspan = bits::span<quint8>(code_begin, code_end);
+      auto reloc_begin = ret.relocations.begin() + offset.reloc_offset;
+      auto reloc_end = reloc_begin + offset.reloc_size;
+      auto reloc_subspan = bits::span<void *>(reloc_begin, reloc_end);
+      ret.section_spans.emplace_back(SectionSpans{oc_subspan, reloc_subspan});
+    }
+  }
+
+  //  Establish flat-map invariant
+  std::sort(ret.ir_to_object_code.container.begin(), ret.ir_to_object_code.container.end(), IR2ObjectComparator{});
+  return ret;
+}
+
 static QSharedPointer<ELFIO::elfio> create_elf() {
   SPDLOG_INFO("Creating pep/10 ELF");
   static const char p10mac[2] = {'p', 'x'};
@@ -351,6 +414,7 @@ static QSharedPointer<ELFIO::elfio> create_elf() {
   pepp::tc::addStrTab(*ret);
   return ret;
 }
+
 pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
                                      const IRMemoryAddressTable &addrs, const ProgramObjectCodeResult &object_code,
                                      const std::vector<obj::IO> &mmios) {
@@ -456,69 +520,6 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
   ::obj::addMMIODeclarations(*ret, symTab, mmios);*/
   // pas::obj::common::writeLineMapping(*_elf, *_osRoot);
   //  pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
-  return ret;
-}
-
-namespace {
-struct SectionOffsets {
-  size_t object_code_offset = 0, object_code_size = 0;
-  size_t reloc_offset = 0, reloc_size = 0;
-};
-} // namespace
-pepp::tc::ProgramObjectCodeResult
-pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
-                         std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
-  ProgramObjectCodeResult ret;
-  using Item = std::pair<SectionDescriptor, PepIRProgram>;
-  std::vector<SectionOffsets> offsets(prog.size(), SectionOffsets{});
-  quint32 object_size = 0, ir_count = 0;
-  for (int it = 0; it < prog.size(); it++) {
-    const auto &sec = prog[it];
-    if (sec.first.flags.z) continue; // No bytes in ELF for Z section; no relocations possible.
-    offsets[it].object_code_size = sec.first.byte_count;
-    offsets[it].object_code_offset = object_size;
-    object_size += sec.first.byte_count;
-    ir_count += sec.second.size();
-  }
-  ret.object_code.resize(object_size, 0);
-  ret.ir_to_object_code.container.reserve(ir_count);
-  ret.section_spans.reserve(prog.size());
-
-  for (int it = 0; it < prog.size(); it++) {
-    const auto &[desc, ir] = prog[it];
-    auto &offset = offsets[it];
-    auto code_begin = ret.object_code.begin() + offset.object_code_offset;
-    auto code_end = code_begin + offset.object_code_size;
-
-    auto oc_subspan = bits::span<quint8>(code_begin, code_end);
-    ObjectCodeVisitor visitor(addresses, oc_subspan, ret.relocations, ret.ir_to_object_code);
-    offset.reloc_offset = ret.relocations.size();
-    for (const auto &line : ir) line->accept(&visitor);
-    offset.reloc_size = offset.reloc_offset - ret.relocations.size();
-  }
-
-  // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate
-  // relocation info.
-  using SectionSpans = ProgramObjectCodeResult::SectionSpans;
-  for (int it = 0; it < prog.size(); it++) {
-    const auto &[desc, ir] = prog[it];
-    auto &offset = offsets[it];
-    // Z sections need entries in section_spans, but those entries should be empty.
-    if (desc.flags.z) {
-      ret.section_spans.emplace_back(SectionSpans{{}, {}});
-    } else {
-      auto code_begin = ret.object_code.begin() + offset.object_code_offset;
-      auto code_end = code_begin + offset.object_code_size;
-      auto oc_subspan = bits::span<quint8>(code_begin, code_end);
-      auto reloc_begin = ret.relocations.begin() + offset.reloc_offset;
-      auto reloc_end = reloc_begin + offset.reloc_size;
-      auto reloc_subspan = bits::span<void *>(reloc_begin, reloc_end);
-      ret.section_spans.emplace_back(SectionSpans{oc_subspan, reloc_subspan});
-    }
-  }
-
-  //  Establish flat-map invariant
-  std::sort(ret.ir_to_object_code.container.begin(), ret.ir_to_object_code.container.end(), IR2ObjectComparator{});
   return ret;
 }
 
