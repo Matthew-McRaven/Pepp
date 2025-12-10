@@ -8,7 +8,7 @@
 #include "toolchain/pas/ast/value/string.hpp"
 
 pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)
-    : _pool(std::make_shared<pepp::tc::support::StringPool>()),
+    : _pool(std::make_shared<std::unordered_set<QString>>()),
       _lexer(std::make_shared<lex::PepLexer>(_pool, std::move(data))), _buffer(std::make_shared<lex::Buffer>(&*_lexer)),
       _symtab(QSharedPointer<symbol::Table>::create(2)) {}
 
@@ -225,7 +225,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
       std::shared_ptr<pas::ast::value::Base> arg;
       auto flags = maybeFlags->view().toString().toLower();
       bool r = flags.contains("r"), w = flags.contains("w"), x = flags.contains("x"), z = flags.contains("z");
-      return std::make_shared<ir::DotSection>(ir::attr::Identifier(maybeSecName->pool, maybeSecName->id),
+      return std::make_shared<ir::DotSection>(ir::attr::Identifier(maybeSecName->value),
                                               ir::attr::SectionFlags(r, w, x, z));
     }
   }
@@ -247,7 +247,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::line(Option
   else return nullptr;
 
   if (auto comment = _buffer->match<lex::InlineComment>(); comment)
-    ret->insert(std::make_unique<ir::attr::Comment>(comment->pool, comment->id));
+    ret->insert(std::make_unique<ir::attr::Comment>(comment->value));
 
   // Avoid re-attaching existing symbol declaration (e.g., .EQUATE in pseudo).
   if (symbol && !ret->has_attribute<ir::attr::SymbolDeclaration>())
@@ -266,7 +266,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::statement()
   }
 
   if (auto comment = _buffer->match<tc::lex::InlineComment>(); comment) {
-    auto line = std::make_shared<ir::CommentLine>(ir::attr::Comment(comment->pool, comment->id));
+    auto line = std::make_shared<ir::CommentLine>(ir::attr::Comment(comment->value));
     line->source_interval = comment->location();
     ret = line;
   } else {

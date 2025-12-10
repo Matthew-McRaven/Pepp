@@ -1,6 +1,5 @@
 #pragma once
 #include <QString>
-#include "../../support/allocators/string_pool.hpp"
 #include "../../support/source/location.hpp"
 namespace pepp::tc::lex {
 enum class CommonTokenType {
@@ -17,7 +16,7 @@ enum class CommonTokenType {
 
 struct Token {
   // Should default construct the invalid interval
-  Token(tc::support::LocationInterval loc = {});
+  explicit Token(tc::support::LocationInterval loc = {});
   virtual ~Token() = 0;
   virtual int type() const = 0;
   virtual QString type_name() const = 0;
@@ -40,21 +39,21 @@ protected:
 // Common token types across all lexers.
 struct Invalid : public Token {
   // You should be able to provide a loc for an invalid token!
-  Invalid(support::LocationInterval loc);
+  explicit Invalid(support::LocationInterval loc);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Invalid);
   int type() const override;
   QString type_name() const override;
 };
 
 struct EoF : public Token {
-  EoF(support::LocationInterval loc);
+  explicit EoF(support::LocationInterval loc);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::EoF);
   int type() const override;
   QString type_name() const override;
 };
 
 struct Empty : public Token {
-  Empty(support::LocationInterval loc);
+  explicit Empty(support::LocationInterval loc);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Empty);
   int type() const override;
   QString type_name() const override;
@@ -64,7 +63,7 @@ struct Empty : public Token {
 
 struct Integer : public Token {
   enum class Format { SignedDec, UnsignedDec, Hex, Bin } format = Format::SignedDec;
-  Integer(support::LocationInterval loc, uint64_t val = 0, Format fmt = Format::SignedDec);
+  explicit Integer(support::LocationInterval loc, uint64_t val = 0, Format fmt = Format::SignedDec);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Integer);
   int type() const override;
   QString type_name() const override;
@@ -74,19 +73,17 @@ struct Integer : public Token {
 };
 
 struct Identifier : public Token {
-  Identifier(support::LocationInterval loc, support::StringPool *pool, support::PooledString id);
+  Identifier(support::LocationInterval loc, QString const *v);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Identifier);
   int type() const override;
   QStringView view() const;
   QString type_name() const override;
   QString to_string() const override;
-
-  support::StringPool *pool = nullptr;
-  support::PooledString id;
+  QString const *value;
 };
 
 struct SymbolDeclaration : public Identifier {
-  SymbolDeclaration(support::LocationInterval loc, support::StringPool *pool, support::PooledString id);
+  SymbolDeclaration(support::LocationInterval loc, QString const *v);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::SymbolDeclaration);
   int type() const override;
   QString type_name() const override;
@@ -94,7 +91,7 @@ struct SymbolDeclaration : public Identifier {
 
 // For comments of the form ";hi", or "// hi" which do not span more than one line
 struct InlineComment : public Identifier {
-  InlineComment(support::LocationInterval loc, support::StringPool *pool, support::PooledString id);
+  InlineComment(support::LocationInterval loc, QString const *v);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::InlineComment);
   int type() const override;
   QString type_name() const override;

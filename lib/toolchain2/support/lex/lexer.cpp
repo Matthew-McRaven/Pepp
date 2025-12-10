@@ -1,6 +1,7 @@
 #include "./lexer.hpp"
 
-pepp::tc::lex::ALexer::ALexer(std::shared_ptr<support::StringPool> identifier_pool, support::SeekableData &&data)
+pepp::tc::lex::ALexer::ALexer(std::shared_ptr<std::unordered_set<QString>> identifier_pool,
+                              support::SeekableData &&data)
     : _cursor(std::move(data)), _pool(identifier_pool) {}
 
 pepp::tc::support::LocationInterval pepp::tc::lex::ALexer::synchronize() {

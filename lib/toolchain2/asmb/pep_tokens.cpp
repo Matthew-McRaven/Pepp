@@ -1,14 +1,10 @@
 #include "./pep_tokens.hpp"
 
-pepp::tc::lex::DotCommand::DotCommand(support::LocationInterval loc, support::StringPool *pool,
-                                      support::PooledString id)
-    : Identifier(loc, pool, id) {}
+pepp::tc::lex::DotCommand::DotCommand(support::LocationInterval loc, QString const *v) : Identifier(loc, v) {}
 
 int pepp::tc::lex::DotCommand::type() const { return TYPE; }
 
-pepp::tc::lex::MacroInvocation::MacroInvocation(support::LocationInterval loc, support::StringPool *pool,
-                                                support::PooledString id)
-    : Identifier(loc, pool, id) {}
+pepp::tc::lex::MacroInvocation::MacroInvocation(support::LocationInterval loc, QString const *v) : Identifier(loc, v) {}
 
 int pepp::tc::lex::MacroInvocation::type() const { return TYPE; }
 
@@ -23,9 +19,7 @@ QString pepp::tc::lex::CharacterConstant::to_string() const { return QStringLite
 
 QString pepp::tc::lex::CharacterConstant::repr() const { return QStringLiteral("%1(%2)").arg(type_name(), value); }
 
-pepp::tc::lex::StringConstant::StringConstant(support::LocationInterval loc, support::StringPool *pool,
-                                              support::PooledString id)
-    : Identifier(loc, pool, id) {}
+pepp::tc::lex::StringConstant::StringConstant(support::LocationInterval loc, QString const *v) : Identifier(loc, v) {}
 
 int pepp::tc::lex::StringConstant::type() const { return TYPE; }
 

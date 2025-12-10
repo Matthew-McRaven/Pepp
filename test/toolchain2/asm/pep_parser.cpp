@@ -245,10 +245,8 @@ TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]")
       REQUIRE(results.size() == 1);
       auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
       REQUIRE(r0);
-      REQUIRE(r0->name.pool);
-      auto str_view = r0->name.pool->find(r0->name.id);
-      REQUIRE(str_view.has_value());
-      CHECK(str_view.value().toString().toStdString() == ".text");
+      REQUIRE(r0->name.value != nullptr);
+      CHECK(*r0->name.value == ".text");
       CHECK(r0->flags.r == true);
       CHECK(r0->flags.w == true);
       CHECK(r0->flags.x == false);
@@ -261,10 +259,7 @@ TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]")
       REQUIRE(results.size() == 1);
       auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
       REQUIRE(r0);
-      REQUIRE(r0->name.pool);
-      auto str_view = r0->name.pool->find(r0->name.id);
-      REQUIRE(str_view.has_value());
-      CHECK(str_view.value().toString().toStdString() == ".");
+      CHECK(*r0->name.value == ".");
       CHECK(r0->flags.r == false);
       CHECK(r0->flags.w == false);
       CHECK(r0->flags.x == true);

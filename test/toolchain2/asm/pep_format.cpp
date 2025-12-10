@@ -26,7 +26,7 @@
 
 using namespace Qt::StringLiterals;
 namespace {
-static auto idpool = []() { return std::make_shared<pepp::tc::support::StringPool>(); };
+static auto idpool = []() { return std::make_shared<std::unordered_set<QString>>(); };
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 } // namespace
 

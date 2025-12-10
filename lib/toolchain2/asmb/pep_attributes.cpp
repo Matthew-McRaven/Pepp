@@ -2,7 +2,7 @@
 
 pepp::tc::ir::attr::Type pepp::tc::ir::attr::Identifier::type() const { return TYPE; }
 
-QStringView pepp::tc::ir::attr::Identifier::view() const { return pool->find(id).value(); }
+QStringView pepp::tc::ir::attr::Identifier::view() const { return *value; }
 
 QString pepp::tc::ir::attr::Identifier::to_string() const { return view().toString(); }
 

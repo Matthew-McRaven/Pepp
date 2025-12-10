@@ -3,7 +3,8 @@
 #include "../support/lex/tokens.hpp"
 #include "./pep_tokens.hpp"
 
-pepp::tc::lex::PepLexer::PepLexer(std::shared_ptr<support::StringPool> identifier_pool, support::SeekableData &&data)
+pepp::tc::lex::PepLexer::PepLexer(std::shared_ptr<std::unordered_set<QString>> identifier_pool,
+                                  support::SeekableData &&data)
     : ALexer(identifier_pool, std::move(data)) {}
 
 bool pepp::tc::lex::PepLexer::input_remains() const { return _cursor.input_remains(); }
@@ -58,25 +59,23 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::PepLexer::next_token() {
     } else if (auto maybeSymbol = _cursor.matchView(symbol); maybeSymbol.hasMatch()) {
       _cursor.advance(maybeSymbol.capturedLength(0));
       auto text = _cursor.select().chopped(1); // Drop trailing :
-      auto id = _pool->insert(text);
-      current_token =
-          std::make_shared<SymbolDeclaration>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+      QString const *id = &*_pool->emplace(text).first;
+      current_token = std::make_shared<SymbolDeclaration>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else if (auto maybeIdent = _cursor.matchView(identifier); maybeIdent.hasMatch()) {
       _cursor.advance(maybeIdent.capturedLength(0));
-      auto id = _pool->insert(_cursor.select());
-      current_token = std::make_shared<Identifier>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+      QString const *id = &*_pool->emplace(_cursor.select()).first;
+      current_token = std::make_shared<Identifier>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else if (auto maybeMacro = _cursor.matchView(macroInvoke); maybeMacro.hasMatch()) {
       _cursor.advance(maybeMacro.capturedLength(0));
-      auto id = _pool->insert(_cursor.select().mid(1)); // Drop leading @
-      current_token =
-          std::make_shared<MacroInvocation>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+      QString const *id = &*_pool->emplace(_cursor.select().mid(1)).first; // Drop leading @
+      current_token = std::make_shared<MacroInvocation>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else if (auto maybeDot = _cursor.matchView(directive); maybeDot.hasMatch()) {
       _cursor.advance(maybeDot.capturedLength(0));
-      auto id = _pool->insert(_cursor.select().mid(1)); // Drop leading .
-      current_token = std::make_shared<DotCommand>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+      QString const *id = &*_pool->emplace(_cursor.select().mid(1)).first; // Drop leading .
+      current_token = std::make_shared<DotCommand>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else if (next == ".") { // Bad dot command!
       _cursor.advance(1);
@@ -103,9 +102,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::PepLexer::next_token() {
       break;
     } else if (auto maybeComment = _cursor.matchView(comment); maybeComment.hasMatch()) {
       _cursor.advance(maybeComment.capturedLength(0));
-      // Skip over the leading ;
-      auto id = _pool->insert(_cursor.select().mid(1));
-      current_token = std::make_shared<InlineComment>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+      QString const *id = &*_pool->emplace(_cursor.select().mid(1)).first; // Drop leading ;
+      current_token = std::make_shared<InlineComment>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else if (next == "'") {
       if (auto maybeChar = _cursor.matchView(charConstant); maybeChar.hasMatch()) {
@@ -125,9 +123,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::PepLexer::next_token() {
         _cursor.advance(maybeStr.capturedLength(0));
         // Omit open and close quotes.
         auto text = _cursor.select().mid(1).chopped(1);
-        auto id = _pool->insert(text);
-        current_token =
-            std::make_shared<StringConstant>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+        QString const *id = &*_pool->emplace(text).first;
+        current_token = std::make_shared<StringConstant>(LocationInterval{loc_start, _cursor.location()}, id);
         break;
       } else {
         _cursor.advance(1);
