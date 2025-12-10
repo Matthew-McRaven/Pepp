@@ -55,7 +55,8 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment", "[scope:asm][kind:unit][ar
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 3);
-    auto result = pepp::tc::split_to_sections(results);
+    auto result = pepp::tc::split_to_sections(diag, results);
+    CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     CHECK(sections.size() == 1);
@@ -73,7 +74,8 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment", "[scope:asm][kind:unit][ar
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 3);
-    auto result = pepp::tc::split_to_sections(results);
+    auto result = pepp::tc::split_to_sections(diag, results);
+    CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     CHECK(sections.size() == 1);
@@ -91,7 +93,8 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment", "[scope:asm][kind:unit][ar
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 5);
-    auto result = pepp::tc::split_to_sections(results);
+    auto result = pepp::tc::split_to_sections(diag, results);
+    CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     CHECK(sections.size() == 2);
@@ -115,7 +118,8 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment", "[scope:asm][kind:unit][ar
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 6);
-    auto result = pepp::tc::split_to_sections(results);
+    auto result = pepp::tc::split_to_sections(diag, results);
+    CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     CHECK(sections.size() == 2);

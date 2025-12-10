@@ -54,7 +54,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-    auto result = pepp::tc::split_to_sections(results);
+    auto result = pepp::tc::split_to_sections(diag, results);
+    CHECK(diag.count() == 0);
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
@@ -72,7 +73,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
       test:BR 10,i)"));
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    auto result = pepp::tc::split_to_sections(results);
+    auto result = pepp::tc::split_to_sections(diag, results);
+    CHECK(diag.count() == 0);
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);

@@ -39,6 +39,10 @@ public:
   const pepp::tc::support::LocationInterval loc;
 };
 
+// Any part of compilation / assembly / linking that can fail should take a DiagnosticTable& as their first argument.
+// e.g., parsing can fail because the user entered an invalid program, while assign_addresses cannot because the
+// previous passes caught all possible errors. We chose to ignore system errors (e.g., ran out of memory) to reduce the
+// number of failable functions.
 class DiagnosticTable {
 public:
   void add_message(pepp::tc::support::LocationInterval, std::string);

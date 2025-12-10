@@ -10,7 +10,8 @@
 #include "toolchain/symbol/visit.hpp"
 #include "toolchain2/asmb/common_elf.hpp"
 
-pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(PepIRProgram &prog, SectionDescriptor initial_section) {
+pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &diag, PepIRProgram &prog,
+                                                             SectionDescriptor initial_section) {
   SectionAnalysisResults ret;
   ret.grouped_ir.emplace_back(std::make_pair(initial_section, pepp::tc::PepIRProgram{}));
   auto &grouped_ir = ret.grouped_ir;

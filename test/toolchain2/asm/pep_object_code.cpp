@@ -47,7 +47,8 @@ TEST_CASE("Pepp ASM object code output", "[scope:asm][kind:unit][arch:*][tc2]") 
   auto p = Parser(data(ex1));
   auto full_ir = p.parse(diag);
   CHECK(diag.count() == 0);
-  auto sectioned_ir = pepp::tc::split_to_sections(full_ir);
+  auto sectioned_ir = pepp::tc::split_to_sections(diag, full_ir);
+  CHECK(diag.count() == 0);
   auto &sections = sectioned_ir.grouped_ir;
   auto addresses = pepp::tc::assign_addresses(sections);
   auto object_code = to_object_code(addresses, sections);

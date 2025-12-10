@@ -52,7 +52,8 @@ TEST_CASE("Pepp ASM codegen sectioning", "[scope:asm][kind:unit][arch:*][tc2]") 
   CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-  auto result = pepp::tc::split_to_sections(results);
+  auto result = pepp::tc::split_to_sections(diag, results);
+  CHECK(diag.count() == 0);
   auto &sections = result.grouped_ir;
   CHECK(sections.size() == 3);
   CHECK(sections[0].first.name == ".text");
@@ -79,7 +80,8 @@ TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*]
     CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-    auto result = pepp::tc::split_to_sections(results);
+    auto result = pepp::tc::split_to_sections(diag, results);
+    CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
     CHECK(sections.size() == 3);
@@ -120,7 +122,8 @@ TEST_CASE("Pepp ASM codegen .SCALL", "[scope:asm][kind:unit][arch:*][tc2]") {
   auto results = p.parse(diag);
   CHECK(diag.count() == 0);
   REQUIRE(results.size() == 3);
-  auto result = pepp::tc::split_to_sections(results);
+  auto result = pepp::tc::split_to_sections(diag, results);
+  CHECK(diag.count() == 0);
   auto const &scalls = result.system_calls;
   CHECK(scalls.size() == 2);
   const auto contains = [&](const std::string &target) {
@@ -146,7 +149,8 @@ TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT", "[scope:asm][kind:unit][arch:*]
   auto results = p.parse(diag);
   CHECK(diag.count() == 0);
   REQUIRE(results.size() == 3);
-  auto result = pepp::tc::split_to_sections(results);
+  auto result = pepp::tc::split_to_sections(diag, results);
+  CHECK(diag.count() == 0);
   auto &mmios = result.mmios;
   CHECK(mmios.size() == 2);
   CHECK(mmios[0].name.toStdString() == "DECI");
