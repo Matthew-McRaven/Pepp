@@ -43,8 +43,10 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment", "[scope:asm][kind:unit][ar
   using SymbolTable = symbol::Table;
   using namespace pepp::tc::ir;
   SECTION("One section, .ORG at front") {
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(ex1));
-    auto results = p.parse();
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
     REQUIRE(results.size() == 3);
     auto result = pepp::tc::split_to_sections(results);
     auto &sections = result.grouped_ir;
@@ -59,8 +61,10 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment", "[scope:asm][kind:unit][ar
     CHECK(addresses.at(&*s0[2]).address == 0xfeed + 2);
   }
   SECTION("One section, .ORG in middle") {
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(ex2));
-    auto results = p.parse();
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
     REQUIRE(results.size() == 3);
     auto result = pepp::tc::split_to_sections(results);
     auto &sections = result.grouped_ir;
@@ -75,8 +79,10 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment", "[scope:asm][kind:unit][ar
     CHECK(addresses.at(&*s0[2]).address == 0xfeed);
   }
   SECTION("Two sections, .ORG at start of second section") {
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(ex3));
-    auto results = p.parse();
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
     REQUIRE(results.size() == 5);
     auto result = pepp::tc::split_to_sections(results);
     auto &sections = result.grouped_ir;

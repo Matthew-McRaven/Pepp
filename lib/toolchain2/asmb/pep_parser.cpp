@@ -12,14 +12,14 @@ pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)
       _lexer(std::make_shared<lex::PepLexer>(_pool, std::move(data))), _buffer(std::make_shared<lex::Buffer>(&*_lexer)),
       _symtab(QSharedPointer<symbol::Table>::create(2)) {}
 
-pepp::tc::PepIRProgram pepp::tc::parser::PepParser::parse() {
+pepp::tc::PepIRProgram pepp::tc::parser::PepParser::parse(DiagnosticTable &diag) {
   PepIRProgram lines;
-
   while (_buffer->input_remains()) {
     try {
       if (auto line = statement(); line) lines.emplace_back(line);
     } catch (ParserError &e) {
       synchronize();
+      diag.add_message(e.loc, e.what());
     }
   }
   return lines;

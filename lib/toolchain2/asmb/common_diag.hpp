@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <stdexcept>
 #include "toolchain2/support/source/location.hpp"
 namespace pepp::tc {
@@ -39,6 +40,18 @@ public:
 };
 
 class DiagnosticTable {
-  void add_message();
+public:
+  void add_message(pepp::tc::support::LocationInterval, std::string);
+  auto cbegin() const { return _raw.cbegin(); }
+  auto cend() const { return _raw.cend(); }
+  auto overlapping_interval(support::LocationInterval i) const {
+    auto lb = i.lower().valid() ? _raw.lower_bound(i.lower()) : _raw.cbegin();
+    auto ub = i.upper().valid() ? _raw.upper_bound(i.upper()) : _raw.cend();
+    return std::pair{lb, ub};
+  }
+  size_t count() const;
+
+private:
+  std::multimap<pepp::tc::support::LocationInterval, std::string> _raw;
 };
 } // namespace pepp::tc

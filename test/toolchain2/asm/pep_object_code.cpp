@@ -43,8 +43,10 @@ TEST_CASE("Pepp ASM object code output", "[scope:asm][kind:unit][arch:*][tc2]") 
   using SymbolTable = symbol::Table;
   using namespace pepp::tc::ir;
 
+  pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(ex1));
-  auto full_ir = p.parse();
+  auto full_ir = p.parse(diag);
+  CHECK(diag.count() == 0);
   auto sectioned_ir = pepp::tc::split_to_sections(full_ir);
   auto &sections = sectioned_ir.grouped_ir;
   auto addresses = pepp::tc::assign_addresses(sections);

@@ -41,3 +41,7 @@ pepp::tc::ParserError::ParserError(NullaryError err, support::LocationInterval l
 
 pepp::tc::ParserError::ParserError(UnaryError err, std::string arg1, support::LocationInterval loc)
     : std::logic_error(to_string(err, arg1)), loc(loc) {}
+
+void pepp::tc::DiagnosticTable::add_message(support::LocationInterval i, std::string msg) { _raw.emplace(i, msg); }
+
+size_t pepp::tc::DiagnosticTable::count() const { return _raw.size(); }

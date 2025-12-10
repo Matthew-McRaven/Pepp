@@ -44,8 +44,10 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
   using SymbolTable = symbol::Table;
   using namespace pepp::tc::ir;
   SECTION("No ORG") {
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(ex1));
-    auto results = p.parse();
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
     REQUIRE(results.size() == 11);
     CHECK(std::dynamic_pointer_cast<EmptyLine>(results[0]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[1]));
@@ -64,10 +66,12 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
     elf_result.elf->save("dummy.elf");
   }
   SECTION("0-sized section") {
+    pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(R"(
       .SECTION ".data","rwx"
       test:BR 10,i)"));
-    auto results = p.parse();
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
     auto result = pepp::tc::split_to_sections(results);
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
