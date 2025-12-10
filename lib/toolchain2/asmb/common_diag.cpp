@@ -16,6 +16,7 @@ const std::string pepp::tc::ParserError::to_string(NullaryError err) {
   case NullaryError::AddressingMode_Invalid: return "Invalid addressing mode";
   case NullaryError::AddressingMode_Missing: return "Expected addressing mode";
   case NullaryError::SymbolDeclaration_Required: return "Requires a symbol declaration";
+  case NullaryError::SymbolDeclaration_Forbidden: return "Does not allow a symbol declaration";
   case NullaryError::SymbolDeclaration_TooLong: return "Symbol declaration too long";
   case NullaryError::Section_StringName: return ".SECTION name must be a string";
   case NullaryError::Section_TwoArgs: return ".SECTION requires two arguments";

@@ -19,6 +19,7 @@ public:
     AddressingMode_Invalid,
     AddressingMode_Missing,
     SymbolDeclaration_Required,
+    SymbolDeclaration_Forbidden,
     SymbolDeclaration_TooLong,
     Section_StringName,
     Section_TwoArgs,

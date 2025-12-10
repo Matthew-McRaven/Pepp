@@ -137,7 +137,6 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
       throw ParserError(ParserError::NullaryError::Argument_ExpectedPowerOfTwo, _buffer->matched_interval());
     return std::make_shared<ir::DotAlign>(arg);
   }
-
   case ir::DotCommands::ASCII: {
     if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
       throw ParserError(ParserError::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
@@ -173,31 +172,43 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
   case ir::DotCommands::EXPORT: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::EXPORT, arg);
   }
   case ir::DotCommands::IMPORT: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::IMPORT, arg);
   }
   case ir::DotCommands::INPUT: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::INPUT, arg);
   }
   case ir::DotCommands::ORG: {
     auto arg = hex_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedHex, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotOrg>(ir::DotOrg::Behavior::ORG, arg);
   }
   case ir::DotCommands::OUTPUT: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::OUTPUT, arg);
   }
   case ir::DotCommands::SCALL: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::SCALL, arg);
   }
   case ir::DotCommands::SECTION: {
@@ -207,6 +218,8 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
       throw ParserError(ParserError::NullaryError::Section_TwoArgs, _buffer->matched_interval());
     else if (auto maybeFlags = _buffer->match<lex::StringConstant>(); !maybeFlags)
       throw ParserError(ParserError::NullaryError::Section_StringFlags, _buffer->matched_interval());
+    else if (symbol)
+      throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     else {
       static constexpr auto le = bits::Order::LittleEndian;
       std::shared_ptr<pas::ast::value::Base> arg;
