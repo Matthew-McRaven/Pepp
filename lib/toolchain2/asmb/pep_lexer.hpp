@@ -4,7 +4,7 @@
 namespace pepp::tc::lex {
 
 struct PepLexer : public ALexer {
-  PepLexer(std::shared_ptr<support::StringPool> identifier_pool, support::SeekableData &&data);
+  PepLexer(std::shared_ptr<std::unordered_set<QString>> identifier_pool, support::SeekableData &&data);
   ~PepLexer() override = default;
   bool input_remains() const override;
   std::shared_ptr<Token> next_token() override;
@@ -16,7 +16,7 @@ struct PepLexer : public ALexer {
 // It has to do some trickery when it encounters a macro invocation token, because it has to parse the arguments and
 // perform textual substitution before lexing the macro body.
 struct ChainMacroLexer : public ALexer {
-  ChainMacroLexer(std::shared_ptr<support::StringPool> identifier_pool, support::SeekableData &&data,
+  ChainMacroLexer(std::unordered_set<QString> &identifier_pool, support::SeekableData &&data,
                   std::shared_ptr<void *> macro_registry);
   ~ChainMacroLexer() override = default;
   bool input_remains() const override;

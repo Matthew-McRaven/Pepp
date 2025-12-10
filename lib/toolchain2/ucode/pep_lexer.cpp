@@ -3,7 +3,7 @@
 #include "../support/lex/tokens.hpp"
 #include "./pep_tokens.hpp"
 
-pepp::tc::lex::MicroLexer::MicroLexer(std::shared_ptr<support::StringPool> identifier_pool,
+pepp::tc::lex::MicroLexer::MicroLexer(std::shared_ptr<std::unordered_set<QString>> identifier_pool,
                                       support::SeekableData &&data)
     : ALexer(identifier_pool, std::move(data)) {}
 
@@ -57,20 +57,18 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::MicroLexer::next_token() {
       break;
     } else if (auto maybeSymbol = _cursor.matchView(symbol); maybeSymbol.hasMatch()) {
       _cursor.advance(maybeSymbol.capturedLength(0));
-      auto id = _pool->insert(_cursor.select());
+      QString const *id = &*_pool->emplace(_cursor.select()).first;
       // UnitPre and UnitPost are constructs that look like symbols. Hijacking symbol code to avoid 2 extra regexs
       if (maybeSymbol.capturedView(0).compare("UnitPre:", Qt::CaseInsensitive) == 0)
         current_token = std::make_shared<UnitPre>(LocationInterval{loc_start, _cursor.location()});
       else if (maybeSymbol.capturedView(0).compare("UnitPost:", Qt::CaseInsensitive) == 0)
         current_token = std::make_shared<UnitPost>(LocationInterval{loc_start, _cursor.location()});
-      else
-        current_token =
-            std::make_shared<SymbolDeclaration>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+      else current_token = std::make_shared<SymbolDeclaration>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else if (auto maybeIdent = _cursor.matchView(identifier); maybeIdent.hasMatch()) {
       _cursor.advance(maybeIdent.capturedLength(0));
-      auto id = _pool->insert(_cursor.select());
-      current_token = std::make_shared<Identifier>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+      QString const *id = &*_pool->emplace(_cursor.select()).first;
+      current_token = std::make_shared<Identifier>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else if (auto maybeLine = _cursor.matchView(lineNum); maybeLine.hasMatch()) {
       _cursor.advance(maybeLine.capturedLength(0));
@@ -96,8 +94,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::MicroLexer::next_token() {
       break;
     } else if (auto maybeComment = _cursor.matchView(comment); maybeComment.hasMatch()) {
       _cursor.advance(maybeComment.capturedLength(0));
-      auto id = _pool->insert(_cursor.select());
-      current_token = std::make_shared<InlineComment>(LocationInterval{loc_start, _cursor.location()}, _pool.get(), id);
+      QString const *id = &*_pool->emplace(_cursor.select()).first;
+      current_token = std::make_shared<InlineComment>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else {
       _cursor.advance(1);

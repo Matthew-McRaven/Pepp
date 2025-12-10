@@ -10,13 +10,13 @@ enum class AsmTokenType {
 };
 
 struct DotCommand : public Identifier {
-  DotCommand(support::LocationInterval loc, support::StringPool *pool, support::PooledString id);
+  DotCommand(support::LocationInterval loc, QString const *v);
   static constexpr int TYPE = static_cast<int>(AsmTokenType::DotCommand);
   int type() const override;
 };
 
 struct MacroInvocation : public Identifier {
-  MacroInvocation(support::LocationInterval loc, support::StringPool *pool, support::PooledString id);
+  MacroInvocation(support::LocationInterval loc, QString const *v);
   static constexpr int TYPE = static_cast<int>(AsmTokenType::MacroInvocation);
   int type() const override;
 };
@@ -35,7 +35,7 @@ struct CharacterConstant : public Token {
 // We are going to cheat with string constants. You should drop the quotes when making an ID out of this.
 // While the lexer MUST check that escape sequences are valid, it does NOT need to convert them into bytes.
 struct StringConstant : public Identifier {
-  StringConstant(support::LocationInterval loc, support::StringPool *pool, support::PooledString id);
+  StringConstant(support::LocationInterval loc, QString const *v);
   static constexpr int TYPE = static_cast<int>(AsmTokenType::StringConstant);
   int type() const override;
   QString type_name() const override;

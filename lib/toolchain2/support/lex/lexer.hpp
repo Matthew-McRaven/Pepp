@@ -5,9 +5,6 @@
 #include <vector>
 #include "toolchain2/support/source/seekable.hpp"
 
-namespace pepp::tc::support {
-class StringPool;
-}
 namespace pepp::tc::lex {
 struct Token;
 
@@ -16,7 +13,10 @@ struct ALexer {
     virtual ~Listener() = default;
     virtual void consumed(std::shared_ptr<Token> t) = 0;
   };
-  ALexer(std::shared_ptr<support::StringPool> identifier_pool, support::SeekableData &&data);
+  // references/pointers to *elements* are never invalidated unless removed from the container.
+  // iterators may be invalidated in many cases. So, if derived lexer's return pointers to constant QStrings,
+  // we get "cheap" (1 ptr wide) identifiers as well as reducing the average memory usage of the lexer.
+  ALexer(std::shared_ptr<std::unordered_set<QString>> identifier_pool, support::SeekableData &&data);
   virtual ~ALexer() = default;
   virtual bool input_remains() const = 0;
   // Whenever next_token is called, must notify all listeners via Listener::consumed.
@@ -39,7 +39,7 @@ protected:
   std::vector<Listener *> _listeners;
   void notify_listeners(std::shared_ptr<Token> t);
   support::SeekableData _cursor;
-  std::shared_ptr<support::StringPool> _pool;
+  std::shared_ptr<std::unordered_set<QString>> _pool;
 };
 
 } // namespace pepp::tc::lex

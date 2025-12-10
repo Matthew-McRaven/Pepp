@@ -4,7 +4,6 @@
 #include "toolchain/pas/ast/value/base.hpp"
 #include "toolchain/pas/ast/value/symbolic.hpp"
 #include "toolchain/symbol/entry.hpp"
-#include "toolchain2/support/allocators/string_pool.hpp"
 
 namespace pepp::tc::ir::attr {
 
@@ -28,9 +27,8 @@ struct AAttribute {
 struct Identifier : public AAttribute {
   static constexpr Type TYPE = Type::Identifier;
   Type type() const override;
-  Identifier(support::StringPool *pool, support::PooledString id) : pool(pool), id(id) {}
-  support::StringPool *pool = nullptr;
-  support::PooledString id;
+  Identifier(QString const *v) : value(v) {}
+  QString const *value;
   QStringView view() const;
   QString to_string() const;
 };
@@ -38,7 +36,7 @@ struct Identifier : public AAttribute {
 struct Comment : public Identifier {
   static constexpr Type TYPE = Type::Comment;
   Type type() const override;
-  Comment(support::StringPool *pool, support::PooledString id) : Identifier(pool, id) {}
+  Comment(QString const *v) : Identifier(v) {}
 };
 
 struct CommentIndent : public AAttribute {

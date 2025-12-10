@@ -65,9 +65,9 @@ std::vector<typename uarch::Code> microcodeFor(const ParseResult<uarch, register
 }
 
 template <typename uarch, typename registers> struct MicroParser {
-  MicroParser(const QString &source, std::shared_ptr<support::StringPool> pool = nullptr)
-      : _pool(pool ? pool : std::make_shared<support::StringPool>()), _lexer(_pool, support::SeekableData{source}),
-        _buf(&_lexer) {};
+  MicroParser(const QString &source, std::shared_ptr<std::unordered_set<QString>> pool = nullptr)
+      : _pool(pool ? pool : std::make_shared<std::unordered_set<QString>>()),
+        _lexer(_pool, support::SeekableData{source}), _buf(&_lexer) {};
   // Given some source code, parse it as a microcode program.
   // We assume that not language constructs span multiple lines, so we defer the real parsing work to parseLine.
   // This means parse() is mostly responsible for splitting the source into lines, updating address & symbol values, and
@@ -76,7 +76,7 @@ template <typename uarch, typename registers> struct MicroParser {
 
 private:
   bool nextLine(typename ir::Line<uarch, registers> &code, QString &error);
-  std::shared_ptr<support::StringPool> _pool;
+  std::shared_ptr<std::unordered_set<QString>> _pool;
   lex::MicroLexer _lexer;
   lex::Buffer _buf;
 };

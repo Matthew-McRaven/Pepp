@@ -54,29 +54,24 @@ QString pepp::tc::lex::Integer::to_string() const {
   }
 }
 
-pepp::tc::lex::Identifier::Identifier(support::LocationInterval loc, support::StringPool *pool,
-                                      support::PooledString id)
-    : Token(loc), pool(pool), id(id) {}
+pepp::tc::lex::Identifier::Identifier(support::LocationInterval loc, QString const *v) : Token(loc), value(v) {}
 
 int pepp::tc::lex::Identifier::type() const { return TYPE; }
 
-QStringView pepp::tc::lex::Identifier::view() const { return pool->find(id).value(); }
+QStringView pepp::tc::lex::Identifier::view() const { return *value; }
 
 QString pepp::tc::lex::Identifier::type_name() const { return "Identifier"; }
 
 QString pepp::tc::lex::Identifier::to_string() const { return view().toString(); }
 
-pepp::tc::lex::SymbolDeclaration::SymbolDeclaration(support::LocationInterval loc, support::StringPool *pool,
-                                                    support::PooledString id)
-    : Identifier(loc, pool, id) {}
+pepp::tc::lex::SymbolDeclaration::SymbolDeclaration(support::LocationInterval loc, QString const *v)
+    : Identifier(loc, v) {}
 
 int pepp::tc::lex::SymbolDeclaration::type() const { return TYPE; }
 
 QString pepp::tc::lex::SymbolDeclaration::type_name() const { return "Symbol"; }
 
-pepp::tc::lex::InlineComment::InlineComment(support::LocationInterval loc, support::StringPool *pool,
-                                            support::PooledString id)
-    : Identifier(loc, pool, id) {}
+pepp::tc::lex::InlineComment::InlineComment(support::LocationInterval loc, QString const *v) : Identifier(loc, v) {}
 
 int pepp::tc::lex::InlineComment::type() const { return TYPE; }
 
