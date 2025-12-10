@@ -12,6 +12,7 @@ struct Location {
   bool operator==(const Location &other) const = default;
 
   static constexpr uint16_t INVALID = -1;
+  static constexpr uint16_t MAX = -2;
   uint16_t row = INVALID;
   uint16_t column = INVALID;
 };
