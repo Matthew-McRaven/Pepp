@@ -99,7 +99,9 @@ jobs:
         if: inputs.runs-on == 'windows-latest'
         shell: bash
         run: echo "$RUNNER_WORKSPACE/Qt/Tools/QtInstallerFramework/4.7/bin" >>$GITHUB_PATH
-
+      - name: Enable Developer Command Prompt
+        if: inputs.runs-on == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
       # Prevent clang from using ccache, because it is profiling build times
       - name: Enable caching object files between builds
         # Disable ccache when running locally
