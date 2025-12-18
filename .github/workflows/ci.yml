@@ -105,7 +105,7 @@ jobs:
     needs: [ branch_info, check_tag, create_icons ]
     uses: ./.github/workflows/build.yml
     strategy:
-      # fail-fast: true # Disable fail-fast because I want to see all errors at once.
+      fail-fast: false
       # If you want to update images, must replace *ALL* images in the matrix manually.
       # Trying to use `env` or inputs will fail in this context.
       matrix:
