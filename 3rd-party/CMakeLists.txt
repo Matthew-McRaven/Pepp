@@ -93,30 +93,31 @@ set(monaspace_SOURCE_DIR
 
 include(Flat.cmake)
 
-set(RISCV_64I
-    OFF
-    CACHE BOOL "" FORCE)
-set(RISCV_BINARY_TRANSLATION
-    OFF
-    CACHE BOOL "" FORCE)
-
-# libriscv does not create a .lib on Windows... so we'll just compile it as a static lib.
-# For all other platofrms, respect the requested library build type.
-if (MSVC)
+# libriscv does not create a .lib on Windows... so we'll just compile it as a
+# static lib. For all other platofrms, respect the requested library build type.
+if(MSVC)
   cmake_policy(PUSH)
-  cmake_policy(SET CMP0077 NEW) # cache values override option() defaults in subdirs
+  cmake_policy(SET CMP0077 NEW) # cache values override option() defaults in
+                                # subdirs
   set(_saved_BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS}")
   set(BUILD_SHARED_LIBS OFF)
-  set(BUILD_SHARED_LIBS OFF CACHE BOOL "Force static deps" FORCE)
+  set(BUILD_SHARED_LIBS
+      OFF
+      CACHE BOOL "Force static deps" FORCE)
   add_subdirectory(libriscv)
   set_property(TARGET riscv PROPERTY POSITION_INDEPENDENT_CODE ON)
-  set_property(TARGET riscv PROPERTY MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
-  # C4661 deals with explicit template instantiation C4005 silences macro redefinition warnings.
+  set_property(TARGET riscv PROPERTY MSVC_DEBUG_INFORMATION_FORMAT
+                                     ProgramDatabase)
+  # C4661 deals with explicit template instantiation C4005 silences macro
+  # redefinition warnings.
   target_compile_options(riscv PRIVATE /wd4661 /wd4005)
   set(BUILD_SHARED_LIBS "${_saved_BUILD_SHARED_LIBS}")
-  set(BUILD_SHARED_LIBS "${_saved_BUILD_SHARED_LIBS}" CACHE BOOL "" FORCE)
+  set(BUILD_SHARED_LIBS
+      "${_saved_BUILD_SHARED_LIBS}"
+      CACHE BOOL "" FORCE)
   cmake_policy(POP)
   unset(_saved_BUILD_SHARED_LIBS)
 else()
   add_subdirectory(libriscv)
 endif()
+# a add_subdirectory(libriscv/tests/unit)
