@@ -17,6 +17,7 @@
 
 #pragma once
 #include <QtCore>
+#include <stdexcept>
 #include "sim3/api/memory_access.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "utils/bits/order.hpp"

@@ -33,6 +33,7 @@
  */
 #pragma once
 #include <memory>
+#include <stdexcept>
 #include "../notraced_cpu.hpp"
 #include "./threaded_bytecodes.hpp"
 #include "enums/isa/rv_base.hpp"
