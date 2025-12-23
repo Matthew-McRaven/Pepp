@@ -16,8 +16,7 @@
 #include "rawmemory.hpp"
 
 #include <QQmlEngine>
-
-#include <sim/trace2/modified.hpp>
+#include "sim3/trace/modified.hpp"
 
 ARawMemory::ARawMemory(QObject *parent) : QObject(parent) {}
 

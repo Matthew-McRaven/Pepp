@@ -17,9 +17,10 @@
 
 #pragma once
 #include "enums/isa/pep10.hpp"
-#include "sim/api2.hpp"
 #include "sim/debug/debugger.hpp"
-#include "sim/device/dense.hpp"
+#include "sim3/api/clock.hpp"
+#include "sim3/api/traced/trace_endpoint.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 
 namespace targets::pep10::isa {
 class CPU : public sim::api2::tick::Recipient,

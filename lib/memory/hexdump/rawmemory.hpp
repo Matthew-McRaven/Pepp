@@ -18,8 +18,8 @@
 #include <QtQmlIntegration>
 #include <QtTypes>
 #include <vector>
-#include "sim/device/simple_bus.hpp"
-#include "sim/trace2/modified.hpp"
+#include "sim3/subsystems/bus/simple.hpp"
+#include "sim3/trace/modified.hpp"
 
 class QJSEngine;
 class QQmlEngine;

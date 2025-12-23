@@ -16,11 +16,11 @@
 
 #include <catch.hpp>
 #include "./api.hpp"
-#include "utils/bits/swap.hpp"
-#include "sim/device/broadcast/mmo.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/pep9/isa3/cpu.hpp"
+#include "sim3/subsystems/ram/broadcast/mmo.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 #include "targets/isa3/helpers.hpp"
+#include "targets/pep9/isa3/cpu.hpp"
+#include "utils/bits/swap.hpp"
 
 namespace {
 void inner(isa::Pep9::Mnemonic op) {

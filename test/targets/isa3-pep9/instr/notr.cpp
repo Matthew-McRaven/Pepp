@@ -16,11 +16,11 @@
 
 #include <catch.hpp>
 
+#include "sim3/subsystems/ram/dense.hpp"
 #include "./api.hpp"
-#include "utils/bits/swap.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/pep9/isa3/cpu.hpp"
 #include "targets/isa3/helpers.hpp"
+#include "targets/pep9/isa3/cpu.hpp"
+#include "utils/bits/swap.hpp"
 
 namespace {
 template <isa::Pep9::Register target_reg> void inner_notr(isa::Pep9::Mnemonic op) {

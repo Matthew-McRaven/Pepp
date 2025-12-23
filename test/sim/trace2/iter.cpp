@@ -16,9 +16,8 @@
 
 #include <catch.hpp>
 #include <zpp_bits.h>
-#include "sim/api2.hpp"
-#include "sim/trace2/buffers.hpp"
-#include "sim/trace2/packet_utils.hpp"
+#include "sim3/trace/buffers/infinite.hpp"
+#include "sim3/trace/packet_utils.hpp"
 
 TEST_CASE("Trace buffer iterators", "[scope:sim][kind:unit][arch:*]") {
   sim::trace2::InfiniteBuffer buf;

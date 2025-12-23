@@ -16,10 +16,10 @@
 
 #pragma once
 #include <qtypes.h>
-#include "utils/bits/swap.hpp"
-#include "sim/device/dense.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 #include "targets/isa3/helpers.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
+#include "utils/bits/swap.hpp"
 
 static inline sim::api2::memory::Operation rw = {
     .type = sim::api2::memory::Operation::Type::Standard,

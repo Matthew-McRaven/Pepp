@@ -1,4 +1,4 @@
-#include "sim/api2/path.hpp"
+#include "sim3/api/traced/memory_path.hpp"
 #include <catch.hpp>
 #include <zpp_bits.h>
 

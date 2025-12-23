@@ -16,10 +16,10 @@
 
 #include <catch.hpp>
 #include <ranges>
+#include "sim3/subsystems/ram/dense.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
-#include "sim/device/dense.hpp"
 #include "targets/pep9/mc2/cpu.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain2/targets/pep/uarch.hpp"

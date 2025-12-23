@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <QtCore>
-#include "../clock.hpp"
+#include "clock.hpp"
 
 namespace sim::api2::memory {
 // If select memory operations fail (e.g., lack of MMI, unmapped address in

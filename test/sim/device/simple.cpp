@@ -16,11 +16,10 @@
 
 #include <catch.hpp>
 
-#include "sim/api2.hpp"
-#include "sim/device/dense.hpp"
-#include "sim/device/simple_bus.hpp"
-#include "sim/trace2/buffers.hpp"
-#include "sim/trace2/packet_utils.hpp"
+#include "sim3/subsystems/bus/simple.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
+#include "sim3/trace/buffers/infinite.hpp"
+#include "sim3/trace/packet_utils.hpp"
 
 namespace {
 auto rw = sim::api2::memory::Operation{

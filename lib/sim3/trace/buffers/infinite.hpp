@@ -1,7 +1,23 @@
+/*
+ * /Copyright (c) 2023-2025. Stanley Warford, Matthew McRaven
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
+#include "sim3/api/traced/trace_buffer.hpp"
+#include "../packet_utils.hpp"
 #include "lru/cache.hpp"
-#include "sim/api2.hpp"
-#include "sim/trace2/packet_utils.hpp"
 
 namespace sim::trace2 {
 class IsTraced {

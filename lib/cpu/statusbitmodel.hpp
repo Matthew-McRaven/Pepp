@@ -17,8 +17,8 @@
 
 #include <QAbstractListModel>
 #include <QVector>
-#include "api2/trace/iterator.hpp"
 #include <QtQmlIntegration>
+#include "sim3/api/traced/trace_iterator.hpp"
 
 class Flag {
 public:

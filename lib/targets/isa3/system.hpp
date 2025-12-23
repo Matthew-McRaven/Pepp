@@ -18,7 +18,8 @@
 #pragma once
 #include <elfio/elfio.hpp>
 #include "enums/constants.hpp"
-#include "sim/api2.hpp"
+#include "sim3/api/system.hpp"
+#include "sim3/api/traced/memory_target.hpp"
 #include "toolchain/link/memmap.hpp"
 
 namespace obj {

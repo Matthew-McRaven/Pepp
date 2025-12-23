@@ -16,18 +16,18 @@
 
 #include "toolchain/pas/driver/pep10.hpp"
 #include <catch.hpp>
-#include "toolchain/pas/obj/pep10.hpp"
-#include "toolchain/pas/operations/generic/errors.hpp"
-#include "toolchain/pas/operations/pepp/string.hpp"
+#include "sim3/subsystems/bus/simple.hpp"
+#include "enums/isa/pep10.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
-#include "enums/isa/pep10.hpp"
+#include "targets/isa3/system.hpp"
 #include "toolchain/link/memmap.hpp"
 #include "toolchain/link/mmio.hpp"
 #include "toolchain/macro/registry.hpp"
-#include "sim/device/simple_bus.hpp"
-#include "targets/isa3/system.hpp"
+#include "toolchain/pas/obj/pep10.hpp"
+#include "toolchain/pas/operations/generic/errors.hpp"
+#include "toolchain/pas/operations/pepp/string.hpp"
 
 namespace {
 

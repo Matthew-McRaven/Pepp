@@ -18,7 +18,7 @@
 #include <QAbstractListModel>
 #include <QQmlEngine>
 #include <QVector>
-#include "api2/trace/iterator.hpp"
+#include "sim3/api/traced/trace_iterator.hpp"
 
 struct RegisterFormatter;
 //  Read only class for change in Register values

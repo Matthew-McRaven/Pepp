@@ -16,9 +16,8 @@
  */
 
 #pragma once
-#include "dense.hpp"
-#include "sim/api2.hpp"
-#include "sim/trace2/modified.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
+#include "sim3/trace/modified.hpp"
 
 namespace sim::memory {
 class IDEController : public sim::api2::trace::Source,

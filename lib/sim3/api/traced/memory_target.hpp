@@ -15,9 +15,9 @@
  */
 #pragma once
 #include "../device.hpp"
-#include "../path.hpp"
-#include "./access.hpp"
-#include "./address.hpp"
+#include "../memory_access.hpp"
+#include "../memory_address.hpp"
+#include "memory_path.hpp"
 #include "utils/bits/span.hpp"
 namespace sim::api2::memory {
 template <typename Address> struct Target {

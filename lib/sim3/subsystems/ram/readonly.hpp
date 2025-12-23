@@ -15,7 +15,8 @@
  */
 
 #pragma once
-#include "sim/api2.hpp"
+#include "sim3/api/traced/memory_target.hpp"
+#include "utils/bits/span.hpp"
 
 namespace sim::memory {
 template <typename Address>

@@ -16,7 +16,7 @@
 
 #include <catch.hpp>
 
-#include "sim/device/broadcast/mmi.hpp"
+#include "sim3/subsystems/ram//broadcast/mmi.hpp"
 
 namespace {
 auto desc = sim::api2::device::Descriptor{.id = 1, .baseName = "cin", .fullName = "/cin"};

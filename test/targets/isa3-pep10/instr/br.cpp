@@ -16,11 +16,11 @@
 
 #include <catch.hpp>
 
+#include "sim3/subsystems/ram/dense.hpp"
 #include "./api.hpp"
-#include "utils/bits/swap.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
 #include "targets/isa3/helpers.hpp"
+#include "targets/pep10/isa3/cpu.hpp"
+#include "utils/bits/swap.hpp"
 
 namespace {
 typedef bool (*should_branch)(bool n, bool z, bool v, bool c);

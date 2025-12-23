@@ -17,9 +17,8 @@
 
 #pragma once
 #include "enums/isa/pep9.hpp"
-#include "sim/api2.hpp"
 #include "sim/debug/debugger.hpp"
-#include "sim/device/dense.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 
 namespace sim::memory {
 template <typename Address> class Output;

@@ -16,8 +16,8 @@
 
 #include <catch.hpp>
 
-#include "sim/device/dense.hpp"
-#include "sim/device/readonly.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
+#include "sim3/subsystems/ram/readonly.hpp"
 
 namespace {
 namespace api2 = sim::api2;

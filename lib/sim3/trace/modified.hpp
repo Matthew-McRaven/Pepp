@@ -1,9 +1,27 @@
+/*
+ * /Copyright (c) 2023-2025. Stanley Warford, Matthew McRaven
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 #include <ostream>
 #include <set>
-#include "packet_utils.hpp"
-#include "sim/api2.hpp"
-#include "sim/api2/memory/address.hpp"
+#include "./packet_utils.hpp"
+#include "sim3/api/memory_address.hpp"
+#include "sim3/api/traced/memory_path.hpp"
+#include "sim3/api/traced/memory_target.hpp"
+#include "sim3/api/traced/trace_endpoint.hpp"
 #include "utils/bits/mask.hpp"
 namespace sim::trace2 {
 template <typename T> using Interval = sim::api2::memory::Interval<T>;

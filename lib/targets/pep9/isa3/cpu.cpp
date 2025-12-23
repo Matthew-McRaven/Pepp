@@ -15,7 +15,7 @@
  */
 
 #include "cpu.hpp"
-#include "sim/device/broadcast/mmo.hpp"
+#include "sim3/subsystems/ram/broadcast/mmo.hpp"
 #include "targets/isa3/helpers.hpp"
 #include "utils/bits/swap.hpp"
 

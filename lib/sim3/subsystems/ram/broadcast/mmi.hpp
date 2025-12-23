@@ -16,8 +16,9 @@
 
 #pragma once
 #include "./pubsub.hpp"
-#include "sim/api2.hpp"
-#include "sim/trace2/packet_utils.hpp"
+#include "sim3/api/traced/memory_target.hpp"
+#include "sim3/api/traced/trace_endpoint.hpp"
+#include "sim3/trace/packet_utils.hpp"
 #include "utils/bits/copy.hpp"
 
 namespace sim::memory {

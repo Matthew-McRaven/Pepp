@@ -16,10 +16,10 @@
  */
 
 #include "throughput.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
 #include <chrono>
 #include <iostream>
+#include "sim3/subsystems/ram/dense.hpp"
+#include "targets/pep10/isa3/cpu.hpp"
 const auto desc_mem = sim::api2::device::Descriptor{
     .id = 1,
     .baseName = "ram",

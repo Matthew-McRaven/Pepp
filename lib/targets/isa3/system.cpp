@@ -16,18 +16,18 @@
  */
 
 #include "./system.hpp"
-#include "api2/memory/address.hpp"
-#include "device/ide.hpp"
-#include "toolchain/link/bytes.hpp"
-#include "toolchain/link/memmap.hpp"
-#include "toolchain/link/mmio.hpp"
-#include "sim/device/broadcast/mmi.hpp"
-#include "sim/device/broadcast/mmo.hpp"
-#include "sim/device/readonly.hpp"
-#include "sim/device/simple_bus.hpp"
+#include "sim3/api/memory_address.hpp"
+#include "sim3/subsystems/bus/simple.hpp"
+#include "sim3/subsystems/disk/ide.hpp"
+#include "sim3/subsystems/ram/broadcast/mmi.hpp"
+#include "sim3/subsystems/ram/broadcast/mmo.hpp"
+#include "sim3/subsystems/ram/readonly.hpp"
 #include "targets/isa3/helpers.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
+#include "toolchain/link/bytes.hpp"
+#include "toolchain/link/memmap.hpp"
+#include "toolchain/link/mmio.hpp"
 using namespace Qt::StringLiterals;
 
 using AddressSpan = sim::api2::memory::AddressSpan<quint16>;

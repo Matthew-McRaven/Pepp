@@ -16,9 +16,9 @@
 
 #include "microrun.hpp"
 #include <QtCore>
-#include "sim/api2/device.hpp"
-#include "sim/api2/memory/address.hpp"
-#include "sim/device/dense.hpp"
+#include "sim3/api/device.hpp"
+#include "sim3/api/memory_address.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 #include "targets/pep9/mc2/cpu.hpp"
 #include "toolchain2/ucode/pep_parser.hpp"
 

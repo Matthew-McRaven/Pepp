@@ -15,10 +15,10 @@
  */
 
 #include <catch.hpp>
-#include "utils/bits/swap.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 #include "targets/isa3/helpers.hpp"
+#include "targets/pep10/isa3/cpu.hpp"
+#include "utils/bits/swap.hpp"
 namespace {
 sim::api2::memory::Operation rw = {
     .type = sim::api2::memory::Operation::Type::Standard,

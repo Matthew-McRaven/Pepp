@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include "./iterator.hpp"
+#include "./trace_iterator.hpp"
 
 namespace sim::api2::trace {
 class Buffer;
