@@ -13,7 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #pragma once
 #include "sim3/api/traced/memory_target.hpp"
 #include "utils/bits/span.hpp"

@@ -66,7 +66,6 @@ target_link_libraries(
          spdlog
          cxxgraph
          flat
-         riscv
          pepp-changelog)
 # Will fail to find hpp files without this, see
 # https://bugreports.qt.io/browse/QTBUG-101146.
