@@ -37,9 +37,10 @@
 #include <sys/eventfd.h>
 // #define SYSPRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 
-#include "../../common.hpp"
-#include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "./syscalls.hpp"
+#include "enums/isa/rv_types.hpp"
+#include "sim3/common_macros.hpp"
+#include "sim3/systems/notraced_riscv_isa3_system.hpp"
 
 namespace riscv {
 template <AddressType address_t>
