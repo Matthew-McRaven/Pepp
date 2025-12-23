@@ -15,6 +15,7 @@
  */
 
 #include "run.hpp"
+#include "sim3/cores/pep/traced_helpers.hpp"
 #include "../basic_lazy_sink.hpp"
 #include "../shared.hpp"
 #include "help/builtins/figure.hpp"
@@ -24,9 +25,8 @@
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
-#include "targets/isa3/helpers.hpp"
-#include "targets/isa3/system.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
+#include "sim3/systems/traced_pep_isa3_system.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/link/mmio.hpp"

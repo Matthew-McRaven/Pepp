@@ -18,8 +18,8 @@
 #include <QStringListModel>
 #include <QtQmlIntegration>
 #include <qabstractitemmodel.h>
+#include "sim3/systems/traced_pep_isa3_system.hpp"
 #include "enums/constants.hpp"
-#include "targets/isa3/system.hpp"
 
 namespace sim {
 namespace trace2 {

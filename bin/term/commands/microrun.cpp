@@ -16,10 +16,10 @@
 
 #include "microrun.hpp"
 #include <QtCore>
+#include "sim3/cores/pep/traced_pep9_mc2.hpp"
 #include "sim3/api/device.hpp"
 #include "sim3/api/memory_address.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
-#include "targets/pep9/mc2/cpu.hpp"
 #include "toolchain2/ucode/pep_parser.hpp"
 
 MicroRunTask::MicroRunTask(int ed, std::string fname, int busWidth, QObject *parent)

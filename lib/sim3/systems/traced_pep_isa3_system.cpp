@@ -1,33 +1,32 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
+ * /Copyright (c) 2023-2025. Stanley Warford, Matthew McRaven
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./system.hpp"
+#include "../cores/pep/traced_helpers.hpp"
+#include "../cores/pep/traced_pep10_isa3.hpp"
+#include "../cores/pep/traced_pep9_isa3.hpp"
 #include "sim3/api/memory_address.hpp"
 #include "sim3/subsystems/bus/simple.hpp"
 #include "sim3/subsystems/disk/ide.hpp"
 #include "sim3/subsystems/ram/broadcast/mmi.hpp"
 #include "sim3/subsystems/ram/broadcast/mmo.hpp"
 #include "sim3/subsystems/ram/readonly.hpp"
-#include "targets/isa3/helpers.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep9/isa3/cpu.hpp"
 #include "toolchain/link/bytes.hpp"
 #include "toolchain/link/memmap.hpp"
 #include "toolchain/link/mmio.hpp"
+#include "traced_pep_isa3_system.hpp"
 using namespace Qt::StringLiterals;
 
 using AddressSpan = sim::api2::memory::AddressSpan<quint16>;

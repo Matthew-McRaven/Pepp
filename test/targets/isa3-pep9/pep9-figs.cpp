@@ -17,6 +17,8 @@
 #include <QStringLiteral>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
+#include "sim3/cores/pep/traced_helpers.hpp"
+#include "sim3/cores/pep/traced_pep9_isa3.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
@@ -25,9 +27,7 @@
 #include "sim3/subsystems/ram/broadcast/mmi.hpp"
 #include "sim3/subsystems/ram/broadcast/mmo.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
-#include "targets/isa3/helpers.hpp"
-#include "targets/isa3/system.hpp"
-#include "targets/pep9/isa3/cpu.hpp"
+#include "sim3/systems/traced_pep_isa3_system.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/link/mmio.hpp"
 #include "toolchain/macro/registry.hpp"

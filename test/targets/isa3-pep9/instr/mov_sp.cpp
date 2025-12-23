@@ -16,10 +16,10 @@
 
 #include <catch.hpp>
 
-#include "sim3/subsystems/ram/dense.hpp"
+#include "sim3/cores/pep/traced_helpers.hpp"
+#include "sim3/cores/pep/traced_pep9_isa3.hpp"
 #include "./api.hpp"
-#include "targets/isa3/helpers.hpp"
-#include "targets/pep9/isa3/cpu.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 #include "utils/bits/swap.hpp"
 
 TEST_CASE("Pep9::Mnemonic::MOVSPA", "[scope:targets][kind:int][target:pep9]") {

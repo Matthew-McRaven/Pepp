@@ -19,7 +19,7 @@
 #include <chrono>
 #include <iostream>
 #include "sim3/subsystems/ram/dense.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
 const auto desc_mem = sim::api2::device::Descriptor{
     .id = 1,
     .baseName = "ram",

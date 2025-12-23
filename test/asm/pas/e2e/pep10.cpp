@@ -16,12 +16,12 @@
 
 #include "toolchain/pas/driver/pep10.hpp"
 #include <catch.hpp>
-#include "sim3/subsystems/bus/simple.hpp"
+#include "sim3/systems/traced_pep_isa3_system.hpp"
 #include "enums/isa/pep10.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
-#include "targets/isa3/system.hpp"
+#include "sim3/subsystems/bus/simple.hpp"
 #include "toolchain/link/memmap.hpp"
 #include "toolchain/link/mmio.hpp"
 #include "toolchain/macro/registry.hpp"

@@ -16,9 +16,9 @@
 
 #pragma once
 #include <qtypes.h>
+#include "sim3/cores/pep/traced_helpers.hpp"
+#include "sim3/cores/pep/traced_pep9_isa3.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
-#include "targets/isa3/helpers.hpp"
-#include "targets/pep9/isa3/cpu.hpp"
 #include "utils/bits/swap.hpp"
 
 static inline sim::api2::memory::Operation rw = {
