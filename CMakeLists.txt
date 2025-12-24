@@ -109,8 +109,10 @@ include(config/compile_tests/TryFindWebP.cmake)
 find_package(Python COMPONENTS Interpreter)
 
 include(config/cmake/GenerateChangelog.cmake)
+include(config/cmake/FindRISCVToolchain.cmake)
 add_subdirectory(lib)
 add_subdirectory(test)
+add_subdirectory(test2)
 add_subdirectory(bin)
 
 # Configure CPack installer generation.
