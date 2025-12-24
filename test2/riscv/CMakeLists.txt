@@ -1,14 +1,16 @@
-ExternalProject_Add(
-  riscv_samples
-  SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/riscv_samples"
-  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/riscv_samples"
-  INSTALL_DIR "${CMAKE_CURRENT_LIST_DIR}/riscv_samples"
-  CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_SOURCE_DIR}/config/cmake/rv64imafdcv.cmake
-    -DCMAKE_BUILD_TYPE=MinSizeRel
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_LIST_DIR}/riscv_samples
-  # LOG_CONFIGURE 1 LOG_BUILD 1
-)
+if(HAVE_RISCV_TOOLCHAIN)
+  ExternalProject_Add(
+    riscv_samples
+    SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/riscv_samples"
+    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/riscv_samples"
+    INSTALL_DIR "${CMAKE_CURRENT_LIST_DIR}/riscv_samples"
+    CMAKE_ARGS
+      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_SOURCE_DIR}/config/cmake/rv64imafdcv.cmake
+      -DCMAKE_BUILD_TYPE=MinSizeRel
+      -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_LIST_DIR}/riscv_samples
+    # LOG_CONFIGURE 1 LOG_BUILD 1
+  )
+endif()
 
 qt6_add_executable(basic "${CMAKE_CURRENT_LIST_DIR}/basic.cpp")
 qt6_add_resources(
