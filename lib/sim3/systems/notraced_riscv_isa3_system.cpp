@@ -46,3 +46,9 @@
 
 template struct riscv::Machine<uint32_t>;
 template struct riscv::Machine<uint64_t>;
+template size_t riscv::Memory<uint32_t>::serialize_to(std::vector<uint8_t> &) const;
+template void riscv::Memory<uint32_t>::deserialize_from(const std::vector<uint8_t> &,
+                                                        const SerializedMachine<uint32_t> &);
+template size_t riscv::Memory<uint64_t>::serialize_to(std::vector<uint8_t> &) const;
+template void riscv::Memory<uint64_t>::deserialize_from(const std::vector<uint8_t> &,
+                                                        const SerializedMachine<uint64_t> &);
