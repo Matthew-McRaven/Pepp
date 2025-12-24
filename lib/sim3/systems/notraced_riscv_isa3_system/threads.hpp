@@ -115,3 +115,5 @@ template <AddressType address_t> struct MultiThreading {
 	thread_t*  m_current = nullptr;
 };
 } // riscv
+
+#include "./threads_impl.hpp"
