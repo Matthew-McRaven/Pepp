@@ -39,24 +39,13 @@
 #include <sys/stat.h>
 #include <winsock2.h>
 #include "../linux/syscalls_mman.hpp"
+#include "../sysprint.hpp"
 #include "./epoll.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/threads.hpp"
-
 typedef std::make_signed_t<size_t> ssize_t;
 #ifndef PATH_MAX
 static constexpr size_t PATH_MAX = 512;
-#endif
-
-//#define SYSCALL_VERBOSE 1
-#ifdef SYSCALL_VERBOSE
-#define SYSPRINT(fmt, ...) \
-	{ char syspbuf[1024]; machine.print(syspbuf, \
-		snprintf(syspbuf, sizeof(syspbuf), fmt, ##__VA_ARGS__)); }
-static constexpr bool verbose_syscalls = true;
-#else
-#define SYSPRINT(fmt, ...) /* fmt */
-static constexpr bool verbose_syscalls = false;
 #endif
 
 #define SA_ONSTACK	0x08000000

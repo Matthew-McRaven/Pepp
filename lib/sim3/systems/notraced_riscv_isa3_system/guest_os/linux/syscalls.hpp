@@ -33,21 +33,9 @@
  */
 #pragma once
 
-// #define SYSCALL_VERBOSE 1
-#ifdef SYSCALL_VERBOSE
-#define SYSPRINT(fmt, ...)                                                                                             \
-  {                                                                                                                    \
-    char syspbuf[1024];                                                                                                \
-    machine.print(syspbuf, snprintf(syspbuf, sizeof(syspbuf), fmt, ##__VA_ARGS__));                                    \
-  }
-static constexpr bool verbose_syscalls = true;
-#else
-#define SYSPRINT(fmt, ...) /* fmt */
-static constexpr bool verbose_syscalls = false;
-#endif
-
 #include <fcntl.h>
 #include <signal.h>
+#include "../sysprint.hpp"
 #include "sim3/subsystems/ram/paged_pool.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #undef sa_handler

@@ -31,17 +31,9 @@
  * along with this program. If not, see
  * <https://opensource.org/license/bsd-3-clause>
  */
+#include "./sysprint.hpp"
 #include "sim3/subsystems/ram/paged_pool.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
-
-#ifndef SYSPRINT
-//#define SOCKETCALL_VERBOSE 1
-#ifdef SOCKETCALL_VERBOSE
-#define SYSPRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
-#else
-#define SYSPRINT(fmt, ...) /* fmt */
-#endif
-#endif
 
 #ifndef _WIN32
 #include <arpa/inet.h>

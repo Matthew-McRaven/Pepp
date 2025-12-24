@@ -33,7 +33,7 @@
  */
 #include <cstdio>
 #include "../../notraced_riscv_isa3_system.hpp"
-#define SYSPRINT(fmt, ...) /* fmt */
+#include "./sysprint.hpp"
 
 namespace riscv
 {

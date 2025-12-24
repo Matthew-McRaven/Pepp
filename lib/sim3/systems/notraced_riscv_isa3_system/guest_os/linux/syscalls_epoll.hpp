@@ -35,8 +35,8 @@
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
-// #define SYSPRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 
+#include "../sysprint.hpp"
 #include "./syscalls.hpp"
 #include "enums/isa/rv_types.hpp"
 #include "sim3/common_macros.hpp"
