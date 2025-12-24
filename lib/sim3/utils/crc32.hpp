@@ -48,9 +48,10 @@ inline constexpr auto gen_crc32_table()
 		auto crc = byte;
 
 		for (auto i = 0; i < num_iterations; ++i) {
-			auto mask = -(crc & 1);
-			crc = (crc >> 1) ^ (POLYNOMIAL & mask);
-		}
+      // Replace unary negate on unsigned with equivalent unsigned ops.
+      uint32_t mask = 1 + ~(crc & 1);
+      crc = (crc >> 1) ^ (POLYNOMIAL & mask);
+    }
 
 		crc32_table[byte] = crc;
 	}
