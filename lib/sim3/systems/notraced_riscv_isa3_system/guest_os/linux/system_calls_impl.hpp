@@ -1011,19 +1011,16 @@ static void syscall_uname(Machine<address_t>& machine)
 		char machine [UTSLEN];
 		char domain  [UTSLEN];
 	} uts;
-	strcpy(uts.sysname, "RISC-V C++ Emulator");
-	strcpy(uts.nodename,"libriscv");
-	strcpy(uts.release, "5.6.0");
-	strcpy(uts.version, "");
-	if constexpr (sizeof(address_t) == 4)
-		strcpy(uts.machine, "rv32imafdc");
-	else if constexpr (sizeof(address_t) == 8)
-		strcpy(uts.machine, "rv64imafdc");
-	else
-		strcpy(uts.machine, "rv128imafdc");
-	strcpy(uts.domain,  "(none)");
+  strncpy(uts.sysname, "RISC-V C++ Emulator", UTSLEN);
+  strncpy(uts.nodename, "libriscv", UTSLEN);
+  strncpy(uts.release, "5.6.0", UTSLEN);
+  strncpy(uts.version, "", UTSLEN);
+  if constexpr (sizeof(address_t) == 4) strncpy(uts.machine, "rv32imafdc", UTSLEN);
+  else if constexpr (sizeof(address_t) == 8) strncpy(uts.machine, "rv64imafdc", UTSLEN);
+  else strncpy(uts.machine, "rv128imafdc", UTSLEN);
+  strncpy(uts.domain, "(none)", UTSLEN);
 
-	machine.copy_to_guest(buffer, &uts, sizeof(uts));
+  machine.copy_to_guest(buffer, &uts, sizeof(uts));
 	machine.set_result(0);
 }
 
