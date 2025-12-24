@@ -40,7 +40,7 @@ SHELL ["/bin/bash", "-c"]
 LABEL org.opencontainers.image.authors="Matthew McRaven <matthew.mcraven@gmail.com>"
 LABEL org.opencontainers.image.source="https://github.com/Matthew-McRaven/Pepp"
 
-FROM base-gcc AS output-gcc-riscv
+FROM base-gcc AS build-gcc-riscv
 ENV RISCV=/opt/riscv
 ENV PATH=$PATH:$RISCV/bin
 ARG TOOLCHAIN_VERSION=2025.12.18
@@ -50,12 +50,15 @@ RUN apt update \
         libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev \
         libexpat-dev ninja-build git cmake libglib2.0-dev libslirp-dev  \
     && rm -rf /var/lib/apt/lists/*
-RUN    git clone --recursive https://github.com/riscv/riscv-gnu-toolchain -b ${TOOLCHAIN_VERSION} \
-    && cd riscv-gnu-toolchain                                                                     \
-    && ./configure --prefix=$RISCV --enable-multilib                                              \
-    && make -j 4                                                                                  \
-    && cd ..                                                                                      \
-    && rm -rf riscv-gnu-toolchain
+RUN git clone --recursive https://github.com/riscv/riscv-gnu-toolchain -b ${TOOLCHAIN_VERSION}
+RUN cd riscv-gnu-toolchain && ./configure --prefix=$RISCV --enable-multilib
+RUN cd riscv-gnu-toolchain && make -j8
+RUN cd riscv-gnu-toolchain && make -j8 linux
+
+FROM base-gcc AS output-gcc-riscv
+ENV RISCV=/opt/riscv
+ENV PATH=$PATH:$RISCV/bin
+COPY --from=build-gcc-riscv /opt/riscv /opt/riscv
 
 FROM base-gcc AS base-wasm
 # Must install documentation-building tools in WASM image.
