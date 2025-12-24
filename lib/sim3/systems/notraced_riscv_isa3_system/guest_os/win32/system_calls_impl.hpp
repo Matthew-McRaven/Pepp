@@ -37,6 +37,7 @@
 #include <io.h>
 #include <sys/stat.h>
 #include <winsock2.h>
+#include "../linux/syscalls_mman.hpp"
 #include "./epoll.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/threads.hpp"

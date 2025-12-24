@@ -36,7 +36,7 @@
 #define LINUX_MAP_ANONYMOUS        0x20
 #define LINUX_MAP_NORESERVE     0x04000
 #define LINUX_MAP_FIXED 0x10
-#include "./syscalls.hpp"
+// Do not include syscalls, since this file is used on both Linux and Windows
 #include "sim3/common_macros.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 namespace riscv {

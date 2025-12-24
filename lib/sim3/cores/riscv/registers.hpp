@@ -155,11 +155,12 @@ namespace riscv
 				m_rvv = other.m_rvv;
 			}
 			(void)opts;
-		}
+    }
+    inline size_t size() const { return m_reg.size(); }
 
-	private:
-		// General purpose registers
-		std::array<register_t, 32> m_reg {};
+  private:
+    // General purpose registers
+    std::array<register_t, 32> m_reg {};
 	public:
 		address_t pc = 0;
 	private:

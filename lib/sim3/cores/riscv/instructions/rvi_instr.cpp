@@ -1025,8 +1025,11 @@ RVPRINTR_ATTR int OP32_printer(char *buffer, size_t len, const CPU<address_t> &c
   case 0x305: strop = "ROR.W"; break;
   default: strop = "OP.UNKNOWN.W"; break;
   }
-  return snprintf(buffer, len, "%s %s <- %s, %s (= 0x%" PRIX64 ")", strop, RISCV::regname(instr.Rtype.rd),
-                  RISCV::regname(instr.Rtype.rs1), RISCV::regname(instr.Rtype.rs2), uint64_t(cpu.reg(instr.Rtype.rd)));
+  // Clamp rd to [0,32] when instr is OP.UNKNOWN.W.
+  // This was detected by static analysis.
+  auto rd = instr.Rtype.rd >= cpu.registers().size() ? 0 : instr.Rtype.rd;
+  return snprintf(buffer, len, "%s %s <- %s, %s (= 0x%" PRIX64 ")", strop, RISCV::regname(rd),
+                  RISCV::regname(instr.Rtype.rs1), RISCV::regname(instr.Rtype.rs2), uint64_t(cpu.reg(rd)));
 };
 template <AddressType address_t> RVINSTR_ATTR void OP32_ADDW_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
   auto &dst = cpu.reg(instr.Rtype.rd);
