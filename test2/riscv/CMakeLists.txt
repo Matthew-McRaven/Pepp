@@ -28,6 +28,7 @@ qt6_add_resources(
   riscv_samples/basic_fib.elf
   # riscv_samples/basic_scall_write.elf
 )
-set_target_properties(basic PROPERTIES FOLDER "qtc_runnable")
 
+set_target_properties(basic PROPERTIES FOLDER "qtc_runnable")
 target_link_libraries(basic PRIVATE pepp-lib catch Qt6::Core)
+add_test(NAME basic COMMAND basic)
