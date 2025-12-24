@@ -35,6 +35,9 @@
 #include <chrono>
 #include <cstdint>
 #include <io.h>
+#include <sys/stat.h>
+#include <winsock2.h>
+#include "./epoll.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/threads.hpp"
 
@@ -53,9 +56,6 @@ static constexpr bool verbose_syscalls = true;
 #define SYSPRINT(fmt, ...) /* fmt */
 static constexpr bool verbose_syscalls = false;
 #endif
-
-#include <winsock2.h>
-#include <sys/stat.h>
 
 #define SA_ONSTACK	0x08000000
 
@@ -863,8 +863,6 @@ static void syscall_getrandom(Machine<address_t>& machine)
 			(long)g_addr, (long)g_len, (long)machine.return_value());
 	}
 }
-
-#include "./epoll.hpp"
 
 template<AddressType address_t>
 void Machine<address_t>::setup_minimal_syscalls() {
