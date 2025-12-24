@@ -1025,9 +1025,9 @@ RVPRINTR_ATTR int OP32_printer(char *buffer, size_t len, const CPU<address_t> &c
   case 0x305: strop = "ROR.W"; break;
   default: strop = "OP.UNKNOWN.W"; break;
   }
-  // Clamp rd to [0,32] when instr is OP.UNKNOWN.W.
+  // Clamp rd to [0,31] when instr is OP.UNKNOWN.W.
   // This was detected by static analysis.
-  auto rd = instr.Rtype.rd >= cpu.registers().size() ? 0 : instr.Rtype.rd;
+  auto rd = instr.Rtype.rd < cpu.registers().size() ? instr.Rtype.rd : 0;
   return snprintf(buffer, len, "%s %s <- %s, %s (= 0x%" PRIX64 ")", strop, RISCV::regname(rd),
                   RISCV::regname(instr.Rtype.rs1), RISCV::regname(instr.Rtype.rs2), uint64_t(cpu.reg(rd)));
 };
