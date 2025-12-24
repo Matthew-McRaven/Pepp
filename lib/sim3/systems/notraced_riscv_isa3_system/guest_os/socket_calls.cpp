@@ -649,11 +649,7 @@ void add_socket_syscalls(Machine<address_t>& machine)
 	machine.install_syscall_handler(269, syscall_sendmmsg<address_t>);
 }
 
-#ifdef RISCV_32I
 template void add_socket_syscalls<uint32_t>(Machine<uint32_t> &);
-#endif
-#ifdef RISCV_64I
 template void add_socket_syscalls<uint64_t>(Machine<uint64_t> &);
-#endif
 
 } // riscv

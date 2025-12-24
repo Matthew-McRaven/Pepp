@@ -207,7 +207,6 @@ namespace riscv
       instr.whole = rewritten.whole;
       return bytecode;
     }
-#ifdef RISCV_64I
     case RV64I_BC_SLLIW:
     case RV64I_BC_SRLIW:
     case RV64I_BC_SRAIW: {
@@ -221,7 +220,6 @@ namespace riscv
       instr.whole = rewritten.whole;
       return bytecode;
     }
-#endif
     case RV32I_BC_SLLI:
     case RV32I_BC_SRLI:
     case RV32I_BC_SRAI:
@@ -235,11 +233,9 @@ namespace riscv
       instr.whole = rewritten.whole;
       return bytecode;
     }
-#ifdef RISCV_64I
     case RV64I_BC_ADDIW:
       if (sizeof(address_t) == 4) return RV32I_BC_INVALID;
       [[fallthrough]];
-#endif
     case RV32I_BC_SEXT_B:
     case RV32I_BC_SEXT_H:
     case RV32I_BC_ADDI:
@@ -292,7 +288,6 @@ namespace riscv
 
       return bytecode;
     }
-#ifdef RISCV_64I
     case RV64I_BC_OP_ADDW:
     case RV64I_BC_OP_SUBW:
     case RV64I_BC_OP_MULW:
@@ -301,7 +296,6 @@ namespace riscv
     case RV64I_BC_OP_SH2ADD_UW:
       if (sizeof(address_t) == 4) return RV32I_BC_INVALID;
       [[fallthrough]];
-#endif
     case RV32I_BC_OP_ADD:
     case RV32I_BC_OP_SUB:
     case RV32I_BC_OP_SLL:
@@ -329,12 +323,10 @@ namespace riscv
       instr.whole = rewritten.whole;
       return bytecode;
     }
-#ifdef RISCV_64I
     case RV32I_BC_LDWU:
     case RV32I_BC_LDD:
       if (sizeof(address_t) == 4) return RV32I_BC_INVALID;
       [[fallthrough]];
-#endif
     case RV32I_BC_LDB:
     case RV32I_BC_LDBU:
     case RV32I_BC_LDH:
@@ -348,11 +340,9 @@ namespace riscv
       instr.whole = rewritten.whole;
       return bytecode;
     }
-#ifdef RISCV_64I
     case RV32I_BC_STD:
       if (sizeof(address_t) == 4) return RV32I_BC_INVALID;
       [[fallthrough]];
-#endif
     case RV32I_BC_STB:
     case RV32I_BC_STH:
     case RV32I_BC_STW: {
@@ -447,7 +437,6 @@ namespace riscv
       return bytecode;
     }
     /** Vector instructions **/
-#ifdef RISCV_EXT_VECTOR
     case RV32V_BC_VLE32:
     case RV32V_BC_VSE32: {
       const rv32v_instruction vi{instr};
@@ -469,9 +458,7 @@ namespace riscv
       instr.whole = rewritten.whole;
       return bytecode;
     }
-#endif
     /** Compressed instructions **/
-#ifdef RISCV_EXT_COMPRESSED
     case RV32C_BC_FUNCTION: {
       // Already fast, no need to rewrite
       return bytecode;
@@ -697,7 +684,6 @@ namespace riscv
       instr.whole = rewritten.whole;
       return bytecode;
     }
-#endif // RISCV_EXT_COMPRESSED
 
     case RV32I_BC_SYSCALL: {
       return RV32I_BC_SYSCALL;

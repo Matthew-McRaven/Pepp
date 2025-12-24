@@ -178,18 +178,8 @@ static constexpr size_t PageMask = RISCV_PAGE_SIZE - 1;
 #endif
 #endif
 
-#ifdef RISCV_EXT_A
-#define RISCV_EXT_ATOMICS
 	static constexpr bool atomics_enabled = true;
-#else
-	static constexpr bool atomics_enabled = false;
-#endif
-#ifdef RISCV_EXT_C
-#define RISCV_EXT_COMPRESSED
 	static constexpr bool compressed_enabled = true;
-#else
-	static constexpr bool compressed_enabled = false;
-#endif
 #define RISCV_EXT_VECTOR 32
 	static constexpr unsigned vector_extension = RISCV_EXT_VECTOR;
 #ifdef RISCV_FCSR
@@ -241,10 +231,8 @@ static constexpr size_t PageMask = RISCV_PAGE_SIZE - 1;
 
 	template <typename T>
 	struct is_span : std::false_type{};
-#ifdef RISCV_SPAN_AVAILABLE
 	template <typename T>
 	struct is_span<std::span<T>> : std::true_type{};
 	template <typename T>
 	constexpr bool is_span_v = is_span<T>::value;
-#endif
 } // riscv

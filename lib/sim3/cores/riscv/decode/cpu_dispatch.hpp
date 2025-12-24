@@ -141,7 +141,6 @@ continue_segment:
 
       /** Instruction handlers **/
 
-#ifdef RISCV_EXT_COMPRESSED
     case RV32C_BC_ADDI: {
       VIEW_INSTR_AS(fi, FasterItype);
       REG(fi.get_rs1()) = REG(fi.get_rs2()) + fi.signed_imm();
@@ -157,7 +156,6 @@ continue_segment:
       REG(fi.get_rs1()) <<= fi.imm;
       NEXT_C_INSTR();
     }
-#endif
     case RV32I_BC_ADDI: {
       VIEW_INSTR_AS(fi, FasterItype);
       REG(fi.get_rs1()) = REG(fi.get_rs2()) + fi.signed_imm();
@@ -173,7 +171,6 @@ continue_segment:
       REG(fi.get_rd()) = REG(fi.get_rs1());
       NEXT_INSTR();
     }
-#ifdef RISCV_64I
     case RV64I_BC_ADDIW: {
       if constexpr (W >= 8) {
         VIEW_INSTR_AS(fi, FasterItype);
@@ -181,7 +178,6 @@ continue_segment:
         NEXT_INSTR();
       } else PEPP_UNREACHABLE();
     }
-#endif // RISCV_64I
 
     case RV32I_BC_FAST_JAL: {
       if constexpr (VERBOSE_JUMPS) {
@@ -248,7 +244,6 @@ continue_segment:
       NEXT_INSTR();
     }
 
-#ifdef RISCV_EXT_COMPRESSED
     case RV32C_BC_BNEZ: {
       VIEW_INSTR_AS(fi, FasterItype);
       if (REG(fi.get_rs1()) != 0) {
@@ -295,7 +290,6 @@ continue_segment:
       pc = REG(instr.whole) & ~addr_t(1);
       OVERFLOW_CHECKED_JUMP();
     }
-#endif // RISCV_EXT_COMPRESSED
 
     case RV32I_BC_JAL: {
       VIEW_INSTR_AS(fi, FasterJtype);
@@ -375,7 +369,7 @@ continue_segment:
       (*this).memory().template write<uint32_t>(addr, REG(fi.get_rs2()));
       NEXT_INSTR();
     }
-#ifdef RISCV_64I
+
     case RV32I_BC_LDD: {
       if constexpr (W >= 8) {
         VIEW_INSTR_AS(fi, FasterItype);
@@ -392,7 +386,6 @@ continue_segment:
         NEXT_INSTR();
       } else PEPP_UNREACHABLE();
     }
-#endif // RISCV_64I
 
     case RV32F_BC_FLW: {
       VIEW_INSTR_AS(fi, FasterItype);
@@ -409,7 +402,6 @@ continue_segment:
       NEXT_INSTR();
     }
 
-#ifdef RISCV_EXT_COMPRESSED
     case RV32C_BC_LDD: {
       if constexpr (W >= 8) {
         VIEW_INSTR_AS(fi, FasterItype);
@@ -438,7 +430,6 @@ continue_segment:
       (*this).memory().template write<uint32_t>(addr, REG(fi.get_rs2()));
       NEXT_C_INSTR();
     }
-#endif // RISCV_EXT_COMPRESSED
 
     case RV32I_BC_AUIPC: {
       VIEW_INSTR_AS(fi, FasterJtype);
@@ -576,7 +567,6 @@ continue_segment:
       NEXT_INSTR();
     }
 
-#ifdef RISCV_64I
     case RV64I_BC_OP_ADDW: {
       if constexpr (W >= 8) {
         VIEW_INSTR_AS(fi, FasterOpType);
@@ -631,7 +621,6 @@ continue_segment:
         NEXT_INSTR();
       } else PEPP_UNREACHABLE();
     }
-#endif // RISCV_64I
 
     case RV32I_BC_SEXT_B: {
       VIEW_INSTR_AS(fi, FasterItype);
@@ -737,7 +726,6 @@ continue_segment:
       OVERFLOW_CHECKED_JUMP();
     }
 
-#ifdef RISCV_64I
     case RV64I_BC_SRAIW: {
       if constexpr (W >= 8) {
         VIEW_INSTR_AS(fi, FasterItype);
@@ -766,7 +754,6 @@ continue_segment:
         NEXT_INSTR();
       } else PEPP_UNREACHABLE();
     }
-#endif // RISCV_64I
 
     case RV32I_BC_OP_DIV: {
       VIEW_INSTR_AS(fi, FasterOpType);
@@ -859,7 +846,6 @@ continue_segment:
       (*this).memory().template write<uint16_t>(addr, REG(fi.get_rs2()));
       NEXT_INSTR();
     }
-#ifdef RISCV_64I
     case RV32I_BC_LDWU: {
       if constexpr (W >= 8) {
         VIEW_INSTR_AS(fi, FasterItype);
@@ -868,9 +854,7 @@ continue_segment:
         NEXT_INSTR();
       } else PEPP_UNREACHABLE();
     }
-#endif // RISCV_64I
 
-#ifdef RISCV_EXT_COMPRESSED
     case RV32C_BC_SRLI: {
       VIEW_INSTR_AS(fi, FasterItype);
       REG(fi.get_rs1()) >>= fi.imm;
@@ -900,9 +884,7 @@ continue_segment:
       (*this).execute((*decoder).m_handler, (*decoder).instr);
       NEXT_C_INSTR();
     }
-#endif
 
-#ifdef RISCV_EXT_VECTOR
     case RV32V_BC_VLE32: {
       VIEW_INSTR_AS(vi, FasterMove);
       const auto &addr = REG(vi.rs1);
@@ -932,7 +914,6 @@ continue_segment:
       }
       NEXT_INSTR();
     }
-#endif // RISCV_EXT_VECTOR
 
     case RV32I_BC_LIVEPATCH: {
       switch ((*decoder).m_handler) {
@@ -952,7 +933,6 @@ continue_segment:
         // Otherwise, leave the JALR instruction as is (NOTE: sets invalid handler)
         (*decoder).set_atomic_bytecode_and_handler(RV32I_BC_JALR, 0);
       } break;
-#ifdef RISCV_EXT_COMPRESSED
       case 2: { // Live-patch C.JR -> STOP
         // Check if RA == memory exit address
         if (RISCV_SPECSAFE(REG(REG_RA) == machine().memory.exit_address())) {
@@ -963,7 +943,6 @@ continue_segment:
         // Otherwise, leave the JR instruction as is (NOTE: sets invalid handler)
         (*decoder).set_atomic_bytecode_and_handler(RV32C_BC_JR, 0);
       } break;
-#endif
       default:
         // Invalid handler
         (*decoder).set_bytecode(RV32I_BC_INVALID);

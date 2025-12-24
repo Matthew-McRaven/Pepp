@@ -117,10 +117,6 @@ namespace riscv
 		install_syscall_handler(214, syscall_brk<address_t>);
 	}
 
-#ifdef RISCV_32I
   template void Machine<uint32_t>::setup_minimal_syscalls();
-#endif
-#ifdef RISCV_64I
   template void Machine<uint64_t>::setup_minimal_syscalls();
-#endif
 } // riscv

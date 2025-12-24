@@ -1373,17 +1373,6 @@ void Machine<address_t>::setup_linux_syscalls(bool filesystem, bool sockets)
 	register_clobbering_syscall(94);  // EXIT_GROUP
 }
 
-#ifdef RISCV_32I
-template void Machine<uint32_t>::setup_newlib_syscalls();
-template void Machine<uint32_t>::setup_newlib_syscalls(bool filesystem);
-template void Machine<uint32_t>::setup_linux_syscalls(bool, bool);
-#endif
-#ifdef RISCV_64I
-template void Machine<uint64_t>::setup_newlib_syscalls();
-template void Machine<uint64_t>::setup_newlib_syscalls(bool filesystem);
-template void Machine<uint64_t>::setup_linux_syscalls(bool, bool);
-#endif
-
 FileDescriptors::~FileDescriptors() {
 	// Close all the real FDs
 	for (const auto& it : translation) {

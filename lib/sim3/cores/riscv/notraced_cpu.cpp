@@ -219,7 +219,7 @@ template <AddressType address_t>
 static inline rv32i_instruction decode_safely(const uint8_t *exec_seg_data, address_t pc) {
   // Instructions may be unaligned with C-extension
   // On amd64 we take the cost, because it's faster
-#if defined(RISCV_EXT_COMPRESSED) && !defined(__x86_64__)
+#if !defined(__x86_64__)
   return rv32i_instruction{*(UnderAlign32 *)&exec_seg_data[pc]};
 #else  // aligned/unaligned loads
   return rv32i_instruction{*(uint32_t *)&exec_seg_data[pc]};
@@ -393,9 +393,7 @@ DecoderData<address_t> &CPU<address_t>::create_block_ending_entry_at(DecodedExec
     // Get the patched decoder entry
     auto &p = exec_decoder[patched_addr / DecoderCache<address_t>::DIVISOR];
     p.idxend = last - dd;
-#ifdef RISCV_EXT_C
     p.icount = 0; // TODO: Implement C-ext icount for breakpoints
-#endif
     patched_addr += (compressed_enabled) ? 2 : 4;
   }
   // Check if the last address matches the breakpoint address
@@ -423,9 +421,7 @@ uint32_t CPU<address_t>::install_ebreak_for(DecodedExecuteSegment<address_t> &ex
   cache_entry.instr = new_instruction.whole;
   cache_entry.set_bytecode(RV32I_BC_SYSTEM);
   cache_entry.idxend = 0;
-#ifdef RISCV_EXT_C
   cache_entry.icount = 0; // TODO: Implement C-ext icount for breakpoints
-#endif
 
   // Return the old instruction
   return old_instruction;
@@ -486,7 +482,6 @@ bool CPU<address_t>::create_fast_path_function(DecodedExecuteSegment<address_t> 
       if (cache_entry->m_handler == 1 || cache_entry->m_handler == 2) {
         return true;
       }
-#ifdef RISCV_EXT_COMPRESSED
     } else if (bytecode == RV32C_BC_JR) {
       const auto reg = cache_entry->instr;
       if (reg == REG_RA) {
@@ -500,7 +495,6 @@ bool CPU<address_t>::create_fast_path_function(DecodedExecuteSegment<address_t> 
       } else {
         return false;
       }
-#endif
     }
 
     cache_entry++;
@@ -560,7 +554,6 @@ std::string CPU<address_t>::to_string(instruction_format format, const instructi
 
 // decode_bytecodes.cpp
 template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i_instruction instr) noexcept {
-#ifdef RISCV_EXT_COMPRESSED
   if (instr.length() == 2) {
     // RISC-V Compressed Extension
     const rv32c_instruction ci{instr};
@@ -706,7 +699,6 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     default: return RV32C_BC_FUNCTION;
     }
   }
-#endif
 
   switch (instr.opcode()) {
   case RV32I_LOAD:
@@ -719,24 +711,20 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
       return RV32I_BC_LDH;
     case 0x2: // LD.W
       return RV32I_BC_LDW;
-#ifdef RISCV_64I
     case 0x3:
       if constexpr (sizeof(address_t) >= 8) {
         return RV32I_BC_LDD;
       }
       return RV32I_BC_INVALID;
-#endif
     case 0x4: // LD.BU
       return RV32I_BC_LDBU;
     case 0x5: // LD.HU
       return RV32I_BC_LDHU;
-#ifdef RISCV_64I
     case 0x6: // LD.WU
       if constexpr (sizeof(address_t) >= 8) {
         return RV32I_BC_LDWU;
       }
       return RV32I_BC_INVALID;
-#endif
     default: return RV32I_BC_INVALID;
     }
   case RV32I_STORE:
@@ -747,13 +735,11 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
       return RV32I_BC_STH;
     case 0x2: // SD.W
       return RV32I_BC_STW;
-#ifdef RISCV_64I
     case 0x3:
       if constexpr (sizeof(address_t) >= 8) {
         return RV32I_BC_STD;
       }
       return RV32I_BC_INVALID;
-#endif
     default: return RV32I_BC_INVALID;
     }
   case RV32I_BRANCH:
@@ -850,7 +836,6 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     case 0x305: // ROR
     default: return RV32I_BC_FUNCTION;
     }
-#ifdef RISCV_64I
   case RV64I_OP32:
     if constexpr (sizeof(address_t) < 8) return RV32I_BC_INVALID;
 
@@ -885,7 +870,6 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
       return RV32I_BC_FUNCTION;
     }
     return RV32I_BC_FUNCTION;
-#endif
   case RV32I_SYSTEM:
     if (LIKELY(instr.Itype.funct3 == 0)) {
       if (instr.Itype.imm == 0) {
@@ -905,10 +889,8 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
       return RV32F_BC_FLW;
     case 0x3: // FLD
       return RV32F_BC_FLD;
-#ifdef RISCV_EXT_VECTOR
     case 0x6: // VLE32
       return RV32V_BC_VLE32;
-#endif
     default: return RV32I_BC_INVALID;
     }
   }
@@ -919,10 +901,8 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
       return RV32F_BC_FSW;
     case 0x3: // FSD
       return RV32F_BC_FSD;
-#ifdef RISCV_EXT_VECTOR
     case 0x6: // VSE32
       return RV32V_BC_VSE32;
-#endif
     default: return RV32I_BC_INVALID;
     }
   }
@@ -943,7 +923,6 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
       return RV32F_BC_FDIV;
     default: return RV32I_BC_FUNCTION;
     }
-#ifdef RISCV_EXT_VECTOR
   case RV32V_OP: {
     const rv32v_instruction vi{instr};
     switch (instr.vwidth()) {
@@ -962,10 +941,7 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     }
     return RV32I_BC_FUNCTION;
   }
-#endif
-#ifdef RISCV_EXT_ATOMICS
   case RV32A_ATOMIC: return RV32I_BC_FUNCTION;
-#endif
   }
   // Unknown instructions can be custom-handled
   return RV32I_BC_FUNCTION;

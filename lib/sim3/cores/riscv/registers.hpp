@@ -126,23 +126,19 @@ namespace riscv
 		std::string to_string() const;
 		std::string flp_to_string() const;
 
-#ifdef RISCV_EXT_VECTOR
 		auto& rvv() noexcept {
 			return m_rvv;
 		}
 		const auto& rvv() const noexcept {
 			return m_rvv;
 		}
-#endif
 		bool has_vectors() const noexcept { return vector_extension; }
 
 		Registers() = default;
 		Registers(const Registers& other)
 			: m_reg { other.m_reg }, pc { other.pc }, m_fcsr { other.m_fcsr }, m_regfl { other.m_regfl }
 		{
-#ifdef RISCV_EXT_VECTOR
 			m_rvv = other.m_rvv;
-#endif
 		}
 		enum class Options { Everything, NoVectors };
 
@@ -155,11 +151,9 @@ namespace riscv
 			this->m_reg = other.m_reg;
 			this->m_fcsr = other.m_fcsr;
 			this->m_regfl = other.m_regfl;
-#ifdef RISCV_EXT_VECTOR
 			if (opts == Options::Everything) {
 				m_rvv = other.m_rvv;
 			}
-#endif
 			(void)opts;
 		}
 
@@ -173,9 +167,7 @@ namespace riscv
 		FCSR m_fcsr {};
 		// General FP registers
 		std::array<fp64reg, 32> m_regfl {};
-#ifdef RISCV_EXT_VECTOR
     VectorRegisters<address_t> m_rvv;
-#endif
   };
 
   static_assert(sizeof(fp64reg) == 8, "FP-register is 64-bit");

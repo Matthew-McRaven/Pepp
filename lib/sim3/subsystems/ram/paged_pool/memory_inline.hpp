@@ -99,13 +99,11 @@ void Memory<address_t>::write(address_t address, T value)
 	}
 	else if constexpr (flat_readwrite_arena) {
 		if (LIKELY(address - initial_rodata_end() < memory_arena_write_boundary())) {
-#ifdef RISCV_EXT_VECTOR
 			if constexpr (sizeof(T) >= 32) {
 				// Reads and writes using vectors might have alignment requirements
 				auto* arena = (VectorLane *)m_arena.data;
 				arena[RISCV_SPECSAFE(address / sizeof(VectorLane))] = value;
 			} else
-#endif
 				*(T *)&((char*)m_arena.data)[RISCV_SPECSAFE(address)] = value;
 			return;
 		}

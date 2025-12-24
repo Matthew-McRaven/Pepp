@@ -112,23 +112,12 @@ if(APPLE)
 endif()
 
 option(RISCV_DEBUG "Enable extra checks in the RISC-V machine" OFF)
-# Enable and disable various RISC-V instruction set extensions. Not recommended
-# to disable any.
-option(RISCV_EXT_A "Enable RISC-V atomic instructions" ON)
-option(RISCV_EXT_C "Enable RISC-V compressed instructions" ON)
-option(RISCV_EXT_V "Enable RISC-V vector instructions" ON)
-# Enable 32- and 64-bit architecture emulation
-option(RISCV_32I "Enable 32-bit RISC-V" ON)
-option(RISCV_64I "Enable 64-bit RISC-V" ON)
 # Enable Floating-point Control and Status Register emulation
 option(RISCV_FCSR "Enable FCSR emulation" OFF)
 # MEMORY_TRAPS allows you to trap writes to uncacheable pages in memory. Cached
 # pages can only be trapped once.
 option(RISCV_MEMORY_TRAPS "Enable memory page traps" ON)
-# FLAT_RW_ARENA simplifies the program arena, making the heap area always
-# read-write. Memory before the heap and outside of the arena behaves like
-# before.
-option(RISCV_FLAT_RW_ARENA "Enable performant flat read-write arena" ON)
+
 if(NOT (WIN32 OR MINGW_TOOLCHAIN))
   target_compile_options(pepp-lib PRIVATE -Wall -Wextra)
 endif()

@@ -178,9 +178,7 @@ void Memory<address_t>::deserialize_from(const std::vector<uint8_t> &vec, const 
   this->m_heap_address = state.heap_address;
   this->m_exit_address = state.exit_address;
 
-#ifdef RISCV_EXT_ATOMICS
   this->m_atomics = {};
-#endif
 
   const size_t page_bytes = state.n_pages * sizeof(SerializedPage) + state.n_datapages * sizeof(PageData);
   if (vec.size() < state.mem_offset + page_bytes) {

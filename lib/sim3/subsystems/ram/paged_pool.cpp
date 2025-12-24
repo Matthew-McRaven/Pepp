@@ -132,9 +132,7 @@ Memory<address_t>::Memory(Machine<address_t> &mach, std::string_view bin, Machin
 template <AddressType address_t>
 Memory<address_t>::Memory(Machine<address_t> &mach, const Machine<address_t> &other, MachineOptions<address_t> options)
     : m_machine{mach}, m_original_machine{false}, m_binary{other.memory.binary()} {
-#ifdef RISCV_EXT_ATOMICS
   this->m_atomics = other.memory.m_atomics;
-#endif
   this->machine_loader(other, options);
 }
 

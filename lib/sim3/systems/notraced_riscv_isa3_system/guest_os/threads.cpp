@@ -326,12 +326,8 @@ int Machine<address_t>::gettid() const noexcept
 	return 0;
 }
 
-#ifdef RISCV_32I
 template void Machine<uint32_t>::setup_posix_threads();
 template int Machine<uint32_t>::gettid() const noexcept;
-#endif
-#ifdef RISCV_64I
 template void Machine<uint64_t>::setup_posix_threads();
 template int Machine<uint64_t>::gettid() const noexcept;
-#endif
 } // riscv

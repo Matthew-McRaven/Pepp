@@ -37,6 +37,7 @@
 // Compiler might not think these are necessary, but these headers contain templates which are needed to instantiate the
 // Machine.
 #include "notraced_riscv_isa3_system/defaults.hpp"
+#include "notraced_riscv_isa3_system/guest_os/guest_impl.hpp"
 #include "notraced_riscv_isa3_system/inline.hpp"
 #include "notraced_riscv_isa3_system/serialize.hpp"
 #include "notraced_riscv_isa3_system/threads.hpp"

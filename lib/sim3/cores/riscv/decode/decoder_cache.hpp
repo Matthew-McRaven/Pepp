@@ -67,12 +67,8 @@ struct DecoderData {
 
 	uint8_t  m_bytecode;
 	uint8_t  m_handler;
-#ifdef RISCV_EXT_COMPRESSED
 	uint16_t idxend  : 8;
 	uint16_t icount  : 8;
-#else
-	uint16_t idxend;
-#endif
 
 	uint32_t instr;
 
@@ -107,13 +103,7 @@ struct DecoderData {
   PEPP_ALWAYS_INLINE
   auto block_bytes() const noexcept { return idxend * (compressed_enabled ? 2 : 4); }
   PEPP_ALWAYS_INLINE
-  auto instruction_count() const noexcept {
-#ifdef RISCV_EXT_COMPRESSED
-    return icount;
-#else
-    return idxend + 1;
-#endif
-  }
+  auto instruction_count() const noexcept { return icount; }
 
   bool operator==(const DecoderData<address_t> &other) const noexcept {
     return m_bytecode == other.m_bytecode && m_handler == other.m_handler && idxend == other.idxend &&
