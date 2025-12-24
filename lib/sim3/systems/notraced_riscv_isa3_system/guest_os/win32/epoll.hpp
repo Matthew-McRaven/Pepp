@@ -31,7 +31,9 @@
  * along with this program. If not, see
  * <https://opensource.org/license/bsd-3-clause>
  */
-// #define SYSPRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#ifndef SYSPRINT
+#define SYSPRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#endif
 
 #include "enums/isa/rv_types.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
