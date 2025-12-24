@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=ubuntu:22.04
 # Will be the latest LTS by the time we release the book, which I assume to be ~ 2025.
-FROM ${BASE_IMAGE} as base-gcc
+FROM ${BASE_IMAGE} AS base-gcc
 # Prevent apt-get from pausing for input in an environment in which it can never
 ENV DEBIAN_FRONTEND=noninteractive
 # Building boost + final build image needs all of the same tools.
@@ -22,6 +22,7 @@ RUN wget -q -O cmake.sh "https://github.com/Kitware/CMake/releases/download/v3.2
 # Install ninja, which supports modules (for future development) and generally should be faster than make.
 RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip" \
     && unzip ninja.zip -d /bin && rm ninja.zip
+
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
@@ -39,8 +40,24 @@ SHELL ["/bin/bash", "-c"]
 LABEL org.opencontainers.image.authors="Matthew McRaven <matthew.mcraven@gmail.com>"
 LABEL org.opencontainers.image.source="https://github.com/Matthew-McRaven/Pepp"
 
+FROM base-gcc AS output-gcc-riscv
+ENV RISCV=/opt/riscv
+ENV PATH=$PATH:$RISCV/bin
+ARG TOOLCHAIN_VERSION=2025.12.18
+RUN apt update \
+    && apt-get install -y --no-install-recommends autoconf automake autotools-dev \
+        curl python3 python3-pip python3-tomli libmpc-dev libmpfr-dev \
+        libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev \
+        libexpat-dev ninja-build git cmake libglib2.0-dev libslirp-dev  \
+    && rm -rf /var/lib/apt/lists/*
+RUN    git clone --recursive https://github.com/riscv/riscv-gnu-toolchain -b ${TOOLCHAIN_VERSION} \
+    && cd riscv-gnu-toolchain                                                                     \
+    && ./configure --prefix=$RISCV --enable-multilib                                              \
+    && make -j 4                                                                                  \
+    && cd ..                                                                                      \
+    && rm -rf riscv-gnu-toolchain
 
-FROM base-gcc as base-wasm
+FROM base-gcc AS base-wasm
 # Must install documentation-building tools in WASM image.
 # Otherwise it will be very difficult to build GH pages deployments.
 RUN apt update \
@@ -56,7 +73,7 @@ RUN pip install aqtinstall \
 
 
 # Use separate step to build Qt to avoid inflating the size of the build image further.
-FROM base-wasm as build-wasm
+FROM base-wasm AS build-wasm
 # Install Qt requirements: https://doc.qt.io/qt-6/linux-requirements.html
 RUN apt update \
     && apt install -y --no-install-recommends \
@@ -90,7 +107,7 @@ RUN cd /build-qt/${QT_VERSION} \
     && cmake --install .
 
 # Only copy over WASM artifacts, since we already have GCC from the base image.
-FROM base-wasm as output-wasm
+FROM base-wasm AS output-wasm
 COPY --from=build-wasm /qt/${QT_VERSION}/wasm_singlethread /qt/${QT_VERSION}/wasm_singlethread
 # Define standard Qt environment variables so that executing cmake directly will work.
 ENV LD_LIBRARY_PATH=/qt/${QT_VERSION}/wasm_singlethread/lib:${LD_LIBRARY_PATH}
@@ -100,7 +117,7 @@ ENV QML2_IMPORT_PATH=/qt/${QT_VERSION}/wasm_singlethread/qml
 ENV PATH=/qt/${QT_VERSION}/wasm_singlethread/bin/:$PATH
 LABEL description="A wasm build container using Qt $QT_VERSION."
 
-FROM base-gcc as output-gcc
+FROM base-gcc AS output-gcc
 # Install Qt with aqtinstall (see https://github.com/miurahr/aqtinstall), selecting only the modules we need.
 RUN pip install aqtinstall && aqt install-qt linux desktop ${QT_VERSION} --outputdir /qt && pip uninstall aqtinstall -y && rm aqtinstall.log
 # Define standard Qt environment variables so that executing cmake directly will work.
@@ -141,7 +158,7 @@ LABEL description="A GCC build container using Qt $QT_VERSION, and Mold $MOLD_VE
 #LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
-FROM output-gcc as output-clang
+FROM output-gcc AS output-clang
 ARG LLVM_VERSION="17"
 COPY llvm.list /etc/apt/sources.list.d/
 COPY llvm-snapshot.gpg.key.gpg /etc/apt/trusted.gpg.d/

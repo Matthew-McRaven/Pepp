@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 as build
+FROM ubuntu:22.04 AS build
 # Prevent apt-get from pausing for input
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y build-essential curl
