@@ -74,8 +74,8 @@ TEST_CASE("Catch output from write system call", "[Output]") {
   // and the data matched 'Hello World!'.
   REQUIRE(state.output_is_hello_world);
 }
-
-/*TEST_CASE("Calculate fib(50)", "[Compute]") {
+/*
+TEST_CASE("Calculate fib(50)", "[Compute]") {
   const auto binary = load("://riscv_samples/basic_fib.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
@@ -84,7 +84,14 @@ TEST_CASE("Catch output from write system call", "[Output]") {
   // We need to create a Linux environment for runtimes to work well
   machine.setup_linux({"basic", "50"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
   // Run for at most X instructions before giving up
-  machine.simulate(MAX_INSTRUCTIONS);
+  char b[1024];
+  while (true) {
+    auto ni = machine.cpu.read_next_instruction();
+    auto di = machine.cpu.decode(ni);
+    auto count = di.printer(b, sizeof(b), machine.cpu, ni);
+    qDebug().noquote().nospace() << QString::fromLocal8Bit((const char *)b, count);
+    machine.cpu.step_one(true);
+  }
 
   REQUIRE(machine.return_value<long>() == -298632863);
 }
