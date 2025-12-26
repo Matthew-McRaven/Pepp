@@ -135,7 +135,10 @@ def to_sqlite(args):
         if not os.path.exists(args.db):
             conn.commit()
             conn.close()
-            shutil.move(newdir+"/temp.db", args.db)
+            try:
+              shutil.move(newdir+"/temp.db", args.db)
+            except (OSError, PermissionError):
+              shutil.copyfile(newdir+"/temp.db", args.db)
             return
 
         # If database does exist, hash both databases and compare their hashes.

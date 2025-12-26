@@ -1,18 +1,33 @@
+/*
+ * Copyright (c) 2023-2026 J. Stanley Warford, Matthew McRaven
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 #include "./pep10.hpp"
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
 #include "cpu/formats.hpp"
 #include "enums/isa/pep10.hpp"
 #include "help/builtins/figure.hpp"
-#include "sim/device/broadcast/mmi.hpp"
-#include "sim/device/broadcast/mmo.hpp"
-#include "sim/device/broadcast/pubsub.hpp"
-#include "sim/device/simple_bus.hpp"
-#include "sim/trace2/buffers.hpp"
-#include "targets/isa3/helpers.hpp"
-#include "targets/isa3/system.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep9/isa3/cpu.hpp"
+#include "sim3/cores/pep/traced_helpers.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
+#include "sim3/cores/pep/traced_pep9_isa3.hpp"
+#include "sim3/subsystems/bus/simple.hpp"
+#include "sim3/subsystems/ram/broadcast/mmi.hpp"
+#include "sim3/subsystems/ram/broadcast/mmo.hpp"
+#include "sim3/subsystems/ram/broadcast/pubsub.hpp"
+#include "sim3/systems/traced_pep_isa3_system.hpp"
+#include "sim3/trace/buffers/infinite.hpp"
 #include "text/editor/object.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"

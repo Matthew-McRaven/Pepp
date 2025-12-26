@@ -16,7 +16,7 @@
 
 #include <catch.hpp>
 #include <zpp_bits.h>
-#include "sim/api2.hpp"
+#include "sim3/api/traced/trace_packets.hpp"
 
 TEST_CASE("Variable-length spans", "[scope:sim][kind:int][arch:*]") {
   using namespace sim::api2;

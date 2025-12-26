@@ -97,6 +97,39 @@ target_include_directories(
           settings
           top)
 
+# ######### Options from libriscv
+if(COSMOPOLITAN)
+  target_compile_options(riscv PUBLIC -fexceptions)
+endif()
+
+if(APPLE)
+  find_library(SECURITY_FRAMEWORK Security)
+  find_library(FOUNDATION_FRAMEWORK Foundation)
+  mark_as_advanced(SECURITY_FRAMEWORK FOUNDATION_FRAMEWORK)
+
+  target_link_libraries(pepp-lib PUBLIC "${SECURITY_FRAMEWORK}"
+                                        "${FOUNDATION_FRAMEWORK}")
+endif()
+
+option(RISCV_DEBUG "Enable extra checks in the RISC-V machine" OFF)
+# Enable Floating-point Control and Status Register emulation
+option(RISCV_FCSR "Enable FCSR emulation" OFF)
+# MEMORY_TRAPS allows you to trap writes to uncacheable pages in memory. Cached
+# pages can only be trapped once.
+option(RISCV_MEMORY_TRAPS "Enable memory page traps" ON)
+
+if(NOT (WIN32 OR MINGW_TOOLCHAIN))
+  target_compile_options(pepp-lib PRIVATE -Wall -Wextra)
+endif()
+if(RISCV_MULTIPROCESS)
+  find_package(Threads REQUIRED)
+  target_link_libraries(pepp-lib PUBLIC Threads::Threads)
+endif()
+if(WIN32 OR MINGW_TOOLCHAIN)
+  target_link_libraries(pepp-lib PUBLIC wsock32 ws2_32)
+endif()
+# ######### End options from libriscv
+
 # Add additional JS support files
 if(EMSCRIPTEN)
   target_link_libraries(pepp-lib PRIVATE idbfs.js)

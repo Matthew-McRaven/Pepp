@@ -1,8 +1,8 @@
-#include "sim/trace2/modified.hpp"
+#include "sim3/trace/modified.hpp"
 #include <catch.hpp>
-#include "sim/device/dense.hpp"
-#include "sim/device/simple_bus.hpp"
-#include "sim/trace2/buffers.hpp"
+#include "sim3/subsystems/bus/simple.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
+#include "sim3/trace/buffers/infinite.hpp"
 
 using namespace sim::trace2;
 using I = Interval<uint16_t>;

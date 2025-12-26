@@ -16,7 +16,7 @@
 
 #include <catch.hpp>
 
-#include "sim/device/dense.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 namespace {
 namespace api2 = sim::api2;
 auto desc = api2::device::Descriptor{.id = 0, .compatible = nullptr, .baseName = "dev", .fullName = "/dev"};

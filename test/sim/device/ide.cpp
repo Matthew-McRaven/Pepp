@@ -16,7 +16,7 @@
 
 #include <catch.hpp>
 
-#include "sim/device/ide.hpp"
+#include "sim3/subsystems/disk/ide.hpp"
 namespace {
 namespace api2 = sim::api2;
 auto dense = api2::device::Descriptor{.id = 1, .compatible = nullptr, .baseName = "RAM", .fullName = "/RAM"};

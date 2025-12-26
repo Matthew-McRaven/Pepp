@@ -14,11 +14,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "sim/trace2/packet_utils.hpp"
+#include "sim3/trace/packet_utils.hpp"
 #include <catch.hpp>
 #include <zpp_bits.h>
-#include "sim/api2.hpp"
-#include "sim/trace2/buffers.hpp"
+#include "sim3/trace/buffers/infinite.hpp"
 
 namespace {
 using namespace sim::api2;

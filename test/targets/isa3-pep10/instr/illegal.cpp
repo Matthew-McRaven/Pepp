@@ -16,11 +16,11 @@
 
 #include <catch.hpp>
 
+#include "sim3/cores/pep/traced_helpers.hpp"
 #include "./api.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "utils/bits/swap.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
-#include "targets/isa3/helpers.hpp"
 
 namespace {
 void inner(quint8 op) {

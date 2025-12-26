@@ -19,3 +19,4 @@ fmt,https://github.com/fmtlib/fmt,MIT License,MIT,:/about/dep/fmt.txt, 0
 LLVM LEB128,https://llvm.org/,University of Illinois/NCSA Open Source License,NCSA,:/about/dep/llvm.txt, 0
 CXXGraph,https://github.com/ZigRazor/CXXGraph,Mozilla Public License Version 2.0,MPL-2.0,:/about/dep/cxxgraph.txt, 0
 flat,https://github.com/pubby/flat,Boost Software License 1.0,BSL-1.0,:/about/dep/bsl-1.0.txt, 0
+libriscv,https://github.com/libriscv/libriscv,aBSD 3-Clause "New" or "Revised" License,BSD-3-Clause,:/about/dep/riscv.txt, 0

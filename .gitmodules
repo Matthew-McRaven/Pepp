@@ -19,3 +19,6 @@
 [submodule "3rd-party/flat"]
 	path = 3rd-party/flat
 	url = https://github.com/pubby/flat
+[submodule "3rd-party/libriscv"]
+	path = 3rd-party/libriscv
+	url = https://github.com/Matthew-McRaven/libriscv.git
