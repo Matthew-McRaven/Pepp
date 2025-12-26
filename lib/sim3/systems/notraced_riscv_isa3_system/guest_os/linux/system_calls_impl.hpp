@@ -1353,9 +1353,9 @@ void Machine<address_t>::setup_linux_syscalls(bool filesystem, bool sockets)
 	// rseq
 	install_syscall_handler(293, syscall_stub_nosys<address_t>);
 
-	add_mman_syscalls<address_t>();
+  add_mman_syscalls<address_t>(*this);
 
-	if (filesystem || sockets) {
+  if (filesystem || sockets) {
 		// Workaround for a broken "feature"
 		// Closing sockets that are already closed cause SIGPIPE signal
 		signal(SIGPIPE, SIG_IGN);

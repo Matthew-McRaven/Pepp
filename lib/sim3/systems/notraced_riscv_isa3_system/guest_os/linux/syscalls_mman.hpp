@@ -41,9 +41,9 @@
 #include "sim3/common_macros.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 namespace riscv {
-template <AddressType address_t> static void add_mman_syscalls() {
+template <AddressType address_t> static void add_mman_syscalls(Machine<address_t> &m) {
   // munmap
-  Machine<address_t>::install_syscall_handler(215, [](Machine<address_t> &machine) {
+  m.install_syscall_handler(215, [](Machine<address_t> &machine) {
     const auto addr = machine.sysarg(0);
     const auto len = machine.sysarg(1);
     if (addr + len < addr) throw MachineException(SYSTEM_CALL_FAILED, "munmap() arguments overflow");
@@ -56,7 +56,7 @@ template <AddressType address_t> static void add_mman_syscalls() {
 			(long)addr, (size_t)len, (int)machine.return_value());
   });
   // mmap
-  Machine<address_t>::install_syscall_handler(222, [](Machine<address_t> &machine) {
+  m.install_syscall_handler(222, [](Machine<address_t> &machine) {
     const auto addr_g = machine.sysarg(0);
     auto length       = machine.sysarg(1);
 		const auto prot   = machine.template sysarg<int>(2);
@@ -174,12 +174,11 @@ template <AddressType address_t> static void add_mman_syscalls() {
 				(long)addr_g, (size_t)length, (long)result);
   });
   // mremap
-  Machine<address_t>::install_syscall_handler(216,
-	[] (Machine<address_t>& machine) {
-		[[maybe_unused]] static constexpr int LINUX_MREMAP_MAYMOVE = 0x0001;
-		[[maybe_unused]] static constexpr int LINUX_MREMAP_FIXED   = 0x0002;
-		const auto old_addr = machine.sysarg(0);
-		const auto old_size = machine.sysarg(1);
+  m.install_syscall_handler(216, [](Machine<address_t> &machine) {
+    [[maybe_unused]] static constexpr int LINUX_MREMAP_MAYMOVE = 0x0001;
+    [[maybe_unused]] static constexpr int LINUX_MREMAP_FIXED = 0x0002;
+    const auto old_addr = machine.sysarg(0);
+    const auto old_size = machine.sysarg(1);
 		const auto new_size = machine.sysarg(2);
 		const auto flags    = machine.template sysarg<int>(3);
 		SYSPRINT(">>> mremap(addr 0x%lX, len %zu, newsize %zu, flags %#X)\n",
@@ -197,13 +196,12 @@ template <AddressType address_t> static void add_mman_syscalls() {
 		}
 		(void) flags;
 		machine.set_result(address_t(-1));
-	});
-	// mprotect
-	Machine<address_t>::install_syscall_handler(226,
-	[] (Machine<address_t>& machine) {
-		const auto addr = machine.sysarg(0);
-		const auto len  = machine.sysarg(1);
-		const int  prot = machine.template sysarg<int> (2);
+  });
+  // mprotect
+  m.install_syscall_handler(226, [](Machine<address_t> &machine) {
+    const auto addr = machine.sysarg(0);
+    const auto len = machine.sysarg(1);
+    const int  prot = machine.template sysarg<int> (2);
 		machine.memory.set_page_attr(addr, len, {
 			.read  = (prot & 1) != 0,
 			.write = (prot & 2) != 0,
@@ -212,43 +210,40 @@ template <AddressType address_t> static void add_mman_syscalls() {
 		machine.set_result(0);
 		SYSPRINT(">>> mprotect(0x%lX, len=%zu, prot=%x) => %d\n",
 			(long)addr, (size_t)len, prot, (int)machine.return_value());
-	});
-	// madvise
-	Machine<address_t>::install_syscall_handler(233,
-	[] (Machine<address_t>& machine) {
-		const auto addr  = machine.sysarg(0);
-		const auto len   = machine.sysarg(1);
-		const int advice = machine.template sysarg<int> (2);
+  });
+  // madvise
+  m.install_syscall_handler(233, [](Machine<address_t> &machine) {
+    const auto addr = machine.sysarg(0);
+    const auto len = machine.sysarg(1);
+    const int advice = machine.template sysarg<int> (2);
 		switch (advice) {
-			case 0: // MADV_NORMAL
-			case 1: // MADV_RANDOM
-			case 2: // MADV_SEQUENTIAL
-			case 3: // MADV_WILLNEED:
-			case 10: // MADV_DONTFORK
-			case 11: // MADV_DOFORK
-			case 12: // MADV_MERGEABLE
-			case 15: // MADV_NOHUGEPAGE
-			case 18: // MADV_WIPEONFORK
-				machine.set_result(0);
-				break;
-			case 4: // MADV_DONTNEED
-				machine.memory.memdiscard(addr, len, true);
-				machine.set_result(0);
-				break;
-			case 8: // MADV_FREE
-			case 9: // MADV_REMOVE
-				machine.memory.free_pages(addr, len);
-				machine.set_result(0);
-				break;
-			case -1: // Work-around for Zig behavior
-				machine.set_result(-EINVAL);
-				break;
-			default:
-				throw MachineException(SYSTEM_CALL_FAILED,
-					"Unimplemented madvise() advice", advice);
-		}
-		SYSPRINT(">>> madvise(0x%lX, len=%zu, advice=%x) => %d\n",
-			(uint64_t)addr, (size_t)len, advice, (int)machine.return_value());
-	});
+    case 0:  // MADV_NORMAL
+    case 1:  // MADV_RANDOM
+    case 2:  // MADV_SEQUENTIAL
+    case 3:  // MADV_WILLNEED:
+    case 10: // MADV_DONTFORK
+    case 11: // MADV_DOFORK
+    case 12: // MADV_MERGEABLE
+    case 15: // MADV_NOHUGEPAGE
+    case 18: // MADV_WIPEONFORK
+      machine.set_result(0);
+      break;
+    case 4: // MADV_DONTNEED
+      machine.memory.memdiscard(addr, len, true);
+      machine.set_result(0);
+      break;
+    case 8: // MADV_FREE
+    case 9: // MADV_REMOVE
+      machine.memory.free_pages(addr, len);
+      machine.set_result(0);
+      break;
+    case -1: // Work-around for Zig behavior
+      machine.set_result(-EINVAL);
+      break;
+    default: throw MachineException(SYSTEM_CALL_FAILED, "Unimplemented madvise() advice", advice);
+    }
+    SYSPRINT(">>> madvise(0x%lX, len=%zu, advice=%x) => %d\n", (uint64_t)addr, (size_t)len, advice,
+             (int)machine.return_value());
+  });
 }
 } // namespace riscv

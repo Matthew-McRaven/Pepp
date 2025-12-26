@@ -869,7 +869,7 @@ void Machine<address_t>::setup_newlib_syscalls() {
 	setup_minimal_syscalls();
 	install_syscall_handler(169, syscall_gettimeofday<address_t>);
 	install_syscall_handler(214, syscall_brk<address_t>);
-	add_mman_syscalls<address_t>();
+  add_mman_syscalls<address_t>(*this);
 }
 template<AddressType address_t>
 void Machine<address_t>::setup_newlib_syscalls(bool) {
@@ -957,9 +957,9 @@ void Machine<address_t>::setup_linux_syscalls(bool filesystem, bool sockets) {
 	// rseq
 	install_syscall_handler(293, syscall_stub_nosys<address_t>);
 
-	add_mman_syscalls<address_t>();
+  add_mman_syscalls<address_t>(*this);
 
-	if (filesystem || sockets) {
+  if (filesystem || sockets) {
 		m_fds.reset(new FileDescriptors);
 		if (sockets)
 			add_socket_syscalls(*this);

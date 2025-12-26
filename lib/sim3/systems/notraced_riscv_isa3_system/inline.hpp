@@ -77,7 +77,8 @@ template <AddressType address_t> inline long Machine<address_t>::stdin_read(char
   return this->m_stdin(*this, buffer, len);
 }
 
-template <AddressType address_t> inline void Machine<address_t>::install_syscall_handler(size_t sysn, syscall_t handler) {
+template <AddressType address_t>
+inline void Machine<address_t>::install_syscall_handler(size_t sysn, syscall_t handler) {
   // A work-around for thread-sanitizer false positives (setting the same handler)
   if (syscall_handlers.at(sysn) != handler) syscall_handlers.at(sysn) = handler;
 }
@@ -88,7 +89,8 @@ inline void Machine<address_t>::install_syscall_handlers(std::initializer_list<s
 
 template <AddressType address_t> inline void Machine<address_t>::system_call(size_t sysnum) {
   if (LIKELY(sysnum < syscall_handlers.size())) {
-    Machine::syscall_handlers[RISCV_SPECSAFE(sysnum)](*this);
+    auto handler = Machine::syscall_handlers[RISCV_SPECSAFE(sysnum)];
+    handler(*this);
   } else {
     on_unhandled_syscall(*this, sysnum);
   }
@@ -634,7 +636,7 @@ static constexpr uint64_t COMPLEX_CALL_PENALTY = 2'000u;
 
 template <AddressType address_t> void Machine<address_t>::setup_native_heap_internal(const size_t syscall_base) {
   // Malloc n+0
-  Machine<address_t>::install_syscall_handler(syscall_base + 0, [](Machine<address_t> &machine) {
+  install_syscall_handler(syscall_base + 0, [](Machine<address_t> &machine) {
     const size_t len = machine.sysarg(0);
     auto data = machine.arena().malloc(len);
     HPRINT("SYSCALL malloc(%zu) = 0x%lX\n", len, (long)data);
@@ -642,7 +644,7 @@ template <AddressType address_t> void Machine<address_t>::setup_native_heap_inte
     machine.penalize(COMPLEX_CALL_PENALTY);
   });
   // Calloc n+1
-  Machine<address_t>::install_syscall_handler(syscall_base + 1, [](Machine<address_t> &machine) {
+  install_syscall_handler(syscall_base + 1, [](Machine<address_t> &machine) {
     const auto [count, size] = machine.template sysargs<address_t, address_t>();
     const size_t len = count * size;
     auto data = machine.arena().malloc(len);
@@ -656,7 +658,7 @@ template <AddressType address_t> void Machine<address_t>::setup_native_heap_inte
     machine.penalize(COMPLEX_CALL_PENALTY);
   });
   // Realloc n+2
-  Machine<address_t>::install_syscall_handler(syscall_base + 2, [](Machine<address_t> &machine) {
+  install_syscall_handler(syscall_base + 2, [](Machine<address_t> &machine) {
     const auto src = machine.sysarg(0);
     const auto newlen = machine.sysarg(1);
 
@@ -672,7 +674,7 @@ template <AddressType address_t> void Machine<address_t>::setup_native_heap_inte
     machine.penalize(COMPLEX_CALL_PENALTY);
   });
   // Free n+3
-  Machine<address_t>::install_syscall_handler(syscall_base + 3, [](Machine<address_t> &machine) {
+  install_syscall_handler(syscall_base + 3, [](Machine<address_t> &machine) {
     const auto ptr = machine.sysarg(0);
     if (ptr != 0x0) {
       [[maybe_unused]] int ret = machine.arena().free(ptr);
@@ -690,7 +692,7 @@ template <AddressType address_t> void Machine<address_t>::setup_native_heap_inte
     return;
   });
   // Meminfo n+4
-  Machine<address_t>::install_syscall_handler(syscall_base + 4, [](Machine<address_t> &machine) {
+  install_syscall_handler(syscall_base + 4, [](Machine<address_t> &machine) {
     const auto dst = machine.sysarg(0);
     const auto &arena = machine.arena();
     struct Result {
@@ -725,7 +727,7 @@ template <AddressType address_t> void Machine<address_t>::setup_native_heap(size
 template <AddressType address_t> void Machine<address_t>::transfer_arena_from(const Machine &other) { m_arena.reset(new Arena(other.arena())); }
 
 template <AddressType address_t> void Machine<address_t>::setup_native_memory(const size_t syscall_base) {
-  Machine<address_t>::install_syscall_handlers(
+  install_syscall_handlers(
       {{syscall_base + 0,
         [](Machine<address_t> &m) {
           // Memcpy n+0

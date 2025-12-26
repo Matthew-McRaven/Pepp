@@ -62,7 +62,6 @@ static const uint32_t STACK_SIZE = 256 * 1024;
 
 template <AddressType address_t> void Machine<address_t>::setup_native_threads(const size_t syscall_base) {
   if (this->m_mt == nullptr) this->m_mt.reset(new MultiThreading<address_t>(*this));
-
   // Globally register a system call that clobbers all registers
   Machine<address_t>::register_clobbering_syscall(syscall_base + 0); // microclone
   Machine<address_t>::register_clobbering_syscall(syscall_base + 1); // exit

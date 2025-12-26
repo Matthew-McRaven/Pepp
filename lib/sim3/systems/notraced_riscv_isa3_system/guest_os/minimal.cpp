@@ -108,8 +108,8 @@ namespace riscv
 	template <AddressType address_t>
 	void Machine<address_t>::setup_minimal_syscalls()
 	{
-		install_syscall_handler(SYSCALL_EBREAK, syscall_ebreak<address_t>);
-		install_syscall_handler(57, syscall_stub_zero<address_t>);  // close
+    install_syscall_handler(SYSCALL_EBREAK, syscall_ebreak<address_t>);
+    install_syscall_handler(57, syscall_stub_zero<address_t>);  // close
 		install_syscall_handler(62, syscall_stub_nosys<address_t>); // lseek
 		install_syscall_handler(64, syscall_write<address_t>);
 		install_syscall_handler(80, syscall_stub_nosys<address_t>); // fstat

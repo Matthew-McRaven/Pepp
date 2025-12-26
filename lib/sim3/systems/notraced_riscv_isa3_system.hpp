@@ -403,29 +403,28 @@ template <AddressType address_t> struct alignas(RISCV_MACHINE_ALIGNMENT) Machine
 		/// @brief Install a system call handler at the given index (system call number).
 		/// @param idx The system call number.
 		/// @param handler The system call handler function.
-		static void install_syscall_handler(size_t idx, syscall_t handler);
+    void install_syscall_handler(size_t idx, syscall_t handler);
 
-		/// @brief Install multiple system call handlers at once.
-		/// @param handlers A list of system call handlers.
-		static void install_syscall_handlers(std::initializer_list<std::pair<size_t, syscall_t>>);
+    /// @brief Install multiple system call handlers at once.
+    /// @param handlers A list of system call handlers.
+    void install_syscall_handlers(std::initializer_list<std::pair<size_t, syscall_t>>);
 
-		static void unknown_syscall_handler(Machine<address_t>&);
-		static constexpr auto initialize_syscalls() noexcept {
-			std::array<syscall_t, RISCV_SYSCALLS_MAX> arr;
-			for (auto& h : arr) h = unknown_syscall_handler;
-			return arr;
-		}
-		// A fixed-size array of system call handlers
-		static inline std::array<syscall_t, RISCV_SYSCALLS_MAX>
-			syscall_handlers = initialize_syscalls();
-		// Callback for unimplemented system calls (default: see machine.cpp)
-		static void default_unknown_syscall_no(Machine&, size_t);
-		static inline void (*on_unhandled_syscall) (Machine&, size_t) = default_unknown_syscall_no;
+    static void unknown_syscall_handler(Machine<address_t> &);
+    constexpr auto initialize_syscalls() noexcept {
+      std::array<syscall_t, RISCV_SYSCALLS_MAX> arr;
+      for (auto &h : arr) h = unknown_syscall_handler;
+      return arr;
+    }
+    // A fixed-size array of system call handlers
+    std::array<syscall_t, RISCV_SYSCALLS_MAX> syscall_handlers = initialize_syscalls();
+    // Callback for unimplemented system calls (default: see machine.cpp)
+    static void default_unknown_syscall_no(Machine &, size_t);
+    static inline void (*on_unhandled_syscall)(Machine &, size_t) = default_unknown_syscall_no;
 
-		// Execute CSRs and system functions
-		void system(union rv32i_instruction);
-		// User callback for unhandled CSRs
-		static inline void (*on_unhandled_csr) (Machine&, int, int, int)
+    // Execute CSRs and system functions
+    void system(union rv32i_instruction);
+    // User callback for unhandled CSRs
+    static inline void (*on_unhandled_csr) (Machine&, int, int, int)
 			= [] (Machine<address_t>&, int, int, int) {};
 
 		// Returns true if this machine is forked from another, and thus
@@ -447,25 +446,25 @@ template <AddressType address_t> struct alignas(RISCV_MACHINE_ALIGNMENT) Machine
 		void setup_native_heap(size_t sysnum, uint64_t addr, size_t size);
 		void transfer_arena_from(const Machine& other);
 		// Optional custom memory-related system calls
-		static void setup_native_memory(size_t sysnum);
+    void setup_native_memory(size_t sysnum);
 
-		// System calls, files and threads implementations
-		bool has_file_descriptors() const noexcept { return m_fds != nullptr; }
+    // System calls, files and threads implementations
+    bool has_file_descriptors() const noexcept { return m_fds != nullptr; }
 		// The "minimum": lseek, read, write, exit (provided for example usage)
-		static void setup_minimal_syscalls();
-		// Enough to run minimal newlib programs
-		static void setup_newlib_syscalls(); // no filesystem access
-		void setup_newlib_syscalls(bool filesystem); // optional filesystem access
-		// Set up every supported system call, emulating Linux
-		void setup_linux_syscalls(bool filesystem = true, bool sockets = true);
-		void setup_posix_threads();
+    void setup_minimal_syscalls();
+    // Enough to run minimal newlib programs
+    void setup_newlib_syscalls();                // no filesystem access
+    void setup_newlib_syscalls(bool filesystem); // optional filesystem access
+    // Set up every supported system call, emulating Linux
+    void setup_linux_syscalls(bool filesystem = true, bool sockets = true);
+    void setup_posix_threads();
 		void setup_native_threads(const size_t syscall_base);
 		// Globally register a system call that clobbers all registers
-		static void register_clobbering_syscall(size_t sysnum);
-		static bool is_clobbering_syscall(size_t sysnum) noexcept;
-		// Threads: Access to thread internal structures
-		const MultiThreading<address_t>& threads() const;
-		MultiThreading<address_t>& threads();
+    void register_clobbering_syscall(size_t sysnum);
+    bool is_clobbering_syscall(size_t sysnum) noexcept;
+    // Threads: Access to thread internal structures
+    const MultiThreading<address_t> &threads() const;
+    MultiThreading<address_t>& threads();
 		bool has_threads() const noexcept { return this->m_mt != nullptr; }
 		int gettid() const noexcept;
 		// FileDescriptors: Access to translation between guest fds
@@ -502,8 +501,8 @@ template <AddressType address_t> struct alignas(RISCV_MACHINE_ALIGNMENT) Machine
 	private:
 		template<typename... Args, std::size_t... indices>
 		auto resolve_args(std::index_sequence<indices...>) const;
-		static void setup_native_heap_internal(const size_t);
-		[[noreturn]] void timeout_exception(uint64_t);
+    void setup_native_heap_internal(const size_t);
+    [[noreturn]] void timeout_exception(uint64_t);
 
 		uint64_t     m_counter = 0;
 		uint64_t     m_max_counter = 0;
