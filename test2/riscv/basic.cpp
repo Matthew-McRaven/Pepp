@@ -8,7 +8,7 @@ static const uint64_t MAX_MEMORY = 8ul << 20; /* 8MB */
 static const uint64_t MAX_INSTRUCTIONS = 10'000'000ul;
 
 TEST_CASE("Instantiate machine", "[Instantiate]") {
-  const auto binary = load("://riscv_samples/basic_a.elf");
+  const auto binary = load("://hosted/basic_a.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
 
@@ -23,7 +23,7 @@ TEST_CASE("Instantiate machine", "[Instantiate]") {
 }
 
 TEST_CASE("Execute minimal machine", "[Minimal]") {
-  const auto binary = load("://riscv_samples/basic_b.elf");
+  const auto binary = load("://freestanding/basic_b.elf");
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
   machine.install_syscall_handler(1, [](auto &machine) { machine.stop(); });
   machine.simulate(10);
@@ -39,7 +39,7 @@ TEST_CASE("Execute minimal machine", "[Minimal]") {
 }
 
 TEST_CASE("Execution timeout", "[Minimal]") {
-  const auto binary = load("://riscv_samples/basic_c.elf");
+  const auto binary = load("://freestanding/basic_c.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
   // Simulate 250k instructions before giving up
@@ -51,7 +51,7 @@ TEST_CASE("Catch output from write system call", "[Output]") {
   struct State {
     bool output_is_hello_world = false;
   } state;
-  const auto binary = load("://riscv_samples/basic_scall_write.elf");
+  const auto binary = load("://hosted/basic_scall_write.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
   // We need to install Linux system calls for maximum gucciness

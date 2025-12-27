@@ -1,16 +1,12 @@
-#include(CMakeForceCompiler)
-
-# usage
-# cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/rv32imac.cmake ../
 find_program(
   RISCV_GCC_COMPILER
-  NAMES riscv64-unknown-linux-gnu-gcc riscv64-unknown-elf-gcc riscv64-linux-gnu-gcc riscv64-elf-gcc
+  NAMES riscv64-unknown-linux-gnu-gcc riscv64-linux-gnu-gcc riscv64-unknown-elf-gcc riscv64-elf-gcc
   HINTS "$ENV{RISCV}/bin" "/opt/riscv/bin" "/opt/homebrew/bin/")
 
 if (RISCV_GCC_COMPILER)
-  message( "RISC-V GCC found: ${RISCV_GCC_COMPILER}")
+  message( "riscv64-unknown-elf found: ${RISCV_GCC_COMPILER}")
 else()
-  message(FATAL_ERROR "RISC-V GCC not found. ${RISCV_GCC_COMPILER}")
+  message(FATAL_ERROR "riscv64-unknown-elf not found")
 endif()
 
 
@@ -46,7 +42,7 @@ set( CMAKE_OBJDUMP      ${RISCV_TOOLCHAIN_BIN_PATH}/${CROSS_COMPILE}objdump
 # Set the common build flags
 
 # Set the CMAKE C flags (which should also be used by the assembler!
-set(CMAKE_C_FLAGS "-g -march=${CMAKE_SYSTEM_PROCESSOR}" CACHE STRING "" FORCE)
+set(CMAKE_C_FLAGS "-g -march=${CMAKE_SYSTEM_PROCESSOR} -ffreestanding -nostdlib" CACHE STRING "" FORCE)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "" )
 set(CMAKE_ASM_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "" )

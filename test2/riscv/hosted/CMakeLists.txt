@@ -13,16 +13,6 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--strip-all -Wl,--buil
 add_executable(basic_a "${CMAKE_CURRENT_LIST_DIR}/basic_a.c")
 set_target_properties(basic_a PROPERTIES PREFIX "" SUFFIX ".elf")
 
-add_executable(basic_b "${CMAKE_CURRENT_LIST_DIR}/basic_b.c")
-set_target_properties(basic_b PROPERTIES PREFIX "" SUFFIX ".elf")
-target_compile_options(basic_b PRIVATE -ffreestanding)
-target_link_options(basic_b PRIVATE -nostdlib)
-
-add_executable(basic_c "${CMAKE_CURRENT_LIST_DIR}/basic_c.c")
-set_target_properties(basic_c PROPERTIES PREFIX "" SUFFIX ".elf")
-target_compile_options(basic_c PRIVATE -ffreestanding)
-target_link_options(basic_c PRIVATE -nostdlib)
-
 #add_library(basic_d STATIC "${CMAKE_CURRENT_LIST_DIR}/basic_d.c")
 
 add_executable(basic_ebreak "${CMAKE_CURRENT_LIST_DIR}/basic_ebreak.c")
@@ -36,7 +26,7 @@ set_target_properties(basic_fib PROPERTIES PREFIX "" SUFFIX ".elf")
 
 install(
   TARGETS
-    basic_a basic_b basic_c
+    basic_a
     basic_ebreak basic_fib #basic_scall_write
   ARCHIVE DESTINATION .
   RUNTIME DESTINATION .)
