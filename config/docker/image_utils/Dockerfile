@@ -7,7 +7,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN cargo install resvg
 RUN which resvg
-FROM python:3.13 as output
+FROM python:3.13 AS output
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update \
     && apt install -y --no-install-recommends imagemagick icnsutils librsvg2-bin \

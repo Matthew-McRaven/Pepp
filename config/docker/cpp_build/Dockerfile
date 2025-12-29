@@ -53,7 +53,6 @@ RUN apt update \
 RUN git clone --recursive https://github.com/riscv/riscv-gnu-toolchain -b ${TOOLCHAIN_VERSION}
 RUN cd riscv-gnu-toolchain && ./configure --prefix=$RISCV --enable-multilib
 RUN cd riscv-gnu-toolchain && make -j8
-RUN cd riscv-gnu-toolchain && make -j8 linux
 
 FROM base-gcc AS output-gcc-riscv
 ENV RISCV=/opt/riscv
