@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="icon">icon.svg</file>
+        <file alias="logic_gates">logic_gates.svg</file>
+        <file alias="and">and.svg</file>
+    </qresource>
+</RCC>

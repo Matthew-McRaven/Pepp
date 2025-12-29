@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:svg="http://www.w3.org/2000/svg" id="svg2" viewBox="0 0 134 202" version="1.0">
+  <g id="layer1" stroke="#000" fill="none" transform="translate(-15.5 -17.594)">
+    <path id="path16055" stroke-width="2.2097" transform="matrix(.45255 0 0 .45255 63.56 188.16)" stroke-linecap="square" d="m78.312 44.059a4.4194 4.4194 0 1 1 -8.839 0 4.4194 4.4194 0 1 1 8.839 0z"/>
+    <path id="path2183" stroke-width="1px" d="m119 208.09h9"/>
+    <path id="path10208" stroke-linecap="square" d="m114 44.094h-19v-25.998l19-0.002c7.18 0 13 5.824 13 13s-5.82 13-13 13zm17-13c0 1.104-0.9 2-2 2s-2-0.896-2-2 0.9-2 2-2 2 0.896 2 2zh9m-54-6.5h9m-9 13h9"/>
+    <path id="path10206" stroke-linecap="square" d="m95 77.094v0.063c2.199 3.815 3.469 8.221 3.469 12.937 0 4.717-1.27 9.123-3.469 12.936v0.06h13.47c9.61 0 18-5.235 22.5-12.996-4.5-7.76-12.89-13-22.5-13h-13.47zm40 13.001c0 1.104-0.9 2-2 2s-2-0.896-2-2 0.9-2 2-2 2 0.896 2 2zm0-0.001h9m-55.5-6.5h9m-9 13h9"/>
+    <path id="path10210" stroke-linecap="square" d="m100 136.09v0.07c2.2 3.81 3.47 8.22 3.47 12.93 0 4.72-1.27 9.13-3.47 12.94v0.06h13.47c9.61 0 18-5.23 22.5-13-4.5-7.76-12.89-13-22.5-13h-13.47zm-5 0.07c2.199 3.81 3.469 8.22 3.469 12.93 0 4.72-1.27 9.13-3.469 12.94m45-12.93c0 1.1-0.9 2-2 2s-2-0.9-2-2c0-1.11 0.9-2 2-2s2 0.89 2 2zm0-0.01h9m-60.5-6.5h9m-9 13h9"/>
+    <path id="path10179" stroke-linecap="square" d="m30 136.09v0.07c2.199 3.81 3.469 8.22 3.469 12.93 0 4.72-1.27 9.13-3.469 12.94v0.06h13.469c9.61 0 18-5.23 22.5-13-4.5-7.76-12.89-13-22.5-13h-13.469zm-5 0.07c2.199 3.81 3.469 8.22 3.469 12.93 0 4.72-1.27 9.13-3.469 12.94m41-12.94h9m-56.5-6.5h9m-9 13h9"/>
+    <path id="rect9115" stroke-linecap="square" d="m25 77.095v0.062c2.199 3.815 3.469 8.221 3.469 12.938 0 4.716-1.27 9.122-3.469 12.935v0.06h13.469c9.61 0 18-5.235 22.5-12.995-4.5-7.761-12.89-13-22.5-13h-13.469zm36 13h9m-51.5-6.5h9m-9 13h9"/>
+    <path id="path6087" stroke-linecap="square" d="m44 44.094h-19v-25.998l19-0.002c7.176 0 13 5.824 13 13s-5.824 13-13 13zm13-13h9.056m-50.056-6.5h9m-9 13h9"/>
+    <path id="path12162" stroke-linecap="square" d="m48.5 208.09c0 1.11-0.896 2-2 2s-2-0.89-2-2c0-1.1 0.896-2 2-2s2 0.9 2 2zm-23.5 11v-22l18.986 11-18.986 11zm23.5-11h9m-41.5 0h9"/>
+  </g>
+  <metadata>
+    <rdf:RDF>
+      <cc:Work>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+        <cc:license rdf:resource="http://creativecommons.org/licenses/publicdomain/"/>
+        <dc:publisher>
+          <cc:Agent rdf:about="http://openclipart.org/">
+            <dc:title>Openclipart</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:title>Digital logic gates</dc:title>
+        <dc:date>2008-02-05T18:37:38</dc:date>
+        <dc:description>A collection of gates for digital circuits designed according to the official IEEE Std 91-1984, Appendix A guidelines.</dc:description>
+        <dc:source>http://openclipart.org/detail/12885/digital-logic-gates-by-nobody</dc:source>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>nobody</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>clip art</rdf:li>
+            <rdf:li>clipart</rdf:li>
+            <rdf:li>digital</rdf:li>
+            <rdf:li>gates</rdf:li>
+            <rdf:li>image</rdf:li>
+            <rdf:li>inverter</rdf:li>
+            <rdf:li>logic</rdf:li>
+            <rdf:li>media</rdf:li>
+            <rdf:li>nand</rdf:li>
+            <rdf:li>nor</rdf:li>
+            <rdf:li>public domain</rdf:li>
+            <rdf:li>svg</rdf:li>
+            <rdf:li>xnor</rdf:li>
+            <rdf:li>xor</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+      </cc:Work>
+      <cc:License rdf:about="http://creativecommons.org/licenses/publicdomain/">
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Reproduction"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Distribution"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#DerivativeWorks"/>
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+</svg>
