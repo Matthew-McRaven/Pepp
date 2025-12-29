@@ -33,52 +33,53 @@
  */
 #include "./registers.hpp"
 #include <stdexcept>
+#include "bits/span.hpp"
 #include "enums/isa/rv_base.hpp"
 
-namespace riscv {
+namespace {
+template <typename... Args>
+void safe_snprintf(std::span<char> buffer, unsigned &offset, const char *format, Args... args) {
+  if (UNLIKELY(offset > buffer.size())) throw std::logic_error("Not possible, buffer sized at compile time");
+  auto retval = snprintf(buffer.data() + offset, buffer.size() + offset, format, args...);
+  if (retval < 0) throw std::logic_error("Not possible, buffer sized at compile time");
+  offset += retval;
+}
+} // namespace
 
+namespace riscv {
 template <AddressType address_t> PEPP_COLD_PATH() std::string Registers<address_t>::to_string() const {
   char buffer[600];
+  bits::span<char> buffer_span{buffer};
   unsigned len = 0;
   for (int i = 1; i < 32; i++) {
-    if (UNLIKELY(len >= sizeof(buffer))) throw std::logic_error("Not possible, buffer sized at compile time");
-    len += snprintf(buffer + len, sizeof(buffer) - len, "[%s\t%08X] ", RISCV::regname(i), this->get(i));
-    if (i % 5 == 4) {
-      if (UNLIKELY(len >= sizeof(buffer))) throw std::logic_error("Not possible, buffer sized at compile time");
-      len += snprintf(buffer + len, sizeof(buffer) - len, "\n");
-    }
+    safe_snprintf(buffer_span, len, "[%s\t%08X] ", RISCV::regname(i), this->get(i));
+    if (i % 5 == 4) safe_snprintf(buffer_span, len, "\n");
   }
   return std::string(buffer, len);
 }
 
 template <AddressType address_t> PEPP_COLD_PATH() std::string Registers<address_t>::flp_to_string() const {
   char buffer[800];
+  bits::span<char> buffer_span{buffer};
   unsigned len = 0;
   for (int i = 0; i < 32; i++) {
     auto &src = this->getfl(i);
     const char T = (src.i32[1] == 0) ? 'S' : 'D';
     if constexpr (true) {
       double val = (src.i32[1] == 0) ? src.f32[0] : src.f64;
-      if (UNLIKELY(len >= sizeof(buffer))) throw std::logic_error("Not possible, buffer sized at compile time");
-      len += snprintf(buffer + len, sizeof(buffer) - len, "[%s\t%c%+.2f] ", RISCV::flpname(i), T, val);
+      safe_snprintf(buffer_span, len, "[%s\t%c%+.2f] ", RISCV::flpname(i), T, val);
     } else {
       if (src.i32[1] == 0) {
         double val = src.f64;
-        if (UNLIKELY(len >= sizeof(buffer))) throw std::logic_error("Not possible, buffer sized at compile time");
-        len += snprintf(buffer + len, sizeof(buffer) - len, "[%s\t%c0x%lX] ", RISCV::flpname(i), T, *(int64_t *)&val);
+        safe_snprintf(buffer_span, len, "[%s\t%c0x%lX] ", RISCV::flpname(i), T, *(int64_t *)&val);
       } else {
         float val = src.f32[0];
-        if (UNLIKELY(len >= sizeof(buffer))) throw std::logic_error("Not possible, buffer sized at compile time");
-        len += snprintf(buffer + len, sizeof(buffer) - len, "[%s\t%c0x%X] ", RISCV::flpname(i), T, *(int32_t *)&val);
+        safe_snprintf(buffer_span, len, "[%s\t%c0x%X] ", RISCV::flpname(i), T, *(int32_t *)&val);
       }
     }
-    if (i % 5 == 4) {
-      if (UNLIKELY(len >= sizeof(buffer))) throw std::logic_error("Not possible, buffer sized at compile time");
-      len += snprintf(buffer + len, sizeof(buffer) - len, "\n");
-    }
+    if (i % 5 == 4) safe_snprintf(buffer_span, len, "\n");
   }
-  if (UNLIKELY(len >= sizeof(buffer))) throw std::logic_error("Not possible, buffer sized at compile time");
-  len += snprintf(buffer + len, sizeof(buffer) - len, "[FFLAGS\t0x%X] ", m_fcsr.fflags);
+  safe_snprintf(buffer_span, len, "[FFLAGS\t0x%X] ", m_fcsr.fflags);
   return std::string(buffer, len);
 }
 
