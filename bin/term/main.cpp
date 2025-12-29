@@ -36,6 +36,7 @@
 #include "commands/microasm.hpp"
 #include "commands/microrun.hpp"
 #include "commands/run.hpp"
+#include "commands/rvemu.hpp"
 #include "commands/selftest.hpp"
 #include "commands/throughput.hpp"
 
@@ -87,9 +88,11 @@ int main(int argc, char **argv) {
   registerMicroAsm(app, task, shared_flags);
   registerRun(app, task, shared_flags);
   registerMicroRun(app, task, shared_flags);
-  // binutils like programs
+  // binutils-like programs
   registerReadelf(app, task, shared_flags);
   registerAddr2Line(app, task, shared_flags);
+  // qemu-like programs
+  register_rvemu(app, task, shared_flags);
 
   // Hidden commands
   registerThroughput(app, task, shared_flags);

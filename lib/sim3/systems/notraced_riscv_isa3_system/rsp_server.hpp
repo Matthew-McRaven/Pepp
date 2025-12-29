@@ -32,10 +32,10 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
-#include "machine.hpp"
 #include <cstdarg>
 #include <inttypes.h>
 #include <unistd.h>
+#include "sim3/systems/notraced_riscv_isa3_system.hpp"
 
 /**
   The ‘org.gnu.gdb.riscv.cpu’ feature is required
@@ -154,8 +154,8 @@ private:
 	bool m_closed  = false;
 	bool m_verbose = false;
 	std::string buffer;
-	std::array<riscv::address_t, 8> m_bp {};
-	size_t m_bp_iterator = 0;
+  std::array<address_t, 8> m_bp{};
+  size_t m_bp_iterator = 0;
 	StopFunc m_on_stopped = nullptr;
 	mutable PrinterFunc m_debug_printer = [](const Machine<address_t>&, const char*, size_t) {};
 };
@@ -163,9 +163,9 @@ private:
 
 // The entire RSP<address_t> must be implemented per OS
 #ifndef WIN32
-#include "linux/rsp_server.hpp"
+#include "./guest_os/linux/rsp_server.hpp"
 #else
-#include "win32/rsp_server.hpp"
+#include "./guest_os/win32/rsp_server.hpp"
 #endif
 
 namespace riscv {

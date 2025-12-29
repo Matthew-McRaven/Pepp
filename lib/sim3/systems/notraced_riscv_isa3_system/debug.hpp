@@ -31,6 +31,7 @@
  * along with this program. If not, see
  * <https://opensource.org/license/bsd-3-clause>
  */
+#pragma once
 #include <functional>
 #include <unordered_map>
 #include "enums/isa/rv_types.hpp"
