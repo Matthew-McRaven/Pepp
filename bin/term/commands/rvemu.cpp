@@ -1,3 +1,7 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #include "rvemu.hpp"
 #include <CLI11.hpp>
 #include <chrono>

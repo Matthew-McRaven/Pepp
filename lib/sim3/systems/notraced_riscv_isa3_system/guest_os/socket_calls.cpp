@@ -35,7 +35,15 @@
 #include "sim3/subsystems/ram/paged_pool.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 
-#ifndef _WIN32
+#ifdef WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include "win32/ws2.hpp"
+WSADATA riscv::ws2::global_winsock_data;
+bool riscv::ws2::winsock_initialized = false;
+using ssize_t = long long int;
+#else
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -43,13 +51,6 @@
 #define HAVE_LINUX_NETLINK
 #include <linux/netlink.h>
 #endif
-#else
-#include "win32/ws2.hpp"
-WSADATA riscv::ws2::global_winsock_data;
-bool riscv::ws2::winsock_initialized = false;
-using ssize_t = long long int;
-#undef min
-#undef max
 #endif
 
 namespace riscv {
