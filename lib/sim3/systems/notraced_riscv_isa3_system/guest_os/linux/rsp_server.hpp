@@ -37,11 +37,12 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/select.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace riscv {
 

@@ -34,7 +34,6 @@
 #pragma once
 #include <cstdarg>
 #include <inttypes.h>
-#include <unistd.h>
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 
 /**
@@ -475,19 +474,19 @@ void RSPClient<address_t>::handle_writemem()
 	}
 	bin += 1; // Move past colon
 	const char* end = buffer.c_str() + buffer.size();
-	uint32_t rlen = std::min(len, (uint32_t) (end - bin));
-	try {
-		for (auto i = 0u; i < rlen; i++) {
-			char data = bin[i];
-			if (data == '{' && i+1 < rlen) {
-				data = bin[++i] ^ 0x20;
-			}
-			m_machine->memory.template write<uint8_t> (addr+i, data);
-		}
-		reply_ok();
-	} catch (...) {
-		send("E01");
-	}
+  uint32_t rlen = std::min<uint32_t>(len, end - bin);
+  try {
+    for (auto i = 0u; i < rlen; i++) {
+      char data = bin[i];
+      if (data == '{' && i + 1 < rlen) {
+        data = bin[++i] ^ 0x20;
+      }
+      m_machine->memory.template write<uint8_t> (addr+i, data);
+    }
+    reply_ok();
+  } catch (...) {
+    send("E01");
+  }
 }
 template <AddressType address_t>
 void RSPClient<address_t>::report_status()
@@ -570,33 +569,36 @@ void RSPClient<address_t>::handle_readreg()
 	*d++ = 0;
 	send(data);
 }
-template <AddressType address_t>
-void RSPClient<address_t>::handle_writereg()
-{
-	uint64_t value = 0;
-	uint32_t idx = 0;
-	sscanf(buffer.c_str(), "P%x=%" PRIx64, &idx, &value);
-	value = __builtin_bswap64(value);
+template <AddressType address_t> void RSPClient<address_t>::handle_writereg() {
 
-	if (idx < 32) {
-		m_machine->cpu.reg(idx) = value;
-		send("OK");
-	} else if (idx == 32) {
-		m_machine->cpu.jump(value);
-		send("OK");
-	} else if (idx >= 33 && idx <= 68) {
-		switch (idx) {
-		case 66: m_machine->cpu.registers().fcsr().fflags = value; break;
+  uint64_t value = 0;
+  uint32_t idx = 0;
+  sscanf(buffer.c_str(), "P%x=%" PRIx64, &idx, &value);
+#ifdef _MSC_VER
+  value = _byteswap_uint64(value);
+#else
+  value = __builtin_bswap64(value);
+#endif
+
+  if (idx < 32) {
+    m_machine->cpu.reg(idx) = value;
+    send("OK");
+  } else if (idx == 32) {
+    m_machine->cpu.jump(value);
+    send("OK");
+  } else if (idx >= 33 && idx <= 68) {
+    switch (idx) {
+    case 66: m_machine->cpu.registers().fcsr().fflags = value; break;
 		case 67: m_machine->cpu.registers().fcsr().frm = value; break;
 		case 68: m_machine->cpu.registers().fcsr().whole = value; break;
 		default:
 			auto& fl = m_machine->cpu.registers().getfl(idx - 33);
 			fl.i64 = value;
-		}
-		send("OK");
-	} else {
-		send("E01");
-	}
+    }
+    send("OK");
+  } else {
+    send("E01");
+  }
 }
 
 template <AddressType address_t>

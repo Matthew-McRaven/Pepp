@@ -32,7 +32,12 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
+#include <cstdint>
+#include <type_traits>
+typedef std::make_signed_t<size_t> ssize_t;
+
 #include <sys/types.h>
+#include "enums/isa/rv_types.hpp"
 #include "ws2.hpp"
 
 namespace riscv {

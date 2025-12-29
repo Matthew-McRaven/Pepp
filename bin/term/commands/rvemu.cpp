@@ -3,11 +3,11 @@
 #include <chrono>
 #include <fstream>
 #include <inttypes.h>
+#include <limits>
 #include <sim3/systems/notraced_riscv_isa3_system/debug.hpp>
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <unistd.h>
 #include <unordered_set>
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/debug.hpp"
