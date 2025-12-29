@@ -40,9 +40,19 @@
 #define NOMINMAX
 #endif
 #include "win32/ws2.hpp"
-WSADATA riscv::ws2::global_winsock_data;
-bool riscv::ws2::winsock_initialized = false;
 using ssize_t = long long int;
+namespace {
+WSADATA global_winsock_data;
+bool winsock_initialized = false;
+} // namespace
+namespace riscv::ws2 {
+void init() {
+  if (!winsock_initialized) {
+    WSAStartup(MAKEWORD(2, 2), &global_winsock_data);
+    winsock_initialized = true;
+  }
+}
+} // namespace riscv::ws2
 #else
 #include <arpa/inet.h>
 #include <sys/socket.h>
