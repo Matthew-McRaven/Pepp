@@ -196,6 +196,9 @@ PEPP_NOINLINE RISCV_INTERNAL typename CPU<address_t>::format_t CPU<address_t>::r
   // to get the next page, and then read the upper half
   if (UNLIKELY(instruction.is_long())) {
     const auto &slow_page = machine().memory.get_exec_pageno(pageno + 1);
+    // Avoid undefined behavior in union type punning. Compiler *should* optimize memcopy.
+    const auto tmp = instruction.whole;
+    std::memcpy(&instruction.half, &tmp, sizeof(tmp));
     instruction.half[1] = *(uint16_t *)slow_page.data();
   }
 
