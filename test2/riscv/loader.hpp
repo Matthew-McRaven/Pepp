@@ -17,6 +17,6 @@ inline std::vector<uint8_t> load(const std::string &filename) {
   } else if (file.open(QIODevice::ReadOnly)) {
     ret = file.readAll();
     file.close();
-  } else qWarning() << "Could not open file for reading";
+  } else qFatal() << "Could not open file for reading";
   return std::vector<uint8_t>(ret.begin(), ret.end());
 }

@@ -8,7 +8,9 @@ static const uint64_t MAX_MEMORY = 8ul << 20; /* 8MB */
 static const uint64_t MAX_INSTRUCTIONS = 10'000'000ul;
 
 TEST_CASE("Instantiate machine", "[Instantiate]") {
-  const auto binary = load("://hosted/basic_a.elf");
+  // for (QDirIterator i("://", QDirIterator::Subdirectories); i.hasNext();) qDebug() << i.next();
+
+  const auto binary = load("://freestanding/basic_a.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
 
@@ -51,7 +53,7 @@ TEST_CASE("Catch output from write system call", "[Output]") {
   struct State {
     bool output_is_hello_world = false;
   } state;
-  const auto binary = load("://hosted/basic_scall_write.elf");
+  const auto binary = load("://freestanding/basic_scall_write.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
   // We need to install Linux system calls for maximum gucciness
@@ -74,9 +76,9 @@ TEST_CASE("Catch output from write system call", "[Output]") {
   // and the data matched 'Hello World!'.
   REQUIRE(state.output_is_hello_world);
 }
-/*
+
 TEST_CASE("Calculate fib(50)", "[Compute]") {
-  const auto binary = load("://riscv_samples/basic_fib.elf");
+  const auto binary = load("://freestanding/basic_fib.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
   // We need to install Linux system calls for maximum gucciness
@@ -85,19 +87,13 @@ TEST_CASE("Calculate fib(50)", "[Compute]") {
   machine.setup_linux({"basic", "50"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
   // Run for at most X instructions before giving up
   char b[1024];
-  while (true) {
-    auto ni = machine.cpu.read_next_instruction();
-    auto di = machine.cpu.decode(ni);
-    auto count = di.printer(b, sizeof(b), machine.cpu, ni);
-    qDebug().noquote().nospace() << QString::fromLocal8Bit((const char *)b, count);
-    machine.cpu.step_one(true);
-  }
+  machine.simulate(MAX_INSTRUCTIONS);
 
   REQUIRE(machine.return_value<long>() == -298632863);
 }
 
 TEST_CASE("Count using EBREAK", "[Compute]") {
-  const auto binary = load("://riscv_samples/basic_ebreak.elf");
+  const auto binary = load("://freestanding/basic_ebreak.elf");
 
   riscv::Machine<uint64_t> machine{binary};
   machine.setup_linux_syscalls(false, false);
@@ -116,19 +112,13 @@ TEST_CASE("Count using EBREAK", "[Compute]") {
     if (counter.value == 25) machine.stop();
   });
   char b[1024];
-  while (true) {
-    auto ni = machine.cpu.read_next_instruction();
-    auto di = machine.cpu.decode(ni);
-    auto count = di.printer(b, sizeof(b), machine.cpu, ni);
-    qDebug().noquote().nospace() << QString::fromLocal8Bit((const char *)b, count);
-    machine.cpu.step_one(true);
-  }
+  machine.simulate(MAX_INSTRUCTIONS);
 
   // Tail-call can exit immediately, and will return 25 (which is fine)
   REQUIRE((counter.value == 51 || counter.value == 25));
   if (counter.value == 51) REQUIRE(machine.return_value<long>() == -298632863);
   else REQUIRE(machine.return_value<long>() == 46368L);
-}*/
+}
 
 int main(int argc, char *argv[]) {
   QCoreApplication ap(argc, argv);
