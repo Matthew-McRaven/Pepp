@@ -568,18 +568,14 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     case CI_CODE(0b001, 0b00):
     case CI_CODE(0b010, 0b00):
     case CI_CODE(0b011, 0b00): {
-      if (ci.CL.funct3 == 0x1) {
-        return RV32C_BC_FUNCTION; // C.FLD
-      } else if (ci.CL.funct3 == 0x2) {
-        return RV32C_BC_LDW; // C.LW
-      } else if (ci.CL.funct3 == 0x3) {
-        if constexpr (sizeof(address_t) == 8) {
-          return RV32C_BC_FUNCTION; // C.LD
-        } else {
-          return RV32C_BC_FUNCTION; // C.FLW
-        }
+      if (ci.CL.funct3 == 0x2) { // C.LW
+        return RV32C_BC_LDW;
       }
-      return RV32C_BC_FUNCTION; // C.UNIMP
+      // C.FLD if         ci.CL.funct3 == 0x1
+      // C.LD  if r64 and ci.CL.funct3 == 0x3
+      // C.FLW if r32 and ci.CL.funct3 == 0x3
+      // C.UNIMP otherwise
+      return RV32C_BC_FUNCTION;
     }
     // RESERVED: 0b100, 0b00
     case CI_CODE(0b101, 0b00):
@@ -615,9 +611,7 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
         return RV32C_BC_FUNCTION; // C.LUI
       }
       return RV32C_BC_FUNCTION; // ILLEGAL
-    case CI_CODE(0b001, 0b01):
-      if constexpr (sizeof(address_t) == 8) return RV32C_BC_JAL_ADDIW; // C.ADDIW
-      else return RV32C_BC_JAL_ADDIW;                                  // C.JAL
+    case CI_CODE(0b001, 0b01): return RV32C_BC_JAL_ADDIW; // C.ADDIW if rv64o, else C.JAL
 
     case CI_CODE(0b101, 0b01): // C.JMP
       return RV32C_BC_JMP;
