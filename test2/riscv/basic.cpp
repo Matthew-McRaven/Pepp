@@ -1,5 +1,6 @@
 #include <QCoreApplication>
 #include <QDirIterator>
+#include <any>
 #include <catch.hpp>
 #include "loader.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
@@ -570,6 +571,94 @@ TEST_CASE("Execute libc_start_main, slowly", "[Compute]") {
   } while (machine.instruction_limit_reached());
 
   REQUIRE(machine.return_value<long>() == 666);
+}
+
+struct InstructionState {
+  std::array<std::any, 8> args;
+};
+
+/** The new custom instruction **/
+static const riscv::Instruction<uint64_t> custom_instruction_handler{
+    [](riscv::CPU<uint64_t> &cpu, riscv::rv32i_instruction instr) {
+      printf("Hello custom instruction World!\n");
+      REQUIRE(instr.opcode() == 0b1011011);
+
+      auto *state = cpu.machine().get_userdata<InstructionState>();
+      // Argument number
+      const unsigned idx = instr.Itype.rd & 7;
+      // Select type and retrieve value from argument registers
+      switch (instr.Itype.funct3) {
+      case 0x0: // Register value (64-bit unsigned)
+        state->args[idx] = cpu.reg(riscv::REG_ARG0 + idx);
+        break;
+      case 0x1: // 64-bit floating point
+        state->args[idx] = cpu.registers().getfl(riscv::REG_FA0 + idx).f64;
+        break;
+      default: throw "Implement me";
+      }
+    },
+    [](char *buffer, size_t len, auto &, riscv::rv32i_instruction instr) {
+      return snprintf(buffer, len, "CUSTOM: 4-byte 0x%X (0x%X)", instr.opcode(), instr.whole);
+    }};
+
+TEST_CASE("Custom instruction", "[Custom]") {
+  // Build a program that uses a custom instruction to
+  // select and identify a system call argument.
+  const auto binary = load("://freestanding/custom_instr.elf");
+
+  // Install the handler for unimplemented instructions, allowing us to
+  // select our custom instruction for a reserved opcode.
+  riscv::CPU<uint64_t>::on_unimplemented_instruction =
+      [](riscv::rv32i_instruction instr) -> const riscv::Instruction<uint64_t> & {
+    if (instr.opcode() == 0b1011011) {
+      return custom_instruction_handler;
+    }
+    return riscv::CPU<uint64_t>::get_unimplemented_instruction();
+  };
+
+  // Install system call number 500 (used by our program above).
+  static bool syscall_was_called = false;
+
+  InstructionState state;
+
+  // Normal (fastest) simulation
+  {
+    riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+    machine.set_userdata(&state);
+    // We need to install Linux system calls for maximum gucciness
+    machine.setup_linux_syscalls();
+    // We need to create a Linux environment for runtimes to work well
+    machine.setup_linux({"custom_instruction"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+    // Run for at most X instructions before giving up
+    syscall_was_called = false;
+    machine.install_syscall_handler(500, [](riscv::Machine<uint64_t> &machine) {
+      auto *state = machine.get_userdata<InstructionState>();
+      REQUIRE(std::any_cast<double>(state->args[1]) == 1234.0);
+      REQUIRE(std::any_cast<uint64_t>(state->args[3]) == 0xDEADB33F);
+      syscall_was_called = true;
+    });
+    machine.simulate(MAX_INSTRUCTIONS);
+    REQUIRE(syscall_was_called == true);
+  }
+  // Precise (step-by-step) simulation
+  {
+    riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+
+    machine.set_userdata(&state);
+    machine.setup_linux_syscalls();
+    machine.setup_linux({"custom_instruction"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+    machine.install_syscall_handler(500, [](riscv::Machine<uint64_t> &machine) {
+      auto *state = machine.get_userdata<InstructionState>();
+      REQUIRE(std::any_cast<double>(state->args[1]) == 1234.0);
+      REQUIRE(std::any_cast<uint64_t>(state->args[3]) == 0xDEADB33F);
+      syscall_was_called = true;
+    });
+    // Verify step-by-step simulation
+    syscall_was_called = false;
+    machine.set_max_instructions(MAX_INSTRUCTIONS);
+    machine.cpu.simulate_precise();
+    REQUIRE(syscall_was_called == true);
+  }
 }
 
 int main(int argc, char *argv[]) {

@@ -27,6 +27,7 @@ qt6_add_resources(
   freestanding/basic_scall.elf
   freestanding/brutal_fib50.elf
   freestanding/checksum.elf
+  freestanding/custom_instr.elf
   freestanding/fp_pi.elf
   freestanding/fp_verify.elf
   freestanding/memprotect.elf

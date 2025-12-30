@@ -39,6 +39,8 @@ add_semihosted_executable(brutal_fib50 "${CMAKE_CURRENT_LIST_DIR}/brutal_fib50.c
 
 add_semihosted_executable(checksum "${CMAKE_CURRENT_LIST_DIR}/checksum.cpp")
 
+add_semihosted_executable(custom_instr "${CMAKE_CURRENT_LIST_DIR}/custom_instr.c")
+
 add_semihosted_executable(fp_pi "${CMAKE_CURRENT_LIST_DIR}/fp_pi.c")
 add_semihosted_executable(fp_verify "${CMAKE_CURRENT_LIST_DIR}/fp_verify.cpp")
 
