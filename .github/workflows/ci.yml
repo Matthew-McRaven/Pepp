@@ -112,16 +112,18 @@ jobs:
           lfs: 'false'
       - name: Cross-compile RISC-V samples
         run: |
-          ls -lah
-          ls -lah config
-          ls -lah config/cmake
           cmake -B /rv_build -S test2/riscv/freestanding -DCMAKE_TOOLCHAIN_FILE="$(pwd)/config/cmake/rv64imafdc_freestanding.cmake" -DCMAKE_INSTALL_PREFIX=/rv_install
           cmake --build /rv_build
           cmake --build /rv_build -- install
           ls -lah /rv_install
+      - uses: actions/upload-artifact@v4
+        with:
+          name: riscv_tests
+          path: /rv_build
+          retention-days: 1
   build:
     name: Build ${{ matrix.name }}
-    needs: [ branch_info, check_tag, create_icons ]
+    needs: [ branch_info, check_tag, create_icons, riscv_samples ]
     uses: ./.github/workflows/build.yml
     strategy:
       fail-fast: false
