@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(riscv_freestanding LANGUAGES C ASM)
+project(riscv_freestanding LANGUAGES C CXX ASM)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os -g0 -ffunction-sections -fdata-sections -fno-unwind-tables -fno-pic -fno-pie -fno-asynchronous-unwind-tables")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -g0 -ffunction-sections -fdata-sections -fno-unwind-tables -fno-pic -fno-pie -fno-asynchronous-unwind-tables")
@@ -34,3 +34,5 @@ add_semihosted_executable(basic_a "${CMAKE_CURRENT_LIST_DIR}/basic_a.c")
 add_semihosted_executable(basic_scall "${CMAKE_CURRENT_LIST_DIR}/basic_scall.c")
 add_semihosted_executable(basic_ebreak "${CMAKE_CURRENT_LIST_DIR}/basic_ebreak.c")
 add_semihosted_executable(basic_fib "${CMAKE_CURRENT_LIST_DIR}/basic_fib.c")
+
+add_semihosted_executable(checksum "${CMAKE_CURRENT_LIST_DIR}/checksum.cpp")

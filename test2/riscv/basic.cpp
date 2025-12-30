@@ -3,6 +3,7 @@
 #include <catch.hpp>
 #include "loader.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
+#include "sim3/systems/notraced_riscv_isa3_system/debug.hpp"
 
 static const uint64_t MAX_MEMORY = 8ul << 20; /* 8MB */
 static const uint64_t MAX_INSTRUCTIONS = 10'000'000ul;
@@ -117,6 +118,22 @@ TEST_CASE("Count using EBREAK", "[Compute]") {
   REQUIRE((counter.value == 51 || counter.value == 25));
   if (counter.value == 51) REQUIRE(machine.return_value<long>() == -298632863);
   else REQUIRE(machine.return_value<long>() == 46368L);
+}
+
+TEST_CASE("Verify CRC32") {
+  const auto binary = load("://freestanding/checksum.elf");
+  riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+  // We need to install Linux system calls for maximum gucciness
+  machine.setup_linux_syscalls();
+  // We need to create a Linux environment for runtimes to work well
+  machine.setup_linux({"checksum"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+  // Run for at most X instructions before giving up
+  // riscv::DebugMachine<uint64_t> dbg{machine};
+  // dbg.verbose_instructions = true;
+  // dbg.simulate(MAX_INSTRUCTIONS);
+  machine.simulate(MAX_INSTRUCTIONS);
+
+  REQUIRE(machine.return_value() == 0);
 }
 
 int main(int argc, char *argv[]) {
