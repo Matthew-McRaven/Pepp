@@ -37,6 +37,9 @@ add_semihosted_executable(basic_fib "${CMAKE_CURRENT_LIST_DIR}/basic_fib.c")
 
 add_semihosted_executable(checksum "${CMAKE_CURRENT_LIST_DIR}/checksum.cpp")
 
+add_semihosted_executable(fp_pi "${CMAKE_CURRENT_LIST_DIR}/fp_pi.c")
+add_semihosted_executable(fp_verify "${CMAKE_CURRENT_LIST_DIR}/fp_verify.cpp")
+
 add_semihosted_executable(vmcall "${CMAKE_CURRENT_LIST_DIR}/vmcall.c")
 add_semihosted_executable(vmcall_array "${CMAKE_CURRENT_LIST_DIR}/vmcall_array.c")
 add_semihosted_executable(vmcall_enum "${CMAKE_CURRENT_LIST_DIR}/vmcall_enum.c")

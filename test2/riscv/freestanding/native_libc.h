@@ -28,6 +28,10 @@
 
 #define ASM_MAX_BUFSZ  16384U
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline void fail() {
   register long syscall_id __asm__("a7") = SYSCALL_EXIT;
 
@@ -62,20 +66,9 @@ void* memset(void* vdest, const int ch, size_t size)
 	return vdest;
 }
 
-static inline
-void* memcpy(void* vdest, const void* vsrc, size_t size)
-{
-	register char*       a0  __asm__("a0") = (char*)vdest;
-	register const char* a1  __asm__("a1") = (const char*)vsrc;
-	register size_t      a2  __asm__("a2") = size;
-	register long syscall_id __asm__("a7") = SYSCALL_MEMCPY;
-
-	__asm__ volatile ("ecall"
-	:	"=m"(*(char(*)[size]) a0)
-	:	"r"(a0),
-		"r"(a1), "m"(*(const char(*)[size]) a1),
-		"r"(a2), "r"(syscall_id));
-	return vdest;
+void *memcpy(void *dest, const void *src, size_t n) {
+  for (size_t i = 0; i < n; i++) ((char *)dest)[i] = ((char *)src)[i];
+  return dest;
 }
 
 static inline
@@ -214,3 +207,87 @@ __attribute__((noreturn)) static inline void _exit(int code) {
 }
 
 __attribute__((noreturn)) static inline void __wrap_exit(int code) { _exit(code); }
+
+static inline unsigned utoa10(unsigned v, char *out) {
+  // returns number of bytes written (no NUL)
+  char tmp[10];
+  unsigned n = 0;
+  do {
+    tmp[n++] = (char)('0' + (v % 10u));
+    v /= 10u;
+  } while (v && n < sizeof(tmp));
+
+  // reverse into out
+  for (unsigned i = 0; i < n; ++i) out[i] = tmp[n - 1u - i];
+  return n;
+}
+
+__attribute__((noreturn)) void __assert_func(const char *file, int line, const char *func, const char *expr) {
+  const int fd = 1;
+
+  // "assertion failed: "
+  {
+    static const char p[] = "assertion failed: ";
+    (void)write(fd, p, sizeof(p) - 1);
+  }
+
+  // expr
+  if (expr) (void)write(fd, expr, strlen(expr));
+  else {
+    static const char u[] = "(null)";
+    (void)write(fd, u, sizeof(u) - 1);
+  }
+
+  // " @ "
+  {
+    static const char at[] = " @ ";
+    (void)write(fd, at, sizeof(at) - 1);
+  }
+
+  // file
+  if (file) (void)write(fd, file, strlen(file));
+  else {
+    static const char u[] = "(null)";
+    (void)write(fd, u, sizeof(u) - 1);
+  }
+
+  // ":"
+  {
+    static const char c[] = ":";
+    (void)write(fd, c, sizeof(c) - 1);
+  }
+
+  // line
+  {
+    char buf[16];
+    unsigned n = utoa10((line < 0) ? 0u : (unsigned)line, buf);
+    (void)write(fd, buf, n);
+  }
+
+  // " in "
+  {
+    static const char in[] = " in ";
+    (void)write(fd, in, sizeof(in) - 1);
+  }
+
+  // func
+  if (func) (void)write(fd, func, strlen(func));
+  else {
+    static const char u[] = "(null)";
+    (void)write(fd, u, sizeof(u) - 1);
+  }
+
+  // "\n"
+  {
+    static const char nl[] = "\n";
+    (void)write(fd, nl, sizeof(nl) - 1);
+  }
+  _exit(-1);
+  // Stop execution: spin forever (or replace with your exit/trap syscall).
+  for (;;) {
+    __asm__ volatile("wfi");
+  }
+}
+#ifdef __cplusplus
+}
+#endif

@@ -450,6 +450,34 @@ TEST_CASE("VM function call in fork", "[VMCall]") {
   }
 }
 
+TEST_CASE("Verify floating point instructions", "[Verification]") {
+  const auto binary = load("://freestanding/fp_verify.elf");
+
+  riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+  // We need to install Linux system calls for maximum gucciness
+  machine.setup_linux_syscalls();
+  // We need to create a Linux environment for runtimes to work well
+  machine.setup_linux({"compute_pi"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+  // Run for at most X instructions before giving up
+  machine.simulate(MAX_INSTRUCTIONS);
+
+  REQUIRE(machine.return_value() == 0);
+}
+
+TEST_CASE("Compute PI slowly", "[Verification]") {
+  const auto binary = load("://freestanding/fp_pi.elf");
+
+  riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY, .allow_write_exec_segment = true}};
+  // We need to install Linux system calls for maximum gucciness
+  machine.setup_linux_syscalls();
+  // We need to create a Linux environment for runtimes to work well
+  machine.setup_linux({"compute_pi"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+  // Run for at most X instructions before giving up
+  machine.simulate(MAX_INSTRUCTIONS);
+
+  REQUIRE(machine.return_value() == 0);
+}
+
 int main(int argc, char *argv[]) {
   QCoreApplication ap(argc, argv);
   return Catch::Session().run(argc, argv);
