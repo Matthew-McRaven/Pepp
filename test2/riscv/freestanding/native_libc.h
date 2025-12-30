@@ -140,9 +140,9 @@ static inline void *memalign(size_t align, size_t bytes) {
   // XXX: TODO: Make an accelerated memalign system call
   void *freelist[1024]; // Enough for 4K alignment
   size_t freecounter = 0;
-  void* ptr = NULL;
+  void *ptr = NULL;
 
-	while (1) {
+  while (1) {
 		ptr = sys_malloc(bytes);
 		if (ptr == NULL) break;
 		int aligned = ((uintptr_t)ptr & (align-1)) == 0;
@@ -161,7 +161,7 @@ static inline int posix_memalign(void **memptr, size_t alignment, size_t size) {
   *memptr = ptr;
   return 0;
 }
-inline void *aligned_alloc(size_t alignment, size_t size) { return memalign(alignment, size); }
+static inline void *aligned_alloc(size_t alignment, size_t size) { return memalign(alignment, size); }
 
 static inline wchar_t *wmemcpy(wchar_t *wto, const wchar_t *wfrom, size_t size) {
   return (wchar_t *)memcpy(wto, wfrom, size * sizeof(wchar_t));
