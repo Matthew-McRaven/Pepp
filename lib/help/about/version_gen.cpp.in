@@ -17,11 +17,11 @@
 #include "help/about/version.hpp"
 #define GIT_SHA1 "@GIT_SHA1@"
 const char GIT_SHA1_tmp[] = GIT_SHA1;
-const char *const about::g_GIT_SHA1() { return GIT_SHA1_tmp; }
+const char *about::g_GIT_SHA1() { return GIT_SHA1_tmp; }
 
 #define GIT_TAG "@GIT_TAG@"
 const char GIT_TAG_tmp[] = GIT_TAG;
-const char *const about::g_GIT_TAG() { return GIT_TAG_tmp; }
+const char *about::g_GIT_TAG() { return GIT_TAG_tmp; }
 // Must suppress formatting, or `@` will be separated from name, preventing
 // CMake substitutions.
 // clang-format off

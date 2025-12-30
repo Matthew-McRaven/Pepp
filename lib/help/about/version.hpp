@@ -19,8 +19,8 @@
 #include <QtQmlIntegration>
 
 namespace about {
-const char *const g_GIT_SHA1();
-const char *const g_GIT_TAG();
+const char *g_GIT_SHA1();
+const char *g_GIT_TAG();
 const char *g_CXX_COMPILER_ID();
 const char *g_CXX_COMPILER_VERSION();
 const char *g_BUILD_SYSTEM_NAME();
