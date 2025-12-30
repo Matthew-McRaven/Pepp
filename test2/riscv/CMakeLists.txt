@@ -24,8 +24,7 @@ qt6_add_resources(
   freestanding/basic_c.elf
   freestanding/basic_ebreak.elf
   freestanding/basic_fib.elf
-  # riscv_samples/basic_scall_write.elf
-)
+  freestanding/basic_scall.elf)
 
 set_target_properties(basic PROPERTIES FOLDER "qtc_runnable")
 target_link_libraries(basic PRIVATE pepp-lib catch Qt6::Core)

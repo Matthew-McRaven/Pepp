@@ -49,11 +49,10 @@ TEST_CASE("Execution timeout", "[Minimal]") {
 }
 
 TEST_CASE("Catch output from write system call", "[Output]") {
-  return;
   struct State {
     bool output_is_hello_world = false;
   } state;
-  const auto binary = load("://freestanding/basic_scall_write.elf");
+  const auto binary = load("://freestanding/basic_scall.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
   // We need to install Linux system calls for maximum gucciness
