@@ -516,6 +516,62 @@ TEST_CASE("Writes to read-only segment", "[Memory][!throws]") {
   }
 }
 
+/**
+ * These tests are designed to be really brutal to support,
+ * and most emulators will surely fail here.
+ */
+TEST_CASE("Calculate fib(50) slowly, basic", "[Compute]") {
+  const auto binary = load("://freestanding/brutal_fib50.elf");
+
+  riscv::Machine<uint64_t> machine{binary, {.use_memory_arena = false}};
+
+  const auto addr = machine.address_of("my_start");
+  REQUIRE(addr != 0x0);
+
+  // Create a manual VM call in order to avoid exercising the C-runtime
+  // The goal is to see if the basic start/stop/resume functionality works
+  machine.cpu.jump(addr);
+  machine.cpu.reg(riscv::REG_ARG0) = 50;
+  machine.cpu.reg(riscv::REG_RA) = machine.memory.exit_address();
+
+  riscv::Machine<uint64_t> fork{machine};
+  do {
+    // No matter how many (or few) instructions we execute before exiting
+    // simulation, we should be able to resume and complete the program normally.
+    for (int step = 5; step < 105; step++) {
+      fork.cpu.registers() = machine.cpu.registers();
+      do {
+        fork.simulate<false>(step);
+      } while (fork.instruction_limit_reached());
+      REQUIRE(fork.return_value<long>() == 12586269025L);
+    }
+    machine.simulate<false>(100);
+  } while (machine.instruction_limit_reached());
+}
+
+TEST_CASE("Execute libc_start_main, slowly", "[Compute]") {
+  const auto binary = load("://freestanding/basic_a.elf");
+
+  riscv::Machine<uint64_t> machine{binary, {.use_memory_arena = false}};
+  machine.setup_linux_syscalls();
+  machine.setup_linux({"brutal", "50"}, {"LC_TYPE=C", "LC_ALL=C"});
+
+  do {
+    // No matter how many (or few) instructions we execute before exiting
+    // simulation, we should be able to resume and complete the program normally.
+    for (int step = 5; step < 105; step++) {
+      riscv::Machine<uint64_t> fork{machine, {.use_memory_arena = false}};
+      do {
+        fork.simulate<false>(step);
+      } while (fork.instruction_limit_reached());
+      REQUIRE(fork.return_value<long>() == 666);
+    }
+    machine.simulate<false>(1000);
+  } while (machine.instruction_limit_reached());
+
+  REQUIRE(machine.return_value<long>() == 666);
+}
+
 int main(int argc, char *argv[]) {
   QCoreApplication ap(argc, argv);
   return Catch::Session().run(argc, argv);
