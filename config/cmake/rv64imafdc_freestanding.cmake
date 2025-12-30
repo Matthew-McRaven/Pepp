@@ -1,6 +1,6 @@
 find_program(
   RISCV_GCC_COMPILER
-  NAMES riscv64-unknown-linux-gnu-gcc riscv64-linux-gnu-gcc riscv64-unknown-elf-gcc riscv64-elf-gcc
+  NAMES riscv64-unknown-linux-gnu-gcc riscv64-linux-gnu-gcc riscv64-unknown-elf-gcc
   HINTS "$ENV{RISCV}/bin" "/opt/riscv/bin" "/opt/homebrew/bin/")
 
 if (RISCV_GCC_COMPILER)
@@ -21,7 +21,7 @@ message( "RISC-V Cross Compile: ${CROSS_COMPILE}" )
 
 # The Generic system name is used for embedded targets (targets without OS) in CMake
 set( CMAKE_SYSTEM_NAME          Generic )
-set( CMAKE_SYSTEM_PROCESSOR     rv64imafdcv )
+set( CMAKE_SYSTEM_PROCESSOR     rv64imafdc)
 set( CMAKE_EXECUTABLE_SUFFIX    ".elf")
 
 set(CMAKE_ASM_COMPILER ${RISCV_TOOLCHAIN_BIN_PATH}/${CROSS_COMPILE}gcc )

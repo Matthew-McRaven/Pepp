@@ -4,5 +4,5 @@ find_program(
   HINTS "$ENV{RISCV}/bin" "/opt/riscv/bin" "/opt/homebrew/bin/")
 find_program(
   RISCV_GCC_FREESTANDING_COMPILER
-  NAMES riscv64-unknown-elf-gcc riscv64-elf-gcc
+  NAMES riscv64-unknown-elf-gcc
   HINTS "$ENV{RISCV}/bin" "/opt/riscv/bin" "/opt/homebrew/bin/")
