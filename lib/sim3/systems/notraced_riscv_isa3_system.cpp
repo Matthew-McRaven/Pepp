@@ -54,6 +54,7 @@ inline Machine<address_t>::Machine(const Machine &other, const MachineOptions<ad
   if (other.m_mt) {
     m_mt.reset(new MultiThreading{*this, *other.m_mt});
   }
+  this->syscall_handlers = other.syscall_handlers;
   // TODO: transfer arena?
 }
 
