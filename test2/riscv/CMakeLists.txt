@@ -28,6 +28,7 @@ qt6_add_resources(
   freestanding/checksum.elf
   freestanding/fp_pi.elf
   freestanding/fp_verify.elf
+  freestanding/memprotect.elf
   freestanding/vmcall.elf
   freestanding/vmcall_array.elf
   freestanding/vmcall_fork.elf

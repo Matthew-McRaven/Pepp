@@ -478,6 +478,44 @@ TEST_CASE("Compute PI slowly", "[Verification]") {
   REQUIRE(machine.return_value() == 0);
 }
 
+TEST_CASE("Writes to read-only segment", "[Memory][!throws]") {
+  static const uint64_t MAX_MEMORY = 8ul << 20; // 8MB
+  static const uint64_t MAX_INSTRUCTIONS = 10'000'000ul;
+
+  const auto binary = load("://freestanding/memprotect.elf");
+
+  riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+  // We need to install Linux system calls for maximum gucciness
+  machine.setup_linux_syscalls();
+  // We need to create a Linux environment for runtimes to work well
+  machine.setup_linux({"rodata"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+
+  REQUIRE_THROWS_WITH([&] { machine.memory.write<uint8_t>(machine.cpu.pc(), 0); }(),
+                      Catch::Matchers::ContainsSubstring("Protection fault"));
+
+  // Guard pages are not writable
+  REQUIRE_THROWS_WITH([&] { machine.simulate(MAX_INSTRUCTIONS); }(),
+                      Catch::Matchers::ContainsSubstring("Protection fault"));
+
+  REQUIRE(machine.return_value<int>() != 666);
+
+  const auto write_addr = machine.address_of("write_to");
+  REQUIRE(write_addr != 0x0);
+  const auto read_addr = machine.address_of("read_from");
+  REQUIRE(read_addr != 0x0);
+
+  // Reads amd writes to invalid locations
+  REQUIRE_THROWS_WITH([&] { machine.vmcall<MAX_INSTRUCTIONS>(read_addr, 0); }(),
+                      Catch::Matchers::ContainsSubstring("Protection fault"));
+
+  machine.vmcall<MAX_INSTRUCTIONS>(read_addr, 0x1000);
+
+  for (uint64_t addr = machine.memory.start_address(); addr < machine.memory.initial_rodata_end(); addr += 0x1000) {
+    REQUIRE_THROWS_WITH([&] { machine.vmcall<MAX_INSTRUCTIONS>(write_addr, addr); }(),
+                        Catch::Matchers::ContainsSubstring("Protection fault"));
+  }
+}
+
 int main(int argc, char *argv[]) {
   QCoreApplication ap(argc, argv);
   return Catch::Session().run(argc, argv);
