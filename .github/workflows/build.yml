@@ -132,7 +132,6 @@ jobs:
         with:
           name: riscv_tests
           path: test2/riscv/freestanding
-      - run: ls -lah test2/riscv/ && ls -lah test2/riscv/freestanding
 
       # Run after downloading image assets, since that seems to nuke my lfs checkout.
       - name: Download help images via LFS
