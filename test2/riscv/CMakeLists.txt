@@ -25,7 +25,16 @@ qt6_add_resources(
   freestanding/basic_ebreak.elf
   freestanding/basic_fib.elf
   freestanding/basic_scall.elf
-  freestanding/checksum.elf)
+  freestanding/checksum.elf
+  freestanding/vmcall.elf
+  freestanding/vmcall_array.elf
+  freestanding/vmcall_fork.elf
+  freestanding/vmcall_enum.elf
+  freestanding/vmcall_preempt.elf
+  freestanding/vmcall_return.elf
+  freestanding/vmcall_stop.elf
+  #
+)
 
 set_target_properties(basic PROPERTIES FOLDER "qtc_runnable")
 target_link_libraries(basic PRIVATE pepp-lib catch Qt6::Core)

@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#define SYSCALL_VERBOSE 1
+// #define SYSCALL_VERBOSE 1
 #ifdef SYSCALL_VERBOSE
 #define SYSPRINT(fmt, ...)                                                                                             \
   {                                                                                                                    \

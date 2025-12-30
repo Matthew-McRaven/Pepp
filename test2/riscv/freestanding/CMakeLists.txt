@@ -36,3 +36,11 @@ add_semihosted_executable(basic_ebreak "${CMAKE_CURRENT_LIST_DIR}/basic_ebreak.c
 add_semihosted_executable(basic_fib "${CMAKE_CURRENT_LIST_DIR}/basic_fib.c")
 
 add_semihosted_executable(checksum "${CMAKE_CURRENT_LIST_DIR}/checksum.cpp")
+
+add_semihosted_executable(vmcall "${CMAKE_CURRENT_LIST_DIR}/vmcall.c")
+add_semihosted_executable(vmcall_array "${CMAKE_CURRENT_LIST_DIR}/vmcall_array.c")
+add_semihosted_executable(vmcall_enum "${CMAKE_CURRENT_LIST_DIR}/vmcall_enum.c")
+add_semihosted_executable(vmcall_fork "${CMAKE_CURRENT_LIST_DIR}/vmcall_fork.c")
+add_semihosted_executable(vmcall_preempt "${CMAKE_CURRENT_LIST_DIR}/vmcall_preempt.c")
+add_semihosted_executable(vmcall_return "${CMAKE_CURRENT_LIST_DIR}/vmcall_return.c")
+add_semihosted_executable(vmcall_stop "${CMAKE_CURRENT_LIST_DIR}/vmcall_stop.c")
