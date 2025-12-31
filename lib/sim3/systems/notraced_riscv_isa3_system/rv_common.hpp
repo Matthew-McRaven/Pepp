@@ -150,11 +150,7 @@ static constexpr int SYSCALL_EBREAK = RISCV_SYSCALL_EBREAK_NR;
 static constexpr size_t PageSize = RISCV_PAGE_SIZE;
 static constexpr size_t PageMask = RISCV_PAGE_SIZE - 1;
 
-#ifdef RISCV_MEMORY_TRAPS
 	static constexpr bool memory_traps_enabled = true;
-#else
-	static constexpr bool memory_traps_enabled = false;
-#endif
 
 #if RISCV_FORCE_ALIGN_MEMORY
 	static constexpr bool force_align_memory = true;
