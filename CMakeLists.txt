@@ -28,6 +28,7 @@ endif()
 # cmake-format: off
 project(Pepp VERSION 0.13.1 LANGUAGES CXX)
 # cmake-format: on
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Only overwrite the install prefix if it is the default value.
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -108,8 +109,10 @@ include(config/compile_tests/TryFindWebP.cmake)
 find_package(Python COMPONENTS Interpreter)
 
 include(config/cmake/GenerateChangelog.cmake)
+include(config/cmake/FindRISCVToolchain.cmake)
 add_subdirectory(lib)
 add_subdirectory(test)
+add_subdirectory(test2)
 add_subdirectory(bin)
 
 # Configure CPack installer generation.

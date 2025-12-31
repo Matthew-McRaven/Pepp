@@ -1,9 +1,12 @@
 
 group "default" {
-  targets = ["gcc", "dev-gcc", "wasm", "wasm-dbg", "dev-wasm-dbg", "clang", "image_utils"]
+  targets = ["gcc", "dev-gcc", "wasm", "wasm-dbg", "dev-wasm-dbg", "clang", "image_utils", "gcc-riscv"]
 }
 group "cpp" {
-  targets = ["gcc", "dev-gcc", "wasm", "wasm-dbg", "dev-wasm-dbg", "clang" ]
+  targets = ["gcc", "dev-gcc", "wasm", "wasm-dbg", "dev-wasm-dbg", "clang", "gcc-riscv" ]
+}
+group "cross" {
+  targets = ["gcc-riscv" ]
 }
 group "img" {
   targets = ["image_utils" ]
@@ -11,7 +14,15 @@ group "img" {
 
 
 variable "VERSION" {
-  default = "v0.15.4"
+  default = "v0.16.1"
+}
+
+target "gcc-riscv" {
+  context = "./cpp_build"
+  dockerfile = "Dockerfile"
+  tags = ["ghcr.io/matthew-mcraven/pepp/gcc-riscv:${VERSION}"]
+  platforms = ["linux/amd64", "linux/arm64"]
+  target = "output-gcc-riscv"
 }
 
 target "gcc" {

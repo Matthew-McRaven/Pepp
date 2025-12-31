@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2023-2026 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -19,8 +19,8 @@
 #include <QtQmlIntegration>
 
 namespace about {
-const char *const g_GIT_SHA1();
-const char *const g_GIT_TAG();
+const char *g_GIT_SHA1();
+const char *g_GIT_TAG();
 const char *g_CXX_COMPILER_ID();
 const char *g_CXX_COMPILER_VERSION();
 const char *g_BUILD_SYSTEM_NAME();

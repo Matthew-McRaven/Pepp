@@ -16,11 +16,11 @@
 
 #include <catch.hpp>
 
+#include "sim3/cores/pep/traced_helpers.hpp"
 #include "./api.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "utils/bits/swap.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/isa3/helpers.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
 
 namespace {
 template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void inner(isa::Pep10::Mnemonic op) {

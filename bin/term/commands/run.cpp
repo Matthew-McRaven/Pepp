@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2023-2026 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,18 +15,18 @@
  */
 
 #include "run.hpp"
+#include "sim3/cores/pep/traced_helpers.hpp"
 #include "../basic_lazy_sink.hpp"
 #include "../shared.hpp"
 #include "help/builtins/figure.hpp"
-#include "sim/device/broadcast/mmi.hpp"
-#include "sim/device/broadcast/mmo.hpp"
-#include "sim/device/simple_bus.hpp"
+#include "sim3/subsystems/bus/simple.hpp"
+#include "sim3/subsystems/ram/broadcast/mmi.hpp"
+#include "sim3/subsystems/ram/broadcast/mmo.hpp"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
-#include "targets/isa3/helpers.hpp"
-#include "targets/isa3/system.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
+#include "sim3/systems/traced_pep_isa3_system.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/link/mmio.hpp"

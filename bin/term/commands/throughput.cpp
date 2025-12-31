@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2023-2026 J. Stanley Warford, Matthew McRaven
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,10 +16,10 @@
  */
 
 #include "throughput.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
 #include <chrono>
 #include <iostream>
+#include "sim3/subsystems/ram/dense.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
 const auto desc_mem = sim::api2::device::Descriptor{
     .id = 1,
     .baseName = "ram",

@@ -1,9 +1,25 @@
+/*
+ * Copyright (c) 2025-2026 J. Stanley Warford, Matthew McRaven
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "microrun.hpp"
 #include <QtCore>
-#include "sim/api2/device.hpp"
-#include "sim/api2/memory/address.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/pep9/mc2/cpu.hpp"
+#include "sim3/cores/pep/traced_pep9_mc2.hpp"
+#include "sim3/api/device.hpp"
+#include "sim3/api/memory_address.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 #include "toolchain2/ucode/pep_parser.hpp"
 
 MicroRunTask::MicroRunTask(int ed, std::string fname, int busWidth, QObject *parent)

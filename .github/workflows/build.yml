@@ -99,7 +99,9 @@ jobs:
         if: inputs.runs-on == 'windows-latest'
         shell: bash
         run: echo "$RUNNER_WORKSPACE/Qt/Tools/QtInstallerFramework/4.7/bin" >>$GITHUB_PATH
-
+      - name: Enable Developer Command Prompt
+        if: inputs.runs-on == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
       # Prevent clang from using ccache, because it is profiling build times
       - name: Enable caching object files between builds
         # Disable ccache when running locally
@@ -124,6 +126,12 @@ jobs:
         with:
           name: ${{ inputs.images_artifact }}
           path: data
+
+      - name: Download RISC-V sample programs
+        uses: actions/download-artifact@v4
+        with:
+          name: riscv_tests
+          path: test2/riscv/freestanding
 
       # Run after downloading image assets, since that seems to nuke my lfs checkout.
       - name: Download help images via LFS
@@ -159,7 +167,14 @@ jobs:
 
       - name: Run build
         run: cmake --build build -j6 ${{ contains(inputs.name, 'MSVC') && format('--config {0}', inputs.variant) ||'' }}
-
+        
+      - name: Upload compile_commands.json on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compile_commands
+          path: build/compile_commands.json
+        
       - name: Rename HTML
         if: ${{ contains(inputs.name, 'EMSDK') }}
         run: |

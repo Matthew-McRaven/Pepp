@@ -5,3 +5,4 @@
 # Icon files
 *.ico filter=lfs diff=lfs merge=lfs -text
 *.icns filter=lfs diff=lfs merge=lfs -text
+test2/riscv/*/*.elf filter=lfs diff=lfs merge=lfs -text

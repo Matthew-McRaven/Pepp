@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "sim/device/broadcast/pubsub.hpp"
+#include "sim3/subsystems/ram/broadcast/pubsub.hpp"
 #include <catch.hpp>
 
 TEST_CASE("Publish-subscribe", "[scope:sim][kind:unit][arch:*]") {

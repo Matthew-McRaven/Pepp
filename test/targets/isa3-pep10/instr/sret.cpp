@@ -15,11 +15,11 @@
  */
 
 #include <catch.hpp>
+#include "sim3/cores/pep/traced_helpers.hpp"
 #include "./api.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "utils/bits/swap.hpp"
-#include "sim/device/dense.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
-#include "targets/isa3/helpers.hpp"
 
 TEST_CASE("SRET", "[scope:targets][kind:int][target:pep10]") {
   auto op = isa::Pep10::Mnemonic ::SRET;

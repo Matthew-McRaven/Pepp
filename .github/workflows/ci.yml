@@ -76,10 +76,10 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/matthew-mcraven/pepp/image-utils:v0.15.4
+      image: ghcr.io/matthew-mcraven/pepp/image-utils:v0.16.1
     steps:
       - uses: actions/checkout@v4
-        # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+        # LFS defaults to disabled, but accidental LFS bandwidth would be expensive.
         with:
           lfs: 'false'
         # imagemagick is bad at converting images with gradients, so use rsvg-convert.
@@ -100,24 +100,45 @@ jobs:
           name: icons
           path: data
           retention-days: 1
+  riscv_samples:
+    name: Build RISC-V samples
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/matthew-mcraven/pepp/gcc-riscv:v0.16.1
+    steps:
+      - uses: actions/checkout@v4
+        # LFS defaults to disabled, but accidental LFS bandwidth would be expensive.
+        with:
+          lfs: 'false'
+      - name: Cross-compile RISC-V samples
+        run: |
+          cmake -B /rv_build -S test2/riscv/freestanding -DCMAKE_TOOLCHAIN_FILE="$(pwd)/config/cmake/rv64imafdc_freestanding.cmake" -DCMAKE_INSTALL_PREFIX=/rv_install
+          cmake --build /rv_build
+          cmake --build /rv_build -- install
+          ls -lah /rv_install
+      - uses: actions/upload-artifact@v4
+        with:
+          name: riscv_tests
+          path: /rv_install
+          retention-days: 1
   build:
     name: Build ${{ matrix.name }}
-    needs: [ branch_info, check_tag, create_icons ]
+    needs: [ branch_info, check_tag, create_icons, riscv_samples ]
     uses: ./.github/workflows/build.yml
     strategy:
-      # fail-fast: true # Disable fail-fast because I want to see all errors at once.
+      fail-fast: false
       # If you want to update images, must replace *ALL* images in the matrix manually.
       # Trying to use `env` or inputs will fail in this context.
       matrix:
         config:
-          - { name: "Ubuntu 22.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.15.4", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", artifact_key: "artifact-linux"}
-          - { name: "Ubuntu 22.04; GCC + CodeQL", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.15.4", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", codeql: True, release_variant: 'debug'}
-          - { name: "Ubuntu 22.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.15.4",  compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja" }
-          - { name: "Ubuntu 22.04; EMSDK 3.1.70", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.15.4", compiler_launcher: "ccache", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.9.3/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
+          - { name: "Ubuntu 22.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.16.1", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", artifact_key: "artifact-linux"}
+          - { name: "Ubuntu 22.04; GCC + CodeQL", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.16.1", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", codeql: True, release_variant: 'debug'}
+          - { name: "Ubuntu 22.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.16.1",  compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja" }
+          - { name: "Ubuntu 22.04; EMSDK 3.1.70", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.16.1", compiler_launcher: "ccache", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.9.3/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
           # See: https://bugreports.qt.io/browse/QTBUG-118086
           - { name: "MacOS-15 ARM64", cache_name: 'macos-clang-arm', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-arm", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
           - { name: "MacOS-15 x86-64", cache_name: 'macos-clang-x86', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-x86", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
-          - { name: "Windows Latest; MSVC", cache_name: 'windows-msvc', runs-on: "windows-latest" , compiler_launcher: "ccache", artifact_key: "artifact-windows", debug_variant: 'Release', release_variant: 'Release'}
+          - { name: "Windows Latest; MSVC", cache_name: 'windows-msvc', runs-on: "windows-latest" , compiler_launcher: "ccache", artifact_key: "artifact-windows", cmake_generator: "Ninja", debug_variant: 'Release', release_variant: 'Release', cmake_xargs: '-D CMAKE_C_COMPILER=cl -D CMAKE_CXX_COMPILER=cl'}
 
     permissions:
       actions: read
