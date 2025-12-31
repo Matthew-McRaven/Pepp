@@ -11,11 +11,10 @@
 #include <sim3/systems/notraced_riscv_isa3_system/debug.hpp>
 #include <stdexcept>
 #include <string>
-#include <thread>
-#include <unordered_set>
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/debug.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/rsp_server.hpp"
+#include "spdlog/spdlog.h"
 #if __has_include(<unistd.h>)
 #include <fcntl.h>
 #endif
@@ -36,8 +35,8 @@ static const std::string DYNAMIC_LINKER = "/usr/riscv64-linux-gnu/lib/ld-linux-r
 template <riscv::AddressType address_t> static void run_sighandler(riscv::Machine<address_t> &);
 
 template <riscv::AddressType address_t>
-static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_view binary, const bool is_dynamic,
-                        const std::vector<std::string> &args) {
+static int run_program(const RVEmuTask::Arguments &cli_args, const std::string_view binary, const bool is_dynamic,
+                       const std::vector<std::string> &args) {
   auto options = std::make_shared<riscv::MachineOptions<address_t>>(riscv::MachineOptions<address_t>{
       .memory_max = cli_args.max_memory,
       .enforce_exec_only = cli_args.execute_only,
@@ -58,7 +57,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
   riscv::Machine<address_t> machine{binary, *options};
   if (cli_args.verbose) {
     auto st1 = std::chrono::high_resolution_clock::now();
-    printf("* Loaded in %.3f ms\n", std::chrono::duration<double, std::milli>(st1 - st0).count());
+    spdlog::trace("* Loaded in %.3f ms", std::chrono::duration<double, std::milli>(st1 - st0).count());
   }
 
   // Remember the options for later in case background compilation is enabled,
@@ -66,7 +65,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
   // operations that need to know the options. This is optional.
   machine.set_options(std::move(options));
 
-  if (cli_args.quit) return; // Quit after instantiating the machine
+  if (cli_args.quit) return 0; // Quit after instantiating the machine
 
   // A helper system call to ask for symbols that is possibly only known at runtime
   // Used by testing executables
@@ -76,7 +75,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
     auto [addr] = machine.template sysargs<address_t>();
     auto &symfunc = *machine.template get_userdata<decltype(symbol_function)>();
     symfunc = addr;
-    printf("Introduced to symbol function: 0x%" PRIX64 "\n", uint64_t(addr));
+    spdlog::info("Introduced to symbol function: {:x}", uint64_t(addr));
   });
 
   if (full_linux_guest) {
@@ -105,7 +104,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
       if (path == "/proc/self/fd/1" || path == "/proc/self/fd/2") {
         return true;
       }
-      fprintf(stderr, "Guest wanted to readlink: %s (denied)\n", path.c_str());
+      spdlog::error("Guest wanted to readlink: {} (denied)", path);
       return false;
     };
     // Only allow opening certain file paths. The void* argument is
@@ -136,11 +135,11 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
         auto lib = path.substr(sandbox_libdir.size());
         if (std::find(libs.begin(), libs.end(), lib) == libs.end()) {
           if (cli_args.verbose) {
-            fprintf(stderr, "Guest wanted to open: %s (denied)\n", path.c_str());
+            spdlog::error("Guest wanted to open: {} (denied)", path);
           }
           return false;
         } else if (cli_args.verbose) {
-          fprintf(stderr, "Guest wanted to open: %s (allowed)\n", path.c_str());
+          spdlog::trace("Guest wanted to open: {} (allowed)", path);
         }
         // Construct new path
         path = real_libdir + path.substr(sandbox_libdir.size());
@@ -159,7 +158,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
         }
       }
       if (cli_args.verbose) {
-        fprintf(stderr, "Guest wanted to open: %s (denied)\n", path.c_str());
+        spdlog::trace("Guest wanted to open: {} (denied)", path);
       }
       return false;
     };
@@ -197,7 +196,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
         machine.set_result(-EPERM);
         return;
       }
-      fprintf(stderr, "Unhandled syscall: %zu\n", num);
+      spdlog::error("Unhandled syscall: {}", uint32_t(num));
     };
     machine.fds().filter_open = [=](void *, std::string &path) {
       if (!cli_args.sandbox) return true;
@@ -206,7 +205,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
         if (path == allowed) return true;
       }
       if (cli_args.verbose) {
-        fprintf(stderr, "Guest wanted to open: %s (denied)\n", path.c_str());
+        spdlog::error("Guest wanted to open: {} (denied)", path);
       }
       return false;
     };
@@ -224,11 +223,11 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
     machine.setup_newlib_syscalls();
     machine.setup_argv(args);
   } else {
-    fprintf(stderr, "Unknown emulation mode! Exiting...\n");
-    exit(1);
+    spdlog::error("Unknown emulation mode! Exiting...\n");
+    return 1;
   }
 
-  // A CLI debugger used with --debug or DEBUG=1
+  // A CLI debugger used with --debug
   riscv::DebugMachine debug{machine};
 
   if (cli_args.instr_trace) {
@@ -253,7 +252,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
         debug.erase_breakpoint(cpu.pc());
         debug.verbose_instructions = vi;
         debug.verbose_registers = vr;
-        printf("\n*\n* Entered main() @ 0x%" PRIX64 "\n*\n", uint64_t(cpu.pc()));
+        spdlog::info("\n* Entered main() @ {:0x}", uint64_t(cpu.pc()));
         debug.print_and_pause();
       });
     }
@@ -264,11 +263,11 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
     // If you run the emulator with --debug you can connect
     // with gdb-multiarch using target remote localhost:2159.
     if (cli_args.debug) {
-      printf("GDB server is listening on localhost:2159\n");
+      spdlog::info("GDB server is listening on localhost:2159\n");
       riscv::RSP<address_t> server{machine, 2159};
       auto client = server.accept();
       if (client != nullptr) {
-        printf("GDB is connected\n");
+        spdlog::info("GDB is connected\n");
         while (client->process_one());
       }
       if (!machine.stopped()) {
@@ -309,20 +308,20 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
 #endif // NODEJS_WORKAROUND
     }
   } catch (const riscv::MachineException &me) {
-    printf("%s\n", machine.cpu.current_instruction_to_string().c_str());
-    printf(">>> Machine exception %d: %s (data: 0x%" PRIX64 ")\n", me.type(), me.what(), me.data());
-    printf("%s\n", machine.cpu.registers().to_string().c_str());
-    machine.memory.print_backtrace([](std::string_view line) { printf("-> %.*s\n", (int)line.size(), line.begin()); });
+    spdlog::error("{}", machine.cpu.current_instruction_to_string());
+    spdlog::error(">>> Machine exception {}: {} (data: {:0x})", me.type(), me.what(), me.data());
+    spdlog::error("{}", machine.cpu.registers().to_string());
+    machine.memory.print_backtrace([](std::string_view line) { spdlog::error("-> {}\n", line); });
     if (me.type() == riscv::UNIMPLEMENTED_INSTRUCTION || me.type() == riscv::MISALIGNED_INSTRUCTION) {
-      printf(">>> Is an instruction extension disabled?\n");
-      printf(">>> A-extension: %d  C-extension: %d  V-extension: %d\n", riscv::atomics_enabled,
-             riscv::compressed_enabled, riscv::vector_extension);
+      spdlog::error(">>> Is an instruction extension disabled?");
+      spdlog::error(">>> A-extension: {}  C-extension: {}  V-extension: {}", riscv::atomics_enabled,
+                    riscv::compressed_enabled, riscv::vector_extension);
     }
     if (cli_args.debug) debug.print_and_pause();
     else run_sighandler(machine);
   } catch (std::exception &e) {
-    printf(">>> Exception: %s\n", e.what());
-    machine.memory.print_backtrace([](std::string_view line) { printf("-> %.*s\n", (int)line.size(), line.begin()); });
+    spdlog::error(">>> Exception: {}", e.what());
+    machine.memory.print_backtrace([](std::string_view line) { spdlog::error("-> {}\n", line); });
     if (cli_args.debug) debug.print_and_pause();
     else run_sighandler(machine);
   }
@@ -332,14 +331,14 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
 
   if (!cli_args.silent) {
     const auto retval = machine.return_value();
-    printf(">>> Program exited, exit code = %" PRId64 " (0x%" PRIX64 ")\n", int64_t(retval), uint64_t(retval));
+    spdlog::info(">>> Program exited, exit code = {} ({:0x})", int64_t(retval), uint64_t(retval));
     if (cli_args.accurate)
-      printf("Instructions executed: %" PRIu64 "  Runtime: %.3fms  Insn/s: %.0fmi/s\n", machine.instruction_counter(),
-             runtime.count() * 1000.0, machine.instruction_counter() / (runtime.count() * 1e6));
-    else printf("Runtime: %.3fms   (Use --accurate for instruction counting)\n", runtime.count() * 1000.0);
-    printf("Pages in use: %zu (%" PRIu64 " kB virtual memory, total %" PRIu64 " kB)\n", machine.memory.pages_active(),
-           machine.memory.pages_active() * riscv::Page::size() / uint64_t(1024),
-           machine.memory.memory_usage_total() / uint64_t(1024));
+      spdlog::info("Instructions executed: {}  Runtime: {:.3}ms  Insn/s: {:.0}mi/s\n", machine.instruction_counter(),
+                   runtime.count() * 1000.0, machine.instruction_counter() / (runtime.count() * 1e6));
+    else spdlog::info("Runtime: {:.3}ms   (Use --accurate for instruction counting)\n", runtime.count() * 1000.0);
+    spdlog::info("Pages in use: {} ({} kB virtual memory, total {} kB)\n", machine.memory.pages_active(),
+                 machine.memory.pages_active() * riscv::Page::size() / uint64_t(1024),
+                 machine.memory.memory_usage_total() / uint64_t(1024));
   }
 
   if (!cli_args.call_function.empty()) {
@@ -348,12 +347,14 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
       addr = machine.vmcall(symbol_function, cli_args.call_function);
     }
     if (addr != 0) {
-      printf("Calling function %s @ 0x%lX\n", cli_args.call_function.c_str(), long(addr));
+      spdlog::info("Calling function {} @ {:0x}\n", cli_args.call_function.c_str(), address_t(addr));
       machine.vmcall(addr);
     } else {
-      printf("Error: Function %s not found, not able to call\n", cli_args.call_function.c_str());
+      spdlog::error("Error: Function {} not found, not able to call\n", cli_args.call_function);
+      return 1;
     }
   }
+  return 0;
 }
 
 template <riscv::AddressType address_t> void run_sighandler(riscv::Machine<address_t> &machine) {
@@ -450,17 +451,18 @@ void RVEmuTask::run() {
       }*/
     }
 
-    if (binary[4] == riscv::ELFCLASS64) run_program<uint64_t>(this->args, binary, is_dynamic, prog_args);
-    else if (binary[4] == riscv::ELFCLASS32) run_program<uint32_t>(this->args, binary, is_dynamic, prog_args);
+    int ret_val = 1;
+    if (binary[4] == riscv::ELFCLASS64) ret_val = run_program<uint64_t>(this->args, binary, is_dynamic, prog_args);
+    else if (binary[4] == riscv::ELFCLASS32) ret_val = run_program<uint32_t>(this->args, binary, is_dynamic, prog_args);
     else {
-      std::cerr << fmt::format("Unknown ELF class {}", binary[4]);
+      spdlog::error("Unknown ELF class {}", binary[4]);
       return emit finished(1);
     }
+    return emit finished(ret_val);
   } catch (const std::exception &e) {
     std::cerr << fmt::format("Exception: {}", e.what());
     return emit finished(2);
   }
-  return emit finished(0);
 }
 
 void register_rvemu(CLI::App &app, task_factory_t &task, detail::SharedFlags &flags) {
