@@ -10,9 +10,10 @@ if(RISCV_GCC_FREESTANDING_COMPILER)
       -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_LIST_DIR}/freestanding)
 endif()
 
-qt6_add_executable(basic "${CMAKE_CURRENT_LIST_DIR}/basic.cpp")
+qt6_add_executable(riscv_elf_samples
+                   "${CMAKE_CURRENT_LIST_DIR}/riscv_elf_samples.cpp")
 qt6_add_resources(
-  basic
+  riscv_elf_samples
   "freestanding"
   PREFIX
   "/freestanding"
@@ -44,6 +45,6 @@ qt6_add_resources(
   #
 )
 
-set_target_properties(basic PROPERTIES FOLDER "qtc_runnable")
-target_link_libraries(basic PRIVATE pepp-lib catch Qt6::Core)
-add_test(NAME basic COMMAND basic)
+set_target_properties(riscv_elf_samples PROPERTIES FOLDER "qtc_runnable")
+target_link_libraries(riscv_elf_samples PRIVATE pepp-lib catch Qt6::Core)
+add_test(NAME riscv_elf_samples COMMAND riscv_elf_samples)
