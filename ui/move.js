@@ -1,7 +1,7 @@
 .import QtQuick as Quick
 
 /* This script file handles the element movement logic */
-var majorX = 100;
+var majorX = 75;
 var majorY = 75;
 var minorX = 10;
 var minorY = 5;

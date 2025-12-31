@@ -97,48 +97,54 @@ Rectangle {
 
             Rectangle {
                 id: stamp
-                color: "yellow"
+                color: "transparent"
                 border {
-                    color: "green"
+                    color: "blue"
                     width: 1
                 }
+                width: 75
+                height: 75
                 visible: root.curName != ""
-
-                /*HoverHandler {
-                    cursorShape: PointerDevice.Cursor
-                    target: parent
-                }*/
             }
+
 
             MouseArea {
                 id: ma
                 anchors.fill: parent
+                hoverEnabled: true
                 onClicked: {
                     //  No template selected. Just return
                     if (root.curName === "")
-                        return;
+                    return;
 
                     var comp = Qt.createComponent("Diagram.qml");
-                    //const row = Math.floor((canvas.x + ma.mouseX) / root.blockSize) * root.blockSize;
-                    //const col = Math.floor((canvas.y + ma.mouseY) / root.blockSize) * root.blockSize;
 
                     //var diagram = comp.createObject(root,{text: root.curName, x: row, y: col});
                     var diagram = comp.createObject(root, {
-                        text: root.curName,
-                        file: root.curFile
-                        //x: row //canvas.x,
-                        //y: col //canvas.y
-                    });
+                                                        text: root.curName,
+                                                        file: root.curFile
+                                                    });
 
                     //  Move object within grid (large axis)
-                    Move.moveObjectTo(diagram, canvas.x + ma.mouseX, canvas.y + ma.mouseY);
+                    diagram.x = canvas.x + stamp.x;
+                    diagram.y = canvas.y + stamp.y;
+                }
+
+                onPositionChanged: event => {
+                    //  Move object within grid (large axis)
+                    Move.moveObjectTo(stamp, event.x, event.y);
+                    //console.log( "x", event.x, "y", event.y, "new x", row, "new y", col);
+                }
+
+                onEntered: {
+                    //console.log("enter");
+                    stamp.visible = true;
+                }
+                onExited: {
+                    //console.log("exit");
+                    stamp.visible = false;
                 }
             }
-
-            /*Component {
-                id: tileComponent
-                Tile{}
-            }*/
         }
     }
 }
