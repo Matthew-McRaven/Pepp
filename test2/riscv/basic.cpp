@@ -544,7 +544,7 @@ TEST_CASE("Calculate fib(50) slowly, basic", "[Compute]") {
       do {
         fork.simulate<false>(step);
       } while (fork.instruction_limit_reached());
-      REQUIRE(fork.return_value<long>() == 12586269025L);
+      REQUIRE(fork.return_value<int64_t>() == int64_t(12586269025L));
     }
     machine.simulate<false>(100);
   } while (machine.instruction_limit_reached());
