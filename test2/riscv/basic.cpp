@@ -903,6 +903,62 @@ TEST_CASE("Calculate fib(2560000) on execute page", "[VA]") {
     REQUIRE(machine.vmcall(VA_FUNC, 50, 0, 1) == 12586269025L);
   }
 }
+
+TEST_CASE("Sequential buffer", "[Buffer]") {
+  const auto binary = load("://freestanding/basic_a.elf");
+
+  riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+  // We need to install Linux system calls for maximum gucciness
+  machine.setup_linux_syscalls();
+  // We need to create a Linux environment for runtimes to work well
+  machine.setup_linux({"vmcall"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+
+  auto origin = machine.memory.mmap_allocate(1);
+
+  static const char hello[] = "hello world!";
+
+  for (auto addr = origin; addr < origin + 4096 - 12; addr++) {
+    machine.memory.memcpy(addr, hello, sizeof(hello));
+
+    auto buf = machine.memory.membuffer(addr, 12);
+    REQUIRE(buf.is_sequential());
+    REQUIRE(buf.size() == 12);
+    REQUIRE(buf.strview() == "hello world!");
+    REQUIRE(buf.to_string() == "hello world!");
+  }
+
+  // maxlen works
+  REQUIRE_THROWS_WITH([&] { machine.memory.membuffer(origin, 128, 127); }(),
+                      Catch::Matchers::ContainsSubstring("Protection fault"));
+}
+
+TEST_CASE("Boundary buffer", "[Buffer]") {
+  const auto binary = load("://freestanding/basic_a.elf");
+
+  riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+  // We need to install Linux system calls for maximum gucciness
+  machine.setup_linux_syscalls();
+  // We need to create a Linux environment for runtimes to work well
+  machine.setup_linux({"vmcall"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+
+  auto origin = machine.memory.mmap_allocate(1);
+
+  static const char hello[] = "hello world!";
+  char buffer[13];
+
+  for (auto addr = origin + 4096 - 11; addr < origin + 4095; addr++) {
+    machine.memory.memcpy(addr, hello, sizeof(hello));
+    auto buf = machine.memory.membuffer(addr, 12);
+    REQUIRE(buf.is_sequential() == false);
+    REQUIRE(buf.size() == 12);
+    REQUIRE(buf.to_string() == "hello world!");
+    // String view is no longer possible
+    buf.copy_to(buffer, 12);
+    buffer[12] = 0;
+    REQUIRE(std::string(buffer) == "hello world!");
+  }
+}
+
 int main(int argc, char *argv[]) {
   QCoreApplication ap(argc, argv);
   return Catch::Session().run(argc, argv);
