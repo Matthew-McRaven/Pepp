@@ -86,6 +86,7 @@ Rectangle {
             }
         }
 
+        //  Background used as canvas for object placement
         Rectangle {
             id: canvas
 
@@ -95,6 +96,7 @@ Rectangle {
                 source: "qrc:/logic_gates"
             }*/
 
+            //  Used to show where objects will be stamped on canvas
             Rectangle {
                 id: stamp
                 color: "transparent"
@@ -115,11 +117,10 @@ Rectangle {
                 onClicked: {
                     //  No template selected. Just return
                     if (root.curName === "")
-                    return;
+                        return;
 
                     var comp = Qt.createComponent("Diagram.qml");
 
-                    //var diagram = comp.createObject(root,{text: root.curName, x: row, y: col});
                     var diagram = comp.createObject(root, {
                                                         text: root.curName,
                                                         file: root.curFile

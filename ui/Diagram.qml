@@ -9,8 +9,8 @@ Item {
     property alias file: image.source
     property bool horizontal: true
 
-    width: Move.majorX  //75
-    height: Move.majorY //75
+    width: Move.majorX
+    height: Move.majorY
 
     Drag.active: ma.drag.active
     Drag.hotSpot.x: root.width / 2
@@ -29,7 +29,6 @@ Item {
             source: ""
             anchors.fill: wrapper
             fillMode: Image.PreserveAspectFit
-            transformOrigin: root.Center
             rotation: 0
         }
 
