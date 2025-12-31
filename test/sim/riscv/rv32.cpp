@@ -3,6 +3,7 @@
 #include "enums/isa/rvc.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 
+#include "sim3/systems/notraced_riscv_isa3_system/debug.hpp"
 #include "testable_instruction.hpp"
 
 TEST_CASE("RV32I", "[scope:sim][kind:int][arch:RV]") {
@@ -133,4 +134,50 @@ TEST_CASE("RV32 Custom Machine", "[scope:sim][kind:int][arch:RV][!throws]") {
   }
 
   CHECK(m2.instruction_counter() == 0);
+}
+
+TEST_CASE("RV32 run exactly X instructions", "[scope:sim][kind:int][arch:RV]") {
+  riscv::Machine<uint32_t> machine;
+
+  std::array<uint32_t, 3> my_program{
+      0x29a00513, //        li      a0,666
+      0x05d00893, //        li      a7,93
+      0xffdff06f, //        jr      -4
+  };
+
+  const uint32_t dst = 0x1000;
+  machine.copy_to_guest(dst, &my_program[0], sizeof(my_program));
+  machine.memory.set_page_attr(dst, riscv::Page::size(), {.read = false, .write = false, .exec = true});
+  machine.cpu.jump(dst);
+
+  // Step instruction by instruction using
+  // a debugger.
+  riscv::DebugMachine debugger{machine};
+  debugger.verbose_instructions = true;
+
+  debugger.simulate(3);
+  REQUIRE(machine.cpu.reg(riscv::REG_ARG0) == 666);
+  REQUIRE(machine.cpu.reg(riscv::REG_ARG7) == 93);
+  REQUIRE(machine.instruction_counter() == 3);
+
+  machine.cpu.reg(riscv::REG_ARG7) = 0;
+
+  debugger.simulate(2);
+  REQUIRE(machine.instruction_counter() == 5);
+  REQUIRE(machine.cpu.reg(riscv::REG_ARG7) == 93);
+
+  // Reset CPU registers and counter
+  machine.cpu.registers() = {};
+  machine.cpu.jump(dst);
+
+  // Normal simulation
+  machine.simulate<false>(2, 0u);
+  REQUIRE(machine.instruction_counter() == 3);
+  REQUIRE(machine.cpu.reg(riscv::REG_ARG7) == 93);
+
+  machine.cpu.reg(riscv::REG_ARG7) = 0;
+
+  machine.simulate<false>(2, machine.instruction_counter());
+  REQUIRE(machine.instruction_counter() == 5);
+  REQUIRE(machine.cpu.reg(riscv::REG_ARG7) == 93);
 }
