@@ -23,10 +23,6 @@
 #include <sys/stat.h>
 #endif
 
-static constexpr bool full_linux_guest = true;
-static constexpr bool newlib_mini_guest = true;
-static constexpr bool micro_guest = true;
-
 static inline std::vector<uint8_t> load_file(const std::string &);
 
 static const std::string DYNAMIC_LINKER = "/usr/riscv64-linux-gnu/lib/ld-linux-riscv64-lp64d.so.1";
@@ -78,190 +74,113 @@ static int run_program(const RVEmuTask::Arguments &cli_args, const std::string_v
     spdlog::info("Introduced to symbol function: {:x}", uint64_t(addr));
   });
 
-  if (full_linux_guest) {
     std::vector<std::string> env = {"LC_CTYPE=C", "LC_ALL=C", "RUST_BACKTRACE=full"};
     machine.setup_linux(args, env);
     // Linux system to open files and access internet
     machine.setup_linux_syscalls();
     machine.fds().permit_filesystem = !cli_args.sandbox;
     machine.fds().permit_sockets = !cli_args.sandbox;
-    if (!cli_args.sandbox) {
-      // Enable stdin when sandbox is disabled.
-      machine.set_stdin(
-          [](const riscv::Machine<address_t> &machine, char *buf, size_t size) -> long { return read(0, buf, size); });
-      machine.fds().proxy_mode = true; // Proxy mode for system calls (no more sandbox)
+    // Allow stdin by default, otherwise it's pretty difficult to create useful programs.
+    machine.set_stdin(
+        [](const riscv::Machine<address_t> &machine, char *buf, size_t size) -> long { return read(0, buf, size); });
+    machine.fds().proxy_mode = true; // Proxy mode for system calls (no more sandbox)
 #ifndef _WIN32
       char buf[4096];
       machine.fds().cwd = getcwd(buf, sizeof(buf));
 #endif
-    }
-    // Rewrite certain links to masquerade and simplify some interactions (eg. /proc/self/exe)
-    machine.fds().filter_readlink = [&](void *user, std::string &path) {
-      if (path == "/proc/self/exe") {
-        path = machine.fds().cwd + "/program";
-        return true;
-      }
-      if (path == "/proc/self/fd/1" || path == "/proc/self/fd/2") {
-        return true;
-      }
-      spdlog::error("Guest wanted to readlink: {} (denied)", path);
-      return false;
-    };
-    // Only allow opening certain file paths. The void* argument is
-    // the user-provided pointer set in the RISC-V machine.
-    machine.fds().filter_open = [=](void *user, std::string &path) {
-      (void)user;
-      if (path == "/etc/hostname" || path == "/etc/hosts" || path == "/etc/nsswitch.conf" || path == "/etc/host.conf" ||
-          path == "/etc/resolv.conf")
-        return true;
-      if (path == "/dev/urandom") return true;
-      if (path == "/program") { // Fake program path
-        path = args.at(0);      // Sneakily open the real program instead
-        return true;
-      }
-      if (path == "/etc/ssl/certs/ca-certificates.crt") return true;
 
-      // Paths that are allowed to be opened
-      static const std::string sandbox_libdir = "/lib/riscv64-linux-gnu/";
-      // The real path to the libraries (on the host system)
-      static const std::string real_libdir = "/usr/riscv64-linux-gnu/lib/";
-      // The dynamic linker and libraries we allow
-      static const std::vector<std::string> libs = {"libdl.so.2",     "libm.so.6",       "libgcc_s.so.1",
-                                                    "libc.so.6",      "libatomic.so.1",  "libstdc++.so.6",
-                                                    "libresolv.so.2", "libnss_dns.so.2", "libnss_files.so.2"};
-
-      if (path.find(sandbox_libdir) == 0) {
-        // Find the library name
-        auto lib = path.substr(sandbox_libdir.size());
-        if (std::find(libs.begin(), libs.end(), lib) == libs.end()) {
-          if (cli_args.verbose) {
-            spdlog::error("Guest wanted to open: {} (denied)", path);
-          }
-          return false;
-        } else if (cli_args.verbose) {
-          spdlog::trace("Guest wanted to open: {} (allowed)", path);
-        }
-        // Construct new path
-        path = real_libdir + path.substr(sandbox_libdir.size());
-        return true;
-      }
-
-      if (is_dynamic && args.size() > 1 && path == args.at(1)) {
-        return true;
-      }
-      if (!cli_args.sandbox) {
-        return true;
-      }
-      for (const auto &allowed : cli_args.allowed_files) {
-        if (path == allowed) {
+      // Rewrite certain links to masquerade and simplify some interactions (eg. /proc/self/exe)
+      machine.fds().filter_readlink = [&](void *user, std::string &path) {
+        if (path == "/proc/self/exe") {
+          path = machine.fds().cwd + "/program";
           return true;
         }
-      }
-      if (cli_args.verbose) {
-        spdlog::trace("Guest wanted to open: {} (denied)", path);
-      }
-      return false;
-    };
-    // multi-threading
-    machine.setup_posix_threads();
-  } else if (newlib_mini_guest) {
-    // the minimum number of syscalls needed for malloc and C++ exceptions
-    machine.setup_newlib_syscalls(true);
-    machine.fds().permit_filesystem = !cli_args.sandbox;
-    machine.setup_argv(args);
-    machine.on_unhandled_syscall = [](riscv::Machine<address_t> &machine, size_t num) {
-      if (num == 1024) { // newlib_open()
-        const auto g_path = machine.sysarg(0);
-        const int flags = machine.template sysarg<int>(1);
-        const int mode = machine.template sysarg<int>(2);
-        // This is a custom syscall for the newlib mini guest
-        std::string path = machine.memory.memstring(g_path);
-        if (machine.has_file_descriptors() && machine.fds().permit_filesystem) {
+        if (path == "/proc/self/fd/1" || path == "/proc/self/fd/2") return true;
 
-          if (machine.fds().filter_open != nullptr) {
-            // filter_open() can modify the path
-            if (!machine.fds().filter_open(machine.template get_userdata<void>(), path)) {
-              machine.set_result(-EPERM);
-              return;
-            }
-
-#if !defined(_MSC_VER)
-            int res = open(path.c_str(), flags, mode);
-            if (res > 0) res = machine.fds().assign_file(res);
-            machine.set_result_or_error(res);
-            return;
-#endif
-          }
+        spdlog::error("Guest wanted to readlink: {} (denied)", path);
+        return false;
+      };
+      // Only allow opening certain file paths. The void* argument is
+      // the user-provided pointer set in the RISC-V machine.
+      machine.fds().filter_open = [=](void *user, std::string &path) {
+        (void)user;
+        if (path == "/etc/hostname" || path == "/etc/hosts" || path == "/etc/nsswitch.conf" ||
+            path == "/etc/host.conf" || path == "/etc/resolv.conf")
+          return true;
+        if (path == "/dev/urandom") return true;
+        if (path == "/program") { // Fake program path
+          path = args.at(0);      // Sneakily open the real program instead
+          return true;
         }
-        machine.set_result(-EPERM);
-        return;
+        if (path == "/etc/ssl/certs/ca-certificates.crt") return true;
+
+        // Paths that are allowed to be opened
+        static const std::string sandbox_libdir = "/lib/riscv64-linux-gnu/";
+        // The real path to the libraries (on the host system)
+        static const std::string real_libdir = "/usr/riscv64-linux-gnu/lib/";
+        // The dynamic linker and libraries we allow
+        static const std::vector<std::string> libs = {"libdl.so.2",     "libm.so.6",       "libgcc_s.so.1",
+                                                      "libc.so.6",      "libatomic.so.1",  "libstdc++.so.6",
+                                                      "libresolv.so.2", "libnss_dns.so.2", "libnss_files.so.2"};
+
+        if (path.find(sandbox_libdir) == 0) {
+          // Find the library name
+          auto lib = path.substr(sandbox_libdir.size());
+          if (std::find(libs.begin(), libs.end(), lib) == libs.end()) {
+            if (cli_args.verbose) spdlog::error("Guest wanted to open: {} (denied)", path);
+            return false;
+          } else if (cli_args.verbose) spdlog::trace("Guest wanted to open: {} (allowed)", path);
+
+          // Construct new path
+          path = real_libdir + path.substr(sandbox_libdir.size());
+          return true;
+        }
+        if (is_dynamic && args.size() > 1 && path == args.at(1)) return true;
+        if (!cli_args.sandbox) return true;
+        for (const auto &allowed : cli_args.allowed_files) {
+          if (path == allowed) return true;
+        }
+        if (cli_args.verbose) spdlog::trace("Guest wanted to open: {} (denied)", path);
+
+        return false;
+      };
+      // multi-threading
+      machine.setup_posix_threads();
+
+      // A CLI debugger used with --debug
+      riscv::DebugMachine debug{machine};
+
+      if (cli_args.instr_trace) {
+        // Print all instructions by default
+        const bool vi = true;
+        // With --verbose we also print register values after
+        // every instruction.
+        const bool vr = cli_args.verbose;
+
+        auto main_address = machine.address_of("main");
+        if (cli_args.from_start || main_address == 0x0) {
+          debug.verbose_instructions = vi;
+          debug.verbose_registers = vr;
+          // Without main() this is a custom or stripped program,
+          // so we break immediately.
+          debug.print_and_pause();
+        } else {
+          // Automatic breakpoint at main() to help debug certain programs
+          debug.breakpoint(main_address, [vi, vr](auto &debug) {
+            auto &cpu = debug.machine.cpu;
+            // Remove the breakpoint to speed up debugging
+            debug.erase_breakpoint(cpu.pc());
+            debug.verbose_instructions = vi;
+            debug.verbose_registers = vr;
+            spdlog::info("\n* Entered main() @ {:0x}", uint64_t(cpu.pc()));
+            debug.print_and_pause();
+          });
+        }
       }
-      spdlog::error("Unhandled syscall: {}", uint32_t(num));
-    };
-    machine.fds().filter_open = [=](void *, std::string &path) {
-      if (!cli_args.sandbox) return true;
-
-      for (const auto &allowed : cli_args.allowed_files) {
-        if (path == allowed) return true;
-      }
-      if (cli_args.verbose) {
-        spdlog::error("Guest wanted to open: {} (denied)", path);
-      }
-      return false;
-    };
-  } else if (micro_guest) {
-    // This guest has accelerated libc functions, which
-    // are provided as system calls
-    // See: tests/unit/native.cpp and tests/unit/include/native_libc.h
-    constexpr size_t heap_size = 6ULL << 20; // 6MB
-    auto heap = machine.memory.mmap_allocate(heap_size);
-
-    machine.setup_native_heap(470, heap, heap_size);
-    machine.setup_native_memory(475);
-    machine.setup_native_threads(490);
-
-    machine.setup_newlib_syscalls();
-    machine.setup_argv(args);
-  } else {
-    spdlog::error("Unknown emulation mode! Exiting...\n");
-    return 1;
-  }
-
-  // A CLI debugger used with --debug
-  riscv::DebugMachine debug{machine};
-
-  if (cli_args.instr_trace) {
-    // Print all instructions by default
-    const bool vi = true;
-    // With --verbose we also print register values after
-    // every instruction.
-    const bool vr = cli_args.verbose;
-
-    auto main_address = machine.address_of("main");
-    if (cli_args.from_start || main_address == 0x0) {
-      debug.verbose_instructions = vi;
-      debug.verbose_registers = vr;
-      // Without main() this is a custom or stripped program,
-      // so we break immediately.
-      debug.print_and_pause();
-    } else {
-      // Automatic breakpoint at main() to help debug certain programs
-      debug.breakpoint(main_address, [vi, vr](auto &debug) {
-        auto &cpu = debug.machine.cpu;
-        // Remove the breakpoint to speed up debugging
-        debug.erase_breakpoint(cpu.pc());
-        debug.verbose_instructions = vi;
-        debug.verbose_registers = vr;
-        spdlog::info("\n* Entered main() @ {:0x}", uint64_t(cpu.pc()));
-        debug.print_and_pause();
-      });
-    }
-  }
 
   auto t0 = std::chrono::high_resolution_clock::now();
   try {
-    // If you run the emulator with --debug you can connect
-    // with gdb-multiarch using target remote localhost:2159.
+    // If you run the emulator with --debug you can connect with gdb-multiarch using target remote localhost:2159.
     if (cli_args.debug) {
       spdlog::info("GDB server is listening on localhost:2159\n");
       riscv::RSP<address_t> server{machine, 2159};
