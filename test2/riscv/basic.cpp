@@ -866,7 +866,7 @@ TEST_CASE("Calculate fib(2560000) on execute page", "[VA]") {
     // Run for at most X instructions before giving up
     machine.simulate(MAX_INSTRUCTIONS);
 
-    REQUIRE(machine.return_value<long>() == 12586269025L);
+    REQUIRE(machine.return_value<int64_t>() == int64_t(12586269025L));
 
     // VM call into new execute segment
     REQUIRE(machine.vmcall(VA_FUNC, 50, 0, 1) == 12586269025L);
@@ -880,7 +880,7 @@ TEST_CASE("Calculate fib(2560000) on execute page", "[VA]") {
     machine.set_max_instructions(MAX_INSTRUCTIONS);
     machine.cpu.simulate_precise();
 
-    REQUIRE(machine.return_value<long>() == 12586269025L);
+    REQUIRE(machine.return_value<int64_t>() == int64_t(12586269025L));
 
     // VM call into new execute segment
     REQUIRE(machine.vmcall(VA_FUNC, 50, 0, 1) == 12586269025L);
@@ -897,7 +897,7 @@ TEST_CASE("Calculate fib(2560000) on execute page", "[VA]") {
     // Verify step-by-step simulation
     debugger.simulate(MAX_INSTRUCTIONS);
 
-    REQUIRE(machine.return_value<long>() == 12586269025L);
+    REQUIRE(machine.return_value<int64_t>() == int64_t(12586269025L));
 
     // VM call into new execute segment
     REQUIRE(machine.vmcall(VA_FUNC, 50, 0, 1) == 12586269025L);
