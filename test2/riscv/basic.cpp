@@ -933,9 +933,11 @@ TEST_CASE("Sequential buffer", "[Buffer]") {
 }
 
 TEST_CASE("Boundary buffer", "[Buffer]") {
+  // Test not supported on flat read-write arena
+  if constexpr (riscv::flat_readwrite_arena) return;
   const auto binary = load("://freestanding/basic_a.elf");
 
-  riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+  riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY, .use_memory_arena = false}};
   // We need to install Linux system calls for maximum gucciness
   machine.setup_linux_syscalls();
   // We need to create a Linux environment for runtimes to work well

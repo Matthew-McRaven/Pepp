@@ -184,11 +184,7 @@ static constexpr size_t PageMask = RISCV_PAGE_SIZE - 1;
 	static constexpr bool fcsr_emulation = false;
 #endif
 	static constexpr bool binary_translation_enabled = false;
-#ifdef RISCV_FLAT_RW_ARENA
 	static constexpr bool flat_readwrite_arena = true;
-#else
-	static constexpr bool flat_readwrite_arena = false;
-#endif
 	static constexpr bool libtcc_enabled = false;
 
   template <AddressType address_t> struct MultiThreading;

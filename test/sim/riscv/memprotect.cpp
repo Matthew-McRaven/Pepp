@@ -35,7 +35,7 @@ TEST_CASE("RISC-V basic page protections", "[scope:sim][kind:int][arch:RV][!thro
                       Catch::Matchers::ContainsSubstring("Protection fault"));
 }
 
-TEST_CASE("Trigger guard pages", "[scope:sim][kind:int][arch:RV][!throws]") {
+TEST_CASE("RISC-V trigger guard pages", "[scope:sim][kind:int][arch:RV][!throws]") {
   riscv::Machine<uint32_t> machine{empty};
 
   machine.memory.install_shared_page(0, riscv::Page::guard_page());
@@ -75,6 +75,9 @@ TEST_CASE("RISC-V misaligned page attributes", "[scope:sim][kind:unit][arch:RV]"
 }
 
 TEST_CASE("RISC-V page caches must be invalidated", "[scope:sim][kind:int][arch:RV][!throws]") {
+  // Test not supported on flat read-write arena
+  if constexpr (riscv::flat_readwrite_arena) return;
+
   riscv::Machine<uint32_t> machine{empty};
 
   // Force creation of writable pages
