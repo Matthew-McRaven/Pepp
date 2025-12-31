@@ -197,8 +197,8 @@ template <AddressType address_type> struct alignas(32) CPU {
 		void set_override_new_execute_segment(override_execute_segment_t func) noexcept { m_override_exec = func; }
 
 		// Override how to handle unknown instructions, so that you may implement your own
-		static inline std::function<const instruction_t& (format_t)> on_unimplemented_instruction;
-		// Retrieve default handler for unimplemented instructions (can be returned in on_unimplemented_instruction)
+    std::function<const instruction_t &(format_t)> on_unimplemented_instruction;
+    // Retrieve default handler for unimplemented instructions (can be returned in on_unimplemented_instruction)
 		static const instruction_t& get_unimplemented_instruction() noexcept;
 
 		// Set current exception

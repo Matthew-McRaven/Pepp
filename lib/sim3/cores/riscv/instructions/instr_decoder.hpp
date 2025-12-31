@@ -685,9 +685,6 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
     else return instr64i_ILLEGAL;
   }
 
-  if (CPU<address_t>::on_unimplemented_instruction != nullptr) {
-    return (CPU<address_t>::on_unimplemented_instruction(instruction));
-  }
   if constexpr (sizeof(address_t) == 4) return instr32i_UNIMPLEMENTED;
   else return instr64i_UNIMPLEMENTED;
 }

@@ -112,8 +112,11 @@ RVPRINTR_ATTR int UNIMPLEMENTED_printer(char *buffer, size_t len, const CPU<addr
 };
 template <AddressType address_t>
 RVINSTR_COLDATTR void UNIMPLEMENTED_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  if (instr.length() == 4) cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.whole);
-  else cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.half[0]);
+  if (cpu.on_unimplemented_instruction) cpu.on_unimplemented_instruction(instr).handler(cpu, instr);
+  else {
+    if (instr.length() == 4) cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.whole);
+    else cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.half[0]);
+  }
 };
 template <AddressType address_t>
 RVINSTR_COLDATTR void ILLEGAL_handler(CPU<address_t> &cpu, rv32i_instruction /* instr */) {

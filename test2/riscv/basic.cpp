@@ -606,16 +606,6 @@ TEST_CASE("Custom instruction", "[Custom]") {
   // select and identify a system call argument.
   const auto binary = load("://freestanding/custom_instr.elf");
 
-  // Install the handler for unimplemented instructions, allowing us to
-  // select our custom instruction for a reserved opcode.
-  riscv::CPU<uint64_t>::on_unimplemented_instruction =
-      [](riscv::rv32i_instruction instr) -> const riscv::Instruction<uint64_t> & {
-    if (instr.opcode() == 0b1011011) {
-      return custom_instruction_handler;
-    }
-    return riscv::CPU<uint64_t>::get_unimplemented_instruction();
-  };
-
   // Install system call number 500 (used by our program above).
   static bool syscall_was_called = false;
 
@@ -624,6 +614,15 @@ TEST_CASE("Custom instruction", "[Custom]") {
   // Normal (fastest) simulation
   {
     riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+    // Install the handler for unimplemented instructions, allowing us to
+    // select our custom instruction for a reserved opcode.
+    machine.cpu.on_unimplemented_instruction =
+        [](riscv::rv32i_instruction instr) -> const riscv::Instruction<uint64_t> & {
+      if (instr.opcode() == 0b1011011) {
+        return custom_instruction_handler;
+      }
+      return riscv::CPU<uint64_t>::get_unimplemented_instruction();
+    };
     machine.set_userdata(&state);
     // We need to install Linux system calls for maximum gucciness
     machine.setup_linux_syscalls();
@@ -643,7 +642,13 @@ TEST_CASE("Custom instruction", "[Custom]") {
   // Precise (step-by-step) simulation
   {
     riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
-
+    machine.cpu.on_unimplemented_instruction =
+        [](riscv::rv32i_instruction instr) -> const riscv::Instruction<uint64_t> & {
+      if (instr.opcode() == 0b1011011) {
+        return custom_instruction_handler;
+      }
+      return riscv::CPU<uint64_t>::get_unimplemented_instruction();
+    };
     machine.set_userdata(&state);
     machine.setup_linux_syscalls();
     machine.setup_linux({"custom_instruction"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
