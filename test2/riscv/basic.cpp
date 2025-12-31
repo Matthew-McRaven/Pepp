@@ -851,6 +851,58 @@ TEST_CASE("Override execute space protection fault", "[Memory Traps]") {
   }
 }
 
+TEST_CASE("Calculate fib(2560000) on execute page", "[VA]") {
+  const auto binary = load("://freestanding/va_execute.elf");
+
+  static constexpr uint32_t VA_FUNC = 0xF0000000;
+
+  // Normal (fastest) simulation
+  {
+    riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+    // We need to install Linux system calls for maximum gucciness
+    machine.setup_linux_syscalls();
+    // We need to create a Linux environment for runtimes to work well
+    machine.setup_linux({"va_exec"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+    // Run for at most X instructions before giving up
+    machine.simulate(MAX_INSTRUCTIONS);
+
+    REQUIRE(machine.return_value<long>() == 12586269025L);
+
+    // VM call into new execute segment
+    REQUIRE(machine.vmcall(VA_FUNC, 50, 0, 1) == 12586269025L);
+  }
+  // Precise (step-by-step) simulation
+  {
+    riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+    machine.setup_linux_syscalls();
+    machine.setup_linux({"va_exec"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+    // Verify step-by-step simulation
+    machine.set_max_instructions(MAX_INSTRUCTIONS);
+    machine.cpu.simulate_precise();
+
+    REQUIRE(machine.return_value<long>() == 12586269025L);
+
+    // VM call into new execute segment
+    REQUIRE(machine.vmcall(VA_FUNC, 50, 0, 1) == 12586269025L);
+  }
+  // Debug-assisted simulation
+  {
+    riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
+    machine.setup_linux_syscalls();
+    machine.setup_linux({"va_exec"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
+
+    riscv::DebugMachine debugger{machine};
+    // debugger.verbose_instructions = true;
+
+    // Verify step-by-step simulation
+    debugger.simulate(MAX_INSTRUCTIONS);
+
+    REQUIRE(machine.return_value<long>() == 12586269025L);
+
+    // VM call into new execute segment
+    REQUIRE(machine.vmcall(VA_FUNC, 50, 0, 1) == 12586269025L);
+  }
+}
 int main(int argc, char *argv[]) {
   QCoreApplication ap(argc, argv);
   return Catch::Session().run(argc, argv);

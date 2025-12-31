@@ -33,6 +33,7 @@ qt6_add_resources(
   freestanding/memprotect.elf
   freestanding/memtrap_exec.elf
   freestanding/memtrap_rw.elf
+  freestanding/va_execute.elf
   freestanding/vmcall.elf
   freestanding/vmcall_array.elf
   freestanding/vmcall_fork.elf

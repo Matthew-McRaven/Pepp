@@ -49,6 +49,8 @@ add_semihosted_executable(memprotect "${CMAKE_CURRENT_LIST_DIR}/memprotect.c")
 add_semihosted_executable(memtrap_exec "${CMAKE_CURRENT_LIST_DIR}/memtrap_exec.c")
 add_semihosted_executable(memtrap_rw "${CMAKE_CURRENT_LIST_DIR}/memtrap_rw.c")
 
+add_semihosted_executable(va_execute "${CMAKE_CURRENT_LIST_DIR}/va_execute.c")
+
 add_semihosted_executable(vmcall "${CMAKE_CURRENT_LIST_DIR}/vmcall.c")
 add_semihosted_executable(vmcall_array "${CMAKE_CURRENT_LIST_DIR}/vmcall_array.c")
 add_semihosted_executable(vmcall_enum "${CMAKE_CURRENT_LIST_DIR}/vmcall_enum.c")
