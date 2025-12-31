@@ -55,7 +55,7 @@ template <AddressType address_t, typename T> struct GuestRef {
 
   /// @brief Check if the reference is valid.
   /// @return True if the reference is not null.
-  operator bool() const noexcept { return ptr == 0; }
+  operator bool() const noexcept { return ptr != 0; }
 
   const T &get(machine_t &machine) const noexcept {
     // This function cannot silently fail, as it will
