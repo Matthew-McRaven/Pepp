@@ -33,3 +33,4 @@ Number,GitRef,Date,Blurb
 0.12.2,,2025-10-02,"This release enables the Asmb5 level assembler and simulator"
 0.13.0,,2025-10-13,"This release improves Asmb5 projects to support Chapter 6 of Computer Systems, sixth edition"
 0.13.1,,2025-10-20,"This release prevents a crash-to-desktop on malformed user programs"
+0.14.0,,2025-12-31,"This version adds a command-line RISC-V simulator capable of simulating most C programs"

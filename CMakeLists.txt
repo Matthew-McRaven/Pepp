@@ -26,7 +26,7 @@ endif()
 # DO NOT AUTO-FORMAT. CI looks for a line with this format to extract the
 # version.
 # cmake-format: off
-project(Pepp VERSION 0.13.1 LANGUAGES CXX)
+project(Pepp VERSION 0.14.0 LANGUAGES CXX)
 # cmake-format: on
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
