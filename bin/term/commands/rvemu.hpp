@@ -28,7 +28,7 @@ public:
     bool verbose = false;
     bool quit = false;
     bool accurate = false;
-    bool instr_trace = true;
+    bool instr_trace = false;
     bool debug = false;
     bool silent = false;
     bool from_start = false;

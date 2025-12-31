@@ -231,7 +231,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
   // A CLI debugger used with --debug or DEBUG=1
   riscv::DebugMachine debug{machine};
 
-  if (cli_args.debug) {
+  if (cli_args.instr_trace) {
     // Print all instructions by default
     const bool vi = true;
     // With --verbose we also print register values after
@@ -261,7 +261,7 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
 
   auto t0 = std::chrono::high_resolution_clock::now();
   try {
-    // If you run the emulator with --gdb or GDB=1, you can connect
+    // If you run the emulator with --debug you can connect
     // with gdb-multiarch using target remote localhost:2159.
     if (cli_args.debug) {
       printf("GDB server is listening on localhost:2159\n");
@@ -275,9 +275,8 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
         // Run remainder of program
         machine.simulate(cli_args.fuel);
       }
-    } else if (cli_args.debug) {
-      // CLI debug simulation
-      debug.simulate();
+    } else if (cli_args.instr_trace) {
+      debug.simulate(cli_args.fuel);
     } else if (cli_args.accurate) {
       // Single-step precise simulation
       machine.set_max_instructions(~0ULL);
@@ -304,14 +303,10 @@ static void run_program(const RVEmuTask::Arguments &cli_args, const std::string_
           throw riscv::MachineException(riscv::UNHANDLED_SYSCALL, "EBREAK instruction", cpu.pc());
         }
       });
+#else
+      // Simulate until it eventually stops (or user interrupts)
+      machine.simulate(std::numeric_limits<uint64_t>::max());
 #endif // NODEJS_WORKAROUND
-
-      // Normal RISC-V simulation
-      if (cli_args.accurate) machine.simulate(cli_args.fuel);
-      else {
-        // Simulate until it eventually stops (or user interrupts)
-        machine.simulate(std::numeric_limits<uint64_t>::max());
-      }
     }
   } catch (const riscv::MachineException &me) {
     printf("%s\n", machine.cpu.current_instruction_to_string().c_str());
@@ -478,7 +473,7 @@ void register_rvemu(CLI::App &app, task_factory_t &task, detail::SharedFlags &fl
 
   static auto dbg = rvemu->add_option_group("Guest Debugging", "");
   static auto debug_flag =
-      dbg->add_flag("-d,--debug", args.debug, "Enable CLI debugger and start the gdb server on 2159.");
+      dbg->add_flag("-d,--debug", args.debug, "Start a remote GDB debugging session on port on 2159.");
   static auto fromstart_flag =
       dbg->add_flag("-F,--from-start", args.from_start, "Start debugger from the beginning (_start)");
   static auto trace_flag = dbg->add_flag("-T,--trace", args.instr_trace, "Print an instruction trace to stdout");
@@ -507,9 +502,7 @@ void register_rvemu(CLI::App &app, task_factory_t &task, detail::SharedFlags &fl
   static auto quit_flag = loader->add_flag("-Q,--quit", args.quit, "Quit after loading the program");
   rvemu->callback([&]() {
     flags.kind = detail::SharedFlags::Kind::TERM;
-    if (*trace_flag && !args.accurate) {
-      std::cerr << "--trace requires --accurate";
-      QCoreApplication::exit(1);
-    } else task = [&](QObject *parent) { return new RVEmuTask(args, prog_str, parent); };
+
+    task = [&](QObject *parent) { return new RVEmuTask(args, prog_str, parent); };
   });
 }
