@@ -138,11 +138,11 @@ Rectangle {
                 }
 
                 onEntered: {
-                    //console.log("enter");
+                    //  Make grid triangle visible
                     stamp.visible = true;
                 }
                 onExited: {
-                    //console.log("exit");
+                    //  Make grid triangle invisible
                     stamp.visible = false;
                 }
             }

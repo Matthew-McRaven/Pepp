@@ -30,6 +30,7 @@ Item {
             anchors.fill: wrapper
             fillMode: Image.PreserveAspectFit
             rotation: 0
+            opacity: ma.drag.active ? .25 : 1
         }
 
         MouseArea {
@@ -51,6 +52,13 @@ Item {
                 //  Track horizontal versus vertical layout
                 root.horizontal = (image.rotation % 180) == 0;
             }
+
+            onPositionChanged: event => {
+                //  Move object within grid (large axis)
+                Move.moveObjectTo(root, root.x + event.x, root.y + event.y);
+                console.log( "x", event.x, "y", event.y, "root x", root.x, "root y", root.y);
+            }
+
         }
     }
 }
