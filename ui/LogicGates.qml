@@ -21,27 +21,27 @@ Rectangle {
         ListElement {
             name: "OR Gate"
             type: "OR"
-            file: "qrc:/and"
+            file: "qrc:/or"
         }
         ListElement {
             name: "Inverter"
             type: "Inverter"
-            file: "qrc:/and"
+            file: "qrc:/inverter"
         }
         ListElement {
             name: "NAND Gate"
             type: "NAND"
-            file: "qrc:/and"
+            file: "qrc:/nand"
         }
         ListElement {
             name: "NOR Gate"
             type: "NOR"
-            file: "qrc:/and"
+            file: "qrc:/nor"
         }
         ListElement {
             name: "XOR Gate"
             type: "XOR"
-            file: "qrc:/and"
+            file: "qrc:/xor"
         }
     }
 
