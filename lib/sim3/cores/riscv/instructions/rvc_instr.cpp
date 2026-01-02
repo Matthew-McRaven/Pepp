@@ -92,16 +92,18 @@ template <AddressType address_t> RVINSTR_ATTR void C0_REG_FSD_handler(CPU<addres
   cpu.machine().memory.template write<uint64_t>(address, value);
 };
 template <AddressType address_t>
-RVPRINTR_ATTR int C0_REG_FSD_printer(char *buffer, size_t len, const CPU<address_t> &, rv32i_instruction instr) {
-  static const std::array<const char *, 4> f3 = {"Reserved instruction", "FSD", "SW", "FSW"};
+RVPRINTR_ATTR int C0_REG_FSD_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
+  static const std::array<const char *, 4> f3_32 = {"Reserved instruction", "FSD", "SW", "FSW"};
+  static const std::array<const char *, 4> f3_64 = {"Reserved instruction", "FSD", "SW", "SD"};
+  static const auto &f3 = RVIS64BIT(cpu) ? f3_64 : f3_32;
   const rv32c_instruction ci{instr};
-  if (ci.CS.funct3 == 0x6) {
-    return snprintf(buffer, len, "C.%s %s, [%s%+d]", f3[ci.CS.funct3 - 4], RISCV::ciname(ci.CS.srs2),
-                    RISCV::ciname(ci.CS.srs1), ci.CS.offset4());
-  }
   const int offset = (ci.CS.funct3 == 0x7) ? ci.CS.offset4() : ci.CSD.offset8();
-  return snprintf(buffer, len, "C.%s %s, [%s%+d]", f3[ci.CS.funct3 - 4], RISCV::ciflp(ci.CS.srs2),
-                  RISCV::ciname(ci.CS.srs1), offset);
+  if (ci.CS.funct3 == 0x6 || (ci.CS.funct3 == 0x07 && RVIS64BIT(cpu)))
+    return snprintf(buffer, len, "C.%s %s, [%s%+d]", f3[ci.CS.funct3 - 4], RISCV::ciname(ci.CS.srs2),
+                    RISCV::ciname(ci.CS.srs1), offset);
+  else
+    return snprintf(buffer, len, "C.%s %s, [%s%+d]", f3[ci.CS.funct3 - 4], RISCV::ciflp(ci.CS.srs2),
+                    RISCV::ciname(ci.CS.srs1), offset);
 };
 template <AddressType address_t> RVINSTR_ATTR void C0_REG_SW_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
   const rv32c_instruction ci{instr};
