@@ -5,7 +5,7 @@
 #include "toolchain/symbol/table.hpp"
 
 static const auto strTabStr = ".strtab";
-static const auto lineMapStr = ".debug_line";
+
 ELFIO::section *pas::obj::common::addStrTab(ELFIO::elfio &elf) {
   ELFIO::section *strTab = nullptr;
   for (auto &sec : elf.sections) {

@@ -416,6 +416,60 @@ static QSharedPointer<ELFIO::elfio> create_elf() {
   return ret;
 }
 
+pepp::tc::IR2ListingLineMap
+write_line_mapping(ELFIO::elfio &elf,
+                   const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::PepIRProgram>> &prog,
+                   const pepp::tc::IRMemoryAddressTable &addrs, const pepp::tc::ProgramObjectCodeResult &object_code) {
+  auto line_section = pas::obj::common::detail::getLineMappingSection(elf);
+  if (line_section == nullptr) {
+    line_section = elf.sections.add(pas::obj::common::lineMapStr);
+    line_section->set_type(ELFIO::SHT_PROGBITS);
+  }
+
+  // Compute the the listing line for each IR in the re-arranged source program.
+  // Assumes 3 bytes of object code per listing line.
+  pepp::tc::IR2ListingLineMap ret;
+  ret.container.reserve(
+      std::accumulate(prog.cbegin(), prog.cend(), 0, [](size_t l, auto &r) { return l + r.second.size(); }));
+  quint16 listing_number = 0;
+  for (const auto &sec : prog) {
+    for (const auto &line : sec.second) {
+      auto oc_it = object_code.ir_to_object_code.find(line.get());
+      if (oc_it == object_code.ir_to_object_code.cend())
+        ret.container.emplace_back(pepp::tc::IR2ListingLinePair{line.get(), listing_number++});
+      else {
+        ret.container.emplace_back(pepp::tc::IR2ListingLinePair{line.get(), listing_number});
+        listing_number += 1 + oc_it->second.size() / 3;
+      }
+    }
+  }
+  std::sort(ret.container.begin(), ret.container.end(), pepp::tc::IR2ListingLineComparator{});
+
+  auto [data, in, out] = zpp::bits::data_in_out();
+  pas::obj::common::BinaryLineMapping prev;
+  bool first = true;
+  for (const auto &sec : prog) {
+    for (const auto &line : sec.second) {
+      auto addr_it = addrs.find(line.get());
+      // Row numbers are 0-indexed, while binary line mappings are 1-indexed.
+      uint16_t src_line = line->source_interval.valid() ? 1 + line->source_interval.lower().row : 0;
+      auto lst_it = ret.find(line.get());
+      uint16_t lst_line = lst_it != ret.end() ? 1 + lst_it->second : 0;
+
+      // addr2line makes no sense without an address or a line number.
+      if (src_line == 0 && lst_line == 0) continue;
+      else if (addr_it == addrs.cend()) continue;
+
+      auto current = pas::obj::common::BinaryLineMapping{
+          .address = addr_it->second.address, .srcLine = src_line, .listLine = lst_line};
+      (void)current.serialize(out, current, &prev, first);
+      prev = current, first = false;
+    }
+  }
+  line_section->append_data((const char *)data.data(), out.position());
+  return ret;
+}
+
 pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
                                      const IRMemoryAddressTable &addrs, const ProgramObjectCodeResult &object_code,
                                      const std::vector<obj::IO> &mmios) {
@@ -511,6 +565,8 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
     // TODO: in the future, handle alignment correctly?
     // if (isOS) activeSeg->set_memory_size(activeSeg->get_memory_size() + size);
   }
+
+  ret.ir_to_listing = write_line_mapping(*ret.elf, prog, addrs, object_code);
 
   /*ELFIO::section *symTab = nullptr;
   for (auto &sec : ret->sections)
