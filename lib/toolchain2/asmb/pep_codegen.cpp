@@ -256,11 +256,14 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
 namespace pepp::tc {
 struct ObjectCodeVisitor : public ir::LinearIRVisitor {
   const IRMemoryAddressTable &ir_to_address;
+  const quint16 base_address, section_idx;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<quint8> out_bytes;
-  std::vector<void *> &relocations;
+  std::multimap<QSharedPointer<symbol::Entry>, PepStaticRelocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  ObjectCodeVisitor(const IRMemoryAddressTable &, bits::span<quint8>, std::vector<void *> &, IR2ObjectCodeMap &);
+  ObjectCodeVisitor(const IRMemoryAddressTable &, const quint16 base_address, const quint16 section_idx,
+                    bits::span<quint8>, std::multimap<QSharedPointer<symbol::Entry>, PepStaticRelocation> &,
+                    IR2ObjectCodeMap &);
   void visit(const ir::EmptyLine *) override;
   void visit(const ir::CommentLine *) override;
   void visit(const ir::MonadicInstruction *) override;
@@ -274,9 +277,12 @@ struct ObjectCodeVisitor : public ir::LinearIRVisitor {
   void visit(const ir::DotOrg *) override;
 };
 
-pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(const IRMemoryAddressTable &ir_to_address, bits::span<quint8> out_bytes,
-                                               std::vector<void *> &relocs, IR2ObjectCodeMap &ir_to_object_code)
-    : ir_to_address(ir_to_address), out_bytes(out_bytes), relocations(relocs), ir_to_object_code(ir_to_object_code) {}
+pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(
+    const IRMemoryAddressTable &ir_to_address, const quint16 base_address, const quint16 section_idx,
+    bits::span<quint8> out_bytes, std::multimap<QSharedPointer<symbol::Entry>, PepStaticRelocation> &relocs,
+    IR2ObjectCodeMap &ir_to_object_code)
+    : ir_to_address(ir_to_address), base_address(base_address), section_idx(section_idx), out_bytes(out_bytes),
+      relocations(relocs), ir_to_object_code(ir_to_object_code) {}
 
 void pepp::tc::ObjectCodeVisitor::visit(const ir::EmptyLine *) {
   // Does not generate object code
@@ -293,7 +299,18 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::MonadicInstruction *line) {
 }
 
 void pepp::tc::ObjectCodeVisitor::visit(const ir::DyadicInstruction *line) {
+  auto addr_info = ir_to_address.at(line);
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
+  // Emit relocations for undefined symbolic arguments.
+  if (line->argument.value->isIdentifier()) {
+    auto symbolic_arg = std::dynamic_pointer_cast<pas::ast::value::Symbolic>(line->argument.value);
+    Q_ASSERT(symbolic_arg != nullptr);
+    auto symbol = symbolic_arg->symbol();
+    if (symbol->is_undefined()) {
+      quint16 offset = addr_info.address - base_address;
+      relocations.insert({symbol, PepStaticRelocation{.section_offset = offset, .section_idx = section_idx}});
+    }
+  }
   line->argument.value->value(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
   out_bytes = out_bytes.subspan(3);
@@ -308,7 +325,18 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAlign *line) {
 
 void pepp::tc::ObjectCodeVisitor::visit(const ir::DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
+  // Emit relocations for undefined symbolic arguments.
+  if (line->argument.value->isIdentifier()) {
+    auto symbolic_arg = std::dynamic_pointer_cast<pas::ast::value::Symbolic>(line->argument.value);
+    Q_ASSERT(symbolic_arg != nullptr);
+    auto symbol = symbolic_arg->symbol();
+    if (symbol->is_undefined()) {
+      quint16 offset = addr_info.address - base_address;
+      relocations.insert({symbol, PepStaticRelocation{.section_offset = offset, .section_idx = section_idx}});
+    }
+  }
   line->argument.value->value(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
 }
@@ -364,13 +392,13 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
   ret.section_spans.reserve(prog.size());
 
   for (int it = 0; it < prog.size(); it++) {
-    const auto &[desc, ir] = prog[it];
+    const auto &[sec, ir] = prog[it];
     auto &offset = offsets[it];
     auto code_begin = ret.object_code.begin() + offset.object_code_offset;
     auto code_end = code_begin + offset.object_code_size;
 
     auto oc_subspan = bits::span<quint8>(code_begin, code_end);
-    ObjectCodeVisitor visitor(addresses, oc_subspan, ret.relocations, ret.ir_to_object_code);
+    ObjectCodeVisitor visitor(addresses, sec.low_address, it, oc_subspan, ret.relocations, ret.ir_to_object_code);
     offset.reloc_offset = ret.relocations.size();
     for (const auto &line : ir) line->accept(&visitor);
     offset.reloc_size = offset.reloc_offset - ret.relocations.size();
@@ -384,15 +412,11 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
     auto &offset = offsets[it];
     // Z sections need entries in section_spans, but those entries should be empty.
     if (desc.flags.z) {
-      ret.section_spans.emplace_back(SectionSpans{{}, {}});
+      ret.section_spans.emplace_back(SectionSpans{{}});
     } else {
       auto code_begin = ret.object_code.begin() + offset.object_code_offset;
       auto code_end = code_begin + offset.object_code_size;
-      auto oc_subspan = bits::span<quint8>(code_begin, code_end);
-      auto reloc_begin = ret.relocations.begin() + offset.reloc_offset;
-      auto reloc_end = reloc_begin + offset.reloc_size;
-      auto reloc_subspan = bits::span<void *>(reloc_begin, reloc_end);
-      ret.section_spans.emplace_back(SectionSpans{oc_subspan, reloc_subspan});
+      ret.section_spans.emplace_back(SectionSpans{bits::span<quint8>(code_begin, code_end)});
     }
   }
 
@@ -415,6 +439,21 @@ static QSharedPointer<ELFIO::elfio> create_elf() {
   pepp::tc::addStrTab(*ret);
   return ret;
 }
+
+static constexpr std::string rel_name = ".rel";
+static ELFIO::section *get_or_create_rel(ELFIO::elfio &elf, const std::string &suffix) {
+
+  // If suffix is empty, just use rel_name. Otherwise, if suffix begins with a full stop, do not insert a full stop.
+  // If the suffix does not begin with a full stop, do not insert it.
+  auto full_name =
+      suffix.empty() ? rel_name : (suffix.starts_with(".") ? rel_name + suffix : (rel_name + ".") + suffix);
+  for (auto &sec : elf.sections)
+    if (sec->get_name() == full_name && sec->get_type() == ELFIO::SHT_REL) return sec.get();
+
+  ELFIO::section *ret = elf.sections.add(full_name);
+  ret->set_type(ELFIO::SHT_REL);
+  return ret;
+};
 
 pepp::tc::IR2ListingLineMap
 write_line_mapping(ELFIO::elfio &elf,
@@ -580,7 +619,29 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
   return ret;
 }
 
-void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, symbol::Table &symbol_table, const QString name) {
+static quint16 ir_to_elf_section_index(const pepp::tc::ElfResult &elf_wrapper, quint16 ir_index) {
+  using namespace pepp::tc;
+  // Some IR sections are not emitted to ELF because they contained no meaningful data.
+  const auto adjustment = elf_wrapper.section_offsets[ir_index];
+  return SectionDescriptor::section_base_index + ir_index - adjustment;
+}
+
+// Our ELF symbols already bake in pepp::tc::SectionDescriptor::section_base_index, which ir_to_elf_section_index adds
+// in again.
+static quint16 symbol_to_elf_section_index(const pepp::tc::ElfResult &elf_wrapper, const symbol::Entry *entry) {
+  using namespace pepp::tc;
+  // Our sections inserted into ELF do not start at 0, they start at SectionDescriptor::section_base_index.
+  // section_offsets starts at 0, so we need to convert before indexing or risk an out-of-bounds access.
+  auto probable_elf_idx = entry->section_index;
+  // Entries less than > SHN_ABS and <= SHN_LORESERVE should not be adjusted.
+  if (probable_elf_idx < SectionDescriptor::section_base_index || probable_elf_idx >= ELFIO::SHN_LORESERVE)
+    return probable_elf_idx;
+  // Otherwise we need to convert IR section numbers to actual ELF sections
+  return ir_to_elf_section_index(elf_wrapper, probable_elf_idx - SectionDescriptor::section_base_index);
+};
+
+void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, symbol::Table &symbol_table,
+                                  const ProgramObjectCodeResult &oc, const QString name) {
   using namespace Qt::StringLiterals;
   auto &elf = *elf_wrapper.elf.get();
   auto strTab = pepp::tc::addStrTab(elf);
@@ -608,33 +669,62 @@ void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, symbol::Table &symbol_
   ELFIO::symbol_section_accessor symAc(elf, symTab);
   for (auto [name, entry] : symbol_table.entries()) {
     auto nameIdx = findOrCreateStr(name.toStdString());
-    // Our sections inserted into ELF do not start at 0, they start at SectionDescriptor::section_base_index.
-    // section_offsets starts at 0, so we need to convert before indexing or risk an out-of-bounds access.
-    auto offset_index = entry->section_index - SectionDescriptor::section_base_index;
-    // But sections before SectionDescriptor::section_base_index are special and never skipped.
-    auto section_index_adjustment =
-        entry->section_index < SectionDescriptor::section_base_index ? elf_wrapper.section_offsets[offset_index] : 0;
-    auto secIdx = entry->section_index - section_index_adjustment;
-    auto value = entry->value;
+    // Symbol index of the inserted symbol. Retain to make writing relocations easier.
+    ELFIO::Elf_Word symbol_idx = 0;
+    // Fast path for undefined symbols
+    if (entry->is_undefined()) {
+      static constexpr quint8 info = (ELFIO::STB_LOCAL << 4) + (ELFIO::STT_NOTYPE & 0xf);
+      symbol_idx = symAc.add_symbol(nameIdx, 0, 0, info, 0, ELFIO::SHN_UNDEF);
+    } else {
+      auto secIdx = symbol_to_elf_section_index(elf_wrapper, entry.get());
+      auto value = entry->value;
 
-    quint8 type = ELFIO::STT_NOTYPE;
-    if (value->type() == symbol::Type::kCode) type = ELFIO::STT_FUNC;
-    else if (value->type() == symbol::Type::kObject) type = ELFIO::STT_OBJECT;
-    else if (value->type() == symbol::Type::kConstant) {
-      type = ELFIO::STT_OBJECT;
-      secIdx = ELFIO::SHN_ABS;
+      quint8 type = ELFIO::STT_NOTYPE;
+      if (value->type() == symbol::Type::kCode) type = ELFIO::STT_FUNC;
+      else if (value->type() == symbol::Type::kObject) type = ELFIO::STT_OBJECT;
+      else if (value->type() == symbol::Type::kConstant) {
+        type = ELFIO::STT_OBJECT;
+        secIdx = ELFIO::SHN_ABS;
+      }
+
+      quint8 bind = ELFIO::STB_LOCAL;
+      if (entry->binding == symbol::Binding::kGlobal) bind = ELFIO::STB_GLOBAL;
+      else if (entry->binding == symbol::Binding::kImported) bind = ELFIO::STB_WEAK;
+
+      quint8 info = (bind << 4) + (type & 0xf);
+
+      symbol_idx = symAc.add_symbol(nameIdx, value->value()(), entry->value->size(), info, 0,
+                                    secIdx); // leave other as 0, don't mess with visibility.
     }
-
-    quint8 bind = ELFIO::STB_LOCAL;
-    if (entry->binding == symbol::Binding::kGlobal) bind = ELFIO::STB_GLOBAL;
-    else if (entry->binding == symbol::Binding::kImported) bind = ELFIO::STB_WEAK;
-
-    quint8 info = (bind << 4) + (type & 0xf);
-
-    if (entry->state == symbol::DefinitionState::kUndefined) secIdx = ELFIO::SHN_UNDEF;
-    symAc.add_symbol(nameIdx, value->value()(), entry->value->size(), info, 0,
-                     secIdx); // leave other as 0, don't mess with visibility.
+    // For all sections, for all relocations entries against this symbol
+    // Create a relocation section for the current section if it does not exist, and append a relocation entry.
+    auto relocs_for = oc.relocations.equal_range(entry);
+    for (auto rel = relocs_for.first; rel != relocs_for.second; ++rel) {
+      const auto ir_idx = rel->second.section_idx;
+      const auto elf_idx = ir_to_elf_section_index(elf_wrapper, ir_idx);
+      auto relocated_sec = elf_wrapper.elf->sections[elf_idx];
+      auto relocation_section = get_or_create_rel(*elf_wrapper.elf, relocated_sec->get_name());
+      // Freshly created relocation sections are missing various required fields.
+      if (relocation_section->get_info() == 0) relocation_section->set_info(relocated_sec->get_index());
+      if (relocation_section->get_link() == 0) relocation_section->set_link(symTab->get_index());
+      // BUG: the library should know the size of REL entries when the section is created. However, this field
+      // is only initialized on save. Given that swap_symbols depends on entry_size, we need to fill it in NOW.
+      // TODO: should not be a magic constant! Should be computed from the size of some struct.
+      if (relocation_section->get_entry_size() == 0) relocation_section->set_entry_size(8);
+      auto reloc_ac = ELFIO::relocation_section_accessor(*elf_wrapper.elf, relocation_section);
+      reloc_ac.add_entry(rel->second.section_offset, symbol_idx, 0);
+    }
   }
+  // Helper to propogate swapping all symbols in the relocation sections
+  // Create a (temporary) accessor for each REL
+  std::list<ELFIO::relocation_section_accessor> acs;
+  for (auto &sec : elf_wrapper.elf->sections)
+    if (sec->get_type() == ELFIO::SHT_REL)
+      acs.emplace_back(ELFIO::relocation_section_accessor(*elf_wrapper.elf, sec.get()));
+
+  auto all_swap = [&acs](ELFIO::Elf_Xword first, ELFIO::Elf_Xword second) {
+    for (auto &ac : acs) ac.swap_symbols(first, second);
+  };
   // To be elf compliant, local symbols must be before all other kinds.
-  symAc.arrange_local_symbols();
+  symAc.arrange_local_symbols(all_swap);
 }
