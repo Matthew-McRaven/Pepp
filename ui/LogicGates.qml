@@ -1,6 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import QtQuick.VectorImage
+
 import "move.js" as Move
 
 Rectangle {
@@ -129,6 +131,8 @@ Rectangle {
                     //  Move object within grid (large axis)
                     diagram.x = canvas.x + stamp.x;
                     diagram.y = canvas.y + stamp.y;
+                    //Move.moveObjectTo(diagram, canvas.x + stamp.x, canvas.y + stamp.y);
+                    console.log( "d.x", diagram.x, "d.y", diagram.y, "c.x", canvas.x, "c.y", canvas.y, "s.x", stamp.x, "s.y", stamp.y);
                 }
 
                 onPositionChanged: event => {

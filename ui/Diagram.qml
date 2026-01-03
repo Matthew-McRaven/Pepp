@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import QtQuick.VectorImage
 import "move.js" as Move
 
 Item {
@@ -13,8 +14,8 @@ Item {
     height: Move.majorY
 
     Drag.active: ma.drag.active
-    Drag.hotSpot.x: root.width / 2
-    Drag.hotSpot.y: root.height / 2
+    //Drag.hotSpot.x: root.width / 2
+    //Drag.hotSpot.y: root.height / 2
 
     Rectangle {
         id: wrapper
@@ -24,13 +25,18 @@ Item {
         border.color: ma.drag.active || ma.containsMouse ? "blue" : "transparent"
         border.width: 1
 
-        Image {
+        VectorImage {
             id: image
             source: ""
-            anchors.fill: wrapper
+            //anchors.fill: wrapper
             fillMode: Image.PreserveAspectFit
             rotation: 0
             opacity: ma.drag.active ? .25 : 1
+
+            preferredRendererType: VectorImage.CurveRenderer
+            anchors.centerIn: wrapper
+            width: wrapper.width
+            height: wrapper.width / 2
         }
 
         MouseArea {
@@ -45,9 +51,9 @@ Item {
 
             onClicked: {
                 if (image.rotation >= 270)
-                    image.rotation = 0;
+                image.rotation = 0;
                 else
-                    image.rotation += 90;
+                image.rotation += 90;
 
                 //  Track horizontal versus vertical layout
                 root.horizontal = (image.rotation % 180) == 0;
