@@ -22,3 +22,5 @@ symbol::Entry::Entry(symbol::Table &parent, QString name)
       value(QSharedPointer<symbol::value::Empty>::create(0)) {}
 
 bool symbol::Entry::is_singly_defined() const { return state == DefinitionState::kSingle; }
+
+bool symbol::Entry::is_undefined() const { return state == DefinitionState::kUndefined; }

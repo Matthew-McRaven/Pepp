@@ -566,9 +566,9 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       case 6: // C.SW
         if constexpr (sizeof(address_t) == 4) return instr32i_C0_REG_SW;
         else return instr64i_C0_REG_SW;
-      case 7: // C.SD / C.FSW
-        if constexpr (sizeof(address_t) == 8) return instr64i_C0_REG_SD;
-        else return instr32i_C0_REG_FSW;
+      case 7: // C.FSW /  C.SD
+        if constexpr (sizeof(address_t) == 4) return instr32i_C0_REG_FSW;
+        else return instr64i_C0_REG_SD;
       }
       if constexpr (sizeof(address_t) == 4) return instr32i_ILLEGAL;
       else return instr64i_ILLEGAL;

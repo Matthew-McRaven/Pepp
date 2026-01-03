@@ -1,5 +1,6 @@
 #pragma once
 #include "toolchain/link/mmio.hpp"
+#include "toolchain/pas/obj/common.hpp"
 #include "toolchain2/asmb/pep_common.hpp"
 
 namespace ELFIO {
@@ -66,22 +67,38 @@ struct IR2ObjectComparator {
   bool operator()(const ir::LinearIR *const lhs, const ir::LinearIR *const rhs) const { return lhs < rhs; }
 };
 using IR2ObjectCodeMap = fc::flat_map<std::vector<IR2ObjectPair>, IR2ObjectComparator>;
+struct PepStaticRelocation {
+  // Offset into a section's object code (in bytes) which needs relocation.
+  // Per ELF spec, needs to be offset for relocatable object files rather than an address to simplify linker.
+  quint32 section_offset;
+  quint32 section_idx; // section index in prog, not ELF.
+};
+
 struct ProgramObjectCodeResult {
   IR2ObjectCodeMap ir_to_object_code;
-  // A common arena for all section's object code and relocations
+  // Group relocations by symbol rather than by section so that we can write the symbol table and relocations
+  // simultaneously.
+  std::multimap<QSharedPointer<symbol::Entry>, PepStaticRelocation> relocations;
+  // A common arena for all section's object code
   std::vector<quint8> object_code;
-  std::vector<void *> relocations;
   struct SectionSpans {
     bits::span<quint8> object_code;
-    bits::span<void *> relocations;
   };
-  // Use section indicies from original "prog"
-  // Provides only the object code / relocations for a particular section descriptor.
+  // Use section indicies from original "prog" and provides only the object code for a particular section descriptor.
   std::vector<SectionSpans> section_spans;
 };
 
 ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable &,
                                        std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog);
+
+// Create a lookup data structure that converts IR pointers back to their listing line number.
+using IR2ListingLinePair = std::pair<const ir::LinearIR *, quint16>;
+struct IR2ListingLineComparator {
+  bool operator()(const IR2ListingLinePair &lhs, const IR2ListingLinePair &rhs) const { return lhs.first < rhs.first; }
+  bool operator()(ir::LinearIR *const lhs, ir::LinearIR *const rhs) const { return lhs < rhs; }
+  bool operator()(const ir::LinearIR *const lhs, const ir::LinearIR *const rhs) const { return lhs < rhs; }
+};
+using IR2ListingLineMap = fc::flat_map<std::vector<IR2ListingLinePair>, IR2ListingLineComparator>;
 
 struct ElfResult {
   QSharedPointer<ELFIO::elfio> elf;
@@ -89,10 +106,14 @@ struct ElfResult {
   // However, we pre-computed section indices in the ELF file in split_to_sections and used these in the symbol table.
   // [originally computed section index] is the number you need to subtract to get actual index in the output file.
   std::vector<quint16> section_offsets;
+  IR2ListingLineMap ir_to_listing;
 };
 
 ElfResult to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog, const IRMemoryAddressTable &addrs,
                  const ProgramObjectCodeResult &object_code, const std::vector<obj::IO> &mmios);
 
-void write_symbol_table(ElfResult &elf, symbol::Table &symbol_table, const QString name = ".symtab");
+// Write out the symbol table and relocations at the same time.
+// Otherwise, we would need to convert all of the symbol::Entry* pointers a second time.
+void write_symbol_table(ElfResult &elf, symbol::Table &symbol_table, const ProgramObjectCodeResult &oc,
+                        const QString name = ".symtab");
 }

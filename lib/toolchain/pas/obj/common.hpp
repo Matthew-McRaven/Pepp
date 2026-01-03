@@ -239,6 +239,7 @@ template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, 
   if (node.has<ast::generic::SymbolTable>()) writeSymtab(elf, *node.get<ast::generic::SymbolTable>().value, prefix);
 }
 
+static inline const auto lineMapStr = ".debug_line";
 namespace detail {
 // Get line mapping section or return nullptr;
 ELFIO::section *getLineMappingSection(ELFIO::elfio &elf);
