@@ -440,7 +440,7 @@ static QSharedPointer<ELFIO::elfio> create_elf() {
   return ret;
 }
 
-static constexpr std::string rel_name = ".rel";
+static const std::string rel_name = ".rel";
 static ELFIO::section *get_or_create_rel(ELFIO::elfio &elf, const std::string &suffix) {
 
   // If suffix is empty, just use rel_name. Otherwise, if suffix begins with a full stop, do not insert a full stop.
