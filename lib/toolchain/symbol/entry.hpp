@@ -80,8 +80,9 @@ public:
    */
   // Elf32 uses 16bit, ELF64 use 32bit, so just pick the largest of the two
   // types.
-  quint32 section_index = {};
+  quint32 section_index = 0;
 
   bool is_singly_defined() const;
+  bool is_undefined() const;
 };
 } // end namespace symbol
