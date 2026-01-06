@@ -4,7 +4,24 @@ import Qt.labs.qmlmodels
 
 Item {
     id: root
-    TableModel {
+    property var fromObject: null
+    property var toObject: null
+
+    //  Assume right, center side of from object
+    x: fromObject.x + fromObject.width
+    y: fromObject.y + fromObject.height / 2
+
+    //  Assume left, center side of to object
+    width: toObject.x - root.x
+    height: toObject.y - root.y + toObject.height / 2
+
+    Rectangle {
+        anchors.fill: root
+        color: "green"
+        visible: root.fromObject !== null && toObject !== null
+    }
+}
+/*TableModel {
         id: mod
         TableModelColumn { display: "left" }
         TableModelColumn { display: "middle" }
@@ -57,6 +74,7 @@ Item {
         }
     }
 }
+*/
 /*GridLayout {
     id: line
     columns: 2

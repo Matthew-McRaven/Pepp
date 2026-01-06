@@ -9,7 +9,6 @@ Rectangle {
     id: root
 
     property real cellWidth: 128
-    //property int blockSize: 100
 
     ListModel {
         id: diagramModel
@@ -37,11 +36,6 @@ Rectangle {
             name: "NOR Gate"
             type: "NOR"
             file: "qrc:/nor"
-        }
-        ListElement {
-            name: "XOR Gate"
-            type: "XOR"
-            file: "qrc:/xor"
         }
         ListElement {
             name: "XOR Gate"
@@ -102,6 +96,8 @@ Rectangle {
 
             property string curName: ""
             property string curFile: ""
+            property Diagram fromObject: null
+            property Diagram toObject: null
 
             /*Image{
                 id: svgs
@@ -115,6 +111,31 @@ Rectangle {
                 height: 200
             }*/
 
+            Diagram {
+                id: diagram1
+                text: "AND Gate"
+                file: "qrc:/and"
+                x: 0
+                y: 0
+                z: 1
+            }
+
+            Diagram {
+                id: diagram2
+                text: "OR Gate"
+                file: "qrc:/or"
+                x: 200
+                y: 200
+                z: 1
+            }
+
+            Line {
+                id: line
+
+                fromObject: diagram1
+                toObject: diagram2
+            }
+
             //  Used to show where objects will be stamped on canvas
             Rectangle {
                 id: stamp
@@ -125,7 +146,7 @@ Rectangle {
                 }
                 width: 75
                 height: 75
-                visible: root.curName != ""
+                visible: canvas.curName != ""
             }
 
             MouseArea {
@@ -134,18 +155,18 @@ Rectangle {
                 hoverEnabled: true
                 onClicked: event => {
                     //  No template selected. Just return
-                    if (root.curName === "")
+                    if (canvas.curName === "")
                         return;
 
                     var diagram = Move.createBlock(canvas, event.x, event.y);
-                    //console.log( "onClick1 diagram.x", diagram.x, "diagram.y", diagram.y, "canvas.x", canvas.x, "canvas.y", canvas.y);
-                    //console.log( "onClick2 x", event.x, "y", event.y, "stamp.x",stamp.x, "stamp.y", stamp.y);
+                //console.log( "onClick1 diagram.x", diagram.x, "diagram.y", diagram.y, "canvas.x", canvas.x, "canvas.y", canvas.y);
+                //console.log( "onClick2 x", event.x, "y", event.y, "stamp.x",stamp.x, "stamp.y", stamp.y);
                 }
 
                 onPositionChanged: event => {
                     //  Move object within grid (large axis)
                     Move.moveObjectTo(stamp, event.x, event.y);
-                    //console.log( "x", event.x, "y", event.y, "stamp.x", stamp.x, "stamp.y", stamp.y);
+                //console.log( "x", event.x, "y", event.y, "stamp.x", stamp.x, "stamp.y", stamp.y);
                 }
 
                 onEntered: {

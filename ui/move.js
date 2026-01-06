@@ -7,14 +7,14 @@ var minorX = 5;
 var minorY = 5;
 var component = null;
 
+//  Create new diagram
 function createBlock(parent, x, y) {
     //  Cache component for creating diagrams
     if (component === null)
         component = Qt.createComponent("Diagram.qml");
 
-    // Note that if Block.qml was not a local file, component.status would be
-    // Loading and we should wait for the component's statusChanged() signal to
-    // know when the file is downloaded and ready before calling createObject().
+
+    //  Create instance of a diagram and place at indicated x,y coordinate
     var diagram;
     if (component.status === Quick.Component.Ready) {
         diagram = component.createObject(parent);
@@ -35,6 +35,7 @@ function createBlock(parent, x, y) {
     return diagram;
 }
 
+//  Move object along a grid pattern
 function moveObjectTo(obj, x, y) {
     if (obj === null)
         return;
