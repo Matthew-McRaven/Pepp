@@ -1,6 +1,8 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Qt.labs.qmlmodels
+import "move.js" as Move
 
 Item {
     id: root
@@ -8,12 +10,14 @@ Item {
     property var toObject: null
 
     //  Assume right, center side of from object
-    x: fromObject.x + fromObject.width
-    y: fromObject.y + fromObject.height / 2
+    x: Move.lineX(fromObject, toObject)
+    y: Move.lineY(fromObject, toObject)
 
     //  Assume left, center side of to object
-    width: toObject.x - root.x
-    height: toObject.y - root.y + toObject.height / 2
+    //    width: toObject.x - root.x
+    //    height: toObject.y - root.y + toObject.height / 2
+    width: 200
+    height: 400
 
     Rectangle {
         anchors.fill: root
