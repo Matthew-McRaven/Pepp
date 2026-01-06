@@ -8,5 +8,6 @@
         <file alias="nor">nor.svg</file>
         <file alias="nand">nand.svg</file>
         <file alias="inverter">inverter.svg</file>
+        <file alias="line">line.svg</file>
     </qresource>
 </RCC>

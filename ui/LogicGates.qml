@@ -10,8 +10,6 @@ Rectangle {
 
     property real cellWidth: 128
     //property int blockSize: 100
-    property string curName: ""
-    property string curFile: ""
 
     ListModel {
         id: diagramModel
@@ -45,6 +43,16 @@ Rectangle {
             type: "XOR"
             file: "qrc:/xor"
         }
+        ListElement {
+            name: "XOR Gate"
+            type: "XOR"
+            file: "qrc:/xor"
+        }
+        ListElement {
+            name: "Line"
+            type: "Line"
+            file: "qrc:/line"
+        }
     }
 
     SplitView {
@@ -55,8 +63,8 @@ Rectangle {
             buttons: source.children.filter(child => child !== rep)
 
             onClicked: btn => {
-                root.curName = btn.text;
-                root.curFile = btn.icon.source;
+                canvas.curName = btn.text;
+                canvas.curFile = btn.icon.source;
                 console.log(btn.text);
             }
         }
@@ -92,10 +100,19 @@ Rectangle {
         Rectangle {
             id: canvas
 
+            property string curName: ""
+            property string curFile: ""
+
             /*Image{
                 id: svgs
                 anchors.fill: canvas
                 source: "qrc:/logic_gates"
+            }*/
+
+            /*Line {
+                anchors.centerIn: parent
+                width: 200
+                height: 200
             }*/
 
             //  Used to show where objects will be stamped on canvas
@@ -111,34 +128,24 @@ Rectangle {
                 visible: root.curName != ""
             }
 
-
             MouseArea {
                 id: ma
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: {
+                onClicked: event => {
                     //  No template selected. Just return
                     if (root.curName === "")
                         return;
 
-                    var comp = Qt.createComponent("Diagram.qml");
-
-                    var diagram = comp.createObject(root, {
-                                                        text: root.curName,
-                                                        file: root.curFile
-                                                    });
-
-                    //  Move object within grid (large axis)
-                    diagram.x = canvas.x + stamp.x;
-                    diagram.y = canvas.y + stamp.y;
-                    //Move.moveObjectTo(diagram, canvas.x + stamp.x, canvas.y + stamp.y);
-                    console.log( "d.x", diagram.x, "d.y", diagram.y, "c.x", canvas.x, "c.y", canvas.y, "s.x", stamp.x, "s.y", stamp.y);
+                    var diagram = Move.createBlock(canvas, event.x, event.y);
+                    //console.log( "onClick1 diagram.x", diagram.x, "diagram.y", diagram.y, "canvas.x", canvas.x, "canvas.y", canvas.y);
+                    //console.log( "onClick2 x", event.x, "y", event.y, "stamp.x",stamp.x, "stamp.y", stamp.y);
                 }
 
                 onPositionChanged: event => {
                     //  Move object within grid (large axis)
                     Move.moveObjectTo(stamp, event.x, event.y);
-                    //console.log( "x", event.x, "y", event.y, "new x", row, "new y", col);
+                    //console.log( "x", event.x, "y", event.y, "stamp.x", stamp.x, "stamp.y", stamp.y);
                 }
 
                 onEntered: {

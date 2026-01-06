@@ -62,7 +62,8 @@ Item {
             onPositionChanged: event => {
                 //  Move object within grid (large axis)
                 Move.moveObjectTo(root, root.x + event.x, root.y + event.y);
-                //console.log( "x", event.x, "y", event.y, "root x", root.x, "root y", root.y);
+                //Move.moveObjectTo(root.parent, root.parent.x + event.x, root.parent.y + event.y);
+                //console.log( "x", event.x, "y", event.y, "root x", root.parent.x, "root y", root.parent.y);
             }
         }
     }
