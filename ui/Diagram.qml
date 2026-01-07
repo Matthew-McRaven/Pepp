@@ -9,8 +9,8 @@ Item {
     property string text: ""
     property alias file: image.source
     property bool horizontal: true
-    //property point input: input()
-    //property point output: input()
+    property alias input: input
+    property alias output: output
 
     width: Move.majorX
     height: Move.majorY
@@ -19,29 +19,29 @@ Item {
     //Drag.hotSpot.x: root.width / 2
     //Drag.hotSpot.y: root.height / 2
 
-    /*function input() {
-        var x = 0;
-        var y = 0;
+    /*function inputPt() {
+        var x = wrapper.x;
+        var y = wrapper.y;
 
-        switch (image.rotation) {
+        switch (wrapper.rotation) {
         //  Pointing down
         case 90:
-            y = root.height;
-            x = root.width / 2;
+            x += wrapper.width / 2;
+            y += wrapper.height;
             break;
         //Pointing left
         case 180:
             //  X = 0 already
-            y = root.height / 2;
+            y = wrapper.height / 2;
             break;
         //  Pointing up
         case 270:
-            x = root.width / 2;
+            x = wrapper.width / 2;
             break;
         //  Pointing left
         default:
-            x = root.width;
-            y = root.height / 2;
+            x += wrapper.width;
+            y += wrapper.height / 2;
             break;
         }
 
@@ -85,7 +85,6 @@ Item {
             source: ""
 
             fillMode: Image.PreserveAspectFit
-            //rotation: 0
             opacity: ma.drag.active ? .25 : 1
 
             preferredRendererType: VectorImage.CurveRenderer

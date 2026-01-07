@@ -9,15 +9,23 @@ Item {
     property var fromObject: null
     property var toObject: null
 
+    anchors.left: fromObject.right
+    anchors.top: fromObject.y <= toObject.y ? fromObject.top : toObject.top
+    anchors.topMargin: fromObject.y === toObject.y ? 0 : fromObject.height / 2
+
+    anchors.right: toObject.left
+    anchors.bottom: fromObject.y >= toObject.y ? fromObject.bottom : toObject.bottom
+    anchors.bottomMargin: fromObject.y === toObject.y ? 0 :toObject.height / 2
+
     //  Assume right, center side of from object
-    x: Move.lineX(fromObject, toObject)
-    y: Move.lineY(fromObject, toObject)
+    //x: Move.lineX(fromObject, toObject)
+    //y: Move.lineY(fromObject, toObject)
 
     //  Assume left, center side of to object
     //    width: toObject.x - root.x
     //    height: toObject.y - root.y + toObject.height / 2
-    width: 200
-    height: 400
+    //width: 200
+    //height: 400
 
     Rectangle {
         anchors.fill: root

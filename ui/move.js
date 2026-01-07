@@ -44,13 +44,21 @@ function moveObjectTo(obj, x, y) {
     obj.y = col;
 }
 
+function xMajorGrid(x) {
+    return Math.min(0, Math.floor(x / majorX) * majorX);
+}
+function yMajorGrid(y) {
+    return Math.min(0, Math.floor(y / majorY) * majorY);
+}
+
 function lineX(from, to) {
-    var left = from.x;
-    const width = to.x - from.x;
-    console.log("left", left, "width", width, "from.x", from.x);
+    var left = xMajorGrid(from.input.x);
+    //const right = to.input.x;
+    //const width = left - right;
+    //console.log("left", left);//, "right", right, "width", width);
 
     //  If width is negative, To object is right of From. Use x coordinate
-    if (width > 0) {
+    /*    if (width > 0) {
         if (width > from.width) {
             //  To object is not aigned with From object. Connect to right
             left += from.width;
@@ -62,19 +70,20 @@ function lineX(from, to) {
         }
     }
     //else
-    //console.log("left");
+    //console.log("left");*/
 
     return left;
 }
 
 function lineY(from, to) {
-    var top = from.y;
+    var top = yMajorGrid(from.input.y);
+    const bottom = to.input.y;
     const height = to.y - from.y;
-    console.log("top", top, "height", height, "from.height", from.height);
+    //console.log("top", top); //, "height", height, "from.height", from.height);
 
     //if (Math.abs(height) > from.height) {
     //  Objects are vertically aligned. Connect
-    top += from.height / 2;
+    //top += from.height / 2;
     /*} else {
         // Objects are vertically aligned. Connect to center
         //        top += (height > 0) ? from.height : -from.height;
