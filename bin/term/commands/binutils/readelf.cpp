@@ -37,6 +37,7 @@ void ReadElfTask::run() {
   if (_opts.program_headers) programHeaders(elf);
   if (_opts.symbols) symbols(elf);
   if (_opts.notes) notes(elf);
+  if (_opts.relocs) relocs(elf);
   if (_opts.debug_line) debug_line(elf);
   if (_opts.debug_info) debug_info(elf);
   if (!_opts.dump_strs.empty()) dump_strs(elf);
@@ -69,6 +70,78 @@ void ReadElfTask::symbols(ELFIO::elfio &elf) const {
 }
 
 void ReadElfTask::notes(ELFIO::elfio &elf) const { ELFIO::dump::notes(std::cout, elf); }
+
+void ReadElfTask::relocs(ELFIO::elfio &elf) const {
+  using namespace Qt::StringLiterals;
+  for (const auto &sec : elf.sections) {
+    // Only process relocation sections. sh_info is not guaranteed to be valid, so we need to ensure it is both in range
+    // and points to a symbol table.
+    if (sec->get_type() != ELFIO::SHT_REL && sec->get_type() != ELFIO::SHT_RELA) continue;
+    else if (sec->get_link() > elf.sections.size()) {
+      std::cout << fmt::format("Relocation section '{}' has invalid sh_link {}", sec->get_name(), sec->get_link())
+                << std::endl;
+      continue;
+    }
+    auto sec_symtab = elf.sections[sec->get_link()];
+    if (sec_symtab->get_type() != ELFIO::SHT_SYMTAB) {
+      std::cout << fmt::format("Relocation section '{}' sh_link {} does not point to symbol table", sec->get_name(),
+                               sec->get_link())
+                << std::endl;
+      continue;
+    }
+
+    auto sym_acc = ELFIO::symbol_section_accessor(elf, sec_symtab);
+    auto rel_acc = ELFIO::relocation_section_accessor(elf, sec.get());
+    std::cout << fmt::format("Relocation section '{}' at offset 0x{:x} contains {} {}", sec->get_name(),
+                             sec->get_offset(), rel_acc.get_entries_num(),
+                             rel_acc.get_entries_num() == 1 ? "entry" : "entries")
+              << std::endl;
+
+    if (sec->get_type() == ELFIO::SHT_REL)
+      std::cout << fmt::format("{:^8} {:^8} {:^16} {:^8} {}", "Offset", "Info", "Type", "Sym.Value", "Sym.Name")
+                << std::endl;
+    else
+      std::cout << fmt::format("{:^8} {:^8} {:^16} {:^8} {:^8} {} ", "Offset", "Info", "Type", "Addend", "Sym.Value",
+                               "Sym.Name")
+                << std::endl;
+
+    // So many unused temporaries, but that's the API for ELFIO.
+    for (int rel_idx = 0; rel_idx < rel_acc.get_entries_num(); rel_idx++) {
+      ELFIO::Elf64_Addr rel_offset;
+      ELFIO::Elf_Word rel_symbol;
+      unsigned rel_type;
+      ELFIO::Elf_Sxword rel_addened;
+      if (!rel_acc.get_entry(rel_idx, rel_offset, rel_symbol, rel_type, rel_addened)) {
+        std::cout << fmt::format("Invalid entry at index {}", rel_idx);
+        continue;
+      }
+      auto rel_info =
+          (((rel_symbol) << 8) + (unsigned char)(rel_type)); // Recompute r_info according to Fig 1-22 of ELF spec
+
+      std::string sym_name;
+      ELFIO::Elf64_Addr sym_value;
+      ELFIO::Elf_Xword sym_size;
+      unsigned char sym_bind, sym_type, sym_other;
+      ELFIO::Elf_Half section_index;
+      // Do not skip printing on invalid symbol, but warn user that they might want to inspect r_info.
+      if (!sym_acc.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
+                              section_index, sym_other)) {
+        std::cout << fmt::format("Invalid symbol, check info") << std::endl;
+        sym_name = "", sym_value = 0;
+      }
+
+      // TODO: attempt to decode rel_type to a string based on the architecture.
+      if (sec->get_type() == ELFIO::SHT_REL)
+        std::cout << fmt::format("{:08x} {:08x} {:^16} {:08x}  {}", rel_offset, rel_info, rel_type, sym_value, sym_name)
+                  << std::endl;
+      else
+        std::cout << fmt::format("{:08x} {:08x} {:^16} {:08x} {:08x}  {}", rel_offset, rel_info, rel_type, rel_addened,
+                                 sym_value, sym_name)
+                  << std::endl;
+    }
+    std::cout << std::endl;
+  }
+}
 
 void ReadElfTask::debug_line(ELFIO::elfio &elf) const {
   static const int columns = 8;
