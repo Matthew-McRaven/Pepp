@@ -76,7 +76,7 @@ request multiple hex dumps.");
       readelf->add_flag("-S,--section-headers", opts.section_headers, "Display the section headers.");
   static auto symbols = readelf->add_flag("-s,--symbols", opts.symbols, "Display the symbol tables.");
   static auto notes = readelf->add_flag("-n,--notes", opts.notes, "Display the notes.");
-  static auto relocs = readelf->add_flag("-r,--relocs", opts.notes, "Display the relocations.");
+  static auto relocs = readelf->add_flag("-r,--relocs", opts.relocs, "Display the relocations.");
   // -wli would be the standard GNU options, but I don't want to figure out how to parse those right now.
   // For full compatibility, we would need to support these options as -wl, -wi, and -wli.
   static auto debug_line = readelf->add_flag("--wl", opts.debug_line, "Display debugger line numbers.");
