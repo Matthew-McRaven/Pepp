@@ -31,6 +31,7 @@ public:
     bool section_headers = false;
     bool symbols = false;
     bool notes = false;
+    bool relocs = false;
     bool debug_line = false;
     bool debug_info = false;
     std::string elffile;
@@ -46,6 +47,7 @@ private:
   void sectionHeaders(ELFIO::elfio &) const;
   void symbols(ELFIO::elfio &) const;
   void notes(ELFIO::elfio &) const;
+  void relocs(ELFIO::elfio &) const;
   void debug_line(ELFIO::elfio &) const;
   void debug_info(ELFIO::elfio &) const;
   void dump_strs(ELFIO::elfio &) const;
@@ -74,6 +76,7 @@ request multiple hex dumps.");
       readelf->add_flag("-S,--section-headers", opts.section_headers, "Display the section headers.");
   static auto symbols = readelf->add_flag("-s,--symbols", opts.symbols, "Display the symbol tables.");
   static auto notes = readelf->add_flag("-n,--notes", opts.notes, "Display the notes.");
+  static auto relocs = readelf->add_flag("-r,--relocs", opts.notes, "Display the relocations.");
   // -wli would be the standard GNU options, but I don't want to figure out how to parse those right now.
   // For full compatibility, we would need to support these options as -wl, -wi, and -wli.
   static auto debug_line = readelf->add_flag("--wl", opts.debug_line, "Display debugger line numbers.");
@@ -86,7 +89,7 @@ request multiple hex dumps.");
       readelf->add_option("elffile", opts.elffile, "The object file to be examined.")->expected(1)->required(true);
   readelf->callback([&]() {
     if (*all) {
-      opts.file_header = opts.program_headers = opts.section_headers = opts.symbols = opts.notes = true;
+      opts.file_header = opts.program_headers = opts.section_headers = opts.symbols = opts.notes = opts.relocs = true;
     }
     if (*headers) {
       opts.file_header = opts.program_headers = opts.section_headers = true;
