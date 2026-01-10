@@ -13,7 +13,7 @@
 import QtQuick
 import QtQuick.Controls
 import edu.pepp
-import "qrc:/kddockwidgets/qtquick/views/qml/" as KDDW
+import "qrc:/qt/qml/com/kdab/dockwidgets" as KDDW
 
 KDDW.TabBarBase {
     id: root
