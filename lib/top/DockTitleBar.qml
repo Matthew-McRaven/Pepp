@@ -13,7 +13,8 @@ import QtQuick 2.9
 import QtQuick.Window 2.15
 
 // Will be moved to a plugin in the future, if there's enough demand
-import "qrc:/kddockwidgets/qtquick/views/qml/" as KDDW
+import "qrc:/qt/qml/com/kdab/dockwidgets" as KDDW
+
 
 /**
   * Copied from TitleBar.qml, with buttons removed
