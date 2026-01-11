@@ -16,11 +16,11 @@
  */
 
 #pragma once
+#include "bts/microarch/pep.hpp"
 #include "sim/debug/debugger.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
-#include "toolchain2/targets/pep/uarch.hpp"
 #include "toolchain2/ucode/pep_ir.hpp" // TODO: Stop including the parser in the simulator!!
 
 namespace sim::memory {

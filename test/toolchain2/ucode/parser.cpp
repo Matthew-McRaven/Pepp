@@ -15,7 +15,7 @@
  */
 #include <catch.hpp>
 
-#include "toolchain2/targets/pep/uarch.hpp"
+#include "bts/microarch/pep.hpp"
 #include "toolchain2/ucode/pep_parser.hpp"
 
 TEST_CASE("Microassemble 1-byte bus", "[scope:mc2][kind:unit][arch:*][tc2]") {

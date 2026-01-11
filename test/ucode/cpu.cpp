@@ -16,7 +16,7 @@
 #include <catch.hpp>
 
 #include "../../lib/sim3/cores/pep/traced_pep9_mc2.hpp"
-#include "toolchain2/targets/pep/uarch.hpp"
+#include "bts/microarch/pep.hpp"
 #include "toolchain2/ucode/pep_parser.hpp"
 
 namespace {

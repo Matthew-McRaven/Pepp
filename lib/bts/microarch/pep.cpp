@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "./uarch.hpp"
+#include "./pep.hpp"
 
 void pepp::tc::arch::Pep9ByteBus::Code::set(Signals s, uint8_t value) {
   using enum detail::pep9_1byte::Signals;

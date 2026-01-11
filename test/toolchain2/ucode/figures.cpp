@@ -22,7 +22,7 @@
 #include "help/builtins/registry.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
-#include "toolchain2/targets/pep/uarch.hpp"
+#include "bts/microarch/pep.hpp"
 #include "toolchain2/ucode/pep_parser.hpp"
 
 namespace {
