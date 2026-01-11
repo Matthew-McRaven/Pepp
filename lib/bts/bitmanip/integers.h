@@ -97,9 +97,13 @@ private:
     case 2: return __builtin_bswap16(v);
     case 4: return __builtin_bswap32(v);
     case 8: return __builtin_bswap64(v);
-    default: __builtin_unreachable();
+    default: break;
     }
+#if defined(_MSC_VER) && !defined(__clang__) // MSVC
+    __assume(false);
+#else // GCC, Clang
     __builtin_unreachable();
+#endif
   }
 
   uint8_t buf[size];
