@@ -56,7 +56,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
   SECTION("Create ehdr with section table and program header table") {
     ElfLE32 elf(FileType::ET_EXEC, MachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
     elf.add_section_header_table();
-    ElfPhdrLE32 phdr;
+    ElfLE32::Phdr phdr;
     phdr.p_filesz = 0;
     phdr.p_memsz = 0x1000;
     phdr.p_flags = to_underlying(SegmentFlags::PF_R) | to_underlying(SegmentFlags::PF_W);

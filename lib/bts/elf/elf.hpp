@@ -11,6 +11,9 @@ struct LayoutItem {
 };
 template <ElfBits B, ElfEndian E> class Elf {
 public:
+  using Ehdr = ElfEhdr<B, E>;
+  using Shdr = ElfShdr<B, E>;
+  using Phdr = ElfPhdr<B, E>;
   // Create an empty ELF file with the given file type and ABI
   Elf(FileType, MachineType, ElfABI);
   ElfEhdr<B, E> header;
