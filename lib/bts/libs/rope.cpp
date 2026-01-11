@@ -6,6 +6,7 @@
 //
 
 #include "rope.hpp"
+#include <iostream>
 
 // out-of-bounds error constant
 std::invalid_argument ERROR_OOB_ROPE = std::invalid_argument("Error: string index out of bounds");
@@ -196,7 +197,12 @@ bool pepp::bts::rope::operator==(const rope &rhs) const { return this->toString(
 bool pepp::bts::rope::operator!=(const rope &rhs) const { return !(*this == rhs); }
 
 // Print the rope
-std::ostream &pepp::bts::operator<<(std::ostream &out, const pepp::bts::rope &r) { return out << r.toString(); }
+std::ostream &pepp::bts::operator<<(std::ostream &out, const pepp::bts::rope &r) {
+  // auto s = r.toString();
+  // out.write(s.data(), static_cast<std::streamsize>(s.size()));
+  // return out;
+  return out << r.toString();
+}
 
 // Compute the nth Fibonacci number, in O(n) time
 size_t pepp::bts::fib(size_t n) {
