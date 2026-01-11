@@ -94,16 +94,18 @@ private:
 
   static T bswap(T v) {
     switch (size) {
+#if defined(_MSC_VER) && !defined(__clang__)
+    case 2: return _byteswap_ushort(v);
+    case 4: return _byteswap_ulong(v);
+    case 8: return _byteswap_uint64(v);
+    default: __assume(false);
+#else
     case 2: return __builtin_bswap16(v);
     case 4: return __builtin_bswap32(v);
     case 8: return __builtin_bswap64(v);
-    default: break;
-    }
-#if defined(_MSC_VER) && !defined(__clang__) // MSVC
-    __assume(false);
-#else // GCC, Clang
-    __builtin_unreachable();
+    default: __builtin_unreachable();
 #endif
+    }
   }
 
   uint8_t buf[size];
