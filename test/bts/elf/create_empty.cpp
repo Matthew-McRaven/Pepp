@@ -47,6 +47,37 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     data.resize(size_for_layout(layout));
     elf.write(data, layout);
     write("ehdr_shdr32.elf", data);
+    ELFIO::elfio elfio;
+    std::istringstream in(std::string((const char *)data.data(), data.size()));
+    CHECK_NOTHROW(elfio.load(in) == true);
+    CHECK(elfio.get_class() == ELFIO::ELFCLASS32);
+    CHECK(elfio.sections.size() == 2);
+  }
+  SECTION("Create ehdr with section table and program header table") {
+    ElfLE32 elf(FileType::ET_EXEC, MachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
+    elf.add_section_header_table();
+    ElfPhdrLE32 phdr;
+    phdr.p_filesz = 0;
+    phdr.p_memsz = 0x1000;
+    phdr.p_flags = to_underlying(SegmentFlags::PF_R) | to_underlying(SegmentFlags::PF_W);
+    phdr.p_type = to_underlying(SegmentType::PT_LOAD);
+    phdr.p_align = 1;
+    phdr.p_paddr = phdr.p_vaddr = 0xFEEDBEEF;
+    elf.add_segment(std::move(phdr));
+    auto layout = elf.calculate_layout();
+    std::vector<u8> data;
+    data.resize(size_for_layout(layout));
+    elf.write(data, layout);
+    write("ehdr_all_hdr32.elf", data);
+    ELFIO::elfio elfio;
+    std::istringstream in(std::string((const char *)data.data(), data.size()));
+    CHECK_NOTHROW(elfio.load(in) == true);
+    CHECK(elfio.get_class() == ELFIO::ELFCLASS32);
+    CHECK(elfio.sections.size() == 2);
+    CHECK(elfio.segments.size() == 1);
+    CHECK(elfio.segments[0]->get_file_size() == 0);
+    CHECK(elfio.segments[0]->get_memory_size() == 4096);
+    CHECK(elfio.segments[0]->get_sections_num() == 0);
   }
 }
 

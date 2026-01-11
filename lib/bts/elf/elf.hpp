@@ -3,6 +3,7 @@
 #include "bts/bitmanip/copy.hpp"
 #include "bts/elf/header.hpp"
 #include "bts/elf/section.hpp"
+#include "bts/elf/segment.hpp"
 namespace pepp::bts {
 struct LayoutItem {
   u64 offset;
@@ -17,6 +18,7 @@ public:
   void add_section_header_table();
 
   u32 add_section(ElfShdr<B, E> &&shdr);
+  u32 add_segment(ElfPhdr<B, E> &&phdr);
   // Place the section header followed by the program header table at the given offset
   u64 place_header_tables_at(std::vector<LayoutItem> &layout, u64 off);
 
@@ -25,6 +27,7 @@ public:
 
 private:
   std::vector<ElfShdr<B, E>> section_headers;
+  std::vector<ElfPhdr<B, E>> program_headers;
   std::vector<std::vector<u8>> section_data;
 };
 using ElfLE32 = Elf<ElfBits::b32, ElfEndian::le>;
@@ -55,6 +58,14 @@ template <ElfBits B, ElfEndian E> inline u32 Elf<B, E>::add_section(ElfShdr<B, E
   return ret;
 }
 
+template <ElfBits B, ElfEndian E> inline u32 Elf<B, E>::add_segment(ElfPhdr<B, E> &&phdr) {
+  if (program_headers.empty()) header.e_phentsize = sizeof(ElfPhdr<B, E>);
+  program_headers.emplace_back(phdr);
+  u32 ret = static_cast<u32>(program_headers.size() - 1);
+  header.e_phnum = program_headers.size();
+  return ret;
+}
+
 template <ElfBits B, ElfEndian E>
 inline u64 Elf<B, E>::place_header_tables_at(std::vector<LayoutItem> &layout, u64 off) {
   // Then place section header table
@@ -65,8 +76,10 @@ inline u64 Elf<B, E>::place_header_tables_at(std::vector<LayoutItem> &layout, u6
     off += header.e_shentsize * header.e_shnum;
   }
   // Followed by program header table
-  if (false) {
+  if (!program_headers.empty()) {
     header.e_phoff = off;
+    layout.emplace_back(LayoutItem{off, std::span<u8>(reinterpret_cast<u8 *>(program_headers.data()),
+                                                      sizeof(ElfPhdr<B, E>) * program_headers.size())});
     off += header.e_phentsize * header.e_phnum;
   }
   return off;
