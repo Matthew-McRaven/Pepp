@@ -26,7 +26,7 @@
 #include "toolchain/pas/operations/pepp/addressable.hpp"
 #include "toolchain/pas/operations/pepp/size.hpp"
 #include "toolchain/pas/operations/pepp/string.hpp"
-#include "utils/bits/strings.hpp"
+#include "bts/bitmanip/strings.hpp"
 
 using isa::Pep10;
 using pas::ops::pepp::Direction;

@@ -33,7 +33,7 @@
  */
 #include "./registers.hpp"
 #include <stdexcept>
-#include "bits/span.hpp"
+#include "bts/bitmanip/span.hpp"
 #include "bts/isa/rv_base.hpp"
 
 namespace {

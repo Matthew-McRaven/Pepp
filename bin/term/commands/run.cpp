@@ -30,7 +30,7 @@
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/link/mmio.hpp"
-#include "utils/bits/strings.hpp"
+#include "bts/bitmanip/strings.hpp"
 
 auto gs = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Application,

@@ -33,7 +33,7 @@
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/pas/obj/common.hpp"
 #include "toolchain/pas/operations/pepp/bytes.hpp"
-#include "utils/bits/strings.hpp"
+#include "bts/bitmanip/strings.hpp"
 #include "utils/logging.hpp"
 #include "utils/strings.hpp"
 

@@ -17,8 +17,8 @@
 
 #pragma once
 #include <QtCore>
-#include "utils/bits/order.hpp"
-#include "utils/bits/span.hpp"
+#include "bts/bitmanip/order.hpp"
+#include "bts/bitmanip/span.hpp"
 
 namespace pas::ast::value {
 class Base {

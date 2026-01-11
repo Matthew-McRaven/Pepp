@@ -19,7 +19,7 @@
 #include "sim3/cores/pep/traced_pep9_isa3.hpp"
 #include "./api.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
-#include "utils/bits/swap.hpp"
+#include "bts/bitmanip/swap.hpp"
 
 TEST_CASE("Pep9::Mnemonic::RETTR", "[scope:targets][kind:int][target:pep9]") {
   using ISA = isa::Pep9;

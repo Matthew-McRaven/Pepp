@@ -20,7 +20,7 @@
 #include "./api.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
-#include "utils/bits/swap.hpp"
+#include "bts/bitmanip/swap.hpp"
 
 TEST_CASE("MOVASP", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;

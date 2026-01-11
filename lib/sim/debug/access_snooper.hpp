@@ -17,7 +17,7 @@
 
 #pragma once
 #include <iostream>
-#include "utils/bits/strings.hpp"
+#include "bts/bitmanip/strings.hpp"
 #include "sim/api.hpp"
 #include "sim/trace/common.hpp"
 

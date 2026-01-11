@@ -4,7 +4,7 @@
 #include "pep_codegen.hpp"
 #include "toolchain2/asmb/pep_ir_visitor.hpp"
 #include "toolchain2/asmb/pep_tokens.hpp"
-#include "utils/bits/strings.hpp"
+#include "bts/bitmanip/strings.hpp"
 #include "utils/textutils.hpp"
 
 namespace {

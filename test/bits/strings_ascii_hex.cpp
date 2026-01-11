@@ -16,8 +16,8 @@
 
 #include <catch.hpp>
 #include <qtypes.h>
-#include "utils/bits/copy.hpp"
-#include "utils/bits/strings.hpp"
+#include "bts/bitmanip/copy.hpp"
+#include "bts/bitmanip/strings.hpp"
 namespace {
 static const QList<bits::SeparatorRule> rules = {{.skipFirst = false, .separator = ' ', .modulus = 1}};
 }

@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "utils/bits/copy.hpp"
+#include "bts/bitmanip/copy.hpp"
 #include <catch.hpp>
 using namespace bits;
 using vu8 = QList<quint8>;

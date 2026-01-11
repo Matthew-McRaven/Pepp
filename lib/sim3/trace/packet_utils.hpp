@@ -18,7 +18,7 @@
 #include "../utils.hpp"
 #include "sim3/api/traced/trace_buffer.hpp"
 #include "sim3/api/traced/trace_packets.hpp"
-#include "utils/bits/copy.hpp"
+#include "bts/bitmanip/copy.hpp"
 namespace sim::trace2 {
 
 template <typename T>
