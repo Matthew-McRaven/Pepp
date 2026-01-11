@@ -34,7 +34,7 @@
 #include "./registers.hpp"
 #include <stdexcept>
 #include "bits/span.hpp"
-#include "enums/isa/rv_base.hpp"
+#include "bts/isa/rv_base.hpp"
 
 namespace {
 template <typename... Args>

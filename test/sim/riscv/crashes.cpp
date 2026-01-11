@@ -1,5 +1,5 @@
 #include <catch.hpp>
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/debug.hpp"
 #include "utils/bits/span.hpp"
 

@@ -17,7 +17,7 @@
 #include "toolchain/pas/driver/pep10.hpp"
 #include <catch.hpp>
 #include "sim3/systems/traced_pep_isa3_system.hpp"
-#include "enums/isa/pep10.hpp"
+#include "bts/isa/pep10.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"

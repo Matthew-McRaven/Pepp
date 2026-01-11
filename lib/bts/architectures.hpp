@@ -20,35 +20,9 @@
 #include <QString>
 #include <QtCore>
 #include <QtQmlIntegration>
-#include "../exports.hpp"
 
 // Must be in separate file to prevent circuluar include in Qt MOC.
 namespace pepp {
-Q_NAMESPACE_EXPORT(PEPP_EXPORT);
-
-class AbstractionHelper : public QObject {
-  Q_GADGET
-  QML_NAMED_ELEMENT(Abstraction)
-  QML_UNCREATABLE("Error:Only enums")
-
-public:
-  enum class Abstraction {
-    NO_ABS = -1,
-    // LG1 = 1,
-    MC2 = 20,
-    ISA3 = 30,
-    ASMB3 = 31,
-    OS4 = 40,
-    ASMB5 = 50,
-    // HOL6 = 6,
-    // APP7 = 7,
-  };
-  Q_ENUM(Abstraction)
-  AbstractionHelper(QObject *parent = nullptr);
-  Q_INVOKABLE QString string(Abstraction abstraction) const;
-};
-using Abstraction = AbstractionHelper::Abstraction;
-QString abstractionAsPrettyString(AbstractionHelper::Abstraction abstraction);
 class ArchitectureHelper : public QObject {
   Q_GADGET
   QML_NAMED_ELEMENT(Architecture)
@@ -61,7 +35,7 @@ public:
     PEP9 = 90,    //! The figure must be used with the Pep/9 toolchain.
     PEP10 = 100,  //! The figure must be use with the Pep/10 toolchain
     RISCV = 1000, //! The figure must be used with the RISC-V toolchain, which is
-                  //! undefined as of 2023-02-14.
+    //! undefined as of 2023-02-14.
   };
   Q_ENUM(Architecture)
   ArchitectureHelper(QObject *parent = nullptr);

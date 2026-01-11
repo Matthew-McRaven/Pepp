@@ -23,7 +23,7 @@
 #include "toolchain/pas/operations/generic/is.hpp"
 #include "toolchain/pas/operations/pepp/is.hpp"
 #include "toolchain/pas/parse/pepp/PeppASTConverter10.h"
-#include "enums/isa/pep10.hpp"
+#include "bts/isa/pep10.hpp"
 
 #include "toolchain/parse/PeppLexer.h"
 #include "toolchain/parse/PeppLexerErrorListener.h"

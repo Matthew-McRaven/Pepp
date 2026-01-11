@@ -37,8 +37,8 @@
 #include <inttypes.h>
 #include <string_view>
 #include <unordered_map>
-#include "enums/isa/rv_types.hpp"
-#include "enums/isa/rva.hpp"
+#include "bts/isa/rv_types.hpp"
+#include "bts/isa/rva.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/subsystems/ram/paged_pool/mmap_cache.hpp"
 #include "sim3/subsystems/ram/paged_pool/page.hpp"

@@ -33,11 +33,11 @@
  */
 #include "../instruction_counter.hpp"
 #include "decoder_cache_impl.hpp"
-#include "enums/isa/rva.hpp"
-#include "enums/isa/rvc.hpp"
-#include "enums/isa/rvfd.hpp"
-#include "enums/isa/rvi.hpp"
-#include "enums/isa/rvv.hpp"
+#include "bts/isa/rva.hpp"
+#include "bts/isa/rvc.hpp"
+#include "bts/isa/rvfd.hpp"
+#include "bts/isa/rvi.hpp"
+#include "bts/isa/rvv.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "threaded_bytecodes.hpp"
 

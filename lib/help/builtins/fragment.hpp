@@ -21,7 +21,8 @@
 #include <QString>
 #include <QtCore>
 #include <optional>
-#include "enums/constants.hpp"
+#include "bts/architectures.hpp"
+#include "bts/levels.hpp"
 namespace builtins {
 
 class Figure;

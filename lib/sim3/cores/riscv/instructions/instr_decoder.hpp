@@ -33,10 +33,10 @@
  */
 #pragma once
 #include "./instr_helpers.hpp"
-#include "enums/isa/rv_instruction_list.hpp"
-#include "enums/isa/rv_types.hpp"
-#include "enums/isa/rvfd.hpp"
-#include "enums/isa/rvi.hpp"
+#include "bts/isa/rv_instruction_list.hpp"
+#include "bts/isa/rv_types.hpp"
+#include "bts/isa/rvfd.hpp"
+#include "bts/isa/rvi.hpp"
 #include "sim3/common_macros.hpp"
 
 #include "./rva_instr.hpp"
@@ -44,9 +44,9 @@
 #include "./rvfd_instr.hpp"
 #include "./rvi_instr.hpp"
 #include "./rvv_instr.hpp"
-#include "enums/isa/rva.hpp"
-#include "enums/isa/rvc.hpp"
-#include "enums/isa/rvv.hpp"
+#include "bts/isa/rva.hpp"
+#include "bts/isa/rvc.hpp"
+#include "bts/isa/rvv.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/rv_common.hpp"
 
 namespace riscv {

@@ -33,7 +33,7 @@
  */
 #pragma once
 #include <array>
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/rv_common.hpp"
 

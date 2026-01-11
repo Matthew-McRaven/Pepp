@@ -37,7 +37,7 @@
 typedef std::make_signed_t<size_t> ssize_t;
 
 #include <sys/types.h>
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #include "ws2.hpp"
 
 namespace riscv {

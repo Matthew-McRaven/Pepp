@@ -32,8 +32,8 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
+#include "./rvi.hpp"
 #include "./rvi_instr.hpp"
-#include "enums/isa/rvi.hpp"
 
 namespace riscv
 {

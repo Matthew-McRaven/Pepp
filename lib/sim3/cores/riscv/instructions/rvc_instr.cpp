@@ -34,9 +34,9 @@
 #include "./rvc_instr.hpp"
 #include <inttypes.h>
 #include "../notraced_cpu.hpp"
-#include "enums/isa/rv_base.hpp"
-#include "enums/isa/rv_types.hpp"
-#include "enums/isa/rvc.hpp"
+#include "bts/isa/rv_base.hpp"
+#include "bts/isa/rv_types.hpp"
+#include "bts/isa/rvc.hpp"
 #include "instr_helpers.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"

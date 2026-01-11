@@ -21,7 +21,8 @@
 
 // Needed to prevent type_traits from complaining that Book has throwing dtor.
 #include "book.hpp"
-#include "enums/constants.hpp"
+#include "bts/architectures.hpp"
+#include "bts/levels.hpp"
 namespace macro {
 class Declaration;
 }

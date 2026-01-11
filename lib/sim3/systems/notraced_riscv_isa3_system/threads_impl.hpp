@@ -34,7 +34,7 @@
 #pragma once
 #include "../notraced_riscv_isa3_system.hpp"
 #include "./threads.hpp"
-#include "enums/isa/rv_base.hpp"
+#include "bts/isa/rv_base.hpp"
 
 /** Implementation **/
 

@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "enums/isa/pep10.hpp"
+#include "bts/isa/pep10.hpp"
 #include "sim/debug/debugger.hpp"
 #include "sim3/api/clock.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
