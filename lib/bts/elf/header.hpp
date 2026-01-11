@@ -265,7 +265,10 @@ enum class MachineType {
   EM_MT = 0x2530,                // Morpho Techologies MT processor
   EM_ALPHA = 0x9026,             // Alpha
   EM_WEBASSEMBLY = 0x4157,       // Web Assembly
-  EM_DLX = 0x5aa5,               // OpenDLX
+  EM_DLX = 0x5aa5,               // OpenDL
+  EM_PEP9 = 0x7038,              // Pep/8  "p8"
+  EM_PEP8 = 0x7039,              // Pep/8  "p9"
+  EM_PEP10 = 0x7078,             // Pep/10 "px"
   EM_XSTORMY16 = 0xad45,         // Sanyo XStormy16 CPU core
   EM_IQ2000 = 0xFEBA,            // Vitesse IQ2000
   EM_NIOS32 = 0xFEBB,            // Altera Nios
@@ -303,14 +306,14 @@ enum class ElfABI : u8 {
 };
 
 #pragma pack(push, 1)
-template <typename E> struct ElfEhdr {
+template <ElfBits B, ElfEndian E> struct ElfEhdr {
   u8 e_ident[16];
   U16<E> e_type;    // See: FileType
   U16<E> e_machine; // See: MachineType
   U32<E> e_version; // See: ElfVersion
-  Word<E> e_entry;
-  Word<E> e_phoff;
-  Word<E> e_shoff;
+  Word<B, E> e_entry;
+  Word<B, E> e_phoff;
+  Word<B, E> e_shoff;
   U32<E> e_flags;
   U16<E> e_ehsize;
   U16<E> e_phentsize;
@@ -318,22 +321,26 @@ template <typename E> struct ElfEhdr {
   U16<E> e_shentsize;
   U16<E> e_shnum;
   U16<E> e_shstrndx;
-  // Create a empty ELF header
+  // Create mostly-0-initialized ELF header
   ElfEhdr() noexcept;
-  ElfEhdr(FileType type, ElfABI abi) noexcept;
+  ElfEhdr(FileType type, MachineType machine, ElfABI abi) noexcept;
 };
 #pragma pack(pop)
+using ElfEhdrLE32 = ElfEhdr<ElfBits::b32, ElfEndian::le>;
+using ElfEhdrLE64 = ElfEhdr<ElfBits::b64, ElfEndian::le>;
+using ElfEhdrBE32 = ElfEhdr<ElfBits::b32, ElfEndian::be>;
+using ElfEhdrBE64 = ElfEhdr<ElfBits::b64, ElfEndian::be>;
 
 namespace detail {
-void fill_e_ident(std::span<u8, 16> e_ident, bool is_64, bool is_le, ElfABI abi, u8 abi_version) noexcept {
+void fill_e_ident(std::span<u8, 16> e_ident, ElfBits B, ElfEndian E, ElfABI abi, u8 abi_version) noexcept {
   e_ident[to_underlying(ElfIdentifierIndices::EI_MAG0)] = to_underlying(ElfMagic::ELFMAG0);
   e_ident[to_underlying(ElfIdentifierIndices::EI_MAG1)] = to_underlying(ElfMagic::ELFMAG1);
   e_ident[to_underlying(ElfIdentifierIndices::EI_MAG2)] = to_underlying(ElfMagic::ELFMAG2);
   e_ident[to_underlying(ElfIdentifierIndices::EI_MAG3)] = to_underlying(ElfMagic::ELFMAG3);
   e_ident[to_underlying(ElfIdentifierIndices::EI_CLASS)] =
-      to_underlying(is_64 ? ElfClass::ELFCLASS64 : ElfClass::ELFCLASS32);
+      to_underlying(B == ElfBits::b64 ? ElfClass::ELFCLASS64 : ElfClass::ELFCLASS32);
   e_ident[to_underlying(ElfIdentifierIndices::EI_DATA)] =
-      to_underlying(is_le ? ElfEncoding::ELFDATA2LSB : ElfEncoding::ELFDATA2MSB);
+      to_underlying(E == ElfEndian::le ? ElfEncoding::ELFDATA2LSB : ElfEncoding::ELFDATA2MSB);
   e_ident[to_underlying(ElfIdentifierIndices::EI_VERSION)] = to_underlying(ElfVersion::EV_CURRENT);
   e_ident[to_underlying(ElfIdentifierIndices::EI_OSABI)] = to_underlying(abi);
   e_ident[to_underlying(ElfIdentifierIndices::EI_ABIVERSION)] = abi_version;
@@ -341,8 +348,9 @@ void fill_e_ident(std::span<u8, 16> e_ident, bool is_64, bool is_le, ElfABI abi,
   memset(padding.data(), 0, padding.size());
 }
 } // namespace detail
-template <typename E> inline ElfEhdr<E>::ElfEhdr() noexcept {
-  detail::fill_e_ident(e_ident, E::is_64, E::is_le, (ElfABI)0, 0);
+
+template <ElfBits B, ElfEndian E> inline ElfEhdr<B, E>::ElfEhdr() noexcept {
+  detail::fill_e_ident(e_ident, B, E, (ElfABI)0, 0);
   e_type = to_underlying(FileType::ET_NONE);
   e_machine = to_underlying(MachineType::EM_NONE);
   e_version = to_underlying(ElfVersion::EV_CURRENT);
@@ -350,7 +358,7 @@ template <typename E> inline ElfEhdr<E>::ElfEhdr() noexcept {
   e_phoff = 0;
   e_shoff = 0;
   e_flags = 0;
-  e_ehsize = sizeof(ElfEhdr<E>);
+  e_ehsize = sizeof(ElfEhdr<B, E>);
   e_phentsize = 0;
   e_phnum = 0;
   e_shentsize = 0;
@@ -358,16 +366,17 @@ template <typename E> inline ElfEhdr<E>::ElfEhdr() noexcept {
   e_shstrndx = 0;
 }
 
-template <typename E> inline ElfEhdr<E>::ElfEhdr(FileType type, ElfABI abi) noexcept {
-  detail::fill_e_ident(e_ident, E::is_64, E::is_le, abi, 0);
+template <ElfBits B, ElfEndian E>
+inline ElfEhdr<B, E>::ElfEhdr(FileType type, MachineType machine, ElfABI abi) noexcept {
+  detail::fill_e_ident(e_ident, B, E, abi, 0);
   e_type = to_underlying(type);
-  e_machine = E::e_machine;
+  e_machine = to_underlying(machine);
   e_version = to_underlying(ElfVersion::EV_CURRENT);
   e_entry = 0;
   e_phoff = 0;
   e_shoff = 0;
   e_flags = 0;
-  e_ehsize = sizeof(ElfEhdr<E>);
+  e_ehsize = sizeof(ElfEhdr<B, E>);
   e_phentsize = 0;
   e_phnum = 0;
   e_shentsize = 0;

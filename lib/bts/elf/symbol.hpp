@@ -38,7 +38,7 @@ enum class SymbolVisibility : u8 {
 };
 
 #pragma pack(push, 1)
-template <typename E> struct ElfSymbol {
+template <ElfBits B, ElfEndian E> struct ElfSymbol {
   using enum SectionIndices;
   using enum SymbolBinding;
   bool is_undef() const { return st_shndx == to_underlying(SHN_UNDEF); }
@@ -55,12 +55,17 @@ template <typename E> struct ElfSymbol {
     st_other = (st_other & 0xFC) | (to_underlying(v) & 0x3);
   }
   U32<E> st_name;
-  Word<E> st_value;
-  Word<E> st_size;
+  Word<B, E> st_value;
+  Word<B, E> st_size;
   u8 st_info;  // See: SymbolBinding, SymbolType
   u8 st_other; // See: SymbolVisibility
   U16<E> st_shndx;
 };
 #pragma pack(pop)
+
+using ElfSymbolLE32 = ElfSymbol<ElfBits::b32, ElfEndian::le>;
+using ElfSymbolLE64 = ElfSymbol<ElfBits::b64, ElfEndian::le>;
+using ElfSymbolBE32 = ElfSymbol<ElfBits::b32, ElfEndian::be>;
+using ElfSymbolBE64 = ElfSymbol<ElfBits::b64, ElfEndian::be>;
 
 } // namespace pepp::bts

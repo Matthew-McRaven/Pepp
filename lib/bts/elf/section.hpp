@@ -82,22 +82,22 @@ enum class SectionFlags : u64 {
 };
 
 #pragma pack(push, 1)
-template <typename E> struct ElfShdr {
+template <ElfBits B, ElfEndian E> struct ElfShdr {
   U32<E> sh_name;
   U32<E> sh_type;
-  Word<E> sh_flags;
-  Word<E> sh_addr;
-  Word<E> sh_offset;
-  Word<E> sh_size;
+  Word<B, E> sh_flags;
+  Word<B, E> sh_addr;
+  Word<B, E> sh_offset;
+  Word<B, E> sh_size;
   U32<E> sh_link;
   U32<E> sh_info;
-  Word<E> sh_addralign;
-  Word<E> sh_entsize;
+  Word<B, E> sh_addralign;
+  Word<B, E> sh_entsize;
 };
 #pragma pack(pop)
 
-template <typename E> ElfShdr<E> create_null_header() {
-  ElfShdr<E> shdr;
+template <ElfBits B, ElfEndian E> ElfShdr<B, E> create_null_header() {
+  ElfShdr<B, E> shdr;
   shdr.sh_name = 0;
   shdr.sh_type = to_underlying(SectionTypes::SHT_NULL);
   shdr.sh_flags = 0;
@@ -110,8 +110,8 @@ template <typename E> ElfShdr<E> create_null_header() {
   shdr.sh_entsize = 0;
   return shdr;
 }
-template <typename E> ElfShdr<E> create_shstrtab_header(u32 name) {
-  ElfShdr<E> shdr;
+template <ElfBits B, ElfEndian E> ElfShdr<B, E> create_shstrtab_header(u32 name) {
+  ElfShdr<B, E> shdr;
   shdr.sh_name = name;
   shdr.sh_type = to_underlying(SectionTypes::SHT_STRTAB);
   shdr.sh_flags = 0;
@@ -124,4 +124,10 @@ template <typename E> ElfShdr<E> create_shstrtab_header(u32 name) {
   shdr.sh_entsize = 0;
   return shdr;
 }
+
+using ElfShdrLE32 = ElfShdr<ElfBits::b32, ElfEndian::le>;
+using ElfShdrLE64 = ElfShdr<ElfBits::b64, ElfEndian::le>;
+using ElfShdrBE32 = ElfShdr<ElfBits::b32, ElfEndian::be>;
+using ElfShdrBE64 = ElfShdr<ElfBits::b64, ElfEndian::be>;
+
 } // namespace pepp::bts
