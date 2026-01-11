@@ -1,10 +1,13 @@
 #pragma once
 
-#include <zpp_bits.h>
+#include "bts/bitmanip/copy.hpp"
 #include "bts/elf/header.hpp"
 #include "bts/elf/section.hpp"
 namespace pepp::bts {
-
+struct LayoutItem {
+  u64 offset;
+  std::span<u8> data;
+};
 template <typename E> class Elf {
 public:
   // Create an empty ELF file with the given file type and ABI
@@ -23,26 +26,6 @@ public:
     shstrab.insert(shstrab.end(), {'.', 's', 'h', 's', 't', 'r', 't', 'a', 'b', 0});
   }
 
-  // TODO: someday, what we actually want to do is mmap the file. The archive will wrap the mmap'ed output, and we will
-  // jump around. Purposefully split output from input to avoid some archive trickery.
-  template <typename T> constexpr static zpp::bits::errc serialize(zpp::bits::basic_out<T> &archive, auto &self) {
-    // Write section header immediately after header
-    if (zpp::bits::errc errc = archive(self.header); errc.code != std::errc()) return errc;
-
-    // Skip first section (null), because it has no data.
-    for (size_t i = 1; i < self.section_data.size(); ++i) {
-      const auto &sdat = self.section_data[i];
-      const auto span = std::span(sdat.data(), sdat.size());
-      if (zpp::bits::errc errc = archive(zpp::bits::bytes(span, span.size())); errc.code != std::errc()) return errc;
-    }
-
-    // Write out section headers, then program headers before EoF
-    for (const auto &shdr : self.section_headers)
-      if (zpp::bits::errc errc = archive(shdr); errc.code != std::errc()) return errc;
-
-    return {};
-  }
-
   u32 add_section(ElfShdr<E> &&shdr) {
     section_headers.emplace_back(shdr);
     section_data.emplace_back();
@@ -52,10 +35,12 @@ public:
   };
 
   // Place the section header followed by the program header table at the given offset
-  u64 place_header_tables_at(u64 off) {
+  u64 place_header_tables_at(std::vector<LayoutItem> &layout, u64 off) {
     // Then place section header table
     if (!section_headers.empty()) {
       header.e_shoff = off;
+      layout.emplace_back(LayoutItem{off, std::span<u8>(reinterpret_cast<u8 *>(section_headers.data()),
+                                                        sizeof(ElfShdr<E>) * section_headers.size())});
       off += header.e_shentsize * header.e_shnum;
     }
     // Followed by program header table
@@ -65,8 +50,14 @@ public:
     }
     return off;
   }
-  void calculate_layout() {
+
+  std::vector<LayoutItem> calculate_layout() {
+    std::vector<LayoutItem> ret;
+    // 3 is a magic constant including: ehdr, shdr, and phdr
+    ret.reserve(section_headers.size() + 2);
+    ret.emplace_back(LayoutItem{0, std::span<u8>(reinterpret_cast<u8 *>(&header), sizeof(ElfEhdr<E>))});
     u64 rolling_offset = sizeof(ElfEhdr<E>);
+    rolling_offset = place_header_tables_at(ret, rolling_offset);
     // Finalize header fields for program header table
     // Skip first section (null), because we want a 0-offset.
     for (size_t i = 1; i < section_headers.size(); ++i) {
@@ -74,8 +65,18 @@ public:
       shdr.sh_offset = rolling_offset;
       auto size = section_data[i].size();
       shdr.sh_size = size, rolling_offset += size;
+      ret.emplace_back(LayoutItem{shdr.sh_offset, std::span<u8>(section_data[i].data(), size)});
     }
-    rolling_offset = place_header_tables_at(rolling_offset);
+
+    return ret;
+  }
+  void write(std::span<u8> out, const std::vector<LayoutItem> &layout) {
+    for (const auto &item : layout) {
+      if (item.offset + item.data.size() > out.size())
+        throw std::runtime_error("Elf::write: layout item exceeds output size");
+      std::span<u8> chunk = out.subspan(item.offset, item.data.size());
+      bits::memcpy<u8, u8>(chunk, {item.data});
+    }
   }
 
 private:
@@ -83,5 +84,10 @@ private:
   std::vector<std::vector<u8>> section_data;
 };
 template <typename E> pepp::bts::Elf<E>::Elf(FileType type, ElfABI abi) : header(type, abi) {}
+u64 size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) {
+  u64 ret = 0;
+  for (const auto &item : layout) ret = std::max(ret, item.offset + item.data.size());
+  return ret;
+}
 
 } // namespace pepp::bts

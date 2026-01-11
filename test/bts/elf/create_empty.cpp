@@ -16,12 +16,11 @@
 #include <catch.hpp>
 
 #include <elfio/elfio.hpp>
-#include <zpp_bits.h>
 #include "bts/elf/architectures.hpp"
 #include "bts/elf/elf.hpp"
 #include "bts/elf/header.hpp"
 namespace {
-bool write(const std::string &fname, const std::span<const std::byte> &data) {
+bool write(const std::string &fname, const std::span<const u8> &data) {
   std::ofstream out(fname, std::ios::binary);
   if (!out.is_open()) return false;
   out.write(reinterpret_cast<const char *>(data.data()), data.size());
@@ -33,8 +32,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
   using namespace pepp::bts;
   SECTION("Create ehdr with custom, read with ELFIO") {
     auto my_header = ElfEhdr<PEP10>(FileType::ET_EXEC, ElfABI::ELFOSABI_NONE);
-    auto [data, _, out] = zpp::bits::data_in_out();
-    CHECK(out(my_header).code == std::errc());
+    auto data = bits::span<const u8>{reinterpret_cast<const u8 *>(&my_header), sizeof(my_header)};
     CHECK(data.size() == 52);
     write("ehdr_only_test32.elf", data);
     ELFIO::elfio elf;
@@ -45,9 +43,10 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
   SECTION("Create ehdr with section table") {
     Elf<PEP10> elf(FileType::ET_EXEC, ElfABI::ELFOSABI_NONE);
     elf.add_section_header_table();
-    elf.calculate_layout();
-    auto [data, _, out] = zpp::bits::data_in_out();
-    CHECK(out(elf).code == std::errc());
+    auto layout = elf.calculate_layout();
+    std::vector<u8> data;
+    data.resize(size_for_layout(layout));
+    elf.write(data, layout);
     write("ehdr_shdr32.elf", data);
   }
 }
@@ -56,8 +55,7 @@ TEST_CASE("Test custom ELF library, 64-bit", "[scope:elf][kind:unit][arch:*]") {
   SECTION("Create ehdr with custom, read with ELFIO") {
     using namespace pepp::bts;
     auto my_header = ElfEhdr<RV64LE>(FileType::ET_EXEC, ElfABI::ELFOSABI_NONE);
-    auto [data, _, out] = zpp::bits::data_in_out();
-    CHECK(out(my_header).code == std::errc());
+    auto data = bits::span<const u8>{reinterpret_cast<const u8 *>(&my_header), sizeof(my_header)};
     CHECK(data.size() == 64);
     write("ehdr_only_test64.elf", data);
     ELFIO::elfio elf;

@@ -321,9 +321,6 @@ template <typename E> struct ElfEhdr {
   // Create a empty ELF header
   ElfEhdr() noexcept;
   ElfEhdr(FileType type, ElfABI abi) noexcept;
-
-  friend zpp::bits::access;
-  using serialize = zpp::bits::members<14>;
 };
 #pragma pack(pop)
 
