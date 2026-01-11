@@ -37,48 +37,30 @@ enum class SymbolVisibility : u8 {
   STV_PROTECTED = 3,
 };
 
+#pragma pack(push, 1)
 template <typename E> struct ElfSymbol {
   using enum SectionIndices;
   using enum SymbolBinding;
   bool is_undef() const { return st_shndx == to_underlying(SHN_UNDEF); }
   bool is_abs() const { return st_shndx == to_underlying(SHN_ABS); }
   bool is_common() const { return st_shndx == to_underlying(SHN_COMMON); }
-  bool is_weak() const { return st_bind == to_underlying(STB_WEAK); }
+  bool is_weak() const { return st_bind() == to_underlying(STB_WEAK); }
   bool is_undef_weak() const { return is_undef() && is_weak(); }
-  u8 info() const { return (st_bind << 4) | (st_type & 0x0F); }
-
+  constexpr SymbolType st_type() const noexcept { return SymbolType(st_info & 0x0F); }
+  constexpr void set_type(SymbolType t) noexcept { st_info = (st_info & 0xF0) | (to_underlying(t) & 0xF); }
+  constexpr SymbolBinding st_bind() const noexcept { return SymbolBinding((st_info >> 4) & 0x0F); }
+  constexpr void set_bind(SymbolBinding b) noexcept { st_info = ((to_underlying(b) & 0xF) << 4) | (st_info & 0x0F); }
+  constexpr SymbolVisibility st_visibility() const noexcept { return SymbolVisibility(st_other & 0x3); }
+  constexpr void set_visibility(SymbolVisibility v) noexcept {
+    st_other = (st_other & 0xFC) | (to_underlying(v) & 0x3);
+  }
   U32<E> st_name;
-
-#ifdef __LITTLE_ENDIAN__
-  u8 st_type : 4; // See: SymbolType
-  u8 st_bind : 4; // See: SymbolBinding
-  union {
-    u8 st_visibility : 2; // See: SymbolVisibility
-    struct {
-      u8 : 7;
-      u8 arm64_variant_pcs : 1;
-    };
-    struct {
-      u8 : 7;
-      u8 riscv_variant_cc : 1;
-    };
-  };
-#else
-  u8 st_bind : 4; // See: SymbolBinding
-  u8 st_type : 4; // See SymbolType
-  union {
-    struct {
-      u8 : 6;
-      u8 st_visibility : 2; // See: SymbolVisibility
-    };
-    u8 arm64_variant_pcs : 1;
-    u8 riscv_variant_cc : 1;
-  };
-#endif
-
-  U16<E> st_shndx;
   Word<E> st_value;
   Word<E> st_size;
+  u8 st_info;  // See: SymbolBinding, SymbolType
+  u8 st_other; // See: SymbolVisibility
+  U16<E> st_shndx;
 };
+#pragma pack(pop)
 
 } // namespace pepp::bts
