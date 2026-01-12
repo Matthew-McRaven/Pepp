@@ -42,10 +42,10 @@ public:
   std::optional<PackedElfSymbol<B, E>> find_symbol(Word<B, E> address) const noexcept;
 
   // Add a symbol to the table. Assumes you already set st_name!
-  void add_symbol(PackedElfSymbol<B, E> &&symbol);
+  u32 add_symbol(PackedElfSymbol<B, E> &&symbol);
   // Helpers to assign name and section index.
-  void add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name);
-  void add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name, u16 section_index);
+  u32 add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name);
+  u32 add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name, u16 section_index);
   void arrange_local_symbols(std::function<void(Word<B, E> first, Word<B, E> second)> func = nullptr);
 
 private:
@@ -290,25 +290,28 @@ std::optional<PackedElfSymbol<B, E>> PackedSymbolAccessor<B, E, Const>::find_sym
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-void PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol) {
+u32 PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol) {
   if (shdr.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
   copy_to_symtab(std::move(symbol));
+  return symbol_count() - 1;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-void PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name) {
+u32 PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name) {
   if (shdr.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
   add_symbol(std::move(symbol), name, symbol.st_shndx);
+  return symbol_count() - 1;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-void PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name,
-                                                   u16 section_index) {
+u32 PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name,
+                                                  u16 section_index) {
   if (shdr.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
   auto name_idx = strtab.add_string(name);
   symbol.st_name = name_idx;
   symbol.st_shndx = section_index;
   copy_to_symtab(std::move(symbol));
+  return symbol_count() - 1;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -349,7 +352,7 @@ void PackedSymbolAccessor<B, E, Const>::copy_to_symtab(PackedElfSymbol<B, E> &&s
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfSymbol<B, E>);
   const u8 *ptr = reinterpret_cast<const u8 *>(&symbol);
   symtab.insert(symtab.end(), ptr, ptr + sizeof(PackedElfSymbol<B, E>));
-  shdr.sh_size += sizeof(PackedElfSymbol<B, E>);
+  shdr.sh_size = symtab.size();
 }
 
 // Relocations
@@ -634,6 +637,6 @@ template <ElfBits B, ElfEndian E, bool Const> void PackedArrayAccessor<B, E, Con
   Word<B, E> adjust = address;
   const u8 *ptr = reinterpret_cast<const u8 *>(&adjust);
   data.insert(data.end(), ptr, ptr + sizeof(Word<B, E>));
-  shdr.sh_size = data.size() / sizeof(Word<B, E>);
+  shdr.sh_size = data.size();
 }
 } // namespace pepp::bts

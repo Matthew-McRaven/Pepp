@@ -297,10 +297,9 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     dyn_writer.add_entry(DT_INIT, 0xFEED);
     dyn_writer.add_entry(DT_FINI, 0xBEEF);
     dyn_writer.add_entry(DT_NULL, 0);
-    st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
+    auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
     st_writer.arrange_local_symbols();
     auto layout = calculate_layout(elf);
-    auto _DYNAMIC = st_writer.find_symbol_index("_DYNAMIC");
     auto &dyn_seg = elf.program_headers[0];
     dyn_seg.p_filesz = elf.section_headers[dynamic_idx].sh_size;
     dyn_seg.p_memsz = elf.section_headers[dynamic_idx].sh_size;
