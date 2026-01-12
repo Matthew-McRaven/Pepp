@@ -7,6 +7,7 @@ struct LayoutItem {
   u64 offset;
   std::span<u8> data;
 };
+
 template <ElfBits B, ElfEndian E> class PackedElf {
 public:
   using Ehdr = PackedElfEhdr<B, E>;
@@ -50,11 +51,4 @@ template <ElfBits B, ElfEndian E> inline u32 PackedElf<B, E>::add_segment(Phdr &
   header.e_phnum = program_headers.size();
   return ret;
 }
-
-u64 size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) {
-  u64 ret = 0;
-  for (const auto &item : layout) ret = std::max(ret, item.offset + item.data.size());
-  return ret;
-}
-
 } // namespace pepp::bts

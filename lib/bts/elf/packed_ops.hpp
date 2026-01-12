@@ -7,6 +7,7 @@ namespace pepp::bts {
 template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedElf<B, E> &elf);
 template <ElfBits B, ElfEndian E> u64 place_header_tables_at(PackedElf<B, E> &, std::vector<LayoutItem> &, u64 off);
 template <ElfBits B, ElfEndian E> std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &);
+u64 size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) noexcept;
 void write(std::span<u8> out, const std::vector<LayoutItem> &layout);
 
 template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedElf<B, E> &elf) {
