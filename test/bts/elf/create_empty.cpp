@@ -314,6 +314,19 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     write(data, layout);
     write("ehdr_dynamic.elf", data);
   }
+  SECTION("Write .init") {
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    auto idx = add_named_section(elf, ".init", SectionTypes::SHT_INIT_ARRAY);
+    PackedArrayWriter<ElfBits::b32, ElfEndian::le> writer(elf, idx);
+    writer.add_entry(0xFEED);
+    writer.add_entry(0xBEEF0000);
+    auto layout = calculate_layout(elf);
+    std::vector<u8> data;
+    data.resize(size_for_layout(layout));
+    write(data, layout);
+    write("ehdr_array.elf", data);
+  }
 }
 
 TEST_CASE("Test custom ELF library, 64-bit", "[scope:elf][kind:unit][arch:*]") {
