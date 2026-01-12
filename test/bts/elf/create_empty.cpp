@@ -305,9 +305,8 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     dyn_seg.p_memsz = elf.section_headers[dynamic_idx].sh_size;
     dyn_seg.p_offset = elf.section_headers[dynamic_idx].sh_offset;
     dyn_seg.p_type = to_underlying(SegmentType::PT_DYNAMIC);
+    st_writer.replace_value(_DYNAMIC, elf.section_headers[dynamic_idx].sh_offset);
 
-    CHECK(_DYNAMIC != 0);
-    st_writer.get_symbol_ptr(_DYNAMIC)->st_value = elf.section_headers[dynamic_idx].sh_offset;
     std::vector<u8> data;
     data.resize(size_for_layout(layout));
     write(data, layout);

@@ -40,6 +40,7 @@ public:
   u32 find_symbol_index(std::string_view name) const noexcept;
   std::optional<PackedElfSymbol<B, E>> find_symbol(std::string_view name) const noexcept;
   std::optional<PackedElfSymbol<B, E>> find_symbol(Word<B, E> address) const noexcept;
+  void replace_value(u32 index, Word<B, E> value) noexcept;
 
   // Add a symbol to the table. Assumes you already set st_name!
   u32 add_symbol(PackedElfSymbol<B, E> &&symbol);
@@ -288,6 +289,12 @@ std::optional<PackedElfSymbol<B, E>> PackedSymbolAccessor<B, E, Const>::find_sym
   for (u32 it = 0; it < symbol_count(); ++it)
     if (auto sym = get_symbol(it); sym.st_value == address) return sym;
   return std::nullopt;
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedSymbolAccessor<B, E, Const>::replace_value(u32 index, Word<B, E> value) noexcept {
+  if (index >= symbol_count()) return;
+  get_symbol_ptr(index)->st_value = value;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
