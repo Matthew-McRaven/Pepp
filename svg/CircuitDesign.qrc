@@ -9,5 +9,7 @@
         <file alias="nand">nand.svg</file>
         <file alias="inverter">inverter.svg</file>
         <file alias="line">line.svg</file>
+        <file alias="multiline">multiline.svg</file>
+        <file alias="bus">bus.svg</file>
     </qresource>
 </RCC>

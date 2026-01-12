@@ -40,7 +40,7 @@
      id="layer1">
     <path
        style="fill:#000000;stroke:#000000;stroke-width:0.265;fill-opacity:1"
-       d="M 0,12.5 L 50,12.5"
+       d="M 0,12.5 L 50,12.5 M 22.5,7.5 L 27.5,17.5"
        id="line" />
   </g>
 </svg>

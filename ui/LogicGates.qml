@@ -47,6 +47,16 @@ Rectangle {
             type: "Line"
             file: "qrc:/line"
         }
+        ListElement {
+            name: "Multiline"
+            type: "Multiline"
+            file: "qrc:/multiline"
+        }
+        ListElement {
+            name: "Bus"
+            type: "Bus"
+            file: "qrc:/bus"
+        }
     }
 
     SplitView {
@@ -112,7 +122,7 @@ Rectangle {
             }*/
 
             //  Test Only Diagrams for checking line connection
-            Diagram {
+            /*Diagram {
                 id: diagram1
                 text: "AND Gate"
                 file: "qrc:/and"
@@ -135,7 +145,7 @@ Rectangle {
 
                 fromObject: diagram1
                 toObject: diagram2
-            }
+            }*/
 
             //  Used to show where objects will be stamped on canvas
             Rectangle {
