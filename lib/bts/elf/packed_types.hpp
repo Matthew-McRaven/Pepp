@@ -55,6 +55,10 @@ template <ElfBits B, ElfEndian E> struct PackedElfEhdr {
   U16<E> e_shnum;
   U16<E> e_shstrndx;
 };
+using PackedElfEhdrLE32 = PackedElfEhdr<ElfBits::b32, ElfEndian::le>;
+using PackedElfEhdrLE64 = PackedElfEhdr<ElfBits::b64, ElfEndian::le>;
+using PackedElfEhdrBE32 = PackedElfEhdr<ElfBits::b32, ElfEndian::be>;
+using PackedElfEhdrBE64 = PackedElfEhdr<ElfBits::b64, ElfEndian::be>;
 
 // Per: ELF TIS Figure 1-8
 template <ElfBits B, ElfEndian E> struct PackedElfShdr {
@@ -71,6 +75,10 @@ template <ElfBits B, ElfEndian E> struct PackedElfShdr {
   Word<B, E> sh_addralign;
   Word<B, E> sh_entsize;
 };
+using PackedElfShdrLE32 = PackedElfShdr<ElfBits::b32, ElfEndian::le>;
+using PackedElfShdrLE64 = PackedElfShdr<ElfBits::b64, ElfEndian::le>;
+using PackedElfShdrBE32 = PackedElfShdr<ElfBits::b32, ElfEndian::be>;
+using PackedElfShdrBE64 = PackedElfShdr<ElfBits::b64, ElfEndian::be>;
 
 // Per: ELF TIS Figure 1-15
 template <ElfBits B, ElfEndian E> struct PackedElfSymbol;
@@ -101,7 +109,6 @@ template <ElfEndian E> struct PackedElfSymbol<ElfBits::b64, E> {
   U64<E> st_value;
   U64<E> st_size;
 };
-
 template <ElfEndian E> struct PackedElfSymbol<ElfBits::b32, E> {
   PackedElfSymbol() noexcept;
 
@@ -128,6 +135,76 @@ template <ElfEndian E> struct PackedElfSymbol<ElfBits::b32, E> {
   u8 st_other; // See: SymbolVisibility
   U16<E> st_shndx;
 };
+using PackedElfSymbolLE32 = PackedElfSymbol<ElfBits::b32, ElfEndian::le>;
+using PackedElfSymbolLE64 = PackedElfSymbol<ElfBits::b64, ElfEndian::le>;
+using PackedElfSymbolBE32 = PackedElfSymbol<ElfBits::b32, ElfEndian::be>;
+using PackedElfSymbolBE64 = PackedElfSymbol<ElfBits::b64, ElfEndian::be>;
+
+// Per: sidebar below ELF TIS Figure 1-19
+template <ElfEndian E> u8 r_type(U32<E> r_info) noexcept { return static_cast<u8>(r_info & 0xFF); }
+template <ElfEndian E> U24<E> r_sym(U32<E> r_info) noexcept { return U24<E>((r_info >> 8) & 0xFFFFFF); }
+template <ElfEndian E> U32<E> r_info(u8 r_type, U24<E> r_sym) noexcept {
+  return U32<E>((static_cast<U32<E>>(r_sym) << 8) | static_cast<U32<E>>(r_type));
+}
+template <ElfEndian E> U32<E> r_type(U64<E> r_info) noexcept { return U32<E>(r_info & 0xFFFFFFFF); }
+template <ElfEndian E> U32<E> r_sym(U64<E> r_info) noexcept { return U32<E>((r_info >> 32) & 0xFFFFFFFF); }
+template <ElfEndian E> U64<E> r_info(U32<E> r_type, U32<E> r_sym) noexcept {
+  return U64<E>((static_cast<U64<E>>(r_sym) << 32) | static_cast<U64<E>>(r_type));
+}
+
+// Per: ELF TIS Figure 1-19
+template <ElfBits B, ElfEndian E> struct PackedElfRel;
+template <ElfEndian E> struct PackedElfRel<ElfBits::b32, E> {
+  PackedElfRel() = default;
+  PackedElfRel(u64 offset, u32 type, u32 sym) : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)) {}
+  constexpr u8 r_type() const noexcept { return pepp::bts::r_type(r_info); }
+  constexpr U24<E> r_sym() const noexcept { return pepp::bts::r_sym(r_info); }
+  constexpr void set_r_type(u8 type) noexcept { r_info = pepp::bts::r_info(type, r_sym()); }
+  constexpr void set_r_sym(U24<E> sym) noexcept { r_info = pepp::bts::r_info(r_type(), sym); }
+
+  Word<ElfBits::b32, E> r_offset;
+  U32<E> r_info;
+};
+template <ElfEndian E> struct PackedElfRel<ElfBits::b64, E> {
+  PackedElfRel() = default;
+  PackedElfRel(u64 offset, u32 type, u32 sym) : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)) {}
+  constexpr U32<E> r_type() const noexcept { return pepp::bts::r_type(r_info); }
+  constexpr U32<E> r_sym() const noexcept { return pepp::bts::r_sym(r_info); }
+  constexpr void set_r_type(U32<E> type) noexcept { r_info = pepp::bts::r_info(type, r_sym()); }
+  constexpr void set_r_sym(U32<E> sym) noexcept { r_info = pepp::bts::r_info(r_type(), sym); }
+
+  Word<ElfBits::b64, E> r_offset;
+  U64<E> r_info;
+};
+
+// Per: ELF TIS Figure 1-19
+template <ElfBits B, ElfEndian E> struct PackedElfRelA;
+template <ElfEndian E> struct PackedElfRelA<ElfBits::b32, E> {
+  PackedElfRelA() = default;
+  PackedElfRelA(u64 offset, u32 type, u32 sym, i64 addend)
+      : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)), r_addend(addend) {}
+  constexpr u8 r_type() const noexcept { return pepp::bts::r_type(r_info); }
+  constexpr U24<E> r_sym() const noexcept { return pepp::bts::r_sym(r_info); }
+  constexpr void set_r_type(u8 type) noexcept { r_info = pepp::bts::r_info(type, r_sym()); }
+  constexpr void set_r_sym(U24<E> sym) noexcept { r_info = pepp::bts::r_info(r_type(), sym); }
+
+  Word<ElfBits::b32, E> r_offset;
+  U32<E> r_info;
+  SWord<ElfBits::b32, E> r_addend;
+};
+template <ElfEndian E> struct PackedElfRelA<ElfBits::b64, E> {
+  PackedElfRelA() = default;
+  PackedElfRelA(u64 offset, u32 type, u32 sym, i64 addend)
+      : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)), r_addend(addend) {}
+  constexpr U32<E> r_type() const noexcept { return pepp::bts::r_type(r_info); }
+  constexpr U32<E> r_sym() const noexcept { return pepp::bts::r_sym(r_info); }
+  constexpr void set_r_type(U32<E> type) noexcept { r_info = pepp::bts::r_info(type, r_sym()); }
+  constexpr void set_r_sym(U32<E> sym) noexcept { r_info = pepp::bts::r_info(r_type(), sym); }
+
+  Word<ElfBits::b64, E> r_offset;
+  U64<E> r_info;
+  SWord<ElfBits::b64, E> r_addend;
+};
 
 // Per: ELF TIS Figure 2-1
 template <ElfBits B, ElfEndian E> struct PackedElfPhdr;
@@ -144,7 +221,6 @@ template <ElfEndian E> struct PackedElfPhdr<ElfBits::b32, E> {
   U32<E> p_flags; // See: SegmentFlags
   U32<E> p_align;
 };
-
 template <ElfEndian E> struct PackedElfPhdr<ElfBits::b64, E> {
   PackedElfPhdr() noexcept;
 
@@ -157,26 +233,12 @@ template <ElfEndian E> struct PackedElfPhdr<ElfBits::b64, E> {
   U64<E> p_memsz; // See: SegmentFlags
   U64<E> p_align;
 };
-
-#pragma pack(pop)
-
-// Type aliases for the various endianness/bitness combinations.
-using PackedElfEhdrLE32 = PackedElfEhdr<ElfBits::b32, ElfEndian::le>;
-using PackedElfEhdrLE64 = PackedElfEhdr<ElfBits::b64, ElfEndian::le>;
-using PackedElfEhdrBE32 = PackedElfEhdr<ElfBits::b32, ElfEndian::be>;
-using PackedElfEhdrBE64 = PackedElfEhdr<ElfBits::b64, ElfEndian::be>;
-using PackedElfShdrLE32 = PackedElfShdr<ElfBits::b32, ElfEndian::le>;
-using PackedElfShdrLE64 = PackedElfShdr<ElfBits::b64, ElfEndian::le>;
-using PackedElfShdrBE32 = PackedElfShdr<ElfBits::b32, ElfEndian::be>;
-using PackedElfShdrBE64 = PackedElfShdr<ElfBits::b64, ElfEndian::be>;
-using PackedElfSymbolLE32 = PackedElfSymbol<ElfBits::b32, ElfEndian::le>;
-using PackedElfSymbolLE64 = PackedElfSymbol<ElfBits::b64, ElfEndian::le>;
-using PackedElfSymbolBE32 = PackedElfSymbol<ElfBits::b32, ElfEndian::be>;
-using PackedElfSymbolBE64 = PackedElfSymbol<ElfBits::b64, ElfEndian::be>;
 using PackedElfPhdrLE32 = PackedElfPhdr<ElfBits::b32, ElfEndian::le>;
 using PackedElfPhdrLE64 = PackedElfPhdr<ElfBits::b64, ElfEndian::le>;
 using PackedElfPhdrBE32 = PackedElfPhdr<ElfBits::b32, ElfEndian::be>;
 using PackedElfPhdrBE64 = PackedElfPhdr<ElfBits::b64, ElfEndian::be>;
+
+#pragma pack(pop)
 
 // Per: ELF TIS Figure 1-10
 template <ElfBits B, ElfEndian E> PackedElfShdr<B, E> create_null_header() {
