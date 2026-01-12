@@ -7,8 +7,12 @@ namespace pepp::bts {
 
 template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedElf<B, E> &elf);
 // Assumes .shstrtab already exists
-template <ElfBits B, ElfEndian E> u16 add_named_section(PackedElf<B, E> &, std::string_view, SectionTypes);
-template <ElfBits B, ElfEndian E> u16 add_named_symtab(PackedElf<B, E> &, std::string_view, u16);
+template <ElfBits B, ElfEndian E> u16 add_named_section(PackedElf<B, E> &, std::string_view name, SectionTypes type);
+template <ElfBits B, ElfEndian E> u16 add_named_symtab(PackedElf<B, E> &, std::string_view name, u16 symtab_idx);
+template <ElfBits B, ElfEndian E>
+u16 add_named_rel(PackedElf<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
+template <ElfBits B, ElfEndian E>
+u16 add_named_rela(PackedElf<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
 template <ElfBits B, ElfEndian E> u64 place_header_tables_at(PackedElf<B, E> &, std::vector<LayoutItem> &, u64 off);
 template <ElfBits B, ElfEndian E> std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &);
 u64 size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) noexcept;
@@ -40,6 +44,28 @@ template <ElfBits B, ElfEndian E> u16 add_named_symtab(PackedElf<B, E> &elf, std
   shdr.sh_type = to_underlying(SectionTypes::SHT_SYMTAB);
   shdr.sh_name = writer.add_string(name);
   shdr.sh_link = strtab_idx;
+  return elf.add_section(std::move(shdr));
+}
+
+template <ElfBits B, ElfEndian E>
+u16 add_named_rel(PackedElf<B, E> &elf, std::string_view name, u16 symtab_idx, u16 section_idx) {
+  PackedElfShdr<B, E> shdr;
+  PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
+  shdr.sh_type = to_underlying(SectionTypes::SHT_REL);
+  shdr.sh_name = writer.add_string(name);
+  shdr.sh_link = symtab_idx;
+  shdr.sh_info = section_idx;
+  return elf.add_section(std::move(shdr));
+}
+
+template <ElfBits B, ElfEndian E>
+u16 add_named_rela(PackedElf<B, E> &elf, std::string_view name, u16 symtab_idx, u16 section_idx) {
+  PackedElfShdr<B, E> shdr;
+  PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
+  shdr.sh_type = to_underlying(SectionTypes::SHT_RELA);
+  shdr.sh_name = writer.add_string(name);
+  shdr.sh_link = symtab_idx;
+  shdr.sh_info = section_idx;
   return elf.add_section(std::move(shdr));
 }
 

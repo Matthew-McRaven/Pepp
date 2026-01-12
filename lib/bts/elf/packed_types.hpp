@@ -32,6 +32,7 @@ template <ElfEndian E> using U64 = std::conditional_t<E == ElfEndian::le, ul64, 
 template <ElfBits B, ElfEndian E> using Word = std::conditional_t<B == ElfBits::b64, U64<E>, U32<E>>;
 template <ElfBits B, ElfEndian E> using SWord = std::conditional_t<B == ElfBits::b64, I64<E>, I32<E>>;
 template <ElfBits B> using word = std::conditional_t<B == ElfBits::b64, u64, u32>;
+template <ElfBits B> using sword = std::conditional_t<B == ElfBits::b64, i64, i32>;
 
 #pragma pack(push, 1)
 // Per: ELF TIS Figure 1-3
@@ -141,6 +142,7 @@ using PackedElfSymbolBE32 = PackedElfSymbol<ElfBits::b32, ElfEndian::be>;
 using PackedElfSymbolBE64 = PackedElfSymbol<ElfBits::b64, ElfEndian::be>;
 
 // Per: sidebar below ELF TIS Figure 1-19
+
 template <ElfEndian E> u8 r_type(U32<E> r_info) noexcept { return static_cast<u8>(r_info & 0xFF); }
 template <ElfEndian E> U24<E> r_sym(U32<E> r_info) noexcept { return U24<E>((r_info >> 8) & 0xFFFFFF); }
 template <ElfEndian E> U32<E> r_info(u8 r_type, U24<E> r_sym) noexcept {

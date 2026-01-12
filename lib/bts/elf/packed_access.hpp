@@ -40,6 +40,7 @@ public:
 
   u32 symbol_count() const noexcept;
   PackedElfSymbol<B, E> get_symbol(u32 index) const noexcept;
+  u32 find_symbol_index(std::string_view name) const noexcept;
   std::optional<PackedElfSymbol<B, E>> find_symbol(std::string_view name) const noexcept;
   std::optional<PackedElfSymbol<B, E>> find_symbol(Word<B, E> address) const noexcept;
 
@@ -58,6 +59,7 @@ public:
   u32 symbol_count() const noexcept;
   PackedElfSymbol<B, E> get_symbol(u32 index) const noexcept;
   PackedElfSymbol<B, E> *get_symbol_ptr(u32 index) const noexcept;
+  u32 find_symbol_index(std::string_view name) const noexcept;
   std::optional<PackedElfSymbol<B, E>> find_symbol(std::string_view name) const noexcept;
   std::optional<PackedElfSymbol<B, E>> find_symbol(Word<B, E> address) const noexcept;
 
@@ -73,6 +75,54 @@ private:
   PackedElfShdr<B, E> &shdr;
   std::vector<u8> &symtab;
   PackedStringWriter<B, E> strtab;
+};
+
+// Handles both REL and RELA.
+// You just need to know which one you're dealing with.
+template <ElfBits B, ElfEndian E> class PackedRelocationReader {
+public:
+  PackedRelocationReader(const PackedElf<B, E> &elf, u16 index);
+  PackedRelocationReader(const PackedElfShdr<B, E> &shdr_reloc, const std::vector<u8> &reloc,
+                         const PackedElfShdr<B, E> &shdr_symbol, const std::vector<u8> &symtab,
+                         const PackedElfShdr<B, E> &shdr_strtab, const std::vector<u8> &strtab) noexcept;
+  bool is_rela() const noexcept;
+  u32 relocation_count() const noexcept;
+  PackedElfRel<B, E> get_rel(u32 index) const noexcept;
+  PackedElfRelA<B, E> get_rela(u32 index) const noexcept;
+
+private:
+  const PackedElfShdr<B, E> &shdr;
+  const std::vector<u8> &reloc;
+  PackedSymbolReader<B, E> symtab;
+};
+
+template <ElfBits B, ElfEndian E> class PackedRelocationWriter {
+public:
+  PackedRelocationWriter(PackedElf<B, E> &elf, u16 index);
+  PackedRelocationWriter(PackedElfShdr<B, E> &shdr_reloc, std::vector<u8> &reloc,
+                         const PackedElfShdr<B, E> &shdr_symbol, const std::vector<u8> &symtab,
+                         const PackedElfShdr<B, E> &shdr_strtab, std::vector<u8> &strtab) noexcept;
+  bool is_rela() const noexcept;
+  u32 relocation_count() const noexcept;
+  PackedElfRel<B, E> get_rel(u32 index) const noexcept;
+  PackedElfRelA<B, E> get_rela(u32 index) const noexcept;
+
+  void add_rel(PackedElfRel<B, E> &&rel);
+  void add_rel(word<B> offset, u32 type, u32 symbol);
+  void add_rel(word<B> offset, u32 type, std::string_view name);
+  void replace_rel(u32 index, word<B> offset, u32 type, u32 symbol);
+
+  void add_rela(PackedElfRelA<B, E> &&rel);
+  void add_rela(word<B> offset, u32 type, u32 symbol, sword<B> addend);
+  void add_rela(word<B> offset, u32 type, std::string_view name, sword<B> addend);
+  void replace_rela(u32 index, word<B> offset, u32 type, u32 symbol, sword<B> addend);
+
+  void swap_symbols(u32 first, u32 second) noexcept;
+
+private:
+  PackedElfShdr<B, E> &shdr;
+  std::vector<u8> &reloc;
+  PackedSymbolReader<B, E> symtab;
 };
 
 // Strings
@@ -166,13 +216,20 @@ template <ElfBits B, ElfEndian E> PackedElfSymbol<B, E> PackedSymbolReader<B, E>
 }
 
 template <ElfBits B, ElfEndian E>
-std::optional<PackedElfSymbol<B, E>> PackedSymbolReader<B, E>::find_symbol(std::string_view name) const noexcept {
+u32 PackedSymbolReader<B, E>::find_symbol_index(std::string_view name) const noexcept {
   // TODO: if there is a hash table index, use it for faster lookup.
   auto str_idx = strtab.find(name);
-  if (str_idx == 0 && !name.empty()) return std::nullopt;
+  if (str_idx == 0 && !name.empty()) return 0;
   for (u32 it = 0; it < symbol_count(); ++it)
-    if (auto sym = get_symbol(it); sym.st_name == str_idx) return sym;
-  return std::nullopt;
+    if (auto sym = get_symbol(it); sym.st_name == str_idx) return it;
+  return 0;
+}
+
+template <ElfBits B, ElfEndian E>
+std::optional<PackedElfSymbol<B, E>> PackedSymbolReader<B, E>::find_symbol(std::string_view name) const noexcept {
+  auto index = find_symbol_index(name);
+  if (index == 0 && !name.empty()) return std::nullopt;
+  return get_symbol(index);
 }
 
 template <ElfBits B, ElfEndian E>
@@ -212,13 +269,20 @@ PackedElfSymbol<B, E> *PackedSymbolWriter<B, E>::get_symbol_ptr(u32 index) const
 }
 
 template <ElfBits B, ElfEndian E>
-std::optional<PackedElfSymbol<B, E>> PackedSymbolWriter<B, E>::find_symbol(std::string_view name) const noexcept {
+u32 PackedSymbolWriter<B, E>::find_symbol_index(std::string_view name) const noexcept {
   // TODO: if there is a hash table index, use it for faster lookup.
   auto str_idx = strtab.find(name);
-  if (str_idx == 0 && !name.empty()) return std::nullopt;
+  if (str_idx == 0 && !name.empty()) return 0;
   for (u32 it = 0; it < symbol_count(); ++it)
-    if (auto sym = get_symbol(it); sym.st_name == str_idx) return sym;
-  return std::nullopt;
+    if (auto sym = get_symbol(it); sym.st_name == str_idx) return it;
+  return 0;
+}
+
+template <ElfBits B, ElfEndian E>
+std::optional<PackedElfSymbol<B, E>> PackedSymbolWriter<B, E>::find_symbol(std::string_view name) const noexcept {
+  auto index = find_symbol_index(name);
+  if (index == 0 && !name.empty()) return std::nullopt;
+  return get_symbol(index);
 }
 
 template <ElfBits B, ElfEndian E>
@@ -288,4 +352,176 @@ template <ElfBits B, ElfEndian E> void PackedSymbolWriter<B, E>::copy_to_symtab(
   shdr.sh_size += sizeof(PackedElfSymbol<B, E>);
 }
 
+// Relocations
+template <ElfBits B, ElfEndian E>
+PackedRelocationReader<B, E>::PackedRelocationReader(const PackedElf<B, E> &elf, u16 index)
+    : shdr(elf.section_headers[index]), reloc(elf.section_data[index]), symtab(elf, shdr.sh_link) {
+  if (index > elf.section_headers.size()) throw std::runtime_error("PackedRelocationWriter: invalid section index");
+}
+
+template <ElfBits B, ElfEndian E>
+PackedRelocationReader<B, E>::PackedRelocationReader(
+    const PackedElfShdr<B, E> &shdr_reloc, const std::vector<u8> &reloc, const PackedElfShdr<B, E> &shdr_symbol,
+    const std::vector<u8> &symtab, const PackedElfShdr<B, E> &shdr_strtab, const std::vector<u8> &strtab) noexcept
+    : shdr(shdr_reloc), reloc(reloc), symtab(symtab, shdr_symbol, shdr_strtab, strtab) {}
+
+template <ElfBits B, ElfEndian E> bool PackedRelocationReader<B, E>::is_rela() const noexcept {
+  return (shdr.sh_type == to_underlying(SectionTypes::SHT_RELA));
+}
+template <ElfBits B, ElfEndian E> u32 PackedRelocationReader<B, E>::relocation_count() const noexcept {
+  if (shdr.sh_entsize == 0 || shdr.sh_size == 0) return 0;
+  return shdr.sh_size / shdr.sh_entsize;
+}
+template <ElfBits B, ElfEndian E> PackedElfRel<B, E> PackedRelocationReader<B, E>::get_rel(u32 index) const noexcept {
+  if (index >= relocation_count()) return PackedElfRel<B, E>{};
+  return *(PackedElfSymbol<B, E> *)(reloc.data() + index * shdr.sh_entsize);
+}
+template <ElfBits B, ElfEndian E> PackedElfRelA<B, E> PackedRelocationReader<B, E>::get_rela(u32 index) const noexcept {
+  if (index >= relocation_count()) return PackedElfRelA<B, E>{};
+  return *(PackedElfSymbol<B, E> *)(reloc.data() + index * shdr.sh_entsize);
+}
+
+template <ElfBits B, ElfEndian E>
+PackedRelocationWriter<B, E>::PackedRelocationWriter(PackedElf<B, E> &elf, u16 index)
+    : shdr(elf.section_headers[index]), reloc(elf.section_data[index]), symtab(elf, shdr.sh_link) {
+  if (index > elf.section_headers.size()) throw std::runtime_error("PackedRelocationWriter: invalid section index");
+}
+
+template <ElfBits B, ElfEndian E>
+PackedRelocationWriter<B, E>::PackedRelocationWriter(PackedElfShdr<B, E> &shdr_reloc, std::vector<u8> &reloc,
+                                                     const PackedElfShdr<B, E> &shdr_symbol,
+                                                     const std::vector<u8> &symtab,
+                                                     const PackedElfShdr<B, E> &shdr_strtab,
+                                                     std::vector<u8> &strtab) noexcept
+    : shdr(shdr_reloc), reloc(reloc), symtab(symtab, shdr_symbol, shdr_strtab, strtab) {}
+
+template <ElfBits B, ElfEndian E> bool PackedRelocationWriter<B, E>::is_rela() const noexcept {
+  return (shdr.sh_type == to_underlying(SectionTypes::SHT_RELA));
+}
+
+template <ElfBits B, ElfEndian E> u32 PackedRelocationWriter<B, E>::relocation_count() const noexcept {
+  if (shdr.sh_entsize == 0 || shdr.sh_size == 0) return 0;
+  return shdr.sh_size / shdr.sh_entsize;
+}
+
+template <ElfBits B, ElfEndian E> PackedElfRel<B, E> PackedRelocationWriter<B, E>::get_rel(u32 index) const noexcept {
+  if (index >= relocation_count()) return PackedElfRel<B, E>{};
+  return *(PackedElfRel<B, E> *)(reloc.data() + index * shdr.sh_entsize);
+}
+
+template <ElfBits B, ElfEndian E> PackedElfRelA<B, E> PackedRelocationWriter<B, E>::get_rela(u32 index) const noexcept {
+  if (index >= relocation_count()) return PackedElfRelA<B, E>{};
+  return *(PackedElfRelA<B, E> *)(reloc.data() + index * shdr.sh_entsize);
+}
+
+template <ElfBits B, ElfEndian E> void PackedRelocationWriter<B, E>::add_rel(PackedElfRel<B, E> &&rel) {
+  if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfRel<B, E>);
+  const u8 *ptr = reinterpret_cast<const u8 *>(&rel);
+  reloc.insert(reloc.end(), ptr, ptr + sizeof(PackedElfRel<B, E>));
+  shdr.sh_size += sizeof(PackedElfRel<B, E>);
+}
+
+template <ElfBits B, ElfEndian E> void PackedRelocationWriter<B, E>::add_rel(word<B> offset, u32 type, u32 symbol) {
+  PackedElfRel<B, E> rel;
+  rel.r_offset = offset;
+  if constexpr (B == ElfBits::b32) rel.r_info = pepp::bts::r_info<E>((u8)type, U24<E>{symbol});
+  else rel.r_info = pepp::bts::r_info<E>(U32<E>{type}, U32<E>{symbol});
+  add_rel(std::move(rel));
+}
+
+template <ElfBits B, ElfEndian E>
+void PackedRelocationWriter<B, E>::add_rel(word<B> offset, u32 type, std::string_view name) {
+  auto symbol = symtab.find_symbol_index(name);
+  if (symbol == 0) throw std::runtime_error("PackedRelocationWriter: symbol not found: " + std::string(name));
+  PackedElfRel<B, E> rel;
+  rel.r_offset = offset;
+  if constexpr (B == ElfBits::b32) rel.r_info = pepp::bts::r_info<E>((u8)type, U24<E>{symbol});
+  else rel.r_info = pepp::bts::r_info<E>(U32<E>{type}, U32<E>{symbol});
+
+  add_rel(std::move(rel));
+}
+
+template <ElfBits B, ElfEndian E>
+void PackedRelocationWriter<B, E>::replace_rel(u32 index, word<B> offset, u32 type, u32 symbol) {
+  if (index >= relocation_count()) throw std::runtime_error("PackedRelocationWriter: invalid relocation index");
+  PackedElfRel<B, E> *rel = reinterpret_cast<PackedElfRel<B, E> *>(reloc.data() + index * shdr.sh_entsize);
+  rel->r_offset = offset;
+  if constexpr (B == ElfBits::b32) rel->r_info = pepp::bts::r_info<E>((u8)type, U24<E>{symbol});
+  else rel->r_info = pepp::bts::r_info<E>(U32<E>{type}, U32<E>{symbol});
+}
+
+template <ElfBits B, ElfEndian E> void PackedRelocationWriter<B, E>::add_rela(PackedElfRelA<B, E> &&rel) {
+  if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfRelA<B, E>);
+  const u8 *ptr = reinterpret_cast<const u8 *>(&rel);
+  reloc.insert(reloc.end(), ptr, ptr + sizeof(PackedElfRelA<B, E>));
+  shdr.sh_size += sizeof(PackedElfRelA<B, E>);
+}
+
+template <ElfBits B, ElfEndian E>
+void PackedRelocationWriter<B, E>::add_rela(word<B> offset, u32 type, u32 symbol, sword<B> addend) {
+  PackedElfRelA<B, E> rela;
+  rela.r_offset = offset;
+  if constexpr (B == ElfBits::b32) rela.r_info = pepp::bts::r_info<E>((u8)type, U24<E>{symbol});
+  else rela.r_info = pepp::bts::r_info<E>(U32<E>{type}, U32<E>{symbol});
+  rela.r_addend = addend;
+  add_rela(std::move(rela));
+}
+
+template <ElfBits B, ElfEndian E>
+void PackedRelocationWriter<B, E>::add_rela(word<B> offset, u32 type, std::string_view name, sword<B> addend) {
+  auto symbol = symtab.find_symbol_index(name);
+  if (symbol == 0) throw std::runtime_error("PackedRelocationWriter: symbol not found: " + std::string(name));
+  PackedElfRelA<B, E> rela;
+  rela.r_offset = offset;
+  if constexpr (B == ElfBits::b32) rela.r_info = pepp::bts::r_info<E>((u8)type, U24<E>{symbol});
+  else rela.r_info = pepp::bts::r_info<E>(U32<E>{type}, U32<E>{symbol});
+  rela.r_addend = addend;
+  add_rela(std::move(rela));
+}
+
+template <ElfBits B, ElfEndian E>
+void PackedRelocationWriter<B, E>::replace_rela(u32 index, word<B> offset, u32 type, u32 symbol, sword<B> addend) {
+  if (index >= relocation_count()) throw std::runtime_error("PackedRelocationWriter: invalid relocation index");
+  PackedElfRelA<B, E> *rela = reinterpret_cast<PackedElfRelA<B, E> *>(reloc.data() + index * shdr.sh_entsize);
+  rela->r_offset = offset;
+  if constexpr (B == ElfBits::b32) rela->r_info = pepp::bts::r_info<E>((u8)type, U24<E>{symbol});
+  else rela->r_info = pepp::bts::r_info<E>(U32<E>{type}, U32<E>{symbol});
+  rela->r_addend = addend;
+}
+
+template <ElfBits B, ElfEndian E> void PackedRelocationWriter<B, E>::swap_symbols(u32 first, u32 second) noexcept {
+  // Helpers to do the 32- vs 64-bit packing for REL/RELA type|symbol
+  static const auto update_rel = [](PackedElfRel<B, E> *rela, u32 new_sym) {
+    if constexpr (B == ElfBits::b32) {
+      auto type = pepp::bts::r_type<E>(U32<E>{rela->r_info});
+      rela->r_info = pepp::bts::r_info<E>((u8)type, U24<E>{new_sym});
+    } else {
+      auto type = pepp::bts::r_type<E>(U64<E>{rela->r_info});
+      rela->r_info = pepp::bts::r_info<E>(U32<E>{type}, U32<E>{new_sym});
+    }
+  };
+  static const auto update_rela = [](PackedElfRelA<B, E> *rela, u32 new_sym) {
+    if constexpr (B == ElfBits::b32) {
+      auto type = pepp::bts::r_type<E>(U32<E>{rela->r_info});
+      rela->r_info = pepp::bts::r_info<E>((u8)type, U24<E>{new_sym});
+    } else {
+      auto type = pepp::bts::r_type<E>(U64<E>{rela->r_info});
+      rela->r_info = pepp::bts::r_info<E>(U32<E>{type}, U32<E>{new_sym});
+    }
+  };
+
+  for (int it = 0; it < relocation_count(); it++) {
+    if (is_rela()) {
+      PackedElfRelA<B, E> *rela = reinterpret_cast<PackedElfRelA<B, E> *>(reloc.data() + it * shdr.sh_entsize);
+      u32 sym = B == ElfBits::b64 ? r_sym<E>(U64<E>{rela->r_info}) : r_sym<E>(U32<E>{rela->r_info});
+      if (sym == first) update_rela(rela, second);
+      else if (sym == second) update_rela(rela, first);
+    } else {
+      PackedElfRel<B, E> *rel = reinterpret_cast<PackedElfRel<B, E> *>(reloc.data() + it * shdr.sh_entsize);
+      u32 sym = B == ElfBits::b64 ? r_sym<E>(U64<E>{rel->r_info}) : r_sym<E>(U32<E>{rel->r_info});
+      if (sym == first) update_rel(rel, second);
+      else if (sym == second) update_rel(rel, first);
+    }
+  }
+}
 } // namespace pepp::bts

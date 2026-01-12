@@ -181,6 +181,90 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     ELFIO::symbol_section_accessor symbols(elfio, elfio.sections[".symtab"]);
     CHECK(symbols.get_symbols_num() == 7);
   }
+  SECTION("Test relocations") {
+    // A mirror of "Pepp ASM codegen ELF" test
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    auto strtab_idx = add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB);
+    auto symtab_idx = add_named_symtab(elf, ".symtab", strtab_idx);
+    auto rel_idx = add_named_rel(elf, ".rel.text", symtab_idx, 1);
+    auto &symtab_data = elf.section_data[symtab_idx];
+    PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
+    Packed::Symbol sym1;
+    sym1.st_size = 2;
+    sym1.set_type(SymbolType::STT_OBJECT);
+    sym1.st_shndx = 1;
+    sym1.st_value = 0x2000;
+    sym1.set_bind(SymbolBinding::STB_GLOBAL);
+    st_writer.add_symbol(std::move(sym1), "a");
+
+    Packed::Symbol sym2;
+    sym2.st_size = 0;
+    sym2.st_shndx = 0;
+    sym2.st_value = 0;
+    sym2.set_bind(SymbolBinding::STB_LOCAL);
+    st_writer.add_symbol(std::move(sym2), "i");
+
+    Packed::Symbol sym3;
+    sym3.st_size = 0;
+    sym3.st_shndx = 0;
+    sym3.st_value = 0;
+    sym3.set_bind(SymbolBinding::STB_LOCAL);
+    st_writer.add_symbol(std::move(sym3), "d");
+
+    PackedRelocationWriter<ElfBits::b32, ElfEndian::le> r_writer(elf, rel_idx);
+    r_writer.add_rel(6, 0, "d");
+    r_writer.add_rel(2, 0, "i");
+    r_writer.add_rel(5, 0, "i");
+
+    // Added 3 symbols + null symbol
+    CHECK(st_writer.symbol_count() == 4);
+    st_writer.arrange_local_symbols([&r_writer](auto a, auto b) { r_writer.swap_symbols(a, b); });
+
+    auto layout = calculate_layout(elf);
+    std::vector<u8> data;
+    data.resize(size_for_layout(layout));
+    write(data, layout);
+    write("ehdr_rel32.elf", data);
+    ELFIO::elfio elfio;
+    std::istringstream in(std::string((const char *)data.data(), data.size()));
+    CHECK_NOTHROW(elfio.load(in) == true);
+    CHECK(elfio.get_class() == ELFIO::ELFCLASS32);
+    CHECK(elfio.sections.size() == 5);
+    ELFIO::symbol_section_accessor symbols(elfio, elfio.sections[".symtab"]);
+    CHECK(symbols.get_symbols_num() == 4);
+
+    auto symtab_ac = ELFIO::symbol_section_accessor(elfio, elfio.sections[".symtab"]);
+    auto rel_text_ac = ELFIO::relocation_section_accessor(elfio, elfio.sections[".rel.text"]);
+    ELFIO::Elf64_Addr rel_offset;
+    ELFIO::Elf_Word rel_symbol;
+    unsigned rel_type;
+    ELFIO::Elf_Sxword unused;
+    std::string sym_name;
+    ELFIO::Elf64_Addr sym_value;
+    ELFIO::Elf_Xword sym_size;
+    unsigned char sym_bind, sym_type, sym_other;
+    ELFIO::Elf_Half section_index;
+    CHECK(rel_text_ac.get_entries_num() == 3);
+    // Entry 0
+    rel_text_ac.get_entry(0, rel_offset, rel_symbol, rel_type, unused);
+    CHECK(rel_offset == 6);
+    CHECK(symtab_ac.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
+                               section_index, sym_other));
+    CHECK(sym_name == "d");
+    // Entry 1
+    rel_text_ac.get_entry(1, rel_offset, rel_symbol, rel_type, unused);
+    CHECK(rel_offset == 2);
+    CHECK(symtab_ac.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
+                               section_index, sym_other));
+    CHECK(sym_name == "i");
+    // Entry 2
+    rel_text_ac.get_entry(2, rel_offset, rel_symbol, rel_type, unused);
+    CHECK(rel_offset == 5);
+    CHECK(symtab_ac.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
+                               section_index, sym_other));
+    CHECK(sym_name == "i");
+  }
 }
 
 TEST_CASE("Test custom ELF library, 64-bit", "[scope:elf][kind:unit][arch:*]") {
