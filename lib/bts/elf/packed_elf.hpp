@@ -12,6 +12,7 @@ template <ElfBits B, ElfEndian E> class PackedElf {
 public:
   using Ehdr = PackedElfEhdr<B, E>;
   using Shdr = PackedElfShdr<B, E>;
+  using Symbol = PackedElfSymbol<B, E>;
   using Phdr = PackedElfPhdr<B, E>;
 
   // Create an empty ELF file with the given file type and ABI
