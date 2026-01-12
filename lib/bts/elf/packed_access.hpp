@@ -34,15 +34,14 @@ private:
 
 template <ElfBits B, ElfEndian E> class PackedSymbolReader {
 public:
-  using PackedElfSymbol = PackedElfSymbol<B, E>;
   PackedSymbolReader(const PackedElf<B, E> &elf, u16 index);
   PackedSymbolReader(const PackedElfShdr<B, E> &shdr_symbol, const std::vector<u8> &symtab,
                      const PackedElfShdr<B, E> &shdr, const std::vector<u8> &strtab) noexcept;
 
   u32 symbol_count() const noexcept;
-  PackedElfSymbol get_symbol(u32 index) const noexcept;
-  std::optional<PackedElfSymbol> find_symbol(std::string_view name) const noexcept;
-  std::optional<PackedElfSymbol> find_symbol(Word<B, E> address) const noexcept;
+  PackedElfSymbol<B, E> get_symbol(u32 index) const noexcept;
+  std::optional<PackedElfSymbol<B, E>> find_symbol(std::string_view name) const noexcept;
+  std::optional<PackedElfSymbol<B, E>> find_symbol(Word<B, E> address) const noexcept;
 
 private:
   const PackedElfShdr<B, E> &shdr;
@@ -52,26 +51,25 @@ private:
 
 template <ElfBits B, ElfEndian E> class PackedSymbolWriter {
 public:
-  using PackedElfSymbol = PackedElfSymbol<B, E>;
   PackedSymbolWriter(PackedElf<B, E> &elf, u16 index);
   PackedSymbolWriter(PackedElfShdr<B, E> &shdr_symbol, std::vector<u8> &symtab, PackedElfShdr<B, E> &shdr,
                      std::vector<u8> &strtab) noexcept;
 
   u32 symbol_count() const noexcept;
-  PackedElfSymbol get_symbol(u32 index) const noexcept;
-  PackedElfSymbol *get_symbol_ptr(u32 index) const noexcept;
-  std::optional<PackedElfSymbol> find_symbol(std::string_view name) const noexcept;
-  std::optional<PackedElfSymbol> find_symbol(Word<B, E> address) const noexcept;
+  PackedElfSymbol<B, E> get_symbol(u32 index) const noexcept;
+  PackedElfSymbol<B, E> *get_symbol_ptr(u32 index) const noexcept;
+  std::optional<PackedElfSymbol<B, E>> find_symbol(std::string_view name) const noexcept;
+  std::optional<PackedElfSymbol<B, E>> find_symbol(Word<B, E> address) const noexcept;
 
   // Add a symbol to the table. Assumes you already set st_name!
-  void add_symbol(PackedElfSymbol &&symbol);
+  void add_symbol(PackedElfSymbol<B, E> &&symbol);
   // Helpers to assign name and section index.
-  void add_symbol(PackedElfSymbol &&symbol, std::string_view name);
-  void add_symbol(PackedElfSymbol &&symbol, std::string_view name, u16 section_index);
+  void add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name);
+  void add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name, u16 section_index);
   void arrange_local_symbols(std::function<void(Word<B, E> first, Word<B, E> second)> func = nullptr);
 
 private:
-  void copy_to_symtab(PackedElfSymbol &&symbol);
+  void copy_to_symtab(PackedElfSymbol<B, E> &&symbol);
   PackedElfShdr<B, E> &shdr;
   std::vector<u8> &symtab;
   PackedStringWriter<B, E> strtab;
@@ -163,12 +161,8 @@ template <ElfBits B, ElfEndian E> u32 PackedSymbolReader<B, E>::symbol_count() c
 }
 
 template <ElfBits B, ElfEndian E> PackedElfSymbol<B, E> PackedSymbolReader<B, E>::get_symbol(u32 index) const noexcept {
-  if (index >= symbol_count()) return PackedElfSymbol{};
-  const u8 *ptr = symtab.data() + index * shdr.sh_entsize;
-  // Use memcpy to avoid unaligned access issues
-  PackedElfSymbol ret;
-  memcpy(&ret, ptr, sizeof(PackedElfSymbol));
-  return ret;
+  if (index >= symbol_count()) return PackedElfSymbol<B, E>{};
+  return *(PackedElfSymbol<B, E> *)(symtab.data() + index * shdr.sh_entsize);
 }
 
 template <ElfBits B, ElfEndian E>
@@ -213,7 +207,7 @@ template <ElfBits B, ElfEndian E> PackedElfSymbol<B, E> PackedSymbolWriter<B, E>
 template <ElfBits B, ElfEndian E>
 PackedElfSymbol<B, E> *PackedSymbolWriter<B, E>::get_symbol_ptr(u32 index) const noexcept {
   if (index >= symbol_count()) return nullptr;
-  auto ret = (PackedElfSymbol *)(symtab.data() + index * shdr.sh_entsize);
+  auto ret = (PackedElfSymbol<B, E> *)(symtab.data() + index * shdr.sh_entsize);
   return ret;
 }
 
@@ -234,19 +228,19 @@ std::optional<PackedElfSymbol<B, E>> PackedSymbolWriter<B, E>::find_symbol(Word<
   return std::nullopt;
 }
 
-template <ElfBits B, ElfEndian E> void PackedSymbolWriter<B, E>::add_symbol(PackedElfSymbol &&symbol) {
+template <ElfBits B, ElfEndian E> void PackedSymbolWriter<B, E>::add_symbol(PackedElfSymbol<B, E> &&symbol) {
   if (shdr.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
   copy_to_symtab(std::move(symbol));
 }
 
 template <ElfBits B, ElfEndian E>
-void PackedSymbolWriter<B, E>::add_symbol(PackedElfSymbol &&symbol, std::string_view name) {
+void PackedSymbolWriter<B, E>::add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name) {
   if (shdr.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
   add_symbol(std::move(symbol), name, symbol.st_shndx);
 }
 
 template <ElfBits B, ElfEndian E>
-void PackedSymbolWriter<B, E>::add_symbol(PackedElfSymbol &&symbol, std::string_view name, u16 section_index) {
+void PackedSymbolWriter<B, E>::add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name, u16 section_index) {
   if (shdr.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
   auto name_idx = strtab.add_string(name);
   symbol.st_name = name_idx;
@@ -257,12 +251,11 @@ void PackedSymbolWriter<B, E>::add_symbol(PackedElfSymbol &&symbol, std::string_
 template <ElfBits B, ElfEndian E>
 void PackedSymbolWriter<B, E>::arrange_local_symbols(std::function<void(Word<B, E>, Word<B, E>)> func) {
   u32 first_not_local = 1; // Skip the first entry. It is always NOTYPE
-  word<B> current = 0;
-  word<B> count = symbol_count();
+  word<B> current = 0, count = symbol_count();
 
   while (true) {
-    PackedElfSymbol *p1 = nullptr;
-    PackedElfSymbol *p2 = nullptr;
+    PackedElfSymbol<B, E> *p1 = nullptr;
+    PackedElfSymbol<B, E> *p2 = nullptr;
 
     while (first_not_local < count) {
       p1 = get_symbol_ptr(first_not_local);
@@ -288,11 +281,11 @@ void PackedSymbolWriter<B, E>::arrange_local_symbols(std::function<void(Word<B, 
   }
 }
 
-template <ElfBits B, ElfEndian E> void PackedSymbolWriter<B, E>::copy_to_symtab(PackedElfSymbol &&symbol) {
-  if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfSymbol);
+template <ElfBits B, ElfEndian E> void PackedSymbolWriter<B, E>::copy_to_symtab(PackedElfSymbol<B, E> &&symbol) {
+  if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfSymbol<B, E>);
   const u8 *ptr = reinterpret_cast<const u8 *>(&symbol);
-  symtab.insert(symtab.end(), ptr, ptr + sizeof(PackedElfSymbol));
-  shdr.sh_size += sizeof(PackedElfSymbol);
+  symtab.insert(symtab.end(), ptr, ptr + sizeof(PackedElfSymbol<B, E>));
+  shdr.sh_size += sizeof(PackedElfSymbol<B, E>);
 }
 
 } // namespace pepp::bts
