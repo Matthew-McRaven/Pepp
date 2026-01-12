@@ -31,6 +31,7 @@ template <ElfEndian E> using U64 = std::conditional_t<E == ElfEndian::le, ul64, 
 // Per: ELF TIS Figure 1-2, 1-5, 1-6
 template <ElfBits B, ElfEndian E> using Word = std::conditional_t<B == ElfBits::b64, U64<E>, U32<E>>;
 template <ElfBits B, ElfEndian E> using SWord = std::conditional_t<B == ElfBits::b64, I64<E>, I32<E>>;
+template <ElfBits B> using word = std::conditional_t<B == ElfBits::b64, u64, u32>;
 
 #pragma pack(push, 1)
 // Per: ELF TIS Figure 1-3

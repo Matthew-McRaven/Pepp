@@ -16,7 +16,9 @@
 #include <catch.hpp>
 
 #include <elfio/elfio.hpp>
+#include "bts/elf/packed_access.hpp"
 #include "bts/elf/packed_elf.hpp"
+#include "bts/elf/packed_ops.hpp"
 #include "bts/elf/packed_types.hpp"
 
 namespace {
@@ -41,13 +43,13 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     CHECK_NOTHROW(elf.load(in) == true);
     CHECK(elf.get_class() == ELFIO::ELFCLASS32);
   }
-  SECTION("Create ehdr with section table") {
+  SECTION("Create ehdr with shdr table") {
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
-    elf.add_section_header_table();
-    auto layout = elf.calculate_layout();
+    ensure_section_header_table(elf);
+    auto layout = calculate_layout(elf);
     std::vector<u8> data;
     data.resize(size_for_layout(layout));
-    elf.write(data, layout);
+    write(data, layout);
     write("ehdr_shdr32.elf", data);
     ELFIO::elfio elfio;
     std::istringstream in(std::string((const char *)data.data(), data.size()));
@@ -55,9 +57,30 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     CHECK(elfio.get_class() == ELFIO::ELFCLASS32);
     CHECK(elfio.sections.size() == 2);
   }
-  SECTION("Create ehdr with section table and program header table") {
+  SECTION("Create shdr table by hand") {
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
-    elf.add_section_header_table();
+    elf.add_section(create_null_header<ElfBits::b32, ElfEndian::le>());
+    auto shstrtab_idx = elf.add_section(create_shstrtab_header<ElfBits::b32, ElfEndian::le>(1));
+    PackedStringWriter<ElfBits::b32, ElfEndian::le> writer(elf.section_headers[shstrtab_idx],
+                                                           elf.section_data[shstrtab_idx]);
+    elf.header.e_shstrndx = shstrtab_idx;
+    elf.section_headers[shstrtab_idx].sh_name = writer.add_string(".shstrtab");
+
+    auto layout = calculate_layout(elf);
+    std::vector<u8> data;
+    data.resize(size_for_layout(layout));
+    write(data, layout);
+    write("ehdr_shdr_manual32.elf", data);
+    ELFIO::elfio elfio;
+    std::istringstream in(std::string((const char *)data.data(), data.size()));
+    CHECK_NOTHROW(elfio.load(in) == true);
+    CHECK(elfio.get_class() == ELFIO::ELFCLASS32);
+    CHECK(elfio.sections.size() == 2);
+    CHECK(elfio.sections[1]->get_name() == ".shstrtab");
+  }
+  SECTION("Create ehdr, shdr table, and phdr table") {
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
     Packed::Phdr phdr;
     phdr.p_filesz = 0;
     phdr.p_memsz = 0x1000;
@@ -66,10 +89,10 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     phdr.p_align = 1;
     phdr.p_paddr = phdr.p_vaddr = 0xFEEDBEEF;
     elf.add_segment(std::move(phdr));
-    auto layout = elf.calculate_layout();
+    auto layout = calculate_layout(elf);
     std::vector<u8> data;
     data.resize(size_for_layout(layout));
-    elf.write(data, layout);
+    write(data, layout);
     write("ehdr_all_hdr32.elf", data);
     ELFIO::elfio elfio;
     std::istringstream in(std::string((const char *)data.data(), data.size()));
