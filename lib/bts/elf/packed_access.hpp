@@ -211,6 +211,7 @@ word<B> PackedStringAccessor<B, E, Const>::add_string(std::span<const char> str)
   word<B> ret = strtab.size();
   strtab.insert(strtab.end(), str.begin(), str.end());
   if (strtab.back() != '\0') strtab.push_back('\0');
+  shdr.sh_size = strtab.size();
   return ret;
 }
 
@@ -399,7 +400,7 @@ void PackedRelocationAccessor<B, E, Const>::add_rel(PackedElfRel<B, E> &&rel) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfRel<B, E>);
   const u8 *ptr = reinterpret_cast<const u8 *>(&rel);
   reloc.insert(reloc.end(), ptr, ptr + sizeof(PackedElfRel<B, E>));
-  shdr.sh_size += sizeof(PackedElfRel<B, E>);
+  shdr.sh_size = reloc.size();
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -437,7 +438,7 @@ void PackedRelocationAccessor<B, E, Const>::add_rela(PackedElfRelA<B, E> &&rel) 
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfRelA<B, E>);
   const u8 *ptr = reinterpret_cast<const u8 *>(&rel);
   reloc.insert(reloc.end(), ptr, ptr + sizeof(PackedElfRelA<B, E>));
-  shdr.sh_size += sizeof(PackedElfRelA<B, E>);
+  shdr.sh_size = reloc.size();
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -598,7 +599,7 @@ void PackedDynamicAccessor<B, E, Const>::add_entry(PackedElfDyn<B, E> &&dyn) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfDyn<B, E>);
   data.insert(data.end(), reinterpret_cast<const u8 *>(&dyn),
               reinterpret_cast<const u8 *>(&dyn) + sizeof(PackedElfDyn<B, E>));
-  shdr.sh_size = data.size() / sizeof(PackedElfDyn<B, E>);
+  shdr.sh_size = data.size();
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
