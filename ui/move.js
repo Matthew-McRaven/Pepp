@@ -1,10 +1,13 @@
 .import QtQuick as Quick
 
 /* This script file handles the element movement logic */
-var majorX = 75;
-var majorY = 75;
-var minorX = 5;
-var minorY = 5;
+
+const blockWidth = 75;
+const blockHeight = 75;
+var majorX = 100;
+var majorY = 100;
+var minorX = 25;
+var minorY = 25;
 var component = null;
 
 //  Create new diagram
@@ -38,17 +41,24 @@ function createBlock(parent, x, y) {
 function moveObjectTo(obj, x, y) {
     if (obj === null)
         return;
-    const row = Math.floor(x / majorX) * majorX;
-    const col = Math.floor(y / majorY) * majorY;
+    const row = xMajorGrid(x);
+    const col = yMajorGrid(y);
     obj.x = row;
     obj.y = col;
 }
 
 function xMajorGrid(x) {
-    return Math.min(0, Math.floor(x / majorX) * majorX);
+    return Math.max(0, Math.floor(x / majorX) * majorX);
 }
 function yMajorGrid(y) {
-    return Math.min(0, Math.floor(y / majorY) * majorY);
+    return Math.max(0, Math.floor(y / majorY) * majorY);
+}
+
+function xMinorGrid(x) {
+    return Math.max(0, Math.floor(x / minorX) * minorX);
+}
+function yMinorGrid(y) {
+    return Math.max(0, Math.floor(y / minorY) * minorY);
 }
 
 function lineX(from, to) {

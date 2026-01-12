@@ -115,12 +115,6 @@ Rectangle {
                 source: "qrc:/logic_gates"
             }*/
 
-            /*Line {
-                anchors.centerIn: parent
-                width: 200
-                height: 200
-            }*/
-
             //  Test Only Diagrams for checking line connection
             /*Diagram {
                 id: diagram1

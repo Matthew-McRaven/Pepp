@@ -12,8 +12,8 @@ Item {
     property alias input: input
     property alias output: output
 
-    width: Move.majorX
-    height: Move.majorY
+    width: Move.blockWidth
+    height: Move.blockHeight
 
     Drag.active: ma.drag.active
     //Drag.hotSpot.x: root.width / 2
@@ -101,25 +101,31 @@ Item {
             drag.minimumX: 0
             //drag.maximumX: root.x - wrapper.width
             drag.minimumY: 0
+            acceptedButtons: Qt.LeftButton
             //drag.maximumY: root.height - wrapper.height
 
             onClicked: {
                 //  Rotate entire object, including end points
                 if (wrapper.rotation >= 270) {
                     wrapper.rotation = 0;
-                }
-                else
-                {
+                } else {
                     wrapper.rotation += 90;
                 }
 
                 root.horizontal = (wrapper.rotation % 180) == 0;
             }
 
-            onPositionChanged: event => {
+            onPositionChanged: mouse => {
                 //  Move object within grid (large axis)
-                Move.moveObjectTo(root, root.x + event.x, root.y + event.y);
-                //console.log( "x", event.x, "y", event.y, "root x", root.parent.x, "root y", root.parent.y);
+
+                //  Only reposition if mouse is pressed
+                if (ma.pressedButtons & Qt.LeftButton) {
+                    const row = Move.xMinorGrid(root.x + mouse.x);
+                    const col = Move.yMinorGrid(root.y + mouse.y);
+                    root.x = row;
+                    root.y = col;
+                    console.log("x", mouse.x, "y", mouse.y, "row", row, "col", col);
+                }
             }
         }
     }
