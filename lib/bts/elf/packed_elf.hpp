@@ -1,59 +1,59 @@
 #pragma once
 
 #include "bts/bitmanip/copy.hpp"
-#include "bts/elf/header.hpp"
-#include "bts/elf/section.hpp"
-#include "bts/elf/segment.hpp"
+#include "bts/elf/packed_types.hpp"
 namespace pepp::bts {
 struct LayoutItem {
   u64 offset;
   std::span<u8> data;
 };
-template <ElfBits B, ElfEndian E> class Elf {
+template <ElfBits B, ElfEndian E> class PackedElf {
 public:
-  using Ehdr = ElfEhdr<B, E>;
-  using Shdr = ElfShdr<B, E>;
-  using Phdr = ElfPhdr<B, E>;
+  using Ehdr = PackedElfEhdr<B, E>;
+  using Shdr = PackedElfShdr<B, E>;
+  using Phdr = PackedElfPhdr<B, E>;
   // Create an empty ELF file with the given file type and ABI
-  Elf(FileType, MachineType, ElfABI);
-  ElfEhdr<B, E> header;
+  PackedElf(ElfFileType, ElfMachineType, ElfABI);
 
   void add_section_header_table();
 
-  u32 add_section(ElfShdr<B, E> &&shdr);
-  u32 add_segment(ElfPhdr<B, E> &&phdr);
+  u32 add_section(Shdr &&shdr);
+  u32 add_segment(Phdr &&phdr);
   // Place the section header followed by the program header table at the given offset
   u64 place_header_tables_at(std::vector<LayoutItem> &layout, u64 off);
 
   std::vector<LayoutItem> calculate_layout();
   void write(std::span<u8> out, const std::vector<LayoutItem> &layout);
 
-private:
-  std::vector<ElfShdr<B, E>> section_headers;
-  std::vector<ElfPhdr<B, E>> program_headers;
+  Ehdr header;
+  std::vector<Shdr> section_headers;
+  std::vector<Phdr> program_headers;
   std::vector<std::vector<u8>> section_data;
+
+private:
 };
-using ElfLE32 = Elf<ElfBits::b32, ElfEndian::le>;
-using ElfLE64 = Elf<ElfBits::b64, ElfEndian::le>;
-using ElfBE32 = Elf<ElfBits::b32, ElfEndian::be>;
-using ElfBE64 = Elf<ElfBits::b64, ElfEndian::be>;
+using PackedElfLE32 = PackedElf<ElfBits::b32, ElfEndian::le>;
+using PackedElfLE64 = PackedElf<ElfBits::b64, ElfEndian::le>;
+using PackedElfBE32 = PackedElf<ElfBits::b32, ElfEndian::be>;
+using PackedElfBE64 = PackedElf<ElfBits::b64, ElfEndian::be>;
 
 template <ElfBits B, ElfEndian E>
-pepp::bts::Elf<B, E>::Elf(FileType type, MachineType machine, ElfABI abi) : header(type, machine, abi) {}
+pepp::bts::PackedElf<B, E>::PackedElf(ElfFileType type, ElfMachineType machine, ElfABI abi)
+    : header(type, machine, abi) {}
 
-template <ElfBits B, ElfEndian E> inline void Elf<B, E>::add_section_header_table() {
+template <ElfBits B, ElfEndian E> inline void PackedElf<B, E>::add_section_header_table() {
   if (!section_headers.empty()) return;
   add_section(create_null_header<B, E>());
   add_section(create_shstrtab_header<B, E>(1));
 
   header.e_shstrndx = 1;
-  header.e_shentsize = sizeof(ElfShdr<B, E>);
   auto &shstrab = section_data.back();
   shstrab.push_back(0);
   shstrab.insert(shstrab.end(), {'.', 's', 'h', 's', 't', 'r', 't', 'a', 'b', 0});
 }
 
-template <ElfBits B, ElfEndian E> inline u32 Elf<B, E>::add_section(ElfShdr<B, E> &&shdr) {
+template <ElfBits B, ElfEndian E> inline u32 PackedElf<B, E>::add_section(Shdr &&shdr) {
+  if (section_headers.empty()) header.e_shentsize = sizeof(Shdr);
   section_headers.emplace_back(shdr);
   section_data.emplace_back();
   u32 ret = static_cast<u32>(section_headers.size() - 1);
@@ -61,8 +61,8 @@ template <ElfBits B, ElfEndian E> inline u32 Elf<B, E>::add_section(ElfShdr<B, E
   return ret;
 }
 
-template <ElfBits B, ElfEndian E> inline u32 Elf<B, E>::add_segment(ElfPhdr<B, E> &&phdr) {
-  if (program_headers.empty()) header.e_phentsize = sizeof(ElfPhdr<B, E>);
+template <ElfBits B, ElfEndian E> inline u32 PackedElf<B, E>::add_segment(Phdr &&phdr) {
+  if (program_headers.empty()) header.e_phentsize = sizeof(Phdr);
   program_headers.emplace_back(phdr);
   u32 ret = static_cast<u32>(program_headers.size() - 1);
   header.e_phnum = program_headers.size();
@@ -70,30 +70,30 @@ template <ElfBits B, ElfEndian E> inline u32 Elf<B, E>::add_segment(ElfPhdr<B, E
 }
 
 template <ElfBits B, ElfEndian E>
-inline u64 Elf<B, E>::place_header_tables_at(std::vector<LayoutItem> &layout, u64 off) {
+inline u64 PackedElf<B, E>::place_header_tables_at(std::vector<LayoutItem> &layout, u64 off) {
   // Then place section header table
   if (!section_headers.empty()) {
     header.e_shoff = off;
-    layout.emplace_back(LayoutItem{off, std::span<u8>(reinterpret_cast<u8 *>(section_headers.data()),
-                                                      sizeof(ElfShdr<B, E>) * section_headers.size())});
+    layout.emplace_back(LayoutItem{
+        off, std::span<u8>(reinterpret_cast<u8 *>(section_headers.data()), sizeof(Shdr) * section_headers.size())});
     off += header.e_shentsize * header.e_shnum;
   }
   // Followed by program header table
   if (!program_headers.empty()) {
     header.e_phoff = off;
-    layout.emplace_back(LayoutItem{off, std::span<u8>(reinterpret_cast<u8 *>(program_headers.data()),
-                                                      sizeof(ElfPhdr<B, E>) * program_headers.size())});
+    layout.emplace_back(LayoutItem{
+        off, std::span<u8>(reinterpret_cast<u8 *>(program_headers.data()), sizeof(Phdr) * program_headers.size())});
     off += header.e_phentsize * header.e_phnum;
   }
   return off;
 }
 
-template <ElfBits B, ElfEndian E> inline std::vector<LayoutItem> Elf<B, E>::calculate_layout() {
+template <ElfBits B, ElfEndian E> inline std::vector<LayoutItem> PackedElf<B, E>::calculate_layout() {
   std::vector<LayoutItem> ret;
   // 3 is a magic constant including: ehdr, shdr, and phdr
   ret.reserve(section_headers.size() + 2);
-  ret.emplace_back(LayoutItem{0, std::span<u8>(reinterpret_cast<u8 *>(&header), sizeof(ElfEhdr<B, E>))});
-  u64 rolling_offset = sizeof(ElfEhdr<B, E>);
+  ret.emplace_back(LayoutItem{0, std::span<u8>(reinterpret_cast<u8 *>(&header), sizeof(Ehdr))});
+  u64 rolling_offset = sizeof(Ehdr);
   rolling_offset = place_header_tables_at(ret, rolling_offset);
   // Finalize header fields for program header table
   // Skip first section (null), because we want a 0-offset.
@@ -109,7 +109,7 @@ template <ElfBits B, ElfEndian E> inline std::vector<LayoutItem> Elf<B, E>::calc
 }
 
 template <ElfBits B, ElfEndian E>
-inline void Elf<B, E>::write(std::span<u8> out, const std::vector<LayoutItem> &layout) {
+inline void PackedElf<B, E>::write(std::span<u8> out, const std::vector<LayoutItem> &layout) {
   for (const auto &item : layout) {
     if (item.offset + item.data.size() > out.size())
       throw std::runtime_error("Elf::write: layout item exceeds output size");

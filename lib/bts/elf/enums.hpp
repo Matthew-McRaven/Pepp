@@ -1,11 +1,14 @@
 #pragma once
-#include <span>
-#include "../bitmanip/integers.h"
-#include "bts/elf/types.hpp"
-
+#include "bts/bitmanip/integers.h"
 namespace pepp::bts {
 
-enum class FileType : u16 {
+// Will eventually exist in C++23, but it can be implemented easily enough by hand until it is widely supported.
+template <class Enum> constexpr std::underlying_type_t<Enum> to_underlying(Enum e) noexcept {
+  return static_cast<std::underlying_type_t<Enum>>(e);
+}
+
+// ELF file header enumerated constants
+enum class ElfFileType : u16 {
   ET_NONE = 0,
   ET_REL = 1,
   ET_EXEC = 2,
@@ -17,7 +20,7 @@ enum class FileType : u16 {
   ET_HIPROC = 0xFFFF
 };
 
-enum class MachineType {
+enum class ElfMachineType {
   EM_NONE = 0,                   // No machine
   EM_M32 = 1,                    // AT&T WE 32100
   EM_SPARC = 2,                  // SUN SPARC
@@ -305,83 +308,141 @@ enum class ElfABI : u8 {
   ELFOSABI_STANDALONE = 255, // Standalone (embedded) application
 };
 
-#pragma pack(push, 1)
-template <ElfBits B, ElfEndian E> struct ElfEhdr {
-  u8 e_ident[16];
-  U16<E> e_type;    // See: FileType
-  U16<E> e_machine; // See: MachineType
-  U32<E> e_version; // See: ElfVersion
-  Word<B, E> e_entry;
-  Word<B, E> e_phoff;
-  Word<B, E> e_shoff;
-  U32<E> e_flags;
-  U16<E> e_ehsize;
-  U16<E> e_phentsize;
-  U16<E> e_phnum;
-  U16<E> e_shentsize;
-  U16<E> e_shnum;
-  U16<E> e_shstrndx;
-  // Create mostly-0-initialized ELF header
-  ElfEhdr() noexcept;
-  ElfEhdr(FileType type, MachineType machine, ElfABI abi) noexcept;
+// ELF section header enumerated constants
+enum class SectionIndices : u32 {
+  SHN_UNDEF = 0,
+  SHN_LORESERVE = 0xFF00,
+  SHN_LOPROC = 0xFF00,
+  SHN_HIPROC = 0xFF1F,
+  SHN_LOOS = 0xFF20,
+  SHN_HIOS = 0xFF3F,
+  SHN_ABS = 0xFFF1,
+  SHN_COMMON = 0xFFF2,
+  SHN_XINDEX = 0xFFFF,
+  SHN_HIRESERVE = 0xFFFF
 };
-#pragma pack(pop)
-using ElfEhdrLE32 = ElfEhdr<ElfBits::b32, ElfEndian::le>;
-using ElfEhdrLE64 = ElfEhdr<ElfBits::b64, ElfEndian::le>;
-using ElfEhdrBE32 = ElfEhdr<ElfBits::b32, ElfEndian::be>;
-using ElfEhdrBE64 = ElfEhdr<ElfBits::b64, ElfEndian::be>;
 
-namespace detail {
-void fill_e_ident(std::span<u8, 16> e_ident, ElfBits B, ElfEndian E, ElfABI abi, u8 abi_version) noexcept {
-  e_ident[to_underlying(ElfIdentifierIndices::EI_MAG0)] = to_underlying(ElfMagic::ELFMAG0);
-  e_ident[to_underlying(ElfIdentifierIndices::EI_MAG1)] = to_underlying(ElfMagic::ELFMAG1);
-  e_ident[to_underlying(ElfIdentifierIndices::EI_MAG2)] = to_underlying(ElfMagic::ELFMAG2);
-  e_ident[to_underlying(ElfIdentifierIndices::EI_MAG3)] = to_underlying(ElfMagic::ELFMAG3);
-  e_ident[to_underlying(ElfIdentifierIndices::EI_CLASS)] =
-      to_underlying(B == ElfBits::b64 ? ElfClass::ELFCLASS64 : ElfClass::ELFCLASS32);
-  e_ident[to_underlying(ElfIdentifierIndices::EI_DATA)] =
-      to_underlying(E == ElfEndian::le ? ElfEncoding::ELFDATA2LSB : ElfEncoding::ELFDATA2MSB);
-  e_ident[to_underlying(ElfIdentifierIndices::EI_VERSION)] = to_underlying(ElfVersion::EV_CURRENT);
-  e_ident[to_underlying(ElfIdentifierIndices::EI_OSABI)] = to_underlying(abi);
-  e_ident[to_underlying(ElfIdentifierIndices::EI_ABIVERSION)] = abi_version;
-  auto padding = e_ident.subspan(to_underlying(ElfIdentifierIndices::EI_PAD));
-  memset(padding.data(), 0, padding.size());
-}
-} // namespace detail
+enum class SectionTypes : u32 {
+  SHT_NULL = 0,
+  SHT_PROGBITS = 1,
+  SHT_SYMTAB = 2,
+  SHT_STRTAB = 3,
+  SHT_RELA = 4,
+  SHT_HASH = 5,
+  SHT_DYNAMIC = 6,
+  SHT_NOTE = 7,
+  SHT_NOBITS = 8,
+  SHT_REL = 9,
+  SHT_SHLIB = 10,
+  SHT_DYNSYM = 11,
+  SHT_INIT_ARRAY = 14,
+  SHT_FINI_ARRAY = 15,
+  SHT_PREINIT_ARRAY = 16,
+  SHT_GROUP = 17,
+  SHT_SYMTAB_SHNDX = 18,
+  SHT_GNU_ATTRIBUTES = 0x6ffffff5,
+  SHT_GNU_HASH = 0x6ffffff6,
+  SHT_GNU_LIBLIST = 0x6ffffff7,
+  SHT_CHECKSUM = 0x6ffffff8,
+  SHT_LOSUNW = 0x6ffffffa,
+  SHT_SUNW_move = 0x6ffffffa,
+  SHT_SUNW_COMDAT = 0x6ffffffb,
+  SHT_SUNW_syminfo = 0x6ffffffc,
+  SHT_GNU_verdef = 0x6ffffffd,
+  SHT_GNU_verneed = 0x6ffffffe,
+  SHT_GNU_versym = 0x6fffffff,
+  SHT_LOOS = 0x60000000,
+  SHT_HIOS = 0x6fffffff,
+  SHT_LOPROC = 0x70000000,
+  SHT_ARM_EXIDX = 0x70000001,
+  SHT_ARM_PREEMPTMAP = 0x70000002,
+  SHT_ARM_ATTRIBUTES = 0x70000003,
+  SHT_ARM_DEBUGOVERLAY = 0x70000004,
+  SHT_ARM_OVERLAYSECTION = 0x70000005,
+  SHT_HIPROC = 0x7FFFFFFF,
+  SHT_LOUSER = 0x80000000,
+  SHT_HIUSER = 0xFFFFFFFF
+};
 
-template <ElfBits B, ElfEndian E> inline ElfEhdr<B, E>::ElfEhdr() noexcept {
-  detail::fill_e_ident(e_ident, B, E, (ElfABI)0, 0);
-  e_type = to_underlying(FileType::ET_NONE);
-  e_machine = to_underlying(MachineType::EM_NONE);
-  e_version = to_underlying(ElfVersion::EV_CURRENT);
-  e_entry = 0;
-  e_phoff = 0;
-  e_shoff = 0;
-  e_flags = 0;
-  e_ehsize = sizeof(ElfEhdr<B, E>);
-  e_phentsize = 0;
-  e_phnum = 0;
-  e_shentsize = 0;
-  e_shnum = 0;
-  e_shstrndx = 0;
-}
+// Can fit in 32 bits for 32bit targets, but use wider u64 to accomodate 64-bit targets.
+enum class SectionFlags : u64 {
+  SHF_WRITE = 0x1,
+  SHF_ALLOC = 0x2,
+  SHF_EXECINSTR = 0x4,
+  SHF_MERGE = 0x10,
+  SHF_STRINGS = 0x20,
+  SHF_INFO_LINK = 0x40,
+  SHF_LINK_ORDER = 0x80,
+  SHF_OS_NONCONFORMING = 0x100,
+  SHF_GROUP = 0x200,
+  SHF_TLS = 0x400,
+  SHF_COMPRESSED = 0x800,
+  SHF_GNU_RETAIN = 0x200000,
+  SHF_GNU_MBIND = 0x01000000,
+  SHF_MASKOS = 0x0FF00000,
+  SHF_MIPS_GPREL = 0x10000000,
+  SHF_ORDERED = 0x40000000,
+  SHF_EXCLUDE = 0x80000000,
+  SHF_MASKPROC = 0xF0000000
+};
 
-template <ElfBits B, ElfEndian E>
-inline ElfEhdr<B, E>::ElfEhdr(FileType type, MachineType machine, ElfABI abi) noexcept {
-  detail::fill_e_ident(e_ident, B, E, abi, 0);
-  e_type = to_underlying(type);
-  e_machine = to_underlying(machine);
-  e_version = to_underlying(ElfVersion::EV_CURRENT);
-  e_entry = 0;
-  e_phoff = 0;
-  e_shoff = 0;
-  e_flags = 0;
-  e_ehsize = sizeof(ElfEhdr<B, E>);
-  e_phentsize = 0;
-  e_phnum = 0;
-  e_shentsize = 0;
-  e_shnum = 0;
-  e_shstrndx = 0;
-}
+// Elf program header (i.e.,, segment) enumerated constants
+enum class SegmentType : u32 {
+  PT_NULL = 0,
+  PT_LOAD = 1,
+  PT_DYNAMIC = 2,
+  PT_INTERP = 3,
+  PT_NOTE = 4,
+  PT_SHLIB = 5,
+  PT_PHDR = 6,
+  PT_TLS = 7,
+  PT_GNU_EH_FRAME = 0x6474e550,
+  PT_GNU_STACK = 0x6474e551,
+  PT_GNU_RELRO = 0x6474e552,
+  PT_GNU_PROPERTY = 0x6474e553,
+  PT_OPENBSD_RANDOMIZE = 0x65a3dbe6,
+  PT_ARM_EXIDX = 0x70000001,
+  PT_RISCV_ATTRIBUTES = 0x70000003,
+};
+
+enum class SegmentFlags : u32 {
+  PF_NONE = 0,
+  PF_X = 1,
+  PF_W = 2,
+  PF_R = 4,
+};
+
+// ELF symbol enumerated constants
+enum class SymbolBinding : u8 {
+  STB_LOCAL = 0,
+  STB_GLOBAL = 1,
+  STB_WEAK = 2,
+  STB_LOOS = 10,
+  STB_HIOS = 12,
+  STB_MULTIDEF = 13,
+  STB_LOPROC = 13,
+  STB_HIPROC = 15
+};
+
+enum class SymbolType : u8 {
+  STT_NOTYPE = 0,
+  STT_OBJECT = 1,
+  STT_FUNC = 2,
+  STT_SECTION = 3,
+  STT_FILE = 4,
+  STT_COMMON = 5,
+  STT_TLS = 6,
+  STT_LOOS = 10,
+  STT_HIOS = 12,
+  STT_LOPROC = 13,
+  STT_HIPROC = 15
+};
+
+enum class SymbolVisibility : u8 {
+  STV_DEFAULT = 0,
+  STV_INTERNAL = 1,
+  STV_HIDDEN = 2,
+  STV_PROTECTED = 3,
+};
 
 } // namespace pepp::bts
