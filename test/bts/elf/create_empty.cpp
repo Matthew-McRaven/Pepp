@@ -284,6 +284,36 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     write(data, layout);
     write("ehdr_notes.elf", data);
   }
+  SECTION("Write dynamic tags") {
+    using enum DynamicTags;
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC);
+    auto symtab_idx = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
+    elf.add_segment(Packed::Phdr{});
+    PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
+    PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
+    elf.section_headers[dynamic_idx].sh_link = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
+    dyn_writer.add_entry(DT_INIT, 0xFEED);
+    dyn_writer.add_entry(DT_FINI, 0xBEEF);
+    dyn_writer.add_entry(DT_NULL, 0);
+    st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
+    st_writer.arrange_local_symbols();
+    auto layout = calculate_layout(elf);
+    auto _DYNAMIC = st_writer.find_symbol_index("_DYNAMIC");
+    auto &dyn_seg = elf.program_headers[0];
+    dyn_seg.p_filesz = elf.section_headers[dynamic_idx].sh_size;
+    dyn_seg.p_memsz = elf.section_headers[dynamic_idx].sh_size;
+    dyn_seg.p_offset = elf.section_headers[dynamic_idx].sh_offset;
+    dyn_seg.p_type = to_underlying(SegmentType::PT_DYNAMIC);
+
+    CHECK(_DYNAMIC != 0);
+    st_writer.get_symbol_ptr(_DYNAMIC)->st_value = elf.section_headers[dynamic_idx].sh_offset;
+    std::vector<u8> data;
+    data.resize(size_for_layout(layout));
+    write(data, layout);
+    write("ehdr_dynamic.elf", data);
+  }
 }
 
 TEST_CASE("Test custom ELF library, 64-bit", "[scope:elf][kind:unit][arch:*]") {

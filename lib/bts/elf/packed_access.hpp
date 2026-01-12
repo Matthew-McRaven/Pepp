@@ -108,7 +108,7 @@ public:
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
   using Data = maybe_const_t<Const, std::vector<u8>>;
   PackedNoteAccessor(Elf &elf, u16 index);
-  PackedNoteAccessor(Shdr &shdr_note, Data &note_data) noexcept;
+  PackedNoteAccessor(Shdr &note, Data &data) noexcept;
   static constexpr u64 round_up4(u64 n) { return ((n + 3) / 4) * 4; };
 
   u32 note_count() const noexcept;
@@ -118,10 +118,42 @@ public:
 
 private:
   Shdr &shdr;
-  Data &note_data;
+  Data &data;
 };
 template <ElfBits B, ElfEndian E> using PackedNoteReader = PackedNoteAccessor<B, E, true>;
 template <ElfBits B, ElfEndian E> using PackedNoteWriter = PackedNoteAccessor<B, E, false>;
+
+/*
+ * A working dynamic section (e.g., decoded by readelf -d) requires a bunch of extra "things" beyond this class
+ * - sh_link must point to a .dynstr string table
+ * - A PT_DYNAMIC segment must exist, and it must contain this segment
+ * - Segment sizes/offsets must be set correctly
+ * - The main symbol table must contain a "_DYNAMIC" entry, and it must point to the start of the dynamic section in
+ * memory.
+ *
+ * A good reference is for interpreting fields is:
+ * https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/dynamicsection.html
+ */
+template <ElfBits B, ElfEndian E, bool Const> class PackedDynamicAccessor {
+public:
+  using Elf = maybe_const_t<Const, PackedElf<B, E>>;
+  using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
+  using Data = maybe_const_t<Const, std::vector<u8>>;
+  PackedDynamicAccessor(Elf &elf, u16 index);
+  PackedDynamicAccessor(Shdr &shdr, Data &data) noexcept;
+
+  u32 entry_count() const noexcept;
+  PackedElfDyn<B, E> get_entry(u32 index) const noexcept;
+  void add_entry(PackedElfDyn<B, E> &&dyn);
+  void add_entry(word<B> tag, word<B> value);
+  void add_entry(DynamicTags tag, word<B> value);
+
+private:
+  Shdr &shdr;
+  Data &data;
+};
+template <ElfBits B, ElfEndian E> using PackedDynamicReader = PackedDynamicAccessor<B, E, true>;
+template <ElfBits B, ElfEndian E> using PackedDynamicWriter = PackedDynamicAccessor<B, E, false>;
 
 // Strings
 
@@ -455,19 +487,19 @@ void PackedRelocationAccessor<B, E, Const>::swap_symbols(u32 first, u32 second) 
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedNoteAccessor<B, E, Const>::PackedNoteAccessor(PackedNoteAccessor<B, E, Const>::Elf &elf, u16 index)
-    : shdr(elf.section_headers[index]), note_data(elf.section_data[index]) {
+    : shdr(elf.section_headers[index]), data(elf.section_data[index]) {
   if (index > elf.section_headers.size()) throw std::runtime_error("PackedNoteAccessor: invalid section index");
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-PackedNoteAccessor<B, E, Const>::PackedNoteAccessor(Shdr &shdr_note, Data &note_data) noexcept
-    : shdr(shdr_note), note_data(note_data) {}
+PackedNoteAccessor<B, E, Const>::PackedNoteAccessor(Shdr &shdr_note, Data &data) noexcept
+    : shdr(shdr_note), data(data) {}
 
 template <ElfBits B, ElfEndian E, bool Const> inline u32 PackedNoteAccessor<B, E, Const>::note_count() const noexcept {
   u32 current_pos = 0, current_idx = 0;
   PackedElfNoteHeader<E> *hdr = nullptr;
-  while (current_pos < note_data.size()) {
-    hdr = reinterpret_cast<const PackedElfNoteHeader<E> *>(note_data.data() + current_pos);
+  while (current_pos < data.size()) {
+    hdr = reinterpret_cast<const PackedElfNoteHeader<E> *>(data.data() + current_pos);
     current_pos += sizeof(PackedElfNoteHeader<E>) + round_up4(hdr->n_namesz) + round_up4(hdr->n_descsz);
     current_idx++;
   }
@@ -478,12 +510,12 @@ template <ElfBits B, ElfEndian E, bool Const>
 std::optional<NoteEntry> PackedNoteAccessor<B, E, Const>::get_note(u32 index) const noexcept {
   u32 current_pos = 0, current_idx = 0;
   PackedElfNoteHeader<E> *hdr = nullptr;
-  while (current_idx != index && current_pos < note_data.size()) {
-    hdr = reinterpret_cast<const PackedElfNoteHeader<E> *>(note_data.data() + current_pos);
+  while (current_idx != index && current_pos < data.size()) {
+    hdr = reinterpret_cast<const PackedElfNoteHeader<E> *>(data.data() + current_pos);
     current_pos += sizeof(PackedElfNoteHeader<E>) + round_up4(hdr->n_namesz) + round_up4(hdr->n_descsz);
     current_idx++;
   }
-  if (current_pos >= note_data.size() || current_idx != index) return std::nullopt;
+  if (current_pos >= data.size() || current_idx != index) return std::nullopt;
   NoteEntry ret;
   ret.namesz = hdr->n_namesz;
   ret.descsz = hdr->n_descsz;
@@ -504,13 +536,57 @@ void PackedNoteAccessor<B, E, Const>::add_note(std::span<const char> name, std::
   u32 namesz = name.size(), descsz = desc.size();
   if (name.back() != 0) namesz++;
   PackedElfNoteHeader<E> hdr(namesz, descsz, type);
-  note_data.insert(note_data.end(), reinterpret_cast<const u8 *>(&hdr),
-                   reinterpret_cast<const u8 *>(&hdr) + sizeof(PackedElfNoteHeader<E>));
-  note_data.insert(note_data.end(), name.begin(), name.end());
-  if (name.back() != 0) note_data.push_back('\0');
-  while (note_data.size() % 4 != 0) note_data.push_back('\0');
-  note_data.insert(note_data.end(), desc.begin(), desc.end());
-  while (note_data.size() % 4 != 0) note_data.push_back('\0');
+  data.insert(data.end(), reinterpret_cast<const u8 *>(&hdr),
+              reinterpret_cast<const u8 *>(&hdr) + sizeof(PackedElfNoteHeader<E>));
+  data.insert(data.end(), name.begin(), name.end());
+  if (name.back() != 0) data.push_back('\0');
+  while (data.size() % 4 != 0) data.push_back('\0');
+  data.insert(data.end(), desc.begin(), desc.end());
+  while (data.size() % 4 != 0) data.push_back('\0');
+  shdr.sh_size = data.size();
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+PackedDynamicAccessor<B, E, Const>::PackedDynamicAccessor(Elf &elf, u16 index)
+    : shdr(elf.section_headers[index]), data(elf.section_data[index]) {}
+
+template <ElfBits B, ElfEndian E, bool Const>
+PackedDynamicAccessor<B, E, Const>::PackedDynamicAccessor(Shdr &shdr, Data &data) noexcept : shdr(shdr), data(data) {}
+
+template <ElfBits B, ElfEndian E, bool Const> u32 PackedDynamicAccessor<B, E, Const>::entry_count() const noexcept {
+  if (shdr.sh_entsize == 0 || shdr.sh_size == 0) return 0;
+  // Look for the first DT_NULL entry, otherwise clip to the number of entries computed from section header.
+  auto max = shdr.sh_size / shdr.sh_entsize;
+  for (u32 i = 0; i < max; ++i)
+    if (auto dyn = get_entry(i); dyn.d_tag == to_underlying(DynamicTags::DT_NULL)) return i;
+  return max;
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+PackedElfDyn<B, E> PackedDynamicAccessor<B, E, Const>::get_entry(u32 index) const noexcept {
+  if (index * shdr.sh_entsize + sizeof(PackedElfDyn<B, E>) > data.size()) return PackedElfDyn<B, E>{};
+  return *(PackedElfDyn<B, E> *)(data.data() + index * shdr.sh_entsize);
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedDynamicAccessor<B, E, Const>::add_entry(PackedElfDyn<B, E> &&dyn) {
+  if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfDyn<B, E>);
+  data.insert(data.end(), reinterpret_cast<const u8 *>(&dyn),
+              reinterpret_cast<const u8 *>(&dyn) + sizeof(PackedElfDyn<B, E>));
+  shdr.sh_size += sizeof(PackedElfDyn<B, E>);
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedDynamicAccessor<B, E, Const>::add_entry(word<B> tag, word<B> value) {
+  PackedElfDyn<B, E> dyn;
+  dyn.d_tag = tag;
+  dyn.d_val = value;
+  add_entry(std::move(dyn));
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedDynamicAccessor<B, E, Const>::add_entry(DynamicTags tag, word<B> value) {
+  add_entry(to_underlying(tag), value);
 }
 
 } // namespace pepp::bts
