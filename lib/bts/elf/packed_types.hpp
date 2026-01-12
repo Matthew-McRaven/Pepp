@@ -245,6 +245,38 @@ template <ElfEndian E> struct PackedElfNoteHeader {
   U32<E> n_descsz;
   U32<E> n_type;
 };
+
+template <ElfBits B, ElfEndian E> struct PackedElfDyn {
+  Word<B, E> d_tag;
+  Word<B, E> d_val;
+};
+template <ElfEndian E> struct PackedElfVerneed {
+  U16<E> vn_version;
+  U16<E> vn_cnt;
+  U32<E> vn_file;
+  U32<E> vn_aux;
+  U32<E> vn_next;
+};
+template <ElfEndian E> struct PackedElfVernaux {
+  U32<E> vna_hash;
+  U16<E> vna_flags;
+  U16<E> vna_other;
+  U32<E> vna_name;
+  U32<E> vna_next;
+};
+template <ElfEndian E> struct PackedElfVerdef {
+  U16<E> vd_version;
+  U16<E> vd_flags;
+  U16<E> vd_ndx;
+  U16<E> vd_cnt;
+  U32<E> vd_hash;
+  U32<E> vd_aux;
+  U32<E> vd_next;
+};
+template <ElfEndian E> struct PackedElfVerdaux {
+  U32<E> vda_name;
+  U32<E> vda_next;
+};
 #pragma pack(pop)
 
 // Per: ELF TIS Figure 1-10
