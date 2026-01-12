@@ -125,6 +125,79 @@ private:
   PackedSymbolReader<B, E> symtab;
 };
 
+struct NoteEntry {
+  u32 namesz;
+  u32 descsz;
+  u32 type;
+  // Followed by name and desc data
+  bits::span<const char> name, desc;
+};
+template <bool Const, class T> using maybe_const_t = std::conditional_t<Const, T const, T>;
+template <ElfBits B, ElfEndian E, bool Const> class PackedNoteAccessor {
+public:
+  using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
+  using Data = maybe_const_t<Const, std::vector<u8>>;
+  PackedNoteAccessor(PackedElf<B, E> &elf, u16 index)
+      : shdr(elf.section_headers[index]), note_data(elf.section_data[index]) {
+    if (index > elf.section_headers.size()) throw std::runtime_error("PackedNoteAccessor: invalid section index");
+  }
+  PackedNoteAccessor(Shdr &shdr_note, Data &note_data) noexcept : shdr(shdr_note), note_data(note_data) {}
+  static constexpr u64 round_up4(u64 n) { return ((n + 3) / 4) * 4; };
+
+  u32 note_count() const noexcept {
+    u32 current_pos = 0, current_idx = 0;
+    PackedElfNoteHeader<E> *hdr = nullptr;
+    while (current_pos < note_data.size()) {
+      hdr = reinterpret_cast<const PackedElfNoteHeader<E> *>(note_data.data() + current_pos);
+      current_pos += sizeof(PackedElfNoteHeader<E>) + round_up4(hdr->n_namesz) + round_up4(hdr->n_descsz);
+      current_idx++;
+    }
+    return current_idx;
+  }
+
+  std::optional<NoteEntry> get_note(u32 index) const noexcept {
+    u32 current_pos = 0, current_idx = 0;
+    PackedElfNoteHeader<E> *hdr = nullptr;
+    while (current_idx != index && current_pos < note_data.size()) {
+      hdr = reinterpret_cast<const PackedElfNoteHeader<E> *>(note_data.data() + current_pos);
+      current_pos += sizeof(PackedElfNoteHeader<E>) + round_up4(hdr->n_namesz) + round_up4(hdr->n_descsz);
+      current_idx++;
+    }
+    if (current_pos >= note_data.size() || current_idx != index) return std::nullopt;
+    NoteEntry ret;
+    ret.namesz = hdr->n_namesz;
+    ret.descsz = hdr->n_descsz;
+    ret.type = hdr->n_type;
+    ret.name = bits::span<const char>(reinterpret_cast<const char *>(hdr + 1), hdr->n_namesz);
+    ret.desc = bits::span<const char>(
+        reinterpret_cast<const char *>(reinterpret_cast<const u8 *>(hdr + 1) + round_up4(hdr->n_namesz)),
+        hdr->n_descsz);
+    return ret;
+  }
+
+  void add_note(std::string_view name, std::string_view desc, u32 type) {
+    add_note(std::span<const char>(name), std::span<const char>(desc), type);
+  }
+  void add_note(std::span<const char> name, std::span<const char> desc, u32 type) {
+    u32 namesz = name.size(), descsz = desc.size();
+    if (name.back() != 0) namesz++;
+    PackedElfNoteHeader<E> hdr(namesz, descsz, type);
+    note_data.insert(note_data.end(), reinterpret_cast<const u8 *>(&hdr),
+                     reinterpret_cast<const u8 *>(&hdr) + sizeof(PackedElfNoteHeader<E>));
+    note_data.insert(note_data.end(), name.begin(), name.end());
+    if (name.back() != 0) note_data.push_back('\0');
+    while (note_data.size() % 4 != 0) note_data.push_back('\0');
+    note_data.insert(note_data.end(), desc.begin(), desc.end());
+    while (note_data.size() % 4 != 0) note_data.push_back('\0');
+  }
+
+private:
+  Shdr &shdr;
+  Data &note_data;
+};
+template <ElfBits B, ElfEndian E> using PackedNoteReader = PackedNoteAccessor<B, E, true>;
+template <ElfBits B, ElfEndian E> using PackedNoteWriter = PackedNoteAccessor<B, E, false>;
+
 // Strings
 
 template <ElfBits B, ElfEndian E>

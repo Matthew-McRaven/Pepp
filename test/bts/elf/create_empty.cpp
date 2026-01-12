@@ -265,6 +265,25 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
                                section_index, sym_other));
     CHECK(sym_name == "i");
   }
+  SECTION("Write pepp.mmios notes") {
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    auto note_idx = add_named_section(elf, ".note", SectionTypes::SHT_NOTE);
+    PackedNoteWriter<ElfBits::b32, ElfEndian::le> note_writer(elf, note_idx);
+    char note_data[6]{0x00, 0x07, 0x00, 0x00, 0x01, 0x13};
+    note_writer.add_note(std::span<const char>{"pepp.mmios"}, std::span<const char>{note_data, 6}, 0x12);
+    note_data[5] = 0x16;
+    note_writer.add_note(std::span<const char>{"pepp.mmios"}, std::span<const char>{note_data, 6}, 0x11);
+    note_data[5] = 0x1a;
+    note_writer.add_note(std::span<const char>{"pepp.mmios"}, std::span<const char>{note_data, 6}, 0x12);
+    note_data[5] = 0x19;
+    note_writer.add_note(std::span<const char>{"pepp.mmios"}, std::span<const char>{note_data, 6}, 0x13);
+    auto layout = calculate_layout(elf);
+    std::vector<u8> data;
+    data.resize(size_for_layout(layout));
+    write(data, layout);
+    write("ehdr_notes.elf", data);
+  }
 }
 
 TEST_CASE("Test custom ELF library, 64-bit", "[scope:elf][kind:unit][arch:*]") {

@@ -240,6 +240,11 @@ using PackedElfPhdrLE64 = PackedElfPhdr<ElfBits::b64, ElfEndian::le>;
 using PackedElfPhdrBE32 = PackedElfPhdr<ElfBits::b32, ElfEndian::be>;
 using PackedElfPhdrBE64 = PackedElfPhdr<ElfBits::b64, ElfEndian::be>;
 
+template <ElfEndian E> struct PackedElfNoteHeader {
+  U32<E> n_namesz;
+  U32<E> n_descsz;
+  U32<E> n_type;
+};
 #pragma pack(pop)
 
 // Per: ELF TIS Figure 1-10
