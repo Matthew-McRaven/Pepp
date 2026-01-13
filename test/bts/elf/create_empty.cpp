@@ -16,8 +16,10 @@
 #include <catch.hpp>
 
 #include <elfio/elfio.hpp>
+#include <functional>
 #include "bts/elf/packed_access.hpp"
 #include "bts/elf/packed_elf.hpp"
+#include "bts/elf/packed_fixup.hpp"
 #include "bts/elf/packed_ops.hpp"
 #include "bts/elf/packed_types.hpp"
 
@@ -288,24 +290,38 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     using enum DynamicTags;
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
     ensure_section_header_table(elf);
-    auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC);
-    auto symtab_idx = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
     elf.add_segment(Packed::Phdr{});
-    PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
-    PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
-    elf.section_headers[dynamic_idx].sh_link = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
-    dyn_writer.add_entry(DT_INIT, 0xFEED);
-    dyn_writer.add_entry(DT_FINI, 0xBEEF);
-    dyn_writer.add_entry(DT_NULL, 0);
-    auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
-    st_writer.arrange_local_symbols();
+
+    std::deque<AbsoluteFixup> fixups;
+    auto symtab_idx = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
+    auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
+    auto dynamic_idx = add_named_dynamic(elf, ".dynamic", dynstr_idx);
+
+    {
+      PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
+      auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
+      fixups.emplace_back(st_writer.fixup_value(_DYNAMIC, std::function<word<ElfBits::b32>()>{[&]() {
+                                                  return word<ElfBits::b32>{elf.section_headers[dynamic_idx].sh_offset};
+                                                }}));
+      st_writer.arrange_local_symbols();
+    }
+
+    {
+      PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_INIT), []() { return 0xFEED; }));
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_FINI), []() { return 0xBEEF; }));
+      dyn_writer.add_entry(DT_NULL);
+    }
+
     auto layout = calculate_layout(elf);
+
     auto &dyn_seg = elf.program_headers[0];
     dyn_seg.p_filesz = elf.section_headers[dynamic_idx].sh_size;
     dyn_seg.p_memsz = elf.section_headers[dynamic_idx].sh_size;
     dyn_seg.p_offset = elf.section_headers[dynamic_idx].sh_offset;
     dyn_seg.p_type = to_underlying(SegmentType::PT_DYNAMIC);
-    st_writer.replace_value(_DYNAMIC, elf.section_headers[dynamic_idx].sh_offset);
+
+    for (const auto &fixup : fixups) fixup.update();
 
     std::vector<u8> data;
     data.resize(size_for_layout(layout));
@@ -348,11 +364,13 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     elf.add_segment(Packed::Phdr{}); // dynamic
     elf.add_segment(Packed::Phdr{}); // load
 
+    std::deque<AbsoluteFixup> fixups;
     auto symtab_idx = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
     auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
     auto dynsym_idx = add_named_dynsymtab(elf, ".dynsym", dynstr_idx);
-    auto hash_idx = add_named_section(elf, ".hash", SectionTypes::SHT_HASH);
-    elf.section_headers[hash_idx].sh_link = dynsym_idx;
+    auto hash_idx = add_named_section(elf, ".hash", SectionTypes::SHT_HASH, dynsym_idx);
+    auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC, symtab_idx);
+
     {
       PackedHashedSymbolWriter<ElfBits::b32, ElfEndian::le> hs_writer(elf, hash_idx);
       hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "alpha", 1);
@@ -384,27 +402,34 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
       hs_writer.arrange_local_symbols();
       hs_writer.compute_hash_table(13);
     }
-    auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC);
-    PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
-    auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
-    st_writer.arrange_local_symbols();
 
-    PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
+    {
+      PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
+      auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
+      st_writer.arrange_local_symbols();
+      fixups.emplace_back(st_writer.fixup_value(_DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
+    }
     auto nearest_page = [](u32 addr) { return ((addr + (4096 - 1)) / 4096) * 4096; };
-    const auto base_address = nearest_page(0xFEED);
-    elf.section_headers[dynamic_idx].sh_link = symtab_idx;
-    const auto dynstr_addr = base_address;
-    elf.section_headers[dynstr_idx].sh_addr = dynstr_addr;
-    const auto dynsym_addr = dynstr_addr + elf.section_headers[dynstr_idx].sh_size;
-    elf.section_headers[dynsym_idx].sh_addr = dynsym_addr;
-    const auto hash_addr = dynsym_addr + elf.section_headers[dynsym_idx].sh_size;
-    elf.section_headers[hash_idx].sh_addr = hash_addr;
-    const auto dynamic_addr = hash_addr + elf.section_headers[hash_idx].sh_size;
-    dyn_writer.add_entry(DT_STRTAB, dynstr_addr);
-    dyn_writer.add_entry(DT_STRSZ, elf.section_headers[dynstr_idx].sh_size);
-    dyn_writer.add_entry(DT_SYMTAB, dynsym_addr);
-    dyn_writer.add_entry(DT_HASH, hash_addr);
-    dyn_writer.add_entry(DT_NULL, 0);
+    {
+      PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
+      const auto base_address = nearest_page(0xFEED);
+      const auto dynstr_addr = base_address;
+      const auto dynsym_addr = dynstr_addr + elf.section_headers[dynstr_idx].sh_size;
+      const auto hash_addr = dynsym_addr + elf.section_headers[dynsym_idx].sh_size;
+      fixups.emplace_back([&]() { elf.section_headers[dynstr_idx].sh_addr = dynstr_addr; });
+      fixups.emplace_back([&]() { elf.section_headers[dynsym_idx].sh_addr = dynsym_addr; });
+      fixups.emplace_back([&]() { elf.section_headers[hash_idx].sh_addr = hash_addr; });
+
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRTAB),
+                                                 [&]() { return elf.section_headers[dynstr_idx].sh_addr; }));
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRSZ),
+                                                 [&]() { return elf.section_headers[dynstr_idx].sh_size; }));
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_SYMTAB),
+                                                 [&]() { return elf.section_headers[dynsym_idx].sh_addr; }));
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_HASH),
+                                                 [&]() { return elf.section_headers[hash_idx].sh_addr; }));
+      dyn_writer.add_entry(DT_NULL, 0);
+    }
 
     auto layout = calculate_layout(elf);
 
@@ -415,21 +440,17 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
 
     dyn_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
     dyn_seg.p_type = to_underlying(SegmentType::PT_DYNAMIC);
-    dyn_seg.p_paddr = nearest_page(0xFEED);
-    dyn_seg.p_vaddr = nearest_page(0xFEED);
-    st_writer.replace_value(_DYNAMIC, dynamic_addr);
+    dyn_seg.p_paddr = dyn_seg.p_vaddr = nearest_page(0xFEED);
 
     auto &load_seg = elf.program_headers[1];
     load_seg.p_offset = elf.section_headers[dynstr_idx].sh_offset;
     load_seg.p_filesz =
         elf.section_headers[dynamic_idx].sh_size + elf.section_headers[dynamic_idx].sh_offset - dyn_seg.p_offset;
-
     load_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
     dyn_seg.p_type = to_underlying(SegmentType::PT_LOAD);
-    load_seg.p_paddr = nearest_page(0xFEED);
-    load_seg.p_vaddr = nearest_page(0xFEED);
-    st_writer.replace_value(_DYNAMIC, dyn_seg.p_paddr);
+    load_seg.p_paddr = load_seg.p_vaddr = nearest_page(0xFEED);
 
+    for (const auto &fixup : fixups) fixup.update();
     std::vector<u8> data;
     data.resize(size_for_layout(layout));
     write(data, layout);
@@ -473,11 +494,13 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     elf.add_segment(Packed::Phdr{}); // dynamic
     elf.add_segment(Packed::Phdr{}); // load
 
+    std::deque<AbsoluteFixup> fixups;
     auto symtab_idx = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
     auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
     auto dynsym_idx = add_named_dynsymtab(elf, ".dynsym", dynstr_idx);
-    auto hash_idx = add_named_section(elf, ".gnu.hash", SectionTypes::SHT_GNU_HASH);
-    elf.section_headers[hash_idx].sh_link = dynsym_idx;
+    auto hash_idx = add_named_section(elf, ".gnu.hash", SectionTypes::SHT_GNU_HASH, dynsym_idx);
+    auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC);
+
     {
       PackedGNUHashedSymbolWriter<ElfBits::b32, ElfEndian::le> hs_writer(elf, hash_idx);
       hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "alpha", 1);
@@ -509,28 +532,34 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
       hs_writer.arrange_local_symbols();
       hs_writer.compute_hash_table(11, 4, 2, 5);
     }
+    {
+      PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
+      auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
+      st_writer.arrange_local_symbols();
+      fixups.emplace_back(st_writer.fixup_value(_DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
+    }
 
-    auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC);
-    PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
-    auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
-    st_writer.arrange_local_symbols();
-
-    PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
     auto nearest_page = [](u32 addr) { return ((addr + (4096 - 1)) / 4096) * 4096; };
-    const auto base_address = nearest_page(0xFEED);
-    elf.section_headers[dynamic_idx].sh_link = symtab_idx;
-    const auto dynstr_addr = base_address;
-    elf.section_headers[dynstr_idx].sh_addr = dynstr_addr;
-    const auto dynsym_addr = dynstr_addr + elf.section_headers[dynstr_idx].sh_size;
-    elf.section_headers[dynsym_idx].sh_addr = dynsym_addr;
-    const auto hash_addr = dynsym_addr + elf.section_headers[dynsym_idx].sh_size;
-    elf.section_headers[hash_idx].sh_addr = hash_addr;
-    const auto dynamic_addr = hash_addr + elf.section_headers[hash_idx].sh_size;
-    dyn_writer.add_entry(DT_STRTAB, dynstr_addr);
-    dyn_writer.add_entry(DT_STRSZ, elf.section_headers[dynstr_idx].sh_size);
-    dyn_writer.add_entry(DT_SYMTAB, dynsym_addr);
-    dyn_writer.add_entry(DT_GNU_HASH, hash_addr);
-    dyn_writer.add_entry(DT_NULL, 0);
+    {
+      PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
+      const auto base_address = nearest_page(0xFEED);
+      const auto dynstr_addr = base_address;
+      const auto dynsym_addr = dynstr_addr + elf.section_headers[dynstr_idx].sh_size;
+      const auto hash_addr = dynsym_addr + elf.section_headers[dynsym_idx].sh_size;
+      fixups.emplace_back([&]() { elf.section_headers[dynstr_idx].sh_addr = dynstr_addr; });
+      fixups.emplace_back([&]() { elf.section_headers[dynsym_idx].sh_addr = dynsym_addr; });
+      fixups.emplace_back([&]() { elf.section_headers[hash_idx].sh_addr = hash_addr; });
+
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRTAB),
+                                                 [&]() { return elf.section_headers[dynstr_idx].sh_addr; }));
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRSZ),
+                                                 [&]() { return elf.section_headers[dynstr_idx].sh_size; }));
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_SYMTAB),
+                                                 [&]() { return elf.section_headers[dynsym_idx].sh_addr; }));
+      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_GNU_HASH),
+                                                 [&]() { return elf.section_headers[hash_idx].sh_addr; }));
+      dyn_writer.add_entry(DT_NULL, 0);
+    }
 
     auto layout = calculate_layout(elf);
 
@@ -538,24 +567,19 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     dyn_seg.p_offset = elf.section_headers[dynstr_idx].sh_offset;
     dyn_seg.p_filesz =
         elf.section_headers[dynamic_idx].sh_size + elf.section_headers[dynamic_idx].sh_offset - dyn_seg.p_offset;
-
     dyn_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
     dyn_seg.p_type = to_underlying(SegmentType::PT_DYNAMIC);
-    dyn_seg.p_paddr = nearest_page(0xFEED);
-    dyn_seg.p_vaddr = nearest_page(0xFEED);
-    st_writer.replace_value(_DYNAMIC, dynamic_addr);
+    dyn_seg.p_paddr = dyn_seg.p_vaddr = nearest_page(0xFEED);
 
     auto &load_seg = elf.program_headers[1];
     load_seg.p_offset = elf.section_headers[dynstr_idx].sh_offset;
     load_seg.p_filesz =
         elf.section_headers[dynamic_idx].sh_size + elf.section_headers[dynamic_idx].sh_offset - dyn_seg.p_offset;
-
     load_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
     dyn_seg.p_type = to_underlying(SegmentType::PT_LOAD);
-    load_seg.p_paddr = nearest_page(0xFEED);
-    load_seg.p_vaddr = nearest_page(0xFEED);
-    st_writer.replace_value(_DYNAMIC, dyn_seg.p_paddr);
+    load_seg.p_paddr = load_seg.p_vaddr = nearest_page(0xFEED);
 
+    for (const auto &fixup : fixups) fixup.update();
     std::vector<u8> data;
     data.resize(size_for_layout(layout));
     write(data, layout);
@@ -563,7 +587,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
 
     // Assuming nbuckets=11, symndx=mask_words=11, shift2=5, symndx=4 (start hash at delta)
     // Easiest way to verify manually is download llvm for llvm-readelf and run:
-    // llvm-readelf-15 --gnu-hash-table -a --hash-symbols -d --dyn-syms ehdr_hash.elf
+    // llvm-readelf-15 --gnu-hash-table -a --hash-symbols -d --dyn-syms ehdr_gnuhash.elf
     PackedGNUHashedSymbolReader<ElfBits::b32, ElfEndian::le> hs_reader(elf, hash_idx);
     CHECK(hs_reader.find_hashed_symbol("alpha") == 0);
     CHECK(hs_reader.find_hashed_symbol("bravo") == 0);

@@ -1,8 +1,8 @@
 #pragma once
 #include "./packed_elf.hpp"
 #include "bts/bitmanip/log2.hpp"
+#include "bts/elf/packed_fixup.hpp"
 namespace pepp::bts {
-
 template <bool Const, class T> using maybe_const_t = std::conditional_t<Const, T const, T>;
 template <ElfBits B, ElfEndian E, bool Const> class PackedStringAccessor {
 public:
@@ -50,6 +50,8 @@ public:
   u32 add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name, u16 section_index);
   void replace_symbol(u32 index, PackedElfSymbol<B, E> &&symbol) noexcept;
   void replace_value(u32 index, Word<B, E> value) noexcept;
+  // DANGER! The index will not be updated by arrange_local_symbols.
+  AbsoluteFixup fixup_value(word<B> index, std::function<word<B>()> f);
   void arrange_local_symbols(std::function<void(Word<B, E> first, Word<B, E> second)> func = nullptr);
 
 protected:
@@ -268,9 +270,15 @@ public:
 
   u32 entry_count() const noexcept;
   PackedElfDyn<B, E> get_entry(u32 index) const noexcept;
-  void add_entry(PackedElfDyn<B, E> &&dyn);
-  void add_entry(word<B> tag, word<B> value);
-  void add_entry(DynamicTags tag, word<B> value);
+  PackedElfDyn<B, E> *get_entry_ptr(u32 index) const noexcept;
+  u32 add_entry(PackedElfDyn<B, E> &&dyn);
+  u32 add_entry(word<B> tag); // Add entry with 0 value. Often used for placeholders
+  u32 add_entry(word<B> tag, word<B> value);
+  u32 add_entry(DynamicTags tag); // Add entry with 0 value. Often used for placeholders
+  u32 add_entry(DynamicTags tag, word<B> value);
+  void replace_entry(u32 index, PackedElfDyn<B, E> &&dyn) noexcept;
+  void replace_entry(u32 index, word<B> tag, word<B> value) noexcept;
+  AbsoluteFixup fixup_value(u32 index, std::function<word<B>()> f);
 
 private:
   Shdr &shdr;
@@ -454,6 +462,15 @@ template <ElfBits B, ElfEndian E, bool Const>
 void PackedSymbolAccessor<B, E, Const>::replace_value(u32 index, Word<B, E> value) noexcept {
   if (index >= symbol_count()) return;
   get_symbol_ptr(index)->st_value = value;
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+AbsoluteFixup PackedSymbolAccessor<B, E, Const>::fixup_value(word<B> index, std::function<word<B>()> func) {
+  return AbsoluteFixup{.update = [this, index, func]() {
+    if (index >= symbol_count()) return;
+    PackedElfSymbol<B, E> *sym = get_symbol_ptr(index);
+    sym->st_value = func();
+  }};
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -1011,29 +1028,69 @@ template <ElfBits B, ElfEndian E, bool Const> u32 PackedDynamicAccessor<B, E, Co
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedElfDyn<B, E> PackedDynamicAccessor<B, E, Const>::get_entry(u32 index) const noexcept {
-  if (index * shdr.sh_entsize + sizeof(PackedElfDyn<B, E>) > data.size()) return PackedElfDyn<B, E>{};
-  return *(PackedElfDyn<B, E> *)(data.data() + index * shdr.sh_entsize);
+  if (auto ptr = get_entry_ptr(index); ptr != nullptr) return *ptr;
+  return PackedElfDyn<B, E>{};
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-void PackedDynamicAccessor<B, E, Const>::add_entry(PackedElfDyn<B, E> &&dyn) {
+PackedElfDyn<B, E> *PackedDynamicAccessor<B, E, Const>::get_entry_ptr(u32 index) const noexcept {
+  if (index * shdr.sh_entsize + sizeof(PackedElfDyn<B, E>) > data.size()) return nullptr;
+  return (PackedElfDyn<B, E> *)(data.data() + index * shdr.sh_entsize);
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+u32 PackedDynamicAccessor<B, E, Const>::add_entry(PackedElfDyn<B, E> &&dyn) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfDyn<B, E>);
+  auto ret = entry_count();
   data.insert(data.end(), reinterpret_cast<const u8 *>(&dyn),
               reinterpret_cast<const u8 *>(&dyn) + sizeof(PackedElfDyn<B, E>));
   shdr.sh_size = data.size();
+  return ret;
+}
+
+template <ElfBits B, ElfEndian E, bool Const> inline u32 PackedDynamicAccessor<B, E, Const>::add_entry(word<B> tag) {
+  return add_entry(tag, 0);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-void PackedDynamicAccessor<B, E, Const>::add_entry(word<B> tag, word<B> value) {
+u32 PackedDynamicAccessor<B, E, Const>::add_entry(word<B> tag, word<B> value) {
   PackedElfDyn<B, E> dyn;
   dyn.d_tag = tag;
   dyn.d_val = value;
-  add_entry(std::move(dyn));
+  return add_entry(std::move(dyn));
+}
+
+template <ElfBits B, ElfEndian E, bool Const> u32 PackedDynamicAccessor<B, E, Const>::add_entry(DynamicTags tag) {
+  return add_entry(to_underlying(tag));
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-void PackedDynamicAccessor<B, E, Const>::add_entry(DynamicTags tag, word<B> value) {
-  add_entry(to_underlying(tag), value);
+u32 PackedDynamicAccessor<B, E, Const>::add_entry(DynamicTags tag, word<B> value) {
+  return add_entry(to_underlying(tag), value);
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedDynamicAccessor<B, E, Const>::replace_entry(u32 index, PackedElfDyn<B, E> &&dyn) noexcept {
+  if (auto ptr = get_entry_ptr(index); ptr != nullptr) {
+    ptr->d_tag = dyn.d_tag;
+    ptr->d_val = dyn.d_val;
+  }
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedDynamicAccessor<B, E, Const>::replace_entry(u32 index, word<B> tag, word<B> value) noexcept {
+  if (auto ptr = get_entry_ptr(index); ptr != nullptr) {
+    ptr->d_tag = tag;
+    ptr->d_val = value;
+  }
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+AbsoluteFixup PackedDynamicAccessor<B, E, Const>::fixup_value(u32 index, std::function<word<B>()> f) {
+  return AbsoluteFixup([this, index, f]() {
+    auto ptr = get_entry_ptr(index);
+    if (ptr != nullptr) ptr->d_val = f();
+  });
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
