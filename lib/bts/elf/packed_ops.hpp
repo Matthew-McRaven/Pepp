@@ -9,6 +9,7 @@ template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedElf<B, 
 // Assumes .shstrtab already exists
 template <ElfBits B, ElfEndian E> u16 add_named_section(PackedElf<B, E> &, std::string_view name, SectionTypes type);
 template <ElfBits B, ElfEndian E> u16 add_named_symtab(PackedElf<B, E> &, std::string_view name, u16 symtab_idx);
+template <ElfBits B, ElfEndian E> u16 add_named_dynsymtab(PackedElf<B, E> &, std::string_view name, u16 symtab_idx);
 template <ElfBits B, ElfEndian E>
 u16 add_named_rel(PackedElf<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
 template <ElfBits B, ElfEndian E>
@@ -42,6 +43,14 @@ template <ElfBits B, ElfEndian E> u16 add_named_symtab(PackedElf<B, E> &elf, std
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(SectionTypes::SHT_SYMTAB);
+  shdr.sh_name = writer.add_string(name);
+  shdr.sh_link = strtab_idx;
+  return elf.add_section(std::move(shdr));
+}
+template <ElfBits B, ElfEndian E> u16 add_named_dynsymtab(PackedElf<B, E> &elf, std::string_view name, u16 strtab_idx) {
+  PackedElfShdr<B, E> shdr;
+  PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
+  shdr.sh_type = to_underlying(SectionTypes::SHT_DYNSYM);
   shdr.sh_name = writer.add_string(name);
   shdr.sh_link = strtab_idx;
   return elf.add_section(std::move(shdr));

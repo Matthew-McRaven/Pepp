@@ -163,10 +163,10 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     for (u32 it = 0; it < writer.symbol_count(); ++it) {
       CHECK(it == writer.get_symbol(it).st_size);
     }
-    CHECK(writer.find_symbol(u32{0x2000}).has_value());
-    CHECK(!writer.find_symbol(u32{0x2001}).has_value());
-    CHECK(writer.find_symbol("echo").has_value());
-    CHECK(!writer.find_symbol("Echo").has_value());
+    CHECK(writer.find_symbol(u32{0x2000}) != 0);
+    CHECK(writer.find_symbol(u32{0x2001}) == 0);
+    CHECK(writer.find_symbol("echo") != 0);
+    CHECK(writer.find_symbol("Echo") == 0);
 
     auto layout = calculate_layout(elf);
     std::vector<u8> data;
@@ -324,6 +324,150 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     data.resize(size_for_layout(layout));
     write(data, layout);
     write("ehdr_array.elf", data);
+  }
+  SECTION("Validate hash functions for known values") {
+    // Sample hashes from: https://flapenguin.me/elf-dt-hash
+    // CHECK(elf_hash(std::span{""}) == 0);
+    // CHECK(elf_hash(std::span{"printf"}) == 0x077905a6);
+    // CHECK(elf_hash(std::span{"exit"}) == 0x0006cf04);
+    // CHECK(elf_hash(std::span{"syscall"}) == 0x0b09985c);
+    // CHECK(elf_hash(std::span{"flapenguin.me"}) == 0x03987915);
+
+    // Do not include null terminators for sake of matching existing hashes
+    CHECK(gnu_elf_hash(std::span{"", 0}) == 0x00001505);
+    CHECK(gnu_elf_hash(std::span{"printf", 6}) == 0x156b2bb8);
+    CHECK(gnu_elf_hash(std::span{"exit", 4}) == 0x7c967e3f);
+    CHECK(gnu_elf_hash(std::span{"syscall", 7}) == 0xbac212a0);
+    CHECK(gnu_elf_hash(std::span{"flapenguin.me", 13}) == 0x8ae9f18e);
+  }
+  SECTION("Emit a working .gnu.hash section") {
+    using enum DynamicTags;
+
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    elf.add_segment(Packed::Phdr{}); // dynamic
+    elf.add_segment(Packed::Phdr{}); // load
+
+    auto symtab_idx = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
+
+    auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
+    auto dynsym_idx = add_named_dynsymtab(elf, ".dynsym", dynstr_idx);
+    auto hash_idx = add_named_section(elf, ".gnu.hash", SectionTypes::SHT_GNU_HASH);
+    elf.section_headers[hash_idx].sh_link = dynsym_idx;
+    {
+      PackedGNUHashedSymbolWriter<ElfBits::b32, ElfEndian::le> hs_writer(elf, hash_idx);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "alpha", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "bravo", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "charlie", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "delta", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "echo", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "foxtrot", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "golf", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "hotel", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "india", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "juliett", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "kilo", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "lima", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "mike", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "november", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "oscar", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "papa", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "quebec", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "romeo", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "sierra", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "tango", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "uniform", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "victor", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "whiskey", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "x-ray", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "yankee", 1);
+      hs_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "zulu", 1);
+      hs_writer.arrange_local_symbols();
+      hs_writer.compute_hash_table(11, 4, 2, 5);
+    }
+
+    auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC);
+    PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
+    auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
+    st_writer.arrange_local_symbols();
+
+    PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
+    auto nearest_page = [](u32 addr) { return ((addr + (4096 - 1)) / 4096) * 4096; };
+    const auto base_address = nearest_page(0xFEED);
+    elf.section_headers[dynamic_idx].sh_link = symtab_idx;
+    const auto dynstr_addr = base_address;
+    elf.section_headers[dynstr_idx].sh_addr = dynstr_addr;
+    const auto dynsym_addr = dynstr_addr + elf.section_headers[dynstr_idx].sh_size;
+    elf.section_headers[dynsym_idx].sh_addr = dynsym_addr;
+    const auto hash_addr = dynsym_addr + elf.section_headers[dynsym_idx].sh_size;
+    elf.section_headers[hash_idx].sh_addr = hash_addr;
+    const auto dynamic_addr = hash_addr + elf.section_headers[hash_idx].sh_size;
+    dyn_writer.add_entry(DT_STRTAB, dynstr_addr);
+    dyn_writer.add_entry(DT_STRSZ, elf.section_headers[dynstr_idx].sh_size);
+    dyn_writer.add_entry(DT_SYMTAB, dynsym_addr);
+    dyn_writer.add_entry(DT_GNU_HASH, hash_addr);
+    dyn_writer.add_entry(DT_NULL, 0);
+
+    auto layout = calculate_layout(elf);
+
+    auto &dyn_seg = elf.program_headers[0];
+    dyn_seg.p_offset = elf.section_headers[dynstr_idx].sh_offset;
+    dyn_seg.p_filesz =
+        elf.section_headers[dynamic_idx].sh_size + elf.section_headers[dynamic_idx].sh_offset - dyn_seg.p_offset;
+
+    dyn_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
+    dyn_seg.p_type = to_underlying(SegmentType::PT_DYNAMIC);
+    dyn_seg.p_paddr = nearest_page(0xFEED);
+    dyn_seg.p_vaddr = nearest_page(0xFEED);
+    st_writer.replace_value(_DYNAMIC, dynamic_addr);
+
+    auto &load_seg = elf.program_headers[1];
+    load_seg.p_offset = elf.section_headers[dynstr_idx].sh_offset;
+    load_seg.p_filesz =
+        elf.section_headers[dynamic_idx].sh_size + elf.section_headers[dynamic_idx].sh_offset - dyn_seg.p_offset;
+
+    load_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
+    dyn_seg.p_type = to_underlying(SegmentType::PT_LOAD);
+    load_seg.p_paddr = nearest_page(0xFEED);
+    load_seg.p_vaddr = nearest_page(0xFEED);
+    st_writer.replace_value(_DYNAMIC, dyn_seg.p_paddr);
+
+    std::vector<u8> data;
+    data.resize(size_for_layout(layout));
+    write(data, layout);
+    write("ehdr_hash.elf", data);
+
+    // Assuming nbuckets=11, symndx=mask_words=11, shift2=5, symndx=4 (start hash at delta)
+    // Easiest way to verify manually is download llvm for llvm-readelf and run:
+    // llvm-readelf-15 --gnu-hash-table -a --hash-symbols -d --dyn-syms ehdr_hash.elf
+    PackedGNUHashedSymbolReader<ElfBits::b32, ElfEndian::le> hs_reader(elf, hash_idx);
+    CHECK(hs_reader.find_hashed_symbol("alpha") == 0);
+    CHECK(hs_reader.find_hashed_symbol("bravo") == 0);
+    CHECK(hs_reader.find_hashed_symbol("charlie") == 0);
+    CHECK(hs_reader.find_hashed_symbol("delta") == 4);
+    CHECK(hs_reader.find_hashed_symbol("Delta") == 0);
+    CHECK(hs_reader.find_hashed_symbol("hotel") == 5);
+    CHECK(hs_reader.find_hashed_symbol("india") == 6);
+    CHECK(hs_reader.find_hashed_symbol("sierra") == 7);
+    CHECK(hs_reader.find_hashed_symbol("x-ray") == 8);
+    CHECK(hs_reader.find_hashed_symbol("quebec") == 9);
+    CHECK(hs_reader.find_hashed_symbol("romeo") == 10);
+    CHECK(hs_reader.find_hashed_symbol("tango") == 11);
+    CHECK(hs_reader.find_hashed_symbol("zulu") == 12);
+    CHECK(hs_reader.find_hashed_symbol("lima") == 13);
+    CHECK(hs_reader.find_hashed_symbol("papa") == 14);
+    CHECK(hs_reader.find_hashed_symbol("uniform") == 15);
+    CHECK(hs_reader.find_hashed_symbol("yankee") == 16);
+    CHECK(hs_reader.find_hashed_symbol("juliett") == 17);
+    CHECK(hs_reader.find_hashed_symbol("oscar") == 18);
+    CHECK(hs_reader.find_hashed_symbol("whiskey") == 19);
+    CHECK(hs_reader.find_hashed_symbol("victor") == 20);
+    CHECK(hs_reader.find_hashed_symbol("echo") == 21);
+    CHECK(hs_reader.find_hashed_symbol("kilo") == 22);
+    CHECK(hs_reader.find_hashed_symbol("mike") == 23);
+    CHECK(hs_reader.find_hashed_symbol("foxtrot") == 24);
+    CHECK(hs_reader.find_hashed_symbol("golf") == 25);
+    CHECK(hs_reader.find_hashed_symbol("november") == 26);
   }
 }
 

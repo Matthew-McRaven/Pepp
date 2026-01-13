@@ -1,5 +1,6 @@
 #pragma once
 #include "./packed_elf.hpp"
+#include "bts/bitmanip/log2.hpp"
 namespace pepp::bts {
 
 template <bool Const, class T> using maybe_const_t = std::conditional_t<Const, T const, T>;
@@ -11,6 +12,7 @@ public:
   PackedStringAccessor(Elf &elf, u16 index);
   PackedStringAccessor(Shdr &shdr, Data &strtab) noexcept;
   const char *get_string(word<B> index) const noexcept;
+  bits::span<const char> get_string_span(word<B> index) const noexcept;
   word<B> find(std::string_view) const noexcept;
   // Returns the index to the start of the added string
   word<B> add_string(std::span<const char> str);
@@ -37,26 +39,90 @@ public:
   u32 symbol_count() const noexcept;
   PackedElfSymbol<B, E> get_symbol(u32 index) const noexcept;
   PackedElfSymbol<B, E> *get_symbol_ptr(u32 index) const noexcept;
-  u32 find_symbol_index(std::string_view name) const noexcept;
-  std::optional<PackedElfSymbol<B, E>> find_symbol(std::string_view name) const noexcept;
-  std::optional<PackedElfSymbol<B, E>> find_symbol(Word<B, E> address) const noexcept;
-  void replace_value(u32 index, Word<B, E> value) noexcept;
+  bits::span<const char> get_symbol_name(u32 index) const noexcept;
+  u32 find_symbol(std::string_view name) const noexcept;
+  u32 find_symbol(Word<B, E> value) const noexcept;
 
   // Add a symbol to the table. Assumes you already set st_name!
   u32 add_symbol(PackedElfSymbol<B, E> &&symbol);
   // Helpers to assign name and section index.
   u32 add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name);
   u32 add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name, u16 section_index);
+  void replace_symbol(u32 index, PackedElfSymbol<B, E> &&symbol) noexcept;
+  void replace_value(u32 index, Word<B, E> value) noexcept;
   void arrange_local_symbols(std::function<void(Word<B, E> first, Word<B, E> second)> func = nullptr);
 
-private:
+protected:
   void copy_to_symtab(PackedElfSymbol<B, E> &&symbol);
-  Shdr &shdr;
-  Data &symtab;
+  void swap_symbols(u32 first, u32 second) noexcept;
+  Shdr &shdr_symtab;
+  Data &data_symtab;
   PackedStringAccessor<B, E, Const> strtab;
 };
 template <ElfBits B, ElfEndian E> using PackedSymbolReader = PackedSymbolAccessor<B, E, true>;
 template <ElfBits B, ElfEndian E> using PackedSymbolWriter = PackedSymbolAccessor<B, E, false>;
+
+/*
+ * Per:
+ *   https://blogs.oracle.com/solaris/gnu-hash-elf-sections-v2
+ *   https://flapenguin.me/elf-dt-gnu-hash
+ *   https://sourceware.org/pipermail/binutils/2006-October/049450.html
+ *
+ * Hash table has 4 u32 headers: nbuckets, symndx, maskwords, shift.
+ * layout is roughly:
+ * template <ElfBits B> struct {
+ *   u32 nbuckets, symndx, maskwords, shift2;
+ *   word<B> bloom[maskwords];
+ *   u32 buckets[nbuckets];
+ *   u32 chains[# of symbols hashed];
+ * };
+ * Bloom filter is used to quickly rule out misses using 2 functions (bits) per symbol
+ * Buckets / chain work the same as the none-GNU hash table, except chains end when the low bit is set.
+ *
+ * For outside readers to take advantage of this section, you must do extra work beyond creating the hash table:
+ * - .dynsym, .dynstr, and .dynamic must:
+ *   - be part of a contiguous PT_DYNAMIC segment
+ *   - be part of a contiguous PT_LOAD segment
+ *   - have a correctly computed sh_addr
+ * - _DYNAMIC symbol must exist and point to the vaddr first entry of .dynamic
+ * - PT_LOAD and PT_DYNAMIC segments must have p_vaddr and p_paddr set correctly, and a page-aligned memory size
+ * - DYNAMIC array entries
+ *   - DT_STRTAB, pointing to VADDR of .dynstr
+ *   - DT_STRSZ, size of .dynstr
+ *   - DT_SYMTAB, pointing to VADDR of .dynsym
+ *   - DT_GNU_HASH, pointing to VADDR of .gnu.hash
+ */
+u32 gnu_elf_hash(bits::span<const char>) noexcept;
+u32 gnu_elf_hash(std::string_view) noexcept;
+template <ElfBits B, ElfEndian E, bool Const>
+class PackedGNUHashedSymbolAccessor : public PackedSymbolAccessor<B, E, Const> {
+public:
+  using Elf = maybe_const_t<Const, PackedElf<B, E>>;
+  using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
+  using Data = maybe_const_t<Const, std::vector<u8>>;
+  PackedGNUHashedSymbolAccessor(Elf &elf, u16 index);
+  PackedGNUHashedSymbolAccessor(Shdr &shdr_hash, Data &data_hash, Shdr &shdr_symbol, Data &data_symbol,
+                                Shdr &shdr_strtab, Data &data_strtab) noexcept;
+  // return index into underlying symbol table, or 0 if not found
+  // will not find unhashed symbols; use base class's find_symbol for exhaustive search.
+  u32 find_hashed_symbol(std::string_view name) const noexcept;
+  void compute_hash_table(u32 nbuckets, u32 symndx, u32 maskwords, u32 shift2,
+                          std::function<void(Word<B, E>, Word<B, E>)> func = nullptr);
+
+  u32 nbuckets() const noexcept;
+  u32 symndx() const noexcept;
+  u32 maskwords() const noexcept;
+  u32 mshift2() const noexcept;
+  bits::span<const Word<B, E>> bloom() const noexcept;
+  bits::span<const U32<E>> buckets() const noexcept;
+  bits::span<const U32<E>> chains() const noexcept;
+
+private:
+  Shdr &shdr_hash;
+  Data &data_hash;
+};
+template <ElfBits B, ElfEndian E> using PackedGNUHashedSymbolReader = PackedGNUHashedSymbolAccessor<B, E, true>;
+template <ElfBits B, ElfEndian E> using PackedGNUHashedSymbolWriter = PackedGNUHashedSymbolAccessor<B, E, false>;
 
 // Handles both REL and RELA.
 // You just need to know which one you're dealing with.
@@ -99,10 +165,8 @@ struct NoteEntry {
   u32 namesz;
   u32 descsz;
   u32 type;
-  // Followed by name and desc data
   bits::span<const char> name, desc;
 };
-
 template <ElfBits B, ElfEndian E, bool Const> class PackedNoteAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
@@ -157,7 +221,7 @@ template <ElfBits B, ElfEndian E> using PackedDynamicReader = PackedDynamicAcces
 template <ElfBits B, ElfEndian E> using PackedDynamicWriter = PackedDynamicAccessor<B, E, false>;
 
 /*
- * Used to aceess .init_array, .fini_array, etc. These are effectively arrays of function pointers.
+ * Used to access .init_array, .fini_array, etc. These are effectively arrays of function pointers.
  */
 template <ElfBits B, ElfEndian E, bool Const> class PackedArrayAccessor {
 public:
@@ -195,6 +259,14 @@ template <ElfBits B, ElfEndian E, bool Const>
 const char *PackedStringAccessor<B, E, Const>::get_string(word<B> index) const noexcept {
   if (index >= shdr.sh_size || index >= strtab.size()) return nullptr;
   return reinterpret_cast<const char *>(strtab.data() + index);
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+bits::span<const char> PackedStringAccessor<B, E, Const>::get_string_span(word<B> index) const noexcept {
+  if (index >= shdr.sh_size || index >= strtab.size()) return {};
+  const char *start = (const char *)strtab.data() + index, *end = start;
+  while (end < (const char *)strtab.data() + strtab.size() && *end != '\0') ++end;
+  return bits::span<const char>(start, end - start);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -236,7 +308,7 @@ word<B> PackedStringAccessor<B, E, Const>::add_string(const std::string &str) {
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedSymbolAccessor<B, E, Const>::PackedSymbolAccessor(PackedSymbolAccessor<B, E, Const>::Elf &elf, u16 index)
-    : shdr(elf.section_headers[index]), symtab(elf.section_data[index]), strtab(elf, shdr.sh_link) {
+    : shdr_symtab(elf.section_headers[index]), data_symtab(elf.section_data[index]), strtab(elf, shdr_symtab.sh_link) {
   if (index > elf.section_headers.size()) throw std::runtime_error("PackedSymbolWriter: invalid section index");
 }
 
@@ -245,11 +317,11 @@ PackedSymbolAccessor<B, E, Const>::PackedSymbolAccessor(PackedSymbolAccessor<B, 
                                                         PackedSymbolAccessor<B, E, Const>::Data &symtab,
                                                         PackedSymbolAccessor<B, E, Const>::Shdr &shdr,
                                                         PackedSymbolAccessor<B, E, Const>::Data &strtab) noexcept
-    : shdr(shdr_symbol), symtab(symtab), strtab(shdr, strtab) {}
+    : shdr_symtab(shdr_symbol), data_symtab(symtab), strtab(shdr, strtab) {}
 
 template <ElfBits B, ElfEndian E, bool Const> u32 PackedSymbolAccessor<B, E, Const>::symbol_count() const noexcept {
-  if (shdr.sh_entsize == 0 || shdr.sh_size == 0) return 0;
-  return shdr.sh_size / shdr.sh_entsize;
+  if (shdr_symtab.sh_entsize == 0 || shdr_symtab.sh_size == 0) return 0;
+  return shdr_symtab.sh_size / shdr_symtab.sh_entsize;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -262,13 +334,18 @@ PackedElfSymbol<B, E> PackedSymbolAccessor<B, E, Const>::get_symbol(u32 index) c
 template <ElfBits B, ElfEndian E, bool Const>
 PackedElfSymbol<B, E> *PackedSymbolAccessor<B, E, Const>::get_symbol_ptr(u32 index) const noexcept {
   if (index >= symbol_count()) return nullptr;
-  auto ret = (PackedElfSymbol<B, E> *)(symtab.data() + index * shdr.sh_entsize);
+  auto ret = (PackedElfSymbol<B, E> *)(data_symtab.data() + index * shdr_symtab.sh_entsize);
   return ret;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-u32 PackedSymbolAccessor<B, E, Const>::find_symbol_index(std::string_view name) const noexcept {
-  // TODO: if there is a hash table index, use it for faster lookup.
+bits::span<const char> PackedSymbolAccessor<B, E, Const>::get_symbol_name(u32 index) const noexcept {
+  if (index >= symbol_count()) return {};
+  return strtab.get_string_span(get_symbol(index).st_name);
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+u32 PackedSymbolAccessor<B, E, Const>::find_symbol(std::string_view name) const noexcept {
   auto str_idx = strtab.find(name);
   if (str_idx == 0 && !name.empty()) return 0;
   for (u32 it = 0; it < symbol_count(); ++it)
@@ -277,49 +354,47 @@ u32 PackedSymbolAccessor<B, E, Const>::find_symbol_index(std::string_view name) 
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-std::optional<PackedElfSymbol<B, E>>
-PackedSymbolAccessor<B, E, Const>::find_symbol(std::string_view name) const noexcept {
-  auto index = find_symbol_index(name);
-  if (index == 0 && !name.empty()) return std::nullopt;
-  return get_symbol(index);
-}
-
-template <ElfBits B, ElfEndian E, bool Const>
-std::optional<PackedElfSymbol<B, E>> PackedSymbolAccessor<B, E, Const>::find_symbol(Word<B, E> address) const noexcept {
+u32 PackedSymbolAccessor<B, E, Const>::find_symbol(Word<B, E> address) const noexcept {
   for (u32 it = 0; it < symbol_count(); ++it)
-    if (auto sym = get_symbol(it); sym.st_value == address) return sym;
-  return std::nullopt;
-}
-
-template <ElfBits B, ElfEndian E, bool Const>
-void PackedSymbolAccessor<B, E, Const>::replace_value(u32 index, Word<B, E> value) noexcept {
-  if (index >= symbol_count()) return;
-  get_symbol_ptr(index)->st_value = value;
+    if (auto sym = get_symbol(it); sym.st_value == address) return it;
+  return 0;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 u32 PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol) {
-  if (shdr.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
+  if (shdr_symtab.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
   copy_to_symtab(std::move(symbol));
   return symbol_count() - 1;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 u32 PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name) {
-  if (shdr.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
-  add_symbol(std::move(symbol), name, symbol.st_shndx);
+  auto idx = symbol.st_shndx;
+  add_symbol(std::move(symbol), name, idx);
   return symbol_count() - 1;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 u32 PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name,
                                                   u16 section_index) {
-  if (shdr.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
+  if (shdr_symtab.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
   auto name_idx = strtab.add_string(name);
   symbol.st_name = name_idx;
   symbol.st_shndx = section_index;
   copy_to_symtab(std::move(symbol));
   return symbol_count() - 1;
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedSymbolAccessor<B, E, Const>::replace_symbol(u32 index, PackedElfSymbol<B, E> &&symbol) noexcept {
+  if (index >= symbol_count()) return;
+  *get_symbol_ptr(index) = symbol;
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedSymbolAccessor<B, E, Const>::replace_value(u32 index, Word<B, E> value) noexcept {
+  if (index >= symbol_count()) return;
+  get_symbol_ptr(index)->st_value = value;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -346,10 +421,10 @@ void PackedSymbolAccessor<B, E, Const>::arrange_local_symbols(std::function<void
 
     if (first_not_local < count && current < count) {
       if (func) func(first_not_local, current);
-      std::swap(*p1, *p2);
+      swap_symbols(first_not_local, current);
     } else {
       // Update 'info' field of the section
-      shdr.sh_info = first_not_local;
+      shdr_symtab.sh_info = first_not_local;
       break;
     }
   }
@@ -357,10 +432,201 @@ void PackedSymbolAccessor<B, E, Const>::arrange_local_symbols(std::function<void
 
 template <ElfBits B, ElfEndian E, bool Const>
 void PackedSymbolAccessor<B, E, Const>::copy_to_symtab(PackedElfSymbol<B, E> &&symbol) {
-  if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfSymbol<B, E>);
+  if (shdr_symtab.sh_entsize == 0) shdr_symtab.sh_entsize = sizeof(PackedElfSymbol<B, E>);
   const u8 *ptr = reinterpret_cast<const u8 *>(&symbol);
-  symtab.insert(symtab.end(), ptr, ptr + sizeof(PackedElfSymbol<B, E>));
-  shdr.sh_size = symtab.size();
+  data_symtab.insert(data_symtab.end(), ptr, ptr + sizeof(PackedElfSymbol<B, E>));
+  shdr_symtab.sh_size = data_symtab.size();
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedSymbolAccessor<B, E, Const>::swap_symbols(u32 first, u32 second) noexcept {
+  const auto cnt = symbol_count();
+  // Don't allow swapping the null symbol
+  if (first >= cnt || second >= cnt || first == 0 || second == 0) return;
+  auto ptr1 = get_symbol_ptr(first), ptr2 = get_symbol_ptr(second);
+  std::swap(*ptr1, *ptr2);
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+PackedGNUHashedSymbolAccessor<B, E, Const>::PackedGNUHashedSymbolAccessor(Elf &elf, u16 index)
+    : pepp::bts::PackedSymbolAccessor<B, E, Const>(elf, elf.section_headers[index].sh_link),
+      shdr_hash(elf.section_headers[index]), data_hash(elf.section_data[index]) {}
+
+template <ElfBits B, ElfEndian E, bool Const>
+inline PackedGNUHashedSymbolAccessor<B, E, Const>::PackedGNUHashedSymbolAccessor(Shdr &shdr_hash, Data &data_hash,
+                                                                                 Shdr &shdr_symbol, Data &data_symbol,
+                                                                                 Shdr &shdr_strtab,
+                                                                                 Data &data_strtab) noexcept
+    : PackedSymbolAccessor<B, E, Const>(shdr_symbol, data_symbol, shdr_strtab, data_strtab), shdr_hash(shdr_hash),
+      data_hash(data_hash) {}
+
+template <ElfBits B, ElfEndian E, bool Const>
+u32 PackedGNUHashedSymbolAccessor<B, E, Const>::find_hashed_symbol(std::string_view name) const noexcept {
+  using ElfSymbol = PackedElfSymbol<B, E>;
+
+  const u32 bloom_size = this->maskwords();
+  const u32 bloom_shift = this->mshift2();
+  const auto nbuckets = this->nbuckets();
+  const auto bloom_filter = this->bloom();
+  u32 hash = gnu_elf_hash(name);
+  u32 bloom_index = (hash / (8 * sizeof(ElfSymbol))) % bloom_size;
+  Word<B, E> bloom_bits = ((Word<B, E>)1 << (hash % (8 * sizeof(Word<B, E>)))) |
+                          ((Word<B, E>)1 << ((hash >> bloom_shift) % (8 * sizeof(Word<B, E>))));
+
+  if (Word<B, E>{bloom_filter[bloom_index]} & bloom_bits != bloom_bits) return 0;
+
+  u32 bucket = hash % nbuckets;
+  const u32 symoffset = this->symndx();
+  const auto buckets = this->buckets();
+  const auto chains = this->chains();
+
+  if (buckets[bucket] >= symoffset) {
+    u32 chain_index = buckets[bucket] - symoffset, chain_hash = chains[chain_index];
+    std::string symname;
+
+    while (true) {
+      if ((chain_hash >> 1) == (hash >> 1)) {
+        auto lhs = this->get_symbol_name(symoffset + chain_index);
+        if (lhs.size() == name.size() && std::equal(lhs.begin(), lhs.end(), name.begin()))
+          return symoffset + chain_index;
+      }
+      if (chain_hash & 1) break;
+      chain_hash = chains[++chain_index];
+    }
+  }
+  return 0;
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets, u32 symndx, u32 maskwords, u32 shift2,
+                                                                    std::function<void(Word<B, E>, Word<B, E>)> func) {
+  const u32 nsyms = this->symbol_count();
+  if (symndx > nsyms) symndx = nsyms;
+  const u32 hashed_count = nsyms - symndx;
+
+  // Heuristic: About 2 symbols per bucket (avoid 0).
+  if (nbuckets == 0) nbuckets = std::max<u32>(1, hashed_count / 2);
+  // Heuristic: bloom words scale with hashed symbols; must be power of two.
+  if (maskwords == 0) maskwords = 1 << bits::ceil_log2(std::max<u32>(1, hashed_count / 8));
+  else maskwords = 1 << bits::ceil_log2(maskwords);
+  if (shift2 == 0) shift2 = 5; // Common linker choice; 5 is widely used.
+
+  std::vector<u32> H(hashed_count);
+  for (u32 i = 0; i < hashed_count; ++i) H[i] = gnu_elf_hash(this->get_symbol_name(symndx + i));
+
+  // Reorder symbols by ascending hash % nbuckets, keeping unhashed prefix [0, symoffset) intact.
+  std::vector<u32> perm(hashed_count);
+  std::iota(perm.begin(), perm.end(), 0);
+  std::stable_sort(perm.begin(), perm.end(), [&](u32 a, u32 b) { return (H[a] % nbuckets) < (H[b] % nbuckets); });
+
+  // Apply permuatation by swapping in-place using a cycle walk. perm[new] = old  =>  dest[old] = new
+  std::vector<std::uint32_t> dest(hashed_count);
+  for (std::uint32_t newpos = 0; newpos < hashed_count; ++newpos) dest[perm[newpos]] = newpos;
+  for (std::uint32_t i = 0; i < hashed_count; ++i) {
+    while (dest[i] != i) {
+      u32 j = dest[i];                            // element at i should go to j
+      if (func) func(symndx + i, symndx + j);     // Notify other sections of symbol swap
+      this->swap_symbols(symndx + i, symndx + j); // Swap symbol entries.
+      std::swap(H[i], H[j]);                      // Swap hashes
+      std::swap(dest[i], dest[j]);                // Keep mapping consistent after swap
+    }
+  }
+
+  // Compute bloom filter, per: https://blogs.oracle.com/solaris/gnu-hash-elf-sections-v2
+  // Set 2 bits per symbol at the same array index. The array index is a function of the hash.
+  std::vector<word<B>> bloom_filter(maskwords, 0);
+  constexpr std::uint32_t WordBits = 8u * sizeof(word<B>);
+  for (u32 i = 0; i < hashed_count; ++i) {
+    const u32 H1 = H[i], H2 = (H1 >> shift2);
+    // TODO: could replace all %maskwords with & (maskwords - 1) because it is POT
+    const u32 N = ((H1 / WordBits) % maskwords);
+    const u32 bitmask = (u32{1} << (H1 % WordBits)) | (u32{1} << (H2 % WordBits));
+    bloom_filter[N] |= bitmask;
+  }
+
+  // Store lowest symbol index for each bucket; 0 means no symbol.
+  std::vector<u32> buckets(nbuckets, 0);
+  for (u32 i = 0; i < hashed_count; ++i)
+    if (const u32 b = H[i] % nbuckets; buckets[b] == 0) buckets[b] = symndx + i;
+
+  // Constructs a chain of symbols with the same hash. If & 1, at the end of the chain.
+  std::vector<u32> chains(hashed_count, 0);
+  for (std::uint32_t i = 0; i < hashed_count; ++i) {
+    const u32 h = H[i] & ~1u, this_bucket = H[i] % nbuckets;
+    const bool end = (i + 1 == hashed_count) || ((H[i + 1] % nbuckets) != this_bucket);
+    chains[i] = h | (end ? 1u : 0u);
+  }
+
+  // Write out the hash table in correct endian format. Avoid reallocations of underlying buffer.
+  data_hash.clear();
+  this->data_hash.reserve(4 * sizeof(u32) + maskwords * sizeof(word<B>) + nbuckets * sizeof(u32) +
+                          chains.size() * sizeof(u32));
+
+  // Helper to conditionally byteswap and append a u32
+  auto append_u32 = [](auto &data_hash, u32 val) {
+    u8 buf[4];
+    *((U32<E> *)buf) = val;
+    data_hash.insert(data_hash.end(), buf, buf + 4);
+  };
+
+  // Header
+  append_u32(data_hash, nbuckets);
+  append_u32(data_hash, symndx);
+  append_u32(data_hash, maskwords);
+  append_u32(data_hash, shift2);
+  // Bloom filter, buckets, chains
+  for (const auto &b : bloom_filter) {
+    u8 buf[sizeof(word<B>)];
+    *((Word<B, E> *)buf) = b;
+    data_hash.insert(data_hash.end(), buf, buf + sizeof(word<B>));
+  }
+  for (const auto &b : buckets) append_u32(data_hash, b);
+  for (const auto &c : chains) append_u32(data_hash, c);
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+inline u32 PackedGNUHashedSymbolAccessor<B, E, Const>::nbuckets() const noexcept {
+  if (data_hash.size() < 4 * sizeof(u32)) return 0;
+  return u32{*((U32<E> *)data_hash.data() + 0)};
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+inline u32 PackedGNUHashedSymbolAccessor<B, E, Const>::symndx() const noexcept {
+  if (data_hash.size() < 4 * sizeof(u32)) return 0;
+  return {*((U32<E> *)data_hash.data() + 1)};
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+inline u32 PackedGNUHashedSymbolAccessor<B, E, Const>::maskwords() const noexcept {
+  if (data_hash.size() < 4 * sizeof(u32)) return 0;
+  return u32{*((U32<E> *)data_hash.data() + 2)};
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+inline u32 PackedGNUHashedSymbolAccessor<B, E, Const>::mshift2() const noexcept {
+  if (data_hash.size() < 4 * sizeof(u32)) return 0;
+  return u32{*((U32<E> *)data_hash.data() + 3)};
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+inline bits::span<const Word<B, E>> PackedGNUHashedSymbolAccessor<B, E, Const>::bloom() const noexcept {
+  if (data_hash.size() < 4 * sizeof(u32)) return {};
+  return bits::span<const Word<B, E>>((const Word<B, E> *)(data_hash.data() + 4 * sizeof(u32)), maskwords());
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+inline bits::span<const U32<E>> PackedGNUHashedSymbolAccessor<B, E, Const>::buckets() const noexcept {
+  const auto offset = 4 * sizeof(uint32_t) + maskwords() * sizeof(Word<B, E>);
+  if (data_hash.size() < offset) return {};
+  return bits::span<const U32<E>>{(const U32<E> *)(data_hash.data() + offset), nbuckets()};
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+inline bits::span<const U32<E>> PackedGNUHashedSymbolAccessor<B, E, Const>::chains() const noexcept {
+  const auto offset = 4 * sizeof(uint32_t) + maskwords() * sizeof(Word<B, E>) + nbuckets() * sizeof(u32);
+  const auto end = data_hash.size(), size = (end - offset) / sizeof(u32);
+  if (data_hash.size() < offset || size == 0) return {};
+  return bits::span<const U32<E>>{(const U32<E> *)(data_hash.data() + offset), size};
 }
 
 // Relocations
@@ -421,7 +687,7 @@ void PackedRelocationAccessor<B, E, Const>::add_rel(word<B> offset, u32 type, u3
 
 template <ElfBits B, ElfEndian E, bool Const>
 void PackedRelocationAccessor<B, E, Const>::add_rel(word<B> offset, u32 type, std::string_view name) {
-  auto symbol = symtab.find_symbol_index(name);
+  auto symbol = symtab.find_symbol(name);
   if (symbol == 0) throw std::runtime_error("PackedRelocationWriter: symbol not found: " + std::string(name));
   PackedElfRel<B, E> rel;
   rel.r_offset = offset;
@@ -647,4 +913,5 @@ template <ElfBits B, ElfEndian E, bool Const> void PackedArrayAccessor<B, E, Con
   data.insert(data.end(), ptr, ptr + sizeof(Word<B, E>));
   shdr.sh_size = data.size();
 }
+
 } // namespace pepp::bts

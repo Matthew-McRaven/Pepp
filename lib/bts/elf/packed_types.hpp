@@ -322,6 +322,18 @@ template <ElfBits B, ElfEndian E> PackedElfSymbol<B, E> create_null_symbol() {
   return sym;
 }
 
+template <ElfBits B, ElfEndian E> PackedElfSymbol<B, E> create_global_symbol() {
+  PackedElfSymbol<B, E> sym;
+  sym.st_name = 0;
+  sym.st_value = 0;
+  sym.st_size = 0;
+  sym.st_info = 0;
+  sym.set_bind(SymbolBinding::STB_GLOBAL);
+  sym.st_other = 0;
+  sym.st_shndx = to_underlying(SectionIndices::SHN_UNDEF);
+  return sym;
+}
+
 /*
  * Implementations of member methods
  */
