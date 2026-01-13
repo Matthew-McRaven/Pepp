@@ -673,14 +673,15 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
     }
   }
 
+  // Since maskwords is power-of-to, we can replace all % maskwords with & (maskwords -1)
+  static const u32 maskwords_bitmask = maskwords - 1;
   // Compute bloom filter, per: https://blogs.oracle.com/solaris/gnu-hash-elf-sections-v2
   // Set 2 bits per symbol at the same array index. The array index is a function of the hash.
   std::vector<word<B>> bloom_filter(maskwords, 0);
   constexpr std::uint32_t WordBits = 8u * sizeof(word<B>);
   for (u32 i = 0; i < hashed_count; ++i) {
     const u32 H1 = H[i], H2 = (H1 >> shift2);
-    // TODO: could replace all %maskwords with & (maskwords - 1) because it is POT
-    const u32 N = ((H1 / WordBits) % maskwords);
+    const u32 N = ((H1 / WordBits) & maskwords_bitmask);
     const u32 bitmask = (u32{1} << (H1 % WordBits)) | (u32{1} << (H2 % WordBits));
     bloom_filter[N] |= bitmask;
   }
