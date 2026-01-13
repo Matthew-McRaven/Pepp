@@ -64,6 +64,66 @@ template <ElfBits B, ElfEndian E> using PackedSymbolWriter = PackedSymbolAccesso
 
 /*
  * Per:
+ *   https://flapenguin.me/elf-dt-hash
+ *   https://refspecs.linuxfoundation.org/elf/gabi4+/ch5.dynamic.html#hash
+ *
+ * Hash table has 2 u32 headers: nbuckets, symndx, maskwords, shift.
+ * layout is roughly:
+ * template <ElfBits B> struct {
+ *   u32 nbuckets, nchains;
+ *   u32 buckets[nbuckets];
+ *   u32 chains[nchains];
+ * };
+ * buckets[n] points to the head of a chain or 0.
+ * Index into it via hash(symbol_name)%nbuckets.
+ * buckets[n] contains index into the symbol table which also indexes chains.
+ *
+ * chains[n] points to the next element in a linked list of symbol indices or 0
+ * Keep crawling the chain until you find the target symbol or you reach 0.
+ *
+ * For outside readers to take advantage of this section, you must do extra work beyond creating the hash table:
+ * - .dynsym, .dynstr, and .dynamic must:
+ *   - be part of a contiguous PT_DYNAMIC segment
+ *   - be part of a contiguous PT_LOAD segment
+ *   - have a correctly computed sh_addr
+ * - _DYNAMIC symbol must exist and point to the vaddr first entry of .dynamic
+ * - PT_LOAD and PT_DYNAMIC segments must have p_vaddr and p_paddr set correctly, and a page-aligned memory size
+ * - DYNAMIC array entries
+ *   - DT_STRTAB, pointing to VADDR of .dynstr
+ *   - DT_STRSZ, size of .dynstr
+ *   - DT_SYMTAB, pointing to VADDR of .dynsym
+ *   - DT_HASH, pointing to VADDR of .hash
+ */
+u32 elf_hash(bits::span<const char>) noexcept;
+u32 elf_hash(std::string_view) noexcept;
+template <ElfBits B, ElfEndian E, bool Const>
+class PackedHashedSymbolAccessor : public PackedSymbolAccessor<B, E, Const> {
+public:
+  using Elf = maybe_const_t<Const, PackedElf<B, E>>;
+  using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
+  using Data = maybe_const_t<Const, std::vector<u8>>;
+  PackedHashedSymbolAccessor(Elf &elf, u16 index);
+  PackedHashedSymbolAccessor(Shdr &shdr_hash, Data &data_hash, Shdr &shdr_symbol, Data &data_symbol, Shdr &shdr_strtab,
+                             Data &data_strtab) noexcept;
+  // return index into underlying symbol table, or 0 if not found
+  // will not find unhashed symbols; use base class's find_symbol for exhaustive search.
+  u32 find_hashed_symbol(std::string_view name) const noexcept;
+  void compute_hash_table(u32 nbuckets);
+
+  u32 nbuckets() const noexcept;
+  u32 nchains() const noexcept;
+  bits::span<const U32<E>> buckets() const noexcept;
+  bits::span<const U32<E>> chains() const noexcept;
+
+private:
+  Shdr &shdr_hash;
+  Data &data_hash;
+};
+template <ElfBits B, ElfEndian E> using PackedHashedSymbolReader = PackedHashedSymbolAccessor<B, E, true>;
+template <ElfBits B, ElfEndian E> using PackedHashedSymbolWriter = PackedHashedSymbolAccessor<B, E, false>;
+
+/*
+ * Per:
  *   https://blogs.oracle.com/solaris/gnu-hash-elf-sections-v2
  *   https://flapenguin.me/elf-dt-gnu-hash
  *   https://sourceware.org/pipermail/binutils/2006-October/049450.html
@@ -77,7 +137,6 @@ template <ElfBits B, ElfEndian E> using PackedSymbolWriter = PackedSymbolAccesso
  *   u32 chains[# of symbols hashed];
  * };
  * Bloom filter is used to quickly rule out misses using 2 functions (bits) per symbol
- * Buckets / chain work the same as the none-GNU hash table, except chains end when the low bit is set.
  *
  * For outside readers to take advantage of this section, you must do extra work beyond creating the hash table:
  * - .dynsym, .dynstr, and .dynamic must:
@@ -448,15 +507,97 @@ void PackedSymbolAccessor<B, E, Const>::swap_symbols(u32 first, u32 second) noex
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
+PackedHashedSymbolAccessor<B, E, Const>::PackedHashedSymbolAccessor(Elf &elf, u16 index)
+    : pepp::bts::PackedSymbolAccessor<B, E, Const>(elf, elf.section_headers[index].sh_link),
+      shdr_hash(elf.section_headers[index]), data_hash(elf.section_data[index]) {}
+
+template <ElfBits B, ElfEndian E, bool Const>
+PackedHashedSymbolAccessor<B, E, Const>::PackedHashedSymbolAccessor(Shdr &shdr_hash, Data &data_hash, Shdr &shdr_symbol,
+                                                                    Data &data_symbol, Shdr &shdr_strtab,
+                                                                    Data &data_strtab) noexcept
+    : PackedSymbolAccessor<B, E, Const>(shdr_symbol, data_symbol, shdr_strtab, data_strtab), shdr_hash(shdr_hash),
+      data_hash(data_hash) {}
+
+template <ElfBits B, ElfEndian E, bool Const>
+u32 PackedHashedSymbolAccessor<B, E, Const>::find_hashed_symbol(std::string_view name) const noexcept {
+  const auto hash = elf_hash(name);
+  const auto nbucket = this->nbuckets(), nchain = this->nchains();
+  if (nbucket == 0 || nchain == 0) return 0;
+  const auto bucket = this->buckets(), chain = this->chains();
+  for (u32 i = bucket[hash % nbucket]; i; i = chain[i]) {
+    auto lhs = this->get_symbol_name(i);
+    if (lhs.size() == name.size() && std::equal(lhs.begin(), lhs.end(), name.begin())) return i;
+  }
+  return 0;
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets) {
+  const auto hashed_count = this->symbol_count();
+  // Heuristic: About 2 symbols per bucket (avoid 0).
+  if (nbuckets == 0) nbuckets = std::max<u32>(1, hashed_count / 2);
+
+  // 0 indicates that there is no symbol with that hash / stop crawling the linked list.
+  std::vector<u32> buckets(nbuckets, 0), chains(hashed_count, 0);
+  // System-V does not care about the order of chain items so I am free to order the linked lists however I want.
+  // I've chosen the following invariant to be true:  for all i chains[i] == 0 || chains[i] > i
+  // This has the effect of creating linked lists which grow from low address in the table to high address.
+  for (i32 i = hashed_count; i > 0; i--) {
+    u32 b = elf_hash(this->get_symbol_name(i)) % nbuckets;
+    chains[i] = buckets[b]; // next is previous head (0 if empty)
+    buckets[b] = i;         // new head is this symbol
+  }
+
+  // Write out the hash table in correct endian format. Avoid reallocations of underlying buffer.
+  data_hash.clear();
+  this->data_hash.reserve(2 * sizeof(u32) + +nbuckets * sizeof(u32) + chains.size() * sizeof(u32));
+
+  // Helper to conditionally byteswap and append a u32
+  auto append_u32 = [](auto &data_hash, u32 val) {
+    u8 buf[4];
+    *((U32<E> *)buf) = val;
+    data_hash.insert(data_hash.end(), buf, buf + 4);
+  };
+
+  // Header, buckets, chains
+  append_u32(data_hash, nbuckets);
+  append_u32(data_hash, chains.size());
+  for (const auto &b : buckets) append_u32(data_hash, b);
+  for (const auto &c : chains) append_u32(data_hash, c);
+}
+
+template <ElfBits B, ElfEndian E, bool Const> u32 PackedHashedSymbolAccessor<B, E, Const>::nbuckets() const noexcept {
+  if (data_hash.size() < 2 * sizeof(u32)) return 0;
+  return u32{*((U32<E> *)data_hash.data() + 0)};
+}
+
+template <ElfBits B, ElfEndian E, bool Const> u32 PackedHashedSymbolAccessor<B, E, Const>::nchains() const noexcept {
+  if (data_hash.size() < 2 * sizeof(u32)) return 0;
+  return u32{*((U32<E> *)data_hash.data() + 1)};
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+bits::span<const U32<E>> PackedHashedSymbolAccessor<B, E, Const>::buckets() const noexcept {
+  if (data_hash.size() < 4 * sizeof(u32)) return {};
+  return bits::span<const U32<E>>((const U32<E> *)(data_hash.data() + 2 * sizeof(u32)), nbuckets());
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+bits::span<const U32<E>> PackedHashedSymbolAccessor<B, E, Const>::chains() const noexcept {
+  const auto offset = 2 * sizeof(uint32_t) + nbuckets() * sizeof(U32<E>);
+  if (data_hash.size() < offset) return {};
+  return bits::span<const U32<E>>{(const U32<E> *)(data_hash.data() + offset), nchains()};
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
 PackedGNUHashedSymbolAccessor<B, E, Const>::PackedGNUHashedSymbolAccessor(Elf &elf, u16 index)
     : pepp::bts::PackedSymbolAccessor<B, E, Const>(elf, elf.section_headers[index].sh_link),
       shdr_hash(elf.section_headers[index]), data_hash(elf.section_data[index]) {}
 
 template <ElfBits B, ElfEndian E, bool Const>
-inline PackedGNUHashedSymbolAccessor<B, E, Const>::PackedGNUHashedSymbolAccessor(Shdr &shdr_hash, Data &data_hash,
-                                                                                 Shdr &shdr_symbol, Data &data_symbol,
-                                                                                 Shdr &shdr_strtab,
-                                                                                 Data &data_strtab) noexcept
+PackedGNUHashedSymbolAccessor<B, E, Const>::PackedGNUHashedSymbolAccessor(Shdr &shdr_hash, Data &data_hash,
+                                                                          Shdr &shdr_symbol, Data &data_symbol,
+                                                                          Shdr &shdr_strtab, Data &data_strtab) noexcept
     : PackedSymbolAccessor<B, E, Const>(shdr_symbol, data_symbol, shdr_strtab, data_strtab), shdr_hash(shdr_hash),
       data_hash(data_hash) {}
 
