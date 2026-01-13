@@ -1,0 +1,173 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="DT_GNU_HASH is a better hash table for the ELF used by GNU systems in GNU-compatible software, i.e. in almost every program compiled with gcc or clang for almost any Linux distribution."><meta name="theme-color" content="#1d1f21"><meta property="og:type" content="website"><link rel="alternate" href="/atom.xml" title="flapenguin.me" type="application/atom+xml"><link rel="stylesheet" href="/index.css"><title>ELF: better symbol lookup via DT_GNU_HASH | flapenguin.me</title></head><body><header><a id="title" href="/">flapenguin.me</a><nav><ul><li><a href="/">Articles</a></li><li><a href="/talks">Talks</a></li><li><a href="/about">About</a></li></ul></nav></header><main><article><h1>ELF: better symbol lookup via DT_GNU_HASH</h1><div class="meta"><time datetime="2017-05-10">2017-05-10</time> | <ul class="tags"><li><a href="/tags/c">#c</a></li> <li><a href="/tags/elf">#elf</a></li> <li><a href="/tags/linux">#linux</a></li></ul></div><p><code>DT_GNU_HASH</code> is a better hash table for the <a href="https://refspecs.linuxfoundation.org/elf/gabi4+/contents.html">ELF</a> used by GNU systems in GNU-compatible software, i.e. in almost every program compiled with gcc or clang for almost any Linux distribution.</p><p>The problem with it is that <code>DT_GNU_HASH</code> is not documented anywhere other than in <a href="https://www.gnu.org/software/binutils/">GNU binutils</a> and <a href="https://www.gnu.org/software/libc/">glibc</a> source code. You can either read source code to get some intel, or read emails with patches in mail list archives (<a href="https://sourceware.org/ml/binutils/2006-10/msg00377.html">Re: GNU_HASH section format</a> is a pretty good one). Those are the only places you can try to find the truth on the matter.</p><p>Of course, there're some articles on the web where people try to break it down. Like this one.</p><p>This article does not aspire to be the ultimate truth either. But I'll try to cover everything about GNU Hash Table and explain all aspects of its work.</p><p>Before reading any further please ensure that you understand what <a href="https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.symtab.html">Symbol Table</a> and <a href="https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.strtab.html">String Table</a> are in the <a href="https://refspecs.linuxfoundation.org/elf/gabi4+/contents.html">ELF</a>. Also you may want to read my previous article <a href="/2017/04/24/elf-lookup-dt-hash">ELF: symbol lookup via DT_HASH</a> to know the standard (90s-ish) way of doing symbol lookup.</p><p><code>DT_GNU_HASH</code> has nothing in common with standard <code>DT_HASH</code>, apart from serving the same purpose. It has its own hashing function, its own layout, it adds restrictions for the symbol table and contains an additional <a href="https://en.wikipedia.org/wiki/Bloom_filter">bloom filter</a> to stop lookup for missing symbols early.</p><h2>Hashing function</h2><p>Let's start with the hashing function. It can be found in <a href="https://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;a=blob;f=bfd/elf.c;h=a08e0f8ea6197f103908364665ec6e5f6c89927d;hb=HEAD#l222">bfd_elf_gnu_hash</a> or in <a href="https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/dl-lookup.c;h=3d2369dbf2b7ca219eaf80a820e2a8e1329fbf50;hb=HEAD#l569">dl_new_hash</a>.</p><pre class="code"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;stdint.h&gt;</span></span>
+
+<span class="hljs-function"><span class="hljs-keyword">uint32_t</span> <span class="hljs-title">gnu_hash</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">uint8_t</span>* name)</span> </span>{
+    <span class="hljs-keyword">uint32_t</span> h = <span class="hljs-number">5381</span>;
+
+    <span class="hljs-keyword">for</span> (; *name; name++) {
+        h = (h &lt;&lt; <span class="hljs-number">5</span>) + h + *name;
+    }
+
+    <span class="hljs-keyword">return</span> h;
+}
+
+gnu_hash(<span class="hljs-string">""</span>)                == <span class="hljs-number">0x00001505</span>
+gnu_hash(<span class="hljs-string">"printf"</span>)          == <span class="hljs-number">0x156b2bb8</span>
+gnu_hash(<span class="hljs-string">"exit"</span>)            == <span class="hljs-number">0x7c967e3f</span>
+gnu_hash(<span class="hljs-string">"syscall"</span>)         == <span class="hljs-number">0xbac212a0</span>
+gnu_hash(<span class="hljs-string">"flapenguin.me"</span>)   == <span class="hljs-number">0x8ae9f18e</span>
+</pre><h2>Layout</h2><p>Not a valid C code, but gives an idea:</p><pre class="code"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">gnu_hash_table</span> {</span>
+    <span class="hljs-keyword">uint32_t</span> nbuckets;
+    <span class="hljs-keyword">uint32_t</span> symoffset;
+    <span class="hljs-keyword">uint32_t</span> bloom_size;
+    <span class="hljs-keyword">uint32_t</span> bloom_shift;
+    <span class="hljs-keyword">uint64_t</span> bloom[bloom_size]; <span class="hljs-comment">/* uint32_t for 32-bit binaries */</span>
+    <span class="hljs-keyword">uint32_t</span> buckets[nbuckets];
+    <span class="hljs-keyword">uint32_t</span> chain[];
+};
+</pre><h2>Bloom filter</h2><p><a href="https://en.wikipedia.org/wiki/Bloom_filter">Bloom filter</a> is used to stop the lookup for missing symbols early. <code>bloom_size</code>, <code>bloom_shift</code>, and <code>bloom</code> are parts of the structure, as their names suggest.</p><p>Bloom filter behaves slightly differently for various <code>ELFCLASS</code> binaries (defined by <code>EI_CLASS</code> field in <a href="https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html#elfid">ELF Identification</a>). Let's define <code>ELFCLASS_BITS</code> to be <code>64</code> for 64-bit binaries (<code>ELFCLASS64</code>) and <code>32</code> for 32-bit binaries (<code>ELFCLASS32</code>).</p><p>Before doing symbol lookup, take <code>bloom[(hash / ELFCLASS_BITS) % bloom_size]</code>. If bits <code>hash % ELFCLASS_BITS</code> and <code>(hash &gt;&gt; bloom_shift) % ELFCLASS_BITS</code> are set then a symbol <strong>may or may not</strong> be in the hash table, and you should proceed with a regular lookup through buckets and chains. But if at least one bit is not set then a symbol is <strong>certainly</strong> absent from the hash table.</p><h2>Buckets and chains</h2><p><code>DT_HASH</code> contains an element per symbol table's element. This leads to a waste of space because <code>STN_UNDEF</code> and some other symbols are in the hash table but are never looked up. GNU hash table allows to skip first <code>symoffset</code> symbols at the beginning of the symbol table.</p><p>Same as in <code>DT_HASH</code>, symbols are put in one of <code>nbuckets</code> buckets depending on their hashes. To be specific, each symbol should be placed into <code>hash % nbuckets</code> bucket.</p><p>Chains in the GNU hash table are nothing like strange linked lists in <code>DT_HASH</code>, they are contiguous sequences of hashes for symbols with the same index (remember that chains' indexes are shifted by <code>symoffset</code> relatively to the symbol table). The last bit in chains' element is discarded and instead used for indicating the chain's end. If it is set then the element is the last one in the chain.</p><p><code>bucket</code> array holds indexes of the first symbols in the chains. Note that those are not indexes for the <code>chain</code> array. Indexes for it will be <code>bucket[foobar] - symoffset</code>.</p><p>Chains being contiguous sequences imply that symbols within the same bucket must be stored contiguously. Order of buckets in the symbol table does not really matter but usually they're stored in an ascending order.</p><p>While looking extraneous, creating such restriction over the symbol table gives great advantage: a hash table now can store almost full hash (without the lowest bit) of a symbol within the same 32 bits. This allows linkers to compare hashes before comparing strings. Also, because <code>DT_GNU_HASH</code> requires symbol table ordering and <code>DT_HASH</code> doesn't, you can fit both into a single binary. This way both standard and GNU linkers can look up symbols in it.</p><h2>Example</h2><p>Nothing is better than a visual representation of the rules. So, let's create one.</p><p>I took the same symbols as in <a href="/2017/04/24/elf-lookup-dt-hash">ELF: symbol lookup via DT_HASH</a> and created <code>DT_GNU_HASH</code> table from them. The example is for 64-bit ELF binaries, for 32-bit you'll need to recalculate bloom word and bits.</p><pre class="code">nbuckets = 4      (because I decided that there will be four buckets)
+symoffset = 1    (STN_UNDEF is not a part of the hash table)
+bloom_size = 2   (because I decided that 16 byte bloom filter is sufficient)
+bloom_shift = 5  (again, just because I can)
+
+ix  bucket[ix]  name of first symbol in chain
+--  ----------  -----------------------------
+ 0  1           cfsetispeed
+ 1  5           uselib
+ 2  8           freelocal
+ 3  13          getspen
+
+Note that:
+- symbol table is sorted by bucket
+- chain[ix] is the same as hash but with set/cleared lowest bit
+
+       SYMBOL TABLE              |              GNU HASH TABLE
+                                 |
+    name =                       |    hash %              bloom  bloom bits
+ix  symtab[ix].st_name    hash   | ix nbuckets chain[ix]  word   #0    #1
+--  ------------------  -------- | -- -------  ---------- -----  ---   ---
+ 0  &lt;STN_UNDEF&gt;                  |
+ 1  cfsetispeed         830acc54 |  0    0      830acc54    1    20    34
+ 2  strsigna            90f1e4b0 |  1    0      90f1e4b0    0    48    37
+ 3  hcreate_            4c7e3240 |  2    0      4c7e3240    1     0    18
+ 4  endrpcen            b6c44714 |  3    0      b6c44715    0    20    56
+ 5  uselib              2124d3e9 |  4    1      2124d3e8    1    41    31
+ 6  getttyen            fff51839 |  5    1      fff51838    0    57     1
+ 7  umoun               1081e019 |  6    1      1081e019    0    25     0
+ 8  freelocal           e3364372 |  7    2      e3364372    1    50    27
+ 9  listxatt            ced3d862 |  8    2      ced3d862    1    34     3
+10  isnan               0fabfd7e |  9    2      0fabfd7e    1    62    43
+11  isinf               0fabe9de | 10    2      0fabe9de    1    30    14
+12  setrlimi            12e23bae | 11    2      12e23baf    0    46    29
+13  getspen             f07b2a7b | 12    3      f07b2a7a    1    59    19
+14  pthread_mutex_lock  4f152227 | 13    3      4f152226    0    39    17
+15  getopt_long_onl     57b1584f | 14    3      57b1584f    1    15     2
+
+Bloom filter:
+   bit #      56       48       40       32       24       16        8        0
+        xx..x.xx ...xxx.x xx...... x.x.xx.x ..x...x. ...x..x. ........ ......xx
+        .x..x... .....x.. ....x.x. .....x.. xx..x.xx ...xxx.x xx...... x.x.xx.x
+
+Or as two `uint64_t` values:
+    cb1dc0ad22120003
+    48040a04cb1dc0ad
+</pre><p>Knowing the rules and having a built table, let's try to find some symbols by hand.</p><p>Note that when comparing hashes the lowest bit is set on both left and right hand sides.</p><ol><li><p>Existing symbol. <code>strsigna</code>:</p><pre class="code">looking for &quot;strsigna&quot; (hash = 0x90f1e4b0)
+checking word 0 in bloom filter for bits 48 and 37
+        hash table may contain symbol
+starting at ix = 1
+
+compare hashes: (chain) 0x830acc55 == 0x90f1e4b1
+wrong hash definitely not &quot;strsigna&quot;
+moving to the next symbol
+
+compare hashes: (chain) 0x90f1e4b1 == 0x90f1e4b1
+hash matches. compare strings: &quot;strsigna&quot; == &quot;strsigna&quot;
+found at index 2
+</pre></li><li><p>Missing symbol. <code>foobar</code>:</p><pre class="code">looking for &quot;foobar&quot; (hash = 0xfde460be)
+checking word 0 in bloom filter for bits 62 and 5
+        not in bloom filter
+not found
+</pre></li><li><p>Missing symbol with hash collision. <code>vLoun</code>:</p><pre class="code">looking for &quot;vLoun&quot; (hash = 0x1081e019)
+checking word 0 in bloom filter for bits 25 and 0
+        hash table may contain symbol
+starting at ix = 5
+
+compare hashes: (chain) 0x2124d3e9 == 0x1081e019
+wrong hash definitely not &quot;vLoun&quot;
+moving to the next symbol
+
+compare hashes: (chain) 0xfff51839 == 0x1081e019
+wrong hash definitely not &quot;vLoun&quot;
+moving to the next symbol
+
+compare hashes: (chain) 0x1081e019 == 0x1081e019
+hash matches. compare strings: &quot;umoun&quot; == &quot;vLoun&quot;
+just hash collision
+that was last symbol in this bucket
+not found
+</pre></li></ol><h2>Code</h2><p>Original algorithm is implemented in <a href="https://sourceware.org/git/?p=glibc.git;a=blob;f=elf/dl-lookup.c;h=3d2369dbf2b7ca219eaf80a820e2a8e1329fbf50;hb=HEAD#l350">do_lookup_x</a> in <code>ld.so</code> source code.</p><p>Implementation is a little trickier than <code>DT_HASH</code>'s one, but with the example above it should be self-explanatory.</p><pre class="code"><span class="hljs-comment">/* Different architectures have different symbol structure size.
+ * Those actually should be selected depending on input binary's ELFCLASS,
+ * but for simplicity I've left them as typedefs and defines.
+ */</span>
+<span class="hljs-keyword">typedef</span> Elf64_Sym Elf_Sym;
+<span class="hljs-keyword">typedef</span> <span class="hljs-keyword">bloom_el_t</span> <span class="hljs-keyword">uint64_t</span>;
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> ELFCLASS_BITS 64</span>
+<span class="hljs-comment">/* 32-bit binary:
+    typedef Elf32_Sym Elf_Sym;
+    typedef bloom_el_t uint32_t;
+    #define ELFCLASS_BITS 32
+*/</span>
+
+<span class="hljs-function"><span class="hljs-keyword">const</span> Elf_Sym* <span class="hljs-title">gnu_lookup</span><span class="hljs-params">(
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span>* strtab,      <span class="hljs-comment">/* string table */</span>
+    <span class="hljs-keyword">const</span> Elf_Sym* symtab,   <span class="hljs-comment">/* symbol table */</span>
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">uint32_t</span>* hashtab, <span class="hljs-comment">/* hash table */</span>
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span>* name         <span class="hljs-comment">/* symbol to look up */</span>
+)</span> </span>{
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">uint32_t</span> namehash = gnu_hash(name);
+
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">uint32_t</span> nbuckets = hashtab[<span class="hljs-number">0</span>];
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">uint32_t</span> symoffset = hashtab[<span class="hljs-number">1</span>];
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">uint32_t</span> bloom_size = hashtab[<span class="hljs-number">2</span>];
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">uint32_t</span> bloom_shift = hashtab[<span class="hljs-number">3</span>];
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">bloom_el_t</span>* bloom = (<span class="hljs-keyword">void</span>*)&amp;hashtab[<span class="hljs-number">4</span>];
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">uint32_t</span>* buckets = (<span class="hljs-keyword">void</span>*)&amp;bloom[bloom_size];
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">uint32_t</span>* chain = &amp;buckets[nbuckets];
+
+    <span class="hljs-keyword">bloom_el_t</span> <span class="hljs-keyword">word</span> = bloom[(namehash / ELFCLASS_BITS) % bloom_size];
+    <span class="hljs-keyword">bloom_el_t</span> mask = <span class="hljs-number">0</span>
+        | (<span class="hljs-keyword">bloom_el_t</span>)<span class="hljs-number">1</span> &lt;&lt; (namehash % ELFCLASS_BITS)
+        | (<span class="hljs-keyword">bloom_el_t</span>)<span class="hljs-number">1</span> &lt;&lt; ((namehash &gt;&gt; bloom_shift) % ELFCLASS_BITS);
+
+    <span class="hljs-comment">/* If at least one bit is not set, a symbol is surely missing. */</span>
+    <span class="hljs-keyword">if</span> ((<span class="hljs-keyword">word</span> &amp; mask) != mask) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">NULL</span>;
+    }
+
+    <span class="hljs-keyword">uint32_t</span> symix = buckets[namehash % nbuckets];
+    <span class="hljs-keyword">if</span> (symix &lt; symoffset) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">NULL</span>;
+    }
+
+    <span class="hljs-comment">/* Loop through the chain. */</span>
+    <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>) {
+        <span class="hljs-keyword">const</span> <span class="hljs-keyword">char</span>* symname = strtab + symtab[symix].st_name;
+        <span class="hljs-keyword">const</span> <span class="hljs-keyword">uint32_t</span> hash = chain[symix - symoffset];
+
+        <span class="hljs-keyword">if</span> ((namehash|<span class="hljs-number">1</span>) == (hash|<span class="hljs-number">1</span>) &amp;&amp; <span class="hljs-built_in">strcmp</span>(name, symname) == <span class="hljs-number">0</span>) {
+            <span class="hljs-keyword">return</span> &amp;symtab[symix];
+        }
+
+        <span class="hljs-comment">/* Chain ends with an element with the lowest bit set to 1. */</span>
+        <span class="hljs-keyword">if</span> (hash &amp; <span class="hljs-number">1</span>) {
+            <span class="hljs-keyword">break</span>;
+        }
+
+        symix++;
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">NULL</span>;
+}
+</pre><h2>Total number of symbols</h2><p>Total number of symbols is missing from <code>DT_GNU_HASH</code> for reasons I do not know. To get a total number of symbols you'll have to find a chain element with the highest index. To do so find a chain that starts at the highest index (<code>max(bucket)</code>) first and then walk the chain to its end (<code>while ((chain[ix - symoffset] &amp; 1) == 0) ix++;</code>).</p><p>This may be useful if you only have access to dynamic program information, e.g. if your program is a dynamic linker or an ELF loader. However, if you have access to section headers, you can simply calculate the total number of symbols from section's header: just divide the section size by an entry size.</p><h2>Conclusion</h2><p><code>DT_GNU_HASH</code> is a <em>way</em> better structure that <code>DT_HASH</code>. It is a shame it is not standardized, because every system that uses ELF uses <code>DT_GNU_HASH</code> to its advantage. As noted in the original <a href="https://www.sourceware.org/ml/binutils/2006-06/msg00418.html">GNU binutils patch</a>, it improves linking time by up to 50%. This is twice as fast loading time! Considering how much symbols are exported and imported by an average C++ shared library and size of those symbols' names (mangling fits all namespaces, types, and template arguments into the final symbol name), obscure <code>DT_GNU_HASH</code> is the thing that makes your applications start as fast as they can.</p></article><script src="https://utteranc.es/client.js" repo="flapenguin/flapenguin.me-comments" issue-term="pathname" theme="github-dark" crossorigin="anonymous" async></script></main><footer>Copyright © 2017-2025 Andrey Roenko</footer><!-- Global site tag (gtag.js) - Google Analytics --><script async src="https://www.googletagmanager.com/gtag/js?id=UA-82489150-1&l=__gtag"></script><script>window.__gtag = window.__gtag || [];
+    function gtag(){__gtag.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'UA-82489150-1');</script></body></html>

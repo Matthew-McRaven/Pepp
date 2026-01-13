@@ -652,22 +652,26 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
   else maskwords = 1 << bits::ceil_log2(maskwords);
   if (shift2 == 0) shift2 = 5; // Common linker choice; 5 is widely used.
 
+  // Pre-compute hashes for all input strings
   std::vector<u32> H(hashed_count);
   for (u32 i = 0; i < hashed_count; ++i) H[i] = gnu_elf_hash(this->get_symbol_name(symndx + i));
 
-  // Reorder symbols by ascending hash % nbuckets, keeping unhashed prefix [0, symoffset) intact.
+  // Order the hashes by the bucket into which the fall in. i.e., reorder symbols by ascending hash % nbuckets.
+  // Compute the desired order ahead-of-time before applying it. After the sort, for all i, perm[i] is the new target
+  // position for the symbol current at i. We must keep unhashed prefix [0, symoffset) intact.
   std::vector<u32> perm(hashed_count);
   std::iota(perm.begin(), perm.end(), 0);
   std::stable_sort(perm.begin(), perm.end(), [&](u32 a, u32 b) { return (H[a] % nbuckets) < (H[b] % nbuckets); });
 
   // Apply permuatation by swapping in-place using a cycle walk. perm[new] = old  =>  dest[old] = new
+  // This avoids allocations of temporary symbols and made it easier to notify other sections of symbol swaps.
   std::vector<std::uint32_t> dest(hashed_count);
   for (std::uint32_t newpos = 0; newpos < hashed_count; ++newpos) dest[perm[newpos]] = newpos;
   for (std::uint32_t i = 0; i < hashed_count; ++i) {
     while (dest[i] != i) {
       u32 j = dest[i];                            // element at i should go to j
       if (func) func(symndx + i, symndx + j);     // Notify other sections of symbol swap
-      this->swap_symbols(symndx + i, symndx + j); // Swap symbol entries.
+      this->swap_symbols(symndx + i, symndx + j); // Swap symbol entries
       std::swap(H[i], H[j]);                      // Swap hashes
       std::swap(dest[i], dest[j]);                // Keep mapping consistent after swap
     }
@@ -677,6 +681,7 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
   static const u32 maskwords_bitmask = maskwords - 1;
   // Compute bloom filter, per: https://blogs.oracle.com/solaris/gnu-hash-elf-sections-v2
   // Set 2 bits per symbol at the same array index. The array index is a function of the hash.
+  // If either bit is 0, the symbol is definitely not present. When both are 1, we need to resort to crawling the chain.
   std::vector<word<B>> bloom_filter(maskwords, 0);
   constexpr std::uint32_t WordBits = 8u * sizeof(word<B>);
   for (u32 i = 0; i < hashed_count; ++i) {
@@ -686,12 +691,13 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
     bloom_filter[N] |= bitmask;
   }
 
-  // Store lowest symbol index for each bucket; 0 means no symbol.
+  // Store lowest symbol index for each bucket; 0 means no symbols are in that bucket.
   std::vector<u32> buckets(nbuckets, 0);
   for (u32 i = 0; i < hashed_count; ++i)
     if (const u32 b = H[i] % nbuckets; buckets[b] == 0) buckets[b] = symndx + i;
 
-  // Constructs a chain of symbols with the same hash. If & 1, at the end of the chain.
+  // Since we reordered the symbols by bucket, all symbols for a given bucket are contiguous.
+  // The last symbol in each bucket is marked by setting low bit in the chain array.
   std::vector<u32> chains(hashed_count, 0);
   for (std::uint32_t i = 0; i < hashed_count; ++i) {
     const u32 h = H[i] & ~1u, this_bucket = H[i] % nbuckets;
