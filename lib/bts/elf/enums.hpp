@@ -7,6 +7,73 @@ template <class Enum> constexpr std::underlying_type_t<Enum> to_underlying(Enum 
   return static_cast<std::underlying_type_t<Enum>>(e);
 }
 
+template <typename T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr auto operator|(const T lhs, const T rhs) {
+  return static_cast<T>(to_underlying(lhs) | to_underlying(rhs));
+}
+
+template <typename T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr auto operator|=(T &lhs, const T &rhs) {
+  lhs = lhs | rhs;
+  return lhs;
+}
+
+template <typename T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr auto operator&(const T lhs, const T rhs) {
+  return static_cast<T>(to_underlying(lhs) & to_underlying(rhs));
+}
+
+template <typename T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr auto operator&=(T &lhs, const T &rhs) {
+  lhs = lhs & rhs;
+  return lhs;
+}
+
+template <typename T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr auto operator^(const T lhs, const T rhs) {
+  return static_cast<T>(to_underlying(lhs) ^ to_underlying(rhs));
+}
+
+template <typename T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr auto operator^=(T &lhs, const T &rhs) {
+  lhs = lhs ^ rhs;
+  return lhs;
+}
+
+template <typename T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr auto operator~(const T lhs) {
+  return static_cast<T>(~to_underlying(lhs));
+}
+
+// Can be hijacked to provide a bool conversion.
+// !!e will yield a bool; we can't have a free operator bool() on enums
+template <typename T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr auto operator!(const T lhs) {
+  return static_cast<T>(!to_underlying(lhs));
+}
+
+// Return true if any bits are set.
+// We can't have a free operator bool() on enums, so this is the next closest thing
+template <class T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr bool any(T lhs) noexcept {
+  return to_underlying(lhs) != 0;
+}
+
+template <class T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+constexpr bool none(T lhs) noexcept {
+  return to_underlying(lhs) == 0;
+}
+
 // ELF file header enumerated constants
 enum class ElfFileType : u16 {
   ET_NONE = 0,
@@ -385,6 +452,7 @@ enum class SectionFlags : u64 {
   SHF_EXCLUDE = 0x80000000,
   SHF_MASKPROC = 0xF0000000
 };
+consteval void is_bitflags(SectionFlags);
 
 // Elf program header (i.e.,, segment) enumerated constants
 enum class SegmentType : u32 {
@@ -411,6 +479,7 @@ enum class SegmentFlags : u32 {
   PF_W = 2,
   PF_R = 4,
 };
+consteval void is_bitflags(SegmentFlags);
 
 // ELF symbol enumerated constants
 enum class SymbolBinding : u8 {
