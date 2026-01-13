@@ -52,7 +52,7 @@ Item {
         id: wrapper
 
         anchors.fill: root
-        color: "transparent"
+        color: "white"
         border.color: ma.drag.active || ma.containsMouse ? "blue" : "transparent"
         border.width: 1
         transformOrigin: Item.Center
@@ -116,15 +116,14 @@ Item {
             }
 
             onPositionChanged: mouse => {
-                //  Move object within grid (large axis)
-
                 //  Only reposition if mouse is pressed
                 if (ma.pressedButtons & Qt.LeftButton) {
+                    //  Move object within grid (minor axis)
                     const row = Move.xMinorGrid(root.x + mouse.x);
                     const col = Move.yMinorGrid(root.y + mouse.y);
                     root.x = row;
                     root.y = col;
-                    console.log("x", mouse.x, "y", mouse.y, "row", row, "col", col);
+                    //console.log("x", mouse.x, "y", mouse.y, "row", row, "col", col);
                 }
             }
         }

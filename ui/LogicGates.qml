@@ -101,86 +101,104 @@ Rectangle {
         }
 
         //  Background used as canvas for object placement
-        Rectangle {
-            id: canvas
-
-            property string curName: ""
-            property string curFile: ""
-            property Diagram fromObject: null
-            property Diagram toObject: null
-
-            /*Image{
-                id: svgs
-                anchors.fill: canvas
-                source: "qrc:/logic_gates"
-            }*/
-
-            //  Test Only Diagrams for checking line connection
-            /*Diagram {
-                id: diagram1
-                text: "AND Gate"
-                file: "qrc:/and"
-                x: 0
-                y: 0
-                z: 1
-            }
-
-            Diagram {
-                id: diagram2
-                text: "OR Gate"
-                file: "qrc:/or"
-                x: 200
-                y: 200
-                z: 1
-            }
-
-            Line {
-                id: line
-
-                fromObject: diagram1
-                toObject: diagram2
-            }*/
-
-            //  Used to show where objects will be stamped on canvas
-            Rectangle {
-                id: stamp
-                color: "transparent"
-                border {
-                    color: "blue"
-                    width: 1
-                }
-                width: 75
-                height: 75
-                visible: canvas.curName != ""
-            }
-
-            MouseArea {
-                id: ma
+        Item {
+            GridView {
                 anchors.fill: parent
-                hoverEnabled: true
-                onClicked: event => {
-                    //  No template selected. Just return
-                    if (canvas.curName === "")
-                        return;
+                delegateModelAccess: DelegateModel.ReadOnly
+                model: 100//Math.floor(root.height/100) * Math.floor(root.width/100)
 
-                    var diagram = Move.createBlock(canvas, event.x, event.y);
-                //console.log( "onClick1 diagram.x", diagram.x, "diagram.y", diagram.y, "canvas.x", canvas.x, "canvas.y", canvas.y);
-                //console.log( "onClick2 x", event.x, "y", event.y, "stamp.x",stamp.x, "stamp.y", stamp.y);
+                delegate: GridLine {
+                    //anchors.centerIn: parent
+                    width: 100
+                    height: 100
+                    //z:2
+                    /*
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    width: 100
+                    height: 100
+                    z:2*/
+                }
+            }
+            Rectangle {
+                id: canvas
+                anchors.fill: parent
+
+                property string curName: ""
+                property string curFile: ""
+                property Diagram fromObject: null
+                property Diagram toObject: null
+
+                color: "transparent" //"gainsboro"
+
+
+                //  Test Only Diagrams for checking line connection
+                /*Diagram {
+                    id: diagram1
+                    text: "AND Gate"
+                    file: "qrc:/and"
+                    x: 0
+                    y: 0
+                    z: 1
                 }
 
-                onPositionChanged: event => {
-                    //  Move object within grid (large axis)
-                    Move.moveObjectTo(stamp, event.x, event.y);
-                //console.log( "x", event.x, "y", event.y, "stamp.x", stamp.x, "stamp.y", stamp.y);
+                Diagram {
+                    id: diagram2
+                    text: "OR Gate"
+                    file: "qrc:/or"
+                    x: 200
+                    y: 200
+                    z: 1
                 }
 
-                onEntered: {
-                    //  Make grid triangle visible
-                    stamp.visible = true;
+                Line {
+                    id: line
+
+                    fromObject: diagram1
+                    toObject: diagram2
+                }*/
+
+                //  Used to show where objects will be stamped on canvas
+                Rectangle {
+                    id: stamp
+                    color: "transparent"
+                    border {
+                        color: "blue"
+                        width: 1
+                    }
+                    width: Move.blockWidth
+                    height: Move.blockHeight
+                    visible: canvas.curName != ""
                 }
-                onExited: {
-                    //  Make grid triangle invisible
-                    stamp.visible = false;
+
+                MouseArea {
+                    id: ma
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: event => {
+                        //  No template selected. Just return
+                        if (canvas.curName === "")
+                            return;
+
+                        var diagram = Move.createBlock(canvas, event.x, event.y);
+                    //console.log( "onClick1 diagram.x", diagram.x, "diagram.y", diagram.y, "canvas.x", canvas.x, "canvas.y", canvas.y);
+                    //console.log( "onClick2 x", event.x, "y", event.y, "stamp.x",stamp.x, "stamp.y", stamp.y);
+                    }
+
+                    onPositionChanged: event => {
+                        //  Move object within grid (large axis)
+                        Move.moveObjectTo(stamp, event.x, event.y);
+                    //console.log( "x", event.x, "y", event.y, "stamp.x", stamp.x, "stamp.y", stamp.y);
+                    }
+
+                    onEntered: {
+                        //  Make grid triangle visible
+                        stamp.visible = true;
+                    }
+                    onExited: {
+                        //  Make grid triangle invisible
+                        stamp.visible = false;
+                    }
                 }
             }
         }
