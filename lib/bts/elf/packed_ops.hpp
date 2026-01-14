@@ -101,6 +101,17 @@ template <ElfBits B, ElfEndian E> u16 add_gnu_version(PackedElf<B, E> &elf, u16 
   shdr.sh_addralign = 2;
   return elf.add_section(std::move(shdr));
 }
+template <ElfBits B, ElfEndian E> u16 add_gnu_version_r(PackedElf<B, E> &elf, u16 dynstr, u16 interp = 0) {
+  PackedElfShdr<B, E> shdr;
+  PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
+  shdr.sh_type = to_underlying(SectionTypes::SHT_GNU_verneed);
+  shdr.sh_name = writer.add_string(".gnu.version_r");
+  shdr.sh_link = dynstr;
+  shdr.sh_info = interp;
+  shdr.sh_flags |= to_underlying(SectionFlags::SHF_ALLOC);
+  shdr.sh_addralign = sizeof(Word<B, E>);
+  return elf.add_section(std::move(shdr));
+}
 
 template <ElfBits B, ElfEndian E>
 u16 add_named_rel(PackedElf<B, E> &elf, std::string_view name, u16 symtab_idx, u16 section_idx) {

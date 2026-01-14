@@ -325,6 +325,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_dynamic.elf", data);
+    // WARNING: exploding test.
   }
   SECTION("Write .init") {
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
@@ -605,6 +606,77 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_versym.elf", data);
+  }
+  SECTION("Emit a working .gnu.version_r") {
+    using enum DynamicTags;
+
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+
+    std::deque<AbsoluteFixup> fixups;
+    auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
+    auto dynsym_idx = add_named_dynsymtab(elf, ".dynsym", dynstr_idx);
+    auto versym_idx = add_gnu_version(elf, dynsym_idx);
+    auto versymr_idx = add_gnu_version_r(elf, dynstr_idx);
+    PackedStringWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, dynstr_idx);
+
+    auto gl_sm = st_writer.add_string("__libc_start_main");
+    auto gl_fin = st_writer.add_string("__cxa_finalize");
+    auto gl_pf = st_writer.add_string("__printf_chk");
+    auto gl_ab = st_writer.add_string("abort");
+    auto libc = st_writer.add_string("libc.so.6");
+    auto v217 = st_writer.add_string("GLIBC_2.17");
+    auto v234 = st_writer.add_string("GLIBC_2.34");
+
+    {
+      PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, dynsym_idx);
+      auto create = [](u32 name) {
+        auto r = create_global_symbol<ElfBits::b32, ElfEndian::le>();
+        r.st_name = name;
+        return r;
+      };
+
+      st_writer.add_symbol(create(gl_sm));
+      st_writer.add_symbol(create(gl_fin));
+      st_writer.add_symbol(create(gl_pf));
+      st_writer.add_symbol(create(gl_ab));
+      st_writer.arrange_local_symbols();
+    }
+    {
+      PackedSymbolVersionWriter<ElfBits::b32, ElfEndian::le> vs_writer(elf, versym_idx);
+      vs_writer.set_version(0, 0x0000);
+      vs_writer.set_version(1, 0x0003); // __libc_start_main
+      vs_writer.set_version(2, 0x0002); // __cxa_finalize
+      vs_writer.set_version(3, 0x0002); // __printf_chk
+      vs_writer.set_version(4, 0x0002); // abort
+    }
+
+    {
+      PackedSymbolNeedWriter<ElfBits::b32, ElfEndian::le> vs_writer(elf, versymr_idx);
+      PackedElfVerneed<ElfEndian::le> verneed1;
+      verneed1.vn_version = 1;
+      verneed1.vn_file = libc;
+      verneed1.vn_cnt = 2;
+      auto verneed1_off = vs_writer.add_verneed(std::move(verneed1));
+      PackedElfVernaux<ElfEndian::le> vernaux1;
+      vernaux1.vna_hash = elf_hash(std::span{"GLIBC_2.17", 10});
+      vernaux1.vna_flags = 0;
+      vernaux1.vna_other = 2;
+      vernaux1.vna_name = v217;
+      vs_writer.add_vernaux(0, std::move(vernaux1));
+      PackedElfVernaux<ElfEndian::le> vernaux2;
+      vernaux2.vna_hash = elf_hash(std::span{"GLIBC_2.34", 10});
+      vernaux2.vna_flags = 0;
+      vernaux2.vna_other = 3;
+      vernaux2.vna_name = v234;
+      vs_writer.add_vernaux(0, std::move(vernaux2));
+    }
+
+    auto layout = calculate_layout(elf);
+    for (const auto &fixup : fixups) fixup.update();
+    std::vector<u8> data(size_for_layout(layout), 0);
+    write(data, layout);
+    write("ehdr_verr.elf", data);
   }
 }
 
