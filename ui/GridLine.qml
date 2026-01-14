@@ -10,7 +10,7 @@ Shape {
     //anchors.centerIn: parent
     ShapePath {
         strokeWidth: 1
-        strokeColor: "cornflowerblue"
+        strokeColor: "gainsboro"
         strokeStyle: ShapePath.DashLine
         dashPattern: [ 1, 6 ]
         startX: 25; startY: 0
@@ -18,7 +18,7 @@ Shape {
     }
     ShapePath {
         strokeWidth: 1
-        strokeColor: "blue"
+        strokeColor: "cornflowerblue"
         strokeStyle: ShapePath.DashLine
         dashPattern: [ 1, 3 ]
         startX: 50; startY: 0
@@ -26,7 +26,7 @@ Shape {
     }
     ShapePath {
         strokeWidth: 1
-        strokeColor: "cornflowerblue"
+        strokeColor: "gainsboro"
         strokeStyle: ShapePath.DashLine
         dashPattern: [ 1, 6 ]
         startX: 75; startY: 0
@@ -41,7 +41,7 @@ Shape {
     }
     ShapePath {
         strokeWidth: 1
-        strokeColor: "cornflowerblue"
+        strokeColor: "gainsboro"
         strokeStyle: ShapePath.DashLine
         dashPattern: [ 1, 6 ]
         startX: 0; startY: 25
@@ -49,7 +49,7 @@ Shape {
     }
     ShapePath {
         strokeWidth: 1
-        strokeColor: "blue"
+        strokeColor: "cornflowerblue"
         strokeStyle: ShapePath.DashLine
         dashPattern: [ 1, 3 ]
         startX: 0; startY: 50
@@ -57,7 +57,7 @@ Shape {
     }
     ShapePath {
         strokeWidth: 1
-        strokeColor: "cornflowerblue"
+        strokeColor: "gainsboro"
         strokeStyle: ShapePath.DashLine
         dashPattern: [ 1, 6 ]
         startX: 0; startY: 75

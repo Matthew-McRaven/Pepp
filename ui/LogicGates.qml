@@ -102,22 +102,15 @@ Rectangle {
 
         //  Background used as canvas for object placement
         Item {
+            //scale: .8
             GridView {
                 anchors.fill: parent
                 delegateModelAccess: DelegateModel.ReadOnly
-                model: 100//Math.floor(root.height/100) * Math.floor(root.width/100)
+                model: 1000//Math.floor(root.height/100) * Math.floor(root.width/100)
 
                 delegate: GridLine {
-                    //anchors.centerIn: parent
                     width: 100
                     height: 100
-                    //z:2
-                    /*
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    width: 100
-                    height: 100
-                    z:2*/
                 }
             }
             Rectangle {
@@ -133,7 +126,7 @@ Rectangle {
 
 
                 //  Test Only Diagrams for checking line connection
-                /*Diagram {
+                Diagram {
                     id: diagram1
                     text: "AND Gate"
                     file: "qrc:/and"
@@ -156,7 +149,7 @@ Rectangle {
 
                     fromObject: diagram1
                     toObject: diagram2
-                }*/
+                }
 
                 //  Used to show where objects will be stamped on canvas
                 Rectangle {
