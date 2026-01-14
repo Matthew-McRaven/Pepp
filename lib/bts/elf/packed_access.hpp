@@ -64,6 +64,51 @@ protected:
 template <ElfBits B, ElfEndian E> using PackedSymbolReader = PackedSymbolAccessor<B, E, true>;
 template <ElfBits B, ElfEndian E> using PackedSymbolWriter = PackedSymbolAccessor<B, E, false>;
 
+template <ElfBits B, ElfEndian E, bool Const> class PackedSymbolVersionAccessor {
+public:
+  using Elf = maybe_const_t<Const, PackedElf<B, E>>;
+  using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
+  using Data = maybe_const_t<Const, std::vector<u8>>;
+  PackedSymbolVersionAccessor(Elf &elf, u16 index);
+  u32 version_count() const noexcept;
+  u16 get_version(u32 index) const noexcept;
+  void set_version(u32 index, u16 version) noexcept;
+
+private:
+  Shdr &shdr;
+  Data &data;
+  PackedSymbolAccessor<B, E, Const> dynamic_symtab;
+};
+template <ElfBits B, ElfEndian E> using PackedSymbolVersionReader = PackedSymbolVersionAccessor<B, E, true>;
+template <ElfBits B, ElfEndian E> using PackedSymbolVersionWriter = PackedSymbolVersionAccessor<B, E, false>;
+template <ElfBits B, ElfEndian E, bool Const>
+PackedSymbolVersionAccessor<B, E, Const>::PackedSymbolVersionAccessor(Elf &elf, u16 index)
+    : shdr(elf.section_headers[index]), data(elf.section_data[index]), dynamic_symtab(elf, shdr.sh_link) {
+  // The size of this section should be the size of the dynamic symbol table * sh_entsize.
+  if constexpr (!Const) {
+    shdr.sh_entsize = sizeof(u16);
+    data.resize((dynamic_symtab.symbol_count()) * shdr.sh_entsize, 0);
+    shdr.sh_size = data.size();
+  }
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+u32 PackedSymbolVersionAccessor<B, E, Const>::version_count() const noexcept {
+  dynamic_symtab.symbol_count();
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+u16 PackedSymbolVersionAccessor<B, E, Const>::get_version(u32 index) const noexcept {
+  if (index >= version_count() || index * shdr.sh_entsize >= data.size()) return 0;
+  return (U16<E> *)data.data() + (index * shdr.sh_entsize);
+}
+
+template <ElfBits B, ElfEndian E, bool Const>
+void PackedSymbolVersionAccessor<B, E, Const>::set_version(u32 index, u16 version) noexcept {
+  if (index >= version_count() || index * shdr.sh_entsize >= data.size()) return;
+  *((U16<E> *)data.data() + (index * shdr.sh_entsize)) = version;
+}
+
 /*
  * Per:
  *   https://flapenguin.me/elf-dt-hash

@@ -569,6 +569,38 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     CHECK(hs_reader.find_hashed_symbol("golf") == 25);
     CHECK(hs_reader.find_hashed_symbol("november") == 26);
   }
+  SECTION("Emit a working .gnu.version") {
+    using enum DynamicTags;
+
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+
+    std::deque<AbsoluteFixup> fixups;
+    auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
+    auto dynsym_idx = add_named_dynsymtab(elf, ".dynsym", dynstr_idx);
+    auto versym_idx = add_gnu_version(elf, dynsym_idx);
+    {
+      PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, dynsym_idx);
+      st_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "alpha", 0);
+      st_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "bravo", 0);
+      st_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "charlie", 0);
+      st_writer.add_symbol(create_global_symbol<ElfBits::b32, ElfEndian::le>(), "delta", 0);
+      st_writer.arrange_local_symbols();
+    }
+    {
+      PackedSymbolVersionWriter<ElfBits::b32, ElfEndian::le> vs_writer(elf, versym_idx);
+      vs_writer.set_version(0, 0x0000); // alpha
+      vs_writer.set_version(1, 0x8001); // bravo
+      vs_writer.set_version(2, 0x8001); // charlie
+      vs_writer.set_version(3, 0xFEDE); // delta
+    }
+
+    auto layout = calculate_layout(elf);
+    for (const auto &fixup : fixups) fixup.update();
+    std::vector<u8> data(size_for_layout(layout), 0);
+    write(data, layout);
+    write("ehdr_versym.elf", data);
+  }
 }
 
 TEST_CASE("Test custom ELF library, 64-bit", "[scope:elf][kind:unit][arch:*]") {
