@@ -11,42 +11,73 @@ Item {
     property bool horizontal: true
     property alias input: input
     property alias output: output
+    property point inputXY: inputPt()
+    property point outputXY: outputPt()
 
     width: Move.blockWidth
     height: Move.blockHeight
 
     Drag.active: ma.drag.active
-    //Drag.hotSpot.x: root.width / 2
-    //Drag.hotSpot.y: root.height / 2
+    Drag.hotSpot.x: root.width / 2
+    Drag.hotSpot.y: root.height / 2
 
-    /*function inputPt() {
-        var x = wrapper.x;
-        var y = wrapper.y;
+    function inputPt() {
+        var x = root.x;
+        var y = root.y;
 
         switch (wrapper.rotation) {
         //  Pointing down
         case 90:
-            x += wrapper.width / 2;
-            y += wrapper.height;
+            x += root.width / 2;
+            y += root.height;
             break;
-        //Pointing left
+        //Pointing right
         case 180:
-            //  X = 0 already
-            y = wrapper.height / 2;
+            //  X already at top
+            y += root.height / 2;
             break;
         //  Pointing up
         case 270:
-            x = wrapper.width / 2;
+            x += root.width / 2;
             break;
         //  Pointing left
         default:
-            x += wrapper.width;
-            y += wrapper.height / 2;
+            x += root.width;
+            y += root.height / 2;
             break;
         }
 
         return Qt.point(x,y);
-    }*/
+    }
+
+    function outputPt() {
+        var x = root.x;
+        var y = root.y;
+
+        switch (wrapper.rotation) {
+        //  Pointing down
+        case 90:
+            x += root.width / 2;
+            break;
+        //Pointing right
+        case 180:
+            x += root.width;
+            y += root.height / 2;
+            break;
+        //  Pointing up
+        case 270:
+            x += root.width / 2;
+            y += root.height;
+            break;
+        //  Pointing left
+        default:
+            //  X = 0 already
+            y += root.height / 2;
+            break;
+        }
+
+        return Qt.point(x,y);
+    }
 
     Rectangle {
         id: wrapper
