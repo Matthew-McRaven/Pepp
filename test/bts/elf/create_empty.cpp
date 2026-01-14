@@ -17,7 +17,12 @@
 
 #include <elfio/elfio.hpp>
 #include <functional>
-#include "bts/elf/packed_access.hpp"
+#include "bts/elf/packed_access_array.hpp"
+#include "bts/elf/packed_access_dynamic.hpp"
+#include "bts/elf/packed_access_hash.hpp"
+#include "bts/elf/packed_access_note.hpp"
+#include "bts/elf/packed_access_relocations.hpp"
+#include "bts/elf/packed_access_symbol.hpp"
 #include "bts/elf/packed_elf.hpp"
 #include "bts/elf/packed_fixup.hpp"
 #include "bts/elf/packed_ops.hpp"

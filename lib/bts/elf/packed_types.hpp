@@ -34,6 +34,8 @@ template <ElfBits B, ElfEndian E> using SWord = std::conditional_t<B == ElfBits:
 template <ElfBits B> using word = std::conditional_t<B == ElfBits::b64, u64, u32>;
 template <ElfBits B> using sword = std::conditional_t<B == ElfBits::b64, i64, i32>;
 
+template <bool Const, class T> using maybe_const_t = std::conditional_t<Const, T const, T>;
+
 #pragma pack(push, 1)
 // Per: ELF TIS Figure 1-3
 template <ElfBits B, ElfEndian E> struct PackedElfEhdr {
