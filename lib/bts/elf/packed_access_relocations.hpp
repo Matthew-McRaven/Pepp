@@ -83,7 +83,9 @@ template <ElfBits B, ElfEndian E, bool Const>
 void PackedRelocationAccessor<B, E, Const>::add_rel(PackedElfRel<B, E> &&rel) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfRel<B, E>);
   const u8 *ptr = reinterpret_cast<const u8 *>(&rel);
-  reloc.insert(reloc.end(), ptr, ptr + sizeof(PackedElfRel<B, E>));
+  auto ate = reloc.size();
+  reloc.resize(ate + sizeof(PackedElfRel<B, E>), 0);
+  std::memcpy(reloc.data() + ate, &rel, sizeof(PackedElfRel<B, E>));
   shdr.sh_size = reloc.size();
 }
 
@@ -120,8 +122,9 @@ void PackedRelocationAccessor<B, E, Const>::replace_rel(u32 index, word<B> offse
 template <ElfBits B, ElfEndian E, bool Const>
 void PackedRelocationAccessor<B, E, Const>::add_rela(PackedElfRelA<B, E> &&rel) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfRelA<B, E>);
-  const u8 *ptr = reinterpret_cast<const u8 *>(&rel);
-  reloc.insert(reloc.end(), ptr, ptr + sizeof(PackedElfRelA<B, E>));
+  auto ate = reloc.size();
+  reloc.resize(ate + sizeof(PackedElfRelA<B, E>), 0);
+  std::memcpy(reloc.data() + ate, &rel, sizeof(PackedElfRelA<B, E>));
   shdr.sh_size = reloc.size();
 }
 

@@ -174,7 +174,9 @@ void PackedHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets) {
   auto append_u32 = [](auto &data_hash, u32 val) {
     u8 buf[4];
     *((U32<E> *)buf) = val;
-    data_hash.insert(data_hash.end(), buf, buf + 4);
+    auto ate = data_hash.size();
+    data_hash.resize(ate + 4);
+    std::memcpy(data_hash.data() + ate, buf, 4);
   };
 
   // Header, buckets, chains
@@ -332,7 +334,9 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
   auto append_u32 = [](auto &data_hash, u32 val) {
     u8 buf[4];
     *((U32<E> *)buf) = val;
-    data_hash.insert(data_hash.end(), buf, buf + 4);
+    auto ate = data_hash.size();
+    data_hash.resize(ate + 4);
+    std::memcpy(data_hash.data() + ate, buf, 4);
   };
 
   // Header
@@ -344,7 +348,9 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
   for (const auto &b : bloom_filter) {
     u8 buf[sizeof(word<B>)];
     *((Word<B, E> *)buf) = b;
-    data_hash.insert(data_hash.end(), buf, buf + sizeof(word<B>));
+    auto ate = data_hash.size();
+    data_hash.resize(ate + sizeof(word<B>));
+    std::memcpy(data_hash.data() + ate, buf, sizeof(word<B>));
   }
   for (const auto &b : buckets) append_u32(data_hash, b);
   for (const auto &c : chains) append_u32(data_hash, c);

@@ -79,13 +79,12 @@ void PackedNoteAccessor<B, E, Const>::add_note(std::span<const char> name, std::
   u32 namesz = name.size(), descsz = desc.size();
   if (name.back() != 0) namesz++;
   PackedElfNoteHeader<E> hdr(namesz, descsz, type);
-  data.insert(data.end(), reinterpret_cast<const u8 *>(&hdr),
-              reinterpret_cast<const u8 *>(&hdr) + sizeof(PackedElfNoteHeader<E>));
-  data.insert(data.end(), name.begin(), name.end());
-  if (name.back() != 0) data.push_back('\0');
-  while (data.size() % 4 != 0) data.push_back('\0');
-  data.insert(data.end(), desc.begin(), desc.end());
-  while (data.size() % 4 != 0) data.push_back('\0');
+  u64 hdr_start = data.size(), name_start = hdr_start + sizeof(PackedElfNoteHeader<E>),
+      desc_start = name_start + round_up4(namesz);
+  data.resize(desc_start + round_up4(descsz), 0);
+  std::memcpy(data.data() + hdr_start, &hdr, sizeof(PackedElfNoteHeader<E>));
+  std::memcpy(data.data() + name_start, name.data(), name.size());
+  std::memcpy(data.data() + name_start, desc.data(), desc.size());
   shdr.sh_size = data.size();
 }
 } // namespace pepp::bts

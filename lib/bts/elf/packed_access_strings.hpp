@@ -61,9 +61,9 @@ word<B> PackedStringAccessor<B, E, Const>::add_string(std::span<const char> str)
   // Ensure the first character is always null
   if (strtab.size() == 0) strtab.push_back('\0');
   // Strings are addeded to the end of the current section data
-  word<B> ret = strtab.size();
-  strtab.insert(strtab.end(), str.begin(), str.end());
-  if (strtab.back() != '\0') strtab.push_back('\0');
+  const word<B> ret = strtab.size(), new_size = strtab.size() + str.size() + (str.back() != '\0' ? 1 : 0);
+  strtab.resize(new_size, 0);
+  std::memcpy(strtab.data() + ret, str.data(), str.size());
   shdr.sh_size = strtab.size();
   return ret;
 }

@@ -45,8 +45,9 @@ word<B> PackedArrayAccessor<B, E, Const>::get_entry(u32 index) const noexcept {
 template <ElfBits B, ElfEndian E, bool Const> void PackedArrayAccessor<B, E, Const>::add_entry(word<B> address) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(Word<B, E>);
   Word<B, E> adjust = address;
-  const u8 *ptr = reinterpret_cast<const u8 *>(&adjust);
-  data.insert(data.end(), ptr, ptr + sizeof(Word<B, E>));
+  auto ate = data.size();
+  data.resize(ate + sizeof(Word<B, E>));
+  std::memcpy(data.data() + ate, &adjust, sizeof(Word<B, E>));
   shdr.sh_size = data.size();
 }
 

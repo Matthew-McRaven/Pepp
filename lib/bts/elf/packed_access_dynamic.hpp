@@ -72,8 +72,9 @@ template <ElfBits B, ElfEndian E, bool Const>
 u32 PackedDynamicAccessor<B, E, Const>::add_entry(PackedElfDyn<B, E> &&dyn) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfDyn<B, E>);
   auto ret = entry_count();
-  data.insert(data.end(), reinterpret_cast<const u8 *>(&dyn),
-              reinterpret_cast<const u8 *>(&dyn) + sizeof(PackedElfDyn<B, E>));
+  auto ate = data.size();
+  data.resize(ate + sizeof(PackedElfDyn<B, E>), 0);
+  std::memcpy(data.data() + ate, &dyn, sizeof(PackedElfDyn<B, E>));
   shdr.sh_size = data.size();
   return ret;
 }

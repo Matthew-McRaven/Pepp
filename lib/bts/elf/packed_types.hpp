@@ -253,18 +253,18 @@ template <ElfBits B, ElfEndian E> struct PackedElfDyn {
   Word<B, E> d_val;
 };
 template <ElfEndian E> struct PackedElfVerneed {
-  U16<E> vn_version;
-  U16<E> vn_cnt;
-  U32<E> vn_file;
-  U32<E> vn_aux;
-  U32<E> vn_next;
+  U16<E> vn_version = 0;
+  U16<E> vn_cnt = 0;
+  U32<E> vn_file = 0;
+  U32<E> vn_aux = 0;
+  U32<E> vn_next = 0;
 };
 template <ElfEndian E> struct PackedElfVernaux {
-  U32<E> vna_hash;
-  U16<E> vna_flags;
-  U16<E> vna_other;
-  U32<E> vna_name;
-  U32<E> vna_next;
+  U32<E> vna_hash = 0;
+  U16<E> vna_flags = 0;
+  U16<E> vna_other = 0;
+  U32<E> vna_name = 0;
+  U32<E> vna_next = 0;
 };
 template <ElfEndian E> struct PackedElfVerdef {
   U16<E> vd_version;
