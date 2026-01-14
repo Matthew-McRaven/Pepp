@@ -82,9 +82,7 @@ struct Never {
   static const MetaType meta = MetaType::Never;
   std::strong_ordering operator<=>(const Never &) const;
   bool operator==(const Never &) const;
-  constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
-    return std::errc{};
-  }
+  constexpr static zpp::bits::errc serialize(auto &, auto &, SerializationHelper *) { return std::errc{}; }
 };
 
 struct Primitive {
@@ -92,7 +90,7 @@ struct Primitive {
   Primitives primitive;
   std::strong_ordering operator<=>(const Primitive &) const;
   bool operator==(const Primitive &) const;
-  constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
+  constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *) {
     if (archive.kind() == zpp::bits::kind::out) {
       quint8 tmp = static_cast<quint8>(self.primitive);
       return archive(tmp);

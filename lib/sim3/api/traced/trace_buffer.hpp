@@ -174,7 +174,7 @@ protected:
 // Helper to enable RAII for pushing/popping paths on buffer.
 class PathGuard {
 public:
-  PathGuard(Buffer *buffer, packet::path_t path) : _buffer(buffer), _path(path) {
+  PathGuard(Buffer *buffer, packet::path_t path) : _path(path), _buffer(buffer) {
     if (_buffer && _buffer->currentPath() != _path) _buffer->pushPath(_path);
   }
   ~PathGuard() {

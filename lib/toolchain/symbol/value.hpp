@@ -129,7 +129,7 @@ public:
   Deleted(Deleted &&other) noexcept;
   Deleted(const Deleted &other);
   Deleted &operator=(Deleted other);
-  friend void swap(Deleted &first, Deleted &second) {
+  friend void swap(Deleted &, Deleted &) {
     using std::swap;
     // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
     // gets data.

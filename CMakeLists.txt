@@ -23,6 +23,9 @@ if(SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   add_link_options(-fsanitize=undefined -fsanitize=address)
 endif()
 
+add_compile_options(-fsanitize=undefined -fsanitize=address)
+add_link_options(-fsanitize=undefined -fsanitize=address)
+
 # DO NOT AUTO-FORMAT. CI looks for a line with this format to extract the
 # version.
 # cmake-format: off

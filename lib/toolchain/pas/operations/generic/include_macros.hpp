@@ -23,7 +23,7 @@
 #include "is.hpp"
 
 namespace pas::driver {
-class ParseResult;
+struct ParseResult;
 }
 
 namespace pas::ast {

@@ -71,7 +71,7 @@ std::strong_ordering pepp::debug::types::Never::operator<=>(const Never &) const
   return std::strong_ordering::equivalent;
 }
 
-bool pepp::debug::types::Never::operator==(const Never &other) const { return true; }
+bool pepp::debug::types::Never::operator==(const Never &) const { return true; }
 
 std::strong_ordering pepp::debug::types::Primitive::operator<=>(const Primitive &other) const {
   return primitive <=> other.primitive;
@@ -129,7 +129,7 @@ pepp::debug::types::Struct::find(const QString &member) {
 namespace detail {
 using namespace pepp::debug::types;
 struct BoxVisitor {
-  BoxedType operator()(const Never &v) const { return Box<Never>(Never{}); }
+  BoxedType operator()(const Never &) const { return Box<Never>(Never{}); }
   BoxedType operator()(const Primitive &v) { return Box<Primitive>(v); }
   BoxedType operator()(const Pointer &v) { return Box<Pointer>(v); }
   BoxedType operator()(const Array &v) { return Box<Array>(v); }
@@ -144,15 +144,15 @@ struct UnboxVisitor {
 };
 
 struct IsUnsignedVisitor {
-  bool operator()(const Never &v) const { return false; }
+  bool operator()(const Never &) const { return false; }
   bool operator()(const Primitive &v) { return is_unsigned(v.primitive); }
-  bool operator()(const Pointer &v) { return true; }
-  bool operator()(const Array &v) { return true; }
-  bool operator()(const Struct &v) { return true; }
+  bool operator()(const Pointer &) { return true; }
+  bool operator()(const Array &) { return true; }
+  bool operator()(const Struct &) { return true; }
 };
 
 struct BitnessVisitor {
-  quint8 operator()(const Never &v) const { return 0; }
+  quint8 operator()(const Never &) const { return 0; }
   quint8 operator()(const Primitive &v) { return bitness(v.primitive); }
   quint8 operator()(const Pointer &v) { return 8 * v.pointer_size; }
   quint8 operator()(const Array &v) { return 8 * v.pointer_size; }
@@ -160,7 +160,7 @@ struct BitnessVisitor {
 };
 
 struct QStringVisitor {
-  QString operator()(const Never &v) const { return "<Never>"; }
+  QString operator()(const Never &) const { return "<Never>"; }
   QString operator()(const Primitive &v) const {
     using enum Primitives;
     switch (v.primitive) {

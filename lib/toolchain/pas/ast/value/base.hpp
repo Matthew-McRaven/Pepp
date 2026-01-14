@@ -24,7 +24,8 @@ namespace pas::ast::value {
 class Base {
 public:
   explicit Base();
-  friend void swap(Base &first, Base &second) { using std::swap; }
+  virtual ~Base() = default;
+  friend void swap(Base &, Base &) { using std::swap; }
 
   virtual bool isNumeric() const = 0;    // Does the argument make sense as a quint64?
   virtual bool isFixedSize() const = 0;  // Can different arguments of this type

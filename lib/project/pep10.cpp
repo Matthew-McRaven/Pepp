@@ -479,7 +479,6 @@ uint16_t Pep_ISA::read_mem_u16(uint32_t address) const {
 }
 
 pepp::debug::Value Pep_ISA::evaluate_variable(QStringView name) const {
-  using T = pepp::debug::types::Primitives;
   return pepp::debug::VPrimitive::from_int((int16_t)name.length());
 }
 
@@ -493,7 +492,6 @@ uint32_t Pep_ISA::cache_debug_variable_name(QStringView name) const {
 }
 
 pepp::debug::Value Pep_ISA::evaluate_debug_variable(uint32_t cache_id) const {
-  using T = pepp::debug::types::Primitives;
   using DV = Pep_ISA::DebugVariables;
   if (_system == nullptr) return pepp::debug::VPrimitive::from_int((int16_t)0);
   uint16_t reg16;

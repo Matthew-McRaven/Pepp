@@ -243,7 +243,7 @@ template <typename Address> class TranslatingModifiedAddressSink : public Modifi
 public:
   TranslatingModifiedAddressSink(QSharedPointer<const api2::Paths> paths,
                                  const api2::memory::Translator<Address> *translator)
-      : ModifiedAddressSink<Address>(), _paths(paths), _translator(translator) {}
+      : ModifiedAddressSink<Address>(), _translator(translator), _paths(paths) {}
 
 protected:
   using path_t = api2::packet::path_t;

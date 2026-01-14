@@ -379,7 +379,7 @@ template <typename ISA> QStringList pas::ops::pepp::formatBinListing(const ast::
   return visit.ret;
 }
 
-template <typename ISA> QString pas::ops::pepp::detail::formatUnary(const ast::Node &node, SourceOptions opts) {
+template <typename ISA> QString pas::ops::pepp::detail::formatUnary(const ast::Node &node, SourceOptions) {
   QString symbol = "";
   if (node.has<pas::ast::generic::SymbolDeclaration>())
     symbol = node.get<pas::ast::generic::SymbolDeclaration>().value->name;
@@ -392,7 +392,7 @@ template <typename ISA> QString pas::ops::pepp::detail::formatUnary(const ast::N
   return generic::detail::format(symbol, instr, {}, comment);
 }
 
-template <typename ISA> QString pas::ops::pepp::detail::formatNonUnary(const ast::Node &node, SourceOptions opts) {
+template <typename ISA> QString pas::ops::pepp::detail::formatNonUnary(const ast::Node &node, SourceOptions) {
   QString symbol = "";
   if (node.has<pas::ast::generic::SymbolDeclaration>())
     symbol = node.get<pas::ast::generic::SymbolDeclaration>().value->name;

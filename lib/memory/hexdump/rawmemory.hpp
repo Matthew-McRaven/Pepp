@@ -45,7 +45,7 @@ public:
   virtual ~ARawMemory() = 0;
   virtual quint32 byteCount() const = 0;
   virtual quint8 read(quint32 address) const = 0;
-  virtual std::optional<quint8> readPrevious(quint32 address) const { return std::nullopt; }
+  virtual std::optional<quint8> readPrevious(quint32) const { return std::nullopt; }
   virtual MemoryHighlight::V status(quint32 address) const;
   virtual void write(quint32 address, quint8 value) = 0;
   virtual void clear() = 0;

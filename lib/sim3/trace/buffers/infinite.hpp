@@ -27,7 +27,7 @@ public:
     quint16 val = header.device;
     return _devices.contains(val);
   };
-  bool operator()(const auto &header) const { return false; }
+  bool operator()(const auto &) const { return false; }
 
 private:
   QSet<sim::api2::device::ID> _devices;

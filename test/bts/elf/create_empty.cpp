@@ -617,7 +617,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
     auto dynsym_idx = add_named_dynsymtab(elf, ".dynsym", dynstr_idx);
     auto versym_idx = add_gnu_version(elf, dynsym_idx);
-    auto versymr_idx = add_gnu_version_r(elf, dynstr_idx);
+    auto versymr_idx = versyadd_gnu_version_r(elf, dynstr_idx);
     PackedStringWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, dynstr_idx);
 
     auto gl_sm = st_writer.add_string("__libc_start_main");
@@ -657,7 +657,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
       verneed1.vn_version = 1;
       verneed1.vn_file = libc;
       verneed1.vn_cnt = 2;
-      auto verneed1_off = vs_writer.add_verneed(std::move(verneed1));
+      vs_writer.add_verneed(std::move(verneed1));
       PackedElfVernaux<ElfEndian::le> vernaux1;
       vernaux1.vna_hash = elf_hash(std::span{"GLIBC_2.17", 10});
       vernaux1.vna_flags = 0;

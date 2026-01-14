@@ -123,15 +123,14 @@ template <typename Address> struct PayloadHelper {
   }
 
   // Will need to implement if we create other payload fragments.
-  Address operator()(const auto &frag) const { throw std::logic_error("unimplemented"); }
+  Address operator()(const auto &) const { throw std::logic_error("unimplemented"); }
 
   Address address;
   Dense<Address> *dense;
 };
 } // namespace detail
 
-template <typename Address>
-bool Dense<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) {
+template <typename Address> bool Dense<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction) {
   auto header = *iter;
   if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header)) return false;
   // Read has no side effects, dense only issues pure reads.

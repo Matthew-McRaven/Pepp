@@ -56,7 +56,7 @@ struct FrameManagement {
     const char *op_name = meta.valueToKey((int)op);
     return QString("%1").arg(op_name);
   }
-  static constexpr zpp::bits::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) {
+  static constexpr zpp::bits::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) return archive((quint8)self.op);
     else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
@@ -76,7 +76,7 @@ struct FrameActive {
     const char *op_name = meta.valueToKey((int)Opcodes::MARK_ACTIVE);
     return QString("%1 %2").arg(op_name).arg(active);
   }
-  static constexpr zpp::bits::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) {
+  static constexpr zpp::bits::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &) {
     return archive(self.active);
   }
 };

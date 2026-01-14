@@ -61,7 +61,7 @@ bool operator==(const Value &lhs, const Value &rhs);
 
 namespace details {
 struct BitVisitor {
-  uint64_t operator()(const VNever &v) const { return 0; }
+  uint64_t operator()(const VNever &) const { return 0; }
   uint64_t operator()(const VPrimitive &v) const { return v.bits; }
   uint64_t operator()(const VPointer &v) const { return v.bits; }
   uint64_t operator()(const VArray &v) const { return v.bits; }

@@ -25,7 +25,7 @@
 #include "toolchain/symbol/table.hpp"
 
 namespace pas::driver::pep10 {
-static bool isDirectiveAddressed(ast::Node &node) {
+inline static bool isDirectiveAddressed(ast::Node &node) {
   static const QSet<QString> dirs{"ALIGN", "ASCII", "WORD", "BYTE", "BLOCK"};
   if (node.get<ast::generic::Type>().value == ast::generic::Type::Directive && node.has<ast::generic::Directive>()) {
     auto directive = node.get<ast::generic::Directive>().value.toUpper();

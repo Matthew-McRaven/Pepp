@@ -123,7 +123,7 @@ struct Pep9ByteBus {
   static std::optional<Signals> parse_signal(const QString &name);
   static std::optional<Signals> parse_signal(const QStringView &name);
   inline static constexpr bool allows_symbols() { return false; }
-  inline static constexpr bool signal_allows_symbolic_argument(Signals s) { return false; }
+  inline static constexpr bool signal_allows_symbolic_argument(Signals) { return false; }
   using HiddenRegisters = detail::pep9_1byte::HiddenRegisters;
   static uint8_t hidden_register_count();
   struct Code {
@@ -212,7 +212,7 @@ struct Pep9WordBus {
   static std::optional<Signals> parse_signal(const QString &name);
   static std::optional<Signals> parse_signal(const QStringView &name);
   inline static constexpr bool allows_symbols() { return false; }
-  inline static constexpr bool signal_allows_symbolic_argument(Signals s) { return false; }
+  inline static constexpr bool signal_allows_symbolic_argument(Signals) { return false; }
   using HiddenRegisters = detail::pep9_2byte::HiddenRegisters;
   static uint8_t hidden_register_count();
   struct Code {
