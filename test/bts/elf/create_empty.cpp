@@ -49,8 +49,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
     ensure_section_header_table(elf);
     auto layout = calculate_layout(elf);
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_shdr32.elf", data);
     ELFIO::elfio elfio;
@@ -69,8 +68,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     elf.section_headers[shstrtab_idx].sh_name = writer.add_string(".shstrtab");
 
     auto layout = calculate_layout(elf);
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_shdr_manual32.elf", data);
     ELFIO::elfio elfio;
@@ -92,8 +90,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     phdr.p_paddr = phdr.p_vaddr = 0xFEEDBEEF;
     elf.add_segment(std::move(phdr));
     auto layout = calculate_layout(elf);
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_all_hdr32.elf", data);
     ELFIO::elfio elfio;
@@ -171,8 +168,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     CHECK(writer.find_symbol("Echo") == 0);
 
     auto layout = calculate_layout(elf);
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_symtab32.elf", data);
     ELFIO::elfio elfio;
@@ -224,8 +220,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     st_writer.arrange_local_symbols([&r_writer](auto a, auto b) { r_writer.swap_symbols(a, b); });
 
     auto layout = calculate_layout(elf);
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_rel32.elf", data);
     ELFIO::elfio elfio;
@@ -281,8 +276,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     note_data[5] = 0x19;
     note_writer.add_note(std::span<const char>{"pepp.mmios"}, std::span<const char>{note_data, 6}, 0x13);
     auto layout = calculate_layout(elf);
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_notes.elf", data);
   }
@@ -290,7 +284,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     using enum DynamicTags;
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
     ensure_section_header_table(elf);
-    elf.add_segment(Packed::Phdr{});
+    elf.add_segment(SegmentType::PT_DYNAMIC); // dynamic
 
     std::deque<AbsoluteFixup> fixups;
     auto symtab_idx = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
@@ -305,7 +299,6 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
                                                 }}));
       st_writer.arrange_local_symbols();
     }
-
     {
       PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
       fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_INIT), []() { return 0xFEED; }));
@@ -313,18 +306,18 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
       dyn_writer.add_entry(DT_NULL);
     }
 
-    auto layout = calculate_layout(elf);
+    SegmentLayoutConstraint constraint_dyn;
+    constraint_dyn.alignment = 4096;
+    constraint_dyn.from_sec = dynstr_idx;
+    constraint_dyn.to_sec = dynamic_idx;
+    constraint_dyn.base_address = 0xFEED;
+    SegmentLayoutConstraint constraint_load = constraint_dyn;
+    constraint_load.update_sec_addrs = true;
+    std::vector<SegmentLayoutConstraint> constraints = {constraint_dyn, constraint_load};
 
-    auto &dyn_seg = elf.program_headers[0];
-    dyn_seg.p_filesz = elf.section_headers[dynamic_idx].sh_size;
-    dyn_seg.p_memsz = elf.section_headers[dynamic_idx].sh_size;
-    dyn_seg.p_offset = elf.section_headers[dynamic_idx].sh_offset;
-    dyn_seg.p_type = to_underlying(SegmentType::PT_DYNAMIC);
-
+    auto layout = calculate_layout(elf, &constraints);
     for (const auto &fixup : fixups) fixup.update();
-
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_dynamic.elf", data);
   }
@@ -336,8 +329,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     writer.add_entry(0xFEED);
     writer.add_entry(0xBEEF0000);
     auto layout = calculate_layout(elf);
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_array.elf", data);
   }
@@ -361,8 +353,8 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
 
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
     ensure_section_header_table(elf);
-    elf.add_segment(Packed::Phdr{}); // dynamic
-    elf.add_segment(Packed::Phdr{}); // load
+    elf.add_segment(SegmentType::PT_DYNAMIC);                                       // dynamic
+    elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_R | SegmentFlags::PF_W); // load
 
     std::deque<AbsoluteFixup> fixups;
     auto symtab_idx = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
@@ -402,24 +394,14 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
       hs_writer.arrange_local_symbols();
       hs_writer.compute_hash_table(13);
     }
-
     {
       PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
       auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
       st_writer.arrange_local_symbols();
       fixups.emplace_back(st_writer.fixup_value(_DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
     }
-    auto nearest_page = [](u32 addr) { return ((addr + (4096 - 1)) / 4096) * 4096; };
     {
       PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
-      const auto base_address = nearest_page(0xFEED);
-      const auto dynstr_addr = base_address;
-      const auto dynsym_addr = dynstr_addr + elf.section_headers[dynstr_idx].sh_size;
-      const auto hash_addr = dynsym_addr + elf.section_headers[dynsym_idx].sh_size;
-      fixups.emplace_back([&]() { elf.section_headers[dynstr_idx].sh_addr = dynstr_addr; });
-      fixups.emplace_back([&]() { elf.section_headers[dynsym_idx].sh_addr = dynsym_addr; });
-      fixups.emplace_back([&]() { elf.section_headers[hash_idx].sh_addr = hash_addr; });
-
       fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRTAB),
                                                  [&]() { return elf.section_headers[dynstr_idx].sh_addr; }));
       fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRSZ),
@@ -431,28 +413,18 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
       dyn_writer.add_entry(DT_NULL, 0);
     }
 
-    auto layout = calculate_layout(elf);
+    SegmentLayoutConstraint constraint_dyn;
+    constraint_dyn.alignment = 4096;
+    constraint_dyn.from_sec = dynstr_idx;
+    constraint_dyn.to_sec = dynamic_idx;
+    constraint_dyn.base_address = 0xFEED;
+    SegmentLayoutConstraint constraint_load = constraint_dyn;
+    constraint_load.update_sec_addrs = true;
+    std::vector<SegmentLayoutConstraint> constraints = {constraint_dyn, constraint_load};
 
-    auto &dyn_seg = elf.program_headers[0];
-    dyn_seg.p_offset = elf.section_headers[dynstr_idx].sh_offset;
-    dyn_seg.p_filesz =
-        elf.section_headers[dynamic_idx].sh_size + elf.section_headers[dynamic_idx].sh_offset - dyn_seg.p_offset;
-
-    dyn_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
-    dyn_seg.p_type = to_underlying(SegmentType::PT_DYNAMIC);
-    dyn_seg.p_paddr = dyn_seg.p_vaddr = nearest_page(0xFEED);
-
-    auto &load_seg = elf.program_headers[1];
-    load_seg.p_offset = elf.section_headers[dynstr_idx].sh_offset;
-    load_seg.p_filesz =
-        elf.section_headers[dynamic_idx].sh_size + elf.section_headers[dynamic_idx].sh_offset - dyn_seg.p_offset;
-    load_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
-    dyn_seg.p_type = to_underlying(SegmentType::PT_LOAD);
-    load_seg.p_paddr = load_seg.p_vaddr = nearest_page(0xFEED);
-
+    auto layout = calculate_layout(elf, &constraints);
     for (const auto &fixup : fixups) fixup.update();
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_hash.elf", data);
 
@@ -491,8 +463,8 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
 
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_386, ElfABI::ELFOSABI_NONE);
     ensure_section_header_table(elf);
-    elf.add_segment(Packed::Phdr{}); // dynamic
-    elf.add_segment(Packed::Phdr{}); // load
+    elf.add_segment(SegmentType::PT_DYNAMIC);                                       // dynamic
+    elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_R | SegmentFlags::PF_W); // load
 
     std::deque<AbsoluteFixup> fixups;
     auto symtab_idx = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
@@ -538,18 +510,8 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
       st_writer.arrange_local_symbols();
       fixups.emplace_back(st_writer.fixup_value(_DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
     }
-
-    auto nearest_page = [](u32 addr) { return ((addr + (4096 - 1)) / 4096) * 4096; };
     {
       PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
-      const auto base_address = nearest_page(0xFEED);
-      const auto dynstr_addr = base_address;
-      const auto dynsym_addr = dynstr_addr + elf.section_headers[dynstr_idx].sh_size;
-      const auto hash_addr = dynsym_addr + elf.section_headers[dynsym_idx].sh_size;
-      fixups.emplace_back([&]() { elf.section_headers[dynstr_idx].sh_addr = dynstr_addr; });
-      fixups.emplace_back([&]() { elf.section_headers[dynsym_idx].sh_addr = dynsym_addr; });
-      fixups.emplace_back([&]() { elf.section_headers[hash_idx].sh_addr = hash_addr; });
-
       fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRTAB),
                                                  [&]() { return elf.section_headers[dynstr_idx].sh_addr; }));
       fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRSZ),
@@ -560,28 +522,18 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
                                                  [&]() { return elf.section_headers[hash_idx].sh_addr; }));
       dyn_writer.add_entry(DT_NULL, 0);
     }
+    SegmentLayoutConstraint constraint_dyn;
+    constraint_dyn.alignment = 4096;
+    constraint_dyn.from_sec = dynstr_idx;
+    constraint_dyn.to_sec = dynamic_idx;
+    constraint_dyn.base_address = 0xFEED;
+    SegmentLayoutConstraint constraint_load = constraint_dyn;
+    constraint_load.update_sec_addrs = true;
+    std::vector<SegmentLayoutConstraint> constraints = {constraint_dyn, constraint_load};
 
-    auto layout = calculate_layout(elf);
-
-    auto &dyn_seg = elf.program_headers[0];
-    dyn_seg.p_offset = elf.section_headers[dynstr_idx].sh_offset;
-    dyn_seg.p_filesz =
-        elf.section_headers[dynamic_idx].sh_size + elf.section_headers[dynamic_idx].sh_offset - dyn_seg.p_offset;
-    dyn_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
-    dyn_seg.p_type = to_underlying(SegmentType::PT_DYNAMIC);
-    dyn_seg.p_paddr = dyn_seg.p_vaddr = nearest_page(0xFEED);
-
-    auto &load_seg = elf.program_headers[1];
-    load_seg.p_offset = elf.section_headers[dynstr_idx].sh_offset;
-    load_seg.p_filesz =
-        elf.section_headers[dynamic_idx].sh_size + elf.section_headers[dynamic_idx].sh_offset - dyn_seg.p_offset;
-    load_seg.p_memsz = nearest_page(dyn_seg.p_filesz);
-    dyn_seg.p_type = to_underlying(SegmentType::PT_LOAD);
-    load_seg.p_paddr = load_seg.p_vaddr = nearest_page(0xFEED);
-
+    auto layout = calculate_layout(elf, &constraints);
     for (const auto &fixup : fixups) fixup.update();
-    std::vector<u8> data;
-    data.resize(size_for_layout(layout));
+    std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_gnuhash.elf", data);
 

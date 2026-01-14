@@ -3,10 +3,6 @@
 #include "bts/bitmanip/copy.hpp"
 #include "bts/elf/packed_types.hpp"
 namespace pepp::bts {
-struct LayoutItem {
-  u64 offset;
-  std::span<u8> data;
-};
 
 template <ElfBits B, ElfEndian E> class PackedElf {
 public:
@@ -20,6 +16,7 @@ public:
 
   u32 add_section(Shdr &&shdr);
   u32 add_segment(Phdr &&phdr);
+  u32 add_segment(SegmentType type, SegmentFlags flags = SegmentFlags::PF_NONE);
 
   Ehdr header;
   std::vector<Shdr> section_headers;
@@ -36,7 +33,7 @@ template <ElfBits B, ElfEndian E>
 pepp::bts::PackedElf<B, E>::PackedElf(ElfFileType type, ElfMachineType machine, ElfABI abi)
     : header(type, machine, abi) {}
 
-template <ElfBits B, ElfEndian E> inline u32 PackedElf<B, E>::add_section(Shdr &&shdr) {
+template <ElfBits B, ElfEndian E> u32 PackedElf<B, E>::add_section(Shdr &&shdr) {
   if (section_headers.empty()) header.e_shentsize = sizeof(Shdr);
   section_headers.emplace_back(shdr);
   section_data.emplace_back();
@@ -45,11 +42,18 @@ template <ElfBits B, ElfEndian E> inline u32 PackedElf<B, E>::add_section(Shdr &
   return ret;
 }
 
-template <ElfBits B, ElfEndian E> inline u32 PackedElf<B, E>::add_segment(Phdr &&phdr) {
+template <ElfBits B, ElfEndian E> u32 PackedElf<B, E>::add_segment(Phdr &&phdr) {
   if (program_headers.empty()) header.e_phentsize = sizeof(Phdr);
   program_headers.emplace_back(phdr);
   u32 ret = static_cast<u32>(program_headers.size() - 1);
   header.e_phnum = program_headers.size();
   return ret;
+}
+
+template <ElfBits B, ElfEndian E> u32 PackedElf<B, E>::add_segment(SegmentType type, SegmentFlags flags) {
+  Phdr phdr;
+  phdr.p_type = to_underlying(type);
+  phdr.p_flags = to_underlying(flags);
+  return add_segment(std::move(phdr));
 }
 } // namespace pepp::bts
