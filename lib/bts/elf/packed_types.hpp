@@ -258,6 +258,10 @@ template <ElfEndian E> struct PackedElfVerneed {
   U32<E> vn_file = 0;
   U32<E> vn_aux = 0;
   U32<E> vn_next = 0;
+  inline U32<E> aux() const noexcept { return vn_aux; }
+  inline void set_aux(u32 aux) noexcept { vn_aux = aux; }
+  inline U32<E> next() const noexcept { return vn_next; }
+  inline void set_next(u32 next) noexcept { vn_next = next; }
 };
 template <ElfEndian E> struct PackedElfVernaux {
   U32<E> vna_hash = 0;
@@ -265,6 +269,8 @@ template <ElfEndian E> struct PackedElfVernaux {
   U16<E> vna_other = 0;
   U32<E> vna_name = 0;
   U32<E> vna_next = 0;
+  inline U32<E> next() const noexcept { return vna_next; }
+  inline void set_next(u32 next) noexcept { vna_next = next; }
 };
 template <ElfEndian E> struct PackedElfVerdef {
   U16<E> vd_version;
@@ -274,10 +280,16 @@ template <ElfEndian E> struct PackedElfVerdef {
   U32<E> vd_hash;
   U32<E> vd_aux;
   U32<E> vd_next;
+  inline U32<E> aux() const noexcept { return vd_aux; }
+  inline void set_aux(u32 aux) noexcept { vd_aux = aux; }
+  inline U32<E> next() const noexcept { return vd_next; }
+  inline void set_next(u32 next) noexcept { vd_next = next; }
 };
 template <ElfEndian E> struct PackedElfVerdaux {
   U32<E> vda_name;
   U32<E> vda_next;
+  inline U32<E> next() const noexcept { return vda_next; }
+  inline void set_next(u32 next) noexcept { vda_next = next; }
 };
 #pragma pack(pop)
 

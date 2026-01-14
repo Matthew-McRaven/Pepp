@@ -69,100 +69,104 @@ private:
 template <ElfBits B, ElfEndian E> using PackedSymbolVersionReader = PackedSymbolVersionAccessor<B, E, true>;
 template <ElfBits B, ElfEndian E> using PackedSymbolVersionWriter = PackedSymbolVersionAccessor<B, E, false>;
 
-template <ElfBits B, ElfEndian E, bool Const> class PackedSymbolNeedAccessor {
+template <ElfBits B, ElfEndian E, bool Const, typename Ver, typename VerAux> class PackedVersionChainAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
   using Data = maybe_const_t<Const, std::vector<u8>>;
-  PackedSymbolNeedAccessor(Elf &elf, u16 index) : shdr(elf.section_headers[index]), data(elf.section_data[index]) {
+
+  PackedVersionChainAccessor(Elf &elf, u16 index) : shdr(elf.section_headers[index]), data(elf.section_data[index]) {
     // Walk the chain once to pre-compute needed count if we are a Reader.
     if constexpr (Const) {
       u64 offset = 0;
-      while (offset + sizeof(PackedElfVerneed<E>) <= data.size()) {
-        auto verneed = needed_from_offset(static_cast<u32>(offset));
-        _offsets_for_needed.emplace_back(offset), _needed++;
-        offset += verneed->vd_next;
+      while (offset + sizeof(Ver) <= data.size()) {
+        auto ver = ver_from_offset(static_cast<u32>(offset));
+        _offsets_for_ver.emplace_back(offset), _vers++;
+        offset += ver->next();
       }
     }
   }
-  u32 needed_count() const noexcept { return _needed; }
-  u32 needed_offset_for_index(u32 index) const noexcept {
-    if (_offsets_for_needed.size() > index) return _offsets_for_needed[index];
+
+  u32 version_count() const noexcept { return _vers; }
+
+  u32 ver_offset_for_index(u32 index) const noexcept {
+    if (_offsets_for_ver.size() > index) return _offsets_for_ver[index];
 
     u32 it = 0, offset = 0;
-    while (offset + sizeof(PackedElfVerneed<E>) <= data.size() && it < index) {
-      auto verneed = reinterpret_cast<const PackedElfVerneed<E> *>(data.data() + offset);
+    while (offset + sizeof(Ver) <= data.size() && it < index) {
+      auto ver = reinterpret_cast<const Ver *>(data.data() + offset);
       it++;
-      if (_offsets_for_needed.size() < index) _offsets_for_needed.emplace_back(offset);
-      offset += verneed->vn_next;
+      if (_offsets_for_ver.size() < index) _offsets_for_ver.emplace_back(offset);
+      offset += ver->next();
     }
     return static_cast<u32>(offset);
   }
-  PackedElfVerneed<E> needed_from_offset(u32 offset) const noexcept {
-    if (offset + sizeof(PackedElfVerneed<E>) > data.size()) return {};
-    return reinterpret_cast<const PackedElfVerneed<E> *>(data.data() + offset);
+
+  Ver ver_from_offset(u32 offset) const noexcept {
+    if (offset + sizeof(Ver) > data.size()) return {};
+    return reinterpret_cast<const Ver *>(data.data() + offset);
   }
-  PackedElfVerneed<E> needed_from_index(u32 index) const noexcept {
-    auto offset = needed_offset_for_index(index);
+  Ver ver_from_index(u32 index) const noexcept {
+    auto offset = ver_offset_for_index(index);
     return needed_from_offset(offset);
   }
-  u32 aux_offset_for_index(u32 need_index, u32 aux_index) const noexcept {
-    auto need = needed_from_index(need_index);
-    u32 offset = static_cast<u32>(need.vd_aux);
+  u32 aux_offset_for_index(u32 ver_index, u32 aux_index) const noexcept {
+    auto ver = ver_from_index(ver_index);
+    u32 offset = static_cast<u32>(ver.next());
     for (u32 it = 0; it < aux_index; ++it) {
-      if (offset + sizeof(PackedElfVernaux<E>) > data.size()) return 0;
-      offset += needed_aux_from_offset(offset).vda_next;
+      if (offset + sizeof(VerAux) > data.size()) return 0;
+      offset += aux_from_offset(offset).vda_next;
     }
     return offset;
   }
-  PackedElfVernaux<E> needed_aux_from_offset(u32 offset) const noexcept {
-    if (offset + sizeof(PackedElfVernaux<E>) > data.size()) return {};
-    return reinterpret_cast<const PackedElfVernaux<E> *>(data.data() + offset);
+  VerAux aux_from_offset(u32 offset) const noexcept {
+    if (offset + sizeof(VerAux) > data.size()) return {};
+    return reinterpret_cast<const VerAux *>(data.data() + offset);
   }
-  PackedElfVernaux<E> needed_aux_from_index(u32 need_index, u32 aux_index) const noexcept {
+  VerAux aux_from_index(u32 need_index, u32 aux_index) const noexcept {
     auto offset = aux_offset_for_index(need_index, aux_index);
-    return needed_aux_from_offset(offset);
+    return aux_from_offset(offset);
   }
 
-  u32 add_verneed(PackedElfVerneed<E> &&needed) {
+  u32 add_ver(Ver &&needed) {
     auto data_pos = data.size();
-    if (_needed > 0) {
-      auto prev = needed_offset_for_index(_needed);
+    if (_vers > 0) {
+      auto prev = ver_offset_for_index(_vers);
       // Update previous vd_next
-      auto prev_needed = reinterpret_cast<PackedElfVerneed<E> *>(data.data() + prev);
-      prev_needed->vn_next = static_cast<u32>(data_pos - prev);
+      auto prev_needed = reinterpret_cast<Ver *>(data.data() + prev);
+      prev_needed->set_next(data_pos - prev);
     }
-    data.resize(data.size() + sizeof(PackedElfVerneed<E>));
-    std::memcpy(data.data() + data_pos, &needed, sizeof(PackedElfVerneed<E>));
-    _offsets_for_needed.emplace_back(data_pos);
-    _needed++;
+    data.resize(data.size() + sizeof(Ver));
+    std::memcpy(data.data() + data_pos, &needed, sizeof(Ver));
+    _offsets_for_ver.emplace_back(data_pos);
+    _vers++;
     shdr.sh_size = data.size();
-    shdr.sh_info = _needed;
+    shdr.sh_info = _vers;
     return data_pos;
   }
-  u32 add_vernaux(u32 need_index, PackedElfVernaux<E> &&aux) {
-    if (_needed == 0) return 0;
-    auto need_offset = needed_offset_for_index(need_index);
+  u32 add_aux(u32 need_index, VerAux &&aux) {
+    if (_vers == 0) return 0;
+    auto ver_offset = ver_offset_for_index(need_index);
     auto data_pos = data.size();
-    auto need = reinterpret_cast<PackedElfVerneed<E> *>(data.data() + need_offset);
-    auto aux_offset = need->vn_aux;
+    auto ver = reinterpret_cast<Ver *>(data.data() + ver_offset);
+    auto aux_offset = ver->aux();
     if (aux_offset != 0) {
       // Walk to the end of the aux chain
-      u32 last_aux_offset = aux_offset;
-      PackedElfVernaux<E> *last_aux = nullptr;
-      while (last_aux_offset + sizeof(PackedElfVernaux<E>) <= data.size()) {
-        last_aux = reinterpret_cast<PackedElfVernaux<E> *>(data.data() + last_aux_offset);
-        if (last_aux->vna_next == 0) break;
-        last_aux_offset += last_aux->vna_next;
+      u32 last_aux_offset = ver_offset + aux_offset;
+      VerAux *last_aux = nullptr;
+      while (last_aux_offset + sizeof(VerAux) <= data.size()) {
+        last_aux = reinterpret_cast<VerAux *>(data.data() + last_aux_offset);
+        if (last_aux->next() == 0) break;
+        last_aux_offset += last_aux->next();
       }
-      if (last_aux != nullptr) last_aux->vna_next = static_cast<u32>(data_pos - last_aux_offset);
+      if (last_aux != nullptr) last_aux->set_next(data_pos - last_aux_offset);
     } else {
       // First aux for this needed entry
-      auto offset = static_cast<u32>(data_pos - need_offset);
-      need->vn_aux = offset;
+      auto offset = static_cast<u32>(data_pos - ver_offset);
+      ver->set_aux(offset);
     }
-    data.resize(data.size() + sizeof(PackedElfVernaux<E>));
-    std::memcpy(data.data() + data_pos, &aux, sizeof(PackedElfVernaux<E>));
+    data.resize(data.size() + sizeof(VerAux));
+    std::memcpy(data.data() + data_pos, &aux, sizeof(VerAux));
     shdr.sh_size = data.size();
     return data_pos;
   }
@@ -170,11 +174,31 @@ public:
 private:
   Shdr &shdr;
   Data &data;
-  u32 _needed = 0;
-  mutable std::vector<u32> _offsets_for_needed;
+  u32 _vers = 0;
+  mutable std::vector<u32> _offsets_for_ver;
 };
-template <ElfBits B, ElfEndian E> using PackedSymbolNeedReader = PackedSymbolNeedAccessor<B, E, true>;
-template <ElfBits B, ElfEndian E> using PackedSymbolNeedWriter = PackedSymbolNeedAccessor<B, E, false>;
+
+template <ElfBits B, ElfEndian E, bool Const>
+class PackedVersionNeedAccessor
+    : public PackedVersionChainAccessor<B, E, Const, PackedElfVerneed<E>, PackedElfVernaux<E>> {
+public:
+  using Elf = maybe_const_t<Const, PackedElf<B, E>>;
+  PackedVersionNeedAccessor(Elf &elf, u16 index)
+      : PackedVersionChainAccessor<B, E, Const, PackedElfVerneed<E>, PackedElfVernaux<E>>(elf, index) {}
+};
+template <ElfBits B, ElfEndian E> using PackedVersionNeedReader = PackedVersionNeedAccessor<B, E, true>;
+template <ElfBits B, ElfEndian E> using PackedVersionNeedWriter = PackedVersionNeedAccessor<B, E, false>;
+
+template <ElfBits B, ElfEndian E, bool Const>
+class PackedVersionDefAccessor
+    : public PackedVersionChainAccessor<B, E, Const, PackedElfVerdef<E>, PackedElfVerdaux<E>> {
+public:
+  using Elf = maybe_const_t<Const, PackedElf<B, E>>;
+  PackedVersionDefAccessor(Elf &elf, u16 index)
+      : PackedVersionChainAccessor<B, E, Const, PackedElfVerdef<E>, PackedElfVerdaux<E>>(elf, index) {}
+};
+template <ElfBits B, ElfEndian E> using PackedVersionDefReader = PackedVersionDefAccessor<B, E, true>;
+template <ElfBits B, ElfEndian E> using PackedVersionDefWriter = PackedVersionDefAccessor<B, E, false>;
 
 // Symbols
 
