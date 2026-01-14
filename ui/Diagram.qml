@@ -2,6 +2,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.VectorImage
+import QtQuick.Templates as T
+
 import "move.js" as Move
 
 Item {
@@ -89,6 +91,37 @@ Item {
         transformOrigin: Item.Center
         rotation: 0
 
+        function rotateClockwise()
+        {
+            //  Rotate entire object, including end points
+            if (wrapper.rotation >= 270) {
+                wrapper.rotation = 0;
+            } else {
+                wrapper.rotation += 90;
+            }
+        }
+
+        function rotateCounterClockwise()
+        {
+            //  Rotate entire object, including end points
+            if (wrapper.rotation <= 0) {
+                wrapper.rotation = 270;
+            } else {
+                wrapper.rotation -= 90;
+            }
+        }
+
+        ContextMenu.menu:     Menu {
+            MenuItem {
+                text: "Rotate Left"
+                onTriggered: wrapper.rotateClockwise()
+            }
+            MenuItem {
+                text: "Rotate right"
+                onTriggered: wrapper.rotateCounterClockwise()
+            }
+        }
+
         //  Output indicator
         Rectangle {
             id: output
@@ -135,12 +168,14 @@ Item {
             acceptedButtons: Qt.LeftButton
             //drag.maximumY: root.height - wrapper.height
 
-            onClicked: {
+            onClicked: mouse => {
+
                 //  Rotate entire object, including end points
-                if (wrapper.rotation >= 270) {
-                    wrapper.rotation = 0;
-                } else {
-                    wrapper.rotation += 90;
+                if(mouse.modifiers & Qt.ShiftModifier) {
+                    wrapper.rotateCounterClockwise();
+                }
+                else {
+                    wrapper.rotateClockwise();
                 }
 
                 root.horizontal = (wrapper.rotation % 180) == 0;
