@@ -207,7 +207,7 @@ std::ostream &pepp::bts::operator<<(std::ostream &out, const pepp::bts::rope &r)
 // Compute the nth Fibonacci number, in O(n) time
 size_t pepp::bts::fib(size_t n) {
   // initialize first two numbers in sequence
-  int a = 0, b = 1, next;
+  size_t a = 0, b = 1, next = 0;
   if (n == 0) return a;
   for (size_t i = 2; i <= n; i++) {
     next = a + b;

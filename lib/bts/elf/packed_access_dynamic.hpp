@@ -31,7 +31,6 @@ public:
   u32 add_entry(DynamicTags tag, word<B> value);
   void replace_entry(u32 index, PackedElfDyn<B, E> &&dyn) noexcept;
   void replace_entry(u32 index, word<B> tag, word<B> value) noexcept;
-  AbsoluteFixup fixup_value(u32 index, std::function<word<B>()> f);
 
 private:
   Shdr &shdr;
@@ -39,6 +38,15 @@ private:
 };
 template <ElfBits B, ElfEndian E> using PackedDynamicReader = PackedDynamicAccessor<B, E, true>;
 template <ElfBits B, ElfEndian E> using PackedDynamicWriter = PackedDynamicAccessor<B, E, false>;
+
+template <ElfBits B, ElfEndian E>
+AbsoluteFixup fixup_dynamic_value(PackedElf<B, E> &elf, u16 section, u32 index, std::function<word<B>()> func) {
+  return AbsoluteFixup{.update = [elf, section, index, func]() {
+    PackedDynamicReader<B, E> t(elf, section);
+    auto ptr = t.get_entry_ptr(index);
+    if (ptr != nullptr) ptr->d_val = func();
+  }};
+}
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedDynamicAccessor<B, E, Const>::PackedDynamicAccessor(Elf &elf, u16 index)
@@ -114,14 +122,6 @@ void PackedDynamicAccessor<B, E, Const>::replace_entry(u32 index, word<B> tag, w
     ptr->d_tag = tag;
     ptr->d_val = value;
   }
-}
-
-template <ElfBits B, ElfEndian E, bool Const>
-AbsoluteFixup PackedDynamicAccessor<B, E, Const>::fixup_value(u32 index, std::function<word<B>()> f) {
-  return AbsoluteFixup([this, index, f]() {
-    auto ptr = get_entry_ptr(index);
-    if (ptr != nullptr) ptr->d_val = f();
-  });
 }
 
 } // namespace pepp::bts

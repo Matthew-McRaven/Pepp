@@ -160,7 +160,7 @@ void PackedHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets) {
   // System-V does not care about the order of chain items so I am free to order the linked lists however I want.
   // I've chosen the following invariant to be true:  for all i chains[i] == 0 || chains[i] > i
   // This has the effect of creating linked lists which grow from low address in the table to high address.
-  for (i32 i = hashed_count; i > 0; i--) {
+  for (i32 i = hashed_count - 1; i > 0; i--) {
     u32 b = elf_hash(this->get_symbol_name(i)) % nbuckets;
     chains[i] = buckets[b]; // next is previous head (0 if empty)
     buckets[b] = i;         // new head is this symbol

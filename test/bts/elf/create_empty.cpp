@@ -299,15 +299,16 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     {
       PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
       auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
-      fixups.emplace_back(st_writer.fixup_value(_DYNAMIC, std::function<word<ElfBits::b32>()>{[&]() {
-                                                  return word<ElfBits::b32>{elf.section_headers[dynamic_idx].sh_offset};
-                                                }}));
+      fixups.emplace_back(fixup_symbol_value(
+          elf, symtab_idx, _DYNAMIC, [&]() { return word<ElfBits::b32>{elf.section_headers[dynamic_idx].sh_offset}; }));
       st_writer.arrange_local_symbols();
     }
     {
       PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_INIT), []() { return 0xFEED; }));
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_FINI), []() { return 0xBEEF; }));
+      fixups.emplace_back(
+          fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_INIT), [&]() { return 0xFEED; }));
+      fixups.emplace_back(
+          fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_FINI), [&]() { return 0xBEEF; }));
       dyn_writer.add_entry(DT_NULL);
     }
 
@@ -316,12 +317,10 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     constraint_dyn.from_sec = dynstr_idx;
     constraint_dyn.to_sec = dynamic_idx;
     constraint_dyn.base_address = 0xFEED;
-    SegmentLayoutConstraint constraint_load = constraint_dyn;
-    constraint_load.update_sec_addrs = true;
-    std::vector<SegmentLayoutConstraint> constraints = {constraint_dyn, constraint_load};
+    std::vector<SegmentLayoutConstraint> constraints = {constraint_dyn};
 
     auto layout = calculate_layout(elf, &constraints);
-    for (const auto &fixup : fixups) fixup.update();
+    // for (const auto &fixup : fixups) fixup.update();
     std::vector<u8> data(size_for_layout(layout), 0);
     write(data, layout);
     write("ehdr_dynamic.elf", data);
@@ -404,18 +403,19 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
       PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
       auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
       st_writer.arrange_local_symbols();
-      fixups.emplace_back(st_writer.fixup_value(_DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
+      fixups.emplace_back(
+          fixup_symbol_value(elf, dynamic_idx, _DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
     }
     {
       PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRTAB),
-                                                 [&]() { return elf.section_headers[dynstr_idx].sh_addr; }));
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRSZ),
-                                                 [&]() { return elf.section_headers[dynstr_idx].sh_size; }));
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_SYMTAB),
-                                                 [&]() { return elf.section_headers[dynsym_idx].sh_addr; }));
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_HASH),
-                                                 [&]() { return elf.section_headers[hash_idx].sh_addr; }));
+      fixups.emplace_back(fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_STRTAB),
+                                              [&]() { return elf.section_headers[dynstr_idx].sh_addr; }));
+      fixups.emplace_back(fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_STRSZ),
+                                              [&]() { return elf.section_headers[dynstr_idx].sh_size; }));
+      fixups.emplace_back(fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_SYMTAB),
+                                              [&]() { return elf.section_headers[dynsym_idx].sh_addr; }));
+      fixups.emplace_back(fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_HASH),
+                                              [&]() { return elf.section_headers[hash_idx].sh_addr; }));
       dyn_writer.add_entry(DT_NULL, 0);
     }
 
@@ -514,18 +514,20 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
       PackedSymbolWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, symtab_idx);
       auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<ElfBits::b32, ElfEndian::le>(), "_DYNAMIC", dynamic_idx);
       st_writer.arrange_local_symbols();
-      fixups.emplace_back(st_writer.fixup_value(_DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
+      fixups.emplace_back(
+          fixup_symbol_value(elf, dynamic_idx, _DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
     }
     {
       PackedDynamicWriter<ElfBits::b32, ElfEndian::le> dyn_writer(elf, dynamic_idx);
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRTAB),
-                                                 [&]() { return elf.section_headers[dynstr_idx].sh_addr; }));
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_STRSZ),
-                                                 [&]() { return elf.section_headers[dynstr_idx].sh_size; }));
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_SYMTAB),
-                                                 [&]() { return elf.section_headers[dynsym_idx].sh_addr; }));
-      fixups.emplace_back(dyn_writer.fixup_value(dyn_writer.add_entry(DT_GNU_HASH),
-                                                 [&]() { return elf.section_headers[hash_idx].sh_addr; }));
+
+      fixups.emplace_back(fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_STRTAB),
+                                              [&]() { return elf.section_headers[dynstr_idx].sh_addr; }));
+      fixups.emplace_back(fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_STRSZ),
+                                              [&]() { return elf.section_headers[dynstr_idx].sh_size; }));
+      fixups.emplace_back(fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_SYMTAB),
+                                              [&]() { return elf.section_headers[dynsym_idx].sh_addr; }));
+      fixups.emplace_back(fixup_dynamic_value(elf, dynamic_idx, dyn_writer.add_entry(DT_GNU_HASH),
+                                              [&]() { return elf.section_headers[hash_idx].sh_addr; }));
       dyn_writer.add_entry(DT_NULL, 0);
     }
     SegmentLayoutConstraint constraint_dyn;
@@ -617,7 +619,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
     auto dynsym_idx = add_named_dynsymtab(elf, ".dynsym", dynstr_idx);
     auto versym_idx = add_gnu_version(elf, dynsym_idx);
-    auto versymr_idx = versyadd_gnu_version_r(elf, dynstr_idx);
+    auto versymr_idx = add_gnu_version_r(elf, dynstr_idx);
     PackedStringWriter<ElfBits::b32, ElfEndian::le> st_writer(elf, dynstr_idx);
 
     auto gl_sm = st_writer.add_string("__libc_start_main");

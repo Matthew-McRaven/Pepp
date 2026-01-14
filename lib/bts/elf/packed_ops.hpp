@@ -17,6 +17,12 @@ u16 add_named_rel(PackedElf<B, E> &, std::string_view name, u16 symtab_idx, u16 
 template <ElfBits B, ElfEndian E>
 u16 add_named_rela(PackedElf<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
 
+template <ElfBits B, ElfEndian E> u32 symbol_count(const PackedElfShdr<B, E> &shdr) {
+  if (shdr.sh_entsize == 0 || shdr.sh_size == 0) return 0;
+  const u32 size = shdr.sh_size, entsize = shdr.sh_entsize;
+  return size / entsize;
+}
+
 // Represents a chunk of data to be placed at a specific offset in the final ELF file; it does not own data.
 struct LayoutItem {
   u64 offset;
@@ -205,6 +211,7 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
 
   // Apply segment layout constraints if provided
   if (constraints != nullptr) {
+    assert(constraints->size() <= elf.program_headers.size());
     for (u16 it = 0; it < constraints->size(); ++it) {
       auto constraint = (*constraints)[it];
       if (constraint.from_sec == 0) continue; // Looks like an invalid constraint

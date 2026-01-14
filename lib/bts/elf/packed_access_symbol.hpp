@@ -2,7 +2,9 @@
 #include "./packed_elf.hpp"
 #include "bts/elf/packed_fixup.hpp"
 #include "packed_access_strings.hpp"
+#include "packed_ops.hpp"
 namespace pepp::bts {
+
 template <ElfBits B, ElfEndian E, bool Const> class PackedSymbolAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
@@ -26,8 +28,6 @@ public:
   u32 add_symbol(PackedElfSymbol<B, E> &&symbol, std::string_view name, u16 section_index);
   void replace_symbol(u32 index, PackedElfSymbol<B, E> &&symbol) noexcept;
   void replace_value(u32 index, Word<B, E> value) noexcept;
-  // DANGER! The index will not be updated by arrange_local_symbols.
-  AbsoluteFixup fixup_value(word<B> index, std::function<word<B>()> f);
   void arrange_local_symbols(std::function<void(Word<B, E> first, Word<B, E> second)> func = nullptr);
 
 protected:
@@ -39,6 +39,17 @@ protected:
 };
 template <ElfBits B, ElfEndian E> using PackedSymbolReader = PackedSymbolAccessor<B, E, true>;
 template <ElfBits B, ElfEndian E> using PackedSymbolWriter = PackedSymbolAccessor<B, E, false>;
+
+// DANGER! The index will not be updated by arrange_local_symbols.
+template <ElfBits B, ElfEndian E>
+AbsoluteFixup fixup_symbol_value(PackedElf<B, E> &elf, u16 section, word<B> index, std::function<word<B>()> func) {
+  return AbsoluteFixup{.update = [elf, section, index, func]() {
+    PackedSymbolReader<B, E> t(elf, section);
+    if (index >= t.symbol_count()) return;
+    PackedElfSymbol<B, E> *sym = t.get_symbol_ptr(index);
+    sym->st_value = func();
+  }};
+}
 
 template <ElfBits B, ElfEndian E, bool Const> class PackedSymbolVersionAccessor {
 public:
@@ -181,9 +192,7 @@ PackedSymbolAccessor<B, E, Const>::PackedSymbolAccessor(PackedSymbolAccessor<B, 
     : shdr_symtab(shdr_symbol), data_symtab(symtab), strtab(shdr, strtab) {}
 
 template <ElfBits B, ElfEndian E, bool Const> u32 PackedSymbolAccessor<B, E, Const>::symbol_count() const noexcept {
-  if (shdr_symtab.sh_entsize == 0 || shdr_symtab.sh_size == 0) return 0;
-  const u32 size = shdr_symtab.sh_size, entsize = shdr_symtab.sh_entsize;
-  return size / entsize;
+  return pepp::bts::symbol_count<B, E>(shdr_symtab);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -257,15 +266,6 @@ template <ElfBits B, ElfEndian E, bool Const>
 void PackedSymbolAccessor<B, E, Const>::replace_value(u32 index, Word<B, E> value) noexcept {
   if (index >= symbol_count()) return;
   get_symbol_ptr(index)->st_value = value;
-}
-
-template <ElfBits B, ElfEndian E, bool Const>
-AbsoluteFixup PackedSymbolAccessor<B, E, Const>::fixup_value(word<B> index, std::function<word<B>()> func) {
-  return AbsoluteFixup{.update = [this, index, func]() {
-    if (index >= symbol_count()) return;
-    PackedElfSymbol<B, E> *sym = get_symbol_ptr(index);
-    sym->st_value = func();
-  }};
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
