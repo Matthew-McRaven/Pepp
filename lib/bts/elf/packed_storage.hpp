@@ -3,11 +3,6 @@
 #include "../bitmanip/span.hpp"
 #include "bts/elf/packed_types.hpp"
 
-#if defined(_WIN32)
-#define NOMINMAX
-// For HANDLE
-#include <winnt.h>
-#endif
 namespace pepp::bts {
 template <class T> struct is_span : std::false_type {};
 template <class U, std::size_t Extent> struct is_span<std::span<U, Extent>> : std::true_type {};
@@ -176,8 +171,8 @@ private:
   mutable std::span<u8> mapped_view{};
   mutable std::vector<u8> fallback_buf{};
 #if defined(_WIN32)
-  mutable HANDLE hFile = INVALID_HANDLE_VALUE;
-  mutable HANDLE hMap = nullptr;
+  mutable void* hFile = nullptr;
+  mutable void* hMap = nullptr;
 #elif defined(__unix__) || defined(__APPLE__)
   mutable int fd = -1;
 #endif
