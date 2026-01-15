@@ -98,4 +98,48 @@ struct BlockStorage : public AStorage {
 private:
   std::vector<char> _storage{};
 };
+
+struct PagedStorage : public AStorage {
+  // AStorage interface
+  u64 append(bits::span<const u8> data) override;
+  u64 allocate(u64 size, u8 fill = 0) override;
+  void set(u64 offset, bits::span<const u8> data) override;
+  bits::span<u8> get(u64 offset, u64 length) noexcept override;
+  bits::span<const u8> get(u64 offset, u64 length) const noexcept override;
+  u64 size() const noexcept override;
+  void clear(u64 reserve = 0) override;
+  u64 calculate_layout(std::vector<LayoutItem> &layout, u32 dst_offset) const override;
+  u64 find(bits::span<const u8> data) const noexcept override;
+  u64 strlen(u64 offset) const noexcept override;
+
+private:
+  static constexpr u64 MIN_PAGE_SIZE = 256;      // Minimum size for a single page.
+  static constexpr u64 DEFAULT_PAGE_SIZE = 4096; // Default allocation size for a single page.
+  static constexpr u64 MAX_PAGE_SIZE = 65535;    // Maximum number of bytes than can be stored in a single page.
+
+  // Holds many strings, one after the other.
+  // Lengths will be rounded up to the nearest power-of-2.
+  struct Page {
+    // Will only set bytes to 0 in the range [memset_from, length)
+    // This optimization allows you to avoid a memset when you plan on immediately copying data, saving substantial time
+    // on large allocations.
+    explicit Page(u64 length, u64 memset_from = 0);
+    u64 length = 0, next = 0;
+    // Automatically allocated on construction
+    std::unique_ptr<u8[]> data = nullptr;
+    // Copy data into next free space, advancing next.
+    u64 append(bits::span<const u8> data);
+    u64 allocate(u64 size, u8 fill = 0);
+    inline bool can_fit(bits::span<const u8> request) const noexcept { return next + request.size() <= length; }
+    inline bool can_fit(u64 request) const noexcept { return next + request <= length; }
+    inline void clear() noexcept { next = 0, memset(data.get(), 0, length); }
+  };
+  // Page index, page offset
+  std::pair<u64, u64> page_for_offset(u64 offset) const;
+
+  static_assert(MIN_PAGE_SIZE <= MAX_PAGE_SIZE, "PAGE_SIZE must fit in u16");
+  std::vector<std::unique_ptr<Page>> _pages = {};
+  // Number of bytes actually in use
+  u64 _size = 0;
+};
 } // namespace pepp::bts

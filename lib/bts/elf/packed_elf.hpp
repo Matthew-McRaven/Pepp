@@ -38,6 +38,7 @@ template <ElfBits B, ElfEndian E> u32 PackedElf<B, E>::add_section(Shdr &&shdr) 
   if (section_headers.empty()) header.e_shentsize = sizeof(Shdr);
   section_headers.emplace_back(shdr);
   switch ((SectionTypes)(u32)shdr.sh_type) {
+  case SectionTypes::SHT_STRTAB: section_data.emplace_back(std::make_shared<PagedStorage>()); break;
   default: section_data.emplace_back(std::make_shared<BlockStorage>()); break;
   }
   u32 ret = static_cast<u32>(section_headers.size() - 1);
