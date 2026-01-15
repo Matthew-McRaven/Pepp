@@ -13,31 +13,31 @@ struct AStorage {
   virtual ~AStorage() = 0;
   // Guarantees that data will be allocated contiguously in container, even if the underlying storage is fragmented.
   // Returns the offset within the storage where the data was appended.
-  virtual u64 append(bits::span<const u8> data) = 0;
-  virtual u64 allocate(u64 size,
-                       u8 fill = 0) = 0; // Allocates `size` uninitialized contiguous bytes and returns the offset.
+  virtual size_t append(bits::span<const u8> data) = 0;
+  // Allocates `size` uninitialized contiguous bytes and returns the offset.
+  virtual size_t allocate(size_t size, u8 fill = 0) = 0;
   // Overwrites data at the given offset, raising an exception if offset+data.size() exceeds current storage.
-  virtual void set(u64 offset, bits::span<const u8> data) = 0;
+  virtual void set(size_t offset, bits::span<const u8> data) = 0;
   // Retrieves a span representing the data at the given offset and length. Return nulltpr if offset+length exceeds
   // current storage.
-  virtual bits::span<u8> get(u64 offset, u64 length) noexcept = 0;
-  virtual bits::span<const u8> get(u64 offset, u64 length) const noexcept = 0;
-  virtual u64 size() const noexcept = 0;
+  virtual bits::span<u8> get(size_t offset, size_t length) noexcept = 0;
+  virtual bits::span<const u8> get(size_t offset, size_t length) const noexcept = 0;
+  virtual size_t size() const noexcept = 0;
   // Clear the underlying storage and attempt to reserve a number of bytes.
-  virtual void clear(u64 reserve = 0) = 0;
+  virtual void clear(size_t reserve = 0) = 0;
   // Returns the computed final offset
-  virtual u64 calculate_layout(std::vector<LayoutItem> &layout, u32 dst_offset) const = 0;
-  virtual u64 find(bits::span<const u8> data) const noexcept = 0;
-  virtual u64 strlen(u64 offset) const noexcept = 0;
+  virtual size_t calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const = 0;
+  virtual size_t find(bits::span<const u8> data) const noexcept = 0;
+  virtual size_t strlen(size_t offset) const noexcept = 0;
 
   // Helpers
-  template <std::integral I> void set(u64 offset, I value) {
+  template <std::integral I> void set(size_t offset, I value) {
     set(offset, bits::span<const u8>{(const u8 *)&value, sizeof(I)});
   }
   // Do not enable for integral
   template <typename T>
     requires(!std::is_integral_v<std::remove_cvref_t<T>> && !is_span_v<T>)
-  void set(u64 offset, T &&data) {
+  void set(size_t offset, T &&data) {
     static_assert(std::is_trivially_copyable_v<std::remove_cvref_t<T>>, "Requires trivially copyable types");
     static_assert(alignof(T) == 1, "Types must be packed / have alignment of 1");
     return set(offset, bits::span<const u8>((const u8 *)&data, sizeof(T)));
@@ -45,20 +45,20 @@ struct AStorage {
 
   template <typename T>
     requires(!is_span_v<T>)
-  u64 append(T &&data) {
+  size_t append(T &&data) {
     static_assert(std::is_trivially_copyable_v<std::remove_cvref_t<T>>, "Requires trivially copyable types");
     static_assert(alignof(T) == 1, "Types must be packed / have alignment of 1");
     return append(bits::span<const u8>((const u8 *)&data, sizeof(T)));
   }
   // Assuming the section contains fixed-size entries of type T, get the entry at the given index.
-  template <typename T> const T *get(u64 index) const noexcept {
+  template <typename T> const T *get(size_t index) const noexcept {
     static_assert(std::is_trivially_copyable_v<std::remove_cvref_t<T>>, "Requires trivially copyable types");
     static_assert(alignof(T) == 1, "Types must be packed / have alignment of 1");
     auto span = get(sizeof(T) * index, sizeof(T));
     if (span.size() != sizeof(T)) return nullptr;
     return reinterpret_cast<const T *>(span.data());
   }
-  template <typename T> T *get(u64 index) noexcept {
+  template <typename T> T *get(size_t index) noexcept {
     static_assert(std::is_trivially_copyable_v<std::remove_cvref_t<T>>, "Requires trivially copyable types");
     static_assert(alignof(T) == 1, "Types must be packed / have alignment of 1");
     auto span = get(sizeof(T) * index, sizeof(T));
@@ -66,34 +66,34 @@ struct AStorage {
     return reinterpret_cast<T *>(span.data());
   }
   // You have an offset into the storage, but your items are not fixed-size so you cannot use get<T>(index)
-  template <typename T> const T *get_at(u64 offset) const noexcept {
+  template <typename T> const T *get_at(size_t offset) const noexcept {
     static_assert(std::is_trivially_copyable_v<std::remove_cvref_t<T>>, "Requires trivially copyable types");
     static_assert(alignof(T) == 1, "Types must be packed / have alignment of 1");
     auto span = get(offset, sizeof(T));
     return reinterpret_cast<const T *>(span.data());
   }
-  template <typename T> T *get_at(u64 offset) noexcept {
+  template <typename T> T *get_at(size_t offset) noexcept {
     static_assert(std::is_trivially_copyable_v<std::remove_cvref_t<T>>, "Requires trivially copyable types");
     static_assert(alignof(T) == 1, "Types must be packed / have alignment of 1");
     auto span = get(offset, sizeof(T));
     return reinterpret_cast<T *>(span.data());
   }
-  inline bits::span<const u8> get_string_span(u64 index) const noexcept { return get(index, strlen(index)); }
+  inline bits::span<const u8> get_string_span(size_t index) const noexcept { return get(index, strlen(index)); }
 };
 
 // Vector-backed storage
 struct BlockStorage : public AStorage {
   // AStorage interface
-  u64 append(bits::span<const u8> data) override;
-  u64 allocate(u64 size, u8 fill = 0) override;
-  void set(u64 offset, bits::span<const u8> data) override;
-  bits::span<u8> get(u64 offset, u64 length) noexcept override;
-  bits::span<const u8> get(u64 offset, u64 length) const noexcept override;
-  u64 size() const noexcept override;
-  void clear(u64 reserve = 0) override;
-  u64 calculate_layout(std::vector<LayoutItem> &layout, u32 dst_offset) const override;
-  u64 find(bits::span<const u8> data) const noexcept override;
-  u64 strlen(u64 offset) const noexcept override;
+  size_t append(bits::span<const u8> data) override;
+  size_t allocate(size_t size, u8 fill = 0) override;
+  void set(size_t offset, bits::span<const u8> data) override;
+  bits::span<u8> get(size_t offset, size_t length) noexcept override;
+  bits::span<const u8> get(size_t offset, size_t length) const noexcept override;
+  size_t size() const noexcept override;
+  void clear(size_t reserve = 0) override;
+  size_t calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const override;
+  size_t find(bits::span<const u8> data) const noexcept override;
+  size_t strlen(size_t offset) const noexcept override;
 
 private:
   std::vector<char> _storage{};
@@ -101,21 +101,21 @@ private:
 
 struct PagedStorage : public AStorage {
   // AStorage interface
-  u64 append(bits::span<const u8> data) override;
-  u64 allocate(u64 size, u8 fill = 0) override;
-  void set(u64 offset, bits::span<const u8> data) override;
-  bits::span<u8> get(u64 offset, u64 length) noexcept override;
-  bits::span<const u8> get(u64 offset, u64 length) const noexcept override;
-  u64 size() const noexcept override;
-  void clear(u64 reserve = 0) override;
-  u64 calculate_layout(std::vector<LayoutItem> &layout, u32 dst_offset) const override;
-  u64 find(bits::span<const u8> data) const noexcept override;
-  u64 strlen(u64 offset) const noexcept override;
+  size_t append(bits::span<const u8> data) override;
+  size_t allocate(size_t size, u8 fill = 0) override;
+  void set(size_t offset, bits::span<const u8> data) override;
+  bits::span<u8> get(size_t offset, size_t length) noexcept override;
+  bits::span<const u8> get(size_t offset, size_t length) const noexcept override;
+  size_t size() const noexcept override;
+  void clear(size_t reserve = 0) override;
+  size_t calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const override;
+  size_t find(bits::span<const u8> data) const noexcept override;
+  size_t strlen(size_t offset) const noexcept override;
 
 private:
-  static constexpr u64 MIN_PAGE_SIZE = 256;      // Minimum size for a single page.
-  static constexpr u64 DEFAULT_PAGE_SIZE = 4096; // Default allocation size for a single page.
-  static constexpr u64 MAX_PAGE_SIZE = 65535;    // Maximum number of bytes than can be stored in a single page.
+  static constexpr size_t MIN_PAGE_SIZE = 256;      // Minimum size for a single page.
+  static constexpr size_t DEFAULT_PAGE_SIZE = 4096; // Default allocation size for a single page.
+  static constexpr size_t MAX_PAGE_SIZE = 65535;    // Maximum number of bytes than can be stored in a single page.
 
   // Holds many strings, one after the other.
   // Lengths will be rounded up to the nearest power-of-2.
@@ -123,23 +123,23 @@ private:
     // Will only set bytes to 0 in the range [memset_from, length)
     // This optimization allows you to avoid a memset when you plan on immediately copying data, saving substantial time
     // on large allocations.
-    explicit Page(u64 length, u64 memset_from = 0);
-    u64 length = 0, next = 0;
+    explicit Page(size_t length, size_t memset_from = 0);
+    size_t length = 0, next = 0;
     // Automatically allocated on construction
     std::unique_ptr<u8[]> data = nullptr;
     // Copy data into next free space, advancing next.
-    u64 append(bits::span<const u8> data);
-    u64 allocate(u64 size, u8 fill = 0);
+    size_t append(bits::span<const u8> data);
+    size_t allocate(size_t size, u8 fill = 0);
     inline bool can_fit(bits::span<const u8> request) const noexcept { return next + request.size() <= length; }
-    inline bool can_fit(u64 request) const noexcept { return next + request <= length; }
+    inline bool can_fit(size_t request) const noexcept { return next + request <= length; }
     inline void clear() noexcept { next = 0, memset(data.get(), 0, length); }
   };
   // Page index, page offset
-  std::pair<u64, u64> page_for_offset(u64 offset) const;
+  std::pair<size_t, size_t> page_for_offset(size_t offset) const;
 
   static_assert(MIN_PAGE_SIZE <= MAX_PAGE_SIZE, "PAGE_SIZE must fit in u16");
   std::vector<std::unique_ptr<Page>> _pages = {};
   // Number of bytes actually in use
-  u64 _size = 0;
+  size_t _size = 0;
 };
 } // namespace pepp::bts
