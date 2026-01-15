@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bts/bitmanip/copy.hpp"
+#include "bts/elf/packed_storage.hpp"
 #include "bts/elf/packed_types.hpp"
 namespace pepp::bts {
 
@@ -21,7 +22,7 @@ public:
   Ehdr header;
   std::vector<Shdr> section_headers;
   std::vector<Phdr> program_headers;
-  std::vector<std::vector<u8>> section_data;
+  std::vector<std::shared_ptr<AStorage>> section_data;
 };
 
 using PackedElfLE32 = PackedElf<ElfBits::b32, ElfEndian::le>;
@@ -36,7 +37,9 @@ pepp::bts::PackedElf<B, E>::PackedElf(ElfFileType type, ElfMachineType machine, 
 template <ElfBits B, ElfEndian E> u32 PackedElf<B, E>::add_section(Shdr &&shdr) {
   if (section_headers.empty()) header.e_shentsize = sizeof(Shdr);
   section_headers.emplace_back(shdr);
-  section_data.emplace_back();
+  switch ((SectionTypes)(u32)shdr.sh_type) {
+  default: section_data.emplace_back(std::make_shared<BlockStorage>()); break;
+  }
   u32 ret = static_cast<u32>(section_headers.size() - 1);
   header.e_shnum = section_headers.size();
   return ret;

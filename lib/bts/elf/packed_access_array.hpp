@@ -9,7 +9,7 @@ template <ElfBits B, ElfEndian E, bool Const> class PackedArrayAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
   PackedArrayAccessor(Elf &elf, u16 index);
   PackedArrayAccessor(Shdr &shdr, Data &data) noexcept;
 
@@ -19,7 +19,7 @@ public:
 
 private:
   Shdr &shdr;
-  Data &data;
+  Data data;
 };
 template <ElfBits B, ElfEndian E> using PackedArrayReader = PackedArrayAccessor<B, E, true>;
 template <ElfBits B, ElfEndian E> using PackedArrayWriter = PackedArrayAccessor<B, E, false>;
@@ -39,16 +39,14 @@ template <ElfBits B, ElfEndian E, bool Const> u32 PackedArrayAccessor<B, E, Cons
 template <ElfBits B, ElfEndian E, bool Const>
 word<B> PackedArrayAccessor<B, E, Const>::get_entry(u32 index) const noexcept {
   if (index * sizeof(Word<B, E>) >= data.size()) return 0;
-  return *(((Word<B, E> *)data.data()) + index);
+  return data->template get<Word<B, E>>(index);
 }
 
 template <ElfBits B, ElfEndian E, bool Const> void PackedArrayAccessor<B, E, Const>::add_entry(word<B> address) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(Word<B, E>);
   Word<B, E> adjust = address;
-  auto ate = data.size();
-  data.resize(ate + sizeof(Word<B, E>));
-  std::memcpy(data.data() + ate, &adjust, sizeof(Word<B, E>));
-  shdr.sh_size = data.size();
+  data->append(adjust);
+  shdr.sh_size = data->size();
 }
 
 } // namespace pepp::bts

@@ -17,7 +17,7 @@ template <ElfBits B, ElfEndian E, bool Const> class PackedDynamicAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
   PackedDynamicAccessor(Elf &elf, u16 index);
   PackedDynamicAccessor(Shdr &shdr, Data &data) noexcept;
 
@@ -72,18 +72,16 @@ PackedElfDyn<B, E> PackedDynamicAccessor<B, E, Const>::get_entry(u32 index) cons
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedElfDyn<B, E> *PackedDynamicAccessor<B, E, Const>::get_entry_ptr(u32 index) const noexcept {
-  if (index * shdr.sh_entsize + sizeof(PackedElfDyn<B, E>) > data.size()) return nullptr;
-  return (PackedElfDyn<B, E> *)(data.data() + index * shdr.sh_entsize);
+  if (index * shdr.sh_entsize + sizeof(PackedElfDyn<B, E>) > data->size()) return nullptr;
+  return data->template get<PackedElfDyn<B, E>>(index);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 u32 PackedDynamicAccessor<B, E, Const>::add_entry(PackedElfDyn<B, E> &&dyn) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfDyn<B, E>);
   auto ret = entry_count();
-  auto ate = data.size();
-  data.resize(ate + sizeof(PackedElfDyn<B, E>), 0);
-  std::memcpy(data.data() + ate, &dyn, sizeof(PackedElfDyn<B, E>));
-  shdr.sh_size = data.size();
+  data->append(dyn);
+  shdr.sh_size = data->size();
   return ret;
 }
 

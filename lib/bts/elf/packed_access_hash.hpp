@@ -42,7 +42,7 @@ class PackedHashedSymbolAccessor : public PackedSymbolAccessor<B, E, Const> {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
   PackedHashedSymbolAccessor(Elf &elf, u16 index);
   PackedHashedSymbolAccessor(Shdr &shdr_hash, Data &data_hash, Shdr &shdr_symbol, Data &data_symbol, Shdr &shdr_strtab,
                              Data &data_strtab) noexcept;
@@ -99,7 +99,7 @@ class PackedGNUHashedSymbolAccessor : public PackedSymbolAccessor<B, E, Const> {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
   PackedGNUHashedSymbolAccessor(Elf &elf, u16 index);
   PackedGNUHashedSymbolAccessor(Shdr &shdr_hash, Data &data_hash, Shdr &shdr_symbol, Data &data_symbol,
                                 Shdr &shdr_strtab, Data &data_strtab) noexcept;
@@ -167,16 +167,13 @@ void PackedHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets) {
   }
 
   // Write out the hash table in correct endian format. Avoid reallocations of underlying buffer.
-  data_hash.clear();
-  this->data_hash.reserve(2 * sizeof(u32) + +nbuckets * sizeof(u32) + chains.size() * sizeof(u32));
+  data_hash->clear(2 * sizeof(u32) + +nbuckets * sizeof(u32) + chains.size() * sizeof(u32));
 
   // Helper to conditionally byteswap and append a u32
   auto append_u32 = [](auto &data_hash, u32 val) {
     u8 buf[4];
     *((U32<E> *)buf) = val;
-    auto ate = data_hash.size();
-    data_hash.resize(ate + 4);
-    std::memcpy(data_hash.data() + ate, buf, 4);
+    data_hash->append(std::span<const u8>{buf});
   };
 
   // Header, buckets, chains
@@ -187,26 +184,29 @@ void PackedHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets) {
 }
 
 template <ElfBits B, ElfEndian E, bool Const> u32 PackedHashedSymbolAccessor<B, E, Const>::nbuckets() const noexcept {
-  if (data_hash.size() < 2 * sizeof(u32)) return 0;
-  return u32{*((U32<E> *)data_hash.data() + 0)};
+  if (data_hash->size() < 2 * sizeof(u32)) return 0;
+  return *data_hash->template get<U32<E>>(0);
 }
 
 template <ElfBits B, ElfEndian E, bool Const> u32 PackedHashedSymbolAccessor<B, E, Const>::nchains() const noexcept {
-  if (data_hash.size() < 2 * sizeof(u32)) return 0;
-  return u32{*((U32<E> *)data_hash.data() + 1)};
+  if (data_hash->size() < 2 * sizeof(u32)) return 0;
+  return *data_hash->template get<U32<E>>(1);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 bits::span<const U32<E>> PackedHashedSymbolAccessor<B, E, Const>::buckets() const noexcept {
-  if (data_hash.size() < 4 * sizeof(u32)) return {};
-  return bits::span<const U32<E>>((const U32<E> *)(data_hash.data() + 2 * sizeof(u32)), nbuckets());
+  const auto offset = 2 * sizeof(u32);
+  if (data_hash->size() < offset) return {};
+  bits::span<const u8> underlying = data_hash->get(offset, nbuckets() * sizeof(u32));
+  return bits::span<const U32<E>>{(const U32<E> *)underlying.data(), nbuckets()};
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 bits::span<const U32<E>> PackedHashedSymbolAccessor<B, E, Const>::chains() const noexcept {
-  const auto offset = 2 * sizeof(uint32_t) + nbuckets() * sizeof(U32<E>);
-  if (data_hash.size() < offset) return {};
-  return bits::span<const U32<E>>{(const U32<E> *)(data_hash.data() + offset), nchains()};
+  const auto offset = (2 + nbuckets()) * sizeof(u32);
+  if (data_hash->size() < offset) return {};
+  bits::span<const u8> underlying = data_hash->get(offset, nchains() * sizeof(u32));
+  return bits::span<const U32<E>>{(const U32<E> *)underlying.data(), nchains()};
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -326,17 +326,13 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
   }
 
   // Write out the hash table in correct endian format. Avoid reallocations of underlying buffer.
-  data_hash.clear();
-  this->data_hash.reserve(4 * sizeof(u32) + maskwords * sizeof(word<B>) + nbuckets * sizeof(u32) +
-                          chains.size() * sizeof(u32));
+  data_hash->clear((4 + nbuckets + chains.size()) * sizeof(u32) + maskwords * sizeof(word<B>));
 
   // Helper to conditionally byteswap and append a u32
   auto append_u32 = [](auto &data_hash, u32 val) {
     u8 buf[4];
     *((U32<E> *)buf) = val;
-    auto ate = data_hash.size();
-    data_hash.resize(ate + 4);
-    std::memcpy(data_hash.data() + ate, buf, 4);
+    data_hash->append(std::span<const u8>{buf});
   };
 
   // Header
@@ -348,56 +344,55 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
   for (const auto &b : bloom_filter) {
     u8 buf[sizeof(word<B>)];
     *((Word<B, E> *)buf) = b;
-    auto ate = data_hash.size();
-    data_hash.resize(ate + sizeof(word<B>));
-    std::memcpy(data_hash.data() + ate, buf, sizeof(word<B>));
+    data_hash->append(std::span<const u8>{buf});
   }
   for (const auto &b : buckets) append_u32(data_hash, b);
   for (const auto &c : chains) append_u32(data_hash, c);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-inline u32 PackedGNUHashedSymbolAccessor<B, E, Const>::nbuckets() const noexcept {
-  if (data_hash.size() < 4 * sizeof(u32)) return 0;
-  return u32{*((U32<E> *)data_hash.data() + 0)};
+u32 PackedGNUHashedSymbolAccessor<B, E, Const>::nbuckets() const noexcept {
+  if (data_hash->size() < 4 * sizeof(u32)) return 0;
+  return *data_hash->template get<U32<E>>(0);
+}
+
+template <ElfBits B, ElfEndian E, bool Const> u32 PackedGNUHashedSymbolAccessor<B, E, Const>::symndx() const noexcept {
+  if (data_hash->size() < 4 * sizeof(u32)) return 0;
+  return *data_hash->template get<U32<E>>(1);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-inline u32 PackedGNUHashedSymbolAccessor<B, E, Const>::symndx() const noexcept {
-  if (data_hash.size() < 4 * sizeof(u32)) return 0;
-  return {*((U32<E> *)data_hash.data() + 1)};
+u32 PackedGNUHashedSymbolAccessor<B, E, Const>::maskwords() const noexcept {
+  if (data_hash->size() < 4 * sizeof(u32)) return 0;
+  return *data_hash->template get<U32<E>>(2);
+}
+
+template <ElfBits B, ElfEndian E, bool Const> u32 PackedGNUHashedSymbolAccessor<B, E, Const>::mshift2() const noexcept {
+  if (data_hash->size() < 4 * sizeof(u32)) return 0;
+  return *data_hash->template get<U32<E>>(3);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-inline u32 PackedGNUHashedSymbolAccessor<B, E, Const>::maskwords() const noexcept {
-  if (data_hash.size() < 4 * sizeof(u32)) return 0;
-  return u32{*((U32<E> *)data_hash.data() + 2)};
+bits::span<const Word<B, E>> PackedGNUHashedSymbolAccessor<B, E, Const>::bloom() const noexcept {
+  const auto offset = 4 * sizeof(u32);
+  if (data_hash->size() < offset) return {};
+  bits::span<const u8> underlying = data_hash->get(offset, maskwords() * sizeof(Word<B, E>));
+  return bits::span<const Word<B, E>>{(const Word<B, E> *)underlying.data(), maskwords()};
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-inline u32 PackedGNUHashedSymbolAccessor<B, E, Const>::mshift2() const noexcept {
-  if (data_hash.size() < 4 * sizeof(u32)) return 0;
-  return u32{*((U32<E> *)data_hash.data() + 3)};
+bits::span<const U32<E>> PackedGNUHashedSymbolAccessor<B, E, Const>::buckets() const noexcept {
+  const auto offset = 4 * sizeof(u32) + maskwords() * sizeof(Word<B, E>);
+  if (data_hash->size() < offset) return {};
+  bits::span<const u8> underlying = data_hash->get(offset, nbuckets() * sizeof(u32));
+  return bits::span<const U32<E>>{(const U32<E> *)underlying.data(), nbuckets()};
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
-inline bits::span<const Word<B, E>> PackedGNUHashedSymbolAccessor<B, E, Const>::bloom() const noexcept {
-  if (data_hash.size() < 4 * sizeof(u32)) return {};
-  return bits::span<const Word<B, E>>((const Word<B, E> *)(data_hash.data() + 4 * sizeof(u32)), maskwords());
-}
-
-template <ElfBits B, ElfEndian E, bool Const>
-inline bits::span<const U32<E>> PackedGNUHashedSymbolAccessor<B, E, Const>::buckets() const noexcept {
-  const auto offset = 4 * sizeof(uint32_t) + maskwords() * sizeof(Word<B, E>);
-  if (data_hash.size() < offset) return {};
-  return bits::span<const U32<E>>{(const U32<E> *)(data_hash.data() + offset), nbuckets()};
-}
-
-template <ElfBits B, ElfEndian E, bool Const>
-inline bits::span<const U32<E>> PackedGNUHashedSymbolAccessor<B, E, Const>::chains() const noexcept {
-  const auto offset = 4 * sizeof(uint32_t) + maskwords() * sizeof(Word<B, E>) + nbuckets() * sizeof(u32);
-  const auto end = data_hash.size(), size = (end - offset) / sizeof(u32);
-  if (data_hash.size() < offset || size == 0) return {};
-  return bits::span<const U32<E>>{(const U32<E> *)(data_hash.data() + offset), size};
+bits::span<const U32<E>> PackedGNUHashedSymbolAccessor<B, E, Const>::chains() const noexcept {
+  const auto offset = 4 * sizeof(u32) + maskwords() * sizeof(Word<B, E>) + nbuckets() * sizeof(u32);
+  if (data_hash->size() < offset) return {};
+  bits::span<const u8> underlying = data_hash->get(offset, data_hash->size() - offset);
+  return bits::span<const U32<E>>{(const U32<E> *)underlying.data(), nbuckets()};
 }
 } // namespace pepp::bts

@@ -11,7 +11,7 @@ template <ElfBits B, ElfEndian E, bool Const> class PackedNoteAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
   PackedNoteAccessor(Elf &elf, u16 index);
   PackedNoteAccessor(Shdr &note, Data &data) noexcept;
   static constexpr u64 round_up4(u64 n) { return ((n + 3) / 4) * 4; };
@@ -79,12 +79,12 @@ void PackedNoteAccessor<B, E, Const>::add_note(std::span<const char> name, std::
   u32 namesz = name.size(), descsz = desc.size();
   if (name.back() != 0) namesz++;
   PackedElfNoteHeader<E> hdr(namesz, descsz, type);
-  u64 hdr_start = data.size(), name_start = hdr_start + sizeof(PackedElfNoteHeader<E>),
+  u64 hdr_start = data->size(), name_start = hdr_start + sizeof(PackedElfNoteHeader<E>),
       desc_start = name_start + round_up4(namesz);
-  data.resize(desc_start + round_up4(descsz), 0);
-  std::memcpy(data.data() + hdr_start, &hdr, sizeof(PackedElfNoteHeader<E>));
-  std::memcpy(data.data() + name_start, name.data(), name.size());
-  std::memcpy(data.data() + name_start, desc.data(), desc.size());
-  shdr.sh_size = data.size();
+  auto start = data->allocate(desc_start + round_up4(descsz), 0);
+  data->set(start, std::move(hdr));
+  data->set(name_start, bits::span<const u8>{(const u8 *)name.data(), name.size()});
+  data->set(desc_start, bits::span<const u8>{(const u8 *)desc.data(), desc.size()});
+  shdr.sh_size = data->size();
 }
 } // namespace pepp::bts

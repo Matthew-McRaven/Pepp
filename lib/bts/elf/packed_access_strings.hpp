@@ -5,7 +5,7 @@ template <ElfBits B, ElfEndian E, bool Const> class PackedStringAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
   PackedStringAccessor(Elf &elf, u16 index);
   PackedStringAccessor(Shdr &shdr, Data &strtab) noexcept;
   const char *get_string(word<B> index) const noexcept;
@@ -43,28 +43,26 @@ const char *PackedStringAccessor<B, E, Const>::get_string(word<B> index) const n
 
 template <ElfBits B, ElfEndian E, bool Const>
 bits::span<const char> PackedStringAccessor<B, E, Const>::get_string_span(word<B> index) const noexcept {
-  if (index >= shdr.sh_size || index >= strtab.size()) return {};
-  const char *start = (const char *)strtab.data() + index, *end = start;
-  while (end < (const char *)strtab.data() + strtab.size() && *end != '\0') ++end;
-  return bits::span<const char>(start, end - start);
+  if (index >= shdr.sh_size || index >= strtab->size()) return {};
+  auto sp = strtab->get(index, strtab->strlen(index));
+  return bits::span<const char>{(const char *)sp.data(), sp.size()};
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 word<B> PackedStringAccessor<B, E, Const>::find(std::string_view needle) const noexcept {
   if (needle.empty()) return 0;
-  auto it = std::search(strtab.begin(), strtab.end(), needle.begin(), needle.end());
-  return (it == strtab.end()) ? 0 : static_cast<std::size_t>(it - strtab.begin());
+  return strtab->find(bits::span<const u8>{(const u8 *)needle.data(), needle.size()});
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 word<B> PackedStringAccessor<B, E, Const>::add_string(std::span<const char> str) {
   // Ensure the first character is always null
-  if (strtab.size() == 0) strtab.push_back('\0');
-  // Strings are addeded to the end of the current section data
-  const word<B> ret = strtab.size(), new_size = strtab.size() + str.size() + (str.back() != '\0' ? 1 : 0);
-  strtab.resize(new_size, 0);
-  std::memcpy(strtab.data() + ret, str.data(), str.size());
-  shdr.sh_size = strtab.size();
+  if (strtab->size() == 0) strtab->template append<u8>(0);
+  const word<B> new_size = str.size() + (str.back() != '\0' ? 1 : 0);
+  const word<B> ret = strtab->allocate(new_size);
+  strtab->set(ret, std::span<const u8>{(const u8 *)str.data(), str.size()});
+  if (str.back() != '\0') strtab->template set<u8>(ret + str.size(), 0);
+  shdr.sh_size = strtab->size();
   return ret;
 }
 

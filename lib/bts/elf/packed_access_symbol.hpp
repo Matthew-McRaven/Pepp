@@ -9,8 +9,7 @@ template <ElfBits B, ElfEndian E, bool Const> class PackedSymbolAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
-
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
   PackedSymbolAccessor(Elf &elf, u16 index);
   PackedSymbolAccessor(Shdr &shdr_symbol, Data &symtab, Shdr &shdr, Data &strtab) noexcept;
 
@@ -55,7 +54,7 @@ template <ElfBits B, ElfEndian E, bool Const> class PackedSymbolVersionAccessor 
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
   PackedSymbolVersionAccessor(Elf &elf, u16 index);
   u32 version_count() const noexcept;
   u16 get_version(u32 index) const noexcept;
@@ -73,13 +72,13 @@ template <ElfBits B, ElfEndian E, bool Const, typename Ver, typename VerAux> cla
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
 
   PackedVersionChainAccessor(Elf &elf, u16 index) : shdr(elf.section_headers[index]), data(elf.section_data[index]) {
     // Walk the chain once to pre-compute needed count if we are a Reader.
     if constexpr (Const) {
       u64 offset = 0;
-      while (offset + sizeof(Ver) <= data.size()) {
+      while (offset + sizeof(Ver) <= data->size()) {
         auto ver = ver_from_offset(static_cast<u32>(offset));
         _offsets_for_ver.emplace_back(offset), _vers++;
         offset += ver->next();
@@ -93,8 +92,8 @@ public:
     if (_offsets_for_ver.size() > index) return _offsets_for_ver[index];
 
     u32 it = 0, offset = 0;
-    while (offset + sizeof(Ver) <= data.size() && it < index) {
-      auto ver = reinterpret_cast<const Ver *>(data.data() + offset);
+    while (offset + sizeof(Ver) <= data->size() && it < index) {
+      auto ver = data->template get_at<const Ver>(offset);
       it++;
       if (_offsets_for_ver.size() < index) _offsets_for_ver.emplace_back(offset);
       offset += ver->next();
@@ -102,60 +101,57 @@ public:
     return static_cast<u32>(offset);
   }
 
-  Ver ver_from_offset(u32 offset) const noexcept {
+  Ver *ver_from_offset(u32 offset) const noexcept {
     if (offset + sizeof(Ver) > data.size()) return {};
-    return reinterpret_cast<const Ver *>(data.data() + offset);
+    return data->template get_at<const Ver>(offset);
   }
-  Ver ver_from_index(u32 index) const noexcept {
+  Ver *ver_from_index(u32 index) const noexcept {
     auto offset = ver_offset_for_index(index);
-    return needed_from_offset(offset);
+    return ver_from_offset(offset);
   }
   u32 aux_offset_for_index(u32 ver_index, u32 aux_index) const noexcept {
     auto ver = ver_from_index(ver_index);
     u32 offset = static_cast<u32>(ver.next());
     for (u32 it = 0; it < aux_index; ++it) {
-      if (offset + sizeof(VerAux) > data.size()) return 0;
-      offset += aux_from_offset(offset).vda_next;
+      if (offset + sizeof(VerAux) > data->size()) return 0;
+      offset += aux_from_offset(offset)->next;
     }
     return offset;
   }
-  VerAux aux_from_offset(u32 offset) const noexcept {
+  VerAux *aux_from_offset(u32 offset) const noexcept {
     if (offset + sizeof(VerAux) > data.size()) return {};
     return reinterpret_cast<const VerAux *>(data.data() + offset);
   }
-  VerAux aux_from_index(u32 need_index, u32 aux_index) const noexcept {
+  VerAux *aux_from_index(u32 need_index, u32 aux_index) const noexcept {
     auto offset = aux_offset_for_index(need_index, aux_index);
     return aux_from_offset(offset);
   }
 
   u32 add_ver(Ver &&needed) {
-    auto data_pos = data.size();
+    auto data_pos = data->size();
     if (_vers > 0) {
       auto prev = ver_offset_for_index(_vers);
       // Update previous vd_next
-      auto prev_needed = reinterpret_cast<Ver *>(data.data() + prev);
+      auto prev_needed = data->template get_at<Ver>(prev);
       prev_needed->set_next(data_pos - prev);
     }
-    data.resize(data.size() + sizeof(Ver));
-    std::memcpy(data.data() + data_pos, &needed, sizeof(Ver));
+    data->append(std::move(needed));
     _offsets_for_ver.emplace_back(data_pos);
-    _vers++;
-    shdr.sh_size = data.size();
-    shdr.sh_info = _vers;
+    shdr.sh_size = data->size(), shdr.sh_info = ++_vers;
     return data_pos;
   }
   u32 add_aux(u32 need_index, VerAux &&aux) {
     if (_vers == 0) return 0;
     auto ver_offset = ver_offset_for_index(need_index);
-    auto data_pos = data.size();
-    auto ver = reinterpret_cast<Ver *>(data.data() + ver_offset);
+    auto data_pos = data->size();
+    Ver *ver = data->template get_at<Ver>(ver_offset);
     auto aux_offset = ver->aux();
     if (aux_offset != 0) {
       // Walk to the end of the aux chain
       u32 last_aux_offset = ver_offset + aux_offset;
       VerAux *last_aux = nullptr;
-      while (last_aux_offset + sizeof(VerAux) <= data.size()) {
-        last_aux = reinterpret_cast<VerAux *>(data.data() + last_aux_offset);
+      while (last_aux_offset + sizeof(VerAux) <= data->size()) {
+        last_aux = data->template get_at<VerAux>(last_aux_offset);
         if (last_aux->next() == 0) break;
         last_aux_offset += last_aux->next();
       }
@@ -165,9 +161,8 @@ public:
       auto offset = static_cast<u32>(data_pos - ver_offset);
       ver->set_aux(offset);
     }
-    data.resize(data.size() + sizeof(VerAux));
-    std::memcpy(data.data() + data_pos, &aux, sizeof(VerAux));
-    shdr.sh_size = data.size();
+    data->append(std::move(aux));
+    shdr.sh_size = data->size();
     return data_pos;
   }
 
@@ -229,8 +224,7 @@ PackedElfSymbol<B, E> PackedSymbolAccessor<B, E, Const>::get_symbol(u32 index) c
 template <ElfBits B, ElfEndian E, bool Const>
 PackedElfSymbol<B, E> *PackedSymbolAccessor<B, E, Const>::get_symbol_ptr(u32 index) const noexcept {
   if (index >= symbol_count()) return nullptr;
-  auto ret = (PackedElfSymbol<B, E> *)(data_symtab.data() + index * shdr_symtab.sh_entsize);
-  return ret;
+  return data_symtab->template get<PackedElfSymbol<B, E>>(index);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -328,10 +322,8 @@ void PackedSymbolAccessor<B, E, Const>::arrange_local_symbols(std::function<void
 template <ElfBits B, ElfEndian E, bool Const>
 void PackedSymbolAccessor<B, E, Const>::copy_to_symtab(PackedElfSymbol<B, E> &&symbol) {
   if (shdr_symtab.sh_entsize == 0) shdr_symtab.sh_entsize = sizeof(PackedElfSymbol<B, E>);
-  const auto ate = data_symtab.size();
-  data_symtab.resize(data_symtab.size() + sizeof(PackedElfSymbol<B, E>));
-  std::memcpy(data_symtab.data() + ate, reinterpret_cast<const u8 *>(&symbol), sizeof(PackedElfSymbol<B, E>));
-  shdr_symtab.sh_size = data_symtab.size();
+  data_symtab->append(std::move(symbol));
+  shdr_symtab.sh_size = data_symtab->size();
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -349,8 +341,9 @@ PackedSymbolVersionAccessor<B, E, Const>::PackedSymbolVersionAccessor(Elf &elf, 
   // The size of this section should be the size of the dynamic symbol table * sh_entsize.
   if constexpr (!Const) {
     shdr.sh_entsize = sizeof(u16);
-    data.resize(dynamic_symtab.symbol_count() * shdr.sh_entsize, 0);
-    shdr.sh_size = data.size();
+    data->clear();
+    data->allocate(dynamic_symtab.symbol_count() * shdr.sh_entsize, 0);
+    shdr.sh_size = data->size();
   }
 }
 
@@ -361,14 +354,14 @@ u32 PackedSymbolVersionAccessor<B, E, Const>::version_count() const noexcept {
 
 template <ElfBits B, ElfEndian E, bool Const>
 u16 PackedSymbolVersionAccessor<B, E, Const>::get_version(u32 index) const noexcept {
-  if (index >= version_count() || 1 + index * shdr.sh_entsize >= data.size()) return 0;
-  return (U16<E> *)data.data() + index;
+  if (index >= version_count() || 1 + index * shdr.sh_entsize >= data->size()) return 0;
+  return data->template get<U16<E>>(index);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 void PackedSymbolVersionAccessor<B, E, Const>::set_version(u32 index, u16 version) noexcept {
-  if (index >= version_count() || index * shdr.sh_entsize >= data.size()) return;
-  *((U16<E> *)data.data() + index) = version;
+  if (index >= version_count() || index * shdr.sh_entsize >= data->size()) return;
+  *(data->template get<U16<E>>(index)) = version;
 }
 
 } // namespace pepp::bts

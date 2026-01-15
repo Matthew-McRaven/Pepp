@@ -2,7 +2,9 @@
 
 #include "bts/elf/packed_access_strings.hpp"
 #include "bts/elf/packed_elf.hpp"
+#include "bts/elf/packed_storage.hpp"
 #include "bts/elf/packed_types.hpp"
+
 namespace pepp::bts {
 
 template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedElf<B, E> &elf);
@@ -26,7 +28,7 @@ template <ElfBits B, ElfEndian E> u32 symbol_count(const PackedElfShdr<B, E> &sh
 // Represents a chunk of data to be placed at a specific offset in the final ELF file; it does not own data.
 struct LayoutItem {
   u64 offset;
-  std::span<u8> data;
+  std::span<const u8> data;
 };
 
 // Lay out the ELF header and program header table at a given offset, returning the next available offset.
@@ -58,9 +60,9 @@ template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedElf<B, 
   auto idx = elf.add_section(create_shstrtab_header<B, E>(1));
 
   elf.header.e_shstrndx = 1;
-  auto &shstrab = elf.section_data.back();
-  shstrab.push_back(0);
-  shstrab.insert(shstrab.end(), {'.', 's', 'h', 's', 't', 'r', 't', 'a', 'b', 0});
+  PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
+  static const char hdr[] = "\0.shstrtab";
+  writer.add_string(hdr);
 }
 
 template <ElfBits B, ElfEndian E>
@@ -212,10 +214,9 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
     if (over_align[i] > shdr.sh_addralign) rolling_offset = align_to(rolling_offset, over_align[i]);
     else if (shdr.sh_addralign > 1) rolling_offset = align_to(rolling_offset, shdr.sh_addralign);
 
-    shdr.sh_offset = rolling_offset;
-    auto size = elf.section_data[i].size();
-    shdr.sh_size = size, rolling_offset += size;
-    ret.emplace_back(LayoutItem{shdr.sh_offset, std::span<u8>(elf.section_data[i].data(), size)});
+    const auto size = elf.section_data[i]->size();
+    shdr.sh_offset = rolling_offset, shdr.sh_size = size;
+    rolling_offset = elf.section_data[i]->calculate_layout(ret, shdr.sh_offset);
   }
 
   // Apply segment layout constraints if provided

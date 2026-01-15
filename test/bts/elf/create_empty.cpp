@@ -116,7 +116,7 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     auto &symtab_data = elf.section_data[symtab_idx];
     PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, symtab_idx);
     CHECK(writer.symbol_count() == 0);
-    CHECK(symtab_data.size() == 0);
+    CHECK(symtab_data->size() == 0);
 
     Packed::Symbol sym1;
     sym1.st_size = 5;

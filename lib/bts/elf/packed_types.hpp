@@ -160,7 +160,9 @@ template <ElfEndian E> U64<E> r_info(U32<E> r_type, U32<E> r_sym) noexcept {
 template <ElfBits B, ElfEndian E> struct PackedElfRel;
 template <ElfEndian E> struct PackedElfRel<ElfBits::b32, E> {
   PackedElfRel() = default;
-  PackedElfRel(u64 offset, u32 type, u32 sym) : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)) {}
+  PackedElfRel(u64 offset, u32 type, u32 sym) : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)) {
+    static_assert(std::is_standard_layout_v<PackedElfRel>);
+  }
   constexpr u8 r_type() const noexcept { return pepp::bts::r_type(r_info); }
   constexpr U24<E> r_sym() const noexcept { return pepp::bts::r_sym(r_info); }
   constexpr void set_r_type(u8 type) noexcept { r_info = pepp::bts::r_info(type, r_sym()); }
@@ -171,7 +173,9 @@ template <ElfEndian E> struct PackedElfRel<ElfBits::b32, E> {
 };
 template <ElfEndian E> struct PackedElfRel<ElfBits::b64, E> {
   PackedElfRel() = default;
-  PackedElfRel(u64 offset, u32 type, u32 sym) : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)) {}
+  PackedElfRel(u64 offset, u32 type, u32 sym) : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)) {
+    static_assert(std::is_standard_layout_v<PackedElfRel>);
+  }
   constexpr U32<E> r_type() const noexcept { return pepp::bts::r_type(r_info); }
   constexpr U32<E> r_sym() const noexcept { return pepp::bts::r_sym(r_info); }
   constexpr void set_r_type(U32<E> type) noexcept { r_info = pepp::bts::r_info(type, r_sym()); }
@@ -186,7 +190,9 @@ template <ElfBits B, ElfEndian E> struct PackedElfRelA;
 template <ElfEndian E> struct PackedElfRelA<ElfBits::b32, E> {
   PackedElfRelA() = default;
   PackedElfRelA(u64 offset, u32 type, u32 sym, i64 addend)
-      : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)), r_addend(addend) {}
+      : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)), r_addend(addend) {
+    static_assert(std::is_standard_layout_v<PackedElfRelA>);
+  }
   constexpr u8 r_type() const noexcept { return pepp::bts::r_type(r_info); }
   constexpr U24<E> r_sym() const noexcept { return pepp::bts::r_sym(r_info); }
   constexpr void set_r_type(u8 type) noexcept { r_info = pepp::bts::r_info(type, r_sym()); }
@@ -199,7 +205,9 @@ template <ElfEndian E> struct PackedElfRelA<ElfBits::b32, E> {
 template <ElfEndian E> struct PackedElfRelA<ElfBits::b64, E> {
   PackedElfRelA() = default;
   PackedElfRelA(u64 offset, u32 type, u32 sym, i64 addend)
-      : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)), r_addend(addend) {}
+      : r_offset(offset), r_info(pepp::bts::r_info<E>(type, sym)), r_addend(addend) {
+    static_assert(std::is_standard_layout_v<PackedElfRelA>);
+  }
   constexpr U32<E> r_type() const noexcept { return pepp::bts::r_type(r_info); }
   constexpr U32<E> r_sym() const noexcept { return pepp::bts::r_sym(r_info); }
   constexpr void set_r_type(U32<E> type) noexcept { r_info = pepp::bts::r_info(type, r_sym()); }

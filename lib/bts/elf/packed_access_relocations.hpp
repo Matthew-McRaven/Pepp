@@ -9,7 +9,7 @@ template <ElfBits B, ElfEndian E, bool Const> class PackedRelocationAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
   using Shdr = maybe_const_t<Const, PackedElfShdr<B, E>>;
-  using Data = maybe_const_t<Const, std::vector<u8>>;
+  using Data = maybe_const_t<Const, std::shared_ptr<AStorage>>;
 
   PackedRelocationAccessor(Elf &elf, u16 index);
   PackedRelocationAccessor(Shdr &shdr_reloc, Data &reloc, const PackedElfShdr<B, E> &shdr_symbol,
@@ -70,23 +70,20 @@ u32 PackedRelocationAccessor<B, E, Const>::relocation_count() const noexcept {
 template <ElfBits B, ElfEndian E, bool Const>
 PackedElfRel<B, E> PackedRelocationAccessor<B, E, Const>::get_rel(u32 index) const noexcept {
   if (index >= relocation_count()) return PackedElfRel<B, E>{};
-  return *(PackedElfRel<B, E> *)(reloc.data() + index * shdr.sh_entsize);
+  return *reloc->template get<PackedElfRel<B, E>>(index);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedElfRelA<B, E> PackedRelocationAccessor<B, E, Const>::get_rela(u32 index) const noexcept {
   if (index >= relocation_count()) return PackedElfRelA<B, E>{};
-  return *(PackedElfRelA<B, E> *)(reloc.data() + index * shdr.sh_entsize);
+  return *reloc->template get<PackedElfRelA<B, E>>(index);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 void PackedRelocationAccessor<B, E, Const>::add_rel(PackedElfRel<B, E> &&rel) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfRel<B, E>);
-  const u8 *ptr = reinterpret_cast<const u8 *>(&rel);
-  auto ate = reloc.size();
-  reloc.resize(ate + sizeof(PackedElfRel<B, E>), 0);
-  std::memcpy(reloc.data() + ate, &rel, sizeof(PackedElfRel<B, E>));
-  shdr.sh_size = reloc.size();
+  reloc->append(std::move(rel));
+  shdr.sh_size = reloc->size();
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -122,10 +119,8 @@ void PackedRelocationAccessor<B, E, Const>::replace_rel(u32 index, word<B> offse
 template <ElfBits B, ElfEndian E, bool Const>
 void PackedRelocationAccessor<B, E, Const>::add_rela(PackedElfRelA<B, E> &&rel) {
   if (shdr.sh_entsize == 0) shdr.sh_entsize = sizeof(PackedElfRelA<B, E>);
-  auto ate = reloc.size();
-  reloc.resize(ate + sizeof(PackedElfRelA<B, E>), 0);
-  std::memcpy(reloc.data() + ate, &rel, sizeof(PackedElfRelA<B, E>));
-  shdr.sh_size = reloc.size();
+  reloc->append(std::move(rel));
+  shdr.sh_size = reloc->size();
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
@@ -185,12 +180,12 @@ void PackedRelocationAccessor<B, E, Const>::swap_symbols(u32 first, u32 second) 
 
   for (int it = 0; it < relocation_count(); it++) {
     if (is_rela()) {
-      PackedElfRelA<B, E> *rela = reinterpret_cast<PackedElfRelA<B, E> *>(reloc.data() + it * shdr.sh_entsize);
+      auto rela = reloc->template get<PackedElfRelA<B, E>>(it);
       u32 sym = B == ElfBits::b64 ? r_sym<E>(U64<E>{rela->r_info}) : r_sym<E>(U32<E>{rela->r_info});
       if (sym == first) update_rela(rela, second);
       else if (sym == second) update_rela(rela, first);
     } else {
-      PackedElfRel<B, E> *rel = reinterpret_cast<PackedElfRel<B, E> *>(reloc.data() + it * shdr.sh_entsize);
+      auto rel = reloc->template get<PackedElfRel<B, E>>(it);
       u32 sym = B == ElfBits::b64 ? r_sym<E>(U64<E>{rel->r_info}) : r_sym<E>(U32<E>{rel->r_info});
       if (sym == first) update_rel(rel, second);
       else if (sym == second) update_rel(rel, first);
