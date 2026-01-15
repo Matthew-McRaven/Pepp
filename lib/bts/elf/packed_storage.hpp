@@ -3,6 +3,11 @@
 #include "../bitmanip/span.hpp"
 #include "bts/elf/packed_types.hpp"
 
+#if defined(_WIN32)
+#define NOMINMAX
+// For HANDLE
+#include <winnt.h>
+#endif
 namespace pepp::bts {
 template <class T> struct is_span : std::false_type {};
 template <class U, std::size_t Extent> struct is_span<std::span<U, Extent>> : std::true_type {};
@@ -141,5 +146,48 @@ private:
   std::vector<std::unique_ptr<Page>> _pages = {};
   // Number of bytes actually in use
   size_t _size = 0;
+};
+
+struct MemoryMapped : public AStorage {
+  MemoryMapped(std::string path, std::size_t off, std::size_t len, bool readonly = true);
+  ~MemoryMapped() override;
+  MemoryMapped(const MemoryMapped &) = delete;
+  MemoryMapped &operator=(const MemoryMapped &) = delete;
+  MemoryMapped(MemoryMapped &&o) noexcept;
+  MemoryMapped &operator=(MemoryMapped &&o) noexcept;
+
+  // AStorage interface
+  size_t append(bits::span<const u8> data) override;
+  size_t allocate(size_t size, u8 fill = 0) override;
+  void set(size_t offset, bits::span<const u8> data) override;
+  bits::span<u8> get(size_t offset, size_t length) noexcept override;
+  bits::span<const u8> get(size_t offset, size_t length) const noexcept override;
+  size_t size() const noexcept override;
+  void clear(size_t reserve = 0) override;
+  size_t calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const override;
+  size_t find(bits::span<const u8> data) const noexcept override;
+  size_t strlen(size_t offset) const noexcept override;
+
+private:
+  std::string path = 0;
+  size_t off = 0, len = 0;
+  bool readonly = false;
+  mutable bool loaded = false;
+  mutable std::span<u8> mapped_view{};
+  mutable std::vector<u8> fallback_buf{};
+#if defined(_WIN32)
+  mutable HANDLE hFile = INVALID_HANDLE_VALUE;
+  mutable HANDLE hMap = nullptr;
+#elif defined(__unix__) || defined(__APPLE__)
+  mutable int fd = -1;
+#endif
+  mutable void *map_base = nullptr;
+  mutable std::size_t map_len = 0;
+
+  static std::size_t page_size();
+  void load_mapped() const;
+  void load_fallback() const;
+  void write_fallback();
+  void release() noexcept;
 };
 } // namespace pepp::bts
