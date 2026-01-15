@@ -113,12 +113,25 @@ Rectangle {
                     height: 100
                 }
             }
+
+            //  Temporary for testing
+            DiagramProperties {
+                id: props
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                z: 2
+
+                diagram: diagram1
+                model: diagramModel
+            }
+
             Rectangle {
                 id: canvas
                 anchors.fill: parent
 
                 property string curName: ""
                 property string curFile: ""
+                property string curType: ""
                 property Diagram fromObject: null
                 property Diagram toObject: null
 

@@ -19,14 +19,15 @@ qt_add_qml_module(CircuitDesign
     URI CircuitDesign
     QML_FILES
         Main.qml
+        RESOURCES svg/CircuitDesign.qrc
+        QML_FILES ui/move.js
         QML_FILES ui/LogicGates.qml
         QML_FILES ui/DragTile.qml
         QML_FILES ui/DropTile.qml
         QML_FILES ui/Diagram.qml
         QML_FILES ui/Line.qml
         QML_FILES ui/GridLine.qml
-        QML_FILES ui/move.js
-        RESOURCES svg/CircuitDesign.qrc
+        QML_FILES ui/DiagramProperties.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

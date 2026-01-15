@@ -27,6 +27,7 @@ function createBlock(parent, x, y) {
         }
         diagram.text = parent.curName;
         diagram.file = parent.curFile;
+        diagram.type = parent.curType;
         moveObjectTo(diagram, x, y);
         //diagram.width = majorX;
         //diagram.height = majorY;
