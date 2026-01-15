@@ -1,8 +1,8 @@
 pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.VectorImage
-import QtQuick.Templates as T
 
 import "move.js" as Move
 
@@ -16,6 +16,7 @@ Item {
     property alias output: output
     property point inputXY: inputPt()
     property point outputXY: outputPt()
+    property DiagramProperties props: null
 
     width: Move.blockWidth
     height: Move.blockHeight
@@ -29,28 +30,28 @@ Item {
         var y = root.y;
 
         switch (wrapper.rotation) {
-        //  Pointing down
+            //  Pointing down
         case 90:
             x += root.width / 2;
             y += root.height;
             break;
-        //Pointing right
+            //Pointing right
         case 180:
             //  X already at top
             y += root.height / 2;
             break;
-        //  Pointing up
+            //  Pointing up
         case 270:
             x += root.width / 2;
             break;
-        //  Pointing left
+            //  Pointing left
         default:
             x += root.width;
             y += root.height / 2;
             break;
         }
 
-        return Qt.point(x,y);
+        return Qt.point(x, y);
     }
 
     function outputPt() {
@@ -58,28 +59,28 @@ Item {
         var y = root.y;
 
         switch (wrapper.rotation) {
-        //  Pointing down
+            //  Pointing down
         case 90:
             x += root.width / 2;
             break;
-        //Pointing right
+            //Pointing right
         case 180:
             x += root.width;
             y += root.height / 2;
             break;
-        //  Pointing up
+            //  Pointing up
         case 270:
             x += root.width / 2;
             y += root.height;
             break;
-        //  Pointing left
+            //  Pointing left
         default:
             //  X = 0 already
             y += root.height / 2;
             break;
         }
 
-        return Qt.point(x,y);
+        return Qt.point(x, y);
     }
 
     Rectangle {
@@ -92,8 +93,7 @@ Item {
         transformOrigin: Item.Center
         rotation: 0
 
-        function rotateClockwise()
-        {
+        function rotateClockwise() {
             //  Rotate entire object, including end points
             if (wrapper.rotation >= 270) {
                 wrapper.rotation = 0;
@@ -102,8 +102,7 @@ Item {
             }
         }
 
-        function rotateCounterClockwise()
-        {
+        function rotateCounterClockwise() {
             //  Rotate entire object, including end points
             if (wrapper.rotation <= 0) {
                 wrapper.rotation = 270;
@@ -112,7 +111,7 @@ Item {
             }
         }
 
-        ContextMenu.menu:     Menu {
+        ContextMenu.menu: Menu {
             MenuItem {
                 text: "Rotate Left"
                 onTriggered: wrapper.rotateClockwise()
@@ -172,14 +171,19 @@ Item {
             onClicked: mouse => {
 
                 //  Rotate entire object, including end points
-                if(mouse.modifiers & Qt.ShiftModifier) {
+                if (mouse.modifiers & Qt.ShiftModifier) {
                     wrapper.rotateCounterClockwise();
-                }
-                else {
+                } else {
                     wrapper.rotateClockwise();
                 }
 
                 root.horizontal = (wrapper.rotation % 180) == 0;
+            }
+
+            onDoubleClicked: mouse => {
+                console.log("doubleclick")
+                root.props.diagram = root;
+                mouse.accepted = true;
             }
 
             onPositionChanged: mouse => {

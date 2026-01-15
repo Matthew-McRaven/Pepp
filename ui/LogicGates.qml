@@ -13,50 +13,70 @@ Rectangle {
     ListModel {
         id: diagramModel
         ListElement {
+            key: "AND"
+            shapeType: "Diagram"
             name: "AND Gate"
-            type: "AND"
             file: "qrc:/and"
         }
         ListElement {
+            key: "OR"
+            shapeType: "Diagram"
             name: "OR Gate"
-            type: "OR"
             file: "qrc:/or"
         }
         ListElement {
+            key: "Inverter"
+            shapeType: "Diagram"
             name: "Inverter"
-            type: "Inverter"
             file: "qrc:/inverter"
         }
         ListElement {
+            key: "NAND"
+            shapeType: "Diagram"
             name: "NAND Gate"
-            type: "NAND"
             file: "qrc:/nand"
         }
         ListElement {
+            key: "NOR"
+            shapeType: "Diagram"
             name: "NOR Gate"
-            type: "NOR"
             file: "qrc:/nor"
         }
         ListElement {
+            key: "XOR"
+            shapeType: "Diagram"
             name: "XOR Gate"
-            type: "XOR"
             file: "qrc:/xor"
         }
         ListElement {
+            key: "Line"
+            shapeType: "line"
             name: "Line"
-            type: "Line"
             file: "qrc:/line"
         }
         ListElement {
+            type: "key"
+            shapeType: "Diagram"
             name: "Multiline"
-            type: "Multiline"
             file: "qrc:/multiline"
         }
         ListElement {
+            key: "Bus"
+            shapeType: "line"
             name: "Bus"
-            type: "Bus"
             file: "qrc:/bus"
         }
+    }
+
+    //  Temporary for testing
+    DiagramProperties {
+        id: props
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+        z: 2
+
+        //diagram: canvas.diagram2
+        model: diagramModel
     }
 
     SplitView {
@@ -114,17 +134,6 @@ Rectangle {
                 }
             }
 
-            //  Temporary for testing
-            DiagramProperties {
-                id: props
-                anchors.bottom: parent.bottom
-                anchors.right: parent.right
-                z: 2
-
-                diagram: diagram1
-                model: diagramModel
-            }
-
             Rectangle {
                 id: canvas
                 anchors.fill: parent
@@ -141,6 +150,7 @@ Rectangle {
                 //  Test Only Diagrams for checking line connection
                 Diagram {
                     id: diagram1
+                    props: props
                     text: "AND Gate"
                     file: "qrc:/and"
                     x: 0
@@ -152,6 +162,7 @@ Rectangle {
                     id: diagram2
                     text: "OR Gate"
                     file: "qrc:/or"
+                    props: props
                     x: 200
                     y: 200
                     z: 1
@@ -206,7 +217,7 @@ Rectangle {
                         stamp.visible = false;
                     }
                 }
-            }
-        }
+            }   //  Rectangle
+        }   //  Item
     }
 }

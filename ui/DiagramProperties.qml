@@ -5,9 +5,10 @@ import QtQuick.Controls
 
 Pane {
     id: root
-    required property Diagram diagram
+    property var diagram: null
     required property var model
 
+    enabled: diagram === null
     Grid {
         columns: 2
         spacing: 5
@@ -16,11 +17,14 @@ Pane {
         }
         ComboBox {
             model: root.model
-            textRole: "type"
-            valueRole: "type"
-            currentValue: root.diagram.type
+            textRole: "name"
+            valueRole: "key"
+            currentValue: root.diagram.text === null ? "" : root.diagram.text
 
-            Component.onCompleted: console.log(root.diagram.type)
+            /*Component.onCompleted: {
+                console.log("Diagram name: ", root.diagram.name);
+                console.log("Diagram type: ", root.diagram.type);
+            }*/
         }
 
         Label {
