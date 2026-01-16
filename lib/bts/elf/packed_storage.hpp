@@ -2,6 +2,7 @@
 #include "../bitmanip/integers.h"
 #include "../bitmanip/span.hpp"
 #include "bts/elf/packed_types.hpp"
+#include "bts/libs/mapped_file.hpp"
 #include "bts/libs/paged_alloc.hpp"
 
 namespace pepp::bts {
@@ -137,12 +138,7 @@ private:
 };
 
 struct MemoryMapped : public AStorage {
-  MemoryMapped(std::string path, std::size_t off, std::size_t len, bool readonly = true);
-  ~MemoryMapped() override;
-  MemoryMapped(const MemoryMapped &) = delete;
-  MemoryMapped &operator=(const MemoryMapped &) = delete;
-  MemoryMapped(MemoryMapped &&o) noexcept;
-  MemoryMapped &operator=(MemoryMapped &&o) noexcept;
+  explicit MemoryMapped(std::shared_ptr<MappedFile::Slice>);
 
   // AStorage interface
   size_t append(bits::span<const u8> data) override;
@@ -157,25 +153,6 @@ struct MemoryMapped : public AStorage {
   size_t strlen(size_t offset) const noexcept override;
 
 private:
-  std::string path = 0;
-  size_t off = 0, len = 0;
-  bool readonly = false;
-  mutable bool loaded = false;
-  mutable std::span<u8> mapped_view{};
-  mutable std::vector<u8> fallback_buf{};
-#if defined(_WIN32)
-  mutable void* hFile = nullptr;
-  mutable void* hMap = nullptr;
-#elif defined(__unix__) || defined(__APPLE__)
-  mutable int fd = -1;
-#endif
-  mutable void *map_base = nullptr;
-  mutable std::size_t map_len = 0;
-
-  static std::size_t page_size();
-  void load_mapped() const;
-  void load_fallback() const;
-  void write_fallback();
-  void release() noexcept;
+  std::shared_ptr<MappedFile::Slice> _slice = nullptr;
 };
 } // namespace pepp::bts
