@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include "../bitmanip/span.hpp"
+#include "bts/bitmanip/integers.h"
 #include "bts/bitmanip/log2.hpp"
 
 namespace pepp::bts {
@@ -42,7 +43,7 @@ public:
     // Copy elements into next free space, advancing size.
     // Require data be aligned % align (padding at start) with pad (padding at end).
     // Both align and pad are in element counts, not bytes.
-    page_offset_t append(bits::span<const I> data, size_t align = 0, size_t pad = 0, I fill = 0);
+    page_offset_t append(bits::span<const I> data, size_t byte_align = 0, size_t byte_pad = 0, I fill = 0);
     // An append will all elements set to `fill`.
     page_offset_t allocate_initialized(size_t size, I fill = 0);
     // Bump size without modifying underlying data.
@@ -60,6 +61,11 @@ public:
     page_offset_t remaining_capacity() const noexcept;
     I *data() noexcept;
     const I *data() const noexcept;
+    // Compute the size of a proposed allocation at the nexr available slot, ensuring a given byte alignment and byte
+    // padding at the end. Returns the size (in elements) needed to satisfy the request. May overalign/overpad to
+    // to achieve an integral number of elements.
+    // Align bytes should be power-of-two.
+    size_t padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept;
 
   private:
     page_offset_t _capacity = 0, _size = 0;
@@ -98,7 +104,7 @@ public:
   // remaining capacity.
   // Require data be aligned % align (padding at start) with pad (padding at end).
   // Both align and pad are in element counts, not bytes.
-  global_offset_t append(bits::span<const I> data, size_t align = 0, size_t pad = 0, I fill = 0);
+  global_offset_t append(bits::span<const I> data, size_t byte_align = 0, size_t byte_pad = 0, I fill = 0);
   // Like append, but allocates a sequence of elements initialized to `fill`.
   global_offset_t allocate_initialized(global_offset_t size, I fill = 0);
   // Like allocate_initialized, but returns uninitialized memory.
@@ -137,6 +143,15 @@ private:
   // Sorted by definition, so binary_search / upper/lower bounds will work.
   std::vector<size_t> _page_base = {};
 };
+template <std::unsigned_integral I>
+size_t PagedAllocator<I>::Page::padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept {
+  if (align_bytes > alignof(I)) {
+    const std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(_data.get() + _size);
+    const size_t mis = static_cast<size_t>(addr % align_bytes);
+    if (mis) count += bits::ceil_div(align_bytes - mis, sizeof(I));
+  }
+  return count + bits::ceil_div(pad_bytes, sizeof(I));
+}
 
 template <std::unsigned_integral I>
 PagedAllocator<I>::Page::Page(page_offset_t capacity)
@@ -145,25 +160,17 @@ PagedAllocator<I>::Page::Page(page_offset_t capacity)
   else if (_capacity > MAX_PAGE_SIZE) throw std::invalid_argument("Allocation larger than MAX_PAGE_SIZE");
 }
 
-namespace detail {
-inline size_t padded_size(size_t base, size_t size, size_t align, size_t pad) {
-  if (align > 0)
-    if (const size_t align_offset = base % align; align_offset != 0) size += align - align_offset;
-  return size + pad;
-}
-} // namespace detail
-
 template <std::unsigned_integral I>
 PagedAllocator<I>::page_offset_t PagedAllocator<I>::Page::append(bits::span<const I> data, size_t align, size_t pad,
                                                                  I fill) {
   static_assert(std::is_trivially_copyable_v<I>);
-  const auto padded_size = detail::padded_size(_size, data.size(), align, pad);
-  const auto padded_base = detail::padded_size(_size, _size, align, 0);
-  if (padded_size > remaining_capacity()) throw std::runtime_error("Page overflow");
+  const auto total_size = this->padded_size(data.size(), align, pad);
+  const auto padded_base = this->padded_size(_size, align, 0);
+  if (total_size > remaining_capacity()) throw std::runtime_error("Page overflow");
   this->fill(_size, padded_base, fill);
   std::copy(data.begin(), data.end(), _data.get() + padded_base);
-  this->fill(padded_base + data.size(), _size + padded_size, fill);
-  _size += padded_size;
+  this->fill(padded_base + data.size(), _size + total_size, fill);
+  _size += total_size;
   return padded_base; // Return aligned pointer
 }
 
@@ -186,7 +193,7 @@ template <std::unsigned_integral I> inline bool PagedAllocator<I>::Page::can_fit
 
 template <std::unsigned_integral I>
 bool PagedAllocator<I>::Page::can_fit(bits::span<const I> request, size_t align, size_t pad) const noexcept {
-  return detail::padded_size(_size, request.size(), align, pad) <= remaining_capacity();
+  return padded_size(request.size(), align, pad) <= remaining_capacity();
 }
 
 template <std::unsigned_integral I> void PagedAllocator<I>::Page::clear() noexcept { _size = 0; }
@@ -254,22 +261,22 @@ bits::span<const typename PagedAllocator<I>::Page> PagedAllocator<I>::pages() co
 template <std::unsigned_integral I>
 PagedAllocator<I>::global_offset_t PagedAllocator<I>::append(bits::span<const I> data, size_t align, size_t pad,
                                                              I fill) {
-  auto padded_size = detail::padded_size(_size, data.size(), align, pad);
-  if (!_pages.empty() && _pages.back().can_fit(data, align, pad)) _pages.back().append(data, align, pad, fill);
-  else {
-    _pages.emplace_back(std::max<size_t>(DEFAULT_PAGE_SIZE, data.size()));
-    _page_base.emplace_back(_size);
+  if (!_pages.empty() && _pages.back().can_fit(data, align, pad)) {
+    size_t old_size = _pages.back().size();
     _pages.back().append(data, align, pad, fill);
+    return std::exchange(_size, _size + _pages.back().size() - old_size);
+  } else {
+    _pages.emplace_back(std::max<size_t>(DEFAULT_PAGE_SIZE, data.size())), _page_base.emplace_back(_size);
+    _pages.back().append(data, align, pad, fill);
+    return std::exchange(_size, _size + _pages.back().size());
   }
-  return std::exchange(_size, _size + padded_size);
 }
 
 template <std::unsigned_integral I>
 PagedAllocator<I>::global_offset_t PagedAllocator<I>::allocate_initialized(global_offset_t size, I fill) {
   if (!_pages.empty() && _pages.back().can_fit(size)) _pages.back().allocate_initialized(size, fill);
   else {
-    _pages.emplace_back(std::max<size_t>(DEFAULT_PAGE_SIZE, size));
-    _page_base.emplace_back(_size);
+    _pages.emplace_back(std::max<size_t>(DEFAULT_PAGE_SIZE, size)), _page_base.emplace_back(_size);
     _pages.back().allocate_initialized(size, fill);
   }
   return std::exchange(_size, _size + size);
@@ -279,8 +286,7 @@ template <std::unsigned_integral I>
 PagedAllocator<I>::global_offset_t PagedAllocator<I>::allocate_uninitialized(global_offset_t size) {
   if (!_pages.empty() && _pages.back().can_fit(size)) _pages.back().allocate_uninitialized(size);
   else {
-    _pages.emplace_back(std::max<size_t>(DEFAULT_PAGE_SIZE, size));
-    _page_base.emplace_back(_size);
+    _pages.emplace_back(std::max<size_t>(DEFAULT_PAGE_SIZE, size)), _page_base.emplace_back(_size);
     _pages.back().allocate_uninitialized(size);
   }
   return std::exchange(_size, _size + size);
@@ -292,7 +298,7 @@ PagedAllocator<I>::InsertResult PagedAllocator<I>::insert(bits::span<const I> da
   // Keep _page_base in sync with
   for (size_t it = 0; it < _pages.size(); it++)
     if (auto &page = _pages[it]; page.can_fit(data, align, pad)) {
-      auto padded_size = detail::padded_size(page.size(), data.size(), align, pad);
+      auto padded_size = page.padded_size(data.size(), align, pad);
       auto inserted_offset = page.append(data, align, pad, fill);
       // Insert causes _page_base beyond this page to shift forward by allocation size
       for (size_t jt = it + 1; jt < _pages.size(); jt++) _page_base[jt] += data.size();
@@ -302,10 +308,8 @@ PagedAllocator<I>::InsertResult PagedAllocator<I>::insert(bits::span<const I> da
                           .indices = {.index = it, .offset = inserted_offset}};
     }
   const auto adjust_above = append(data, align, pad, fill);
-  return {
-      .adjust_above = adjust_above,
-      .adjust_by = 0,
-      .indices = {.index = _pages.size() - 1, .offset = static_cast<page_offset_t>(adjust_above - _page_base.back())}};
+  const page_offset_t page_offset = adjust_above - _page_base.back();
+  return {.adjust_above = adjust_above, .adjust_by = 0, .indices = {.index = _pages.size() - 1, .offset = page_offset}};
 }
 
 template <std::unsigned_integral I>

@@ -43,4 +43,6 @@ quint8 ceil_log2(quint64 value);
  * etc
  */
 quint64 nearest_power_of_two(quint64 value);
+
+static constexpr quint64 ceil_div(quint64 a, size_t b) noexcept { return (a + b - 1) / b; }
 } // namespace bits
