@@ -175,7 +175,7 @@ void pepp::bts::MappedFile::load_mapped(Slice &slice) const {
 
   const std::size_t ps = page_size(), base = slice._file_offset - (slice._file_offset % ps),
                     delta = slice._file_offset - base;
-  slice._map_len = delta + static_cast<std::size_t>(slice._file_offset);
+  slice._map_len = delta + static_cast<std::size_t>(slice._file_len);
 #if defined(_WIN32)
   const DWORD protect = _readonly ? PAGE_READONLY : PAGE_READWRITE;
   slice._hMap = ::CreateFileMappingA(_hFile, nullptr, protect, 0, 0, nullptr);
@@ -199,9 +199,15 @@ void pepp::bts::MappedFile::load_mapped(Slice &slice) const {
 #elif defined(__unix__) || defined(__APPLE__)
   if (_readonly)
     slice._map_base = ::mmap(nullptr, slice._map_len, PROT_READ, MAP_PRIVATE, _fd, static_cast<off_t>(base));
-  else
+  else {
+    // Try to extend the length of the file if the current slice exceeds max size.
+    struct stat st{};
+    if (::fstat(_fd, &st) != 0) throw std::system_error(errno, std::generic_category(), "fstat");
+    else if (::ftruncate(_fd, std::max<u64>(st.st_size, slice._file_offset + slice._file_len)) != 0)
+      throw std::system_error(errno, std::generic_category(), "ftruncate");
     slice._map_base =
         ::mmap(nullptr, slice._map_len, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, static_cast<off_t>(base));
+  }
   if (slice._map_base == MAP_FAILED) {
     spdlog::warn("Failed to mmap file '{}' with errno {}", _path, errno);
     if (::close(_fd) != 0) throw std::system_error(errno, std::generic_category(), "close after mmap failure");
@@ -258,9 +264,9 @@ void pepp::bts::MappedFile::flush(const Slice &slice) {
     }
 #elif defined(__unix__) || defined(__APPLE__)
     const std::size_t ps = page_size();
-    auto base = reinterpret_cast<std::uintptr_t>(s._map_base);
+    auto base = reinterpret_cast<std::uintptr_t>(slice._map_base);
     auto begin = align_down(base, ps);
-    auto end = align_up(base + s._map_len, ps);
+    auto end = align_up(base + slice._map_len, ps);
     auto *p = reinterpret_cast<void *>(begin);
     auto n = std::size_t(end - begin);
 

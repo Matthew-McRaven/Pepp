@@ -24,6 +24,7 @@ public:
     bits::span<const u8> get() const noexcept;
     size_t size() const noexcept;
     void flush();
+    inline bool readonly() const noexcept { return _readonly; }
 
   private:
     inline void ensure_loaded() const {
