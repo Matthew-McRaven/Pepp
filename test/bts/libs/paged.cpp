@@ -17,10 +17,10 @@
 #include <QDebug>
 #include <QString>
 #include <catch.hpp>
-#include "bts/libs/paged_alloc.hpp"
+#include "bts/libs/string_pool.hpp"
 
-using Pool = pepp::tc::support::StringPool;
-using String = pepp::tc::support::PooledString;
+using Pool = pepp::bts::StringPool;
+using String = pepp::bts::PooledString;
 
 TEST_CASE("Allocator String Pooling", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
   static const QString hi = "hi", world = "world";
@@ -96,7 +96,7 @@ TEST_CASE("Allocator String Pooling", "[kind:unit][arch:*][!throws][tc2][scope:e
     // Should allocate a new page for this small string.
     auto handle_hi = p.insert(hi);
     // Leave a few bytes at the end of a page for us to do a later insert.
-    auto handle_large = p.insert(QString(Pool::MIN_PAGE_SIZE - handle_hi.length() - 3, 'a'));
+    auto handle_large = p.insert(QString(Pool::DEFAULT_PAGE_SIZE - handle_hi.length() - 3, 'a'));
     CHECK(handle_hi.page() == handle_large.page());
     // World should allocate into a new page.
     auto handle_world = p.insert(world);

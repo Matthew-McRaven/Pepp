@@ -31,4 +31,16 @@ namespace bits {
  *Will throw if value == 0.
  */
 quint8 ceil_log2(quint64 value);
+/*
+ * 01 => 0
+ * 02 => 1
+ * 03 => 2
+ * 04 => 2
+ * 08 => 3
+ * 16 => 4
+ * 31 => 5
+ * 32 => 5
+ * etc
+ */
+quint64 nearest_power_of_two(quint64 value);
 } // namespace bits

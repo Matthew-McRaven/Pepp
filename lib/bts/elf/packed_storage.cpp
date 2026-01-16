@@ -66,130 +66,65 @@ size_t pepp::bts::BlockStorage::strlen(size_t offset) const noexcept {
   return end - start;
 }
 
-size_t pepp::bts::PagedStorage::append(bits::span<const u8> data) {
-  if (!_pages.empty() && _pages.back()->can_fit(data)) _pages.back()->append(data);
-  else {
-    _pages.emplace_back(std::make_unique<Page>(std::max<size_t>(DEFAULT_PAGE_SIZE, data.size())));
-    _pages.back()->append(data);
-  }
-  return std::exchange(_size, _size + data.size());
-}
+size_t pepp::bts::PagedStorage::append(bits::span<const u8> data) { return _allocator.append(data); }
 
-size_t pepp::bts::PagedStorage::allocate(size_t size, u8 fill) {
-  if (!_pages.empty() && _pages.back()->can_fit(size)) _pages.back()->allocate(size, fill);
-  else {
-    _pages.emplace_back(std::make_unique<Page>(std::max<size_t>(DEFAULT_PAGE_SIZE, size)));
-    _pages.back()->allocate(size, fill);
-  }
-  return std::exchange(_size, _size + size);
-}
+size_t pepp::bts::PagedStorage::allocate(size_t size, u8 fill) { return _allocator.allocate_initialized(size, fill); }
 
 void pepp::bts::PagedStorage::set(size_t offset, bits::span<const u8> data) {
   while (data.size() > 0) {
-    auto [page_index, page_offset] = page_for_offset(offset);
-    auto &page = _pages[page_index];
-    auto to_write = std::min<size_t>(data.size(), page->length - page_offset);
-    std::memcpy(page->data.get() + page_offset, data.data(), to_write);
+    auto [page_index, page_offset] = _allocator.indices_for_offset(offset);
+    auto &page = _allocator.page(page_index);
+    auto to_write = std::min<size_t>(data.size(), page.size() - page_offset);
+    std::memcpy(page.data() + page_offset, data.data(), to_write);
     offset += to_write, data = data.subspan(to_write);
   }
 }
 
 bits::span<u8> pepp::bts::PagedStorage::get(size_t offset, size_t length) noexcept {
-  if (offset + length >= _size) return {};
-  auto [page_index, page_offset] = page_for_offset(offset);
-  auto &page = _pages[page_index];
-  auto to_read = std::min<size_t>(length, page->length - page_offset);
-  return bits::span<u8>(page->data.get() + page_offset, to_read);
+  return _allocator.get(offset, length);
 }
 
 bits::span<const u8> pepp::bts::PagedStorage::get(size_t offset, size_t length) const noexcept {
-  if (offset + length >= _size) return {};
-  auto [page_index, page_offset] = page_for_offset(offset);
-  auto &page = _pages[page_index];
-  auto to_read = std::min<size_t>(length, page->length - page_offset);
-  return bits::span<const u8>(page->data.get() + page_offset, to_read);
+  return _allocator.get(offset, length);
 }
 
-size_t pepp::bts::PagedStorage::size() const noexcept { return _size; }
+size_t pepp::bts::PagedStorage::size() const noexcept { return _allocator.size(); }
 
-void pepp::bts::PagedStorage::clear(size_t reserve) {
-  for (auto &page : _pages) page->clear();
-  if (auto needed_pages = (reserve + MAX_PAGE_SIZE - 1) / MAX_PAGE_SIZE; reserve > 0 && reserve > _size)
-    for (u32 it = 0; it < needed_pages - _pages.size(); it++)
-      _pages.emplace_back(std::make_unique<Page>(MAX_PAGE_SIZE));
-  _size = 0;
-}
+void pepp::bts::PagedStorage::clear(size_t) { _allocator.clear(); }
 
 size_t pepp::bts::PagedStorage::calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const {
-  if (_pages.empty() || _size == 0) return dst_offset;
-  for (const auto &page : _pages) {
-    if (page->next == 0) continue;
-    layout.emplace_back(
-        LayoutItem{dst_offset, bits::span<const u8>{page->data.get(), static_cast<size_t>(page->next)}});
-    dst_offset += page->next;
+  if (_allocator.size() == 0) return dst_offset;
+  for (const auto &page : _allocator.pages()) {
+    if (page.size() == 0) continue;
+    layout.emplace_back(LayoutItem{dst_offset, bits::span<const u8>{page.data(), static_cast<size_t>(page.size())}});
+    dst_offset += page.size();
   }
   return dst_offset;
 }
 
 size_t pepp::bts::PagedStorage::find(bits::span<const u8> data) const noexcept {
   size_t offset = 0;
-  for (const auto &page : _pages) {
-    auto it = std::search(page->data.get(), page->data.get() + page->next, data.begin(), data.end());
-    if (it != page->data.get() + page->next) return offset + static_cast<size_t>(it - page->data.get());
-    offset += page->next;
+  for (const auto &page : _allocator.pages()) {
+    auto it = std::search(page.data(), page.data() + page.size(), data.begin(), data.end());
+    if (it != page.data() + page.size()) return offset + static_cast<size_t>(it - page.data());
+    offset += page.size();
   }
   return offset;
 }
 
 size_t pepp::bts::PagedStorage::strlen(size_t offset) const noexcept {
-  if (offset >= _size) return 0;
-  auto [start_page_index, start_page_offset] = page_for_offset(offset);
+  if (offset >= _allocator.size()) return 0;
+  auto [start_page_index, start_page_offset] = _allocator.indices_for_offset(offset);
   size_t length = 0;
-  while (start_page_index < _pages.size()) {
-    auto &page = _pages[start_page_index];
-    for (size_t it = start_page_offset; it < page->next; it++)
-      if (page->data.get()[it] == '\0') return length;
+  while (start_page_index < _allocator.pages().size()) {
+    auto &page = _allocator.page(start_page_index);
+    for (size_t it = start_page_offset; it < page.size(); it++)
+      if (page.data()[it] == '\0') return length;
       else length++;
     start_page_offset = 0, start_page_index++;
-    if (start_page_index >= _pages.size()) break;
+    if (start_page_index >= _allocator.pages().size()) break;
   }
   return length;
-}
-
-std::pair<size_t, size_t> pepp::bts::PagedStorage::page_for_offset(size_t offset) const {
-  if (offset >= _size) throw std::runtime_error("Invalid offset!!");
-  size_t page_index = 0;
-  while (page_index < _pages.size()) {
-    if (auto &page = _pages[page_index]; offset < page->next) return {page_index, offset};
-    else offset -= page->next, page_index++;
-  }
-#if defined(_MSC_VER) && !defined(__clang__)
-  __assume(false);
-#else
-  __builtin_unreachable();
-#endif
-}
-
-pepp::bts::PagedStorage::Page::Page(size_t length, size_t memset_from) : length(length), data(new u8[length]) {
-  if (length < MIN_PAGE_SIZE) throw std::invalid_argument("Allocation smaller than MIN_PAGE_SIZE");
-  else if (length > MAX_PAGE_SIZE) {
-    throw std::invalid_argument("Allocation larger than MAX_PAGE_SIZE");
-  }
-  // Optimization to avoid 0-ing data if you plan on immediately allocating
-  else if (memset_from < length)
-    memset(data.get() + memset_from, 0, (length - memset_from) * sizeof(data[0]));
-}
-
-size_t pepp::bts::PagedStorage::Page::append(bits::span<const u8> request) {
-  if (next + request.size() > length) throw std::runtime_error("Page overflow");
-  std::memcpy(&this->data[next], request.data(), request.size());
-  return std::exchange(next, next + request.size());
-}
-
-size_t pepp::bts::PagedStorage::Page::allocate(size_t request, u8 fill) {
-  if (next + request > length) throw std::runtime_error("Page overflow");
-  std::memset(&this->data[next], fill, request);
-  return std::exchange(next, next + request);
 }
 
 pepp::bts::MemoryMapped::MemoryMapped(std::string path, std::size_t off, std::size_t len, bool readonly)

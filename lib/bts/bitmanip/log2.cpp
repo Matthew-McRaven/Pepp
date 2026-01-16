@@ -26,3 +26,8 @@ quint8 bits::ceil_log2(quint64 value) {
   quint64 ceil = std::bit_ceil(value);
   return sizeof(value) * 8 - std::countl_zero(ceil) - 1;
 }
+
+quint64 bits::nearest_power_of_two(quint64 value) {
+  if (value == 0) return 1;
+  return std::bit_ceil(value);
+}
