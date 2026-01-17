@@ -64,8 +64,8 @@ template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedGrowabl
 
   elf.header.e_shstrndx = 1;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
-  static const char hdr[] = "\0.shstrtab";
-  writer.add_string(hdr);
+  static const char hdr[] = ".shstrtab";
+  writer.add_string(bits::span<const char>(hdr));
 }
 
 template <ElfBits B, ElfEndian E>
