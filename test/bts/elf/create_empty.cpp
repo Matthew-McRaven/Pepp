@@ -38,7 +38,7 @@ bool write(const std::string &fname, const std::span<const u8> &data) {
 
 TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
   using namespace pepp::bts;
-  using Packed = PackedElfLE32;
+  using Packed = PackedGrowableElfLE32;
   SECTION("Create ehdr with custom, read with ELFIO") {
     auto my_header = Packed::Ehdr(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
     auto data = bits::span<const u8>{reinterpret_cast<const u8 *>(&my_header), sizeof(my_header)};

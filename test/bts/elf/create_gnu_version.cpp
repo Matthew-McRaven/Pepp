@@ -38,7 +38,7 @@ template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
 void do_version(pepp::bts::ElfMachineType t, std::string fname) {
   using namespace pepp::bts;
   using enum DynamicTags;
-  using Packed = PackedElf<B, E>;
+  using Packed = PackedGrowableElfFile<B, E>;
 
   Packed elf(ElfFileType::ET_EXEC, t, ElfABI::ELFOSABI_NONE);
   ensure_section_header_table(elf);
@@ -73,7 +73,7 @@ template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
 void do_version_rd(pepp::bts::ElfMachineType t, std::string fname) {
   using namespace pepp::bts;
   using enum DynamicTags;
-  using Packed = PackedElf<B, E>;
+  using Packed = PackedGrowableElfFile<B, E>;
   Packed elf(ElfFileType::ET_EXEC, t, ElfABI::ELFOSABI_NONE);
   ensure_section_header_table(elf);
 

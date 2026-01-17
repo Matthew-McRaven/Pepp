@@ -7,17 +7,20 @@
 
 namespace pepp::bts {
 
-template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedElf<B, E> &elf);
+template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedGrowableElfFile<B, E> &elf);
 // Assumes .shstrtab already exists
 template <ElfBits B, ElfEndian E>
-u16 add_named_section(PackedElf<B, E> &, std::string_view name, SectionTypes type, u16 link = 0);
-template <ElfBits B, ElfEndian E> u16 add_named_symtab(PackedElf<B, E> &, std::string_view name, u16 symtab_idx);
-template <ElfBits B, ElfEndian E> u16 add_named_dynsymtab(PackedElf<B, E> &, std::string_view name, u16 symtab_idx);
-template <ElfBits B, ElfEndian E> u16 add_named_dynamic(PackedElf<B, E> &, std::string_view name, u16 strtab);
+u16 add_named_section(PackedGrowableElfFile<B, E> &, std::string_view name, SectionTypes type, u16 link = 0);
 template <ElfBits B, ElfEndian E>
-u16 add_named_rel(PackedElf<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
+u16 add_named_symtab(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx);
 template <ElfBits B, ElfEndian E>
-u16 add_named_rela(PackedElf<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
+u16 add_named_dynsymtab(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx);
+template <ElfBits B, ElfEndian E>
+u16 add_named_dynamic(PackedGrowableElfFile<B, E> &, std::string_view name, u16 strtab);
+template <ElfBits B, ElfEndian E>
+u16 add_named_rel(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
+template <ElfBits B, ElfEndian E>
+u16 add_named_rela(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
 
 template <ElfBits B, ElfEndian E> u32 symbol_count(const PackedElfShdr<B, E> &shdr) {
   if (shdr.sh_entsize == 0 || shdr.sh_size == 0) return 0;
@@ -54,7 +57,7 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &, const std::vector<Se
 u64 size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) noexcept;
 void write(std::span<u8> out, const std::vector<LayoutItem> &layout);
 
-template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedElf<B, E> &elf) {
+template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedGrowableElfFile<B, E> &elf) {
   if (!elf.section_headers.empty()) return;
   elf.add_section(create_null_header<B, E>());
   auto idx = elf.add_section(create_shstrtab_header<B, E>(1));
@@ -66,7 +69,7 @@ template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedElf<B, 
 }
 
 template <ElfBits B, ElfEndian E>
-u16 add_named_section(PackedElf<B, E> &elf, std::string_view name, SectionTypes type, u16 link) {
+u16 add_named_section(PackedGrowableElfFile<B, E> &elf, std::string_view name, SectionTypes type, u16 link) {
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(type);
@@ -75,7 +78,8 @@ u16 add_named_section(PackedElf<B, E> &elf, std::string_view name, SectionTypes 
   return elf.add_section(std::move(shdr));
 }
 
-template <ElfBits B, ElfEndian E> u16 add_named_symtab(PackedElf<B, E> &elf, std::string_view name, u16 strtab_idx) {
+template <ElfBits B, ElfEndian E>
+u16 add_named_symtab(PackedGrowableElfFile<B, E> &elf, std::string_view name, u16 strtab_idx) {
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(SectionTypes::SHT_SYMTAB);
@@ -83,7 +87,8 @@ template <ElfBits B, ElfEndian E> u16 add_named_symtab(PackedElf<B, E> &elf, std
   shdr.sh_link = strtab_idx;
   return elf.add_section(std::move(shdr));
 }
-template <ElfBits B, ElfEndian E> u16 add_named_dynsymtab(PackedElf<B, E> &elf, std::string_view name, u16 strtab_idx) {
+template <ElfBits B, ElfEndian E>
+u16 add_named_dynsymtab(PackedGrowableElfFile<B, E> &elf, std::string_view name, u16 strtab_idx) {
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(SectionTypes::SHT_DYNSYM);
@@ -91,7 +96,8 @@ template <ElfBits B, ElfEndian E> u16 add_named_dynsymtab(PackedElf<B, E> &elf, 
   shdr.sh_link = strtab_idx;
   return elf.add_section(std::move(shdr));
 }
-template <ElfBits B, ElfEndian E> u16 add_named_dynamic(PackedElf<B, E> &elf, std::string_view name, u16 strtab_idx) {
+template <ElfBits B, ElfEndian E>
+u16 add_named_dynamic(PackedGrowableElfFile<B, E> &elf, std::string_view name, u16 strtab_idx) {
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(SectionTypes::SHT_DYNAMIC);
@@ -99,7 +105,7 @@ template <ElfBits B, ElfEndian E> u16 add_named_dynamic(PackedElf<B, E> &elf, st
   shdr.sh_link = strtab_idx;
   return elf.add_section(std::move(shdr));
 }
-template <ElfBits B, ElfEndian E> u16 add_gnu_version(PackedElf<B, E> &elf, u16 symtab_idx) {
+template <ElfBits B, ElfEndian E> u16 add_gnu_version(PackedGrowableElfFile<B, E> &elf, u16 symtab_idx) {
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(SectionTypes::SHT_GNU_versym);
@@ -109,7 +115,7 @@ template <ElfBits B, ElfEndian E> u16 add_gnu_version(PackedElf<B, E> &elf, u16 
   shdr.sh_addralign = 2;
   return elf.add_section(std::move(shdr));
 }
-template <ElfBits B, ElfEndian E> u16 add_gnu_version_r(PackedElf<B, E> &elf, u16 dynstr) {
+template <ElfBits B, ElfEndian E> u16 add_gnu_version_r(PackedGrowableElfFile<B, E> &elf, u16 dynstr) {
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(SectionTypes::SHT_GNU_verneed);
@@ -119,7 +125,7 @@ template <ElfBits B, ElfEndian E> u16 add_gnu_version_r(PackedElf<B, E> &elf, u1
   shdr.sh_addralign = sizeof(Word<B, E>);
   return elf.add_section(std::move(shdr));
 }
-template <ElfBits B, ElfEndian E> u16 add_gnu_version_d(PackedElf<B, E> &elf, u16 dynstr) {
+template <ElfBits B, ElfEndian E> u16 add_gnu_version_d(PackedGrowableElfFile<B, E> &elf, u16 dynstr) {
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(SectionTypes::SHT_GNU_verdef);
@@ -131,7 +137,7 @@ template <ElfBits B, ElfEndian E> u16 add_gnu_version_d(PackedElf<B, E> &elf, u1
 }
 
 template <ElfBits B, ElfEndian E>
-u16 add_named_rel(PackedElf<B, E> &elf, std::string_view name, u16 symtab_idx, u16 section_idx) {
+u16 add_named_rel(PackedGrowableElfFile<B, E> &elf, std::string_view name, u16 symtab_idx, u16 section_idx) {
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(SectionTypes::SHT_REL);
@@ -142,7 +148,7 @@ u16 add_named_rel(PackedElf<B, E> &elf, std::string_view name, u16 symtab_idx, u
 }
 
 template <ElfBits B, ElfEndian E>
-u16 add_named_rela(PackedElf<B, E> &elf, std::string_view name, u16 symtab_idx, u16 section_idx) {
+u16 add_named_rela(PackedGrowableElfFile<B, E> &elf, std::string_view name, u16 symtab_idx, u16 section_idx) {
   PackedElfShdr<B, E> shdr;
   PackedStringWriter<B, E> writer(elf, elf.header.e_shstrndx);
   shdr.sh_type = to_underlying(SectionTypes::SHT_RELA);
