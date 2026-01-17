@@ -18,7 +18,6 @@
 #pragma once
 #include "../bitmanip/integers.h"
 #include "../bitmanip/span.hpp"
-#include "bts/elf/packed_types.hpp"
 #include "bts/libs/mapped_file.hpp"
 #include "bts/libs/paged_alloc.hpp"
 #include "packed_access_headers.hpp"
@@ -29,6 +28,11 @@ template <class U, std::size_t Extent> struct is_span<std::span<U, Extent>> : st
 template <class T> inline constexpr bool is_span_v = is_span<std::remove_cvref_t<T>>::value;
 
 struct LayoutItem;
+/*
+ * Provide an abstraction over the details of underlying storage for section data.
+ * This is effectively a superset of all section's access patterns, but not all subclasses truly support all
+ * operations. In such a case, an exception will be raised.
+ */
 struct AStorage {
   virtual ~AStorage() = 0;
   /*======================
@@ -138,6 +142,7 @@ private:
   std::vector<char> _storage{};
 };
 
+// PagedAllocator-backed storage, which makes growth cheap and prevents pointer invalidation / reallocation
 struct PagedStorage : public AStorage {
   // AStorage interface
   size_t append(bits::span<const u8> data) override;
@@ -155,6 +160,7 @@ private:
   pepp::bts::PagedAllocator<u8> _allocator{};
 };
 
+// Uses a memory-mapped file as the backing store. Data is lazily loaded on first access.
 struct MemoryMapped : public AStorage {
   explicit MemoryMapped(std::shared_ptr<MappedFile::Slice>);
 

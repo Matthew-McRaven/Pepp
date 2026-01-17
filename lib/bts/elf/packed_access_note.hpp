@@ -18,12 +18,16 @@
 #pragma once
 #include "./packed_elf.hpp"
 namespace pepp::bts {
+
+// Convenience wrapper to "unpack" note entries for easier access.
 struct NoteEntry {
   u32 namesz;
   u32 descsz;
   u32 type;
   bits::span<const char> name, desc;
 };
+
+// Accessor for ELF Note sections .
 template <ElfBits B, ElfEndian E, bool Const> class PackedNoteAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;

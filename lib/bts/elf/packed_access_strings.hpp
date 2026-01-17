@@ -18,6 +18,7 @@
 #pragma once
 #include "./packed_elf.hpp"
 namespace pepp::bts {
+// Accessor for ELF string tables
 template <ElfBits B, ElfEndian E, bool Const> class PackedStringAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;

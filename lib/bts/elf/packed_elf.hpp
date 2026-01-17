@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "bts/bitmanip/copy.hpp"
 #include "bts/elf/packed_storage.hpp"
 #include "bts/elf/packed_types.hpp"
 namespace pepp::bts {
@@ -41,6 +40,10 @@ static_assert(std::is_standard_layout_v<PackedElfLE32>);
 static_assert(std::is_standard_layout_v<PackedElfBE32>);
 static_assert(std::is_standard_layout_v<PackedElfLE64>);
 static_assert(std::is_standard_layout_v<PackedElfBE64>);
+
+// A packed ELF file that is read-only and backed by a memory-mapped file.
+// While its elf header, section headers, and program headers are eagerly loaded into memory,
+// section data will be lazily loaded on first use.
 template <ElfBits B, ElfEndian E> class PackedInputElfFile : public PackedElf<B, E> {
   struct private_ctor_tag {};
 
@@ -55,6 +58,8 @@ private:
   std::shared_ptr<MappedFile> _file;
 };
 
+// A packed ELF file that can be modified and grown (relatively) inexpensively.
+// While being modified, it is still stored in memory in the proper packed disk format (minus proper sh_offsets)
 template <ElfBits B, ElfEndian E> class PackedGrowableElfFile : public PackedElf<B, E> {
 public:
   using Ehdr = PackedElfEhdr<B, E>;
@@ -77,12 +82,14 @@ using PackedGrowableElfBE64 = PackedGrowableElfFile<ElfBits::b64, ElfEndian::be>
 
 template <ElfBits B, ElfEndian E>
 PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) : _file(file) {
+  // Read in all header data and eagerly copy it to our packed structures
   auto header_slice = file->slice(0, sizeof(typename PackedElf<B, E>::Ehdr));
   auto header_data = header_slice->get();
   if (header_data.size() < sizeof(typename PackedElf<B, E>::Ehdr))
     throw std::runtime_error("File too small to contain ELF header");
   auto header_dest = bits::span<u8>((u8 *)&this->header, sizeof(typename PackedElf<B, E>::Ehdr));
   std::memcpy(header_dest.data(), header_data.data(), header_dest.size());
+  // Determine base address of section header table and eagerly copy into our shdr vector.
   word<B> shdr_start = this->header.e_shoff, shdr_size = this->header.e_shentsize * this->header.e_shnum;
   if (shdr_size > 0) {
     auto shdr_slice = file->slice(shdr_start, shdr_size);
@@ -92,6 +99,7 @@ PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) :
     auto shdr_dest = bits::span<u8>(reinterpret_cast<u8 *>(this->section_headers.data()), shdr_size);
     std::memcpy(shdr_dest.data(), shdr_data.data(), shdr_dest.size());
   }
+  // Determine base address of program header table and eagerly copy into our phdr vector.
   word<B> phdr_start = this->header.e_phoff, phdr_size = this->header.e_phentsize * this->header.e_phnum;
   if (phdr_size > 0) {
     auto phdr_slice = file->slice(phdr_start, phdr_size);
@@ -101,9 +109,11 @@ PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) :
     auto phdr_dest = bits::span<u8>(reinterpret_cast<u8 *>(this->program_headers.data()), phdr_size);
     std::memcpy(phdr_dest.data(), phdr_data.data(), phdr_dest.size());
   }
+  // Ensure section_data matches size of section_headers.
   this->section_data.resize(this->section_headers.size(), nullptr);
   if (this->section_headers.empty()) return;
   this->section_data[0] = std::make_shared<NullStorage>(); // Section 0 is always SHT_NULL
+  // Construct an AStorage which will lazily map in each section on demand.
   for (int it = 1; it < this->section_headers.size(); ++it) {
     const auto &shdr = this->section_headers[it];
     this->section_data[it] = std::make_shared<MemoryMapped>(file->slice(shdr.sh_offset, shdr.sh_size));

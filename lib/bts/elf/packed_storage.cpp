@@ -76,6 +76,7 @@ size_t pepp::bts::PagedStorage::append(bits::span<const u8> data) { return _allo
 size_t pepp::bts::PagedStorage::allocate(size_t size, u8 fill) { return _allocator.allocate_initialized(size, fill); }
 
 void pepp::bts::PagedStorage::set(size_t offset, bits::span<const u8> data) {
+  // Allow set to span multiple pages.
   while (data.size() > 0) {
     auto [page_index, page_offset] = _allocator.indices_for_offset(offset);
     auto &page = _allocator.page(page_index);

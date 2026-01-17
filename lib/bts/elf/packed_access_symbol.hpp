@@ -67,6 +67,7 @@ AbsoluteFixup fixup_symbol_value(PackedElf<B, E> &elf, u16 section, word<B> inde
   }};
 }
 
+// Accessor for .gnu.version
 template <ElfBits B, ElfEndian E, bool Const> class PackedSymbolVersionAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
@@ -85,6 +86,7 @@ private:
 template <ElfBits B, ElfEndian E> using PackedSymbolVersionReader = PackedSymbolVersionAccessor<B, E, true>;
 template <ElfBits B, ElfEndian E> using PackedSymbolVersionWriter = PackedSymbolVersionAccessor<B, E, false>;
 
+// Base accessor for both .gnu.version_r and .gnu.version_d
 template <ElfBits B, ElfEndian E, bool Const, typename Ver, typename VerAux> class PackedVersionChainAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;
@@ -190,6 +192,7 @@ private:
   mutable std::vector<u32> _offsets_for_ver;
 };
 
+// Accessor for .gnu.version_r
 template <ElfBits B, ElfEndian E, bool Const>
 class PackedVersionNeedAccessor
     : public PackedVersionChainAccessor<B, E, Const, PackedElfVerneed<E>, PackedElfVernaux<E>> {
@@ -201,6 +204,7 @@ public:
 template <ElfBits B, ElfEndian E> using PackedVersionNeedReader = PackedVersionNeedAccessor<B, E, true>;
 template <ElfBits B, ElfEndian E> using PackedVersionNeedWriter = PackedVersionNeedAccessor<B, E, false>;
 
+// Accessor for .gnu.version_d
 template <ElfBits B, ElfEndian E, bool Const>
 class PackedVersionDefAccessor
     : public PackedVersionChainAccessor<B, E, Const, PackedElfVerdef<E>, PackedElfVerdaux<E>> {

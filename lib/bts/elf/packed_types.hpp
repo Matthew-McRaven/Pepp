@@ -29,6 +29,8 @@
  * The library will not help you maintain ELF invariants (e.g.,, section offsets/sizes, header counts, etc).
  * If you want to create valid ELF files, you will need to manage those details yourself. The alternative
  * "Managed" API can help create valid ELF files more easily, at the expense of additional processing and memory.
+ *
+ * They're a hybrid of my own novel design, Mold's ELF definitions, and ELFIO definitions.
  */
 namespace pepp::bts {
 
@@ -36,7 +38,7 @@ namespace pepp::bts {
 enum class ElfBits : u8 { b32, b64 };
 enum class ElfEndian : u8 { le, be };
 
-// Data types which are conditionally endianness-reversed.
+// Data types which perform conditional byteswapping.
 template <ElfEndian E> using I16 = std::conditional_t<E == ElfEndian::le, il16, ib16>;
 template <ElfEndian E> using I32 = std::conditional_t<E == ElfEndian::le, il32, ib32>;
 template <ElfEndian E> using I64 = std::conditional_t<E == ElfEndian::le, il64, ib64>;

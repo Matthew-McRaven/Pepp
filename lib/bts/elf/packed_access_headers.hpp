@@ -23,6 +23,8 @@ namespace pepp::bts {
 struct AStorage;
 template <ElfBits, ElfEndian> class PackedElf;
 
+// Sometime you want to operate on _some_ ELF file, but you can't be templatized based on ElfBits and ElfEndian.
+// e.g., you are a subclass with a virtual function, but you want to operate on an ELF file passed in at runtime.
 using PackedElfLE32 = PackedElf<ElfBits::b32, ElfEndian::le>;
 using PackedElfBE32 = PackedElf<ElfBits::b32, ElfEndian::be>;
 using PackedElfLE64 = PackedElf<ElfBits::b64, ElfEndian::le>;

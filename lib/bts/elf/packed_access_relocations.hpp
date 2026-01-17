@@ -17,11 +17,10 @@
 
 #pragma once
 #include "./packed_elf.hpp"
-#include "bts/bitmanip/log2.hpp"
 #include "packed_access_symbol.hpp"
 namespace pepp::bts {
 // Handles both REL and RELA.
-// You just need to know which one you're dealing with.
+// You just need to know which one you're dealing with and stick to the correct set of functions.
 template <ElfBits B, ElfEndian E, bool Const> class PackedRelocationAccessor {
 public:
   using Elf = maybe_const_t<Const, PackedElf<B, E>>;

@@ -17,7 +17,6 @@
 
 #pragma once
 #include <functional>
-#include "./packed_types.hpp"
 
 namespace pepp::bts {
 
@@ -32,6 +31,8 @@ namespace pepp::bts {
 //   Create a function which assigns _DYNAMIC's value to the sh_addr of the .dynamic section.
 //   ...
 //   Perform layout, and apply all fixups.
+// This is almost certainly the worst possible API, and I should be working towards something that looks more like
+// relocations.
 struct AbsoluteFixup {
   std::function<void()> update;
 };

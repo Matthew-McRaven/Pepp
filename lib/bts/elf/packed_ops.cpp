@@ -16,6 +16,7 @@
  */
 
 #include "packed_ops.hpp"
+#include "bts/bitmanip/copy.hpp"
 
 u64 pepp::bts::size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) noexcept {
   u64 ret = 0;

@@ -17,17 +17,19 @@
 
 #pragma once
 #include <QString>
-#include <memory>
 #include <optional>
 #include <set>
 #include <stdint.h>
 #include <vector>
-#include "../bitmanip/integers.h"
-#include "../bitmanip/span.hpp"
 #include "./paged_alloc.hpp"
 
 namespace pepp::bts {
+
 class StringPool;
+// A string contained within a StringPool instance.
+// While it does not have any methods that look obviously string-like, it is effectively a handle into that StringPool.
+// Their primary purpose is to make sorting and comparing pooled strings "cheap". PooledStrings belong to different
+// StringPools are not comparable.
 struct PooledString {
   PooledString() = default;
   bool valid() const;
@@ -58,6 +60,12 @@ private:
   };
 };
 
+/*
+ * A collection of string which are de-duplicated to save memory footprint.
+ * Operates by allocating large "pages" of memory and sub-allocating strings within those pages.
+ * Adding a string to the pool returns a handle (PooledString) which can later be used to retrieve the string.
+ * Future insertions of the same string will return the same handle. Strings are immutable once added to the pool
+ */
 class StringPool {
 public:
   static const auto MIN_PAGE_SIZE = PagedAllocator<char16_t>::MIN_PAGE_SIZE;
