@@ -20,16 +20,10 @@ public:
   std::vector<Phdr> program_headers;
   std::vector<std::shared_ptr<AStorage>> section_data;
 };
-
-using PackedElfLE32 = PackedElf<ElfBits::b32, ElfEndian::le>;
 static_assert(std::is_standard_layout_v<PackedElfLE32>);
-using PackedElfBE32 = PackedElf<ElfBits::b32, ElfEndian::be>;
 static_assert(std::is_standard_layout_v<PackedElfBE32>);
-using PackedElfLE64 = PackedElf<ElfBits::b64, ElfEndian::le>;
 static_assert(std::is_standard_layout_v<PackedElfLE64>);
-using PackedElfBE64 = PackedElf<ElfBits::b64, ElfEndian::be>;
 static_assert(std::is_standard_layout_v<PackedElfBE64>);
-
 template <ElfBits B, ElfEndian E> class PackedInputElfFile : public PackedElf<B, E> {
   struct private_ctor_tag {};
 

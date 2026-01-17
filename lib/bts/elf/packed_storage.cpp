@@ -203,3 +203,95 @@ size_t pepp::bts::NullStorage::calculate_layout(std::vector<LayoutItem> &, size_
 size_t pepp::bts::NullStorage::find(bits::span<const u8>) const noexcept { return 0; }
 
 size_t pepp::bts::NullStorage::strlen(size_t) const noexcept { return 0; }
+
+void pepp::bts::CombiningStorage::add_section(ConstAnyPackedElfPtr elf, u16 section_index) {
+  _entries.emplace_back(elf, section_index);
+}
+
+size_t pepp::bts::CombiningStorage::append(bits::span<const u8>) { return -1; }
+
+size_t pepp::bts::CombiningStorage::allocate(size_t, u8) { return -1; }
+
+void pepp::bts::CombiningStorage::set(size_t, bits::span<const u8>) { return; }
+
+bits::span<u8> pepp::bts::CombiningStorage::get(size_t, size_t) noexcept {
+  throw std::logic_error("CombiningStorage::get not implemented");
+}
+
+bits::span<const u8> pepp::bts::CombiningStorage::get(size_t offset, size_t length) const noexcept {
+  bool first = true;
+  for (const auto &[elf, section_index] : _entries) {
+    size_t align = sh_align(elf, section_index);
+    std::shared_ptr<const pepp::bts::AStorage> data = section_data(elf, section_index);
+    if (offset < data->size()) return data->get(offset, length);
+    if (first) {
+      if (offset < data->size()) return {};
+      else offset -= data->size(), first &= false;
+    } else {
+      auto aligned_size = bits::align_up(data->size(), align);
+      if (offset < aligned_size) return {};
+      else offset -= aligned_size;
+    }
+  }
+  return {};
+}
+
+size_t pepp::bts::CombiningStorage::size() const noexcept {
+  size_t total_size = 0;
+  bool first = true;
+  for (const auto &[elf, section_index] : _entries) {
+    size_t align = sh_align(elf, section_index);
+    std::shared_ptr<const pepp::bts::AStorage> data = section_data(elf, section_index);
+    // Pray that the containing's sections sh_align is correct
+    if (!first) total_size = bits::align_up(total_size, align);
+    total_size += data->size(), first &= false;
+  }
+  return total_size;
+}
+
+void pepp::bts::CombiningStorage::clear(size_t) { return; }
+
+size_t pepp::bts::CombiningStorage::calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const {
+  size_t rolling_offset = dst_offset;
+  bool first = true;
+  for (const auto &[elf, section_index] : _entries) {
+    size_t align = sh_align(elf, section_index);
+    std::shared_ptr<const pepp::bts::AStorage> data = section_data(elf, section_index);
+    // Pray that the containing's sections sh_align is correct
+    if (!first) rolling_offset = bits::align_up(rolling_offset, align);
+    rolling_offset = data->calculate_layout(layout, rolling_offset), first &= false;
+  }
+  return rolling_offset;
+}
+
+size_t pepp::bts::CombiningStorage::find(bits::span<const u8> needle) const noexcept {
+  size_t rolling_offset = 0;
+  bool first = true;
+  for (const auto &[elf, section_index] : _entries) {
+    size_t align = sh_align(elf, section_index);
+    std::shared_ptr<const pepp::bts::AStorage> data = section_data(elf, section_index);
+    auto local_offset = data->find(needle);
+    if (local_offset != -1u) return rolling_offset + local_offset;
+    else if (first) rolling_offset += data->size(), first &= false;
+    else rolling_offset += bits::align_up(data->size(), align);
+  }
+  return -1u;
+}
+
+size_t pepp::bts::CombiningStorage::strlen(size_t offset) const noexcept {
+  bool first = true;
+  for (const auto &[elf, section_index] : _entries) {
+    size_t align = sh_align(elf, section_index);
+    std::shared_ptr<const pepp::bts::AStorage> data = section_data(elf, section_index);
+    if (offset < data->size()) return data->strlen(offset);
+    if (first) {
+      if (offset < data->size()) return 0;
+      else offset -= data->size(), first &= false;
+    } else {
+      auto aligned_size = bits::align_up(data->size(), align);
+      if (offset < aligned_size) return 0;
+      else offset -= aligned_size;
+    }
+  }
+  return 0;
+}

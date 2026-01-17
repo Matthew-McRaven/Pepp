@@ -4,6 +4,7 @@
 #include "bts/elf/packed_types.hpp"
 #include "bts/libs/mapped_file.hpp"
 #include "bts/libs/paged_alloc.hpp"
+#include "packed_access_headers.hpp"
 
 namespace pepp::bts {
 template <class T> struct is_span : std::false_type {};
@@ -170,5 +171,30 @@ struct NullStorage : public AStorage {
   size_t calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const override;
   size_t find(bits::span<const u8> data) const noexcept override;
   size_t strlen(size_t offset) const noexcept override;
+};
+
+// This storage is the concatenation of  multiple other sections and their data.
+// calculate_layout will respect section data alignment. It is otherwise read-only.
+struct CombiningStorage : public AStorage {
+  CombiningStorage() = default;
+  void add_section(ConstAnyPackedElfPtr elf, u16 section_index);
+  // AStorage interface
+  size_t append(bits::span<const u8> data) override;
+  size_t allocate(size_t size, u8 fill = 0) override;
+  void set(size_t offset, bits::span<const u8> data) override;
+  bits::span<u8> get(size_t offset, size_t length) noexcept override;
+  bits::span<const u8> get(size_t offset, size_t length) const noexcept override;
+  size_t size() const noexcept override;
+  void clear(size_t reserve = 0) override;
+  size_t calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const override;
+  size_t find(bits::span<const u8> data) const noexcept override;
+  size_t strlen(size_t offset) const noexcept override;
+
+private:
+  struct Entry {
+    ConstAnyPackedElfPtr elf;
+    u16 section_index;
+  };
+  std::vector<Entry> _entries;
 };
 } // namespace pepp::bts
