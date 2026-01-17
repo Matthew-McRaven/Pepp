@@ -37,6 +37,8 @@ mainCln: LDWA    0,s         ;Load return value
 ;Write an arbitrary value to the power off port to shutdown the computer.
 shutdown:LDWA    0xDEAD,i
          STBA    pwrOff,d
+;Enter an infinite loop. If the hardware requires more than a single cycle
+;to power down, the loop avoids the risk of executing random instructions.
 hang:    BR      hang
 ;
 mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
