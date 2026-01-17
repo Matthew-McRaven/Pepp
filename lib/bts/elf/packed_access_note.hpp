@@ -81,7 +81,7 @@ void PackedNoteAccessor<B, E, Const>::add_note(std::span<const char> name, std::
   PackedElfNoteHeader<E> hdr(namesz, descsz, type);
   u64 hdr_start = data->size(), name_start = hdr_start + sizeof(PackedElfNoteHeader<E>),
       desc_start = name_start + round_up4(namesz);
-  auto start = data->allocate(desc_start + round_up4(descsz), 0);
+  auto start = data->allocate(desc_start + round_up4(descsz) - hdr_start, 0);
   data->set(start, std::move(hdr));
   data->set(name_start, bits::span<const u8>{(const u8 *)name.data(), name.size()});
   data->set(desc_start, bits::span<const u8>{(const u8 *)desc.data(), desc.size()});
