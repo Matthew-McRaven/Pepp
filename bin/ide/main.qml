@@ -504,7 +504,7 @@ ApplicationWindow {
                 welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ISA3]);
                 welcomeForFOpen.filterEdition = Qt.binding(() => [6, 5, 4]);
             } else if (name.match(/pepcpu$/i)) {
-                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.MC2]);
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.MA2]);
                 welcomeForFOpen.filterEdition = Qt.binding(() => [6, 5, 4]);
             } else if (name.match(/pepm$/i)) {
                 welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);

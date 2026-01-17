@@ -198,8 +198,8 @@ Item {
             "value": Abstraction.ISA3
         })
         abstractionModel.append({
-            "key": "MC2",
-            "value": Abstraction.MC2
+            "key": "MA2",
+            "value": Abstraction.MA2
         })
         abstractionModel.append({
             "key": "OS4",

@@ -426,21 +426,21 @@ void init_pep10(QList<ProjectType> &vec) {
               .state = CompletionState::PARTIAL,
               .edition = 6});
   vec.append({.name = "Pep/10",
-              .levelText = "Mc2",
+              .levelText = "MA2",
               .details = "1-Byte Bus",
               .chapter = "11",
               .description = "Missing",
               .arch = a,
-              .level = Abstraction::MC2,
+              .level = Abstraction::MA2,
               .state = CompletionState::INCOMPLETE,
               .edition = 6});
   vec.append({.name = "Pep/10",
-              .levelText = "Mc2",
+              .levelText = "MA2",
               .details = "2-Byte Bus",
               .chapter = "11",
               .description = "Missing",
               .arch = a,
-              .level = Abstraction::MC2,
+              .level = Abstraction::MA2,
               .state = CompletionState::INCOMPLETE,
               .edition = 6});
 }
@@ -481,7 +481,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .chapter = "12",
               .description = "Missing",
               .arch = a,
-              .level = Abstraction::MC2,
+              .level = Abstraction::MA2,
               .state = CompletionState::INCOMPLETE,
               .edition = 5});
   vec.append({.name = "Pep/9",
@@ -490,7 +490,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .chapter = "12",
               .description = "Missing",
               .arch = a,
-              .level = Abstraction::MC2,
+              .level = Abstraction::MA2,
               .state = CompletionState::INCOMPLETE,
               .edition = 5});
 }
@@ -531,7 +531,7 @@ void init_pep8(QList<ProjectType> &vec) {
               .chapter = "12",
               .description = "Missing",
               .arch = a,
-              .level = Abstraction::MC2,
+              .level = Abstraction::MA2,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
 }

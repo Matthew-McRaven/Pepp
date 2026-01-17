@@ -37,7 +37,7 @@ void registerMicroRun(auto &app, task_factory_t &task, detail::SharedFlags &flag
   // Must initialize,
   static std::string pepcpuIn, testIn, errName;
   static int busWidth = 1;
-  static auto microrunSC = app.add_subcommand("microrun", "Run Mc2 programs");
+  static auto microrunSC = app.add_subcommand("microrun", "Run micrcode programs");
   microrunSC->add_option("-s,microcode", pepcpuIn)->required()->expected(1);
   static const auto testOpt = microrunSC->add_option("-t,test", testIn)->expected(1);
   static auto errOpt =

@@ -134,7 +134,7 @@ QSharedPointer<HelpEntry> ui_root() {
 QSharedPointer<HelpEntry> workflows_root() {
   using enum pepp::Architecture;
   using enum pepp::Abstraction;
-  int mc10 = bitmask(PEP10, MC2);
+  int mc10 = bitmask(PEP10, MA2);
   int oc10 = bitmask(PEP10, ISA3);
   int as10 = bitmask(PEP10, ASMB5);
   int p10 = mc10 | oc10 | as10;
@@ -540,7 +540,7 @@ int bitmask(pepp::Abstraction level) {
   using enum pepp::Abstraction;
   switch (level) {
   case NO_ABS: return 0;
-  case MC2: return 1 << 0;
+  case MA2: return 1 << 0;
   case ISA3: return 1 << 1;
   case ASMB3: return 1 << 2;
   case OS4: return 1 << 3;

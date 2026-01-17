@@ -51,8 +51,8 @@ Keep the two-byte bus
 > Reduces the amount of new material to write in CS6E.
 > Does not requiring writing a RISC-V simulator.
 
-Remove two-byte bus, teach RISC-V MC2 emulation of Pep/10 CPU
-> Need to determine mapping of RISC-V:Pep/10 registers at the MC2 level.
+Remove two-byte bus, teach RISC-V MA2 emulation of Pep/10 CPU
+> Need to determine mapping of RISC-V:Pep/10 registers at the MA2 level.
 > Students would be taught to implement Pep/10 CPU using RISC-V instructions as a form of microcode.
 > This establishes continuity between the two halves of chapter 12.
 > This would require some kind of graphical data & control path to maintain parity to Pep10CPU within the application.

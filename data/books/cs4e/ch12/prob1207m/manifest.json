@@ -3,7 +3,7 @@
   "type": "problem",
   "name": "12:07m",
   "arch": "pep8",
-  "abstraction": "MC2",
+  "abstraction": "MA2",
   "fragments": [
     {
       "name": "pepcpu",

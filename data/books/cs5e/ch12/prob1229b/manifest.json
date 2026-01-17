@@ -3,7 +3,7 @@
   "type": "problem",
   "name": "12:29b",
   "arch": "pep9",
-  "abstraction": "MC2",
+  "abstraction": "MA2",
   "tests": [
     "test0"
   ],
