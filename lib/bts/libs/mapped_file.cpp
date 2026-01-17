@@ -94,8 +94,8 @@ pepp::bts::MappedFile::~MappedFile() { release(); }
 pepp::bts::MappedFile::MappedFile(private_ctor_tag, std::string path, bool readonly)
     : _readonly(readonly), _path(path) {}
 
-std::shared_ptr<const pepp::bts::MappedFile> pepp::bts::MappedFile::open_readonly(std::string path) {
-  return std::make_shared<const MappedFile>(private_ctor_tag{}, path, true);
+std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_readonly(std::string path) {
+  return std::make_shared<MappedFile>(private_ctor_tag{}, path, true);
 }
 
 std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_readwrite(std::string path) {

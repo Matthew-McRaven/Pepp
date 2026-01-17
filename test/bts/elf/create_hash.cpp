@@ -117,9 +117,10 @@ template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E> void do_hash(pepp::bts::
   write(data, layout);
   write(fname, data);
 
+  PackedInputElfFile<B, E> in(fname);
   // Easiest way to verify manually is download llvm for llvm-readelf and run:
   // llvm-readelf-15 --gnu-hash-table -a --hash-symbols -d --dyn-syms ehdr_hash.elf
-  PackedHashedSymbolReader<B, E> hs_reader(elf, hash_idx);
+  PackedHashedSymbolReader<B, E> hs_reader(in, hash_idx);
   CHECK(hs_reader.find_hashed_symbol("alpha") == 1);
   CHECK(hs_reader.find_hashed_symbol("bravo") == 2);
   CHECK(hs_reader.find_hashed_symbol("charlie") == 3);
@@ -231,10 +232,12 @@ void do_gnuhash(pepp::bts::ElfMachineType t, std::string fname) {
   write(data, layout);
   write(fname, data);
 
+  PackedInputElfFile<B, E> in(fname);
+
   // Assuming nbuckets=11, symndx=mask_words=11, shift2=5, symndx=4 (start hash at delta)
   // Easiest way to verify manually is download llvm for llvm-readelf and run:
   // llvm-readelf-15 --gnu-hash-table -a --hash-symbols -d --dyn-syms ehdr_gnuhash.elf
-  PackedGNUHashedSymbolReader<B, E> hs_reader(elf, hash_idx);
+  PackedGNUHashedSymbolReader<B, E> hs_reader(in, hash_idx);
   CHECK(hs_reader.find_hashed_symbol("alpha") == 0);
   CHECK(hs_reader.find_hashed_symbol("bravo") == 0);
   CHECK(hs_reader.find_hashed_symbol("charlie") == 0);

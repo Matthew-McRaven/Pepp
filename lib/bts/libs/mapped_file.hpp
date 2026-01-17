@@ -51,7 +51,7 @@ public:
   MappedFile(MappedFile &&o) noexcept = default;
   MappedFile &operator=(MappedFile &&o) noexcept;
 
-  static std::shared_ptr<const MappedFile> open_readonly(std::string path);
+  static std::shared_ptr<MappedFile> open_readonly(std::string path);
   static std::shared_ptr<MappedFile> open_readwrite(std::string path);
 
   std::shared_ptr<Slice> slice(size_t off, size_t len) noexcept;
