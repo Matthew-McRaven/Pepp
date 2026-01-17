@@ -275,5 +275,5 @@ function(git_local_changes _var)
   endif()
 endfunction()
 
-string(TIMESTAMP BUILD_TIMESTAMP "%b %d %Y %H:%M:%S")
+string(TIMESTAMP BUILD_TIMESTAMP "%b %d %Y %H:%M:%S" UTC)
 string(TIMESTAMP BUILD_YEAR "%Y" UTC)
