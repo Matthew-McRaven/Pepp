@@ -237,7 +237,7 @@ size_t pepp::bts::fib(size_t n) {
 //      buildFibList(8) -> {[1,2),[2,3),[3,5),[5,8),[8,13)}
 std::vector<size_t> pepp::bts::buildFibList(size_t len) {
   // initialize a and b to the first and second fib numbers respectively
-  int a = 0, b = 1, next;
+  size_t a = 0, b = 1, next;
   std::vector<size_t> intervals = std::vector<size_t>();
   while (a <= len) {
     if (a > 0) intervals.push_back(b);
