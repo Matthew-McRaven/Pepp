@@ -10,7 +10,7 @@ import "qrc:/qt/qml/edu/pepp/toolchain/symtab" as SymTab
 import "qrc:/qt/qml/edu/pepp/sim/debug" as Debug
 import "."
 import edu.pepp 1.0
-import com.kdab.dockwidgets 2 as KDDW
+import com.kdab.dockwidgets 2.0 as KDDW
 
 FocusScope {
     id: wrapper
@@ -34,193 +34,238 @@ FocusScope {
     function modeVisibilityChange() {
         if (!isActive) {
             // If the window is not active / visible, restore does not work correctly, causing #974.
-            return;
+            return
         } else if (needsDock) {
             // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
-            return;
+            return
         } else if (!(mode === "editor" || mode === "debugger")) {
-            return;
+            return
         } else if (previousMode === mode) {
             // Do not attempt to lay out if mode has not changed. Possible if window was inactive.
-            return;
+            return
         }
 
         if (previousMode)
-            layoutSaver.saveToFile(`${previousMode}-${dockWidgetArea.uniqueName}.json`);
+            layoutSaver.saveToFile(
+                        `${previousMode}-${dockWidgetArea.uniqueName}.json`)
         // Only use the visibility model when restoring for the first time.
-        if (!layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`)) {
-            for (const x of widgets) {
+        if (!layoutSaver.restoreFromFile(
+                    `${mode}-${dockWidgetArea.uniqueName}.json`)) {
+            // Widgets are ordered most-to-least important. Reopen them in reverse order so that tab indices are in most-to-least order
+            // rather than least-to-most with forward iteration
+            for (const x of widgets.reverse()) {
                 // visibility model preserves user changes within a mode.
-                const visible = x.visibility[mode];
+                const visible = x.visibility[mode]
                 if (visible && !x.isOpen)
-                    x.open();
+                    x.open()
                 else if (!visible && x.isOpen)
-                    x.close();
+                    x.close()
+            }
+            // Workaround for #968, making sure that the Object pane is visible by default.
+            if (mode === "debugger") {
+                dock_object.setAsCurrentTab()
             }
         }
-        previousMode = mode;
+        previousMode = mode
     }
 
     // Call when the height, width have been finalized.
     // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
     function dock() {
-        const StartHidden = 1;
-        const PreserveCurrent = 2;
-        const total_height = parent.height;
-        const reg_height = registers.childrenRect.height;
-        const regmemcol_width = registers.implicitWidth;
-        const memdump_height = total_height - registers.implicitHeight;
+        const StartHidden = 1
+        const PreserveCurrent = 2
+        const total_height = parent.height
+        const reg_height = registers.childrenRect.height
+        const regmemcol_width = registers.implicitWidth
+        const memdump_height = total_height - registers.implicitHeight
 
-        const bottom_height = Math.max(200, total_height * .1);
-        const io_width = Math.max(300, parent.width * .2);
-        const editor_height = (total_height - bottom_height) / 2;
-        const editor_width = parent.width - regmemcol_width - io_width;
+        const bottom_height = Math.max(200, total_height * .1)
+        const io_width = Math.max(300, parent.width * .2)
+        const editor_height = (total_height - bottom_height) / 2
+        const editor_width = parent.width - regmemcol_width - io_width
         // Dock text
-        dockWidgetArea.addDockWidget(dock_source, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(editor_width, editor_height));
-        dockWidgetArea.addDockWidget(dock_listing, KDDW.KDDockWidgets.Location_OnBottom, dock_source, Qt.size(editor_width, editor_height));
+        dockWidgetArea.addDockWidget(dock_source,
+                                     KDDW.KDDockWidgets.Location_OnLeft,
+                                     dockWidgetArea, Qt.size(editor_width,
+                                                             editor_height))
+        dockWidgetArea.addDockWidget(dock_listing,
+                                     KDDW.KDDockWidgets.Location_OnBottom,
+                                     dock_source, Qt.size(editor_width,
+                                                          editor_height))
         // Dock IOs to right of editors
-        dockWidgetArea.addDockWidget(dock_message, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(io_width, editor_height / 3));
-        dockWidgetArea.addDockWidget(dock_output, KDDW.KDDockWidgets.Location_OnBottom, dock_message, Qt.size(io_width, editor_height));
-        dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dock_message, Qt.size(io_width, editor_height));
+        dockWidgetArea.addDockWidget(dock_message,
+                                     KDDW.KDDockWidgets.Location_OnRight,
+                                     dockWidgetArea, Qt.size(io_width,
+                                                             editor_height / 3))
+        dockWidgetArea.addDockWidget(dock_output,
+                                     KDDW.KDDockWidgets.Location_OnBottom,
+                                     dock_message, Qt.size(io_width,
+                                                           editor_height))
+        dockWidgetArea.addDockWidget(dock_input,
+                                     KDDW.KDDockWidgets.Location_OnBottom,
+                                     dock_message, Qt.size(io_width,
+                                                           editor_height))
         // Dock "helpers" below everything
-        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnBottom, null, Qt.size(editor_width, bottom_height));
-        dock_object.addDockWidgetAsTab(dock_symbol, PreserveCurrent);
-        dock_object.addDockWidgetAsTab(dock_watch, PreserveCurrent);
-        dock_object.addDockWidgetAsTab(dock_breakpoints, PreserveCurrent);
+        dockWidgetArea.addDockWidget(dock_object,
+                                     KDDW.KDDockWidgets.Location_OnBottom,
+                                     null, Qt.size(editor_width, bottom_height))
+        dock_object.addDockWidgetAsTab(dock_symbol, PreserveCurrent)
+        dock_object.addDockWidgetAsTab(dock_watch, PreserveCurrent)
+        dock_object.addDockWidgetAsTab(dock_breakpoints, PreserveCurrent)
 
         // Setup memory area
-        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, null, Qt.size(regmemcol_width, reg_height));
-        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(regmemcol_width, memdump_height));
-        dock_hexdump.addDockWidgetAsTab(dock_stack, PreserveCurrent);
-        wrapper.needsDock = Qt.binding(() => false);
-        modeVisibilityChange();
+        dockWidgetArea.addDockWidget(dock_cpu,
+                                     KDDW.KDDockWidgets.Location_OnRight, null,
+                                     Qt.size(regmemcol_width, reg_height))
+        dockWidgetArea.addDockWidget(dock_hexdump,
+                                     KDDW.KDDockWidgets.Location_OnBottom,
+                                     dock_cpu, Qt.size(regmemcol_width,
+                                                       memdump_height))
+        dock_hexdump.addDockWidgetAsTab(dock_stack, PreserveCurrent)
+        wrapper.needsDock = Qt.binding(() => false)
+        modeVisibilityChange()
         // WASM version doesn't seem to give focus to editor without giving focus to something else first.
         // Without this workaround the text editor will not receive focus on subsequent key presses.
         if (PlatformDetector.isWASM)
-            batchInput.forceFocusEditor();
+            batchInput.forceFocusEditor()
         // Delay giving focus to editor until the next frame. Any editor that becomes visible without being focused will be incorrectly painted
-        Qt.callLater(() => userAsmEdit.forceEditorFocus());
+        Qt.callLater(() => userAsmEdit.forceEditorFocus())
         // Cover the "average" case where editors are focused when switching modes.
         wrapper.modeChanged.connect(() => {
-            const os = sourceSelector.currentIndex === 1;
-            if (mode === "editor")
-                Qt.callLater(() => os ? osAsmEdit.forceEditorFocus() : userAsmEdit.forceEditorFocus());
-            else if (mode === "debugger")
-                Qt.callLater(() => os ? osList.forceEditorFocus() : userList.forceEditorFocus());
-        });
+                                        const os = sourceSelector.currentIndex === 1
+                                        if (mode === "editor")
+                                        Qt.callLater(
+                                            () => os ? osAsmEdit.forceEditorFocus(
+                                                           ) : userAsmEdit.forceEditorFocus(
+                                                           ))
+                                        else if (mode === "debugger")
+                                        Qt.callLater(
+                                            () => os ? osList.forceEditorFocus(
+                                                           ) : userList.forceEditorFocus(
+                                                           ))
+                                    })
     }
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
-        userAsmEdit.editingFinished.connect(save);
-        osAsmEdit.editingFinished.connect(save);
-        project.errorsChanged.connect(displayErrors);
-        project.listingChanged.connect(fixListings);
-        onProjectChanged.connect(fixListings);
-        project.charInChanged.connect(() => batchInput.setInput(project.charIn));
+        userAsmEdit.editingFinished.connect(save)
+        osAsmEdit.editingFinished.connect(save)
+        project.errorsChanged.connect(displayErrors)
+        project.listingChanged.connect(fixListings)
+        onProjectChanged.connect(fixListings)
+        project.charInChanged.connect(() => batchInput.setInput(project.charIn))
         // Connect editor BPs to project
-        userAsmEdit.editor.modifyLine.connect(project.onModifyUserSource);
-        osAsmEdit.editor.modifyLine.connect(project.onModifyOSSource);
-        userList.editor.modifyLine.connect(project.onModifyUserList);
-        osList.editor.modifyLine.connect(project.onModifyOSList);
+        userAsmEdit.editor.modifyLine.connect(project.onModifyUserSource)
+        osAsmEdit.editor.modifyLine.connect(project.onModifyOSSource)
+        userList.editor.modifyLine.connect(project.onModifyUserList)
+        osList.editor.modifyLine.connect(project.onModifyOSList)
         // Connect project to editors
-        project.overwriteEditors.connect(onOverwriteEditors);
-        project.modifyUserSource.connect(userAsmEdit.editor.onLineAction);
-        project.modifyOSSource.connect(osAsmEdit.editor.onLineAction);
-        project.modifyUserList.connect(userList.editor.onLineAction);
-        project.modifyOSList.connect(osList.editor.onLineAction);
+        project.overwriteEditors.connect(onOverwriteEditors)
+        project.modifyUserSource.connect(userAsmEdit.editor.onLineAction)
+        project.modifyOSSource.connect(osAsmEdit.editor.onLineAction)
+        project.modifyUserList.connect(userList.editor.onLineAction)
+        project.modifyOSList.connect(osList.editor.onLineAction)
         // Update breakpoints on switch
-        project.projectBreakpointsCleared.connect(userList.editor.onClearAllBreakpoints);
-        project.projectBreakpointsCleared.connect(osList.editor.onClearAllBreakpoints);
-        project.projectBreakpointsCleared.connect(userAsmEdit.editor.onClearAllBreakpoints);
-        project.projectBreakpointsCleared.connect(osAsmEdit.editor.onClearAllBreakpoints);
-        project.clearListingBreakpoints.connect(userList.editor.onClearAllBreakpoints);
-        project.clearListingBreakpoints.connect(osList.editor.onClearAllBreakpoints);
-        project.requestSourceBreakpoints.connect(userAsmEdit.editor.onRequestAllBreakpoints);
-        project.requestSourceBreakpoints.connect(osAsmEdit.editor.onRequestAllBreakpoints);
-        project.switchTo.connect(wrapper.onSwitchTo);
+        project.projectBreakpointsCleared.connect(
+                    userList.editor.onClearAllBreakpoints)
+        project.projectBreakpointsCleared.connect(
+                    osList.editor.onClearAllBreakpoints)
+        project.projectBreakpointsCleared.connect(
+                    userAsmEdit.editor.onClearAllBreakpoints)
+        project.projectBreakpointsCleared.connect(
+                    osAsmEdit.editor.onClearAllBreakpoints)
+        project.clearListingBreakpoints.connect(
+                    userList.editor.onClearAllBreakpoints)
+        project.clearListingBreakpoints.connect(
+                    osList.editor.onClearAllBreakpoints)
+        project.requestSourceBreakpoints.connect(
+                    userAsmEdit.editor.onRequestAllBreakpoints)
+        project.requestSourceBreakpoints.connect(
+                    osAsmEdit.editor.onRequestAllBreakpoints)
+        project.switchTo.connect(wrapper.onSwitchTo)
         if (project)
-            fixListings();
-        onOverwriteEditors();
-        project.updateGUI.connect(watchExpr.updateGUI);
-        project.updateGUI.connect(bpViewer.updateGUI);
-        project.updateGUI.connect(memoryTrace.updateGUI);
-        project.markedClean.connect(wrapper.markClean);
-        userAsmEdit.onDirtiedChanged.connect(wrapper.markDirty);
+            fixListings()
+        onOverwriteEditors()
+        project.updateGUI.connect(watchExpr.updateGUI)
+        project.updateGUI.connect(bpViewer.updateGUI)
+        project.updateGUI.connect(memoryTrace.updateGUI)
+        project.markedClean.connect(wrapper.markClean)
+        userAsmEdit.onDirtiedChanged.connect(wrapper.markDirty)
         for (const x of widgets) {
-            x.needsAttention = false;
+            x.needsAttention = false
         }
     }
 
     signal requestModeSwitchTo(string mode)
     // Must be called when the project in the model is marked non-dirty
     function markClean() {
-        userAsmEdit.dirtied = Qt.binding(() => false);
+        userAsmEdit.dirtied = Qt.binding(() => false)
     }
     function markDirty() {
         if (userAsmEdit.dirtied)
-            project.markDirty();
+            project.markDirty()
     }
 
     function getLexerLangauge() {
         switch (project?.architecture) {
         case Architecture.PEP9:
-            return "Pep/9 ASM";
+            return "Pep/9 ASM"
         case Architecture.PEP10:
-            return "Pep/10 ASM";
+            return "Pep/10 ASM"
         default:
-            return "Pep/10 ASM";
+            return "Pep/10 ASM"
         }
     }
 
     function onSwitchTo(os) {
         if (wrapper.project.ignoreOS) {
-            sourceSelector.currentIndex = 0;
-            listingSelector.currentIndex = 0;
+            sourceSelector.currentIndex = 0
+            listingSelector.currentIndex = 0
         } else {
-            sourceSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
-            listingSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
+            sourceSelector.currentIndex = Qt.binding(() => os ? 1 : 0)
+            listingSelector.currentIndex = Qt.binding(() => os ? 1 : 0)
         }
     }
 
     function displayErrors() {
-        userAsmEdit.addEOLAnnotations(project.assemblerErrors);
+        userAsmEdit.addEOLAnnotations(project.assemblerErrors)
     }
     function fixListings() {
         if (!project)
-            return;
+            return
         if (userList) {
-            const curURO = userList.readOnly;
-            userList.readOnly = false;
-            userList.text = project.userList ?? "";
-            userList.readOnly = curURO;
+            const curURO = userList.readOnly
+            userList.readOnly = false
+            userList.text = project.userList ?? ""
+            userList.readOnly = curURO
         }
         if (osList) {
-            const curORO = osList.readOnly;
-            osList.readOnly = false;
-            osList.text = project.osList ?? "";
-            osList.readOnly = curORO;
+            const curORO = osList.readOnly
+            osList.readOnly = false
+            osList.text = project.osList ?? ""
+            osList.readOnly = curORO
         }
     }
     function syncEditors() {
-        save();
+        save()
     }
     function save() {
         // Supress saving messages when there is no project.
         if (project) {
             if (!userAsmEdit.readOnly) {
-                project.userAsmText = userAsmEdit.text;
+                project.userAsmText = userAsmEdit.text
             }
             if (!osAsmEdit.readOnly) {
-                project.osAsmText = osAsmEdit.text;
+                project.osAsmText = osAsmEdit.text
             }
         }
     }
     function onOverwriteEditors() {
-        osAsmEdit.readOnly = false;
-        userAsmEdit.text = project?.userAsmText ?? "";
-        osAsmEdit.text = project?.osAsmText ?? "";
-        osAsmEdit.readOnly = Qt.binding(() => !project?.abstraction === Abstraction.OS4);
+        osAsmEdit.readOnly = false
+        userAsmEdit.text = project?.userAsmText ?? ""
+        osAsmEdit.text = project?.osAsmText ?? ""
+        osAsmEdit.readOnly = Qt.binding(
+                    () => !project?.abstraction === Abstraction.OS4)
     }
 
     FontMetrics {
@@ -258,7 +303,8 @@ FocusScope {
                     model: ["User", "OS"]
                     Layout.fillWidth: true
                     onActivated: function (new_index) {
-                        listingSelector.currentIndex = Qt.binding(() => new_index);
+                        listingSelector.currentIndex = Qt.binding(
+                                    () => new_index)
                     }
                     visible: !wrapper.project.ignoreOS
                 }
@@ -273,7 +319,8 @@ FocusScope {
                         height: parent.height
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "editor" && sourceSelector.currentIndex === -1
+                        focus: mode === "editor"
+                               && sourceSelector.currentIndex === -1
                     }
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
@@ -282,7 +329,8 @@ FocusScope {
                         height: parent.height
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "editor" && sourceSelector.currentIndex === 1
+                        focus: mode === "editor"
+                               && sourceSelector.currentIndex === 1
                     }
                 }
             }
@@ -302,9 +350,11 @@ FocusScope {
                     id: listingSelector
                     model: ["User", "OS"]
                     Layout.fillWidth: true
-                    visible: !sourceSelector.visible && !wrapper.project.ignoreOS
+                    visible: !sourceSelector.visible
+                             && !wrapper.project.ignoreOS
                     onActivated: function (new_index) {
-                        sourceSelector.currentIndex = Qt.binding(() => new_index);
+                        sourceSelector.currentIndex = Qt.binding(
+                                    () => new_index)
                     }
                 }
                 StackLayout {
@@ -321,7 +371,8 @@ FocusScope {
                         text: project?.userList ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "debugger" && sourceSelector.currentIndex === 0
+                        focus: mode === "debugger"
+                               && sourceSelector.currentIndex === 0
                         caretBlink: 0
                     }
                     Text.ScintillaAsmEdit {
@@ -333,7 +384,8 @@ FocusScope {
                         text: project?.osList ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "debugger" && sourceSelector.currentIndex === 1
+                        focus: mode === "debugger"
+                               && sourceSelector.currentIndex === 1
                         caretBlink: 0
                     }
                 }
@@ -413,18 +465,21 @@ FocusScope {
                 "debugger": true
             }
             onFocusChanged: {
-                console.log("I am focused:", focus);
+                console.log("I am focused:", focus)
                 if (focus) {
-                    needsAttention = false;
+                    needsAttention = false
                 }
             }
             ProjectLog {
                 id: projectLog
                 anchors.fill: parent
                 Component.onCompleted: {
-                    wrapper.project.message.connect(projectLog.appendMessage);
-                    wrapper.project.message.connect(() => (dock_message.needsAttention = Qt.binding(() => true)));
-                    wrapper.project.clearMessages.connect(projectLog.clearMessages);
+                    wrapper.project.message.connect(projectLog.appendMessage)
+                    wrapper.project.message.connect(
+                                () => (dock_message.needsAttention = Qt.binding(
+                                           () => true)))
+                    wrapper.project.clearMessages.connect(
+                                projectLog.clearMessages)
                 }
             }
         }
@@ -443,14 +498,14 @@ FocusScope {
                 property bool ignoreTextChange: false
                 Component.onCompleted: {
                     onTextChanged.connect(() => {
-                        if (!ignoreTextChange)
-                            project.charIn = text;
-                    });
+                                              if (!ignoreTextChange)
+                                              project.charIn = text
+                                          })
                 }
                 function setInput(input) {
-                    ignoreTextChange = true;
-                    batchInput.text = input;
-                    ignoreTextChange = false;
+                    ignoreTextChange = true
+                    batchInput.text = input
+                    ignoreTextChange = false
                 }
             }
         }
@@ -481,7 +536,9 @@ FocusScope {
             }
             ColumnLayout {
                 anchors.fill: parent
-                property size kddockwidgets_min_size: Qt.size(registers.implicitWidth, registers.implicitHeight)
+                property size kddockwidgets_min_size: Qt.size(
+                                                          registers.implicitWidth,
+                                                          registers.implicitHeight)
                 Cpu.RegisterView {
                     id: registers
                     Layout.fillWidth: false
@@ -508,23 +565,24 @@ FocusScope {
                     const props = {
                         "memory": project.memory,
                         "mnemonics": project.mnemonics
-                    };
+                    }
                     // Construction sets current address to 0, which propogates back to project.
                     // Must reject changes in current address until component is fully rendered.
-                    con.enabled = false;
-                    setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
+                    con.enabled = false
+                    setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml",
+                              props)
                 }
                 asynchronous: true
                 onLoaded: {
-                    loader.item.scrollToAddress(project.currentAddress);
-                    con.enabled = true;
+                    loader.item.scrollToAddress(project.currentAddress)
+                    con.enabled = true
                 }
                 Connections {
                     id: con
                     enabled: false
                     target: loader.item
                     function onCurrentAddressChanged() {
-                        project.currentAddress = loader.item.currentAddress;
+                        project.currentAddress = loader.item.currentAddress
                     }
                 }
             }
@@ -551,14 +609,14 @@ FocusScope {
         enabled: wrapper.activeFocus || wrapper.isActive
         target: wrapper.actions.debug.start
         function onTriggered() {
-            wrapper.requestModeSwitchTo("debugger");
+            wrapper.requestModeSwitchTo("debugger")
         }
     }
     Connections {
         enabled: wrapper.activeFocus || wrapper.isActive
         target: wrapper.actions.build.execute
         function onTriggered() {
-            wrapper.requestModeSwitchTo("debugger");
+            wrapper.requestModeSwitchTo("debugger")
         }
     }
 }
