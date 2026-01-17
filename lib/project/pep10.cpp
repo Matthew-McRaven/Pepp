@@ -1060,6 +1060,8 @@ bool Pep_ASMB::_onAssemble(bool doLoad) {
     if (auto cpu = dynamic_cast<targets::pep10::isa::CPU *>(_system->cpu()); cpu) cpu->setCallsViaRet(callViaRet);
     break;
   }
+  case PEP9: [[fallthrough]];
+  case PEP8: break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 
