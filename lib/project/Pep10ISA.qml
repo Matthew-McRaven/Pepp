@@ -51,9 +51,7 @@ FocusScope {
         // Only use the visibility model when restoring for the first time.
         if (!layoutSaver.restoreFromFile(
                     `${mode}-${dockWidgetArea.uniqueName}.json`)) {
-            // Widgets are ordered most-to-least important. Reopen them in reverse order so that tab indices are in most-to-least order
-            // rather than least-to-most with forward iteration
-            for (const x of widgets.reverse()) {
+            for (const x of widgets) {
                 // visibility model preserves user changes within a mode.
                 const visible = x.visibility[mode]
                 if (visible && !x.isOpen)

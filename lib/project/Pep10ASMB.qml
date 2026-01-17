@@ -23,6 +23,9 @@ FocusScope {
     required property bool isActive
     property bool needsDock: true
     property var widgets: [dock_source, dock_listing, dock_object, dock_symbol, dock_watch, dock_breakpoints, dock_input, dock_output, dock_message, dock_cpu, dock_stack, dock_hexdump]
+    // Order in which to apply visibility model, which affects tab ordering. Items with lower tab indices generally appear first, except for index 0 which should appear last.
+    // This is almost ceratainly a bug, but I want to wholesale re-evaluate the docking system in the future.
+    property var sort_order: [dock_source, dock_listing, dock_symbol, dock_breakpoints, dock_watch, dock_input, dock_output, dock_message, dock_cpu, dock_stack, dock_hexdump, dock_object]
     focus: true
     NuAppSettings {
         id: settings
@@ -51,9 +54,7 @@ FocusScope {
         // Only use the visibility model when restoring for the first time.
         if (!layoutSaver.restoreFromFile(
                     `${mode}-${dockWidgetArea.uniqueName}.json`)) {
-            // Widgets are ordered most-to-least important. Reopen them in reverse order so that tab indices are in most-to-least order
-            // rather than least-to-most with forward iteration
-            for (const x of widgets.reverse()) {
+            for (const x of sort_order) {
                 // visibility model preserves user changes within a mode.
                 const visible = x.visibility[mode]
                 if (visible && !x.isOpen)
