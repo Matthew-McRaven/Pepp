@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -28,12 +29,11 @@ Item {
     focus: true
 
     function setTab(tab) {
-        helpBar.currentIndex = tab;
-
+        helpBar.currentIndex = tab
     }
 
     function setMinimumVersion(minVersion) {
-        changeLog.min = minVersion;
+        changeLog.min = minVersion
     }
 
     implicitWidth: 500
@@ -112,16 +112,20 @@ Item {
                             color: palette.windowText
                             Layout.margins: root.sideMargin
                             onLinkActivated: link => {
-                                Qt.openUrlExternally(link);
+                                Qt.openUrlExternally(link)
                             }
                             // Too much text to assign in binding, so build it inline instead.
                             Component.onCompleted: {
-                                let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(Version.version_str_full);
-                                let url = "https://github.com/Matthew-McRaven/Pepp/commit/" + Version.git_sha;
-                                let line1 = "Based on <a href=\"" + url + "\">";
-                                line1 += Version.git_tag !== "unknown" ? Version.git_tag : Version.git_sha.substring(0, 7);
-                                line1 += "</a>.";
-                                text = line0 + line1;
+                                let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(
+                                    Version.version_str_full)
+                                let url = "https://github.com/Matthew-McRaven/Pepp/commit/"
+                                + Version.git_sha
+                                let line1 = "Based on <a href=\"" + url + "\">"
+                                line1 += Version.git_tag
+                                !== "unknown" ? Version.git_tag : Version.git_sha.substring(
+                                                    0, 7)
+                                line1 += "</a>."
+                                text = line0 + line1
                             }
                         }
                     } //  RowLayout-logo
@@ -180,7 +184,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.leftMargin: root.sideMargin
                         Layout.rightMargin: root.sideMargin
-                        text: qsTr("Copyright © 2016 - 2025, J. Stanley Warford, Matthew McRaven, Pepperdine University")
+                        text: qsTr(`Copyright © 2016 - ${Version.build_year}, J. Stanley Warford, Matthew McRaven, Pepperdine University`)
                         wrapMode: Text.WordWrap
                     }
                     Label {
@@ -216,7 +220,8 @@ Item {
                             TextArea {
                                 id: license
                                 readOnly: true
-                                text: FileReader.readFile(":/about/LICENSE_FULL")
+                                text: FileReader.readFile(
+                                          ":/about/LICENSE_FULL")
                             }
                             ScrollBar.vertical.policy: ScrollBar.AlwaysOn
                         } //  ScrollView
@@ -226,7 +231,7 @@ Item {
         } //  Item - pepAbout
         //  Change Log screen
         Item {
-            
+
             Layout.fillHeight: true
             Layout.fillWidth: true
             Rectangle {
@@ -293,9 +298,10 @@ Item {
                             id: projectCombo
                             Component.onCompleted: {
                                 // Force the correct license to be selected on load.
-                                projectCombo.onCurrentIndexChanged();
+                                projectCombo.onCurrentIndexChanged()
                                 // onCurrentIndexChanged not called automatically, so we must connect to the appropriate signal.
-                                projectCombo.currentIndexChanged.connect(projectCombo.onCurrentIndexChanged);
+                                projectCombo.currentIndexChanged.connect(
+                                    projectCombo.onCurrentIndexChanged)
                             }
 
                             Layout.preferredWidth: 160
@@ -305,10 +311,11 @@ Item {
                             currentIndex: 0
                             textRole: "name"
                             function onCurrentIndexChanged() {
-                                let index = model.index(currentIndex, 0);
-                                projectLicense.text = model.data(index, DependencyRoles.LicenseText);
-                                let url = model.data(index, DependencyRoles.URL);
-                                projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>";
+                                let index = model.index(currentIndex, 0)
+                                projectLicense.text = model.data(
+                                            index, DependencyRoles.LicenseText)
+                                let url = model.data(index, DependencyRoles.URL)
+                                projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
                             }
                         }
                         Item {
@@ -329,7 +336,7 @@ Item {
                             Layout.fillWidth: true
                             color: palette.windowText
                             onLinkActivated: link => {
-                                Qt.openUrlExternally(link);
+                                Qt.openUrlExternally(link)
                             }
                         }
                     }

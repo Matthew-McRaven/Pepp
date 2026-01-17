@@ -35,6 +35,7 @@ const char *about::g_GIT_TAG() { return GIT_TAG_tmp; }
 #define BUILD_SYSTEM_VERSION "@CMAKE_HOST_SYSTEM_VERSION@"
 #define BUILD_SYSTEM_PROCESSOR "@CMAKE_HOST_SYSTEM_PROCESSOR@"
 #define BUILD_TIMESTAMP "@BUILD_TIMESTAMP@"
+#define BUILD_YEAR "@BUILD_YEAR@"
 // clang-format on
 
 int about::g_MAJOR_VERSION() { return VERSION_MAJOR; }
@@ -60,5 +61,8 @@ const char* about::g_BUILD_SYSTEM_PROCESSOR() {
 }
 const char* about::g_BUILD_TIMESTAMP() {
     return BUILD_TIMESTAMP;
+}
+const char* about::g_BUILD_YEAR() {
+    return BUILD_YEAR;
 }
 
