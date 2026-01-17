@@ -29,7 +29,7 @@ struct SeekableData {
 private:
   QString data = "\n";
   // Offsets into data
-  size_t _start = 0, _end = 0;
+  qsizetype _start = 0, _end = 0;
   support::Location _loc;
 };
 } // namespace pepp::tc::support

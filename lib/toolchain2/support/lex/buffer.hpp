@@ -6,7 +6,7 @@ namespace pepp::tc::lex {
 
 struct Token;
 struct ALexer;
-class Checkpoint;
+struct Checkpoint;
 
 class Buffer {
 public:
