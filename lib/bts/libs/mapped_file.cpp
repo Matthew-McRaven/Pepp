@@ -1,5 +1,6 @@
 #include "mapped_file.hpp"
 #include <spdlog/spdlog.h>
+#include "bts/bitmanip/log2.hpp"
 #if defined(_WIN32)
 #define NOMINMAX
 #include <windows.h>
@@ -249,11 +250,6 @@ void pepp::bts::MappedFile::write_fallback(const Slice &slice) {
   f.close();
 }
 
-static inline std::uintptr_t align_down(std::uintptr_t x, std::size_t a) { return x & ~(std::uintptr_t(a) - 1); }
-static inline std::uintptr_t align_up(std::uintptr_t x, std::size_t a) {
-  return (x + (a - 1)) & ~(std::uintptr_t(a) - 1);
-}
-
 void pepp::bts::MappedFile::flush(const Slice &slice) {
   if (_use_fallback) write_fallback(slice);
   else if (_opened && slice._map_base != nullptr) {
@@ -265,8 +261,8 @@ void pepp::bts::MappedFile::flush(const Slice &slice) {
 #elif defined(__unix__) || defined(__APPLE__)
     const std::size_t ps = page_size();
     auto base = reinterpret_cast<std::uintptr_t>(slice._map_base);
-    auto begin = align_down(base, ps);
-    auto end = align_up(base + slice._map_len, ps);
+    auto begin = bits::align_down(base, ps);
+    auto end = bits::align_up(base + slice._map_len, ps);
     auto *p = reinterpret_cast<void *>(begin);
     auto n = std::size_t(end - begin);
 

@@ -45,4 +45,10 @@ quint8 ceil_log2(quint64 value);
 quint64 nearest_power_of_two(quint64 value);
 
 static constexpr quint64 ceil_div(quint64 a, size_t b) noexcept { return (a + b - 1) / b; }
+// Both assum power-of-two aligns
+static constexpr std::uintptr_t align_down(std::uintptr_t x, std::size_t a) { return x & ~(std::uintptr_t(a) - 1); }
+static constexpr std::uintptr_t align_up(std::uintptr_t x, std::size_t a) {
+  if (a <= 1) return x;
+  else return (x + (a - 1)) & ~(std::uintptr_t(a) - 1);
+}
 } // namespace bits
