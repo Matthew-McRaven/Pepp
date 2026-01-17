@@ -92,7 +92,7 @@ PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) :
   }
   this->section_data.resize(this->section_headers.size(), nullptr);
   if (this->section_headers.empty()) return;
-  this->section_data[0] = std::make_shared<BlockStorage>(); // Null section
+  this->section_data[0] = std::make_shared<NullStorage>(); // Section 0 is always SHT_NULL
   for (int it = 1; it < this->section_headers.size(); ++it) {
     const auto &shdr = this->section_headers[it];
     this->section_data[it] = std::make_shared<MemoryMapped>(file->slice(shdr.sh_offset, shdr.sh_size));
@@ -111,6 +111,8 @@ template <ElfBits B, ElfEndian E> u32 PackedGrowableElfFile<B, E>::add_section(S
   if (this->section_headers.empty()) this->header.e_shentsize = sizeof(Shdr);
   this->section_headers.emplace_back(shdr);
   switch ((SectionTypes)(u32)shdr.sh_type) {
+  case SectionTypes::SHT_NULL: [[fallthrough]];
+  case SectionTypes::SHT_NOBITS: this->section_data.emplace_back(std::make_shared<NullStorage>()); break;
   case SectionTypes::SHT_STRTAB: this->section_data.emplace_back(std::make_shared<PagedStorage>()); break;
   default: this->section_data.emplace_back(std::make_shared<BlockStorage>()); break;
   }

@@ -155,4 +155,20 @@ struct MemoryMapped : public AStorage {
 private:
   std::shared_ptr<MappedFile::Slice> _slice = nullptr;
 };
+
+// Always contains 0 bytes of data and rejects all writes / appends.
+// Useful for SHT_NOBITS and SHT_NULL section types.
+struct NullStorage : public AStorage {
+  // AStorage interface
+  size_t append(bits::span<const u8> data) override;
+  size_t allocate(size_t size, u8 fill = 0) override;
+  void set(size_t offset, bits::span<const u8> data) override;
+  bits::span<u8> get(size_t offset, size_t length) noexcept override;
+  bits::span<const u8> get(size_t offset, size_t length) const noexcept override;
+  size_t size() const noexcept override;
+  void clear(size_t reserve = 0) override;
+  size_t calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const override;
+  size_t find(bits::span<const u8> data) const noexcept override;
+  size_t strlen(size_t offset) const noexcept override;
+};
 } // namespace pepp::bts

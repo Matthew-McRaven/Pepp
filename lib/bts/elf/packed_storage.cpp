@@ -181,3 +181,25 @@ size_t pepp::bts::MemoryMapped::strlen(size_t offset) const noexcept {
   while (end < reinterpret_cast<const char *>(sp.data() + sp.size()) && *end != '\0') ++end;
   return end - start;
 }
+
+size_t pepp::bts::NullStorage::append(bits::span<const u8>) { return 0; }
+
+size_t pepp::bts::NullStorage::allocate(size_t, u8) { return 0; }
+
+void pepp::bts::NullStorage::set(size_t, bits::span<const u8>) {}
+
+bits::span<u8> pepp::bts::NullStorage::get(size_t, size_t) noexcept { return {}; }
+
+bits::span<const u8> pepp::bts::NullStorage::get(size_t, size_t) const noexcept { return {}; }
+
+size_t pepp::bts::NullStorage::size() const noexcept { return 0; }
+
+void pepp::bts::NullStorage::clear(size_t) {}
+
+size_t pepp::bts::NullStorage::calculate_layout(std::vector<LayoutItem> &, size_t dst_offset) const {
+  return dst_offset;
+}
+
+size_t pepp::bts::NullStorage::find(bits::span<const u8>) const noexcept { return 0; }
+
+size_t pepp::bts::NullStorage::strlen(size_t) const noexcept { return 0; }
