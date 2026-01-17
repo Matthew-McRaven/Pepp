@@ -76,6 +76,11 @@ QString about::Version::build_timestamp() {
   return u"%1"_s.arg(about::g_BUILD_TIMESTAMP());
 }
 
+QString about::Version::build_year() {
+  using namespace Qt::StringLiterals;
+  return u"%1"_s.arg(about::g_BUILD_YEAR());
+}
+
 QString about::Version::qt_version() { return QLibraryInfo::version().toString(); }
 QString about::Version::qt_debug() { return QLibraryInfo::isDebugBuild() ? "true" : "false"; }
 QString about::Version::qt_shared() { return QLibraryInfo::isSharedBuild() ? "true" : "false"; }

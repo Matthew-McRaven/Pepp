@@ -27,6 +27,7 @@ const char *g_BUILD_SYSTEM_NAME();
 const char *g_BUILD_SYSTEM_VERSION();
 const char *g_BUILD_SYSTEM_PROCESSOR();
 const char *g_BUILD_TIMESTAMP();
+const char *g_BUILD_YEAR();
 int g_MAJOR_VERSION();
 int g_MINOR_VERSION();
 int g_PATCH_VERSION();
@@ -47,6 +48,7 @@ class Version : public QObject {
   Q_PROPERTY(int version_patch READ version_patch CONSTANT)
   Q_PROPERTY(QString version_str_full READ version_str_full CONSTANT)
   Q_PROPERTY(QString build_timestamp READ build_timestamp CONSTANT)
+  Q_PROPERTY(QString build_year READ build_year CONSTANT)
   // Properties of the machine running the application
   Q_PROPERTY(QString target_platform READ target_platform CONSTANT)
   Q_PROPERTY(QString target_abi READ target_abi CONSTANT)
@@ -74,6 +76,7 @@ public:
   static int version_patch();
   static QString version_str_full();
   static QString build_timestamp();
+  static QString build_year();
   static QString target_platform();
   static QString target_abi();
 
