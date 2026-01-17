@@ -18,7 +18,7 @@
 #include "../utils.hpp"
 #include "sim3/api/traced/trace_buffer.hpp"
 #include "sim3/api/traced/trace_frame.hpp"
-#include "utils/bits/copy.hpp"
+#include "bts/bitmanip/copy.hpp"
 namespace sim::trace2 {
 
 template <typename T>
@@ -58,7 +58,7 @@ public:
     copy.length = _length;
     _out = copy;
   }
-  void operator()(const auto &header){};
+  void operator()(const auto &) {};
 
 private:
   quint16 _length = 0;
@@ -67,7 +67,7 @@ private:
 
 struct GetFrameLength {
   template <HasLength Header> quint16 operator()(const Header &header) const { return header.length; }
-  quint16 operator()(const auto &header) const { return 0; };
+  quint16 operator()(const auto &) const { return 0; };
 };
 
 template <typename T>
@@ -82,7 +82,7 @@ public:
     copy.back_offset = _back_offset;
     _out = copy;
   }
-  void operator()(const auto &header){};
+  void operator()(const auto &) {};
 
 private:
   quint16 _back_offset = 0;
@@ -91,6 +91,6 @@ private:
 
 struct GetFrameBackOffset {
   template <HasBackOffset Header> quint16 operator()(const Header &header) const { return header.back_offset; }
-  quint16 operator()(const auto &header) const { return 0; };
+  quint16 operator()(const auto &) const { return 0; };
 };
 } // namespace sim::trace2

@@ -32,7 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #include "./notraced_cpu.hpp"
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 
 namespace riscv {
 template <AddressType address_t>

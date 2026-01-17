@@ -22,7 +22,7 @@
 #include "sim3/api/traced/memory_path.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
-#include "utils/bits/mask.hpp"
+#include "bts/bitmanip/mask.hpp"
 namespace sim::trace2 {
 template <typename T> using Interval = sim::api2::memory::Interval<T>;
 
@@ -243,7 +243,7 @@ template <typename Address> class TranslatingModifiedAddressSink : public Modifi
 public:
   TranslatingModifiedAddressSink(QSharedPointer<const api2::Paths> paths,
                                  const api2::memory::Translator<Address> *translator)
-      : ModifiedAddressSink<Address>(), _paths(paths), _translator(translator) {}
+      : ModifiedAddressSink<Address>(), _translator(translator), _paths(paths) {}
 
 protected:
   using path_t = api2::packet::path_t;

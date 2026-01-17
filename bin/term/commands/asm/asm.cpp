@@ -17,7 +17,7 @@
 #include <iostream>
 #include "../../basic_lazy_sink.hpp"
 #include "../../shared.hpp"
-#include "enums/isa/pep10.hpp"
+#include "bts/isa/pep10.hpp"
 #include "help/builtins/figure.hpp"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "toolchain/helpers/asmb.hpp"

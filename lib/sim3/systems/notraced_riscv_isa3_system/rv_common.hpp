@@ -35,7 +35,7 @@
 
 #include <memory>
 #include <type_traits>
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #include "sim3/utils/function.hpp"
 
 #if __has_include(<span>)

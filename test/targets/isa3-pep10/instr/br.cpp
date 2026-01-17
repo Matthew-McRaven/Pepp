@@ -20,7 +20,7 @@
 #include "./api.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
-#include "utils/bits/swap.hpp"
+#include "bts/bitmanip/swap.hpp"
 
 namespace {
 typedef bool (*should_branch)(bool n, bool z, bool v, bool c);

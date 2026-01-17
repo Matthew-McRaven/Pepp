@@ -33,7 +33,7 @@
  */
 #pragma once
 #include "../../rsp_server.hpp"
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif

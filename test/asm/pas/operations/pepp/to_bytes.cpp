@@ -19,7 +19,7 @@
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/operations/pepp/assign_addr.hpp"
 #include "toolchain/pas/operations/pepp/bytes.hpp"
-#include "enums/isa/pep10.hpp"
+#include "bts/isa/pep10.hpp"
 
 using M = isa::Pep10::Mnemonic;
 TEST_CASE("To bytes", "[scope:asm][kind:unit][arch:pep10]") {

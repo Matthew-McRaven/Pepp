@@ -1,6 +1,6 @@
 #include <catch.hpp>
 #include <vector>
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #include "sim3/alloc/arena.hpp"
 
 static const uintptr_t BEGIN = 0x1000000;

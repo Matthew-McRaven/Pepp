@@ -16,7 +16,7 @@
 
 #include "./traced_pep10_isa3.hpp"
 #include "traced_helpers.hpp"
-#include "utils/bits/swap.hpp"
+#include "bts/bitmanip/swap.hpp"
 
 namespace {
 sim::api2::memory::Operation rw_d = {

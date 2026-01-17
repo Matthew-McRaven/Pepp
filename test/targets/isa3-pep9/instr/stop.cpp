@@ -20,7 +20,7 @@
 #include "./api.hpp"
 #include "sim3/subsystems/ram/broadcast/mmo.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
-#include "utils/bits/swap.hpp"
+#include "bts/bitmanip/swap.hpp"
 
 namespace {
 void inner(isa::Pep9::Mnemonic op) {

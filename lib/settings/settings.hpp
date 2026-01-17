@@ -15,7 +15,8 @@
  */
 #include <QObject>
 #include <QtQmlIntegration>
-#include "enums/constants.hpp"
+#include "bts/architectures.hpp"
+#include "bts/levels.hpp"
 #include "palette.hpp"
 
 class QJSEngine;

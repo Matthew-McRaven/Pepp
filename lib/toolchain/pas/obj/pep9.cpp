@@ -19,9 +19,9 @@
 #include "./common.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/operations/pepp/gather_ios.hpp"
-#include "enums/isa/pep9.hpp"
+#include "bts/isa/pep9.hpp"
 #include "toolchain/link/mmio.hpp"
-#include "utils/bits/copy.hpp"
+#include "bts/bitmanip/copy.hpp"
 
 namespace {
 void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix, bool isOS) {

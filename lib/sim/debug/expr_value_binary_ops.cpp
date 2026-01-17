@@ -21,7 +21,7 @@ struct BinaryUnimplmenetedVisitor {
 
 struct BinaryTypecastVisitor {
   const types::TypeInfo &info;
-  Value operator()(const VNever &from, const auto &to) const { return VNever{}; }
+  Value operator()(const VNever &, const auto &) const { return VNever{}; }
   Value operator()(const VPrimitive &from, const types::Primitive &to) const {
     if (from.primitive == to.primitive) return from;
     return VPrimitive::from(to.primitive, from.bits);
@@ -52,7 +52,7 @@ struct BinaryTypecastVisitor {
 
 template <typename Op> struct BinaryArithVisitor {
   const types::TypeInfo &info;
-  Value operator()(const VNever &lhs, const auto &rhs) const { return VNever{}; }
+  Value operator()(const VNever &, const auto &) const { return VNever{}; }
   Value operator()(const VPrimitive &lhs, const VPrimitive &rhs) const {
     if (lhs.primitive == rhs.primitive) return VPrimitive::with_bits(lhs, Op{}(lhs.bits, rhs.bits));
     auto common = types::common_type(lhs.primitive, rhs.primitive);
@@ -63,14 +63,14 @@ template <typename Op> struct BinaryArithVisitor {
 
 struct BinaryPlusVisitor : public BinaryArithVisitor<std::plus<uint64_t>> {
   using BinaryArithVisitor<std::plus<uint64_t>>::operator();
-  Value operator()(const VPointer &lhs, const VPrimitive &rhs) const { return VNever{}; }
-  Value operator()(const VArray &lhs, const VPrimitive &rhs) const { return VNever{}; }
+  Value operator()(const VPointer &, const VPrimitive &) const { return VNever{}; }
+  Value operator()(const VArray &, const VPrimitive &) const { return VNever{}; }
 };
 
 struct BinaryMinusVisitor : public BinaryArithVisitor<std::minus<uint64_t>> {
   using BinaryArithVisitor<std::minus<uint64_t>>::operator();
-  Value operator()(const VPointer &lhs, const VPrimitive &rhs) const { return VNever{}; }
-  Value operator()(const VArray &lhs, const VPrimitive &rhs) const { return VNever{}; }
+  Value operator()(const VPointer &, const VPrimitive &) const { return VNever{}; }
+  Value operator()(const VArray &, const VPrimitive &) const { return VNever{}; }
 };
 
 struct BinaryTimesVisitor : public BinaryArithVisitor<std::multiplies<uint64_t>> {

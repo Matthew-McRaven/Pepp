@@ -19,7 +19,7 @@
 #include "./common.hpp"
 #include "./pepp.hpp"
 #include "toolchain/symbol/table.hpp"
-#include "enums/isa/pep9.hpp"
+#include "bts/isa/pep9.hpp"
 #include "toolchain/macro/registry.hpp"
 
 namespace pas::driver::pep9 {

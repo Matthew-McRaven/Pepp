@@ -32,8 +32,8 @@
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/obj/pep10.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
-#include "utils/bits/strings.hpp"
-#include "utils/bits/swap.hpp"
+#include "bts/bitmanip/strings.hpp"
+#include "bts/bitmanip/swap.hpp"
 
 namespace {
 static const auto lf = QRegularExpression("\r");

@@ -19,7 +19,7 @@
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
 #include "sim3/trace/packet_utils.hpp"
-#include "utils/bits/copy.hpp"
+#include "bts/bitmanip/copy.hpp"
 
 namespace sim::memory {
 template <typename Address>
@@ -107,6 +107,7 @@ bool Input<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Dire
   else if (std::holds_alternative<api2::packet::header::ImpureRead>(header)) {
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::ImpureRead>(header);
+    (void)hdr;
     // read() consumes a value via next_value(), which unread will undo.
     if (direction == api2::trace::Direction::Reverse) _endpoint->unread();
     // Forward direction
@@ -155,7 +156,7 @@ api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> de
 }
 
 template <typename Address>
-api2::memory::Result Input<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op) {
+api2::memory::Result Input<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation) {
   using E = api2::memory::Error;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));

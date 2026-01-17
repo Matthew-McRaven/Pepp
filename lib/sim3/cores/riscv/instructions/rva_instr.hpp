@@ -34,7 +34,7 @@
 #pragma once
 
 #include <cstdint>
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 
 extern const riscv::Instruction<uint32_t> instr32i_AMOADD_W;
 extern const riscv::Instruction<uint32_t> instr32i_AMOXOR_W;

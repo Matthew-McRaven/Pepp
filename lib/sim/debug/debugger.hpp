@@ -88,7 +88,7 @@ private:
   ScopedLines2Addresses *_lines2address = nullptr;
 };
 
-class Environment;
+struct Environment;
 class Debugger {
 public:
   explicit Debugger(pepp::debug::Environment *env);

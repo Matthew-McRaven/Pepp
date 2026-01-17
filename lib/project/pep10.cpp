@@ -17,7 +17,7 @@
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
 #include "cpu/formats.hpp"
-#include "enums/isa/pep10.hpp"
+#include "bts/isa/pep10.hpp"
 #include "help/builtins/figure.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
@@ -33,7 +33,7 @@
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/pas/obj/common.hpp"
 #include "toolchain/pas/operations/pepp/bytes.hpp"
-#include "utils/bits/strings.hpp"
+#include "bts/bitmanip/strings.hpp"
 #include "utils/logging.hpp"
 #include "utils/strings.hpp"
 
@@ -479,7 +479,6 @@ uint16_t Pep_ISA::read_mem_u16(uint32_t address) const {
 }
 
 pepp::debug::Value Pep_ISA::evaluate_variable(QStringView name) const {
-  using T = pepp::debug::types::Primitives;
   return pepp::debug::VPrimitive::from_int((int16_t)name.length());
 }
 
@@ -493,7 +492,6 @@ uint32_t Pep_ISA::cache_debug_variable_name(QStringView name) const {
 }
 
 pepp::debug::Value Pep_ISA::evaluate_debug_variable(uint32_t cache_id) const {
-  using T = pepp::debug::types::Primitives;
   using DV = Pep_ISA::DebugVariables;
   if (_system == nullptr) return pepp::debug::VPrimitive::from_int((int16_t)0);
   uint16_t reg16;

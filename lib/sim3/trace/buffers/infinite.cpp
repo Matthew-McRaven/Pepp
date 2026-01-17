@@ -20,7 +20,7 @@
 
 using Fragment = sim::api2::trace::Fragment;
 
-sim::trace2::InfiniteBuffer::InfiniteBuffer() : _in(_data), _out(_data), _backlinks(256) {}
+sim::trace2::InfiniteBuffer::InfiniteBuffer() : _in(_data), _backlinks(256), _out(_data) {}
 
 bool sim::trace2::InfiniteBuffer::trace(sim::api2::device::ID deviceID, bool enabled) {
   if (enabled) _sinks.insert(deviceID);

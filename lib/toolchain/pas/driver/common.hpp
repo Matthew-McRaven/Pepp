@@ -79,6 +79,7 @@ template <typename Stage> struct Target {
 
 template <typename stage> class Transform {
 public:
+  virtual ~Transform() = default;
   virtual bool operator()(QSharedPointer<Globals>, QSharedPointer<Target<stage>>) = 0;
   virtual stage toStage() = 0;
   virtual bool hadNonASTErrors() { return false; }

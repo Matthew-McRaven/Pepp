@@ -18,8 +18,8 @@
 #include <QAbstractItemModel>
 #include <QtQmlIntegration>
 #include <qsortfilterproxymodel.h>
-#include "enums/constants.hpp"
-
+#include "bts/architectures.hpp"
+#include "bts/levels.hpp"
 namespace builtins {
 class Registry;
 }

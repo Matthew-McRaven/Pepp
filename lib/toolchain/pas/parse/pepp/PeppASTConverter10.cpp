@@ -19,8 +19,8 @@
 #include "toolchain/pas/ast/value/symbolic.hpp"
 #include "toolchain/pas/errors.hpp"
 #include "toolchain/symbol/table.hpp"
-#include "utils/bits/strings.hpp"
-#include "enums/isa/pep10.hpp"
+#include "bts/bitmanip/strings.hpp"
+#include "bts/isa/pep10.hpp"
 
 using namespace pas::ast;
 namespace {

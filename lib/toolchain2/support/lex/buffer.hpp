@@ -1,6 +1,6 @@
 #pragma once
 #include "./tokens.hpp"
-#include "utils/bits/span.hpp"
+#include "bts/bitmanip/span.hpp"
 
 namespace pepp::tc::lex {
 

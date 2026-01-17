@@ -36,12 +36,12 @@
 #include <stdexcept>
 #include "../notraced_cpu.hpp"
 #include "./threaded_bytecodes.hpp"
-#include "enums/isa/rv_base.hpp"
-#include "enums/isa/rv_types.hpp"
-#include "enums/isa/rvc.hpp"
-#include "enums/isa/rvfd.hpp"
-#include "enums/isa/rvi.hpp"
-#include "enums/isa/rvv.hpp"
+#include "bts/isa/rv_base.hpp"
+#include "bts/isa/rv_types.hpp"
+#include "bts/isa/rvc.hpp"
+#include "bts/isa/rvfd.hpp"
+#include "bts/isa/rvi.hpp"
+#include "bts/isa/rvv.hpp"
 #include "sim3/common_macros.hpp"
 
 namespace riscv

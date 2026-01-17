@@ -18,14 +18,15 @@
 #include <QQmlEngine>
 #include <QStringListModel>
 #include <qabstractitemmodel.h>
-#include "sim3/systems/traced_pep_isa3_system.hpp"
 #include "aproject.hpp"
+#include "bts/architectures.hpp"
+#include "bts/levels.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "debug/debugger.hpp"
-#include "enums/constants.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "sim/debug/watchexpressionmodel.hpp"
+#include "sim3/systems/traced_pep_isa3_system.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/symtab/symbolmodel.hpp"

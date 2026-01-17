@@ -33,7 +33,7 @@
  */
 
 #include "../sysprint.hpp"
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 namespace riscv {
 template <AddressType address_t>

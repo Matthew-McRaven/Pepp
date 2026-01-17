@@ -18,7 +18,7 @@
 #include "../utils.hpp"
 #include "sim3/api/traced/trace_buffer.hpp"
 #include "sim3/api/traced/trace_packets.hpp"
-#include "utils/bits/copy.hpp"
+#include "bts/bitmanip/copy.hpp"
 namespace sim::trace2 {
 
 template <typename T>
@@ -36,12 +36,12 @@ concept NotPacketPayload =
     !is_variant_member<T, sim::api2::packet::Payload>::value || std::is_same<T, std::monostate>::value;
 
 struct IsPacketHeader {
-  template <PacketHeader T> bool operator()(const T &hdr) { return true; }
-  template <NotPacketHeader T> bool operator()(const T &hdr) { return false; }
+  template <PacketHeader T> bool operator()(const T &) { return true; }
+  template <NotPacketHeader T> bool operator()(const T &) { return false; }
 };
 struct AsPacketHeader {
   template <PacketHeader T> api2::packet::Header operator()(const T &hdr) { return hdr; }
-  template <NotPacketHeader T> api2::packet::Header operator()(const T &hdr) { return {}; }
+  template <NotPacketHeader T> api2::packet::Header operator()(const T &) { return {}; }
 };
 
 struct IsPacketPayload {
@@ -67,7 +67,7 @@ class IsSameDevice {
 public:
   IsSameDevice(sim::api2::device::ID device) : _device(device){};
   template <HasDevice Header> bool operator()(const Header &header) const { return header.device == _device; };
-  bool operator()(const auto &header) const { return false; }
+  bool operator()(const auto &) const { return false; }
 
 private:
   sim::api2::device::ID _device;
@@ -90,7 +90,7 @@ public:
   template <HasAddress Header> std::optional<T> operator()(const Header &header) const {
     return std::make_optional<T>(header.address.template to_address<T>());
   };
-  std::optional<T> operator()(const auto &header) const { return std::nullopt; }
+  std::optional<T> operator()(const auto &) const { return std::nullopt; }
 };
 
 class GetAddressBytes {
@@ -99,7 +99,7 @@ public:
   template <HasAddress Header> std::optional<Bytes> operator()(const Header &header) const {
     return std::make_optional<Bytes>(header.address);
   };
-  std::optional<Bytes> operator()(const auto &header) const { return std::nullopt; }
+  std::optional<Bytes> operator()(const auto &) const { return std::nullopt; }
 };
 
 class GetHeaderPath {
@@ -108,7 +108,7 @@ public:
   std::optional<api2::packet::path_t> operator()(const Header &header) const {
     return header.path;
   };
-  std::optional<api2::packet::path_t> operator()(const auto &header) const { return std::nullopt; }
+  std::optional<api2::packet::path_t> operator()(const auto &) const { return std::nullopt; }
 };
 
 class GetHeaderID {
@@ -116,7 +116,7 @@ public:
   template <HasDevice Header> std::optional<api2::device::ID> operator()(const Header &header) const {
     return header.device;
   };
-  std::optional<api2::device::ID> operator()(const auto &header) const { return 0; }
+  std::optional<api2::device::ID> operator()(const auto &) const { return 0; }
 };
 
 // Return the number of bytes in all payloads following a packet header.
@@ -128,9 +128,8 @@ public:
   ;
   std::size_t operator()(const sim::api2::packet::header::PureRead &header) const;
   std::size_t operator()(const sim::api2::packet::header::Clear &header) const;
-  template <typename Header> std::size_t operator()(const Header &header) const {
+  template <typename Header> std::size_t operator()(const Header &) const {
     std::size_t acc = 0;
-    sim::api2::packet::Payload vb;
     for (auto it = _iter.cbegin(); it != _iter.cend(); ++it) acc += payload_length(*it);
     return acc;
   }
@@ -143,7 +142,7 @@ private:
 // Return the number of bytes in a single payload.
 struct PayloadLength {
   std::size_t operator()(const sim::api2::packet::payload::Variable &p) const { return p.payload.len; }
-  template <typename T> std::size_t operator()(const T &p) const { return 0; }
+  template <typename T> std::size_t operator()(const T &) const { return 0; }
 };
 } // namespace detail
 

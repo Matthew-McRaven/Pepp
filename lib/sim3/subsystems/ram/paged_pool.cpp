@@ -37,7 +37,7 @@
 #include "./paged_pool/memory_mmap.hpp"
 #include "./paged_pool/memory_rw.hpp"
 #include "./paged_pool/page.hpp"
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/cores/riscv/decode/decoder_cache.hpp"
 

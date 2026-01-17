@@ -33,7 +33,7 @@
  */
 #pragma once
 #include <stdexcept>
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #include "sim3/alloc/arena.hpp" // arena()
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 

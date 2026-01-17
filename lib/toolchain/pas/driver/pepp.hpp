@@ -25,15 +25,15 @@
 #include <functional>
 
 namespace isa {
-class Pep10;
-class Pep9;
+struct Pep10;
+struct Pep9;
 } // namespace isa
 
 namespace pas::driver::pepp {
 namespace detail {
 template <typename ParserTag, typename ISA>
 struct Helper {
-    driver::ParseResult operator()(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd){return {};};
+  driver::ParseResult operator()(const std::string &, QSharedPointer<ast::Node>, bool) { return {}; };
 };
 
 driver::ParseResult antlr4_pep10(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd);

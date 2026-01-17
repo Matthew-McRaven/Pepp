@@ -19,7 +19,7 @@
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
 #include "sim3/trace/packet_utils.hpp"
-#include "utils/bits/copy.hpp"
+#include "bts/bitmanip/copy.hpp"
 
 namespace sim::memory {
 template <typename Address>
@@ -102,6 +102,7 @@ bool Output<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Dir
   else if (std::holds_alternative<api2::packet::header::Write>(header)) {
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::Write>(header);
+    (void)hdr;
     if (direction == api2::trace::Direction::Reverse) _endpoint->unwrite();
     // Forward direction
     // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.

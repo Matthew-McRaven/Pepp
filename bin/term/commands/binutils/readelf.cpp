@@ -20,8 +20,8 @@
 #include <iostream>
 #include "toolchain/pas/obj/common.hpp"
 #include "toolchain/pas/obj/trace_tags.hpp"
-#include "utils/bits/span.hpp"
-#include "utils/bits/strings.hpp"
+#include "bts/bitmanip/span.hpp"
+#include "bts/bitmanip/strings.hpp"
 
 ReadElfTask::ReadElfTask(Options &opts, QObject *parent) : Task(parent), _opts(opts) {}
 

@@ -246,7 +246,7 @@ QString isa::Pep9::describeMnemonicUsingPlaceholders(Mnemonic mnemonic) {
   case detail::pep9::Mnemonic::STWX: return "Store word r to memory";
   case detail::pep9::Mnemonic::STBA: [[fallthrough]];
   case detail::pep9::Mnemonic::STBX: return "Store byte r<8..15> to memory";
-  case detail::pep9::Mnemonic::INVALID: return "Illegal instruction";
+  default: return "Illegal instruction";
   }
 }
 

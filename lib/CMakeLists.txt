@@ -79,7 +79,7 @@ target_include_directories(
           helpers
           help/about
           help/builtins
-          enums/isa
+          bts/isa
           toolchain/link
           toolchain/macro
           memory

@@ -1,7 +1,7 @@
 #pragma once
 #include <QString>
 #include "./pep_common.hpp"
-#include "utils/bits/span.hpp"
+#include "bts/bitmanip/span.hpp"
 
 namespace pepp::tc {
 namespace lex {

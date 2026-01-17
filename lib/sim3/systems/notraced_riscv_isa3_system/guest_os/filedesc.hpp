@@ -35,7 +35,7 @@
 #include <functional>
 #include <map>
 #include <string>
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 
 #if defined(__APPLE__) || defined(__LINUX__)
 #include <errno.h>

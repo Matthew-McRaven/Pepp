@@ -17,7 +17,7 @@
 #include "traced_pep9_isa3.hpp"
 #include "sim3/subsystems/ram/broadcast/mmo.hpp"
 #include "traced_helpers.hpp"
-#include "utils/bits/swap.hpp"
+#include "bts/bitmanip/swap.hpp"
 
 namespace {
 sim::api2::memory::Operation rw_d = {

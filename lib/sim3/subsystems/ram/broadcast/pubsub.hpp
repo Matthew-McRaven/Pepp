@@ -124,7 +124,8 @@ public:
   };
 
 protected:
-  struct Event {
+  class Event {
+  public:
     // You should not instantiate this class directly. Rather, you should create
     // one through Channel::append_value(). append_value() will ensure that
     // class invariants are mantained. Events are always appended to the end of

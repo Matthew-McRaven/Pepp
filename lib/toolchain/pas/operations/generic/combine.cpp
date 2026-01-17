@@ -23,7 +23,7 @@
 #include "toolchain/pas/operations/generic/is.hpp"
 #include "toolchain/symbol/entry.hpp"
 #include "toolchain/symbol/value.hpp"
-#include "utils/bits/order.hpp"
+#include "bts/bitmanip/order.hpp"
 
 bool pas::ops::generic::detail::isOrgSection(const ast::Node &section) {
   bool accumulator = false;

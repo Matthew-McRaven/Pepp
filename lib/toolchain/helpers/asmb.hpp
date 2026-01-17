@@ -1,10 +1,11 @@
 #pragma once
 #include <elfio/elfio.hpp>
-#include "toolchain/pas/ast/node.hpp"
-#include "enums/constants.hpp"
+#include "bts/architectures.hpp"
+#include "bts/levels.hpp"
 #include "help/builtins/book.hpp"
-#include "toolchain/macro/registry.hpp"
 #include "sim/debug/line_map.hpp"
+#include "toolchain/macro/registry.hpp"
+#include "toolchain/pas/ast/node.hpp"
 
 namespace helpers {
 void addMacro(macro::Registry &registry, std::string directory, QString arch);

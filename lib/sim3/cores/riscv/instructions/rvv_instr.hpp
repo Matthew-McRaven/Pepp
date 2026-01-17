@@ -32,7 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 
 extern const riscv::Instruction<uint32_t> instr32i_VSETVLI;
 extern const riscv::Instruction<uint32_t> instr32i_VSETIVLI;

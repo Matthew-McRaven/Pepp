@@ -20,8 +20,8 @@
 #include <stdexcept>
 #include "sim3/api/memory_access.hpp"
 #include "sim3/api/traced/memory_target.hpp"
-#include "utils/bits/order.hpp"
-#include "utils/bits/swap.hpp"
+#include "bts/bitmanip/order.hpp"
+#include "bts/bitmanip/swap.hpp"
 
 namespace targets::isa {
 class IllegalOpcode : public std::runtime_error {

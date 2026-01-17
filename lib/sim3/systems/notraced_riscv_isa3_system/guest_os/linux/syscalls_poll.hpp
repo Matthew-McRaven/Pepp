@@ -42,7 +42,7 @@
 #endif
 
 #include <poll.h>
-#include "enums/isa/rv_types.hpp"
+#include "bts/isa/rv_types.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 
 int poll_with_timeout(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts) {

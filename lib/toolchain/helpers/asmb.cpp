@@ -1,7 +1,7 @@
 #include "asmb.hpp"
 #include <iostream>
 #include <sstream>
-#include "enums/isa/pep10.hpp"
+#include "bts/isa/pep10.hpp"
 #include "help/builtins/registry.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/pas/ast/generic/attr_keeepalive.hpp"

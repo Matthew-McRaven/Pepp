@@ -1,9 +1,9 @@
 #include "expr_value.hpp"
 #include <stdexcept>
 
-std::strong_ordering pepp::debug::VNever::operator<=>(const VNever &other) const { return std::strong_ordering::equal; }
+std::strong_ordering pepp::debug::VNever::operator<=>(const VNever &) const { return std::strong_ordering::equal; }
 
-bool pepp::debug::VNever::operator==(const VNever &other) const { return true; }
+bool pepp::debug::VNever::operator==(const VNever &) const { return true; }
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::with_bits(const VPrimitive &type, quint64 new_value) {
   using enum pepp::debug::types::Primitives;
@@ -21,7 +21,7 @@ pepp::debug::VPrimitive pepp::debug::VPrimitive::with_bits(const VPrimitive &typ
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::promote(const VPrimitive &value, types::Primitives new_type) {
   using enum pepp::debug::types::Primitives;
-  auto hnd = types::TypeInfo::DirectHandle(new_type);
+  // auto hnd = types::TypeInfo::DirectHandle(new_type);
   if (new_type == value.primitive) return value;
   return from(new_type, value.bits);
 }
@@ -107,7 +107,7 @@ struct OrderingVisitor {
 
 struct VariantFromBitsVisitor {
   const types::TypeInfo *info = nullptr;
-  QVariant operator()(const VNever &v) const { return QVariant::fromValue((int8_t)0); }
+  QVariant operator()(const VNever &) const { return QVariant::fromValue((int8_t)0); }
   QVariant operator()(const VPrimitive &v) const {
     using enum types::Primitives;
     switch (v.primitive) {
@@ -160,12 +160,12 @@ struct VariantFromBitsVisitor {
 };
 struct ValueFromBitsVisitor {
   quint64 bits;
-  pepp::debug::Value operator()(const types::Never &type) const { return VNever{}; }
+  pepp::debug::Value operator()(const types::Never &) const { return VNever{}; }
   pepp::debug::Value operator()(const types::Primitive &type) const { return VPrimitive::from(type.primitive, bits); }
   // TODO: these actually need RTTI
-  pepp::debug::Value operator()(const types::Pointer &v) const { return VNever{}; }
-  pepp::debug::Value operator()(const types::Array &v) const { return VNever{}; }
-  pepp::debug::Value operator()(const types::Struct &v) const { return VNever{}; }
+  pepp::debug::Value operator()(const types::Pointer &) const { return VNever{}; }
+  pepp::debug::Value operator()(const types::Array &) const { return VNever{}; }
+  pepp::debug::Value operator()(const types::Struct &) const { return VNever{}; }
 };
 } // namespace detail
 std::strong_ordering pepp::debug::operator<=>(const Value &lhs, const Value &rhs) {
