@@ -3,7 +3,7 @@
   "type": "figure",
   "name": "12:05",
   "arch": "pep10",
-  "abstraction": "MC2",
+  "abstraction": "MA2",
   "tests": [
     "test0"
   ],

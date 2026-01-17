@@ -35,7 +35,7 @@ public:
   enum class Abstraction {
     NO_ABS = -1,
     // LG1 = 1,
-    MC2 = 20,
+    MA2 = 20,
     ISA3 = 30,
     ASMB3 = 31,
     OS4 = 40,

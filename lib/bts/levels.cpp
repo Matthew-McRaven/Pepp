@@ -7,7 +7,7 @@ QString pepp::AbstractionHelper::string(Abstraction abstraction) const {
 }
 QString pepp::abstractionAsPrettyString(AbstractionHelper::Abstraction abstraction) {
   switch (abstraction) {
-  case AbstractionHelper::Abstraction::MC2: return "Mc2";
+  case AbstractionHelper::Abstraction::MA2: return "MA2";
   case AbstractionHelper::Abstraction::ISA3: return "ISA3";
   case AbstractionHelper::Abstraction::ASMB3: return "Asmb3";
   case AbstractionHelper::Abstraction::OS4: return "OS4";

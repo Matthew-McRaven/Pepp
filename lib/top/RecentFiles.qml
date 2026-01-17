@@ -126,8 +126,8 @@ Item {
 
                 function abstractText(value) {
                     switch (value) {
-                    case Abstraction.MC2:
-                        return "MC2";
+                    case Abstraction.MA2:
+                        return "MA2";
                     case Abstraction.ISA3:
                         return "ISA3";
                     case Abstraction.ASMB3:

@@ -11,7 +11,7 @@ def migrate_figure(type: str, path: str):
         "arch": figure.get("arch"),
     }
     if "abstraction" in figure: out["abstraction"] = figure["abstraction"]
-    elif "ch12" in path: out["abstraction"] = "MC2"
+    elif "ch12" in path: out["abstraction"] = "MA2"
     elif "os" in path: out["abstraction"] = "OS4"
     elif "cs4e" in path and "ch04" in path: out["abstraction"] = "ISA3"
     elif "cs4e" in path and "ch05" in path: out["abstraction"] = "ASMB5"
@@ -58,11 +58,11 @@ def migrate_figure(type: str, path: str):
           pepl, pepo = make_item("pepl", name="pepl"), make_item("pepo", name="pepo")
           add_from_element(pepl, "pep"), add_from_element(pepo, "pep")
           out["items"].extend([pepl, pepo])
-    elif out["abstraction"] == "MC2":
+    elif out["abstraction"] == "MA2":
         out["items"]=[]
         for format in figure.get("items", []):
             el = make_item(format, name=format)
-            if format == "MC2": el["copy"] ="microcode"
+            if format == "MA2": el["copy"] ="microcode"
             add_from_file(el, figure["items"][format])
             out["items"].append(el)
     else:
