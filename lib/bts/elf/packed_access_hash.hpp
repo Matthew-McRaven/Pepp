@@ -223,18 +223,17 @@ PackedGNUHashedSymbolAccessor<B, E, Const>::PackedGNUHashedSymbolAccessor(Shdr &
 
 template <ElfBits B, ElfEndian E, bool Const>
 u32 PackedGNUHashedSymbolAccessor<B, E, Const>::find_hashed_symbol(std::string_view name) const noexcept {
-  using ElfSymbol = PackedElfSymbol<B, E>;
-
+  static constexpr u32 WordBits = 8u * sizeof(Word<B, E>);
   const u32 bloom_size = this->maskwords();
   const u32 bloom_shift = this->mshift2();
   const auto nbuckets = this->nbuckets();
   const auto bloom_filter = this->bloom();
   u32 hash = gnu_elf_hash(name);
-  u32 bloom_index = (hash / (8 * sizeof(ElfSymbol))) % bloom_size;
-  Word<B, E> bloom_bits = ((Word<B, E>)1 << (hash % (8 * sizeof(Word<B, E>)))) |
-                          ((Word<B, E>)1 << ((hash >> bloom_shift) % (8 * sizeof(Word<B, E>))));
-
-  if (Word<B, E>{bloom_filter[bloom_index]} & bloom_bits != bloom_bits) return 0;
+  u32 bloom_index = (hash / WordBits) % bloom_size;
+  word<B> bloom_bits = ((word<B>)1 << (hash % (WordBits))) | ((word<B>)1 << ((hash >> bloom_shift) % (WordBits)));
+  word<B> stored_bits = bloom_filter[bloom_index];
+  auto combined = stored_bits & bloom_bits;
+  if (combined != bloom_bits) return 0;
 
   u32 bucket = hash % nbuckets;
   const u32 symoffset = this->symndx();
@@ -303,7 +302,7 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
   // Set 2 bits per symbol at the same array index. The array index is a function of the hash.
   // If either bit is 0, the symbol is definitely not present. When both are 1, we need to resort to crawling the chain.
   std::vector<word<B>> bloom_filter(maskwords, 0);
-  constexpr std::uint32_t WordBits = 8u * sizeof(word<B>);
+  constexpr u32 WordBits = 8u * sizeof(word<B>);
   for (u32 i = 0; i < hashed_count; ++i) {
     const word<B> H1 = H[i], H2 = (H1 >> shift2);
     const word<B> N = ((H1 / WordBits) & maskwords_bitmask);
