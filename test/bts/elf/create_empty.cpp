@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2026 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -13,6 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
 #include <functional>
