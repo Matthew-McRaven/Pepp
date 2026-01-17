@@ -209,3 +209,8 @@ Fixed,,0.13.0,985,"In terminal application, output error and warning messages to
 Fixed,,0.13.0,984,"In terminal application, fix a CTD when executing illegal opcodes"
 Fixed,,0.13.1,994,"Fix CTD when executing illegal opcodes in GUI application, introduced in #984"
 Added,Major,0.14.0,1003,"Add RISC-V instruction set simulator"
+Fixed,,0.14.1,1012,"Fixed decoding of RISC-V 64-bit compressed instruction `C.SD`"
+Added,,0.14.1,1013,"Add `-r,--relocs` flag to readelf CLI utility"
+Fixed,,0.14.1,1016,"Allow reorganizing panes in all project tabs"
+Changed,Major,0.14.1,1018,"Rename Microcode 2 (Mc2) level of abstraction to Microarchitecture 2 (MA2) for 6th edition"
+Fixed,,0.14.1,1019,"Fix CTD for Pep/8 and Pep/9 assembler projects"
