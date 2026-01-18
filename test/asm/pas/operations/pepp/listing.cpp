@@ -19,7 +19,7 @@
 #include "toolchain/pas/operations/pepp/addressable.hpp"
 #include "toolchain/pas/operations/pepp/assign_addr.hpp"
 #include "toolchain/pas/operations/pepp/string.hpp"
-#include "bts/isa/pep10.hpp"
+#include "bts/isa/pep/pep10.hpp"
 
 TEST_CASE("Format Pepp listing", "[scope:asm][kind:unit][arch:pep10]") {
   auto [name, source, listing] = GENERATE(table<QString, QString, QStringList>({

@@ -1,6 +1,6 @@
 #include <catch.hpp>
 #include <cstdint>
-#include "bts/isa/rvc.hpp"
+#include "../../../lib/bts/isa/riscv/rvc.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 
 #include "sim3/systems/notraced_riscv_isa3_system/debug.hpp"

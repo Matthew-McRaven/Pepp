@@ -34,14 +34,14 @@
 #pragma once
 #include <memory>
 #include <stdexcept>
+#include "../../../../bts/isa/riscv/rv_base.hpp"
+#include "../../../../bts/isa/riscv/rv_types.hpp"
+#include "../../../../bts/isa/riscv/rvfd.hpp"
+#include "../../../../bts/isa/riscv/rvv.hpp"
 #include "../notraced_cpu.hpp"
 #include "./threaded_bytecodes.hpp"
-#include "bts/isa/rv_base.hpp"
-#include "bts/isa/rv_types.hpp"
-#include "bts/isa/rvc.hpp"
-#include "bts/isa/rvfd.hpp"
-#include "bts/isa/rvi.hpp"
-#include "bts/isa/rvv.hpp"
+#include "bts/isa/riscv/rvc.hpp"
+#include "bts/isa/riscv/rvi.hpp"
 #include "sim3/common_macros.hpp"
 
 namespace riscv

@@ -33,8 +33,8 @@
  */
 #include "./registers.hpp"
 #include <stdexcept>
+#include "../../../bts/isa/riscv/rv_base.hpp"
 #include "bts/bitmanip/span.hpp"
-#include "bts/isa/rv_base.hpp"
 
 namespace {
 template <typename... Args>

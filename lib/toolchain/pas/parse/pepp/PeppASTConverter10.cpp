@@ -21,7 +21,7 @@
 #include "toolchain/pas/errors.hpp"
 #include "toolchain/symbol/table.hpp"
 #include "bts/bitmanip/strings.hpp"
-#include "bts/isa/pep10.hpp"
+#include "bts/isa/pep/pep10.hpp"
 
 using namespace pas::ast;
 namespace {

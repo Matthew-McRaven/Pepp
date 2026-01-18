@@ -15,9 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pep10.hpp"
+#include "bts/isa/pep/pep10.hpp"
 #include <QMetaEnum>
-#include "pep_shared.hpp"
+#include "bts/isa/pep/pep_shared.hpp"
 
 isa::Pep10::Mnemonic isa::Pep10::defaultMnemonic() { return Mnemonic::INVALID; }
 

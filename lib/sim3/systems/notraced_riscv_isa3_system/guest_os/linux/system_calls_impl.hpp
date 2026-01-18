@@ -31,7 +31,7 @@
  * along with this program. If not, see
  * <https://opensource.org/license/bsd-3-clause>
  */
-#include "bts/isa/rv_types.hpp"
+#include "bts/isa/riscv/rv_types.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/threads.hpp"

@@ -32,7 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
-#include "bts/isa/rv_types.hpp"
+#include "bts/isa/riscv/rv_types.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/cores/riscv/notraced_cpu.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"

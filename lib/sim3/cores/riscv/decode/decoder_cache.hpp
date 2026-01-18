@@ -36,9 +36,9 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+#include "../../../../bts/isa/riscv/rv_instruction_list.hpp"
+#include "bts/isa/riscv/rv_types.hpp"
 #include "decoded_exec_segment.hpp"
-#include "bts/isa/rv_instruction_list.hpp"
-#include "bts/isa/rv_types.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/cores/riscv/instructions/safe_instr_loader.hpp"
 #include "sim3/subsystems/ram/paged_pool.hpp"

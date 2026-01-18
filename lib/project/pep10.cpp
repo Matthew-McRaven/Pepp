@@ -17,7 +17,7 @@
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
 #include "cpu/formats.hpp"
-#include "bts/isa/pep10.hpp"
+#include "bts/isa/pep/pep10.hpp"
 #include "help/builtins/figure.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"

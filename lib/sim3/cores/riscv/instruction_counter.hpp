@@ -32,7 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #include <cstdint>
-#include "bts/isa/rv_types.hpp"
+#include "bts/isa/riscv/rv_types.hpp"
 
 namespace riscv
 {

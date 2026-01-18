@@ -16,12 +16,12 @@
  */
 
 #include "./pep9.hpp"
+#include "../../../bts/isa/pep/pep9.hpp"
 #include "./common.hpp"
+#include "bts/bitmanip/copy.hpp"
+#include "toolchain/link/mmio.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/operations/pepp/gather_ios.hpp"
-#include "bts/isa/pep9.hpp"
-#include "toolchain/link/mmio.hpp"
-#include "bts/bitmanip/copy.hpp"
 
 namespace {
 void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix, bool isOS) {

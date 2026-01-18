@@ -16,7 +16,7 @@
 #include "toolchain/pas/operations/pepp/size.hpp"
 #include <catch.hpp>
 #include "bts/bitmanip/strings.hpp"
-#include "bts/isa/pep10.hpp"
+#include "bts/isa/pep/pep10.hpp"
 #include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/driver/pep10.hpp"

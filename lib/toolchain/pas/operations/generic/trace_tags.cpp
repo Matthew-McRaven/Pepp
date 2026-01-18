@@ -1,7 +1,7 @@
 #include "trace_tags.hpp"
 #include <iterator>
-#include "pep10.hpp"
-#include "pep9.hpp"
+#include "bts/isa/pep/pep10.hpp"
+#include "bts/isa/pep/pep9.hpp"
 #include "toolchain/pas/ast/generic/attr_address.hpp"
 #include "toolchain/pas/ast/generic/attr_comment.hpp"
 #include "toolchain/pas/ast/generic/attr_comment_indent.hpp"
