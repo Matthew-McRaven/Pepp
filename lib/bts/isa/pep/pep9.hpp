@@ -16,7 +16,11 @@
  */
 
 #pragma once
-#include <QtCore>
+#include <array>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include "exports.hpp"
 
 namespace isa::detail::pep9 {
