@@ -108,7 +108,7 @@ void RunTask::run() {
     int reg_val = 0;
     switch (_ed) {
     case 6: {
-      auto regEnu = ::isa::Pep10::parseRegister(QString::fromStdString(reg));
+      auto regEnu = ::isa::Pep10::parseRegister(reg);
       if (regEnu == isa::Pep10::Register::INVALID) {
         static const char *const e = "Invalid register";
         _log.critical(e);

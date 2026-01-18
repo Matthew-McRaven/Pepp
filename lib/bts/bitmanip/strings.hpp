@@ -79,4 +79,24 @@ size_t bytesToAsciiHex(span<char> out, span<const u8> in, bits::span<const Separ
 // Non-printable characters are replaced by a "." / full-stop.
 size_t bytesToPrintableAscii(span<char> out, span<const u8> in, bits::span<const SeparatorRule> separator);
 std::optional<std::vector<u8>> asciiHexToByte(span<const char> in);
+
+inline void to_upper_inplace(std::string &s) {
+  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+}
+
+inline std::string to_upper(const std::string &s) {
+  std::string s_copy = s;
+  to_upper_inplace(s_copy);
+  return s_copy;
+}
+
+inline void to_lower_inplace(std::string &s) {
+  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+}
+
+inline std::string to_lower(const std::string &s) {
+  std::string s_copy = s;
+  to_lower_inplace(s_copy);
+  return s_copy;
+}
 } // namespace bits

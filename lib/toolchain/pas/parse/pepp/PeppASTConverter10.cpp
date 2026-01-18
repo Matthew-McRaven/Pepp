@@ -168,7 +168,7 @@ std::any parse::PeppASTConverter::visitInstructionLine(PeppParser::InstructionLi
 
   // BUG: instr will remain uninitialized if mnemonic is PLACEHOLDER_MACRO and the invalid
   // mnemonic path is removed.
-  ISA::Mnemonic instr = ISA::parseMnemonic(QString::fromStdString(*_lineInfo.identifier));
+  ISA::Mnemonic instr = ISA::parseMnemonic(*_lineInfo.identifier);
   if (instr != ISA::Mnemonic::INVALID) ret->set(pepp::Instruction<isa::Pep10>{instr});
   else return addError(ret, {.severity = S::Fatal, .message = EP::invalidMnemonic});
 
@@ -194,8 +194,7 @@ std::any parse::PeppASTConverter::visitInstructionLine(PeppParser::InstructionLi
   else if (!_lineInfo.addr_mode.has_value())
     ret->set(pepp::AddressingMode<ISA>{.value = ISA::defaultAddressingMode(instr)});
   // Triggered when an instruction is not in the valid addressing mode set, like "p".
-  else if (auto addr = ISA::parseAddressingMode(QString::fromStdString(*_lineInfo.addr_mode));
-           addr == ISA::AddressingMode::INVALID)
+  else if (auto addr = ISA::parseAddressingMode(*_lineInfo.addr_mode); addr == ISA::AddressingMode::INVALID)
     return addError(ret, {.severity = S::Fatal, .message = EP::illegalAddrMode});
   // Triggered when an addressing mode doesn't work with an instruction, like sfx with br, and i with stwa.
   else if ((ISA::isAType(instr) && !ISA::isValidATypeAddressingMode(instr, addr)) ||

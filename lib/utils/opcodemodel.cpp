@@ -61,9 +61,9 @@ void OpcodeModel::appendRow(QString mnemonic, quint8 opcode) {
 
 GreencardModel::GreencardModel(QObject *parent) : QAbstractTableModel(parent) {}
 
-int GreencardModel::columnCount(const QModelIndex &parent) const { return 5; }
+int GreencardModel::columnCount(const QModelIndex &) const { return 5; }
 
-int GreencardModel::rowCount(const QModelIndex &parent) const { return _rows.size(); }
+int GreencardModel::rowCount(const QModelIndex &) const { return _rows.size(); }
 
 QVariant GreencardModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return QVariant();
@@ -84,7 +84,7 @@ QVariant GreencardModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
-QVariant GreencardModel::headerData(int section, Qt::Orientation orientation, int role) const {
+QVariant GreencardModel::headerData(int section, Qt::Orientation, int role) const {
   switch (role) {
   case Qt::DisplayRole:
     switch (section) {
@@ -121,7 +121,7 @@ GreencardModel::Row blank() {
 GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn, QString bits = "") {
   using namespace isa::detail::pep10;
   using enum isa::Pep10::InstructionType;
-  auto mn_str = isa::Pep10::string(mn);
+  auto mn_str = QString::fromStdString(isa::Pep10::string(mn));
   auto type = isa::Pep10::opcodeLUT[static_cast<quint8>(mn)].instr.type;
   // If instruction has register field, replace specific register with r
   if (type == RAAA_all || type == RAAA_noi || type == R_none) mn_str[mn_str.length() - 1] = 'r';
@@ -136,12 +136,12 @@ GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn, QString bits = "") 
   case RAAA_all: addr_modes = "i,d,n,s,sf,x,sx,sfx"; break;
   case RAAA_noi: addr_modes = "d,n,s,sf,x,sx,sfx"; break;
   }
-  auto is_bits = isa::Pep10::instructionSpecifierWithPlaceholders(mn);
+  auto is_bits = QString::fromStdString(isa::Pep10::instructionSpecifierWithPlaceholders(mn));
   return GreencardModel::Row{
       .sort_order = static_cast<quint8>(mn),
       .bit_pattern = is_bits.left(4) + " " + is_bits.right(4),
       .mnemonic = mn_str,
-      .instruction = isa::Pep10::describeMnemonicUsingPlaceholders(mn),
+      .instruction = QString::fromStdString(isa::Pep10::describeMnemonicUsingPlaceholders(mn)),
       .addressing = addr_modes,
       .status_bits = bits,
   };
@@ -150,7 +150,7 @@ GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn, QString bits = "") 
 GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn, QString bits = "") {
   using namespace isa::detail::pep9;
   using enum isa::Pep9::InstructionType;
-  auto mn_str = isa::Pep9::string(mn);
+  auto mn_str = QString::fromStdString(isa::Pep9::string(mn));
   auto type = isa::Pep9::opcodeLUT[static_cast<quint8>(mn)].instr.type;
   // If instruction has register field, replace specific register with r
   if (type == RAAA_all || type == RAAA_noi || type == R_none) mn_str[mn_str.length() - 1] = 'r';
@@ -169,12 +169,12 @@ GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn, QString bits = "") {
   case RAAA_noi: addr_modes = "d,n,s,sf,x,sx,sfx"; break;
   case AAA_stro: addr_modes = "d,n,s,sf,x"; break;
   }
-  auto is_bits = isa::Pep9::instructionSpecifierWithPlaceholders(mn);
+  auto is_bits = QString::fromStdString(isa::Pep9::instructionSpecifierWithPlaceholders(mn));
   return GreencardModel::Row{
       .sort_order = static_cast<quint8>(mn),
       .bit_pattern = is_bits.left(4) + " " + is_bits.right(4),
       .mnemonic = mn_str,
-      .instruction = isa::Pep9::describeMnemonicUsingPlaceholders(mn),
+      .instruction = QString::fromStdString(isa::Pep9::describeMnemonicUsingPlaceholders(mn)),
       .addressing = addr_modes,
       .status_bits = bits,
   };
@@ -313,27 +313,30 @@ bool GreencardFilterModel::hideStatus() const { return _hideStatus; }
 
 void GreencardFilterModel::setHideStatus(bool hide) {
   if (hide == _hideStatus) return;
+  beginFilterChange();
   _hideStatus = hide;
   emit hideStatusChanged();
-  invalidateFilter();
+  endFilterChange();
 }
 
 bool GreencardFilterModel::hideMnemonic() const { return _hideMnemonic; }
 
 void GreencardFilterModel::setHideMnemonic(bool hide) {
   if (hide == _hideMnemonic) return;
+  beginFilterChange();
   _hideMnemonic = hide;
   emit hideMnemonicChanged();
-  invalidateFilter();
+  endFilterChange();
 }
 
 bool GreencardFilterModel::dyadicAddressing() const { return _dyadicAddressing; }
 
 void GreencardFilterModel::setDyadicAddressing(bool simplify) {
   if (simplify == _dyadicAddressing) return;
+  beginFilterChange();
   _dyadicAddressing = simplify;
   emit dyadicAddressingChanged();
-  invalidateFilter();
+  endFilterChange();
 }
 
 QVariant GreencardFilterModel::data(const QModelIndex &index, int role) const {
@@ -352,7 +355,7 @@ QVariant GreencardFilterModel::data(const QModelIndex &index, int role) const {
   } else return d;
 }
 
-bool GreencardFilterModel::filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const {
+bool GreencardFilterModel::filterAcceptsColumn(int source_column, const QModelIndex &) const {
   if (source_column == 1 && _hideMnemonic) return false;
   if (source_column == 4 && _hideStatus) return false;
   return true;

@@ -55,10 +55,10 @@ struct Pep10OpcodeInit {
       // instr.unary indicates if the instruction is hardware-unary (i.e., it could be a nonunary trap SCALL).
       // This is why we test the addressing mode instead, since nonunary traps will have an addressing mode.
       if (op.mode == isa::Pep10::AddressingMode::NONE) {
-        formatted = isa::Pep10::string(op.instr.mnemon).toUpper();
+        formatted = QString::fromStdString(isa::Pep10::string(op.instr.mnemon)).toUpper();
       } else {
-        formatted =
-            u"%1, %2"_s.arg(isa::Pep10::string(op.instr.mnemon).toUpper(), isa::Pep10::string(op.mode).toLower());
+        formatted = u"%1, %2"_s.arg(QString::fromStdString(isa::Pep10::string(op.instr.mnemon)).toUpper(),
+                                    QString::fromStdString(isa::Pep10::string(op.mode)).toLower());
       }
       model->appendRow(formatted, it);
     }
@@ -74,9 +74,10 @@ struct Pep9OpcodeInit {
       // instr.unary indicates if the instruction is hardware-unary (i.e., it could be a nonunary trap SCALL).
       // This is why we test the addressing mode instead, since nonunary traps will have an addressing mode.
       if (op.mode == isa::Pep9::AddressingMode::NONE) {
-        formatted = isa::Pep9::string(op.instr.mnemon).toUpper();
+        formatted = QString::fromStdString(isa::Pep9::string(op.instr.mnemon)).toUpper();
       } else {
-        formatted = u"%1, %2"_s.arg(isa::Pep9::string(op.instr.mnemon).toUpper(), isa::Pep9::string(op.mode).toLower());
+        formatted = u"%1, %2"_s.arg(QString::fromStdString(isa::Pep9::string(op.instr.mnemon)).toUpper(),
+                                    QString::fromStdString(isa::Pep9::string(op.mode)).toLower());
       }
       model->appendRow(formatted, it);
     }

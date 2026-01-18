@@ -15,7 +15,10 @@
  */
 
 #pragma once
-#include <QtCore>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include "exports.hpp"
 
 namespace isa::detail::pep10 {
@@ -234,35 +237,35 @@ struct Pep10 {
   using Register = detail::pep10::Register;
   using CSR = detail::pep10::CSR;
   using MemoryVectors = detail::pep10::MemoryVectors;
-  static constexpr quint8 RegisterCount = 7;
-  static constexpr quint8 CSRCount = 4;
+  static constexpr uint8_t RegisterCount = 7;
+  static constexpr uint8_t CSRCount = 4;
 
-  static QStringList mnemonics();
+  static std::vector<std::string> const &mnemonics();
   static Mnemonic defaultMnemonic();
   static AddressingMode defaultAddressingMode();
   static AddressingMode defaultAddressingMode(Mnemonic mnemonic);
-  static quint8 opcode(Mnemonic mnemonic);
-  static quint8 opcode(Mnemonic mnemonic, AddressingMode addr);
-  static AddressingMode parseAddressingMode(const QString &addr);
-  static Mnemonic parseMnemonic(const QString &mnemonic);
-  static Register parseRegister(const QString &reg);
-  static QString string(Mnemonic mnemonic);
-  static QString string(AddressingMode addr);
-  static QString string(Register reg);
+  static uint8_t opcode(Mnemonic mnemonic);
+  static uint8_t opcode(Mnemonic mnemonic, AddressingMode addr);
+  static AddressingMode parseAddressingMode(const std::string &addr);
+  static Mnemonic parseMnemonic(const std::string &mnemonic);
+  static Register parseRegister(const std::string &reg);
+  static std::string string(Mnemonic mnemonic);
+  static std::string string(AddressingMode addr);
+  static std::string string(Register reg);
   // SCALL is a non-unary mnemonic, but a unary opcode;
   static bool isMnemonicUnary(Mnemonic mnemonic);
-  static bool isMnemonicUnary(quint8 opcode);
+  static bool isMnemonicUnary(uint8_t opcode);
   static bool isOpcodeUnary(Mnemonic mnemonic);
-  static bool isOpcodeUnary(quint8 opcode);
+  static bool isOpcodeUnary(uint8_t opcode);
   static bool isStore(Mnemonic mnemonic);
-  static bool isStore(quint8 opcode);
-  static quint8 operandBytes(Mnemonic mnemonic);
-  static quint8 operandBytes(quint8 opcode);
+  static bool isStore(uint8_t opcode);
+  static uint8_t operandBytes(Mnemonic mnemonic);
+  static uint8_t operandBytes(uint8_t opcode);
   // SCALL and CALL
   static bool isCall(Mnemonic mnemonic);
-  static bool isCall(quint8 opcode);
+  static bool isCall(uint8_t opcode);
   static bool isTrap(Mnemonic mnemonic);
-  static bool isTrap(quint8 opcode);
+  static bool isTrap(uint8_t opcode);
 
   static bool isUType(Mnemonic mnemonic);
   static bool isRType(Mnemonic mnemonic);
@@ -274,17 +277,17 @@ struct Pep10 {
   static bool isValidRAAATypeAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   static bool isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   // Operand specifier should be treated as signed iff addressing mode is in {i, s, sf, sx, sfx}
-  static bool decodeOperandAsSigned(quint8 opcode);
+  static bool decodeOperandAsSigned(uint8_t opcode);
   // Describe the mnemonic, replacing specific registers with the placeholder R
-  static QString describeMnemonicUsingPlaceholders(Mnemonic mnemonic);
+  static std::string describeMnemonicUsingPlaceholders(Mnemonic mnemonic);
   // Return the binary instruction specifier, with placeholders for registers & addressing modes
-  static QString instructionSpecifierWithPlaceholders(Mnemonic mnemonic);
+  static std::string instructionSpecifierWithPlaceholders(Mnemonic mnemonic);
 
   static bool requiresAddressingMode(Mnemonic mnemonic);
   static bool canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   constexpr static std::array<Opcode, 256> opcodeLUT = detail::pep10::initOpcodes();
-  static QSet<QString> legalDirectives();
-  static bool isLegalDirective(QString directive);
+  static std::set<std::string> const &legalDirectives();
+  static bool isLegalDirective(const std::string &directive);
 
   static std::unordered_map<std::string, Mnemonic> const &string_to_mnemonic();
   static std::unordered_map<Mnemonic, std::string> const &mnemonic_to_string();

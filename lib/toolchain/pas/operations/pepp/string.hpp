@@ -384,7 +384,7 @@ template <typename ISA> QString pas::ops::pepp::detail::formatUnary(const ast::N
   if (node.has<pas::ast::generic::SymbolDeclaration>())
     symbol = node.get<pas::ast::generic::SymbolDeclaration>().value->name;
 
-  QString instr = ISA::string(node.get<pas::ast::pepp::Instruction<ISA>>().value);
+  QString instr = QString::fromStdString(ISA::string(node.get<pas::ast::pepp::Instruction<ISA>>().value));
   QString comment = "";
 
   if (node.has<pas::ast::generic::Comment>()) comment = node.get<pas::ast::generic::Comment>().value;
@@ -402,10 +402,10 @@ template <typename ISA> QString pas::ops::pepp::detail::formatNonUnary(const ast
   QStringList args;
   args.push_back(node.get<ast::generic::Argument>().value->string());
   auto addr = node.get<pas::ast::pepp::AddressingMode<ISA>>().value;
-  if (!ISA::canElideAddressingMode(instr, addr)) args.push_back(ISA::string(addr));
+  if (!ISA::canElideAddressingMode(instr, addr)) args.push_back(QString::fromStdString(ISA::string(addr)));
 
   QString comment = "";
   if (node.has<pas::ast::generic::Comment>()) comment = node.get<pas::ast::generic::Comment>().value;
 
-  return generic::detail::format(symbol, ISA::string(instr), args, comment, 0, false);
+  return generic::detail::format(symbol, QString::fromStdString(ISA::string(instr)), args, comment, 0, false);
 }

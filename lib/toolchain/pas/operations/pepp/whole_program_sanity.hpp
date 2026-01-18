@@ -31,7 +31,7 @@ namespace pas::ops::pepp {
 template <typename ISA> struct ValidateDirectives : public pas::ops::MutatingOp<void> {
   bool valid = true;
   void operator()(ast::Node &node) {
-    auto localValid = ISA::isLegalDirective(node.get<pas::ast::generic::Directive>().value);
+    auto localValid = ISA::isLegalDirective(node.get<pas::ast::generic::Directive>().value.toStdString());
     valid &= localValid;
     if (!localValid) {
       auto message = pas::errors::pepp::illegalDirective.arg("." + node.get<pas::ast::generic::Directive>().value);
