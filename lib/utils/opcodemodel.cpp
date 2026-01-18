@@ -313,30 +313,27 @@ bool GreencardFilterModel::hideStatus() const { return _hideStatus; }
 
 void GreencardFilterModel::setHideStatus(bool hide) {
   if (hide == _hideStatus) return;
-  beginFilterChange();
   _hideStatus = hide;
   emit hideStatusChanged();
-  endFilterChange();
+  invalidateFilter();
 }
 
 bool GreencardFilterModel::hideMnemonic() const { return _hideMnemonic; }
 
 void GreencardFilterModel::setHideMnemonic(bool hide) {
   if (hide == _hideMnemonic) return;
-  beginFilterChange();
   _hideMnemonic = hide;
   emit hideMnemonicChanged();
-  endFilterChange();
+  invalidateFilter();
 }
 
 bool GreencardFilterModel::dyadicAddressing() const { return _dyadicAddressing; }
 
 void GreencardFilterModel::setDyadicAddressing(bool simplify) {
   if (simplify == _dyadicAddressing) return;
-  beginFilterChange();
   _dyadicAddressing = simplify;
   emit dyadicAddressingChanged();
-  endFilterChange();
+  invalidateFilter();
 }
 
 QVariant GreencardFilterModel::data(const QModelIndex &index, int role) const {
