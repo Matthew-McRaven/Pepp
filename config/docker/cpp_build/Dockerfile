@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ubuntu:22.04
+ARG BASE_IMAGE=ubuntu:24.04
 # Will be the latest LTS by the time we release the book, which I assume to be ~ 2025.
 FROM ${BASE_IMAGE} AS base-gcc
 # Prevent apt-get from pausing for input in an environment in which it can never
@@ -26,14 +26,14 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
-ARG QT_MINOR="9"
-ARG QT_PATCH="3"
+ARG QT_MINOR="10"
+ARG QT_PATCH="1"
 # major/minor
 ARG QT_RELEASE="6.${QT_MINOR}"
 # major/minor/patch
 ARG QT_VERSION="6.${QT_MINOR}.${QT_PATCH}"
 # Depends on major/minor
-ARG EMSDK_VERSION="3.1.70"
+ARG EMSDK_VERSION="4.0.7"
 # Don't cache pip internal files, reduce image size.
 ENV PIP_NO_CACHE_DIR=1
 SHELL ["/bin/bash", "-c"]
@@ -63,16 +63,15 @@ FROM base-gcc AS base-wasm
 # Must install documentation-building tools in WASM image.
 # Otherwise it will be very difficult to build GH pages deployments.
 RUN apt update \
-    && apt install -y --no-install-recommends graphviz imagemagick \
+    && apt install -y --no-install-recommends graphviz imagemagick python3.12-venv \
     && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
 RUN cd /emsdk && git pull && ./emsdk install ${EMSDK_VERSION} && ./emsdk activate ${EMSDK_VERSION} && echo uname -a /emsdk.arch
 # Install shadertools and 3d modules otherwise building from sources will fail.
-RUN pip install aqtinstall \
-    && aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools qtquick3d qt3d --outputdir /qt  \
-    && pip uninstall aqtinstall -y && rm aqtinstall.log
-
+RUN python3 -m venv /venv && source /venv/bin/activate \
+  && pip install aqtinstall &&  aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools qtquick3d qt3d --outputdir /qt \
+  && rm aqtinstall.log && rm -rf /venv
 
 # Use separate step to build Qt to avoid inflating the size of the build image further.
 FROM base-wasm AS build-wasm
@@ -101,7 +100,7 @@ RUN source /emsdk/emsdk_env.sh \
        -no-feature-thread -feature-wasm-exceptions ${QT_WASM_XARGS} \
        -skip qtremoteobjects -skip qtwebengine -skip qtscxml -skip qthttpserver \
        -skip qtwebview -skip qtwebchannel -skip qtsensors -skip qtwebsockets -skip qtlocation \
-       -skip qtpositioning -skip qtactiveqt -skip qt5compat\
+       -skip qtpositioning -skip qtactiveqt -skip qt5compat -skip qtlottie \
        -prefix /qt/${QT_VERSION}/wasm_singlethread
 # Separate build from configure so that I get better logs
 RUN cd /build-qt/${QT_VERSION} \
@@ -120,8 +119,13 @@ ENV PATH=/qt/${QT_VERSION}/wasm_singlethread/bin/:$PATH
 LABEL description="A wasm build container using Qt $QT_VERSION."
 
 FROM base-gcc AS output-gcc
+RUN apt update \
+    && apt install -y --no-install-recommends python3.12-venv \
+    && rm -rf /var/lib/apt/lists/*
 # Install Qt with aqtinstall (see https://github.com/miurahr/aqtinstall), selecting only the modules we need.
-RUN pip install aqtinstall && aqt install-qt linux desktop ${QT_VERSION} --outputdir /qt && pip uninstall aqtinstall -y && rm aqtinstall.log
+RUN python3 -m venv /venv && source /venv/bin/activate \
+  && pip install aqtinstall && aqt install-qt linux desktop ${QT_VERSION} --outputdir /qt \
+  && rm aqtinstall.log && rm -rf /venv
 # Define standard Qt environment variables so that executing cmake directly will work.
 ENV LD_LIBRARY_PATH=/qt/${QT_VERSION}/gcc_64/lib:${LD_LIBRARY_PATH}
 ENV Qt6_DIR=/qt/${QT_VERSION}/gcc_64
@@ -129,7 +133,7 @@ ENV QT_PLUGIN_PATH=/qt/${QT_VERSION}/gcc_64/plugins
 ENV QML2_IMPORT_PATH=/qt/${QT_VERSION}/gcc_64/qml
 ENV PATH=/qt/${QT_VERSION}/gcc_64/bin/:$PATH
 # Install mold, so that we can reduce link times
-ARG MOLD_VERSION="2.3.1"
+ARG MOLD_VERSION="2.40.4"
 RUN --mount=type=tmpfs,target=/mold,size=2G \
     cd mold \
     && wget -q -O mold.tar.gz "https://github.com/rui314/mold/releases/download/v$MOLD_VERSION/mold-$MOLD_VERSION-$(arch)-linux.tar.gz" \

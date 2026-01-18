@@ -1,6 +1,8 @@
 #pragma once
+#include <stdint.h>
 #include "sim3/api/memory_address.hpp"
 #include "type_traits"
+
 namespace pepp::tc::support {
 // Represent a point (i.e., a single character) within a text file.
 struct Location {

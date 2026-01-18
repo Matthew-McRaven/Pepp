@@ -14,7 +14,7 @@ group "img" {
 
 
 variable "VERSION" {
-  default = "v0.16.1"
+  default = "v0.17.0"
 }
 
 target "gcc-riscv" {
