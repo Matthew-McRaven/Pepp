@@ -48,29 +48,6 @@ template <typename AddressingMode, typename Mnemonic> quint8 opcode(Mnemonic mne
   throw std::logic_error(e2);
 }
 
-template <typename AddressingMode> AddressingMode parseAddressingMode(const QString &addr) {
-  using AM = AddressingMode;
-  bool ok = true;
-  auto ret = (AM)QMetaEnum::fromType<AddressingMode>().keyToValue(addr.toUpper().toUtf8().data(), &ok);
-  if (!ok || ret == AM::ALL || ret == AM::NONE) return AM::INVALID;
-  else return ret;
-}
-
-template <typename Mnemonic> Mnemonic parseMnemonic(const QString &mnemonic) {
-  bool ok = true;
-  auto ret = QMetaEnum::fromType<Mnemonic>().keyToValue(mnemonic.toUpper().toUtf8().data(), &ok);
-  if (!ok) return Mnemonic::INVALID;
-  else return (Mnemonic)ret;
-}
-
-template <typename Mnemonic> QString stringMnemonic(Mnemonic mnemonic) {
-  return QString(QMetaEnum::fromType<Mnemonic>().valueToKey((int)mnemonic)).toUpper();
-}
-
-template <typename AddressingMode> QString stringAddr(AddressingMode addr) {
-  return QString(QMetaEnum::fromType<AddressingMode>().valueToKey((int)addr)).toLower();
-}
-
 template <typename Mnemonic> bool isStore(Mnemonic mnemonic) {
   using M = Mnemonic;
   if (mnemonic == M::STBA || mnemonic == M::STWA || mnemonic == M::STBX || mnemonic == M::STWX) return true;

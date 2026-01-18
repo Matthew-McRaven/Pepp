@@ -134,9 +134,7 @@ void ScintillaAsmEditBase::addInlineAnnotation(int line, const QString &annotati
 }
 
 std::string pep9_mnemonics() {
-  QStringList mnemonics_list;
-  QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep9::Mnemonic>();
-  for (int it = 0; it < mnemonic_enum.keyCount(); it++) mnemonics_list << QString(mnemonic_enum.key(it)).toLower();
+  QStringList mnemonics_list = isa::Pep9::mnemonics();
   return mnemonics_list.join(" ").toStdString();
 }
 std::string pep9_directives() {
@@ -146,9 +144,7 @@ std::string pep9_directives() {
 }
 
 std::string pep10_mnemonics() {
-  QStringList mnemonics_list;
-  QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep10::Mnemonic>();
-  for (int it = 0; it < mnemonic_enum.keyCount(); it++) mnemonics_list << QString(mnemonic_enum.key(it)).toLower();
+  QStringList mnemonics_list = isa::Pep10::mnemonics();
   return mnemonics_list.join(" ").toStdString();
 }
 std::string pep10_directives() {

@@ -48,8 +48,6 @@ using namespace Qt::StringLiterals;
 
 struct Pep10OpcodeInit {
   explicit Pep10OpcodeInit(OpcodeModel *model) {
-    static const auto mnemonicEnum = QMetaEnum::fromType<isa::Pep10::Mnemonic>();
-    static const auto addressEnum = QMetaEnum::fromType<isa::Pep10::AddressingMode>();
     for (int it = 0; it < 256; it++) {
       auto op = isa::Pep10::opcodeLUT[it];
       if (!op.valid) continue;
@@ -57,10 +55,10 @@ struct Pep10OpcodeInit {
       // instr.unary indicates if the instruction is hardware-unary (i.e., it could be a nonunary trap SCALL).
       // This is why we test the addressing mode instead, since nonunary traps will have an addressing mode.
       if (op.mode == isa::Pep10::AddressingMode::NONE) {
-        formatted = QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper();
+        formatted = isa::Pep10::string(op.instr.mnemon).toUpper();
       } else {
-        formatted = u"%1,%2"_s.arg(QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper(),
-                                   QString(addressEnum.valueToKey((int)op.mode)).toLower());
+        formatted =
+            u"%1, %2"_s.arg(isa::Pep10::string(op.instr.mnemon).toUpper(), isa::Pep10::string(op.mode).toLower());
       }
       model->appendRow(formatted, it);
     }
@@ -69,8 +67,6 @@ struct Pep10OpcodeInit {
 
 struct Pep9OpcodeInit {
   explicit Pep9OpcodeInit(OpcodeModel *model) {
-    static const auto mnemonicEnum = QMetaEnum::fromType<isa::Pep9::Mnemonic>();
-    static const auto addressEnum = QMetaEnum::fromType<isa::Pep9::AddressingMode>();
     for (int it = 0; it < 256; it++) {
       auto op = isa::Pep9::opcodeLUT[it];
       if (!op.valid) continue;
@@ -78,10 +74,9 @@ struct Pep9OpcodeInit {
       // instr.unary indicates if the instruction is hardware-unary (i.e., it could be a nonunary trap SCALL).
       // This is why we test the addressing mode instead, since nonunary traps will have an addressing mode.
       if (op.mode == isa::Pep9::AddressingMode::NONE) {
-        formatted = QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper();
+        formatted = isa::Pep9::string(op.instr.mnemon).toUpper();
       } else {
-        formatted = u"%1, %2"_s.arg(QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper(),
-                                    QString(addressEnum.valueToKey((int)op.mode)).toLower());
+        formatted = u"%1, %2"_s.arg(isa::Pep9::string(op.instr.mnemon).toUpper(), isa::Pep9::string(op.mode).toLower());
       }
       model->appendRow(formatted, it);
     }

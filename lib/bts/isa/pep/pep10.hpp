@@ -19,7 +19,6 @@
 #include "exports.hpp"
 
 namespace isa::detail::pep10 {
-Q_NAMESPACE_EXPORT(PEPP_EXPORT);
 enum class Mnemonic {
   RET = 0x1,
   SRET = 0x2,
@@ -85,7 +84,6 @@ enum class Mnemonic {
   STBX = 0xF8,
   INVALID = 0x100,
 };
-Q_ENUM_NS(Mnemonic)
 
 enum class AddressingMode {
   NONE = 0,
@@ -100,7 +98,6 @@ enum class AddressingMode {
   ALL = 255,
   INVALID
 };
-Q_ENUM_NS(AddressingMode)
 
 enum class InstructionType {
   Invalid,
@@ -213,18 +210,9 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   return ret;
 };
 
-enum class Register : quint8 {
-  A = 0,
-  X = 1,
-  SP = 2,
-  PC = 3,
-  IS = 4,
-  OS = 5,
-};
-Q_ENUM_NS(Register);
+enum class Register : quint8 { A = 0, X = 1, SP = 2, PC = 3, IS = 4, OS = 5, INVALID };
 
 enum class CSR : quint8 { N, Z, V, C };
-Q_ENUM_NS(CSR);
 
 enum class MemoryVectors : quint16 {
   TrapHandler = 0xFFF7,
@@ -234,7 +222,6 @@ enum class MemoryVectors : quint16 {
   CharOut = 0xFFFE,
   PwrOff = 0xFFFF,
 };
-Q_ENUM_NS(MemoryVectors)
 } // namespace isa::detail::pep10
 
 namespace isa {
@@ -250,6 +237,7 @@ struct Pep10 {
   static constexpr quint8 RegisterCount = 7;
   static constexpr quint8 CSRCount = 4;
 
+  static QStringList mnemonics();
   static Mnemonic defaultMnemonic();
   static AddressingMode defaultAddressingMode();
   static AddressingMode defaultAddressingMode(Mnemonic mnemonic);
@@ -257,8 +245,10 @@ struct Pep10 {
   static quint8 opcode(Mnemonic mnemonic, AddressingMode addr);
   static AddressingMode parseAddressingMode(const QString &addr);
   static Mnemonic parseMnemonic(const QString &mnemonic);
+  static Register parseRegister(const QString &reg);
   static QString string(Mnemonic mnemonic);
   static QString string(AddressingMode addr);
+  static QString string(Register reg);
   // SCALL is a non-unary mnemonic, but a unary opcode;
   static bool isMnemonicUnary(Mnemonic mnemonic);
   static bool isMnemonicUnary(quint8 opcode);
@@ -295,5 +285,12 @@ struct Pep10 {
   constexpr static std::array<Opcode, 256> opcodeLUT = detail::pep10::initOpcodes();
   static QSet<QString> legalDirectives();
   static bool isLegalDirective(QString directive);
+
+  static std::unordered_map<std::string, Mnemonic> const &string_to_mnemonic();
+  static std::unordered_map<Mnemonic, std::string> const &mnemonic_to_string();
+  static std::unordered_map<std::string, AddressingMode> const &string_to_addressmode();
+  static std::unordered_map<AddressingMode, std::string> const &addressmode_to_string();
+  static std::unordered_map<std::string, Register> const &string_to_register();
+  static std::unordered_map<Register, std::string> const &register_to_string();
 };
 } // namespace isa
