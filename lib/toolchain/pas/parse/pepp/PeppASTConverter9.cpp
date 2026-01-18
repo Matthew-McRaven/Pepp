@@ -1,4 +1,5 @@
 #include "PeppASTConverter9.h"
+#include "toolchain/pas/string_utils.hpp"
 
 #undef emit
 #include "toolchain/pas/ast/generic/attr_argument.hpp"

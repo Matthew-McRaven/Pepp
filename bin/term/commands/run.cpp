@@ -92,7 +92,7 @@ bool RunTask::loadToElf() {
   auto bytes = bits::asciiHexToByte({objText.data(), objText.size()});
   if (!bytes)
     return false;
-  _elf = helper.elf(*bytes);
+  _elf = helper.elf(&bytes.value());
   return true;
 }
 

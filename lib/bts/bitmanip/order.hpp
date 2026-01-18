@@ -14,22 +14,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+#include <bit>
 #pragma once
-#include <QSysInfo>
-#include <QtCore>
 namespace bits {
-enum class Order {
-  BigEndian = QSysInfo::Endian::BigEndian,
-  LittleEndian = QSysInfo::Endian::LittleEndian,
-  NotApplicable
-};
+enum class Order { BigEndian, LittleEndian, NotApplicable };
 constexpr Order hostOrder() {
-  switch (QSysInfo::ByteOrder) {
-  case QSysInfo::LittleEndian: return Order::LittleEndian;
-  case QSysInfo::BigEndian: return Order::BigEndian;
-  default: throw std::logic_error("Endian must be big or little");
-  }
+#if defined(__cpp_lib_endian) && __cpp_lib_endian >= 201907L
+  if constexpr (std::endian::native == std::endian::little) return Order::LittleEndian;
+  if constexpr (std::endian::native == std::endian::big) return Order::BigEndian;
+  return Order::NotApplicable; // mixed/unknown
+// Fallback for older standard libraries: rely on common predefined macros.
+#elif defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && defined(__ORDER_BIG_ENDIAN__)
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  return Order::LittleEndian;
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  return Order::BigEndian;
+#else
+  return Order::NotApplicable;
+#endif
+#else
+  static_assert(false, "Cannot determine host endianness.");
+#endif
 }
 
 } // namespace bits

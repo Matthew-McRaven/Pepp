@@ -140,6 +140,7 @@ pepp::bts::PooledString pepp::bts::StringPool::allocate(QStringView str, AddNull
               .first;
 }
 
+/*
 QString pepp::bts::AnnotatedPage::to_string() const {
   QStringList lines;
   for (const auto &id : identifiers) {
@@ -150,7 +151,7 @@ QString pepp::bts::AnnotatedPage::to_string() const {
   return lines.join('\n');
 }
 
-/*std::vector<pepp::bts::AnnotatedPage> pepp::bts::annotated_pages(const StringPool &pool) {
+std::vector<pepp::bts::AnnotatedPage> pepp::bts::annotated_pages(const StringPool &pool) {
   std::vector<AnnotatedPage> ret;
   for (auto it = pool.pages_cbegin(); it != pool.pages_cend(); ++it) ret.push_back(AnnotatedPage{&*it, {}});
   for (auto it = pool.identifiers_cbegin(); it != pool.identifiers_cend(); ++it)

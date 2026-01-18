@@ -15,13 +15,14 @@
  */
 #include "toolchain/pas/operations/pepp/size.hpp"
 #include <catch.hpp>
+#include "bts/bitmanip/strings.hpp"
 #include "bts/isa/pep10.hpp"
 #include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/operations/generic/include_macros.hpp"
-#include "bts/bitmanip/strings.hpp"
+#include "toolchain/pas/string_utils.hpp"
 
 using pas::ops::pepp::Direction;
 using pas::ops::pepp::explicitSize;

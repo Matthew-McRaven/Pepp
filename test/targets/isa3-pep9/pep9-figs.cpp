@@ -76,7 +76,8 @@ QSharedPointer<ELFIO::elfio> assemble(QString os, User user, QSharedPointer<macr
   if (!user.pepo.isEmpty()) {
     auto asStd = user.pepo.toStdString();
     auto bytes = bits::asciiHexToByte({asStd.data(), asStd.size()});
-    elf = helper.elf(bytes);
+    using O = std::optional<std::vector<quint8> *>;
+    elf = helper.elf(bytes.has_value() ? O(&bytes.value()) : O(std::nullopt));
   } else elf = helper.elf();
   return elf;
 }

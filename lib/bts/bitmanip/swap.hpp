@@ -16,12 +16,13 @@
  */
 
 #pragma once
-#include <QtEndian>
+
 #include <algorithm>
 #include <bit>
 #include <concepts>
 #include <cstring> // for memcpy.
 #include <ranges>
+#include "bts/bitmanip/integers.h"
 #include "bts/bitmanip/order.hpp"
 namespace bits {
 namespace detail {
@@ -45,9 +46,6 @@ using ::std::bit_cast;
 #else
 using detail::bit_cast;
 #endif
-#if __cpp_lib_byteswap == 202110L
-using ::std::byteswap;
-#else
 
 #ifdef PEPP_HAS_RANGES_REVERSE
 // Use (better) range version when possible
@@ -60,12 +58,28 @@ template <std::integral T> constexpr T byteswap(T value) noexcept {
   return bit_cast<T>(value_representation);
 }
 #else
-// Otherwise use fallback Qt implementation.
+#if defined(_MSC_VER)
+inline u16 bswap16(u16 value) noexcept { return _byteswap_ushort(value); }
+inline u32 bswap32(u32 value) noexcept { return _byteswap_ulong(value); }
+inline u64 bswap64(u64 value) noexcept { return _byteswap_uint64(value); }
+#else
+constexpr u16 bswap16(u16 value) noexcept { return __builtin_bswap16(value); }
+constexpr u32 bswap32(u32 value) noexcept { return __builtin_bswap32(value); }
+constexpr u64 bswap64(u64 value) noexcept { return __builtin_bswap64(value); }
+#endif
+
+// Fallback to compiler intrinsics, then fallback to bitcast+reverse.
 template <std::integral T> constexpr T byteswap(T value) noexcept {
   static_assert(std::has_unique_object_representations_v<T>, "T may not have padding bits");
-  if (bits::hostOrder() == bits::Order::LittleEndian) return qToBigEndian(value);
-  else return qToLittleEndian(value);
+  if constexpr (sizeof(T) == 2) return T(bswap16(value));
+  else if constexpr (sizeof(T) == 4) return T(bswap32(value));
+  else if constexpr (sizeof(T) == 8) return T(bswap64(value));
+  else {
+    // Fallback implementation for non-standard sizes.
+    auto value_representation = bit_cast<std::array<std::byte, sizeof(T)>>(value);
+    std::reverse(value_representation.begin(), value_representation.end());
+    return bit_cast<T>(value_representation);
+  }
 }
-#endif
 #endif
 } // namespace bits

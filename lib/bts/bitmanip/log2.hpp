@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include <QtCore>
+#include "./integers.h"
 
 namespace bits {
 /*
@@ -30,7 +30,7 @@ namespace bits {
  *
  *Will throw if value == 0.
  */
-quint8 ceil_log2(quint64 value);
+u8 ceil_log2(u64 value);
 /*
  * 01 => 0
  * 02 => 1
@@ -42,9 +42,9 @@ quint8 ceil_log2(quint64 value);
  * 32 => 5
  * etc
  */
-quint64 nearest_power_of_two(quint64 value);
+u64 nearest_power_of_two(u64 value);
 
-static constexpr quint64 ceil_div(quint64 a, size_t b) noexcept { return (a + b - 1) / b; }
+static constexpr u64 ceil_div(u64 a, size_t b) noexcept { return (a + b - 1) / b; }
 // Both assum power-of-two aligns
 static constexpr std::uintptr_t align_down(std::uintptr_t x, std::size_t a) { return x & ~(std::uintptr_t(a) - 1); }
 static constexpr std::uintptr_t align_up(std::uintptr_t x, std::size_t a) {

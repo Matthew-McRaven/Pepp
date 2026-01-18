@@ -114,10 +114,10 @@ private:
 
 // A page + the pooled strings within it.
 // Not uses within the string pool, but useful for debugging.
-struct AnnotatedPage {
+/*struct AnnotatedPage {
   const PagedAllocator<char16_t>::Page *page;
   std::vector<PooledString> identifiers;
   QString to_string() const;
-};
+};*/
 // std::vector<AnnotatedPage> annotated_pages(const StringPool &pool);
 } // namespace pepp::bts
