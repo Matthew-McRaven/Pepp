@@ -121,6 +121,45 @@ using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
 
+consteval i8 operator""_i8(unsigned long long v) {
+  if (v > static_cast<unsigned long long>(std::numeric_limits<i8>::max()))
+    throw std::logic_error("i8 overflow in literal");
+  return static_cast<i8>(v);
+}
+consteval i16 operator""_i16(unsigned long long v) {
+  if (v > static_cast<unsigned long long>(std::numeric_limits<i16>::max()))
+    throw std::logic_error("i16 overflow in literal");
+  return static_cast<i16>(v);
+}
+consteval i32 operator""_i32(unsigned long long v) {
+  if (v > static_cast<unsigned long long>(std::numeric_limits<i32>::max()))
+    throw std::logic_error("i32 overflow in literal");
+  return static_cast<i32>(v);
+}
+consteval i64 operator""_i64(unsigned long long v) {
+  if (v > static_cast<unsigned long long>(std::numeric_limits<i64>::max()))
+    throw std::logic_error("i64 overflow in literal");
+  return static_cast<i64>(v);
+}
+
+// Unsigned
+consteval u8 operator""_u8(unsigned long long v) {
+  if (v > static_cast<unsigned long long>(std::numeric_limits<u8>::max()))
+    throw std::logic_error("u8 overflow in literal");
+  return static_cast<u8>(v);
+}
+consteval u16 operator""_u16(unsigned long long v) {
+  if (v > static_cast<unsigned long long>(std::numeric_limits<u16>::max()))
+    throw std::logic_error("u16 overflow in literal");
+  return static_cast<u16>(v);
+}
+consteval u32 operator""_u32(unsigned long long v) {
+  if (v > static_cast<unsigned long long>(std::numeric_limits<u32>::max()))
+    throw std::logic_error("u32 overflow in literal");
+  return static_cast<u32>(v);
+}
+consteval u64 operator""_u64(unsigned long long v) { return static_cast<u64>(v); }
+
 using il16 = Integer<i16, true>;
 using il32 = Integer<i32, true>;
 using il64 = Integer<i64, true>;
