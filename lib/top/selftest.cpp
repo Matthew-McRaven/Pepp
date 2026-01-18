@@ -1,5 +1,5 @@
 #include "selftest.hpp"
-#include <catch.hpp>
+#include <catch/catch.hpp>
 
 SelfTest::SelfTest(QObject *parent) : QAbstractTableModel(parent) {}
 

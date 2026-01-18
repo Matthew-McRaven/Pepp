@@ -59,6 +59,7 @@ target_link_libraries(
          fmt
          spdlog
          cxxgraph
+         catch
          flat
          pepp-core
          pepp-changelog)
