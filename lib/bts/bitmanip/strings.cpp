@@ -74,10 +74,10 @@ std::optional<std::vector<u8>> bits::asciiHexToByte(span<const char> in) {
     else {
       // Parse the next two chars into a single byte. Can't use strtol; there may be no gaps between octets.
       auto span = in.subspan(inIt, 2);
-      // If either character is not a hex digit, hex_to_int returns -1 (bitpattern all 1s). By expading the intermediate
-      // to 16-bits, I can examine the sign bit to check if either char was invalid.
-      u16 byte = hex_to_int(span[0]) << 4 | hex_to_int(span[1]);
-      if (byte < 0) break;
+      // If either character is not a hex digit, hex_to_int returns -1 (bitpattern all 1s). By sign-extending the
+      // intermediate to 16-bit signed, I can examine the sign bit to check if either char was invalid.
+      u16 byte = i16(hex_to_int(span[0]) << 4) | i16(hex_to_int(span[1]));
+      if (byte & 0x8000) break;
       ret.push_back(byte);
       inIt += 2;
     }
