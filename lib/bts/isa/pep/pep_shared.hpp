@@ -1,4 +1,8 @@
 #pragma once
+
+#include <iostream>
+#include <stdexcept>
+
 /*
  * Copyright (c) 2023-2026 J. Stanley Warford, Matthew McRaven
  *
@@ -16,22 +20,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QMetaEnum>
-#include <QString>
-
 namespace isa::detail {
 
-template <typename Mnemonic> quint8 opcode(Mnemonic mnemonic) { return static_cast<quint8>(mnemonic); }
+template <typename Mnemonic> uint8_t opcode(Mnemonic mnemonic) { return static_cast<uint8_t>(mnemonic); }
 
-template <typename AddressingMode, typename Mnemonic> quint8 opcode(Mnemonic mnemonic, AddressingMode addr) {
+template <typename AddressingMode, typename Mnemonic> uint8_t opcode(Mnemonic mnemonic, AddressingMode addr) {
   using M = Mnemonic;
   using AM = AddressingMode;
   auto base = opcode(mnemonic);
   // TODO: Look up instruction type instead of doing opcode math.
-  if (base >= static_cast<quint8>(M::BR) && base <= static_cast<quint8>(M::CALL)) return base | (addr == AM::X ? 1 : 0);
+  if (base >= static_cast<uint8_t>(M::BR) && base <= static_cast<uint8_t>(M::CALL))
+    return base | (addr == AM::X ? 1 : 0);
   static const char *const e = "Invalid ADDR mode";
   switch (addr) {
-  case AM::NONE: qCritical(e); throw std::logic_error(e);
+  case AM::NONE: std::cerr << e; throw std::logic_error(e);
   case AM::I: return base | 0x0;
   case AM::D: return base | 0x1;
   case AM::N: return base | 0x2;
@@ -40,35 +42,12 @@ template <typename AddressingMode, typename Mnemonic> quint8 opcode(Mnemonic mne
   case AM::X: return base | 0x5;
   case AM::SX: return base | 0x6;
   case AM::SFX: return base | 0x7;
-  case AM::ALL: qCritical(e); throw std::logic_error(e);
-  case AM::INVALID: qCritical(e); throw std::logic_error(e);
+  case AM::ALL: std::cerr << e; throw std::logic_error(e);
+  case AM::INVALID: std::cerr << e; throw std::logic_error(e);
   }
   static const char *const e2 = "Unreachable";
-  qCritical(e2);
+  std::cerr << e2;
   throw std::logic_error(e2);
-}
-
-template <typename AddressingMode> AddressingMode parseAddressingMode(const QString &addr) {
-  using AM = AddressingMode;
-  bool ok = true;
-  auto ret = (AM)QMetaEnum::fromType<AddressingMode>().keyToValue(addr.toUpper().toUtf8().data(), &ok);
-  if (!ok || ret == AM::ALL || ret == AM::NONE) return AM::INVALID;
-  else return ret;
-}
-
-template <typename Mnemonic> Mnemonic parseMnemonic(const QString &mnemonic) {
-  bool ok = true;
-  auto ret = QMetaEnum::fromType<Mnemonic>().keyToValue(mnemonic.toUpper().toUtf8().data(), &ok);
-  if (!ok) return Mnemonic::INVALID;
-  else return (Mnemonic)ret;
-}
-
-template <typename Mnemonic> QString stringMnemonic(Mnemonic mnemonic) {
-  return QString(QMetaEnum::fromType<Mnemonic>().valueToKey((int)mnemonic)).toUpper();
-}
-
-template <typename AddressingMode> QString stringAddr(AddressingMode addr) {
-  return QString(QMetaEnum::fromType<AddressingMode>().valueToKey((int)addr)).toLower();
 }
 
 template <typename Mnemonic> bool isStore(Mnemonic mnemonic) {

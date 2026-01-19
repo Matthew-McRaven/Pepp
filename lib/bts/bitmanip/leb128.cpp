@@ -12,7 +12,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "leb128.hpp"
+#include "bts/bitmanip/leb128.hpp"
 
 /// Utility function to get the size of the ULEB128-encoded value.
 unsigned bits::getULEB128Size(uint64_t Value) {

@@ -80,7 +80,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction
   lex::Checkpoint cp(*_buffer);
 
   if (auto instruction = _buffer->match<lex::Identifier>(); !instruction) return cp.rollback(), nullptr;
-  else if (auto instr = ISA::parseMnemonic(instruction->to_string()); instr == ISA::Mnemonic::INVALID) {
+  else if (auto instr = ISA::parseMnemonic(instruction->to_string().toStdString()); instr == ISA::Mnemonic::INVALID) {
     throw ParserError(ParserError::UnaryError::Mnemonic_Invalid, instruction->to_string().toStdString(),
                       _buffer->matched_interval());
   } else if (ISA::isMnemonicUnary(instr)) { // Monadic instruction
@@ -96,7 +96,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction
       auto addr_mode = _buffer->match<lex::Identifier>();
       if (!addr_mode) throw ParserError(ParserError::NullaryError::AddressingMode_Missing, _buffer->matched_interval());
       auto addr_mode_str = addr_mode->to_string().toUpper();
-      am = ISA::parseAddressingMode(addr_mode_str);
+      am = ISA::parseAddressingMode(addr_mode_str.toStdString());
       if (am == ISA::AddressingMode::INVALID)
         throw ParserError(ParserError::NullaryError::AddressingMode_Invalid, _buffer->matched_interval());
       if (!ISA::isValidAddressingMode(instr, am))

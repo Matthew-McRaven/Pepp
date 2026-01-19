@@ -92,7 +92,7 @@ bool RunTask::loadToElf() {
   auto bytes = bits::asciiHexToByte({objText.data(), objText.size()});
   if (!bytes)
     return false;
-  _elf = helper.elf(*bytes);
+  _elf = helper.elf(&bytes.value());
   return true;
 }
 
@@ -105,27 +105,24 @@ void RunTask::run() {
 
   // Perform any requested register overrides.
   for (auto [reg, val] : _regOverrides.asKeyValueRange()) {
-    QMetaEnum enu;
+    int reg_val = 0;
     switch (_ed) {
-    case 6:
-      enu = QMetaEnum::fromType<::isa::Pep10::Register>();
+    case 6: {
+      auto regEnu = ::isa::Pep10::parseRegister(reg);
+      if (regEnu == isa::Pep10::Register::INVALID) {
+        static const char *const e = "Invalid register";
+        _log.critical(e);
+        throw std::logic_error(e);
+      }
+      auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
+      targets::isa::writeRegister<isa::Pep10>(cpu->regs(), regEnu, val, gs);
       break;
+    }
     default:
       static const char *const e = "Unhandled book";
       _log.critical(e);
       throw std::logic_error(e);
     }
-    bool ok = true;
-    // Always compare in caps
-    auto transformed = QString::fromStdString(reg).toUpper().toStdString();
-    auto regEnu = enu.keyToValue(transformed.c_str(), &ok);
-    if (!ok) {
-      static const char *const e = "Invalid register";
-      _log.critical(e);
-      throw std::logic_error(e);
-    }
-    auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
-    targets::isa::writeRegister<isa::Pep10>(cpu->regs(), static_cast<isa::Pep10::Register>(regEnu), val, gs);
   }
 
   auto pwrOff = system->output("pwrOff");
@@ -152,7 +149,7 @@ void RunTask::run() {
     quint16 tmp = 0;
     auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), reg, tmp, gs);
-    auto regName = QMetaEnum::fromType<isa::detail::pep10::Register>().valueToKey((int)reg);
+    auto regName = isa::Pep10::string(reg);
     std::cout << u"%1=%2"_s.arg(regName).arg(QString::number(tmp, 16), 4, '0').toStdString() << " ";
   };
   bool noMMI = false;

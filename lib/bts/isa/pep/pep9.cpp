@@ -15,9 +15,119 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pep9.hpp"
-#include <QMetaEnum>
-#include "pep_shared.hpp"
+#include "bts/isa/pep/pep9.hpp"
+#include <bitset>
+#include "bts/bitmanip/strings.hpp"
+#include "bts/isa/pep/pep_shared.hpp"
+
+static auto register_maps() {
+  std::map<isa::Pep9::Register, std::string> reg_to_str;
+  std::unordered_map<std::string, isa::Pep9::Register, pepp::bts::ci_hash, pepp::bts::ci_eq> str_to_reg;
+  auto insert = [](auto &reg_to_str, auto &str_to_reg, isa::Pep9::Register reg, const char *str) {
+    reg_to_str[reg] = str;
+    str_to_reg[str] = reg;
+  };
+  using enum isa::Pep9::Register;
+  insert(reg_to_str, str_to_reg, A, "A");
+  insert(reg_to_str, str_to_reg, X, "X");
+  insert(reg_to_str, str_to_reg, SP, "SP");
+  insert(reg_to_str, str_to_reg, PC, "PC");
+  insert(reg_to_str, str_to_reg, IS, "IS");
+  insert(reg_to_str, str_to_reg, OS, "OS");
+  insert(reg_to_str, str_to_reg, INVALID, "invalid");
+  return std::make_pair(reg_to_str, str_to_reg);
+}
+
+static auto am_maps() {
+  std::map<isa::Pep9::AddressingMode, std::string> am_to_str;
+  std::unordered_map<std::string, isa::Pep9::AddressingMode, pepp::bts::ci_hash, pepp::bts::ci_eq> str_to_am;
+
+  auto insert = [](auto &am_to_str, auto &str_to_am, isa::Pep9::AddressingMode am, const char *str) {
+    am_to_str[am] = str;
+    str_to_am[str] = am;
+  };
+  using enum isa::Pep9::AddressingMode;
+  insert(am_to_str, str_to_am, NONE, "none");
+  insert(am_to_str, str_to_am, I, "I");
+  insert(am_to_str, str_to_am, D, "D");
+  insert(am_to_str, str_to_am, N, "N");
+  insert(am_to_str, str_to_am, S, "S");
+  insert(am_to_str, str_to_am, SF, "SF");
+  insert(am_to_str, str_to_am, X, "X");
+  insert(am_to_str, str_to_am, SX, "SX");
+  insert(am_to_str, str_to_am, SFX, "SFX");
+  insert(am_to_str, str_to_am, INVALID, "invalid");
+  return std::make_pair(am_to_str, str_to_am);
+}
+
+static auto mnemonic_maps() {
+  std::map<isa::Pep9::Mnemonic, std::string> mn_to_str;
+  std::unordered_map<std::string, isa::Pep9::Mnemonic, pepp::bts::ci_hash, pepp::bts::ci_eq> str_to_mn;
+
+  auto insert = [](auto &mn_to_str, auto &str_to_mn, isa::Pep9::Mnemonic mn, const char *str) {
+    mn_to_str[mn] = str;
+    str_to_mn[str] = mn;
+  };
+  using enum isa::Pep9::Mnemonic;
+  insert(mn_to_str, str_to_mn, STOP, "STOP");
+  insert(mn_to_str, str_to_mn, RET, "RET");
+  insert(mn_to_str, str_to_mn, RETTR, "RETTR");
+  insert(mn_to_str, str_to_mn, MOVSPA, "MOVSPA");
+  insert(mn_to_str, str_to_mn, MOVFLGA, "MOVFLGA");
+  insert(mn_to_str, str_to_mn, MOVAFLG, "MOVAFLG");
+  insert(mn_to_str, str_to_mn, NOTA, "NOTA");
+  insert(mn_to_str, str_to_mn, NOTX, "NOTX");
+  insert(mn_to_str, str_to_mn, NEGA, "NEGA");
+  insert(mn_to_str, str_to_mn, NEGX, "NEGX");
+  insert(mn_to_str, str_to_mn, ASLA, "ASLA");
+  insert(mn_to_str, str_to_mn, ASLX, "ASLX");
+  insert(mn_to_str, str_to_mn, ASRA, "ASRA");
+  insert(mn_to_str, str_to_mn, ASRX, "ASRX");
+  insert(mn_to_str, str_to_mn, ROLA, "ROLA");
+  insert(mn_to_str, str_to_mn, ROLX, "ROLX");
+  insert(mn_to_str, str_to_mn, RORA, "RORA");
+  insert(mn_to_str, str_to_mn, RORX, "RORX");
+  insert(mn_to_str, str_to_mn, BR, "BR");
+  insert(mn_to_str, str_to_mn, BRLE, "BRLE");
+  insert(mn_to_str, str_to_mn, BRLT, "BRLT");
+  insert(mn_to_str, str_to_mn, BREQ, "BREQ");
+  insert(mn_to_str, str_to_mn, BRNE, "BRNE");
+  insert(mn_to_str, str_to_mn, BRGE, "BRGE");
+  insert(mn_to_str, str_to_mn, BRGT, "BRGT");
+  insert(mn_to_str, str_to_mn, BRV, "BRV");
+  insert(mn_to_str, str_to_mn, BRC, "BRC");
+  insert(mn_to_str, str_to_mn, CALL, "CALL");
+  insert(mn_to_str, str_to_mn, NOP0, "NOP0");
+  insert(mn_to_str, str_to_mn, NOP1, "NOP1");
+  insert(mn_to_str, str_to_mn, NOP, "NOP");
+  insert(mn_to_str, str_to_mn, DECI, "DECI");
+  insert(mn_to_str, str_to_mn, DECO, "DECO");
+  insert(mn_to_str, str_to_mn, HEXO, "HEXO");
+  insert(mn_to_str, str_to_mn, STRO, "STRO");
+  insert(mn_to_str, str_to_mn, ADDSP, "ADDSP");
+  insert(mn_to_str, str_to_mn, SUBSP, "SUBSP");
+  insert(mn_to_str, str_to_mn, ADDA, "ADDA");
+  insert(mn_to_str, str_to_mn, ADDX, "ADDX");
+  insert(mn_to_str, str_to_mn, SUBA, "SUBA");
+  insert(mn_to_str, str_to_mn, SUBX, "SUBX");
+  insert(mn_to_str, str_to_mn, ANDA, "ANDA");
+  insert(mn_to_str, str_to_mn, ANDX, "ANDX");
+  insert(mn_to_str, str_to_mn, ORA, "ORA");
+  insert(mn_to_str, str_to_mn, ORX, "ORX");
+  insert(mn_to_str, str_to_mn, CPWA, "CPWA");
+  insert(mn_to_str, str_to_mn, CPWX, "CPWX");
+  insert(mn_to_str, str_to_mn, CPBA, "CPBA");
+  insert(mn_to_str, str_to_mn, CPBX, "CPBX");
+  insert(mn_to_str, str_to_mn, LDWA, "LDWA");
+  insert(mn_to_str, str_to_mn, LDWX, "LDWX");
+  insert(mn_to_str, str_to_mn, LDBA, "LDBA");
+  insert(mn_to_str, str_to_mn, LDBX, "LDBX");
+  insert(mn_to_str, str_to_mn, STWA, "STWA");
+  insert(mn_to_str, str_to_mn, STWX, "STWX");
+  insert(mn_to_str, str_to_mn, STBA, "STBA");
+  insert(mn_to_str, str_to_mn, STBX, "STBX");
+  return std::make_pair(mn_to_str, str_to_mn);
+}
 
 isa::Pep9::Mnemonic isa::Pep9::defaultMnemonic() { return Mnemonic::INVALID; }
 
@@ -28,25 +138,65 @@ isa::Pep9::AddressingMode isa::Pep9::defaultAddressingMode(Mnemonic mnemonic) {
   else return defaultAddressingMode();
 }
 
-quint8 isa::Pep9::opcode(Mnemonic mnemonic) { return isa::detail::opcode(mnemonic); }
-
-quint8 isa::Pep9::opcode(Mnemonic mnemonic, AddressingMode addr) { return isa::detail::opcode(mnemonic, addr); }
-
-isa::Pep9::AddressingMode isa::Pep9::parseAddressingMode(const QString &addr) {
-  return isa::detail::parseAddressingMode<AddressingMode>(addr);
+std::vector<std::string> const &isa::Pep9::mnemonics() {
+  static const std::vector<std::string> ret = []() {
+    std::vector<std::string> lst;
+    auto mn_to_str = mnemonic_maps().first;
+    lst.reserve(mn_to_str.size());
+    for (const auto &[mn, str] : mn_to_str) lst.emplace_back(str);
+    return lst;
+  }();
+  return ret;
 }
 
-isa::Pep9::Mnemonic isa::Pep9::parseMnemonic(const QString &mnemonic) {
-  return isa::detail::parseMnemonic<Mnemonic>(mnemonic);
+uint8_t isa::Pep9::opcode(Mnemonic mnemonic) { return isa::detail::opcode(mnemonic); }
+
+uint8_t isa::Pep9::opcode(Mnemonic mnemonic, AddressingMode addr) { return isa::detail::opcode(mnemonic, addr); }
+
+isa::Pep9::AddressingMode isa::Pep9::parseAddressingMode(const std::string &addr) {
+  auto str_to_am = isa::Pep9::string_to_addressmode();
+  auto it = str_to_am.find(addr);
+  if (it != str_to_am.end()) return it->second;
+  else return isa::Pep9::AddressingMode::INVALID;
 }
 
-QString isa::Pep9::string(Mnemonic mnemonic) { return isa::detail::stringMnemonic(mnemonic); }
+isa::Pep9::Mnemonic isa::Pep9::parseMnemonic(const std::string &mnemonic) {
+  auto str_to_mn = isa::Pep9::string_to_mnemonic();
+  auto it = str_to_mn.find(mnemonic);
+  if (it != str_to_mn.end()) return it->second;
+  else return isa::Pep9::Mnemonic::INVALID;
+}
 
-QString isa::Pep9::string(AddressingMode addr) { return isa::detail::stringAddr(addr); }
+isa::Pep9::Register isa::Pep9::parseRegister(const std::string &reg) {
+  auto str_to_reg = isa::Pep9::string_to_register();
+  auto it = str_to_reg.find(reg);
+  if (it != str_to_reg.end()) return it->second;
+  else return isa::Pep9::Register::INVALID;
+}
+
+std::string isa::Pep9::string(Mnemonic mnemonic) {
+  auto mn_to_str = isa::Pep9::mnemonic_to_string();
+  return mn_to_str.at(mnemonic);
+}
+
+std::string isa::Pep9::string(AddressingMode addr) {
+  auto am_to_str = isa::Pep9::addressmode_to_string();
+  auto it = am_to_str.find(addr);
+  if (it == am_to_str.end()) return "invalid";
+  std::string ret = it->second;
+  std::transform(ret.begin(), ret.end(), ret.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return ret;
+}
+
+std::string isa::Pep9::string(Register reg) {
+  auto reg_to_str = isa::Pep9::register_to_string();
+  return reg_to_str.at(reg);
+}
 
 bool isa::Pep9::isMnemonicUnary(Mnemonic mnemonic) { return isMnemonicUnary(opcode(mnemonic)); }
 
-bool isa::Pep9::isMnemonicUnary(quint8 opcode) {
+bool isa::Pep9::isMnemonicUnary(uint8_t opcode) {
   using T = detail::pep9::InstructionType;
   auto type = opcodeLUT[opcode].instr.type;
   return type == T::R_none || type == T::U_none;
@@ -54,13 +204,13 @@ bool isa::Pep9::isMnemonicUnary(quint8 opcode) {
 
 bool isa::Pep9::isOpcodeUnary(Mnemonic mnemonic) { return isOpcodeUnary(opcode(mnemonic)); }
 
-bool isa::Pep9::isOpcodeUnary(quint8 opcode) { return opcodeLUT[opcode].instr.unary; }
+bool isa::Pep9::isOpcodeUnary(uint8_t opcode) { return opcodeLUT[opcode].instr.unary; }
 
 bool isa::Pep9::isStore(Mnemonic mnemonic) { return isa::detail::isStore(mnemonic); }
 
-bool isa::Pep9::isStore(quint8 opcode) { return isStore(opcodeLUT[opcode].instr.mnemon); }
+bool isa::Pep9::isStore(uint8_t opcode) { return isStore(opcodeLUT[opcode].instr.mnemon); }
 
-quint8 isa::Pep9::operandBytes(Mnemonic mnemonic) {
+uint8_t isa::Pep9::operandBytes(Mnemonic mnemonic) {
   if (isMnemonicUnary(mnemonic)) return 0;
   switch (mnemonic) {
   case Mnemonic::LDBA: [[fallthrough]];
@@ -71,7 +221,7 @@ quint8 isa::Pep9::operandBytes(Mnemonic mnemonic) {
   }
 }
 
-bool isa::Pep9::isCall(quint8 opcode) { return isCall(opcodeLUT[opcode].instr.mnemon); }
+bool isa::Pep9::isCall(uint8_t opcode) { return isCall(opcodeLUT[opcode].instr.mnemon); }
 
 bool isa::Pep9::isCall(Mnemonic mnemonic) {
   switch (mnemonic) {
@@ -87,7 +237,7 @@ bool isa::Pep9::isCall(Mnemonic mnemonic) {
   }
 }
 
-bool isa::Pep9::isTrap(quint8 opcode) { return isTrap(opcodeLUT[opcode].instr.mnemon); }
+bool isa::Pep9::isTrap(uint8_t opcode) { return isTrap(opcodeLUT[opcode].instr.mnemon); }
 
 bool isa::Pep9::isTrap(Mnemonic mnemonic) {
   switch (mnemonic) {
@@ -102,7 +252,7 @@ bool isa::Pep9::isTrap(Mnemonic mnemonic) {
   }
 }
 
-quint8 isa::Pep9::operandBytes(quint8 opcode) { return operandBytes(opcodeLUT[opcode].instr.mnemon); }
+uint8_t isa::Pep9::operandBytes(uint8_t opcode) { return operandBytes(opcodeLUT[opcode].instr.mnemon); }
 
 bool isa::Pep9::isUType(Mnemonic mnemonic) {
   using T = InstructionType;
@@ -152,7 +302,6 @@ bool isa::Pep9::isValidRAAATypeAddressingMode(Mnemonic mnemonic, AddressingMode 
 }
 
 bool isa::Pep9::isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
-  using T = InstructionType;
   using AM = AddressingMode;
   auto type = opcodeLUT[opcode(mnemonic)].instr.type;
   switch (type) {
@@ -175,7 +324,7 @@ bool isa::Pep9::isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
   return false;
 }
 
-bool isa::Pep9::decodeOperandAsSigned(quint8 opcode) {
+bool isa::Pep9::decodeOperandAsSigned(uint8_t opcode) {
   using enum detail::pep9::AddressingMode;
   switch (opcodeLUT[opcode].mode) {
   case I: [[fallthrough]];
@@ -187,7 +336,7 @@ bool isa::Pep9::decodeOperandAsSigned(quint8 opcode) {
   }
 }
 
-QString isa::Pep9::describeMnemonicUsingPlaceholders(Mnemonic mnemonic) {
+std::string isa::Pep9::describeMnemonicUsingPlaceholders(Mnemonic mnemonic) {
   switch (mnemonic) {
   case detail::pep9::Mnemonic::STOP: return "Stop execution";
   case detail::pep9::Mnemonic::RET: return "Return from CALL";
@@ -250,34 +399,70 @@ QString isa::Pep9::describeMnemonicUsingPlaceholders(Mnemonic mnemonic) {
   }
 }
 
-QString isa::Pep9::instructionSpecifierWithPlaceholders(Mnemonic mnemonic) {
+std::string isa::Pep9::instructionSpecifierWithPlaceholders(Mnemonic mnemonic) {
   using enum detail::pep9::InstructionType;
-  quint8 opcode = static_cast<quint8>(mnemonic);
-  QString asBinary = ("00000000" + QString::number(opcode, 2)).right(8);
+  uint8_t opcode = static_cast<uint8_t>(mnemonic);
+  std::string as_bin = std::bitset<8>(opcode).to_string();
   switch (opcodeLUT[opcode].instr.type) {
-  case R_none: asBinary[7] = 'r'; break;
-  case A_ix: asBinary[7] = 'a'; break;
+  case R_none: as_bin[7] = 'r'; break;
+  case A_ix: as_bin[7] = 'a'; break;
   case AAA_all: [[fallthrough]];
-  case AAA_i: asBinary[7] = asBinary[6] = asBinary[5] = 'a'; break;
+  case AAA_i: as_bin[7] = as_bin[6] = as_bin[5] = 'a'; break;
   case RAAA_all: [[fallthrough]];
   case RAAA_noi:
-    asBinary[7] = asBinary[6] = asBinary[5] = 'a';
-    asBinary[4] = 'r';
+    as_bin[7] = as_bin[6] = as_bin[5] = 'a';
+    as_bin[4] = 'r';
     break;
   default: break;
   }
-  return asBinary;
+  return as_bin;
 }
 
-bool isa::Pep9::requiresAddressingMode(Mnemonic mnemonic) { return isAAAType(mnemonic) | isRAAAType(mnemonic); }
+bool isa::Pep9::requiresAddressingMode(Mnemonic mnemonic) { return isAAAType(mnemonic) || isRAAAType(mnemonic); }
 
 bool isa::Pep9::canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
   return isAType(mnemonic) && addr == AddressingMode::I;
 }
 
-QSet<QString> isa::Pep9::legalDirectives() {
-  static const auto valid = QSet<QString>{"ADDRSS", "ALIGN", "ASCII", "BLOCK", "BURN", "BYTE", "END", "EQUATE", "WORD"};
+std::set<std::string> const &isa::Pep9::legalDirectives() {
+  static const auto valid =
+      std::set<std::string>{"ADDRSS", "ALIGN", "ASCII", "BLOCK", "BURN", "BYTE", "END", "EQUATE", "WORD"};
   return valid;
 }
 
-bool isa::Pep9::isLegalDirective(QString directive) { return legalDirectives().contains(directive.toUpper()); }
+bool isa::Pep9::isLegalDirective(const std::string &directive) {
+  return legalDirectives().contains(bits::to_upper(directive));
+}
+
+const std::map<isa::Pep9::Mnemonic, std::string> &isa::Pep9::mnemonic_to_string() {
+  static const auto r = mnemonic_maps().first;
+  return r;
+}
+
+const std::unordered_map<std::string, isa::Pep9::Mnemonic, pepp::bts::ci_hash, pepp::bts::ci_eq> &
+isa::Pep9::string_to_mnemonic() {
+  static const auto r = mnemonic_maps().second;
+  return r;
+}
+
+const std::map<isa::Pep9::AddressingMode, std::string> &isa::Pep9::addressmode_to_string() {
+  static const auto r = am_maps().first;
+  return r;
+}
+
+const std::unordered_map<std::string, isa::Pep9::AddressingMode, pepp::bts::ci_hash, pepp::bts::ci_eq> &
+isa::Pep9::string_to_addressmode() {
+  static const auto r = am_maps().second;
+  return r;
+}
+
+const std::map<isa::Pep9::Register, std::string> &isa::Pep9::register_to_string() {
+  static const auto r = register_maps().first;
+  return r;
+}
+
+const std::unordered_map<std::string, isa::Pep9::Register, pepp::bts::ci_hash, pepp::bts::ci_eq> &
+isa::Pep9::string_to_register() {
+  static const auto r = register_maps().second;
+  return r;
+}

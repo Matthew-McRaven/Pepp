@@ -16,9 +16,11 @@
  */
 
 #pragma once
-#include "./packed_elf.hpp"
+#include <numeric>
 #include "bts/bitmanip/log2.hpp"
-#include "packed_access_symbol.hpp"
+#include "bts/elf/packed_access_symbol.hpp"
+#include "bts/elf/packed_elf.hpp"
+
 namespace pepp::bts {
 /*
  * Per:

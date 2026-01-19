@@ -16,10 +16,15 @@
  */
 
 #pragma once
-#include <QtCore>
+#include <algorithm>
+#include <iostream>
+#include <optional>
+#include <vector>
+#include "bts/bitmanip/integers.h"
 #include "bts/bitmanip/span.hpp"
+
 namespace bits {
-template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end, uint8_t &value) {
+template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end, u8 &value) {
   // If start == end, then there are no characters to parse!
   if (start == end) {
     return false;
@@ -55,7 +60,7 @@ template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end
       }
     } else {
       static const char *const e = "Unreachable";
-      qCritical(e);
+      std::cerr << e;
       throw std::logic_error(e);
       value = static_cast<uint8_t>('\\');
     }
@@ -65,19 +70,36 @@ template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end
   return true;
 }
 
-bool startsWithHexPrefix(const QString &string);
-qsizetype escapedStringLength(const QString string);
-bool escapedStringToBytes(const QString &string, QByteArray &output);
 struct SeparatorRule {
   bool skipFirst;
   char separator;
-  quint16 modulus;
+  u16 modulus;
 };
 
 // Separates every byte with a space.
-qsizetype bytesToAsciiHex(span<char> out, span<const quint8> in, QVector<SeparatorRule> separator);
+size_t bytesToAsciiHex(span<char> out, span<const u8> in, bits::span<const SeparatorRule> separator);
 // Copy printable ASCII characters from in to out, inserting separators at the appropriate times.
 // Non-printable characters are replaced by a "." / full-stop.
-qsizetype bytesToPrintableAscii(span<char> out, span<const quint8> in, QVector<SeparatorRule> separator);
-std::optional<QList<quint8>> asciiHexToByte(span<const char> in);
+size_t bytesToPrintableAscii(span<char> out, span<const u8> in, bits::span<const SeparatorRule> separator);
+std::optional<std::vector<u8>> asciiHexToByte(span<const char> in);
+
+inline void to_upper_inplace(std::string &s) {
+  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+}
+
+inline std::string to_upper(const std::string &s) {
+  std::string s_copy = s;
+  to_upper_inplace(s_copy);
+  return s_copy;
+}
+
+inline void to_lower_inplace(std::string &s) {
+  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+}
+
+inline std::string to_lower(const std::string &s) {
+  std::string s_copy = s;
+  to_lower_inplace(s_copy);
+  return s_copy;
+}
 } // namespace bits

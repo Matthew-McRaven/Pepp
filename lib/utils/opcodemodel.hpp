@@ -18,8 +18,8 @@
 #include <QAbstractListModel>
 #include <QtCore>
 #include <QtQmlIntegration>
-#include "bts/architectures.hpp"
-#include "bts/levels.hpp"
+#include "project/architectures.hpp"
+#include "project/levels.hpp"
 
 class OpcodeModel : public QAbstractListModel {
   Q_OBJECT

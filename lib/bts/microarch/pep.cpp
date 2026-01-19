@@ -13,7 +13,205 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "./pep.hpp"
+#include "bts/microarch/pep.hpp"
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <vector>
+
+static auto p9register_maps() {
+  std::map<pepp::tc::arch::Pep9Registers::NamedRegisters, std::string> reg_to_str;
+  std::unordered_map<std::string, pepp::tc::arch::Pep9Registers::NamedRegisters, pepp::bts::ci_hash, pepp::bts::ci_eq>
+      str_to_reg;
+  auto insert = [](auto &reg_to_str, auto &str_to_reg, pepp::tc::arch::Pep9Registers::NamedRegisters reg,
+                   std::string str) {
+    reg_to_str[reg] = str;
+    str_to_reg[str] = reg;
+  };
+  using enum pepp::tc::arch::Pep9Registers::NamedRegisters;
+  insert(reg_to_str, str_to_reg, A, "A");
+  insert(reg_to_str, str_to_reg, X, "X");
+  insert(reg_to_str, str_to_reg, SP, "SP");
+  insert(reg_to_str, str_to_reg, PC, "PC");
+  insert(reg_to_str, str_to_reg, IR, "IR");
+  insert(reg_to_str, str_to_reg, T1, "T1");
+  insert(reg_to_str, str_to_reg, T2, "T2");
+  insert(reg_to_str, str_to_reg, T3, "T3");
+  insert(reg_to_str, str_to_reg, T4, "T4");
+  insert(reg_to_str, str_to_reg, T5, "T5");
+  insert(reg_to_str, str_to_reg, T6, "T6");
+  insert(reg_to_str, str_to_reg, M1, "M1");
+  insert(reg_to_str, str_to_reg, M2, "M2");
+  insert(reg_to_str, str_to_reg, M3, "M3");
+  insert(reg_to_str, str_to_reg, M4, "M4");
+  insert(reg_to_str, str_to_reg, M5, "M5");
+  insert(reg_to_str, str_to_reg, INVALID, "invalid");
+
+  return std::make_pair(reg_to_str, str_to_reg);
+}
+
+static auto p9csr_maps() {
+  std::map<pepp::tc::arch::Pep9Registers::CSRs, std::string> reg_to_str;
+  std::unordered_map<std::string, pepp::tc::arch::Pep9Registers::CSRs, pepp::bts::ci_hash, pepp::bts::ci_eq> str_to_reg;
+  auto insert = [](auto &reg_to_str, auto &str_to_reg, pepp::tc::arch::Pep9Registers::CSRs reg, std::string str) {
+    reg_to_str[reg] = str;
+    str_to_reg[str] = reg;
+  };
+  using enum pepp::tc::arch::Pep9Registers::CSRs;
+  insert(reg_to_str, str_to_reg, N, "N");
+  insert(reg_to_str, str_to_reg, Z, "Z");
+  insert(reg_to_str, str_to_reg, V, "V");
+  insert(reg_to_str, str_to_reg, C, "C");
+  insert(reg_to_str, str_to_reg, S, "S");
+
+  return std::make_pair(reg_to_str, str_to_reg);
+}
+
+static auto p9bytesignals_maps() {
+  std::map<pepp::tc::arch::Pep9ByteBus::Signals, std::string> reg_to_str;
+  std::unordered_map<std::string, pepp::tc::arch::Pep9ByteBus::Signals, pepp::bts::ci_hash, pepp::bts::ci_eq>
+      str_to_reg;
+  auto insert = [](auto &reg_to_str, auto &str_to_reg, pepp::tc::arch::Pep9ByteBus::Signals reg, std::string str) {
+    reg_to_str[reg] = str;
+    str_to_reg[str] = reg;
+  };
+
+  using enum pepp::tc::arch::Pep9ByteBus::Signals;
+  insert(reg_to_str, str_to_reg, MemRead, "MemRead");
+  insert(reg_to_str, str_to_reg, MemWrite, "MemWrite");
+  insert(reg_to_str, str_to_reg, A, "A");
+  insert(reg_to_str, str_to_reg, B, "B");
+  insert(reg_to_str, str_to_reg, AMux, "AMux");
+  insert(reg_to_str, str_to_reg, ALU, "ALU");
+  insert(reg_to_str, str_to_reg, CSMux, "CSMux");
+  insert(reg_to_str, str_to_reg, AndZ, "AndZ");
+  insert(reg_to_str, str_to_reg, CMux, "CMux");
+  insert(reg_to_str, str_to_reg, C, "C");
+  insert(reg_to_str, str_to_reg, MDRMux, "MDRMux");
+  insert(reg_to_str, str_to_reg, NCk, "NCk");
+  insert(reg_to_str, str_to_reg, ZCk, "ZCk");
+  insert(reg_to_str, str_to_reg, VCk, "VCk");
+  insert(reg_to_str, str_to_reg, CCk, "CCk");
+  insert(reg_to_str, str_to_reg, SCk, "SCk");
+  insert(reg_to_str, str_to_reg, MARCk, "MARCk");
+  insert(reg_to_str, str_to_reg, LoadCk, "LoadCk");
+  insert(reg_to_str, str_to_reg, MDRCk, "MDRCk");
+
+  return std::make_pair(reg_to_str, str_to_reg);
+}
+
+static auto p9bytehidden_maps() {
+  std::map<pepp::tc::arch::Pep9ByteBus::HiddenRegisters, std::string> reg_to_str;
+  std::unordered_map<std::string, pepp::tc::arch::Pep9ByteBus::HiddenRegisters, pepp::bts::ci_hash, pepp::bts::ci_eq>
+      str_to_reg;
+  auto insert = [](auto &reg_to_str, auto &str_to_reg, pepp::tc::arch::Pep9ByteBus::HiddenRegisters reg,
+                   std::string str) {
+    reg_to_str[reg] = str;
+    str_to_reg[str] = reg;
+  };
+  using enum pepp::tc::arch::Pep9ByteBus::HiddenRegisters;
+  insert(reg_to_str, str_to_reg, MARA, "MARA");
+  insert(reg_to_str, str_to_reg, MARB, "MARB");
+  insert(reg_to_str, str_to_reg, MDR, "MDR");
+
+  return std::make_pair(reg_to_str, str_to_reg);
+}
+
+static auto p9wordsignals_maps() {
+  std::map<pepp::tc::arch::Pep9WordBus::Signals, std::string> reg_to_str;
+  std::unordered_map<std::string, pepp::tc::arch::Pep9WordBus::Signals, pepp::bts::ci_hash, pepp::bts::ci_eq>
+      str_to_reg;
+  auto insert = [](auto &reg_to_str, auto &str_to_reg, pepp::tc::arch::Pep9WordBus::Signals reg, std::string str) {
+    reg_to_str[reg] = str;
+    str_to_reg[str] = reg;
+  };
+
+  using enum pepp::tc::arch::Pep9WordBus::Signals;
+  insert(reg_to_str, str_to_reg, MemRead, "MemRead");
+  insert(reg_to_str, str_to_reg, MemWrite, "MemWrite");
+  insert(reg_to_str, str_to_reg, A, "A");
+  insert(reg_to_str, str_to_reg, B, "B");
+  insert(reg_to_str, str_to_reg, EOMux, "EOMux");
+  insert(reg_to_str, str_to_reg, MARMux, "MARMux");
+  insert(reg_to_str, str_to_reg, AMux, "AMux");
+  insert(reg_to_str, str_to_reg, ALU, "ALU");
+  insert(reg_to_str, str_to_reg, CSMux, "CSMux");
+  insert(reg_to_str, str_to_reg, AndZ, "AndZ");
+  insert(reg_to_str, str_to_reg, CMux, "CMux");
+  insert(reg_to_str, str_to_reg, C, "C");
+  insert(reg_to_str, str_to_reg, MDROMux, "MDROMux");
+  insert(reg_to_str, str_to_reg, MDREMux, "MDREMux");
+  insert(reg_to_str, str_to_reg, NCk, "NCk");
+  insert(reg_to_str, str_to_reg, ZCk, "ZCk");
+  insert(reg_to_str, str_to_reg, VCk, "VCk");
+  insert(reg_to_str, str_to_reg, CCk, "CCk");
+  insert(reg_to_str, str_to_reg, SCk, "SCk");
+  insert(reg_to_str, str_to_reg, MARCk, "MARCk");
+  insert(reg_to_str, str_to_reg, LoadCk, "LoadCk");
+  insert(reg_to_str, str_to_reg, MDROCk, "MDROCk");
+  insert(reg_to_str, str_to_reg, MDRECk, "MDRECk");
+
+  return std::make_pair(reg_to_str, str_to_reg);
+}
+
+static auto p9wordhidden_maps() {
+  std::map<pepp::tc::arch::Pep9WordBus::HiddenRegisters, std::string> reg_to_str;
+  std::unordered_map<std::string, pepp::tc::arch::Pep9WordBus::HiddenRegisters, pepp::bts::ci_hash, pepp::bts::ci_eq>
+      str_to_reg;
+  auto insert = [](auto &reg_to_str, auto &str_to_reg, pepp::tc::arch::Pep9WordBus::HiddenRegisters reg,
+                   std::string str) {
+    reg_to_str[reg] = str;
+    str_to_reg[str] = reg;
+  };
+  using enum pepp::tc::arch::Pep9WordBus::HiddenRegisters;
+  insert(reg_to_str, str_to_reg, MARA, "MARA");
+  insert(reg_to_str, str_to_reg, MARB, "MARB");
+  insert(reg_to_str, str_to_reg, MDRE, "MDRE");
+  insert(reg_to_str, str_to_reg, MDRO, "MDRO");
+
+  return std::make_pair(reg_to_str, str_to_reg);
+}
+
+static auto p9ctrlsignals_maps() {
+  std::map<pepp::tc::arch::Pep9WordBusControl::Signals, std::string> reg_to_str;
+  std::unordered_map<std::string, pepp::tc::arch::Pep9WordBusControl::Signals, pepp::bts::ci_hash, pepp::bts::ci_eq>
+      str_to_reg;
+  auto insert = [](auto &reg_to_str, auto &str_to_reg, pepp::tc::arch::Pep9WordBusControl::Signals reg,
+                   std::string str) {
+    reg_to_str[reg] = str;
+    str_to_reg[str] = reg;
+  };
+
+  using enum pepp::tc::arch::Pep9WordBusControl::Signals;
+  insert(reg_to_str, str_to_reg, MemRead, "MemRead");
+  insert(reg_to_str, str_to_reg, MemWrite, "MemWrite");
+  insert(reg_to_str, str_to_reg, A, "A");
+  insert(reg_to_str, str_to_reg, B, "B");
+  insert(reg_to_str, str_to_reg, EOMux, "EOMux");
+  insert(reg_to_str, str_to_reg, MARMux, "MARMux");
+  insert(reg_to_str, str_to_reg, AMux, "AMux");
+  insert(reg_to_str, str_to_reg, ALU, "ALU");
+  insert(reg_to_str, str_to_reg, CSMux, "CSMux");
+  insert(reg_to_str, str_to_reg, AndZ, "AndZ");
+  insert(reg_to_str, str_to_reg, CMux, "CMux");
+  insert(reg_to_str, str_to_reg, C, "C");
+  insert(reg_to_str, str_to_reg, MDROMux, "MDROMux");
+  insert(reg_to_str, str_to_reg, MDREMux, "MDREMux");
+  insert(reg_to_str, str_to_reg, NCk, "NCk");
+  insert(reg_to_str, str_to_reg, ZCk, "ZCk");
+  insert(reg_to_str, str_to_reg, VCk, "VCk");
+  insert(reg_to_str, str_to_reg, CCk, "CCk");
+  insert(reg_to_str, str_to_reg, SCk, "SCk");
+  insert(reg_to_str, str_to_reg, MARCk, "MARCk");
+  insert(reg_to_str, str_to_reg, LoadCk, "LoadCk");
+  insert(reg_to_str, str_to_reg, MDROCk, "MDROCk");
+  insert(reg_to_str, str_to_reg, MDRECk, "MDRECk");
+  insert(reg_to_str, str_to_reg, PreValid, "PreValid");
+  insert(reg_to_str, str_to_reg, BR, "BR");
+  insert(reg_to_str, str_to_reg, TrueT, "TrueT");
+  insert(reg_to_str, str_to_reg, FalseT, "FalseT");
+
+  return std::make_pair(reg_to_str, str_to_reg);
+}
 
 void pepp::tc::arch::Pep9ByteBus::Code::set(Signals s, uint8_t value) {
   using enum detail::pep9_1byte::Signals;
@@ -84,23 +282,21 @@ void pepp::tc::arch::Pep9ByteBus::CodeWithEnables::set(Signals s, uint8_t value)
 
 uint8_t pepp::tc::arch::Pep9ByteBus::CodeWithEnables::get(Signals s) const { return code.get(s); }
 
-QString pepp::tc::arch::Pep9ByteBus::CodeWithEnables::toString() const {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
-  QStringList ret;
-  QStringList group;
-  for (int it = 0; it < meta_enum.keyCount(); it++) {
-    auto signal = static_cast<Signals>(meta_enum.value(it));
+std::string pepp::tc::arch::Pep9ByteBus::CodeWithEnables::toString() const {
+  auto signals = signal_to_string();
+  std::vector<std::string> ret, group;
+  for (const auto &[signal, name] : signals) {
     if (enabled(signal)) {
-      if (is_clock(signal)) group.append(meta_enum.key(it));
-      else group.append(QString("%1=%2").arg(meta_enum.key(it), QString::number(get(signal))));
+      if (is_clock(signal)) group.emplace_back(name);
+      else group.emplace_back(fmt::format("{}={}", name, get(signal)));
     }
     if (signal == Signals::MDRMux && !group.empty()) {
-      ret.append(group.join(", "));
+      ret.emplace_back(fmt::format("{}", fmt::join(group, ", ")));
       group.clear();
     }
   }
-  if (!group.empty()) ret.append(group.join(", "));
-  return ret.join("; ");
+  if (!group.empty()) ret.emplace_back(fmt::format("{}", fmt::join(group, ", ")));
+  return fmt::format("{}", fmt::join(ret, "; "));
 }
 
 uint8_t pepp::tc::arch::Pep9ByteBus::signal_group(Signals s) {
@@ -115,20 +311,42 @@ bool pepp::tc::arch::Pep9ByteBus::is_clock(Signals s) {
   else return s == Signals::MemRead || s == Signals::MemWrite;
 }
 
-uint8_t pepp::tc::arch::Pep9ByteBus::hidden_register_count() {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<detail::pep9_1byte::HiddenRegisters>();
-  return meta_enum.keyCount();
+uint8_t pepp::tc::arch::Pep9ByteBus::hidden_register_count() { return hiddenregister_to_string().size(); }
+
+const std::unordered_map<std::string, pepp::tc::arch::Pep9ByteBus::Signals, pepp::bts::ci_hash, pepp::bts::ci_eq> &
+pepp::tc::arch::Pep9ByteBus::string_to_signal() {
+  static const auto ret = p9bytesignals_maps().second;
+  return ret;
 }
 
-std::optional<pepp::tc::arch::Pep9ByteBus::Signals> pepp::tc::arch::Pep9ByteBus::parse_signal(const QString &name) {
-  QStringView v(name);
+const std::map<pepp::tc::arch::Pep9ByteBus::Signals, std::string> &pepp::tc::arch::Pep9ByteBus::signal_to_string() {
+  static const auto ret = p9bytesignals_maps().first;
+  return ret;
+}
+
+const std::unordered_map<std::string, pepp::tc::arch::Pep9ByteBus::HiddenRegisters, pepp::bts::ci_hash,
+                         pepp::bts::ci_eq> &
+pepp::tc::arch::Pep9ByteBus::string_to_hiddenregister() {
+  static const auto ret = p9bytehidden_maps().second;
+  return ret;
+}
+
+const std::map<pepp::tc::arch::Pep9ByteBus::HiddenRegisters, std::string> &
+pepp::tc::arch::Pep9ByteBus::hiddenregister_to_string() {
+  static const auto ret = p9bytehidden_maps().first;
+  return ret;
+}
+
+std::optional<pepp::tc::arch::Pep9ByteBus::Signals> pepp::tc::arch::Pep9ByteBus::parse_signal(const std::string &name) {
+  std::string_view v(name);
   return parse_signal(v);
 }
 
-std::optional<pepp::tc::arch::Pep9ByteBus::Signals> pepp::tc::arch::Pep9ByteBus::parse_signal(const QStringView &name) {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
-  for (int it = 0; it < meta_enum.keyCount(); it++)
-    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<Signals>(meta_enum.value(it));
+std::optional<pepp::tc::arch::Pep9ByteBus::Signals>
+pepp::tc::arch::Pep9ByteBus::parse_signal(const std::string_view &name) {
+  auto strs = string_to_signal();
+  auto it = strs.find(name);
+  if (it != strs.end()) return it->second;
   return std::nullopt;
 }
 
@@ -140,41 +358,61 @@ uint8_t pepp::tc::arch::Pep9Registers::register_byte_size(NamedRegisters reg) {
   }
 }
 
-QString pepp::tc::arch::Pep9Registers::register_name(NamedRegisters reg) {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<NamedRegisters>();
-  return meta_enum.key(static_cast<int>(reg));
+std::string pepp::tc::arch::Pep9Registers::register_name(NamedRegisters reg) {
+  return namedregister_to_string().at(reg);
 }
 
-QString pepp::tc::arch::Pep9Registers::csr_name(CSRs reg) {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<CSRs>();
-  return meta_enum.key(static_cast<int>(reg));
+std::string pepp::tc::arch::Pep9Registers::csr_name(CSRs reg) { return csr_to_string().at(reg); }
+
+const std::map<pepp::tc::arch::Pep9Registers::NamedRegisters, std::string> &
+pepp::tc::arch::Pep9Registers::namedregister_to_string() {
+  static const auto ret = p9register_maps().first;
+  return ret;
 }
 
-std::optional<pepp::tc::arch::Pep9Registers::CSRs> pepp::tc::arch::Pep9Registers::parse_csr(const QStringView &name) {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<CSRs>();
-  for (int it = 0; it < meta_enum.keyCount(); it++)
-    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<CSRs>(meta_enum.value(it));
+const std::unordered_map<std::string, pepp::tc::arch::Pep9Registers::NamedRegisters, pepp::bts::ci_hash,
+                         pepp::bts::ci_eq> &
+pepp::tc::arch::Pep9Registers::string_to_namedregister() {
+  static const auto ret = p9register_maps().second;
+  return ret;
+}
+
+const std::map<pepp::tc::arch::Pep9Registers::CSRs, std::string> &pepp::tc::arch::Pep9Registers::csr_to_string() {
+  static const auto ret = p9csr_maps().first;
+  return ret;
+}
+
+const std::unordered_map<std::string, pepp::tc::arch::Pep9Registers::CSRs, pepp::bts::ci_hash, pepp::bts::ci_eq> &
+pepp::tc::arch::Pep9Registers::string_to_csr() {
+  static const auto ret = p9csr_maps().second;
+  return ret;
+}
+
+std::optional<pepp::tc::arch::Pep9Registers::CSRs>
+pepp::tc::arch::Pep9Registers::parse_csr(const std::string_view &name) {
+  auto strs = string_to_csr();
+  auto it = strs.find(name);
+  if (it != strs.end()) return it->second;
   return std::nullopt;
 }
 
-std::optional<pepp::tc::arch::Pep9Registers::CSRs> pepp::tc::arch::Pep9Registers::parse_csr(const QString &name) {
-  QStringView v(name);
+std::optional<pepp::tc::arch::Pep9Registers::CSRs> pepp::tc::arch::Pep9Registers::parse_csr(const std::string &name) {
+  std::string_view v(name);
   return parse_csr(v);
 }
 
 std::optional<pepp::tc::arch::Pep9Registers::NamedRegisters>
-pepp::tc::arch::Pep9Registers::parse_register(const QString &name) {
-  QStringView v(name);
-  return parse_register(v);
+pepp::tc::arch::Pep9Registers::parse_register(const std::string_view &name) {
+  auto strs = string_to_namedregister();
+  auto it = strs.find(name);
+  if (it != strs.end()) return it->second;
+  return std::nullopt;
 }
 
 std::optional<pepp::tc::arch::Pep9Registers::NamedRegisters>
-pepp::tc::arch::Pep9Registers::parse_register(const QStringView &name) {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<NamedRegisters>();
-  for (int it = 0; it < meta_enum.keyCount(); it++)
-    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0)
-      return static_cast<NamedRegisters>(meta_enum.value(it));
-  return std::nullopt;
+pepp::tc::arch::Pep9Registers::parse_register(const std::string &name) {
+  std::string_view v(name);
+  return parse_register(v);
 }
 
 void pepp::tc::arch::Pep9WordBus::Code::set(Signals s, uint8_t value) {
@@ -254,23 +492,21 @@ void pepp::tc::arch::Pep9WordBus::CodeWithEnables::set(Signals s, uint8_t value)
 
 uint8_t pepp::tc::arch::Pep9WordBus::CodeWithEnables::get(Signals s) const { return code.get(s); }
 
-QString pepp::tc::arch::Pep9WordBus::CodeWithEnables::toString() const {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
-  QStringList ret;
-  QStringList group;
-  for (int it = 0; it < meta_enum.keyCount(); it++) {
-    auto signal = static_cast<Signals>(meta_enum.value(it));
+std::string pepp::tc::arch::Pep9WordBus::CodeWithEnables::toString() const {
+  auto signals = signal_to_string();
+  std::vector<std::string> ret, group;
+  for (const auto &[signal, name] : signals) {
     if (enabled(signal)) {
-      if (is_clock(signal)) group.append(meta_enum.key(it));
-      else group.append(QString("%1=%2").arg(meta_enum.key(it), QString::number(get(signal))));
+      if (is_clock(signal)) group.emplace_back(name);
+      else group.emplace_back(fmt::format("{}={}", name, get(signal)));
     }
     if (signal == Signals::MDREMux && !group.empty()) {
-      ret.append(group.join(", "));
+      ret.emplace_back(fmt::format("{}", fmt::join(group, ", ")));
       group.clear();
     }
   }
-  if (!group.empty()) ret.append(group.join(", "));
-  return ret.join("; ");
+  if (!group.empty()) ret.emplace_back(fmt::format("{}", fmt::join(group, ", ")));
+  return fmt::format("{}", fmt::join(ret, "; "));
 }
 
 uint8_t pepp::tc::arch::Pep9WordBus::signal_group(Signals s) {
@@ -285,20 +521,42 @@ bool pepp::tc::arch::Pep9WordBus::is_clock(Signals s) {
   else return s == Signals::MemRead || s == Signals::MemWrite;
 }
 
-uint8_t pepp::tc::arch::Pep9WordBus::hidden_register_count() {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<detail::pep9_2byte::HiddenRegisters>();
-  return meta_enum.keyCount();
+uint8_t pepp::tc::arch::Pep9WordBus::hidden_register_count() { return hiddenregister_to_string().size(); }
+
+const std::unordered_map<std::string, pepp::tc::arch::Pep9WordBus::Signals, pepp::bts::ci_hash, pepp::bts::ci_eq> &
+pepp::tc::arch::Pep9WordBus::string_to_signal() {
+  static const auto ret = p9wordsignals_maps().second;
+  return ret;
 }
 
-std::optional<pepp::tc::arch::Pep9WordBus::Signals> pepp::tc::arch::Pep9WordBus::parse_signal(const QString &name) {
-  QStringView v(name);
+const std::map<pepp::tc::arch::Pep9WordBus::Signals, std::string> &pepp::tc::arch::Pep9WordBus::signal_to_string() {
+  static const auto ret = p9wordsignals_maps().first;
+  return ret;
+}
+
+const std::unordered_map<std::string, pepp::tc::arch::Pep9WordBus::HiddenRegisters, pepp::bts::ci_hash,
+                         pepp::bts::ci_eq> &
+pepp::tc::arch::Pep9WordBus::string_to_hiddenregister() {
+  static const auto ret = p9wordhidden_maps().second;
+  return ret;
+}
+
+const std::map<pepp::tc::arch::Pep9WordBus::HiddenRegisters, std::string> &
+pepp::tc::arch::Pep9WordBus::hiddenregister_to_string() {
+  static const auto ret = p9wordhidden_maps().first;
+  return ret;
+}
+
+std::optional<pepp::tc::arch::Pep9WordBus::Signals> pepp::tc::arch::Pep9WordBus::parse_signal(const std::string &name) {
+  std::string_view v(name);
   return parse_signal(v);
 }
 
-std::optional<pepp::tc::arch::Pep9WordBus::Signals> pepp::tc::arch::Pep9WordBus::parse_signal(const QStringView &name) {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
-  for (int it = 0; it < meta_enum.keyCount(); it++)
-    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<Signals>(meta_enum.value(it));
+std::optional<pepp::tc::arch::Pep9WordBus::Signals>
+pepp::tc::arch::Pep9WordBus::parse_signal(const std::string_view &name) {
+  auto strs = string_to_signal();
+  auto it = strs.find(name);
+  if (it != strs.end()) return it->second;
   return std::nullopt;
 }
 
@@ -322,17 +580,30 @@ bool pepp::tc::arch::Pep9WordBusControl::is_clock(Signals s) {
   else return s == Signals::MemRead || s == Signals::MemWrite;
 }
 
+const std::unordered_map<std::string, pepp::tc::arch::Pep9WordBusControl::Signals, pepp::bts::ci_hash,
+                         pepp::bts::ci_eq> &
+pepp::tc::arch::Pep9WordBusControl::string_to_signal() {
+  static const auto ret = p9ctrlsignals_maps().second;
+  return ret;
+}
+
+const std::map<pepp::tc::arch::Pep9WordBusControl::Signals, std::string> &
+pepp::tc::arch::Pep9WordBusControl::signal_to_string() {
+  static const auto ret = p9ctrlsignals_maps().first;
+  return ret;
+}
+
 std::optional<pepp::tc::arch::Pep9WordBusControl::Signals>
-pepp::tc::arch::Pep9WordBusControl::parse_signal(const QString &name) {
-  QStringView v(name);
+pepp::tc::arch::Pep9WordBusControl::parse_signal(const std::string &name) {
+  std::string_view v(name);
   return parse_signal(v);
 }
 
 std::optional<pepp::tc::arch::Pep9WordBusControl::Signals>
-pepp::tc::arch::Pep9WordBusControl::parse_signal(const QStringView &name) {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
-  for (int it = 0; it < meta_enum.keyCount(); it++)
-    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<Signals>(meta_enum.value(it));
+pepp::tc::arch::Pep9WordBusControl::parse_signal(const std::string_view &name) {
+  auto strs = string_to_signal();
+  auto it = strs.find(name);
+  if (it != strs.end()) return it->second;
   return std::nullopt;
 }
 
@@ -376,36 +647,34 @@ void pepp::tc::arch::Pep9WordBusControl::CodeWithEnables::set(Signals s, uint8_t
 
 uint8_t pepp::tc::arch::Pep9WordBusControl::CodeWithEnables::get(Signals s) const { return code.get(s); }
 
-QString pepp::tc::arch::Pep9WordBusControl::CodeWithEnables::toString() const {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
-  QStringList ret;
-  QStringList group;
-  for (int it = 0; it < meta_enum.keyCount(); it++) {
-    auto signal = static_cast<Signals>(meta_enum.value(it));
+std::string pepp::tc::arch::Pep9WordBusControl::CodeWithEnables::toString() const {
+
+  auto signals = signal_to_string();
+  std::vector<std::string> ret, group;
+  for (const auto &[signal, name] : signals) {
     if (signal == Signals::PreValid) continue;
 
     if (enabled(signal)) {
-      if (is_clock(signal)) group.append(meta_enum.key(it));
-      else group.append(QString("%1=%2").arg(meta_enum.key(it), QString::number(get(signal))));
+      if (is_clock(signal)) group.emplace_back(name);
+      else group.emplace_back(fmt::format("{}={}", name, get(signal)));
     }
     if (auto pv = Signals::PreValid; signal == Signals::MDREMux && enabled(pv))
-      group.append(QString("%1=%2").arg(meta_enum.key(static_cast<int>(pv)), QString::number(get(pv))));
-
-    if (signal == Signals::MDREMux && !group.empty()) {
-      ret.append(group.join(", "));
+      group.emplace_back(fmt::format("PreValid={}", get(pv)));
+    else if (signal == Signals::MDREMux && !group.empty()) {
+      ret.emplace_back(fmt::format("{}", fmt::join(group, ", ")));
       group.clear();
     } else if (signal == Signals::MDRECk && !group.empty()) {
-      ret.append(group.join(", "));
+      ret.emplace_back(fmt::format("{}", fmt::join(group, ", ")));
       group.clear();
     }
   }
-  if (!group.empty()) ret.append(group.join(", "));
-  return ret.join("; ");
+  if (!group.empty()) ret.emplace_back(fmt::format("{}", fmt::join(group, ", ")));
+  return fmt::format("{}", fmt::join(ret, "; "));
 }
 
-quint8 pepp::tc::arch::detail::pep9_1byte::computeALU(quint8 fn, quint8 a, quint8 b, bool cin, bool &n, bool &z,
-                                                      bool &v, bool &c) {
-  quint8 ret = 0;
+uint8_t pepp::tc::arch::detail::pep9_1byte::computeALU(uint8_t fn, uint8_t a, uint8_t b, bool cin, bool &n, bool &z,
+                                                       bool &v, bool &c) {
+  uint8_t ret = 0;
   // Common case, saves many lines of code.
   v = c = false;
   // switch case over 16 functions (0-indexed)
@@ -456,6 +725,7 @@ quint8 pepp::tc::arch::detail::pep9_1byte::computeALU(quint8 fn, quint8 a, quint
   case ALUFunc::A_ROL: // ROL A
     ret = a << 1 | (cin ? 1 : 0);
     c = a & 0x80;
+    break;
   case ALUFunc::A_ASR: // ASR A
     cin = a & 128;
     [[fallthrough]];

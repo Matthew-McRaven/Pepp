@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "packed_storage.hpp"
-#include "packed_ops.hpp"
+#include "bts/elf/packed_storage.hpp"
+#include "bts/elf/packed_ops.hpp"
 
 pepp::bts::AStorage::~AStorage() = default;
 

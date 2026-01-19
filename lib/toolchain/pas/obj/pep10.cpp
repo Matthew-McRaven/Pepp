@@ -20,7 +20,7 @@
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/ast/generic/attr_sec.hpp"
 #include "toolchain/pas/operations/pepp/gather_ios.hpp"
-#include "bts/isa/pep10.hpp"
+#include "bts/isa/pep/pep10.hpp"
 #include "toolchain/link/mmio.hpp"
 #include "bts/bitmanip/copy.hpp"
 
@@ -86,7 +86,7 @@ void pas::obj::pep10::writeUser(ELFIO::elfio &elf, ast::Node &user) {
   common::writeTree<isa::Pep10>(elf, user, "usr", false);
 }
 
-void pas::obj::pep10::writeUser(ELFIO::elfio &elf, QList<quint8> bytes) {
+void pas::obj::pep10::writeUser(ELFIO::elfio &elf, const std::vector<u8> &bytes) {
   auto align = 1;
   ELFIO::Elf64_Addr baseAddr = 0;
   auto size = bytes.size();
@@ -95,7 +95,7 @@ void pas::obj::pep10::writeUser(ELFIO::elfio &elf, QList<quint8> bytes) {
   // All sections from AST correspond to bits in Pep/10 memory, so alloc
   sec->set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_WRITE | ELFIO::SHF_EXECINSTR);
   sec->set_addr_align(align);
-  sec->set_data((const char *)bytes.constData(), size);
+  sec->set_data((const char *)bytes.data(), size);
   auto seg = elf.segments[0];
   seg->add_section(sec, 1);
 }

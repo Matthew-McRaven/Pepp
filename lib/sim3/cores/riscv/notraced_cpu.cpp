@@ -36,7 +36,7 @@
 #include "./decode/decoder_cache.hpp"
 #include "./decode/threaded_bytecodes.hpp"
 #include "./instructions/instr_decoder.hpp"
-#include "bts/isa/rv_types.hpp"
+#include "bts/isa/riscv/rv_types.hpp"
 
 namespace riscv {
 // cpu.cpp

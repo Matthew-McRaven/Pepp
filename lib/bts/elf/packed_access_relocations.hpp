@@ -16,8 +16,8 @@
  */
 
 #pragma once
-#include "./packed_elf.hpp"
-#include "packed_access_symbol.hpp"
+#include "bts/elf/packed_access_symbol.hpp"
+#include "bts/elf/packed_elf.hpp"
 namespace pepp::bts {
 // Handles both REL and RELA.
 // You just need to know which one you're dealing with and stick to the correct set of functions.

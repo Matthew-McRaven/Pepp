@@ -32,7 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #include "rvv_instr.hpp"
-#include "bts/isa/rvv.hpp"
+#include "bts/isa/riscv/rvv.hpp"
 #include "instr_helpers.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/cores/riscv/rvv_registers.hpp"

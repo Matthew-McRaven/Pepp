@@ -15,12 +15,16 @@
  */
 
 #include "bts/bitmanip/copy.hpp"
+#include <QList>
+#include <QtEndian>
 #include <catch.hpp>
+#include <qtypes.h>
+
 using namespace bits;
-using vu8 = QList<quint8>;
+using vu8 = QList<uint8_t>;
 
 namespace {
-void verify(quint8 *arr, quint16 index, quint8 golden) { CHECK(arr[index] == golden); }
+void verify(uint8_t *arr, quint16 index, uint8_t golden) { CHECK(arr[index] == golden); }
 
 using T = std::tuple<std::string, quint16, vu8, Order, quint16, Order, vu8>;
 
@@ -83,9 +87,9 @@ TEST_CASE("Copy bits", "[scope:bits][kind:unit][arch:*]") {
   DYNAMIC_SECTION(caseName) {
     auto dest_le = quint64_le{0};
     auto dest_be = quint64_be{0};
-    quint8 *dest = nullptr;
-    if (destOrder == Order::BigEndian) dest = reinterpret_cast<quint8 *>(&dest_be);
-    else if (destOrder == Order::LittleEndian) dest = reinterpret_cast<quint8 *>(&dest_le);
+    uint8_t *dest = nullptr;
+    if (destOrder == Order::BigEndian) dest = reinterpret_cast<uint8_t *>(&dest_be);
+    else if (destOrder == Order::LittleEndian) dest = reinterpret_cast<uint8_t *>(&dest_le);
     auto src = srcData.constData();
     memcpy_endian({dest, destLen}, destOrder, {src, srcLen}, srcOrder);
     for (int it = 0; it < destLen; it++) verify(dest, it, destGolden[it]);

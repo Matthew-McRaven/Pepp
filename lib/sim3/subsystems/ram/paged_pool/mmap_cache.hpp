@@ -35,7 +35,7 @@
 #include <array>
 #include <cstdint>
 #include <vector>
-#include "bts/isa/rv_types.hpp"
+#include "../../../../bts/isa/riscv/rv_types.hpp"
 
 namespace riscv
 {

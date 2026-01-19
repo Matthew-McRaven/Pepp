@@ -32,7 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #include "./instr_helpers.hpp"
-#include "bts/isa/rva.hpp"
+#include "bts/isa/riscv/rva.hpp"
 #include "sim3/cores/riscv/notraced_cpu.hpp"
 #include "sim3/subsystems/ram/paged_pool.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"

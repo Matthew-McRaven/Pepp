@@ -1,7 +1,7 @@
 #include "asmb.hpp"
 #include <iostream>
 #include <sstream>
-#include "bts/isa/pep10.hpp"
+#include "../../bts/isa/pep/pep10.hpp"
 #include "help/builtins/registry.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/pas/ast/generic/attr_keeepalive.hpp"
@@ -147,8 +147,7 @@ QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
   return ret;
 }
 
-QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>> userObj) {
-
+QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<std::vector<quint8> *> userObj) {
   using enum pepp::Architecture;
   switch (_arch) {
   case PEP9:
@@ -158,7 +157,7 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
     if (_userRoot) {
       pas::obj::pep9::writeUser(*_elf, *_userRoot);
       pas::obj::common::writeLineMapping(*_elf, *_userRoot);
-    } else if (userObj) pas::obj::pep9::writeUser(*_elf, *userObj);
+    } else if (userObj) pas::obj::pep9::writeUser(*_elf, **userObj);
 
     if (_userRoot) pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot, &*_userRoot});
     else pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
@@ -173,7 +172,7 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
       pas::obj::pep10::combineSections(*_userRoot);
       pas::obj::pep10::writeUser(*_elf, *_userRoot);
       pas::obj::common::writeLineMapping(*_elf, *_userRoot);
-    } else if (userObj) pas::obj::pep10::writeUser(*_elf, *userObj);
+    } else if (userObj) pas::obj::pep10::writeUser(*_elf, **userObj);
 
     if (_userRoot) pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot, &*_userRoot});
     else pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});

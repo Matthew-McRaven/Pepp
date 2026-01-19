@@ -16,9 +16,9 @@
  */
 
 #pragma once
+#include "../../../bts/isa/pep/pep10.hpp"
 #include "./common.hpp"
 #include "./pepp.hpp"
-#include "bts/isa/pep10.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/generic/attr_directive.hpp"
 #include "toolchain/pas/operations/generic/include_macros.hpp"

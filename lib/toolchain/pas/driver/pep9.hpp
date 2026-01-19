@@ -16,11 +16,11 @@
  */
 
 #pragma once
+#include "../../../bts/isa/pep/pep9.hpp"
 #include "./common.hpp"
 #include "./pepp.hpp"
-#include "toolchain/symbol/table.hpp"
-#include "bts/isa/pep9.hpp"
 #include "toolchain/macro/registry.hpp"
+#include "toolchain/symbol/table.hpp"
 
 namespace pas::driver::pep9 {
 Q_NAMESPACE;

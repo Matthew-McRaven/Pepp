@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./packed_access_hash.hpp"
+#include "bts/elf/packed_access_hash.hpp"
 // As specified by: https://refspecs.linuxfoundation.org/elf/gabi4+/ch5.dynamic.html#hash
 u32 pepp::bts::elf_hash(bits::span<const char> name) noexcept {
   u32 h = 0, g;

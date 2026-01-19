@@ -1,4 +1,5 @@
 #include "PeppASTConverter10.h"
+#include "toolchain/pas/string_utils.hpp"
 
 #undef emit
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
@@ -20,7 +21,7 @@
 #include "toolchain/pas/errors.hpp"
 #include "toolchain/symbol/table.hpp"
 #include "bts/bitmanip/strings.hpp"
-#include "bts/isa/pep10.hpp"
+#include "bts/isa/pep/pep10.hpp"
 
 using namespace pas::ast;
 namespace {
@@ -167,8 +168,8 @@ std::any parse::PeppASTConverter::visitInstructionLine(PeppParser::InstructionLi
 
   // BUG: instr will remain uninitialized if mnemonic is PLACEHOLDER_MACRO and the invalid
   // mnemonic path is removed.
-  ISA::Mnemonic instr = ISA::parseMnemonic(QString::fromStdString(*_lineInfo.identifier));
-  if (instr != ISA::Mnemonic::INVALID) ret->set(pepp::Instruction<isa::Pep10>{instr});
+  ISA::Mnemonic instr = ISA::parseMnemonic(*_lineInfo.identifier);
+  if (instr != ISA::Mnemonic::INVALID) ret->set(pas::ast::pepp::Instruction<isa::Pep10>{instr});
   else return addError(ret, {.severity = S::Fatal, .message = EP::invalidMnemonic});
 
   // If there are arguments, insert them into AST after check that args are <= 2 bytes.
@@ -191,17 +192,16 @@ std::any parse::PeppASTConverter::visitInstructionLine(PeppParser::InstructionLi
     return addError(ret, {.severity = S::Fatal, .message = EP::requiredAddrMode});
   // Assign default addressing mode for BR-type mnemonics if it is not present
   else if (!_lineInfo.addr_mode.has_value())
-    ret->set(pepp::AddressingMode<ISA>{.value = ISA::defaultAddressingMode(instr)});
+    ret->set(pas::ast::pepp::AddressingMode<ISA>{.value = ISA::defaultAddressingMode(instr)});
   // Triggered when an instruction is not in the valid addressing mode set, like "p".
-  else if (auto addr = ISA::parseAddressingMode(QString::fromStdString(*_lineInfo.addr_mode));
-           addr == ISA::AddressingMode::INVALID)
+  else if (auto addr = ISA::parseAddressingMode(*_lineInfo.addr_mode); addr == ISA::AddressingMode::INVALID)
     return addError(ret, {.severity = S::Fatal, .message = EP::illegalAddrMode});
   // Triggered when an addressing mode doesn't work with an instruction, like sfx with br, and i with stwa.
   else if ((ISA::isAType(instr) && !ISA::isValidATypeAddressingMode(instr, addr)) ||
            (ISA::isAAAType(instr) && !ISA::isValidAAATypeAddressingMode(instr, addr)) ||
            (ISA::isRAAAType(instr) && !ISA::isValidRAAATypeAddressingMode(instr, addr)))
     return addError(ret, {.severity = S::Fatal, .message = EP::illegalAddrMode});
-  else ret->set(pepp::AddressingMode<ISA>{.value = addr});
+  else ret->set(pas::ast::pepp::AddressingMode<ISA>{.value = addr});
 
   if (auto comment = context->COMMENT(); comment) {
     auto item = generic::Comment{.value = QString::fromStdString(comment->getText().substr(1))};

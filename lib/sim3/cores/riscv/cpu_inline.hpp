@@ -31,8 +31,8 @@
  * along with this program. If not, see
  * <https://opensource.org/license/bsd-3-clause>
  */
+#include "../../../bts/isa/riscv/rv_types.hpp"
 #include "./notraced_cpu.hpp"
-#include "bts/isa/rv_types.hpp"
 
 namespace riscv {
 template <AddressType address_t>

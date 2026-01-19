@@ -32,9 +32,9 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
+#include "../../../bts/isa/riscv/rv_base.hpp"
 #include "../notraced_riscv_isa3_system.hpp"
 #include "./threads.hpp"
-#include "bts/isa/rv_base.hpp"
 
 /** Implementation **/
 

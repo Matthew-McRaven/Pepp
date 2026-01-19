@@ -18,8 +18,8 @@
 #include <QStringListModel>
 #include <QtQmlIntegration>
 #include <qabstractitemmodel.h>
-#include "bts/architectures.hpp"
-#include "bts/levels.hpp"
+#include "project/architectures.hpp"
+#include "project/levels.hpp"
 #include "sim3/systems/traced_pep_isa3_system.hpp"
 
 namespace sim {

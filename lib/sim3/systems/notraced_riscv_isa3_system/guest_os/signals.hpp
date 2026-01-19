@@ -34,8 +34,8 @@
 #pragma once
 #include <map>
 #include <set>
-#include "bts/isa/rv_base.hpp"
-#include "bts/isa/rv_types.hpp"
+#include "../../../../bts/isa/riscv/rv_base.hpp"
+#include "bts/isa/riscv/rv_types.hpp"
 #include "sim3/cores/riscv/registers.hpp"
 
 namespace riscv {

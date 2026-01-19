@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "mapped_file.hpp"
+#include "bts/libs/mapped_file.hpp"
 #include <spdlog/spdlog.h>
 #include "bts/bitmanip/log2.hpp"
 #if defined(_WIN32)

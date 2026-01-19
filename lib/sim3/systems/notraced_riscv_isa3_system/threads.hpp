@@ -35,7 +35,7 @@
 #include <cstdio>
 #include <unordered_map>
 #include <vector>
-#include "bts/isa/rv_types.hpp"
+#include "../../../bts/isa/riscv/rv_types.hpp"
 #include "sim3/cores/riscv/registers.hpp"
 
 namespace riscv {

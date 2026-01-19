@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "string_pool.hpp"
+#include "bts/libs/string_pool.hpp"
 #include "bts/bitmanip/span.hpp"
 
 pepp::bts::PooledString::PooledString(int16_t page, uint16_t offset, uint16_t length)
@@ -46,65 +46,65 @@ bool pepp::bts::PooledString::Comparator::operator()(PooledString ident_lhs, Poo
   return this->operator()(*lhs, *rhs);
 }
 
-bool pepp::bts::PooledString::Comparator::operator()(PooledString ident_lhs, QStringView rhs) const {
+bool pepp::bts::PooledString::Comparator::operator()(PooledString ident_lhs, std::string_view rhs) const {
   if (!context) throw std::invalid_argument("PooledString::Comparator context must not be null");
   auto lhs = context->find(ident_lhs);
   if (!lhs) throw std::invalid_argument("PooledString::Comparator given bad lhs");
   return this->operator()(*lhs, rhs);
 }
 
-bool pepp::bts::PooledString::Comparator::operator()(QStringView lhs, PooledString ident_rhs) const {
+bool pepp::bts::PooledString::Comparator::operator()(std::string_view lhs, PooledString ident_rhs) const {
   if (!context) throw std::invalid_argument("PooledString::Comparator context must not be null");
   auto rhs = context->find(ident_rhs);
   if (!rhs) throw std::invalid_argument("PooledString::Comparator given bad rhs");
   return this->operator()(lhs, *rhs);
 }
 
-bool pepp::bts::PooledString::Comparator::operator()(QStringView lhs, QStringView rhs) const {
+bool pepp::bts::PooledString::Comparator::operator()(std::string_view lhs, std::string_view rhs) const {
   if (lhs.size() != rhs.size()) return lhs.size() < rhs.size();
   return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
 pepp::bts::StringPool::StringPool() : _identifiers(PooledString::Comparator{this}) {}
 
-std::optional<pepp::bts::PooledString> pepp::bts::StringPool::find(QStringView str) const {
+std::optional<pepp::bts::PooledString> pepp::bts::StringPool::find(std::string_view str) const {
   auto item = _identifiers.find(str);
   if (item == _identifiers.end()) return std::nullopt;
   return *item;
 }
 
-std::optional<QStringView> pepp::bts::StringPool::find(const PooledString &id) const {
+std::optional<std::string_view> pepp::bts::StringPool::find(const PooledString &id) const {
   if (!id.valid() || id._page >= _allocator.page_count()) return std::nullopt;
   if (auto &_page = _allocator.page(id._page); id._offset + id._length > _page.capacity()) return std::nullopt;
-  else return QStringView(&_page.data()[id._offset], id._length);
+  else return std::string_view((char *)&_page.data()[id._offset], id._length);
 }
 
-bool pepp::bts::StringPool::contains(QStringView str) const { return _identifiers.contains(str); }
+bool pepp::bts::StringPool::contains(std::string_view str) const { return _identifiers.contains(str); }
 
 bool pepp::bts::StringPool::contains(const PooledString &id) const { return _identifiers.contains(id); }
 
-qsizetype pepp::bts::StringPool::count() const { return _identifiers.size(); }
+size_t pepp::bts::StringPool::count() const { return _identifiers.size(); }
 
-qsizetype pepp::bts::StringPool::pooled_byte_size() const { return _allocator.size(); }
+size_t pepp::bts::StringPool::pooled_byte_size() const { return _allocator.size(); }
 
-qsizetype pepp::bts::StringPool::unpooled_byte_size() const {
-  qsizetype ret = 0;
+size_t pepp::bts::StringPool::unpooled_byte_size() const {
+  size_t ret = 0;
   for (const auto &ident : _identifiers)
     if (auto str = find(ident); str) ret += str->size();
   return ret;
 }
 
-pepp::bts::PooledString pepp::bts::StringPool::longest_container_of(QStringView target) {
+pepp::bts::PooledString pepp::bts::StringPool::longest_container_of(std::string_view target) {
   for (auto it = _identifiers.lower_bound(target); it != _identifiers.cend(); it++)
-    if (auto str = find(*it); str && str->indexOf(target) != -1) return *it;
+    if (auto str = find(*it); str && str->find(target) != std::string_view::npos) return *it;
   return PooledString();
 }
 
-pepp::bts::PooledString pepp::bts::StringPool::insert(QStringView str, AddNullTerminator terminator) {
+pepp::bts::PooledString pepp::bts::StringPool::insert(std::string_view str, AddNullTerminator terminator) {
   if (auto existing = _identifiers.find(str); existing != _identifiers.end()) return *existing;
   else if (auto superstring = longest_container_of(str); superstring.valid()) {
     auto superstring_view = find(superstring);
-    auto substr_offset = superstring_view->indexOf(str) + superstring._offset;
+    auto substr_offset = superstring_view->find(str) + superstring._offset;
     return *_identifiers.insert(PooledString(superstring._page, substr_offset, str.size())).first;
   } else return allocate(str, terminator);
 }
@@ -114,24 +114,23 @@ PooledStringSet::const_iterator pepp::bts::StringPool::identifiers_cbegin() cons
 
 PooledStringSet::const_iterator pepp::bts::StringPool::identifiers_cend() const { return _identifiers.cend(); }
 
-pepp::bts::PooledString pepp::bts::StringPool::allocate(QStringView str, AddNullTerminator terminator) {
+pepp::bts::PooledString pepp::bts::StringPool::allocate(std::string_view str, AddNullTerminator terminator) {
   // Calculate how long the string is to determine which kind of page to allocate into.
   auto str_length = str.size();
   bool is_null_terminated = !str.empty() && str.back() == '\0';
   bool needs_null_terminator = (terminator == AddNullTerminator::Always) ||
                                (terminator == AddNullTerminator::IfNotPresent && !is_null_terminated);
   if (needs_null_terminator) ++str_length;
-  if (size_t(str_length) >= PagedAllocator<char16_t>::MAX_PAGE_SIZE)
+  if (size_t(str_length) >= PagedAllocator<char>::MAX_PAGE_SIZE)
     throw std::invalid_argument("String too long to allocate");
 
   // Check existing pages for space, allocating the string in the first page that has enough space.
   // If I were smarter, I might try different algos other than first-fit to reduce fragmentation.
   // TODO: Need to manually insert null terminators here if needs_null_terminator is true.
-  PagedAllocator<char16_t>::InsertResult global_index;
+  PagedAllocator<char>::InsertResult global_index;
   if (needs_null_terminator)
-    global_index =
-        _allocator.insert(bits::span<const char16_t>{(const char16_t *)str.data(), (size_t)str.size()}, 0, 1, 0);
-  else global_index = _allocator.insert(bits::span<const char16_t>{(const char16_t *)str.data(), (size_t)str.size()});
+    global_index = _allocator.insert(bits::span<const char>{(const char *)str.data(), (size_t)str.size()}, 0, 1, 0);
+  else global_index = _allocator.insert(bits::span<const char>{(const char *)str.data(), (size_t)str.size()});
 
   return *_identifiers
               .insert(PooledString(static_cast<int16_t>(global_index.indices.index),
@@ -140,6 +139,7 @@ pepp::bts::PooledString pepp::bts::StringPool::allocate(QStringView str, AddNull
               .first;
 }
 
+/*
 QString pepp::bts::AnnotatedPage::to_string() const {
   QStringList lines;
   for (const auto &id : identifiers) {
@@ -150,7 +150,7 @@ QString pepp::bts::AnnotatedPage::to_string() const {
   return lines.join('\n');
 }
 
-/*std::vector<pepp::bts::AnnotatedPage> pepp::bts::annotated_pages(const StringPool &pool) {
+std::vector<pepp::bts::AnnotatedPage> pepp::bts::annotated_pages(const StringPool &pool) {
   std::vector<AnnotatedPage> ret;
   for (auto it = pool.pages_cbegin(); it != pool.pages_cend(); ++it) ret.push_back(AnnotatedPage{&*it, {}});
   for (auto it = pool.identifiers_cbegin(); it != pool.identifiers_cend(); ++it)

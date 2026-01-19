@@ -34,7 +34,7 @@
 #pragma once
 #include <chrono>
 #include "../notraced_riscv_isa3_system.hpp"
-#include "bts/isa/rv_types.hpp"
+#include "bts/isa/riscv/rv_types.hpp"
 
 namespace riscv {
 // machine_defaults.cpp

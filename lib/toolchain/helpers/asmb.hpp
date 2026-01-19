@@ -1,8 +1,8 @@
 #pragma once
 #include <elfio/elfio.hpp>
-#include "bts/architectures.hpp"
-#include "bts/levels.hpp"
 #include "help/builtins/book.hpp"
+#include "project/architectures.hpp"
+#include "project/levels.hpp"
 #include "sim/debug/line_map.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/node.hpp"
@@ -18,7 +18,7 @@ public:
   bool assemble();
   QStringList errors();
   QList<QPair<int, QString>> errorsWithLines();
-  QSharedPointer<ELFIO::elfio> elf(std::optional<QList<quint8>> userObj = std::nullopt);
+  QSharedPointer<ELFIO::elfio> elf(std::optional<std::vector<quint8> *> userObj = std::nullopt);
   QStringList listing(bool os);
   QList<QPair<QString, QString>> splitListing(bool os);
   QStringList formattedSource(bool os);

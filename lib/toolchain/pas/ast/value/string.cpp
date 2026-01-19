@@ -16,8 +16,9 @@
  */
 
 #include "./string.hpp"
-#include "bts/bitmanip/strings.hpp"
 #include "bts/bitmanip/copy.hpp"
+#include "bts/bitmanip/strings.hpp"
+#include "toolchain/pas/string_utils.hpp"
 pas::ast::value::ShortString::ShortString() : Base() {}
 
 pas::ast::value::ShortString::ShortString(QString value, quint8 size, bits::Order endian)

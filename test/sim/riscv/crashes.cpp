@@ -1,7 +1,7 @@
 #include <catch.hpp>
-#include "bts/isa/rv_types.hpp"
-#include "sim3/systems/notraced_riscv_isa3_system/debug.hpp"
+#include "../../../lib/bts/isa/riscv/rv_types.hpp"
 #include "bts/bitmanip/span.hpp"
+#include "sim3/systems/notraced_riscv_isa3_system/debug.hpp"
 
 static constexpr uint32_t MAX_CYCLES = 5'000;
 static const std::vector<uint8_t> empty;

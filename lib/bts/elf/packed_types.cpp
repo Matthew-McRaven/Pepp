@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./packed_types.hpp"
+#include "bts/elf/packed_types.hpp"
 
 void pepp::bts::detail::fill_e_ident(std::span<u8, 16> e_ident, ElfBits B, ElfEndian E, ElfABI abi,
                                      u8 abi_version) noexcept {

@@ -222,7 +222,7 @@ void pepp::tc::SourceVisitor::visit(const ir::MonadicInstruction *line) {
   QString symbol = "", mn = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
     symbol = maybe_symbol->entry->name + ":";
-  mn = isa::Pep10::string(line->mnemonic.instruction);
+  mn = QString::fromStdString(isa::Pep10::string(line->mnemonic.instruction));
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
     comment = ";" + maybe_comment->to_string();
   text = format_as_columns(symbol, mn, "", comment);
@@ -233,11 +233,11 @@ void pepp::tc::SourceVisitor::visit(const ir::DyadicInstruction *line) {
   QString symbol = "", mn = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
     symbol = maybe_symbol->entry->name + ":";
-  mn = isa::Pep10::string(line->mnemonic.instruction);
+  mn = QString::fromStdString(isa::Pep10::string(line->mnemonic.instruction));
   arg_list.emplaceBack(line->argument.value->string());
   auto addr_mode = line->addr_mode.addr_mode;
   if (!isa::Pep10::canElideAddressingMode(line->mnemonic.instruction, addr_mode))
-    arg_list.emplaceBack(isa::Pep10::string(addr_mode));
+    arg_list.emplaceBack(QString::fromStdString(isa::Pep10::string(addr_mode)));
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
     comment = ";" + maybe_comment->to_string();
   text = format_as_columns(symbol, mn, arg_list.join(","), comment);

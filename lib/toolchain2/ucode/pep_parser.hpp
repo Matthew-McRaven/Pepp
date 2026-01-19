@@ -154,7 +154,8 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
         else if (value < 256) code.tests.emplace_back(tc::ir::MemTest((quint16)address, (quint8)value));
         else code.tests.emplace_back(tc::ir::MemTest((quint16)address, (quint16)value));
       } else { // Match identifer=value for registers
-        if (auto maybe_register = registers::parse_register(asId->view()); maybe_register.has_value()) {
+        if (auto maybe_register = registers::parse_register(asId->to_string().toStdString());
+            maybe_register.has_value()) {
           using enum Integer::Format;
           if (!_buf.match_literal("=")) return error = "Expected '=' after register", false;
           // Short circuiting used to ensure t has the token of the matched value.
@@ -165,7 +166,7 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
           else if ((1 << (8 * registers::register_byte_size(*maybe_register))) - 1 < value)
             return error = "Register value too large" + u"%1"_s.arg(value, 16), false;
           else code.tests.emplace_back(tc::ir::RegisterTest<registers>{*maybe_register, static_cast<quint32>(value)});
-        } else if (auto maybe_csr = registers::parse_csr(asId->view()); maybe_csr.has_value()) {
+        } else if (auto maybe_csr = registers::parse_csr(asId->to_string().toStdString()); maybe_csr.has_value()) {
           using enum Integer::Format;
           if (!_buf.match_literal("=")) return error = "Expected '=' after register", false;
           else if (auto asInt = _buf.match<Integer>(); !asInt) return error = "Expected value after '='", false;
@@ -192,7 +193,7 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
       signals_in_group = 0;
       if (current_group >= uarch::max_signal_groups()) return error = "Unexpected semicolon", false;
     } else if (auto asId = _buf.match<Identifier>(); asId) {
-      auto maybe_signal = uarch::parse_signal(asId->view());
+      auto maybe_signal = uarch::parse_signal(asId->to_string().toStdString());
       if (!maybe_signal.has_value()) return error = "Unknown signal: " + asId->view(), false;
       typename uarch::Signals s = *maybe_signal;
       // If no signals are in this group, allow "jumping" to a higher group.

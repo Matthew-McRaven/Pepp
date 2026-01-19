@@ -22,7 +22,7 @@
 #include "toolchain/symbol/entry.hpp"
 #include "toolchain/symbol/table.hpp"
 #include "toolchain/symbol/value.hpp"
-#include "bts/isa/pep10.hpp"
+#include "bts/isa/pep/pep10.hpp"
 using isa::Pep10;
 TEST_CASE("Link Globals", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Intra-tree link") {

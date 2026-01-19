@@ -32,39 +32,77 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
-
-#include <cstdint>
-#include "rv_types.hpp"
-
-#define AMOSIZE_W 0x2
-#define AMOSIZE_D 0x3
-#define AMOSIZE_Q 0x4
+#include "bts/isa/riscv/rvi.hpp"
 
 namespace riscv
 {
-template <AddressType address_t> struct AtomicMemory {
-  bool load_reserve(int size, address_t addr) {
-    if (!check_alignment(size, addr)) return false;
+	union rv32f_instruction
+	{
+		struct {
+			uint32_t opcode : 7;
+			uint32_t rd     : 5;
+			uint32_t funct3 : 3;
+			uint32_t rs1    : 5;
+			uint32_t rs2    : 5;
+			uint32_t funct7 : 7;
+		} Rtype;
+		struct {
+			uint32_t opcode : 7;
+			uint32_t rd     : 5;
+			uint32_t funct3 : 3;
+			uint32_t rs1    : 5;
+			uint32_t rs2    : 5;
+			uint32_t funct2 : 2;
+			uint32_t rs3    : 5;
+		} R4type;
+		struct {
+			uint32_t opcode : 7;
+			uint32_t rd     : 5;
+			uint32_t funct3 : 3;
+			uint32_t rs1    : 5;
+			uint32_t imm    : 12;
 
-    m_reservation = addr;
-    return true;
-  }
+			bool sign() const noexcept {
+				return imm & 0x800;
+			}
+			int32_t signed_imm() const noexcept {
+				return int32_t(imm << 20) >> 20;
+			}
+		} Itype;
+		struct {
+			uint32_t opcode : 7;
+			uint32_t imm04  : 5;
+			uint32_t funct3 : 3;
+			uint32_t rs1    : 5;
+			uint32_t rs2    : 5;
+			uint32_t imm510 : 6;
+			uint32_t imm11  : 1;
 
-  // Volume I: RISC-V Unprivileged ISA V20190608 p.49:
-  // An SC can only pair with the most recent LR in program order.
-  bool store_conditional(int size, address_t addr) {
-    if (!check_alignment(size, addr)) return false;
+			bool sign() const noexcept {
+				return imm11;
+			}
+			int32_t signed_imm() const noexcept {
+				const int32_t imm = imm04 | (imm510 << 5) | (imm11 << 11);
+				return (imm << 20) >> 20;
+			}
+		} Stype;
 
-    bool result = m_reservation == addr;
-    // Regardless of success or failure, executing an SC.W
-    // instruction invalidates any reservation held by this hart.
-    m_reservation = 0x0;
-    return result;
-  }
+		uint16_t half[2];
+		uint32_t whole;
 
-private:
-  inline bool check_alignment(int size, address_t addr) { return (addr & (size - 1)) == 0; }
+		rv32f_instruction(rv32i_instruction i) : whole(i.whole) {}
 
-  address_t m_reservation = 0x0;
-};
+		uint32_t opcode() const noexcept {
+			return Rtype.opcode;
+		}
+	};
+	static_assert(sizeof(rv32f_instruction) == 4, "Must be 4 bytes");
+
+	enum fflags {
+		FFLAG_NX = 0x1,
+		FFLAG_UF = 0x2,
+		FFLAG_OF = 0x4,
+		FFLAG_DZ = 0x8,
+		FFLAG_NV = 0x10
+	};
 }

@@ -17,13 +17,13 @@
 #include <catch.hpp>
 #include "antlr4-runtime.h"
 
+#include "../../../../../../lib/bts/isa/pep/pep10.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
 #include "toolchain/pas/operations/generic/is.hpp"
 #include "toolchain/pas/operations/pepp/is.hpp"
 #include "toolchain/pas/parse/pepp/PeppASTConverter10.h"
-#include "bts/isa/pep10.hpp"
 
 #include "toolchain/parse/PeppLexer.h"
 #include "toolchain/parse/PeppLexerErrorListener.h"

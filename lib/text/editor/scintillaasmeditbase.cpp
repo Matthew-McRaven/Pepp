@@ -15,12 +15,12 @@
  */
 #include "scintillaasmeditbase.hpp"
 #include <QQmlEngine>
+#include "../../bts/isa/pep/pep9.hpp"
 #include "Geometry.h"
 #include "LexillaAccess.h"
 #include "SciLexer.h"
 #include "ScintillaEditBase/PlatQt.h"
-#include "bts/isa/pep10.hpp"
-#include "bts/isa/pep9.hpp"
+#include "bts/isa/pep/pep10.hpp"
 #include "settings/palette.hpp"
 #include "settings/paletteitem.hpp"
 
@@ -135,25 +135,23 @@ void ScintillaAsmEditBase::addInlineAnnotation(int line, const QString &annotati
 
 std::string pep9_mnemonics() {
   QStringList mnemonics_list;
-  QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep9::Mnemonic>();
-  for (int it = 0; it < mnemonic_enum.keyCount(); it++) mnemonics_list << QString(mnemonic_enum.key(it)).toLower();
+  for (const auto &mn : isa::Pep9::mnemonics()) mnemonics_list.append(QString::fromStdString(mn));
   return mnemonics_list.join(" ").toStdString();
 }
 std::string pep9_directives() {
   std::string dirs;
-  for (const auto &dir : isa::Pep9::legalDirectives()) dirs += "." + dir.toLower().toStdString() + " ";
+  for (const auto &dir : isa::Pep9::legalDirectives()) dirs += "." + dir + " ";
   return dirs;
 }
 
 std::string pep10_mnemonics() {
   QStringList mnemonics_list;
-  QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep10::Mnemonic>();
-  for (int it = 0; it < mnemonic_enum.keyCount(); it++) mnemonics_list << QString(mnemonic_enum.key(it)).toLower();
+  for (const auto &mn : isa::Pep10::mnemonics()) mnemonics_list.append(QString::fromStdString(mn));
   return mnemonics_list.join(" ").toStdString();
 }
 std::string pep10_directives() {
   std::string dirs;
-  for (const auto &dir : isa::Pep10::legalDirectives()) dirs += "." + dir.toLower().toStdString() + " ";
+  for (const auto &dir : isa::Pep10::legalDirectives()) dirs += "." + dir + " ";
   return dirs;
 }
 

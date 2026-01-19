@@ -15,40 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "strings.hpp"
+#include "bts/bitmanip/strings.hpp"
 
-bool bits::startsWithHexPrefix(const QString &string) { return string.startsWith("0x") || string.startsWith("0X"); }
-
-qsizetype bits::escapedStringLength(const QString string) {
-  auto asUTF = string.toUtf8();
-  auto start = asUTF.begin();
-  bool okay = true;
-  size_t accumulated_size = 0;
-  uint8_t _;
-  while (start != asUTF.end()) {
-    okay &= bits::charactersToByte(start, asUTF.end(), _);
-    accumulated_size++;
-  }
-  if (!okay) throw std::logic_error("Not a valid string!");
-  return accumulated_size;
-}
-
-bool bits::escapedStringToBytes(const QString &string, QByteArray &output) {
-  auto asUTF = string.toUtf8();
-  auto start = asUTF.begin();
-  bool okay = true;
-  uint8_t temp = 0;
-  while (start != asUTF.end()) {
-    okay &= bits::charactersToByte(start, asUTF.end(), temp);
-    output.push_back(temp);
-  }
-  return okay;
-}
-
-qsizetype bits::bytesToAsciiHex(span<char> out, span<const quint8> in, QVector<SeparatorRule> separators) {
-  static const quint8 chars[] = "0123456789ABCDEF";
-  qsizetype outIt = 0;
-  for (int inIt = 0; inIt < in.size(); inIt++) {
+size_t bits::bytesToAsciiHex(span<char> out, span<const u8> in, span<const SeparatorRule> separators) {
+  static const u8 chars[] = "0123456789ABCDEF";
+  size_t outIt = 0;
+  for (size_t inIt = 0; inIt < in.size(); inIt++) {
     if (outIt + 2 <= out.size()) {
       out[outIt++] = chars[(in[inIt] >> 4) & 0x0f];
       out[outIt++] = chars[in[inIt] & 0xf];
@@ -65,12 +37,12 @@ qsizetype bits::bytesToAsciiHex(span<char> out, span<const quint8> in, QVector<S
   return outIt;
 }
 
-qsizetype bits::bytesToPrintableAscii(span<char> out, span<const quint8> in, QVector<SeparatorRule> separators) {
-  qsizetype outIt = 0;
-  for (int inIt = 0; inIt < in.size(); inIt++) {
+size_t bits::bytesToPrintableAscii(span<char> out, span<const u8> in, span<const SeparatorRule> separators) {
+  size_t outIt = 0;
+  for (size_t inIt = 0; inIt < in.size(); inIt++) {
     char i = in[inIt];
     if (outIt + 1 <= out.size()) {
-      out[outIt++] = QChar::isPrint(i) ? i : '.';
+      out[outIt++] = std::isprint(i) ? i : '.';
     } else break;
 
     if (outIt + 1 > out.size()) break;
@@ -84,17 +56,17 @@ qsizetype bits::bytesToPrintableAscii(span<char> out, span<const quint8> in, QVe
   return outIt;
 }
 
-qint8 hex_to_int(char c) {
+u8 hex_to_int(char c) {
   if (c >= '0' && c <= '9') return c - '0';
   if (c >= 'A' && c <= 'F') return c - 'A' + 10;
   if (c >= 'a' && c <= 'f') return c - 'a' + 10;
   return -1;
 }
-std::optional<QList<quint8>> bits::asciiHexToByte(span<const char> in) {
-  QList<quint8> ret = {};
+std::optional<std::vector<u8>> bits::asciiHexToByte(span<const char> in) {
+  std::vector<u8> ret = {};
   // We typically expect 3 bytes per octet (hex char, hex char, space), so allocate storage for the common case.
   ret.reserve(in.size() / 3 + 2);
-  qsizetype inIt = 0;
+  size_t inIt = 0;
   while (inIt < in.size()) {
     // Consume all whitespace between octets
     if (auto c = in[inIt]; c == ' ' || c == '\t' || c == '\n' || c == '\r') inIt++;
@@ -102,10 +74,10 @@ std::optional<QList<quint8>> bits::asciiHexToByte(span<const char> in) {
     else {
       // Parse the next two chars into a single byte. Can't use strtol; there may be no gaps between octets.
       auto span = in.subspan(inIt, 2);
-      // If either character is not a hex digit, hex_to_int returns -1 (bitpattern all 1s). By expading the intermediate
-      // to 16-bits, I can examine the sign bit to check if either char was invalid.
-      qint16 byte = hex_to_int(span[0]) << 4 | hex_to_int(span[1]);
-      if (byte < 0) break;
+      // If either character is not a hex digit, hex_to_int returns -1 (bitpattern all 1s). By sign-extending the
+      // intermediate to 16-bit signed, I can examine the sign bit to check if either char was invalid.
+      u16 byte = i16(hex_to_int(span[0]) << 4) | i16(hex_to_int(span[1]));
+      if (byte & 0x8000) break;
       ret.push_back(byte);
       inIt += 2;
     }

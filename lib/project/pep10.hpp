@@ -19,8 +19,8 @@
 #include <QStringListModel>
 #include <qabstractitemmodel.h>
 #include "aproject.hpp"
-#include "bts/architectures.hpp"
-#include "bts/levels.hpp"
+#include "project/architectures.hpp"
+#include "project/levels.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "debug/debugger.hpp"

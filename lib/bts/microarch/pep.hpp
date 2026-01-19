@@ -14,12 +14,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <QtCore>
 #include <bitset>
+#include <map>
+#include <optional>
+#include <stdexcept>
 #include <stdint.h>
+#include <unordered_map>
+#include "bts/libs/case_insensitive_hash.hpp"
 namespace pepp::tc::arch {
 namespace detail::pep9_registers {
-Q_NAMESPACE
 enum class NamedRegisters {
   A = 0,
   X = 2,
@@ -37,27 +40,30 @@ enum class NamedRegisters {
   M3 = 26,
   M4 = 28,
   M5 = 30,
+  INVALID = 32
 };
-Q_ENUM_NS(NamedRegisters);
 enum class CSRs { N, Z, V, C, S };
-Q_ENUM_NS(CSRs);
 } // namespace detail::pep9_registers
 struct Pep9Registers {
   using NamedRegisters = detail::pep9_registers::NamedRegisters;
   static uint8_t register_byte_size(NamedRegisters reg);
-  static std::optional<NamedRegisters> parse_register(const QString &name);
-  static std::optional<NamedRegisters> parse_register(const QStringView &name);
-  static constexpr quint8 register_count() { return 32; }
-  static QString register_name(NamedRegisters reg);
+  static std::optional<NamedRegisters> parse_register(const std::string &name);
+  static std::optional<NamedRegisters> parse_register(const std::string_view &name);
+  static constexpr uint8_t register_count() { return 32; }
+  static std::string register_name(NamedRegisters reg);
   using CSRs = detail::pep9_registers::CSRs;
-  static std::optional<CSRs> parse_csr(const QString &name);
-  static std::optional<CSRs> parse_csr(const QStringView &name);
-  static constexpr quint8 csr_count() { return 5; }
-  static QString csr_name(CSRs reg);
+  static std::optional<CSRs> parse_csr(const std::string &name);
+  static std::optional<CSRs> parse_csr(const std::string_view &name);
+  static constexpr uint8_t csr_count() { return 5; }
+  static std::string csr_name(CSRs reg);
+
+  static std::map<NamedRegisters, std::string> const &namedregister_to_string();
+  static std::unordered_map<std::string, NamedRegisters, bts::ci_hash, bts::ci_eq> const &string_to_namedregister();
+  static std::map<CSRs, std::string> const &csr_to_string();
+  static std::unordered_map<std::string, CSRs, bts::ci_hash, bts::ci_eq> const &string_to_csr();
 };
 
 namespace detail::pep9_1byte {
-Q_NAMESPACE
 enum class Signals {
   MemRead = 0,
   MemWrite,
@@ -79,8 +85,7 @@ enum class Signals {
   LoadCk,
   MDRCk
 };
-Q_ENUM_NS(Signals);
-enum class ALUFunc : quint8 {
+enum class ALUFunc : uint8_t {
   A = 0,
   AB_plus = 1,
   ABCin_plus = 2,
@@ -98,8 +103,7 @@ enum class ALUFunc : quint8 {
   A_ROR = 14,
   Zero = 15
 };
-Q_ENUM_NS(ALUFunc);
-quint8 computeALU(quint8 fn, quint8 a, quint8 b, bool cin, bool &n, bool &z, bool &v, bool &c);
+uint8_t computeALU(uint8_t fn, uint8_t a, uint8_t b, bool cin, bool &n, bool &z, bool &v, bool &c);
 
 static constexpr uint8_t signal_bit_size_helper(Signals s) {
   switch (s) {
@@ -111,7 +115,6 @@ static constexpr uint8_t signal_bit_size_helper(Signals s) {
   }
 }
 enum class HiddenRegisters { MARA = 0, MARB, MDR };
-Q_ENUM_NS(HiddenRegisters)
 } // namespace detail::pep9_1byte
 
 struct Pep9ByteBus {
@@ -120,8 +123,8 @@ struct Pep9ByteBus {
   static uint8_t signal_group(Signals s);
   inline static constexpr uint8_t max_signal_groups() { return 2; }
   static bool is_clock(Signals s);
-  static std::optional<Signals> parse_signal(const QString &name);
-  static std::optional<Signals> parse_signal(const QStringView &name);
+  static std::optional<Signals> parse_signal(const std::string &name);
+  static std::optional<Signals> parse_signal(const std::string_view &name);
   inline static constexpr bool allows_symbols() { return false; }
   inline static constexpr bool signal_allows_symbolic_argument(Signals) { return false; }
   using HiddenRegisters = detail::pep9_1byte::HiddenRegisters;
@@ -157,12 +160,16 @@ struct Pep9ByteBus {
     void clear(Signals s);
     void set(Signals s, uint8_t value);
     uint8_t get(Signals s) const;
-    QString toString() const;
+    std::string toString() const;
   };
+
+  static std::map<HiddenRegisters, std::string> const &hiddenregister_to_string();
+  static std::unordered_map<std::string, HiddenRegisters, bts::ci_hash, bts::ci_eq> const &string_to_hiddenregister();
+  static std::map<Signals, std::string> const &signal_to_string();
+  static std::unordered_map<std::string, Signals, bts::ci_hash, bts::ci_eq> const &string_to_signal();
 };
 
 namespace detail::pep9_2byte {
-Q_NAMESPACE
 enum class Signals {
   MemRead = 0,
   MemWrite,
@@ -188,7 +195,6 @@ enum class Signals {
   MDROCk,
   MDRECk
 };
-Q_ENUM_NS(Signals);
 
 static constexpr uint8_t signal_bit_size_helper(Signals s) {
   switch (s) {
@@ -200,7 +206,6 @@ static constexpr uint8_t signal_bit_size_helper(Signals s) {
   }
 }
 enum class HiddenRegisters { MARA = 0, MARB, MDRE, MDRO };
-Q_ENUM_NS(HiddenRegisters)
 } // namespace detail::pep9_2byte
 
 struct Pep9WordBus {
@@ -209,8 +214,8 @@ struct Pep9WordBus {
   static uint8_t signal_group(Signals s);
   inline static constexpr uint8_t max_signal_groups() { return 2; }
   static bool is_clock(Signals s);
-  static std::optional<Signals> parse_signal(const QString &name);
-  static std::optional<Signals> parse_signal(const QStringView &name);
+  static std::optional<Signals> parse_signal(const std::string &name);
+  static std::optional<Signals> parse_signal(const std::string_view &name);
   inline static constexpr bool allows_symbols() { return false; }
   inline static constexpr bool signal_allows_symbolic_argument(Signals) { return false; }
   using HiddenRegisters = detail::pep9_2byte::HiddenRegisters;
@@ -251,12 +256,16 @@ struct Pep9WordBus {
     void clear(Signals s);
     void set(Signals s, uint8_t value);
     uint8_t get(Signals s) const;
-    QString toString() const;
+    std::string toString() const;
   };
+
+  static std::map<HiddenRegisters, std::string> const &hiddenregister_to_string();
+  static std::unordered_map<std::string, HiddenRegisters, bts::ci_hash, bts::ci_eq> const &string_to_hiddenregister();
+  static std::map<Signals, std::string> const &signal_to_string();
+  static std::unordered_map<std::string, Signals, bts::ci_hash, bts::ci_eq> const &string_to_signal();
 };
 
 namespace detail::pep9_2byte_control {
-Q_NAMESPACE
 enum class Signals {
   MemRead = 0,
   MemWrite,
@@ -287,7 +296,6 @@ enum class Signals {
   TrueT,
   FalseT,
 };
-Q_ENUM_NS(Signals);
 
 static constexpr uint8_t signal_bit_size_helper(Signals s) {
   switch (s) {
@@ -311,8 +319,8 @@ struct Pep9WordBusControl {
   static uint8_t signal_group(Signals s);
   inline static constexpr uint8_t max_signal_groups() { return 3; }
   static bool is_clock(Signals s);
-  static std::optional<Signals> parse_signal(const QString &name);
-  static std::optional<Signals> parse_signal(const QStringView &name);
+  static std::optional<Signals> parse_signal(const std::string &name);
+  static std::optional<Signals> parse_signal(const std::string_view &name);
   inline static constexpr bool allows_symbols() { return true; }
   inline static constexpr bool signal_allows_symbolic_argument(Signals s) {
     return s == Signals::TrueT || s == Signals::FalseT;
@@ -336,7 +344,10 @@ struct Pep9WordBusControl {
     void clear(Signals s);
     void set(Signals s, uint8_t value);
     uint8_t get(Signals s) const;
-    QString toString() const;
+    std::string toString() const;
   };
+
+  static std::map<Signals, std::string> const &signal_to_string();
+  static std::unordered_map<std::string, Signals, bts::ci_hash, bts::ci_eq> const &string_to_signal();
 };
 } // namespace pepp::tc::arch
