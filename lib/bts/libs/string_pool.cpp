@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "string_pool.hpp"
+#include "bts/libs/string_pool.hpp"
 #include "bts/bitmanip/span.hpp"
 
 pepp::bts::PooledString::PooledString(int16_t page, uint16_t offset, uint16_t length)

@@ -20,8 +20,8 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include "../bitmanip/span.hpp"
 #include "bts/bitmanip/log2.hpp"
+#include "bts/bitmanip/span.hpp"
 
 namespace pepp::bts {
 // A class meant to allocate large numbers of small objects efficiently like  strings in a .shstrab section of an ELF
