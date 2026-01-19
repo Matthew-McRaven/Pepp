@@ -16,6 +16,7 @@
 
 #pragma once
 #include <array>
+#include <cstdint>
 #include <map>
 #include <set>
 #include <string>

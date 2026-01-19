@@ -5,3 +5,4 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp"
 add_library(pepp-core STATIC ${sources})
 
 target_link_libraries(pepp-core PUBLIC fmt spdlog cxxgraph flat)
+target_include_directories(pepp-core PUBLIC ${CMAKE_CURRENT_LIST_DIR})
