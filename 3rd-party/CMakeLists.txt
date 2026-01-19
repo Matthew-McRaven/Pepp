@@ -3,6 +3,7 @@ include(ExternalProject)
 add_subdirectory(catch)
 add_subdirectory(elfio)
 add_subdirectory(cli)
+add_subdirectory(nanobind)
 # Disable unit tests for antlr, since it produces many CMake warnings. We don't
 # use VCPKG, since it ships only x86 binaries for Mac, and we target ARM plus
 # x86, which means we need to build from the sources.
