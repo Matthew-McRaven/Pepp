@@ -26,9 +26,9 @@ qt_add_qml_module(CircuitDesign
         ui/move.js
         ui/LogicGates.qml
         ui/Diagram.qml
+        ui/DiagramProperties.qml
         ui/Line.qml
         ui/GridLine.qml
-        ui/DiagramProperties.qml
     SOURCES
         ui/properties.h
         ui/properties.cpp

@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.VectorImage
 
+import CircuitDesign 1.0
 import "move.js" as Move
 
 Item {
@@ -16,7 +17,7 @@ Item {
     property alias output: output
     property point inputXY: inputPt()
     property point outputXY: outputPt()
-    property DiagramProperties props: null
+    //property DiagramProperties props: null
 
     width: Move.blockWidth
     height: Move.blockHeight
@@ -81,6 +82,10 @@ Item {
         }
 
         return Qt.point(x, y);
+    }
+
+    DiagramProperty {
+        id: prop
     }
 
     Rectangle {
@@ -182,7 +187,7 @@ Item {
 
             onDoubleClicked: mouse => {
                 console.log("doubleclick")
-                root.props.diagram = root;
+                //root.props.diagram = root;
                 mouse.accepted = true;
             }
 

@@ -6,9 +6,11 @@ import QtQuick.Controls
 Pane {
     id: root
     property var diagram: null
+
+    //  List of available gates
     required property var model
 
-    enabled: diagram === null
+    //enabled: diagram === null
     Grid {
         columns: 2
         spacing: 5
@@ -19,7 +21,7 @@ Pane {
             model: root.model
             textRole: "name"
             valueRole: "key"
-            currentValue: root.diagram.text === null ? "" : root.diagram.text
+            //currentValue: root.diagram.text === null ? "" : root.diagram.text
 
             /*Component.onCompleted: {
                 console.log("Diagram name: ", root.diagram.name);
