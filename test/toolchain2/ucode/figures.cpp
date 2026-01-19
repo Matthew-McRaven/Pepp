@@ -16,13 +16,13 @@
 
 #include <catch.hpp>
 #include <ranges>
-#include "sim3/cores/pep/traced_pep9_mc2.hpp"
+#include "core/microarch/pep.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
+#include "sim3/cores/pep/traced_pep9_mc2.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
-#include "bts/microarch/pep.hpp"
 #include "toolchain2/ucode/pep_parser.hpp"
 
 namespace {

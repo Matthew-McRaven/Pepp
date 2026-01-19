@@ -15,22 +15,22 @@
  */
 
 #include "run.hpp"
-#include "sim3/cores/pep/traced_helpers.hpp"
 #include "../basic_lazy_sink.hpp"
 #include "../shared.hpp"
+#include "core/bitmanip/strings.hpp"
 #include "help/builtins/figure.hpp"
+#include "sim3/cores/pep/traced_helpers.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "sim3/subsystems/bus/simple.hpp"
 #include "sim3/subsystems/ram/broadcast/mmi.hpp"
 #include "sim3/subsystems/ram/broadcast/mmo.hpp"
+#include "sim3/systems/traced_pep_isa3_system.hpp"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
-#include "sim3/systems/traced_pep_isa3_system.hpp"
-#include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/link/mmio.hpp"
-#include "bts/bitmanip/strings.hpp"
 
 auto gs = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Application,

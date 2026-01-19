@@ -14,12 +14,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
+#include "core/isa/pep/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/operations/generic/group.hpp"
 #include "toolchain/pas/operations/pepp/addressable.hpp"
 #include "toolchain/pas/operations/pepp/assign_addr.hpp"
 #include "toolchain/pas/operations/pepp/string.hpp"
-#include "bts/isa/pep/pep10.hpp"
 
 TEST_CASE("Format Pepp listing", "[scope:asm][kind:unit][arch:pep10]") {
   auto [name, source, listing] = GENERATE(table<QString, QString, QStringList>({

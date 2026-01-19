@@ -17,11 +17,13 @@
 #include <QStringLiteral>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
-#include "sim3/cores/pep/traced_helpers.hpp"
-#include "sim3/cores/pep/traced_pep9_isa3.hpp"
+#include "core/bitmanip/strings.hpp"
+#include "core/bitmanip/swap.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
+#include "sim3/cores/pep/traced_helpers.hpp"
+#include "sim3/cores/pep/traced_pep9_isa3.hpp"
 #include "sim3/subsystems/bus/simple.hpp"
 #include "sim3/subsystems/disk/ide.hpp"
 #include "sim3/subsystems/ram/broadcast/mmi.hpp"
@@ -34,8 +36,6 @@
 #include "toolchain/pas/driver/pep9.hpp"
 #include "toolchain/pas/obj/pep9.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
-#include "bts/bitmanip/strings.hpp"
-#include "bts/bitmanip/swap.hpp"
 
 namespace {
 static const auto lf = QRegularExpression("\r");

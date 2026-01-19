@@ -14,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "opcodemodel.hpp"
-#include "bts/isa/pep/pep10.hpp"
-#include "bts/isa/pep/pep9.hpp"
+#include "core/isa/pep/pep10.hpp"
+#include "core/isa/pep/pep9.hpp"
 OpcodeModel::OpcodeModel(QObject *parent) : QAbstractListModel(parent) {}
 
 int OpcodeModel::rowCount(const QModelIndex &parent) const {

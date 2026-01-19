@@ -17,7 +17,7 @@
 #include <QDebug>
 #include <QString>
 #include <catch.hpp>
-#include "bts/libs/string_pool.hpp"
+#include "core/libs/string_pool.hpp"
 
 using Pool = pepp::bts::StringPool;
 using String = pepp::bts::PooledString;

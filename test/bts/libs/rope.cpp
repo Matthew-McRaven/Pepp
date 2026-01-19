@@ -18,7 +18,7 @@
  * See http://www.boost.org/LICENSE_1_0.txt
  */
 
-#include "bts/libs/rope.hpp"
+#include "core/libs/rope.hpp"
 
 #include <catch/catch.hpp>
 #include <sstream>

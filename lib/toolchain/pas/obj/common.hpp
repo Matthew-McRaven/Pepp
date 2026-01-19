@@ -2,13 +2,13 @@
 #include <QtCore>
 #include <elfio/elfio.hpp>
 #include <spdlog/spdlog.h>
+#include "core/bitmanip/leb128.hpp"
 #include "toolchain/pas/ast/generic/attr_sec.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
 #include "toolchain/pas/ast/node.hpp"
 #include "toolchain/pas/operations/generic/combine.hpp"
 #include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "toolchain/symbol/entry.hpp"
-#include "bts/bitmanip/leb128.hpp"
 #include "zpp_bits.h"
 
 namespace pas::obj::common {

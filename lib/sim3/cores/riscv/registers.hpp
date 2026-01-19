@@ -35,7 +35,7 @@
 #include <array>
 #include <memory>
 #include <string>
-#include "../../../bts/isa/riscv/rv_types.hpp"
+#include "../../../core/isa/riscv/rv_types.hpp"
 #include "./rvv_registers.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/rv_common.hpp"

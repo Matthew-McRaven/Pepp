@@ -2,7 +2,7 @@
 #include <QtCore>
 #include <memory>
 #include "./expr_tokenizer.hpp"
-#include "bts/bitmanip/span.hpp"
+#include "core/bitmanip/span.hpp"
 #include "expr_eval.hpp"
 
 namespace pepp::debug {

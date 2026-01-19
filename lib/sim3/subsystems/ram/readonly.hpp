@@ -14,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
+#include "core/bitmanip/span.hpp"
 #include "sim3/api/traced/memory_target.hpp"
-#include "bts/bitmanip/span.hpp"
 
 namespace sim::memory {
 template <typename Address>

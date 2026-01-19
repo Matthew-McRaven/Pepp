@@ -1,10 +1,10 @@
 #include "pep_format.hpp"
 #include <QStringList>
 #include <fmt/format.h>
+#include "core/bitmanip/strings.hpp"
 #include "pep_codegen.hpp"
 #include "toolchain2/asmb/pep_ir_visitor.hpp"
 #include "toolchain2/asmb/pep_tokens.hpp"
-#include "bts/bitmanip/strings.hpp"
 #include "utils/textutils.hpp"
 
 namespace {

@@ -16,10 +16,10 @@
 
 #pragma once
 #include "./pubsub.hpp"
+#include "core/bitmanip/copy.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
 #include "sim3/trace/packet_utils.hpp"
-#include "bts/bitmanip/copy.hpp"
 
 namespace sim::memory {
 template <typename Address>

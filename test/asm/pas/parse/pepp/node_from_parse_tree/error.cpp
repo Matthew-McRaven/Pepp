@@ -16,12 +16,12 @@
 
 #include <catch.hpp>
 
+#include "core/isa/pep/pep10.hpp"
 #include "toolchain/pas/ast/generic/attr_error.hpp"
 #include "toolchain/pas/ast/generic/attr_location.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/errors.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
-#include "bts/isa/pep/pep10.hpp"
 
 #undef emit
 #include "toolchain/parse/PeppLexer.h"

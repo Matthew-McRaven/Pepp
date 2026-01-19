@@ -18,11 +18,11 @@
 #include <ostream>
 #include <set>
 #include "./packet_utils.hpp"
+#include "core/bitmanip/mask.hpp"
 #include "sim3/api/memory_address.hpp"
 #include "sim3/api/traced/memory_path.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
-#include "bts/bitmanip/mask.hpp"
 namespace sim::trace2 {
 template <typename T> using Interval = sim::api2::memory::Interval<T>;
 

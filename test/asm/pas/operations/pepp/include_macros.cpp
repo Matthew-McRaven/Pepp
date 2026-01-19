@@ -16,7 +16,7 @@
 
 #include "toolchain/pas/operations/generic/include_macros.hpp"
 #include <catch.hpp>
-#include "bts/isa/pep/pep10.hpp"
+#include "core/isa/pep/pep10.hpp"
 #include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"

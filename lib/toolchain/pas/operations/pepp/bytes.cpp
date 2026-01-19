@@ -16,12 +16,12 @@
  */
 
 #include "./bytes.hpp"
+#include "core/bitmanip/copy.hpp"
+#include "core/bitmanip/strings.hpp"
 #include "toolchain/pas/ast/generic/attr_address.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_directive.hpp"
 #include "toolchain/pas/ast/value/base.hpp"
-#include "bts/bitmanip/copy.hpp"
-#include "bts/bitmanip/strings.hpp"
 
 quint16 alignToBytes(const pas::ast::Node &node, bits::span<quint8> dest) {
   auto address = node.get<pas::ast::generic::Address>().value;

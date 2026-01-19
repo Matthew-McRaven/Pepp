@@ -16,6 +16,7 @@
  */
 
 #include "./combine.hpp"
+#include "core/bitmanip/order.hpp"
 #include "toolchain/pas/ast/generic/attr_address.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
@@ -23,7 +24,6 @@
 #include "toolchain/pas/operations/generic/is.hpp"
 #include "toolchain/symbol/entry.hpp"
 #include "toolchain/symbol/value.hpp"
-#include "bts/bitmanip/order.hpp"
 
 bool pas::ops::generic::detail::isOrgSection(const ast::Node &section) {
   bool accumulator = false;
