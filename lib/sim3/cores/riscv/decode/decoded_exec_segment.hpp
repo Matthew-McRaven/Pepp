@@ -34,10 +34,10 @@
 #pragma once
 #include <memory>
 #include <stdexcept>
-#include "../../../../core/isa/riscv/rv_base.hpp"
-#include "../../../../core/isa/riscv/rv_types.hpp"
-#include "../../../../core/isa/riscv/rvfd.hpp"
-#include "../../../../core/isa/riscv/rvv.hpp"
+#include "core/isa/riscv/rv_base.hpp"
+#include "core/isa/riscv/rv_types.hpp"
+#include "core/isa/riscv/rvfd.hpp"
+#include "core/isa/riscv/rvv.hpp"
 #include "../notraced_cpu.hpp"
 #include "./threaded_bytecodes.hpp"
 #include "core/isa/riscv/rvc.hpp"

@@ -34,7 +34,7 @@
 #pragma once
 #include <map>
 #include <set>
-#include "../../../../core/isa/riscv/rv_base.hpp"
+#include "core/isa/riscv/rv_base.hpp"
 #include "core/isa/riscv/rv_types.hpp"
 #include "sim3/cores/riscv/registers.hpp"
 

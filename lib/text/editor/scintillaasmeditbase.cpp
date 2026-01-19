@@ -15,7 +15,7 @@
  */
 #include "scintillaasmeditbase.hpp"
 #include <QQmlEngine>
-#include "../../core/isa/pep/pep9.hpp"
+#include "core/isa/pep/pep9.hpp"
 #include "Geometry.h"
 #include "LexillaAccess.h"
 #include "SciLexer.h"

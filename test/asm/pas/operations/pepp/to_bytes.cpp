@@ -15,7 +15,7 @@
  */
 
 #include <catch.hpp>
-#include "../../../../../lib/core/isa/pep/pep10.hpp"
+#include "core/isa/pep/pep10.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/operations/pepp/assign_addr.hpp"

@@ -32,7 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
-#include "../../../core/isa/riscv/rv_base.hpp"
+#include "core/isa/riscv/rv_base.hpp"
 #include "../notraced_riscv_isa3_system.hpp"
 #include "./threads.hpp"
 

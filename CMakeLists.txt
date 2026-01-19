@@ -26,7 +26,7 @@ endif()
 # DO NOT AUTO-FORMAT. CI looks for a line with this format to extract the
 # version.
 # cmake-format: off
-project(Pepp VERSION 0.14.2 LANGUAGES CXX)
+project(Pepp VERSION 0.14.2 LANGUAGES C CXX)
 # cmake-format: on
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -110,9 +110,13 @@ find_package(Python COMPONENTS Interpreter)
 
 include(config/cmake/GenerateChangelog.cmake)
 include(config/cmake/FindRISCVToolchain.cmake)
-# add_subdirectory(core) So that you can #include "core/.." without having a
-# nested core/core folder. target_include_directories(pepp-core PUBLIC
-# ${CMAKE_CURRENT_LIST_DIR})
+inject_cxx_standard()
+inject_clang_tidy()
+inject_dwarf_debug()
+inject_code_coverage()
+add_subdirectory(core)
+# So that you can #include "core/.." without having a nested core/core folder.
+target_include_directories(pepp-core PUBLIC ${CMAKE_CURRENT_LIST_DIR}/core)
 add_subdirectory(lib)
 add_subdirectory(test)
 add_subdirectory(test2)

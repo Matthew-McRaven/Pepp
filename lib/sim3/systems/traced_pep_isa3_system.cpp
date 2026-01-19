@@ -14,10 +14,11 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "../cores/pep/traced_helpers.hpp"
-#include "../cores/pep/traced_pep10_isa3.hpp"
-#include "../cores/pep/traced_pep9_isa3.hpp"
+#include "traced_pep_isa3_system.hpp"
 #include "sim3/api/memory_address.hpp"
+#include "sim3/cores/pep/traced_helpers.hpp"
+#include "sim3/cores/pep/traced_pep10_isa3.hpp"
+#include "sim3/cores/pep/traced_pep9_isa3.hpp"
 #include "sim3/subsystems/bus/simple.hpp"
 #include "sim3/subsystems/disk/ide.hpp"
 #include "sim3/subsystems/ram/broadcast/mmi.hpp"
@@ -26,7 +27,6 @@
 #include "toolchain/link/bytes.hpp"
 #include "toolchain/link/memmap.hpp"
 #include "toolchain/link/mmio.hpp"
-#include "traced_pep_isa3_system.hpp"
 using namespace Qt::StringLiterals;
 
 using AddressSpan = sim::api2::memory::AddressSpan<quint16>;

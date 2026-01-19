@@ -16,7 +16,7 @@
 
 #include "toolchain/pas/operations/pepp/addressable.hpp"
 #include <catch.hpp>
-#include "../../../../../lib/core/isa/pep/pep10.hpp"
+#include "core/isa/pep/pep10.hpp"
 #include "toolchain/pas/ast/node.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 using namespace Qt::StringLiterals;

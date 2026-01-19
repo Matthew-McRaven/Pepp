@@ -34,7 +34,7 @@
 #pragma once
 #include <functional>
 #include <unordered_map>
-#include "../../../core/isa/riscv/rv_types.hpp"
+#include "core/isa/riscv/rv_types.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 
 namespace riscv

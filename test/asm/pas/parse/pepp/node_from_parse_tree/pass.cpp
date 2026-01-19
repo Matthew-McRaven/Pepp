@@ -17,7 +17,7 @@
 #include <catch.hpp>
 #include "antlr4-runtime.h"
 
-#include "../../../../../../lib/core/isa/pep/pep10.hpp"
+#include "core/isa/pep/pep10.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"

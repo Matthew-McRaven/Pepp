@@ -1,9 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-inject_cxx_standard()
-inject_clang_tidy()
-inject_dwarf_debug()
-inject_code_coverage()
-
 # Extract git info
 include(help/about/git.cmake)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
@@ -72,7 +66,7 @@ target_link_libraries(
 # https://bugreports.qt.io/browse/QTBUG-101146.
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-                                           ${ANTLR4_INCLUDE_DIR})
+                                           ${ANTLR4_INCLUDE_DIR} ../core)
 target_include_directories(
   pepp-lib
   PRIVATE enums
@@ -96,8 +90,7 @@ target_include_directories(
           text/editor
           menu
           settings
-          top
-          ../)
+          top)
 
 # ######### Options from libriscv
 if(COSMOPOLITAN)

@@ -32,15 +32,15 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
-#include "../../../../core/isa/riscv/rv_instruction_list.hpp"
-#include "../../../../core/isa/riscv/rvfd.hpp"
+#include "core/isa/riscv/rv_instruction_list.hpp"
+#include "core/isa/riscv/rvfd.hpp"
 #include "./instr_helpers.hpp"
 #include "core/isa/riscv/rv_types.hpp"
 #include "core/isa/riscv/rvi.hpp"
 #include "sim3/common_macros.hpp"
 
-#include "../../../../core/isa/riscv/rva.hpp"
-#include "../../../../core/isa/riscv/rvv.hpp"
+#include "core/isa/riscv/rva.hpp"
+#include "core/isa/riscv/rvv.hpp"
 #include "./rva_instr.hpp"
 #include "./rvc_instr.hpp"
 #include "./rvfd_instr.hpp"

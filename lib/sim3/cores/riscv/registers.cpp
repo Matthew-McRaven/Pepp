@@ -33,7 +33,7 @@
  */
 #include "./registers.hpp"
 #include <stdexcept>
-#include "../../../core/isa/riscv/rv_base.hpp"
+#include "core/isa/riscv/rv_base.hpp"
 #include "core/bitmanip/span.hpp"
 
 namespace {
