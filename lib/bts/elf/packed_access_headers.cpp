@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "packed_access_headers.hpp"
-#include "packed_elf.hpp"
+#include "bts/elf/packed_access_headers.hpp"
+#include "bts/elf/packed_elf.hpp"
 
 struct SectionDataVisitor {
   u16 section_index;

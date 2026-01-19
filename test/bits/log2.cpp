@@ -17,18 +17,17 @@
 #include "bts/bitmanip/log2.hpp"
 
 #include <catch.hpp>
-#include <qtypes.h>
 
-using T = std::tuple<std::string, quint16, quint16>;
+using T = std::tuple<std::string, uint16_t, uint16_t>;
 TEST_CASE("Logarithm bit ops", "[scope:bits][kind:unit][arch:*]") {
-  auto [_case, input, output] = GENERATE(table<std::string, quint16, quint16>({{"1", 1, 0},
-                                                                               {"2", 2, 1},
-                                                                               {"3", 3, 2},
-                                                                               {"4", 4, 2},
-                                                                               {"5", 5, 3},
-                                                                               {"6", 6, 3},
-                                                                               {"7", 7, 3},
-                                                                               {"8", 8, 3},
-                                                                               {"16", 16, 4}}));
+  auto [_case, input, output] = GENERATE(table<std::string, uint16_t, uint16_t>({{"1", 1, 0},
+                                                                                 {"2", 2, 1},
+                                                                                 {"3", 3, 2},
+                                                                                 {"4", 4, 2},
+                                                                                 {"5", 5, 3},
+                                                                                 {"6", 6, 3},
+                                                                                 {"7", 7, 3},
+                                                                                 {"8", 8, 3},
+                                                                                 {"16", 16, 4}}));
   DYNAMIC_SECTION(_case) { CHECK(bits::ceil_log2(input) == output); }
 }

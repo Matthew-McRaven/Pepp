@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <QList>
 #include <catch.hpp>
 #include <qtypes.h>
 #include "bts/bitmanip/copy.hpp"
@@ -25,7 +26,7 @@ TEST_CASE("String bit ops", "[scope:bits][kind:unit][arch:*]") {
   quint8 src[] = {0x00, 0xFE, 0xED, 0xBE, 0xEF};
   char dst[sizeof(src) * 3];
   auto dstSpan = std::span{dst};
-  QString golden = "00 FE ED BE EF ";
+  auto golden = "00 FE ED BE EF ";
   /*quint8 golden[sizeof(dst)] = {0x30, 0x30, 0x20, 0x46, 0x45,
                                 0x20, 0x45, 0x44, 0x20, 0x42,
                                 0x45, 0x20, 0x45, 0x46, 0x20};*/

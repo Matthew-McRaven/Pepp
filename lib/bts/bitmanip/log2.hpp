@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "./integers.h"
+#include "bts/bitmanip/integers.h"
 
 namespace bits {
 /*

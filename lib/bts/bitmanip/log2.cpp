@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./log2.hpp"
+#include "bts/bitmanip/log2.hpp"
 #include <bit>
 #include <iostream>
 u8 bits::ceil_log2(u64 value) {

@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "mask.hpp"
+#include "bts/bitmanip/mask.hpp"
 
 uint64_t bits::mask(uint8_t byteCount) {
   if (byteCount >= 8) return -1;

@@ -17,7 +17,7 @@
 
 #pragma once
 #include <span>
-#include "../bitmanip/integers.h"
+#include "bts/bitmanip/integers.h"
 #include "bts/elf/enums.hpp"
 
 /*

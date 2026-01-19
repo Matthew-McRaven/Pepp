@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "./packed_elf.hpp"
+#include "bts/elf/packed_elf.hpp"
 namespace pepp::bts {
 // Accessor for ELF string tables
 template <ElfBits B, ElfEndian E, bool Const> class PackedStringAccessor {

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "packed_ops.hpp"
+#include "bts/elf/packed_ops.hpp"
 #include "bts/bitmanip/copy.hpp"
 
 u64 pepp::bts::size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) noexcept {

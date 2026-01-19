@@ -16,11 +16,11 @@
  */
 
 #pragma once
-#include "../bitmanip/integers.h"
-#include "../bitmanip/span.hpp"
+#include "bts/bitmanip/integers.h"
+#include "bts/bitmanip/span.hpp"
+#include "bts/elf/packed_access_headers.hpp"
 #include "bts/libs/mapped_file.hpp"
 #include "bts/libs/paged_alloc.hpp"
-#include "packed_access_headers.hpp"
 
 namespace pepp::bts {
 template <class T> struct is_span : std::false_type {};

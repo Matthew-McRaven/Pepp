@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "strings.hpp"
+#include "bts/bitmanip/strings.hpp"
 
 size_t bits::bytesToAsciiHex(span<char> out, span<const u8> in, span<const SeparatorRule> separators) {
   static const u8 chars[] = "0123456789ABCDEF";

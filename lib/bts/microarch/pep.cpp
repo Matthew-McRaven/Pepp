@@ -13,9 +13,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "./pep.hpp"
+#include "bts/microarch/pep.hpp"
 #include <fmt/format.h>
-#include "fmt/ranges.h"
+#include <fmt/ranges.h>
 
 static auto p9register_maps() {
   std::map<pepp::tc::arch::Pep9Registers::NamedRegisters, std::string> reg_to_str;

@@ -15,9 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./copy.hpp"
+#include "bts/bitmanip/copy.hpp"
 
-void bits::memcpy_endian(std::span<quint8> dest, Order destOrder, std::span<const quint8> src, Order srcOrder) {
+void bits::memcpy_endian(std::span<uint8_t> dest, Order destOrder, std::span<const uint8_t> src, Order srcOrder) {
   // At most 1 offset will be used at a time, determined by which pointer is
   // longer.
   std::size_t srcOffset = 0, destOffset = 0;
@@ -38,7 +38,7 @@ void bits::memcpy_endian(std::span<quint8> dest, Order destOrder, std::span<cons
 }
 
 // TODO: might be able to vectorize this for large lens.
-void bits::memcpy_xor(bits::span<quint8> dest, bits::span<const quint8> src1, bits::span<const quint8> src2) {
+void bits::memcpy_xor(bits::span<uint8_t> dest, bits::span<const uint8_t> src1, bits::span<const uint8_t> src2) {
   auto len = std::min(dest.size_bytes(), std::min(src1.size_bytes(), src2.size_bytes()));
   for (auto it = 0; it < len; it++) dest[it] = src1[it] ^ src2[it];
 }

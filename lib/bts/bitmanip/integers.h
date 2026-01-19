@@ -28,9 +28,8 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include <system_error>
+#include <stdexcept>
 #include <type_traits>
-#include "zpp_bits.h"
 
 #if !defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -86,8 +85,6 @@ public:
   Integer &operator-=(T v) { return *this = *this - v; }
   Integer &operator&=(T v) { return *this = *this & v; }
   Integer &operator|=(T v) { return *this = *this | v; }
-  friend zpp::bits::access;
-  using serialize = zpp::bits::members<1>;
 
 private:
   static constexpr bool is_native = (std::endian::native == (is_le ? std::endian::little : std::endian::big));
