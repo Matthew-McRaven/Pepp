@@ -35,7 +35,7 @@ target_include_directories(cxxgraph
                            INTERFACE ${CMAKE_CURRENT_LIST_DIR}/cxxgraph/include)
 add_dependencies(cxxgraph cxxgraph_helper)
 include(Flat.cmake)
-if(Python_VERSION VERSION_GREATER_EQUAL "3.12")
+if(Python_VERSION VERSION_GREATER_EQUAL "3.12" AND NOT EMSCRIPTEN)
   add_subdirectory(nanobind)
 endif()
 if(NOT PEPP_BUILD_PYTHON)
