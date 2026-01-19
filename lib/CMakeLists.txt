@@ -23,6 +23,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/help/about/version_gen.cpp.in"
                "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" @ONLY)
 
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp"
+     "${CMAKE_CURRENT_LIST_DIR}/../core/*.cpp"
      "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob
 # converts from abs to rel.
@@ -95,7 +96,8 @@ target_include_directories(
           text/editor
           menu
           settings
-          top)
+          top
+          ../)
 
 # ######### Options from libriscv
 if(COSMOPOLITAN)

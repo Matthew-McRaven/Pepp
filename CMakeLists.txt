@@ -110,6 +110,9 @@ find_package(Python COMPONENTS Interpreter)
 
 include(config/cmake/GenerateChangelog.cmake)
 include(config/cmake/FindRISCVToolchain.cmake)
+# add_subdirectory(core) So that you can #include "core/.." without having a
+# nested core/core folder. target_include_directories(pepp-core PUBLIC
+# ${CMAKE_CURRENT_LIST_DIR})
 add_subdirectory(lib)
 add_subdirectory(test)
 add_subdirectory(test2)

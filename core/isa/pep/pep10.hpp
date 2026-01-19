@@ -22,7 +22,6 @@
 #include <unordered_map>
 #include <vector>
 #include "core/libs/case_insensitive_hash.hpp"
-#include "exports.hpp"
 
 namespace isa::detail::pep10 {
 enum class Mnemonic {
@@ -131,12 +130,12 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   using AM = AddressingMode;
   auto ret = std::array<Opcode, 256>();
   auto add_ix = [&ret](Instruction i) {
-    auto base = static_cast<quint8>(i.mnemon);
+    auto base = static_cast<uint8_t>(i.mnemon);
     ret[base] = {.instr = i, .mode = AM::I, .valid = true};
     ret[base + 1] = {.instr = i, .mode = AM::X, .valid = true};
   };
   auto add_all = [&ret](Instruction i) {
-    auto base = static_cast<quint8>(i.mnemon);
+    auto base = static_cast<uint8_t>(i.mnemon);
     ret[base] = {.instr = i, .mode = AM::I, .valid = i.type != T::RAAA_noi};
     ret[base + 1] = {.instr = i, .mode = AM::D, .valid = true};
     ret[base + 2] = {.instr = i, .mode = AM::N, .valid = true};
@@ -148,34 +147,47 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   };
 
   ret[0x00] = {.instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true}, .mode = AM::NONE, .valid = false};
-  ret[(quint8)M::RET] = {.instr = {.mnemon = M::RET, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::SRET] = {.instr = {.mnemon = M::SRET, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::MOVFLGA] = {
+  ret[(uint8_t)M::RET] = {.instr = {.mnemon = M::RET, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::SRET] = {
+      .instr = {.mnemon = M::SRET, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::MOVFLGA] = {
       .instr = {.mnemon = M::MOVFLGA, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::MOVAFLG] = {
+  ret[(uint8_t)M::MOVAFLG] = {
       .instr = {.mnemon = M::MOVAFLG, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::MOVSPA] = {
+  ret[(uint8_t)M::MOVSPA] = {
       .instr = {.mnemon = M::MOVSPA, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::MOVASP] = {
+  ret[(uint8_t)M::MOVASP] = {
       .instr = {.mnemon = M::MOVASP, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::NOP] = {.instr = {.mnemon = M::NOP, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::NOP] = {.instr = {.mnemon = M::NOP, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
 
   // Gap
   for (int it = (int)M::NOP + 1; it < (int)M::NOTA; it++)
     ret[it] = {.instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true}, .mode = AM::NONE, .valid = false};
 
-  ret[(quint8)M::NEGA] = {.instr = {.mnemon = M::NEGA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::NEGX] = {.instr = {.mnemon = M::NEGX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::ASLA] = {.instr = {.mnemon = M::ASLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::ASLX] = {.instr = {.mnemon = M::ASLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::ASRA] = {.instr = {.mnemon = M::ASRA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::ASRX] = {.instr = {.mnemon = M::ASRX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::NOTA] = {.instr = {.mnemon = M::NOTA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::NOTX] = {.instr = {.mnemon = M::NOTX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::ROLA] = {.instr = {.mnemon = M::ROLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::ROLX] = {.instr = {.mnemon = M::ROLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::RORA] = {.instr = {.mnemon = M::RORA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::RORX] = {.instr = {.mnemon = M::RORX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::NEGA] = {
+      .instr = {.mnemon = M::NEGA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::NEGX] = {
+      .instr = {.mnemon = M::NEGX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::ASLA] = {
+      .instr = {.mnemon = M::ASLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::ASLX] = {
+      .instr = {.mnemon = M::ASLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::ASRA] = {
+      .instr = {.mnemon = M::ASRA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::ASRX] = {
+      .instr = {.mnemon = M::ASRX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::NOTA] = {
+      .instr = {.mnemon = M::NOTA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::NOTX] = {
+      .instr = {.mnemon = M::NOTX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::ROLA] = {
+      .instr = {.mnemon = M::ROLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::ROLX] = {
+      .instr = {.mnemon = M::ROLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::RORA] = {
+      .instr = {.mnemon = M::RORA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(uint8_t)M::RORX] = {
+      .instr = {.mnemon = M::RORX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
 
   add_ix({.mnemon = M::BR, .type = T::A_ix, .unary = 0});
   add_ix({.mnemon = M::BRLE, .type = T::A_ix, .unary = 0});
@@ -216,11 +228,11 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   return ret;
 };
 
-enum class Register : quint8 { A = 0, X = 1, SP = 2, PC = 3, IS = 4, OS = 5, INVALID };
+enum class Register : uint8_t { A = 0, X = 1, SP = 2, PC = 3, IS = 4, OS = 5, INVALID };
 
-enum class CSR : quint8 { N, Z, V, C };
+enum class CSR : uint8_t { N, Z, V, C };
 
-enum class MemoryVectors : quint16 {
+enum class MemoryVectors : uint16_t {
   TrapHandler = 0xFFF7,
   Dispatcher = 0xFFF9,
   SystemStackPtr = 0xFFFB,
