@@ -16,10 +16,15 @@ Homepage = "https://github.com/Matthew-McRaven/Pepp"
 Issues = "https://github.com/Matthew-McRaven/Pepp/issues"
 
 [build-system]
-requires = ["uv_build >= 0.9.21, <0.10.0"]
-build-backend = "uv_build"
+requires = ["scikit-build-core>=0.11"]
+build-backend = "scikit_build_core.build"
 
-[dependency-groups]
-dev = [
-    "uv-build>=0.9.26",
+[tool.scikit-build]
+
+cmake.version = ">=3.20"
+wheel.packages = ["pypepp"]
+cmake.args = [
+  "-DPEPP_BUILD_PYTHON=ON",
+  # strongly recommended for wheels:
+  "-DCMAKE_BUILD_TYPE=Release",
 ]
