@@ -94,14 +94,14 @@ QString pas::ops::generic::infer_command(const ast::Node &node, const QStringLis
 bool isPush(const pas::ast::Node &node) {
   using namespace pas::ast::generic;
   using namespace pas::ops;
-  if (pepp::isNonUnary<isa::Pep10>()(node)) {
+  if (pas::ops::pepp::isNonUnary<isa::Pep10>()(node)) {
     auto instr = node.get<pas::ast::pepp::Instruction<isa::Pep10>>();
     switch (instr.value) {
     case isa::Pep10::Mnemonic::SUBSP: [[fallthrough]];
     case isa::Pep10::Mnemonic::CALL: return true;
     default: break;
     }
-  } else if (pepp::isNonUnary<isa::Pep9>()(node)) {
+  } else if (pas::ops::pepp::isNonUnary<isa::Pep9>()(node)) {
     auto instr = node.get<pas::ast::pepp::Instruction<isa::Pep9>>();
     switch (instr.value) {
     case isa::Pep9::Mnemonic::SUBSP: [[fallthrough]];
@@ -115,9 +115,9 @@ bool isPush(const pas::ast::Node &node) {
 bool isCall(const pas::ast::Node &node) {
   using namespace pas::ast::generic;
   using namespace pas::ops;
-  if (pepp::isNonUnary<isa::Pep10>()(node))
+  if (pas::ops::pepp::isNonUnary<isa::Pep10>()(node))
     return node.get<pas::ast::pepp::Instruction<isa::Pep10>>().value == isa::Pep10::Mnemonic::CALL;
-  else if (pepp::isNonUnary<isa::Pep9>()(node))
+  else if (pas::ops::pepp::isNonUnary<isa::Pep9>()(node))
     return node.get<pas::ast::pepp::Instruction<isa::Pep9>>().value == isa::Pep9::Mnemonic::CALL;
   return false;
 }
@@ -125,9 +125,9 @@ bool isCall(const pas::ast::Node &node) {
 bool isRet(const pas::ast::Node &node) {
   using namespace pas::ast::generic;
   using namespace pas::ops;
-  if (pepp::isUnary<isa::Pep10>()(node))
+  if (pas::ops::pepp::isUnary<isa::Pep10>()(node))
     return node.get<pas::ast::pepp::Instruction<isa::Pep10>>().value == isa::Pep10::Mnemonic::RET;
-  else if (pepp::isUnary<isa::Pep9>()(node))
+  else if (pas::ops::pepp::isUnary<isa::Pep9>()(node))
     return node.get<pas::ast::pepp::Instruction<isa::Pep9>>().value == isa::Pep9::Mnemonic::RET;
   return false;
 }

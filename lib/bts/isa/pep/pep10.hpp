@@ -16,10 +16,12 @@
 
 #pragma once
 #include <array>
+#include <map>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "bts/libs/case_insensitive_hash.hpp"
 #include "exports.hpp"
 
 namespace isa::detail::pep10 {
@@ -290,11 +292,12 @@ struct Pep10 {
   static std::set<std::string> const &legalDirectives();
   static bool isLegalDirective(const std::string &directive);
 
-  static std::unordered_map<std::string, Mnemonic> const &string_to_mnemonic();
-  static std::unordered_map<Mnemonic, std::string> const &mnemonic_to_string();
-  static std::unordered_map<std::string, AddressingMode> const &string_to_addressmode();
-  static std::unordered_map<AddressingMode, std::string> const &addressmode_to_string();
-  static std::unordered_map<std::string, Register> const &string_to_register();
-  static std::unordered_map<Register, std::string> const &register_to_string();
+  static std::unordered_map<std::string, Mnemonic, pepp::bts::ci_hash, pepp::bts::ci_eq> const &string_to_mnemonic();
+  static std::map<Mnemonic, std::string> const &mnemonic_to_string();
+  static std::unordered_map<std::string, AddressingMode, pepp::bts::ci_hash, pepp::bts::ci_eq> const &
+  string_to_addressmode();
+  static std::map<AddressingMode, std::string> const &addressmode_to_string();
+  static std::unordered_map<std::string, Register, pepp::bts::ci_hash, pepp::bts::ci_eq> const &string_to_register();
+  static std::map<Register, std::string> const &register_to_string();
 };
 } // namespace isa

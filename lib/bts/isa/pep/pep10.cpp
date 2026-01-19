@@ -21,14 +21,13 @@
 #include "bts/isa/pep/pep_shared.hpp"
 
 static auto register_maps() {
-  std::unordered_map<isa::Pep10::Register, std::string> reg_to_str;
-  std::unordered_map<std::string, isa::Pep10::Register> str_to_reg;
-  auto insert = [](std::unordered_map<isa::Pep10::Register, std::string> &reg_to_str,
-                   std::unordered_map<std::string, isa::Pep10::Register> &str_to_reg, isa::Pep10::Register reg,
-                   const char *str) {
+  std::map<isa::Pep10::Register, std::string> reg_to_str;
+  std::unordered_map<std::string, isa::Pep10::Register, pepp::bts::ci_hash, pepp::bts::ci_eq> str_to_reg;
+  auto insert = [](auto &reg_to_str, auto &str_to_reg, isa::Pep10::Register reg, const char *str) {
     reg_to_str[reg] = str;
     str_to_reg[str] = reg;
   };
+
   using enum isa::Pep10::Register;
   insert(reg_to_str, str_to_reg, A, "A");
   insert(reg_to_str, str_to_reg, X, "X");
@@ -41,15 +40,14 @@ static auto register_maps() {
 }
 
 static auto am_maps() {
-  std::unordered_map<isa::Pep10::AddressingMode, std::string> am_to_str;
-  std::unordered_map<std::string, isa::Pep10::AddressingMode> str_to_am;
+  std::map<isa::Pep10::AddressingMode, std::string> am_to_str;
+  std::unordered_map<std::string, isa::Pep10::AddressingMode, pepp::bts::ci_hash, pepp::bts::ci_eq> str_to_am;
 
-  auto insert = [](std::unordered_map<isa::Pep10::AddressingMode, std::string> &am_to_str,
-                   std::unordered_map<std::string, isa::Pep10::AddressingMode> &str_to_am,
-                   isa::Pep10::AddressingMode am, const char *str) {
+  auto insert = [](auto &am_to_str, auto &str_to_am, isa::Pep10::AddressingMode am, const char *str) {
     am_to_str[am] = str;
     str_to_am[str] = am;
   };
+
   using enum isa::Pep10::AddressingMode;
   insert(am_to_str, str_to_am, NONE, "none");
   insert(am_to_str, str_to_am, I, "I");
@@ -65,12 +63,10 @@ static auto am_maps() {
 }
 
 static auto mnemonic_maps() {
-  std::unordered_map<isa::Pep10::Mnemonic, std::string> mn_to_str;
-  std::unordered_map<std::string, isa::Pep10::Mnemonic> str_to_mn;
+  std::map<isa::Pep10::Mnemonic, std::string> mn_to_str;
+  std::unordered_map<std::string, isa::Pep10::Mnemonic, pepp::bts::ci_hash, pepp::bts::ci_eq> str_to_mn;
 
-  auto insert = [](std::unordered_map<isa::Pep10::Mnemonic, std::string> &mn_to_str,
-                   std::unordered_map<std::string, isa::Pep10::Mnemonic> &str_to_mn, isa::Pep10::Mnemonic mn,
-                   const char *str) {
+  auto insert = [](auto &mn_to_str, auto &str_to_mn, isa::Pep10::Mnemonic mn, const char *str) {
     mn_to_str[mn] = str;
     str_to_mn[str] = mn;
   };
@@ -157,21 +153,21 @@ uint8_t isa::Pep10::opcode(Mnemonic mnemonic, AddressingMode addr) { return isa:
 
 isa::Pep10::AddressingMode isa::Pep10::parseAddressingMode(const std::string &addr) {
   auto str_to_am = isa::Pep10::string_to_addressmode();
-  auto it = str_to_am.find(bits::to_upper(addr));
+  auto it = str_to_am.find(addr);
   if (it != str_to_am.end()) return it->second;
   else return isa::Pep10::AddressingMode::INVALID;
 }
 
 isa::Pep10::Mnemonic isa::Pep10::parseMnemonic(const std::string &mnemonic) {
   auto str_to_mn = isa::Pep10::string_to_mnemonic();
-  auto it = str_to_mn.find(bits::to_upper(mnemonic));
+  auto it = str_to_mn.find(mnemonic);
   if (it != str_to_mn.end()) return it->second;
   else return isa::Pep10::Mnemonic::INVALID;
 }
 
 isa::Pep10::Register isa::Pep10::parseRegister(const std::string &reg) {
   auto str_to_reg = isa::Pep10::string_to_register();
-  auto it = str_to_reg.find(bits::to_upper(reg));
+  auto it = str_to_reg.find(reg);
   if (it != str_to_reg.end()) return it->second;
   else return isa::Pep10::Register::INVALID;
 }
@@ -404,32 +400,35 @@ bool isa::Pep10::isLegalDirective(const std::string &directive) {
   return legalDirectives().contains(bits::to_upper(directive));
 }
 
-const std::unordered_map<isa::Pep10::AddressingMode, std::string> &isa::Pep10::addressmode_to_string() {
+const std::map<isa::Pep10::AddressingMode, std::string> &isa::Pep10::addressmode_to_string() {
   static const auto r = am_maps().first;
   return r;
 }
 
-const std::unordered_map<std::string, isa::Pep10::AddressingMode> &isa::Pep10::string_to_addressmode() {
+const std::unordered_map<std::string, isa::Pep10::AddressingMode, pepp::bts::ci_hash, pepp::bts::ci_eq> &
+isa::Pep10::string_to_addressmode() {
   static const auto r = am_maps().second;
   return r;
 }
 
-const std::unordered_map<isa::Pep10::Mnemonic, std::string> &isa::Pep10::mnemonic_to_string() {
+const std::map<isa::Pep10::Mnemonic, std::string> &isa::Pep10::mnemonic_to_string() {
   static const auto r = mnemonic_maps().first;
   return r;
 }
 
-const std::unordered_map<std::string, isa::Pep10::Mnemonic> &isa::Pep10::string_to_mnemonic() {
+const std::unordered_map<std::string, isa::Pep10::Mnemonic, pepp::bts::ci_hash, pepp::bts::ci_eq> &
+isa::Pep10::string_to_mnemonic() {
   static const auto r = mnemonic_maps().second;
   return r;
 }
 
-const std::unordered_map<isa::Pep10::Register, std::string> &isa::Pep10::register_to_string() {
+const std::map<isa::Pep10::Register, std::string> &isa::Pep10::register_to_string() {
   static const auto r = register_maps().first;
   return r;
 }
 
-const std::unordered_map<std::string, isa::Pep10::Register> &isa::Pep10::string_to_register() {
+const std::unordered_map<std::string, isa::Pep10::Register, pepp::bts::ci_hash, pepp::bts::ci_eq> &
+isa::Pep10::string_to_register() {
   static const auto r = register_maps().second;
   return r;
 }
