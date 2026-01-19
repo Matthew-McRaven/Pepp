@@ -56,7 +56,7 @@ Rectangle {
         }
         ListElement {
             type: "key"
-            shapeType: "Diagram"
+            shapeType: "Line"
             name: "Multiline"
             file: "qrc:/multiline"
         }
@@ -68,6 +68,21 @@ Rectangle {
         }
     }
 
+    SortFilterProxyModel {
+        id: filterModel
+        model: diagramModel
+
+        // Filter based on whether the 'shapeType' role
+        filters: [
+            FunctionFilter {
+                component RoleData: QtObject {property string shapeType}
+                function filter(data: RoleData) : bool {
+                    return data.shapeType === "Diagram";
+                }
+            }
+        ]
+    }
+
     //  Temporary for testing
     DiagramProperties {
         id: props
@@ -76,7 +91,7 @@ Rectangle {
         z: 2
 
         //diagram: canvas.diagram2
-        model: diagramModel
+        model: filterModel
     }
 
     SplitView {
@@ -150,7 +165,7 @@ Rectangle {
                 //  Test Only Diagrams for checking line connection
                 Diagram {
                     id: diagram1
-                    props: props
+                    //props: props
                     text: "AND Gate"
                     file: "qrc:/and"
                     x: 0
@@ -162,7 +177,7 @@ Rectangle {
                     id: diagram2
                     text: "OR Gate"
                     file: "qrc:/or"
-                    props: props
+                    //props: props
                     x: 200
                     y: 200
                     z: 1
