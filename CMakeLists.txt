@@ -243,18 +243,17 @@ else()
 endif()
 include(CPack)
 
-# If MAC_DEVELOPER_NAME is not set, try and pick it up from environment
-# variable.
-set(MAC_DEVELOPER_NAME
-    ""
-    CACHE STRING "A variable passed in via -D")
-if(NOT MAC_DEVELOPER_NAME)
-  set(MAC_DEVELOPER_NAME $ENV{MAC_DEVELOPER_NAME})
-endif()
-
 # Perform signing in main script (not bin script), because we require all CPACK
 # variables to be already defined.
 if(APPLE)
+  # If MAC_DEVELOPER_NAME is not set, try and pick it up from environment
+  # variable.
+  set(MAC_DEVELOPER_NAME
+      ""
+      CACHE STRING "A variable passed in via -D")
+  if(NOT MAC_DEVELOPER_NAME)
+    set(MAC_DEVELOPER_NAME $ENV{MAC_DEVELOPER_NAME})
+  endif()
   find_program(CODESIGN codesign)
   if(NOT MAC_DEVELOPER_NAME)
     message(WARNING "MAC_DEVELOPER_NAME not set, skipping code signing")
