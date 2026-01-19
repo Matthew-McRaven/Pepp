@@ -4,7 +4,7 @@ project(CircuitDesign VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS core Gui Qml Quick)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -13,22 +13,32 @@ set(CMAKE_AUTORCC ON)
 qt_add_executable(CircuitDesign
     main.cpp
     svg/CircuitDesign.qrc
+    ui/properties.cpp ui/properties.h
 )
 
 qt_add_qml_module(CircuitDesign
     URI CircuitDesign
+    VERSION 1.0
+    #URI com.pepperdine.edu
+    RESOURCES svg/CircuitDesign.qrc
     QML_FILES
         Main.qml
-        RESOURCES svg/CircuitDesign.qrc
-        QML_FILES ui/move.js
-        QML_FILES ui/LogicGates.qml
-        QML_FILES ui/DragTile.qml
-        QML_FILES ui/DropTile.qml
-        QML_FILES ui/Diagram.qml
-        QML_FILES ui/Line.qml
-        QML_FILES ui/GridLine.qml
-        QML_FILES ui/DiagramProperties.qml
+        ui/move.js
+        ui/LogicGates.qml
+        ui/Diagram.qml
+        ui/Line.qml
+        ui/GridLine.qml
+        ui/DiagramProperties.qml
+    SOURCES
+        ui/properties.h
+        ui/properties.cpp
+    DEPENDENCIES QtQuick
 )
+
+# must include any subdirectories for classes that use QML_ELEMENT
+target_include_directories(${PROJECT_NAME} PRIVATE
+      ui/
+  )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
@@ -41,8 +51,11 @@ set_target_properties(CircuitDesign PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-target_link_libraries(CircuitDesign
-    PRIVATE Qt6::Quick
+target_link_libraries(CircuitDesign PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Quick
 )
 
 include(GNUInstallDirs)
