@@ -1,8 +1,8 @@
 #pragma once
 #include <elfio/elfio.hpp>
-#include "bts/architectures.hpp"
-#include "bts/levels.hpp"
 #include "help/builtins/book.hpp"
+#include "project/architectures.hpp"
+#include "project/levels.hpp"
 #include "sim/debug/line_map.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/node.hpp"

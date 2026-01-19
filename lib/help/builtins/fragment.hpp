@@ -21,8 +21,8 @@
 #include <QString>
 #include <QtCore>
 #include <optional>
-#include "bts/architectures.hpp"
-#include "bts/levels.hpp"
+#include "project/architectures.hpp"
+#include "project/levels.hpp"
 namespace builtins {
 
 class Figure;

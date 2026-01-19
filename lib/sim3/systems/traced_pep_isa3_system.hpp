@@ -17,8 +17,8 @@
 
 #pragma once
 #include <elfio/elfio.hpp>
-#include "bts/architectures.hpp"
-#include "bts/levels.hpp"
+#include "project/architectures.hpp"
+#include "project/levels.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced_pep10_isa3_system.hpp"
 #include "toolchain/link/memmap.hpp"
