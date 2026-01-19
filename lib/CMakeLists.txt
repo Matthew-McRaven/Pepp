@@ -17,7 +17,6 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/help/about/version_gen.cpp.in"
                "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" @ONLY)
 
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp"
-     "${CMAKE_CURRENT_LIST_DIR}/../core/*.cpp"
      "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob
 # converts from abs to rel.
@@ -61,12 +60,13 @@ target_link_libraries(
          spdlog
          cxxgraph
          flat
+         pepp-core
          pepp-changelog)
 # Will fail to find hpp files without this, see
 # https://bugreports.qt.io/browse/QTBUG-101146.
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-                                           ${ANTLR4_INCLUDE_DIR} ../core)
+                                           ${ANTLR4_INCLUDE_DIR})
 target_include_directories(
   pepp-lib
   PRIVATE enums
