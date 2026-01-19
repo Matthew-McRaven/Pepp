@@ -11,12 +11,15 @@ Item {
     id: root
     property string text: ""
     property string type: ""
-    property alias file: image.source
+    //property alias file: image.source
     property bool horizontal: true
     property alias input: input
     property alias output: output
     property point inputXY: inputPt()
     property point outputXY: outputPt()
+
+
+    property var props: undefined
     //property DiagramProperties props: null
 
     width: Move.blockWidth
@@ -84,10 +87,6 @@ Item {
         return Qt.point(x, y);
     }
 
-    DiagramProperty {
-        id: prop
-    }
-
     Rectangle {
         id: wrapper
 
@@ -151,7 +150,7 @@ Item {
 
         VectorImage {
             id: image
-            source: ""
+            source: root.props.imageSource
 
             fillMode: Image.PreserveAspectFit
             opacity: ma.drag.active ? .25 : 1

@@ -1,8 +1,10 @@
 pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.VectorImage
 
+import CircuitDesign 1.0
 import "move.js" as Move
 
 Rectangle {
@@ -75,12 +77,14 @@ Rectangle {
         // Filter based on whether the 'shapeType' role
         filters: [
             FunctionFilter {
-                component RoleData: QtObject {property string shapeType}
-                function filter(data: RoleData) : bool {
+                function filter(data: RoleData): bool {
                     return data.shapeType === "Diagram";
                 }
             }
         ]
+    }
+    component RoleData: QtObject {
+        property string shapeType
     }
 
     //  Temporary for testing
@@ -94,6 +98,10 @@ Rectangle {
         model: filterModel
     }
 
+    DiagramPropertyModel {
+        id: dataModel
+    }
+
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
@@ -102,9 +110,10 @@ Rectangle {
             buttons: source.children.filter(child => child !== rep)
 
             onClicked: btn => {
-                canvas.curName = btn.text;
-                canvas.curFile = btn.icon.source;
-                console.log(btn.text);
+                canvas.curIndex = btn.index
+                //canvas.curName = btn.text;
+                //canvas.curFile = btn.icon.source;
+                console.log(btn.index);
             }
         }
 
@@ -153,21 +162,24 @@ Rectangle {
                 id: canvas
                 anchors.fill: parent
 
-                property string curName: ""
-                property string curFile: ""
-                property string curType: ""
+                property int curIndex: -1
+                //property string curName: ""
+                //property string curFile: ""
+                //property string curType: ""
                 property Diagram fromObject: null
                 property Diagram toObject: null
 
                 color: "transparent" //"gainsboro"
 
-
                 //  Test Only Diagrams for checking line connection
                 Diagram {
                     id: diagram1
-                    //props: props
-                    text: "AND Gate"
-                    file: "qrc:/and"
+
+                    props: DiagramProperty {
+                        name: "AND Gate"
+                        imageSource: "qrc:/and"
+                    }
+
                     x: 0
                     y: 0
                     z: 1
@@ -175,9 +187,11 @@ Rectangle {
 
                 Diagram {
                     id: diagram2
-                    text: "OR Gate"
-                    file: "qrc:/or"
-                    //props: props
+
+                    props: DiagramProperty {
+                        name: "OR Gate"
+                        imageSource: "qrc:/or"
+                    }
                     x: 200
                     y: 200
                     z: 1
@@ -213,6 +227,17 @@ Rectangle {
                             return;
 
                         var diagram = Move.createBlock(canvas, event.x, event.y);
+                        diagram.props = dataModel.createDiagram();
+
+                        var item = diagramModel.get(parent.curIndex);
+                        //diagram.props.name = parent.curName;
+                        //diagram.props.imageSource = parent.curFile;
+                        //diagram.props.type = parent.curType;
+                        diagram.props.name = item.name;
+                        diagram.props.imageSource = item.file;
+                        diagram.props.type = parent.curIndex; //item.key;
+                        console.log("Index", parent.curIndex, "name", item.name, "image", item.file);
+
                     //console.log( "onClick1 diagram.x", diagram.x, "diagram.y", diagram.y, "canvas.x", canvas.x, "canvas.y", canvas.y);
                     //console.log( "onClick2 x", event.x, "y", event.y, "stamp.x",stamp.x, "stamp.y", stamp.y);
                     }

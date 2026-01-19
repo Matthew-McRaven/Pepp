@@ -11,6 +11,7 @@ class DiagramProperty : public QObject
     QML_ELEMENT
     Q_PROPERTY(quint32 id READ id CONSTANT) // Read only
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+    Q_PROPERTY(QString imageSource READ imageSource WRITE setImageSource NOTIFY imageChanged)
     Q_PROPERTY(int type READ type WRITE setType NOTIFY typeChanged)
     Q_PROPERTY(quint16 inputNo READ inputNo WRITE setInputNo NOTIFY inputChanged)
     Q_PROPERTY(quint16 outputNo READ outputNo WRITE setOutputNo NOTIFY outputChanged)
@@ -41,11 +42,13 @@ public:
 
     quint32 id() const { return _id; }
     QString name() const { return _name; }
+    QString imageSource() const { return _imageSrc; }
     int type() const { return static_cast<int>(_type); }
     quint16 inputNo() const { return _inputNo; }
     quint16 outputNo() const { return _outputNo; }
 
     void setName(const QString v) { _name = v; }
+    void setImageSource(const QString v) { _imageSrc = v; }
     void setType(const int v) { _type = static_cast<DiagramRole>(v); }
     void setInputNo(const quint16 v) { _inputNo = v; }
     void setOutputNo(const quint16 v) { _outputNo = v; }
@@ -53,6 +56,7 @@ public:
 signals:
     void typeChanged();
     void nameChanged();
+    void imageChanged();
     void inputChanged();
     void outputChanged();
 
@@ -62,6 +66,7 @@ private:
 
     //  Common properties
     QString _name;
+    QString _imageSrc;
 
     //  Gate properties
     DiagramRole _type{DiagramRole::Invalid};
