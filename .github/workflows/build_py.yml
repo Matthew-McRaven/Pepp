@@ -1,0 +1,64 @@
+name: Build python package
+on:
+  workflow_call:
+    inputs:
+      name: { required: True, type: string }
+      runs-on: { required: True, type: string }
+      python_version: {  type: string, default: '3.12' }
+      image: { type: string, default: '' }
+      artifact_key: { type: string, default: '' }
+      cmake_generator: { type: string, default: "" }
+      cmake_xargs: { type: string }
+
+jobs:
+  matrix_build:
+    name: ${{ inputs.name }}
+    runs-on: ${{ inputs.runs-on }}
+    container:
+      image: ${{ inputs.image }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      # Perform shallow clone, which may break some other operations
+      # Must exectute before any repo-local actions
+      - name: Checkout source code (shallow)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+          lfs: 'false'
+      # Local github runner doesn't have node installed.
+      - if: env.ACT
+        name: Install Node if running locally using `nektos/act`
+        uses: ./.github/actions/install-node
+      # Install dependencies based on enabled features
+      - name: Install CMake and Ninja
+        uses: lukka/get-cmake@v3.27.9
+      - name: Install specific python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+      # Must allow breaking system packages on Mac OS runners, else setup fails.
+      # See: https://github.com/jurplel/install-qt-action/issues/252
+      - name: Set up pip config on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          mkdir -p ~/.config/pip
+          echo "[global]" > ~/.config/pip/pip.conf
+          echo "break-system-packages = true" >> ~/.config/pip/pip.conf
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
+      - name: Enable Developer Command Prompt
+        if: inputs.runs-on == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
+      - name: Build the packge!
+        run: uv build
+      - name: Upload assets
+        if: ${{ inputs.artifact_key }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_key }}
+          path:  dist/*.whl
+          retention-days: 1
