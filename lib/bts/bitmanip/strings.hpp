@@ -16,7 +16,10 @@
  */
 
 #pragma once
+#include <algorithm>
 #include <iostream>
+#include <optional>
+#include <vector>
 #include "bts/bitmanip/integers.h"
 #include "bts/bitmanip/span.hpp"
 

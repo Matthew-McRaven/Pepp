@@ -17,6 +17,7 @@
 
 #pragma once
 #include <cstring>
+#include <stdint.h>
 #include "bts/bitmanip/order.hpp"
 #include "bts/bitmanip/span.hpp"
 

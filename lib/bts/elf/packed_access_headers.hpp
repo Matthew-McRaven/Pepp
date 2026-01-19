@@ -16,6 +16,8 @@
  */
 
 #pragma once
+#include <memory>
+#include <variant>
 #include "bts/bitmanip/integers.h"
 #include "bts/elf/packed_types.hpp"
 

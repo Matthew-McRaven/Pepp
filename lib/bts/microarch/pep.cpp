@@ -16,6 +16,7 @@
 #include "bts/microarch/pep.hpp"
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <vector>
 
 static auto p9register_maps() {
   std::map<pepp::tc::arch::Pep9Registers::NamedRegisters, std::string> reg_to_str;

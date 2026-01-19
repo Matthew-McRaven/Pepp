@@ -17,7 +17,9 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
+#include <vector>
 #include "bts/bitmanip/integers.h"
 #include "bts/bitmanip/span.hpp"
 namespace pepp::bts {

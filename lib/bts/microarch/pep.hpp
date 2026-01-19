@@ -16,6 +16,8 @@
 #pragma once
 #include <bitset>
 #include <map>
+#include <optional>
+#include <stdexcept>
 #include <stdint.h>
 #include <unordered_map>
 #include "bts/libs/case_insensitive_hash.hpp"

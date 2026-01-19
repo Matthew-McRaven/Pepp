@@ -16,6 +16,7 @@
  */
 
 #include "bts/bitmanip/copy.hpp"
+#include <algorithm>
 
 void bits::memcpy_endian(std::span<uint8_t> dest, Order destOrder, std::span<const uint8_t> src, Order srcOrder) {
   // At most 1 offset will be used at a time, determined by which pointer is

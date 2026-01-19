@@ -28,6 +28,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 
