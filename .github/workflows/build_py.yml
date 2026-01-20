@@ -8,7 +8,7 @@ on:
       image: { type: string, default: '' }
       artifact_key: { type: string, default: '' }
       cmake_generator: { type: string, default: "" }
-      cmake_xargs: { type: string }
+      cmake_xargs: { type: string , default: "" }
       do_release: { type: boolean, default: false }
 
 jobs:
@@ -54,11 +54,22 @@ jobs:
       - name: Enable Developer Command Prompt
         if: inputs.runs-on == 'windows-latest'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
+      - name: Configure CMake env for scikit-build
+        shell: bash
+        # Only set when non-empty, otherwise the platform explodes.
+        run: |
+          if [ -n "${{ inputs.cmake_generator }}" ]; then
+            echo "CMAKE_GENERATOR=${{ inputs.cmake_generator }}" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ inputs.cmake_xargs }}" ]; then
+            {
+              echo "CMAKE_ARGS<<EOF"
+              echo "${{ inputs.cmake_xargs }}"
+              echo "EOF"
+            } >> $GITHUB_ENV
+          fi
       - name: Build the packge!
         run: uv build
-        env:
-          CMAKE_GENERATOR: ${{ inputs.cmake_generator }}
-          CMAKE_ARGS: ${{ inputs.cmake_xargs }}
       - name: Upload assets
         if: ${{ inputs.artifact_key }}
         uses: actions/upload-artifact@v4
