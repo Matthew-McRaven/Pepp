@@ -123,7 +123,8 @@ jobs:
           retention-days: 1
 
   build_python:
-    name: Build Python packages for ${{ matrix.name }}
+    name: Build Python packages
+    needs: [ branch_info, check_tag ]
     uses: ./.github/workflows/build_py.yml
     permissions:
       actions: read
@@ -149,6 +150,7 @@ jobs:
       cmake_xargs: ${{ matrix.config.cmake_xargs || '' }}
       cmake_generator: ${{ matrix.config.cmake_generator || '' }}
       artifact_key: ${{ matrix.config.artifact_key || ''}}
+      do_release: ${{ startsWith(github.ref, 'refs/tags/') }}
 
   build:
     name: Build ${{ matrix.name }}

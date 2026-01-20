@@ -9,6 +9,7 @@ on:
       artifact_key: { type: string, default: '' }
       cmake_generator: { type: string, default: "" }
       cmake_xargs: { type: string }
+      do_release: { type: boolean, default: false }
 
 jobs:
   matrix_build:
