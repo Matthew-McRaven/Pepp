@@ -269,18 +269,19 @@ jobs:
         if: inputs.codecov
         shell: bash
         run: |
-          ls -lah profraw
-          llvm-profdata-17 merge -sparse "${{ github.workspace }}"/profraw/*.profraw -o merged.profdata
+          ls -lah output/profraw
+          python scripts/llvm-codecov.py output
           ls -lah
-          python scripts/llvm-codecov.py
-          ls -lah
+          ls -lah coverage-html
 
       - name: Upload codecov
         if: ${{ inputs.codecov }}
         uses: actions/upload-artifact@v4
         with:
-          name: llvm-codecov-profdata
-          path: merged.profdata
+          name: llvm-codecov
+          path: |
+            coverage.profdata
+            coverage-html
           retention-days: 1
 
 
