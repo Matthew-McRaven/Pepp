@@ -4,12 +4,18 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # We always want universal builds, so do not set on a per-target basis NOTE:
 # This prevents us from building statically!!
 
-# test-lib-all will include the sources for all catch tests, and be dependent on
-# all the tests' libaries. Our test browser must depend on this target.
-qt6_add_library(test-lib-all INTERFACE)
+# test-lib-all-int will include the sources for all catch tests, and be
+# dependent on all the tests' libaries. Our test browser must depend on this
+# target.
+qt6_add_library(test-lib-all-int INTERFACE)
 # test-all bundles all the tests into a single executable to prove that there
 # are no linker errors. do not add to ctest, otherwise every test runs twice.
 qt6_add_executable(test-all ${CMAKE_CURRENT_LIST_DIR}/main.cpp)
+# Make test-lib-all a static library of all of our sources to reduce the number
+# of object files we "bubble up" to other targets.
+qt6_add_library(test-lib-all STATIC)
+target_link_libraries(test-lib-all PUBLIC test-lib-all-int)
+set_target_properties(test-lib-all PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(test-all PROPERTIES FOLDER "qtc_runnable")
 target_link_libraries(test-all PUBLIC test-lib-all catch)
 # Failure to copy DLLs on Windows causes tests to fail at runtime.
@@ -50,14 +56,14 @@ function(maybe_append_all_libraries library)
     if(NOT "${library}" IN_LIST linked_libraries)
       # message("So far ${linked_libraries}") Library not found in the list,
       # need to link it.
-      target_link_libraries(test-lib-all INTERFACE ${library})
+      target_link_libraries(test-lib-all-int INTERFACE ${library})
       # Update the LINKED_LIBRARIES property.
       list(APPEND linked_libraries ${library})
       set_property(GLOBAL PROPERTY ALL_LIBRARIES ${linked_libraries})
     endif()
   else()
     # Property does not exist, so link the library and create the property.
-    target_link_libraries(test-lib-all INTERFACE ${library})
+    target_link_libraries(test-lib-all-int INTERFACE ${library})
     set_property(GLOBAL PROPERTY ALL_LIBRARIES ${library})
     # message("It is ${is_defined}")
   endif()
