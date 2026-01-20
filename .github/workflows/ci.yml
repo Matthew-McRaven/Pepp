@@ -134,15 +134,15 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { name: "Ubuntu 24.04; x86_64, Python 3.12", python_version: "3.12", runs-on: "ubuntu-latest", artifact_key: "artifact-linux-x86-p312", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0"}
-        - { name: "Ubuntu 24.04; x86_64, Python 3.13", python_version: "3.13", runs-on: "ubuntu-latest", artifact_key: "artifact-linux-x86-p313", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0"}
+        - { name: "Ubuntu 24.04; x86_64, Python 3.12", python_version: "3.12", runs-on: "ubuntu-latest", artifact_key: "pyart-linux-x86-p312", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0", sdist: True}
+        - { name: "Ubuntu 24.04; x86_64, Python 3.13", python_version: "3.13", runs-on: "ubuntu-latest", artifact_key: "pyart-linux-x86-p313", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0"}
         # See: https://bugreports.qt.io/browse/QTBUG-118086
-        - { name: "MacOS-15; ARM64; Python 3.12",  python_version: "3.12", runs-on: "macos-15" , artifact_key: "artifact-macos-arm-p312", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
-        - { name: "MacOS-15; ARM64; Python 3.13",  python_version: "3.13", runs-on: "macos-15" , artifact_key: "artifact-macos-arm-p313", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
-        - { name: "MacOS-15; x86-64; Python 3.12",  python_version: "3.12", runs-on: "macos-15" , artifact_key: "artifact-macos-x86-p312", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
-        - { name: "MacOS-15; x86-64; Python 3.13",  python_version: "3.13", runs-on: "macos-15" , artifact_key: "artifact-macos-x86-p313", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
-        - { name: "Windows Latest; x86-64; Python 3.12", python_version: "3.12", runs-on: "windows-latest",  artifact_key: "artifact-windows-x86-p312", cmake_generator: "Ninja", cmake_xargs: '-D CMAKE_C_COMPILER=cl -D CMAKE_CXX_COMPILER=cl'}
-        - { name: "Windows Latest; x86-64; Python 3.13", python_version: "3.13", runs-on: "windows-latest",  artifact_key: "artifact-windows-x86-p313", cmake_generator: "Ninja", cmake_xargs: '-D CMAKE_C_COMPILER=cl -D CMAKE_CXX_COMPILER=cl'}
+        - { name: "MacOS-15; ARM64; Python 3.12",  python_version: "3.12", runs-on: "macos-15" , artifact_key: "pyart-macos-arm-p312", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
+        - { name: "MacOS-15; ARM64; Python 3.13",  python_version: "3.13", runs-on: "macos-15" , artifact_key: "pyart-macos-arm-p313", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
+        - { name: "MacOS-15; x86-64; Python 3.12",  python_version: "3.12", runs-on: "macos-15" , artifact_key: "pyart-macos-x86-p312", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
+        - { name: "MacOS-15; x86-64; Python 3.13",  python_version: "3.13", runs-on: "macos-15" , artifact_key: "pyart-macos-x86-p313", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
+        - { name: "Windows Latest; x86-64; Python 3.12", python_version: "3.12", runs-on: "windows-latest",  artifact_key: "pyart-windows-x86-p312", cmake_generator: "Ninja", cmake_xargs: '-D CMAKE_C_COMPILER=cl -D CMAKE_CXX_COMPILER=cl'}
+        - { name: "Windows Latest; x86-64; Python 3.13", python_version: "3.13", runs-on: "windows-latest",  artifact_key: "pyart-windows-x86-p313", cmake_generator: "Ninja", cmake_xargs: '-D CMAKE_C_COMPILER=cl -D CMAKE_CXX_COMPILER=cl'}
     with:
       name: ${{ matrix.config.name }}
       runs-on: ${{ matrix.config.runs-on || 'ubuntu-latest' }}
@@ -151,6 +151,7 @@ jobs:
       cmake_generator: ${{ matrix.config.cmake_generator || '' }}
       artifact_key: ${{ matrix.config.artifact_key || ''}}
       do_release: ${{ startsWith(github.ref, 'refs/tags/') }}
+      sdist: ${{ !!matrix.config.sdist }}
 
   build:
     name: Build Qt IDE ${{ matrix.name }}
@@ -272,6 +273,28 @@ jobs:
            path: RELEASE.md
            retention-days: 1
            if-no-files-found: error
+
+  publish_pypi:
+    name: Publish to PyPI (OIDC)
+    needs: [ build_python ]
+    #if: ${{ inputs.do_release && inputs.artifact_key != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pyart-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+
   create_release:
     name: Create GitHub release
     needs: [ build, branch_info, create_changelog]

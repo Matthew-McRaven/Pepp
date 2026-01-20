@@ -10,6 +10,7 @@ on:
       cmake_generator: { type: string, default: "" }
       cmake_xargs: { type: string , default: "" }
       do_release: { type: boolean, default: false }
+      sdist: { type: boolean, default: false }
 
 jobs:
   matrix_build:
@@ -75,5 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact_key }}
-          path:  dist/*.whl
+          path: |
+            dist/*.whl
+            ${{ inputs.sdist && 'dist/*.tar.gz' || '' }}
           retention-days: 1
