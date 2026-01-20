@@ -105,9 +105,10 @@ else()
   endif()
   set(CMAKE_AUTOMOC ON)
   set(CMAKE_AUTORCC ON)
-  enable_testing()
 
   add_subdirectory(3rd-party)
+
+  enable_testing()
   # Needed to avoid exporting every symbol in every DLL on Windows. Some corner
   # cases still require we export symbols manually.
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
