@@ -133,10 +133,7 @@ jobs:
         with:
           name: riscv_tests
           path: test2/riscv/freestanding
-      - name: Install llvm tools for code coverage
-        if: inputs.codecov
-        run: |
-          apt-get update && apt-get install -y libclang-rt-17-dev llvm-17-tools
+
       # Run after downloading image assets, since that seems to nuke my lfs checkout.
       - name: Download help images via LFS
         # Always needed for WASM build because they go to the web. Deployments need help images too.
