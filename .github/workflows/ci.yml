@@ -123,35 +123,19 @@ jobs:
           retention-days: 1
 
   build_python:
-    name: Build Python packages ${{ matrix.name }}
+    name: Build wheels ${{ matrix.name }}
     needs: [ branch_info, check_tag ]
     uses: ./.github/workflows/build_py.yml
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
     strategy:
       fail-fast: false
       matrix:
-        config:
-        - { name: "Ubuntu 24.04; x86_64, Python 3.12", python_version: "3.12", runs-on: "ubuntu-latest", artifact_key: "pyart-linux-x86-p312", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0", sdist: True}
-        - { name: "Ubuntu 24.04; x86_64, Python 3.13", python_version: "3.13", runs-on: "ubuntu-latest", artifact_key: "pyart-linux-x86-p313", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0"}
-        # See: https://bugreports.qt.io/browse/QTBUG-118086
-        - { name: "MacOS-15; ARM64; Python 3.12",  python_version: "3.12", runs-on: "macos-15" , artifact_key: "pyart-macos-arm-p312", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
-        - { name: "MacOS-15; ARM64; Python 3.13",  python_version: "3.13", runs-on: "macos-15" , artifact_key: "pyart-macos-arm-p313", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
-        - { name: "MacOS-15; x86-64; Python 3.12",  python_version: "3.12", runs-on: "macos-15" , artifact_key: "pyart-macos-x86-p312", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
-        - { name: "MacOS-15; x86-64; Python 3.13",  python_version: "3.13", runs-on: "macos-15" , artifact_key: "pyart-macos-x86-p313", cmake_generator: "Ninja",  cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
-        - { name: "Windows Latest; x86-64; Python 3.12", python_version: "3.12", runs-on: "windows-latest",  artifact_key: "pyart-windows-x86-p312", cmake_generator: "Ninja", cmake_xargs: '-D CMAKE_C_COMPILER=cl -D CMAKE_CXX_COMPILER=cl'}
-        - { name: "Windows Latest; x86-64; Python 3.13", python_version: "3.13", runs-on: "windows-latest",  artifact_key: "pyart-windows-x86-p313", cmake_generator: "Ninja", cmake_xargs: '-D CMAKE_C_COMPILER=cl -D CMAKE_CXX_COMPILER=cl'}
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-15-intel, macos-latest]
+        python_version: [3.12]
     with:
-      name: ${{ matrix.config.name }}
-      runs-on: ${{ matrix.config.runs-on || 'ubuntu-latest' }}
-      image: ${{ matrix.config.image || '' }}
-      cmake_xargs: ${{ matrix.config.cmake_xargs || '' }}
-      cmake_generator: ${{ matrix.config.cmake_generator || '' }}
-      artifact_key: ${{ matrix.config.artifact_key || ''}}
-      do_release: ${{ startsWith(github.ref, 'refs/tags/') }}
-      sdist: ${{ !!matrix.config.sdist }}
+      os: ${{ matrix.os }}
+      python_version: ${{ matrix.python_version }}
+      artifact_key: 'pyart-${{ matrix.os }}-py${{ matrix.python_version }}'
+
 
   build:
     name: Build Qt IDE ${{ matrix.name }}
