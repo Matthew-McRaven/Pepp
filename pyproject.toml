@@ -55,7 +55,7 @@ exclude = [
   "3rd-party/nanobind/docs/**",
   "3rd-party/zpp_bits/test/**",
   "3rd-party/elfio/doc/**",
-  "3rd-party/nanobind/testss/**",
+  "3rd-party/nanobind/tests/**",
   # Python files
   "**/__pycache__/**",
   "**/*.pyc",
