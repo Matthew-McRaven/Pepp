@@ -46,12 +46,13 @@ include(config/cmake/inject_defs.cmake)
 # a global compile option and before 3rd-party. Default to 3, since I am tired
 # of seeing all of my  info messages.
 add_compile_options(-DSPDLOG_ACTIVE_LEVEL=3)
-add_subdirectory(3rd-party)
+
 inject_cxx_standard()
 inject_clang_tidy()
 inject_dwarf_debug()
 inject_code_coverage()
 if(PEPP_BUILD_PYTHON)
+  add_subdirectory(3rd-party)
   add_subdirectory(core)
   add_subdirectory(pypepp)
 else()
@@ -106,6 +107,7 @@ else()
   set(CMAKE_AUTORCC ON)
   enable_testing()
 
+  add_subdirectory(3rd-party)
   # Needed to avoid exporting every symbol in every DLL on Windows. Some corner
   # cases still require we export symbols manually.
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
