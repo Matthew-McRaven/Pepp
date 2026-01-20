@@ -11,7 +11,7 @@
 #include "WordList.h"
 #include "SubStyles.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Lexilla;
 

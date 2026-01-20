@@ -8,7 +8,7 @@
 #include <string_view>
 #include "Scintilla.h"
 #include "OptionSet.h"
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Lexilla;
 

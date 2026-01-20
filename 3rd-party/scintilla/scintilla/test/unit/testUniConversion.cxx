@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 #include "UniConversion.h"
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla::Internal;
 

@@ -5,7 +5,7 @@
 #include <memory>
 #include "UniqueString.h"
 #include "SparseVector.h"
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla::Internal;
 

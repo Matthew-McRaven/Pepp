@@ -23,7 +23,7 @@
 #include "CellBuffer.h"
 #include "PerLine.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla::Internal;
 

@@ -16,7 +16,7 @@
 
 #include "./about.hpp"
 #include <iostream>
-#include "catch.hpp"
+#include <catch.hpp>
 #include "help/about/dependencies.hpp"
 #include "help/about/pepp.hpp"
 #include "help/about/version.hpp"

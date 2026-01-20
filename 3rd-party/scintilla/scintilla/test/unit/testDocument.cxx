@@ -33,7 +33,7 @@
 #include "CaseFolder.h"
 #include "Document.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla;
 using namespace Scintilla::Internal;

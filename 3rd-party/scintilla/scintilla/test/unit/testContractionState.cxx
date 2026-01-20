@@ -21,7 +21,7 @@
 #include "RunStyles.h"
 #include "ContractionState.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla::Internal;
 

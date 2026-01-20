@@ -102,5 +102,5 @@
 #include "TestDocument.h"
 
 // Catch testing framework
-#include "catch.hpp"
+#include <catch.hpp>
 

@@ -18,7 +18,7 @@
 #include "SplitVector.h"
 #include "Partitioning.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla::Internal;
 
