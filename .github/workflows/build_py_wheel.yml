@@ -27,6 +27,16 @@ jobs:
           CIBW_SKIP: "cp3??t-*" #Ignore free-threaded builds because we use limited API
           CIBW_BUILD: "cp312-*"
           CIBW_ARCHS: "auto64"
+          # Do not use ninja on Windows, else it starts to use the MinGW compiler toolchain.
+          CIBW_ENVIRONMENT_WINDOWS: >
+            CMAKE_ARGS=-DCMAKE_BUILD_TYPE=Release
+          CIBW_ENVIRONMENT_LINUX: >
+            CMAKE_ARGS=-DCMAKE_BUILD_TYPE=Release
+            CMAKE_GENERATOR=Ninja
+          CIBW_ENVIRONMENT_MACOS: >
+            CMAKE_ARGS=-DCMAKE_BUILD_TYPE=Release
+            CMAKE_GENERATOR=Ninja
+
       - uses: actions/upload-artifact@v4
         if: ${{ inputs.artifact_key != '' }}
         with:
