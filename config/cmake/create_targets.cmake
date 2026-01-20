@@ -11,9 +11,9 @@ qt6_add_library(test-lib-all-int INTERFACE)
 # test-all bundles all the tests into a single executable to prove that there
 # are no linker errors. do not add to ctest, otherwise every test runs twice.
 qt6_add_executable(test-all ${CMAKE_CURRENT_LIST_DIR}/main.cpp)
-# Make test-lib-all a static library of all of our sources to reduce the number
-# of object files we "bubble up" to other targets.
-qt6_add_library(test-lib-all STATIC)
+# Make test-lib-all a library of all of our sources to reduce the number
+# of object members we "bubble up" to other targets. Otherwise we can hit LNK1189 on Windows
+qt6_add_library(test-lib-all)
 target_link_libraries(test-lib-all PUBLIC test-lib-all-int)
 set_target_properties(test-lib-all PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(test-all PROPERTIES FOLDER "qtc_runnable")
