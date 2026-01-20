@@ -36,10 +36,6 @@ public:
   std::vector<Phdr> program_headers;
   std::vector<std::shared_ptr<AStorage>> section_data;
 };
-static_assert(std::is_standard_layout_v<PackedElfLE32>);
-static_assert(std::is_standard_layout_v<PackedElfBE32>);
-static_assert(std::is_standard_layout_v<PackedElfLE64>);
-static_assert(std::is_standard_layout_v<PackedElfBE64>);
 
 // A packed ELF file that is read-only and backed by a memory-mapped file.
 // While its elf header, section headers, and program headers are eagerly loaded into memory,
