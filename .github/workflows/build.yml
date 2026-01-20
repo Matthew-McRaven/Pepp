@@ -168,12 +168,19 @@ jobs:
 
       - name: Run build
         run: cmake --build build -j6 ${{ contains(inputs.name, 'MSVC') && format('--config {0}', inputs.variant) ||'' }}
-        
+
+      - name: Upload compile_commands.json for clang
+        if: inputs.codecov
+        uses: actions/upload-artifact@v4
+        with:
+          name: compile_commands
+          path: build/compile_commands.json
+
       - name: Upload compile_commands.json on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: compile_commands
+          name: failed_compile_commands
           path: build/compile_commands.json
         
       - name: Rename HTML
@@ -269,8 +276,8 @@ jobs:
         if: inputs.codecov
         shell: bash
         run: |
-          ls -lah output/profraw
-          python scripts/llvm-codecov.py output
+          ls -lah
+          python3 scripts/llvm-cov-helper.py build/output
           ls -lah
           ls -lah coverage-html
 
@@ -286,7 +293,7 @@ jobs:
 
 
       - name: Analyze buildtime for Linux-Clang
-        if: inputs.runs-on == 'ubuntu-latest' && inputs.compiler_c == 'clang'
+        if: inputs.runs-on == 'ubuntu-latest' && inputs.compiler_c == 'clang' && !inputs.codecov
         uses: ./.github/actions/analyze-buildtime
 
       - name: Perform CodeQL analysis
