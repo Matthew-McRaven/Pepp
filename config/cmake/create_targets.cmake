@@ -36,7 +36,7 @@ set_property(GLOBAL PROPERTY ALL_LIBRARIES "")
 function(catch_test_count count_name)
   get_target_property(FILES test-lib-all INTERFACE_SOURCES)
   list(LENGTH FILES count)
-  # message("Test count: ${count} with files ${FILES}")
+  #message("Test count: ${count} with files ${FILES}")
   set(${count_name}
       ${count}
       PARENT_SCOPE)
