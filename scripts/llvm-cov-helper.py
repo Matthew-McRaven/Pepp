@@ -4,11 +4,11 @@ import sys
 
 from pathlib import Path
 
-profraws = [str(profraw.absolute()) for profraw in Path('build').rglob('*.profraw')]
+profraws = [str(profraw.absolute()) for profraw in Path('profraw').rglob('*.profraw')]
 
 print(sys.argv)
 print(profraws)
-os.system(f'llvm-profdata-14 merge {" ".join(profraws)} --output coverage.profdata')
+os.system(f'llvm-profdata-17 merge {" ".join(profraws)} --output coverage.profdata')
 
 executable = stat.S_IEXEC | stat.S_IXUSR
 
@@ -58,7 +58,7 @@ def walk(root, dirs, files):
 for root, dirs, files in os.walk(sys.argv[1]):
     walk(root, dirs, files)
 
-regex = "\"(catch)|(elfio)|(ngraph)|(magic_enum)|(fmt)|(outcome)|(cereal)|(.*/test)\""
+regex = "\"(catch)|(elfio)|(ngraph)|(magic_enum)|(fmt)|(outcome)|(cereal)|(.*/test)|(3rd)|(build/.*)\""
 os.system(
-    f'llvm-cov-14 export --ignore-filename-regex={regex} --instr-profile coverage.profdata --format=lcov {" --object ".join(tests)}> coverage.lcov')
-os.system("genhtml -o \"coverage\" coverage.lcov")
+    f'llvm-cov-17 export --ignore-filename-regex={regex} --instr-profile coverage.profdata --format=lcov {" --object ".join(tests)}> coverage.lcov')
+os.system(f'llvm-cov-17 show  --instr-profile coverage.profdata{" --object ".join(tests)} --format=html --output-dir coverage-html')

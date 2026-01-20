@@ -155,6 +155,7 @@ jobs:
           - { name: "Ubuntu 24.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", artifact_key: "artifact-linux"}
           - { name: "Ubuntu 24.04; GCC + CodeQL", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", codeql: True, release_variant: 'debug'}
           - { name: "Ubuntu 24.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.17.0",  compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja" }
+          - { name: "Ubuntu 24.04; Clang 17.0; codecov", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.17.0",  compiler_launcher: "ccache", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja", cmake_xargs: '-D CODECOV=TRUE', codecov: True }
           - { name: "Ubuntu 24.04; EMSDK 4.1.07", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.17.0", cmake_generator: "Ninja", compiler_launcher: "ccache", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.10.1/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
           # See: https://bugreports.qt.io/browse/QTBUG-118086
           - { name: "MacOS-15 ARM64", cache_name: 'macos-clang-arm', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-arm", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
@@ -183,6 +184,7 @@ jobs:
       images_artifact: 'icons'
       artifact_key: ${{ matrix.config.artifact_key || ''}}
       sign_artifacts: ${{ needs.branch_info.outputs.build_release == 'true'}}
+      codecov: ${{ !!matrix.config.codecov }}
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_BUILD_CERTIFICATE_BASE64 }}
       MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}

@@ -20,6 +20,7 @@ on:
       images_artifact: { type: string }
       artifact_key: { type: string, default: "" }
       sign_artifacts: { type: boolean, default: False }
+      codecov: { type: boolean, default: False }
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64:
         description: 'Contains an apple developer cert as a p12, base64 encoded.'
@@ -132,7 +133,10 @@ jobs:
         with:
           name: riscv_tests
           path: test2/riscv/freestanding
-
+      - name: Install llvm tools for code coverage
+        if: inputs.codecov
+        run: |
+          apt-get update && apt-get install -y libclang-rt-17-dev llvm-17-tools
       # Run after downloading image assets, since that seems to nuke my lfs checkout.
       - name: Download help images via LFS
         # Always needed for WASM build because they go to the web. Deployments need help images too.
@@ -251,6 +255,7 @@ jobs:
           # Must be offscreen, or tests that involve GUI libraries will fail
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
+          LLVM_PROFILE_FILE: ${{ github.workspace }}/profraw/%p-%m.profraw
       - run: ls build
 
       - name: Upload assets
@@ -263,6 +268,24 @@ jobs:
             build/*.exe
             build/*.tar.gz
           retention-days: 1
+      - name: Analyze codecov
+        if: inputs.codecov
+        shell: bash
+        run: |
+          ls -lah profraw
+          llvm-profdata-17 merge -sparse "${{ github.workspace }}"/profraw/*.profraw -o merged.profdata
+          ls -lah
+          python scripts/llvm-codecov.py
+          ls -lah
+
+      - name: Upload codecov
+        if: ${{ inputs.codecov }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: llvm-codecov-profdata
+          path: merged.profdata
+          retention-days: 1
+
 
       - name: Analyze buildtime for Linux-Clang
         if: inputs.runs-on == 'ubuntu-latest' && inputs.compiler_c == 'clang'
