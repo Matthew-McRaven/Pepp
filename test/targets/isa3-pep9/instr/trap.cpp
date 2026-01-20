@@ -15,11 +15,11 @@
  */
 
 #include <catch.hpp>
+#include "./api.hpp"
+#include "core/bitmanip/swap.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"
 #include "sim3/cores/pep/traced_pep9_isa3.hpp"
-#include "./api.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
-#include "bts/bitmanip/swap.hpp"
 
 void smoke_unary(isa::Pep9::Mnemonic op) {
   auto [mem, cpu] = make();

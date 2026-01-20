@@ -33,7 +33,7 @@
  */
 #pragma once
 #include <stdexcept>
-#include "../../../bts/isa/riscv/rv_types.hpp"
+#include "core/isa/riscv/rv_types.hpp"
 #include "sim3/alloc/arena.hpp" // arena()
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 

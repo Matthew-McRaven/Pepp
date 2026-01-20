@@ -15,7 +15,7 @@
 #include "LexerBase.h"
 #include "LexerSimple.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Lexilla;
 

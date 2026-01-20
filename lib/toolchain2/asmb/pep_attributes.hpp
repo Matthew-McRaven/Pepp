@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../bts/isa/pep/pep10.hpp"
+#include "core/isa/pep/pep10.hpp"
 #include "toolchain/pas/ast/value/base.hpp"
 #include "toolchain/pas/ast/value/symbolic.hpp"
 #include "toolchain/symbol/entry.hpp"

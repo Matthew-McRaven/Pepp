@@ -20,7 +20,7 @@
 #include "RunStyles.h"
 #include "Decoration.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 constexpr int indicator=4;
 

@@ -19,7 +19,7 @@
 #include "Partitioning.h"
 #include "RunStyles.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla::Internal;
 

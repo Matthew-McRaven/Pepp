@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "catch.hpp"
+#include <catch.hpp>
 #include "config.hpp"
 
 TEST_CASE("Terminal sample applications", "[term][cli]") {

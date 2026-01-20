@@ -15,12 +15,12 @@
  */
 #include "scintillaasmeditbase.hpp"
 #include <QQmlEngine>
-#include "../../bts/isa/pep/pep9.hpp"
+#include "core/isa/pep/pep9.hpp"
 #include "Geometry.h"
 #include "LexillaAccess.h"
 #include "SciLexer.h"
 #include "ScintillaEditBase/PlatQt.h"
-#include "bts/isa/pep/pep10.hpp"
+#include "core/isa/pep/pep10.hpp"
 #include "settings/palette.hpp"
 #include "settings/paletteitem.hpp"
 

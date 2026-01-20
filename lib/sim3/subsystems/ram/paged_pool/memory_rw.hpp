@@ -33,7 +33,7 @@
  */
 #pragma once
 #include "../paged_pool.hpp"
-#include "bts/isa/riscv/rv_types.hpp"
+#include "core/isa/riscv/rv_types.hpp"
 
 namespace riscv {
 template <AddressType address_t> const Page &Memory<address_t>::get_readable_pageno(const address_t pageno) const {

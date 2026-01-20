@@ -15,8 +15,8 @@
  */
 
 #include "traced_pep9_mc2.hpp"
-#include "bts/bitmanip/span.hpp"
-#include "bts/bitmanip/swap.hpp"
+#include "core/bitmanip/span.hpp"
+#include "core/bitmanip/swap.hpp"
 
 namespace {
 sim::api2::memory::Operation gs_d = {

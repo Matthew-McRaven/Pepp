@@ -59,7 +59,7 @@ jobs:
       - name: Checkout source code (shallow)
         uses: actions/checkout@v4
         with:
-          submodules: 'true'
+          submodules: recursive
           # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
           lfs: 'false'
       # Local github runner doesn't have node installed.

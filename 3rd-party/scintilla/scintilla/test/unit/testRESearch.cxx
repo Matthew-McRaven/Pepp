@@ -25,7 +25,7 @@
 #include "CharClassify.h"
 #include "RESearch.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla;
 using namespace Scintilla::Internal;

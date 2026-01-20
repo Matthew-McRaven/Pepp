@@ -121,8 +121,29 @@ jobs:
           name: riscv_tests
           path: /rv_install
           retention-days: 1
+
+  build_python_wheels:
+    name: Build pypepp wheels ${{ matrix.name }}
+    uses: ./.github/workflows/build_py_wheel.yml
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-15-intel, macos-latest]
+        python_version: [3.12]
+    with:
+      os: ${{ matrix.os }}
+      python_version: ${{ matrix.python_version }}
+      artifact_key: 'pyart-${{ matrix.os }}-py${{ matrix.python_version }}'
+  build_python_sdist:
+    name: Build pypepp sdist
+    uses: ./.github/workflows/build_py_sdist.yml
+    with:
+      python_version: "3.12"
+      artifact_key: 'pyart-sdist'
+
+
   build:
-    name: Build ${{ matrix.name }}
+    name: Build Qt IDE ${{ matrix.name }}
     needs: [ branch_info, check_tag, create_icons, riscv_samples ]
     uses: ./.github/workflows/build.yml
     strategy:
@@ -134,7 +155,7 @@ jobs:
           - { name: "Ubuntu 24.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", artifact_key: "artifact-linux"}
           - { name: "Ubuntu 24.04; GCC + CodeQL", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", codeql: True, release_variant: 'debug'}
           - { name: "Ubuntu 24.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.17.0",  compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja" }
-          - { name: "Ubuntu 24.04; EMSDK 4.1.07", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.17.0", compiler_launcher: "ccache", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.10.1/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
+          - { name: "Ubuntu 24.04; EMSDK 4.1.07", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.17.0", cmake_generator: "Ninja", compiler_launcher: "ccache", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.10.1/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
           # See: https://bugreports.qt.io/browse/QTBUG-118086
           - { name: "MacOS-15 ARM64", cache_name: 'macos-clang-arm', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-arm", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
           - { name: "MacOS-15 x86-64", cache_name: 'macos-clang-x86', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-x86", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
@@ -241,6 +262,28 @@ jobs:
            path: RELEASE.md
            retention-days: 1
            if-no-files-found: error
+
+  publish_pypi:
+    name: Publish to PyPI (OIDC)
+    needs: [ build_python_wheels, build_python_sdist, branch_info ]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pyart-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+
   create_release:
     name: Create GitHub release
     needs: [ build, branch_info, create_changelog]

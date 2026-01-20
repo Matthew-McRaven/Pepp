@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "bts/libs/mapped_file.hpp"
+#include "core/libs/mapped_file.hpp"
 #include <QDebug>
 #include <QString>
 #include <catch.hpp>
@@ -57,7 +57,7 @@ static void ensure_size(const fs::path &p, std::size_t n) {
   write_bytes(p, bytes);
 }
 
-TEST_CASE("MappedFile::open_readwrite persists modifications", "[kind:unit][arch:*][scope:bts]") {
+TEST_CASE("MappedFile::open_readwrite persists modifications", "[kind:unit][arch:*][scope:core]") {
   const auto path = make_temp_path("mmap-rw");
   // Ensure file exists and has known initial content.
   std::vector<u8> initial(64);
@@ -90,7 +90,7 @@ TEST_CASE("MappedFile::open_readwrite persists modifications", "[kind:unit][arch
   fs::remove(path);
 }
 
-TEST_CASE("MappedFile::open_readonly yields readable spans", "[kind:unit][arch:*][scope:bts]") {
+TEST_CASE("MappedFile::open_readonly yields readable spans", "[kind:unit][arch:*][scope:core]") {
   const auto path = make_temp_path("mmap-ro");
 
   std::vector<u8> initial(128);
@@ -115,7 +115,7 @@ TEST_CASE("MappedFile::open_readonly yields readable spans", "[kind:unit][arch:*
   fs::remove(path);
 }
 
-TEST_CASE("MappedFile, multiple slices observe file content consistently", "[kind:unit][arch:*][scope:bts]") {
+TEST_CASE("MappedFile, multiple slices observe file content consistently", "[kind:unit][arch:*][scope:core]") {
   const auto path = make_temp_path("mmap-multi");
 
   std::vector<u8> initial(256);
@@ -147,7 +147,7 @@ TEST_CASE("MappedFile, multiple slices observe file content consistently", "[kin
   fs::remove(path);
 }
 
-TEST_CASE("MappedFile::open_readwrite can can create && allocate", "[kind:unit][arch:*][scope:bts]") {
+TEST_CASE("MappedFile::open_readwrite can can create && allocate", "[kind:unit][arch:*][scope:core]") {
   const auto path = make_temp_path("mmap-create");
   // Ensure it doesn't exist.
   fs::remove(path);

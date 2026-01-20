@@ -16,9 +16,9 @@
 
 #pragma once
 #include "../utils.hpp"
+#include "core/bitmanip/copy.hpp"
 #include "sim3/api/traced/trace_buffer.hpp"
 #include "sim3/api/traced/trace_frame.hpp"
-#include "bts/bitmanip/copy.hpp"
 namespace sim::trace2 {
 
 template <typename T>

@@ -16,7 +16,8 @@
 
 #include "toolchain/pas/operations/pepp/assign_addr.hpp"
 #include <catch.hpp>
-#include "bts/isa/pep/pep10.hpp"
+#include "core/bitmanip/strings.hpp"
+#include "core/isa/pep/pep10.hpp"
 #include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/generic/attr_address.hpp"
@@ -26,7 +27,6 @@
 #include "toolchain/pas/operations/pepp/addressable.hpp"
 #include "toolchain/pas/operations/pepp/size.hpp"
 #include "toolchain/pas/operations/pepp/string.hpp"
-#include "bts/bitmanip/strings.hpp"
 
 using isa::Pep10;
 using pas::ops::pepp::Direction;

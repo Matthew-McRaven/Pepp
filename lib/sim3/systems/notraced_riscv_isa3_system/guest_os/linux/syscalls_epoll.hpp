@@ -38,7 +38,7 @@
 
 #include "../sysprint.hpp"
 #include "./syscalls.hpp"
-#include "bts/isa/riscv/rv_types.hpp"
+#include "core/isa/riscv/rv_types.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 

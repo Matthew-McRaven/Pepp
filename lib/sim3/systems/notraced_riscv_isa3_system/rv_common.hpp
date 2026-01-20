@@ -35,7 +35,7 @@
 
 #include <memory>
 #include <type_traits>
-#include "../../../bts/isa/riscv/rv_types.hpp"
+#include "core/isa/riscv/rv_types.hpp"
 #include "sim3/utils/function.hpp"
 
 #if __has_include(<span>)

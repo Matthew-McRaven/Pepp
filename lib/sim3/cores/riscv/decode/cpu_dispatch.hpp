@@ -32,12 +32,12 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #include "../instruction_counter.hpp"
+#include "core/isa/riscv/rva.hpp"
+#include "core/isa/riscv/rvc.hpp"
+#include "core/isa/riscv/rvfd.hpp"
+#include "core/isa/riscv/rvi.hpp"
+#include "core/isa/riscv/rvv.hpp"
 #include "decoder_cache_impl.hpp"
-#include "bts/isa/riscv/rva.hpp"
-#include "bts/isa/riscv/rvc.hpp"
-#include "bts/isa/riscv/rvfd.hpp"
-#include "bts/isa/riscv/rvi.hpp"
-#include "bts/isa/riscv/rvv.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "threaded_bytecodes.hpp"
 

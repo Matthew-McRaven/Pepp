@@ -9,7 +9,7 @@
 
 #include "CharacterSet.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Lexilla;
 

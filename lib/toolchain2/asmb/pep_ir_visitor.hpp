@@ -1,8 +1,8 @@
 #pragma once
 
 #include <QString>
+#include "core/bitmanip/span.hpp"
 #include "toolchain2/asmb/pep_codegen.hpp"
-#include "bts/bitmanip/span.hpp"
 
 namespace pepp::tc::ir {
 struct LinearIR;

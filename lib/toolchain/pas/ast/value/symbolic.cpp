@@ -16,9 +16,9 @@
  */
 
 #include "./symbolic.hpp"
+#include "core/bitmanip/copy.hpp"
+#include "core/bitmanip/order.hpp"
 #include "toolchain/symbol/entry.hpp"
-#include "bts/bitmanip/copy.hpp"
-#include "bts/bitmanip/order.hpp"
 pas::ast::value::Symbolic::Symbolic() {}
 
 pas::ast::value::Symbolic::Symbolic(QSharedPointer<symbol::Entry> value) : Base(), _value(value) {}

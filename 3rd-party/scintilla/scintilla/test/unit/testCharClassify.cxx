@@ -15,7 +15,7 @@
 
 #include "CharClassify.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla::Internal;
 

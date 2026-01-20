@@ -16,13 +16,13 @@
 
 #include "toolchain/pas/operations/generic/link_globals.hpp"
 #include <catch.hpp>
+#include "core/isa/pep/pep10.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
 #include "toolchain/pas/driver/common.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/symbol/entry.hpp"
 #include "toolchain/symbol/table.hpp"
 #include "toolchain/symbol/value.hpp"
-#include "bts/isa/pep/pep10.hpp"
 using isa::Pep10;
 TEST_CASE("Link Globals", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Intra-tree link") {

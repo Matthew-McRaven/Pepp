@@ -18,10 +18,10 @@
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_dump.hpp>
 #include <iostream>
+#include "core/bitmanip/span.hpp"
+#include "core/bitmanip/strings.hpp"
 #include "toolchain/pas/obj/common.hpp"
 #include "toolchain/pas/obj/trace_tags.hpp"
-#include "bts/bitmanip/span.hpp"
-#include "bts/bitmanip/strings.hpp"
 
 ReadElfTask::ReadElfTask(Options &opts, QObject *parent) : Task(parent), _opts(opts) {}
 

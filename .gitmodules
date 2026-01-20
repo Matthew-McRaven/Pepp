@@ -19,3 +19,6 @@
 [submodule "3rd-party/flat"]
 	path = 3rd-party/flat
 	url = https://github.com/pubby/flat
+[submodule "3rd-party/nanobind"]
+	path = 3rd-party/nanobind
+	url = https://github.com/wjakob/nanobind

@@ -1,0 +1,30 @@
+name: Build python source distribution
+on:
+  workflow_call:
+    inputs:
+      artifact_key: { type: string, default: '' }
+      python_version: {  type: string, default: '3.12' }
+jobs:
+  make_sdist:
+    name: Make sdist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code (shallow)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: 'false' # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+      - name: Install specific python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
+      - name: build sdist
+        run: uv build --sdist
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.artifact_key != '' }}
+        with:
+          name: ${{ inputs.artifact_key }}
+          path: ./dist/*.gz
+          retention-days: 1

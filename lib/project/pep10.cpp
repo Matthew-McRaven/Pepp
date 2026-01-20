@@ -16,8 +16,9 @@
 #include "./pep10.hpp"
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
+#include "core/bitmanip/strings.hpp"
+#include "core/isa/pep/pep10.hpp"
 #include "cpu/formats.hpp"
-#include "bts/isa/pep/pep10.hpp"
 #include "help/builtins/figure.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
@@ -33,7 +34,6 @@
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/pas/obj/common.hpp"
 #include "toolchain/pas/operations/pepp/bytes.hpp"
-#include "bts/bitmanip/strings.hpp"
 #include "utils/logging.hpp"
 #include "utils/strings.hpp"
 

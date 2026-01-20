@@ -1,0 +1,64 @@
+[project]
+name = "pypepp"
+version = "0.0.2"
+description = "Python bindings for the Pepp assembler and simulator"
+requires-python = ">=3.12"
+readme = "README.md"
+dependencies = []
+authors = [
+  { name="Matthew McRaven", email="matthew.mcraven@gmail.com" },
+]
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+
+[project.urls]
+Homepage = "https://github.com/Matthew-McRaven/Pepp"
+Issues = "https://github.com/Matthew-McRaven/Pepp/issues"
+
+[build-system]
+requires = ["scikit-build-core>=0.11"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+wheel.py-api = "cp312"
+cmake.version = ">=3.20"
+wheel.packages = ["pypepp"]
+cmake.args = [
+  "-DPEPP_BUILD_PYTHON=ON",
+  # strongly recommended for wheels:
+  "-DCMAKE_BUILD_TYPE=Release",
+]
+[tool.scikit-build.sdist]
+exclude = [
+  ".git/**",
+  ".github/**",
+  ".devcontainer/**",
+  ".venv/**",
+  ".qtcreator/**",
+  # Portions of the C++ library that we do not need
+  "docs/**",
+  "test/**",
+  "test2/**",
+  "data/**",
+  "www/**",
+  "lib/**",
+  "bin/**",
+   # Portions of our 3rd-party deps that you will not need to build the py deps
+  "3rd-party/KD*",
+  "3rd-party/sci*",
+  "3rd-party/cxxgraph/benchmark/**",
+  "3rd-party/cxxgraph/historical/**",
+  "3rd-party/cxxgraph/logos/**",
+  "3rd-party/cxxgraph/docs/**",
+  "3rd-party/elfio/tests/**",
+  "3rd-party/fmt/test/**",
+  "3rd-party/nanobind/docs/**",
+  "3rd-party/zpp_bits/test/**",
+  "3rd-party/elfio/doc/**",
+  "3rd-party/nanobind/tests/**",
+  # Python files
+  "**/__pycache__/**",
+  "**/*.pyc",
+  "build/**",
+  "dist/**",
+]

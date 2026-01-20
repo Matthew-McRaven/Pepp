@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "../../../bts/isa/pep/pep9.hpp"
+#include "core/isa/pep/pep9.hpp"
 #include "sim/debug/debugger.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
 

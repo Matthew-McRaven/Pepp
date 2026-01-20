@@ -16,8 +16,8 @@
 #pragma once
 #include <QtCore>
 #include <zpp_bits.h>
-#include "bts/bitmanip/copy.hpp"
-#include "bts/bitmanip/span.hpp"
+#include "core/bitmanip/copy.hpp"
+#include "core/bitmanip/span.hpp"
 
 // A fragment is one of the data classes in packet::header, packet::payload, or
 // frame::header. A packet is a one packet::header fragment followed by 0 or

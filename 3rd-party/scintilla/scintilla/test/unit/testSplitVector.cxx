@@ -17,7 +17,7 @@
 #include "Position.h"
 #include "SplitVector.h"
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 using namespace Scintilla::Internal;
 

@@ -17,6 +17,7 @@
 #include <QMetaType>
 #include <QObject>
 #include <QtQmlIntegration>
+#include <span>
 #include "./constants.hpp"
 #include "paletteitem.hpp"
 

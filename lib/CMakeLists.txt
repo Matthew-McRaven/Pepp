@@ -1,9 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-inject_cxx_standard()
-inject_clang_tidy()
-inject_dwarf_debug()
-inject_code_coverage()
-
 # Extract git info
 include(help/about/git.cmake)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
@@ -66,6 +60,7 @@ target_link_libraries(
          spdlog
          cxxgraph
          flat
+         pepp-core
          pepp-changelog)
 # Will fail to find hpp files without this, see
 # https://bugreports.qt.io/browse/QTBUG-101146.
