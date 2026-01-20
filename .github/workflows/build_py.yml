@@ -56,6 +56,9 @@ jobs:
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
       - name: Build the packge!
         run: uv build
+        env:
+          CMAKE_GENERATOR: ${{ inputs.cmake_generator }}
+          CMAKE_ARGS: ${{ inputs.cmake_xargs }}
       - name: Upload assets
         if: ${{ inputs.artifact_key }}
         uses: actions/upload-artifact@v4
