@@ -5,7 +5,6 @@ on:
       os: { required: True, type: string }
       python_version: {  type: string, default: '3.12' }
       artifact_key: { type: string, default: '' }
-      sdist: { type: boolean, default: false }
 
 jobs:
   matrix_build:
@@ -31,3 +30,4 @@ jobs:
         with:
           name: ${{ inputs.artifact_key }}
           path: ./wheelhouse/*.whl
+          retention-days: 1

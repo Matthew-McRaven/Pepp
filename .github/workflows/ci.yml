@@ -122,10 +122,9 @@ jobs:
           path: /rv_install
           retention-days: 1
 
-  build_python:
-    name: Build wheels ${{ matrix.name }}
-    needs: [ branch_info, check_tag ]
-    uses: ./.github/workflows/build_py.yml
+  build_python_wheels:
+    name: Build pypepp wheels ${{ matrix.name }}
+    uses: ./.github/workflows/build_py_wheel.yml
     strategy:
       fail-fast: false
       matrix:
@@ -135,6 +134,12 @@ jobs:
       os: ${{ matrix.os }}
       python_version: ${{ matrix.python_version }}
       artifact_key: 'pyart-${{ matrix.os }}-py${{ matrix.python_version }}'
+  build_python_sdist:
+    name: Build pypepp sdist
+    uses: ./.github/workflows/build_py_sdist.yml
+    with:
+      python_version: "3.12"
+      artifact_key: 'pyart-sdist'
 
 
   build:
@@ -260,8 +265,8 @@ jobs:
 
   publish_pypi:
     name: Publish to PyPI (OIDC)
-    needs: [ build_python ]
-    #if: ${{ inputs.do_release && inputs.artifact_key != '' }}
+    needs: [ build_python_wheels, build_python_sdist, branch_info ]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: read
