@@ -11,9 +11,14 @@ if(Python_FOUND)
   target_compile_definitions(pypepp_native PRIVATE Py_LIMITED_API=0x030C0000)
   set_target_properties(pypepp_native PROPERTIES FOLDER "qtc_runnable")
   install(TARGETS pypepp_native
-  LIBRARY DESTINATION pypepp          # macOS/Linux extension
-  RUNTIME DESTINATION pypepp          # Windows .pyd
-)
+  LIBRARY DESTINATION pypepp
+  RUNTIME DESTINATION pypepp)
+  if(MSVC)
+    message("Python libs at at ${Python_LIBRARY_DIRS}")
+    # Nanobind does not add the %PYTHON_ROOT%\libs directory to the linker path on Windows,
+    # which causes an LNK1104: cannot open file 'python3.lib'
+    target_link_directories(pypepp_native PRIVATE "${Python_LIBRARY_DIRS}")
+  endif()
 else()
   message(WARNING"Python 3.12 not found, 'pypepp' module will not be built.")
 endif()
