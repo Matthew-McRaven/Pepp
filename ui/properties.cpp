@@ -15,36 +15,15 @@ DiagramProperty *DiagramPropertyModel::createDiagram()
 {
     //  Create item with model as parent for lifetime management
     auto *item = new DiagramProperty(this);
+
+    //beginInsertRows(QModelIndex{}, _properties.count() + 1, _properties.count() + 1);
     _properties.append(item);
+    //endInsertRows();
+
+    emit newDiagramChanged();
+
     return item;
 }
-/*QVariant Properties::headerData(int section, Qt::Orientation orientation, int role) const
-{
-    // FIXME: Implement me!
-}
-
-bool Properties::setHeaderData(int section,
-                               Qt::Orientation orientation,
-                               const QVariant &value,
-                               int role)
-{
-    if (value != headerData(section, orientation, role)) {
-        // FIXME: Implement me!
-        emit headerDataChanged(orientation, section, section);
-        return true;
-    }
-    return false;
-}*/
-
-/*QModelIndex Properties::index(int row, int column, const QModelIndex &parent) const
-{
-    // FIXME: Implement me!
-}
-
-QModelIndex Properties::parent(const QModelIndex &index) const
-{
-    // FIXME: Implement me!
-}*/
 
 int DiagramPropertyModel::rowCount(const QModelIndex &parent) const
 {
@@ -96,7 +75,7 @@ QVariant DiagramPropertyModel::data(const QModelIndex &index, int role) const
     return {};
 }
 
-bool DiagramPropertyModel::setData(const QModelIndex &index, const QVariant &value, int role)
+/*bool DiagramPropertyModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (data(index, role) != value) {
         const auto row = index.row();
@@ -151,7 +130,7 @@ bool DiagramPropertyModel::setData(const QModelIndex &index, const QVariant &val
         return true;
     }
     return false;
-}
+}*/
 
 Qt::ItemFlags DiagramPropertyModel::flags(const QModelIndex &index) const
 {
@@ -161,7 +140,7 @@ Qt::ItemFlags DiagramPropertyModel::flags(const QModelIndex &index) const
     return Qt::ItemIsSelectable | Qt::ItemIsEnabled;
 }
 
-bool DiagramPropertyModel::insertRows(int row, int count, const QModelIndex &parent)
+/*bool DiagramPropertyModel::insertRows(int row, int count, const QModelIndex &parent)
 {
     beginInsertRows(parent, row, row + count - 1);
     auto ok = (nullptr != createDiagram());
@@ -176,3 +155,4 @@ bool DiagramPropertyModel::removeRows(int row, int count, const QModelIndex &par
     endRemoveRows();
     return true;
 }
+*/
