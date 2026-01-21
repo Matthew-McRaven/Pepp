@@ -9,8 +9,8 @@ import "move.js" as Move
 
 Item {
     id: root
-    property string text: ""
-    property string type: ""
+    //property string text: ""
+    //property string type: ""
     //property alias file: image.source
     property bool horizontal: true
     property alias input: input

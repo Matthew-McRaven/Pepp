@@ -5,7 +5,7 @@ import QtQuick.Controls
 
 Pane {
     id: root
-    property var diagram: null
+    property var diagramModel: null
 
     //  List of available gates
     required property var model
@@ -18,10 +18,11 @@ Pane {
             text: "Gate Type: "
         }
         ComboBox {
+            id: gateType
             model: root.model
             textRole: "name"
             valueRole: "key"
-            //currentValue: root.diagram.text === null ? "" : root.diagram.text
+            currentValue: root.diagramModel.name === null ? "" : root.diagramModel.name
 
             /*Component.onCompleted: {
                 console.log("Diagram name: ", root.diagram.name);
@@ -45,6 +46,40 @@ Pane {
             from: 1
             to: 3
             value: 1
+        }
+        Row {
+            Button {
+                text: "Save"
+                width: 75
+
+                onClicked: {
+                    //  If source data is bad, just return
+                    if (gateType.currentIndex < 0 || root.diagramModel === null) {
+                        return;
+                    }
+
+                    //  Update model with new data
+                    var item = root.model.sourceModel.get(gateType.currentIndex);
+                    root.diagramModel.name = item.name;
+                    root.diagramModel.imageSource = item.file;
+                    root.diagramModel.type = gateType.currentIndex;
+                    root.diagramModel.refresh();
+                }
+            }
+            Button {
+                text: "Cancel"
+                width: 75
+
+                onClicked: {
+                    //  If source data is bad, just return
+                    if (root.diagramModel === null) {
+                        return;
+                    }
+
+                    //  Reset screen with model data
+                    //gateType.currentText = root.diagramModel.name;
+                }
+            }
         }
     }
 }

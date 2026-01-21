@@ -20,12 +20,12 @@ public:
     enum class DiagramRole : quint32 {
         //  Gate enums
         ANDGateRole = 0,
-        NANDGateRole,
         ORGateRole,
-        NORGateRole,
         InverterGateRole,
+        NANDGateRole,
+        NORGateRole,
         XORGateRole,
-        XNORGateRole,
+        //XNORGateRole,
         DiagramTotal, // Must be last diagram
 
         //  Line enums

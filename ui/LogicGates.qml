@@ -94,7 +94,7 @@ Rectangle {
         anchors.right: parent.right
         z: 2
 
-        //diagram: canvas.diagram2
+        //diagramModel: DiagramProperty //canvas.diagram2.model
         model: filterModel
     }
 
@@ -183,14 +183,15 @@ Rectangle {
                     id: diagram2
 
                     Component.onCompleted: {
-                        model.name = "OR Gate"
-                        model.imageSource = "qrc:/or"
+                        model.name = "OR Gate";
+                        model.imageSource = "qrc:/or";
                         refresh(); // A hack, see Diagram.qml function for details
+                        props.diagramModel = model;
                     }
 
                     x: 200
                     y: 200
-                    z: 1
+                    //z: 1
                 }
 
                 Line {
