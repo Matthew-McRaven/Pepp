@@ -288,6 +288,7 @@ jobs:
           name: llvm-codecov
           path: |
             coverage.profdata
+            coverage.lcov
             coverage-html
           retention-days: 1
 

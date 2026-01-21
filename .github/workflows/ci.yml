@@ -244,6 +244,36 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test
         working-directory: ./test/web
+
+  run_sonar:
+    name: Run sonar analysis
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: 'false'
+      - name: Download compile commands
+        uses: actions/download-artifact@v4
+        with:
+          pattern: compile_commands
+          path: p1
+      - run: mv -t . p1/compile_commands/* && ls -lah
+      - name: Download codecov
+        uses: actions/download-artifact@v4
+        with:
+          pattern: llvm-codecov
+          path: p1
+      - run: mv -t . p1/llvm-codecov/* && ls -lah
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            --define sonar.cfamily.compile-commands=compile_commands.json
+            --define sonar.cfamily.llvm-cov.reportPath=coverage.lcov
+
   create_changelog:
     name: Create release changelog
     needs: [ branch_info ]
