@@ -11,7 +11,6 @@ var minorY = 25;
 var component = null;
 
 //  Create new diagram
-//function createBlock(parent, x, y) {
 function createBlock(parent) {
     //  Cache component for creating diagrams
     if (component === null)

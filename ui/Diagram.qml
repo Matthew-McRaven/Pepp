@@ -18,9 +18,7 @@ Item {
     property point inputXY: inputPt()
     property point outputXY: outputPt()
 
-
-    property var props: undefined
-    //property DiagramProperties props: null
+    property var model: dataModel.createDiagram()
 
     width: Move.blockWidth
     height: Move.blockHeight
@@ -87,6 +85,20 @@ Item {
         return Qt.point(x, y);
     }
 
+    //  A hack
+    //  When image is created dynamically, data is set to empty image.
+    //  When image is updated in Javascript, the change image event is not picked
+    //  up by the image control. Changing the image from blank to image forces redraw.
+    function refresh() {
+        image.source = "";
+        image.source = root.model.imageSource
+    }
+
+    DiagramPropertyModel {
+        //  Contains model that manages each diagrams data
+        id: dataModel
+    }
+
     Rectangle {
         id: wrapper
 
@@ -150,7 +162,7 @@ Item {
 
         VectorImage {
             id: image
-            source: root.props.imageSource
+            source: root.model.imageSource
 
             fillMode: Image.PreserveAspectFit
             opacity: ma.drag.active ? .25 : 1
@@ -184,11 +196,10 @@ Item {
                 root.horizontal = (wrapper.rotation % 180) == 0;
             }
 
-            onDoubleClicked: mouse => {
+            /*onDoubleClicked: mouse => {
                 console.log("doubleclick")
-                //root.props.diagram = root;
                 mouse.accepted = true;
-            }
+            }*/
 
             onPositionChanged: mouse => {
                 //  Only reposition if mouse is pressed

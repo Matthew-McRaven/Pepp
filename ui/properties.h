@@ -40,7 +40,7 @@ public:
     Q_ENUM(DiagramRole)
     explicit DiagramProperty(QObject *parent = nullptr);
 
-    quint32 id() const { return _id; }
+    quint32 id() const { return _id; } //  Unique object id
     QString name() const { return _name; }
     QString imageSource() const { return _imageSrc; }
     int type() const { return static_cast<int>(_type); }

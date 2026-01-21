@@ -57,7 +57,7 @@ Rectangle {
             file: "qrc:/line"
         }
         ListElement {
-            type: "key"
+            key: "Multiline"
             shapeType: "Line"
             name: "Multiline"
             file: "qrc:/multiline"
@@ -110,9 +110,7 @@ Rectangle {
             buttons: source.children.filter(child => child !== rep)
 
             onClicked: btn => {
-                canvas.curIndex = btn.index
-                //canvas.curName = btn.text;
-                //canvas.curFile = btn.icon.source;
+                canvas.curIndex = btn.index;
                 console.log(btn.index);
             }
         }
@@ -146,7 +144,6 @@ Rectangle {
 
         //  Background used as canvas for object placement
         Item {
-            //scale: .8
             GridView {
                 anchors.fill: parent
                 delegateModelAccess: DelegateModel.ReadOnly
@@ -163,9 +160,6 @@ Rectangle {
                 anchors.fill: parent
 
                 property int curIndex: -1
-                //property string curName: ""
-                //property string curFile: ""
-                //property string curType: ""
                 property Diagram fromObject: null
                 property Diagram toObject: null
 
@@ -175,23 +169,25 @@ Rectangle {
                 Diagram {
                     id: diagram1
 
-                    props: DiagramProperty {
-                        name: "AND Gate"
-                        imageSource: "qrc:/and"
+                    Component.onCompleted: {
+                        model.name = "AND Gate"
+                        model.imageSource = "qrc:/and"
+                        refresh(); // A hack, see Diagram.qml function for details
                     }
-
-                    x: 0
-                    y: 0
-                    z: 1
+                    x: 100
+                    y: 100
+                    //z: 1
                 }
 
                 Diagram {
                     id: diagram2
 
-                    props: DiagramProperty {
-                        name: "OR Gate"
-                        imageSource: "qrc:/or"
+                    Component.onCompleted: {
+                        model.name = "OR Gate"
+                        model.imageSource = "qrc:/or"
+                        refresh(); // A hack, see Diagram.qml function for details
                     }
+
                     x: 200
                     y: 200
                     z: 1
@@ -214,7 +210,7 @@ Rectangle {
                     }
                     width: Move.blockWidth
                     height: Move.blockHeight
-                    visible: canvas.curName != ""
+                    visible: canvas.curIndex != -1
                 }
 
                 MouseArea {
@@ -223,29 +219,34 @@ Rectangle {
                     hoverEnabled: true
                     onClicked: event => {
                         //  No template selected. Just return
-                        if (canvas.curName === "")
+                        if (canvas.curIndex === -1) {
                             return;
+                        }
 
-                        var diagram = Move.createBlock(canvas, event.x, event.y);
-                        diagram.props = dataModel.createDiagram();
-
+                        //  Find data
                         var item = diagramModel.get(parent.curIndex);
-                        //diagram.props.name = parent.curName;
-                        //diagram.props.imageSource = parent.curFile;
-                        //diagram.props.type = parent.curType;
-                        diagram.props.name = item.name;
-                        diagram.props.imageSource = item.file;
-                        diagram.props.type = parent.curIndex; //item.key;
                         console.log("Index", parent.curIndex, "name", item.name, "image", item.file);
 
-                    //console.log( "onClick1 diagram.x", diagram.x, "diagram.y", diagram.y, "canvas.x", canvas.x, "canvas.y", canvas.y);
-                    //console.log( "onClick2 x", event.x, "y", event.y, "stamp.x",stamp.x, "stamp.y", stamp.y);
+                        //  Create diagram
+                        var diagram = Move.createBlock(canvas);
+
+                        diagram.model.name = item.name;
+                        diagram.model.imageSource = item.file;
+                        diagram.model.type = parent.curIndex; //item.key;
+
+
+                        //  Move object to final spot
+                        Move.moveObjectTo(diagram, event.x, event.y);
+                        diagram.refresh(); // A hack, see Diagram.qml function for details
+
+                        //console.log( "onClick1 diagram.x", diagram.x, "diagram.y", diagram.y, "canvas.x", canvas.x, "canvas.y", canvas.y);
+                        //console.log( "onClick2 x", event.x, "y", event.y, "stamp.x",stamp.x, "stamp.y", stamp.y);
                     }
 
                     onPositionChanged: event => {
                         //  Move object within grid (large axis)
                         Move.moveObjectTo(stamp, event.x, event.y);
-                    //console.log( "x", event.x, "y", event.y, "stamp.x", stamp.x, "stamp.y", stamp.y);
+                        //console.log( "x", event.x, "y", event.y, "stamp.x", stamp.x, "stamp.y", stamp.y);
                     }
 
                     onEntered: {
