@@ -11,7 +11,8 @@ var minorY = 25;
 var component = null;
 
 //  Create new diagram
-function createBlock(parent, x, y) {
+//function createBlock(parent, x, y) {
+function createBlock(parent) {
     //  Cache component for creating diagrams
     if (component === null)
         component = Qt.createComponent("Diagram.qml");
@@ -25,12 +26,6 @@ function createBlock(parent, x, y) {
             console.log(component.errorString());
             return null;
         }
-        //diagram.data
-        //diagram.text = parent.curName;
-        //diagram.file = parent.curFile;
-        //diagram.type = parent.curType;
-        moveObjectTo(diagram, x, y);
-
     } else {
         console.log("Error loading individual diagram");
         console.log(component.errorString());
