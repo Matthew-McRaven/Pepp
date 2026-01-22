@@ -38,11 +38,14 @@ on:
         description: 'Developers team ID for code signing signing.'
         required: false
       MAC_APPLE_ID:
-          description: 'Apple ID to use for notarization.'
-          required: false
+        description: 'Apple ID to use for notarization.'
+        required: false
       MAC_NOTARYTOOL_PASSWORD:
-          description: 'Application-specific password to use for notarization.'
-          required: false
+        description: 'Application-specific password to use for notarization.'
+        required: false
+      SONAR_TOKEN:
+        description: 'A SonarQube API token for the Pepp project'
+        required: false
 
 jobs:
   matrix_build:
@@ -103,11 +106,10 @@ jobs:
       - name: Enable Developer Command Prompt
         if: inputs.runs-on == 'windows-latest'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
-      # Prevent clang from using ccache, because it is profiling build times
       - name: Enable caching object files between builds
         # Disable ccache when running locally
-        if: inputs.compiler_launcher == 'ccache' && !env.ACT
-        uses: hendrikmuhs/ccache-action@v1.2.17
+        if: inputs.compiler_launcher == 'ccache'
+        uses: hendrikmuhs/ccache-action@v1.2.20
         with:
           verbose: 2
           key: ${{ inputs.cache_name || inputs.name }}
@@ -164,17 +166,13 @@ jobs:
           -D CPACK_BUILD_CONFIG=${{inputs.variant}} -D CMAKE_INSTALL_PREFIX=./install
         env:
           DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_TEAM_ID }}
+          CCACHE_LOGFILE: ccache.log
 
 
       - name: Run build
         run: cmake --build build -j6 ${{ contains(inputs.name, 'MSVC') && format('--config {0}', inputs.variant) ||'' }}
-
-      - name: Upload compile_commands.json for clang
-        if: inputs.codecov
-        uses: actions/upload-artifact@v4
-        with:
-          name: compile_commands
-          path: build/compile_commands.json
+        env:
+          CCACHE_LOGFILE: ccache.log
 
       - name: Upload compile_commands.json on failure
         if: failure()
@@ -272,30 +270,29 @@ jobs:
             build/*.exe
             build/*.tar.gz
           retention-days: 1
+
       - name: Analyze codecov
         if: inputs.codecov
         shell: bash
-        run: |
-          ls -lah
-          python3 scripts/llvm-cov-helper.py build/output
-          ls -lah
-          ls -lah coverage-html
+        run: python3 scripts/llvm-cov-helper.py build/output && ls -lah
+      - name: SonarQube Scan
+        if: inputs.codecov
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            --define sonar.cfamily.compile-commands=build/compile_commands.json
+            --define sonar.cfamily.llvm-cov.reportPath=coverage.lcov
+
 
       - name: Upload codecov
-        if: ${{ inputs.codecov }}
+        if: inputs.codecov
         uses: actions/upload-artifact@v4
         with:
           name: llvm-codecov
-          path: |
-            coverage.profdata
-            coverage.lcov
-            coverage-html
+          path: coverage-html
           retention-days: 1
-
-
-      - name: Analyze buildtime for Linux-Clang
-        if: inputs.runs-on == 'ubuntu-latest' && inputs.compiler_c == 'clang' && !inputs.codecov
-        uses: ./.github/actions/analyze-buildtime
 
       - name: Perform CodeQL analysis
         if: inputs.codeql && !env.ACT
