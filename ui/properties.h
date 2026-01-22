@@ -47,11 +47,11 @@ public:
     quint16 inputNo() const { return _inputNo; }
     quint16 outputNo() const { return _outputNo; }
 
-    void setName(const QString v) { _name = v; }
-    void setImageSource(const QString v) { _imageSrc = v; }
-    void setType(const int v) { _type = static_cast<DiagramRole>(v); }
-    void setInputNo(const quint16 v) { _inputNo = v; }
-    void setOutputNo(const quint16 v) { _outputNo = v; }
+    void setName(const QString v);
+    void setImageSource(const QString v);
+    void setType(const int v);
+    void setInputNo(const quint16 v);
+    void setOutputNo(const quint16 v);
 
 signals:
     void typeChanged();
@@ -82,11 +82,17 @@ class DiagramPropertyModel : public QAbstractListModel
 {
     Q_OBJECT
     QML_ELEMENT
+    Q_PROPERTY(DiagramProperty *currentDiagram READ currentDiagram WRITE setCurrentDiagram NOTIFY
+                   diagramChanged)
 
     QList<DiagramProperty *> _properties;
+    DiagramProperty *_currentProperty{nullptr};
 
 public:
     explicit DiagramPropertyModel(QObject *parent = nullptr);
+
+    DiagramProperty *currentDiagram() const;
+    void setCurrentDiagram(DiagramProperty *v);
 
     Q_INVOKABLE DiagramProperty *createDiagram();
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -106,7 +112,8 @@ public:
     //bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
 
 signals:
-    void newDiagramChanged();
+    void newDiagram();
+    void diagramChanged();
 
 private:
 };

@@ -186,6 +186,9 @@ Item {
 
             onClicked: mouse => {
 
+                //  Set this diagram to current
+                dataModel.currentDiagram = root.model;
+
                 //  Rotate entire object, including end points
                 if (mouse.modifiers & Qt.ShiftModifier) {
                     wrapper.rotateCounterClockwise();

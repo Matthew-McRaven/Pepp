@@ -7,6 +7,46 @@ DiagramProperty::DiagramProperty(QObject *parent)
     , _id{++_counter}
 {}
 
+void DiagramProperty::setName(const QString v)
+{
+    if (_name != v) {
+        _name = v;
+        emit nameChanged();
+    }
+}
+
+void DiagramProperty::setImageSource(const QString v)
+{
+    if (_imageSrc != v) {
+        _imageSrc = v;
+        emit imageChanged();
+    }
+}
+
+void DiagramProperty::setType(const int v)
+{
+    if (_type != static_cast<DiagramRole>(v)) {
+        _type = static_cast<DiagramRole>(v);
+        emit typeChanged();
+    }
+}
+
+void DiagramProperty::setInputNo(const quint16 v)
+{
+    if (_inputNo != v) {
+        _inputNo = v;
+        emit inputChanged();
+    }
+}
+
+void DiagramProperty::setOutputNo(const quint16 v)
+{
+    if (_outputNo != v) {
+        _outputNo = v;
+        emit outputChanged();
+    }
+}
+
 DiagramPropertyModel::DiagramPropertyModel(QObject *parent)
     : QAbstractListModel(parent)
 {}
@@ -14,15 +54,28 @@ DiagramPropertyModel::DiagramPropertyModel(QObject *parent)
 DiagramProperty *DiagramPropertyModel::createDiagram()
 {
     //  Create item with model as parent for lifetime management
-    auto *item = new DiagramProperty(this);
+    _currentProperty = new DiagramProperty(this);
 
     //beginInsertRows(QModelIndex{}, _properties.count() + 1, _properties.count() + 1);
-    _properties.append(item);
+    _properties.append(_currentProperty);
     //endInsertRows();
 
-    emit newDiagramChanged();
+    emit newDiagram();
+    emit diagramChanged();
 
-    return item;
+    return _currentProperty;
+}
+
+DiagramProperty *DiagramPropertyModel::currentDiagram() const
+{
+    return _currentProperty;
+}
+void DiagramPropertyModel::setCurrentDiagram(DiagramProperty *v)
+{
+    if (_currentProperty != v) {
+        _currentProperty = v;
+        emit diagramChanged();
+    }
 }
 
 int DiagramPropertyModel::rowCount(const QModelIndex &parent) const

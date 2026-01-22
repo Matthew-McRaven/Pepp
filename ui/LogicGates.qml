@@ -94,7 +94,7 @@ Rectangle {
         anchors.right: parent.right
         z: 2
 
-        //diagramModel: DiagramProperty //canvas.diagram2.model
+        diagramModel: diagramModel.currentDiagram
         model: filterModel
     }
 
@@ -172,11 +172,10 @@ Rectangle {
                     Component.onCompleted: {
                         model.name = "AND Gate"
                         model.imageSource = "qrc:/and"
-                        refresh(); // A hack, see Diagram.qml function for details
                     }
                     x: 100
                     y: 100
-                    //z: 1
+                    z: 1
                 }
 
                 Diagram {
@@ -185,13 +184,12 @@ Rectangle {
                     Component.onCompleted: {
                         model.name = "OR Gate";
                         model.imageSource = "qrc:/or";
-                        refresh(); // A hack, see Diagram.qml function for details
                         props.diagramModel = model;
                     }
 
                     x: 200
                     y: 200
-                    //z: 1
+                    z: 1
                 }
 
                 Line {
@@ -238,7 +236,7 @@ Rectangle {
 
                         //  Move object to final spot
                         Move.moveObjectTo(diagram, event.x, event.y);
-                        diagram.refresh(); // A hack, see Diagram.qml function for details
+                        props.diagramModel = diagram.model;
 
                         //console.log( "onClick1 diagram.x", diagram.x, "diagram.y", diagram.y, "canvas.x", canvas.x, "canvas.y", canvas.y);
                         //console.log( "onClick2 x", event.x, "y", event.y, "stamp.x",stamp.x, "stamp.y", stamp.y);
