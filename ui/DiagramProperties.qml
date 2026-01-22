@@ -21,7 +21,7 @@ Pane {
             id: gateType
             model: root.model
             textRole: "name"
-            valueRole: "key"
+            valueRole: "name"
             currentValue: root.diagramModel.name === null ? "" : root.diagramModel.name
 
             /*Component.onCompleted: {
