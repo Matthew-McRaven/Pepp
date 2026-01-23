@@ -142,35 +142,12 @@ RUN --mount=type=tmpfs,target=/mold,size=2G \
     # No need to clean up, all temp data should be in tmpfs
 LABEL description="A GCC build container using Qt $QT_VERSION, and Mold $MOLD_VERSION."
 
-
-# LLVM-install script inspired by: https://github.com/teeks99/clang-ubuntu-docker
-#MIT License
-#
-#Copyright (c) 2018 Tom Kent
-#
-#Permission is hereby granted, free of charge, to any person obtaining a copy
-#of this software and associated documentation files (the "Software"), to deal
-#in the Software without restriction, including without limitation the rights
-#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#copies of the Software, and to permit persons to whom the Software is
-#furnished to do so, subject to the following conditions:
-#
-#The above copyright notice and this permission notice shall be included in all
-#copies or substantial portions of the Software.
-#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#SOFTWARE.
 FROM output-gcc AS output-clang
-ARG LLVM_VERSION="17"
-COPY llvm.list /etc/apt/sources.list.d/
-COPY llvm-snapshot.gpg.key.gpg /etc/apt/trusted.gpg.d/
+ARG LLVM_VERSION="20"
 RUN apt update && apt install  --no-install-recommends -y \
     ca-certificates clang-$LLVM_VER clang-tools-$LLVM_VERSION clang-format-$LLVM_VERSION \
-    libfuzzer-${LLVM_VERSION}-dev lld-$LLVM_VERSION \
+    libfuzzer-${LLVM_VERSION}-dev lld-$LLVM_VERSION llvm-$LLVM_VERSION \
+    libclang-rt-$LLVM_VERSION-dev \
     && ln -s /usr/bin/clang++-$LLVM_VERSION /usr/bin/clang++ \
     && ln -s /usr/bin/clang-$LLVM_VERSION /usr/bin/clang \
     && rm -rf /var/lib/apt/lists/*

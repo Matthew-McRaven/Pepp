@@ -1,14 +1,29 @@
-import os
+import os, sys, shutil
 import stat
-import sys
+import re
 
 from pathlib import Path
 
-profraws = [str(profraw.absolute()) for profraw in Path('build').rglob('*.profraw')]
+profraws = [str(profraw.absolute()) for profraw in Path('profraw').rglob('*.profraw')]
 
 print(sys.argv)
 print(profraws)
-os.system(f'llvm-profdata-14 merge {" ".join(profraws)} --output coverage.profdata')
+
+def llvm(name: str) -> str:
+    """
+    Return the best available LLVM tool on PATH, preferring version-suffixed
+    binaries (llvm-profdata-18, -17, ...) and falling back to unversioned.
+    """
+    for v in range(25, 9, -1):  # adjust upper bound if you like
+        p = shutil.which(f"llvm-{name}-{v}")
+        if p:
+            return p
+    p = shutil.which(f"llvm-{name}")
+    if p:
+        return p
+    raise FileNotFoundError(f"llvm-{name} not found on PATH (tried [llvm-{name}-10 , llvm-{name}-25] and llvm-{name})")
+
+os.system(f'{llvm("profdata")} merge --sparse {" ".join(profraws)} --output coverage.profdata')
 
 executable = stat.S_IEXEC | stat.S_IXUSR
 
@@ -58,7 +73,10 @@ def walk(root, dirs, files):
 for root, dirs, files in os.walk(sys.argv[1]):
     walk(root, dirs, files)
 
-regex = "\"(catch)|(elfio)|(ngraph)|(magic_enum)|(fmt)|(outcome)|(cereal)|(.*/test)\""
+glob = "(catch)|(elfio)|(fmt)|(.*/test)|(3rd)|(build)|(spd)|(lexilla)|(bin/ide)|(bin/term)"
+
+tests = f'{" --object ".join(tests)}'
+print(tests)
 os.system(
-    f'llvm-cov-14 export --ignore-filename-regex={regex} --instr-profile coverage.profdata --format=lcov {" --object ".join(tests)}> coverage.lcov')
-os.system("genhtml -o \"coverage\" coverage.lcov")
+    f'{llvm("cov")} export --ignore-filename-regex="{glob}" --instr-profile coverage.profdata --format=lcov {tests}> coverage.lcov')
+os.system(f'{llvm("cov")} show  --ignore-filename-regex="{glob}" --instr-profile coverage.profdata {tests} --format=html --output-dir coverage-html')

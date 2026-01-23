@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/matthew-mcraven/pepp/image-utils:v0.17.0
+      image: ghcr.io/matthew-mcraven/pepp/image-utils:v0.17.1
     steps:
       - uses: actions/checkout@v4
         # LFS defaults to disabled, but accidental LFS bandwidth would be expensive.
@@ -104,7 +104,7 @@ jobs:
     name: Build RISC-V samples
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/matthew-mcraven/pepp/gcc-riscv:v0.17.0
+      image: ghcr.io/matthew-mcraven/pepp/gcc-riscv:v0.17.1
     steps:
       - uses: actions/checkout@v4
         # LFS defaults to disabled, but accidental LFS bandwidth would be expensive.
@@ -126,7 +126,7 @@ jobs:
     name: Build pypepp wheels ${{ matrix.name }}
     uses: ./.github/workflows/build_py_wheel.yml
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-15-intel, macos-latest]
         python_version: [3.12]
@@ -147,15 +147,16 @@ jobs:
     needs: [ branch_info, check_tag, create_icons, riscv_samples ]
     uses: ./.github/workflows/build.yml
     strategy:
-      fail-fast: false
+      fail-fast: true
       # If you want to update images, must replace *ALL* images in the matrix manually.
       # Trying to use `env` or inputs will fail in this context.
       matrix:
         config:
-          - { name: "Ubuntu 24.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", artifact_key: "artifact-linux"}
-          - { name: "Ubuntu 24.04; GCC + CodeQL", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", codeql: True, release_variant: 'debug'}
-          - { name: "Ubuntu 24.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.17.0",  compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja" }
-          - { name: "Ubuntu 24.04; EMSDK 4.1.07", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.17.0", cmake_generator: "Ninja", compiler_launcher: "ccache", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.10.1/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
+          - { name: "Ubuntu 24.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.1", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", artifact_key: "artifact-linux"}
+          - { name: "Ubuntu 24.04; GCC + CodeQL", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/gcc:v0.17.1", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", codeql: True, release_variant: 'debug'}
+          - { name: "Ubuntu 24.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.17.1",  compiler_launcher: "ccache", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja" }
+          - { name: "Ubuntu 24.04; Clang 17.0 + SonarQube", cache_name: 'ubuntu-clang-codecov', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.17.1",  compiler_launcher: "ccache", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja", cmake_xargs: '-D CODECOV=TRUE', codecov: True }
+          - { name: "Ubuntu 24.04; EMSDK 4.1.07", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.17.1", cmake_generator: "Ninja", compiler_launcher: "ccache", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.10.1/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
           # See: https://bugreports.qt.io/browse/QTBUG-118086
           - { name: "MacOS-15 ARM64", cache_name: 'macos-clang-arm', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-arm", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
           - { name: "MacOS-15 x86-64", cache_name: 'macos-clang-x86', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-x86", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
@@ -183,6 +184,7 @@ jobs:
       images_artifact: 'icons'
       artifact_key: ${{ matrix.config.artifact_key || ''}}
       sign_artifacts: ${{ needs.branch_info.outputs.build_release == 'true'}}
+      codecov: ${{ !!matrix.config.codecov }}
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_BUILD_CERTIFICATE_BASE64 }}
       MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
@@ -191,6 +193,7 @@ jobs:
       MAC_DEVELOPER_TEAM_ID: ${{ secrets.MAC_DEVELOPER_TEAM_ID }}
       MAC_APPLE_ID: ${{ secrets.MAC_APPLE_ID }}
       MAC_NOTARYTOOL_PASSWORD: ${{ secrets.MAC_NOTARYTOOL_PASSWORD }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   deploy_prod_pages:
     name: Trigger deployment to production github pages
@@ -242,6 +245,7 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test
         working-directory: ./test/web
+
   create_changelog:
     name: Create release changelog
     needs: [ branch_info ]
