@@ -9,9 +9,6 @@ import "move.js" as Move
 
 Item {
     id: root
-    //property string text: ""
-    //property string type: ""
-    //property alias file: image.source
     property bool horizontal: true
     property alias input: input
     property alias output: output
@@ -89,10 +86,10 @@ Item {
     //  When image is created dynamically, data is set to empty image.
     //  When image is updated in Javascript, the change image event is not picked
     //  up by the image control. Changing the image from blank to image forces redraw.
-    function refresh() {
+    /*function refresh() {
         image.source = "";
         image.source = root.model.imageSource
-    }
+    }*/
 
     DiagramPropertyModel {
         //  Contains model that manages each diagrams data
