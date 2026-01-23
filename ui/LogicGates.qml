@@ -16,7 +16,6 @@ Rectangle {
     Component.onCompleted: {
         //  Initialize first stamp
         buttonGroup.buttons[0].checked = true;
-        canvas.curIndex = 0;
         currentStamp(0);
     }
 
@@ -142,8 +141,7 @@ Rectangle {
 
                 onClicked: btn => {
                     currentStamp(btn.index);
-                    //canvas.curIndex = btn.index;
-                    console.log(btn.index);
+                    //console.log(btn.index);
                 }
             }
 
