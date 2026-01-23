@@ -80,3 +80,4 @@ print(tests)
 os.system(
     f'{llvm("cov")} export --ignore-filename-regex="{glob}" --instr-profile coverage.profdata --format=lcov {tests}> coverage.lcov')
 os.system(f'{llvm("cov")} show  --ignore-filename-regex="{glob}" --instr-profile coverage.profdata {tests} --format=html --output-dir coverage-html')
+os.system(f'{llvm("cov")} show  --show-branches=count --ignore-filename-regex="{glob}" --instr-profile coverage.profdata {tests} > coverage.txt')
