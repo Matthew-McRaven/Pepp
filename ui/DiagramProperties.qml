@@ -36,6 +36,7 @@ Pane {
                 text: "Input Number: "
             }
             SpinBox {
+                id: input
                 from: 1
                 to: 6
                 value: 2
@@ -45,6 +46,7 @@ Pane {
                 text: "Output Number: "
             }
             SpinBox {
+                id: output
                 from: 1
                 to: 3
                 value: 1
@@ -71,6 +73,8 @@ Pane {
                     root.diagramModel.name = item.name;
                     root.diagramModel.imageSource = item.file;
                     root.diagramModel.type = item.key;
+                    root.diagramModel.inputNo = input.value;
+                    root.diagramModel.outputNo = output.value;
                 }
             }
             Button {

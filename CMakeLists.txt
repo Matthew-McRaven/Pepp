@@ -33,6 +33,7 @@ qt_add_qml_module(CircuitDesign
         ui/properties.h
         ui/properties.cpp
     DEPENDENCIES QtQuick
+    QML_FILES ui/DiagramEndpoint.qml
 )
 
 # must include any subdirectories for classes that use QML_ELEMENT

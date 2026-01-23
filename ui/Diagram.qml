@@ -10,8 +10,6 @@ import "move.js" as Move
 Item {
     id: root
     property bool horizontal: true
-    property alias input: input
-    property alias output: output
     property point inputXY: inputPt()
     property point outputXY: outputPt()
 
@@ -82,15 +80,6 @@ Item {
         return Qt.point(x, y);
     }
 
-    //  A hack
-    //  When image is created dynamically, data is set to empty image.
-    //  When image is updated in Javascript, the change image event is not picked
-    //  up by the image control. Changing the image from blank to image forces redraw.
-    /*function refresh() {
-        image.source = "";
-        image.source = root.model.imageSource
-    }*/
-
     DiagramPropertyModel {
         //  Contains model that manages each diagrams data
         id: dataModel
@@ -136,23 +125,17 @@ Item {
         }
 
         //  Output indicator
-        Rectangle {
-            id: output
+        DiagramEndpoint {
             color: "aqua"
-            width: 5
-            height: 5
-
+            count: root.model.outputNo
             anchors.verticalCenter: image.verticalCenter
-            anchors.right: image.right
+            anchors.left: image.right
         }
 
         //  Input indicator
-        Rectangle {
-            id: input
+        DiagramEndpoint {
             color: "limegreen"
-            width: 5
-            height: 5
-
+            count: root.model.inputNo
             anchors.verticalCenter: image.verticalCenter
             anchors.left: image.left
         }
