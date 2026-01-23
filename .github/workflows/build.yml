@@ -274,7 +274,7 @@ jobs:
       - name: Analyze codecov
         if: inputs.codecov
         shell: bash
-        run: python3 scripts/llvm-cov-helper.py build/output && ls -lah
+        run: python3 scripts/llvm-cov-helper.py build/output && ls -lah && head -n 40 coverage.txt
       - name: SonarQube Scan
         if: inputs.codecov
         uses: SonarSource/sonarqube-scan-action@v6
@@ -282,15 +282,20 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            --define sonar.cfamily.compile-commands=build/compile_commands.json
-
+            -Dsonar.cfamily.compile-commands=build/compile_commands.json
+            -Dsonar.cfamily.llvm-cov.reportPath=coverage.txt
+            -X
 
       - name: Upload codecov
         if: inputs.codecov
         uses: actions/upload-artifact@v4
         with:
           name: llvm-codecov
-          path: coverage-html
+          path: |
+            coverage-html
+            coverage.txt
+            coverage.profdata
+            build/compile_commands.json
           retention-days: 1
 
       - name: Perform CodeQL analysis

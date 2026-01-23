@@ -48,6 +48,8 @@ def walk(root, dirs, files):
                 continue
             elif ".sh" in filename:
                 continue
+            elif ".o" in filename:
+                continue
             # Project re-organization caused more files to be detected by this script, so we must filter them out.
             elif ".py" in filename:
                 continue
@@ -77,7 +79,5 @@ glob = "(catch)|(elfio)|(fmt)|(.*/test)|(3rd)|(build)|(spd)|(lexilla)|(bin/ide)|
 
 tests = f'{" --object ".join(tests)}'
 print(tests)
-os.system(
-    f'{llvm("cov")} export --ignore-filename-regex="{glob}" --instr-profile coverage.profdata --format=lcov {tests}> coverage.lcov')
 os.system(f'{llvm("cov")} show  --ignore-filename-regex="{glob}" --instr-profile coverage.profdata {tests} --format=html --output-dir coverage-html')
 os.system(f'{llvm("cov")} show  --show-branches=count --ignore-filename-regex="{glob}" --instr-profile coverage.profdata {tests} > coverage.txt')
