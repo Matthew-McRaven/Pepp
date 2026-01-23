@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.VectorImage
+import QtQuick.Layouts
 
 import CircuitDesign 1.0
 import "move.js" as Move
@@ -10,60 +11,66 @@ import "move.js" as Move
 Rectangle {
     id: root
 
-    property real cellWidth: 128
+    property real cellWidth: 100
 
     ListModel {
         id: diagramModel
         ListElement {
-            key: "AND"
+            key: DiagramProperty.Invalid
+            shapeType: "Move"
+            name: "Move"
+            file: "qrc:/move"
+        }
+        ListElement {
+            key: DiagramProperty.ANDGate
             shapeType: "Diagram"
             name: "AND Gate"
             file: "qrc:/and"
         }
         ListElement {
-            key: "OR"
+            key: DiagramProperty.ORGate
             shapeType: "Diagram"
             name: "OR Gate"
             file: "qrc:/or"
         }
         ListElement {
-            key: "Inverter"
+            key: DiagramProperty.Inverter
             shapeType: "Diagram"
             name: "Inverter"
             file: "qrc:/inverter"
         }
         ListElement {
-            key: "NAND"
+            key: DiagramProperty.NANDGate
             shapeType: "Diagram"
             name: "NAND Gate"
             file: "qrc:/nand"
         }
         ListElement {
-            key: "NOR"
+            key: DiagramProperty.NORGate
             shapeType: "Diagram"
             name: "NOR Gate"
             file: "qrc:/nor"
         }
         ListElement {
-            key: "XOR"
+            key: DiagramProperty.XORGate
             shapeType: "Diagram"
             name: "XOR Gate"
             file: "qrc:/xor"
         }
         ListElement {
-            key: "Line"
+            key: DiagramProperty.Line
             shapeType: "line"
             name: "Line"
             file: "qrc:/line"
         }
         ListElement {
-            key: "Multiline"
+            key: DiagramProperty.MultiLine
             shapeType: "Line"
             name: "Multiline"
             file: "qrc:/multiline"
         }
         ListElement {
-            key: "Bus"
+            key: DiagramProperty.Bus
             shapeType: "line"
             name: "Bus"
             file: "qrc:/bus"
@@ -87,17 +94,6 @@ Rectangle {
         property string shapeType
     }
 
-    //  Temporary for testing
-    DiagramProperties {
-        id: props
-        anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        z: 2
-
-        diagramModel: diagramModel.currentDiagram
-        model: filterModel
-    }
-
     DiagramPropertyModel {
         id: dataModel
     }
@@ -106,40 +102,67 @@ Rectangle {
         anchors.fill: parent
         orientation: Qt.Horizontal
 
-        ButtonGroup {
-            buttons: source.children.filter(child => child !== rep)
+        //  Diagram buttons
+        ColumnLayout {
 
-            onClicked: btn => {
-                canvas.curIndex = btn.index;
-                console.log(btn.index);
-            }
-        }
+            SplitView.preferredWidth: root.cellWidth * 2 + source.columnSpacing
+            SplitView.maximumWidth: SplitView.preferredWidth
+            SplitView.minimumWidth: SplitView.preferredWidth
 
-        Column {
-            id: source
-            SplitView.preferredWidth: root.cellWidth
-            SplitView.maximumWidth: root.cellWidth * 2
-            SplitView.minimumWidth: root.cellWidth
+            ButtonGroup {
+                buttons: source.children.filter(child => child !== rep)
 
-            Repeater {
-                id: rep
-                model: diagramModel
-                delegate: Button {
-                    id: btn
-                    required property string name
-                    required property string file
-                    required property int index
-
-                    implicitWidth: root.cellWidth
-                    checkable: true
-                    display: AbstractButton.TextUnderIcon
-
-                    text: btn.name
-                    icon.source: btn.file
-                    icon.width: root.cellWidth * .75
-                    icon.height: root.cellWidth * .4
+                onClicked: btn => {
+                    canvas.curIndex = btn.index;
+                    console.log(btn.index);
                 }
             }
+
+            GridLayout {
+                id: source
+                columns: 2
+                columnSpacing: 2
+                rowSpacing: 2
+
+                Layout.alignment: Qt.AlignTop
+                Layout.fillWidth: true
+
+                Repeater {
+                    id: rep
+                    model: diagramModel
+                    delegate: Button {
+                        id: btn
+                        required property string name
+                        required property string file
+                        required property int index
+
+                        implicitWidth: root.cellWidth
+                        implicitHeight: root.cellWidth * .6
+                        checkable: true
+                        display: AbstractButton.TextUnderIcon
+
+                        text: btn.name
+                        icon.source: btn.file
+                        icon.width: btn.implicitWidth * .8
+                        icon.height: btn.implicitHeight * .7
+                    }
+                }
+            }   //  GridLayout
+
+            Item {  //  A spacer
+                Layout.fillHeight: true
+            }
+
+            DiagramProperties {
+                id: props
+                Layout.alignment: Qt.AlignBottom
+                Layout.fillWidth: true
+                //height: 100
+
+                diagramModel: diagramModel.currentDiagram
+                model: filterModel
+            }
+
         }
 
         //  Background used as canvas for object placement
@@ -231,7 +254,7 @@ Rectangle {
 
                         diagram.model.name = item.name;
                         diagram.model.imageSource = item.file;
-                        diagram.model.type = parent.curIndex; //item.key;
+                        diagram.model.type = item.key;
 
 
                         //  Move object to final spot

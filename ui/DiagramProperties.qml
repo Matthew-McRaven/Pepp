@@ -9,46 +9,52 @@ Pane {
 
     //  List of available gates
     required property var model
+    Column {
+        spacing: 2
+        bottomPadding: 0
 
-    //enabled: diagram === null
-    Grid {
-        columns: 2
-        spacing: 5
-        Label {
-            text: "Gate Type: "
-        }
-        ComboBox {
-            id: gateType
-            model: root.model
-            textRole: "name"
-            valueRole: "name"
-            currentValue: root.diagramModel.name === null ? "" : root.diagramModel.name
+        Grid {
+            columns: 2
+            spacing: 5
+            Label {
+                text: "Gate Type: "
+            }
+            ComboBox {
+                id: gateType
+                model: root.model
+                textRole: "name"
+                valueRole: "name"
+                currentValue: root.diagramModel.name === null ? "" : root.diagramModel.name
 
-            /*Component.onCompleted: {
-                console.log("Diagram name: ", root.diagram.name);
-                console.log("Diagram type: ", root.diagram.type);
-            }*/
-        }
+                /*Component.onCompleted: {
+                    console.log("Diagram name: ", root.diagram.name);
+                    console.log("Diagram type: ", root.diagram.type);
+                }*/
+            }
 
-        Label {
-            text: "Input Number: "
-        }
-        SpinBox {
-            from: 1
-            to: 6
-            value: 2
-        }
+            Label {
+                text: "Input Number: "
+            }
+            SpinBox {
+                from: 1
+                to: 6
+                value: 2
+            }
 
-        Label {
-            text: "Output Number: "
-        }
-        SpinBox {
-            from: 1
-            to: 3
-            value: 1
-        }
+            Label {
+                text: "Output Number: "
+            }
+            SpinBox {
+                from: 1
+                to: 3
+                value: 1
+            }
+        }   //  Grid
         Row {
+            //height: saveBtn.implicitHeight
+            //width: root.width
             Button {
+                id: saveBtn
                 text: "Save"
                 width: 75
 
@@ -59,10 +65,12 @@ Pane {
                     }
 
                     //  Update model with new data
-                    var item = root.model.sourceModel.get(gateType.currentIndex);
+                    //  Extra item in model versus filter model. Find fix instead of
+                    //  hard coding value.
+                    var item = root.model.sourceModel.get(gateType.currentIndex + 1);
                     root.diagramModel.name = item.name;
                     root.diagramModel.imageSource = item.file;
-                    root.diagramModel.type = gateType.currentIndex;
+                    root.diagramModel.type = item.key;
                 }
             }
             Button {
@@ -79,6 +87,6 @@ Pane {
                     //gateType.currentText = root.diagramModel.name;
                 }
             }
-        }
-    }
-}
+        }   //  Row
+    }   //  Column
+}   //  Panle

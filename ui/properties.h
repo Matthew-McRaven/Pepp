@@ -19,19 +19,19 @@ class DiagramProperty : public QObject
 public:
     enum class DiagramRole : quint32 {
         //  Gate enums
-        ANDGateRole = 0,
-        ORGateRole,
-        InverterGateRole,
-        NANDGateRole,
-        NORGateRole,
-        XORGateRole,
-        //XNORGateRole,
+        ANDGate = 0,
+        ORGate,
+        Inverter,
+        NANDGate,
+        NORGate,
+        XORGate,
+        //XNORGate,
         DiagramTotal, // Must be last diagram
 
         //  Line enums
-        LineRole,
-        MultiLineRole,
-        BusRole,
+        Line,
+        MultiLine,
+        Bus,
 
         Total, // Must be last valid role
         //  Indicates invalid state from parsing input files
