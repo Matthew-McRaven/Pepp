@@ -13,6 +13,12 @@ Rectangle {
 
     property real cellWidth: 100
 
+    Component.onCompleted: {
+        //  Initialize first stamp
+        buttonGroup.buttons[0].checked = true;
+        canvas.curIndex = 0;
+    }
+
     ListModel {
         id: diagramModel
         ListElement {
@@ -110,6 +116,7 @@ Rectangle {
             SplitView.minimumWidth: SplitView.preferredWidth
 
             ButtonGroup {
+                id: buttonGroup
                 buttons: source.children.filter(child => child !== rep)
 
                 onClicked: btn => {
