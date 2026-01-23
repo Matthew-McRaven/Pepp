@@ -17,6 +17,27 @@ Rectangle {
         //  Initialize first stamp
         buttonGroup.buttons[0].checked = true;
         canvas.curIndex = 0;
+        currentStamp(0);
+    }
+
+    function currentStamp(index){
+        canvas.curStamp = diagramModel.get(index);
+
+        if(canvas.curStamp.name === "Move")
+        {
+            canvas.curIndex = -1;
+            canvas.curStamp = null;
+        }
+        else if(canvas.curStamp.shapeType === "Diagram")
+        {
+            canvas.curIndex = index
+        }
+        else
+        {
+            //  Disable stamp for lines
+            //canvas.curStamp = null;
+        }
+
     }
 
     ListModel {
@@ -120,7 +141,8 @@ Rectangle {
                 buttons: source.children.filter(child => child !== rep)
 
                 onClicked: btn => {
-                    canvas.curIndex = btn.index;
+                    currentStamp(btn.index);
+                    //canvas.curIndex = btn.index;
                     console.log(btn.index);
                 }
             }
@@ -190,6 +212,7 @@ Rectangle {
                 anchors.fill: parent
 
                 property int curIndex: -1
+                property var curStamp: null
                 property Diagram fromObject: null
                 property Diagram toObject: null
 
@@ -239,7 +262,7 @@ Rectangle {
                     }
                     width: Move.blockWidth
                     height: Move.blockHeight
-                    visible: canvas.curIndex != -1
+                    visible: canvas.curStamp != null
                 }
 
                 MouseArea {
@@ -248,20 +271,19 @@ Rectangle {
                     hoverEnabled: true
                     onClicked: event => {
                         //  No template selected. Just return
-                        if (canvas.curIndex === -1) {
+                        if (canvas.curStamp === null) {
                             return;
                         }
 
-                        //  Find data
-                        var item = diagramModel.get(parent.curIndex);
-                        console.log("Index", parent.curIndex, "name", item.name, "image", item.file);
+                        //  Find current stamp
+                        currentStamp(canvas.curIndex);
 
                         //  Create diagram
                         var diagram = Move.createBlock(canvas);
 
-                        diagram.model.name = item.name;
-                        diagram.model.imageSource = item.file;
-                        diagram.model.type = item.key;
+                        diagram.model.name = canvas.curStamp.name;
+                        diagram.model.imageSource = canvas.curStamp.file;
+                        diagram.model.type = canvas.curStamp.key;
 
 
                         //  Move object to final spot
