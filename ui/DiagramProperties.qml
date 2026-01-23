@@ -63,7 +63,6 @@ Pane {
                     root.diagramModel.name = item.name;
                     root.diagramModel.imageSource = item.file;
                     root.diagramModel.type = gateType.currentIndex;
-                    root.diagramModel.refresh();
                 }
             }
             Button {
