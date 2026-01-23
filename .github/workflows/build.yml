@@ -283,7 +283,6 @@ jobs:
         with:
           args: >
             --define sonar.cfamily.compile-commands=build/compile_commands.json
-            --define sonar.cfamily.llvm-cov.reportPath=coverage.txt
 
 
       - name: Upload codecov
