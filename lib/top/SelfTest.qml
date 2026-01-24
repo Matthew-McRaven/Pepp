@@ -103,6 +103,7 @@ Dialog {
         delegate: Text {
             text: model.display
             color: palette.text
+            clip: true
         }
     }
 }
