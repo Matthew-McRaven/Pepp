@@ -34,10 +34,6 @@ Column {
         ListElement {
             display: "Help"
         }
-        ListElement {
-            display: "Self Test"
-            debugComponent: true
-        }
     }
     function mapModeToImage(mode) {
         switch (mode) {
