@@ -89,7 +89,7 @@ Item {
         id: wrapper
 
         anchors.fill: root
-        color: "white"
+        color: "transparent" //"white"
         border.color: ma.drag.active || ma.containsMouse ? "blue" : "transparent"
         border.width: 1
         transformOrigin: Item.Center

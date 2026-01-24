@@ -40,7 +40,7 @@
      id="layer1">
     <path
        id="rect2"
-       style="fill:none;stroke:#000000;stroke-width:0.265"
+       style="fill:white;stroke:#000000;stroke-width:0.265"
        d="M 0.5 10 L 45 10 L 45 7.5 L 49.5 12.5 L 45 17.5 L 45 15 L .5 15 z " />
   </g>
 </svg>

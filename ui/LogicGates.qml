@@ -170,6 +170,7 @@ Rectangle {
 
                         text: btn.name
                         icon.source: btn.file
+                        icon.color: "transparent"
                         icon.width: btn.implicitWidth * .8
                         icon.height: btn.implicitHeight * .7
                     }
