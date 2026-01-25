@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQml.Models
 import edu.pepp 1.0
 
 Dialog {
@@ -61,10 +62,13 @@ Dialog {
         Button {
             id: runVisble
             text: qsTr("Run enabled")
+            onClicked: selfTestModel.runSelectedTests()
         }
         Button {
             id: runAll
             text: qsTr("Run all")
+            onClicked: selfTestModel.runAllTests()
+
         }
         Label {
             Layout.columnSpan: 2
@@ -90,6 +94,29 @@ Dialog {
             color: palette.text
         }
     }
+    DelegateChooser{
+        id: chooser
+        role: "type"
+        DelegateChoice {
+            roleValue: "text";
+            Text {
+                text: model.display
+                color: palette.text
+                clip: true
+            }
+        }
+        DelegateChoice {
+            roleValue: "check";
+            CheckBox {
+                checked: model.display
+                clip: true
+                onToggled: {
+                    selfTestModel.setData(selfTestModel.index(model.row, 1), checked, "display")
+                }
+            }
+        }
+    }
+
     TableView {
         id: tableView
         clip: true
@@ -100,10 +127,7 @@ Dialog {
             right: parent.right
         }
         model: selfTestModel
-        delegate: Text {
-            text: model.display
-            color: palette.text
-            clip: true
-        }
+        delegate: chooser
+
     }
 }
