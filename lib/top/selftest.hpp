@@ -11,6 +11,7 @@ class SelfTest : public QAbstractTableModel {
   QML_NAMED_ELEMENT(SelfTestModel)
   Q_PROPERTY(int selectedTests READ selectedTests NOTIFY selectedTestsChanged)
   Q_PROPERTY(int visibleTests READ visibleTests NOTIFY visibleTestsChanged)
+  Q_PROPERTY(bool running READ running NOTIFY runningChanged)
 
 public:
   explicit SelfTest(QObject *parent = nullptr);
@@ -25,15 +26,19 @@ public:
 
   inline int selectedTests() const { return _selected; };
   inline int visibleTests() const { return 72; };
-
+  inline bool running() const { return _running; };
   Q_INVOKABLE void runSelectedTests();
   Q_INVOKABLE void runAllTests();
+
 signals:
   void selectedTestsChanged();
   void visibleTestsChanged();
+  void runningChanged();
 
 private:
+  bool _running = false;
+  int _selected = 0;
   // Can't use unique ptr, because Qt MOC explodes w/o definition of TestCase.
   std::map<int, TestCase *> _tests;
-  int _selected = 0;
+  void runFiltered(std::function<bool(const TestCase &)> filter);
 };

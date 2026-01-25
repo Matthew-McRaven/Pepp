@@ -29,10 +29,12 @@ Dialog {
         Button {
             id: enableVisble
             text: qsTr("Enable Visible")
+            enabled: !selfTestModel.running
         }
         Button {
             id: enableAll
             text: qsTr("Enable all")
+            enabled: !selfTestModel.running
         }
         Label {
             text: "Test filter"
@@ -42,14 +44,17 @@ Dialog {
             id: filter
             placeholderText: qsTr("*")
             Layout.fillWidth: true
+            enabled: !selfTestModel.running
         }
         Button {
             id: disableVisble
             text: qsTr("Disable Visible")
+            enabled: !selfTestModel.running
         }
         Button {
             id: disableAll
             text: qsTr("Disable all")
+            enabled: !selfTestModel.running
         }
         Label {
             text: "Working Directiory"
@@ -58,16 +63,19 @@ Dialog {
             id: cwd
             placeholderText: qsTr("/path/to/working/directory")
             Layout.fillWidth: true
+            enabled: !selfTestModel.running
         }
         Button {
             id: runVisble
             text: qsTr("Run enabled")
             onClicked: selfTestModel.runSelectedTests()
+            enabled: !selfTestModel.running
         }
         Button {
             id: runAll
             text: qsTr("Run all")
             onClicked: selfTestModel.runAllTests()
+            enabled: !selfTestModel.running
 
         }
         Label {
