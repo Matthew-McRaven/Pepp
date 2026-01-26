@@ -38,6 +38,7 @@ public:
   inline bool running() const { return _running; };
   Q_INVOKABLE void runSelectedTests();
   Q_INVOKABLE void runAllTests();
+  Q_INVOKABLE void stop();
 
 signals:
   void selectedTestsChanged();

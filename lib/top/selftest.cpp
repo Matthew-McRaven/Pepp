@@ -120,6 +120,12 @@ void SelfTest::runAllTests() {
   runFiltered([](const TestCase &) { return true; });
 }
 
+void SelfTest::stop() {
+#if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
+  _fut.cancel();
+#endif
+}
+
 void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
   if (_running) return;
   _running = true;
@@ -162,6 +168,10 @@ void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
     this->_running = false;
     emit this->runningChanged();
     this->_fut = QFuture<void>{};
+  });
+  _fut.onCanceled([this]() {
+    this->_running = false;
+    emit this->runningChanged();
   });
 #else
   _running = false;

@@ -76,17 +76,15 @@ Dialog {
             Layout.fillWidth: true
             enabled: !selfTestModel.running
         }
-        DisableableButton {
+        Button{
             id: runVisble
-            text: qsTr("Run enabled")
-            onClicked: selfTestModel.runSelectedTests()
-            enabled: !selfTestModel.running
+            text: selfTestModel.running ? qsTr("Stop tests") : qsTr("Run enabled")
+            onClicked: selfTestModel.running ? selfTestModel.stop() : selfTestModel.runSelectedTests()
         }
-        DisableableButton {
+        Button {
             id: runAll
-            text: qsTr("Run all")
-            onClicked: selfTestModel.runAllTests()
-            enabled: !selfTestModel.running
+            text: selfTestModel.running ? qsTr("Stop tests") : qsTr("Run all")
+            onClicked: selfTestModel.running ? selfTestModel.stop() : selfTestModel.runAllTests()
         }
         Label {
             Layout.columnSpan: 2
