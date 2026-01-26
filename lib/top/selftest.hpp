@@ -2,6 +2,9 @@
 
 #include <QAbstractListModel>
 #include <QtQmlIntegration>
+#if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
+#include <QFuture>
+#endif
 
 // TestCase brings in Catch.hpp
 // I DO NOT want that header to propogate elsewhere.
@@ -36,9 +39,12 @@ signals:
   void runningChanged();
 
 private:
+  void runFiltered(std::function<bool(const TestCase &)> filter);
   bool _running = false;
   int _selected = 0;
   // Can't use unique ptr, because Qt MOC explodes w/o definition of TestCase.
   std::map<int, TestCase *> _tests;
-  void runFiltered(std::function<bool(const TestCase &)> filter);
+#if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
+  QFuture<void> _fut;
+#endif
 };

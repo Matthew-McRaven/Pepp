@@ -1,10 +1,10 @@
 #include "selftest.hpp"
 #include <catch/catch.hpp>
+#include <chrono>
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
 #include <QFuture>
 #include <QPromise>
 #include <QtConcurrentRun>
-#include <chrono>
 #endif
 
 // Minimal IStream that discards all output
@@ -45,6 +45,12 @@ SelfTest::SelfTest(QObject *parent) : QAbstractTableModel(parent) {
 }
 
 SelfTest::~SelfTest() {
+#if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
+  if (_fut.isRunning()) {
+    _fut.cancel();
+    _fut.waitForFinished();
+  }
+#endif
   for (auto &[k, v] : _tests) delete v;
 }
 
@@ -128,7 +134,7 @@ void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
   _running = true;
   emit runningChanged();
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
-  QFuture<void> future = QtConcurrent::run([filter, this](QPromise<void> &promise) {
+  _fut = QtConcurrent::run([filter, this](QPromise<void> &promise) {
     promise.setProgressRange(0, _tests.size());
 #endif
     const auto &hub = Catch::getRegistryHub();
@@ -161,9 +167,10 @@ void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
     }
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
   });
-  future.then([this]() {
+  _fut.then([this]() {
     this->_running = false;
     emit this->runningChanged();
+    this->_fut = QFuture<void>{};
   });
 #else
   _running = false;
