@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQml.Models
+import QtQuick.Effects
 import edu.pepp 1.0
 
 Dialog {
@@ -19,6 +20,16 @@ Dialog {
     SelfTestModel {
         id: selfTestModel
     }
+    component DisableableButton: Button {
+        id: control
+        enabled: !selfTestModel.running
+        layer.enabled: !enabled
+        layer.effect: MultiEffect {
+            colorization: 0.75
+            colorizationColor: palette.button      // theme-derived tint color
+        }
+    }
+
     GridLayout {
         id: buttons
         anchors.left: parent.left
@@ -26,12 +37,12 @@ Dialog {
         anchors.top: parent.top
         anchors.bottomMargin: 10
         columns: 4
-        Button {
+        DisableableButton {
             id: enableVisble
             text: qsTr("Enable Visible")
             enabled: !selfTestModel.running
         }
-        Button {
+        DisableableButton {
             id: enableAll
             text: qsTr("Enable all")
             enabled: !selfTestModel.running
@@ -46,12 +57,12 @@ Dialog {
             Layout.fillWidth: true
             enabled: !selfTestModel.running
         }
-        Button {
+        DisableableButton {
             id: disableVisble
             text: qsTr("Disable Visible")
             enabled: !selfTestModel.running
         }
-        Button {
+        DisableableButton {
             id: disableAll
             text: qsTr("Disable all")
             enabled: !selfTestModel.running
@@ -65,18 +76,17 @@ Dialog {
             Layout.fillWidth: true
             enabled: !selfTestModel.running
         }
-        Button {
+        DisableableButton {
             id: runVisble
             text: qsTr("Run enabled")
             onClicked: selfTestModel.runSelectedTests()
             enabled: !selfTestModel.running
         }
-        Button {
+        DisableableButton {
             id: runAll
             text: qsTr("Run all")
             onClicked: selfTestModel.runAllTests()
             enabled: !selfTestModel.running
-
         }
         Label {
             Layout.columnSpan: 2
@@ -102,11 +112,11 @@ Dialog {
             color: palette.text
         }
     }
-    DelegateChooser{
+    DelegateChooser {
         id: chooser
         role: "type"
         DelegateChoice {
-            roleValue: "text";
+            roleValue: "text"
             Text {
                 text: model.display
                 color: palette.text
@@ -114,12 +124,12 @@ Dialog {
             }
         }
         DelegateChoice {
-            roleValue: "check";
+            roleValue: "check"
             CheckBox {
                 checked: model.display
                 clip: true
                 onToggled: {
-                    selfTestModel.setData(selfTestModel.index(model.row, 1), checked, "display")
+                    selfTestModel.setData(selfTestModel.index(model.row, 1), checked, "display");
                 }
             }
         }
@@ -136,6 +146,5 @@ Dialog {
         }
         model: selfTestModel
         delegate: chooser
-
     }
 }
