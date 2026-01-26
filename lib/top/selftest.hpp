@@ -2,13 +2,19 @@
 
 #include <QAbstractListModel>
 #include <QtQmlIntegration>
+#include <chrono>
+#include <memory>
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
 #include <QFuture>
 #endif
 
-// TestCase brings in Catch.hpp
-// I DO NOT want that header to propogate elsewhere.
-struct TestCase;
+struct TestCase {
+  bool enabled;
+  QString tags;
+  uint64_t failed = 0, total = 0;
+  std::chrono::duration<double, std::milli> duration;
+};
+
 class SelfTest : public QAbstractTableModel {
   Q_OBJECT
   QML_NAMED_ELEMENT(SelfTestModel)
@@ -42,8 +48,7 @@ private:
   void runFiltered(std::function<bool(const TestCase &)> filter);
   bool _running = false;
   int _selected = 0;
-  // Can't use unique ptr, because Qt MOC explodes w/o definition of TestCase.
-  std::map<int, TestCase *> _tests;
+  std::map<int, std::unique_ptr<TestCase>> _tests;
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
   QFuture<void> _fut;
 #endif

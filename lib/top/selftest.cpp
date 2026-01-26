@@ -1,6 +1,5 @@
 #include "selftest.hpp"
 #include <catch/catch.hpp>
-#include <chrono>
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
 #include <QFuture>
 #include <QPromise>
@@ -25,13 +24,6 @@ static Catch::IEventListenerPtr makeReporter(Catch::IConfig const &cfg) {
   return Catch::getRegistryHub().getReporterRegistry().create("compact", std::move(rc));
 }
 
-struct TestCase {
-  bool enabled;
-  QStringList tags;
-  uint64_t failed = 0, total = 0;
-  std::chrono::duration<double, std::milli> duration;
-};
-
 SelfTest::SelfTest(QObject *parent) : QAbstractTableModel(parent) {
   const auto &hub = Catch::getRegistryHub();
   const auto count = hub.getTestCaseRegistry().getAllTests().size();
@@ -40,7 +32,7 @@ SelfTest::SelfTest(QObject *parent) : QAbstractTableModel(parent) {
     QStringList tags;
     for (const auto &tag : tcase.getTestCaseInfo().tags)
       tags.append(QString::fromStdString({tag.original.data(), tag.original.size()}));
-    _tests[i] = new TestCase{.enabled = false, .tags = tags};
+    _tests[i] = std::make_unique<TestCase>(std::move(TestCase{.enabled = false, .tags = tags.join(", ")}));
   }
 }
 
@@ -51,7 +43,6 @@ SelfTest::~SelfTest() {
     _fut.waitForFinished();
   }
 #endif
-  for (auto &[k, v] : _tests) delete v;
 }
 
 QVariant SelfTest::headerData(int section, Qt::Orientation, int role) const {
@@ -81,13 +72,13 @@ QVariant SelfTest::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return QVariant();
   const auto &hub = Catch::getRegistryHub();
   auto tc = hub.getTestCaseRegistry().getAllTests().at(index.row());
-  auto t = _tests.at(index.row());
+  auto &t = _tests.at(index.row());
   switch (role) {
   case Qt::DisplayRole:
     switch (index.column()) {
     case 0: return QString::fromStdString(tc.getTestCaseInfo().name);
     case 1: return _tests.at(index.row())->enabled ? Qt::CheckState::Checked : Qt::CheckState::Unchecked;
-    case 2: return _tests.at(index.row())->tags.join(", ");
+    case 2: return _tests.at(index.row())->tags;
     case 3: return t->duration.count() < 0.001 ? QString("n/a") : QString("%1 ms").arg(t->duration.count(), 0, 'f', 2);
     case 4: return QString("%1 failed").arg(t->failed);
     case 5: return QString("%1 total").arg(t->total);
@@ -148,7 +139,7 @@ void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
     auto reporter = makeReporter(cfg);
     Catch::RunContext ctx(&cfg, std::move(reporter));
     for (size_t it = 0; it < _tests.size(); it++) {
-      auto tc = _tests.at(it);
+      auto &tc = _tests.at(it);
       if (filter(*tc)) {
         auto t = hub.getTestCaseRegistry().getAllTests().at(it);
         auto t0 = std::chrono::steady_clock::now();
