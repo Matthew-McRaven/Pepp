@@ -46,11 +46,13 @@ Dialog {
             id: enableVisble
             text: qsTr("Enable Visible")
             enabled: !selfTestModel.running
+            onPressed: selfTestFilterModel.enableAll()
         }
         DisableableButton {
             id: enableAll
             text: qsTr("Enable all")
             enabled: !selfTestModel.running
+            onPressed: selfTestModel.enableAll()
         }
         Label {
             text: "Test filter"
@@ -66,11 +68,13 @@ Dialog {
             id: disableVisble
             text: qsTr("Disable Visible")
             enabled: !selfTestModel.running
+            onPressed: selfTestFilterModel.disableAll()
         }
         DisableableButton {
             id: disableAll
             text: qsTr("Disable all")
             enabled: !selfTestModel.running
+            onPressed: selfTestModel.disableAll()
         }
         Label {
             text: "Working Directiory"

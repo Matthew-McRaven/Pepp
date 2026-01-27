@@ -127,6 +127,22 @@ void SelfTest::stop() {
 #endif
 }
 
+void SelfTest::enableAll() {
+  beginResetModel();
+  for (auto &[idx, tc] : _tests) tc->enabled = true;
+  _selected = _tests.size();
+  emit selectedTestsChanged();
+  endResetModel();
+}
+
+void SelfTest::disableAll() {
+  beginResetModel();
+  for (auto &[idx, tc] : _tests) tc->enabled = false;
+  _selected = 0;
+  emit selectedTestsChanged();
+  endResetModel();
+}
+
 void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
   if (_running) return;
   _running = true, _progress = 0;
@@ -193,6 +209,24 @@ void SelfTestFilterModel::setRegex(QString re) {
   _re.setPattern(re);
   invalidateFilter();
   emit regexChanged();
+}
+
+void SelfTestFilterModel::enableAll() {
+  if (!sourceModel()) return;
+  beginResetModel();
+  for (int it = 0; it < rowCount(); it++) {
+    sourceModel()->setData(mapToSource(index(it, 1)), true, Qt::DisplayRole);
+  }
+  endResetModel();
+}
+
+void SelfTestFilterModel::disableAll() {
+  if (!sourceModel()) return;
+  beginResetModel();
+  for (int it = 0; it < rowCount(); it++) {
+    sourceModel()->setData(mapToSource(index(it, 1)), false, Qt::DisplayRole);
+  }
+  endResetModel();
 }
 
 bool SelfTestFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {

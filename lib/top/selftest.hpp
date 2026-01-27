@@ -40,6 +40,8 @@ public:
   Q_INVOKABLE void runSelectedTests();
   Q_INVOKABLE void runAllTests();
   Q_INVOKABLE void stop();
+  Q_INVOKABLE void enableAll();
+  Q_INVOKABLE void disableAll();
 
 signals:
   void progressChanged();
@@ -65,6 +67,8 @@ public:
   SelfTestFilterModel(QObject *parent = nullptr);
   QString regex() const;
   void setRegex(QString re);
+  Q_INVOKABLE void enableAll();
+  Q_INVOKABLE void disableAll();
 
 signals:
   void regexChanged();
