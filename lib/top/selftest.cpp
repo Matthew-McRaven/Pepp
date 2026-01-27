@@ -1,4 +1,5 @@
 #include "selftest.hpp"
+#include <QSortFilterProxyModel>
 #include <catch/catch.hpp>
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
 #include <QFuture>
@@ -182,4 +183,25 @@ void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
   _running = false;
   emit runningChanged();
 #endif
+}
+
+SelfTestFilterModel::SelfTestFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
+
+QString SelfTestFilterModel::regex() const { return _re.pattern(); }
+
+void SelfTestFilterModel::setRegex(QString re) {
+  _re.setPattern(re);
+  invalidateFilter();
+  emit regexChanged();
+}
+
+bool SelfTestFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
+  auto model = sourceModel();
+  if (!model) return false;
+  else if (_re.pattern().isEmpty()) return true;
+  auto name = model->data(model->index(source_row, 0, source_parent)).toString();
+  bool matchName = _re.match(name).hasMatch();
+  auto tags = model->data(model->index(source_row, 2, source_parent)).toString();
+  bool matchTags = _re.match(tags).hasMatch();
+  return matchName || matchTags;
 }

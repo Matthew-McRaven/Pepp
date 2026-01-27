@@ -20,6 +20,11 @@ Dialog {
     SelfTestModel {
         id: selfTestModel
     }
+    SelfTestFilterModel {
+        id: selfTestFilterModel
+        sourceModel: selfTestModel
+        regex: filter.text
+    }
     component DisableableButton: Button {
         id: control
         enabled: !selfTestModel.running
@@ -89,7 +94,7 @@ Dialog {
         Label {
             Layout.columnSpan: 2
             property int testCount: selfTestModel.rowCount()
-            property int visibleCount: selfTestModel.visibleTests
+            property int visibleCount: selfTestFilterModel.rowCount()
             property int selectedCount: selfTestModel.selectedTests
             text: `Showing ${visibleCount} of ${testCount} tests; ${selectedCount} of ${testCount} are enabled`
         }
@@ -127,7 +132,7 @@ Dialog {
                 checked: model.display
                 clip: true
                 onToggled: {
-                    selfTestModel.setData(selfTestModel.index(model.row, 1), checked, "display");
+                    tableView.model.setData(tableView.model.index(model.row, 1), checked, "display");
                 }
             }
         }
@@ -142,7 +147,7 @@ Dialog {
             left: parent.left
             right: parent.right
         }
-        model: selfTestModel
+        model: selfTestFilterModel
         delegate: chooser
     }
     ProgressBar {

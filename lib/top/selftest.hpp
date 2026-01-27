@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QRegularExpression>
 #include <QtQmlIntegration>
 #include <chrono>
 #include <memory>
@@ -20,7 +21,6 @@ class SelfTest : public QAbstractTableModel {
   QML_NAMED_ELEMENT(SelfTestModel)
   Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
   Q_PROPERTY(int selectedTests READ selectedTests NOTIFY selectedTestsChanged)
-  Q_PROPERTY(int visibleTests READ visibleTests NOTIFY visibleTestsChanged)
   Q_PROPERTY(bool running READ running NOTIFY runningChanged)
 
 public:
@@ -36,7 +36,6 @@ public:
 
   inline int progress() const { return _progress; };
   inline int selectedTests() const { return _selected; };
-  inline int visibleTests() const { return 72; };
   inline bool running() const { return _running; };
   Q_INVOKABLE void runSelectedTests();
   Q_INVOKABLE void runAllTests();
@@ -45,7 +44,6 @@ public:
 signals:
   void progressChanged();
   void selectedTestsChanged();
-  void visibleTestsChanged();
   void runningChanged();
 
 private:
@@ -56,4 +54,24 @@ private:
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
   QFuture<void> _fut;
 #endif
+};
+
+class SelfTestFilterModel : public QSortFilterProxyModel {
+  Q_OBJECT
+  Q_PROPERTY(QString regex READ regex WRITE setRegex NOTIFY regexChanged)
+  QML_NAMED_ELEMENT(SelfTestFilterModel);
+
+public:
+  SelfTestFilterModel(QObject *parent = nullptr);
+  QString regex() const;
+  void setRegex(QString re);
+
+signals:
+  void regexChanged();
+
+protected:
+  bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
+
+private:
+  QRegularExpression _re;
 };
