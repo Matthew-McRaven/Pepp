@@ -345,5 +345,9 @@ Labs.MenuBar {
             text: qsTr("&Reload Figures")
             onTriggered: actions.appdev.reloadFigures.trigger()
         }
+        Labs.MenuItem {
+            text: actions.appdev.openSelftest.text
+            onTriggered: actions.appdev.openSelftest.trigger()
+        }
     }
 }

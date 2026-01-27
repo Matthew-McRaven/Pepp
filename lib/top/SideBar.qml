@@ -45,6 +45,8 @@ Column {
             return "pest_control.svg";
         case "editor":
             return "edit.svg";
+        case "self test":
+            return "robot.svg";
         }
     }
     Repeater {
@@ -56,6 +58,7 @@ Column {
             property int borderSize: 2
             enabled: root.enabled
             checkable: true
+            visible: settings.general.showDebugComponents || !(model.debugComponent ?? false)
             width: 100
             height: 65
             text: model.display ?? "ERROR"

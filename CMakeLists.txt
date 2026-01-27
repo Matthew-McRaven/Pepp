@@ -97,10 +97,16 @@ else()
     Widgets
     QuickControls2
     Xml
-    Sql)
+    Sql
+    OPTIONAL_COMPONENTS Concurrent)
   qt_policy(SET QTP0003 NEW) # Use BUILD_SHARED_LIBS as the default library type
-                             # for Qt.
 
+  # Do not enable QtConcurrent on WASM at this time.
+  if(TARGET Qt6::Concurrent AND NOT EMSCRIPTEN)
+    add_compile_definitions(PEPP_HAS_QTCONCURRENT=1)
+  else()
+    add_compile_definitions(PEPP_HAS_QTCONCURRENT=0)
+  endif()
   if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8)
     # Qt6.8/WASM stopped building without this flag being set.
     if(EMSCRIPTEN)

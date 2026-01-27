@@ -51,6 +51,7 @@ target_link_libraries(
          Qt6::Gui
          Qt6::Quick
          Qt6::Sql
+         $<$<TARGET_EXISTS:Qt6::Concurrent>:Qt6::Concurrent>
          antlr4_shared
          elfio
          lru-cache
@@ -59,6 +60,7 @@ target_link_libraries(
          fmt
          spdlog
          cxxgraph
+         catch
          flat
          pepp-core
          pepp-changelog)

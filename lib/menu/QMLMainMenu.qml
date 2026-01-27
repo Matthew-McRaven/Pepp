@@ -216,5 +216,9 @@ MenuBar {
             text: qsTr("Clear Changelog Cache")
             onTriggered: actions.appdev.clearChangelogCache.trigger()
         }
+        ShortcutMenuItem {
+            text: actions.appdev.openSelftest.text
+            onTriggered: actions.appdev.openSelftest.trigger()
+        }
     }
 }

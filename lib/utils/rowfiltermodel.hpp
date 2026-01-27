@@ -38,7 +38,7 @@ private:
   int _row = -1;
 };
 
-struct ForeginQTransposePrQML_FOREGINxyModel {
+struct ForeginQTransposeProxyModel {
   Q_GADGET
   QML_FOREIGN(QTransposeProxyModel);
   QML_NAMED_ELEMENT(TransposeProxyModel);

@@ -328,5 +328,9 @@ QtObject {
             text: qsTr("Reload Figures")
             icon.source: "image://icons/blank.svg"
         }
+        readonly property var openSelftest: Action {
+            text: qsTr("Open self-test GUI")
+            icon.source: "image://icons/blank.svg"
+        }
     }
 }

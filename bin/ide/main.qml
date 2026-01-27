@@ -382,6 +382,13 @@ ApplicationWindow {
     /*
      * Top-level dialogs
      */
+    Top.SelfTest {
+        id: selfTestDialog
+        Component.onCompleted: {
+            actions.appdev.openSelftest.triggered.connect(selfTestDialog.open);
+        }
+    }
+
     About.AboutDialog {
         id: aboutDialog
         parent: Overlay.overlay
