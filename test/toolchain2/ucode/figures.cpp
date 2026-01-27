@@ -46,6 +46,40 @@ template <typename T> quint8 read(sim::api2::memory::Target<T> &mem, T addr) {
   auto result = mem.read(addr, {&value, 1}, op);
   return value;
 }
+template <typename CPU, typename uarch, typename regs>
+void execute(CPU &cpu, auto &mem, std::string name, auto assembledFig, auto figure) {
+  using namespace Qt::StringLiterals;
+  auto microcode = pepp::tc::parse::microcodeFor<uarch, regs>(assembledFig);
+  REQUIRE(microcode.size() > 0);
+  cpu.setMicrocode(std::move(microcode));
+  int num = 0;
+  for (auto io : figure->typesafeTests()) {
+    QString input = io->input.toString().replace(lf, "");
+    DYNAMIC_SECTION(name << " on: " << input.toStdString()) {
+      auto assembledTest = pepp::tc::parse::MicroParser<uarch, regs>(input).parse();
+      if (assembledTest.errors.size() > 0) {
+        QStringList errors;
+        for (const auto &[line, error] : assembledTest.errors) errors.append(u"%1: %2"_s.arg(line).arg(error));
+        FAIL("Errors in tests assembly: " + errors.join(", ").toStdString());
+      }
+      auto tests = pepp::tc::parse::tests<uarch, regs>(assembledTest);
+      mem.clear(0);
+      cpu.setConstantRegisters();
+      cpu.applyPreconditions(tests.pre);
+      for (int cycle = 0; cpu.status() == targets::pep9::mc2::CPUByteBus::Status::Ok; cycle++) cpu.clock(cycle);
+      CHECK(cpu.status() == targets::pep9::mc2::CPUByteBus::Status::Halted);
+      auto results = cpu.testPostconditions(tests.post);
+      auto passed = std::all_of(results.cbegin(), results.cend(), [](const bool &test) { return test; });
+      if (!passed) {
+        QStringList faileds;
+        for (int it = 0; it < results.size(); it++)
+          if (!results[it]) faileds.append(toString(tests.post[it]));
+        FAIL("Unit tests failed: " + faileds.join(", ").toStdString());
+      }
+    }
+    num++;
+  }
+}
 
 } // namespace
 
@@ -60,8 +94,8 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
   auto figures5 = book5->figures(), figures6 = book6->figures();
   auto probs5 = book5->problems(), probs6 = book6->problems();
   QList<QList<QSharedPointer<builtins::Figure>>> _combined = {figures5, probs5, figures6, probs6};
-  // auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
-  // cpu.setTarget(&mem, nullptr);
+  auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
+  cpu.setTarget(&mem, nullptr);
   auto combined = std::views::join(_combined);
   for (auto &figure : combined) {
     const auto &frags = figure->typesafeNamedFragments();
@@ -90,6 +124,8 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
             FAIL("Errors in tests assembly: " + errors.join(", ").toStdString());
           }
         }
+        if (figure->isProblem()) continue;
+        execute<targets::pep9::mc2::CPUByteBus, uarch1, regs>(cpu, mem, nameAsStd, assembledFig, figure);
       } else if (source->language == "pepcpu2") {
         auto assembledFig = pepp::tc::parse::MicroParser<uarch2, regs>(source->contents()).parse();
         if (assembledFig.errors.size() > 0) {
@@ -109,35 +145,5 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
         }
       } else FAIL("Unrecognized microcode format: " << source->language.toStdString());
     }
-    // Skip running tests for now, since the write word tests fail to execute.
-    /*auto microcode = pepp::ucode::microcodeFor<uarch1, regs>(assembledFig);
-    cpu.setMicrocode(std::move(microcode));
-    int num = 0;
-    for (auto io : figure->typesafeTests()) {
-      QString input = io->input.toString().replace(lf, "");
-      DYNAMIC_SECTION(nameAsStd << " on: " << input.toStdString()) {
-        auto assembledTest = pepp::ucode::parse<uarch1, regs>(input);
-        if (assembledTest.errors.size() > 0) {
-          QStringList errors;
-          for (const auto &[line, error] : assembledTest.errors) errors.append(u"%1: %2"_s.arg(line).arg(error));
-          FAIL("Errors in tests assembly: " + errors.join(", ").toStdString());
-        }
-        auto tests = pepp::ucode::tests<uarch1, regs>(assembledTest);
-        mem.clear(0);
-        cpu.setConstantRegisters();
-        cpu.applyPreconditions(tests.pre);
-        for (int cycle = 0; cpu.status() == targets::pep9::mc2::CPUByteBus::Status::Ok; cycle++) cpu.clock(cycle);
-        CHECK(cpu.status() == targets::pep9::mc2::CPUByteBus::Status::Halted);
-        auto results = cpu.testPostconditions(tests.post);
-        auto passed = std::all_of(results.cbegin(), results.cend(), [](const bool &test) { return test; });
-        if (!passed) {
-          QStringList faileds;
-          for (int it = 0; it < results.size(); it++)
-            if (!results[it]) faileds.append(toString(tests.post[it]));
-          FAIL("Unit tests failed: " + faileds.join(", ").toStdString());
-        }
-      }
-      num++;
-    }*/
   }
 }
