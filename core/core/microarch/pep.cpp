@@ -732,6 +732,7 @@ uint8_t pepp::tc::arch::detail::pep9_1byte::computeALU(uint8_t fn, uint8_t a, ui
   case ALUFunc::A_ROR: // ROR A
     ret = (a >> 1) | (cin ? 0x80 : 0);
     c = a & 1;
+    break;
   case ALUFunc::Zero: // 0
     n = a & 0x8;
     z = a & 0x4;
