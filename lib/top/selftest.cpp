@@ -128,8 +128,9 @@ void SelfTest::stop() {
 
 void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
   if (_running) return;
-  _running = true;
+  _running = true, _progress = 0;
   emit runningChanged();
+  emit progressChanged();
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
   _fut = QtConcurrent::run([filter, this](QPromise<void> &promise) {
     promise.setProgressRange(0, _tests.size());
@@ -144,7 +145,7 @@ void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
     Catch::getCurrentMutableContext().setConfig(&cfg);
     auto reporter = makeReporter(cfg);
     Catch::RunContext ctx(&cfg, std::move(reporter));
-    for (size_t it = 0; it < _tests.size(); it++) {
+    for (size_t it = 0; it < _tests.size(); it++, _progress++) {
       auto &tc = _tests.at(it);
       if (filter(*tc)) {
         auto t = hub.getTestCaseRegistry().getAllTests().at(it);
@@ -155,6 +156,7 @@ void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
         tc->total = result.assertions.total();
         tc->failed = result.assertions.failed;
         emit this->dataChanged(this->index(it, 0), this->index(it, 5), {Qt::DisplayRole});
+        emit progressChanged();
       }
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
       promise.setProgressValue(it);
@@ -162,17 +164,20 @@ void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
       if (promise.isCanceled()) return;
 #endif
     }
+    // If there is a filtered-out suffix, we will never trigger progressChanged for the last segment.
+    emit progressChanged();
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
   });
-  _fut.then([this]() {
-    this->_running = false;
-    emit this->runningChanged();
-    this->_fut = QFuture<void>{};
-  });
   _fut.onCanceled([this]() {
-    this->_running = false;
-    emit this->runningChanged();
-  });
+        _running = false;
+        emit runningChanged();
+        _fut = QFuture<void>{};
+      })
+      .then([this]() {
+        _running = false;
+        emit runningChanged();
+        _fut = QFuture<void>{};
+      });
 #else
   _running = false;
   emit runningChanged();

@@ -138,11 +138,23 @@ Dialog {
         clip: true
         anchors {
             top: horizontalHeader.bottom
-            bottom: parent.bottom
+            bottom: progress.visible? progress.top : parent.bottom
             left: parent.left
             right: parent.right
         }
         model: selfTestModel
         delegate: chooser
+    }
+    ProgressBar {
+        id: progress
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        visible: selfTestModel.running
+        value: selfTestModel.progress
+        from: 0
+        to: selfTestModel.rowCount()
     }
 }

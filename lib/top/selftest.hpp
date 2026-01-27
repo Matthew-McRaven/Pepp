@@ -18,6 +18,7 @@ struct TestCase {
 class SelfTest : public QAbstractTableModel {
   Q_OBJECT
   QML_NAMED_ELEMENT(SelfTestModel)
+  Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
   Q_PROPERTY(int selectedTests READ selectedTests NOTIFY selectedTestsChanged)
   Q_PROPERTY(int visibleTests READ visibleTests NOTIFY visibleTestsChanged)
   Q_PROPERTY(bool running READ running NOTIFY runningChanged)
@@ -33,6 +34,7 @@ public:
   bool setData(const QModelIndex &index, const QVariant &value, int role) override;
   QHash<int, QByteArray> roleNames() const override;
 
+  inline int progress() const { return _progress; };
   inline int selectedTests() const { return _selected; };
   inline int visibleTests() const { return 72; };
   inline bool running() const { return _running; };
@@ -41,6 +43,7 @@ public:
   Q_INVOKABLE void stop();
 
 signals:
+  void progressChanged();
   void selectedTestsChanged();
   void visibleTestsChanged();
   void runningChanged();
@@ -48,7 +51,7 @@ signals:
 private:
   void runFiltered(std::function<bool(const TestCase &)> filter);
   bool _running = false;
-  int _selected = 0;
+  int _selected = 0, _progress = 0;
   std::map<int, std::unique_ptr<TestCase>> _tests;
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
   QFuture<void> _fut;
