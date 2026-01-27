@@ -9,8 +9,9 @@ Dialog {
     id: root
 
     title: qsTr("Self-Test GUI")
-    modal: false
-    dim: false
+    modal: true
+    dim: true
+    popupType: Popup.Window
     focus: true
 
     implicitWidth: 500
