@@ -44,13 +44,11 @@ Dialog {
         anchors.bottomMargin: 10
         columns: 4
         DisableableButton {
-            id: enableVisble
             text: qsTr("Enable Visible")
             enabled: !selfTestModel.running
             onPressed: selfTestFilterModel.enableAll()
         }
         DisableableButton {
-            id: enableAll
             text: qsTr("Enable all")
             enabled: !selfTestModel.running
             onPressed: selfTestModel.enableAll()
@@ -66,22 +64,19 @@ Dialog {
             enabled: !selfTestModel.running
         }
         DisableableButton {
-            id: disableVisble
             text: qsTr("Disable Visible")
             enabled: !selfTestModel.running
             onPressed: selfTestFilterModel.disableAll()
         }
         DisableableButton {
-            id: disableAll
             text: qsTr("Disable all")
             enabled: !selfTestModel.running
             onPressed: selfTestModel.disableAll()
         }
         Label {
-            text: "Working Directiory"
+            text: "Working Directory"
         }
         TextField {
-            id: cwd
             placeholderText: qsTr("/path/to/working/directory")
             text: selfTestModel.workingDirectory
             Layout.fillWidth: true
@@ -89,12 +84,10 @@ Dialog {
             readOnly:true
         }
         Button{
-            id: runVisble
             text: selfTestModel.running ? qsTr("Stop tests") : qsTr("Run enabled")
             onClicked: selfTestModel.running ? selfTestModel.stop() : selfTestModel.runSelectedTests()
         }
         Button {
-            id: runAll
             text: selfTestModel.running ? qsTr("Stop tests") : qsTr("Run all")
             onClicked: selfTestModel.running ? selfTestModel.stop() : selfTestModel.runAllTests()
         }

@@ -2,6 +2,7 @@
 
 #include <QAbstractListModel>
 #include <QRegularExpression>
+#include <QTemporaryDir>
 #include <QtQmlIntegration>
 #include <chrono>
 #include <memory>
