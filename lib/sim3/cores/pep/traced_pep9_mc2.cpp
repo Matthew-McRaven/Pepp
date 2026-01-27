@@ -179,6 +179,11 @@ struct alu_result {
 
 sim::api2::tick::Result targets::pep9::mc2::CPUByteBus::clock(sim::api2::tick::Type currentTick) {
   sim::api2::tick::Result ret;
+  if (_microPC >= _microcode.size()) {
+    _status = Status::Halted;
+    ret.pause = true;
+    return ret;
+  }
   const auto &code = _microcode[_microPC++];
   quint8 A = readReg(code.A), B = readReg(code.B), MDR = readHidden(HiddenRegisters::MDR), c_out = 0, a_in = 0;
   bool c_in = code.CSMux == 0 ? readCSR(CSRs::C) : readCSR(CSRs::S);
@@ -308,6 +313,11 @@ std::vector<bool> targets::pep9::mc2::CPUWordBus::testPostconditions(
 
 sim::api2::tick::Result targets::pep9::mc2::CPUWordBus::clock(sim::api2::tick::Type currentTick) {
   sim::api2::tick::Result ret;
+  if (_microPC >= _microcode.size()) {
+    _status = Status::Halted;
+    ret.pause = true;
+    return ret;
+  }
   const auto &code = _microcode[_microPC++];
   quint8 A = readReg(code.A), B = readReg(code.B), MDRE = readHidden(HiddenRegisters::MDRE),
          MDRO = readHidden(HiddenRegisters::MDRO), c_out = 0, a_in = 0;
