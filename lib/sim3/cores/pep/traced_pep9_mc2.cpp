@@ -155,7 +155,7 @@ std::vector<bool> targets::pep9::mc2::CPUByteBus::testPostconditions(
       auto memTest = std::get<pepp::tc::ir::MemTest>(test);
       _memory->read(memTest.address, {&temp[0], memTest.size}, gs_d);
       bool match = true;
-      for (int it = 0; it < memTest.size; it++) match &= temp[it] != memTest.value[it];
+      for (int it = 0; it < memTest.size; it++) match &= temp[it] == memTest.value[it];
       ret[num++] = match;
     } else if (std::holds_alternative<pepp::tc::ir::RegisterTest<pepp::tc::arch::Pep9Registers>>(test)) {
       auto regTest = std::get<pepp::tc::ir::RegisterTest<pepp::tc::arch::Pep9Registers>>(test);
