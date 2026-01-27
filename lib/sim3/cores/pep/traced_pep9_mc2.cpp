@@ -223,7 +223,7 @@ sim::api2::tick::Result targets::pep9::mc2::CPUByteBus::clock(sim::api2::tick::T
     else _status = Status::MemoryTooSoon;
   }
   // Prevent writing to "read only" registers
-  if (code.CCk && code.C < 22) writeReg(code.C, c_out);
+  if (code.LoadCk && code.C < 22) writeReg(code.C, c_out);
 
   if (_microPC == _microcode.size()) _status = Status::Halted;
   ret.pause = _status != Status::Ok;
