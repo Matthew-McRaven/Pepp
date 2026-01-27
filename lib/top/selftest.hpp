@@ -22,6 +22,7 @@ class SelfTest : public QAbstractTableModel {
   Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
   Q_PROPERTY(int selectedTests READ selectedTests NOTIFY selectedTestsChanged)
   Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+  Q_PROPERTY(QString workingDirectory READ workingDirectory CONSTANT);
 
 public:
   explicit SelfTest(QObject *parent = nullptr);
@@ -37,6 +38,7 @@ public:
   inline int progress() const { return _progress; };
   inline int selectedTests() const { return _selected; };
   inline bool running() const { return _running; };
+  inline QString workingDirectory() const { return _temp_cwd.path(); }
   Q_INVOKABLE void runSelectedTests();
   Q_INVOKABLE void runAllTests();
   Q_INVOKABLE void stop();
@@ -53,6 +55,7 @@ private:
   bool _running = false;
   int _selected = 0, _progress = 0;
   std::map<int, std::unique_ptr<TestCase>> _tests;
+  QTemporaryDir _temp_cwd;
 #if defined(PEPP_HAS_QTCONCURRENT) && PEPP_HAS_QTCONCURRENT == 1
   QFuture<void> _fut;
 #endif

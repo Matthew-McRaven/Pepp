@@ -82,8 +82,10 @@ Dialog {
         TextField {
             id: cwd
             placeholderText: qsTr("/path/to/working/directory")
+            text: selfTestModel.workingDirectory
             Layout.fillWidth: true
             enabled: !selfTestModel.running
+            readOnly:true
         }
         Button{
             id: runVisble

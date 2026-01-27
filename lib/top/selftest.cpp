@@ -7,6 +7,28 @@
 #include <QtConcurrentRun>
 #endif
 
+class ScopedCurrentDir final {
+public:
+  explicit ScopedCurrentDir(const QString &newCwd) : _oldCwd(QDir::currentPath()), _changed(QDir::setCurrent(newCwd)) {}
+  explicit ScopedCurrentDir(const QDir &newCwd) : ScopedCurrentDir(newCwd.absolutePath()) {}
+  ScopedCurrentDir(const ScopedCurrentDir &) = delete;
+  ScopedCurrentDir &operator=(const ScopedCurrentDir &) = delete;
+  ScopedCurrentDir(ScopedCurrentDir &&other) noexcept : _oldCwd(std::move(other._oldCwd)), _changed(other._changed) {
+    other._changed = false; // only one restorer
+  }
+  ScopedCurrentDir &operator=(ScopedCurrentDir &&) = delete;
+  ~ScopedCurrentDir() {
+    if (_changed) QDir::setCurrent(_oldCwd);
+  }
+
+  bool changed() const noexcept { return _changed; }
+  QString oldCwd() const { return _oldCwd; }
+
+private:
+  QString _oldCwd;
+  bool _changed;
+};
+
 // Minimal IStream that discards all output
 struct NullStream final : Catch::IStream {
   std::ostringstream sink;
@@ -145,6 +167,7 @@ void SelfTest::disableAll() {
 
 void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
   if (_running) return;
+
   _running = true, _progress = 0;
   emit runningChanged();
   emit progressChanged();
@@ -152,6 +175,8 @@ void SelfTest::runFiltered(std::function<bool(const TestCase &)> filter) {
   _fut = QtConcurrent::run([filter, this](QPromise<void> &promise) {
     promise.setProgressRange(0, _tests.size());
 #endif
+    // Tests dump a ton of output to CWD. Redirect to a temp dir rather than update every test's sources.
+    ScopedCurrentDir scopedCwd(_temp_cwd.path());
     const auto &hub = Catch::getRegistryHub();
     Catch::ConfigData cd;
     cd.testsOrTags.clear();
