@@ -1,6 +1,8 @@
 include(ExternalProject)
 
 include(Json.cmake)
+include(zpp_bits.cmake)
+include(Flat.cmake)
 
 add_subdirectory(catch)
 add_subdirectory(elfio)
@@ -9,7 +11,6 @@ add_subdirectory(lru)
 set(FMT_INSTALL
     OFF
     CACHE BOOL "" FORCE)
-
 add_subdirectory(fmt)
 add_subdirectory(spdlog)
 
@@ -82,9 +83,6 @@ if(NOT PEPP_BUILD_PYTHON)
       PARENT_SCOPE)
 endif()
 
-add_library(zpp_bits INTERFACE zpp_bits/zpp_bits.h)
-target_include_directories(zpp_bits INTERFACE zpp_bits)
-
 # CXXGraph has some annoying packaging "stuff" for being a header-only library
 # (e.g., a CPM.cmake requirement). So, I grabbed the most recent release, and
 # disable the ability to compile/update/install it. Using a release because the
@@ -104,4 +102,3 @@ add_library(cxxgraph INTERFACE)
 target_include_directories(cxxgraph
                            INTERFACE ${CMAKE_CURRENT_LIST_DIR}/cxxgraph/include)
 add_dependencies(cxxgraph cxxgraph_helper)
-include(Flat.cmake)
