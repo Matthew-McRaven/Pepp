@@ -3,24 +3,30 @@ include(ExternalProject)
 include(Json.cmake)
 include(zpp_bits.cmake)
 include(Flat.cmake)
-
 add_subdirectory(catch)
+add_subdirectory(fmt)
+
 add_subdirectory(elfio)
 add_subdirectory(cli)
 add_subdirectory(lru)
 set(FMT_INSTALL
     OFF
     CACHE BOOL "" FORCE)
-add_subdirectory(fmt)
 add_subdirectory(spdlog)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# Don't want to touch the original CMakeLists.txt, which fails to compile.
-# Instead, create the target by hand.
-add_library(kitty INTERFACE)
-target_include_directories(kitty
-                           INTERFACE ${CMAKE_CURRENT_LIST_DIR}/kitty/include)
+# Do not build tests while building python bindings. Huge slow down. If you
+# remove EMSCRIPTEN from this list of conditions, update /test/CMakeLists.txt
+if(PEPP_BUILD_PYTHON OR EMSCRIPTEN)
+  set(MOCKTURTLE_BUILD_TESTS
+      OFF
+      CACHE BOOL "" FORCE)
+else()
+  set(MOCKTURTLE_BUILD_TESTS
+      ON
+      CACHE BOOL "" FORCE)
+endif()
+
+add_subdirectory(mockturtle)
 
 # Can be removed when https://github.com/eyalz800/zpp_bits/pull/130 is merged.
 if(Python_VERSION VERSION_GREATER_EQUAL "3.12" AND NOT EMSCRIPTEN)
