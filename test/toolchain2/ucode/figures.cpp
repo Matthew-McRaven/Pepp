@@ -94,8 +94,10 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
   auto figures5 = book5->figures(), figures6 = book6->figures();
   auto probs5 = book5->problems(), probs6 = book6->problems();
   QList<QList<QSharedPointer<builtins::Figure>>> _combined = {figures5, probs5, figures6, probs6};
-  auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
-  cpu.setTarget(&mem, nullptr);
+  auto [mem1, cpu1] = make<targets::pep9::mc2::CPUByteBus>();
+  auto [mem2, cpu2] = make<targets::pep9::mc2::CPUWordBus>();
+  cpu1.setTarget(&mem1, nullptr);
+  cpu2.setTarget(&mem2, nullptr);
   auto combined = std::views::join(_combined);
   for (auto &figure : combined) {
     const auto &frags = figure->typesafeNamedFragments();
@@ -125,7 +127,7 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
           }
         }
         if (figure->isProblem()) continue;
-        execute<targets::pep9::mc2::CPUByteBus, uarch1, regs>(cpu, mem, nameAsStd, assembledFig, figure);
+        execute<targets::pep9::mc2::CPUByteBus, uarch1, regs>(cpu1, mem1, nameAsStd, assembledFig, figure);
       } else if (source->language == "pepcpu2") {
         auto assembledFig = pepp::tc::parse::MicroParser<uarch2, regs>(source->contents()).parse();
         if (assembledFig.errors.size() > 0) {
@@ -143,6 +145,8 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
             FAIL("Errors in tests assembly: " + errors.join(", ").toStdString());
           }
         }
+        if (figure->isProblem()) continue;
+        execute<targets::pep9::mc2::CPUWordBus, uarch2, regs>(cpu2, mem2, nameAsStd, assembledFig, figure);
       } else FAIL("Unrecognized microcode format: " << source->language.toStdString());
     }
   }

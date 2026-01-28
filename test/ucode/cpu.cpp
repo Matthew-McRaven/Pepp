@@ -167,7 +167,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
         .CMux = 1,
         .C = 0,
         .NCk = 1,
-        .CCk = 1,
+        .LoadCk = 1,
     }};
     cpu.setMicrocode(std::move(microcode));
     cpu.clock(1);
@@ -203,7 +203,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
                                             .ALU = 0,
                                             .CMux = 1,
                                             .C = 0,
-                                            .CCk = 1,
+                                            .LoadCk = 1,
                                         },
                                         Code{
                                             .EOMux = 1,
@@ -211,7 +211,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
                                             .ALU = 0,
                                             .CMux = 1,
                                             .C = 1,
-                                            .CCk = 1,
+                                            .LoadCk = 1,
                                         }}};
     cpu.setMicrocode(std::move(microcode));
     for (int cycle = 1; cpu.status() != targets::pep9::mc2::CPUWordBus::Status::Halted;) cpu.clock(cycle++);
