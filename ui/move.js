@@ -11,7 +11,7 @@ var minorY = 25;
 var component = null;
 
 //  Create new diagram
-function createBlock(parent) {
+function createBlock(canvas) {
     //  Cache component for creating diagrams
     if (component === null)
         component = Qt.createComponent("Diagram.qml");
@@ -19,12 +19,13 @@ function createBlock(parent) {
     //  Create instance of a diagram and place at indicated x,y coordinate
     var diagram;
     if (component.status === Quick.Component.Ready) {
-        diagram = component.createObject(parent);
+        diagram = component.createObject(canvas);
         if (diagram === null) {
             console.log("Error creating diagram");
             console.log(component.errorString());
             return null;
         }
+        diagram.select(canvas.select);
     } else {
         console.log("Error loading individual diagram");
         console.log(component.errorString());

@@ -13,7 +13,7 @@ set(CMAKE_AUTORCC ON)
 qt_add_executable(CircuitDesign
     main.cpp
     svg/CircuitDesign.qrc
-    ui/properties.cpp ui/properties.h
+    ui/diagramModel.cpp ui/diagramModel.hpp
 )
 
 qt_add_qml_module(CircuitDesign
@@ -27,19 +27,23 @@ qt_add_qml_module(CircuitDesign
         ui/LogicGates.qml
         ui/Diagram.qml
         ui/DiagramProperties.qml
+        ui/DiagramEndpoint.qml
         ui/Line.qml
         ui/GridLine.qml
+        ui/DiagramListView.qml
     SOURCES
-        ui/properties.h
-        ui/properties.cpp
+        ui/diagramModel.hpp
+        ui/diagramModel.cpp
+        ui/diagramtype.h
+        ui/diagramlistmodel.hpp
+        ui/diagramlistmodel.cpp
     DEPENDENCIES QtQuick
-    QML_FILES ui/DiagramEndpoint.qml
 )
 
 # must include any subdirectories for classes that use QML_ELEMENT
 target_include_directories(${PROJECT_NAME} PRIVATE
       ui/
-  )
+)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

@@ -1,4 +1,4 @@
-#include "properties.h"
+#include "diagramModel.hpp"
 
 quint32 DiagramProperty::_counter = 0;
 
@@ -57,7 +57,7 @@ DiagramProperty *DiagramPropertyModel::createDiagram()
     _currentProperty = new DiagramProperty(this);
 
     //beginInsertRows(QModelIndex{}, _properties.count() + 1, _properties.count() + 1);
-    _properties.append(_currentProperty);
+    _properties.insert(_currentProperty->id(), _currentProperty);
     //endInsertRows();
 
     emit newDiagram();
@@ -66,7 +66,7 @@ DiagramProperty *DiagramPropertyModel::createDiagram()
     return _currentProperty;
 }
 
-DiagramProperty *DiagramPropertyModel::currentDiagram() const
+/*DiagramProperty *DiagramPropertyModel::currentDiagram() const
 {
     return _currentProperty;
 }
@@ -76,23 +76,63 @@ void DiagramPropertyModel::setCurrentDiagram(DiagramProperty *v)
         _currentProperty = v;
         emit diagramChanged();
     }
+}*/
+
+/*bool DiagramPropertyModel::selected(quint32 id) const
+{
+    return _currentProperty == nullptr ? false : _currentProperty->id() == id;
 }
+
+void DiagramPropertyModel::setSelected(quint32 id)
+{
+    const auto oldId = _currentProperty->id();
+    if (oldId != id) {
+        auto item = _properties.find(id);
+
+        if (item == _properties.constEnd()) {
+            //  Not found, clear current property
+            _currentProperty = nullptr;
+        } else {
+            _currentProperty = item.value();
+
+            //  Select new index
+            auto newIndex = createIndex(_currentProperty->id(), 0);
+            emit dataChanged(newIndex, newIndex);
+        }
+
+        //  Used to unselect old index
+        auto oldIndex = createIndex(oldId, 0);
+        emit dataChanged(oldIndex, oldIndex);
+    }
+}*/
 
 int DiagramPropertyModel::rowCount(const QModelIndex &parent) const
 {
-    if (!parent.isValid())
-        return 0;
+    /*if (!parent.isValid())
+        return 0;*/
 
     return _properties.size();
 }
 
 int DiagramPropertyModel::columnCount(const QModelIndex &parent) const
 {
-    if (!parent.isValid())
-        return 0;
+    /*if (!parent.isValid())
+        return 0;*/
 
     return static_cast<int>(DiagramProperty::DiagramRole::DiagramTotal);
 }
+
+/*QModelIndex DiagramPropertyModel::index(int row,
+                                        int column,
+                                        const QModelIndex &parent) const override
+{
+    const auto item = _properties.find(row);
+    if (item != _properties.constEnd()) {
+        return QModelIndex(item.key(), 0, nullptr, this);
+    }
+
+    return {};
+}*/
 
 QVariant DiagramPropertyModel::data(const QModelIndex &index, int role) const
 {
@@ -105,23 +145,29 @@ QVariant DiagramPropertyModel::data(const QModelIndex &index, int role) const
     if (row < 0 || _properties.size() < row)
         return {};
 
-    const auto *item = _properties.at(index.row());
+    const auto item = _properties.find(row);
+
+    if (item == _properties.constEnd()) {
+        //  Not found, clear current property
+        return {};
+    }
+    //const auto *item = _properties.at(index.row());
 
     switch (index.column()) {
     case 0:
-        return item->id();
+        return item.value()->id();
         break;
     case 1:
-        return item->name();
+        return item.value()->name();
         break;
     case 2:
-        return item->type();
+        return item.value()->type();
         break;
     case 3:
-        return item->inputNo();
+        return item.value()->inputNo();
         break;
     case 4:
-        return item->outputNo();
+        return item.value()->outputNo();
         break;
     }
 
@@ -209,3 +255,14 @@ bool DiagramPropertyModel::removeRows(int row, int count, const QModelIndex &par
     return true;
 }
 */
+
+/*  
+ * Start of selection model
+ */
+void DiagramSelectionModel::setBehavior(Behavior behavior)
+{
+    if (behavior == _behavior)
+        return;
+    _behavior = behavior;
+    emit behaviorChanged();
+}
