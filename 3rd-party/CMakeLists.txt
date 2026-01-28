@@ -1,5 +1,7 @@
 include(ExternalProject)
 
+include(Json.cmake)
+
 add_subdirectory(catch)
 add_subdirectory(elfio)
 add_subdirectory(cli)
