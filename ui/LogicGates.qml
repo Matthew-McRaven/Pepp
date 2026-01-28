@@ -13,96 +13,18 @@ Rectangle {
 
     property real cellWidth: 100
 
-    Component.onCompleted: {
+    /*Component.onCompleted: {
         //  Initialize first stamp
         buttonGroup.buttons[0].checked = true;
         currentStamp(0);
-    }
+    }*/
 
-    function currentStamp(index){
-        canvas.curStamp = diagramModel.get(index);
-
-        if(canvas.curStamp.name === "Move")
-        {
-            canvas.curIndex = -1;
-            canvas.curStamp = null;
-        }
-        else if(canvas.curStamp.shapeType === "Diagram")
-        {
-            canvas.curIndex = index
-        }
-        else
-        {
-            //  Disable stamp for lines
-            //canvas.curStamp = null;
-        }
-
-    }
-
-    ListModel {
+    //  Static list of gates for selection
+    DiagramListModel {
         id: diagramModel
-        ListElement {
-            key: DiagramProperty.Invalid
-            shapeType: "Move"
-            name: "Move"
-            file: "qrc:/move"
-        }
-        ListElement {
-            key: DiagramProperty.ANDGate
-            shapeType: "Diagram"
-            name: "AND Gate"
-            file: "qrc:/and"
-        }
-        ListElement {
-            key: DiagramProperty.ORGate
-            shapeType: "Diagram"
-            name: "OR Gate"
-            file: "qrc:/or"
-        }
-        ListElement {
-            key: DiagramProperty.Inverter
-            shapeType: "Diagram"
-            name: "Inverter"
-            file: "qrc:/inverter"
-        }
-        ListElement {
-            key: DiagramProperty.NANDGate
-            shapeType: "Diagram"
-            name: "NAND Gate"
-            file: "qrc:/nand"
-        }
-        ListElement {
-            key: DiagramProperty.NORGate
-            shapeType: "Diagram"
-            name: "NOR Gate"
-            file: "qrc:/nor"
-        }
-        ListElement {
-            key: DiagramProperty.XORGate
-            shapeType: "Diagram"
-            name: "XOR Gate"
-            file: "qrc:/xor"
-        }
-        ListElement {
-            key: DiagramProperty.Line
-            shapeType: "line"
-            name: "Line"
-            file: "qrc:/line"
-        }
-        ListElement {
-            key: DiagramProperty.MultiLine
-            shapeType: "Line"
-            name: "Multiline"
-            file: "qrc:/multiline"
-        }
-        ListElement {
-            key: DiagramProperty.Bus
-            shapeType: "line"
-            name: "Bus"
-            file: "qrc:/bus"
-        }
     }
 
+    //  Filter list for properties box
     SortFilterProxyModel {
         id: filterModel
         model: diagramModel
@@ -135,47 +57,12 @@ Rectangle {
             SplitView.maximumWidth: SplitView.preferredWidth
             SplitView.minimumWidth: SplitView.preferredWidth
 
-            ButtonGroup {
-                id: buttonGroup
-                buttons: source.children.filter(child => child !== rep)
-
-                onClicked: btn => {
-                    currentStamp(btn.index);
-                    //console.log(btn.index);
-                }
-            }
-
-            GridLayout {
+            DiagramListView {
                 id: source
-                columns: 2
-                columnSpacing: 2
-                rowSpacing: 2
 
                 Layout.alignment: Qt.AlignTop
                 Layout.fillWidth: true
-
-                Repeater {
-                    id: rep
-                    model: diagramModel
-                    delegate: Button {
-                        id: btn
-                        required property string name
-                        required property string file
-                        required property int index
-
-                        implicitWidth: root.cellWidth
-                        implicitHeight: root.cellWidth * .6
-                        checkable: true
-                        display: AbstractButton.TextUnderIcon
-
-                        text: btn.name
-                        icon.source: btn.file
-                        icon.color: "transparent"
-                        icon.width: btn.implicitWidth * .8
-                        icon.height: btn.implicitHeight * .7
-                    }
-                }
-            }   //  GridLayout
+            }
 
             Item {  //  A spacer
                 Layout.fillHeight: true
@@ -185,7 +72,6 @@ Rectangle {
                 id: props
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
-                //height: 100
 
                 diagramModel: diagramModel.currentDiagram
                 model: filterModel
@@ -193,8 +79,9 @@ Rectangle {
 
         }
 
-        //  Background used as canvas for object placement
         Item {
+            //  Background used as canvas for object placement
+            //  Background does not interact with mouse or diagrams
             GridView {
                 anchors.fill: parent
                 delegateModelAccess: DelegateModel.ReadOnly
@@ -211,11 +98,17 @@ Rectangle {
                 anchors.fill: parent
 
                 property int curIndex: -1
-                property var curStamp: null
+                property var curStamp: source.currentStamp
                 property Diagram fromObject: null
                 property Diagram toObject: null
 
                 color: "transparent" //"gainsboro"
+
+                DiagramSelectionModel {
+                    id: selectModel
+                    behavior: DiagramSelectionModel.SelectSingle
+                    model: dataModel
+                }
 
                 //  Test Only Diagrams for checking line connection
                 Diagram {
@@ -228,6 +121,7 @@ Rectangle {
                     x: 100
                     y: 100
                     z: 1
+                    selectModel: selectModel
                 }
 
                 Diagram {
@@ -242,6 +136,7 @@ Rectangle {
                     x: 200
                     y: 200
                     z: 1
+                    selectModel: selectModel
                 }
 
                 Line {
@@ -275,7 +170,7 @@ Rectangle {
                         }
 
                         //  Find current stamp
-                        currentStamp(canvas.curIndex);
+                        root.currentStamp(canvas.curIndex);
 
                         //  Create diagram
                         var diagram = Move.createBlock(canvas);

@@ -7,6 +7,10 @@ Pane {
     id: root
     property var diagramModel: null
 
+    onDiagramModelChanged: {
+
+    }
+
     //  List of available gates
     required property var model
     Column {
@@ -25,11 +29,6 @@ Pane {
                 textRole: "name"
                 valueRole: "name"
                 currentValue: root.diagramModel.name === null ? "" : root.diagramModel.name
-
-                /*Component.onCompleted: {
-                    console.log("Diagram name: ", root.diagram.name);
-                    console.log("Diagram type: ", root.diagram.type);
-                }*/
             }
 
             Label {
@@ -69,9 +68,9 @@ Pane {
                     //  Update model with new data
                     //  Extra item in model versus filter model. Find fix instead of
                     //  hard coding value.
-                    var item = root.model.sourceModel.get(gateType.currentIndex + 1);
+                    var item = root.model.sourceModel.diagramTemplate(gateType.currentIndex + 1);
                     root.diagramModel.name = item.name;
-                    root.diagramModel.imageSource = item.file;
+                    root.diagramModel.imageSource = item.qrcFile;
                     root.diagramModel.type = item.key;
                     root.diagramModel.inputNo = input.value;
                     root.diagramModel.outputNo = output.value;
