@@ -155,7 +155,7 @@ std::vector<bool> targets::pep9::mc2::CPUByteBus::testPostconditions(
       auto memTest = std::get<pepp::tc::ir::MemTest>(test);
       _memory->read(memTest.address, {&temp[0], memTest.size}, gs_d);
       bool match = true;
-      for (int it = 0; it < memTest.size; it++) match &= temp[it] != memTest.value[it];
+      for (int it = 0; it < memTest.size; it++) match &= temp[it] == memTest.value[it];
       ret[num++] = match;
     } else if (std::holds_alternative<pepp::tc::ir::RegisterTest<pepp::tc::arch::Pep9Registers>>(test)) {
       auto regTest = std::get<pepp::tc::ir::RegisterTest<pepp::tc::arch::Pep9Registers>>(test);
@@ -179,6 +179,11 @@ struct alu_result {
 
 sim::api2::tick::Result targets::pep9::mc2::CPUByteBus::clock(sim::api2::tick::Type currentTick) {
   sim::api2::tick::Result ret;
+  if (_microPC >= _microcode.size()) {
+    _status = Status::Halted;
+    ret.pause = true;
+    return ret;
+  }
   const auto &code = _microcode[_microPC++];
   quint8 A = readReg(code.A), B = readReg(code.B), MDR = readHidden(HiddenRegisters::MDR), c_out = 0, a_in = 0;
   bool c_in = code.CSMux == 0 ? readCSR(CSRs::C) : readCSR(CSRs::S);
@@ -223,7 +228,7 @@ sim::api2::tick::Result targets::pep9::mc2::CPUByteBus::clock(sim::api2::tick::T
     else _status = Status::MemoryTooSoon;
   }
   // Prevent writing to "read only" registers
-  if (code.CCk && code.C < 22) writeReg(code.C, c_out);
+  if (code.LoadCk && code.C < 22) writeReg(code.C, c_out);
 
   if (_microPC == _microcode.size()) _status = Status::Halted;
   ret.pause = _status != Status::Ok;
@@ -308,6 +313,11 @@ std::vector<bool> targets::pep9::mc2::CPUWordBus::testPostconditions(
 
 sim::api2::tick::Result targets::pep9::mc2::CPUWordBus::clock(sim::api2::tick::Type currentTick) {
   sim::api2::tick::Result ret;
+  if (_microPC >= _microcode.size()) {
+    _status = Status::Halted;
+    ret.pause = true;
+    return ret;
+  }
   const auto &code = _microcode[_microPC++];
   quint8 A = readReg(code.A), B = readReg(code.B), MDRE = readHidden(HiddenRegisters::MDRE),
          MDRO = readHidden(HiddenRegisters::MDRO), c_out = 0, a_in = 0;
@@ -368,7 +378,7 @@ sim::api2::tick::Result targets::pep9::mc2::CPUWordBus::clock(sim::api2::tick::T
   }
 
   // Prevent writing to "read only" registers
-  if (code.CCk && code.C < 22) writeReg(code.C, c_out);
+  if (code.LoadCk && code.C < 22) writeReg(code.C, c_out);
 
   if (_microPC == _microcode.size()) _status = Status::Halted;
   ret.pause = _status != Status::Ok;
