@@ -7,34 +7,19 @@ add_subdirectory(lru)
 set(FMT_INSTALL
     OFF
     CACHE BOOL "" FORCE)
+
 add_subdirectory(fmt)
 add_subdirectory(spdlog)
-# Can be removed when https://github.com/eyalz800/zpp_bits/pull/130 is merged.
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-add_library(zpp_bits INTERFACE zpp_bits/zpp_bits.h)
-target_include_directories(zpp_bits INTERFACE zpp_bits)
+# Don't want to touch the original CMakeLists.txt, which fails to compile.
+# Instead, create the target by hand.
+add_library(kitty INTERFACE)
+target_include_directories(kitty
+                           INTERFACE ${CMAKE_CURRENT_LIST_DIR}/kitty/include)
 
-# CXXGraph has some annoying packaging "stuff" for being a header-only library
-# (e.g., a CPM.cmake requirement). So, I grabbed the most recent release, and
-# disable the ability to compile/update/install it. Using a release because the
-# release sets the correct values for the config header version.
-ExternalProject_Add(
-  cxxgraph_helper
-  SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/cxxgraph
-  CONFIGURE_COMMAND "" # no configure step (header-only)
-  BUILD_COMMAND "" # no build step
-  INSTALL_COMMAND "" # no install step
-  UPDATE_COMMAND "" # disable VCS updates
-)
-# External project is UTILITY, which has issues with connecting to my existing
-# targets. Create a dummy target which propogates include directories and
-# ensures that the code is cloned.
-add_library(cxxgraph INTERFACE)
-target_include_directories(cxxgraph
-                           INTERFACE ${CMAKE_CURRENT_LIST_DIR}/cxxgraph/include)
-add_dependencies(cxxgraph cxxgraph_helper)
-include(Flat.cmake)
+# Can be removed when https://github.com/eyalz800/zpp_bits/pull/130 is merged.
 if(Python_VERSION VERSION_GREATER_EQUAL "3.12" AND NOT EMSCRIPTEN)
   add_subdirectory(nanobind)
 endif()
@@ -94,3 +79,27 @@ if(NOT PEPP_BUILD_PYTHON)
       "${CMAKE_CURRENT_BINARY_DIR}/monaspace"
       PARENT_SCOPE)
 endif()
+
+add_library(zpp_bits INTERFACE zpp_bits/zpp_bits.h)
+target_include_directories(zpp_bits INTERFACE zpp_bits)
+
+# CXXGraph has some annoying packaging "stuff" for being a header-only library
+# (e.g., a CPM.cmake requirement). So, I grabbed the most recent release, and
+# disable the ability to compile/update/install it. Using a release because the
+# release sets the correct values for the config header version.
+ExternalProject_Add(
+  cxxgraph_helper
+  SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/cxxgraph
+  CONFIGURE_COMMAND "" # no configure step (header-only)
+  BUILD_COMMAND "" # no build step
+  INSTALL_COMMAND "" # no install step
+  UPDATE_COMMAND "" # disable VCS updates
+)
+# External project is UTILITY, which has issues with connecting to my existing
+# targets. Create a dummy target which propogates include directories and
+# ensures that the code is cloned.
+add_library(cxxgraph INTERFACE)
+target_include_directories(cxxgraph
+                           INTERFACE ${CMAKE_CURRENT_LIST_DIR}/cxxgraph/include)
+add_dependencies(cxxgraph cxxgraph_helper)
+include(Flat.cmake)
