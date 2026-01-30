@@ -1,6 +1,6 @@
 #pragma once
 #include "./pep_attributes.hpp"
-#include "toolchain2/support/source/location.hpp"
+#include "core/libs/compile/source/location.hpp"
 
 namespace pepp::tc::ir {
 struct LinearIRVisitor;

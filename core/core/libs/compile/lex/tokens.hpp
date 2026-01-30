@@ -1,6 +1,7 @@
 #pragma once
-#include <QString>
-#include "../../support/source/location.hpp"
+#include <string>
+#include "core/libs/compile/source/location.hpp"
+
 namespace pepp::tc::lex {
 enum class CommonTokenType {
   Invalid = 1 << 0,
@@ -19,13 +20,13 @@ struct Token {
   explicit Token(tc::support::LocationInterval loc = {});
   virtual ~Token() = 0;
   virtual int type() const = 0;
-  virtual QString type_name() const = 0;
+  virtual std::string type_name() const = 0;
   // Several tokens are unrepresentable (e.g., EoF/Invalid), so default to empty string.
   // Cannot use QStringView since some classes (e.g., Integer) do not have a backing QString.
   // This should be the string representing the value contained in the token.
-  virtual QString to_string() const;
+  virtual std::string to_string() const;
   // A more detailed representation of the token, including both the name and the value. Useful for debugging
-  virtual QString repr() const;
+  virtual std::string repr() const;
   bool mask(int mask) const;
 
   support::LocationInterval location() const;
@@ -42,23 +43,23 @@ struct Invalid : public Token {
   explicit Invalid(support::LocationInterval loc);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Invalid);
   int type() const override;
-  QString type_name() const override;
+  std::string type_name() const override;
 };
 
 struct EoF : public Token {
   explicit EoF(support::LocationInterval loc);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::EoF);
   int type() const override;
-  QString type_name() const override;
+  std::string type_name() const override;
 };
 
 struct Empty : public Token {
   explicit Empty(support::LocationInterval loc);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Empty);
   int type() const override;
-  QString type_name() const override;
-  QString to_string() const override;
-  QString repr() const override;
+  std::string type_name() const override;
+  std::string to_string() const override;
+  std::string repr() const override;
 };
 
 struct Integer : public Token {
@@ -66,46 +67,46 @@ struct Integer : public Token {
   explicit Integer(support::LocationInterval loc, uint64_t val = 0, Format fmt = Format::SignedDec);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Integer);
   int type() const override;
-  QString type_name() const override;
-  QString to_string() const override;
+  std::string type_name() const override;
+  std::string to_string() const override;
 
   uint64_t value = 0;
 };
 
 struct Identifier : public Token {
-  Identifier(support::LocationInterval loc, QString const *v);
+  Identifier(support::LocationInterval loc, std::string const *v);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Identifier);
   int type() const override;
-  QStringView view() const;
-  QString type_name() const override;
-  QString to_string() const override;
-  QString const *value;
+  std::string_view view() const;
+  std::string type_name() const override;
+  std::string to_string() const override;
+  std::string const *value;
 };
 
 struct SymbolDeclaration : public Identifier {
-  SymbolDeclaration(support::LocationInterval loc, QString const *v);
+  SymbolDeclaration(support::LocationInterval loc, std::string const *v);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::SymbolDeclaration);
   int type() const override;
-  QString type_name() const override;
+  std::string type_name() const override;
 };
 
 // For comments of the form ";hi", or "// hi" which do not span more than one line
 struct InlineComment : public Identifier {
-  InlineComment(support::LocationInterval loc, QString const *v);
+  InlineComment(support::LocationInterval loc, std::string const *v);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::InlineComment);
   int type() const override;
-  QString type_name() const override;
+  std::string type_name() const override;
 };
 
 // Used for single / very short character literals, like <|=>
 struct Literal : public Token {
-  Literal(support::LocationInterval loc, QString literal);
+  Literal(support::LocationInterval loc, std::string literal);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Literal);
   int type() const override;
-  QString type_name() const override;
-  QString to_string() const override;
+  std::string type_name() const override;
+  std::string to_string() const override;
 
-  QString literal;
+  std::string literal;
 };
 
 } // namespace pepp::tc::lex

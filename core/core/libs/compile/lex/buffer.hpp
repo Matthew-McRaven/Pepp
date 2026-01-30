@@ -1,6 +1,24 @@
+/*
+ * /Copyright (c) 2026. Stanley Warford, Matthew McRaven
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
-#include "./tokens.hpp"
+#include <memory>
+#include <vector>
 #include "core/libs/bitmanip/span.hpp"
+#include "core/libs/compile/lex/tokens.hpp"
 
 namespace pepp::tc::lex {
 
@@ -23,7 +41,7 @@ public:
     }
     return nullptr;
   }
-  std::shared_ptr<Token> match_literal(QString);
+  std::shared_ptr<Token> match_literal(const std::string &);
   // Returns the next token if it matches the mask, otherwise returns nullptr.
   std::shared_ptr<Token> peek(int mask = -1);
   template <typename Type>
@@ -33,7 +51,7 @@ public:
     if (next) return std::static_pointer_cast<Type>(next);
     else return nullptr;
   }
-  std::shared_ptr<Token> peek_literal(QString);
+  std::shared_ptr<Token> peek_literal(const std::string &);
   bool input_remains() const;
   size_t count_buffered_tokens() const;
   size_t count_matched_tokens() const;

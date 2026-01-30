@@ -27,8 +27,9 @@ struct AAttribute {
 struct Identifier : public AAttribute {
   static constexpr Type TYPE = Type::Identifier;
   Type type() const override;
-  Identifier(QString const *v) : value(v) {}
-  QString const *value;
+  Identifier(QString v) : value(v) {}
+  Identifier(std::string v) : value(QString::fromStdString(v)) {}
+  QString value;
   QStringView view() const;
   QString to_string() const;
 };
@@ -36,7 +37,8 @@ struct Identifier : public AAttribute {
 struct Comment : public Identifier {
   static constexpr Type TYPE = Type::Comment;
   Type type() const override;
-  Comment(QString const *v) : Identifier(v) {}
+  Comment(QString v) : Identifier(v) {}
+  Comment(std::string v) : Identifier(v) {}
 };
 
 struct CommentIndent : public AAttribute {

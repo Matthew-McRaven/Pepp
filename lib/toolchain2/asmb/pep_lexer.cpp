@@ -1,9 +1,11 @@
 #include "./pep_lexer.hpp"
-#include <QRegularExpression>
-#include "../support/lex/tokens.hpp"
+#include <charconv>
+#include <regex>
+#include <spdlog/spdlog.h>
 #include "./pep_tokens.hpp"
+#include "core/libs/bitmanip/strings.hpp"
 
-pepp::tc::lex::PepLexer::PepLexer(std::shared_ptr<std::unordered_set<QString>> identifier_pool,
+pepp::tc::lex::PepLexer::PepLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
                                   support::SeekableData &&data)
     : ALexer(identifier_pool, std::move(data)) {}
 
@@ -11,119 +13,122 @@ bool pepp::tc::lex::PepLexer::input_remains() const { return _cursor.input_remai
 
 std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::PepLexer::next_token() {
   using LocationInterval = support::LocationInterval;
-  static const QRegularExpression identifier("[a-zA-Z_][a-zA-Z0-9_]*");
-  static const QRegularExpression macroInvoke("@[a-zA-Z][a-zA-Z0-9_]*");
-  static const QRegularExpression directive("\\.[a-zA-Z][a-zA-Z0-9_]*");
-  static const QRegularExpression symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
-  static const QRegularExpression decimal("[0-9]+");
-  static const QRegularExpression hexadecimal("0[xX][0-9a-fA-F]+");
-  static const QRegularExpression badHex("0[xX]");
-  static const QRegularExpression comment(";[^\n]*");
-  static const QRegularExpression charConstant(R"('([^'\\]|\\[bvnrt\\0']|\\[xX][0-9a-fA-F]{2})')");
-  static const QRegularExpression strConstant(R"("([^"\\]|\\[bvnrt\\0"]|\\[xX][0-9a-fA-F]{2})*\")");
+  static const std::regex identifier("[a-zA-Z_][a-zA-Z0-9_]*");
+  static const std::regex macroInvoke("@[a-zA-Z][a-zA-Z0-9_]*");
+  static const std::regex directive("\\.[a-zA-Z][a-zA-Z0-9_]*");
+  static const std::regex symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
+  static const std::regex decimal("[0-9]+");
+  static const std::regex hexadecimal("0[xX][0-9a-fA-F]+");
+  static const std::regex badHex("0[xX]");
+  static const std::regex comment(";[^\n]*");
+  static const std::regex charConstant(R"('([^'\\]|\\[bvnrt\\0']|\\[xX][0-9a-fA-F]{2})')");
+  static const std::regex strConstant(R"("([^"\\]|\\[bvnrt\\0"]|\\[xX][0-9a-fA-F]{2})*\")");
   std::shared_ptr<pepp::tc::lex::Token> current_token = nullptr;
   auto loc_start = _cursor.location();
   while (input_remains()) {
     auto next = _cursor.peek();
-    if (next == "\n") {
+    if (next == '\n') {
       _cursor.advance(1);
       _cursor.newline();
       current_token = std::make_shared<Empty>(LocationInterval{loc_start, _cursor.location()});
       break;
-    } else if (next == "\r") {
+    } else if (next == '\r') {
       _cursor.skip(1);
       loc_start = _cursor.location();
       current_token = std::make_shared<Empty>(LocationInterval{loc_start, _cursor.location()});
       continue;
-    } else if (next.isSpace()) {
+    } else if (std::isspace(next)) {
       _cursor.skip(1);
       loc_start = _cursor.location();
       continue;
-    } else if (next == ",") {
+    } else if (next == ',') {
       _cursor.advance(1);
       current_token = std::make_shared<Literal>(LocationInterval{loc_start, _cursor.location()}, ",");
       break;
-    } else if (next == "+" || next == "-") {
-      auto sign = (next == "-") ? -1 : 1;
+    } else if (next == '+' || next == '-') {
+      auto sign = (next == '-') ? -1 : 1;
       // "Eat" the sign so that we can parse the number after it.
       _cursor.skip(1);
-      if (auto maybeDec = _cursor.matchView(decimal); maybeDec.hasMatch()) {
+      if (auto maybeDec = _cursor.matchView(decimal); !maybeDec.empty()) {
         using Format = Integer::Format;
-        _cursor.advance(maybeDec.capturedLength(0));
+        _cursor.advance(maybeDec.size());
         auto text = _cursor.select();
-        auto val = text.toInt(nullptr, 10);
+        int val = 0;
+        (void)std::from_chars(text.data(), text.data() + text.size(), val, 10);
         auto fmt = sign < 0 ? Format::SignedDec : Format::UnsignedDec;
         current_token = std::make_shared<Integer>(LocationInterval{loc_start, _cursor.location()}, sign * val, fmt);
       } else current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
       break;
-    } else if (auto maybeSymbol = _cursor.matchView(symbol); maybeSymbol.hasMatch()) {
-      _cursor.advance(maybeSymbol.capturedLength(0));
-      auto text = _cursor.select().chopped(1); // Drop trailing :
-      QString const *id = &*_pool->emplace(text).first;
+    } else if (auto maybeSymbol = _cursor.matchView(symbol); !maybeSymbol.empty()) {
+      _cursor.advance(maybeSymbol.size());
+      auto text = _cursor.select().substr(1); // Drop trailing :
+      auto const *id = &*_pool->emplace(text).first;
       current_token = std::make_shared<SymbolDeclaration>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
-    } else if (auto maybeIdent = _cursor.matchView(identifier); maybeIdent.hasMatch()) {
-      _cursor.advance(maybeIdent.capturedLength(0));
-      QString const *id = &*_pool->emplace(_cursor.select()).first;
+    } else if (auto maybeIdent = _cursor.matchView(identifier); !maybeIdent.empty()) {
+      _cursor.advance(maybeIdent.size());
+      auto const *id = &*_pool->emplace(_cursor.select()).first;
       current_token = std::make_shared<Identifier>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
-    } else if (auto maybeMacro = _cursor.matchView(macroInvoke); maybeMacro.hasMatch()) {
-      _cursor.advance(maybeMacro.capturedLength(0));
-      QString const *id = &*_pool->emplace(_cursor.select().mid(1)).first; // Drop leading @
+    } else if (auto maybeMacro = _cursor.matchView(macroInvoke); !maybeMacro.empty()) {
+      _cursor.advance(maybeMacro.size());
+      auto const *id = &*_pool->emplace(_cursor.select().substr(1)).first; // Drop leading @
       current_token = std::make_shared<MacroInvocation>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
-    } else if (auto maybeDot = _cursor.matchView(directive); maybeDot.hasMatch()) {
-      _cursor.advance(maybeDot.capturedLength(0));
-      QString const *id = &*_pool->emplace(_cursor.select().mid(1)).first; // Drop leading .
+    } else if (auto maybeDot = _cursor.matchView(directive); !maybeDot.empty()) {
+      _cursor.advance(maybeDot.size());
+      auto const *id = &*_pool->emplace(_cursor.select().substr(1)).first; // Drop leading .
       current_token = std::make_shared<DotCommand>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
-    } else if (next == ".") { // Bad dot command!
+    } else if (next == '.') { // Bad dot command!
       _cursor.advance(1);
       current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
       break;
-    } else if (auto maybeHex = _cursor.matchView(hexadecimal); maybeHex.hasMatch()) {
+    } else if (auto maybeHex = _cursor.matchView(hexadecimal); !maybeHex.empty()) {
       using Format = Integer::Format;
-      _cursor.advance(maybeHex.capturedLength(0));
+      _cursor.advance(maybeHex.size());
       auto text = _cursor.select();
-      auto val = text.toInt(nullptr, 16);
+      int val = 0;
+      (void)std::from_chars(text.data(), text.data() + text.size(), val, 16);
       current_token = std::make_shared<Integer>(LocationInterval{loc_start, _cursor.location()}, val, Format::Hex);
       break;
-    } else if (auto maybeBadHex = _cursor.matchView(badHex); maybeBadHex.hasMatch()) {
-      _cursor.advance(maybeBadHex.capturedLength(0));
+    } else if (auto maybeBadHex = _cursor.matchView(badHex); !maybeBadHex.empty()) {
+      _cursor.advance(maybeBadHex.size());
       current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
       break;
-    } else if (auto maybeDec = _cursor.matchView(decimal); maybeDec.hasMatch()) {
+    } else if (auto maybeDec = _cursor.matchView(decimal); !maybeDec.empty()) {
       using Format = Integer::Format;
-      _cursor.advance(maybeDec.capturedLength(0));
+      _cursor.advance(maybeDec.size());
       auto text = _cursor.select();
-      auto val = text.toInt(nullptr, 10);
+      int val = 0;
+      (void)std::from_chars(text.data(), text.data() + text.size(), val, 10);
       current_token =
           std::make_shared<Integer>(LocationInterval{loc_start, _cursor.location()}, val, Format::UnsignedDec);
       break;
-    } else if (auto maybeComment = _cursor.matchView(comment); maybeComment.hasMatch()) {
-      _cursor.advance(maybeComment.capturedLength(0));
-      QString const *id = &*_pool->emplace(_cursor.select().mid(1)).first; // Drop leading ;
+    } else if (auto maybeComment = _cursor.matchView(comment); !maybeComment.empty()) {
+      _cursor.advance(maybeComment.size());
+      auto const *id = &*_pool->emplace(_cursor.select().substr(1)).first; // Drop leading ;
       current_token = std::make_shared<InlineComment>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
-    } else if (next == "'") {
-      if (auto maybeChar = _cursor.matchView(charConstant); maybeChar.hasMatch()) {
-        _cursor.advance(maybeChar.capturedLength(0));
+    } else if (next == '\'') {
+      if (auto maybeChar = _cursor.matchView(charConstant); !maybeChar.empty()) {
+        _cursor.advance(maybeChar.size());
         // Omit open and close quotes.
-        auto text = _cursor.select().mid(1).chopped(1);
+        auto text = bits::chopped(_cursor.select().substr(1), 1);
         current_token =
-            std::make_shared<CharacterConstant>(LocationInterval{loc_start, _cursor.location()}, text.toString());
+            std::make_shared<CharacterConstant>(LocationInterval{loc_start, _cursor.location()}, std::string{text});
         break;
       } else {
         _cursor.advance(1);
         current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
         break;
       }
-    } else if (next == "\"") {
-      if (auto maybeStr = _cursor.matchView(strConstant); maybeStr.hasMatch()) {
-        _cursor.advance(maybeStr.capturedLength(0));
+    } else if (next == '"') {
+      if (auto maybeStr = _cursor.matchView(strConstant); !maybeStr.empty()) {
+        _cursor.advance(maybeStr.size());
         // Omit open and close quotes.
-        auto text = _cursor.select().mid(1).chopped(1);
-        QString const *id = &*_pool->emplace(text).first;
+        auto text = bits::chopped(_cursor.select().substr(1), 1);
+        auto const *id = &*_pool->emplace(text).first;
         current_token = std::make_shared<StringConstant>(LocationInterval{loc_start, _cursor.location()}, id);
         break;
       } else {
@@ -141,7 +146,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::PepLexer::next_token() {
   if (current_token == nullptr)
     current_token = std::make_shared<Empty>(LocationInterval{loc_start, _cursor.location()});
   notify_listeners(current_token);
-  if (print_tokens && current_token) qDebug().noquote().nospace() << "Token:" << current_token->repr();
+  if (print_tokens && current_token) SPDLOG_TRACE("Token: {}", current_token->repr());
   _cursor.skip(0);
   return current_token;
 }

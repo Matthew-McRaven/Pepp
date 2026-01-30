@@ -1,9 +1,26 @@
+/*
+ * /Copyright (c) 2026. Stanley Warford, Matthew McRaven
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
-#include <QtCore/qobject.h>
-#include <QtCore/qregularexpression.h>
 #include <memory>
+#include <string>
+#include <unordered_set>
 #include <vector>
-#include "toolchain2/support/source/seekable.hpp"
+#include "core/libs/compile/source/location.hpp"
+#include "core/libs/compile/source/seekable.hpp"
 
 namespace pepp::tc::lex {
 struct Token;
@@ -16,7 +33,7 @@ struct ALexer {
   // references/pointers to *elements* are never invalidated unless removed from the container.
   // iterators may be invalidated in many cases. So, if derived lexer's return pointers to constant QStrings,
   // we get "cheap" (1 ptr wide) identifiers as well as reducing the average memory usage of the lexer.
-  ALexer(std::shared_ptr<std::unordered_set<QString>> identifier_pool, support::SeekableData &&data);
+  ALexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool, support::SeekableData &&data);
   virtual ~ALexer() = default;
   virtual bool input_remains() const = 0;
   // Whenever next_token is called, must notify all listeners via Listener::consumed.
@@ -39,7 +56,7 @@ protected:
   std::vector<Listener *> _listeners;
   void notify_listeners(std::shared_ptr<Token> t);
   support::SeekableData _cursor;
-  std::shared_ptr<std::unordered_set<QString>> _pool;
+  std::shared_ptr<std::unordered_set<std::string>> _pool;
 };
 
 } // namespace pepp::tc::lex

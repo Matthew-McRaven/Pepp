@@ -3,9 +3,9 @@
 #include "./pep_common.hpp"
 #include "./pep_ir.hpp"
 #include "./pep_lexer.hpp"
+#include "core/libs/compile/lex/buffer.hpp"
 #include "toolchain/symbol/table.hpp"
 #include "toolchain2/asmb/common_diag.hpp"
-#include "toolchain2/support/lex/buffer.hpp"
 
 /*
  * N= { <argument>, <instruction>, <line>, <pseudo>, <statement> }
@@ -41,7 +41,7 @@ private:
 
   void synchronize();
 
-  std::shared_ptr<std::unordered_set<QString>> _pool;
+  std::shared_ptr<std::unordered_set<std::string>> _pool;
   std::shared_ptr<lex::PepLexer> _lexer;
   std::shared_ptr<lex::Buffer> _buffer;
   // Must be QSharedPointer until old toolchain has been entirely ported.

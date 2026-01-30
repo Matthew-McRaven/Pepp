@@ -1,27 +1,43 @@
+/*
+ * /Copyright (c) 2026. Stanley Warford, Matthew McRaven
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
-#include <stdint.h>
-#include "sim3/api/memory_address.hpp"
-#include "type_traits"
+#include <type_traits>
+#include "core/integers.h"
+#include "core/libs/math/interval.hpp"
 
 namespace pepp::tc::support {
 // Represent a point (i.e., a single character) within a text file.
 struct Location {
   Location() = default;
-  Location(uint16_t r, uint16_t c);
+  Location(u16 r, u16 c);
   // A location is considered invalid if either its row or column is INVALID.
   bool valid() const;
   auto operator<=>(const Location &other) const = default;
   bool operator==(const Location &other) const = default;
 
-  static constexpr uint16_t INVALID = -1;
-  static constexpr uint16_t MAX = -2;
-  uint16_t row = INVALID;
-  uint16_t column = INVALID;
+  static constexpr u16 INVALID = -1;
+  static constexpr u16 MAX = -2;
+  u16 row = INVALID;
+  u16 column = INVALID;
 };
 
 // Represents a range of characters in a text file.
 // It does not know which file it is in. You must track this yourself
-struct LocationInterval : public sim::api2::memory::Interval<Location> {
+struct LocationInterval : public pepp::core::Interval<Location> {
   LocationInterval() = default;
   LocationInterval(Location point);
   LocationInterval(Location lower, Location upper);

@@ -1,5 +1,22 @@
-#include "./buffer.hpp"
-#include "./lexer.hpp"
+/*
+ * /Copyright (c) 2026. Stanley Warford, Matthew McRaven
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "core/libs/compile/lex/buffer.hpp"
+#include "core/libs/compile/lex/lexer.hpp"
+
 pepp::tc::lex::Buffer::Buffer(ALexer *lex) : _lex(lex), _tokens(), _head(0) {}
 
 bool pepp::tc::lex::Buffer::input_remains() const {
@@ -37,7 +54,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::Buffer::match(int mask) {
   else return nullptr;
 }
 
-std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::Buffer::match_literal(QString l) {
+std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::Buffer::match_literal(const std::string &l) {
   using T = pepp::tc::lex::CommonTokenType;
   if (auto next = peek(); next && next->mask((int)T::Literal) && std::static_pointer_cast<Literal>(next)->literal == l)
     return _head++, next;
@@ -55,7 +72,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::Buffer::peek(int mask) {
   return nullptr;
 }
 
-std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::Buffer::peek_literal(QString l) {
+std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::Buffer::peek_literal(const std::string &l) {
   using T = pepp::tc::lex::CommonTokenType;
 
   if (auto next = peek(); next && next->mask((int)T::Literal) && std::static_pointer_cast<Literal>(next)->literal == l)

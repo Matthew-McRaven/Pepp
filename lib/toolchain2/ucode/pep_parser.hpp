@@ -16,10 +16,11 @@
 #pragma once
 #include <QRegularExpression>
 
-#include "../support/lex/buffer.hpp"
 #include "./pep_ir.hpp"
 #include "./pep_lexer.hpp"
 #include "./pep_tokens.hpp"
+#include "core/libs/compile/lex/buffer.hpp"
+#include "core/libs/types/case_insensitive.hpp"
 
 namespace pepp::tc::parse {
 // 0-indexed line number and an error message for that line.
@@ -65,9 +66,9 @@ std::vector<typename uarch::Code> microcodeFor(const ParseResult<uarch, register
 }
 
 template <typename uarch, typename registers> struct MicroParser {
-  MicroParser(const QString &source, std::shared_ptr<std::unordered_set<QString>> pool = nullptr)
-      : _pool(pool ? pool : std::make_shared<std::unordered_set<QString>>()),
-        _lexer(_pool, support::SeekableData{source}), _buf(&_lexer) {};
+  MicroParser(const QString &source, std::shared_ptr<std::unordered_set<std::string>> pool = nullptr)
+      : _pool(pool ? pool : std::make_shared<std::unordered_set<std::string>>()),
+        _lexer(_pool, support::SeekableData{source.toStdString()}), _buf(&_lexer) {};
   // Given some source code, parse it as a microcode program.
   // We assume that not language constructs span multiple lines, so we defer the real parsing work to parseLine.
   // This means parse() is mostly responsible for splitting the source into lines, updating address & symbol values, and
@@ -76,7 +77,7 @@ template <typename uarch, typename registers> struct MicroParser {
 
 private:
   bool nextLine(typename ir::Line<uarch, registers> &code, QString &error);
-  std::shared_ptr<std::unordered_set<QString>> _pool;
+  std::shared_ptr<std::unordered_set<std::string>> _pool;
   lex::MicroLexer _lexer;
   lex::Buffer _buf;
 };
@@ -135,9 +136,10 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
       quint32 address = 0, value = 0;
       // Rely on operator short-circuiting to ensure that the first match is put into t.
       // Used to decide how to parse hex/decimal values.
+      using ci_sv = std::basic_string_view<char, bts::ci_char_traits>;
       // Nested logical MUST not call continue/return on success. There is shared book keeping logic between tests
       if (auto asId = _buf.match<Identifier>(); !asId) return error = "Expected identifier after pre/post unit", false;
-      else if (asId->view().compare("mem", Qt::CaseInsensitive) == 0) { // Match Mem[numeric]=value
+      else if (auto ci = bts::to_ci_stringview(asId->view()); ci.compare("mem") == 0) { // Match Mem[numeric]=value
         using enum Integer::Format;
         if (!_buf.match_literal("[")) return error = "Expected '[' after 'Mem'", false;
         else if (auto asInt = _buf.match<Integer>(); !asInt) return error = "Expected address after '['", false;
@@ -154,8 +156,7 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
         else if (value < 256) code.tests.emplace_back(tc::ir::MemTest((quint16)address, (quint8)value));
         else code.tests.emplace_back(tc::ir::MemTest((quint16)address, (quint16)value));
       } else { // Match identifer=value for registers
-        if (auto maybe_register = registers::parse_register(asId->to_string().toStdString());
-            maybe_register.has_value()) {
+        if (auto maybe_register = registers::parse_register(asId->to_string()); maybe_register.has_value()) {
           using enum Integer::Format;
           if (!_buf.match_literal("=")) return error = "Expected '=' after register", false;
           // Short circuiting used to ensure t has the token of the matched value.
@@ -166,7 +167,7 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
           else if ((1 << (8 * registers::register_byte_size(*maybe_register))) - 1 < value)
             return error = "Register value too large" + u"%1"_s.arg(value, 16), false;
           else code.tests.emplace_back(tc::ir::RegisterTest<registers>{*maybe_register, static_cast<quint32>(value)});
-        } else if (auto maybe_csr = registers::parse_csr(asId->to_string().toStdString()); maybe_csr.has_value()) {
+        } else if (auto maybe_csr = registers::parse_csr(asId->to_string()); maybe_csr.has_value()) {
           using enum Integer::Format;
           if (!_buf.match_literal("=")) return error = "Expected '=' after register", false;
           else if (auto asInt = _buf.match<Integer>(); !asInt) return error = "Expected value after '='", false;
@@ -179,21 +180,22 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
       // Ensure that each item is followed by some seperator or a comment, prevent constructs like A=7 B=2
       if (_buf.match_literal(",") || !_buf.input_remains()) continue;
       else if (_buf.match<Empty>()) return true;
-      else if (auto asCom = _buf.match<InlineComment>(); asCom) code.comment = asCom->view().toString();
+      else if (auto asCom = _buf.match<InlineComment>(); asCom)
+        code.comment = QString::fromStdString(std::string{asCom->view()});
       else return error = "Unexpected comma, newline, or comment after test", false;
     } else if (_buf.count_matched_tokens() == 0 && _buf.match<UnitPre>()) code.type = Line::Type::Pre;
     else if (_buf.count_matched_tokens() == 0 && _buf.match<UnitPost>()) code.type = Line::Type::Post;
     else if (auto asSym = _buf.match<SymbolDeclaration>(); asSym) {
       if (!uarch::allows_symbols()) return error = "Symbols are forbidden", false;
       auto current = asSym->view();
-      code.symbolDecl = current.left(current.size() - 1).toString(); // Remove trailing :
+      code.symbolDecl = QString::fromStdString(std::string{current}).left(current.size() - 1); // Remove trailing :
       if (!_buf.peek((int)CTT::Identifier)) return error = "Expected identifier after symbol declaration", false;
     } else if (_buf.match_literal(";")) {
       current_group++;
       signals_in_group = 0;
       if (current_group >= uarch::max_signal_groups()) return error = "Unexpected semicolon", false;
     } else if (auto asId = _buf.match<Identifier>(); asId) {
-      auto maybe_signal = uarch::parse_signal(asId->to_string().toStdString());
+      auto maybe_signal = uarch::parse_signal(asId->to_string());
       if (!maybe_signal.has_value()) return error = "Unknown signal: " + asId->view(), false;
       typename uarch::Signals s = *maybe_signal;
       // If no signals are in this group, allow "jumping" to a higher group.
@@ -215,7 +217,7 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
         else if (auto asId = _buf.match<Identifier>(); asId) {
           if (uarch::signal_allows_symbolic_argument(s)) {
             code.controls.enable(s); // Ensure that the line is flagged as a code line if this is the only signal.
-            code.deferredValues[s] = asId->view().toString();
+            code.deferredValues[s] = QString::fromStdString(std::string{asId->view()});
           } else return error = "Signal does not allow symbolic argument", false;
 
         } else if (auto i = _buf.match<Integer>(); i && i->format == UnsignedDec) {
@@ -226,13 +228,13 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
       }
 
       // Ensure that each item is followed by some seperator or a comment, prevent constructs like A=7 B=2
-      if (auto c = _buf.match<InlineComment>(); c) code.comment = c->view().toString();
+      if (auto c = _buf.match<InlineComment>(); c) code.comment = QString::fromStdString(std::string{c->view()});
       else if (_buf.peek_literal(";") || _buf.match_literal(",") || _buf.peek<Empty>() || !_buf.input_remains())
         continue;
       else return (error = "Unexpected  seperator after signal"), false;
-    } else if (auto c = _buf.match<InlineComment>()) code.comment = c->view().toString();
+    } else if (auto c = _buf.match<InlineComment>()) code.comment = QString::fromStdString(std::string{c->view()});
     else if (_buf.match<Empty>()) return true;
-    else return error = "Unexpected token: " + _buf.peek()->to_string(), false;
+    else return error = "Unexpected token: " + QString::fromStdString(_buf.peek()->to_string()), false;
   }
   return true;
 }

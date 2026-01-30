@@ -203,7 +203,7 @@ QSharedPointer<sim::memory::Dense<quint16>> allocate(QVector<QSharedPointer<sim:
                                                      sim::api2::device::Descriptor desc, AddressSpan span) {
   // Attempt to find exact match in pool.
   for (int index = 0; index < pool.size(); index++) {
-    if (sim::api2::memory::size_inclusive(pool[index]->span()) == sim::api2::memory::size_inclusive(span)) {
+    if (pepp::core::size_inclusive(pool[index]->span()) == pepp::core::size_inclusive(span)) {
       auto ret = pool.takeAt(index);
       ret->setDevice(desc);
       return ret;
@@ -214,7 +214,7 @@ QSharedPointer<sim::memory::Dense<quint16>> allocate(QVector<QSharedPointer<sim:
   // Compute the difference in sizes between the request and actual sizes. Positive and close to 0 is best.
   QVector<std::size_t> size_diff(pool.size(), 0);
   std::transform(pool.cbegin(), pool.cend(), size_diff.begin(), [span](const auto &mem) {
-    return sim::api2::memory::size_inclusive(mem->span()) - sim::api2::memory::size_inclusive(span);
+    return pepp::core::size_inclusive(mem->span()) - pepp::core::size_inclusive(span);
   });
   // Find the element smallest element that can contain the request without expanding.
   std::size_t min_diff = std::numeric_limits<std::size_t>::max(), index = std::numeric_limits<std::size_t>::max();

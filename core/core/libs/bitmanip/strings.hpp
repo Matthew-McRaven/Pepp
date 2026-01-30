@@ -93,6 +93,12 @@ inline std::string to_upper(const std::string &s) {
   return s_copy;
 }
 
+inline std::string to_upper(std::string_view s) {
+  std::string s_copy{s};
+  to_upper_inplace(s_copy);
+  return s_copy;
+}
+
 inline void to_lower_inplace(std::string &s) {
   std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 }
@@ -101,5 +107,19 @@ inline std::string to_lower(const std::string &s) {
   std::string s_copy = s;
   to_lower_inplace(s_copy);
   return s_copy;
+}
+inline std::string to_lower(std::string_view s) {
+  std::string s_copy{s};
+  to_lower_inplace(s_copy);
+  return s_copy;
+}
+
+inline std::string_view chopped(std::string_view sv, std::size_t n) {
+  if (n >= sv.size()) return {};
+  return sv.substr(0, sv.size() - n);
+}
+
+inline bool contains(std::string_view haystack, std::string_view needle) {
+  return haystack.find(needle) != std::string_view::npos;
 }
 } // namespace bits

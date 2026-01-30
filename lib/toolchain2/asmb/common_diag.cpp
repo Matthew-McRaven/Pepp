@@ -1,5 +1,6 @@
 #include "common_diag.hpp"
 #include <string>
+#include "core/macros.hpp"
 #include "fmt/format.h"
 
 const std::string pepp::tc::ParserError::to_string(NullaryError err) {
@@ -23,7 +24,7 @@ const std::string pepp::tc::ParserError::to_string(NullaryError err) {
   case NullaryError::Section_StringFlags: return ".SECTION flags must be a string";
   case NullaryError::Token_MissingNewline: return "Expected \\n";
   }
-  Q_UNREACHABLE();
+  PEPP_UNREACHABLE();
 }
 
 const std::string pepp::tc::ParserError::to_string(UnaryError err, std::string &arg) {
@@ -34,7 +35,7 @@ const std::string pepp::tc::ParserError::to_string(UnaryError err, std::string &
   case UnaryError::Dot_Invalid: return fmt::format("Invalid pseudo-operation \"{}\".", arg);
   case UnaryError::Token_Invalid: return fmt::format("Unrecognized token: {}", arg);
   }
-  Q_UNREACHABLE();
+  PEPP_UNREACHABLE();
 }
 
 pepp::tc::ParserError::ParserError(NullaryError err, support::LocationInterval loc)

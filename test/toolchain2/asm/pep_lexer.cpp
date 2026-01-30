@@ -16,13 +16,14 @@
  */
 
 #include "toolchain2/asmb/pep_lexer.hpp"
+#include <QtCore>
 #include <catch.hpp>
 #include "toolchain2/asmb/pep_tokens.hpp"
 
 using namespace Qt::StringLiterals;
 namespace {
-static auto idpool = []() { return std::make_shared<std::unordered_set<QString>>(); };
-static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
+static auto idpool = []() { return std::make_shared<std::unordered_set<std::string>>(); };
+static auto data = [](QString str) { return pepp::tc::support::SeekableData{str.toStdString()}; };
 } // namespace
 auto check_next(pepp::tc::lex::PepLexer &l, int token_type) {
   auto next = l.next_token();
@@ -34,7 +35,7 @@ auto check_next_string(pepp::tc::lex::PepLexer &l, int token_type, QString expec
   auto next = l.next_token();
   REQUIRE(next);
   CHECK(next->type() == token_type);
-  CHECK(next->to_string().toStdString() == expected.toStdString());
+  CHECK(next->to_string() == expected.toStdString());
   return next;
 }
 auto check_next_int(pepp::tc::lex::PepLexer &l, int64_t val, pepp::tc::lex::Integer::Format fmt) {
@@ -62,7 +63,7 @@ auto check_char_sequence(pepp::tc::lex::PepLexer &l, QString body) {
   CHECK(next->type() == (int)pepp::tc::lex::AsmTokenType::CharacterConstant);
   auto charconst = std::dynamic_pointer_cast<pepp::tc::lex::CharacterConstant>(next);
   REQUIRE(charconst);
-  CHECK(charconst->value.toStdString() == body.toStdString());
+  CHECK(charconst->value == body.toStdString());
   return charconst;
 }
 auto check_str_sequence(pepp::tc::lex::PepLexer &l, QString body) {
@@ -71,7 +72,7 @@ auto check_str_sequence(pepp::tc::lex::PepLexer &l, QString body) {
   CHECK(next->type() == (int)pepp::tc::lex::AsmTokenType::StringConstant);
   auto strconst = std::dynamic_pointer_cast<pepp::tc::lex::StringConstant>(next);
   REQUIRE(strconst);
-  CHECK(strconst->view().toString().toStdString() == body.toStdString());
+  CHECK(strconst->view() == body.toStdString());
   return strconst;
 }
 
@@ -91,7 +92,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(c->to_string() == ",");
     check_next(l, (int)CTT::Empty);
     c = check_next(l, (int)CTT::Literal);
-    CHECK(c->to_string().toStdString() == ",");
+    CHECK(c->to_string() == ",");
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
@@ -111,8 +112,8 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     check_next_string(l, (int)CTT::Identifier, "a_word");
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
-    CHECK(pool->contains(u"a"_s));
-    CHECK(!pool->contains(u"A"_s));
+    CHECK(pool->contains("a"));
+    CHECK(!pool->contains("A"));
   }
   SECTION("Symbols") {
     auto pool = idpool();
@@ -124,10 +125,10 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     check_next_string(l, (int)CTT::SymbolDeclaration, "a_word");
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
-    CHECK(pool->contains(u"a"_s));
-    CHECK(!pool->contains(u"a:"_s));
-    CHECK(pool->contains(u"b9"_s));
-    CHECK(!pool->contains(u"b9:"_s));
+    CHECK(pool->contains("a"));
+    CHECK(!pool->contains("a:"));
+    CHECK(pool->contains("b9"));
+    CHECK(!pool->contains("b9:"));
   }
   SECTION("Macro invocations") {
     auto pool = idpool();
@@ -139,10 +140,10 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     check_next_string(l, (int)ATT::MacroInvocation, "a_word");
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
-    CHECK(pool->contains(u"a"_s));
-    CHECK(!pool->contains(u"@a"_s));
-    CHECK(pool->contains(u"b9"_s));
-    CHECK(!pool->contains(u"@b9"_s));
+    CHECK(pool->contains("a"));
+    CHECK(!pool->contains("@a"));
+    CHECK(pool->contains("b9"));
+    CHECK(!pool->contains("@b9"));
   }
   SECTION("Unsigned decimal") {
     auto l = Lexer(idpool(), data("0 00 000 10 65537"));
@@ -210,8 +211,8 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     check_next_string(l, (int)ATT::DotCommand, "a_word");
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
-    CHECK(pool->contains(u"a"_s));
-    CHECK(!pool->contains(u".a"_s));
+    CHECK(pool->contains("a"));
+    CHECK(!pool->contains(".a"));
   }
 
   SECTION("Dot requires char") {
@@ -231,8 +232,8 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
       check_char_sequence(l, "H");
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
-      CHECK(!pool->contains(u"H"_s));
-      CHECK(!pool->contains(u"'H'"_s));
+      CHECK(!pool->contains("H"));
+      CHECK(!pool->contains("'H'"));
     }
     {
       auto pool = idpool();
@@ -245,8 +246,8 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
       check_char_sequence(l, "\"");
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
-      CHECK(!pool->contains(u"\""_s));
-      CHECK(!pool->contains(u"'\"'"_s));
+      CHECK(!pool->contains("\""));
+      CHECK(!pool->contains("'\"'"));
     }
     {
       auto pool = idpool();
@@ -262,7 +263,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
       check_char_sequence(l, s);
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
-      CHECK(!pool->contains(s));
+      CHECK(!pool->contains(s.toStdString()));
     }
   }
   SECTION("Unescaped Strings") {
@@ -272,8 +273,8 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
       check_str_sequence(l, "Hello World");
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
-      CHECK(pool->contains(u"Hello World"_s));
-      CHECK(!pool->contains(u"\"Hello World\""_s));
+      CHECK(pool->contains("Hello World"));
+      CHECK(!pool->contains("\"Hello World\""));
     }
     {
       auto pool = idpool();
@@ -281,8 +282,8 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
       check_str_sequence(l, "\\\"");
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
-      CHECK(pool->contains(u"\\\""_s));
-      CHECK(!pool->contains(u"\"\"\""_s));
+      CHECK(pool->contains("\\\""));
+      CHECK(!pool->contains("\"\"\""));
     }
     {
       auto pool = idpool();
@@ -301,7 +302,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
       check_str_sequence(l, "hi" + s);
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
-      CHECK(pool->contains(u"hi" + s));
+      CHECK(pool->contains(("hi" + s).toStdString()));
     }
   }
 }
