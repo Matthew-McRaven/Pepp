@@ -1,6 +1,6 @@
 #pragma once
-#include "core/libs/compile//lex/tokens.hpp"
 #include "core/libs/compile/lex/lexer.hpp"
+#include "core/libs/compile/lex/tokens.hpp"
 namespace pepp::tc::lex {
 
 enum class MicrocodeTokenType {

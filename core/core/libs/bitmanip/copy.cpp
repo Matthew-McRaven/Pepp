@@ -14,7 +14,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/libs//bitmanip/copy.hpp"
+#include "core/libs/bitmanip/copy.hpp"
 #include <algorithm>
 
 void bits::memcpy_endian(std::span<uint8_t> dest, Order destOrder, std::span<const uint8_t> src, Order srcOrder) {
