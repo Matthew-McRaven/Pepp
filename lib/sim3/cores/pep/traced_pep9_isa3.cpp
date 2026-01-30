@@ -15,7 +15,7 @@
  */
 
 #include "traced_pep9_isa3.hpp"
-#include "core/bitmanip/swap.hpp"
+#include "core/libs/bitmanip/swap.hpp"
 #include "sim3/subsystems/ram/broadcast/mmo.hpp"
 #include "traced_helpers.hpp"
 

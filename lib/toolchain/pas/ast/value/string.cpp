@@ -16,8 +16,8 @@
  */
 
 #include "./string.hpp"
-#include "core/bitmanip/copy.hpp"
-#include "core/bitmanip/strings.hpp"
+#include "core/libs/bitmanip/copy.hpp"
+#include "core/libs/bitmanip/strings.hpp"
 #include "toolchain/pas/string_utils.hpp"
 pas::ast::value::ShortString::ShortString() : Base() {}
 

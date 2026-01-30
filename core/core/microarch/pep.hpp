@@ -20,7 +20,7 @@
 #include <stdexcept>
 #include <stdint.h>
 #include <unordered_map>
-#include "core/libs/case_insensitive_hash.hpp"
+#include "../libs/types/case_insensitive_hash.hpp"
 namespace pepp::tc::arch {
 namespace detail::pep9_registers {
 enum class NamedRegisters {

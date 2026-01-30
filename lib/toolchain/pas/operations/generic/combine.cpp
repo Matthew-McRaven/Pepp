@@ -16,7 +16,7 @@
  */
 
 #include "./combine.hpp"
-#include "core/bitmanip/order.hpp"
+#include "core/libs/bitmanip/order.hpp"
 #include "toolchain/pas/ast/generic/attr_address.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"

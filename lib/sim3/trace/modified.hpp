@@ -18,7 +18,7 @@
 #include <ostream>
 #include <set>
 #include "./packet_utils.hpp"
-#include "core/bitmanip/mask.hpp"
+#include "core/libs/bitmanip/mask.hpp"
 #include "sim3/api/memory_address.hpp"
 #include "sim3/api/traced/memory_path.hpp"
 #include "sim3/api/traced/memory_target.hpp"

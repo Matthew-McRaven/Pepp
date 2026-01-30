@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "formats.hpp"
-#include "core/bitmanip/mask.hpp"
+#include "core/libs/bitmanip/mask.hpp"
 using namespace Qt::StringLiterals;
 
 TextFormatter::TextFormatter(QString value) : _value(value) {}

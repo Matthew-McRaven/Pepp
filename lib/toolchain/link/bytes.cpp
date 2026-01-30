@@ -16,7 +16,7 @@
  */
 
 #include "./bytes.hpp"
-#include "core/bitmanip/strings.hpp"
+#include "core/libs/bitmanip/strings.hpp"
 
 struct Buffer {
   quint64 srcLength = 0, dstLength;

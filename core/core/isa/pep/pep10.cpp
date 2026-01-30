@@ -17,7 +17,7 @@
 
 #include "core/isa/pep/pep10.hpp"
 #include <bitset>
-#include "core/bitmanip/strings.hpp"
+#include "core/libs/bitmanip/strings.hpp"
 #include "core/isa/pep/pep_shared.hpp"
 
 static auto register_maps() {

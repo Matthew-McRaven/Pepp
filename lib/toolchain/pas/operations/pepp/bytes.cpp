@@ -16,8 +16,8 @@
  */
 
 #include "./bytes.hpp"
-#include "core/bitmanip/copy.hpp"
-#include "core/bitmanip/strings.hpp"
+#include "core/libs/bitmanip/copy.hpp"
+#include "core/libs/bitmanip/strings.hpp"
 #include "toolchain/pas/ast/generic/attr_address.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_directive.hpp"

@@ -16,7 +16,7 @@
 
 #include "toolchain/pas/operations/pepp/assign_addr.hpp"
 #include <catch.hpp>
-#include "core/bitmanip/strings.hpp"
+#include "core/libs/bitmanip/strings.hpp"
 #include "core/isa/pep/pep10.hpp"
 #include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/registry.hpp"

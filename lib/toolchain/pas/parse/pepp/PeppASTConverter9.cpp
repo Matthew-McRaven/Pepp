@@ -2,7 +2,7 @@
 #include "toolchain/pas/string_utils.hpp"
 
 #undef emit
-#include "core/bitmanip/strings.hpp"
+#include "core/libs/bitmanip/strings.hpp"
 #include "core/isa/pep/pep9.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_comment.hpp"

@@ -34,7 +34,7 @@
 #include "./registers.hpp"
 #include <stdexcept>
 #include "core/isa/riscv/rv_base.hpp"
-#include "core/bitmanip/span.hpp"
+#include "core/libs/bitmanip/span.hpp"
 
 namespace {
 template <typename... Args>

@@ -18,7 +18,7 @@
 #include "./pep9.hpp"
 #include "core/isa/pep/pep9.hpp"
 #include "./common.hpp"
-#include "core/bitmanip/copy.hpp"
+#include "core/libs/bitmanip/copy.hpp"
 #include "toolchain/link/mmio.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/operations/pepp/gather_ios.hpp"

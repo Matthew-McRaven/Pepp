@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include "core/bitmanip/copy.hpp"
+#include "core/libs/bitmanip/copy.hpp"
 #include "sim3/api/memory_address.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
