@@ -65,7 +65,8 @@ template <typename uarch, typename registers> struct Line {
 template <typename uarch, typename registers> QString format(const Line<uarch, registers> &line) {
   QString symbolDecl;
   if (line.symbolDecl.has_value()) symbolDecl = *line.symbolDecl + ": ";
-  auto _signals = line.controls.toString();
-  return QString("%1%2%3").arg(symbolDecl, _signals, line.comment.has_value() ? *line.comment : "");
+  std::string _signals = line.controls.toString();
+  return QString("%1%2%3").arg(symbolDecl, QString::fromStdString(_signals),
+                               line.comment.has_value() ? *line.comment : "");
 }
 } // namespace pepp::tc::ir

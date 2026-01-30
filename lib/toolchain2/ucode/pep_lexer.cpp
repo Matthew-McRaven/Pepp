@@ -60,8 +60,9 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::MicroLexer::next_token() {
       current_token = std::make_shared<Literal>(LocationInterval{loc_start, _cursor.location()}, ";");
       break;
     } else if (auto maybeSymbol = _cursor.matchView(symbol); !maybeSymbol.empty()) {
-      _cursor.advance(maybeSymbol.size());
-      auto const *id = &*_pool->emplace(_cursor.select()).first;
+      auto match = maybeSymbol.str(0);
+      _cursor.advance(match.size());
+      auto const *id = &*_pool->emplace(match).first;
       using ci_sv = std::basic_string_view<char, bts::ci_char_traits>;
       static constexpr const ci_sv UnitPreStr{"UnitPre:"};
       static constexpr const ci_sv UnitPostStr{"UnitPost:"};
@@ -74,38 +75,42 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::MicroLexer::next_token() {
       else current_token = std::make_shared<SymbolDeclaration>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else if (auto maybeIdent = _cursor.matchView(identifier); !maybeIdent.empty()) {
-      _cursor.advance(maybeIdent.size());
-      auto const *id = &*_pool->emplace(_cursor.select()).first;
+      auto match = maybeIdent.str(0);
+      _cursor.advance(match.size());
+      auto const *id = &*_pool->emplace(match).first;
       current_token = std::make_shared<Identifier>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else if (auto maybeLine = _cursor.matchView(lineNum); !maybeLine.empty()) {
-      _cursor.advance(maybeLine.size());
+      auto match = maybeLine.str(0);
+      _cursor.advance(match.size());
       // Remove trailing period, else parsing fails.
-      auto text = bits::chopped(_cursor.select(), 1);
+      auto text = bits::chopped(match, 1);
       int val = 0;
       (void)std::from_chars(text.data(), text.data() + text.size(), val, 10);
       current_token = std::make_shared<LineNumber>(LocationInterval{loc_start, _cursor.location()}, val);
       break;
     } else if (auto maybeHex = _cursor.matchView(hexadecimal); !maybeHex.empty()) {
       using Format = Integer::Format;
-      _cursor.advance(maybeHex.size());
-      auto text = _cursor.select();
+      auto match = maybeHex.str(0);
+      _cursor.advance(match.size());
+      match = match.substr(2); // Drop 0x
       int val = 0;
-      (void)std::from_chars(text.data(), text.data() + text.size(), val, 16);
+      (void)std::from_chars(match.data(), match.data() + match.size(), val, 16);
       current_token = std::make_shared<Integer>(LocationInterval{loc_start, _cursor.location()}, val, Format::Hex);
       break;
     } else if (auto maybeDec = _cursor.matchView(decimal); !maybeDec.empty()) {
       using Format = Integer::Format;
-      _cursor.advance(maybeDec.size());
-      auto text = _cursor.select();
+      auto match = maybeDec.str(0);
+      _cursor.advance(match.size());
       int val = 0;
-      (void)std::from_chars(text.data(), text.data() + text.size(), val, 10);
+      (void)std::from_chars(match.data(), match.data() + match.size(), val, 10);
       auto fmt = val < 0 ? Format::SignedDec : Format::UnsignedDec;
       current_token = std::make_shared<Integer>(LocationInterval{loc_start, _cursor.location()}, val, fmt);
       break;
     } else if (auto maybeComment = _cursor.matchView(comment); !maybeComment.empty()) {
-      _cursor.advance(maybeComment.size());
-      auto const *id = &*_pool->emplace(_cursor.select()).first;
+      auto match = maybeComment.str(0);
+      _cursor.advance(match.size());
+      auto const *id = &*_pool->emplace(match).first;
       current_token = std::make_shared<InlineComment>(LocationInterval{loc_start, _cursor.location()}, id);
       break;
     } else {
