@@ -17,7 +17,7 @@
 
 #pragma once
 #include <span>
-#include "core/libs/bitmanip/integers.h"
+#include "../../integers.h"
 #include "core/libs/elf/enums.hpp"
 
 /*

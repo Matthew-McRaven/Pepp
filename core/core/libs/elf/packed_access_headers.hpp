@@ -18,7 +18,7 @@
 #pragma once
 #include <memory>
 #include <variant>
-#include "core/libs/bitmanip/integers.h"
+#include "../../integers.h"
 #include "core/libs/elf/packed_types.hpp"
 
 namespace pepp::bts {

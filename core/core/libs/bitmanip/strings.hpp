@@ -20,7 +20,7 @@
 #include <iostream>
 #include <optional>
 #include <vector>
-#include "core/libs/bitmanip/integers.h"
+#include "../../integers.h"
 #include "core/libs/bitmanip/span.hpp"
 
 namespace bits {

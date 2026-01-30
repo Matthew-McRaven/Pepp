@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "core/libs/bitmanip/integers.h"
+#include "../../integers.h"
 namespace pepp::bts {
 
 // Will eventually exist in C++23, but it can be implemented easily enough by hand until it is widely supported.

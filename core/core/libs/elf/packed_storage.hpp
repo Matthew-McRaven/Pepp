@@ -16,8 +16,8 @@
  */
 
 #pragma once
+#include "../../integers.h"
 #include "core/libs/alloc/paged_alloc.hpp"
-#include "core/libs/bitmanip/integers.h"
 #include "core/libs/bitmanip/span.hpp"
 #include "core/libs/elf/packed_access_headers.hpp"
 #include "core/libs/io/mapped_file.hpp"

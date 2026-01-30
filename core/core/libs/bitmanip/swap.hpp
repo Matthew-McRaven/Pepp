@@ -22,7 +22,7 @@
 #include <concepts>
 #include <cstring> // for memcpy.
 #include <ranges>
-#include "core/libs/bitmanip/integers.h"
+#include "../../integers.h"
 #include "core/libs/bitmanip/order.hpp"
 namespace bits {
 namespace detail {
