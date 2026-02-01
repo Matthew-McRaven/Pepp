@@ -14,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "traced_helpers.hpp"
-#include "core/isa/pep/pep10.hpp"
-#include "core/isa/pep/pep9.hpp"
+#include "../../../../core/core/arch/pep/isa/pep10.hpp"
+#include "../../../../core/core/arch/pep/isa/pep9.hpp"
 
 targets::isa::IllegalOpcode::IllegalOpcode() : std::runtime_error("Illegal Opcode") {}
 

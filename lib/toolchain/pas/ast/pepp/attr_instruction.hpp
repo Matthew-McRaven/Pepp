@@ -17,8 +17,8 @@
 
 #pragma once
 #include <QtCore>
-#include "core/isa/pep/pep10.hpp"
-#include "core/isa/pep/pep9.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pep/isa/pep9.hpp"
 
 namespace detail {
 template <typename ISA> constexpr uint8_t attr() { return 19; }

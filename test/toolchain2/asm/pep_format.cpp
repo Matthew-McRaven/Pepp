@@ -17,17 +17,17 @@
 
 #include "toolchain2/asmb/pep_format.hpp"
 #include <catch.hpp>
+#include "core/compile/lex/buffer.hpp"
 #include "toolchain2/asmb/pep_codegen.hpp"
 #include "toolchain2/asmb/pep_format.hpp"
 #include "toolchain2/asmb/pep_lexer.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
 #include "toolchain2/asmb/pep_tokens.hpp"
-#include "toolchain2/support/lex/buffer.hpp"
 
 using namespace Qt::StringLiterals;
 namespace {
-static auto idpool = []() { return std::make_shared<std::unordered_set<QString>>(); };
-static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
+static auto idpool = []() { return std::make_shared<std::unordered_set<std::string>>(); };
+static auto data = [](QString str) { return pepp::tc::support::SeekableData{str.toStdString()}; };
 } // namespace
 
 TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
@@ -116,7 +116,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
       auto b = Buffer(&l);
       Checkpoint{b};
       CHECK(b.match<Identifier>());
-      CHECK(b.match<Integer>());
+      CHECK(b.match<pepp::tc::lex::Integer>());
       CHECK(b.match<Literal>());
       CHECK(b.match<Identifier>());
       CHECK(b.match<InlineComment>());
@@ -194,7 +194,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     Checkpoint{b};
     CHECK(b.match<SymbolDeclaration>());
     CHECK(b.match<DotCommand>());
-    CHECK(b.match<Integer>());
+    CHECK(b.match<pepp::tc::lex::Integer>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
@@ -232,7 +232,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     Checkpoint{b};
     CHECK(b.match<SymbolDeclaration>());
     CHECK(b.match<DotCommand>());
-    CHECK(b.match<Integer>());
+    CHECK(b.match<pepp::tc::lex::Integer>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
@@ -251,7 +251,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     Checkpoint{b};
     CHECK(b.match<SymbolDeclaration>());
     CHECK(b.match<DotCommand>());
-    CHECK(b.match<Integer>());
+    CHECK(b.match<pepp::tc::lex::Integer>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();
@@ -307,7 +307,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto b = Buffer(&l);
     Checkpoint{b};
     CHECK(b.match<DotCommand>());
-    CHECK(b.match<Integer>());
+    CHECK(b.match<pepp::tc::lex::Integer>());
     CHECK(b.match<Empty>());
     auto sp = b.matched_tokens();
     auto lexer_formatted = format_source(sp).toStdString();

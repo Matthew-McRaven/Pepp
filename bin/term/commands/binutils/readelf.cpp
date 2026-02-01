@@ -18,8 +18,8 @@
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_dump.hpp>
 #include <iostream>
-#include "core/bitmanip/span.hpp"
-#include "core/bitmanip/strings.hpp"
+#include "core/math/bitmanip/span.hpp"
+#include "core/math/bitmanip/strings.hpp"
 #include "toolchain/pas/obj/common.hpp"
 #include "toolchain/pas/obj/trace_tags.hpp"
 

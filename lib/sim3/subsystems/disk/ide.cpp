@@ -1,5 +1,5 @@
 #include "ide.hpp"
-#include "core/bitmanip/span.hpp"
+#include "core/math/bitmanip/span.hpp"
 using namespace std::literals;
 namespace {
 sim::api2::device::Descriptor regs(sim::api2::device::Descriptor parent, sim::api2::device::IDGenerator g) {

@@ -1,7 +1,7 @@
 #include "pep_format.hpp"
 #include <QStringList>
 #include <fmt/format.h>
-#include "core/bitmanip/strings.hpp"
+#include "core/math/bitmanip/strings.hpp"
 #include "pep_codegen.hpp"
 #include "toolchain2/asmb/pep_ir_visitor.hpp"
 #include "toolchain2/asmb/pep_tokens.hpp"
@@ -67,24 +67,24 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       case (int)CTT::Empty: state = States::END; break;
       case (int)CTT::InlineComment:
         state = States::COMMENT;
-        col0 = ";" + token->to_string();
+        col0 = ";" + QString::fromStdString(token->to_string());
         break;
       case (int)CTT::SymbolDeclaration:
         state = States::SYMBOL;
-        col0 = token->to_string() + ":";
+        col0 = QString::fromStdString(token->to_string()) + ":";
         break;
       case (int)ATT::DotCommand:
         state = States::ARGED1;
-        col1 = "." + token->to_string().toUpper();
+        col1 = "." + QString::fromStdString(token->to_string()).toUpper();
         space_after_comma = true;
         break;
       case (int)ATT::MacroInvocation:
         state = States::ARGED1;
-        col1 = "@" + token->to_string();
+        col1 = "@" + QString::fromStdString(token->to_string());
         break;
       case (int)CTT::Identifier:
         state = States::ARGED1;
-        col1 = token->to_string().toUpper();
+        col1 = QString::fromStdString(token->to_string()).toUpper();
         force_lowercase_on_arg = 2;
         break;
       default: valid = false;
@@ -103,16 +103,16 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       switch ((int)token->type()) {
       case (int)ATT::DotCommand:
         state = States::ARGED1;
-        col1 = "." + token->to_string().toUpper();
+        col1 = "." + QString::fromStdString(token->to_string()).toUpper();
         space_after_comma = true;
         break;
       case (int)ATT::MacroInvocation:
         state = States::ARGED1;
-        col1 = "@" + token->to_string();
+        col1 = "@" + QString::fromStdString(token->to_string());
         break;
       case (int)CTT::Identifier:
         state = States::ARGED1;
-        col1 = token->to_string().toUpper();
+        col1 = QString::fromStdString(token->to_string()).toUpper();
         force_lowercase_on_arg = 2;
         break;
       default: valid = false;
@@ -129,7 +129,7 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
         break;
       case (int)CTT::InlineComment:
         col2 = arg_list.join(space_after_comma ? ", " : ",");
-        col3 = ";" + token->to_string();
+        col3 = ";" + QString::fromStdString(token->to_string());
         state = States::COMMENT;
         break;
       case (int)CTT::Literal:
@@ -142,7 +142,7 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       case (int)CTT::Identifier:
         state = States::ARGED2;
         scanned_args++;
-        temp = token->to_string();
+        temp = QString::fromStdString(token->to_string());
         if (scanned_args == force_lowercase_on_arg) temp = temp.toLower();
         arg_list.emplace_back(temp);
         break;
@@ -160,7 +160,7 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
         break;
       case (int)CTT::InlineComment:
         col2 = arg_list.join(space_after_comma ? ", " : ",");
-        col3 = ";" + token->to_string();
+        col3 = ";" + QString::fromStdString(token->to_string());
         state = States::COMMENT;
         break;
       case (int)CTT::Literal:
@@ -180,7 +180,7 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       case (int)CTT::Identifier:
         state = States::ARGED2;
         scanned_args++;
-        temp = token->to_string();
+        temp = QString::fromStdString(token->to_string());
         if (scanned_args == force_lowercase_on_arg) temp = temp.toLower();
         arg_list.emplace_back(temp);
         break;

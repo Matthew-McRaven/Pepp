@@ -36,8 +36,8 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
-#include "core/isa/riscv/rv_instruction_list.hpp"
-#include "core/isa/riscv/rv_types.hpp"
+#include "core/arch/riscv/isa/rv_instruction_list.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
 #include "decoded_exec_segment.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/cores/riscv/instructions/safe_instr_loader.hpp"

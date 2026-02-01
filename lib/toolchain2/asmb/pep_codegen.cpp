@@ -1,7 +1,7 @@
 #include "./pep_codegen.hpp"
 #include <elfio/elfio.hpp>
 #include <ranges>
-#include "core/bitmanip/copy.hpp"
+#include "core/math/bitmanip/copy.hpp"
 #include "fmt/format.h"
 #include "mmio.hpp"
 #include "pep_ir_visitor.hpp"

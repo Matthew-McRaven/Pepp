@@ -16,8 +16,8 @@
  */
 
 #include "character.hpp"
-#include "core/bitmanip/copy.hpp"
-#include "core/bitmanip/strings.hpp"
+#include "core/math/bitmanip/copy.hpp"
+#include "core/math/bitmanip/strings.hpp"
 #include "toolchain/pas/string_utils.hpp"
 pas::ast::value::Character::Character() : Base() {}
 

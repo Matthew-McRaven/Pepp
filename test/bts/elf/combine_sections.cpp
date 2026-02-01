@@ -15,11 +15,11 @@
  */
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
-#include "core/elf/packed_access_array.hpp"
-#include "core/elf/packed_access_note.hpp"
-#include "core/elf/packed_elf.hpp"
-#include "core/elf/packed_ops.hpp"
-#include "core/elf/packed_types.hpp"
+#include "core/formats/elf/packed_access_array.hpp"
+#include "core/formats/elf/packed_access_note.hpp"
+#include "core/formats/elf/packed_elf.hpp"
+#include "core/formats/elf/packed_ops.hpp"
+#include "core/formats/elf/packed_types.hpp"
 
 namespace {
 bool write(const std::string &fname, const std::span<const u8> &data) {

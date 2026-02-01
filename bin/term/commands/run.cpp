@@ -17,7 +17,7 @@
 #include "run.hpp"
 #include "../basic_lazy_sink.hpp"
 #include "../shared.hpp"
-#include "core/bitmanip/strings.hpp"
+#include "core/math/bitmanip/strings.hpp"
 #include "help/builtins/figure.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"

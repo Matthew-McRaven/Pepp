@@ -16,7 +16,7 @@
 
 #include "toolchain/pas/operations/pepp/whole_program_sanity.hpp"
 #include <catch.hpp>
-#include "core/isa/pep/pep10.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"

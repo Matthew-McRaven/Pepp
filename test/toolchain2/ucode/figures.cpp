@@ -16,7 +16,7 @@
 
 #include <catch.hpp>
 #include <ranges>
-#include "core/microarch/pep.hpp"
+#include "../../../core/core/arch/pep/uarch/pep.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"

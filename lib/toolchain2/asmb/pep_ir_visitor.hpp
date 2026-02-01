@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QString>
-#include "core/bitmanip/span.hpp"
+#include "core/math/bitmanip/span.hpp"
 #include "toolchain2/asmb/pep_codegen.hpp"
 
 namespace pepp::tc::ir {

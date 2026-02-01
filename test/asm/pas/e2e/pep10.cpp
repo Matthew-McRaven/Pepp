@@ -16,7 +16,7 @@
 
 #include "toolchain/pas/driver/pep10.hpp"
 #include <catch.hpp>
-#include "core/isa/pep/pep10.hpp"
+#include "../../../../core/core/arch/pep/isa/pep10.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"

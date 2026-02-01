@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "core/bitmanip/leb128.hpp"
+#include "core/math/bitmanip/leb128.hpp"
 #include <catch.hpp>
 #include <string>
 using namespace bits;

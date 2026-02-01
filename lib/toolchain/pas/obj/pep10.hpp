@@ -18,7 +18,7 @@
 #pragma once
 #include <QtCore>
 #include <elfio/elfio.hpp>
-#include "core/bitmanip/integers.h"
+#include "../../../../core/core/integers.h"
 #include "toolchain/pas/ast/node.hpp"
 
 namespace pas::obj::pep10 {

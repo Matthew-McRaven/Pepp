@@ -32,21 +32,21 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
-#include "core/isa/riscv/rv_instruction_list.hpp"
-#include "core/isa/riscv/rvfd.hpp"
 #include "./instr_helpers.hpp"
-#include "core/isa/riscv/rv_types.hpp"
-#include "core/isa/riscv/rvi.hpp"
+#include "core/arch/riscv/isa/rv_instruction_list.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
+#include "core/arch/riscv/isa/rvfd.hpp"
+#include "core/arch/riscv/isa/rvi.hpp"
 #include "sim3/common_macros.hpp"
 
-#include "core/isa/riscv/rva.hpp"
-#include "core/isa/riscv/rvv.hpp"
 #include "./rva_instr.hpp"
 #include "./rvc_instr.hpp"
 #include "./rvfd_instr.hpp"
 #include "./rvi_instr.hpp"
 #include "./rvv_instr.hpp"
-#include "core/isa/riscv/rvc.hpp"
+#include "core/arch/riscv/isa/rva.hpp"
+#include "core/arch/riscv/isa/rvc.hpp"
+#include "core/arch/riscv/isa/rvv.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/rv_common.hpp"
 
 namespace riscv {

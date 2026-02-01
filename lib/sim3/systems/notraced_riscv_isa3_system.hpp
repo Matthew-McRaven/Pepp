@@ -33,8 +33,8 @@
  */
 #pragma once
 #include <random>
-#include "core/isa/riscv/rv_base.hpp"
-#include "core/isa/riscv/rv_types.hpp"
+#include "../../../core/core/arch/riscv/isa/rv_base.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
 #include "notraced_riscv_isa3_system/guest_os/filedesc.hpp"
 #include "notraced_riscv_isa3_system/guest_os/signals.hpp"
 #include "sim3/cores/riscv/decode/decoded_exec_segment.hpp"

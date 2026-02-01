@@ -31,12 +31,12 @@
  * along with this program. If not, see
  * <https://opensource.org/license/bsd-3-clause>
  */
+#include "core/arch/riscv/isa/rva.hpp"
+#include "core/arch/riscv/isa/rvv.hpp"
 #include "../instruction_counter.hpp"
-#include "core/isa/riscv/rva.hpp"
-#include "core/isa/riscv/rvc.hpp"
-#include "core/isa/riscv/rvfd.hpp"
-#include "core/isa/riscv/rvi.hpp"
-#include "core/isa/riscv/rvv.hpp"
+#include "core/arch/riscv/isa/rvc.hpp"
+#include "core/arch/riscv/isa/rvfd.hpp"
+#include "core/arch/riscv/isa/rvi.hpp"
 #include "decoder_cache_impl.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 #include "threaded_bytecodes.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdio>
-#include "core/isa/riscv/rv_types.hpp"
-#include "core/isa/riscv/rvi.hpp"
+#include "../../../core/core/arch/riscv/isa/rv_types.hpp"
+#include "../../../core/core/arch/riscv/isa/rvi.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"
 
 namespace riscv

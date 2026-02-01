@@ -33,7 +33,7 @@
  */
 #pragma once
 #include <cstdint>
-#include "core/isa/riscv/rv_types.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
 
 extern const riscv::Instruction<uint32_t> instr32i_NOP;
 extern const riscv::Instruction<uint32_t> instr32i_UNIMPLEMENTED;

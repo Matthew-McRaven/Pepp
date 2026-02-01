@@ -32,7 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
-#include "core/isa/riscv/rvi.hpp"
+#include "core/arch/riscv/isa/rvi.hpp"
 #include "./rvi_instr.hpp"
 
 namespace riscv

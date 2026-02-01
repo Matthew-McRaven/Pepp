@@ -18,7 +18,7 @@
 #include <ostream>
 #include <set>
 #include "./packet_utils.hpp"
-#include "core/bitmanip/mask.hpp"
+#include "core/math/bitmanip/mask.hpp"
 #include "sim3/api/memory_address.hpp"
 #include "sim3/api/traced/memory_path.hpp"
 #include "sim3/api/traced/memory_target.hpp"
@@ -109,7 +109,7 @@ public:
   void insert_or_overwrite(Interval<T> from, Interval<T> to, sim::api2::device::ID device, D data) {
     Q_ASSERT((size<T, true>(from) == size<T, true>(to)));
     // Erase any nodes entirely contained within "from".
-    using sim::api2::memory::contains;
+    using pepp::core::contains;
     if (auto remove =
             std::remove_if(_elements.begin(), _elements.end(), [&from](auto &n) { return contains(from, n.from); });
         remove != _elements.end())
@@ -158,7 +158,7 @@ public:
 
   // Given an address in the "from" space, return the region it belongs to.
   std::optional<Node> region_at(T from_key) const {
-    using sim::api2::memory::contains;
+    using pepp::core::contains;
     if (_elements.size() == 0) return std::nullopt;
     // Use O(lg n) search to find glb.
     // If glb is at the start, this is the only interval which could contain addr.
@@ -218,7 +218,7 @@ public:
   void clear() { _iset.clear(); }
   const std::set<Interval<Address>> &intervals() const { return _iset.intervals(); }
   bool contains(Address addr) const {
-    using sim::api2::memory::contains;
+    using pepp::core::contains;
     auto i = _iset.intervals();
     if (i.size() == 0) return false;
     // Use O(lg n) search to find glb.
@@ -248,7 +248,7 @@ public:
 protected:
   using path_t = api2::packet::path_t;
   using device_id_t = api2::device::ID;
-  Address translate(device_id_t dev, path_t path, Address addr) const override {
+  Address translate(device_id_t dev, path_t, Address addr) const override {
     return _translator->backward(dev, addr).value_or(0);
   }
 

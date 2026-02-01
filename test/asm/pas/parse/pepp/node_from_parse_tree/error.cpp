@@ -16,7 +16,7 @@
 
 #include <catch.hpp>
 
-#include "core/isa/pep/pep10.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
 #include "toolchain/pas/ast/generic/attr_error.hpp"
 #include "toolchain/pas/ast/generic/attr_location.hpp"
 #include "toolchain/pas/driver/pep10.hpp"

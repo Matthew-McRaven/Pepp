@@ -16,9 +16,9 @@
  */
 
 #include "./pep10.hpp"
+#include "../../../../core/core/arch/pep/isa/pep10.hpp"
 #include "./common.hpp"
-#include "core/bitmanip/copy.hpp"
-#include "core/isa/pep/pep10.hpp"
+#include "core/math/bitmanip/copy.hpp"
 #include "toolchain/link/mmio.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/ast/generic/attr_sec.hpp"

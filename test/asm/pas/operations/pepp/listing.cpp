@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
-#include "core/isa/pep/pep10.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/operations/generic/group.hpp"
 #include "toolchain/pas/operations/pepp/addressable.hpp"

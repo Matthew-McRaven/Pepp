@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/bitmanip/copy.hpp"
+#include "core/math/bitmanip/copy.hpp"
 #include <QList>
 #include <QtEndian>
 #include <catch.hpp>

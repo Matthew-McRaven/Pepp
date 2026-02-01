@@ -16,8 +16,8 @@
 #include "./pep10.hpp"
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
-#include "core/bitmanip/strings.hpp"
-#include "core/isa/pep/pep10.hpp"
+#include "../../core/core/arch/pep/isa/pep10.hpp"
+#include "core/math/bitmanip/strings.hpp"
 #include "cpu/formats.hpp"
 #include "help/builtins/figure.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"

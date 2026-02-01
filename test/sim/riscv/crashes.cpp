@@ -1,6 +1,6 @@
 #include <catch.hpp>
-#include "core/bitmanip/span.hpp"
-#include "core/isa/riscv/rv_types.hpp"
+#include "../../../core/core/arch/riscv/isa/rv_types.hpp"
+#include "core/math/bitmanip/span.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/debug.hpp"
 
 static constexpr uint32_t MAX_CYCLES = 5'000;

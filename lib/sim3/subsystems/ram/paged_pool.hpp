@@ -37,8 +37,8 @@
 #include <inttypes.h>
 #include <string_view>
 #include <unordered_map>
-#include "core/isa/riscv/rv_types.hpp"
-#include "core/isa/riscv/rva.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
+#include "core/arch/riscv/isa/rva.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/subsystems/ram/paged_pool/mmap_cache.hpp"
 #include "sim3/subsystems/ram/paged_pool/page.hpp"
