@@ -2,7 +2,7 @@
 
 #include <map>
 #include <stdexcept>
-#include "core/libs/compile/source/location.hpp"
+#include "core/compile/source/location.hpp"
 namespace pepp::tc {
 class ParserError final : public std::logic_error {
 public:

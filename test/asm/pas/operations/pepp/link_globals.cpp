@@ -16,7 +16,7 @@
 
 #include "toolchain/pas/operations/generic/link_globals.hpp"
 #include <catch.hpp>
-#include "core/isa/pep/pep10.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
 #include "toolchain/pas/driver/common.hpp"
 #include "toolchain/pas/driver/pepp.hpp"

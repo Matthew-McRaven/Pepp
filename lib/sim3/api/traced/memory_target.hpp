@@ -17,7 +17,7 @@
 #include "../device.hpp"
 #include "../memory_access.hpp"
 #include "../memory_address.hpp"
-#include "core/libs/bitmanip/span.hpp"
+#include "core/math/bitmanip/span.hpp"
 #include "memory_path.hpp"
 namespace sim::api2::memory {
 template <typename Address> struct Target {

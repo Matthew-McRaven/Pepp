@@ -17,7 +17,7 @@
 
 #pragma once
 #include <iostream>
-#include "core/libs/bitmanip/strings.hpp"
+#include "core/math/bitmanip/strings.hpp"
 #include "sim/api.hpp"
 #include "sim/trace/common.hpp"
 

@@ -35,7 +35,7 @@
 #include <functional>
 #include <map>
 #include <string>
-#include "core/isa/riscv/rv_types.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
 
 #if defined(__APPLE__) || defined(__LINUX__)
 #include <errno.h>

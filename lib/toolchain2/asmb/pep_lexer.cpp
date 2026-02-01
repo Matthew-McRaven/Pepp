@@ -3,7 +3,7 @@
 #include <regex>
 #include <spdlog/spdlog.h>
 #include "./pep_tokens.hpp"
-#include "core/libs/bitmanip/strings.hpp"
+#include "core/math/bitmanip/strings.hpp"
 
 pepp::tc::lex::PepLexer::PepLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
                                   support::SeekableData &&data)

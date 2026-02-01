@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/libs/bitmanip/log2.hpp"
+#include "core/math/bitmanip/log2.hpp"
 
 #include <catch.hpp>
 

@@ -3,7 +3,7 @@
 #include <elfio/elfio.hpp>
 #include <spdlog/spdlog.h>
 #include <system_error>
-#include "core/libs/bitmanip/leb128.hpp"
+#include "core/math/bitmanip/leb128.hpp"
 #include "toolchain/pas/ast/generic/attr_sec.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
 #include "toolchain/pas/ast/node.hpp"

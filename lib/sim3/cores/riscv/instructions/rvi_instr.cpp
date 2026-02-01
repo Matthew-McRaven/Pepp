@@ -32,8 +32,8 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #include <atomic>
-#include "core/isa/riscv/rv_types.hpp"
-#include "core/isa/riscv/rvc.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
+#include "core/arch/riscv/isa/rvc.hpp"
 #include "instr_helpers.hpp"
 #include "sim3/subsystems/ram/paged_pool.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"

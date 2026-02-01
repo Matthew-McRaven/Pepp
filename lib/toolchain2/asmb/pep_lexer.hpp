@@ -1,6 +1,6 @@
 #pragma once
 #include <stack>
-#include "core/libs/compile/lex/lexer.hpp"
+#include "core/compile/lex/lexer.hpp"
 namespace pepp::tc::lex {
 
 struct PepLexer : public ALexer {

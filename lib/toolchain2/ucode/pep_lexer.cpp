@@ -1,11 +1,11 @@
 #include "./pep_lexer.hpp"
+#include <../../../core/core/ds/case_insensitive.hpp>
 #include <charconv>
-#include <core/libs/types/case_insensitive.hpp>
 #include <regex>
 #include <spdlog/spdlog.h>
 #include "./pep_tokens.hpp"
-#include "core/libs/bitmanip/strings.hpp"
-#include "core/libs/compile/lex/tokens.hpp"
+#include "core/math/bitmanip/strings.hpp"
+#include "core/compile/lex/tokens.hpp"
 
 pepp::tc::lex::MicroLexer::MicroLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
                                       support::SeekableData &&data)

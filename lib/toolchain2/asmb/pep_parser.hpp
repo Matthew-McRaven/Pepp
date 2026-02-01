@@ -3,7 +3,7 @@
 #include "./pep_common.hpp"
 #include "./pep_ir.hpp"
 #include "./pep_lexer.hpp"
-#include "core/libs/compile/lex/buffer.hpp"
+#include "core/compile/lex/buffer.hpp"
 #include "toolchain/symbol/table.hpp"
 #include "toolchain2/asmb/common_diag.hpp"
 

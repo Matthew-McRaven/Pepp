@@ -1,6 +1,6 @@
 #include "./string_utils.hpp"
 #include <QtCore/qobject.h>
-#include "core/libs/bitmanip/strings.hpp"
+#include "core/math/bitmanip/strings.hpp"
 
 bool bits::startsWithHexPrefix(const QString &string) { return string.startsWith("0x") || string.startsWith("0X"); }
 

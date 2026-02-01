@@ -17,8 +17,8 @@
 #include <QStringLiteral>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
-#include "core/libs/bitmanip/strings.hpp"
-#include "core/libs/bitmanip/swap.hpp"
+#include "core/math/bitmanip/strings.hpp"
+#include "core/math/bitmanip/swap.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"

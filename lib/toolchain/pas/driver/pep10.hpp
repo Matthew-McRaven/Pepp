@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "core/isa/pep/pep10.hpp"
+#include "../../../../core/core/arch/pep/isa/pep10.hpp"
 #include "./common.hpp"
 #include "./pepp.hpp"
 #include "toolchain/macro/registry.hpp"

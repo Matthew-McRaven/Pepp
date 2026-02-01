@@ -18,8 +18,8 @@
 #pragma once
 #include <QtCore>
 #include <stdexcept>
-#include "core/libs/bitmanip/order.hpp"
-#include "core/libs/bitmanip/swap.hpp"
+#include "core/math/bitmanip/order.hpp"
+#include "core/math/bitmanip/swap.hpp"
 #include "sim3/api/memory_access.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 

@@ -31,8 +31,8 @@
  * along with this program. If not, see
  * <https://opensource.org/license/bsd-3-clause>
  */
+#include "core/arch/riscv/isa/rva.hpp"
 #include "./instr_helpers.hpp"
-#include "core/isa/riscv/rva.hpp"
 #include "sim3/cores/riscv/notraced_cpu.hpp"
 #include "sim3/subsystems/ram/paged_pool.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"

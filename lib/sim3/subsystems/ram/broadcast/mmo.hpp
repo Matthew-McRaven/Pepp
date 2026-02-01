@@ -16,7 +16,7 @@
 
 #pragma once
 #include "./pubsub.hpp"
-#include "core/libs/bitmanip/copy.hpp"
+#include "core/math/bitmanip/copy.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
 #include "sim3/trace/packet_utils.hpp"

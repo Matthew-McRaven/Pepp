@@ -33,8 +33,8 @@
  */
 #include "./registers.hpp"
 #include <stdexcept>
-#include "core/isa/riscv/rv_base.hpp"
-#include "core/libs/bitmanip/span.hpp"
+#include "../../../../core/core/arch/riscv/isa/rv_base.hpp"
+#include "core/math/bitmanip/span.hpp"
 
 namespace {
 template <typename... Args>

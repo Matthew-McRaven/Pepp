@@ -41,7 +41,7 @@
 #include <cstddef>
 #include <deque>
 #include <unordered_map>
-#include "core/isa/riscv/rv_types.hpp"
+#include "../../../core/core/arch/riscv/isa/rv_types.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/rv_common.hpp"
 #include "sim3/utils/function.hpp"

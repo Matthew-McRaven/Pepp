@@ -17,7 +17,7 @@
 
 #include "toolchain2/asmb/pep_format.hpp"
 #include <catch.hpp>
-#include "core/libs/compile/lex/buffer.hpp"
+#include "core/compile/lex/buffer.hpp"
 #include "toolchain2/asmb/pep_codegen.hpp"
 #include "toolchain2/asmb/pep_format.hpp"
 #include "toolchain2/asmb/pep_lexer.hpp"

@@ -15,8 +15,8 @@
  */
 #include <catch.hpp>
 
+#include "../../core/core/arch/pep/uarch/pep.hpp"
 #include "../../lib/sim3/cores/pep/traced_pep9_mc2.hpp"
-#include "core/microarch/pep.hpp"
 #include "toolchain2/ucode/pep_parser.hpp"
 
 namespace {

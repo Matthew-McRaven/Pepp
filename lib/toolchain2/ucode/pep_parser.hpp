@@ -16,11 +16,11 @@
 #pragma once
 #include <QRegularExpression>
 
+#include "../../../core/core/ds/case_insensitive.hpp"
 #include "./pep_ir.hpp"
 #include "./pep_lexer.hpp"
 #include "./pep_tokens.hpp"
-#include "core/libs/compile/lex/buffer.hpp"
-#include "core/libs/types/case_insensitive.hpp"
+#include "core/compile/lex/buffer.hpp"
 
 namespace pepp::tc::parse {
 // 0-indexed line number and an error message for that line.

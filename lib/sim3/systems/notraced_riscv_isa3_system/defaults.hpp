@@ -33,8 +33,8 @@
  */
 #pragma once
 #include <chrono>
+#include "../../../../core/core/arch/riscv/isa/rv_types.hpp"
 #include "../notraced_riscv_isa3_system.hpp"
-#include "core/isa/riscv/rv_types.hpp"
 
 namespace riscv {
 // machine_defaults.cpp

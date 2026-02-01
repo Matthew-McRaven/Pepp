@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "../../../core/core/libs/io/mapped_file.hpp"
+#include "../../../core/core/io/mapped_file.hpp"
 #include <QDebug>
 #include <QString>
 #include <catch.hpp>

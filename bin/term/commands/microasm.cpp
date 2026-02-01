@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "microasm.hpp"
-#include "core/microarch/pep.hpp"
+#include "../../../core/core/arch/pep/uarch/pep.hpp"
 #include "toolchain2/ucode/pep_parser.hpp"
 
 MicroAsmTask::MicroAsmTask(int ed, std::string in, int busWidth, QObject *parent)

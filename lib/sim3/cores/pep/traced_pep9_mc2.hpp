@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "core/microarch/pep.hpp"
+#include "../../../../core/core/arch/pep/uarch/pep.hpp"
 #include "sim/debug/debugger.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"

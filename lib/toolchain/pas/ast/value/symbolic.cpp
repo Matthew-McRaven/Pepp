@@ -16,8 +16,8 @@
  */
 
 #include "./symbolic.hpp"
-#include "core/libs/bitmanip/copy.hpp"
-#include "core/libs/bitmanip/order.hpp"
+#include "core/math/bitmanip/copy.hpp"
+#include "core/math/bitmanip/order.hpp"
 #include "toolchain/symbol/entry.hpp"
 pas::ast::value::Symbolic::Symbolic() {}
 

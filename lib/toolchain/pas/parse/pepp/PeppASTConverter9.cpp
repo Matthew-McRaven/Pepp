@@ -2,8 +2,8 @@
 #include "toolchain/pas/string_utils.hpp"
 
 #undef emit
-#include "core/libs/bitmanip/strings.hpp"
-#include "core/isa/pep/pep9.hpp"
+#include "core/arch/pep/isa/pep9.hpp"
+#include "core/math/bitmanip/strings.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_comment.hpp"
 #include "toolchain/pas/ast/generic/attr_comment_indent.hpp"
