@@ -22,3 +22,5 @@ flat,https://github.com/pubby/flat,Boost Software License 1.0,BSL-1.0,:/about/de
 libriscv,https://github.com/libriscv/libriscv,BSD 3-Clause "New" or "Revised" License,BSD-3-Clause,:/about/dep/riscv.txt, 0
 rope,https://github.com/wroever/rope,Boost Software License 1.0,BSL-1.0,:/about/dep/bsl-1.0.txt, 1
 Nanobind,https://github.com/wjakob/nanobind,BSD-3-Clause,"BSD-3-Clause",:/about/dep/nanobind.txt, 0
+mockturtle,https://github.com/lsils/mockturtle.git,MIT License,MIT,:/about/dep/mockturtle.txt, 0
+JSON, https://github.com/nlohmann/json,MIT License,MIT,:/about/dep/json.txt, 0

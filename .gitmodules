@@ -22,3 +22,6 @@
 [submodule "3rd-party/nanobind"]
 	path = 3rd-party/nanobind
 	url = https://github.com/wjakob/nanobind
+[submodule "3rd-party/mockturtle"]
+	path = 3rd-party/mockturtle
+	url = https://github.com/Matthew-McRaven/mockturtle
