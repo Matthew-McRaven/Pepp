@@ -47,6 +47,8 @@ class DiagramListModel : public QAbstractListModel
     //Q_PROPERTY(DiagramProperty *currentDiagram READ currentDiagram WRITE setCurrentDiagram NOTIFY
     //               diagramChanged)
 
+    QList<DiagramTemplate *> _diagrams;
+
 public:
     enum Role {
         Name = Qt::DisplayRole,
@@ -77,16 +79,4 @@ public:
     }
 signals:
     //void diagramTypeChanged();
-
-private:
-    /*struct Item
-    {
-        quint32 key{DiagramType::Invalid};
-        QString name;
-        QString diagramType;
-        QString qrcFile;
-        QString file;
-    };*/
-
-    QList<DiagramTemplate *> _diagrams;
 };

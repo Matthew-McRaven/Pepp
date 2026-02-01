@@ -35,6 +35,11 @@ Item {
         id: buttonGroup
         buttons: source.children.filter(child => child !== rep)
 
+        //  Make sure first button is selected on startup
+        Component.onCompleted: {
+            root.setStamp(0);
+            buttonGroup.buttons[0].checked = true;
+        }
         onClicked: btn => {
             root.setStamp(btn.index);
             //console.log(btn.index);

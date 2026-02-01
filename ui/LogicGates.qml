@@ -53,7 +53,7 @@ Rectangle {
         //  Diagram buttons
         ColumnLayout {
 
-            SplitView.preferredWidth: root.cellWidth * 2 + source.columnSpacing
+            SplitView.preferredWidth: root.cellWidth * 2 + 5
             SplitView.maximumWidth: SplitView.preferredWidth
             SplitView.minimumWidth: SplitView.preferredWidth
 
@@ -76,7 +76,6 @@ Rectangle {
                 diagramModel: diagramModel.currentDiagram
                 model: filterModel
             }
-
         }
 
         Item {

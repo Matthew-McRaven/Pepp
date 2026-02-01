@@ -13,7 +13,13 @@ Item {
     property point inputXY: inputPt()
     property point outputXY: outputPt()
 
+    //  Data model
     property var model: dataModel.createDiagram()
+
+    //  Reference to selection model to see if this item
+    //  is selected
+    required property var selectModel
+
 
     width: Move.blockWidth
     height: Move.blockHeight
@@ -89,8 +95,9 @@ Item {
         id: wrapper
 
         anchors.fill: root
-        color: "transparent" //"white"
+        color: "transparent"
         border.color: ma.drag.active || ma.containsMouse ? "blue" : "transparent"
+                      //|| root.select.selected(root.model.id)
         border.width: 1
         transformOrigin: Item.Center
         rotation: 0
@@ -129,7 +136,7 @@ Item {
             color: "aqua"
             count: root.model.outputNo
             anchors.verticalCenter: image.verticalCenter
-            anchors.left: image.right
+            anchors.right: image.right
         }
 
         //  Input indicator
@@ -167,16 +174,26 @@ Item {
             onClicked: mouse => {
 
                 //  Set this diagram to current
-                dataModel.currentDiagram = root.model;
+                //dataModel.currentDiagram = root.model;
+                //dataModel.setSelected(root.model.id);
 
-                //  Rotate entire object, including end points
-                if (mouse.modifiers & Qt.ShiftModifier) {
-                    wrapper.rotateCounterClockwise();
-                } else {
-                    wrapper.rotateClockwise();
+                const oldItem = root.selectModel.currentIndex;
+                if(!root.selectModel.hasSelect || oldItem !== root.model.id) {
+                    //  Item is being selected (not currently selected
+                    const current = dataModel.index(root.model.id,0);
+                    root.selectModel.setCurrentIndex(current, ItemSelectionModel.Select | ItemSelectionModel.Current);
                 }
+                else {
+                    //  Item was already selected
+                    //  Rotate entire object, including end points
+                    if (mouse.modifiers & Qt.ShiftModifier) {
+                        wrapper.rotateCounterClockwise();
+                    } else {
+                        wrapper.rotateClockwise();
+                    }
 
-                root.horizontal = (wrapper.rotation % 180) == 0;
+                    root.horizontal = (wrapper.rotation % 180) == 0;
+                }
             }
 
             /*onDoubleClicked: mouse => {
