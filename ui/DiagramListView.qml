@@ -29,13 +29,13 @@ Item {
 
     DiagramListModel {
         id: diagramList
+
     }
 
     ButtonGroup {
         id: buttonGroup
         buttons: source.children.filter(child => child !== rep)
 
-        //  Make sure first button is selected on startup
         Component.onCompleted: {
             root.setStamp(0);
             buttonGroup.buttons[0].checked = true;
@@ -71,7 +71,7 @@ Item {
                 display: AbstractButton.TextUnderIcon
 
                 text: btn.name
-                icon.source: btn.qrcFile//btn.file
+                icon.source: btn.qrcFile
                 icon.color: "transparent"
                 icon.width: btn.implicitWidth * .8
                 icon.height: btn.implicitHeight * .7

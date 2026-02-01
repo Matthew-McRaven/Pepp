@@ -1,217 +1,48 @@
-pragma ComponentBehavior: Bound
+#pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls
 import QtQuick.VectorImage
+import QtQuick.Controls
 
-import CircuitDesign 1.0
-import "move.js" as Move
-
+//  Drag target
 Item {
     id: root
-    property bool horizontal: true
-    property point inputXY: inputPt()
-    property point outputXY: outputPt()
 
-    //  Data model
-    property var model: dataModel.createDiagram()
+    width: 100
+    height: 100
+    //required property var modelData
 
-    //  Reference to selection model to see if this item
-    //  is selected
-    required property var selectModel
+    //required property int column
+    //required property int row
+    //required property var model
+    //property bool selected: false
+    property string source: ""
 
-
-    width: Move.blockWidth
-    height: Move.blockHeight
-
-    Drag.active: ma.drag.active
-    Drag.hotSpot.x: root.width / 2
-    Drag.hotSpot.y: root.height / 2
-
-    function inputPt() {
-        var x = root.x;
-        var y = root.y;
-
-        switch (wrapper.rotation) {
-            //  Pointing down
-        case 90:
-            x += root.width / 2;
-            y += root.height;
-            break;
-            //Pointing right
-        case 180:
-            //  X already at top
-            y += root.height / 2;
-            break;
-            //  Pointing up
-        case 270:
-            x += root.width / 2;
-            break;
-            //  Pointing left
-        default:
-            x += root.width;
-            y += root.height / 2;
-            break;
-        }
-
-        return Qt.point(x, y);
-    }
-
-    function outputPt() {
-        var x = root.x;
-        var y = root.y;
-
-        switch (wrapper.rotation) {
-            //  Pointing down
-        case 90:
-            x += root.width / 2;
-            break;
-            //Pointing right
-        case 180:
-            x += root.width;
-            y += root.height / 2;
-            break;
-            //  Pointing up
-        case 270:
-            x += root.width / 2;
-            y += root.height;
-            break;
-            //  Pointing left
-        default:
-            //  X = 0 already
-            y += root.height / 2;
-            break;
-        }
-
-        return Qt.point(x, y);
-    }
-
-    DiagramPropertyModel {
-        //  Contains model that manages each diagrams data
-        id: dataModel
-    }
+    TableView.onPooled: image.source = ""
+    TableView.onReused: image.source = root.source
 
     Rectangle {
         id: wrapper
+        anchors.fill: parent
 
-        anchors.fill: root
+        width: 100
+        height: 100
+
         color: "transparent"
-        border.color: ma.drag.active || ma.containsMouse ? "blue" : "transparent"
-                      //|| root.select.selected(root.model.id)
-        border.width: 1
-        transformOrigin: Item.Center
-        rotation: 0
-
-        function rotateClockwise() {
-            //  Rotate entire object, including end points
-            if (wrapper.rotation >= 270) {
-                wrapper.rotation = 0;
-            } else {
-                wrapper.rotation += 90;
-            }
-        }
-
-        function rotateCounterClockwise() {
-            //  Rotate entire object, including end points
-            if (wrapper.rotation <= 0) {
-                wrapper.rotation = 270;
-            } else {
-                wrapper.rotation -= 90;
-            }
-        }
-
-        ContextMenu.menu: Menu {
-            MenuItem {
-                text: "Rotate Left"
-                onTriggered: wrapper.rotateClockwise()
-            }
-            MenuItem {
-                text: "Rotate right"
-                onTriggered: wrapper.rotateCounterClockwise()
-            }
-        }
-
-        //  Output indicator
-        DiagramEndpoint {
-            color: "aqua"
-            count: root.model.outputNo
-            anchors.verticalCenter: image.verticalCenter
-            anchors.right: image.right
-        }
-
-        //  Input indicator
-        DiagramEndpoint {
-            color: "limegreen"
-            count: root.model.inputNo
-            anchors.verticalCenter: image.verticalCenter
-            anchors.left: image.left
-        }
 
         VectorImage {
             id: image
-            source: root.model.imageSource
 
-            fillMode: Image.PreserveAspectFit
-            opacity: ma.drag.active ? .25 : 1
-
-            preferredRendererType: VectorImage.CurveRenderer
-            anchors.centerIn: wrapper
+            visible: root.source != ""
+            anchors.centerIn: parent
             width: wrapper.width
             height: wrapper.width / 2
-        }
 
-        MouseArea {
-            id: ma
-            anchors.fill: wrapper
-            drag.target: root
-            hoverEnabled: true
-            drag.minimumX: 0
-            //drag.maximumX: root.x - wrapper.width
-            drag.minimumY: 0
-            acceptedButtons: Qt.LeftButton
-            //drag.maximumY: root.height - wrapper.height
+            //opacity: ma.drag.active ? .25 : 1
 
-            onClicked: mouse => {
-
-                //  Set this diagram to current
-                //dataModel.currentDiagram = root.model;
-                //dataModel.setSelected(root.model.id);
-
-                const oldItem = root.selectModel.currentIndex;
-                if(!root.selectModel.hasSelect || oldItem !== root.model.id) {
-                    //  Item is being selected (not currently selected
-                    const current = dataModel.index(root.model.id,0);
-                    root.selectModel.setCurrentIndex(current, ItemSelectionModel.Select | ItemSelectionModel.Current);
-                }
-                else {
-                    //  Item was already selected
-                    //  Rotate entire object, including end points
-                    if (mouse.modifiers & Qt.ShiftModifier) {
-                        wrapper.rotateCounterClockwise();
-                    } else {
-                        wrapper.rotateClockwise();
-                    }
-
-                    root.horizontal = (wrapper.rotation % 180) == 0;
-                }
-            }
-
-            /*onDoubleClicked: mouse => {
-                console.log("doubleclick")
-                mouse.accepted = true;
-            }*/
-
-            onPositionChanged: mouse => {
-                //  Only reposition if mouse is pressed
-                if (ma.pressedButtons & Qt.LeftButton) {
-                    //  Move object within grid (minor axis)
-                    const row = Move.xMinorGrid(root.x + mouse.x);
-                    const col = Move.yMinorGrid(root.y + mouse.y);
-                    root.x = row;
-                    root.y = col;
-                    //console.log("x", mouse.x, "y", mouse.y, "row", row, "col", col);
-                }
-            }
+            source: root.source === null ? "" : root.source
+            fillMode: Image.PreserveAspectFit
+            preferredRendererType: VectorImage.CurveRenderer
         }
     }
 }

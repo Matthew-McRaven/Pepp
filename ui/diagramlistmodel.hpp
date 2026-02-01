@@ -5,7 +5,7 @@
 #include <QtQml/qqmlregistration.h> // Required header for QML_ELEMENT
 #include <QtQmlIntegration>
 
-#include "diagramtype.h"
+#include "diagramtype.hpp"
 
 class DiagramTemplate : public QObject
 {

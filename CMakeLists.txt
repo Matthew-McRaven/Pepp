@@ -13,7 +13,7 @@ set(CMAKE_AUTORCC ON)
 qt_add_executable(CircuitDesign
     main.cpp
     svg/CircuitDesign.qrc
-    ui/diagramModel.cpp ui/diagramModel.hpp
+    #ui/diagramModel.cpp ui/diagramModel.hpp
 )
 
 qt_add_qml_module(CircuitDesign
@@ -23,20 +23,26 @@ qt_add_qml_module(CircuitDesign
     RESOURCES svg/CircuitDesign.qrc
     QML_FILES
         Main.qml
-        ui/move.js
+        #ui/move.js
         ui/LogicGates.qml
         ui/Diagram.qml
+        ui/DiagramCanvas.qml
         ui/DiagramProperties.qml
         ui/DiagramEndpoint.qml
         ui/Line.qml
-        ui/GridLine.qml
+        ui/GridLines.qml
         ui/DiagramListView.qml
     SOURCES
-        ui/diagramModel.hpp
-        ui/diagramModel.cpp
-        ui/diagramtype.h
+        ui/diagramdata.hpp
+        ui/diagramdata.cpp
+        ui/diagramdatamodel.hpp
+        ui/diagramdatamodel.cpp
+        ui/diagramkey.hpp
+        ui/diagramtype.hpp
         ui/diagramlistmodel.hpp
         ui/diagramlistmodel.cpp
+        ui/diagramproperty.hpp
+        ui/diagramproperty.cpp
     DEPENDENCIES QtQuick
 )
 

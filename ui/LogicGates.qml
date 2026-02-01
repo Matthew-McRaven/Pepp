@@ -5,8 +5,8 @@ import QtQuick.Controls
 import QtQuick.VectorImage
 import QtQuick.Layouts
 
-import CircuitDesign 1.0
-import "move.js" as Move
+import CircuitDesign
+//import "move.js" as Move
 
 Rectangle {
     id: root
@@ -20,7 +20,7 @@ Rectangle {
     }*/
 
     //  Static list of gates for selection
-    DiagramListModel {
+    /*DiagramListModel {
         id: diagramModel
     }
 
@@ -40,11 +40,11 @@ Rectangle {
     }
     component RoleData: QtObject {
         property string shapeType
-    }
+    }*/
 
-    DiagramPropertyModel {
+    /*DiagramPropertyModel {
         id: dataModel
-    }
+    }*/
 
     SplitView {
         anchors.fill: parent
@@ -68,17 +68,25 @@ Rectangle {
                 Layout.fillHeight: true
             }
 
-            DiagramProperties {
+            /*DiagramProperties {
                 id: props
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
 
-                diagramModel: diagramModel.currentDiagram
-                model: filterModel
-            }
+                //diagramModel: diagramModel.currentDiagram
+                //model: filterModel
+            }*/
         }
 
-        Item {
+        DiagramCanvas{
+            /*anchors.left: listView.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.right: parent.right*/
+
+            currentStamp: source.currentStamp
+        }
+        /*Item {
             //  Background used as canvas for object placement
             //  Background does not interact with mouse or diagrams
             GridView {
@@ -203,6 +211,6 @@ Rectangle {
                     }
                 }
             }   //  Rectangle
-        }   //  Item
+        }*/   //  Item
     }
 }
