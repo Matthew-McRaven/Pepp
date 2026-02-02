@@ -43,6 +43,8 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   bool setData(const QModelIndex &index, const QVariant &value, int role) override;
+  Q_INVOKABLE Pep_MA *pep9MA2();
+  Q_INVOKABLE Pep_MA *pep10MA2();
   Q_INVOKABLE Pep_ISA *pep10ISA();
   Q_INVOKABLE Pep_ISA *pep9ISA();
   Q_INVOKABLE Pep_ASMB *pep10ASMB(pepp::Abstraction abstraction);

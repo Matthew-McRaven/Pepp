@@ -1297,3 +1297,105 @@ void Pep_ISA::loadCharIn() {
 }
 
 Error::Error(int line, QString error, QObject *parent) : QObject(parent), line(line), error(error) {}
+
+Pep_MA::Pep_MA(project::Environment env, QObject *parent)
+    : QObject(parent), _env(env), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()), _memory(nullptr),
+      _registers(nullptr), _flags(nullptr), _books(helpers::builtins_registry(true)) {
+  _system.clear();
+  assert(_system.isNull());
+  //  _dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
+  if (true) {
+    /*auto elfsys = make_isa_system(env, &*_books);
+    _elf = elfsys.elf;
+    _system = elfsys.system;
+    _system->bus()->setBuffer(&*_tb);
+    bindToSystem();*/
+  }
+  connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
+}
+
+project::Environment Pep_MA::env() const { return _env; }
+
+pepp::Architecture Pep_MA::architecture() const { return _env.arch; }
+
+pepp::Abstraction Pep_MA::abstraction() const { return _env.level; }
+
+QString Pep_MA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep9MA2.qml"; }
+
+ARawMemory *Pep_MA::memory() const { return _memory; }
+
+OpcodeModel *Pep_MA::mnemonics() const {
+  using enum pepp::Architecture;
+  switch (_env.arch) {
+  case PEP9: {
+    static OpcodeModel *model = new OpcodeModel();
+    static Pep9OpcodeInit ret(model);
+    return model;
+  }
+  case PEP10: {
+    static OpcodeModel *model = new OpcodeModel();
+    static Pep10OpcodeInit ret(model);
+    return model;
+  }
+  default: throw std::logic_error("Unimplemented");
+  }
+}
+
+QString Pep_MA::microcodeText() const { return _microcodeText; }
+
+void Pep_MA::setMicrocodeText(const QString &microcodeText) {
+  if (_microcodeText == microcodeText) return;
+  _microcodeText = microcodeText;
+  emit microcodeTextChanged();
+}
+
+void Pep_MA::set(int abstraction, QString value) {
+  using enum pepp::Abstraction;
+  if (abstraction == static_cast<int>(MA2)) {
+    setMicrocodeText(value);
+  }
+}
+
+pepp::debug::BreakpointSet *Pep_MA::breakpointModel() {
+  auto *bp = _dbg->bps.get();
+  QQmlEngine::setObjectOwnership(bp, QQmlEngine::CppOwnership);
+  return bp;
+}
+
+bool Pep_MA::isEmpty() const { return _microcodeText.isEmpty(); }
+
+QString Pep_MA::contentsForExtension(const QString &ext) const {
+  if (ext.compare("pepcpu", Qt::CaseInsensitive) == 0) {
+    return _microcodeText;
+  } else return "";
+}
+
+bool Pep_MA::onFormatMicrocode() { return true; }
+
+bool Pep_MA::onExecute() { return true; }
+
+bool Pep_MA::onDebuggingStart() { return true; }
+
+bool Pep_MA::onDebuggingContinue() { return true; }
+
+bool Pep_MA::onDebuggingPause() { return true; }
+
+bool Pep_MA::onDebuggingStop() { return true; }
+
+bool Pep_MA::onMARemoveAllBreakpoints() { return true; }
+
+bool Pep_MA::onMAStep() { return true; }
+
+bool Pep_MA::onClearCPU() { return true; }
+
+bool Pep_MA::onClearMemory() { return true; }
+
+void Pep_MA::onDeferredExecution(std::function<bool()> step) {}
+
+void Pep_MA::bindToSystem() {}
+
+void Pep_MA::prepareSim() {}
+
+void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}
+
+void Pep_MA::updateBPAtAddress(quint32 address, Action action) {}

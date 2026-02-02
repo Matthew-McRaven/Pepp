@@ -1,0 +1,234 @@
+import QtQuick 2.15
+import QtQuick.Controls
+import QtQuick.Layouts
+import "qrc:/qt/qml/edu/pepp/text/editor" as Text
+import "qrc:/qt/qml/edu/pepp/memory/hexdump" as Memory
+import "qrc:/qt/qml/edu/pepp/memory/io" as IO
+import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
+import "qrc:/qt/qml/edu/pepp/utils" as Utils
+import edu.pepp 1.0
+import com.kdab.dockwidgets 2.0 as KDDW
+
+FocusScope {
+    id: wrapper
+    required property var project
+    required property var actions
+    required property string mode
+    // Please only use inside modeVisibilityChange.
+    property string previousMode: ""
+    // WASM version's active focus is broken with docks.
+    required property bool isActive
+    property bool needsDock: true
+    property var widgets: [dock_micro,  dock_cpu, dock_hexdump]
+
+    focus: true
+    signal requestModeSwitchTo(string mode)
+
+    function syncEditors() {
+        project ? save() : null
+    }
+    onModeChanged: modeVisibilityChange()
+    // The mode may have changed while the window was not active.
+    onIsActiveChanged: modeVisibilityChange()
+
+    function modeVisibilityChange() {
+        if (!isActive) {
+            // If the window is not active / visible, restore does not work correctly, causing #974.
+            return
+        } else if (needsDock) {
+            // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
+            return
+        } else if (!(mode === "editor" || mode === "debugger")) {
+            return
+        } else if (previousMode === mode) {
+            // Do not attempt to lay out if mode has not changed. Possible if window was inactive.
+            return
+        }
+
+        if (previousMode)
+            layoutSaver.saveToFile(
+                        `${previousMode}-${dockWidgetArea.uniqueName}.json`)
+        // Only use the visibility model when restoring for the first time.
+        if (!layoutSaver.restoreFromFile(
+                    `${mode}-${dockWidgetArea.uniqueName}.json`)) {
+            for (const x of widgets) {
+                // visibility model preserves user changes within a mode.
+                const visible = x.visibility[mode]
+                if (visible && !x.isOpen)
+                    x.open()
+                else if (!visible && x.isOpen)
+                    x.close()
+            }
+        }
+        previousMode = mode
+    }
+
+    // Must be called when the project in the model is marked non-dirty
+    function markClean() {
+        objEdit.dirtied = Qt.binding(() => false)
+    }
+    function markDirty() {
+        if (objEdit.dirtied)
+            project.markDirty()
+    }
+
+    // Call when the height, width have been finalized.
+    // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
+    function dock() {
+        const StartHidden = 1
+        const PreserveCurrent = 2
+
+        const total_height = parent.height
+
+        const reg_height = registers.childrenRect.height
+        const regmemcol_width = registers.implicitWidth
+
+        const memdump_height = total_height - registers.implicitHeight
+        const greencard_width = parent.width * .3
+
+        const io_height = Math.max(200, total_height * .1)
+        const io_width = (parent.width - regmemcol_width - regmemcol_width)
+
+        dockWidgetArea.addDockWidget(
+                    dock_micro, KDDW.KDDockWidgets.Location_OnLeft,
+                    dockWidgetArea,
+                    Qt.size(parent.width - greencard_width - regmemcol_width,
+                            parent.height - io_height))
+        dockWidgetArea.addDockWidget(dock_cpu,
+                                     KDDW.KDDockWidgets.Location_OnRight,
+                                     dockWidgetArea, Qt.size(regmemcol_width,
+                                                             reg_height))
+        dockWidgetArea.addDockWidget(dock_hexdump,
+                                     KDDW.KDDockWidgets.Location_OnBottom,
+                                     dock_cpu, Qt.size(regmemcol_width,
+                                                       memdump_height))
+        wrapper.needsDock = Qt.binding(() => false)
+        modeVisibilityChange()
+        for (const x of widgets) {
+            x.needsAttention = false
+        }
+    }
+
+    Component.onCompleted: {
+        project.charInChanged.connect(() => batchInput.setInput(project.charIn))
+        objEdit.editingFinished.connect(save)
+        objEdit.forceActiveFocus()
+        project.markedClean.connect(wrapper.markClean)
+        objEdit.onDirtiedChanged.connect(wrapper.markDirty)
+    }
+
+    function save() {
+        // Supress saving messages when there is no project.
+        if (project && !objEdit.readOnly)
+            project.objectCodeText = objEdit.text
+    }
+    KDDW.DockingArea {
+        id: dockWidgetArea
+        KDDW.LayoutSaver {
+            id: layoutSaver
+        }
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        // Need application-wide unique ID, otherwise opening a new project will confuse the global name resolution algorithm.
+        // TODO: Not gauranteed to be unique, but should be good enough for our purposes.
+        uniqueName: Math.ceil(Math.random() * 1000000000).toString(16)
+        KDDW.DockWidget {
+            id: dock_micro
+            title: "Microcode"
+            uniqueName: `Microcode-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
+            Text.ObjTextEditor {
+                id: objEdit
+                anchors.fill: parent
+                readOnly: mode !== "editor"
+                // text is only an initial binding, the value diverges from there.
+                text: project?.objectCodeText ?? ""
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_cpu
+
+            title: "CPU"
+            uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
+            ColumnLayout {
+                anchors.fill: parent
+                property size kddockwidgets_min_size: Qt.size(
+                                                          registers.implicitWidth,
+                                                          registers.implicitHeight)
+                Cpu.RegisterView {
+                    id: registers
+                    Layout.fillWidth: false
+                    Layout.alignment: Qt.AlignHCenter
+
+                    registers: project?.registers ?? null
+                    flags: project?.flags ?? null
+                }
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_hexdump
+
+            title: "Memory Dump"
+            uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
+            Loader {
+                id: loader
+                anchors.fill: parent
+                Component.onCompleted: {
+                    const props = {
+                        "memory": project.memory,
+                        "mnemonics": project.mnemonics
+                    }
+                    // Construction sets current address to 0, which propogates back to project.
+                    // Must reject changes in current address until component is fully rendered.
+                    con.enabled = false
+                    setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml",
+                              props)
+                }
+                asynchronous: true
+                onLoaded: {
+                    loader.item.scrollToAddress(project.currentAddress)
+                    con.enabled = true
+                }
+                Connections {
+                    id: con
+                    enabled: false
+                    target: loader.item
+                    function onCurrentAddressChanged() {
+                        project.currentAddress = loader.item.currentAddress
+                    }
+                }
+            }
+        }
+    }
+
+    // Only enable binding from the actions to this project if this project is focused.
+    Connections {
+        enabled: wrapper.activeFocus || wrapper.isActive
+        target: wrapper.actions.debug.start
+        function onTriggered() {
+            wrapper.requestModeSwitchTo("debugger")
+        }
+    }
+    Connections {
+        enabled: wrapper.activeFocus || wrapper.isActive
+        target: wrapper.actions.build.execute
+        function onTriggered() {
+            wrapper.requestModeSwitchTo("debugger")
+        }
+    }
+}

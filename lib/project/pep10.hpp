@@ -272,3 +272,104 @@ protected:
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {};
 };
+
+class Pep_MA : public QObject {
+  Q_OBJECT
+  Q_PROPERTY(project::Environment env READ env CONSTANT)
+  Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
+  Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
+  Q_PROPERTY(QString microcodeText READ microcodeText WRITE setMicrocodeText NOTIFY microcodeTextChanged);
+  // Preserve the current address in the memory dump pane on tab-switch.
+  Q_PROPERTY(quint16 currentAddress MEMBER _currentAddress NOTIFY currentAddressChanged)
+  Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
+  Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
+  Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
+  Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
+  Q_PROPERTY(QStringList saveAsOptions READ saveAsOptions CONSTANT)
+  Q_PROPERTY(bool isEmpty READ isEmpty)
+  QML_UNCREATABLE("Can only be created through Project::")
+public:
+  enum class UpdateType {
+    Partial,
+    Full,
+  };
+  explicit Pep_MA(project::Environment env, QObject *parent = nullptr);
+  virtual project::Environment env() const;
+  virtual pepp::Architecture architecture() const;
+  virtual pepp::Abstraction abstraction() const;
+  Q_INVOKABLE virtual QString delegatePath() const;
+  ARawMemory *memory() const;
+  OpcodeModel *mnemonics() const;
+  QString microcodeText() const;
+  void setMicrocodeText(const QString &microcodeText);
+  Q_INVOKABLE static QStringListModel *modes() {
+    static QStringListModel ret({"Welcome", "Help", "Editor", "Debugger"});
+    QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
+    return &ret;
+  }
+  // Actually utils::Abstraction, but QM passes it as an int.
+  Q_INVOKABLE void set(int abstraction, QString value);
+  Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
+  virtual bool isEmpty() const;
+
+  virtual QStringList saveAsOptions() const { return {"pepcpu"}; }
+  Q_INVOKABLE virtual QString defaultExtension() const { return "pepcpu"; }
+  virtual QString contentsForExtension(const QString &ext) const;
+public slots:
+  bool onFormatMicrocode();
+  bool onExecute();
+  bool onDebuggingStart();
+  bool onDebuggingContinue();
+  bool onDebuggingPause();
+  bool onDebuggingStop();
+  bool onMARemoveAllBreakpoints();
+  bool onMAStep();
+
+  bool onClearCPU();
+  bool onClearMemory();
+
+  void onDeferredExecution(std::function<bool()> step);
+
+signals:
+  void microcodeTextChanged();
+  void currentAddressChanged();
+  // Called by onISARemoveAllBreakpoints so we can remove breakpoints from editors.
+  void projectBreakpointsCleared();
+
+  void message(QString message);
+  void updateGUI(sim::api2::trace::FrameIterator from);
+  void clearMessages();
+  void deferredExecution(std::function<bool()> step);
+  void overwriteEditors();
+
+  // Propogated  C++ project model => C++ project => QML project wrapper => QML editor
+  void markedClean();
+  // Propogate  QML editor => QML project wrapper => C++ project => C++ project model
+  void markDirty();
+
+protected:
+  void bindToSystem();
+  bool _pendingPause = false;
+  enum class State {
+    Halted,
+    NormalExec,
+    DebugExec,
+    DebugPaused,
+  } _state = State::Halted;
+  virtual void prepareSim();
+  virtual void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
+  project::Environment _env;
+  QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
+  QSharedPointer<targets::isa::System> _system = {};
+  QString _microcodeText = {};
+  // Use raw pointer to avoid double-free with parent'ed QObjects.
+  SimulatorRawMemory *_memory = nullptr;
+  RegisterModel *_registers = nullptr;
+  FlagModel *_flags = nullptr;
+  qint16 _currentAddress = 0;
+  using Action = ScintillaAsmEditBase::Action;
+  void updateBPAtAddress(quint32 address, Action action);
+  QSharedPointer<pepp::debug::Debugger> _dbg{};
+  QSharedPointer<builtins::Registry> _books = {};
+};

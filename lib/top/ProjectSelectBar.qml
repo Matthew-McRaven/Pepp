@@ -48,6 +48,11 @@ Item {
                         proj = cur;
                     else
                         proj = pm.pep10ASMB(Abstraction.OS4);
+                } else if (Number(level) === Abstraction.MA2) {
+                    if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.MA2 && cur.isEmpty && reuse)
+                        proj = cur;
+                    else
+                        proj = pm.pep10MA2();
                 }
                 break;
             case Architecture.PEP9:
@@ -61,6 +66,11 @@ Item {
                         proj = cur;
                     else
                         proj = pm.pep9ASMB();
+                } else if (Number(level) === Abstraction.MA2) {
+                    if (cur && cur.architecture === Architecture.PEP9 && cur.abstraction === Abstraction.MA2 && cur.isEmpty && reuse)
+                        proj = cur;
+                    else
+                        proj = pm.pep9MA2();
                 }
                 break;
             }

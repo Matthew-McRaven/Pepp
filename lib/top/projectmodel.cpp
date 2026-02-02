@@ -69,6 +69,30 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
   return true;
 }
 
+Pep_MA *ProjectModel::pep9MA2() {
+  static const project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::MA2};
+  auto ptr = std::make_unique<Pep_MA>(env, nullptr);
+  auto ret = &*ptr;
+  QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
+  beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
+  appendProject(std::move(ptr));
+  endInsertRows();
+  emit rowCountChanged(_projects.size());
+  return ret;
+}
+
+Pep_MA *ProjectModel::pep10MA2() {
+  static const project::Environment env{.arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::MA2};
+  auto ptr = std::make_unique<Pep_MA>(env, nullptr);
+  auto ret = &*ptr;
+  QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
+  beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
+  appendProject(std::move(ptr));
+  endInsertRows();
+  emit rowCountChanged(_projects.size());
+  return ret;
+}
+
 #ifdef __EMSCRIPTEN__
 const auto placeholder = QStringLiteral("Project %1");
 #else
@@ -183,6 +207,9 @@ int ProjectModel::rowOf(const QObject *item) const {
 }
 
 const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, std::string>, const char *> extensions = {
+    {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, "pepcpu"}, "Pep/10 Microcode Code (*.pepcpu)"},
+    {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, "pepcpu"}, "Pep/9 Microcode Code (*.pepcpu)"},
+
     {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10, "pepo"}, "Pep/10 Object Code (*.pepo)"},
 
     {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, "pep"}, "Pep/10 Assembly Code (*.pep)"},
@@ -432,7 +459,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
-              .state = CompletionState::INCOMPLETE,
+              .state = CompletionState::PARTIAL,
               .edition = 6});
   vec.append({.name = "Pep/10",
               .levelText = "MA2",
@@ -441,7 +468,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
-              .state = CompletionState::INCOMPLETE,
+              .state = CompletionState::PARTIAL,
               .edition = 6});
 }
 void init_pep9(QList<ProjectType> &vec) {
@@ -482,7 +509,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
-              .state = CompletionState::INCOMPLETE,
+              .state = CompletionState::PARTIAL,
               .edition = 5});
   vec.append({.name = "Pep/9",
               .levelText = "Mc2",
@@ -491,7 +518,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
-              .state = CompletionState::INCOMPLETE,
+              .state = CompletionState::PARTIAL,
               .edition = 5});
 }
 void init_pep8(QList<ProjectType> &vec) {
