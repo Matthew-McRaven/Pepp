@@ -23,11 +23,10 @@ qt_add_qml_module(CircuitDesign
     RESOURCES svg/CircuitDesign.qrc
     QML_FILES
         Main.qml
-        #ui/move.js
         ui/LogicGates.qml
         ui/Diagram.qml
         ui/DiagramCanvas.qml
-        ui/DiagramProperties.qml
+        ui/DiagramEditor.qml
         ui/DiagramEndpoint.qml
         ui/Line.qml
         ui/GridLines.qml

@@ -6,8 +6,6 @@
 #include "diagramdata.hpp"
 #include "diagramtype.hpp"
 
-class DiagramDataModel;
-
 class DiagramDataModel : public QAbstractTableModel
 {
     Q_OBJECT
@@ -33,6 +31,7 @@ public:
     Q_INVOKABLE void update(int row, int column);
     Q_INVOKABLE bool clearItemData(const QModelIndexList &indexes);
     Q_INVOKABLE bool clearItemData(const QModelIndex &index) override;
+    Q_INVOKABLE DiagramProperties *itemData(const QModelIndex &index);
 
     // Header:
     /*QVariant headerData(int section,
