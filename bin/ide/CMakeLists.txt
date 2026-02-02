@@ -68,7 +68,8 @@ set_target_properties(
              MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_LIST_DIR}/Info.plist
              WIN32_EXECUTABLE TRUE
              FOLDER "qtc_runnable")
-
+# DLL/dylibs/SO we want to copy without copying over their headers too
+set(pepp_vendored_libs antlr4_shared fmt spdlog catch)
 if(WIN32)
   # Non-DLL platforms have empty generator expression, so use more generator
   # magic to only copy DLLs if they exist.
@@ -82,49 +83,52 @@ if(WIN32)
     COMMAND_EXPAND_LISTS)
   # Must specify antlr, because we can't easily install 3rd-party deps.
   install(
-    TARGETS pepp antlr4_shared fmt spdlog catch
+    TARGETS pepp pepp-lib test-lib-all
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
-  # If using dylib, copy to app frameworks.
-  if(_pepp_lib_type STREQUAL "SHARED_LIBRARY")
-    install(
-      TARGETS pepp-lib test-lib-all
-      COMPONENT Pepp
-      RUNTIME DESTINATION bin
-      BUNDLE DESTINATION .)
-  endif()
 elseif(APPLE)
   # Install our pepp application antlr4 isn't copied by any target since it is a
   # 3rd-party dependency. we must copy it here in a platform-dependent way.
   install(
-    TARGETS pepp antlr4_shared fmt spdlog
+    TARGETS pepp pepp-lib test-lib-all
     COMPONENT Pepp
     LIBRARY DESTINATION pepp.app/Contents/Frameworks
     BUNDLE DESTINATION .)
-
-  # If using dylib, copy to app frameworks.
-  if(_pepp_lib_type STREQUAL "SHARED_LIBRARY")
+  foreach(t IN LISTS pepp_vendored_libs)
+    # Copy ONLY the built binary for that target; no headers, no exports.
     install(
-      TARGETS pepp-lib test-lib-all catch
+      FILES "$<TARGET_FILE:${t}>" "$<TARGET_SONAME_FILE:${t}>"
+            "$<TARGET_LINKER_FILE:${t}>"
       COMPONENT Pepp
-      LIBRARY DESTINATION pepp.app/Contents/Frameworks)
-  endif()
+      DESTINATION "Pepp.app/Contents/Frameworks")
+  endforeach()
   set_target_properties(pepp PROPERTIES OUTPUT_NAME "Pepp")
 elseif(EMSCRIPTEN)
-  # Otherwise use default install logic on Linux for now.
   install(
-    TARGETS pepp antlr4_shared
+    TARGETS pepp pepp-lib test-lib-all
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
+  foreach(t IN LISTS pepp_vendored_libs)
+    install(
+      FILES "$<TARGET_FILE:${t}>"
+      COMPONENT Pepp
+      DESTINATION "bin")
+  endforeach()
 else()
   # Otherwise use default install logic on Linux for now.
   install(
-    TARGETS pepp antlr4_shared test-lib-all fmt spdlog catch
+    TARGETS pepp pepp-lib test-lib-all
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
+  foreach(t IN LISTS pepp_vendored_libs)
+    install(
+      FILES "$<TARGET_FILE:${t}>"
+      COMPONENT Pepp
+      DESTINATION "bin")
+  endforeach()
 endif()
 
 # Add main GUI module, qml sources, resources, and add demo applications.
