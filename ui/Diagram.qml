@@ -10,12 +10,7 @@ Item {
 
     width: 100
     height: 100
-    //required property var modelData
 
-    //required property int column
-    //required property int row
-    //required property var model
-    //property bool selected: false
     property string source: ""
 
     TableView.onPooled: image.source = ""

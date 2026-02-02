@@ -10,13 +10,8 @@ import DiagramEnum
 Item {
     id: root
     property var currentStamp: null
-    property var currentIndex: selectedItem()
+    property var currentIndex: tableView.selectionModel.currentIndex //selectedItem()
     property alias dataModel: tableView.model
-
-    //  Get currently selected item
-    function selectedItem() {
-        return tableView.selectionModel.currentIndex;
-    }
 
     ScrollView {
         id: scrollView
@@ -35,10 +30,6 @@ Item {
             selectionMode: TableView.ExtendedSelection
             selectionModel: selectionModel
 
-            //  Show updated index
-            onCurrentRowChanged: root.selectedItem();
-            onCurrentColumnChanged: root.selectedItem();
-
             delegate: TableViewDelegate {
                 id: tvDelegate
 
@@ -53,9 +44,11 @@ Item {
                         return;
 
                     const index = tableView.index(row, column);
+                    const hasData = tableView.model.data(index, Qt.DisplayRole) !== undefined;
 
                     //  Update model with current stamp
-                    tableView.model.setData(index, root.currentStamp.qrcFile, DiagramProperty.ImageSource);
+                    if(!hasData)
+                        tableView.model.setData(index, root.currentStamp.qrcFile, DiagramProperty.ImageSource);
                     tableView.selectionModel.select(index, ItemSelectionModel.SelectCurrent);
                 }
 
@@ -79,14 +72,12 @@ Item {
                     pasteFromClipboard()
                 } else*/ if (event.matches(StandardKey.Delete)) {
                     //visibleCellsConnection.blockConnection()
-                    console.log("Has selection", tableView.selectionModel.hasSelection);
                     if (tableView.selectionModel.hasSelection)
                         model.clearItemData(tableView.selectionModel.selectedIndexes)
                     else {
                         const index = tableView.selectionModel.currentIndex;
-                        console.log("Curent index", index);
                         model.clearItemData(index);
-                        diagramModel.update(index.row, index.column);
+                        root.dataModel.update(index.row, index.column);
                     }
                     //visibleCellsConnection.blockConnection(false)
                     //visibleCellsConnection.updateViewArea()
@@ -140,7 +131,7 @@ Item {
                     //dropArea.startDragging()
                 }*/
 
-                onClicked: mouse => {
+                /*onClicked: mouse => {
                     //  No template selected. Just return
                     if (root.currentStamp === null) {
                         return;
@@ -157,7 +148,7 @@ Item {
                     return;
                     // check selected indexes
                     const index = view.index(cell.y, cell.x);
-                }
+                }*/
 
                 /*onReleased: {
                     //dropArea.stopDragging()
