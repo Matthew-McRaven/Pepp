@@ -82,14 +82,14 @@ if(WIN32)
     COMMAND_EXPAND_LISTS)
   # Must specify antlr, because we can't easily install 3rd-party deps.
   install(
-    TARGETS pepp antlr4_shared fmt spdlog
+    TARGETS pepp antlr4_shared fmt spdlog catch
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
   # If using dylib, copy to app frameworks.
   if(_pepp_lib_type STREQUAL "SHARED_LIBRARY")
     install(
-      TARGETS pepp-lib
+      TARGETS pepp-lib test-lib-all
       COMPONENT Pepp
       RUNTIME DESTINATION bin
       BUNDLE DESTINATION .)
@@ -106,7 +106,7 @@ elseif(APPLE)
   # If using dylib, copy to app frameworks.
   if(_pepp_lib_type STREQUAL "SHARED_LIBRARY")
     install(
-      TARGETS pepp-lib
+      TARGETS pepp-lib test-lib-all catch
       COMPONENT Pepp
       LIBRARY DESTINATION pepp.app/Contents/Frameworks)
   endif()
@@ -121,7 +121,7 @@ elseif(EMSCRIPTEN)
 else()
   # Otherwise use default install logic on Linux for now.
   install(
-    TARGETS pepp antlr4_shared
+    TARGETS pepp antlr4_shared test-lib-all fmt spdlog catch
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
