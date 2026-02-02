@@ -29,6 +29,15 @@ bool DiagramDataModel::clearItemData(const QModelIndex &index)
     return false;
 }
 
+DiagramProperties *DiagramDataModel::itemData(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return nullptr;
+
+    auto data = _data.getDiagramProps(DiagramKey{index.row(), index.column()});
+    return data;
+}
+
 /*
 QVariant DiagramDataModel::headerData(int section, Qt::Orientation orientation, int role) const
 {

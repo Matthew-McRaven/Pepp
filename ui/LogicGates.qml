@@ -6,45 +6,15 @@ import QtQuick.VectorImage
 import QtQuick.Layouts
 
 import CircuitDesign
-//import "move.js" as Move
 
 Rectangle {
     id: root
 
     property real cellWidth: 100
 
-    /*Component.onCompleted: {
-        //  Initialize first stamp
-        buttonGroup.buttons[0].checked = true;
-        currentStamp(0);
-    }*/
-
-    //  Static list of gates for selection
-    /*DiagramListModel {
+    DiagramDataModel {
         id: diagramModel
     }
-
-    //  Filter list for properties box
-    SortFilterProxyModel {
-        id: filterModel
-        model: diagramModel
-
-        // Filter based on whether the 'shapeType' role
-        filters: [
-            FunctionFilter {
-                function filter(data: RoleData): bool {
-                    return data.shapeType === "Diagram";
-                }
-            }
-        ]
-    }
-    component RoleData: QtObject {
-        property string shapeType
-    }*/
-
-    /*DiagramPropertyModel {
-        id: dataModel
-    }*/
 
     SplitView {
         anchors.fill: parent
@@ -58,33 +28,32 @@ Rectangle {
             SplitView.minimumWidth: SplitView.preferredWidth
 
             DiagramListView {
-                id: source
+                id: sourceListView
 
                 Layout.alignment: Qt.AlignTop
                 Layout.fillWidth: true
             }
 
-            Item {  //  A spacer
+            Item {
+                //  A spacer
                 Layout.fillHeight: true
             }
 
-            /*DiagramProperties {
+            DiagramEditor {
                 id: props
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
 
-                //diagramModel: diagramModel.currentDiagram
-                //model: filterModel
-            }*/
+                diagramModel: diagramModel
+                currentIndex: canvas.currentIndex
+                gateModel: sourceListView.filterList
+            }
         }
 
-        DiagramCanvas{
-            /*anchors.left: listView.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.right: parent.right*/
-
-            currentStamp: source.currentStamp
+        DiagramCanvas {
+            id: canvas
+            dataModel: diagramModel
+            currentStamp: sourceListView.currentStamp
         }
         /*Item {
             //  Background used as canvas for object placement

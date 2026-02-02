@@ -20,6 +20,8 @@ class DiagramData : QObject
 public:
     DiagramData();
 
+    DiagramProperties *getDiagramProps(const DiagramKey &key);
+
     bool empty() const;
     QVariant getData(int id, int role) const;
     QVariant getData(const DiagramKey &key, int role) const;

@@ -8,6 +8,7 @@ Item {
     id: root
 
     property var currentStamp: null
+    property alias filterList: filterModel
 
     function setStamp(index){
         root.currentStamp = diagramList.diagramTemplate(index);
@@ -29,7 +30,24 @@ Item {
 
     DiagramListModel {
         id: diagramList
+    }
 
+    //  Filter list for properties box
+    SortFilterProxyModel {
+        id: filterModel
+        model: diagramList
+
+        // Filter based on whether the 'shapeType' role
+        filters: [
+            FunctionFilter {
+                function filter(data: RoleData): bool {
+                    return data.shapeType === "Diagram";
+                }
+            }
+        ]
+    }
+    component RoleData: QtObject {
+        property string shapeType
     }
 
     ButtonGroup {

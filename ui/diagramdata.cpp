@@ -51,6 +51,15 @@ bool DiagramData::setData(const DiagramKey &key, const QVariant &value, int role
     return true;
 }
 
+DiagramProperties *DiagramData::getDiagramProps(const DiagramKey &key)
+{
+    auto it_cell = _cells.find(key);
+    if (it_cell == _cells.end())
+        return {};
+
+    return it_cell.value();
+}
+
 DiagramProperties *DiagramData::createDiagramProps(const DiagramKey &key)
 {
     DiagramProperties *cell = new DiagramProperties(this);

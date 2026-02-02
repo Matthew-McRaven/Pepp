@@ -3,16 +3,18 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 
+import DiagramEnum
+
 Pane {
     id: root
-    property var diagramModel: null
-
-    onDiagramModelChanged: {
-
-    }
+    required property var diagramModel
+    property var currentIndex: null
 
     //  List of available gates
-    required property var model
+    required property var gateModel
+
+    Component.onCompleted: console.log("Name", root.diagramModel.name);
+
     Column {
         spacing: 2
         bottomPadding: 0
@@ -25,10 +27,11 @@ Pane {
             }
             ComboBox {
                 id: gateType
-                model: root.model
+                model: root.gateModel
                 textRole: "name"
                 valueRole: "name"
-                currentValue: root.diagramModel.name === null ? "" : root.diagramModel.name
+                currentValue: root.currentIndex == null ?
+                    "" : root.diagramModel.name
             }
 
             Label {
@@ -38,7 +41,8 @@ Pane {
                 id: input
                 from: 1
                 to: 6
-                value: 2
+                value: root.currentIndex == null ?
+                           2 : root.diagramModel.inputNo
             }
 
             Label {
@@ -48,12 +52,11 @@ Pane {
                 id: output
                 from: 1
                 to: 3
-                value: 1
+                value: root.currentIndex == null ?
+                           1 : root.diagramModel.outputNo
             }
         }   //  Grid
         Row {
-            //height: saveBtn.implicitHeight
-            //width: root.width
             Button {
                 id: saveBtn
                 text: "Save"
@@ -61,19 +64,25 @@ Pane {
 
                 onClicked: {
                     //  If source data is bad, just return
-                    if (gateType.currentIndex < 0 || root.diagramModel === null) {
+                    if (gateType.currentIndex < 0 || root.currentIndex == null) {
                         return;
                     }
 
                     //  Update model with new data
                     //  Extra item in model versus filter model. Find fix instead of
                     //  hard coding value.
-                    var item = root.model.sourceModel.diagramTemplate(gateType.currentIndex + 1);
-                    root.diagramModel.name = item.name;
-                    root.diagramModel.imageSource = item.qrcFile;
-                    root.diagramModel.type = item.key;
-                    root.diagramModel.inputNo = input.value;
-                    root.diagramModel.outputNo = output.value;
+                    var item = root.gateModel.sourceModel.diagramTemplate(gateType.currentIndex + 1);
+
+                    var data = root.diagramModel.itemData(root.currentIndex);
+                    data.name = item.name;
+                    data.imageSource = item.qrcFile;
+                    data.type = item.key;
+                    data.inputNo = input.value;
+                    data.outputNo = output.value;
+
+                    const row = root.currentIndex.row;
+                    const col = root.currentIndex.column;
+                    root.diagramModel.update(row, col);
                 }
             }
             Button {
@@ -82,12 +91,16 @@ Pane {
 
                 onClicked: {
                     //  If source data is bad, just return
-                    if (root.diagramModel === null) {
+                    if (root.diagramModel == null || root.currentIndex == null) {
                         return;
                     }
 
                     //  Reset screen with model data
-                    //gateType.currentText = root.diagramModel.name;
+                    var data = root.diagramModel.itemData(root.currentIndex);
+                    console.log("data.name", data.name)
+                    gateType.currentValue = data.name;
+                    input.value = data.inputNo;
+                    output.value = data.outputNo;
                 }
             }
         }   //  Row
