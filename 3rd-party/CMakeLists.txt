@@ -4,14 +4,14 @@ include(Json.cmake)
 include(zpp_bits.cmake)
 include(Flat.cmake)
 add_subdirectory(catch)
+set(FMT_INSTALL
+    OFF
+    CACHE BOOL "" FORCE)
 add_subdirectory(fmt)
 
 add_subdirectory(elfio)
 add_subdirectory(cli)
 add_subdirectory(lru)
-set(FMT_INSTALL
-    OFF
-    CACHE BOOL "" FORCE)
 add_subdirectory(spdlog)
 
 # Do not build tests while building python bindings. Huge slow down. If you
