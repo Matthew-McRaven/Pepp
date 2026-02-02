@@ -1,6 +1,6 @@
 [project]
 name = "pypepp"
-version = "0.0.2"
+version = "0.14.2"
 description = "Python bindings for the Pepp assembler and simulator"
 requires-python = ">=3.12"
 readme = "README.md"
@@ -46,6 +46,9 @@ exclude = [
    # Portions of our 3rd-party deps that you will not need to build the py deps
   "3rd-party/KD*",
   "3rd-party/sci*",
+  "3rd-party/mockturtle/docs/**",
+  "3rd-party/mockturtle/ex**",
+  "3rd-party/mockturtle/test/**",
   "3rd-party/cxxgraph/benchmark/**",
   "3rd-party/cxxgraph/historical/**",
   "3rd-party/cxxgraph/logos/**",
