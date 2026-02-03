@@ -5,12 +5,6 @@ macro(inject_clang_tidy)
   # -checks=-*,clang-analyzer-*)
 endmacro()
 
-# Force our desired C++ standard.
-macro(inject_cxx_standard)
-  set(CMAKE_CXX_STANDARD 20)
-  set(CMAKE_CXX_STANDARD_REQUIRED True)
-endmacro()
-
 # Add code coverage support, must come before target definition.
 macro(inject_code_coverage enable_coverage)
   message(STATUS "Code coverage enabled: ${enable_coverage}")
