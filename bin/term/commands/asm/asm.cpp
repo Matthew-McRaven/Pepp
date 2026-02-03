@@ -15,7 +15,7 @@
  */
 #include "asm.hpp"
 #include <iostream>
-#include "../../../../core/core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
 #include "../../basic_lazy_sink.hpp"
 #include "../../shared.hpp"
 #include "help/builtins/figure.hpp"

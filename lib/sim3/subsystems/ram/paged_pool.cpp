@@ -32,7 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #include "sim3/subsystems/ram/paged_pool.hpp"
-#include "../../../../core/core/arch/riscv/isa/rv_types.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
 #include "./paged_pool/memory_decoder.hpp"
 #include "./paged_pool/memory_elf.hpp"
 #include "./paged_pool/memory_mmap.hpp"

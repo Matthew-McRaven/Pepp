@@ -20,7 +20,7 @@
 #include "sim3/api/device.hpp"
 #include "sim3/api/memory_address.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
-#include "toolchain2/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_parser.hpp"
 
 MicroRunTask::MicroRunTask(int ed, std::string fname, int busWidth, QObject *parent)
     : Task(parent), _ed(ed), _busWidth(busWidth), _pecpuIn(fname) {}

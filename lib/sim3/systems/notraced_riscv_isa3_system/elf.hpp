@@ -34,7 +34,7 @@
 #pragma once
 #include <string_view>
 #include <type_traits>
-#include "../../../../core/core/arch/riscv/isa/rv_types.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
 
 namespace riscv
 {
