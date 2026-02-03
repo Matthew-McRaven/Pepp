@@ -13,12 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <catch.hpp>
+#include <catch/catch.hpp>
 
 #include "core/arch/pep/uarch/pep.hpp"
-#include "toolchain2/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_parser.hpp"
 
-TEST_CASE("Microassemble 1-byte bus", "[scope:mc2][kind:unit][arch:*][tc2]") {
+TEST_CASE("Microassemble 1-byte bus", "[scope:core][scope:core.langs][level:mc2][kind:unit][arch:*][tc2]") {
   using uarch = pepp::tc::arch::Pep9ByteBus;
   using uarch2c = pepp::tc::arch::Pep9WordBusControl;
   using regs = pepp::tc::arch::Pep9Registers;

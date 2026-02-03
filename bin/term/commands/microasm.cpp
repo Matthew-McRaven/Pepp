@@ -15,7 +15,7 @@
  */
 #include "microasm.hpp"
 #include "../../../core/core/arch/pep/uarch/pep.hpp"
-#include "toolchain2/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_parser.hpp"
 
 MicroAsmTask::MicroAsmTask(int ed, std::string in, int busWidth, QObject *parent)
     : Task(parent), ed(ed), busWidth(busWidth), in(in) {}

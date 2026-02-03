@@ -32,11 +32,11 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #include "./notraced_cpu.hpp"
-#include "../../../../core/core/arch/riscv/isa/rv_types.hpp"
 #include "./decode/cpu_dispatch.hpp"
 #include "./decode/decoder_cache.hpp"
 #include "./decode/threaded_bytecodes.hpp"
 #include "./instructions/instr_decoder.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
 
 namespace riscv {
 // cpu.cpp

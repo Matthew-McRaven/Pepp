@@ -24,7 +24,7 @@
 #include "sim3/cores/pep/traced_pep9_mc2.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
-#include "toolchain2/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_parser.hpp"
 
 namespace {
 const auto lf = QRegularExpression("\r");

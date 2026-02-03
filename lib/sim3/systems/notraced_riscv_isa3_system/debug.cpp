@@ -35,8 +35,8 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
-#include "../../../../core/core/arch/riscv/isa/rv_types.hpp"
-#include "../../../../core/core/arch/riscv/isa/rvi.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
+#include "core/arch/riscv/isa/rvi.hpp"
 #include "sim3/cores/riscv/decode/decoded_exec_segment.hpp"
 #include "sim3/cores/riscv/notraced_cpu.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system.hpp"

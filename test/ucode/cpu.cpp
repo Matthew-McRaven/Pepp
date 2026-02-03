@@ -17,7 +17,7 @@
 
 #include "../../core/core/arch/pep/uarch/pep.hpp"
 #include "../../lib/sim3/cores/pep/traced_pep9_mc2.hpp"
-#include "toolchain2/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_parser.hpp"
 
 namespace {
 template <typename CPU> std::pair<sim::memory::Dense<quint16>, CPU> make() {
