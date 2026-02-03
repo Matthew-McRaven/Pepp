@@ -60,7 +60,7 @@ void reapExploded(std::vector<rope *> &v) {
 }
 } // namespace
 
-TEST_CASE("Test rope type for incremental ELF string sections", "[scope:elf][kind:unit][arch:*]") {
+TEST_CASE("Test rope type for incremental ELF string sections", "[scope:core][scope:core.ds][kind:unit][arch:*]") {
   SECTION("construction") {
     // test default constructor - produces a rope representing empty string
     rope r = rope();
