@@ -40,6 +40,60 @@ struct PooledString {
   uint16_t page() const;
   uint16_t offset() const;
   uint16_t length() const;
+  // Sort by length, then by lexicographical_compare instead of only by lexicography.
+  // This is useful for cheaply implementing longest_suffix_of.
+  // Must convert PooledString to string_view, otherwise this becomes O(lgn * m) rather than O(m), where m is the
+  // average string length and n is the number of strings. string-to-pooled involves many comparisons against
+  // PooledStringSet, whereas pooled-to-string is essentially an index into a 2d array.
+  struct Less {
+    const StringPool *context = nullptr;
+    using is_transparent = std::true_type;
+    explicit Less(const StringPool *context);
+    // Implements BinaryPredicate, which requires CopyConstructible.
+    Less(const Less &other) = default;
+    Less(Less &&other) noexcept = default;
+    Less &operator=(const Less &other) = default;
+    Less &operator=(Less &&other) noexcept = default;
+
+    bool operator()(PooledString lhs, PooledString rhs) const;
+    bool operator()(PooledString lhs, std::string_view rhs) const;
+    bool operator()(std::string_view lhs, PooledString rhs) const;
+    bool operator()(std::string_view lhs, std::string_view rhs) const;
+  };
+  // Helper for using PooledStrings in unordered_map, providing an equal_to API.
+  // Must convert PooledString to string_view, otherwise this becomes O(lgn * m) rather than O(m), where m is the
+  // average string length and n is the number of strings.string-to-pooled involves many comparisons against
+  // PooledStringSet, whereas pooled-to-string is essentially an index into a 2d array.
+  struct Equals {
+    const StringPool *context = nullptr;
+    using is_transparent = std::true_type;
+    explicit Equals(const StringPool *context);
+    // Implements BinaryPredicate, which requires CopyConstructible.
+    Equals(const Equals &other) = default;
+    Equals(Equals &&other) noexcept = default;
+    Equals &operator=(const Equals &other) = default;
+    Equals &operator=(Equals &&other) noexcept = default;
+
+    bool operator()(PooledString lhs, PooledString rhs) const;
+    bool operator()(PooledString lhs, std::string_view rhs) const;
+    bool operator()(std::string_view lhs, PooledString rhs) const;
+    bool operator()(std::string_view lhs, std::string_view rhs) const;
+  };
+  // Ensure that a consistent hash is returned for PooledStrings and string_views.
+  struct Hash {
+    const StringPool *context = nullptr;
+    using is_transparent = std::true_type;
+    explicit Hash(const StringPool *context);
+    // Implements BinaryPredicate, which requires CopyConstructible.
+    Hash(const Hash &other) = default;
+    Hash(Hash &&other) noexcept = default;
+    Hash &operator=(const Hash &other) = default;
+    Hash &operator=(Hash &&other) noexcept = default;
+
+    size_t operator()(const PooledString &id) const;
+    size_t operator()(const std::string_view str) const;
+    size_t operator()(const std::string &str) const;
+  };
 
 private:
   PooledString(int16_t page, uint16_t offset, uint16_t length);
@@ -48,16 +102,6 @@ private:
   uint16_t _page = INVALID_PAGE; // If -1/INVALID_PAGE, it is an invalid identifier, otherwise an index into _pages.
   uint16_t _offset = 0;          // Offset into page.data.
   uint16_t _length = 0;          // Length of the identifier, including null terminator if present.
-  struct Comparator {
-    const StringPool *context = nullptr;
-    using is_transparent = std::true_type;
-    // Sort by length, then by lexicographical_compare instead of only by lexicography.
-    // This is useful for cheaply implemtning longest_suffix_of.
-    bool operator()(PooledString lhs, PooledString rhs) const;
-    bool operator()(PooledString lhs, std::string_view rhs) const;
-    bool operator()(std::string_view lhs, PooledString rhs) const;
-    bool operator()(std::string_view lhs, std::string_view rhs) const;
-  };
 };
 
 /*
@@ -71,7 +115,7 @@ public:
   static const auto MIN_PAGE_SIZE = PagedAllocator<char>::MIN_PAGE_SIZE;
   static const auto DEFAULT_PAGE_SIZE = PagedAllocator<char>::DEFAULT_PAGE_SIZE;
   static const auto MAX_PAGE_SIZE = PagedAllocator<char>::MAX_PAGE_SIZE;
-  using PooledStringSet = std::set<PooledString, PooledString::Comparator>;
+  using PooledStringSet = std::set<PooledString, PooledString::Less>;
 
   StringPool();
 
@@ -108,6 +152,7 @@ private:
   // Will enforce
   PooledString allocate(std::string_view str, AddNullTerminator terminator);
 
+  PooledString::Less _cmp;
   // Sort identifiers by string_view so that we can have cheap heterogenous comparisons with string_view
   PooledStringSet _identifiers = {};
 };

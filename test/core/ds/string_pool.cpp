@@ -14,15 +14,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QDebug>
-#include <QString>
-#include <catch.hpp>
-#include "../../../core/core/ds/string_pool.hpp"
+#include "core/ds/string_pool.hpp"
+#include <catch/catch.hpp>
 
 using Pool = pepp::bts::StringPool;
 using String = pepp::bts::PooledString;
 
-TEST_CASE("Allocator String Pooling", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
+TEST_CASE("Allocator String Pooling", "[kind:unit][arch:*][!throws][tc2][scope:core][scope:core.ds]") {
   static const std::string hi = "hi", world = "world";
   SECTION("Sequential insert/finds without pooling") {
     Pool p;

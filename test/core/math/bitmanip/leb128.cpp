@@ -8,11 +8,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "core/math/bitmanip/leb128.hpp"
-#include <catch.hpp>
+#include <catch/catch.hpp>
 #include <string>
 using namespace bits;
 
-TEST_CASE("LEB128Test -- EncodeSLEB128", "[scope:bits][kind:unit][arch:*]") {
+TEST_CASE("LEB128Test -- EncodeSLEB128", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   // clang-format off
 #define EXPECT_SLEB128_EQ(EXPECTED, VALUE, PAD) \
   do { \

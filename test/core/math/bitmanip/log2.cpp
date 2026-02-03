@@ -15,11 +15,10 @@
  */
 
 #include "core/math/bitmanip/log2.hpp"
-
-#include <catch.hpp>
+#include <catch/catch.hpp>
 
 using T = std::tuple<std::string, uint16_t, uint16_t>;
-TEST_CASE("Logarithm bit ops", "[scope:bits][kind:unit][arch:*]") {
+TEST_CASE("Logarithm bit ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   auto [_case, input, output] = GENERATE(table<std::string, uint16_t, uint16_t>({{"1", 1, 0},
                                                                                  {"2", 2, 1},
                                                                                  {"3", 3, 2},

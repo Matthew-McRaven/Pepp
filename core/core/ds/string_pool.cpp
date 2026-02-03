@@ -38,33 +38,89 @@ uint16_t pepp::bts::PooledString::offset() const { return _offset; }
 
 uint16_t pepp::bts::PooledString::length() const { return _length; }
 
-bool pepp::bts::PooledString::Comparator::operator()(PooledString ident_lhs, PooledString ident_rhs) const {
+pepp::bts::PooledString::Less::Less(const StringPool *context) : context(context) {}
+
+bool pepp::bts::PooledString::Less::operator()(PooledString ident_lhs, PooledString ident_rhs) const {
+  if (!context) [[unlikely]]
+    throw std::invalid_argument("PooledString::Less context must not be null");
   auto lhs = context->find(ident_lhs), rhs = context->find(ident_rhs);
-  if (!lhs) throw std::invalid_argument("PooledString::Comparator given bad lhs");
-  if (!rhs) throw std::invalid_argument("PooledString::Comparator given bad rhs");
+  if (!lhs) [[unlikely]]
+    throw std::invalid_argument("PooledString::Less given bad lhs");
+  if (!rhs) [[unlikely]]
+    throw std::invalid_argument("PooledString::Less given bad rhs");
   return this->operator()(*lhs, *rhs);
 }
 
-bool pepp::bts::PooledString::Comparator::operator()(PooledString ident_lhs, std::string_view rhs) const {
-  if (!context) throw std::invalid_argument("PooledString::Comparator context must not be null");
+bool pepp::bts::PooledString::Less::operator()(PooledString ident_lhs, std::string_view rhs) const {
+  if (!context) [[unlikely]]
+    throw std::invalid_argument("PooledString::Less context must not be null");
   auto lhs = context->find(ident_lhs);
-  if (!lhs) throw std::invalid_argument("PooledString::Comparator given bad lhs");
+  if (!lhs) [[unlikely]]
+    throw std::invalid_argument("PooledString::Less given bad lhs");
   return this->operator()(*lhs, rhs);
 }
 
-bool pepp::bts::PooledString::Comparator::operator()(std::string_view lhs, PooledString ident_rhs) const {
-  if (!context) throw std::invalid_argument("PooledString::Comparator context must not be null");
+bool pepp::bts::PooledString::Less::operator()(std::string_view lhs, PooledString ident_rhs) const {
+  if (!context) [[unlikely]]
+    throw std::invalid_argument("PooledString::Less context must not be null");
   auto rhs = context->find(ident_rhs);
-  if (!rhs) throw std::invalid_argument("PooledString::Comparator given bad rhs");
+  if (!rhs) [[unlikely]]
+    throw std::invalid_argument("PooledString::Less given bad rhs");
   return this->operator()(lhs, *rhs);
 }
 
-bool pepp::bts::PooledString::Comparator::operator()(std::string_view lhs, std::string_view rhs) const {
+bool pepp::bts::PooledString::Less::operator()(std::string_view lhs, std::string_view rhs) const {
   if (lhs.size() != rhs.size()) return lhs.size() < rhs.size();
   return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
-pepp::bts::StringPool::StringPool() : _identifiers(PooledString::Comparator{this}) {}
+pepp::bts::PooledString::Equals::Equals(const StringPool *context) : context(context) {}
+
+bool pepp::bts::PooledString::Equals::operator()(PooledString ident_lhs, PooledString ident_rhs) const {
+  // Testing for equality and not < means that we can compare handles directly!
+  // This is because we don't need to "sort" the contents of the strings.
+  return ident_lhs == ident_rhs;
+}
+
+bool pepp::bts::PooledString::Equals::operator()(PooledString ident_lhs, std::string_view rhs) const {
+  if (!context) [[unlikely]]
+    throw std::invalid_argument("PooledString::Equals context must not be null");
+  auto lhs = context->find(ident_lhs);
+  if (!lhs) return false;
+  return operator()(*lhs, rhs);
+}
+
+bool pepp::bts::PooledString::Equals::operator()(std::string_view lhs, PooledString ident_rhs) const {
+  if (!context) [[unlikely]]
+    throw std::invalid_argument("PooledString::Equals context must not be null");
+  auto rhs = context->find(ident_rhs);
+  if (!rhs) return false;
+  return this->operator()(lhs, *rhs);
+}
+
+bool pepp::bts::PooledString::Equals::operator()(std::string_view lhs, std::string_view rhs) const {
+  if (lhs.size() != rhs.size()) return false;
+  return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+pepp::bts::PooledString::Hash::Hash(const StringPool *context) : context(context) {}
+
+size_t pepp::bts::PooledString::Hash::operator()(const PooledString &id) const {
+  auto str = context->find(id);
+  if (!str) return 0;
+  return std::hash<std::string_view>()(*str);
+}
+
+size_t pepp::bts::PooledString::Hash::operator()(const std::string_view str) const {
+  if (str.empty()) return 0;
+  return std::hash<std::string_view>()(str);
+}
+size_t pepp::bts::PooledString::Hash::operator()(const std::string &str) const {
+  if (str.empty()) return 0;
+  return std::hash<std::string_view>()(str);
+}
+
+pepp::bts::StringPool::StringPool() : _cmp(this), _identifiers(_cmp) {}
 
 std::optional<pepp::bts::PooledString> pepp::bts::StringPool::find(std::string_view str) const {
   auto item = _identifiers.find(str);

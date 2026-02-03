@@ -15,18 +15,17 @@
  */
 
 #include "core/math/bitmanip/copy.hpp"
-#include <QList>
-#include <QtEndian>
-#include <catch.hpp>
-#include <qtypes.h>
+#include <catch/catch.hpp>
+#include <vector>
+#include "core/integers.h"
 
 using namespace bits;
-using vu8 = QList<uint8_t>;
+using vu8 = std::vector<u8>;
 
 namespace {
-void verify(uint8_t *arr, quint16 index, uint8_t golden) { CHECK(arr[index] == golden); }
+void verify(u8 *arr, u16 index, u8 golden) { CHECK(arr[index] == golden); }
 
-using T = std::tuple<std::string, quint16, vu8, Order, quint16, Order, vu8>;
+using T = std::tuple<std::string, u16, vu8, Order, u16, Order, vu8>;
 
 // Same length, same endian
 // clang-format off
@@ -80,17 +79,17 @@ const T _17 = {"dest longer, big-little, 2-3 byte", 2, vu8{0xAA, 0xBB},
 
 // clang-format on
 
-TEST_CASE("Copy bits", "[scope:bits][kind:unit][arch:*]") {
+TEST_CASE("Endian-aware memcpy", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   auto [caseName, srcLen, srcData, srcOrder, destLen, destOrder, destGolden] =
-      GENERATE(table<std::string, quint16, vu8, Order, quint16, Order, vu8>(
+      GENERATE(table<std::string, u16, vu8, Order, u16, Order, vu8>(
           {_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17}));
   DYNAMIC_SECTION(caseName) {
-    auto dest_le = quint64_le{0};
-    auto dest_be = quint64_be{0};
-    uint8_t *dest = nullptr;
-    if (destOrder == Order::BigEndian) dest = reinterpret_cast<uint8_t *>(&dest_be);
-    else if (destOrder == Order::LittleEndian) dest = reinterpret_cast<uint8_t *>(&dest_le);
-    auto src = srcData.constData();
+    auto dest_le = ul64{0};
+    auto dest_be = ub64{0};
+    u8 *dest = nullptr;
+    if (destOrder == Order::BigEndian) dest = reinterpret_cast<u8 *>(&dest_be);
+    else if (destOrder == Order::LittleEndian) dest = reinterpret_cast<u8 *>(&dest_le);
+    auto src = srcData.data();
     memcpy_endian({dest, destLen}, destOrder, {src, srcLen}, srcOrder);
     for (int it = 0; it < destLen; it++) verify(dest, it, destGolden[it]);
   }

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2023-2026 J. Stanley Warford, Matthew McRaven
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -13,18 +14,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
-#include "core/integers.h"
 
-namespace bits {
-// Convert a byte count to a mask.
-// e.g., 1=>0xFF
-// 2=> 0xFFFF
-uint64_t mask(uint8_t byteCount);
-struct MaskedBits {
-  u8 byteCount = 0;
-  u64 bitPattern = 0, mask = 0;
-  u64 operator()();
-  bool operator==(const MaskedBits &other) const;
-};
-} // namespace bits
+#include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/types.hpp"
+#include "core/compile/symbol/value.hpp"
+
+pepp::core::symbol::Entry::Entry(symbol::LeafTable &parent, std::string_view name) noexcept
+    : parent(parent), name(name), state(DefinitionState::Undefined), binding(Binding::Local),
+      value(std::make_shared<symbol::EmptyValue>(0)) {}
+
+bool pepp::core::symbol::Entry::is_singly_defined() const noexcept { return state == DefinitionState::Single; }
+
+bool pepp::core::symbol::Entry::is_undefined() const noexcept { return state == DefinitionState::Undefined; }
