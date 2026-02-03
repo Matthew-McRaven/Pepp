@@ -41,17 +41,17 @@ void MicroAsmTask::run() {
   }
 
   pepp::tc::parse::Errors errors;
-  QStringList formatted;
+  std::vector<std::string> formatted;
   if (busWidth == 1) {
-    auto result = pepp::tc::parse::MicroParser<uarch1, regs>(source).parse();
+    auto result = pepp::tc::parse::MicroParser<uarch1, regs>(source.toStdString()).parse();
     if (!result.errors.empty()) errors = result.errors;
     else
-      for (const auto &line : result.program) formatted.append(pepp::tc::ir::format<uarch1, regs>(line));
+      for (const auto &line : result.program) formatted.emplace_back(pepp::tc::ir::format<uarch1, regs>(line));
   } else if (busWidth == 2) {
-    auto result = pepp::tc::parse::MicroParser<uarch2, regs>(source).parse();
+    auto result = pepp::tc::parse::MicroParser<uarch2, regs>(source.toStdString()).parse();
     if (!result.errors.empty()) errors = result.errors;
     else
-      for (const auto &line : result.program) formatted.append(pepp::tc::ir::format<uarch2, regs>(line));
+      for (const auto &line : result.program) formatted.emplace_back(pepp::tc::ir::format<uarch2, regs>(line));
 
   } else {
     std::cerr << "Invalid bus width :" << busWidth << std::endl;
@@ -70,10 +70,12 @@ void MicroAsmTask::run() {
     QFile errF(errFName);
     if (errF.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
       auto ts = QTextStream(&errF);
-      for (auto const &[line, message] : errors) ts << line << ": " << message.trimmed() << "\n";
+      for (auto const &[line, message] : errors)
+        ts << line << ": " << QString::fromStdString(message).trimmed() << "\n";
     } else {
       std::cerr << "Failed to open error log for writing: " << errFName.toStdString() << std::endl;
-      for (auto const &[line, message] : errors) qWarning().noquote().nospace() << line << ": " << message.trimmed();
+      for (auto const &[line, message] : errors)
+        qWarning().noquote().nospace() << line << ": " << QString::fromStdString(message).trimmed();
     }
 
     return emit finished(6);
@@ -84,7 +86,7 @@ void MicroAsmTask::run() {
     pepcpuFName = QString::fromStdString(*pepcpuOut);
     QFile pepcpuF(pepcpuFName);
     if (pepcpuF.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-      for (const auto &line : std::as_const(formatted)) QTextStream(&pepcpuF) << line << "\n";
+      for (const auto &line : std::as_const(formatted)) QTextStream(&pepcpuF) << QString::fromStdString(line) << "\n";
     } else std::cerr << "Failed to open microcode for writing: " << pepcpuFName.toStdString() << std::endl;
   }
 

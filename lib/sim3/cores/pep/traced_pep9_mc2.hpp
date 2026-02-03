@@ -101,8 +101,8 @@ public:
 
   void setMicrocode(std::vector<pepp::tc::arch::Pep9ByteBus::Code> &&code);
   const std::span<const pepp::tc::arch::Pep9ByteBus::Code> microcode();
-  void applyPreconditions(const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
-  std::vector<bool> testPostconditions(const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  void applyPreconditions(const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  std::vector<bool> testPostconditions(const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
 
   // Target interface
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
@@ -127,8 +127,8 @@ public:
 
   void setMicrocode(std::vector<pepp::tc::arch::Pep9WordBus::Code> &&code);
   const std::span<const pepp::tc::arch::Pep9WordBus::Code> microcode();
-  void applyPreconditions(const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
-  std::vector<bool> testPostconditions(const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  void applyPreconditions(const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  std::vector<bool> testPostconditions(const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
 
   // Target interface
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
