@@ -27,7 +27,7 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
 ARG QT_MINOR="10"
-ARG QT_PATCH="1"
+ARG QT_PATCH="2"
 # major/minor
 ARG QT_RELEASE="6.${QT_MINOR}"
 # major/minor/patch
@@ -43,7 +43,7 @@ LABEL org.opencontainers.image.source="https://github.com/Matthew-McRaven/Pepp"
 FROM base-gcc AS build-gcc-riscv
 ENV RISCV=/opt/riscv
 ENV PATH=$PATH:$RISCV/bin
-ARG TOOLCHAIN_VERSION=2025.12.18
+ARG TOOLCHAIN_VERSION=2026.01.23
 RUN apt update \
     && apt-get install -y --no-install-recommends autoconf automake autotools-dev \
         curl python3 python3-pip python3-tomli libmpc-dev libmpfr-dev \
