@@ -38,8 +38,6 @@ uint16_t pepp::bts::PooledString::offset() const { return _offset; }
 
 uint16_t pepp::bts::PooledString::length() const { return _length; }
 
-pepp::bts::PooledString::Less::Less(const StringPool *context) : context(context) {}
-
 bool pepp::bts::PooledString::Less::operator()(PooledString ident_lhs, PooledString ident_rhs) const {
   if (!context) [[unlikely]]
     throw std::invalid_argument("PooledString::Less context must not be null");
@@ -74,8 +72,6 @@ bool pepp::bts::PooledString::Less::operator()(std::string_view lhs, std::string
   return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
-pepp::bts::PooledString::Equals::Equals(const StringPool *context) : context(context) {}
-
 bool pepp::bts::PooledString::Equals::operator()(PooledString ident_lhs, PooledString ident_rhs) const {
   // Testing for equality and not < means that we can compare handles directly!
   // This is because we don't need to "sort" the contents of the strings.
@@ -103,8 +99,6 @@ bool pepp::bts::PooledString::Equals::operator()(std::string_view lhs, std::stri
   return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
-pepp::bts::PooledString::Hash::Hash(const StringPool *context) : context(context) {}
-
 size_t pepp::bts::PooledString::Hash::operator()(const PooledString &id) const {
   auto str = context->find(id);
   if (!str) return 0;
@@ -120,7 +114,7 @@ size_t pepp::bts::PooledString::Hash::operator()(const std::string &str) const {
   return std::hash<std::string_view>()(str);
 }
 
-pepp::bts::StringPool::StringPool() : _cmp(this), _identifiers(_cmp) {}
+pepp::bts::StringPool::StringPool() : _cmp{this}, _identifiers(_cmp) {}
 
 std::optional<pepp::bts::PooledString> pepp::bts::StringPool::find(std::string_view str) const {
   auto item = _identifiers.find(str);

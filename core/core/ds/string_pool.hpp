@@ -48,12 +48,6 @@ struct PooledString {
   struct Less {
     const StringPool *context = nullptr;
     using is_transparent = std::true_type;
-    explicit Less(const StringPool *context);
-    // Implements BinaryPredicate, which requires CopyConstructible.
-    Less(const Less &other) = default;
-    Less(Less &&other) noexcept = default;
-    Less &operator=(const Less &other) = default;
-    Less &operator=(Less &&other) noexcept = default;
 
     bool operator()(PooledString lhs, PooledString rhs) const;
     bool operator()(PooledString lhs, std::string_view rhs) const;
@@ -67,12 +61,6 @@ struct PooledString {
   struct Equals {
     const StringPool *context = nullptr;
     using is_transparent = std::true_type;
-    explicit Equals(const StringPool *context);
-    // Implements BinaryPredicate, which requires CopyConstructible.
-    Equals(const Equals &other) = default;
-    Equals(Equals &&other) noexcept = default;
-    Equals &operator=(const Equals &other) = default;
-    Equals &operator=(Equals &&other) noexcept = default;
 
     bool operator()(PooledString lhs, PooledString rhs) const;
     bool operator()(PooledString lhs, std::string_view rhs) const;
@@ -83,12 +71,6 @@ struct PooledString {
   struct Hash {
     const StringPool *context = nullptr;
     using is_transparent = std::true_type;
-    explicit Hash(const StringPool *context);
-    // Implements BinaryPredicate, which requires CopyConstructible.
-    Hash(const Hash &other) = default;
-    Hash(Hash &&other) noexcept = default;
-    Hash &operator=(const Hash &other) = default;
-    Hash &operator=(Hash &&other) noexcept = default;
 
     size_t operator()(const PooledString &id) const;
     size_t operator()(const std::string_view str) const;
