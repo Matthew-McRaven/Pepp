@@ -13,20 +13,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <fmt/format.h>
 #include "./pep_ir.hpp"
 
-pepp::tc::ir::MemTest::MemTest(quint16 addr, quint8 value) : address(addr), size(1) {
+pepp::tc::ir::MemTest::MemTest(u16 addr, u8 value) : address(addr), size(1) {
   this->value[0] = value;
   this->value[1] = 0;
 }
 
-pepp::tc::ir::MemTest::operator QString() const {
-  if (size == 2)
-    return QString("Mem[0x%1]=0x%2%3")
-        .arg(QString::number(address, 16), QString::number(value[0], 16), QString::number(value[1], 16));
-  else return QString("Mem[0x%1]=0x%2").arg(QString::number(address, 16), QString::number(value[0], 16));
+pepp::tc::ir::MemTest::operator std::string() const {
+  if (size == 2) return fmt::format("Mem[0x{:04X}]=0x{:X}{:X}", address, value[0], value[1]);
+  else return fmt::format("Mem[0x{:04X}]=0x{:X}", address, value[0]);
 }
-pepp::tc::ir::MemTest::MemTest(quint16 addr, quint16 value) : address(addr), size(2) {
+pepp::tc::ir::MemTest::MemTest(u16 addr, u16 value) : address(addr), size(2) {
   this->value[0] = (value >> 8) & 0xFF;
   this->value[1] = value & 0xff;
 }
