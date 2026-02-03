@@ -1,5 +1,5 @@
 /*
- * /Copyright (c) 2026. Stanley Warford, Matthew McRaven
+ *  Copyright (c) 2026. Stanley Warford, Matthew McRaven
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
@@ -61,6 +61,12 @@ template <typename T> bool intersects(const Interval<T> &lhs, const Interval<T> 
 }
 template <typename T> Interval<T> intersection(const Interval<T> &lhs, const Interval<T> &rhs) {
   using std::max, std::min;
+  assert(intersects(lhs, rhs));
+  return {max(lhs.lower(), rhs.lower()), min(lhs.upper(), rhs.upper())};
+}
+// Return smallest interval which contains both.
+template <typename T> Interval<T> hull(const Interval<T> &lhs, const Interval<T> &rhs) {
+  using std::max, std::min;
   return {min(lhs.lower(), rhs.lower()), max(lhs.upper(), rhs.upper())};
 }
 template <typename T> std::ostream &operator<<(std::ostream &os, const Interval<T> &interval) {
@@ -69,7 +75,7 @@ template <typename T> std::ostream &operator<<(std::ostream &os, const Interval<
 
 // Helper to translate a value in a src interval into an offset, then translate that offset into a destintation
 // interval. It is essentially segmented address translation.
-template <typename T> inline T convert(T v, const Interval<T> &src, const Interval<T> &dst) {
+template <typename T> inline T offset_map(T v, const Interval<T> &src, const Interval<T> &dst) {
   assert(src.lower() <= v && v <= src.upper());
   T key_src_offet = v - src.lower();
   T ret = dst.lower() + key_src_offet;

@@ -99,7 +99,7 @@ template <typename Address> typename SimpleBus<Address>::AddressSpan SimpleBus<A
 template <typename Address>
 api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8> dest,
                                               api2::memory::Operation op) const {
-  using pepp::core::convert;
+  using pepp::core::offset_map;
   // TODO: add trace code that we traversed the bus.
   using E = api2::memory::Error;
   using T = std::tuple<Address, std::size_t>;
@@ -119,7 +119,7 @@ api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8
     auto devSpan = dev->span();
     auto usableLength = std::min<qsizetype>(length, size_inclusive(devSpan));
     // Convert bus address => device address
-    auto busToDev = convert<Address>(address + offset, region->from, region->to);
+    auto busToDev = offset_map<Address>(address + offset, region->from, region->to);
     api2::memory::Result acc;
     acc = dev->read(busToDev, dest.subspan(offset, usableLength), op);
 
@@ -131,7 +131,7 @@ api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8
 template <typename Address>
 api2::memory::Result SimpleBus<Address>::write(Address address, bits::span<const quint8> src,
                                                api2::memory::Operation op) {
-  using pepp::core::convert, pepp::core::size;
+  using pepp::core::offset_map, pepp::core::size;
   // TODO: add trace code that we traversed the bus.
   using E = api2::memory::Error;
   using T = std::tuple<Address, std::size_t>;
@@ -150,7 +150,7 @@ api2::memory::Result SimpleBus<Address>::write(Address address, bits::span<const
     auto devSpan = dev->span();
     auto usableLength = std::min<qsizetype>(length, size<Address, false>(devSpan));
     // Convert bus address => device address
-    auto busToDev = convert<Address>(address + offset, region->from, region->to);
+    auto busToDev = offset_map<Address>(address + offset, region->from, region->to);
     api2::memory::Result acc;
     acc = dev->write(busToDev, src.subspan(offset, usableLength), op);
     offset += usableLength;
