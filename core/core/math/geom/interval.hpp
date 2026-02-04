@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <ostream>
+#include "core/integers.h"
 
 namespace pepp::core {
 template <typename T> struct Interval {
@@ -70,7 +71,7 @@ template <typename T> Interval<T> hull(const Interval<T> &lhs, const Interval<T>
   return {min(lhs.lower(), rhs.lower()), max(lhs.upper(), rhs.upper())};
 }
 template <typename T> std::ostream &operator<<(std::ostream &os, const Interval<T> &interval) {
-  return os << "[" << interval.lower() << ", " << interval.upper() << "]";
+  return os << "[" << (i64)interval.lower() << ", " << (i64)interval.upper() << "]";
 }
 
 // Helper to translate a value in a src interval into an offset, then translate that offset into a destintation

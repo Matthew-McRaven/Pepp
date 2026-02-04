@@ -47,15 +47,15 @@ TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   }
 
   SECTION("Size") {
-    CHECK(r1.width() == 10);
-    CHECK(r1.height() == 5);
-    CHECK(area(r1) == 50);
-    CHECK(r2.width() == 10);
-    CHECK(r2.height() == 5);
-    CHECK(area(r2) == 50);
-    CHECK(r3.width() == 2);
-    CHECK(r3.height() == 1);
-    CHECK(area(r3) == 2);
+    CHECK(r1.width() == 11);
+    CHECK(r1.height() == 6);
+    CHECK(area(r1) == 66);
+    CHECK(r2.width() == 11);
+    CHECK(r2.height() == 6);
+    CHECK(area(r2) == 66);
+    CHECK(r3.width() == 3);
+    CHECK(r3.height() == 2);
+    CHECK(area(r3) == 6);
   }
   SECTION("Contains") {
     auto p1 = Point<i16>{5, 2};
@@ -111,5 +111,85 @@ TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
 
     CHECK(intersection(r1, r3) == Rect(Ivl{2, 4}, Ivl{0, 1}));
     CHECK(hull(r1, r3) == r1);
+  }
+}
+
+TEST_CASE("Rectangle Decomposition", "[scope:core][scope:core.math][kind:unit][arch:*]") {
+  using namespace pepp::core;
+  using Pt = Point<i16>;
+  using Rect = Rectangle<i16>;
+  using Ivl = Interval<i16>;
+  using RD = RectangleDecomposer<i16>;
+
+  SECTION("Aligned 8x8 rect @ 0,0") {
+    Rect r0(Ivl{0, 7}, Ivl{0, 7});
+    RD rd0(r0);
+    CHECK(std::distance(rd0.begin(), rd0.end()) == 1);
+    auto begin = rd0.begin(), end = rd0.end();
+
+    auto clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{8, 8});
+    CHECK((*begin).first == Pt{0, 0});
+    CHECK((*begin).second == clip);
+    begin++;
+
+    CHECK(begin == end);
+  }
+  // Fill top-right, then one col in top-left, then one row in bottom-left, then one cell bottom-right.
+  SECTION("Aligned 9x9 rect @ 0,0") {
+    Rect r0(Ivl{0, 8}, Ivl{0, 8});
+    RD rd0(r0);
+    CHECK(std::distance(rd0.begin(), rd0.end()) == 4);
+    auto begin = rd0.begin(), end = rd0.end();
+
+    auto clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{8, 8});
+    CHECK((*begin).first == Pt{0, 0});
+    CHECK((*begin).second == clip);
+    begin++;
+
+    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{1, 8});
+    CHECK((*begin).first == Pt{8, 0});
+    CHECK((*begin).second == clip);
+    begin++;
+
+    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{8, 1});
+    CHECK((*begin).first == Pt{0, 8});
+    CHECK((*begin).second == clip);
+    begin++;
+
+    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{1, 1});
+    CHECK((*begin).first == Pt{8, 8});
+    CHECK((*begin).second == clip);
+    begin++;
+
+    CHECK(begin == end);
+  }
+  // One cell in each of the 4 quadrants
+  SECTION("Unaligned 2x2 rect @ 7,7") {
+    Rect r0(Ivl{7, 8}, Ivl{7, 8});
+    RD rd0(r0);
+    CHECK(std::distance(rd0.begin(), rd0.end()) == 4);
+    auto begin = rd0.begin(), end = rd0.end();
+
+    auto clip = Rectangle<u8>(Point<u8>{7, 7}, Size<u8>{1, 1});
+    CHECK((*begin).first == Pt{0, 0});
+    CHECK((*begin).second == clip);
+    begin++;
+
+    clip = Rectangle<u8>(Point<u8>{0, 7}, Size<u8>{1, 1});
+    CHECK((*begin).first == Pt{8, 0});
+    CHECK((*begin).second == clip);
+    begin++;
+
+    clip = Rectangle<u8>(Point<u8>{7, 0}, Size<u8>{1, 1});
+    CHECK((*begin).first == Pt{0, 8});
+    CHECK((*begin).second == clip);
+    begin++;
+
+    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{1, 1});
+    CHECK((*begin).first == Pt{8, 8});
+    CHECK((*begin).second == clip);
+    begin++;
+
+    CHECK(begin == end);
   }
 }

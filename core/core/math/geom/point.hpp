@@ -43,4 +43,42 @@ template <typename T> struct Point {
 private:
   T _x, _y;
 };
+
+template <typename T> struct Size {
+  explicit Size() noexcept : _width(T()), _height(T()) {}
+  Size(T width, T height) noexcept : _width(width), _height(height) {}
+  Size(const Size &) noexcept = default;
+  Size &operator=(const Size &) noexcept = default;
+  Size(Size &&) noexcept = default;
+  Size &operator=(Size &&) noexcept = default;
+  friend void swap(Size &lhs, Size &rhs) noexcept {
+    using std::swap;
+    swap(lhs._width, rhs._width);
+    swap(lhs._height, rhs._height);
+  }
+  ~Size() = default;
+  // Also scanline orderm like rectangle, min y then min x.
+  auto operator<=>(const Size &other) const {
+    if (auto c = _height <=> other._height; c != 0) return c;
+    return _width <=> other._width;
+  }
+  bool operator==(const Size &other) const noexcept = default;
+  inline T width() const noexcept { return _width; }
+  inline T height() const noexcept { return _height; }
+
+private:
+  T _width, _height;
+};
 } // namespace pepp::core
+
+namespace std {
+template <typename T> struct hash<pepp::core::Point<T>> {
+  // Probably a horrible hash function, but it will work for now
+  inline size_t operator()(const pepp::core::Point<T> &v) const {
+    std::hash<T> int_hasher;
+    // Multiple by a prime before xor to prevent all X==Y pairs from colliding.
+    // 2^16+1 is prime, so it should be a decent choice for 16-bit integers.
+    return 65537 * int_hasher(v.x()) ^ int_hasher(v.y());
+  }
+};
+} // namespace std
