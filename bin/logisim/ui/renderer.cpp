@@ -14,6 +14,8 @@ CursedCanvas::CursedCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   _rects.emplace_back(Rectangle{Pt{30, 50}, eight});
   _rects.emplace_back(Rectangle{Pt{40, 80}, eight});
   _rects.emplace_back(Rectangle{Pt{50, 90}, eight});
+  _rects.emplace_back(Rectangle{Pt{150, 90}, eight});
+  _rects.emplace_back(Rectangle{Pt{250, 90}, eight});
   _top_left = Pt{0, 0};
 }
 
@@ -42,6 +44,6 @@ QRectF CursedCanvas::grid_to_screen(Rectangle rect) {
   const auto offset_y = rect.top_left().y() - _top_left.y();
   const auto width = rect.width();
   const auto height = rect.height();
-  const float grid_to_px = 4.0f;
+
   return QRectF(offset_x * grid_to_px, offset_y * grid_to_px, width * grid_to_px, height * grid_to_px);
 }
