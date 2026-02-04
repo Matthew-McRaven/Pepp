@@ -25,6 +25,7 @@ cmake.version = ">=3.20"
 wheel.packages = ["pypepp"]
 cmake.args = [
   "-DPEPP_BUILD_PYTHON=ON",
+  "-DPEPP_BUILD_GUI=OFF",
   # strongly recommended for wheels:
   "-DCMAKE_BUILD_TYPE=Release",
 ]
@@ -42,7 +43,8 @@ exclude = [
   "data/**",
   "www/**",
   "lib/**",
-  "bin/**",
+  "bin/ide/**",
+  "bin/term**",
    # Portions of our 3rd-party deps that you will not need to build the py deps
   "3rd-party/KD*",
   "3rd-party/sci*",

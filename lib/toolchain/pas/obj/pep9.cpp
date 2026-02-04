@@ -16,7 +16,7 @@
  */
 
 #include "./pep9.hpp"
-#include "../../../../core/core/arch/pep/isa/pep9.hpp"
+#include "core/arch/pep/isa/pep9.hpp"
 #include "./common.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "toolchain/link/mmio.hpp"

@@ -33,7 +33,7 @@
  */
 #pragma once
 #include <array>
-#include "../../../../core/core/arch/riscv/isa/rv_types.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
 #include "sim3/common_macros.hpp"
 #include "sim3/systems/notraced_riscv_isa3_system/rv_common.hpp"
 

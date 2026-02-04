@@ -123,7 +123,7 @@ const std::span<const pepp::tc::arch::Pep9ByteBus::Code> targets::pep9::mc2::CPU
 }
 
 void targets::pep9::mc2::CPUByteBus::applyPreconditions(
-    const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests) {
+    const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests) {
   for (const auto &test : tests) {
     if (std::holds_alternative<pepp::tc::ir::MemTest>(test)) {
       auto memTest = std::get<pepp::tc::ir::MemTest>(test);
@@ -146,7 +146,7 @@ void targets::pep9::mc2::CPUByteBus::applyPreconditions(
 }
 
 std::vector<bool> targets::pep9::mc2::CPUByteBus::testPostconditions(
-    const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests) {
+    const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests) {
   std::vector<bool> ret(tests.size(), true);
   quint8 temp[4] = {0, 0, 0, 0};
   int num = 0;
@@ -262,7 +262,7 @@ const std::span<const pepp::tc::arch::Pep9WordBus::Code> targets::pep9::mc2::CPU
 }
 
 void targets::pep9::mc2::CPUWordBus::applyPreconditions(
-    const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests) {
+    const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests) {
   for (const auto &test : tests) {
     if (std::holds_alternative<pepp::tc::ir::MemTest>(test)) {
       auto memTest = std::get<pepp::tc::ir::MemTest>(test);
@@ -285,7 +285,7 @@ void targets::pep9::mc2::CPUWordBus::applyPreconditions(
 }
 
 std::vector<bool> targets::pep9::mc2::CPUWordBus::testPostconditions(
-    const QList<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests) {
+    const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests) {
   std::vector<bool> ret(tests.size(), true);
   quint8 temp[4] = {0, 0, 0, 0};
   int num = 0;

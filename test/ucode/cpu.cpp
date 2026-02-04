@@ -17,7 +17,7 @@
 
 #include "../../core/core/arch/pep/uarch/pep.hpp"
 #include "../../lib/sim3/cores/pep/traced_pep9_mc2.hpp"
-#include "toolchain2/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_parser.hpp"
 
 namespace {
 template <typename CPU> std::pair<sim::memory::Dense<quint16>, CPU> make() {
@@ -48,8 +48,8 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("Register set preconditions") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
-    QString source = "UnitPre: x=0x2345, mem[0xfffe]=7";
-    auto result = Parser(source).parse();
+    std::string source = "UnitPre: x=0x2345, mem[0xfffe]=7";
+    auto result = Parser(std::move(source)).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 2) == 0);
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0);
@@ -84,8 +84,8 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("memread") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
-    QString source = "UnitPre: mem[0xFEFF]=0x17";
-    auto result = Parser(source).parse();
+    std::string source = "UnitPre: mem[0xFEFF]=0x17";
+    auto result = Parser(std::move(source)).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 0) == 0x0);
     cpu.setConstantRegisters();
@@ -141,8 +141,8 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("Register set preconditions") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
-    QString source = "UnitPre: x=0x2345, mem[0xfffe]=7";
-    auto result = Parser(source).parse();
+    std::string source = "UnitPre: x=0x2345, mem[0xfffe]=7";
+    auto result = Parser(std::move(source)).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 2) == 0);
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0);
@@ -177,8 +177,8 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("memread") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUWordBus>();
     cpu.setTarget(&mem, nullptr);
-    QString source = "UnitPre: mem[0xFEFE]=0x67, mem[0xFEFF]=0x17";
-    auto result = Parser(source).parse();
+    std::string source = "UnitPre: mem[0xFEFE]=0x67, mem[0xFEFF]=0x17";
+    auto result = Parser(std::move(source)).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 0) == 0x0);
     cpu.setConstantRegisters();

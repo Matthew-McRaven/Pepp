@@ -16,23 +16,24 @@ add_subdirectory(spdlog)
 
 # Do not build tests while building python bindings. Huge slow down. If you
 # remove EMSCRIPTEN from this list of conditions, update /test/CMakeLists.txt
-if(PEPP_BUILD_PYTHON OR EMSCRIPTEN)
+if(EMSCRIPTEN OR NOT PEPP_BUILD_GUI)
   set(MOCKTURTLE_BUILD_TESTS
       OFF
       CACHE BOOL "" FORCE)
-else()
+else(PEPP_BUILD_GUI)
   set(MOCKTURTLE_BUILD_TESTS
       ON
       CACHE BOOL "" FORCE)
 endif()
-
 add_subdirectory(mockturtle)
 
 # Can be removed when https://github.com/eyalz800/zpp_bits/pull/130 is merged.
-if(Python_VERSION VERSION_GREATER_EQUAL "3.12" AND NOT EMSCRIPTEN)
+if(Python_VERSION VERSION_GREATER_EQUAL "3.12"
+   AND NOT EMSCRIPTEN
+   AND PEPP_BUILD_PYTHON)
   add_subdirectory(nanobind)
 endif()
-if(NOT PEPP_BUILD_PYTHON)
+if(PEPP_BUILD_GUI)
   # Disable unit tests for antlr, since it produces many CMake warnings. We
   # don't use VCPKG, since it ships only x86 binaries for Mac, and we target ARM
   # plus x86, which means we need to build from the sources.

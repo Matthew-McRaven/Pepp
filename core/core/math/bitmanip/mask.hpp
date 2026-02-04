@@ -14,11 +14,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <cstdint>
+#include "core/integers.h"
 
 namespace bits {
 // Convert a byte count to a mask.
 // e.g., 1=>0xFF
 // 2=> 0xFFFF
 uint64_t mask(uint8_t byteCount);
+struct MaskedBits {
+  u8 byteCount = 0;
+  u64 bitPattern = 0, mask = 0;
+  u64 operator()();
+  bool operator==(const MaskedBits &other) const;
+};
 } // namespace bits

@@ -1,8 +1,4 @@
 include_guard()
-# Allows us to not use __declspec(dll...) everywhere
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-# We always want universal builds, so do not set on a per-target basis NOTE:
-# This prevents us from building statically!!
 
 # test-lib-all-int will include the sources for all catch tests, and be
 # dependent on all the tests' libaries. Our test browser must depend on this
@@ -10,9 +6,10 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 qt6_add_library(test-lib-all-int INTERFACE)
 # test-all bundles all the tests into a single executable to prove that there
 # are no linker errors. do not add to ctest, otherwise every test runs twice.
-qt6_add_executable(test-all ${CMAKE_CURRENT_LIST_DIR}/main.cpp)
-# Make test-lib-all a library of all of our sources to reduce the number
-# of object members we "bubble up" to other targets. Otherwise we can hit LNK1189 on Windows
+qt6_add_executable(test-all ${PROJECT_SOURCE_DIR}/config/cmake/main.cpp)
+# Make test-lib-all a library of all of our sources to reduce the number of
+# object members we "bubble up" to other targets. Otherwise we can hit LNK1189
+# on Windows
 qt6_add_library(test-lib-all)
 target_link_libraries(test-lib-all PUBLIC test-lib-all-int)
 set_target_properties(test-lib-all PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -36,7 +33,7 @@ set_property(GLOBAL PROPERTY ALL_LIBRARIES "")
 function(catch_test_count count_name)
   get_target_property(FILES test-lib-all INTERFACE_SOURCES)
   list(LENGTH FILES count)
-  #message("Test count: ${count} with files ${FILES}")
+  # message("Test count: ${count} with files ${FILES}")
   set(${count_name}
       ${count}
       PARENT_SCOPE)

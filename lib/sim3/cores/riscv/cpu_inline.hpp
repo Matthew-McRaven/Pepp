@@ -31,7 +31,7 @@
  * along with this program. If not, see
  * <https://opensource.org/license/bsd-3-clause>
  */
-#include "../../../../core/core/arch/riscv/isa/rv_types.hpp"
+#include "core/arch/riscv/isa/rv_types.hpp"
 #include "./notraced_cpu.hpp"
 
 namespace riscv {
