@@ -11,8 +11,8 @@ class DiagramDataModel : public QAbstractTableModel
     Q_OBJECT
     QML_ELEMENT
 
-    const int _colSize{26};
-    const int _rowSize{1000};
+    const int _colSize{32};
+    const int _rowSize{32};
     DiagramData _data;
 
 public:
@@ -28,6 +28,7 @@ public:
     explicit DiagramDataModel(QObject *parent = nullptr);
 
     //  Custom functions
+    Q_INVOKABLE void update(const QModelIndex &index);
     Q_INVOKABLE void update(int row, int column);
     Q_INVOKABLE bool clearItemData(const QModelIndexList &indexes);
     Q_INVOKABLE bool clearItemData(const QModelIndex &index) override;

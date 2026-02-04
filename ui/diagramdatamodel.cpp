@@ -4,10 +4,17 @@ DiagramDataModel::DiagramDataModel(QObject *parent)
     : QAbstractTableModel(parent)
 {}
 
+void DiagramDataModel::update(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return;
+
+    emit dataChanged(index, index);
+}
+
 void DiagramDataModel::update(int row, int column)
 {
-    const QModelIndex index = this->index(row, column);
-    emit dataChanged(index, index); //, {spread::Role::Display,});
+    update(this->index(row, column));
 }
 
 bool DiagramDataModel::clearItemData(const QModelIndexList &indexes)

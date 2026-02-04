@@ -1,8 +1,8 @@
-#pragma ComponentBehavior: Bound
+pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.VectorImage
 import QtQuick.Controls
+import QtQuick.VectorImage
 
 //  Drag target
 Item {
@@ -11,10 +11,22 @@ Item {
     width: 100
     height: 100
 
+    required property int row
+    required property int column
+    required property bool current
+    required property bool editing
+    required property bool selected
+    required property var model
+
     property string source: ""
 
     TableView.onPooled: image.source = ""
     TableView.onReused: image.source = root.source
+    GridLines {
+        anchors.fill: parent
+        z: -1
+        current: root.current
+    }
 
     Rectangle {
         id: wrapper
@@ -32,8 +44,6 @@ Item {
             anchors.centerIn: parent
             width: wrapper.width
             height: wrapper.width / 2
-
-            //opacity: ma.drag.active ? .25 : 1
 
             source: root.source === null ? "" : root.source
             fillMode: Image.PreserveAspectFit

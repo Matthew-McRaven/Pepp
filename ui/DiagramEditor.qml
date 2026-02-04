@@ -13,8 +13,6 @@ Pane {
     //  List of available gates
     required property var gateModel
 
-    Component.onCompleted: console.log("Name", root.diagramModel.name);
-
     Column {
         spacing: 2
         bottomPadding: 0
@@ -41,8 +39,7 @@ Pane {
                 id: input
                 from: 1
                 to: 6
-                value: root.currentIndex == null ?
-                           2 : root.diagramModel.inputNo
+                value: 2 //root.currentIndex ? root.diagramModel.inputNo : 2
             }
 
             Label {
@@ -52,8 +49,7 @@ Pane {
                 id: output
                 from: 1
                 to: 3
-                value: root.currentIndex == null ?
-                           1 : root.diagramModel.outputNo
+                value: 1 //root.currentIndex ? root.diagramModel.outputNo : 1
             }
         }   //  Grid
         Row {
