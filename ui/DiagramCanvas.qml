@@ -43,10 +43,6 @@ Item {
             implicitWidth: 100
             implicitHeight: 100
         }
-        /*Item {
-            width: canvas.contentWidth
-            height: canvas.contentHeight
-        }*/
 
         ScrollBar.vertical: ScrollBar {
              policy: ScrollBar.AlwaysOn
@@ -54,52 +50,5 @@ Item {
          ScrollBar.horizontal: ScrollBar {
              policy: ScrollBar.AsNeeded
         }
-    }
-
-    /*ScrollView {
-        id: scrollView
-        anchors.fill: parent
-        clip:true
-
-        // Ensure that have non-empty content, even if the canvas is currently empty.
-        contentWidth: Math.max(canvas.width, canvas.contentWidth)
-        contentHeight: Math.max(canvas.height, canvas.contentHeight)
-
-        contentItem: Item {
-            width: canvas.contentWidth
-            height: canvas.contentHeight
-        }
-    }*/
-/*
-        TableView {
-            id: tableView
-
-            clip: true
-            columnSpacing: 0
-            rowSpacing: 0
-            alternatingRows: false
-            reuseItems: true
-            boundsBehavior: Flickable.StopAtBounds
-            selectionBehavior: TableView.SelectCells // TableView.SingleSelection
-            selectionMode: TableView.ExtendedSelection
-            selectionModel: selectionModel
-
-            delegate: GridLines {
-                current: current
-                implicitWidth: 100
-                implicitHeight: 100
-            }
-
-        }   //  TableView
-    }*/   //  ScrollView
-
-    /*ItemSelectionModel {
-        id: selectionModel
-    }
-
-    SelectionRectangle {
-        id: selectionRectangle
-        target: tableView
-        selectionMode: SelectionRectangle.Auto
-    }*/
+    }   //  TableView
 }   //  Item
