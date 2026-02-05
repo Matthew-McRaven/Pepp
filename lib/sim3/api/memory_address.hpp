@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <QtAssert>
-#include "../../../core/core/math/interval.hpp"
+#include "../../../core/core/math/geom/interval.hpp"
 
 namespace sim::api2::memory {
 

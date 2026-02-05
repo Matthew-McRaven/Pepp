@@ -4,6 +4,7 @@ if(PEPP_BUILD_GUI)
   if(NOT (EMSCRIPTEN OR IOS))
     add_subdirectory(term)
   endif()
+  add_subdirectory(logisim)
 
   qt_generate_deploy_qml_app_script(TARGET pepp OUTPUT_SCRIPT deploy_script
                                     NO_UNSUPPORTED_PLATFORM_ERROR)

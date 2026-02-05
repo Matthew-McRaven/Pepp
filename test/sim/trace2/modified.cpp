@@ -92,8 +92,8 @@ TEST_CASE("Interval", "[scope:sim][kind:unit][arch:*]") {
     I a = {1, 0xffff}, b = {0, 1};
     REQUIRE(intersects(a, b));
     I i = intersection(a, b);
-    CHECK(i.lower() == 0);
-    CHECK(i.upper() == 0xffff);
+    CHECK(i.lower() == 1);
+    CHECK(i.upper() == 1);
   }
 }
 using IS = IntervalSet<uint16_t, true>;

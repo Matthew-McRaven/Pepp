@@ -144,7 +144,7 @@ public:
   // Return {false, 0, X} if no mapping is found.
   std::tuple<bool, sim::api2::device::ID, T> value(T from_key) const {
     auto region = region_at(from_key);
-    if (region) return {true, region->device, convert(from_key, region->from, region->to)};
+    if (region) return {true, region->device, offset_map(from_key, region->from, region->to)};
     return {false, 0, 0};
   }
 
@@ -152,7 +152,7 @@ public:
   std::tuple<bool, T> key(sim::api2::device::ID device, T to_value) const {
     // Elements are not sorted by "to" interval, so we must do a full linear search.
     for (const auto &node : _elements)
-      if (node.device == device && contains(node.to, to_value)) return {true, convert(to_value, node.to, node.from)};
+      if (node.device == device && contains(node.to, to_value)) return {true, offset_map(to_value, node.to, node.from)};
     return {false, T()};
   }
 

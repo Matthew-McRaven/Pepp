@@ -25,10 +25,10 @@ char pepp::tc::support::SeekableData::peek() {
 
 std::string_view pepp::tc::support::SeekableData::select() const {
   auto count = _end - _start;
-  return data.substr(_start, count);
+  return std::string_view{data}.substr(_start, count);
 }
 
-std::string_view pepp::tc::support::SeekableData::rest() const { return data.substr(_end); }
+std::string_view pepp::tc::support::SeekableData::rest() const { return std::string_view{data}.substr(_end); }
 
 bool pepp::tc::support::SeekableData::input_remains() const { return _end < data.size(); }
 

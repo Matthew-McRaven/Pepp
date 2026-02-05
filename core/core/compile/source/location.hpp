@@ -17,7 +17,7 @@
 #pragma once
 #include <type_traits>
 #include "core/integers.h"
-#include "core/math/interval.hpp"
+#include "core/math/geom/interval.hpp"
 
 namespace pepp::tc::support {
 // Represent a point (i.e., a single character) within a text file.
