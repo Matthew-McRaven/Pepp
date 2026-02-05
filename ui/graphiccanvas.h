@@ -1,10 +1,13 @@
 #pragma once
 
+#include <QImage>
 #include <QQuickPaintedItem>
 
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
 // "grid" coordinates are integer values. Currently, 1 grid unit = 4 screen pixels, but this should
 // be programmable to enable zoom.
+
+class QImage;
 
 class GraphicCanvas : public QQuickPaintedItem
 {
@@ -64,6 +67,8 @@ signals:
 private:
     // Magic constant to convert from grid coordinates to screen coordinates
     const float grid_to_px = 4.0f;
+    const int block_size = 25;
+
     // One of the classes from my geometry library. See core/math/geom
     //using Rectangle = pepp::core::Rectangle<i16>;
     // Helepr for painting a single rect that has already "passed" the clipping test.
@@ -71,10 +76,14 @@ private:
     QRectF grid_to_screen(QRectF rect);
     QRectF screen_to_grid(QRectF rect);
 
+    //  Render and cache images for painting
+    void cacheImages(const QString &source);
+
     // The things we want to render
     std::vector<QRect> _rects;
+    QList<QImage> _svgs;
+
     // Top-left corner of the viewport in grid coordinates
-    //pepp::core::Point<i16>
     QPointF _top_left{};
     QSizeF _dimensions{320, 320};
 };

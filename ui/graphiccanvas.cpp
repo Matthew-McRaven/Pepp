@@ -1,17 +1,43 @@
 #include "graphiccanvas.h"
 #include <QPainter>
+#include <QSvgRenderer>
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     : QQuickPaintedItem(parent)
 {
-    _rects.emplace_back(5, 15, 10, 10);
-    _rects.emplace_back(15, 25, 10, 10);
+    _rects.emplace_back(block_size, block_size, block_size, block_size);
+    _rects.emplace_back(block_size * 2, block_size * 3, block_size, block_size);
+    _rects.emplace_back(block_size * 3, block_size * 4, block_size, block_size);
+
+    cacheImages(":/and");
+    cacheImages(":/or");
+    cacheImages(":/inverter");
+    cacheImages(":/nand");
+    cacheImages(":/nor");
+    cacheImages(":/xor");
+}
+
+void GraphicCanvas::cacheImages(const QString &source)
+{
+    //  Pre-render SVG files so that paint is not slowed down
+    QSvgRenderer renderer(source);
+    renderer.setAspectRatioMode(Qt::KeepAspectRatio);
+
+    if (renderer.isValid()) {
+        QImage image(block_size * 100, block_size * 100, QImage::Format_ARGB32);
+        image.fill(Qt::transparent);
+
+        // Get QPainter that paints to the image
+        QPainter painter(&image);
+        renderer.render(&painter);
+
+        _svgs.emplace_back(image);
+    }
 }
 
 void GraphicCanvas::paint(QPainter *painter)
 {
     // Paint the background.
-    //QBrush brush(QColor(0x00, 0x74, 0x20));
     painter->setBrush(Qt::NoBrush);
     painter->setPen(Qt::NoPen);
     painter->drawRect(0, 0, size().width(), size().height());
@@ -22,6 +48,7 @@ void GraphicCanvas::paint(QPainter *painter)
 
     // Make rectangles a different color.
     painter->setBrush(QBrush(QColor(255, 0, 0)));
+    int i = 0;
     for (const auto &rect : _rects) {
         // Skip paiting rectangles that are outside the viewport.
         //if (!pepp::core::intersects(grid_viewport, rect)) continue;
@@ -32,7 +59,8 @@ void GraphicCanvas::paint(QPainter *painter)
         auto screen_rect = grid_to_screen(rect);
         // If we actually had props, we would use them to make decisions about how to paint.
         // e.g., do I copy one of the NAND/NOR images into this rectangle, or do I draw a solid color?
-        painter->drawRect(screen_rect);
+        //painter->drawRect(screen_rect);
+        painter->drawImage(screen_rect, _svgs[++i % _svgs.size()]);
     }
 }
 

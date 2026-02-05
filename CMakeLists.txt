@@ -4,16 +4,15 @@ project(CircuitDesign VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS core Gui Qml Quick)
+find_package(Qt6 REQUIRED COMPONENTS core Gui Svg Qml Quick)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
 set(CMAKE_AUTORCC ON)
 
 qt_add_executable(CircuitDesign
-    main.cpp
     svg/CircuitDesign.qrc
-    #ui/diagramModel.cpp ui/diagramModel.hpp
+    main.cpp
 )
 
 qt_add_qml_module(CircuitDesign
@@ -67,6 +66,7 @@ set_target_properties(CircuitDesign PROPERTIES
 target_link_libraries(CircuitDesign PRIVATE
     Qt6::Core
     Qt6::Gui
+    Qt6::Svg
     Qt6::Qml
     Qt6::Quick
 )
