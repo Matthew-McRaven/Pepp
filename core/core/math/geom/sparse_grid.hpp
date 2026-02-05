@@ -27,16 +27,21 @@ struct GridCoordinate {
   auto operator<=>(const GridCoordinate &other) const noexcept = default;
   bool operator==(const GridCoordinate &other) const noexcept = default;
   Point<i16> pos;
+  struct Hash {
+    size_t operator()(const GridCoordinate &c) const noexcept {
+      u16 x = (c.pos.x()), y = c.pos.y();
+      u64 v = (u64{x} << 32) | y;
+      // derived from MurmurHash3 finalizer
+      v ^= v >> 33;
+      v *= 0xff51afd7ed558ccdULL;
+      v ^= v >> 33;
+      v *= 0xc4ceb9fe1a85ec53ULL;
+      v ^= v >> 33;
+      return static_cast<size_t>(v);
+    }
+  };
 };
 } // namespace pepp::core
-namespace std {
-template <> struct hash<pepp::core::GridCoordinate> {
-  // Probably a horrible hash function, but it will work for now
-  inline size_t operator()(const pepp::core::GridCoordinate &v) const {
-    return std::hash<pepp::core::Point<i16>>{}(v.pos);
-  }
-};
-} // namespace std
 
 // Storing collision information takes 2 bits per gird square.
 // Always storing every grid square would be expensive:
@@ -73,7 +78,7 @@ public:
   void clear(GridCoordinate coord) noexcept;
 
 private:
-  std::unordered_map<GridCoordinate, OccupancyGrid> _grid;
+  std::unordered_map<GridCoordinate, OccupancyGrid, GridCoordinate::Hash> _grid;
 };
 
 } // namespace pepp::core

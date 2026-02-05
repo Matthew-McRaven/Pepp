@@ -70,15 +70,3 @@ private:
   T _width, _height;
 };
 } // namespace pepp::core
-
-namespace std {
-template <> struct hash<pepp::core::Point<int16_t>> {
-  // Probably a horrible hash function, but it will work for now
-  inline size_t operator()(const pepp::core::Point<int16_t> &v) const {
-    std::hash<int16_t> int_hasher;
-    // Multiple by a prime before xor to prevent all X==Y pairs from colliding.
-    // 2^16+1 is prime, so it should be a decent choice for 16-bit integers.
-    return 65537 * int_hasher(v.x()) ^ int_hasher(v.y());
-  }
-};
-} // namespace std
