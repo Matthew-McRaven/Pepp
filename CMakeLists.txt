@@ -31,6 +31,7 @@ qt_add_qml_module(CircuitDesign
         ui/Line.qml
         ui/GridLines.qml
         ui/DiagramListView.qml
+        #ui/DiagramTableViewDelegate.qml
     SOURCES
         ui/diagramdata.hpp
         ui/diagramdata.cpp
@@ -42,6 +43,8 @@ qt_add_qml_module(CircuitDesign
         ui/diagramlistmodel.cpp
         ui/diagramproperty.hpp
         ui/diagramproperty.cpp
+        ui/graphiccanvas.h
+        ui/graphiccanvas.cpp
     DEPENDENCIES QtQuick
 )
 
