@@ -25,11 +25,7 @@ pepp::core::OccupancyGrid::OccupancyGrid(Rectangle<u8> rect) noexcept : _grid(0)
   const u8 high_mask = static_cast<u8>(-1) << (low_x);
   // Combining those bitmasks with & gives us the row bitmask 0011 1000.
   const u8 row_bits = low_mask & high_mask;
-  // If we treat the grid as if u8[8], then we can just copy the row bits into the target rows.
-  // For this to work, we must first zero _grid in the ctor.
-  const u8 size = size_inclusive(rect.y());
-  const u8 from = rect.y().lower();
-  memset(((u8 *)&_grid) + from, row_bits, size);
+  for (int row = rect.y().lower(); row <= rect.y().upper(); ++row) set_row_bits(row, row_bits);
 }
 
 pepp::core::OccupancyGrid pepp::core::OccupancyGrid::ones() noexcept { return OccupancyGrid(static_cast<u64>(-1)); }
@@ -61,7 +57,7 @@ pepp::core::OccupancyGrid pepp::core::OccupancyGrid::with_row_bits(u8 row, u8 bi
 }
 
 namespace {
-u64 columns_least_bit_mask = 0x0101010101010101ULL;
+const u64 columns_least_bit_mask = 0x0101010101010101ULL;
 }
 
 u8 pepp::core::OccupancyGrid::column_bits(u8 column) const noexcept {
