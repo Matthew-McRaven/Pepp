@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/math/geom/sparse_grid.hpp"
+#include "core/math/geom/occuupancy_grid_sparse.hpp"
 #include <catch/catch.hpp>
 #include "core/integers.h"
 #include "core/math/geom/interval.hpp"
@@ -25,7 +25,7 @@ TEST_CASE("Sparse Grid", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   using Pt = Point<i16>;
   using Rect = Rectangle<i16>;
   using Ivl = Interval<i16>;
-  using SG = SparseGrid;
+  using SG = SparseOccupancyGrid;
 
   SECTION("Aligned 8x8 rect") {
     Rect r0(Ivl{0, 7}, Ivl{0, 7});

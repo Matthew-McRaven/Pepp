@@ -14,28 +14,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/math/geom/occupancy_grid.hpp"
+#include "core/math/geom/occupancy_grid_dense.hpp"
 #include <catch/catch.hpp>
 #include <sstream>
 #include "core/integers.h"
 #include "core/math/geom/point.hpp"
 #include "core/math/geom/rectangle.hpp"
 
-TEST_CASE("OccupancyGrid", "[scope:core][scope:core.math][kind:unit][arch:*]") {
+TEST_CASE("DenseOccupancyGrid", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   using namespace pepp::core;
   using Pt = Point<u8>;
   using Ival = Interval<u8>;
   using Rect = Rectangle<u8>;
   SECTION("Construct empty / full grids") {
-    auto empty1 = OccupancyGrid();
+    auto empty1 = DenseOccupancyGrid();
     CHECK(empty1.empty());
     CHECK(empty1.count() == 0);
-    auto empty2 = OccupancyGrid::zeroes();
+    auto empty2 = DenseOccupancyGrid::zeroes();
     CHECK(empty2.empty());
     CHECK(empty2.count() == 0);
     CHECK(empty1 == empty2);
 
-    auto full1 = OccupancyGrid::ones();
+    auto full1 = DenseOccupancyGrid::ones();
     CHECK(full1.full());
     CHECK(full1.count() == 64);
   }
@@ -43,14 +43,14 @@ TEST_CASE("OccupancyGrid", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   SECTION("Construct from Point") {
     {
       std::ostringstream ss;
-      ss << OccupancyGrid(Point<u8>(2, 3));
+      ss << DenseOccupancyGrid(Point<u8>(2, 3));
       auto res = "00000000\n00000000\n00000000\n00100000\n00000000\n00000000\n00000000\n00000000\n";
       CHECK(ss.str() == res);
     }
 
     {
       std::ostringstream ss;
-      auto og = OccupancyGrid() | Pt(0, 0) | Pt(7, 0) | Pt(7, 7) | Pt(0, 7);
+      auto og = DenseOccupancyGrid() | Pt(0, 0) | Pt(7, 0) | Pt(7, 7) | Pt(0, 7);
       ss << og;
       auto res = "10000001\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n10000001\n";
       CHECK(ss.str() == res);
@@ -66,11 +66,11 @@ TEST_CASE("OccupancyGrid", "[scope:core][scope:core.math][kind:unit][arch:*]") {
       Ival y(1, 2);
       Rect r(x, y);
       std::ostringstream ss;
-      auto og = OccupancyGrid(r);
+      auto og = DenseOccupancyGrid(r);
       ss << og;
       auto res = "00000000\n00111110\n00111110\n00000000\n00000000\n00000000\n00000000\n00000000\n";
       CHECK(ss.str() == res);
-      CHECK((OccupancyGrid{} | r) == og);
+      CHECK((DenseOccupancyGrid{} | r) == og);
       CHECK(og.row_bits(0) == 0);
       CHECK(og.row_bits(1) == 0b01111100);
       CHECK(og.row_bits(2) == 0b01111100);
@@ -81,7 +81,7 @@ TEST_CASE("OccupancyGrid", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   SECTION("Check column_bits") {
     for (int col = 0; col < 8; col++) {
       for (int it = 1; it < 256; it++) {
-        OccupancyGrid og(0);
+        DenseOccupancyGrid og(0);
         if (it & 0x01) og |= Pt(col, 0);
         if (it & 0x02) og |= Pt(col, 1);
         if (it & 0x04) og |= Pt(col, 2);
@@ -102,7 +102,7 @@ TEST_CASE("OccupancyGrid", "[scope:core][scope:core.math][kind:unit][arch:*]") {
         CHECK(og.count() == std::popcount(static_cast<u64>(it)));
         // Equivalence of the helper method and the manual one
         // Start with all 1's to prove that masking out existing bits works
-        auto set_col = OccupancyGrid::ones();
+        auto set_col = DenseOccupancyGrid::ones();
         set_col.set_column_bits(col, it);
         for (int jt = 0; jt < 8; jt++) {
           if (jt != col) set_col.set_column_bits(jt, 0);
@@ -112,18 +112,18 @@ TEST_CASE("OccupancyGrid", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     }
   }
   SECTION("Arithmetic Operators") {
-    OccupancyGrid og(0xFEEDDEADBEEFCAFEuLL);
+    DenseOccupancyGrid og(0xFEEDDEADBEEFCAFEuLL);
     // Identities
-    CHECK(og == (OccupancyGrid::ones() & og));
-    CHECK(og == (OccupancyGrid::zeroes() | og));
-    CHECK(og == (OccupancyGrid::zeroes() ^ og));
-    CHECK(OccupancyGrid::zeroes() == (og ^ og));
-    CHECK(og - OccupancyGrid::ones() == OccupancyGrid::zeroes());
-    CHECK(OccupancyGrid::ones() - og == ~og);
+    CHECK(og == (DenseOccupancyGrid::ones() & og));
+    CHECK(og == (DenseOccupancyGrid::zeroes() | og));
+    CHECK(og == (DenseOccupancyGrid::zeroes() ^ og));
+    CHECK(DenseOccupancyGrid::zeroes() == (og ^ og));
+    CHECK(og - DenseOccupancyGrid::ones() == DenseOccupancyGrid::zeroes());
+    CHECK(DenseOccupancyGrid::ones() - og == ~og);
   }
   SECTION("Translation") {
     static const u8 row_bits = 0b0100'1110;
-    auto og = OccupancyGrid{}.with_row_bits(2, row_bits);
+    auto og = DenseOccupancyGrid{}.with_row_bits(2, row_bits);
     CHECK(og.row_bits(2) == row_bits);
     {
       auto shifted_left = og.shift_left(2);
@@ -146,7 +146,7 @@ TEST_CASE("OccupancyGrid", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     Ival x(2, 6);
     Ival y(1, 2);
     Rect r(x, y);
-    auto og = OccupancyGrid(r);
+    auto og = DenseOccupancyGrid(r);
     CHECK(og.count() == 10);
     {
       std::ostringstream ss;
