@@ -16,7 +16,7 @@
 #pragma once
 #include <unordered_map>
 #include "core/integers.h"
-#include "core/math/geom/occupancy_grid.hpp"
+#include "core/math/geom/occupancy_grid_dense.hpp"
 #include "core/math/geom/point.hpp"
 namespace pepp::core {
 // Thin wrapper around a Point<i16> which is not implicitly convertible.
@@ -43,9 +43,11 @@ struct GridCoordinate {
 };
 } // namespace pepp::core
 
-// Storing collision information takes 2 bits per gird square.
-// Always storing every grid square would be expensive:
-// - 16x16 pixels | An 8x8 occupancy grid spans 16x16 pixles
+// DenseOccupancyGrid is not efficient for storing large, mostly identical collision masks.
+//
+// While DenseOccupancyGrids are always 8x8, let's assume we created a 2D matrix of those grids rather than implementing
+// this class. For a 4k display, that matrix of DenseOccupancyGrids would require:
+// - 16x16 pixels per grid| An 8x8 occupancy grid spans 16x16 pixles
 //  - 1 grid cell bit per 2x2 point square
 //  - 1 point is 1 pixel (overestimate)
 // - 32,400 occupancy grids
@@ -53,18 +55,19 @@ struct GridCoordinate {
 //   - 135 occupancy grids vertically for a 4k screen
 // - 128 bits per occupancy grid
 //   - 2 occupancy grids | One grid for x and one grid for y
-// - 518,400B of memory for a dense grid for a 4k display
+// - 518,400B of memory for a 2D matrix of dense grid for a 4k display
 // That 500K figure is just for the visible contents -- and the diagram may grow beyond the size of the screen.
-// So, we use a sparse grid which only allocates occupancy grids as needed.
-// Future optimizations would pool occupancy grids and use COW to reduce memory allocations.
+//
+// This SparseOccupancyGrid exists so that DenseOccupancyGrids are only created as-needed.
+// Future optimizations would pool DenseOccupancyGrids, and copy-on-write to reduce memory allocations.
 namespace pepp::core {
-class SparseGrid {
+class SparseOccupancyGrid {
 public:
-  SparseGrid();
-  SparseGrid(const SparseGrid &) noexcept = default;
-  SparseGrid &operator=(const SparseGrid &) noexcept = default;
-  SparseGrid(SparseGrid &&) noexcept = default;
-  SparseGrid &operator=(SparseGrid &&) noexcept = default;
+  SparseOccupancyGrid();
+  SparseOccupancyGrid(const SparseOccupancyGrid &) noexcept = default;
+  SparseOccupancyGrid &operator=(const SparseOccupancyGrid &) noexcept = default;
+  SparseOccupancyGrid(SparseOccupancyGrid &&) noexcept = default;
+  SparseOccupancyGrid &operator=(SparseOccupancyGrid &&) noexcept = default;
 
   bool try_add(Rectangle<i16> rect) noexcept;
   bool try_add(Point<i16> pt) noexcept;
@@ -78,7 +81,7 @@ public:
   void clear(GridCoordinate coord) noexcept;
 
 private:
-  std::unordered_map<GridCoordinate, OccupancyGrid, GridCoordinate::Hash> _grid;
+  std::unordered_map<GridCoordinate, DenseOccupancyGrid, GridCoordinate::Hash> _grid;
 };
 
 } // namespace pepp::core
