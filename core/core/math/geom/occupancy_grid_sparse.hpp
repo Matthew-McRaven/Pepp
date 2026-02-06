@@ -18,30 +18,7 @@
 #include "core/integers.h"
 #include "core/math/geom/occupancy_grid_dense.hpp"
 #include "core/math/geom/point.hpp"
-namespace pepp::core {
-// Thin wrapper around a Point<i16> which is not implicitly convertible.
-// Grid coordinates are not like other points, so we want to avoid implicit conversions.
-struct GridCoordinate {
-  explicit GridCoordinate() : pos(0, 0) {}
-  explicit GridCoordinate(Point<i16> p) : pos(p) {}
-  auto operator<=>(const GridCoordinate &other) const noexcept = default;
-  bool operator==(const GridCoordinate &other) const noexcept = default;
-  Point<i16> pos;
-  struct Hash {
-    size_t operator()(const GridCoordinate &c) const noexcept {
-      u16 x = (c.pos.x()), y = c.pos.y();
-      u64 v = (u64{x} << 32) | y;
-      // derived from MurmurHash3 finalizer
-      v ^= v >> 33;
-      v *= 0xff51afd7ed558ccdULL;
-      v ^= v >> 33;
-      v *= 0xc4ceb9fe1a85ec53ULL;
-      v ^= v >> 33;
-      return static_cast<size_t>(v);
-    }
-  };
-};
-} // namespace pepp::core
+namespace pepp::core {} // namespace pepp::core
 
 // DenseOccupancyGrid is not efficient for storing large, mostly identical collision masks.
 //
@@ -76,12 +53,38 @@ public:
   bool overlap(Rectangle<i16> rect) const noexcept;
   bool overlap(Point<i16> pt) const noexcept;
 
+  // Thin wrapper around a Point<i16> which is not implicitly convertible.
+  // Grid coordinates are not like other points, so we want to avoid implicit conversions.
+  struct Coordinate {
+    explicit Coordinate() : pos(0, 0) {}
+    explicit Coordinate(Point<i16> p) : pos(p) {}
+    auto operator<=>(const Coordinate &other) const noexcept = default;
+    bool operator==(const Coordinate &other) const noexcept = default;
+    Point<i16> pos;
+    struct Hash {
+      size_t operator()(const Coordinate &c) const noexcept {
+        u16 x = (c.pos.x()), y = c.pos.y();
+        u64 v = (u64{x} << 32) | y;
+        // derived from MurmurHash3 finalizer
+        v ^= v >> 33;
+        v *= 0xff51afd7ed558ccdULL;
+        v ^= v >> 33;
+        v *= 0xc4ceb9fe1a85ec53ULL;
+        v ^= v >> 33;
+        return static_cast<size_t>(v);
+      }
+    };
+    struct Less {
+      bool operator()(const Coordinate &lhs, const Coordinate &rhs) const { return lhs.pos < rhs.pos; }
+    };
+  };
+
   // Remove all hits at the given grid coordinate.
   // Noop if it does not exist. Mostly used if you want to rebuild geometry at a cell.
-  void clear(GridCoordinate coord) noexcept;
+  void clear(Coordinate coord) noexcept;
 
 private:
-  std::unordered_map<GridCoordinate, DenseOccupancyGrid, GridCoordinate::Hash> _grid;
+  std::unordered_map<Coordinate, DenseOccupancyGrid, Coordinate::Hash> _grid;
 };
 
 } // namespace pepp::core
