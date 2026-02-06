@@ -56,16 +56,23 @@ public:
     void setInputNo(const quint16 v);
     void setOutputNo(const quint16 v);
 
+    bool selected() const { return _isSelected; }
+    void setSelected(const bool v);
+
 signals:
     void typeChanged();
     void nameChanged();
     void imageChanged();
     void inputChanged();
     void outputChanged();
+    void selectedChanged();
 
 private:
     quint32 _id;
     static quint32 _counter;
+
+    //  Selection logic
+    bool _isSelected = false;
 
     //  Common properties
     QString _name;

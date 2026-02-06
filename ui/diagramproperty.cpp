@@ -90,3 +90,11 @@ void DiagramProperties::setOutputNo(const quint16 v)
         emit outputChanged();
     }
 }
+
+void DiagramProperties::setSelected(const bool v)
+{
+    if (_isSelected != v) {
+        _isSelected = v;
+        emit selectedChanged();
+    }
+}
