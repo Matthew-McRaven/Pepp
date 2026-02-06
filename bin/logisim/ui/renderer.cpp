@@ -6,18 +6,18 @@ CursedCanvas::CursedCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   using Pt = pepp::core::Point<i16>;
   // Create a semi-random assortment of same-sized rectangles to render.
   auto eight = Size{8, 8};
-  _rects.emplace_back(Rectangle{Pt{10, 20}, eight});
-  _rects.emplace_back(Rectangle{Pt{30, 20}, eight});
-  _rects.emplace_back(Rectangle{Pt{40, 20}, eight});
-  _rects.emplace_back(Rectangle{Pt{50, 20}, eight});
-
-  _rects.emplace_back(Rectangle{Pt{10, 30}, eight});
-  _rects.emplace_back(Rectangle{Pt{30, 50}, eight});
-  _rects.emplace_back(Rectangle{Pt{40, 80}, eight});
-  _rects.emplace_back(Rectangle{Pt{50, 90}, eight});
-  _rects.emplace_back(Rectangle{Pt{150, 90}, eight});
-  _rects.emplace_back(Rectangle{Pt{250, 90}, eight});
-
+  _properties[_spatial_map.try_add(Rectangle{Pt{10, 20}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{30, 20}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{40, 20}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{50, 20}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{10, 30}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{30, 50}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{40, 80}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{50, 90}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{150, 90}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{250, 90}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{70, 70}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{70, 250}, eight}).value()] = nullptr;
   // Initalize viewport to 0,0
   _top_left = Pt{0, 0};
 }
@@ -34,10 +34,12 @@ void CursedCanvas::paint(QPainter *painter) {
 
   // Make rectangles a different color.
   painter->setBrush(QBrush(QColor(255, 0, 0)));
-  for (const auto &rect : _rects) {
+  for (const auto &[idx, rect] : _spatial_map) {
+    auto props = _properties.find(idx);
     // Skip paiting rectangles that are outside the viewport.
     if (!pepp::core::intersects(grid_viewport, rect)) continue;
-    paint_one(painter, rect, nullptr);
+    else if (props == _properties.end()) continue;
+    paint_one(painter, rect, props->second);
   }
 }
 

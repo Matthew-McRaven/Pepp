@@ -1,6 +1,7 @@
 #pragma once
 #include <QQuickPaintedItem>
 #include "core/math/geom/rectangle.hpp"
+#include "core/math/geom/spatial_map.hpp"
 
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
 // "grid" coordinates are integer values. Currently, 1 grid unit = 4 screen pixels, but this should
@@ -9,17 +10,23 @@ class CursedCanvas : public QQuickPaintedItem {
   Q_OBJECT
   QML_NAMED_ELEMENT(CursedCanvas)
   // Sizes in "screen" coordinates
-  Q_PROPERTY(float contentWidth READ contentWidth NOTIFY xBoundsChanged FINAL)
-  Q_PROPERTY(float contentHeight READ contentHeight NOTIFY yBoundsChanged FINAL)
+  Q_PROPERTY(float contentWidth READ contentWidth NOTIFY boundsChanged FINAL)
+  Q_PROPERTY(float contentHeight READ contentHeight NOTIFY boundsChanged FINAL)
   // In "screen" coordinates (e.g., pixels according to our containing Flickable)
   Q_PROPERTY(float originX READ originX WRITE setOriginX NOTIFY originChanged FINAL)
   Q_PROPERTY(float originY READ originY WRITE setOriginY NOTIFY originChanged FINAL)
 public:
   CursedCanvas(QQuickItem *parent = nullptr);
   void paint(QPainter *painter) override;
-  // TODO: determine min/max bounds based on contained rectangles, then add padding around the edges.
-  float contentWidth() const { return 1200; }
-  float contentHeight() const { return 2000; }
+  float contentWidth() const {
+    // Assume a sufficiently small bounding box means that it has not been computed.
+    if (pepp::core::area(_bounding_box) <= 1) _bounding_box = _spatial_map.bounding_box();
+    return _bounding_box.width() * grid_to_px + 100;
+  }
+  float contentHeight() const {
+    if (pepp::core::area(_bounding_box) <= 1) _bounding_box = _spatial_map.bounding_box();
+    return _bounding_box.height() * grid_to_px + 100;
+  }
 
   // The top-left corner, as measured in "screen" coordinates
   float originX() const { return _top_left.x() * grid_to_px; }
@@ -36,8 +43,7 @@ public:
     update();
   }
 signals:
-  void xBoundsChanged();
-  void yBoundsChanged();
+  void boundsChanged();
   void originChanged();
 
 private:
@@ -51,7 +57,10 @@ private:
   Rectangle screen_to_grid(QRectF rect);
 
   // The things we want to render
-  std::vector<Rectangle> _rects;
+  pepp::core::SpatialMap _spatial_map;
+  // Cache the SpatialMap's bounding_box. Reset to Rect() when the spatial map is modified, and emit boundsChanged
+  mutable pepp::core::Rectangle<i16> _bounding_box;
+  std::map<u32, void *> _properties;
   // Top-left corner of the viewport in grid coordinates
   pepp::core::Point<i16> _top_left;
 };
