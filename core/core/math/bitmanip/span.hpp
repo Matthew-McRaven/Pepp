@@ -17,6 +17,10 @@
 
 #pragma once
 #include <span>
+// A header from many years ago.
+// At one point, we had to provide our own span, because some supported platforms did not have a standard library
+// implementation. To avoid modifying existing code (e.g., replace bits::span with std::span), we essentially alias bits
+// to std::span.
 namespace bits {
 using ::std::span;
 }

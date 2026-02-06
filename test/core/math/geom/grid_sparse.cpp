@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/math/geom/occuupancy_grid_sparse.hpp"
+#include "core/math/geom/occupancy_grid_sparse.hpp"
 #include <catch/catch.hpp>
 #include "core/integers.h"
 #include "core/math/geom/interval.hpp"
