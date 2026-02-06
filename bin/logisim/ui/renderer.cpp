@@ -6,18 +6,18 @@ CursedCanvas::CursedCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   using Pt = pepp::core::Point<i16>;
   // Create a semi-random assortment of same-sized rectangles to render.
   auto eight = Size{8, 8};
-  _properties[_spatial_map.try_add(Rectangle{Pt{10, 20}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{30, 20}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{40, 20}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{50, 20}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{10, 30}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{30, 50}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{40, 80}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{50, 90}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{150, 90}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{250, 90}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{70, 70}, eight}).value()] = nullptr;
-  _properties[_spatial_map.try_add(Rectangle{Pt{70, 250}, eight}).value()] = nullptr;
+  _properties[_spatial_map.try_add(Rectangle{Pt{10, 20}, eight}).value()] = DummyProps{ObjectType::Circle};
+  _properties[_spatial_map.try_add(Rectangle{Pt{30, 20}, eight}).value()] = DummyProps{};
+  _properties[_spatial_map.try_add(Rectangle{Pt{40, 20}, eight}).value()] = DummyProps{ObjectType::Squircle};
+  _properties[_spatial_map.try_add(Rectangle{Pt{50, 20}, eight}).value()] = DummyProps{ObjectType::Circle};
+  _properties[_spatial_map.try_add(Rectangle{Pt{10, 30}, eight}).value()] = DummyProps{};
+  _properties[_spatial_map.try_add(Rectangle{Pt{30, 50}, eight}).value()] = DummyProps{ObjectType::Circle};
+  _properties[_spatial_map.try_add(Rectangle{Pt{40, 80}, eight}).value()] = DummyProps{};
+  _properties[_spatial_map.try_add(Rectangle{Pt{50, 90}, eight}).value()] = DummyProps{ObjectType::Circle};
+  _properties[_spatial_map.try_add(Rectangle{Pt{150, 90}, eight}).value()] = DummyProps{ObjectType::Squircle};
+  _properties[_spatial_map.try_add(Rectangle{Pt{250, 90}, eight}).value()] = DummyProps{};
+  _properties[_spatial_map.try_add(Rectangle{Pt{70, 70}, eight}).value()] = DummyProps{};
+  _properties[_spatial_map.try_add(Rectangle{Pt{70, 250}, eight}).value()] = DummyProps{};
   // Initalize viewport to 0,0
   _top_left = Pt{0, 0};
 }
@@ -39,16 +39,19 @@ void CursedCanvas::paint(QPainter *painter) {
     // Skip paiting rectangles that are outside the viewport.
     if (!pepp::core::intersects(grid_viewport, rect)) continue;
     else if (props == _properties.end()) continue;
-    paint_one(painter, rect, props->second);
+    paint_one(painter, rect, &props->second);
   }
 }
 
-void CursedCanvas::paint_one(QPainter *painter, Rectangle rect, void *props) {
+void CursedCanvas::paint_one(QPainter *painter, Rectangle rect, DummyProps const *props) {
   // Convert our absolute grid coordinates to screen coordinates.
   auto screen_rect = grid_to_screen(rect);
+  // In reality, each of these branches should be its own function/method.
   // If we actually had props, we would use them to make decisions about how to paint.
   // e.g., do I copy one of the NAND/NOR images into this rectangle, or do I draw a solid color?
-  painter->drawRect(screen_rect);
+  if (props->t == ObjectType::Circle) painter->drawEllipse(screen_rect);
+  else if (props->t == ObjectType::Square) painter->drawRect(screen_rect);
+  else if (props->t == ObjectType::Squircle) painter->drawRoundedRect(screen_rect, 5, 5);
 }
 
 QRectF CursedCanvas::grid_to_screen(Rectangle rect) {
