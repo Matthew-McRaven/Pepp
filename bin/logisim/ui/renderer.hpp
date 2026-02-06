@@ -47,12 +47,20 @@ signals:
   void originChanged();
 
 private:
+  enum class ObjectType {
+    Circle,
+    Square,
+    Squircle,
+  };
+  struct DummyProps {
+    ObjectType t = ObjectType::Square;
+  };
   // Magic constant to convert from grid coordinates to screen coordinates
   const float grid_to_px = 4.0f;
   // One of the classes from my geometry library. See core/math/geom
   using Rectangle = pepp::core::Rectangle<i16>;
   // Helepr for painting a single rect that has already "passed" the clipping test.
-  void paint_one(QPainter *painter, Rectangle rect, void *props);
+  void paint_one(QPainter *painter, Rectangle rect, DummyProps const *props);
   QRectF grid_to_screen(Rectangle rect);
   Rectangle screen_to_grid(QRectF rect);
 
@@ -60,7 +68,7 @@ private:
   pepp::core::SpatialMap _spatial_map;
   // Cache the SpatialMap's bounding_box. Reset to Rect() when the spatial map is modified, and emit boundsChanged
   mutable pepp::core::Rectangle<i16> _bounding_box;
-  std::map<u32, void *> _properties;
+  std::map<u32, DummyProps> _properties;
   // Top-left corner of the viewport in grid coordinates
   pepp::core::Point<i16> _top_left;
 };
