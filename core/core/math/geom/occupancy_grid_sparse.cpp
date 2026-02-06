@@ -1,4 +1,4 @@
-#include "occuupancy_grid_sparse.hpp"
+#include "core/math/geom/occupancy_grid_sparse.hpp"
 #include "core/math/geom/rectangle.hpp"
 
 pepp::core::SparseOccupancyGrid::SparseOccupancyGrid() {}

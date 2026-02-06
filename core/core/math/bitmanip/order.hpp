@@ -17,7 +17,9 @@
 #include <bit>
 #pragma once
 namespace bits {
+// Describe the endianness of either a host or quest machine.
 enum class Order { BigEndian, LittleEndian, NotApplicable };
+// Utilities to detect and report the host machine's byte order.
 constexpr Order hostOrder() {
 #if defined(__cpp_lib_endian) && __cpp_lib_endian >= 201907L
   if constexpr (std::endian::native == std::endian::little) return Order::LittleEndian;
@@ -33,6 +35,8 @@ constexpr Order hostOrder() {
   return Order::NotApplicable;
 #endif
 #else
+  // This should never be the case. However, if we can't determine the endianness, the simulator can never work.
+  // Fail so that we can determine a better mechanism / workaround for the offending target.
   static_assert(false, "Cannot determine host endianness.");
 #endif
 }

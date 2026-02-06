@@ -85,13 +85,13 @@ template <std::integral T> constexpr T byteswap(T value) noexcept {
 
 namespace detail {
 // Magic C handed to use by: https://graphics.stanford.edu/~seander/bithacks.html
-constexpr inline uint16_t reverse_bits_impl(uint8_t b) noexcept {
+constexpr inline uint16_t bitreverse_impl(uint8_t b) noexcept {
   b = (b >> 4) | (b << 4);
   b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2);
   b = ((b & 0xAA) >> 1) | ((b & 0x55) << 1);
   return b;
 }
-constexpr inline uint16_t reverse_bits_impl(uint16_t b) noexcept {
+constexpr inline uint16_t bitreverse_impl(uint16_t b) noexcept {
   // swap odd and even bits
   b = (uint16_t)(((b >> 1) & 0x5555u) | ((b & 0x5555u) << 1));
   // swap consecutive pairs
@@ -102,7 +102,7 @@ constexpr inline uint16_t reverse_bits_impl(uint16_t b) noexcept {
   b = (uint16_t)((b >> 8) | (b << 8));
   return b;
 }
-constexpr inline uint32_t reverse_bits_impl(uint32_t b) noexcept {
+constexpr inline uint32_t bitreverse_impl(uint32_t b) noexcept {
   // swap odd and even bits
   b = ((b >> 1) & 0x55555555) | ((b & 0x55555555) << 1);
   // swap consecutive pairs
@@ -115,7 +115,7 @@ constexpr inline uint32_t reverse_bits_impl(uint32_t b) noexcept {
   b = (b >> 16) | (b << 16);
   return b;
 }
-constexpr inline uint64_t reverse_bits_impl(uint64_t b) noexcept {
+constexpr inline uint64_t bitreverse_impl(uint64_t b) noexcept {
   // swap odd and even bits
   b = ((b >> 1) & 0x5555555555555555ULL) | ((b & 0x5555555555555555ULL) << 1);
   // swap consecutive pairs
@@ -148,35 +148,38 @@ constexpr inline uint64_t reverse_bits_impl(uint64_t b) noexcept {
 #endif
 
 // Should have an intrinsic on most compilers, but provide a fallback just in case.
-inline uint8_t reverse_bits(uint8_t x) noexcept {
+// Provided as a bunch of 1-off overloads rather than a single template (like byteswap), since
+// we need to check for the existence of each intrinsic separately.
+inline uint8_t bitreverse(uint8_t x) noexcept {
 #if defined(HAVE_BUILTIN_BITREVERSE8)
   return __builtin_bitreverse8(x);
 #else
-  return detail::reverse_bits_impl(x);
+  return detail::bitreverse_impl(x);
 #endif
 }
 
-inline uint16_t reverse_bits(uint16_t x) noexcept {
+inline uint16_t bitreverse(uint16_t x) noexcept {
 #if defined(HAVE_BUILTIN_BITREVERSE16)
   return __builtin_bitreverse16(x);
 #else
-  return detail::reverse_bits_impl(x);
+  return detail::bitreverse_impl(x);
 #endif
 }
 
-inline uint32_t reverse_bits(uint32_t x) noexcept {
+inline uint32_t bitreverse(uint32_t x) noexcept {
 #if defined(HAVE_BUILTIN_BITREVERSE32)
   return __builtin_bitreverse32(x);
 #else
-  return detail::reverse_bits_impl(x);
+  return detail::bitreverse_impl(x);
 #endif
 }
 
-inline uint64_t reverse_bits(uint64_t b) noexcept {
+inline uint64_t bitreverse(uint64_t b) noexcept {
 #if defined(HAVE_BUILTIN_BITREVERSE64)
   return __builtin_bitreverse64(b);
 #else
-  return detail::reverse_bits_impl(b);
+  return detail::bitreverse_impl(b);
 #endif
 }
+
 } // namespace bits

@@ -20,7 +20,13 @@
 
 namespace pepp::core {
 
+// Represent a rectangular region of 2D space.
+// While you can construct it from a pair of points, a point+size, or a single point, the rectangle itself is always
+// represented as a pair of intervals, one for x and one for y. This was an implementation decision -- an interval is
+// the equivalent in 1D to a rectangle. Reusing intervals as the internal representation means we can reuse our existing
+// algorithm.
 template <typename T> struct Rectangle {
+  // Not actually an empty rectangle, because our interval cannot be empty.
   Rectangle() : _x(Interval<T>()), _y(Interval<T>()) {}
   explicit Rectangle(Point<T> pt) : _x(pt.x()), _y(pt.y()) {}
   // Caller must provide a non-zero size
@@ -57,8 +63,8 @@ template <typename T> struct Rectangle {
   }
   bool operator==(const Rectangle &other) const noexcept = default;
 
-  T height() const noexcept { return _y.upper() - _y.lower() + 1; }
-  T width() const noexcept { return _x.upper() - _x.lower() + 1; }
+  T height() const noexcept { return size_inclusive(_y); }
+  T width() const noexcept { return size_inclusive(_x); }
   // These are screen-ish coordinates, with y increasing downward.
   Point<T> top_left() const noexcept { return {_x.lower(), _y.lower()}; };
   Point<T> bottom_right() const noexcept { return {_x.upper(), _y.upper()}; };
@@ -92,14 +98,18 @@ template <typename T> std::ostream &operator<<(std::ostream &os, const Rectangle
   return os << "Rectangle(" << rect.x() << ", " << rect.y() << ")";
 }
 
-// Decomposes a rectangle into an iterable of non-overlapping rectangles that cover the same area.
-// Resulting rectangles will be aligned to an 8x8 grid.
+// The SparseOccupancyGrid wants to clip a larger rectangle to a variety of aligned 8x8 grids.
+// It was easier to implement this "decomposition" of a large rectangle into many smaller ones as a reusable component
+// than in-place. This class breaks the input rectangle into non-overlapping rectangles that cover the same area, but
+// are aligned to an 8x8 grid.
 template <typename T> class RectangleDecomposer {
 public:
   RectangleDecomposer(Rectangle<T> rect) noexcept : _rect(rect) {}
   RectangleDecomposer(Point<T> pt, Size<T> size = {0, 0}) noexcept : _rect(pt, size) {}
-  // End iterator is represented as any iterator >8y below the rectangle
-  // Multiple ~T(7) to mask out the low-order 3-bits, which corresponds to our 8x8 grid.
+
+  // oeprator* returns a point and a rectangle that is at most 8x8 with values clipped to the range [0,7]
+  // The point is the top-left corner of the 8x8 grid that the rectangle is aligned to, and the rectangle is relative to
+  // the 8x8 grid. If you wanted to get the rectangle in absolute coordinates, you would add the point to the rectangle.
   struct Iterator {
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
@@ -112,8 +122,11 @@ public:
       _pos = Point<T>(x, y);
     }
     // Computes the end iterator for a given rectangle.
+    // End iterator is represented as any iterator >8y below the rectangle
+
     static Iterator end_for(Rectangle<T> rect) {
       Iterator it(rect);
+      // Multiple ~T(7) to mask out the low-order 3-bits, which corresponds to our 8x8 grid.
       it._pos = Point<T>(rect.x().lower() & ~T(7), (rect.y().upper() & ~T(7)) + 8);
       return it;
     }
@@ -146,6 +159,7 @@ public:
     Rectangle<T> _src;
     Point<T> _pos;
   };
+
   Iterator begin() const noexcept { return Iterator(_rect); }
   Iterator end() const noexcept { return Iterator::end_for(_rect); }
 

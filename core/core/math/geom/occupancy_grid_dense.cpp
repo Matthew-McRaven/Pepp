@@ -77,7 +77,6 @@ u8 pepp::core::DenseOccupancyGrid::column_bits(u8 column) const noexcept {
 
 void pepp::core::DenseOccupancyGrid::set_column_bits(u8 column, u8 bits) noexcept {
   // Our internal representation stores LSB first, but typical byte format is MSB.
-  // bits = bits::reverse_bits(bits);
   // Create a copy of the grid with the target column zeroed out
   const u64 column_mask = columns_least_bit_mask << column;
   u64 out = _grid & ~column_mask;
@@ -229,7 +228,7 @@ pepp::core::DenseOccupancyGrid pepp::core::DenseOccupancyGrid::mirror_y() const 
 }
 
 pepp::core::DenseOccupancyGrid &pepp::core::DenseOccupancyGrid::mirrored_y() noexcept {
-  _grid = bits::byteswap(bits::reverse_bits(_grid));
+  _grid = bits::byteswap(bits::bitreverse(_grid));
   return *this;
 }
 
@@ -261,7 +260,7 @@ pepp::core::DenseOccupancyGrid &pepp::core::DenseOccupancyGrid::operator^=(const
 
 std::ostream &pepp::core::operator<<(std::ostream &os, const DenseOccupancyGrid &grid) noexcept {
   for (int it = 0; it < 8; it++) {
-    const u8 row_bits = bits::reverse_bits(grid.row_bits(it));
+    const u8 row_bits = bits::bitreverse(grid.row_bits(it));
     os << std::bitset<8>(row_bits) << "\n";
   }
   return os;
