@@ -15,7 +15,7 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     QRect r3{block_size * 3, block_size * 4, block_size, block_size};
 
     DiagramProperties *data = new DiagramProperties(this);
-    data->setType(DiagramType::Type::ORGate);
+    data->setType(DiagramType::Type::ANDGate); // + DiagramType::Type::TotalGates);
     _rects.push_back({r1, data});
 
     data = new DiagramProperties(this);
@@ -41,14 +41,14 @@ void GraphicCanvas::cacheImages(const QString &source)
     renderer.setAspectRatioMode(Qt::KeepAspectRatio);
 
     if (renderer.isValid()) {
-        //QImage image(block_size * 100, block_size * 100, QImage::Format_ARGB32_Premultiplied);
-        QPixmap image(block_size * 100, block_size * 100);
+        QPixmap image(block_size * 10, block_size * 10);
         image.fill(Qt::transparent);
 
         // Get QPainter that paints to the image
         QPainter painter(&image);
-        painter.setRenderHint(QPainter::Antialiasing);
-        // | QPainter::SmoothPixmapTransform);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+
         renderer.render(&painter);
 
         _svgs.emplace_back(image);
@@ -67,11 +67,9 @@ void GraphicCanvas::paint(QPainter *painter)
     const auto grid_viewport = screen_to_grid(screen_viewport);
 
     // Make rectangles a different color.
-    //painter->setBrush(QBrush(QColor(255, 0, 0)));
     int i = 0;
     for (const auto &[rect, props] : _rects) {
-        // Skip paiting rectangles that are outside the viewport.
-        //if (!pepp::core::intersects(grid_viewport, rect)) continue;
+        // Skip painting rectangles that are outside the viewport.
         if (!grid_viewport.intersects(rect))
             continue;
 
@@ -90,14 +88,14 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
 
     //  Check state, and set outline if selected
     if (props.selected()) {
-        painter->setPen(
-            QPen(QColorConstants::Svg::cornflowerblue, 4, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
+        painter->setPen(QPen(_highlight, 2, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
         painter->drawRect(screen_rect);
     }
-    painter->drawPixmap(screen_rect, image);
+    //painter->drawImage(screen_rect, image);
+    painter->drawPixmap(screen_rect.toRect(), image);
 }
 
-QRect GraphicCanvas::grid_to_screen(QRectF rect)
+QRectF GraphicCanvas::grid_to_screen(QRectF rect)
 {
     const float offset_x = rect.x() - _top_left.x();
     const float offset_y = rect.y() - _top_left.y();
@@ -107,8 +105,8 @@ QRect GraphicCanvas::grid_to_screen(QRectF rect)
     return QRectF(offset_x * grid_to_px,
                   offset_y * grid_to_px,
                   width * grid_to_px,
-                  height * grid_to_px)
-        .toRect();
+                  height * grid_to_px);
+    //.toRect();
 }
 
 QRectF GraphicCanvas::screen_to_grid(QRectF rect)
@@ -144,7 +142,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
             if (props->selected()) {
                 //  Item was previously selected, clear old outline
                 props->setSelected(false);
-                update(grid_to_screen(rect));
+                update(grid_to_screen(rect).toRect());
             }
             continue;
         }
@@ -152,7 +150,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
         props->setSelected(true);
 
         //  Update current rectangle
-        update(grid_to_screen(rect));
+        update(grid_to_screen(rect).toRect());
     }
 }
 

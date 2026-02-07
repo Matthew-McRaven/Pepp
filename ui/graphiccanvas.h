@@ -82,7 +82,7 @@ private:
     // Helepr for painting a single rect that has already "passed" the clipping test.
     //void paint_one(QPainter *painter, QRect rect, void *props);
     void paint_one(QPainter *painter, QRect rect, const DiagramProperties &props);
-    QRect grid_to_screen(QRectF rect);
+    QRectF grid_to_screen(QRectF rect);
     QRectF screen_to_grid(QRectF rect);
     QPoint screen_to_grid(QPointF point);
 
@@ -92,7 +92,6 @@ private:
     // The things we want to render
     using Rect = std::pair<QRect, DiagramProperties *>;
     std::vector<Rect> _rects;
-    //std::vector<QRect> _rects;
 
     //  Cached images
     QList<QPixmap> _svgs;
@@ -100,4 +99,7 @@ private:
     // Top-left corner of the viewport in grid coordinates
     QPointF _top_left{};
     QSizeF _dimensions{320, 320};
+
+    //  Make fixed for now
+    QColor _highlight = QColorConstants::Svg::cornflowerblue;
 };
