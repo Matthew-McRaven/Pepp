@@ -14,15 +14,16 @@ class GraphicCanvas : public QQuickPaintedItem
     QML_NAMED_ELEMENT(GraphicCanvas)
 
     // Sizes in "screen" coordinates
-    Q_PROPERTY(
-        float contentWidth READ contentWidth /*WRITE setContentWidth*/ NOTIFY boundsChanged FINAL)
-    Q_PROPERTY(float contentHeight READ contentHeight /*WRITE setContentHeight*/ NOTIFY
-                   boundsChanged FINAL)
+    Q_PROPERTY(float contentWidth READ contentWidth NOTIFY boundsChanged FINAL)
+    Q_PROPERTY(float contentHeight READ contentHeight NOTIFY boundsChanged FINAL)
 
     // In "screen" coordinates (e.g., pixels according to our containing Flickable)
     Q_PROPERTY(float originX READ originX WRITE setOriginX NOTIFY originChanged FINAL)
     Q_PROPERTY(float originY READ originY WRITE setOriginY NOTIFY originChanged FINAL)
 
+    // Used to shrink canvas to fit in scroll bars
+    Q_PROPERTY(float xScrollbar READ xScrollbar WRITE setXScrollbar NOTIFY boundsChanged FINAL)
+    Q_PROPERTY(float yScrollbar READ yScrollbar WRITE setYScrollbar NOTIFY boundsChanged FINAL)
 public:
     GraphicCanvas(QQuickItem *parent = nullptr);
     void paint(QPainter *painter) override;
@@ -46,6 +47,29 @@ public:
         _top_left = {_top_left.x(), (y / grid_to_px)};
         emit originChanged();
         update();
+    }
+
+    // The top-left corner, as measured in "screen" coordinates
+    float xScrollbar() const { return _scrollbarWidth.right() * grid_to_px; }
+    float yScrollbar() const { return _scrollbarWidth.bottom() * grid_to_px; }
+    // Compute grid coordinates from screen coordinates
+    void setXScrollbar(float x)
+    {
+        //const auto change = x / grid_to_px;
+        if (std::abs(x - _scrollbarWidth.right()) > .0001) {
+            _scrollbarWidth.setRight(x);
+            emit boundsChanged();
+            update();
+        }
+    }
+    void setYScrollbar(float y)
+    {
+        //const auto change = y / grid_to_px;
+        if (std::abs(y - _scrollbarWidth.bottom()) > .0001) {
+            _scrollbarWidth.setBottom(y);
+            emit boundsChanged();
+            update();
+        }
     }
 
 protected:
@@ -89,7 +113,7 @@ private:
 
     // Top-left corner of the viewport in grid coordinates
     QPointF _top_left{};
-    //QSizeF _dimensions{320, 320};
+    QMarginsF _scrollbarWidth{0, 0, 0, 0};
     QRectF _dimensions{0, 0, 25.0, 25.0};
 
     //  Make fixed for now

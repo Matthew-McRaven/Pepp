@@ -22,8 +22,8 @@ Item {
         // Tie the canvas's top-left to the flickable's content position
         originX: scrollView.contentX
         originY: scrollView.contentY
-        //contentHeight: scrollView.height //1000 //root.dataModel.rows * 10
-        //contentWidth: scrollView.width //1000 //root.dataModel.columns * 10
+        xScrollbar: vsb.visible ? vsb.width : 0
+        yScrollbar: hsb.visible ? hsb.height : 0
 
         anchors.fill: parent
     }
@@ -45,9 +45,11 @@ Item {
         }
 
         ScrollBar.vertical: ScrollBar {
-             policy: ScrollBar.AsNeeded
+            id: vsb
+            policy: ScrollBar.AsNeeded
          }
          ScrollBar.horizontal: ScrollBar {
+            id: hsb
              policy: ScrollBar.AsNeeded
         }
     }   //  TableView

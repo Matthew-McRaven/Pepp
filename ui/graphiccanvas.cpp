@@ -99,11 +99,15 @@ void GraphicCanvas::paint(QPainter *painter)
     painter->drawRect(0, 0, size().width(), size().height());
 
     // Determine the size of the viewport in grid coordinates.
-    const auto screen_viewport = QRectF(0, 0, size().width(), size().height());
+    //  Exclude scrollbar from view area otherwise, we will paint on scrollbars
+    const auto screen_viewport = QRectF(0, 0, size().width(), size().height()) - _scrollbarWidth;
+
+    //  Clip painter to just visible area (including scrollbar)
+    painter->setClipRect(screen_viewport);
+
+    //  Use grid coordindates for checking rectangles
     const auto grid_viewport = screen_to_grid(screen_viewport);
 
-    // Make rectangles a different color.
-    int i = 0;
     for (const auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
         if (grid_viewport.intersects(rect))
