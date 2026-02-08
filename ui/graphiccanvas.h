@@ -110,11 +110,17 @@ private:
 
     //  Cached images
     QList<QPixmap> _svgs;
+    QList<QPixmap> _svgsBottom;
+    QList<QPixmap> _svgsLeft;
+    QList<QPixmap> _svgsTop;
 
     // Top-left corner of the viewport in grid coordinates
     QPointF _top_left{};
-    QMarginsF _scrollbarWidth{0, 0, 0, 0};
     QRectF _dimensions{0, 0, 25.0, 25.0};
+
+    //  Margins are always in screen coordinates since they do not
+    //  interact with the drawing model. They only impact screen clipping
+    QMarginsF _scrollbarWidth{0, 0, 0, 0};
 
     //  Make fixed for now
     QColor _highlight = QColorConstants::Svg::cornflowerblue;

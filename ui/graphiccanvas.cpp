@@ -88,6 +88,11 @@ void GraphicCanvas::cacheImages(const QString &source)
         painter.fillRect(image.rect(), QBrush(_highlight));
         painter.end();*/
         _svgs.emplace_back(image);
+
+        //  Make copy of rotated image to speed up drawing
+        _svgsBottom.emplaceBack(image.transformed(QTransform().rotate(90)));
+        _svgsLeft.emplaceBack(image.transformed(QTransform().rotate(180)));
+        _svgsTop.emplaceBack(image.transformed(QTransform().rotate(270)));
     }
 }
 
@@ -98,7 +103,7 @@ void GraphicCanvas::paint(QPainter *painter)
     painter->setPen(Qt::NoPen);
     painter->drawRect(0, 0, size().width(), size().height());
 
-    // Determine the size of the viewport in grid coordinates.
+    //  Determine the size of the viewport in grid coordinates.
     //  Exclude scrollbar from view area otherwise, we will paint on scrollbars
     const auto screen_viewport = QRectF(0, 0, size().width(), size().height()) - _scrollbarWidth;
 
@@ -122,7 +127,7 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
     // In reality, each of these branches should be its own function/method.
     // If we actually had props, we would use them to make decisions about how to paint.
     // e.g., do I copy one of the NAND/NOR images into this rectangle, or do I draw a solid color?
-    auto &image = _svgs[props.type()];
+    QPixmap *image = nullptr; // = &_svgs[props.type()];
 
     //  Check state, and set outline if selected
     if (props.selected()) {
@@ -130,14 +135,25 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
         painter->drawRect(screen_rect);
     }
 
-    //  Is image rotated
-    if (props.orientation() != 0) {
-        //  This could be very slow since it makes a copy. If so, cache
-        painter->drawPixmap(screen_rect.toRect(),
-                            image.transformed(QTransform().rotate(props.orientation())));
-        return;
+    //  Get cached copy for drawing
+    switch (props.orientation()) {
+    case 90:
+        image = &_svgsBottom[props.type()];
+        break;
+    case 180:
+        image = &_svgsLeft[props.type()];
+        break;
+    case 270:
+        image = &_svgsTop[props.type()];
+        break;
+    default:
+        image = &_svgs[props.type()];
+        break;
     }
-    painter->drawPixmap(screen_rect.toRect(), image);
+
+    //  If image is not null, it can be output
+    if (image)
+        painter->drawPixmap(screen_rect.toRect(), *image);
 }
 
 QRectF GraphicCanvas::grid_to_screen(QRectF rect)
@@ -172,15 +188,28 @@ QPoint GraphicCanvas::screen_to_grid(QPointF point)
     return QPointF{x, y}.toPoint();
 }
 
-//  Mouse events
+//  Mouse events - Comment out unused events for now
 /*void GraphicCanvas::mouseDoubleClickEvent(QMouseEvent *event) {}
 
 void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {}*/
 
 void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 {
-    // Determine the mouse location in grid coordinates.
+    //  Determine the size of the viewport in grid coordinates.
+    //  Exclude scrollbar from view area otherwise, we will paint on scrollbars
+    const auto screen_viewport = QRectF(0, 0, size().width(), size().height()) - _scrollbarWidth;
+
+    //  If point is not inside grid, let parent handle event and leave
+    //  Note, all values in screen coordinates
+    if (!screen_viewport.contains(event->position())) {
+        event->setAccepted(false);
+        return;
+    }
+
+    //  Mouse location in grid coordinates to
+    //  to determine rectangle hit.
     const auto point = screen_to_grid(event->position());
+
     for (auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
         if (!rect.contains(point)) {
@@ -196,6 +225,8 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 
         //  Update current rectangle
         update(grid_to_screen(rect).toRect());
+
+        event->setAccepted(true);
     }
 }
 
