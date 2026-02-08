@@ -23,7 +23,7 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     const int rows = 10;
     const int cols = 10;
 
-    /*for (auto i = 0; i < rows; ++i) {
+    for (auto i = 0; i < rows; ++i) {
         for (auto j = 0; j < cols; ++j) {
             QRect r{block_size * i, block_size * j, block_size, block_size};
 
@@ -31,28 +31,37 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
             data->setType(i % _svgs.size());
             data->setOrientation(90 * j);
 
-            _rects.push_back({r, data});
+            insertImage(r, data);
         }
-    }*/
-
-    QRect r1{block_size, block_size, block_size, block_size};
+    }
+    /*QRect r1{block_size, block_size, block_size, block_size};
     QRect r2{block_size * 2, block_size * 3, block_size, block_size};
     QRect r3{block_size * 3, block_size * 4, block_size, block_size};
 
     DiagramProperties *data = new DiagramProperties(this);
     data->setType(DiagramType::Type::ANDGate); // + DiagramType::Type::TotalGates);
     data->setOrientation(90);
-    _rects.push_back({r1, data});
+    insertImages(r1, data);
+    //_rects.push_back({r1, data});
 
     data = new DiagramProperties(this);
     data->setType(DiagramType::Type::XORGate);
     data->setOrientation(180);
-    _rects.push_back({r2, data});
+    insertImages(r2, data);
+    //_rects.push_back({r2, data});
 
     data = new DiagramProperties(this);
     data->setType(DiagramType::Type::NANDGate);
     data->setOrientation(271); // Intentionally wrong for testing
-    _rects.push_back({r3, data});
+    insertImages(r3, data);
+    //_rects.push_back({r3, data});*/
+}
+
+void GraphicCanvas::insertImage(const QRect &rect, DiagramProperties *data)
+{
+    //  Keep track of canvas size
+    _dimensions = _dimensions.united(rect);
+    _rects.push_back({rect, data});
 }
 
 void GraphicCanvas::cacheImages(const QString &source)
@@ -116,7 +125,6 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
         painter->setPen(QPen(_highlight, 2, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
         painter->drawRect(screen_rect);
     }
-    //painter->drawImage(screen_rect, image);
 
     //  Is image rotated
     if (props.orientation() != 0) {
@@ -161,9 +169,9 @@ QPoint GraphicCanvas::screen_to_grid(QPointF point)
 }
 
 //  Mouse events
-void GraphicCanvas::mouseDoubleClickEvent(QMouseEvent *event) {}
+/*void GraphicCanvas::mouseDoubleClickEvent(QMouseEvent *event) {}
 
-void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {}
+void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {}*/
 
 void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 {
@@ -187,10 +195,11 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {}
+/*void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {}
 
 void GraphicCanvas::mouseUngrabEvent() {}
 
 void GraphicCanvas::hoverEnterEvent(QHoverEvent *event) {}
 void GraphicCanvas::hoverLeaveEvent(QHoverEvent *event) {}
 void GraphicCanvas::hoverMoveEvent(QHoverEvent *event) {}
+*/

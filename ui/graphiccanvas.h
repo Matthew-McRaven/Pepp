@@ -14,9 +14,10 @@ class GraphicCanvas : public QQuickPaintedItem
     QML_NAMED_ELEMENT(GraphicCanvas)
 
     // Sizes in "screen" coordinates
-    Q_PROPERTY(float contentWidth READ contentWidth WRITE setContentWidth NOTIFY boundsChanged FINAL)
     Q_PROPERTY(
-        float contentHeight READ contentHeight WRITE setContentHeight NOTIFY boundsChanged FINAL)
+        float contentWidth READ contentWidth /*WRITE setContentWidth*/ NOTIFY boundsChanged FINAL)
+    Q_PROPERTY(float contentHeight READ contentHeight /*WRITE setContentHeight*/ NOTIFY
+                   boundsChanged FINAL)
 
     // In "screen" coordinates (e.g., pixels according to our containing Flickable)
     Q_PROPERTY(float originX READ originX WRITE setOriginX NOTIFY originChanged FINAL)
@@ -26,19 +27,9 @@ public:
     GraphicCanvas(QQuickItem *parent = nullptr);
     void paint(QPainter *painter) override;
 
-    // TODO: determine min/max bounds based on contained rectangles, then add padding around the edges.
-    float contentWidth() const { return _dimensions.width(); }
-    float contentHeight() const { return _dimensions.height(); }
-    void setContentWidth(float v)
-    {
-        _dimensions.setWidth(v * block_size);
-        emit boundsChanged();
-    }
-    void setContentHeight(float v)
-    {
-        _dimensions.setHeight(v * block_size);
-        emit boundsChanged();
-    }
+    // Max bounds based on contained rectangles.
+    float contentWidth() const { return _dimensions.width() * grid_to_px; }
+    float contentHeight() const { return _dimensions.height() * grid_to_px; }
 
     // The top-left corner, as measured in "screen" coordinates
     float originX() const { return _top_left.x() * grid_to_px; }
@@ -59,15 +50,15 @@ public:
 
 protected:
     //  Mouse events
-    void mouseDoubleClickEvent(QMouseEvent *event) override;
-    void mouseMoveEvent(QMouseEvent *event) override;
+    //void mouseDoubleClickEvent(QMouseEvent *event) override;
+    //void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
+    /*void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseUngrabEvent() override;
 
     void hoverEnterEvent(QHoverEvent *event) override;
     void hoverLeaveEvent(QHoverEvent *event) override;
-    void hoverMoveEvent(QHoverEvent *event) override;
+    void hoverMoveEvent(QHoverEvent *event) override;*/
 signals:
     void boundsChanged();
     void originChanged();
@@ -77,10 +68,10 @@ private:
     const float grid_to_px = 4.0f;
     const int block_size = 25;
 
-    // One of the classes from my geometry library. See core/math/geom
-    //using Rectangle = pepp::core::Rectangle<i16>;
+    //  Centralize image addition so we can track canvas size
+    void insertImage(const QRect &rect, DiagramProperties *data);
+
     // Helepr for painting a single rect that has already "passed" the clipping test.
-    //void paint_one(QPainter *painter, QRect rect, void *props);
     void paint_one(QPainter *painter, QRect rect, const DiagramProperties &props);
     QRectF grid_to_screen(QRectF rect);
     QRectF screen_to_grid(QRectF rect);
@@ -98,7 +89,8 @@ private:
 
     // Top-left corner of the viewport in grid coordinates
     QPointF _top_left{};
-    QSizeF _dimensions{320, 320};
+    //QSizeF _dimensions{320, 320};
+    QRectF _dimensions{0, 0, 25.0, 25.0};
 
     //  Make fixed for now
     QColor _highlight = QColorConstants::Svg::cornflowerblue;

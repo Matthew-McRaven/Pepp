@@ -22,8 +22,8 @@ Item {
         // Tie the canvas's top-left to the flickable's content position
         originX: scrollView.contentX
         originY: scrollView.contentY
-        contentHeight: 1000 //root.dataModel.rows * 10
-        contentWidth: 1000 //root.dataModel.columns * 10
+        //contentHeight: scrollView.height //1000 //root.dataModel.rows * 10
+        //contentWidth: scrollView.width //1000 //root.dataModel.columns * 10
 
         anchors.fill: parent
     }
@@ -36,8 +36,8 @@ Item {
         clip:true
         boundsBehavior: Flickable.StopAtBounds
         // Ensure that have non-empty content, even if the canvas is currently empty.
-        contentWidth: Math.max(canvas.width, canvas.contentWidth)
-        contentHeight: Math.max(canvas.height, canvas.contentHeight)
+        contentWidth: canvas.contentWidth//Math.max(canvas.width, canvas.contentWidth)
+        contentHeight: canvas.contentHeight //Math.max(canvas.height, canvas.contentHeight)
         // A dummy item which gives us something to scroll against
         delegate: GridLines {
             implicitWidth: 100
@@ -45,7 +45,7 @@ Item {
         }
 
         ScrollBar.vertical: ScrollBar {
-             policy: ScrollBar.AlwaysOn
+             policy: ScrollBar.AsNeeded
          }
          ScrollBar.horizontal: ScrollBar {
              policy: ScrollBar.AsNeeded
