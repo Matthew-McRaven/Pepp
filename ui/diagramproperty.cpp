@@ -98,3 +98,16 @@ void DiagramProperties::setSelected(const bool v)
         emit selectedChanged();
     }
 }
+
+void DiagramProperties::setOrientation(const quint32 v)
+{
+    //  Limit to 360 degrees
+    const auto angle = v % 360;
+    if (_orientation != angle) {
+        const auto slice = static_cast<quint32>(angle / 90);
+
+        //  Only support 90 degree changes
+        _orientation = slice * 90;
+        emit imageChanged();
+    }
+}

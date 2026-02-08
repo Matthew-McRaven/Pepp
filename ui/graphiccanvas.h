@@ -31,12 +31,12 @@ public:
     float contentHeight() const { return _dimensions.height(); }
     void setContentWidth(float v)
     {
-        _dimensions.setWidth(v);
+        _dimensions.setWidth(v * block_size);
         emit boundsChanged();
     }
     void setContentHeight(float v)
     {
-        _dimensions.setHeight(v);
+        _dimensions.setHeight(v * block_size);
         emit boundsChanged();
     }
 

@@ -56,8 +56,12 @@ public:
     void setInputNo(const quint16 v);
     void setOutputNo(const quint16 v);
 
+    //  Not added as Q_Property yet
     bool selected() const { return _isSelected; }
     void setSelected(const bool v);
+
+    int orientation() const { return _orientation; }
+    void setOrientation(const quint32 v);
 
 signals:
     void typeChanged();
@@ -70,6 +74,7 @@ signals:
 private:
     quint32 _id;
     static quint32 _counter;
+    quint32 _orientation = 0; // Left
 
     //  Selection logic
     bool _isSelected = false;

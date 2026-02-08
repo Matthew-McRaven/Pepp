@@ -10,28 +10,49 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     setAcceptHoverEvents(true); // Enable hover events if needed
 
     setAntialiasing(true);
-    QRect r1{block_size, block_size, block_size, block_size};
-    QRect r2{block_size * 2, block_size * 3, block_size, block_size};
-    QRect r3{block_size * 3, block_size * 4, block_size, block_size};
 
-    DiagramProperties *data = new DiagramProperties(this);
-    data->setType(DiagramType::Type::ANDGate); // + DiagramType::Type::TotalGates);
-    _rects.push_back({r1, data});
-
-    data = new DiagramProperties(this);
-    data->setType(DiagramType::Type::XORGate);
-    _rects.push_back({r2, data});
-
-    data = new DiagramProperties(this);
-    data->setType(DiagramType::Type::NANDGate);
-    _rects.push_back({r3, data});
-
+    //  Create image copies for later painting
     cacheImages(":/and");
     cacheImages(":/or");
     cacheImages(":/inverter");
     cacheImages(":/nand");
     cacheImages(":/nor");
     cacheImages(":/xor");
+
+    //  Loop to create blocks. Fill Full Grid
+    const int rows = 10;
+    const int cols = 10;
+
+    /*for (auto i = 0; i < rows; ++i) {
+        for (auto j = 0; j < cols; ++j) {
+            QRect r{block_size * i, block_size * j, block_size, block_size};
+
+            DiagramProperties *data = new DiagramProperties(this);
+            data->setType(i % _svgs.size());
+            data->setOrientation(90 * j);
+
+            _rects.push_back({r, data});
+        }
+    }*/
+
+    QRect r1{block_size, block_size, block_size, block_size};
+    QRect r2{block_size * 2, block_size * 3, block_size, block_size};
+    QRect r3{block_size * 3, block_size * 4, block_size, block_size};
+
+    DiagramProperties *data = new DiagramProperties(this);
+    data->setType(DiagramType::Type::ANDGate); // + DiagramType::Type::TotalGates);
+    data->setOrientation(90);
+    _rects.push_back({r1, data});
+
+    data = new DiagramProperties(this);
+    data->setType(DiagramType::Type::XORGate);
+    data->setOrientation(180);
+    _rects.push_back({r2, data});
+
+    data = new DiagramProperties(this);
+    data->setType(DiagramType::Type::NANDGate);
+    data->setOrientation(271); // Intentionally wrong for testing
+    _rects.push_back({r3, data});
 }
 
 void GraphicCanvas::cacheImages(const QString &source)
@@ -50,7 +71,13 @@ void GraphicCanvas::cacheImages(const QString &source)
         painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
 
         renderer.render(&painter);
+        /*painter.end();
 
+        // Apply the new color - colors fill
+        painter.begin(&image);
+        painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+        painter.fillRect(image.rect(), QBrush(_highlight));
+        painter.end();*/
         _svgs.emplace_back(image);
     }
 }
@@ -70,10 +97,8 @@ void GraphicCanvas::paint(QPainter *painter)
     int i = 0;
     for (const auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
-        if (!grid_viewport.intersects(rect))
-            continue;
-
-        paint_one(painter, rect, *props);
+        if (grid_viewport.intersects(rect))
+            paint_one(painter, rect, *props);
     }
 }
 
@@ -92,6 +117,14 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
         painter->drawRect(screen_rect);
     }
     //painter->drawImage(screen_rect, image);
+
+    //  Is image rotated
+    if (props.orientation() != 0) {
+        //  This could be very slow since it makes a copy. If so, cache
+        painter->drawPixmap(screen_rect.toRect(),
+                            image.transformed(QTransform().rotate(props.orientation())));
+        return;
+    }
     painter->drawPixmap(screen_rect.toRect(), image);
 }
 
