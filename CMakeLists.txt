@@ -39,7 +39,7 @@ qt_add_qml_module(CircuitDesign
         ui/diagramlistmodel.cpp
         ui/diagramproperty.hpp
         ui/diagramproperty.cpp
-        ui/graphiccanvas.h
+        ui/graphiccanvas.hpp
         ui/graphiccanvas.cpp
     DEPENDENCIES QtQuick
 )

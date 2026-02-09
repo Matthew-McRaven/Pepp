@@ -1,4 +1,4 @@
-#include "graphiccanvas.h"
+#include "graphiccanvas.hpp"
 #include <QPainter>
 #include <QSvgRenderer>
 
