@@ -36,9 +36,17 @@ bool DiagramDataModel::clearItemData(const QModelIndex &index)
     return false;
 }
 
-const QModelIndex DiagramDataModel::currentItem() const
+const QModelIndex DiagramDataModel::currentIndex() const
 {
     return _current;
+}
+
+void DiagramDataModel::setCurrentIndex(const QModelIndex v)
+{
+    if (v != _current) {
+        _current = v;
+        emit currentIndexChanged();
+    }
 }
 
 DiagramProperties *DiagramDataModel::item(const QModelIndex &index)
@@ -48,11 +56,6 @@ DiagramProperties *DiagramDataModel::item(const QModelIndex &index)
 
     auto data = _data.getDiagramProps(DiagramKey{index.row(), index.column()});
     return data;
-}
-
-DiagramProperties *DiagramDataModel::createItem(int row, int column)
-{
-    return createItem(this->index(row, column));
 }
 
 DiagramProperties *DiagramDataModel::createItem(const QModelIndex &index)
@@ -65,6 +68,16 @@ DiagramProperties *DiagramDataModel::createItem(const QModelIndex &index)
     return data;
 }
 
+QModelIndex DiagramDataModel::index(int row, int column, const QModelIndex &parent) const
+{
+    // Check if row and column are within bounds and parent is invalid
+    if (!hasIndex(row, column, parent))
+        return {};
+
+    // The internalPointer can store a pointer to your underlying data for quick access in data()
+    // For a simple list, we can just use the row and column
+    return createIndex(row, column, nullptr); // Use 0 or another pointer if you use internal data
+}
 int DiagramDataModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.isValid())
@@ -99,6 +112,12 @@ bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, 
 
     const int row = index.row();
     const int col = index.column();
+
+    //  Set currently selected if value is true
+    if (role == DiagramProperty::Role::Selected && value.toBool()) {
+        setCurrentIndex(index);
+        emit dataChanged(index, index);
+    }
 
     if (_data.setData(DiagramKey{row, col}, value, role))
         emit dataChanged(index, index);

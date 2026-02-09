@@ -3,19 +3,39 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 
+import CircuitDesign
 import DiagramEnum
 
 Pane {
     id: root
-    required property var diagramModel
-    property var currentIndex: null
+    required property DiagramDataModel diagramModel
 
     //  List of available gates
     required property var gateModel
 
     Column {
+        id: col
         spacing: 2
         bottomPadding: 0
+
+        enabled: col.index.row != -1
+
+        property var index: root.diagramModel.currentIndex
+
+        onIndexChanged: {
+            console.log(root.diagramModel);
+            const index = root.diagramModel.currentIndex;
+
+            //  Negative row indicates unitialized qindex
+            if(index.row == -1)
+                return;
+
+            //  Get data for current index
+            const item = root.diagramModel.item(index);
+            console.log(item);
+
+            gateType.currentValue = item.name;
+        }
 
         Grid {
             columns: 2
@@ -28,8 +48,7 @@ Pane {
                 model: root.gateModel
                 textRole: "name"
                 valueRole: "name"
-                currentValue: root.currentIndex == null ?
-                    "" : root.diagramModel.name
+                currentValue: ""
             }
 
             Label {
@@ -39,7 +58,7 @@ Pane {
                 id: input
                 from: 1
                 to: 6
-                value: 2 //root.currentIndex ? root.diagramModel.inputNo : 2
+                value: 2
             }
 
             Label {

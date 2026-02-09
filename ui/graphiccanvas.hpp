@@ -44,6 +44,7 @@ public:
     // The top-left corner, as measured in "screen" coordinates
     float originX() const { return _top_left.x() * grid_to_px; }
     float originY() const { return _top_left.y() * grid_to_px; }
+
     // Compute grid coordinates from screen coordinates
     void setOriginX(float x)
     {
@@ -61,6 +62,7 @@ public:
     // The top-left corner, as measured in "screen" coordinates
     float xScrollbar() const { return _scrollbarWidth.right() * grid_to_px; }
     float yScrollbar() const { return _scrollbarWidth.bottom() * grid_to_px; }
+
     // Compute grid coordinates from screen coordinates
     void setXScrollbar(float x)
     {

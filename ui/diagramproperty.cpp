@@ -24,6 +24,12 @@ QVariant DiagramProperties::get(int role) const
         return inputNo();
     case DiagramProperty::Role::OutputNo:
         return outputNo();
+    case DiagramProperty::Role::Selected:
+        return selected();
+    case DiagramProperty::Role::Orientation:
+        return orientation();
+    case DiagramProperty::Role::Rectangle:
+        return rectangle();
     }
 
     //  Not found
@@ -47,6 +53,15 @@ void DiagramProperties::set(int role, const QVariant &data)
         break;
     case DiagramProperty::Role::OutputNo:
         setOutputNo(data.toInt());
+        break;
+    case DiagramProperty::Role::Selected:
+        setSelected(data.toBool());
+        break;
+    case DiagramProperty::Role::Orientation:
+        setOrientation(data.toInt());
+        break;
+    case DiagramProperty::Role::Rectangle:
+        setRectangle(data.toRect());
         break;
     }
 }

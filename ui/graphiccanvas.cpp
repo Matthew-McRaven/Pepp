@@ -29,6 +29,12 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
 //  Test function
 void GraphicCanvas::updateData()
 {
+    static std::array<QString, 6> lookup{"AND Gate",
+                                         "OR Gate",
+                                         "Inverter",
+                                         "NAND Gate",
+                                         "NOR Gate",
+                                         "XOR Gate"};
     if (_model == nullptr)
         return;
 
@@ -40,10 +46,11 @@ void GraphicCanvas::updateData()
         for (auto j = 0; j < cols; ++j) {
             QRect r{block_size * i, block_size * j, block_size, block_size};
 
-            DiagramProperties *data = _model->createItem(i, j);
-            // DiagramProperties *data = new DiagramProperties(this);
+            auto index = _model->index(i, j);
+            DiagramProperties *data = _model->createItem(index);
 
             //  Add block data
+            data->setName(lookup[i % _svgs.size()]);
             data->setRectangle({i, j, 1, 1});
             data->setType(i % _svgs.size());
             data->setOrientation(90 * j);
@@ -211,13 +218,21 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
         if (!rect.contains(point)) {
             if (props->selected()) {
                 //  Item was previously selected, clear old outline
-                props->setSelected(false);
+                //  Set through view so that other controls see change
+                const auto index = _model->index(props->rectangle().x(), props->rectangle().y());
+                _model->setData(index, false, DiagramProperty::Role::Selected);
+                //qDebug() << "Unselected " << props->selected();
+
+                //  Update unselected rectangle
                 update(grid_to_screen(rect).toRect());
             }
             continue;
         }
         // Item is selected, update view
-        props->setSelected(true);
+        //  Set through view so that other controls see change
+        const auto index = _model->index(props->rectangle().x(), props->rectangle().y());
+        _model->setData(index, true, DiagramProperty::Role::Selected);
+        //qDebug() << "Selected " << props->selected();
 
         //  Update current rectangle
         update(grid_to_screen(rect).toRect());

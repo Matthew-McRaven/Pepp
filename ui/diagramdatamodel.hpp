@@ -23,6 +23,10 @@ class DiagramDataModel : public QAbstractTableModel
 
     QModelIndex _current{};
 
+    // Sizes in "screen" coordinates
+    Q_PROPERTY(QModelIndex currentIndex READ currentIndex WRITE setCurrentIndex NOTIFY
+                   currentIndexChanged FINAL)
+
 public:
     enum Role {
         Name = Qt::DisplayRole,
@@ -42,10 +46,12 @@ public:
     Q_INVOKABLE bool clearItemData(const QModelIndex &index) override;
     Q_INVOKABLE DiagramProperties *item(const QModelIndex &index);
     Q_INVOKABLE DiagramProperties *createItem(const QModelIndex &index);
-    Q_INVOKABLE const QModelIndex currentItem() const;
+    Q_INVOKABLE QModelIndex index(int row,
+                                  int column,
+                                  const QModelIndex &parent = {}) const override;
 
-    //  Functions accessed by C++
-    DiagramProperties *createItem(int row, int column);
+    const QModelIndex currentIndex() const;
+    void setCurrentIndex(const QModelIndex);
 
     // Basic functionality:
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -58,4 +64,7 @@ public:
 
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     QHash<int, QByteArray> roleNames() const override;
+
+signals:
+    void currentIndexChanged();
 };

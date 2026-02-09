@@ -20,6 +20,10 @@ public:
         InputNo,
         OutputNo,
 
+        Selected,
+        Orientation,
+        Rectangle,
+
         //  Indicates invalid state from parsing input files
         Invalid = 0xffffffff,
     };

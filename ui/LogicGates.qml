@@ -45,7 +45,7 @@ Rectangle {
                 Layout.fillWidth: true
 
                 diagramModel: diagramModel
-                currentIndex: canvas.currentIndex
+                //currentIndex: canvas.currentItem
                 gateModel: sourceListView.filterList
             }
         }

@@ -74,7 +74,6 @@ public:
         }
 
         //  Index is invalid rate
-        //emit diagramTypeChanged();
         return nullptr;
     }
 signals:
