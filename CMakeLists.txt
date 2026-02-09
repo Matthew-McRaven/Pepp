@@ -23,14 +23,11 @@ qt_add_qml_module(CircuitDesign
     QML_FILES
         Main.qml
         ui/LogicGates.qml
-        ui/Diagram.qml
         ui/DiagramCanvas.qml
         ui/DiagramEditor.qml
-        ui/DiagramEndpoint.qml
         ui/Line.qml
         ui/GridLines.qml
         ui/DiagramListView.qml
-        #ui/DiagramTableViewDelegate.qml
     SOURCES
         ui/diagramdata.hpp
         ui/diagramdata.cpp
