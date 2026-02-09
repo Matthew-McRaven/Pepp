@@ -15,6 +15,14 @@ class DiagramDataModel : public QAbstractTableModel
     const int _rowSize{32};
     DiagramData _data;
 
+    //  Map to data based on table location
+    QMap<DiagramKey, DiagramProperties *> _cells;
+
+    //  Map view to datamodel
+    QMap<quint32, DiagramKey> _keys;
+
+    QModelIndex _current{};
+
 public:
     enum Role {
         Name = Qt::DisplayRole,
@@ -27,12 +35,17 @@ public:
 
     explicit DiagramDataModel(QObject *parent = nullptr);
 
-    //  Custom functions
+    //  Custom functions accessed by QML
     Q_INVOKABLE void update(const QModelIndex &index);
     Q_INVOKABLE void update(int row, int column);
     Q_INVOKABLE bool clearItemData(const QModelIndexList &indexes);
     Q_INVOKABLE bool clearItemData(const QModelIndex &index) override;
-    Q_INVOKABLE DiagramProperties *itemData(const QModelIndex &index);
+    Q_INVOKABLE DiagramProperties *item(const QModelIndex &index);
+    Q_INVOKABLE DiagramProperties *createItem(const QModelIndex &index);
+    Q_INVOKABLE const QModelIndex currentItem() const;
+
+    //  Functions accessed by C++
+    DiagramProperties *createItem(int row, int column);
 
     // Basic functionality:
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;

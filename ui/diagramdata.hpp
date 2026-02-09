@@ -15,12 +15,13 @@ class DiagramData : QObject
     //  Map view to datamodel
     QMap<quint32, DiagramKey> _keys;
 
-    DiagramProperties *createDiagramProps(const DiagramKey &key);
 
 public:
     DiagramData();
 
+    //  Get access to specific property
     DiagramProperties *getDiagramProps(const DiagramKey &key);
+    DiagramProperties *createDiagramProps(const DiagramKey &key);
 
     bool empty() const;
     QVariant getData(int id, int role) const;

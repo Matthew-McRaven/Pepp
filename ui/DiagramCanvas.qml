@@ -7,7 +7,7 @@ import CircuitDesign
 
 Item {
     id: root
-    property var currentStamp: null
+    property DiagramTemplate currentStamp: null
     //property var currentIndex: tableView.selectionModel.currentIndex //selectedItem()
     property alias dataModel: scrollView.model
 
@@ -19,11 +19,14 @@ Item {
     GraphicCanvas {
         id: canvas
 
+        //  Data passed to control
         // Tie the canvas's top-left to the flickable's content position
         originX: scrollView.contentX
         originY: scrollView.contentY
         xScrollbar: vsb.visible ? vsb.width : 0
         yScrollbar: hsb.visible ? hsb.height : 0
+        model: root.dataModel
+        template: root.currentStamp
 
         anchors.fill: parent
     }
@@ -36,8 +39,8 @@ Item {
         clip:true
         boundsBehavior: Flickable.StopAtBounds
         // Ensure that have non-empty content, even if the canvas is currently empty.
-        contentWidth: canvas.contentWidth//Math.max(canvas.width, canvas.contentWidth)
-        contentHeight: canvas.contentHeight //Math.max(canvas.height, canvas.contentHeight)
+        contentWidth: canvas.contentWidth
+        contentHeight: canvas.contentHeight
         // A dummy item which gives us something to scroll against
         delegate: GridLines {
             implicitWidth: 100

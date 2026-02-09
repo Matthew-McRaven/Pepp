@@ -111,3 +111,11 @@ void DiagramProperties::setOrientation(const quint32 v)
         emit imageChanged();
     }
 }
+
+void DiagramProperties::setRectangle(const QRect v)
+{
+    if (_rect != v) {
+        _rect = v;
+        emit dimensionsChanged();
+    }
+}

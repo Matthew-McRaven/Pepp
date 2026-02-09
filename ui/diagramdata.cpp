@@ -55,14 +55,22 @@ DiagramProperties *DiagramData::getDiagramProps(const DiagramKey &key)
 {
     auto it_cell = _cells.find(key);
     if (it_cell == _cells.end())
-        return {};
+        return nullptr;
 
     return it_cell.value();
 }
 
 DiagramProperties *DiagramData::createDiagramProps(const DiagramKey &key)
 {
-    DiagramProperties *cell = new DiagramProperties(this);
+    //  See if something already exists at this location
+    DiagramProperties *cell = getDiagramProps(key);
+    if (cell != nullptr)
+        return cell;
+
+    //  Doesn't exist, create now
+    cell = new DiagramProperties(this);
+
+    //  Any error creating?
     if (cell == nullptr)
         return nullptr;
 

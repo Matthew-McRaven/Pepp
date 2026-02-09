@@ -4,17 +4,17 @@ DiagramDataModel::DiagramDataModel(QObject *parent)
     : QAbstractTableModel(parent)
 {}
 
+void DiagramDataModel::update(int row, int column)
+{
+    update(this->index(row, column));
+}
+
 void DiagramDataModel::update(const QModelIndex &index)
 {
     if (!index.isValid())
         return;
 
     emit dataChanged(index, index);
-}
-
-void DiagramDataModel::update(int row, int column)
-{
-    update(this->index(row, column));
 }
 
 bool DiagramDataModel::clearItemData(const QModelIndexList &indexes)
@@ -36,12 +36,32 @@ bool DiagramDataModel::clearItemData(const QModelIndex &index)
     return false;
 }
 
-DiagramProperties *DiagramDataModel::itemData(const QModelIndex &index)
+const QModelIndex DiagramDataModel::currentItem() const
+{
+    return _current;
+}
+
+DiagramProperties *DiagramDataModel::item(const QModelIndex &index)
 {
     if (!index.isValid())
         return nullptr;
 
     auto data = _data.getDiagramProps(DiagramKey{index.row(), index.column()});
+    return data;
+}
+
+DiagramProperties *DiagramDataModel::createItem(int row, int column)
+{
+    return createItem(this->index(row, column));
+}
+
+DiagramProperties *DiagramDataModel::createItem(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return nullptr;
+
+    auto data = _data.createDiagramProps(DiagramKey{index.row(), index.column()});
+    emit dataChanged(index, index);
     return data;
 }
 
