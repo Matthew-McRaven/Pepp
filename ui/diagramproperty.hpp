@@ -2,6 +2,7 @@
 
 #include <QMetaType> // Required for Q_DECLARE_METATYPE
 #include <QObject>
+#include <QRect>
 #include <QtQml/qqmlregistration.h> // Required header for QML_ELEMENT
 
 #include "diagramtype.hpp"
@@ -63,6 +64,9 @@ public:
     int orientation() const { return _orientation; }
     void setOrientation(const quint32 v);
 
+    QRect rectangle() const { return _rect; }
+    void setRectangle(const QRect v);
+
 signals:
     void typeChanged();
     void nameChanged();
@@ -70,11 +74,12 @@ signals:
     void inputChanged();
     void outputChanged();
     void selectedChanged();
+    void dimensionsChanged();
 
 private:
     quint32 _id;
     static quint32 _counter;
-    quint32 _orientation = 0; // Left
+    quint32 _orientation = 0; // Pointing Left
 
     //  Selection logic
     bool _isSelected = false;
@@ -91,4 +96,7 @@ private:
     //  Line properties
     quint32 _start{0};
     quint32 _finish{0};
+
+    //  Diagram grid dimensions & placement
+    QRect _rect{};
 };

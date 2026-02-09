@@ -2,6 +2,8 @@
 #include <QPainter>
 #include <QSvgRenderer>
 
+#include "diagramdatamodel.hpp"
+
 GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     : QQuickPaintedItem(parent)
 {
@@ -19,6 +21,17 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     cacheImages(":/nor");
     cacheImages(":/xor");
 
+    //  The data model is initialized after construction.
+    //  Trigger test data loading once model is setup using event
+    QObject::connect(this, &GraphicCanvas::modelChanged, this, &GraphicCanvas::updateData);
+}
+
+//  Test function
+void GraphicCanvas::updateData()
+{
+    if (_model == nullptr)
+        return;
+
     //  Loop to create blocks. Fill Full Grid
     const int rows = 10;
     const int cols = 10;
@@ -27,34 +40,17 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
         for (auto j = 0; j < cols; ++j) {
             QRect r{block_size * i, block_size * j, block_size, block_size};
 
-            DiagramProperties *data = new DiagramProperties(this);
+            DiagramProperties *data = _model->createItem(i, j);
+            // DiagramProperties *data = new DiagramProperties(this);
+
+            //  Add block data
+            data->setRectangle({i, j, 1, 1});
             data->setType(i % _svgs.size());
             data->setOrientation(90 * j);
 
             insertImage(r, data);
         }
     }
-    /*QRect r1{block_size, block_size, block_size, block_size};
-    QRect r2{block_size * 2, block_size * 3, block_size, block_size};
-    QRect r3{block_size * 3, block_size * 4, block_size, block_size};
-
-    DiagramProperties *data = new DiagramProperties(this);
-    data->setType(DiagramType::Type::ANDGate); // + DiagramType::Type::TotalGates);
-    data->setOrientation(90);
-    insertImages(r1, data);
-    //_rects.push_back({r1, data});
-
-    data = new DiagramProperties(this);
-    data->setType(DiagramType::Type::XORGate);
-    data->setOrientation(180);
-    insertImages(r2, data);
-    //_rects.push_back({r2, data});
-
-    data = new DiagramProperties(this);
-    data->setType(DiagramType::Type::NANDGate);
-    data->setOrientation(271); // Intentionally wrong for testing
-    insertImages(r3, data);
-    //_rects.push_back({r3, data});*/
 }
 
 void GraphicCanvas::insertImage(const QRect &rect, DiagramProperties *data)
@@ -199,7 +195,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     //  Exclude scrollbar from view area otherwise, we will paint on scrollbars
     const auto screen_viewport = QRectF(0, 0, size().width(), size().height()) - _scrollbarWidth;
 
-    //  If point is not inside grid, let parent handle event and leave
+    //  If point is not inside grid, let parent handle event and leave.
     //  Note, all values in screen coordinates
     if (!screen_viewport.contains(event->position())) {
         event->setAccepted(false);

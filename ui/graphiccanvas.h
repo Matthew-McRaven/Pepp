@@ -3,7 +3,11 @@
 #include <QPixmap>
 #include <QQuickPaintedItem>
 
+#include "diagramdatamodel.hpp"
+#include "diagramlistmodel.hpp"
 #include "diagramproperty.hpp"
+
+class DiagramDataModel;
 
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
 // "grid" coordinates are integer values. Currently, 1 grid unit = 4 screen pixels, but this should
@@ -24,6 +28,11 @@ class GraphicCanvas : public QQuickPaintedItem
     // Used to shrink canvas to fit in scroll bars
     Q_PROPERTY(float xScrollbar READ xScrollbar WRITE setXScrollbar NOTIFY boundsChanged FINAL)
     Q_PROPERTY(float yScrollbar READ yScrollbar WRITE setYScrollbar NOTIFY boundsChanged FINAL)
+
+    //  Set and access datamodel and template
+    Q_PROPERTY(DiagramDataModel *model READ model WRITE setModel NOTIFY boundsChanged FINAL)
+    Q_PROPERTY(DiagramTemplate *template READ stamp WRITE setStamp NOTIFY stampChanged FINAL)
+
 public:
     GraphicCanvas(QQuickItem *parent = nullptr);
     void paint(QPainter *painter) override;
@@ -55,7 +64,6 @@ public:
     // Compute grid coordinates from screen coordinates
     void setXScrollbar(float x)
     {
-        //const auto change = x / grid_to_px;
         if (std::abs(x - _scrollbarWidth.right()) > .0001) {
             _scrollbarWidth.setRight(x);
             emit boundsChanged();
@@ -64,11 +72,38 @@ public:
     }
     void setYScrollbar(float y)
     {
-        //const auto change = y / grid_to_px;
         if (std::abs(y - _scrollbarWidth.bottom()) > .0001) {
             _scrollbarWidth.setBottom(y);
             emit boundsChanged();
             update();
+        }
+    }
+
+    DiagramDataModel *model() const { return _model; }
+    void setModel(DiagramDataModel *model)
+    {
+        if (model != _model) {
+            _model = model;
+            emit modelChanged();
+            update();
+        }
+    }
+
+    DiagramTemplate *stamp() const { return _template; }
+    void setStamp(DiagramTemplate *stamp)
+    {
+        if (stamp && stamp != _template) {
+            //  Is valid stamp
+            if (stamp->diagramType() == "Diagram") {
+                _template = stamp;
+            } else {
+                _template = nullptr;
+            }
+
+            //  Changing template only affects current item to stamp down
+            //  Does not require a redraw
+            emit stampChanged();
+            //update();
         }
     }
 
@@ -85,7 +120,9 @@ protected:
     void hoverMoveEvent(QHoverEvent *event) override;*/
 signals:
     void boundsChanged();
+    void modelChanged();
     void originChanged();
+    void stampChanged();
 
 private:
     // Magic constant to convert from grid coordinates to screen coordinates
@@ -103,6 +140,9 @@ private:
 
     //  Render and cache images for painting
     void cacheImages(const QString &source);
+
+    //  Insert test data
+    void updateData();
 
     // The things we want to render
     using Rect = std::pair<QRect, DiagramProperties *>;
@@ -122,6 +162,10 @@ private:
     //  interact with the drawing model. They only impact screen clipping
     QMarginsF _scrollbarWidth{0, 0, 0, 0};
 
-    //  Make fixed for now
+    //  Make fixed color for now
     QColor _highlight = QColorConstants::Svg::cornflowerblue;
+
+    //  Data model
+    DiagramDataModel *_model = nullptr;
+    DiagramTemplate *_template = nullptr;
 };
