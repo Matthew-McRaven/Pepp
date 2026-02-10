@@ -41,6 +41,7 @@ class DiagramProperties : public QObject
     Q_PROPERTY(int type READ type WRITE setType NOTIFY typeChanged)
     Q_PROPERTY(quint16 inputNo READ inputNo WRITE setInputNo NOTIFY inputChanged)
     Q_PROPERTY(quint16 outputNo READ outputNo WRITE setOutputNo NOTIFY outputChanged)
+    Q_PROPERTY(quint16 orientation READ orientation WRITE setOrientation NOTIFY imageChanged)
 
 public:
     explicit DiagramProperties(QObject *parent = nullptr);
