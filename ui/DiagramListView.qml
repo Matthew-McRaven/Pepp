@@ -85,14 +85,15 @@ Item {
 
                 implicitWidth: 100
                 implicitHeight: 60
+                padding: 5
                 checkable: true
                 display: AbstractButton.TextUnderIcon
 
                 text: btn.name
                 icon.source: btn.qrcFile
                 icon.color: "transparent"
-                icon.width: btn.implicitWidth * .8
-                icon.height: btn.implicitHeight * .7
+                icon.width: btn.implicitWidth * .7
+                icon.height: icon.width * .45
             }
         }
     }   //  GridLayout
