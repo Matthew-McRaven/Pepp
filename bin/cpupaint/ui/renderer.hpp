@@ -2,6 +2,13 @@
 #include <QQuickPaintedItem>
 #include "shapes_one.hpp"
 
+using Geometry = std::variant<QRect, QPolygon, QLine, Arrow>;
+struct Item {
+  Geometry geom;
+  QColor bg{0, 0, 0, 255}, fg{0, 0, 0, 255};
+  bool enabled = true;
+};
+
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
 // "grid" coordinates are integer values. Currently, 1 grid unit = 4 screen pixels, but this should
 // be programmable to enable zoom.
@@ -19,11 +26,5 @@ public:
   float contentHeight() const { return 1050; }
 
 private:
-  using Geometry = std::variant<QRect, QPolygon, QLine, Arrow>;
-  struct Item {
-    Geometry geom;
-    QColor bg{0, 0, 0, 255}, fg{0, 0, 0, 255};
-    bool enabled = true;
-  };
   std::vector<Item> _geom;
 };
