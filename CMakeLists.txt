@@ -32,7 +32,7 @@ endif()
 # DO NOT AUTO-FORMAT. CI looks for a line with this format to extract the
 # version.
 # cmake-format: off
-project(Pepp VERSION 0.14.2 LANGUAGES C CXX)
+project(Pepp VERSION 0.15.0 LANGUAGES C CXX)
 # cmake-format: on
 
 include(config/cmake/inject_defs.cmake)
