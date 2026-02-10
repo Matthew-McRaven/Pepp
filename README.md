@@ -20,9 +20,10 @@ When cloning this project, use `--recurse-submodules` to install relevant source
 
 | Required Build Tools                                               | Reason                                                                                                  |
 |--------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
-| [Qt 6.9](https://doc.qt.io/qt-6/get-and-install-qt.html) or later  | Required for cross-platform GUIs. Under "Additional libraries", install `Qt WebEngine` and `Qt WebView` |
-| [CMake 3.24](https://cmake.org/download/) or later                  | Required build system; usually bundled with Qt                                                          | 
+| [Qt 6.10](https://doc.qt.io/qt-6/get-and-install-qt.html) or later | Required for cross-platform GUIs. Under "Additional libraries", install `Qt WebEngine` and `Qt WebView` |
+| [CMake 3.24](https://cmake.org/download/) or later                 | Required build system; usually bundled with Qt                                                          | 
 | [git lfs](https://git-lfs.com/)                                    | Required for binary assets, such as images an icons                                                     |
+| [Python 3.12+](https://www.python.org/downloads/)                  | Required for python bindings and compile-time changelog. Must be on your path.                          |
 
 While not required, the following tools enable additional features in built applications:
 
