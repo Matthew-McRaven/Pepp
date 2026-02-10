@@ -13,6 +13,9 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
 
     setAntialiasing(true);
 
+    //  Allow drag and drop
+    //setAcceptDrops(true);
+
     //  Create image copies for later painting
     cacheImages(":/and");
     cacheImages(":/or");
@@ -46,8 +49,8 @@ void GraphicCanvas::updateData()
     const int rows = 10;
     const int cols = 10;
 
-    for (auto i = 0; i < rows; ++i) {
-        for (auto j = 0; j < cols; ++j) {
+    for (auto i = 1; i < cols; ++i) {
+        for (auto j = 0; j < rows; ++j) {
             QRect r{block_size * i, block_size * j, block_size, block_size};
 
             auto index = _model->index(i, j);
@@ -237,6 +240,41 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     //  to determine rectangle hit.
     const auto point = screen_to_grid(event->position());
 
+    //  See if existing item was clicked
+    if (setSelected(point)) {
+        //  Another item was selected
+        event->setAccepted(true);
+        return;
+    }
+
+    //  No template is selected, just return
+    if (_template == nullptr) {
+        event->setAccepted(false);
+        return;
+    }
+
+    //  If we get here, we have a new item. Insert into canvas
+    const int col = point.x() / block_size;
+    const int row = point.y() / block_size;
+    QRect r{block_size * col, block_size * row, block_size, block_size};
+    const auto index = _model->index(col, row);
+    DiagramProperties *data = _model->createItem(index);
+
+    //  Add block data
+    data->setName(_template->name());
+    data->setRectangle({col, row, 1, 1});
+    data->setType(_template->key());
+
+    insertImage(r, data);
+    _model->setData(index, true, DiagramProperty::Role::Selected);
+    event->setAccepted(true);
+}
+
+bool GraphicCanvas::setSelected(const QPoint point)
+{
+    bool found{false};
+
+    //  See if existing item was clicked and clear selection
     for (auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
         if (!rect.contains(point)) {
@@ -247,22 +285,22 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
                 _model->setData(index, false, DiagramProperty::Role::Selected);
 
                 //  Update unselected rectangle
-                //update(grid_to_screen(rect).toRect());
                 update();
             }
             continue;
         }
-        // Item is selected, update view
+
+        // Item exists and is selected, update view
         //  Set through view so that other controls see change
         const auto index = _model->index(props->rectangle().x(), props->rectangle().y());
         _model->setData(index, true, DiagramProperty::Role::Selected);
 
         //  Update current rectangle
-        //update(grid_to_screen(rect).toRect());
         update();
 
-        event->setAccepted(true);
+        found = true;
     }
+    return found;
 }
 
 /*void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {}
@@ -273,3 +311,26 @@ void GraphicCanvas::hoverEnterEvent(QHoverEvent *event) {}
 void GraphicCanvas::hoverLeaveEvent(QHoverEvent *event) {}
 void GraphicCanvas::hoverMoveEvent(QHoverEvent *event) {}
 */
+
+void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)
+{
+    event->ignore();
+    qDebug() << "dragEnterEvent";
+}
+void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event)
+{
+    event->ignore();
+    qDebug() << "dragLeaveEvent";
+}
+
+void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event)
+{
+    event->ignore();
+    qDebug() << "dragMoveEvent";
+}
+
+void GraphicCanvas::dropEvent(QDropEvent *event)
+{
+    event->ignore();
+    qDebug() << "dropEvent";
+}

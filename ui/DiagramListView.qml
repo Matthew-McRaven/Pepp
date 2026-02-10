@@ -93,7 +93,7 @@ Item {
                 icon.source: btn.qrcFile
                 icon.color: "transparent"
                 icon.width: btn.implicitWidth * .7
-                icon.height: icon.width * .45
+                icon.height: btn.implicitHeight * .5
             }
         }
     }   //  GridLayout

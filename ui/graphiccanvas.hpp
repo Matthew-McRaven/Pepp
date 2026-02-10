@@ -120,6 +120,11 @@ protected:
     void hoverEnterEvent(QHoverEvent *event) override;
     void hoverLeaveEvent(QHoverEvent *event) override;
     void hoverMoveEvent(QHoverEvent *event) override;*/
+
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dragLeaveEvent(QDragLeaveEvent *event) override;
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 signals:
     void boundsChanged();
     void modelChanged();
@@ -139,6 +144,8 @@ private:
     QRectF grid_to_screen(QRectF rect);
     QRectF screen_to_grid(QRectF rect);
     QPoint screen_to_grid(QPointF point);
+
+    bool setSelected(const QPoint);
 
     //  Render and cache images for painting
     void cacheImages(const QString &source);
