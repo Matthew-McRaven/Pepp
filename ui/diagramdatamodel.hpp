@@ -41,7 +41,6 @@ public:
 
     //  Custom functions accessed by QML
     Q_INVOKABLE void update(const QModelIndex &index);
-    Q_INVOKABLE void update(int row, int column);
     Q_INVOKABLE bool clearItemData(const QModelIndexList &indexes);
     Q_INVOKABLE bool clearItemData(const QModelIndex &index) override;
     Q_INVOKABLE DiagramProperties *item(const QModelIndex &index);

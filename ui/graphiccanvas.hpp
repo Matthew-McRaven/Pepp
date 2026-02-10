@@ -146,6 +146,9 @@ private:
     //  Insert test data
     void updateData();
 
+    //  Respond to data changes in model
+    void updateCell(const QModelIndex &from, const QModelIndex &to);
+
     // The things we want to render
     using Rect = std::pair<QRect, DiagramProperties *>;
     std::vector<Rect> _rects;

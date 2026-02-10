@@ -36,7 +36,6 @@ Pane {
 
             //  Get data for current index
             const item = root.diagramModel.item(inputArea.index);
-            console.log(item);
 
             id.text = item.id;
             gateType.currentValue = item.name;
@@ -116,14 +115,12 @@ Pane {
                     if(root.diagramModel == null || inputArea.index.row == -1)
                         return;
 
-
                     //  Update model with new data
                     //  Extra item in model versus filter model. Find fix instead of
                     //  hard coding value.
                     var item = root.gateModel.sourceModel.diagramTemplate(gateType.currentIndex + 1);
 
                     //  Get data for current index
-                    //var data = root.diagramModel.itemData(root.currentIndex);
                     const data = root.diagramModel.item(inputArea.index);
 
                     data.name = item.name;
@@ -133,9 +130,7 @@ Pane {
                     data.inputNo = input.value;
                     data.outputNo = output.value;
 
-                    const row = inputArea.index.row;
-                    const col = inputArea.index.column;
-                    root.diagramModel.update(row, col);
+                    root.diagramModel.update(inputArea.index);
                 }
             }
             Button {

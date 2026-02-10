@@ -4,11 +4,6 @@ DiagramDataModel::DiagramDataModel(QObject *parent)
     : QAbstractTableModel(parent)
 {}
 
-void DiagramDataModel::update(int row, int column)
-{
-    update(this->index(row, column));
-}
-
 void DiagramDataModel::update(const QModelIndex &index)
 {
     if (!index.isValid())

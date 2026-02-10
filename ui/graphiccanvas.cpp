@@ -26,9 +26,13 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     QObject::connect(this, &GraphicCanvas::modelChanged, this, &GraphicCanvas::updateData);
 }
 
-//  Test function
 void GraphicCanvas::updateData()
 {
+    //  Trigger repaint on data model updates
+    //  Model must exist before it can be connected.
+    QObject::connect(_model, &DiagramDataModel::dataChanged, this, &GraphicCanvas::updateCell);
+
+    //  Test data-remove below in prod
     static std::array<QString, 6> lookup{"AND Gate",
                                          "OR Gate",
                                          "Inverter",
@@ -191,6 +195,26 @@ QPoint GraphicCanvas::screen_to_grid(QPointF point)
     return QPointF{x, y}.toPoint();
 }
 
+void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
+{
+    //  Cannot assume that upper right was passed first. Get absolute dimensions
+    //  Note, coordinates are in columns and rows, not grid or screen
+    const int x = std::min(from.row(), to.row());
+    const int y = std::min(from.column(), to.column());
+    //  Note, cell has implicit width of 1
+    const int height = std::abs(from.row() - to.row()) + 1;
+    const int width = std::abs(from.column() - to.column() + 1);
+
+    //convert to screen coordinates
+    QRectF rect{x * block_size * grid_to_px,
+                y * block_size * grid_to_px,
+                height * block_size * grid_to_px,
+                width * block_size * grid_to_px};
+
+    //  Update expects integer coordinates
+    update(rect.toRect());
+}
+
 //  Mouse events - Comment out unused events for now
 /*void GraphicCanvas::mouseDoubleClickEvent(QMouseEvent *event) {}
 
@@ -218,13 +242,13 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
         if (!rect.contains(point)) {
             if (props->selected()) {
                 //  Item was previously selected, clear old outline
-                //  Set through view so that other controls see change
+                //  Set through datamodel so that other controls see change
                 const auto index = _model->index(props->rectangle().x(), props->rectangle().y());
                 _model->setData(index, false, DiagramProperty::Role::Selected);
-                //qDebug() << "Unselected " << props->selected();
 
                 //  Update unselected rectangle
-                update(grid_to_screen(rect).toRect());
+                //update(grid_to_screen(rect).toRect());
+                update();
             }
             continue;
         }
@@ -232,10 +256,10 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
         //  Set through view so that other controls see change
         const auto index = _model->index(props->rectangle().x(), props->rectangle().y());
         _model->setData(index, true, DiagramProperty::Role::Selected);
-        //qDebug() << "Selected " << props->selected();
 
         //  Update current rectangle
-        update(grid_to_screen(rect).toRect());
+        //update(grid_to_screen(rect).toRect());
+        update();
 
         event->setAccepted(true);
     }
