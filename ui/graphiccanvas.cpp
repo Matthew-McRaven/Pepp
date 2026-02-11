@@ -121,6 +121,9 @@ void GraphicCanvas::paint(QPainter *painter)
     //  Clip painter to just visible area (including scrollbar)
     painter->setClipRect(screen_viewport);
 
+    //  Set scaling
+    setScale(_currentZoom);
+
     //  Use grid coordindates for checking rectangles
     const auto grid_viewport = screen_to_grid(screen_viewport);
 
@@ -138,7 +141,7 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
     // In reality, each of these branches should be its own function/method.
     // If we actually had props, we would use them to make decisions about how to paint.
     // e.g., do I copy one of the NAND/NOR images into this rectangle, or do I draw a solid color?
-    QPixmap *image = nullptr; // = &_svgs[props.type()];
+    QPixmap *image = nullptr;
 
     //  Check state, and set outline if selected
     if (props.selected()) {
@@ -363,26 +366,35 @@ void GraphicCanvas::wheelEvent(QWheelEvent *event)
     if (modifier == Qt::ControlModifier) {
         float x = 0.0;
         if (angleDelta.y() > 0) {
-            qDebug() << "Wheel moved in";
+            qDebug() << "Wheel zoom out";
             // Perform action for scrolling up
-            x = std::max(0.0, originX() - 100.0);
+            setZoom(1);
         } else if (angleDelta.y() < 0) {
-            qDebug() << "Wheel moved out";
-            // Perform action for scrolling down
-            x = std::min(contentWidth(), originX() + 100);
+            qDebug() << "Wheel zoom in";
+            // Perform action for zoom in
+            setZoom(-1);
         }
 
-        //  Update screen
-        if (x != 0.0)
-            setOriginX(x);
-    }
-    if (angleDelta.x() != 0) {
-        qDebug() << "Horizontal wheel movement detected:" << angleDelta.x();
+        //  Refresh screen on zoom
+        update();
     }
 
     // Accept the event to stop it from propagating to parent items/widgets.
     // If ignored, a parent item might handle the event (e.g., a surrounding Flickable).
     event->accept();
+}
+
+void GraphicCanvas::setZoom(qint8 change)
+{
+    qreal newZoom = 0;
+    if (change == 0)
+        return;
+    else if (change > 0)
+        newZoom = std::min(_maxScale, _currentZoom * (2 ^ change));
+    else
+        newZoom = std::max(_minScale, _currentZoom / (2 ^ change));
+
+    _currentZoom = newZoom;
 }
 
 void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)

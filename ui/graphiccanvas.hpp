@@ -135,7 +135,13 @@ signals:
 
 private:
     // Magic constant to convert from grid coordinates to screen coordinates
-    const float grid_to_px = 4.0f;
+    // Zoom variables
+    qreal grid_to_px = 4.0;
+    const qreal _minScale = 0.25;
+    const qreal _maxScale = 16.0;
+    qreal _currentZoom = 1.0;
+
+    //  Grid dimensions (logical size, screen size is this times grid_to_px
     const int block_size = 25;
 
     //  Centralize image addition so we can track canvas size
@@ -147,6 +153,9 @@ private:
     QRectF screen_to_grid(QRectF rect);
     QPoint screen_to_grid(QPointF point);
 
+    void setZoom(qint8 change);
+
+    //  Sets currently selected diagram
     bool setSelected(const QPoint);
 
     //  Render and cache images for painting
