@@ -317,21 +317,65 @@ void GraphicCanvas::wheelEvent(QWheelEvent *event)
 {
     // A positive value for angleDelta().y() indicates the wheel was rotated
     // forwards/up, a negative value indicates backwards/down.
-    QPoint angleDelta = event->angleDelta();
+    const QPoint angleDelta = event->angleDelta();
 
-    if (angleDelta.y() > 0) {
-        qDebug() << "Wheel moved up";
-        // Perform action for scrolling up
-        const auto y = std::max(0.0, originY() - 100.0);
-        setOriginY(y);
-    } else if (angleDelta.y() < 0) {
-        qDebug() << "Wheel moved down";
-        // Perform action for scrolling down
-        const auto y = std::min(contentHeight(), originY() + 100);
-        setOriginY(y);
+    //  No mouse movement, just return
+    if (angleDelta.y() == 0) {
+        // No mouse movement, ignore event
+        event->accept();
+        return;
     }
 
+    //  See if shift, alt, or control keys are pressed
+    const auto modifier = event->modifiers();
+
+    if (modifier == Qt::NoModifier) {
+        float y = 0.0;
+        if (angleDelta.y() > 0) {
+            // Perform action for scrolling up
+            y = std::max(0.0, originY() - 100.0);
+        } else if (angleDelta.y() < 0) {
+            // Perform action for scrolling down
+            y = std::min(contentHeight(), originY() + 100);
+        }
+
+        //  Update screen
+        setOriginY(y);
+    }
     // Process horizontal scrolling if available
+    // Normal h-scrolling uses angleDelta.x() != 0. Current mouse does not
+    // Trigger h-scrolling. Use normal scrolling with shift key
+    if (modifier == Qt::ShiftModifier) {
+        float x = 0.0;
+        if (angleDelta.y() < 0) {
+            // Perform action for scrolling left
+            x = std::max(0.0, originX() - 100.0);
+        } else if (angleDelta.y() > 0) {
+            // Perform action for scrolling right
+            x = std::min(contentWidth(), originX() + 100);
+        }
+
+        //  Update screen
+        setOriginX(x);
+    }
+
+    //  Control + mouse wheel triggeres zoom operations
+    if (modifier == Qt::ControlModifier) {
+        float x = 0.0;
+        if (angleDelta.y() > 0) {
+            qDebug() << "Wheel moved in";
+            // Perform action for scrolling up
+            x = std::max(0.0, originX() - 100.0);
+        } else if (angleDelta.y() < 0) {
+            qDebug() << "Wheel moved out";
+            // Perform action for scrolling down
+            x = std::min(contentWidth(), originX() + 100);
+        }
+
+        //  Update screen
+        if (x != 0.0)
+            setOriginX(x);
+    }
     if (angleDelta.x() != 0) {
         qDebug() << "Horizontal wheel movement detected:" << angleDelta.x();
     }
