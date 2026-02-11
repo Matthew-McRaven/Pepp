@@ -114,15 +114,17 @@ void GraphicCanvas::paint(QPainter *painter)
     painter->setPen(Qt::NoPen);
     painter->drawRect(0, 0, size().width(), size().height());
 
+    //  Set scaling
+    painter->scale(_currentZoom, _currentZoom);
+    //setScale(_currentZoom);
+    //setTextureSize({static_cast<int>(_currentZoom), static_cast<int>(_currentZoom)});
+
     //  Determine the size of the viewport in grid coordinates.
     //  Exclude scrollbar from view area otherwise, we will paint on scrollbars
     const auto screen_viewport = QRectF(0, 0, size().width(), size().height()) - _scrollbarWidth;
 
     //  Clip painter to just visible area (including scrollbar)
     painter->setClipRect(screen_viewport);
-
-    //  Set scaling
-    setScale(_currentZoom);
 
     //  Use grid coordindates for checking rectangles
     const auto grid_viewport = screen_to_grid(screen_viewport);
@@ -201,6 +203,16 @@ QPoint GraphicCanvas::screen_to_grid(QPointF point)
 
     return QPointF{x, y}.toPoint();
 }
+
+/*QRectF GraphicCanvas::scaleToZoom(QRectF rect)
+{
+    const float x = rect.x(); // _currentZoom;
+    const float y = rect.y(); // _currentZoom;
+    const float width = rect.width() / _currentZoom;
+    const float height = rect.height() / _currentZoom;
+
+    return QRectF{x, y, width, height};
+}*/
 
 void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
 {
@@ -366,11 +378,9 @@ void GraphicCanvas::wheelEvent(QWheelEvent *event)
     if (modifier == Qt::ControlModifier) {
         float x = 0.0;
         if (angleDelta.y() > 0) {
-            qDebug() << "Wheel zoom out";
             // Perform action for scrolling up
             setZoom(1);
         } else if (angleDelta.y() < 0) {
-            qDebug() << "Wheel zoom in";
             // Perform action for zoom in
             setZoom(-1);
         }
@@ -390,11 +400,14 @@ void GraphicCanvas::setZoom(qint8 change)
     if (change == 0)
         return;
     else if (change > 0)
-        newZoom = std::min(_maxScale, _currentZoom * (2 ^ change));
+        newZoom = std::min(_maxScale, _currentZoom + .25);
     else
-        newZoom = std::max(_minScale, _currentZoom / (2 ^ change));
+        newZoom = std::max(_minScale, _currentZoom - .25);
 
-    _currentZoom = newZoom;
+    //  Apply rounding
+    _currentZoom = newZoom; //static_cast<int>(newZoom * 100) / 100.0;
+    //grid_to_px = _pixel * _currentZoom;
+    qDebug() << "new zoom: " << newZoom;
 }
 
 void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)

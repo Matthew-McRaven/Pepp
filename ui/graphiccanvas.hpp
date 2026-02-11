@@ -136,9 +136,10 @@ signals:
 private:
     // Magic constant to convert from grid coordinates to screen coordinates
     // Zoom variables
-    qreal grid_to_px = 4.0;
-    const qreal _minScale = 0.25;
-    const qreal _maxScale = 16.0;
+    //const qreal _pixel = 4.0;
+    const qreal grid_to_px = 4.0;
+    const qreal _minScale = 0.5;
+    const qreal _maxScale = 3.0;
     qreal _currentZoom = 1.0;
 
     //  Grid dimensions (logical size, screen size is this times grid_to_px
@@ -152,7 +153,7 @@ private:
     QRectF grid_to_screen(QRectF rect);
     QRectF screen_to_grid(QRectF rect);
     QPoint screen_to_grid(QPointF point);
-
+    //QRectF scaleToZoom(QRectF rect);
     void setZoom(qint8 change);
 
     //  Sets currently selected diagram
