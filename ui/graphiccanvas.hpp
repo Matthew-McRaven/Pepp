@@ -121,6 +121,8 @@ protected:
     void hoverLeaveEvent(QHoverEvent *event) override;
     void hoverMoveEvent(QHoverEvent *event) override;*/
 
+    void wheelEvent(QWheelEvent *event) override;
+
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragLeaveEvent(QDragLeaveEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;

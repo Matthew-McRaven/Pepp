@@ -65,6 +65,7 @@ void GraphicCanvas::updateData()
             insertImage(r, data);
         }
     }
+    //  End of test data
 }
 
 void GraphicCanvas::insertImage(const QRect &rect, DiagramProperties *data)
@@ -311,6 +312,34 @@ void GraphicCanvas::hoverEnterEvent(QHoverEvent *event) {}
 void GraphicCanvas::hoverLeaveEvent(QHoverEvent *event) {}
 void GraphicCanvas::hoverMoveEvent(QHoverEvent *event) {}
 */
+
+void GraphicCanvas::wheelEvent(QWheelEvent *event)
+{
+    // A positive value for angleDelta().y() indicates the wheel was rotated
+    // forwards/up, a negative value indicates backwards/down.
+    QPoint angleDelta = event->angleDelta();
+
+    if (angleDelta.y() > 0) {
+        qDebug() << "Wheel moved up";
+        // Perform action for scrolling up
+        const auto y = std::max(0.0, originY() - 100.0);
+        setOriginY(y);
+    } else if (angleDelta.y() < 0) {
+        qDebug() << "Wheel moved down";
+        // Perform action for scrolling down
+        const auto y = std::min(contentHeight(), originY() + 100);
+        setOriginY(y);
+    }
+
+    // Process horizontal scrolling if available
+    if (angleDelta.x() != 0) {
+        qDebug() << "Horizontal wheel movement detected:" << angleDelta.x();
+    }
+
+    // Accept the event to stop it from propagating to parent items/widgets.
+    // If ignored, a parent item might handle the event (e.g., a surrounding Flickable).
+    event->accept();
+}
 
 void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)
 {
