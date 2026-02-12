@@ -8,30 +8,42 @@
 
 #include <QVector>
 
+struct Arrowhead {
+  QPoint point;
+  enum class Orient {
+    Left = 0,
+    Right = 1,
+    Up = 2,
+    Down = 3,
+  } orient;
+};
+static const Arrowhead::Orient UP = Arrowhead::Orient::Up;
+static const Arrowhead::Orient DOWN = Arrowhead::Orient::Down;
+static const Arrowhead::Orient LEFT = Arrowhead::Orient::Left; // Default
+static const Arrowhead::Orient RIGHT = Arrowhead::Orient::Right;
+
 class Arrow {
 public:
-  Arrow(QVector<QPoint> arrowheads, QVector<QLine> lines) {
+  Arrow(QVector<Arrowhead> arrowheads, QVector<QLine> lines) {
     _arrowheads = arrowheads;
     _lines = lines;
   }
-  QVector<QPoint> _arrowheads;
+
+  QVector<Arrowhead> _arrowheads;
   QVector<QLine> _lines;
 
   Arrow translated(int dx, int dy) const {
-    QVector<QPoint> arrowHeads;
+    QVector<Arrowhead> arrowHeads;
     QVector<QLine> lines;
 
-    for (int i = 0; i < _arrowheads.length(); i++) {
-      arrowHeads.append(_arrowheads.at(i) + QPoint(dx, dy));
-    }
-    for (int i = 0; i < _lines.length(); i++) {
-      lines.append(_lines.at(i).translated(dx, dy));
-    }
+    for (const auto &ah : _arrowheads) arrowHeads.append({ah.point + QPoint(dx, dy), ah.orient});
+    for (const auto &line : _lines) lines.append(line.translated(dx, dy));
 
     Arrow retVal(arrowHeads, lines);
     return retVal;
   }
 };
+
 namespace OneByteShapes {
 
 // generic shapes:
@@ -142,37 +154,37 @@ const QRect MemReadTristateLabel = QRect(ctrlInputX, 631, labelTriW, labelTriH);
 const QRect bus_addr = QRect(40, 151, 20, 500);
 const QRect bus_data = QRect(bus_addr.x() + bus_addr.width(), bus_addr.top() + 100, 10, 400);
 
-const Arrow ck_load = Arrow(QVector<QPoint>() << QPoint(poly_regbank.right() + arrowHOffset, 24),
+const Arrow ck_load = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(poly_regbank.right() + arrowHOffset, 24), LEFT},
                             QVector<QLine>() << QLine(ctrlInputX - 7, loadCkCheckbox.y() + 9,
                                                       poly_regbank.right() + arrowHOffset, loadCkCheckbox.y() + 9));
 const Arrow sel_c =
-    Arrow(QVector<QPoint>() << QPoint(poly_regbank.right() + arrowHOffset, 47),
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(poly_regbank.right() + arrowHOffset, 47)},
           QVector<QLine>() << QLine(ctrlInputX - 7, cLabel.y() + selectYOffset, poly_regbank.right() + arrowHOffset,
                                     cLabel.y() + selectYOffset)
                            << QLine(poly_regbank.right() + arrowHDepth + 6, cLabel.y() + selectYOffset - 5,
                                     poly_regbank.right() + arrowHDepth + 16, cLabel.y() + selectYOffset + 5));
 const Arrow sel_b = Arrow(
-    QVector<QPoint>() << QPoint(poly_regbank.right() + arrowHOffset, 69),
+    QVector<Arrowhead>() << Arrowhead{QPoint(poly_regbank.right() + arrowHOffset, 69)},
     QVector<QLine>() << QLine(ctrlInputX - 7, bLabel.y() + selectYOffset, poly_regbank.right() + arrowHOffset,
                               bLabel.y() + selectYOffset)
                      << QLine(poly_regbank.right() + arrowHDepth + 6, bLabel.y() + selectYOffset - selectSlashOffset,
                               poly_regbank.right() + arrowHDepth + 16, bLabel.y() + selectYOffset + selectSlashOffset));
 const Arrow sel_a = Arrow(
-    QVector<QPoint>() << QPoint(poly_regbank.right() + arrowHOffset, 91),
+    QVector<Arrowhead>() << Arrowhead{QPoint(poly_regbank.right() + arrowHOffset, 91)},
     QVector<QLine>() << QLine(ctrlInputX - 7, aLabel.y() + selectYOffset, poly_regbank.right() + arrowHOffset,
                               aLabel.y() + selectYOffset)
                      << QLine(poly_regbank.right() + arrowHDepth + 6, aLabel.y() + selectYOffset - selectSlashOffset,
                               poly_regbank.right() + arrowHDepth + 16, aLabel.y() + selectYOffset + selectSlashOffset));
-const Arrow ck_mar = Arrow(QVector<QPoint>() << QPoint(232, 155) << QPoint(232, 191),
+const Arrow ck_mar = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(232, 155), UP} << Arrowhead{QPoint(232, 191), DOWN},
                            QVector<QLine>() << QLine(ctrlInputX - 7, 177, 235, 177) << QLine(235, 163, 235, 191));
-const Arrow ck_mdr = Arrow(QVector<QPoint>() << QPoint(207, 241),
+const Arrow ck_mdr = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(207, 241), DOWN},
                            QVector<QLine>() << QLine(ctrlInputX - 7, 233, 210, 233) << QLine(210, 233, 210, 241));
-const Arrow sel_muxa =
-    Arrow(QVector<QPoint>() << QPoint(380, 300), QVector<QLine>() << QLine(ctrlInputX - 7, 303, 388, 303));
+const Arrow sel_muxa = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(380, 300)},
+                             QVector<QLine>() << QLine(ctrlInputX - 7, 303, 388, 303));
 const QPolygon bus_amux_to_alu =
     QPolygon(QVector<QPoint>() << QPoint(336, 312) << QPoint(336, 331) << QPoint(331, 331) << QPoint(341, 341)
                                << QPoint(351, 331) << QPoint(346, 331) << QPoint(346, 312));
-const Arrow sel_muxc = Arrow(QVector<QPoint>() << QPoint(mux_c.left() + 7, mux_c.top() - 12),
+const Arrow sel_muxc = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(mux_c.left() + 7, mux_c.top() - 12), DOWN},
                              QVector<QLine>() << QLine(260, 355, ctrlInputX - 7, 355) << QLine(260, 355, 260, 365));
 const QPolygon bus_c =
     QPolygon(QVector<QPoint>() << QPoint(290, 374) << QPoint(290, 130) << QPoint(295, 130) << QPoint(285, 120)
@@ -286,27 +298,19 @@ const QPolygon bus_mdrmux_to_mdr =
                                << QPoint(205, 286) << QPoint(200, 286) << QPoint(210, 276) << QPoint(220, 286)
                                << QPoint(215, 286) << QPoint(215, mux_mdr.y()));
 
-const Arrow sel_alu =
-    Arrow(QVector<QPoint>() << QPoint(poly_alu.boundingRect().right() - 13, poly_alu.boundingRect().bottom() - 21),
-          QVector<QLine>() << QLine(439, 376, ctrlInputX - 7, ALULineEdit.y() + selectYOffset - 1)
-                           << QLine(ctrlInputX - 17, ALULineEdit.y() + 13, ctrlInputX - 27,
-                                    ALULineEdit.y() + 3)); // diagonal line
+const Arrow sel_alu = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(poly_alu.boundingRect().right() - 13,
+                                                                     poly_alu.boundingRect().bottom() - 21)},
+                            QVector<QLine>() << QLine(439, 376, ctrlInputX - 7, ALULineEdit.y() + selectYOffset - 1)
+                                             << QLine(ctrlInputX - 17, ALULineEdit.y() + 13, ctrlInputX - 27,
+                                                      ALULineEdit.y() + 3)); // diagonal line
 
 const Arrow logic_alu_nzvc = Arrow(
-    QVector<QPoint>() << QPoint(reg_bit_n.left() - arrowLeftOff,
-                                reg_bit_n.y() + arrowHOffset + 1)
-                      << // N
-        QPoint(mux_andz.left() - arrowLeftOff,
-               reg_bit_z.y() + arrowHOffset + 1)
-                      << // Z
-        QPoint(reg_bit_v.left() - arrowLeftOff,
-               reg_bit_v.y() + arrowHOffset + 1)
-                      << // V
-        QPoint(reg_bit_c.left() - arrowLeftOff,
-               reg_bit_c.y() + arrowHOffset + 1)
-                      << // C
-        QPoint(reg_bit_s.left() - arrowLeftOff,
-               reg_bit_s.y() + arrowHOffset + 1), // S
+    QVector<Arrowhead>() << Arrowhead{QPoint(reg_bit_n.left() - arrowLeftOff, reg_bit_n.y() + arrowHOffset + 1), RIGHT}
+                         <<                                                                            // N
+        Arrowhead{QPoint(mux_andz.left() - arrowLeftOff, reg_bit_z.y() + arrowHOffset + 1), RIGHT} <<  // Z
+        Arrowhead{QPoint(reg_bit_v.left() - arrowLeftOff, reg_bit_v.y() + arrowHOffset + 1), RIGHT} << // V
+        Arrowhead{QPoint(reg_bit_c.left() - arrowLeftOff, reg_bit_c.y() + arrowHOffset + 1), RIGHT} << // C
+        Arrowhead{QPoint(reg_bit_s.left() - arrowLeftOff, reg_bit_s.y() + arrowHOffset + 1), RIGHT},   // S
     QVector<QLine>() <<
         // N
         QLine(poly_alu.boundingRect().left() + aluSelOff, poly_alu.boundingRect().bottom(),
@@ -358,43 +362,45 @@ const QLine ck_n = QLine(reg_bit_n.right() + arrowHOffset, reg_bit_n.y() + selec
 
 const QLine poly_nzvc_join = QLine(310, 477, 310, 559);
 const Arrow logic_c_to_nzvc =
-    Arrow(QVector<QPoint>() << QPoint(314, 483),
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(314, 483)},
           QVector<QLine>() << QLine(487, 482, 487, 486) << QLine(330, 486, 322, 486) << QLine(330, 486, 487, 486));
 const Arrow logic_c_to_csmux =
-    Arrow(QVector<QPoint>() << QPoint(431, 421),
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(431, 421), UP},
           QVector<QLine>() << QLine(487, 459, 487, 463) << QLine(434, 459, 487, 459) << QLine(434, 426, 434, 459));
-const Arrow logic_cin = Arrow(QVector<QPoint>() << QPoint(428, 386),
+const Arrow logic_cin = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(428, 386)},
                               QVector<QLine>() << QLine(461, 389, 433, 389) << QLine(461, 399, 461, 389));
 const Arrow logic_s_to_csmux =
-    Arrow(QVector<QPoint>() << QPoint(484, 421), QVector<QLine>() << QLine(487, 437, 487, 429));
-const Arrow logic_z_to_nzvc = Arrow(QVector<QPoint>() << QPoint(314, 503) << QPoint(434, 566),
-                                    QVector<QLine>() << QLine(487, 563, 487, 582) // vertical line to Z bit
-                                                     << QLine(487, 582, 341, 582) // long horizontal line
-                                                     << QLine(341, 582, 341, 506) // vertical line closest to arrowhead
-                                                     << QLine(341, 506, 322, 506) // line from arrowhead on left
-                                                     << QLine(437, 582, 437, 574));
-const Arrow logic_v_to_nzvc = Arrow(QVector<QPoint>() << QPoint(314, 493),
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(484, 421), UP}, QVector<QLine>() << QLine(487, 437, 487, 429));
+const Arrow logic_z_to_nzvc =
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(314, 503)} << Arrowhead{QPoint(434, 566), UP},
+          QVector<QLine>() << QLine(487, 563, 487, 582) // vertical line to Z bit
+                           << QLine(487, 582, 341, 582) // long horizontal line
+                           << QLine(341, 582, 341, 506) // vertical line closest to arrowhead
+                           << QLine(341, 506, 322, 506) // line from arrowhead on left
+                           << QLine(437, 582, 437, 574));
+const Arrow logic_v_to_nzvc = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(314, 493)},
                                     QVector<QLine>() << QLine(487, 510, 487, 514) // bitty bit
                                                      << QLine(487, 514, 352, 514) << QLine(352, 513, 352, 496)
                                                      << QLine(352, 496, 322, 496)); // short line from the arrow
-const Arrow logic_n_to_nzvc = Arrow(QVector<QPoint>() << QPoint(314, 514),
+const Arrow logic_n_to_nzvc = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(314, 514)},
                                     QVector<QLine>() << QLine(487, 605, 487, 609) << QLine(487, 609, 330, 609)
                                                      << QLine(330, 609, 330, 517) << QLine(330, 517, 322, 517));
 
-const Arrow logic_andz_to_z =
-    Arrow(QVector<QPoint>() << QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2,
-                                      mux_andz.top() - selectYOffset - 3)
-                            << QPoint(reg_bit_z.x() - 12, mux_andz.y() + mux_andz.height() / 2 - 3),
-          QVector<QLine>()
-              // Connects arrow head to horizontal line
-              << QLine(mux_andz.x() + mux_andz.width() / 2, AndZTristateLabel.y() + AndZTristateLabel.height() / 2,
-                       mux_andz.x() + mux_andz.width() / 2, mux_andz.y() - arrowHOffset)
-              // Horizontal line from label to arrowhead.
-              << QLine(mux_andz.x() + mux_andz.width() / 2, AndZTristateLabel.y() + AndZTristateLabel.height() / 2,
-                       ctrlInputX - 7, AndZTristateLabel.y() + AndZTristateLabel.height() / 2)
-              // Line from ANDZ circuit to Z bit.
-              << QLine(mux_andz.right(), mux_andz.y() + mux_andz.height() / 2, reg_bit_z.left() - arrowHOffset,
-                       mux_andz.y() + mux_andz.height() / 2));
+const Arrow logic_andz_to_z = Arrow(
+    QVector<Arrowhead>() << Arrowhead{QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2,
+                                             mux_andz.top() - selectYOffset - 3),
+                                      DOWN}
+                         << Arrowhead{QPoint(reg_bit_z.x() - 12, mux_andz.y() + mux_andz.height() / 2 - 3), RIGHT},
+    QVector<QLine>()
+        // Connects arrow head to horizontal line
+        << QLine(mux_andz.x() + mux_andz.width() / 2, AndZTristateLabel.y() + AndZTristateLabel.height() / 2,
+                 mux_andz.x() + mux_andz.width() / 2, mux_andz.y() - arrowHOffset)
+        // Horizontal line from label to arrowhead.
+        << QLine(mux_andz.x() + mux_andz.width() / 2, AndZTristateLabel.y() + AndZTristateLabel.height() / 2,
+                 ctrlInputX - 7, AndZTristateLabel.y() + AndZTristateLabel.height() / 2)
+        // Line from ANDZ circuit to Z bit.
+        << QLine(mux_andz.right(), mux_andz.y() + mux_andz.height() / 2, reg_bit_z.left() - arrowHOffset,
+                 mux_andz.y() + mux_andz.height() / 2));
 
 const QLine ck_memread = QLine(bus_data.right() + arrowHOffset, MemReadLabel.y() + selectYOffset, ctrlInputX - 7,
                                MemReadLabel.y() + selectYOffset);

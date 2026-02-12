@@ -118,15 +118,15 @@ const QRect bus_data = QRect(QPoint(bus_addr.x() + bus_addr.width(), bus_addr.to
 // LoadCk and its control
 const QRect loadCkCheckbox = QRect(ctrlInputX, 18, check2W, check2H);
 const Arrow ck_load =
-    Arrow(QVector<QPoint>() << QPoint(poly_regbank.right() + arrowHOffset, 24),
-          QVector<QLine>() << QLine(ctrlInputX - 7, loadCkCheckbox.y() + selectYOffset, poly_regbank.right() + arrowHOffset,
-                                    loadCkCheckbox.y() + selectYOffset));
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(poly_regbank.right() + arrowHOffset, 24)},
+          QVector<QLine>() << QLine(ctrlInputX - 7, loadCkCheckbox.y() + selectYOffset,
+                                    poly_regbank.right() + arrowHOffset, loadCkCheckbox.y() + selectYOffset));
 
 // C and its control
 const QRect cLineEdit = QRect(ctrlInputX, 39, lineEditW, lineEditH);
 const QRect cLabel = QRect(ctrlLabelX, 41, labelW, labelH);
 const Arrow sel_c =
-    Arrow(QVector<QPoint>() << QPoint(poly_regbank.right() + arrowHOffset, 47),
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(poly_regbank.right() + arrowHOffset, 47)},
           QVector<QLine>() << QLine(ctrlInputX - 7, cLabel.y() + selectYOffset, poly_regbank.right() + arrowHOffset,
                                     cLabel.y() + selectYOffset)
                            << QLine(poly_regbank.right() + arrowHDepth + 6, cLabel.y() + selectYOffset - 5,
@@ -136,7 +136,7 @@ const Arrow sel_c =
 const QRect bLineEdit = QRect(ctrlInputX, 61, lineEditW, lineEditH);
 const QRect bLabel = QRect(ctrlLabelX, 63, labelW, labelH);
 const Arrow sel_b = Arrow(
-    QVector<QPoint>() << QPoint(poly_regbank.right() + arrowHOffset, 69),
+    QVector<Arrowhead>() << Arrowhead{QPoint(poly_regbank.right() + arrowHOffset, 69)},
     QVector<QLine>() << QLine(ctrlInputX - 7, bLabel.y() + selectYOffset, poly_regbank.right() + arrowHOffset,
                               bLabel.y() + selectYOffset)
                      << QLine(poly_regbank.right() + arrowHDepth + 6, bLabel.y() + selectYOffset - selectSlashOffset,
@@ -146,7 +146,7 @@ const Arrow sel_b = Arrow(
 const QRect aLineEdit = QRect(ctrlInputX, 83, lineEditW, lineEditH);
 const QRect aLabel = QRect(ctrlLabelX, 85, labelW, labelH);
 const Arrow sel_a = Arrow(
-    QVector<QPoint>() << QPoint(poly_regbank.right() + arrowHOffset, 91),
+    QVector<Arrowhead>() << Arrowhead{QPoint(poly_regbank.right() + arrowHOffset, 91)},
     QVector<QLine>() << QLine(ctrlInputX - 7, aLabel.y() + selectYOffset, poly_regbank.right() + arrowHOffset,
                               aLabel.y() + selectYOffset)
                      << QLine(poly_regbank.right() + arrowHDepth + 6, aLabel.y() + selectYOffset - selectSlashOffset,
@@ -158,17 +158,16 @@ const QRect poly_marmux =
           dataLabelH + MARAOffsetFromMARB); // 89 x 89 square from bottom of MARA to top of MARB
 const QRect MARMuxTristateLabel = QRect(ctrlInputX, poly_marmux.y() - 28, labelTriW, labelTriH);
 const QRect MARMuxLabel = QRect(ctrlLabelX, MARMuxTristateLabel.y(), labelW + 20, labelH);
-const Arrow sel_mux_mar = Arrow(QVector<QPoint>()
-                                    << QPoint(poly_marmux.x() + poly_marmux.width() / 2 - 3, poly_marmux.y() - 12),
-                                QVector<QLine>()
-                                    // Horizontal line from middle of MARMux to the tristate label
-                                    << QLine(poly_marmux.x() + poly_marmux.width() / 2,
-                                             MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2, ctrlInputX - 7,
-                                             MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2)
-                                    // Vertical line connecting the arrowhead to the horizontal line
-                                    << QLine(poly_marmux.x() + poly_marmux.width() / 2,
-                                             MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2,
-                                             poly_marmux.x() + poly_marmux.width() / 2, poly_marmux.y() - 12));
+const Arrow sel_mux_mar = Arrow(
+    QVector<Arrowhead>() << Arrowhead{QPoint(poly_marmux.x() + poly_marmux.width() / 2 - 3, poly_marmux.y() - 12),
+                                      DOWN},
+    QVector<QLine>()
+        // Horizontal line from middle of MARMux to the tristate label
+        << QLine(poly_marmux.x() + poly_marmux.width() / 2, MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2,
+                 ctrlInputX - 7, MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2)
+        // Vertical line connecting the arrowhead to the horizontal line
+        << QLine(poly_marmux.x() + poly_marmux.width() / 2, MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2,
+                 poly_marmux.x() + poly_marmux.width() / 2, poly_marmux.y() - 12));
 
 // ck_mar and its control
 const QRect ck_marCheckbox =
@@ -177,10 +176,10 @@ const QRect reg_byte_mara = QRect(combCircX, combCircY + MARAOffsetFromMARB, dat
 const QRect reg_byte_marb = QRect(combCircX, combCircY, dataLabelW, dataLabelH);                      // MARB register
 
 const Arrow ck_mar =
-    Arrow(QVector<QPoint>()
+    Arrow(QVector<Arrowhead>()
               // The Arrows intersecting MAR,MARB should be roughly 5/7 of the way down the circuits.
-              << QPoint(combCircX + 5 * dataLabelW / 7 + 7, combCircY + dataLabelH + 3)
-              << QPoint(combCircX + 5 * dataLabelW / 7 + 7, combCircY + MARAOffsetFromMARB - 11),
+              << Arrowhead{QPoint(combCircX + 5 * dataLabelW / 7 + 7, combCircY + dataLabelH + 3), UP}
+              << Arrowhead{QPoint(combCircX + 5 * dataLabelW / 7 + 7, combCircY + MARAOffsetFromMARB - 11), DOWN},
           QVector<QLine>()
               // Horizontal line segment between MAR{A,B} and ck_mar
               << QLine(combCircX + 5 * dataLabelW / 7 + 10, combCircY + MARAOffsetFromMARB - dataLabelH, ctrlInputX - 7,
@@ -224,50 +223,49 @@ const QPolygon bus_marmux_to_marb = QPolygon(
 // MDROdd, ck_mdro and its control
 const QRect reg_byte_mdro = QRect(combCircX, combCircY + MDREOffsetFromCombY, dataLabelW, dataLabelH);
 const QRect ck_mdroCheckbox = QRect(ctrlInputX, reg_byte_mdro.y() - 25, checkW + 10, checkH);
-const Arrow ck_mdro = Arrow(QVector<QPoint>()
-                                << QPoint(reg_byte_mdro.x() + reg_byte_mdro.width() / 2 - 3, reg_byte_mdro.y() - 12),
-                            QVector<QLine>()
-                                // Horizontal line from MDRO checkbox to center of MDRO
-                                << QLine(reg_byte_mdro.x() + reg_byte_mdro.width() / 2,
-                                         ck_mdroCheckbox.y() + ck_mdroCheckbox.height() / 2, ctrlInputX - 7,
-                                         ck_mdroCheckbox.y() + ck_mdroCheckbox.height() / 2)
-                                // Vertical line between arrowhead and horizontal line from checkbox
-                                << QLine(reg_byte_mdro.x() + reg_byte_mdro.width() / 2,
-                                         ck_mdroCheckbox.y() + ck_mdroCheckbox.height() / 2,
-                                         reg_byte_mdro.x() + reg_byte_mdro.width() / 2, reg_byte_mdro.y() - 12));
+const Arrow ck_mdro = Arrow(
+    QVector<Arrowhead>() << Arrowhead{QPoint(reg_byte_mdro.x() + reg_byte_mdro.width() / 2 - 3, reg_byte_mdro.y() - 12),
+                                      DOWN},
+    QVector<QLine>()
+        // Horizontal line from MDRO checkbox to center of MDRO
+        << QLine(reg_byte_mdro.x() + reg_byte_mdro.width() / 2, ck_mdroCheckbox.y() + ck_mdroCheckbox.height() / 2,
+                 ctrlInputX - 7, ck_mdroCheckbox.y() + ck_mdroCheckbox.height() / 2)
+        // Vertical line between arrowhead and horizontal line from checkbox
+        << QLine(reg_byte_mdro.x() + reg_byte_mdro.width() / 2, ck_mdroCheckbox.y() + ck_mdroCheckbox.height() / 2,
+                 reg_byte_mdro.x() + reg_byte_mdro.width() / 2, reg_byte_mdro.y() - 12));
 
 // MDROMux and its control
 const QRect mux_mdro = QRect(combCircX, reg_byte_mdro.bottom() + MDRRegOffsetFromMDRMux, dataLabelW, dataLabelH);
 const QRect MDROMuxTristateLabel = QRect(ctrlInputX, mux_mdro.y(), labelTriW, labelTriH);
 const QRect MDROMuxLabel = QRect(ctrlLabelX, MDROMuxTristateLabel.y(), labelW + 20, labelH);
-const Arrow sel_mux_mdro = Arrow(
-    QVector<QPoint>() << QPoint(mux_mdro.right() + 5, MDROMuxTristateLabel.y() + MDROMuxTristateLabel.height() / 2 - 3),
-    QVector<QLine>()
-        // Horizontal line between MDROMux and its tristate label
-        << QLine(ctrlInputX - 7, MDROMuxTristateLabel.y() + MDROMuxTristateLabel.height() / 2, mux_mdro.right() + 5,
-                 MDROMuxTristateLabel.y() + MDROMuxTristateLabel.height() / 2));
+const Arrow sel_mux_mdro =
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(mux_mdro.right() + 5,
+                                                   MDROMuxTristateLabel.y() + MDROMuxTristateLabel.height() / 2 - 3)},
+          QVector<QLine>()
+              // Horizontal line between MDROMux and its tristate label
+              << QLine(ctrlInputX - 7, MDROMuxTristateLabel.y() + MDROMuxTristateLabel.height() / 2,
+                       mux_mdro.right() + 5, MDROMuxTristateLabel.y() + MDROMuxTristateLabel.height() / 2));
 
 // MDREven, ck_mdre and its control
 const QRect reg_byte_mdre = QRect(combCircX, mux_mdro.bottom() + MDRORegOffsetFromMDREMux, dataLabelW, dataLabelH);
 const QRect ck_mdreCheckbox = QRect(ctrlInputX, reg_byte_mdre.y() - 40, checkW + 10, checkH);
-const Arrow ck_mdre = Arrow(QVector<QPoint>()
-                                << QPoint(reg_byte_mdre.x() + reg_byte_mdre.width() / 2 - 3, reg_byte_mdre.y() - 12),
-                            QVector<QLine>()
-                                // Horizontal line from ck_mdre to midpoint of MDREven
-                                << QLine(ctrlInputX - 7, ck_mdreCheckbox.y() + ck_mdreCheckbox.height() / 2,
-                                         reg_byte_mdre.x() + reg_byte_mdre.width() / 2,
-                                         ck_mdreCheckbox.y() + ck_mdreCheckbox.height() / 2)
-                                // Vertical line connecting arrowhead and horizontal line segment
-                                << QLine(reg_byte_mdre.x() + reg_byte_mdre.width() / 2,
-                                         ck_mdreCheckbox.y() + ck_mdreCheckbox.height() / 2,
-                                         reg_byte_mdre.x() + reg_byte_mdre.width() / 2, reg_byte_mdre.y() - 12));
+const Arrow ck_mdre = Arrow(
+    QVector<Arrowhead>() << Arrowhead{QPoint(reg_byte_mdre.x() + reg_byte_mdre.width() / 2 - 3, reg_byte_mdre.y() - 12),
+                                      DOWN},
+    QVector<QLine>()
+        // Horizontal line from ck_mdre to midpoint of MDREven
+        << QLine(ctrlInputX - 7, ck_mdreCheckbox.y() + ck_mdreCheckbox.height() / 2,
+                 reg_byte_mdre.x() + reg_byte_mdre.width() / 2, ck_mdreCheckbox.y() + ck_mdreCheckbox.height() / 2)
+        // Vertical line connecting arrowhead and horizontal line segment
+        << QLine(reg_byte_mdre.x() + reg_byte_mdre.width() / 2, ck_mdreCheckbox.y() + ck_mdreCheckbox.height() / 2,
+                 reg_byte_mdre.x() + reg_byte_mdre.width() / 2, reg_byte_mdre.y() - 12));
 
 // MDREMux and its control
 const QRect mux_mdre = QRect(combCircX, reg_byte_mdre.bottom() + MDRRegOffsetFromMDRMux, dataLabelW, dataLabelH);
 const QRect MDREMuxTristateLabel = QRect(ctrlInputX, mux_mdre.y() - 25, labelTriW, labelTriH);
 const QRect MDREMuxLabel = QRect(ctrlLabelX, MDREMuxTristateLabel.y(), labelW + 20, labelH);
 const Arrow sel_mux_mdre =
-    Arrow(QVector<QPoint>() << QPoint(mux_mdre.right() + 5, mux_mdre.y() + mux_mdre.height() / 2 - 3),
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(mux_mdre.right() + 5, mux_mdre.y() + mux_mdre.height() / 2 - 3)},
           QVector<QLine>()
               // Horizontal leg extending from ck_mdro
               << QLine(ctrlInputX - 7, MDREMuxTristateLabel.y() + MDREMuxTristateLabel.height() / 2,
@@ -284,7 +282,7 @@ const QRect mux_eo =
           mux_mdre.y() + EOMuxOffsetFromMDREMux, dataLabelW, dataLabelH);
 const QRect EOMuxTristateLabel = QRect(ctrlInputX, mux_eo.y(), labelTriW, labelTriH);
 const QRect EOMuxLabel = QRect(ctrlLabelX, EOMuxTristateLabel.y(), labelW, labelH);
-const Arrow sel_muxeo = Arrow(QVector<QPoint>() << QPoint(mux_eo.right() + 4, EOMuxTristateLabel.y() + 6),
+const Arrow sel_muxeo = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(mux_eo.right() + 4, EOMuxTristateLabel.y() + 6)},
                               QVector<QLine>() << QLine(mux_eo.right() + 5, mux_eo.y() + mux_eo.height() / 2,
                                                         ctrlInputX - 7, mux_eo.y() + mux_eo.height() / 2));
 
@@ -302,14 +300,14 @@ const QRect CSMuxTristateLabel = QRect(ctrlInputX, BottomOfAlu + 5, 25, 21);
 const QRect mux_c = OneByteShapes::mux_c.translated(controlOffsetX, aluOffsetY);
 const QRect cMuxTristateLabel = QRect(ctrlInputX, ALULineEdit.y() - labelTriH - 4, labelTriW, labelTriH);
 const QRect cMuxLabel = QRect(ctrlLabelX, cMuxTristateLabel.y(), labelW, labelH);
-const Arrow sel_muxc = Arrow(
-    QVector<QPoint>() << QPoint(mux_c.left() + 7, mux_c.top() - 12),
-    QVector<QLine>() << QLine(mux_cs.left() + 20, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2,
-                              ctrlInputX - 7, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2)
-                     << QLine(mux_c.right() - 5, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2,
-                              mux_c.left() + 10, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2)
-                     << QLine(mux_c.left() + 10, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2,
-                              mux_c.left() + 10, mux_c.top() - 12));
+const Arrow sel_muxc =
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(mux_c.left() + 7, mux_c.top() - 12), DOWN},
+          QVector<QLine>() << QLine(mux_cs.left() + 20, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2,
+                                    ctrlInputX - 7, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2)
+                           << QLine(mux_c.right() - 5, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2,
+                                    mux_c.left() + 10, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2)
+                           << QLine(mux_c.left() + 10, cMuxTristateLabel.y() + cMuxTristateLabel.height() / 2,
+                                    mux_c.left() + 10, mux_c.top() - 12));
 
 // Status bit S, SCk and its control
 const QRect SCkCheckBox = QRect(ctrlInputX, BottomOfAlu + SCKYOffsetFromALU, checkW, checkH);
@@ -393,16 +391,14 @@ const QRect mux_a =
 const QRect aMuxTristateLabel = QRect(ctrlInputX, mux_a.y(), labelTriW, 21);
 const QRect aMuxLabel = QRect(ctrlLabelX, aMuxTristateLabel.y(), labelW, labelH);
 const Arrow sel_muxa =
-    Arrow(QVector<QPoint>()
+    Arrow(QVector<Arrowhead>()
               // Place the arrowhead slightly off-centered from AMux, otherwise it is visually odd.
-              << QPoint(mux_a.x() + mux_a.width() + 3,
-                        mux_a.y() + mux_a.height() / 2 - 2),
+              << Arrowhead{QPoint(mux_a.x() + mux_a.width() + 3, mux_a.y() + mux_a.height() / 2 - 2)},
           // Draw a line from the aMuxTristateLabel to AMux, and center the line vertically between the two.
           // Add one to the calculated y coordinates, otherwise the line and arrow don't appear to be centered.
           QVector<QLine>() << QLine(ctrlInputX - 7, mux_a.y() + mux_a.height() / 2 + 1,
                                     // Add 5 to the x coordinate, otherwise the line extends past the arrow.
-                                    mux_a.x() + mux_a.width() + 5,
-                                    mux_a.y() + mux_a.height() / 2 + 1));
+                                    mux_a.x() + mux_a.width() + 5, mux_a.y() + mux_a.height() / 2 + 1));
 
 // EOMux bus definition is split from EOMux, because it depends on AMUX, which depends on the ALU
 const QPolygon bus_eomux_to_amux =
@@ -694,7 +690,8 @@ const QPolygon bus_mdremux_to_mdre = QPolygon(QVector<QPoint>() << QPoint(mux_md
 const QPolygon bus_alu_to_cmux = OneByteShapes::bus_alu_to_cmux.translated(controlOffsetX, aluOffsetY);
 
 const Arrow sel_alu =
-    Arrow(QVector<QPoint>() << QPoint(poly_alu.boundingRect().right() - 13, poly_alu.boundingRect().bottom() - 21),
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(poly_alu.boundingRect().right() - 13,
+                                                   poly_alu.boundingRect().bottom() - 21)},
           QVector<QLine>() << QLine(poly_alu.boundingRect().right() - 13, ALULineEdit.y() + selectYOffset - 1,
                                     ctrlInputX - 7, ALULineEdit.y() + selectYOffset - 1)
                            << QLine(ctrlInputX - 17, ALULineEdit.y() + 13, ctrlInputX - 27,
@@ -724,9 +721,10 @@ const Arrow logic_v_to_nzvc = OneByteShapes::logic_v_to_nzvc.translated(controlO
 const Arrow logic_n_to_nzvc = OneByteShapes::logic_n_to_nzvc.translated(controlOffsetX, aluOffsetY);
 
 const Arrow logic_andz_to_z = Arrow(
-    QVector<QPoint>() << QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2,
-                                mux_andz.top() - selectYOffset - 2)
-                      << QPoint(reg_bit_z.x() - 12, mux_andz.y() + mux_andz.height() / 2 - 3),
+    QVector<Arrowhead>() << Arrowhead{QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2,
+                                             mux_andz.top() - selectYOffset - 2),
+                                      DOWN}
+                         << Arrowhead{QPoint(reg_bit_z.x() - 12, mux_andz.y() + mux_andz.height() / 2 - 3), RIGHT},
     QVector<QLine>()
         // Connects arrow head to horizontal line
         << QLine(mux_andz.x() + mux_andz.width() / 2, AndZTristateLabel.y() + AndZTristateLabel.height() / 2,

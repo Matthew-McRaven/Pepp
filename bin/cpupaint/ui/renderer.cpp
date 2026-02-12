@@ -1,5 +1,6 @@
 #include "renderer.hpp"
 #include <QPainter>
+#include <QTransform>
 #include "shapes_one.hpp"
 #include "shapes_two.hpp"
 
@@ -256,7 +257,15 @@ std::vector<Item> two_byte_geom() {
   return _geom;
 };
 
-CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) { _geom = two_byte_geom(); }
+CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
+  _geom = two_byte_geom();
+  auto svg_path = ":/qt/qml/CPUPaint/svg/arrow.svg";
+  QImage svg_image(svg_path);
+  _arrows[0] = QPixmap::fromImage(svg_image);
+  _arrows[1] = QPixmap::fromImage(svg_image.flipped(Qt::Orientation::Horizontal));
+  _arrows[2] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(90.0)));
+  _arrows[3] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(270.0)));
+}
 
 void CursedCPUCanvas::paint(QPainter *painter) {
 
@@ -271,6 +280,13 @@ void CursedCPUCanvas::paint(QPainter *painter) {
     case 3: {
       const auto &arrow = std::get<Arrow>(item.geom);
       for (const QLine &line : arrow._lines) painter->drawLine(line);
+      for (const Arrowhead &head : arrow._arrowheads) {
+        painter->save();
+        painter->translate(head.point);
+        int orient = static_cast<int>(head.orient);
+        painter->drawPixmap(0, 0, _arrows[orient]);
+        painter->restore();
+      }
       break;
     }
     }
