@@ -261,10 +261,11 @@ CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent)
   _geom = two_byte_geom();
   auto svg_path = ":/qt/qml/CPUPaint/svg/arrow.svg";
   QImage svg_image(svg_path);
-  _arrows[0] = QPixmap::fromImage(svg_image);
-  _arrows[1] = QPixmap::fromImage(svg_image.flipped(Qt::Orientation::Horizontal));
-  _arrows[2] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(90.0)));
-  _arrows[3] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(270.0)));
+  _arrows[Qt::NoArrow] = QPixmap(QSize(0, 0));
+  _arrows[Qt::LeftArrow] = QPixmap::fromImage(svg_image);
+  _arrows[Qt::RightArrow] = QPixmap::fromImage(svg_image.flipped(Qt::Orientation::Horizontal));
+  _arrows[Qt::UpArrow] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(90.0)));
+  _arrows[Qt::DownArrow] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(270.0)));
 }
 
 void CursedCPUCanvas::paint(QPainter *painter) {

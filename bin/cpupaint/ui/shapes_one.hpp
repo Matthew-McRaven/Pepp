@@ -10,17 +10,12 @@
 
 struct Arrowhead {
   QPoint point;
-  enum class Orient {
-    Left = 0,
-    Right = 1,
-    Up = 2,
-    Down = 3,
-  } orient;
+  Qt::ArrowType orient = Qt::ArrowType::LeftArrow;
 };
-static const Arrowhead::Orient UP = Arrowhead::Orient::Up;
-static const Arrowhead::Orient DOWN = Arrowhead::Orient::Down;
-static const Arrowhead::Orient LEFT = Arrowhead::Orient::Left; // Default
-static const Arrowhead::Orient RIGHT = Arrowhead::Orient::Right;
+static const auto UP = Qt::ArrowType::UpArrow;
+static const auto DOWN = Qt::ArrowType::DownArrow;
+static const auto LEFT = Qt::ArrowType::LeftArrow; // Default
+static const auto RIGHT = Qt::ArrowType::RightArrow;
 
 class Arrow {
 public:

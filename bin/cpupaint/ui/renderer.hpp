@@ -27,6 +27,6 @@ public:
   float contentHeight() const { return 1050; }
 
 private:
-  std::array<QPixmap, 4> _arrows;
+  std::array<QPixmap, 5> _arrows;
   std::vector<Item> _geom;
 };
