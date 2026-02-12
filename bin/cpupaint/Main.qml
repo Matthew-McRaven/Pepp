@@ -21,15 +21,7 @@ Window {
         color: "orange"
     }
 
-    CursedCPUCanvas {
-        id: canvas
-        anchors {
-            left: lpanel.right
-            right: rpanel.left
-            top: parent.top
-            bottom: parent.bottom
-        }
-    }
+
     Flickable {
         id: flickable
         anchors {
@@ -47,6 +39,10 @@ Window {
         Item {
             width: canvas.contentWidth
             height: canvas.contentHeight
+            CursedCPUCanvas {
+                id: canvas
+                anchors.fill: parent
+            }
         }
 
         ScrollBar.vertical: ScrollBar {
