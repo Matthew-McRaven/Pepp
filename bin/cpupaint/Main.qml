@@ -37,7 +37,7 @@ Window {
         transform: [
             Scale {
                 origin.x: viewport.logicalX
-                origin.y: viewport.logicalX
+                origin.y: viewport.logicalY
                 xScale: scene.scale
                 yScale: scene.scale
             },
