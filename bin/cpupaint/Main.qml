@@ -51,10 +51,7 @@ Window {
             id: canvas
             x:0; y:0
             width: canvas.contentWidth; height:canvas.contentHeight
-            Component.onCompleted: console.log(width, height)
-
         }
-        Component.onCompleted: console.log(implicitWidth, implicitHeight)
     }
 
     Flickable {
@@ -83,34 +80,41 @@ Window {
             target: flickable
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
             acceptedModifiers: Qt.AltModifier
+            // Zoom about the center of the viewport. Previously, I attempted zooming about the cursor
+            // Zooming to cursor was jumpy and worse the further the cursors was from the center.
             onWheel: function(e) {
                 e.accepted = true
 
-                const s  = scene.scale
-                const k  = (e.angleDelta.y > 0) ? 1.1 : 1.0/1.1
-                // At zooms higher than 3, we tend to "focus" on the bottom right corner.
-                // There is a mistmatch (bug) between logical and pixel coordinates somewhere,
-                // and clamping the zoom minimizes the effect.
-                // The clamp also ensures a sane zoom range -- no one needs 10x zoom.
-                const s2 = flickable.clamp(s * k, 0.5, 3.0)
-                if (s2 === s) return
+                // Compute & bound old and new scale factors
+                const z0  = scene.scale
+                const step  = (e.angleDelta.y > 0) ? 1.1 : 1.0/1.1
+                // Our graphics items are low-res. Don't allow >3x zoom
+                const z1 = flickable.clamp(z0 * step, 0.5, 3.0)
+                // Skip the scaling/translation if we clamped.
+                if (z1 === z0) return
 
-                const lx = viewport.logicalX + e.x / s       // logical point under cursor
-                const ly = viewport.logicalY + e.y / s
-                let newLogicalX = lx - e.x / s2
-                let newLogicalY = ly - e.y / s2
-
-                // Clamp logical X/Y to be in bounds
-                const maxX = Math.max(0, viewport.implicitWidth  - flickable.width  / s2)
-                const maxY = Math.max(0, viewport.implicitHeight - flickable.height / s2)
-                newLogicalX = flickable.clamp(newLogicalX, 0, maxX)
-                newLogicalY = flickable.clamp(newLogicalY, 0, maxY)
-                // Must not update scene.scale until all flickable properties have been read.
-                scene.scale = s2
-                // Update logicalX/Y indirect via binding to contentX/Y
-                flickable.contentX = newLogicalX * s2
-                flickable.contentY = newLogicalY * s2
-
+                // ratio of new to old, and cache width/height
+                const k=z1/z0, W = flickable.width, H = flickable.height
+                const W2 = W/2, H2 = H/2
+                // contentX/Y are already scaled, and are for the topleft corner of the viewport.
+                // But, we want to scale about the center of the viewport, which is at contentX/Y + W/2,H/2 in scaled coordinates.
+                // Add H/W to compute center under old scale, then scale to new coordinates, then subtract H/W to get back to top-left.
+                const centered_x_old = flickable.contentX + W2
+                const centered_y_old = flickable.contentY + H2
+                const centered_x_new = centered_x_old * k - W2
+                const centered_y_new = centered_y_old * k - H2
+                // Repeat the calculation from above, but assume that the mouse is already at the center in old_scale.
+                const mouse_as_center_x_old = e.x
+                const mouse_as_center_y_old = e.y
+                const mouse_x_new = mouse_as_center_x_old * k - W2
+                const mouse_y_new = mouse_as_center_y_old * k - H2
+                scene.scale = z1
+                // Blend the "centered" and "mouse" new coordinates, to get a smoother zooming experience.
+                const alpha = .75
+                flickable.contentX = alpha*centered_x_new + (1-alpha)*mouse_x_new
+                flickable.contentY = alpha*centered_y_new + (1-alpha)*mouse_y_new
+                // If the new X/Y is out of bounds (which can happen when zooming out), rebound to valid coordinates gently.
+                flickable.returnToBounds()
             }
         }
 
