@@ -54,6 +54,7 @@ Rectangle {
             id: canvas
             dataModel: diagramModel
             currentStamp: sourceListView.currentStamp
+            z: -1
         }
     }
 }

@@ -29,13 +29,17 @@ Item {
         template: root.currentStamp
 
         anchors.fill: parent
+        anchors.bottomMargin: hsb.height
+        anchors.rightMargin: vsb.width
+        clip: true
     }
 
     TableView {
         id: scrollView
 
-        z:-1
         anchors.fill: parent
+
+        z:-1
         clip:true
         boundsBehavior: Flickable.StopAtBounds
         // Ensure that have non-empty content, even if the canvas is currently empty.
@@ -53,7 +57,7 @@ Item {
          }
          ScrollBar.horizontal: ScrollBar {
             id: hsb
-             policy: ScrollBar.AsNeeded
+            policy: ScrollBar.AsNeeded
         }
     }   //  TableView
 }   //  Item
