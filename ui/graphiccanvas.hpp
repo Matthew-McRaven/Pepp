@@ -136,7 +136,6 @@ signals:
 private:
     // Magic constant to convert from grid coordinates to screen coordinates
     // Zoom variables
-    //const qreal _pixel = 4.0;
     const qreal grid_to_px = 4.0;
     const qreal _minScale = 0.5;
     const qreal _maxScale = 3.0;
@@ -161,6 +160,9 @@ private:
 
     //  Render and cache images for painting
     void cacheImages(const QString &source);
+
+    //  Render and cache background lines
+    void cacheBackground();
 
     //  Insert test data
     void updateData();
@@ -192,4 +194,9 @@ private:
     //  Data model
     DiagramDataModel *_model = nullptr;
     DiagramTemplate *_template = nullptr;
+
+    //  Background is saved in screen coordinates since there is no hit testing
+    //    QPixmap _background{block_size * static_cast<int>(grid_to_px) * 10,
+    //                      block_size *static_cast<int>(grid_to_px) * 10};
+    QPixmap _background{block_size * 10, block_size * 10};
 };

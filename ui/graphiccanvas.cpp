@@ -16,6 +16,9 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     //  Allow drag and drop
     //setAcceptDrops(true);
 
+    //  Create background gid
+    cacheBackground();
+
     //  Create image copies for later painting
     cacheImages(":/and");
     cacheImages(":/or");
@@ -107,6 +110,64 @@ void GraphicCanvas::cacheImages(const QString &source)
     }
 }
 
+void GraphicCanvas::cacheBackground()
+{
+    _background.fill(Qt::transparent);
+    QPainter painter(&_background);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+    const auto width = _background.width();
+    const auto height = _background.height();
+
+    QPen pen;
+    pen.setWidth(1);
+    QList<qreal> dashes;
+    QLine line;
+
+    pen.setColor(QColorConstants::Svg::gainsboro);
+    dashes << 1 << 6;
+    pen.setDashPattern(dashes);
+    painter.setPen(pen);
+
+    //  Horizontal minor lines
+    line.setLine(height / 4, 0, height / 4, width);
+    painter.drawLine(line);
+    line.setLine(height * .75, 0, height * .75, width);
+    painter.drawLine(line);
+
+    //  Vertical minor lines
+    line.setLine(0, width / 4, height, width / 4);
+    painter.drawLine(line);
+    line.setLine(0, width * .75, height, width * .75);
+    painter.drawLine(line);
+
+    //  Horizontal mid lines
+    dashes.clear();
+    dashes << 1 << 3;
+    pen.setDashPattern(dashes);
+    pen.setColor(QColorConstants::Svg::cornflowerblue);
+    painter.setPen(pen);
+    line.setLine(height / 2, 0, height / 2, width);
+    painter.drawLine(line);
+
+    //  Vertical mid lines
+    line.setLine(0, width / 2, height, width / 2);
+    painter.drawLine(line);
+
+    //  Major lines
+    pen.setWidth(grid_to_px);
+    pen.setStyle(Qt::SolidLine);
+    pen.setColor(QColorConstants::Svg::blue);
+    painter.setPen(pen);
+    line.setLine(height - 1, 0, height - 1, width - 1);
+    painter.drawLine(line);
+
+    //  Vertical mid lines
+    line.setLine(0, width - 1, height - 1, width - 1);
+    painter.drawLine(line);
+}
+
 void GraphicCanvas::paint(QPainter *painter)
 {
     // Paint the background.
@@ -118,8 +179,7 @@ void GraphicCanvas::paint(QPainter *painter)
     painter->scale(_currentZoom, _currentZoom);
 
     //  Determine the size of the viewport in grid coordinates.
-    //  Exclude scrollbar from view area otherwise, we will paint on scrollbars
-    const auto screen_viewport = QRectF(0, 0, size().width(), size().height()); // - _scrollbarWidth;
+    const auto screen_viewport = QRectF(0, 0, size().width(), size().height());
 
     //  Clip painter to just visible area (including scrollbar)
     painter->setClipRect(screen_viewport);
@@ -127,7 +187,19 @@ void GraphicCanvas::paint(QPainter *painter)
     //  Use grid coordindates for checking rectangles
     const auto grid_viewport = screen_to_grid(screen_viewport);
 
+    /*const qint32 col = grid_viewport.height() / block_size;
+    const qint32 row = grid_viewport.width() / block_size;
+    QRect view{0, 0, block_size * 4, block_size * 4};
+    for (int x = 0; x < col; ++x)
+        for (int y = 0; y < row; ++y) {
+            view.translate(x * block_size * 4, y * block_size * 4);
+            painter->drawPixmap(view, _background);
+        }
+*/
     for (const auto &[rect, props] : _rects) {
+        //  Paint background first
+        painter->drawPixmap(grid_to_screen(rect).toRect(), _background);
+
         // Skip painting rectangles that are outside the viewport.
         if (grid_viewport.intersects(rect))
             paint_one(painter, rect, *props);
@@ -202,16 +274,6 @@ QPoint GraphicCanvas::screen_to_grid(QPointF point)
     return QPointF{x, y}.toPoint();
 }
 
-/*QRectF GraphicCanvas::scaleToZoom(QRectF rect)
-{
-    const float x = rect.x(); // _currentZoom;
-    const float y = rect.y(); // _currentZoom;
-    const float width = rect.width() / _currentZoom;
-    const float height = rect.height() / _currentZoom;
-
-    return QRectF{x, y, width, height};
-}*/
-
 void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
 {
     //  Cannot assume that upper right was passed first. Get absolute dimensions
@@ -241,7 +303,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 {
     //  Determine the size of the viewport in grid coordinates.
     //  Exclude scrollbar from view area otherwise, we will paint on scrollbars
-    const auto screen_viewport = QRectF(0, 0, size().width(), size().height()) - _scrollbarWidth;
+    const auto screen_viewport = QRectF(0, 0, size().width(), size().height());
 
     //  If point is not inside grid, let parent handle event and leave.
     //  Note, all values in screen coordinates
