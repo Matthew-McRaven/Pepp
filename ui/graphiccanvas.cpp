@@ -116,15 +116,10 @@ void GraphicCanvas::paint(QPainter *painter)
 
     //  Set scaling
     painter->scale(_currentZoom, _currentZoom);
-    //setScale(1 / (_currentZoom / 2));
-    //setTextureSize({static_cast<int>(_currentZoom), static_cast<int>(_currentZoom)});
-    //QTransform transform;
-    //transform.scale(1 / _currentZoom, 1 / _currentZoom);
-    //painter->setTransform(transform);
 
     //  Determine the size of the viewport in grid coordinates.
     //  Exclude scrollbar from view area otherwise, we will paint on scrollbars
-    const auto screen_viewport = QRectF(0, 0, size().width(), size().height()) - _scrollbarWidth;
+    const auto screen_viewport = QRectF(0, 0, size().width(), size().height()); // - _scrollbarWidth;
 
     //  Clip painter to just visible area (including scrollbar)
     painter->setClipRect(screen_viewport);

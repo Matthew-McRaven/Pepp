@@ -29,8 +29,8 @@ Item {
         template: root.currentStamp
 
         anchors.fill: parent
-        anchors.bottomMargin: hsb.height
-        anchors.rightMargin: vsb.width
+        anchors.bottomMargin: hsb.visible ? hsb.height : 0
+        anchors.rightMargin: vsb.visible ? vsb.width : 0
         clip: true
     }
 
