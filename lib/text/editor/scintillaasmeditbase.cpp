@@ -15,12 +15,14 @@
  */
 #include "scintillaasmeditbase.hpp"
 #include <QQmlEngine>
-#include "../../../core/core/arch/pep/isa/pep10.hpp"
-#include "../../../core/core/arch/pep/isa/pep9.hpp"
 #include "Geometry.h"
 #include "LexillaAccess.h"
 #include "SciLexer.h"
 #include "ScintillaEditBase/PlatQt.h"
+#include "core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pep/isa/pep9.hpp"
+#include "core/math/bitmanip/strings.hpp"
+#include "fmt/ranges.h"
 #include "settings/palette.hpp"
 #include "settings/paletteitem.hpp"
 
@@ -134,24 +136,30 @@ void ScintillaAsmEditBase::addInlineAnnotation(int line, const QString &annotati
 }
 
 std::string pep9_mnemonics() {
-  QStringList mnemonics_list;
-  for (const auto &mn : isa::Pep9::mnemonics()) mnemonics_list.append(QString::fromStdString(mn));
-  return mnemonics_list.join(" ").toStdString();
+  auto ret = fmt::format("{}", fmt::join(isa::Pep9::mnemonics(), " "));
+  // lexer seems to lower-case before comparison, so our word list needs to be lower too.
+  bits::to_lower_inplace(ret);
+  return ret;
 }
 std::string pep9_directives() {
   std::string dirs;
   for (const auto &dir : isa::Pep9::legalDirectives()) dirs += "." + dir + " ";
+  // lexer seems to lower-case before comparison, so our word list needs to be lower too.
+  bits::to_lower_inplace(dirs);
   return dirs;
 }
 
 std::string pep10_mnemonics() {
-  QStringList mnemonics_list;
-  for (const auto &mn : isa::Pep10::mnemonics()) mnemonics_list.append(QString::fromStdString(mn));
-  return mnemonics_list.join(" ").toStdString();
+  auto ret = fmt::format("{}", fmt::join(isa::Pep10::mnemonics(), " "));
+  // lexer seems to lower-case before comparison, so our word list needs to be lower too.
+  bits::to_lower_inplace(ret);
+  return ret;
 }
 std::string pep10_directives() {
   std::string dirs;
   for (const auto &dir : isa::Pep10::legalDirectives()) dirs += "." + dir + " ";
+  // lexer seems to lower-case before comparison, so our word list needs to be lower too.
+  bits::to_lower_inplace(dirs);
   return dirs;
 }
 
