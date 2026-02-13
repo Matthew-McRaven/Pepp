@@ -1,4 +1,5 @@
 #pragma once
+#include <QPixmap>
 #include <QQuickPaintedItem>
 #include "shapes_one.hpp"
 
@@ -26,5 +27,6 @@ public:
   float contentHeight() const { return 1050; }
 
 private:
+  std::array<QPixmap, 5> _arrows;
   std::vector<Item> _geom;
 };

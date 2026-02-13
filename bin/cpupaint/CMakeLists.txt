@@ -12,6 +12,7 @@ qt_add_qml_module(
   VERSION
   1.0
   RESOURCES
+  svg/arrow.svg
   QML_FILES
   Main.qml
   SOURCES
@@ -22,6 +23,6 @@ qt_add_qml_module(
 # must include any subdirectories for classes that use QML_ELEMENT
 target_include_directories(CPUPaint PRIVATE ui/)
 
-target_link_libraries(CPUPaint PRIVATE Qt6::Core Qt6::Gui Qt6::Qml
-                                            Qt6::Quick pepp-core)
+target_link_libraries(CPUPaint PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick
+                                       pepp-core)
 set_target_properties(CPUPaint PROPERTIES FOLDER "qtc_runnable")
