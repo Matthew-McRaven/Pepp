@@ -360,8 +360,7 @@ const Arrow logic_c_to_nzvc =
     Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(314, 483)},
           QVector<QLine>() << QLine(487, 482, 487, 486) << QLine(330, 486, 322, 486) << QLine(330, 486, 487, 486));
 const Arrow logic_c_to_csmux =
-    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(431, 421), UP},
-          QVector<QLine>() << QLine(487, 459, 487, 463) << QLine(434, 459, 487, 459) << QLine(434, 426, 434, 459));
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(431, 421), UP}, QVector<QLine>() << QLine(434, 426, 434, 486));
 const Arrow logic_cin = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(428, 386)},
                               QVector<QLine>() << QLine(461, 389, 433, 389) << QLine(461, 399, 461, 389));
 const Arrow logic_s_to_csmux =
