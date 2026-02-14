@@ -153,25 +153,25 @@ const Arrow sel_a = Arrow(
                               poly_regbank.right() + arrowHDepth + 16, aLabel.y() + selectYOffset + selectSlashOffset));
 
 // MARMux and its control
-const QRect poly_marmux =
+const QRect mux_marmux =
     QRect((combCircX + dataLabelW) + MARMUXOffestFromMARA, combCircY, dataLabelH + MARAOffsetFromMARB,
           dataLabelH + MARAOffsetFromMARB); // 89 x 89 square from bottom of MARA to top of MARB
-const QRect MARMuxTristateLabel = QRect(ctrlInputX, poly_marmux.y() - 28, labelTriW, labelTriH);
+const QRect MARMuxTristateLabel = QRect(ctrlInputX, mux_marmux.y() - 28, labelTriW, labelTriH);
 const QRect MARMuxLabel = QRect(ctrlLabelX, MARMuxTristateLabel.y(), labelW + 20, labelH);
 const Arrow sel_mux_mar = Arrow(
-    QVector<Arrowhead>() << Arrowhead{QPoint(poly_marmux.x() + poly_marmux.width() / 2 - 3, poly_marmux.y() - 12),
+    QVector<Arrowhead>() << Arrowhead{QPoint(mux_marmux.x() + mux_marmux.width() / 2 - 3, mux_marmux.y() - 12),
                                       DOWN},
     QVector<QLine>()
         // Horizontal line from middle of MARMux to the tristate label
-        << QLine(poly_marmux.x() + poly_marmux.width() / 2, MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2,
+        << QLine(mux_marmux.x() + mux_marmux.width() / 2, MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2,
                  ctrlInputX - 7, MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2)
         // Vertical line connecting the arrowhead to the horizontal line
-        << QLine(poly_marmux.x() + poly_marmux.width() / 2, MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2,
-                 poly_marmux.x() + poly_marmux.width() / 2, poly_marmux.y() - 12));
+        << QLine(mux_marmux.x() + mux_marmux.width() / 2, MARMuxTristateLabel.y() + MARMuxTristateLabel.height() / 2,
+                 mux_marmux.x() + mux_marmux.width() / 2, mux_marmux.y() - 12));
 
 // ck_mar and its control
 const QRect ck_marCheckbox =
-    QRect(ctrlInputX, poly_marmux.y() + poly_marmux.height() / 2 - check2H / 2, check2W, check2H);
+    QRect(ctrlInputX, mux_marmux.y() + mux_marmux.height() / 2 - check2H / 2, check2W, check2H);
 const QRect reg_byte_mara = QRect(combCircX, combCircY + MARAOffsetFromMARB, dataLabelW, dataLabelH); // MARA register.
 const QRect reg_byte_marb = QRect(combCircX, combCircY, dataLabelW, dataLabelH);                      // MARB register
 
@@ -189,9 +189,9 @@ const Arrow ck_mar =
                        combCircX + 5 * dataLabelW / 7 + 10, combCircY + MARAOffsetFromMARB - 3));
 // MARMux output busses
 const QPolygon bux_marmux_to_mara = QPolygon(
-    QVector<QPoint>() << QPoint(poly_marmux.x(),
+    QVector<QPoint>() << QPoint(mux_marmux.x(),
                                 reg_byte_mara.y() + reg_byte_mara.height() / 2 - 5) // Foot Top Right point
-                      << QPoint(poly_marmux.x(),
+                      << QPoint(mux_marmux.x(),
                                 reg_byte_mara.y() + reg_byte_mara.height() / 2 + 5) // Foot Bottom Right point
                       << QPoint(reg_byte_mara.right() + arrowHDepth - 5,
                                 reg_byte_mara.y() + reg_byte_mara.height() / 2 + 5) // Arrow Bottom Inner point
@@ -205,9 +205,9 @@ const QPolygon bux_marmux_to_mara = QPolygon(
                                 reg_byte_mara.y() + reg_byte_mara.height() / 2 - 5)); // Arrow Top Inner point
 
 const QPolygon bus_marmux_to_marb = QPolygon(
-    QVector<QPoint>() << QPoint(poly_marmux.x(),
+    QVector<QPoint>() << QPoint(mux_marmux.x(),
                                 reg_byte_marb.y() + reg_byte_marb.height() / 2 - 5) // Foot Top Right point
-                      << QPoint(poly_marmux.x(),
+                      << QPoint(mux_marmux.x(),
                                 reg_byte_marb.y() + reg_byte_marb.height() / 2 + 5) // Bottom Right point
                       << QPoint(reg_byte_marb.right() + arrowHDepth - 5,
                                 reg_byte_marb.y() + reg_byte_marb.height() / 2 + 5) // Arrow Bottom Inner point
@@ -278,7 +278,7 @@ const Arrow sel_mux_mdre =
                        mux_mdre.y() + mux_mdre.height() / 2));
 // EOMux and its control
 const QRect mux_eo =
-    QRect(poly_marmux.x() + poly_marmux.width() / 2 - dataLabelW / 2, // Center EOMux horizontally on MARMux
+    QRect(mux_marmux.x() + mux_marmux.width() / 2 - dataLabelW / 2, // Center EOMux horizontally on MARMux
           mux_mdre.y() + EOMuxOffsetFromMDREMux, dataLabelW, dataLabelH);
 const QRect EOMuxTristateLabel = QRect(ctrlInputX, mux_eo.y(), labelTriW, labelTriH);
 const QRect EOMuxLabel = QRect(ctrlLabelX, EOMuxTristateLabel.y(), labelW, labelH);
@@ -453,30 +453,30 @@ const QPolygon bus_a =
              << QPoint(mux_a.right() - 20, mux_a.y() - (arrowHDepth - 5)) // AMux Arrow Left Outer point
              << QPoint(mux_a.right() - 15, mux_a.y() - (arrowHDepth - 5)) // AMux Arrow Left Inner point
              << QPoint(mux_a.right() - 15,
-                       poly_marmux.bottom() - 5) // Pivot between AMUX arrow left point and MARMux Inner Bottom Edge
-             << QPoint(poly_marmux.right() + (arrowHDepth - 5),
-                       poly_marmux.bottom() - 5) // MARMux Arrow Bottom Inner point
-             << QPoint(poly_marmux.right() + (arrowHDepth - 5),
-                       poly_marmux.bottom() - 0) // MARMux Arrow Bottom Outer point
-             << QPoint(poly_marmux.right() + (arrowHOffset), poly_marmux.bottom() - 10) // MARMux Arrow Middle point
-             << QPoint(poly_marmux.right() + (arrowHDepth - 5),
-                       poly_marmux.bottom() - 20) // MARMux Arrow Top Outer point
-             << QPoint(poly_marmux.right() + (arrowHDepth - 5),
-                       poly_marmux.bottom() - 15) // MARMux Arrow Top Inner point
+                       mux_marmux.bottom() - 5) // Pivot between AMUX arrow left point and MARMux Inner Bottom Edge
+             << QPoint(mux_marmux.right() + (arrowHDepth - 5),
+                       mux_marmux.bottom() - 5) // MARMux Arrow Bottom Inner point
+             << QPoint(mux_marmux.right() + (arrowHDepth - 5),
+                       mux_marmux.bottom() - 0) // MARMux Arrow Bottom Outer point
+             << QPoint(mux_marmux.right() + (arrowHOffset), mux_marmux.bottom() - 10) // MARMux Arrow Middle point
+             << QPoint(mux_marmux.right() + (arrowHDepth - 5),
+                       mux_marmux.bottom() - 20) // MARMux Arrow Top Outer point
+             << QPoint(mux_marmux.right() + (arrowHDepth - 5),
+                       mux_marmux.bottom() - 15) // MARMux Arrow Top Inner point
              << QPoint(mux_a.right() - 15,
-                       poly_marmux.bottom() - 15) // Pivot between MARMux arrow top and register top left foot
+                       mux_marmux.bottom() - 15) // Pivot between MARMux arrow top and register top left foot
     );
 const QPolygon bus_b = QPolygon(
     QVector<QPoint>()
     << QPoint(ALUUpperRightLineMidpoint - 5, poly_regbank.bottom() + 1) // Top left corner of register foot
     << QPoint(ALUUpperRightLineMidpoint + 5, poly_regbank.bottom() + 1) // Top right corner of register foot
-    << QPoint(ALUUpperRightLineMidpoint + 5, poly_marmux.y() + 5)       // Pivot between register foor and right output
-    //<< QPoint(bus_bRightArrowTipX-(arrowHDepth-5), poly_marmux.y()+5) // Right Out Arrow Top Inner point
-    //<< QPoint(bus_bRightArrowTipX-(arrowHDepth-5),poly_marmux.y()+0) // Right Out Arrow Top Outer point
-    //<< QPoint(bus_bRightArrowTipX-(arrowHOffset),poly_marmux.y()+10) // Right Out Arrow Middle point
-    //<< QPoint(bus_bRightArrowTipX-(arrowHDepth-5),poly_marmux.y()+20) // Right Out Arrow Botton Outer point
-    //<< QPoint(bus_bRightArrowTipX-(arrowHDepth-5),poly_marmux.y()+15) // Right Out Arrow Bottom Inner point
-    //<< QPoint(ALUUpperRightLineMidpoint+5,poly_marmux.y()+15) // Pivot between right out arrow and alu arrow
+    << QPoint(ALUUpperRightLineMidpoint + 5, mux_marmux.y() + 5)       // Pivot between register foor and right output
+    //<< QPoint(bus_bRightArrowTipX-(arrowHDepth-5), mux_marmux.y()+5) // Right Out Arrow Top Inner point
+    //<< QPoint(bus_bRightArrowTipX-(arrowHDepth-5),mux_marmux.y()+0) // Right Out Arrow Top Outer point
+    //<< QPoint(bus_bRightArrowTipX-(arrowHOffset),mux_marmux.y()+10) // Right Out Arrow Middle point
+    //<< QPoint(bus_bRightArrowTipX-(arrowHDepth-5),mux_marmux.y()+20) // Right Out Arrow Botton Outer point
+    //<< QPoint(bus_bRightArrowTipX-(arrowHDepth-5),mux_marmux.y()+15) // Right Out Arrow Bottom Inner point
+    //<< QPoint(ALUUpperRightLineMidpoint+5,mux_marmux.y()+15) // Pivot between right out arrow and alu arrow
     << QPoint(ALUUpperRightLineMidpoint + 5,
               poly_alu.boundingRect().y() - (arrowHDepth - 5)) // ALU Arrow Right Inner point
     << QPoint(ALUUpperRightLineMidpoint + 10,
@@ -486,15 +486,15 @@ const QPolygon bus_b = QPolygon(
               poly_alu.boundingRect().y() - (arrowHDepth - 5)) // ALU Arrow Left Outer point
     << QPoint(ALUUpperRightLineMidpoint - 5,
               poly_alu.boundingRect().y() - (arrowHDepth - 5))     // ALU Arrow Left Inner point
-    << QPoint(ALUUpperRightLineMidpoint - 5, poly_marmux.y() + 15) // Pivot between ALU arrow and MARMux Arrow
-    << QPoint(poly_marmux.right() + (arrowHDepth - 5),
-              poly_marmux.y() + 15) // MARMux Arrow Bottom Inner point
-    << QPoint(poly_marmux.right() + (arrowHDepth - 5),
-              poly_marmux.y() + 20)                                         // MARMux Arrow Bottom Outer point
-    << QPoint(poly_marmux.right() + (arrowHOffset), poly_marmux.y() + 10)   // MARMux Arrow Middle point
-    << QPoint(poly_marmux.right() + (arrowHDepth - 5), poly_marmux.y() + 0) // MARMux Arrow Top Outer point
-    << QPoint(poly_marmux.right() + (arrowHDepth - 5), poly_marmux.y() + 5) // MARMux Arrow Top Inner point
-    << QPoint(ALUUpperRightLineMidpoint - 5, poly_marmux.y() + 5)           // Pivot between MARMux and register foot
+    << QPoint(ALUUpperRightLineMidpoint - 5, mux_marmux.y() + 15) // Pivot between ALU arrow and MARMux Arrow
+    << QPoint(mux_marmux.right() + (arrowHDepth - 5),
+              mux_marmux.y() + 15) // MARMux Arrow Bottom Inner point
+    << QPoint(mux_marmux.right() + (arrowHDepth - 5),
+              mux_marmux.y() + 20)                                         // MARMux Arrow Bottom Outer point
+    << QPoint(mux_marmux.right() + (arrowHOffset), mux_marmux.y() + 10)   // MARMux Arrow Middle point
+    << QPoint(mux_marmux.right() + (arrowHDepth - 5), mux_marmux.y() + 0) // MARMux Arrow Top Outer point
+    << QPoint(mux_marmux.right() + (arrowHDepth - 5), mux_marmux.y() + 5) // MARMux Arrow Top Inner point
+    << QPoint(ALUUpperRightLineMidpoint - 5, mux_marmux.y() + 5)           // Pivot between MARMux and register foot
 );
 const QPolygon bus_c = QPolygon(
     QVector<QPoint>()
@@ -625,12 +625,12 @@ const QPolygon bus_mdre_to_eomux = QPolygon(
     << QPoint(mux_eo.x() + 20, mux_eo.y() - (arrowHDepth - 5))    // EOMux Arrow Right Outer point
     << QPoint(mux_eo.x() + 15, mux_eo.y() - (arrowHDepth - 5))    // EOMux Arrow Right Inner point
     << QPoint(mux_eo.x() + 15,
-              poly_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Right Inner point
+              mux_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Right Inner point
     << QPoint(mux_eo.x() + 20,
-              poly_marmux.bottom() + (arrowHDepth - 5))                 // MARMux Arrow Right Outer point
-    << QPoint(mux_eo.x() + 10, poly_marmux.bottom() + (arrowHOffset))   // MARMux Arrow Middle point
-    << QPoint(mux_eo.x() + 0, poly_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Left Outer point
-    << QPoint(mux_eo.x() + 5, poly_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Left Inner point
+              mux_marmux.bottom() + (arrowHDepth - 5))                 // MARMux Arrow Right Outer point
+    << QPoint(mux_eo.x() + 10, mux_marmux.bottom() + (arrowHOffset))   // MARMux Arrow Middle point
+    << QPoint(mux_eo.x() + 0, mux_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Left Outer point
+    << QPoint(mux_eo.x() + 5, mux_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Left Inner point
     << QPoint(mux_eo.x() + 5,
               reg_byte_mdre.y() + reg_byte_mdre.height() / 2 - 5) // Pivot between MARMux bottom and MDRE top
 );
@@ -646,14 +646,14 @@ const QPolygon bus_mdro_to_eomux = QPolygon(
     << QPoint(mux_eo.right() - 0, mux_eo.y() - (arrowHDepth - 5))  // EOMux Arrow Right Outer Edge
     << QPoint(mux_eo.right() - 5, mux_eo.y() - (arrowHDepth - 5))  // EOMux Arrow Right Inner Edge
     << QPoint(mux_eo.right() - 5,
-              poly_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Right Inner Edge
+              mux_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Right Inner Edge
     << QPoint(mux_eo.right() + 0,
-              poly_marmux.bottom() + (arrowHDepth - 5))                   // MARMux Arrow Right Outer Edge
-    << QPoint(mux_eo.right() - 10, poly_marmux.bottom() + (arrowHOffset)) // MARMux Arrow Middle point
+              mux_marmux.bottom() + (arrowHDepth - 5))                   // MARMux Arrow Right Outer Edge
+    << QPoint(mux_eo.right() - 10, mux_marmux.bottom() + (arrowHOffset)) // MARMux Arrow Middle point
     << QPoint(mux_eo.right() - 20,
-              poly_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Left Outer Edge
+              mux_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Left Outer Edge
     << QPoint(mux_eo.right() - 15,
-              poly_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Left Inner Edge
+              mux_marmux.bottom() + (arrowHDepth - 5)) // MARMux Arrow Left Inner Edge
     << QPoint(mux_eo.right() - 15,
               reg_byte_mdro.y() + reg_byte_mdro.height() / 2 - 5) // Pivot between MARMux bottom and MDRE top
 );

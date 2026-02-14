@@ -149,6 +149,7 @@ std::vector<Item> two_byte_geom() {
   QColor green(0, 255, 0);
   QColor blue(0, 0, 255);
   QColor pink(255, 0, 255);
+  QColor lblue(231, 234, 255);
 
   // Clocks
   _geom.emplace_back(A{.geom = ck_mar});
@@ -211,71 +212,85 @@ std::vector<Item> two_byte_geom() {
   _geom.emplace_back(A{.geom = logic_andz_to_z});
 
   // Multiplexers
-  _geom.emplace_back(R{.geom = mux_a, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_c, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_mdre, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_mdro, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_eo, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_cs, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_andz, .bg = black, .fg = black});
+  _geom.emplace_back(P{.geom = mux_marmux, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_marmux, .text = "MARMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_a, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_c, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_mdre, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_mdre, .text = "MDREMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_mdro, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_mdro, .text = "MDROMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_eo, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_eo, .text = "EOMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_cs, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_andz, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_andz, .text = "AndZ", .color = black});
 
   // Register outlines & registers
-  _geom.emplace_back(R{.geom = reg_bit_n, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_bit_c, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_bit_v, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_bit_z, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_bit_s, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_byte_mdre, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_byte_mdro, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_byte_marb, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_byte_mara, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_n, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_c, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_v, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_z, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_s, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .color = black});
+  _geom.emplace_back(R{.geom = reg_byte_mdre, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_byte_mdre, .text = "MDRE", .color = black});
+  _geom.emplace_back(R{.geom = reg_byte_mdro, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_byte_mdro, .text = "MDRO", .color = black});
+  _geom.emplace_back(R{.geom = reg_byte_marb, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .color = black});
+  _geom.emplace_back(R{.geom = reg_byte_mara, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .color = black});
 
   // Other large polys
-  _geom.emplace_back(P{.geom = poly_regbank, .bg = black, .fg = black});
-  _geom.emplace_back(P{.geom = poly_alu});
-  _geom.emplace_back(T{.geom = ALULabel, .color = black});
-  _geom.emplace_back(P{.geom = poly_marmux, .bg = black, .fg = black});
+  _geom.emplace_back(P{.geom = poly_regbank, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = poly_alu, .bg = blue, .fg = lblue});
+  _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .color = black});
+  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .color = black});
+  _geom.emplace_back(L{.geom = poly_nzvc_join, .color = black});
 
-  // Commented UI controls, like editors and labels.
-  ///_geom.emplace_back(I{.geom = loadCkCheckbox, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = cLineEdit, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = cLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = bLineEdit, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = bLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = aLineEdit, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = aLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = ck_marCheckbox, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = ck_mdrCheckbox, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = poly_marmux, .bg = black, .fg = black}); // Actually MARMUX
-  ///_geom.emplace_back(I{.geom = MDRMuxTristateLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = MDRMuxLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = aMuxTristateLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = aMuxLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = cMuxTristateLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = cMuxLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = ALULineEdit, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = ALULabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = label_alu, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = CSMuxLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = CSMuxTristateLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = SCkCheckBox, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = CCkCheckBox, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = VCkCheckBox, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = AndZLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = AndZTristateLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = ZCkCheckBox, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = NCkCheckBox, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = MemWriteLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = MemWriteTristateLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = MemReadLabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = MemReadTristateLabel, .bg = black, .fg = black});
-  ///
   return _geom;
 };
 
+std::vector<QRect> two_byte_overlays() {
+  using namespace TwoByteShapes;
+  std::vector<QRect> ret;
+  ret.push_back(loadCkCheckbox);
+  ret.push_back(cLineEdit);
+  ret.push_back(bLineEdit);
+  ret.push_back(aLineEdit);
+  ret.push_back(MARMuxTristateLabel);
+  ret.push_back(ck_marCheckbox);
+  ret.push_back(ck_mdreCheckbox);
+  ret.push_back(MDREMuxTristateLabel);
+  ret.push_back(ck_mdroCheckbox);
+  ret.push_back(MDROMuxTristateLabel);
+  ret.push_back(EOMuxTristateLabel);
+  ret.push_back(aMuxTristateLabel);
+  ret.push_back(cMuxTristateLabel);
+  ret.push_back(ALULineEdit);
+  ret.push_back(CSMuxTristateLabel);
+  ret.push_back(SCkCheckBox);
+  ret.push_back(CCkCheckBox);
+  ret.push_back(VCkCheckBox);
+  ret.push_back(AndZTristateLabel);
+  ret.push_back(ZCkCheckBox);
+  ret.push_back(NCkCheckBox);
+  ret.push_back(MemWriteTristateLabel);
+  ret.push_back(MemReadTristateLabel);
+  return ret;
+}
+
 CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
-  _geom = one_byte_geom();
-  for (const auto &geom : one_byte_overlays()) _overlays.push_back(new QMLOverlay(geom, this));
+  _geom = two_byte_geom();
+  for (const auto &geom : two_byte_overlays()) _overlays.push_back(new QMLOverlay(geom, this));
 
   auto svg_path = ":/qt/qml/CPUPaint/svg/arrow.svg";
   QImage svg_image(svg_path);
