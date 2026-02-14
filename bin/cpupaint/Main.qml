@@ -52,6 +52,22 @@ Window {
             x:0; y:0
             width: canvas.contentWidth; height:canvas.contentHeight
         }
+        Instantiator {
+            model: canvas.overlays
+            delegate: Rectangle {
+                required property var location
+                // Must set parent explicitly, because Instantiator does not do it for us.
+                parent: viewport
+                x: location.x
+                y: location.y
+                width: location.width
+                height: location.height
+                border.color: "red"
+                border.width: 2
+                color: "green"
+            }
+
+        }
     }
 
     Flickable {
