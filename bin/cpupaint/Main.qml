@@ -96,11 +96,16 @@ Window {
             const centered_y_old = flickable.contentY + H2
             const centered_x_new = centered_x_old * k - W2
             const centered_y_new = centered_y_old * k - H2
-            // Repeat the calculation from above, but assume that the mouse is already at the center in old_scale.
-            const mouse_x_new = oldMouseX * k - W2
-            const mouse_y_new = oldMouseY * k - H2
+            // Repeat the calculation from above, but treating the mouse as the center.
+            // Zoom in and zoom out should be inverse operations, so we need to repulse the mouse on zoom out
+            // to invert the "attraction" on zoom in. To do so, compute the distance of the mouse from the center, and flip the sign when zooming out.
+            const mouse_x_old_centered = (step<1?-1:1)*(oldMouseX-centered_x_old)
+            const mouse_y_old_centered = (step<1?-1:1)*(oldMouseY-centered_y_old)
+            const mouse_x_new = (centered_x_old+mouse_x_old_centered) * k - W2
+            const mouse_y_new = (centered_y_old+mouse_y_old_centered) * k - H2
             scene.scale = z1
             // Blend the "centered" and "mouse" new coordinates, to get a smoother zooming experience.
+            // If step<1, we are zooming out, and we want to "rep
             flickable.contentX = alpha*centered_x_new + (1-alpha)*mouse_x_new
             flickable.contentY = alpha*centered_y_new + (1-alpha)*mouse_y_new
             // If the new X/Y is out of bounds (which can happen when zooming out), rebound to valid coordinates gently.
