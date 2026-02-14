@@ -119,7 +119,8 @@ const QRect cMuxLabel = QRect(ctrlLabelX, cMuxTristateLabel.y(), labelW, labelH)
 const QRect mux_c = QRect(250, 374, dataLabelW, dataLabelH);
 const QRect ALULineEdit = QRect(ctrlInputX, 368, 26, lineEditH);
 const QRect ALULabel = QRect(ctrlLabelX, 370, 31, labelH);
-const QRect ALUFunctionLabel = QRect(332, 355, 98, 20);
+const QRect label_alu = QRect(332, 355, 98, 20);
+const QRect label_alu_function = QRect(332, 370, 98, 20);
 
 const QRect CSMuxLabel = QRect(ctrlLabelX, 399, labelW, labelH);
 const QRect mux_cs = QRect(statusBitsX + 19 - 69, 399, dataLabelW, dataLabelH);

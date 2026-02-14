@@ -289,7 +289,8 @@ const Arrow sel_muxeo = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(mux_eo.ri
 // ALU and its control
 const QRect ALULineEdit = QRect(ctrlInputX, BottomOfAlu + ALULabelYOffsetFromALU, 26, lineEditH);
 const QRect ALULabel = QRect(ctrlLabelX, BottomOfAlu + ALULabelYOffsetFromALU, 31, labelH);
-const QRect ALUFunctionLabel = OneByteShapes::ALUFunctionLabel.translated(controlOffsetX, aluOffsetY);
+const QRect label_alu = OneByteShapes::label_alu.translated(controlOffsetX, aluOffsetY);
+const QRect label_alu_function = OneByteShapes::label_alu_function.translated(controlOffsetX, aluOffsetY);
 
 // CSMux and its control
 const QRect CSMuxLabel = QRect(ctrlLabelX, BottomOfAlu + 5, labelW, labelH);

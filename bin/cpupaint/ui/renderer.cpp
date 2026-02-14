@@ -17,7 +17,8 @@ std::vector<Item> one_byte_geom() {
   QColor white(255, 255, 255, 255);
   QColor red(255, 0, 0);
   QColor green(0, 255, 0);
-  QColor blue(255, 0, 255);
+  QColor blue(0, 0, 255);
+  QColor lblue(231, 234, 255);
 
   // Clocks
   _geom.emplace_back(A{.geom = ck_mar});
@@ -68,25 +69,40 @@ std::vector<Item> one_byte_geom() {
   _geom.emplace_back(A{.geom = logic_andz_to_z});
 
   // Multiplexers
-  _geom.emplace_back(R{.geom = mux_a, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_c, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_mdr, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_cs, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = mux_andz, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_a, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_c, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_mdr, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_mdr, .text = "MDRMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_cs, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .color = black});
+  _geom.emplace_back(R{.geom = mux_andz, .bg = black, .fg = white});
+  _geom.emplace_back(T{.geom = mux_andz, .text = "AndZ", .color = black});
 
   // Register outlines & registers
-  _geom.emplace_back(R{.geom = reg_bit_n, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_bit_c, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_bit_v, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_bit_z, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_bit_s, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_byte_mdr, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_byte_marb, .bg = black, .fg = black});
-  _geom.emplace_back(R{.geom = reg_byte_mara, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_n, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_c, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_v, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_z, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_s, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .color = black});
+  _geom.emplace_back(R{.geom = reg_byte_mdr, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_byte_mdr, .text = "MDR", .color = black});
+  _geom.emplace_back(R{.geom = reg_byte_marb, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .color = black});
+  _geom.emplace_back(R{.geom = reg_byte_mara, .bg = black, .fg = lblue});
+  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .color = black});
 
   // Other large polys
-  _geom.emplace_back(R{.geom = poly_regbank, .bg = black, .fg = black});
-  _geom.emplace_back(P{.geom = poly_alu});
+  _geom.emplace_back(R{.geom = poly_regbank, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = poly_alu, .bg = blue, .fg = lblue});
+  _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .color = black});
+  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .color = black});
   _geom.emplace_back(L{.geom = poly_nzvc_join, .color = black});
 
   // Commented UI controls, like editors and labels.
@@ -108,7 +124,7 @@ std::vector<Item> one_byte_geom() {
   ///_geom.emplace_back(I{.geom = cMuxLabel, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = ALULineEdit, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = ALULabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = ALUFunctionLabel, .bg = black, .fg = black});
+  ///_geom.emplace_back(I{.geom = label_alu, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = CSMuxLabel, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = CSMuxTristateLabel, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = SCkCheckBox, .bg = black, .fg = black});
@@ -225,7 +241,7 @@ std::vector<Item> two_byte_geom() {
   // Other large polys
   _geom.emplace_back(P{.geom = poly_regbank, .bg = black, .fg = black});
   _geom.emplace_back(P{.geom = poly_alu});
-  _geom.emplace_back(L{.geom = poly_nzvc_join, .color = black});
+  _geom.emplace_back(T{.geom = ALULabel, .color = black});
   _geom.emplace_back(P{.geom = poly_marmux, .bg = black, .fg = black});
 
   // Commented UI controls, like editors and labels.
@@ -247,7 +263,7 @@ std::vector<Item> two_byte_geom() {
   ///_geom.emplace_back(I{.geom = cMuxLabel, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = ALULineEdit, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = ALULabel, .bg = black, .fg = black});
-  ///_geom.emplace_back(I{.geom = ALUFunctionLabel, .bg = black, .fg = black});
+  ///_geom.emplace_back(I{.geom = label_alu, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = CSMuxLabel, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = CSMuxTristateLabel, .bg = black, .fg = black});
   ///_geom.emplace_back(I{.geom = SCkCheckBox, .bg = black, .fg = black});
@@ -266,7 +282,7 @@ std::vector<Item> two_byte_geom() {
 };
 
 CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
-  _geom = two_byte_geom();
+  _geom = one_byte_geom();
   auto svg_path = ":/qt/qml/CPUPaint/svg/arrow.svg";
   QImage svg_image(svg_path);
   _arrows[Qt::NoArrow] = QPixmap(QSize(0, 0));
@@ -279,6 +295,7 @@ CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent)
 struct PaintDispatch {
   CursedCPUCanvas *canvas;
   QPainter *painter;
+  QFont font{"Times New Roman", 14};
   void operator()(const LineItem &item) {
     painter->setPen(item.color);
     painter->drawLine(item.geom);
@@ -307,8 +324,7 @@ struct PaintDispatch {
   }
   void operator()(const TextRectItem &item) {
     painter->setPen(item.color);
-    painter->setBrush(Qt::NoBrush);
-    painter->drawRect(item.geom);
+    painter->setFont(font);
     painter->drawText(item.geom, Qt::AlignCenter, item.text);
   }
 };
