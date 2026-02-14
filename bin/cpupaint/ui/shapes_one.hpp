@@ -289,28 +289,6 @@ const QRect reg_label_m5_name = QRect(Col4X, Row5Y, regLineEditW, regLineEditH);
 const QRect reg_value_m5_hi = QRect(Col4X + 2 * regHalfLineEditW, Row5Y, regHalfLineEditW, regLineEditH);
 const QRect reg_value_m5_lo = QRect(Col4X + 3 * regHalfLineEditW, Row5Y, regHalfLineEditW, regLineEditH);
 
-const QSize regLabelSize = QSize(20, 22);
-const QSize regNumberSize = QSize(42, 22);
-const QRect aRegLineEdit = QRect(Col1X, Row1Y, regLineEditW, regLineEditH);
-const QRect xRegLineEdit = QRect(Col1X, Row2Y, regLineEditW, regLineEditH);
-const QRect spRegLineEdit = QRect(Col1X, Row3Y, regLineEditW, regLineEditH);
-const QRect pcRegLineEdit = QRect(Col1X, Row4Y, regLineEditW, regLineEditH);
-
-const QRect irRegLineEdit = QRect(Col2X, Row1Y, regLineEditW + 15, regLineEditH);
-const QRect t1RegLineEdit = QRect(Col2X, Row2Y, regLineEditW - 15, regLineEditH);
-const QRect t2RegLineEdit = QRect(Col2X, Row3Y, regLineEditW, regLineEditH);
-const QRect t3RegLineEdit = QRect(Col2X, Row4Y, regLineEditW, regLineEditH);
-
-const QRect t4RegLineEdit = QRect(Col3X, Row1Y, regLineEditW, regLineEditH);
-const QRect t5RegLineEdit = QRect(Col3X, Row2Y, regLineEditW, regLineEditH);
-const QRect t6RegLineEdit = QRect(Col3X, Row3Y, regLineEditW, regLineEditH);
-const QRect m1RegLabel = QRect(Col3X, Row4Y, regLineEditW - 10, regLineEditH);
-
-const QRect m2RegLabel = QRect(Col4X, Row1Y, regLineEditW - 10, regLineEditH);
-const QRect m3RegLabel = QRect(Col4X, Row2Y, regLineEditW - 10, regLineEditH);
-const QRect m4RegLabel = QRect(Col4X, Row3Y, regLineEditW - 10, regLineEditH);
-const QRect m5RegLabel = QRect(Col4X, Row4Y, regLineEditW - 10, regLineEditH);
-
 const QPolygon bus_b =
     QPolygon(QVector<QPoint>() << QPoint(417, 118) << QPoint(417, 136) << QPoint(258, 136) << QPoint(258, 131)
                                << QPoint(248, 141) << QPoint(258, 151) << QPoint(258, 146) << QPoint(280, 146)

@@ -89,6 +89,7 @@ enum CommonOffsets {
 };
 
 // registers
+const QRect poly_regbank = OneByteShapes::poly_regbank;
 const auto reg_label_a_name = OneByteShapes::reg_label_a_name;
 const auto reg_value_a_hi = OneByteShapes::reg_value_a_hi;
 const auto reg_value_a_lo = OneByteShapes::reg_value_a_lo;
@@ -141,24 +142,6 @@ const auto reg_value_m4_lo = OneByteShapes::reg_value_m3_lo;
 const auto reg_label_m5_name = OneByteShapes::reg_label_m5_name;
 const auto reg_value_m5_hi = OneByteShapes::reg_value_m5_hi;
 const auto reg_value_m5_lo = OneByteShapes::reg_value_m5_lo;
-
-const QRect poly_regbank = OneByteShapes::poly_regbank;
-const QRect aRegLineEdit = OneByteShapes::aRegLineEdit;
-const QRect xRegLineEdit = OneByteShapes::xRegLineEdit;
-const QRect spRegLineEdit = OneByteShapes::spRegLineEdit;
-const QRect pcRegLineEdit = OneByteShapes::pcRegLineEdit;
-const QRect irRegLineEdit = OneByteShapes::irRegLineEdit;
-const QRect t1RegLineEdit = OneByteShapes::t1RegLineEdit;
-const QRect t2RegLineEdit = OneByteShapes::t2RegLineEdit;
-const QRect t3RegLineEdit = OneByteShapes::t3RegLineEdit;
-const QRect t4RegLineEdit = OneByteShapes::t4RegLineEdit;
-const QRect t5RegLineEdit = OneByteShapes::t5RegLineEdit;
-const QRect t6RegLineEdit = OneByteShapes::t6RegLineEdit;
-const QRect m1RegLabel = OneByteShapes::m1RegLabel;
-const QRect m2RegLabel = OneByteShapes::m2RegLabel;
-const QRect m3RegLabel = OneByteShapes::m3RegLabel;
-const QRect m4RegLabel = OneByteShapes::m4RegLabel;
-const QRect m5RegLabel = OneByteShapes::m5RegLabel;
 
 // ALU
 const QPolygon poly_alu = OneByteShapes::poly_alu.translated(controlOffsetX, aluOffsetY);
