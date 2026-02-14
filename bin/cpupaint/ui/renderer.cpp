@@ -6,7 +6,11 @@
 
 std::vector<Item> one_byte_geom() {
   using namespace OneByteShapes;
-  using I = Item;
+  using T = TextRectItem;
+  using A = ArrowItem;
+  using L = LineItem;
+  using P = PolygonItem;
+  using R = RectItem;
 
   std::vector<Item> _geom;
   QColor black(0, 0, 0, 255);
@@ -16,74 +20,74 @@ std::vector<Item> one_byte_geom() {
   QColor blue(255, 0, 255);
 
   // Clocks
-  _geom.emplace_back(I{.geom = ck_mar});
-  _geom.emplace_back(I{.geom = ck_mdr});
-  _geom.emplace_back(I{.geom = ck_load});
-  _geom.emplace_back(I{.geom = ck_n});
-  _geom.emplace_back(I{.geom = ck_z});
-  _geom.emplace_back(I{.geom = ck_v});
-  _geom.emplace_back(I{.geom = ck_c});
-  _geom.emplace_back(I{.geom = ck_s});
-  _geom.emplace_back(I{.geom = ck_memread});
-  _geom.emplace_back(I{.geom = ck_memwrite});
+  _geom.emplace_back(A{.geom = ck_mar});
+  _geom.emplace_back(A{.geom = ck_mdr});
+  _geom.emplace_back(A{.geom = ck_load});
+  _geom.emplace_back(L{.geom = ck_n});
+  _geom.emplace_back(L{.geom = ck_z});
+  _geom.emplace_back(L{.geom = ck_v});
+  _geom.emplace_back(L{.geom = ck_c});
+  _geom.emplace_back(L{.geom = ck_s});
+  _geom.emplace_back(L{.geom = ck_memread});
+  _geom.emplace_back(L{.geom = ck_memwrite});
 
   // Control Wires
-  _geom.emplace_back(I{.geom = sel_muxcs});
-  _geom.emplace_back(I{.geom = sel_muxa});
-  _geom.emplace_back(I{.geom = sel_muxc});
-  _geom.emplace_back(I{.geom = sel_c});
-  _geom.emplace_back(I{.geom = sel_b});
-  _geom.emplace_back(I{.geom = sel_a});
-  _geom.emplace_back(I{.geom = sel_alu});
+  _geom.emplace_back(L{.geom = sel_muxcs});
+  _geom.emplace_back(A{.geom = sel_muxa});
+  _geom.emplace_back(A{.geom = sel_muxc});
+  _geom.emplace_back(A{.geom = sel_c});
+  _geom.emplace_back(A{.geom = sel_b});
+  _geom.emplace_back(A{.geom = sel_a});
+  _geom.emplace_back(A{.geom = sel_alu});
 
   // Buses
-  _geom.emplace_back(I{.geom = bus_b, .bg = black, .fg = red});
-  _geom.emplace_back(I{.geom = bus_a, .bg = black, .fg = green});
-  _geom.emplace_back(I{.geom = bus_addr, .bg = black, .fg = blue});
-  _geom.emplace_back(I{.geom = bus_addr_to_ddr, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_data, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_data_to_mdrmux, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_mdrmux_to_mdr, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_mdr_to_data, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_mar_to_addr, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_alu_to_cmux, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_nzvc_to_cmux, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_mdr_to_amux, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_amux_to_alu, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_c, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_b, .bg = black, .fg = red});
+  _geom.emplace_back(P{.geom = bus_a, .bg = black, .fg = green});
+  _geom.emplace_back(P{.geom = bus_addr, .bg = black, .fg = blue});
+  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_data, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_data_to_mdrmux, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_mdrmux_to_mdr, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_mdr_to_data, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_mar_to_addr, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_mdr_to_amux, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_amux_to_alu, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_c, .bg = black, .fg = white});
 
   // Combinatorial Outputs
-  _geom.emplace_back(I{.geom = logic_alu_nzvc});
-  _geom.emplace_back(I{.geom = logic_c_to_nzvc});
-  _geom.emplace_back(I{.geom = logic_c_to_csmux});
-  _geom.emplace_back(I{.geom = logic_s_to_csmux});
-  _geom.emplace_back(I{.geom = logic_cin});
-  _geom.emplace_back(I{.geom = logic_z_to_nzvc});
-  _geom.emplace_back(I{.geom = logic_v_to_nzvc});
-  _geom.emplace_back(I{.geom = logic_n_to_nzvc});
-  _geom.emplace_back(I{.geom = logic_andz_to_z});
+  _geom.emplace_back(A{.geom = logic_alu_nzvc});
+  _geom.emplace_back(A{.geom = logic_c_to_nzvc});
+  _geom.emplace_back(A{.geom = logic_c_to_csmux});
+  _geom.emplace_back(A{.geom = logic_s_to_csmux});
+  _geom.emplace_back(A{.geom = logic_cin});
+  _geom.emplace_back(A{.geom = logic_z_to_nzvc});
+  _geom.emplace_back(A{.geom = logic_v_to_nzvc});
+  _geom.emplace_back(A{.geom = logic_n_to_nzvc});
+  _geom.emplace_back(A{.geom = logic_andz_to_z});
 
   // Multiplexers
-  _geom.emplace_back(I{.geom = mux_a, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_c, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_mdr, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_cs, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_andz, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_a, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_c, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_mdr, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_cs, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_andz, .bg = black, .fg = black});
 
   // Register outlines & registers
-  _geom.emplace_back(I{.geom = reg_bit_n, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_bit_c, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_bit_v, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_bit_z, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_bit_s, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_byte_mdr, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_byte_marb, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_byte_mara, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_n, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_c, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_v, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_z, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_s, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_byte_mdr, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_byte_marb, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_byte_mara, .bg = black, .fg = black});
 
   // Other large polys
-  _geom.emplace_back(I{.geom = poly_regbank, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = poly_alu});
-  _geom.emplace_back(I{.geom = poly_nzvc_join, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = poly_regbank, .bg = black, .fg = black});
+  _geom.emplace_back(P{.geom = poly_alu});
+  _geom.emplace_back(L{.geom = poly_nzvc_join, .color = black});
 
   // Commented UI controls, like editors and labels.
   ///_geom.emplace_back(I{.geom = loadCkCheckbox, .bg = black, .fg = black});
@@ -124,7 +128,11 @@ std::vector<Item> one_byte_geom() {
 
 std::vector<Item> two_byte_geom() {
   using namespace TwoByteShapes;
-  using I = Item;
+  using T = TextRectItem;
+  using A = ArrowItem;
+  using L = LineItem;
+  using P = PolygonItem;
+  using R = RectItem;
 
   std::vector<Item> _geom;
   QColor black(0, 0, 0, 255);
@@ -135,90 +143,90 @@ std::vector<Item> two_byte_geom() {
   QColor pink(255, 0, 255);
 
   // Clocks
-  _geom.emplace_back(I{.geom = ck_mar});
-  _geom.emplace_back(I{.geom = ck_mdre});
-  _geom.emplace_back(I{.geom = ck_mdro});
-  _geom.emplace_back(I{.geom = ck_load});
-  _geom.emplace_back(I{.geom = ck_n});
-  _geom.emplace_back(I{.geom = ck_z});
-  _geom.emplace_back(I{.geom = ck_v});
-  _geom.emplace_back(I{.geom = ck_c});
-  _geom.emplace_back(I{.geom = ck_s});
-  _geom.emplace_back(I{.geom = ck_memread});
-  _geom.emplace_back(I{.geom = ck_memwrite});
+  _geom.emplace_back(A{.geom = ck_mar});
+  _geom.emplace_back(A{.geom = ck_mdre});
+  _geom.emplace_back(A{.geom = ck_mdro});
+  _geom.emplace_back(A{.geom = ck_load});
+  _geom.emplace_back(L{.geom = ck_n});
+  _geom.emplace_back(L{.geom = ck_z});
+  _geom.emplace_back(L{.geom = ck_v});
+  _geom.emplace_back(L{.geom = ck_c});
+  _geom.emplace_back(L{.geom = ck_s});
+  _geom.emplace_back(L{.geom = ck_memread});
+  _geom.emplace_back(L{.geom = ck_memwrite});
 
   // Control Wires
-  _geom.emplace_back(I{.geom = sel_muxcs});
-  _geom.emplace_back(I{.geom = sel_muxa});
-  _geom.emplace_back(I{.geom = sel_muxc});
-  _geom.emplace_back(I{.geom = sel_c});
-  _geom.emplace_back(I{.geom = sel_b});
-  _geom.emplace_back(I{.geom = sel_a});
-  _geom.emplace_back(I{.geom = sel_alu});
-  _geom.emplace_back(I{.geom = sel_mux_mdre});
-  _geom.emplace_back(I{.geom = sel_mux_mdro});
-  _geom.emplace_back(I{.geom = sel_muxeo});
-  _geom.emplace_back(I{.geom = sel_mux_mar});
+  _geom.emplace_back(L{.geom = sel_muxcs});
+  _geom.emplace_back(A{.geom = sel_muxa});
+  _geom.emplace_back(A{.geom = sel_muxc});
+  _geom.emplace_back(A{.geom = sel_c});
+  _geom.emplace_back(A{.geom = sel_b});
+  _geom.emplace_back(A{.geom = sel_a});
+  _geom.emplace_back(A{.geom = sel_alu});
+  _geom.emplace_back(A{.geom = sel_mux_mdre});
+  _geom.emplace_back(A{.geom = sel_mux_mdro});
+  _geom.emplace_back(A{.geom = sel_muxeo});
+  _geom.emplace_back(A{.geom = sel_mux_mar});
 
   // Buses
-  _geom.emplace_back(I{.geom = bus_b, .bg = black, .fg = blue});
-  _geom.emplace_back(I{.geom = bus_a, .bg = black, .fg = green});
-  _geom.emplace_back(I{.geom = bus_addr, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_addr_to_ddr, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_data, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_mdremux_to_mdre, .bg = black, .fg = red});
-  _geom.emplace_back(I{.geom = bus_mdromux_to_mdro, .bg = black, .fg = green});
-  _geom.emplace_back(I{.geom = bus_data_to_mdremux, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_data_to_mdromux, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_mdre_to_data, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_mdro_to_data, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_mdre_to_eomux, .bg = black, .fg = red});
-  _geom.emplace_back(I{.geom = bus_mdro_to_eomux, .bg = black, .fg = green});
-  _geom.emplace_back(I{.geom = bux_marmux_to_mara, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_marmux_to_marb, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_mar_to_addr, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_alu_to_cmux, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_nzvc_to_cmux, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_eomux_to_amux, .bg = black, .fg = red});
-  _geom.emplace_back(I{.geom = bus_amux_to_alu, .bg = black, .fg = white});
-  _geom.emplace_back(I{.geom = bus_c, .bg = black, .fg = pink});
+  _geom.emplace_back(P{.geom = bus_b, .bg = black, .fg = blue});
+  _geom.emplace_back(P{.geom = bus_a, .bg = black, .fg = green});
+  _geom.emplace_back(P{.geom = bus_addr, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_data, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_mdremux_to_mdre, .bg = black, .fg = red});
+  _geom.emplace_back(P{.geom = bus_mdromux_to_mdro, .bg = black, .fg = green});
+  _geom.emplace_back(P{.geom = bus_data_to_mdremux, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_data_to_mdromux, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_mdre_to_data, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_mdro_to_data, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_mdre_to_eomux, .bg = black, .fg = red});
+  _geom.emplace_back(P{.geom = bus_mdro_to_eomux, .bg = black, .fg = green});
+  _geom.emplace_back(P{.geom = bux_marmux_to_mara, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_marmux_to_marb, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_mar_to_addr, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_eomux_to_amux, .bg = black, .fg = red});
+  _geom.emplace_back(P{.geom = bus_amux_to_alu, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_c, .bg = black, .fg = pink});
 
   // Combinatorial Outputs
-  _geom.emplace_back(I{.geom = logic_alu_nzvc});
-  _geom.emplace_back(I{.geom = logic_c_to_nzvc});
-  _geom.emplace_back(I{.geom = logic_c_to_csmux});
-  _geom.emplace_back(I{.geom = logic_s_to_csmux});
-  _geom.emplace_back(I{.geom = logic_cin});
-  _geom.emplace_back(I{.geom = logic_z_to_nzvc});
-  _geom.emplace_back(I{.geom = logic_v_to_nzvc});
-  _geom.emplace_back(I{.geom = logic_n_to_nzvc});
-  _geom.emplace_back(I{.geom = logic_andz_to_z});
+  _geom.emplace_back(A{.geom = logic_alu_nzvc});
+  _geom.emplace_back(A{.geom = logic_c_to_nzvc});
+  _geom.emplace_back(A{.geom = logic_c_to_csmux});
+  _geom.emplace_back(A{.geom = logic_s_to_csmux});
+  _geom.emplace_back(A{.geom = logic_cin});
+  _geom.emplace_back(A{.geom = logic_z_to_nzvc});
+  _geom.emplace_back(A{.geom = logic_v_to_nzvc});
+  _geom.emplace_back(A{.geom = logic_n_to_nzvc});
+  _geom.emplace_back(A{.geom = logic_andz_to_z});
 
   // Multiplexers
-  _geom.emplace_back(I{.geom = mux_a, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_c, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_mdre, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_mdro, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_eo, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_cs, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = mux_andz, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_a, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_c, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_mdre, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_mdro, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_eo, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_cs, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = mux_andz, .bg = black, .fg = black});
 
   // Register outlines & registers
-  _geom.emplace_back(I{.geom = reg_bit_n, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_bit_c, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_bit_v, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_bit_z, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_bit_s, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_byte_mdre, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_byte_mdro, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_byte_marb, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = reg_byte_mara, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_n, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_c, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_v, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_z, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_bit_s, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_byte_mdre, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_byte_mdro, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_byte_marb, .bg = black, .fg = black});
+  _geom.emplace_back(R{.geom = reg_byte_mara, .bg = black, .fg = black});
 
   // Other large polys
-  _geom.emplace_back(I{.geom = poly_regbank, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = poly_alu});
-  _geom.emplace_back(I{.geom = poly_nzvc_join, .bg = black, .fg = black});
-  _geom.emplace_back(I{.geom = poly_marmux, .bg = black, .fg = black});
+  _geom.emplace_back(P{.geom = poly_regbank, .bg = black, .fg = black});
+  _geom.emplace_back(P{.geom = poly_alu});
+  _geom.emplace_back(L{.geom = poly_nzvc_join, .color = black});
+  _geom.emplace_back(P{.geom = poly_marmux, .bg = black, .fg = black});
 
   // Commented UI controls, like editors and labels.
   ///_geom.emplace_back(I{.geom = loadCkCheckbox, .bg = black, .fg = black});
@@ -268,28 +276,44 @@ CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent)
   _arrows[Qt::DownArrow] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(270.0)));
 }
 
-void CursedCPUCanvas::paint(QPainter *painter) {
-
-  for (const auto &item : _geom) {
-    if (!item.enabled) continue;
-    painter->setBrush(item.fg);
-    painter->setPen(item.bg);
-    switch (item.geom.index()) {
-    case 0: painter->drawRect(std::get<QRect>(item.geom)); break;
-    case 1: painter->drawConvexPolygon(std::get<QPolygon>(item.geom)); break;
-    case 2: painter->drawLine(std::get<QLine>(item.geom)); break;
-    case 3: {
-      const auto &arrow = std::get<Arrow>(item.geom);
-      for (const QLine &line : arrow._lines) painter->drawLine(line);
-      for (const Arrowhead &head : arrow._arrowheads) {
-        painter->save();
-        painter->translate(head.point);
-        int orient = static_cast<int>(head.orient);
-        painter->drawPixmap(0, 0, _arrows[orient]);
-        painter->restore();
-      }
-      break;
-    }
+struct PaintDispatch {
+  CursedCPUCanvas *canvas;
+  QPainter *painter;
+  void operator()(const LineItem &item) {
+    painter->setPen(item.color);
+    painter->drawLine(item.geom);
+  }
+  void operator()(const ArrowItem &item) {
+    painter->setPen(item.color);
+    const auto &arrow = item.geom;
+    for (const QLine &line : arrow._lines) painter->drawLine(line);
+    for (const Arrowhead &head : arrow._arrowheads) {
+      painter->save();
+      painter->translate(head.point);
+      int orient = static_cast<int>(head.orient);
+      painter->drawPixmap(0, 0, canvas->_arrows[orient]);
+      painter->restore();
     }
   }
+  void operator()(const RectItem &item) {
+    painter->setBrush(item.fg);
+    painter->setPen(item.bg);
+    painter->drawRect(item.geom);
+  }
+  void operator()(const PolygonItem &item) {
+    painter->setBrush(item.fg);
+    painter->setPen(item.bg);
+    painter->drawConvexPolygon(item.geom);
+  }
+  void operator()(const TextRectItem &item) {
+    painter->setPen(item.color);
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRect(item.geom);
+    painter->drawText(item.geom, Qt::AlignCenter, item.text);
+  }
+};
+
+void CursedCPUCanvas::paint(QPainter *painter) {
+  PaintDispatch disp{.canvas = this, .painter = painter};
+  for (const auto &item : _geom) std::visit(disp, item);
 }

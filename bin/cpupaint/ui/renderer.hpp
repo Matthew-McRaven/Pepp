@@ -3,12 +3,36 @@
 #include <QQuickPaintedItem>
 #include "shapes_one.hpp"
 
-using Geometry = std::variant<QRect, QPolygon, QLine, Arrow>;
-struct Item {
-  Geometry geom;
+struct TextRectItem {
+  QRectF geom;
+  QString text;
+  QColor color{0, 0, 0, 255};
+};
+
+struct RectItem {
+  QRect geom;
   QColor bg{0, 0, 0, 255}, fg{0, 0, 0, 255};
   bool enabled = true;
 };
+
+struct PolygonItem {
+  QPolygon geom;
+  QColor bg{0, 0, 0, 255}, fg{0, 0, 0, 255};
+  bool enabled = true;
+};
+
+struct LineItem {
+  QLine geom;
+  QColor color{0, 0, 0, 255};
+  bool enabled = true;
+};
+
+struct ArrowItem {
+  Arrow geom;
+  QColor color{0, 0, 0, 255};
+  bool enabled = true;
+};
+using Item = std::variant<LineItem, ArrowItem, RectItem, PolygonItem, TextRectItem>;
 
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
 // "grid" coordinates are integer values. Currently, 1 grid unit = 4 screen pixels, but this should
@@ -29,4 +53,5 @@ public:
 private:
   std::array<QPixmap, 5> _arrows;
   std::vector<Item> _geom;
+  friend class PaintDispatch;
 };
