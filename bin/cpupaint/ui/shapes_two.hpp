@@ -89,6 +89,42 @@ enum CommonOffsets {
 };
 
 // registers
+const auto reg_value_a_hi = OneByteShapes::reg_value_a_hi;
+const auto reg_value_a_lo = OneByteShapes::reg_value_a_lo;
+const auto reg_value_x_hi = OneByteShapes::reg_value_x_hi;
+const auto reg_value_x_lo = OneByteShapes::reg_value_x_lo;
+const auto reg_value_sp_hi = OneByteShapes::reg_value_sp_hi;
+const auto reg_value_sp_lo = OneByteShapes::reg_value_sp_lo;
+const auto reg_value_pc_hi = OneByteShapes::reg_value_pc_hi;
+const auto reg_value_pc_lo = OneByteShapes::reg_value_pc_lo;
+
+const auto reg_value_is = OneByteShapes::reg_value_is;
+const auto reg_value_os_hi = OneByteShapes::reg_value_os_hi;
+const auto reg_value_os_lo = OneByteShapes::reg_value_os_lo;
+const auto reg_value_t1 = OneByteShapes::reg_value_t1;
+const auto reg_value_t2_hi = OneByteShapes::reg_value_t2_hi;
+const auto reg_value_t2_lo = OneByteShapes::reg_value_t2_lo;
+
+const auto reg_value_t3_hi = OneByteShapes::reg_value_t3_hi;
+const auto reg_value_t3_lo = OneByteShapes::reg_value_t3_lo;
+const auto reg_value_t4_hi = OneByteShapes::reg_value_t4_hi;
+const auto reg_value_t4_lo = OneByteShapes::reg_value_t4_lo;
+const auto reg_value_t5_hi = OneByteShapes::reg_value_t5_hi;
+const auto reg_value_t5_lo = OneByteShapes::reg_value_t5_lo;
+const auto reg_value_t6_hi = OneByteShapes::reg_value_t6_hi;
+const auto reg_value_t6_lo = OneByteShapes::reg_value_t6_lo;
+
+const auto reg_value_m1_hi = OneByteShapes::reg_value_m1_hi;
+const auto reg_value_m1_lo = OneByteShapes::reg_value_m1_lo;
+const auto reg_value_m2_hi = OneByteShapes::reg_value_m2_hi;
+const auto reg_value_m2_lo = OneByteShapes::reg_value_m2_lo;
+const auto reg_value_m3_hi = OneByteShapes::reg_value_m3_hi;
+const auto reg_value_m3_lo = OneByteShapes::reg_value_m3_lo;
+const auto reg_value_m4_hi = OneByteShapes::reg_value_m4_hi;
+const auto reg_value_m4_lo = OneByteShapes::reg_value_m4_lo;
+const auto reg_value_m5_hi = OneByteShapes::reg_value_m5_hi;
+const auto reg_value_m5_lo = OneByteShapes::reg_value_m5_lo;
+
 const QRect poly_regbank = OneByteShapes::poly_regbank;
 const QRect aRegLineEdit = OneByteShapes::aRegLineEdit;
 const QRect xRegLineEdit = OneByteShapes::xRegLineEdit;
