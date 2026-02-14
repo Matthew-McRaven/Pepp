@@ -36,4 +36,4 @@ Number,GitRef,Date,Blurb
 0.14.0,,2025-12-31,"This version adds a command-line RISC-V simulator capable of simulating most C programs"
 0.14.1,,2026-01-17,"This version fixes CTDs for Pep/8 and /9 and corrects layout issues for assembly code projects"
 0.14.2,,2026-02-01,"This version fixes bugs in the microcode simulator, and includes significant internal rework for future features"
-0.15.0,,????-??-??,"This version introduces a graphical microcode editor and debugger for Pep/9 and Pep/10"
+0.14.3,,2026-02-14,"This version fixes a bug in assembler syntax highlighting introduced in 0.14.2"
