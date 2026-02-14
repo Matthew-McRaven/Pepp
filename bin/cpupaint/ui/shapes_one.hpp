@@ -71,17 +71,19 @@ enum Shapes {
 
 };
 
+const auto regbank_x_offset = 25;
+const auto regbank_y_offset = 28; // We added another row of register to the regbank. A row is 28px.
 enum RegPos {
   rowHeight = 28,         // Original was 28
   columnWidth = 123 + 10, // Original was 123
-  Row1Y = 10 - 28,
+  Row1Y = 10 - regbank_y_offset,
   Row2Y = Row1Y + rowHeight,
   Row3Y = Row2Y + rowHeight,
   Row4Y = Row3Y + rowHeight,
   Row5Y = Row4Y + rowHeight,
-  Col1X = 56,
+  Col1X = 10 - regbank_x_offset,
   Col2X = Col1X + columnWidth,
-  Col3X = Col2X + columnWidth + 9, // Needs additional room, due to the triple width register
+  Col3X = Col2X + columnWidth,
   Col4X = Col3X + columnWidth,
 };
 
@@ -92,7 +94,8 @@ enum CommonPositions {
   statusBitsX = 476,
 };
 
-const QRect poly_regbank = QRect(5, 5 - 28, Col4X + regLineEditW - 10, 113 + 28);
+const QRect poly_regbank = QRect(5 - regbank_x_offset, 5 - regbank_y_offset,
+                                 Col4X + 4 * regHalfLineEditW + regbank_x_offset + 5, 113 + regbank_y_offset);
 
 // input/label/control section:
 const QRect loadCkCheckbox = QRect(ctrlInputX, 18, check2W, check2H);
@@ -233,41 +236,58 @@ const QPolygon bus_nzvc_to_cmux =
 
 const int regNumberOffset = 65;
 const int regLabelOffset = 24;
-const QRect reg_value_a_hi = QRect(Col1X - regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_a_lo = QRect(Col1X, Row1Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_x_hi = QRect(Col1X - regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_x_lo = QRect(Col1X, Row2Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_sp_hi = QRect(Col1X - regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_sp_lo = QRect(Col1X, Row3Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_pc_hi = QRect(Col1X - regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_pc_lo = QRect(Col1X, Row4Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_a_name = QRect(Col1X, Row1Y, regLineEditW, regLineEditH);
+const QRect reg_value_a_hi = QRect(Col1X + 2 * regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_a_lo = QRect(Col1X + 3 * regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_x_name = QRect(Col1X, Row2Y, regLineEditW, regLineEditH);
+const QRect reg_value_x_hi = QRect(Col1X + 2 * regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_x_lo = QRect(Col1X + 3 * regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_sp_name = QRect(Col1X, Row3Y, regLineEditW, regLineEditH);
+const QRect reg_value_sp_hi = QRect(Col1X + 2 * regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_sp_lo = QRect(Col1X + 3 * regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_pc_name = QRect(Col1X, Row4Y, regLineEditW, regLineEditH);
+const QRect reg_value_pc_hi = QRect(Col1X + 2 * regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_pc_lo = QRect(Col1X + 3 * regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
 
-const QRect reg_value_is = QRect(Col2X - regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_os_hi = QRect(Col2X - regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_os_lo = QRect(Col2X, Row2Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t1 = QRect(Col2X - regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t2_hi = QRect(Col2X - regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t2_lo = QRect(Col2X, Row4Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_is_name = QRect(Col2X, Row1Y, regLineEditW, regLineEditH);
+const QRect reg_value_is = QRect(Col2X + 2 * regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_os_name = QRect(Col2X, Row2Y, regLineEditW, regLineEditH);
+const QRect reg_value_os_hi = QRect(Col2X + 2 * regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_os_lo = QRect(Col2X + 3 * regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_t1_name = QRect(Col2X, Row3Y, regLineEditW, regLineEditH);
+const QRect reg_value_t1 = QRect(Col2X + 2 * regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_t2_name = QRect(Col2X, Row4Y, regLineEditW, regLineEditH);
+const QRect reg_value_t2_hi = QRect(Col2X + 2 * regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_t2_lo = QRect(Col2X + 3 * regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
 
-const QRect reg_value_t3_hi = QRect(Col3X - regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t3_lo = QRect(Col3X, Row1Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t4_hi = QRect(Col3X - regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t4_lo = QRect(Col3X, Row2Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t5_hi = QRect(Col3X - regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t5_lo = QRect(Col3X, Row3Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t6_hi = QRect(Col3X - regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_t6_lo = QRect(Col3X, Row4Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_t3_name = QRect(Col3X, Row1Y, regLineEditW, regLineEditH);
+const QRect reg_value_t3_hi = QRect(Col3X + 2 * regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_t3_lo = QRect(Col3X + 3 * regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_t4_name = QRect(Col3X, Row2Y, regLineEditW, regLineEditH);
+const QRect reg_value_t4_hi = QRect(Col3X + 2 * regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_t4_lo = QRect(Col3X + 3 * regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_t5_name = QRect(Col3X, Row3Y, regLineEditW, regLineEditH);
+const QRect reg_value_t5_hi = QRect(Col3X + 2 * regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_t5_lo = QRect(Col3X + 3 * regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_t6_name = QRect(Col3X, Row4Y, regLineEditW, regLineEditH);
+const QRect reg_value_t6_hi = QRect(Col3X + 2 * regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_t6_lo = QRect(Col3X + 3 * regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
 
-const QRect reg_value_m1_hi = QRect(Col4X - regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_m1_lo = QRect(Col4X, Row1Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_m2_hi = QRect(Col4X - regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_m2_lo = QRect(Col4X, Row2Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_m3_hi = QRect(Col4X - regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_m3_lo = QRect(Col4X, Row3Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_m4_hi = QRect(Col4X - regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_m4_lo = QRect(Col4X, Row4Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_m5_hi = QRect(Col4X - regHalfLineEditW, Row5Y, regHalfLineEditW, regLineEditH);
-const QRect reg_value_m5_lo = QRect(Col4X, Row5Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_m1_name = QRect(Col4X, Row1Y, regLineEditW, regLineEditH);
+const QRect reg_value_m1_hi = QRect(Col4X + 2 * regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_m1_lo = QRect(Col4X + 3 * regHalfLineEditW, Row1Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_m2_name = QRect(Col4X, Row2Y, regLineEditW, regLineEditH);
+const QRect reg_value_m2_hi = QRect(Col4X + 2 * regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_m2_lo = QRect(Col4X + 3 * regHalfLineEditW, Row2Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_m3_name = QRect(Col4X, Row3Y, regLineEditW, regLineEditH);
+const QRect reg_value_m3_hi = QRect(Col4X + 2 * regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_m3_lo = QRect(Col4X + 3 * regHalfLineEditW, Row3Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_m4_name = QRect(Col4X, Row4Y, regLineEditW, regLineEditH);
+const QRect reg_value_m4_hi = QRect(Col4X + 2 * regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_m4_lo = QRect(Col4X + 3 * regHalfLineEditW, Row4Y, regHalfLineEditW, regLineEditH);
+const QRect reg_label_m5_name = QRect(Col4X, Row5Y, regLineEditW, regLineEditH);
+const QRect reg_value_m5_hi = QRect(Col4X + 2 * regHalfLineEditW, Row5Y, regHalfLineEditW, regLineEditH);
+const QRect reg_value_m5_lo = QRect(Col4X + 3 * regHalfLineEditW, Row5Y, regHalfLineEditW, regLineEditH);
 
 const QSize regLabelSize = QSize(20, 22);
 const QSize regNumberSize = QSize(42, 22);

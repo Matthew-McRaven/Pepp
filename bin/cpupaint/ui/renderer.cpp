@@ -25,69 +25,86 @@ std::vector<Item> one_byte_geom() {
   // Register Bank
   _geom.emplace_back(R{.geom = poly_regbank, .bg = black, .fg = white});
 
+  _geom.emplace_back(T{.geom = reg_label_a_name, .text = "0,1    A", .color = black});
   _geom.emplace_back(R{.geom = reg_value_a_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_a_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_a_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_a_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_x_name, .text = "2,3    X", .color = black});
   _geom.emplace_back(R{.geom = reg_value_x_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_x_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_x_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_x_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_sp_name, .text = "4,5   SP", .color = black});
   _geom.emplace_back(R{.geom = reg_value_sp_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_sp_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_sp_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_sp_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_pc_name, .text = "6,7   PC", .color = black});
   _geom.emplace_back(R{.geom = reg_value_pc_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_pc_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_pc_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_pc_lo, .text = "00", .color = black});
 
+  _geom.emplace_back(T{.geom = reg_label_is_name, .text = "8     IR", .color = black});
   _geom.emplace_back(R{.geom = reg_value_is, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_is, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_os_name, .text = "9,10    ", .color = black});
   _geom.emplace_back(R{.geom = reg_value_os_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_os_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_os_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_os_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t1_name, .text = "11    T1", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t1, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t1, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t2_name, .text = "12,13 T2", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t2_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t2_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t2_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t2_lo, .text = "00", .color = black});
 
+  _geom.emplace_back(T{.geom = reg_label_t3_name, .text = "14,15 T3", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t3_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t3_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t3_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t3_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t4_name, .text = "16,17 T4", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t4_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t4_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t4_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t4_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t5_name, .text = "18,19 T5", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t5_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t5_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t5_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t5_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t6_name, .text = "20,21 T6", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t6_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t6_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t6_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t6_lo, .text = "00", .color = black});
 
+  _geom.emplace_back(T{.geom = reg_label_m1_name, .text = "22,23", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m1_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m1_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m1_lo, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m1_lo, .text = "01", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_m2_name, .text = "24,25", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m2_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m2_hi, .text = "02", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m2_lo, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m2_lo, .text = "03", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_m3_name, .text = "26,27", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m3_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m3_hi, .text = "04", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m3_lo, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m3_lo, .text = "08", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_m4_name, .text = "28,29", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m4_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m4_hi, .text = "F0", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m4_lo, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m4_lo, .text = "F6", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_m5_name, .text = "30,31", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m5_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m5_hi, .text = "FE", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m5_lo, .bg = black, .fg = white});
@@ -224,69 +241,86 @@ std::vector<Item> two_byte_geom() {
   // Register Bank
   _geom.emplace_back(R{.geom = poly_regbank, .bg = black, .fg = white});
 
+  _geom.emplace_back(T{.geom = reg_label_a_name, .text = "0,1    A", .color = black});
   _geom.emplace_back(R{.geom = reg_value_a_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_a_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_a_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_a_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_x_name, .text = "2,3    X", .color = black});
   _geom.emplace_back(R{.geom = reg_value_x_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_x_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_x_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_x_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_sp_name, .text = "4,5   SP", .color = black});
   _geom.emplace_back(R{.geom = reg_value_sp_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_sp_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_sp_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_sp_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_pc_name, .text = "6,7   PC", .color = black});
   _geom.emplace_back(R{.geom = reg_value_pc_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_pc_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_pc_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_pc_lo, .text = "00", .color = black});
 
+  _geom.emplace_back(T{.geom = reg_label_is_name, .text = "8     IR", .color = black});
   _geom.emplace_back(R{.geom = reg_value_is, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_is, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_os_name, .text = "9,10    ", .color = black});
   _geom.emplace_back(R{.geom = reg_value_os_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_os_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_os_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_os_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t1_name, .text = "11    T1", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t1, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t1, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t2_name, .text = "12,13 T2", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t2_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t2_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t2_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t2_lo, .text = "00", .color = black});
 
+  _geom.emplace_back(T{.geom = reg_label_t3_name, .text = "14,15 T3", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t3_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t3_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t3_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t3_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t4_name, .text = "16,17 T4", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t4_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t4_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t4_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t4_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t5_name, .text = "18,19 T5", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t5_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t5_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t5_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t5_lo, .text = "00", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_t6_name, .text = "20,21 T6", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t6_hi, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t6_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t6_lo, .bg = black, .fg = lblue});
   _geom.emplace_back(T{.geom = reg_value_t6_lo, .text = "00", .color = black});
 
+  _geom.emplace_back(T{.geom = reg_label_m1_name, .text = "22,23", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m1_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m1_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m1_lo, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m1_lo, .text = "01", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_m2_name, .text = "24,25", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m2_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m2_hi, .text = "02", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m2_lo, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m2_lo, .text = "03", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_m3_name, .text = "26,27", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m3_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m3_hi, .text = "04", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m3_lo, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m3_lo, .text = "08", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_m4_name, .text = "28,29", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m4_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m4_hi, .text = "F0", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m4_lo, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m4_lo, .text = "F6", .color = black});
+  _geom.emplace_back(T{.geom = reg_label_m5_name, .text = "30,31", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m5_hi, .bg = black, .fg = white});
   _geom.emplace_back(T{.geom = reg_value_m5_hi, .text = "FE", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m5_lo, .bg = black, .fg = white});
@@ -430,7 +464,9 @@ std::vector<QRect> two_byte_overlays() {
 
 CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   _geom = two_byte_geom();
-  for (const auto &geom : two_byte_overlays()) _overlays.push_back(new QMLOverlay(geom.translated(0, 28), this));
+  for (const auto &geom : two_byte_overlays())
+    _overlays.push_back(
+        new QMLOverlay(geom.translated(OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset), this));
 
   auto svg_path = ":/qt/qml/CPUPaint/svg/arrow.svg";
   QImage svg_image(svg_path);
@@ -484,7 +520,7 @@ struct PaintDispatch {
 
 void CursedCPUCanvas::paint(QPainter *painter) {
   painter->save();
-  painter->translate(0.0, 28.0); // We added another row of register to the regbank. A row is 28px.
+  painter->translate(OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset);
   PaintDispatch disp{.canvas = this, .painter = painter};
   for (const auto &item : _geom) std::visit(disp, item);
   painter->restore();
