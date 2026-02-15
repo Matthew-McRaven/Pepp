@@ -255,16 +255,16 @@ const QPolygon bus_marmux_to_marb = QPolygon(
 
 // MDROdd, ck_mdro and its control
 const QRect reg_byte_mdro = QRect(combCircX, combCircY + MDREOffsetFromCombY, dataLabelW, dataLabelH);
-const QRect ext_sel_ck_mdro = QRect(ctrlInputX, reg_byte_mdro.y() - 25, checkW + 10, checkH);
+const QRect ext_ck_mdro = QRect(ctrlInputX, reg_byte_mdro.y() - 25, checkW + 10, checkH);
 const Arrow ck_mdro = Arrow(
     QVector<Arrowhead>() << Arrowhead{QPoint(reg_byte_mdro.x() + reg_byte_mdro.width() / 2 - 3, reg_byte_mdro.y() - 12),
                                       DOWN},
     QVector<QLine>()
         // Horizontal line from MDRO checkbox to center of MDRO
-        << QLine(reg_byte_mdro.x() + reg_byte_mdro.width() / 2, ext_sel_ck_mdro.y() + ext_sel_ck_mdro.height() / 2,
-                 ctrlInputX - 7, ext_sel_ck_mdro.y() + ext_sel_ck_mdro.height() / 2)
+        << QLine(reg_byte_mdro.x() + reg_byte_mdro.width() / 2, ext_ck_mdro.y() + ext_ck_mdro.height() / 2,
+                 ctrlInputX - 7, ext_ck_mdro.y() + ext_ck_mdro.height() / 2)
         // Vertical line between arrowhead and horizontal line from checkbox
-        << QLine(reg_byte_mdro.x() + reg_byte_mdro.width() / 2, ext_sel_ck_mdro.y() + ext_sel_ck_mdro.height() / 2,
+        << QLine(reg_byte_mdro.x() + reg_byte_mdro.width() / 2, ext_ck_mdro.y() + ext_ck_mdro.height() / 2,
                  reg_byte_mdro.x() + reg_byte_mdro.width() / 2, reg_byte_mdro.y() - 12));
 
 // MDROMux and its control
