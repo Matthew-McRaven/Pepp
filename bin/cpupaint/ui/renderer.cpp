@@ -200,24 +200,24 @@ std::vector<Item> one_byte_geom() {
 std::vector<QRect> one_byte_overlays() {
   using namespace OneByteShapes;
   std::vector<QRect> ret;
-  ret.push_back(loadCkCheckbox);
-  ret.push_back(cLineEdit);
-  ret.push_back(bLineEdit);
-  ret.push_back(aLineEdit);
-  ret.push_back(ck_marCheckbox);
-  ret.push_back(ck_mdrCheckbox);
-  ret.push_back(aMuxTristateLabel);
-  ret.push_back(cMuxTristateLabel);
-  ret.push_back(ALULineEdit);
-  ret.push_back(CSMuxTristateLabel);
-  ret.push_back(SCkCheckBox);
-  ret.push_back(CCkCheckBox);
-  ret.push_back(VCkCheckBox);
-  ret.push_back(AndZTristateLabel);
-  ret.push_back(ZCkCheckBox);
-  ret.push_back(NCkCheckBox);
-  ret.push_back(MemWriteTristateLabel);
-  ret.push_back(MemReadTristateLabel);
+  ret.push_back(ext_ck_load);
+  ret.push_back(ext_sel_c);
+  ret.push_back(ext_sel_b);
+  ret.push_back(ext_sel_a);
+  ret.push_back(ext_ck_mar);
+  ret.push_back(ext_ck_mdr);
+  ret.push_back(ext_sel_mux_a);
+  ret.push_back(ext_sel_mux_c);
+  ret.push_back(ext_sel_alu);
+  ret.push_back(ext_sel_mux_cs);
+  ret.push_back(ext_ck_s);
+  ret.push_back(ext_ck_c);
+  ret.push_back(ext_ck_v);
+  ret.push_back(ext_sel_andz);
+  ret.push_back(ext_ck_z);
+  ret.push_back(ext_ck_n);
+  ret.push_back(ext_sel_memwrite);
+  ret.push_back(ext_sel_memread);
   return ret;
 }
 
@@ -436,35 +436,35 @@ std::vector<Item> two_byte_geom() {
 std::vector<QRect> two_byte_overlays() {
   using namespace TwoByteShapes;
   std::vector<QRect> ret;
-  ret.push_back(loadCkCheckbox);
-  ret.push_back(cLineEdit);
-  ret.push_back(bLineEdit);
-  ret.push_back(aLineEdit);
-  ret.push_back(MARMuxTristateLabel);
-  ret.push_back(ck_marCheckbox);
-  ret.push_back(ck_mdreCheckbox);
-  ret.push_back(MDREMuxTristateLabel);
-  ret.push_back(ck_mdroCheckbox);
-  ret.push_back(MDROMuxTristateLabel);
-  ret.push_back(EOMuxTristateLabel);
-  ret.push_back(aMuxTristateLabel);
-  ret.push_back(cMuxTristateLabel);
-  ret.push_back(ALULineEdit);
-  ret.push_back(CSMuxTristateLabel);
-  ret.push_back(SCkCheckBox);
-  ret.push_back(CCkCheckBox);
-  ret.push_back(VCkCheckBox);
-  ret.push_back(AndZTristateLabel);
-  ret.push_back(ZCkCheckBox);
-  ret.push_back(NCkCheckBox);
-  ret.push_back(MemWriteTristateLabel);
-  ret.push_back(MemReadTristateLabel);
+  ret.push_back(ext_ck_load);
+  ret.push_back(ext_sel_c);
+  ret.push_back(ext_sel_b);
+  ret.push_back(ext_sel_a);
+  ret.push_back(ext_sel_mux_mar);
+  ret.push_back(ext_ck_mar);
+  ret.push_back(ext_ck_mdre);
+  ret.push_back(ext_sel_mux_mdre);
+  ret.push_back(ext_sel_ck_mdro);
+  ret.push_back(ext_sel_mux_mdro);
+  ret.push_back(ext_sel_mux_eo);
+  ret.push_back(ext_sel_mux_a);
+  ret.push_back(ext_sel_mux_c);
+  ret.push_back(ext_sel_alu);
+  ret.push_back(ext_sel_mux_cs);
+  ret.push_back(ext_ck_s);
+  ret.push_back(ext_ck_c);
+  ret.push_back(ext_ck_v);
+  ret.push_back(ext_sel_andz);
+  ret.push_back(ext_ck_z);
+  ret.push_back(ext_ck_n);
+  ret.push_back(ext_sel_memwrite);
+  ret.push_back(ext_sel_memread);
   return ret;
 }
 
 CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
-  _geom = two_byte_geom();
-  for (const auto &geom : two_byte_overlays())
+  _geom = one_byte_geom();
+  for (const auto &geom : one_byte_overlays())
     _overlays.push_back(
         new QMLOverlay(geom.translated(OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset), this));
 
