@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 
-import CPUPaint
+import edu.pepp
 /*
  * Both "viewport" and "flickable" must belong to the same parent, because they have complex z-ordering issues,
  * viewport should visually be behind the flickable, so that it does not clip the scrollbars.
@@ -59,8 +59,7 @@ Item {
         required property string label
         required property bool value
 
-        // Magic constant to align right edges of of controls
-        x: location.x + 35
+        x: location.x
         y: location.y
         // Do not bind width, else we may chop off the label.
         height: location.height
@@ -116,7 +115,7 @@ Item {
             }
         ]
 
-        CursedCPUCanvas {
+        PaintedCPUCanvas{
             id: canvas
             x: 0
             y: 0

@@ -1,49 +1,14 @@
-#include "renderer.hpp"
+#include "cpu_canvas.hpp"
 #include <QPainter>
 #include <QTransform>
 #include <QtQml/qqmlengine.h>
+#include "qml_overlays.hpp"
 #include "shapes_one.hpp"
 #include "shapes_two.hpp"
 
-QMLOverlay::QMLOverlay(QRect location, QObject *parent) : QObject(parent), _location(location) {}
-
-int QMLOverlay::type() { return OVERLAY_NONE; }
-
-QString ClockOverlay::label() const { return _label; }
-
-bool ClockOverlay::value() const { return _value; }
-
-void ClockOverlay::setValue(bool value) {
-  if (_value != value) {
-    _value = value;
-    emit valueChanged();
-  }
-}
-
-ClockOverlay::ClockOverlay(QRect location, QString label, QObject *parent)
-    : QMLOverlay(location, parent), _label(label), _value(false) {}
-
-int ClockOverlay::type() { return OVERLAY_CLOCK; }
-
-TristateOverlay::TristateOverlay(QRect location, QString label, int max_value, QObject *parent)
-    : QMLOverlay(location, parent), _max_value(max_value), _value(-1), _label(label) {}
-
-int TristateOverlay::type() { return OVERLAY_TRISTATE; }
-
-QString TristateOverlay::label() const { return _label; }
-
-int TristateOverlay::value() const { return _value; }
-
-void TristateOverlay::setValue(int value) {
-  if (_value != value) {
-    _value = value;
-    emit valueChanged();
-  }
-}
-
-int TristateOverlay::max_value() const { return _max_value; }
-
-std::vector<Item> one_byte_geom() {
+namespace {
+std::vector<pepp::Item> one_byte_geom() {
+  using namespace pepp;
   using namespace OneByteShapes;
   using T = TextRectItem;
   using A = ArrowItem;
@@ -234,45 +199,8 @@ std::vector<Item> one_byte_geom() {
   return _geom;
 };
 
-namespace {
-void add_clock(QObject *parent, QList<QMLOverlay *> &list, QString label, QRect location, float x_offset = 0,
-               float y_offset = 0) {
-  auto local = new ClockOverlay(location.translated(x_offset, y_offset), label, parent);
-  QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
-  list.push_back(local);
-}
-void add_tristate(QObject *parent, QList<QMLOverlay *> &list, QString label, QRect location, int max,
-                  float x_offset = 0, float y_offset = 0) {
-  auto local = new TristateOverlay(location.translated(x_offset, y_offset), label, max, parent);
-  QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
-  list.push_back(local);
-}
-} // namespace
-QList<QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, float y_offset) {
-  using namespace OneByteShapes;
-  QList<QMLOverlay *> ret;
-  add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
-  add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
-  add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
-  add_tristate(parent, ret, "A", ext_sel_a, 31, x_offset, y_offset);
-  add_clock(parent, ret, "MARCk", ext_ck_mar, x_offset, y_offset);
-  add_clock(parent, ret, "MDRCk", ext_ck_mdr, x_offset, y_offset);
-  add_tristate(parent, ret, "AMux", ext_sel_mux_a, 1, x_offset, y_offset);
-  add_tristate(parent, ret, "CMux", ext_sel_mux_c, 1, x_offset, y_offset);
-  add_tristate(parent, ret, "ALU", ext_sel_alu, 15, x_offset, y_offset);
-  add_tristate(parent, ret, "CSMux", ext_sel_mux_cs, 1, x_offset, y_offset);
-  add_clock(parent, ret, "SCk", ext_ck_s, x_offset, y_offset);
-  add_clock(parent, ret, "CCk", ext_ck_c, x_offset, y_offset);
-  add_clock(parent, ret, "VCk", ext_ck_v, x_offset, y_offset);
-  add_tristate(parent, ret, "AndZ", ext_sel_andz, 1, x_offset, y_offset);
-  add_clock(parent, ret, "ZCk", ext_ck_z, x_offset, y_offset);
-  add_clock(parent, ret, "NCk", ext_ck_n, x_offset, y_offset);
-  add_clock(parent, ret, "MemWrite", ext_sel_memwrite, x_offset, y_offset);
-  add_clock(parent, ret, "MemRead", ext_sel_memread, x_offset, y_offset);
-  return ret;
-}
-
-std::vector<Item> two_byte_geom() {
+std::vector<pepp::Item> two_byte_geom() {
+  using namespace pepp;
   using namespace TwoByteShapes;
   using T = TextRectItem;
   using A = ArrowItem;
@@ -484,9 +412,46 @@ std::vector<Item> two_byte_geom() {
   return _geom;
 };
 
-QList<QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, float y_offset) {
+void add_clock(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QRect location, float x_offset = 0,
+               float y_offset = 0) {
+  auto local = new pepp::ClockOverlay(location.translated(x_offset, y_offset), label, parent);
+  QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
+  list.push_back(local);
+}
+void add_tristate(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QRect location, int max,
+                  float x_offset = 0, float y_offset = 0) {
+  auto local = new pepp::TristateOverlay(location.translated(x_offset, y_offset), label, max, parent);
+  QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
+  list.push_back(local);
+}
+
+QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, float y_offset) {
+  using namespace OneByteShapes;
+  QList<pepp::QMLOverlay *> ret;
+  add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
+  add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
+  add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
+  add_tristate(parent, ret, "A", ext_sel_a, 31, x_offset, y_offset);
+  add_clock(parent, ret, "MARCk", ext_ck_mar, x_offset, y_offset);
+  add_clock(parent, ret, "MDRCk", ext_ck_mdr, x_offset, y_offset);
+  add_tristate(parent, ret, "AMux", ext_sel_mux_a, 1, x_offset, y_offset);
+  add_tristate(parent, ret, "CMux", ext_sel_mux_c, 1, x_offset, y_offset);
+  add_tristate(parent, ret, "ALU", ext_sel_alu, 15, x_offset, y_offset);
+  add_tristate(parent, ret, "CSMux", ext_sel_mux_cs, 1, x_offset, y_offset);
+  add_clock(parent, ret, "SCk", ext_ck_s, x_offset, y_offset);
+  add_clock(parent, ret, "CCk", ext_ck_c, x_offset, y_offset);
+  add_clock(parent, ret, "VCk", ext_ck_v, x_offset, y_offset);
+  add_tristate(parent, ret, "AndZ", ext_sel_andz, 1, x_offset, y_offset);
+  add_clock(parent, ret, "ZCk", ext_ck_z, x_offset, y_offset);
+  add_clock(parent, ret, "NCk", ext_ck_n, x_offset, y_offset);
+  add_clock(parent, ret, "MemWrite", ext_sel_memwrite, x_offset, y_offset);
+  add_clock(parent, ret, "MemRead", ext_sel_memread, x_offset, y_offset);
+  return ret;
+}
+
+QList<pepp::QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, float y_offset) {
   using namespace TwoByteShapes;
-  QList<QMLOverlay *> ret;
+  QList<pepp::QMLOverlay *> ret;
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
@@ -513,32 +478,18 @@ QList<QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, float y_o
   return ret;
 }
 
-CursedCPUCanvas::CursedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
-  _geom = one_byte_geom();
-  _overlays = one_byte_overlays(this, OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset);
+} // namespace
 
-  auto svg_path = ":/qt/qml/CPUPaint/svg/arrow.svg";
-  QImage svg_image(svg_path);
-  _arrows[Qt::NoArrow] = QPixmap(QSize(0, 0));
-  _arrows[Qt::LeftArrow] = QPixmap::fromImage(svg_image);
-  _arrows[Qt::RightArrow] = QPixmap::fromImage(svg_image.flipped(Qt::Orientation::Horizontal));
-  _arrows[Qt::UpArrow] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(90.0)));
-  _arrows[Qt::DownArrow] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(270.0)));
-}
-
-CursedCPUCanvas::~CursedCPUCanvas() noexcept {
-  for (auto &ptr : _overlays) delete ptr;
-}
-
+namespace pepp {
 struct PaintDispatch {
-  CursedCPUCanvas *canvas;
+  pepp::PaintedCPUCanvas *canvas;
   QPainter *painter;
   QFont font{"Times New Roman", 14};
-  void operator()(const LineItem &item) {
+  void operator()(const pepp::LineItem &item) {
     painter->setPen(item.color);
     painter->drawLine(item.geom);
   }
-  void operator()(const ArrowItem &item) {
+  void operator()(const pepp::ArrowItem &item) {
     painter->setPen(item.color);
     const auto &arrow = item.geom;
     for (const QLine &line : arrow._lines) painter->drawLine(line);
@@ -550,24 +501,42 @@ struct PaintDispatch {
       painter->restore();
     }
   }
-  void operator()(const RectItem &item) {
+  void operator()(const pepp::RectItem &item) {
     painter->setBrush(item.fg);
     painter->setPen(item.bg);
     painter->drawRect(item.geom);
   }
-  void operator()(const PolygonItem &item) {
+  void operator()(const pepp::PolygonItem &item) {
     painter->setBrush(item.fg);
     painter->setPen(item.bg);
     painter->drawConvexPolygon(item.geom);
   }
-  void operator()(const TextRectItem &item) {
+  void operator()(const pepp::TextRectItem &item) {
     painter->setPen(item.color);
     painter->setFont(font);
     painter->drawText(item.geom, Qt::AlignCenter, item.text);
   }
 };
+} // namespace pepp
 
-void CursedCPUCanvas::paint(QPainter *painter) {
+pepp::PaintedCPUCanvas::PaintedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
+  _geom = one_byte_geom();
+  _overlays = one_byte_overlays(this, OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset);
+
+  auto svg_path = ":/logi/arrow.svg";
+  QImage svg_image(svg_path);
+  _arrows[Qt::NoArrow] = QPixmap(QSize(0, 0));
+  _arrows[Qt::LeftArrow] = QPixmap::fromImage(svg_image);
+  _arrows[Qt::RightArrow] = QPixmap::fromImage(svg_image.flipped(Qt::Orientation::Horizontal));
+  _arrows[Qt::UpArrow] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(90.0)));
+  _arrows[Qt::DownArrow] = QPixmap::fromImage(svg_image.transformed(QTransform().rotate(270.0)));
+}
+
+pepp::PaintedCPUCanvas::~PaintedCPUCanvas() noexcept {
+  for (auto &ptr : _overlays) delete ptr;
+}
+
+void pepp::PaintedCPUCanvas::paint(QPainter *painter) {
   painter->save();
   painter->translate(OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset);
   PaintDispatch disp{.canvas = this, .painter = painter};
