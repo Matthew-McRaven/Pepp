@@ -121,12 +121,12 @@ void GraphicCanvas::cacheBackground()
     const auto height = _background.height();
 
     QPen pen;
-    pen.setWidth(1);
+    pen.setWidth(grid_to_px / 2);
     QList<qreal> dashes;
     QLine line;
 
     pen.setColor(QColorConstants::Svg::gainsboro);
-    dashes << 1 << 3;
+    dashes << 1 << 6;
     pen.setDashPattern(dashes);
     painter.setPen(pen);
 
@@ -144,7 +144,7 @@ void GraphicCanvas::cacheBackground()
 
     //  Horizontal mid lines
     dashes.clear();
-    dashes << 1 << 2;
+    dashes << 1 << 3;
     pen.setDashPattern(dashes);
     pen.setColor(QColorConstants::Svg::cornflowerblue);
     painter.setPen(pen);
@@ -175,30 +175,34 @@ void GraphicCanvas::paint(QPainter *painter)
     painter->setPen(Qt::NoPen);
     painter->drawRect(0, 0, size().width(), size().height());
 
-    //  Set scaling
+    //  Set scaling - affects clipping region and column count
+    //  Other painting is unaffected
     painter->scale(_currentZoom, _currentZoom);
 
     //  Determine the size of the viewport in grid coordinates.
     const auto screen_viewport = QRectF(0, 0, size().width(), size().height());
 
     //  Clip painter to just visible area (including scrollbar)
-    painter->setClipRect(screen_viewport);
+    const QRect zoom_screen_viewport({0, 0}, (screen_viewport.size() / _currentZoom).toSize());
+    painter->setClipRect(zoom_screen_viewport);
 
     //  Use grid coordindates for checking rectangles
     const auto grid_viewport = screen_to_grid(screen_viewport);
 
-    const qint32 col = static_cast<qint32>(grid_viewport.height()) / block_size + 1;
-    const qint32 row = static_cast<qint32>(grid_viewport.width()) / block_size + 1;
+    //  Number of columns/rows changes with zoom
+    const qint32 row = grid_viewport.height() / _currentZoom / block_size + 1;
+    const qint32 col = grid_viewport.width() / _currentZoom / block_size + 1;
+    //qDebug() << "Col: " << col << "Row: " << row;
     const qint32 viewSize = block_size * grid_to_px;
     QRect currentBlock{0, 0, viewSize, viewSize};
 
     for (int x = 0; x < col; ++x) {
         for (int y = 0; y < row; ++y) {
             painter->drawPixmap(currentBlock, _background);
-            currentBlock.translate(viewSize, 0);
+            currentBlock.translate(0, viewSize);
         }
         //  Reset to next column first row
-        currentBlock.translate(-viewSize * row, viewSize);
+        currentBlock.translate(viewSize, -viewSize * row);
     }
 
     for (const auto &[rect, props] : _rects) {
