@@ -14,7 +14,7 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     setAntialiasing(true);
 
     //  Allow drag and drop
-    //setAcceptDrops(true);
+    setFlag(QQuickItem::ItemAcceptsDrops, true);
 
     //  Create background gid
     cacheBackground();
@@ -182,16 +182,12 @@ void GraphicCanvas::paint(QPainter *painter)
     //  Determine the size of the viewport in grid coordinates.
     const auto screen_viewport = QRectF(0, 0, size().width(), size().height());
 
-    //  Clip painter to just visible area (including scrollbar)
-    const QRect zoom_screen_viewport({0, 0}, (screen_viewport.size() / _currentZoom).toSize());
-    painter->setClipRect(zoom_screen_viewport);
-
     //  Use grid coordindates for checking rectangles
     const auto grid_viewport = screen_to_grid(screen_viewport);
 
     //  Number of columns/rows changes with zoom
-    const qint32 row = grid_viewport.height() / _currentZoom / block_size + 1;
-    const qint32 col = grid_viewport.width() / _currentZoom / block_size + 1;
+    const qint32 row = grid_viewport.height() / block_size + 1;
+    const qint32 col = grid_viewport.width() / block_size + 1;
     //qDebug() << "Col: " << col << "Row: " << row;
     const qint32 viewSize = block_size * grid_to_px;
     QRect currentBlock{0, 0, viewSize, viewSize};
@@ -270,7 +266,7 @@ QRectF GraphicCanvas::screen_to_grid(QRectF rect)
     const float width = rect.width() / grid_to_px;
     const float height = rect.height() / grid_to_px;
 
-    return QRectF{x, y, width, height};
+    return QRectF{x, y, width / _currentZoom, height / _currentZoom};
 }
 
 QPoint GraphicCanvas::screen_to_grid(QPointF point)
@@ -278,7 +274,7 @@ QPoint GraphicCanvas::screen_to_grid(QPointF point)
     const float x = point.x() / grid_to_px + _top_left.x();
     const float y = point.y() / grid_to_px + _top_left.y();
 
-    return QPointF{x, y}.toPoint();
+    return QPointF{x / _currentZoom, y / _currentZoom}.toPoint();
 }
 
 void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
