@@ -19,7 +19,7 @@ FocusScope {
     // WASM version's active focus is broken with docks.
     required property bool isActive
     property bool needsDock: true
-    property var widgets: [dock_micro,  dock_cpu, dock_hexdump]
+    property var widgets: [dock_micro,  dock_cpu, dock_hexdump, dock_object]
 
     focus: true
     signal requestModeSwitchTo(string mode)
@@ -79,29 +79,18 @@ FocusScope {
         const PreserveCurrent = 2
 
         const total_height = parent.height
-
-        const reg_height = registers.childrenRect.height
-        const regmemcol_width = registers.implicitWidth
-
-        const memdump_height = total_height - registers.implicitHeight
-        const greencard_width = parent.width * .3
-
-        const io_height = Math.max(200, total_height * .1)
-        const io_width = (parent.width - regmemcol_width - regmemcol_width)
-
-        dockWidgetArea.addDockWidget(
-                    dock_micro, KDDW.KDDockWidgets.Location_OnLeft,
-                    dockWidgetArea,
-                    Qt.size(parent.width - greencard_width - regmemcol_width,
-                            parent.height - io_height))
-        dockWidgetArea.addDockWidget(dock_cpu,
-                                     KDDW.KDDockWidgets.Location_OnRight,
-                                     dockWidgetArea, Qt.size(regmemcol_width,
-                                                             reg_height))
-        dockWidgetArea.addDockWidget(dock_hexdump,
-                                     KDDW.KDDockWidgets.Location_OnBottom,
-                                     dock_cpu, Qt.size(regmemcol_width,
-                                                       memdump_height))
+        const code_width = 600
+        const memory_width = 400
+        const cpu_width = parent.width-memory_width-code_width
+        const microobject_height = 400
+        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnLeft,
+                                     null, Qt.size(cpu_width, total_height))
+        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnLeft,
+                                     dock_cpu, Qt.size(memory_width, total_height))
+        dockWidgetArea.addDockWidget(dock_micro, KDDW.KDDockWidgets.Location_OnRight,
+                                     dock_cpu, Qt.size(code_width, total_height-microobject_height))
+        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnBottom,
+                                     dock_micro, Qt.size(code_width, microobject_height))
         wrapper.needsDock = Qt.binding(() => false)
         modeVisibilityChange()
         for (const x of widgets) {
@@ -110,11 +99,7 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        project.charInChanged.connect(() => batchInput.setInput(project.charIn))
-        objEdit.editingFinished.connect(save)
-        objEdit.forceActiveFocus()
         project.markedClean.connect(wrapper.markClean)
-        objEdit.onDirtiedChanged.connect(wrapper.markDirty)
     }
 
     function save() {
@@ -156,24 +141,30 @@ FocusScope {
             id: dock_cpu
 
             title: "CPU"
-            uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
+            uniqueName: `CPU-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
+            Rectangle {
+                anchors.fill: parent
+                property size kddockwidgets_min_size: Qt.size(800, 600)
+                color: "orange"
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_object
+
+            title: "Object Code"
+            uniqueName: `Object-${dockWidgetArea.uniqueName}`
             property var visibility: {
                 "editor": false,
                 "debugger": true
             }
-            ColumnLayout {
+            Rectangle {
                 anchors.fill: parent
-                property size kddockwidgets_min_size: Qt.size(
-                                                          registers.implicitWidth,
-                                                          registers.implicitHeight)
-                Cpu.RegisterView {
-                    id: registers
-                    Layout.fillWidth: false
-                    Layout.alignment: Qt.AlignHCenter
-
-                    registers: project?.registers ?? null
-                    flags: project?.flags ?? null
-                }
+                property size kddockwidgets_min_size: Qt.size(200, 200)
+                color: "red"
             }
         }
         KDDW.DockWidget {
@@ -182,7 +173,7 @@ FocusScope {
             title: "Memory Dump"
             uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
             property var visibility: {
-                "editor": true,
+                "editor": false,
                 "debugger": true
             }
             Loader {
@@ -200,6 +191,8 @@ FocusScope {
                               props)
                 }
                 asynchronous: true
+                clip: true
+                property size kddockwidgets_min_size: Qt.size(200, 200)
                 onLoaded: {
                     loader.item.scrollToAddress(project.currentAddress)
                     con.enabled = true
@@ -215,6 +208,7 @@ FocusScope {
             }
         }
     }
+
 
     // Only enable binding from the actions to this project if this project is focused.
     Connections {
