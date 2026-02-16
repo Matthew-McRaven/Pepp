@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-qt_add_executable(
-  CPUPaint main.cpp # ui/diagramModel.cpp
-  # ui/diagramModel.hpp
-)
+qt_add_executable(CPUPaint main.cpp)
 
 qt_add_qml_module(
   CPUPaint
@@ -15,6 +12,7 @@ qt_add_qml_module(
   svg/arrow.svg
   QML_FILES
   Main.qml
+  DatapathPainter.qml
   SOURCES
   ui/renderer.cpp
   DEPENDENCIES
