@@ -73,6 +73,7 @@ target_include_directories(
   pepp-lib
   PRIVATE enums
           cpu
+          cpu/ma2
           helpers
           help/about
           help/builtins
@@ -159,6 +160,18 @@ qt_add_resources(
   BIG_RESOURCES
   FILES
   ${fonts-dl})
+
+# Include assets for logic gate simulator.
+file(GLOB_RECURSE logicsim CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/logicsim/*")
+qt_add_resources(
+  pepp-lib
+  "logi"
+  PREFIX
+  "/logi"
+  BASE
+  "${PROJECT_DATA_DIR}/logicsim"
+  FILES
+  ${logicsim})
 
 # Include default themes without having to hard-code.
 file(GLOB_RECURSE themes CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/themes/*")

@@ -99,6 +99,7 @@ class EditorPaletteItem : public PaletteItem {
   Q_OBJECT
   QML_ELEMENT
   Q_PROPERTY(QFont macroFont READ macroFont WRITE setMacroFont NOTIFY preferenceChanged);
+  QML_UNCREATABLE("EditorPaletteItem is only creatable from C++")
 
 public:
   struct EditorOptions {

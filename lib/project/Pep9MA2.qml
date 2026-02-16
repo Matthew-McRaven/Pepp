@@ -6,6 +6,7 @@ import "qrc:/qt/qml/edu/pepp/memory/hexdump" as Memory
 import "qrc:/qt/qml/edu/pepp/memory/io" as IO
 import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
 import "qrc:/qt/qml/edu/pepp/utils" as Utils
+import "qrc:/qt/qml/edu/pepp/cpu/ma2" as MA2
 import edu.pepp 1.0
 import com.kdab.dockwidgets 2.0 as KDDW
 
@@ -19,13 +20,13 @@ FocusScope {
     // WASM version's active focus is broken with docks.
     required property bool isActive
     property bool needsDock: true
-    property var widgets: [dock_micro,  dock_cpu, dock_hexdump]
+    property var widgets: [dock_micro, dock_cpu, dock_hexdump, dock_object]
 
     focus: true
     signal requestModeSwitchTo(string mode)
 
     function syncEditors() {
-        project ? save() : null
+        project ? save() : null;
     }
     onModeChanged: modeVisibilityChange()
     // The mode may have changed while the window was not active.
@@ -34,93 +35,72 @@ FocusScope {
     function modeVisibilityChange() {
         if (!isActive) {
             // If the window is not active / visible, restore does not work correctly, causing #974.
-            return
+            return;
         } else if (needsDock) {
             // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
-            return
+            return;
         } else if (!(mode === "editor" || mode === "debugger")) {
-            return
+            return;
         } else if (previousMode === mode) {
             // Do not attempt to lay out if mode has not changed. Possible if window was inactive.
-            return
+            return;
         }
 
         if (previousMode)
-            layoutSaver.saveToFile(
-                        `${previousMode}-${dockWidgetArea.uniqueName}.json`)
+            layoutSaver.saveToFile(`${previousMode}-${dockWidgetArea.uniqueName}.json`);
         // Only use the visibility model when restoring for the first time.
-        if (!layoutSaver.restoreFromFile(
-                    `${mode}-${dockWidgetArea.uniqueName}.json`)) {
+        if (!layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`)) {
             for (const x of widgets) {
                 // visibility model preserves user changes within a mode.
-                const visible = x.visibility[mode]
+                const visible = x.visibility[mode];
                 if (visible && !x.isOpen)
-                    x.open()
+                    x.open();
                 else if (!visible && x.isOpen)
-                    x.close()
+                    x.close();
             }
         }
-        previousMode = mode
+        previousMode = mode;
     }
 
     // Must be called when the project in the model is marked non-dirty
     function markClean() {
-        objEdit.dirtied = Qt.binding(() => false)
+        objEdit.dirtied = Qt.binding(() => false);
     }
     function markDirty() {
         if (objEdit.dirtied)
-            project.markDirty()
+            project.markDirty();
     }
 
     // Call when the height, width have been finalized.
     // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
     function dock() {
-        const StartHidden = 1
-        const PreserveCurrent = 2
+        const StartHidden = 1;
+        const PreserveCurrent = 2;
 
-        const total_height = parent.height
-
-        const reg_height = registers.childrenRect.height
-        const regmemcol_width = registers.implicitWidth
-
-        const memdump_height = total_height - registers.implicitHeight
-        const greencard_width = parent.width * .3
-
-        const io_height = Math.max(200, total_height * .1)
-        const io_width = (parent.width - regmemcol_width - regmemcol_width)
-
-        dockWidgetArea.addDockWidget(
-                    dock_micro, KDDW.KDDockWidgets.Location_OnLeft,
-                    dockWidgetArea,
-                    Qt.size(parent.width - greencard_width - regmemcol_width,
-                            parent.height - io_height))
-        dockWidgetArea.addDockWidget(dock_cpu,
-                                     KDDW.KDDockWidgets.Location_OnRight,
-                                     dockWidgetArea, Qt.size(regmemcol_width,
-                                                             reg_height))
-        dockWidgetArea.addDockWidget(dock_hexdump,
-                                     KDDW.KDDockWidgets.Location_OnBottom,
-                                     dock_cpu, Qt.size(regmemcol_width,
-                                                       memdump_height))
-        wrapper.needsDock = Qt.binding(() => false)
-        modeVisibilityChange()
+        const total_height = parent.height;
+        const code_width = 600;
+        const memory_width = 400;
+        const cpu_width = parent.width - memory_width - code_width;
+        const microobject_height = 400;
+        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnLeft, null, Qt.size(cpu_width, total_height));
+        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnLeft, dock_cpu, Qt.size(memory_width, total_height));
+        dockWidgetArea.addDockWidget(dock_micro, KDDW.KDDockWidgets.Location_OnRight, dock_cpu, Qt.size(code_width, total_height - microobject_height));
+        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnBottom, dock_micro, Qt.size(code_width, microobject_height));
+        wrapper.needsDock = Qt.binding(() => false);
+        modeVisibilityChange();
         for (const x of widgets) {
-            x.needsAttention = false
+            x.needsAttention = false;
         }
     }
 
     Component.onCompleted: {
-        project.charInChanged.connect(() => batchInput.setInput(project.charIn))
-        objEdit.editingFinished.connect(save)
-        objEdit.forceActiveFocus()
-        project.markedClean.connect(wrapper.markClean)
-        objEdit.onDirtiedChanged.connect(wrapper.markDirty)
+        project.markedClean.connect(wrapper.markClean);
     }
 
     function save() {
         // Supress saving messages when there is no project.
         if (project && !objEdit.readOnly)
-            project.objectCodeText = objEdit.text
+            project.objectCodeText = objEdit.text;
     }
     KDDW.DockingArea {
         id: dockWidgetArea
@@ -156,24 +136,30 @@ FocusScope {
             id: dock_cpu
 
             title: "CPU"
-            uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
+            uniqueName: `CPU-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
+            MA2.DatapathPainter {
+                anchors.fill: parent
+                clip: true
+                property size kddockwidgets_min_size: Qt.size(800, 600)
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_object
+
+            title: "Object Code"
+            uniqueName: `Object-${dockWidgetArea.uniqueName}`
             property var visibility: {
                 "editor": false,
                 "debugger": true
             }
-            ColumnLayout {
+            Rectangle {
                 anchors.fill: parent
-                property size kddockwidgets_min_size: Qt.size(
-                                                          registers.implicitWidth,
-                                                          registers.implicitHeight)
-                Cpu.RegisterView {
-                    id: registers
-                    Layout.fillWidth: false
-                    Layout.alignment: Qt.AlignHCenter
-
-                    registers: project?.registers ?? null
-                    flags: project?.flags ?? null
-                }
+                property size kddockwidgets_min_size: Qt.size(200, 200)
+                color: "red"
             }
         }
         KDDW.DockWidget {
@@ -182,7 +168,7 @@ FocusScope {
             title: "Memory Dump"
             uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
             property var visibility: {
-                "editor": true,
+                "editor": false,
                 "debugger": true
             }
             Loader {
@@ -192,24 +178,25 @@ FocusScope {
                     const props = {
                         "memory": project.memory,
                         "mnemonics": project.mnemonics
-                    }
+                    };
                     // Construction sets current address to 0, which propogates back to project.
                     // Must reject changes in current address until component is fully rendered.
-                    con.enabled = false
-                    setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml",
-                              props)
+                    con.enabled = false;
+                    setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
                 }
                 asynchronous: true
+                clip: true
+                property size kddockwidgets_min_size: Qt.size(200, 200)
                 onLoaded: {
-                    loader.item.scrollToAddress(project.currentAddress)
-                    con.enabled = true
+                    loader.item.scrollToAddress(project.currentAddress);
+                    con.enabled = true;
                 }
                 Connections {
                     id: con
                     enabled: false
                     target: loader.item
                     function onCurrentAddressChanged() {
-                        project.currentAddress = loader.item.currentAddress
+                        project.currentAddress = loader.item.currentAddress;
                     }
                 }
             }
@@ -221,14 +208,14 @@ FocusScope {
         enabled: wrapper.activeFocus || wrapper.isActive
         target: wrapper.actions.debug.start
         function onTriggered() {
-            wrapper.requestModeSwitchTo("debugger")
+            wrapper.requestModeSwitchTo("debugger");
         }
     }
     Connections {
         enabled: wrapper.activeFocus || wrapper.isActive
         target: wrapper.actions.build.execute
         function onTriggered() {
-            wrapper.requestModeSwitchTo("debugger")
+            wrapper.requestModeSwitchTo("debugger");
         }
     }
 }
