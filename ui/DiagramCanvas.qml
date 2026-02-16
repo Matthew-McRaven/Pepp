@@ -46,10 +46,10 @@ Item {
         contentWidth: canvas.contentWidth
         contentHeight: canvas.contentHeight
         // A dummy item which gives us something to scroll against
-        delegate: GridLines {
+        /*delegate: GridLines {
             implicitWidth: 100
             implicitHeight: 100
-        }
+        }*/
 
         ScrollBar.vertical: ScrollBar {
             id: vsb

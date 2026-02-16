@@ -126,7 +126,7 @@ void GraphicCanvas::cacheBackground()
     QLine line;
 
     pen.setColor(QColorConstants::Svg::gainsboro);
-    dashes << 1 << 6;
+    dashes << 1 << 3;
     pen.setDashPattern(dashes);
     painter.setPen(pen);
 
@@ -144,7 +144,7 @@ void GraphicCanvas::cacheBackground()
 
     //  Horizontal mid lines
     dashes.clear();
-    dashes << 1 << 3;
+    dashes << 1 << 2;
     pen.setDashPattern(dashes);
     pen.setColor(QColorConstants::Svg::cornflowerblue);
     painter.setPen(pen);
@@ -187,19 +187,21 @@ void GraphicCanvas::paint(QPainter *painter)
     //  Use grid coordindates for checking rectangles
     const auto grid_viewport = screen_to_grid(screen_viewport);
 
-    /*const qint32 col = grid_viewport.height() / block_size;
-    const qint32 row = grid_viewport.width() / block_size;
-    QRect view{0, 0, block_size * 4, block_size * 4};
-    for (int x = 0; x < col; ++x)
-        for (int y = 0; y < row; ++y) {
-            view.translate(x * block_size * 4, y * block_size * 4);
-            painter->drawPixmap(view, _background);
-        }
-*/
-    for (const auto &[rect, props] : _rects) {
-        //  Paint background first
-        painter->drawPixmap(grid_to_screen(rect).toRect(), _background);
+    const qint32 col = static_cast<qint32>(grid_viewport.height()) / block_size + 1;
+    const qint32 row = static_cast<qint32>(grid_viewport.width()) / block_size + 1;
+    const qint32 viewSize = block_size * grid_to_px;
+    QRect currentBlock{0, 0, viewSize, viewSize};
 
+    for (int x = 0; x < col; ++x) {
+        for (int y = 0; y < row; ++y) {
+            painter->drawPixmap(currentBlock, _background);
+            currentBlock.translate(viewSize, 0);
+        }
+        //  Reset to next column first row
+        currentBlock.translate(-viewSize * row, viewSize);
+    }
+
+    for (const auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
         if (grid_viewport.intersects(rect))
             paint_one(painter, rect, *props);
@@ -210,6 +212,7 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
 {
     // Convert our absolute grid coordinates to screen coordinates.
     auto screen_rect = grid_to_screen(rect).adjusted(2, 2, -3, -3);
+
     // In reality, each of these branches should be its own function/method.
     // If we actually had props, we would use them to make decisions about how to paint.
     // e.g., do I copy one of the NAND/NOR images into this rectangle, or do I draw a solid color?
