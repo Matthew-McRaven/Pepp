@@ -12,7 +12,7 @@ class QMLOverlay : public QObject {
   QML_NAMED_ELEMENT(QMLOverlay)
   Q_PROPERTY(QRect location READ location CONSTANT)
   Q_PROPERTY(int type READ type CONSTANT)
-  QML_UNCREATABLE("TristateOverlay is only creatable from C++")
+  QML_UNCREATABLE("QMLOverlay is only creatable from C++")
 public:
   QMLOverlay(QRect location, QObject *parent = nullptr);
   QRect location() const { return _location; }
@@ -29,7 +29,7 @@ class ClockOverlay : public QMLOverlay {
   Q_PROPERTY(int type READ type CONSTANT)
   Q_PROPERTY(QString label READ label CONSTANT FINAL)
   Q_PROPERTY(bool value READ value WRITE setValue NOTIFY valueChanged)
-  QML_UNCREATABLE("TristateOverlay is only creatable from C++")
+  QML_UNCREATABLE("ClockOverlay is only creatable from C++")
 public:
   ClockOverlay(QRect location, QString label, QObject *parent = nullptr);
   int type() override;
