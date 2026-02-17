@@ -1,4 +1,5 @@
 #include "graphiccanvas.hpp"
+#include <QCursor>
 #include <QDrag>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -338,10 +339,19 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     //  See if existing item was clicked
     if (setSelected(point)) {
         QDrag *drag = new QDrag(this);
+
+        QByteArray itemData;
+        QDataStream dataStream(&itemData, QIODevice::WriteOnly);
+        dataStream << *_currentItem->image() << QPoint(event->position().toPoint());
+
         QMimeData *mimeData = new QMimeData;
+        mimeData->setData("application/x-dnditemdata", itemData);
+
         drag->setMimeData(mimeData);
         drag->setPixmap(*_currentItem->image());
-        //drag->setHotSpot(event->position().toPoint());
+        drag->setHotSpot(event->position().toPoint());
+        drag->exec();
+        setCursor(Qt::OpenHandCursor);
 
         //  Another item was selected
         event->setAccepted(true);
@@ -446,8 +456,7 @@ void GraphicCanvas::wheelEvent(QWheelEvent *event)
             y = std::max(0.0f, originY() - block);
         } else if (angleDelta.y() < 0) {
             // Perform action for scrolling down
-            //y = std::min(contentHeight(), originY() + block);
-            y = originY() + block;
+            y = std::min(contentHeight(), originY() + block);
         }
         qDebug() << "contentHeight():" << contentHeight() << "originY():" << originY() << "new Y"
                  << y;
@@ -509,9 +518,19 @@ void GraphicCanvas::setZoom(qint8 change)
 
 void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)
 {
-    event->ignore();
     qDebug() << "dragEnterEvent";
+    if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
+        if (event->source() == this) {
+            event->setDropAction(Qt::MoveAction);
+            event->accept();
+        } else {
+            event->acceptProposedAction();
+        }
+    } else {
+        event->ignore();
+    }
 }
+
 void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event)
 {
     event->ignore();
@@ -520,12 +539,43 @@ void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event)
 
 void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event)
 {
-    event->ignore();
     qDebug() << "dragMoveEvent";
+    if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
+        if (event->source() == this) {
+            event->setDropAction(Qt::MoveAction);
+            event->accept();
+        } else {
+            event->acceptProposedAction();
+        }
+    } else {
+        event->ignore();
+    }
 }
 
 void GraphicCanvas::dropEvent(QDropEvent *event)
 {
-    event->ignore();
     qDebug() << "dropEvent";
+    if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
+        QByteArray itemData = event->mimeData()->data("application/x-dnditemdata");
+        QDataStream dataStream(&itemData, QIODevice::ReadOnly);
+
+        QPixmap pixmap;
+        QPoint offset;
+        dataStream >> pixmap >> offset;
+
+        //QLabel *newIcon = new QLabel(this);
+        //newIcon->setPixmap(pixmap);
+        //newIcon->move(event->position().toPoint() - offset);
+        //newIcon->show();
+        //newIcon->setAttribute(Qt::WA_DeleteOnClose);
+
+        if (event->source() == this) {
+            event->setDropAction(Qt::MoveAction);
+            event->accept();
+        } else {
+            event->acceptProposedAction();
+        }
+    } else {
+        event->ignore();
+    }
 }
