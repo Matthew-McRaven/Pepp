@@ -1,4 +1,5 @@
 #include "graphiccanvas.hpp"
+#include <QDrag>
 #include <QPainter>
 #include <QSvgRenderer>
 
@@ -94,13 +95,6 @@ void GraphicCanvas::cacheImages(const QString &source)
         painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
 
         renderer.render(&painter);
-        /*painter.end();
-
-        // Apply the new color - colors fill
-        painter.begin(&image);
-        painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-        painter.fillRect(image.rect(), QBrush(_highlight));
-        painter.end();*/
         _svgs.emplace_back(image);
 
         //  Make copy of rotated image to speed up drawing
@@ -186,19 +180,26 @@ void GraphicCanvas::paint(QPainter *painter)
     const auto grid_viewport = screen_to_grid(screen_viewport);
 
     //  Number of columns/rows changes with zoom
-    const qint32 row = grid_viewport.height() / block_size + 1;
-    const qint32 col = grid_viewport.width() / block_size + 1;
-    //qDebug() << "Col: " << col << "Row: " << row;
-    const qint32 viewSize = block_size * grid_to_px;
-    QRect currentBlock{0, 0, viewSize, viewSize};
+    //  Note, first and last column may be partial. Add 2 to ensure
+    //  last column is not clipped
+    const qint32 row = grid_viewport.height() / block_size + 3;
+    const qint32 col = grid_viewport.width() / block_size + 3;
+    qDebug() << "row: " << row << "col:" << col;
 
+    //  Offset first cell if first row or column is cut off
+    qreal cX = std::fmod(grid_viewport.x(), block_size) * grid_to_px * _currentZoom;
+    qreal cY = std::fmod(grid_viewport.y(), block_size) * grid_to_px * _currentZoom;
+
+    QRectF currentBlock{-cX, -cY, screen_block, screen_block};
+
+    //qDebug() << "currentBlock: " << currentBlock;
     for (int x = 0; x < col; ++x) {
         for (int y = 0; y < row; ++y) {
-            painter->drawPixmap(currentBlock, _background);
-            currentBlock.translate(0, viewSize);
+            painter->drawPixmap(currentBlock.toRect(), _background);
+            currentBlock.translate(0.0, screen_block);
         }
         //  Reset to next column first row
-        currentBlock.translate(viewSize, -viewSize * row);
+        currentBlock.translate(screen_block, -screen_block * row);
     }
 
     for (const auto &[rect, props] : _rects) {
@@ -206,6 +207,7 @@ void GraphicCanvas::paint(QPainter *painter)
         if (grid_viewport.intersects(rect))
             paint_one(painter, rect, *props);
     }
+    //qDebug() << "grid_viewport: " << grid_viewport;
 }
 
 void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProperties &props)
@@ -216,7 +218,7 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
     // In reality, each of these branches should be its own function/method.
     // If we actually had props, we would use them to make decisions about how to paint.
     // e.g., do I copy one of the NAND/NOR images into this rectangle, or do I draw a solid color?
-    QPixmap *image = nullptr;
+    const QPixmap *image = getImage(props);
 
     //  Check state, and set outline if selected
     if (props.selected()) {
@@ -224,25 +226,24 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
         painter->drawRect(screen_rect);
     }
 
-    //  Get cached copy for drawing
-    switch (props.orientation()) {
-    case 90:
-        image = &_svgsBottom[props.type()];
-        break;
-    case 180:
-        image = &_svgsLeft[props.type()];
-        break;
-    case 270:
-        image = &_svgsTop[props.type()];
-        break;
-    default:
-        image = &_svgs[props.type()];
-        break;
-    }
 
     //  If image is not null, it can be output
     if (image)
         painter->drawPixmap(screen_rect.toRect(), *image);
+}
+
+const QPixmap *GraphicCanvas::getImage(const DiagramProperties &props) const
+{
+    //  Get cached copy for drawing
+    switch (props.orientation()) {
+    case 90:
+        return &_svgsBottom[props.type()];
+    case 180:
+        return &_svgsLeft[props.type()];
+    case 270:
+        return &_svgsTop[props.type()];
+    }
+    return &_svgs[props.type()];
 }
 
 QRectF GraphicCanvas::grid_to_screen(QRectF rect)
@@ -266,7 +267,7 @@ QRectF GraphicCanvas::screen_to_grid(QRectF rect)
     const float width = rect.width() / grid_to_px;
     const float height = rect.height() / grid_to_px;
 
-    return QRectF{x, y, width / _currentZoom, height / _currentZoom};
+    return QRectF{x / _currentZoom, y / _currentZoom, width / _currentZoom, height / _currentZoom};
 }
 
 QPoint GraphicCanvas::screen_to_grid(QPointF point)
@@ -298,9 +299,12 @@ void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
 }
 
 //  Mouse events - Comment out unused events for now
-/*void GraphicCanvas::mouseDoubleClickEvent(QMouseEvent *event) {}
+/*void GraphicCanvas::mouseDoubleClickEvent(QMouseEvent *event) {}*/
 
-void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {}*/
+void GraphicCanvas::mouseMoveEvent(QMouseEvent *event)
+{
+    qDebug() << "MouseMove" << event;
+}
 
 void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 {
@@ -321,8 +325,15 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 
     //  See if existing item was clicked
     if (setSelected(point)) {
+        /*QDrag *drag = new QDrag(this);
+        QMimeData *mimeData = new QMimeData;
+        drag->setMimeData(mimeData);
+        drag->setPixmap(*getImage(*_currentItem));
+        drag->setHotSpot(event->position().toPoint());*/
+
         //  Another item was selected
         event->setAccepted(true);
+
         return;
     }
 
@@ -369,8 +380,10 @@ bool GraphicCanvas::setSelected(const QPoint point)
             continue;
         }
 
-        // Item exists and is selected, update view
+        //  Item exists and is selected, update view
+        //  Save current item for other actions
         //  Set through view so that other controls see change
+        _currentItem = props;
         const auto index = _model->index(props->rectangle().x(), props->rectangle().y());
         _model->setData(index, true, DiagramProperty::Role::Selected);
 
@@ -382,8 +395,12 @@ bool GraphicCanvas::setSelected(const QPoint point)
     return found;
 }
 
-/*void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {}
+void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event)
+{
+    qDebug() << "MouseRelease" << event;
+}
 
+/*
 void GraphicCanvas::mouseUngrabEvent() {}
 
 void GraphicCanvas::hoverEnterEvent(QHoverEvent *event) {}
@@ -407,15 +424,20 @@ void GraphicCanvas::wheelEvent(QWheelEvent *event)
     //  See if shift, alt, or control keys are pressed
     const auto modifier = event->modifiers();
 
+    float block = screen_block * _currentZoom;
+
     if (modifier == Qt::NoModifier) {
         float y = 0.0;
         if (angleDelta.y() > 0) {
             // Perform action for scrolling up
-            y = std::max(0.0, originY() - 100.0);
+            y = std::max(0.0f, originY() - block);
         } else if (angleDelta.y() < 0) {
             // Perform action for scrolling down
-            y = std::min(contentHeight(), originY() + 100);
+            //y = std::min(contentHeight(), originY() + block);
+            y = originY() + block;
         }
+        qDebug() << "contentHeight():" << contentHeight() << "originY():" << originY() << "new Y"
+                 << y;
 
         //  Update screen
         setOriginY(y);
@@ -427,10 +449,10 @@ void GraphicCanvas::wheelEvent(QWheelEvent *event)
         float x = 0.0;
         if (angleDelta.y() < 0) {
             // Perform action for scrolling left
-            x = std::max(0.0, originX() - 100.0);
+            x = std::max(0.0f, originX() - block);
         } else if (angleDelta.y() > 0) {
             // Perform action for scrolling right
-            x = std::min(contentWidth(), originX() + 100);
+            x = std::min(contentWidth(), originX() + block);
         }
 
         //  Update screen
@@ -468,8 +490,7 @@ void GraphicCanvas::setZoom(qint8 change)
         newZoom = std::max(_minScale, _currentZoom - .25);
 
     //  Apply rounding
-    _currentZoom = newZoom; //static_cast<int>(newZoom * 100) / 100.0;
-    //grid_to_px = _pixel * _currentZoom;
+    _currentZoom = newZoom;
     qDebug() << "new zoom: " << newZoom;
 }
 

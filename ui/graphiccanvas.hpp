@@ -38,23 +38,23 @@ public:
     void paint(QPainter *painter) override;
 
     // Max bounds based on contained rectangles.
-    float contentWidth() const { return _dimensions.width() * grid_to_px; }
-    float contentHeight() const { return _dimensions.height() * grid_to_px; }
+    float contentWidth() const { return _dimensions.width() * grid_to_px * _currentZoom; }
+    float contentHeight() const { return _dimensions.height() * grid_to_px * _currentZoom; }
 
     // The top-left corner, as measured in "screen" coordinates
-    float originX() const { return _top_left.x() * grid_to_px; }
-    float originY() const { return _top_left.y() * grid_to_px; }
+    float originX() const { return _top_left.x() * grid_to_px * _currentZoom; }
+    float originY() const { return _top_left.y() * grid_to_px * _currentZoom; }
 
     // Compute grid coordinates from screen coordinates
     void setOriginX(float x)
     {
-        _top_left = {(x / grid_to_px), _top_left.y()};
+        _top_left = {(x / grid_to_px / _currentZoom), _top_left.y()};
         emit originChanged();
         update();
     }
     void setOriginY(float y)
     {
-        _top_left = {_top_left.x(), (y / grid_to_px)};
+        _top_left = {_top_left.x(), (y / grid_to_px / _currentZoom)};
         emit originChanged();
         update();
     }
@@ -112,10 +112,10 @@ public:
 protected:
     //  Mouse events
     //void mouseDoubleClickEvent(QMouseEvent *event) override;
-    //void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
-    /*void mouseReleaseEvent(QMouseEvent *event) override;
-    void mouseUngrabEvent() override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    /*void mouseUngrabEvent() override;
 
     void hoverEnterEvent(QHoverEvent *event) override;
     void hoverLeaveEvent(QHoverEvent *event) override;
@@ -143,16 +143,17 @@ private:
 
     //  Grid dimensions (logical size, screen size is this times grid_to_px
     const int block_size = 25;
+    const float screen_block = block_size * grid_to_px;
 
     //  Centralize image addition so we can track canvas size
     void insertImage(const QRect &rect, DiagramProperties *data);
+    const QPixmap *getImage(const DiagramProperties &props) const;
 
     // Helepr for painting a single rect that has already "passed" the clipping test.
     void paint_one(QPainter *painter, QRect rect, const DiagramProperties &props);
     QRectF grid_to_screen(QRectF rect);
     QRectF screen_to_grid(QRectF rect);
     QPoint screen_to_grid(QPointF point);
-    //QRectF scaleToZoom(QRectF rect);
     void setZoom(qint8 change);
 
     //  Sets currently selected diagram
@@ -194,9 +195,8 @@ private:
     //  Data model
     DiagramDataModel *_model = nullptr;
     DiagramTemplate *_template = nullptr;
+    DiagramProperties *_currentItem = nullptr;
 
     //  Background is saved in screen coordinates since there is no hit testing
-    //    QPixmap _background{block_size * static_cast<int>(grid_to_px) * 10,
-    //                      block_size *static_cast<int>(grid_to_px) * 10};
     QPixmap _background{block_size * 10, block_size * 10};
 };
