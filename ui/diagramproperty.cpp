@@ -78,6 +78,10 @@ void DiagramProperties::setImageSource(const QString v)
 {
     if (_imageSrc != v) {
         _imageSrc = v;
+
+        //  Clear cached image
+        _pixMap = nullptr;
+
         emit imageChanged();
     }
 }
@@ -86,6 +90,10 @@ void DiagramProperties::setType(const int v)
 {
     if (_type != static_cast<DiagramType::Type>(v)) {
         _type = static_cast<DiagramType::Type>(v);
+
+        //  Clear cached image
+        _pixMap = nullptr;
+
         emit typeChanged();
     }
 }
@@ -121,6 +129,9 @@ void DiagramProperties::setOrientation(const quint32 v)
     if (_orientation != angle) {
         const auto slice = static_cast<quint32>(angle / 90);
 
+        //  Clear cached image
+        _pixMap = nullptr;
+
         //  Only support 90 degree changes
         _orientation = slice * 90;
         emit imageChanged();
@@ -132,5 +143,12 @@ void DiagramProperties::setRectangle(const QRect v)
     if (_rect != v) {
         _rect = v;
         emit dimensionsChanged();
+    }
+}
+
+void DiagramProperties::setImage(QPixmap *v)
+{
+    if (_pixMap != v) {
+        _pixMap = v;
     }
 }

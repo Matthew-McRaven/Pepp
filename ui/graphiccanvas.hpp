@@ -48,13 +48,13 @@ public:
     // Compute grid coordinates from screen coordinates
     void setOriginX(float x)
     {
-        _top_left = {(x / grid_to_px / _currentZoom), _top_left.y()};
+        _top_left.setX(x / grid_to_px / _currentZoom);
         emit originChanged();
         update();
     }
     void setOriginY(float y)
     {
-        _top_left = {_top_left.x(), (y / grid_to_px / _currentZoom)};
+        _top_left.setY(y / grid_to_px / _currentZoom);
         emit originChanged();
         update();
     }
@@ -147,10 +147,10 @@ private:
 
     //  Centralize image addition so we can track canvas size
     void insertImage(const QRect &rect, DiagramProperties *data);
-    const QPixmap *getImage(const DiagramProperties &props) const;
+    void getImage(DiagramProperties &props);
 
     // Helepr for painting a single rect that has already "passed" the clipping test.
-    void paint_one(QPainter *painter, QRect rect, const DiagramProperties &props);
+    void paint_one(QPainter *painter, QRect rect, DiagramProperties &props);
     QRectF grid_to_screen(QRectF rect);
     QRectF screen_to_grid(QRectF rect);
     QPoint screen_to_grid(QPointF point);

@@ -55,6 +55,7 @@ public:
     int type() const { return static_cast<int>(_type); }
     quint16 inputNo() const { return _inputNo; }
     quint16 outputNo() const { return _outputNo; }
+    QPixmap *image() const { return _pixMap; }
 
     void setName(const QString v);
     void setImageSource(const QString v);
@@ -65,6 +66,7 @@ public:
     //  Not added as Q_Property yet
     bool selected() const { return _isSelected; }
     void setSelected(const bool v);
+    void setImage(QPixmap *v);
 
     int orientation() const { return _orientation; }
     void setOrientation(const quint32 v);
@@ -104,4 +106,5 @@ private:
 
     //  Diagram grid dimensions & placement
     QRect _rect{};
+    QPixmap *_pixMap = nullptr;
 };

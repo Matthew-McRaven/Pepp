@@ -65,6 +65,7 @@ void GraphicCanvas::updateData()
             data->setRectangle({i, j, 1, 1});
             data->setType(i % _svgs.size());
             data->setOrientation(90 * j);
+            getImage(*data);
 
             insertImage(r, data);
         }
@@ -164,27 +165,30 @@ void GraphicCanvas::cacheBackground()
 
 void GraphicCanvas::paint(QPainter *painter)
 {
-    // Paint the background.
-    painter->setBrush(Qt::NoBrush);
-    painter->setPen(Qt::NoPen);
-    painter->drawRect(0, 0, size().width(), size().height());
-
-    //  Set scaling - affects clipping region and column count
-    //  Other painting is unaffected
-    painter->scale(_currentZoom, _currentZoom);
-
     //  Determine the size of the viewport in grid coordinates.
     const auto screen_viewport = QRectF(0, 0, size().width(), size().height());
 
-    //  Use grid coordindates for checking rectangles
+    // Paint the background.
+    painter->setBrush(Qt::NoBrush);
+    painter->setPen(Qt::NoPen);
+    painter->drawRect(screen_viewport);
+
+    //  Set scaling - affects clipping region and column/row count
+    //  Other painting is unaffected
+    painter->scale(_currentZoom, _currentZoom);
+
+    //  Use grid coordindates for checking rectangles. Note,
+    //  screen_to_grid returns scaled grid.
     const auto grid_viewport = screen_to_grid(screen_viewport);
 
     //  Number of columns/rows changes with zoom
-    //  Note, first and last column may be partial. Add 2 to ensure
-    //  last column is not clipped
+    //  Note, first and last column may be partial.
+    //  drawPixmap implicity uses scale, but other calculations do not.
+    //  Add 3 since scaling indirectly affects number of rows and columns.
+    //  Scaling currentBlock causes banding and overwriting.
     const qint32 row = grid_viewport.height() / block_size + 3;
     const qint32 col = grid_viewport.width() / block_size + 3;
-    qDebug() << "row: " << row << "col:" << col;
+    //qDebug() << "row: " << row << "col:" << col;
 
     //  Offset first cell if first row or column is cut off
     qreal cX = std::fmod(grid_viewport.x(), block_size) * grid_to_px * _currentZoom;
@@ -210,15 +214,11 @@ void GraphicCanvas::paint(QPainter *painter)
     //qDebug() << "grid_viewport: " << grid_viewport;
 }
 
-void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProperties &props)
+void GraphicCanvas::paint_one(QPainter *painter, QRect rect, DiagramProperties &props)
 {
     // Convert our absolute grid coordinates to screen coordinates.
+    // Grid is inset so that selection box appears inside current cell
     auto screen_rect = grid_to_screen(rect).adjusted(2, 2, -3, -3);
-
-    // In reality, each of these branches should be its own function/method.
-    // If we actually had props, we would use them to make decisions about how to paint.
-    // e.g., do I copy one of the NAND/NOR images into this rectangle, or do I draw a solid color?
-    const QPixmap *image = getImage(props);
 
     //  Check state, and set outline if selected
     if (props.selected()) {
@@ -226,24 +226,36 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, const DiagramProper
         painter->drawRect(screen_rect);
     }
 
+    // Return current image
+    //const QPixmap *image = getImage(props);
 
     //  If image is not null, it can be output
-    if (image)
-        painter->drawPixmap(screen_rect.toRect(), *image);
+    if (props.image() == nullptr)
+        //  If image is null, then it's properties were reset, update image
+        getImage(props);
+
+    painter->drawPixmap(screen_rect.toRect(), *props.image());
 }
 
-const QPixmap *GraphicCanvas::getImage(const DiagramProperties &props) const
+void GraphicCanvas::getImage(DiagramProperties &props)
 {
+    QPixmap *image = nullptr;
+
     //  Get cached copy for drawing
     switch (props.orientation()) {
     case 90:
-        return &_svgsBottom[props.type()];
+        image = &_svgsBottom[props.type()];
+        break;
     case 180:
-        return &_svgsLeft[props.type()];
+        image = &_svgsLeft[props.type()];
+        break;
     case 270:
-        return &_svgsTop[props.type()];
+        image = &_svgsTop[props.type()];
+        break;
+    default:
+        image = &_svgs[props.type()];
     }
-    return &_svgs[props.type()];
+    props.setImage(image);
 }
 
 QRectF GraphicCanvas::grid_to_screen(QRectF rect)
@@ -325,11 +337,11 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 
     //  See if existing item was clicked
     if (setSelected(point)) {
-        /*QDrag *drag = new QDrag(this);
+        QDrag *drag = new QDrag(this);
         QMimeData *mimeData = new QMimeData;
         drag->setMimeData(mimeData);
-        drag->setPixmap(*getImage(*_currentItem));
-        drag->setHotSpot(event->position().toPoint());*/
+        drag->setPixmap(*_currentItem->image());
+        //drag->setHotSpot(event->position().toPoint());
 
         //  Another item was selected
         event->setAccepted(true);
@@ -354,6 +366,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     data->setName(_template->name());
     data->setRectangle({col, row, 1, 1});
     data->setType(_template->key());
+    getImage(*data);
 
     insertImage(r, data);
     _model->setData(index, true, DiagramProperty::Role::Selected);
