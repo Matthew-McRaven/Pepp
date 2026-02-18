@@ -9,6 +9,7 @@ struct TextRectItem {
   QRectF geom;
   QString text;
   QColor color{0, 0, 0, 255};
+  Qt::Alignment alignment = Qt::AlignHCenter | Qt::AlignVCenter;
 };
 
 struct RectItem {
