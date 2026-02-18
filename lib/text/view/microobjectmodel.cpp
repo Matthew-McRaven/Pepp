@@ -6,7 +6,7 @@
 #include "help/builtins/registry.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 
-pepp::MicroObjectModel::MicroObjectModel(QObject *parent) {
+pepp::MicroObjectModel::MicroObjectModel(QObject *parent) : QAbstractTableModel(parent) {
   auto bookReg = builtins::Registry();
   auto book6 = helpers::book(6, &bookReg);
   using regs = pepp::tc::arch::Pep9Registers;
