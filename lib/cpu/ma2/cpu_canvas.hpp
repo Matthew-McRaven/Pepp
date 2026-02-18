@@ -2,37 +2,38 @@
 #include <QPixmap>
 #include <QQuickPaintedItem>
 #include "qml_overlays.hpp"
+#include "settings/constants.hpp"
 #include "shapes_one.hpp"
 
 namespace pepp {
 struct TextRectItem {
   QRectF geom;
   QString text;
-  QColor color{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   Qt::Alignment alignment = Qt::AlignHCenter | Qt::AlignVCenter;
 };
 
 struct RectItem {
   QRect geom;
-  QColor bg{0, 0, 0, 255}, fg{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   bool enabled = true;
 };
 
 struct PolygonItem {
   QPolygon geom;
-  QColor bg{0, 0, 0, 255}, fg{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   bool enabled = true;
 };
 
 struct LineItem {
   QLine geom;
-  QColor color{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   bool enabled = true;
 };
 
 struct ArrowItem {
   Arrow geom;
-  QColor color{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   bool enabled = true;
 };
 using Item = std::variant<LineItem, ArrowItem, RectItem, PolygonItem, TextRectItem>;

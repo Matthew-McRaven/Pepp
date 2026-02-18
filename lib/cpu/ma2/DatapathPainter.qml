@@ -18,7 +18,9 @@ Item {
     // == 1, Pep/9 two byte
     // TODO: really should be an enum
     required property int which
-
+    NuAppSettings {
+        id: settings
+    }
     component LabeledTriState: Item {
         id: triState
         required property var location
@@ -128,6 +130,9 @@ Item {
                 y: 0
                 width: _byte.contentWidth
                 height: _byte.contentHeight
+                Component.onCompleted: {
+                    settings.extPalette.itemChanged.connect(_byte.update);
+                }
             }
             onLoaded: viewport.canvas = item;
         }
@@ -139,6 +144,9 @@ Item {
                 y: 0
                 width: _word.contentWidth
                 height: _word.contentHeight
+                Component.onCompleted: {
+                    settings.extPalette.itemChanged.connect(_word.update);
+                }
             }
             onLoaded: viewport.canvas = item;
         }
@@ -184,6 +192,7 @@ Item {
                                 return Text.AlignRight;
                         }
                         verticalAlignment: Text.AlignVCenter
+                        color: palette.text
 
                     }
                 }

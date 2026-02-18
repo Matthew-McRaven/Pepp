@@ -3,6 +3,8 @@
 #include <QTransform>
 #include <QtQml/qqmlengine.h>
 #include "qml_overlays.hpp"
+#include "settings/palette.hpp"
+#include "settings/settings.hpp"
 #include "shapes_one.hpp"
 #include "shapes_two.hpp"
 
@@ -12,51 +14,49 @@ void add_regbank(std::vector<pepp::Item> &_geom) {
   using namespace OneByteShapes;
   using T = TextRectItem;
   using R = RectItem;
-  static const QColor black(0, 0, 0, 255);
-  static const QColor white(255, 255, 255, 255);
-  static const QColor lblue(231, 234, 255);
+  using PR = pepp::settings::PaletteRole;
   static const Qt::Alignment lalign = Qt::AlignLeft | Qt::AlignVCenter;
   static const Qt::Alignment ralign = Qt::AlignRight | Qt::AlignVCenter;
 
   // Register Bank
-  _geom.emplace_back(R{.geom = poly_regbank, .bg = black, .fg = white});
+  _geom.emplace_back(R{.geom = poly_regbank, .role = PR::BaseRole});
   // Column 0
-  _geom.emplace_back(R{.geom = reg_value_a_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_a_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_x_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_x_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_sp_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_sp_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_pc_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_pc_lo, .bg = black, .fg = lblue});
+  _geom.emplace_back(R{.geom = reg_value_a_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_a_lo, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_x_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_x_lo, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_sp_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_sp_lo, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_pc_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_pc_lo, .role = PR::SequentialRole});
   // Column 1
-  _geom.emplace_back(R{.geom = reg_value_is, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_os_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_os_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t1, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t2_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t2_lo, .bg = black, .fg = lblue});
+  _geom.emplace_back(R{.geom = reg_value_is, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_os_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_os_lo, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t1, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t2_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t2_lo, .role = PR::SequentialRole});
   // Column 2
-  _geom.emplace_back(R{.geom = reg_value_t3_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t3_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t4_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t4_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t5_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t5_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t6_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(R{.geom = reg_value_t6_lo, .bg = black, .fg = lblue});
+  _geom.emplace_back(R{.geom = reg_value_t3_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t3_lo, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t4_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t4_lo, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t5_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t5_lo, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t6_hi, .role = PR::SequentialRole});
+  _geom.emplace_back(R{.geom = reg_value_t6_lo, .role = PR::SequentialRole});
 
   // Column 3
-  _geom.emplace_back(R{.geom = reg_value_m1_hi, .bg = black, .fg = white});
-  _geom.emplace_back(R{.geom = reg_value_m1_lo, .bg = black, .fg = white});
-  _geom.emplace_back(R{.geom = reg_value_m2_hi, .bg = black, .fg = white});
-  _geom.emplace_back(R{.geom = reg_value_m2_lo, .bg = black, .fg = white});
-  _geom.emplace_back(R{.geom = reg_value_m3_hi, .bg = black, .fg = white});
-  _geom.emplace_back(R{.geom = reg_value_m3_lo, .bg = black, .fg = white});
-  _geom.emplace_back(R{.geom = reg_value_m4_hi, .bg = black, .fg = white});
-  _geom.emplace_back(R{.geom = reg_value_m4_lo, .bg = black, .fg = white});
-  _geom.emplace_back(R{.geom = reg_value_m5_hi, .bg = black, .fg = white});
-  _geom.emplace_back(R{.geom = reg_value_m5_lo, .bg = black, .fg = white});
+  _geom.emplace_back(R{.geom = reg_value_m1_hi, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_value_m1_lo, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_value_m2_hi, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_value_m2_lo, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_value_m3_hi, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_value_m3_lo, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_value_m4_hi, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_value_m4_lo, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_value_m5_hi, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_value_m5_lo, .role = PR::BaseRole});
 }
 std::vector<pepp::Item> one_byte_geom() {
   using namespace pepp;
@@ -66,15 +66,11 @@ std::vector<pepp::Item> one_byte_geom() {
   using L = LineItem;
   using P = PolygonItem;
   using R = RectItem;
+  using PR = pepp::settings::PaletteRole;
 
   std::vector<Item> _geom;
-  QColor black(0, 0, 0, 255);
-  QColor white(255, 255, 255, 255);
-  QColor red(255, 0, 0);
-  QColor green(0, 255, 0);
-  QColor blue(0, 0, 255);
-  QColor lblue(231, 234, 255);
   add_regbank(_geom);
+
   // Clocks
   _geom.emplace_back(A{.geom = ck_mar});
   _geom.emplace_back(A{.geom = ck_mdr});
@@ -97,20 +93,20 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(A{.geom = sel_alu});
 
   // Buses
-  _geom.emplace_back(P{.geom = bus_b, .bg = black, .fg = red});
-  _geom.emplace_back(P{.geom = bus_a, .bg = black, .fg = green});
-  _geom.emplace_back(P{.geom = bus_addr, .bg = black, .fg = blue});
-  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_data, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_data_to_mdrmux, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_mdrmux_to_mdr, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_mdr_to_data, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_mar_to_addr, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_mdr_to_amux, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_amux_to_alu, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_c, .bg = black, .fg = white});
+  _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitPrimaryRole});
+  _geom.emplace_back(P{.geom = bus_a, .role = PR::CircuitSecondaryRole});
+  _geom.emplace_back(P{.geom = bus_addr, .role = PR::CircuitQuaternaryRole});
+  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_data_to_mdrmux, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_mdrmux_to_mdr, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_mdr_to_data, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_mar_to_addr, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_mdr_to_amux, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_amux_to_alu, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_c, .role = PR::BaseRole});
 
   // Combinatorial Outputs
   _geom.emplace_back(A{.geom = logic_alu_nzvc});
@@ -124,40 +120,40 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(A{.geom = logic_andz_to_z});
 
   // Multiplexers
-  _geom.emplace_back(R{.geom = mux_a, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_c, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_mdr, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_mdr, .text = "MDRMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_cs, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_andz, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_andz, .text = "AndZ", .color = black});
+  _geom.emplace_back(R{.geom = mux_a, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_c, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_mdr, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_mdr, .text = "MDRMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_cs, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_andz, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_andz, .text = "AndZ", .role = PR::BaseRole});
 
   // Register outlines & registers
-  _geom.emplace_back(R{.geom = reg_bit_n, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .color = black});
-  _geom.emplace_back(R{.geom = reg_bit_c, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .color = black});
-  _geom.emplace_back(R{.geom = reg_bit_v, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .color = black});
-  _geom.emplace_back(R{.geom = reg_bit_z, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .color = black});
-  _geom.emplace_back(R{.geom = reg_bit_s, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .color = black});
-  _geom.emplace_back(R{.geom = reg_byte_mdr, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_byte_mdr, .text = "MDR", .color = black});
-  _geom.emplace_back(R{.geom = reg_byte_marb, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .color = black});
-  _geom.emplace_back(R{.geom = reg_byte_mara, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_n, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_bit_c, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_bit_v, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_bit_z, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_bit_s, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_byte_mdr, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_byte_mdr, .text = "MDR", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_byte_marb, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_byte_mara, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .role = PR::BaseRole});
 
   // Other large polys
-  _geom.emplace_back(P{.geom = poly_alu, .bg = blue, .fg = lblue});
-  _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .color = black});
-  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .color = black});
-  _geom.emplace_back(L{.geom = poly_nzvc_join, .color = black});
+  _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
+  _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .role = PR::BaseRole});
+  _geom.emplace_back(L{.geom = poly_nzvc_join, .role = PR::BaseRole});
 
   return _geom;
 };
@@ -170,15 +166,9 @@ std::vector<pepp::Item> two_byte_geom() {
   using L = LineItem;
   using P = PolygonItem;
   using R = RectItem;
+  using PR = pepp::settings::PaletteRole;
 
   std::vector<Item> _geom;
-  QColor black(0, 0, 0, 255);
-  QColor white(255, 255, 255, 255);
-  QColor red(255, 0, 0);
-  QColor green(0, 255, 0);
-  QColor blue(0, 0, 255);
-  QColor pink(255, 0, 255);
-  QColor lblue(231, 234, 255);
 
   add_regbank(_geom);
 
@@ -209,27 +199,27 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(A{.geom = sel_mux_mar});
 
   // Buses
-  _geom.emplace_back(P{.geom = bus_b, .bg = black, .fg = blue});
-  _geom.emplace_back(P{.geom = bus_a, .bg = black, .fg = green});
-  _geom.emplace_back(P{.geom = bus_addr, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_data, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_mdremux_to_mdre, .bg = black, .fg = red});
-  _geom.emplace_back(P{.geom = bus_mdromux_to_mdro, .bg = black, .fg = green});
-  _geom.emplace_back(P{.geom = bus_data_to_mdremux, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_data_to_mdromux, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_mdre_to_data, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_mdro_to_data, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_mdre_to_eomux, .bg = black, .fg = red});
-  _geom.emplace_back(P{.geom = bus_mdro_to_eomux, .bg = black, .fg = green});
-  _geom.emplace_back(P{.geom = bux_marmux_to_mara, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_marmux_to_marb, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_mar_to_addr, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_eomux_to_amux, .bg = black, .fg = red});
-  _geom.emplace_back(P{.geom = bus_amux_to_alu, .bg = black, .fg = white});
-  _geom.emplace_back(P{.geom = bus_c, .bg = black, .fg = pink});
+  _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitQuaternaryRole});
+  _geom.emplace_back(P{.geom = bus_a, .role = PR::CircuitSecondaryRole});
+  _geom.emplace_back(P{.geom = bus_addr, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_mdremux_to_mdre, .role = PR::CircuitPrimaryRole});
+  _geom.emplace_back(P{.geom = bus_mdromux_to_mdro, .role = PR::CircuitSecondaryRole});
+  _geom.emplace_back(P{.geom = bus_data_to_mdremux, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_data_to_mdromux, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_mdre_to_data, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_mdro_to_data, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_mdre_to_eomux, .role = PR::CircuitPrimaryRole});
+  _geom.emplace_back(P{.geom = bus_mdro_to_eomux, .role = PR::CircuitSecondaryRole});
+  _geom.emplace_back(P{.geom = bux_marmux_to_mara, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_marmux_to_marb, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_mar_to_addr, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_eomux_to_amux, .role = PR::CircuitPrimaryRole});
+  _geom.emplace_back(P{.geom = bus_amux_to_alu, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_c, .role = PR::CircuitTertiaryRole});
 
   // Combinatorial Outputs
   _geom.emplace_back(A{.geom = logic_alu_nzvc});
@@ -243,48 +233,48 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(A{.geom = logic_andz_to_z});
 
   // Multiplexers
-  _geom.emplace_back(P{.geom = mux_marmux, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_marmux, .text = "MARMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_a, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_c, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_mdre, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_mdre, .text = "MDREMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_mdro, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_mdro, .text = "MDROMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_eo, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_eo, .text = "EOMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_cs, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .color = black});
-  _geom.emplace_back(R{.geom = mux_andz, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = mux_andz, .text = "AndZ", .color = black});
+  _geom.emplace_back(P{.geom = mux_marmux, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_marmux, .text = "MARMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_a, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_c, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_mdre, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_mdre, .text = "MDREMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_mdro, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_mdro, .text = "MDROMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_eo, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_eo, .text = "EOMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_cs, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_andz, .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = mux_andz, .text = "AndZ", .role = PR::BaseRole});
 
   // Register outlines & registers
-  _geom.emplace_back(R{.geom = reg_bit_n, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .color = black});
-  _geom.emplace_back(R{.geom = reg_bit_c, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .color = black});
-  _geom.emplace_back(R{.geom = reg_bit_v, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .color = black});
-  _geom.emplace_back(R{.geom = reg_bit_z, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .color = black});
-  _geom.emplace_back(R{.geom = reg_bit_s, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .color = black});
-  _geom.emplace_back(R{.geom = reg_byte_mdre, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_byte_mdre, .text = "MDRE", .color = black});
-  _geom.emplace_back(R{.geom = reg_byte_mdro, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_byte_mdro, .text = "MDRO", .color = black});
-  _geom.emplace_back(R{.geom = reg_byte_marb, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .color = black});
-  _geom.emplace_back(R{.geom = reg_byte_mara, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .color = black});
+  _geom.emplace_back(R{.geom = reg_bit_n, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_bit_c, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_bit_v, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_bit_z, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_bit_s, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_byte_mdre, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_byte_mdre, .text = "MDRE", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_byte_mdro, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_byte_mdro, .text = "MDRO", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_byte_marb, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = reg_byte_mara, .role = PR::SequentialRole});
+  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .role = PR::BaseRole});
 
   // Other large polys
-  _geom.emplace_back(P{.geom = poly_alu, .bg = blue, .fg = lblue});
-  _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .color = black});
-  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .color = black});
-  _geom.emplace_back(L{.geom = poly_nzvc_join, .color = black});
+  _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
+  _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .role = PR::BaseRole});
+  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .role = PR::BaseRole});
+  _geom.emplace_back(L{.geom = poly_nzvc_join, .role = PR::BaseRole});
 
   return _geom;
 };
@@ -457,12 +447,13 @@ struct PaintDispatch {
   pepp::PaintedCPUCanvas *canvas;
   QPainter *painter;
   QFont font{"Times New Roman", 14};
+  pepp::settings::Palette const *palette = pepp::settings::AppSettings().themePalette();
   void operator()(const pepp::LineItem &item) {
-    painter->setPen(item.color);
+    painter->setPen(palette->item(item.role)->foreground());
     painter->drawLine(item.geom);
   }
   void operator()(const pepp::ArrowItem &item) {
-    painter->setPen(item.color);
+    painter->setPen(palette->item(item.role)->foreground());
     const auto &arrow = item.geom;
     for (const QLine &line : arrow._lines) painter->drawLine(line);
     for (const Arrowhead &head : arrow._arrowheads) {
@@ -474,17 +465,17 @@ struct PaintDispatch {
     }
   }
   void operator()(const pepp::RectItem &item) {
-    painter->setBrush(item.fg);
-    painter->setPen(item.bg);
+    painter->setPen(palette->item(item.role)->foreground());
+    painter->setBrush(palette->item(item.role)->background());
     painter->drawRect(item.geom);
   }
   void operator()(const pepp::PolygonItem &item) {
-    painter->setBrush(item.fg);
-    painter->setPen(item.bg);
+    painter->setPen(palette->item(item.role)->foreground());
+    painter->setBrush(palette->item(item.role)->background());
     painter->drawConvexPolygon(item.geom);
   }
   void operator()(const pepp::TextRectItem &item) {
-    painter->setPen(item.color);
+    painter->setPen(palette->item(item.role)->foreground());
     painter->setFont(font);
     // Add 5 px margin on left and right of text
     auto geom = item.geom;
