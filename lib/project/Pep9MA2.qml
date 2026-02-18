@@ -130,6 +130,7 @@ FocusScope {
                 readOnly: mode !== "editor"
                 // text is only an initial binding, the value diverges from there.
                 text: "a b c"
+                language: project.lexerLanguage??""
             }
         }
         KDDW.DockWidget {

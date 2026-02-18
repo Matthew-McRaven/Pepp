@@ -17,6 +17,7 @@
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
 #include "core/arch/pep/isa/pep10.hpp"
+#include "core/math/bitmanip/enums.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "cpu/formats.hpp"
 #include "help/builtins/figure.hpp"
@@ -1323,6 +1324,19 @@ pepp::Architecture Pep_MA::architecture() const { return _env.arch; }
 pepp::Abstraction Pep_MA::abstraction() const { return _env.level; }
 
 int Pep_MA::features() const { return (int)_env.features; }
+
+QString Pep_MA::lexerLanguage() const {
+  using namespace bits;
+  switch (_env.arch) {
+  case pepp::Architecture::PEP8: return "Pep8Micro";
+  case pepp::Architecture::PEP9: [[fallthrough]];
+  case pepp::Architecture::PEP10:
+    if (any(_env.features & project::Features::TwoByte)) return "Pep9Micro2";
+    else if (any(_env.features & project::Features::OneByte)) return "Pep9Micro1";
+    [[fallthrough]];
+  default: return "";
+  }
+};
 
 QString Pep_MA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep9MA2.qml"; }
 

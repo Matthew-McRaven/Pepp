@@ -281,6 +281,7 @@ class Pep_MA : public QObject {
   Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
   Q_PROPERTY(int features READ features CONSTANT)
+  Q_PROPERTY(QString lexerLanguage READ lexerLanguage CONSTANT)
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   Q_PROPERTY(QString microcodeText READ microcodeText WRITE setMicrocodeText NOTIFY microcodeTextChanged);
   // Preserve the current address in the memory dump pane on tab-switch.
@@ -303,6 +304,7 @@ public:
   virtual pepp::Architecture architecture() const;
   virtual pepp::Abstraction abstraction() const;
   virtual int features() const;
+  virtual QString lexerLanguage() const;
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;

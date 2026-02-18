@@ -97,7 +97,6 @@ FocusScope {
         focus: true
         theme: settings.extPalette
         lineNumbersVisible: true
-        language: "Pep9Micro1"
         Connections {
             target: editor
             enabled: !root.dirtied
