@@ -19,6 +19,7 @@
 #include <span>
 #include "../../integers.h"
 #include "core/formats/elf/enums.hpp"
+#include "core/math/bitmanip/enums.hpp"
 
 /*
  * The datatypes within this file are standard-layout structs. If you mmap an ELF file into memory, you should be able
@@ -110,18 +111,20 @@ template <ElfEndian E> struct PackedElfSymbol<ElfBits::b64, E> {
 
   using enum SectionIndices;
   using enum SymbolBinding;
-  bool is_undef() const { return st_shndx == to_underlying(SHN_UNDEF); }
-  bool is_abs() const { return st_shndx == to_underlying(SHN_ABS); }
-  bool is_common() const { return st_shndx == to_underlying(SHN_COMMON); }
-  bool is_weak() const { return st_bind() == to_underlying(STB_WEAK); }
+  bool is_undef() const { return st_shndx == bits::to_underlying(SHN_UNDEF); }
+  bool is_abs() const { return st_shndx == bits::to_underlying(SHN_ABS); }
+  bool is_common() const { return st_shndx == bits::to_underlying(SHN_COMMON); }
+  bool is_weak() const { return st_bind() == bits::to_underlying(STB_WEAK); }
   bool is_undef_weak() const { return is_undef() && is_weak(); }
   constexpr SymbolType st_type() const noexcept { return SymbolType(st_info & 0x0F); }
-  constexpr void set_type(SymbolType t) noexcept { st_info = (st_info & 0xF0) | (to_underlying(t) & 0xF); }
+  constexpr void set_type(SymbolType t) noexcept { st_info = (st_info & 0xF0) | (bits::to_underlying(t) & 0xF); }
   constexpr SymbolBinding st_bind() const noexcept { return SymbolBinding((st_info >> 4) & 0x0F); }
-  constexpr void set_bind(SymbolBinding b) noexcept { st_info = ((to_underlying(b) & 0xF) << 4) | (st_info & 0x0F); }
+  constexpr void set_bind(SymbolBinding b) noexcept {
+    st_info = ((bits::to_underlying(b) & 0xF) << 4) | (st_info & 0x0F);
+  }
   constexpr SymbolVisibility st_visibility() const noexcept { return SymbolVisibility(st_other & 0x3); }
   constexpr void set_visibility(SymbolVisibility v) noexcept {
-    st_other = (st_other & 0xFC) | (to_underlying(v) & 0x3);
+    st_other = (st_other & 0xFC) | (bits::to_underlying(v) & 0x3);
   }
 
   U32<E> st_name;
@@ -136,18 +139,20 @@ template <ElfEndian E> struct PackedElfSymbol<ElfBits::b32, E> {
 
   using enum SectionIndices;
   using enum SymbolBinding;
-  bool is_undef() const { return st_shndx == to_underlying(SHN_UNDEF); }
-  bool is_abs() const { return st_shndx == to_underlying(SHN_ABS); }
-  bool is_common() const { return st_shndx == to_underlying(SHN_COMMON); }
-  bool is_weak() const { return st_bind() == to_underlying(STB_WEAK); }
+  bool is_undef() const { return st_shndx == bits::to_underlying(SHN_UNDEF); }
+  bool is_abs() const { return st_shndx == bits::to_underlying(SHN_ABS); }
+  bool is_common() const { return st_shndx == bits::to_underlying(SHN_COMMON); }
+  bool is_weak() const { return st_bind() == bits::to_underlying(STB_WEAK); }
   bool is_undef_weak() const { return is_undef() && is_weak(); }
   constexpr SymbolType st_type() const noexcept { return SymbolType(st_info & 0x0F); }
-  constexpr void set_type(SymbolType t) noexcept { st_info = (st_info & 0xF0) | (to_underlying(t) & 0xF); }
+  constexpr void set_type(SymbolType t) noexcept { st_info = (st_info & 0xF0) | (bits::to_underlying(t) & 0xF); }
   constexpr SymbolBinding st_bind() const noexcept { return SymbolBinding((st_info >> 4) & 0x0F); }
-  constexpr void set_bind(SymbolBinding b) noexcept { st_info = ((to_underlying(b) & 0xF) << 4) | (st_info & 0x0F); }
+  constexpr void set_bind(SymbolBinding b) noexcept {
+    st_info = ((bits::to_underlying(b) & 0xF) << 4) | (st_info & 0x0F);
+  }
   constexpr SymbolVisibility st_visibility() const noexcept { return SymbolVisibility(st_other & 0x3); }
   constexpr void set_visibility(SymbolVisibility v) noexcept {
-    st_other = (st_other & 0xFC) | (to_underlying(v) & 0x3);
+    st_other = (st_other & 0xFC) | (bits::to_underlying(v) & 0x3);
   }
 
   U32<E> st_name;
@@ -324,12 +329,12 @@ template <ElfEndian E> struct PackedElfVerdaux {
 template <ElfBits B, ElfEndian E> PackedElfShdr<B, E> create_null_header() {
   PackedElfShdr<B, E> shdr;
   shdr.sh_name = 0;
-  shdr.sh_type = to_underlying(SectionTypes::SHT_NULL);
+  shdr.sh_type = bits::to_underlying(SectionTypes::SHT_NULL);
   shdr.sh_flags = 0;
   shdr.sh_addr = 0;
   shdr.sh_offset = 0;
   shdr.sh_size = 0;
-  shdr.sh_link = to_underlying(SectionIndices::SHN_UNDEF);
+  shdr.sh_link = bits::to_underlying(SectionIndices::SHN_UNDEF);
   shdr.sh_info = 0;
   shdr.sh_addralign = 0;
   shdr.sh_entsize = 0;
@@ -339,12 +344,12 @@ template <ElfBits B, ElfEndian E> PackedElfShdr<B, E> create_null_header() {
 template <ElfBits B, ElfEndian E> PackedElfShdr<B, E> create_shstrtab_header(u32 name) {
   PackedElfShdr<B, E> shdr;
   shdr.sh_name = name;
-  shdr.sh_type = to_underlying(SectionTypes::SHT_STRTAB);
+  shdr.sh_type = bits::to_underlying(SectionTypes::SHT_STRTAB);
   shdr.sh_flags = 0;
   shdr.sh_addr = 0;
   shdr.sh_offset = 0;
   shdr.sh_size = 0;
-  shdr.sh_link = to_underlying(SectionIndices::SHN_UNDEF);
+  shdr.sh_link = bits::to_underlying(SectionIndices::SHN_UNDEF);
   shdr.sh_info = 0;
   shdr.sh_addralign = 1;
   shdr.sh_entsize = 0;
@@ -359,7 +364,7 @@ template <ElfBits B, ElfEndian E> PackedElfSymbol<B, E> create_null_symbol() {
   sym.st_size = 0;
   sym.st_info = 0;
   sym.st_other = 0;
-  sym.st_shndx = to_underlying(SectionIndices::SHN_UNDEF);
+  sym.st_shndx = bits::to_underlying(SectionIndices::SHN_UNDEF);
   return sym;
 }
 
@@ -371,7 +376,7 @@ template <ElfBits B, ElfEndian E> PackedElfSymbol<B, E> create_global_symbol() {
   sym.st_info = 0;
   sym.set_bind(SymbolBinding::STB_GLOBAL);
   sym.st_other = 0;
-  sym.st_shndx = to_underlying(SectionIndices::SHN_UNDEF);
+  sym.st_shndx = bits::to_underlying(SectionIndices::SHN_UNDEF);
   return sym;
 }
 
@@ -387,9 +392,9 @@ void fill_e_ident(std::span<u8, 16> e_ident, ElfBits B, ElfEndian E, ElfABI abi,
 template <ElfBits B, ElfEndian E> inline PackedElfEhdr<B, E>::PackedElfEhdr() noexcept {
   static_assert(std::is_standard_layout_v<PackedElfEhdr>);
   detail::fill_e_ident(e_ident, B, E, (ElfABI)0, 0);
-  e_type = to_underlying(ElfFileType::ET_NONE);
-  e_machine = to_underlying(ElfMachineType::EM_NONE);
-  e_version = to_underlying(ElfVersion::EV_CURRENT);
+  e_type = bits::to_underlying(ElfFileType::ET_NONE);
+  e_machine = bits::to_underlying(ElfMachineType::EM_NONE);
+  e_version = bits::to_underlying(ElfVersion::EV_CURRENT);
   e_entry = 0;
   e_phoff = 0;
   e_shoff = 0;
@@ -406,9 +411,9 @@ template <ElfBits B, ElfEndian E>
 inline PackedElfEhdr<B, E>::PackedElfEhdr(ElfFileType type, ElfMachineType machine, ElfABI abi) noexcept {
   static_assert(std::is_standard_layout_v<PackedElfEhdr>);
   detail::fill_e_ident(e_ident, B, E, abi, 0);
-  e_type = to_underlying(type);
-  e_machine = to_underlying(machine);
-  e_version = to_underlying(ElfVersion::EV_CURRENT);
+  e_type = bits::to_underlying(type);
+  e_machine = bits::to_underlying(machine);
+  e_version = bits::to_underlying(ElfVersion::EV_CURRENT);
   e_entry = 0;
   e_phoff = 0;
   e_shoff = 0;

@@ -148,8 +148,8 @@ template <ElfBits B, ElfEndian E> u32 PackedGrowableElfFile<B, E>::add_segment(P
 
 template <ElfBits B, ElfEndian E> u32 PackedGrowableElfFile<B, E>::add_segment(SegmentType type, SegmentFlags flags) {
   Phdr phdr;
-  phdr.p_type = to_underlying(type);
-  phdr.p_flags = to_underlying(flags);
+  phdr.p_type = bits::to_underlying(type);
+  phdr.p_flags = bits::to_underlying(flags);
   return add_segment(std::move(phdr));
 }
 

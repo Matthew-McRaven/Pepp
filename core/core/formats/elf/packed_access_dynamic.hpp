@@ -77,7 +77,7 @@ template <ElfBits B, ElfEndian E, bool Const> u32 PackedDynamicAccessor<B, E, Co
   // Look for the first DT_NULL entry, otherwise clip to the number of entries computed from section header.
   auto max = shdr.sh_size / shdr.sh_entsize;
   for (u32 i = 0; i < max; ++i)
-    if (auto dyn = get_entry(i); dyn.d_tag == to_underlying(DynamicTags::DT_NULL)) return i;
+    if (auto dyn = get_entry(i); dyn.d_tag == bits::to_underlying(DynamicTags::DT_NULL)) return i;
   return max;
 }
 
@@ -115,12 +115,12 @@ u32 PackedDynamicAccessor<B, E, Const>::add_entry(word<B> tag, word<B> value) {
 }
 
 template <ElfBits B, ElfEndian E, bool Const> u32 PackedDynamicAccessor<B, E, Const>::add_entry(DynamicTags tag) {
-  return add_entry(to_underlying(tag));
+  return add_entry(bits::to_underlying(tag));
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 u32 PackedDynamicAccessor<B, E, Const>::add_entry(DynamicTags tag, word<B> value) {
-  return add_entry(to_underlying(tag), value);
+  return add_entry(bits::to_underlying(tag), value);
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
