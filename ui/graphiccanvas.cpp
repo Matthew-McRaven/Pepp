@@ -346,12 +346,19 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 
         QMimeData *mimeData = new QMimeData;
         mimeData->setData("application/x-dnditemdata", itemData);
-
         drag->setMimeData(mimeData);
-        drag->setPixmap(*_currentItem->image());
-        drag->setHotSpot(event->position().toPoint());
-        drag->exec();
+
+        //  Size image based on current zoom and screen DPI.
+        const auto curSize = screen_block * _currentZoom;
+        auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
+        drag->setPixmap(dragPix);
+
+        QPointF offset{curSize / 2, curSize / 2};
+        drag->setHotSpot(offset.toPoint());
         setCursor(Qt::OpenHandCursor);
+
+        //  If this function is not called, the drag will not start
+        drag->exec();
 
         //  Another item was selected
         event->setAccepted(true);
@@ -458,8 +465,8 @@ void GraphicCanvas::wheelEvent(QWheelEvent *event)
             // Perform action for scrolling down
             y = std::min(contentHeight(), originY() + block);
         }
-        qDebug() << "contentHeight():" << contentHeight() << "originY():" << originY() << "new Y"
-                 << y;
+        //qDebug() << "contentHeight():" << contentHeight() << "originY():" << originY() << "new Y"
+        //         << y;
 
         //  Update screen
         setOriginY(y);
