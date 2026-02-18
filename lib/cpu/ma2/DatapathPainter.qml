@@ -16,6 +16,7 @@ Item {
     id: root
     // == 0, Pep/9 one byte
     // == 1, Pep/9 two byte
+    // TODO: really should be an enum
     required property int which
 
     component LabeledTriState: Item {
@@ -81,7 +82,7 @@ Item {
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        policy: ScrollBar.AlwaysOn
+        policy: flickable.contentHeight > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
     }
 
     ScrollBar {
@@ -94,7 +95,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        policy: ScrollBar.AlwaysOn
+        policy: flickable.contentWidth > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
     }
 
     Item {
