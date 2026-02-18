@@ -71,7 +71,6 @@ Item {
         text: label
         checked: value
     }
-
     ScrollBar {
         id: vbar
         hoverEnabled: true
@@ -160,6 +159,32 @@ Item {
                     roleValue: 2
                     LabeledTriState {
                         parent: viewport
+                    }
+                }
+                DelegateChoice {
+                    roleValue: 3
+                    // Must be text edit, else not selectable
+                    TextEdit {
+                        parent: viewport
+                        required property var location
+                        required property string label
+                        required property int requestedHAlign
+                        x: location.x
+                        y: location.y
+                        height: location.height
+                        width: location.width
+                        text: label
+                        readOnly: true
+                        horizontalAlignment: {
+                            if (requestedHAlign == Qt.AlignLeft)
+                                return Text.AlignLeft;
+                            else if (requestedHAlign == Qt.AlignHCenter || requestedHAlign == Qt.AlignCenter)
+                                return Text.AlignHCenter;
+                            else
+                                return Text.AlignRight;
+                        }
+                        verticalAlignment: Text.AlignVCenter
+
                     }
                 }
             }

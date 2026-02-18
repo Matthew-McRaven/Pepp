@@ -20,118 +20,43 @@ void add_regbank(std::vector<pepp::Item> &_geom) {
 
   // Register Bank
   _geom.emplace_back(R{.geom = poly_regbank, .bg = black, .fg = white});
-  /* Column 0*/
-  _geom.emplace_back(T{.geom = reg_label_a_name, .text = "A", .color = black, .alignment = ralign});
+  // Column 0
   _geom.emplace_back(R{.geom = reg_value_a_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_a_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_a_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_a_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_a_num, .text = "0,1", .color = black, .alignment = lalign});
-
-  _geom.emplace_back(T{.geom = reg_label_x_name, .text = "X", .color = black, .alignment = ralign});
   _geom.emplace_back(R{.geom = reg_value_x_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_x_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_x_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_x_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_x_num, .text = "2,3", .color = black, .alignment = lalign});
-
-  _geom.emplace_back(T{.geom = reg_label_sp_name, .text = "SP", .color = black, .alignment = ralign});
   _geom.emplace_back(R{.geom = reg_value_sp_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_sp_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_sp_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_sp_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_sp_num, .text = "4,5", .color = black, .alignment = lalign});
-
-  _geom.emplace_back(T{.geom = reg_label_pc_name, .text = "PC", .color = black, .alignment = ralign});
   _geom.emplace_back(R{.geom = reg_value_pc_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_pc_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_pc_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_pc_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_pc_num, .text = "6,7", .color = black, .alignment = lalign});
-
-  /* Column 1*/
-  _geom.emplace_back(T{.geom = reg_label_is_name, .text = "IR", .color = black, .alignment = ralign});
+  // Column 1
   _geom.emplace_back(R{.geom = reg_value_is, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_is, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_is_num, .text = "8", .color = black, .alignment = lalign});
-
   _geom.emplace_back(R{.geom = reg_value_os_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_os_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_os_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_os_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_os_num, .text = "9,10", .color = black, .alignment = lalign});
-
-  _geom.emplace_back(T{.geom = reg_label_t1_name, .text = "T1", .color = black, .alignment = ralign});
   _geom.emplace_back(R{.geom = reg_value_t1, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t1, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_t1_num, .text = "11", .color = black, .alignment = lalign});
-
-  _geom.emplace_back(T{.geom = reg_label_t2_name, .text = "T2", .color = black, .alignment = ralign});
   _geom.emplace_back(R{.geom = reg_value_t2_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t2_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t2_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t2_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_t2_num, .text = "12,13", .color = black, .alignment = lalign});
-
-  /* Column 2*/
-  _geom.emplace_back(T{.geom = reg_label_t3_name, .text = "T3", .color = black, .alignment = ralign});
+  // Column 2
   _geom.emplace_back(R{.geom = reg_value_t3_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t3_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t3_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t3_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_t3_num, .text = "14,15", .color = black, .alignment = lalign});
-
-  _geom.emplace_back(T{.geom = reg_label_t4_name, .text = "T4", .color = black, .alignment = ralign});
   _geom.emplace_back(R{.geom = reg_value_t4_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t4_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t4_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t4_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_t4_num, .text = "16,17", .color = black, .alignment = lalign});
-
-  _geom.emplace_back(T{.geom = reg_label_t5_name, .text = "T5", .color = black, .alignment = ralign});
   _geom.emplace_back(R{.geom = reg_value_t5_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t5_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t5_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t5_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_t5_num, .text = "18,19", .color = black, .alignment = lalign});
-
-  _geom.emplace_back(T{.geom = reg_label_t6_name, .text = "T6", .color = black, .alignment = ralign});
   _geom.emplace_back(R{.geom = reg_value_t6_hi, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t6_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_t6_lo, .bg = black, .fg = lblue});
-  _geom.emplace_back(T{.geom = reg_value_t6_lo, .text = "00", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_t6_num, .text = "20,21", .color = black, .alignment = lalign});
 
-  /* Column 3*/
+  // Column 3
   _geom.emplace_back(R{.geom = reg_value_m1_hi, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m1_hi, .text = "00", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m1_lo, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m1_lo, .text = "01", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_m1_num, .text = "22,23", .color = black, .alignment = lalign});
-
   _geom.emplace_back(R{.geom = reg_value_m2_hi, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m2_hi, .text = "02", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m2_lo, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m2_lo, .text = "03", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_m2_num, .text = "24,25", .color = black, .alignment = lalign});
-
   _geom.emplace_back(R{.geom = reg_value_m3_hi, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m3_hi, .text = "04", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m3_lo, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m3_lo, .text = "08", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_m3_num, .text = "26,27", .color = black, .alignment = lalign});
-
   _geom.emplace_back(R{.geom = reg_value_m4_hi, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m4_hi, .text = "F0", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m4_lo, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m4_lo, .text = "F6", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_m4_num, .text = "28,29", .color = black, .alignment = lalign});
-
   _geom.emplace_back(R{.geom = reg_value_m5_hi, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m5_hi, .text = "FE", .color = black});
   _geom.emplace_back(R{.geom = reg_value_m5_lo, .bg = black, .fg = white});
-  _geom.emplace_back(T{.geom = reg_value_m5_lo, .text = "FF", .color = black});
-  _geom.emplace_back(T{.geom = reg_label_m5_num, .text = "30,31", .color = black, .alignment = lalign});
 }
 std::vector<pepp::Item> one_byte_geom() {
   using namespace pepp;
@@ -376,10 +301,104 @@ void add_tristate(QObject *parent, QList<pepp::QMLOverlay *> &list, QString labe
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
 }
+void add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QRect location, Qt::Alignment align,
+              float x_offset = 0, float y_offset = 0) {
+  // Apply same margins as in PaintDispatch::operator(const pepp::TextRectItem)
+  if (align & Qt::AlignLeft) location.translate(5, 0);
+  else if (align & Qt::AlignRight) location.translate(-5, 0);
+  auto local = new pepp::TextOverlay(location.translated(x_offset, y_offset), label, align, parent);
+  QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
+  list.push_back(local);
+}
+
+void add_regbank_qml(QObject *parent, QList<pepp::QMLOverlay *> &list, float x_offset = 0, float y_offset = 0) {
+  using namespace OneByteShapes;
+  // Column 0
+  add_text(parent, list, "A", reg_label_a_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_a_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_a_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "0,1", reg_label_a_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "X", reg_label_x_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_x_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_x_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "2,3", reg_label_x_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "SP", reg_label_sp_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_sp_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_sp_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "4,5", reg_label_sp_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "PC", reg_label_pc_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_pc_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_pc_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "6,7", reg_label_pc_num, Qt::AlignLeft, x_offset, y_offset);
+
+  // Column 1
+  add_text(parent, list, "IR", reg_label_is_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_is, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "8", reg_label_is_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "00", reg_value_os_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_os_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "9,10", reg_label_os_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "T1", reg_label_t1_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t1, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "11", reg_label_t1_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "T2", reg_label_t2_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t2_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t2_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "12,13", reg_label_t2_num, Qt::AlignLeft, x_offset, y_offset);
+
+  // Column 2
+  add_text(parent, list, "T3", reg_label_t3_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t3_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t3_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "14,15", reg_label_t3_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "T4", reg_label_t4_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t4_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t4_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "16,17", reg_label_t4_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "T5", reg_label_t5_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t5_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t5_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "18,19", reg_label_t5_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "T6", reg_label_t6_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t6_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", reg_value_t6_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "20,21", reg_label_t6_num, Qt::AlignLeft, x_offset, y_offset);
+
+  // Column 3
+  add_text(parent, list, "00", reg_value_m1_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "01", reg_value_m1_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "22,23", reg_label_m1_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "02", reg_value_m2_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "03", reg_value_m2_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "24,25", reg_label_m2_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "04", reg_value_m3_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "08", reg_value_m3_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "26,27", reg_label_m3_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "F0", reg_value_m4_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "F6", reg_value_m4_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "28,29", reg_label_m4_num, Qt::AlignLeft, x_offset, y_offset);
+
+  add_text(parent, list, "FE", reg_value_m5_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "FF", reg_value_m5_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "30,31", reg_label_m5_num, Qt::AlignLeft, x_offset, y_offset);
+}
 
 QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, float y_offset) {
   using namespace OneByteShapes;
   QList<pepp::QMLOverlay *> ret;
+  add_regbank_qml(parent, ret, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
@@ -404,6 +423,7 @@ QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, flo
 QList<pepp::QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, float y_offset) {
   using namespace TwoByteShapes;
   QList<pepp::QMLOverlay *> ret;
+  add_regbank_qml(parent, ret, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
@@ -468,11 +488,13 @@ struct PaintDispatch {
     painter->setFont(font);
     // Add 5 px margin on left and right of text
     auto geom = item.geom;
+    // Margins must be mirrored in add_text
     if (item.alignment & Qt::AlignLeft) geom.translate(5, 0);
     else if (item.alignment & Qt::AlignRight) geom.translate(-5, 0);
-    painter->drawText(item.geom.adjusted(+5, 0, -5, 0), item.alignment, item.text);
+    painter->drawText(item.geom, item.alignment, item.text);
   }
 };
+
 struct BoundingBox {
   QPointF _min = QPointF(0, 0), _max = QPointF(0, 0);
   BoundingBox &extend(const BoundingBox &other) {
