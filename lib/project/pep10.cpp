@@ -16,7 +16,7 @@
 #include "./pep10.hpp"
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
-#include "../../core/core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "cpu/formats.hpp"
 #include "help/builtins/figure.hpp"
@@ -1277,12 +1277,12 @@ void Pep_ASMB::updatePCLine() {
 void Pep_ISA::updateBPAtAddress(quint32 address, Action action) {
   auto as_quint16 = static_cast<quint16>(address);
   switch (action) {
-  case ScintillaAsmEditBase::Action::ToggleBP:
+  case EditBase::Action::ToggleBP:
     if (_dbg->bps->hasBP(as_quint16)) _dbg->bps->removeBP(as_quint16);
     else _dbg->bps->addBP(as_quint16);
     break;
-  case ScintillaAsmEditBase::Action::AddBP: _dbg->bps->addBP(as_quint16); break;
-  case ScintillaAsmEditBase::Action::RemoveBP: _dbg->bps->removeBP(as_quint16); break;
+  case EditBase::Action::AddBP: _dbg->bps->addBP(as_quint16); break;
+  case EditBase::Action::RemoveBP: _dbg->bps->removeBP(as_quint16); break;
   default: break;
   }
 }

@@ -19,15 +19,15 @@
 #include <QStringListModel>
 #include <qabstractitemmodel.h>
 #include "aproject.hpp"
-#include "project/architectures.hpp"
-#include "project/levels.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "debug/debugger.hpp"
 #include "memory/hexdump/rawmemory.hpp"
+#include "project/architectures.hpp"
+#include "project/levels.hpp"
 #include "sim/debug/watchexpressionmodel.hpp"
 #include "sim3/systems/traced_pep_isa3_system.hpp"
-#include "text/editor/scintillaasmeditbase.hpp"
+#include "text/editor/editbase.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/symtab/symbolmodel.hpp"
 #include "utils/opcodemodel.hpp"
@@ -177,7 +177,7 @@ protected:
   RegisterModel *_registers = nullptr;
   FlagModel *_flags = nullptr;
   qint16 _currentAddress = 0;
-  using Action = ScintillaAsmEditBase::Action;
+  using Action = EditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QSharedPointer<builtins::Registry> _books = {};
@@ -210,7 +210,7 @@ class Pep_ASMB final : public Pep_ISA {
   Q_PROPERTY(ScopedLines2Addresses *lines2addr READ line2addr CONSTANT)
   Q_PROPERTY(bool ignoreOS READ ignoreOS CONSTANT)
   QML_UNCREATABLE("Can only be created through Project::")
-  using Action = ScintillaAsmEditBase::Action;
+  using Action = EditBase::Action;
 
 public:
   explicit Pep_ASMB(project::Environment env, QObject *parent = nullptr);
@@ -368,7 +368,7 @@ protected:
   RegisterModel *_registers = nullptr;
   FlagModel *_flags = nullptr;
   qint16 _currentAddress = 0;
-  using Action = ScintillaAsmEditBase::Action;
+  using Action = EditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QSharedPointer<builtins::Registry> _books = {};

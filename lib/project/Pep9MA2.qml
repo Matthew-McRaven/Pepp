@@ -124,12 +124,12 @@ FocusScope {
                 "editor": true,
                 "debugger": true
             }
-            Text.ObjTextEditor {
+            Text.ScintillaMicroEdit {
                 id: objEdit
                 anchors.fill: parent
                 readOnly: mode !== "editor"
                 // text is only an initial binding, the value diverges from there.
-                text: project?.objectCodeText ?? ""
+                text: "a b c"
             }
         }
         KDDW.DockWidget {

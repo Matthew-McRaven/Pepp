@@ -24,7 +24,12 @@ class ScintillaEditBaseExporter : public QObject {
   QML_FOREIGN(ScintillaEditBase)
 };
 
-class ScintillaAsmEditBase : public ScintillaEditBase {
+sptr_t c2i(const QColor &color);
+// Editor ignores alpha, so we need do do alpha compositing ourselves
+// See: https://en.wikipedia.org/wiki/Alpha_compositing
+sptr_t alphaBlend(const QColor &front, const QColor &back);
+
+class EditBase : public ScintillaEditBase {
   Q_OBJECT
   Q_PROPERTY(QString language READ lexerLanguage WRITE setLexerLanguage NOTIFY lexerLanguageChanged);
   Q_PROPERTY(pepp::settings::Palette *theme READ theme WRITE setTheme NOTIFY themeChanged)
@@ -36,7 +41,7 @@ class ScintillaAsmEditBase : public ScintillaEditBase {
 public:
   enum class Action { ToggleBP, AddBP, RemoveBP, ScrollTo, HighlightExclusive, MakeConditional, MakeUnconditional };
   Q_ENUM(Action);
-  ScintillaAsmEditBase(QQuickItem *parent = 0);
+  EditBase(QQuickItem *parent = 0);
 public slots:
   // For errors
   void clearAllEOLAnnotations();
@@ -51,7 +56,7 @@ public slots:
   void onLineAction(int line, Action action);
   void onClearAllBreakpoints();
   void onRequestAllBreakpoints();
-  void applyStyles();
+  virtual void applyStyles();
 
   Q_INVOKABLE void cut();
   Q_INVOKABLE void copy();
@@ -66,21 +71,14 @@ signals:
   void modifyLine(int line, Action action);
   void caretBlinkChanged();
 
-private:
+protected:
   const int errorStyle = STYLE_LASTPREDEFINED + 1;
   const int warningStyle = STYLE_LASTPREDEFINED + 2;
-  const int symbolStyle = SCE_PEPASM_SYMBOL_DECL;
-  const int mnemonicStyle = SCE_PEPASM_MNEMONIC;
-  const int directiveStyle = SCE_PEPASM_DIRECTIVE;
-  const int macroStyle = SCE_PEPASM_MACRO;
-  const int charStyle = SCE_PEPASM_CHARACTER;
-  const int stringStyle = SCE_PEPASM_STRING;
-  const int commentStyle = SCE_PEPASM_COMMENT;
-
   const int BPStyle = 1;
   const int BPStyleMask = 1 << BPStyle;
   const int conditionalBPStyle = 2;
   const int conditionalBPStyleMask = 1 << conditionalBPStyle;
+
   QString lexerLanguage() const;
   void setLexerLanguage(const QString &language);
   pepp::settings::Palette *_theme = nullptr;
@@ -92,5 +90,4 @@ private:
 
   int caretBlink() const;
   void setCaretBlink(int blink);
-  // Defer style update so that we can layer multiple changes over defaults.
 };
