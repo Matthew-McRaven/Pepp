@@ -57,8 +57,13 @@ public:
     WarningRole,
 
     //  Circuit enums
-    SeqCircuitRole,
-    CircuitGreenRole,
+    CombinationalRole,
+    SequentialRole,
+    // Red, green, yellow, and blue
+    CircuitPrimaryRole,
+    CircuitSecondaryRole,
+    CircuitTertiaryRole,
+    CircuitQuaternaryRole,
 
     Total, // Must be last valid theme
     //  Indicates invalid state from parsing input files

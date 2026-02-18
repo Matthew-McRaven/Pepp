@@ -3,7 +3,7 @@
     "paletteItems": [
         {
             "background": "0xffffffff",
-            "font": "Segoe UI,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "font": "Segoe UI,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xff000000",
             "name": "BaseRole"
         },
@@ -92,9 +92,9 @@
         {
             "background": "0xffffffff",
             "foreground": "0xff2540bd",
+            "macroFont": "Monaspace Argon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "name": "MnemonicRole",
-            "parent": "BaseMonoRole",
-            "macroFont": "Monaspace Argon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
+            "parent": "BaseMonoRole"
         },
         {
             "background": "0xffffffff",
@@ -154,19 +154,34 @@
             "parent": "CommentRole"
         },
         {
-            "background": "0xff04ab0a",
-            "foreground": "0xffffff00",
-            "name": "SeqCircuitRole",
-            "overrideBold": false,
-            "parent": "MnemonicRole"
+            "name": "CombinationalRole",
+            "parent": "BaseMonoRole"
         },
         {
-            "background": "0xffffe1ff",
-            "foreground": "0xff0000ff",
-            "name": "CircuitGreenRole",
-            "overrideBold": false,
-            "parent": "MnemonicRole"
+            "background": "0xffe7eaff",
+            "name": "SequentialRole",
+            "parent": "CombinationalRole"
+        },
+        {
+            "background": "0xffff5437",
+            "name": "CircuitPrimaryRole",
+            "parent": "CombinationalRole"
+        },
+        {
+            "background": "0xffffd841",
+            "name": "CircuitSecondaryRole",
+            "parent": "CombinationalRole"
+        },
+        {
+            "background": "0xff95be16",
+            "name": "CircuitTertiaryRole",
+            "parent": "CombinationalRole"
+        },
+        {
+            "background": "0xff5580ff",
+            "name": "CircuitQuaternaryRole",
+            "parent": "CombinationalRole"
         }
     ],
-    "version": 8
+    "version": 9
 }
