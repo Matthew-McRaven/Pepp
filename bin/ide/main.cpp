@@ -124,17 +124,13 @@ int main(int argc, char **argv) {
   auto flagResetSettings = cli.add_flag("--reset-settings", resetSettings, "Reset settings to default");
   std::string openFile = "";
   auto flagOpenFile = cli.add_option("open-file", openFile);
-
-  // Hidden commands
-
+  // Pass unknown flags to Qt, which is required for QML debugger.
+  cli.allow_extras(true);
   try {
     cli.parse(argc, argv);
   } catch (const CLI::CallForHelp &e) {
     std::cout << cli.help() << std::endl;
     return 0;
-  } catch (const CLI::ParseError &e) {
-    std::cerr << e.what() << std::endl;
-    return 1;
   }
 
   using namespace Qt::StringLiterals;
