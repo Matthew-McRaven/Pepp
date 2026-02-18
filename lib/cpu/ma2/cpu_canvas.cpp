@@ -473,6 +473,54 @@ struct PaintDispatch {
     painter->drawText(item.geom.adjusted(+5, 0, -5, 0), item.alignment, item.text);
   }
 };
+struct BoundingBox {
+  QPointF _min = QPointF(0, 0), _max = QPointF(0, 0);
+  BoundingBox &extend(const BoundingBox &other) {
+    _min.setX(std::min(_min.x(), other._min.x()));
+    _min.setY(std::min(_min.y(), other._min.y()));
+    _max.setX(std::max(_max.x(), other._max.x()));
+    _max.setY(std::max(_max.y(), other._max.y()));
+    return *this;
+  }
+};
+
+// Compute the min and max coordinates of an item for bounding box calculation
+struct BoundingBoxVisitor {
+  BoundingBox operator()(const pepp::LineItem &item) {
+    return BoundingBox{._min = item.geom.p1(), ._max = item.geom.p2()};
+  }
+  // Ignores the x/y of the arrow, because this visitor does not know the size of the arrow graphic.
+  // I assume that an arrow will never be on the edge of the scene's bounding box, because this is true for the graphic
+  // as authored for the book.
+  BoundingBox operator()(const pepp::ArrowItem &item) {
+    QPointF min = item.geom._lines.empty() ? QPointF(0, 0) : item.geom._lines[0].p1();
+    QPointF max = min;
+    for (const auto &line : item.geom._lines) {
+      min.setX(std::min<float>(min.x(), std::min(line.p1().x(), line.p2().x())));
+      min.setY(std::min<float>(min.y(), std::min(line.p1().y(), line.p2().y())));
+      max.setX(std::max<float>(max.x(), std::max(line.p1().x(), line.p2().x())));
+      max.setY(std::max<float>(max.y(), std::max(line.p1().y(), line.p2().y())));
+    }
+    return BoundingBox{._min = min, ._max = max};
+  }
+  BoundingBox operator()(const pepp::RectItem &item) {
+    return BoundingBox{._min = item.geom.topLeft(), ._max = item.geom.bottomRight()};
+  }
+  BoundingBox operator()(const pepp::PolygonItem &item) {
+    QPointF min = item.geom[0];
+    QPointF max = min;
+    for (const auto &line : item.geom) {
+      min.setX(std::min<float>(min.x(), std::min(line.x(), line.x())));
+      min.setY(std::min<float>(min.y(), std::min(line.y(), line.y())));
+      max.setX(std::max<float>(max.x(), std::max(line.x(), line.x())));
+      max.setY(std::max<float>(max.y(), std::max(line.y(), line.y())));
+    }
+    return BoundingBox{._min = min, ._max = max};
+  }
+  BoundingBox operator()(const pepp::TextRectItem &item) {
+    return BoundingBox{._min = item.geom.topLeft(), ._max = item.geom.bottomRight()};
+  }
+};
 
 } // namespace pepp
 
@@ -491,6 +539,11 @@ pepp::PaintedCPUCanvas::PaintedCPUCanvas(Which which, QQuickItem *parent) : QQui
     _overlays = two_byte_overlays(this, OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset);
     break;
   }
+  BoundingBox minmax;
+  BoundingBoxVisitor mmv;
+  for (const auto &i : _geom) minmax.extend(std::visit(mmv, i));
+  _w = minmax._max.x() - minmax._min.x();
+  _h = minmax._max.y() - minmax._min.y();
 
   auto svg_path = ":/logi/arrow.svg";
   QImage svg_image(svg_path);

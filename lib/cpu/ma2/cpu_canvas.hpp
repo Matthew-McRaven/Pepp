@@ -58,11 +58,12 @@ public:
   ~PaintedCPUCanvas() noexcept override;
   void paint(QPainter *painter) override;
 
-  float contentWidth() const { return 900; }
-  float contentHeight() const { return 1050; }
+  float contentWidth() const { return _w; }
+  float contentHeight() const { return _h; }
   QList<QMLOverlay *> overlays() const { return _overlays; }
 
 private:
+  float _h, _w;
   std::array<QPixmap, 5> _arrows;
   std::vector<Item> _geom;
   QList<QMLOverlay *> _overlays;
