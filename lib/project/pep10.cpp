@@ -380,6 +380,11 @@ int Pep_ISA::allowedDebugging() const {
   }
 }
 
+int Pep_ISA::enabledSteps() const {
+  using S = project::StepEnableFlags::Value;
+  return S::Step | S::StepOver | S::StepOut | S::StepInto;
+}
+
 int Pep_ISA::allowedSteps() const {
   using enum pepp::Architecture;
   if (_state != State::DebugPaused) return 0b0;
@@ -1381,6 +1386,13 @@ pepp::debug::BreakpointSet *Pep_MA::breakpointModel() {
 }
 
 bool Pep_MA::isEmpty() const { return _microcodeText.isEmpty(); }
+
+int Pep_MA::enabledSteps() const {
+  using S = project::StepEnableFlags::Value;
+  return S::Step;
+}
+
+int Pep_MA::allowedSteps() const { return 0; }
 
 QString Pep_MA::contentsForExtension(const QString &ext) const {
   if (ext.compare("pepcpu", Qt::CaseInsensitive) == 0) {

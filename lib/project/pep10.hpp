@@ -51,6 +51,9 @@ class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
+  // Step modes that are allowable for the current project type.
+  Q_PROPERTY(int enabledSteps READ enabledSteps CONSTANT)
+  // Step modes that should be active RIGHT NOW
   Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
   Q_PROPERTY(QStringList saveAsOptions READ saveAsOptions CONSTANT)
   // Only changed externally
@@ -94,6 +97,7 @@ public:
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
   Q_INVOKABLE virtual int allowedDebugging() const;
+  Q_INVOKABLE virtual int enabledSteps() const;
   Q_INVOKABLE virtual int allowedSteps() const;
   Q_INVOKABLE QString charIn() const;
   Q_INVOKABLE void setCharIn(QString value);
@@ -290,6 +294,10 @@ class Pep_MA : public QObject {
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
+  // Step modes that are allowable for the current project type.
+  Q_PROPERTY(int enabledSteps READ enabledSteps CONSTANT)
+  // Step modes that should be active RIGHT NOW
+  Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
   Q_PROPERTY(QStringList saveAsOptions READ saveAsOptions CONSTANT)
   Q_PROPERTY(int renderingType READ rendering_type CONSTANT)
   Q_PROPERTY(bool isEmpty READ isEmpty)
@@ -320,6 +328,8 @@ public:
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
   virtual bool isEmpty() const;
 
+  int enabledSteps() const;
+  int allowedSteps() const;
   virtual QStringList saveAsOptions() const { return {"pepcpu"}; }
   Q_INVOKABLE virtual QString defaultExtension() const { return "pepcpu"; }
   virtual QString contentsForExtension(const QString &ext) const;
@@ -344,6 +354,7 @@ signals:
   void currentAddressChanged();
   // Called by onISARemoveAllBreakpoints so we can remove breakpoints from editors.
   void projectBreakpointsCleared();
+  void allowedStepsChanged();
 
   void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
