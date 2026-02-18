@@ -41,6 +41,7 @@ class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(int features READ features CONSTANT)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   // Preserve the current address in the memory dump pane on tab-switch.
@@ -78,6 +79,7 @@ public:
   virtual project::Environment env() const;
   virtual pepp::Architecture architecture() const;
   virtual pepp::Abstraction abstraction() const;
+  virtual int features() const;
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;
@@ -278,6 +280,7 @@ class Pep_MA : public QObject {
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(int features READ features CONSTANT)
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   Q_PROPERTY(QString microcodeText READ microcodeText WRITE setMicrocodeText NOTIFY microcodeTextChanged);
   // Preserve the current address in the memory dump pane on tab-switch.
@@ -298,6 +301,7 @@ public:
   virtual project::Environment env() const;
   virtual pepp::Architecture architecture() const;
   virtual pepp::Abstraction abstraction() const;
+  virtual int features() const;
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;

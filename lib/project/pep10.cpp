@@ -324,6 +324,8 @@ pepp::Architecture Pep_ISA::architecture() const { return _env.arch; }
 
 pepp::Abstraction Pep_ISA::abstraction() const { return _env.level; }
 
+int Pep_ISA::features() const { return (int)_env.features; }
+
 QString Pep_ISA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep10ISA.qml"; }
 
 ARawMemory *Pep_ISA::memory() const { return _memory; }
@@ -1319,6 +1321,8 @@ project::Environment Pep_MA::env() const { return _env; }
 pepp::Architecture Pep_MA::architecture() const { return _env.arch; }
 
 pepp::Abstraction Pep_MA::abstraction() const { return _env.level; }
+
+int Pep_MA::features() const { return (int)_env.features; }
 
 QString Pep_MA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep9MA2.qml"; }
 

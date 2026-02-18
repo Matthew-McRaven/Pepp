@@ -49,10 +49,10 @@ Item {
                     else
                         proj = pm.pep10ASMB(Abstraction.OS4);
                 } else if (Number(level) === Abstraction.MA2) {
-                    if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.MA2 && cur.isEmpty && reuse)
+                    if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.MA2 && cur.isEmpty && reuse && cur.features == feats)
                         proj = cur;
                     else
-                        proj = pm.pep10MA2();
+                        proj = pm.pep10MA2(feats);
                 }
                 break;
             case Architecture.PEP9:
@@ -67,10 +67,10 @@ Item {
                     else
                         proj = pm.pep9ASMB();
                 } else if (Number(level) === Abstraction.MA2) {
-                    if (cur && cur.architecture === Architecture.PEP9 && cur.abstraction === Abstraction.MA2 && cur.isEmpty && reuse)
+                    if (cur && cur.architecture === Architecture.PEP9 && cur.abstraction === Abstraction.MA2 && cur.isEmpty && reuse && cur.features == feats)
                         proj = cur;
                     else
-                        proj = pm.pep9MA2();
+                        proj = pm.pep9MA2(feats);
                 }
                 break;
             }
@@ -178,7 +178,7 @@ Item {
                     radius: 4
                 }
                 onClicked: {
-                    pm.onAddProject(root.currentProject.architecture, root.currentProject.abstraction, "");
+                    pm.onAddProject(root.currentProject.architecture, root.currentProject.abstraction, root.currentProject.features);
                     root.switchToProject(pm.count - 1);
                 }
             }

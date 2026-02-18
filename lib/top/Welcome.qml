@@ -15,7 +15,7 @@ Item {
     property list<int> filterAbstraction: []
     readonly property bool filtering: filterEdition.length !== 0 && filterAbstraction.length !== 0
 
-    signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
+    signal addProject(int arch, int abstraction, int features, string optText, bool reuse)
     signal setCharIn(string text)
     signal openFile(string path, int arch, int abstraction)
 

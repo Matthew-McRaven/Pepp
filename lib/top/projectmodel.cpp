@@ -16,6 +16,7 @@
 #include "projectmodel.hpp"
 #include <QFileDialog>
 #include <QStringLiteral>
+#include "core/math/bitmanip/enums.hpp"
 #include "settings/settings.hpp"
 
 int ProjectModel::roleForName(const QString &name) const {
@@ -69,8 +70,13 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
   return true;
 }
 
-Pep_MA *ProjectModel::pep9MA2() {
-  static const project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::MA2};
+Pep_MA *ProjectModel::pep9MA2(project::Features feats) {
+  using F = project::Features;
+  using namespace bits;
+  // If neither one byte or two byte are set, default to one-byte
+  if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
+
+  const project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::MA2, .features = feats};
   auto ptr = std::make_unique<Pep_MA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -81,8 +87,12 @@ Pep_MA *ProjectModel::pep9MA2() {
   return ret;
 }
 
-Pep_MA *ProjectModel::pep10MA2() {
-  static const project::Environment env{.arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::MA2};
+Pep_MA *ProjectModel::pep10MA2(project::Features feats) {
+  using F = project::Features;
+  using namespace bits;
+  // If neither one byte or two byte are set, default to one-byte
+  if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
+  const project::Environment env{.arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::MA2, .features = feats};
   auto ptr = std::make_unique<Pep_MA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -459,6 +469,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
+              .features = project::Features::OneByte,
               .state = CompletionState::PARTIAL,
               .edition = 6});
   vec.append({.name = "Pep/10",
@@ -468,6 +479,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
+              .features = project::Features::TwoByte,
               .state = CompletionState::PARTIAL,
               .edition = 6});
 }
@@ -509,6 +521,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
+              .features = project::Features::OneByte,
               .state = CompletionState::PARTIAL,
               .edition = 5});
   vec.append({.name = "Pep/9",
@@ -518,6 +531,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
+              .features = project::Features::TwoByte,
               .state = CompletionState::PARTIAL,
               .edition = 5});
 }
@@ -559,6 +573,7 @@ void init_pep8(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
+              .features = project::Features::OneByte,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
 }
@@ -609,6 +624,7 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::LevelTextRole): return _projects[index.row()].levelText;
   case static_cast<int>(Roles::DetailsRole): return _projects[index.row()].details;
   case static_cast<int>(Roles::ChapterRole): return _projects[index.row()].chapter;
+  case static_cast<int>(Roles::FeatureRole): return (int)_projects[index.row()].features;
   default: return {};
   }
 }
@@ -628,6 +644,7 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
       {(int)ProjectTypeModel::Roles::LevelTextRole, "levelText"},
       {(int)ProjectTypeModel::Roles::DetailsRole, "details"},
       {(int)ProjectTypeModel::Roles::ChapterRole, "chapter"},
+      {(int)ProjectTypeModel::Roles::FeatureRole, "features"},
   };
   return ret;
 }

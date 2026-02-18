@@ -33,10 +33,11 @@ namespace project {
 // TODO: Wrap in a Q_OBJECT to expose to QML.
 enum class Features : int {
   None = 0,
-  OneByte,
-  TwoByte,
-  NoOS,
+  OneByte = 1,
+  TwoByte = 2,
+  NoOS = 4,
 };
+consteval void is_bitflags(Features);
 
 class DebugEnableFlags : public QObject {
   Q_OBJECT
