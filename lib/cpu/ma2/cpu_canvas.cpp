@@ -473,11 +473,24 @@ struct PaintDispatch {
     painter->drawText(item.geom.adjusted(+5, 0, -5, 0), item.alignment, item.text);
   }
 };
+
 } // namespace pepp
 
-pepp::PaintedCPUCanvas::PaintedCPUCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
-  _geom = one_byte_geom();
-  _overlays = one_byte_overlays(this, OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset);
+pepp::Painted1ByteCanvas::Painted1ByteCanvas(QQuickItem *parent) : PaintedCPUCanvas(Which::Pep9OneByte, parent) {}
+
+pepp::Painted2ByteCanvas::Painted2ByteCanvas(QQuickItem *parent) : PaintedCPUCanvas(Which::Pep9TwoByte, parent) {}
+
+pepp::PaintedCPUCanvas::PaintedCPUCanvas(Which which, QQuickItem *parent) : QQuickPaintedItem(parent) {
+  switch (which) {
+  case Which::Pep9OneByte:
+    _geom = one_byte_geom();
+    _overlays = one_byte_overlays(this, OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset);
+    break;
+  case Which::Pep9TwoByte:
+    _geom = two_byte_geom();
+    _overlays = two_byte_overlays(this, OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset);
+    break;
+  }
 
   auto svg_path = ":/logi/arrow.svg";
   QImage svg_image(svg_path);

@@ -290,6 +290,7 @@ class Pep_MA : public QObject {
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
   Q_PROPERTY(QStringList saveAsOptions READ saveAsOptions CONSTANT)
+  Q_PROPERTY(int renderingType READ rendering_type CONSTANT)
   Q_PROPERTY(bool isEmpty READ isEmpty)
   QML_UNCREATABLE("Can only be created through Project::")
 public:
@@ -320,6 +321,7 @@ public:
   virtual QStringList saveAsOptions() const { return {"pepcpu"}; }
   Q_INVOKABLE virtual QString defaultExtension() const { return "pepcpu"; }
   virtual QString contentsForExtension(const QString &ext) const;
+  int rendering_type() const;
 public slots:
   bool onFormatMicrocode();
   bool onExecute();

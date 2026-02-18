@@ -14,6 +14,10 @@ import edu.pepp
  */
 Item {
     id: root
+    // == 0, Pep/9 one byte
+    // == 1, Pep/9 two byte
+    required property int which
+
     component LabeledTriState: Item {
         id: triState
         required property var location
@@ -99,6 +103,7 @@ Item {
         z: -1
         property real logicalX: flickable.contentX / scene.scale
         property real logicalY: flickable.contentY / scene.scale
+        property var canvas: null
         anchors.fill: parent
         implicitWidth: childrenRect.width
         implicitHeight: childrenRect.height
@@ -114,16 +119,33 @@ Item {
                 y: -viewport.logicalY
             }
         ]
-
-        PaintedCPUCanvas{
-            id: canvas
-            x: 0
-            y: 0
-            width: canvas.contentWidth
-            height: canvas.contentHeight
+        // 1- and 2-byte canvases canvas
+        Loader {
+            active: root.which == 0
+            sourceComponent: Painted1ByteCanvas{
+                id: _byte
+                x: 0
+                y: 0
+                width: _byte.contentWidth
+                height: _byte.contentHeight
+            }
+            onLoaded: viewport.canvas = item;
         }
+        Loader {
+            active: root.which == 1
+            sourceComponent: Painted2ByteCanvas{
+                id: _word
+                x: 0
+                y: 0
+                width: _word.contentWidth
+                height: _word.contentHeight
+            }
+            onLoaded: viewport.canvas = item;
+        }
+
+
         Instantiator {
-            model: canvas.overlays
+            model: viewport.canvas.overlays
             delegate: DelegateChooser {
                 id: chooser
                 role: "type"

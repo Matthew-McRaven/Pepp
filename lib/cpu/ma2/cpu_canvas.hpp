@@ -50,7 +50,11 @@ class PaintedCPUCanvas : public QQuickPaintedItem {
   // error.
   Q_PROPERTY(QList<QMLOverlay *> overlays READ overlays CONSTANT FINAL)
 public:
-  PaintedCPUCanvas(QQuickItem *parent = nullptr);
+  enum class Which {
+    Pep9OneByte,
+    Pep9TwoByte,
+  };
+  PaintedCPUCanvas(Which, QQuickItem *parent = nullptr);
   ~PaintedCPUCanvas() noexcept override;
   void paint(QPainter *painter) override;
 
@@ -64,4 +68,19 @@ private:
   QList<QMLOverlay *> _overlays;
   friend struct PaintDispatch;
 };
+
+class Painted1ByteCanvas : public PaintedCPUCanvas {
+  Q_OBJECT
+  QML_NAMED_ELEMENT(Painted1ByteCanvas)
+public:
+  Painted1ByteCanvas(QQuickItem *parent = nullptr);
+};
+
+class Painted2ByteCanvas : public PaintedCPUCanvas {
+  Q_OBJECT
+  QML_NAMED_ELEMENT(Painted2ByteCanvas)
+public:
+  Painted2ByteCanvas(QQuickItem *parent = nullptr);
+};
+
 } // namespace pepp

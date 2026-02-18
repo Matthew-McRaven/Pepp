@@ -1374,6 +1374,18 @@ QString Pep_MA::contentsForExtension(const QString &ext) const {
   } else return "";
 }
 
+int Pep_MA::rendering_type() const {
+  switch (_env.arch) {
+    // Pep/8 only has a 1-byte databus variant
+  case pepp::ArchitectureHelper::Architecture::PEP8: return 0;
+  case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
+  case pepp::ArchitectureHelper::Architecture::PEP10:
+    if ((int)_env.features & (int)project::Features::TwoByte) return 1;
+    return 0;
+  default: return -1;
+  }
+}
+
 bool Pep_MA::onFormatMicrocode() { return true; }
 
 bool Pep_MA::onExecute() { return true; }
