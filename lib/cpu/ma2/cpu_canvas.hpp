@@ -49,10 +49,11 @@ class PaintedCPUCanvas : public QQuickPaintedItem {
   // Do not try to forward-declare QMLOverlay, else reading the Q_PROPERTY will just return an empty list without an
   // error.
   Q_PROPERTY(QList<QMLOverlay *> overlays READ overlays CONSTANT FINAL)
+  QML_UNCREATABLE("Please use one of the various subclasses to intialize geometry correctly")
 public:
   enum class Which {
-    Pep9OneByte,
-    Pep9TwoByte,
+    Pep9OneByte = 0,
+    Pep9TwoByte = 1,
   };
   PaintedCPUCanvas(Which, QQuickItem *parent = nullptr);
   ~PaintedCPUCanvas() noexcept override;
