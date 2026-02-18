@@ -7,6 +7,7 @@ import "qrc:/qt/qml/edu/pepp/memory/io" as IO
 import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
 import "qrc:/qt/qml/edu/pepp/utils" as Utils
 import "qrc:/qt/qml/edu/pepp/cpu/ma2" as MA2
+import "qrc:/qt/qml/edu/pepp/text/view" as OC
 import edu.pepp 1.0
 import com.kdab.dockwidgets 2.0 as KDDW
 
@@ -158,10 +159,9 @@ FocusScope {
                 "editor": false,
                 "debugger": true
             }
-            Rectangle {
-                anchors.fill: parent
-                property size kddockwidgets_min_size: Qt.size(200, 200)
-                color: "red"
+            OC.MicroObjectView {
+                anchors.fill:parent
+                property size kddockwidgets_min_size: Qt.size(200, 400)
             }
         }
         KDDW.DockWidget {

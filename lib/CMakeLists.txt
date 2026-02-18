@@ -89,6 +89,7 @@ target_include_directories(
           sim/debug
           targets
           text
+          text/view
           utils
           text/editor
           menu
