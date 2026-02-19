@@ -200,6 +200,33 @@ QtObject {
             icon.source: "image://icons/blank.svg"
             onShortcutChanged: updateNativeText(this)
         }
+        readonly property var microAssemble: Action {
+            enabled: project?.onMicroAssemble !== undefined
+            property string nativeText: ""
+            onTriggered: {
+                // New editor does not lose focus before "assemble" is triggered, so we must save manually.
+                window.syncEditors();
+                project.onMicroAssemble();
+            }
+            text: qsTr("&Microassemble")
+            icon.source: `image://icons/build/build${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
+            onShortcutChanged: updateNativeText(this)
+        }
+        readonly property var microAssembleThenFormat: Action {
+            enabled: project?.onMicroAssembleThenFormat !== undefined
+            property string nativeText: ""
+            onTriggered: {
+                // New editor does not lose focus before "assemble" is triggered, so we must save manually.
+                window.syncEditors();
+                project.onMicroAssembleThenFormat();
+                project.overwriteEditors();
+            }
+            text: qsTr("&Format Microcode")
+            // Use blank icon to force menu items to line up.
+            icon.source: "image://icons/blank.svg"
+            onShortcutChanged: updateNativeText(this)
+        }
+
         readonly property var execute: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.Execute
             property string nativeText: ""

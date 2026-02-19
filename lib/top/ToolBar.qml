@@ -49,6 +49,19 @@ ToolBar {
             ToolTip.text: action.text.replace(/&/g, "")
             text: ''
         }
+        ToolButton {
+            action: root.actions.build.microAssemble
+            visible: root.actions.build.microAssemble.enabled
+            icon {
+                source: action.icon.source
+                height: root.iconHeight
+                width: root.iconHeight
+            }
+            hoverEnabled: true
+            ToolTip.visible: hovered
+            ToolTip.text: action.text.replace(/&/g, "")
+            text: ''
+        }
 
         ToolButton {
             action: root.actions.build.execute

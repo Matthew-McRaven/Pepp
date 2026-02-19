@@ -238,6 +238,22 @@ Labs.MenuBar {
             shortcut: actions.build.assembleThenLoad.shortcut
         }
         Labs.MenuItem {
+            text: actions.build.microAssemble.text
+            onTriggered: actions.build.microAssemble.trigger()
+            enabled: actions.build.microAssemble.enabled
+            visible: enabled
+            icon.source: fixSuffix(actions.build.microAssemble.icon.source, wrapper.darkMode)
+            shortcut: actions.build.microAssemble.shortcut
+        }
+        Labs.MenuItem {
+            text: actions.build.microAssembleThenFormat.text
+            onTriggered: actions.build.microAssembleThenFormat.trigger()
+            enabled: actions.build.microAssembleThenFormat.enabled
+            visible: enabled
+            icon.source: fixSuffix(actions.build.microAssembleThenFormat.icon.source, wrapper.darkMode)
+            shortcut: actions.build.microAssembleThenFormat.shortcut
+        }
+        Labs.MenuItem {
             text: actions.build.execute.text
             onTriggered: actions.build.execute.trigger()
             enabled: actions.build.execute.enabled

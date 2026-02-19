@@ -1412,6 +1412,10 @@ int Pep_MA::rendering_type() const {
   }
 }
 
+bool Pep_MA::onMicroAssemble() { return true; }
+
+bool Pep_MA::onMicroAssembleThenFormat() { return true; }
+
 bool Pep_MA::onFormatMicrocode() { return true; }
 
 bool Pep_MA::onExecute() { return true; }

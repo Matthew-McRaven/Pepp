@@ -335,6 +335,9 @@ public:
   virtual QString contentsForExtension(const QString &ext) const;
   int rendering_type() const;
 public slots:
+  bool onMicroAssemble();
+  bool onMicroAssembleThenFormat();
+
   bool onFormatMicrocode();
   bool onExecute();
   bool onDebuggingStart();

@@ -138,6 +138,20 @@ MenuBar {
             icon.source: fixSuffix(actions.build.assembleThenLoad.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
+            action: actions.microAssemble.assemble
+            enabled: action.enabled
+            visible: enabled
+            height: enabled ? implicitHeight : 0
+            icon.source: fixSuffix(actions.build.microAssemble.icon.source, wrapper.darkMode)
+        }
+        ShortcutMenuItem {
+            action: actions.build.microAssembleThenFormat
+            enabled: action.enabled
+            visible: enabled
+            height: enabled ? implicitHeight : 0
+            icon.source: fixSuffix(actions.build.microAssembleThenFormat.icon.source, wrapper.darkMode)
+        }
+        ShortcutMenuItem {
             action: actions.build.execute
             enabled: action.enabled
             icon.source: fixSuffix(actions.build.execute.icon.source, wrapper.darkMode)
