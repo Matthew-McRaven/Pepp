@@ -36,7 +36,7 @@ Item {
                 font: tm.font
                 wrapMode: Text.NoWrap   // wrap + rotation usually looks bad; use elide instead
                 elide: Text.ElideRight
-
+                verticalAlignment: Text.AlignVCenter // Rotated by 90 degrees, so swap H for V center
                 // Rotate around its top-left and then position it
                 transform: Rotation {
                     angle: -90
@@ -46,12 +46,14 @@ Item {
                 // Baseline changes w/rotation
                 x: 0
                 y: cell.height
+                width: cell.height
+                height: cell.width
             }
         }
     }
     TextMetrics {
         id: tm
-        text: "MemWrite "
+        text: "MemWrite  "
         font: settings.extPalette.base.font
     }
     TextMetrics {
@@ -74,6 +76,7 @@ Item {
             text: model.display
             color: palette.text
             clip: true
+            horizontalAlignment: Text.AlignHCenter
             Rectangle {
                 anchors.fill: parent
                 color: model.row % 2 !== 0 ? palette.window : palette.base
