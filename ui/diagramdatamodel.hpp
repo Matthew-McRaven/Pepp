@@ -15,12 +15,6 @@ class DiagramDataModel : public QAbstractTableModel
     const int _rowSize{32};
     DiagramData _data;
 
-    //  Map to data based on table location
-    QMap<DiagramKey, DiagramProperties *> _cells;
-
-    //  Map view to datamodel
-    QMap<quint32, DiagramKey> _keys;
-
     QModelIndex _current{};
 
     // Sizes in "screen" coordinates
@@ -51,6 +45,7 @@ public:
 
     const QModelIndex currentIndex() const;
     void setCurrentIndex(const QModelIndex);
+    void move(const QModelIndex oldLocation, const QModelIndex newLocation);
 
     // Basic functionality:
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;

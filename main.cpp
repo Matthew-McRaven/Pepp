@@ -30,9 +30,7 @@ int main(int argc, char *argv[])
 
 /*  To Do
  *  
- *  Add Zoom
  *  Drag/Drop
- *  Move grid painting into canvas from table
  *  Add toolbar with selection modes
  *  Filter sidebar to only show stencils available from toolbar
  *  Scale down graphics by 25%

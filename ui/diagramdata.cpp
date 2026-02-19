@@ -90,6 +90,21 @@ bool DiagramData::clearData(const DiagramKey &key)
     return _cells.remove(key) > 0;
 }
 
+void DiagramData::moveData(const DiagramKey &oldKey, const DiagramKey &newKey)
+{
+    auto *cell = getDiagramProps(oldKey);
+
+    if (cell == nullptr)
+        return;
+
+    //  Insert into new
+    _cells.insert(newKey, cell);
+    _keys.insert(cell->id(), newKey);
+
+    //  Remove old key
+    _cells.remove(oldKey);
+}
+
 int DiagramData::createId(const DiagramKey &key)
 {
     auto find_key = [&key](const auto &elem) { return key == elem; };

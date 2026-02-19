@@ -4,7 +4,7 @@ project(CircuitDesign VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS core Gui Svg Qml Quick)
+find_package(Qt6 REQUIRED COMPONENTS core Gui Svg Qml Quick Widgets)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -66,6 +66,7 @@ target_link_libraries(CircuitDesign PRIVATE
     Qt6::Svg
     Qt6::Qml
     Qt6::Quick
+    Qt6::Widgets
 )
 
 include(GNUInstallDirs)

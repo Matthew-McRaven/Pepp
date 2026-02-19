@@ -1,10 +1,12 @@
 #include "graphiccanvas.hpp"
+#include <QApplication> //  For startDragDistance()
 #include <QCursor>
 #include <QDrag>
 #include <QPainter>
 #include <QSvgRenderer>
 
 #include "diagramdatamodel.hpp"
+#include <vector>
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     : QQuickPaintedItem(parent)
@@ -227,9 +229,6 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, DiagramProperties &
         painter->drawRect(screen_rect);
     }
 
-    // Return current image
-    //const QPixmap *image = getImage(props);
-
     //  If image is not null, it can be output
     if (props.image() == nullptr)
         //  If image is null, then it's properties were reset, update image
@@ -316,11 +315,33 @@ void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
 
 void GraphicCanvas::mouseMoveEvent(QMouseEvent *event)
 {
-    qDebug() << "MouseMove" << event;
+    //qDebug() << "MouseMove" << event;
+    if (!(event->buttons() & Qt::LeftButton))
+        return;
+    if ((event->pos() - _dragStartPosition).manhattanLength() < QApplication::startDragDistance())
+        return;
+
+    //  Mouse location in grid coordinates to
+    //  to determine rectangle hit.
+    const auto point = screen_to_grid(event->position());
+
+    //  See if existing item was clicked
+    if (setSelected(point)) {
+        startDrag(event->pos());
+
+        //  Another item was selected
+        event->setAccepted(true);
+
+        return;
+    }
 }
 
 void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 {
+    //  Only handle left click
+    if (event->button() != Qt::LeftButton)
+        return;
+
     //  Determine the size of the viewport in grid coordinates.
     //  Exclude scrollbar from view area otherwise, we will paint on scrollbars
     const auto screen_viewport = QRectF(0, 0, size().width(), size().height());
@@ -336,33 +357,13 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     //  to determine rectangle hit.
     const auto point = screen_to_grid(event->position());
 
+    //  Images are stored by row and column.
+    const int col = point.x() / block_size;
+    const int row = point.y() / block_size;
+
     //  See if existing item was clicked
     if (setSelected(point)) {
-        QDrag *drag = new QDrag(this);
-
-        QByteArray itemData;
-        QDataStream dataStream(&itemData, QIODevice::WriteOnly);
-        dataStream << *_currentItem->image() << QPoint(event->position().toPoint());
-
-        QMimeData *mimeData = new QMimeData;
-        mimeData->setData("application/x-dnditemdata", itemData);
-        drag->setMimeData(mimeData);
-
-        //  Size image based on current zoom and screen DPI.
-        const auto curSize = screen_block * _currentZoom;
-        auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
-        drag->setPixmap(dragPix);
-
-        QPointF offset{curSize / 2, curSize / 2};
-        drag->setHotSpot(offset.toPoint());
-        setCursor(Qt::OpenHandCursor);
-
-        //  If this function is not called, the drag will not start
-        drag->exec();
-
-        //  Another item was selected
-        event->setAccepted(true);
-
+        _dragStartPosition = event->position();
         return;
     }
 
@@ -373,11 +374,9 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     }
 
     //  If we get here, we have a new item. Insert into canvas
-    const int col = point.x() / block_size;
-    const int row = point.y() / block_size;
     QRect r{block_size * col, block_size * row, block_size, block_size};
-    const auto index = _model->index(col, row);
-    DiagramProperties *data = _model->createItem(index);
+    const auto newIndex = _model->index(col, row);
+    DiagramProperties *data = _model->createItem(newIndex);
 
     //  Add block data
     data->setName(_template->name());
@@ -386,7 +385,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     getImage(*data);
 
     insertImage(r, data);
-    _model->setData(index, true, DiagramProperty::Role::Selected);
+    _model->setData(newIndex, true, DiagramProperty::Role::Selected);
     event->setAccepted(true);
 }
 
@@ -566,15 +565,40 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
         QByteArray itemData = event->mimeData()->data("application/x-dnditemdata");
         QDataStream dataStream(&itemData, QIODevice::ReadOnly);
 
-        QPixmap pixmap;
-        QPoint offset;
-        dataStream >> pixmap >> offset;
+        qint32 oldX, oldY;
+        dataStream >> oldX >> oldY;
 
-        //QLabel *newIcon = new QLabel(this);
-        //newIcon->setPixmap(pixmap);
-        //newIcon->move(event->position().toPoint() - offset);
-        //newIcon->show();
-        //newIcon->setAttribute(Qt::WA_DeleteOnClose);
+        //  Mouse location in grid coordinates to
+        //  to determine rectangle hit.
+        const auto point = screen_to_grid(event->position());
+
+        //  Images are stored by row and column.
+        const int newX = point.x() / block_size;
+        const int newY = point.y() / block_size;
+
+        const auto oldIndex = _model->index(oldX, oldY);
+        const auto newIndex = _model->index(newX, newY);
+
+        //  Duplicate - see note below
+        DiagramProperties *data = _model->item(oldIndex);
+
+        _model->move(oldIndex, newIndex);
+        unsetCursor();
+
+        //  This is duplicative, we are maintaining rectangle
+        //  size in this class and the data model. Data should
+        //  only be in data model. Need to fix.
+        QRect r{block_size * newX, block_size * newY, block_size, block_size};
+        insertImage(r, data);
+
+        r.setRect(block_size * oldX, block_size * oldY, block_size, block_size);
+        for (const auto it : _rects) {
+            if (it.first == r) {
+            }
+            //_rects.erase(it);
+        }
+
+        update();
 
         if (event->source() == this) {
             event->setDropAction(Qt::MoveAction);
@@ -585,4 +609,31 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
     } else {
         event->ignore();
     }
+}
+
+void GraphicCanvas::startDrag(const QPoint point)
+{
+    _dragStartPosition = point;
+    QDrag *drag = new QDrag(this);
+
+    QByteArray itemData;
+    QDataStream dataStream(&itemData, QIODevice::WriteOnly);
+
+    dataStream << _currentItem->rectangle().x() << _currentItem->rectangle().y();
+
+    QMimeData *mimeData = new QMimeData;
+    mimeData->setData("application/x-dnditemdata", itemData);
+    drag->setMimeData(mimeData);
+
+    //  Size image based on current zoom and screen DPI.
+    const auto curSize = screen_block * _currentZoom;
+    auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
+    drag->setPixmap(dragPix);
+
+    QPointF offset{curSize / 2, curSize / 2};
+    drag->setHotSpot(offset.toPoint());
+    setCursor(Qt::OpenHandCursor);
+
+    //  If this function is not called, the drag will not start
+    drag->exec();
 }

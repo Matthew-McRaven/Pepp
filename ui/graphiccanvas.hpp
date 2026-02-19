@@ -171,6 +171,9 @@ private:
     //  Respond to data changes in model
     void updateCell(const QModelIndex &from, const QModelIndex &to);
 
+    //  Drag drop functions
+    void startDrag(const QPoint point);
+
     // The things we want to render
     using Rect = std::pair<QRect, DiagramProperties *>;
     std::vector<Rect> _rects;
@@ -191,6 +194,9 @@ private:
 
     //  Make fixed color for now
     QColor _highlight = QColorConstants::Svg::cornflowerblue;
+
+    //  Drag start
+    QPointF _dragStartPosition{-1, -1};
 
     //  Data model
     DiagramDataModel *_model = nullptr;

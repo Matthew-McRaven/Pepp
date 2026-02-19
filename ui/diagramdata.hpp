@@ -28,6 +28,7 @@ public:
     QVariant getData(const DiagramKey &key, int role) const;
     bool setData(const DiagramKey &key, const QVariant &value, int role);
     bool clearData(const DiagramKey &key);
+    void moveData(const DiagramKey &oldKey, const DiagramKey &newKey);
 
     /******************************************************
      * If the key already exists in the model, returns the
