@@ -152,7 +152,7 @@ void SCI_METHOD LexerPepMicro::Lex(Sci_PositionU startPos, Sci_Position length, 
         if (strcmp(s, unitpre) == 0) {
           sc.ChangeState(SCE_PEPMICRO_PREPOST);
           sc.SetState(SCE_PEPMICRO_DEFAULT);
-        } else if (strcmp(s, unitpre) == 0) {
+        } else if (strcmp(s, unitpost) == 0) {
           sc.ChangeState(SCE_PEPMICRO_PREPOST);
           sc.SetState(SCE_PEPMICRO_DEFAULT);
         } else if (options.allowSymbols) {
