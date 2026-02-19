@@ -138,7 +138,7 @@ MenuBar {
             icon.source: fixSuffix(actions.build.assembleThenLoad.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
-            action: actions.microAssemble.assemble
+            action: actions.build.microAssemble
             enabled: action.enabled
             visible: enabled
             height: enabled ? implicitHeight : 0
