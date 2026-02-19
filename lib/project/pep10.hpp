@@ -19,15 +19,15 @@
 #include <QStringListModel>
 #include <qabstractitemmodel.h>
 #include "aproject.hpp"
-#include "project/architectures.hpp"
-#include "project/levels.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "debug/debugger.hpp"
 #include "memory/hexdump/rawmemory.hpp"
+#include "project/architectures.hpp"
+#include "project/levels.hpp"
 #include "sim/debug/watchexpressionmodel.hpp"
 #include "sim3/systems/traced_pep_isa3_system.hpp"
-#include "text/editor/scintillaasmeditbase.hpp"
+#include "text/editor/editbase.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/symtab/symbolmodel.hpp"
 #include "utils/opcodemodel.hpp"
@@ -41,6 +41,7 @@ class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(int features READ features CONSTANT)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   // Preserve the current address in the memory dump pane on tab-switch.
@@ -50,6 +51,9 @@ class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
+  // Step modes that are allowable for the current project type.
+  Q_PROPERTY(int enabledSteps READ enabledSteps CONSTANT)
+  // Step modes that should be active RIGHT NOW
   Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
   Q_PROPERTY(QStringList saveAsOptions READ saveAsOptions CONSTANT)
   // Only changed externally
@@ -78,6 +82,7 @@ public:
   virtual project::Environment env() const;
   virtual pepp::Architecture architecture() const;
   virtual pepp::Abstraction abstraction() const;
+  virtual int features() const;
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;
@@ -92,6 +97,7 @@ public:
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
   Q_INVOKABLE virtual int allowedDebugging() const;
+  Q_INVOKABLE virtual int enabledSteps() const;
   Q_INVOKABLE virtual int allowedSteps() const;
   Q_INVOKABLE QString charIn() const;
   Q_INVOKABLE void setCharIn(QString value);
@@ -177,7 +183,7 @@ protected:
   RegisterModel *_registers = nullptr;
   FlagModel *_flags = nullptr;
   qint16 _currentAddress = 0;
-  using Action = ScintillaAsmEditBase::Action;
+  using Action = EditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QSharedPointer<builtins::Registry> _books = {};
@@ -210,7 +216,7 @@ class Pep_ASMB final : public Pep_ISA {
   Q_PROPERTY(ScopedLines2Addresses *lines2addr READ line2addr CONSTANT)
   Q_PROPERTY(bool ignoreOS READ ignoreOS CONSTANT)
   QML_UNCREATABLE("Can only be created through Project::")
-  using Action = ScintillaAsmEditBase::Action;
+  using Action = EditBase::Action;
 
 public:
   explicit Pep_ASMB(project::Environment env, QObject *parent = nullptr);
@@ -278,6 +284,8 @@ class Pep_MA : public QObject {
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(int features READ features CONSTANT)
+  Q_PROPERTY(QString lexerLanguage READ lexerLanguage CONSTANT)
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   Q_PROPERTY(QString microcodeText READ microcodeText WRITE setMicrocodeText NOTIFY microcodeTextChanged);
   // Preserve the current address in the memory dump pane on tab-switch.
@@ -286,7 +294,12 @@ class Pep_MA : public QObject {
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
+  // Step modes that are allowable for the current project type.
+  Q_PROPERTY(int enabledSteps READ enabledSteps CONSTANT)
+  // Step modes that should be active RIGHT NOW
+  Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
   Q_PROPERTY(QStringList saveAsOptions READ saveAsOptions CONSTANT)
+  Q_PROPERTY(int renderingType READ rendering_type CONSTANT)
   Q_PROPERTY(bool isEmpty READ isEmpty)
   QML_UNCREATABLE("Can only be created through Project::")
 public:
@@ -298,6 +311,8 @@ public:
   virtual project::Environment env() const;
   virtual pepp::Architecture architecture() const;
   virtual pepp::Abstraction abstraction() const;
+  virtual int features() const;
+  virtual QString lexerLanguage() const;
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;
@@ -313,10 +328,16 @@ public:
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
   virtual bool isEmpty() const;
 
+  int enabledSteps() const;
+  int allowedSteps() const;
   virtual QStringList saveAsOptions() const { return {"pepcpu"}; }
   Q_INVOKABLE virtual QString defaultExtension() const { return "pepcpu"; }
   virtual QString contentsForExtension(const QString &ext) const;
+  int rendering_type() const;
 public slots:
+  bool onMicroAssemble();
+  bool onMicroAssembleThenFormat();
+
   bool onFormatMicrocode();
   bool onExecute();
   bool onDebuggingStart();
@@ -336,6 +357,7 @@ signals:
   void currentAddressChanged();
   // Called by onISARemoveAllBreakpoints so we can remove breakpoints from editors.
   void projectBreakpointsCleared();
+  void allowedStepsChanged();
 
   void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
@@ -368,7 +390,7 @@ protected:
   RegisterModel *_registers = nullptr;
   FlagModel *_flags = nullptr;
   qint16 _currentAddress = 0;
-  using Action = ScintillaAsmEditBase::Action;
+  using Action = EditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QSharedPointer<builtins::Registry> _books = {};

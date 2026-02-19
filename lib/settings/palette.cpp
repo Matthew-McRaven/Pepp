@@ -286,29 +286,34 @@ void pepp::settings::Palette::loadLightDefaults() {
       break;
     case PaletteRoleHelper::Role::WarningRole:
       pref = new PaletteItem(
-          PO{.parent = _items[(int)R::CommentRole], .fg = qRgb(0x00, 0x00, 0x00), .bg = qRgba(0xff, 0xFF, 0xE0, 0xff)},
-          r, this);
-      break;
-    case PaletteRoleHelper::Role::SeqCircuitRole:
-      pref = new PaletteItem(
           PO{
-              .parent = _items[(int)R::MnemonicRole],
-              .fg = qRgb(0xff, 0xff, 0x00),
-              .bg = qRgb(0x04, 0xab, 0x0a),
+              .parent = _items[(int)R::CommentRole],
           },
           r, this);
-      pref->overrideBold(false);
       break;
-    case PaletteRoleHelper::Role::CircuitGreenRole:
-      pref = new PaletteItem(
-          PO{
-              .parent = _items[(int)R::MnemonicRole],
-              .fg = qRgb(0x0, 0x0, 0xff),
-              .bg = qRgb(0xff, 0xe1, 0xff),
-          },
-          r, this);
-      pref->overrideBold(false);
+    case PaletteRoleHelper::Role::CombinationalRole:
+      pref = new PaletteItem(PO{.parent = _items[(int)R::BaseMonoRole]}, r, this);
       break;
+    case PaletteRoleHelper::Role::SequentialRole:
+      pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(0xE7, 0xEA, 0xFF)}, r, this);
+      break;
+    // Red
+    case PaletteRoleHelper::Role::CircuitPrimaryRole:
+      pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(0xFF, 0x54, 0x37)}, r, this);
+      break;
+    // Yellow
+    case PaletteRoleHelper::Role::CircuitSecondaryRole:
+      pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(0xFF, 0xD8, 0x41)}, r, this);
+      break;
+    // Green
+    case PaletteRoleHelper::Role::CircuitTertiaryRole:
+      pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(0x95, 0xBE, 0x16)}, r, this);
+      break;
+    // Dark Blue
+    case PaletteRoleHelper::Role::CircuitQuaternaryRole:
+      pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(0x55, 0x80, 0xFF)}, r, this);
+      break;
+
     default: throw std::logic_error("Should be unreachable");
     }
     _items[it] = pref;

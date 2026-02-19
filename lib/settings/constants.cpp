@@ -26,7 +26,12 @@ QString pepp::settings::PaletteRoleHelper::prettyString(Role role) {
   switch (role) {
   case Role::BaseMonoRole: return "Base + Monospace Font";
   case Role::PlaceHolderTextRole: return "Placeholder Text";
-  case Role::SeqCircuitRole: return "Sequential Circuit";
+  case Role::CombinationalRole: return "Combinational Logic";
+  case Role::SequentialRole: return "Sequential Logic";
+  case Role::CircuitPrimaryRole: return "Circuit Primary";
+  case Role::CircuitSecondaryRole: return "Circuit Secondary";
+  case Role::CircuitTertiaryRole: return "Circuit Tertiary";
+  case Role::CircuitQuaternaryRole: return "Circuit Quaternary";
   default: {
     auto str = string(role);
     str.replace("Role", "");
@@ -50,8 +55,12 @@ bool pepp::settings::PaletteRoleHelper::requiresMonoFont(Role role) {
   case Role::CommentRole: [[fallthrough]];
   case Role::ErrorRole: [[fallthrough]];
   case Role::WarningRole: [[fallthrough]];
-  case Role::SeqCircuitRole: [[fallthrough]];
-  case Role::CircuitGreenRole: return true;
+  case Role::CombinationalRole: [[fallthrough]];
+  case Role::SequentialRole: [[fallthrough]];
+  case Role::CircuitPrimaryRole: [[fallthrough]];
+  case Role::CircuitSecondaryRole: [[fallthrough]];
+  case Role::CircuitTertiaryRole: [[fallthrough]];
+  case Role::CircuitQuaternaryRole: return true;
   default: return false;
   }
 }
@@ -67,7 +76,7 @@ enum Ranges : uint32_t {
   GeneralCategoryStart = (uint32_t)pepp::settings::PaletteRole::BaseRole,
   GeneralCategoryEnd = (uint32_t)pepp::settings::PaletteRole::MnemonicRole,
   EditorCategoryStart = GeneralCategoryEnd,
-  EditorCategoryEnd = (uint32_t)pepp::settings::PaletteRole::SeqCircuitRole,
+  EditorCategoryEnd = (uint32_t)pepp::settings::PaletteRole::CombinationalRole,
   CircuitCategoryStart = EditorCategoryEnd,
   CircuitCategoryEnd = (uint32_t)pepp::settings::PaletteRole::Total,
 };

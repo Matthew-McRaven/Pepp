@@ -14,6 +14,13 @@ import edu.pepp
  */
 Item {
     id: root
+    // == 0, Pep/9 one byte
+    // == 1, Pep/9 two byte
+    // TODO: really should be an enum
+    required property int which
+    NuAppSettings {
+        id: settings
+    }
     component LabeledTriState: Item {
         id: triState
         required property var location
@@ -66,7 +73,6 @@ Item {
         text: label
         checked: value
     }
-
     ScrollBar {
         id: vbar
         hoverEnabled: true
@@ -77,7 +83,7 @@ Item {
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        policy: ScrollBar.AlwaysOn
+        policy: flickable.contentHeight > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
     }
 
     ScrollBar {
@@ -90,7 +96,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        policy: ScrollBar.AlwaysOn
+        policy: flickable.contentWidth > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
     }
 
     Item {
@@ -99,6 +105,7 @@ Item {
         z: -1
         property real logicalX: flickable.contentX / scene.scale
         property real logicalY: flickable.contentY / scene.scale
+        property var canvas: null
         anchors.fill: parent
         implicitWidth: childrenRect.width
         implicitHeight: childrenRect.height
@@ -114,16 +121,39 @@ Item {
                 y: -viewport.logicalY
             }
         ]
-
-        PaintedCPUCanvas{
-            id: canvas
-            x: 0
-            y: 0
-            width: canvas.contentWidth
-            height: canvas.contentHeight
+        // 1- and 2-byte canvases canvas
+        Loader {
+            active: root.which == 0
+            sourceComponent: Painted1ByteCanvas{
+                id: _byte
+                x: 0
+                y: 0
+                width: _byte.contentWidth
+                height: _byte.contentHeight
+                Component.onCompleted: {
+                    settings.extPalette.itemChanged.connect(_byte.update);
+                }
+            }
+            onLoaded: viewport.canvas = item;
         }
+        Loader {
+            active: root.which == 1
+            sourceComponent: Painted2ByteCanvas{
+                id: _word
+                x: 0
+                y: 0
+                width: _word.contentWidth
+                height: _word.contentHeight
+                Component.onCompleted: {
+                    settings.extPalette.itemChanged.connect(_word.update);
+                }
+            }
+            onLoaded: viewport.canvas = item;
+        }
+
+
         Instantiator {
-            model: canvas.overlays
+            model: viewport.canvas.overlays
             delegate: DelegateChooser {
                 id: chooser
                 role: "type"
@@ -137,6 +167,33 @@ Item {
                     roleValue: 2
                     LabeledTriState {
                         parent: viewport
+                    }
+                }
+                DelegateChoice {
+                    roleValue: 3
+                    // Must be text edit, else not selectable
+                    TextEdit {
+                        parent: viewport
+                        required property var location
+                        required property string label
+                        required property int requestedHAlign
+                        x: location.x
+                        y: location.y
+                        height: location.height
+                        width: location.width
+                        text: label
+                        readOnly: true
+                        horizontalAlignment: {
+                            if (requestedHAlign == Qt.AlignLeft)
+                                return Text.AlignLeft;
+                            else if (requestedHAlign == Qt.AlignHCenter || requestedHAlign == Qt.AlignCenter)
+                                return Text.AlignHCenter;
+                            else
+                                return Text.AlignRight;
+                        }
+                        verticalAlignment: Text.AlignVCenter
+                        color: palette.text
+
                     }
                 }
             }

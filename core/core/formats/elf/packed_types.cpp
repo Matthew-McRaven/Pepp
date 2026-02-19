@@ -19,6 +19,7 @@
 
 void pepp::bts::detail::fill_e_ident(std::span<u8, 16> e_ident, ElfBits B, ElfEndian E, ElfABI abi,
                                      u8 abi_version) noexcept {
+  using namespace bits;
   e_ident[to_underlying(ElfIdentifierIndices::EI_MAG0)] = to_underlying(ElfMagic::ELFMAG0);
   e_ident[to_underlying(ElfIdentifierIndices::EI_MAG1)] = to_underlying(ElfMagic::ELFMAG1);
   e_ident[to_underlying(ElfIdentifierIndices::EI_MAG2)] = to_underlying(ElfMagic::ELFMAG2);

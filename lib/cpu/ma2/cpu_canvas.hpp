@@ -2,36 +2,38 @@
 #include <QPixmap>
 #include <QQuickPaintedItem>
 #include "qml_overlays.hpp"
+#include "settings/constants.hpp"
 #include "shapes_one.hpp"
 
 namespace pepp {
 struct TextRectItem {
   QRectF geom;
   QString text;
-  QColor color{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
+  Qt::Alignment alignment = Qt::AlignHCenter | Qt::AlignVCenter;
 };
 
 struct RectItem {
   QRect geom;
-  QColor bg{0, 0, 0, 255}, fg{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   bool enabled = true;
 };
 
 struct PolygonItem {
   QPolygon geom;
-  QColor bg{0, 0, 0, 255}, fg{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   bool enabled = true;
 };
 
 struct LineItem {
   QLine geom;
-  QColor color{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   bool enabled = true;
 };
 
 struct ArrowItem {
   Arrow geom;
-  QColor color{0, 0, 0, 255};
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   bool enabled = true;
 };
 using Item = std::variant<LineItem, ArrowItem, RectItem, PolygonItem, TextRectItem>;
@@ -48,19 +50,40 @@ class PaintedCPUCanvas : public QQuickPaintedItem {
   // Do not try to forward-declare QMLOverlay, else reading the Q_PROPERTY will just return an empty list without an
   // error.
   Q_PROPERTY(QList<QMLOverlay *> overlays READ overlays CONSTANT FINAL)
+  QML_UNCREATABLE("Please use one of the various subclasses to intialize geometry correctly")
 public:
-  PaintedCPUCanvas(QQuickItem *parent = nullptr);
+  enum class Which {
+    Pep9OneByte = 0,
+    Pep9TwoByte = 1,
+  };
+  PaintedCPUCanvas(Which, QQuickItem *parent = nullptr);
   ~PaintedCPUCanvas() noexcept override;
   void paint(QPainter *painter) override;
 
-  float contentWidth() const { return 900; }
-  float contentHeight() const { return 1050; }
+  float contentWidth() const { return _w; }
+  float contentHeight() const { return _h; }
   QList<QMLOverlay *> overlays() const { return _overlays; }
 
 private:
+  float _h, _w;
   std::array<QPixmap, 5> _arrows;
   std::vector<Item> _geom;
   QList<QMLOverlay *> _overlays;
   friend struct PaintDispatch;
 };
+
+class Painted1ByteCanvas : public PaintedCPUCanvas {
+  Q_OBJECT
+  QML_NAMED_ELEMENT(Painted1ByteCanvas)
+public:
+  Painted1ByteCanvas(QQuickItem *parent = nullptr);
+};
+
+class Painted2ByteCanvas : public PaintedCPUCanvas {
+  Q_OBJECT
+  QML_NAMED_ELEMENT(Painted2ByteCanvas)
+public:
+  Painted2ByteCanvas(QQuickItem *parent = nullptr);
+};
+
 } // namespace pepp

@@ -150,20 +150,32 @@
             "background": "0xffffffe0",
             "name": "WarningRole",
             "parent": "RowNumberRole"
-        },        {
-            "background": "0xff04ab0a",
-            "foreground": "0xffffff00",
-            "name": "SeqCircuitRole",
-            "overrideBold": false,
-            "parent": "MnemonicRole"
         },
         {
-            "background": "0xffffe1ff",
-            "foreground": "0xff0000ff",
-            "name": "CircuitGreenRole",
-            "overrideBold": false,
-            "parent": "MnemonicRole"
+            "background": "0xff2a2f5a",
+            "name": "SequentialRole",
+            "parent": "CombinationalRole"
+        },
+        {
+            "background": "0xff7a2b1f",
+            "name": "CircuitPrimaryRole",
+            "parent": "CombinationalRole"
+        },
+        {
+            "background": "0xff6b5616",
+            "name": "CircuitSecondaryRole",
+            "parent": "CombinationalRole"
+        },
+        {
+            "background": "0xff2f4b10",
+            "name": "CircuitTertiaryRole",
+            "parent": "CombinationalRole"
+        },
+        {
+            "background": "0xff1f3b7a",
+            "name": "CircuitQuaternaryRole",
+            "parent": "CombinationalRole"
         }
     ],
-    "version": 8
+    "version": 9
 }

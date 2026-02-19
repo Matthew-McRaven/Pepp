@@ -74,7 +74,7 @@ PackedRelocationAccessor<B, E, Const>::PackedRelocationAccessor(PackedRelocation
     : shdr(shdr_reloc), reloc(reloc), symtab(symtab, shdr_symbol, shdr_strtab, strtab) {}
 
 template <ElfBits B, ElfEndian E, bool Const> bool PackedRelocationAccessor<B, E, Const>::is_rela() const noexcept {
-  return (shdr.sh_type == to_underlying(SectionTypes::SHT_RELA));
+  return (shdr.sh_type == bits::to_underlying(SectionTypes::SHT_RELA));
 }
 
 template <ElfBits B, ElfEndian E, bool Const>

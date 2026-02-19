@@ -71,6 +71,14 @@ std::vector<typename uarch::Code> microcodeFor(const ParseResult<uarch, register
       ret.emplace_back(line.controls.code);
   return ret;
 }
+template <typename uarch, typename registers>
+std::vector<typename uarch::CodeWithEnables> microcodeEnableFor(const ParseResult<uarch, registers> &result) {
+  std::vector<typename uarch::CodeWithEnables> ret;
+  for (const auto &line : result.program)
+    if (line.type == ir::Line<uarch, registers>::Type::Code && line.controls.enables.any())
+      ret.emplace_back(line.controls);
+  return ret;
+}
 
 template <typename uarch, typename registers> struct MicroParser {
   MicroParser(std::string &&source, std::shared_ptr<std::unordered_set<std::string>> pool = nullptr)

@@ -21,7 +21,7 @@ Item {
     property list<int> filterAbstraction: []
     required property var model
 
-    signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
+    signal addProject(int arch, int abstraction, int features, string optText, bool reuse)
 
     //  Layout does not work without implicit height and width
     implicitHeight: Math.min(layout.height, (root.cellHeight + spacing) * Math.min(2, layout.rows))
@@ -55,7 +55,7 @@ Item {
             radius: root.cellRadius
             font: root.font
 
-            onReleased: root.addProject(wr.model.architecture, wr.model.abstraction, "", root.loadingFileContent, false)
+            onReleased: root.addProject(wr.model.architecture, wr.model.abstraction, wr.model.features, root.loadingFileContent, false)
             enabled: (wr.model.complete || wr.model.partiallyComplete) && (root.filterAbstraction.length === 0 || root.filterAbstraction.includes(wr.model.abstraction))
             visible: !wr.model.placeholder
 

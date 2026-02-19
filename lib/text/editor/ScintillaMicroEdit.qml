@@ -81,8 +81,7 @@ FocusScope {
         }
         acceptedDevices: PointerDevice.AllDevices
     }
-    // the QuickScintilla control
-    Pepp.AsmEdit {
+    Pepp.MicroEdit {
         id: editor
         Component.onCompleted: {
             settings.extPalette.itemChanged.connect(editor.applyStyles);

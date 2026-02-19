@@ -71,8 +71,12 @@ class Palette : public QObject {
   Q_PROPERTY(PaletteItem *breakpoint READ breakpoint CONSTANT)
 
   // Circuit
-  Q_PROPERTY(PaletteItem *seqCircuit READ seqCircuit CONSTANT)
-  Q_PROPERTY(PaletteItem *circuitGreen READ circuitGreen CONSTANT)
+  Q_PROPERTY(PaletteItem *combinational READ combinational CONSTANT)
+  Q_PROPERTY(PaletteItem *sequential READ sequential CONSTANT)
+  Q_PROPERTY(PaletteItem *circuitPrimary READ circuitPrimary CONSTANT)
+  Q_PROPERTY(PaletteItem *circuitSecondary READ circuitSecondary CONSTANT)
+  Q_PROPERTY(PaletteItem *circuitTertiary READ circuitTertiary CONSTANT)
+  Q_PROPERTY(PaletteItem *circuitQuaternary READ circuitQuaternary CONSTANT)
 public:
   Palette(QObject *parent = nullptr);
   std::span<PaletteItem const *const> items() const;
@@ -118,8 +122,12 @@ public:
   PaletteItem *breakpoint() const { return item(PaletteRole::BreakpointRole); }
 
   // Circuit
-  PaletteItem *seqCircuit() const { return item(PaletteRole::SeqCircuitRole); }
-  PaletteItem *circuitGreen() const { return item(PaletteRole::CircuitGreenRole); }
+  PaletteItem *combinational() const { return item(PaletteRole::CombinationalRole); }
+  PaletteItem *sequential() const { return item(PaletteRole::SequentialRole); }
+  PaletteItem *circuitPrimary() const { return item(PaletteRole::CircuitPrimaryRole); }
+  PaletteItem *circuitSecondary() const { return item(PaletteRole::CircuitSecondaryRole); }
+  PaletteItem *circuitTertiary() const { return item(PaletteRole::CircuitTertiaryRole); }
+  PaletteItem *circuitQuaternary() const { return item(PaletteRole::CircuitQuaternaryRole); }
 
   bool updateFromJson(const QJsonObject &json);
   QJsonObject toJson();
@@ -132,7 +140,8 @@ signals:
 private:
   //  Dirty flag is cleared on save (a const function)
   mutable bool _isDirty{false};
-  static const int _version{8};
+  // Version 9 added additional roles for logic gate / MA2 simulator
+  static const int _version{9};
   std::vector<PaletteItem *> _items;
   QString _name{"Default"};
 

@@ -16,7 +16,8 @@
 #include "./pep10.hpp"
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
-#include "../../core/core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
+#include "core/math/bitmanip/enums.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "cpu/formats.hpp"
 #include "help/builtins/figure.hpp"
@@ -324,6 +325,8 @@ pepp::Architecture Pep_ISA::architecture() const { return _env.arch; }
 
 pepp::Abstraction Pep_ISA::abstraction() const { return _env.level; }
 
+int Pep_ISA::features() const { return (int)_env.features; }
+
 QString Pep_ISA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep10ISA.qml"; }
 
 ARawMemory *Pep_ISA::memory() const { return _memory; }
@@ -375,6 +378,11 @@ int Pep_ISA::allowedDebugging() const {
   case State::DebugExec: return D::Stop;
   default: return 0b0;
   }
+}
+
+int Pep_ISA::enabledSteps() const {
+  using S = project::StepEnableFlags::Value;
+  return S::Step | S::StepOver | S::StepOut | S::StepInto;
 }
 
 int Pep_ISA::allowedSteps() const {
@@ -1277,12 +1285,12 @@ void Pep_ASMB::updatePCLine() {
 void Pep_ISA::updateBPAtAddress(quint32 address, Action action) {
   auto as_quint16 = static_cast<quint16>(address);
   switch (action) {
-  case ScintillaAsmEditBase::Action::ToggleBP:
+  case EditBase::Action::ToggleBP:
     if (_dbg->bps->hasBP(as_quint16)) _dbg->bps->removeBP(as_quint16);
     else _dbg->bps->addBP(as_quint16);
     break;
-  case ScintillaAsmEditBase::Action::AddBP: _dbg->bps->addBP(as_quint16); break;
-  case ScintillaAsmEditBase::Action::RemoveBP: _dbg->bps->removeBP(as_quint16); break;
+  case EditBase::Action::AddBP: _dbg->bps->addBP(as_quint16); break;
+  case EditBase::Action::RemoveBP: _dbg->bps->removeBP(as_quint16); break;
   default: break;
   }
 }
@@ -1319,6 +1327,21 @@ project::Environment Pep_MA::env() const { return _env; }
 pepp::Architecture Pep_MA::architecture() const { return _env.arch; }
 
 pepp::Abstraction Pep_MA::abstraction() const { return _env.level; }
+
+int Pep_MA::features() const { return (int)_env.features; }
+
+QString Pep_MA::lexerLanguage() const {
+  using namespace bits;
+  switch (_env.arch) {
+  case pepp::Architecture::PEP8: return "Pep8Micro";
+  case pepp::Architecture::PEP9: [[fallthrough]];
+  case pepp::Architecture::PEP10:
+    if (any(_env.features & project::Features::TwoByte)) return "Pep9Micro2";
+    else if (any(_env.features & project::Features::OneByte)) return "Pep9Micro1";
+    [[fallthrough]];
+  default: return "";
+  }
+};
 
 QString Pep_MA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep9MA2.qml"; }
 
@@ -1364,11 +1387,34 @@ pepp::debug::BreakpointSet *Pep_MA::breakpointModel() {
 
 bool Pep_MA::isEmpty() const { return _microcodeText.isEmpty(); }
 
+int Pep_MA::enabledSteps() const {
+  using S = project::StepEnableFlags::Value;
+  return S::Step;
+}
+
+int Pep_MA::allowedSteps() const { return 0; }
+
 QString Pep_MA::contentsForExtension(const QString &ext) const {
   if (ext.compare("pepcpu", Qt::CaseInsensitive) == 0) {
     return _microcodeText;
   } else return "";
 }
+
+int Pep_MA::rendering_type() const {
+  switch (_env.arch) {
+    // Pep/8 only has a 1-byte databus variant
+  case pepp::ArchitectureHelper::Architecture::PEP8: return 0;
+  case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
+  case pepp::ArchitectureHelper::Architecture::PEP10:
+    if ((int)_env.features & (int)project::Features::TwoByte) return 1;
+    return 0;
+  default: return -1;
+  }
+}
+
+bool Pep_MA::onMicroAssemble() { return true; }
+
+bool Pep_MA::onMicroAssembleThenFormat() { return true; }
 
 bool Pep_MA::onFormatMicrocode() { return true; }
 

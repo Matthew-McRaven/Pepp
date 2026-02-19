@@ -24,8 +24,8 @@ ToolBar {
         }
         ToolSeparator {}
         ToolButton {
-            visible: root.actions.build.loadObject.enabled
             action: root.actions.build.loadObject
+            visible: root.actions.build.loadObject.enabled
             icon {
                 source: action.icon.source
                 height: root.iconHeight
@@ -37,8 +37,21 @@ ToolBar {
             text: ''
         }
         ToolButton {
-            visible: root.actions.build.assemble.enabled
             action: root.actions.build.assemble
+            visible: root.actions.build.assemble.enabled
+            icon {
+                source: action.icon.source
+                height: root.iconHeight
+                width: root.iconHeight
+            }
+            hoverEnabled: true
+            ToolTip.visible: hovered
+            ToolTip.text: action.text.replace(/&/g, "")
+            text: ''
+        }
+        ToolButton {
+            action: root.actions.build.microAssemble
+            visible: root.actions.build.microAssemble.enabled
             icon {
                 source: action.icon.source
                 height: root.iconHeight
@@ -113,6 +126,7 @@ ToolBar {
         }
         ToolButton {
             action: root.actions.debug.stepOver
+            visible:  (currentProject?.enabledSteps ?? 0) & StepEnableFlags.StepOver
             icon {
                 source: action.icon.source
                 height: root.iconHeight
@@ -125,6 +139,7 @@ ToolBar {
         }
         ToolButton {
             action: root.actions.debug.stepInto
+            visible: (currentProject?.enabledSteps ?? 0) & StepEnableFlags.StepInto
             icon {
                 source: action.icon.source
                 height: root.iconHeight
@@ -137,6 +152,7 @@ ToolBar {
         }
         ToolButton {
             action: root.actions.debug.stepOut
+            visible: (currentProject?.enabledSteps ?? 0) & StepEnableFlags.StepOut
             icon {
                 source: action.icon.source
                 height: root.iconHeight

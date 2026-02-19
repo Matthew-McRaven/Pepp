@@ -89,8 +89,8 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     Packed::Phdr phdr;
     phdr.p_filesz = 0;
     phdr.p_memsz = 0x1000;
-    phdr.p_flags = to_underlying(SegmentFlags::PF_R) | to_underlying(SegmentFlags::PF_W);
-    phdr.p_type = to_underlying(SegmentType::PT_LOAD);
+    phdr.p_flags = bits::to_underlying(SegmentFlags::PF_R) | bits::to_underlying(SegmentFlags::PF_W);
+    phdr.p_type = bits::to_underlying(SegmentType::PT_LOAD);
     phdr.p_align = 1;
     phdr.p_paddr = phdr.p_vaddr = 0xFEEDBEEF;
     elf.add_segment(std::move(phdr));

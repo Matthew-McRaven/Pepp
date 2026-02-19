@@ -36,6 +36,7 @@ bool write(const std::string &fname, const std::span<const u8> &data) {
 }
 template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E> void do_hash(pepp::bts::ElfMachineType t, std::string fname) {
   using namespace pepp::bts;
+  using namespace bits;
   using enum DynamicTags;
   using Packed = PackedGrowableElfFile<B, E>;
 
@@ -151,6 +152,7 @@ template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E> void do_hash(pepp::bts::
 template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
 void do_gnuhash(pepp::bts::ElfMachineType t, std::string fname) {
   using namespace pepp::bts;
+  using namespace bits;
   using enum DynamicTags;
   using Packed = PackedGrowableElfFile<B, E>;
 

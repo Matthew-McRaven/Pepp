@@ -498,7 +498,7 @@ ApplicationWindow {
             if (!name || !content)
                 return;
             if (arch !== 0 && abs !== 0) {
-                const prj = window.pm.onAddProject(arch, abs, "", content, true);
+                const prj = window.pm.onAddProject(arch, abs, 0, content, true);
                 const idx = window.pm.index(window.pm.currentProjectRow, 0);
                 window.pm.setData(idx, name, window.pm.roleForName("path"));
                 settings.general.pushRecentFile(name, arch, abs);
@@ -529,7 +529,7 @@ ApplicationWindow {
     }
 
     function onNew() {
-        pm.onAddProject(settings.general.defaultArch, settings.general.defaultAbstraction, "", "", true);
+        pm.onAddProject(settings.general.defaultArch, settings.general.defaultAbstraction, 0, "", true);
         sidebar.switchToMode("Editor");
     }
     function onOpenDialog() {

@@ -20,7 +20,7 @@ Item {
     property var recentFiles: settings.general.recentFiles
 
     signal openFile(string path, int arch, int abstraction)
-    signal addProject(int arch, int abs, string feats, string text, var optionalOS)
+    signal addProject(int arch, int abs, int feats, string text, var optionalOS)
     signal setCharIn(string text)
 
     //  Layout does not work without implicit height and width

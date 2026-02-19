@@ -47,7 +47,9 @@ extern LexerModule lmMarkdown;
 extern LexerModule lmNull;
 extern LexerModule lmOpal;
 extern LexerModule lmPep10;
+extern LexerModule lmPep10micro;
 extern LexerModule lmPep9;
+extern LexerModule lmPep9micro;
 extern LexerModule lmPHPSCRIPT;
 extern LexerModule lmPowerShell;
 extern LexerModule lmPython;
@@ -92,7 +94,9 @@ void AddEachLexer() {
 		&lmNull,
 		&lmOpal,
 		&lmPep10,
+		&lmPep10micro,
 		&lmPep9,
+		&lmPep9micro,
 		&lmPHPSCRIPT,
 		&lmPowerShell,
 		&lmPython,
