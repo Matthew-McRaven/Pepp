@@ -82,7 +82,9 @@ Item {
             }
         }
         columnWidthProvider: function (column) {
-            return tm_width.width;
+            // First term ensures equally sized columns, large enough to fit rotated header text.
+            // Second term will spread out columns to fill pane if there is extra space.
+            return Math.max(tm_width.width, tableView.width/model.columnCount());
         }
     }
 }
