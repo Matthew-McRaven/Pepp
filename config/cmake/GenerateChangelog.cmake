@@ -1,3 +1,8 @@
+# Must use a dummy static library target. Attempting to use this directly in a
+# shared library fails due to missing rules for object code files.
+add_library(pepp-changelog STATIC)
+# -fPIC is required for a static lib to be linked into shared libs on Linux.
+set_property(TARGET pepp-changelog PROPERTY POSITION_INDEPENDENT_CODE ON)
 if(Python_FOUND)
   # Ensure that changelog exists at configure time, otherwise qt_add_resources
   # will fail on some Mac platforms.
@@ -16,11 +21,7 @@ if(Python_FOUND)
             ${CMAKE_SOURCE_DIR}/scripts/changelog_tools.py
     COMMENT "Generating changelog SQL"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-  # Must use a dummy static library target. Attempting to use this directly in a
-  # shared library fails due to missing rules for object code files.
-  add_library(pepp-changelog STATIC)
-  # -fPIC is required for a static lib to be linked into shared libs on Linux.
-  set_property(TARGET pepp-changelog PROPERTY POSITION_INDEPENDENT_CODE ON)
+
   qt_add_resources(
     pepp-changelog
     "changelog"
