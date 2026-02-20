@@ -13,13 +13,17 @@ pepp::MicroObjectModel::MicroObjectModel(QObject *parent) : QAbstractTableModel(
   auto source = book6->findFigure("12", "12")->typesafeNamedFragments().value("pepcpu");
   auto mc = pepp::tc::parse::MicroParser<pepp::tc::arch::Pep9ByteBus, regs>(source->contents().toStdString()).parse();
   auto microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9ByteBus, regs>(mc);
+  auto lines = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(mc);
   const auto size = pepp::tc::arch::Pep9ByteBus::signal_to_string().size();
+  _headers.append("Line Number");
   for (unsigned int it = 0; it < size; it++) {
     _headers.append(QString::fromStdString(
         pepp::tc::arch::Pep9ByteBus::signal_to_string().at(static_cast<pepp::tc::arch::Pep9ByteBus::Signals>(it))));
   }
-  for (const auto &line : microcode) {
+  for (u32 addr = 0; addr < microcode.size(); addr++) {
+    const auto &line = microcode[addr];
     QList<int> temp;
+    temp.append(lines.line(addr).value_or(-1));
     for (unsigned int it = 0; it < size; it++) {
       if (auto s = static_cast<pepp::tc::arch::Pep9ByteBus::Signals>(it); line.enabled(s)) temp.append(line.get(s));
       else temp.append(-1);
@@ -34,6 +38,7 @@ int pepp::MicroObjectModel::columnCount(const QModelIndex &) const { return _hea
 
 QVariant pepp::MicroObjectModel::headerData(int section, Qt::Orientation orientation, int role) const {
   if (orientation == Qt::Horizontal && role == Qt::DisplayRole) return _headers[section];
+  else if (orientation == Qt::Vertical && role == Qt::DisplayRole) return QString::number(section);
   else return {};
 }
 

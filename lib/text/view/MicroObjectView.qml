@@ -51,9 +51,16 @@ Item {
             }
         }
     }
+    VerticalHeaderView {
+        id: verticalHeader
+        anchors.top: tableView.top
+        anchors.left: parent.left
+        syncView: tableView
+        clip: true
+    }
     TextMetrics {
         id: tm
-        text: "MemWrite  "
+        text: "Line Numbers "
         font: settings.extPalette.base.font
     }
     TextMetrics {

@@ -2,6 +2,7 @@
 
 #include <QAbstractTableModel>
 #include <qqmlintegration.h>
+#include "core/ds/linenumbers.hpp"
 
 namespace pepp {
 class MicroObjectModel : public QAbstractTableModel {
@@ -16,7 +17,7 @@ public:
 
 private:
   // Both _headers and _values are copied from a given microcode program, eliminating dependence of the model on
-  // microcode fields.
+  // microcode fields. Contains 1 extra column, which is the line number
   QStringList _headers;
   // A cell with -1 should be rendered as empty.
   // _values are copied from  a microcode program
