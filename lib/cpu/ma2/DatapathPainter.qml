@@ -76,23 +76,16 @@ Item {
     ScrollBar {
         id: vbar
         hoverEnabled: true
-        active: hovered || pressed
         orientation: Qt.Vertical
-        position: flickable.contentY / flickable.contentHeight
-        size:  flickable.height / flickable.contentHeight
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         policy: flickable.contentHeight > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
     }
-
     ScrollBar {
         id: hbar
         hoverEnabled: true
-        active: hovered || pressed
         orientation: Qt.Horizontal
-        position: flickable.contentX / flickable.contentWidth
-        size: flickable.width / flickable.contentWidth
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -293,5 +286,7 @@ Item {
                 flickable.zoomTo(step, e.x, e.y, .75);
             }
         }
+        ScrollBar.horizontal: hbar
+        ScrollBar.vertical: vbar
     }
 }
