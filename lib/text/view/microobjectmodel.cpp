@@ -91,7 +91,7 @@ void pepp::MicroObjectModel::setMicrocode(Microcode *microcode) {
   _headers = {};
   _values = {};
   if (microcode != nullptr) {
-    Decomposer decompose(microcode->line2addr, _headers, _values);
+    Decomposer decompose{.lines = microcode->line2addr, ._headers = _headers, ._values = _values};
     std::visit(decompose, microcode->choice);
   }
   endResetModel();
