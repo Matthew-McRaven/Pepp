@@ -97,6 +97,12 @@ FocusScope {
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
         project.errorsChanged.connect(displayErrors)
+        // WASM version doesn't seem to give focus to editor without giving focus to something else first.
+        // Without this workaround the text editor will not receive focus on subsequent key presses.
+        if (PlatformDetector.isWASM)
+            dock_cpu.forceActiveFocus();
+        // Delay giving focus to editor until the next frame. Any editor that becomes visible without being focused will be incorrectly painted
+        Qt.callLater(() => microEdit.forceEditorFocus())
     }
     function displayErrors() {
         microEdit.addEOLAnnotations(project.microassemblerErrors)
