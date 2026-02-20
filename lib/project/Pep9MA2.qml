@@ -104,7 +104,7 @@ FocusScope {
 
     function save() {
         // Supress saving messages when there is no project.
-        if (project && !microEdit.readOnly)
+        if (project)
             project.microcodeText = microEdit.text;
     }
 
@@ -135,7 +135,7 @@ FocusScope {
                 anchors.fill: parent
                 readOnly: mode !== "editor"
                 // text is only an initial binding, the value diverges from there.
-                text: "a b c"
+                text: project.microcodeText ?? ""
                 language: project.lexerLanguage??""
             }
         }
