@@ -1,7 +1,6 @@
 #pragma once
 #include <QtCore>
 #include <QtQmlIntegration>
-class ScopedLines2Addresses;
 struct Lines2Addresses {
   Lines2Addresses() {};
   Lines2Addresses(QList<QPair<int, quint32>> source, QList<QPair<int, quint32>> list);
