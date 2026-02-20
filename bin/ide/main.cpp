@@ -136,9 +136,10 @@ int main(int argc, char **argv) {
   using namespace Qt::StringLiterals;
   // Must forward args for things like QML debugger to work.
   auto remaining_argvs = cli.remaining_for_passthrough();
-  int new_argc = remaining_argvs.size();
-  std::vector<char *> new_argvs(argc);
+  std::vector<char *> new_argvs(remaining_argvs.size());
   for (int it = 0; it < remaining_argvs.size(); it++) new_argvs[it] = remaining_argvs[it].data();
+  new_argvs.emplace(new_argvs.begin(), argv[0]);
+  int new_argc = new_argvs.size();
 #ifdef __EMSCRIPTEN__
   // clang-format off
   // Make a persistent FS for themes. `true` to load from disk 2 mem
