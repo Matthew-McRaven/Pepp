@@ -220,7 +220,28 @@ jobs:
         shell: bash
         if: ${{ !contains(inputs.name, 'EMSDK') }}
         working-directory: build
-        run: ls -lah && cpack -c ${{inputs.variant}} && ls -lah
+        env:
+          VARIANT: ${{ inputs.variant }}
+        run: |
+          set -euxo pipefail
+          ls -lah
+          max_attempts=3
+          attempt=1
+          while true; do
+            echo "Running cpack (attempt ${attempt}/${max_attempts})..."
+            if cpack -c "$VARIANT"; then
+              break
+            fi
+
+            if [[ "${attempt}" -ge "${max_attempts}" ]]; then
+              echo "cpack failed after ${max_attempts} attempts."
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "cpack failed; retrying in 5s..."
+            sleep 5
+          done
+          ls -lah
 
       - name: Codesign Mac OS DMG
         shell: bash
