@@ -19,10 +19,12 @@
 #include <QStringListModel>
 #include <qabstractitemmodel.h>
 #include "aproject.hpp"
+#include "core/langs/ucode/ir_variant.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "debug/debugger.hpp"
 #include "memory/hexdump/rawmemory.hpp"
+#include "microobjectmodel.hpp"
 #include "project/architectures.hpp"
 #include "project/levels.hpp"
 #include "sim/debug/watchexpressionmodel.hpp"
@@ -288,6 +290,8 @@ class Pep_MA : public QObject {
   Q_PROPERTY(QString lexerLanguage READ lexerLanguage CONSTANT)
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   Q_PROPERTY(QString microcodeText READ microcodeText WRITE setMicrocodeText NOTIFY microcodeTextChanged);
+  Q_PROPERTY(Microcode *microcode READ microcode NOTIFY microcodeChanged)
+  Q_PROPERTY(QList<Error *> microassemblerErrors READ errors NOTIFY errorsChanged)
   // Preserve the current address in the memory dump pane on tab-switch.
   Q_PROPERTY(quint16 currentAddress MEMBER _currentAddress NOTIFY currentAddressChanged)
   Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
@@ -323,6 +327,7 @@ public:
     QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
     return &ret;
   }
+  Microcode *microcode() const;
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
@@ -334,6 +339,8 @@ public:
   Q_INVOKABLE virtual QString defaultExtension() const { return "pepcpu"; }
   virtual QString contentsForExtension(const QString &ext) const;
   int rendering_type() const;
+  QList<Error *> errors() const;
+
 public slots:
   bool onMicroAssemble();
   bool onMicroAssembleThenFormat();
@@ -358,6 +365,8 @@ signals:
   // Called by onISARemoveAllBreakpoints so we can remove breakpoints from editors.
   void projectBreakpointsCleared();
   void allowedStepsChanged();
+  void errorsChanged();
+  void microcodeChanged();
 
   void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
@@ -393,5 +402,11 @@ protected:
   using Action = EditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
-  QSharedPointer<builtins::Registry> _books = {};
+  QList<QPair<int, QString>> _errors = {};
+  pepp::MicrocodeChoice _microcode = std::monostate{};
+  pepp::Line2Address _line2addr;
+
+  bool _microassemble8();
+  bool _microassemble9_10_1();
+  bool _microassemble9_10_2();
 };

@@ -96,13 +96,18 @@ FocusScope {
 
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
+        project.errorsChanged.connect(displayErrors)
+    }
+    function displayErrors() {
+        microEdit.addEOLAnnotations(project.microassemblerErrors)
     }
 
     function save() {
         // Supress saving messages when there is no project.
-        if (project && !objEdit.readOnly)
-            project.objectCodeText = objEdit.text;
+        if (project && !microEdit.readOnly)
+            project.microcodeText = microEdit.text;
     }
+
     KDDW.DockingArea {
         id: dockWidgetArea
         KDDW.LayoutSaver {
@@ -126,7 +131,7 @@ FocusScope {
                 "debugger": true
             }
             Text.ScintillaMicroEdit {
-                id: objEdit
+                id: microEdit
                 anchors.fill: parent
                 readOnly: mode !== "editor"
                 // text is only an initial binding, the value diverges from there.
@@ -162,6 +167,7 @@ FocusScope {
             OC.MicroObjectView {
                 anchors.fill:parent
                 property size kddockwidgets_min_size: Qt.size(200, 400)
+                microcode: project?.microcode ?? null
             }
         }
         KDDW.DockWidget {
