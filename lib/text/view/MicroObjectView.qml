@@ -8,6 +8,7 @@ Item {
     id: root
     implicitWidth: childrenRect.width
     implicitHeight: childrenRect.height
+    property alias microcode: microModel.microcode
     NuAppSettings {
         id: settings
     }
@@ -53,7 +54,7 @@ Item {
     }
     TextMetrics {
         id: tm
-        text: "MemWrite  "
+        text: "Line Numbers "
         font: settings.extPalette.base.font
     }
     TextMetrics {
@@ -71,7 +72,9 @@ Item {
             left: parent.left
             right: parent.right
         }
-        model: MicroObjectModel {}
+        model: MicroObjectModel {
+            id:microModel
+        }
         delegate: Text {
             text: model.display
             color: palette.text

@@ -15,7 +15,9 @@
  */
 #pragma once
 
+#include <core/ds/linenumbers.hpp>
 #include <map>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -77,6 +79,21 @@ std::vector<typename uarch::CodeWithEnables> microcodeEnableFor(const ParseResul
   for (const auto &line : result.program)
     if (line.type == ir::Line<uarch, registers>::Type::Code && line.controls.enables.any())
       ret.emplace_back(line.controls);
+  return ret;
+}
+
+template <typename uarch, typename registers>
+Line2Address addressesForProgram(const ParseResult<uarch, registers> &result) {
+  Line2Address ret;
+
+  for (int line_it = 0; line_it < result.program.size(); line_it++) {
+    const auto &line = result.program[line_it];
+    if (line.type != ir::Line<uarch, registers>::Type::Code || line.controls.enables.none()) continue;
+    else if (!ret.add_mapping(line_it, line.address)) {
+      // Should never be hit since addressed are assigned sequentially.
+      SPDLOG_WARN("Duplicate line/address mapping: line {} address {:X}", line_it, line.address);
+    }
+  }
   return ret;
 }
 

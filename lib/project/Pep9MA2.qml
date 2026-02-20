@@ -96,13 +96,24 @@ FocusScope {
 
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
+        project.errorsChanged.connect(displayErrors)
+        // WASM version doesn't seem to give focus to editor without giving focus to something else first.
+        // Without this workaround the text editor will not receive focus on subsequent key presses.
+        if (PlatformDetector.isWASM)
+            dock_cpu.forceActiveFocus();
+        // Delay giving focus to editor until the next frame. Any editor that becomes visible without being focused will be incorrectly painted
+        Qt.callLater(() => microEdit.forceEditorFocus())
+    }
+    function displayErrors() {
+        microEdit.addEOLAnnotations(project.microassemblerErrors)
     }
 
     function save() {
         // Supress saving messages when there is no project.
-        if (project && !objEdit.readOnly)
-            project.objectCodeText = objEdit.text;
+        if (project)
+            project.microcodeText = microEdit.text;
     }
+
     KDDW.DockingArea {
         id: dockWidgetArea
         KDDW.LayoutSaver {
@@ -126,11 +137,11 @@ FocusScope {
                 "debugger": true
             }
             Text.ScintillaMicroEdit {
-                id: objEdit
+                id: microEdit
                 anchors.fill: parent
                 readOnly: mode !== "editor"
                 // text is only an initial binding, the value diverges from there.
-                text: "a b c"
+                text: project.microcodeText ?? ""
                 language: project.lexerLanguage??""
             }
         }
@@ -162,6 +173,7 @@ FocusScope {
             OC.MicroObjectView {
                 anchors.fill:parent
                 property size kddockwidgets_min_size: Qt.size(200, 400)
+                microcode: project?.microcode ?? null
             }
         }
         KDDW.DockWidget {
