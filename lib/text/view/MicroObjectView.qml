@@ -52,13 +52,6 @@ Item {
             }
         }
     }
-    VerticalHeaderView {
-        id: verticalHeader
-        anchors.top: tableView.top
-        anchors.left: parent.left
-        syncView: tableView
-        clip: true
-    }
     TextMetrics {
         id: tm
         text: "Line Numbers "

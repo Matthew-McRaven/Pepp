@@ -26,7 +26,6 @@ int pepp::MicroObjectModel::columnCount(const QModelIndex &) const { return _hea
 
 QVariant pepp::MicroObjectModel::headerData(int section, Qt::Orientation orientation, int role) const {
   if (orientation == Qt::Horizontal && role == Qt::DisplayRole) return _headers[section];
-  else if (orientation == Qt::Vertical && role == Qt::DisplayRole) return QString::number(section);
   else return {};
 }
 
