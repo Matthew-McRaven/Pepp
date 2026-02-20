@@ -1,4 +1,5 @@
 #include "linenumbers.hpp"
+#include <algorithm>
 
 pepp::Line2Address::Line2Address(const std::vector<std::pair<int, u32>> &mapping) {
   // Reserve to reduce # allocations. push_back individual elements and sort at the end so insert cna be O(N) rather

@@ -90,7 +90,7 @@ Line2Address addressesForProgram(const ParseResult<uarch, registers> &result) {
     const auto &line = result.program[line_it];
     if (line.type != ir::Line<uarch, registers>::Type::Code || line.controls.enables.none()) continue;
     else if (!ret.add_mapping(line_it, line.address)) {
-      // Should never be hit since addressed are assigned sequntially.
+      // Should never be hit since addressed are assigned sequentially.
       SPDLOG_WARN("Duplicate line/address mapping: line {} address {:X}", line_it, line.address);
     }
   }
