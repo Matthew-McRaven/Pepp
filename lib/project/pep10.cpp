@@ -1421,21 +1421,19 @@ int Pep_MA::rendering_type() const {
 
 QList<Error *> Pep_MA::errors() const {
   QList<Error *> ret;
-  for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
+  for (const auto &[line, str] : _errors) ret.push_back(new Error{line, str});
   return ret;
 }
 
 bool Pep_MA::onMicroAssemble() {
   switch (_env.arch) {
-  case pepp::ArchitectureHelper::Architecture::PEP8: return _microassemble8(); break;
+  case pepp::ArchitectureHelper::Architecture::PEP8: return _microassemble8();
   case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
   case pepp::ArchitectureHelper::Architecture::PEP10:
     if ((int)_env.features & (int)project::Features::TwoByte) return _microassemble9_10_2();
     else return _microassemble9_10_1();
-    break;
   default: return false;
   }
-  return true;
 }
 
 bool Pep_MA::onMicroAssembleThenFormat() { return true; }
