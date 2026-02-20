@@ -70,18 +70,21 @@ enum Shapes {
   selLineOff = 15,
 
 };
-
-const auto regbank_x_offset = 25;
-const auto regbank_y_offset = 28; // We added another row of register to the regbank. A row is 28px.
+const auto regbank_rowheight = 28;
+const auto regbank_y_pad = regbank_rowheight - regLineEditH;
+// We added another row of register to the regbank.
+// A row is 28px, which is 2 x ypad, and we need 1x ypad for the bottom margin.
+const auto regbank_y_offset = regbank_rowheight + regbank_y_pad;
+const auto regbank_x_offset = 25 + 15 + regbank_y_pad;
 enum RegPos {
-  rowHeight = 28,         // Original was 28
-  columnWidth = 123 + 10, // Original was 123
-  Row1Y = 10 - regbank_y_offset,
+  rowHeight = regbank_rowheight, // Original was 28
+  columnWidth = 123 + 10,        // Original was 123
+  Row1Y = 6 + regbank_y_pad - regbank_y_offset,
   Row2Y = Row1Y + rowHeight,
   Row3Y = Row2Y + rowHeight,
   Row4Y = Row3Y + rowHeight,
   Row5Y = Row4Y + rowHeight,
-  Col1X = 10 - regbank_x_offset,
+  Col1X = regbank_y_pad - regbank_x_offset,
   Col2X = Col1X + columnWidth,
   Col3X = Col2X + columnWidth,
   Col4X = Col3X + columnWidth,
@@ -94,8 +97,11 @@ enum CommonPositions {
   statusBitsX = 476,
 };
 
-const QRect poly_regbank = QRect(5 - regbank_x_offset, 5 - regbank_y_offset,
-                                 Col4X + 4 * regHalfLineEditW + regbank_x_offset + 5, 113 + regbank_y_offset);
+const QRect poly_regbank = QRect(5 - regbank_x_offset,
+                                 // Y==6 is a magic constant derived by recompiling the program with a bunch of
+                                 // different offsets and picking the one that is correct visually.
+                                 6 - regbank_y_offset, Col4X - Col1X + columnWidth + 2 * regbank_y_pad,
+                                 Row5Y - Row1Y + 1 * regbank_rowheight + regbank_y_pad);
 
 // input/label/control section:
 const QRect ext_ck_load = QRect(ctrlInputX, 18, check2W, check2H);
