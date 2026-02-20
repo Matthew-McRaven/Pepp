@@ -193,6 +193,7 @@ Item {
                         }
                         verticalAlignment: Text.AlignVCenter
                         color: palette.text
+                        font: settings.extPalette.baseMono.font
 
                     }
                 }
