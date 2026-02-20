@@ -1,9 +1,12 @@
 #pragma once
 #include <QtCore>
 #include <QtQmlIntegration>
+#include <vector>
+#include "core/ds/linenumbers.hpp"
+// Extend existing pepp::Line2Address with the difference between listing and source lines.
 struct Lines2Addresses {
   Lines2Addresses() {};
-  Lines2Addresses(QList<QPair<int, quint32>> source, QList<QPair<int, quint32>> list);
+  Lines2Addresses(std::vector<std::pair<int, u32>> source, std::vector<std::pair<int, u32>> list);
   std::optional<quint32> source2Address(int sourceLine);
   std::optional<quint32> list2Address(int listLine);
   std::optional<int> address2Source(quint32 address);
@@ -13,8 +16,7 @@ struct Lines2Addresses {
 
 private:
   friend class ScopedLines2Addresses;
-  std::map<int, quint32> _source2Addr{}, _list2Addr{};
-  std::map<quint32, int> _addr2Source{}, _addr2List{};
+  pepp::Line2Address _source, _listing;
 };
 
 class ScopedLines2Addresses : public QObject {

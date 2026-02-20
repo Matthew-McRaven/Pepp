@@ -9,23 +9,23 @@ void pas::ops::generic::addr2line::operator()(const ast::Node &node) {
     if (useList && node.has<ast::generic::ListingLocation>()) {
       auto loc = node.get<ast::generic::ListingLocation>().value;
       if (loc.valid) return;
-      mapping.append(QPair<int, quint32>{loc.line, address.start});
+      mapping.emplace_back(std::pair<int, quint32>(loc.line, address.start));
     } else if (node.has<ast::generic::RootLocation>()) {
       auto loc = node.get<ast::generic::RootLocation>().value;
       if (loc.valid) return;
-      mapping.append(QPair<int, quint32>{loc.line, address.start});
+      mapping.emplace_back(std::pair<int, quint32>(loc.line, address.start));
     }
   }
 }
 
-QList<QPair<int, quint32>> pas::ops::generic::source2addr(const ast::Node &node) {
+std::vector<std::pair<int, quint32>> pas::ops::generic::source2addr(const ast::Node &node) {
   addr2line lines;
   lines.useList = false;
   pas::ast::apply_recurse(node, lines);
   return lines.mapping;
 }
 
-QList<QPair<int, quint32>> pas::ops::generic::list2addr(const ast::Node &node) {
+std::vector<std::pair<int, quint32>> pas::ops::generic::list2addr(const ast::Node &node) {
   addr2line lines;
   lines.useList = true;
   pas::ast::apply_recurse(node, lines);

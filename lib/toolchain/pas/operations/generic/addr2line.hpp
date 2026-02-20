@@ -26,9 +26,9 @@ class Node;
 namespace pas::ops::generic {
 struct addr2line : public ConstOp<void> {
   bool useList = 0;
-  QList<QPair<int, quint32>> mapping;
+  std::vector<std::pair<int, quint32>> mapping;
   void operator()(const ast::Node &node) override;
 };
-QList<QPair<int, quint32>> source2addr(const ast::Node &node);
-QList<QPair<int, quint32>> list2addr(const ast::Node &node);
+std::vector<std::pair<int, quint32>> source2addr(const ast::Node &node);
+std::vector<std::pair<int, quint32>> list2addr(const ast::Node &node);
 } // namespace pas::ops::generic
