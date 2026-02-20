@@ -1475,7 +1475,7 @@ bool Pep_MA::_microassemble9_10_1() {
   auto text = _microcodeText.toStdString();
   auto parsed = pepp::tc::parse::MicroParser<pepp::tc::arch::Pep9ByteBus, regs>(std::move(text)).parse();
   _errors.clear();
-  _errors.resize(parsed.errors.size());
+  _errors.reserve(parsed.errors.size());
   for (const auto &[line, msg] : parsed.errors) _errors.push_back({line, QString::fromStdString(msg)});
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
   _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
