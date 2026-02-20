@@ -22,3 +22,10 @@ std::optional<int> pepp::Line2Address::line(u32 address) const noexcept {
   if (auto it = _addr2line.find(address); it != _addr2line.cend()) return it->second;
   return std::nullopt;
 }
+
+bool pepp::Line2Address::add_mapping(int line, u32 address) {
+  if (_line2addr.find(line) != _line2addr.end() || _addr2line.find(address) != _addr2line.end()) return false;
+  _line2addr[line] = address;
+  _addr2line[address] = line;
+  return true;
+}

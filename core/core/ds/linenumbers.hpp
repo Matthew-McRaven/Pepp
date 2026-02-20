@@ -18,6 +18,10 @@ struct Line2Address {
   auto cbegin() const { return _line2addr.cbegin(); }
   auto cend() const { return _line2addr.cend(); }
 
+  // Better to construct via ctor if you know all the elements at once.
+  // This method will cause unnecessary reallocations and be O(nlgn).
+  bool add_mapping(int line, u32 address);
+
 private:
   fc::vector_map<int, u32> _line2addr{};
   fc::vector_map<u32, int> _addr2line{};
