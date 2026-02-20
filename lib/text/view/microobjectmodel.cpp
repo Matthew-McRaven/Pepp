@@ -60,7 +60,6 @@ struct Decomposer {
         if (auto s = static_cast<pepp::tc::arch::Pep9ByteBus::Signals>(it); line.enabled(s)) temp.append(line.get(s));
         else temp.append(-1);
       }
-      if (temp.size() != _headers.size()) throw std::runtime_error("Header and value size mismatch");
       _values.append(std::move(temp));
     }
   }
@@ -80,7 +79,6 @@ struct Decomposer {
         if (auto s = static_cast<pepp::tc::arch::Pep9WordBus::Signals>(it); line.enabled(s)) temp.append(line.get(s));
         else temp.append(-1);
       }
-      if (temp.size() != _headers.size()) throw std::runtime_error("Header and value size mismatch");
       _values.append(std::move(temp));
     }
   }
