@@ -9,15 +9,21 @@ class DiagramData : QObject
 {
     Q_OBJECT
 
-    //  Map to data based on table location
+    //  Container for iteration
+    QList<DiagramProperties *> _data;
+
+    //  Map to data based on table location (DiagramKey)
     QMap<DiagramKey, DiagramProperties *> _cells;
 
-    //  Map view to datamodel
+    //  Map unique diagram id to table key (location)
     QMap<quint32, DiagramKey> _keys;
 
 
 public:
     DiagramData();
+
+    QList<DiagramProperties *> &cells() { return _data; }
+    const QList<DiagramProperties *> &cells() const { return _data; }
 
     //  Get access to specific property
     DiagramProperties *getDiagramProps(const DiagramKey &key);

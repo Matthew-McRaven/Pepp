@@ -74,6 +74,7 @@ DiagramProperties *DiagramData::createDiagramProps(const DiagramKey &key)
     if (cell == nullptr)
         return nullptr;
 
+    _data.append(cell);
     _cells.insert(key, cell);
     _keys.insert(cell->id(), key);
 

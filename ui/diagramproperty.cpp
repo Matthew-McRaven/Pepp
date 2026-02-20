@@ -146,6 +146,14 @@ void DiagramProperties::setRectangle(const QRect v)
     }
 }
 
+void DiagramProperties::setGridRectangle(const QRect v)
+{
+    if (_gridRect != v) {
+        _gridRect = v;
+        emit dimensionsChanged();
+    }
+}
+
 void DiagramProperties::setImage(QPixmap *v)
 {
     if (_pixMap != v) {

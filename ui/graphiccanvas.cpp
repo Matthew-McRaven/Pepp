@@ -6,7 +6,6 @@
 #include <QSvgRenderer>
 
 #include "diagramdatamodel.hpp"
-#include <vector>
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     : QQuickPaintedItem(parent)
@@ -58,7 +57,7 @@ void GraphicCanvas::updateData()
 
     for (auto i = 1; i < cols; ++i) {
         for (auto j = 0; j < rows; ++j) {
-            QRect r{block_size * i, block_size * j, block_size, block_size};
+            QRect gridRect{block_size * i, block_size * j, block_size, block_size};
 
             auto index = _model->index(i, j);
             DiagramProperties *data = _model->createItem(index);
@@ -66,21 +65,16 @@ void GraphicCanvas::updateData()
             //  Add block data
             data->setName(lookup[i % _svgs.size()]);
             data->setRectangle({i, j, 1, 1});
+            data->setGridRectangle(gridRect);
             data->setType(i % _svgs.size());
             data->setOrientation(90 * j);
             getImage(*data);
 
-            insertImage(r, data);
+            //  Keep track of canvas size
+            _dimensions = _dimensions.united(gridRect);
         }
     }
     //  End of test data
-}
-
-void GraphicCanvas::insertImage(const QRect &rect, DiagramProperties *data)
-{
-    //  Keep track of canvas size
-    _dimensions = _dimensions.united(rect);
-    _rects.push_back({rect, data});
 }
 
 void GraphicCanvas::cacheImages(const QString &source)
@@ -209,10 +203,11 @@ void GraphicCanvas::paint(QPainter *painter)
         currentBlock.translate(screen_block, -screen_block * row);
     }
 
-    for (const auto &[rect, props] : _rects) {
+    for (const auto props : _model->cells()) {
+        //for (const auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
-        if (grid_viewport.intersects(rect))
-            paint_one(painter, rect, *props);
+        if (grid_viewport.intersects(props->gridRectangle()))
+            paint_one(painter, props->gridRectangle(), *props);
     }
     //qDebug() << "grid_viewport: " << grid_viewport;
 }
@@ -374,17 +369,18 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     }
 
     //  If we get here, we have a new item. Insert into canvas
-    QRect r{block_size * col, block_size * row, block_size, block_size};
+    QRect gridRect{block_size * col, block_size * row, block_size, block_size};
     const auto newIndex = _model->index(col, row);
     DiagramProperties *data = _model->createItem(newIndex);
 
     //  Add block data
     data->setName(_template->name());
     data->setRectangle({col, row, 1, 1});
+    data->setGridRectangle(gridRect);
     data->setType(_template->key());
     getImage(*data);
 
-    insertImage(r, data);
+    _dimensions = _dimensions.united(gridRect);
     _model->setData(newIndex, true, DiagramProperty::Role::Selected);
     event->setAccepted(true);
 }
@@ -394,9 +390,10 @@ bool GraphicCanvas::setSelected(const QPoint point)
     bool found{false};
 
     //  See if existing item was clicked and clear selection
-    for (auto &[rect, props] : _rects) {
+    for (const auto props : _model->cells()) {
+        //    for (auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
-        if (!rect.contains(point)) {
+        if (!props->gridRectangle().contains(point)) {
             if (props->selected()) {
                 //  Item was previously selected, clear old outline
                 //  Set through datamodel so that other controls see change
@@ -579,24 +576,17 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
         const auto oldIndex = _model->index(oldX, oldY);
         const auto newIndex = _model->index(newX, newY);
 
-        //  Duplicate - see note below
+        //  Update grid coordinates
         DiagramProperties *data = _model->item(oldIndex);
+        QRect gridRect{block_size * newX, block_size * newY, block_size, block_size};
+        data->setGridRectangle(gridRect);
 
+        //  Keep track of canvas size
+        _dimensions = _dimensions.united(gridRect);
+
+        //  Update model
         _model->move(oldIndex, newIndex);
         unsetCursor();
-
-        //  This is duplicative, we are maintaining rectangle
-        //  size in this class and the data model. Data should
-        //  only be in data model. Need to fix.
-        QRect r{block_size * newX, block_size * newY, block_size, block_size};
-        insertImage(r, data);
-
-        r.setRect(block_size * oldX, block_size * oldY, block_size, block_size);
-        for (const auto it : _rects) {
-            if (it.first == r) {
-            }
-            //_rects.erase(it);
-        }
 
         update();
 

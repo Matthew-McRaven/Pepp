@@ -73,6 +73,8 @@ public:
 
     QRect rectangle() const { return _rect; }
     void setRectangle(const QRect v);
+    QRect gridRectangle() const { return _gridRect; }
+    void setGridRectangle(const QRect v);
 
 signals:
     void typeChanged();
@@ -106,5 +108,6 @@ private:
 
     //  Diagram grid dimensions & placement
     QRect _rect{};
+    QRect _gridRect{};
     QPixmap *_pixMap = nullptr;
 };

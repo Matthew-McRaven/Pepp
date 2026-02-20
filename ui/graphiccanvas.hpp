@@ -145,8 +145,6 @@ private:
     const int block_size = 25;
     const float screen_block = block_size * grid_to_px;
 
-    //  Centralize image addition so we can track canvas size
-    void insertImage(const QRect &rect, DiagramProperties *data);
     void getImage(DiagramProperties &props);
 
     // Helepr for painting a single rect that has already "passed" the clipping test.
@@ -173,10 +171,6 @@ private:
 
     //  Drag drop functions
     void startDrag(const QPoint point);
-
-    // The things we want to render
-    using Rect = std::pair<QRect, DiagramProperties *>;
-    std::vector<Rect> _rects;
 
     //  Cached images
     QList<QPixmap> _svgs;

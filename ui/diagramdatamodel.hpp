@@ -31,6 +31,9 @@ public:
         OutputNo,
     };
 
+    QList<DiagramProperties *> &cells() { return _data.cells(); }
+    const QList<DiagramProperties *> &cells() const { return _data.cells(); }
+
     explicit DiagramDataModel(QObject *parent = nullptr);
 
     //  Custom functions accessed by QML
