@@ -36,7 +36,7 @@ void MicroAsmTask::run() {
       std::cerr << "Source file does not exist.\n";
       return emit finished(3);
     }
-    sIn.open(QIODevice::ReadOnly | QIODevice::Text);
+    (void)sIn.open(QIODevice::ReadOnly | QIODevice::Text);
     source = sIn.readAll();
     sIn.close();
   }

@@ -376,10 +376,9 @@ pepp::tc::ProgramObjectCodeResult
 pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
                          std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
   ProgramObjectCodeResult ret;
-  using Item = std::pair<SectionDescriptor, PepIRProgram>;
   std::vector<SectionOffsets> offsets(prog.size(), SectionOffsets{});
   quint32 object_size = 0, ir_count = 0;
-  for (int it = 0; it < prog.size(); it++) {
+  for (u32 it = 0; it < prog.size(); it++) {
     const auto &sec = prog[it];
     if (sec.first.flags.z) continue; // No bytes in ELF for Z section; no relocations possible.
     offsets[it].object_code_size = sec.first.byte_count;
@@ -391,7 +390,7 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
   ret.ir_to_object_code.container.reserve(ir_count);
   ret.section_spans.reserve(prog.size());
 
-  for (int it = 0; it < prog.size(); it++) {
+  for (u32 it = 0; it < prog.size(); it++) {
     const auto &[sec, ir] = prog[it];
     auto &offset = offsets[it];
     auto code_begin = ret.object_code.begin() + offset.object_code_offset;
@@ -407,7 +406,7 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
   // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate
   // relocation info.
   using SectionSpans = ProgramObjectCodeResult::SectionSpans;
-  for (int it = 0; it < prog.size(); it++) {
+  for (u32 it = 0; it < prog.size(); it++) {
     const auto &[desc, ir] = prog[it];
     auto &offset = offsets[it];
     // Z sections need entries in section_spans, but those entries should be empty.
@@ -553,11 +552,11 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
 
   quint32 skipped_sections = 0;
   std::vector<size_t> section_memory_sizes(prog.size(), 0);
-  for (int it = 0; it < prog.size(); it++) {
+  for (u32 it = 0; it < prog.size(); it++) {
     auto &sec = prog[it].first;
     section_memory_sizes[it] = sec.high_address - sec.low_address;
   }
-  for (int it = 0; it < prog.size(); it++) {
+  for (u32 it = 0; it < prog.size(); it++) {
     ret.section_offsets[it] = skipped_sections;
     if (section_memory_sizes[it] == 0) { // 0-sized sections are meaningless, do not emit.
       skipped_sections++;

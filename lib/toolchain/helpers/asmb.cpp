@@ -90,7 +90,6 @@ bool helpers::AsmHelper::assemble() {
 
 QStringList helpers::AsmHelper::errors() {
   using ErrList = decltype(pas::ops::generic::collectErrors(*_osRoot));
-  bool hadOsErr = false;
   auto osErrors = _osRoot.isNull() ? ErrList{} : pas::ops::generic::collectErrors(*_osRoot);
   ErrList userErrors = _user && !_userRoot.isNull() ? pas::ops::generic::collectErrors(*_userRoot) : ErrList{};
   QStringList ret;
@@ -131,7 +130,6 @@ QStringList helpers::AsmHelper::errors() {
 
 QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
   using ErrList = decltype(pas::ops::generic::collectErrors(*_osRoot));
-  bool hadOsErr = false;
   ErrList userErrors = _user && !_userRoot.isNull() ? pas::ops::generic::collectErrors(*_userRoot) : ErrList{};
   auto ret = QList<QPair<int, QString>>{};
   if (!userErrors.empty()) {

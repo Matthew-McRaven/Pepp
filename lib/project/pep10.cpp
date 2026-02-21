@@ -260,8 +260,8 @@ template <typename CPU, typename ISA> FlagModel *flag_model(targets::isa::System
     targets::isa::readCSR<ISA>(cpu->csrs(), s, ret, gs);
     return ret;
   };
-  auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
-  // See above for wanings on _system pointer.
+  // auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
+  //  See above for wanings on _system pointer.
   auto N = [=]() { return _flag(ISA::CSR::N, system); };
   auto Z = [=]() { return _flag(ISA::CSR::Z, system); };
   auto V = [=]() { return _flag(ISA::CSR::V, system); };
@@ -961,7 +961,7 @@ QString Pep_ASMB::osList() const { return _osList; }
 
 const QList<Error *> Pep_ASMB::errors() const {
   QList<Error *> ret;
-  for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
+  for (const auto &[line, str] : _errors) ret.push_back(new Error{line, str});
   return ret;
 }
 

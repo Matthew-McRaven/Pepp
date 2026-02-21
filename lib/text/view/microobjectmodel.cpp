@@ -9,16 +9,7 @@
 Microcode::Microcode(pepp::MicrocodeChoice mc, pepp::Line2Address l2a, QObject *parent)
     : QObject(parent), choice(mc), line2addr(l2a) {}
 
-pepp::MicroObjectModel::MicroObjectModel(QObject *parent) : QAbstractTableModel(parent) {
-  auto bookReg = builtins::Registry();
-  auto book6 = helpers::book(6, &bookReg);
-  using regs = pepp::tc::arch::Pep9Registers;
-  auto source = book6->findFigure("12", "12")->typesafeNamedFragments().value("pepcpu");
-  auto mc = pepp::tc::parse::MicroParser<pepp::tc::arch::Pep9ByteBus, regs>(source->contents().toStdString()).parse();
-  auto microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9ByteBus, regs>(mc);
-  auto lines = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(mc);
-  const auto size = pepp::tc::arch::Pep9ByteBus::signal_to_string().size();
-}
+pepp::MicroObjectModel::MicroObjectModel(QObject *parent) : QAbstractTableModel(parent) {}
 
 int pepp::MicroObjectModel::rowCount(const QModelIndex &) const { return _values.size(); }
 

@@ -10,7 +10,6 @@ pepp::debug::BreakpointSet::BreakpointSet(ExpressionCache *cache, Environment *e
 }
 
 void pepp::debug::BreakpointSet::addBP(quint16 address, pepp::debug::Term *condition) {
-  using Term = pepp::debug::Term;
   if (hasBP(address)) return;
   // Last element < address, since we've confirmed address is not in _breakpoints.
   auto lower = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), address);

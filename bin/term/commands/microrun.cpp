@@ -53,7 +53,7 @@ void MicroRunTask::run() {
       std::cerr << "Source file does not exist.\n";
       return emit finished(3);
     }
-    f.open(QIODevice::ReadOnly | QIODevice::Text);
+    (void)f.open(QIODevice::ReadOnly | QIODevice::Text);
     source_text = f.readAll();
   }
 
@@ -63,7 +63,7 @@ void MicroRunTask::run() {
       std::cerr << "Test file does not exist.\n";
       return emit finished(3);
     }
-    f.open(QIODevice::ReadOnly | QIODevice::Text);
+    (void)f.open(QIODevice::ReadOnly | QIODevice::Text);
     unit_test_text = f.readAll();
   } else unit_test_text = source_text;
 

@@ -27,10 +27,10 @@ int ProjectModel::roleForName(const QString &name) const {
   return Qt::DisplayRole;
 }
 
-int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
+int ProjectModel::rowCount(const QModelIndex &) const { return _projects.size(); }
 
 QVariant ProjectModel::data(const QModelIndex &index, int role) const {
-  if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
+  if (!index.isValid() || index.row() >= (int)_projects.size() || index.column() != 0) return {};
 
   switch (role) {
   case static_cast<int>(Roles::ProjectPtrRole): return QVariant::fromValue(&*_projects[index.row()].impl);
@@ -52,7 +52,7 @@ void markClean(QObject *item) {
 } // namespace
 
 bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int role) {
-  if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
+  if (!index.isValid() || index.row() >= (int)_projects.size() || index.column() != 0) return {};
   switch (role) {
   case static_cast<int>(Roles::NameRole): _projects[index.row()].name = value.toString(); break;
   case static_cast<int>(Roles::DirtyRole):
@@ -110,7 +110,8 @@ const auto placeholder = QStringLiteral("Unnamed %1");
 #endif
 
 Pep_ISA *ProjectModel::pep10ISA() {
-  static const project::Environment env{.arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::ISA3};
+  static const project::Environment env{
+      .arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::ISA3, .features = project::Features::None};
   auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -122,7 +123,8 @@ Pep_ISA *ProjectModel::pep10ISA() {
 }
 
 Pep_ISA *ProjectModel::pep9ISA() {
-  static const project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ISA3};
+  static const project::Environment env{
+      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ISA3, .features = project::Features::None};
   auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -134,7 +136,8 @@ Pep_ISA *ProjectModel::pep9ISA() {
 }
 
 Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
-  project::Environment env{.arch = pepp::Architecture::PEP10, .level = abstraction};
+  project::Environment env{
+      .arch = pepp::Architecture::PEP10, .level = abstraction, .features = project::Features::None};
   auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -146,7 +149,8 @@ Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
 }
 
 Pep_ASMB *ProjectModel::pep9ASMB() {
-  project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ASMB5};
+  project::Environment env{
+      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ASMB5, .features = project::Features::None};
   auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -157,8 +161,8 @@ Pep_ASMB *ProjectModel::pep9ASMB() {
   return ret;
 }
 
-bool ProjectModel::removeRows(int row, int count, const QModelIndex &parent) {
-  if (row < 0 || row + count > _projects.size() || count <= 0) return false;
+bool ProjectModel::removeRows(int row, int count, const QModelIndex &) {
+  if (row < 0 || row + count > (int)_projects.size() || count <= 0) return false;
   // row+count is one past the last element to be removed.
   beginRemoveRows(QModelIndex(), row, row + count - 1);
   // Take all pointers from project, and delete them at some point in the future rather than now.
@@ -176,10 +180,7 @@ bool ProjectModel::removeRows(int row, int count, const QModelIndex &parent) {
   return true;
 }
 
-bool ProjectModel::moveRows(const QModelIndex &sourceParent, int sourceRow, int count,
-                            const QModelIndex &destinationParent, int destinationChild) {
-  return false;
-}
+bool ProjectModel::moveRows(const QModelIndex &, int, int, const QModelIndex &, int) { return false; }
 
 QHash<int, QByteArray> ProjectModel::roleNames() const {
   auto ret = QAbstractListModel::roleNames();
@@ -193,7 +194,7 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
 
 QString ProjectModel::describe(int index) const {
   using enum pepp::Architecture;
-  if (index < 0 || index >= _projects.size()) return {};
+  if (index < 0 || index >= (int)_projects.size()) return {};
 
   auto abs_enum = QMetaEnum::fromType<pepp::Abstraction>();
   pepp::Architecture arch;
@@ -210,7 +211,7 @@ QString ProjectModel::describe(int index) const {
 }
 
 int ProjectModel::rowOf(const QObject *item) const {
-  for (int i = 0; i < _projects.size(); ++i) {
+  for (int i = 0; i < (int)_projects.size(); ++i) {
     if (&*_projects[i].impl == item) return i;
   }
   return -1;
@@ -247,38 +248,26 @@ std::pair<pepp::Abstraction, pepp::Architecture> envFromPtr(const QObject *item)
 }
 
 QByteArray primaryTextFromPtr(const QObject *item) {
-  if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
-    return asmb->userAsmText().toUtf8();
-  } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
-    return isa->objectCodeText().toUtf8();
-  }
+  if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) return asmb->userAsmText().toUtf8();
+  else if (auto isa = qobject_cast<const Pep_ISA *>(item)) return isa->objectCodeText().toUtf8();
   return "";
 }
 
 QByteArray contentsFromExtension(const QObject *item, const QString &extension) {
-  if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
-    return asmb->contentsForExtension(extension).toUtf8();
-  } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
-    return isa->contentsForExtension(extension).toUtf8();
-  }
+  if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) return asmb->contentsForExtension(extension).toUtf8();
+  else if (auto isa = qobject_cast<const Pep_ISA *>(item)) return isa->contentsForExtension(extension).toUtf8();
   return "";
 }
 
 bool defaultFromExtension(const QObject *item, const QString &extension) {
-  if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
-    return extension.compare("pep", Qt::CaseInsensitive) == 0;
-  } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
-    return extension.compare("pepo", Qt::CaseInsensitive) == 0;
-  }
+  if (qobject_cast<const Pep_ASMB *>(item)) return extension.compare("pep", Qt::CaseInsensitive) == 0;
+  else if (qobject_cast<const Pep_ISA *>(item)) return extension.compare("pepo", Qt::CaseInsensitive) == 0;
   return false;
 }
 
 std::string defaultExtensionFor(const QObject *item) {
-  if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
-    return "pep";
-  } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
-    return "pepo";
-  }
+  if (qobject_cast<const Pep_ASMB *>(item)) return "pep";
+  else if (qobject_cast<const Pep_ISA *>(item)) return "pepo";
   return "pep";
 }
 
@@ -293,7 +282,7 @@ auto recentFiles() {
 }
 
 bool ProjectModel::onSave(int row) {
-  if (row < 0 || row >= _projects.size()) return false;
+  if (row < 0 || row >= (int)_projects.size()) return false;
 
   using enum QStandardPaths::StandardLocation;
   auto ptr = _projects[row].impl.get();
@@ -598,13 +587,11 @@ ProjectTypeModel::ProjectTypeModel(QObject *parent) : QAbstractTableModel(parent
   init_riscv(_projects);
 }
 
-int ProjectTypeModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
+int ProjectTypeModel::rowCount(const QModelIndex &) const { return _projects.size(); }
 
-int ProjectTypeModel::columnCount(const QModelIndex &parent) const { return 1; }
+int ProjectTypeModel::columnCount(const QModelIndex &) const { return 1; }
 
 QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
-  static const auto arch_enum = QMetaEnum::fromType<pepp::Architecture>();
-  static const auto abs_enum = QMetaEnum::fromType<pepp::Abstraction>();
   using namespace Qt::StringLiterals;
   if (!index.isValid() || index.row() >= _projects.size() || index.column() > 1) return {};
   switch (role) {
@@ -653,32 +640,60 @@ ProjectTypeFilterModel::ProjectTypeFilterModel(QObject *parent) : QSortFilterPro
 
 void ProjectTypeFilterModel::setArchitecture(pepp::Architecture arch) {
   if (_architecture == arch) return;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+  beginFilterChange();
+  _architecture = arch;
+  _edition = 0;
+  endFilterChange();
+#else
+  _architecture = arch;
+  _edition = 0;
+  invalidateFilter();
+#endif
   _architecture = arch;
   _edition = 0;
   emit architectureChanged();
-  invalidateFilter();
 }
 
 void ProjectTypeFilterModel::setEdition(int edition) {
   if (_edition == edition) return;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+  beginFilterChange();
   _architecture = pepp::Architecture::NO_ARCH;
   _edition = edition;
-  emit editionChanged();
+  endFilterChange();
+#else
+  _architecture = pepp::Architecture::NO_ARCH;
+  _edition = edition;
   invalidateFilter();
+#endif
+  emit editionChanged();
 }
 
 void ProjectTypeFilterModel::setShowIncomplete(bool value) {
   if (_showIncomplete == value) return;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+  beginFilterChange();
   _showIncomplete = value;
-  emit showIncompleteChanged();
+  endFilterChange();
+#else
+  _showIncomplete = value;
   invalidateFilter();
+#endif
+  emit showIncompleteChanged();
 }
 
 void ProjectTypeFilterModel::setShowPartial(bool value) {
   if (_showPartial == value) return;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+  beginFilterChange();
   _showPartial = value;
-  emit showPartialChanged();
+  endFilterChange();
+#else
+  _showPartial = value;
   invalidateFilter();
+#endif
+  emit showPartialChanged();
 }
 
 bool ProjectTypeFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
