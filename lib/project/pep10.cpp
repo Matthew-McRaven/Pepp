@@ -1370,8 +1370,10 @@ OpcodeModel *Pep_MA::mnemonics() const {
 QString Pep_MA::microcodeText() const { return _microcodeText; }
 
 void Pep_MA::setMicrocodeText(const QString &microcodeText) {
-  if (_microcodeText == microcodeText) return;
-  _microcodeText = microcodeText;
+  static const QRegularExpression cycle_num(R"(^\d+\.\s+)", QRegularExpression::PatternOption::MultilineOption);
+  auto fixedText = QString{microcodeText}.replace(cycle_num, "");
+  if (_microcodeText == fixedText) return;
+  _microcodeText = fixedText;
   emit microcodeTextChanged();
 }
 
