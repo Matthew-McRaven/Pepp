@@ -39,6 +39,7 @@ struct Decomposer {
     const auto line_count = mc.size();
     const auto size = pepp::tc::arch::Pep9ByteBus::signal_to_string().size();
     _headers.append("Line Number");
+    _headers.append("Cycle Number");
     for (unsigned int it = 0; it < size; it++) {
       _headers.append(QString::fromStdString(
           pepp::tc::arch::Pep9ByteBus::signal_to_string().at(static_cast<pepp::tc::arch::Pep9ByteBus::Signals>(it))));
@@ -47,6 +48,7 @@ struct Decomposer {
       const auto &line = mc[addr];
       QList<int> temp;
       temp.append(lines.line(addr).value_or(-2) + 1);
+      temp.append(addr + 1);
       for (unsigned int it = 0; it < size; it++) {
         if (auto s = static_cast<pepp::tc::arch::Pep9ByteBus::Signals>(it); line.enabled(s)) temp.append(line.get(s));
         else temp.append(-1);
@@ -58,6 +60,7 @@ struct Decomposer {
     const auto line_count = mc.size();
     const auto size = pepp::tc::arch::Pep9WordBus::signal_to_string().size();
     _headers.append("Line Number");
+    _headers.append("Cycle Number");
     for (unsigned int it = 0; it < size; it++) {
       _headers.append(QString::fromStdString(
           pepp::tc::arch::Pep9WordBus::signal_to_string().at(static_cast<pepp::tc::arch::Pep9WordBus::Signals>(it))));
@@ -66,6 +69,7 @@ struct Decomposer {
       const auto &line = mc[addr];
       QList<int> temp;
       temp.append(lines.line(addr).value_or(-2) + 1);
+      temp.append(addr + 1);
       for (unsigned int it = 0; it < size; it++) {
         if (auto s = static_cast<pepp::tc::arch::Pep9WordBus::Signals>(it); line.enabled(s)) temp.append(line.get(s));
         else temp.append(-1);
