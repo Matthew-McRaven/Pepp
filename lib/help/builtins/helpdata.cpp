@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "helpdata.hpp"
+#include "aproject.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
 #include "helpmodel.hpp"
@@ -381,9 +382,20 @@ QSharedPointer<HelpEntry> greencard9_root() {
   return root;
 }
 
-QString lexerLang(pepp::Architecture arch, pepp::Abstraction level) {
+QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, project::Features feat) {
   using enum pepp::Architecture;
   using enum pepp::Abstraction;
+  if (level == MA2) {
+    QString archStr;
+    switch (arch) {
+    case PEP9: [[fallthrough]];
+    case PEP10: archStr = "Pep9"; break;
+    default: return "";
+    }
+    int featNum = 1;
+    if ((int)feat & (int)project::Features::TwoByte) featNum = 2;
+    return QStringLiteral("%1Micro%2").arg(archStr).arg(featNum);
+  }
   QString archStr = "", levelStr = "";
   switch (arch) {
   case PEP9: archStr = "Pep/9"; break;
@@ -421,7 +433,7 @@ std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry 
       entry->sortName = sortTitle;
       entry->props = QVariantMap{{"title", displayTitle},
                                  {"payload", QVariant::fromValue(figure.data())},
-                                 {"lexerLang", lexerLang(figure->arch(), figure->level())},
+                                 {"lexerLang", lexerLang(figure->arch(), figure->level(), project::Features::None)},
                                  {"architecture", QVariant((int)figure->arch())}};
       children.push_back(entry);
     }
