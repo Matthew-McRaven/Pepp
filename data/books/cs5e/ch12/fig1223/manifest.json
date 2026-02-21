@@ -12,6 +12,7 @@
     {
       "name": "pepcpu",
       "format": "pepcpu2",
+      "isDefault": true,
       "from": {
         "file": "{ch}{fig}.pepcpu"
       }
