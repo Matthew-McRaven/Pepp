@@ -126,6 +126,11 @@ FocusScope {
                                      dock_cpu, Qt.size(regmemcol_width,
                                                        memdump_height))
         wrapper.needsDock = Qt.binding(() => false)
+        // Without this workaround the text editor will not receive focus on subsequent key presses.
+        if (PlatformDetector.isWASM)
+            batchInput.forceActiveFocus()
+        // Delay giving focus to editor until the next frame. Any editor that becomes visible without being focused will be incorrectly painted
+        Qt.callLater(() => objEdit.forceActiveFocus())
         modeVisibilityChange()
         for (const x of widgets) {
             x.needsAttention = false
