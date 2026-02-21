@@ -469,7 +469,8 @@ void init_pep10(QList<ProjectType> &vec) {
               .level = Abstraction::MA2,
               .features = pepp::Features::TwoByte,
               .state = CompletionState::PARTIAL,
-              .edition = 6});
+              .edition = 6,
+              .always_hide = true});
 }
 void init_pep9(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP9;
@@ -521,7 +522,8 @@ void init_pep9(QList<ProjectType> &vec) {
               .level = Abstraction::MA2,
               .features = pepp::Features::TwoByte,
               .state = CompletionState::PARTIAL,
-              .edition = 5});
+              .edition = 5,
+              .always_hide = true});
 }
 void init_pep8(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP8;
@@ -611,6 +613,7 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::DetailsRole): return _projects[index.row()].details;
   case static_cast<int>(Roles::ChapterRole): return _projects[index.row()].chapter;
   case static_cast<int>(Roles::FeatureRole): return (int)_projects[index.row()].features;
+  case static_cast<int>(Roles::AlwaysHideRole): return (int)_projects[index.row()].always_hide;
   default: return {};
   }
 }
@@ -631,6 +634,7 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
       {(int)ProjectTypeModel::Roles::DetailsRole, "details"},
       {(int)ProjectTypeModel::Roles::ChapterRole, "chapter"},
       {(int)ProjectTypeModel::Roles::FeatureRole, "features"},
+      {(int)ProjectTypeModel::Roles::AlwaysHideRole, "alwaysHide"},
   };
   return ret;
 }
@@ -703,6 +707,8 @@ bool ProjectTypeFilterModel::filterAcceptsRow(int source_row, const QModelIndex 
   auto arch = static_cast<pepp::Architecture>(
       sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::ArchitectureRole)).toInt());
   auto edition = sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::EditionRole)).toInt();
+  auto always_hide = sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::AlwaysHideRole)).toInt();
+  if (always_hide) return false;
   if (_architecture != pepp::Architecture::NO_ARCH && arch != _architecture) return false;
   else if (_edition != 0 && edition != _edition) return false;
   else if (!_showIncomplete && isIncomplete) return false;

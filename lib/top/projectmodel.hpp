@@ -91,6 +91,8 @@ struct ProjectType {
   CompletionState state = CompletionState::INCOMPLETE;
   int edition = 0;
   bool placeholder = false;
+  // Used to hide items that only differ by features.
+  bool always_hide = false;
 };
 
 class ProjectTypeModel : public QAbstractTableModel {
@@ -113,6 +115,7 @@ public:
     DetailsRole,
     ChapterRole,
     FeatureRole,
+    AlwaysHideRole
   };
   Q_ENUM(Roles);
   explicit ProjectTypeModel(QObject *parent = nullptr);
