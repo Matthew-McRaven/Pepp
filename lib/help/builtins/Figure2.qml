@@ -200,7 +200,7 @@ Item {
                         const pl = wrapper.payload;
                         const name = pl.defaultFragmentName;
                         const text = pl.fragments[name].content;
-                        wrapper.addProject(pl.arch, pl.level, "", text, "Editor", pl?.defaultOS?.fragments["pep"]?.content, pl?.tests);
+                        wrapper.addProject(pl.arch, pl.level, pl.features, text, "Editor", pl?.defaultOS?.fragments["pep"]?.content, pl?.tests);
                         wrapper.renameCurrentProject(wrapper.title);
                     }
                 }   //  Button

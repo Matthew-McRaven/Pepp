@@ -333,7 +333,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
     }
     item->figure = figure;
     figure->addFragment(item);
-    if (item->isDefault && !_default.has_value()) _default = item->language;
+    if (item->isDefault && !_default.has_value()) _default = item->name;
   }
 
   figure->setDefaultFragmentName(_default.value_or("pepo"));
