@@ -9,7 +9,7 @@ namespace pepp::debug {
 
 struct ConstantTermVisitor;
 struct MutatingTermVisitor;
-struct CachedEvaluator;
+class CachedEvaluator;
 // When creating a shared_ptr<Term> (or derived), must immediately call link() to update _dependents.
 // Prefer creation through ExpressionCache, which handles this on your behalf.
 class Term : public std::enable_shared_from_this<Term> {

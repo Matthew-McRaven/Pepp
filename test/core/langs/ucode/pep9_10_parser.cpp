@@ -17,6 +17,7 @@
 
 #include "core/arch/pep/uarch/pep.hpp"
 #include "core/langs/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_str.hpp"
 
 TEST_CASE("Microassemble 1-byte bus", "[scope:core][scope:core.langs][level:mc2][kind:unit][arch:*][tc2]") {
   using uarch = pepp::tc::arch::Pep9ByteBus;

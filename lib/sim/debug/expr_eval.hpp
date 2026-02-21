@@ -49,13 +49,11 @@ struct Environment {
 struct ZeroEnvironment : public Environment {
   inline types::TypeInfo *type_info() override { return &_typeInfo; }
   inline types::TypeInfo const *type_info() const override { return &_typeInfo; }
-  inline uint8_t read_mem_u8(uint32_t address) const override { return 0; }
-  inline uint16_t read_mem_u16(uint32_t address) const override { return 0; }
-  inline Value evaluate_variable(QStringView name) const override { return VPrimitive::from_int(int16_t(0)); };
-  inline uint32_t cache_debug_variable_name(QStringView name) const override { return 0; }
-  inline Value evaluate_debug_variable(uint32_t cache_index) const override {
-    return VPrimitive::from_int(int16_t(0));
-  };
+  inline uint8_t read_mem_u8(uint32_t) const override { return 0; }
+  inline uint16_t read_mem_u16(uint32_t) const override { return 0; }
+  inline Value evaluate_variable(QStringView) const override { return VPrimitive::from_int(int16_t(0)); };
+  inline uint32_t cache_debug_variable_name(QStringView) const override { return 0; }
+  inline Value evaluate_debug_variable(uint32_t) const override { return VPrimitive::from_int(int16_t(0)); };
 
 protected:
   types::TypeInfo _typeInfo;
@@ -64,7 +62,8 @@ protected:
 class Term;
 // Helper which caches the last (locally) evaluated value for a term.
 // Can check how outdated the value is by comparing EvaluationCache::version
-struct CachedEvaluator {
+class CachedEvaluator {
+public:
   CachedEvaluator() = default;
   explicit CachedEvaluator(std::shared_ptr<Term> term);
   CachedEvaluator(const CachedEvaluator &) = default;

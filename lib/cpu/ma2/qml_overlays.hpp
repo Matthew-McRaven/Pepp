@@ -7,7 +7,7 @@ namespace pepp {
 static const int OVERLAY_NONE = 0;
 static const int OVERLAY_CLOCK = 1;
 static const int OVERLAY_TRISTATE = 2;
-static const int OVERLAY_TEXT = 3;
+static const int OVERLAY_MONO_TEXT = 3;
 class QMLOverlay : public QObject {
   Q_OBJECT
   QML_NAMED_ELEMENT(QMLOverlay)
@@ -70,16 +70,16 @@ private:
   QString _label;
 };
 
-class TextOverlay : public QMLOverlay {
+class MonoTextOverlay : public QMLOverlay {
   Q_OBJECT
-  QML_NAMED_ELEMENT(TextOverlay)
+  QML_NAMED_ELEMENT(MonoTextOverlay)
   Q_PROPERTY(QRect location READ location CONSTANT)
   Q_PROPERTY(int type READ type CONSTANT)
   Q_PROPERTY(QString label READ label CONSTANT FINAL)
   Q_PROPERTY(int requestedHAlign READ requestedHAlign CONSTANT FINAL)
   QML_UNCREATABLE("TristateOverlay is only creatable from C++")
 public:
-  TextOverlay(QRect location, QString label, Qt::Alignment halign, QObject *parent = nullptr);
+  MonoTextOverlay(QRect location, QString label, Qt::Alignment halign, QObject *parent = nullptr);
   int type() override;
   QString label() const;
   int requestedHAlign() const;

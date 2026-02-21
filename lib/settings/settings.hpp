@@ -50,9 +50,10 @@ class RecentFile {
   QML_VALUE_TYPE(recent_file)
 public:
   RecentFile() = default;
-  explicit RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level)
+  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level)
       : _path(filePath), _arch(arch), _level(level) {};
-  RecentFile(const RecentFile &other) noexcept : _path(other._path), _arch(other._arch), _level(other._level) {}
+  RecentFile(const RecentFile &other) noexcept = default;
+  RecentFile &operator=(const RecentFile &other) noexcept = default;
   QString path() const { return _path; }
   pepp::Architecture arch() const { return _arch; }
   pepp::Abstraction abstraction() const { return _level; }

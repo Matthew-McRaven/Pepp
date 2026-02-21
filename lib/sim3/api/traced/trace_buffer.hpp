@@ -18,10 +18,11 @@
 #include <set>
 #include <stack>
 #include <zpp_bits.h>
+#include "../device.hpp"
 #include "./trace_frame.hpp"
 #include "./trace_iterator.hpp"
-#include "../device.hpp"
 #include "./trace_packets.hpp"
+#include "core/integers.h"
 
 namespace sim::api2::trace {
 class PathGuard;
@@ -130,7 +131,7 @@ protected:
   inline void emit_payloads(bits::span<const quint8> buf1, bits::span<const quint8> buf2) {
     auto data_len = std::min(buf1.size(), buf2.size());
     // Split the data into chunks that are `payload_max_size` bytes long.
-    for (int it = 0; it < data_len;) {
+    for (u32 it = 0; it < data_len;) {
       auto payload_len = std::min(data_len - it, payload_max_size);
       bool continues = data_len - it > payload_max_size;
       // Additional payloads needed if it is more than N elements away from data_len.
@@ -147,7 +148,7 @@ protected:
   inline void emit_payloads(bits::span<const quint8> buf) {
     auto data_len = buf.size();
     // Split the data into chunks that are `payload_max_size` bytes long.
-    for (int it = 0; it < data_len;) {
+    for (u32 it = 0; it < data_len;) {
       auto payload_len = std::min(data_len - it, payload_max_size);
       bool continues = data_len - it > payload_max_size;
       // Additional payloads needed if it is more than N elements away from data_len.

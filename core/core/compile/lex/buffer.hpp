@@ -24,7 +24,7 @@ namespace pepp::tc::lex {
 
 struct Token;
 struct ALexer;
-struct Checkpoint;
+class Checkpoint;
 
 class Buffer {
 public:
@@ -69,7 +69,8 @@ private:
 // Effectively a semaphor for the buffer? As long as one checkpoint exists, Buffer's tokens will not be cleared.
 // When the last checkpoint is destroyed, this CP will clear out old tokens and reset its head.
 // This allows backtracking in the parser without having to store the entire program at once as tokens.
-struct Checkpoint {
+class Checkpoint {
+public:
   explicit Checkpoint(Buffer &buf);
   ~Checkpoint();
   Checkpoint(const Checkpoint &) = delete;

@@ -1,6 +1,7 @@
 #pragma once
 #include <QAbstractTableModel>
 #include <QtQmlIntegration>
+#include "core/integers.h"
 #include "expr_ast_ops.hpp"
 #include "sim/debug/expr_ast.hpp"
 #include "sim/debug/expr_parser.hpp"
@@ -99,7 +100,7 @@ void gather_volatiles(std::vector<EditableWatchExpression::VolatileCache> &into,
   into.resize(vec.size());
 
   // Cache the most recent value for each volatile in addition to its term.
-  for (int it = 0; it < vec.size(); it++) {
+  for (u32 it = 0; it < vec.size(); it++) {
     into[it].evaluator = vec[it]->evaluator();
     into[it].evaluator.evaluate(CachePolicy::UseNonVolatiles, env);
   }

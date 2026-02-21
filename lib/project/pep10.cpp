@@ -19,6 +19,7 @@
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/uarch/pep.hpp"
 #include "core/langs/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_str.hpp"
 #include "core/math/bitmanip/enums.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "cpu/formats.hpp"
@@ -259,8 +260,8 @@ template <typename CPU, typename ISA> FlagModel *flag_model(targets::isa::System
     targets::isa::readCSR<ISA>(cpu->csrs(), s, ret, gs);
     return ret;
   };
-  auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
-  // See above for wanings on _system pointer.
+  // auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
+  //  See above for wanings on _system pointer.
   auto N = [=]() { return _flag(ISA::CSR::N, system); };
   auto Z = [=]() { return _flag(ISA::CSR::Z, system); };
   auto V = [=]() { return _flag(ISA::CSR::V, system); };
@@ -960,7 +961,7 @@ QString Pep_ASMB::osList() const { return _osList; }
 
 const QList<Error *> Pep_ASMB::errors() const {
   QList<Error *> ret;
-  for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
+  for (const auto &[line, str] : _errors) ret.push_back(new Error{line, str});
   return ret;
 }
 
@@ -1374,6 +1375,8 @@ void Pep_MA::setMicrocodeText(const QString &microcodeText) {
   emit microcodeTextChanged();
 }
 
+QString Pep_MA::microcodeListingText() const { return _microcodeListingText; }
+
 Microcode *Pep_MA::microcode() const {
   if (_microcode.index() == 0) return nullptr;
   auto ret = new Microcode(_microcode, _line2addr);
@@ -1425,20 +1428,9 @@ QList<Error *> Pep_MA::errors() const {
   return ret;
 }
 
-bool Pep_MA::onMicroAssemble() {
-  switch (_env.arch) {
-  case pepp::ArchitectureHelper::Architecture::PEP8: return _microassemble8();
-  case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
-  case pepp::ArchitectureHelper::Architecture::PEP10:
-    if ((int)_env.features & (int)project::Features::TwoByte) return _microassemble9_10_2();
-    else return _microassemble9_10_1();
-  default: return false;
-  }
-}
+bool Pep_MA::onMicroAssemble() { return _microassemble(false); }
 
-bool Pep_MA::onMicroAssembleThenFormat() { return true; }
-
-bool Pep_MA::onFormatMicrocode() { return true; }
+bool Pep_MA::onMicroAssembleThenFormat() { return _microassemble(true); }
 
 bool Pep_MA::onExecute() { return true; }
 
@@ -1468,9 +1460,19 @@ void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}
 
 void Pep_MA::updateBPAtAddress(quint32 address, Action action) {}
 
-bool Pep_MA::_microassemble8() { return false; }
+bool Pep_MA::_microassemble(bool override_source_text) {
+  switch (_env.arch) {
+  case pepp::ArchitectureHelper::Architecture::PEP8: return _microassemble8(override_source_text);
+  case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
+  case pepp::ArchitectureHelper::Architecture::PEP10:
+    if ((int)_env.features & (int)project::Features::TwoByte) return _microassemble9_10_2(override_source_text);
+    else return _microassemble9_10_1(override_source_text);
+  default: return false;
+  }
+}
+bool Pep_MA::_microassemble8(bool override_source_text) { return false; }
 
-bool Pep_MA::_microassemble9_10_1() {
+bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
   using regs = pepp::tc::arch::Pep9Registers;
   auto text = _microcodeText.toStdString();
   auto parsed = pepp::tc::parse::MicroParser<pepp::tc::arch::Pep9ByteBus, regs>(std::move(text)).parse();
@@ -1479,12 +1481,21 @@ bool Pep_MA::_microassemble9_10_1() {
   for (const auto &[line, msg] : parsed.errors) _errors.push_back({line, QString::fromStdString(msg)});
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
   _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
+  if (_errors.empty()) {
+    _microcodeListingText =
+        QString::fromStdString(pepp::tc::ir::format(parsed, pepp::tc::ir::FormatStyle::ListingStyle));
+    if (override_source_text) {
+      auto source = pepp::tc::ir::format(parsed);
+      setMicrocodeText(QString::fromStdString(source));
+    }
+  } else _microcodeListingText = "";
+
   emit errorsChanged();
   emit microcodeChanged();
   return true;
 }
 
-bool Pep_MA::_microassemble9_10_2() {
+bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
   using regs = pepp::tc::arch::Pep9Registers;
   auto text = _microcodeText.toStdString();
   auto parsed = pepp::tc::parse::MicroParser<pepp::tc::arch::Pep9WordBus, regs>(std::move(text)).parse();
@@ -1493,6 +1504,14 @@ bool Pep_MA::_microassemble9_10_2() {
   for (const auto &[line, msg] : parsed.errors) _errors.push_back({line, QString::fromStdString(msg)});
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9WordBus, regs>(parsed);
   _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9WordBus, regs>(parsed);
+  if (_errors.empty()) {
+    _microcodeListingText =
+        QString::fromStdString(pepp::tc::ir::format(parsed, pepp::tc::ir::FormatStyle::ListingStyle));
+    if (override_source_text) {
+      auto source = pepp::tc::ir::format(parsed);
+      setMicrocodeText(QString::fromStdString(source));
+    }
+  } else _microcodeListingText = "";
   emit errorsChanged();
   emit microcodeChanged();
   return true;

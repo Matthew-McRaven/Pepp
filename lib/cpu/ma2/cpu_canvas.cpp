@@ -296,7 +296,7 @@ void add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, Q
   // Apply same margins as in PaintDispatch::operator(const pepp::TextRectItem)
   if (align & Qt::AlignLeft) location.translate(5, 0);
   else if (align & Qt::AlignRight) location.translate(-5, 0);
-  auto local = new pepp::TextOverlay(location.translated(x_offset, y_offset), label, align, parent);
+  auto local = new pepp::MonoTextOverlay(location.translated(x_offset, y_offset), label, align, parent);
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
 }

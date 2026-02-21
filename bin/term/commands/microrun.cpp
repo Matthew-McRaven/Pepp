@@ -16,11 +16,12 @@
 
 #include "microrun.hpp"
 #include <QtCore>
-#include "sim3/cores/pep/traced_pep9_mc2.hpp"
+#include "core/langs/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_str.hpp"
 #include "sim3/api/device.hpp"
 #include "sim3/api/memory_address.hpp"
+#include "sim3/cores/pep/traced_pep9_mc2.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
-#include "core/langs/ucode/pep_parser.hpp"
 
 MicroRunTask::MicroRunTask(int ed, std::string fname, int busWidth, QObject *parent)
     : Task(parent), _ed(ed), _busWidth(busWidth), _pecpuIn(fname) {}
@@ -52,7 +53,7 @@ void MicroRunTask::run() {
       std::cerr << "Source file does not exist.\n";
       return emit finished(3);
     }
-    f.open(QIODevice::ReadOnly | QIODevice::Text);
+    (void)f.open(QIODevice::ReadOnly | QIODevice::Text);
     source_text = f.readAll();
   }
 
@@ -62,7 +63,7 @@ void MicroRunTask::run() {
       std::cerr << "Test file does not exist.\n";
       return emit finished(3);
     }
-    f.open(QIODevice::ReadOnly | QIODevice::Text);
+    (void)f.open(QIODevice::ReadOnly | QIODevice::Text);
     unit_test_text = f.readAll();
   } else unit_test_text = source_text;
 

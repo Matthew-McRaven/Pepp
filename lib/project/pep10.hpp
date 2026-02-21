@@ -291,6 +291,7 @@ class Pep_MA : public QObject {
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   Q_PROPERTY(QString microcodeText READ microcodeText WRITE setMicrocodeText NOTIFY microcodeTextChanged);
   Q_PROPERTY(Microcode *microcode READ microcode NOTIFY microcodeChanged)
+  Q_PROPERTY(QString microcodeListingText READ microcodeListingText NOTIFY microcodeChanged)
   Q_PROPERTY(QList<Error *> microassemblerErrors READ errors NOTIFY errorsChanged)
   // Preserve the current address in the memory dump pane on tab-switch.
   Q_PROPERTY(quint16 currentAddress MEMBER _currentAddress NOTIFY currentAddressChanged)
@@ -327,6 +328,7 @@ public:
     QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
     return &ret;
   }
+  QString microcodeListingText() const;
   Microcode *microcode() const;
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
@@ -345,7 +347,6 @@ public slots:
   bool onMicroAssemble();
   bool onMicroAssembleThenFormat();
 
-  bool onFormatMicrocode();
   bool onExecute();
   bool onDebuggingStart();
   bool onDebuggingContinue();
@@ -393,7 +394,7 @@ protected:
   project::Environment _env;
   QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
   QSharedPointer<targets::isa::System> _system = {};
-  QString _microcodeText = {};
+  QString _microcodeText = {}, _microcodeListingText;
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   SimulatorRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;
@@ -406,7 +407,10 @@ protected:
   pepp::MicrocodeChoice _microcode = std::monostate{};
   pepp::Line2Address _line2addr;
 
-  bool _microassemble8();
-  bool _microassemble9_10_1();
-  bool _microassemble9_10_2();
+  // Dispatch between the handlers for each of the languages.
+  // If override_source_text is true, _microcodeText will be updated on successful assembly.
+  bool _microassemble(bool override_source_text);
+  bool _microassemble8(bool override_source_text);
+  bool _microassemble9_10_1(bool override_source_text);
+  bool _microassemble9_10_2(bool override_source_text);
 };

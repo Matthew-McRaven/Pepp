@@ -25,7 +25,9 @@ FocusScope {
 
     focus: true
     signal requestModeSwitchTo(string mode)
-
+    NuAppSettings {
+        id: settings
+    }
     function syncEditors() {
         project ? save() : null;
     }
@@ -102,18 +104,22 @@ FocusScope {
 
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
-        project.errorsChanged.connect(displayErrors)
+        project.errorsChanged.connect(displayErrors);
     }
     function displayErrors() {
-        microEdit.addEOLAnnotations(project.microassemblerErrors)
+        microEdit.addEOLAnnotations(project.microassemblerErrors);
     }
+
 
     function save() {
         // Supress saving messages when there is no project.
         if (project)
             project.microcodeText = microEdit.text;
     }
-
+    FontMetrics {
+        id: editorFM
+        font: settings.extPalette.baseMono.font
+    }
     KDDW.DockingArea {
         id: dockWidgetArea
         KDDW.LayoutSaver {
@@ -136,13 +142,33 @@ FocusScope {
                 "editor": true,
                 "debugger": true
             }
+            Connections {
+                target: wrapper
+                function onModeChanged() {
+                    if (mode === "debugger") {
+                        save();
+                        microEdit.text = project.microcodeListingText ?? "";
+                        microEdit.readOnly = true;
+                    } else if (mode === "editor") {
+                        microEdit.readOnly = false;
+                        microEdit.text = project.microcodeText;
+                    }
+                }
+            }
+            Connections {
+                target: project
+                function onMicrocodeTextChanged() {
+                    if (wrapper.mode === "editor")
+                        microEdit.text = project.microcodeText;
+                }
+            }
             Text.ScintillaMicroEdit {
                 id: microEdit
                 anchors.fill: parent
-                readOnly: mode !== "editor"
+                editorFont: editorFM.font
                 // text is only an initial binding, the value diverges from there.
                 text: project.microcodeText ?? ""
-                language: project.lexerLanguage??""
+                language: project.lexerLanguage ?? ""
             }
         }
         KDDW.DockWidget {
@@ -171,7 +197,7 @@ FocusScope {
                 "debugger": true
             }
             OC.MicroObjectView {
-                anchors.fill:parent
+                anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(200, 400)
                 microcode: project?.microcode ?? null
             }

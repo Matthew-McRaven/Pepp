@@ -54,7 +54,7 @@ Item {
     }
     TextMetrics {
         id: tm
-        text: "Line Numbers "
+        text: "Cycle Numbers "
         font: settings.extPalette.base.font
     }
     TextMetrics {

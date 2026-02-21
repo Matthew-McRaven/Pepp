@@ -73,12 +73,16 @@ std::vector<typename uarch::Code> microcodeFor(const ParseResult<uarch, register
       ret.emplace_back(line.controls.code);
   return ret;
 }
+
+template <typename uarch, typename registers> bool is_code_line(const typename ir::Line<uarch, registers> &line) {
+  return line.type == ir::Line<uarch, registers>::Type::Code && line.controls.enables.any();
+}
+
 template <typename uarch, typename registers>
 std::vector<typename uarch::CodeWithEnables> microcodeEnableFor(const ParseResult<uarch, registers> &result) {
   std::vector<typename uarch::CodeWithEnables> ret;
   for (const auto &line : result.program)
-    if (line.type == ir::Line<uarch, registers>::Type::Code && line.controls.enables.any())
-      ret.emplace_back(line.controls);
+    if (is_code_line<uarch, registers>(line)) ret.emplace_back(line.controls);
   return ret;
 }
 
@@ -86,9 +90,9 @@ template <typename uarch, typename registers>
 Line2Address addressesForProgram(const ParseResult<uarch, registers> &result) {
   Line2Address ret;
 
-  for (int line_it = 0; line_it < result.program.size(); line_it++) {
+  for (u32 line_it = 0; line_it < result.program.size(); line_it++) {
     const auto &line = result.program[line_it];
-    if (line.type != ir::Line<uarch, registers>::Type::Code || line.controls.enables.none()) continue;
+    if (!is_code_line<uarch, registers>(line)) continue;
     else if (!ret.add_mapping(line_it, line.address)) {
       // Should never be hit since addressed are assigned sequentially.
       SPDLOG_WARN("Duplicate line/address mapping: line {} address {:X}", line_it, line.address);
@@ -162,7 +166,6 @@ inline bool MicroParser<uarch, registers>::nextLine(ir::Line<uarch, registers> &
     // If we've already determined that the current line is a test case, enter this special state which
     // handles memory and register tests
     else if (code.type == Line::Type::Pre || code.type == Line::Type::Post) {
-      bool ok;
       u32 address = 0, value = 0;
       // Rely on operator short-circuiting to ensure that the first match is put into t.
       // Used to decide how to parse hex/decimal values.

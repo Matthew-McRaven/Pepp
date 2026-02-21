@@ -67,7 +67,6 @@ std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::hex_argument
 
 std::shared_ptr<pas::ast::value::Symbolic> pepp::tc::parser::PepParser::identifier_argument() {
   lex::Checkpoint cp(*_buffer);
-  static constexpr auto le = bits::Order::LittleEndian;
   if (auto maybeIdent = _buffer->match<lex::Identifier>(); maybeIdent) {
     auto entry = _symtab->reference(QString::fromStdString(maybeIdent->to_string()));
     return std::make_shared<pas::ast::value::Symbolic>(entry);
@@ -223,7 +222,6 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     else {
-      static constexpr auto le = bits::Order::LittleEndian;
       std::shared_ptr<pas::ast::value::Base> arg;
       auto flags = bits::to_lower(maybeFlags->view());
       using bits::contains;

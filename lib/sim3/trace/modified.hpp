@@ -53,7 +53,6 @@ public:
       } else if (contains(*prev, interval))
         return; // Optimization to avoid processing an insert / merge when containment is met.
       else if (intersects(*prev, interval) || prev->upper() + offset == interval.lower()) {
-        bool _t = intersects(*prev, interval);
         interval = {prev->lower(), interval.upper()};
         // prev->upper <= interval.upper due to lower_bound.
         // Start the merge process from the previous interval, eliminating an extra erase call.

@@ -38,11 +38,11 @@ void pepp::TristateOverlay::setValue(int value) {
 
 int pepp::TristateOverlay::max_value() const { return _max_value; }
 
-pepp::TextOverlay::TextOverlay(QRect location, QString label, Qt::Alignment halign, QObject *parent)
+pepp::MonoTextOverlay::MonoTextOverlay(QRect location, QString label, Qt::Alignment halign, QObject *parent)
     : QMLOverlay(location, parent), _halign(halign), _label(label) {}
 
-int pepp::TextOverlay::type() { return OVERLAY_TEXT; }
+int pepp::MonoTextOverlay::type() { return OVERLAY_MONO_TEXT; }
 
-QString pepp::TextOverlay::label() const { return _label; }
+QString pepp::MonoTextOverlay::label() const { return _label; }
 
-int pepp::TextOverlay::requestedHAlign() const { return _halign; }
+int pepp::MonoTextOverlay::requestedHAlign() const { return _halign; }

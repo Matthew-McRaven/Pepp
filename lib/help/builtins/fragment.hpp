@@ -29,8 +29,7 @@ class Figure;
 /*!
  * \brief Contains a unit of content that makes up a help item
  */
-struct Fragment : public QObject {
-private:
+class Fragment : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString name MEMBER name);
   Q_PROPERTY(bool isDefault MEMBER isDefault)
@@ -62,8 +61,7 @@ protected:
  * \brief A single input:output pair that can be used to unit test an
  * figure.
  */
-struct Test : public QObject {
-private:
+class Test : public QObject {
   Q_OBJECT
   Q_PROPERTY(QVariant input MEMBER input);
   Q_PROPERTY(QVariant output MEMBER output);
@@ -77,8 +75,7 @@ public:
   QVariant output;
 };
 
-struct Macro : public QObject {
-private:
+class Macro : public QObject {
   Q_OBJECT
   Q_PROPERTY(pepp::Architecture arch MEMBER arch);
   Q_PROPERTY(QString name MEMBER name);

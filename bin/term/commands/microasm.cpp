@@ -14,8 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "microasm.hpp"
-#include "../../../core/core/arch/pep/uarch/pep.hpp"
+#include "core/arch/pep/uarch/pep.hpp"
 #include "core/langs/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_str.hpp"
 
 MicroAsmTask::MicroAsmTask(int ed, std::string in, int busWidth, QObject *parent)
     : Task(parent), ed(ed), busWidth(busWidth), in(in) {}
@@ -35,7 +36,7 @@ void MicroAsmTask::run() {
       std::cerr << "Source file does not exist.\n";
       return emit finished(3);
     }
-    sIn.open(QIODevice::ReadOnly | QIODevice::Text);
+    (void)sIn.open(QIODevice::ReadOnly | QIODevice::Text);
     source = sIn.readAll();
     sIn.close();
   }

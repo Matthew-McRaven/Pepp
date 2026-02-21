@@ -44,12 +44,6 @@ template <typename registers> struct CSRTest {
 
 // A UnitPre or UnitPost is a comma-delimited set of memory tests or register tests
 template <typename registers> using Test = std::variant<MemTest, RegisterTest<registers>, CSRTest<registers>>;
-template <typename registers> std::string to_string(const Test<registers> &test) {
-  if (std::holds_alternative<MemTest>(test)) return std::get<MemTest>(test);
-  else if (std::holds_alternative<RegisterTest<registers>>(test)) return std::get<RegisterTest<registers>>(test);
-  else if (std::holds_alternative<CSRTest<registers>>(test)) return std::get<CSRTest<registers>>(test);
-  else return "";
-}
 
 // Wrap control signals (e.g., our object code) with some assembler IR
 template <typename uarch, typename registers> struct Line {
@@ -65,11 +59,4 @@ template <typename uarch, typename registers> struct Line {
   std::vector<Test<registers>> tests;
 };
 
-// Given an assembled line, produce the cannonical formatted representation of that line.
-template <typename uarch, typename registers> std::string format(const Line<uarch, registers> &line) {
-  std::string symbolDecl;
-  if (line.symbolDecl.has_value()) symbolDecl = *line.symbolDecl + ": ";
-  std::string _signals = line.controls.toString();
-  return fmt::format("{}{}{}", symbolDecl, _signals, line.comment.has_value() ? *line.comment : "");
-}
 } // namespace pepp::tc::ir
