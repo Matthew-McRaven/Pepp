@@ -13,6 +13,10 @@ add_subdirectory(elfio)
 add_subdirectory(cli)
 add_subdirectory(lru)
 add_subdirectory(spdlog)
+option(TRACY_ON_DEMAND "" ON)
+add_subdirectory(tracy)
+add_subdirectory(tracy/profiler)
+set_target_properties(tracy-profiler PROPERTIES FOLDER "qtc_runnable")
 
 # Do not build tests while building python bindings. Huge slow down. If you
 # remove EMSCRIPTEN from this list of conditions, update /test/CMakeLists.txt

@@ -25,3 +25,6 @@
 [submodule "3rd-party/mockturtle"]
 	path = 3rd-party/mockturtle
 	url = https://github.com/Matthew-McRaven/mockturtle
+[submodule "3rd-party/tracy"]
+	path = 3rd-party/tracy
+	url = https://github.com/wolfpld/tracy
