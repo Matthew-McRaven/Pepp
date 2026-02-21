@@ -161,6 +161,13 @@ FocusScope {
                     }
                 }
             }
+            Connections {
+                target: project
+                function onMicrocodeTextChanged() {
+                    if (wrapper.mode === "editor")
+                        microEdit.text = project.microcodeText;
+                }
+            }
             Text.ScintillaMicroEdit {
                 id: microEdit
                 anchors.fill: parent
