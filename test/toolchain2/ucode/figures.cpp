@@ -16,7 +16,9 @@
 
 #include <catch.hpp>
 #include <ranges>
-#include "../../../core/core/arch/pep/uarch/pep.hpp"
+#include "core/arch/pep/uarch/pep.hpp"
+#include "core/langs/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_str.hpp"
 #include "fmt/ranges.h"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
@@ -24,7 +26,6 @@
 #include "sim3/cores/pep/traced_pep9_mc2.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
-#include "core/langs/ucode/pep_parser.hpp"
 
 namespace {
 const auto lf = QRegularExpression("\r");

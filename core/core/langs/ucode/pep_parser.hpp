@@ -73,12 +73,16 @@ std::vector<typename uarch::Code> microcodeFor(const ParseResult<uarch, register
       ret.emplace_back(line.controls.code);
   return ret;
 }
+
+template <typename uarch, typename registers> bool is_code_line(const typename ir::Line<uarch, registers> &line) {
+  return line.type == ir::Line<uarch, registers>::Type::Code && line.controls.enables.any();
+}
+
 template <typename uarch, typename registers>
 std::vector<typename uarch::CodeWithEnables> microcodeEnableFor(const ParseResult<uarch, registers> &result) {
   std::vector<typename uarch::CodeWithEnables> ret;
   for (const auto &line : result.program)
-    if (line.type == ir::Line<uarch, registers>::Type::Code && line.controls.enables.any())
-      ret.emplace_back(line.controls);
+    if (is_code_line<uarch, registers>(line)) ret.emplace_back(line.controls);
   return ret;
 }
 
@@ -88,7 +92,7 @@ Line2Address addressesForProgram(const ParseResult<uarch, registers> &result) {
 
   for (int line_it = 0; line_it < result.program.size(); line_it++) {
     const auto &line = result.program[line_it];
-    if (line.type != ir::Line<uarch, registers>::Type::Code || line.controls.enables.none()) continue;
+    if (!is_code_line<uarch, registers>(line)) continue;
     else if (!ret.add_mapping(line_it, line.address)) {
       // Should never be hit since addressed are assigned sequentially.
       SPDLOG_WARN("Duplicate line/address mapping: line {} address {:X}", line_it, line.address);
