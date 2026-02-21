@@ -4,6 +4,7 @@
   "name": "12:20",
   "arch": "pep10",
   "abstraction": "MA2",
+  "features": "TwoByte",
   "tests": [
     "test0"
   ],

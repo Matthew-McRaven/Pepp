@@ -18,6 +18,7 @@
 #pragma once
 #include <QtCore>
 #include "fragment.hpp"
+#include "project/features.hpp"
 namespace builtins {
 
 /*!
@@ -35,6 +36,7 @@ class Figure : public QObject {
   Q_OBJECT
   Q_PROPERTY(pepp::Architecture arch READ arch CONSTANT);
   Q_PROPERTY(pepp::Abstraction level READ level CONSTANT);
+  Q_PROPERTY(pepp::Features features READ features CONSTANT);
   Q_PROPERTY(QString prefix READ prefix CONSTANT);
   Q_PROPERTY(QString chapterName READ chapterName CONSTANT);
   Q_PROPERTY(QString figureName READ figureName CONSTANT);
@@ -52,12 +54,14 @@ class Figure : public QObject {
   Q_PROPERTY(QString defaultFragmentName READ defaultFragmentName CONSTANT);
 
 public:
-  Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter, QString figure,
-         bool isProblem = false);
+  Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats, QString prefix, QString chapter,
+         QString figure, bool isProblem = false);
+
   ~Figure();
 
   pepp::Architecture arch() const;
   pepp::Abstraction level() const;
+  pepp::Features features() const;
 
   QString prefix() const;
   QString chapterName() const;
@@ -105,6 +109,7 @@ signals:
 private:
   const pepp::Architecture _arch;
   const pepp::Abstraction _level;
+  const pepp::Features _features = pepp::Features::None;
   const QString _prefix, _chapterName, _figureName;
   const bool _isProblem = false;
   QString _description{};

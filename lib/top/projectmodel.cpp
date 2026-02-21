@@ -70,8 +70,8 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
   return true;
 }
 
-Pep_MA *ProjectModel::pep9MA2(project::Features feats) {
-  using F = project::Features;
+Pep_MA *ProjectModel::pep9MA2(pepp::Features feats) {
+  using F = pepp::Features;
   using namespace bits;
   // If neither one byte or two byte are set, default to one-byte
   if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
@@ -87,8 +87,8 @@ Pep_MA *ProjectModel::pep9MA2(project::Features feats) {
   return ret;
 }
 
-Pep_MA *ProjectModel::pep10MA2(project::Features feats) {
-  using F = project::Features;
+Pep_MA *ProjectModel::pep10MA2(pepp::Features feats) {
+  using F = pepp::Features;
   using namespace bits;
   // If neither one byte or two byte are set, default to one-byte
   if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
@@ -111,7 +111,7 @@ const auto placeholder = QStringLiteral("Unnamed %1");
 
 Pep_ISA *ProjectModel::pep10ISA() {
   static const project::Environment env{
-      .arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::ISA3, .features = project::Features::None};
+      .arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::ISA3, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -124,7 +124,7 @@ Pep_ISA *ProjectModel::pep10ISA() {
 
 Pep_ISA *ProjectModel::pep9ISA() {
   static const project::Environment env{
-      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ISA3, .features = project::Features::None};
+      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ISA3, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -136,8 +136,7 @@ Pep_ISA *ProjectModel::pep9ISA() {
 }
 
 Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
-  project::Environment env{
-      .arch = pepp::Architecture::PEP10, .level = abstraction, .features = project::Features::None};
+  project::Environment env{.arch = pepp::Architecture::PEP10, .level = abstraction, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -150,7 +149,7 @@ Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
 
 Pep_ASMB *ProjectModel::pep9ASMB() {
   project::Environment env{
-      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ASMB5, .features = project::Features::None};
+      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ASMB5, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -458,7 +457,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
-              .features = project::Features::OneByte,
+              .features = pepp::Features::OneByte,
               .state = CompletionState::PARTIAL,
               .edition = 6});
   vec.append({.name = "Pep/10",
@@ -468,7 +467,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
-              .features = project::Features::TwoByte,
+              .features = pepp::Features::TwoByte,
               .state = CompletionState::PARTIAL,
               .edition = 6});
 }
@@ -510,7 +509,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
-              .features = project::Features::OneByte,
+              .features = pepp::Features::OneByte,
               .state = CompletionState::PARTIAL,
               .edition = 5});
   vec.append({.name = "Pep/9",
@@ -520,7 +519,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
-              .features = project::Features::TwoByte,
+              .features = pepp::Features::TwoByte,
               .state = CompletionState::PARTIAL,
               .edition = 5});
 }
@@ -562,7 +561,7 @@ void init_pep8(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = Abstraction::MA2,
-              .features = project::Features::OneByte,
+              .features = pepp::Features::OneByte,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
 }

@@ -1339,8 +1339,8 @@ QString Pep_MA::lexerLanguage() const {
   case pepp::Architecture::PEP8: return "Pep8Micro";
   case pepp::Architecture::PEP9: [[fallthrough]];
   case pepp::Architecture::PEP10:
-    if (any(_env.features & project::Features::TwoByte)) return "Pep9Micro2";
-    else if (any(_env.features & project::Features::OneByte)) return "Pep9Micro1";
+    if (any(_env.features & pepp::Features::TwoByte)) return "Pep9Micro2";
+    else if (any(_env.features & pepp::Features::OneByte)) return "Pep9Micro1";
     [[fallthrough]];
   default: return "";
   }
@@ -1416,12 +1416,13 @@ QString Pep_MA::contentsForExtension(const QString &ext) const {
 }
 
 int Pep_MA::rendering_type() const {
+  using namespace bits;
   switch (_env.arch) {
     // Pep/8 only has a 1-byte databus variant
   case pepp::ArchitectureHelper::Architecture::PEP8: return 0;
   case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
   case pepp::ArchitectureHelper::Architecture::PEP10:
-    if ((int)_env.features & (int)project::Features::TwoByte) return 1;
+    if (any(_env.features & pepp::Features::TwoByte)) return 1;
     return 0;
   default: return -1;
   }
@@ -1466,11 +1467,12 @@ void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}
 void Pep_MA::updateBPAtAddress(quint32 address, Action action) {}
 
 bool Pep_MA::_microassemble(bool override_source_text) {
+  using namespace bits;
   switch (_env.arch) {
   case pepp::ArchitectureHelper::Architecture::PEP8: return _microassemble8(override_source_text);
   case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
   case pepp::ArchitectureHelper::Architecture::PEP10:
-    if ((int)_env.features & (int)project::Features::TwoByte) return _microassemble9_10_2(override_source_text);
+    if (any(_env.features & pepp::Features::TwoByte)) return _microassemble9_10_2(override_source_text);
     else return _microassemble9_10_1(override_source_text);
   default: return false;
   }

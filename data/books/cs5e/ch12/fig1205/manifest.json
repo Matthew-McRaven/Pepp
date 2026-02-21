@@ -4,6 +4,7 @@
   "name": "12:05",
   "arch": "pep9",
   "abstraction": "MA2",
+  "features": "OneByte",
   "tests": [
     "test0"
   ],

@@ -15,6 +15,7 @@
  */
 #include "helpdata.hpp"
 #include "aproject.hpp"
+#include "core/math/bitmanip/enums.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
 #include "helpmodel.hpp"
@@ -138,7 +139,6 @@ QSharedPointer<HelpEntry> workflows_root() {
   int mc10 = bitmask(PEP10, MA2);
   int oc10 = bitmask(PEP10, ISA3);
   int as10 = bitmask(PEP10, ASMB5);
-  int p10 = mc10 | oc10 | as10;
 
   auto mc2 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Microcode", "MDText.qml");
   mc2->props = QVariantMap{{"file", QVariant(u":/help/workflow/mc2.md"_s)}};
@@ -382,9 +382,10 @@ QSharedPointer<HelpEntry> greencard9_root() {
   return root;
 }
 
-QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, project::Features feat) {
+QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feat) {
   using enum pepp::Architecture;
   using enum pepp::Abstraction;
+  using namespace bits;
   if (level == MA2) {
     QString archStr;
     switch (arch) {
@@ -393,7 +394,7 @@ QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, project::Fea
     default: return "";
     }
     int featNum = 1;
-    if ((int)feat & (int)project::Features::TwoByte) featNum = 2;
+    if (any(feat & pepp::Features::TwoByte)) featNum = 2;
     return QStringLiteral("%1Micro%2").arg(archStr).arg(featNum);
   }
   QString archStr = "", levelStr = "";
@@ -433,7 +434,7 @@ std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry 
       entry->sortName = sortTitle;
       entry->props = QVariantMap{{"title", displayTitle},
                                  {"payload", QVariant::fromValue(figure.data())},
-                                 {"lexerLang", lexerLang(figure->arch(), figure->level(), project::Features::None)},
+                                 {"lexerLang", lexerLang(figure->arch(), figure->level(), figure->features())},
                                  {"architecture", QVariant((int)figure->arch())}};
       children.push_back(entry);
     }
