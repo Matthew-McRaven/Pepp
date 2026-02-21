@@ -92,7 +92,7 @@ struct ProjectType {
   int edition = 0;
   bool placeholder = false;
   // Used to hide items that only differ by features.
-  bool always_hide = false;
+  bool is_duplicate_feature = false;
 };
 
 class ProjectTypeModel : public QAbstractTableModel {
@@ -115,7 +115,7 @@ public:
     DetailsRole,
     ChapterRole,
     FeatureRole,
-    AlwaysHideRole
+    IsDuplicateFeature,
   };
   Q_ENUM(Roles);
   explicit ProjectTypeModel(QObject *parent = nullptr);
@@ -135,6 +135,8 @@ class ProjectTypeFilterModel : public QSortFilterProxyModel {
   Q_PROPERTY(int edition READ edition WRITE setEdition NOTIFY editionChanged)
   Q_PROPERTY(bool showIncomplete READ showIncomplete WRITE setShowIncomplete NOTIFY showIncompleteChanged)
   Q_PROPERTY(bool showPartiallyComplete READ showPartial WRITE setShowPartial NOTIFY showPartialChanged)
+  Q_PROPERTY(bool showDuplicateFeatures READ showDuplicateFeatures WRITE setShowDuplicateFeatures NOTIFY
+                 showDuplicateFeaturesChanged)
   QML_ELEMENT
 
 public:
@@ -147,6 +149,8 @@ public:
   void setShowIncomplete(bool value);
   bool showPartial() const { return _showPartial; }
   void setShowPartial(bool value);
+  bool showDuplicateFeatures() const { return _showDuplicateFeatures; }
+  void setShowDuplicateFeatures(bool value);
 
 protected:
   bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
@@ -155,9 +159,10 @@ signals:
   void editionChanged();
   void showIncompleteChanged();
   void showPartialChanged();
+  void showDuplicateFeaturesChanged();
 
 private:
   pepp::Architecture _architecture = pepp::Architecture::NO_ARCH;
   int _edition = 0;
-  bool _showIncomplete = false, _showPartial = false;
+  bool _showIncomplete = false, _showPartial = false, _showDuplicateFeatures = true;
 };
