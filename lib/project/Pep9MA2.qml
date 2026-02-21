@@ -142,26 +142,6 @@ FocusScope {
                 "editor": true,
                 "debugger": true
             }
-            Connections {
-                target: wrapper
-                function onModeChanged() {
-                    if (mode === "debugger") {
-                        save();
-                        microEdit.text = project.microcodeListingText ?? "";
-                        microEdit.readOnly = true;
-                    } else if (mode === "editor") {
-                        microEdit.readOnly = false;
-                        microEdit.text = project.microcodeText;
-                    }
-                }
-            }
-            Connections {
-                target: project
-                function onMicrocodeTextChanged() {
-                    if (wrapper.mode === "editor")
-                        microEdit.text = project.microcodeText;
-                }
-            }
             Text.ScintillaMicroEdit {
                 id: microEdit
                 anchors.fill: parent
@@ -169,6 +149,7 @@ FocusScope {
                 // text is only an initial binding, the value diverges from there.
                 text: project.microcodeText ?? ""
                 language: project.lexerLanguage ?? ""
+                cycleNumbers: project.cycleNumbers ?? null
             }
         }
         KDDW.DockWidget {

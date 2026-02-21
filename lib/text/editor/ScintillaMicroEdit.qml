@@ -59,6 +59,8 @@ FocusScope {
     property var menuCommandDelegate: undefined
     property bool dirtied: false
 
+    property alias cycleNumbers: editor.cycleNumbers
+
     focus: true
     onFocusChanged: {
         editor.focus = focus;

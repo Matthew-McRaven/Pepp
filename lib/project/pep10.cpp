@@ -1375,11 +1375,16 @@ void Pep_MA::setMicrocodeText(const QString &microcodeText) {
   emit microcodeTextChanged();
 }
 
-QString Pep_MA::microcodeListingText() const { return _microcodeListingText; }
-
 Microcode *Pep_MA::microcode() const {
   if (_microcode.index() == 0) return nullptr;
   auto ret = new Microcode(_microcode, _line2addr);
+  QQmlEngine::setObjectOwnership(ret, QQmlEngine::JavaScriptOwnership);
+  return ret;
+}
+
+pepp::LineNumbers *Pep_MA::line2addr() const {
+  if (_microcode.index() == 0) return nullptr;
+  auto ret = new pepp::LineNumbers(_line2addr);
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::JavaScriptOwnership);
   return ret;
 }
@@ -1482,13 +1487,11 @@ bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
   _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
   if (_errors.empty()) {
-    _microcodeListingText =
-        QString::fromStdString(pepp::tc::ir::format(parsed, pepp::tc::ir::FormatStyle::ListingStyle));
     if (override_source_text) {
       auto source = pepp::tc::ir::format(parsed);
       setMicrocodeText(QString::fromStdString(source));
     }
-  } else _microcodeListingText = "";
+  }
 
   emit errorsChanged();
   emit microcodeChanged();
@@ -1505,13 +1508,11 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9WordBus, regs>(parsed);
   _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9WordBus, regs>(parsed);
   if (_errors.empty()) {
-    _microcodeListingText =
-        QString::fromStdString(pepp::tc::ir::format(parsed, pepp::tc::ir::FormatStyle::ListingStyle));
     if (override_source_text) {
       auto source = pepp::tc::ir::format(parsed);
       setMicrocodeText(QString::fromStdString(source));
     }
-  } else _microcodeListingText = "";
+  }
   emit errorsChanged();
   emit microcodeChanged();
   return true;
