@@ -19,6 +19,7 @@
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/uarch/pep.hpp"
 #include "core/langs/ucode/pep_parser.hpp"
+#include "core/langs/ucode/pep_str.hpp"
 #include "core/math/bitmanip/enums.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "cpu/formats.hpp"
@@ -1425,20 +1426,9 @@ QList<Error *> Pep_MA::errors() const {
   return ret;
 }
 
-bool Pep_MA::onMicroAssemble() {
-  switch (_env.arch) {
-  case pepp::ArchitectureHelper::Architecture::PEP8: return _microassemble8();
-  case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
-  case pepp::ArchitectureHelper::Architecture::PEP10:
-    if ((int)_env.features & (int)project::Features::TwoByte) return _microassemble9_10_2();
-    else return _microassemble9_10_1();
-  default: return false;
-  }
-}
+bool Pep_MA::onMicroAssemble() { return _microassemble(false); }
 
-bool Pep_MA::onMicroAssembleThenFormat() { return true; }
-
-bool Pep_MA::onFormatMicrocode() { return true; }
+bool Pep_MA::onMicroAssembleThenFormat() { return _microassemble(true); }
 
 bool Pep_MA::onExecute() { return true; }
 
@@ -1468,9 +1458,19 @@ void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}
 
 void Pep_MA::updateBPAtAddress(quint32 address, Action action) {}
 
-bool Pep_MA::_microassemble8() { return false; }
+bool Pep_MA::_microassemble(bool override_source_text) {
+  switch (_env.arch) {
+  case pepp::ArchitectureHelper::Architecture::PEP8: return _microassemble8(override_source_text);
+  case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
+  case pepp::ArchitectureHelper::Architecture::PEP10:
+    if ((int)_env.features & (int)project::Features::TwoByte) return _microassemble9_10_2(override_source_text);
+    else return _microassemble9_10_1(override_source_text);
+  default: return false;
+  }
+}
+bool Pep_MA::_microassemble8(bool override_source_text) { return false; }
 
-bool Pep_MA::_microassemble9_10_1() {
+bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
   using regs = pepp::tc::arch::Pep9Registers;
   auto text = _microcodeText.toStdString();
   auto parsed = pepp::tc::parse::MicroParser<pepp::tc::arch::Pep9ByteBus, regs>(std::move(text)).parse();
@@ -1479,12 +1479,16 @@ bool Pep_MA::_microassemble9_10_1() {
   for (const auto &[line, msg] : parsed.errors) _errors.push_back({line, QString::fromStdString(msg)});
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
   _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
+  if (override_source_text && _errors.empty()) {
+    auto source = pepp::tc::ir::format(parsed);
+    setMicrocodeText(QString::fromStdString(source));
+  }
   emit errorsChanged();
   emit microcodeChanged();
   return true;
 }
 
-bool Pep_MA::_microassemble9_10_2() {
+bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
   using regs = pepp::tc::arch::Pep9Registers;
   auto text = _microcodeText.toStdString();
   auto parsed = pepp::tc::parse::MicroParser<pepp::tc::arch::Pep9WordBus, regs>(std::move(text)).parse();
@@ -1493,6 +1497,10 @@ bool Pep_MA::_microassemble9_10_2() {
   for (const auto &[line, msg] : parsed.errors) _errors.push_back({line, QString::fromStdString(msg)});
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9WordBus, regs>(parsed);
   _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9WordBus, regs>(parsed);
+  if (override_source_text && _errors.empty()) {
+    auto source = pepp::tc::ir::format(parsed);
+    setMicrocodeText(QString::fromStdString(source));
+  }
   emit errorsChanged();
   emit microcodeChanged();
   return true;

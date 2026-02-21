@@ -345,7 +345,6 @@ public slots:
   bool onMicroAssemble();
   bool onMicroAssembleThenFormat();
 
-  bool onFormatMicrocode();
   bool onExecute();
   bool onDebuggingStart();
   bool onDebuggingContinue();
@@ -406,7 +405,10 @@ protected:
   pepp::MicrocodeChoice _microcode = std::monostate{};
   pepp::Line2Address _line2addr;
 
-  bool _microassemble8();
-  bool _microassemble9_10_1();
-  bool _microassemble9_10_2();
+  // Dispatch between the handlers for each of the languages.
+  // If override_source_text is true, _microcodeText will be updated on successful assembly.
+  bool _microassemble(bool override_source_text);
+  bool _microassemble8(bool override_source_text);
+  bool _microassemble9_10_1(bool override_source_text);
+  bool _microassemble9_10_2(bool override_source_text);
 };
