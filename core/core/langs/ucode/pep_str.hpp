@@ -31,7 +31,8 @@ std::string format(const parse::ParseResult<uarch, registers> &result, FormatSty
   std::ostringstream out;
   for (u32 it = 0; it < result.program.size(); it++) {
     const auto &line = result.program[it];
-    if (style == FormatStyle::ListingStyle && parse::is_code_line(line)) out << fmt::format("{}.", line.address);
+    // Addresses start at 0, but cycle numbers start at 1.
+    if (style == FormatStyle::ListingStyle && parse::is_code_line(line)) out << fmt::format("{}. ", line.address + 1);
     out << format(line) << "\n";
   }
   return out.str();
