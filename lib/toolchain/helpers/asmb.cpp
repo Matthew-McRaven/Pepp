@@ -1,7 +1,7 @@
 #include "asmb.hpp"
 #include <iostream>
 #include <sstream>
-#include "../../../core/core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
 #include "help/builtins/registry.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/pas/ast/generic/attr_keeepalive.hpp"
