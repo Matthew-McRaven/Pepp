@@ -59,6 +59,7 @@ Item {
                 background: Rectangle {
                     id: bg1
                     anchors.fill: tab1
+                    color: "transparent"
 
                     //  Show underline when active
                     Rectangle {
@@ -90,6 +91,7 @@ Item {
                 background: Rectangle {
                     id: bg2
                     anchors.fill: tab2
+                    color: "transparent"
 
                     //  Show underline when active
                     Rectangle {
