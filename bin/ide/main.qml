@@ -175,6 +175,7 @@ ApplicationWindow {
     Top.SideBar {
         id: sidebar
         modesModel: window.currentProject ? window.currentProject.modes() : undefined
+        currentMode: window.mode
         anchors {
             top: toolbar.bottom
             bottom: parent.bottom

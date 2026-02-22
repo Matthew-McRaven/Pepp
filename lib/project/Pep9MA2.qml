@@ -24,7 +24,6 @@ FocusScope {
     property var widgets: [dock_micro, dock_cpu, dock_hexdump, dock_object]
 
     focus: true
-    signal requestModeSwitchTo(string mode)
     NuAppSettings {
         id: settings
     }
@@ -65,15 +64,6 @@ FocusScope {
         previousMode = mode;
     }
 
-    // Must be called when the project in the model is marked non-dirty
-    function markClean() {
-        objEdit.dirtied = Qt.binding(() => false);
-    }
-    function markDirty() {
-        if (objEdit.dirtied)
-            project.markDirty();
-    }
-
     // Call when the height, width have been finalized.
     // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
     function dock() {
@@ -96,7 +86,7 @@ FocusScope {
         if (PlatformDetector.isWASM)
             dock_cpu.forceActiveFocus();
         // Delay giving focus to editor until the next frame. Any editor that becomes visible without being focused will be incorrectly painted
-        Qt.callLater(() => microEdit.forceEditorFocus())
+        Qt.callLater(() => microEdit.forceEditorFocus());
         for (const x of widgets) {
             x.needsAttention = false;
         }
@@ -105,11 +95,22 @@ FocusScope {
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
         project.errorsChanged.connect(displayErrors);
+        // project.switchTo.connect(wrapper.onSwitchTo)
     }
+
+    signal requestModeSwitchTo(string mode)
+    // Must be called when the project in the model is marked non-dirty
+    function markClean() {
+        microEdit.dirtied = false;
+    }
+    function markDirty() {
+        if (microEdit.dirtied)
+            project.markDirty();
+    }
+
     function displayErrors() {
         microEdit.addEOLAnnotations(project.microassemblerErrors);
     }
-
 
     function save() {
         // Supress saving messages when there is no project.
