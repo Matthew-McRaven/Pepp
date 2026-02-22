@@ -1371,7 +1371,7 @@ QString Pep_MA::microcodeText() const { return _microcodeText; }
 
 void Pep_MA::setMicrocodeText(const QString &microcodeText) {
   static const QRegularExpression cycle_num(R"(^\d+\.\s+)", QRegularExpression::PatternOption::MultilineOption);
-  auto fixedText = QString{microcodeText}.replace(cycle_num, "");
+  auto fixedText = QString{microcodeText}.replace(cycle_num, "").trimmed();
   if (_microcodeText == fixedText) return;
   _microcodeText = fixedText;
   emit microcodeTextChanged();
