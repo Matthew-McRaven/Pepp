@@ -243,6 +243,6 @@ Item {
         id: editorFM
         font: settings.extPalette.baseMono.font
     }
-    signal addProject(int arch, int abs, string feats, string text, string switchToMode, var optionalOS, var tests)
+    signal addProject(int arch, int abs, int feats, string text, string switchToMode, var optionalOS, var tests)
     signal renameCurrentProject(string newName)
 }

@@ -47,7 +47,7 @@ class RecentFile {
   Q_PROPERTY(QString path MEMBER _path CONSTANT)
   Q_PROPERTY(pepp::Architecture arch MEMBER _arch CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction MEMBER _level CONSTANT)
-  Q_PROPERTY(pepp::Features abstraction MEMBER _features CONSTANT)
+  Q_PROPERTY(pepp::Features features MEMBER _features CONSTANT)
   QML_UNCREATABLE("")
   QML_VALUE_TYPE(recent_file)
 public:
