@@ -296,10 +296,11 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
   else arch = *maybeArch;
   if (auto maybeLevel = abs_from_str(manifest["abstraction"].toString("")); !maybeLevel) return std::monostate();
   else level = *maybeLevel;
+  pepp::Features feats = pepp::parseFeatures(manifest["features"].toString(""));
 
   // TODO: decide between "figure" and "problem" based on type field.
-  auto figure =
-      QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName, type == "problem");
+  auto figure = QSharedPointer<builtins::Figure>::create(arch, level, feats, "Figure", chapterName, figureName,
+                                                         type == "problem");
   figure->setIsOS(manifest["isOS"].toBool(false));
   figure->setIsHidden(manifest["hidden"].toBool(false));
   if (manifest["description"].isString()) figure->setDescription(manifest["description"].toString());
@@ -332,7 +333,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
     }
     item->figure = figure;
     figure->addFragment(item);
-    if (item->isDefault && !_default.has_value()) _default = item->language;
+    if (item->isDefault && !_default.has_value()) _default = item->name;
   }
 
   figure->setDefaultFragmentName(_default.value_or("pepo"));

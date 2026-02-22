@@ -33,13 +33,8 @@ using namespace Scintilla::Internal;
 EditBase::EditBase(QQuickItem *parent) : ScintillaEditBase(parent) {
   // Handle adding breakpoints.
   connect(this, &EditBase::marginClicked, this, &EditBase::onMarginClicked);
+  // Always use margin 0 for line numbers.
   send(SCI_SETMARGINSENSITIVEN, 0, true);
-  send(SCI_SETMARGINSENSITIVEN, 1, true);
-  send(SCI_SETMARGINSENSITIVEN, 2, true);
-  // For code folding of comments and macros
-  send(SCI_SETMARGINWIDTHN, 2, getCharWidth() * 2);
-  send(SCI_SETMARGINTYPEN, 2, SC_MARGIN_SYMBOL);
-  send(SCI_SETMARGINMASKN, 2, SC_MASK_FOLDERS);
   send(SCI_MARKERDEFINE, conditionalBPStyle, SC_MARK_CIRCLEPLUS);
   send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDEROPEN, SC_MARK_MINUS);
   send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDER, SC_MARK_PLUS);

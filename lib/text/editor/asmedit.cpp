@@ -1,6 +1,14 @@
 #include "asmedit.hpp"
 
-AsmEdit::AsmEdit(QQuickItem *parent) : EditBase(parent) {}
+AsmEdit::AsmEdit(QQuickItem *parent) : EditBase(parent) {
+  // Margin 0 already used for line numbers, so use margin 1 for breakpoints.
+  send(SCI_SETMARGINSENSITIVEN, 1, true);
+  send(SCI_SETMARGINSENSITIVEN, 2, true);
+  // For code folding of comments and macros
+  send(SCI_SETMARGINWIDTHN, 2, getCharWidth() * 2);
+  send(SCI_SETMARGINTYPEN, 2, SC_MARGIN_SYMBOL);
+  send(SCI_SETMARGINMASKN, 2, SC_MASK_FOLDERS);
+}
 
 void AsmEdit::applyStyles() {
   // WARNING: If you anticipate a color having an alpha value, you will need to do the blending yourself!
@@ -98,6 +106,9 @@ void AsmEdit::applyStyles() {
   send(SCI_MARKERSETFORE, conditionalBPStyle, c2i(_theme->error()->background()));
   send(SCI_MARKERSETBACK, conditionalBPStyle, c2i(_theme->error()->foreground()));
 
+  // Ensure fold margin is tied to the theme. Must set normal+hi else checkerboard ensues.
+  send(SCI_SETFOLDMARGINCOLOUR, true, c2i(_theme->midlight()->background()));
+  send(SCI_SETFOLDMARGINHICOLOUR, true, c2i(_theme->midlight()->background()));
   // Set the selection / highlighting for lines
   send(SCI_SETSELFORE, STYLE_DEFAULT, c2i(_theme->highlight()->foreground()));
   send(SCI_SETSELBACK, STYLE_DEFAULT, c2i(_theme->highlight()->background()));

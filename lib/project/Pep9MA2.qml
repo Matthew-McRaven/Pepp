@@ -24,7 +24,6 @@ FocusScope {
     property var widgets: [dock_micro, dock_cpu, dock_hexdump, dock_object]
 
     focus: true
-    signal requestModeSwitchTo(string mode)
     NuAppSettings {
         id: settings
     }
@@ -65,15 +64,6 @@ FocusScope {
         previousMode = mode;
     }
 
-    // Must be called when the project in the model is marked non-dirty
-    function markClean() {
-        objEdit.dirtied = Qt.binding(() => false);
-    }
-    function markDirty() {
-        if (objEdit.dirtied)
-            project.markDirty();
-    }
-
     // Call when the height, width have been finalized.
     // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
     function dock() {
@@ -94,9 +84,12 @@ FocusScope {
         // WASM version doesn't seem to give focus to editor without giving focus to something else first.
         // Without this workaround the text editor will not receive focus on subsequent key presses.
         if (PlatformDetector.isWASM)
-            dock_cpu.forceActiveFocus();
+            onLoadFocusHelper.forceActiveFocus();
         // Delay giving focus to editor until the next frame. Any editor that becomes visible without being focused will be incorrectly painted
-        Qt.callLater(() => microEdit.forceEditorFocus())
+        Qt.callLater(() => {
+            onLoadFocusHelper.visible = false
+            microEdit.forceEditorFocus()
+        });
         for (const x of widgets) {
             x.needsAttention = false;
         }
@@ -105,11 +98,22 @@ FocusScope {
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
         project.errorsChanged.connect(displayErrors);
+        microEdit.onDirtiedChanged.connect(wrapper.markDirty);
     }
+
+    signal requestModeSwitchTo(string mode)
+    // Must be called when the project in the model is marked non-dirty
+    function markClean() {
+        microEdit.dirtied = false;
+    }
+    function markDirty() {
+        if (microEdit.dirtied)
+            project.markDirty();
+    }
+
     function displayErrors() {
         microEdit.addEOLAnnotations(project.microassemblerErrors);
     }
-
 
     function save() {
         // Supress saving messages when there is no project.
@@ -119,6 +123,17 @@ FocusScope {
     FontMetrics {
         id: editorFM
         font: settings.extPalette.baseMono.font
+    }
+    // If editor is given focus immediately in WASM, the editor is treated as RO.
+    // So, we nee a dummy component which is given focus on load, so we can give focus to the real editor on the next frame.
+    TextField {
+        id: onLoadFocusHelper
+        anchors {
+            top: parent.top
+            left: parent.left
+        }
+        width: 70
+        placeholderText: "Grab Focus"
     }
     KDDW.DockingArea {
         id: dockWidgetArea
@@ -142,26 +157,6 @@ FocusScope {
                 "editor": true,
                 "debugger": true
             }
-            Connections {
-                target: wrapper
-                function onModeChanged() {
-                    if (mode === "debugger") {
-                        save();
-                        microEdit.text = project.microcodeListingText ?? "";
-                        microEdit.readOnly = true;
-                    } else if (mode === "editor") {
-                        microEdit.readOnly = false;
-                        microEdit.text = project.microcodeText;
-                    }
-                }
-            }
-            Connections {
-                target: project
-                function onMicrocodeTextChanged() {
-                    if (wrapper.mode === "editor")
-                        microEdit.text = project.microcodeText;
-                }
-            }
             Text.ScintillaMicroEdit {
                 id: microEdit
                 anchors.fill: parent
@@ -169,6 +164,7 @@ FocusScope {
                 // text is only an initial binding, the value diverges from there.
                 text: project.microcodeText ?? ""
                 language: project.lexerLanguage ?? ""
+                cycleNumbers: project.cycleNumbers ?? null
             }
         }
         KDDW.DockWidget {
@@ -197,6 +193,7 @@ FocusScope {
                 "debugger": true
             }
             OC.MicroObjectView {
+                id: micro_object
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(200, 400)
                 microcode: project?.microcode ?? null

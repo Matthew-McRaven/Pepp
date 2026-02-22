@@ -18,6 +18,7 @@
 #include <QStringListModel>
 #include <QtQmlIntegration>
 #include <qabstractitemmodel.h>
+#include "features.hpp"
 #include "project/architectures.hpp"
 #include "project/levels.hpp"
 #include "sim3/systems/traced_pep_isa3_system.hpp"
@@ -28,16 +29,6 @@ class InfiniteBuffer;
 }
 } // namespace sim
 namespace project {
-// Additional options requested for a project.
-// A particular (arch, level) tuple may only support a subset of features.
-// TODO: Wrap in a Q_OBJECT to expose to QML.
-enum class Features : int {
-  None = 0,
-  OneByte = 1,
-  TwoByte = 2,
-  NoOS = 4,
-};
-consteval void is_bitflags(Features);
 
 class DebugEnableFlags : public QObject {
   Q_OBJECT
@@ -82,7 +73,7 @@ public:
 struct Environment {
   pepp::Architecture arch;
   pepp::Abstraction level;
-  Features features;
+  pepp::Features features;
 };
 } // namespace project
 

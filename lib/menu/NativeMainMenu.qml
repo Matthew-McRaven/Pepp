@@ -67,9 +67,10 @@ Labs.MenuBar {
                         const {
                             path,
                             arch,
-                            abstraction
+                            abstraction,
+                            feats
                         } = model;
-                        actions.window.onOpenFile(path, arch, abstraction);
+                        actions.window.onOpenFile(path, arch, abstraction, feats);
                     }
                 }
 

@@ -5,6 +5,7 @@ import edu.pepp 1.0
 
 Column {
     id: root
+    required property string currentMode
     property var modesModel: undefined
     function switchToMode(mode) {
         if (!root.enabled) {
@@ -25,6 +26,12 @@ Column {
         console.error(`Did not find mode ${mode}`);
     }
     signal modeChanged(string mode)
+    // Switching modesModel will cause our active mode to be unselected.
+    // Instead, after the buttons after finished rendering, re-select the current mode.
+    // TODO: handle the case where the current mode is not present in the new model.
+    onModesModelChanged: {
+        Qt.callLater(() => switchToMode(currentMode));
+    }
 
     ListModel {
         id: defaultSidebarModel

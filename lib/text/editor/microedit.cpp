@@ -1,6 +1,30 @@
 #include "microedit.hpp"
 
-MicroEdit::MicroEdit(QQuickItem *parent) : EditBase(parent) {}
+MicroEdit::MicroEdit(QQuickItem *parent) : EditBase(parent) {
+  // Margin 0 already used for line numbers, so use margin 1 for breakpoints, and margin 2 for cycle numbers
+  send(SCI_SETMARGINSENSITIVEN, 1, true);
+  send(SCI_SETMARGINSENSITIVEN, 2, true);
+  // For code folding of comments and macros
+  send(SCI_SETMARGINWIDTHN, 2, getCharWidth() * 2);
+  send(SCI_SETMARGINTYPEN, 2, SC_MARGIN_RTEXT);
+  send(SCI_SETMARGINMASKN, 2, SC_MASK_FOLDERS);
+}
+
+pepp::LineNumbers *MicroEdit::lineNumbers() const { return _lineNumber; }
+
+void MicroEdit::setLineNumbers(pepp::LineNumbers *lineNumber) {
+  if (_lineNumber == lineNumber) return;
+  _lineNumber = lineNumber;
+  const int lineCount = static_cast<int>(send(SCI_GETLINECOUNT, 0, 0));
+  for (int line = 0; line < lineCount; ++line) {
+    std::optional<int> cycle_num = std::nullopt;
+    if (_lineNumber) cycle_num = _lineNumber->l2a.address(line);
+    std::string cycle_num_str = cycle_num ? std::to_string(*cycle_num + 1) : "";
+    send(SCI_MARGINSETTEXT, line, reinterpret_cast<sptr_t>(cycle_num_str.c_str()));
+    send(SCI_MARGINSETSTYLE, line, cycleNumStyle);
+  }
+  emit lineNumberChanged();
+}
 
 void MicroEdit::applyStyles() {
   // WARNING: If you anticipate a color having an alpha value, you will need to do the blending yourself!
@@ -51,9 +75,17 @@ void MicroEdit::applyStyles() {
   send(SCI_MARKERSETFORE, conditionalBPStyle, c2i(_theme->error()->background()));
   send(SCI_MARKERSETBACK, conditionalBPStyle, c2i(_theme->error()->foreground()));
 
+  send(SCI_STYLESETFORE, cycleNumStyle, c2i(_theme->base()->foreground()));
+  send(SCI_STYLESETBACK, cycleNumStyle, c2i(_theme->midlight()->background()));
+
+  // Ensure fold margin is tied to the theme. Must set normal+hi else checkerboard ensues.
+  send(SCI_SETFOLDMARGINCOLOUR, true, c2i(_theme->midlight()->background()));
+  send(SCI_SETFOLDMARGINHICOLOUR, true, c2i(_theme->midlight()->background()));
+  send(SCI_SETMARGINBACKN, 2, c2i(_theme->midlight()->background()));
   // Set the selection / highlighting for lines
   send(SCI_SETSELFORE, STYLE_DEFAULT, c2i(_theme->highlight()->foreground()));
   send(SCI_SETSELBACK, STYLE_DEFAULT, c2i(_theme->highlight()->background()));
+
   // Set the indicator style to a plain underline
   send(SCI_INDICSETSTYLE, 0, INDIC_ROUNDBOX);
   send(SCI_INDICSETFORE, 0, c2i(_theme->alternateBase()->foreground()));

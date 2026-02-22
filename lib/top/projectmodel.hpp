@@ -43,8 +43,8 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   bool setData(const QModelIndex &index, const QVariant &value, int role) override;
-  Q_INVOKABLE Pep_MA *pep9MA2(project::Features features);
-  Q_INVOKABLE Pep_MA *pep10MA2(project::Features features);
+  Q_INVOKABLE Pep_MA *pep9MA2(pepp::Features features);
+  Q_INVOKABLE Pep_MA *pep10MA2(pepp::Features features);
   Q_INVOKABLE Pep_ISA *pep10ISA();
   Q_INVOKABLE Pep_ISA *pep9ISA();
   Q_INVOKABLE Pep_ASMB *pep10ASMB(pepp::Abstraction abstraction);
@@ -87,10 +87,12 @@ struct ProjectType {
   QString description{};
   pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
-  project::Features features = project::Features::None;
+  pepp::Features features = pepp::Features::None;
   CompletionState state = CompletionState::INCOMPLETE;
   int edition = 0;
   bool placeholder = false;
+  // Used to hide items that only differ by features.
+  bool is_duplicate_feature = false;
 };
 
 class ProjectTypeModel : public QAbstractTableModel {
@@ -113,6 +115,7 @@ public:
     DetailsRole,
     ChapterRole,
     FeatureRole,
+    IsDuplicateFeature,
   };
   Q_ENUM(Roles);
   explicit ProjectTypeModel(QObject *parent = nullptr);
@@ -132,6 +135,8 @@ class ProjectTypeFilterModel : public QSortFilterProxyModel {
   Q_PROPERTY(int edition READ edition WRITE setEdition NOTIFY editionChanged)
   Q_PROPERTY(bool showIncomplete READ showIncomplete WRITE setShowIncomplete NOTIFY showIncompleteChanged)
   Q_PROPERTY(bool showPartiallyComplete READ showPartial WRITE setShowPartial NOTIFY showPartialChanged)
+  Q_PROPERTY(bool showDuplicateFeatures READ showDuplicateFeatures WRITE setShowDuplicateFeatures NOTIFY
+                 showDuplicateFeaturesChanged)
   QML_ELEMENT
 
 public:
@@ -144,6 +149,8 @@ public:
   void setShowIncomplete(bool value);
   bool showPartial() const { return _showPartial; }
   void setShowPartial(bool value);
+  bool showDuplicateFeatures() const { return _showDuplicateFeatures; }
+  void setShowDuplicateFeatures(bool value);
 
 protected:
   bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
@@ -152,9 +159,10 @@ signals:
   void editionChanged();
   void showIncompleteChanged();
   void showPartialChanged();
+  void showDuplicateFeaturesChanged();
 
 private:
   pepp::Architecture _architecture = pepp::Architecture::NO_ARCH;
   int _edition = 0;
-  bool _showIncomplete = false, _showPartial = false;
+  bool _showIncomplete = false, _showPartial = false, _showDuplicateFeatures = true;
 };

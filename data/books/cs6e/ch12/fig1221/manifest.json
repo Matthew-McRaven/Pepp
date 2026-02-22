@@ -4,6 +4,7 @@
   "name": "12:21",
   "arch": "pep10",
   "abstraction": "MA2",
+  "features": "TwoByte",
   "tests": [
     "test0"
   ],
@@ -11,6 +12,7 @@
     {
       "name": "pepcpu",
       "format": "pepcpu2",
+      "isDefault": true,
       "from": {
         "file": "{ch}{fig}.pepcpu"
       }

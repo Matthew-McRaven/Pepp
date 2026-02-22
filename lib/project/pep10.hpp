@@ -30,6 +30,7 @@
 #include "sim/debug/watchexpressionmodel.hpp"
 #include "sim3/systems/traced_pep_isa3_system.hpp"
 #include "text/editor/editbase.hpp"
+#include "text/editor/micro_line_numbers.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/symtab/symbolmodel.hpp"
 #include "utils/opcodemodel.hpp"
@@ -291,7 +292,7 @@ class Pep_MA : public QObject {
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   Q_PROPERTY(QString microcodeText READ microcodeText WRITE setMicrocodeText NOTIFY microcodeTextChanged);
   Q_PROPERTY(Microcode *microcode READ microcode NOTIFY microcodeChanged)
-  Q_PROPERTY(QString microcodeListingText READ microcodeListingText NOTIFY microcodeChanged)
+  Q_PROPERTY(pepp::LineNumbers *cycleNumbers READ line2addr NOTIFY microcodeChanged);
   Q_PROPERTY(QList<Error *> microassemblerErrors READ errors NOTIFY errorsChanged)
   // Preserve the current address in the memory dump pane on tab-switch.
   Q_PROPERTY(quint16 currentAddress MEMBER _currentAddress NOTIFY currentAddressChanged)
@@ -328,8 +329,8 @@ public:
     QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
     return &ret;
   }
-  QString microcodeListingText() const;
   Microcode *microcode() const;
+  pepp::LineNumbers *line2addr() const;
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
@@ -394,7 +395,7 @@ protected:
   project::Environment _env;
   QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
   QSharedPointer<targets::isa::System> _system = {};
-  QString _microcodeText = {}, _microcodeListingText;
+  QString _microcodeText = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   SimulatorRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;

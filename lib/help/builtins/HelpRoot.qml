@@ -94,6 +94,7 @@ Item {
                         edition: 0
                         showIncomplete: settings.general.showDebugComponents
                         showPartiallyComplete: settings.general.showDebugComponents
+                        showDuplicateFeatures: false
                         sourceModel: ProjectTypeModel {}
                     }
                 }

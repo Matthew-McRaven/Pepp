@@ -17,10 +17,10 @@
 
 #include "figure.hpp"
 
-builtins::Figure::Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter,
-                         QString figure, bool isProblem)
-    : QObject(nullptr), _arch(arch), _level(level), _prefix(prefix), _chapterName(chapter), _figureName(figure),
-      _isProblem(isProblem) {}
+builtins::Figure::Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats, QString prefix,
+                         QString chapter, QString figure, bool isProblem)
+    : QObject(nullptr), _arch(arch), _level(level), _features(feats), _prefix(prefix), _chapterName(chapter),
+      _figureName(figure), _isProblem(isProblem) {}
 
 builtins::Figure::~Figure() {
   for (auto value : _tests) delete value;
@@ -31,6 +31,8 @@ builtins::Figure::~Figure() {
 pepp::Architecture builtins::Figure::arch() const { return _arch; }
 
 pepp::Abstraction builtins::Figure::level() const { return _level; }
+
+pepp::Features builtins::Figure::features() const { return _features; }
 
 QString builtins::Figure::prefix() const { return _prefix; }
 

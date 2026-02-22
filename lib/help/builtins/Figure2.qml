@@ -127,7 +127,7 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                 }
-                onActivated: textArea.updateText(currentValue)
+                onActivated: contentLoader.updateText(currentValue)
             }   //  ComboBox
             Rectangle {
                 color: palette.window
@@ -144,23 +144,25 @@ Item {
                 z: -1
             }
         }   //  RowLayout
-        Editor.ScintillaAsmEdit {
-            id: textArea
-            Layout.alignment: Qt.AlignCenter
+        Loader {
+            id: contentLoader
             Layout.fillHeight: true
             Layout.fillWidth: true
             Layout.rightMargin: 1
-            editorFont: editorFM.font
-            language: wrapper.lexerLang
-            readOnly: false
-            Component.onCompleted: {
-                readOnly = true;
-                textArea.caretBlink = 0;
+            sourceComponent: (wrapper.lexerLang.indexOf("Micro") !== -1) ? micro : asm
+            property string currentText: ""
+            onLoaded: {
+                contentLoader.item.text = contentLoader.currentText;
+                contentLoader.item.readOnly = true;
+                contentLoader.item.caretBlink = 0;
             }
             function updateText(newText) {
-                textArea.readOnly = false;
-                textArea.text = newText;
-                textArea.readOnly = true;
+                currentText = newText;
+                if (!contentLoader.item)
+                    return;
+                contentLoader.item.readOnly = false;
+                contentLoader.item.text = newText;
+                contentLoader.item.readOnly = true;
             }
         }
 
@@ -198,7 +200,7 @@ Item {
                         const pl = wrapper.payload;
                         const name = pl.defaultFragmentName;
                         const text = pl.fragments[name].content;
-                        wrapper.addProject(pl.arch, pl.level, "", text, "Editor", pl?.defaultOS?.fragments["pep"]?.content, pl?.tests);
+                        wrapper.addProject(pl.arch, pl.level, pl.features, text, "Editor", pl?.defaultOS?.fragments["pep"]?.content, pl?.tests);
                         wrapper.renameCurrentProject(wrapper.title);
                     }
                 }   //  Button
@@ -218,10 +220,29 @@ Item {
             }   //  RowLayout
         }   //  Rectangle - figure backgound
     }
+    Component {
+        id: asm
+        Editor.ScintillaAsmEdit {
+            Layout.alignment: Qt.AlignCenter
+            anchors.fill: parent
+            editorFont: editorFM.font
+            language: wrapper.lexerLang
+        }
+    }
+    Component {
+        id: micro
+        Editor.ScintillaMicroEdit {
+            Layout.alignment: Qt.AlignCenter
+            anchors.fill: parent
+            editorFont: editorFM.font
+            language: wrapper.lexerLang
+        }
+    }
+
     FontMetrics {
         id: editorFM
         font: settings.extPalette.baseMono.font
     }
-    signal addProject(int arch, int abs, string feats, string text, string switchToMode, var optionalOS, var tests)
+    signal addProject(int arch, int abs, int feats, string text, string switchToMode, var optionalOS, var tests)
     signal renameCurrentProject(string newName)
 }
