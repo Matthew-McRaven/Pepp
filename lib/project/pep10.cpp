@@ -36,6 +36,7 @@
 #include "text/editor/object.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
+#include "toolchain/link/mmio.hpp"
 #include "toolchain/pas/obj/common.hpp"
 #include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "utils/logging.hpp"
@@ -1314,14 +1315,12 @@ Pep_MA::Pep_MA(project::Environment env, QObject *parent)
       _registers(nullptr), _flags(nullptr) {
   _system.clear();
   assert(_system.isNull());
-  //  _dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
-  if (true) {
-    /*auto elfsys = make_isa_system(env, &*_books);
-    _elf = elfsys.elf;
-    _system = elfsys.system;
-    _system->bus()->setBuffer(&*_tb);
-    bindToSystem();*/
-  }
+  //_dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
+  QList<obj::MemoryRegion> memmap;
+  memmap.emplaceBack(obj::MemoryRegion{.r = 1, .w = 1, .minOffset = 0, .maxOffset = 65535, .segs = {}});
+  _system = QSharedPointer<targets::isa::System>::create(env.arch, memmap, QList<obj::AddressedIO>{});
+  //_system->bus()->setBuffer(&*_tb);
+  bindToSystem();
   connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
 }
 
@@ -1460,7 +1459,35 @@ bool Pep_MA::onClearMemory() { return true; }
 
 void Pep_MA::onDeferredExecution(std::function<bool()> step) {}
 
-void Pep_MA::bindToSystem() {}
+void Pep_MA::bindToSystem() {
+  using enum pepp::Architecture;
+  switch (_env.arch) {
+  case PEP9:
+    _flags = flag_model<targets::pep9::isa::CPU, isa::Pep9>(&*_system, this);
+    _registers = register_model<targets::pep9::isa::CPU, isa::Pep9>(&*_system, mnemonics(), this);
+    break;
+  case PEP10:
+    _flags = flag_model<targets::pep10::isa::CPU, isa::Pep10>(&*_system, this);
+    _registers = register_model<targets::pep10::isa::CPU, isa::Pep10>(&*_system, mnemonics(), this);
+    break;
+  default: throw std::logic_error("Unimplemented");
+  }
+  // Use old-style connections to avoid a linker error in WASM.
+  // For some reason, new-style connects cause LD to insert a 0-arg updateGUI into the object file.
+  // We can defeat the linker with the following Qt macros.
+  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _flags, SLOT(onUpdateGUI()));
+  QQmlEngine::setObjectOwnership(_flags, QQmlEngine::CppOwnership);
+  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _registers, SLOT(onUpdateGUI()));
+  QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
+
+  using TMAS = sim::trace2::TranslatingModifiedAddressSink<quint16>;
+  auto sink = QSharedPointer<TMAS>::create(_system->pathManager(), _system->bus());
+
+  _memory = new SimulatorRawMemory(_system->bus(), sink, this);
+  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _memory,
+          SLOT(onUpdateGUI(sim::api2::trace::FrameIterator)));
+  QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
+}
 
 void Pep_MA::prepareSim() {}
 
