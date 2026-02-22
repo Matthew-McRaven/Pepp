@@ -43,6 +43,7 @@ Column {
         }
     }
     function mapModeToImage(mode) {
+        mode = mode.toLowerCase();
         switch (mode) {
         case "welcome":
             return "home.svg";
@@ -71,9 +72,10 @@ Column {
             text: model.display ?? "ERROR"
             ButtonGroup.group: modeGroup
             onClicked: root.modeChanged(text.toLowerCase())
-            icon.source: `image://icons/modes/${root.mapModeToImage(text.toLowerCase())}`
+            icon.source: `image://icons/modes/${root.mapModeToImage(text)}`
             icon.height: 42
             icon.width: 42
+            icon.color: palette.buttonText
             display: AbstractButton.TextUnderIcon
 
             background: Rectangle {
