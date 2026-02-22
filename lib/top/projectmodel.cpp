@@ -748,7 +748,7 @@ void ProjectTypeFilterModel::setShowDuplicateFeatures(bool value) {
   _showDuplicateFeatures = value;
   endFilterChange();
 #else
-  _showPartial = value;
+  _showDuplicateFeatures = value;
   invalidateFilter();
 #endif
   emit showDuplicateFeaturesChanged();
