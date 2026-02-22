@@ -41,18 +41,26 @@ void FileIO::loadCodeViaDialog(const QString &filters) {
   // arch, abstraction
   using enum pepp::Architecture;
   using enum pepp::Abstraction;
-  using M = QMap<QString, std::pair<int, int>>; // Type alias to make formatting more legible.
-  static const M filters3 = {{"Pep/10, ISA3 (*.pepo)", {(int)PEP10, (int)ISA3}},
-                             {"Pep/9, ISA3 (*.pepo)", {(int)PEP9, (int)ISA3}},
-                             {"Pep/10, ASMB3 (*.pep)", {(int)PEP10, (int)ASMB3}},
-                             {"Pep/10, ASMB5 (*.pep)", {(int)PEP10, (int)ASMB5}},
-                             {"Pep/9, ASMB5 (*.pep)", {(int)PEP9, (int)ASMB5}},
-                             {"Text files (*.txt)", {0, 0}},
-                             {"Any files (*.*)", {0, 0}}};
+  using enum pepp::Features;
+  static const int B1 = (int)OneByte;
+  static const int B2 = (int)TwoByte;
+
+  using M = QMap<QString, std::tuple<int, int, int>>; // Type alias to make formatting more legible.
+  static const M filters3 = {{"Pep/10, ISA3 (*.pepo)", {(int)PEP10, (int)ISA3, 0}},
+                             {"Pep/9, ISA3 (*.pepo)", {(int)PEP9, (int)ISA3, 0}},
+                             {"Pep/10, ASMB3 (*.pep)", {(int)PEP10, (int)ASMB3, 0}},
+                             {"Pep/10, ASMB5 (*.pep)", {(int)PEP10, (int)ASMB5, 0}},
+                             {"Pep/9, ASMB5 (*.pep)", {(int)PEP9, (int)ASMB5, 0}},
+                             {"Pep/10, 1-byte microcode (*.pepcpu)", {(int)PEP10, (int)MA2, B1}},
+                             {"Pep/10, 2-byte microcode (*.pepcpu)", {(int)PEP10, (int)MA2, B2}},
+                             {"Pep/9, 1-byte microcode (*.pepcpu)", {(int)PEP9, (int)MA2, B1}},
+                             {"Pep/9, 2-byte microcode (*.pepcpu)", {(int)PEP9, (int)MA2, B2}},
+                             {"Text files (*.txt)", {0, 0, 0}},
+                             {"Any files (*.*)", {0, 0, 0}}};
   static const QStringList filters2 = filters3.keys();
 #ifdef __EMSCRIPTEN__
   auto ready = [this](const QString &fileName, const QByteArray &fileContent) {
-    emit codeLoaded(fileName, fileContent, 0, 0);
+    emit codeLoaded(fileName, fileContent, 0, 0, 0);
   };
   QFileDialog::getOpenFileContent(filters2.join(";;"), ready);
 #else
@@ -68,16 +76,16 @@ void FileIO::loadCodeViaDialog(const QString &filters) {
       QFileDialog::getOpenFileName(nullptr, "Open Source Code", startDir, filters2.join(";;"), &selectedFilter);
   if (fileName.isEmpty()) return;
   QByteArray ret = load(fileName);
-  auto [arch, abs] = filters3.value(selectedFilter, {0, 0});
-  emit codeLoaded(fileName, ret, arch, abs);
+  auto [arch, abs, feats] = filters3.value(selectedFilter, {0, 0, 0});
+  emit codeLoaded(fileName, ret, arch, abs, feats);
 #endif
 }
 
 #ifndef __EMSCRIPTEN__
-void FileIO::loadCodeFromFile(const QString &name, int arch, int abs) {
+void FileIO::loadCodeFromFile(const QString &name, int arch, int abs, int feats) {
   auto ret = load(name);
   if (ret.isEmpty()) return;
-  emit codeLoaded(name, ret, arch, abs);
+  emit codeLoaded(name, ret, arch, abs, feats);
 }
 QByteArray FileIO::load(const QString &fileName) {
   QFile file(fileName);

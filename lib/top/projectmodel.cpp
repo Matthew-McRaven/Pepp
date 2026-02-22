@@ -216,63 +216,88 @@ int ProjectModel::rowOf(const QObject *item) const {
   return -1;
 }
 
-const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, std::string>, const char *> extensions = {
-    {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, "pepcpu"}, "Pep/10 Microcode Code (*.pepcpu)"},
-    {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, "pepcpu"}, "Pep/9 Microcode Code (*.pepcpu)"},
+const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, pepp::Features, std::string>, const char *>
+    extensions = {
+        {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10, pepp::Features::None, "pepo"},
+         "Pep/10 Object Code (*.pepo)"},
 
-    {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10, "pepo"}, "Pep/10 Object Code (*.pepo)"},
+        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::Features::None, "pep"},
+         "Pep/10 Assembly Code (*.pep)"},
+        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::Features::None, "pepo"},
+         "Pep/10 Object Code (*.pepo)"},
+        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::Features::None, "pepl"},
+         "Pep/10 Assembly Listing (*.pepl)"},
 
-    {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, "pep"}, "Pep/10 Assembly Code (*.pep)"},
-    {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, "pepo"}, "Pep/10 Object Code (*.pepo)"},
-    {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, "pepl"}, "Pep/10 Assembly Listing (*.pepl)"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pep"},
+         "Pep/10 Assembly Code (*.pep)"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pepo"},
+         "Pep/10 Object Code (*.pepo)"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pepl"},
+         "Pep/10 Assembly Listing (*.pepl)"},
 
-    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, "pep"}, "Pep/10 Assembly Code (*.pep)"},
-    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, "pepo"}, "Pep/10 Object Code (*.pepo)"},
-    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, "pepl"}, "Pep/10 Assembly Listing (*.pepl)"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::None, "pepcpu"},
+         "Pep/10 Microcode Code, 1-byte (*.pepcpu)"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::None, "pepcpu"},
+         "Pep/10 Microcode Code, 2-byte (*.pepcpu)"},
 
-    {{pepp::Abstraction::ISA3, pepp::Architecture::PEP9, "pepo"}, "Pep/9 Object Code (*.pepo)"},
+        {{pepp::Abstraction::ISA3, pepp::Architecture::PEP9, pepp::Features::None, "pepo"},
+         "Pep/9 Object Code (*.pepo)"},
 
-    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, "pep"}, "Pep/9 Assembly Code (*.pep)"},
-    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, "pepo"}, "Pep/9 Object Code (*.pepo)"},
-    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, "pepl"}, "Pep/9 Assembly Listing (*.pepl)"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pep"},
+         "Pep/9 Assembly Code (*.pep)"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pepo"},
+         "Pep/9 Object Code (*.pepo)"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pepl"},
+         "Pep/9 Assembly Listing (*.pepl)"},
+
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::None, "pepcpu"},
+         "Pep/9 Microcode Code, 1-byte (*.pepcpu)"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::None, "pepcpu"},
+         "Pep/9 Microcode Code, 2-byte (*.pepcpu)"},
 };
 
-std::pair<pepp::Abstraction, pepp::Architecture> envFromPtr(const QObject *item) {
+std::tuple<pepp::Abstraction, pepp::Architecture, pepp::Features> envFromPtr(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
-    return {asmb->abstraction(), asmb->architecture()};
+    return {asmb->abstraction(), asmb->architecture(), pepp::Features::None};
   } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
-    return {isa->abstraction(), isa->architecture()};
+    return {isa->abstraction(), isa->architecture(), pepp::Features::None};
+  } else if (auto ma = qobject_cast<const Pep_MA *>(item)) {
+    return {ma->abstraction(), ma->architecture(), (pepp::Features)ma->features()};
   }
-  return {pepp::Abstraction::NO_ABS, pepp::Architecture::NO_ARCH};
+  return {pepp::Abstraction::NO_ABS, pepp::Architecture::NO_ARCH, pepp::Features::None};
 }
 
 QByteArray primaryTextFromPtr(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) return asmb->userAsmText().toUtf8();
   else if (auto isa = qobject_cast<const Pep_ISA *>(item)) return isa->objectCodeText().toUtf8();
+  else if (auto ma = qobject_cast<const Pep_MA *>(item)) return ma->microcodeText().toUtf8();
   return "";
 }
 
 QByteArray contentsFromExtension(const QObject *item, const QString &extension) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) return asmb->contentsForExtension(extension).toUtf8();
   else if (auto isa = qobject_cast<const Pep_ISA *>(item)) return isa->contentsForExtension(extension).toUtf8();
+  else if (auto ma = qobject_cast<const Pep_MA *>(item)) return ma->contentsForExtension(extension).toUtf8();
   return "";
 }
 
 bool defaultFromExtension(const QObject *item, const QString &extension) {
   if (qobject_cast<const Pep_ASMB *>(item)) return extension.compare("pep", Qt::CaseInsensitive) == 0;
   else if (qobject_cast<const Pep_ISA *>(item)) return extension.compare("pepo", Qt::CaseInsensitive) == 0;
+  else if (qobject_cast<const Pep_MA *>(item)) return extension.compare("pepcpu", Qt::CaseInsensitive) == 0;
   return false;
 }
 
 std::string defaultExtensionFor(const QObject *item) {
   if (qobject_cast<const Pep_ASMB *>(item)) return "pep";
   else if (qobject_cast<const Pep_ISA *>(item)) return "pepo";
+  else if (qobject_cast<const Pep_MA *>(item)) return "pepcpu";
   return "pep";
 }
 
-void prependRecent(const QString &fname, pepp::Architecture arch, pepp::Abstraction level) {
+void prependRecent(const QString &fname, pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats) {
   auto settings = pepp::settings::detail::AppSettingsData::getInstance();
-  settings->general()->pushRecentFile(fname, arch, level);
+  settings->general()->pushRecentFile(fname, arch, level, feats);
 }
 
 auto recentFiles() {
@@ -286,7 +311,10 @@ bool ProjectModel::onSave(int row) {
   using enum QStandardPaths::StandardLocation;
   auto ptr = _projects[row].impl.get();
   auto env = envFromPtr(ptr);
-  if (env.first == pepp::Abstraction::NO_ABS) {
+  const auto first = std::get<0>(env);
+  const auto second = std::get<1>(env);
+  const auto third = std::get<2>(env);
+  if (first == pepp::Abstraction::NO_ABS) {
     qDebug() << "Unrecognized abstraction";
     return false;
   }
@@ -297,7 +325,8 @@ bool ProjectModel::onSave(int row) {
   }
 #ifdef __EMSCRIPTEN__
   QString fname = "user.o";
-  switch (env.first) {
+  switch (first) {
+  case pepp::Abstraction::MA2: fname = "user.pepcpu"; break;
   case pepp::Abstraction::ISA3: fname = "user.pepo"; break;
   case pepp::Abstraction::ASMB3: [[fallthrough]];
   case pepp::Abstraction::ASMB5: fname = "user.pep"; break;
@@ -306,6 +335,7 @@ bool ProjectModel::onSave(int row) {
   QFileDialog::saveFileContent(contents, fname);
 #else
   auto default_ext = defaultExtensionFor(ptr);
+
   if (_projects[row].path.isEmpty()) {
     // Try to use recent files as a starting directory, otherwise default to documents
     QString starting_dir = QStandardPaths::writableLocation(DocumentsLocation);
@@ -315,7 +345,8 @@ bool ProjectModel::onSave(int row) {
       starting_dir = info.path();
     }
     // Determine appropriate filter for project.
-    auto filterIter = extensions.find(std::make_tuple(env.first, env.second, default_ext));
+
+    auto filterIter = extensions.find(std::make_tuple(first, second, third, default_ext));
     // Path may be empty if it is canceled, in which case we need to return early.
     _projects[row].path = QFileDialog::getSaveFileName(
         nullptr, "Save", starting_dir, filterIter != extensions.cend() ? filterIter->second : "Text Files (*.txt)");
@@ -327,7 +358,7 @@ bool ProjectModel::onSave(int row) {
   if (!file.open(QIODevice::WriteOnly)) return false;
   file.write(contents);
   file.close();
-  prependRecent(_projects[row].path, env.second, env.first);
+  prependRecent(_projects[row].path, second, first, third);
 #endif
   auto index = createIndex(row, 0);
   setData(index, false, static_cast<int>(Roles::DirtyRole));
@@ -342,7 +373,10 @@ bool ProjectModel::onSaveAs(int row, const QString &extension) {
 
   auto ptr = _projects[row].impl.get();
   auto env = envFromPtr(ptr);
-  if (env.first == pepp::Abstraction::NO_ABS) {
+  const auto first = std::get<0>(env);
+  const auto second = std::get<1>(env);
+  const auto third = std::get<2>(env);
+  if (first == pepp::Abstraction::NO_ABS) {
     qDebug() << "Unrecognized abstraction";
     return false;
   }
@@ -354,7 +388,7 @@ bool ProjectModel::onSaveAs(int row, const QString &extension) {
   }
 #ifdef __EMSCRIPTEN__
   QString fname = "user.o";
-  switch (env.first) {
+  switch (first) {
   case pepp::Abstraction::ISA3: fname = "user.pepo"; break;
   case pepp::Abstraction::ASMB3: [[fallthrough]];
   case pepp::Abstraction::ASMB5: fname = "user.pep"; break;
@@ -365,7 +399,7 @@ bool ProjectModel::onSaveAs(int row, const QString &extension) {
 
   // Determine appropriate filter for project.
   auto ext_as_std = extension.toStdString();
-  auto filterIter = extensions.find(std::make_tuple(env.first, env.second, ext_as_std));
+  auto filterIter = extensions.find(std::make_tuple(first, second, third, ext_as_std));
 
   QString starting_fname = "";
   if (!_projects[row].path.isEmpty()) {
@@ -387,7 +421,7 @@ bool ProjectModel::onSaveAs(int row, const QString &extension) {
   // Do not mark as clean, since we didn't save the original source file.
   // If it is an extension that we could open again as a project, add it to the recent files list.
   // This will cause our next save to "start" in the same directory, which makes sense to me.
-  if (isDefaultExtension) prependRecent(fname, env.second, env.first);
+  if (isDefaultExtension) prependRecent(fname, second, first, third);
 #endif
   return true;
 }

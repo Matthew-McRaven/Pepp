@@ -15,9 +15,10 @@
  */
 #include <QObject>
 #include <QtQmlIntegration>
-#include "project/architectures.hpp"
-#include "project/levels.hpp"
 #include "palette.hpp"
+#include "project/architectures.hpp"
+#include "project/features.hpp"
+#include "project/levels.hpp"
 
 class QJSEngine;
 class QQmlEngine;
@@ -46,17 +47,19 @@ class RecentFile {
   Q_PROPERTY(QString path MEMBER _path CONSTANT)
   Q_PROPERTY(pepp::Architecture arch MEMBER _arch CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction MEMBER _level CONSTANT)
+  Q_PROPERTY(pepp::Features abstraction MEMBER _features CONSTANT)
   QML_UNCREATABLE("")
   QML_VALUE_TYPE(recent_file)
 public:
   RecentFile() = default;
-  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level)
-      : _path(filePath), _arch(arch), _level(level) {};
+  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level, pepp::Features features)
+      : _path(filePath), _arch(arch), _level(level), _features(features) {};
   RecentFile(const RecentFile &other) noexcept = default;
   RecentFile &operator=(const RecentFile &other) noexcept = default;
   QString path() const { return _path; }
   pepp::Architecture arch() const { return _arch; }
   pepp::Abstraction abstraction() const { return _level; }
+  pepp::Features features() const { return _features; }
 
   Qt::strong_ordering operator<=>(const RecentFile &other) const;
 
@@ -64,6 +67,7 @@ private:
   QString _path = "";
   pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction _level = pepp::Abstraction::NO_ABS;
+  pepp::Features _features = pepp::Features::None;
 };
 QDataStream &operator<<(QDataStream &out, const pepp::settings::RecentFile &rf);
 
@@ -122,7 +126,8 @@ public:
   QString externalFigureDirectory() const;
   void setExternalFigureDirectory(const QString &path);
   QString figureDirectory() const;
-  Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture arch, pepp::Abstraction level);
+  Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture arch, pepp::Abstraction level,
+                                  pepp::Features features);
   Q_INVOKABLE void clearRecentFiles();
   // Really should be in a seperate class, but I only use it when touching recent files.
   Q_INVOKABLE QString fileNameFor(const QString &fullPath);

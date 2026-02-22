@@ -51,16 +51,20 @@ QDataStream &pepp::settings::operator<<(QDataStream &out, const RecentFile &rf) 
   out << rf.path();
   out << static_cast<qint32>(rf.arch());
   out << static_cast<qint32>(rf.abstraction());
+  out << static_cast<qint32>(rf.features());
   return out;
 }
 
 QDataStream &pepp::settings::operator>>(QDataStream &in, RecentFile &rf) {
   QString path;
-  qint32 archInt, absInt;
+  qint32 archInt, absInt, featInt = -1;
 
-  in >> path >> archInt >> absInt;
+  in >> path >> archInt >> absInt >> featInt;
+  if (in.status() != QDataStream::Ok) {
+    featInt = (int)pepp::Features::None;
+  }
   rf = pepp::settings::RecentFile(path, static_cast<pepp::Architecture>(archInt),
-                                  static_cast<pepp::Abstraction>(absInt));
+                                  static_cast<pepp::Abstraction>(absInt), static_cast<pepp::Features>(featInt));
   return in;
 }
 
@@ -229,13 +233,13 @@ QString pepp::settings::GeneralCategory::figureDirectory() const {
 }
 
 void pepp::settings::GeneralCategory::pushRecentFile(const QString &fileName, pepp::Architecture arch,
-                                                     pepp::Abstraction level) {
+                                                     pepp::Abstraction level, pepp::Features features) {
   if (_recentFileCache.empty()) refreshRecentFileCache();
   auto from = std::remove_if(_recentFileCache.begin(), _recentFileCache.end(),
                              [&fileName](auto &i) { return i.path() == fileName; });
   _recentFileCache.erase(from, _recentFileCache.end());
   if (_recentFileCache.size() >= maxRecentFiles()) _recentFileCache.removeLast();
-  _recentFileCache.prepend(RecentFile{fileName, arch, level});
+  _recentFileCache.prepend(RecentFile{fileName, arch, level, features});
   // Ensure that we don't violate max # of recent files.
   while (_recentFileCache.size() > maxRecentFiles() && !_recentFileCache.isEmpty()) _recentFileCache.removeLast();
   QVariantList out;

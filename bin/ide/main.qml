@@ -481,7 +481,7 @@ ApplicationWindow {
                 const name = welcomeForFOpen.loadingFileName;
                 const idx = window.pm.index(window.pm.currentProjectRow, 0);
                 window.pm.setData(idx, name, window.pm.roleForName("path"));
-                settings.general.pushRecentFile(name, arch, abs);
+                settings.general.pushRecentFile(name, arch, abs, feats);
                 sidebar.switchToMode("Editor");
                 welcomeForFOpen.loadingFileName = Qt.binding(() => "");
                 welcomeForFOpen.loadingFileContent = Qt.binding(() => "");
@@ -495,14 +495,14 @@ ApplicationWindow {
 
     FileIO {
         id: fileio
-        onCodeLoaded: function (name, content, arch, abs) {
+        onCodeLoaded: function (name, content, arch, abs, feats) {
             if (!name || !content)
                 return;
             if (arch !== 0 && abs !== 0) {
-                const prj = window.pm.onAddProject(arch, abs, 0, content, true);
+                const prj = window.pm.onAddProject(arch, abs, feats, content, true);
                 const idx = window.pm.index(window.pm.currentProjectRow, 0);
                 window.pm.setData(idx, name, window.pm.roleForName("path"));
-                settings.general.pushRecentFile(name, arch, abs);
+                settings.general.pushRecentFile(name, arch, abs, feats);
                 sidebar.switchToMode("Editor");
                 return;
             } else if (name.match(/pep$/i)) {
@@ -537,8 +537,8 @@ ApplicationWindow {
         fileio.loadCodeViaDialog("");
     }
     // must be named onOpenFile, or `gui.cpp` must be updated!
-    function onOpenFile(filename, arch, abs) {
-        fileio.loadCodeFromFile(filename, arch, abs);
+    function onOpenFile(filename, arch, abs, feats) {
+        fileio.loadCodeFromFile(filename, arch, abs, feats);
     }
     function onSaveAs(extension) {
         pm.onSaveAs(currentProjectRow, extension);
