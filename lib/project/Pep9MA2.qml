@@ -95,7 +95,7 @@ FocusScope {
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
         project.errorsChanged.connect(displayErrors);
-        // project.switchTo.connect(wrapper.onSwitchTo)
+        microEdit.onDirtiedChanged.connect(wrapper.markDirty);
     }
 
     signal requestModeSwitchTo(string mode)

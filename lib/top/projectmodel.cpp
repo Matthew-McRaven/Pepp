@@ -47,6 +47,8 @@ namespace {
 void markClean(QObject *item) {
   if (auto isa = qobject_cast<Pep_ISA *>(item)) {
     emit isa->markedClean();
+  } else if (auto ma = qobject_cast<Pep_MA *>(item)) {
+    emit ma->markedClean();
   }
 }
 } // namespace
@@ -204,6 +206,9 @@ QString ProjectModel::describe(int index) const {
   } else if (auto asmb = dynamic_cast<Pep_ASMB *>(_projects[index].impl.get())) {
     arch = asmb->architecture();
     abs = asmb->abstraction();
+  } else if (auto ma = dynamic_cast<Pep_MA *>(_projects[index].impl.get())) {
+    arch = ma->architecture();
+    abs = ma->abstraction();
   } else return "";
   QString abs_str = abs_enum.valueToKey((int)abs);
   return QStringLiteral("%1, %2").arg(pepp::archAsPrettyString(arch), pepp::abstractionAsPrettyString(abs));
@@ -235,9 +240,9 @@ const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, pepp::Features,
         {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pepl"},
          "Pep/10 Assembly Listing (*.pepl)"},
 
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::None, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::OneByte, "pepcpu"},
          "Pep/10 Microcode Code, 1-byte (*.pepcpu)"},
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::None, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::TwoByte, "pepcpu"},
          "Pep/10 Microcode Code, 2-byte (*.pepcpu)"},
 
         {{pepp::Abstraction::ISA3, pepp::Architecture::PEP9, pepp::Features::None, "pepo"},
@@ -250,9 +255,9 @@ const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, pepp::Features,
         {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pepl"},
          "Pep/9 Assembly Listing (*.pepl)"},
 
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::None, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::OneByte, "pepcpu"},
          "Pep/9 Microcode Code, 1-byte (*.pepcpu)"},
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::None, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::TwoByte, "pepcpu"},
          "Pep/9 Microcode Code, 2-byte (*.pepcpu)"},
 };
 
@@ -389,6 +394,7 @@ bool ProjectModel::onSaveAs(int row, const QString &extension) {
 #ifdef __EMSCRIPTEN__
   QString fname = "user.o";
   switch (first) {
+  case pepp::Abstraction::MA2: fname = "user.pepcpu"; break;
   case pepp::Abstraction::ISA3: fname = "user.pepo"; break;
   case pepp::Abstraction::ASMB3: [[fallthrough]];
   case pepp::Abstraction::ASMB5: fname = "user.pep"; break;
@@ -440,6 +446,8 @@ void ProjectModel::appendProject(std::unique_ptr<QObject> &&obj) {
     connect(asmb, &Pep_ASMB::markDirty, this, lambda);
   } else if (auto isa = qobject_cast<Pep_ISA *>(ptr)) {
     connect(isa, &Pep_ISA::markDirty, this, lambda);
+  } else if (auto ma = qobject_cast<Pep_MA *>(ptr)) {
+    connect(ma, &Pep_MA::markDirty, this, lambda);
   } else {
     qDebug() << "Fast dirtying logic will not work, pointer cast failed";
   }
