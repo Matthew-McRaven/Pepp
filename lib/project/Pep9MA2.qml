@@ -84,9 +84,12 @@ FocusScope {
         // WASM version doesn't seem to give focus to editor without giving focus to something else first.
         // Without this workaround the text editor will not receive focus on subsequent key presses.
         if (PlatformDetector.isWASM)
-            dock_cpu.forceActiveFocus();
+            onLoadFocusHelper.forceActiveFocus();
         // Delay giving focus to editor until the next frame. Any editor that becomes visible without being focused will be incorrectly painted
-        Qt.callLater(() => microEdit.forceEditorFocus());
+        Qt.callLater(() => {
+            onLoadFocusHelper.visible = false
+            microEdit.forceEditorFocus()
+        });
         for (const x of widgets) {
             x.needsAttention = false;
         }
@@ -120,6 +123,17 @@ FocusScope {
     FontMetrics {
         id: editorFM
         font: settings.extPalette.baseMono.font
+    }
+    // If editor is given focus immediately in WASM, the editor is treated as RO.
+    // So, we nee a dummy component which is given focus on load, so we can give focus to the real editor on the next frame.
+    TextField {
+        id: onLoadFocusHelper
+        anchors {
+            top: parent.top
+            left: parent.left
+        }
+        width: 70
+        placeholderText: "Grab Focus"
     }
     KDDW.DockingArea {
         id: dockWidgetArea
@@ -179,6 +193,7 @@ FocusScope {
                 "debugger": true
             }
             OC.MicroObjectView {
+                id: micro_object
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(200, 400)
                 microcode: project?.microcode ?? null
