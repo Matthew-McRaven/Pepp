@@ -123,15 +123,15 @@ void GraphicCanvas::cacheBackground()
     painter.setPen(pen);
 
     //  Horizontal minor lines
-    line.setLine(height / 4, 0, height / 4, width);
+    line.setLine(height / 4 - 1, 0, height / 4, width - 1);
     painter.drawLine(line);
-    line.setLine(height * .75, 0, height * .75, width);
+    line.setLine(height * .75 - 1, 0, height * .75, width - 1);
     painter.drawLine(line);
 
     //  Vertical minor lines
-    line.setLine(0, width / 4, height, width / 4);
+    line.setLine(0, width / 4 - 1, height, width / 4 - 1);
     painter.drawLine(line);
-    line.setLine(0, width * .75, height, width * .75);
+    line.setLine(0, width * .75 - 1, height, width * .75 - 1);
     painter.drawLine(line);
 
     //  Horizontal mid lines
@@ -140,11 +140,11 @@ void GraphicCanvas::cacheBackground()
     pen.setDashPattern(dashes);
     pen.setColor(QColorConstants::Svg::cornflowerblue);
     painter.setPen(pen);
-    line.setLine(height / 2, 0, height / 2, width);
+    line.setLine(height / 2 - 1, 0, height / 2 - 1, width);
     painter.drawLine(line);
 
     //  Vertical mid lines
-    line.setLine(0, width / 2, height, width / 2);
+    line.setLine(0, width / 2 - 1, height, width / 2 - 1);
     painter.drawLine(line);
 
     //  Major lines
