@@ -447,11 +447,12 @@ Item {
             }
         }
     }
-    RowLayout {
+    GridLayout {
         id: buttonLayout
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.right: parent.right
+        columns: root.width > (4*pcButton.width) ? 4 : 2
         Label {
             text: "Scroll to:"
             color: palette.windowText
@@ -459,19 +460,19 @@ Item {
         TextField {
             id: addrField
             maximumLength: 6
-            width: fm.averageCharacterWidth * maximumLength
+            Layout.minimumWidth: fm.averageCharacterWidth*(maximumLength + 2)
+            Layout.maximumWidth: pcButton.width
             font: fm.font
-            text: `0x${root.currentAddress.toString(16).padStart(
-                      4, '0').toUpperCase()}`
+            text: `0x${root.currentAddress.toString(16).padStart(4, '0').toUpperCase()}`
             validator: RegularExpressionValidator {
                 regularExpression: /0x[0-9a-fA-F]{1,4}/
             }
             onEditingFinished: {
-                const v = parseInt(text, 16)
+                const v = parseInt(text, 16);
                 if (v < 0 || v > 0xFFFF)
-                    text = "0x0000"
+                    text = "0x0000";
                 else
-                    root.scrollToAddress(v)
+                    root.scrollToAddress(v);
             }
         }
         Button {
