@@ -214,7 +214,8 @@ FocusScope {
                 Component.onCompleted: {
                     const props = {
                         "memory": project.memory,
-                        "mnemonics": project.mnemonics
+                        "mnemonics": project.mnemonics,
+                        "bytesPerRow": 4
                     };
                     // Construction sets current address to 0, which propogates back to project.
                     // Must reject changes in current address until component is fully rendered.

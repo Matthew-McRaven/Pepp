@@ -1,10 +1,8 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Controls.Material
 
-Item {
-    id: root
-
+Rectangle {
+    id: background
     property int colWidth: 30
     property int rowHeight: 20
     property alias backgroundColor: background.color
@@ -16,32 +14,28 @@ Item {
 
     implicitWidth: colWidth
     implicitHeight: rowHeight
-    Rectangle {
-        id: background
-        anchors.fill: root
 
-        Label {
-            id: rowNum
+    Label {
+        id: rowNum
 
-            anchors.fill: parent
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignHCenter
+        anchors.fill: parent
+        verticalAlignment: Text.AlignVCenter
+        horizontalAlignment: Text.AlignHCenter
 
-            color: palette.text
-            text: ""
-        }
-        ToolTip {
-            id: tip
-            // If null or empty string, don't display tooltip.
-            enabled: ((text ?? "") !== "")
-            visible: enabled && ma.hovered
-            delay: 1000
-        }
+        color: palette.text
+        text: ""
+    }
+    ToolTip {
+        id: tip
+        // If null or empty string, don't display tooltip.
+        enabled: ((text ?? "") !== "")
+        visible: enabled && ma.hovered
+        delay: 1000
+    }
 
-        //  Used to trigger tool tip
-        HoverHandler {
-            id: ma
-            enabled: true
-        }
+    //  Used to trigger tool tip
+    HoverHandler {
+         id: ma
+         enabled: true
     }
 }

@@ -14,17 +14,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "memorybytemodel.hpp"
-#include "rawmemory.hpp"
-
-#include <cmath>
-
 #include <QBrush>
 #include <QColor>
 #include <QPoint>
 #include <QQmlEngine>
 #include <QRect>
-//  For testing only
-#include <QRandomGenerator>
+#include "core/math/bitmanip/log2.hpp"
+#include "rawmemory.hpp"
+#include "settings/settings.hpp"
 
 using namespace Qt::StringLiterals;
 
@@ -46,8 +43,6 @@ MemoryByteModel::MemoryByteModel(QObject *parent, const quint8 bytesPerRow)
   QQmlEngine::setObjectOwnership(memory_, QQmlEngine::CppOwnership);
   setNumBytesPerLine(bytesPerRow);
   clear();
-  //  Test last cell
-  // writeByte(size_ -1, 88);
 }
 
 ARawMemory *MemoryByteModel::memory() const {
@@ -108,9 +103,12 @@ void MemoryByteModel::writeByte(const quint32 address, const quint8 value) {
   setData(index, value, Qt::DisplayRole);
 }
 
-void MemoryByteModel::setNumBytesPerLine(const quint8 bytesPerLine) {
+void MemoryByteModel::setNumBytesPerLine(quint8 bytesPerLine) {
   Q_ASSERT(bytesPerLine > 0);
-
+  // Round up bytesPerLine to nearest power of 2.
+  bytesPerLine = bits::nearest_power_of_two(bytesPerLine);
+  if (bytesPerLine == width_) return;
+  beginResetModel();
   //  Set bytes per row
   //  Initialized on construction to 8 bytes per row. If values are invalid, default is used
   if (bytesPerLine == 0) width_ = 8;
@@ -124,23 +122,24 @@ void MemoryByteModel::setNumBytesPerLine(const quint8 bytesPerLine) {
 
   //  Signal that row count has changed
   emit dimensionsChanged();
+  endResetModel();
 }
 
 QHash<int, QByteArray> MemoryByteModel::roleNames() const {
   using M = MemoryRoles::Roles;
   // Use a type alias so that auto-formatting is less ugly.
   using T = QHash<int, QByteArray>;
-  static T ret = {{Qt::DisplayRole, "display"}, {Qt::ToolTipRole, "toolTip"}, {Qt::TextAlignmentRole, "textAlign"},
-                  {M::Selected, "selected"},    {M::Editing, "editing"},      {M::Type, "type"},
+  static T ret = {{Qt::DisplayRole, "display"},
+                  {Qt::ToolTipRole, "toolTip"},
+                  {Qt::TextAlignmentRole, "textAlign"},
+                  {M::Type, "type"},
                   {M::Highlight, "highlight"}};
   return ret;
 }
 
-QVariant MemoryByteModel::headerData(int section, Qt::Orientation orientation, int role) const { return QVariant(); }
+int MemoryByteModel::rowCount(const QModelIndex &) const { return height(); }
 
-int MemoryByteModel::rowCount(const QModelIndex &parent) const { return height(); }
-
-int MemoryByteModel::columnCount(const QModelIndex &parent) const {
+int MemoryByteModel::columnCount(const QModelIndex &) const {
   //  Number of binary numbers in row plus row number and ascii representation
   Q_ASSERT(column_->Total() == (width_ + 4));
   return column_->Total();
@@ -149,6 +148,7 @@ int MemoryByteModel::columnCount(const QModelIndex &parent) const {
 int MemoryByteModel::bytesPerRow() const { return column_->bytesPerLine(); }
 
 QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
+  static pepp::settings::AppSettings settings;
   if (!index.isValid()) return QVariant();
 
   // The index returns the requested row and column information
@@ -156,7 +156,6 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
   const int row = index.row();
   const int col = index.column();
   const int i = memoryOffset(index);
-  const bool editField = (flags(index) != Qt::NoItemFlags);
 
   using M = MemoryRoles::Roles;
   switch (role) {
@@ -179,17 +178,12 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
 
     //  Show data in hex format
     return QStringLiteral("%1").arg(memory_->read(i), 2, 16, QLatin1Char('0')).toUpper();
-
-  case M::Editing:
-    //  for last line when memory model is smaller than displayed items
-    if (i < 0) return QVariant();
-    //  Only one cell can be edited at a time
-    return i == editing_;
   case M::Highlight:
     // Don't higlight non-memory-valued cells.
     if (col == column_->LineNo() || col == column_->Ascii() || col == column_->Border1() || col == column_->Border2())
-      return {};
-    return QVariant::fromValue(memory_->status(i));
+      return (int)MemoryHighlight::None;
+    return (int)memory_->status(i);
+
   case Qt::TextAlignmentRole:
     if (col == column_->Ascii()) return QVariant(Qt::AlignLeft);
     //  Default for all other cells
@@ -240,57 +234,20 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
 }
 
 bool MemoryByteModel::setData(const QModelIndex &index, const QVariant &value, int role) {
-  //  See if value is different from passed in value
-  using M = MemoryRoles::Roles;
-  switch (role) {
-  case M::Editing: {
-    // if( current != value) {
-    const int i = memoryOffset(index);
-
-    //  Bad index, just return
-    if (i < 0) return false;
-
-    QModelIndex ascii = QAbstractItemModel::createIndex(index.row(), column_->Ascii());
-
-    //  Save index for editing
-    lastEdit_ = editing_;
-    editing_ = value.toInt();
-
-    //  Repaint changed row
-    emit dataChanged(index, ascii);
-
-    //  Return true if cleared
+  if (role != Qt::DisplayRole) return false;
+  const int i = memoryOffset(index), hex = (int)std::strtol(value.toString().toStdString().c_str(), NULL, 16);
+  if (i < 0) return false;
+  else if (const auto current = data(index, role); current != hex) {
+    memory_->write(i, hex);
+    emit dataChanged(index, index);
     return true;
-    //}
-    // break;
-  }
-  case Qt::DisplayRole: {
-
-    int hex = (int)std::strtol(value.toString().toStdString().c_str(), NULL, 16);
-    const auto current = data(index, role);
-    if (current != hex) {
-      const int i = memoryOffset(index);
-
-      //  Bad index, just return
-      if (i < 0) return false;
-
-      QModelIndex ascii = QAbstractItemModel::createIndex(index.row(), column_->Ascii());
-
-      memory_->write(i, hex);
-      //  Repaint changed value
-      emit dataChanged(index, ascii);
-    }
-  }
-  }
-
-  return false;
+  } else return false;
 }
 
 Qt::ItemFlags MemoryByteModel::flags(const QModelIndex &index) const {
   if (!index.isValid() || index.column() < column_->CellStart() || index.column() > column_->CellEnd())
     return Qt::NoItemFlags;
 
-  //  All other items can be edited.
   return Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
@@ -350,77 +307,13 @@ QString MemoryByteModel::ascii(const int row) const {
   return edit;
 }
 
-QVariant MemoryByteModel::selected(const QModelIndex &index, const MemoryRoles::Roles role) const {
-  if (!index.isValid()) return QVariant();
-
-  //  Convert to memory location
-  int i = memoryOffset(index);
-  if (i < 0) return false;
-
-  //  Check for edit mode
-  if (role == MemoryRoles::Editing) return editing_;
-  return QVariant();
-}
-
-QVariant MemoryByteModel::setSelected(const QModelIndex &index, const MemoryRoles::Roles role) {
-  //  Current field is not editable or selectable
-  if (flags(index) == Qt::NoItemFlags) return false;
-
-  //  Check for edit mode
-  if (role == MemoryRoles::Editing) {
-    //  New location
-    const QModelIndex oldIndex = memoryIndex(editing_);
-
-    //  Clear old value, if any
-    if (oldIndex != index) clearSelected(oldIndex, role);
-
-    //  Convert QModelIndex into memory location
-    const auto i = memoryOffset(index);
-
-    //  Set new value - changes formatting
-    setData(index, QVariant::fromValue(i), role);
-
-    return editing_ > -1;
-  }
-
-  //  Other roles are read only
-  return QVariant();
-}
-
-void MemoryByteModel::clearSelected(const QModelIndex &index, const MemoryRoles::Roles role) {
-  //  Return if index is invalid
-  if (!index.isValid()) return;
-
-  //  Check for edit mode
-  if (role == MemoryRoles::Editing) {
-    if (editing_ == -1) return;
-
-    //  Only 1 cell can be edited. Find cell from currently selected item
-    lastEdit_ = editing_;
-    const QModelIndex oldIndex = memoryIndex(editing_);
-
-    //  Check that old index matches currently edited field
-    //  before clearing, then fix colors on old cell
-    if (oldIndex.isValid() && index == oldIndex) setData(oldIndex, -1, role);
-  }
-}
-
-QModelIndex MemoryByteModel::currentCell() {
-  //  Only 1 cell can be edited. Find cell from currently selected item
-  return memoryIndex(editing_);
-}
-
-QModelIndex MemoryByteModel::lastCell() { return memoryIndex(lastEdit_); }
-
 void MemoryByteModel::onDataChanged(quint32 start, quint32 end) {
-  auto startIndex = memoryIndex(start);
-  auto endIndex = memoryIndex(end);
+  // Conservatively repaint the entire
+  auto startIndex = memoryIndex(start).siblingAtColumn(1);
+  auto endIndex = memoryIndex(end).siblingAtColumn(columnCount() - 1);
   static const auto roles = QList<int>{Qt::DisplayRole, (int)MemoryRoles::Highlight};
   if (!(startIndex.isValid() && endIndex.isValid())) return;
-  // Update the entire block of rows rather than a subset of cells.
-  // We know the ascii changes, and I want to avoid 2x the number of events.
-  startIndex = index(startIndex.row(), 1); // skip row number column
-  endIndex = index(endIndex.row(), columnCount() - 1);
+
   if (!(startIndex.isValid() && endIndex.isValid())) {
     static const char *const e = "Bad column access";
     qCritical(e);
