@@ -45,11 +45,6 @@ Item {
         // Ensure that have non-empty content, even if the canvas is currently empty.
         contentWidth: canvas.contentWidth
         contentHeight: canvas.contentHeight
-        // A dummy item which gives us something to scroll against
-        /*delegate: GridLines {
-            implicitWidth: 100
-            implicitHeight: 100
-        }*/
 
         ScrollBar.vertical: ScrollBar {
             id: vsb
