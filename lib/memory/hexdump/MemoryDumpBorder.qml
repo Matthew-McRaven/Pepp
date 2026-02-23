@@ -1,12 +1,8 @@
 import QtQuick
 
-Rectangle {
-    property alias backgroundColor: background.color
-    property alias foregroundColor: border.color
-
+Item {
     id: background
-    color: palette.window
-
+    property alias color: border.color
     Rectangle {
         id: border
         width: 1

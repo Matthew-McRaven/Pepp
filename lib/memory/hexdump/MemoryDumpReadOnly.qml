@@ -1,15 +1,20 @@
 import QtQuick
 import QtQuick.Controls
 
-Rectangle {
-    id: background
+Item {
+    id: root
+    required property bool enableBackground
     property alias backgroundColor: background.color
     property alias textColor: rowNum.color
     property alias text: rowNum.text
     property alias textAlign: rowNum.horizontalAlignment
     property alias font: rowNum.font
     property alias tooltip: tip.text
-
+    Rectangle {
+        id: background
+        visible: root.enableBackground
+        anchors.fill: parent
+    }
     Label {
         id: rowNum
 
@@ -27,7 +32,6 @@ Rectangle {
         visible: enabled && ma.hovered
         delay: 1000
     }
-
     //  Used to trigger tool tip
     HoverHandler {
          id: ma

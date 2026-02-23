@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -31,6 +33,10 @@ Item {
 
     TableView {
         id: tableView
+        Rectangle {
+            anchors.fill: parent
+            color: palette.base
+        }
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.right: parent.right
@@ -102,8 +108,7 @@ Item {
                 id: border
                 roleValue: "border"
                 Ui.MemoryDumpBorder {
-                    backgroundColor: palette.base
-                    foregroundColor: palette.text
+                    color: palette.text
                     implicitWidth: colWidth
                     implicitHeight: rowHeight
                 }
@@ -124,6 +129,7 @@ Item {
                     font: fm.font
                     implicitWidth: colWidth
                     implicitHeight: rowHeight
+                    enableBackground: highlight !== 0
                 }
             }
         }
