@@ -104,6 +104,8 @@ Item {
                 Ui.MemoryDumpBorder {
                     backgroundColor: palette.base
                     foregroundColor: palette.text
+                    implicitWidth: colWidth
+                    implicitHeight: rowHeight
                 }
             }
 
@@ -114,14 +116,14 @@ Item {
                     required property string display
                     required property string tooltip
                     required property int textAlign
-                    rowHeight: rowHeight
-                    colWidth: colWidth
                     backgroundColor: tableView.mapped_colors[highlight ?? 0]
                     textColor: palette.text
                     text: display
                     tooltip: tooltip ?? null
                     textAlign: textAlign
                     font: fm.font
+                    implicitWidth: colWidth
+                    implicitHeight: rowHeight
                 }
             }
         }

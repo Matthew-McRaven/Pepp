@@ -4,8 +4,6 @@ Rectangle {
     property alias backgroundColor: background.color
     property alias foregroundColor: border.color
 
-    implicitHeight: 20
-    implicitWidth: 40
     id: background
     color: palette.window
 
