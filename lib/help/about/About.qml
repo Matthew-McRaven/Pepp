@@ -54,19 +54,19 @@ Item {
         width: parent.width
         TabButton {
             text: "Pepp"
-            width: root.implicitButtonWidth
+            width: Math.max(root.implicitButtonWidth, implicitWidth)
         }
         TabButton {
             text: "Change Log"
-            width: root.implicitButtonWidth
+            width: Math.max(root.implicitButtonWidth, implicitWidth)
         }
         TabButton {
             text: "System Info"
-            width: root.implicitButtonWidth
+            width: Math.max(root.implicitButtonWidth, implicitWidth)
         }
         TabButton {
             text: "Dependencies"
-            width: root.implicitButtonWidth
+            width: Math.max(root.implicitButtonWidth, implicitWidth)
         }
     }
 
