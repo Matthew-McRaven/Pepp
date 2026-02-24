@@ -58,21 +58,12 @@ void GraphicCanvas::updateData()
     DiagramProperties *data = addDiagram(2, 2);
     if (data == nullptr)
         return;
-    //QRect gridRect{0, 0, major_block_size, major_block_size};
-
-    //auto index = _model->index(0, 0);
-    //DiagramProperties *data = _model->createItem(index);
 
     //  Add block data
     data->setName(lookup[0]);
-    //data->setRectangle({0, 0, 1, 2});
-    //data->setGridRectangle(gridRect - _margin);
     data->setType(0);
     data->setOrientation(0);
     getImage(*data);
-
-    //  Keep track of canvas size
-    //_dimensions = _dimensions.united(gridRect);
 
     /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
 
@@ -404,8 +395,8 @@ void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
     const int width = std::abs(from.column() - to.column() + 1);
 
     //convert to screen coordinates
-    QRectF rect{x * minor_block_size * grid_to_px,
-                y * minor_block_size * grid_to_px,
+    QRectF rect{(x * minor_block_size - major_block_size / 2) * grid_to_px,
+                (y * minor_block_size - major_block_size / 2) * grid_to_px,
                 height * major_block_size * grid_to_px,
                 width * major_block_size * grid_to_px};
 
@@ -524,6 +515,7 @@ bool GraphicCanvas::setSelected(const QPoint point)
 void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event)
 {
     qDebug() << "MouseRelease" << event;
+    //setCursor(Qt::ArrowCursor);
 }
 
 /*
@@ -646,6 +638,7 @@ void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event)
     if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
         if (event->source() == this) {
             event->setDropAction(Qt::MoveAction);
+            //setCursor(Qt::OpenHandCursor);
             event->accept();
         } else {
             event->acceptProposedAction();
@@ -659,6 +652,8 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
 {
     qDebug() << "dropEvent";
     if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
+        //setCursor(Qt::ArrowCursor);
+
         QByteArray itemData = event->mimeData()->data("application/x-dnditemdata");
         QDataStream dataStream(&itemData, QIODevice::ReadOnly);
 
@@ -682,7 +677,6 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
 
         //  Update model
         _model->move(oldIndex, newIndex);
-        unsetCursor();
 
         update();
 
@@ -705,21 +699,22 @@ void GraphicCanvas::startDrag(const QPoint point)
     QByteArray itemData;
     QDataStream dataStream(&itemData, QIODevice::WriteOnly);
 
-    //dataStream << _currentItem->rectangle().center().x() << _currentItem->rectangle().center().y();
     dataStream << _currentItem->rectangle().x() << _currentItem->rectangle().y();
 
     QMimeData *mimeData = new QMimeData;
     mimeData->setData("application/x-dnditemdata", itemData);
     drag->setMimeData(mimeData);
 
-    //  Size image based on current zoom and screen DPI.
-    const auto curSize = (screen_block - _margin.left() * grid_to_px * 2) * _currentZoom;
+    //  Size image based on current zoom and screen DPI. Margin is in grid coordinates, and
+    //  there are 2 equal margins.
+    const auto curSize = (screen_block - (_margin.left() * grid_to_px * 2)) * _currentZoom;
     auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
     drag->setPixmap(dragPix);
 
     QPointF offset{curSize / 2, curSize / 2};
     drag->setHotSpot(offset.toPoint());
-    setCursor(Qt::OpenHandCursor);
+
+    //setCursor(Qt::OpenHandCursor);
 
     //  If this function is not called, the drag will not start
     drag->exec();

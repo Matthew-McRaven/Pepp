@@ -23,16 +23,14 @@ int main(int argc, char *argv[])
         Qt::QueuedConnection);
     engine.loadFromModule("CircuitDesign", "Main");
 
-    app.setWindowIcon(QIcon{"qrc:/icon"});
+    app.setWindowIcon(QIcon{":/icon"});
 
     return app.exec();
 }
 
 /*  To Do
  *  
- *  Drag/Drop
  *  Add toolbar with selection modes
  *  Filter sidebar to only show stencils available from toolbar
- *  Scale down graphics by 25%
- * 
+ *  Display shadow where object will drop using hover. 
  */
