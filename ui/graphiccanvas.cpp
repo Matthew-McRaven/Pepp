@@ -290,32 +290,39 @@ DiagramProperties *GraphicCanvas::addDiagram(const int col, const int row)
     if (col < 0 || row < 0)
         return nullptr;
 
-    //  Column and row represents center point, not top left
-    QRect gridRect{minor_block_size * col - major_block_size / 2,
-                   minor_block_size * row - major_block_size / 2,
-                   major_block_size,
-                   major_block_size};
-
     //  Create index and check for data
     const auto newIndex = _model->index(col, row);
     DiagramProperties *data = _model->createItem(newIndex);
 
     //  Add block data
-    data->setRectangle({col, row, 2, 2});
-    data->setGridRectangle(gridRect - _margin);
+    setGrid(data, col, row);
+
     if (_template != nullptr) {
         data->setName(_template->name());
         data->setType(_template->key());
     }
     getImage(*data);
 
-    //  Track dimensions of canvas area. Affects scrollbars
-    _dimensions = _dimensions.united(gridRect);
-
     //  Set select flag
     _model->setData(newIndex, true, DiagramProperty::Role::Selected);
 
     return data;
+}
+
+void GraphicCanvas::setGrid(DiagramProperties *data, const int col, const int row)
+{
+    //  Column and row represents center point, not top left
+    QRect gridRect{minor_block_size * col - major_block_size / 2,
+                   minor_block_size * row - major_block_size / 2,
+                   major_block_size,
+                   major_block_size};
+
+    //  Track dimensions of canvas area. Affects scrollbars
+    _dimensions = _dimensions.united(gridRect);
+
+    //  Add block data
+    data->setRectangle({col, row, 2, 2});
+    data->setGridRectangle(gridRect - _margin);
 }
 
 void GraphicCanvas::getImage(DiagramProperties &props)
@@ -373,6 +380,17 @@ QPoint GraphicCanvas::screen_to_grid(QPointF point)
     const float y = point.y() / grid_to_px + _top_left.y();
 
     return QPointF{x / _currentZoom, y / _currentZoom}.toPoint();
+}
+
+const QPoint GraphicCanvas::grid_to_index(const QPoint point) const
+{
+    //  Images are stored by row and column.
+    //  Due to integer math, items closer to next row or column are still in same column/row.
+    //  Calculate rounding difference
+    const int dx = (point.x() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
+    const int dy = (point.y() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
+
+    return QPoint{point.x() / minor_block_size + dx, point.y() / minor_block_size + dy};
 }
 
 void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
@@ -446,10 +464,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     //  Images are stored by row and column.
     //  Due to integer math, items closer to next row or column are still in same column/row.
     //  Calculate rounding difference
-    const int dx = (point.x() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
-    const int dy = (point.y() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
-    const int col = point.x() / minor_block_size + dx;
-    const int row = point.y() / minor_block_size + dy;
+    const auto index = grid_to_index(point);
 
     //  See if existing item was clicked
     if (setSelected(point)) {
@@ -465,7 +480,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 
     //  If we get here, we have a new item. Insert into canvas
     //  Use coordinate as center point
-    DiagramProperties *data = addDiagram(col, row);
+    DiagramProperties *data = addDiagram(index.x(), index.y());
 
     //  If no data is returned, the column is invalid. Assume parent will handle
     event->setAccepted(data != nullptr ? true : false);
@@ -606,7 +621,7 @@ void GraphicCanvas::setZoom(qint8 change)
 
 void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)
 {
-    qDebug() << "dragEnterEvent";
+    //qDebug() << "dragEnterEvent";
     if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
         if (event->source() == this) {
             event->setDropAction(Qt::MoveAction);
@@ -622,7 +637,7 @@ void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)
 void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event)
 {
     event->ignore();
-    qDebug() << "dragLeaveEvent";
+    //qDebug() << "dragLeaveEvent";
 }
 
 void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event)
@@ -654,23 +669,25 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
         //  to determine rectangle hit.
         const auto point = screen_to_grid(event->position());
 
-        //  Images are stored by row and column.
-        const int newX = point.x() / minor_block_size;
-        const int newY = point.y() / minor_block_size;
+        //  Due to integer math, items closer to next row or column are still in same column/row.
+        //  Calculate rounding difference
+        const auto newPtIndex = grid_to_index(point);
 
         const auto oldIndex = _model->index(oldX, oldY);
-        const auto newIndex = _model->index(newX, newY);
+        const auto newIndex = _model->index(newPtIndex.x(), newPtIndex.y());
 
         //  Update grid coordinates
         DiagramProperties *data = _model->item(oldIndex);
-        QRect gridRect{minor_block_size * newX,
+        setGrid(data, newPtIndex.x(), newPtIndex.y());
+
+        /*QRect gridRect{minor_block_size * newX,
                        minor_block_size * newY,
                        major_block_size,
                        major_block_size};
         data->setGridRectangle(gridRect - _margin);
 
         //  Keep track of canvas size
-        _dimensions = _dimensions.united(gridRect);
+        _dimensions = _dimensions.united(gridRect);*/
 
         //  Update model
         _model->move(oldIndex, newIndex);
@@ -705,7 +722,7 @@ void GraphicCanvas::startDrag(const QPoint point)
     drag->setMimeData(mimeData);
 
     //  Size image based on current zoom and screen DPI.
-    const auto curSize = screen_block * _currentZoom;
+    const auto curSize = (screen_block - _margin.left() * 2) * _currentZoom;
     auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
     drag->setPixmap(dragPix);
 

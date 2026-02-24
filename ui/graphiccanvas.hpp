@@ -153,6 +153,8 @@ private:
     QRectF grid_to_screen(QRectF rect);
     QRectF screen_to_grid(QRectF rect);
     QPoint screen_to_grid(QPointF point);
+    const QPoint grid_to_index(const QPoint point) const;
+
     void setZoom(qint8 change);
 
     //  Sets currently selected diagram
@@ -169,6 +171,7 @@ private:
 
     //  Add diagram, and center in cell
     DiagramProperties *addDiagram(const int row, const int col);
+    void setGrid(DiagramProperties *data, const int col, const int row);
 
     //  Respond to data changes in model
     void updateCell(const QModelIndex &from, const QModelIndex &to);
