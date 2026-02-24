@@ -148,11 +148,12 @@ Item {
                         Repeater {
                             model: MaintainerList {}
 
-                            Label {
+                            TextEdit {
                                 width: parent.width
                                 height: fontMetrics.height
                                 required property var item
                                 text: item.name + "  <" + item.email + ">"
+                                readOnly: true
                             }
                             height: model.rowCount() * fontMetrics.height
                         }
@@ -166,15 +167,16 @@ Item {
                         font.bold: true
                     }
 
-                    Label {
+                    TextEdit {
                         Layout.fillWidth: true
                         Layout.topMargin: 0
                         Layout.margins: root.sideMargin
                         wrapMode: Text.WordWrap
                         text: Contributors.text
+                        readOnly: true
                     }
 
-                    Label {
+                    TextEdit {
                         Layout.fillWidth: true
                         Layout.topMargin: root.paragraphSpace
                         Layout.leftMargin: root.sideMargin
@@ -182,19 +184,22 @@ Item {
                         text: qsTr("Legal:")
                         font.bold: true
                         wrapMode: Text.WordWrap
+                        readOnly:true
                     }
-                    Label {
+                    TextEdit {
                         Layout.fillWidth: true
                         Layout.leftMargin: root.sideMargin
                         Layout.rightMargin: root.sideMargin
                         text: qsTr(`Copyright © 2016 - ${Version.build_year}, J. Stanley Warford, Matthew McRaven, Pepperdine University`)
                         wrapMode: Text.WordWrap
+                        readOnly:true
                     }
-                    Label {
+                    TextEdit {
                         Layout.fillWidth: true
                         Layout.margins: root.sideMargin
-                        wrapMode: Text.WordWrap
                         text: qsTr("This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.")
+                        wrapMode: Text.WordWrap
+                        readOnly:true
                     }
                     Label {
                         Layout.fillWidth: true
@@ -204,11 +209,6 @@ Item {
                         //Layout.preferredWidth: parent.width
                         wrapMode: Text.WordWrap
                         onLinkActivated: link => Qt.openUrlExternally(link)
-                        MouseArea {
-                            anchors.fill: parent
-                            acceptedButtons: Qt.NoButton // Don't eat the mouse clicks
-                            cursorShape: Qt.PointingHandCursor
-                        }
                     }
                     TextArea {
                         id: license
