@@ -1400,12 +1400,27 @@ pepp::debug::BreakpointSet *Pep_MA::breakpointModel() {
 
 bool Pep_MA::isEmpty() const { return _microcodeText.isEmpty(); }
 
+int Pep_MA::allowedDebugging() const {
+  using D = project::DebugEnableFlags;
+  switch (_state) {
+  case State::Halted: return D::Start | D::Execute;
+  case State::DebugPaused: return D::Continue | D::Stop;
+  case State::NormalExec: return D::Stop;
+  case State::DebugExec: return D::Stop;
+  default: return 0b0;
+  }
+}
+
 int Pep_MA::enabledSteps() const {
   using S = project::StepEnableFlags::Value;
   return S::Step;
 }
 
-int Pep_MA::allowedSteps() const { return 0; }
+int Pep_MA::allowedSteps() const {
+  using S = project::StepEnableFlags::Value;
+  if (_state != State::DebugPaused) return 0b0;
+  return S::Step;
+}
 
 QString Pep_MA::contentsForExtension(const QString &ext) const {
   if (ext.compare("pepcpu", Qt::CaseInsensitive) == 0) {
@@ -1436,15 +1451,47 @@ bool Pep_MA::onMicroAssemble() { return _microassemble(false); }
 
 bool Pep_MA::onMicroAssembleThenFormat() { return _microassemble(true); }
 
-bool Pep_MA::onExecute() { return true; }
+bool Pep_MA::onExecute() {
+  prepareSim();
+  _state = State::NormalExec;
+  //_stepsSinceLastInteraction = 0;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  _system->bus()->trace(true);
+  emit deferredExecution([]() { return false; });
+  return true;
+}
 
-bool Pep_MA::onDebuggingStart() { return true; }
+bool Pep_MA::onDebuggingStart() {
+  prepareSim();
+  _state = State::DebugPaused;
+  // _stepsSinceLastInteraction = 0;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  _system->bus()->trace(true);
+  // TODO: actually start debugging
+  return true;
+}
 
-bool Pep_MA::onDebuggingContinue() { return true; }
+bool Pep_MA::onDebuggingContinue() {
+  _state = State::DebugExec;
+  _pendingPause = false;
+  // _stepsSinceLastInteraction = 0;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  emit deferredExecution([]() { return false; });
+  return true;
+}
 
 bool Pep_MA::onDebuggingPause() { return true; }
 
-bool Pep_MA::onDebuggingStop() { return true; }
+bool Pep_MA::onDebuggingStop() {
+  _system->bus()->trace(false);
+  _state = State::Halted;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  return true;
+}
 
 bool Pep_MA::onMARemoveAllBreakpoints() { return true; }
 

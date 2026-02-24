@@ -299,6 +299,7 @@ class Pep_MA : public QObject {
   Q_PROPERTY(quint16 currentAddress MEMBER _currentAddress NOTIFY currentAddressChanged)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
+  Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
   // Step modes that are allowable for the current project type.
   Q_PROPERTY(int enabledSteps READ enabledSteps CONSTANT)
   // Step modes that should be active RIGHT NOW
@@ -335,6 +336,7 @@ public:
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
   virtual bool isEmpty() const;
 
+  int allowedDebugging() const;
   int enabledSteps() const;
   int allowedSteps() const;
   virtual QStringList saveAsOptions() const { return {"pepcpu"}; }
@@ -366,6 +368,7 @@ signals:
   // Called by onISARemoveAllBreakpoints so we can remove breakpoints from editors.
   void projectBreakpointsCleared();
   void allowedStepsChanged();
+  void allowedDebuggingChanged();
   void errorsChanged();
   void microcodeChanged();
 
