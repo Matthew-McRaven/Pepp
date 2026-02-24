@@ -216,6 +216,7 @@ Item {
                         Layout.margins: root.sideMargin
                         readOnly: true
                         wrapMode: Text.Wrap
+                        font: settings.extPalette.baseMono.font
                         text: FileReader.readFile(
                                   ":/about/LICENSE_FULL")
                     }
@@ -305,8 +306,11 @@ Item {
                             textRole: "name"
                             function onCurrentIndexChanged() {
                                 let index = model.index(currentIndex, 0)
+                                projectLicense.readOnly = false
                                 projectLicense.text = model.data(
                                             index, DependencyRoles.LicenseText)
+                                 Qt.callLater(() => sv.contentY=0)
+                                Qt.callLater(() => projectLicense.readOnly = true)
                                 let url = model.data(index, DependencyRoles.URL)
                                 projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
                             }
@@ -334,13 +338,19 @@ Item {
                         }
                     }
 
-                    ScrollView {
+                    Flickable{
                         id: sv
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        contentHeight: projectLicense.contentHeight
+                        clip: true
                         TextArea {
                             id: projectLicense
                             readOnly: true
+                            font: settings.extPalette.baseMono.font
+                        }
+                        ScrollBar.vertical: ScrollBar {
+                            policy: ScrollBar.AlwaysOn
                         }
                     } //  ScrollView
                 } //ColumnLayout
