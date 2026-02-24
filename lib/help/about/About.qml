@@ -82,17 +82,18 @@ Item {
             bottom: parent.bottom
         }
         //  Pep About screen
-        Item {
+        Rectangle {
             id: pepAbout
             Layout.fillHeight: true
             Layout.fillWidth: true
-            Rectangle {
+            color: palette.base
+            border.width: 1
+            border.color: palette.shadow
+            ScrollView {
                 anchors.fill: parent
-                color: palette.base
-                border.width: 1
-                border.color: palette.shadow
+                contentWidth: parent.width
                 ColumnLayout {
-                    anchors.fill: parent
+                    width: pepAbout.width
                     spacing: 0
                     RowLayout {
                         Item {
@@ -209,24 +210,14 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                         }
                     }
-                    Rectangle {
+                    TextArea {
+                        id: license
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
                         Layout.margins: root.sideMargin
-
-                        border.width: 1
-                        border.color: palette.shadow
-
-                        ScrollView {
-                            anchors.fill: parent
-                            TextArea {
-                                id: license
-                                readOnly: true
-                                text: FileReader.readFile(
-                                          ":/about/LICENSE_FULL")
-                            }
-                            ScrollBar.vertical.policy: ScrollBar.AlwaysOn
-                        } //  ScrollView
+                        readOnly: true
+                        wrapMode: Text.Wrap
+                        text: FileReader.readFile(
+                                  ":/about/LICENSE_FULL")
                     }
                 } //ColumnLayout
             } //  Rectangle
