@@ -26,7 +26,6 @@ qt_add_qml_module(CircuitDesign
         ui/DiagramCanvas.qml
         ui/DiagramEditor.qml
         ui/Line.qml
-
         ui/DiagramListView.qml
     SOURCES
         ui/diagramdata.hpp

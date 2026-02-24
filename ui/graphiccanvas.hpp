@@ -142,9 +142,10 @@ private:
     qreal _currentZoom = 1.0;
 
     //  Grid dimensions (logical size, screen size is this times grid_to_px
-    const int block_size = 25;
-    const float screen_block = block_size * grid_to_px;
-
+    const int minor_block_size = 8;
+    const int major_block_size = minor_block_size * 4;
+    const float screen_block = major_block_size * grid_to_px;
+    QMargins _margin{4, 4, 4, 4};
     void getImage(DiagramProperties &props);
 
     // Helepr for painting a single rect that has already "passed" the clipping test.
@@ -166,6 +167,9 @@ private:
     //  Insert test data
     void updateData();
 
+    //  Add diagram, and center in cell
+    DiagramProperties *addDiagram(const int row, const int col);
+
     //  Respond to data changes in model
     void updateCell(const QModelIndex &from, const QModelIndex &to);
 
@@ -180,7 +184,10 @@ private:
 
     // Top-left corner of the viewport in grid coordinates
     QPointF _top_left{};
-    QRectF _dimensions{0, 0, 25.0, 25.0};
+    QRectF _dimensions{0, 0, 16.0, 16.0};
+
+    //  Background is saved in screen coordinates since there is no hit testing
+    QPixmap _background{major_block_size * 8, major_block_size * 8};
 
     //  Margins are always in screen coordinates since they do not
     //  interact with the drawing model. They only impact screen clipping
@@ -196,7 +203,4 @@ private:
     DiagramDataModel *_model = nullptr;
     DiagramTemplate *_template = nullptr;
     DiagramProperties *_currentItem = nullptr;
-
-    //  Background is saved in screen coordinates since there is no hit testing
-    QPixmap _background{block_size * 10, block_size * 10};
 };

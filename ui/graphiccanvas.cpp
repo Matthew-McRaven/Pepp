@@ -55,16 +55,64 @@ void GraphicCanvas::updateData()
     const int rows = 10;
     const int cols = 10;
 
-    for (auto i = 1; i < cols; ++i) {
+    DiagramProperties *data = addDiagram(2, 2);
+    if (data == nullptr)
+        return;
+    //QRect gridRect{0, 0, major_block_size, major_block_size};
+
+    //auto index = _model->index(0, 0);
+    //DiagramProperties *data = _model->createItem(index);
+
+    //  Add block data
+    data->setName(lookup[0]);
+    //data->setRectangle({0, 0, 1, 2});
+    //data->setGridRectangle(gridRect - _margin);
+    data->setType(0);
+    data->setOrientation(0);
+    getImage(*data);
+
+    //  Keep track of canvas size
+    //_dimensions = _dimensions.united(gridRect);
+
+    /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
+
+    index = _model->index(2, 1);
+    data = _model->createItem(index);
+
+    //  Add block data
+    data->setName(lookup[1]);
+    data->setRectangle({2, 1, 2, 2});
+    data->setGridRectangle(gridRect);
+    data->setType(1);
+    data->setOrientation(90);
+    getImage(*data);
+
+    gridRect.moveTopLeft({5 * minor_block_size, 3 * minor_block_size});
+
+    index = _model->index(5, 3);
+    data = _model->createItem(index);
+
+    //  Add block data
+    data->setName(lookup[1]);
+    data->setRectangle({5, 3, 2, 2});
+    data->setGridRectangle(gridRect);
+    data->setType(1);
+    data->setOrientation(180);
+    getImage(*data);
+    */
+    /*for (auto i = 0; i < cols; ++i) {
         for (auto j = 0; j < rows; ++j) {
-            QRect gridRect{block_size * i, block_size * j, block_size, block_size};
+            QRect gridRect{minor_block_size * (i + (j % 2)),
+                           minor_block_size * (j + (i % 2)),
+                           major_block_size,
+                           major_block_size};
 
             auto index = _model->index(i, j);
             DiagramProperties *data = _model->createItem(index);
 
             //  Add block data
             data->setName(lookup[i % _svgs.size()]);
-            data->setRectangle({i, j, 1, 1});
+            data->setRectangle({i, j, 2, 2});
             data->setGridRectangle(gridRect);
             data->setType(i % _svgs.size());
             data->setOrientation(90 * j);
@@ -73,7 +121,7 @@ void GraphicCanvas::updateData()
             //  Keep track of canvas size
             _dimensions = _dimensions.united(gridRect);
         }
-    }
+    }*/
     //  End of test data
 }
 
@@ -84,7 +132,10 @@ void GraphicCanvas::cacheImages(const QString &source)
     renderer.setAspectRatioMode(Qt::KeepAspectRatio);
 
     if (renderer.isValid()) {
-        QPixmap image(block_size * 10, block_size * 10);
+        int dim = _background.width() * grid_to_px;
+        //qDebug() << "dim, width, widthMM, logicalDpiX" << dim << _background.width()
+        //         << _background.widthMM() << _background.logicalDpiX();
+        QPixmap image(dim, dim);
         image.fill(Qt::transparent);
 
         // Get QPainter that paints to the image
@@ -183,17 +234,17 @@ void GraphicCanvas::paint(QPainter *painter)
     //  drawPixmap implicity uses scale, but other calculations do not.
     //  Add 3 since scaling indirectly affects number of rows and columns.
     //  Scaling currentBlock causes banding and overwriting.
-    const qint32 row = grid_viewport.height() / block_size + 3;
-    const qint32 col = grid_viewport.width() / block_size + 3;
+    const qint32 row = grid_viewport.height() / minor_block_size + 3;
+    const qint32 col = grid_viewport.width() / minor_block_size + 3;
     //qDebug() << "row: " << row << "col:" << col;
 
     //  Offset first cell if first row or column is cut off
-    qreal cX = std::fmod(grid_viewport.x(), block_size) * grid_to_px * _currentZoom;
-    qreal cY = std::fmod(grid_viewport.y(), block_size) * grid_to_px * _currentZoom;
+    qreal cX = std::fmod(grid_viewport.x(), major_block_size) * grid_to_px * _currentZoom;
+    qreal cY = std::fmod(grid_viewport.y(), major_block_size) * grid_to_px * _currentZoom;
 
     QRectF currentBlock{-cX, -cY, screen_block, screen_block};
 
-    //qDebug() << "currentBlock: " << currentBlock;
+    //  Background is always painted on major grid axis
     for (int x = 0; x < col; ++x) {
         for (int y = 0; y < row; ++y) {
             painter->drawPixmap(currentBlock.toRect(), _background);
@@ -203,6 +254,7 @@ void GraphicCanvas::paint(QPainter *painter)
         currentBlock.translate(screen_block, -screen_block * row);
     }
 
+    //  Diagrams are painted on minor grid axis
     for (const auto props : _model->cells()) {
         //for (const auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
@@ -232,9 +284,47 @@ void GraphicCanvas::paint_one(QPainter *painter, QRect rect, DiagramProperties &
     painter->drawPixmap(screen_rect.toRect(), *props.image());
 }
 
+DiagramProperties *GraphicCanvas::addDiagram(const int col, const int row)
+{
+    //  Center point may put diagram off of page, return if either index is negative.
+    if (col < 0 || row < 0)
+        return nullptr;
+
+    //  Column and row represents center point, not top left
+    QRect gridRect{minor_block_size * col - major_block_size / 2,
+                   minor_block_size * row - major_block_size / 2,
+                   major_block_size,
+                   major_block_size};
+
+    //  Create index and check for data
+    const auto newIndex = _model->index(col, row);
+    DiagramProperties *data = _model->createItem(newIndex);
+
+    //  Add block data
+    data->setRectangle({col, row, 2, 2});
+    data->setGridRectangle(gridRect - _margin);
+    if (_template != nullptr) {
+        data->setName(_template->name());
+        data->setType(_template->key());
+    }
+    getImage(*data);
+
+    //  Track dimensions of canvas area. Affects scrollbars
+    _dimensions = _dimensions.united(gridRect);
+
+    //  Set select flag
+    _model->setData(newIndex, true, DiagramProperty::Role::Selected);
+
+    return data;
+}
+
 void GraphicCanvas::getImage(DiagramProperties &props)
 {
     QPixmap *image = nullptr;
+
+    //  If type has not been selected, just return.
+    if (props.type() == DiagramType::Invalid)
+        return;
 
     //  Get cached copy for drawing
     switch (props.orientation()) {
@@ -296,10 +386,10 @@ void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
     const int width = std::abs(from.column() - to.column() + 1);
 
     //convert to screen coordinates
-    QRectF rect{x * block_size * grid_to_px,
-                y * block_size * grid_to_px,
-                height * block_size * grid_to_px,
-                width * block_size * grid_to_px};
+    QRectF rect{x * minor_block_size * grid_to_px,
+                y * minor_block_size * grid_to_px,
+                height * major_block_size * grid_to_px,
+                width * major_block_size * grid_to_px};
 
     //  Update expects integer coordinates
     update(rect.toRect());
@@ -351,10 +441,15 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     //  Mouse location in grid coordinates to
     //  to determine rectangle hit.
     const auto point = screen_to_grid(event->position());
+    //qDebug() << event->pos() << event->position();
 
     //  Images are stored by row and column.
-    const int col = point.x() / block_size;
-    const int row = point.y() / block_size;
+    //  Due to integer math, items closer to next row or column are still in same column/row.
+    //  Calculate rounding difference
+    const int dx = (point.x() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
+    const int dy = (point.y() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
+    const int col = point.x() / minor_block_size + dx;
+    const int row = point.y() / minor_block_size + dy;
 
     //  See if existing item was clicked
     if (setSelected(point)) {
@@ -369,20 +464,11 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     }
 
     //  If we get here, we have a new item. Insert into canvas
-    QRect gridRect{block_size * col, block_size * row, block_size, block_size};
-    const auto newIndex = _model->index(col, row);
-    DiagramProperties *data = _model->createItem(newIndex);
+    //  Use coordinate as center point
+    DiagramProperties *data = addDiagram(col, row);
 
-    //  Add block data
-    data->setName(_template->name());
-    data->setRectangle({col, row, 1, 1});
-    data->setGridRectangle(gridRect);
-    data->setType(_template->key());
-    getImage(*data);
-
-    _dimensions = _dimensions.united(gridRect);
-    _model->setData(newIndex, true, DiagramProperty::Role::Selected);
-    event->setAccepted(true);
+    //  If no data is returned, the column is invalid. Assume parent will handle
+    event->setAccepted(data != nullptr ? true : false);
 }
 
 bool GraphicCanvas::setSelected(const QPoint point)
@@ -391,7 +477,6 @@ bool GraphicCanvas::setSelected(const QPoint point)
 
     //  See if existing item was clicked and clear selection
     for (const auto props : _model->cells()) {
-        //    for (auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
         if (!props->gridRectangle().contains(point)) {
             if (props->selected()) {
@@ -570,16 +655,19 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
         const auto point = screen_to_grid(event->position());
 
         //  Images are stored by row and column.
-        const int newX = point.x() / block_size;
-        const int newY = point.y() / block_size;
+        const int newX = point.x() / minor_block_size;
+        const int newY = point.y() / minor_block_size;
 
         const auto oldIndex = _model->index(oldX, oldY);
         const auto newIndex = _model->index(newX, newY);
 
         //  Update grid coordinates
         DiagramProperties *data = _model->item(oldIndex);
-        QRect gridRect{block_size * newX, block_size * newY, block_size, block_size};
-        data->setGridRectangle(gridRect);
+        QRect gridRect{minor_block_size * newX,
+                       minor_block_size * newY,
+                       major_block_size,
+                       major_block_size};
+        data->setGridRectangle(gridRect - _margin);
 
         //  Keep track of canvas size
         _dimensions = _dimensions.united(gridRect);
@@ -609,6 +697,7 @@ void GraphicCanvas::startDrag(const QPoint point)
     QByteArray itemData;
     QDataStream dataStream(&itemData, QIODevice::WriteOnly);
 
+    //dataStream << _currentItem->rectangle().center().x() << _currentItem->rectangle().center().y();
     dataStream << _currentItem->rectangle().x() << _currentItem->rectangle().y();
 
     QMimeData *mimeData = new QMimeData;
@@ -620,8 +709,8 @@ void GraphicCanvas::startDrag(const QPoint point)
     auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
     drag->setPixmap(dragPix);
 
-    QPointF offset{curSize / 2, curSize / 2};
-    drag->setHotSpot(offset.toPoint());
+    //QPointF offset{curSize / 2, curSize / 2};
+    //drag->setHotSpot(offset.toPoint());
     setCursor(Qt::OpenHandCursor);
 
     //  If this function is not called, the drag will not start
