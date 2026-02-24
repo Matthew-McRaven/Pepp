@@ -27,7 +27,9 @@ import "qrc:/qt/qml/edu/pepp/help/builtins" as Builtins
 Item {
     id: root
     focus: true
-
+    NuAppSettings {
+        id: settings
+    }
     function setTab(tab) {
         helpBar.currentIndex = tab
     }
@@ -36,7 +38,7 @@ Item {
         changeLog.min = minVersion
     }
 
-    implicitWidth: 500
+    implicitWidth: 640
     implicitHeight: 800
     property int implicitButtonWidth: 100
     property int paragraphSpace: 8
@@ -54,19 +56,19 @@ Item {
         width: parent.width
         TabButton {
             text: "Pepp"
-            width: root.implicitButtonWidth
+            width: Math.max(root.implicitButtonWidth, implicitWidth)
         }
         TabButton {
             text: "Change Log"
-            width: root.implicitButtonWidth
+            width: Math.max(root.implicitButtonWidth, implicitWidth)
         }
         TabButton {
             text: "System Info"
-            width: root.implicitButtonWidth
+            width: Math.max(root.implicitButtonWidth, implicitWidth)
         }
         TabButton {
             text: "Dependencies"
-            width: root.implicitButtonWidth
+            width: Math.max(root.implicitButtonWidth, implicitWidth)
         }
     }
 
@@ -80,17 +82,18 @@ Item {
             bottom: parent.bottom
         }
         //  Pep About screen
-        Item {
+        Rectangle {
             id: pepAbout
             Layout.fillHeight: true
             Layout.fillWidth: true
-            Rectangle {
+            color: palette.base
+            border.width: 1
+            border.color: palette.shadow
+            ScrollView {
                 anchors.fill: parent
-                color: palette.base
-                border.width: 1
-                border.color: palette.shadow
+                contentWidth: parent.width
                 ColumnLayout {
-                    anchors.fill: parent
+                    width: pepAbout.width
                     spacing: 0
                     RowLayout {
                         Item {
@@ -145,11 +148,12 @@ Item {
                         Repeater {
                             model: MaintainerList {}
 
-                            Label {
+                            TextEdit {
                                 width: parent.width
                                 height: fontMetrics.height
                                 required property var item
                                 text: item.name + "  <" + item.email + ">"
+                                readOnly: true
                             }
                             height: model.rowCount() * fontMetrics.height
                         }
@@ -163,15 +167,16 @@ Item {
                         font.bold: true
                     }
 
-                    Label {
+                    TextEdit {
                         Layout.fillWidth: true
                         Layout.topMargin: 0
                         Layout.margins: root.sideMargin
                         wrapMode: Text.WordWrap
                         text: Contributors.text
+                        readOnly: true
                     }
 
-                    Label {
+                    TextEdit {
                         Layout.fillWidth: true
                         Layout.topMargin: root.paragraphSpace
                         Layout.leftMargin: root.sideMargin
@@ -179,19 +184,22 @@ Item {
                         text: qsTr("Legal:")
                         font.bold: true
                         wrapMode: Text.WordWrap
+                        readOnly:true
                     }
-                    Label {
+                    TextEdit {
                         Layout.fillWidth: true
                         Layout.leftMargin: root.sideMargin
                         Layout.rightMargin: root.sideMargin
                         text: qsTr(`Copyright © 2016 - ${Version.build_year}, J. Stanley Warford, Matthew McRaven, Pepperdine University`)
                         wrapMode: Text.WordWrap
+                        readOnly:true
                     }
-                    Label {
+                    TextEdit {
                         Layout.fillWidth: true
                         Layout.margins: root.sideMargin
-                        wrapMode: Text.WordWrap
                         text: qsTr("This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.")
+                        wrapMode: Text.WordWrap
+                        readOnly:true
                     }
                     Label {
                         Layout.fillWidth: true
@@ -201,30 +209,16 @@ Item {
                         //Layout.preferredWidth: parent.width
                         wrapMode: Text.WordWrap
                         onLinkActivated: link => Qt.openUrlExternally(link)
-                        MouseArea {
-                            anchors.fill: parent
-                            acceptedButtons: Qt.NoButton // Don't eat the mouse clicks
-                            cursorShape: Qt.PointingHandCursor
-                        }
                     }
-                    Rectangle {
+                    TextArea {
+                        id: license
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
                         Layout.margins: root.sideMargin
-
-                        border.width: 1
-                        border.color: palette.shadow
-
-                        ScrollView {
-                            anchors.fill: parent
-                            TextArea {
-                                id: license
-                                readOnly: true
-                                text: FileReader.readFile(
-                                          ":/about/LICENSE_FULL")
-                            }
-                            ScrollBar.vertical.policy: ScrollBar.AlwaysOn
-                        } //  ScrollView
+                        readOnly: true
+                        wrapMode: Text.Wrap
+                        font: settings.extPalette.baseMono.font
+                        text: FileReader.readFile(
+                                  ":/about/LICENSE_FULL")
                     }
                 } //ColumnLayout
             } //  Rectangle
@@ -312,8 +306,11 @@ Item {
                             textRole: "name"
                             function onCurrentIndexChanged() {
                                 let index = model.index(currentIndex, 0)
+                                projectLicense.readOnly = false
                                 projectLicense.text = model.data(
                                             index, DependencyRoles.LicenseText)
+                                 Qt.callLater(() => sv.contentY=0)
+                                Qt.callLater(() => projectLicense.readOnly = true)
                                 let url = model.data(index, DependencyRoles.URL)
                                 projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
                             }
@@ -341,13 +338,19 @@ Item {
                         }
                     }
 
-                    ScrollView {
+                    Flickable{
                         id: sv
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        contentHeight: projectLicense.contentHeight
+                        clip: true
                         TextArea {
                             id: projectLicense
                             readOnly: true
+                            font: settings.extPalette.baseMono.font
+                        }
+                        ScrollBar.vertical: ScrollBar {
+                            policy: ScrollBar.AlwaysOn
                         }
                     } //  ScrollView
                 } //ColumnLayout

@@ -18,7 +18,7 @@ Dialog {
         Dependencies
     }
 
-    implicitWidth: 500
+    implicitWidth: 640
     implicitHeight: 800
     standardButtons: Dialog.Ok
     width: Math.min(implicitWidth * 1.1, parent.width * .5)

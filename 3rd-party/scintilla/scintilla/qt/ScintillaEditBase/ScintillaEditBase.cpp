@@ -308,6 +308,7 @@ void ScintillaEditBase::focusInEvent(QFocusEvent *event) {
 
 #ifdef PLAT_QT_QML
   QQuickPaintedItem::focusInEvent(event);
+  refreshImeBinding();
 #else
     QAbstractScrollArea::focusInEvent(event);
 #endif
@@ -317,6 +318,11 @@ void ScintillaEditBase::focusOutEvent(QFocusEvent *event) {
   sqt->SetFocusState(false);
 
 #ifdef PLAT_QT_QML
+  if (auto *im = QGuiApplication::inputMethod()) {
+    im->commit();
+    im->hide();
+    im->reset();
+  }
   QQuickPaintedItem::focusOutEvent(event);
 #else
     QAbstractScrollArea::focusOutEvent(event);
@@ -477,7 +483,9 @@ void ScintillaEditBase::mousePressEvent(QMouseEvent *event) {
 #endif
   }
 #ifdef PLAT_QT_QML
-  forceActiveFocus();
+  forceActiveFocus(Qt::MouseFocusReason);
+  // Ensure we keep receiving the release even if something else wants the grab.
+  setKeepMouseGrab(true);
   emit enableScrollViewInteraction(false);
   event->setAccepted(true);
 #endif
@@ -514,6 +522,8 @@ void ScintillaEditBase::mouseReleaseEvent(QMouseEvent *event) {
 
 #ifdef PLAT_QT_QML
   emit enableScrollViewInteraction(true);
+  forceActiveFocus(Qt::MouseFocusReason);
+  refreshImeBinding();
   event->setAccepted(true);
 #endif
 }
@@ -636,6 +646,15 @@ void ScintillaEditBase::DrawImeIndicator(int indicator, int len) {
     const Sci::Position positionInsert = sqt->sel.Range(r).Start().Position();
     sqt->pdoc->DecorationFillRange(positionInsert - len, 1, len);
   }
+}
+
+void ScintillaEditBase::refreshImeBinding() {
+  auto *im = QGuiApplication::inputMethod();
+  if (!im) return;
+  // On WASM, there is a hidden DOM item to make input work.
+  // This magic sequence forces that element to have focus, which makes text editing work.
+  im->update(Qt::ImEnabled | Qt::ImCursorRectangle | Qt::ImCursorPosition);
+  im->show();
 }
 
 static int GetImeCaretPos(QInputMethodEvent *event) {
