@@ -27,7 +27,9 @@ import "qrc:/qt/qml/edu/pepp/help/builtins" as Builtins
 Item {
     id: root
     focus: true
-
+    NuAppSettings {
+        id: settings
+    }
     function setTab(tab) {
         helpBar.currentIndex = tab
     }
@@ -36,7 +38,7 @@ Item {
         changeLog.min = minVersion
     }
 
-    implicitWidth: 500
+    implicitWidth: 640
     implicitHeight: 800
     property int implicitButtonWidth: 100
     property int paragraphSpace: 8
