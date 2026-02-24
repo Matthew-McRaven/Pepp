@@ -50,21 +50,36 @@ sim::api2::memory::Target<quint8> *targets::pep9::mc2::BaseCPU::csrs() { return 
 sim::api2::device::Descriptor targets::pep9::mc2::BaseCPU::device() const { return _device; }
 
 void targets::pep9::mc2::BaseCPU::setConstantRegisters() {
-  writeReg(22, 0x00);
-  writeReg(23, 0x01);
-  writeReg(24, 0x02);
-  writeReg(25, 0x03);
-  writeReg(26, 0x04);
-  writeReg(27, 0x08);
-  writeReg(28, 0xF0);
-  writeReg(29, 0xF6);
-  writeReg(30, 0xFE);
-  writeReg(31, 0xFF);
+  if (true) {
+    writeReg(22, 0x00);
+    writeReg(23, 0x01);
+    writeReg(24, 0x02);
+    writeReg(25, 0x03);
+    writeReg(26, 0x04);
+    writeReg(27, 0x08);
+    writeReg(28, 0xF0);
+    writeReg(29, 0xF6);
+    writeReg(30, 0xFE);
+    writeReg(31, 0xFF);
+  } else if (true) {
+    writeReg(22, 0x00);
+    writeReg(23, 0x01);
+    writeReg(24, 0x02);
+    writeReg(25, 0x03);
+    writeReg(26, 0x04);
+    writeReg(27, 0x08);
+    writeReg(28, 0xF7);
+    writeReg(29, 0xFB);
+    writeReg(30, 0xFE);
+    writeReg(31, 0xFF);
+  }
 }
 
 targets::pep9::mc2::BaseCPU::Status targets::pep9::mc2::BaseCPU::status() const { return _status; }
 
 void targets::pep9::mc2::BaseCPU::resetMicroPC() { _microPC = 0; }
+
+quint16 targets::pep9::mc2::BaseCPU::microPC() const noexcept { return _microPC; }
 
 const sim::api2::tick::Source *targets::pep9::mc2::BaseCPU::getSource() { return _clock; }
 
@@ -118,6 +133,18 @@ void targets::pep9::mc2::CPUByteBus::setMicrocode(std::vector<pepp::tc::arch::Pe
   _microcode = std::move(code);
 }
 
+void targets::pep9::mc2::CPUByteBus::setMicrocode(const pepp::MicrocodeChoice &mc) {
+  if (std::holds_alternative<pepp::OneByteMC9>(mc)) {
+    auto extracted = std::get<pepp::OneByteMC9>(mc);
+    std::vector<pepp::tc::arch::Pep9ByteBus::Code> code;
+    code.reserve(extracted.size());
+    for (const auto &line : extracted) code.push_back(line.code);
+    setMicrocode(std::move(code));
+  } else {
+    throw std::logic_error("Invalid microcode type for CPUByteBus");
+  }
+}
+
 const std::span<const pepp::tc::arch::Pep9ByteBus::Code> targets::pep9::mc2::CPUByteBus::microcode() {
   return _microcode;
 }
@@ -142,6 +169,14 @@ void targets::pep9::mc2::CPUByteBus::applyPreconditions(
       quint8 value = csrTest.value ? 1 : 0;
       _csrs.write(static_cast<quint8>(csrTest.reg), {reinterpret_cast<quint8 *>(&value), 1}, gs_d);
     }
+  }
+}
+
+void targets::pep9::mc2::CPUByteBus::applyPreconditions(const pepp::TestChoice &tests) {
+  if (std::holds_alternative<pepp::P9Tests>(tests)) {
+    return applyPreconditions(std::get<pepp::P9Tests>(tests));
+  } else {
+    throw std::logic_error("Invalid test type for CPUWordBus");
   }
 }
 
@@ -170,6 +205,14 @@ std::vector<bool> targets::pep9::mc2::CPUByteBus::testPostconditions(
     }
   }
   return ret;
+}
+
+std::vector<bool> targets::pep9::mc2::CPUByteBus::testPostconditions(const pepp::TestChoice &tests) {
+  if (std::holds_alternative<pepp::P9Tests>(tests)) {
+    return testPostconditions(std::get<pepp::P9Tests>(tests));
+  } else {
+    throw std::logic_error("Invalid test type for CPUWordBus");
+  }
 }
 
 struct alu_result {
@@ -257,6 +300,18 @@ void targets::pep9::mc2::CPUWordBus::setMicrocode(std::vector<pepp::tc::arch::Pe
   _microcode = std::move(code);
 }
 
+void targets::pep9::mc2::CPUWordBus::setMicrocode(const pepp::MicrocodeChoice &mc) {
+  if (std::holds_alternative<pepp::TwoByteMC9>(mc)) {
+    auto extracted = std::get<pepp::TwoByteMC9>(mc);
+    std::vector<pepp::tc::arch::Pep9WordBus::Code> code;
+    code.reserve(extracted.size());
+    for (const auto &line : extracted) code.push_back(line.code);
+    setMicrocode(std::move(code));
+  } else {
+    throw std::logic_error("Invalid microcode type for CPUByteBus");
+  }
+}
+
 const std::span<const pepp::tc::arch::Pep9WordBus::Code> targets::pep9::mc2::CPUWordBus::microcode() {
   return _microcode;
 }
@@ -281,6 +336,14 @@ void targets::pep9::mc2::CPUWordBus::applyPreconditions(
       quint8 value = csrTest.value ? 1 : 0;
       _csrs.write(static_cast<quint8>(csrTest.reg), {reinterpret_cast<quint8 *>(&value), 1}, gs_d);
     }
+  }
+}
+
+void targets::pep9::mc2::CPUWordBus::applyPreconditions(const pepp::TestChoice &tests) {
+  if (std::holds_alternative<pepp::P9Tests>(tests)) {
+    return applyPreconditions(std::get<pepp::P9Tests>(tests));
+  } else {
+    throw std::logic_error("Invalid test type for CPUWordBus");
   }
 }
 
@@ -309,6 +372,14 @@ std::vector<bool> targets::pep9::mc2::CPUWordBus::testPostconditions(
     }
   }
   return ret;
+}
+
+std::vector<bool> targets::pep9::mc2::CPUWordBus::testPostconditions(const pepp::TestChoice &tests) {
+  if (std::holds_alternative<pepp::P9Tests>(tests)) {
+    return testPostconditions(std::get<pepp::P9Tests>(tests));
+  } else {
+    throw std::logic_error("Invalid test type for CPUWordBus");
+  }
 }
 
 sim::api2::tick::Result targets::pep9::mc2::CPUWordBus::clock(sim::api2::tick::Type currentTick) {

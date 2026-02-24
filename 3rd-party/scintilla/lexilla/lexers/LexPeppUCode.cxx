@@ -117,8 +117,8 @@ Sci_Position SCI_METHOD LexerPepMicro::WordListSet(int n, const char *wl) {
 void SCI_METHOD LexerPepMicro::Lex(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) {
   LexAccessor styler(pAccess);
 
-  static const char *unitpre = "unitpre:";
-  static const char *unitpost = "unitpost:";
+  static const char *unitpre = "unitpre";
+  static const char *unitpost = "unitpost";
   // Optional `symbol:`, followed by a required mnemonic.
 
   // Up to, but not including the current character, has only been white space.

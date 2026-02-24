@@ -231,6 +231,7 @@ Item {
                                     font.bold: true
                                     font.pointSize: root.font.pointSize * 1.2
                                     color: palette.accent
+                                    elide: Text.ElideMiddle
                                 }
                                 Label {
                                     //  Architecture details
@@ -247,7 +248,7 @@ Item {
                                     maximumLineCount: 2
                                     lineHeight: 0.85
                                     wrapMode: Text.Wrap
-                                    elide: Text.ElideRight
+                                    elide: Text.ElideMiddle
                                 }
                                 Item {
                                     //  Spacer

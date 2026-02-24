@@ -30,10 +30,10 @@ class MemoryHighlight : public QObject {
 
 public:
   enum V {
-    None,
-    Modified,
-    SP,
-    PC,
+    None = 0,
+    Modified = 1,
+    SP = 2,
+    PC = 3,
   };
   Q_ENUM(V)
 };

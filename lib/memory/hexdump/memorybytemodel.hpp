@@ -29,9 +29,7 @@ class MemoryRoles : public QObject {
 
 public:
   enum Roles {
-    Selected = Qt::UserRole + 1,
-    Highlight,
-    Editing,
+    Highlight = Qt::UserRole + 1,
     Type,
   };
   Q_ENUM(Roles)
@@ -48,18 +46,13 @@ class MemoryByteModel : public QAbstractTableModel {
   bool reclaimMemory_ = false;
   ARawMemory *memory_ = nullptr;
   OpcodeModel *mnemonics_ = nullptr;
-  QSet<quint8> selected_;
-  qint32 editing_ = -1;
-  qint32 lastEdit_ = -1;
   std::unique_ptr<MemoryColumns> column_;
 
   Q_PROPERTY(MemoryColumns *Column READ column CONSTANT)
   Q_PROPERTY(QObject *memory READ memory WRITE setMemory NOTIFY memoryChanged)
   // Workaround for type being erased on Opcode Model
   Q_PROPERTY(QObject *mnemonics READ mnemonics WRITE setMnemonics NOTIFY mnemonicsChanged)
-  Q_PROPERTY(int bytesPerRow READ bytesPerRow NOTIFY dimensionsChanged)
-  // Q_PROPERTY(int columns READ columnCount NOTIFY dimensionsChanged)
-  // Q_PROPERTY(int rows READ rowCount NOTIFY dimensionsChanged)
+  Q_PROPERTY(int bytesPerRow READ bytesPerRow WRITE setNumBytesPerLine NOTIFY dimensionsChanged)
 
 public:
   // Define the role names to be used
@@ -87,11 +80,7 @@ public:
   // Should be a power of 2 between [1-32].
   // A number that is not a power of two will be rounded to the nearest power,
   // and the number will be clamped to 32.
-  void setNumBytesPerLine(const quint8 bytesPerLine);
-
-  //  Functions required by the QML model
-  //  Header: Set read column and row headers
-  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+  void setNumBytesPerLine(quint8 bytesPerLine);
 
   //  Basic functionality: dimentions of table in QML view
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -101,16 +90,6 @@ public:
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
   bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
   Qt::ItemFlags flags(const QModelIndex &index) const override;
-
-  //  Custom functions available to Qml
-  Q_INVOKABLE bool isEditMode() { return (editing_ != -1); };
-
-  //  Functions are based on index in Qml.
-  Q_INVOKABLE void clearSelected(const QModelIndex &index, const MemoryRoles::Roles type = MemoryRoles::Selected);
-  Q_INVOKABLE QVariant setSelected(const QModelIndex &index, const MemoryRoles::Roles type = MemoryRoles::Selected);
-
-  Q_INVOKABLE QModelIndex currentCell();
-  Q_INVOKABLE QModelIndex lastCell();
 public slots:
   void onDataChanged(quint32 start, quint32 end);
 signals:
@@ -134,12 +113,4 @@ private:
 
   //  Clear model
   void clear();
-
-  //  Private functions fo manipulate selection directly by model
-  QVariant selected(const QModelIndex &index, const MemoryRoles::Roles type = MemoryRoles::Selected) const;
-  // QVariant setSelected(const QModelIndex& index,const RoleNames type = Selected);
-  // void clearSelected(const QModelIndex& index, const RoleNames type = Selected);
-
-  // Likely to be deleted
-  void clearSelectedCell(const int offset, const MemoryRoles::Roles type = MemoryRoles::Selected);
 };

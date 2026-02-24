@@ -1311,15 +1311,12 @@ void Pep_ISA::loadCharIn() {
 Error::Error(int line, QString error, QObject *parent) : QObject(parent), line(line), error(error) {}
 
 Pep_MA::Pep_MA(project::Environment env, QObject *parent)
-    : QObject(parent), _env(env), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()), _memory(nullptr),
-      _registers(nullptr), _flags(nullptr) {
+    : QObject(parent), _env(env), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()), _memory(nullptr) {
   _system.clear();
   assert(_system.isNull());
   //_dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
-  QList<obj::MemoryRegion> memmap;
-  memmap.emplaceBack(obj::MemoryRegion{.r = 1, .w = 1, .minOffset = 0, .maxOffset = 65535, .segs = {}});
-  _system = QSharedPointer<targets::isa::System>::create(env.arch, memmap, QList<obj::AddressedIO>{});
-  //_system->bus()->setBuffer(&*_tb);
+  _system = QSharedPointer<targets::ma::System>::create(env.arch, env.features);
+  _system->bus()->setBuffer(&*_tb);
   bindToSystem();
   connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
 }
@@ -1403,12 +1400,27 @@ pepp::debug::BreakpointSet *Pep_MA::breakpointModel() {
 
 bool Pep_MA::isEmpty() const { return _microcodeText.isEmpty(); }
 
+int Pep_MA::allowedDebugging() const {
+  using D = project::DebugEnableFlags;
+  switch (_state) {
+  case State::Halted: return D::Start | D::Execute;
+  case State::DebugPaused: return D::Continue | D::Stop;
+  case State::NormalExec: return D::Stop;
+  case State::DebugExec: return D::Stop;
+  default: return 0b0;
+  }
+}
+
 int Pep_MA::enabledSteps() const {
   using S = project::StepEnableFlags::Value;
   return S::Step;
 }
 
-int Pep_MA::allowedSteps() const { return 0; }
+int Pep_MA::allowedSteps() const {
+  using S = project::StepEnableFlags::Value;
+  if (_state != State::DebugPaused) return 0b0;
+  return S::Step;
+}
 
 QString Pep_MA::contentsForExtension(const QString &ext) const {
   if (ext.compare("pepcpu", Qt::CaseInsensitive) == 0) {
@@ -1439,15 +1451,49 @@ bool Pep_MA::onMicroAssemble() { return _microassemble(false); }
 
 bool Pep_MA::onMicroAssembleThenFormat() { return _microassemble(true); }
 
-bool Pep_MA::onExecute() { return true; }
+bool Pep_MA::onExecute() {
+  _microassemble(false);
+  _system->bus()->trace(true);
+  prepareSim();
+  _state = State::NormalExec;
+  //_stepsSinceLastInteraction = 0;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  emit deferredExecution([]() { return false; });
+  return true;
+}
 
-bool Pep_MA::onDebuggingStart() { return true; }
+bool Pep_MA::onDebuggingStart() {
+  _microassemble(false);
+  _system->bus()->trace(true);
+  prepareSim();
+  _state = State::DebugPaused;
+  // _stepsSinceLastInteraction = 0;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  // TODO: actually start debugging
+  return true;
+}
 
-bool Pep_MA::onDebuggingContinue() { return true; }
+bool Pep_MA::onDebuggingContinue() {
+  _state = State::DebugExec;
+  _pendingPause = false;
+  // _stepsSinceLastInteraction = 0;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  emit deferredExecution([]() { return false; });
+  return true;
+}
 
 bool Pep_MA::onDebuggingPause() { return true; }
 
-bool Pep_MA::onDebuggingStop() { return true; }
+bool Pep_MA::onDebuggingStop() {
+  _system->bus()->trace(false);
+  _state = State::Halted;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  return true;
+}
 
 bool Pep_MA::onMARemoveAllBreakpoints() { return true; }
 
@@ -1463,23 +1509,11 @@ void Pep_MA::bindToSystem() {
   using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP9:
-    _flags = flag_model<targets::pep9::isa::CPU, isa::Pep9>(&*_system, this);
-    _registers = register_model<targets::pep9::isa::CPU, isa::Pep9>(&*_system, mnemonics(), this);
     break;
   case PEP10:
-    _flags = flag_model<targets::pep10::isa::CPU, isa::Pep10>(&*_system, this);
-    _registers = register_model<targets::pep10::isa::CPU, isa::Pep10>(&*_system, mnemonics(), this);
     break;
   default: throw std::logic_error("Unimplemented");
   }
-  // Use old-style connections to avoid a linker error in WASM.
-  // For some reason, new-style connects cause LD to insert a 0-arg updateGUI into the object file.
-  // We can defeat the linker with the following Qt macros.
-  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _flags, SLOT(onUpdateGUI()));
-  QQmlEngine::setObjectOwnership(_flags, QQmlEngine::CppOwnership);
-  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _registers, SLOT(onUpdateGUI()));
-  QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
-
   using TMAS = sim::trace2::TranslatingModifiedAddressSink<quint16>;
   auto sink = QSharedPointer<TMAS>::create(_system->pathManager(), _system->bus());
 
@@ -1489,9 +1523,20 @@ void Pep_MA::bindToSystem() {
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
 }
 
-void Pep_MA::prepareSim() {}
+void Pep_MA::prepareSim() {
+  if (_microcode.index() == 0) return;
+  if (_testsPre.index() != 0) {
+    // Must emit frame start/end else iterators will not work as expected.
+    _tb->emitFrameStart();
+    _system->cpu()->applyPreconditions(_testsPre);
+    _tb->updateFrameHeader();
+    _memory->onUpdateGUI(_tb->cbegin());
+  } else {
+    // TODO: update memory -- probably by 0'ing it.
+  }
+}
 
-void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}
+void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { emit updateGUI(from); }
 
 void Pep_MA::updateBPAtAddress(quint32 address, Action action) {}
 
@@ -1506,6 +1551,7 @@ bool Pep_MA::_microassemble(bool override_source_text) {
   default: return false;
   }
 }
+
 bool Pep_MA::_microassemble8(bool override_source_text) { return false; }
 
 bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
@@ -1522,6 +1568,11 @@ bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
       auto source = pepp::tc::ir::format(parsed);
       setMicrocodeText(QString::fromStdString(source));
     }
+    _system->cpu()->setMicrocode(_microcode);
+    auto tests = pepp::tc::parse::tests<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
+    _testsPre = tests.pre, _testsPost = tests.post;
+  } else {
+    _testsPre = _testsPost = std::monostate{};
   }
 
   emit errorsChanged();
@@ -1543,6 +1594,11 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
       auto source = pepp::tc::ir::format(parsed);
       setMicrocodeText(QString::fromStdString(source));
     }
+    _system->cpu()->setMicrocode(_microcode);
+    auto tests = pepp::tc::parse::tests<pepp::tc::arch::Pep9WordBus, regs>(parsed);
+    _testsPre = tests.pre, _testsPost = tests.post;
+  } else {
+    _testsPre = _testsPost = std::monostate{};
   }
   emit errorsChanged();
   emit microcodeChanged();

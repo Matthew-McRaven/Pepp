@@ -20,7 +20,7 @@
 #include "project/architectures.hpp"
 #include "project/levels.hpp"
 #include "sim3/api/traced/memory_target.hpp"
-#include "sim3/api/traced_pep10_isa3_system.hpp"
+#include "sim3/api/traced_system.hpp"
 #include "toolchain/link/memmap.hpp"
 
 namespace obj {
