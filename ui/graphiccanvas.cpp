@@ -680,15 +680,6 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
         DiagramProperties *data = _model->item(oldIndex);
         setGrid(data, newPtIndex.x(), newPtIndex.y());
 
-        /*QRect gridRect{minor_block_size * newX,
-                       minor_block_size * newY,
-                       major_block_size,
-                       major_block_size};
-        data->setGridRectangle(gridRect - _margin);
-
-        //  Keep track of canvas size
-        _dimensions = _dimensions.united(gridRect);*/
-
         //  Update model
         _model->move(oldIndex, newIndex);
         unsetCursor();
@@ -722,12 +713,12 @@ void GraphicCanvas::startDrag(const QPoint point)
     drag->setMimeData(mimeData);
 
     //  Size image based on current zoom and screen DPI.
-    const auto curSize = (screen_block - _margin.left() * 2) * _currentZoom;
+    const auto curSize = (screen_block - _margin.left() * grid_to_px * 2) * _currentZoom;
     auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
     drag->setPixmap(dragPix);
 
-    //QPointF offset{curSize / 2, curSize / 2};
-    //drag->setHotSpot(offset.toPoint());
+    QPointF offset{curSize / 2, curSize / 2};
+    drag->setHotSpot(offset.toPoint());
     setCursor(Qt::OpenHandCursor);
 
     //  If this function is not called, the drag will not start
