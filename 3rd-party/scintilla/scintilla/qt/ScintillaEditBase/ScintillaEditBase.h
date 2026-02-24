@@ -262,4 +262,5 @@ protected:
   void MoveImeCarets(Scintilla::Position offset);
   void DrawImeIndicator(int indicator, int len);
   static Scintilla::KeyMod ModifiersOfKeyboard();
+  void refreshImeBinding();
 };
