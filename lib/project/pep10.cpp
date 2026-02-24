@@ -1316,7 +1316,7 @@ Pep_MA::Pep_MA(project::Environment env, QObject *parent)
   assert(_system.isNull());
   //_dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
   _system = QSharedPointer<targets::ma::System>::create(env.arch, env.features);
-  //_system->bus()->setBuffer(&*_tb);
+  _system->bus()->setBuffer(&*_tb);
   bindToSystem();
   connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
 }
@@ -1452,23 +1452,25 @@ bool Pep_MA::onMicroAssemble() { return _microassemble(false); }
 bool Pep_MA::onMicroAssembleThenFormat() { return _microassemble(true); }
 
 bool Pep_MA::onExecute() {
+  _microassemble(false);
+  _system->bus()->trace(true);
   prepareSim();
   _state = State::NormalExec;
   //_stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
-  _system->bus()->trace(true);
   emit deferredExecution([]() { return false; });
   return true;
 }
 
 bool Pep_MA::onDebuggingStart() {
+  _microassemble(false);
+  _system->bus()->trace(true);
   prepareSim();
   _state = State::DebugPaused;
   // _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
-  _system->bus()->trace(true);
   // TODO: actually start debugging
   return true;
 }
@@ -1524,11 +1526,17 @@ void Pep_MA::bindToSystem() {
 void Pep_MA::prepareSim() {
   if (_microcode.index() == 0) return;
   if (_testsPre.index() != 0) {
+    // Must emit frame start/end else iterators will not work as expected.
+    _tb->emitFrameStart();
     _system->cpu()->applyPreconditions(_testsPre);
+    _tb->updateFrameHeader();
+    _memory->onUpdateGUI(_tb->cbegin());
+  } else {
+    // TODO: update memory -- probably by 0'ing it.
   }
 }
 
-void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}
+void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { emit updateGUI(from); }
 
 void Pep_MA::updateBPAtAddress(quint32 address, Action action) {}
 
