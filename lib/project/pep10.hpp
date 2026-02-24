@@ -29,6 +29,7 @@
 #include "project/levels.hpp"
 #include "sim/debug/watchexpressionmodel.hpp"
 #include "sim3/systems/traced_pep_isa3_system.hpp"
+#include "sim3/systems/traced_pep_ma2_system.hpp"
 #include "text/editor/editbase.hpp"
 #include "text/editor/micro_line_numbers.hpp"
 #include "toolchain/helpers/asmb.hpp"
@@ -296,9 +297,7 @@ class Pep_MA : public QObject {
   Q_PROPERTY(QList<Error *> microassemblerErrors READ errors NOTIFY errorsChanged)
   // Preserve the current address in the memory dump pane on tab-switch.
   Q_PROPERTY(quint16 currentAddress MEMBER _currentAddress NOTIFY currentAddressChanged)
-  Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
-  Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
   // Step modes that are allowable for the current project type.
   Q_PROPERTY(int enabledSteps READ enabledSteps CONSTANT)
@@ -394,18 +393,17 @@ protected:
   virtual void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
   project::Environment _env;
   QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
-  QSharedPointer<targets::isa::System> _system = {};
+  QSharedPointer<targets::ma::System> _system = {};
   QString _microcodeText = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   SimulatorRawMemory *_memory = nullptr;
-  RegisterModel *_registers = nullptr;
-  FlagModel *_flags = nullptr;
   qint16 _currentAddress = 0;
   using Action = EditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QList<QPair<int, QString>> _errors = {};
   pepp::MicrocodeChoice _microcode = std::monostate{};
+  pepp::TestChoice _testsPre = std::monostate{}, _testsPost = std::monostate{};
   pepp::Line2Address _line2addr;
 
   // Dispatch between the handlers for each of the languages.

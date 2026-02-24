@@ -17,6 +17,7 @@
 
 #pragma once
 #include "core/arch/pep/uarch/pep.hpp"
+#include "core/langs/ucode/ir_variant.hpp"
 #include "core/langs/ucode/pep_ir.hpp" // TODO: Stop including the parser in the simulator!!
 #include "sim/debug/debugger.hpp"
 #include "sim3/api/traced/memory_target.hpp"
@@ -52,6 +53,10 @@ public:
   Status status() const;
   void setConstantRegisters();
   void resetMicroPC();
+  quint16 microPC() const noexcept;
+  virtual void setMicrocode(const pepp::MicrocodeChoice &mc) = 0;
+  virtual void applyPreconditions(const pepp::TestChoice &tests) = 0;
+  virtual std::vector<bool> testPostconditions(const pepp::TestChoice &tests) = 0;
 
   // Target interface
   const sim::api2::tick::Source *getSource() override;
@@ -100,9 +105,12 @@ public:
   CPUByteBus &operator=(const CPUByteBus &) = delete;
 
   void setMicrocode(std::vector<pepp::tc::arch::Pep9ByteBus::Code> &&code);
+  void setMicrocode(const pepp::MicrocodeChoice &mc) override;
   const std::span<const pepp::tc::arch::Pep9ByteBus::Code> microcode();
   void applyPreconditions(const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  void applyPreconditions(const pepp::TestChoice &tests) override;
   std::vector<bool> testPostconditions(const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  std::vector<bool> testPostconditions(const pepp::TestChoice &tests) override;
 
   // Target interface
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
@@ -126,9 +134,12 @@ public:
   CPUWordBus &operator=(const CPUWordBus &) = delete;
 
   void setMicrocode(std::vector<pepp::tc::arch::Pep9WordBus::Code> &&code);
+  void setMicrocode(const pepp::MicrocodeChoice &mc) override;
   const std::span<const pepp::tc::arch::Pep9WordBus::Code> microcode();
   void applyPreconditions(const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  void applyPreconditions(const pepp::TestChoice &tests) override;
   std::vector<bool> testPostconditions(const std::vector<pepp::tc::ir::Test<pepp::tc::arch::Pep9Registers>> &tests);
+  std::vector<bool> testPostconditions(const pepp::TestChoice &tests) override;
 
   // Target interface
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
