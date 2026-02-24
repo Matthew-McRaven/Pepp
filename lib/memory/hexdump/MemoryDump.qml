@@ -109,8 +109,8 @@ Item {
                 roleValue: "border"
                 Ui.MemoryDumpBorder {
                     color: palette.text
-                    implicitWidth: colWidth
-                    implicitHeight: rowHeight
+                    implicitWidth: root.colWidth
+                    implicitHeight: root.rowHeight
                 }
             }
 
@@ -119,17 +119,19 @@ Item {
                 Ui.MemoryDumpReadOnly {
                     required property int highlight
                     required property string display
-                    required property string tooltip
                     required property int textAlign
+                    required property var modelData
                     backgroundColor: tableView.mapped_colors[highlight ?? 0]
                     textColor: palette.text
                     text: display
-                    tooltip: tooltip ?? null
                     textAlign: textAlign
                     font: fm.font
-                    implicitWidth: colWidth
-                    implicitHeight: rowHeight
+                    implicitWidth: root.colWidth
+                    implicitHeight: root.rowHeight
                     enableBackground: highlight !== 0
+                    row: modelData.row
+                    column: modelData.column
+                    model: memory
                 }
             }
         }
