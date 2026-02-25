@@ -1,64 +1,19 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
-<svg
-   width="50mm"
-   height="25mm"
-   viewBox="0 0 50 25"
-   version="1.1"
-   id="svg1"
-   xml:space="preserve"
-   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
-   sodipodi:docname="nand.svg"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-	<sodipodi:namedview
-   id="namedview1"
-   pagecolor="#ffffff"
-   bordercolor="#000000"
-   borderopacity="0.25"
-   inkscape:showpageshadow="2"
-   inkscape:pageopacity="0.0"
-   inkscape:pagecheckerboard="0"
-   inkscape:deskcolor="#d1d1d1"
-   inkscape:document-units="mm"
-   showgrid="true"
-   inkscape:zoom="4.1585016"
-   inkscape:cx="37.032569"
-   inkscape:cy="56.871446"
-   inkscape:window-width="3440"
-   inkscape:window-height="1369"
-   inkscape:window-x="-8"
-   inkscape:window-y="-8"
-   inkscape:window-maximized="1"
-   inkscape:current-layer="layer1">
-		<inkscape:grid
-   id="grid1"
-   units="mm"
-   originx="0"
-   originy="0"
-   spacingx="0.99999998"
-   spacingy="1"
-   empcolor="#0099e5"
-   empopacity="0.30196078"
-   color="#0099e5"
-   opacity="0.14901961"
-   empspacing="5"
-   enabled="true"
-   visible="true" />
-	</sodipodi:namedview>
-	<defs
-   id="defs1" />
-	<g
-   inkscape:label="Layer 1"
-   inkscape:groupmode="layer"
-   id="layer1">
-		<path
-   id="xor"
-   stroke-linecap="square"
-   d="m 10.325729,0.27377616 v 0.0658087 c 1.92649,3.58184494 3.039107,7.72776024 3.039107,12.15571014 0,4.437351 -1.112617,8.583266 -3.039107,12.165111 v 0.0564 h 11.799868 c 8.419088,0 15.769365,-4.916811 19.711708,-12.221518 C 37.894962,5.1999881 30.544685,0.27377616 22.125597,0.27377616 Z M 5.9453495,0.3395839 c 1.9264909,3.5818449 3.0391074,7.7277602 3.0391074,12.1557111 0,4.437351 -1.1126165,8.583266 -3.0391074,12.165111 M 41.864463,12.495295 h 7.884683 M 0.2508559,6.3845354 H 8.1355394 M 0.2508559,18.606054 h 7.8846835"
-   style="fill:white;stroke:#000000;stroke-width:0.501712" />
-	</g>
+<svg xmlns="http://www.w3.org/2000/svg"
+  width="40"
+  height="32"
+  viewBox="0 0 40 32">
+	<path 
+	d="
+	M 15 1
+	Q 27 1 39 15
+	Q 27 31 15 31
+	H 5
+	Q 13 16 5 1
+	Z"
+	style="fill:blue;stroke:#000000;stroke-width:1" />
+	<path 
+	d="
+	M 1 1
+	Q 8 16 1 31"
+	style="fill:none;stroke:#000000;stroke-width:1" />
 </svg>
