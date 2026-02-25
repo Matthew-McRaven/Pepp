@@ -45,16 +45,37 @@ Rectangle {
                 Layout.fillWidth: true
 
                 diagramModel: diagramModel
-                //currentIndex: canvas.currentItem
                 gateModel: sourceListView.filterList
             }
         }
 
-        DiagramCanvas {
-            id: canvas
-            dataModel: diagramModel
-            currentStamp: sourceListView.currentStamp
-            z: -1
-        }
-    }
+        ColumnLayout {
+            spacing: 0
+            Pane {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
+                RowLayout {
+                    Button {
+                        padding: 5
+                        display: AbstractButton.IconOnly
+
+                        icon.source: "qrc:/select"
+                        icon.color: "transparent"
+                        //icon.width: btn.implicitWidth * .5
+                        //icon.height: btn.implicitHeight * .55
+                    }
+                }
+            }
+
+            DiagramCanvas {
+                id: canvas
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                dataModel: diagramModel
+                currentStamp: sourceListView.currentStamp
+                z: -1
+            }
+        }   //  ColumnLayout
+    }   //  SplitView
 }
