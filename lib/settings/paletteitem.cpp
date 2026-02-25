@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "paletteitem.hpp"
+#include <QFontDatabase>
 #include <QSet>
 #include <qfontinfo.h>
 
@@ -96,7 +97,7 @@ QFont pepp::settings::PaletteItem::font() const {
     baseline.setUnderline(_fontOverrides.underline.value_or(baseline.underline()));
     baseline.setStrikeOut(_fontOverrides.strikeout.value_or(baseline.strikeOut()));
     return baseline;
-  } else return _font.value_or(QFont{});
+  } else return _font.value_or(default_ui_font());
 }
 
 void pepp::settings::PaletteItem::clearFont() {
@@ -138,23 +139,51 @@ void pepp::settings::PaletteItem::overrideStrikeout(bool strikeout) {
   emit preferenceChanged();
 }
 
+namespace {
+// If the value associated with a key is an object, then we assume it is a dictionary of per-platform overloads.
+// Try the current platform's key first, then fall back to a default/universal key.
+QJsonValue get_platform_json(const QJsonValue &json) {
+  static const auto pk = pepp::settings::platform_key();
+  static const auto dk = pepp::settings::default_platform_key();
+  auto as_object = json.toObject();
+  if (as_object.contains(pk)) return as_object[pk];
+  else if (as_object.contains(dk)) return as_object[dk];
+  else return json;
+}
+} // namespace
 bool pepp::settings::PaletteItem::updateFromJson(const QJsonObject &json, PaletteRole ownRole, PaletteItem *parent) {
-
   _ownRole = ownRole;
   setParent(parent);
-  if (json.contains("foreground")) {
-    auto hex = json["foreground"].toString().toUInt(nullptr, 16);
+
+  // Each key on the disk could either be a singular value or a dictionary of those value types.
+  // If it is a dictionary, we expect it to contain possibly one override per-platform plus on default/universal
+  // override. We first attempt to find a key for the current platform before falling back to the universal key. If
+  // neither exists, good luck, the value will probably be default initialized. None of this logic exists on the write
+  // side as of 2026-02-24, because this per-platform feature is only needed for default themes.
+
+  if (auto key = "foreground"; json.contains(key)) {
+    auto fg = json[key];
+    auto value = fg.isObject() ? get_platform_json(fg) : fg;
+    auto hex = value.toString().toUInt(nullptr, 16);
     _foreground = QColor::fromRgba(hex);
   } else _foreground.reset();
 
-  if (json.contains("background")) {
-    auto hex = json["background"].toString().toUInt(nullptr, 16);
+  if (auto key = "background"; json.contains(key)) {
+    auto fg = json[key];
+    auto value = fg.isObject() ? get_platform_json(fg) : fg;
+    auto hex = value.toString().toUInt(nullptr, 16);
     _background = QColor::fromRgba(hex);
   } else _background = {};
 
   // If item requires a mono font and the provided font is not mono, reset to a default font.
-  if (json.contains("font")) {
-    auto font = QFont(json["font"].toString());
+  if (auto key = "font"; json.contains(key)) {
+    auto fg = json[key];
+    auto value = fg.isObject() ? get_platform_json(fg) : fg;
+    auto font_name = value.toString();
+    QFont font;
+    // $system_ui$ is a magic name which we will decode to the platforms preferred system font
+    if (font_name == "$system_ui$" || font_name.isEmpty()) font = pepp::settings::default_ui_font();
+    else font.fromString(font_name);
     updateFont(font);
     _fontOverrides = {};
   } else {
@@ -213,7 +242,8 @@ void pepp::settings::PaletteItem::updateFromSettings(QSettings &settings, Palett
   } else _background.reset();
 
   if (settings.contains("font")) {
-    auto font = QFont(settings.value("font").toString());
+    QFont font;
+    font.fromString(settings.value("font").toString());
     updateFont(font);
     _fontOverrides = {};
   } else {
@@ -242,8 +272,9 @@ void pepp::settings::PaletteItem::toSettings(QSettings &settings) const {
   if (hasOwnBackground()) settings.setValue("background", background().rgba());
   else settings.remove("background");
 
-  if (hasOwnFont()) settings.setValue("font", font().toString());
-  else {
+  if (hasOwnFont()) {
+    settings.setValue("font", font().toString());
+  } else {
     settings.remove("overrides");
     settings.beginGroup("overrides");
     if (_fontOverrides.bold.has_value()) settings.setValue("overrideBold", _fontOverrides.bold.value());
@@ -265,7 +296,7 @@ void pepp::settings::PaletteItem::emitChanged() { emit preferenceChanged(); }
 
 void pepp::settings::PaletteItem::updateFont(const QFont newFont) {
   QFontInfo fontInfo(newFont);
-  if (!fontInfo.fixedPitch() && PaletteRoleHelper::requiresMonoFont(_ownRole)) _font = default_mono();
+  if (!fontInfo.fixedPitch() && PaletteRoleHelper::requiresMonoFont(_ownRole)) _font = default_mono_font();
   else {
     _font = newFont;
     _font->setFeature("cv01", 1);
@@ -276,14 +307,32 @@ void pepp::settings::PaletteItem::preventNonMonoParent() {
   // We either have a font and do not need to care about our parent or we do not care because we don't need a mono font.
   if (hasOwnFont() || !PaletteRoleHelper::requiresMonoFont(_ownRole)) {
   } else if (!_parent) {
-    if (!hasOwnFont()) _font = default_mono();
+    if (!hasOwnFont()) _font = default_mono_font();
   } else {
     // For some reason, the actual font (returned below) does not set fixed pitch, while QFontInfo does.
     auto font = _parent->font();
     QFontInfo fontInfo(font);
-    if (!fontInfo.fixedPitch()) _font = default_mono();
+    if (!fontInfo.fixedPitch()) _font = default_mono_font();
   }
 }
+
+QString pepp::settings::platform_key() {
+#if defined(Q_OS_WASM)
+  return "wasm";
+#elif defined(Q_OS_MACOS)
+  return "macos";
+#elif defined(Q_OS_WIN)
+  return "windows";
+#elif defined(Q_OS_LINUX)
+  return "linux";
+#elif defined(Q_OS_UNIX)
+  return "unix";
+#else
+  return default_platform_key();
+#endif
+}
+
+QString pepp::settings::default_platform_key() { return "*"; }
 
 bool pepp::settings::detail::isAncestorOf(const PaletteItem *maybeAncestor, const PaletteItem *maybeDescendant) {
   QSet<const PaletteItem *> ancestors;
@@ -307,7 +356,7 @@ QFont pepp::settings::EditorPaletteItem::macroFont() const {
     baseline.setUnderline(_fontOverrides.underline.value_or(baseline.underline()));
     baseline.setStrikeOut(_fontOverrides.strikeout.value_or(baseline.strikeOut()));
     return baseline;
-  } else return _macroFont.value_or(default_mono());
+  } else return _macroFont.value_or(default_mono_font());
 };
 
 void pepp::settings::EditorPaletteItem::clearMacroFont() {
@@ -325,8 +374,14 @@ void pepp::settings::EditorPaletteItem::setMacroFont(const QFont font) {
 
 bool pepp::settings::EditorPaletteItem::updateFromJson(const QJsonObject &json, PaletteRole ownRole,
                                                        PaletteItem *parent) {
-  if (json.contains("macroFont")) updateMacroFont(QFont(json["macroFont"].toString()));
-
+  if (auto key = "macroFont"; json.contains(key)) {
+    auto fg = json[key];
+    auto value = fg.isObject() ? get_platform_json(fg) : fg;
+    auto as_string = value.toString();
+    QFont r;
+    r.fromString(as_string);
+    updateMacroFont(r);
+  } else _macroFont.reset();
   return PaletteItem::updateFromJson(json, ownRole, parent);
 }
 
@@ -339,7 +394,8 @@ QJsonObject pepp::settings::EditorPaletteItem::toJson() {
 void pepp::settings::EditorPaletteItem::updateFromSettings(QSettings &settings, PaletteItem *parent) {
   PaletteItem::updateFromSettings(settings, parent);
   if (settings.contains("macroFont")) {
-    auto font = QFont(settings.value("macroFont").toString());
+    QFont font;
+    font.fromString(settings.value("macroFont").toString());
     updateMacroFont(font);
     _fontOverrides = {};
   }
@@ -352,19 +408,37 @@ void pepp::settings::EditorPaletteItem::toSettings(QSettings &settings) const {
 
 void pepp::settings::EditorPaletteItem::updateMacroFont(const QFont newFont) {
   QFontInfo fontInfo(newFont);
-  if (!fontInfo.fixedPitch()) _macroFont = default_mono();
+  if (!fontInfo.fixedPitch()) _macroFont = default_mono_font();
   else _macroFont = newFont;
 }
 
 namespace {
-auto create = []() {
-  auto f = QFont("Monaspace Argon", 12);
+auto create_mono = []() {
+#ifdef Q_OS_WASM
+  static const int pt = 10;
+#else
+  static const int pt = 12;
+#endif
+  auto f = QFont("Monaspace Argon", pt);
   f.setFeature("cv01", 1);
   return f;
 };
+auto create_ui = []() {
+  auto sf = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
+#ifdef Q_OS_WASM
+  sf.setPointSize(10);
+#endif
+  return sf;
+};
 } // namespace
-QFont pepp::settings::default_mono() {
+QFont pepp::settings::default_mono_font() {
   // Use a helper to only initialize the font once
-  static const QFont mono = create();
+  static const QFont mono = create_mono();
   return mono;
+}
+
+QFont pepp::settings::default_ui_font() {
+  // Use a helper to only initialize the font once
+  static const QFont ui = create_ui();
+  return ui;
 }

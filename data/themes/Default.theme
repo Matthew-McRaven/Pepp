@@ -3,12 +3,21 @@
     "paletteItems": [
         {
             "background": "0xffffffff",
-            "font": "Segoe UI,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "font":
+            {
+                "windows":"Segoe UI,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+                "macos":"$system_ui$",
+                "wasm":"DejaVu Sans,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
+            },
             "foreground": "0xff000000",
             "name": "BaseRole"
         },
         {
-            "font": "Monaspace Argon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "font":
+            {
+                "wasm":"Monaspace Argon,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+                "*": "Monaspace Argon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
+            },
             "name": "BaseMonoRole",
             "parent": "BaseRole"
         },
@@ -92,7 +101,11 @@
         {
             "background": "0xffffffff",
             "foreground": "0xff2540bd",
-            "macroFont": "Monaspace Argon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "macroFont":
+            {
+                "wasm":"Monaspace Argon,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+                "*": "Monaspace Argon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
+            },
             "name": "MnemonicRole",
             "parent": "BaseMonoRole"
         },
@@ -183,5 +196,5 @@
             "parent": "CombinationalRole"
         }
     ],
-    "version": 9
+    "version": 10
 }

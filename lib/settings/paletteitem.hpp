@@ -22,7 +22,8 @@
 
 namespace pepp::settings {
 
-QFont default_mono();
+QFont default_ui_font();
+QFont default_mono_font();
 class PaletteItem : public QObject {
   Q_OBJECT
   Q_PROPERTY(PaletteItem *parent READ parent WRITE setParent NOTIFY preferenceChanged)
@@ -94,6 +95,9 @@ protected:
   void preventNonMonoParent();
   PaletteRole _ownRole;
 };
+
+QString platform_key();
+QString default_platform_key();
 
 class EditorPaletteItem : public PaletteItem {
   Q_OBJECT

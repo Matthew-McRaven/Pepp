@@ -141,11 +141,12 @@ private:
   //  Dirty flag is cleared on save (a const function)
   mutable bool _isDirty{false};
   // Version 9 added additional roles for logic gate / MA2 simulator
-  static const int _version{9};
+  static const int _version{10};
   std::vector<PaletteItem *> _items;
   QString _name{"Default"};
 
   void loadLightDefaults();
+  void loadDefaultForRole(PaletteItem **pref, PaletteRole role);
 };
 
 } // namespace pepp::settings
