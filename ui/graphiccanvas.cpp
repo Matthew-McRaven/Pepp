@@ -123,7 +123,9 @@ void GraphicCanvas::cacheImages(const QString &source)
     renderer.setAspectRatioMode(Qt::KeepAspectRatio);
 
     if (renderer.isValid()) {
-        int dim = _background.width() * grid_to_px;
+        //  SVG dimensions should not matter, but rendering SVG at anything
+        //  but a direct multiple of the width creates visual issues.
+        int dim = 48 * 3; //_background.width() * grid_to_px;
         //qDebug() << "dim, width, widthMM, logicalDpiX" << dim << _background.width()
         //         << _background.widthMM() << _background.logicalDpiX();
         QPixmap image(dim, dim);
