@@ -154,6 +154,7 @@ Item {
                                 required property var item
                                 text: item.name + "  <" + item.email + ">"
                                 readOnly: true
+                                color: palette.windowText
                             }
                             height: model.rowCount() * fontMetrics.height
                         }
@@ -174,6 +175,7 @@ Item {
                         wrapMode: Text.WordWrap
                         text: Contributors.text
                         readOnly: true
+                        color: palette.windowText
                     }
 
                     TextEdit {
@@ -185,6 +187,7 @@ Item {
                         font.bold: true
                         wrapMode: Text.WordWrap
                         readOnly:true
+                        color: palette.windowText
                     }
                     TextEdit {
                         Layout.fillWidth: true
@@ -200,6 +203,7 @@ Item {
                         text: qsTr("This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.")
                         wrapMode: Text.WordWrap
                         readOnly:true
+                        color: palette.windowText
                     }
                     Label {
                         Layout.fillWidth: true
