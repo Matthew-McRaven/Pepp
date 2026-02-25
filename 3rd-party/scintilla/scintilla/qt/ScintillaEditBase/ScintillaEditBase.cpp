@@ -308,7 +308,9 @@ void ScintillaEditBase::focusInEvent(QFocusEvent *event) {
 
 #ifdef PLAT_QT_QML
   QQuickPaintedItem::focusInEvent(event);
+#ifdef Q_OS_WASM
   refreshImeBinding();
+#endif
 #else
     QAbstractScrollArea::focusInEvent(event);
 #endif
@@ -318,11 +320,13 @@ void ScintillaEditBase::focusOutEvent(QFocusEvent *event) {
   sqt->SetFocusState(false);
 
 #ifdef PLAT_QT_QML
+#ifdef Q_OS_WASM
   if (auto *im = QGuiApplication::inputMethod()) {
     im->commit();
     im->hide();
     im->reset();
   }
+#endif
   QQuickPaintedItem::focusOutEvent(event);
 #else
     QAbstractScrollArea::focusOutEvent(event);
@@ -523,7 +527,9 @@ void ScintillaEditBase::mouseReleaseEvent(QMouseEvent *event) {
 #ifdef PLAT_QT_QML
   emit enableScrollViewInteraction(true);
   forceActiveFocus(Qt::MouseFocusReason);
+#ifdef Q_OS_WASM
   refreshImeBinding();
+#endif
   event->setAccepted(true);
 #endif
 }
