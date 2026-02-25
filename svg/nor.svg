@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-  width="40"
+  width="48"
   height="32"
-  viewBox="0 0 40 32">
+  viewBox="0 0 48 32">
 	<path 
 	d="
-	M 10 1 
-	Q 27 1 33 15
-	Q 27 31 10 31
-	H 1
-	Q 8 15 1 1
+	M 14 1
+	Q 27 1 37 15
+	Q 27 31 14 31
+	H 5
+	Q 13 16 5 1
 	Z"
-	style="fill:blue;stroke:#000000;stroke-width:1" />
-	<circle cx="36" cy="15" r="3" 
-	style="fill:blue;stroke:#000000;stroke-width:1" />
+	style="fill:white;stroke:#000000;stroke-width:1" />
+	<circle cx="40" cy="15" r="3"
+	style="fill:white;stroke:#000000;stroke-width:1" />
 </svg>

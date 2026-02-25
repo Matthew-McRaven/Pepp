@@ -1,19 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-  width="40"
+  width="48"
   height="32"
-  viewBox="0 0 40 32">
+  viewBox="0 0 48 32">
 	<path 
 	d="
-	M 15 1
-	Q 27 1 39 15
-	Q 27 31 15 31
-	H 5
-	Q 13 16 5 1
+	M 19 1
+	Q 30 1 43 15
+	Q 30 31 19 31
+	H 9
+	Q 17 16 9 1
 	Z"
-	style="fill:blue;stroke:#000000;stroke-width:1" />
+	style="fill:white;stroke:#000000;stroke-width:1" />
 	<path 
 	d="
-	M 1 1
-	Q 8 16 1 31"
+	M 5 1
+	Q 13 16 5 31"
 	style="fill:none;stroke:#000000;stroke-width:1" />
 </svg>
