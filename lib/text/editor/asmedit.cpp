@@ -26,7 +26,7 @@ void AsmEdit::applyStyles() {
       f.setItalic(true);
       return f;
     }
-    return pepp::settings::default_mono();
+    return pepp::settings::default_mono_font();
   };
 
   for (int mask : {0, SCE_PEPASM_DEFAULT_GEN}) {

@@ -146,6 +146,7 @@ private:
   QString _name{"Default"};
 
   void loadLightDefaults();
+  void loadDefaultForRole(PaletteItem **pref, PaletteRole role);
 };
 
 } // namespace pepp::settings
