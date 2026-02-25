@@ -96,6 +96,9 @@ protected:
   PaletteRole _ownRole;
 };
 
+QString platform_key();
+QString default_platform_key();
+
 class EditorPaletteItem : public PaletteItem {
   Q_OBJECT
   QML_ELEMENT

@@ -293,11 +293,7 @@ void pepp::settings::Palette::loadDefaultForRole(PaletteItem **pref, PaletteRole
         this);
     break;
   case PaletteRoleHelper::Role::WarningRole:
-    *pref = new PaletteItem(
-        PO{
-            .parent = _items[(int)R::CommentRole],
-        },
-        r, this);
+    *pref = new PaletteItem(PO{.parent = _items[(int)R::CommentRole]}, r, this);
     break;
   case PaletteRoleHelper::Role::CombinationalRole:
     *pref = new PaletteItem(PO{.parent = _items[(int)R::BaseMonoRole]}, r, this);
