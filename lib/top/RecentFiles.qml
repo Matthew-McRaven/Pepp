@@ -238,6 +238,7 @@ Item {
                                     id: arch
                                     Layout.fillWidth: true
                                     text: "<b>" + ep.archText(btn.model.arch) + "</b>: " + ep.abstractText(btn.model.abstraction)
+                                    color: palette.windowText
                                 }
                                 Text {
                                     //  Full file path
@@ -249,6 +250,7 @@ Item {
                                     lineHeight: 0.85
                                     wrapMode: Text.Wrap
                                     elide: Text.ElideMiddle
+                                    color: palette.windowText
                                 }
                                 Item {
                                     //  Spacer
@@ -365,6 +367,7 @@ Item {
                                     lineHeight: 0.85
                                     wrapMode: Text.Wrap
                                     elide: Text.ElideLeft
+                                    color: palette.windowText
                                 }
                                 Item {
                                     //  Spacer
