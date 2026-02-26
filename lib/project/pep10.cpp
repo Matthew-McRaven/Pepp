@@ -1533,7 +1533,7 @@ void Pep_MA::onDeferredExecution(std::function<bool()> step) {
   else { // Prefer no {}, but compiler gets confused with the /emit/ macros.
     _state = State::DebugPaused;
   }
-
+  updatePC();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   prepareGUIUpdate(from);
@@ -1570,14 +1570,21 @@ void Pep_MA::prepareSim() {
     _system->cpu()->applyPreconditions(_testsPre);
     _tb->updateFrameHeader();
     _memory->onUpdateGUI(_tb->cbegin());
-  } else {
-    // TODO: update memory -- probably by 0'ing it.
   }
+  updatePC();
 }
 
 void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { emit updateGUI(from); }
 
 void Pep_MA::updateBPAtAddress(quint32 address, Action action) {}
+
+void Pep_MA::updatePC() {
+  auto pc = _system->cpu()->microPC();
+  if (auto line = _line2addr.line(pc); !line) return;
+  else {
+    emit editorAction(*line, Action::HighlightExclusive);
+  }
+}
 
 bool Pep_MA::_microassemble(bool override_source_text) {
   using namespace bits;

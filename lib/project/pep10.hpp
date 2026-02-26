@@ -345,6 +345,9 @@ public:
   int rendering_type() const;
   QList<Error *> errors() const;
 
+  // Can't place in signals/slots.
+  using Action = EditBase::Action;
+
 public slots:
   bool onMicroAssemble();
   bool onMicroAssembleThenFormat();
@@ -377,6 +380,7 @@ signals:
   void clearMessages();
   void deferredExecution(std::function<bool()> step);
   void overwriteEditors();
+  void editorAction(int line, Action action);
 
   // Propogated  C++ project model => C++ project => QML project wrapper => QML editor
   void markedClean();
@@ -401,8 +405,8 @@ protected:
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   SimulatorRawMemory *_memory = nullptr;
   qint16 _currentAddress = 0;
-  using Action = EditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
+  void updatePC();
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QList<QPair<int, QString>> _errors = {};
   pepp::MicrocodeChoice _microcode = std::monostate{};

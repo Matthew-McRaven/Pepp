@@ -98,6 +98,7 @@ FocusScope {
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
         project.errorsChanged.connect(displayErrors);
+        project.editorAction.connect(microEdit.editor.onLineAction)
         microEdit.onDirtiedChanged.connect(wrapper.markDirty);
     }
 
