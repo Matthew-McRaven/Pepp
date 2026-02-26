@@ -51,21 +51,47 @@ Rectangle {
 
         ColumnLayout {
             spacing: 0
+
             Pane {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignTop
+
+                leftPadding: 0
+                rightPadding: 0
+                topPadding: 3
+                bottomPadding: 3
+                spacing: 0
+
                 RowLayout {
+                    spacing: 3
                     Button {
-                        padding: 5
+                        implicitHeight: 32
+                        implicitWidth: 32
                         display: AbstractButton.IconOnly
 
                         icon.source: "qrc:/select"
-                        icon.color: "transparent"
-                        //icon.width: btn.implicitWidth * .5
-                        //icon.height: btn.implicitHeight * .55
+                        icon.color: "black"
+                    }
+                    Button {
+                        id: btn
+                        implicitHeight: 32
+                        implicitWidth: 32
+                        display: AbstractButton.IconOnly
+
+                        icon.source: "qrc:/or"
+                        icon.color: "black"
+                        icon.height: icon.width * .75
+                    }
+                    Button {
+                        implicitHeight: 32
+                        implicitWidth: 32
+                        display: AbstractButton.IconOnly
+
+                        icon.source: "qrc:/line"
+                        icon.color: "black"
                     }
                 }
-            }
+            }   //  Pane
 
             DiagramCanvas {
                 id: canvas
