@@ -281,8 +281,8 @@ QtObject {
             enabled: project?.allowedSteps & StepEnableFlags.Step
             property string nativeText: ""
             onTriggered: {
-                const stepHandler = project.onISAStep || project.onMAStep || project.onStep;
-                if(stepHandler) stepHandler()
+                const handler = project.onISAStep || project.onMAStep || project.onStep;
+                if(handler) handler()
             }
             text: qsTr("&Step")
             icon.source: `image://icons/debug/step_normal${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
@@ -308,7 +308,10 @@ QtObject {
             icon.source: `image://icons/debug/step_out${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
         }
         readonly property var removeAllBreakpoints: Action {
-            onTriggered: project.onISARemoveAllBreakpoints()
+            onTriggered: {
+                const handler = project.onISARemoveAllBreakpoints || project.onMARemoveAllBreakpoints || project.onRemoveAllBreakpoints;
+                if(handler) handler()
+            }
             text: qsTr("&Remove All Breakpoints")
             icon.source: "image://icons/blank.svg"
         }

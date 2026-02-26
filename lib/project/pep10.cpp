@@ -1499,6 +1499,7 @@ bool Pep_MA::onDebuggingStop() {
 
 bool Pep_MA::onMARemoveAllBreakpoints() {
   _dbg->bps->clearBPs();
+  emit projectBreakpointsCleared();
   return true;
 }
 
