@@ -7,6 +7,9 @@ ColumnLayout {
     id: root
     spacing: 0
     focus: true
+    NuAppSettings {
+        id: settings
+    }
     ScrollView {
         id: view
         Layout.fillWidth: true
@@ -15,7 +18,7 @@ ColumnLayout {
             id: logTextArea
             readOnly: true
             wrapMode: Text.Wrap
-            font.family: "Monospace"
+            font.family: settings.extPalette.baseMono.font
             textFormat: Text.RichText
         }
         ScrollBar.vertical.policy: logTextArea.contentHeight > view.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
