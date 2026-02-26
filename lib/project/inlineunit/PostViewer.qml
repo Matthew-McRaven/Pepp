@@ -24,7 +24,7 @@ Item {
     }
     HorizontalHeaderView {
         id: horizontalHeader
-        // Silence warning about non-existent role.
+        // Dummy value to silence warning about non-existent role.
         textRole: "value"
         anchors {
             top: parent.top
@@ -34,14 +34,33 @@ Item {
         }
         syncView: wrapper
         clip: true
-        delegate: Label {
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignLeft
-            leftPadding: tm.width * 2
-            rightPadding: tm.width * 2
-            color: palette.text
-            text: `Test ${' '.repeat(Math.max(root.model.longest-5,1))} Value`
-            font: tm.font
+        delegate: Item {
+            id: headerDelegate
+            implicitHeight: testHead.contentHeight
+            Label {
+                id: testHead
+                anchors.left: parent.left
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+                leftPadding: tm.width * 2
+
+                color: palette.text
+                text: "Test"
+                font: tm.font
+            }
+            Label {
+                id: valueHead
+                focus: false
+                anchors.left: testHead.right
+                anchors.right: parent.right
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignRight
+                rightPadding: tm.width * 2
+
+                color: palette.text
+                text: "Value"
+                font: tm.font
+            }
         }
         Rectangle {
             anchors {
@@ -73,9 +92,16 @@ Item {
         contentWidth: width
         clip: true
         focus: true
+        // columnWidthProvider is assumed to be constant, so we must force a lyout when name length changes.
+        Connections {
+            target: reshapeModel
+            function onLongestChanged() {
+                wrapper.forceLayout();
+            }
+        }
         columnWidthProvider: function (index) {
-            const header = "Test Value".length + 4; // Need 2 padding  on each side
-            const row = model.longest + 5 + 2; // Symbol + space + hex value
+            const header = "Test Value".length + 4; // header text + space
+            const row = model.longest + 5 + 4; // test name + space
             return tm.width * Math.max(header, row) + 10;
         }
         rowHeightProvider: function (index) {
@@ -114,7 +140,6 @@ Item {
             implicitHeight: postLabel.contentHeight
             width: parent.width
 
-
             focus: false
             Label {
                 id: postLabel
@@ -134,14 +159,14 @@ Item {
                 focus: false
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                anchors.left: postLabel.right
                 anchors.right: parent.right
+
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignRight
                 rightPadding: tm.width * 2
 
                 color: palette.text
-                text: valid && delegate.value >= 0 ? delegate.value : ""
+                text: valid && delegate.value >= 0 ? !!delegate.value : ""
                 font: tm.font
             }
         }
