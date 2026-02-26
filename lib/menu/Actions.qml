@@ -280,7 +280,10 @@ QtObject {
         readonly property var step: Action {
             enabled: project?.allowedSteps & StepEnableFlags.Step
             property string nativeText: ""
-            onTriggered: project.onISAStep()
+            onTriggered: {
+                const stepHandler = project.onISAStep || project.onMAStep || project.onStep;
+                if(stepHandler) stepHandler()
+            }
             text: qsTr("&Step")
             icon.source: `image://icons/debug/step_normal${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
             shortcut: ["Ctrl+Return"]
