@@ -198,6 +198,8 @@ FocusScope {
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(200, 400)
                 microcode: project?.microcode ?? null
+                // Do not highlight addresses when not simulating. Single step is always enabled if debugging.
+                activeAddress: project?.allowedSteps & StepEnableFlags.Step ? project.currentAddress : -1
             }
         }
         KDDW.DockWidget {

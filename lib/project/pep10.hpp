@@ -296,7 +296,7 @@ class Pep_MA : public QObject {
   Q_PROPERTY(pepp::LineNumbers *cycleNumbers READ line2addr NOTIFY microcodeChanged);
   Q_PROPERTY(QList<Error *> microassemblerErrors READ errors NOTIFY errorsChanged)
   // Preserve the current address in the memory dump pane on tab-switch.
-  Q_PROPERTY(quint16 currentAddress MEMBER _currentAddress NOTIFY currentAddressChanged)
+  Q_PROPERTY(quint16 currentAddress READ currentAddress NOTIFY updateGUI)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
@@ -335,7 +335,7 @@ public:
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
   virtual bool isEmpty() const;
-
+  int currentAddress() const;
   int allowedDebugging() const;
   int enabledSteps() const;
   int allowedSteps() const;
