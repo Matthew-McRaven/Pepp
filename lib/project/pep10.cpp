@@ -1507,9 +1507,26 @@ bool Pep_MA::onMAStep() {
   return true;
 }
 
-bool Pep_MA::onClearCPU() { return true; }
+bool Pep_MA::onClearCPU() {
+  const auto cpu = _system->cpu();
+  const bool traced = _tb->traced(cpu->device().id);
+  cpu->trace(false);
+  cpu->resetMicroPC();
+  // TODO: need to select correct set of constants based on architecture.
+  _system->cpu()->setConstantRegisters();
+  cpu->trace(traced);
+  // TODO: reset hidden regs, CSRs
+  return true;
+}
 
-bool Pep_MA::onClearMemory() { return true; }
+bool Pep_MA::onClearMemory() {
+  const auto bus = _system->bus();
+  const bool traced = _tb->traced(bus->device().id);
+  _system->bus()->trace(false);
+  bus->clear(0);
+  bus->trace(traced);
+  return true;
+}
 
 void Pep_MA::onDeferredExecution(std::function<bool()> step) {
   using Status = targets::pep9::mc2::BaseCPU::Status;
@@ -1573,12 +1590,10 @@ void Pep_MA::bindToSystem() {
 void Pep_MA::prepareSim() {
   if (_microcode.index() == 0) return;
   _tb->clear();
-  _system->cpu()->resetMicroPC();
-  // TODO: need to select correct set of constants based on architecture.
-  _system->cpu()->setConstantRegisters();
-  _system->bus()->clear(0);
-  _system->bus()->trace(true);
-  _system->cpu()->trace(true);
+  _system->init();
+  onClearCPU();
+  onClearMemory();
+  _dbg->bps->clearHit();
   if (_testsPre.index() != 0) {
     // Must emit frame start/end else iterators will not work as expected.
     _tb->emitFrameStart();
