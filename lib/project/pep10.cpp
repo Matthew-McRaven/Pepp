@@ -1516,10 +1516,12 @@ bool Pep_MA::onClearCPU() {
   const bool traced = _tb->traced(cpu->device().id);
   cpu->trace(false);
   cpu->resetMicroPC();
+  cpu->trace(traced);
+  cpu->bankRegs()->clear(0);
+  cpu->hiddenRegs()->clear(0);
+  cpu->csrs()->clear(0);
   // TODO: need to select correct set of constants based on architecture.
   _system->cpu()->setConstantRegisters();
-  cpu->trace(traced);
-  // TODO: reset hidden regs, CSRs
   return true;
 }
 
@@ -1563,6 +1565,7 @@ void Pep_MA::onDeferredExecution(std::function<bool()> step) {
   else { // Prefer no {}, but compiler gets confused with the /emit/ macros.
     _state = State::DebugPaused;
   }
+
   updatePC();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
@@ -1593,11 +1596,11 @@ void Pep_MA::bindToSystem() {
 
 void Pep_MA::prepareSim() {
   if (_microcode.index() == 0) return;
-  _tb->clear();
   _system->init();
   onClearCPU();
   onClearMemory();
   _dbg->bps->clearHit();
+  _tb->clear();
   if (_testsPre.index() != 0) {
     // Must emit frame start/end else iterators will not work as expected.
     _tb->emitFrameStart();
