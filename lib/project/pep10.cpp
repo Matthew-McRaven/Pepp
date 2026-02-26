@@ -1534,6 +1534,7 @@ void Pep_MA::prepareSim() {
   } else {
     // TODO: update memory -- probably by 0'ing it.
   }
+  _system->cpu()->resetMicroPC();
 }
 
 void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { emit updateGUI(from); }
