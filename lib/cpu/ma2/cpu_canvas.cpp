@@ -555,8 +555,9 @@ pepp::PaintedCPUCanvas::PaintedCPUCanvas(Which which, QQuickItem *parent) : QQui
   BoundingBox minmax;
   BoundingBoxVisitor mmv;
   for (const auto &i : _geom) minmax.extend(std::visit(mmv, i));
-  _w = minmax._max.x() - minmax._min.x();
-  _h = minmax._max.y() - minmax._min.y();
+  // Effectively adds padding on the bottom, right to ensure we don't clip rects
+  _w = minmax._max.x() - minmax._min.x() + 20;
+  _h = minmax._max.y() - minmax._min.y() + 20;
 
   auto svg_path = ":/logi/arrow.svg";
   QImage svg_image(svg_path);
