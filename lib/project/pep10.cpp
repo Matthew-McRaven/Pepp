@@ -1453,10 +1453,8 @@ bool Pep_MA::onMicroAssembleThenFormat() { return _microassemble(true); }
 
 bool Pep_MA::onExecute() {
   _microassemble(false);
-  _system->bus()->trace(true);
   prepareSim();
   _state = State::NormalExec;
-  //_stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   emit deferredExecution([]() { return false; });
@@ -1465,13 +1463,11 @@ bool Pep_MA::onExecute() {
 
 bool Pep_MA::onDebuggingStart() {
   _microassemble(false);
-  _system->bus()->trace(true);
   prepareSim();
   _state = State::DebugPaused;
   // _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
-  // TODO: actually start debugging
   return true;
 }
 
@@ -1497,21 +1493,57 @@ bool Pep_MA::onDebuggingStop() {
 
 bool Pep_MA::onMARemoveAllBreakpoints() { return true; }
 
-bool Pep_MA::onMAStep() { return true; }
+bool Pep_MA::onMAStep() {
+  deferredExecution([]() { return true; });
+  return true;
+}
 
 bool Pep_MA::onClearCPU() { return true; }
 
 bool Pep_MA::onClearMemory() { return true; }
 
-void Pep_MA::onDeferredExecution(std::function<bool()> step) {}
+void Pep_MA::onDeferredExecution(std::function<bool()> step) {
+  using Status = targets::pep9::mc2::BaseCPU::Status;
+  auto from = _tb->cend();
+  bool err = false;
+
+  try {
+    auto ending = _system->currentTick() + 1000;
+    do {
+      _system->tick(sim::api2::Scheduler::Mode::Jump);
+      if (_dbg && _dbg->bps->hit()) {
+        _dbg->bps->clearHit();
+        _pendingPause = true;
+      } else if (_system->cpu()->status() == Status::Halted) _pendingPause = true;
+      _pendingPause |= step();
+    } while (_system->currentTick() < ending && !_pendingPause);
+  } catch (const sim::api2::memory::Error &e) {
+    err = true;
+    std::cerr << "Memory error: " << e.what() << std::endl;
+  } catch (const std::logic_error &e) {
+    err = true;
+    emit message(e.what());
+  }
+  qDebug().noquote().nospace() << "Finished deferred execution. Pending pause:" << _pendingPause << "steps"
+                               << _system->currentTick();
+  // Since microcode programs are short, we don't actual benefit from deferred execution the same way as the ISA3
+  // projects. We can skip prior updates to buttons, and only report the final state of the simulation. This works
+  // because microcode is not turing complete and has no branches.
+  if (_system->cpu()->status() == Status::Halted || err) _state = State::Halted;
+  else { // Prefer no {}, but compiler gets confused with the /emit/ macros.
+    _state = State::DebugPaused;
+  }
+
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  prepareGUIUpdate(from);
+}
 
 void Pep_MA::bindToSystem() {
   using enum pepp::Architecture;
   switch (_env.arch) {
-  case PEP9:
-    break;
-  case PEP10:
-    break;
+  case PEP9: break;
+  case PEP10: break;
   default: throw std::logic_error("Unimplemented");
   }
   using TMAS = sim::trace2::TranslatingModifiedAddressSink<quint16>;
@@ -1525,6 +1557,13 @@ void Pep_MA::bindToSystem() {
 
 void Pep_MA::prepareSim() {
   if (_microcode.index() == 0) return;
+  _tb->clear();
+  _system->cpu()->resetMicroPC();
+  // TODO: need to select correct set of constants based on architecture.
+  _system->cpu()->setConstantRegisters();
+  _system->bus()->clear(0);
+  _system->bus()->trace(true);
+  _system->cpu()->trace(true);
   if (_testsPre.index() != 0) {
     // Must emit frame start/end else iterators will not work as expected.
     _tb->emitFrameStart();
@@ -1534,7 +1573,6 @@ void Pep_MA::prepareSim() {
   } else {
     // TODO: update memory -- probably by 0'ing it.
   }
-  _system->cpu()->resetMicroPC();
 }
 
 void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { emit updateGUI(from); }
