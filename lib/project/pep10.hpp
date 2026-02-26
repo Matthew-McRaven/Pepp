@@ -25,6 +25,7 @@
 #include "debug/debugger.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "microobjectmodel.hpp"
+#include "postmodel.hpp"
 #include "project/architectures.hpp"
 #include "project/levels.hpp"
 #include "sim/debug/watchexpressionmodel.hpp"
@@ -298,6 +299,7 @@ class Pep_MA : public QObject, public pepp::debug::Environment {
   // Preserve the current address in the memory dump pane on tab-switch.
   Q_PROPERTY(quint16 currentAddress READ currentAddress NOTIFY updateGUI)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
+  Q_PROPERTY(PostModel *testResults READ testResults CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
   // Step modes that are allowable for the current project type.
@@ -322,6 +324,7 @@ public:
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;
+  PostModel *testResults() const;
   QString microcodeText() const;
   void setMicrocodeText(const QString &microcodeText);
   Q_INVOKABLE static QStringListModel *modes() {
@@ -407,6 +410,7 @@ protected:
   QString _microcodeText = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   SimulatorRawMemory *_memory = nullptr;
+  PostModel *_testResults = nullptr;
   qint16 _currentAddress = 0;
   void updateBPAtAddress(quint32 address, Action action);
   void updatePC();
@@ -424,6 +428,10 @@ protected:
   bool _microassemble8(bool override_source_text);
   bool _microassemble9_10_1(bool override_source_text);
   bool _microassemble9_10_2(bool override_source_text);
+  // Update the number of tests rows and set the test names.
+  void reloadPostTests();
+  // Do NOT adjust the number of rows / the names of the tests. Only update value columns.
+  void updatePostTestValues();
 
   // Environment interface
 public:

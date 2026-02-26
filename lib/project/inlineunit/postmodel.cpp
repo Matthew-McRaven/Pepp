@@ -39,6 +39,27 @@ QVariant PostModel::data(const QModelIndex &index, int role) const {
 
 qsizetype PostModel::longest() const { return _longest; }
 
+void PostModel::updateValuesFromVector(const std::vector<bool> &values) {
+  static const QList<int> roles = {ValueRole};
+  auto rowCount = std::min<int>(values.size(), _entries.size());
+  for (int i = 0; i < rowCount; i++) _entries[i].cachedValue = values[i];
+  auto tl = index(0, 0), br = index(rowCount - 1, 0);
+  emit dataChanged(tl, br, roles);
+}
+
+void PostModel::resetFromVector(QStringList names) {
+  beginResetModel();
+  _entries.resize(names.size());
+  _longest = 0;
+  for (int it = 0; it < names.size(); it++) {
+    _entries[it].test = names[it];
+    _entries[it].cachedValue = -1;
+    _longest = std::max(_longest, static_cast<qsizetype>(names[it].size()));
+  }
+  emit longestChanged();
+  endResetModel();
+}
+
 QHash<int, QByteArray> PostModel::roleNames() const {
   static const auto roles = QHash<int, QByteArray>{
       {(int)TestRole, "test"}, {(int)ValueRole, "value"}, {(int)IndexRole, "index"}, {(int)ValidRole, "valid"}};

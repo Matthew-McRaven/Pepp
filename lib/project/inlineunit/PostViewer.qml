@@ -25,7 +25,7 @@ Item {
     HorizontalHeaderView {
         id: horizontalHeader
         // Silence warning about non-existent role.
-        textRole: ""
+        textRole: "value"
         anchors {
             top: parent.top
             left: parent.left
@@ -34,33 +34,14 @@ Item {
         }
         syncView: wrapper
         clip: true
-        delegate: Item {
-            id: headerDelegate
-            implicitHeight: symbolHead.contentHeight
-            Label {
-                id: symbolHead
-                anchors.left: parent.left
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignLeft
-                leftPadding: tm.width * 2
-
-                color: palette.text
-                text: "Test"
-                font: tm.font
-            }
-            Label {
-                id: valueHead
-                focus: false
-                anchors.left: symbolHead.right
-                anchors.right: parent.right
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignRight
-                rightPadding: tm.width * 2
-
-                color: palette.text
-                text: "Value"
-                font: tm.font
-            }
+        delegate: Label {
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignLeft
+            leftPadding: tm.width * 2
+            rightPadding: tm.width * 2
+            color: palette.text
+            text: `Test ${' '.repeat(Math.max(root.model.longest-5,1))} Value`
+            font: tm.font
         }
         Rectangle {
             anchors {
@@ -93,8 +74,8 @@ Item {
         clip: true
         focus: true
         columnWidthProvider: function (index) {
-            const header = "Symbol  Value".length + 4; // Need 2 padding  on each side
-            const row = model.longest + 4 + 2; // Symbol + space + hex value
+            const header = "Test Value".length + 4; // Need 2 padding  on each side
+            const row = model.longest + 5 + 2; // Symbol + space + hex value
             return tm.width * Math.max(header, row) + 10;
         }
         rowHeightProvider: function (index) {
@@ -125,12 +106,12 @@ Item {
         delegate: Item {
             id: delegate
             required property string test
-            required property bool value
+            required property int value
             // There exist extra cells in the 2D grid which do not map to indices in the underlying model.
             // The delegate does not get assigned new values, and then uses the cached text values, which are wrong.
             // These past-the-end items should not be selectable either.
             required property bool valid
-            implicitHeight: post.contentHeight
+            implicitHeight: postLabel.contentHeight
             width: parent.width
 
 
@@ -160,7 +141,7 @@ Item {
                 rightPadding: tm.width * 2
 
                 color: palette.text
-                text: valid ? delegate.value : ""
+                text: valid && delegate.value >= 0 ? delegate.value : ""
                 font: tm.font
             }
         }

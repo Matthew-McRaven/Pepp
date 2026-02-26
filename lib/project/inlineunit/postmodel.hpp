@@ -16,7 +16,8 @@ class PostModel : public QAbstractTableModel {
 
   struct Entry {
     QString test;
-    bool cachedValue;
+    // 0 is false, 1 is true. All negative values indicate unset
+    int cachedValue = -1;
   };
   QList<Entry> _entries;
   qsizetype _longest{0};
@@ -38,7 +39,10 @@ public:
   int columnCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   qsizetype longest() const;
-
+  void updateValuesFromVector(const std::vector<bool> &values);
+  // Change the number of rows to match the passed vector's length, and update all test names.
+  // Test result values are explicitly unset
+  void resetFromVector(QStringList names);
 signals:
   void longestChanged();
 

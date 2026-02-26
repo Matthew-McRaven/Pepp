@@ -1321,6 +1321,7 @@ Pep_MA::Pep_MA(project::Environment env, QObject *parent)
   _system->cpu()->setDebugger(&*_dbg);
   bindToSystem();
   connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
+  _testResults = new PostModel(this);
 }
 
 project::Environment Pep_MA::env() const { return _env; }
@@ -1364,6 +1365,8 @@ OpcodeModel *Pep_MA::mnemonics() const {
   default: throw std::logic_error("Unimplemented");
   }
 }
+
+PostModel *Pep_MA::testResults() const { return _testResults; }
 
 QString Pep_MA::microcodeText() const { return _microcodeText; }
 
@@ -1605,7 +1608,10 @@ void Pep_MA::prepareSim() {
   updatePC();
 }
 
-void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { emit updateGUI(from); }
+void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
+  updatePostTestValues();
+  emit updateGUI(from);
+}
 
 void Pep_MA::updateBPAtAddress(quint32 address, Action action) {
   auto as_quint16 = static_cast<quint16>(address);
@@ -1662,7 +1668,7 @@ bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
   } else {
     _testsPre = _testsPost = std::monostate{};
   }
-
+  reloadPostTests();
   emit errorsChanged();
   emit microcodeChanged();
   return true;
@@ -1688,9 +1694,36 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
   } else {
     _testsPre = _testsPost = std::monostate{};
   }
+  reloadPostTests();
   emit errorsChanged();
   emit microcodeChanged();
   return true;
+}
+
+namespace {
+struct ReloadVisitor {
+  PostModel *model;
+  void operator()(std::monostate) { model->removeRows(0, model->rowCount({})); }
+  void operator()(const pepp::P9Tests &r) {
+    QStringList names;
+    for (const auto &test : r) {
+      auto name_str = pepp::tc::ir::to_string(test);
+      names.push_back(QString::fromStdString(name_str));
+    }
+    model->resetFromVector(names);
+  }
+};
+} // namespace
+void Pep_MA::reloadPostTests() {
+  ReloadVisitor visitor{_testResults};
+  std::visit(visitor, _testsPost);
+  updatePostTestValues();
+}
+
+void Pep_MA::updatePostTestValues() {
+  if (std::holds_alternative<std::monostate>(_testsPost)) return;
+  auto values = _system->cpu()->testPostconditions(_testsPost);
+  _testResults->updateValuesFromVector(values);
 }
 
 pepp::debug::types::TypeInfo *Pep_MA::type_info() { return &_typeInfo; }

@@ -225,6 +225,7 @@ FocusScope {
                 id: post_viewer
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(200, 400)
+                model: project.testResults
             }
         }
         KDDW.DockWidget {
