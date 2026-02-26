@@ -487,6 +487,7 @@ uint16_t Pep_ISA::read_mem_u16(uint32_t address) const {
 }
 
 pepp::debug::Value Pep_ISA::evaluate_variable(QStringView name) const {
+  // TODO: clearly wrong, needs to be tied to symbol table.
   return pepp::debug::VPrimitive::from_int((int16_t)name.length());
 }
 
@@ -1314,9 +1315,10 @@ Pep_MA::Pep_MA(project::Environment env, QObject *parent)
     : QObject(parent), _env(env), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()), _memory(nullptr) {
   _system.clear();
   assert(_system.isNull());
-  //_dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
+  _dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
   _system = QSharedPointer<targets::ma::System>::create(env.arch, env.features);
   _system->bus()->setBuffer(&*_tb);
+  _system->cpu()->setDebugger(&*_dbg);
   bindToSystem();
   connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
 }
@@ -1457,6 +1459,7 @@ bool Pep_MA::onExecute() {
   _microassemble(false);
   prepareSim();
   _state = State::NormalExec;
+  emit requestEditorBreakpoints();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   emit deferredExecution([]() { return false; });
@@ -1468,6 +1471,7 @@ bool Pep_MA::onDebuggingStart() {
   prepareSim();
   _state = State::DebugPaused;
   // _stepsSinceLastInteraction = 0;
+  emit requestEditorBreakpoints();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   return true;
@@ -1493,7 +1497,10 @@ bool Pep_MA::onDebuggingStop() {
   return true;
 }
 
-bool Pep_MA::onMARemoveAllBreakpoints() { return true; }
+bool Pep_MA::onMARemoveAllBreakpoints() {
+  _dbg->bps->clearBPs();
+  return true;
+}
 
 bool Pep_MA::onMAStep() {
   deferredExecution([]() { return true; });
@@ -1541,6 +1548,12 @@ void Pep_MA::onDeferredExecution(std::function<bool()> step) {
   prepareGUIUpdate(from);
 }
 
+void Pep_MA::onEditorAction(int line, Action action) {
+  if (auto address = _line2addr.address(line); address && action != Action::ScrollTo)
+    updateBPAtAddress(*address, action);
+  emit editorAction(line, action);
+}
+
 void Pep_MA::bindToSystem() {
   using enum pepp::Architecture;
   switch (_env.arch) {
@@ -1578,7 +1591,18 @@ void Pep_MA::prepareSim() {
 
 void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { emit updateGUI(from); }
 
-void Pep_MA::updateBPAtAddress(quint32 address, Action action) {}
+void Pep_MA::updateBPAtAddress(quint32 address, Action action) {
+  auto as_quint16 = static_cast<quint16>(address);
+  switch (action) {
+  case EditBase::Action::ToggleBP:
+    if (_dbg->bps->hasBP(as_quint16)) _dbg->bps->removeBP(as_quint16);
+    else _dbg->bps->addBP(as_quint16);
+    break;
+  case EditBase::Action::AddBP: _dbg->bps->addBP(as_quint16); break;
+  case EditBase::Action::RemoveBP: _dbg->bps->removeBP(as_quint16); break;
+  default: break;
+  }
+}
 
 void Pep_MA::updatePC() {
   auto pc = _system->cpu()->microPC();
@@ -1651,4 +1675,34 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
   emit errorsChanged();
   emit microcodeChanged();
   return true;
+}
+
+pepp::debug::types::TypeInfo *Pep_MA::type_info() { return &_typeInfo; }
+
+const pepp::debug::types::TypeInfo *Pep_MA::type_info() const { return &_typeInfo; }
+
+uint8_t Pep_MA::read_mem_u8(uint32_t address) const {
+  if (_system == nullptr) return 0;
+  quint8 temp = 0;
+  _system->bus()->read((uint16_t)address, {&temp, 1}, gs);
+  return temp;
+}
+
+uint16_t Pep_MA::read_mem_u16(uint32_t address) const {
+  if (_system == nullptr) return 0;
+  quint16 temp = 0;
+  _system->bus()->read((uint16_t)address, {(quint8 *)&temp, 2}, gs);
+  if (bits::hostOrder() != bits::Order::BigEndian) temp = bits::byteswap(temp);
+  return temp;
+}
+
+pepp::debug::Value Pep_MA::evaluate_variable(QStringView name) const {
+  // TODO: clearly wrong, needs to be tied to symbol table.
+  return pepp::debug::VPrimitive::from_int((int16_t)name.length());
+}
+
+uint32_t Pep_MA::cache_debug_variable_name(QStringView) const { return 0; }
+
+pepp::debug::Value Pep_MA::evaluate_debug_variable(uint32_t) const {
+  return pepp::debug::VPrimitive::from_int((int16_t)0);
 }

@@ -98,8 +98,14 @@ FocusScope {
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
         project.errorsChanged.connect(displayErrors);
-        project.editorAction.connect(microEdit.editor.onLineAction)
+        microEdit.editingFinished.connect(save)
         microEdit.onDirtiedChanged.connect(wrapper.markDirty);
+        project.editorAction.connect(microEdit.editor.onLineAction)
+        microEdit.editor.modifyLine.connect(project.onEditorAction)
+        project.projectBreakpointsCleared.connect(microEdit.editor.onClearAllBreakpoints)
+        project.requestEditorBreakpoints.connect(
+                    microEdit.editor.onRequestAllBreakpoints)
+
     }
 
     signal requestModeSwitchTo(string mode)
