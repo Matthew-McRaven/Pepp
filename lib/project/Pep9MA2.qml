@@ -8,6 +8,7 @@ import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
 import "qrc:/qt/qml/edu/pepp/utils" as Utils
 import "qrc:/qt/qml/edu/pepp/cpu/ma2" as MA2
 import "qrc:/qt/qml/edu/pepp/text/view" as OC
+import "qrc:/qt/qml/edu/pepp/project/inlineunit" as Test
 import edu.pepp 1.0
 import com.kdab.dockwidgets 2.0 as KDDW
 
@@ -21,8 +22,10 @@ FocusScope {
     // WASM version's active focus is broken with docks.
     required property bool isActive
     property bool needsDock: true
-    property var widgets: [dock_micro, dock_cpu, dock_hexdump, dock_object]
-
+    property var widgets: [dock_micro, dock_cpu, dock_hexdump, dock_object, dock_tests]
+    // Order in which to apply visibility model, which affects tab ordering. Items with lower tab indices generally appear first, except for index 0 which should appear last.
+    // This is almost ceratainly a bug, but I want to wholesale re-evaluate the docking system in the future.
+    property var sort_order: [dock_micro, dock_cpu, dock_hexdump, dock_tests, dock_object]
     focus: true
     NuAppSettings {
         id: settings
@@ -52,7 +55,7 @@ FocusScope {
             layoutSaver.saveToFile(`${previousMode}-${dockWidgetArea.uniqueName}.json`);
         // Only use the visibility model when restoring for the first time.
         if (!layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`)) {
-            for (const x of widgets) {
+            for (const x of sort_order) {
                 // visibility model preserves user changes within a mode.
                 const visible = x.visibility[mode];
                 if (visible && !x.isOpen)
@@ -79,6 +82,7 @@ FocusScope {
         dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnLeft, dock_cpu, Qt.size(memory_width, total_height));
         dockWidgetArea.addDockWidget(dock_micro, KDDW.KDDockWidgets.Location_OnRight, dock_cpu, Qt.size(code_width, total_height - microobject_height));
         dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnBottom, dock_micro, Qt.size(code_width, microobject_height));
+        dock_object.addDockWidgetAsTab(dock_tests, PreserveCurrent);
         wrapper.needsDock = Qt.binding(() => false);
         modeVisibilityChange();
         // WASM version doesn't seem to give focus to editor without giving focus to something else first.
@@ -206,6 +210,21 @@ FocusScope {
                 microcode: project?.microcode ?? null
                 // Do not highlight addresses when not simulating. Single step is always enabled if debugging.
                 activeAddress: project?.allowedSteps & StepEnableFlags.Step ? project.currentAddress : -1
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_tests
+
+            title: "Test Results"
+            uniqueName: `Tests-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
+            Test.PostViewer {
+                id: post_viewer
+                anchors.fill: parent
+                property size kddockwidgets_min_size: Qt.size(200, 400)
             }
         }
         KDDW.DockWidget {
