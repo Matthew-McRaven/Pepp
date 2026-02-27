@@ -204,6 +204,10 @@ std::vector<bool> targets::pep9::mc2::CPUByteBus::testPostconditions(
       };
       _bankRegs.read(static_cast<quint8>(regTest.reg), {temp, size}, gs_d);
       ret[num++] = std::memcmp(temp, reinterpret_cast<const quint8 *>(&regValue), size) == 0;
+    } else if (std::holds_alternative<pepp::tc::ir::CSRTest<pepp::tc::arch::Pep9Registers>>(test)) {
+      auto csrTest = std::get<pepp::tc::ir::CSRTest<pepp::tc::arch::Pep9Registers>>(test);
+      _csrs.read(static_cast<quint8>(csrTest.reg), {temp, 1}, gs_d);
+      ret[num++] = (temp[0] != 0) == csrTest.value;
     }
   }
   return ret;
@@ -372,6 +376,10 @@ std::vector<bool> targets::pep9::mc2::CPUWordBus::testPostconditions(
       };
       _bankRegs.read(static_cast<quint8>(regTest.reg), {temp, size}, gs_d);
       ret[num++] = std::memcmp(temp, reinterpret_cast<const quint8 *>(&regValue), size) == 0;
+    } else if (std::holds_alternative<pepp::tc::ir::CSRTest<pepp::tc::arch::Pep9Registers>>(test)) {
+      auto csrTest = std::get<pepp::tc::ir::CSRTest<pepp::tc::arch::Pep9Registers>>(test);
+      _csrs.read(static_cast<quint8>(csrTest.reg), {temp, 1}, gs_d);
+      ret[num++] = (temp[0] != 0) == csrTest.value;
     }
   }
   return ret;
