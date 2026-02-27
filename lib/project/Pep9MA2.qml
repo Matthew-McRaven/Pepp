@@ -209,7 +209,7 @@ FocusScope {
                 property size kddockwidgets_min_size: Qt.size(200, 400)
                 microcode: project?.microcode ?? null
                 // Do not highlight addresses when not simulating. Single step is always enabled if debugging.
-                activeAddress: project?.allowedSteps & StepEnableFlags.Step ? project.currentAddress : -1
+                activeAddress: project?.allowedSteps & StepEnableFlags.Step ? project.currentPC : -1
             }
         }
         KDDW.DockWidget {
@@ -256,26 +256,11 @@ FocusScope {
                         "mnemonics": project.mnemonics,
                         "bytesPerRow": 4
                     };
-                    // Construction sets current address to 0, which propogates back to project.
-                    // Must reject changes in current address until component is fully rendered.
-                    con.enabled = false;
                     setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
                 }
                 asynchronous: true
                 clip: true
                 property size kddockwidgets_min_size: Qt.size(200, 200)
-                onLoaded: {
-                    loader.item.scrollToAddress(project.currentAddress);
-                    con.enabled = true;
-                }
-                Connections {
-                    id: con
-                    enabled: false
-                    target: loader.item
-                    function onCurrentAddressChanged() {
-                        project.currentAddress = loader.item.currentAddress;
-                    }
-                }
             }
         }
     }

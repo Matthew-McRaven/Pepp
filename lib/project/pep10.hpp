@@ -296,8 +296,7 @@ class Pep_MA : public QObject, public pepp::debug::Environment {
   Q_PROPERTY(Microcode *microcode READ microcode NOTIFY microcodeChanged)
   Q_PROPERTY(pepp::LineNumbers *cycleNumbers READ line2addr NOTIFY microcodeChanged);
   Q_PROPERTY(QList<Error *> microassemblerErrors READ errors NOTIFY errorsChanged)
-  // Preserve the current address in the memory dump pane on tab-switch.
-  Q_PROPERTY(quint16 currentAddress READ currentAddress NOTIFY updateGUI)
+  Q_PROPERTY(quint16 currentPC READ currentPC NOTIFY updateGUI)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(PostModel *testResults READ testResults CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
@@ -338,7 +337,7 @@ public:
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
   virtual bool isEmpty() const;
-  int currentAddress() const;
+  int currentPC() const;
   int allowedDebugging() const;
   int enabledSteps() const;
   int allowedSteps() const;
@@ -372,7 +371,6 @@ public slots:
 
 signals:
   void microcodeTextChanged();
-  void currentAddressChanged();
   // Called by onISARemoveAllBreakpoints so we can remove breakpoints from editors.
   void projectBreakpointsCleared();
   void allowedStepsChanged();
@@ -412,7 +410,6 @@ protected:
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   SimulatorRawMemory *_memory = nullptr;
   PostModel *_testResults = nullptr;
-  qint16 _currentAddress = 0;
   void updateBPAtAddress(quint32 address, Action action);
   void updatePC();
   QSharedPointer<pepp::debug::Debugger> _dbg{};

@@ -1405,7 +1405,7 @@ pepp::debug::BreakpointSet *Pep_MA::breakpointModel() {
 
 bool Pep_MA::isEmpty() const { return _microcodeText.isEmpty(); }
 
-int Pep_MA::currentAddress() const { return _system->cpu()->microPC(); }
+int Pep_MA::currentPC() const { return _system->cpu()->microPC(); }
 
 int Pep_MA::allowedDebugging() const {
   using D = project::DebugEnableFlags;
