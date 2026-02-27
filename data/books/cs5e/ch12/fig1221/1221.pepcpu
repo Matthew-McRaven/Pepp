@@ -4,6 +4,10 @@
 // Two-byte data bus
 // Fetch the instruction specifier and increment PC by 1
 // Assume instruction specifier has been pre-fetched
+
+// UnitPre: IR=0x000000, PC=0x01FF, T1=0x12, S=0
+// UnitPost: IR=0x120000, PC=0x0200
+
 // Fetch instruction specifier.
 1. A=11, AMux=1, ALU=0, CMux=1, C=8; LoadCk
 
