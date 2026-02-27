@@ -9,56 +9,56 @@ namespace pepp {
 enum class Connections {
   None = 0,
   // Shared between 1- and 2-byte data busses
-  Bus_A,           // xxyy
-  Bus_AMux2ALU,    // xxyy
-  Bus_B,           // xxyy
-  Bus_ALU2CMux,    // xxyy
-  Bus_C,           // xxyy
-  Bus_NZVC2CMux,   // xxyy
-  Bus_Address,     // xxyy
-  Bus_Data,        // xxyy
-  Bus_MAR2Address, // xxyy
-  Clock_Load,      // xxyy
-  Clock_MAR,       // xxyy
-  Clock_S,         // xxyy
-  Clock_C,         // xxyy
-  Clock_V,         // xxyy
-  Clock_Z,         // xxyy
-  Clock_N,         // xxyy
-  Sel_MemWrite,    // xxyy
-  Sel_MemRead,     // xxyy
-  Sel_C,           // xxyy
-  Sel_B,           // xxyy
-  Sel_A,           // xxyy
-  Sel_Mux_A,       // xxyy
-  Sel_Mux_C,       // xxyy
-  Sel_ALU,         // xxyy
-  Sel_Mux_CS,      // xxyy
-  Sel_Andz,        // xxyy
-  Wire_ALU_NZVC,   // xxy
-  Wire_AndZ2Z,     // xxy
+  Bus_A,
+  Bus_AMux2ALU,
+  Bus_B,
+  Bus_ALU2CMux,
+  Bus_C,
+  Bus_NZVC2CMux,
+  Bus_Address,
+  Bus_Data,
+  Bus_MAR2Address,
+  Clock_Load,
+  Clock_MAR,
+  Clock_S,
+  Clock_C,
+  Clock_V,
+  Clock_Z,
+  Clock_N,
+  Sel_MemWrite,
+  Sel_MemRead,
+  Sel_C,
+  Sel_B,
+  Sel_A,
+  Sel_Mux_A,
+  Sel_Mux_C,
+  Sel_ALU,
+  Sel_Mux_CS,
+  Sel_Andz,
+  Wire_ALU_NZVC,
+  Wire_AndZ2Z,
   // 1-byte only
-  Bus_MDRMux2MDR, // xy
-  Bus_MDR2AMux,   // xy
-  Bus_MDR2Data,   // xy
-  Clock_MDR,      // xy
-  Sel_Mux_MDR,    // xy
+  Bus_MDRMux2MDR,
+  Bus_MDR2AMux,
+  Bus_MDR2Data,
+  Clock_MDR,
+  Sel_Mux_MDR,
   // 2-byte only
-  Bus_MARMux2MARA,  // xy
-  Bus_MARMux2MARB,  // xy
-  Bus_MDREMux2MDRE, // xy
-  Bus_MDRE2Data,    // xy
-  Bus_MDRE2EOMux,   // xy
-  Bus_MDROMux2MDRO, // xy
-  Bus_MDRO2Data,    // xy
-  Bus_MDRO2EOMux,   // xy
-  Bus_EOMux2AMux,   // xy
-  Clock_MDRE,       // xy
-  Clock_MDRO,       // xy
-  Sel_Mux_MAR,      // xy
-  Sel_Mux_MDRO,     // xy
-  Sel_Mux_MDRE,     // xy
-  Sel_Mux_EO,       // xy
+  Bus_MARMux2MARA,
+  Bus_MARMux2MARB,
+  Bus_MDREMux2MDRE,
+  Bus_MDRE2Data,
+  Bus_MDRE2EOMux,
+  Bus_MDROMux2MDRO,
+  Bus_MDRO2Data,
+  Bus_MDRO2EOMux,
+  Bus_EOMux2AMux,
+  Clock_MDRE,
+  Clock_MDRO,
+  Sel_Mux_MAR,
+  Sel_Mux_MDRO,
+  Sel_Mux_MDRE,
+  Sel_Mux_EO,
   Total
 };
 using ConnectionArray = std::array<int, static_cast<size_t>(Connections::Total)>;
