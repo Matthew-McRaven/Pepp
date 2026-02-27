@@ -419,6 +419,10 @@ protected:
   pepp::Line2Address _line2addr;
   // TODO: at some point this type info needs to be extracted from the assembler + loader.
   pepp::debug::types::TypeInfo _typeInfo;
+  QMap<QString, std::function<QVariant()>> _paint_key;
+  void load_common_vars();
+  void load_onebyte_vars();
+  void load_twobyte_vars();
 
   // Dispatch between the handlers for each of the languages.
   // If override_source_text is true, _microcodeText will be updated on successful assembly.
@@ -441,4 +445,5 @@ public:
   pepp::debug::Value evaluate_variable(QStringView name) const override;
   uint32_t cache_debug_variable_name(QStringView name) const override;
   pepp::debug::Value evaluate_debug_variable(uint32_t cache_index) const override;
+  Q_INVOKABLE QVariant evaluate_painter_key(QString name) const;
 };

@@ -281,22 +281,22 @@ std::vector<pepp::Item> two_byte_geom() {
 
 void add_clock(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QRect location, float x_offset = 0,
                float y_offset = 0) {
-  auto local = new pepp::ClockOverlay(location.translated(x_offset, y_offset), label, parent);
+  auto local = new pepp::ClockOverlay(location.translated(x_offset, y_offset), label, label.toLower(), parent);
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
 }
 void add_tristate(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QRect location, int max,
                   float x_offset = 0, float y_offset = 0) {
-  auto local = new pepp::TristateOverlay(location.translated(x_offset, y_offset), label, max, parent);
+  auto local = new pepp::TristateOverlay(location.translated(x_offset, y_offset), label, label.toLower(), max, parent);
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
 }
-void add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QRect location, Qt::Alignment align,
-              float x_offset = 0, float y_offset = 0) {
+void add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QString key, QRect location,
+              Qt::Alignment align, float x_offset = 0, float y_offset = 0) {
   // Apply same margins as in PaintDispatch::operator(const pepp::TextRectItem)
   if (align & Qt::AlignLeft) location.translate(5, 0);
   else if (align & Qt::AlignRight) location.translate(-5, 0);
-  auto local = new pepp::MonoTextOverlay(location.translated(x_offset, y_offset), label, align, parent);
+  auto local = new pepp::MonoTextOverlay(location.translated(x_offset, y_offset), label, key, align, parent);
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
 }
@@ -304,85 +304,85 @@ void add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, Q
 void add_regbank_qml(QObject *parent, QList<pepp::QMLOverlay *> &list, float x_offset = 0, float y_offset = 0) {
   using namespace OneByteShapes;
   // Column 0
-  add_text(parent, list, "A", reg_label_a_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_a_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_a_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "0,1", reg_label_a_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "A", "", reg_label_a_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r00", reg_value_a_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r01", reg_value_a_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "0,1", "", reg_label_a_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "X", reg_label_x_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_x_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_x_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "2,3", reg_label_x_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "X", "", reg_label_x_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r02", reg_value_x_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r03", reg_value_x_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "2,3", "", reg_label_x_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "SP", reg_label_sp_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_sp_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_sp_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "4,5", reg_label_sp_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "SP", "", reg_label_sp_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r04", reg_value_sp_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r05", reg_value_sp_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "4,5", "", reg_label_sp_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "PC", reg_label_pc_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_pc_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_pc_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "6,7", reg_label_pc_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "PC", "", reg_label_pc_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r06", reg_value_pc_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r07", reg_value_pc_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "6,7", "", reg_label_pc_num, Qt::AlignLeft, x_offset, y_offset);
 
   // Column 1
-  add_text(parent, list, "IR", reg_label_is_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_is, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "8", reg_label_is_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "IR", "", reg_label_is_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r08", reg_value_is, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "8", "", reg_label_is_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "00", reg_value_os_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_os_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "9,10", reg_label_os_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "00", "r09", reg_value_os_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r10", reg_value_os_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "9,10", "", reg_label_os_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T1", reg_label_t1_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t1, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "11", reg_label_t1_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T1", "", reg_label_t1_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r11", reg_value_t1, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "11", "", reg_label_t1_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T2", reg_label_t2_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t2_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t2_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "12,13", reg_label_t2_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T2", "", reg_label_t2_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r12", reg_value_t2_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r13", reg_value_t2_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "12,13", "", reg_label_t2_num, Qt::AlignLeft, x_offset, y_offset);
 
   // Column 2
-  add_text(parent, list, "T3", reg_label_t3_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t3_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t3_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "14,15", reg_label_t3_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T3", "", reg_label_t3_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r14", reg_value_t3_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r15", reg_value_t3_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "14,15", "", reg_label_t3_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T4", reg_label_t4_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t4_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t4_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "16,17", reg_label_t4_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T4", "", reg_label_t4_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r16", reg_value_t4_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r17", reg_value_t4_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "16,17", "", reg_label_t4_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T5", reg_label_t5_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t5_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t5_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "18,19", reg_label_t5_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T5", "", reg_label_t5_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r18", reg_value_t5_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r19", reg_value_t5_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "18,19", "", reg_label_t5_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T6", reg_label_t6_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t6_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t6_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "20,21", reg_label_t6_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T6", "", reg_label_t6_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r20", reg_value_t6_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r21", reg_value_t6_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "20,21", "", reg_label_t6_num, Qt::AlignLeft, x_offset, y_offset);
 
   // Column 3
-  add_text(parent, list, "00", reg_value_m1_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "01", reg_value_m1_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "22,23", reg_label_m1_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "00", "r22", reg_value_m1_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "01", "r23", reg_value_m1_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "22,23", "", reg_label_m1_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "02", reg_value_m2_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "03", reg_value_m2_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "24,25", reg_label_m2_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "02", "r24", reg_value_m2_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "03", "r25", reg_value_m2_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "24,25", "", reg_label_m2_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "04", reg_value_m3_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "08", reg_value_m3_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "26,27", reg_label_m3_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "04", "r26", reg_value_m3_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "08", "r27", reg_value_m3_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "26,27", "", reg_label_m3_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "F0", reg_value_m4_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "F6", reg_value_m4_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "28,29", reg_label_m4_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "F0", "r29", reg_value_m4_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "F6", "r29", reg_value_m4_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "28,29", "", reg_label_m4_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "FE", reg_value_m5_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "FF", reg_value_m5_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "30,31", reg_label_m5_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "FE", "r30", reg_value_m5_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "FF", "r31", reg_value_m5_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "30,31", "", reg_label_m5_num, Qt::AlignLeft, x_offset, y_offset);
 }
 
 QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, float y_offset) {

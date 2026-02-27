@@ -191,7 +191,8 @@ FocusScope {
                 anchors.fill: parent
                 clip: true
                 property size kddockwidgets_min_size: Qt.size(800, 600)
-                which: project.renderingType
+                which: wrapper.project.renderingType
+                project: wrapper.project
             }
         }
         KDDW.DockWidget {

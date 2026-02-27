@@ -1576,12 +1576,18 @@ void Pep_MA::onEditorAction(int line, Action action) {
 }
 
 void Pep_MA::bindToSystem() {
+  using namespace bits;
+  _paint_key.clear();
+  load_common_vars();
   using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP9: break;
   case PEP10: break;
   default: throw std::logic_error("Unimplemented");
   }
+  if (any(_env.features & pepp::Features::TwoByte)) load_twobyte_vars();
+  else load_onebyte_vars();
+
   using TMAS = sim::trace2::TranslatingModifiedAddressSink<quint16>;
   auto sink = QSharedPointer<TMAS>::create(_system->pathManager(), _system->bus());
 
@@ -1638,6 +1644,47 @@ void Pep_MA::updatePC() {
   if (auto line = _line2addr.line(pc); !line) return;
   else {
     emit editorAction(*line, Action::HighlightExclusive);
+  }
+}
+
+void Pep_MA::load_common_vars() {
+  // Register bank regs
+  for (int it = 0; it < 32; it++) {
+    auto name = QString("r%1").arg(it, 2, 10, QChar('0'));
+    auto fn = [this, it]() {
+      quint8 ret = 0;
+      _system->cpu()->bankRegs()->read(it, {&ret, 1}, gs);
+      return QString::number(ret, 16).toUpper().rightJustified(2, '0');
+    };
+    _paint_key[name] = fn;
+  }
+}
+
+void Pep_MA::load_onebyte_vars() {
+  // Iterate over 1-byte control signals
+  for (const auto &[signal, name] : pepp::tc::arch::Pep9ByteBus::signal_to_string()) {
+    _paint_key[QString::fromStdString(name).toLower()] = [this, signal]() {
+      if (!std::holds_alternative<pepp::OneByteMC9>(this->_microcode)) return QVariant{};
+      const auto &microcode = std::get<pepp::OneByteMC9>(this->_microcode);
+      auto upc = _system->cpu()->microPC();
+      if (upc >= microcode.size()) return QVariant{};
+      else if (const auto &line = microcode[upc]; !line.enabled(signal)) return QVariant{};
+      else return QVariant{line.get(signal)};
+    };
+  }
+}
+
+void Pep_MA::load_twobyte_vars() {
+  // Iterate over 2-byte control signals
+  for (const auto &[signal, name] : pepp::tc::arch::Pep9WordBus::signal_to_string()) {
+    _paint_key[QString::fromStdString(name).toLower()] = [this, signal]() {
+      if (!std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) return QVariant{};
+      const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
+      auto upc = _system->cpu()->microPC();
+      if (upc >= microcode.size()) return QVariant{};
+      else if (const auto &line = microcode[upc]; !line.enabled(signal)) return QVariant{};
+      else return QVariant{line.get(signal)};
+    };
   }
 }
 
@@ -1762,4 +1809,9 @@ uint32_t Pep_MA::cache_debug_variable_name(QStringView) const { return 0; }
 
 pepp::debug::Value Pep_MA::evaluate_debug_variable(uint32_t) const {
   return pepp::debug::VPrimitive::from_int((int16_t)0);
+}
+
+QVariant Pep_MA::evaluate_painter_key(QString name) const {
+  if (auto s = _paint_key.find(name); s != _paint_key.end()) return s.value()();
+  return QVariant{};
 }
