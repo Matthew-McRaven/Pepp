@@ -20,6 +20,7 @@
 #include <qabstractitemmodel.h>
 #include "aproject.hpp"
 #include "core/langs/ucode/ir_variant.hpp"
+#include "cpu/ma2/dataflow.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "debug/debugger.hpp"
@@ -297,6 +298,7 @@ class Pep_MA : public QObject, public pepp::debug::Environment {
   Q_PROPERTY(pepp::LineNumbers *cycleNumbers READ line2addr NOTIFY microcodeChanged);
   Q_PROPERTY(QList<Error *> microassemblerErrors READ errors NOTIFY errorsChanged)
   Q_PROPERTY(quint16 currentPC READ currentPC NOTIFY updateGUI)
+  Q_PROPERTY(const pepp::ConnectionsHolder *connections READ connections CONSTANT)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(PostModel *testResults READ testResults CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
@@ -322,6 +324,7 @@ public:
   virtual QString lexerLanguage() const;
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
+  pepp::ConnectionsHolder const *connections() const;
   OpcodeModel *mnemonics() const;
   PostModel *testResults() const;
   QString microcodeText() const;
@@ -420,6 +423,7 @@ protected:
   // TODO: at some point this type info needs to be extracted from the assembler + loader.
   pepp::debug::types::TypeInfo _typeInfo;
   QMap<QString, std::function<QVariant()>> _paint_key;
+  pepp::ConnectionsHolder _holder;
   void load_common_vars();
   void load_onebyte_vars();
   void load_twobyte_vars();

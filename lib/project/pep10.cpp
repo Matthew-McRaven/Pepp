@@ -1349,6 +1349,8 @@ QString Pep_MA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep9
 
 ARawMemory *Pep_MA::memory() const { return _memory; }
 
+pepp::ConnectionsHolder const *Pep_MA::connections() const { return &_holder; }
+
 OpcodeModel *Pep_MA::mnemonics() const {
   using enum pepp::Architecture;
   switch (_env.arch) {
@@ -1618,6 +1620,23 @@ void Pep_MA::prepareSim() {
 
 void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
   auto passedTests = updatePostTestValues();
+  // If holding 1-byte microcode
+  if (std::holds_alternative<pepp::OneByteMC9>(this->_microcode)) {
+    const auto &microcode = std::get<pepp::OneByteMC9>(this->_microcode);
+    auto upc = _system->cpu()->microPC();
+    if (upc < microcode.size()) {
+      auto line = microcode[upc];
+      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+    }
+  } else if (std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) {
+    const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
+    auto upc = _system->cpu()->microPC();
+    if (upc < microcode.size()) {
+      auto line = microcode[upc];
+      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+    }
+  }
+
   emit updateGUI(from);
   using Status = targets::pep9::mc2::BaseCPU::Status;
   // Must be after updateGUI, else highlightFailed will always be false.

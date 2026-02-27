@@ -178,7 +178,9 @@ Item {
                 height: _byte.contentHeight
                 Component.onCompleted: {
                     settings.extPalette.itemChanged.connect(_byte.update);
+                    root.project.onUpdateGUI.connect(_byte.update);
                 }
+                connections: root.project.connections
             }
             onLoaded: viewport.canvas = item
         }
@@ -192,7 +194,9 @@ Item {
                 height: _word.contentHeight
                 Component.onCompleted: {
                     settings.extPalette.itemChanged.connect(_word.update);
+                    root.project.onUpdateGUI.connect(_word.update);
                 }
+                connections: root.project.connections
             }
             onLoaded: viewport.canvas = item
         }
