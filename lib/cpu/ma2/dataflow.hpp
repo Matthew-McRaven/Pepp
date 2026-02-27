@@ -9,32 +9,32 @@ namespace pepp {
 enum class Connections {
   None = 0,
   // Shared between 1- and 2-byte data busses
-  Bus_A,           // xxy
-  Bus_AMux2ALU,    // xxy
-  Bus_B,           // xxy
-  Bus_ALU2CMux,    // xxy
-  Bus_C,           // xxy
-  Bus_NZVC2CMux,   // xxy
-  Bus_Address,     // xxy
-  Bus_Data,        // xxy
-  Bus_MAR2Address, // xxy
-  Clock_Load,      // xxy
-  Clock_MAR,       // xxy
-  Clock_S,         // xxy
-  Clock_C,         // xxy
-  Clock_V,         // xxy
-  Clock_Z,         // xxy
-  Clock_N,         // xxy
-  Sel_MemWrite,    // xxy
-  Sel_MemRead,     // xxy
-  Sel_C,           // xxy
-  Sel_B,           // xxy
-  Sel_A,           // xxy
-  Sel_Mux_A,       // xxy
-  Sel_Mux_C,       // xxy
-  Sel_ALU,         // xxy
-  Sel_Mux_CS,      // xxy
-  Sel_Andz,        // xxy
+  Bus_A,           // xxyy
+  Bus_AMux2ALU,    // xxyy
+  Bus_B,           // xxyy
+  Bus_ALU2CMux,    // xxyy
+  Bus_C,           // xxyy
+  Bus_NZVC2CMux,   // xxyy
+  Bus_Address,     // xxyy
+  Bus_Data,        // xxyy
+  Bus_MAR2Address, // xxyy
+  Clock_Load,      // xxyy
+  Clock_MAR,       // xxyy
+  Clock_S,         // xxyy
+  Clock_C,         // xxyy
+  Clock_V,         // xxyy
+  Clock_Z,         // xxyy
+  Clock_N,         // xxyy
+  Sel_MemWrite,    // xxyy
+  Sel_MemRead,     // xxyy
+  Sel_C,           // xxyy
+  Sel_B,           // xxyy
+  Sel_A,           // xxyy
+  Sel_Mux_A,       // xxyy
+  Sel_Mux_C,       // xxyy
+  Sel_ALU,         // xxyy
+  Sel_Mux_CS,      // xxyy
+  Sel_Andz,        // xxyy
   Wire_ALU_NZVC,   // xxy
   Wire_AndZ2Z,     // xxy
   // 1-byte only
@@ -44,21 +44,21 @@ enum class Connections {
   Clock_MDR,      // xy
   Sel_Mux_MDR,    // xy
   // 2-byte only
-  Bus_MARMux2MARA,  // x
-  Bus_MARMux2MARB,  // x
-  Bus_MDREMux2MDRE, // x
-  Bus_MDRE2Data,    // x
-  Bus_MDRE2EOMux,   // x
-  Bus_MDROMux2MDRO, // x
-  Bus_MDRO2Data,    // x
-  Bus_MDRO2EOMux,   // x
-  Bus_EOMux2AMux,   // x
-  Clock_MDRE,       // x
-  Clock_MDRO,       // x
-  Sel_Mux_MAR,      // x
-  Sel_Mux_MDRO,     // x
-  Sel_Mux_MDRE,     // x
-  Sel_Mux_EO,       // x
+  Bus_MARMux2MARA,  // xy
+  Bus_MARMux2MARB,  // xy
+  Bus_MDREMux2MDRE, // xy
+  Bus_MDRE2Data,    // xy
+  Bus_MDRE2EOMux,   // xy
+  Bus_MDROMux2MDRO, // xy
+  Bus_MDRO2Data,    // xy
+  Bus_MDRO2EOMux,   // xy
+  Bus_EOMux2AMux,   // xy
+  Clock_MDRE,       // xy
+  Clock_MDRO,       // xy
+  Sel_Mux_MAR,      // xy
+  Sel_Mux_MDRO,     // xy
+  Sel_Mux_MDRE,     // xy
+  Sel_Mux_EO,       // xy
   Total
 };
 using ConnectionArray = std::array<int, static_cast<size_t>(Connections::Total)>;
