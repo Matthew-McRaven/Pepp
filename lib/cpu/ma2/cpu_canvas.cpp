@@ -364,7 +364,7 @@ void add_regbank_qml(QObject *parent, QList<pepp::QMLOverlay *> &list, float x_o
   add_text(parent, list, "08", "r27", reg_value_m3_lo, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, list, "26,27", "", reg_label_m3_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "F0", "r29", reg_value_m4_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "F0", "r28", reg_value_m4_hi, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, list, "F6", "r29", reg_value_m4_lo, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, list, "28,29", "", reg_label_m4_num, Qt::AlignLeft, x_offset, y_offset);
 
