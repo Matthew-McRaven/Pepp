@@ -144,7 +144,6 @@ std::vector<pepp::Item> one_byte_geom() {
   // Other large polys
   _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
   _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .role = PR::BaseRole});
-  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .role = PR::BaseRole});
   _geom.emplace_back(L{.geom = poly_nzvc_join, .role = PR::BaseRole});
 
   return _geom;
@@ -257,7 +256,6 @@ std::vector<pepp::Item> two_byte_geom() {
   // Other large polys
   _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
   _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .role = PR::BaseRole});
-  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .role = PR::BaseRole});
   _geom.emplace_back(L{.geom = poly_nzvc_join, .role = PR::BaseRole});
 
   return _geom;
@@ -381,6 +379,7 @@ QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, flo
   add_text(parent, ret, "0", "csr_v", reg_bit_v, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "0", "csr_z", reg_bit_z, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "0", "csr_s", reg_bit_s, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "", "fn_alu", label_alu_function, Qt::AlignCenter, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
@@ -415,6 +414,7 @@ QList<pepp::QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, flo
   add_text(parent, ret, "0", "csr_v", reg_bit_v, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "0", "csr_z", reg_bit_z, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "0", "csr_s", reg_bit_s, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "", "fn_alu", label_alu_function, Qt::AlignCenter, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);

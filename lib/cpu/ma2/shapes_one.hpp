@@ -122,8 +122,8 @@ const QRect mux_a = QRect(306, 293, dataLabelW, dataLabelH);
 const QRect ext_sel_mux_c = QRect(ctrlInputX, 348, labelTriW, labelTriH);
 const QRect mux_c = QRect(250, 374, dataLabelW, dataLabelH);
 const QRect ext_sel_alu = QRect(ctrlInputX, 368, 26, lineEditH);
-const QRect label_alu = QRect(332, 355, 98, 20);
-const QRect label_alu_function = QRect(332, 370, 98, 20);
+const QRect label_alu = QRect(332, 350, 98, 20);
+const QRect label_alu_function = QRect(332, 369, 98, 20);
 
 const QRect mux_cs = QRect(statusBitsX + 19 - 69, 399, dataLabelW, dataLabelH);
 const QRect ext_sel_mux_cs = QRect(ctrlInputX, 399, 25, 21);

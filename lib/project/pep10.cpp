@@ -1647,6 +1647,29 @@ void Pep_MA::updatePC() {
   }
 }
 
+namespace {
+QString text_from_alu_sel(quint8 v) {
+  switch (v) {
+  case 0: return "A";
+  case 1: return "A plus B";
+  case 2: return "A plus B\nplus Cin";
+  case 3: return "A plus \u00AC B\nplus 1";
+  case 4: return "A plus \u00AC B\nplus Cin";
+  case 5: return "A \u00B7 B";
+  case 6: return "\u00AC (A \u00B7 B)";
+  case 7: return "A + B";
+  case 8: return "\u00AC (A + B)";
+  case 9: return "A XOR B";
+  case 10: return "\u00AC A";
+  case 11: return "ASL A";
+  case 12: return "ROL A";
+  case 13: return "ASR A";
+  case 14: return "ROR A";
+  case 15: return "NZVC A";
+  default: return "";
+  }
+}
+} // namespace
 void Pep_MA::load_common_vars() {
   // Register bank regs
   for (int it = 0; it < 32; it++) {
@@ -1687,6 +1710,17 @@ void Pep_MA::load_onebyte_vars() {
       return QString::number(ret, 16).toUpper().rightJustified(2, '0');
     };
   }
+  _paint_key["fn_alu"] = [this]() {
+    if (!std::holds_alternative<pepp::OneByteMC9>(this->_microcode)) return QVariant{};
+    const auto signal = pepp::tc::arch::Pep9ByteBus::Signals::ALU;
+    const auto &microcode = std::get<pepp::OneByteMC9>(this->_microcode);
+    auto upc = _system->cpu()->microPC();
+    if (upc >= microcode.size()) return QVariant{};
+    const auto &line = microcode[upc];
+    if (!line.enabled(signal)) return QVariant{};
+    auto v = line.get(signal);
+    return QVariant{text_from_alu_sel(v)};
+  };
 }
 
 void Pep_MA::load_twobyte_vars() {
@@ -1708,6 +1742,17 @@ void Pep_MA::load_twobyte_vars() {
       return QString::number(ret, 16).toUpper().rightJustified(2, '0');
     };
   }
+  _paint_key["fn_alu"] = [this]() {
+    if (!std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) return QVariant{};
+    const auto signal = pepp::tc::arch::Pep9WordBus::Signals::ALU;
+    const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
+    auto upc = _system->cpu()->microPC();
+    if (upc >= microcode.size()) return QVariant{};
+    const auto &line = microcode[upc];
+    if (!line.enabled(signal)) return QVariant{};
+    auto v = line.get(signal);
+    return QVariant{text_from_alu_sel(v)};
+  };
 }
 
 bool Pep_MA::_microassemble(bool override_source_text) {

@@ -122,7 +122,7 @@ Item {
             function onUpdateGUI() {
                 if(mono.updateKey === "") return
                 const newText = root.project.evaluate_painter_key(mono.updateKey);
-                if (newText !== undefined) mono.text = newText;
+                 mono.text = newText ?? "";
             }
         }
     }
