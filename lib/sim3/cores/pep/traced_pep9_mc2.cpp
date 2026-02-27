@@ -49,6 +49,8 @@ sim::api2::memory::Target<quint8> *targets::pep9::mc2::BaseCPU::csrs() { return 
 
 sim::api2::device::Descriptor targets::pep9::mc2::BaseCPU::device() const { return _device; }
 
+void targets::pep9::mc2::BaseCPU::init() { _status = Status::Ok; }
+
 void targets::pep9::mc2::BaseCPU::setConstantRegisters() {
   if (true) {
     writeReg(22, 0x00);

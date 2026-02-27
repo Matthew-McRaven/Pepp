@@ -68,7 +68,10 @@ void targets::ma::System::setBuffer(sim::api2::trace::Buffer *) {
 
 QSharedPointer<const sim::api2::Paths> targets::ma::System::pathManager() const { return _paths; }
 
-void targets::ma::System::init() { _tick = 0; }
+void targets::ma::System::init() {
+  cpu()->init();
+  _tick = 0;
+}
 
 pepp::Architecture targets::ma::System::architecture() const { return _arch; }
 

@@ -50,6 +50,8 @@ public:
   sim::api2::memory::Target<quint8> *csrs();
   sim::api2::device::Descriptor device() const;
   enum class Status { Ok = 0, Halted, ChangedAddress, ChangedData, MemoryTooSoon };
+  // Reset status back to okay. Do not fix registers / memory / etc.
+  virtual void init();
   Status status() const;
   void setConstantRegisters();
   void resetMicroPC();
