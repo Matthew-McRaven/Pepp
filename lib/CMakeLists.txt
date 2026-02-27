@@ -85,6 +85,7 @@ target_include_directories(
           memory/stack
           preferences
           project
+          project/inlineunit
           sim
           sim/debug
           targets

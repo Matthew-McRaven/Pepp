@@ -5,6 +5,15 @@
 // RTL: X <- Oprnd; N <- X<0, Z <- X=0
 // Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]
 
+// UnitPre: IR=0xCA0012, Mem[0x0012]=0x26D1, Mem[0x26D1]=0x53AC
+// UnitPre: N=1, Z=1, V=0, C=1, S=1
+// UnitPost: X=0x53AC, N=0, Z=0, V=0, C=1
+
+// UnitPre: IR=0xCA0012, X=0xEEEE, Mem[0x0012]=0x00FF, Mem[0x00FF]=0x0000
+// UnitPre: N=1, Z=0, V=1, C=0, S=1
+// UnitPost: X=0x0000, N=0, Z=1, V=1, C=0
+
+
 // T3<high> <- Mem[OprndSpec], T2 <- OprndSpec + 1.
 1. A=9, B=10; MARCk
 2. MemRead, A=10, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk

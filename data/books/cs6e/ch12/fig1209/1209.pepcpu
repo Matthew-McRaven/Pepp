@@ -5,6 +5,9 @@
 // RTL: byteOprnd <- A<8..15>
 // Direct addressing: Oprnd = Mem[OprndSpec]
 
+// UnitPre: IR=0xF1000F, A=0x00AB
+// UnitPost: Mem[0x000F]=0xAB
+
 // MAR <- OprndSpec.
 1. A=9, B=10; MARCk
 // Initiate write, MBR <- A<low>.

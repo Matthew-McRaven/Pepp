@@ -8,6 +8,7 @@ import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
 import "qrc:/qt/qml/edu/pepp/utils" as Utils
 import "qrc:/qt/qml/edu/pepp/cpu/ma2" as MA2
 import "qrc:/qt/qml/edu/pepp/text/view" as OC
+import "qrc:/qt/qml/edu/pepp/project/inlineunit" as Test
 import edu.pepp 1.0
 import com.kdab.dockwidgets 2.0 as KDDW
 
@@ -21,8 +22,10 @@ FocusScope {
     // WASM version's active focus is broken with docks.
     required property bool isActive
     property bool needsDock: true
-    property var widgets: [dock_micro, dock_cpu, dock_hexdump, dock_object]
-
+    property var widgets: [dock_micro, dock_cpu, dock_hexdump, dock_object, dock_tests]
+    // Order in which to apply visibility model, which affects tab ordering. Items with lower tab indices generally appear first, except for index 0 which should appear last.
+    // This is almost ceratainly a bug, but I want to wholesale re-evaluate the docking system in the future.
+    property var sort_order: [dock_micro, dock_cpu, dock_hexdump, dock_tests, dock_object]
     focus: true
     NuAppSettings {
         id: settings
@@ -52,7 +55,7 @@ FocusScope {
             layoutSaver.saveToFile(`${previousMode}-${dockWidgetArea.uniqueName}.json`);
         // Only use the visibility model when restoring for the first time.
         if (!layoutSaver.restoreFromFile(`${mode}-${dockWidgetArea.uniqueName}.json`)) {
-            for (const x of widgets) {
+            for (const x of sort_order) {
                 // visibility model preserves user changes within a mode.
                 const visible = x.visibility[mode];
                 if (visible && !x.isOpen)
@@ -79,6 +82,7 @@ FocusScope {
         dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnLeft, dock_cpu, Qt.size(memory_width, total_height));
         dockWidgetArea.addDockWidget(dock_micro, KDDW.KDDockWidgets.Location_OnRight, dock_cpu, Qt.size(code_width, total_height - microobject_height));
         dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnBottom, dock_micro, Qt.size(code_width, microobject_height));
+        dock_object.addDockWidgetAsTab(dock_tests, PreserveCurrent);
         wrapper.needsDock = Qt.binding(() => false);
         modeVisibilityChange();
         // WASM version doesn't seem to give focus to editor without giving focus to something else first.
@@ -98,7 +102,14 @@ FocusScope {
     Component.onCompleted: {
         project.markedClean.connect(wrapper.markClean);
         project.errorsChanged.connect(displayErrors);
+        microEdit.editingFinished.connect(save)
         microEdit.onDirtiedChanged.connect(wrapper.markDirty);
+        project.editorAction.connect(microEdit.editor.onLineAction)
+        microEdit.editor.modifyLine.connect(project.onEditorAction)
+        project.projectBreakpointsCleared.connect(microEdit.editor.onClearAllBreakpoints)
+        project.requestEditorBreakpoints.connect(
+                    microEdit.editor.onRequestAllBreakpoints)
+
     }
 
     signal requestModeSwitchTo(string mode)
@@ -165,6 +176,7 @@ FocusScope {
                 text: project.microcodeText ?? ""
                 language: project.lexerLanguage ?? ""
                 cycleNumbers: project.cycleNumbers ?? null
+                readOnly: wrapper.mode === "debugger"
             }
         }
         KDDW.DockWidget {
@@ -180,7 +192,9 @@ FocusScope {
                 anchors.fill: parent
                 clip: true
                 property size kddockwidgets_min_size: Qt.size(800, 600)
-                which: project.renderingType
+                which: wrapper.project.renderingType
+                project: wrapper.project
+                isSimulating: project?.allowedSteps & StepEnableFlags.Step ||  wrapper.mode === "debugger"
             }
         }
         KDDW.DockWidget {
@@ -197,6 +211,34 @@ FocusScope {
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(200, 400)
                 microcode: project?.microcode ?? null
+                // Do not highlight addresses when not simulating. Single step is always enabled if debugging.
+                activeAddress: project?.allowedSteps & StepEnableFlags.Step ? project.currentPC : -1
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_tests
+
+            title: "Test Results"
+            uniqueName: `Tests-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
+            Test.PostViewer {
+                id: post_viewer
+                anchors.fill: parent
+                property size kddockwidgets_min_size: Qt.size(200, 400)
+                model: project.testResults
+            }
+            Connections {
+                target: project
+                function onFailedTests() {
+                    dock_tests.needsAttention = true;
+                    post_viewer.highlightFailed = true;
+                }
+                function onUpdateGUI() {
+                    post_viewer.highlightFailed = false;
+                }
             }
         }
         KDDW.DockWidget {
@@ -217,26 +259,11 @@ FocusScope {
                         "mnemonics": project.mnemonics,
                         "bytesPerRow": 4
                     };
-                    // Construction sets current address to 0, which propogates back to project.
-                    // Must reject changes in current address until component is fully rendered.
-                    con.enabled = false;
                     setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
                 }
                 asynchronous: true
                 clip: true
                 property size kddockwidgets_min_size: Qt.size(200, 200)
-                onLoaded: {
-                    loader.item.scrollToAddress(project.currentAddress);
-                    con.enabled = true;
-                }
-                Connections {
-                    id: con
-                    enabled: false
-                    target: loader.item
-                    function onCurrentAddressChanged() {
-                        project.currentAddress = loader.item.currentAddress;
-                    }
-                }
             }
         }
     }

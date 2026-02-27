@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 
 import edu.pepp
+
 /*
  * Both "viewport" and "flickable" must belong to the same parent, because they have complex z-ordering issues,
  * viewport should visually be behind the flickable, so that it does not clip the scrollbars.
@@ -18,6 +19,8 @@ Item {
     // == 1, Pep/9 two byte
     // TODO: really should be an enum
     required property int which
+    required property var project
+    required property bool isSimulating
     NuAppSettings {
         id: settings
     }
@@ -25,6 +28,7 @@ Item {
         id: triState
         required property var location
         required property string label
+        required property string updateKey
         required property int value
         required property int maxValue
         x: location.x
@@ -51,6 +55,7 @@ Item {
                     return "";
                 return Number(value);
             }
+            enabled: !root.isSimulating
         }
         Label {
             anchors {
@@ -60,10 +65,20 @@ Item {
             }
             text: parent.label
         }
+        Connections {
+            target: root.project
+            function onUpdateGUI() {
+                if(triState.updateKey === "") return
+                const newVal = root.project.evaluate_painter_key(triState.updateKey);
+                 triState.value = newVal ?? -1;
+            }
+        }
     }
     component LabeledCheck: CheckBox {
+        id: labelCheck
         required property var location
         required property string label
+        required property string updateKey
         required property bool value
 
         x: location.x
@@ -72,6 +87,47 @@ Item {
         height: location.height
         text: label
         checked: value
+        Connections {
+            target: root.project
+            function onUpdateGUI() {
+                if(labelCheck.updateKey === "") return
+                const newVal = root.project.evaluate_painter_key(labelCheck.updateKey);
+                labelCheck.value = newVal ?? false;
+            }
+        }
+        enabled: !root.isSimulating
+    }
+    component MonoText: TextEdit {
+        id: mono
+        required property var location
+        required property string label
+        required property string updateKey
+        required property int requestedHAlign
+        x: location.x
+        y: location.y
+        height: location.height
+        width: location.width
+        text: label
+        readOnly: true
+        horizontalAlignment: {
+            if (requestedHAlign == Qt.AlignLeft)
+                return Text.AlignLeft;
+            else if (requestedHAlign == Qt.AlignHCenter || requestedHAlign == Qt.AlignCenter)
+                return Text.AlignHCenter;
+            else
+                return Text.AlignRight;
+        }
+        verticalAlignment: Text.AlignVCenter
+        color: palette.text
+        font: settings.extPalette.baseMono.font
+        Connections {
+            target: root.project
+            function onUpdateGUI() {
+                if(mono.updateKey === "") return
+                const newText = root.project.evaluate_painter_key(mono.updateKey);
+                 mono.text = newText ?? "";
+            }
+        }
     }
     ScrollBar {
         id: vbar
@@ -117,7 +173,7 @@ Item {
         // 1- and 2-byte canvases canvas
         Loader {
             active: root.which == 0
-            sourceComponent: Painted1ByteCanvas{
+            sourceComponent: Painted1ByteCanvas {
                 id: _byte
                 x: 0
                 y: 0
@@ -125,13 +181,15 @@ Item {
                 height: _byte.contentHeight
                 Component.onCompleted: {
                     settings.extPalette.itemChanged.connect(_byte.update);
+                    root.project.updateGUI.connect(_byte.update);
                 }
+                connections: root.project.connections
             }
-            onLoaded: viewport.canvas = item;
+            onLoaded: viewport.canvas = item
         }
         Loader {
             active: root.which == 1
-            sourceComponent: Painted2ByteCanvas{
+            sourceComponent: Painted2ByteCanvas {
                 id: _word
                 x: 0
                 y: 0
@@ -139,11 +197,12 @@ Item {
                 height: _word.contentHeight
                 Component.onCompleted: {
                     settings.extPalette.itemChanged.connect(_word.update);
+                    root.project.updateGUI.connect(_word.update);
                 }
+                connections: root.project.connections
             }
-            onLoaded: viewport.canvas = item;
+            onLoaded: viewport.canvas = item
         }
-
 
         Instantiator {
             model: viewport.canvas.overlays
@@ -164,30 +223,8 @@ Item {
                 }
                 DelegateChoice {
                     roleValue: 3
-                    // Must be text edit, else not selectable
-                    TextEdit {
+                    MonoText {
                         parent: viewport
-                        required property var location
-                        required property string label
-                        required property int requestedHAlign
-                        x: location.x
-                        y: location.y
-                        height: location.height
-                        width: location.width
-                        text: label
-                        readOnly: true
-                        horizontalAlignment: {
-                            if (requestedHAlign == Qt.AlignLeft)
-                                return Text.AlignLeft;
-                            else if (requestedHAlign == Qt.AlignHCenter || requestedHAlign == Qt.AlignCenter)
-                                return Text.AlignHCenter;
-                            else
-                                return Text.AlignRight;
-                        }
-                        verticalAlignment: Text.AlignVCenter
-                        color: palette.text
-                        font: settings.extPalette.baseMono.font
-
                     }
                 }
             }

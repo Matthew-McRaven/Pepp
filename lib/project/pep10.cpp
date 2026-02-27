@@ -487,6 +487,7 @@ uint16_t Pep_ISA::read_mem_u16(uint32_t address) const {
 }
 
 pepp::debug::Value Pep_ISA::evaluate_variable(QStringView name) const {
+  // TODO: clearly wrong, needs to be tied to symbol table.
   return pepp::debug::VPrimitive::from_int((int16_t)name.length());
 }
 
@@ -1314,11 +1315,13 @@ Pep_MA::Pep_MA(project::Environment env, QObject *parent)
     : QObject(parent), _env(env), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()), _memory(nullptr) {
   _system.clear();
   assert(_system.isNull());
-  //_dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
+  _dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
   _system = QSharedPointer<targets::ma::System>::create(env.arch, env.features);
   _system->bus()->setBuffer(&*_tb);
+  _system->cpu()->setDebugger(&*_dbg);
   bindToSystem();
   connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
+  _testResults = new PostModel(this);
 }
 
 project::Environment Pep_MA::env() const { return _env; }
@@ -1346,6 +1349,8 @@ QString Pep_MA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep9
 
 ARawMemory *Pep_MA::memory() const { return _memory; }
 
+pepp::ConnectionsHolder const *Pep_MA::connections() const { return &_holder; }
+
 OpcodeModel *Pep_MA::mnemonics() const {
   using enum pepp::Architecture;
   switch (_env.arch) {
@@ -1362,6 +1367,8 @@ OpcodeModel *Pep_MA::mnemonics() const {
   default: throw std::logic_error("Unimplemented");
   }
 }
+
+PostModel *Pep_MA::testResults() const { return _testResults; }
 
 QString Pep_MA::microcodeText() const { return _microcodeText; }
 
@@ -1399,6 +1406,8 @@ pepp::debug::BreakpointSet *Pep_MA::breakpointModel() {
 }
 
 bool Pep_MA::isEmpty() const { return _microcodeText.isEmpty(); }
+
+int Pep_MA::currentPC() const { return _system->cpu()->microPC(); }
 
 int Pep_MA::allowedDebugging() const {
   using D = project::DebugEnableFlags;
@@ -1453,10 +1462,9 @@ bool Pep_MA::onMicroAssembleThenFormat() { return _microassemble(true); }
 
 bool Pep_MA::onExecute() {
   _microassemble(false);
-  _system->bus()->trace(true);
   prepareSim();
   _state = State::NormalExec;
-  //_stepsSinceLastInteraction = 0;
+  emit requestEditorBreakpoints();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   emit deferredExecution([]() { return false; });
@@ -1465,13 +1473,12 @@ bool Pep_MA::onExecute() {
 
 bool Pep_MA::onDebuggingStart() {
   _microassemble(false);
-  _system->bus()->trace(true);
   prepareSim();
   _state = State::DebugPaused;
   // _stepsSinceLastInteraction = 0;
+  emit requestEditorBreakpoints();
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
-  // TODO: actually start debugging
   return true;
 }
 
@@ -1495,25 +1502,86 @@ bool Pep_MA::onDebuggingStop() {
   return true;
 }
 
-bool Pep_MA::onMARemoveAllBreakpoints() { return true; }
+bool Pep_MA::onMARemoveAllBreakpoints() {
+  _dbg->bps->clearBPs();
+  emit projectBreakpointsCleared();
+  return true;
+}
 
-bool Pep_MA::onMAStep() { return true; }
+bool Pep_MA::onMAStep() {
+  deferredExecution([]() { return true; });
+  return true;
+}
 
-bool Pep_MA::onClearCPU() { return true; }
+bool Pep_MA::onClearCPU() {
+  _clearCPU();
+  emit updateGUI(_tb->cbegin());
+  return true;
+}
 
-bool Pep_MA::onClearMemory() { return true; }
+bool Pep_MA::onClearMemory() {
+  _clearMemory();
+  _memory->clearModifiedAndUpdateGUI();
+  return true;
+}
 
-void Pep_MA::onDeferredExecution(std::function<bool()> step) {}
+void Pep_MA::onDeferredExecution(std::function<bool()> step) {
+  using Status = targets::pep9::mc2::BaseCPU::Status;
+  auto from = _tb->cend();
+  bool err = false;
+  _pendingPause = false;
+  try {
+    auto ending = _system->currentTick() + 1000;
+    do {
+      _system->tick(sim::api2::Scheduler::Mode::Jump);
+      if (_dbg && _dbg->bps->hit()) {
+        _dbg->bps->clearHit();
+        _pendingPause = true;
+      } else if (_system->cpu()->status() == Status::Halted) _pendingPause = true;
+      _pendingPause |= step();
+    } while (_system->currentTick() < ending && !_pendingPause);
+  } catch (const sim::api2::memory::Error &e) {
+    err = true;
+    std::cerr << "Memory error: " << e.what() << std::endl;
+  } catch (const std::logic_error &e) {
+    err = true;
+    emit message(e.what());
+  }
+  qDebug().noquote().nospace() << "Finished deferred execution. Pending pause:" << _pendingPause << "steps"
+                               << _system->currentTick();
+  // Since microcode programs are short, we don't actual benefit from deferred execution the same way as the ISA3
+  // projects. We can skip prior updates to buttons, and only report the final state of the simulation. This works
+  // because microcode is not turing complete and has no branches.
+  if (_system->cpu()->status() == Status::Halted || err) _state = State::Halted;
+  else { // Prefer no {}, but compiler gets confused with the /emit/ macros.
+    _state = State::DebugPaused;
+  }
+
+  updatePC();
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  prepareGUIUpdate(from);
+}
+
+void Pep_MA::onEditorAction(int line, Action action) {
+  if (auto address = _line2addr.address(line); address && action != Action::ScrollTo)
+    updateBPAtAddress(*address, action);
+  emit editorAction(line, action);
+}
 
 void Pep_MA::bindToSystem() {
+  using namespace bits;
+  _paint_key.clear();
+  load_common_vars();
   using enum pepp::Architecture;
   switch (_env.arch) {
-  case PEP9:
-    break;
-  case PEP10:
-    break;
+  case PEP9: break;
+  case PEP10: break;
   default: throw std::logic_error("Unimplemented");
   }
+  if (any(_env.features & pepp::Features::TwoByte)) load_twobyte_vars();
+  else load_onebyte_vars();
+
   using TMAS = sim::trace2::TranslatingModifiedAddressSink<quint16>;
   auto sink = QSharedPointer<TMAS>::create(_system->pathManager(), _system->bus());
 
@@ -1525,20 +1593,179 @@ void Pep_MA::bindToSystem() {
 
 void Pep_MA::prepareSim() {
   if (_microcode.index() == 0) return;
+  _system->init();
+  _clearCPU();
+  _clearMemory();
+  _dbg->bps->clearHit();
+  _tb->clear();
+  _system->cpu()->trace(true);
+  _system->bus()->trace(true);
   if (_testsPre.index() != 0) {
     // Must emit frame start/end else iterators will not work as expected.
     _tb->emitFrameStart();
     _system->cpu()->applyPreconditions(_testsPre);
     _tb->updateFrameHeader();
-    _memory->onUpdateGUI(_tb->cbegin());
-  } else {
-    // TODO: update memory -- probably by 0'ing it.
+  }
+  _memory->clearModifiedAndUpdateGUI();
+  prepareGUIUpdate(_tb->cbegin());
+  updatePC();
+}
+
+void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
+  auto passedTests = updatePostTestValues();
+  // If holding 1-byte microcode
+  if (std::holds_alternative<pepp::OneByteMC9>(this->_microcode)) {
+    const auto &microcode = std::get<pepp::OneByteMC9>(this->_microcode);
+    auto upc = _system->cpu()->microPC();
+    if (upc < microcode.size()) {
+      auto line = microcode[upc];
+      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+    }
+  } else if (std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) {
+    const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
+    auto upc = _system->cpu()->microPC();
+    if (upc < microcode.size()) {
+      auto line = microcode[upc];
+      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+    }
+  }
+
+  emit updateGUI(from);
+  using Status = targets::pep9::mc2::BaseCPU::Status;
+  // Must be after updateGUI, else highlightFailed will always be false.
+  if (_system->cpu()->status() == Status::Halted && !passedTests) {
+    emit failedTests();
   }
 }
 
-void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { emit updateGUI(from); }
+void Pep_MA::updateBPAtAddress(quint32 address, Action action) {
+  auto as_quint16 = static_cast<quint16>(address);
+  switch (action) {
+  case EditBase::Action::ToggleBP:
+    if (_dbg->bps->hasBP(as_quint16)) _dbg->bps->removeBP(as_quint16);
+    else _dbg->bps->addBP(as_quint16);
+    break;
+  case EditBase::Action::AddBP: _dbg->bps->addBP(as_quint16); break;
+  case EditBase::Action::RemoveBP: _dbg->bps->removeBP(as_quint16); break;
+  default: break;
+  }
+}
 
-void Pep_MA::updateBPAtAddress(quint32 address, Action action) {}
+void Pep_MA::updatePC() {
+  auto pc = _system->cpu()->microPC();
+  if (auto line = _line2addr.line(pc); !line) return;
+  else {
+    emit editorAction(*line, Action::HighlightExclusive);
+  }
+}
+
+namespace {
+QString text_from_alu_sel(quint8 v) {
+  switch (v) {
+  case 0: return "A";
+  case 1: return "A plus B";
+  case 2: return "A plus B\nplus Cin";
+  case 3: return "A plus \u00AC B\nplus 1";
+  case 4: return "A plus \u00AC B\nplus Cin";
+  case 5: return "A \u00B7 B";
+  case 6: return "\u00AC (A \u00B7 B)";
+  case 7: return "A + B";
+  case 8: return "\u00AC (A + B)";
+  case 9: return "A XOR B";
+  case 10: return "\u00AC A";
+  case 11: return "ASL A";
+  case 12: return "ROL A";
+  case 13: return "ASR A";
+  case 14: return "ROR A";
+  case 15: return "NZVC A";
+  default: return "";
+  }
+}
+} // namespace
+void Pep_MA::load_common_vars() {
+  // Register bank regs
+  for (int it = 0; it < 32; it++) {
+    auto name = QString("r%1").arg(it, 2, 10, QChar('0'));
+    auto fn = [this, it]() {
+      quint8 ret = 0;
+      _system->cpu()->bankRegs()->read(it, {&ret, 1}, gs);
+      return QString::number(ret, 16).toUpper().rightJustified(2, '0');
+    };
+    _paint_key[name] = fn;
+  }
+  // CSRs
+  for (const auto &[reg, name] : pepp::tc::arch::Pep9Registers::csr_to_string()) {
+    _paint_key["csr_" + QString::fromStdString(name).toLower()] = [this, reg]() {
+      quint8 ret = 0;
+      _system->cpu()->csrs()->read((int)reg, {&ret, 1}, gs);
+      return QString::number((bool)ret, 16).toUpper();
+    };
+  }
+}
+
+void Pep_MA::load_onebyte_vars() {
+  // Iterate over 1-byte control signals
+  for (const auto &[signal, name] : pepp::tc::arch::Pep9ByteBus::signal_to_string()) {
+    _paint_key[QString::fromStdString(name).toLower()] = [this, signal]() {
+      if (!std::holds_alternative<pepp::OneByteMC9>(this->_microcode)) return QVariant{};
+      const auto &microcode = std::get<pepp::OneByteMC9>(this->_microcode);
+      auto upc = _system->cpu()->microPC();
+      if (upc >= microcode.size()) return QVariant{};
+      else if (const auto &line = microcode[upc]; !line.enabled(signal)) return QVariant{};
+      else return QVariant{line.get(signal)};
+    };
+  }
+  for (const auto &[reg, name] : pepp::tc::arch::Pep9ByteBus::hiddenregister_to_string()) {
+    _paint_key[QString::fromStdString(name).toLower()] = [this, reg]() {
+      quint8 ret = 0;
+      _system->cpu()->hiddenRegs()->read((int)reg, {&ret, 1}, gs);
+      return QString::number(ret, 16).toUpper().rightJustified(2, '0');
+    };
+  }
+  _paint_key["fn_alu"] = [this]() {
+    if (!std::holds_alternative<pepp::OneByteMC9>(this->_microcode)) return QVariant{};
+    const auto signal = pepp::tc::arch::Pep9ByteBus::Signals::ALU;
+    const auto &microcode = std::get<pepp::OneByteMC9>(this->_microcode);
+    auto upc = _system->cpu()->microPC();
+    if (upc >= microcode.size()) return QVariant{};
+    const auto &line = microcode[upc];
+    if (!line.enabled(signal)) return QVariant{};
+    auto v = line.get(signal);
+    return QVariant{text_from_alu_sel(v)};
+  };
+}
+
+void Pep_MA::load_twobyte_vars() {
+  // Iterate over 2-byte control signals
+  for (const auto &[signal, name] : pepp::tc::arch::Pep9WordBus::signal_to_string()) {
+    _paint_key[QString::fromStdString(name).toLower()] = [this, signal]() {
+      if (!std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) return QVariant{};
+      const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
+      auto upc = _system->cpu()->microPC();
+      if (upc >= microcode.size()) return QVariant{};
+      else if (const auto &line = microcode[upc]; !line.enabled(signal)) return QVariant{};
+      else return QVariant{line.get(signal)};
+    };
+  }
+  for (const auto &[reg, name] : pepp::tc::arch::Pep9WordBus::hiddenregister_to_string()) {
+    _paint_key[QString::fromStdString(name).toLower()] = [this, reg]() {
+      quint8 ret = 0;
+      _system->cpu()->hiddenRegs()->read((int)reg, {&ret, 1}, gs);
+      return QString::number(ret, 16).toUpper().rightJustified(2, '0');
+    };
+  }
+  _paint_key["fn_alu"] = [this]() {
+    if (!std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) return QVariant{};
+    const auto signal = pepp::tc::arch::Pep9WordBus::Signals::ALU;
+    const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
+    auto upc = _system->cpu()->microPC();
+    if (upc >= microcode.size()) return QVariant{};
+    const auto &line = microcode[upc];
+    if (!line.enabled(signal)) return QVariant{};
+    auto v = line.get(signal);
+    return QVariant{text_from_alu_sel(v)};
+  };
+}
 
 bool Pep_MA::_microassemble(bool override_source_text) {
   using namespace bits;
@@ -1574,7 +1801,7 @@ bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
   } else {
     _testsPre = _testsPost = std::monostate{};
   }
-
+  reloadPostTests();
   emit errorsChanged();
   emit microcodeChanged();
   return true;
@@ -1600,7 +1827,87 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
   } else {
     _testsPre = _testsPost = std::monostate{};
   }
+  reloadPostTests();
   emit errorsChanged();
   emit microcodeChanged();
   return true;
+}
+
+void Pep_MA::_clearCPU() {
+  const auto cpu = _system->cpu();
+  cpu->resetMicroPC();
+  cpu->bankRegs()->clear(0);
+  cpu->hiddenRegs()->clear(0);
+  cpu->csrs()->clear(0);
+  // TODO: need to select correct set of constants based on architecture.
+  _system->cpu()->setConstantRegisters();
+  _tb->clear();
+}
+
+void Pep_MA::_clearMemory() {
+  const auto bus = _system->bus();
+  bus->clear(0);
+  _tb->clear();
+}
+
+namespace {
+struct ReloadVisitor {
+  PostModel *model;
+  void operator()(std::monostate) { model->removeRows(0, model->rowCount({})); }
+  void operator()(const pepp::P9Tests &r) {
+    QStringList names;
+    for (const auto &test : r) {
+      auto name_str = pepp::tc::ir::to_string(test);
+      names.push_back(QString::fromStdString(name_str));
+    }
+    model->resetFromVector(names);
+  }
+};
+} // namespace
+void Pep_MA::reloadPostTests() {
+  ReloadVisitor visitor{_testResults};
+  std::visit(visitor, _testsPost);
+  updatePostTestValues();
+}
+
+bool Pep_MA::updatePostTestValues() {
+  if (std::holds_alternative<std::monostate>(_testsPost)) return true;
+  auto values = _system->cpu()->testPostconditions(_testsPost);
+  _testResults->updateValuesFromVector(values);
+  return std::all_of(values.cbegin(), values.cend(), [](const bool v) { return v; });
+}
+
+pepp::debug::types::TypeInfo *Pep_MA::type_info() { return &_typeInfo; }
+
+const pepp::debug::types::TypeInfo *Pep_MA::type_info() const { return &_typeInfo; }
+
+uint8_t Pep_MA::read_mem_u8(uint32_t address) const {
+  if (_system == nullptr) return 0;
+  quint8 temp = 0;
+  _system->bus()->read((uint16_t)address, {&temp, 1}, gs);
+  return temp;
+}
+
+uint16_t Pep_MA::read_mem_u16(uint32_t address) const {
+  if (_system == nullptr) return 0;
+  quint16 temp = 0;
+  _system->bus()->read((uint16_t)address, {(quint8 *)&temp, 2}, gs);
+  if (bits::hostOrder() != bits::Order::BigEndian) temp = bits::byteswap(temp);
+  return temp;
+}
+
+pepp::debug::Value Pep_MA::evaluate_variable(QStringView name) const {
+  // TODO: clearly wrong, needs to be tied to symbol table.
+  return pepp::debug::VPrimitive::from_int((int16_t)name.length());
+}
+
+uint32_t Pep_MA::cache_debug_variable_name(QStringView) const { return 0; }
+
+pepp::debug::Value Pep_MA::evaluate_debug_variable(uint32_t) const {
+  return pepp::debug::VPrimitive::from_int((int16_t)0);
+}
+
+QVariant Pep_MA::evaluate_painter_key(QString name) const {
+  if (auto s = _paint_key.find(name); s != _paint_key.end()) return s.value()();
+  return QVariant{};
 }

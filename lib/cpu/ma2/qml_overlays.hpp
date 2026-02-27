@@ -29,19 +29,21 @@ class ClockOverlay : public QMLOverlay {
   Q_PROPERTY(QRect location READ location CONSTANT)
   Q_PROPERTY(int type READ type CONSTANT)
   Q_PROPERTY(QString label READ label CONSTANT FINAL)
+  Q_PROPERTY(QString updateKey READ updateKey CONSTANT FINAL)
   Q_PROPERTY(bool value READ value WRITE setValue NOTIFY valueChanged)
   QML_UNCREATABLE("ClockOverlay is only creatable from C++")
 public:
-  ClockOverlay(QRect location, QString label, QObject *parent = nullptr);
+  ClockOverlay(QRect location, QString label, QString updateKey, QObject *parent = nullptr);
   int type() override;
   QString label() const;
+  QString updateKey() const;
   bool value() const;
   void setValue(bool value);
 signals:
   void valueChanged();
 
 private:
-  QString _label;
+  QString _label, _updateKey;
   bool _value;
 };
 
@@ -51,14 +53,16 @@ class TristateOverlay : public QMLOverlay {
   Q_PROPERTY(QRect location READ location CONSTANT)
   Q_PROPERTY(int type READ type CONSTANT)
   Q_PROPERTY(QString label READ label CONSTANT FINAL)
+  Q_PROPERTY(QString updateKey READ updateKey CONSTANT FINAL)
   // 0..N are "valid" values. Any negative value should be considered disabled.
   Q_PROPERTY(int value READ value WRITE setValue NOTIFY valueChanged)
   Q_PROPERTY(int maxValue READ max_value CONSTANT FINAL)
   QML_UNCREATABLE("TristateOverlay is only creatable from C++")
 public:
-  TristateOverlay(QRect location, QString label, int max_value, QObject *parent = nullptr);
+  TristateOverlay(QRect location, QString label, QString updateKey, int max_value, QObject *parent = nullptr);
   int type() override;
   QString label() const;
+  QString updateKey() const;
   int value() const;
   void setValue(int value);
   int max_value() const;
@@ -67,7 +71,7 @@ signals:
 
 private:
   int _max_value, _value;
-  QString _label;
+  QString _label, _updateKey;
 };
 
 class MonoTextOverlay : public QMLOverlay {
@@ -76,18 +80,20 @@ class MonoTextOverlay : public QMLOverlay {
   Q_PROPERTY(QRect location READ location CONSTANT)
   Q_PROPERTY(int type READ type CONSTANT)
   Q_PROPERTY(QString label READ label CONSTANT FINAL)
+  Q_PROPERTY(QString updateKey READ updateKey CONSTANT FINAL)
   Q_PROPERTY(int requestedHAlign READ requestedHAlign CONSTANT FINAL)
   QML_UNCREATABLE("TristateOverlay is only creatable from C++")
 public:
-  MonoTextOverlay(QRect location, QString label, Qt::Alignment halign, QObject *parent = nullptr);
+  MonoTextOverlay(QRect location, QString label, QString updateKey, Qt::Alignment halign, QObject *parent = nullptr);
   int type() override;
   QString label() const;
+  QString updateKey() const;
   int requestedHAlign() const;
 signals:
   void valueChanged();
 
 private:
   int _halign;
-  QString _label;
+  QString _label, _updateKey;
 };
 } // namespace pepp

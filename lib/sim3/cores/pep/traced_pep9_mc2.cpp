@@ -49,6 +49,8 @@ sim::api2::memory::Target<quint8> *targets::pep9::mc2::BaseCPU::csrs() { return 
 
 sim::api2::device::Descriptor targets::pep9::mc2::BaseCPU::device() const { return _device; }
 
+void targets::pep9::mc2::BaseCPU::init() { _status = Status::Ok; }
+
 void targets::pep9::mc2::BaseCPU::setConstantRegisters() {
   if (true) {
     writeReg(22, 0x00);
@@ -202,6 +204,10 @@ std::vector<bool> targets::pep9::mc2::CPUByteBus::testPostconditions(
       };
       _bankRegs.read(static_cast<quint8>(regTest.reg), {temp, size}, gs_d);
       ret[num++] = std::memcmp(temp, reinterpret_cast<const quint8 *>(&regValue), size) == 0;
+    } else if (std::holds_alternative<pepp::tc::ir::CSRTest<pepp::tc::arch::Pep9Registers>>(test)) {
+      auto csrTest = std::get<pepp::tc::ir::CSRTest<pepp::tc::arch::Pep9Registers>>(test);
+      _csrs.read(static_cast<quint8>(csrTest.reg), {temp, 1}, gs_d);
+      ret[num++] = (temp[0] != 0) == csrTest.value;
     }
   }
   return ret;
@@ -274,6 +280,7 @@ sim::api2::tick::Result targets::pep9::mc2::CPUByteBus::clock(sim::api2::tick::T
   if (code.LoadCk && code.C < 22) writeReg(code.C, c_out);
 
   if (_microPC == _microcode.size()) _status = Status::Halted;
+  else if (_dbg) _dbg->bps->notifyPCChanged(_microPC);
   ret.pause = _status != Status::Ok;
   return ret;
 }
@@ -369,6 +376,10 @@ std::vector<bool> targets::pep9::mc2::CPUWordBus::testPostconditions(
       };
       _bankRegs.read(static_cast<quint8>(regTest.reg), {temp, size}, gs_d);
       ret[num++] = std::memcmp(temp, reinterpret_cast<const quint8 *>(&regValue), size) == 0;
+    } else if (std::holds_alternative<pepp::tc::ir::CSRTest<pepp::tc::arch::Pep9Registers>>(test)) {
+      auto csrTest = std::get<pepp::tc::ir::CSRTest<pepp::tc::arch::Pep9Registers>>(test);
+      _csrs.read(static_cast<quint8>(csrTest.reg), {temp, 1}, gs_d);
+      ret[num++] = (temp[0] != 0) == csrTest.value;
     }
   }
   return ret;

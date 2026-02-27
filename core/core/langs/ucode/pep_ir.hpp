@@ -39,7 +39,7 @@ template <typename registers> struct RegisterTest {
 template <typename registers> struct CSRTest {
   typename registers::CSRs reg;
   bool value = false;
-  operator std::string() const { return fmt::format("{}=0x{}", registers::csr_name(reg), value); };
+  operator std::string() const { return fmt::format("{}={}", registers::csr_name(reg), (int)value); };
 };
 
 // A UnitPre or UnitPost is a comma-delimited set of memory tests or register tests

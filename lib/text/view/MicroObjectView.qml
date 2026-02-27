@@ -9,6 +9,7 @@ Item {
     implicitWidth: childrenRect.width
     implicitHeight: childrenRect.height
     property alias microcode: microModel.microcode
+    property int activeAddress: -1
     NuAppSettings {
         id: settings
     }
@@ -82,7 +83,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             Rectangle {
                 anchors.fill: parent
-                color: model.row % 2 !== 0 ? palette.window : palette.base
+                color: model.row == root.activeAddress ? palette.highlight :(model.row % 2 !== 0 ? palette.window : palette.base)
                 // Will overwrite text if not below z==0
                 z: -1
             }

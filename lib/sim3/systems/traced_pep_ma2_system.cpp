@@ -69,12 +69,8 @@ void targets::ma::System::setBuffer(sim::api2::trace::Buffer *) {
 QSharedPointer<const sim::api2::Paths> targets::ma::System::pathManager() const { return _paths; }
 
 void targets::ma::System::init() {
-  if (_cpu) {
-    _cpu->bankRegs()->clear(0);
-    _cpu->hiddenRegs()->clear(0);
-    _cpu->csrs()->clear(0);
-    _cpu->setConstantRegisters();
-  }
+  cpu()->init();
+  _tick = 0;
 }
 
 pepp::Architecture targets::ma::System::architecture() const { return _arch; }

@@ -1,4 +1,6 @@
 #include "cpu_canvas.hpp"
+#include <QBitmap>
+#include <QImageReader>
 #include <QPainter>
 #include <QTransform>
 #include <QtQml/qqmlengine.h>
@@ -67,49 +69,52 @@ std::vector<pepp::Item> one_byte_geom() {
   using P = PolygonItem;
   using R = RectItem;
   using PR = pepp::settings::PaletteRole;
+  using C = pepp::Connections;
 
   std::vector<Item> _geom;
   add_regbank(_geom);
 
   // Clocks
-  _geom.emplace_back(A{.geom = ck_mar});
-  _geom.emplace_back(A{.geom = ck_mdr});
-  _geom.emplace_back(A{.geom = ck_load});
-  _geom.emplace_back(L{.geom = ck_n});
-  _geom.emplace_back(L{.geom = ck_z});
-  _geom.emplace_back(L{.geom = ck_v});
-  _geom.emplace_back(L{.geom = ck_c});
-  _geom.emplace_back(L{.geom = ck_s});
-  _geom.emplace_back(L{.geom = ck_memread});
-  _geom.emplace_back(L{.geom = ck_memwrite});
+  _geom.emplace_back(A{.geom = ck_mar, .connection = C::Clock_MAR});
+  _geom.emplace_back(A{.geom = ck_mdr, .connection = C::Clock_MDR});
+  _geom.emplace_back(A{.geom = ck_load, .connection = C::Clock_Load});
+  _geom.emplace_back(L{.geom = ck_n, .connection = C::Clock_N});
+  _geom.emplace_back(L{.geom = ck_z, .connection = C::Clock_Z});
+  _geom.emplace_back(L{.geom = ck_v, .connection = C::Clock_V});
+  _geom.emplace_back(L{.geom = ck_c, .connection = C::Clock_C});
+  _geom.emplace_back(L{.geom = ck_s, .connection = C::Clock_S});
+  _geom.emplace_back(L{.geom = ck_memread, .connection = C::Sel_MemRead});
+  _geom.emplace_back(L{.geom = ck_memwrite, .connection = C::Sel_MemWrite});
 
   // Control Wires
-  _geom.emplace_back(L{.geom = sel_muxcs});
-  _geom.emplace_back(A{.geom = sel_muxa});
-  _geom.emplace_back(A{.geom = sel_muxc});
-  _geom.emplace_back(A{.geom = sel_c});
-  _geom.emplace_back(A{.geom = sel_b});
-  _geom.emplace_back(A{.geom = sel_a});
-  _geom.emplace_back(A{.geom = sel_alu});
+  _geom.emplace_back(L{.geom = sel_muxcs, .connection = C::Sel_Mux_CS});
+  _geom.emplace_back(A{.geom = sel_muxa, .connection = C::Sel_Mux_A});
+  _geom.emplace_back(A{.geom = sel_muxc, .connection = C::Sel_Mux_C});
+  // TODO: where is MDR mux select?
+  //_geom.emplace_back(A{.geom = sel_muxmdr, .connection = C::Sel_Mux_MDR});
+  _geom.emplace_back(A{.geom = sel_c, .connection = C::Sel_C});
+  _geom.emplace_back(A{.geom = sel_b, .connection = C::Sel_B});
+  _geom.emplace_back(A{.geom = sel_a, .connection = C::Sel_A});
+  _geom.emplace_back(A{.geom = sel_alu, .connection = C::Sel_ALU});
 
   // Buses
-  _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitPrimaryRole});
-  _geom.emplace_back(P{.geom = bus_a, .role = PR::CircuitSecondaryRole});
-  _geom.emplace_back(P{.geom = bus_addr, .role = PR::CircuitQuaternaryRole});
-  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_data_to_mdrmux, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_mdrmux_to_mdr, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_mdr_to_data, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_mar_to_addr, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_mdr_to_amux, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_amux_to_alu, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_c, .role = PR::BaseRole});
+  _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitPrimaryRole, .connection = C::Bus_B});
+  _geom.emplace_back(P{.geom = bus_a, .role = PR::CircuitSecondaryRole, .connection = C::Bus_A});
+  _geom.emplace_back(P{.geom = bus_addr, .role = PR::CircuitQuaternaryRole, .connection = C::Bus_Address});
+  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Address});
+  _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole, .connection = C::Bus_Data});
+  _geom.emplace_back(P{.geom = bus_data_to_mdrmux, .role = PR::BaseRole, .connection = C::Bus_Data});
+  _geom.emplace_back(P{.geom = bus_mdrmux_to_mdr, .role = PR::BaseRole, .connection = C::Bus_MDRMux2MDR});
+  _geom.emplace_back(P{.geom = bus_mdr_to_data, .role = PR::BaseRole, .connection = C::Bus_MDR2Data});
+  _geom.emplace_back(P{.geom = bus_mar_to_addr, .role = PR::BaseRole, .connection = C::Bus_MAR2Address});
+  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .role = PR::BaseRole, .connection = C::Bus_ALU2CMux});
+  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .role = PR::BaseRole, .connection = C::Bus_NZVC2CMux});
+  _geom.emplace_back(P{.geom = bus_mdr_to_amux, .role = PR::BaseRole, .connection = C::Bus_MDR2AMux});
+  _geom.emplace_back(P{.geom = bus_amux_to_alu, .role = PR::BaseRole, .connection = C::Bus_AMux2ALU});
+  _geom.emplace_back(P{.geom = bus_c, .role = PR::BaseRole, .connection = C::Bus_C});
 
   // Combinatorial Outputs
-  _geom.emplace_back(A{.geom = logic_alu_nzvc});
+  _geom.emplace_back(A{.geom = logic_alu_nzvc, .connection = C::Wire_ALU_NZVC});
   _geom.emplace_back(A{.geom = logic_c_to_nzvc});
   _geom.emplace_back(A{.geom = logic_c_to_csmux});
   _geom.emplace_back(A{.geom = logic_s_to_csmux});
@@ -117,14 +122,14 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(A{.geom = logic_z_to_nzvc});
   _geom.emplace_back(A{.geom = logic_v_to_nzvc});
   _geom.emplace_back(A{.geom = logic_n_to_nzvc});
-  _geom.emplace_back(A{.geom = logic_andz_to_z});
+  _geom.emplace_back(A{.geom = logic_andz_to_z, .connection = C::Wire_AndZ2Z});
 
   // Multiplexers
-  _geom.emplace_back(R{.geom = mux_a, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_a, .role = PR::BaseRole, .connection = C::Bus_AMux2ALU});
   _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .role = PR::BaseRole});
-  _geom.emplace_back(R{.geom = mux_c, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_c, .role = PR::BaseRole, .connection = C::Bus_C});
   _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .role = PR::BaseRole});
-  _geom.emplace_back(R{.geom = mux_mdr, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_mdr, .role = PR::BaseRole, .connection = C::Bus_MDRMux2MDR});
   _geom.emplace_back(T{.geom = mux_mdr, .text = "MDRMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_cs, .role = PR::BaseRole});
   _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .role = PR::BaseRole});
@@ -133,26 +138,17 @@ std::vector<pepp::Item> one_byte_geom() {
 
   // Register outlines & registers
   _geom.emplace_back(R{.geom = reg_bit_n, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_c, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_v, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_z, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_s, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mdr, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mdr, .text = "MDR", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_marb, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mara, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .role = PR::BaseRole});
 
   // Other large polys
   _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
   _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .role = PR::BaseRole});
-  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .role = PR::BaseRole});
   _geom.emplace_back(L{.geom = poly_nzvc_join, .role = PR::BaseRole});
 
   return _geom;
@@ -167,62 +163,64 @@ std::vector<pepp::Item> two_byte_geom() {
   using P = PolygonItem;
   using R = RectItem;
   using PR = pepp::settings::PaletteRole;
+  using C = pepp::Connections;
 
   std::vector<Item> _geom;
 
   add_regbank(_geom);
 
   // Clocks
-  _geom.emplace_back(A{.geom = ck_mar});
-  _geom.emplace_back(A{.geom = ck_mdre});
-  _geom.emplace_back(A{.geom = ck_mdro});
-  _geom.emplace_back(A{.geom = ck_load});
-  _geom.emplace_back(L{.geom = ck_n});
-  _geom.emplace_back(L{.geom = ck_z});
-  _geom.emplace_back(L{.geom = ck_v});
-  _geom.emplace_back(L{.geom = ck_c});
-  _geom.emplace_back(L{.geom = ck_s});
-  _geom.emplace_back(L{.geom = ck_memread});
-  _geom.emplace_back(L{.geom = ck_memwrite});
+  _geom.emplace_back(A{.geom = ck_mar, .connection = C::Clock_MAR});
+  _geom.emplace_back(A{.geom = ck_mdre, .connection = C::Clock_MDRE});
+  _geom.emplace_back(A{.geom = ck_mdro, .connection = C::Clock_MDRO});
+  _geom.emplace_back(A{.geom = ck_load, .connection = C::Clock_Load});
+  _geom.emplace_back(L{.geom = ck_n, .connection = C::Clock_N});
+  _geom.emplace_back(L{.geom = ck_z, .connection = C::Clock_Z});
+  _geom.emplace_back(L{.geom = ck_v, .connection = C::Clock_V});
+  _geom.emplace_back(L{.geom = ck_c, .connection = C::Clock_C});
+  _geom.emplace_back(L{.geom = ck_s, .connection = C::Clock_S});
+  _geom.emplace_back(L{.geom = ck_memread, .connection = C::Sel_MemRead});
+  _geom.emplace_back(L{.geom = ck_memwrite, .connection = C::Sel_MemWrite});
 
   // Control Wires
-  _geom.emplace_back(L{.geom = sel_muxcs});
-  _geom.emplace_back(A{.geom = sel_muxa});
-  _geom.emplace_back(A{.geom = sel_muxc});
-  _geom.emplace_back(A{.geom = sel_c});
-  _geom.emplace_back(A{.geom = sel_b});
-  _geom.emplace_back(A{.geom = sel_a});
-  _geom.emplace_back(A{.geom = sel_alu});
-  _geom.emplace_back(A{.geom = sel_mux_mdre});
-  _geom.emplace_back(A{.geom = sel_mux_mdro});
-  _geom.emplace_back(A{.geom = sel_muxeo});
-  _geom.emplace_back(A{.geom = sel_mux_mar});
+  _geom.emplace_back(L{.geom = sel_muxcs, .connection = C::Sel_Mux_CS});
+  _geom.emplace_back(A{.geom = sel_muxa, .connection = C::Sel_Mux_A});
+  _geom.emplace_back(A{.geom = sel_muxc, .connection = C::Sel_Mux_C});
+  _geom.emplace_back(A{.geom = sel_c, .connection = C::Sel_C});
+  _geom.emplace_back(A{.geom = sel_b, .connection = C::Sel_B});
+  _geom.emplace_back(A{.geom = sel_a, .connection = C::Sel_A});
+  _geom.emplace_back(A{.geom = sel_alu, .connection = C::Sel_ALU});
+  _geom.emplace_back(A{.geom = sel_mux_mdre, .connection = C::Sel_Mux_MDRE});
+  _geom.emplace_back(A{.geom = sel_mux_mdro, .connection = C::Sel_Mux_MDRO});
+  _geom.emplace_back(A{.geom = sel_muxeo, .connection = C::Sel_Mux_EO});
+  _geom.emplace_back(A{.geom = sel_mux_mar, .connection = C::Sel_Mux_MAR});
 
   // Buses
-  _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitQuaternaryRole});
-  _geom.emplace_back(P{.geom = bus_a, .role = PR::CircuitSecondaryRole});
-  _geom.emplace_back(P{.geom = bus_addr, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_mdremux_to_mdre, .role = PR::CircuitPrimaryRole});
-  _geom.emplace_back(P{.geom = bus_mdromux_to_mdro, .role = PR::CircuitSecondaryRole});
-  _geom.emplace_back(P{.geom = bus_data_to_mdremux, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_data_to_mdromux, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_mdre_to_data, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_mdro_to_data, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_mdre_to_eomux, .role = PR::CircuitPrimaryRole});
-  _geom.emplace_back(P{.geom = bus_mdro_to_eomux, .role = PR::CircuitSecondaryRole});
-  _geom.emplace_back(P{.geom = bux_marmux_to_mara, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_marmux_to_marb, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_mar_to_addr, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_eomux_to_amux, .role = PR::CircuitPrimaryRole});
-  _geom.emplace_back(P{.geom = bus_amux_to_alu, .role = PR::BaseRole});
-  _geom.emplace_back(P{.geom = bus_c, .role = PR::CircuitTertiaryRole});
+  _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitQuaternaryRole, .connection = C::Bus_B});
+  _geom.emplace_back(P{.geom = bus_a, .role = PR::CircuitSecondaryRole, .connection = C::Bus_A});
+  _geom.emplace_back(P{.geom = bus_addr, .role = PR::BaseRole, .connection = C::Bus_Address});
+  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Address});
+  _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole, .connection = C::Bus_Data});
+  _geom.emplace_back(P{.geom = bus_mdremux_to_mdre, .role = PR::CircuitPrimaryRole, .connection = C::Bus_MDREMux2MDRE});
+  _geom.emplace_back(
+      P{.geom = bus_mdromux_to_mdro, .role = PR::CircuitSecondaryRole, .connection = C::Bus_MDROMux2MDRO});
+  _geom.emplace_back(P{.geom = bus_data_to_mdremux, .role = PR::BaseRole, .connection = C::Bus_Data});
+  _geom.emplace_back(P{.geom = bus_data_to_mdromux, .role = PR::BaseRole, .connection = C::Bus_Data});
+  _geom.emplace_back(P{.geom = bus_mdre_to_data, .role = PR::BaseRole, .connection = C::Bus_MDRE2Data});
+  _geom.emplace_back(P{.geom = bus_mdro_to_data, .role = PR::BaseRole, .connection = C::Bus_MDRO2Data});
+  _geom.emplace_back(P{.geom = bus_mdre_to_eomux, .role = PR::CircuitPrimaryRole, .connection = C::Bus_MDRE2EOMux});
+  _geom.emplace_back(P{.geom = bus_mdro_to_eomux, .role = PR::CircuitSecondaryRole, .connection = C::Bus_MDRO2EOMux});
+  _geom.emplace_back(P{.geom = bux_marmux_to_mara, .role = PR::BaseRole, .connection = C::Bus_MARMux2MARA});
+  _geom.emplace_back(P{.geom = bus_marmux_to_marb, .role = PR::BaseRole, .connection = C::Bus_MARMux2MARB});
+  _geom.emplace_back(P{.geom = bus_mar_to_addr, .role = PR::BaseRole, .connection = C::Bus_MAR2Address});
+  _geom.emplace_back(P{.geom = bus_alu_to_cmux, .role = PR::BaseRole, .connection = C::Bus_ALU2CMux});
+  _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .role = PR::BaseRole, .connection = C::Bus_NZVC2CMux});
+  _geom.emplace_back(P{.geom = bus_eomux_to_amux, .role = PR::CircuitPrimaryRole, .connection = C::Bus_EOMux2AMux});
+  _geom.emplace_back(P{.geom = bus_amux_to_alu, .role = PR::BaseRole, .connection = C::Bus_AMux2ALU});
+  _geom.emplace_back(P{.geom = bus_c, .role = PR::CircuitTertiaryRole, .connection = C::Bus_C});
 
   // Combinatorial Outputs
-  _geom.emplace_back(A{.geom = logic_alu_nzvc});
+  _geom.emplace_back(A{.geom = logic_alu_nzvc, .connection = C::Wire_ALU_NZVC});
   _geom.emplace_back(A{.geom = logic_c_to_nzvc});
   _geom.emplace_back(A{.geom = logic_c_to_csmux});
   _geom.emplace_back(A{.geom = logic_s_to_csmux});
@@ -230,20 +228,20 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(A{.geom = logic_z_to_nzvc});
   _geom.emplace_back(A{.geom = logic_v_to_nzvc});
   _geom.emplace_back(A{.geom = logic_n_to_nzvc});
-  _geom.emplace_back(A{.geom = logic_andz_to_z});
+  _geom.emplace_back(A{.geom = logic_andz_to_z, .connection = C::Wire_AndZ2Z});
 
   // Multiplexers
   _geom.emplace_back(P{.geom = mux_marmux, .role = PR::BaseRole});
   _geom.emplace_back(T{.geom = mux_marmux, .text = "MARMux", .role = PR::BaseRole});
-  _geom.emplace_back(R{.geom = mux_a, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_a, .role = PR::BaseRole, .connection = C::Bus_AMux2ALU});
   _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .role = PR::BaseRole});
-  _geom.emplace_back(R{.geom = mux_c, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_c, .role = PR::BaseRole, .connection = C::Bus_ALU2CMux});
   _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .role = PR::BaseRole});
-  _geom.emplace_back(R{.geom = mux_mdre, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_mdre, .role = PR::BaseRole, .connection = C::Bus_MDREMux2MDRE});
   _geom.emplace_back(T{.geom = mux_mdre, .text = "MDREMux", .role = PR::BaseRole});
-  _geom.emplace_back(R{.geom = mux_mdro, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_mdro, .role = PR::BaseRole, .connection = C::Bus_MDROMux2MDRO});
   _geom.emplace_back(T{.geom = mux_mdro, .text = "MDROMux", .role = PR::BaseRole});
-  _geom.emplace_back(R{.geom = mux_eo, .role = PR::BaseRole});
+  _geom.emplace_back(R{.geom = mux_eo, .role = PR::BaseRole, .connection = C::Bus_EOMux2AMux});
   _geom.emplace_back(T{.geom = mux_eo, .text = "EOMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_cs, .role = PR::BaseRole});
   _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .role = PR::BaseRole});
@@ -252,28 +250,18 @@ std::vector<pepp::Item> two_byte_geom() {
 
   // Register outlines & registers
   _geom.emplace_back(R{.geom = reg_bit_n, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_c, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_v, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_z, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_s, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mdre, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mdre, .text = "MDRE", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mdro, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mdro, .text = "MDRO", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_marb, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mara, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .role = PR::BaseRole});
 
   // Other large polys
   _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
   _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .role = PR::BaseRole});
-  _geom.emplace_back(T{.geom = label_alu_function, .text = "A + B", .role = PR::BaseRole});
   _geom.emplace_back(L{.geom = poly_nzvc_join, .role = PR::BaseRole});
 
   return _geom;
@@ -281,22 +269,22 @@ std::vector<pepp::Item> two_byte_geom() {
 
 void add_clock(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QRect location, float x_offset = 0,
                float y_offset = 0) {
-  auto local = new pepp::ClockOverlay(location.translated(x_offset, y_offset), label, parent);
+  auto local = new pepp::ClockOverlay(location.translated(x_offset, y_offset), label, label.toLower(), parent);
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
 }
 void add_tristate(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QRect location, int max,
                   float x_offset = 0, float y_offset = 0) {
-  auto local = new pepp::TristateOverlay(location.translated(x_offset, y_offset), label, max, parent);
+  auto local = new pepp::TristateOverlay(location.translated(x_offset, y_offset), label, label.toLower(), max, parent);
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
 }
-void add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QRect location, Qt::Alignment align,
-              float x_offset = 0, float y_offset = 0) {
+void add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QString key, QRect location,
+              Qt::Alignment align, float x_offset = 0, float y_offset = 0) {
   // Apply same margins as in PaintDispatch::operator(const pepp::TextRectItem)
   if (align & Qt::AlignLeft) location.translate(5, 0);
   else if (align & Qt::AlignRight) location.translate(-5, 0);
-  auto local = new pepp::MonoTextOverlay(location.translated(x_offset, y_offset), label, align, parent);
+  auto local = new pepp::MonoTextOverlay(location.translated(x_offset, y_offset), label, key, align, parent);
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
 }
@@ -304,91 +292,100 @@ void add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, Q
 void add_regbank_qml(QObject *parent, QList<pepp::QMLOverlay *> &list, float x_offset = 0, float y_offset = 0) {
   using namespace OneByteShapes;
   // Column 0
-  add_text(parent, list, "A", reg_label_a_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_a_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_a_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "0,1", reg_label_a_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "A", "", reg_label_a_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r00", reg_value_a_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r01", reg_value_a_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "0,1", "", reg_label_a_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "X", reg_label_x_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_x_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_x_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "2,3", reg_label_x_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "X", "", reg_label_x_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r02", reg_value_x_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r03", reg_value_x_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "2,3", "", reg_label_x_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "SP", reg_label_sp_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_sp_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_sp_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "4,5", reg_label_sp_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "SP", "", reg_label_sp_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r04", reg_value_sp_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r05", reg_value_sp_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "4,5", "", reg_label_sp_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "PC", reg_label_pc_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_pc_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_pc_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "6,7", reg_label_pc_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "PC", "", reg_label_pc_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r06", reg_value_pc_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r07", reg_value_pc_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "6,7", "", reg_label_pc_num, Qt::AlignLeft, x_offset, y_offset);
 
   // Column 1
-  add_text(parent, list, "IR", reg_label_is_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_is, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "8", reg_label_is_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "IR", "", reg_label_is_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r08", reg_value_is, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "8", "", reg_label_is_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "00", reg_value_os_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_os_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "9,10", reg_label_os_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "00", "r09", reg_value_os_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r10", reg_value_os_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "9,10", "", reg_label_os_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T1", reg_label_t1_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t1, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "11", reg_label_t1_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T1", "", reg_label_t1_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r11", reg_value_t1, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "11", "", reg_label_t1_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T2", reg_label_t2_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t2_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t2_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "12,13", reg_label_t2_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T2", "", reg_label_t2_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r12", reg_value_t2_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r13", reg_value_t2_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "12,13", "", reg_label_t2_num, Qt::AlignLeft, x_offset, y_offset);
 
   // Column 2
-  add_text(parent, list, "T3", reg_label_t3_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t3_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t3_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "14,15", reg_label_t3_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T3", "", reg_label_t3_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r14", reg_value_t3_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r15", reg_value_t3_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "14,15", "", reg_label_t3_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T4", reg_label_t4_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t4_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t4_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "16,17", reg_label_t4_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T4", "", reg_label_t4_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r16", reg_value_t4_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r17", reg_value_t4_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "16,17", "", reg_label_t4_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T5", reg_label_t5_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t5_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t5_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "18,19", reg_label_t5_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T5", "", reg_label_t5_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r18", reg_value_t5_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r19", reg_value_t5_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "18,19", "", reg_label_t5_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "T6", reg_label_t6_name, Qt::AlignRight, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t6_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "00", reg_value_t6_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "20,21", reg_label_t6_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "T6", "", reg_label_t6_name, Qt::AlignRight, x_offset, y_offset);
+  add_text(parent, list, "00", "r20", reg_value_t6_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "00", "r21", reg_value_t6_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "20,21", "", reg_label_t6_num, Qt::AlignLeft, x_offset, y_offset);
 
   // Column 3
-  add_text(parent, list, "00", reg_value_m1_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "01", reg_value_m1_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "22,23", reg_label_m1_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "00", "r22", reg_value_m1_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "01", "r23", reg_value_m1_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "22,23", "", reg_label_m1_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "02", reg_value_m2_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "03", reg_value_m2_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "24,25", reg_label_m2_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "02", "r24", reg_value_m2_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "03", "r25", reg_value_m2_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "24,25", "", reg_label_m2_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "04", reg_value_m3_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "08", reg_value_m3_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "26,27", reg_label_m3_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "04", "r26", reg_value_m3_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "08", "r27", reg_value_m3_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "26,27", "", reg_label_m3_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "F0", reg_value_m4_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "F6", reg_value_m4_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "28,29", reg_label_m4_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "F0", "r28", reg_value_m4_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "F6", "r29", reg_value_m4_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "28,29", "", reg_label_m4_num, Qt::AlignLeft, x_offset, y_offset);
 
-  add_text(parent, list, "FE", reg_value_m5_hi, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "FF", reg_value_m5_lo, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, list, "30,31", reg_label_m5_num, Qt::AlignLeft, x_offset, y_offset);
+  add_text(parent, list, "FE", "r30", reg_value_m5_hi, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "FF", "r31", reg_value_m5_lo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, list, "30,31", "", reg_label_m5_num, Qt::AlignLeft, x_offset, y_offset);
 }
 
 QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, float y_offset) {
   using namespace OneByteShapes;
   QList<pepp::QMLOverlay *> ret;
   add_regbank_qml(parent, ret, x_offset, y_offset);
+  add_text(parent, ret, "00", "mdr", reg_byte_mdr, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "mara", reg_byte_mara, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "marb", reg_byte_marb, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_n", reg_bit_n, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_c", reg_bit_c, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_v", reg_bit_v, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_z", reg_bit_z, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_s", reg_bit_s, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "", "fn_alu", label_alu_function, Qt::AlignCenter, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
@@ -414,6 +411,16 @@ QList<pepp::QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, flo
   using namespace TwoByteShapes;
   QList<pepp::QMLOverlay *> ret;
   add_regbank_qml(parent, ret, x_offset, y_offset);
+  add_text(parent, ret, "00", "mdre", reg_byte_mdre, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "mdro", reg_byte_mdro, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "mara", reg_byte_mara, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "marb", reg_byte_marb, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_n", reg_bit_n, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_c", reg_bit_c, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_v", reg_bit_v, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_z", reg_bit_z, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_s", reg_bit_s, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "", "fn_alu", label_alu_function, Qt::AlignCenter, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
@@ -445,36 +452,55 @@ QList<pepp::QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, flo
 namespace pepp {
 struct PaintDispatch {
   pepp::PaintedCPUCanvas *canvas;
+  pepp::ConnectionsHolder *con;
   QPainter *painter;
   QFont font{"Times New Roman", 14};
   pepp::settings::Palette const *palette = pepp::settings::AppSettings().themePalette();
   void operator()(const pepp::LineItem &item) {
-    painter->setPen(palette->item(item.role)->foreground());
+    int role = (int)item.role;
+    if (item.connection != pepp::Connections::None && con != nullptr) role = con->c[(int)item.connection];
+
+    painter->setPen(palette->item(role)->foreground());
     painter->drawLine(item.geom);
   }
   void operator()(const pepp::ArrowItem &item) {
-    painter->setPen(palette->item(item.role)->foreground());
+    int role = (int)item.role;
+    if (item.connection != pepp::Connections::None && con != nullptr) role = con->c[(int)item.connection];
+
+    painter->setPen(palette->item(role)->foreground());
     const auto &arrow = item.geom;
     for (const QLine &line : arrow._lines) painter->drawLine(line);
+
     for (const Arrowhead &head : arrow._arrowheads) {
+      int orient = static_cast<int>(head.orient);
       painter->save();
       painter->translate(head.point);
-      int orient = static_cast<int>(head.orient);
+      // Use the arrow as a mask rather than a real thing to paint
+      painter->setCompositionMode(QPainter::CompositionMode_SourceOver);
       painter->drawPixmap(0, 0, canvas->_arrows[orient]);
+      painter->setCompositionMode(QPainter::CompositionMode_SourceIn);
+      painter->fillRect(QRect(QPoint(0, 0), canvas->_arrows[orient].size()), palette->item(role)->foreground());
       painter->restore();
     }
   }
   void operator()(const pepp::RectItem &item) {
-    painter->setPen(palette->item(item.role)->foreground());
-    painter->setBrush(palette->item(item.role)->background());
+    int role = (int)item.role;
+    if (item.connection != pepp::Connections::None && con != nullptr) role = con->c[(int)item.connection];
+
+    painter->setPen(palette->item(role)->foreground());
+    painter->setBrush(palette->item(role)->background());
     painter->drawRect(item.geom);
   }
   void operator()(const pepp::PolygonItem &item) {
-    painter->setPen(palette->item(item.role)->foreground());
-    painter->setBrush(palette->item(item.role)->background());
+    int role = (int)item.role;
+    if (item.connection != pepp::Connections::None && con != nullptr) role = con->c[(int)item.connection];
+
+    painter->setPen(palette->item(role)->foreground());
+    painter->setBrush(palette->item(role)->background());
     painter->drawConvexPolygon(item.geom);
   }
   void operator()(const pepp::TextRectItem &item) {
+
     painter->setPen(palette->item(item.role)->foreground());
     painter->setFont(font);
     // Add 5 px margin on left and right of text
@@ -555,11 +581,15 @@ pepp::PaintedCPUCanvas::PaintedCPUCanvas(Which which, QQuickItem *parent) : QQui
   BoundingBox minmax;
   BoundingBoxVisitor mmv;
   for (const auto &i : _geom) minmax.extend(std::visit(mmv, i));
-  _w = minmax._max.x() - minmax._min.x();
-  _h = minmax._max.y() - minmax._min.y();
+  // Effectively adds padding on the bottom, right to ensure we don't clip rects
+  _w = minmax._max.x() - minmax._min.x() + 20;
+  _h = minmax._max.y() - minmax._min.y() + 20;
 
-  auto svg_path = ":/logi/arrow.svg";
-  QImage svg_image(svg_path);
+  QImageReader r(":/logi/arrow.svg");
+  r.setBackgroundColor(Qt::transparent); // may help if plugin uses it
+
+  QImage svg_image = r.read();
+
   _arrows[Qt::NoArrow] = QPixmap(QSize(0, 0));
   _arrows[Qt::LeftArrow] = QPixmap::fromImage(svg_image);
   _arrows[Qt::RightArrow] = QPixmap::fromImage(svg_image.flipped(Qt::Orientation::Horizontal));
@@ -574,7 +604,7 @@ pepp::PaintedCPUCanvas::~PaintedCPUCanvas() noexcept {
 void pepp::PaintedCPUCanvas::paint(QPainter *painter) {
   painter->save();
   painter->translate(OneByteShapes::regbank_x_offset, OneByteShapes::regbank_y_offset);
-  PaintDispatch disp{.canvas = this, .painter = painter};
+  PaintDispatch disp{.canvas = this, .con = this->_connections, .painter = painter};
   for (const auto &item : _geom) std::visit(disp, item);
   painter->restore();
 }

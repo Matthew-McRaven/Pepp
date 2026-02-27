@@ -20,11 +20,13 @@
 #include <qabstractitemmodel.h>
 #include "aproject.hpp"
 #include "core/langs/ucode/ir_variant.hpp"
+#include "cpu/ma2/dataflow.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "debug/debugger.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "microobjectmodel.hpp"
+#include "postmodel.hpp"
 #include "project/architectures.hpp"
 #include "project/levels.hpp"
 #include "sim/debug/watchexpressionmodel.hpp"
@@ -283,7 +285,7 @@ protected:
   QList<QPair<int, QString>> _errors = {};
 };
 
-class Pep_MA : public QObject {
+class Pep_MA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
@@ -295,9 +297,10 @@ class Pep_MA : public QObject {
   Q_PROPERTY(Microcode *microcode READ microcode NOTIFY microcodeChanged)
   Q_PROPERTY(pepp::LineNumbers *cycleNumbers READ line2addr NOTIFY microcodeChanged);
   Q_PROPERTY(QList<Error *> microassemblerErrors READ errors NOTIFY errorsChanged)
-  // Preserve the current address in the memory dump pane on tab-switch.
-  Q_PROPERTY(quint16 currentAddress MEMBER _currentAddress NOTIFY currentAddressChanged)
+  Q_PROPERTY(quint16 currentPC READ currentPC NOTIFY updateGUI)
+  Q_PROPERTY(const pepp::ConnectionsHolder *connections READ connections CONSTANT)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
+  Q_PROPERTY(PostModel *testResults READ testResults CONSTANT)
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
   // Step modes that are allowable for the current project type.
@@ -321,7 +324,9 @@ public:
   virtual QString lexerLanguage() const;
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
+  pepp::ConnectionsHolder const *connections() const;
   OpcodeModel *mnemonics() const;
+  PostModel *testResults() const;
   QString microcodeText() const;
   void setMicrocodeText(const QString &microcodeText);
   Q_INVOKABLE static QStringListModel *modes() {
@@ -335,7 +340,7 @@ public:
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
   virtual bool isEmpty() const;
-
+  int currentPC() const;
   int allowedDebugging() const;
   int enabledSteps() const;
   int allowedSteps() const;
@@ -344,6 +349,9 @@ public:
   virtual QString contentsForExtension(const QString &ext) const;
   int rendering_type() const;
   QList<Error *> errors() const;
+
+  // Can't place in signals/slots.
+  using Action = EditBase::Action;
 
 public slots:
   bool onMicroAssemble();
@@ -361,10 +369,11 @@ public slots:
   bool onClearMemory();
 
   void onDeferredExecution(std::function<bool()> step);
+  // Not tied to editorAction. This is the "receiving" side when the editor initiates a change.
+  void onEditorAction(int line, Action action);
 
 signals:
   void microcodeTextChanged();
-  void currentAddressChanged();
   // Called by onISARemoveAllBreakpoints so we can remove breakpoints from editors.
   void projectBreakpointsCleared();
   void allowedStepsChanged();
@@ -377,6 +386,9 @@ signals:
   void clearMessages();
   void deferredExecution(std::function<bool()> step);
   void overwriteEditors();
+  void editorAction(int line, Action action);
+  void requestEditorBreakpoints();
+  void failedTests();
 
   // Propogated  C++ project model => C++ project => QML project wrapper => QML editor
   void markedClean();
@@ -400,19 +412,43 @@ protected:
   QString _microcodeText = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   SimulatorRawMemory *_memory = nullptr;
-  qint16 _currentAddress = 0;
-  using Action = EditBase::Action;
+  PostModel *_testResults = nullptr;
   void updateBPAtAddress(quint32 address, Action action);
+  void updatePC();
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QList<QPair<int, QString>> _errors = {};
   pepp::MicrocodeChoice _microcode = std::monostate{};
   pepp::TestChoice _testsPre = std::monostate{}, _testsPost = std::monostate{};
   pepp::Line2Address _line2addr;
-
+  // TODO: at some point this type info needs to be extracted from the assembler + loader.
+  pepp::debug::types::TypeInfo _typeInfo;
+  QMap<QString, std::function<QVariant()>> _paint_key;
+  pepp::ConnectionsHolder _holder;
+  void load_common_vars();
+  void load_onebyte_vars();
+  void load_twobyte_vars();
   // Dispatch between the handlers for each of the languages.
   // If override_source_text is true, _microcodeText will be updated on successful assembly.
   bool _microassemble(bool override_source_text);
   bool _microassemble8(bool override_source_text);
   bool _microassemble9_10_1(bool override_source_text);
   bool _microassemble9_10_2(bool override_source_text);
+  void _clearCPU();
+  void _clearMemory();
+  // Update the number of tests rows and set the test names.
+  void reloadPostTests();
+  // Do NOT adjust the number of rows / the names of the tests. Only update value columns.
+  // Returns true if all tests evaluated to true and false otherwise.
+  bool updatePostTestValues();
+
+  // Environment interface
+public:
+  pepp::debug::types::TypeInfo *type_info() override;
+  const pepp::debug::types::TypeInfo *type_info() const override;
+  uint8_t read_mem_u8(uint32_t address) const override;
+  uint16_t read_mem_u16(uint32_t address) const override;
+  pepp::debug::Value evaluate_variable(QStringView name) const override;
+  uint32_t cache_debug_variable_name(QStringView name) const override;
+  pepp::debug::Value evaluate_debug_variable(uint32_t cache_index) const override;
+  Q_INVOKABLE QVariant evaluate_painter_key(QString name) const;
 };
