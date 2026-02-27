@@ -1658,6 +1658,14 @@ void Pep_MA::load_common_vars() {
     };
     _paint_key[name] = fn;
   }
+  // CSRs
+  for (const auto &[reg, name] : pepp::tc::arch::Pep9Registers::csr_to_string()) {
+    _paint_key["csr_" + QString::fromStdString(name).toLower()] = [this, reg]() {
+      quint8 ret = 0;
+      _system->cpu()->csrs()->read((int)reg, {&ret, 1}, gs);
+      return QString::number((bool)ret, 16).toUpper();
+    };
+  }
 }
 
 void Pep_MA::load_onebyte_vars() {

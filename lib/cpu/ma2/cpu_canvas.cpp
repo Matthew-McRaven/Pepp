@@ -133,15 +133,10 @@ std::vector<pepp::Item> one_byte_geom() {
 
   // Register outlines & registers
   _geom.emplace_back(R{.geom = reg_bit_n, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_c, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_v, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_z, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_s, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mdr, .role = PR::SequentialRole});
   _geom.emplace_back(R{.geom = reg_byte_marb, .role = PR::SequentialRole});
   _geom.emplace_back(R{.geom = reg_byte_mara, .role = PR::SequentialRole});
@@ -249,15 +244,10 @@ std::vector<pepp::Item> two_byte_geom() {
 
   // Register outlines & registers
   _geom.emplace_back(R{.geom = reg_bit_n, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_n, .text = "N", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_c, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_c, .text = "C", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_v, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_v, .text = "V", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_z, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_z, .text = "Z", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_bit_s, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mdre, .role = PR::SequentialRole});
   _geom.emplace_back(R{.geom = reg_byte_mdro, .role = PR::SequentialRole});
   _geom.emplace_back(R{.geom = reg_byte_marb, .role = PR::SequentialRole});
@@ -386,6 +376,11 @@ QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, flo
   add_text(parent, ret, "00", "mdr", reg_byte_mdr, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "00", "mara", reg_byte_mara, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "00", "marb", reg_byte_marb, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_n", reg_bit_n, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_c", reg_bit_c, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_v", reg_bit_v, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_z", reg_bit_z, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_s", reg_bit_s, Qt::AlignCenter, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
@@ -415,6 +410,11 @@ QList<pepp::QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, flo
   add_text(parent, ret, "00", "mdro", reg_byte_mdro, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "00", "mara", reg_byte_mara, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "00", "marb", reg_byte_marb, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_n", reg_bit_n, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_c", reg_bit_c, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_v", reg_bit_v, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_z", reg_bit_z, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "csr_s", reg_bit_s, Qt::AlignCenter, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
