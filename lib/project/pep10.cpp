@@ -1513,24 +1513,21 @@ bool Pep_MA::onMAStep() {
 
 bool Pep_MA::onClearCPU() {
   const auto cpu = _system->cpu();
-  const bool traced = _tb->traced(cpu->device().id);
-  cpu->trace(false);
   cpu->resetMicroPC();
-  cpu->trace(traced);
   cpu->bankRegs()->clear(0);
   cpu->hiddenRegs()->clear(0);
   cpu->csrs()->clear(0);
   // TODO: need to select correct set of constants based on architecture.
   _system->cpu()->setConstantRegisters();
+  _tb->clear();
   return true;
 }
 
 bool Pep_MA::onClearMemory() {
   const auto bus = _system->bus();
-  const bool traced = _tb->traced(bus->device().id);
-  _system->bus()->trace(false);
   bus->clear(0);
-  bus->trace(traced);
+  _tb->clear();
+  _memory->clearModifiedAndUpdateGUI();
   return true;
 }
 
@@ -1601,22 +1598,26 @@ void Pep_MA::prepareSim() {
   onClearMemory();
   _dbg->bps->clearHit();
   _tb->clear();
+  _system->cpu()->trace(true);
+  _system->bus()->trace(true);
   if (_testsPre.index() != 0) {
     // Must emit frame start/end else iterators will not work as expected.
     _tb->emitFrameStart();
     _system->cpu()->applyPreconditions(_testsPre);
     _tb->updateFrameHeader();
-    _memory->onUpdateGUI(_tb->cbegin());
   }
+  prepareGUIUpdate(_tb->cbegin());
   updatePC();
 }
 
 void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
   auto passedTests = updatePostTestValues();
-  if (_state == State::Halted && !passedTests) {
+  emit updateGUI(from);
+  using Status = targets::pep9::mc2::BaseCPU::Status;
+  // Must be after updateGUI, else highlightFailed will always be false.
+  if (_system->cpu()->status() == Status::Halted && !passedTests) {
     emit failedTests();
   }
-  emit updateGUI(from);
 }
 
 void Pep_MA::updateBPAtAddress(quint32 address, Action action) {

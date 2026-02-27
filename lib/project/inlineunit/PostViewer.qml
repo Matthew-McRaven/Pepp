@@ -6,7 +6,7 @@ import edu.pepp
 Item {
     id: root
     property alias model: reshapeModel.sourceModel
-    property bool isSimulating: false
+    property bool highlightFailed: false
     NuAppSettings {
         id: settings
     }
@@ -143,7 +143,7 @@ Item {
 
             focus: false
             Rectangle {
-                visible: delegate.valid && delegate.value==0 && !root.isSimulating
+                visible: delegate.valid && delegate.value==0 && root.highlightFailed
                 color: settings.extPalette.error.background
                 anchors.fill: parent
                 // Draw selection rectangle over column spacing using negative margins
