@@ -124,6 +124,14 @@ QtObject {
             text: qsTr("Pr&eferences")
             icon.source: `image://icons/file/settings${dark ? '' : '_dark'}.svg`
         }
+        readonly property var toggleComment: Action {
+            property string nativeText: ""
+            text: qsTr("To&ggle Line Comment")
+            icon.source: `image://icons/blank.svg`
+            onShortcutChanged: updateNativeText(this)
+            enabled: !!activeFocusItem && !!activeFocusItem["toggleComment"] && (!activeFocusItem.readOnly ?? true)
+            onTriggered: activeFocusItem.toggleComment()
+        }
         readonly property var clearEditorErrors: Action {
             text: qsTr("Clear Editor Errors")
             icon.source: `image://icons/blank.svg`

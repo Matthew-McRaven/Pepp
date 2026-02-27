@@ -202,6 +202,13 @@ Labs.MenuBar {
             icon.source: fixSuffix(actions.build.assembleThenFormat.icon.source, wrapper.darkMode)
         }
         Labs.MenuItem {
+            text: actions.edit.toggleComment.text
+            onTriggered: actions.edit.toggleComment.trigger()
+            icon.source: fixSuffix(actions.edit.toggleComment.icon.source, wrapper.darkMode)
+            shortcut: actions.edit.toggleComment.shortcut
+            enabled: actions.edit.toggleComment.enabled
+        }
+        Labs.MenuItem {
             text: actions.edit.clearEditorErrors.text
             onTriggered: actions.edit.clearEditorErrors.trigger()
             icon.source: fixSuffix(actions.edit.clearEditorErrors.icon.source, wrapper.darkMode)

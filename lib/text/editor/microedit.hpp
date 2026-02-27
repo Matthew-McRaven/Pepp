@@ -14,6 +14,7 @@ public:
 
 public slots:
   void applyStyles() override;
+  void toggleComment();
 signals:
   void lineNumberChanged();
 
