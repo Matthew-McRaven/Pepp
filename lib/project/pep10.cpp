@@ -1672,6 +1672,13 @@ void Pep_MA::load_onebyte_vars() {
       else return QVariant{line.get(signal)};
     };
   }
+  for (const auto &[reg, name] : pepp::tc::arch::Pep9ByteBus::hiddenregister_to_string()) {
+    _paint_key[QString::fromStdString(name).toLower()] = [this, reg]() {
+      quint8 ret = 0;
+      _system->cpu()->hiddenRegs()->read((int)reg, {&ret, 1}, gs);
+      return QString::number(ret, 16).toUpper().rightJustified(2, '0');
+    };
+  }
 }
 
 void Pep_MA::load_twobyte_vars() {
@@ -1684,6 +1691,13 @@ void Pep_MA::load_twobyte_vars() {
       if (upc >= microcode.size()) return QVariant{};
       else if (const auto &line = microcode[upc]; !line.enabled(signal)) return QVariant{};
       else return QVariant{line.get(signal)};
+    };
+  }
+  for (const auto &[reg, name] : pepp::tc::arch::Pep9WordBus::hiddenregister_to_string()) {
+    _paint_key[QString::fromStdString(name).toLower()] = [this, reg]() {
+      quint8 ret = 0;
+      _system->cpu()->hiddenRegs()->read((int)reg, {&ret, 1}, gs);
+      return QString::number(ret, 16).toUpper().rightJustified(2, '0');
     };
   }
 }

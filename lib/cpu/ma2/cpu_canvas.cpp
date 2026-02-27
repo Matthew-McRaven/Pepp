@@ -143,11 +143,8 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(R{.geom = reg_bit_s, .role = PR::SequentialRole});
   _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mdr, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mdr, .text = "MDR", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_marb, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mara, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .role = PR::BaseRole});
 
   // Other large polys
   _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
@@ -262,13 +259,10 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(R{.geom = reg_bit_s, .role = PR::SequentialRole});
   _geom.emplace_back(T{.geom = reg_bit_s, .text = "S", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mdre, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mdre, .text = "MDRE", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_mdro, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mdro, .text = "MDRO", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = reg_byte_marb, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_marb, .text = "MARB", .role = PR::BaseRole});
+
   _geom.emplace_back(R{.geom = reg_byte_mara, .role = PR::SequentialRole});
-  _geom.emplace_back(T{.geom = reg_byte_mara, .text = "MARA", .role = PR::BaseRole});
 
   // Other large polys
   _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
@@ -389,6 +383,9 @@ QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, flo
   using namespace OneByteShapes;
   QList<pepp::QMLOverlay *> ret;
   add_regbank_qml(parent, ret, x_offset, y_offset);
+  add_text(parent, ret, "00", "mdr", reg_byte_mdr, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "mara", reg_byte_mara, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "marb", reg_byte_marb, Qt::AlignCenter, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
@@ -414,6 +411,10 @@ QList<pepp::QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, flo
   using namespace TwoByteShapes;
   QList<pepp::QMLOverlay *> ret;
   add_regbank_qml(parent, ret, x_offset, y_offset);
+  add_text(parent, ret, "00", "mdre", reg_byte_mdre, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "mdro", reg_byte_mdro, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "mara", reg_byte_mara, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "00", "marb", reg_byte_marb, Qt::AlignCenter, x_offset, y_offset);
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
