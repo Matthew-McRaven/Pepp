@@ -20,6 +20,7 @@ Item {
     // TODO: really should be an enum
     required property int which
     required property var project
+    required property bool isSimulating
     NuAppSettings {
         id: settings
     }
@@ -54,6 +55,7 @@ Item {
                     return "";
                 return Number(value);
             }
+            enabled: !root.isSimulating
         }
         Label {
             anchors {
@@ -93,6 +95,7 @@ Item {
                 labelCheck.value = newVal ?? false;
             }
         }
+        enabled: !root.isSimulating
     }
     component MonoText: TextEdit {
         id: mono

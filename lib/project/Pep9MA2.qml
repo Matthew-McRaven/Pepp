@@ -194,6 +194,7 @@ FocusScope {
                 property size kddockwidgets_min_size: Qt.size(800, 600)
                 which: wrapper.project.renderingType
                 project: wrapper.project
+                isSimulating: project?.allowedSteps & StepEnableFlags.Step ||  wrapper.mode === "debugger"
             }
         }
         KDDW.DockWidget {
