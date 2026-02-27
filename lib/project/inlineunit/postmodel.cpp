@@ -40,11 +40,10 @@ QVariant PostModel::data(const QModelIndex &index, int role) const {
 qsizetype PostModel::longest() const { return _longest; }
 
 void PostModel::updateValuesFromVector(const std::vector<bool> &values) {
-  static const QList<int> roles = {ValueRole};
   auto rowCount = std::min<int>(values.size(), _entries.size());
   for (int i = 0; i < rowCount; i++) _entries[i].cachedValue = values[i];
   auto tl = index(0, 0), br = index(rowCount - 1, 0);
-  emit dataChanged(tl, br, roles);
+  emit dataChanged(tl, br);
 }
 
 void PostModel::resetFromVector(QStringList names) {
@@ -81,8 +80,17 @@ void PostReshapeModel::setSourceModel(QAbstractItemModel *sourceModel) {
       beginResetModel();
       endResetModel();
     };
+    auto data_changed = [this](const QModelIndex &tl, const QModelIndex &br) {
+      // Selection is a rect.
+      // Rather than emit multiple dataChanged (1 for partial first row, 1 for all complete rows, 1 for partial last
+      // row), just round up to the rect covering all items in the affected rows.
+      auto mapped_tl = mapFromSource(tl).siblingAtColumn(0),
+           mapped_br = mapFromSource(br).siblingAtColumn(_columnCount - 1);
+      if (mapped_tl.isValid() && mapped_br.isValid()) emit dataChanged(mapped_tl, mapped_br);
+    };
     connect(casted, &PostModel::longestChanged, this, &PostReshapeModel::longestChanged);
     connect(casted, &PostModel::modelReset, this, reset_model);
+    connect(casted, &PostModel::dataChanged, this, data_changed);
     emit sourceModelChanged();
   }
 }
