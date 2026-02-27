@@ -387,6 +387,7 @@ signals:
   void overwriteEditors();
   void editorAction(int line, Action action);
   void requestEditorBreakpoints();
+  void failedTests();
 
   // Propogated  C++ project model => C++ project => QML project wrapper => QML editor
   void markedClean();
@@ -431,7 +432,8 @@ protected:
   // Update the number of tests rows and set the test names.
   void reloadPostTests();
   // Do NOT adjust the number of rows / the names of the tests. Only update value columns.
-  void updatePostTestValues();
+  // Returns true if all tests evaluated to true and false otherwise.
+  bool updatePostTestValues();
 
   // Environment interface
 public:

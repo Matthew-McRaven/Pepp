@@ -1612,7 +1612,10 @@ void Pep_MA::prepareSim() {
 }
 
 void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
-  updatePostTestValues();
+  auto passedTests = updatePostTestValues();
+  if (_state == State::Halted && !passedTests) {
+    emit failedTests();
+  }
   emit updateGUI(from);
 }
 
@@ -1723,10 +1726,11 @@ void Pep_MA::reloadPostTests() {
   updatePostTestValues();
 }
 
-void Pep_MA::updatePostTestValues() {
-  if (std::holds_alternative<std::monostate>(_testsPost)) return;
+bool Pep_MA::updatePostTestValues() {
+  if (std::holds_alternative<std::monostate>(_testsPost)) return true;
   auto values = _system->cpu()->testPostconditions(_testsPost);
   _testResults->updateValuesFromVector(values);
+  return std::all_of(values.cbegin(), values.cend(), [](const bool v) { return v; });
 }
 
 pepp::debug::types::TypeInfo *Pep_MA::type_info() { return &_typeInfo; }

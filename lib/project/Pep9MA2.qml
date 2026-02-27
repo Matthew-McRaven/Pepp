@@ -227,6 +227,12 @@ FocusScope {
                 property size kddockwidgets_min_size: Qt.size(200, 400)
                 model: project.testResults
             }
+            Connections {
+                target: project
+                function onFailedTests() {
+                    dock_tests.needsAttention = true;
+                }
+            }
         }
         KDDW.DockWidget {
             id: dock_hexdump
