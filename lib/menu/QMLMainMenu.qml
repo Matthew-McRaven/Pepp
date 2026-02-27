@@ -105,6 +105,11 @@ MenuBar {
             icon.source: fixSuffix(actions.build.assembleThenFormat.icon.source, wrapper.darkMode)
         }
         ShortcutMenuItem {
+            action: actions.edit.toggleComment
+            enabled: action.enabled
+            icon.source: fixSuffix(actions.edit.toggleComment.icon.source, wrapper.darkMode)
+        }
+        ShortcutMenuItem {
             action: actions.edit.clearEditorErrors
             enabled: action.enabled
             visible: enabled
