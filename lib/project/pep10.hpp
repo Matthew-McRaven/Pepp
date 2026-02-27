@@ -427,13 +427,14 @@ protected:
   void load_common_vars();
   void load_onebyte_vars();
   void load_twobyte_vars();
-
   // Dispatch between the handlers for each of the languages.
   // If override_source_text is true, _microcodeText will be updated on successful assembly.
   bool _microassemble(bool override_source_text);
   bool _microassemble8(bool override_source_text);
   bool _microassemble9_10_1(bool override_source_text);
   bool _microassemble9_10_2(bool override_source_text);
+  void _clearCPU();
+  void _clearMemory();
   // Update the number of tests rows and set the test names.
   void reloadPostTests();
   // Do NOT adjust the number of rows / the names of the tests. Only update value columns.

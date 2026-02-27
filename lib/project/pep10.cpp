@@ -1514,21 +1514,13 @@ bool Pep_MA::onMAStep() {
 }
 
 bool Pep_MA::onClearCPU() {
-  const auto cpu = _system->cpu();
-  cpu->resetMicroPC();
-  cpu->bankRegs()->clear(0);
-  cpu->hiddenRegs()->clear(0);
-  cpu->csrs()->clear(0);
-  // TODO: need to select correct set of constants based on architecture.
-  _system->cpu()->setConstantRegisters();
-  _tb->clear();
+  _clearCPU();
+  emit updateGUI(_tb->cbegin());
   return true;
 }
 
 bool Pep_MA::onClearMemory() {
-  const auto bus = _system->bus();
-  bus->clear(0);
-  _tb->clear();
+  _clearMemory();
   _memory->clearModifiedAndUpdateGUI();
   return true;
 }
@@ -1602,8 +1594,8 @@ void Pep_MA::bindToSystem() {
 void Pep_MA::prepareSim() {
   if (_microcode.index() == 0) return;
   _system->init();
-  onClearCPU();
-  onClearMemory();
+  _clearCPU();
+  _clearMemory();
   _dbg->bps->clearHit();
   _tb->clear();
   _system->cpu()->trace(true);
@@ -1614,6 +1606,7 @@ void Pep_MA::prepareSim() {
     _system->cpu()->applyPreconditions(_testsPre);
     _tb->updateFrameHeader();
   }
+  _memory->clearModifiedAndUpdateGUI();
   prepareGUIUpdate(_tb->cbegin());
   updatePC();
 }
@@ -1838,6 +1831,23 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
   emit errorsChanged();
   emit microcodeChanged();
   return true;
+}
+
+void Pep_MA::_clearCPU() {
+  const auto cpu = _system->cpu();
+  cpu->resetMicroPC();
+  cpu->bankRegs()->clear(0);
+  cpu->hiddenRegs()->clear(0);
+  cpu->csrs()->clear(0);
+  // TODO: need to select correct set of constants based on architecture.
+  _system->cpu()->setConstantRegisters();
+  _tb->clear();
+}
+
+void Pep_MA::_clearMemory() {
+  const auto bus = _system->bus();
+  bus->clear(0);
+  _tb->clear();
 }
 
 namespace {
