@@ -1529,7 +1529,7 @@ void Pep_MA::onDeferredExecution(std::function<bool()> step) {
   using Status = targets::pep9::mc2::BaseCPU::Status;
   auto from = _tb->cend();
   bool err = false;
-
+  _pendingPause = false;
   try {
     auto ending = _system->currentTick() + 1000;
     do {
