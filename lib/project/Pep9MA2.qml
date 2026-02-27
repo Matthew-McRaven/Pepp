@@ -176,6 +176,7 @@ FocusScope {
                 text: project.microcodeText ?? ""
                 language: project.lexerLanguage ?? ""
                 cycleNumbers: project.cycleNumbers ?? null
+                readOnly: wrapper.mode === "debugger"
             }
         }
         KDDW.DockWidget {
