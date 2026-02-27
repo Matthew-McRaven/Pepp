@@ -112,9 +112,12 @@ void MicroEdit::toggleComment() {
     send(SCI_GETTEXTRANGE, 0, reinterpret_cast<sptr_t>(&tr));
     auto contents = QString::fromLocal8Bit(buf).trimmed();
     static const QString kNul = QString(QChar(u'\0'));
+    static const QRegularExpression rx(R"(^//[ \t]*)");   // anchor at BOL
     if (contents.isEmpty() || contents == kNul) continue; // Don't comment out otherwise empty lines
-    else if (contents.startsWith("//")) send(SCI_DELETERANGE, posStart, 2);
-    else send(SCI_INSERTTEXT, posStart, reinterpret_cast<sptr_t>("//"));
+    else if (auto m = rx.match(contents); m.hasMatch()) { // Remove leading spaces
+      const int n = m.capturedLength(0);
+      send(SCI_DELETERANGE, posStart, n);
+    } else send(SCI_INSERTTEXT, posStart, reinterpret_cast<sptr_t>("// "));
   }
   send(SCI_ENDUNDOACTION);
 }
