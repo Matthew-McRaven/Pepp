@@ -226,6 +226,7 @@ FocusScope {
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(200, 400)
                 model: project.testResults
+                isSimulating: project?.allowedSteps & StepEnableFlags.Step ?? false
             }
             Connections {
                 target: project

@@ -6,6 +6,7 @@ import edu.pepp
 Item {
     id: root
     property alias model: reshapeModel.sourceModel
+    property bool isSimulating: false
     NuAppSettings {
         id: settings
     }
@@ -141,6 +142,14 @@ Item {
             width: parent.width
 
             focus: false
+            Rectangle {
+                visible: delegate.valid && delegate.value==0 && !root.isSimulating
+                color: settings.extPalette.error.background
+                anchors.fill: parent
+                // Draw selection rectangle over column spacing using negative margins
+                anchors.leftMargin: -wrapper.columnSpacing / 2
+                anchors.rightMargin: -wrapper.columnSpacing / 2
+            }
             Label {
                 id: postLabel
                 focus: false
