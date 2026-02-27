@@ -182,6 +182,11 @@ MenuBar {
         }
         MenuSeparator {}
         ShortcutMenuItem {
+            action: actions.debug.step
+            enabled: action.enabled
+            icon.source: fixSuffix(actions.debug.step.icon.source, wrapper.darkMode)
+        }
+        ShortcutMenuItem {
             action: actions.debug.stepInto
             enabled: action.enabled
             icon.source: fixSuffix(actions.debug.stepInto.icon.source, wrapper.darkMode)

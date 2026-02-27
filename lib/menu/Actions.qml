@@ -288,7 +288,7 @@ QtObject {
                 else if(project.onStep)
                     project.onStep();
             }
-            text: qsTr("&Step")
+            text: qsTr("&Single Step")
             icon.source: `image://icons/debug/step_normal${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
             shortcut: ["Ctrl+Return"]
             onShortcutChanged: updateNativeText(this)

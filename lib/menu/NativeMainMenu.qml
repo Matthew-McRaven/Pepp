@@ -293,6 +293,12 @@ Labs.MenuBar {
         }
         Labs.MenuSeparator {}
         Labs.MenuItem {
+            text: actions.debug.step.text
+            onTriggered: actions.debug.step.trigger()
+            enabled: actions.debug.step.enabled
+            icon.source: fixSuffix(actions.debug.step.icon.source, wrapper.darkMode)
+        }
+        Labs.MenuItem {
             text: actions.debug.stepInto.text
             onTriggered: actions.debug.stepInto.trigger()
             enabled: actions.debug.stepInto.enabled
