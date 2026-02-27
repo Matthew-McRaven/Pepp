@@ -199,7 +199,7 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitQuaternaryRole, .connection = C::Bus_B});
   _geom.emplace_back(P{.geom = bus_a, .role = PR::CircuitSecondaryRole, .connection = C::Bus_A});
   _geom.emplace_back(P{.geom = bus_addr, .role = PR::BaseRole, .connection = C::Bus_Address});
-  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Data});
+  _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Address});
   _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole, .connection = C::Bus_Data});
   _geom.emplace_back(P{.geom = bus_mdremux_to_mdre, .role = PR::CircuitPrimaryRole, .connection = C::Bus_MDREMux2MDRE});
   _geom.emplace_back(

@@ -160,4 +160,6 @@ void pepp::connections_for(ConnectionArray &arr, const two_bye_mc &mc, MemorySta
   } else arr[(int)Bus_AMux2ALU] = enabled;
 }
 
-pepp::ConnectionsHolder::ConnectionsHolder(QObject *parent) : QObject(parent) {}
+pepp::ConnectionsHolder::ConnectionsHolder(QObject *parent) : QObject(parent) {
+  c.fill((int)pepp::settings::PaletteRole::BaseRole);
+}

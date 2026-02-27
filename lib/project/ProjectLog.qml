@@ -18,7 +18,7 @@ ColumnLayout {
             id: logTextArea
             readOnly: true
             wrapMode: Text.Wrap
-            font.family: settings.extPalette.baseMono.font
+            font: settings.extPalette.baseMono.font
             textFormat: Text.RichText
         }
         ScrollBar.vertical.policy: logTextArea.contentHeight > view.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded

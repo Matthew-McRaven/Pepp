@@ -15,7 +15,7 @@ template <typename registers> std::string to_string(const Test<registers> &test)
 
 // Given an assembled line, produce the cannonical formatted representation of that line.
 template <typename uarch, typename registers> std::string format(const Line<uarch, registers> &line) {
-  using Type = Line<uarch, registers>::Type;
+  using Type = typename Line<uarch, registers>::Type;
   switch (line.type) {
   case Type::Pre: [[fallthrough]];
   case Type::Post: {

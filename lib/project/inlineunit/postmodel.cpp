@@ -74,8 +74,8 @@ void PostReshapeModel::setSourceModel(QAbstractItemModel *sourceModel) {
   auto old = castedSourceModel();
   if (old) disconnect(old, nullptr, this, nullptr);
 
+  QAbstractProxyModel::setSourceModel(sourceModel);
   if (auto casted = dynamic_cast<PostModel *>(sourceModel); casted != nullptr) {
-    QAbstractProxyModel::setSourceModel(casted);
     auto reset_model = [this]() {
       beginResetModel();
       endResetModel();
