@@ -127,6 +127,12 @@ TEST_CASE("CacheConstructionTest") {
 
     CHECK(mock_hash_call_count == 0);
 
+    // Insert a seed element so the map is non-empty before testing contains.
+    // GCC's std::unordered_map::find skips the hash function call on empty
+    // containers, which would cause this test to observe a count of 0.
+    cache.insert(999, 0);
+    mock_hash_call_count = 0;
+
     cache.contains(5);
     CHECK(mock_hash_call_count == 1);
   }
