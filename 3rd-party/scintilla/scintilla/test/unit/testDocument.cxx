@@ -40,11 +40,17 @@ using namespace Scintilla::Internal;
 
 // set global locale to pass std::regex related tests
 // see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63776
+// Try en_US.UTF-8 first; fall back to C.utf8 which is always available on
+// glibc-based Linux (Ubuntu 24.04+) and is sufficient to make \w in
+// std::wregex match Unicode alphabetics (e.g. Greek letters).
 struct GlobalLocaleInitializer {
 	GlobalLocaleInitializer() {
-		try {
-			std::locale::global(std::locale("en_US.UTF-8"));
-		} catch (...) {}
+		for (const char *name : {"en_US.UTF-8", "C.utf8"}) {
+			try {
+				std::locale::global(std::locale(name));
+				return;
+			} catch (...) {}
+		}
 	}
 } globalLocaleInitializer;
 
