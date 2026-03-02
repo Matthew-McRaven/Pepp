@@ -634,7 +634,11 @@ TEST_CASE("Document") {
 		match = doc.FindString(10, docLength, findingEOWEOL, rePosix);
 		REQUIRE(match == Match(18));
 
-		#ifndef NO_CXX11_REGEX
+		// \b and \B behavior in std::regex is locale-sensitive and its reverse-search
+		// results differ between libc++ versions; skip on Emscripten whose libc++
+		// produces different values than both macOS libc++ and libstdc++.
+		#if defined(NO_CXX11_REGEX) || defined(__EMSCRIPTEN__)
+		#else
 		constexpr std::string_view findingWB = "\\b";
 		match = doc.FindString(0, docLength, findingWB, reCxx11);
 		REQUIRE(match == Match(0));
