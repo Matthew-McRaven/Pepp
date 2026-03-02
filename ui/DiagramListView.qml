@@ -9,9 +9,10 @@ Item {
 
     property var currentStamp: null
     property alias filterList: filterModel
+    //property FilterDiagramListModel.Filter filter: FilterDiagramListModel.Arrow
 
     function setStamp(index){
-        root.currentStamp = diagramList.diagramTemplate(index);
+        root.currentStamp = diagramModel.diagramTemplate(index);
         console.log("Current:", root.currentStamp.name)
         if(root.currentStamp.name === "Move")
         {
@@ -29,13 +30,13 @@ Item {
     }
 
     DiagramListModel {
-        id: diagramList
+        id: diagramModel
     }
 
     //  Filter list for properties box
     SortFilterProxyModel {
         id: filterModel
-        model: diagramList
+        model: diagramModel
 
         // Filter based on whether the 'shapeType' role
         filters: [
@@ -75,7 +76,7 @@ Item {
 
         Repeater {
             id: rep
-            model: diagramList
+            model: filterModel
             delegate: Button {
                 id: btn
                 required property string name

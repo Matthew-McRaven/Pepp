@@ -68,6 +68,7 @@ Rectangle {
                         implicitHeight: 32
                         implicitWidth: 32
                         display: AbstractButton.IconOnly
+                        checkable: true
 
                         icon.source: "qrc:/select"
                         icon.color: "black"
@@ -77,6 +78,7 @@ Rectangle {
                         implicitHeight: 32
                         implicitWidth: 32
                         display: AbstractButton.IconOnly
+                        checkable: true
 
                         icon.source: "qrc:/or"
                         icon.color: "black"
@@ -86,6 +88,7 @@ Rectangle {
                         implicitHeight: 32
                         implicitWidth: 32
                         display: AbstractButton.IconOnly
+                        checkable: true
 
                         icon.source: "qrc:/line"
                         icon.color: "black"

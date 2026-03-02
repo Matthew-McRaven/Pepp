@@ -17,7 +17,7 @@ DiagramListModel::DiagramListModel(QObject *parent)
 {
     _diagrams.append(new DiagramTemplate(DiagramType::Invalid,
                                          "Move",
-                                         "Move",
+                                         "Arrow",
                                          "qrc:/move",
                                          "svg/move-arrow.svg",
                                          this));
@@ -112,3 +112,57 @@ QHash<int, QByteArray> DiagramListModel::roleNames() const
             {Role::File, "file"},
             {Role::QrcFile, "qrcFile"}};
 }
+
+FilterDiagramListModel::FilterDiagramListModel(QObject *parent)
+    : QSortFilterProxyModel(parent)
+{}
+
+void FilterDiagramListModel::setFilterGroupFilter(Filter filter)
+{
+    if (_filter != filter) {
+        beginFilterChange();
+        _filter = filter;
+
+        switch (_filter) {
+        case Arrow:
+            _filterString = "Arrow";
+            break;
+        case Diagram:
+            _filterString = "Diagram";
+            break;
+        case Line:
+            _filterString = "Line";
+            break;
+        default:
+            _filterString.clear();
+        }
+
+        endFilterChange(QSortFilterProxyModel::Direction::Rows);
+        emit filterChanged();
+    }
+}
+
+void FilterDiagramListModel::setModel(DiagramListModel *model)
+{
+    if (_model != model) {
+        _model = model;
+        emit modelChanged();
+    }
+}
+
+bool FilterDiagramListModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
+{
+    //  If no filtering, return everything
+    if (_filter == Filter::None)
+        return true;
+
+    //  Filter on diagram type
+    QModelIndex index = sourceModel()->index(sourceRow, DiagramListModel::DiagramType, sourceParent);
+    return sourceModel()->data(index) == _filterString;
+}
+
+/*bool FilterDiagramListModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
+{
+    QVariant leftData = sourceModel()->data(left);
+    QVariant rightData = sourceModel()->data(right);
+}*/

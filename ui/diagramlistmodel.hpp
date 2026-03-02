@@ -57,7 +57,6 @@ public:
         QrcFile,
         File,
     };
-
     explicit DiagramListModel(QObject *parent = nullptr);
 
     // Basic functionality:
@@ -76,6 +75,38 @@ public:
         //  Index is invalid rate
         return nullptr;
     }
+};
+
+class FilterDiagramListModel : public QSortFilterProxyModel
+{
+    Q_OBJECT
+    QML_ELEMENT
+
+    Q_PROPERTY(Filter filter READ filterGroupType WRITE setFilterGroupFilter NOTIFY filterChanged);
+    Q_PROPERTY(DiagramListModel *model READ model WRITE setModel NOTIFY modelChanged);
+
+public:
+    enum Filter { Arrow = Qt::UserRole + 1, Diagram, Line, None = 0xffffffff };
+    Q_ENUM(Filter)
+
+    explicit FilterDiagramListModel(QObject *parent = nullptr);
+
+    // Basic functionality:
+    Filter filterGroupType() const { return _filter; }
+    void setFilterGroupFilter(Filter filter = Filter::None);
+    DiagramListModel *model() const { return _model; }
+    void setModel(DiagramListModel *model = nullptr);
+
+protected:
+    bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
+    //bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
+
 signals:
-    //void diagramTypeChanged();
+    void filterChanged();
+    void modelChanged();
+
+private:
+    Filter _filter = Filter::None;
+    QString _filterString;
+    DiagramListModel *_model = nullptr;
 };
