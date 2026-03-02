@@ -62,8 +62,24 @@ Rectangle {
                 bottomPadding: 3
                 spacing: 0
 
+                ButtonGroup {
+                    id: buttonGroup
+                    buttons: selector.children.filter(child => child !== selector)
+
+                    Component.onCompleted: {
+                        //root.setStamp(0);
+                        buttonGroup.buttons[0].checked = true;
+                    }
+                    onClicked: btn => {
+                        //root.setStamp(btn.index);
+                        //console.log(btn.index);
+                    }
+                }
+
                 RowLayout {
+                    id: selector
                     spacing: 3
+
                     Button {
                         implicitHeight: 32
                         implicitWidth: 32
