@@ -43,11 +43,15 @@ using namespace Scintilla::Internal;
 // Try en_US.UTF-8 first; fall back to C.utf8 which is always available on
 // glibc-based Linux (Ubuntu 24.04+) and is sufficient to make \w in
 // std::wregex match Unicode alphabetics (e.g. Greek letters).
+// On platforms like Emscripten, neither locale is available and we stay in
+// "C"; s_utf8LocaleAvailable is then false and locale-sensitive tests are skipped.
+static bool s_utf8LocaleAvailable = false;
 struct GlobalLocaleInitializer {
 	GlobalLocaleInitializer() {
 		for (const char *name : {"en_US.UTF-8", "C.utf8"}) {
 			try {
 				std::locale::global(std::locale(name));
+				s_utf8LocaleAvailable = true;
 				return;
 			} catch (...) {}
 		}
@@ -533,18 +537,22 @@ TEST_CASE("Document") {
 		REQUIRE(match == Match(16, 5));
 
 		#ifndef NO_CXX11_REGEX
-		match = doc.FindString(0, docLength, finding, reCxx11);
-		REQUIRE(match == Match(5, 5));
-		substituted = doc.Substitute(substituteText);
-		REQUIRE(substituted == "\ta\xCE\x93z\n");
+		// \w in std::wregex is locale-sensitive; skip Unicode assertions when
+		// only the "C" locale is available (e.g. Emscripten).
+		if (s_utf8LocaleAvailable) {
+			match = doc.FindString(0, docLength, finding, reCxx11);
+			REQUIRE(match == Match(5, 5));
+			substituted = doc.Substitute(substituteText);
+			REQUIRE(substituted == "\ta\xCE\x93z\n");
 
-		match = doc.FindString(docLength, 0, finding, reCxx11);
-		REQUIRE(match == Match(16, 5));
-		substituted = doc.Substitute(substituteText);
-		REQUIRE(substituted == "\tb\xCE\x93y\n");
+			match = doc.FindString(docLength, 0, finding, reCxx11);
+			REQUIRE(match == Match(16, 5));
+			substituted = doc.Substitute(substituteText);
+			REQUIRE(substituted == "\tb\xCE\x93y\n");
 
-		match = doc.FindString(docLength, 0, longest, reCxx11);
-		REQUIRE(match == Match(16, 5));
+			match = doc.FindString(docLength, 0, longest, reCxx11);
+			REQUIRE(match == Match(16, 5));
+		}
 		#endif
 	}
 
@@ -708,11 +716,15 @@ TEST_CASE("Document") {
 		REQUIRE(substituted == "\t\xCE\x93\n");
 
 		#ifndef NO_CXX11_REGEX
-		match = doc.FindString(0, docLength, finding, reCxx11);
-		REQUIRE(match == Match(1, 5));
+		// \w in std::wregex is locale-sensitive; skip Unicode assertions when
+		// only the "C" locale is available (e.g. Emscripten).
+		if (s_utf8LocaleAvailable) {
+			match = doc.FindString(0, docLength, finding, reCxx11);
+			REQUIRE(match == Match(1, 5));
 
-		substituted = doc.Substitute(substituteText);
-		REQUIRE(substituted == "\t\xCE\x93\n");
+			substituted = doc.Substitute(substituteText);
+			REQUIRE(substituted == "\t\xCE\x93\n");
+		}
 		#endif
 	}
 
