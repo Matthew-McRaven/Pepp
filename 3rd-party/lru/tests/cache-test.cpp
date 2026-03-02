@@ -217,8 +217,12 @@ TEST_CASE("CacheConstructionTest") {
     REQUIRE(t.cache.size() == 1);
     CHECK(t.cache.lookup("one") == 1);
 
+    // Emscripten does not support C++ exceptions by default; throwing aborts
+    // the WASM process, so skip these checks on that platform.
+#ifndef __EMSCRIPTEN__
     CHECK_THROWS_AS(t.cache.lookup("two"), LRU::Error::KeyNotFound);
     CHECK_THROWS_AS(t.cache.lookup("three"), LRU::Error::KeyNotFound);
+#endif
 
     t.cache.emplace("two", 2);
     CHECK(t.cache.lookup("two") == 2);

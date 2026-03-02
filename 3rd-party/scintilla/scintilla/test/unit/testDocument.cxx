@@ -48,6 +48,10 @@ using namespace Scintilla::Internal;
 static bool s_utf8LocaleAvailable = false;
 struct GlobalLocaleInitializer {
 	GlobalLocaleInitializer() {
+		// Emscripten's musl locale implementation may accept a locale name
+		// without throwing yet without actually switching to UTF-8 semantics,
+		// so skip locale setup entirely on WASM and treat it as "C".
+#ifndef __EMSCRIPTEN__
 		for (const char *name : {"en_US.UTF-8", "C.utf8"}) {
 			try {
 				std::locale::global(std::locale(name));
@@ -55,6 +59,7 @@ struct GlobalLocaleInitializer {
 				return;
 			} catch (...) {}
 		}
+#endif
 	}
 } globalLocaleInitializer;
 
