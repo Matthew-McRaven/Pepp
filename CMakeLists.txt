@@ -120,9 +120,9 @@ if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8)
   qt_policy(SET QTP0004 NEW)
 endif()
 
-add_subdirectory(3rd-party)
-
 enable_testing()
+
+add_subdirectory(3rd-party)
 
 include(config/compile_tests/TryBuildStdRanges.cmake)
 include(config/cmake/FindRISCVToolchain.cmake)
