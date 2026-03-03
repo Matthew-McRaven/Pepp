@@ -1313,12 +1313,11 @@ Error::Error(int line, QString error, QObject *parent) : QObject(parent), line(l
 
 Pep_MA::Pep_MA(project::Environment env, QObject *parent)
     : QObject(parent), _env(env), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()), _memory(nullptr) {
-  _system.clear();
-  assert(_system.isNull());
   _dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
   _system = QSharedPointer<targets::ma::System>::create(env.arch, env.features);
   _system->bus()->setBuffer(&*_tb);
   _system->cpu()->setDebugger(&*_dbg);
+  _clearCPU();
   bindToSystem();
   connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
   _testResults = new PostModel(this);
