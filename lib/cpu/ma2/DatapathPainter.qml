@@ -58,6 +58,11 @@ Item {
                 return Number(value);
             }
             enabled: !root.isSimulating
+            onValueModified: {
+                if (root.isSimulating)
+                    return;
+                root.project.update_painter_key(triState.updateKey, spin.value);
+            }
         }
         Label {
             anchors {
@@ -100,6 +105,11 @@ Item {
             }
         }
         enabled: !root.isSimulating
+        onClicked: {
+            if (root.isSimulating)
+                return;
+            root.project.update_painter_key(labelCheck.updateKey, labelCheck.checked);
+        }
     }
     component MonoText: TextEdit {
         id: mono
