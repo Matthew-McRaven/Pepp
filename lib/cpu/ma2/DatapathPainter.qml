@@ -68,9 +68,10 @@ Item {
         Connections {
             target: root.project
             function onUpdateGUI() {
-                if(triState.updateKey === "") return
+                if (triState.updateKey === "")
+                    return;
                 const newVal = root.project.evaluate_painter_key(triState.updateKey);
-                 triState.value = newVal ?? -1;
+                triState.value = newVal ?? -1;
             }
         }
     }
@@ -90,7 +91,8 @@ Item {
         Connections {
             target: root.project
             function onUpdateGUI() {
-                if(labelCheck.updateKey === "") return
+                if (labelCheck.updateKey === "")
+                    return;
                 const newVal = root.project.evaluate_painter_key(labelCheck.updateKey);
                 labelCheck.value = newVal ?? false;
             }
@@ -123,9 +125,10 @@ Item {
         Connections {
             target: root.project
             function onUpdateGUI() {
-                if(mono.updateKey === "") return
+                if (mono.updateKey === "")
+                    return;
                 const newText = root.project.evaluate_painter_key(mono.updateKey);
-                 mono.text = newText ?? "";
+                mono.text = newText ?? "";
             }
         }
     }
