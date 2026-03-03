@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 
 import edu.pepp
 
@@ -163,11 +164,22 @@ Item {
             text: "Clock"
             onClicked: console.log("Clock me")
             enabled: !root.isSimulating
+            layer.enabled: !enabled
+            palette.button: root.palette.highlight
+            layer.effect: MultiEffect {
+                colorization: 0.75
+                colorizationColor: root.palette.button      // theme-derived tint color
+            }
         }
         Button {
             text: "Copy to Microcode"
             onClicked: console.log("Copied")
             enabled: !root.isSimulating
+            layer.enabled: !enabled
+            layer.effect: MultiEffect {
+                colorization: 0.75
+                colorizationColor: palette.button      // theme-derived tint color
+            }
         }
     }
 
