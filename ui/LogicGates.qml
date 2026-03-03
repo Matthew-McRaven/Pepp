@@ -45,7 +45,7 @@ Rectangle {
                 Layout.fillWidth: true
 
                 diagramModel: diagramModel
-                gateModel: sourceListView.filterList
+                gateModel: sourceListView.diagramOnly
             }
         }
 
@@ -64,15 +64,25 @@ Rectangle {
 
                 ButtonGroup {
                     id: buttonGroup
-                    buttons: selector.children.filter(child => child !== selector)
+                    buttons: selector.children //.filter(child => child !== selector)
 
                     Component.onCompleted: {
                         //root.setStamp(0);
                         buttonGroup.buttons[0].checked = true;
                     }
                     onClicked: btn => {
-                        //root.setStamp(btn.index);
-                        //console.log(btn.index);
+                        var result;
+                        switch(btn.text)
+                        {
+                            case "arrow": result = FilterDiagramListModel.Arrow; break;
+                            case "diagram": result = FilterDiagramListModel.Diagram; break;
+                            case "line": result = FilterDiagramListModel.Line; break;
+                        }
+
+                        if(result === null)
+                            return;
+
+                        sourceListView.filterList.filter = result;
                     }
                 }
 
@@ -86,6 +96,7 @@ Rectangle {
                         display: AbstractButton.IconOnly
                         checkable: true
 
+                        text: "arrow"
                         icon.source: "qrc:/select"
                         icon.color: "black"
                     }
@@ -96,6 +107,7 @@ Rectangle {
                         display: AbstractButton.IconOnly
                         checkable: true
 
+                        text: "diagram"
                         icon.source: "qrc:/or"
                         icon.color: "black"
                         icon.height: icon.width * .75
@@ -106,6 +118,7 @@ Rectangle {
                         display: AbstractButton.IconOnly
                         checkable: true
 
+                        text: "line"
                         icon.source: "qrc:/line"
                         icon.color: "black"
                     }

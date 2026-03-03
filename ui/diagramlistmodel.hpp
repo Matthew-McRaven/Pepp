@@ -94,7 +94,7 @@ public:
     // Basic functionality:
     Filter filterGroupType() const { return _filter; }
     void setFilterGroupFilter(Filter filter = Filter::None);
-    DiagramListModel *model() const { return _model; }
+    DiagramListModel *model() const { return static_cast<DiagramListModel *>(sourceModel()); }
     void setModel(DiagramListModel *model = nullptr);
 
 protected:
@@ -108,5 +108,5 @@ signals:
 private:
     Filter _filter = Filter::None;
     QString _filterString;
-    DiagramListModel *_model = nullptr;
+    //DiagramListModel *_model = nullptr;
 };

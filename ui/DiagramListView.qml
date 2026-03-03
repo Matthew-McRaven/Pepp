@@ -9,6 +9,7 @@ Item {
 
     property var currentStamp: null
     property alias filterList: filterModel
+    property alias diagramOnly: diagramOnlyList
     //property FilterDiagramListModel.Filter filter: FilterDiagramListModel.Arrow
 
     function setStamp(index){
@@ -34,8 +35,14 @@ Item {
     }
 
     //  Filter list for properties box
-    SortFilterProxyModel {
+    FilterDiagramListModel {
         id: filterModel
+        model: diagramModel
+        filter: FilterDiagramListModel.Diagram
+    }
+
+    SortFilterProxyModel {
+        id: diagramOnlyList
         model: diagramModel
 
         // Filter based on whether the 'shapeType' role
@@ -57,7 +64,7 @@ Item {
 
         Component.onCompleted: {
             root.setStamp(0);
-            buttonGroup.buttons[0].checked = true;
+            //buttonGroup.buttons[0].checked = true;
         }
         onClicked: btn => {
             root.setStamp(btn.index);

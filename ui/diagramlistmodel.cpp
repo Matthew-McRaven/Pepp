@@ -115,7 +115,10 @@ QHash<int, QByteArray> DiagramListModel::roleNames() const
 
 FilterDiagramListModel::FilterDiagramListModel(QObject *parent)
     : QSortFilterProxyModel(parent)
-{}
+{
+    setDynamicSortFilter(true);
+    setSortRole(Qt::DisplayRole);
+}
 
 void FilterDiagramListModel::setFilterGroupFilter(Filter filter)
 {
@@ -138,14 +141,14 @@ void FilterDiagramListModel::setFilterGroupFilter(Filter filter)
         }
 
         endFilterChange(QSortFilterProxyModel::Direction::Rows);
-        emit filterChanged();
+        //emit filterChanged();
     }
 }
 
 void FilterDiagramListModel::setModel(DiagramListModel *model)
 {
-    if (_model != model) {
-        _model = model;
+    if (sourceModel() != model) {
+        setSourceModel(model);
         emit modelChanged();
     }
 }
@@ -157,8 +160,8 @@ bool FilterDiagramListModel::filterAcceptsRow(int sourceRow, const QModelIndex &
         return true;
 
     //  Filter on diagram type
-    QModelIndex index = sourceModel()->index(sourceRow, DiagramListModel::DiagramType, sourceParent);
-    return sourceModel()->data(index) == _filterString;
+    QModelIndex index = sourceModel()->index(sourceRow, 0, sourceParent);
+    return sourceModel()->data(index, DiagramListModel::DiagramType) == _filterString;
 }
 
 /*bool FilterDiagramListModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
