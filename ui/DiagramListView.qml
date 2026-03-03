@@ -10,7 +10,6 @@ Item {
     property var currentStamp: null
     property alias filterList: filterModel
     property alias diagramOnly: diagramOnlyList
-    //property FilterDiagramListModel.Filter filter: FilterDiagramListModel.Arrow
 
     function setStamp(index){
         root.currentStamp = diagramModel.diagramTemplate(index);
@@ -26,7 +25,7 @@ Item {
         else
         {
             //  Disable stamp for lines
-            //canvas.curStamp = null;
+            canvas.curStamp = null;
         }
     }
 
@@ -71,11 +70,10 @@ Item {
 
         Component.onCompleted: {
             root.setStamp(0);
-            //buttonGroup.buttons[0].checked = true;
         }
         onClicked: btn => {
+            //  Index is injected by Repeater delegate. Does not exist as buttonGroup property
             root.setStamp(btn.index);
-            //console.log(btn.index);
         }
     }
 

@@ -72,15 +72,20 @@ Rectangle {
                     }
                     onClicked: btn => {
                         var result;
-                        switch(btn.text)
-                        {
-                            case "arrow": result = FilterDiagramListModel.Arrow; break;
-                            case "diagram": result = FilterDiagramListModel.Diagram; break;
-                            case "line": result = FilterDiagramListModel.Line; break;
+                        switch (btn.text) {
+                            case "arrow":
+                            result = FilterDiagramListModel.Arrow;
+                            break;
+                            case "diagram":
+                            result = FilterDiagramListModel.Diagram;
+                            break;
+                            case "line":
+                            result = FilterDiagramListModel.Line;
+                            break;
                         }
 
-                        if(result === null)
-                            return;
+                        if (result === null)
+                        return;
 
                         sourceListView.filterList.filter = result;
                     }
