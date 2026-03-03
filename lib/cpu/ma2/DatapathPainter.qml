@@ -152,82 +152,91 @@ Item {
     }
 
     Item {
-        id: viewport
-        // Translate moves the children to left... which would clip with other content in the scene even when clip=true
-        z: -1
-        property real logicalX: flickable.contentX / scene.scale
-        property real logicalY: flickable.contentY / scene.scale
-        property var canvas: null
-        anchors.fill: parent
-        implicitWidth: childrenRect.width
-        implicitHeight: childrenRect.height
-        transform: [
-            Scale {
-                origin.x: viewport.logicalX
-                origin.y: viewport.logicalY
-                xScale: scene.scale
-                yScale: scene.scale
-            },
-            Translate {
-                x: -viewport.logicalX
-                y: -viewport.logicalY
-            }
-        ]
-        // 1- and 2-byte canvases canvas
-        Loader {
-            active: root.which == 0
-            sourceComponent: Painted1ByteCanvas {
-                id: _byte
-                x: 0
-                y: 0
-                width: _byte.contentWidth
-                height: _byte.contentHeight
-                Component.onCompleted: {
-                    settings.extPalette.itemChanged.connect(_byte.update);
-                    root.project.updateGUI.connect(_byte.update);
-                }
-                connections: root.project.connections
-            }
-            onLoaded: viewport.canvas = item
+        id: viewportClip
+        anchors {
+            left: parent.left
+            right: vbar.left
+            top: parent.top
+            bottom: hbar.top
         }
-        Loader {
-            active: root.which == 1
-            sourceComponent: Painted2ByteCanvas {
-                id: _word
-                x: 0
-                y: 0
-                width: _word.contentWidth
-                height: _word.contentHeight
-                Component.onCompleted: {
-                    settings.extPalette.itemChanged.connect(_word.update);
-                    root.project.updateGUI.connect(_word.update);
+        clip: true
+        Item {
+            id: viewport
+            // Translate moves the children to left... which would clip with other content in the scene even when clip=true
+            z: -1
+            property real logicalX: flickable.contentX / scene.scale
+            property real logicalY: flickable.contentY / scene.scale
+            property var canvas: null
+            implicitWidth: childrenRect.width
+            implicitHeight: childrenRect.height
+            transform: [
+                Scale {
+                    origin.x: viewport.logicalX
+                    origin.y: viewport.logicalY
+                    xScale: scene.scale
+                    yScale: scene.scale
+                },
+                Translate {
+                    x: -viewport.logicalX
+                    y: -viewport.logicalY
                 }
-                connections: root.project.connections
+            ]
+            // 1- and 2-byte canvases canvas
+            Loader {
+                active: root.which == 0
+                sourceComponent: Painted1ByteCanvas {
+                    id: _byte
+                    x: 0
+                    y: 0
+                    width: _byte.contentWidth
+                    height: _byte.contentHeight
+                    Component.onCompleted: {
+                        settings.extPalette.itemChanged.connect(_byte.update);
+                        root.project.updateGUI.connect(_byte.update);
+                    }
+                    connections: root.project.connections
+                }
+                onLoaded: viewport.canvas = item
             }
-            onLoaded: viewport.canvas = item
-        }
+            Loader {
+                active: root.which == 1
+                sourceComponent: Painted2ByteCanvas {
+                    id: _word
+                    x: 0
+                    y: 0
+                    width: _word.contentWidth
+                    height: _word.contentHeight
+                    Component.onCompleted: {
+                        settings.extPalette.itemChanged.connect(_word.update);
+                        root.project.updateGUI.connect(_word.update);
+                    }
+                    connections: root.project.connections
+                }
+                onLoaded: viewport.canvas = item
+            }
 
-        Instantiator {
-            model: viewport.canvas.overlays
-            delegate: DelegateChooser {
-                id: chooser
-                role: "type"
-                DelegateChoice {
-                    roleValue: 1
-                    LabeledCheck {
-                        parent: viewport
+            Instantiator {
+                model: viewport.canvas.overlays
+                delegate: DelegateChooser {
+                    id: chooser
+                    role: "type"
+                    DelegateChoice {
+                        roleValue: 1
+                        LabeledCheck {
+                            parent: viewport
+                        }
                     }
-                }
-                DelegateChoice {
-                    roleValue: 2
-                    LabeledTriState {
-                        parent: viewport
+                    DelegateChoice {
+                        roleValue: 2
+                        LabeledTriState {
+                            parent: viewport
+                        }
                     }
-                }
-                DelegateChoice {
-                    roleValue: 3
-                    MonoText {
-                        parent: viewport
+                    DelegateChoice {
+                        roleValue: 3
+                        MonoText {
+                            parent: viewport
+                        }
                     }
                 }
             }
@@ -241,7 +250,7 @@ Item {
             left: parent.left
             right: vbar.left
             top: parent.top
-            bottom: hbar.bottom
+            bottom: hbar.top
         }
 
         clip: true
