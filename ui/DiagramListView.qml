@@ -12,21 +12,17 @@ Item {
     property alias diagramOnly: diagramOnlyList
 
     function setStamp(index){
-        root.currentStamp = diagramModel.diagramTemplate(index);
-        console.log("Current:", root.currentStamp.name)
-        if(root.currentStamp.name === "Move")
+
+        //  Only diagrams can be stamped. Clear stamp for others
+        //console.log("Current:", filterModel.filter);
+        if(filterModel.filter !== FilterDiagramListModel.Diagram)
         {
             root.currentStamp = null;
+            return;
         }
-        else if(root.currentStamp.shapeType === "Diagram")
-        {
-            //canvas.curIndex = index
-        }
-        else
-        {
-            //  Disable stamp for lines
-            canvas.curStamp = null;
-        }
+
+        root.currentStamp = filterModel.diagramTemplate(index);
+        console.log("Current:", root.currentStamp.name);
     }
 
     DiagramListModel {
@@ -38,6 +34,11 @@ Item {
         id: filterModel
         model: diagramModel
         filter: FilterDiagramListModel.Arrow
+
+        onFilterChanged: {
+            if(filterModel.filter !== FilterDiagramListModel.Diagram)
+                root.currentStamp=null;
+        }
     }
 
     //  Filter list for properties box
