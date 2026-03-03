@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 import edu.pepp
 
@@ -147,8 +148,27 @@ Item {
         orientation: Qt.Horizontal
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        anchors.bottom: buttons.top
         policy: flickable.contentWidth > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+    }
+    RowLayout {
+        id: buttons
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        Item {
+            Layout.fillWidth: true
+        }
+        Button {
+            text: "Clock"
+            onClicked: console.log("Clock me")
+            enabled: !root.isSimulating
+        }
+        Button {
+            text: "Copy to Microcode"
+            onClicked: console.log("Copied")
+            enabled: !root.isSimulating
+        }
     }
 
     Item {
