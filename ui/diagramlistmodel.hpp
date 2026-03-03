@@ -62,15 +62,7 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    Q_INVOKABLE DiagramTemplate *diagramTemplate(int index) const
-    {
-        if (0 <= index && index < _diagrams.size()) {
-            return _diagrams.at(index);
-        }
-
-        //  Index is invalid rate
-        return nullptr;
-    }
+    Q_INVOKABLE DiagramTemplate *diagramTemplate(int index) const;
 };
 
 class FilterDiagramListModel : public QSortFilterProxyModel
@@ -92,6 +84,8 @@ public:
     void setFilterGroupFilter(Filter filter = Filter::None);
     DiagramListModel *model() const { return static_cast<DiagramListModel *>(sourceModel()); }
     void setModel(DiagramListModel *model = nullptr);
+
+    Q_INVOKABLE DiagramTemplate *diagramTemplate(int index) const;
 
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;

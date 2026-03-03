@@ -64,7 +64,7 @@ Rectangle {
 
                 ButtonGroup {
                     id: buttonGroup
-                    buttons: selector.children //.filter(child => child !== selector)
+                    buttons: selector.children
 
                     Component.onCompleted: {
                         //root.setStamp(0);

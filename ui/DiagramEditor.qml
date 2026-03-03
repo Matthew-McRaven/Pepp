@@ -13,7 +13,7 @@ Pane {
     required property DiagramDataModel diagramModel
 
     //  List of available gates
-    required property var gateModel
+    required property FilterDiagramListModel gateModel
 
     Column {
         id: inputArea
@@ -116,9 +116,7 @@ Pane {
                         return;
 
                     //  Update model with new data
-                    //  Extra item in model versus filter model. Find fix instead of
-                    //  hard coding value.
-                    var item = root.gateModel.sourceModel.diagramTemplate(gateType.currentIndex + 1);
+                    var item = root.gateModel.diagramTemplate(gateType.currentIndex);
 
                     //  Get data for current index
                     const data = root.diagramModel.item(inputArea.index);

@@ -113,6 +113,16 @@ QHash<int, QByteArray> DiagramListModel::roleNames() const
             {Role::QrcFile, "qrcFile"}};
 }
 
+DiagramTemplate *DiagramListModel::diagramTemplate(int index) const
+{
+    if (0 <= index && index < _diagrams.size()) {
+        return _diagrams.at(index);
+    }
+
+    //  Index is invalid rate
+    return nullptr;
+}
+
 FilterDiagramListModel::FilterDiagramListModel(QObject *parent)
     : QSortFilterProxyModel(parent)
 {
@@ -152,6 +162,15 @@ void FilterDiagramListModel::setModel(DiagramListModel *model)
     }
 }
 
+DiagramTemplate *FilterDiagramListModel::diagramTemplate(int proxy) const
+{
+    const auto proxyIndex = index(proxy, 0);
+    const auto srcIndex = mapToSource(proxyIndex);
+
+    DiagramListModel *srcModel = static_cast<DiagramListModel *>(sourceModel());
+
+    return srcModel->diagramTemplate(srcIndex.row());
+}
 bool FilterDiagramListModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
 {
     //  If no filtering, return everything

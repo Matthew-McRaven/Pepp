@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 
 /*  To Do
  *  
- *  Add toolbar with selection modes
- *  Filter sidebar to only show stencils available from toolbar
- *  Display shadow where object will drop using hover. 
+ *  Display shadow where object will drop using hover.
+ *  Add lines
+ *  Merge with Pep project
  */
