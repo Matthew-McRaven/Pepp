@@ -44,9 +44,6 @@ class DiagramListModel : public QAbstractListModel
     Q_OBJECT
     QML_ELEMENT
 
-    //Q_PROPERTY(DiagramProperty *currentDiagram READ currentDiagram WRITE setCurrentDiagram NOTIFY
-    //               diagramChanged)
-
     QList<DiagramTemplate *> _diagrams;
 
 public:
@@ -68,7 +65,6 @@ public:
     Q_INVOKABLE DiagramTemplate *diagramTemplate(int index) const
     {
         if (0 <= index && index < _diagrams.size()) {
-            //emit diagramTypeChanged();
             return _diagrams.at(index);
         }
 
@@ -108,5 +104,4 @@ signals:
 private:
     Filter _filter = Filter::None;
     QString _filterString;
-    //DiagramListModel *_model = nullptr;
 };

@@ -141,7 +141,6 @@ void FilterDiagramListModel::setFilterGroupFilter(Filter filter)
         }
 
         endFilterChange(QSortFilterProxyModel::Direction::Rows);
-        //emit filterChanged();
     }
 }
 

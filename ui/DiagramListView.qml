@@ -38,10 +38,17 @@ Item {
     FilterDiagramListModel {
         id: filterModel
         model: diagramModel
+        filter: FilterDiagramListModel.Arrow
+    }
+
+    //  Filter list for properties box
+    FilterDiagramListModel {
+        id: diagramOnlyList
+        model: diagramModel
         filter: FilterDiagramListModel.Diagram
     }
 
-    SortFilterProxyModel {
+    /*SortFilterProxyModel {
         id: diagramOnlyList
         model: diagramModel
 
@@ -56,7 +63,7 @@ Item {
     }
     component RoleData: QtObject {
         property string shapeType
-    }
+    }*/
 
     ButtonGroup {
         id: buttonGroup
