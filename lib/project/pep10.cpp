@@ -1573,6 +1573,26 @@ void Pep_MA::onEditorAction(int line, Action action) {
   emit editorAction(line, action);
 }
 
+void Pep_MA::onCopyToMicrocode() {
+  if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
+    const auto &line = std::get<pepp::OneByteMC9Line>(_activeLine);
+    const auto as_string = QString::fromStdString(line.toString()).trimmed();
+    if (as_string.isEmpty()) return;
+    else if (!_microcodeText.isEmpty()) _microcodeText.append("\n" + as_string);
+    else _microcodeText = as_string;
+    emit markDirty();
+    emit microcodeTextChanged();
+  } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
+    const auto &line = std::get<pepp::TwoByteMC9Line>(_activeLine);
+    const auto as_string = QString::fromStdString(line.toString()).trimmed();
+    if (as_string.isEmpty()) return;
+    else if (!_microcodeText.isEmpty()) _microcodeText.append("\n" + as_string);
+    else _microcodeText = as_string;
+    emit markDirty();
+    emit microcodeTextChanged();
+  }
+}
+
 void Pep_MA::bindToSystem() {
   using namespace bits;
   _paint_key.clear();

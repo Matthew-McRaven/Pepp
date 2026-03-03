@@ -183,7 +183,7 @@ Item {
         }
         Button {
             text: "Copy to Microcode"
-            onClicked: console.log("Copied")
+            onClicked: root.project.onCopyToMicrocode();
             enabled: !root.isSimulating
             layer.enabled: !enabled
             layer.effect: MultiEffect {
