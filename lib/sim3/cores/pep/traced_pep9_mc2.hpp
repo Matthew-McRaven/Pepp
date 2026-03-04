@@ -56,6 +56,9 @@ public:
   void setConstantRegisters();
   void resetMicroPC();
   quint16 microPC() const noexcept;
+  // 0 means no memory access, [1-3] are the cycles where access happens.
+  // 3 can wrap to 1 with back-to-back accesses.
+  quint8 memoryCycle() const noexcept;
   virtual void setMicrocode(const pepp::MicrocodeChoice &mc) = 0;
   virtual void applyPreconditions(const pepp::TestChoice &tests) = 0;
   virtual std::vector<bool> testPostconditions(const pepp::TestChoice &tests) = 0;

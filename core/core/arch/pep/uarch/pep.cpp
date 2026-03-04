@@ -276,7 +276,8 @@ void pepp::tc::arch::Pep9ByteBus::CodeWithEnables::clear(Signals s) {
 }
 
 void pepp::tc::arch::Pep9ByteBus::CodeWithEnables::set(Signals s, uint8_t value) {
-  enables.set(static_cast<int>(s), true);
+  if (is_clock(s) && value == 0) enables.set(static_cast<int>(s), false);
+  else enables.set(static_cast<int>(s), true);
   code.set(s, value);
 }
 
@@ -486,7 +487,8 @@ void pepp::tc::arch::Pep9WordBus::CodeWithEnables::clear(Signals s) {
 }
 
 void pepp::tc::arch::Pep9WordBus::CodeWithEnables::set(Signals s, uint8_t value) {
-  enables.set(static_cast<int>(s), true);
+  if (is_clock(s) && value == 0) enables.set(static_cast<int>(s), false);
+  else enables.set(static_cast<int>(s), true);
   code.set(s, value);
 }
 
@@ -641,6 +643,8 @@ void pepp::tc::arch::Pep9WordBusControl::CodeWithEnables::clear(Signals s) {
 }
 
 void pepp::tc::arch::Pep9WordBusControl::CodeWithEnables::set(Signals s, uint8_t value) {
+  if (is_clock(s) && value == 0) enables.set(static_cast<int>(s), false);
+  else enables.set(static_cast<int>(s), true);
   enables.set(static_cast<int>(s), true);
   code.set(s, value);
 }

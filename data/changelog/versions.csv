@@ -37,3 +37,4 @@ Number,GitRef,Date,Blurb
 0.14.1,,2026-01-17,"This version fixes CTDs for Pep/8 and /9 and corrects layout issues for assembly code projects"
 0.14.2,,2026-02-01,"This version fixes bugs in the microcode simulator, and includes significant internal rework for future features"
 0.15.0,,2026-03-03,"This version introduces a graphical microcode editor and debugger for Pep/9 and Pep/10"
+0.15.1,,????-??-??,"This version fixes bugs for MA2 projects"
