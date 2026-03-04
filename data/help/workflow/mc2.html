@@ -1,0 +1,102 @@
+<h1>Microcode (MA2) Workflow</h1>
+
+<blockquote>
+<b>Applies to:</b> MA2
+</blockquote>
+
+<h2>Writing and Running Microprograms</h2>
+
+<p><b>1) Write your microprogram</b><br>
+Enter microcode statements in the <b>Microcode</b> pane, one cycle per line.
+Each statement specifies the control signals to assert in that cycle.
+Use <a href="slug://flows/format">Automatic Formatting</a> to standardize spacing and layout.
+</p>
+
+<p>
+Alternatively, you can interact with the CPU diagram's control signals to generate statements.
+After seting the control signals, click the <b>Copy to Microcode</b> button
+The corresponding statement is inserted at the end of the microcode pane.
+<p>
+</p>
+<p><img src="qrc:/help_images/workflows/ma2_copy_to.png" alt="Interactive microcode authoring" border="1"></p>
+
+<p>
+To comment or uncomment a block of lines, select them and use <b>Edit → Toggle line comment</b>.
+Any partially selected line is also affected.
+Uncommented lines become commented, and commented lines become uncommented.
+This is useful for switching between unit tests: select both test blocks and toggle them in one operation.
+</p>
+
+<p><b>2) Microassemble</b><br>
+Use <b>Build → Microassemble</b> or the toolbar button to check for errors without running the program.
+Errors appear inline in the <b>Microcode</b> pane in red.
+</p>
+<table border="1" cellspacing="0" cellpadding="4">
+  <tr>
+    <td><img src="qrc:/help_images/workflows/ma2_build_menu.png" alt="Microassemble menu item" border="1"></td>
+    <td><img src="qrc:/help_images/workflows/ma2_build_toolbar.png" alt="Microassemble toolbar icon" border="1"></td>
+  </tr>
+</table>
+<p><img src="qrc:/help_images/workflows/ma2_error.png" alt="Inline error in the Microcode pane" border="1"></p>
+
+<p><b>3) Run</b><br>
+Use <b>Build → Run</b> or the toolbar button to microassemble and execute the program.
+On success, the parsed microcode appears in the <b>Object Code</b> pane and unit test results appear in the <b>Test Results</b> pane.
+</p>
+<table border="1" cellspacing="0" cellpadding="4">
+  <tr>
+    <td><img src="qrc:/help_images/workflows/ma2_exec_menu.png" alt="Run menu item" border="1"></td>
+    <td><img src="qrc:/help_images/workflows/ma2_exec_toolbar.png" alt="Run toolbar icon" border="1"></td>
+  </tr>
+</table>
+<p><img src="qrc:/help_images/workflows/ma2_object.png" alt="Object Code pane after assembly" border="1"></p>
+
+<h2>Debugging Microprograms</h2>
+
+<p><b>1) Start debugging</b><br>
+Use <b>Debug → Start Debugging</b> to microassemble, apply <code>UnitPre</code> conditions, and enter <strong>Debugger</strong> mode.
+The CPU diagram becomes active and shows the initial datapath state.
+Registers and memory are reloaded to their default values, except for any changes specified by <code>UnitPre</code>s.
+</p>
+
+<p><b>2) Step through execution</b><br>
+Use <b>Debug → Single Step</b> to execute one microcode cycle at a time.
+The current cycle is highlighted in the <b>Microcode</b> pane, and the <b>CPU</b> diagram updates to reflect the signals asserted by that cycle.
+</p>
+<p>Related views: <a href="slug://ui/mem">Memory Dump</a>.</p>
+
+<p><b>3) Stop debugging</b><br>
+Use <b>Debug → Stop Debugging</b> or the toolbar icon to end the session early.
+</p>
+
+<h2>Unit Tests</h2>
+
+<p>
+Prior to loading a microprogram and setting preconditions, the CPU's registers will be reset to their default states and memory will be zeroed.
+<code>UnitPre</code> sets specified register/memory values before execution begins.
+<code>UnitPost</code> defines expected values for registers and memory after the last cycle.
+Post conditions are evaluated at each step, but failures are only reported at the end of simulation and highlighted in red in the test pane.
+</p>
+<p><img src="qrc:/help_images/workflows/ma2_tests_errors.png" alt="Postcondition error in the test pane" border="1"></p>
+
+<h3>Register values</h3>
+
+<p>Register width determines the valid hex range for <code>UnitPre</code> and <code>UnitPost</code> specifications:</p>
+<ul>
+  <li><b>IR</b> is 3 bytes. <code>IR=0xa</code> is stored or tested as <code>0x00000a</code>.</li>
+  <li><b>T1</b> is 1 byte. Values above <code>0xFF</code> produce an out-of-range error.</li>
+  <li><b>All other registers</b> are 2 bytes. <code>PC=0x1</code> is stored or tested as <code>0x0001</code>.</li>
+  <li><b>NZVC bits</b> are 1 bit each. For example, <code>N=1</code> is valid. <code>N=0</code> is redundant in <code>UnitPre</code> since all values are cleared to zero first, but may be included for clarity.</li>
+</ul>
+
+<h3>Memory values</h3>
+
+<p>Memory is byte-addressable. <code>Mem[0x1234]=0x5</code> sets or tests the single byte at address <code>0x1234</code> to <code>0x05</code>.</p>
+
+<p>Two adjacent bytes can be specified with a single two-byte value in the range <code>0x0100</code>–<code>0xffff</code>:</p>
+<pre><code>Mem[0xabcd]=0x1122   ; equivalent to Mem[0xabcd]=0x11, Mem[0xabce]=0x22</code></pre>
+
+<blockquote>
+<b>Note:</b> The one-byte and two-byte data bus variants of the MA2 CPU have different sets of control signals.
+The <b>CPU</b> pane shows the diagram for the variant used by the current project.
+</blockquote>
