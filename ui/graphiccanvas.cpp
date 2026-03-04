@@ -1,7 +1,9 @@
 #include "graphiccanvas.hpp"
+#include <QAction>      //  For context menu
 #include <QApplication> //  For startDragDistance()
 #include <QCursor>
 #include <QDrag>
+#include <QMenu>
 #include <QPainter>
 #include <QSvgRenderer>
 
@@ -33,6 +35,46 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     //  The data model is initialized after construction.
     //  Trigger test data loading once model is setup using event
     QObject::connect(this, &GraphicCanvas::modelChanged, this, &GraphicCanvas::updateData);
+}
+
+void GraphicCanvas::setOriginX(float x)
+{
+    _top_left.setX(x / grid_to_px / _currentZoom);
+    emit originChanged();
+    update();
+}
+
+void GraphicCanvas::setOriginY(float y)
+{
+    _top_left.setY(y / grid_to_px / _currentZoom);
+    emit originChanged();
+    update();
+}
+
+void GraphicCanvas::setXScrollbar(float x)
+{
+    if (std::abs(x - _scrollbarWidth.right()) > .0001) {
+        _scrollbarWidth.setRight(x);
+        emit boundsChanged();
+        update();
+    }
+}
+void GraphicCanvas::setYScrollbar(float y)
+{
+    if (std::abs(y - _scrollbarWidth.bottom()) > .0001) {
+        _scrollbarWidth.setBottom(y);
+        emit boundsChanged();
+        update();
+    }
+}
+
+void GraphicCanvas::setModel(DiagramDataModel *model)
+{
+    if (model != _model) {
+        _model = model;
+        emit modelChanged();
+        update();
+    }
 }
 
 void GraphicCanvas::setStamp(DiagramTemplate *stamp)
@@ -425,6 +467,30 @@ void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
     update(rect.toRect());
 }
 
+void GraphicCanvas::rotateClockwise()
+{
+    if (_currentItem == nullptr)
+        return;
+
+    _currentItem->setOrientation(_currentItem->orientation() + 90);
+
+    //  Repaint rectangle
+    update();
+}
+
+void GraphicCanvas::rotateCounterClockwise()
+{
+    if (_currentItem == nullptr)
+        return;
+
+    const int orientation = _currentItem->orientation() == 0 ? 270
+                                                             : _currentItem->orientation() - 90;
+    _currentItem->setOrientation(orientation);
+
+    //  Repaint rectangle
+    update();
+}
+
 //  Mouse events - Comment out unused events for now
 /*void GraphicCanvas::mouseDoubleClickEvent(QMouseEvent *event) {}*/
 
@@ -451,10 +517,17 @@ void GraphicCanvas::mouseMoveEvent(QMouseEvent *event)
     }
 }
 
+void GraphicCanvas::contextMenuEvent(QMouseEvent *event)
+{
+    //  If no current item, just return. This is an error condition.
+    //    if (_currentItem == nullptr)
+    event->setAccepted(false);
+}
+
 void GraphicCanvas::mousePressEvent(QMouseEvent *event)
 {
-    //  Only handle left click
-    if (event->button() != Qt::LeftButton)
+    //  Only handle left and right click
+    if (!(event->button() == Qt::LeftButton || event->button() == Qt::RightButton))
         return;
 
     //  Determine the size of the viewport in grid coordinates.
@@ -473,17 +546,29 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     const auto point = screen_to_grid(event->position());
     //qDebug() << event->pos() << event->position();
 
-    //  Images are stored by row and column.
-    //  Due to integer math, items closer to next row or column are still in same column/row.
-    //  Calculate rounding difference
-    const auto index = grid_to_index(point);
-
     //  See if existing item was clicked
-    if (setSelected(point)) {
-        _dragStartPosition = event->position();
-        return;
-    }
+    const auto found = setSelected(point);
 
+    //  Check if context menu
+    if (event->button() == Qt::RightButton) {
+        contextMenuEvent(event);
+    } else if (event->button() == Qt::LeftButton) {
+        if (found)
+            //  Handle drag event
+            _dragStartPosition = event->position();
+        else {
+            //  Images are stored by row and column.
+            //  Due to integer math, items closer to next row or column are still in same column/row.
+            //  Calculate rounding difference
+            const auto index = grid_to_index(point);
+
+            mouseLeftClickEvent(event, index);
+        }
+    }
+}
+
+void GraphicCanvas::mouseLeftClickEvent(QMouseEvent *event, const QPoint index)
+{
     //  No template is selected, just return
     if (_template == nullptr) {
         event->setAccepted(false);
@@ -529,13 +614,16 @@ bool GraphicCanvas::setSelected(const QPoint point)
         update();
 
         found = true;
+
+        //  Let QML know that current item has changed.
+        emit currentItemChanged();
     }
     return found;
 }
 
 void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event)
 {
-    qDebug() << "MouseRelease" << event;
+    //qDebug() << "MouseRelease" << event;
     //setCursor(Qt::ArrowCursor);
 }
 
@@ -655,7 +743,7 @@ void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event)
 
 void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event)
 {
-    qDebug() << "dragMoveEvent";
+    //qDebug() << "dragMoveEvent";
     if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
         if (event->source() == this) {
             event->setDropAction(Qt::MoveAction);
@@ -671,7 +759,7 @@ void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event)
 
 void GraphicCanvas::dropEvent(QDropEvent *event)
 {
-    qDebug() << "dropEvent";
+    //qDebug() << "dropEvent";
     if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
         //setCursor(Qt::ArrowCursor);
 

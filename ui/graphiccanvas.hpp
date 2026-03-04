@@ -32,10 +32,14 @@ class GraphicCanvas : public QQuickPaintedItem
     //  Set and access datamodel and template
     Q_PROPERTY(DiagramDataModel *model READ model WRITE setModel NOTIFY boundsChanged FINAL)
     Q_PROPERTY(DiagramTemplate *template READ stamp WRITE setStamp NOTIFY stampChanged FINAL)
+    Q_PROPERTY(DiagramProperties *currentItem READ currentItem NOTIFY currentItemChanged FINAL)
 
 public:
     GraphicCanvas(QQuickItem *parent = nullptr);
     void paint(QPainter *painter) override;
+
+    Q_INVOKABLE void rotateClockwise();
+    Q_INVOKABLE void rotateCounterClockwise();
 
     // Max bounds based on contained rectangles.
     float contentWidth() const { return _dimensions.width() * grid_to_px * _currentZoom; }
@@ -46,53 +50,24 @@ public:
     float originY() const { return _top_left.y() * grid_to_px * _currentZoom; }
 
     // Compute grid coordinates from screen coordinates
-    void setOriginX(float x)
-    {
-        _top_left.setX(x / grid_to_px / _currentZoom);
-        emit originChanged();
-        update();
-    }
-    void setOriginY(float y)
-    {
-        _top_left.setY(y / grid_to_px / _currentZoom);
-        emit originChanged();
-        update();
-    }
+    void setOriginX(float x);
+    void setOriginY(float y);
 
     // The top-left corner, as measured in "screen" coordinates
     float xScrollbar() const { return _scrollbarWidth.right() * grid_to_px; }
     float yScrollbar() const { return _scrollbarWidth.bottom() * grid_to_px; }
 
     // Compute grid coordinates from screen coordinates
-    void setXScrollbar(float x)
-    {
-        if (std::abs(x - _scrollbarWidth.right()) > .0001) {
-            _scrollbarWidth.setRight(x);
-            emit boundsChanged();
-            update();
-        }
-    }
-    void setYScrollbar(float y)
-    {
-        if (std::abs(y - _scrollbarWidth.bottom()) > .0001) {
-            _scrollbarWidth.setBottom(y);
-            emit boundsChanged();
-            update();
-        }
-    }
+    void setXScrollbar(float x);
+    void setYScrollbar(float y);
 
     DiagramDataModel *model() const { return _model; }
-    void setModel(DiagramDataModel *model)
-    {
-        if (model != _model) {
-            _model = model;
-            emit modelChanged();
-            update();
-        }
-    }
+    void setModel(DiagramDataModel *model);
 
     DiagramTemplate *stamp() const { return _template; }
     void setStamp(DiagramTemplate *stamp);
+
+    DiagramProperties *currentItem() const { return _currentItem; }
 
 protected:
     //  Mouse events
@@ -117,21 +92,14 @@ signals:
     void modelChanged();
     void originChanged();
     void stampChanged();
+    void currentItemChanged();
 
 private:
-    // Magic constant to convert from grid coordinates to screen coordinates
-    // Zoom variables
-    const qreal grid_to_px = 4.0;
-    const qreal _minScale = 0.5;
-    const qreal _maxScale = 3.0;
-    qreal _currentZoom = 1.0;
-
-    //  Grid dimensions (logical size, screen size is this times grid_to_px
-    const int minor_block_size = 8;
-    const int major_block_size = minor_block_size * 4;
-    const float screen_block = major_block_size * grid_to_px;
-    QMargins _margin{4, 4, 4, 4};
     void getImage(DiagramProperties &props);
+
+    //  Custom mouse event handlers
+    void contextMenuEvent(QMouseEvent *event);
+    void mouseLeftClickEvent(QMouseEvent *event, const QPoint index);
 
     // Helepr for painting a single rect that has already "passed" the clipping test.
     void paint_one(QPainter *painter, QRect rect, DiagramProperties &props);
@@ -163,6 +131,19 @@ private:
 
     //  Drag drop functions
     void startDrag(const QPoint point);
+
+    // Magic constant to convert from grid coordinates to screen coordinates
+    // Zoom variables
+    const qreal grid_to_px = 4.0;
+    const qreal _minScale = 0.5;
+    const qreal _maxScale = 3.0;
+    qreal _currentZoom = 1.0;
+
+    //  Grid dimensions (logical size, screen size is this times grid_to_px
+    const int minor_block_size = 8;
+    const int major_block_size = minor_block_size * 4;
+    const float screen_block = major_block_size * grid_to_px;
+    QMargins _margin{4, 4, 4, 4};
 
     //  Cached images
     QList<QPixmap> _svgs;

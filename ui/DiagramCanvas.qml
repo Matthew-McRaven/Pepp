@@ -32,6 +32,30 @@ Item {
         anchors.bottomMargin: hsb.visible ? hsb.height : 0
         anchors.rightMargin: vsb.visible ? vsb.width : 0
         clip: true
+
+        //  Context menu for canvas
+        ContextMenu.menu: Menu {
+            MenuItem {
+                text: "Rotate Left"
+                onTriggered: {
+                    var item = canvas.currentItem //as DiagramProperties;
+
+                    //  Check to see if there is no current item
+                    if(item)
+                        canvas.rotateClockwise();
+                }
+            }
+            MenuItem {
+                text: "Rotate right"
+                onTriggered: {
+                    var item = canvas.currentItem //as DiagramProperties;
+
+                    //  Check to see if there is no current item
+                    if(item)
+                        canvas.rotateCounterClockwise();
+                }
+            }
+        }
     }
 
     TableView {
@@ -54,5 +78,5 @@ Item {
             id: hsb
             policy: ScrollBar.AsNeeded
         }
-    }   //  TableView
+    }   //  TableView    
 }   //  Item
