@@ -178,7 +178,7 @@ Item {
             palette.button: root.palette.highlight
             layer.effect: MultiEffect {
                 colorization: 0.75
-                colorizationColor: root.palette.button      // theme-derived tint color
+                colorizationColor: root.palette.button
             }
         }
         Button {
@@ -188,7 +188,7 @@ Item {
             layer.enabled: !enabled
             layer.effect: MultiEffect {
                 colorization: 0.75
-                colorizationColor: palette.button      // theme-derived tint color
+                colorizationColor: palette.button
             }
         }
         Button {
@@ -198,7 +198,7 @@ Item {
             layer.enabled: !enabled
             layer.effect: MultiEffect {
                 colorization: 0.75
-                colorizationColor: palette.button      // theme-derived tint color
+                colorizationColor: palette.button
             }
         }
     }
