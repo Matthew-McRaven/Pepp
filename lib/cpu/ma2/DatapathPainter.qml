@@ -191,6 +191,16 @@ Item {
                 colorizationColor: palette.button      // theme-derived tint color
             }
         }
+        Button {
+            text: "Clear Control Signals"
+            onClicked: root.project.onResetActiveLine();
+            enabled: !root.isSimulating
+            layer.enabled: !enabled
+            layer.effect: MultiEffect {
+                colorization: 0.75
+                colorizationColor: palette.button      // theme-derived tint color
+            }
+        }
     }
 
     Item {

@@ -1593,6 +1593,17 @@ void Pep_MA::onCopyToMicrocode() {
   }
 }
 
+void Pep_MA::onResetActiveLine() {
+  if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
+    _activeLine = pepp::OneByteMC9Line{};
+    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+  } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
+    _activeLine = pepp::TwoByteMC9Line{};
+    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+  }
+  emit updateGUI(_tb->cend());
+}
+
 void Pep_MA::bindToSystem() {
   using namespace bits;
   _paint_key.clear();

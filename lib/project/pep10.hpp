@@ -372,6 +372,7 @@ public slots:
   // Not tied to editorAction. This is the "receiving" side when the editor initiates a change.
   void onEditorAction(int line, Action action);
   void onCopyToMicrocode();
+  void onResetActiveLine();
 
 signals:
   void microcodeTextChanged();
