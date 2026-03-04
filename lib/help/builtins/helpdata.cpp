@@ -141,8 +141,7 @@ QSharedPointer<HelpEntry> workflows_root() {
   int as10 = bitmask(PEP10, ASMB5);
 
   auto mc2 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Microcode", "MDText.qml");
-  mc2->props = QVariantMap{{"file", QVariant(u":/help/workflow/mc2.md"_s)}};
-  mc2->isWIP = true;
+  mc2->props = QVariantMap{{"file", QVariant(u":/help/workflow/mc2.html"_s)}};
   mc2->slug = "mc2";
   mc2->sortName = "2";
 

@@ -673,16 +673,26 @@ const Arrow logic_alu_nzvc = OneByteShapes::logic_alu_nzvc.translated(controlOff
 
 const QLine sel_muxcs = QLine(mux_cs.right() + arrowHOffset, ext_sel_mux_cs.y() + selectYOffset + 1, ctrlInputX - 7,
                               ext_sel_mux_cs.y() + selectYOffset + 1);
-const QLine ck_s = QLine(reg_bit_s.right() + arrowHOffset, reg_bit_s.y() + selectYOffset, ctrlInputX - 7,
-                               reg_bit_s.y() + selectYOffset);
-const QLine ck_c = QLine(reg_bit_c.right() + arrowHOffset, reg_bit_c.y() + selectYOffset, ctrlInputX - 7,
-                               reg_bit_c.y() + selectYOffset);
-const QLine ck_v = QLine(reg_bit_v.right() + arrowHOffset, reg_bit_v.y() + selectYOffset, ctrlInputX - 7,
-                               reg_bit_v.y() + selectYOffset);
-const QLine ck_z = QLine(reg_bit_z.right() + arrowHOffset, reg_bit_z.y() + selectYOffset, ctrlInputX - 7,
-                               reg_bit_z.y() + selectYOffset);
-const QLine ck_n = QLine(reg_bit_n.right() + arrowHOffset, reg_bit_n.y() + selectYOffset, ctrlInputX - 7,
-                               reg_bit_n.y() + selectYOffset);
+const Arrow ck_s = Arrow(QVector<Arrowhead>()
+                             << Arrowhead{QPoint(reg_bit_s.right() + arrowHOffset, reg_bit_s.y() + selectYOffset - 3)},
+                         QVector<QLine>() << QLine(reg_bit_s.right() + arrowHOffset, reg_bit_s.y() + selectYOffset,
+                                                   ctrlInputX - 7, reg_bit_s.y() + selectYOffset));
+const Arrow ck_c = Arrow(QVector<Arrowhead>()
+                             << Arrowhead{QPoint(reg_bit_c.right() + arrowHOffset, reg_bit_c.y() + selectYOffset - 3)},
+                         QVector<QLine>() << QLine(reg_bit_c.right() + arrowHOffset, reg_bit_c.y() + selectYOffset,
+                                                   ctrlInputX - 7, reg_bit_c.y() + selectYOffset));
+const Arrow ck_v = Arrow(QVector<Arrowhead>()
+                             << Arrowhead{QPoint(reg_bit_v.right() + arrowHOffset, reg_bit_v.y() + selectYOffset - 3)},
+                         QVector<QLine>() << QLine(reg_bit_v.right() + arrowHOffset, reg_bit_v.y() + selectYOffset,
+                                                   ctrlInputX - 7, reg_bit_v.y() + selectYOffset));
+const Arrow ck_z = Arrow(QVector<Arrowhead>()
+                             << Arrowhead{QPoint(reg_bit_z.right() + arrowHOffset, reg_bit_z.y() + selectYOffset - 3)},
+                         QVector<QLine>() << QLine(reg_bit_z.right() + arrowHOffset, reg_bit_z.y() + selectYOffset,
+                                                   ctrlInputX - 7, reg_bit_z.y() + selectYOffset));
+const Arrow ck_n = Arrow(QVector<Arrowhead>()
+                             << Arrowhead{QPoint(reg_bit_n.right() + arrowHOffset, reg_bit_n.y() + selectYOffset - 3)},
+                         QVector<QLine>() << QLine(reg_bit_n.right() + arrowHOffset, reg_bit_n.y() + selectYOffset,
+                                                   ctrlInputX - 7, reg_bit_n.y() + selectYOffset));
 const QLine poly_nzvc_join = QLine(OneByteShapes::poly_nzvc_join).translated(controlOffsetX, aluOffsetY);
 const Arrow logic_c_to_nzvc = OneByteShapes::logic_c_to_nzvc.translated(controlOffsetX, aluOffsetY);
 const Arrow logic_c_to_csmux = OneByteShapes::logic_c_to_csmux.translated(controlOffsetX, aluOffsetY);

@@ -371,6 +371,9 @@ public slots:
   void onDeferredExecution(std::function<bool()> step);
   // Not tied to editorAction. This is the "receiving" side when the editor initiates a change.
   void onEditorAction(int line, Action action);
+  void onCopyToMicrocode();
+  void onClock();
+  void onResetActiveLine();
 
 signals:
   void microcodeTextChanged();
@@ -418,6 +421,7 @@ protected:
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QList<QPair<int, QString>> _errors = {};
   pepp::MicrocodeChoice _microcode = std::monostate{};
+  pepp::MicrocodeLineChoice _activeLine = std::monostate{};
   pepp::TestChoice _testsPre = std::monostate{}, _testsPost = std::monostate{};
   pepp::Line2Address _line2addr;
   // TODO: at some point this type info needs to be extracted from the assembler + loader.
@@ -451,4 +455,5 @@ public:
   uint32_t cache_debug_variable_name(QStringView name) const override;
   pepp::debug::Value evaluate_debug_variable(uint32_t cache_index) const override;
   Q_INVOKABLE QVariant evaluate_painter_key(QString name) const;
+  Q_INVOKABLE void update_painter_key(QString name, QVariant value);
 };

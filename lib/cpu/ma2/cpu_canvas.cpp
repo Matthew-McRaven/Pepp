@@ -78,11 +78,11 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(A{.geom = ck_mar, .connection = C::Clock_MAR});
   _geom.emplace_back(A{.geom = ck_mdr, .connection = C::Clock_MDR});
   _geom.emplace_back(A{.geom = ck_load, .connection = C::Clock_Load});
-  _geom.emplace_back(L{.geom = ck_n, .connection = C::Clock_N});
-  _geom.emplace_back(L{.geom = ck_z, .connection = C::Clock_Z});
-  _geom.emplace_back(L{.geom = ck_v, .connection = C::Clock_V});
-  _geom.emplace_back(L{.geom = ck_c, .connection = C::Clock_C});
-  _geom.emplace_back(L{.geom = ck_s, .connection = C::Clock_S});
+  _geom.emplace_back(A{.geom = ck_n, .connection = C::Clock_N});
+  _geom.emplace_back(A{.geom = ck_z, .connection = C::Clock_Z});
+  _geom.emplace_back(A{.geom = ck_v, .connection = C::Clock_V});
+  _geom.emplace_back(A{.geom = ck_c, .connection = C::Clock_C});
+  _geom.emplace_back(A{.geom = ck_s, .connection = C::Clock_S});
   _geom.emplace_back(L{.geom = ck_memread, .connection = C::Sel_MemRead});
   _geom.emplace_back(L{.geom = ck_memwrite, .connection = C::Sel_MemWrite});
 
@@ -174,11 +174,11 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(A{.geom = ck_mdre, .connection = C::Clock_MDRE});
   _geom.emplace_back(A{.geom = ck_mdro, .connection = C::Clock_MDRO});
   _geom.emplace_back(A{.geom = ck_load, .connection = C::Clock_Load});
-  _geom.emplace_back(L{.geom = ck_n, .connection = C::Clock_N});
-  _geom.emplace_back(L{.geom = ck_z, .connection = C::Clock_Z});
-  _geom.emplace_back(L{.geom = ck_v, .connection = C::Clock_V});
-  _geom.emplace_back(L{.geom = ck_c, .connection = C::Clock_C});
-  _geom.emplace_back(L{.geom = ck_s, .connection = C::Clock_S});
+  _geom.emplace_back(A{.geom = ck_n, .connection = C::Clock_N});
+  _geom.emplace_back(A{.geom = ck_z, .connection = C::Clock_Z});
+  _geom.emplace_back(A{.geom = ck_v, .connection = C::Clock_V});
+  _geom.emplace_back(A{.geom = ck_c, .connection = C::Clock_C});
+  _geom.emplace_back(A{.geom = ck_s, .connection = C::Clock_S});
   _geom.emplace_back(L{.geom = ck_memread, .connection = C::Sel_MemRead});
   _geom.emplace_back(L{.geom = ck_memwrite, .connection = C::Sel_MemWrite});
 

@@ -1313,15 +1313,19 @@ Error::Error(int line, QString error, QObject *parent) : QObject(parent), line(l
 
 Pep_MA::Pep_MA(project::Environment env, QObject *parent)
     : QObject(parent), _env(env), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()), _memory(nullptr) {
-  _system.clear();
-  assert(_system.isNull());
   _dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
   _system = QSharedPointer<targets::ma::System>::create(env.arch, env.features);
   _system->bus()->setBuffer(&*_tb);
   _system->cpu()->setDebugger(&*_dbg);
+  _clearCPU();
   bindToSystem();
   connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
   _testResults = new PostModel(this);
+  if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
+    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+  } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
+    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+  }
 }
 
 project::Environment Pep_MA::env() const { return _env; }
@@ -1569,6 +1573,64 @@ void Pep_MA::onEditorAction(int line, Action action) {
   emit editorAction(line, action);
 }
 
+void Pep_MA::onCopyToMicrocode() {
+  if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
+    const auto &line = std::get<pepp::OneByteMC9Line>(_activeLine);
+    const auto as_string = QString::fromStdString(line.toString()).trimmed();
+    if (as_string.isEmpty()) return;
+    else if (!_microcodeText.isEmpty()) _microcodeText.append("\n" + as_string);
+    else _microcodeText = as_string;
+    emit markDirty();
+    emit microcodeTextChanged();
+  } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
+    const auto &line = std::get<pepp::TwoByteMC9Line>(_activeLine);
+    const auto as_string = QString::fromStdString(line.toString()).trimmed();
+    if (as_string.isEmpty()) return;
+    else if (!_microcodeText.isEmpty()) _microcodeText.append("\n" + as_string);
+    else _microcodeText = as_string;
+    emit markDirty();
+    emit microcodeTextChanged();
+  }
+}
+
+void Pep_MA::onClock() {
+  auto from = _tb->cend();
+  if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
+    const auto &line = std::get<pepp::OneByteMC9Line>(_activeLine);
+    auto cpu = dynamic_cast<targets::pep9::mc2 ::CPUByteBus *>(_system->cpu());
+    if (!cpu) {
+      qWarning() << "failed to cast 1-byte cpu";
+      return;
+    }
+    cpu->step(line.code);
+    _activeLine = pepp::OneByteMC9Line{};
+    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+
+  } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
+    const auto &line = std::get<pepp::TwoByteMC9Line>(_activeLine);
+    auto cpu = dynamic_cast<targets::pep9::mc2 ::CPUWordBus *>(_system->cpu());
+    if (!cpu) {
+      qWarning() << "failed to cast 2-byte cpu";
+      return;
+    }
+    cpu->step(line.code);
+    _activeLine = pepp::TwoByteMC9Line{};
+    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+  }
+  updateGUI(from);
+}
+
+void Pep_MA::onResetActiveLine() {
+  if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
+    _activeLine = pepp::OneByteMC9Line{};
+    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+  } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
+    _activeLine = pepp::TwoByteMC9Line{};
+    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+  }
+  emit updateGUI(_tb->cend());
+}
+
 void Pep_MA::bindToSystem() {
   using namespace bits;
   _paint_key.clear();
@@ -1620,6 +1682,7 @@ void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
     if (upc < microcode.size()) {
       auto line = microcode[upc];
       pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+      _activeLine = microcode[upc];
     }
   } else if (std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) {
     const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
@@ -1627,9 +1690,9 @@ void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
     if (upc < microcode.size()) {
       auto line = microcode[upc];
       pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+      _activeLine = microcode[upc];
     }
   }
-
   emit updateGUI(from);
   using Status = targets::pep9::mc2::BaseCPU::Status;
   // Must be after updateGUI, else highlightFailed will always be false.
@@ -1707,11 +1770,9 @@ void Pep_MA::load_onebyte_vars() {
   // Iterate over 1-byte control signals
   for (const auto &[signal, name] : pepp::tc::arch::Pep9ByteBus::signal_to_string()) {
     _paint_key[QString::fromStdString(name).toLower()] = [this, signal]() {
-      if (!std::holds_alternative<pepp::OneByteMC9>(this->_microcode)) return QVariant{};
-      const auto &microcode = std::get<pepp::OneByteMC9>(this->_microcode);
-      auto upc = _system->cpu()->microPC();
-      if (upc >= microcode.size()) return QVariant{};
-      else if (const auto &line = microcode[upc]; !line.enabled(signal)) return QVariant{};
+      if (!std::holds_alternative<pepp::OneByteMC9Line>(this->_activeLine)) return QVariant{};
+      const auto &line = std::get<pepp::OneByteMC9Line>(this->_activeLine);
+      if (!line.enabled(signal)) return QVariant{};
       else return QVariant{line.get(signal)};
     };
   }
@@ -1723,27 +1784,23 @@ void Pep_MA::load_onebyte_vars() {
     };
   }
   _paint_key["fn_alu"] = [this]() {
-    if (!std::holds_alternative<pepp::OneByteMC9>(this->_microcode)) return QVariant{};
     const auto signal = pepp::tc::arch::Pep9ByteBus::Signals::ALU;
-    const auto &microcode = std::get<pepp::OneByteMC9>(this->_microcode);
-    auto upc = _system->cpu()->microPC();
-    if (upc >= microcode.size()) return QVariant{};
-    const auto &line = microcode[upc];
+    if (!std::holds_alternative<pepp::OneByteMC9Line>(this->_activeLine)) return QVariant{};
+    const auto &line = std::get<pepp::OneByteMC9Line>(this->_activeLine);
     if (!line.enabled(signal)) return QVariant{};
     auto v = line.get(signal);
     return QVariant{text_from_alu_sel(v)};
   };
+  _activeLine = pepp::OneByteMC9Line{};
 }
 
 void Pep_MA::load_twobyte_vars() {
   // Iterate over 2-byte control signals
   for (const auto &[signal, name] : pepp::tc::arch::Pep9WordBus::signal_to_string()) {
     _paint_key[QString::fromStdString(name).toLower()] = [this, signal]() {
-      if (!std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) return QVariant{};
-      const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
-      auto upc = _system->cpu()->microPC();
-      if (upc >= microcode.size()) return QVariant{};
-      else if (const auto &line = microcode[upc]; !line.enabled(signal)) return QVariant{};
+      if (!std::holds_alternative<pepp::TwoByteMC9Line>(this->_activeLine)) return QVariant{};
+      const auto &line = std::get<pepp::TwoByteMC9Line>(this->_activeLine);
+      if (!line.enabled(signal)) return QVariant{};
       else return QVariant{line.get(signal)};
     };
   }
@@ -1755,16 +1812,14 @@ void Pep_MA::load_twobyte_vars() {
     };
   }
   _paint_key["fn_alu"] = [this]() {
-    if (!std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) return QVariant{};
     const auto signal = pepp::tc::arch::Pep9WordBus::Signals::ALU;
-    const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
-    auto upc = _system->cpu()->microPC();
-    if (upc >= microcode.size()) return QVariant{};
-    const auto &line = microcode[upc];
+    if (!std::holds_alternative<pepp::TwoByteMC9Line>(this->_activeLine)) return QVariant{};
+    const auto &line = std::get<pepp::TwoByteMC9Line>(this->_activeLine);
     if (!line.enabled(signal)) return QVariant{};
     auto v = line.get(signal);
     return QVariant{text_from_alu_sel(v)};
   };
+  _activeLine = pepp::TwoByteMC9Line{};
 }
 
 bool Pep_MA::_microassemble(bool override_source_text) {
@@ -1910,4 +1965,29 @@ pepp::debug::Value Pep_MA::evaluate_debug_variable(uint32_t) const {
 QVariant Pep_MA::evaluate_painter_key(QString name) const {
   if (auto s = _paint_key.find(name); s != _paint_key.end()) return s.value()();
   return QVariant{};
+}
+
+void Pep_MA::update_painter_key(QString name, QVariant value) {
+  const auto as_lower = name.toLower();
+  if (std::holds_alternative<pepp::OneByteMC9Line>(this->_activeLine)) {
+    auto &line = std::get<pepp::OneByteMC9Line>(this->_activeLine);
+    const auto _signals = pepp::tc::arch::Pep9ByteBus::string_to_signal();
+    int8_t value_i8 = value.toInt();
+    if (auto it = _signals.find(as_lower.toStdString()); it != _signals.end()) {
+      if (value_i8 >= 0) line.set(it->second, value_i8);
+      else line.clear(it->second);
+      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+    }
+
+  } else if (std::holds_alternative<pepp::TwoByteMC9Line>(this->_activeLine)) {
+    auto &line = std::get<pepp::TwoByteMC9Line>(this->_activeLine);
+    const auto _signals = pepp::tc::arch::Pep9WordBus::string_to_signal();
+    int8_t value_i8 = value.toInt();
+    if (auto it = _signals.find(as_lower.toStdString()); it != _signals.end()) {
+      if (value_i8 >= 0) line.set(it->second, value_i8);
+      else line.clear(it->second);
+      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+    }
+  } else return; // Early return, skip GUI update.
+  emit updateGUI(_tb->cend());
 }

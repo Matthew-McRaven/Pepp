@@ -228,3 +228,4 @@ Fixed,,0.15.0,1048,"Give focus to central text editor when creating a new projec
 Fixed,,0.15.0,1051,"Prevent icon from disappearing on active mode button"
 Fixed,,0.15.0,1052,"Significantly improve performance on memory dump"
 Fixed,,0.15.0,1054,"On WASM targets, prevent permanent loss of focus on central text editors"
+Added,Major,0.15.0,,"Add microcode projects for Pep/9 and Pep/10"

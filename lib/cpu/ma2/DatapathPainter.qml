@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Effects
 
 import edu.pepp
 
@@ -56,6 +58,11 @@ Item {
                 return Number(value);
             }
             enabled: !root.isSimulating
+            onValueModified: {
+                if (root.isSimulating)
+                    return;
+                root.project.update_painter_key(triState.updateKey, spin.value);
+            }
         }
         Label {
             anchors {
@@ -68,9 +75,10 @@ Item {
         Connections {
             target: root.project
             function onUpdateGUI() {
-                if(triState.updateKey === "") return
+                if (triState.updateKey === "")
+                    return;
                 const newVal = root.project.evaluate_painter_key(triState.updateKey);
-                 triState.value = newVal ?? -1;
+                triState.value = newVal ?? -1;
             }
         }
     }
@@ -90,12 +98,18 @@ Item {
         Connections {
             target: root.project
             function onUpdateGUI() {
-                if(labelCheck.updateKey === "") return
+                if (labelCheck.updateKey === "")
+                    return;
                 const newVal = root.project.evaluate_painter_key(labelCheck.updateKey);
                 labelCheck.value = newVal ?? false;
             }
         }
         enabled: !root.isSimulating
+        onClicked: {
+            if (root.isSimulating)
+                return;
+            root.project.update_painter_key(labelCheck.updateKey, labelCheck.checked);
+        }
     }
     component MonoText: TextEdit {
         id: mono
@@ -123,9 +137,10 @@ Item {
         Connections {
             target: root.project
             function onUpdateGUI() {
-                if(mono.updateKey === "") return
+                if (mono.updateKey === "")
+                    return;
                 const newText = root.project.evaluate_painter_key(mono.updateKey);
-                 mono.text = newText ?? "";
+                mono.text = newText ?? "";
             }
         }
     }
@@ -144,87 +159,136 @@ Item {
         orientation: Qt.Horizontal
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        anchors.bottom: buttons.top
         policy: flickable.contentWidth > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+    }
+    RowLayout {
+        id: buttons
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        Item {
+            Layout.fillWidth: true
+        }
+        Button {
+            text: "Clock"
+            onClicked: root.project.onClock();
+            enabled: !root.isSimulating
+            layer.enabled: !enabled
+            palette.button: root.palette.highlight
+            layer.effect: MultiEffect {
+                colorization: 0.75
+                colorizationColor: root.palette.button
+            }
+        }
+        Button {
+            text: "Copy to Microcode"
+            onClicked: root.project.onCopyToMicrocode();
+            enabled: !root.isSimulating
+            layer.enabled: !enabled
+            layer.effect: MultiEffect {
+                colorization: 0.75
+                colorizationColor: palette.button
+            }
+        }
+        Button {
+            text: "Clear Control Signals"
+            onClicked: root.project.onResetActiveLine();
+            enabled: !root.isSimulating
+            layer.enabled: !enabled
+            layer.effect: MultiEffect {
+                colorization: 0.75
+                colorizationColor: palette.button
+            }
+        }
     }
 
     Item {
-        id: viewport
-        // Translate moves the children to left... which would clip with other content in the scene even when clip=true
-        z: -1
-        property real logicalX: flickable.contentX / scene.scale
-        property real logicalY: flickable.contentY / scene.scale
-        property var canvas: null
-        anchors.fill: parent
-        implicitWidth: childrenRect.width
-        implicitHeight: childrenRect.height
-        transform: [
-            Scale {
-                origin.x: viewport.logicalX
-                origin.y: viewport.logicalY
-                xScale: scene.scale
-                yScale: scene.scale
-            },
-            Translate {
-                x: -viewport.logicalX
-                y: -viewport.logicalY
-            }
-        ]
-        // 1- and 2-byte canvases canvas
-        Loader {
-            active: root.which == 0
-            sourceComponent: Painted1ByteCanvas {
-                id: _byte
-                x: 0
-                y: 0
-                width: _byte.contentWidth
-                height: _byte.contentHeight
-                Component.onCompleted: {
-                    settings.extPalette.itemChanged.connect(_byte.update);
-                    root.project.updateGUI.connect(_byte.update);
-                }
-                connections: root.project.connections
-            }
-            onLoaded: viewport.canvas = item
+        id: viewportClip
+        anchors {
+            left: parent.left
+            right: vbar.left
+            top: parent.top
+            bottom: hbar.top
         }
-        Loader {
-            active: root.which == 1
-            sourceComponent: Painted2ByteCanvas {
-                id: _word
-                x: 0
-                y: 0
-                width: _word.contentWidth
-                height: _word.contentHeight
-                Component.onCompleted: {
-                    settings.extPalette.itemChanged.connect(_word.update);
-                    root.project.updateGUI.connect(_word.update);
+        clip: true
+        Item {
+            id: viewport
+            // Translate moves the children to left... which would clip with other content in the scene even when clip=true
+            z: -1
+            property real logicalX: flickable.contentX / scene.scale
+            property real logicalY: flickable.contentY / scene.scale
+            property var canvas: null
+            implicitWidth: childrenRect.width
+            implicitHeight: childrenRect.height
+            transform: [
+                Scale {
+                    origin.x: viewport.logicalX
+                    origin.y: viewport.logicalY
+                    xScale: scene.scale
+                    yScale: scene.scale
+                },
+                Translate {
+                    x: -viewport.logicalX
+                    y: -viewport.logicalY
                 }
-                connections: root.project.connections
+            ]
+            // 1- and 2-byte canvases canvas
+            Loader {
+                active: root.which == 0
+                sourceComponent: Painted1ByteCanvas {
+                    id: _byte
+                    x: 0
+                    y: 0
+                    width: _byte.contentWidth
+                    height: _byte.contentHeight
+                    Component.onCompleted: {
+                        settings.extPalette.itemChanged.connect(_byte.update);
+                        root.project.updateGUI.connect(_byte.update);
+                    }
+                    connections: root.project.connections
+                }
+                onLoaded: viewport.canvas = item
             }
-            onLoaded: viewport.canvas = item
-        }
+            Loader {
+                active: root.which == 1
+                sourceComponent: Painted2ByteCanvas {
+                    id: _word
+                    x: 0
+                    y: 0
+                    width: _word.contentWidth
+                    height: _word.contentHeight
+                    Component.onCompleted: {
+                        settings.extPalette.itemChanged.connect(_word.update);
+                        root.project.updateGUI.connect(_word.update);
+                    }
+                    connections: root.project.connections
+                }
+                onLoaded: viewport.canvas = item
+            }
 
-        Instantiator {
-            model: viewport.canvas.overlays
-            delegate: DelegateChooser {
-                id: chooser
-                role: "type"
-                DelegateChoice {
-                    roleValue: 1
-                    LabeledCheck {
-                        parent: viewport
+            Instantiator {
+                model: viewport.canvas.overlays
+                delegate: DelegateChooser {
+                    id: chooser
+                    role: "type"
+                    DelegateChoice {
+                        roleValue: 1
+                        LabeledCheck {
+                            parent: viewport
+                        }
                     }
-                }
-                DelegateChoice {
-                    roleValue: 2
-                    LabeledTriState {
-                        parent: viewport
+                    DelegateChoice {
+                        roleValue: 2
+                        LabeledTriState {
+                            parent: viewport
+                        }
                     }
-                }
-                DelegateChoice {
-                    roleValue: 3
-                    MonoText {
-                        parent: viewport
+                    DelegateChoice {
+                        roleValue: 3
+                        MonoText {
+                            parent: viewport
+                        }
                     }
                 }
             }
@@ -238,7 +302,7 @@ Item {
             left: parent.left
             right: vbar.left
             top: parent.top
-            bottom: hbar.bottom
+            bottom: hbar.top
         }
 
         clip: true
