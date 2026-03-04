@@ -116,6 +116,7 @@ public:
 
   // Target interface
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
+  void step(const pepp::tc::arch::Pep9ByteBus::Code &);
 
   // Sink interfae
   bool analyze(sim::api2::trace::PacketIterator iter, sim::api2::trace::Direction) override;
@@ -145,6 +146,7 @@ public:
 
   // Target interface
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
+  void step(const pepp::tc::arch::Pep9WordBus::Code &code);
 
   // Sink interfae
   bool analyze(sim::api2::trace::PacketIterator iter, sim::api2::trace::Direction) override;

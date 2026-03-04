@@ -1593,6 +1593,33 @@ void Pep_MA::onCopyToMicrocode() {
   }
 }
 
+void Pep_MA::onClock() {
+  auto from = _tb->cend();
+  if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
+    const auto &line = std::get<pepp::OneByteMC9Line>(_activeLine);
+    auto cpu = dynamic_cast<targets::pep9::mc2 ::CPUByteBus *>(_system->cpu());
+    if (!cpu) {
+      qWarning() << "failed to cast 1-byte cpu";
+      return;
+    }
+    cpu->step(line.code);
+    _activeLine = pepp::OneByteMC9Line{};
+    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+
+  } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
+    const auto &line = std::get<pepp::TwoByteMC9Line>(_activeLine);
+    auto cpu = dynamic_cast<targets::pep9::mc2 ::CPUWordBus *>(_system->cpu());
+    if (!cpu) {
+      qWarning() << "failed to cast 2-byte cpu";
+      return;
+    }
+    cpu->step(line.code);
+    _activeLine = pepp::TwoByteMC9Line{};
+    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+  }
+  updateGUI(from);
+}
+
 void Pep_MA::onResetActiveLine() {
   if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
     _activeLine = pepp::OneByteMC9Line{};

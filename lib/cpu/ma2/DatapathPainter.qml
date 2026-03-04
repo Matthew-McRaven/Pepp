@@ -172,7 +172,7 @@ Item {
         }
         Button {
             text: "Clock"
-            onClicked: console.log("Clock me")
+            onClicked: root.project.onClock();
             enabled: !root.isSimulating
             layer.enabled: !enabled
             palette.button: root.palette.highlight
