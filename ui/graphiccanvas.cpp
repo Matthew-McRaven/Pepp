@@ -35,6 +35,25 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
     QObject::connect(this, &GraphicCanvas::modelChanged, this, &GraphicCanvas::updateData);
 }
 
+void GraphicCanvas::setStamp(DiagramTemplate *stamp)
+{
+    if (stamp != _template) {
+        if (stamp == nullptr) {
+            _template = nullptr;
+        } else {
+            //  Is valid stamp
+            if (stamp->diagramType() == "Diagram") {
+                _template = stamp;
+            } else {
+                _template = nullptr;
+            }
+        }
+        //  Changing template only affects current item to stamp down
+        //  Does not require a redraw
+        emit stampChanged();
+    }
+}
+
 void GraphicCanvas::updateData()
 {
     //  Trigger repaint on data model updates

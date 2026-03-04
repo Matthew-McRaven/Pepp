@@ -92,22 +92,7 @@ public:
     }
 
     DiagramTemplate *stamp() const { return _template; }
-    void setStamp(DiagramTemplate *stamp)
-    {
-        if (stamp && stamp != _template) {
-            //  Is valid stamp
-            if (stamp->diagramType() == "Diagram") {
-                _template = stamp;
-            } else {
-                _template = nullptr;
-            }
-
-            //  Changing template only affects current item to stamp down
-            //  Does not require a redraw
-            emit stampChanged();
-            //update();
-        }
-    }
+    void setStamp(DiagramTemplate *stamp);
 
 protected:
     //  Mouse events
