@@ -411,6 +411,36 @@ QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, pepp::Featur
   return QStringLiteral("%1 %2").arg(archStr, levelStr);
 }
 
+namespace {
+pepp::Architecture edition_to_arch(int edition) {
+  switch (edition) {
+  case 4: return pepp::Architecture::PEP8; break;
+  case 5: return pepp::Architecture::PEP9; break;
+  case 6: return pepp::Architecture::PEP10; break;
+  default:
+    static const char *const e = "Unknown edition";
+    qCritical(e);
+    throw std::invalid_argument(e);
+  }
+}
+void process_one_figure(QList<QSharedPointer<HelpEntry>> &children, QSharedPointer<builtins::Figure> item) {
+  // Skip explicitly hidden figures (like the assembler).
+  if (item->isHidden()) return;
+  static const auto pl = QStringLiteral("%1 %2.%3");
+  auto displayTitle = pl.arg(item->prefix(), removeLeading0(item->chapterName()), removeLeading0(item->figureName()));
+  auto sortTitle = pl.arg(item->prefix(), item->chapterName(), item->figureName());
+  int mask = bitmask(item->arch(), item->level());
+  auto entry =
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, mask, displayTitle, "../builtins/Figure2.qml");
+  entry->sortName = sortTitle;
+  entry->props = QVariantMap{{"title", displayTitle},
+                             {"payload", QVariant::fromValue(item.data())},
+                             {"lexerLang", lexerLang(item->arch(), item->level(), item->features())},
+                             {"architecture", QVariant((int)item->arch())}};
+  children.push_back(entry);
+}
+} // namespace
+
 std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry &reg) {
   std::array<QSharedPointer<HelpEntry>, 3> ret;
   auto books = reg.books();
@@ -420,36 +450,11 @@ std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry 
   QRegularExpression re(QStringLiteral("(\\d+)"));
   for (const auto &book : std::as_const(books)) {
     QList<QSharedPointer<HelpEntry>> children;
-    for (const auto &figure : book->figures()) {
-      // Skip explicitly hidden figures (like the assembler).
-      if (figure->isHidden()) continue;
-      static const auto pl = QStringLiteral("%1 %2.%3");
-      auto displayTitle =
-          pl.arg(figure->prefix(), removeLeading0(figure->chapterName()), removeLeading0(figure->figureName()));
-      auto sortTitle = pl.arg(figure->prefix(), figure->chapterName(), figure->figureName());
-      int mask = bitmask(figure->arch(), figure->level());
-      auto entry = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, mask, displayTitle,
-                                                     "../builtins/Figure2.qml");
-      entry->sortName = sortTitle;
-      entry->props = QVariantMap{{"title", displayTitle},
-                                 {"payload", QVariant::fromValue(figure.data())},
-                                 {"lexerLang", lexerLang(figure->arch(), figure->level(), figure->features())},
-                                 {"architecture", QVariant((int)figure->arch())}};
-      children.push_back(entry);
-    }
+    for (const auto &figure : book->figures()) process_one_figure(children, figure);
 
     auto match = re.match(book->name()).captured(0);
     int edition = match.toInt();
-    pepp::Architecture arch;
-    switch (edition) {
-    case 4: arch = pepp::Architecture::PEP8; break;
-    case 5: arch = pepp::Architecture::PEP9; break;
-    case 6: arch = pepp::Architecture::PEP10; break;
-    default:
-      static const char *const e = "Unknown edition";
-      qCritical(e);
-      throw std::invalid_argument(e);
-    }
+    auto arch = edition_to_arch(edition);
 
     QString title = u"Figures, %1th Edition"_s.arg(match);
     auto root =
@@ -462,6 +467,35 @@ std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry 
   return ret;
 }
 
+std::array<QSharedPointer<HelpEntry>, 3> problems_root(const builtins::Registry &reg) {
+  std::array<QSharedPointer<HelpEntry>, 3> ret;
+  auto books = reg.books();
+  if (books.size() != ret.size()) throw std::logic_error("Number of books does not match array size");
+
+  int it = 0;
+  QRegularExpression re(QStringLiteral("(\\d+)"));
+  for (const auto &book : std::as_const(books)) {
+    QList<QSharedPointer<HelpEntry>> children;
+    for (const auto &problem : book->problems()) process_one_figure(children, problem);
+
+    auto match = re.match(book->name()).captured(0);
+    int edition = match.toInt();
+    auto arch = edition_to_arch(edition);
+
+    // At the moment, we only have programming problems for MA2/Mc2.
+    // Hide the "problems" otherwise, because it is empty.
+    QString title = u"Problems, %1th Edition"_s.arg(match);
+    const auto arch_mask = bitmask(arch);
+    const auto abstr_mask = bitmask(pepp::Abstraction::MA2);
+    auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, (arch_mask) << shift | abstr_mask,
+                                                  title, "MDText.qml");
+    root->isExternal = reg.usingExternalFigures();
+    root->props = QVariantMap{{"file", QVariant(u":/help/problems.md"_s)}};
+    root->addChildren(children);
+    ret[it++] = root;
+  }
+  return ret;
+}
 QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   auto abs_mask =
       bitmask(pepp::Abstraction::ASMB3) | bitmask(pepp::Abstraction::OS4) | bitmask(pepp::Abstraction::ASMB5);
@@ -530,8 +564,6 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   }
   return root;
 }
-
-QSharedPointer<HelpEntry> problems_root(const builtins::Registry &reg) { return {}; }
 
 int bitmask(pepp::Architecture arch) {
   using enum pepp::Architecture;

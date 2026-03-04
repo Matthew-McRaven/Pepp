@@ -38,12 +38,14 @@ HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
   // If you update the following array, YOU MUST UPDATE THE INDEX OF VARIABLE TOO!!!
   auto ex = examples_root(*_reg);
   static_assert(ex.max_size() == 3);
+  auto pr = problems_root(*_reg);
+  static_assert(pr.max_size() == 3);
   _roots = {
-      starting_root(), ui_root(), workflows_root(),   greencard10_root(), greencard9_root(), ex[0],
-      ex[1],           ex[2],     macros_root(*_reg), advanced_root(),
+      starting_root(), ui_root(), workflows_root(),   greencard10_root(), greencard9_root(), ex[0], ex[1], ex[2], pr[0],
+      pr[1],           pr[2],     macros_root(*_reg), advanced_root(),
   };
   _indexOfFigs = 5;
-  _indexOfMacros = 8;
+  _indexOfMacros = 11;
 
   for (auto &root : _roots) addToIndex(root);
 }
