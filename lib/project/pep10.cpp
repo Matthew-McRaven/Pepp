@@ -1322,9 +1322,9 @@ Pep_MA::Pep_MA(project::Environment env, QObject *parent)
   connect(this, &Pep_MA::deferredExecution, this, &Pep_MA::onDeferredExecution, Qt::QueuedConnection);
   _testResults = new PostModel(this);
   if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
-    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), 0);
   } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
-    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), 0);
   }
 }
 
@@ -1595,6 +1595,7 @@ void Pep_MA::onCopyToMicrocode() {
 
 void Pep_MA::onClock() {
   auto from = _tb->cend();
+  const auto memory_cycle = _system->cpu()->memoryCycle();
   if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
     const auto &line = std::get<pepp::OneByteMC9Line>(_activeLine);
     auto cpu = dynamic_cast<targets::pep9::mc2 ::CPUByteBus *>(_system->cpu());
@@ -1604,7 +1605,7 @@ void Pep_MA::onClock() {
     }
     cpu->step(line.code);
     _activeLine = pepp::OneByteMC9Line{};
-    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), memory_cycle);
 
   } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
     const auto &line = std::get<pepp::TwoByteMC9Line>(_activeLine);
@@ -1615,18 +1616,19 @@ void Pep_MA::onClock() {
     }
     cpu->step(line.code);
     _activeLine = pepp::TwoByteMC9Line{};
-    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), memory_cycle);
   }
   updateGUI(from);
 }
 
 void Pep_MA::onResetActiveLine() {
+  const auto memory_cycle = _system->cpu()->memoryCycle();
   if (std::holds_alternative<pepp::OneByteMC9Line>(_activeLine)) {
     _activeLine = pepp::OneByteMC9Line{};
-    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+    pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), memory_cycle);
   } else if (std::holds_alternative<pepp::TwoByteMC9Line>(_activeLine)) {
     _activeLine = pepp::TwoByteMC9Line{};
-    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), pepp::MemoryState::Inactive);
+    pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), memory_cycle);
   }
   emit updateGUI(_tb->cend());
 }
@@ -1675,21 +1677,19 @@ void Pep_MA::prepareSim() {
 
 void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
   auto passedTests = updatePostTestValues();
+  const auto memory_cycle = _system->cpu()->memoryCycle();
+  const auto upc = _system->cpu()->microPC();
   // If holding 1-byte microcode
   if (std::holds_alternative<pepp::OneByteMC9>(this->_microcode)) {
     const auto &microcode = std::get<pepp::OneByteMC9>(this->_microcode);
-    auto upc = _system->cpu()->microPC();
     if (upc < microcode.size()) {
-      auto line = microcode[upc];
-      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+      pepp::connections_for(_holder.c, microcode[upc], memory_cycle);
       _activeLine = microcode[upc];
     }
   } else if (std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) {
     const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
-    auto upc = _system->cpu()->microPC();
     if (upc < microcode.size()) {
-      auto line = microcode[upc];
-      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+      pepp::connections_for(_holder.c, microcode[upc], memory_cycle);
       _activeLine = microcode[upc];
     }
   }
@@ -1969,24 +1969,24 @@ QVariant Pep_MA::evaluate_painter_key(QString name) const {
 
 void Pep_MA::update_painter_key(QString name, QVariant value) {
   const auto as_lower = name.toLower();
+  const int8_t value_i8 = value.toInt();
+  const auto memory_cycle = _system->cpu()->memoryCycle();
   if (std::holds_alternative<pepp::OneByteMC9Line>(this->_activeLine)) {
     auto &line = std::get<pepp::OneByteMC9Line>(this->_activeLine);
     const auto _signals = pepp::tc::arch::Pep9ByteBus::string_to_signal();
-    int8_t value_i8 = value.toInt();
     if (auto it = _signals.find(as_lower.toStdString()); it != _signals.end()) {
       if (value_i8 >= 0) line.set(it->second, value_i8);
       else line.clear(it->second);
-      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+      pepp::connections_for(_holder.c, line, memory_cycle);
     }
 
   } else if (std::holds_alternative<pepp::TwoByteMC9Line>(this->_activeLine)) {
     auto &line = std::get<pepp::TwoByteMC9Line>(this->_activeLine);
     const auto _signals = pepp::tc::arch::Pep9WordBus::string_to_signal();
-    int8_t value_i8 = value.toInt();
     if (auto it = _signals.find(as_lower.toStdString()); it != _signals.end()) {
       if (value_i8 >= 0) line.set(it->second, value_i8);
       else line.clear(it->second);
-      pepp::connections_for(_holder.c, line, pepp::MemoryState::Inactive);
+      pepp::connections_for(_holder.c, line, memory_cycle);
     }
   } else return; // Early return, skip GUI update.
   emit updateGUI(_tb->cend());

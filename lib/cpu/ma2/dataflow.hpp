@@ -41,6 +41,7 @@ enum class Connections {
   Bus_MDRMux2MDR,
   Bus_MDR2AMux,
   Bus_MDR2Data,
+  Bus_Data2MDRMux,
   Clock_MDR,
   Sel_Mux_MDR,
   // 2-byte only
@@ -49,10 +50,12 @@ enum class Connections {
   Bus_MDREMux2MDRE,
   Bus_MDRE2Data,
   Bus_MDRE2EOMux,
+  Bus_Data2MDREMux,
   Bus_MDROMux2MDRO,
   Bus_MDRO2Data,
   Bus_MDRO2EOMux,
   Bus_EOMux2AMux,
+  Bus_Data2MDROMux,
   Clock_MDRE,
   Clock_MDRO,
   Sel_Mux_MAR,
@@ -64,14 +67,9 @@ enum class Connections {
 using ConnectionArray = std::array<int, static_cast<size_t>(Connections::Total)>;
 using one_bye_mc = tc::arch::Pep9ByteBus::CodeWithEnables;
 using two_bye_mc = tc::arch::Pep9WordBus::CodeWithEnables;
-enum class MemoryState {
-  Inactive = 0,
-  Active = 1,
-  Writing = 2,
-};
 
-void connections_for(ConnectionArray &arr, const one_bye_mc &mc, MemoryState mem);
-void connections_for(ConnectionArray &arr, const two_bye_mc &mc, MemoryState mem);
+void connections_for(ConnectionArray &arr, const one_bye_mc &mc, quint8 memory_cycle);
+void connections_for(ConnectionArray &arr, const two_bye_mc &mc, quint8 memory_cycle);
 
 class ConnectionsHolder : public QObject {
   Q_OBJECT

@@ -83,6 +83,8 @@ void targets::pep9::mc2::BaseCPU::resetMicroPC() { _microPC = 0; }
 
 quint16 targets::pep9::mc2::BaseCPU::microPC() const noexcept { return _microPC; }
 
+quint8 targets::pep9::mc2::BaseCPU::memoryCycle() const noexcept { return memStatus.onCycle; }
+
 const sim::api2::tick::Source *targets::pep9::mc2::BaseCPU::getSource() { return _clock; }
 
 void targets::pep9::mc2::BaseCPU::setSource(sim::api2::tick::Source *clock) { _clock = clock; }
