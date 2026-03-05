@@ -455,7 +455,10 @@ const Arrow logic_andz_to_z = Arrow(
         // Line from ANDZ circuit to Z bit.
         << QLine(mux_andz.right(), mux_andz.y() + mux_andz.height() / 2, reg_bit_z.left() - arrowHOffset,
                  mux_andz.y() + mux_andz.height() / 2));
-
+const Arrow ck_memwrite_to_mdr =
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(bus_data.right() + arrowHOffset * 8 - 3, reg_byte_mdr.bottom()), UP},
+          QVector<QLine>() << QLine(bus_data.right() + arrowHOffset * 8, ext_sel_memwrite.y() + selectYOffset,
+                                    bus_data.right() + arrowHOffset * 8, reg_byte_mdr.bottom()));
 const QLine ck_memread = QLine(bus_data.right() + arrowHOffset, ext_sel_memread.y() + selectYOffset, ctrlInputX - 7,
                                ext_sel_memread.y() + selectYOffset);
 const QLine ck_memwrite = QLine(bus_data.right() + arrowHOffset, ext_sel_memwrite.y() + selectYOffset, ctrlInputX - 7,

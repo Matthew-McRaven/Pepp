@@ -96,6 +96,7 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(A{.geom = sel_b, .connection = C::Sel_B});
   _geom.emplace_back(A{.geom = sel_a, .connection = C::Sel_A});
   _geom.emplace_back(A{.geom = sel_alu, .connection = C::Sel_ALU});
+  _geom.emplace_back(A{.geom = ck_memwrite_to_mdr, .connection = C::Sel_MemWrite});
 
   // Buses
   _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitPrimaryRole, .connection = C::Bus_B});
@@ -194,6 +195,7 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(A{.geom = sel_mux_mdro, .connection = C::Sel_Mux_MDRO});
   _geom.emplace_back(A{.geom = sel_muxeo, .connection = C::Sel_Mux_EO});
   _geom.emplace_back(A{.geom = sel_mux_mar, .connection = C::Sel_Mux_MAR});
+  _geom.emplace_back(A{.geom = ck_memwrite_to_mdr, .connection = C::Sel_MemWrite});
 
   // Buses
   _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitQuaternaryRole, .connection = C::Bus_B});
