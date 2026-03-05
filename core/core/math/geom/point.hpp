@@ -61,6 +61,8 @@ public:
 
   inline T x() const noexcept { return this->elements[0]; }
   inline T y() const noexcept { return this->elements[1]; }
+  void setX(T x) { this->elements[0] = x; }
+  void setY(T y) { this->elements[1] = y; }
 };
 
 // A size of an entity in 2d space, often combined with a point to form a rectangle.
