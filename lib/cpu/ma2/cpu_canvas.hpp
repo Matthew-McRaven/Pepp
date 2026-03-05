@@ -34,14 +34,21 @@ struct LineItem {
   Connections connection = Connections::None;
   bool enabled = true;
 };
-
+struct JunctionItem {
+  QPointF geom;
+  float radius = 1;
+  pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
+  Connections connection = Connections::None;
+  bool enabled = true;
+};
 struct ArrowItem {
   Arrow geom;
   pepp::settings::PaletteRole role = pepp::settings::PaletteRole::BaseRole;
   Connections connection = Connections::None;
   bool enabled = true;
 };
-using Item = std::variant<LineItem, ArrowItem, RectItem, PolygonItem, TextRectItem>;
+
+using Item = std::variant<LineItem, ArrowItem, RectItem, PolygonItem, JunctionItem, TextRectItem>;
 
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
 // "grid" coordinates are integer values. Currently, 1 grid unit = 4 screen pixels, but this should

@@ -68,6 +68,7 @@ std::vector<pepp::Item> one_byte_geom() {
   using L = LineItem;
   using P = PolygonItem;
   using R = RectItem;
+  using J = JunctionItem;
   using PR = pepp::settings::PaletteRole;
   using C = pepp::Connections;
 
@@ -76,6 +77,7 @@ std::vector<pepp::Item> one_byte_geom() {
 
   // Clocks
   _geom.emplace_back(A{.geom = ck_mar, .connection = C::Clock_MAR});
+  _geom.emplace_back(J{.geom = ck_mar_junction, .connection = C::Clock_MAR});
   _geom.emplace_back(A{.geom = ck_mdr, .connection = C::Clock_MDR});
   _geom.emplace_back(A{.geom = ck_load, .connection = C::Clock_Load});
   _geom.emplace_back(A{.geom = ck_n, .connection = C::Clock_N});
@@ -97,6 +99,7 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(A{.geom = sel_a, .connection = C::Sel_A});
   _geom.emplace_back(A{.geom = sel_alu, .connection = C::Sel_ALU});
   _geom.emplace_back(A{.geom = ck_memwrite_to_mdr, .connection = C::Sel_MemWrite});
+  _geom.emplace_back(J{.geom = ck_memwrite_junction, .connection = C::Sel_MemWrite});
 
   // Buses
   _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitPrimaryRole, .connection = C::Bus_B});
@@ -118,12 +121,15 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(A{.geom = logic_alu_nzvc, .connection = C::Wire_ALU_NZVC});
   _geom.emplace_back(A{.geom = logic_c_to_nzvc});
   _geom.emplace_back(A{.geom = logic_c_to_csmux});
+  _geom.emplace_back(J{.geom = logic_c_to_csmux_junction});
   _geom.emplace_back(A{.geom = logic_s_to_csmux});
   _geom.emplace_back(A{.geom = logic_cin});
   _geom.emplace_back(A{.geom = logic_z_to_nzvc});
   _geom.emplace_back(A{.geom = logic_v_to_nzvc});
   _geom.emplace_back(A{.geom = logic_n_to_nzvc});
   _geom.emplace_back(A{.geom = logic_andz_to_z, .connection = C::Wire_AndZ2Z});
+  _geom.emplace_back(J{.geom = logic_andz_junction});
+  _geom.emplace_back(J{.geom = logic_s_junction, .connection = C::Wire_ALU_NZVC});
 
   // Multiplexers
   _geom.emplace_back(R{.geom = mux_a, .role = PR::BaseRole, .connection = C::Bus_AMux2ALU});
@@ -163,6 +169,7 @@ std::vector<pepp::Item> two_byte_geom() {
   using L = LineItem;
   using P = PolygonItem;
   using R = RectItem;
+  using J = JunctionItem;
   using PR = pepp::settings::PaletteRole;
   using C = pepp::Connections;
 
@@ -172,6 +179,7 @@ std::vector<pepp::Item> two_byte_geom() {
 
   // Clocks
   _geom.emplace_back(A{.geom = ck_mar, .connection = C::Clock_MAR});
+  _geom.emplace_back(J{.geom = ck_mar_junction, .connection = C::Clock_MAR});
   _geom.emplace_back(A{.geom = ck_mdre, .connection = C::Clock_MDRE});
   _geom.emplace_back(A{.geom = ck_mdro, .connection = C::Clock_MDRO});
   _geom.emplace_back(A{.geom = ck_load, .connection = C::Clock_Load});
@@ -196,6 +204,7 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(A{.geom = sel_muxeo, .connection = C::Sel_Mux_EO});
   _geom.emplace_back(A{.geom = sel_mux_mar, .connection = C::Sel_Mux_MAR});
   _geom.emplace_back(A{.geom = ck_memwrite_to_mdr, .connection = C::Sel_MemWrite});
+  _geom.emplace_back(J{.geom = ck_memwrite_junction, .connection = C::Sel_MemWrite});
 
   // Buses
   _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitQuaternaryRole, .connection = C::Bus_B});
@@ -226,11 +235,14 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(A{.geom = logic_c_to_nzvc});
   _geom.emplace_back(A{.geom = logic_c_to_csmux});
   _geom.emplace_back(A{.geom = logic_s_to_csmux});
+  _geom.emplace_back(J{.geom = logic_c_to_csmux_junction});
   _geom.emplace_back(A{.geom = logic_cin});
   _geom.emplace_back(A{.geom = logic_z_to_nzvc});
   _geom.emplace_back(A{.geom = logic_v_to_nzvc});
   _geom.emplace_back(A{.geom = logic_n_to_nzvc});
   _geom.emplace_back(A{.geom = logic_andz_to_z, .connection = C::Wire_AndZ2Z});
+  _geom.emplace_back(J{.geom = logic_andz_junction});
+  _geom.emplace_back(J{.geom = logic_s_junction, .connection = C::Wire_ALU_NZVC});
 
   // Multiplexers
   _geom.emplace_back(P{.geom = mux_marmux, .role = PR::BaseRole});
@@ -493,6 +505,14 @@ struct PaintDispatch {
     painter->setBrush(palette->item(role)->background());
     painter->drawRect(item.geom);
   }
+  void operator()(const pepp::JunctionItem &item) {
+    int role = (int)item.role;
+    if (item.connection != pepp::Connections::None && con != nullptr) role = con->c[(int)item.connection];
+
+    painter->setPen(palette->item(role)->foreground());
+    painter->setBrush(palette->item(role)->foreground());
+    painter->drawEllipse(item.geom, 2 * item.radius, 2 * item.radius);
+  }
   void operator()(const pepp::PolygonItem &item) {
     int role = (int)item.role;
     if (item.connection != pepp::Connections::None && con != nullptr) role = con->c[(int)item.connection];
@@ -502,7 +522,6 @@ struct PaintDispatch {
     painter->drawConvexPolygon(item.geom);
   }
   void operator()(const pepp::TextRectItem &item) {
-
     painter->setPen(palette->item(item.role)->foreground());
     painter->setFont(font);
     // Add 5 px margin on left and right of text
@@ -557,6 +576,10 @@ struct BoundingBoxVisitor {
       max.setY(std::max<float>(max.y(), std::max(line.y(), line.y())));
     }
     return BoundingBox{._min = min, ._max = max};
+  }
+  BoundingBox operator()(const pepp::JunctionItem &item) {
+    // Junctions should not impact bounding box, else the overall clipping is too tight
+    return BoundingBox{._min = item.geom, ._max = item.geom};
   }
   BoundingBox operator()(const pepp::TextRectItem &item) {
     return BoundingBox{._min = item.geom.topLeft(), ._max = item.geom.bottomRight()};
