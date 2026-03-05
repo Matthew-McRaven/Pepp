@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="icon">icon.svg</file>
+        <file alias="and">and.svg</file>
+        <file alias="or">or.svg</file>
+        <file alias="xor">xor.svg</file>
+        <file alias="nor">nor.svg</file>
+        <file alias="nand">nand.svg</file>
+        <file alias="inverter">inverter.svg</file>
+        <file alias="line">line.svg</file>
+        <file alias="multiline">multiline.svg</file>
+        <file alias="bus">bus.svg</file>
+        <file alias="move">move-arrow.svg</file>
+        <file alias="select">select-pointer.svg</file>
+    </qresource>
+</RCC>

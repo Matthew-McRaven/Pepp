@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+  width="48"
+  height="32"
+  viewBox="0 0 48 32">
+  <!--rect width="100%" height="100%" fill="red"/-->
+        <path
+	d="
+	M 14 1
+	Q 27 1 37 15
+	Q 27 31 14 31
+	H 5
+	Q 13 16 5 1
+	Z"
+	style="fill:white;stroke:#000000;stroke-width:1" />
+	<circle cx="40" cy="15" r="3"
+	style="fill:white;stroke:#000000;stroke-width:1" />
+</svg>

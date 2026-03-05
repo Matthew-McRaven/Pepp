@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg viewBox="0 0 512 512"
+     xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:ev="http://www.w3.org/2001/xml-events">
+  >
+ <defs
+     id="defs2">
+    <linearGradient
+       id="bg-gradient"
+       x1="0"
+       y1="0"
+       x2="0"
+       y2="1">
+      <stop
+         offset="0%"
+         stop-color="#0d3c66"
+         id="stop1" />
+      <stop
+         offset="100%"
+         stop-color="#062a4f"
+         id="stop2" />
+    </linearGradient>
+    <style
+       id="style2">
+      .bg { fill: url(#bg-gradient); }
+      .letter { fill: #f57c00; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 320px; dominant-baseline: middle; text-anchor: middle; }
+    </style>
+  </defs>
+  <!-- Rounded square background -->
+  <rect
+     class="bg"
+     x="0"
+     y="0"
+     width="512"
+     height="512"
+     rx="96"
+     ry="96"
+     id="rect2" />
+  <!-- "P" rendered as text using Montserrat Bold -->
+  <path
+     d="m 104.45313,-71.484375 q 0,15.625 -5.468755,30.625 -5.46875,14.84375 -15.625,25 -13.90625,13.75 -31.09375,20.78125 -17.03125,7.03125 -42.5,7.03125 h -37.34375 v 75.78125 h -60 V -144.92187 h 98.75 q 22.1875,0 37.34375,3.90625 15.3125,3.75 27.03125,11.40625 14.0625,9.21874 21.40625,23.59374 7.500005,14.375005 7.500005,34.531255 z m -62.031255,1.40625 q 0,-9.84375 -5.3125,-16.875 -5.3125,-7.1875 -12.34375,-10 -9.375,-3.750005 -18.28125,-4.062505 -8.90625,-0.46875 -23.75,-0.46875 h -10.3125 v 69.687505 h 17.1875 q 15.3125,0 25.15625,-1.875 10,-1.875 16.71875,-7.5 5.78125,-5 8.28125,-11.875 2.65625,-7.03125 2.65625,-17.03125 z"
+     class="letter"
+     transform="translate(256 310) scale(1.5)"
+     aria-label="P" />
+</svg>
