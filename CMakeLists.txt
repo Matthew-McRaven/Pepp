@@ -97,6 +97,7 @@ if(PEPP_BUILD_GUI)
     Widgets
     QuickControls2
     Xml
+    Svg
     Sql
     OPTIONAL_COMPONENTS Concurrent)
   qt_policy(SET QTP0003 NEW) # Use BUILD_SHARED_LIBS as the default library type

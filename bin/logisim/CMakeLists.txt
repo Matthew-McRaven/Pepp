@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 
 qt_add_executable(
-  CircuitDesign main.cpp # ui/diagramModel.cpp
+  LogiSim main.cpp # ui/diagramModel.cpp
   # ui/diagramModel.hpp
 )
 
 qt_add_qml_module(
-  CircuitDesign
+  LogiSim
   URI
-  CircuitDesign
+  LogiSim
   VERSION
   1.0
   RESOURCES
@@ -20,8 +20,8 @@ qt_add_qml_module(
   QtQuick)
 
 # must include any subdirectories for classes that use QML_ELEMENT
-target_include_directories(CircuitDesign PRIVATE ui/)
+target_include_directories(LogiSim PRIVATE ui/)
 
-target_link_libraries(CircuitDesign PRIVATE Qt6::Core Qt6::Gui Qt6::Qml
-                                            Qt6::Quick pepp-core)
-set_target_properties(CircuitDesign PROPERTIES FOLDER "qtc_runnable")
+target_link_libraries(LogiSim PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick
+                                      pepp-core)
+set_target_properties(LogiSim PROPERTIES FOLDER "qtc_runnable")
