@@ -5,7 +5,12 @@
 #include <QRect>
 #include <QtQml/qqmlregistration.h> // Required header for QML_ELEMENT
 
+#include "core/math/geom/rectangle.hpp"
+
 #include "diagramtype.hpp"
+using PeppRect = pepp::core::Rectangle<i16>;
+using PeppSize = pepp::core::Size<i16>;
+using PeppPt = pepp::core::Point<i16>;
 
 class DiagramProperty
 {
@@ -71,12 +76,12 @@ public:
     int orientation() const { return _orientation; }
     void setOrientation(const quint32 v);
 
-    QRect rectangle() const { return _rect; }
-    void setRectangle(const QRect v);
-    QRect gridRectangle() const { return _gridRect; }
-    void setGridRectangle(const QRect v);
+    const PeppRect &rectangle() const { return _rect; }
+    void setRectangle(const PeppRect &v);
+    const PeppRect &gridRectangle() const { return _gridRect; }
+    void setGridRectangle(const PeppRect &v);
 
-signals:
+  signals:
     void typeChanged();
     void nameChanged();
     void imageChanged();
@@ -107,7 +112,9 @@ private:
     quint32 _finish{0};
 
     //  Diagram grid dimensions & placement
-    QRect _rect{};
-    QRect _gridRect{};
+    // QRect _rect{};
+    PeppRect _rect{};
+    // QRect _gridRect{};
+    PeppRect _gridRect{};
     QPixmap *_pixMap = nullptr;
 };

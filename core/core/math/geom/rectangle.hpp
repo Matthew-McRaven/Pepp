@@ -40,6 +40,8 @@ template <typename T> struct Rectangle {
     auto min_y = std::min(top_left.y(), bottom_right.y());
     auto max_y = std::max(top_left.y(), bottom_right.y());
     _y = Interval<T>(min_y, max_y);
+    //  Creating directly does not compile. Follow up with Matthew
+    // Rectangle(T x, T y, T width, T height) : _x(x, x + width() - 1), _y(y, y + height() - 1) {}
   }
 
   Rectangle(const Rectangle &) noexcept = default;
@@ -70,6 +72,10 @@ template <typename T> struct Rectangle {
   Point<T> bottom_right() const noexcept { return {_x.upper(), _y.upper()}; };
   const Interval<T> &x() const noexcept { return _x; }
   const Interval<T> &y() const noexcept { return _y; }
+  //  x and y do not return actual points. Discuss with Matthew if we can rename x and y above
+  //  It will have big impact on code.
+  const T xx() const noexcept { return _x.lower(); }
+  const T yy() const noexcept { return _y.lower(); }
 
 private:
   Interval<T> _x, _y;

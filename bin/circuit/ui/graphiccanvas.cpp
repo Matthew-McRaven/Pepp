@@ -293,8 +293,8 @@ void GraphicCanvas::paint(QPainter *painter)
     //qDebug() << "row: " << row << "col:" << col;
 
     //  Offset first cell if first row or column is cut off
-    qreal cX = std::fmod(grid_viewport.x(), major_block_size) * grid_to_px * _currentZoom;
-    qreal cY = std::fmod(grid_viewport.y(), major_block_size) * grid_to_px * _currentZoom;
+    qreal cX = std::fmod(grid_viewport.xx(), major_block_size) * grid_to_px * _currentZoom;
+    qreal cY = std::fmod(grid_viewport.yy(), major_block_size) * grid_to_px * _currentZoom;
 
     QRectF currentBlock{-cX, -cY, screen_block, screen_block};
 
@@ -312,71 +312,70 @@ void GraphicCanvas::paint(QPainter *painter)
     for (const auto props : _model->cells()) {
         //for (const auto &[rect, props] : _rects) {
         // Skip painting rectangles that are outside the viewport.
-        if (grid_viewport.intersects(props->gridRectangle()))
-            paint_one(painter, props->gridRectangle(), *props);
+        if (pepp::core::intersects(grid_viewport, props->gridRectangle()))
+          paint_one(painter, props->gridRectangle(), *props);
     }
     //qDebug() << "grid_viewport: " << grid_viewport;
 }
 
-void GraphicCanvas::paint_one(QPainter *painter, QRect rect, DiagramProperties &props)
-{
-    // Convert our absolute grid coordinates to screen coordinates.
-    // Grid is inset so that selection box appears inside current cell
-    auto screen_rect = grid_to_screen(rect).adjusted(2, 2, -3, -3);
+void GraphicCanvas::paint_one(QPainter *painter, const PeppRect &rect, DiagramProperties &props) {
+  // Convert our absolute grid coordinates to screen coordinates.
+  // Grid is inset so that selection box appears inside current cell
+  auto screen_rect = grid_to_screen(rect).adjusted(2, 2, -3, -3);
 
-    //  Check state, and set outline if selected
-    if (props.selected()) {
-        painter->setPen(QPen(_highlight, 2, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
-        painter->drawRect(screen_rect);
-    }
+  //  Check state, and set outline if selected
+  if (props.selected()) {
+    painter->setPen(QPen(_highlight, 2, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
+    painter->drawRect(screen_rect);
+  }
 
-    //  If image is not null, it can be output
-    if (props.image() == nullptr)
-        //  If image is null, then it's properties were reset, update image
-        getImage(props);
+  //  If image is not null, it can be output
+  if (props.image() == nullptr)
 
-    painter->drawPixmap(screen_rect.toRect(), *props.image());
+    //  If image is null, then it's properties were reset, update image
+    getImage(props);
+
+  painter->drawPixmap(screen_rect.toRect(), *props.image());
 }
 
-DiagramProperties *GraphicCanvas::addDiagram(const int col, const int row)
-{
-    //  Center point may put diagram off of page, return if either index is negative.
-    if (col < 0 || row < 0)
-        return nullptr;
+DiagramProperties *GraphicCanvas::addDiagram(const i16 col, const i16 row) {
+  //  Center point may put diagram off of page, return if either index is negative.
+  if (col < 0 || row < 0) return nullptr;
 
-    //  Create index and check for data
-    const auto newIndex = _model->index(col, row);
-    DiagramProperties *data = _model->createItem(newIndex);
+  //  Create index and check for data
+  const auto newIndex = _model->index(col, row);
+  DiagramProperties *data = _model->createItem(newIndex);
 
-    //  Add block data
-    setGrid(data, col, row);
+  //  Add block data
+  setGrid(data, col, row);
 
-    if (_template != nullptr) {
-        data->setName(_template->name());
-        data->setType(_template->key());
-    }
-    getImage(*data);
+  if (_template != nullptr) {
+    data->setName(_template->name());
+    data->setType(_template->key());
+  }
+  getImage(*data);
 
-    //  Set select flag
-    _model->setData(newIndex, true, DiagramProperty::Role::Selected);
+  //  Set select flag
+  _model->setData(newIndex, true, DiagramProperty::Role::Selected);
 
-    return data;
+  return data;
 }
 
-void GraphicCanvas::setGrid(DiagramProperties *data, const int col, const int row)
-{
-    //  Column and row represents center point, not top left
-    QRect gridRect{minor_block_size * col - major_block_size / 2,
-                   minor_block_size * row - major_block_size / 2,
-                   major_block_size,
-                   major_block_size};
+void GraphicCanvas::setGrid(DiagramProperties *data, const i16 col, const i16 row) {
+  PeppRect rect{PeppPt{static_cast<i16>(col), static_cast<i16>(row)}, PeppSize{2, 2}};
 
-    //  Track dimensions of canvas area. Affects scrollbars
-    _dimensions = _dimensions.united(gridRect);
+  //  Column and row represents center point, not top left
+  PeppRect gridRect{PeppPt{static_cast<i16>(minor_block_size * col - major_block_size / 2 + _margin.left()),
+                           static_cast<i16>(minor_block_size * row - major_block_size / 2 + _margin.top())},
+                    PeppSize{static_cast<i16>(major_block_size - _margin.left() - _margin.right()),
+                             static_cast<i16>(major_block_size - _margin.top() - _margin.bottom())}};
 
-    //  Add block data
-    data->setRectangle({col, row, 2, 2});
-    data->setGridRectangle(gridRect - _margin);
+  //  Track dimensions of canvas area. Affects scrollbars
+  _dimensions = pepp::core::hull(_dimensions, gridRect);
+
+  //  Add block data
+  data->setRectangle(rect);
+  data->setGridRectangle(gridRect);
 }
 
 void GraphicCanvas::getImage(DiagramProperties &props)
@@ -404,47 +403,41 @@ void GraphicCanvas::getImage(DiagramProperties &props)
     props.setImage(image);
 }
 
-QRectF GraphicCanvas::grid_to_screen(QRectF rect)
-{
-    const float offset_x = rect.x() - _top_left.x();
-    const float offset_y = rect.y() - _top_left.y();
-    const float width = rect.width();
-    const float height = rect.height();
+QRectF GraphicCanvas::grid_to_screen(const PeppRect &rect) {
+  const auto x = (rect.xx() - _top_left.x()) * grid_to_px;
+  const auto y = (rect.yy() - _top_left.y()) * grid_to_px;
+  const auto width = rect.width() * grid_to_px;
+  const auto height = rect.height() * grid_to_px;
 
-    return QRectF(offset_x * grid_to_px,
-                  offset_y * grid_to_px,
-                  width * grid_to_px,
-                  height * grid_to_px);
-    //.toRect();
+  return {x, y, width, height};
 }
 
-QRectF GraphicCanvas::screen_to_grid(QRectF rect)
-{
-    const float x = rect.x() / grid_to_px + _top_left.x();
-    const float y = rect.y() / grid_to_px + _top_left.y();
-    const float width = rect.width() / grid_to_px;
-    const float height = rect.height() / grid_to_px;
+PeppRect GraphicCanvas::screen_to_grid(QRectF rect) {
+  const auto x = static_cast<i16>((rect.x() / grid_to_px + _top_left.x()) / _currentZoom);
+  const auto y = static_cast<i16>((rect.y() / grid_to_px + _top_left.y()) / _currentZoom);
+  const auto width = static_cast<i16>(rect.width() / grid_to_px / _currentZoom);
+  const auto height = static_cast<i16>(rect.height() / grid_to_px / _currentZoom);
 
-    return QRectF{x / _currentZoom, y / _currentZoom, width / _currentZoom, height / _currentZoom};
+  return {PeppPt{x, y}, PeppSize{width, height}};
 }
 
-QPoint GraphicCanvas::screen_to_grid(QPointF point)
-{
-    const float x = point.x() / grid_to_px + _top_left.x();
-    const float y = point.y() / grid_to_px + _top_left.y();
+PeppPt GraphicCanvas::screen_to_grid(QPointF point) {
+  const auto x = static_cast<i16>((point.x() / grid_to_px + _top_left.x()) / _currentZoom);
+  const auto y = static_cast<i16>((point.y() / grid_to_px + _top_left.y()) / _currentZoom);
 
-    return QPointF{x / _currentZoom, y / _currentZoom}.toPoint();
+  return {x, y};
 }
 
-const QPoint GraphicCanvas::grid_to_index(const QPoint point) const
-{
-    //  Images are stored by row and column.
-    //  Due to integer math, items closer to next row or column are still in same column/row.
-    //  Calculate rounding difference
-    const int dx = (point.x() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
-    const int dy = (point.y() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
+const PeppPt GraphicCanvas::grid_to_index(const PeppPt &point) const {
+  //  Images are stored by row and column.
+  //  Due to integer math, items closer to next row or column are still in same column/row.
+  //  Calculate rounding difference
+  const i16 dx = (point.x() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
+  const i16 dy = (point.y() % minor_block_size) > (minor_block_size / 2) ? 1 : 0;
+  const i16 x = static_cast<i16>(point.x() / minor_block_size + dx);
+  const i16 y = static_cast<i16>(point.y() / minor_block_size + dy);
 
-    return QPoint{point.x() / minor_block_size + dx, point.y() / minor_block_size + dy};
+  return {x, y};
 }
 
 void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
@@ -455,7 +448,7 @@ void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
     const int y = std::min(from.column(), to.column());
     //  Note, cell has implicit width of 1
     const int height = std::abs(from.row() - to.row()) + 1;
-    const int width = std::abs(from.column() - to.column() + 1);
+    const int width = std::abs(from.column() - to.column()) + 1;
 
     //convert to screen coordinates
     QRectF rect{(x * minor_block_size - major_block_size / 2) * grid_to_px,
@@ -567,58 +560,56 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void GraphicCanvas::mouseLeftClickEvent(QMouseEvent *event, const QPoint index)
-{
-    //  No template is selected, just return
-    if (_template == nullptr) {
-        event->setAccepted(false);
-        return;
-    }
+void GraphicCanvas::mouseLeftClickEvent(QMouseEvent *event, const PeppPt &index) {
+  //  No template is selected, just return
+  if (_template == nullptr) {
+    event->setAccepted(false);
+    return;
+  }
 
-    //  If we get here, we have a new item. Insert into canvas
-    //  Use coordinate as center point
-    DiagramProperties *data = addDiagram(index.x(), index.y());
+  //  If we get here, we have a new item. Insert into canvas
+  //  Use coordinate as center point
+  DiagramProperties *data = addDiagram(index.x(), index.y());
 
-    //  If no data is returned, the column is invalid. Assume parent will handle
-    event->setAccepted(data != nullptr ? true : false);
+  //  If no data is returned, the column is invalid. Assume parent will handle
+  event->setAccepted(data != nullptr ? true : false);
 }
 
-bool GraphicCanvas::setSelected(const QPoint point)
-{
-    bool found{false};
+bool GraphicCanvas::setSelected(const PeppPt &point) {
+  bool found{false};
 
-    //  See if existing item was clicked and clear selection
-    for (const auto props : _model->cells()) {
-        // Skip painting rectangles that are outside the viewport.
-        if (!props->gridRectangle().contains(point)) {
-            if (props->selected()) {
-                //  Item was previously selected, clear old outline
-                //  Set through datamodel so that other controls see change
-                const auto index = _model->index(props->rectangle().x(), props->rectangle().y());
-                _model->setData(index, false, DiagramProperty::Role::Selected);
+  //  See if existing item was clicked and clear selection
+  for (const auto props : _model->cells()) {
+    // Skip painting rectangles that are outside the viewport.
+    if (!pepp::core::contains(props->gridRectangle(), point)) {
+      if (props->selected()) {
+        //  Item was previously selected, clear old outline
+        //  Set through datamodel so that other controls see change
+        const auto index = _model->index(props->rectangle().xx(), props->rectangle().yy());
+        _model->setData(index, false, DiagramProperty::Role::Selected);
 
-                //  Update unselected rectangle
-                update();
-            }
-            continue;
-        }
-
-        //  Item exists and is selected, update view
-        //  Save current item for other actions
-        //  Set through view so that other controls see change
-        _currentItem = props;
-        const auto index = _model->index(props->rectangle().x(), props->rectangle().y());
-        _model->setData(index, true, DiagramProperty::Role::Selected);
-
-        //  Update current rectangle
+        //  Update unselected rectangle
         update();
-
-        found = true;
-
-        //  Let QML know that current item has changed.
-        emit currentItemChanged();
+      }
+      continue;
     }
-    return found;
+
+    //  Item exists and is selected, update view
+    //  Save current item for other actions
+    //  Set through view so that other controls see change
+    _currentItem = props;
+    const auto index = _model->index(props->rectangle().xx(), props->rectangle().yy());
+    _model->setData(index, true, DiagramProperty::Role::Selected);
+
+    //  Update current rectangle
+    update();
+
+    found = true;
+
+    //  Let QML know that current item has changed.
+    emit currentItemChanged();
+  }
+  return found;
 }
 
 void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event)
@@ -766,7 +757,7 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
         QByteArray itemData = event->mimeData()->data("application/x-dnditemdata");
         QDataStream dataStream(&itemData, QIODevice::ReadOnly);
 
-        qint32 oldX, oldY;
+        i16 oldX, oldY;
         dataStream >> oldX >> oldY;
 
         //  Mouse location in grid coordinates to
@@ -808,7 +799,7 @@ void GraphicCanvas::startDrag(const QPoint point)
     QByteArray itemData;
     QDataStream dataStream(&itemData, QIODevice::WriteOnly);
 
-    dataStream << _currentItem->rectangle().x() << _currentItem->rectangle().y();
+    dataStream << _currentItem->rectangle().xx() << _currentItem->rectangle().yy();
 
     QMimeData *mimeData = new QMimeData;
     mimeData->setData("application/x-dnditemdata", itemData);

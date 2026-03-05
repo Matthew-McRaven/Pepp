@@ -29,7 +29,9 @@ QVariant DiagramProperties::get(int role) const
     case DiagramProperty::Role::Orientation:
         return orientation();
     case DiagramProperty::Role::Rectangle:
-        return rectangle();
+      const int x = _rect.x().lower();
+      const int y = _rect.y().lower();
+      return QRect(x, y, _rect.width(), _rect.height());
     }
 
     //  Not found
@@ -61,8 +63,12 @@ void DiagramProperties::set(int role, const QVariant &data)
         setOrientation(data.toInt());
         break;
     case DiagramProperty::Role::Rectangle:
-        setRectangle(data.toRect());
-        break;
+      auto oldRect = data.toRect();
+      PeppPt pt{static_cast<i16>(oldRect.x()), static_cast<i16>(oldRect.y())};
+      PeppSize size{static_cast<i16>(oldRect.width()), static_cast<i16>(oldRect.height())};
+      PeppRect rect(pt, size);
+      setRectangle(rect);
+      break;
     }
 }
 
@@ -138,20 +144,18 @@ void DiagramProperties::setOrientation(const quint32 v)
     }
 }
 
-void DiagramProperties::setRectangle(const QRect v)
-{
-    if (_rect != v) {
-        _rect = v;
-        emit dimensionsChanged();
-    }
+void DiagramProperties::setRectangle(const PeppRect &v) {
+  if (_rect != v) {
+    _rect = v;
+    emit dimensionsChanged();
+  }
 }
 
-void DiagramProperties::setGridRectangle(const QRect v)
-{
-    if (_gridRect != v) {
-        _gridRect = v;
-        emit dimensionsChanged();
-    }
+void DiagramProperties::setGridRectangle(const PeppRect &v) {
+  if (_gridRect != v) {
+    _gridRect = v;
+    emit dimensionsChanged();
+  }
 }
 
 void DiagramProperties::setImage(QPixmap *v)

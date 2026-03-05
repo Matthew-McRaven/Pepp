@@ -10,6 +10,19 @@
 #include "core/math/geom/rectangle.hpp"
 #include "core/math/geom/spatial_map.hpp"
 
+/*  Rectangle questions
+ * 1. Why can we not construct rectangle with x, y, width height? We need to
+ *    create intermediate classes on every construction.
+ * 2. Why are rectangles, points, and size non-changeable? We can store as const so that
+ *    items in spatial map do not change. I cannot use these items outside of the
+ *    spatial map since I have to reconstruct objects everytime there is a data change.
+ * 3. Do I need to change all of my data structures in DiagramProperty to Pepp types?
+ */
+
+using PeppRect = pepp::core::Rectangle<i16>;
+using PeppSize = pepp::core::Size<i16>;
+using PeppPt = pepp::core::Point<i16>;
+
 class DiagramDataModel;
 
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
@@ -102,19 +115,19 @@ private:
 
     //  Custom mouse event handlers
     void contextMenuEvent(QMouseEvent *event);
-    void mouseLeftClickEvent(QMouseEvent *event, const QPoint index);
+    void mouseLeftClickEvent(QMouseEvent *event, const PeppPt &index);
 
     // Helepr for painting a single rect that has already "passed" the clipping test.
-    void paint_one(QPainter *painter, QRect rect, DiagramProperties &props);
-    QRectF grid_to_screen(QRectF rect);
-    QRectF screen_to_grid(QRectF rect);
-    QPoint screen_to_grid(QPointF point);
-    const QPoint grid_to_index(const QPoint point) const;
+    void paint_one(QPainter *painter, const PeppRect &rect, DiagramProperties &props);
+    QRectF grid_to_screen(const PeppRect &rect);
+    PeppRect screen_to_grid(QRectF rect);
+    PeppPt screen_to_grid(QPointF point);
+    const PeppPt grid_to_index(const PeppPt &point) const;
 
     void setZoom(qint8 change);
 
     //  Sets currently selected diagram
-    bool setSelected(const QPoint);
+    bool setSelected(const PeppPt &point);
 
     //  Render and cache images for painting
     void cacheImages(const QString &source);
@@ -126,8 +139,8 @@ private:
     void updateData();
 
     //  Add diagram, and center in cell
-    DiagramProperties *addDiagram(const int row, const int col);
-    void setGrid(DiagramProperties *data, const int col, const int row);
+    DiagramProperties *addDiagram(const i16 row, const i16 col);
+    void setGrid(DiagramProperties *data, const i16 col, const i16 row);
 
     //  Respond to data changes in model
     void updateCell(const QModelIndex &from, const QModelIndex &to);
@@ -143,8 +156,8 @@ private:
     qreal _currentZoom = 1.0;
 
     //  Grid dimensions (logical size, screen size is this times grid_to_px
-    const int minor_block_size = 8;
-    const int major_block_size = minor_block_size * 4;
+    const i16 minor_block_size = 8;
+    const i16 major_block_size = minor_block_size * 4;
     const float screen_block = major_block_size * grid_to_px;
     QMargins _margin{4, 4, 4, 4};
 
@@ -155,8 +168,8 @@ private:
     QList<QPixmap> _svgsTop;
 
     // Top-left corner of the viewport in grid coordinates
-    pepp::core::Point<i16> _top_left;
-    QRectF _dimensions{0, 0, 16.0, 16.0};
+    PeppPt _top_left;
+    PeppRect _dimensions;
 
     //  Background is saved in screen coordinates since there is no hit testing
     QPixmap _background{major_block_size * 8, major_block_size * 8};
