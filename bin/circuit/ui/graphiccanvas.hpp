@@ -7,6 +7,9 @@
 #include "diagramlistmodel.hpp"
 #include "diagramproperty.hpp"
 
+#include "core/math/geom/rectangle.hpp"
+#include "core/math/geom/spatial_map.hpp"
+
 class DiagramDataModel;
 
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
@@ -152,7 +155,7 @@ private:
     QList<QPixmap> _svgsTop;
 
     // Top-left corner of the viewport in grid coordinates
-    QPointF _top_left{};
+    pepp::core::Point<i16> _top_left;
     QRectF _dimensions{0, 0, 16.0, 16.0};
 
     //  Background is saved in screen coordinates since there is no hit testing
