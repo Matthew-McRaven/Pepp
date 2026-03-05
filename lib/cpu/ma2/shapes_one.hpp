@@ -173,8 +173,10 @@ const Arrow sel_a = Arrow(
                      << QLine(poly_regbank.right() + arrowHDepth + 6, ext_sel_a.y() + selectYOffset - selectSlashOffset,
                               poly_regbank.right() + arrowHDepth + 16,
                               ext_sel_a.y() + selectYOffset + selectSlashOffset));
+
 const Arrow ck_mar = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(232, 155), UP} << Arrowhead{QPoint(232, 191), DOWN},
                            QVector<QLine>() << QLine(ctrlInputX - 7, 177, 235, 177) << QLine(235, 163, 235, 191));
+const QPointF ck_mar_junction = QPointF(235, 177);
 const Arrow ck_mdr = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(207, 241), DOWN},
                            QVector<QLine>() << QLine(ctrlInputX - 7, 233, 210, 233) << QLine(210, 233, 210, 241));
 const Arrow sel_muxa = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(380, 300)},
@@ -421,6 +423,7 @@ const Arrow logic_c_to_nzvc =
           QVector<QLine>() << QLine(487, 482, 487, 486) << QLine(330, 486, 322, 486) << QLine(330, 486, 487, 486));
 const Arrow logic_c_to_csmux =
     Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(431, 421), UP}, QVector<QLine>() << QLine(434, 426, 434, 486));
+const QPointF logic_c_to_csmux_junction = QPointF(434, 486);
 const Arrow logic_cin = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(428, 386)},
                               QVector<QLine>() << QLine(461, 389, 433, 389) << QLine(461, 399, 461, 389));
 const Arrow logic_s_to_csmux =
@@ -439,7 +442,9 @@ const Arrow logic_v_to_nzvc = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(314
 const Arrow logic_n_to_nzvc = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(314, 514)},
                                     QVector<QLine>() << QLine(487, 605, 487, 609) << QLine(487, 609, 330, 609)
                                                      << QLine(330, 609, 330, 517) << QLine(330, 517, 322, 517));
-
+const QPointF logic_s_junction =
+    QPointF(poly_alu.boundingRect().left() + aluSelOff + selLineOff * 3, reg_bit_s.y() + selectYOffset);
+const QPointF logic_andz_junction = QPointF(437, 582);
 const Arrow logic_andz_to_z = Arrow(
     QVector<Arrowhead>() << Arrowhead{QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2,
                                              mux_andz.top() - selectYOffset - 3),
@@ -455,6 +460,7 @@ const Arrow logic_andz_to_z = Arrow(
         // Line from ANDZ circuit to Z bit.
         << QLine(mux_andz.right(), mux_andz.y() + mux_andz.height() / 2, reg_bit_z.left() - arrowHOffset,
                  mux_andz.y() + mux_andz.height() / 2));
+const QPointF ck_memwrite_junction = QPointF(bus_data.right() + arrowHOffset * 8, ext_sel_memwrite.y() + selectYOffset);
 const Arrow ck_memwrite_to_mdr =
     Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(bus_data.right() + arrowHOffset * 8 - 3, reg_byte_mdr.bottom()), UP},
           QVector<QLine>() << QLine(bus_data.right() + arrowHOffset * 8, ext_sel_memwrite.y() + selectYOffset,

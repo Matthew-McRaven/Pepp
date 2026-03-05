@@ -168,6 +168,8 @@ const Arrow ck_mar =
               // The vertical line intersecting MAR,MARB should be roughly 5/7 of the way down the circuits.
               << QLine(combCircX + 5 * dataLabelW / 7 + 10, combCircY + dataLabelH + 3,
                        combCircX + 5 * dataLabelW / 7 + 10, combCircY + MARAOffsetFromMARB - 3));
+const QPointF ck_mar_junction =
+    QPointF(combCircX + 5 * dataLabelW / 7 + 10, combCircY + MARAOffsetFromMARB - dataLabelH);
 // MARMux output busses
 const QPolygon bux_marmux_to_mara = QPolygon(
     QVector<QPoint>() << QPoint(mux_marmux.x(),
@@ -696,12 +698,15 @@ const Arrow ck_n = Arrow(QVector<Arrowhead>()
 const QLine poly_nzvc_join = QLine(OneByteShapes::poly_nzvc_join).translated(controlOffsetX, aluOffsetY);
 const Arrow logic_c_to_nzvc = OneByteShapes::logic_c_to_nzvc.translated(controlOffsetX, aluOffsetY);
 const Arrow logic_c_to_csmux = OneByteShapes::logic_c_to_csmux.translated(controlOffsetX, aluOffsetY);
+const QPointF logic_c_to_csmux_junction =
+    OneByteShapes::logic_c_to_csmux_junction + QPointF(controlOffsetX, aluOffsetY);
 const Arrow logic_cin = OneByteShapes::logic_cin.translated(controlOffsetX, aluOffsetY);
 const Arrow logic_s_to_csmux = OneByteShapes::logic_s_to_csmux.translated(controlOffsetX, aluOffsetY);
 const Arrow logic_z_to_nzvc = OneByteShapes::logic_z_to_nzvc.translated(controlOffsetX, aluOffsetY);
 const Arrow logic_v_to_nzvc = OneByteShapes::logic_v_to_nzvc.translated(controlOffsetX, aluOffsetY);
 const Arrow logic_n_to_nzvc = OneByteShapes::logic_n_to_nzvc.translated(controlOffsetX, aluOffsetY);
-
+const QPointF logic_s_junction = OneByteShapes::logic_s_junction + QPointF(controlOffsetX, aluOffsetY);
+const QPointF logic_andz_junction = OneByteShapes::logic_andz_junction + QPointF(controlOffsetX, aluOffsetY);
 const Arrow logic_andz_to_z = Arrow(
     QVector<Arrowhead>() << Arrowhead{QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2,
                                              mux_andz.top() - selectYOffset - 2),
@@ -717,6 +722,7 @@ const Arrow logic_andz_to_z = Arrow(
         // Line from ANDZ circuit to Z bit.
         << QLine(mux_andz.right(), mux_andz.y() + mux_andz.height() / 2, reg_bit_z.left() - arrowHOffset,
                  mux_andz.y() + mux_andz.height() / 2));
+const QPointF ck_memwrite_junction = QPointF(bus_data.right() + arrowHOffset * 4, ext_sel_memwrite.y() + selectYOffset);
 const Arrow ck_memwrite_to_mdr = Arrow(
     QVector<Arrowhead>() << Arrowhead{QPoint(bus_data.right() + arrowHOffset * 4 - 3, reg_byte_mdre.bottom()), UP}
                          << Arrowhead{QPoint(bus_data.right() + arrowHOffset * 4 - 3, reg_byte_mdro.bottom()), UP},
