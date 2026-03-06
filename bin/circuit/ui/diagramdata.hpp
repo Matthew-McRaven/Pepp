@@ -1,24 +1,24 @@
 #pragma once
 
 #include <list>
+#include <map>
 
 #include <QMap>
 
+#include "core/math/geom/spatial_map.hpp"
 #include "diagramkey.hpp"
 #include "diagramproperty.hpp"
 
-class DiagramData //: QObject
-{
-  // Q_OBJECT
-
+class DiagramData {
   //  Container for iteration
   std::list<DiagramProperties> _data;
 
   //  Map to data based on table location (DiagramKey)
   QMap<DiagramKey, DiagramProperties *> _cells;
+  pepp::core::SpatialMap _spatial_map;
 
   //  Map unique diagram id to table key (location)
-  QMap<quint32, DiagramKey> _keys;
+  std::map<quint32, DiagramKey> _keys;
 
 public:
     DiagramData();
