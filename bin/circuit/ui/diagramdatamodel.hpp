@@ -31,8 +31,10 @@ public:
         OutputNo,
     };
 
-    QList<DiagramProperties *> &cells() { return _data.cells(); }
-    const QList<DiagramProperties *> &cells() const { return _data.cells(); }
+    DiagramData &dataModel() { return _data; }
+    const DiagramData &dataModel() const { return _data; }
+    // QList<DiagramProperties *> &cells() { return _data.cells(); }
+    // const QList<DiagramProperties *> &cells() const { return _data.cells(); }
 
     explicit DiagramDataModel(QObject *parent = nullptr);
 

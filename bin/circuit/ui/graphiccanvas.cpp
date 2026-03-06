@@ -309,11 +309,11 @@ void GraphicCanvas::paint(QPainter *painter)
     }
 
     //  Diagrams are painted on minor grid axis
-    for (const auto props : _model->cells()) {
-        //for (const auto &[rect, props] : _rects) {
-        // Skip painting rectangles that are outside the viewport.
-        if (pepp::core::intersects(grid_viewport, props->gridRectangle()))
-          paint_one(painter, props->gridRectangle(), *props);
+    for (auto &props : _model->dataModel().cells()) {
+      // for (const auto &[rect, props] : _rects) {
+      //  Skip painting rectangles that are outside the viewport.
+      if (pepp::core::intersects(grid_viewport, props.gridRectangle()))
+        paint_one(painter, props.gridRectangle(), props);
     }
     //qDebug() << "grid_viewport: " << grid_viewport;
 }
@@ -579,13 +579,13 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
   bool found{false};
 
   //  See if existing item was clicked and clear selection
-  for (const auto props : _model->cells()) {
+  for (auto &props : _model->dataModel().cells()) {
     // Skip painting rectangles that are outside the viewport.
-    if (!pepp::core::contains(props->gridRectangle(), point)) {
-      if (props->selected()) {
+    if (!pepp::core::contains(props.gridRectangle(), point)) {
+      if (props.selected()) {
         //  Item was previously selected, clear old outline
         //  Set through datamodel so that other controls see change
-        const auto index = _model->index(props->rectangle().xx(), props->rectangle().yy());
+        const auto index = _model->index(props.rectangle().xx(), props.rectangle().yy());
         _model->setData(index, false, DiagramProperty::Role::Selected);
 
         //  Update unselected rectangle
@@ -597,8 +597,8 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
     //  Item exists and is selected, update view
     //  Save current item for other actions
     //  Set through view so that other controls see change
-    _currentItem = props;
-    const auto index = _model->index(props->rectangle().xx(), props->rectangle().yy());
+    _currentItem = &props;
+    const auto index = _model->index(props.rectangle().xx(), props.rectangle().yy());
     _model->setData(index, true, DiagramProperty::Role::Selected);
 
     //  Update current rectangle

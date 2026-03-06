@@ -1,29 +1,30 @@
 #pragma once
 
+#include <list>
+
 #include <QMap>
 
 #include "diagramkey.hpp"
 #include "diagramproperty.hpp"
 
-class DiagramData : QObject
+class DiagramData //: QObject
 {
-    Q_OBJECT
+  // Q_OBJECT
 
-    //  Container for iteration
-    QList<DiagramProperties *> _data;
+  //  Container for iteration
+  std::list<DiagramProperties> _data;
 
-    //  Map to data based on table location (DiagramKey)
-    QMap<DiagramKey, DiagramProperties *> _cells;
+  //  Map to data based on table location (DiagramKey)
+  QMap<DiagramKey, DiagramProperties *> _cells;
 
-    //  Map unique diagram id to table key (location)
-    QMap<quint32, DiagramKey> _keys;
-
+  //  Map unique diagram id to table key (location)
+  QMap<quint32, DiagramKey> _keys;
 
 public:
     DiagramData();
 
-    QList<DiagramProperties *> &cells() { return _data; }
-    const QList<DiagramProperties *> &cells() const { return _data; }
+    std::list<DiagramProperties> &cells() { return _data; }
+    const std::list<DiagramProperties> &cells() const { return _data; }
 
     //  Get access to specific property
     DiagramProperties *getDiagramProps(const DiagramKey &key);

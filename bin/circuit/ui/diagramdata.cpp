@@ -68,17 +68,17 @@ DiagramProperties *DiagramData::createDiagramProps(const DiagramKey &key)
         return cell;
 
     //  Doesn't exist, create now
-    cell = new DiagramProperties(this);
+    // cell = new DiagramProperties();
 
     //  Any error creating?
-    if (cell == nullptr)
-        return nullptr;
+    // if (cell == nullptr)
+    //    return nullptr;
 
-    _data.append(cell);
-    _cells.insert(key, cell);
-    _keys.insert(cell->id(), key);
+    auto &ref = _data.emplace_back();
+    _cells.insert(key, &ref);
+    _keys.insert(ref.id(), key);
 
-    return cell;
+    return &ref;
 }
 
 bool DiagramData::clearData(const DiagramKey &key)
