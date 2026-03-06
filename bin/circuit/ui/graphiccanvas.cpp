@@ -365,10 +365,10 @@ void GraphicCanvas::setGrid(DiagramProperties *data, const i16 col, const i16 ro
   PeppRect rect{PeppPt{static_cast<i16>(col), static_cast<i16>(row)}, PeppSize{2, 2}};
 
   //  Column and row represents center point, not top left
-  PeppRect gridRect{PeppPt{static_cast<i16>(minor_block_size * col - major_block_size / 2 + _margin.left()),
-                           static_cast<i16>(minor_block_size * row - major_block_size / 2 + _margin.top())},
-                    PeppSize{static_cast<i16>(major_block_size - _margin.left() - _margin.right()),
-                             static_cast<i16>(major_block_size - _margin.top() - _margin.bottom())}};
+  PeppRect gridRect{
+      PeppPt{static_cast<i16>(minor_block_size * col - major_block_size / 2 + _margin),
+             static_cast<i16>(minor_block_size * row - major_block_size / 2 + _margin)},
+      PeppSize{static_cast<i16>(major_block_size - _margin * 2), static_cast<i16>(major_block_size - _margin * 2)}};
 
   //  Track dimensions of canvas area. Affects scrollbars
   _dimensions = pepp::core::hull(_dimensions, gridRect);
@@ -807,7 +807,7 @@ void GraphicCanvas::startDrag(const QPoint point)
 
     //  Size image based on current zoom and screen DPI. Margin is in grid coordinates, and
     //  there are 2 equal margins.
-    const auto curSize = (screen_block - (_margin.left() * grid_to_px * 2)) * _currentZoom;
+    const auto curSize = (screen_block - (_margin * grid_to_px * 2)) * _currentZoom;
     auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
     drag->setPixmap(dragPix);
 

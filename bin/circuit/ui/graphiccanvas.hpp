@@ -159,7 +159,7 @@ private:
     const i16 minor_block_size = 8;
     const i16 major_block_size = minor_block_size * 4;
     const float screen_block = major_block_size * grid_to_px;
-    QMargins _margin{4, 4, 4, 4};
+    const i16 _margin = 4;
 
     //  Cached images
     QList<QPixmap> _svgs;
@@ -188,4 +188,7 @@ private:
     DiagramDataModel *_model = nullptr;
     DiagramTemplate *_template = nullptr;
     DiagramProperties *_currentItem = nullptr;
+
+    // Special hit map class
+    pepp::core::SpatialMap _spatial_map;
 };
