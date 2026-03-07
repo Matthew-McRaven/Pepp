@@ -1,7 +1,7 @@
 {
   "version": 2,
   "type": "problem",
-  "name": "12:35g",
+  "name": "11:35g",
   "arch": "pep10",
   "abstraction": "MA2",
   "tests": [
@@ -13,7 +13,8 @@
       "format": "pepcpu2",
       "from": {
         "file": "{ch}{fig}.pepcpu"
-      }
+      },
+      "isDefault": true
     }
   ]
 }

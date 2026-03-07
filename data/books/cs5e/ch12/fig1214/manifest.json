@@ -6,7 +6,9 @@
   "abstraction": "MA2",
   "features": "OneByte",
   "tests": [
-    "test0", "test1", "test2"
+    "test0",
+    "test1",
+    "test2"
   ],
   "fragments": [
     {
