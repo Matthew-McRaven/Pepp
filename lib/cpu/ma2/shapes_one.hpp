@@ -114,11 +114,13 @@ const QRect reg_byte_marb = QRect(interfaceRegsX, 132, dataLabelW, dataLabelH);
 const QRect reg_byte_mara = QRect(interfaceRegsX, 202, dataLabelW, dataLabelH);
 const QRect ext_ck_mdr = QRect(ctrlInputX, 225, check2W, check2H);
 
+const QRect ext_sel_mux_a = QRect(ctrlInputX, 295, labelTriW, 21);
+const QRect mux_a = QRect(306, 293, dataLabelW, dataLabelH);
+
+const QRect ext_sel_mux_mdr = QRect(ctrlInputX, 316, labelTriW, labelTriH);
 const QRect mux_mdr = QRect(interfaceRegsX, 293, dataLabelW, dataLabelH);
 const QRect reg_byte_mdr = QRect(interfaceRegsX, 254, dataLabelW, dataLabelH);
 
-const QRect ext_sel_mux_a = QRect(ctrlInputX, 295, labelTriW, 21);
-const QRect mux_a = QRect(306, 293, dataLabelW, dataLabelH);
 const QRect ext_sel_mux_c = QRect(ctrlInputX, 348, labelTriW, labelTriH);
 const QRect mux_c = QRect(250, 374, dataLabelW, dataLabelH);
 const QRect ext_sel_alu = QRect(ctrlInputX, 368, 26, lineEditH);
@@ -181,6 +183,12 @@ const Arrow ck_mdr = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(207, 241), D
                            QVector<QLine>() << QLine(ctrlInputX - 7, 233, 210, 233) << QLine(210, 233, 210, 241));
 const Arrow sel_muxa = Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(380, 300)},
                              QVector<QLine>() << QLine(ctrlInputX - 7, 303, 388, 303));
+const Arrow sel_muxmdr =
+    Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(249, 300), LEFT},
+          QVector<QLine>() << QLine(257, 303, 265, 303)
+                           << QLine(265, 303, 265, 324)
+                           //<< QLine(265, 324, 279, 324) << QLine(291, 324, 335, 324) << QLine(347, 324, 416, 324)
+                           << QLine(265, 324, OneByteShapes::CommonPositions::ctrlInputX - 7, 324));
 const QPolygon bus_amux_to_alu =
     QPolygon(QVector<QPoint>() << QPoint(336, 312) << QPoint(336, 331) << QPoint(331, 331) << QPoint(341, 341)
                                << QPoint(351, 331) << QPoint(346, 331) << QPoint(346, 312));
