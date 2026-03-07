@@ -92,8 +92,7 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(L{.geom = sel_muxcs, .connection = C::Sel_Mux_CS});
   _geom.emplace_back(A{.geom = sel_muxa, .connection = C::Sel_Mux_A});
   _geom.emplace_back(A{.geom = sel_muxc, .connection = C::Sel_Mux_C});
-  // TODO: where is MDR mux select?
-  //_geom.emplace_back(A{.geom = sel_muxmdr, .connection = C::Sel_Mux_MDR});
+  _geom.emplace_back(A{.geom = sel_muxmdr, .connection = C::Sel_Mux_MDR});
   _geom.emplace_back(A{.geom = sel_c, .connection = C::Sel_C});
   _geom.emplace_back(A{.geom = sel_b, .connection = C::Sel_B});
   _geom.emplace_back(A{.geom = sel_a, .connection = C::Sel_A});
@@ -401,6 +400,7 @@ QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, flo
   add_clock(parent, ret, "MARCk", ext_ck_mar, x_offset, y_offset);
   add_clock(parent, ret, "MDRCk", ext_ck_mdr, x_offset, y_offset);
   add_tristate(parent, ret, "AMux", ext_sel_mux_a, 1, x_offset, y_offset);
+  add_tristate(parent, ret, "MDRMux", ext_sel_mux_mdr, 1, x_offset, y_offset);
   add_tristate(parent, ret, "CMux", ext_sel_mux_c, 1, x_offset, y_offset);
   add_tristate(parent, ret, "ALU", ext_sel_alu, 15, x_offset, y_offset);
   add_tristate(parent, ret, "CSMux", ext_sel_mux_cs, 1, x_offset, y_offset);
