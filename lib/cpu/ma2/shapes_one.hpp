@@ -323,6 +323,10 @@ const QPolygon bus_addr_to_ddr = QPolygon(QVector<QPoint>()
                                           << QPoint(18, 350)
                                           // blunt end at the bus:
                                           << QPoint(40, 350) << QPoint(40, 330));
+const QPolygon bus_data_to_ddr = QPolygon(
+    QVector<QPoint>() << QPoint(13, 365) << QPoint(13, 360) << QPoint(3, 370) << QPoint(13, 380) << QPoint(13, 375) <<
+    // Left arrowhead
+    QPoint(29, 375) << QPoint(29, 380) << QPoint(39, 370) << QPoint(29, 360) << QPoint(29, 365));
 
 const QPolygon bus_data_to_mdrmux = QPolygon(QVector<QPoint>()
                                              // foot:
