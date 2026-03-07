@@ -13,8 +13,9 @@ void DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newInd
     if (oldIndex == newIndex)
         return;
 
-    DiagramKey oldKey{oldIndex.row(), oldIndex.column()};
-    DiagramKey newKey{newIndex.row(), newIndex.column()};
+    //  This saves us from casting in PeppPt constructor
+    const auto oldKey(convertIndex(oldIndex));
+    const auto newKey(convertIndex(newIndex));
 
     //  Cell is moving, get data
     _data.moveData(oldKey, newKey);
@@ -46,9 +47,10 @@ bool DiagramDataModel::clearItemData(const QModelIndex &index)
 {
     if (!index.isValid())
         return false;
-    if (_data.clearData(DiagramKey{index.row(), index.column()})) {
-        emit dataChanged(index, index);
-        return true;
+
+    if (_data.clearData(convertIndex(index))) {
+      emit dataChanged(index, index);
+      return true;
     }
     return false;
 }
@@ -71,7 +73,7 @@ DiagramProperties *DiagramDataModel::item(const QModelIndex &index)
     if (!index.isValid())
         return nullptr;
 
-    auto data = _data.getDiagramProps(DiagramKey{index.row(), index.column()});
+    auto data = _data.getDiagramProps(convertIndex(index));
     return data;
 }
 
@@ -80,7 +82,7 @@ DiagramProperties *DiagramDataModel::createItem(const QModelIndex &index)
     if (!index.isValid())
         return nullptr;
 
-    auto data = _data.createDiagramProps(DiagramKey{index.row(), index.column()});
+    auto data = _data.createDiagramProps(convertIndex(index));
     emit dataChanged(index, index);
     return data;
 }
@@ -116,30 +118,27 @@ QVariant DiagramDataModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return {};
 
-    const auto row = index.row();
-    const auto col = index.column();
-
-    return _data.getData(DiagramKey{row, col}, role);
+    const auto *item = _data.getDiagramProps(convertIndex(index));
+    return item->get(role);
 }
 
 bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (!index.isValid())
-        return {};
+  if (!index.isValid()) return false;
 
-    const int row = index.row();
-    const int col = index.column();
+  //  Set currently selected if value is true
+  if (role == DiagramProperty::Role::Selected && value.toBool()) {
+    setCurrentIndex(index);
+    emit dataChanged(index, index);
+  }
 
-    //  Set currently selected if value is true
-    if (role == DiagramProperty::Role::Selected && value.toBool()) {
-        setCurrentIndex(index);
-        emit dataChanged(index, index);
-    }
+  auto *item = _data.getDiagramProps(convertIndex(index));
+  if (item == nullptr) return false;
 
-    if (_data.setData(DiagramKey{row, col}, value, role))
-        emit dataChanged(index, index);
+  item->set(role, value);
+  emit dataChanged(index, index);
 
-    return true;
+  return true;
 }
 
 Qt::ItemFlags DiagramDataModel::flags(const QModelIndex &index) const

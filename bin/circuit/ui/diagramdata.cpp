@@ -5,133 +5,77 @@
 
 DiagramData::DiagramData() {}
 
-bool DiagramData::empty() const
-{
-    return _keys.empty();
+bool DiagramData::empty() const { return _data.empty(); }
+
+const DiagramProperties *DiagramData::getDiagramProps(const PeppPt &point) const {
+  auto id = _spatial_map.at(PeppKey(point));
+
+  if (!id.has_value()) return nullptr;
+
+  auto data = _cells.find(id.value());
+  if (data == _cells.end()) return nullptr;
+
+  return data->second;
 }
 
-QVariant DiagramData::getData(int id, int role) const
-{
-    auto it_key = _keys.find(id);
-    if (it_key == _keys.end())
-        return {};
-    const DiagramKey &key = it_key->second;
-    auto it_cell = _cells.find(key);
-    if (it_cell == _cells.end())
-        return {};
-    return it_cell.value()->get(role);
+DiagramProperties *DiagramData::getDiagramProps(const PeppPt &point) {
+  //  This function isn't working. Known items are not returned
+  auto id = _spatial_map.at(PeppKey(point));
+
+  if (!id.has_value()) return nullptr;
+
+  auto data = _cells.find(id.value());
+  if (data == _cells.end()) return nullptr;
+
+  return data->second;
 }
 
-QVariant DiagramData::getData(const DiagramKey &key, int role) const
-{
-    auto it = _cells.find(key);
-    return it == _cells.end() ? QVariant{} : it.value()->get(role);
+DiagramProperties *DiagramData::createDiagramProps(const PeppPt &point, const PeppSize &size) {
+  //  See if something already exists at this location
+  DiagramProperties *cell = getDiagramProps(point);
+  if (cell != nullptr) return cell;
+
+  //  Doesn't exist, create now
+  auto &data = _data.emplace_back();
+
+  //  point and size to rectangle
+  PeppRect key{point, size};
+  auto id = _spatial_map.try_add(key);
+
+  _cells.insert({id.value(), &data});
+
+  return &data;
 }
 
-bool DiagramData::setData(const DiagramKey &key, const QVariant &value, int role)
-{
-    // See if data already exists, and update
-    if (auto it = _cells.find(key); it != _cells.end()) {
-      it.value()->set(role, value);
+bool DiagramData::clearData(const PeppPt &point) {
+  // auto it = std::find_if(_keys.cbegin(), _keys.cend(),
+  //                        [&key](const std::pair<quint32, PeppKey> &pair) { return pair.second == key; });
+  // if (it == _keys.cend()) return false;
+  //_keys.erase(it);
+  auto id = _spatial_map.remove(point);
+  if (!id.has_value()) return false;
 
-    } else {
-        //  If new item, but value is empty, just return.
-        if (value.isNull())
-            return false;
+  _cells.erase(id.value());
 
-        //  New cell, create data structure
-        DiagramProperties *cell = createDiagramProps(key);
-
-        if (cell == nullptr)
-            return false;
-
-        cell->set(role, value);
-    }
-
-    return true;
+  //  TODO: Need to remove from _data.
+  return true;
 }
 
-DiagramProperties *DiagramData::getDiagramProps(const DiagramKey &key)
-{
-    auto it_cell = _cells.find(key);
-    if (it_cell == _cells.end())
-        return nullptr;
+void DiagramData::moveData(const PeppPt &oldKey, const PeppPt &newKey) {
+  auto id = _spatial_map.at(PeppKey(oldKey));
+  //  Nothing located at old location, just return
+  if (!id.has_value()) return;
 
-    return it_cell.value();
-}
+  //  Erase old data
+  _spatial_map.remove(id.value());
 
-DiagramProperties *DiagramData::createDiagramProps(const DiagramKey &key)
-{
-    //  See if something already exists at this location
-    DiagramProperties *cell = getDiagramProps(key);
-    if (cell != nullptr)
-        return cell;
+  auto *cell = getDiagramProps(oldKey);
+  if (cell == nullptr) return;
+  _cells.erase(id.value());
 
-    //  Doesn't exist, create now
-    // cell = new DiagramProperties();
+  //  Move cell into new location
+  PeppRect key{newKey};
+  id = _spatial_map.try_add(key);
 
-    //  Any error creating?
-    // if (cell == nullptr)
-    //    return nullptr;
-
-    auto &ref = _data.emplace_back();
-    _cells.insert(key, &ref);
-    _keys.insert({ref.id(), key});
-
-    return &ref;
-}
-
-bool DiagramData::clearData(const DiagramKey &key)
-{
-  auto it = std::find_if(_keys.cbegin(), _keys.cend(),
-                         [&key](const std::pair<quint32, DiagramKey> &pair) { return pair.second == key; });
-  if (it == _keys.cend()) return false;
-  _keys.erase(it);
-  return _cells.remove(key) > 0;
-}
-
-void DiagramData::moveData(const DiagramKey &oldKey, const DiagramKey &newKey)
-{
-    auto *cell = getDiagramProps(oldKey);
-
-    if (cell == nullptr)
-        return;
-
-    //  Insert into new
-    _cells.insert(newKey, cell);
-    _keys.insert({cell->id(), newKey});
-
-    //  Remove old key
-    _cells.remove(oldKey);
-}
-
-int DiagramData::createId(const DiagramKey &key)
-{
-  auto it = std::find_if(_keys.begin(), _keys.end(),
-                         [&key](const std::pair<quint32, DiagramKey> &pair) { return pair.second == key; });
-
-  if (it != _keys.end()) return it->first;
-
-  //  Key not found, create now
-  auto props = createDiagramProps(key);
-  if (props == nullptr)
-    //  Error in creation, return dummy number
-    return -1;
-
-  //  Return new number
-  return props->id();
-}
-
-int DiagramData::getId(const DiagramKey &key) const
-{
-  auto it = std::find_if(_keys.begin(), _keys.end(),
-                         [&key](const std::pair<quint32, DiagramKey> &pair) { return pair.second == key; });
-  if (it == _keys.end()) return 0;
-  return it->first;
-}
-
-DiagramKey DiagramData::getKey(int id) const
-{
-    auto it = _keys.find(id);
-    return it == _keys.end() ? DiagramKey{-1, -1} : it->second;
+  _cells.insert({id.value(), cell});
 }

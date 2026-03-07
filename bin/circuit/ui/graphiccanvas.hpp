@@ -16,7 +16,7 @@
  * 2. Why are rectangles, points, and size non-changeable? We can store as const so that
  *    items in spatial map do not change. I cannot use these items outside of the
  *    spatial map since I have to reconstruct objects everytime there is a data change.
- * 3. Do I need to change all of my data structures in DiagramProperty to Pepp types?
+ * 3. Change all of my data structures in DiagramProperty to Pepp types.
  */
 
 using PeppRect = pepp::core::Rectangle<i16>;
@@ -140,7 +140,7 @@ private:
 
     //  Add diagram, and center in cell
     DiagramProperties *addDiagram(const i16 row, const i16 col);
-    void setGrid(DiagramProperties *data, const i16 col, const i16 row);
+    void setGrid(DiagramProperties *data, const i16 row, const i16 col);
 
     //  Respond to data changes in model
     void updateCell(const QModelIndex &from, const QModelIndex &to);

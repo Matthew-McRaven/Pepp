@@ -33,8 +33,6 @@ public:
 
     DiagramData &dataModel() { return _data; }
     const DiagramData &dataModel() const { return _data; }
-    // QList<DiagramProperties *> &cells() { return _data.cells(); }
-    // const QList<DiagramProperties *> &cells() const { return _data.cells(); }
 
     explicit DiagramDataModel(QObject *parent = nullptr);
 
@@ -66,4 +64,11 @@ public:
 
 signals:
     void currentIndexChanged();
+
+  private:
+    PeppPt convertIndex(const QModelIndex &index) const {
+      i16 row = index.row();
+      i16 col = index.column();
+      return PeppPt{row, col};
+    }
 };

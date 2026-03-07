@@ -116,7 +116,7 @@ void GraphicCanvas::updateData()
     const int rows = 10;
     const int cols = 10;
 
-    DiagramProperties *data = addDiagram(2, 2);
+    DiagramProperties *data = addDiagram(2, 3);
     if (data == nullptr)
         return;
 
@@ -338,16 +338,18 @@ void GraphicCanvas::paint_one(QPainter *painter, const PeppRect &rect, DiagramPr
   painter->drawPixmap(screen_rect.toRect(), *props.image());
 }
 
-DiagramProperties *GraphicCanvas::addDiagram(const i16 col, const i16 row) {
+DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   //  Center point may put diagram off of page, return if either index is negative.
   if (col < 0 || row < 0) return nullptr;
 
   //  Create index and check for data
-  const auto newIndex = _model->index(col, row);
-  DiagramProperties *data = _model->createItem(newIndex);
+  const auto newIndex = _model->index(row, col);
+  PeppPt pt{row, col};
+
+  DiagramProperties *data = _model->dataModel().createDiagramProps(pt, PeppSize{2, 2});
 
   //  Add block data
-  setGrid(data, col, row);
+  setGrid(data, row, col);
 
   if (_template != nullptr) {
     data->setName(_template->name());
@@ -361,13 +363,13 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 col, const i16 row) {
   return data;
 }
 
-void GraphicCanvas::setGrid(DiagramProperties *data, const i16 col, const i16 row) {
-  PeppRect rect{PeppPt{static_cast<i16>(col), static_cast<i16>(row)}, PeppSize{2, 2}};
+void GraphicCanvas::setGrid(DiagramProperties *data, const i16 row, const i16 col) {
+  PeppRect rect{PeppPt{static_cast<i16>(row), static_cast<i16>(col)}, PeppSize{2, 2}};
 
   //  Column and row represents center point, not top left
   PeppRect gridRect{
-      PeppPt{static_cast<i16>(minor_block_size * col - major_block_size / 2 + _margin),
-             static_cast<i16>(minor_block_size * row - major_block_size / 2 + _margin)},
+      PeppPt{static_cast<i16>(minor_block_size * row - major_block_size / 2 + _margin),
+             static_cast<i16>(minor_block_size * col - major_block_size / 2 + _margin)},
       PeppSize{static_cast<i16>(major_block_size - _margin * 2), static_cast<i16>(major_block_size - _margin * 2)}};
 
   //  Track dimensions of canvas area. Affects scrollbars

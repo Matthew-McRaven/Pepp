@@ -3,22 +3,28 @@
 #include <list>
 #include <map>
 
-#include <QMap>
+// #include <QMap>
 
+#include "core/math/geom/rectangle.hpp"
 #include "core/math/geom/spatial_map.hpp"
-#include "diagramkey.hpp"
+// #include "diagramkey.hpp"
 #include "diagramproperty.hpp"
+
+// using PeppKey = u32;
+using PeppKey = pepp::core::Rectangle<i16>; //  Spatial key based on rectangle
+using PeppPt = pepp::core::Point<i16>;
+using PeppSize = pepp::core::Size<i16>;
+using PeppId = u32; //  Unique id retured by SpatialMap
 
 class DiagramData {
   //  Container for iteration
   std::list<DiagramProperties> _data;
 
   //  Map to data based on table location (DiagramKey)
-  QMap<DiagramKey, DiagramProperties *> _cells;
-  pepp::core::SpatialMap _spatial_map;
+  std::map<PeppId, DiagramProperties *> _cells;
 
   //  Map unique diagram id to table key (location)
-  std::map<quint32, DiagramKey> _keys;
+  pepp::core::SpatialMap _spatial_map;
 
 public:
     DiagramData();
@@ -27,22 +33,11 @@ public:
     const std::list<DiagramProperties> &cells() const { return _data; }
 
     //  Get access to specific property
-    DiagramProperties *getDiagramProps(const DiagramKey &key);
-    DiagramProperties *createDiagramProps(const DiagramKey &key);
+    DiagramProperties *getDiagramProps(const PeppPt &key);
+    const DiagramProperties *getDiagramProps(const PeppPt &key) const;
+    DiagramProperties *createDiagramProps(const PeppPt &key, const PeppSize &size = {2, 2});
 
     bool empty() const;
-    QVariant getData(int id, int role) const;
-    QVariant getData(const DiagramKey &key, int role) const;
-    bool setData(const DiagramKey &key, const QVariant &value, int role);
-    bool clearData(const DiagramKey &key);
-    void moveData(const DiagramKey &oldKey, const DiagramKey &newKey);
-
-    /******************************************************
-     * If the key already exists in the model, returns the
-     * id; otherwise, adds the key, assignes an id, and
-     * returns the id.
-     ******************************************************/
-    int createId(const DiagramKey &key);
-    int getId(const DiagramKey &key) const;
-    DiagramKey getKey(int id) const;
+    bool clearData(const PeppPt &key);
+    void moveData(const PeppPt &oldKey, const PeppPt &newKey);
 };
