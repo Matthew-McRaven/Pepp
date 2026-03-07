@@ -1,5 +1,5 @@
-// File: prob1231g.pepcpu
-// Computer Systems, Fifth Edition
+// File: prob1131g.pepcpu
+// Computer Systems, Sixth Edition
 // Problem 12.31(g)
 // LDBA this,i
 // RTL: A<8..15> <- byte Oprnd; N <- 0, Z <- A<8..15>=0

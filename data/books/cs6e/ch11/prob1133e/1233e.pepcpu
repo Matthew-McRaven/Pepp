@@ -1,5 +1,5 @@
-// File: prob1233e.pepcpu
-// Computer Systems, Fifth Edition
+// File: prob1133e.pepcpu
+// Computer Systems, Sixth Edition
 // Problem 12.33(e), See Figure 8.5
 // DECO 0x0003,d trap
 // RTL: T <- Mem[0xFFF6]; Mem[T-1] <- IR<0..7>; Mem[T-3] <- SP; Mem[T-5] <- PC; Mem[T-7] <- X;

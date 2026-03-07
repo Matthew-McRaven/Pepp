@@ -1,5 +1,5 @@
-// File: fig1212.pepcpu
-// Computer Systems, Fifth Edition
+// File: fig1112.pepcpu
+// Computer Systems, Sixth Edition
 // Figure 12.12
 // LDWX this,n
 // RTL: X <- Oprnd; N <- X<0, Z <- X=0

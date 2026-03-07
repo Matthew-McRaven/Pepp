@@ -1,5 +1,5 @@
-// File: fig1209.pepcpu
-// Computer Systems, Fifth Edition
+// File: fig1109.pepcpu
+// Computer Systems, Sixth Edition
 // Figure 12.9
 // STBA there,d
 // RTL: byteOprnd <- A<8..15>
