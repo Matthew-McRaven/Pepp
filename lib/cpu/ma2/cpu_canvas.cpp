@@ -107,6 +107,7 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(P{.geom = bus_addr, .role = PR::CircuitQuaternaryRole, .connection = C::Bus_Address});
   _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Address});
   _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole, .connection = C::Bus_Data});
+  _geom.emplace_back(P{.geom = bus_data_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Data});
   _geom.emplace_back(P{.geom = bus_data_to_mdrmux, .role = PR::BaseRole, .connection = C::Bus_Data2MDRMux});
   _geom.emplace_back(P{.geom = bus_mdrmux_to_mdr, .role = PR::BaseRole, .connection = C::Bus_MDRMux2MDR});
   _geom.emplace_back(P{.geom = bus_mdr_to_data, .role = PR::BaseRole, .connection = C::Bus_MDR2Data});
@@ -212,6 +213,7 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(P{.geom = bus_addr, .role = PR::BaseRole, .connection = C::Bus_Address});
   _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Address});
   _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole, .connection = C::Bus_Data});
+  _geom.emplace_back(P{.geom = bus_data_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Data});
   _geom.emplace_back(P{.geom = bus_mdremux_to_mdre, .role = PR::CircuitPrimaryRole, .connection = C::Bus_MDREMux2MDRE});
   _geom.emplace_back(
       P{.geom = bus_mdromux_to_mdro, .role = PR::CircuitSecondaryRole, .connection = C::Bus_MDROMux2MDRO});

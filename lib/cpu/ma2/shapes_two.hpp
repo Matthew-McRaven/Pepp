@@ -526,6 +526,7 @@ const QPolygon bus_c = QPolygon(
               poly_regbank.bottom() + (arrowHDepth - 5)) // Register Arrow Right Inner Point
 );
 const QPolygon bus_addr_to_ddr = OneByteShapes::bus_addr_to_ddr;
+const QPolygon bus_data_to_ddr = OneByteShapes::bus_data_to_ddr;
 // const QPolygon bus_data_to_mdrmux;
 const QPolygon bus_data_to_mdromux =
     QPolygon(QVector<QPoint>()
