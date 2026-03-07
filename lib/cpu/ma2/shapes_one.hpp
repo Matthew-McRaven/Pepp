@@ -469,9 +469,15 @@ const Arrow ck_memwrite_to_mdr =
     Arrow(QVector<Arrowhead>() << Arrowhead{QPoint(bus_data.right() + arrowHOffset * 8 - 3, reg_byte_mdr.bottom()), UP},
           QVector<QLine>() << QLine(bus_data.right() + arrowHOffset * 8, ext_sel_memwrite.y() + selectYOffset,
                                     bus_data.right() + arrowHOffset * 8, reg_byte_mdr.bottom()));
-const QLine ck_memread = QLine(bus_data.right() + arrowHOffset, ext_sel_memread.y() + selectYOffset, ctrlInputX - 7,
-                               ext_sel_memread.y() + selectYOffset);
-const QLine ck_memwrite = QLine(bus_data.right() + arrowHOffset, ext_sel_memwrite.y() + selectYOffset, ctrlInputX - 7,
-                                ext_sel_memwrite.y() + selectYOffset);
+const Arrow ck_memread = Arrow(
+    QVector<Arrowhead>() << Arrowhead{QPoint(bus_data.right() + arrowHOffset, ext_sel_memread.y() + selectYOffset - 3),
+                                      LEFT},
+    QVector<QLine>() << QLine(bus_data.right() + arrowHOffset, ext_sel_memread.y() + selectYOffset, ctrlInputX - 7,
+                              ext_sel_memread.y() + selectYOffset));
+const Arrow ck_memwrite = Arrow(
+    QVector<Arrowhead>() << Arrowhead{QPoint(bus_data.right() + arrowHOffset, ext_sel_memwrite.y() + selectYOffset - 3),
+                                      LEFT},
+    QVector<QLine>() << QLine(bus_data.right() + arrowHOffset, ext_sel_memwrite.y() + selectYOffset, ctrlInputX - 7,
+                              ext_sel_memwrite.y() + selectYOffset));
 
 } // namespace OneByteShapes

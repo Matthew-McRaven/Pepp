@@ -85,8 +85,8 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(A{.geom = ck_v, .connection = C::Clock_V});
   _geom.emplace_back(A{.geom = ck_c, .connection = C::Clock_C});
   _geom.emplace_back(A{.geom = ck_s, .connection = C::Clock_S});
-  _geom.emplace_back(L{.geom = ck_memread, .connection = C::Sel_MemRead});
-  _geom.emplace_back(L{.geom = ck_memwrite, .connection = C::Sel_MemWrite});
+  _geom.emplace_back(A{.geom = ck_memread, .connection = C::Sel_MemRead});
+  _geom.emplace_back(A{.geom = ck_memwrite, .connection = C::Sel_MemWrite});
 
   // Control Wires
   _geom.emplace_back(L{.geom = sel_muxcs, .connection = C::Sel_Mux_CS});
@@ -183,8 +183,8 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(A{.geom = ck_v, .connection = C::Clock_V});
   _geom.emplace_back(A{.geom = ck_c, .connection = C::Clock_C});
   _geom.emplace_back(A{.geom = ck_s, .connection = C::Clock_S});
-  _geom.emplace_back(L{.geom = ck_memread, .connection = C::Sel_MemRead});
-  _geom.emplace_back(L{.geom = ck_memwrite, .connection = C::Sel_MemWrite});
+  _geom.emplace_back(A{.geom = ck_memread, .connection = C::Sel_MemRead});
+  _geom.emplace_back(A{.geom = ck_memwrite, .connection = C::Sel_MemWrite});
 
   // Control Wires
   _geom.emplace_back(L{.geom = sel_muxcs, .connection = C::Sel_Mux_CS});

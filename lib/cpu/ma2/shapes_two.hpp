@@ -729,9 +729,15 @@ const Arrow ck_memwrite_to_mdr = Arrow(
                          << Arrowhead{QPoint(bus_data.right() + arrowHOffset * 4 - 3, reg_byte_mdro.bottom()), UP},
     QVector<QLine>() << QLine(bus_data.right() + arrowHOffset * 4, ext_sel_memwrite.y() + selectYOffset,
                               bus_data.right() + arrowHOffset * 4, reg_byte_mdro.bottom()));
-const QLine ck_memread = QLine(bus_data.right() + arrowHOffset, ext_sel_memread.y() + selectYOffset, ctrlInputX - 7,
-                               ext_sel_memread.y() + selectYOffset);
-const QLine ck_memwrite = QLine(bus_data.right() + arrowHOffset, ext_sel_memwrite.y() + selectYOffset, ctrlInputX - 7,
-                                ext_sel_memwrite.y() + selectYOffset); // Doesn't draw vertical lines
+const Arrow ck_memread = Arrow(
+    QVector<Arrowhead>() << Arrowhead{QPoint(bus_data.right() + arrowHOffset, ext_sel_memread.y() + selectYOffset - 3),
+                                      LEFT},
+    QVector<QLine>() << QLine(bus_data.right() + arrowHOffset, ext_sel_memread.y() + selectYOffset, ctrlInputX - 7,
+                              ext_sel_memread.y() + selectYOffset));
+const Arrow ck_memwrite = Arrow(
+    QVector<Arrowhead>() << Arrowhead{QPoint(bus_data.right() + arrowHOffset, ext_sel_memwrite.y() + selectYOffset - 3),
+                                      LEFT},
+    QVector<QLine>() << QLine(bus_data.right() + arrowHOffset, ext_sel_memwrite.y() + selectYOffset, ctrlInputX - 7,
+                              ext_sel_memwrite.y() + selectYOffset)); // Doesn't draw vertical lines
 
 } // namespace TwoByteShapes
