@@ -21,7 +21,7 @@ void pepp::connections_for(ConnectionArray &arr, const one_bye_mc &mc, quint8 me
   arr.fill((int)enabled);
   arr[(int)Bus_A] = mc.enabled(S::A) ? primary : enabled;
   arr[(int)Bus_B] = mc.enabled(S::B) ? primary : enabled;
-  arr[(int)Bus_NZVC2CMux] = tertiary;
+  arr[(int)Bus_NZVC2CMux] = secondary;
   arr[(int)Clock_Load] = mc.enabled(S::LoadCk) ? enabled : disabled;
   arr[(int)Clock_MAR] = mc.enabled(S::MARCk) ? enabled : disabled;
   arr[(int)Clock_S] = mc.enabled(S::SCk) ? enabled : disabled;
@@ -42,13 +42,14 @@ void pepp::connections_for(ConnectionArray &arr, const one_bye_mc &mc, quint8 me
   arr[(int)Wire_AndZ2Z] = mc.enabled(S::AndZ) ? enabled : disabled;
   arr[(int)Sel_Mux_C] = mc.enabled(S::CMux) ? enabled : disabled;
   arr[(int)Sel_Mux_MDR] = mc.enabled(S::MDRMux) ? enabled : disabled;
-  arr[(int)Bus_MDR2AMux] = mc.enabled(S::AMux) && mc.get(S::AMux) == 0 ? quaternary : enabled;
+  arr[(int)Bus_MDR2AMux] = mc.enabled(S::AMux) && mc.get(S::AMux) == 0 ? secondary : enabled;
   arr[(int)Bus_MDR2Data] = tertiary;
-  arr[(int)Bus_MAR2Address] = quaternary;
+  arr[(int)Bus_MAR2Address] = secondary;
   if (memory_cycle == 0) arr[(int)Bus_Address] = enabled, arr[(int)Bus_Data] = enabled;
-  else arr[(int)Bus_Address] = tertiary, arr[(int)Bus_Data] = primary;
+  // TODO: if read, data = quaternary. If write, data=Bus_MDR2Data=tertiary?
+  else arr[(int)Bus_Address] = secondary, arr[(int)Bus_Data] = tertiary;
 
-  if (mc.enabled(S::ALU)) arr[(int)Bus_ALU2CMux] = secondary, arr[(int)Wire_ALU_NZVC] = enabled;
+  if (mc.enabled(S::ALU)) arr[(int)Bus_ALU2CMux] = quaternary, arr[(int)Wire_ALU_NZVC] = enabled;
   else arr[(int)Bus_ALU2CMux] = enabled, arr[(int)Wire_ALU_NZVC] = disabled;
   // Depends on Bus_ALU2CMux, Bus_NZVC2CMux
   if (mc.enabled(S::CMux)) {
@@ -115,10 +116,11 @@ void pepp::connections_for(ConnectionArray &arr, const two_bye_mc &mc, quint8 me
   arr[(int)Sel_Mux_MAR] = mc.enabled(S::MARMux) ? enabled : disabled;
   arr[(int)Bus_MDRE2Data] = tertiary;
   arr[(int)Bus_MDRO2Data] = tertiary;
-  arr[(int)Bus_MAR2Address] = quaternary;
+  arr[(int)Bus_MAR2Address] = secondary;
   if (memory_cycle == 0) arr[(int)Bus_Address] = enabled, arr[(int)Bus_Data] = enabled;
-  else arr[(int)Bus_Address] = tertiary, arr[(int)Bus_Data] = primary;
-  if (mc.enabled(S::ALU)) arr[(int)Bus_ALU2CMux] = secondary, arr[(int)Wire_ALU_NZVC] = enabled;
+  // TODO: if read, data = quaternary. If write, data=Bus_MDR2Data?
+  else arr[(int)Bus_Address] = secondary, arr[(int)Bus_Data] = tertiary;
+  if (mc.enabled(S::ALU)) arr[(int)Bus_ALU2CMux] = quaternary, arr[(int)Wire_ALU_NZVC] = enabled;
   else arr[(int)Bus_ALU2CMux] = enabled, arr[(int)Wire_ALU_NZVC] = disabled;
 
   if ((mc.enabled(S::MARMux) && mc.get(S::MARMux) == 0 && mc.get(S::MARCk)) ||
