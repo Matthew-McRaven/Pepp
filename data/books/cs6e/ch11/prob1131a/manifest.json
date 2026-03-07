@@ -1,11 +1,14 @@
 {
   "version": 2,
   "type": "problem",
-  "name": "12:31a",
+  "name": "11:31a",
   "arch": "pep10",
   "abstraction": "MA2",
   "tests": [
-    "test0", "test1", "test2", "test3"
+    "test0",
+    "test1",
+    "test2",
+    "test3"
   ],
   "fragments": [
     {
@@ -13,7 +16,8 @@
       "format": "pepcpu1",
       "from": {
         "file": "{ch}{fig}.pepcpu"
-      }
+      },
+      "isDefault": true
     }
   ]
 }

@@ -5,7 +5,9 @@
   "arch": "pep9",
   "abstraction": "MA2",
   "tests": [
-    "test0", "test1", "test2"
+    "test0",
+    "test1",
+    "test2"
   ],
   "fragments": [
     {
@@ -13,7 +15,8 @@
       "format": "pepcpu2",
       "from": {
         "file": "{ch}{fig}.pepcpu"
-      }
+      },
+      "isDefault": true
     }
   ]
 }

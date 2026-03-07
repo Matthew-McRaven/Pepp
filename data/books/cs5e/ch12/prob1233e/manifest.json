@@ -13,7 +13,8 @@
       "format": "pepcpu1",
       "from": {
         "file": "{ch}{fig}.pepcpu"
-      }
+      },
+      "isDefault": true
     }
   ]
 }
