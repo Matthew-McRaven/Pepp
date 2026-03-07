@@ -19,6 +19,7 @@
 #include "core/arch/pep/uarch/pep.hpp"
 #include "core/langs/ucode/ir_variant.hpp"
 #include "core/langs/ucode/pep_ir.hpp" // TODO: Stop including the parser in the simulator!!
+#include "project/architectures.hpp"
 #include "sim/debug/debugger.hpp"
 #include "sim3/api/traced/memory_target.hpp"
 #include "sim3/api/traced/trace_endpoint.hpp"
@@ -53,7 +54,7 @@ public:
   // Reset status back to okay. Do not fix registers / memory / etc.
   virtual void init();
   Status status() const;
-  void setConstantRegisters();
+  void setConstantRegisters(pepp::Architecture which);
   void resetMicroPC();
   quint16 microPC() const noexcept;
   // 0 means no memory access, [1-3] are the cycles where access happens.

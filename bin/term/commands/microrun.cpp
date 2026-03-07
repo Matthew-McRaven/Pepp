@@ -68,10 +68,17 @@ void MicroRunTask::run() {
   } else unit_test_text = source_text;
 
   QStringList errors;
+  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+  switch (_ed) {
+  case 5: arch = pepp::Architecture::PEP9; break;
+  case 6: arch = pepp::Architecture::PEP10; break;
+  default: std::cerr << "Invalid edition: " << _ed << std::endl; return emit finished(4);
+  }
+
   if (_busWidth == 1) {
     auto cpu = targets::pep9::mc2::CPUByteBus(desc_cpu, nextID);
     cpu.setTarget(&mem, nullptr);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     auto code_asm = pepp::tc::parse::MicroParser<uarch1, regs>(source_text.toStdString()).parse();
     auto test_asm = pepp::tc::parse::MicroParser<uarch1, regs>(unit_test_text.toStdString()).parse();
     if (!code_asm.errors.empty()) {
@@ -105,7 +112,7 @@ void MicroRunTask::run() {
   } else if (_busWidth == 2) {
     auto cpu = targets::pep9::mc2::CPUWordBus(desc_cpu, nextID);
     cpu.setTarget(&mem, nullptr);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     auto code_asm = pepp::tc::parse::MicroParser<uarch2, regs>(source_text.toStdString()).parse();
     auto test_asm = pepp::tc::parse::MicroParser<uarch2, regs>(unit_test_text.toStdString()).parse();
     if (!code_asm.errors.empty()) {

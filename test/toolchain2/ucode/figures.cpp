@@ -66,7 +66,7 @@ void execute(CPU &cpu, auto &mem, std::string name, auto assembledFig, auto figu
       }
       auto tests = pepp::tc::parse::tests<uarch, regs>(assembledTest);
       mem.clear(0);
-      cpu.setConstantRegisters();
+      cpu.setConstantRegisters(figure->arch());
       cpu.applyPreconditions(tests.pre);
       for (int cycle = 0; cpu.status() == targets::pep9::mc2::CPUByteBus::Status::Ok; cycle++) cpu.clock(cycle);
       CHECK(cpu.status() == targets::pep9::mc2::CPUByteBus::Status::Halted);
