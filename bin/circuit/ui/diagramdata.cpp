@@ -8,7 +8,7 @@ DiagramData::DiagramData() {}
 bool DiagramData::empty() const { return _data.empty(); }
 
 const DiagramProperties *DiagramData::getDiagramProps(const PeppPt &point) const {
-  auto id = _spatial_map.at(PeppKey(point));
+  auto id = _spatial_map.at(PeppRect{point, PeppSize{2, 2}});
 
   if (!id.has_value()) return nullptr;
 
@@ -20,7 +20,7 @@ const DiagramProperties *DiagramData::getDiagramProps(const PeppPt &point) const
 
 DiagramProperties *DiagramData::getDiagramProps(const PeppPt &point) {
   //  This function isn't working. Known items are not returned
-  auto id = _spatial_map.at(PeppKey(point));
+  auto id = _spatial_map.at(PeppRect{point, PeppSize{2, 2}});
 
   if (!id.has_value()) return nullptr;
 
