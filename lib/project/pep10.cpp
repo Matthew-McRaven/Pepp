@@ -1894,8 +1894,7 @@ void Pep_MA::_clearCPU() {
   cpu->bankRegs()->clear(0);
   cpu->hiddenRegs()->clear(0);
   cpu->csrs()->clear(0);
-  // TODO: need to select correct set of constants based on architecture.
-  _system->cpu()->setConstantRegisters();
+  _system->cpu()->setConstantRegisters(_env.arch);
   _tb->clear();
 }
 

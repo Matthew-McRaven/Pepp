@@ -136,12 +136,18 @@ Item {
         font: settings.extPalette.baseMono.font
         Connections {
             target: root.project
+            id: conn
             function onUpdateGUI() {
                 if (mono.updateKey === "")
                     return;
                 const newText = root.project.evaluate_painter_key(mono.updateKey);
                 mono.text = newText ?? "";
             }
+        }
+        Component.onCompleted: {
+            // Canvas prepopulates properly-sized text, but the values may not match the actually selected architecture
+            // e.g., Pep/9 vs Pep/10. Rather than inform the canvas of the architecture, compute the real values on load.
+            conn.onUpdateGUI();
         }
     }
     ScrollBar {

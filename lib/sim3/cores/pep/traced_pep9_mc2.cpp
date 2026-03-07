@@ -51,29 +51,25 @@ sim::api2::device::Descriptor targets::pep9::mc2::BaseCPU::device() const { retu
 
 void targets::pep9::mc2::BaseCPU::init() { _status = Status::Ok; }
 
-void targets::pep9::mc2::BaseCPU::setConstantRegisters() {
-  if (true) {
-    writeReg(22, 0x00);
-    writeReg(23, 0x01);
-    writeReg(24, 0x02);
-    writeReg(25, 0x03);
-    writeReg(26, 0x04);
-    writeReg(27, 0x08);
-    writeReg(28, 0xF0);
-    writeReg(29, 0xF6);
-    writeReg(30, 0xFE);
-    writeReg(31, 0xFF);
-  } else if (true) {
-    writeReg(22, 0x00);
-    writeReg(23, 0x01);
-    writeReg(24, 0x02);
-    writeReg(25, 0x03);
-    writeReg(26, 0x04);
-    writeReg(27, 0x08);
+void targets::pep9::mc2::BaseCPU::setConstantRegisters(pepp::Architecture which) {
+  writeReg(22, 0x00);
+  writeReg(23, 0x01);
+  writeReg(24, 0x02);
+  writeReg(25, 0x03);
+  writeReg(26, 0x04);
+  writeReg(27, 0x08);
+  writeReg(30, 0xFE);
+  writeReg(31, 0xFF);
+  switch (which) {
+  case pepp::ArchitectureHelper::Architecture::PEP9:
     writeReg(28, 0xF7);
     writeReg(29, 0xFB);
-    writeReg(30, 0xFE);
-    writeReg(31, 0xFF);
+    break;
+  case pepp::ArchitectureHelper::Architecture::PEP10:
+    writeReg(28, 0xF0);
+    writeReg(29, 0xF6);
+    break;
+  default: break;
   }
 }
 

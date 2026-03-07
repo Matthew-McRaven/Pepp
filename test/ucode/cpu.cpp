@@ -45,6 +45,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   using regs = pepp::tc::arch::Pep9Registers;
   using Code = pepp::tc::arch::Pep9ByteBus::Code;
   using Parser = pepp::tc::parse::MicroParser<uarch, regs>;
+  const auto arch = pepp::Architecture::PEP10;
   SECTION("Register set preconditions") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
@@ -55,7 +56,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0);
     CHECK(read<quint8>(*cpu.bankRegs(), 30) == 0);
     CHECK(read<quint16>(mem, 0xFFFE) == 0);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     cpu.applyPreconditions(result.program[0].tests);
     CHECK(read<quint8>(*cpu.bankRegs(), 2) == 0x23);
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0x45);
@@ -65,7 +66,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("ALU addition") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     std::vector<Code> microcode = {Code{
         .A = 28,
         .B = 22,
@@ -88,7 +89,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
     auto result = Parser(std::move(source)).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 0) == 0x0);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     cpu.applyPreconditions(result.program[0].tests);
     auto microcode = std::vector<Code>{{Code{.A = 30, .B = 31, .MARCk = 1}, Code{.MemRead = 1}, Code{.MemRead = 1},
                                         Code{.MemRead = 1, .MDRMux = 0, .MDRCk = 1},
@@ -106,7 +107,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("memwrite") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     auto microcode = std::vector<Code>{{
         Code{.A = 30, .B = 31, .MARCk = 1},
         Code{.MemWrite = 1, .A = 30, .AMux = 1, .ALU = 0, .CMux = 1, .MDRMux = 1, .MDRCk = 1},
@@ -121,7 +122,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("Halted memwrite") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     auto microcode =
         std::vector<Code>{{Code{.A = 30, .B = 31, .MARCk = 1},
                            Code{.MemWrite = 1, .A = 30, .AMux = 1, .ALU = 0, .CMux = 1, .MDRMux = 1, .MDRCk = 1},
@@ -138,6 +139,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   using regs = pepp::tc::arch::Pep9Registers;
   using Code = pepp::tc::arch::Pep9WordBus::Code;
   using Parser = pepp::tc::parse::MicroParser<uarch, regs>;
+  const auto arch = pepp::Architecture::PEP10;
   SECTION("Register set preconditions") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
@@ -148,7 +150,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0);
     CHECK(read<quint8>(*cpu.bankRegs(), 30) == 0);
     CHECK(read<quint16>(mem, 0xFFFE) == 0);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     cpu.applyPreconditions(result.program[0].tests);
     CHECK(read<quint8>(*cpu.bankRegs(), 2) == 0x23);
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0x45);
@@ -158,7 +160,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("ALU addition") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUWordBus>();
     cpu.setTarget(&mem, nullptr);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     std::vector<Code> microcode = {Code{
         .A = 28,
         .B = 22,
@@ -181,7 +183,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
     auto result = Parser(std::move(source)).parse();
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 0) == 0x0);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     cpu.applyPreconditions(result.program[0].tests);
     auto microcode = std::vector<Code>{{Code{
                                             .A = 30,
@@ -221,7 +223,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("memwrite") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUWordBus>();
     cpu.setTarget(&mem, nullptr);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     auto microcode = std::vector<Code>{{
         Code{.A = 30, .B = 31, .MARMux = 1, .MARCk = 1},
         Code{.A = 31, .AMux = 1, .ALU = 0, .CMux = 1, .MDROMux = 1, .MDROCk = 1},
@@ -239,7 +241,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   SECTION("Halted memwrite") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUWordBus>();
     cpu.setTarget(&mem, nullptr);
-    cpu.setConstantRegisters();
+    cpu.setConstantRegisters(arch);
     auto microcode =
         std::vector<Code>{{Code{.A = 30, .B = 31, .MARCk = 1},
                            Code{.MemWrite = 1, .A = 30, .AMux = 1, .ALU = 0, .CMux = 1, .MDREMux = 1, .MDRECk = 1},
