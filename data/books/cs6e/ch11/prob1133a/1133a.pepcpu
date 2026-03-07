@@ -4,3 +4,6 @@
 // BR main
 // RTL: PC <- Oprnd
 // Immediate addressing: Oprnd = OprndSpec
+
+UnitPre: IR=0x12ABCD
+UnitPost: PC=0xABCD
