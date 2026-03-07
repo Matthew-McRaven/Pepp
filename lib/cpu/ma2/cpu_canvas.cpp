@@ -134,15 +134,10 @@ std::vector<pepp::Item> one_byte_geom() {
 
   // Multiplexers
   _geom.emplace_back(R{.geom = mux_a, .role = PR::BaseRole, .connection = C::Bus_AMux2ALU});
-  _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_c, .role = PR::BaseRole, .connection = C::Bus_C});
-  _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_mdr, .role = PR::BaseRole, .connection = C::Bus_MDRMux2MDR});
-  _geom.emplace_back(T{.geom = mux_mdr, .text = "MDRMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_cs, .role = PR::BaseRole});
-  _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_andz, .role = PR::BaseRole});
-  _geom.emplace_back(T{.geom = mux_andz, .text = "AndZ", .role = PR::BaseRole});
 
   // Register outlines & registers
   _geom.emplace_back(R{.geom = reg_bit_n, .role = PR::SequentialRole});
@@ -156,7 +151,6 @@ std::vector<pepp::Item> one_byte_geom() {
 
   // Other large polys
   _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
-  _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .role = PR::BaseRole});
   _geom.emplace_back(L{.geom = poly_nzvc_join, .role = PR::BaseRole});
 
   return _geom;
@@ -248,21 +242,13 @@ std::vector<pepp::Item> two_byte_geom() {
 
   // Multiplexers
   _geom.emplace_back(P{.geom = mux_marmux, .role = PR::BaseRole});
-  _geom.emplace_back(T{.geom = mux_marmux, .text = "MARMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_a, .role = PR::BaseRole, .connection = C::Bus_AMux2ALU});
-  _geom.emplace_back(T{.geom = mux_a, .text = "AMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_c, .role = PR::BaseRole, .connection = C::Bus_ALU2CMux});
-  _geom.emplace_back(T{.geom = mux_c, .text = "CMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_mdre, .role = PR::BaseRole, .connection = C::Bus_MDREMux2MDRE});
-  _geom.emplace_back(T{.geom = mux_mdre, .text = "MDREMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_mdro, .role = PR::BaseRole, .connection = C::Bus_MDROMux2MDRO});
-  _geom.emplace_back(T{.geom = mux_mdro, .text = "MDROMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_eo, .role = PR::BaseRole, .connection = C::Bus_EOMux2AMux});
-  _geom.emplace_back(T{.geom = mux_eo, .text = "EOMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_cs, .role = PR::BaseRole});
-  _geom.emplace_back(T{.geom = mux_cs, .text = "CSMux", .role = PR::BaseRole});
   _geom.emplace_back(R{.geom = mux_andz, .role = PR::BaseRole});
-  _geom.emplace_back(T{.geom = mux_andz, .text = "AndZ", .role = PR::BaseRole});
 
   // Register outlines & registers
   _geom.emplace_back(R{.geom = reg_bit_n, .role = PR::SequentialRole});
@@ -277,7 +263,6 @@ std::vector<pepp::Item> two_byte_geom() {
 
   // Other large polys
   _geom.emplace_back(P{.geom = poly_alu, .role = PR::CircuitQuaternaryRole});
-  _geom.emplace_back(T{.geom = label_alu, .text = "ALU", .role = PR::BaseRole});
   _geom.emplace_back(L{.geom = poly_nzvc_join, .role = PR::BaseRole});
 
   return _geom;
@@ -402,6 +387,13 @@ QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, flo
   add_text(parent, ret, "0", "csr_z", reg_bit_z, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "0", "csr_s", reg_bit_s, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "", "fn_alu", label_alu_function, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "AMux", "", mux_a, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "CMux", "", mux_c, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "MDRMux", "", mux_mdr, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "CSMux", "", mux_cs, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "AndZ", "", mux_andz, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "ALU", "", label_alu, Qt::AlignCenter, x_offset, y_offset);
+
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
@@ -436,7 +428,16 @@ QList<pepp::QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, flo
   add_text(parent, ret, "0", "csr_v", reg_bit_v, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "0", "csr_z", reg_bit_z, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "0", "csr_s", reg_bit_s, Qt::AlignCenter, x_offset, y_offset);
-  add_text(parent, ret, "", "fn_alu", label_alu_function, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "MARMux", "", mux_marmux, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "AMux", "", mux_a, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "CMux", "", mux_c, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "MDREMux", "", mux_mdre, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "MDROMux", "", mux_mdro, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "EOMux", "", mux_eo, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "CSMux", "", mux_cs, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "AndZ", "", mux_andz, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "ALU", "", label_alu_function, Qt::AlignCenter, x_offset, y_offset);
+
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
   add_tristate(parent, ret, "B", ext_sel_b, 31, x_offset, y_offset);
