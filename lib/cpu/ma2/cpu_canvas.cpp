@@ -101,9 +101,9 @@ std::vector<pepp::Item> one_byte_geom() {
   _geom.emplace_back(J{.geom = ck_memwrite_junction, .connection = C::Sel_MemWrite});
 
   // Buses
-  _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitPrimaryRole, .connection = C::Bus_B});
-  _geom.emplace_back(P{.geom = bus_a, .role = PR::CircuitSecondaryRole, .connection = C::Bus_A});
-  _geom.emplace_back(P{.geom = bus_addr, .role = PR::CircuitQuaternaryRole, .connection = C::Bus_Address});
+  _geom.emplace_back(P{.geom = bus_b, .role = PR::BaseRole, .connection = C::Bus_B});
+  _geom.emplace_back(P{.geom = bus_a, .role = PR::BaseRole, .connection = C::Bus_A});
+  _geom.emplace_back(P{.geom = bus_addr, .role = PR::BaseRole, .connection = C::Bus_Address});
   _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Address});
   _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole, .connection = C::Bus_Data});
   _geom.emplace_back(P{.geom = bus_data_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Data});
@@ -201,29 +201,28 @@ std::vector<pepp::Item> two_byte_geom() {
   _geom.emplace_back(J{.geom = ck_memwrite_junction, .connection = C::Sel_MemWrite});
 
   // Buses
-  _geom.emplace_back(P{.geom = bus_b, .role = PR::CircuitQuaternaryRole, .connection = C::Bus_B});
-  _geom.emplace_back(P{.geom = bus_a, .role = PR::CircuitSecondaryRole, .connection = C::Bus_A});
+  _geom.emplace_back(P{.geom = bus_b, .role = PR::BaseRole, .connection = C::Bus_B});
+  _geom.emplace_back(P{.geom = bus_a, .role = PR::BaseRole, .connection = C::Bus_A});
   _geom.emplace_back(P{.geom = bus_addr, .role = PR::BaseRole, .connection = C::Bus_Address});
   _geom.emplace_back(P{.geom = bus_addr_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Address});
   _geom.emplace_back(P{.geom = bus_data, .role = PR::BaseRole, .connection = C::Bus_Data});
   _geom.emplace_back(P{.geom = bus_data_to_ddr, .role = PR::BaseRole, .connection = C::Bus_Data});
-  _geom.emplace_back(P{.geom = bus_mdremux_to_mdre, .role = PR::CircuitPrimaryRole, .connection = C::Bus_MDREMux2MDRE});
-  _geom.emplace_back(
-      P{.geom = bus_mdromux_to_mdro, .role = PR::CircuitSecondaryRole, .connection = C::Bus_MDROMux2MDRO});
+  _geom.emplace_back(P{.geom = bus_mdremux_to_mdre, .role = PR::BaseRole, .connection = C::Bus_MDREMux2MDRE});
+  _geom.emplace_back(P{.geom = bus_mdromux_to_mdro, .role = PR::BaseRole, .connection = C::Bus_MDROMux2MDRO});
   _geom.emplace_back(P{.geom = bus_data_to_mdremux, .role = PR::BaseRole, .connection = C::Bus_Data2MDREMux});
   _geom.emplace_back(P{.geom = bus_data_to_mdromux, .role = PR::BaseRole, .connection = C::Bus_Data2MDROMux});
   _geom.emplace_back(P{.geom = bus_mdre_to_data, .role = PR::BaseRole, .connection = C::Bus_MDRE2Data});
   _geom.emplace_back(P{.geom = bus_mdro_to_data, .role = PR::BaseRole, .connection = C::Bus_MDRO2Data});
-  _geom.emplace_back(P{.geom = bus_mdre_to_eomux, .role = PR::CircuitPrimaryRole, .connection = C::Bus_MDRE2EOMux});
-  _geom.emplace_back(P{.geom = bus_mdro_to_eomux, .role = PR::CircuitSecondaryRole, .connection = C::Bus_MDRO2EOMux});
+  _geom.emplace_back(P{.geom = bus_mdre_to_eomux, .role = PR::BaseRole, .connection = C::Bus_MDRE2EOMux});
+  _geom.emplace_back(P{.geom = bus_mdro_to_eomux, .role = PR::BaseRole, .connection = C::Bus_MDRO2EOMux});
   _geom.emplace_back(P{.geom = bux_marmux_to_mara, .role = PR::BaseRole, .connection = C::Bus_MARMux2MARA});
   _geom.emplace_back(P{.geom = bus_marmux_to_marb, .role = PR::BaseRole, .connection = C::Bus_MARMux2MARB});
   _geom.emplace_back(P{.geom = bus_mar_to_addr, .role = PR::BaseRole, .connection = C::Bus_MAR2Address});
   _geom.emplace_back(P{.geom = bus_alu_to_cmux, .role = PR::BaseRole, .connection = C::Bus_ALU2CMux});
   _geom.emplace_back(P{.geom = bus_nzvc_to_cmux, .role = PR::BaseRole, .connection = C::Bus_NZVC2CMux});
-  _geom.emplace_back(P{.geom = bus_eomux_to_amux, .role = PR::CircuitPrimaryRole, .connection = C::Bus_EOMux2AMux});
+  _geom.emplace_back(P{.geom = bus_eomux_to_amux, .role = PR::BaseRole, .connection = C::Bus_EOMux2AMux});
   _geom.emplace_back(P{.geom = bus_amux_to_alu, .role = PR::BaseRole, .connection = C::Bus_AMux2ALU});
-  _geom.emplace_back(P{.geom = bus_c, .role = PR::CircuitTertiaryRole, .connection = C::Bus_C});
+  _geom.emplace_back(P{.geom = bus_c, .role = PR::BaseRole, .connection = C::Bus_C});
 
   // Combinatorial Outputs
   _geom.emplace_back(A{.geom = logic_alu_nzvc, .connection = C::Wire_ALU_NZVC});

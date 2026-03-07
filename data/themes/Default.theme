@@ -176,22 +176,22 @@
             "parent": "CombinationalRole"
         },
         {
-            "background": "0xffff5437",
+            "background": "0xFFFF5437",
             "name": "CircuitPrimaryRole",
             "parent": "CombinationalRole"
         },
         {
-            "background": "0xffffd841",
+            "background": "0xFFFFD841",
             "name": "CircuitSecondaryRole",
             "parent": "CombinationalRole"
         },
         {
-            "background": "0xff95be16",
+            "background": "0xFFCBFF28",
             "name": "CircuitTertiaryRole",
             "parent": "CombinationalRole"
         },
         {
-            "background": "0xff5580ff",
+            "background": "0xFF5580FF",
             "name": "CircuitQuaternaryRole",
             "parent": "CombinationalRole"
         }

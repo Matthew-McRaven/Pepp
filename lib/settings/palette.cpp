@@ -303,19 +303,19 @@ void pepp::settings::Palette::loadDefaultForRole(PaletteItem **pref, PaletteRole
     break;
   // Red
   case PaletteRoleHelper::Role::CircuitPrimaryRole:
-    *pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(0xFF, 0x54, 0x37)}, r, this);
+    *pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(255, 85, 55)}, r, this);
     break;
   // Yellow
   case PaletteRoleHelper::Role::CircuitSecondaryRole:
-    *pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(0xFF, 0xD8, 0x41)}, r, this);
+    *pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(255, 216, 65)}, r, this);
     break;
   // Green
   case PaletteRoleHelper::Role::CircuitTertiaryRole:
-    *pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(0x95, 0xBE, 0x16)}, r, this);
+    *pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(203, 255, 40)}, r, this);
     break;
   // Dark Blue
   case PaletteRoleHelper::Role::CircuitQuaternaryRole:
-    *pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(0x55, 0x80, 0xFF)}, r, this);
+    *pref = new PaletteItem(PO{.parent = _items[(int)R::CombinationalRole], .bg = qRgb(85, 128, 255)}, r, this);
     break;
 
   default: throw std::logic_error("Should be unreachable");
