@@ -1,5 +1,5 @@
-// File: fig1220.pepcpu
-// Computer Systems, Fifth Edition
+// File: fig1120.pepcpu
+// Computer Systems, Sixth Edition
 // Figure 12.20
 // Two-byte data bus
 // Fetch the instruction specifier and increment PC by 1

@@ -1,5 +1,5 @@
-// File: prob1231d.pepcpu
-// Computer Systems, Fifth Edition
+// File: prob1131d.pepcpu
+// Computer Systems, Sixth Edition
 // Problem 12.31(d)
 // CPWA this,i
 // RTL: T <- A-Oprnd; N <- T<0, Z <- T=0, V <- {overflow}, C <- {carry}; N <- N XOR V

@@ -1,5 +1,5 @@
-// File: prob1232c.pepcpu
-// Computer Systems, Fifth Edition
+// File: prob1132c.pepcpu
+// Computer Systems, Sixth Edition
 // Problem 12.32(c)
 // LDWA here,sf
 // RTL: A <- Oprnd; N <- A<0, Z <- A=0

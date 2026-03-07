@@ -1,5 +1,5 @@
-// File: prob1233b.pepcpu
-// Computer Systems, Fifth Edition
+// File: prob1133b.pepcpu
+// Computer Systems, Sixth Edition
 // Problem 12.33(b)
 // BR guessJT,x
 // RTL: PC <- Oprnd

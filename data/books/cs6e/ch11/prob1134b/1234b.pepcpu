@@ -1,5 +1,5 @@
-// File: prob1234b.pepcpu
-// Computer Systems, Fifth Edition
+// File: prob1134b.pepcpu
+// Computer Systems, Sixth Edition
 // Problem 12.34(b)
 // Two-byte data bus
 // Fetch the operand specifier and increment PC by 2

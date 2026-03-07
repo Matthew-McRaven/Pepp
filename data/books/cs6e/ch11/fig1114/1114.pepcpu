@@ -1,5 +1,5 @@
-// File: fig1214.pepcpu
-// Computer Systems, Fifth Edition
+// File: fig1114.pepcpu
+// Computer Systems, Sixth Edition
 // Figure 12.14
 // ASRA
 // RTL: C <- A<15>, A<1..15> <- A<0..14>; N <- A<0, Z <- A=0

@@ -1,5 +1,5 @@
-// File: fig1211.pepcpu
-// Computer Systems, Fifth Edition
+// File: fig1111.pepcpu
+// Computer Systems, Sixth Edition
 // Figure 12.11
 // ADDA this,i
 // RTL: A <- A + Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}

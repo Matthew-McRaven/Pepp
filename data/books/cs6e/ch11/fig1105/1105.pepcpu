@@ -1,5 +1,5 @@
-// File: fig1205.pepcpu
-// Computer Systems, Fifth Edition
+// File: fig1105.pepcpu
+// Computer Systems, Sixth Edition
 // Figure 12.5
 // Fetch the instruction specifier and increment PC by 1
 

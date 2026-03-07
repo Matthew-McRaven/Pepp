@@ -1,5 +1,5 @@
-// File: fig1207.pepcpu
-// Computer Systems, Fifth Edition
+// File: fig1107.pepcpu
+// Computer Systems, Sixth Edition
 // Figure 12.7, Combine cycles from Figure 12.5
 // Fetch the instruction specifier and increment PC by 1
 
