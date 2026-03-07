@@ -5,8 +5,8 @@
 // RTL: Oprnd <- A
 // Direct addressing: Oprnd = Mem[OprndSpec]
 
-// UnitPre: IR=0xE100FF, A=0xABCD, S=0
-// UnitPost: Mem[0x00FF]=0xABCD
+UnitPre: IR=0xE100FF, A=0xABCD, S=0
+UnitPost: Mem[0x00FF]=0xABCD
 
 // UnitPre: IR=0xE101FE, A=0xABCD, S=1
 // UnitPost: Mem[0x01FE]=0xABCD
