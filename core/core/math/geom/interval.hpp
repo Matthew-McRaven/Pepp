@@ -27,8 +27,7 @@ template <typename T> struct Interval {
   // Construct a canonical empty interval
   explicit Interval();
   explicit Interval(T point) : _lower(point), _upper(point) {}
-  // Enforce lower <= upper to make math easier.
-  Interval(T lower, T upper) : _lower(lower), _upper(upper) { assert(lower <= upper); }
+  Interval(T lower, T upper) : _lower(lower), _upper(upper) {}
   Interval(const Interval &) = default;
   Interval &operator=(const Interval &) = default;
   Interval(Interval &&) = default;
@@ -54,13 +53,22 @@ template <typename T> struct Interval {
   }
   inline T lower() const { return _lower; }
   inline T upper() const { return _upper; }
+  // If T::invalid() exists, returns true if _upper and _lower are valid AND _lower<=_upper
+  // Otherwise returns true if _lower <= _upper.
   bool valid() const noexcept;
+  // Unconditionally swap _upper and _lower
+  void flip() noexcept;
+  Interval<T> flipped() const noexcept;
+  // Conditionally swap _upper and _lower if _lower < _upper.
+  // If T::invalid() exists, this may not make the interval valid if either endpoint is invalid.
+  void normalize() noexcept;
+  Interval<T> normalized() const noexcept;
 
 public:
-  // Prevent writes to _lower and _upper to maintain class invariant of lower() <= upper();
-  // This is enforced by the constructor(s).
+  // _lower<=upper is required for valid intervals. All invalid intervals are treated as equivalent, empty intervals.
   T _lower, _upper;
 };
+
 template <typename T> Interval<T>::Interval() {
   if constexpr (requires { T() + 1; }) {
     // Not all tpyes (e.g., source locations) can be incremented.
@@ -72,13 +80,31 @@ template <typename T> Interval<T>::Interval() {
     _lower = T::invalid();
     _upper = T::invalid();
   } else {
-    static_assert(false, "Cannot construct an invalid interval");
+    static_assert(false, "Failed to construct empty interval");
   }
 }
 
 template <typename T> bool Interval<T>::valid() const noexcept {
   if constexpr (requires { T().valid(); }) return _lower.valid() && _upper.valid() && _lower <= _upper;
   else return _lower <= _upper;
+}
+
+template <typename T> inline void Interval<T>::flip() noexcept { std::swap(_lower, _upper); }
+
+template <typename T> inline Interval<T> Interval<T>::flipped() const noexcept {
+  auto ret = *this;
+  ret.flip();
+  return ret;
+}
+
+template <typename T> inline void Interval<T>::normalize() noexcept {
+  if (_lower > _upper) flip();
+}
+
+template <typename T> Interval<T> Interval<T>::normalized() const noexcept {
+  auto ret = *this;
+  ret.normalize();
+  return ret;
 }
 
 // Two variants of size, depending on if the right endpoint is included. For example, for integers, [0, 0] has size 1 if

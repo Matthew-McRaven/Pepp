@@ -27,9 +27,17 @@ TEST_CASE("Interval Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   const Interval<i16> i14(1, 4);
   const Interval<i16> i23(2, 3);
   const Interval<i16> empty{};
-  SECTION("") {}
+  SECTION("Swapped") {
+    auto start = i14, end = Interval<i16>(4, 1);
+    CHECK(start != end);
+    CHECK(start.valid());
+    CHECK(!end.valid());
+    CHECK(start == end.flipped());
+    CHECK(start.flipped() == end);
+    CHECK(start.normalized() == start);
+    CHECK(end.normalized() == start);
+  }
   SECTION("Ordering") {
-
     CHECK(i11 == i11);
     CHECK(i11 < i14);
     CHECK(i11 < i23);
