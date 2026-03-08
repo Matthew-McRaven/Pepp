@@ -27,17 +27,16 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:core][scope:core.langs][level:mc2]
   using Parser2c = pepp::tc::parse::MicroParser<uarch2c, regs>;
   SECTION("Integer signals") {
     // Play with spacing on =
-    std::string source = "A\t= 1, B = 2, MemRead, MemWrite  , AMux=0, ALU = 1\n";
+    std::string source = "A\t= 1, B = 2, MemRead,    AMux=0, ALU = 1\n";
     auto result = Parser(std::move(source)).parse();
     CHECK(result.errors.empty());
     REQUIRE(result.program.size() == 1);
 
     auto &line = result.program[0];
-    CHECK(line.controls.enables.count() == 6);
+    CHECK(line.controls.enables.count() == 5);
     CHECK(line.controls.get(uarch::Signals::A) == 1);
     CHECK(line.controls.get(uarch::Signals::B) == 2);
     CHECK(line.controls.get(uarch::Signals::MemRead) == 1);
-    CHECK(line.controls.get(uarch::Signals::MemWrite) == 1);
     CHECK(line.controls.get(uarch::Signals::AMux) == 0);
     CHECK(line.controls.get(uarch::Signals::ALU) == 1);
   }
@@ -305,5 +304,11 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:core][scope:core.langs][level:mc2]
       CHECK(result.errors.size() == 1);
       CHECK(result.program.size() == 0);
     }
+  }
+  SECTION("Enforce MemRead/MemWrite excluison") {
+    std::string source = "MemRead, MemWrite";
+    auto result = Parser(std::move(source)).parse();
+    CHECK(result.errors.size() == 1);
+    CHECK(result.program.size() == 0);
   }
 }

@@ -122,6 +122,7 @@ template <typename uarch, typename registers>
 inline ParseResult<uarch, registers> MicroParser<uarch, registers>::parse() {
   ParseResult<uarch, registers> result;
   int addressCounter = 0;
+  using Signals = uarch::Signals;
   while (_buf.input_remains()) {
     typename ir::Line<uarch, registers> codeLine;
     std::string error;
@@ -135,6 +136,12 @@ inline ParseResult<uarch, registers> MicroParser<uarch, registers>::parse() {
           result.errors.emplace_back(
               std::make_pair(_lexer.current_location().row, "Symbol already defined: " + symbol));
         else result.symbols[symbol] = codeLine.address;
+      }
+      // Enforce mutual exclusion between MemRead & MemWrite
+      if (codeLine.controls.enabled(Signals::MemRead) && codeLine.controls.enabled(Signals::MemWrite)) {
+        result.errors.emplace_back(
+            std::make_pair(_lexer.current_location().row, "Cannot set both MemRead and MemWrite"));
+        continue;
       }
       result.program.emplace_back(codeLine);
     } else {

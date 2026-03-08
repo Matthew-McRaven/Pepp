@@ -22,14 +22,17 @@ pepp::tc::lex::ALexer::ALexer(std::shared_ptr<std::unordered_set<std::string>> i
 
 pepp::tc::support::LocationInterval pepp::tc::lex::ALexer::synchronize() {
   auto start = _cursor.location();
+  auto end = start;
   while (input_remains()) {
     if (auto next = _cursor.peek(); next == '\n') {
-      _cursor.advance(1);
+      // Advanced the (start, end) to the start of the next line.
+      _cursor.skip(1);
+      end = _cursor.location();
       _cursor.newline();
       break;
     } else _cursor.advance(1);
   }
-  return {start, _cursor.location()};
+  return {start, end};
 }
 
 void pepp::tc::lex::ALexer::register_listener(Listener *listener) {

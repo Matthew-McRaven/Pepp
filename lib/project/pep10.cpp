@@ -1844,7 +1844,6 @@ bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
   _errors.reserve(parsed.errors.size());
   for (const auto &[line, msg] : parsed.errors) _errors.push_back({line, QString::fromStdString(msg)});
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
-  _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
   if (_errors.empty()) {
     if (override_source_text) {
       auto source = pepp::tc::ir::format(parsed);
@@ -1853,8 +1852,10 @@ bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
     _system->cpu()->setMicrocode(_microcode);
     auto tests = pepp::tc::parse::tests<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
     _testsPre = tests.pre, _testsPost = tests.post;
+    _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
   } else {
     _testsPre = _testsPost = std::monostate{};
+    _line2addr = {};
   }
   reloadPostTests();
   emit errorsChanged();
@@ -1870,7 +1871,6 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
   _errors.resize(parsed.errors.size());
   for (const auto &[line, msg] : parsed.errors) _errors.push_back({line, QString::fromStdString(msg)});
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9WordBus, regs>(parsed);
-  _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9WordBus, regs>(parsed);
   if (_errors.empty()) {
     if (override_source_text) {
       auto source = pepp::tc::ir::format(parsed);
@@ -1879,8 +1879,10 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
     _system->cpu()->setMicrocode(_microcode);
     auto tests = pepp::tc::parse::tests<pepp::tc::arch::Pep9WordBus, regs>(parsed);
     _testsPre = tests.pre, _testsPost = tests.post;
+    _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9WordBus, regs>(parsed);
   } else {
     _testsPre = _testsPost = std::monostate{};
+    _line2addr = {};
   }
   reloadPostTests();
   emit errorsChanged();
@@ -1971,20 +1973,27 @@ void Pep_MA::update_painter_key(QString name, QVariant value) {
   const int8_t value_i8 = value.toInt();
   const auto memory_cycle = _system->cpu()->memoryCycle();
   if (std::holds_alternative<pepp::OneByteMC9Line>(this->_activeLine)) {
+    using Signals = pepp::tc::arch::Pep9ByteBus::Signals;
     auto &line = std::get<pepp::OneByteMC9Line>(this->_activeLine);
     const auto _signals = pepp::tc::arch::Pep9ByteBus::string_to_signal();
     if (auto it = _signals.find(as_lower.toStdString()); it != _signals.end()) {
       if (value_i8 >= 0) line.set(it->second, value_i8);
       else line.clear(it->second);
+      // Enforce mutual exclusion between MemRead and MemWrite.
+      if (it->second == Signals::MemRead) line.clear(Signals::MemWrite);
+      else if (it->second == Signals::MemWrite) line.clear(Signals::MemRead);
       pepp::connections_for(_holder.c, line, memory_cycle);
     }
-
   } else if (std::holds_alternative<pepp::TwoByteMC9Line>(this->_activeLine)) {
+    using Signals = pepp::tc::arch::Pep9WordBus::Signals;
     auto &line = std::get<pepp::TwoByteMC9Line>(this->_activeLine);
     const auto _signals = pepp::tc::arch::Pep9WordBus::string_to_signal();
     if (auto it = _signals.find(as_lower.toStdString()); it != _signals.end()) {
       if (value_i8 >= 0) line.set(it->second, value_i8);
       else line.clear(it->second);
+      // Enforce mutual exclusion between MemRead and MemWrite.
+      if (it->second == Signals::MemRead) line.clear(Signals::MemWrite);
+      else if (it->second == Signals::MemWrite) line.clear(Signals::MemRead);
       pepp::connections_for(_holder.c, line, memory_cycle);
     }
   } else return; // Early return, skip GUI update.
