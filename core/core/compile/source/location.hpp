@@ -24,6 +24,7 @@ namespace pepp::tc::support {
 struct Location {
   Location() = default;
   Location(u16 r, u16 c);
+  static Location invalid() { return Location(); }
   // A location is considered invalid if either its row or column is INVALID.
   bool valid() const;
   auto operator<=>(const Location &other) const = default;
