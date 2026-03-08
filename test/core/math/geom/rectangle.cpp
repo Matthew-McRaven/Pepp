@@ -43,6 +43,13 @@ TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     CHECK(a == b);
     CHECK(b.normalized() == b);
   }
+  SECTION("Accessors") {
+    auto a = Rect::from_point_point(-3, -2, 4, 5);
+    CHECK(a.left() == -3);
+    CHECK(a.right() == 4);
+    CHECK(a.top() == -2);
+    CHECK(a.bottom() == 5);
+  }
   // 1 overlaps 2, 1 contains 3. 2 does not overlap 3.
   Rect r1(Ivl{0, 10}, Ivl{0, 5});
   Rect r2(Ivl{5, 15}, Ivl{2, 7});

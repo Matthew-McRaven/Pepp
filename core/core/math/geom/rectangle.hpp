@@ -62,8 +62,10 @@ template <typename T> struct Rectangle {
   const Interval<T> &y() const noexcept { return _y; }
   //  x and y do not return actual points. Discuss with Matthew if we can rename x and y above
   //  It will have big impact on code.
-  const T xx() const noexcept { return _x.lower(); }
-  const T yy() const noexcept { return _y.lower(); }
+  const T left() const noexcept { return _x.lower(); }
+  const T right() const noexcept { return _x.upper(); }
+  const T top() const noexcept { return _y.lower(); }
+  const T bottom() const noexcept { return _y.upper(); }
   bool valid() const noexcept { return _x.valid() && _y.valid(); }
   // If either x or y is reversed (lower > upper), then the rectangle is invalid, which might happen with geometric
   // manipulation of this class. Normalize swaps any reversed intervals.

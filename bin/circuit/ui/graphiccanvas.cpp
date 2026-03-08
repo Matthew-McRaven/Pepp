@@ -293,8 +293,8 @@ void GraphicCanvas::paint(QPainter *painter)
     //qDebug() << "row: " << row << "col:" << col;
 
     //  Offset first cell if first row or column is cut off
-    qreal cX = std::fmod(grid_viewport.xx(), major_block_size) * grid_to_px * _currentZoom;
-    qreal cY = std::fmod(grid_viewport.yy(), major_block_size) * grid_to_px * _currentZoom;
+    qreal cX = std::fmod(grid_viewport.left(), major_block_size) * grid_to_px * _currentZoom;
+    qreal cY = std::fmod(grid_viewport.top(), major_block_size) * grid_to_px * _currentZoom;
 
     QRectF currentBlock{-cX, -cY, screen_block, screen_block};
 
@@ -406,8 +406,8 @@ void GraphicCanvas::getImage(DiagramProperties &props)
 }
 
 QRectF GraphicCanvas::grid_to_screen(const PeppRect &rect) {
-  const auto x = (rect.xx() - _top_left.x()) * grid_to_px;
-  const auto y = (rect.yy() - _top_left.y()) * grid_to_px;
+  const auto x = (rect.left() - _top_left.x()) * grid_to_px;
+  const auto y = (rect.top() - _top_left.y()) * grid_to_px;
   const auto width = rect.width() * grid_to_px;
   const auto height = rect.height() * grid_to_px;
 
@@ -587,7 +587,7 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
       if (props.selected()) {
         //  Item was previously selected, clear old outline
         //  Set through datamodel so that other controls see change
-        const auto index = _model->index(props.rectangle().xx(), props.rectangle().yy());
+        const auto index = _model->index(props.rectangle().left(), props.rectangle().top());
         _model->setData(index, false, DiagramProperty::Role::Selected);
 
         //  Update unselected rectangle
@@ -600,7 +600,7 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
     //  Save current item for other actions
     //  Set through view so that other controls see change
     _currentItem = &props;
-    const auto index = _model->index(props.rectangle().xx(), props.rectangle().yy());
+    const auto index = _model->index(props.rectangle().left(), props.rectangle().top());
     _model->setData(index, true, DiagramProperty::Role::Selected);
 
     //  Update current rectangle
@@ -801,7 +801,7 @@ void GraphicCanvas::startDrag(const QPoint point)
     QByteArray itemData;
     QDataStream dataStream(&itemData, QIODevice::WriteOnly);
 
-    dataStream << _currentItem->rectangle().xx() << _currentItem->rectangle().yy();
+    dataStream << _currentItem->rectangle().left() << _currentItem->rectangle().top();
 
     QMimeData *mimeData = new QMimeData;
     mimeData->setData("application/x-dnditemdata", itemData);
