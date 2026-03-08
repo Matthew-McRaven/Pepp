@@ -1844,7 +1844,6 @@ bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
   _errors.reserve(parsed.errors.size());
   for (const auto &[line, msg] : parsed.errors) _errors.push_back({line, QString::fromStdString(msg)});
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
-  _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
   if (_errors.empty()) {
     if (override_source_text) {
       auto source = pepp::tc::ir::format(parsed);
@@ -1853,8 +1852,10 @@ bool Pep_MA::_microassemble9_10_1(bool override_source_text) {
     _system->cpu()->setMicrocode(_microcode);
     auto tests = pepp::tc::parse::tests<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
     _testsPre = tests.pre, _testsPost = tests.post;
+    _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9ByteBus, regs>(parsed);
   } else {
     _testsPre = _testsPost = std::monostate{};
+    _line2addr = {};
   }
   reloadPostTests();
   emit errorsChanged();
@@ -1870,7 +1871,6 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
   _errors.resize(parsed.errors.size());
   for (const auto &[line, msg] : parsed.errors) _errors.push_back({line, QString::fromStdString(msg)});
   _microcode = pepp::tc::parse::microcodeEnableFor<pepp::tc::arch::Pep9WordBus, regs>(parsed);
-  _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9WordBus, regs>(parsed);
   if (_errors.empty()) {
     if (override_source_text) {
       auto source = pepp::tc::ir::format(parsed);
@@ -1879,8 +1879,10 @@ bool Pep_MA::_microassemble9_10_2(bool override_source_text) {
     _system->cpu()->setMicrocode(_microcode);
     auto tests = pepp::tc::parse::tests<pepp::tc::arch::Pep9WordBus, regs>(parsed);
     _testsPre = tests.pre, _testsPost = tests.post;
+    _line2addr = pepp::tc::parse::addressesForProgram<pepp::tc::arch::Pep9WordBus, regs>(parsed);
   } else {
     _testsPre = _testsPost = std::monostate{};
+    _line2addr = {};
   }
   reloadPostTests();
   emit errorsChanged();
