@@ -82,6 +82,7 @@ class MonoTextOverlay : public QMLOverlay {
   Q_PROPERTY(QString label READ label CONSTANT FINAL)
   Q_PROPERTY(QString updateKey READ updateKey CONSTANT FINAL)
   Q_PROPERTY(int requestedHAlign READ requestedHAlign CONSTANT FINAL)
+  Q_PROPERTY(int rotation READ rotation CONSTANT FINAL)
   QML_UNCREATABLE("TristateOverlay is only creatable from C++")
 public:
   MonoTextOverlay(QRect location, QString label, QString updateKey, Qt::Alignment halign, QObject *parent = nullptr);
@@ -89,11 +90,15 @@ public:
   QString label() const;
   QString updateKey() const;
   int requestedHAlign() const;
+  int rotation() const;
+  // Must call before passing the object to QML, otherwise the default rotation will be used.
+  // Starting to move to an incremental construction mechanism b/c the ctor has too many params.
+  void setRotation(int rotation);
 signals:
   void valueChanged();
 
 private:
-  int _halign;
+  int _halign, _rotation = 0;
   QString _label, _updateKey;
 };
 } // namespace pepp

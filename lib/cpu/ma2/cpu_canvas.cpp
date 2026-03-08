@@ -278,14 +278,15 @@ void add_tristate(QObject *parent, QList<pepp::QMLOverlay *> &list, QString labe
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
 }
-void add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QString key, QRect location,
-              Qt::Alignment align, float x_offset = 0, float y_offset = 0) {
+pepp::MonoTextOverlay *add_text(QObject *parent, QList<pepp::QMLOverlay *> &list, QString label, QString key,
+                                QRect location, Qt::Alignment align, float x_offset = 0, float y_offset = 0) {
   // Apply same margins as in PaintDispatch::operator(const pepp::TextRectItem)
   if (align & Qt::AlignLeft) location.translate(5, 0);
   else if (align & Qt::AlignRight) location.translate(-5, 0);
   auto local = new pepp::MonoTextOverlay(location.translated(x_offset, y_offset), label, key, align, parent);
   QQmlEngine::setObjectOwnership(local, QQmlEngine::CppOwnership);
   list.push_back(local);
+  return local;
 }
 
 void add_regbank_qml(QObject *parent, QList<pepp::QMLOverlay *> &list, float x_offset = 0, float y_offset = 0) {
@@ -391,6 +392,17 @@ QList<pepp::QMLOverlay *> one_byte_overlays(QObject *parent, float x_offset, flo
   add_text(parent, ret, "CSMux", "", mux_cs, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "AndZ", "", mux_andz, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "ALU", "", label_alu, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "Addr", "", text_addr_bus, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "Data", "", text_data_bus, Qt::AlignCenter, x_offset, y_offset);
+  auto sbus = add_text(parent, ret, "System Bus", "", text_system_bus, Qt::AlignCenter, x_offset, y_offset);
+  sbus->setRotation(-90);
+  add_text(parent, ret, "ABus", "", text_a_bus, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "BBus", "", text_b_bus, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "CBus", "", text_c_bus, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "", text_0_nzvc_0, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "", text_0_nzvc_1, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "", text_0_nzvc_2, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "", text_0_nzvc_3, Qt::AlignCenter, x_offset, y_offset);
 
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);
@@ -436,6 +448,17 @@ QList<pepp::QMLOverlay *> two_byte_overlays(QObject *parent, float x_offset, flo
   add_text(parent, ret, "CSMux", "", mux_cs, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "AndZ", "", mux_andz, Qt::AlignCenter, x_offset, y_offset);
   add_text(parent, ret, "ALU", "", label_alu_function, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "Addr", "", text_addr_bus, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "Data", "", text_data_bus, Qt::AlignCenter, x_offset, y_offset);
+  auto sbus = add_text(parent, ret, "System Bus", "", text_system_bus, Qt::AlignCenter, x_offset, y_offset);
+  sbus->setRotation(-90);
+  add_text(parent, ret, "ABus", "", text_a_bus, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "BBus", "", text_b_bus, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "CBus", "", text_c_bus, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "", text_0_nzvc_0, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "", text_0_nzvc_1, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "", text_0_nzvc_2, Qt::AlignCenter, x_offset, y_offset);
+  add_text(parent, ret, "0", "", text_0_nzvc_3, Qt::AlignCenter, x_offset, y_offset);
 
   add_clock(parent, ret, "LoadCk", ext_ck_load, x_offset, y_offset);
   add_tristate(parent, ret, "C", ext_sel_c, 31, x_offset, y_offset);

@@ -740,4 +740,14 @@ const Arrow ck_memwrite = Arrow(
     QVector<QLine>() << QLine(bus_data.right() + arrowHOffset, ext_sel_memwrite.y() + selectYOffset, ctrlInputX - 7,
                               ext_sel_memwrite.y() + selectYOffset)); // Doesn't draw vertical lines
 
+const auto text_addr_bus = OneByteShapes::text_addr_bus;
+const auto text_system_bus = OneByteShapes::text_system_bus;
+const auto text_data_bus = OneByteShapes::text_data_bus;
+const auto text_a_bus = OneByteShapes::text_a_bus.translated(controlOffsetX, 0);
+const auto text_b_bus = OneByteShapes::text_b_bus.translated(controlOffsetX, 0);
+const auto text_c_bus = OneByteShapes::text_c_bus.translated(controlOffsetX, 0);
+const auto text_0_nzvc_0 = OneByteShapes::text_0_nzvc_0.translated(controlOffsetX, aluOffsetY);
+const auto text_0_nzvc_1 = OneByteShapes::text_0_nzvc_1.translated(controlOffsetX, aluOffsetY);
+const auto text_0_nzvc_2 = OneByteShapes::text_0_nzvc_2.translated(controlOffsetX, aluOffsetY);
+const auto text_0_nzvc_3 = OneByteShapes::text_0_nzvc_3.translated(controlOffsetX, aluOffsetY);
 } // namespace TwoByteShapes
