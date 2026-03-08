@@ -488,4 +488,14 @@ const Arrow ck_memwrite = Arrow(
     QVector<QLine>() << QLine(bus_data.right() + arrowHOffset, ext_sel_memwrite.y() + selectYOffset, ctrlInputX - 7,
                               ext_sel_memwrite.y() + selectYOffset));
 
+const auto text_addr_bus = QRect(7 - 20, 320 - 14, dataLabelW, dataLabelH);
+const auto text_system_bus = QRect(35 - 15, 260 - 20, dataLabelW, dataLabelH);
+const auto text_data_bus = QRect(7 - 20, 395 - 14, dataLabelW, dataLabelH);
+const auto text_a_bus = QRect(372 - 22, 132 - 12, dataLabelW, dataLabelH);
+const auto text_b_bus = QRect(433 - 22, 132 - 12, dataLabelW, dataLabelH);
+const auto text_c_bus = QRect(300 - 22, 132 - 12, dataLabelW, dataLabelH);
+const auto text_0_nzvc_0 = QRect(314 - 30, 531 - 12, dataLabelW, dataLabelH);
+const auto text_0_nzvc_1 = QRect(314 - 30, 531 - 2, dataLabelW, dataLabelH);
+const auto text_0_nzvc_2 = QRect(314 - 30, 531 + 8, dataLabelW, dataLabelH);
+const auto text_0_nzvc_3 = QRect(314 - 30, 531 + 18, dataLabelW, dataLabelH);
 } // namespace OneByteShapes

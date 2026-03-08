@@ -53,3 +53,7 @@ QString pepp::MonoTextOverlay::label() const { return _label; }
 QString pepp::MonoTextOverlay::updateKey() const { return _updateKey; }
 
 int pepp::MonoTextOverlay::requestedHAlign() const { return _halign; }
+
+int pepp::MonoTextOverlay::rotation() const { return _rotation; }
+
+void pepp::MonoTextOverlay::setRotation(int rotation) { _rotation = rotation; }

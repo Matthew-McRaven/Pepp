@@ -117,6 +117,7 @@ Item {
         required property string label
         required property string updateKey
         required property int requestedHAlign
+        required property int rotation
         x: location.x
         y: location.y
         height: location.height
@@ -148,6 +149,11 @@ Item {
             // Canvas prepopulates properly-sized text, but the values may not match the actually selected architecture
             // e.g., Pep/9 vs Pep/10. Rather than inform the canvas of the architecture, compute the real values on load.
             conn.onUpdateGUI();
+        }
+        transform: Rotation {
+            angle: mono.rotation
+            origin.x: 0
+            origin.y: 0
         }
     }
     ScrollBar {
