@@ -33,16 +33,9 @@ template <typename T> struct Rectangle {
   Rectangle(Point<T> pt, Size<T> size)
       : _x(pt.x(), pt.x() + size.width() - 1), _y(pt.y(), pt.y() + size.height() - 1) {}
   Rectangle(Interval<T> x, Interval<T> y) : _x(std::move(x)), _y(std::move(y)) {}
-  Rectangle(Point<T> top_left, Point<T> bottom_right) noexcept {
-    auto min_x = std::min(top_left.x(), bottom_right.x());
-    auto max_x = std::max(top_left.x(), bottom_right.x());
-    _x = Interval<T>(min_x, max_x);
-    auto min_y = std::min(top_left.y(), bottom_right.y());
-    auto max_y = std::max(top_left.y(), bottom_right.y());
-    _y = Interval<T>(min_y, max_y);
-    //  Creating directly does not compile. Follow up with Matthew
-    // Rectangle(T x, T y, T width, T height) : _x(x, x + width() - 1), _y(y, y + height() - 1) {}
-  }
+  Rectangle(Point<T> top_left, Point<T> bottom_right) noexcept;
+  static constexpr Rectangle from_point_point(T x1, T y1, T x2, T y2) noexcept;
+  static constexpr Rectangle from_point_size(T x, T y, T width, T height) noexcept;
 
   Rectangle(const Rectangle &) noexcept = default;
   Rectangle &operator=(const Rectangle &) noexcept = default;
@@ -57,12 +50,7 @@ template <typename T> struct Rectangle {
   // Total order based on min(y), then min(x), then max(y), then max(x).
   // This is trying to sort rectangles in an order than is appropriate for scanline rendering.
   // See: https://en.wikipedia.org/wiki/Scanline_rendering
-  auto operator<=>(const Rectangle &other) const noexcept {
-    if (auto c = _y.lower() <=> other._y.lower(); c != 0) return c;
-    if (auto c = _x.lower() <=> other._x.lower(); c != 0) return c;
-    if (auto c = _y.upper() <=> other._y.upper(); c != 0) return c;
-    return _x.upper() <=> other._x.upper();
-  }
+  auto operator<=>(const Rectangle &other) const noexcept;
   bool operator==(const Rectangle &other) const noexcept = default;
 
   T height() const noexcept { return size_inclusive(_y); }
@@ -80,6 +68,29 @@ template <typename T> struct Rectangle {
 private:
   Interval<T> _x, _y;
 };
+template <typename T> inline auto Rectangle<T>::operator<=>(const Rectangle &other) const noexcept {
+  if (auto c = _y.lower() <=> other._y.lower(); c != 0) return c;
+  if (auto c = _x.lower() <=> other._x.lower(); c != 0) return c;
+  if (auto c = _y.upper() <=> other._y.upper(); c != 0) return c;
+  return _x.upper() <=> other._x.upper();
+}
+
+template <typename T> inline Rectangle<T>::Rectangle(Point<T> top_left, Point<T> bottom_right) noexcept {
+  auto min_x = std::min(top_left.x(), bottom_right.x());
+  auto max_x = std::max(top_left.x(), bottom_right.x());
+  _x = Interval<T>(min_x, max_x);
+  auto min_y = std::min(top_left.y(), bottom_right.y());
+  auto max_y = std::max(top_left.y(), bottom_right.y());
+  _y = Interval<T>(min_y, max_y);
+}
+
+template <typename T> constexpr Rectangle<T> Rectangle<T>::from_point_point(T x1, T y1, T x2, T y2) noexcept {
+  return Rectangle(Point<T>(x1, y1), Point<T>(x2, y2));
+}
+
+template <typename T> constexpr Rectangle<T> Rectangle<T>::from_point_size(T x, T y, T width, T height) noexcept {
+  return Rectangle(Point<T>(x, y), Size<T>(width, height));
+}
 
 template <typename T> std::size_t area(const Rectangle<T> &rect) { return rect.height() * rect.width(); }
 
@@ -95,7 +106,7 @@ template <typename T> bool intersects(const Rectangle<T> &lhs, const Rectangle<T
 template <typename T> Rectangle<T> intersection(const Rectangle<T> &lhs, const Rectangle<T> &rhs) {
   return {intersection(lhs.x(), rhs.x()), intersection(lhs.y(), rhs.y())};
 }
-// Smallest rectangle which contains lhs and rhs.
+// Smallest rectangle which containing the entirety ofboth lhs and rhs.
 template <typename T> Rectangle<T> hull(const Rectangle<T> &lhs, const Rectangle<T> &rhs) {
   return {hull(lhs.x(), rhs.x()), hull(lhs.y(), rhs.y())};
 }
@@ -121,43 +132,15 @@ public:
     using difference_type = std::ptrdiff_t;
     using value_type = std::pair<Point<T>, Rectangle<u8>>;
     Iterator() noexcept : _src(), _pos(0, 9) {}
-    Iterator(Rectangle<T> rect) noexcept : _src(rect) {
-      const auto init = _src.top_left();
-      // Mask off low bits to get 8x8 grid aligned starting coordinate.
-      const auto x = init.x() & ~T(7), y = init.y() & ~T(7);
-      _pos = Point<T>(x, y);
-    }
+    Iterator(Rectangle<T> rect) noexcept;
     // Computes the end iterator for a given rectangle.
     // End iterator is represented as any iterator >8y below the rectangle
 
-    static Iterator end_for(Rectangle<T> rect) {
-      Iterator it(rect);
-      // Multiple ~T(7) to mask out the low-order 3-bits, which corresponds to our 8x8 grid.
-      it._pos = Point<T>(rect.x().lower() & ~T(7), (rect.y().upper() & ~T(7)) + 8);
-      return it;
-    }
+    static Iterator end_for(Rectangle<T> rect);
 
-    value_type operator*() const noexcept {
-      const Rectangle<T> rect_mask(_pos, Size<T>{8, 8});
-      const auto isec = intersection(_src, rect_mask);
-      // "reproject" the intersection to be relative to the (0,0) of the 8x8 mask
-      const u8 clipped_x = static_cast<u8>(isec.x().lower() - rect_mask.x().lower());
-      const u8 clipped_y = static_cast<u8>(isec.y().lower() - rect_mask.y().lower());
-      const u8 clipped_w = static_cast<u8>(isec.width());
-      const u8 clipped_h = static_cast<u8>(isec.height());
-      const Rectangle<u8> isec_u8(Point<u8>(clipped_x, clipped_y), Size<u8>(clipped_w, clipped_h));
-      return std::make_pair(_pos, isec_u8);
-    }
-    Iterator &operator++() noexcept {
-      _pos = Point<T>(_pos.x() + 8, _pos.y());
-      if (_pos.x() > _src.x().upper()) _pos = Point<T>(_src.x().lower() & ~T(7), _pos.y() + 8);
-      return *this;
-    }
-    Iterator operator++(int) {
-      auto prev = *this;
-      ++*this;
-      return prev;
-    }
+    value_type operator*() const noexcept;
+    Iterator &operator++() noexcept;
+    Iterator operator++(int);
     bool operator==(const Iterator &other) const noexcept = default;
     auto operator<=>(const Iterator &other) const noexcept = default;
 
@@ -172,4 +155,46 @@ public:
 private:
   Rectangle<T> _rect;
 };
+
+template <typename T> typename RectangleDecomposer<T>::Iterator RectangleDecomposer<T>::Iterator::operator++(int) {
+  auto prev = *this;
+  ++*this;
+  return prev;
+}
+
+template <typename T>
+typename RectangleDecomposer<T>::Iterator &RectangleDecomposer<T>::Iterator::operator++() noexcept {
+  _pos = Point<T>(_pos.x() + 8, _pos.y());
+  if (_pos.x() > _src.x().upper()) _pos = Point<T>(_src.x().lower() & ~T(7), _pos.y() + 8);
+  return *this;
+}
+
+template <typename T>
+typename RectangleDecomposer<T>::Iterator::value_type RectangleDecomposer<T>::Iterator::operator*() const noexcept {
+  const Rectangle<T> rect_mask(_pos, Size<T>{8, 8});
+  const auto isec = intersection(_src, rect_mask);
+  // "reproject" the intersection to be relative to the (0,0) of the 8x8 mask
+  const u8 clipped_x = static_cast<u8>(isec.x().lower() - rect_mask.x().lower());
+  const u8 clipped_y = static_cast<u8>(isec.y().lower() - rect_mask.y().lower());
+  const u8 clipped_w = static_cast<u8>(isec.width());
+  const u8 clipped_h = static_cast<u8>(isec.height());
+  const Rectangle<u8> isec_u8(Point<u8>(clipped_x, clipped_y), Size<u8>(clipped_w, clipped_h));
+  return std::make_pair(_pos, isec_u8);
+}
+
+template <typename T>
+typename RectangleDecomposer<T>::Iterator RectangleDecomposer<T>::Iterator::end_for(Rectangle<T> rect) {
+  Iterator it(rect);
+  // Multiple ~T(7) to mask out the low-order 3-bits, which corresponds to our 8x8 grid.
+  it._pos = Point<T>(rect.x().lower() & ~T(7), (rect.y().upper() & ~T(7)) + 8);
+  return it;
+}
+
+template <typename T> inline RectangleDecomposer<T>::Iterator::Iterator(Rectangle<T> rect) noexcept : _src(rect) {
+  const auto init = _src.top_left();
+  // Mask off low bits to get 8x8 grid aligned starting coordinate.
+  const auto x = init.x() & ~T(7), y = init.y() & ~T(7);
+  _pos = Point<T>(x, y);
+}
+
 } // namespace pepp::core

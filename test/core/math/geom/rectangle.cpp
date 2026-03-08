@@ -22,11 +22,15 @@
 TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   using namespace pepp::core;
   using Rect = Rectangle<i16>;
+  using Pt = Point<i16>;
   using Ivl = Interval<i16>;
 
   SECTION("Construction") {
     // Re-orders ranges as needed.
     CHECK_NOTHROW(Rect(Ivl{2, 2}, Ivl{-2, 4}) == Rect(Ivl{-2, 2}, Ivl{2, 4}));
+    // Various static "constructors" work the same as the underlying constructor.
+    CHECK(Rect(Pt{-2, 2}, Pt{2, 4}) == Rect::from_point_point(-2, 2, 2, 4));
+    CHECK(Rect(Pt{-2, 2}, Pt{2, 4}) == Rect::from_point_size(-2, 2, 5, 3));
   }
   // 1 overlaps 2, 1 contains 3. 2 does not overlap 3.
   Rect r1(Ivl{0, 10}, Ivl{0, 5});
