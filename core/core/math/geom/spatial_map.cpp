@@ -47,14 +47,14 @@ std::optional<pepp::core::SpatialMap::Identifier> pepp::core::SpatialMap::at(Rec
 
 // Unoptimized. Should cache the bounding box and only update on add/remove.
 pepp::core::Rectangle<i16> pepp::core::SpatialMap::bounding_box() const noexcept {
-  pepp::core::Rectangle<i16> ret;
+  pepp::core::Rectangle<i16> ret{};
   for (const auto &it : _index_to_rectangle) ret = hull(ret, it.second);
   return ret;
 }
 
 // Unoptimized. Should cache the bounding box and only update on add/remove.
 pepp::core::Rectangle<i16> pepp::core::SpatialMap::bounding_box(bits::span<const Identifier> ids) const noexcept {
-  pepp::core::Rectangle<i16> ret;
+  pepp::core::Rectangle<i16> ret{};
   for (const auto &id : ids) {
     const auto rect_it = _index_to_rectangle.find(id);
     if (rect_it == _index_to_rectangle.end()) continue;

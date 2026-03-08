@@ -26,8 +26,8 @@ namespace pepp::core {
 // the equivalent in 1D to a rectangle. Reusing intervals as the internal representation means we can reuse our existing
 // algorithm.
 template <typename T> struct Rectangle {
-  // Not actually an empty rectangle, because our interval cannot be empty.
-  Rectangle() : _x(Interval<T>()), _y(Interval<T>()) {}
+  // Creates an invalid rectangle, which needs to be guarded against in operations.
+  explicit Rectangle() : _x(Interval<T>()), _y(Interval<T>()) {}
   explicit Rectangle(Point<T> pt) : _x(pt.x()), _y(pt.y()) {}
   // Caller must provide a non-zero size
   Rectangle(Point<T> pt, Size<T> size)
@@ -64,24 +64,36 @@ template <typename T> struct Rectangle {
   //  It will have big impact on code.
   const T xx() const noexcept { return _x.lower(); }
   const T yy() const noexcept { return _y.lower(); }
+  bool valid() const noexcept { return _x.valid() && _y.valid(); }
+  // If either x or y is reversed (lower > upper), then the rectangle is invalid, which might happen with geometric
+  // manipulation of this class. Normalize swaps any reversed intervals.
+  Rectangle<T> normalized() const noexcept;
+  void normalize() noexcept;
 
 private:
   Interval<T> _x, _y;
 };
 template <typename T> inline auto Rectangle<T>::operator<=>(const Rectangle &other) const noexcept {
-  if (auto c = _y.lower() <=> other._y.lower(); c != 0) return c;
-  if (auto c = _x.lower() <=> other._x.lower(); c != 0) return c;
-  if (auto c = _y.upper() <=> other._y.upper(); c != 0) return c;
+  if (bool lhs_empty = !valid(), rhs_empty = !other.valid(); lhs_empty && rhs_empty) return std::strong_ordering::equal;
+  else if (lhs_empty) return std::strong_ordering::less;
+  else if (rhs_empty) return std::strong_ordering::greater;
+  else if (auto c = _y.lower() <=> other._y.lower(); c != 0) return c;
+  else if (auto c = _x.lower() <=> other._x.lower(); c != 0) return c;
+  else if (auto c = _y.upper() <=> other._y.upper(); c != 0) return c;
   return _x.upper() <=> other._x.upper();
 }
 
+template <typename T> void Rectangle<T>::normalize() noexcept { _x.normalize(), _y.normalize(); }
+
+template <typename T> Rectangle<T> Rectangle<T>::normalized() const noexcept {
+  auto ret = *this;
+  ret.normalize();
+  return ret;
+}
+
 template <typename T> inline Rectangle<T>::Rectangle(Point<T> top_left, Point<T> bottom_right) noexcept {
-  auto min_x = std::min(top_left.x(), bottom_right.x());
-  auto max_x = std::max(top_left.x(), bottom_right.x());
-  _x = Interval<T>(min_x, max_x);
-  auto min_y = std::min(top_left.y(), bottom_right.y());
-  auto max_y = std::max(top_left.y(), bottom_right.y());
-  _y = Interval<T>(min_y, max_y);
+  _x = Interval<T>(top_left.x(), bottom_right.x());
+  _y = Interval<T>(top_left.y(), bottom_right.y());
 }
 
 template <typename T> constexpr Rectangle<T> Rectangle<T>::from_point_point(T x1, T y1, T x2, T y2) noexcept {
@@ -92,7 +104,10 @@ template <typename T> constexpr Rectangle<T> Rectangle<T>::from_point_size(T x, 
   return Rectangle(Point<T>(x, y), Size<T>(width, height));
 }
 
-template <typename T> std::size_t area(const Rectangle<T> &rect) { return rect.height() * rect.width(); }
+template <typename T> std::size_t area(const Rectangle<T> &rect) {
+  if (!rect.valid()) return 0;
+  else return rect.height() * rect.width();
+}
 
 template <typename T> bool contains(const Rectangle<T> &rect, const Point<T> &inner) {
   return contains(rect.x(), inner.x()) && contains(rect.y(), inner.y());
