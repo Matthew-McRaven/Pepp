@@ -458,7 +458,7 @@ const QPointF logic_s_junction =
     QPointF(poly_alu.boundingRect().left() + aluSelOff + selLineOff * 3, reg_bit_s.y() + selectYOffset);
 const QPointF logic_andz_junction = QPointF(437, 582);
 const Arrow logic_andz_to_z = Arrow(
-    QVector<Arrowhead>() << Arrowhead{QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2,
+    QVector<Arrowhead>() << Arrowhead{QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2 - 1,
                                              mux_andz.top() - selectYOffset - 3),
                                       DOWN}
                          << Arrowhead{QPoint(reg_bit_z.x() - 12, mux_andz.y() + mux_andz.height() / 2 - 3), RIGHT},
