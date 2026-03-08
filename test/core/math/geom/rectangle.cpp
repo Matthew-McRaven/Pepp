@@ -50,6 +50,35 @@ TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     CHECK(a.top() == -2);
     CHECK(a.bottom() == 5);
   }
+  SECTION("adjust") {
+    auto start = Rect::from_point_point(1, 1, 3, 3);
+    const auto end = Rect::from_point_point(0, 2, 5, 1);
+    CHECK(start.adjusted(-1, +1, +2, -2) == end);
+    auto a = start;
+    a.adjust(-1, +1, +2, -2);
+    CHECK(a == end);
+  }
+  SECTION("adjust turns into invalid") {
+    auto start = Rect::from_point_point(1, 1, 1, 1);
+    const auto end = Rect::from_point_point(2, 2, 1, 1);
+    CHECK(start.adjusted(+1, +1, -1, -1) == end);
+    CHECK(!end.valid());
+  }
+  SECTION("translate") {
+    auto start = Rect::from_point_point(1, 1, 3, 3);
+    const auto end = Rect::from_point_point(2, 0, 4, 2);
+    CHECK(start.translated(+1, -1) == end);
+    auto a = start;
+    a.translate(+1, -1);
+    CHECK(a == end);
+
+    // Check that the point overloads work too.
+    Point<i16> delta{1, -1};
+    CHECK(start.translated(delta) == end);
+    a = start;
+    a.translate(delta);
+    CHECK(a == end);
+  }
   // 1 overlaps 2, 1 contains 3. 2 does not overlap 3.
   Rect r1(Ivl{0, 10}, Ivl{0, 5});
   Rect r2(Ivl{5, 15}, Ivl{2, 7});

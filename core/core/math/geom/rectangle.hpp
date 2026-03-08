@@ -71,10 +71,20 @@ template <typename T> struct Rectangle {
   // manipulation of this class. Normalize swaps any reversed intervals.
   Rectangle<T> normalized() const noexcept;
   void normalize() noexcept;
+  // Helpers to adjust the points of the rectangle by a different delta for each point.
+  void adjust(T delta_left, T delta_top, T delta_right, T delta_bottom) noexcept;
+  Rectangle<T> adjusted(T delta_left, T delta_top, T delta_right, T delta_bottom) const noexcept;
+  // Adjust the rectangle using a single delta for x and a single delta for y.
+  // It preserves the size of the rectangle and preserves the valid state.
+  void translate(T delta_x, T delta_y) noexcept;
+  void translate(Point<T> delta) noexcept;
+  Rectangle<T> translated(T delta_x, T delta_y) const noexcept;
+  Rectangle<T> translated(Point<T> delta) const noexcept;
 
 private:
   Interval<T> _x, _y;
 };
+
 template <typename T> inline auto Rectangle<T>::operator<=>(const Rectangle &other) const noexcept {
   if (bool lhs_empty = !valid(), rhs_empty = !other.valid(); lhs_empty && rhs_empty) return std::strong_ordering::equal;
   else if (lhs_empty) return std::strong_ordering::less;
@@ -109,6 +119,34 @@ template <typename T> constexpr Rectangle<T> Rectangle<T>::from_point_size(T x, 
 template <typename T> std::size_t area(const Rectangle<T> &rect) {
   if (!rect.valid()) return 0;
   else return rect.height() * rect.width();
+}
+
+template <typename T> void Rectangle<T>::adjust(T delta_left, T delta_top, T delta_right, T delta_bottom) noexcept {
+  _x = Interval<T>(_x.lower() + delta_left, _x.upper() + delta_right);
+  _y = Interval<T>(_y.lower() + delta_top, _y.upper() + delta_bottom);
+}
+
+template <typename T>
+Rectangle<T> Rectangle<T>::adjusted(T delta_left, T delta_top, T delta_right, T delta_bottom) const noexcept {
+  auto ret = *this;
+  ret.adjust(delta_left, delta_top, delta_right, delta_bottom);
+  return ret;
+}
+
+template <typename T> void Rectangle<T>::translate(T delta_x, T delta_y) noexcept {
+  adjust(delta_x, delta_y, delta_x, delta_y);
+}
+
+template <typename T> void Rectangle<T>::translate(Point<T> delta) noexcept { translate(delta.x(), delta.y()); }
+
+template <typename T> Rectangle<T> Rectangle<T>::translated(T delta_x, T delta_y) const noexcept {
+  auto ret = *this;
+  ret.translate(delta_x, delta_y);
+  return ret;
+}
+
+template <typename T> Rectangle<T> Rectangle<T>::translated(Point<T> delta) const noexcept {
+  return translated(delta.x(), delta.y());
 }
 
 template <typename T> bool contains(const Rectangle<T> &rect, const Point<T> &inner) {
