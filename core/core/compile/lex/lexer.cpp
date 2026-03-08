@@ -21,17 +21,20 @@ pepp::tc::lex::ALexer::ALexer(std::shared_ptr<std::unordered_set<std::string>> i
     : _cursor(std::move(data)), _pool(identifier_pool) {}
 
 pepp::tc::support::LocationInterval pepp::tc::lex::ALexer::synchronize() {
-  auto start = _cursor.location();
-  auto end = start;
+  const auto start = _cursor.location();
   while (input_remains()) {
     if (auto next = _cursor.peek(); next == '\n') {
       // Advanced the (start, end) to the start of the next line.
       _cursor.skip(1);
-      end = _cursor.location();
+      const auto end = _cursor.location();
       _cursor.newline();
-      break;
+      return {start, end};
     } else _cursor.advance(1);
   }
+  // Handle case where the remainder of the document is invalid.
+  // Bump the cursor to be at EoF so that no forward progress can be made on future next_token calls.
+  const auto end = _cursor.location();
+  _cursor.skip(0);
   return {start, end};
 }
 
