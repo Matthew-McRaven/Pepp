@@ -709,7 +709,7 @@ const Arrow logic_n_to_nzvc = OneByteShapes::logic_n_to_nzvc.translated(controlO
 const QPointF logic_s_junction = OneByteShapes::logic_s_junction + QPointF(controlOffsetX, aluOffsetY);
 const QPointF logic_andz_junction = OneByteShapes::logic_andz_junction + QPointF(controlOffsetX, aluOffsetY);
 const Arrow logic_andz_to_z = Arrow(
-    QVector<Arrowhead>() << Arrowhead{QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2,
+    QVector<Arrowhead>() << Arrowhead{QPoint(mux_andz.x() + mux_andz.width() / 2 - arrowHOffset / 2 - 1,
                                              mux_andz.top() - selectYOffset - 2),
                                       DOWN}
                          << Arrowhead{QPoint(reg_bit_z.x() - 12, mux_andz.y() + mux_andz.height() / 2 - 3), RIGHT},
