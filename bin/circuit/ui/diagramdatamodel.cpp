@@ -13,11 +13,11 @@ void DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newInd
     if (oldIndex == newIndex)
         return;
 
-    //  This saves us from casting in PeppPt constructor
-    const auto oldKey(convertIndex(oldIndex));
-    const auto newKey(convertIndex(newIndex));
+    //  Create new key from scratch since this item does not exist yet.
+    const auto oldKey = convertIndex(oldIndex);
+    const auto newKey = convertIndex(newIndex);
 
-    //  Cell is moving, get data
+    //  Cell is moving, pass old and new locations
     _data.moveData(oldKey, newKey);
 
     setCurrentIndex(newIndex);
@@ -48,7 +48,9 @@ bool DiagramDataModel::clearItemData(const QModelIndex &index)
     if (!index.isValid())
         return false;
 
-    if (_data.clearData(convertIndex(index))) {
+    const auto *data = item(index);
+
+    if (_data.clearData(data->rectangle())) {
       emit dataChanged(index, index);
       return true;
     }

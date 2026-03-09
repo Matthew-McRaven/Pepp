@@ -7,8 +7,8 @@ DiagramData::DiagramData() {}
 
 bool DiagramData::empty() const { return _data.empty(); }
 
-const DiagramProperties *DiagramData::getDiagramProps(const PeppPt &point) const {
-  auto id = _spatial_map.at(PeppRect{point, PeppSize{2, 2}});
+const DiagramProperties *DiagramData::getDiagramProps(const PeppKey &key) const {
+  auto id = _spatial_map.at(key);
 
   if (!id.has_value()) return nullptr;
 
@@ -18,9 +18,8 @@ const DiagramProperties *DiagramData::getDiagramProps(const PeppPt &point) const
   return data->second;
 }
 
-DiagramProperties *DiagramData::getDiagramProps(const PeppPt &point) {
-  //  This function isn't working. Known items are not returned
-  auto id = _spatial_map.at(PeppRect{point, PeppSize{2, 2}});
+DiagramProperties *DiagramData::getDiagramProps(const PeppKey &key) {
+  auto id = _spatial_map.at(key);
 
   if (!id.has_value()) return nullptr;
 
@@ -30,16 +29,16 @@ DiagramProperties *DiagramData::getDiagramProps(const PeppPt &point) {
   return data->second;
 }
 
-DiagramProperties *DiagramData::createDiagramProps(const PeppPt &point, const PeppSize &size) {
+DiagramProperties *DiagramData::createDiagramProps(const PeppKey &key) {
   //  See if something already exists at this location
-  DiagramProperties *cell = getDiagramProps(point);
+  DiagramProperties *cell = getDiagramProps(key);
   if (cell != nullptr) return cell;
 
   //  Doesn't exist, create now
   auto &data = _data.emplace_back();
+  data.setRectangle(key);
 
   //  point and size to rectangle
-  PeppRect key{point, size};
   auto id = _spatial_map.try_add(key);
 
   _cells.insert({id.value(), &data});
@@ -47,35 +46,38 @@ DiagramProperties *DiagramData::createDiagramProps(const PeppPt &point, const Pe
   return &data;
 }
 
-bool DiagramData::clearData(const PeppPt &point) {
-  // auto it = std::find_if(_keys.cbegin(), _keys.cend(),
-  //                        [&key](const std::pair<quint32, PeppKey> &pair) { return pair.second == key; });
-  // if (it == _keys.cend()) return false;
-  //_keys.erase(it);
-  auto id = _spatial_map.remove(point);
+bool DiagramData::clearData(const PeppKey &key) {
+  auto id = _spatial_map.remove(key);
   if (!id.has_value()) return false;
 
   _cells.erase(id.value());
 
   //  TODO: Need to remove from _data.
+  auto it = std::find_if(_data.cbegin(), _data.cend(),
+                         [&id](const DiagramProperties &data) { return data.id() == id.value(); });
   return true;
 }
 
-void DiagramData::moveData(const PeppPt &oldKey, const PeppPt &newKey) {
-  auto id = _spatial_map.at(PeppKey(oldKey));
+void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
+  auto id = _spatial_map.at(oldKey);
   //  Nothing located at old location, just return
   if (!id.has_value()) return;
 
-  //  Erase old data
-  _spatial_map.remove(id.value());
-
   auto *cell = getDiagramProps(oldKey);
   if (cell == nullptr) return;
+
+  //  Save key in cell for later lookups
+  cell->setRectangle(newKey);
+
+  //  Remove pointer to old id
   _cells.erase(id.value());
 
-  //  Move cell into new location
-  PeppRect key{newKey};
-  id = _spatial_map.try_add(key);
+  //  Erase old spacial data
+  _spatial_map.remove(id.value());
 
+  //  Move cell into new location
+  id = _spatial_map.try_add(newKey);
+
+  //  Insert data at new key
   _cells.insert({id.value(), cell});
 }

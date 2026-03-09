@@ -344,9 +344,8 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
 
   //  Create index and check for data
   const auto newIndex = _model->index(row, col);
-  PeppPt pt{row, col};
 
-  DiagramProperties *data = _model->dataModel().createDiagramProps(pt, PeppSize{2, 2});
+  DiagramProperties *data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(row, col, 2, 2));
 
   //  Add block data
   setGrid(data, row, col);
@@ -364,19 +363,15 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
 }
 
 void GraphicCanvas::setGrid(DiagramProperties *data, const i16 row, const i16 col) {
-  PeppRect rect{PeppPt{static_cast<i16>(row), static_cast<i16>(col)}, PeppSize{2, 2}};
-
   //  Column and row represents center point, not top left
-  PeppRect gridRect{
-      PeppPt{static_cast<i16>(minor_block_size * row - major_block_size / 2 + _margin),
-             static_cast<i16>(minor_block_size * col - major_block_size / 2 + _margin)},
-      PeppSize{static_cast<i16>(major_block_size - _margin * 2), static_cast<i16>(major_block_size - _margin * 2)}};
+  PeppRect gridRect = PeppRect::from_point_size(minor_block_size * row - major_block_size / 2 + _margin,
+                                                minor_block_size * col - major_block_size / 2 + _margin,
+                                                major_block_size - _margin * 2, major_block_size - _margin * 2);
 
   //  Track dimensions of canvas area. Affects scrollbars
   _dimensions = pepp::core::hull(_dimensions, gridRect);
 
   //  Add block data
-  data->setRectangle(rect);
   data->setGridRectangle(gridRect);
 }
 
@@ -420,7 +415,7 @@ PeppRect GraphicCanvas::screen_to_grid(QRectF rect) {
   const auto width = static_cast<i16>(rect.width() / grid_to_px / _currentZoom);
   const auto height = static_cast<i16>(rect.height() / grid_to_px / _currentZoom);
 
-  return {PeppPt{x, y}, PeppSize{width, height}};
+  return PeppRect::from_point_size(x, y, width, height);
 }
 
 PeppPt GraphicCanvas::screen_to_grid(QPointF point) {
@@ -775,10 +770,12 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
 
         //  Update grid coordinates
         DiagramProperties *data = _model->item(oldIndex);
-        setGrid(data, newPtIndex.x(), newPtIndex.y());
 
         //  Update model
         _model->move(oldIndex, newIndex);
+
+        //  Remap paint grid after move
+        setGrid(data, newPtIndex.x(), newPtIndex.y());
 
         update();
 

@@ -10,7 +10,6 @@
 // #include "diagramkey.hpp"
 #include "diagramproperty.hpp"
 
-// using PeppKey = u32;
 using PeppKey = pepp::core::Rectangle<i16>; //  Spatial key based on rectangle
 using PeppPt = pepp::core::Point<i16>;
 using PeppSize = pepp::core::Size<i16>;
@@ -33,11 +32,11 @@ public:
     const std::list<DiagramProperties> &cells() const { return _data; }
 
     //  Get access to specific property
-    DiagramProperties *getDiagramProps(const PeppPt &key);
-    const DiagramProperties *getDiagramProps(const PeppPt &key) const;
-    DiagramProperties *createDiagramProps(const PeppPt &key, const PeppSize &size = {2, 2});
+    DiagramProperties *getDiagramProps(const PeppKey &key);
+    const DiagramProperties *getDiagramProps(const PeppKey &key) const;
+    DiagramProperties *createDiagramProps(const PeppKey &key);
 
     bool empty() const;
-    bool clearData(const PeppPt &key);
-    void moveData(const PeppPt &oldKey, const PeppPt &newKey);
+    bool clearData(const PeppKey &key);
+    void moveData(const PeppKey &oldKey, const PeppKey &newKey);
 };
