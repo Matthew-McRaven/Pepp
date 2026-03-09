@@ -50,7 +50,7 @@ bool DiagramDataModel::clearItemData(const QModelIndex &index)
 
     const auto *data = item(index);
 
-    if (_data.clearData(data->rectangle())) {
+    if (_data.clearData(data->key())) {
       emit dataChanged(index, index);
       return true;
     }

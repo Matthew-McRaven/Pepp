@@ -3,17 +3,14 @@
 #include <list>
 #include <map>
 
-// #include <QMap>
-
 #include "core/math/geom/rectangle.hpp"
 #include "core/math/geom/spatial_map.hpp"
-// #include "diagramkey.hpp"
 #include "diagramproperty.hpp"
 
 using PeppKey = pepp::core::Rectangle<i16>; //  Spatial key based on rectangle
 using PeppPt = pepp::core::Point<i16>;
 using PeppSize = pepp::core::Size<i16>;
-using PeppId = u32; //  Unique id retured by SpatialMap
+using PeppId = u32; //  Unique id used to lookup cell
 
 class DiagramData {
   //  Container for iteration

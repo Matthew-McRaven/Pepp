@@ -122,7 +122,7 @@ void GraphicCanvas::updateData()
 
     //  Add block data
     data->setName(lookup[0]);
-    data->setType(0);
+    data->setType(DiagramType::ANDGate);
     data->setOrientation(0);
     getImage(*data);
 
@@ -582,7 +582,7 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
       if (props.selected()) {
         //  Item was previously selected, clear old outline
         //  Set through datamodel so that other controls see change
-        const auto index = _model->index(props.rectangle().left(), props.rectangle().top());
+        const auto index = _model->index(props.key().left(), props.key().top());
         _model->setData(index, false, DiagramProperty::Role::Selected);
 
         //  Update unselected rectangle
@@ -595,7 +595,7 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
     //  Save current item for other actions
     //  Set through view so that other controls see change
     _currentItem = &props;
-    const auto index = _model->index(props.rectangle().left(), props.rectangle().top());
+    const auto index = _model->index(props.key().left(), props.key().top());
     _model->setData(index, true, DiagramProperty::Role::Selected);
 
     //  Update current rectangle
@@ -798,7 +798,7 @@ void GraphicCanvas::startDrag(const QPoint point)
     QByteArray itemData;
     QDataStream dataStream(&itemData, QIODevice::WriteOnly);
 
-    dataStream << _currentItem->rectangle().left() << _currentItem->rectangle().top();
+    dataStream << _currentItem->key().left() << _currentItem->key().top();
 
     QMimeData *mimeData = new QMimeData;
     mimeData->setData("application/x-dnditemdata", itemData);

@@ -2,12 +2,7 @@
 
 #include <QVariant>
 
-quint32 DiagramProperties::_counter = 0;
-
-DiagramProperties::DiagramProperties(QObject *parent)
-    : QObject(parent)
-    , _id{++_counter}
-{}
+DiagramProperties::DiagramProperties(QObject *parent) : QObject(parent), _properties(new DiagramProperty) {}
 
 QVariant DiagramProperties::get(int role) const
 {
@@ -29,9 +24,9 @@ QVariant DiagramProperties::get(int role) const
     case DiagramProperty::Role::Orientation:
         return orientation();
     case DiagramProperty::Role::Rectangle:
-      const int x = _rect.x().lower();
-      const int y = _rect.y().lower();
-      return QRect(x, y, _rect.width(), _rect.height());
+      const int x = _properties->key.x().lower();
+      const int y = _properties->key.y().lower();
+      return QRect(x, y, _properties->key.width(), _properties->key.height());
     }
 
     //  Not found
@@ -47,9 +42,7 @@ void DiagramProperties::set(int role, const QVariant &data)
     case DiagramProperty::Role::ImageSource:
         setImageSource(data.toString());
         break;
-    case DiagramProperty::Role::Type:
-        setType(data.toInt());
-        break;
+    case DiagramProperty::Role::Type: setType(static_cast<DiagramType::Type>(data.toInt())); break;
     case DiagramProperty::Role::InputNo:
         setInputNo(data.toInt());
         break;
@@ -67,9 +60,16 @@ void DiagramProperties::set(int role, const QVariant &data)
       PeppPt pt{static_cast<i16>(oldRect.x()), static_cast<i16>(oldRect.y())};
       PeppSize size{static_cast<i16>(oldRect.width()), static_cast<i16>(oldRect.height())};
       PeppRect rect(pt, size);
-      setRectangle(rect);
+      _properties->key = rect;
       break;
     }
+}
+
+void DiagramProperties::setId(const quint32 v) {
+  if (_properties->id != v) {
+    _properties->id = v;
+    emit nameChanged();
+  }
 }
 
 void DiagramProperties::setName(const QString v)
@@ -92,32 +92,31 @@ void DiagramProperties::setImageSource(const QString v)
     }
 }
 
-void DiagramProperties::setType(const int v)
-{
-    if (_type != static_cast<DiagramType::Type>(v)) {
-        _type = static_cast<DiagramType::Type>(v);
+void DiagramProperties::setType(const DiagramType::Type v) {
+  if (_properties->type != v) {
+    _properties->type = v;
 
-        //  Clear cached image
-        _pixMap = nullptr;
+    //  Clear cached image
+    _pixMap = nullptr;
 
-        emit typeChanged();
-    }
+    emit typeChanged();
+  }
 }
 
 void DiagramProperties::setInputNo(const quint16 v)
 {
-    if (_inputNo != v) {
-        _inputNo = v;
-        emit inputChanged();
-    }
+  if (_properties->inputNo != v) {
+    _properties->inputNo = v;
+    emit inputChanged();
+  }
 }
 
 void DiagramProperties::setOutputNo(const quint16 v)
 {
-    if (_outputNo != v) {
-        _outputNo = v;
-        emit outputChanged();
-    }
+  if (_properties->outputNo != v) {
+    _properties->outputNo = v;
+    emit outputChanged();
+  }
 }
 
 void DiagramProperties::setSelected(const bool v)
@@ -132,21 +131,18 @@ void DiagramProperties::setOrientation(const quint32 v)
 {
     //  Limit to 360 degrees
     const auto angle = v % 360;
-    if (_orientation != angle) {
-        const auto slice = static_cast<quint32>(angle / 90);
+    if (_properties->orientation != angle) {
+      _properties->setOrientation(v);
 
-        //  Clear cached image
-        _pixMap = nullptr;
-
-        //  Only support 90 degree changes
-        _orientation = slice * 90;
-        emit imageChanged();
+      //  Clear cached image
+      _pixMap = nullptr;
+      emit imageChanged();
     }
 }
 
-void DiagramProperties::setRectangle(const PeppRect &v) {
-  if (_rect != v) {
-    _rect = v;
+void DiagramProperties::setKey(const PeppRect &v) {
+  if (_properties->key != v) {
+    _properties->key = v;
     emit dimensionsChanged();
   }
 }

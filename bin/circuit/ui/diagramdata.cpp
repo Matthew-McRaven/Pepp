@@ -36,7 +36,7 @@ DiagramProperties *DiagramData::createDiagramProps(const PeppKey &key) {
 
   //  Doesn't exist, create now
   auto &data = _data.emplace_back();
-  data.setRectangle(key);
+  data.setKey(key);
 
   //  point and size to rectangle
   auto id = _spatial_map.try_add(key);
@@ -67,7 +67,7 @@ void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
   if (cell == nullptr) return;
 
   //  Save key in cell for later lookups
-  cell->setRectangle(newKey);
+  cell->setKey(newKey);
 
   //  Remove pointer to old id
   _cells.erase(id.value());

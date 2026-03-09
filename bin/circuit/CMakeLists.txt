@@ -17,7 +17,7 @@ qt_add_qml_module(
     ui/diagramdata.cpp
     ui/diagramdatamodel.hpp
     ui/diagramdatamodel.cpp
-    ui/diagramkey.hpp
+
     ui/diagramtype.hpp
     ui/diagramlistmodel.hpp
     ui/diagramlistmodel.cpp

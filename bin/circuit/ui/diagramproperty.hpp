@@ -3,6 +3,7 @@
 #include <QMetaType> // Required for Q_DECLARE_METATYPE
 #include <QObject>
 #include <QRect>
+#include <QSharedPointer>
 #include <QtQml/qqmlregistration.h> // Required header for QML_ELEMENT
 
 #include "core/math/geom/rectangle.hpp"
@@ -12,27 +13,50 @@ using PeppRect = pepp::core::Rectangle<i16>;
 using PeppSize = pepp::core::Size<i16>;
 using PeppPt = pepp::core::Point<i16>;
 
-class DiagramProperty
-{
-    Q_GADGET
+struct DiagramProperty {
 
 public:
-    enum Role : quint32 {
-        Name = Qt::DisplayRole,
-        Id = Qt::UserRole + 1,
-        ImageSource,
-        Type,
-        InputNo,
-        OutputNo,
+  enum Role : u32 {
+    Name = Qt::DisplayRole,
+    Id = Qt::UserRole + 1,
+    ImageSource,
+    Type,
+    InputNo,
+    OutputNo,
 
-        Selected,
-        Orientation,
-        Rectangle,
+    Selected,
+    Orientation,
+    Rectangle,
 
-        //  Indicates invalid state from parsing input files
-        Invalid = 0xffffffff,
-    };
-    Q_ENUM(Role)
+    //  Indicates invalid state from parsing input files
+    Invalid = 0xffffffff,
+  };
+
+  void setOrientation(const u32 v) {
+    //  Limit to 360 degrees
+    const auto angle = v % 360;
+    if (orientation != angle) {
+      const auto slice = static_cast<u32>(angle / 90);
+
+      //  Only support 90 degree changes
+      orientation = slice * 90;
+    }
+  }
+
+  u32 id = 0;
+  u32 orientation = 0; // Pointing Left
+
+  //  Gate properties
+  DiagramType::Type type = DiagramType::Invalid;
+  u16 inputNo{2};
+  u16 outputNo{1};
+
+  //  Line properties
+  u32 _start{0};
+  u32 _finish{0};
+
+  //  Diagram grid dimensions & placement
+  PeppRect key{};
 };
 
 class DiagramProperties : public QObject
@@ -43,41 +67,44 @@ class DiagramProperties : public QObject
     Q_PROPERTY(quint32 id READ id CONSTANT) // Read only
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(QString imageSource READ imageSource WRITE setImageSource NOTIFY imageChanged)
-    Q_PROPERTY(int type READ type WRITE setType NOTIFY typeChanged)
+    Q_PROPERTY(DiagramType::Type type READ type WRITE setType NOTIFY typeChanged)
     Q_PROPERTY(quint16 inputNo READ inputNo WRITE setInputNo NOTIFY inputChanged)
     Q_PROPERTY(quint16 outputNo READ outputNo WRITE setOutputNo NOTIFY outputChanged)
     Q_PROPERTY(quint16 orientation READ orientation WRITE setOrientation NOTIFY imageChanged)
 
-public:
+  public:
     explicit DiagramProperties(QObject *parent = nullptr);
 
     QVariant get(int role) const;
     void set(int role, const QVariant &data);
 
-    quint32 id() const { return _id; } //  Unique object id
+    //  Data functions
+    quint32 id() const { return _properties->id; } //  Unique object id
+    DiagramType::Type type() const { return _properties->type; }
+    quint16 inputNo() const { return _properties->inputNo; }
+    quint16 outputNo() const { return _properties->outputNo; }
+    void setId(const quint32 v);
+    void setType(const DiagramType::Type v);
+    void setInputNo(const quint16 v);
+    void setOutputNo(const quint16 v);
+
+    // Display functions
     QString name() const { return _name; }
     QString imageSource() const { return _imageSrc; }
-    int type() const { return static_cast<int>(_type); }
-    quint16 inputNo() const { return _inputNo; }
-    quint16 outputNo() const { return _outputNo; }
     QPixmap *image() const { return _pixMap; }
 
     void setName(const QString v);
     void setImageSource(const QString v);
-    void setType(const int v);
-    void setInputNo(const quint16 v);
-    void setOutputNo(const quint16 v);
 
-    //  Not added as Q_Property yet
     bool selected() const { return _isSelected; }
     void setSelected(const bool v);
     void setImage(QPixmap *v);
 
-    int orientation() const { return _orientation; }
+    int orientation() const { return _properties->orientation; }
     void setOrientation(const quint32 v);
 
-    const PeppRect &rectangle() const { return _rect; }
-    void setRectangle(const PeppRect &v);
+    const PeppRect &key() const { return _properties->key; }
+    void setKey(const PeppRect &v);
     const PeppRect &gridRectangle() const { return _gridRect; }
     void setGridRectangle(const PeppRect &v);
 
@@ -90,31 +117,19 @@ public:
     void selectedChanged();
     void dimensionsChanged();
 
-private:
-    quint32 _id;
-    static quint32 _counter;
-    quint32 _orientation = 0; // Pointing Left
+  private:
+    QSharedPointer<DiagramProperty> _properties;
+
+    //  Display properties properties
+    QString _name;
+    QString _imageSrc;
+
+    //  Presentation variables that require Qt stay in this class
+    QPixmap *_pixMap = nullptr;
 
     //  Selection logic
     bool _isSelected = false;
 
-    //  Common properties
-    QString _name;
-    QString _imageSrc;
-
-    //  Gate properties
-    DiagramType::Type _type = DiagramType::Invalid;
-    quint16 _inputNo{2};
-    quint16 _outputNo{1};
-
-    //  Line properties
-    quint32 _start{0};
-    quint32 _finish{0};
-
-    //  Diagram grid dimensions & placement
-    // QRect _rect{};
-    PeppRect _rect{};
-    // QRect _gridRect{};
+    //  Display dimensions & placement
     PeppRect _gridRect{};
-    QPixmap *_pixMap = nullptr;
 };

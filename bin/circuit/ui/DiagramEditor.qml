@@ -112,7 +112,7 @@ Pane {
                 onClicked: {
                     //  If source data is bad, just return
                     //  Negative row indicates unitialized qindex
-                    if(root.diagramModel == null || inputArea.index.row == -1)
+                    if(root.diagramModel == null || inputArea.index.row === -1)
                         return;
 
                     //  Update model with new data
