@@ -11,12 +11,11 @@
 #include "core/math/geom/spatial_map.hpp"
 
 /*  Rectangle questions
- * 1. Why can we not construct rectangle with x, y, width height? We need to
- *    create intermediate classes on every construction.
- * 2. Why are rectangles, points, and size non-changeable? We can store as const so that
- *    items in spatial map do not change. I cannot use these items outside of the
- *    spatial map since I have to reconstruct objects everytime there is a data change.
- * 3. Change all of my data structures in DiagramProperty to Pepp types.
+ *  1. To search for an item, I need to know the width/height. Can we lookup
+ *  based on just the top left corner? If I do not pass width/height, item is not found.
+ *  In future, we will have diagrams of various sizes. I will not always know the width/height
+ *  of the item I'm looking up.
+ *  2. Change all of my data structures in DiagramProperty to Pepp types.
  */
 
 using PeppRect = pepp::core::Rectangle<i16>;

@@ -66,9 +66,9 @@ signals:
     void currentIndexChanged();
 
   private:
-    PeppPt convertIndex(const QModelIndex &index) const {
+    PeppKey convertIndex(const QModelIndex &index) const {
       i16 row = index.row();
       i16 col = index.column();
-      return PeppPt{row, col};
+      return PeppKey::from_point_size(row, col, 2, 2);
     }
 };
