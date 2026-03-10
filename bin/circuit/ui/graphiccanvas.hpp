@@ -163,8 +163,9 @@ private:
     qreal _currentZoom = 1.0;
 
     //  Grid dimensions (logical size, screen size is this times grid_to_px
+    const i16 minor_per_major = 4;
     const i16 minor_block_size = 8;
-    const i16 major_block_size = minor_block_size * 4;
+    const i16 major_block_size = minor_block_size * minor_per_major;
     const float screen_block = major_block_size * grid_to_px;
     const i16 _margin = 4;
 

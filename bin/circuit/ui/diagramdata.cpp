@@ -66,6 +66,9 @@ bool DiagramData::clearData(const PeppKey &key) {
 }
 
 void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
+  Q_ASSERT(newKey.left() > 1);
+  Q_ASSERT(newKey.top() > 1);
+
   auto id = _spatial_map.at(oldKey);
   //  Nothing located at old location, just return
   if (!id.has_value()) return;

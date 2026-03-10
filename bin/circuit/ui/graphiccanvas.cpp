@@ -355,7 +355,8 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   //  Create index and check for data
   const auto newIndex = _model->index(row, col);
 
-  DiagramProperties *data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(row, col, 2, 2));
+  DiagramProperties *data =
+      _model->dataModel().createDiagramProps(PeppRect::from_point_size(row, col, minor_per_major, minor_per_major));
   if (data == nullptr) return nullptr;
 
   //  Newly added items are always current item
@@ -391,6 +392,7 @@ void GraphicCanvas::setBoundingBox() {
 
 void GraphicCanvas::setGrid(DiagramProperties *data, const i16 row, const i16 col) {
   //  Column and row represents center point, not top left
+  //  Save in grid coordinates, not screen coordinates
   PeppRect gridRect = PeppRect::from_point_size(minor_block_size * row - major_block_size / 2 + _margin,
                                                 minor_block_size * col - major_block_size / 2 + _margin,
                                                 major_block_size - _margin * 2, major_block_size - _margin * 2);
@@ -466,22 +468,8 @@ const PeppPt GraphicCanvas::grid_to_index(const PeppPt &point) const {
 
 void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
 {
-    //  Cannot assume that upper right was passed first. Get absolute dimensions
-    //  Note, coordinates are in columns and rows, not grid or screen
-    const int x = std::min(from.row(), to.row());
-    const int y = std::min(from.column(), to.column());
-    //  Note, cell has implicit width of 1
-    const int height = std::abs(from.row() - to.row()) + 1;
-    const int width = std::abs(from.column() - to.column()) + 1;
-
-    //convert to screen coordinates
-    QRectF rect{(x * minor_block_size - major_block_size / 2) * grid_to_px,
-                (y * minor_block_size - major_block_size / 2) * grid_to_px,
-                height * major_block_size * grid_to_px,
-                width * major_block_size * grid_to_px};
-
-    //  Update expects integer coordinates
-    update(rect.toRect());
+  //  Delegate updates to QT canvas control
+  update();
 }
 
 void GraphicCanvas::rotateClockwise()

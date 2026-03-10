@@ -69,6 +69,6 @@ signals:
     PeppKey convertIndex(const QModelIndex &index) const {
       i16 row = index.row();
       i16 col = index.column();
-      return PeppKey::from_point_size(row, col, 2, 2);
+      return PeppKey::from_point_size(row, col, 4, 4);
     }
 };
