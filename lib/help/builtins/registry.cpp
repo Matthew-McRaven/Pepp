@@ -298,9 +298,9 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
   else level = *maybeLevel;
   pepp::Features feats = pepp::parseFeatures(manifest["features"].toString(""));
 
-  // TODO: decide between "figure" and "problem" based on type field.
-  auto figure = QSharedPointer<builtins::Figure>::create(arch, level, feats, "Figure", chapterName, figureName,
-                                                         type == "problem");
+  const auto prefix = type == "problem" ? "Problem" : "Figure";
+  auto figure =
+      QSharedPointer<builtins::Figure>::create(arch, level, feats, prefix, chapterName, figureName, type == "problem");
   figure->setIsOS(manifest["isOS"].toBool(false));
   figure->setIsHidden(manifest["hidden"].toBool(false));
   if (manifest["description"].isString()) figure->setDescription(manifest["description"].toString());
