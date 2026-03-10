@@ -59,6 +59,9 @@ bool DiagramData::clearData(const PeppKey &key) {
   //  TODO: Need to remove from _data.
   auto it = std::find_if(_data.cbegin(), _data.cend(),
                          [&id](const DiagramProperties &data) { return data.id() == id.value(); });
+
+  if (it != _data.cend()) _data.erase(it);
+
   return true;
 }
 

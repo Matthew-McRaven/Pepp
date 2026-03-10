@@ -8,8 +8,8 @@ import CircuitDesign
 Item {
     id: root
     property DiagramTemplate currentStamp: null
-    //property var currentIndex: tableView.selectionModel.currentIndex //selectedItem()
     property alias dataModel: scrollView.model
+    focus: true //  Control with focus receives keyboard events
 
     // Do not place inside the flickable!
     // If placed inside the flickable, the canvas's QImage would be the full size of the content.
@@ -79,4 +79,15 @@ Item {
             policy: ScrollBar.AsNeeded
         }
     }   //  TableView    
+
+    Keys.onPressed: event => {
+        //  Forward keypress events from QML to canvas
+        //  Canvas will return true if keypress was handled
+        event.accepted = canvas.keyPress(event.key, event.modifiers);
+        console.log( event.key, event.modifiers);
+    }
+
+    //  This is a hack. I'm not able to disable Canvas from taking focus.
+    //  This function keeps focus at item level.
+    onFocusChanged: focus = true;
 }   //  Item

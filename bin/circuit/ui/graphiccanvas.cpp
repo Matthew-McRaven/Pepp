@@ -6,7 +6,7 @@
 #include <QMenu>
 #include <QPainter>
 #include <QSvgRenderer>
-
+#include <Qt> //  Keyboard constants
 #include "diagramdatamodel.hpp"
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent)
@@ -18,8 +18,10 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
 
     setAntialiasing(true);
 
-    //  Allow drag and drop
+    //  Allow drag and drop.
+    //  Disable direct key entry. Handled through QML
     setFlag(QQuickItem::ItemAcceptsDrops, true);
+    // setFlag(ItemAcceptsInputMethod, false);
 
     //  Create background gid
     cacheBackground();
@@ -94,6 +96,14 @@ void GraphicCanvas::setStamp(DiagramTemplate *stamp)
         //  Does not require a redraw
         emit stampChanged();
     }
+}
+
+void GraphicCanvas::setCurrentItem(DiagramProperties *item) {
+  if (item != _currentItem) {
+    _currentItem = item;
+    update();
+    emit currentItemChanged();
+  }
 }
 
 void GraphicCanvas::updateData()
@@ -346,6 +356,10 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   const auto newIndex = _model->index(row, col);
 
   DiagramProperties *data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(row, col, 2, 2));
+  if (data == nullptr) return nullptr;
+
+  //  Newly added items are always current item
+  setCurrentItem(data);
 
   //  Add block data
   setGrid(data, row, col);
@@ -586,7 +600,7 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
         _model->setData(index, false, DiagramProperty::Role::Selected);
 
         //  Update unselected rectangle
-        update();
+        setCurrentItem(nullptr);
       }
       continue;
     }
@@ -594,17 +608,18 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
     //  Item exists and is selected, update view
     //  Save current item for other actions
     //  Set through view so that other controls see change
-    _currentItem = &props;
+    //_currentItem = &props;
     const auto index = _model->index(props.key().left(), props.key().top());
     _model->setData(index, true, DiagramProperty::Role::Selected);
 
+    setCurrentItem(&props);
     //  Update current rectangle
-    update();
+    // update();
 
     found = true;
 
     //  Let QML know that current item has changed.
-    emit currentItemChanged();
+    // emit currentItemChanged();
   }
   return found;
 }
@@ -638,54 +653,26 @@ void GraphicCanvas::wheelEvent(QWheelEvent *event)
 
     //  See if shift, alt, or control keys are pressed
     const auto modifier = event->modifiers();
+    const qint8 change = angleDelta.y();
 
     float block = screen_block * _currentZoom;
 
     if (modifier == Qt::NoModifier) {
-        float y = 0.0;
-        if (angleDelta.y() > 0) {
-            // Perform action for scrolling up
-            y = std::max(0.0f, originY() - block);
-        } else if (angleDelta.y() < 0) {
-            // Perform action for scrolling down
-            y = std::min(contentHeight(), originY() + block);
-        }
-        //qDebug() << "contentHeight():" << contentHeight() << "originY():" << originY() << "new Y"
-        //         << y;
-
-        //  Update screen
-        setOriginY(y);
+      setVScroll(change);
     }
     // Process horizontal scrolling if available
     // Normal h-scrolling uses angleDelta.x() != 0. Current mouse does not
     // Trigger h-scrolling. Use normal scrolling with shift key
     if (modifier == Qt::ShiftModifier) {
-        float x = 0.0;
-        if (angleDelta.y() < 0) {
-            // Perform action for scrolling left
-            x = std::max(0.0f, originX() - block);
-        } else if (angleDelta.y() > 0) {
-            // Perform action for scrolling right
-            x = std::min(contentWidth(), originX() + block);
-        }
-
-        //  Update screen
-        setOriginX(x);
+      setHScroll(change);
     }
 
     //  Control + mouse wheel triggeres zoom operations
     if (modifier == Qt::ControlModifier) {
-        float x = 0.0;
-        if (angleDelta.y() > 0) {
-            // Perform action for scrolling up
-            setZoom(1);
-        } else if (angleDelta.y() < 0) {
-            // Perform action for zoom in
-            setZoom(-1);
-        }
+      setZoom(change);
 
-        //  Refresh screen on zoom
-        update();
+      //  Refresh screen on zoom
+      update();
     }
 
     // Accept the event to stop it from propagating to parent items/widgets.
@@ -706,6 +693,53 @@ void GraphicCanvas::setZoom(qint8 change)
     //  Apply rounding
     _currentZoom = newZoom;
     qDebug() << "new zoom: " << newZoom;
+}
+
+void GraphicCanvas::setVScroll(qint8 change) {
+  float y = 0.0;
+  const float block = screen_block * _currentZoom;
+
+  if (change > 0) {
+    // Perform action for scrolling up
+    y = std::max(0.0f, originY() - block);
+  } else if (change < 0) {
+    // Perform action for scrolling down
+    y = std::min(contentHeight(), originY() + block);
+  }
+
+  //  Update screen
+  setOriginY(y);
+}
+
+void GraphicCanvas::setHScroll(qint8 change) {
+  float x = 0.0;
+  const float block = screen_block * _currentZoom;
+  if (change < 0) {
+    // Perform action for scrolling left
+    x = std::max(0.0f, originX() - block);
+  } else if (change > 0) {
+    // Perform action for scrolling right
+    x = std::min(contentWidth(), originX() + block);
+  }
+
+  //  Update screen
+  setOriginX(x);
+}
+
+void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
+  const auto oldIndex = _model->index(oldLocation.x(), oldLocation.y());
+  const auto newIndex = _model->index(newLocation.x(), newLocation.y());
+
+  //  Update grid coordinates
+  DiagramProperties *data = _model->item(oldIndex);
+
+  //  Update model
+  _model->move(oldIndex, newIndex);
+
+  //  Remap paint grid after move
+  setGrid(data, newLocation.x(), newLocation.y());
+
+  update();
 }
 
 void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)
@@ -757,27 +791,17 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
         i16 oldX, oldY;
         dataStream >> oldX >> oldY;
 
+        const PeppPt oldLocation(oldX, oldY);
+
         //  Mouse location in grid coordinates to
         //  to determine rectangle hit.
         const auto point = screen_to_grid(event->position());
 
         //  Due to integer math, items closer to next row or column are still in same column/row.
         //  Calculate rounding difference
-        const auto newPtIndex = grid_to_index(point);
+        const auto newLocation = grid_to_index(point);
 
-        const auto oldIndex = _model->index(oldX, oldY);
-        const auto newIndex = _model->index(newPtIndex.x(), newPtIndex.y());
-
-        //  Update grid coordinates
-        DiagramProperties *data = _model->item(oldIndex);
-
-        //  Update model
-        _model->move(oldIndex, newIndex);
-
-        //  Remap paint grid after move
-        setGrid(data, newPtIndex.x(), newPtIndex.y());
-
-        update();
+        moveDiagram(oldLocation, newLocation);
 
         if (event->source() == this) {
             event->setDropAction(Qt::MoveAction);
@@ -817,4 +841,75 @@ void GraphicCanvas::startDrag(const QPoint point)
 
     //  If this function is not called, the drag will not start
     drag->exec();
+}
+
+bool GraphicCanvas::keyPress(const int key, const int modifier) {
+  const bool alt = modifier & Qt::AltModifier;
+  const bool shf = modifier & Qt::ShiftModifier;
+  const bool ctr = modifier & Qt::ControlModifier;
+
+  switch (key) {
+  case Qt::Key_Delete:
+    if (_currentItem != nullptr) {
+      _model->dataModel().clearData(_currentItem->key());
+
+      //  Clear current item, and notify QML
+      setCurrentItem(nullptr);
+    }
+    return true;
+
+  case Qt::Key_Home:
+    setOriginY(0);
+    setOriginX(0);
+    return true;
+    // case Qt::Key_End:*/
+    //  Nove item is current. Othewise move background.
+    //  Control also means move background
+  case Qt::Key_Left:
+    if (_currentItem != nullptr && !ctr) {
+      //  We are moving item
+      PeppPt newLocation = _currentItem->key().top_left();
+      //  Do not move beyond left margin
+      newLocation.setX(std::max(2, newLocation.x() - 1));
+      moveDiagram(_currentItem->key().top_left(), newLocation);
+    } else setHScroll(-1);
+    return true;
+  case Qt::Key_Right:
+    if (_currentItem != nullptr && !ctr) {
+      //  We are moving item
+      PeppPt newLocation = _currentItem->key().top_left();
+      newLocation.setX(newLocation.x() + 1);
+      moveDiagram(_currentItem->key().top_left(), newLocation);
+    } else setHScroll(1);
+    return true;
+  case Qt::Key_Up:
+    if (_currentItem != nullptr && !ctr) {
+      //  We are moving item
+      PeppPt newLocation = _currentItem->key().top_left();
+      //  Do not move beyond top margin
+      newLocation.setY(std::max(2, newLocation.y() - 1));
+      moveDiagram(_currentItem->key().top_left(), newLocation);
+    } else setVScroll(-1);
+    return true;
+  case Qt::Key_Down:
+    if (_currentItem != nullptr && !ctr) {
+      //  We are moving item
+      PeppPt newLocation = _currentItem->key().top_left();
+      newLocation.setY(newLocation.y() + 1);
+      moveDiagram(_currentItem->key().top_left(), newLocation);
+    } else setVScroll(1);
+    return true;
+    /*case Qt::Key_PageUp:
+    case Qt::Key_PageDown: */
+  case Qt::Key_Plus:
+    setZoom(1);
+    update();
+    return true;
+  case Qt::Key_Minus:
+    setZoom(-1);
+    update();
+    return true;
+  }
+  // qDebug() << "Key: " << key << "Modifier:" << modifier;
+  return false;
 }

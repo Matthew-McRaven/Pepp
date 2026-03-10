@@ -8,14 +8,12 @@
 #include "diagramproperty.hpp"
 
 #include "core/math/geom/rectangle.hpp"
-#include "core/math/geom/spatial_map.hpp"
 
 /*  Rectangle questions
  *  1. To search for an item, I need to know the width/height. Can we lookup
  *  based on just the top left corner? If I do not pass width/height, item is not found.
  *  In future, we will have diagrams of various sizes. I will not always know the width/height
  *  of the item I'm looking up.
- *  2. Change all of my data structures in DiagramProperty to Pepp types.
  */
 
 using PeppRect = pepp::core::Rectangle<i16>;
@@ -56,6 +54,9 @@ public:
     Q_INVOKABLE void rotateClockwise();
     Q_INVOKABLE void rotateCounterClockwise();
 
+    //  Handle keypress events from QML
+    Q_INVOKABLE bool keyPress(const int key, const int modifier);
+
     // Max bounds based on contained rectangles.
     float contentWidth() const { return _dimensions.width() * grid_to_px * _currentZoom; }
     float contentHeight() const { return _dimensions.height() * grid_to_px * _currentZoom; }
@@ -83,8 +84,9 @@ public:
     void setStamp(DiagramTemplate *stamp);
 
     DiagramProperties *currentItem() const { return _currentItem; }
+    void setCurrentItem(DiagramProperties *item);
 
-protected:
+  protected:
     //  Mouse events
     //void mouseDoubleClickEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -123,7 +125,11 @@ private:
     PeppPt screen_to_grid(QPointF point);
     const PeppPt grid_to_index(const PeppPt &point) const;
 
+    //  Functions for key and mouse events
     void setZoom(qint8 change);
+    void setVScroll(qint8 change);
+    void setHScroll(qint8 change);
+    void moveDiagram(PeppPt oldLocation, PeppPt newLocation);
 
     //  Sets currently selected diagram
     bool setSelected(const PeppPt &point);
@@ -187,7 +193,4 @@ private:
     DiagramDataModel *_model = nullptr;
     DiagramTemplate *_template = nullptr;
     DiagramProperties *_currentItem = nullptr;
-
-    // Special hit map class
-    pepp::core::SpatialMap _spatial_map;
 };
