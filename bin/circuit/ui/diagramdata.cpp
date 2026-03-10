@@ -41,6 +41,10 @@ DiagramProperties *DiagramData::createDiagramProps(const PeppKey &key) {
   //  point and size to rectangle
   auto id = _spatial_map.try_add(key);
 
+  //  Save ID to diagram
+  data.setId(id.value());
+
+  //  Insert into lookup table using id
   _cells.insert({id.value(), &data});
 
   return &data;
@@ -63,11 +67,11 @@ void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
   //  Nothing located at old location, just return
   if (!id.has_value()) return;
 
-  auto *cell = getDiagramProps(oldKey);
-  if (cell == nullptr) return;
+  auto *data = getDiagramProps(oldKey);
+  if (data == nullptr) return;
 
   //  Save key in cell for later lookups
-  cell->setKey(newKey);
+  data->setKey(newKey);
 
   //  Remove pointer to old id
   _cells.erase(id.value());
@@ -77,7 +81,11 @@ void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
 
   //  Move cell into new location
   id = _spatial_map.try_add(newKey);
+  Q_ASSERT(id.has_value());
+
+  //  Save ID to diagram
+  data->setId(id.value());
 
   //  Insert data at new key
-  _cells.insert({id.value(), cell});
+  _cells.insert({id.value(), data});
 }

@@ -129,15 +129,11 @@ void DiagramProperties::setSelected(const bool v)
 
 void DiagramProperties::setOrientation(const quint32 v)
 {
-    //  Limit to 360 degrees
-    const auto angle = v % 360;
-    if (_properties->orientation != angle) {
-      _properties->setOrientation(v);
-
-      //  Clear cached image
-      _pixMap = nullptr;
-      emit imageChanged();
-    }
+  if (_properties->setOrientation(v)) {
+    //  Clear cached image
+    _pixMap = nullptr;
+    emit imageChanged();
+  }
 }
 
 void DiagramProperties::setKey(const PeppRect &v) {
