@@ -376,17 +376,30 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   return data;
 }
 
+void GraphicCanvas::setBoundingBox() {
+  const auto logicRect = _model->dataModel().boundingRect();
+  const auto totalWidth = logicRect.right() * minor_block_size;
+  const auto totalHeight = logicRect.bottom() * minor_block_size;
+  PeppRect gridRect = PeppRect::from_point_size(0, 0, totalWidth, totalHeight);
+  //  See if dimensions changed
+  if (_dimensions != gridRect) {
+    _dimensions = pepp::core::hull(_dimensions, gridRect);
+
+    emit boundsChanged();
+  }
+}
+
 void GraphicCanvas::setGrid(DiagramProperties *data, const i16 row, const i16 col) {
   //  Column and row represents center point, not top left
   PeppRect gridRect = PeppRect::from_point_size(minor_block_size * row - major_block_size / 2 + _margin,
                                                 minor_block_size * col - major_block_size / 2 + _margin,
                                                 major_block_size - _margin * 2, major_block_size - _margin * 2);
 
-  //  Track dimensions of canvas area. Affects scrollbars
-  _dimensions = pepp::core::hull(_dimensions, gridRect);
-
   //  Add block data
   data->setGridRectangle(gridRect);
+
+  //  Track dimensions of canvas area. Affects scrollbars
+  setBoundingBox();
 }
 
 void GraphicCanvas::getImage(DiagramProperties &props)
@@ -705,6 +718,9 @@ void GraphicCanvas::setVScroll(qint8 change) {
   } else if (change < 0) {
     // Perform action for scrolling down
     y = std::min(contentHeight(), originY() + block);
+
+    //  Moving item down can increase bounding rectangle
+    setBoundingBox();
   }
 
   //  Update screen
@@ -720,6 +736,9 @@ void GraphicCanvas::setHScroll(qint8 change) {
   } else if (change > 0) {
     // Perform action for scrolling right
     x = std::min(contentWidth(), originX() + block);
+
+    //  Moving item right can increase bounding rectangle
+    setBoundingBox();
   }
 
   //  Update screen

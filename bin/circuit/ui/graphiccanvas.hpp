@@ -51,6 +51,7 @@ public:
     GraphicCanvas(QQuickItem *parent = nullptr);
     void paint(QPainter *painter) override;
 
+    //  Context menu (right click)
     Q_INVOKABLE void rotateClockwise();
     Q_INVOKABLE void rotateCounterClockwise();
 
@@ -60,6 +61,7 @@ public:
     // Max bounds based on contained rectangles.
     float contentWidth() const { return _dimensions.width() * grid_to_px * _currentZoom; }
     float contentHeight() const { return _dimensions.height() * grid_to_px * _currentZoom; }
+    void setBoundingBox();
 
     // The top-left corner, as measured in "screen" coordinates
     float originX() const { return _top_left.x() * grid_to_px * _currentZoom; }

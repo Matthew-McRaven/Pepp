@@ -33,6 +33,9 @@ public:
     const DiagramProperties *getDiagramProps(const PeppKey &key) const;
     DiagramProperties *createDiagramProps(const PeppKey &key);
 
+    //  Size of canvas in logic units
+    auto boundingRect() const { return _spatial_map.bounding_box(); }
+
     bool empty() const;
     bool clearData(const PeppKey &key);
     void moveData(const PeppKey &oldKey, const PeppKey &newKey);
