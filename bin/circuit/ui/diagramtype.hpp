@@ -4,25 +4,25 @@
 
 class DiagramType
 {
-    Q_GADGET
+  Q_GADGET
 
 public:
-    enum Type : quint32 {
-        ANDGate = 0,
-        ORGate,
-        Inverter,
-        NANDGate,
-        NORGate,
-        XORGate,
-        //XNORGate,
+  enum Type : quint32 {
+    ANDGate = 0,
+    ORGate,
+    Inverter,
+    NANDGate,
+    NORGate,
+    XORGate,
+    // XNORGate,
 
-        //  Line enums
-        Line,
-        MultiLine,
-        Bus,
+    //  Line enums
+    Line,
+    MultiLine,
+    Bus,
 
-        //  Indicates invalid state from parsing input files
-        Invalid = 0xffffffff,
-    };
-    Q_ENUM(Type)
+    //  Indicates invalid state from parsing input files
+    Invalid = 0xffffffff,
+  };
+  Q_ENUM(Type)
 };

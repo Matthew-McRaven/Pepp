@@ -23,20 +23,20 @@ class DiagramData {
   pepp::core::SpatialMap _spatial_map;
 
 public:
-    DiagramData();
+  DiagramData();
 
-    std::list<DiagramProperties> &cells() { return _data; }
-    const std::list<DiagramProperties> &cells() const { return _data; }
+  std::list<DiagramProperties> &cells() { return _data; }
+  const std::list<DiagramProperties> &cells() const { return _data; }
 
-    //  Get access to specific property
-    DiagramProperties *getDiagramProps(const PeppKey &key);
-    const DiagramProperties *getDiagramProps(const PeppKey &key) const;
-    DiagramProperties *createDiagramProps(const PeppKey &key);
+  //  Get access to specific property
+  DiagramProperties *getDiagramProps(const PeppKey &key);
+  const DiagramProperties *getDiagramProps(const PeppKey &key) const;
+  DiagramProperties *createDiagramProps(const PeppKey &key);
 
-    //  Size of canvas in logic units
-    auto boundingRect() const { return _spatial_map.bounding_box(); }
+  //  Size of canvas in logic units
+  auto boundingRect() const { return _spatial_map.bounding_box(); }
 
-    bool empty() const;
-    bool clearData(const PeppKey &key);
-    void moveData(const PeppKey &oldKey, const PeppKey &newKey);
+  bool empty() const;
+  bool clearData(const PeppKey &key);
+  void moveData(const PeppKey &oldKey, const PeppKey &newKey);
 };

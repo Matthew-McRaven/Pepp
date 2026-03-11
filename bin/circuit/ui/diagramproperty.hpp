@@ -65,75 +65,75 @@ public:
 
 class DiagramProperties : public QObject
 {
-    Q_OBJECT
-    QML_ELEMENT
+  Q_OBJECT
+  QML_ELEMENT
 
-    Q_PROPERTY(quint32 id READ id CONSTANT) // Read only
-    Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
-    Q_PROPERTY(QString imageSource READ imageSource WRITE setImageSource NOTIFY imageChanged)
-    Q_PROPERTY(DiagramType::Type type READ type WRITE setType NOTIFY typeChanged)
-    Q_PROPERTY(quint16 inputNo READ inputNo WRITE setInputNo NOTIFY inputChanged)
-    Q_PROPERTY(quint16 outputNo READ outputNo WRITE setOutputNo NOTIFY outputChanged)
-    Q_PROPERTY(quint16 orientation READ orientation WRITE setOrientation NOTIFY imageChanged)
+  Q_PROPERTY(quint32 id READ id CONSTANT) // Read only
+  Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+  Q_PROPERTY(QString imageSource READ imageSource WRITE setImageSource NOTIFY imageChanged)
+  Q_PROPERTY(DiagramType::Type type READ type WRITE setType NOTIFY typeChanged)
+  Q_PROPERTY(quint16 inputNo READ inputNo WRITE setInputNo NOTIFY inputChanged)
+  Q_PROPERTY(quint16 outputNo READ outputNo WRITE setOutputNo NOTIFY outputChanged)
+  Q_PROPERTY(quint16 orientation READ orientation WRITE setOrientation NOTIFY imageChanged)
 
-  public:
-    explicit DiagramProperties(QObject *parent = nullptr);
+public:
+  explicit DiagramProperties(QObject *parent = nullptr);
 
-    QVariant get(int role) const;
-    void set(int role, const QVariant &data);
+  QVariant get(int role) const;
+  void set(int role, const QVariant &data);
 
-    //  Data functions
-    quint32 id() const { return _properties->id; } //  Unique object id
-    DiagramType::Type type() const { return _properties->type; }
-    quint16 inputNo() const { return _properties->inputNo; }
-    quint16 outputNo() const { return _properties->outputNo; }
-    void setId(const quint32 v);
-    void setType(const DiagramType::Type v);
-    void setInputNo(const quint16 v);
-    void setOutputNo(const quint16 v);
+  //  Data functions
+  quint32 id() const { return _properties->id; } //  Unique object id
+  DiagramType::Type type() const { return _properties->type; }
+  quint16 inputNo() const { return _properties->inputNo; }
+  quint16 outputNo() const { return _properties->outputNo; }
+  void setId(const quint32 v);
+  void setType(const DiagramType::Type v);
+  void setInputNo(const quint16 v);
+  void setOutputNo(const quint16 v);
 
-    // Display functions
-    QString name() const { return _name; }
-    QString imageSource() const { return _imageSrc; }
-    QPixmap *image() const { return _pixMap; }
+  // Display functions
+  QString name() const { return _name; }
+  QString imageSource() const { return _imageSrc; }
+  QPixmap *image() const { return _pixMap; }
 
-    void setName(const QString v);
-    void setImageSource(const QString v);
+  void setName(const QString v);
+  void setImageSource(const QString v);
 
-    bool selected() const { return _isSelected; }
-    void setSelected(const bool v);
-    void setImage(QPixmap *v);
+  bool selected() const { return _isSelected; }
+  void setSelected(const bool v);
+  void setImage(QPixmap *v);
 
-    int orientation() const { return _properties->orientation; }
-    void setOrientation(const quint32 v);
+  int orientation() const { return _properties->orientation; }
+  void setOrientation(const quint32 v);
 
-    const PeppRect &key() const { return _properties->key; }
-    void setKey(const PeppRect &v);
-    const PeppRect &gridRectangle() const { return _gridRect; }
-    void setGridRectangle(const PeppRect &v);
+  const PeppRect &key() const { return _properties->key; }
+  void setKey(const PeppRect &v);
+  const PeppRect &gridRectangle() const { return _gridRect; }
+  void setGridRectangle(const PeppRect &v);
 
-  signals:
-    void typeChanged();
-    void nameChanged();
-    void imageChanged();
-    void inputChanged();
-    void outputChanged();
-    void selectedChanged();
-    void dimensionsChanged();
+signals:
+  void typeChanged();
+  void nameChanged();
+  void imageChanged();
+  void inputChanged();
+  void outputChanged();
+  void selectedChanged();
+  void dimensionsChanged();
 
-  private:
-    QSharedPointer<DiagramProperty> _properties;
+private:
+  QSharedPointer<DiagramProperty> _properties;
 
-    //  Display properties properties
-    QString _name;
-    QString _imageSrc;
+  //  Display properties properties
+  QString _name;
+  QString _imageSrc;
 
-    //  Presentation variables that require Qt stay in this class
-    QPixmap *_pixMap = nullptr;
+  //  Presentation variables that require Qt stay in this class
+  QPixmap *_pixMap = nullptr;
 
-    //  Selection logic
-    bool _isSelected = false;
+  //  Selection logic
+  bool _isSelected = false;
 
-    //  Display dimensions & placement
-    PeppRect _gridRect{};
+  //  Display dimensions & placement
+  PeppRect _gridRect{};
 };
