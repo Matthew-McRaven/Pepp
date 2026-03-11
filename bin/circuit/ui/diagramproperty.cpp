@@ -4,8 +4,7 @@
 
 DiagramProperties::DiagramProperties(QObject *parent) : QObject(parent), _properties(new DiagramProperty) {}
 
-QVariant DiagramProperties::get(int role) const
-{
+QVariant DiagramProperties::get(int role) const {
   switch (role) {
   case DiagramProperty::Role::Id: return id();
   case DiagramProperty::Role::Name: return name();
@@ -25,8 +24,7 @@ QVariant DiagramProperties::get(int role) const
   return {};
 }
 
-void DiagramProperties::set(int role, const QVariant &data)
-{
+void DiagramProperties::set(int role, const QVariant &data) {
   switch (role) {
   case DiagramProperty::Role::Name: setName(data.toString()); break;
   case DiagramProperty::Role::ImageSource: setImageSource(data.toString()); break;
@@ -52,16 +50,14 @@ void DiagramProperties::setId(const quint32 v) {
   }
 }
 
-void DiagramProperties::setName(const QString v)
-{
+void DiagramProperties::setName(const QString v) {
   if (_name != v) {
     _name = v;
     emit nameChanged();
   }
 }
 
-void DiagramProperties::setImageSource(const QString v)
-{
+void DiagramProperties::setImageSource(const QString v) {
   if (_imageSrc != v) {
     _imageSrc = v;
 
@@ -83,32 +79,28 @@ void DiagramProperties::setType(const DiagramType::Type v) {
   }
 }
 
-void DiagramProperties::setInputNo(const quint16 v)
-{
+void DiagramProperties::setInputNo(const quint16 v) {
   if (_properties->inputNo != v) {
     _properties->inputNo = v;
     emit inputChanged();
   }
 }
 
-void DiagramProperties::setOutputNo(const quint16 v)
-{
+void DiagramProperties::setOutputNo(const quint16 v) {
   if (_properties->outputNo != v) {
     _properties->outputNo = v;
     emit outputChanged();
   }
 }
 
-void DiagramProperties::setSelected(const bool v)
-{
+void DiagramProperties::setSelected(const bool v) {
   if (_isSelected != v) {
     _isSelected = v;
     emit selectedChanged();
   }
 }
 
-void DiagramProperties::setOrientation(const quint32 v)
-{
+void DiagramProperties::setOrientation(const quint32 v) {
   if (_properties->setOrientation(v)) {
     //  Clear cached image
     _pixMap = nullptr;
@@ -130,8 +122,7 @@ void DiagramProperties::setGridRectangle(const PeppRect &v) {
   }
 }
 
-void DiagramProperties::setImage(QPixmap *v)
-{
+void DiagramProperties::setImage(QPixmap *v) {
   if (_pixMap != v) {
     _pixMap = v;
   }

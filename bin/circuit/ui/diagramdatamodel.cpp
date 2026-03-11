@@ -2,8 +2,7 @@
 
 DiagramDataModel::DiagramDataModel(QObject *parent) : QAbstractTableModel(parent) {}
 
-void DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newIndex)
-{
+void DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newIndex) {
   if (!oldIndex.isValid() || !newIndex.isValid()) return;
 
   //  If moving to same location, just return
@@ -23,22 +22,19 @@ void DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newInd
   emit dataChanged(newIndex, newIndex);
 }
 
-void DiagramDataModel::update(const QModelIndex &index)
-{
+void DiagramDataModel::update(const QModelIndex &index) {
   if (!index.isValid()) return;
 
   emit dataChanged(index, index);
 }
 
-bool DiagramDataModel::clearItemData(const QModelIndexList &indexes)
-{
+bool DiagramDataModel::clearItemData(const QModelIndexList &indexes) {
   bool ok = true;
   for (const QModelIndex &index : indexes) ok &= clearItemData(index);
   return ok;
 }
 
-bool DiagramDataModel::clearItemData(const QModelIndex &index)
-{
+bool DiagramDataModel::clearItemData(const QModelIndex &index) {
   if (!index.isValid()) return false;
 
   const auto *data = item(index);
@@ -52,24 +48,21 @@ bool DiagramDataModel::clearItemData(const QModelIndex &index)
 
 const QModelIndex DiagramDataModel::currentIndex() const { return _current; }
 
-void DiagramDataModel::setCurrentIndex(const QModelIndex v)
-{
+void DiagramDataModel::setCurrentIndex(const QModelIndex v) {
   if (v != _current) {
     _current = v;
     emit currentIndexChanged();
   }
 }
 
-DiagramProperties *DiagramDataModel::item(const QModelIndex &index)
-{
+DiagramProperties *DiagramDataModel::item(const QModelIndex &index) {
   if (!index.isValid()) return nullptr;
 
   auto data = _data.getDiagramProps(convertIndex(index));
   return data;
 }
 
-DiagramProperties *DiagramDataModel::createItem(const QModelIndex &index)
-{
+DiagramProperties *DiagramDataModel::createItem(const QModelIndex &index) {
   if (!index.isValid()) return nullptr;
 
   auto data = _data.createDiagramProps(convertIndex(index));
@@ -77,8 +70,7 @@ DiagramProperties *DiagramDataModel::createItem(const QModelIndex &index)
   return data;
 }
 
-QModelIndex DiagramDataModel::index(int row, int column, const QModelIndex &parent) const
-{
+QModelIndex DiagramDataModel::index(int row, int column, const QModelIndex &parent) const {
   // Check if row and column are within bounds and parent is invalid
   if (!hasIndex(row, column, parent)) return {};
 
@@ -86,30 +78,26 @@ QModelIndex DiagramDataModel::index(int row, int column, const QModelIndex &pare
   // For a simple list, we can just use the row and column
   return createIndex(row, column, nullptr); // Use 0 or another pointer if you use internal data
 }
-int DiagramDataModel::rowCount(const QModelIndex &parent) const
-{
+int DiagramDataModel::rowCount(const QModelIndex &parent) const {
   if (parent.isValid()) return 0;
 
   return _rowSize;
 }
 
-int DiagramDataModel::columnCount(const QModelIndex &parent) const
-{
+int DiagramDataModel::columnCount(const QModelIndex &parent) const {
   if (parent.isValid()) return 0;
 
   return _colSize;
 }
 
-QVariant DiagramDataModel::data(const QModelIndex &index, int role) const
-{
+QVariant DiagramDataModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return {};
 
   const auto *item = _data.getDiagramProps(convertIndex(index));
   return item->get(role);
 }
 
-bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, int role)
-{
+bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, int role) {
   if (!index.isValid()) return false;
 
   //  Set currently selected if value is true
@@ -127,15 +115,13 @@ bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, 
   return true;
 }
 
-Qt::ItemFlags DiagramDataModel::flags(const QModelIndex &index) const
-{
+Qt::ItemFlags DiagramDataModel::flags(const QModelIndex &index) const {
   if (!index.isValid()) return Qt::NoItemFlags;
 
   return Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable;
 }
 
-QHash<int, QByteArray> DiagramDataModel::roleNames() const
-{
+QHash<int, QByteArray> DiagramDataModel::roleNames() const {
   return {{DiagramProperty::Role::Name, "name"},
           {DiagramProperty::Role::Id, "id"},
           {DiagramProperty::Role::ImageSource, "imageSource"},

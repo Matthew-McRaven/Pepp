@@ -6,9 +6,7 @@ DiagramTemplate::DiagramTemplate(DiagramType::Type key, QString name, QString ty
                                  QObject *parent)
     : QObject(parent), _key(key), _name(name), _diagramType(type), _qrcFile(qrc), _file(file) {};
 
-DiagramListModel::DiagramListModel(QObject *parent)
-    : QAbstractListModel(parent)
-{
+DiagramListModel::DiagramListModel(QObject *parent) : QAbstractListModel(parent) {
   _diagrams.append(new DiagramTemplate(DiagramType::Invalid, "Move", "Arrow", "qrc:/move", "svg/move-arrow.svg", this));
   _diagrams.append(new DiagramTemplate(DiagramType::ANDGate, "AND Gate", "Diagram", "qrc:/and", "svg/and.svg", this));
 
@@ -25,8 +23,7 @@ DiagramListModel::DiagramListModel(QObject *parent)
   _diagrams.append(new DiagramTemplate(DiagramType::Bus, "Bus", "Line", "qrc:/bus", "svg/bus.svg", this));
 }
 
-int DiagramListModel::rowCount(const QModelIndex &parent) const
-{
+int DiagramListModel::rowCount(const QModelIndex &parent) const {
   // For list models only the root node (an invalid parent) should return the list's size. For all
   // other (valid) parents, rowCount() should return 0 so that it does not become a tree model.
   if (parent.isValid()) return 0;
@@ -34,8 +31,7 @@ int DiagramListModel::rowCount(const QModelIndex &parent) const
   return _diagrams.size();
 }
 
-QVariant DiagramListModel::data(const QModelIndex &index, int role) const
-{
+QVariant DiagramListModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return {};
 
   const auto *item = this->diagramTemplate(index.row()); //_diagrams.at(index.row());
@@ -52,8 +48,7 @@ QVariant DiagramListModel::data(const QModelIndex &index, int role) const
   return {};
 }
 
-QHash<int, QByteArray> DiagramListModel::roleNames() const
-{
+QHash<int, QByteArray> DiagramListModel::roleNames() const {
   return {{Role::Name, "name"},
           {Role::Key, "key"},
           {Role::DiagramType, "shapeType"},
@@ -61,8 +56,7 @@ QHash<int, QByteArray> DiagramListModel::roleNames() const
           {Role::QrcFile, "qrcFile"}};
 }
 
-DiagramTemplate *DiagramListModel::diagramTemplate(int index) const
-{
+DiagramTemplate *DiagramListModel::diagramTemplate(int index) const {
   if (0 <= index && index < _diagrams.size()) {
     return _diagrams.at(index);
   }
@@ -76,8 +70,7 @@ FilterDiagramListModel::FilterDiagramListModel(QObject *parent) : QSortFilterPro
   setSortRole(Qt::DisplayRole);
 }
 
-void FilterDiagramListModel::setFilterGroupFilter(Filter filter)
-{
+void FilterDiagramListModel::setFilterGroupFilter(Filter filter) {
   if (_filter != filter) {
     beginFilterChange();
     _filter = filter;
@@ -94,16 +87,14 @@ void FilterDiagramListModel::setFilterGroupFilter(Filter filter)
   }
 }
 
-void FilterDiagramListModel::setModel(DiagramListModel *model)
-{
+void FilterDiagramListModel::setModel(DiagramListModel *model) {
   if (sourceModel() != model) {
     setSourceModel(model);
     emit modelChanged();
   }
 }
 
-DiagramTemplate *FilterDiagramListModel::diagramTemplate(int proxy) const
-{
+DiagramTemplate *FilterDiagramListModel::diagramTemplate(int proxy) const {
   const auto proxyIndex = index(proxy, 0);
   const auto srcIndex = mapToSource(proxyIndex);
 
@@ -111,8 +102,7 @@ DiagramTemplate *FilterDiagramListModel::diagramTemplate(int proxy) const
 
   return srcModel->diagramTemplate(srcIndex.row());
 }
-bool FilterDiagramListModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
-{
+bool FilterDiagramListModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const {
   //  If no filtering, return everything
   if (_filter == Filter::None) return true;
 

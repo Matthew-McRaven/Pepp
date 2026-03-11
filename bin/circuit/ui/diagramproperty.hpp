@@ -63,8 +63,7 @@ public:
   PeppRect key{};
 };
 
-class DiagramProperties : public QObject
-{
+class DiagramProperties : public QObject {
   Q_OBJECT
   QML_ELEMENT
 

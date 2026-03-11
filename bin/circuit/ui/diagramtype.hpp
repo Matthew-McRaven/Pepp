@@ -2,8 +2,7 @@
 
 #include <QMetaType> // Required for Q_DECLARE_METATYPE
 
-class DiagramType
-{
+class DiagramType {
   Q_GADGET
 
 public:

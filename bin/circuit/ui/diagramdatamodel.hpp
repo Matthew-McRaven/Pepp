@@ -6,8 +6,7 @@
 #include "diagramdata.hpp"
 #include "diagramtype.hpp"
 
-class DiagramDataModel : public QAbstractTableModel
-{
+class DiagramDataModel : public QAbstractTableModel {
   Q_OBJECT
   QML_ELEMENT
 
@@ -60,12 +59,12 @@ public:
   QHash<int, QByteArray> roleNames() const override;
 
 signals:
-    void currentIndexChanged();
+  void currentIndexChanged();
 
-  private:
-    PeppKey convertIndex(const QModelIndex &index) const {
-      i16 row = index.row();
-      i16 col = index.column();
-      return PeppKey::from_point_size(row, col, 4, 4);
-    }
+private:
+  PeppKey convertIndex(const QModelIndex &index) const {
+    i16 row = index.row();
+    i16 col = index.column();
+    return PeppKey::from_point_size(row, col, 4, 4);
+  }
 };

@@ -7,8 +7,7 @@
 
 #include "diagramtype.hpp"
 
-class DiagramTemplate : public QObject
-{
+class DiagramTemplate : public QObject {
   Q_OBJECT
   QML_ELEMENT
 
@@ -35,8 +34,7 @@ public:
   QString file() const { return _file; }
 };
 
-class DiagramListModel : public QAbstractListModel
-{
+class DiagramListModel : public QAbstractListModel {
   Q_OBJECT
   QML_ELEMENT
 
@@ -61,8 +59,7 @@ public:
   Q_INVOKABLE DiagramTemplate *diagramTemplate(int index) const;
 };
 
-class FilterDiagramListModel : public QSortFilterProxyModel
-{
+class FilterDiagramListModel : public QSortFilterProxyModel {
   Q_OBJECT
   QML_ELEMENT
 

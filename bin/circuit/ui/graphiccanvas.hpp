@@ -25,8 +25,7 @@ class DiagramDataModel;
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
 // "grid" coordinates are integer values. Currently, 1 grid unit = 4 screen pixels, but this should
 // be programmable to enable zoom.
-class GraphicCanvas : public QQuickPaintedItem
-{
+class GraphicCanvas : public QQuickPaintedItem {
   Q_OBJECT
   QML_NAMED_ELEMENT(GraphicCanvas)
 
