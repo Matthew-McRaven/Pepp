@@ -40,6 +40,7 @@ DiagramProperties *DiagramData::createDiagramProps(const PeppKey &key) {
 
   //  point and size to rectangle
   auto id = _spatial_map.try_add(key);
+  if (!id.has_value()) return nullptr;
 
   //  Save ID to diagram
   data.setId(id.value());

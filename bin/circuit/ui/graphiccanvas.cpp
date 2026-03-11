@@ -9,9 +9,7 @@
 #include <Qt> //  Keyboard constants
 #include "diagramdatamodel.hpp"
 
-GraphicCanvas::GraphicCanvas(QQuickItem *parent)
-    : QQuickPaintedItem(parent)
-{
+GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   //  Enable mouse
   setAcceptedMouseButtons(Qt::AllButtons);
   setAcceptHoverEvents(true); // Enable hover events if needed
@@ -39,30 +37,26 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent)
   QObject::connect(this, &GraphicCanvas::modelChanged, this, &GraphicCanvas::updateData);
 }
 
-void GraphicCanvas::setOriginX(float x)
-{
+void GraphicCanvas::setOriginX(float x) {
   _top_left.setX(x / grid_to_px / _currentZoom);
   emit originChanged();
   update();
 }
 
-void GraphicCanvas::setOriginY(float y)
-{
+void GraphicCanvas::setOriginY(float y) {
   _top_left.setY(y / grid_to_px / _currentZoom);
   emit originChanged();
   update();
 }
 
-void GraphicCanvas::setXScrollbar(float x)
-{
+void GraphicCanvas::setXScrollbar(float x) {
   if (std::abs(x - _scrollbarWidth.right()) > .0001) {
     _scrollbarWidth.setRight(x);
     emit boundsChanged();
     update();
   }
 }
-void GraphicCanvas::setYScrollbar(float y)
-{
+void GraphicCanvas::setYScrollbar(float y) {
   if (std::abs(y - _scrollbarWidth.bottom()) > .0001) {
     _scrollbarWidth.setBottom(y);
     emit boundsChanged();
@@ -70,8 +64,7 @@ void GraphicCanvas::setYScrollbar(float y)
   }
 }
 
-void GraphicCanvas::setModel(DiagramDataModel *model)
-{
+void GraphicCanvas::setModel(DiagramDataModel *model) {
   if (model != _model) {
     _model = model;
     emit modelChanged();
@@ -79,8 +72,7 @@ void GraphicCanvas::setModel(DiagramDataModel *model)
   }
 }
 
-void GraphicCanvas::setStamp(DiagramTemplate *stamp)
-{
+void GraphicCanvas::setStamp(DiagramTemplate *stamp) {
   if (stamp != _template) {
     if (stamp == nullptr) {
       _template = nullptr;
@@ -114,8 +106,7 @@ void GraphicCanvas::setFilter(const FilterDiagramListModel::Filter filter) {
   }
 }
 
-void GraphicCanvas::updateData()
-{//  Trigger repaint on data model updates
+void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   //  Model must exist before it can be connected.
   QObject::connect(_model, &DiagramDataModel::dataChanged, this, &GraphicCanvas::updateCell);
 
@@ -135,6 +126,28 @@ void GraphicCanvas::updateData()
   data->setType(DiagramType::ANDGate);
   data->setOrientation(0);
   getImage(*data);
+  const auto rect1 = data->gridRectangle();
+
+  //  data life time managed by model
+  /*data = addDiagram(4, 7);
+  if (data == nullptr) return;
+
+  //  Add block data
+  data->setName(lookup[3]);
+  data->setType(DiagramType::Inverter);
+  data->setOrientation(90);
+  getImage(*data);
+  const auto rect2 = data->gridRectangle();
+
+  //  This is a line, but it's not connected
+  //  For testing only
+  data = addDiagram(10, 12);
+  if (data == nullptr) return;
+  PeppRect lineRect{rect1.top_left(), rect2.bottom_right()};
+  data->setGridRectangle(lineRect);
+
+  //  Add block data
+  data->setType(DiagramType::Line);*/
 
   /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
 
@@ -187,8 +200,7 @@ void GraphicCanvas::updateData()
   //  End of test data
 }
 
-void GraphicCanvas::cacheImages(const QString &source)
-{
+void GraphicCanvas::cacheImages(const QString &source) {
   //  Pre-render SVG files so that paint is not slowed down
   QSvgRenderer renderer(source);
   renderer.setAspectRatioMode(Qt::KeepAspectRatio);
@@ -217,8 +229,7 @@ void GraphicCanvas::cacheImages(const QString &source)
   }
 }
 
-void GraphicCanvas::cacheBackground()
-{
+void GraphicCanvas::cacheBackground() {
   _background.fill(Qt::transparent);
   QPainter painter(&_background);
   painter.setRenderHint(QPainter::Antialiasing, true);
@@ -275,8 +286,7 @@ void GraphicCanvas::cacheBackground()
   painter.drawLine(line);
 }
 
-void GraphicCanvas::paint(QPainter *painter)
-{
+void GraphicCanvas::paint(QPainter *painter) {
   //  Determine the size of the viewport in grid coordinates.
   const auto screen_viewport = QRectF(0, 0, size().width(), size().height());
 
@@ -318,14 +328,15 @@ void GraphicCanvas::paint(QPainter *painter)
     currentBlock.translate(screen_block, -screen_block * row);
   }
 
-    //  Diagrams are painted on minor grid axis
-    for (auto &props : _model->dataModel().cells()) {
-      // for (const auto &[rect, props] : _rects) {
-      //  Skip painting rectangles that are outside the viewport.
-      if (pepp::core::intersects(grid_viewport, props.gridRectangle()))
-        paint_one(painter, props.gridRectangle(), props);
-    }
-    //qDebug() << "grid_viewport: " << grid_viewport;
+  //  Diagrams are painted on minor grid axis
+  for (auto &props : _model->dataModel().cells()) {
+    // for (const auto &[rect, props] : _rects) {
+    //  Skip painting rectangles that are outside the viewport.
+    if (pepp::core::intersects(grid_viewport, props.gridRectangle()))
+      if (DiagramType::isDiagram(props.type())) paint_one(painter, props.gridRectangle(), props);
+      else paint_line(painter, props);
+  }
+  // qDebug() << "grid_viewport: " << grid_viewport;
 }
 
 void GraphicCanvas::paint_one(QPainter *painter, const PeppRect &rect, DiagramProperties &props) {
@@ -346,6 +357,16 @@ void GraphicCanvas::paint_one(QPainter *painter, const PeppRect &rect, DiagramPr
     getImage(props);
 
   painter->drawPixmap(screen_rect.toRect(), *props.image());
+}
+
+void GraphicCanvas::paint_line(QPainter *painter, const DiagramProperties &props) {
+  // Convert our absolute grid coordinates to screen coordinates.
+  // Grid is inset so that selection box appears inside current cell
+  auto screen_rect = grid_to_screen(props.gridRectangle());
+
+  //  Check state, and set outline if selected
+  painter->setPen(QPen(_line, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+  painter->drawLine(screen_rect.topLeft(), screen_rect.bottomRight());
 }
 
 DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
@@ -404,8 +425,7 @@ void GraphicCanvas::setGrid(DiagramProperties *data, const i16 row, const i16 co
   setBoundingBox();
 }
 
-void GraphicCanvas::getImage(DiagramProperties &props)
-{
+void GraphicCanvas::getImage(DiagramProperties &props) {
   QPixmap *image = nullptr;
 
   //  If type has not been selected, just return.
@@ -418,7 +438,7 @@ void GraphicCanvas::getImage(DiagramProperties &props)
   case 270: image = &_svgsTop[props.type()]; break;
   default: image = &_svgs[props.type()];
   }
-    props.setImage(image);
+  props.setImage(image);
 }
 
 QRectF GraphicCanvas::grid_to_screen(const PeppRect &rect) {
@@ -458,14 +478,12 @@ const PeppPt GraphicCanvas::grid_to_index(const PeppPt &point) const {
   return {x, y};
 }
 
-void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to)
-{
+void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to) {
   //  Delegate updates to QT canvas control
   update();
 }
 
-void GraphicCanvas::rotateClockwise()
-{
+void GraphicCanvas::rotateClockwise() {
   if (_currentItem == nullptr) return;
 
   _currentItem->setOrientation(_currentItem->orientation() + 90);
@@ -474,8 +492,7 @@ void GraphicCanvas::rotateClockwise()
   update();
 }
 
-void GraphicCanvas::rotateCounterClockwise()
-{
+void GraphicCanvas::rotateCounterClockwise() {
   if (_currentItem == nullptr) return;
 
   const int orientation = _currentItem->orientation() == 0 ? 270 : _currentItem->orientation() - 90;
@@ -488,8 +505,7 @@ void GraphicCanvas::rotateCounterClockwise()
 //  Mouse events - Comment out unused events for now
 /*void GraphicCanvas::mouseDoubleClickEvent(QMouseEvent *event) {}*/
 
-void GraphicCanvas::mouseMoveEvent(QMouseEvent *event)
-{
+void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {
   // qDebug() << "MouseMove" << event;
   if (!(event->buttons() & Qt::LeftButton)) return;
   if ((event->pos() - _dragStartPosition).manhattanLength() < QApplication::startDragDistance()) return;
@@ -509,15 +525,13 @@ void GraphicCanvas::mouseMoveEvent(QMouseEvent *event)
   }
 }
 
-void GraphicCanvas::contextMenuEvent(QMouseEvent *event)
-{
+void GraphicCanvas::contextMenuEvent(QMouseEvent *event) {
   //  If no current item, just return. This is an error condition.
   //    if (_currentItem == nullptr)
   event->setAccepted(false);
 }
 
-void GraphicCanvas::mousePressEvent(QMouseEvent *event)
-{
+void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
   //  Only handle left and right click
   if (!(event->button() == Qt::LeftButton || event->button() == Qt::RightButton)) return;
 
@@ -611,8 +625,7 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
   return found;
 }
 
-void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event)
-{
+void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {
   // qDebug() << "MouseRelease" << event;
   // setCursor(Qt::ArrowCursor);
 }
@@ -625,8 +638,7 @@ void GraphicCanvas::hoverLeaveEvent(QHoverEvent *event) {}
 void GraphicCanvas::hoverMoveEvent(QHoverEvent *event) {}
 */
 
-void GraphicCanvas::wheelEvent(QWheelEvent *event)
-{
+void GraphicCanvas::wheelEvent(QWheelEvent *event) {
   // A positive value for angleDelta().y() indicates the wheel was rotated
   // forwards/up, a negative value indicates backwards/down.
   const QPoint angleDelta = event->angleDelta();
@@ -667,8 +679,7 @@ void GraphicCanvas::wheelEvent(QWheelEvent *event)
   event->accept();
 }
 
-void GraphicCanvas::setZoom(qint8 change)
-{
+void GraphicCanvas::setZoom(qint8 change) {
   qreal newZoom = 0;
   if (change == 0) return;
   else if (change > 0) newZoom = std::min(_maxScale, _currentZoom + .25);
@@ -732,8 +743,7 @@ void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
   update();
 }
 
-void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)
-{
+void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event) {
   // qDebug() << "dragEnterEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
     if (event->source() == this) {
@@ -747,14 +757,12 @@ void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event)
   }
 }
 
-void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event)
-{
+void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event) {
   event->ignore();
   // qDebug() << "dragLeaveEvent";
 }
 
-void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event)
-{
+void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event) {
   // qDebug() << "dragMoveEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
     if (event->source() == this) {
@@ -769,8 +777,7 @@ void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event)
   }
 }
 
-void GraphicCanvas::dropEvent(QDropEvent *event)
-{
+void GraphicCanvas::dropEvent(QDropEvent *event) {
   // qDebug() << "dropEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
     // setCursor(Qt::ArrowCursor);
@@ -804,8 +811,7 @@ void GraphicCanvas::dropEvent(QDropEvent *event)
   }
 }
 
-void GraphicCanvas::startDrag(const QPoint point)
-{
+void GraphicCanvas::startDrag(const QPoint point) {
   _dragStartPosition = point;
   QDrag *drag = new QDrag(this);
 

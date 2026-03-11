@@ -128,6 +128,7 @@ private:
 
   // Helepr for painting a single rect that has already "passed" the clipping test.
   void paint_one(QPainter *painter, const PeppRect &rect, DiagramProperties &props);
+  void paint_line(QPainter *painter, const DiagramProperties &props);
   QRectF grid_to_screen(const PeppRect &rect);
   PeppRect screen_to_grid(QRectF rect);
   PeppPt screen_to_grid(QPointF point);
@@ -194,6 +195,7 @@ private:
 
   //  Make fixed color for now
   QColor _highlight = QColorConstants::Svg::cornflowerblue;
+  QColor _line = QColorConstants::Svg::black;
 
   //  Drag start
   QPointF _dragStartPosition{-1, -1};

@@ -17,7 +17,7 @@ public:
     // XNORGate,
 
     //  Line enums
-    Line,
+    Line = 0x10,
     MultiLine,
     Bus,
 
@@ -25,4 +25,6 @@ public:
     Invalid = 0xffffffff,
   };
   Q_ENUM(Type)
+
+  static bool isDiagram(const Type type) { return type < Type::Line; }
 };
