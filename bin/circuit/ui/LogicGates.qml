@@ -67,7 +67,6 @@ Rectangle {
                     buttons: selector.children
 
                     Component.onCompleted: {
-                        //root.setStamp(0);
                         buttonGroup.buttons[0].checked = true;
                     }
                     onClicked: btn => {
@@ -88,6 +87,7 @@ Rectangle {
                         return;
 
                         sourceListView.filterList.filter = result;
+                        canvas.filter = result
                     }
                 }
 
@@ -137,6 +137,7 @@ Rectangle {
 
                 dataModel: diagramModel
                 currentStamp: sourceListView.currentStamp
+                filter: FilterDiagramListModel.None
                 z: -1
             }
         }   //  ColumnLayout

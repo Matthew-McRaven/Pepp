@@ -106,6 +106,14 @@ void GraphicCanvas::setCurrentItem(DiagramProperties *item) {
   }
 }
 
+void GraphicCanvas::setFilter(const FilterDiagramListModel::Filter filter) {
+  if (filter != _filter) {
+    _filter = filter;
+
+    emit filterChanged();
+  }
+}
+
 void GraphicCanvas::updateData()
 {
     //  Trigger repaint on data model updates

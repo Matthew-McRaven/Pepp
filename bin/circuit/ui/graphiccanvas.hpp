@@ -46,8 +46,9 @@ class GraphicCanvas : public QQuickPaintedItem
     Q_PROPERTY(DiagramDataModel *model READ model WRITE setModel NOTIFY boundsChanged FINAL)
     Q_PROPERTY(DiagramTemplate *template READ stamp WRITE setStamp NOTIFY stampChanged FINAL)
     Q_PROPERTY(DiagramProperties *currentItem READ currentItem NOTIFY currentItemChanged FINAL)
+    Q_PROPERTY(FilterDiagramListModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
 
-public:
+  public:
     GraphicCanvas(QQuickItem *parent = nullptr);
     void paint(QPainter *painter) override;
 
@@ -88,6 +89,9 @@ public:
     DiagramProperties *currentItem() const { return _currentItem; }
     void setCurrentItem(DiagramProperties *item);
 
+    auto filter() const { return _filter; }
+    void setFilter(const FilterDiagramListModel::Filter filter);
+
   protected:
     //  Mouse events
     //void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -112,8 +116,9 @@ signals:
     void originChanged();
     void stampChanged();
     void currentItemChanged();
+    void filterChanged();
 
-private:
+  private:
     void getImage(DiagramProperties &props);
 
     //  Custom mouse event handlers
@@ -196,4 +201,5 @@ private:
     DiagramDataModel *_model = nullptr;
     DiagramTemplate *_template = nullptr;
     DiagramProperties *_currentItem = nullptr;
+    FilterDiagramListModel::Filter _filter = FilterDiagramListModel::None;
 };

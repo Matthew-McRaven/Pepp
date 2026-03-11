@@ -9,6 +9,7 @@ Item {
     id: root
     property DiagramTemplate currentStamp: null
     property alias dataModel: scrollView.model
+    property alias filter: canvas.filter
     focus: true //  Control with focus receives keyboard events
 
     // Do not place inside the flickable!
@@ -27,6 +28,7 @@ Item {
         yScrollbar: hsb.visible ? hsb.height : 0
         model: root.dataModel
         template: root.currentStamp
+        filter: FilterDiagramListModel.None
 
         anchors.fill: parent
         anchors.bottomMargin: hsb.visible ? hsb.height : 0
@@ -38,7 +40,7 @@ Item {
             MenuItem {
                 text: "Rotate Left"
                 onTriggered: {
-                    var item = canvas.currentItem //as DiagramProperties;
+                    var item = canvas.currentItem
 
                     //  Check to see if there is no current item
                     if(item)
@@ -48,7 +50,7 @@ Item {
             MenuItem {
                 text: "Rotate right"
                 onTriggered: {
-                    var item = canvas.currentItem //as DiagramProperties;
+                    var item = canvas.currentItem
 
                     //  Check to see if there is no current item
                     if(item)
