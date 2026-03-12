@@ -157,6 +157,8 @@ void ScintillaEditBase::scrollColumn(int deltaColumns) {
   scrollHorizontal(newValue);
 }
 
+void ScintillaEditBase::scrollColumnAbsolute(int firstVisible) { scrollHorizontal(firstVisible * getCharWidth()); }
+
 void ScintillaEditBase::debug() {
   // for debugging...
 }

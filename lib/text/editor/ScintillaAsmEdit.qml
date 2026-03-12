@@ -9,7 +9,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQml.Models
 import edu.pepp 1.0 as Pepp
-
+import "." as T
 FocusScope {
     id: root
     NuAppSettings {
@@ -22,6 +22,7 @@ FocusScope {
             if (!editor.activeFocus)
                 root.editingFinished(editor.text);
         });
+        horizontalScrollBar.updateParams();
     }
     function forceEditorFocus() {
         editor.forceActiveFocus();
@@ -112,32 +113,20 @@ FocusScope {
                 editor.selectAll();
         }
     }
-    ScrollBar {
+    T.ScintillaVScroll {
         id: verticalScrollBar
-        orientation: Qt.Vertical
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        visible: editor.visibleLines < editor.totalLines
-        width: verticalScrollBar.visible ? 10 : 0
-        stepSize: 3.0 / editor.totalLines
-        position: editor.firstVisibleLine / editor.totalLines
-        onPositionChanged: {
-            editor.enableUpdate(false);
-            editor.scrollRowAbsolute(Math.round(position * editor.totalLines));
-            editor.enableUpdate(true);
-        }
+        editor: editor
     }
-
-    ScrollBar {
+    T.ScintillaHScroll {
         id: horizontalScrollBar
-        orientation: Qt.Horizontal
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        visible: editor.visibleColumuns < editor.totalColumns
-        height: horizontalScrollBar.visible ? 20 : 0
-        stepSize: 3.0 / editor.totalColumns
-        position: editor.firstVisibleColumn / editor.totalColumns
+        editor: editor
+
     }
+    onWidthChanged: horizontalScrollBar.updateParams()
 }

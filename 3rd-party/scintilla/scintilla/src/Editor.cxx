@@ -1892,12 +1892,13 @@ void Editor::Paint(Surface *surfaceWindow, PRectangle rcArea) {
 
 	view.PaintText(surfaceWindow, *this, vs, rcArea, rcClient);
 
-	if (horizontalScrollBarVisible && trackLineWidth && (view.lineWidthMaxSeen > scrollWidth)) {
+
+    if (horizontalScrollBarVisible && trackLineWidth && (view.lineWidthMaxSeen > scrollWidth)) {
 		scrollWidth = view.lineWidthMaxSeen;
 		if (!FineTickerRunning(TickReason::widen)) {
 			FineTickerStart(TickReason::widen, 50, 5);
 		}
-	}
+    } else if(trackLineWidth) scrollWidth = std::max(scrollWidth, view.lineWidthMaxSeen);
 
 	if (!view.bufferedDraw)
 		surfaceWindow->PopClip();

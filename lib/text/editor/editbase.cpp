@@ -43,6 +43,15 @@ EditBase::EditBase(QQuickItem *parent) : ScintillaEditBase(parent) {
   send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDEREND, SC_MARK_EMPTY);
   send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDEROPENMID, SC_MARK_EMPTY);
   send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDERMIDTAIL, SC_MARK_EMPTY);
+  // On each paint, track the ending column of the longest line of visible text.
+  send(SCI_SETSCROLLWIDTHTRACKING, true);
+  // Qt/QML has to provide its own scrollbars. However, there is a Scintilla bug where if scrollbars are enabled, timer
+  // events will be emited from the wrong thread. With a modification to scintilla, I enabled width tracking w/o a
+  // visible scrollbar.
+  send(SCI_SETHSCROLLBAR, false);
+  // SCI_SETSCROLLWIDTHTRACKING can only increase the size of the visible area, not decrease it.
+  //  Pick a sensibly small number to avoid massive h scrollbars for empty files. Measured in px
+  send(SCI_SETSCROLLWIDTH, 100);
 }
 
 QString EditBase::lexerLanguage() const { return ""; }
