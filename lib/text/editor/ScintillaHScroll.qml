@@ -13,9 +13,9 @@ ScrollBar {
 
     height: horizontalScrollBar.visible ? 10 : 0
     visible: visibleColumns < totalColumns
-    stepSize: stepMultiple / totalColumns
-    size: visibleColumns / (totalColumns * 1.0)
-    position: firstVisibleColumn / totalColumns
+    stepSize: totalColumns > 0 ?stepMultiple / totalColumns : 0
+    size: totalColumns > 0 ? visibleColumns / (totalColumns * 1.0) : 1
+    position: totalColumns > 0 ? firstVisibleColumn / totalColumns : 0
     function updatePosition() {
         if (!syncing) {
             // Qt paints stale content when we scroll if not bracketed by enableUpdate

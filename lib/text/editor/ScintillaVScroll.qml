@@ -12,9 +12,9 @@ ScrollBar {
 
     width: verticalScrollBar.visible ? 10 : 0
     visible: visibleLines < totalLines
-    stepSize: stepMultiple / totalLines
-    size: visibleLines / (totalLines * 1.0)
-    position: firstVisibleLine / totalLines
+    stepSize: totalLines > 0 ? stepMultiple / totalLines : 0
+    size: totalLines > 0 ? visibleLines / (totalLines * 1.0) : 1
+    position: totalLines > 0 ? firstVisibleLine / totalLines:0
     onPositionChanged: {
         // Qt paints stale content when we scroll if not bracketed by enableUpdate
         editor.enableUpdate(false);
