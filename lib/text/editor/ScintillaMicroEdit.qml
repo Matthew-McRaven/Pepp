@@ -23,7 +23,14 @@ FocusScope {
             if (!editor.activeFocus)
                 root.editingFinished(editor.text);
         });
-        horizontalScrollBar.updateParams();
+        Qt.callLater(()=>scrollUpdateTimer.restart())
+    }
+    // Loading long microcode does not update scrollbars correctly.
+    // Add an arbitrary delay to recomputing the scrollbar params; only meant to be used on construction.
+    Timer {
+        id: scrollUpdateTimer
+        interval: 50
+        onTriggered: horizontalScrollBar.updateParams()
     }
     function forceEditorFocus() {
         editor.forceActiveFocus();
