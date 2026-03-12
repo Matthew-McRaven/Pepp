@@ -126,8 +126,8 @@ private:
   void mouseLeftClickEvent(QMouseEvent *event, const PeppPt &index);
 
   // Helepr for painting a single rect that has already "passed" the clipping test.
-  void paint_one(QPainter *painter, const PeppRect &rect, DiagramProperties &props);
-  void paint_line(QPainter *painter, const DiagramProperties &props);
+  void paint_one(QPainter *painter, DiagramProperties *props);
+  void paint_line(QPainter *painter, const LineProperties *props);
   QRectF grid_to_screen(const PeppRect &rect);
   PeppRect screen_to_grid(QRectF rect);
   PeppPt screen_to_grid(QPointF point);
@@ -153,6 +153,8 @@ private:
 
   //  Add diagram, and center in cell
   DiagramProperties *addDiagram(const i16 row, const i16 col);
+  void addLine(DiagramProperties *from, DiagramProperties *to);
+
   void setGrid(DiagramProperties *data, const i16 row, const i16 col);
 
   //  Respond to data changes in model

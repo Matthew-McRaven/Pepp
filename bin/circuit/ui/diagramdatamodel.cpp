@@ -58,8 +58,8 @@ void DiagramDataModel::setCurrentIndex(const QModelIndex v) {
 DiagramProperties *DiagramDataModel::item(const QModelIndex &index) {
   if (!index.isValid()) return nullptr;
 
-  auto data = _data.getDiagramProps(convertIndex(index));
-  return data;
+  auto data = _data.getProps(convertIndex(index));
+  return static_cast<DiagramProperties *>(data);
 }
 
 DiagramProperties *DiagramDataModel::createItem(const QModelIndex &index) {
@@ -93,7 +93,7 @@ int DiagramDataModel::columnCount(const QModelIndex &parent) const {
 QVariant DiagramDataModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return {};
 
-  const auto *item = _data.getDiagramProps(convertIndex(index));
+  const auto *item = static_cast<const DiagramProperties *>(_data.getProps(convertIndex(index)));
   return item->get(role);
 }
 
@@ -106,7 +106,7 @@ bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, 
     emit dataChanged(index, index);
   }
 
-  auto *item = _data.getDiagramProps(convertIndex(index));
+  auto *item = static_cast<DiagramProperties *>(_data.getProps(convertIndex(index)));
   if (item == nullptr) return false;
 
   item->set(role, value);

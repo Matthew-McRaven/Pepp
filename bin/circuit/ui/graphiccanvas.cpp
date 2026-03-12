@@ -118,36 +118,29 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   const int rows = 10;
   const int cols = 10;
 
-  DiagramProperties *data = addDiagram(2, 3);
-  if (data == nullptr) return;
+  DiagramProperties *from = addDiagram(2, 3);
+  if (from == nullptr) return;
 
   //  Add block data
-  data->setName(lookup[0]);
-  data->setType(DiagramType::ANDGate);
-  data->setOrientation(0);
-  getImage(*data);
-  const auto rect1 = data->gridRectangle();
+  from->setName(lookup[0]);
+  from->setType(DiagramType::ANDGate);
+  from->setOrientation(0);
+  from->setSelected(false);
+  getImage(*from);
 
   //  data life time managed by model
-  /*data = addDiagram(4, 7);
-  if (data == nullptr) return;
+  DiagramProperties *to = addDiagram(4, 7);
+  if (to == nullptr) return;
 
   //  Add block data
-  data->setName(lookup[3]);
-  data->setType(DiagramType::Inverter);
-  data->setOrientation(90);
-  getImage(*data);
-  const auto rect2 = data->gridRectangle();
+  to->setName(lookup[3]);
+  to->setType(DiagramType::Inverter);
+  to->setOrientation(90);
+  getImage(*to);
 
   //  This is a line, but it's not connected
   //  For testing only
-  data = addDiagram(10, 12);
-  if (data == nullptr) return;
-  PeppRect lineRect{rect1.top_left(), rect2.bottom_right()};
-  data->setGridRectangle(lineRect);
-
-  //  Add block data
-  data->setType(DiagramType::Line);*/
+  addLine(from, to);
 
   /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
 
@@ -332,37 +325,42 @@ void GraphicCanvas::paint(QPainter *painter) {
   for (auto &props : _model->dataModel().cells()) {
     // for (const auto &[rect, props] : _rects) {
     //  Skip painting rectangles that are outside the viewport.
-    if (pepp::core::intersects(grid_viewport, props.gridRectangle()))
-      if (DiagramType::isDiagram(props.type())) paint_one(painter, props.gridRectangle(), props);
-      else paint_line(painter, props);
+    if (pepp::core::intersects(grid_viewport, props->gridRectangle()))
+      if (DiagramType::isDiagram(props->type())) {
+        DiagramProperties *diagram = static_cast<DiagramProperties *>(props.get());
+        paint_one(painter, diagram);
+      } else {
+        LineProperties *line = static_cast<LineProperties *>(props.get());
+        paint_line(painter, line);
+      }
   }
   // qDebug() << "grid_viewport: " << grid_viewport;
 }
 
-void GraphicCanvas::paint_one(QPainter *painter, const PeppRect &rect, DiagramProperties &props) {
+void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
-  auto screen_rect = grid_to_screen(rect).adjusted(2, 2, -3, -3);
+  auto screen_rect = grid_to_screen(props->gridRectangle()).adjusted(2, 2, -3, -3);
 
   //  Check state, and set outline if selected
-  if (props.selected()) {
+  if (props->selected()) {
     painter->setPen(QPen(_highlight, 2, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
     painter->drawRect(screen_rect);
   }
 
   //  If image is not null, it can be output
-  if (props.image() == nullptr)
+  if (props->image() == nullptr)
 
     //  If image is null, then it's properties were reset, update image
-    getImage(props);
+    getImage(*props);
 
-  painter->drawPixmap(screen_rect.toRect(), *props.image());
+  painter->drawPixmap(screen_rect.toRect(), *props->image());
 }
 
-void GraphicCanvas::paint_line(QPainter *painter, const DiagramProperties &props) {
+void GraphicCanvas::paint_line(QPainter *painter, const LineProperties *props) {
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
-  auto screen_rect = grid_to_screen(props.gridRectangle());
+  auto screen_rect = grid_to_screen(props->gridRectangle());
 
   //  Check state, and set outline if selected
   painter->setPen(QPen(_line, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
@@ -396,6 +394,23 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   _model->setData(newIndex, true, DiagramProperty::Role::Selected);
 
   return data;
+}
+
+void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
+  LineProperties *line =
+      _model->dataModel().createLineProps(PeppRect::from_point_size(10, 10, minor_per_major, minor_per_major));
+
+  if (line == nullptr) return;
+
+  //  Set line type
+  line->setType(DiagramType::Line);
+  from->setOutputPoint(line);
+  to->setInputPoint(line);
+
+  //  Short term hack
+  // PeppRect lineRect{from->output(), to->input()};
+  // data->setGridRectangle(lineRect);
+  //  Add block data
 }
 
 void GraphicCanvas::setBoundingBox() {
@@ -593,11 +608,11 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
   //  See if existing item was clicked and clear selection
   for (auto &props : _model->dataModel().cells()) {
     // Skip painting rectangles that are outside the viewport.
-    if (!pepp::core::contains(props.gridRectangle(), point)) {
-      if (props.selected()) {
+    if (!pepp::core::contains(props->gridRectangle(), point)) {
+      if (props->selected()) {
         //  Item was previously selected, clear old outline
         //  Set through datamodel so that other controls see change
-        const auto index = _model->index(props.key().left(), props.key().top());
+        const auto index = _model->index(props->key().left(), props->key().top());
         _model->setData(index, false, DiagramProperty::Role::Selected);
 
         //  Update unselected rectangle
@@ -610,10 +625,11 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
     //  Save current item for other actions
     //  Set through view so that other controls see change
     //_currentItem = &props;
-    const auto index = _model->index(props.key().left(), props.key().top());
+    const auto index = _model->index(props->key().left(), props->key().top());
     _model->setData(index, true, DiagramProperty::Role::Selected);
 
-    setCurrentItem(&props);
+    DiagramProperties *diagram = static_cast<DiagramProperties *>(props.get());
+    setCurrentItem(diagram);
     //  Update current rectangle
     // update();
 

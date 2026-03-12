@@ -13,9 +13,28 @@ using PeppRect = pepp::core::Rectangle<i16>;
 using PeppSize = pepp::core::Size<i16>;
 using PeppPt = pepp::core::Point<i16>;
 
+struct BaseProperty {
+  u32 id = 0;
+
+  //  Gate properties
+  DiagramType::Type type = DiagramType::Invalid;
+  //  Diagram grid dimensions & placement
+  PeppRect key{};
+  //  Display dimensions & placement
+  PeppRect gridRect{};
+
+  bool isSelected = false;
+};
+
+struct LineProperty {
+  PeppPt input;
+  PeppPt output;
+  u8 inputDirection;
+  u8 outputDirection;
+};
+
 struct DiagramProperty {
 
-public:
   enum Role : u32 {
     Name = Qt::DisplayRole,
     Id = Qt::UserRole + 1,
@@ -47,23 +66,56 @@ public:
     return changed;
   }
 
-  u32 id = 0;
   u32 orientation = 0; // Pointing Left
 
   //  Gate properties
-  DiagramType::Type type = DiagramType::Invalid;
   u16 inputNo{2};
   u16 outputNo{1};
-
-  //  Line properties
-  u32 _start{0};
-  u32 _finish{0};
-
-  //  Diagram grid dimensions & placement
-  PeppRect key{};
 };
 
-class DiagramProperties : public QObject {
+class BaseProperties : public QObject {
+  Q_OBJECT
+public:
+  explicit BaseProperties(QObject *parent = nullptr);
+  virtual ~BaseProperties() {}
+
+  quint32 id() const { return _baseProperties.id; }; //  Unique object id
+  bool setId(const quint32 v);
+
+  DiagramType::Type type() const { return _baseProperties.type; }
+  bool setType(const DiagramType::Type v);
+
+  const PeppRect &key() const { return _baseProperties.key; }
+  bool setKey(const PeppRect &v);
+  const PeppRect &gridRectangle() const { return _baseProperties.gridRect; }
+  bool setGridRectangle(const PeppRect &v);
+
+  bool selected() const { return _baseProperties.isSelected; }
+  bool setSelected(const bool v);
+
+protected:
+  BaseProperty _baseProperties;
+};
+
+class LineProperties : public BaseProperties {
+  Q_OBJECT
+public:
+  explicit LineProperties(BaseProperties *parent = nullptr);
+
+  PeppPt inputPoint() const { return _properties.input; }
+  bool setInputPoint(const PeppPt pt);
+  PeppPt outputPoint() const { return _properties.output; }
+  bool setOutputPoint(const PeppPt pt);
+  u8 inputDirection() const { return _properties.inputDirection; }
+  bool setInputDirection(const u8 v);
+  u8 outputDirection() const { return _properties.outputDirection; }
+  bool setOutputDirection(const u8 v);
+
+private:
+  LineProperty _properties;
+};
+
+class DiagramProperties : public BaseProperties {
   Q_OBJECT
   QML_ELEMENT
 
@@ -76,20 +128,33 @@ class DiagramProperties : public QObject {
   Q_PROPERTY(quint16 orientation READ orientation WRITE setOrientation NOTIFY imageChanged)
 
 public:
-  explicit DiagramProperties(QObject *parent = nullptr);
+  explicit DiagramProperties(BaseProperties *parent = nullptr);
 
   QVariant get(int role) const;
   void set(int role, const QVariant &data);
 
   //  Data functions
-  quint32 id() const { return _properties->id; } //  Unique object id
-  DiagramType::Type type() const { return _properties->type; }
-  quint16 inputNo() const { return _properties->inputNo; }
-  quint16 outputNo() const { return _properties->outputNo; }
+  quint16 inputNo() const { return _properties.inputNo; }
+  quint16 outputNo() const { return _properties.outputNo; }
   void setId(const quint32 v);
   void setType(const DiagramType::Type v);
   void setInputNo(const quint16 v);
   void setOutputNo(const quint16 v);
+
+  PeppPt input() const;
+  PeppPt output() const;
+  LineProperties *outputPoint() const { return _output; }
+  void setOutputPoint(LineProperties *line) {
+    _output = line;
+    _output->setOutputDirection(_properties.orientation);
+    _output->setOutputPoint(output());
+  }
+  LineProperties *inputPoint() const { return _input; }
+  void setInputPoint(LineProperties *line) {
+    _input = line;
+    _input->setInputDirection(_properties.orientation);
+    _input->setInputPoint(input());
+  }
 
   // Display functions
   QString name() const { return _name; }
@@ -99,16 +164,16 @@ public:
   void setName(const QString v);
   void setImageSource(const QString v);
 
-  bool selected() const { return _isSelected; }
+  // bool selected() const { return _isSelected; }
   void setSelected(const bool v);
   void setImage(QPixmap *v);
 
-  int orientation() const { return _properties->orientation; }
+  int orientation() const { return _properties.orientation; }
   void setOrientation(const quint32 v);
 
-  const PeppRect &key() const { return _properties->key; }
+  // const PeppRect &key() const { return _properties->key; }
   void setKey(const PeppRect &v);
-  const PeppRect &gridRectangle() const { return _gridRect; }
+  // const PeppRect &gridRectangle() const { return _properties->gridRect; }
   void setGridRectangle(const PeppRect &v);
 
 signals:
@@ -121,7 +186,7 @@ signals:
   void dimensionsChanged();
 
 private:
-  QSharedPointer<DiagramProperty> _properties;
+  DiagramProperty _properties;
 
   //  Display properties properties
   QString _name;
@@ -130,9 +195,6 @@ private:
   //  Presentation variables that require Qt stay in this class
   QPixmap *_pixMap = nullptr;
 
-  //  Selection logic
-  bool _isSelected = false;
-
-  //  Display dimensions & placement
-  PeppRect _gridRect{};
+  LineProperties *_input = nullptr;
+  LineProperties *_output = nullptr;
 };
