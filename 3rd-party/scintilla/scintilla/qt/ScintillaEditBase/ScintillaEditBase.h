@@ -85,6 +85,7 @@ public:
   Q_INVOKABLE void scrollRow(int deltaLines);
   Q_INVOKABLE void scrollRowAbsolute(int firstVisible);
   Q_INVOKABLE void scrollColumn(int deltaColumns);
+  Q_INVOKABLE void scrollColumnAbsolute(int firstVisible);
   Q_INVOKABLE void enableUpdate(bool enable);
   Q_INVOKABLE void debug();
   Q_INVOKABLE virtual void cmdContextMenu(int menuID);
