@@ -406,11 +406,6 @@ void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
   line->setType(DiagramType::Line);
   from->setOutputPoint(line);
   to->setInputPoint(line);
-
-  //  Short term hack
-  // PeppRect lineRect{from->output(), to->input()};
-  // data->setGridRectangle(lineRect);
-  //  Add block data
 }
 
 void GraphicCanvas::setBoundingBox() {

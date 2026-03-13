@@ -179,6 +179,11 @@ void DiagramProperties::setOrientation(const quint32 v) {
   if (_properties.setOrientation(v)) {
     //  Clear cached image
     _pixMap = nullptr;
+
+    //  Rotation affects line placement
+    updateInputPt();
+    updateOutputPt();
+
     emit imageChanged();
   }
 }
@@ -191,6 +196,10 @@ void DiagramProperties::setKey(const PeppRect &v) {
 
 void DiagramProperties::setGridRectangle(const PeppRect &v) {
   if (BaseProperties::setGridRectangle(v)) {
+    //  Movement affects line placement
+    updateInputPt();
+    updateOutputPt();
+
     emit dimensionsChanged();
   }
 }

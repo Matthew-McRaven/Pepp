@@ -146,14 +146,26 @@ public:
   LineProperties *outputPoint() const { return _output; }
   void setOutputPoint(LineProperties *line) {
     _output = line;
-    _output->setOutputDirection(_properties.orientation);
-    _output->setOutputPoint(output());
+    updateOutputPt();
   }
   LineProperties *inputPoint() const { return _input; }
   void setInputPoint(LineProperties *line) {
     _input = line;
-    _input->setInputDirection(_properties.orientation);
-    _input->setInputPoint(input());
+    updateInputPt();
+  }
+
+  void updateInputPt() {
+    if (_input != nullptr) {
+      _input->setInputDirection(_properties.orientation);
+      _input->setInputPoint(input());
+    }
+  }
+
+  void updateOutputPt() {
+    if (_output != nullptr) {
+      _output->setOutputDirection(_properties.orientation);
+      _output->setOutputPoint(output());
+    }
   }
 
   // Display functions
