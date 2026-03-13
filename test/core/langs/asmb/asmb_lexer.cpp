@@ -15,30 +15,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "toolchain2/asmb/pep_lexer.hpp"
+#include "core/langs/asmb/asmb_lexer.hpp"
 #include <QtCore>
 #include <catch.hpp>
-#include "toolchain2/asmb/pep_tokens.hpp"
+#include "core/langs/asmb/asmb_tokens.hpp"
+#include "core/langs/riscv/riscv_lexer.hpp"
+#include "toolchain2/asmb/pep_lexer.hpp"
 
 using namespace Qt::StringLiterals;
 namespace {
 static auto idpool = []() { return std::make_shared<std::unordered_set<std::string>>(); };
 static auto data = [](QString str) { return pepp::tc::support::SeekableData{str.toStdString()}; };
 } // namespace
-auto check_next(pepp::tc::lex::PepLexer &l, int token_type) {
+auto check_next(pepp::tc::lex::AsmbLexer &l, int token_type) {
   auto next = l.next_token();
   REQUIRE(next);
   CHECK(next->type() == token_type);
   return next;
 }
-auto check_next_string(pepp::tc::lex::PepLexer &l, int token_type, QString expected) {
+auto check_next_string(pepp::tc::lex::AsmbLexer &l, int token_type, QString expected) {
   auto next = l.next_token();
   REQUIRE(next);
   CHECK(next->type() == token_type);
   CHECK(next->to_string() == expected.toStdString());
   return next;
 }
-auto check_next_int(pepp::tc::lex::PepLexer &l, int64_t val, pepp::tc::lex::Integer::Format fmt) {
+auto check_next_int(pepp::tc::lex::AsmbLexer &l, int64_t val, pepp::tc::lex::Integer::Format fmt) {
   auto next = l.next_token();
   REQUIRE(next);
   CHECK(next->type() == (int)pepp::tc::lex::CommonTokenType::Integer);
@@ -48,16 +50,16 @@ auto check_next_int(pepp::tc::lex::PepLexer &l, int64_t val, pepp::tc::lex::Inte
   CHECK(intval->format == fmt);
   return intval;
 }
-auto check_next_udec(pepp::tc::lex::PepLexer &l, uint64_t val) {
+auto check_next_udec(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
   return check_next_int(l, val, pepp::tc::lex::Integer::Format::UnsignedDec);
 }
-auto check_next_sdec(pepp::tc::lex::PepLexer &l, uint64_t val) {
+auto check_next_sdec(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
   return check_next_int(l, val, pepp::tc::lex::Integer::Format::SignedDec);
 }
-auto check_next_hex(pepp::tc::lex::PepLexer &l, uint64_t val) {
+auto check_next_hex(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
   return check_next_int(l, val, pepp::tc::lex::Integer::Format::Hex);
 }
-auto check_char_sequence(pepp::tc::lex::PepLexer &l, QString body) {
+auto check_char_sequence(pepp::tc::lex::AsmbLexer &l, QString body) {
   auto next = l.next_token();
   REQUIRE(next);
   CHECK(next->type() == (int)pepp::tc::lex::AsmTokenType::CharacterConstant);
@@ -66,7 +68,7 @@ auto check_char_sequence(pepp::tc::lex::PepLexer &l, QString body) {
   CHECK(charconst->value == body.toStdString());
   return charconst;
 }
-auto check_str_sequence(pepp::tc::lex::PepLexer &l, QString body) {
+auto check_str_sequence(pepp::tc::lex::AsmbLexer &l, QString body) {
   auto next = l.next_token();
   REQUIRE(next);
   CHECK(next->type() == (int)pepp::tc::lex::AsmTokenType::StringConstant);
@@ -76,18 +78,20 @@ auto check_str_sequence(pepp::tc::lex::PepLexer &l, QString body) {
   return strconst;
 }
 
-TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
-  using Lexer = pepp::tc::lex::PepLexer;
+TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*][tc2]") {
   using CTT = pepp::tc::lex::CommonTokenType;
   using ATT = pepp::tc::lex::AsmTokenType;
+  const auto p10 = pepp::tc::lex::PepLexer::options();
+  const auto rv = pepp::langs::RISCVLexer::options();
+  using Lexer = pepp::tc::lex::AsmbLexer;
   SECTION("Empty") {
-    auto l = Lexer(idpool(), data("   \n  "));
+    auto l = Lexer(idpool(), data("   \n  "), p10);
     check_next(l, (int)CTT::Empty);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
   SECTION("Comma") {
-    auto l = Lexer(idpool(), data("   ,\n,  "));
+    auto l = Lexer(idpool(), data("   ,\n,  "), p10);
     auto c = check_next(l, (int)CTT::Literal);
     CHECK(c->to_string() == ",");
     check_next(l, (int)CTT::Empty);
@@ -97,7 +101,14 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(!l.input_remains());
   }
   SECTION("Comment") {
-    auto l = Lexer(idpool(), data(" ;Comment here\n"));
+    // pep-style inline comments
+    auto l = Lexer(idpool(), data(" ;Comment here\n"), p10);
+    check_next_string(l, (int)CTT::InlineComment, "Comment here");
+    check_next(l, (int)CTT::Empty);
+    CHECK(!l.input_remains());
+
+    // RISCV-style inline comments
+    l = Lexer(idpool(), data(" #Comment here\n"), rv);
     check_next_string(l, (int)CTT::InlineComment, "Comment here");
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
@@ -115,9 +126,22 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(pool->contains("a"));
     CHECK(!pool->contains("A"));
   }
+  SECTION("Identifiers with dots") {
+    auto pool = idpool();
+    auto l = Lexer(pool, data("a b.C.d b.0 b.9 a_w.ord "), rv);
+    check_next_string(l, (int)CTT::Identifier, "a");
+    check_next_string(l, (int)CTT::Identifier, "b.C.d");
+    check_next_string(l, (int)CTT::Identifier, "b.0");
+    check_next_string(l, (int)CTT::Identifier, "b.9");
+    check_next_string(l, (int)CTT::Identifier, "a_w.ord");
+    check_next(l, (int)CTT::Empty);
+    CHECK(!l.input_remains());
+    CHECK(pool->contains("a"));
+    CHECK(!pool->contains("A"));
+  }
   SECTION("Symbols") {
     auto pool = idpool();
-    auto l = Lexer(pool, data("a: bCd: b0: b9: a_word:"));
+    auto l = Lexer(pool, data("a: bCd: b0: b9: a_word:"), p10);
     check_next_string(l, (int)CTT::SymbolDeclaration, "a");
     check_next_string(l, (int)CTT::SymbolDeclaration, "bCd");
     check_next_string(l, (int)CTT::SymbolDeclaration, "b0");
@@ -132,7 +156,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
   }
   SECTION("Macro invocations") {
     auto pool = idpool();
-    auto l = Lexer(pool, data("@a @bCd @b0 @b9 @a_word"));
+    auto l = Lexer(pool, data("@a @bCd @b0 @b9 @a_word"), p10);
     check_next_string(l, (int)ATT::MacroInvocation, "a");
     check_next_string(l, (int)ATT::MacroInvocation, "bCd");
     check_next_string(l, (int)ATT::MacroInvocation, "b0");
@@ -146,7 +170,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(!pool->contains("@b9"));
   }
   SECTION("Unsigned decimal") {
-    auto l = Lexer(idpool(), data("0 00 000 10 65537"));
+    auto l = Lexer(idpool(), data("0 00 000 10 65537"), p10);
     check_next_udec(l, 0);
     check_next_udec(l, 0);
     check_next_udec(l, 0);
@@ -156,7 +180,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(!l.input_remains());
   }
   SECTION("Positive decimal") {
-    auto l = Lexer(idpool(), data("+0 +00 +000 +10 +65537"));
+    auto l = Lexer(idpool(), data("+0 +00 +000 +10 +65537"), p10);
     check_next_udec(l, 0);
     check_next_udec(l, 0);
     check_next_udec(l, 0);
@@ -166,7 +190,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(!l.input_remains());
   }
   SECTION("Negative decimal") {
-    auto l = Lexer(idpool(), data("-0 -00 -000 -10 -65537"));
+    auto l = Lexer(idpool(), data("-0 -00 -000 -10 -65537"), p10);
     check_next_sdec(l, -0);
     check_next_sdec(l, -0);
     check_next_sdec(l, -0);
@@ -177,14 +201,14 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
   }
 
   SECTION("Sign needs digit") {
-    auto l = Lexer(idpool(), data("- "));
+    auto l = Lexer(idpool(), data("- "), p10);
     check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
 
   SECTION("Hexadecimal") {
-    auto l = Lexer(idpool(), data("0x0 0x00 0x000 0x10 0x10000"));
+    auto l = Lexer(idpool(), data("0x0 0x00 0x000 0x10 0x10000"), p10);
     check_next_hex(l, 0);
     check_next_hex(l, 0);
     check_next_hex(l, 0);
@@ -195,7 +219,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
   }
 
   SECTION("Hex needs digit") {
-    auto l = Lexer(idpool(), data("0x"));
+    auto l = Lexer(idpool(), data("0x"), p10);
     check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
@@ -203,7 +227,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
 
   SECTION("Dot") {
     auto pool = idpool();
-    auto l = Lexer(pool, data(".a .bCd .b0 .b9 .a_word "));
+    auto l = Lexer(pool, data(".a .bCd .b0 .b9 .a_word "), p10);
     check_next_string(l, (int)ATT::DotCommand, "a");
     check_next_string(l, (int)ATT::DotCommand, "bCd");
     check_next_string(l, (int)ATT::DotCommand, "b0");
@@ -216,19 +240,19 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
   }
 
   SECTION("Dot requires char") {
-    auto l = Lexer(idpool(), data("."));
+    auto l = Lexer(idpool(), data("."), p10);
     check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
 
-    l = Lexer(idpool(), data(".0"));
+    l = Lexer(idpool(), data(".0"), p10);
     check_next(l, (int)CTT::Invalid);
   }
 
   SECTION("Unescaped chars") {
     {
       auto pool = idpool();
-      auto l = Lexer(pool, data("'H'"));
+      auto l = Lexer(pool, data("'H'"), p10);
       check_char_sequence(l, "H");
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
@@ -237,12 +261,12 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     }
     {
       auto pool = idpool();
-      auto l = Lexer(pool, data("''"));
+      auto l = Lexer(pool, data("''"), p10);
       check_next(l, (int)CTT::Invalid);
     }
     {
       auto pool = idpool();
-      auto l = Lexer(pool, data("'\"'"));
+      auto l = Lexer(pool, data("'\"'"), p10);
       check_char_sequence(l, "\"");
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
@@ -251,7 +275,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     }
     {
       auto pool = idpool();
-      auto l = Lexer(pool, data("'aa'"));
+      auto l = Lexer(pool, data("'aa'"), p10);
       check_next(l, (int)CTT::Invalid);
     }
   }
@@ -259,7 +283,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     QStringList escapes = {"\\n", "\\r", "\\t", "\\b", "\\\\", "\\0", "\\x7f"};
     for (const auto &s : escapes) {
       auto pool = idpool();
-      auto l = Lexer(pool, data(QStringLiteral("'%1'").arg(s)));
+      auto l = Lexer(pool, data(QStringLiteral("'%1'").arg(s)), p10);
       check_char_sequence(l, s);
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
@@ -269,7 +293,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
   SECTION("Unescaped Strings") {
     {
       auto pool = idpool();
-      auto l = Lexer(pool, data("\"Hello World\""));
+      auto l = Lexer(pool, data("\"Hello World\""), p10);
       check_str_sequence(l, "Hello World");
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
@@ -278,7 +302,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     }
     {
       auto pool = idpool();
-      auto l = Lexer(pool, data("\"\\\"\""));
+      auto l = Lexer(pool, data("\"\\\"\""), p10);
       check_str_sequence(l, "\\\"");
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());
@@ -287,7 +311,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     }
     {
       auto pool = idpool();
-      auto l = Lexer(pool, data(".SECTION \".text\", \"rw\""));
+      auto l = Lexer(pool, data(".SECTION \".text\", \"rw\""), p10);
       check_next(l, (int)ATT::DotCommand);
       check_str_sequence(l, ".text");
       check_next(l, (int)CTT::Literal);
@@ -298,7 +322,7 @@ TEST_CASE("Pepp ASM lexer", "[scope:asm][kind:unit][arch:*][tc2]") {
     QStringList escapes = {"\\n", "\\r", "\\t", "\\b", "\\\\", "\\0", "\\x7f"};
     for (const auto &s : escapes) {
       auto pool = idpool();
-      auto l = Lexer(pool, data(QStringLiteral("\"hi%1\"").arg(s)));
+      auto l = Lexer(pool, data(QStringLiteral("\"hi%1\"").arg(s)), p10);
       check_str_sequence(l, "hi" + s);
       check_next(l, (int)CTT::Empty);
       CHECK(!l.input_remains());

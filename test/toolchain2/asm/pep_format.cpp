@@ -22,7 +22,7 @@
 #include "toolchain2/asmb/pep_format.hpp"
 #include "toolchain2/asmb/pep_lexer.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
-#include "toolchain2/asmb/pep_tokens.hpp"
+#include "core/langs/asmb/asmb_tokens.hpp"
 
 using namespace Qt::StringLiterals;
 namespace {
