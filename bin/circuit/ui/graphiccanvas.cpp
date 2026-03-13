@@ -128,8 +128,19 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   from->setSelected(false);
   getImage(*from);
 
+  //  MATTHEW STARTT TEST DATA
+
+  //  Working example
+  DiagramProperties *data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(2, 3, 4, 4));
+  Q_ASSERT(data != nullptr);
+
+  //  lookup fails because height and width are different
+  data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(2, 3, 1, 1));
+  Q_ASSERT(data == nullptr);
+  //  MATTHEW END TEST DATA
+
   //  data life time managed by model
-  DiagramProperties *to = addDiagram(4, 7);
+  /*DiagramProperties *to = addDiagram(4, 7);
   if (to == nullptr) return;
 
   //  Add block data
@@ -140,7 +151,7 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
 
   //  This is a line, but it's not connected
   //  For testing only
-  addLine(from, to);
+  addLine(from, to);*/
 
   /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
 
