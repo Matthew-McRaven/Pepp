@@ -371,11 +371,13 @@ void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
 void GraphicCanvas::paint_line(QPainter *painter, const LineProperties *props) {
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
-  auto screen_rect = grid_to_screen(props->gridRectangle());
+  // auto screen_rect = grid_to_screen(props->gridRectangle());
+  const auto screenTo = grid_to_screen(props->outputPoint());
+  const auto screenFrom = grid_to_screen(props->inputPoint());
 
   //  Check state, and set outline if selected
   painter->setPen(QPen(_line, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-  painter->drawLine(screen_rect.topLeft(), screen_rect.bottomRight());
+  painter->drawLine(screenTo, screenFrom);
 }
 
 DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
@@ -409,19 +411,16 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
 
 void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
   //  Calculate maximum line dimensions
-  const auto left = std::min(from->key().left(), to->key().left());
-  const auto top = std::min(from->key().top(), to->key().top());
-  const auto right = std::max(from->key().right(), to->key().right());
-  const auto bottom = std::max(from->key().bottom(), to->key().bottom());
+  const auto key = LineProperties::recalculateKey(from, to);
 
-  LineProperties *line = _model->dataModel().createLineProps(PeppRect::from_point_size(left, top, right, bottom));
+  LineProperties *line = _model->dataModel().createLineProps(key);
 
   if (line == nullptr) return;
 
   //  Set line type
   line->setType(DiagramType::Line);
-  from->setOutputPoint(line);
-  to->setInputPoint(line);
+  line->setOutputDiagram(from);
+  line->setInputDiagram(to);
 }
 
 void GraphicCanvas::setBoundingBox() {
@@ -474,6 +473,13 @@ QRectF GraphicCanvas::grid_to_screen(const PeppRect &rect) {
   const auto height = rect.height() * grid_to_px;
 
   return {x, y, width, height};
+}
+
+QPointF GraphicCanvas::grid_to_screen(const PeppPt &pt) const {
+  const auto x = (pt.x() - _top_left.x()) * grid_to_px;
+  const auto y = (pt.y() - _top_left.y()) * grid_to_px;
+
+  return {x, y};
 }
 
 PeppRect GraphicCanvas::screen_to_grid(QRectF rect) {

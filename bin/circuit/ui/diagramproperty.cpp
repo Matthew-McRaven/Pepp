@@ -49,7 +49,8 @@ LineProperties::LineProperties(BaseProperties *parent) : BaseProperties(parent) 
 bool LineProperties::setInputPoint(const PeppPt pt) {
   if (_properties.input != pt) {
     _properties.input = pt;
-    _baseProperties.gridRect = PeppRect(_properties.output, _properties.input);
+    _baseProperties.gridRect = // PeppRect(_properties.output, _properties.input);
+        LineProperties::recalculateGridRect(_properties.inputDiagram, _properties.outputDiagram);
     return true;
   }
   return false;
@@ -58,7 +59,8 @@ bool LineProperties::setInputPoint(const PeppPt pt) {
 bool LineProperties::setOutputPoint(const PeppPt pt) {
   if (_properties.output != pt) {
     _properties.output = pt;
-    _baseProperties.gridRect = PeppRect(_properties.output, _properties.input);
+    _baseProperties.gridRect = // PeppRect(_properties.output, _properties.input);
+        LineProperties::recalculateGridRect(_properties.inputDiagram, _properties.outputDiagram);
     return true;
   }
   return false;
@@ -78,6 +80,55 @@ bool LineProperties::setOutputDirection(const u16 v) {
     return true;
   }
   return false;
+}
+
+bool LineProperties::setInputDiagram(DiagramProperties *diagram) {
+  if (_properties.inputDiagram != diagram) {
+    _properties.inputDiagram = diagram;
+
+    //  Diagram is linked line so that line can be
+    //  informed of changes in diagram.
+    diagram->setInputPoint(this);
+    setKey(LineProperties::recalculateKey(_properties.inputDiagram, _properties.outputDiagram));
+    return true;
+  }
+  return false;
+}
+
+bool LineProperties::setOutputDiagram(DiagramProperties *diagram) {
+  if (_properties.outputDiagram != diagram) {
+    _properties.outputDiagram = diagram;
+
+    //  Diagram is linked line so that line can be
+    //  informed of changes in diagram.
+    diagram->setOutputPoint(this);
+    setKey(LineProperties::recalculateKey(_properties.inputDiagram, _properties.outputDiagram));
+    return true;
+  }
+  return false;
+}
+
+PeppRect LineProperties::recalculateKey(const DiagramProperties *inputDiagram, const DiagramProperties *outputDiagram) {
+  //  This should theoretically never happen
+  if (inputDiagram == nullptr && outputDiagram == nullptr) return {PeppPt{0, 0}, PeppPt{0, 0}};
+
+  //  Address when both endpoints are present. Normal case
+  if (inputDiagram != nullptr && outputDiagram != nullptr)
+    return pepp::core::hull(inputDiagram->key(), outputDiagram->key());
+  else if (inputDiagram != nullptr) return inputDiagram->key();
+  else return outputDiagram->key();
+}
+
+PeppRect LineProperties::recalculateGridRect(const DiagramProperties *inputDiagram,
+                                             const DiagramProperties *outputDiagram) {
+  //  This should theoretically never happen
+  if (inputDiagram == nullptr && outputDiagram == nullptr) return {PeppPt{0, 0}, PeppPt{0, 0}};
+
+  //  Address when both endpoints are present. Normal case
+  if (inputDiagram != nullptr && outputDiagram != nullptr)
+    return pepp::core::hull(inputDiagram->gridRectangle(), outputDiagram->gridRectangle());
+  else if (inputDiagram != nullptr) return inputDiagram->gridRectangle();
+  else return outputDiagram->gridRectangle();
 }
 
 DiagramProperties::DiagramProperties(BaseProperties *parent) : BaseProperties(parent) {}
@@ -190,6 +241,11 @@ void DiagramProperties::setOrientation(const quint32 v) {
 
 void DiagramProperties::setKey(const PeppRect &v) {
   if (BaseProperties::setKey(v)) {
+    //  Line key is based on diagram key
+    //  Diagram key only changes when moving
+    //  Allow lines to recalculate when diagram changes
+    updateInputKey();
+    updateOutputKey();
     emit dimensionsChanged();
   }
 }

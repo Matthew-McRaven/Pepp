@@ -132,6 +132,7 @@ private:
   PeppRect screen_to_grid(QRectF rect);
   PeppPt screen_to_grid(QPointF point);
   const PeppPt grid_to_index(const PeppPt &point) const;
+  QPointF grid_to_screen(const PeppPt &pt) const;
 
   //  Functions for key and mouse events
   void setZoom(qint8 change);

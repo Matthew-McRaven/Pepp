@@ -13,6 +13,9 @@ using PeppRect = pepp::core::Rectangle<i16>;
 using PeppSize = pepp::core::Size<i16>;
 using PeppPt = pepp::core::Point<i16>;
 
+//  Forward declarations
+class DiagramProperties;
+
 struct BaseProperty {
   u32 id = 0;
 
@@ -31,6 +34,8 @@ struct LineProperty {
   PeppPt output;
   u16 inputDirection;
   u16 outputDirection;
+  DiagramProperties *inputDiagram = nullptr;
+  DiagramProperties *outputDiagram = nullptr;
 };
 
 struct DiagramProperty {
@@ -110,6 +115,19 @@ public:
   bool setInputDirection(const u16 v);
   u8 outputDirection() const { return _properties.outputDirection; }
   bool setOutputDirection(const u16 v);
+  DiagramProperties *inputDiagram() const { return _properties.inputDiagram; }
+  bool setInputDiagram(DiagramProperties *diagram);
+  DiagramProperties *outputDiagram() const { return _properties.outputDiagram; }
+  bool setOutputDiagram(DiagramProperties *diagram);
+
+  //  When attached diagrams move, undate line hit key
+  static PeppRect recalculateKey(const DiagramProperties *inputDiagram, const DiagramProperties *outputDiagram);
+  static PeppRect recalculateGridRect(const DiagramProperties *inputDiagram, const DiagramProperties *outputDiagram);
+
+  //  Called when diagrams move
+  void diagramKeyChanged() {
+    setKey(LineProperties::recalculateKey(_properties.inputDiagram, _properties.outputDiagram));
+  }
 
 private:
   LineProperty _properties;
@@ -152,6 +170,19 @@ public:
   void setInputPoint(LineProperties *line) {
     _input = line;
     updateInputPt();
+  }
+
+  void updateInputKey() {
+    if (_input != nullptr) {
+      //  Input is 180 degrees from output
+      _input->diagramKeyChanged();
+    }
+  }
+
+  void updateOutputKey() {
+    if (_output != nullptr) {
+      _output->diagramKeyChanged();
+    }
   }
 
   void updateInputPt() {
