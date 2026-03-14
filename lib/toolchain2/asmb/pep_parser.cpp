@@ -1,7 +1,7 @@
 #include "./pep_parser.hpp"
 #include "./pep_attributes.hpp"
-#include "./pep_tokens.hpp"
 #include "common_diag.hpp"
+#include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "toolchain/pas/ast/value/character.hpp"
 #include "toolchain/pas/ast/value/decimal.hpp"
