@@ -64,7 +64,7 @@ bool LineProperties::setOutputPoint(const PeppPt pt) {
   return false;
 }
 
-bool LineProperties::setInputDirection(const u8 v) {
+bool LineProperties::setInputDirection(const u16 v) {
   if (_properties.inputDirection != v) {
     _properties.inputDirection = v;
     return true;
@@ -72,7 +72,7 @@ bool LineProperties::setInputDirection(const u8 v) {
   return false;
 }
 
-bool LineProperties::setOutputDirection(const u8 v) {
+bool LineProperties::setOutputDirection(const u16 v) {
   if (_properties.outputDirection != v) {
     _properties.outputDirection = v;
     return true;

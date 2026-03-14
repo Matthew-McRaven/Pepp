@@ -128,7 +128,7 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   from->setSelected(false);
   getImage(*from);
 
-  //  MATTHEW STARTT TEST DATA
+  /*MATTHEW START TEST DATA
 
   //  Working example
   DiagramProperties *data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(2, 3, 4, 4));
@@ -137,21 +137,21 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   //  lookup fails because height and width are different
   data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(2, 3, 1, 1));
   Q_ASSERT(data == nullptr);
-  //  MATTHEW END TEST DATA
+  //MATTHEW END TEST DATA*/
 
   //  data life time managed by model
-  /*DiagramProperties *to = addDiagram(4, 7);
+  DiagramProperties *to = addDiagram(4, 7);
   if (to == nullptr) return;
 
   //  Add block data
-  to->setName(lookup[3]);
+  to->setName(lookup[2]);
   to->setType(DiagramType::Inverter);
   to->setOrientation(90);
   getImage(*to);
 
   //  This is a line, but it's not connected
   //  For testing only
-  addLine(from, to);*/
+  addLine(from, to);
 
   /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
 
@@ -408,8 +408,13 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
 }
 
 void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
-  LineProperties *line =
-      _model->dataModel().createLineProps(PeppRect::from_point_size(10, 10, minor_per_major, minor_per_major));
+  //  Calculate maximum line dimensions
+  const auto left = std::min(from->key().left(), to->key().left());
+  const auto top = std::min(from->key().top(), to->key().top());
+  const auto right = std::max(from->key().right(), to->key().right());
+  const auto bottom = std::max(from->key().bottom(), to->key().bottom());
+
+  LineProperties *line = _model->dataModel().createLineProps(PeppRect::from_point_size(left, top, right, bottom));
 
   if (line == nullptr) return;
 
@@ -613,6 +618,8 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
 
   //  See if existing item was clicked and clear selection
   for (auto &props : _model->dataModel().cells()) {
+    // Skip lines (for now)
+    if (!DiagramType::isDiagram(props->type())) continue;
     // Skip painting rectangles that are outside the viewport.
     if (!pepp::core::contains(props->gridRectangle(), point)) {
       if (props->selected()) {
@@ -630,7 +637,6 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
     //  Item exists and is selected, update view
     //  Save current item for other actions
     //  Set through view so that other controls see change
-    //_currentItem = &props;
     const auto index = _model->index(props->key().left(), props->key().top());
     _model->setData(index, true, DiagramProperty::Role::Selected);
 

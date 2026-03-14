@@ -29,8 +29,8 @@ struct BaseProperty {
 struct LineProperty {
   PeppPt input;
   PeppPt output;
-  u8 inputDirection;
-  u8 outputDirection;
+  u16 inputDirection;
+  u16 outputDirection;
 };
 
 struct DiagramProperty {
@@ -107,9 +107,9 @@ public:
   PeppPt outputPoint() const { return _properties.output; }
   bool setOutputPoint(const PeppPt pt);
   u8 inputDirection() const { return _properties.inputDirection; }
-  bool setInputDirection(const u8 v);
+  bool setInputDirection(const u16 v);
   u8 outputDirection() const { return _properties.outputDirection; }
-  bool setOutputDirection(const u8 v);
+  bool setOutputDirection(const u16 v);
 
 private:
   LineProperty _properties;
@@ -156,7 +156,8 @@ public:
 
   void updateInputPt() {
     if (_input != nullptr) {
-      _input->setInputDirection(_properties.orientation);
+      //  Input is 180 degrees from output
+      _input->setInputDirection((_properties.orientation + 180) % 360);
       _input->setInputPoint(input());
     }
   }
@@ -183,9 +184,7 @@ public:
   int orientation() const { return _properties.orientation; }
   void setOrientation(const quint32 v);
 
-  // const PeppRect &key() const { return _properties->key; }
   void setKey(const PeppRect &v);
-  // const PeppRect &gridRectangle() const { return _properties->gridRect; }
   void setGridRectangle(const PeppRect &v);
 
 signals:
