@@ -7,19 +7,19 @@ DiagramData::DiagramData() {}
 
 bool DiagramData::empty() const { return _data.empty(); }
 
-const BaseProperties *DiagramData::getProps(const PeppKey &key) const {
-  auto id = _spatial_map.at(key);
+const DiagramProperties *DiagramData::getDiagramProps(const PeppKey &key) const {
+  auto id = _diagram_map.at(key);
 
   if (!id.has_value()) return nullptr;
 
   auto data = _cells.find(id.value());
   if (data == _cells.end()) return nullptr;
 
-  return data->second;
+  return static_cast<const DiagramProperties *>(data->second);
 }
 
-BaseProperties *DiagramData::getProps(const PeppKey &key) {
-  auto id = _spatial_map.at(key);
+DiagramProperties *DiagramData::getDiagramProps(const PeppKey &key) {
+  auto id = _diagram_map.at(key);
 
   if (!id.has_value()) return nullptr;
 
@@ -27,12 +27,12 @@ BaseProperties *DiagramData::getProps(const PeppKey &key) {
   if (data == _cells.end()) return nullptr;
 
   // return data->second;
-  return data->second;
+  return static_cast<DiagramProperties *>(data->second);
 }
 
 DiagramProperties *DiagramData::createDiagramProps(const PeppKey &key) {
   //  See if something already exists at this location
-  DiagramProperties *cell = static_cast<DiagramProperties *>(getProps(key));
+  DiagramProperties *cell = getDiagramProps(key);
   if (cell != nullptr) return cell;
 
   //  Doesn't exist, create now
@@ -42,7 +42,7 @@ DiagramProperties *DiagramData::createDiagramProps(const PeppKey &key) {
   cell->setKey(key);
 
   //  point and size to rectangle
-  auto id = _spatial_map.try_add(key);
+  auto id = _diagram_map.try_add(key);
   if (!id.has_value()) return nullptr;
 
   //  Save ID to diagram
@@ -54,9 +54,32 @@ DiagramProperties *DiagramData::createDiagramProps(const PeppKey &key) {
   return cell;
 }
 
+const LineProperties *DiagramData::getLineProps(const PeppKey &key) const {
+  auto id = _line_map.at(key);
+
+  if (!id.has_value()) return nullptr;
+
+  auto data = _cells.find(id.value());
+  if (data == _cells.end()) return nullptr;
+
+  return static_cast<const LineProperties *>(data->second);
+}
+
+LineProperties *DiagramData::getLineProps(const PeppKey &key) {
+  auto id = _line_map.at(key);
+
+  if (!id.has_value()) return nullptr;
+
+  auto data = _cells.find(id.value());
+  if (data == _cells.end()) return nullptr;
+
+  // return data->second;
+  return static_cast<LineProperties *>(data->second);
+}
+
 LineProperties *DiagramData::createLineProps(const PeppKey &key) {
   //  See if something already exists at this location
-  LineProperties *line = static_cast<LineProperties *>(getProps(key));
+  LineProperties *line = getLineProps(key);
   if (line != nullptr) return line;
 
   //  Doesn't exist, create now
@@ -66,7 +89,7 @@ LineProperties *DiagramData::createLineProps(const PeppKey &key) {
   line->setKey(key);
 
   //  point and size to rectangle
-  auto id = _spatial_map.try_add(key);
+  auto id = _line_map.try_add(key);
   if (!id.has_value()) return nullptr;
 
   //  Save ID to diagram
@@ -79,7 +102,7 @@ LineProperties *DiagramData::createLineProps(const PeppKey &key) {
 }
 
 bool DiagramData::clearData(const PeppKey &key) {
-  auto id = _spatial_map.remove(key);
+  auto id = _diagram_map.remove(key);
   if (!id.has_value()) return false;
 
   _cells.erase(id.value());
@@ -101,11 +124,12 @@ void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
   Q_ASSERT(newKey.left() > 1);
   Q_ASSERT(newKey.top() > 1);
 
-  auto id = _spatial_map.at(oldKey);
+  auto id = _diagram_map.at(oldKey);
   //  Nothing located at old location, just return
   if (!id.has_value()) return;
 
-  auto *data = getProps(oldKey);
+  //  Only diagrams can be moved
+  auto *data = getDiagramProps(oldKey);
   if (data == nullptr) return;
 
   //  Save key in cell for later lookups
@@ -115,10 +139,10 @@ void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
   _cells.erase(id.value());
 
   //  Erase old spacial data
-  _spatial_map.remove(id.value());
+  _diagram_map.remove(id.value());
 
   //  Move cell into new location
-  id = _spatial_map.try_add(newKey);
+  id = _diagram_map.try_add(newKey);
   Q_ASSERT(id.has_value());
 
   //  Save ID to diagram

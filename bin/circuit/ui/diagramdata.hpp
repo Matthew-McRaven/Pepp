@@ -20,7 +20,11 @@ class DiagramData {
   std::map<PeppId, BaseProperties *> _cells;
 
   //  Map unique diagram id to table key (location)
-  pepp::core::SpatialMap _spatial_map;
+  pepp::core::SpatialMap _diagram_map;
+
+  //  Map lines separately. Lines can be on edges of same cell as diagram
+  //  Since there can be overlap, false hits are returned.
+  pepp::core::SpatialMap _line_map;
 
 public:
   DiagramData();
@@ -29,13 +33,16 @@ public:
   const auto &cells() const { return _data; }
 
   //  Get access to specific property
-  BaseProperties *getProps(const PeppKey &key);
-  const BaseProperties *getProps(const PeppKey &key) const;
+  DiagramProperties *getDiagramProps(const PeppKey &key);
+  const DiagramProperties *getDiagramProps(const PeppKey &key) const;
   DiagramProperties *createDiagramProps(const PeppKey &key);
+
+  LineProperties *getLineProps(const PeppKey &key);
+  const LineProperties *getLineProps(const PeppKey &key) const;
   LineProperties *createLineProps(const PeppKey &key);
 
   //  Size of canvas in logic units
-  auto boundingRect() const { return _spatial_map.bounding_box(); }
+  auto boundingRect() const { return pepp::core::hull(_line_map.bounding_box(), _diagram_map.bounding_box()); }
 
   bool empty() const;
   bool clearData(const PeppKey &key);
