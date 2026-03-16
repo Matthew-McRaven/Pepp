@@ -240,5 +240,5 @@ private:
   LineProperties *_input = nullptr;
   LineProperties *_output = nullptr;
 
-  i16 _margin = 3;
+  i16 _margin = 4;
 };

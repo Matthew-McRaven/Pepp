@@ -351,8 +351,7 @@ void GraphicCanvas::paint(QPainter *painter) {
 void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
-  auto screen_rect = grid_to_screen(props->gridRectangle()).adjusted(3, 3, -2, -2);
-
+  auto screen_rect = grid_to_screen(props->gridRectangle()).adjusted(2, 2, -2, -2);
   //  Check state, and set outline if selected
   if (props->selected()) {
     painter->setPen(QPen(_highlight, 2, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
@@ -364,6 +363,10 @@ void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
 
     //  If image is null, then it's properties were reset, update image
     getImage(*props);
+
+  //  Print grid is slightly out of alignment with background.
+  //  This is a shim to match diagram placement with background.
+  screen_rect.adjust(-3, 1, -3, 1); // 0,2,0,0
 
   painter->drawPixmap(screen_rect.toRect(), *props->image());
 }
