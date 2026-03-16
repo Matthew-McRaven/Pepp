@@ -5,7 +5,7 @@
 
 DiagramData::DiagramData() {}
 
-bool DiagramData::empty() const { return _data.empty(); }
+bool DiagramData::empty() const { return _cellData.empty(); }
 
 const DiagramProperties *DiagramData::getDiagramProps(const PeppKey &key) const {
   auto id = _diagram_map.at(key);
@@ -36,8 +36,8 @@ DiagramProperties *DiagramData::createDiagramProps(const PeppKey &key) {
   if (cell != nullptr) return cell;
 
   //  Doesn't exist, create now
-  _data.push_back(std::make_unique<DiagramProperties>());
-  auto &data = _data.back();
+  _cellData.push_back(std::make_unique<DiagramProperties>());
+  auto &data = _cellData.back();
   cell = static_cast<DiagramProperties *>(data.get());
   cell->setKey(key);
 
@@ -59,10 +59,10 @@ const LineProperties *DiagramData::getLineProps(const PeppKey &key) const {
 
   if (!id.has_value()) return nullptr;
 
-  auto data = _cells.find(id.value());
-  if (data == _cells.end()) return nullptr;
+  auto data = _lines.find(id.value());
+  if (data == _lines.end()) return nullptr;
 
-  return static_cast<const LineProperties *>(data->second);
+  return data->second;
 }
 
 LineProperties *DiagramData::getLineProps(const PeppKey &key) {
@@ -70,11 +70,11 @@ LineProperties *DiagramData::getLineProps(const PeppKey &key) {
 
   if (!id.has_value()) return nullptr;
 
-  auto data = _cells.find(id.value());
-  if (data == _cells.end()) return nullptr;
+  auto data = _lines.find(id.value());
+  if (data == _lines.end()) return nullptr;
 
   // return data->second;
-  return static_cast<LineProperties *>(data->second);
+  return data->second;
 }
 
 LineProperties *DiagramData::createLineProps(const PeppKey &key) {
@@ -83,8 +83,9 @@ LineProperties *DiagramData::createLineProps(const PeppKey &key) {
   if (line != nullptr) return line;
 
   //  Doesn't exist, create now
-  _data.push_back(std::make_unique<LineProperties>());
-  auto &data = _data.back();
+  //  Doesn't exist, create now
+  _lineData.push_back(std::make_unique<LineProperties>());
+  auto &data = _lineData.back();
   line = static_cast<LineProperties *>(data.get());
   line->setKey(key);
 
@@ -96,26 +97,20 @@ LineProperties *DiagramData::createLineProps(const PeppKey &key) {
   line->setId(id.value());
 
   //  Insert into lookup table using id
-  _cells.insert({id.value(), line});
+  _lines.insert({id.value(), line});
 
   return line;
 }
 
-bool DiagramData::clearData(const PeppKey &key) {
+bool DiagramData::clearDiagramData(const PeppKey &key) {
   auto id = _diagram_map.remove(key);
   if (!id.has_value()) return false;
 
   _cells.erase(id.value());
 
-  for (const auto &it : _data) {
-    if (it->id() == id.value()) _data.remove(it);
+  for (auto &it : _cellData) {
+    if (it->id() == id.value()) _cellData.remove(it);
   }
-  //  TODO: Need to remove from _data.
-  // auto it =
-  //    std::find_if(_data.cbegin(), _data.cend(), [id](const BaseProperties &data) { return data.id() == id.value();
-  //    });
-
-  // if (it != _data.cend()) _data.erase(it);
 
   return true;
 }

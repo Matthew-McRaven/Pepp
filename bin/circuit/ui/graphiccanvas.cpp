@@ -332,18 +332,18 @@ void GraphicCanvas::paint(QPainter *painter) {
     currentBlock.translate(screen_block, -screen_block * row);
   }
 
-  //  Diagrams are painted on minor grid axis
-  for (auto &props : _model->dataModel().cells()) {
-    // for (const auto &[rect, props] : _rects) {
+  //  Draw lines first. Diagrams will clip lines
+  for (auto &prop : _model->dataModel().lines()) {
+    auto *line = prop.get();
     //  Skip painting rectangles that are outside the viewport.
-    if (pepp::core::intersects(grid_viewport, props->gridRectangle()))
-      if (DiagramType::isDiagram(props->type())) {
-        DiagramProperties *diagram = static_cast<DiagramProperties *>(props.get());
-        paint_one(painter, diagram);
-      } else {
-        LineProperties *line = static_cast<LineProperties *>(props.get());
-        paint_line(painter, line);
-      }
+    if (pepp::core::intersects(grid_viewport, line->gridRectangle())) paint_line(painter, line);
+  }
+
+  //  Diagrams are painted on minor grid axis. Overwrite lines.
+  for (auto &prop : _model->dataModel().cells()) {
+    //  Skip painting rectangles that are outside the viewport.
+    auto *diagram = prop.get();
+    if (pepp::core::intersects(grid_viewport, diagram->gridRectangle())) paint_one(painter, diagram);
   }
   // qDebug() << "grid_viewport: " << grid_viewport;
 }
@@ -351,7 +351,7 @@ void GraphicCanvas::paint(QPainter *painter) {
 void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
-  auto screen_rect = grid_to_screen(props->gridRectangle()).adjusted(2, 2, -3, -3);
+  auto screen_rect = grid_to_screen(props->gridRectangle()).adjusted(3, 3, -2, -2);
 
   //  Check state, and set outline if selected
   if (props->selected()) {
@@ -624,8 +624,6 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
 
   //  See if existing item was clicked and clear selection
   for (auto &props : _model->dataModel().cells()) {
-    // Skip lines (for now)
-    if (!DiagramType::isDiagram(props->type())) continue;
     // Skip painting rectangles that are outside the viewport.
     if (!pepp::core::contains(props->gridRectangle(), point)) {
       if (props->selected()) {
@@ -646,8 +644,7 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
     const auto index = _model->index(props->key().left(), props->key().top());
     _model->setData(index, true, DiagramProperty::Role::Selected);
 
-    DiagramProperties *diagram = static_cast<DiagramProperties *>(props.get());
-    setCurrentItem(diagram);
+    setCurrentItem(props.get());
     //  Update current rectangle
     // update();
 
@@ -881,7 +878,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
   switch (key) {
   case Qt::Key_Delete:
     if (_currentItem != nullptr) {
-      _model->dataModel().clearData(_currentItem->key());
+      _model->dataModel().clearDiagramData(_currentItem->key());
 
       //  Clear current item, and notify QML
       setCurrentItem(nullptr);

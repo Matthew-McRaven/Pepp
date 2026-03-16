@@ -14,10 +14,12 @@ using PeppId = u32; //  Unique id used to lookup cell
 
 class DiagramData {
   //  Container for iteration
-  std::list<std::unique_ptr<BaseProperties>> _data;
+  std::list<std::unique_ptr<DiagramProperties>> _cellData;
+  std::list<std::unique_ptr<LineProperties>> _lineData;
 
-  //  Map to data based on table location (DiagramKey)
-  std::map<PeppId, BaseProperties *> _cells;
+  //  Map to data based on table location
+  std::map<PeppId, DiagramProperties *> _cells;
+  std::map<PeppId, LineProperties *> _lines;
 
   //  Map unique diagram id to table key (location)
   pepp::core::SpatialMap _diagram_map;
@@ -29,8 +31,10 @@ class DiagramData {
 public:
   DiagramData();
 
-  auto &cells() { return _data; }
-  const auto &cells() const { return _data; }
+  auto &cells() { return _cellData; }
+  const auto &cells() const { return _cellData; }
+  auto &lines() { return _lineData; }
+  const auto &lines() const { return _lineData; }
 
   //  Get access to specific property
   DiagramProperties *getDiagramProps(const PeppKey &key);
@@ -45,6 +49,6 @@ public:
   auto boundingRect() const { return pepp::core::hull(_line_map.bounding_box(), _diagram_map.bounding_box()); }
 
   bool empty() const;
-  bool clearData(const PeppKey &key);
+  bool clearDiagramData(const PeppKey &key);
   void moveData(const PeppKey &oldKey, const PeppKey &newKey);
 };
