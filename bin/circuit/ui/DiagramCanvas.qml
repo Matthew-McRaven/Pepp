@@ -40,20 +40,20 @@ Item {
             MenuItem {
                 text: "Rotate Left"
                 onTriggered: {
-                    var item = canvas.currentItem
+                    var item = canvas.currentItem;
 
                     //  Check to see if there is no current item
-                    if(item)
+                    if (item)
                         canvas.rotateClockwise();
                 }
             }
             MenuItem {
                 text: "Rotate right"
                 onTriggered: {
-                    var item = canvas.currentItem
+                    var item = canvas.currentItem;
 
                     //  Check to see if there is no current item
-                    if(item)
+                    if (item)
                         canvas.rotateCounterClockwise();
                 }
             }
@@ -65,8 +65,8 @@ Item {
 
         anchors.fill: parent
 
-        z:-1
-        clip:true
+        z: -1
+        clip: true
         boundsBehavior: Flickable.StopAtBounds
         // Ensure that have non-empty content, even if the canvas is currently empty.
         contentWidth: canvas.contentWidth
@@ -75,21 +75,21 @@ Item {
         ScrollBar.vertical: ScrollBar {
             id: vsb
             policy: ScrollBar.AsNeeded
-         }
-         ScrollBar.horizontal: ScrollBar {
+        }
+        ScrollBar.horizontal: ScrollBar {
             id: hsb
             policy: ScrollBar.AsNeeded
         }
-    }   //  TableView    
+    }   //  TableView
 
     Keys.onPressed: event => {
         //  Forward keypress events from QML to canvas
         //  Canvas will return true if keypress was handled
         event.accepted = canvas.keyPress(event.key, event.modifiers);
-        console.log( event.key, event.modifiers);
+    //console.log( event.key, event.modifiers);
     }
 
     //  This is a hack. I'm not able to disable Canvas from taking focus.
     //  This function keeps focus at item level.
-    onFocusChanged: focus = true;
+    onFocusChanged: focus = true
 }   //  Item
