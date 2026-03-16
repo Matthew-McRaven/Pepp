@@ -105,7 +105,7 @@ protected:
 class LineProperties : public BaseProperties {
   Q_OBJECT
 public:
-  explicit LineProperties(BaseProperties *parent = nullptr);
+  explicit LineProperties(QObject *parent = nullptr);
 
   PeppPt inputPoint() const { return _properties.input; }
   bool setInputPoint(const PeppPt pt);
@@ -146,7 +146,7 @@ class DiagramProperties : public BaseProperties {
   Q_PROPERTY(quint16 orientation READ orientation WRITE setOrientation NOTIFY imageChanged)
 
 public:
-  explicit DiagramProperties(BaseProperties *parent = nullptr);
+  explicit DiagramProperties(QObject *parent = nullptr);
 
   QVariant get(int role) const;
   void set(int role, const QVariant &data);
@@ -239,4 +239,6 @@ private:
 
   LineProperties *_input = nullptr;
   LineProperties *_output = nullptr;
+
+  i16 _margin = 3;
 };

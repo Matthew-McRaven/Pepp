@@ -44,7 +44,7 @@ bool BaseProperties::setSelected(const bool v) {
   return false;
 }
 
-LineProperties::LineProperties(BaseProperties *parent) : BaseProperties(parent) {}
+LineProperties::LineProperties(QObject *parent) : BaseProperties(parent) {}
 
 bool LineProperties::setInputPoint(const PeppPt pt) {
   if (_properties.input != pt) {
@@ -131,7 +131,7 @@ PeppRect LineProperties::recalculateGridRect(const DiagramProperties *inputDiagr
   else return outputDiagram->gridRectangle();
 }
 
-DiagramProperties::DiagramProperties(BaseProperties *parent) : BaseProperties(parent) {}
+DiagramProperties::DiagramProperties(QObject *parent) : BaseProperties(parent) {}
 
 QVariant DiagramProperties::get(int role) const {
   switch (role) {
@@ -275,19 +275,20 @@ PeppPt DiagramProperties::output() const {
   //  Pointing down
   case 90:
     x += _baseProperties.gridRect.width() / 2;
-    y += _baseProperties.gridRect.height();
+    y += (_baseProperties.gridRect.height() - _margin);
     break;
   // Pointing left
   case 180:
-    //  X = 0 already
-    y = _baseProperties.gridRect.height() / 2;
+    x += _margin;
+    y += _baseProperties.gridRect.height() / 2;
     break;
   //  Pointing up
   case 270:
-    x = _baseProperties.gridRect.width() / 2;
+    x += _baseProperties.gridRect.width() / 2;
+    y += _margin;
     break;
-    //  Pointing left
-  default: x += _baseProperties.gridRect.width(); y += _baseProperties.gridRect.height() / 2;
+    //  Pointing right
+  default: x += (_baseProperties.gridRect.width() - _margin); y += _baseProperties.gridRect.height() / 2;
   }
 
   return {x, y};
@@ -298,21 +299,24 @@ PeppPt DiagramProperties::input() const {
   auto y = _baseProperties.gridRect.top();
 
   switch (_properties.orientation) {
-  //  Pointing down
-  case 90: x += _baseProperties.gridRect.width() / 2; break;
+  //  Pointing up
+  case 90:
+    x += _baseProperties.gridRect.width() / 2;
+    y += _margin;
+    break;
   // Pointing right
   case 180:
-    x += _baseProperties.gridRect.width();
+    x += (_baseProperties.gridRect.width() - _margin);
     y += _baseProperties.gridRect.height() / 2;
     break;
-  //  Pointing up
+  //  Pointing down
   case 270:
     x += _baseProperties.gridRect.width() / 2;
-    y += _baseProperties.gridRect.height();
+    y += (_baseProperties.gridRect.height() - _margin);
     break;
   //  Pointing left
   default:
-    //  X = 0 already
+    x += _margin;
     y += _baseProperties.gridRect.height() / 2;
     break;
   }
