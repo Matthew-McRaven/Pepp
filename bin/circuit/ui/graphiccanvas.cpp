@@ -656,10 +656,10 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
   return found;
 }
 
-void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {
+/*void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {
   // qDebug() << "MouseRelease" << event;
   // setCursor(Qt::ArrowCursor);
-}
+}*/
 
 /*
 void GraphicCanvas::mouseUngrabEvent() {}

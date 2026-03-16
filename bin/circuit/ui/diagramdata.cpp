@@ -26,8 +26,7 @@ DiagramProperties *DiagramData::getDiagramProps(const PeppKey &key) {
   auto data = _cells.find(id.value());
   if (data == _cells.end()) return nullptr;
 
-  // return data->second;
-  return static_cast<DiagramProperties *>(data->second);
+  return data->second;
 }
 
 DiagramProperties *DiagramData::createDiagramProps(const PeppKey &key) {
@@ -73,7 +72,6 @@ LineProperties *DiagramData::getLineProps(const PeppKey &key) {
   auto data = _lines.find(id.value());
   if (data == _lines.end()) return nullptr;
 
-  // return data->second;
   return data->second;
 }
 
@@ -82,7 +80,6 @@ LineProperties *DiagramData::createLineProps(const PeppKey &key) {
   LineProperties *line = getLineProps(key);
   if (line != nullptr) return line;
 
-  //  Doesn't exist, create now
   //  Doesn't exist, create now
   _lineData.push_back(std::make_unique<LineProperties>());
   auto &data = _lineData.back();
@@ -108,16 +105,18 @@ bool DiagramData::clearDiagramData(const PeppKey &key) {
 
   _cells.erase(id.value());
 
-  for (auto &it : _cellData) {
-    if (it->id() == id.value()) _cellData.remove(it);
+  // Erase all even numbers
+  for (auto it = _cellData.begin(); it != _cellData.end();) {
+    if ((*it)->id() == id.value()) it = _cellData.erase(it);
+    else ++it;
   }
 
   return true;
 }
 
 void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
-  Q_ASSERT(newKey.left() > 1);
-  Q_ASSERT(newKey.top() > 1);
+  // Q_ASSERT(newKey.left() > 1);
+  // Q_ASSERT(newKey.top() > 1);
 
   auto id = _diagram_map.at(oldKey);
   //  Nothing located at old location, just return
