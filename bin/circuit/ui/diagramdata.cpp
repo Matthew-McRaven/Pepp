@@ -132,7 +132,7 @@ void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
   //  Remove pointer to old id
   _cells.erase(id.value());
 
-  //  Erase old spacial data
+  //  Erase old spatial data
   _diagram_map.remove(id.value());
 
   //  Move cell into new location
@@ -144,4 +144,60 @@ void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
 
   //  Insert data at new key
   _cells.insert({id.value(), data});
+}
+
+bool DiagramData::cacheData(const PeppId id) {
+  if (auto search = _cells.find(id); search != _cells.end()) _cachedDiagram = search->second;
+  else {
+    //  Error with lookup
+    _cachedDiagram = nullptr;
+    return false;
+  }
+
+  //  Remove pointer to old id
+  _cells.erase(id);
+
+  //  Erase old spatial data
+  _diagram_map.remove(id);
+
+  //  Object saved, but lookup information deleted (for now).
+  return true;
+}
+
+//  Save diagram with new address
+bool DiagramData::commit(const PeppPt &newLocation) {
+  if (_cachedDiagram == nullptr) return false;
+  //  Move cell into new location
+  auto id = _diagram_map.try_add(newLocation);
+  if (!id.has_value()) return false;
+
+  //  Save ID to diagram
+  _cachedDiagram->setId(id.value());
+  _cachedDiagram->setKey(PeppKey::from_point_size(newLocation.x(), newLocation.y(), 4, 4));
+
+  //  Insert data at new key
+  _cells.insert({id.value(), _cachedDiagram});
+
+  //  Clean up for next drag/drop operation
+  _cachedDiagram = nullptr;
+
+  return true;
+}
+
+//  Move failed, add back to model at original location
+bool DiagramData::rollback() {
+  //  Move cell into new location
+  auto id = _diagram_map.try_add(_cachedDiagram->key());
+  if (!id.has_value()) return false;
+
+  //  Save ID to diagram
+  _cachedDiagram->setId(id.value());
+
+  //  Insert data at new key
+  _cells.insert({id.value(), _cachedDiagram});
+
+  //  Clean up for next drag/drop operation
+  _cachedDiagram = nullptr;
+
+  return true;
 }

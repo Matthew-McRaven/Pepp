@@ -28,6 +28,8 @@ class DiagramData {
   //  Since there can be overlap, false hits are returned.
   pepp::core::SpatialMap _line_map;
 
+  DiagramProperties *_cachedDiagram = nullptr;
+
 public:
   DiagramData();
 
@@ -35,6 +37,10 @@ public:
   const auto &cells() const { return _cellData; }
   auto &lines() { return _lineData; }
   const auto &lines() const { return _lineData; }
+  auto &diagramMap() { return _diagram_map; }
+  const auto &diagramMap() const { return _diagram_map; }
+  auto &lineMap() { return _line_map; }
+  const auto &lineMap() const { return _line_map; }
 
   //  Get access to specific property
   DiagramProperties *getDiagramProps(const PeppKey &key);
@@ -47,6 +53,11 @@ public:
 
   //  Size of canvas in logic units
   auto boundingRect() const { return pepp::core::hull(_line_map.bounding_box(), _diagram_map.bounding_box()); }
+
+  //  Stash current item for drag and drop
+  bool cacheData(const PeppId id);
+  bool commit(const PeppPt &newLocation);
+  bool rollback();
 
   bool empty() const;
   bool clearDiagramData(const PeppKey &key);

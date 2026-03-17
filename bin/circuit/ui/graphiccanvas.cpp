@@ -151,7 +151,7 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
 
   //  This is a line, but it's not connected
   //  For testing only
-  addLine(from, to);
+  /*addLine(from, to);*/
 
   /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
 
@@ -561,8 +561,8 @@ void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void GraphicCanvas::contextMenuEvent(QMouseEvent *event) {
-  //  If no current item, just return. This is an error condition.
-  //    if (_currentItem == nullptr)
+  //  Context menu must be handled in QML since parent application is QML
+  //  based. Always return ignore so that parent QML can handle request.
   event->setAccepted(false);
 }
 
@@ -768,6 +768,9 @@ void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
   //  Update grid coordinates
   DiagramProperties *data = _model->item(oldIndex);
 
+  if (data == nullptr) {
+    return;
+  }
   //  Update model
   _model->move(oldIndex, newIndex);
 
@@ -799,7 +802,18 @@ void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event) {
 void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event) {
   // qDebug() << "dragMoveEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
-    if (event->source() == this) {
+    //  Mouse location in grid coordinates to
+    //  to determine rectangle hit.
+    const auto point = screen_to_grid(event->position());
+    const auto index = grid_to_index(point);
+    const bool found = _model->dataModel().diagramMap().overlap(index);
+
+    if (found) {
+      // event->ignore();
+      return;
+    }
+
+    if (found && event->source() == this) {
       event->setDropAction(Qt::MoveAction);
       // setCursor(Qt::OpenHandCursor);
       event->accept();
@@ -816,6 +830,18 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
     // setCursor(Qt::ArrowCursor);
 
+    //  Mouse location in grid coordinates to
+    //  to determine rectangle hit.
+    const auto point = screen_to_grid(event->position());
+    const auto newLocation = grid_to_index(point);
+    const bool found = _model->dataModel().diagramMap().overlap(newLocation);
+
+    if (found) {
+      //  There is a hit on an existing item, abort move
+      _model->dataModel().rollback();
+      return;
+    }
+
     QByteArray itemData = event->mimeData()->data("application/x-dnditemdata");
     QDataStream dataStream(&itemData, QIODevice::ReadOnly);
 
@@ -824,15 +850,18 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
 
     const PeppPt oldLocation(oldX, oldY);
 
-    //  Mouse location in grid coordinates to
-    //  to determine rectangle hit.
-    const auto point = screen_to_grid(event->position());
-
     //  Due to integer math, items closer to next row or column are still in same column/row.
     //  Calculate rounding difference
-    const auto newLocation = grid_to_index(point);
+    // const auto newLocation = grid_to_index(point);
 
-    moveDiagram(oldLocation, newLocation);
+    // moveDiagram(oldLocation, newLocation);
+
+    //  Remap paint grid after move
+    setGrid(_currentItem, newLocation.x(), newLocation.y());
+
+    update();
+
+    _model->dataModel().commit(newLocation);
 
     if (event->source() == this) {
       event->setDropAction(Qt::MoveAction);
@@ -851,6 +880,11 @@ void GraphicCanvas::startDrag(const QPoint point) {
 
   QByteArray itemData;
   QDataStream dataStream(&itemData, QIODevice::WriteOnly);
+
+  //  Temporarily remove item from lookup. During hit detection, item
+  //  will return true when pointing to self. Item is reset or saved
+  //  in drop event.
+  _model->dataModel().cacheData(_currentItem->id());
 
   dataStream << _currentItem->key().left() << _currentItem->key().top();
 
