@@ -1,5 +1,5 @@
 #pragma once
-#include <map>
+#include <flat/flat_set.hpp>
 #include <string>
 #include <variant>
 #include "core/arch/riscv/isa/rvi.hpp"
@@ -219,10 +219,20 @@ private:
 };
 
 struct Mnemonic {
+  std::string name;
   std::variant<std::monostate, MnemonicU, MnemonicJ, MnemonicB, MnemonicR, MnemonicS, MnemonicI> variant;
   bool operator==(const Mnemonic &other) const noexcept = default;
 };
 
-extern const std::map<std::string, Mnemonic> string_to_mnemonic;
+struct MnemonicNameCompare {
+  using is_transparent = void;
+
+  bool operator()(const Mnemonic &a, const Mnemonic &b) const { return a.name < b.name; }
+  bool operator()(const Mnemonic &a, std::string_view b) const { return a.name < b; }
+  bool operator()(std::string_view a, const Mnemonic &b) const { return a < b.name; }
+};
+
+using MnemonicSet = fc::vector_set<Mnemonic, MnemonicNameCompare>;
+extern const MnemonicSet string_to_mnemonic;
 // extern const std::map<Mnemonic, std::string> mnemonic_to_string;
 } // namespace riscv

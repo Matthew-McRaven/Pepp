@@ -369,7 +369,7 @@ void riscv::MnemonicS::set_immediate(uint16_t imm) {
 }
 
 std::optional<uint16_t> riscv::MnemonicS::get_immediate() const {
-  if (!_flags.imm) return std::nullopt;
+  return _flags.imm ? std::optional<uint16_t>(_imm12) : std::nullopt;
 }
 
 riscv::MnemonicS &&riscv::MnemonicS::with_immediate(uint16_t imm) && {
@@ -416,62 +416,56 @@ riscv::InstructionS riscv::MnemonicS::to_instruction() const noexcept {
       .opcode = _opcode7, .imm1 = imm4_0, .funct3 = _funct3, .rs1 = _rs15, .rs2 = _rs25, .imm2 = imm11_05};
 }
 
-static void add_rv32i_instructions(std::map<std::string, riscv::Mnemonic> &str_to_mnemonic) {
+static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {
   using namespace riscv;
-  auto add = [&](const std::string &str, riscv::Mnemonic mn) {
-    str_to_mnemonic[str] = mn;
-    // mnemonic_to_str[mn] = str;
-  };
-  add("lui", {LUI});
-  add("auipc", {AUIPC});
-  add("jal", {JAL});
-  add("jalr", {JALR});
-  add("beq", {BEQ});
-  add("bne", {BNE});
-  add("blt", {BLT});
-  add("bge", {BGE});
-  add("bltu", {BLTU});
-  add("bgeu", {BGEU});
-  add("lb", {LB});
-  add("lh", {LH});
-  add("lw", {LW});
-  add("lbu", {LBU});
-  add("lhu", {LHU});
-  add("sb", {SB});
-  add("sh", {SH});
-  add("sw", {SW});
-  add("addi", {ADDI});
-  add("slti", {SLTI});
-  add("sltiu", {SLTIU});
-  add("xori", {XORI});
-  add("ori", {ORI});
-  add("andi", {ANDI});
-  add("slli", {SLLI});
-  add("srli", {SRLI});
-  add("srai", {SRAI});
-  add("add", {ADD});
-  add("sub", {SUB});
-  add("sll", {SLL});
-  add("slt", {SLT});
-  add("sltu", {SLTU});
-  add("xor", {XOR});
-  add("srl", {SRL});
-  add("sra", {SRA});
-  add("or", {OR});
-  add("and", {AND});
-  add("fence", {FENCE});
-  add("fence.tso", {FENCE_TSO});
-  add("ecall", {ECALL});
-  add("ebreak", {EBREAK});
+  auto add = [&](riscv::Mnemonic mn) { mn_set.insert(mn); };
+  add({"lui", LUI});
+  add({"auipc", AUIPC});
+  add({"jal", JAL});
+  add({"jalr", JALR});
+  add({"beq", BEQ});
+  add({"bne", BNE});
+  add({"blt", BLT});
+  add({"bge", BGE});
+  add({"bltu", BLTU});
+  add({"bgeu", BGEU});
+  add({"lb", LB});
+  add({"lh", LH});
+  add({"lw", LW});
+  add({"lbu", LBU});
+  add({"lhu", LHU});
+  add({"sb", SB});
+  add({"sh", SH});
+  add({"sw", SW});
+  add({"addi", ADDI});
+  add({"slti", SLTI});
+  add({"sltiu", SLTIU});
+  add({"xori", XORI});
+  add({"ori", ORI});
+  add({"andi", ANDI});
+  add({"slli", SLLI});
+  add({"srli", SRLI});
+  add({"srai", SRAI});
+  add({"add", ADD});
+  add({"sub", SUB});
+  add({"sll", SLL});
+  add({"slt", SLT});
+  add({"sltu", SLTU});
+  add({"xor", XOR});
+  add({"srl", SRL});
+  add({"sra", SRA});
+  add({"or", OR});
+  add({"and", AND});
+  add({"fence", FENCE});
+  add({"fence.tso", FENCE_TSO});
+  add({"ecall", ECALL});
+  add({"ebreak", EBREAK});
 }
 
-static void add_rv32i_psueodo_instructions(std::map<std::string, riscv::Mnemonic> &str_to_mnemonic) {
+static void add_rv32i_psueodo_instructions(riscv::MnemonicSet &mn_set) {
   using namespace riscv;
-  auto add = [&](const std::string &str, riscv::Mnemonic mn) {
-    str_to_mnemonic[str] = mn;
-    // mnemonic_to_str[mn] = str;
-  };
-  add("nop", {NOP});
+  auto add = [&](riscv::Mnemonic mn) { mn_set.insert(mn); };
+  add({"nop", NOP});
   // with .option pic
   // load address: la rd, symbol -> auipc rd, symbol[31:12]; addi rd, rd, symbol[11:0]
   // else
@@ -499,22 +493,20 @@ static void add_rv32i_psueodo_instructions(std::map<std::string, riscv::Mnemonic
   // branch if <=: ble rs1, rs2, offset -> bge rs2, rs1, offset
   // branch if > unsigned: bgtu rs1, rs2, offset -> bltu rs2, rs1, offset
   // branch if <= unsigned: bleu rs1, rs2, offset -> bgeu rs2, rs1, offset
-  add("j", {J});
-  add("jr", {JR});
-  add("ret", {RET});
+  add({"j", J});
+  add({"jr", JR});
+  add({"ret", RET});
 }
 
-static void add_rv32i(std::map<std::string, riscv::Mnemonic> &str_to_mnemonic) {
-  add_rv32i_instructions(str_to_mnemonic);
-  add_rv32i_psueodo_instructions(str_to_mnemonic);
+static void add_rv32i(riscv::MnemonicSet &mn_set) {
+  add_rv32i_instructions(mn_set);
+  add_rv32i_psueodo_instructions(mn_set);
 }
 
-static auto mnemonic_maps() {
-  std::map<std::string, riscv::Mnemonic> str_to_mnemonic;
-  // std::map<riscv::Mnemonic, std::string> mnemonic_to_str;
-  add_rv32i(str_to_mnemonic);
-  return std::tie(str_to_mnemonic, std::nullopt);
+static auto mnemonics() {
+  riscv::MnemonicSet mn_set;
+  add_rv32i(mn_set);
+  return mn_set;
 }
 
-const std::map<std::string, riscv::Mnemonic> riscv::string_to_mnemonic = std::get<0>(mnemonic_maps());
-// const std::map<riscv::Mnemonic, std::string> riscv::mnemonic_to_string = std::get<1>(mnemonic_maps());
+const riscv::MnemonicSet riscv::string_to_mnemonic = mnemonics();
