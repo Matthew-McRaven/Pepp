@@ -37,227 +37,129 @@
 
 namespace riscv {
 // Register-register instructions
-struct R {
-  uint8_t opcode, funct7, funct3;
-  uint8_t rd, rs1, rs2;
-  struct bits {
-    bits(R);
-    uint32_t opcode : 7;
-    uint32_t rd : 5;
-    uint32_t funct3 : 3;
-    uint32_t rs1 : 5;
-    uint32_t rs2 : 5;
-    uint32_t funct7 : 7;
-    bool is_f7() const noexcept { return funct7 == 0b0100000; }
-    bool is_32M() const noexcept { return funct7 == 0b0000001; }
-    uint32_t jumptable_friendly_op() const noexcept {
-      // use bit 4 for RV32M extension
-      return funct3 | (funct7 << 4);
-    }
-  };
-  static_assert(sizeof(bits) == 4, "R-type instruction must be 32 bits");
-  struct pattern {
-    uint8_t opcode, funct7, funct3;
-  };
+struct InstructionR {
+  uint32_t opcode : 7;
+  uint32_t rd : 5;
+  uint32_t funct3 : 3;
+  uint32_t rs1 : 5;
+  uint32_t rs2 : 5;
+  uint32_t funct7 : 7;
+  bool is_f7() const noexcept { return funct7 == 0b0100000; }
+  bool is_32M() const noexcept { return funct7 == 0b0000001; }
+  uint32_t jumptable_friendly_op() const noexcept {
+    // use bit 4 for RV32M extension
+    return funct3 | (funct7 << 4);
+  }
 };
-
-// Shift-by-constant instructions (a specialization of I-type)
-struct ConstantShiftFormat {
-  uint8_t opcode, funct3;
-  uint8_t rd;
-  uint8_t shamt;
-  uint8_t shift_type;
-  struct pattern {
-    uint8_t opcode, funct3, shift_type;
-  };
-};
-// Encodes FENCE instructions. Requires rs1=rd=0, opcode=MISC-MEM, funct=FENCE
-struct FenceFormat {
-  uint8_t fm, pred, succ;
-  struct pattern {
-    uint8_t fm, pred, succ;
-  };
-};
-// Encodes ECALL and EBREAK instructions. Requires rs1=rd=0, opcode=SYSTEM, funct3=PRIV
-struct SystemFormat {
-  uint16_t funct12;
-  struct pattern {
-    uint8_t funct12;
-  };
-};
+static_assert(sizeof(InstructionR) == 4, "R-type instruction must be 32 bits");
 
 // Register-immediate instructions
-struct I {
-  uint8_t opcode, funct3;
-  uint8_t rd, rs1;
-  uint16_t imm;
+struct InstructionI {
+  uint32_t opcode : 7;
+  uint32_t rd : 5;
+  uint32_t funct3 : 3;
+  uint32_t rs1 : 5;
+  uint32_t imm : 12;
+  bool sign() const noexcept { return imm & 0x800; }
+  int32_t signed_imm() const noexcept {
+    // Arithmetic shift for sign-extension
+    return int32_t(imm << 20) >> 20;
+  }
+  uint32_t shift_imm() const noexcept { return imm & 0x1F; }
+  uint32_t shift64_imm() const noexcept { return imm & 0x3F; }
+  uint32_t shift128_imm() const noexcept { return imm & 0x7F; }
 
-  struct bits {
-    bits(I);
-    bits(ConstantShiftFormat);
-    bits(SystemFormat);
-    bits(FenceFormat);
-    uint32_t opcode : 7;
-    uint32_t rd : 5;
-    uint32_t funct3 : 3;
-    uint32_t rs1 : 5;
-    uint32_t imm : 12;
-    bool sign() const noexcept { return imm & 0x800; }
-    int32_t signed_imm() const noexcept {
-      // Arithmetic shift for sign-extension
-      return int32_t(imm << 20) >> 20;
-    }
-    uint32_t shift_imm() const noexcept { return imm & 0x1F; }
-    uint32_t shift64_imm() const noexcept { return imm & 0x3F; }
-    uint32_t shift128_imm() const noexcept { return imm & 0x7F; }
-
-    template <AddressType address_t> auto is_rev8() const noexcept {
-      if constexpr (sizeof(address_t) == 8) return imm == 0b011010111000;
-      else return imm == 0b011010011000;
-    }
-    auto high_bits() const noexcept { return imm & 0xFC0; }
-    bool is_srai() const noexcept { return (imm & 0xFC0) == 0x400; }
-    bool is_rori() const noexcept { return (imm & 0xFC0) == 0x600; }
-  };
-  static_assert(sizeof(bits) == 4, "I-type instruction must be 32 bits");
-  struct pattern {
-    uint8_t opcode, funct3;
-  };
+  template <AddressType address_t> auto is_rev8() const noexcept {
+    if constexpr (sizeof(address_t) == 8) return imm == 0b011010111000;
+    else return imm == 0b011010011000;
+  }
+  auto high_bits() const noexcept { return imm & 0xFC0; }
+  bool is_srai() const noexcept { return (imm & 0xFC0) == 0x400; }
+  bool is_rori() const noexcept { return (imm & 0xFC0) == 0x600; }
 };
+static_assert(sizeof(InstructionI) == 4, "I-type instruction must be 32 bits");
 
 // Store instructions
-struct S {
-  uint8_t opcode, funct3;
-  uint8_t rs1, rs2;
-  uint16_t imm;
-  struct bits {
-    bits() = delete;
-    bits(S);
-    uint32_t opcode : 7;
-    uint32_t imm1 : 5;
-    uint32_t funct3 : 3;
-    uint32_t rs1 : 5;
-    uint32_t rs2 : 5;
-    uint32_t imm2 : 7;
-    bool sign() const noexcept { return imm2 & 0x40; }
-    int32_t signed_imm() const noexcept {
-      const int32_t imm = imm1 | (imm2 << 5);
-      return (imm << 20) >> 20;
-    }
-  };
-  static_assert(sizeof(bits) == 4, "S-type instruction must be 32 bits");
-  struct pattern {
-    uint8_t opcode, funct3;
-  };
+struct InstructionS {
+  uint32_t opcode : 7;
+  uint32_t imm1 : 5;
+  uint32_t funct3 : 3;
+  uint32_t rs1 : 5;
+  uint32_t rs2 : 5;
+  uint32_t imm2 : 7;
+  bool sign() const noexcept { return imm2 & 0x40; }
+  int32_t signed_imm() const noexcept {
+    const int32_t imm = imm1 | (imm2 << 5);
+    return (imm << 20) >> 20;
+  }
 };
+static_assert(sizeof(InstructionS) == 4, "S-type instruction must be 32 bits");
 
 // Upper-immediate instructions
-struct U {
-  uint8_t opcode;
-  uint8_t rd;
-  uint32_t imm;
-  struct bits {
-    bits() = delete;
-    bits(U);
-    uint32_t opcode : 7;
-    uint32_t rd : 5;
-    uint32_t imm : 20;
+struct InstructionU {
+  uint32_t opcode : 7;
+  uint32_t rd : 5;
+  uint32_t imm : 20;
 
-    int32_t upper_imm() const noexcept { return imm << 12u; }
-  };
-  static_assert(sizeof(bits) == 4, "U-type instruction must be 32 bits");
-  struct pattern {
-    uint8_t opcode;
-  };
+  int32_t upper_imm() const noexcept { return imm << 12u; }
 };
+static_assert(sizeof(InstructionU) == 4, "U-type instruction must be 32 bits");
 
 // Branch instructions
-struct B {
-  uint8_t opcode, funct3;
-  uint8_t rs1, rs2;
-  uint16_t imm;
-  struct bits {
-    bits() = delete;
-    bits(B);
-    uint32_t opcode : 7;
-    uint32_t imm1 : 1;
-    uint32_t imm2 : 4;
-    uint32_t funct3 : 3;
-    uint32_t rs1 : 5;
-    uint32_t rs2 : 5;
-    uint32_t imm3 : 6;
-    uint32_t imm4 : 1;
-
-    bool sign() const noexcept { return imm4; }
-    int32_t signed_imm() const noexcept {
-      constexpr uint32_t ext = 0xFFFFF000;
-      return (imm2 << 1) | (imm3 << 5) | (imm1 << 11) | (sign() ? ext : 0);
-    }
-  };
-  static_assert(sizeof(bits) == 4, "B-type instruction must be 32 bits");
-  struct pattern {
-    uint8_t opcode, funct3;
-  };
+struct InstructionB {
+  uint32_t opcode : 7;
+  uint32_t imm1 : 1;
+  uint32_t imm2 : 4;
+  uint32_t funct3 : 3;
+  uint32_t rs1 : 5;
+  uint32_t rs2 : 5;
+  uint32_t imm3 : 6;
+  uint32_t imm4 : 1;
+  bool sign() const noexcept { return imm4; }
+  int32_t signed_imm() const noexcept {
+    constexpr uint32_t ext = 0xFFFFF000;
+    return (imm2 << 1) | (imm3 << 5) | (imm1 << 11) | (sign() ? ext : 0);
+  }
 };
+static_assert(sizeof(InstructionB) == 4, "B-type instruction must be 32 bits");
 
 // Jump instructions
-struct J {
-  uint8_t opcode;
-  uint8_t rd;
-  uint32_t imm;
-  struct bits {
-    bits() = delete;
-    bits(J);
-    uint32_t opcode : 7;
-    uint32_t rd : 5;
-    uint32_t imm1 : 8;
-    uint32_t imm2 : 1;
-    uint32_t imm3 : 10;
-    uint32_t imm4 : 1;
-    bool sign() const noexcept { return imm4; }
-    int32_t jump_offset() const noexcept {
-      constexpr uint32_t ext = 0xFFF00000;
-      const int32_t jo = (imm3 << 1) | (imm2 << 11) | (imm1 << 12);
-      return jo | (sign() ? ext : 0);
-    }
-  };
-  static_assert(sizeof(bits) == 4, "J-type instruction must be 32 bits");
-  struct pattern {
-    uint8_t opcode;
-  };
+struct InstructionJ {
+  uint32_t opcode : 7;
+  uint32_t rd : 5;
+  uint32_t imm1 : 8;
+  uint32_t imm2 : 1;
+  uint32_t imm3 : 10;
+  uint32_t imm4 : 1;
+  bool sign() const noexcept { return imm4; }
+  int32_t jump_offset() const noexcept {
+    constexpr uint32_t ext = 0xFFF00000;
+    const int32_t jo = (imm3 << 1) | (imm2 << 11) | (imm1 << 12);
+    return jo | (sign() ? ext : 0);
+  }
 };
+static_assert(sizeof(InstructionJ) == 4, "J-type instruction must be 32 bits");
 
-struct A {
-  uint8_t opcode, funct3;
-  uint8_t rd, rs1, rs2;
-  uint8_t aq, rl;
-  uint8_t funct5;
-  struct bits {
-    bits() = delete;
-    bits(A);
-    uint32_t opcode : 7;
-    uint32_t rd : 5;
-    uint32_t funct3 : 3;
-    uint32_t rs1 : 5;
-    uint32_t rs2 : 5;
-    uint32_t rl : 1;
-    uint32_t aq : 1;
-    uint32_t funct5 : 5;
-  };
-  static_assert(sizeof(bits) == 4, "A-type instruction must be 32 bits");
-  struct pattern {
-    uint8_t opcode, funct3, funct5;
-  };
+struct InstructionA {
+  uint32_t opcode : 7;
+  uint32_t rd : 5;
+  uint32_t funct3 : 3;
+  uint32_t rs1 : 5;
+  uint32_t rs2 : 5;
+  uint32_t rl : 1;
+  uint32_t aq : 1;
+  uint32_t funct5 : 5;
 };
+static_assert(sizeof(InstructionA) == 4, "A-type instruction must be 32 bits");
 
 union rv32i_instruction {
-  R::bits Rtype;
-  I::bits Itype;
-  S::bits Stype;
-  U::bits Utype;
-  B::bits Btype;
-  J::bits Jtype;
-  A::bits Atype;
+  InstructionR Rtype;
+  InstructionI Itype;
+  InstructionS Stype;
+  InstructionU Utype;
+  InstructionB Btype;
+  InstructionJ Jtype;
+  InstructionA Atype;
 
   uint8_t bytes[4];
   uint16_t half[2];
