@@ -1,4 +1,5 @@
 #include "core/math/geom/spatial_map.hpp"
+#include <array>
 
 pepp::core::SpatialMap::SpatialMap() {}
 
@@ -64,9 +65,8 @@ std::optional<pepp::core::SpatialMap::Identifier> pepp::core::SpatialMap::at(Rec
 }
 
 bool pepp::core::SpatialMap::can_move_relative(Identifier id, Point<i16> delta) const noexcept {
-  const auto rect_it = _index_to_rectangle.find(id);
-  if (rect_it == _index_to_rectangle.end()) return false;
-  return can_move_absolute(id, rect_it->second.top_left().translated(delta));
+  std::array<Identifier, 1> arr{id};
+  return can_move_relative(arr, delta);
 }
 
 bool pepp::core::SpatialMap::can_move_relative(std::span<Identifier> ids, Point<i16> delta) const noexcept {
@@ -88,24 +88,9 @@ bool pepp::core::SpatialMap::can_move_relative(std::span<Identifier> ids, Point<
   return true;
 }
 
-bool pepp::core::SpatialMap::can_move_absolute(Identifier id, Point<i16> new_pos) const noexcept {
-  auto rect_it = _index_to_rectangle.find(id);
-  if (rect_it == _index_to_rectangle.end()) return false;
-  const auto src = rect_it->second, dest = Rectangle<i16>{new_pos, src.size()};
-  auto overlaps = overlapping(dest);
-  auto it = overlaps.begin(), end = overlaps.end();
-  if (it == end) return true;
-  else {
-    const auto overlap_id = it->first;
-    it++;
-    return it == end && overlap_id == id;
-  }
-}
-
 bool pepp::core::SpatialMap::move_relative(Identifier id, Point<i16> delta) noexcept {
-  const auto rect_it = _index_to_rectangle.find(id);
-  if (rect_it == _index_to_rectangle.end()) return false;
-  return move_absolute(id, rect_it->second.top_left().translated(delta));
+  std::array<Identifier, 1> arr{id};
+  return move_relative(arr, delta);
 }
 
 bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16> delta) noexcept {
@@ -139,20 +124,18 @@ bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16>
   return true;
 }
 
-bool pepp::core::SpatialMap::move_absolute(Identifier id, Point<i16> new_pos) noexcept {
-  if (!can_move_absolute(id, new_pos)) return false;
-  const auto rect_it = _index_to_rectangle.find(id);
+bool pepp::core::SpatialMap::can_move_absolute(Identifier id, Point<i16> new_pos) const noexcept {
+  auto rect_it = _index_to_rectangle.find(id);
   if (rect_it == _index_to_rectangle.end()) return false;
-  const auto src = rect_it->second, dest = Rectangle<i16>{new_pos, src.size()};
-  _index_to_rectangle.insert_or_assign(id, dest);
-  _rectangle_to_index.erase(src);
-  _rectangle_to_index.insert_or_assign(dest, id);
-  _grid.remove(src);
-  if (!_grid.try_add(dest)) {
-    std::cerr << "SpatialMap::move_absolute failed to move rectangle in grid. This is impossible" << std::endl;
-    throw std::logic_error("SpatialMap::move_absolute failed to move rectangle in grid. This is impossible");
-  }
-  return true;
+  const auto src = rect_it->second;
+  return can_move_relative(id, new_pos - src.top_left());
+}
+
+bool pepp::core::SpatialMap::move_absolute(Identifier id, Point<i16> new_pos) noexcept {
+  auto rect_it = _index_to_rectangle.find(id);
+  if (rect_it == _index_to_rectangle.end()) return false;
+  const auto src = rect_it->second;
+  return move_relative(id, new_pos - src.top_left());
 }
 
 // Unoptimized. Should cache the bounding box and only update on add/remove.
