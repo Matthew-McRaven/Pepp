@@ -128,7 +128,7 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   from->setSelected(false);
   getImage(*from);
 
-  /*MATTHEW START TEST DATA
+  /*MATTHEW START TEST DATA*/
 
   //  Working example
   DiagramProperties *data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(2, 3, 4, 4));
@@ -769,7 +769,7 @@ void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
   DiagramProperties *data = _model->item(oldIndex);
 
   //  Update model
-  _model->move(oldIndex, newIndex);
+  if (!_model->move(oldIndex, newIndex)) return;
 
   //  Remap paint grid after move
   setGrid(data, newLocation.x(), newLocation.y());

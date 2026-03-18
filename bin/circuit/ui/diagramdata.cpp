@@ -114,34 +114,21 @@ bool DiagramData::clearDiagramData(const PeppKey &key) {
   return true;
 }
 
-void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
+bool DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
   // Q_ASSERT(newKey.left() > 1);
   // Q_ASSERT(newKey.top() > 1);
 
   auto id = _diagram_map.at(oldKey);
   //  Nothing located at old location, just return
-  if (!id.has_value()) return;
+  if (!id.has_value()) return false;
 
   //  Only diagrams can be moved
   auto *data = getDiagramProps(oldKey);
-  if (data == nullptr) return;
+  if (data == nullptr) return false;
+
+  if (!_diagram_map.move_absolute(id.value(), newKey.top_left())) return false;
 
   //  Save key in cell for later lookups
   data->setKey(newKey);
-
-  //  Remove pointer to old id
-  _cells.erase(id.value());
-
-  //  Erase old spacial data
-  _diagram_map.remove(id.value());
-
-  //  Move cell into new location
-  id = _diagram_map.try_add(newKey);
-  Q_ASSERT(id.has_value());
-
-  //  Save ID to diagram
-  data->setId(id.value());
-
-  //  Insert data at new key
-  _cells.insert({id.value(), data});
+  return true;
 }
