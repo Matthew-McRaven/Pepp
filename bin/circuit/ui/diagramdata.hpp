@@ -44,7 +44,11 @@ public:
 
   //  Get access to specific property
   DiagramProperties *getDiagramProps(const PeppKey &key);
+  DiagramProperties *getDiagramProps(const PeppId id);
+  DiagramProperties *getDiagramProps(const PeppPt &pt);
   const DiagramProperties *getDiagramProps(const PeppKey &key) const;
+  const DiagramProperties *getDiagramProps(const PeppId id) const;
+  const DiagramProperties *getDiagramProps(const PeppPt &pt) const;
   DiagramProperties *createDiagramProps(const PeppKey &key);
 
   LineProperties *getLineProps(const PeppKey &key);
@@ -62,4 +66,5 @@ public:
   bool empty() const;
   bool clearDiagramData(const PeppKey &key);
   bool moveData(const PeppKey &oldKey, const PeppKey &newKey);
+  bool moveData(const PeppPt &oldLocation, const PeppPt &newLocation);
 };

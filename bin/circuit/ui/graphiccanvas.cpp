@@ -131,13 +131,20 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   /*MATTHEW START TEST DATA*/
 
   //  Working example
-  DiagramProperties *data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(2, 3, 4, 4));
-  Q_ASSERT(data != nullptr);
+  /*const DiagramProperties *data1 = _model->dataModel().getDiagramProps(PeppRect::from_point_size(2, 3, 4, 4));
+  Q_ASSERT(data1 != nullptr);
+  Q_ASSERT(from->id() == data1->id());
 
-  //  lookup fails because height and width are different
-  data = _model->dataModel().createDiagramProps(PeppRect::from_point_size(2, 3, 1, 1));
-  Q_ASSERT(data == nullptr);
-  //MATTHEW END TEST DATA*/
+  //  Search by id
+  const DiagramProperties *data2 = _model->dataModel().getDiagramProps(from->id());
+  Q_ASSERT(data2 != nullptr);
+  Q_ASSERT(from->id() == data2->id());
+
+  //  Search by point
+  const DiagramProperties *data3 = _model->dataModel().getDiagramProps({2, 3});
+  Q_ASSERT(data3 != nullptr);
+  Q_ASSERT(from->id() == data3->id());
+  // MATTHEW END TEST DATA*/
 
   //  data life time managed by model
   DiagramProperties *to = addDiagram(4, 7);
@@ -374,7 +381,6 @@ void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
 void GraphicCanvas::paint_line(QPainter *painter, const LineProperties *props) {
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
-  // auto screen_rect = grid_to_screen(props->gridRectangle());
   const auto screenTo = grid_to_screen(props->outputPoint());
   const auto screenFrom = grid_to_screen(props->inputPoint());
 
@@ -762,17 +768,15 @@ void GraphicCanvas::setHScroll(qint8 change) {
 }
 
 void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
-  const auto oldIndex = _model->index(oldLocation.x(), oldLocation.y());
-  const auto newIndex = _model->index(newLocation.x(), newLocation.y());
+  //  Update grid coordinates
+  if (!_model->dataModel().moveData(oldLocation, newLocation)) return;
 
   //  Update grid coordinates
-  DiagramProperties *data = _model->item(oldIndex);
+  DiagramProperties *data = _model->dataModel().getDiagramProps(newLocation);
 
   if (data == nullptr) {
     return;
   }
-  //  Update model
-  if (!_model->move(oldIndex, newIndex)) return;
 
   //  Remap paint grid after move
   setGrid(data, newLocation.x(), newLocation.y());
@@ -875,17 +879,26 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
 }
 
 void GraphicCanvas::startDrag(const QPoint point) {
+  //  Temporarily remove item from lookup. During hit detection, item
+  //  will return true when pointing to self. Item is reset or saved
+  //  in drop event.
+  if (_currentItem == nullptr) {
+    return;
+  }
+
+  //  If error setting cache, just return.
+  if (!_model->dataModel().cacheData(_currentItem->id())) {
+    return;
+  }
+
+  //  Setup drag operation
   _dragStartPosition = point;
   QDrag *drag = new QDrag(this);
 
   QByteArray itemData;
   QDataStream dataStream(&itemData, QIODevice::WriteOnly);
 
-  //  Temporarily remove item from lookup. During hit detection, item
-  //  will return true when pointing to self. Item is reset or saved
-  //  in drop event.
-  _model->dataModel().cacheData(_currentItem->id());
-
+  //  Save old data to stream
   dataStream << _currentItem->key().left() << _currentItem->key().top();
 
   QMimeData *mimeData = new QMimeData;
@@ -898,6 +911,7 @@ void GraphicCanvas::startDrag(const QPoint point) {
   auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
   drag->setPixmap(dragPix);
 
+  //  Use center point for hit detection
   QPointF offset{curSize / 2, curSize / 2};
   drag->setHotSpot(offset.toPoint());
 
