@@ -2,24 +2,25 @@
 
 DiagramDataModel::DiagramDataModel(QObject *parent) : QAbstractTableModel(parent) {}
 
-void DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newIndex) {
-  if (!oldIndex.isValid() || !newIndex.isValid()) return;
+bool DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newIndex) {
+  if (!oldIndex.isValid() || !newIndex.isValid()) return false;
 
   //  If moving to same location, just return
-  if (oldIndex == newIndex) return;
+  if (oldIndex == newIndex) return false;
 
   //  Create new key from scratch since this item does not exist yet.
   const auto oldKey = convertIndex(oldIndex);
   const auto newKey = convertIndex(newIndex);
 
   //  Cell is moving, pass old and new locations
-  _data.moveData(oldKey, newKey);
 
   setCurrentIndex(newIndex);
+  if (!_data.moveData(oldKey, newKey)) return false;
 
   //  Notify UI of change
   emit dataChanged(oldIndex, oldIndex);
   emit dataChanged(newIndex, newIndex);
+  return true;
 }
 
 void DiagramDataModel::update(const QModelIndex &index) {

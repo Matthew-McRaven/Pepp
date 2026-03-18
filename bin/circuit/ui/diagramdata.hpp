@@ -61,5 +61,5 @@ public:
 
   bool empty() const;
   bool clearDiagramData(const PeppKey &key);
-  void moveData(const PeppKey &oldKey, const PeppKey &newKey);
+  bool moveData(const PeppKey &oldKey, const PeppKey &newKey);
 };

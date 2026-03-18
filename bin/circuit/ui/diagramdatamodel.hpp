@@ -44,7 +44,7 @@ public:
 
   const QModelIndex currentIndex() const;
   void setCurrentIndex(const QModelIndex);
-  void move(const QModelIndex oldLocation, const QModelIndex newLocation);
+  bool move(const QModelIndex oldLocation, const QModelIndex newLocation);
 
   // Basic functionality:
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;

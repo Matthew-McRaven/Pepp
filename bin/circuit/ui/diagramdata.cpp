@@ -114,90 +114,21 @@ bool DiagramData::clearDiagramData(const PeppKey &key) {
   return true;
 }
 
-void DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
+bool DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
   // Q_ASSERT(newKey.left() > 1);
   // Q_ASSERT(newKey.top() > 1);
 
   auto id = _diagram_map.at(oldKey);
   //  Nothing located at old location, just return
-  if (!id.has_value()) return;
+  if (!id.has_value()) return false;
 
   //  Only diagrams can be moved
   auto *data = getDiagramProps(oldKey);
-  if (data == nullptr) return;
+  if (data == nullptr) return false;
+
+  if (!_diagram_map.move_absolute(id.value(), newKey.top_left())) return false;
 
   //  Save key in cell for later lookups
   data->setKey(newKey);
-
-  //  Remove pointer to old id
-  _cells.erase(id.value());
-
-  //  Erase old spatial data
-  _diagram_map.remove(id.value());
-
-  //  Move cell into new location
-  id = _diagram_map.try_add(newKey);
-  Q_ASSERT(id.has_value());
-
-  //  Save ID to diagram
-  data->setId(id.value());
-
-  //  Insert data at new key
-  _cells.insert({id.value(), data});
-}
-
-bool DiagramData::cacheData(const PeppId id) {
-  if (auto search = _cells.find(id); search != _cells.end()) _cachedDiagram = search->second;
-  else {
-    //  Error with lookup
-    _cachedDiagram = nullptr;
-    return false;
-  }
-
-  //  Remove pointer to old id
-  _cells.erase(id);
-
-  //  Erase old spatial data
-  _diagram_map.remove(id);
-
-  //  Object saved, but lookup information deleted (for now).
-  return true;
-}
-
-//  Save diagram with new address
-bool DiagramData::commit(const PeppPt &newLocation) {
-  if (_cachedDiagram == nullptr) return false;
-  //  Move cell into new location
-  auto id = _diagram_map.try_add(newLocation);
-  if (!id.has_value()) return false;
-
-  //  Save ID to diagram
-  _cachedDiagram->setId(id.value());
-  _cachedDiagram->setKey(PeppKey::from_point_size(newLocation.x(), newLocation.y(), 4, 4));
-
-  //  Insert data at new key
-  _cells.insert({id.value(), _cachedDiagram});
-
-  //  Clean up for next drag/drop operation
-  _cachedDiagram = nullptr;
-
-  return true;
-}
-
-//  Move failed, add back to model at original location
-bool DiagramData::rollback() {
-  //  Move cell into new location
-  auto id = _diagram_map.try_add(_cachedDiagram->key());
-  if (!id.has_value()) return false;
-
-  //  Save ID to diagram
-  _cachedDiagram->setId(id.value());
-
-  //  Insert data at new key
-  _cells.insert({id.value(), _cachedDiagram});
-
-  //  Clean up for next drag/drop operation
-  _cachedDiagram = nullptr;
-
   return true;
 }
