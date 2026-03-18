@@ -63,6 +63,17 @@ public:
   inline T y() const noexcept { return this->elements[1]; }
   void setX(T x) { this->elements[0] = x; }
   void setY(T y) { this->elements[1] = y; }
+  void translate(T dx, T dy) noexcept {
+    this->elements[0] += dx;
+    this->elements[1] += dy;
+  }
+  void translate(Point delta) noexcept { translate(delta.elements[0], delta.elements[1]); }
+  Point translated(T dx, T dy) const noexcept {
+    Point result(*this);
+    result.translate(dx, dy);
+    return result;
+  }
+  Point translated(Point delta) const noexcept { return translated(delta.elements[0], delta.elements[1]); }
 };
 
 // A size of an entity in 2d space, often combined with a point to form a rectangle.

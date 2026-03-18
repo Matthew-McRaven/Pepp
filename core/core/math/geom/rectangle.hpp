@@ -55,6 +55,7 @@ template <typename T> struct Rectangle {
 
   T height() const noexcept { return size_inclusive(_y); }
   T width() const noexcept { return size_inclusive(_x); }
+  Size<T> size() const noexcept { return Size<T>(width(), height()); }
   // These are screen-ish coordinates, with y increasing downward.
   Point<T> top_left() const noexcept { return {_x.lower(), _y.lower()}; };
   Point<T> bottom_right() const noexcept { return {_x.upper(), _y.upper()}; };
@@ -158,6 +159,7 @@ template <typename T> bool contains(const Rectangle<T> &outer, const Rectangle<T
 template <typename T> bool intersects(const Rectangle<T> &lhs, const Rectangle<T> &rhs) {
   return intersects(lhs.x(), rhs.x()) && intersects(lhs.y(), rhs.y());
 }
+
 template <typename T> Rectangle<T> intersection(const Rectangle<T> &lhs, const Rectangle<T> &rhs) {
   return {intersection(lhs.x(), rhs.x()), intersection(lhs.y(), rhs.y())};
 }
