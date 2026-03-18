@@ -153,4 +153,56 @@ TEST_CASE("Spatial Map", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     auto id2 = map.try_add(second);
     CHECK(!id2.has_value());
   }
+  SECTION("Multi-move success") {
+    const Rect r0(Ivl{0, 1}, Ivl{0, 1}), r1(Ivl{2, 3}, Ivl{0, 1}), r2(Ivl{4, 5}, Ivl{0, 1});
+    SM map;
+    auto id0 = map.try_add(r0), id1 = map.try_add(r1), id2 = map.try_add(r2);
+    CHECK(id0.has_value());
+    CHECK(id1.has_value());
+    CHECK(id2.has_value());
+    std::vector<u32> move{{id0.value(), id1.value(), id2.value()}};
+    CHECK(map.can_move_relative(move, Pt{0, 0}));
+    CHECK(map.move_relative(move, Pt{0, 0}));
+    CHECK(map.at(r0) == id0);
+    CHECK(map.at(r1) == id1);
+    CHECK(map.at(r2) == id2);
+    CHECK(map.can_move_relative(move, Pt{0, 2}));
+    CHECK(map.move_relative(move, Pt{0, 2}));
+    CHECK(map.at(r0.translated(Pt{0, 2})) == id0);
+    CHECK(map.at(r1.translated(Pt{0, 2})) == id1);
+    CHECK(map.at(r2.translated(Pt{0, 2})) == id2);
+    // Only move a subset
+    std::vector<u32> move2{{id0.value(), id2.value()}};
+    // Would induce an overlap between r2 and r1.
+    REQUIRE(!map.can_move_relative(move2, Pt{2, 0}));
+    REQUIRE(map.can_move_relative(move2, Pt{-4, 0}));
+    CHECK(map.move_relative(move2, Pt{-4, 0}));
+    CHECK(map.at(r0.translated(Pt{-4, 2})) == id0);
+    CHECK(map.at(r1.translated(Pt{0, 2})) == id1);
+    CHECK(map.at(r2.translated(Pt{-4, 2})) == id2);
+  }
+  SECTION("Multi-move self-overlap") {
+    const Rect r0(Ivl{0, 1}, Ivl{0, 1}), r1(Ivl{2, 3}, Ivl{2, 3});
+    SM map;
+    auto id0 = map.try_add(r0), id1 = map.try_add(r1);
+    CHECK(id0.has_value());
+    CHECK(id1.has_value());
+    std::vector<u32> move{{id0.value(), id1.value()}};
+    CHECK(map.can_move_relative(move, Pt{2, 2}));
+    CHECK(map.move_relative(move, Pt{2, 2}));
+    CHECK(map.at(r1) == id0);
+    CHECK(map.at(r1.translated(Pt{2, 2})) == id1);
+  }
+  SECTION("Multi-move other-overlap") {
+    const Rect r0(Ivl{0, 1}, Ivl{0, 1}), r1(Ivl{2, 3}, Ivl{2, 3});
+    SM map;
+    auto id0 = map.try_add(r0), id1 = map.try_add(r1);
+    CHECK(id0.has_value());
+    CHECK(id1.has_value());
+    std::vector<u32> move{{id0.value()}};
+    CHECK(!map.can_move_relative(move, Pt{2, 2}));
+    CHECK(!map.move_relative(move, Pt{2, 2}));
+    CHECK(map.at(r0) == id0);
+    CHECK(map.at(r1) == id1);
+  }
 }

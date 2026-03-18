@@ -1,7 +1,9 @@
 #pragma once
 #include <flat/flat_map.hpp>
+#include <flat/flat_set.hpp>
 #include <optional>
 #include <ranges>
+#include <span>
 #include "core/math/bitmanip/span.hpp"
 #include "core/math/geom/occupancy_grid_sparse.hpp"
 namespace pepp::core {
@@ -51,11 +53,18 @@ public:
   }
 
   // Shift relative to the top left corner of the rectangle. Returns false if the move would cause a collision, ignoring
-  // collisions with itself.
   bool can_move_relative(Identifier id, Point<i16> delta) const noexcept;
+  // This "multi-move" variant accepts ids in arbitrary order, but will sort the pointed-to data in place before
+  // analyzing. This reduces the time complextiy to O(n lg n) rather than O(n^2).
+  bool can_move_relative(std::span<Identifier> ids, Point<i16> delta) const noexcept;
   bool move_relative(Identifier id, Point<i16> delta) noexcept;
+  // This "multi-move" variant will sort the pointed-to data along in reverse along the delta vector to prevent spurious
+  // collisions.
+  bool move_relative(std::span<Identifier> ids, Point<i16> delta) noexcept;
   // Set the top left coordinate of the rectangle. Returns false if the move would cause a collision, ignoring
-  // collisions with itself.
+  // collisions with itself. No multi-move overloads are provided, because it makes no sense to place multiple things in
+  // the same place. As a caller, you would need to identify which item you are adjusting with resepct to, compute the
+  // delta, and call the relative multi-move.
   bool can_move_absolute(Identifier id, Point<i16> new_pos) const noexcept;
   bool move_absolute(Identifier id, Point<i16> new_pos) noexcept;
 

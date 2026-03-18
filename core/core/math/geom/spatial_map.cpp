@@ -69,6 +69,25 @@ bool pepp::core::SpatialMap::can_move_relative(Identifier id, Point<i16> delta) 
   return can_move_absolute(id, rect_it->second.top_left().translated(delta));
 }
 
+bool pepp::core::SpatialMap::can_move_relative(std::span<Identifier> ids, Point<i16> delta) const noexcept {
+  if (ids.empty()) return true;
+  else if (delta == Point<i16>{0, 0}) return true;
+  std::sort(ids.begin(), ids.end());
+  for (const auto id : ids) {
+    auto rect_it = _index_to_rectangle.find(id);
+    if (rect_it == _index_to_rectangle.end()) return false;
+    const auto src = rect_it->second, dest = src.translated(delta);
+    // This should be ~O(1), since items cannot overlap.
+    auto overlaps = overlapping(dest);
+    // Iterate over the collection of objects which partially overlap with dest.
+    for (auto overlap : overlaps)
+      // If any of the items overlapped are not being moved, then the move will fail.
+      // Since we sorted the items above, this search is O(lg n) rather than O(n).
+      if (!std::binary_search(ids.begin(), ids.end(), overlap.first)) return false;
+  }
+  return true;
+}
+
 bool pepp::core::SpatialMap::can_move_absolute(Identifier id, Point<i16> new_pos) const noexcept {
   auto rect_it = _index_to_rectangle.find(id);
   if (rect_it == _index_to_rectangle.end()) return false;
@@ -87,6 +106,37 @@ bool pepp::core::SpatialMap::move_relative(Identifier id, Point<i16> delta) noex
   const auto rect_it = _index_to_rectangle.find(id);
   if (rect_it == _index_to_rectangle.end()) return false;
   return move_absolute(id, rect_it->second.top_left().translated(delta));
+}
+
+bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16> delta) noexcept {
+  if (ids.empty()) return true;
+  else if (delta == Point<i16>{0, 0}) return true;
+  else if (!can_move_relative(ids, delta)) return false;
+
+  // Sort ids by position along the delta direction vector.
+  // Otherwise we might move a recatngle which is blocked by a later rectangle and spurious fail.
+  // This is a form of permuting in place: see The Art of Compute Programming, Volume 1, Section 1.3.3
+  std::sort(ids.begin(), ids.end(), [&](Identifier a, Identifier b) {
+    const auto &ra = _index_to_rectangle.at(a);
+    const auto &rb = _index_to_rectangle.at(b);
+    if (delta.y() != 0) return delta.y() > 0 ? ra.top() > rb.top() : ra.top() < rb.top();
+    return delta.x() > 0 ? ra.left() > rb.left() : ra.left() < rb.left();
+  });
+
+  // Move each rectangle. Because we already sorted by position, we prevent collisions between rectangles within our
+  // selected set.
+  for (const auto id : ids) {
+    const auto src = _index_to_rectangle.at(id), dest = src.translated(delta);
+    _index_to_rectangle.insert_or_assign(id, dest);
+    _rectangle_to_index.erase(src);
+    _rectangle_to_index.insert_or_assign(dest, id);
+    _grid.remove(src);
+    if (!_grid.try_add(dest)) {
+      std::cerr << "SpatialMap::move_relative failed to move rectangle in grid. This is impossible" << std::endl;
+      throw std::logic_error("SpatialMap::move_relative failed to move rectangle in grid. This is impossible");
+    }
+  }
+  return true;
 }
 
 bool pepp::core::SpatialMap::move_absolute(Identifier id, Point<i16> new_pos) noexcept {
