@@ -1,227 +1,107 @@
 #pragma once
+#include <array>
 #include <flat/flat_set.hpp>
-#include <string>
-#include <variant>
+#include <optional>
+#include <span>
 #include "core/arch/riscv/isa/rvi.hpp"
+#include "core/integers.h"
+
 namespace riscv {
 
-class MnemonicU {
-public:
-  MnemonicU(uint8_t opcode7) noexcept;
-
-  bool has_immediate() const noexcept;
-  // Only keeps high-order 20 bits of imm.
-  void set_immediate(uint32_t imm);
-  std::optional<uint32_t> get_immediate() const;
-  MnemonicU &&with_immediate(uint32_t imm) &&;
-
-  bool has_rd() const noexcept;
-  void set_rd(uint8_t rd);
-  std::optional<uint8_t> get_rd() const;
-  MnemonicU &&with_rd(uint8_t rd) &&;
-
-  InstructionU to_instruction() const noexcept;
-
-protected:
-  struct Flags {
-    uint8_t imm : 1 = 0;
-    uint8_t rd : 1 = 0;
-  } _flags{};
-  static_assert(sizeof(Flags) == 1, "Flags should be 1 byte");
-  uint8_t _opcode7 = 0, _rd5 = 0;
-  uint32_t _imm20 = 0;
+struct Values {
+  std::optional<uint8_t> rs1, rs2, rd;
+  std::optional<uint32_t> imm;
 };
 
-class MnemonicJ {
-public:
-  MnemonicJ(uint8_t opcode7) noexcept;
-
-  bool has_immediate() const noexcept;
-  void set_immediate(uint32_t imm);
-  std::optional<uint32_t> get_immediate() const;
-  MnemonicJ &&with_immediate(uint32_t imm) &&;
-
-  bool has_rd() const noexcept;
-  void set_rd(uint8_t rd);
-  std::optional<uint8_t> get_rd() const;
-  MnemonicJ &&with_rd(uint8_t rd) &&;
-
-  InstructionJ to_instruction() const noexcept;
-
-protected:
-  struct Flags {
-    uint8_t imm : 1 = 0;
-    uint8_t rd : 1 = 0;
-  } _flags{};
-  static_assert(sizeof(Flags) == 1, "Flags should be 1 byte");
-  uint8_t _opcode7 = 0, _rd5 = 0;
-  uint32_t _imm20 = 0;
+struct Operand {
+  enum class Type : u8 { Invalid = 0, Register, Immediate, Fence, XLEN8, XLEN16 } type;
+  enum class Destination : u8 { Invalid = 0, RS, RS1, RS2, RD, IMM, SHAMT, PRED, SUCC } destination;
 };
 
-class MnemonicB {
-public:
-  MnemonicB(uint8_t opcode7, uint8_t funct3) noexcept;
+struct MnemonicDescriptor {
+  enum class Type : u8 { INVALID = 0, R, I, S, B, U, J, Pseudo };
+  static MnemonicDescriptor I(u8 opcode7, u8 funct3);
+  static MnemonicDescriptor IShiftByConstant(u8 opcode7, u8 funct3, u8 shift_type);
+  static MnemonicDescriptor IFence(u8 fmt);
+  static MnemonicDescriptor IFence(u8 fmt, u8 pred, u8 succ);
+  static MnemonicDescriptor R(u8 opcode7, u8 funct3, u8 funct7);
+  static MnemonicDescriptor S(u8 opcode7, u8 funct3);
+  static MnemonicDescriptor B(u8 opcode7, u8 funct3);
+  static MnemonicDescriptor U(u8 opcode7);
+  static MnemonicDescriptor J(u8 opcode7);
+  // Pseudo instrutions do not have a single encoding since they may expand to multiple instructions.
+  // However, they still have operands that need parsing.
+  // Pseudo-instructions that can be encoded in terms of a real mnemonic should prefer a non-pseudo encoding.
+  static MnemonicDescriptor Pseudo();
 
-  // 12-bit immediate shifted left by 1, so [12:1]
-  bool has_immediate() const noexcept;
-  void set_immediate(uint16_t imm);
-  std::optional<uint16_t> get_immediate() const;
-  MnemonicB &&with_immediate(uint16_t imm) &&;
+  std::span<const Operand> operands() const noexcept;
+  Type type() const noexcept;
 
+  void append_operand(Operand operand);
+  MnemonicDescriptor &&with_operand(Operand first, std::same_as<Operand> auto... ops) &&;
+  MnemonicDescriptor replaced_operands(std::same_as<Operand> auto... ops) const noexcept;
+
+  // Does this mnemonic have an rs1 position in its instruction format?
+  bool allows_rs1() const noexcept;
+  // Is the value of rs1 a constant specified by the instruction?
   bool has_rs1() const noexcept;
-  void set_rs1(uint8_t rs1);
-  std::optional<uint8_t> get_rs1() const;
-  MnemonicB &&with_rs1(uint8_t rs1) &&;
+  void set_rs1(u8 rs1);
+  std::optional<u8> get_rs1() const;
+  MnemonicDescriptor &&with_rs1(u8 rs1) &&;
 
+  // Does this mnemonic have an rs2 position in its instruction format?
+  bool allows_rs2() const noexcept;
+  // Is the value of rs2 a constant specified by the instruction?
   bool has_rs2() const noexcept;
-  void set_rs2(uint8_t rs2);
-  std::optional<uint8_t> get_rs2() const;
-  MnemonicB &&with_rs2(uint8_t rs2) &&;
+  void set_rs2(u8 rs2);
+  std::optional<u8> get_rs2() const;
+  MnemonicDescriptor &&with_rs2(u8 rs2) &&;
 
-  InstructionB to_instruction() const noexcept;
+  // Does this mnemonic have an rd position in its instruction format?
+  bool allows_rd() const noexcept;
+  // Is the value of rd a constant specified by the instruction?
+  bool has_rd() const noexcept;
+  void set_rd(u8 rd);
+  std::optional<u8> get_rd() const;
+  MnemonicDescriptor &&with_rd(u8 rd) &&;
+
+  // Does this mnemonic have an rd position in its instruction format?
+  bool allows_funct3() const noexcept;
+  bool allows_funct7() const noexcept;
+
+  // Does this mnemonic have an rd position in its instruction format?
+  bool allows_imm() const noexcept;
+  // Is the value of rd a constant specified by the instruction?
+  bool has_imm() const noexcept;
+  void set_imm(u32 imm);
+  std::optional<u32> get_imm() const;
+  u8 width_imm() const noexcept;
+  u8 imm_shift() const noexcept;
+  MnemonicDescriptor &&with_imm(u32 imm) &&;
+
+  template <typename Instruction> Instruction encode(Values) const;
 
 protected:
+  MnemonicDescriptor(Type type);
+  MnemonicDescriptor(Type, uint8_t opcode7);
   struct Flags {
-    uint8_t imm : 1 = 0;
-    uint8_t rs1 : 1 = 0;
-    uint8_t rs2 : 1 = 0;
-  } _flags{};
-  static_assert(sizeof(Flags) == 1, "Flags should be 1 byte");
-  uint8_t _opcode7 = 0, _funct3 = 0, _rs15 = 0, _rs25 = 0;
-  uint16_t _imm12 = 0;
-};
-
-class MnemonicI {
-public:
-  MnemonicI(uint8_t opcode7, uint8_t funct3) noexcept;
-
-  bool has_immediate() const noexcept;
-  void set_immediate(uint16_t imm);
-  std::optional<uint16_t> get_immediate() const;
-  MnemonicI &&with_immediate(uint16_t imm) &&;
-
-  bool has_rs1() const noexcept;
-  void set_rs1(uint8_t rs1);
-  std::optional<uint8_t> get_rs1() const;
-  MnemonicI &&with_rs1(uint8_t rs1) &&;
-
-  bool has_rd() const noexcept;
-  void set_rd(uint8_t rd);
-  std::optional<uint8_t> get_rd() const;
-  MnemonicI &&with_rd(uint8_t rd) &&;
-
-  InstructionI to_instruction() const noexcept;
-
-protected:
-  struct Flags {
-    uint8_t imm : 1 = 0;
-    uint8_t rs1 : 1 = 0;
-    uint8_t rd : 1 = 0;
-  } _flags{};
-  static_assert(sizeof(Flags) == 1, "Flags should be 1 byte");
-  uint8_t _opcode7 = 0, _funct3 = 0, _rs15 = 0, _rd5 = 0;
-  uint16_t _imm12 = 0;
-};
-
-class ConstantShiftMnemonic : public MnemonicI {
-public:
-  ConstantShiftMnemonic(uint8_t opcode7, uint8_t funct3) noexcept;
-
-  void set_shift_type(uint8_t shift_type);
-  std::optional<uint8_t> get_shift_type() const;
-  ConstantShiftMnemonic &&with_shift_type(uint8_t shift_type) &&;
-
-  void set_shamt(uint8_t shamt);
-  std::optional<uint8_t> get_shamt() const;
-  ConstantShiftMnemonic &&with_shamt(uint8_t shamt) &&;
-};
-
-class FenceFormat : public MnemonicI {
-public:
-  FenceFormat() noexcept;
-
-  void set_fm(uint8_t fm);
-  std::optional<uint8_t> get_fm() const;
-  FenceFormat &&with_fm(uint8_t fm) &&;
-
-  void set_pred(uint8_t pred);
-  std::optional<uint8_t> get_pred() const;
-  FenceFormat &&with_pred(uint8_t pred) &&;
-
-  void set_succ(uint8_t succ);
-  std::optional<uint8_t> get_succ() const;
-  FenceFormat &&with_succ(uint8_t succ) &&;
-
-  static const uint8_t merge_iorw(bool i, bool o, bool r, bool w) noexcept;
-};
-
-class MnemonicR {
-public:
-  MnemonicR(uint8_t opcode7, uint8_t funct3, uint8_t funct7) noexcept;
-
-  bool has_rs1() const noexcept;
-  void set_rs1(uint8_t rs1);
-  std::optional<uint8_t> get_rs1() const;
-  MnemonicR &&with_rs1(uint8_t rs1) &&;
-
-  bool has_rs2() const noexcept;
-  void set_rs2(uint8_t rs2);
-  std::optional<uint8_t> get_rs2() const;
-  MnemonicR &&with_rs2(uint8_t rs2) &&;
-
-  bool has_rd() const noexcept;
-  void set_rd(uint8_t rd);
-  std::optional<uint8_t> get_rd() const;
-  MnemonicR &&with_rd(uint8_t rd) &&;
-
-  InstructionR to_instruction() const noexcept;
-
-private:
-  struct Flags {
-    uint8_t rs1 : 1 = 0;
-    uint8_t rs2 : 1 = 0;
-    uint8_t rd : 1 = 0;
-  } _flags{};
-  static_assert(sizeof(Flags) == 1, "Flags should be 1 byte");
-  uint8_t _opcode7 = 0, _funct3 = 0, _funct7 = 0, _rs15 = 0, _rs25 = 0, _rd5 = 0;
-};
-
-class MnemonicS {
-public:
-  MnemonicS(uint8_t opcode7, uint8_t funct3) noexcept;
-
-  bool has_immediate() const noexcept;
-  void set_immediate(uint16_t imm);
-  std::optional<uint16_t> get_immediate() const;
-  MnemonicS &&with_immediate(uint16_t imm) &&;
-
-  bool has_rs1() const noexcept;
-  void set_rs1(uint8_t rs1);
-  std::optional<uint8_t> get_rs1() const;
-  MnemonicS &&with_rs1(uint8_t rs1) &&;
-
-  bool has_rs2() const noexcept;
-  void set_rs2(uint8_t rs2);
-  std::optional<uint8_t> get_rs2() const;
-  MnemonicS &&with_rs2(uint8_t rs2) &&;
-
-  InstructionS to_instruction() const noexcept;
-
-private:
-  struct Flags {
-    uint8_t imm : 1 = 0;
-    uint8_t rs1 : 1 = 0;
-    uint8_t rs2 : 1 = 0;
-  } _flags{};
-  static_assert(sizeof(Flags) == 1, "Flags should be 1 byte");
-  uint8_t _opcode7 = 0, _funct3 = 0, _rs15 = 0, _rs25 = 0;
-  uint16_t _imm12 = 0;
+    u8 rs1 : 1 = 0;
+    u8 rs2 : 1 = 0;
+    u8 rd : 1 = 0;
+    // Must enforce mutual exclusion between imm and funct7, because they always occupy the same slot.
+    u8 imm : 1 = 0;
+  } _flags;
+  Type _type = Type::INVALID;
+  u8 _opcode7 = 0, _funct3 = 0;
+  u8 _rs1 = 0, _rs2 = 0, _rd = 0;
+  // immediate requires up to 20 bits, and is multiplexed with funct7.
+  uint32_t _imm_or_funct7 = 0;
+  std::array<Operand, 3> _operands;
 };
 
 struct Mnemonic {
   std::string name;
-  std::variant<std::monostate, MnemonicU, MnemonicJ, MnemonicB, MnemonicR, MnemonicS, MnemonicI> variant;
-  bool operator==(const Mnemonic &other) const noexcept = default;
+  MnemonicDescriptor mn;
 };
 
 struct MnemonicNameCompare {
@@ -234,5 +114,11 @@ struct MnemonicNameCompare {
 
 using MnemonicSet = fc::vector_set<Mnemonic, MnemonicNameCompare>;
 extern const MnemonicSet string_to_mnemonic;
-// extern const std::map<Mnemonic, std::string> mnemonic_to_string;
+
+template <> InstructionR MnemonicDescriptor::encode<InstructionR>(Values) const;
+template <> InstructionI MnemonicDescriptor::encode<InstructionI>(Values) const;
+template <> InstructionS MnemonicDescriptor::encode<InstructionS>(Values) const;
+template <> InstructionU MnemonicDescriptor::encode<InstructionU>(Values) const;
+template <> InstructionB MnemonicDescriptor::encode<InstructionB>(Values) const;
+template <> InstructionJ MnemonicDescriptor::encode<InstructionJ>(Values) const;
 } // namespace riscv
