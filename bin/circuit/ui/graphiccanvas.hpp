@@ -128,9 +128,9 @@ private:
   // Helepr for painting a single rect that has already "passed" the clipping test.
   void paint_one(QPainter *painter, DiagramProperties *props);
   void paint_line(QPainter *painter, const LineProperties *props);
-  QRectF grid_to_screen(const PeppRect &rect);
-  PeppRect screen_to_grid(QRectF rect);
-  PeppPt screen_to_grid(QPointF point);
+  QRectF grid_to_screen(const PeppRect &rect) const;
+  PeppRect screen_to_grid(QRectF rect) const;
+  PeppPt screen_to_grid(QPointF point) const;
   const PeppPt grid_to_index(const PeppPt &point) const;
   QPointF grid_to_screen(const PeppPt &pt) const;
 
@@ -139,6 +139,7 @@ private:
   void setVScroll(qint8 change);
   void setHScroll(qint8 change);
   void moveDiagram(PeppPt oldLocation, PeppPt newLocation);
+  bool hitTest(QPointF newPoint) const;
 
   //  Sets currently selected diagram
   bool setSelected(const PeppPt &point);

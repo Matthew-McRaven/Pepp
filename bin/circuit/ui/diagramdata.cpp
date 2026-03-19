@@ -188,6 +188,10 @@ bool DiagramData::moveData(const PeppKey &oldKey, const PeppKey &newKey) {
   return false;
 }
 
+bool DiagramData::canMoveData(const PeppId id, const PeppPt &newLocation) const {
+  return _diagram_map.can_move_absolute(id, newLocation);
+}
+
 bool DiagramData::cacheData(const PeppId id) {
   if (auto search = _cells.find(id); search != _cells.end()) _cachedDiagram = search->second;
   else {

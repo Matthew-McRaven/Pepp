@@ -37,8 +37,8 @@ public:
   const auto &cells() const { return _cellData; }
   auto &lines() { return _lineData; }
   const auto &lines() const { return _lineData; }
-  auto &diagramMap() { return _diagram_map; }
-  const auto &diagramMap() const { return _diagram_map; }
+  // auto &diagramMap() { return _diagram_map; }
+  // const auto &diagramMap() const { return _diagram_map; }
   auto &lineMap() { return _line_map; }
   const auto &lineMap() const { return _line_map; }
 
@@ -67,4 +67,5 @@ public:
   bool clearDiagramData(const PeppKey &key);
   bool moveData(const PeppKey &oldKey, const PeppKey &newKey);
   bool moveData(const PeppPt &oldLocation, const PeppPt &newLocation);
+  bool canMoveData(const PeppId id, const PeppPt &newLocation) const;
 };

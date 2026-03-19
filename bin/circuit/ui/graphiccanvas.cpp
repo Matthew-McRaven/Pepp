@@ -475,7 +475,7 @@ void GraphicCanvas::getImage(DiagramProperties &props) {
   props.setImage(image);
 }
 
-QRectF GraphicCanvas::grid_to_screen(const PeppRect &rect) {
+QRectF GraphicCanvas::grid_to_screen(const PeppRect &rect) const {
   const auto x = (rect.left() - _top_left.x()) * grid_to_px;
   const auto y = (rect.top() - _top_left.y()) * grid_to_px;
   const auto width = rect.width() * grid_to_px;
@@ -491,7 +491,7 @@ QPointF GraphicCanvas::grid_to_screen(const PeppPt &pt) const {
   return {x, y};
 }
 
-PeppRect GraphicCanvas::screen_to_grid(QRectF rect) {
+PeppRect GraphicCanvas::screen_to_grid(QRectF rect) const {
   const auto x = static_cast<i16>((rect.x() / grid_to_px + _top_left.x()) / _currentZoom);
   const auto y = static_cast<i16>((rect.y() / grid_to_px + _top_left.y()) / _currentZoom);
   const auto width = static_cast<i16>(rect.width() / grid_to_px / _currentZoom);
@@ -500,7 +500,7 @@ PeppRect GraphicCanvas::screen_to_grid(QRectF rect) {
   return PeppRect::from_point_size(x, y, width, height);
 }
 
-PeppPt GraphicCanvas::screen_to_grid(QPointF point) {
+PeppPt GraphicCanvas::screen_to_grid(QPointF point) const {
   const auto x = static_cast<i16>((point.x() / grid_to_px + _top_left.x()) / _currentZoom);
   const auto y = static_cast<i16>((point.y() / grid_to_px + _top_left.y()) / _currentZoom);
 
@@ -803,21 +803,24 @@ void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event) {
   // qDebug() << "dragLeaveEvent";
 }
 
+bool GraphicCanvas::hitTest(QPointF newPoint) const {
+  //  Mouse location in grid coordinates to
+  //  to determine rectangle hit.
+  const auto point = screen_to_grid(newPoint);
+  const auto newLocation = grid_to_index(point);
+
+  //  Can move is True if there is no hit. Flip to indicate if hit or not
+  return !_model->dataModel().canMoveData(_currentItem->id(), newLocation);
+}
+
 void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event) {
   // qDebug() << "dragMoveEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
-    //  Mouse location in grid coordinates to
-    //  to determine rectangle hit.
-    const auto point = screen_to_grid(event->position());
-    const auto index = grid_to_index(point);
-    const bool found = _model->dataModel().diagramMap().overlap(index);
-
-    if (found) {
-      // event->ignore();
+    if (hitTest(event->position())) {
       return;
     }
 
-    if (found && event->source() == this) {
+    if (event->source() == this) {
       event->setDropAction(Qt::MoveAction);
       // setCursor(Qt::OpenHandCursor);
       event->accept();
@@ -834,18 +837,12 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
     // setCursor(Qt::ArrowCursor);
 
-    //  Mouse location in grid coordinates to
-    //  to determine rectangle hit.
-    const auto point = screen_to_grid(event->position());
-    const auto newLocation = grid_to_index(point);
-    const bool found = _model->dataModel().diagramMap().overlap(newLocation);
-
-    if (found) {
+    if (hitTest(event->position())) {
       //  There is a hit on an existing item, abort move
-      _model->dataModel().rollback();
       return;
     }
 
+    //  Get original data
     QByteArray itemData = event->mimeData()->data("application/x-dnditemdata");
     QDataStream dataStream(&itemData, QIODevice::ReadOnly);
 
@@ -854,18 +851,15 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
 
     const PeppPt oldLocation(oldX, oldY);
 
-    //  Due to integer math, items closer to next row or column are still in same column/row.
-    //  Calculate rounding difference
-    // const auto newLocation = grid_to_index(point);
+    const auto point = screen_to_grid(event->position());
+    const auto newLocation = grid_to_index(point);
 
-    // moveDiagram(oldLocation, newLocation);
+    moveDiagram(oldLocation, newLocation);
 
     //  Remap paint grid after move
     setGrid(_currentItem, newLocation.x(), newLocation.y());
 
     update();
-
-    _model->dataModel().commit(newLocation);
 
     if (event->source() == this) {
       event->setDropAction(Qt::MoveAction);
@@ -887,9 +881,9 @@ void GraphicCanvas::startDrag(const QPoint point) {
   }
 
   //  If error setting cache, just return.
-  if (!_model->dataModel().cacheData(_currentItem->id())) {
+  /*if (!_model->dataModel().cacheData(_currentItem->id())) {
     return;
-  }
+  }*/
 
   //  Setup drag operation
   _dragStartPosition = point;
