@@ -274,6 +274,20 @@ u8 riscv::MnemonicDescriptor::width_imm() const noexcept {
   }
 }
 
+riscv::rv_instruction2 riscv::MnemonicDescriptor::encode(Values v) const {
+  switch (_type) {
+  case Type::INVALID: return riscv::rv_instruction2(0u);
+  case Type::R: return rv_instruction2(encode<InstructionR>(v));
+  case Type::I: return rv_instruction2(encode<InstructionI>(v));
+  case Type::S: return rv_instruction2(encode<InstructionS>(v));
+  case Type::B: return rv_instruction2(encode<InstructionB>(v));
+  case Type::U: return rv_instruction2(encode<InstructionU>(v));
+  case Type::J: return rv_instruction2(encode<InstructionJ>(v));
+  case Type::Pseudo: return riscv::rv_instruction2(0u);
+  }
+  return riscv::rv_instruction2(0u);
+}
+
 riscv::MnemonicDescriptor &&riscv::MnemonicDescriptor::with_imm(u32 imm) && {
   set_imm(imm);
   return std::move(*this);
@@ -400,10 +414,7 @@ static void add_rv32i_psueodo_instructions(riscv::MnemonicSet &mn_set) {
   add({"pause", PAUSE});
   add({"nop", NOP});
   add({"mv", MOVE});
-  add({
-      "not",
-      NOT,
-  });
+  add({"not", NOT});
   add({"neg", NEGATE});
   add({"sext.b", SEXT_B});
   add({"sext.h", SEXT_H});

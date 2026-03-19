@@ -3,6 +3,7 @@
 #include <flat/flat_set.hpp>
 #include <optional>
 #include <span>
+#include "core/arch/riscv/isa/rv_instruction.hpp"
 #include "core/arch/riscv/isa/rvi.hpp"
 #include "core/integers.h"
 
@@ -80,6 +81,7 @@ struct MnemonicDescriptor {
   MnemonicDescriptor &&with_imm(u32 imm) &&;
 
   template <typename Instruction> Instruction encode(Values) const;
+  rv_instruction2 encode(Values) const;
 
 protected:
   MnemonicDescriptor(Type type);
