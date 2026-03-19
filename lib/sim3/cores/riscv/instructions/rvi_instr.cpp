@@ -378,7 +378,7 @@ RVPRINTR_ATTR int OP_IMM_printer(char *buffer, size_t len, const CPU<address_t> 
       return snprintf(buffer, len, "NOT %s, %s", RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1));
     }
   }
-  static std::array<const char *, 8> func3 = {"LINT", "SLLI", "SLTI", "SLTU", "XORI", "SRLI", "ORI", "ANDI"};
+  static std::array<const char *, 8> func3 = {"LI", "SLLI", "SLTI", "SLTU", "XORI", "SRLI", "ORI", "ANDI"};
   return snprintf(buffer, len, "%s %s, %d (0x%X)", func3[instr.Itype.funct3], RISCV::regname(instr.Itype.rd),
                   instr.Itype.signed_imm(), instr.Itype.signed_imm());
 };
@@ -842,7 +842,7 @@ RVPRINTR_ATTR int OP_IMM32_ADDIW_printer(char *buffer, size_t len, const CPU<add
       return snprintf(buffer, len, "NOTW %s, %s", RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1));
     }
   }
-  static std::array<const char *, 8> func3 = {"LINT", "SLLI", "SLTI", "SLTU", "XORI", "SRLI", "ORI", "ANDI"};
+  static std::array<const char *, 8> func3 = {"LI", "SLLI", "SLTI", "SLTU", "XORI", "SRLI", "ORI", "ANDI"};
   return snprintf(buffer, len, "%sW %s, %d (0x%X)", func3[instr.Itype.funct3], RISCV::regname(instr.Itype.rd),
                   instr.Itype.signed_imm(), instr.Itype.signed_imm());
 };
