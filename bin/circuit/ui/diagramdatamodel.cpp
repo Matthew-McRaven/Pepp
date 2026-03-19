@@ -63,14 +63,6 @@ DiagramProperties *DiagramDataModel::item(const QModelIndex &index) {
   return data;
 }
 
-DiagramProperties *DiagramDataModel::createItem(const QModelIndex &index) {
-  if (!index.isValid()) return nullptr;
-
-  auto data = _data.createDiagramProps(convertIndex(index));
-  emit dataChanged(index, index);
-  return data;
-}
-
 QModelIndex DiagramDataModel::index(int row, int column, const QModelIndex &parent) const {
   // Check if row and column are within bounds and parent is invalid
   if (!hasIndex(row, column, parent)) return {};

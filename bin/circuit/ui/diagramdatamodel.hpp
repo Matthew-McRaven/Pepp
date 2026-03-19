@@ -39,7 +39,6 @@ public:
   Q_INVOKABLE bool clearItemData(const QModelIndexList &indexes);
   Q_INVOKABLE bool clearItemData(const QModelIndex &index) override;
   Q_INVOKABLE DiagramProperties *item(const QModelIndex &index);
-  Q_INVOKABLE DiagramProperties *createItem(const QModelIndex &index);
   Q_INVOKABLE QModelIndex index(int row, int column, const QModelIndex &parent = {}) const override;
 
   const QModelIndex currentIndex() const;
@@ -62,9 +61,9 @@ signals:
   void currentIndexChanged();
 
 private:
-  PeppKey convertIndex(const QModelIndex &index) const {
+  PeppPt convertIndex(const QModelIndex &index) const {
     i16 row = index.row();
     i16 col = index.column();
-    return PeppKey::from_point_size(row, col, 4, 4);
+    return {row, col};
   }
 };
