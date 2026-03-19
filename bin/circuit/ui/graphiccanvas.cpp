@@ -803,16 +803,6 @@ void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event) {
   // qDebug() << "dragLeaveEvent";
 }
 
-bool GraphicCanvas::hitTest(QPointF newPoint) const {
-  //  Mouse location in grid coordinates to
-  //  to determine rectangle hit.
-  const auto point = screen_to_grid(newPoint);
-  const auto newLocation = grid_to_index(point);
-
-  //  Can move is True if there is no hit. Flip to indicate if hit or not
-  return !_model->dataModel().canMoveData(_currentItem->id(), newLocation);
-}
-
 void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event) {
   // qDebug() << "dragMoveEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
@@ -880,11 +870,6 @@ void GraphicCanvas::startDrag(const QPoint point) {
     return;
   }
 
-  //  If error setting cache, just return.
-  /*if (!_model->dataModel().cacheData(_currentItem->id())) {
-    return;
-  }*/
-
   //  Setup drag operation
   _dragStartPosition = point;
   QDrag *drag = new QDrag(this);
@@ -913,6 +898,27 @@ void GraphicCanvas::startDrag(const QPoint point) {
 
   //  If this function is not called, the drag will not start
   drag->exec();
+}
+
+bool GraphicCanvas::hitTest(QPointF newPoint) const {
+  //  Mouse location in grid coordinates to
+  //  to determine rectangle hit.
+  const auto point = screen_to_grid(newPoint);
+  const auto newLocation = grid_to_index(point);
+
+  //  This function can be called dozens of times per second when dragging an item.
+  //  The canMoveData function can be expensive if called excessively. Cache
+  //  prior result, and only call canMoveData when we have moved to a new grid area.
+  static bool lastResult{false};
+  static PeppPt lastPt{-1, -1};
+
+  if (lastPt != newLocation) {
+    lastPt = newLocation;
+    lastResult = _model->dataModel().canMoveData(_currentItem->id(), newLocation);
+    qDebug() << lastPt.x() << lastPt.y() << lastResult;
+  }
+  //  Can move is True if there is no hit. Flip to indicate if hit or not
+  return !lastResult;
 }
 
 bool GraphicCanvas::keyPress(const int key, const int modifier) {
