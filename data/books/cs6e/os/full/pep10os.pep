@@ -126,7 +126,11 @@ addrJT:  .WORD addrI       ;Immediate addressing
 ;
 ;We compute the address of operands rather than their values
 ;except for immediate, where we compute its value, which unifies I and D.
-addrI:   .BLOCK  0           ;Immediate addressing
+addrI:   LDWX    oldPC4,s    ;Immediate addressing
+         SUBX    2,i         ;Oprnd = Address[OprndSpec]
+         STWX    opAddr,d
+         RET
+;
 addrD:   LDWX    oldOpr4,s   ;Direct addressing
          STWX    opAddr,d    ;Oprnd = Mem[OprndSpec]
          RET
@@ -506,7 +510,7 @@ prntMore:LDBA    msgAddr,sfx ;Test next char
          BR      prntMore
 ;
 exitPrnt:RET
-         .BLOCK  64          ;Padding for possible future modification
+         .BLOCK  54          ;Padding for possible future modification
 ;
 ;******* Vectors for system memory map
 ;
