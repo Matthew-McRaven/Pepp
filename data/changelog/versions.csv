@@ -39,4 +39,4 @@ Number,GitRef,Date,Blurb
 0.15.0,,2026-03-03,"This version introduces a graphical microcode editor and debugger for Pep/9 and Pep/10"
 0.15.1,,2026-03-07,"This version fixes bugs various bugs for microcode projects and brings the behavior more in line with Pep9CPU"
 0.15.2,,2026-03-12,"This version improves the text editing experience for microcode and assembly projects"
-0.15.3,,????-??-??,"This version includes further microcode fixes"
+0.15.3,,2026-03-21,"This version fixes a bug in the Pep/10 operating system"

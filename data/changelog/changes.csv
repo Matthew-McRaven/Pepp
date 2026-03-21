@@ -245,3 +245,4 @@ Fixed,,0.15.2,1076,"Clear incorrect microcode addresses on microassembler errors
 Fixed,,0.15.2,1077,"Improve error recover of microassembler by preventing cascading syntax errors"
 Fixed,,0.15.2,893,"Add horizontal scroll bars to microcode, assembly editors"
 Fixed,,0.15.2,1081,"Fixed incorrect vertical scroll bar calculations & jumps"
+Fixed,,0.15.3,1083,"Fix operand decoding for SCALL,i instructions with full OS"
