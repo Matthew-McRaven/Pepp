@@ -44,7 +44,7 @@ class GraphicCanvas : public QQuickPaintedItem {
   //  Set and access datamodel and template
   Q_PROPERTY(DiagramDataModel *model READ model WRITE setModel NOTIFY boundsChanged FINAL)
   Q_PROPERTY(DiagramTemplate *template READ stamp WRITE setStamp NOTIFY stampChanged FINAL)
-  Q_PROPERTY(DiagramProperties *currentItem READ currentItem NOTIFY currentItemChanged FINAL)
+  Q_PROPERTY(DiagramProperties *currentDiagram READ currentDiagram NOTIFY currentItemChanged FINAL)
   Q_PROPERTY(FilterDiagramListModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
 
 public:
@@ -85,8 +85,8 @@ public:
   DiagramTemplate *stamp() const { return _template; }
   void setStamp(DiagramTemplate *stamp);
 
-  DiagramProperties *currentItem() const { return _currentItem; }
-  void setCurrentItem(DiagramProperties *item);
+  DiagramProperties *currentDiagram() const { return _currentDiagram; }
+  void setCurrentDiagram(DiagramProperties *item);
 
   auto filter() const { return _filter; }
   void setFilter(const FilterDiagramListModel::Filter filter);
@@ -123,7 +123,8 @@ private:
 
   //  Custom mouse event handlers
   void contextMenuEvent(QMouseEvent *event);
-  void mouseLeftClickEvent(QMouseEvent *event, const PeppPt &index);
+  void mouseLeftClickEvent(QMouseEvent *event, const PeppPt &point);
+  void lineLeftClickEvent(QMouseEvent *event, const PeppPt &point);
 
   // Helepr for painting a single rect that has already "passed" the clipping test.
   void paint_one(QPainter *painter, DiagramProperties *props);
@@ -203,9 +204,12 @@ private:
   //  Drag start
   QPointF _dragStartPosition{-1, -1};
 
+  //  Line information
+  PeppPt _firstPoint;
+
   //  Data model
   DiagramDataModel *_model = nullptr;
   DiagramTemplate *_template = nullptr;
-  DiagramProperties *_currentItem = nullptr;
+  DiagramProperties *_currentDiagram = nullptr;
   FilterDiagramListModel::Filter _filter = FilterDiagramListModel::None;
 };

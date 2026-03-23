@@ -90,9 +90,9 @@ void GraphicCanvas::setStamp(DiagramTemplate *stamp) {
   }
 }
 
-void GraphicCanvas::setCurrentItem(DiagramProperties *item) {
-  if (item != _currentItem) {
-    _currentItem = item;
+void GraphicCanvas::setCurrentDiagram(DiagramProperties *item) {
+  if (item != _currentDiagram) {
+    _currentDiagram = item;
     update();
     emit currentItemChanged();
   }
@@ -158,7 +158,7 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
 
   //  This is a line, but it's not connected
   //  For testing only
-  /*addLine(from, to);*/
+  addLine(from, to);
 
   /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
 
@@ -401,7 +401,7 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   if (data == nullptr) return nullptr;
 
   //  Newly added items are always current item
-  setCurrentItem(data);
+  setCurrentDiagram(data);
 
   //  Add block data
   setGrid(data, row, col);
@@ -525,19 +525,19 @@ void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to) {
 }
 
 void GraphicCanvas::rotateClockwise() {
-  if (_currentItem == nullptr) return;
+  if (_currentDiagram == nullptr) return;
 
-  _currentItem->setOrientation(_currentItem->orientation() + 90);
+  _currentDiagram->setOrientation(_currentDiagram->orientation() + 90);
 
   //  Repaint rectangle
   update();
 }
 
 void GraphicCanvas::rotateCounterClockwise() {
-  if (_currentItem == nullptr) return;
+  if (_currentDiagram == nullptr) return;
 
-  const int orientation = _currentItem->orientation() == 0 ? 270 : _currentItem->orientation() - 90;
-  _currentItem->setOrientation(orientation);
+  const int orientation = _currentDiagram->orientation() == 0 ? 270 : _currentDiagram->orientation() - 90;
+  _currentDiagram->setOrientation(orientation);
 
   //  Repaint rectangle
   update();
@@ -590,35 +590,40 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
   //  Mouse location in grid coordinates to
   //  to determine rectangle hit.
   const auto point = screen_to_grid(event->position());
-  // qDebug() << event->pos() << event->position();
 
-  //  See if existing item was clicked
-  const auto found = setSelected(point);
+  if (_filter == FilterDiagramListModel::Line) {
+    if (event->button() == Qt::LeftButton) {
+      lineLeftClickEvent(event, point);
+      return;
+    }
+  }
 
   //  Check if context menu
   if (event->button() == Qt::RightButton) {
     contextMenuEvent(event);
   } else if (event->button() == Qt::LeftButton) {
+    //  See if existing item was clicked
+    const auto found = setSelected(point);
     if (found)
       //  Handle drag event
       _dragStartPosition = event->position();
     else {
-      //  Images are stored by row and column.
-      //  Due to integer math, items closer to next row or column are still in same column/row.
-      //  Calculate rounding difference
-      const auto index = grid_to_index(point);
-
-      mouseLeftClickEvent(event, index);
+      mouseLeftClickEvent(event, point);
     }
   }
 }
 
-void GraphicCanvas::mouseLeftClickEvent(QMouseEvent *event, const PeppPt &index) {
+void GraphicCanvas::mouseLeftClickEvent(QMouseEvent *event, const PeppPt &point) {
   //  No template is selected, just return
   if (_template == nullptr) {
     event->setAccepted(false);
     return;
   }
+
+  //  Images are stored by row and column.
+  //  Due to integer math, items closer to next row or column are still in same column/row.
+  //  Calculate rounding difference
+  const auto index = grid_to_index(point);
 
   //  If we get here, we have a new item. Insert into canvas
   //  Use coordinate as center point
@@ -627,6 +632,8 @@ void GraphicCanvas::mouseLeftClickEvent(QMouseEvent *event, const PeppPt &index)
   //  If no data is returned, the column is invalid. Assume parent will handle
   event->setAccepted(data != nullptr ? true : false);
 }
+
+void GraphicCanvas::lineLeftClickEvent(QMouseEvent *event, const PeppPt &point) { event->setAccepted(false); }
 
 bool GraphicCanvas::setSelected(const PeppPt &point) {
   bool found{false};
@@ -642,7 +649,7 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
         _model->setData(index, false, DiagramProperty::Role::Selected);
 
         //  Update unselected rectangle
-        setCurrentItem(nullptr);
+        setCurrentDiagram(nullptr);
       }
       continue;
     }
@@ -653,7 +660,7 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
     const auto index = _model->index(props->key().left(), props->key().top());
     _model->setData(index, true, DiagramProperty::Role::Selected);
 
-    setCurrentItem(props.get());
+    setCurrentDiagram(props.get());
     //  Update current rectangle
     // update();
 
@@ -668,9 +675,9 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
 /*void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {
   // qDebug() << "MouseRelease" << event;
   // setCursor(Qt::ArrowCursor);
-}*/
+}
 
-/*
+
 void GraphicCanvas::mouseUngrabEvent() {}
 
 void GraphicCanvas::hoverEnterEvent(QHoverEvent *event) {}
@@ -847,7 +854,7 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
     moveDiagram(oldLocation, newLocation);
 
     //  Remap paint grid after move
-    setGrid(_currentItem, newLocation.x(), newLocation.y());
+    setGrid(_currentDiagram, newLocation.x(), newLocation.y());
 
     update();
 
@@ -866,7 +873,7 @@ void GraphicCanvas::startDrag(const QPoint point) {
   //  Temporarily remove item from lookup. During hit detection, item
   //  will return true when pointing to self. Item is reset or saved
   //  in drop event.
-  if (_currentItem == nullptr) {
+  if (_currentDiagram == nullptr) {
     return;
   }
 
@@ -878,7 +885,7 @@ void GraphicCanvas::startDrag(const QPoint point) {
   QDataStream dataStream(&itemData, QIODevice::WriteOnly);
 
   //  Save old data to stream
-  dataStream << _currentItem->key().left() << _currentItem->key().top();
+  dataStream << _currentDiagram->key().left() << _currentDiagram->key().top();
 
   QMimeData *mimeData = new QMimeData;
   mimeData->setData("application/x-dnditemdata", itemData);
@@ -887,7 +894,7 @@ void GraphicCanvas::startDrag(const QPoint point) {
   //  Size image based on current zoom and screen DPI. Margin is in grid coordinates, and
   //  there are 2 equal margins.
   const auto curSize = (screen_block - (_margin * grid_to_px * 2)) * _currentZoom;
-  auto dragPix = _currentItem->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
+  auto dragPix = _currentDiagram->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
   drag->setPixmap(dragPix);
 
   //  Use center point for hit detection
@@ -914,7 +921,7 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
 
   if (lastPt != newLocation) {
     lastPt = newLocation;
-    lastResult = _model->dataModel().canMoveData(_currentItem->id(), newLocation);
+    lastResult = _model->dataModel().canMoveData(_currentDiagram->id(), newLocation);
     qDebug() << lastPt.x() << lastPt.y() << lastResult;
   }
   //  Can move is True if there is no hit. Flip to indicate if hit or not
@@ -928,11 +935,11 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
 
   switch (key) {
   case Qt::Key_Delete:
-    if (_currentItem != nullptr) {
-      _model->dataModel().clearDiagramData(_currentItem->key());
+    if (_currentDiagram != nullptr) {
+      _model->dataModel().clearDiagramData(_currentDiagram->key());
 
       //  Clear current item, and notify QML
-      setCurrentItem(nullptr);
+      setCurrentDiagram(nullptr);
     }
     return true;
 
@@ -944,37 +951,37 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
     //  Nove item is current. Othewise move background.
     //  Control also means move background
   case Qt::Key_Left:
-    if (_currentItem != nullptr && !ctr) {
+    if (_currentDiagram != nullptr && !ctr) {
       //  We are moving item
-      PeppPt newLocation = _currentItem->key().top_left();
+      PeppPt newLocation = _currentDiagram->key().top_left();
       //  Do not move beyond left margin
       newLocation.setX(std::max(2, newLocation.x() - 1));
-      moveDiagram(_currentItem->key().top_left(), newLocation);
+      moveDiagram(_currentDiagram->key().top_left(), newLocation);
     } else setHScroll(-1);
     return true;
   case Qt::Key_Right:
-    if (_currentItem != nullptr && !ctr) {
+    if (_currentDiagram != nullptr && !ctr) {
       //  We are moving item
-      PeppPt newLocation = _currentItem->key().top_left();
+      PeppPt newLocation = _currentDiagram->key().top_left();
       newLocation.setX(newLocation.x() + 1);
-      moveDiagram(_currentItem->key().top_left(), newLocation);
+      moveDiagram(_currentDiagram->key().top_left(), newLocation);
     } else setHScroll(1);
     return true;
   case Qt::Key_Up:
-    if (_currentItem != nullptr && !ctr) {
+    if (_currentDiagram != nullptr && !ctr) {
       //  We are moving item
-      PeppPt newLocation = _currentItem->key().top_left();
+      PeppPt newLocation = _currentDiagram->key().top_left();
       //  Do not move beyond top margin
       newLocation.setY(std::max(2, newLocation.y() - 1));
-      moveDiagram(_currentItem->key().top_left(), newLocation);
+      moveDiagram(_currentDiagram->key().top_left(), newLocation);
     } else setVScroll(-1);
     return true;
   case Qt::Key_Down:
-    if (_currentItem != nullptr && !ctr) {
+    if (_currentDiagram != nullptr && !ctr) {
       //  We are moving item
-      PeppPt newLocation = _currentItem->key().top_left();
+      PeppPt newLocation = _currentDiagram->key().top_left();
       newLocation.setY(newLocation.y() + 1);
-      moveDiagram(_currentItem->key().top_left(), newLocation);
+      moveDiagram(_currentDiagram->key().top_left(), newLocation);
     } else setVScroll(1);
     return true;
     /*case Qt::Key_PageUp:
