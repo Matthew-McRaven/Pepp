@@ -88,6 +88,9 @@ public:
   DiagramProperties *currentDiagram() const { return _currentDiagram; }
   void setCurrentDiagram(DiagramProperties *item);
 
+  LineProperties *currentLine() const { return _currentLine; }
+  void setCurrentLine(LineProperties *item);
+
   auto filter() const { return _filter; }
   void setFilter(const FilterDiagramListModel::Filter filter);
 
@@ -123,7 +126,7 @@ private:
 
   //  Custom mouse event handlers
   void contextMenuEvent(QMouseEvent *event);
-  void mouseLeftClickEvent(QMouseEvent *event, const PeppPt &point);
+  void diagramLeftClickEvent(QMouseEvent *event, const PeppPt &point);
   void lineLeftClickEvent(QMouseEvent *event, const PeppPt &point);
 
   // Helepr for painting a single rect that has already "passed" the clipping test.
@@ -142,8 +145,11 @@ private:
   void moveDiagram(PeppPt oldLocation, PeppPt newLocation);
   bool hitTest(QPointF newPoint) const;
 
-  //  Sets currently selected diagram
-  bool setSelected(const PeppPt &point);
+  //  Sets currently selected diagram/line
+  bool setSelectedDiagram(const PeppPt &point);
+  bool setSelectedLine(const PeppPt &point);
+  void unselectDiagrams();
+  void unselectLines();
 
   //  Render and cache images for painting
   void cacheImages(const QString &source);
@@ -199,13 +205,14 @@ private:
 
   //  Make fixed color for now
   QColor _highlight = QColorConstants::Svg::cornflowerblue;
-  QColor _line = QColorConstants::Svg::black;
+  QColor _normal = QColorConstants::Svg::black;
 
   //  Drag start
   QPointF _dragStartPosition{-1, -1};
 
   //  Line information
-  PeppPt _firstPoint;
+  PeppPt _firstPoint{-1, -1};
+  LineProperties *_currentLine = nullptr;
 
   //  Data model
   DiagramDataModel *_model = nullptr;

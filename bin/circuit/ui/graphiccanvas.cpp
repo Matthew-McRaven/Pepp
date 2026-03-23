@@ -98,6 +98,14 @@ void GraphicCanvas::setCurrentDiagram(DiagramProperties *item) {
   }
 }
 
+void GraphicCanvas::setCurrentLine(LineProperties *item) {
+  if (item != _currentLine) {
+    _currentLine = item;
+    update();
+    emit currentItemChanged();
+  }
+}
+
 void GraphicCanvas::setFilter(const FilterDiagramListModel::Filter filter) {
   if (filter != _filter) {
     _filter = filter;
@@ -384,8 +392,9 @@ void GraphicCanvas::paint_line(QPainter *painter, const LineProperties *props) {
   const auto screenTo = grid_to_screen(props->outputPoint());
   const auto screenFrom = grid_to_screen(props->inputPoint());
 
-  //  Check state, and set outline if selected
-  painter->setPen(QPen(_line, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+  //  Check state, and set color if selected
+  QColor color = props->selected() ? _highlight : _normal;
+  painter->setPen(QPen(color, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
   painter->drawLine(screenTo, screenFrom);
 }
 
@@ -556,7 +565,7 @@ void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {
   const auto point = screen_to_grid(event->position());
 
   //  See if existing item was clicked
-  if (setSelected(point)) {
+  if (setSelectedDiagram(point)) {
     startDrag(event->pos());
 
     //  Another item was selected
@@ -587,33 +596,41 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
     return;
   }
 
+  //  Check if context menu
+  if (event->button() == Qt::RightButton) {
+    if (_filter != FilterDiagramListModel::Line) {
+      contextMenuEvent(event);
+    }
+    return;
+  }
+
   //  Mouse location in grid coordinates to
   //  to determine rectangle hit.
   const auto point = screen_to_grid(event->position());
 
-  if (_filter == FilterDiagramListModel::Line) {
+  //  Prioritize diagram hits over line hits
+  const auto areDiagrams = setSelectedDiagram(point);
+  if (areDiagrams || _filter == FilterDiagramListModel::Diagram) {
+    //  See if existing item was clicked
+    if (areDiagrams)
+      //  Handle drag event
+      _dragStartPosition = event->position();
+    else {
+      diagramLeftClickEvent(event, point);
+    }
+    return;
+  }
+
+  const auto areLines = setSelectedLine(point);
+  if (areLines || _filter == FilterDiagramListModel::Line) {
     if (event->button() == Qt::LeftButton) {
       lineLeftClickEvent(event, point);
       return;
     }
   }
-
-  //  Check if context menu
-  if (event->button() == Qt::RightButton) {
-    contextMenuEvent(event);
-  } else if (event->button() == Qt::LeftButton) {
-    //  See if existing item was clicked
-    const auto found = setSelected(point);
-    if (found)
-      //  Handle drag event
-      _dragStartPosition = event->position();
-    else {
-      mouseLeftClickEvent(event, point);
-    }
-  }
 }
 
-void GraphicCanvas::mouseLeftClickEvent(QMouseEvent *event, const PeppPt &point) {
+void GraphicCanvas::diagramLeftClickEvent(QMouseEvent *event, const PeppPt &point) {
   //  No template is selected, just return
   if (_template == nullptr) {
     event->setAccepted(false);
@@ -633,10 +650,19 @@ void GraphicCanvas::mouseLeftClickEvent(QMouseEvent *event, const PeppPt &point)
   event->setAccepted(data != nullptr ? true : false);
 }
 
-void GraphicCanvas::lineLeftClickEvent(QMouseEvent *event, const PeppPt &point) { event->setAccepted(false); }
+void GraphicCanvas::lineLeftClickEvent(QMouseEvent *event, const PeppPt &point) {
+  //  Due to integer math, items closer to next row or column are still in same column/row.
+  //  Calculate rounding difference
+  const auto index = grid_to_index(point);
 
-bool GraphicCanvas::setSelected(const PeppPt &point) {
+  event->setAccepted(false);
+}
+
+bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
   bool found{false};
+
+  //  If selecting diagram, then unselect all lines
+  unselectLines();
 
   //  See if existing item was clicked and clear selection
   for (auto &props : _model->dataModel().cells()) {
@@ -645,11 +671,18 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
       if (props->selected()) {
         //  Item was previously selected, clear old outline
         //  Set through datamodel so that other controls see change
-        const auto index = _model->index(props->key().left(), props->key().top());
-        _model->setData(index, false, DiagramProperty::Role::Selected);
+        // const auto index = _model->index(props->key().left(), props->key().top());
+        //_model->setData(index, false, DiagramProperty::Role::Selected);
+
+        //  Bypass model
+        props->setSelected(false);
 
         //  Update unselected rectangle
         setCurrentDiagram(nullptr);
+
+        //  Signal update to QML controls
+        // index = _model->index(props->key().left(), props->key().top());
+        //_model->update(index);
       }
       continue;
     }
@@ -657,19 +690,82 @@ bool GraphicCanvas::setSelected(const PeppPt &point) {
     //  Item exists and is selected, update view
     //  Save current item for other actions
     //  Set through view so that other controls see change
-    const auto index = _model->index(props->key().left(), props->key().top());
-    _model->setData(index, true, DiagramProperty::Role::Selected);
+    // index = _model->index(props->key().left(), props->key().top());
+    //_model->setData(index, true, DiagramProperty::Role::Selected);
+
+    //  Bypass model
+    props->setSelected(true);
 
     setCurrentDiagram(props.get());
-    //  Update current rectangle
-    // update();
+
+    //  Signal update to QML controls
+    const auto index = _model->index(props->key().left(), props->key().top());
+    _model->setCurrentIndex(index);
 
     found = true;
-
-    //  Let QML know that current item has changed.
-    // emit currentItemChanged();
   }
+  //  Repaint
+  update();
+
   return found;
+}
+
+bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
+  bool found{false};
+
+  //  Line was selected. Clear diagram selection
+  unselectDiagrams();
+
+  //  See if existing item was clicked and clear selection
+  for (auto &props : _model->dataModel().lines()) {
+    // Skip painting rectangles that are outside the viewport.
+    if (!pepp::core::contains(props->gridRectangle(), point)) {
+      if (props->selected()) {
+        //  Item was previously selected, clear old highlight
+        //  Bypass model
+        props->setSelected(false);
+
+        //  Update unselected rectangle
+        setCurrentLine(nullptr);
+      }
+      continue;
+    }
+
+    //  Bypass model
+    props->setSelected(true);
+
+    setCurrentLine(props.get());
+
+    //  Signal update to QML controls
+    const auto index = _model->index(props->key().left(), props->key().top());
+    _model->setCurrentIndex(index);
+
+    found = true;
+  }
+  //  Repaint
+  update();
+
+  return found;
+}
+
+//  Used to clear all diagram selections
+void GraphicCanvas::unselectDiagrams() {
+  for (auto &props : _model->dataModel().cells()) {
+    props->setSelected(false);
+  }
+
+  //  Update unselected rectangle
+  setCurrentDiagram(nullptr);
+}
+
+//  Used to clear all line selections
+void GraphicCanvas::unselectLines() {
+  for (auto &props : _model->dataModel().lines()) {
+    props->setSelected(false);
+  }
+
+  //  Update unselected rectangle
+  setCurrentLine(nullptr);
 }
 
 /*void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {
@@ -922,7 +1018,7 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
   if (lastPt != newLocation) {
     lastPt = newLocation;
     lastResult = _model->dataModel().canMoveData(_currentDiagram->id(), newLocation);
-    qDebug() << lastPt.x() << lastPt.y() << lastResult;
+    // qDebug() << lastPt.x() << lastPt.y() << lastResult;
   }
   //  Can move is True if there is no hit. Flip to indicate if hit or not
   return !lastResult;
