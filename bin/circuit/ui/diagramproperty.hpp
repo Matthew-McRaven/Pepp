@@ -153,7 +153,6 @@ public:
   QList<PeppRect> &pins() { return _pins; }
 
 private:
-  void recalcPins();
   QList<LineProperties *> _lines;
   QList<PeppRect> _pins;
   quint16 _minSize = 1;

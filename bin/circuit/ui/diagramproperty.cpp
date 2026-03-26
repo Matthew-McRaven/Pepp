@@ -134,19 +134,13 @@ PeppRect LineProperties::recalculateGridRect(const DiagramProperties *inputDiagr
 Pins::Pins(const PinType type, QObject *parent) : _type(type), QObject(parent) {
   //  Set pin locations as a percentage within space. This space may be rotated in diagram.
   // Diagram will calculate final location.
-  recalcPins();
 };
 
-void Pins::recalcPins() {
-  //_pins.clear();
-  // for (double i = 0; i < _maxSize; ++i) _pins.append(((i + 1) / _maxSize) - 0.5);
-}
 
 bool Pins::addLine(LineProperties *line) {
   //  Limit to maximum size. Return false if too many
   if (_lines.size() <= _maxSize) {
     _lines.append(line);
-    recalcPins();
     return true;
   }
   return false;
@@ -157,7 +151,6 @@ bool Pins::removeLine(LineProperties *line) {
   if (index != 1) {
     //  Found
     _lines.removeAt(index);
-    recalcPins();
     return true;
   }
   return false;
@@ -166,7 +159,6 @@ bool Pins::removeLine(LineProperties *line) {
 void Pins::setMaxSize(const quint16 size) {
   if (_maxSize != size) {
     _maxSize = size;
-    recalcPins();
   }
 }
 
