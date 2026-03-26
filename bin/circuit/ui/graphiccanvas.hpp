@@ -127,7 +127,7 @@ private:
   //  Custom mouse event handlers
   void contextMenuEvent(QMouseEvent *event);
   void diagramLeftClickEvent(QMouseEvent *event, const PeppPt &point);
-  void lineLeftClickEvent(QMouseEvent *event, const PeppPt &point);
+  void lineLeftClickEvent(QMouseEvent *event, DiagramProperties *current);
 
   // Helepr for painting a single rect that has already "passed" the clipping test.
   void paint_one(QPainter *painter, DiagramProperties *props);
@@ -180,7 +180,9 @@ private:
   qreal _currentZoom = 1.0;
 
   //  Grid dimensions (logical size, screen size is this times grid_to_px
+  const i16 lines_per_minor = 4;
   const i16 minor_per_major = 4;
+  const i16 line_block_size = 2;
   const i16 minor_block_size = 8;
   const i16 major_block_size = minor_block_size * minor_per_major;
   const float screen_block = major_block_size * grid_to_px;
@@ -211,7 +213,7 @@ private:
   QPointF _dragStartPosition{-1, -1};
 
   //  Line information
-  PeppPt _firstPoint{-1, -1};
+  DiagramProperties *_firstPoint = nullptr;
   LineProperties *_currentLine = nullptr;
 
   //  Data model

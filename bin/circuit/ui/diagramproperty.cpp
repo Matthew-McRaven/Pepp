@@ -131,7 +131,48 @@ PeppRect LineProperties::recalculateGridRect(const DiagramProperties *inputDiagr
   else return outputDiagram->gridRectangle();
 }
 
-DiagramProperties::DiagramProperties(QObject *parent) : BaseProperties(parent) {}
+Pins::Pins(const PinType type, QObject *parent) : _type(type), QObject(parent) {
+  //  Set pin locations as a percentage within space. This space may be rotated in diagram.
+  // Diagram will calculate final location.
+  recalcPins();
+};
+
+void Pins::recalcPins() {
+  //_pins.clear();
+  // for (double i = 0; i < _maxSize; ++i) _pins.append(((i + 1) / _maxSize) - 0.5);
+}
+
+bool Pins::addLine(LineProperties *line) {
+  //  Limit to maximum size. Return false if too many
+  if (_lines.size() <= _maxSize) {
+    _lines.append(line);
+    recalcPins();
+    return true;
+  }
+  return false;
+}
+
+bool Pins::removeLine(LineProperties *line) {
+  auto index = _lines.indexOf(line);
+  if (index != 1) {
+    //  Found
+    _lines.removeAt(index);
+    recalcPins();
+    return true;
+  }
+  return false;
+}
+
+void Pins::setMaxSize(const quint16 size) {
+  if (_maxSize != size) {
+    _maxSize = size;
+    recalcPins();
+  }
+}
+
+DiagramProperties::DiagramProperties(QObject *parent) : BaseProperties(parent) {
+  _outputPins.setType(Pins::PinType::Output);
+}
 
 QVariant DiagramProperties::get(int role) const {
   switch (role) {
@@ -207,8 +248,11 @@ void DiagramProperties::setType(const DiagramType::Type v) {
 }
 
 void DiagramProperties::setInputNo(const quint16 v) {
-  if (_properties.inputNo != v) {
+  if (_properties.inputNo != v || _inputPins.pins().count() == 0) {
     _properties.inputNo = v;
+    // updateInputPt();
+    updateInputPinPt();
+
     emit inputChanged();
   }
 }
@@ -233,7 +277,14 @@ void DiagramProperties::setOrientation(const quint32 v) {
 
     //  Rotation affects line placement
     updateInputPt();
-    updateOutputPt();
+    updateInputPinPt();
+    // updateInputPt();
+    // updateOutputPt();
+
+    emit imageChanged();
+  } else if (_inputPins.pins().count() == 0) {
+    //  Rotation affects line placement
+    updateInputPinPt();
 
     emit imageChanged();
   }
@@ -244,8 +295,8 @@ void DiagramProperties::setKey(const PeppRect &v) {
     //  Line key is based on diagram key
     //  Diagram key only changes when moving
     //  Allow lines to recalculate when diagram changes
-    updateInputKey();
-    updateOutputKey();
+    // updateInputKey();
+    // updateOutputKey();
     emit dimensionsChanged();
   }
 }
@@ -253,8 +304,8 @@ void DiagramProperties::setKey(const PeppRect &v) {
 void DiagramProperties::setGridRectangle(const PeppRect &v) {
   if (BaseProperties::setGridRectangle(v)) {
     //  Movement affects line placement
-    updateInputPt();
-    updateOutputPt();
+    // updateInputPt();
+    // updateOutputPt();
 
     emit dimensionsChanged();
   }
@@ -292,6 +343,71 @@ PeppPt DiagramProperties::output() const {
   }
 
   return {x, y};
+}
+
+void DiagramProperties::updateInputPt() {
+  const auto cnt = _inputPins.size();
+  if (cnt > 0) {
+    //  Input is 180 degrees from output
+    /*const auto orientation = (_properties.orientation + 180) % 360;
+    const bool horizontal = (orientation % 180) == 0;
+    const auto centerPt = input();
+    qint32 pinWidth = 20;
+    qint32 offset = -pinWidth / 2;
+    auto maxSize = _inputPins.maxSize();
+    double delta = pinWidth / maxSize;
+
+    PeppPt pt;
+    if (horizontal) {
+      pt = centerPt.translated(offset, 0);
+    } else {
+      pt = centerPt.translated(0, offset);
+    }
+
+    //  Reset pins
+    _inputPins.pins().clear();
+
+    //  Create pin endpoints
+    for (int i = 0; i < maxSize; ++i) {
+      _inputPins.pins().push_back({pt, PeppSize{2, 2}});
+      if (horizontal) {
+        pt.setY(pt.y() + delta);
+      } else {
+        pt.setX(pt.x() + delta);
+      }
+    }*/
+  }
+}
+
+void DiagramProperties::updateInputPinPt() {
+  //  Input is 180 degrees from output
+  auto orientation = (_properties.orientation + 180) % 360;
+  bool horizontal = (orientation % 180) == 0;
+  const auto centerPt = input();
+  auto maxSize = _inputPins.maxSize();
+  auto pinWidth = maxSize;
+  auto offset = -pinWidth / 2; // + _margin;
+  auto delta = pinWidth / maxSize;
+
+  PeppPt pt;
+  if (horizontal) {
+    pt = centerPt.translated(0, offset);
+  } else {
+    pt = centerPt.translated(offset, 0);
+  }
+
+  //  Reset pins
+  _inputPins.pins().clear();
+
+  //  Create pin endpoints
+  for (int i = 0; i < maxSize; ++i) {
+    _inputPins.pins().emplace_back(pt, PeppSize{1, 1});
+    if (horizontal) {
+      pt.setY(pt.y() + delta);
+    } else {
+      pt.setX(pt.x() + delta);
+    }
+  }
 }
 
 PeppPt DiagramProperties::input() const {

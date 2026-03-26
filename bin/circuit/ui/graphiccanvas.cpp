@@ -126,15 +126,15 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   const int rows = 10;
   const int cols = 10;
 
-  DiagramProperties *from = addDiagram(2, 3);
-  if (from == nullptr) return;
+  DiagramProperties *to = addDiagram(2, 3);
+  if (to == nullptr) return;
 
   //  Add block data
-  from->setName(lookup[0]);
-  from->setType(DiagramType::ANDGate);
-  from->setOrientation(0);
-  from->setSelected(false);
-  getImage(*from);
+  to->setName(lookup[0]);
+  to->setType(DiagramType::ANDGate);
+  to->setOrientation(0);
+  to->setSelected(false);
+  getImage(*to);
 
   /*MATTHEW START TEST DATA*/
 
@@ -155,18 +155,38 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   // MATTHEW END TEST DATA*/
 
   //  data life time managed by model
-  DiagramProperties *to = addDiagram(4, 7);
-  if (to == nullptr) return;
+  DiagramProperties *from1 = addDiagram(6, 2);
+  if (from1 == nullptr) return;
 
   //  Add block data
-  to->setName(lookup[2]);
-  to->setType(DiagramType::Inverter);
-  to->setOrientation(90);
-  getImage(*to);
+  from1->setName(lookup[2]);
+  from1->setType(DiagramType::Inverter);
+  from1->setOrientation(180);
+  from1->setSelected(false);
+  getImage(*from1);
 
-  //  This is a line, but it's not connected
-  //  For testing only
-  addLine(from, to);
+  // addLine(from1, to);
+
+  //  data life time managed by model
+  DiagramProperties *from2 = addDiagram(2, 10);
+  if (from2 == nullptr) return;
+
+  //  Add block data
+  from2->setName(lookup[5]);
+  from2->setType(DiagramType::XORGate);
+  from2->setOrientation(270);
+  getImage(*from2);
+
+  // addLine(from2, to);
+
+  //  Add block data
+  DiagramProperties *to2 = addDiagram(6, 10);
+  if (to2 == nullptr) return;
+  to2->setName(lookup[4]);
+  to2->setType(DiagramType::NORGate);
+  to2->setOrientation(90);
+  to2->setSelected(false);
+  getImage(*to2);
 
   /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
 
@@ -381,9 +401,16 @@ void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
 
   //  Print grid is slightly out of alignment with background.
   //  This is a shim to match diagram placement with background.
-  screen_rect.adjust(-3, 1, -3, 1); // 0,2,0,0
+  // screen_rect.adjust(-3, 1, -3, 1); // 0,2,0,0
 
+  //  Paint diagram
   painter->drawPixmap(screen_rect.toRect(), *props->image());
+
+  //  Paint input pins
+  painter->setPen(QPen(QColorConstants::Svg::aqua, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+  for (const auto &iPin : props->inputPins()) {
+    painter->drawEllipse(grid_to_screen(iPin));
+  }
 }
 
 void GraphicCanvas::paint_line(QPainter *painter, const LineProperties *props) {
@@ -429,7 +456,7 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
 
 void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
   //  Calculate maximum line dimensions
-  const auto key = LineProperties::recalculateKey(from, to);
+  const auto key = LineProperties::recalculateKey(from, /*to*/ from);
 
   LineProperties *line = _model->dataModel().createLineProps(key);
 
@@ -612,22 +639,24 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
   const auto areDiagrams = setSelectedDiagram(point);
   if (areDiagrams || _filter == FilterDiagramListModel::Diagram) {
     //  See if existing item was clicked
-    if (areDiagrams)
-      //  Handle drag event
-      _dragStartPosition = event->position();
-    else {
+    if (areDiagrams) {
+      if (_filter == FilterDiagramListModel::Line) {
+        //  If filter is a line, then we are adding line
+        lineLeftClickEvent(event, _currentDiagram);
+      } else {
+        //  If diagram, we are handling a drag event
+        _dragStartPosition = event->position();
+      }
+    } else {
       diagramLeftClickEvent(event, point);
     }
     return;
   }
+  // if (_filter == FilterDiagramListModel::Line) {
+  // }
 
-  const auto areLines = setSelectedLine(point);
-  if (areLines || _filter == FilterDiagramListModel::Line) {
-    if (event->button() == Qt::LeftButton) {
-      lineLeftClickEvent(event, point);
-      return;
-    }
-  }
+  //  User did not pick diagram, see if line is selected
+  setSelectedLine(point);
 }
 
 void GraphicCanvas::diagramLeftClickEvent(QMouseEvent *event, const PeppPt &point) {
@@ -650,12 +679,26 @@ void GraphicCanvas::diagramLeftClickEvent(QMouseEvent *event, const PeppPt &poin
   event->setAccepted(data != nullptr ? true : false);
 }
 
-void GraphicCanvas::lineLeftClickEvent(QMouseEvent *event, const PeppPt &point) {
-  //  Due to integer math, items closer to next row or column are still in same column/row.
-  //  Calculate rounding difference
-  const auto index = grid_to_index(point);
+void GraphicCanvas::lineLeftClickEvent(QMouseEvent *event, DiagramProperties *current) {
 
-  event->setAccepted(false);
+  if (current == nullptr) {
+    event->setAccepted(false);
+  }
+
+  if (_firstPoint == nullptr) {
+    //  User clicked on start diagram
+    _firstPoint = current;
+  } else {
+    //  User clicked on endpoint. Create line
+    addLine(_firstPoint, current);
+
+    //  Reset first point
+    _firstPoint = nullptr;
+
+    //  Refresh screen to show line
+    update();
+  }
+  event->setAccepted(true);
 }
 
 bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {

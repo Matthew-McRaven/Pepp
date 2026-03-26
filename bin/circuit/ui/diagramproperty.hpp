@@ -3,7 +3,6 @@
 #include <QMetaType> // Required for Q_DECLARE_METATYPE
 #include <QObject>
 #include <QRect>
-#include <QSharedPointer>
 #include <QtQml/qqmlregistration.h> // Required header for QML_ELEMENT
 
 #include "core/math/geom/rectangle.hpp"
@@ -133,6 +132,39 @@ private:
   LineProperty _properties;
 };
 
+class Pins : public QObject {
+
+public:
+  enum PinType {
+    Input = 0,
+    Output,
+  };
+  explicit Pins(const PinType type = PinType::Input, QObject *parent = nullptr);
+  auto size() const { return _lines.size(); }
+  bool addLine(LineProperties *line);
+  bool removeLine(LineProperties *line);
+
+  quint16 minSize() const { return _minSize; }
+  void setMinSize(const quint16 size) { _minSize = size; }
+  quint16 maxSize() const { return _maxSize; }
+  void setMaxSize(const quint16 size);
+  PinType type() const { return _type; }
+  void setType(const PinType type) { _type = type; }
+
+  const QList<LineProperties *> &lines() const { return _lines; }
+  QList<LineProperties *> &lines() { return _lines; }
+  const QList<PeppRect> &pins() const { return _pins; }
+  QList<PeppRect> &pins() { return _pins; }
+
+private:
+  void recalcPins();
+  QList<LineProperties *> _lines;
+  QList<PeppRect> _pins;
+  quint16 _minSize = 1;
+  quint16 _maxSize = 8;
+  PinType _type = PinType::Input;
+};
+
 class DiagramProperties : public BaseProperties {
   Q_OBJECT
   QML_ELEMENT
@@ -161,42 +193,36 @@ public:
 
   PeppPt input() const;
   PeppPt output() const;
-  LineProperties *outputPoint() const { return _output; }
+  // LineProperties *outputPoint() const { return _output; }
   void setOutputPoint(LineProperties *line) {
-    _output = line;
-    updateOutputPt();
+    _outputPins.addLine(line);
+    updateOutputPt(line);
   }
-  LineProperties *inputPoint() const { return _input; }
+  // LineProperties *inputPoint() const { return _input; }
   void setInputPoint(LineProperties *line) {
-    _input = line;
+    _inputPins.addLine(line);
     updateInputPt();
   }
 
-  void updateInputKey() {
-    if (_input != nullptr) {
+  void updateInputKey(LineProperties *line) {
+    if (line != nullptr) {
       //  Input is 180 degrees from output
-      _input->diagramKeyChanged();
+      line->diagramKeyChanged();
     }
   }
 
-  void updateOutputKey() {
-    if (_output != nullptr) {
-      _output->diagramKeyChanged();
+  void updateOutputKey(LineProperties *line) {
+    if (line != nullptr) {
+      line->diagramKeyChanged();
     }
   }
 
-  void updateInputPt() {
-    if (_input != nullptr) {
-      //  Input is 180 degrees from output
-      _input->setInputDirection((_properties.orientation + 180) % 360);
-      _input->setInputPoint(input());
-    }
-  }
+  void updateInputPt();
 
-  void updateOutputPt() {
-    if (_output != nullptr) {
-      _output->setOutputDirection(_properties.orientation);
-      _output->setOutputPoint(output());
+  void updateOutputPt(LineProperties *line) {
+    if (line != nullptr) {
+      line->setOutputDirection(_properties.orientation);
+      line->setOutputPoint(output());
     }
   }
 
@@ -218,6 +244,10 @@ public:
   void setKey(const PeppRect &v);
   void setGridRectangle(const PeppRect &v);
 
+  //  Pin logic
+  void updateInputPinPt();
+
+  auto inputPins() const { return _inputPins.pins(); }
 signals:
   void typeChanged();
   void nameChanged();
@@ -237,8 +267,10 @@ private:
   //  Presentation variables that require Qt stay in this class
   QPixmap *_pixMap = nullptr;
 
-  LineProperties *_input = nullptr;
-  LineProperties *_output = nullptr;
+  Pins _inputPins;
+  Pins _outputPins;
+  // LineProperties *_input = nullptr;
+  // LineProperties *_output = nullptr;
 
   i16 _margin = 4;
 };
