@@ -21,7 +21,7 @@ struct BaseProperty {
   //  Gate properties
   DiagramType::Type type = DiagramType::Invalid;
   //  Diagram grid dimensions & placement
-  PeppRect key{};
+  PeppRect key{PeppPt{999, 999}, PeppSize{999, 999}};
   //  Display dimensions & placement
   PeppRect gridRect{};
 
@@ -71,10 +71,6 @@ struct DiagramProperty {
   }
 
   u32 orientation = 0; // Pointing Left
-
-  //  Gate properties
-  u16 inputNo{2};
-  u16 outputNo{1};
 };
 
 class BaseProperties : public QObject {
@@ -184,8 +180,8 @@ public:
   void set(int role, const QVariant &data);
 
   //  Data functions
-  quint16 inputNo() const { return _properties.inputNo; }
-  quint16 outputNo() const { return _properties.outputNo; }
+  quint16 inputNo() const { return _inputPins.maxSize(); }
+  quint16 outputNo() const { return _outputPins.maxSize(); }
   void setId(const quint32 v);
   void setType(const DiagramType::Type v);
   void setInputNo(const quint16 v);
@@ -246,8 +242,10 @@ public:
 
   //  Pin logic
   void updateInputPinPt();
+  void updateOutputPinPt();
 
   auto inputPins() const { return _inputPins.pins(); }
+  auto outputPins() const { return _outputPins.pins(); }
 signals:
   void typeChanged();
   void nameChanged();
@@ -269,8 +267,6 @@ private:
 
   Pins _inputPins;
   Pins _outputPins;
-  // LineProperties *_input = nullptr;
-  // LineProperties *_output = nullptr;
 
   i16 _margin = 4;
 };

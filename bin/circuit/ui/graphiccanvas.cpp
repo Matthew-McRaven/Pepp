@@ -411,6 +411,12 @@ void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
   for (const auto &iPin : props->inputPins()) {
     painter->drawEllipse(grid_to_screen(iPin));
   }
+
+  //  Paint output pins
+  painter->setPen(QPen(QColorConstants::Svg::lime, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+  for (const auto &oPin : props->outputPins()) {
+    painter->drawEllipse(grid_to_screen(oPin));
+  }
 }
 
 void GraphicCanvas::paint_line(QPainter *painter, const LineProperties *props) {

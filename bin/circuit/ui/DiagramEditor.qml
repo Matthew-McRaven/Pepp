@@ -20,7 +20,7 @@ Pane {
         spacing: 2
         bottomPadding: 0
 
-        enabled: inputArea.index.row != -1
+        enabled: inputArea.index.row !== -1
 
         property var index: root.diagramModel.currentIndex
 
@@ -31,7 +31,7 @@ Pane {
 
         function updateInput() {
             //  Negative row indicates unitialized qindex
-            if(root.diagramModel == null || inputArea.index.row == -1)
+            if (root.diagramModel == null || inputArea.index.row === -1)
                 return;
 
             //  Get data for current index
@@ -72,16 +72,27 @@ Pane {
             ComboBox {
                 id: orientation
                 model: [
-                    {value: 0, text: "Right"},
-                    {value: 90, text: "Bottom"},
-                    {value: 180, text: "Left"},
-                    {value: 270, text: "Top"}
+                    {
+                        value: 0,
+                        text: "Right"
+                    },
+                    {
+                        value: 90,
+                        text: "Bottom"
+                    },
+                    {
+                        value: 180,
+                        text: "Left"
+                    },
+                    {
+                        value: 270,
+                        text: "Top"
+                    }
                 ]
                 textRole: "text"
                 valueRole: "value"
                 currentValue: 0
             }
-
 
             Label {
                 text: "Input Number:"
@@ -89,7 +100,7 @@ Pane {
             SpinBox {
                 id: input
                 from: 1
-                to: 6
+                to: 8
                 value: 2
             }
 
@@ -112,7 +123,7 @@ Pane {
                 onClicked: {
                     //  If source data is bad, just return
                     //  Negative row indicates unitialized qindex
-                    if(root.diagramModel == null || inputArea.index.row === -1)
+                    if (root.diagramModel == null || inputArea.index.row === -1)
                         return;
 
                     //  Update model with new data

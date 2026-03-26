@@ -172,6 +172,7 @@ void Pins::setMaxSize(const quint16 size) {
 
 DiagramProperties::DiagramProperties(QObject *parent) : BaseProperties(parent) {
   _outputPins.setType(Pins::PinType::Output);
+  _outputPins.setMaxSize(1);
 }
 
 QVariant DiagramProperties::get(int role) const {
@@ -248,8 +249,8 @@ void DiagramProperties::setType(const DiagramType::Type v) {
 }
 
 void DiagramProperties::setInputNo(const quint16 v) {
-  if (_properties.inputNo != v || _inputPins.pins().count() == 0) {
-    _properties.inputNo = v;
+  if (inputNo() != v) {
+    _inputPins.setMaxSize(v);
     // updateInputPt();
     updateInputPinPt();
 
@@ -258,8 +259,9 @@ void DiagramProperties::setInputNo(const quint16 v) {
 }
 
 void DiagramProperties::setOutputNo(const quint16 v) {
-  if (_properties.outputNo != v) {
-    _properties.outputNo = v;
+  if (outputNo() != v) {
+    _outputPins.setMaxSize(v);
+    updateOutputPinPt();
     emit outputChanged();
   }
 }
@@ -276,15 +278,10 @@ void DiagramProperties::setOrientation(const quint32 v) {
     _pixMap = nullptr;
 
     //  Rotation affects line placement
-    updateInputPt();
-    updateInputPinPt();
     // updateInputPt();
-    // updateOutputPt();
-
-    emit imageChanged();
-  } else if (_inputPins.pins().count() == 0) {
-    //  Rotation affects line placement
     updateInputPinPt();
+    // updateOutputPt();
+    updateOutputPinPt();
 
     emit imageChanged();
   }
@@ -292,20 +289,19 @@ void DiagramProperties::setOrientation(const quint32 v) {
 
 void DiagramProperties::setKey(const PeppRect &v) {
   if (BaseProperties::setKey(v)) {
-    //  Line key is based on diagram key
-    //  Diagram key only changes when moving
-    //  Allow lines to recalculate when diagram changes
-    // updateInputKey();
-    // updateOutputKey();
     emit dimensionsChanged();
   }
 }
 
 void DiagramProperties::setGridRectangle(const PeppRect &v) {
   if (BaseProperties::setGridRectangle(v)) {
-    //  Movement affects line placement
-    // updateInputPt();
-    // updateOutputPt();
+    //  Line key is based on diagram key
+    //  Diagram key only changes when moving
+    //  Allow lines to recalculate when diagram changes
+    updateInputPinPt();
+    updateOutputPinPt();
+    // updateInputKey();
+    // updateOutputKey();
 
     emit dimensionsChanged();
   }
@@ -343,6 +339,37 @@ PeppPt DiagramProperties::output() const {
   }
 
   return {x, y};
+}
+
+void DiagramProperties::updateOutputPinPt() {
+  //  Output at 0 degrees exits to right
+  auto orientation = _properties.orientation % 360;
+  bool horizontal = (orientation % 180) == 0;
+  const auto centerPt = output();
+  auto maxSize = _outputPins.maxSize();
+  auto pinWidth = maxSize;
+  auto offset = -pinWidth / 2;
+  auto delta = pinWidth / maxSize;
+
+  PeppPt pt;
+  if (horizontal) {
+    pt = centerPt.translated(0, offset);
+  } else {
+    pt = centerPt.translated(offset, 0);
+  }
+
+  //  Reset pins
+  _outputPins.pins().clear();
+
+  //  Create pin endpoints
+  for (int i = 0; i < maxSize; ++i) {
+    _outputPins.pins().emplace_back(pt, PeppSize{1, 1});
+    if (horizontal) {
+      pt.setY(pt.y() + delta);
+    } else {
+      pt.setX(pt.x() + delta);
+    }
+  }
 }
 
 void DiagramProperties::updateInputPt() {
@@ -386,7 +413,7 @@ void DiagramProperties::updateInputPinPt() {
   const auto centerPt = input();
   auto maxSize = _inputPins.maxSize();
   auto pinWidth = maxSize;
-  auto offset = -pinWidth / 2; // + _margin;
+  auto offset = -pinWidth / 2;
   auto delta = pinWidth / maxSize;
 
   PeppPt pt;
