@@ -18,7 +18,8 @@ runs:
       category: "/language:${{inputs.language}}"
       output: results
   - name: Remove 3rd-party deps from CodeQL results
-    uses: advanced-security/filter-sarif@v1
+    # Corresponds to v1.1
+    uses: advanced-security/filter-sarif@2da736ff05ef065cb2894ac6892e47b5eac2c3c0
     with:
       patterns: |
         -3rd-party/**

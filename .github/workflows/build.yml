@@ -298,7 +298,8 @@ jobs:
         run: python3 scripts/llvm-cov-helper.py build/output && ls -lah && head -n 40 coverage.txt
       - name: SonarQube Scan
         if: inputs.codecov
-        uses: SonarSource/sonarqube-scan-action@v6
+        # Corresponds to v7.0.0, which is the latest as of 2026-03-27
+        uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
