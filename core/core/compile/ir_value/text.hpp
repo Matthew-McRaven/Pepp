@@ -16,11 +16,11 @@
  */
 #pragma once
 #include <vector>
-#include "core/compile/abstract_value/base.hpp"
+#include "core/compile/ir_value/base.hpp"
 
 namespace pepp::ast {
 
-struct String : public BaseValue {
+struct String : public IRValue {
 public:
   explicit String();
   String(std::string value);
@@ -44,7 +44,7 @@ private:
   std::vector<char> _bytes = {};
 };
 
-class Character : public BaseValue {
+class Character : public IRValue {
 public:
   explicit Character();
   explicit Character(char value);

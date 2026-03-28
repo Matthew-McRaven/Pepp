@@ -15,10 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include "core/compile/abstract_value/base.hpp"
+#include "core/compile/ir_value/base.hpp"
 
 namespace pepp::ast {
-struct Numeric : public BaseValue {
+struct Numeric : public IRValue {
 public:
   explicit Numeric() noexcept;
   Numeric(u64 value, u8 size) noexcept;
@@ -88,4 +88,3 @@ public:
   std::string raw_string() const override;
 };
 } // namespace pepp::ast
-

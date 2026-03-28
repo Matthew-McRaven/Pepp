@@ -16,7 +16,7 @@
  */
 #pragma once
 #include <memory>
-#include "core/compile/abstract_value/base.hpp"
+#include "core/compile/ir_value/base.hpp"
 
 namespace pepp::core::symbol {
 class Entry;
@@ -26,7 +26,7 @@ namespace pepp::ast {
 // Represents a value that propogates the value of another symbol within the current table.
 // This value cannot be relocated, since it acts like a numeric constant rather than a location.
 // This class provides no API for detecting or prevent binding loops.
-struct Symbolic : public BaseValue {
+struct Symbolic : public IRValue {
 public:
   explicit Symbolic();
   Symbolic(u8 ptr_size_bytes, std::shared_ptr<core::symbol::Entry> value);

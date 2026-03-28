@@ -22,10 +22,10 @@
 
 namespace pepp::ast {
 
-class BaseValue {
+class IRValue {
 public:
-  explicit BaseValue() noexcept = default;
-  virtual ~BaseValue() noexcept = default;
+  explicit IRValue() noexcept = default;
+  virtual ~IRValue() noexcept = default;
 
   // Minimum number of bytes to encode the value. E.g., a (u64) 128 has a nominal size of 8 but a min size of 1.
   virtual u64 serialized_size() const noexcept = 0;

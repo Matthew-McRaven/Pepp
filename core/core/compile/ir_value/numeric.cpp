@@ -3,7 +3,7 @@
 #include <iostream>
 #include "core/math/bitmanip/copy.hpp"
 
-pepp::ast::Numeric::Numeric() noexcept : BaseValue() {}
+pepp::ast::Numeric::Numeric() noexcept : IRValue() {}
 
 pepp::ast::Numeric::Numeric(u64 value, u8 size) noexcept {
   if (size > 8) {
@@ -22,7 +22,7 @@ u32 pepp::ast::Numeric::serialize(bits::span<u8> dest, bits::Order destEndian, u
   return size;
 }
 
-pepp::ast::Numeric::Numeric(const Numeric &other) : BaseValue(), _size(other._size), _value(other._value) {}
+pepp::ast::Numeric::Numeric(const Numeric &other) : IRValue(), _size(other._size), _value(other._value) {}
 
 pepp::ast::Numeric &pepp::ast::Numeric::operator=(const Numeric &other) {
   // Base::operator=(other); // Needed if we add data to Base.
