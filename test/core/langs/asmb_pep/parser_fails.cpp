@@ -23,7 +23,8 @@ namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 } // namespace
 
-TEST_CASE("Pepp ASM parser errors", "[scope:asm][kind:unit][arch:*][tc2][!throws]") {
+TEST_CASE("Pepp ASM parser errors",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*][!throws]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;

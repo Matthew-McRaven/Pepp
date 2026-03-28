@@ -37,7 +37,8 @@ BR 0
 )";
 } // namespace
 
-TEST_CASE("Pepp ASM object code output", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM object code output",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;

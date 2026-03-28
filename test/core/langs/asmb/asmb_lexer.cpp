@@ -78,7 +78,7 @@ auto check_str_sequence(pepp::tc::lex::AsmbLexer &l, QString body) {
   return strconst;
 }
 
-TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*][tc2]") {
+TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using CTT = pepp::tc::lex::CommonTokenType;
   using ATT = pepp::tc::lex::AsmTokenType;
   const auto p10 = pepp::tc::lex::PepLexer::options();

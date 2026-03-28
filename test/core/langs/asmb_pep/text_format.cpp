@@ -30,7 +30,7 @@ static auto idpool = []() { return std::make_shared<std::unordered_set<std::stri
 static auto data = [](std::string str) { return pepp::tc::support::SeekableData{std::move(str)}; };
 } // namespace
 
-TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Buffer = pepp::tc::lex::Buffer;
   using Checkpoint = pepp::tc::lex::Checkpoint;
@@ -321,7 +321,8 @@ TEST_CASE("Pepp ASM source formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
   }
 }
 
-TEST_CASE("Pepp ASM listing formatting", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM listing formatting",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Buffer = pepp::tc::lex::Buffer;
   using Checkpoint = pepp::tc::lex::Checkpoint;

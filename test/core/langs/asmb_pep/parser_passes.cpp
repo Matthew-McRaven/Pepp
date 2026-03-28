@@ -24,7 +24,7 @@ namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 } // namespace
 
-TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
@@ -122,7 +122,8 @@ TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
   }
 }
 
-TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM parser dot commands",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;

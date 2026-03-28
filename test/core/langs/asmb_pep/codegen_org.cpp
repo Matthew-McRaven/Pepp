@@ -44,7 +44,8 @@ static const auto ex4 = R"(.WORD 5
 )";
 } // namespace
 
-TEST_CASE("Pepp ASM codegen .ORG address assignment", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM codegen .ORG address assignment",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;

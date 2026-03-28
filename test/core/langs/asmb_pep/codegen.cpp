@@ -37,7 +37,8 @@ BR 0
 )";
 } // namespace
 
-TEST_CASE("Pepp ASM codegen sectioning", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM codegen sectioning",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
@@ -64,7 +65,8 @@ TEST_CASE("Pepp ASM codegen sectioning", "[scope:asm][kind:unit][arch:*][tc2]") 
   CHECK(sections[2].second.size() == 3);
 }
 
-TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM codegen address assignment",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
@@ -109,7 +111,7 @@ TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*]
   }
 }
 
-TEST_CASE("Pepp ASM codegen .SCALL", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM codegen .SCALL", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
@@ -136,7 +138,8 @@ TEST_CASE("Pepp ASM codegen .SCALL", "[scope:asm][kind:unit][arch:*][tc2]") {
   CHECK(!contains("DECO"));
 }
 
-TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT", "[scope:asm][kind:unit][arch:*][tc2]") {
+TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
