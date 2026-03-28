@@ -156,7 +156,7 @@ private:
   QList<LineProperties *> _lines;
   QList<PeppRect> _pins;
   quint16 _minSize = 1;
-  quint16 _maxSize = 8;
+  quint16 _maxSize = 7;
   PinType _type = PinType::Input;
 };
 
@@ -191,12 +191,12 @@ public:
   // LineProperties *outputPoint() const { return _output; }
   void setOutputPoint(LineProperties *line) {
     _outputPins.addLine(line);
-    updateOutputPt(line);
+    updateOutputPinPt();
   }
   // LineProperties *inputPoint() const { return _input; }
   void setInputPoint(LineProperties *line) {
     _inputPins.addLine(line);
-    updateInputPt();
+    updateInputPinPt();
   }
 
   void updateInputKey(LineProperties *line) {
@@ -209,15 +209,6 @@ public:
   void updateOutputKey(LineProperties *line) {
     if (line != nullptr) {
       line->diagramKeyChanged();
-    }
-  }
-
-  void updateInputPt();
-
-  void updateOutputPt(LineProperties *line) {
-    if (line != nullptr) {
-      line->setOutputDirection(_properties.orientation);
-      line->setOutputPoint(output());
     }
   }
 

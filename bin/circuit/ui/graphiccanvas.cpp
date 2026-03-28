@@ -126,7 +126,7 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   const int rows = 10;
   const int cols = 10;
 
-  DiagramProperties *to = addDiagram(2, 3);
+  DiagramProperties *to = addDiagram(6, 2);
   if (to == nullptr) return;
 
   //  Add block data
@@ -155,20 +155,20 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   // MATTHEW END TEST DATA*/
 
   //  data life time managed by model
-  DiagramProperties *from1 = addDiagram(6, 2);
+  DiagramProperties *from1 = addDiagram(2, 3);
   if (from1 == nullptr) return;
 
   //  Add block data
   from1->setName(lookup[2]);
   from1->setType(DiagramType::Inverter);
-  from1->setOrientation(180);
+  from1->setOrientation(0);
   from1->setSelected(false);
   getImage(*from1);
 
-  // addLine(from1, to);
+  addLine(from1, to);
 
   //  data life time managed by model
-  DiagramProperties *from2 = addDiagram(2, 10);
+  /*DiagramProperties *from2 = addDiagram(2, 10);
   if (from2 == nullptr) return;
 
   //  Add block data
@@ -186,7 +186,7 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   to2->setType(DiagramType::NORGate);
   to2->setOrientation(90);
   to2->setSelected(false);
-  getImage(*to2);
+  getImage(*to2);*/
 
   /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
 
@@ -386,7 +386,7 @@ void GraphicCanvas::paint(QPainter *painter) {
 void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
-  auto screen_rect = grid_to_screen(props->gridRectangle()).adjusted(2, 2, -2, -2);
+  auto screen_rect = grid_to_screen(props->gridRectangle()); //.adjusted(2, 2, -2, -2);
   //  Check state, and set outline if selected
   if (props->selected()) {
     painter->setPen(QPen(_highlight, 2, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
