@@ -128,8 +128,8 @@ void pas::obj::pep9::writeOS(ELFIO::elfio &elf, ast::Node &os) {
   elf.set_entry(/*TODO:determine OS entry point*/ 0x000);
 
   // Manually gather MMIOs  (charIn / charOut).
-  QList<::obj::IO> mmios = {{.name = "charOut", .type = ::obj::IO::Type::kOutput},
-                            {.name = "charIn", .type = ::obj::IO::Type::kInput}};
+  std::vector<::obj::IO> mmios = {{.name = "charOut", .type = ::obj::IO::Type::kOutput},
+                                  {.name = "charIn", .type = ::obj::IO::Type::kInput}};
 
   // Find symbol table for os or crash.
   ELFIO::section *symTab = nullptr;

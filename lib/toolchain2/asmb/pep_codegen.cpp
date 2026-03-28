@@ -1,14 +1,18 @@
 #include "./pep_codegen.hpp"
 #include <elfio/elfio.hpp>
+#include <list>
+#include <numeric>
 #include <ranges>
+#include "core/compile/ir_value/symbolic.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
+#include "core/compile/symbol/value.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "fmt/format.h"
 #include "mmio.hpp"
 #include "pep_ir_visitor.hpp"
 #include "spdlog/spdlog.h"
-#include "toolchain/symbol/table.hpp"
-#include "toolchain/symbol/visit.hpp"
 #include "toolchain2/asmb/common_elf.hpp"
+#include "zpp_bits.h"
 
 pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &diag, PepIRProgram &prog,
                                                              SectionDescriptor initial_section) {
@@ -29,11 +33,11 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &di
       // When the section already exists, ensure that the flags match before switching to that section,
       auto as_section = std::static_pointer_cast<pepp::tc::ir::DotSection>(line);
       auto flags = as_section->flags;
-      auto name = as_section->name.to_string();
+      auto name = as_section->name.value;
       auto existing_sec =
           std::find_if(grouped_ir.begin(), grouped_ir.end(), [&name](auto &i) { return i.first.name == name; });
       if (existing_sec == grouped_ir.end()) {
-        pepp::tc::SectionDescriptor desc{.name = name.toStdString(), .flags = flags};
+        pepp::tc::SectionDescriptor desc{.name = name, .flags = flags};
         // Compute the index in the ELF file which this section will become.
         desc.section_index = desc.section_base_index + ret.grouped_ir.size();
         grouped_ir.emplace_back(std::make_pair(desc, pepp::tc::PepIRProgram{}));
@@ -45,13 +49,13 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &di
     }
     case Type::DotAlign: {
       auto as_align = std::static_pointer_cast<pepp::tc::ir::DotAlign>(line);
-      active->first.alignment = std::max(active->first.alignment, as_align->argument.value->value<quint16>());
+      active->first.alignment = std::max(active->first.alignment, as_align->argument.value->value_as<u16>());
       break;
     }
     case Type::DotAnnotate: {
       auto as_annotate = std::static_pointer_cast<pepp::tc::ir::DotAnnotate>(line);
       auto arg_str = as_annotate->argument.value->string();
-      if (as_annotate->which == ir::DotAnnotate::Which::SCALL) ret.system_calls.emplace_back(arg_str.toStdString());
+      if (as_annotate->which == ir::DotAnnotate::Which::SCALL) ret.system_calls.emplace_back(arg_str);
       else if (as_annotate->which == ir::DotAnnotate::Which::INPUT)
         ret.mmios.emplace_back(obj::IO{.name = arg_str, .type = obj::IO::Type::kInput});
       else if (as_annotate->which == ir::DotAnnotate::Which::OUTPUT)
@@ -68,7 +72,7 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &di
 
     if (auto symbol_attr = line->typed_attribute<ir::attr::SymbolDeclaration>(); symbol_attr) {
       if (!symbol_attr->entry->is_singly_defined()) {
-        auto formatted = fmt::format("Multiply defined symbol {}", symbol_attr->entry->name.toStdString());
+        auto formatted = fmt::format("Multiply defined symbol {}", symbol_attr->entry->name);
         throw std::logic_error(formatted);
       }
       // Symbols need to know their defining section to enable relocations.
@@ -144,7 +148,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
       using Type = ir::LinearIR::Type;
       switch (line->type()) {
       case Type::DotOrg:
-        base_address = std::static_pointer_cast<ir::DotOrg>(line)->argument.value->template value<quint16>();
+        base_address = std::static_pointer_cast<ir::DotOrg>(line)->argument.value->template value_as<u16>();
         symbol_base = next_base = base_address;
         break;
       case Type::DotEquate: {
@@ -152,18 +156,14 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
         auto symbol = as_equate->symbol.entry;
         auto argument = as_equate->argument.value;
         // Re-use from previous assembler
-        if (auto symbolic = dynamic_cast<pas::ast::value::Symbolic *>(&*argument); symbolic != nullptr) {
+        if (auto symbolic = dynamic_cast<pepp::ast::Symbolic *>(&*argument); symbolic != nullptr) {
           auto other = symbolic->symbol();
-          if (symbol::rootTable(other->parent.sharedFromThis()) == symbol::rootTable(symbol->parent.sharedFromThis())) {
-            symbol->value = QSharedPointer<symbol::value::InternalPointer>::create(sizeof(quint16), other);
-          } else {
-            symbol->value = QSharedPointer<symbol::value::ExternalPointer>::create(
-                sizeof(quint16), other->parent.sharedFromThis(), other);
-          }
+          symbol->value = std::make_shared<pepp::core::symbol::AliasValue>(2, other);
         } else {
-          auto bits = symbol::value::MaskedBits{.byteCount = 2, .bitPattern = 0, .mask = 0xFFFF};
-          argument->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&bits.bitPattern), 8}, bits::hostOrder());
-          symbol->value = QSharedPointer<symbol::value::Constant>::create(bits);
+          auto masked_bits = bits::MaskedBits{.byteCount = 2, .bitPattern = 0, .mask = 0xFFFF};
+          (void)argument->serialize(bits::span<quint8>{reinterpret_cast<quint8 *>(&masked_bits.bitPattern), 2},
+                                    bits::hostOrder());
+          symbol->value = std::make_shared<pepp::core::symbol::ConstantValue>(masked_bits);
         }
         continue; // Must resume loop early, or symbol will be clobbered below.
       }
@@ -193,8 +193,9 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
 
       if (auto line_symbol = line->template typed_attribute<ir::attr::SymbolDeclaration>(); line_symbol) {
         auto isCode = dynamic_cast<ir::DyadicInstruction *>(&*line) || dynamic_cast<ir::MonadicInstruction *>(&*line);
-        line_symbol->entry->value = QSharedPointer<symbol::value::Location>::create(
-            size, sizeof(quint16), symbol_base, 0, isCode ? symbol::Type::kCode : symbol::Type::kObject);
+        const auto type = isCode ? pepp::core::symbol::Type::Code : pepp::core::symbol::Type::Object;
+        line_symbol->entry->value =
+            std::make_shared<pepp::core::symbol::LocationValue>(size, sizeof(quint16), symbol_base, 0, type);
       }
     }
   };
@@ -210,7 +211,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
       for (; it != sec.second.end(); it++)
         if ((*it)->type() == ir::LinearIR::Type::DotOrg) break;
 
-      auto org_arg = static_pointer_cast<ir::DotOrg>(*it)->argument.value->value<quint16>();
+      auto org_arg = static_pointer_cast<ir::DotOrg>(*it)->argument.value->value_as<u16>();
       // Find index of first ORG and assign BACKWARD from there, exluding the ORG. Set section's low_address.
       base_address = org_arg - 1, direction = Direction::Backward;
       for_lines(std::views::reverse(std::ranges::subrange(sec.second.begin(), it)), sec.first);
@@ -259,10 +260,10 @@ struct ObjectCodeVisitor : public ir::LinearIRVisitor {
   const quint16 base_address, section_idx;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<quint8> out_bytes;
-  std::multimap<QSharedPointer<symbol::Entry>, PepStaticRelocation> &relocations;
+  std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  ObjectCodeVisitor(const IRMemoryAddressTable &, const quint16 base_address, const quint16 section_idx,
-                    bits::span<quint8>, std::multimap<QSharedPointer<symbol::Entry>, PepStaticRelocation> &,
+  ObjectCodeVisitor(const IRMemoryAddressTable &, const quint16 base_address, const quint16 section_idx, bits::span<u8>,
+                    std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &,
                     IR2ObjectCodeMap &);
   void visit(const ir::EmptyLine *) override;
   void visit(const ir::CommentLine *) override;
@@ -279,7 +280,8 @@ struct ObjectCodeVisitor : public ir::LinearIRVisitor {
 
 pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(
     const IRMemoryAddressTable &ir_to_address, const quint16 base_address, const quint16 section_idx,
-    bits::span<quint8> out_bytes, std::multimap<QSharedPointer<symbol::Entry>, PepStaticRelocation> &relocs,
+    bits::span<quint8> out_bytes,
+    std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &relocs,
     IR2ObjectCodeMap &ir_to_object_code)
     : ir_to_address(ir_to_address), base_address(base_address), section_idx(section_idx), out_bytes(out_bytes),
       relocations(relocs), ir_to_object_code(ir_to_object_code) {}
@@ -302,16 +304,15 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::DyadicInstruction *line) {
   auto addr_info = ir_to_address.at(line);
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
   // Emit relocations for undefined symbolic arguments.
-  if (line->argument.value->isIdentifier()) {
-    auto symbolic_arg = std::dynamic_pointer_cast<pas::ast::value::Symbolic>(line->argument.value);
-    Q_ASSERT(symbolic_arg != nullptr);
-    auto symbol = symbolic_arg->symbol();
+  auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
+  if (as_symbolic_arg != nullptr) {
+    auto symbol = as_symbolic_arg->symbol();
     if (symbol->is_undefined()) {
-      quint16 offset = addr_info.address - base_address;
+      u16 offset = addr_info.address - base_address;
       relocations.insert({symbol, PepStaticRelocation{.section_offset = offset, .section_idx = section_idx}});
     }
   }
-  line->argument.value->value(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
+  (void)line->argument.value->serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
   out_bytes = out_bytes.subspan(3);
 }
@@ -326,16 +327,15 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAlign *line) {
 void pepp::tc::ObjectCodeVisitor::visit(const ir::DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
   // Emit relocations for undefined symbolic arguments.
-  if (line->argument.value->isIdentifier()) {
-    auto symbolic_arg = std::dynamic_pointer_cast<pas::ast::value::Symbolic>(line->argument.value);
-    Q_ASSERT(symbolic_arg != nullptr);
-    auto symbol = symbolic_arg->symbol();
+  auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
+  if (as_symbolic_arg != nullptr) {
+    auto symbol = as_symbolic_arg->symbol();
     if (symbol->is_undefined()) {
       quint16 offset = addr_info.address - base_address;
       relocations.insert({symbol, PepStaticRelocation{.section_offset = offset, .section_idx = section_idx}});
     }
   }
-  line->argument.value->value(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
@@ -362,6 +362,17 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAnnotate *) {
 
 void pepp::tc::ObjectCodeVisitor::visit(const ir::DotOrg *) {
   // Does not generate object code
+}
+
+ELFIO::section *getLineMappingSection(ELFIO::elfio &elf) {
+  ELFIO::section *lineNumbers = nullptr;
+  for (auto &sec : elf.sections) {
+    if (sec->get_name() == lineMapStr && sec->get_type() == ELFIO::SHT_PROGBITS) {
+      lineNumbers = sec.get();
+      break;
+    }
+  }
+  return lineNumbers;
 }
 
 } // namespace pepp::tc
@@ -424,12 +435,12 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
   return ret;
 }
 
-static QSharedPointer<ELFIO::elfio> create_elf() {
+static std::shared_ptr<ELFIO::elfio> create_elf() {
   SPDLOG_INFO("Creating pep/10 ELF");
   static const char p10mac[2] = {'p', 'x'};
   quint16 mac;
   bits::memcpy_endian({(quint8 *)&mac, 2}, bits::hostOrder(), {(const quint8 *)p10mac, 2}, bits::Order::BigEndian);
-  auto ret = QSharedPointer<ELFIO::elfio>::create();
+  auto ret = std::make_shared<ELFIO::elfio>();
   ret->create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
   ret->set_os_abi(ELFIO::ELFOSABI_NONE);
   ret->set_type(ELFIO::ET_EXEC);
@@ -458,9 +469,9 @@ pepp::tc::IR2ListingLineMap
 write_line_mapping(ELFIO::elfio &elf,
                    const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::PepIRProgram>> &prog,
                    const pepp::tc::IRMemoryAddressTable &addrs, const pepp::tc::ProgramObjectCodeResult &object_code) {
-  auto line_section = pas::obj::common::detail::getLineMappingSection(elf);
+  auto line_section = pepp::tc::getLineMappingSection(elf);
   if (line_section == nullptr) {
-    line_section = elf.sections.add(pas::obj::common::lineMapStr);
+    line_section = elf.sections.add(pepp::tc::lineMapStr);
     line_section->set_type(ELFIO::SHT_PROGBITS);
   }
 
@@ -484,7 +495,7 @@ write_line_mapping(ELFIO::elfio &elf,
   std::sort(ret.container.begin(), ret.container.end(), pepp::tc::IR2ListingLineComparator{});
 
   auto [data, in, out] = zpp::bits::data_in_out();
-  pas::obj::common::BinaryLineMapping prev;
+  pepp::tc::BinaryLineMapping prev;
   bool first = true;
   for (const auto &sec : prog) {
     for (const auto &line : sec.second) {
@@ -498,8 +509,8 @@ write_line_mapping(ELFIO::elfio &elf,
       if (src_line == 0 && lst_line == 0) continue;
       else if (addr_it == addrs.cend()) continue;
 
-      auto current = pas::obj::common::BinaryLineMapping{
-          .address = addr_it->second.address, .srcLine = src_line, .listLine = lst_line};
+      auto current =
+          pepp::tc::BinaryLineMapping{.address = addr_it->second.address, .srcLine = src_line, .listLine = lst_line};
       (void)current.serialize(out, current, &prev, first);
       prev = current, first = false;
     }
@@ -618,7 +629,7 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
   return ret;
 }
 
-static quint16 ir_to_elf_section_index(const pepp::tc::ElfResult &elf_wrapper, quint16 ir_index) {
+static u16 ir_to_elf_section_index(const pepp::tc::ElfResult &elf_wrapper, u16 ir_index) {
   using namespace pepp::tc;
   // Some IR sections are not emitted to ELF because they contained no meaningful data.
   const auto adjustment = elf_wrapper.section_offsets[ir_index];
@@ -627,7 +638,7 @@ static quint16 ir_to_elf_section_index(const pepp::tc::ElfResult &elf_wrapper, q
 
 // Our ELF symbols already bake in pepp::tc::SectionDescriptor::section_base_index, which ir_to_elf_section_index adds
 // in again.
-static quint16 symbol_to_elf_section_index(const pepp::tc::ElfResult &elf_wrapper, const symbol::Entry *entry) {
+static u16 symbol_to_elf_section_index(const pepp::tc::ElfResult &elf_wrapper, const pepp::core::symbol::Entry *entry) {
   using namespace pepp::tc;
   // Our sections inserted into ELF do not start at 0, they start at SectionDescriptor::section_base_index.
   // section_offsets starts at 0, so we need to convert before indexing or risk an out-of-bounds access.
@@ -639,12 +650,11 @@ static quint16 symbol_to_elf_section_index(const pepp::tc::ElfResult &elf_wrappe
   return ir_to_elf_section_index(elf_wrapper, probable_elf_idx - SectionDescriptor::section_base_index);
 };
 
-void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, symbol::Table &symbol_table,
-                                  const ProgramObjectCodeResult &oc, const QString name) {
-  using namespace Qt::StringLiterals;
+void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, pepp::core::symbol::LeafTable &symbol_table,
+                                  const ProgramObjectCodeResult &oc, const std::string name) {
   auto &elf = *elf_wrapper.elf.get();
   auto strTab = pepp::tc::addStrTab(elf);
-  auto symTab = elf.sections.add(u"%1"_s.arg(name).toStdString());
+  auto symTab = elf.sections.add(name);
   symTab->set_type(ELFIO::SHT_SYMTAB);
   symTab->set_info(0);
   symTab->set_addr_align(2);
@@ -666,8 +676,10 @@ void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, symbol::Table &symbol_
   };
 
   ELFIO::symbol_section_accessor symAc(elf, symTab);
-  for (auto [name, entry] : symbol_table.entries()) {
-    auto nameIdx = findOrCreateStr(name.toStdString());
+  const auto pool = symbol_table.pool();
+  for (const auto &[name_idx, entry] : symbol_table.entries()) {
+    const auto name = *pool->find(name_idx);
+    auto nameIdx = findOrCreateStr(std::string{name});
     // Symbol index of the inserted symbol. Retain to make writing relocations easier.
     ELFIO::Elf_Word symbol_idx = 0;
     // Fast path for undefined symbols
@@ -678,17 +690,19 @@ void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, symbol::Table &symbol_
       auto secIdx = symbol_to_elf_section_index(elf_wrapper, entry.get());
       auto value = entry->value;
 
-      quint8 type = ELFIO::STT_NOTYPE;
-      if (value->type() == symbol::Type::kCode) type = ELFIO::STT_FUNC;
-      else if (value->type() == symbol::Type::kObject) type = ELFIO::STT_OBJECT;
-      else if (value->type() == symbol::Type::kConstant) {
+      u8 type = ELFIO::STT_NOTYPE;
+      using Type = pepp::core::symbol::Type;
+      if (value->type() == Type::Code) type = ELFIO::STT_FUNC;
+      else if (value->type() == Type::Object) type = ELFIO::STT_OBJECT;
+      else if (value->type() == Type::Constant) {
         type = ELFIO::STT_OBJECT;
         secIdx = ELFIO::SHN_ABS;
       }
 
       quint8 bind = ELFIO::STB_LOCAL;
-      if (entry->binding == symbol::Binding::kGlobal) bind = ELFIO::STB_GLOBAL;
-      else if (entry->binding == symbol::Binding::kImported) bind = ELFIO::STB_WEAK;
+      using Binding = pepp::core::symbol::Binding;
+      if (entry->binding == Binding::Global) bind = ELFIO::STB_GLOBAL;
+      else if (entry->binding == Binding::Weak) bind = ELFIO::STB_WEAK;
 
       quint8 info = (bind << 4) + (type & 0xf);
 

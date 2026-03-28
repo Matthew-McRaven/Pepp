@@ -1,10 +1,9 @@
 #include "./pep_attributes.hpp"
+#include "fmt/format.h"
 
 pepp::tc::ir::attr::Type pepp::tc::ir::attr::Identifier::type() const { return TYPE; }
 
-QStringView pepp::tc::ir::attr::Identifier::view() const { return value; }
-
-QString pepp::tc::ir::attr::Identifier::to_string() const { return view().toString(); }
+std::string_view pepp::tc::ir::attr::Identifier::view() const { return value; }
 
 pepp::tc::ir::attr::Type pepp::tc::ir::attr::Comment::type() const { return TYPE; }
 
@@ -24,8 +23,7 @@ bool pepp::tc::ir::attr::SectionFlags::operator==(const SectionFlags &rhs) const
   return r == rhs.r && w == rhs.w && x == rhs.x && z == rhs.z;
 }
 
-QString pepp::tc::ir::attr::SectionFlags::to_string() const {
-  using namespace Qt::StringLiterals;
-  static const QString rs = "r", ws = "w", xs = "x", zs = "z", e = "";
-  return u"%1%2%3%4"_s.arg(r ? rs : e, w ? ws : e, x ? xs : e, z ? zs : e);
+std::string pepp::tc::ir::attr::SectionFlags::to_string() const {
+  static const std::string rs = "r", ws = "w", xs = "x", zs = "z", e = "";
+  return fmt::format("{}{}{}{}", r ? rs : e, w ? ws : e, x ? xs : e, z ? zs : e);
 }

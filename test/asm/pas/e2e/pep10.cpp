@@ -149,7 +149,7 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
 
         // Verify MMIO information.
         auto decs = ::obj::getMMIODeclarations(*elf);
-        CHECK(decs.length() == 3);
+        CHECK(decs.size() == 3);
         CHECK(std::find_if(decs.cbegin(), decs.cend(), is_charIn) != decs.cend());
         CHECK(std::find_if(decs.cbegin(), decs.cend(), is_charOut) != decs.cend());
         CHECK(std::find_if(decs.cbegin(), decs.cend(), is_pwrOff) != decs.cend());

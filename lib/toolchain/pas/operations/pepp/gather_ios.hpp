@@ -24,8 +24,8 @@ namespace pas::ops::pepp {
 struct GatherIODefinitions : public pas::ops::ConstOp<void> {
 
   void operator()(const pas::ast::Node &node) override;
-  QList<::obj::IO> ios;
+  std::vector<::obj::IO> ios;
 };
 
-QList<::obj::IO> gatherIODefinitions(const pas::ast::Node &node);
+std::vector<::obj::IO> gatherIODefinitions(const pas::ast::Node &node);
 } // namespace pas::ops::pepp

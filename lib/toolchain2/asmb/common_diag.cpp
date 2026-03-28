@@ -13,6 +13,7 @@ const std::string pepp::tc::ParserError::to_string(NullaryError err) {
   case NullaryError::Argument_ExpectedString: return "Argument must be a string";
   case NullaryError::Argument_ExpectedIdentifier: return "Argument must be an identifier";
   case NullaryError::Argument_ExpectedHex: return "Argument must be a hexadecimal integer";
+  case NullaryError::Argument_ExpectedInteger: return "Argument must be an integer";
   case NullaryError::AddressingMode_Required: return "Addressing mode required for this instruction.";
   case NullaryError::AddressingMode_Invalid: return "Invalid addressing mode";
   case NullaryError::AddressingMode_Missing: return "Expected addressing mode";

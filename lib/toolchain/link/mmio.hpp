@@ -16,8 +16,8 @@
  */
 
 #pragma once
-#include <QtCore>
 #include <elfio/elfio.hpp>
+#include <vector>
 
 namespace obj {
 
@@ -27,16 +27,16 @@ const ELFIO::section *getMMIONoteSection(const ELFIO::elfio &elf);
 ELFIO::section *addMMIONoteSection(ELFIO::elfio &elf);
 
 struct IO {
-  QString name;
+  std::string name;
   enum class Type { kInput, kOutput, kIDE } type;
 };
-void addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, QList<IO> mmios);
+void addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, std::vector<IO> mmios);
 // Mark the following symbol as the starting symbol for an memory-mapped IDE controller.
-void addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, QString symbol);
+void addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, std::string symbol);
 
 struct AddressedIO : public IO {
-  quint16 minOffset, maxOffset;
+  uint16_t minOffset, maxOffset;
 };
 
-QList<AddressedIO> getMMIODeclarations(const ELFIO::elfio &elf);
+std::vector<AddressedIO> getMMIODeclarations(const ELFIO::elfio &elf);
 } // namespace obj

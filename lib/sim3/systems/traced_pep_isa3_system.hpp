@@ -41,7 +41,7 @@ template <typename Address> class ReadOnly;
 namespace targets::isa {
 class System : public sim::api2::System<quint16> {
 public:
-  System(pepp::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
+  System(pepp::Architecture arch, QList<obj::MemoryRegion> regions, std::vector<obj::AddressedIO> mmios);
   // System interface
   std::pair<sim::api2::tick::Type, sim::api2::tick::Result> tick(sim::api2::Scheduler::Mode mode) override;
   sim::api2::tick::Type currentTick() const override;
@@ -70,7 +70,7 @@ public:
   void reconfigure(const ELFIO::elfio &elf);
 
 private:
-  void reconfigure(pepp::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
+  void reconfigure(pepp::Architecture arch, QList<obj::MemoryRegion> regions, std::vector<obj::AddressedIO> mmios);
   sim::api2::device::ID _nextID = 0;
   sim::api2::device::IDGenerator _nextIDGenerator = [this]() { return _nextID++; };
   sim::api2::tick::Type _tick = 0;

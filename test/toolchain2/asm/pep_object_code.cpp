@@ -20,7 +20,6 @@
 #include "toolchain2/asmb/pep_ir_visitor.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
 
-using namespace Qt::StringLiterals;
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 // First line is empty!!
@@ -40,7 +39,7 @@ BR 0
 TEST_CASE("Pepp ASM object code output", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc::ir;
 
   pepp::tc::DiagnosticTable diag;

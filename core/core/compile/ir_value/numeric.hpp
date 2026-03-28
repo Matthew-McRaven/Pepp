@@ -29,6 +29,7 @@ public:
   }
 
   inline u64 serialized_size() const noexcept override { return _size; }
+  u64 minimum_size() const noexcept override;
   [[nodiscard]] u32 serialize(bits::span<u8> dest, bits::Order destEndian = bits::Order::BigEndian,
                               u32 max_size = (u32)-1) const noexcept override;
 
@@ -52,6 +53,7 @@ public:
     using std::swap;
     swap((Numeric &)first, (Numeric &)second);
   }
+  u64 minimum_size() const noexcept override;
   std::string string() const override;
   std::string raw_string() const override;
 };

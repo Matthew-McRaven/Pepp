@@ -2,10 +2,11 @@
 #include <fmt/format.h>
 #include <iostream>
 #include "core/math/bitmanip/copy.hpp"
+#include "core/math/bitmanip/log2.hpp"
 
 pepp::ast::Numeric::Numeric() noexcept : IRValue() {}
 
-pepp::ast::Numeric::Numeric(u64 value, u8 size) noexcept {
+pepp::ast::Numeric::Numeric(u64 value, u8 size) noexcept : IRValue(), _size(size), _value(value) {
   if (size > 8) {
     static const char *const e = "Numeric constants must be <=8 bytes";
     std::cerr << e;
@@ -13,11 +14,13 @@ pepp::ast::Numeric::Numeric(u64 value, u8 size) noexcept {
   }
 }
 
+u64 pepp::ast::Numeric::minimum_size() const noexcept { return ceil(log2(_value + 1) / 8); }
+
 [[nodiscard]]
 u32 pepp::ast::Numeric::serialize(bits::span<u8> dest, bits::Order destEndian, u32 max_size) const noexcept {
   using size_type = bits::span<const u8>::size_type;
   auto size = std::min<size_type>(max_size, serialized_size());
-  std::span<const u8> src(reinterpret_cast<const u8 *>(&_value), size);
+  std::span<const u8> src(reinterpret_cast<const u8 *>(&_value), sizeof(_value));
   bits::memcpy_endian(dest, destEndian, src, bits::hostOrder());
   return size;
 }
@@ -66,3 +69,9 @@ pepp::ast::Hexadecimal::Hexadecimal(Hexadecimal &&other) noexcept { swap(*this, 
 std::string pepp::ast::Hexadecimal::string() const { return fmt::format("0x{:0{}X}", _value, 2 * _size); }
 
 std::string pepp::ast::Hexadecimal::raw_string() const { return fmt::format("{:0{}X}", _value, 2 * _size); }
+u64 pepp::ast::SignedDecimal::minimum_size() const noexcept {
+  // Handle _value = 0b1000...0, otherwise we take log of negative number.
+  if (_value * -1 == _value) return sizeof(_value);
+  // Must subtract 1 bit (log2(n)+1), because the top order bit holds sign, not data.
+  return ceil((log2(-1 * _value) + 1) / 8);
+}

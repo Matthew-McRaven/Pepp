@@ -16,6 +16,7 @@
 
 #include "toolchain2/asmb/pep_parser.hpp"
 #include <catch.hpp>
+#include "core/compile/ir_value/numeric.hpp"
 #include "toolchain/pas/ast/value/numeric.hpp"
 
 using namespace Qt::StringLiterals;
@@ -26,7 +27,7 @@ static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; }
 TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc::ir;
   SECTION("No input") {
     pepp::tc::DiagnosticTable diag;
@@ -67,8 +68,8 @@ TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
     auto attr = r0->attribute(attr::Type::SymbolDeclaration);
     REQUIRE(attr);
     auto sym = (pepp::tc::ir::attr::SymbolDeclaration *)attr;
-    CHECK(sym->entry->name.toStdString() == "symb");
-    CHECK(sym->entry->state == symbol::DefinitionState::kSingle);
+    CHECK(sym->entry->name == "symb");
+    CHECK(sym->entry->is_singly_defined());
   }
   SECTION("Dyadic instructions") {
     pepp::tc::DiagnosticTable diag;
@@ -80,7 +81,7 @@ TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
     REQUIRE(r0);
     CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::ADDA);
     CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
-    CHECK(std::dynamic_pointer_cast<pas::ast::value::Numeric>(r0->argument.value));
+    CHECK(std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value));
   }
   SECTION("Dyadic instructions with optional addressing modes") {
     pepp::tc::DiagnosticTable diag;
@@ -92,7 +93,8 @@ TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
     REQUIRE(r0);
     CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
     CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
-    CHECK(std::dynamic_pointer_cast<pas::ast::value::Numeric>(r0->argument.value));
+    auto ptr_arg = std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value);
+    CHECK(ptr_arg != nullptr);
   }
   SECTION("Dyadic instructions with large argument") {
     pepp::tc::DiagnosticTable diag;
@@ -104,7 +106,7 @@ TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
     REQUIRE(r0);
     CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
     CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
-    CHECK(std::dynamic_pointer_cast<pas::ast::value::Numeric>(r0->argument.value));
+    CHECK(std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value) != nullptr);
   }
   SECTION("Dyadic instructions with symbolic argument") {
     pepp::tc::DiagnosticTable diag;
@@ -116,14 +118,14 @@ TEST_CASE("Pepp ASM parser", "[scope:asm][kind:unit][arch:*][tc2]") {
     REQUIRE(r0);
     CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
     CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::X);
-    CHECK(std::dynamic_pointer_cast<pas::ast::value::Symbolic>(r0->argument.value));
+    CHECK(std::dynamic_pointer_cast<pepp::ast::Symbolic>(r0->argument.value));
   }
 }
 
 TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc::ir;
 
   SECTION(".ALIGN") {
@@ -176,6 +178,15 @@ TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]")
   SECTION(".BYTE") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(".BYTE 255"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+  }
+
+  SECTION(".BYTE0") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".BYTE 0"));
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -245,7 +256,6 @@ TEST_CASE("Pepp ASM parser dot commands", "[scope:asm][kind:unit][arch:*][tc2]")
       REQUIRE(results.size() == 1);
       auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
       REQUIRE(r0);
-      REQUIRE(r0->name.value != nullptr);
       CHECK(r0->name.value == ".text");
       CHECK(r0->flags.r == true);
       CHECK(r0->flags.w == true);

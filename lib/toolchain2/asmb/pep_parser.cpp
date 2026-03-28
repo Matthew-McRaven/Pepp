@@ -1,17 +1,17 @@
 #include "./pep_parser.hpp"
 #include "./pep_attributes.hpp"
 #include "common_diag.hpp"
+#include "core/compile/ir_value/numeric.hpp"
+#include "core/compile/ir_value/symbolic.hpp"
+#include "core/compile/ir_value/text.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/math/bitmanip/strings.hpp"
-#include "toolchain/pas/ast/value/character.hpp"
-#include "toolchain/pas/ast/value/decimal.hpp"
-#include "toolchain/pas/ast/value/hexadecimal.hpp"
-#include "toolchain/pas/ast/value/string.hpp"
 
 pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)
     : _pool(std::make_shared<std::unordered_set<std::string>>()),
       _lexer(std::make_shared<lex::PepLexer>(_pool, std::move(data))), _buffer(std::make_shared<lex::Buffer>(&*_lexer)),
-      _symtab(QSharedPointer<symbol::Table>::create(2)) {}
+      _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)) {}
 
 pepp::tc::PepIRProgram pepp::tc::parser::PepParser::parse(DiagnosticTable &diag) {
   PepIRProgram lines;
@@ -26,50 +26,46 @@ pepp::tc::PepIRProgram pepp::tc::parser::PepParser::parse(DiagnosticTable &diag)
   return lines;
 }
 
-QSharedPointer<symbol::Table> pepp::tc::parser::PepParser::symbol_table() const { return _symtab; }
+std::shared_ptr<pepp::core::symbol::LeafTable> pepp::tc::parser::PepParser::symbol_table() const { return _symtab; }
 
 void pepp::tc::parser::PepParser::debug_print_tokens(bool debug) { _lexer->print_tokens = debug; }
 
-std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::argument() {
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
   lex::Checkpoint cp(*_buffer);
-  static constexpr auto le = bits::Order::LittleEndian;
   if (auto maybeInteger = _buffer->match<lex::Integer>(); maybeInteger) {
     if (maybeInteger->format == lex::Integer::Format::SignedDec)
-      return std::make_shared<pas::ast::value::SignedDecimal>(maybeInteger->value, 2);
+      return std::make_shared<pepp::ast::SignedDecimal>(maybeInteger->value, 2);
     else if (maybeInteger->format == lex::Integer::Format::Hex)
-      return std::make_shared<pas::ast::value::Hexadecimal>(maybeInteger->value, 2);
+      return std::make_shared<pepp::ast::Hexadecimal>(maybeInteger->value, 2);
     else if (maybeInteger->format == lex::Integer::Format::UnsignedDec)
-      return std::make_shared<pas::ast::value::UnsignedDecimal>(maybeInteger->value, 2);
+      return std::make_shared<pepp::ast::UnsignedDecimal>(maybeInteger->value, 2);
     else throw ParserError(ParserError::NullaryError::Argument_InvalidIntegerFormat, _buffer->matched_interval());
   } else if (auto maybeIdent = _buffer->match<lex::Identifier>(); maybeIdent) {
-    auto entry = _symtab->reference(QString::fromStdString(maybeIdent->to_string()));
-    return std::make_shared<pas::ast::value::Symbolic>(entry);
+    auto entry = _symtab->reference(maybeIdent->to_string());
+    return std::make_shared<pepp::ast::Symbolic>(2, entry);
   } else if (auto maybeChar = _buffer->match<lex::CharacterConstant>(); maybeChar) {
-    return std::make_shared<pas::ast::value::Character>(QString::fromStdString(maybeChar->value));
+    return std::make_shared<pepp::ast::Character>(maybeChar->value[0]);
   } else if (auto maybeStr = _buffer->match<lex::StringConstant>(); maybeStr) {
-    auto asStr = QString::fromStdString(std::string{maybeStr->view()});
-    if (asStr.size() <= 2) return std::make_shared<pas::ast::value::ShortString>(asStr, asStr.size(), le);
-    return std::make_shared<pas::ast::value::LongString>(asStr, le);
+    auto asStr = std::string{maybeStr->view()};
+    return std::make_shared<pepp::ast::String>(asStr);
   } else return nullptr;
 }
 
-std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::numeric_argument() {
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::numeric_argument() {
   auto arg = argument();
-  if (!arg->isNumeric()) return nullptr;
-  return arg;
+  return std::dynamic_pointer_cast<pepp::ast::Numeric>(arg);
 }
 
-std::shared_ptr<pas::ast::value::Base> pepp::tc::parser::PepParser::hex_argument() {
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::hex_argument() {
   auto arg = argument();
-  if (auto as_hex = std::dynamic_pointer_cast<pas::ast::value::Hexadecimal>(arg); !as_hex) return nullptr;
-  return arg;
+  return std::dynamic_pointer_cast<pepp::ast::Hexadecimal>(arg);
 }
 
-std::shared_ptr<pas::ast::value::Symbolic> pepp::tc::parser::PepParser::identifier_argument() {
+std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::PepParser::identifier_argument() {
   lex::Checkpoint cp(*_buffer);
   if (auto maybeIdent = _buffer->match<lex::Identifier>(); maybeIdent) {
-    auto entry = _symtab->reference(QString::fromStdString(maybeIdent->to_string()));
-    return std::make_shared<pas::ast::value::Symbolic>(entry);
+    auto entry = _symtab->reference(maybeIdent->to_string());
+    return std::make_shared<pepp::ast::Symbolic>(2, entry);
   }
   return nullptr;
 }
@@ -88,7 +84,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction
     ISA::AddressingMode am = ISA::AddressingMode::INVALID;
     auto arg = argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_Missing, _buffer->matched_interval());
-    else if (arg->requiredBytes() > 2)
+    else if (arg->minimum_size() > 2)
       throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
     // TODO: reject string arguments
     else if (_buffer->match_literal(",")) {
@@ -129,9 +125,10 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
   switch (it->second) {
   case ir::DotCommands::ALIGN: {
     auto arg = numeric_argument();
-    quint16 value;
-    bits::span<quint8> buf{(quint8 *)&value, 2};
-    arg->value(buf, bits::hostOrder());
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+    u16 value;
+    bits::span<u8> buf{(u8 *)&value, 2};
+    (void)arg->serialize(buf, bits::hostOrder());
     if (!(value == 1 || value == 2 || value == 4 || value == 8))
       throw ParserError(ParserError::NullaryError::Argument_ExpectedPowerOfTwo, _buffer->matched_interval());
     return std::make_shared<ir::DotAlign>(arg);
@@ -140,40 +137,43 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
       throw ParserError(ParserError::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
     else {
-      static constexpr auto le = bits::Order::LittleEndian;
-      auto asStr = QString::fromStdString(std::string{maybeStr->view()});
-      std::shared_ptr<pas::ast::value::Base> arg;
-      if (asStr.size() <= 2) arg = std::make_shared<pas::ast::value::ShortString>(asStr, asStr.size(), le);
-      else arg = std::make_shared<pas::ast::value::LongString>(asStr, le);
-
+      const auto asStr = std::string{maybeStr->view()};
+      ir::attr::Argument arg{std::make_shared<pepp::ast::String>(asStr)};
       return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::ASCII, arg);
     }
   }
   case ir::DotCommands::BLOCK: {
     auto arg = numeric_argument();
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
     return std::make_shared<ir::DotBlock>(arg);
   }
   case ir::DotCommands::BYTE: {
-    auto arg = numeric_argument();
-    if (arg->requiredBytes() > 1)
-      throw ParserError(ParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
-    return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Byte, arg);
+    auto arg = argument();
+    if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
+      if (numeric->minimum_size() > 1)
+        throw ParserError(ParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
+      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Byte, ir::attr::Argument{numeric});
+    } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
+      if (ident->minimum_size() > 1)
+        throw ParserError(ParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
+      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Byte, ir::attr::Argument{ident});
+    } else throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
   case ir::DotCommands::EQUATE: {
     auto arg = argument();
-    if (arg->requiredBytes() > 2)
+    if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+    else if (arg->minimum_size() > 2)
       throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
     else if (!symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Required, _buffer->matched_interval());
-    QSharedPointer<symbol::Entry> symbol_entry = *symbol;
-    return std::make_shared<ir::DotEquate>(ir::attr::SymbolDeclaration{symbol_entry}, arg);
+    return std::make_shared<ir::DotEquate>(ir::attr::SymbolDeclaration{*symbol}, arg);
   }
   case ir::DotCommands::EXPORT: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
-    arg->symbol()->binding = symbol::Binding::kGlobal;
+    arg->symbol()->binding = pepp::core::symbol::Binding::Global;
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::EXPORT, ir::attr::Argument{arg});
   }
   case ir::DotCommands::IMPORT: {
@@ -181,7 +181,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
-    arg->symbol()->binding = symbol::Binding::kImported;
+    arg->symbol()->binding = pepp::core::symbol::Binding::Weak;
     return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::IMPORT, ir::attr::Argument{arg});
   }
   case ir::DotCommands::INPUT: {
@@ -222,7 +222,6 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     else {
-      std::shared_ptr<pas::ast::value::Base> arg;
       auto flags = bits::to_lower(maybeFlags->view());
       using bits::contains;
       bool r = contains(flags, "r"), w = contains(flags, "w"), x = contains(flags, "x"), z = contains(flags, "z");
@@ -231,10 +230,14 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     }
   }
   case ir::DotCommands::WORD: {
-    auto arg = numeric_argument();
-    if (arg->requiredBytes() > 2)
-      throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
-    return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Word, arg);
+    auto arg = argument();
+    if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
+      if (numeric->minimum_size() > 2)
+        throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
+      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Word, ir::attr::Argument{numeric});
+    } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
+      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Word, ir::attr::Argument{ident});
+    } else throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
   default: throw std::logic_error("Unreachable");
   }
@@ -275,8 +278,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::statement()
     if (symbol && symbol->to_string().length() > 7)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_TooLong, _buffer->matched_interval());
 
-    auto symbol_decl =
-        symbol ? OptionalSymbol(_symtab->define(QString::fromStdString(symbol->to_string()))) : std::nullopt;
+    auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
     ret = line(symbol_decl);
     if (!ret) {
       auto next = _buffer->peek();

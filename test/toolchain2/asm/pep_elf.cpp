@@ -20,7 +20,6 @@
 #include "toolchain2/asmb/pep_ir_visitor.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
 
-using namespace Qt::StringLiterals;
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 // First line is empty!!
@@ -36,12 +35,21 @@ cruel:BR 0
 World:.BYTE 0
 .BYTE 0
 )";
+struct Result {
+  i16 offset;
+  std::string name;
+  auto operator<=>(const Result &other) const {
+    if (offset != other.offset) return offset <=> other.offset;
+    else return name <=> other.name;
+  };
+  bool operator==(const Result &other) const { return (offset == other.offset) && (name == other.name); }
+};
 } // namespace
 
 TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc::ir;
   SECTION("No ORG") {
     pepp::tc::DiagnosticTable diag;
@@ -56,6 +64,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
     CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
     auto result = pepp::tc::split_to_sections(diag, results);
     CHECK(diag.count() == 0);
+
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
@@ -99,8 +108,10 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
 )"));
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
+    for (auto &d : diag) std::cerr << d.second << "\n";
     auto result = pepp::tc::split_to_sections(diag, results);
     CHECK(diag.count() == 0);
+
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::assign_addresses(sections);
@@ -130,24 +141,21 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:asm][kind:unit][arch:*][tc2]") {
     unsigned char sym_bind, sym_type, sym_other;
     ELFIO::Elf_Half section_index;
     CHECK(rel_text_ac.get_entries_num() == 3);
-    // Entry 0
-    rel_text_ac.get_entry(0, rel_offset, rel_symbol, rel_type, unused);
-    CHECK(rel_offset == 6);
-    CHECK(symtab_ac.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
-                               section_index, sym_other));
-    CHECK(sym_name == "d");
-    // Entry 1
-    rel_text_ac.get_entry(1, rel_offset, rel_symbol, rel_type, unused);
-    CHECK(rel_offset == 2);
-    CHECK(symtab_ac.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
-                               section_index, sym_other));
-    CHECK(sym_name == "i");
-    // Entry 2
-    rel_text_ac.get_entry(2, rel_offset, rel_symbol, rel_type, unused);
-    CHECK(rel_offset == 5);
-    CHECK(symtab_ac.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
-                               section_index, sym_other));
-    CHECK(sym_name == "i");
+
+    // Avoid depending on order of entries in std::multimap.
+    std::set<Result> expected{
+        {2, "i"},
+        {5, "i"},
+        {6, "d"},
+    };
+    for (size_t i = 0; i < expected.size(); i++) {
+      rel_text_ac.get_entry(i, rel_offset, rel_symbol, rel_type, unused);
+      CHECK(symtab_ac.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
+                                 section_index, sym_other));
+      Result local{(i16)rel_offset, sym_name};
+      CHECK(expected.contains(local));
+    }
+
     CHECK(rel_data_ac.get_entries_num() == 1);
     // Entry 0
     rel_data_ac.get_entry(0, rel_offset, rel_symbol, rel_type, unused);

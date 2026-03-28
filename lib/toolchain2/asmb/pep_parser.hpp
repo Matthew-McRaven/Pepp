@@ -3,8 +3,8 @@
 #include "./pep_common.hpp"
 #include "./pep_ir.hpp"
 #include "./pep_lexer.hpp"
+#include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
-#include "toolchain/symbol/table.hpp"
 #include "toolchain2/asmb/common_diag.hpp"
 
 /*
@@ -24,16 +24,16 @@ struct PepParser {
   PepParser(support::SeekableData &&data);
 
   PepIRProgram parse(DiagnosticTable &);
-  QSharedPointer<symbol::Table> symbol_table() const;
+  std::shared_ptr<pepp::core::symbol::LeafTable> symbol_table() const;
 
   void debug_print_tokens(bool debug);
 
 private:
-  using OptionalSymbol = std::optional<QSharedPointer<symbol::Entry>>;
-  std::shared_ptr<pas::ast::value::Base> argument();
-  std::shared_ptr<pas::ast::value::Base> numeric_argument();
-  std::shared_ptr<pas::ast::value::Base> hex_argument();
-  std::shared_ptr<pas::ast::value::Symbolic> identifier_argument();
+  using OptionalSymbol = std::optional<std::shared_ptr<pepp::core::symbol::Entry>>;
+  std::shared_ptr<pepp::ast::IRValue> argument();
+  std::shared_ptr<pepp::ast::IRValue> numeric_argument();
+  std::shared_ptr<pepp::ast::IRValue> hex_argument();
+  std::shared_ptr<pepp::ast::Symbolic> identifier_argument();
   std::shared_ptr<ir::LinearIR> instruction();
   std::shared_ptr<ir::LinearIR> pseudo(OptionalSymbol symbol);
   std::shared_ptr<ir::LinearIR> line(OptionalSymbol symbol);
@@ -45,6 +45,6 @@ private:
   std::shared_ptr<lex::PepLexer> _lexer;
   std::shared_ptr<lex::Buffer> _buffer;
   // Must be QSharedPointer until old toolchain has been entirely ported.
-  QSharedPointer<symbol::Table> _symtab;
+  std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
 };
 } // namespace pepp::tc::parser

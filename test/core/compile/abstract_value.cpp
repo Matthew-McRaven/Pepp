@@ -16,7 +16,7 @@
  */
 
 #include <catch.hpp>
-#include "core/compile/abstract_value/numeric.hpp"
+#include "core/compile/ir_value/numeric.hpp"
 
 TEST_CASE("pepp abstract value types", "[scope:core][scope:core.compile][kind:unit][arch:*]") {
   SECTION("Empty") {

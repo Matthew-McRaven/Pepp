@@ -2,6 +2,7 @@
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/math/bitmanip/copy.hpp"
+#include "core/math/bitmanip/log2.hpp"
 #include "spdlog/spdlog.h"
 
 pepp::ast::Symbolic::Symbolic() {}
@@ -12,6 +13,8 @@ pepp::ast::Symbolic::Symbolic(u8 ptr_size, std::shared_ptr<core::symbol::Entry> 
 pepp::ast::Symbolic::Symbolic(const Symbolic &other) : _ptr_size_bytes(other._ptr_size_bytes), _value(other._value) {}
 
 pepp::ast::Symbolic::Symbolic(Symbolic &&other) noexcept { swap(*this, other); }
+
+u64 pepp::ast::Symbolic::minimum_size() const noexcept { return ceil(log2(_value->value->value()() + 1) / 8); }
 
 std::shared_ptr<pepp::core::symbol::Entry> pepp::ast::Symbolic::symbol() { return _value; }
 

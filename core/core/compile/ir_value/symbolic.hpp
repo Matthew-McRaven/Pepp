@@ -41,6 +41,7 @@ public:
   std::shared_ptr<core::symbol::Entry> symbol();
   std::shared_ptr<const core::symbol::Entry> symbol() const;
   inline u64 serialized_size() const noexcept override { return _ptr_size_bytes; }
+  u64 minimum_size() const noexcept override;
   [[nodiscard]] u32 serialize(bits::span<u8> dest, bits::Order destEndian = bits::Order::BigEndian,
                               u32 max_size = (u32)-1) const noexcept override;
 

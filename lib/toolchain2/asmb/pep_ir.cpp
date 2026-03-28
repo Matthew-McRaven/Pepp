@@ -1,10 +1,15 @@
 #include "./pep_ir.hpp"
+#include <utility>
 #include "toolchain2/asmb/pep_ir_visitor.hpp"
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::LinearIR::attribute(attr::Type type) const {
   for (attr::ListNode *it = extended_attributes.get(); it != nullptr; it = it->next.get())
     if (it->attr->type() == type) return it->attr.get();
   return nullptr;
+}
+
+pepp::tc::ir::attr::AAttribute *pepp::tc::ir::LinearIR::attribute(attr::Type type) {
+  return const_cast<attr::AAttribute *>(std::as_const(*this).attribute(type));
 }
 
 void pepp::tc::ir::LinearIR::insert(std::unique_ptr<attr::AAttribute> attr) {
@@ -82,8 +87,8 @@ void pepp::tc::ir::DotAlign::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<quint16> pepp::tc::ir::DotAlign::object_size(quint16 base_address) const {
-  quint16 align = argument.value->value<quint16>();
+std::optional<u16> pepp::tc::ir::DotAlign::object_size(quint16 base_address) const {
+  quint16 align = argument.value->value_as<u16>();
   auto ret = (align - (base_address % align)) % align;
   // If return value would be 0, choose nullopt to prevent useless address in listing.
   return ret == 0 ? std::nullopt : std::optional<quint16>(ret);
@@ -110,7 +115,7 @@ void pepp::tc::ir::DotLiteral::insert(std::unique_ptr<attr::AAttribute> attr) {
 
 std::optional<quint16> pepp::tc::ir::DotLiteral::object_size(quint16) const {
   switch (which) {
-  case Which::ASCII: return argument.value->requiredBytes();
+  case Which::ASCII: return argument.value->serialized_size();
   case Which::Byte: return 1;
   case Which::Word: return 2;
   }
@@ -133,7 +138,7 @@ void pepp::tc::ir::DotBlock::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<quint16> pepp::tc::ir::DotBlock::object_size(quint16) const { return argument.value->value<quint16>(); }
+std::optional<u16> pepp::tc::ir::DotBlock::object_size(quint16) const { return argument.value->value_as<u16>(); }
 
 void pepp::tc::ir::DotBlock::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
 

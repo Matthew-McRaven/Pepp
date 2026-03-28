@@ -1,9 +1,9 @@
 #pragma once
 
+#include <string>
 #include "core/arch/pep/isa/pep10.hpp"
-#include "toolchain/pas/ast/value/base.hpp"
-#include "toolchain/pas/ast/value/symbolic.hpp"
-#include "toolchain/symbol/entry.hpp"
+#include "core/compile/ir_value/base.hpp"
+#include "core/compile/symbol/entry.hpp"
 
 namespace pepp::tc::ir::attr {
 
@@ -27,17 +27,14 @@ struct AAttribute {
 struct Identifier : public AAttribute {
   static constexpr Type TYPE = Type::Identifier;
   Type type() const override;
-  Identifier(QString v) : value(v) {}
-  Identifier(std::string v) : value(QString::fromStdString(v)) {}
-  QString value;
-  QStringView view() const;
-  QString to_string() const;
+  Identifier(std::string v) : value(v) {}
+  std::string value;
+  std::string_view view() const;
 };
 
 struct Comment : public Identifier {
   static constexpr Type TYPE = Type::Comment;
   Type type() const override;
-  Comment(QString v) : Identifier(v) {}
   Comment(std::string v) : Identifier(v) {}
 };
 
@@ -64,15 +61,15 @@ struct Pep10AddrMode : public AAttribute {
 struct Argument : public AAttribute {
   static constexpr Type TYPE = Type::Argument;
   Type type() const override;
-  Argument(std::shared_ptr<pas::ast::value::Base> value) : value(std::move(value)) {}
-  std::shared_ptr<pas::ast::value::Base> value;
+  Argument(std::shared_ptr<pepp::ast::IRValue> value) : value(std::move(value)) {}
+  std::shared_ptr<pepp::ast::IRValue> value;
 };
 
 struct SymbolDeclaration : public AAttribute {
   static constexpr Type TYPE = Type::SymbolDeclaration;
   Type type() const override;
-  SymbolDeclaration(QSharedPointer<symbol::Entry> entry) : entry(entry) {}
-  QSharedPointer<symbol::Entry> entry;
+  SymbolDeclaration(std::shared_ptr<pepp::core::symbol::Entry> entry) : entry(entry) {}
+  std::shared_ptr<pepp::core::symbol::Entry> entry;
 };
 
 struct SectionFlags : public AAttribute {
@@ -82,14 +79,14 @@ struct SectionFlags : public AAttribute {
   // Must update == if flags changes. Cannot use default due to abstract base class.
   bool r = false, w = false, x = false, z = false;
   bool operator==(const SectionFlags &rhs) const;
-  QString to_string() const;
+  std::string to_string() const;
 };
 
 // Intentionally NOT an AAttribute, because I do not want it stored in my primary IR.
 // I want it stored in a side table
 struct Address {
-  Address(quint16 address, quint16 size) : address(address), size(size) {}
-  quint16 address = 0, size = 0;
+  Address(u16 address, u16 size) : address(address), size(size) {}
+  u16 address = 0, size = 0;
 };
 
 struct ListNode {

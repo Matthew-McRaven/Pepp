@@ -1,4 +1,6 @@
 #pragma once
+#include <optional>
+
 #include "./pep_attributes.hpp"
 #include "core/compile/source/location.hpp"
 
@@ -24,6 +26,10 @@ struct LinearIR {
 
   // Searches the linked list of attributes for one of the given type.
   // Must override if you inline an attribute into future IR lines.
+  virtual attr::AAttribute *attribute(attr::Type type);
+
+  // Searches the linked list of attributes for one of the given type.
+  // Must override if you inline an attribute into future IR lines.
   virtual const attr::AAttribute *attribute(attr::Type type) const;
 
   // Override this method if you inline an attribute into future IR lines.
@@ -35,7 +41,7 @@ struct LinearIR {
   // emitted. 0 /Ais a special case that allows multiple IR lines to share an address, usually in the form of a .BLOCK
   // 0, which is used in macro expansions for handling multiple symbols per line. The default implementation returns
   // nullopt.
-  virtual std::optional<quint16> object_size(quint16 base_address) const;
+  virtual std::optional<u16> object_size(u16 base_address) const;
 
   // We had a pattern of casting base pointers to derived pointers in IR.
   // Derived types have wildly different behaviors even if they have the same API.
@@ -45,6 +51,10 @@ struct LinearIR {
 
   virtual void accept(LinearIRVisitor *visitor) const = 0;
 
+  template <typename Attribute> Attribute *typed_attribute() {
+    static_assert(std::is_base_of_v<attr::AAttribute, Attribute>, "Attribute must derive from attr::AAttribute");
+    return dynamic_cast<Attribute *>(attribute(Attribute::TYPE));
+  }
   template <typename Attribute> const Attribute *typed_attribute() const {
     static_assert(std::is_base_of_v<attr::AAttribute, Attribute>, "Attribute must derive from attr::AAttribute");
     return dynamic_cast<const Attribute *>(attribute(Attribute::TYPE));
@@ -79,7 +89,7 @@ struct MonadicInstruction : public LinearIR {
   explicit MonadicInstruction(attr::Pep10Mnemonic m) : mnemonic(m) {}
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
-  std::optional<quint16> object_size(quint16 base_address) const override;
+  std::optional<u16> object_size(u16 base_address) const override;
   Type type() const override;
   void accept(LinearIRVisitor *visitor) const override;
   attr::Pep10Mnemonic mnemonic;
@@ -91,7 +101,7 @@ struct DyadicInstruction : public LinearIR {
       : mnemonic(m), addr_mode(am), argument(arg) {}
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
-  std::optional<quint16> object_size(quint16 base_address) const override;
+  std::optional<u16> object_size(u16 base_address) const override;
   Type type() const override;
   void accept(LinearIRVisitor *visitor) const override;
   attr::Pep10Mnemonic mnemonic;
@@ -120,7 +130,7 @@ struct DotAlign : public LinearIR {
   explicit DotAlign(attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
-  std::optional<quint16> object_size(quint16 base_address) const override;
+  std::optional<u16> object_size(u16 base_address) const override;
   Type type() const override;
   void accept(LinearIRVisitor *visitor) const override;
   attr::Argument argument;
@@ -132,7 +142,7 @@ struct DotLiteral : public LinearIR { // ASCII, byte, word
   DotLiteral(Which kind, attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
-  std::optional<quint16> object_size(quint16 base_address) const override;
+  std::optional<u16> object_size(u16 base_address) const override;
   Type type() const override;
   void accept(LinearIRVisitor *visitor) const override;
   attr::Argument argument;
@@ -143,7 +153,7 @@ struct DotBlock : public LinearIR { // Block
   explicit DotBlock(attr::Argument arg);
   const attr::AAttribute *attribute(attr::Type type) const override;
   void insert(std::unique_ptr<attr::AAttribute> attr) override;
-  std::optional<quint16> object_size(quint16 base_address) const override;
+  std::optional<u16> object_size(u16 base_address) const override;
   Type type() const override;
   void accept(LinearIRVisitor *visitor) const override;
   attr::Argument argument;

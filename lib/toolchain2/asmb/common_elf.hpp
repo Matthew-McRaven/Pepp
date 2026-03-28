@@ -1,5 +1,4 @@
 #pragma once
-#include <QtCore>
 
 namespace ELFIO {
 class section;

@@ -27,8 +27,9 @@ public:
   explicit IRValue() noexcept = default;
   virtual ~IRValue() noexcept = default;
 
-  // Minimum number of bytes to encode the value. E.g., a (u64) 128 has a nominal size of 8 but a min size of 1.
+  // Minimum number of bytes to encode the value. E.g., a (u64) 128 has a serialized_size size of 8 but a min size of 1.
   virtual u64 serialized_size() const noexcept = 0;
+  virtual u64 minimum_size() const noexcept { return serialized_size(); }
   [[nodiscard]] virtual u32 serialize(bits::span<u8> dest, bits::Order destEndian = bits::Order::BigEndian,
                                       u32 max_size = (u32)-1) const noexcept = 0;
 

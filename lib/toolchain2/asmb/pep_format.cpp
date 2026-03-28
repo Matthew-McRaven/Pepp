@@ -1,11 +1,10 @@
 #include "pep_format.hpp"
-#include <QStringList>
 #include <fmt/format.h>
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/math/bitmanip/strings.hpp"
+#include "fmt/ranges.h"
 #include "pep_codegen.hpp"
 #include "toolchain2/asmb/pep_ir_visitor.hpp"
-#include "utils/textutils.hpp"
 
 namespace {
 // Turns out to be a simplified version of the lexer that matches on tokens rather than characters.
@@ -27,21 +26,15 @@ enum class States {
 };
 } // namespace
 
-QString pepp::tc::format_as_columns(const QString &col0, const QString &col1, const QString &col2,
-                                    const QString &col3) {
-  using namespace Qt::StringLiterals;
-  return rtrimmed(u"%1%2%3%4"_s
-                      .arg(col0, -FormatOptions::col0_width)
-                      // col1 is always identifier-like (dot commands, macros).
-                      // It must not bleed into column 2, or column 2 will later be parsed as part of column 1.
-                      // Conditionally insert a space to prevent that parsing issue.
-                      .arg(col1.size() >= FormatOptions::col1_width ? col1 + " " : col1, -FormatOptions::col1_width)
-                      .arg(col2, -FormatOptions::col2_width)
-                      .arg(col3))
-      .toString();
+std::string pepp::tc::format_as_columns(const std::string &col0, const std::string &col1, const std::string &col2,
+                                        const std::string &col3) {
+  const auto formatted = fmt::format("{:<{}}{:<{}}{:<{}}{}", col0, FormatOptions::col0_width,
+                                     col1.size() >= FormatOptions::col1_width ? col1 + " " : col1,
+                                     FormatOptions::col1_width, col2, FormatOptions::col2_width, col3);
+  return bits::rtrimmed(formatted);
 }
 
-QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tokens) {
+std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tokens) {
   using CTT = lex::CommonTokenType;
   using ATT = lex::AsmTokenType;
 
@@ -54,8 +47,8 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
   // Used to format instructions' addressing modes correctly
   int force_lowercase_on_arg = -1;
   // Accumulate arguments in a list rather directly into the corresponding column.
-  QStringList arg_list;
-  QString col0 = "", col1 = "", col2 = "", col3 = "", temp = "";
+  std::vector<std::string> arg_list;
+  std::string col0 = "", col1 = "", col2 = "", col3 = "", temp = "";
 
   auto state = States::START;
   for (const auto &token : tokens) {
@@ -67,24 +60,26 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       case (int)CTT::Empty: state = States::END; break;
       case (int)CTT::InlineComment:
         state = States::COMMENT;
-        col0 = ";" + QString::fromStdString(token->to_string());
+        col0 = ";" + token->to_string();
         break;
       case (int)CTT::SymbolDeclaration:
         state = States::SYMBOL;
-        col0 = QString::fromStdString(token->to_string()) + ":";
+        col0 = token->to_string() + ":";
         break;
       case (int)ATT::DotCommand:
         state = States::ARGED1;
-        col1 = "." + QString::fromStdString(token->to_string()).toUpper();
+        col1 = "." + token->to_string();
+        bits::to_upper_inplace(col1);
         space_after_comma = true;
         break;
       case (int)ATT::MacroInvocation:
         state = States::ARGED1;
-        col1 = "@" + QString::fromStdString(token->to_string());
+        col1 = "@" + token->to_string();
         break;
       case (int)CTT::Identifier:
         state = States::ARGED1;
-        col1 = QString::fromStdString(token->to_string()).toUpper();
+        col1 = token->to_string();
+        bits::to_upper_inplace(col1);
         force_lowercase_on_arg = 2;
         break;
       default: valid = false;
@@ -103,16 +98,18 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       switch ((int)token->type()) {
       case (int)ATT::DotCommand:
         state = States::ARGED1;
-        col1 = "." + QString::fromStdString(token->to_string()).toUpper();
+        col1 = "." + token->to_string();
+        bits::to_upper_inplace(col1);
         space_after_comma = true;
         break;
       case (int)ATT::MacroInvocation:
         state = States::ARGED1;
-        col1 = "@" + QString::fromStdString(token->to_string());
+        col1 = "@" + token->to_string();
         break;
       case (int)CTT::Identifier:
         state = States::ARGED1;
-        col1 = QString::fromStdString(token->to_string()).toUpper();
+        col1 = token->to_string();
+        bits::to_upper_inplace(col1);
         force_lowercase_on_arg = 2;
         break;
       default: valid = false;
@@ -124,12 +121,12 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       switch ((int)token->type()) {
       case (int)CTT::EoF: [[fallthrough]];
       case (int)CTT::Empty:
-        col2 = arg_list.join(space_after_comma ? ", " : ",");
+        col2 = fmt::format("{}", fmt::join(arg_list, space_after_comma ? ", " : ","));
         state = States::END;
         break;
       case (int)CTT::InlineComment:
-        col2 = arg_list.join(space_after_comma ? ", " : ",");
-        col3 = ";" + QString::fromStdString(token->to_string());
+        col2 = fmt::format("{}", fmt::join(arg_list, space_after_comma ? ", " : ","));
+        col3 = ";" + token->to_string();
         state = States::COMMENT;
         break;
       case (int)CTT::Literal:
@@ -142,8 +139,8 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       case (int)CTT::Identifier:
         state = States::ARGED2;
         scanned_args++;
-        temp = QString::fromStdString(token->to_string());
-        if (scanned_args == force_lowercase_on_arg) temp = temp.toLower();
+        temp = token->to_string();
+        if (scanned_args == force_lowercase_on_arg) bits::to_lower_inplace(temp);
         arg_list.emplace_back(temp);
         break;
       default: valid = false;
@@ -155,12 +152,12 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       switch ((int)token->type()) {
       case (int)CTT::EoF: [[fallthrough]];
       case (int)CTT::Empty:
-        col2 = arg_list.join(space_after_comma ? ", " : ",");
+        col2 = fmt::format("{}", fmt::join(arg_list, space_after_comma ? ", " : ","));
         state = States::END;
         break;
       case (int)CTT::InlineComment:
-        col2 = arg_list.join(space_after_comma ? ", " : ",");
-        col3 = ";" + QString::fromStdString(token->to_string());
+        col2 = fmt::format("{}", fmt::join(arg_list, space_after_comma ? ", " : ","));
+        col3 = ";" + token->to_string();
         state = States::COMMENT;
         break;
       case (int)CTT::Literal:
@@ -180,8 +177,8 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
       case (int)CTT::Identifier:
         state = States::ARGED2;
         scanned_args++;
-        temp = QString::fromStdString(token->to_string());
-        if (scanned_args == force_lowercase_on_arg) temp = temp.toLower();
+        temp = token->to_string();
+        if (scanned_args == force_lowercase_on_arg) bits::to_lower_inplace(temp);
         arg_list.emplace_back(temp);
         break;
       default: valid = false;
@@ -196,7 +193,7 @@ QString pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tok
 
 namespace pepp::tc {
 struct SourceVisitor : public ir::LinearIRVisitor {
-  QString text;
+  std::string text;
   void visit(const ir::EmptyLine *) override;
   void visit(const ir::CommentLine *) override;
   void visit(const ir::MonadicInstruction *) override;
@@ -214,46 +211,47 @@ struct SourceVisitor : public ir::LinearIRVisitor {
 void pepp::tc::SourceVisitor::visit(const ir::EmptyLine *) { text = ""; }
 
 void pepp::tc::SourceVisitor::visit(const ir::CommentLine *line) {
-  auto comment = ";" + line->comment.to_string();
+  auto comment = ";" + line->comment.value;
   text = format_as_columns(comment, "", "", "");
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::MonadicInstruction *line) {
-  QString symbol = "", mn = "", comment = "";
+  std::string symbol = "", mn = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
     symbol = maybe_symbol->entry->name + ":";
-  mn = QString::fromStdString(isa::Pep10::string(line->mnemonic.instruction));
+  mn = isa::Pep10::string(line->mnemonic.instruction);
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->to_string();
+    comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, mn, "", comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::DyadicInstruction *line) {
-  QStringList arg_list;
-  QString symbol = "", mn = "", comment = "";
+  std::vector<std::string> arg_list;
+  std::string symbol = "", mn = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
     symbol = maybe_symbol->entry->name + ":";
-  mn = QString::fromStdString(isa::Pep10::string(line->mnemonic.instruction));
-  arg_list.emplaceBack(line->argument.value->string());
+  mn = isa::Pep10::string(line->mnemonic.instruction);
+  arg_list.emplace_back(line->argument.value->string());
   auto addr_mode = line->addr_mode.addr_mode;
   if (!isa::Pep10::canElideAddressingMode(line->mnemonic.instruction, addr_mode))
-    arg_list.emplaceBack(QString::fromStdString(isa::Pep10::string(addr_mode)));
+    arg_list.emplace_back(isa::Pep10::string(addr_mode));
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->to_string();
-  text = format_as_columns(symbol, mn, arg_list.join(","), comment);
+    comment = ";" + maybe_comment->value;
+  const auto joined_args = fmt::format("{}", fmt::join(arg_list, ","));
+  text = format_as_columns(symbol, mn, joined_args, comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::DotAlign *line) {
-  QString symbol = "", comment = "";
+  std::string symbol = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
     symbol = maybe_symbol->entry->name + ":";
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->to_string();
+    comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, ".ALIGN", line->argument.value->string(), comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::DotLiteral *line) {
-  QString symbol = "", dot = "", comment = "";
+  std::string symbol = "", dot = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
     symbol = maybe_symbol->entry->name + ":";
   using Which = ir::DotLiteral::Which;
@@ -264,39 +262,41 @@ void pepp::tc::SourceVisitor::visit(const ir::DotLiteral *line) {
   }
 
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->to_string();
+    comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, dot, line->argument.value->string(), comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::DotBlock *line) {
-  QString symbol = "", comment = "";
+  std::string symbol = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
     symbol = maybe_symbol->entry->name + ":";
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->to_string();
+    comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, ".BLOCK", line->argument.value->string(), comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::DotEquate *line) {
-  QString comment = "";
+  std::string comment = "";
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->to_string();
-  text = format_as_columns(line->symbol.entry->name + ":", ".EQUATE", line->argument.value->string(), comment);
+    comment = ";" + maybe_comment->value;
+  text = format_as_columns(std::string{line->symbol.entry->name + ":"}, ".EQUATE", line->argument.value->string(),
+                           comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::DotSection *line) {
   using namespace Qt::StringLiterals;
-  QStringList args;
-  args.emplaceBack(u"\"%1\""_s.arg(line->name.to_string()));
-  args.emplaceBack(u"\"%1\""_s.arg(line->flags.to_string()));
-  QString comment = "";
+  std::array<std::string, 2> args;
+  args[0] = fmt::format("\"{}\"", line->name.value);
+  args[1] = fmt::format("\"{}\"", line->flags.to_string());
+  std::string comment = "";
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->to_string();
-  text = format_as_columns("", ".SECTION", args.join(", "), comment);
+    comment = ";" + maybe_comment->value;
+  const auto joined_args = fmt::format("{}", fmt::join(args, ", "));
+  text = format_as_columns("", ".SECTION", joined_args, comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::DotAnnotate *line) {
-  QString dot = "", comment = "";
+  std::string dot = "", comment = "";
   using Which = ir::DotAnnotate::Which;
   switch (line->which) {
   case Which::EXPORT: dot = ".EXPORT"; break;
@@ -307,12 +307,12 @@ void pepp::tc::SourceVisitor::visit(const ir::DotAnnotate *line) {
   }
 
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->to_string();
+    comment = ";" + maybe_comment->value;
   text = format_as_columns("", dot, line->argument.value->string(), comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::DotOrg *line) {
-  QString dot = "", comment = "";
+  std::string dot = "", comment = "";
   using Behavior = ir::DotOrg::Behavior;
   switch (line->behavior) {
   case Behavior::BURN: dot = ".BURN"; break;
@@ -320,26 +320,26 @@ void pepp::tc::SourceVisitor::visit(const ir::DotOrg *line) {
   }
 
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->to_string();
+    comment = ";" + maybe_comment->value;
   text = format_as_columns("", dot, line->argument.value->string(), comment);
 }
 
-QString pepp::tc::format_source(const ir::LinearIR *line) {
+std::string pepp::tc::format_source(const ir::LinearIR *line) {
   SourceVisitor r;
   line->accept(&r);
   return r.text;
 }
 
 void format_listing(const pepp::tc::ir::LinearIR *line, const pepp::tc::IRMemoryAddressTable &addresses,
-                    const pepp::tc::ProgramObjectCodeResult &object_code, QStringList &out) {
-  using namespace Qt::StringLiterals;
+                    const pepp::tc::ProgramObjectCodeResult &object_code, std::vector<std::string> &out) {
   auto source_line = pepp::tc::format_source(line);
   auto address_it = addresses.find(line);
   std::optional<quint16> address =
       address_it == addresses.cend() ? std::nullopt : std::optional<quint16>(address_it->second.address);
-  QString address_str = address.has_value() ? u"%1"_s.arg(address.value(), 4, 16, QChar('0')) : "    ";
+
+  const std::string address_str = address.has_value() ? fmt::format("{:04X}", *address) : "    ";
   auto code_it = object_code.ir_to_object_code.find(line);
-  bits::span<quint8> code = code_it == object_code.ir_to_object_code.end() ? bits::span<quint8>{} : code_it->second;
+  bits::span<quint8> code = code_it == object_code.ir_to_object_code.end() ? bits::span<u8>{} : code_it->second;
 
   static constexpr int bytes_per_line = 3;
   auto obj = std::vector<char>(2 * bytes_per_line);
@@ -347,27 +347,26 @@ void format_listing(const pepp::tc::ir::LinearIR *line, const pepp::tc::IRMemory
   auto end = bits::bytesToAsciiHex(obj, code.first(n), {});
   code = code.subspan(n);
 
-  auto initial_line =
-      u"%1 %2 %3"_s.arg(address_str, -4).arg(QString::fromLocal8Bit(obj.data(), end), -6).arg(source_line);
-  out.emplaceBack(initial_line);
+  const auto initial_line = fmt::format("{:<4} {:<6} {}", address_str, std::string_view(obj.data(), end), source_line);
+  out.emplace_back(initial_line);
   while (!code.empty()) {
     n = std::min<size_t>(bytes_per_line, code.size());
     end = bits::bytesToAsciiHex(obj, code.first(n), {});
-    out.emplaceBack(u"     %1"_s.arg(QString::fromLocal8Bit(obj.data(), end)));
+    out.emplace_back(fmt::format("     {}", std::string_view(obj.data(), end)));
     code = code.subspan(n);
   }
 }
 
-QStringList pepp::tc::format_listing(const ir::LinearIR *line, const IRMemoryAddressTable &addresses,
-                                     const ProgramObjectCodeResult &object_code) {
-  QStringList ret;
-  format_listing(line, addresses, object_code, ret);
+std::vector<std::string> pepp::tc::format_listing(const ir::LinearIR *line, const IRMemoryAddressTable &addresses,
+                                                  const ProgramObjectCodeResult &object_code) {
+  std::vector<std::string> ret;
+  ::format_listing(line, addresses, object_code, ret);
   return ret;
 }
 
-QStringList pepp::tc::format_listing(const PepIRProgram &program, const IRMemoryAddressTable &addresses,
-                                     const ProgramObjectCodeResult &object_code) {
-  QStringList ret;
-  for (const auto &line : program) format_listing(&*line, addresses, object_code, ret);
+std::vector<std::string> pepp::tc::format_listing(const PepIRProgram &program, const IRMemoryAddressTable &addresses,
+                                                  const ProgramObjectCodeResult &object_code) {
+  std::vector<std::string> ret;
+  for (const auto &line : program) ::format_listing(&*line, addresses, object_code, ret);
   return ret;
 }

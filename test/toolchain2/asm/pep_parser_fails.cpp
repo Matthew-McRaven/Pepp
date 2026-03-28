@@ -17,7 +17,6 @@
 #include <catch.hpp>
 #include "toolchain2/asmb/pep_parser.hpp"
 
-using namespace Qt::StringLiterals;
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 } // namespace
@@ -25,7 +24,7 @@ static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; }
 TEST_CASE("Pepp ASM parser errors", "[scope:asm][kind:unit][arch:*][tc2][!throws]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using pepp::tc::support::Location;
   using pepp::tc::support::LocationInterval;
   using namespace pepp::tc::ir;

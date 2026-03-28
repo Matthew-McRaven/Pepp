@@ -15,6 +15,7 @@ public:
     Argument_ExpectedString,
     Argument_ExpectedIdentifier,
     Argument_ExpectedHex,
+    Argument_ExpectedInteger,
     AddressingMode_Required,
     AddressingMode_Invalid,
     AddressingMode_Missing,
@@ -47,6 +48,8 @@ public:
 class DiagnosticTable {
 public:
   void add_message(pepp::tc::support::LocationInterval, std::string);
+  auto begin() { return _raw.cbegin(); }
+  auto end() { return _raw.cend(); }
   auto cbegin() const { return _raw.cbegin(); }
   auto cend() const { return _raw.cend(); }
   auto overlapping_interval(support::LocationInterval i) const {

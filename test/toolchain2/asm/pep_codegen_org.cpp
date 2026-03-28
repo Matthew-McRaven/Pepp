@@ -18,7 +18,6 @@
 #include "toolchain2/asmb/pep_codegen.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
 
-using namespace Qt::StringLiterals;
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 static const auto ex1 = R"(.ORG 0xfeed
@@ -47,7 +46,7 @@ static const auto ex4 = R"(.WORD 5
 TEST_CASE("Pepp ASM codegen .ORG address assignment", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc::ir;
   SECTION("One section, .ORG at front") {
     pepp::tc::DiagnosticTable diag;

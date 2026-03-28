@@ -19,7 +19,6 @@
 #include "toolchain/link/mmio.hpp"
 #include "toolchain2/asmb/pep_parser.hpp"
 
-using namespace Qt::StringLiterals;
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 // First line is empty!!
@@ -40,7 +39,7 @@ BR 0
 TEST_CASE("Pepp ASM codegen sectioning", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc::ir;
   pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(ex1));
@@ -67,7 +66,7 @@ TEST_CASE("Pepp ASM codegen sectioning", "[scope:asm][kind:unit][arch:*][tc2]") 
 TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc::ir;
   SECTION("No ORG") {
     pepp::tc::DiagnosticTable diag;
@@ -112,7 +111,7 @@ TEST_CASE("Pepp ASM codegen address assignment", "[scope:asm][kind:unit][arch:*]
 TEST_CASE("Pepp ASM codegen .SCALL", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc::ir;
 
   pepp::tc::DiagnosticTable diag;
@@ -139,7 +138,7 @@ TEST_CASE("Pepp ASM codegen .SCALL", "[scope:asm][kind:unit][arch:*][tc2]") {
 TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT", "[scope:asm][kind:unit][arch:*][tc2]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
-  using SymbolTable = symbol::Table;
+  using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc::ir;
 
   pepp::tc::DiagnosticTable diag;
@@ -153,8 +152,8 @@ TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT", "[scope:asm][kind:unit][arch:*]
   CHECK(diag.count() == 0);
   auto &mmios = result.mmios;
   CHECK(mmios.size() == 2);
-  CHECK(mmios[0].name.toStdString() == "DECI");
+  CHECK(mmios[0].name == "DECI");
   CHECK(mmios[0].type == obj::IO::Type::kInput);
-  CHECK(mmios[1].name.toStdString() == "deco");
+  CHECK(mmios[1].name == "deco");
   CHECK(mmios[1].type == obj::IO::Type::kOutput);
 }
