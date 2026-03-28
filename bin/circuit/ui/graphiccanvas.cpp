@@ -126,13 +126,13 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   const int rows = 10;
   const int cols = 10;
 
-  DiagramProperties *to = addDiagram(6, 2);
+  DiagramProperties *to = addDiagram(2, 2);
   if (to == nullptr) return;
 
   //  Add block data
   to->setName(lookup[0]);
   to->setType(DiagramType::ANDGate);
-  to->setOrientation(0);
+  to->setOrientation(180);
   to->setSelected(false);
   getImage(*to);
 
@@ -155,32 +155,32 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   // MATTHEW END TEST DATA*/
 
   //  data life time managed by model
-  DiagramProperties *from1 = addDiagram(2, 3);
+  DiagramProperties *from1 = addDiagram(6, 2);
   if (from1 == nullptr) return;
 
   //  Add block data
   from1->setName(lookup[2]);
   from1->setType(DiagramType::Inverter);
-  from1->setOrientation(0);
+  from1->setOrientation(180);
   from1->setSelected(false);
   getImage(*from1);
 
   addLine(from1, to);
 
   //  data life time managed by model
-  /*DiagramProperties *from2 = addDiagram(2, 10);
+  DiagramProperties *from2 = addDiagram(6, 6);
   if (from2 == nullptr) return;
 
   //  Add block data
   from2->setName(lookup[5]);
   from2->setType(DiagramType::XORGate);
-  from2->setOrientation(270);
+  from2->setOrientation(180);
   getImage(*from2);
 
-  // addLine(from2, to);
+  addLine(from2, to);
 
   //  Add block data
-  DiagramProperties *to2 = addDiagram(6, 10);
+  /*DiagramProperties *to2 = addDiagram(6, 10);
   if (to2 == nullptr) return;
   to2->setName(lookup[4]);
   to2->setType(DiagramType::NORGate);
@@ -367,6 +367,13 @@ void GraphicCanvas::paint(QPainter *painter) {
     currentBlock.translate(screen_block, -screen_block * row);
   }
 
+  //  Diagrams are painted on minor grid axis. Overwrite lines.
+  for (auto &prop : _model->dataModel().cells()) {
+    //  Skip painting rectangles that are outside the viewport.
+    auto *diagram = prop.get();
+    if (pepp::core::intersects(grid_viewport, diagram->gridRectangle())) paint_one(painter, diagram);
+  }
+
   //  Draw lines first. Diagrams will clip lines
   for (auto &prop : _model->dataModel().lines()) {
     auto *line = prop.get();
@@ -375,11 +382,11 @@ void GraphicCanvas::paint(QPainter *painter) {
   }
 
   //  Diagrams are painted on minor grid axis. Overwrite lines.
-  for (auto &prop : _model->dataModel().cells()) {
+  /*for (auto &prop : _model->dataModel().cells()) {
     //  Skip painting rectangles that are outside the viewport.
     auto *diagram = prop.get();
     if (pepp::core::intersects(grid_viewport, diagram->gridRectangle())) paint_one(painter, diagram);
-  }
+  }*/
   // qDebug() << "grid_viewport: " << grid_viewport;
 }
 
@@ -438,8 +445,8 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   //  Create index and check for data
   const auto newIndex = _model->index(row, col);
 
-  DiagramProperties *data =
-      _model->dataModel().createDiagramProps(PeppRect::from_point_size(row, col, minor_per_major, minor_per_major));
+  DiagramProperties *data = _model->dataModel().createDiagramProps(
+      PeppRect::from_point_size(row, col, minor_per_major / 2, minor_per_major / 2));
   if (data == nullptr) return nullptr;
 
   //  Newly added items are always current item
@@ -708,55 +715,46 @@ void GraphicCanvas::lineLeftClickEvent(QMouseEvent *event, DiagramProperties *cu
 }
 
 bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
-  bool found{false};
-
   //  If selecting diagram, then unselect all lines
   unselectLines();
+
+  DiagramProperties *found = nullptr;
 
   //  See if existing item was clicked and clear selection
   for (auto &props : _model->dataModel().cells()) {
     // Skip painting rectangles that are outside the viewport.
     if (!pepp::core::contains(props->gridRectangle(), point)) {
       if (props->selected()) {
-        //  Item was previously selected, clear old outline
-        //  Set through datamodel so that other controls see change
-        // const auto index = _model->index(props->key().left(), props->key().top());
-        //_model->setData(index, false, DiagramProperty::Role::Selected);
 
         //  Bypass model
         props->setSelected(false);
 
         //  Update unselected rectangle
         setCurrentDiagram(nullptr);
-
-        //  Signal update to QML controls
-        // index = _model->index(props->key().left(), props->key().top());
-        //_model->update(index);
       }
       continue;
     }
 
-    //  Item exists and is selected, update view
-    //  Save current item for other actions
-    //  Set through view so that other controls see change
-    // index = _model->index(props->key().left(), props->key().top());
-    //_model->setData(index, true, DiagramProperty::Role::Selected);
+    //  Found diagram property
+    found = props.get();
+  }
+
+  if (found != nullptr) {
 
     //  Bypass model
-    props->setSelected(true);
+    found->setSelected(true);
 
-    setCurrentDiagram(props.get());
+    setCurrentDiagram(found);
 
     //  Signal update to QML controls
-    const auto index = _model->index(props->key().left(), props->key().top());
+    const auto index = _model->index(found->key().left(), found->key().top());
     _model->setCurrentIndex(index);
-
-    found = true;
   }
+
   //  Repaint
   update();
 
-  return found;
+  return found != nullptr;
 }
 
 bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
