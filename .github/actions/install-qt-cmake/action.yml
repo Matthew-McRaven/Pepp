@@ -10,7 +10,8 @@ runs:
   # Selectively install and configure LLVM
   steps:
     - name: Install CMake and Ninja
-      uses: lukka/get-cmake@v3.27.9
+      # Corresponds to v3.31.6
+      uses: lukka/get-cmake@56d043d188c3612951d8755da8f4b709ec951ad6
     - uses: actions/checkout@v4
       with:
         repository: 'Matthew-McRaven/install-qt-action'

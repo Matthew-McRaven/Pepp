@@ -19,7 +19,8 @@ jobs:
         with:
           python-version: ${{ inputs.python_version }}
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v7
+        # Corresponds to v7.6.0
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
       - name: build sdist
         run: uv build --sdist
       - uses: actions/upload-artifact@v4
