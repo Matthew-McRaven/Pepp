@@ -16,17 +16,17 @@
  */
 
 #include <catch.hpp>
-#include "core/compile/abstract_value/empty.hpp"
+#include "core/compile/abstract_value/numeric.hpp"
 
 TEST_CASE("pepp abstract value types", "[scope:core][scope:core.compile][kind:unit][arch:*]") {
   SECTION("Empty") {
-    auto value = pepp::ast::Empty();
-    CHECK(value.stream_size() == 0);
+    auto value = pepp::ast::SignedDecimal(0, 0);
+    CHECK(value.serialized_size() == 0);
     CHECK(value.value_as<u8>() == 0);
   }
   SECTION("Empty with size") {
-    auto value = pepp::ast::Empty(4);
-    CHECK(value.stream_size() == 4);
+    auto value = pepp::ast::SignedDecimal(0, 4);
+    CHECK(value.serialized_size() == 4);
     CHECK(value.value_as<u32>() == 0);
   }
 }

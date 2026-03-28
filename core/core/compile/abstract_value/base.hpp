@@ -26,33 +26,20 @@ class BaseValue {
 public:
   explicit BaseValue() noexcept = default;
   virtual ~BaseValue() noexcept = default;
-  friend void swap(BaseValue &, BaseValue &) noexcept { using std::swap; }
-  // Does the argument make sense as a u64?
-  virtual bool numeric() const noexcept = 0;
-  // If interpreted number, should the value be treated as signed?
-  virtual bool signed_numeric() const noexcept = 0;
-  // Should the argument be interpreted as ASCII/UTF-8 text?
-  virtual bool text() const noexcept = 0;
-  // Is the argument an unquoted string that is not interpreted as a symbol?
-  virtual bool identifier() const noexcept = 0;
-  // Does the argument fit in a u64?
-  virtual bool wide() const noexcept = 0;
-  // Are all instances of this value type the same size in the bitstream?   // e.g., not the case for strings
-  virtual bool fixed_size() const noexcept = 0;
-  // Number of bytes to be allocated in the bitstream.
-  virtual u64 stream_size() const noexcept = 0;
-  // Change the number of bytes allocated in the bitstream, truncating if smaller than min_size
-  virtual void set_stream_size(u64 size) noexcept = 0;
-  // Minimum number of bytes to represent value. e.g., If storing a u64 with value 128, min_size is 1.
-  virtual u64 min_size() const noexcept = 0;
-  virtual void value(bits::span<u8> dest, bits::Order destEndian = bits::Order::BigEndian) const noexcept = 0;
+
+  // Minimum number of bytes to encode the value. E.g., a (u64) 128 has a nominal size of 8 but a min size of 1.
+  virtual u64 serialized_size() const noexcept = 0;
+  [[nodiscard]] virtual u32 serialize(bits::span<u8> dest, bits::Order destEndian = bits::Order::BigEndian,
+                                      u32 max_size = (u32)-1) const noexcept = 0;
+
   virtual std::string string() const = 0;
   // like string(), except without quotation marks.
   virtual std::string raw_string() const = 0;
+
   // Helper to extract an truncated integer value without creating the buffer yourself.
   template <std::integral I> I value_as(bits::Order destEndian = bits::hostOrder()) const noexcept {
     I ret = 0;
-    value(bits::span<u8>{(u8 *)&ret, sizeof(ret)}, destEndian);
+    (void)serialize(bits::span<u8>{(u8 *)&ret, sizeof(ret)}, destEndian, sizeof(I));
     return ret;
   }
 };

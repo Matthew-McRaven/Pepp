@@ -33,16 +33,9 @@ public:
     swap(first._bytes, second._bytes);
   }
 
-  inline bool numeric() const noexcept override { return stream_size() <= 8; }
-  inline bool signed_numeric() const noexcept override { return false; }
-  inline bool text() const noexcept override { return true; }
-  inline bool identifier() const noexcept override { return false; }
-  inline bool wide() const noexcept override { return stream_size() > 8; }
-  inline bool fixed_size() const noexcept override { return false; }
-  inline u64 stream_size() const noexcept override { return _size; }
-  inline void set_stream_size(u64 size) noexcept override { _size = size; }
-  inline u64 min_size() const noexcept override { return _bytes.size(); }
-  void value(bits::span<u8> dest, bits::Order destEndian = bits::hostOrder()) const noexcept override;
+  inline u64 serialized_size() const noexcept override { return _size; }
+  [[nodiscard]] u32 serialize(bits::span<u8> dest, bits::Order destEndian = bits::Order::BigEndian,
+                              u32 max_size = (u32)-1) const noexcept override;
   std::string string() const override;
   std::string raw_string() const override;
 
@@ -63,17 +56,9 @@ public:
     swap(first._value, second._value);
   }
 
-  inline bool numeric() const noexcept override { return true; }
-  inline bool signed_numeric() const noexcept override { return false; }
-  inline bool text() const noexcept override { return true; }
-  inline bool identifier() const noexcept override { return false; }
-  inline bool wide() const noexcept override { return false; }
-  inline bool fixed_size() const noexcept override { return true; }
-  inline u64 stream_size() const noexcept override { return 1; }
-  inline void set_stream_size(u64) noexcept override {}
-  inline u64 min_size() const noexcept override { return 1; }
-
-  void value(bits::span<u8> dest, bits::Order destEndian = bits::hostOrder()) const noexcept override;
+  inline u64 serialized_size() const noexcept override { return 1; }
+  [[nodiscard]] u32 serialize(bits::span<u8> dest, bits::Order destEndian = bits::Order::BigEndian,
+                              u32 max_size = (u32)-1) const noexcept override;
   std::string string() const override;
   std::string raw_string() const override;
 

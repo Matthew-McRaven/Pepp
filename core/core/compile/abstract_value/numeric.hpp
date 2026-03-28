@@ -24,21 +24,13 @@ public:
   Numeric(u64 value, u8 size) noexcept;
   friend void swap(Numeric &first, Numeric &second) {
     using std::swap;
-    swap((BaseValue &)first, (BaseValue &)second);
     swap(first._size, second._size);
     swap(first._value, second._value);
   }
 
-  inline bool numeric() const noexcept override { return true; }
-  inline bool signed_numeric() const noexcept override { return false; }
-  inline bool text() const noexcept override { return false; }
-  inline bool identifier() const noexcept override { return false; }
-  inline bool wide() const noexcept override { return false; }
-  inline bool fixed_size() const noexcept override { return true; }
-  inline u64 stream_size() const noexcept override { return _size; }
-  inline void set_stream_size(u64 size) noexcept override { _size = size; }
-  u64 min_size() const noexcept override;
-  void value(bits::span<u8> dest, bits::Order targetEndian = bits::hostOrder()) const noexcept override;
+  inline u64 serialized_size() const noexcept override { return _size; }
+  [[nodiscard]] u32 serialize(bits::span<u8> dest, bits::Order destEndian = bits::Order::BigEndian,
+                              u32 max_size = (u32)-1) const noexcept override;
 
   void set_value(u64 value) noexcept { _value = value; }
 
@@ -60,9 +52,6 @@ public:
     using std::swap;
     swap((Numeric &)first, (Numeric &)second);
   }
-  inline bool signed_numeric() const noexcept override { return true; }
-  // Must negate value before computing max bit value
-  u64 min_size() const noexcept override;
   std::string string() const override;
   std::string raw_string() const override;
 };

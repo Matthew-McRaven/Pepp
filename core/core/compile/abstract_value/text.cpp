@@ -25,12 +25,13 @@ pepp::ast::String::String(const String &other) : _size(other._size), _bytes(othe
 
 pepp::ast::String::String(String &&other) noexcept { swap(*this, other); }
 
-void pepp::ast::String::value(bits::span<u8> dest, bits::Order destEndian) const noexcept {
+[[nodiscard]]
+u32 pepp::ast::String::serialize(bits::span<u8> dest, bits::Order destEndian, u32 max_size) const noexcept {
   using size_type = bits::span<const u8>::size_type;
-  bits::memcpy_endian(
-      dest, destEndian,
-      bits::span<const u8>{reinterpret_cast<const u8 *>(_bytes.data()), static_cast<size_type>(stream_size())},
-      bits::hostOrder());
+  const auto size = std::min<size_type>(max_size, serialized_size());
+  std::span<const u8> src(reinterpret_cast<const u8 *>(_bytes.data()), size);
+  bits::memcpy_endian(dest, destEndian, src, bits::hostOrder());
+  return size;
 }
 
 std::string pepp::ast::String::string() const { return fmt::format("\"{}\"", raw_string()); }
@@ -49,10 +50,13 @@ pepp::ast::Character::Character(const Character &other) {}
 
 pepp::ast::Character::Character(Character &&other) noexcept {}
 
-void pepp::ast::Character::value(bits::span<u8> dest, bits::Order destEndian) const noexcept {
+[[nodiscard]]
+u32 pepp::ast::Character::serialize(bits::span<u8> dest, bits::Order destEndian, u32 max_size) const noexcept {
   using size_type = bits::span<const u8>::size_type;
-  std::span<u8> chars((u8 *)&_value, 1);
-  bits::memcpy_endian(dest, destEndian, chars, destEndian);
+  const auto size = std::min<size_type>(max_size, 1);
+  std::span<const u8> src((u8 *)&_value, size);
+  bits::memcpy_endian(dest, destEndian, src, bits::hostOrder());
+  return size;
 }
 
 std::string pepp::ast::Character::string() const { return fmt::format("'{}'", raw_string()); }

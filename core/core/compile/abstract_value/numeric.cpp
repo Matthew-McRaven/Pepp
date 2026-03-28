@@ -13,14 +13,13 @@ pepp::ast::Numeric::Numeric(u64 value, u8 size) noexcept {
   }
 }
 
-u64 pepp::ast::Numeric::min_size() const noexcept { return ceil(log2(_value + 1) / 8); }
-
-void pepp::ast::Numeric::value(bits::span<u8> dest, bits::Order targetEndian) const noexcept {
+[[nodiscard]]
+u32 pepp::ast::Numeric::serialize(bits::span<u8> dest, bits::Order destEndian, u32 max_size) const noexcept {
   using size_type = bits::span<const u8>::size_type;
-  bits::memcpy_endian(
-      dest, targetEndian,
-      bits::span<const u8>{reinterpret_cast<const u8 *>(&_value), static_cast<size_type>(stream_size())},
-      bits::hostOrder());
+  auto size = std::min<size_type>(max_size, serialized_size());
+  std::span<const u8> src(reinterpret_cast<const u8 *>(&_value), size);
+  bits::memcpy_endian(dest, destEndian, src, bits::hostOrder());
+  return size;
 }
 
 pepp::ast::Numeric::Numeric(const Numeric &other) : BaseValue(), _size(other._size), _value(other._value) {}
@@ -39,13 +38,6 @@ pepp::ast::SignedDecimal::SignedDecimal(i64 value, u8 size) noexcept : Numeric(v
 pepp::ast::SignedDecimal::SignedDecimal(const SignedDecimal &other) noexcept : Numeric(other) {}
 
 pepp::ast::SignedDecimal::SignedDecimal(SignedDecimal &&other) noexcept { swap(*this, other); }
-
-u64 pepp::ast::SignedDecimal::min_size() const noexcept {
-  // Handle _value = 0b1000...0, otherwise we take log of negative number.
-  if (_value * -1 == _value) return sizeof(_value);
-  // Must subtract 1 bit (log2(n)+1), because the top order bit holds sign, not data.
-  return ceil((log2(-1 * _value) + 1) / 8);
-}
 
 std::string pepp::ast::SignedDecimal::string() const { return fmt::format("{:d}", static_cast<i64>(_value)); }
 
