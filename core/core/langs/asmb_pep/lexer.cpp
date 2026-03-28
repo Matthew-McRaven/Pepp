@@ -1,4 +1,4 @@
-#include "./pep_lexer.hpp"
+#include "core/langs/asmb_pep/lexer.hpp"
 
 pepp::tc::lex::PepLexer::PepLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
                                   support::SeekableData &&data)

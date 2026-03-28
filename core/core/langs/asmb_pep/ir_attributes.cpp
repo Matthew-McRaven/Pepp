@@ -1,4 +1,4 @@
-#include "./pep_attributes.hpp"
+#include "core/langs/asmb_pep/ir_attributes.hpp"
 #include "fmt/format.h"
 
 pepp::tc::ir::attr::Type pepp::tc::ir::attr::Identifier::type() const { return TYPE; }

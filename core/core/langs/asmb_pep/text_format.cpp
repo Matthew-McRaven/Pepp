@@ -1,10 +1,13 @@
-#include "pep_format.hpp"
+#include "core/langs/asmb_pep/text_format.hpp"
 #include <fmt/format.h>
+#include <string>
+#include "core/compile/ir_value/base.hpp"
+#include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
+#include "core/langs/asmb_pep/codegen.hpp"
+#include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "fmt/ranges.h"
-#include "pep_codegen.hpp"
-#include "toolchain2/asmb/pep_ir_visitor.hpp"
 
 namespace {
 // Turns out to be a simplified version of the lexer that matches on tokens rather than characters.
@@ -218,7 +221,7 @@ void pepp::tc::SourceVisitor::visit(const ir::CommentLine *line) {
 void pepp::tc::SourceVisitor::visit(const ir::MonadicInstruction *line) {
   std::string symbol = "", mn = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
-    symbol = maybe_symbol->entry->name + ":";
+    symbol = std::string{maybe_symbol->entry->name} + ":";
   mn = isa::Pep10::string(line->mnemonic.instruction);
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
     comment = ";" + maybe_comment->value;
@@ -229,7 +232,7 @@ void pepp::tc::SourceVisitor::visit(const ir::DyadicInstruction *line) {
   std::vector<std::string> arg_list;
   std::string symbol = "", mn = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
-    symbol = maybe_symbol->entry->name + ":";
+    symbol = std::string{maybe_symbol->entry->name} + ":";
   mn = isa::Pep10::string(line->mnemonic.instruction);
   arg_list.emplace_back(line->argument.value->string());
   auto addr_mode = line->addr_mode.addr_mode;
@@ -244,7 +247,7 @@ void pepp::tc::SourceVisitor::visit(const ir::DyadicInstruction *line) {
 void pepp::tc::SourceVisitor::visit(const ir::DotAlign *line) {
   std::string symbol = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
-    symbol = maybe_symbol->entry->name + ":";
+    symbol = std::string{maybe_symbol->entry->name} + ":";
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
     comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, ".ALIGN", line->argument.value->string(), comment);
@@ -253,7 +256,7 @@ void pepp::tc::SourceVisitor::visit(const ir::DotAlign *line) {
 void pepp::tc::SourceVisitor::visit(const ir::DotLiteral *line) {
   std::string symbol = "", dot = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
-    symbol = maybe_symbol->entry->name + ":";
+    symbol = std::string{maybe_symbol->entry->name} + ":";
   using Which = ir::DotLiteral::Which;
   switch (line->which) {
   case Which::ASCII: dot = ".ASCII"; break;
@@ -269,7 +272,7 @@ void pepp::tc::SourceVisitor::visit(const ir::DotLiteral *line) {
 void pepp::tc::SourceVisitor::visit(const ir::DotBlock *line) {
   std::string symbol = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
-    symbol = maybe_symbol->entry->name + ":";
+    symbol = std::string{maybe_symbol->entry->name} + ":";
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
     comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, ".BLOCK", line->argument.value->string(), comment);
@@ -279,12 +282,11 @@ void pepp::tc::SourceVisitor::visit(const ir::DotEquate *line) {
   std::string comment = "";
   if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
     comment = ";" + maybe_comment->value;
-  text = format_as_columns(std::string{line->symbol.entry->name + ":"}, ".EQUATE", line->argument.value->string(),
+  text = format_as_columns(std::string{line->symbol.entry->name} + ":", ".EQUATE", line->argument.value->string(),
                            comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const ir::DotSection *line) {
-  using namespace Qt::StringLiterals;
   std::array<std::string, 2> args;
   args[0] = fmt::format("\"{}\"", line->name.value);
   args[1] = fmt::format("\"{}\"", line->flags.to_string());
@@ -334,12 +336,12 @@ void format_listing(const pepp::tc::ir::LinearIR *line, const pepp::tc::IRMemory
                     const pepp::tc::ProgramObjectCodeResult &object_code, std::vector<std::string> &out) {
   auto source_line = pepp::tc::format_source(line);
   auto address_it = addresses.find(line);
-  std::optional<quint16> address =
-      address_it == addresses.cend() ? std::nullopt : std::optional<quint16>(address_it->second.address);
+  std::optional<u16> address =
+      address_it == addresses.cend() ? std::nullopt : std::optional<u16>(address_it->second.address);
 
   const std::string address_str = address.has_value() ? fmt::format("{:04X}", *address) : "    ";
   auto code_it = object_code.ir_to_object_code.find(line);
-  bits::span<quint8> code = code_it == object_code.ir_to_object_code.end() ? bits::span<u8>{} : code_it->second;
+  bits::span<u8> code = code_it == object_code.ir_to_object_code.end() ? bits::span<u8>{} : code_it->second;
 
   static constexpr int bytes_per_line = 3;
   auto obj = std::vector<char>(2 * bytes_per_line);

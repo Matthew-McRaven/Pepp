@@ -1,12 +1,16 @@
 #pragma once
-
+#include <memory>
 #include <string>
 #include "core/arch/pep/isa/pep10.hpp"
-#include "core/compile/ir_value/base.hpp"
-#include "core/compile/symbol/entry.hpp"
+#include "core/integers.h"
 
+namespace pepp::ast {
+class IRValue;
+}
+namespace pepp::core::symbol {
+class Entry;
+}
 namespace pepp::tc::ir::attr {
-
 enum class Type {
   Invalid = 0,
   Identifier,

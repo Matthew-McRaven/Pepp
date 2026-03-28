@@ -14,12 +14,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "toolchain2/asmb/pep_parser.hpp"
 #include <catch.hpp>
 #include "core/compile/ir_value/numeric.hpp"
-#include "toolchain/pas/ast/value/numeric.hpp"
+#include "core/compile/symbol/entry.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_pep/parser.hpp"
 
-using namespace Qt::StringLiterals;
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 } // namespace

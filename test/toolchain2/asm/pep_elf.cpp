@@ -16,9 +16,10 @@
 
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
-#include "toolchain2/asmb/pep_codegen.hpp"
-#include "toolchain2/asmb/pep_ir_visitor.hpp"
-#include "toolchain2/asmb/pep_parser.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_pep/codegen.hpp"
+#include "core/langs/asmb_pep/ir_visitor.hpp"
+#include "core/langs/asmb_pep/parser.hpp"
 
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };

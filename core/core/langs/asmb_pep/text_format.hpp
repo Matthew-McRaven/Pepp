@@ -1,5 +1,5 @@
 #pragma once
-#include "./pep_common.hpp"
+#include "core/langs/asmb_pep/ir_program.hpp"
 #include "core/math/bitmanip/span.hpp"
 
 namespace pepp::tc {

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "common_elf.hpp"
+#include "elfio_utils.hpp"
 #include <spdlog/spdlog.h>
 #include "elfio/elfio.hpp"
 

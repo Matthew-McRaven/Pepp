@@ -1,15 +1,18 @@
 #pragma once
+#include <zpp_bits.h>
+#include "core/integers.h"
+#include "core/langs/asmb_pep/ir_program.hpp"
 #include "core/math/bitmanip/leb128.hpp"
 #include "fmt/format.h"
 #include "toolchain/link/mmio.hpp"
-#include "toolchain2/asmb/pep_common.hpp"
-
-#include <zpp_bits.h>
 
 namespace ELFIO {
 class elfio;
 }
 
+namespace pepp::core::symbol {
+class LeafTable;
+}
 namespace pepp::tc {
 
 class DiagnosticTable;
@@ -63,7 +66,7 @@ IRMemoryAddressTable assign_addresses(std::vector<std::pair<SectionDescriptor, P
 
 // Create a lookup data structure that converts IR pointers back to the generated object code.
 // Since IR no longer know their own address, we need to cache the object code because it cannot easily be regenerated.
-using IR2ObjectPair = std::pair<const ir::LinearIR *, bits::span<u8>>;
+using IR2ObjectPair = std::pair<const ir::LinearIR *, std::span<u8>>;
 struct IR2ObjectComparator {
   bool operator()(const IR2ObjectPair &lhs, const IR2ObjectPair &rhs) const { return lhs.first < rhs.first; }
   bool operator()(ir::LinearIR *const lhs, ir::LinearIR *const rhs) const { return lhs < rhs; }
@@ -85,7 +88,7 @@ struct ProgramObjectCodeResult {
   // A common arena for all section's object code
   std::vector<u8> object_code;
   struct SectionSpans {
-    bits::span<u8> object_code;
+    std::span<u8> object_code;
   };
   // Use section indicies from original "prog" and provides only the object code for a particular section descriptor.
   std::vector<SectionSpans> section_spans;
@@ -148,7 +151,7 @@ struct BinaryLineMapping {
     // E.g., an .ORG may place higher line numbers at a lower address.
 
     using zpp::bits::bytes;
-    using Span = bits::span<u8>;
+    using Span = std::span<u8>;
     // Max payload size is 11 bytes (32/7 + 2*(16/7)), padded to 12 because I am paranoid.
     constexpr u8 max_size = 12;
     uint8_t buffer[max_size];
@@ -200,7 +203,7 @@ struct BinaryLineMapping {
       if (total_size & 0x80) total_size &= 0x7F, prev = &defaultPrev;
 
       // Load all ULEB128 bytes into a buffer, since they are self-delimiting in the LEB parser.
-      auto array_view = bits::span<u8>(buffer, total_size);
+      auto array_view = std::span<u8>(buffer, total_size);
       if (auto errc = archive(zpp::bits::bytes(array_view, array_view.size_bytes())); errc.code != std::errc())
         return errc;
 
@@ -232,4 +235,4 @@ struct BinaryLineMapping {
 static inline const auto lineMapStr = ".debug_line";
 // Get line mapping section or return nullptr;
 ELFIO::section *getLineMappingSection(ELFIO::elfio &elf);
-}
+} // namespace pepp::tc

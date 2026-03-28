@@ -15,7 +15,9 @@
  */
 
 #include <catch.hpp>
-#include "toolchain2/asmb/pep_parser.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_pep/parser.hpp"
+#include "core/langs/asmb_pep/parser_error.hpp"
 
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };

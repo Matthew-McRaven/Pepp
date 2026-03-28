@@ -3,6 +3,7 @@
 #include <elfio/elfio.hpp>
 #include <spdlog/spdlog.h>
 #include <system_error>
+#include "core/langs/asmb_pep/codegen.hpp"
 #include "core/math/bitmanip/leb128.hpp"
 #include "toolchain/pas/ast/generic/attr_sec.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
@@ -10,7 +11,6 @@
 #include "toolchain/pas/operations/generic/combine.hpp"
 #include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "toolchain/symbol/entry.hpp"
-#include "toolchain2/asmb/pep_codegen.hpp"
 #include "zpp_bits.h"
 
 namespace pas::obj::common {

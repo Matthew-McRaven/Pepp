@@ -15,15 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "toolchain2/asmb/pep_format.hpp"
 #include <catch.hpp>
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
-#include "toolchain2/asmb/pep_codegen.hpp"
-#include "toolchain2/asmb/pep_format.hpp"
-#include "toolchain2/asmb/pep_lexer.hpp"
-#include "toolchain2/asmb/pep_parser.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_pep/codegen.hpp"
+#include "core/langs/asmb_pep/lexer.hpp"
+#include "core/langs/asmb_pep/parser.hpp"
+#include "core/langs/asmb_pep/text_format.hpp"
 
 namespace {
 static auto idpool = []() { return std::make_shared<std::unordered_set<std::string>>(); };

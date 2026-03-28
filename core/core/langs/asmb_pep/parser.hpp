@@ -1,11 +1,10 @@
 #pragma once
 #include <memory>
-#include "./pep_common.hpp"
-#include "./pep_ir.hpp"
-#include "./pep_lexer.hpp"
+#include <unordered_set>
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
-#include "toolchain2/asmb/common_diag.hpp"
+#include "core/compile/source/seekable.hpp"
+#include "core/langs/asmb_pep/ir_program.hpp"
 
 /*
  * N= { <argument>, <instruction>, <line>, <pseudo>, <statement> }
@@ -19,7 +18,17 @@
  *   6. <statement> →[COMMENT | [SYMBOL] <line>] EMPTY
  * S= <statement>
  */
-namespace pepp::tc::parser {
+namespace pepp {
+
+namespace core::symbol {
+class LeafTable;
+}
+namespace tc {
+namespace lex {
+class PepLexer;
+}
+class DiagnosticTable;
+namespace parser {
 struct PepParser {
   PepParser(support::SeekableData &&data);
 
@@ -47,4 +56,6 @@ private:
   // Must be QSharedPointer until old toolchain has been entirely ported.
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
 };
-} // namespace pepp::tc::parser
+} // namespace parser
+} // namespace tc
+} // namespace pepp

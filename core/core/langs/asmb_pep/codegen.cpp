@@ -1,17 +1,17 @@
-#include "./pep_codegen.hpp"
+#include "core/langs/asmb_pep/codegen.hpp"
 #include <elfio/elfio.hpp>
 #include <list>
 #include <numeric>
 #include <ranges>
 #include "core/compile/ir_value/symbolic.hpp"
+#include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
+#include "core/langs/asmb/elfio_utils.hpp"
+#include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "fmt/format.h"
-#include "mmio.hpp"
-#include "pep_ir_visitor.hpp"
 #include "spdlog/spdlog.h"
-#include "toolchain2/asmb/common_elf.hpp"
 #include "zpp_bits.h"
 
 pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &diag, PepIRProgram &prog,
@@ -89,13 +89,13 @@ struct SectionAddrInfo {
 };
 
 pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                                          quint16 initial_base_address) {
+                                                          u16 initial_base_address) {
   enum class Direction { Forward, Backward } direction = Direction::Forward;
 
   // Pre-allocate vector according to the total size of the IR lines in all sections.
   // This overrserves storage---not all IR lines generate object code---but is a stable upper bound and avoid
   // reallocation in the address-assignment loop.
-  qint64 size = 0;
+  i64 size = 0;
   for (const auto &[desc, ir] : prog) size += ir.size();
   // ITEMS ARE NOT INSERTED IN SORTED ORDER. DO NOT USE AS A MAP UNTIL SORTING.
   // Since all IR lines across all PepIRProgram have unique (C++) addresses, we can blindly append and sort later.
@@ -114,7 +114,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   // in which case some subset of sections is assigned right-to-left.
 
   // Sections before the first .ORG need to be grouped right rather than left
-  qint64 first_org_section = -1;
+  i64 first_org_section = -1;
   // Record all sections which contain at least one .ORG
   for (int it = 0; it < prog.size(); it++) {
     if (prog[it].first.org_count > 0) {
@@ -136,13 +136,13 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   if (prog.size() != sorted_work.size()) throw std::logic_error("Layout of sections failed");
 
   // Phase 2: assign addresses for each section to each line of IR.
-  quint16 base_address = 0;
+  u16 base_address = 0;
 
   // Using templates to type-erase the difference between forward and reverse iterators
   auto for_lines = [&](auto &&range, SectionDescriptor &sec_desc) {
     for (auto &line : range) {
       auto maybe_size = line->object_size(base_address);
-      quint16 symbol_base = base_address, next_base = base_address, size = maybe_size.value_or(0);
+      u16 symbol_base = base_address, next_base = base_address, size = maybe_size.value_or(0);
 
       // Perform special handling for non-code-generating dot commands
       using Type = ir::LinearIR::Type;
@@ -161,7 +161,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
           symbol->value = std::make_shared<pepp::core::symbol::AliasValue>(2, other);
         } else {
           auto masked_bits = bits::MaskedBits{.byteCount = 2, .bitPattern = 0, .mask = 0xFFFF};
-          (void)argument->serialize(bits::span<quint8>{reinterpret_cast<quint8 *>(&masked_bits.bitPattern), 2},
+          (void)argument->serialize(bits::span<u8>{reinterpret_cast<u8 *>(&masked_bits.bitPattern), 2},
                                     bits::hostOrder());
           symbol->value = std::make_shared<pepp::core::symbol::ConstantValue>(masked_bits);
         }
@@ -195,7 +195,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
         auto isCode = dynamic_cast<ir::DyadicInstruction *>(&*line) || dynamic_cast<ir::MonadicInstruction *>(&*line);
         const auto type = isCode ? pepp::core::symbol::Type::Code : pepp::core::symbol::Type::Object;
         line_symbol->entry->value =
-            std::make_shared<pepp::core::symbol::LocationValue>(size, sizeof(quint16), symbol_base, 0, type);
+            std::make_shared<pepp::core::symbol::LocationValue>(size, sizeof(u16), symbol_base, 0, type);
       }
     }
   };
@@ -257,12 +257,12 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
 namespace pepp::tc {
 struct ObjectCodeVisitor : public ir::LinearIRVisitor {
   const IRMemoryAddressTable &ir_to_address;
-  const quint16 base_address, section_idx;
+  const u16 base_address, section_idx;
   // On each call, out_bytes will be shortened by the size of the visited line;
-  bits::span<quint8> out_bytes;
+  bits::span<u8> out_bytes;
   std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  ObjectCodeVisitor(const IRMemoryAddressTable &, const quint16 base_address, const quint16 section_idx, bits::span<u8>,
+  ObjectCodeVisitor(const IRMemoryAddressTable &, const u16 base_address, const u16 section_idx, bits::span<u8>,
                     std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &,
                     IR2ObjectCodeMap &);
   void visit(const ir::EmptyLine *) override;
@@ -279,8 +279,7 @@ struct ObjectCodeVisitor : public ir::LinearIRVisitor {
 };
 
 pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(
-    const IRMemoryAddressTable &ir_to_address, const quint16 base_address, const quint16 section_idx,
-    bits::span<quint8> out_bytes,
+    const IRMemoryAddressTable &ir_to_address, const u16 base_address, const u16 section_idx, bits::span<u8> out_bytes,
     std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &relocs,
     IR2ObjectCodeMap &ir_to_object_code)
     : ir_to_address(ir_to_address), base_address(base_address), section_idx(section_idx), out_bytes(out_bytes),
@@ -331,7 +330,7 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::DotLiteral *line) {
   if (as_symbolic_arg != nullptr) {
     auto symbol = as_symbolic_arg->symbol();
     if (symbol->is_undefined()) {
-      quint16 offset = addr_info.address - base_address;
+      u16 offset = addr_info.address - base_address;
       relocations.insert({symbol, PepStaticRelocation{.section_offset = offset, .section_idx = section_idx}});
     }
   }
@@ -388,7 +387,7 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
                          std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
   ProgramObjectCodeResult ret;
   std::vector<SectionOffsets> offsets(prog.size(), SectionOffsets{});
-  quint32 object_size = 0, ir_count = 0;
+  u32 object_size = 0, ir_count = 0;
   for (u32 it = 0; it < prog.size(); it++) {
     const auto &sec = prog[it];
     if (sec.first.flags.z) continue; // No bytes in ELF for Z section; no relocations possible.
@@ -407,7 +406,7 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
     auto code_begin = ret.object_code.begin() + offset.object_code_offset;
     auto code_end = code_begin + offset.object_code_size;
 
-    auto oc_subspan = bits::span<quint8>(code_begin, code_end);
+    auto oc_subspan = bits::span<u8>(code_begin, code_end);
     ObjectCodeVisitor visitor(addresses, sec.low_address, it, oc_subspan, ret.relocations, ret.ir_to_object_code);
     offset.reloc_offset = ret.relocations.size();
     for (const auto &line : ir) line->accept(&visitor);
@@ -426,7 +425,7 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
     } else {
       auto code_begin = ret.object_code.begin() + offset.object_code_offset;
       auto code_end = code_begin + offset.object_code_size;
-      ret.section_spans.emplace_back(SectionSpans{bits::span<quint8>(code_begin, code_end)});
+      ret.section_spans.emplace_back(SectionSpans{bits::span<u8>(code_begin, code_end)});
     }
   }
 
@@ -438,8 +437,8 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
 static std::shared_ptr<ELFIO::elfio> create_elf() {
   SPDLOG_INFO("Creating pep/10 ELF");
   static const char p10mac[2] = {'p', 'x'};
-  quint16 mac;
-  bits::memcpy_endian({(quint8 *)&mac, 2}, bits::hostOrder(), {(const quint8 *)p10mac, 2}, bits::Order::BigEndian);
+  u16 mac;
+  bits::memcpy_endian({(u8 *)&mac, 2}, bits::hostOrder(), {(const u8 *)p10mac, 2}, bits::Order::BigEndian);
   auto ret = std::make_shared<ELFIO::elfio>();
   ret->create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
   ret->set_os_abi(ELFIO::ELFOSABI_NONE);
@@ -480,7 +479,7 @@ write_line_mapping(ELFIO::elfio &elf,
   pepp::tc::IR2ListingLineMap ret;
   ret.container.reserve(
       std::accumulate(prog.cbegin(), prog.cend(), 0, [](size_t l, auto &r) { return l + r.second.size(); }));
-  quint16 listing_number = 0;
+  u16 listing_number = 0;
   for (const auto &sec : prog) {
     for (const auto &line : sec.second) {
       auto oc_it = object_code.ir_to_object_code.find(line.get());
@@ -561,7 +560,7 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
     return activeSeg;
   };
 
-  quint32 skipped_sections = 0;
+  u32 skipped_sections = 0;
   std::vector<size_t> section_memory_sizes(prog.size(), 0);
   for (u32 it = 0; it < prog.size(); it++) {
     auto &sec = prog[it].first;
@@ -684,7 +683,7 @@ void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, pepp::core::symbol::Le
     ELFIO::Elf_Word symbol_idx = 0;
     // Fast path for undefined symbols
     if (entry->is_undefined()) {
-      static constexpr quint8 info = (ELFIO::STB_LOCAL << 4) + (ELFIO::STT_NOTYPE & 0xf);
+      static constexpr u8 info = (ELFIO::STB_LOCAL << 4) + (ELFIO::STT_NOTYPE & 0xf);
       symbol_idx = symAc.add_symbol(nameIdx, 0, 0, info, 0, ELFIO::SHN_UNDEF);
     } else {
       auto secIdx = symbol_to_elf_section_index(elf_wrapper, entry.get());
@@ -699,12 +698,12 @@ void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, pepp::core::symbol::Le
         secIdx = ELFIO::SHN_ABS;
       }
 
-      quint8 bind = ELFIO::STB_LOCAL;
+      u8 bind = ELFIO::STB_LOCAL;
       using Binding = pepp::core::symbol::Binding;
       if (entry->binding == Binding::Global) bind = ELFIO::STB_GLOBAL;
       else if (entry->binding == Binding::Weak) bind = ELFIO::STB_WEAK;
 
-      quint8 info = (bind << 4) + (type & 0xf);
+      u8 info = (bind << 4) + (type & 0xf);
 
       symbol_idx = symAc.add_symbol(nameIdx, value->value()(), entry->value->size(), info, 0,
                                     secIdx); // leave other as 0, don't mess with visibility.

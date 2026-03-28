@@ -15,10 +15,11 @@
  */
 
 #include <catch.hpp>
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_pep/codegen.hpp"
+#include "core/langs/asmb_pep/ir_visitor.hpp"
+#include "core/langs/asmb_pep/parser.hpp"
 #include "toolchain/link/mmio.hpp"
-#include "toolchain2/asmb/pep_codegen.hpp"
-#include "toolchain2/asmb/pep_ir_visitor.hpp"
-#include "toolchain2/asmb/pep_parser.hpp"
 
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
@@ -55,8 +56,8 @@ TEST_CASE("Pepp ASM object code output", "[scope:asm][kind:unit][arch:*][tc2]") 
   CHECK(object_code.section_spans.size() == 3);
   auto s0 = object_code.section_spans[0];
   CHECK(s0.object_code.size() == 6);
-  CHECK(std::vector<quint8>(s0.object_code.begin(), s0.object_code.end()) ==
-        std::vector<quint8>{0xC1, 0x00, 0x0A, 0x24, 0x00, 0x00});
+  CHECK(std::vector<u8>(s0.object_code.begin(), s0.object_code.end()) ==
+        std::vector<u8>{0xC1, 0x00, 0x0A, 0x24, 0x00, 0x00});
   auto s02 = sections[0].second[2].get();
   auto s03 = sections[0].second[3].get();
   CHECK(object_code.ir_to_object_code.find(s02) != object_code.ir_to_object_code.end());
@@ -70,6 +71,5 @@ TEST_CASE("Pepp ASM object code output", "[scope:asm][kind:unit][arch:*][tc2]") 
   CHECK(std::equal(s1.object_code.begin() + 1, s1.object_code.end(), s1.object_code.begin()));
   auto s2 = object_code.section_spans[2];
   CHECK(s2.object_code.size() == 4);
-  CHECK(std::vector<quint8>(s2.object_code.begin(), s2.object_code.end()) ==
-        std::vector<quint8>{0x00, 0x0A, 0x00, 0x00});
+  CHECK(std::vector<u8>(s2.object_code.begin(), s2.object_code.end()) == std::vector<u8>{0x00, 0x0A, 0x00, 0x00});
 }

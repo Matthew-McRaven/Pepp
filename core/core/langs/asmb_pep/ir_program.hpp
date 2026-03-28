@@ -1,5 +1,6 @@
 #pragma once
-#include "./pep_ir.hpp"
+#include "core/langs/asmb_pep/ir_attributes.hpp"
+#include "core/langs/asmb_pep/ir_lines.hpp"
 #include "flat/flat_map.hpp"
 
 namespace pepp::tc {

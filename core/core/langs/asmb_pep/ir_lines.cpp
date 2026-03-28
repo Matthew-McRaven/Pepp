@@ -1,6 +1,8 @@
-#include "./pep_ir.hpp"
+#include "core/langs/asmb_pep/ir_lines.hpp"
 #include <utility>
-#include "toolchain2/asmb/pep_ir_visitor.hpp"
+#include "core/compile/ir_value/base.hpp"
+#include "core/langs/asmb_pep/ir_visitor.hpp"
+#include "core/macros.hpp"
 
 const pepp::tc::ir::attr::AAttribute *pepp::tc::ir::LinearIR::attribute(attr::Type type) const {
   for (attr::ListNode *it = extended_attributes.get(); it != nullptr; it = it->next.get())
@@ -22,7 +24,7 @@ void pepp::tc::ir::LinearIR::insert(std::unique_ptr<attr::AAttribute> attr) {
   *link = std::move(node);
 }
 
-std::optional<quint16> pepp::tc::ir::LinearIR::object_size(quint16) const { return std::nullopt; }
+std::optional<u16> pepp::tc::ir::LinearIR::object_size(u16) const { return std::nullopt; }
 
 pepp::tc::ir::LinearIR::Type pepp::tc::ir::EmptyLine::type() const { return TYPE; }
 
@@ -50,7 +52,7 @@ void pepp::tc::ir::MonadicInstruction::insert(std::unique_ptr<attr::AAttribute> 
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<quint16> pepp::tc::ir::MonadicInstruction::object_size(quint16 base_address) const { return 1; }
+std::optional<u16> pepp::tc::ir::MonadicInstruction::object_size(u16 base_address) const { return 1; }
 
 void pepp::tc::ir::MonadicInstruction::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
 
@@ -69,7 +71,7 @@ void pepp::tc::ir::DyadicInstruction::insert(std::unique_ptr<attr::AAttribute> a
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<quint16> pepp::tc::ir::DyadicInstruction::object_size(quint16) const { return 3; }
+std::optional<u16> pepp::tc::ir::DyadicInstruction::object_size(u16) const { return 3; }
 
 void pepp::tc::ir::DyadicInstruction::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
 
@@ -87,11 +89,11 @@ void pepp::tc::ir::DotAlign::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<u16> pepp::tc::ir::DotAlign::object_size(quint16 base_address) const {
-  quint16 align = argument.value->value_as<u16>();
+std::optional<u16> pepp::tc::ir::DotAlign::object_size(u16 base_address) const {
+  u16 align = argument.value->value_as<u16>();
   auto ret = (align - (base_address % align)) % align;
   // If return value would be 0, choose nullopt to prevent useless address in listing.
-  return ret == 0 ? std::nullopt : std::optional<quint16>(ret);
+  return ret == 0 ? std::nullopt : std::optional<u16>(ret);
   // if (direction == Direction::Forward) return (align - (base_address % align)) % align;
   // else if (direction == Direction::Backward) return base_address % align;
   // else return 0;
@@ -113,13 +115,14 @@ void pepp::tc::ir::DotLiteral::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<quint16> pepp::tc::ir::DotLiteral::object_size(quint16) const {
+std::optional<u16> pepp::tc::ir::DotLiteral::object_size(u16) const {
   switch (which) {
   case Which::ASCII: return argument.value->serialized_size();
   case Which::Byte: return 1;
   case Which::Word: return 2;
   }
-  Q_UNREACHABLE();
+
+  PEPP_UNREACHABLE();
 }
 
 void pepp::tc::ir::DotLiteral::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
@@ -138,7 +141,7 @@ void pepp::tc::ir::DotBlock::insert(std::unique_ptr<attr::AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<u16> pepp::tc::ir::DotBlock::object_size(quint16) const { return argument.value->value_as<u16>(); }
+std::optional<u16> pepp::tc::ir::DotBlock::object_size(u16) const { return argument.value->value_as<u16>(); }
 
 void pepp::tc::ir::DotBlock::accept(LinearIRVisitor *visitor) const { visitor->visit(this); }
 

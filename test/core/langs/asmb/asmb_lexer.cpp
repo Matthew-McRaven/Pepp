@@ -20,7 +20,7 @@
 #include <catch.hpp>
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/langs/riscv/riscv_lexer.hpp"
-#include "toolchain2/asmb/pep_lexer.hpp"
+#include "core/langs/asmb_pep/lexer.hpp"
 
 using namespace Qt::StringLiterals;
 namespace {

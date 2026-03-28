@@ -1,11 +1,14 @@
-#include "./pep_parser.hpp"
-#include "./pep_attributes.hpp"
-#include "common_diag.hpp"
+#include "core/langs/asmb_pep/parser.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/ir_value/text.hpp"
+#include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
+#include "core/compile/symbol/types.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_pep/lexer.hpp"
+#include "core/langs/asmb_pep/parser_error.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
 pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)

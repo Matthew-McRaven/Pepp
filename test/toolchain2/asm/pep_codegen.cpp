@@ -14,10 +14,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "toolchain2/asmb/pep_codegen.hpp"
 #include <catch.hpp>
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_pep/codegen.hpp"
+#include "core/langs/asmb_pep/parser.hpp"
 #include "toolchain/link/mmio.hpp"
-#include "toolchain2/asmb/pep_parser.hpp"
 
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };

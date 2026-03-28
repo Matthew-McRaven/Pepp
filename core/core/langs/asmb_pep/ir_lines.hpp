@@ -1,8 +1,8 @@
 #pragma once
+#include <memory>
 #include <optional>
-
-#include "./pep_attributes.hpp"
 #include "core/compile/source/location.hpp"
+#include "core/langs/asmb_pep/ir_attributes.hpp"
 
 namespace pepp::tc::ir {
 struct LinearIRVisitor;
