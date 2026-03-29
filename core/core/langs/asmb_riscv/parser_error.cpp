@@ -3,7 +3,7 @@
 #include "core/macros.hpp"
 #include "fmt/format.h"
 
-const std::string pepp::tc::ParserError::to_string(NullaryError err) {
+const std::string pepp::tc::RISCVParserError::to_string(NullaryError err) {
   switch (err) {
   case NullaryError::Token_MissingNewline: return "Expected \\n";
   case NullaryError::Token_MissingComma: return "Expected ','";
@@ -19,15 +19,15 @@ const std::string pepp::tc::ParserError::to_string(NullaryError err) {
   PEPP_UNREACHABLE();
 }
 
-const std::string pepp::tc::ParserError::to_string(UnaryError err, std::string &arg) {
+const std::string pepp::tc::RISCVParserError::to_string(UnaryError err, std::string &arg) {
   switch (err) {
   case UnaryError::Token_Invalid: return fmt::format("Unrecognized token: {}", arg);
   }
   PEPP_UNREACHABLE();
 }
 
-pepp::tc::ParserError::ParserError(NullaryError err, support::LocationInterval loc)
+pepp::tc::RISCVParserError::RISCVParserError(NullaryError err, support::LocationInterval loc)
     : std::logic_error(to_string(err)), loc(loc) {}
 
-pepp::tc::ParserError::ParserError(UnaryError err, std::string arg1, support::LocationInterval loc)
+pepp::tc::RISCVParserError::RISCVParserError(UnaryError err, std::string arg1, support::LocationInterval loc)
     : std::logic_error(to_string(err, arg1)), loc(loc) {}

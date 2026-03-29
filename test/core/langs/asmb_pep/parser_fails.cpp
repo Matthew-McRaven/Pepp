@@ -31,9 +31,9 @@ TEST_CASE("Pepp ASM parser errors",
   using pepp::tc::support::Location;
   using pepp::tc::support::LocationInterval;
   using namespace pepp::tc;
-  using NullaryError = pepp::tc::ParserError::NullaryError;
-  using UnaryError = pepp::tc::ParserError::UnaryError;
-  using PE = pepp::tc::ParserError;
+  using NullaryError = pepp::tc::PepParserError::NullaryError;
+  using UnaryError = pepp::tc::PepParserError::UnaryError;
+  using PE = pepp::tc::PepParserError;
   SECTION("Dyadic missing argument") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("\n\nadda"));

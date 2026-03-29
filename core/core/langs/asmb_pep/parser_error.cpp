@@ -3,7 +3,7 @@
 #include "core/macros.hpp"
 #include "fmt/format.h"
 
-const std::string pepp::tc::ParserError::to_string(NullaryError err) {
+const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   switch (err) {
   case NullaryError::Argument_InvalidIntegerFormat: return "Unrecognized integer format";
   case NullaryError::Argument_Exceeded2Bytes: return "Argument must fit in two bytes";
@@ -28,7 +28,7 @@ const std::string pepp::tc::ParserError::to_string(NullaryError err) {
   PEPP_UNREACHABLE();
 }
 
-const std::string pepp::tc::ParserError::to_string(UnaryError err, std::string &arg) {
+const std::string pepp::tc::PepParserError::to_string(UnaryError err, std::string &arg) {
   switch (err) {
   case UnaryError::Mnemonic_Invalid: return fmt::format("Invalid mnemonic \"{}\".", arg);
   case UnaryError::AddressingMode_InvalidForMnemonic:
@@ -39,8 +39,8 @@ const std::string pepp::tc::ParserError::to_string(UnaryError err, std::string &
   PEPP_UNREACHABLE();
 }
 
-pepp::tc::ParserError::ParserError(NullaryError err, support::LocationInterval loc)
+pepp::tc::PepParserError::PepParserError(NullaryError err, support::LocationInterval loc)
     : std::logic_error(to_string(err)), loc(loc) {}
 
-pepp::tc::ParserError::ParserError(UnaryError err, std::string arg1, support::LocationInterval loc)
+pepp::tc::PepParserError::PepParserError(UnaryError err, std::string arg1, support::LocationInterval loc)
     : std::logic_error(to_string(err, arg1)), loc(loc) {}

@@ -20,7 +20,7 @@ pepp::tc::RISCVIRProgram pepp::tc::parser::RISCVParser::parse(DiagnosticTable &d
   while (_buffer->input_remains()) {
     try {
       if (auto line = statement(); line) lines.emplace_back(line);
-    } catch (ParserError &e) {
+    } catch (RISCVParserError &e) {
       synchronize();
       diag.add_message(e.loc, e.what());
     }
@@ -46,7 +46,9 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
       return std::make_shared<pepp::ast::Hexadecimal>(maybeInteger->value, 2);
     else if (maybeInteger->format == lex::Integer::Format::UnsignedDec)
       return std::make_shared<pepp::ast::UnsignedDecimal>(maybeInteger->value, 2);
-    else throw ParserError(ParserError::NullaryError::Argument_InvalidIntegerFormat, _buffer->matched_interval());
+    else
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_InvalidIntegerFormat,
+                             _buffer->matched_interval());
   } else if (auto maybeIdent = _buffer->match<lex::Identifier>(); maybeIdent) {
     auto entry = _symtab->reference(maybeIdent->to_string());
     return std::make_shared<pepp::ast::Symbolic>(2, entry);
@@ -60,61 +62,61 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
 
 std::shared_ptr<pepp::tc::RTypeIR> pepp::tc::parser::RISCVParser::r_type(riscv::MnemonicDescriptor desc) {
   if (const auto rd = register_integer(); !rd)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
-    throw ParserError(ParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (const auto rs1 = register_integer(); !rs1)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedRS1, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS1, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
-    throw ParserError(ParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (const auto rs2 = register_integer(); !rs2)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
   else return std::make_shared<RTypeIR>(desc, rd.value(), rs1.value(), rs2.value());
 }
 
 std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_load(riscv::MnemonicDescriptor desc) {
   if (const auto rd = register_integer(); !rd)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
-    throw ParserError(ParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (auto arg = argument(); !arg)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
   else if (!_buffer->match_literal("("))
-    throw ParserError(ParserError::NullaryError::Token_MissingLParen, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingLParen, _buffer->matched_interval());
   else if (const auto rs = register_integer(); !rs)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
   else if (!_buffer->match_literal(")"))
-    throw ParserError(ParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
   else return std::make_shared<ITypeIR>(desc, rd.value(), rs.value(), arg);
 }
 
 std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_arith(riscv::MnemonicDescriptor desc) {
   if (const auto rd = register_integer(); !rd)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
-    throw ParserError(ParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (const auto rs1 = register_integer(); !rs1)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedRS1, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS1, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
-    throw ParserError(ParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (const auto imm = argument(); !imm)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedImm, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedImm, _buffer->matched_interval());
   else return std::make_shared<ITypeIR>(desc, rd.value(), rs1.value(), imm);
 }
 
 std::shared_ptr<pepp::tc::STypeIR> pepp::tc::parser::RISCVParser::s_type(riscv::MnemonicDescriptor desc) {
   if (const auto rs2 = register_integer(); !rs2)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
-    throw ParserError(ParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (auto arg = argument(); !arg)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
   else if (!_buffer->match_literal("("))
-    throw ParserError(ParserError::NullaryError::Token_MissingLParen, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingLParen, _buffer->matched_interval());
   else if (const auto rs1 = register_integer(); !rs1)
-    throw ParserError(ParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
   else if (!_buffer->match_literal(")"))
-    throw ParserError(ParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
   else return std::make_shared<STypeIR>(desc, rs1.value(), rs2.value(), arg);
 }
 
@@ -175,14 +177,14 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement() {
     ret = line(symbol_decl);
     if (!ret) {
       auto next = _buffer->peek();
-      throw ParserError(ParserError::UnaryError::Token_Invalid, next->repr(), _buffer->matched_interval());
+      throw RISCVParserError(RISCVParserError::UnaryError::Token_Invalid, next->repr(), _buffer->matched_interval());
     } else {
       ret->source_interval = _buffer->matched_interval();
     }
   }
 
   if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains())
-    throw ParserError(ParserError::NullaryError::Token_MissingNewline, _buffer->matched_interval());
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingNewline, _buffer->matched_interval());
   return ret;
 }
 
