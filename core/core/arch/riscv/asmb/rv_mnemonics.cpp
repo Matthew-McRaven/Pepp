@@ -455,3 +455,9 @@ static auto mnemonics() {
 }
 
 const riscv::MnemonicSet riscv::string_to_mnemonic = mnemonics();
+
+std::optional<u8> riscv::parse_register(const std::string &name) {
+  if (const auto arch = architectural_registers.find(name); arch != architectural_registers.end()) return arch->second;
+  else if (const auto abi = abi_registers.find(name); abi != abi_registers.end()) return abi->second;
+  return std::nullopt;
+}
