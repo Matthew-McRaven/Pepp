@@ -19,8 +19,8 @@
 #include <QtCore>
 #include <catch.hpp>
 #include "core/langs/asmb/asmb_tokens.hpp"
-#include "core/langs/riscv/riscv_lexer.hpp"
 #include "core/langs/asmb_pep/lexer.hpp"
+#include "core/langs/asmb_riscv/lexer.hpp"
 
 using namespace Qt::StringLiterals;
 namespace {

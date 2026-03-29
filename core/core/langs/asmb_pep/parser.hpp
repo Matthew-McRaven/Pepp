@@ -43,17 +43,16 @@ private:
   std::shared_ptr<pepp::ast::IRValue> numeric_argument();
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();
-  std::shared_ptr<ir::LinearIR> instruction();
-  std::shared_ptr<ir::LinearIR> pseudo(OptionalSymbol symbol);
-  std::shared_ptr<ir::LinearIR> line(OptionalSymbol symbol);
-  std::shared_ptr<ir::LinearIR> statement();
+  std::shared_ptr<LinearIR> instruction();
+  std::shared_ptr<LinearIR> pseudo(OptionalSymbol symbol);
+  std::shared_ptr<LinearIR> line(OptionalSymbol symbol);
+  std::shared_ptr<LinearIR> statement();
 
   void synchronize();
 
   std::shared_ptr<std::unordered_set<std::string>> _pool;
   std::shared_ptr<lex::PepLexer> _lexer;
   std::shared_ptr<lex::Buffer> _buffer;
-  // Must be QSharedPointer until old toolchain has been entirely ported.
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
 };
 } // namespace parser

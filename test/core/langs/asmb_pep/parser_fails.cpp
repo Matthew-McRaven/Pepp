@@ -30,7 +30,7 @@ TEST_CASE("Pepp ASM parser errors",
   using SymbolTable = pepp::core::symbol::LeafTable;
   using pepp::tc::support::Location;
   using pepp::tc::support::LocationInterval;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
   using NullaryError = pepp::tc::ParserError::NullaryError;
   using UnaryError = pepp::tc::ParserError::UnaryError;
   using PE = pepp::tc::ParserError;

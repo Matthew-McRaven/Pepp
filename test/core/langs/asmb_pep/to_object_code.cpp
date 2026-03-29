@@ -42,7 +42,7 @@ TEST_CASE("Pepp ASM object code output",
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
 
   pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(ex1));

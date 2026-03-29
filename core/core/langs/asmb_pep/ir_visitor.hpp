@@ -1,6 +1,6 @@
 #pragma once
 
-namespace pepp::tc::ir {
+namespace pepp::tc {
 struct LinearIR;
 struct EmptyLine;
 struct CommentLine;
@@ -13,7 +13,7 @@ struct DotEquate;
 struct DotSection;
 struct DotAnnotate;
 struct DotOrg;
-struct LinearIRVisitor {
+struct PepIRVisitor {
   virtual void visit(const EmptyLine *) = 0;
   virtual void visit(const CommentLine *) = 0;
   virtual void visit(const MonadicInstruction *) = 0;
@@ -26,5 +26,6 @@ struct LinearIRVisitor {
   virtual void visit(const DotAnnotate *) = 0;
   virtual void visit(const DotOrg *) = 0;
 };
+void accept(PepIRVisitor &visitor, const LinearIR *line);
 
-} // namespace pepp::tc::ir
+} // namespace pepp::tc

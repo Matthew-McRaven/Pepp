@@ -1,4 +1,8 @@
 #include "core/langs/asmb_pep/parser.hpp"
+#include "core/compile/ir_linear/attr_comment.hpp"
+#include "core/compile/ir_linear/line_comment.hpp"
+#include "core/compile/ir_linear/line_dot.hpp"
+#include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/ir_value/text.hpp"
@@ -73,16 +77,16 @@ std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::PepParser::identifier_arg
   return nullptr;
 }
 
-std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction() {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::instruction() {
   using ISA = isa::Pep10;
-  std::shared_ptr<pepp::tc::ir::LinearIR> ret = nullptr;
+  std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   lex::Checkpoint cp(*_buffer);
 
   if (auto instruction = _buffer->match<lex::Identifier>(); !instruction) return cp.rollback(), nullptr;
   else if (auto instr = ISA::parseMnemonic(instruction->to_string()); instr == ISA::Mnemonic::INVALID) {
     throw ParserError(ParserError::UnaryError::Mnemonic_Invalid, instruction->to_string(), _buffer->matched_interval());
   } else if (ISA::isMnemonicUnary(instr)) { // Monadic instruction
-    ret = std::make_shared<ir::MonadicInstruction>(ir::attr::Pep10Mnemonic(instr));
+    ret = std::make_shared<MonadicInstruction>(Pep10Mnemonic(instr));
   } else { // Dyadic instruction
     ISA::AddressingMode am = ISA::AddressingMode::INVALID;
     auto arg = argument();
@@ -102,23 +106,26 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::instruction
                           _buffer->matched_interval());
     } else if (!ISA::requiresAddressingMode(instr)) am = ISA::defaultAddressingMode(instr);
     else throw ParserError(ParserError::NullaryError::AddressingMode_Required, _buffer->matched_interval());
-    auto ir_instr = ir::attr::Pep10Mnemonic(instr);
-    auto ir_addr = ir::attr::Pep10AddrMode(am);
-    auto ir_arg = ir::attr::Argument(arg);
-    ret = std::make_shared<ir::DyadicInstruction>(ir_instr, ir_addr, ir_arg);
+    auto ir_instr = Pep10Mnemonic(instr);
+    auto ir_addr = Pep10AddrMode(am);
+    auto ir_arg = Argument(arg);
+    ret = std::make_shared<DyadicInstruction>(ir_instr, ir_addr, ir_arg);
   }
 
   return ret;
 }
 
 namespace {
-using DC = pepp::tc::ir::DotCommands;
-static const auto dot_map = std::map<std::string, DC>{
-    {"ALIGN", DC::ALIGN},   {"ASCII", DC::ASCII},     {"BLOCK", DC::BLOCK}, {"BYTE", DC::BYTE}, {"EQUATE", DC::EQUATE},
-    {"EXPORT", DC::EXPORT}, {"IMPORT", DC::IMPORT},   {"INPUT", DC::INPUT}, {"ORG", DC::ORG},   {"OUTPUT", DC::OUTPUT},
-    {"SCALL", DC::SCALL},   {"SECTION", DC::SECTION}, {"WORD", DC::WORD}};
+using DC = pepp::tc::DotCommands;
+using PDC = pepp::tc::PepDotCommands;
+static const auto dot_map =
+    std::map<std::string, int>{{"ALIGN", (int)DC::ALIGN},    {"ASCII", (int)DC::ASCII},   {"BLOCK", (int)DC::BLOCK},
+                               {"BYTE", (int)DC::BYTE},      {"EQUATE", (int)DC::EQUATE}, {"EXPORT", (int)PDC::EXPORT},
+                               {"IMPORT", (int)PDC::IMPORT}, {"INPUT", (int)PDC::INPUT},  {"ORG", (int)DC::ORG},
+                               {"OUTPUT", (int)PDC::OUTPUT}, {"SCALL", (int)PDC::SCALL},  {"SECTION", (int)DC::SECTION},
+                               {"WORD", (int)DC::WORD}};
 } // namespace
-std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(OptionalSymbol symbol) {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(OptionalSymbol symbol) {
   auto dot = _buffer->match<lex::DotCommand>();
   auto dot_str = bits::to_upper(dot->to_string());
   auto it = dot_map.find(dot_str);
@@ -126,7 +133,7 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     throw ParserError(ParserError::UnaryError::Dot_Invalid, dot_str, _buffer->matched_interval());
 
   switch (it->second) {
-  case ir::DotCommands::ALIGN: {
+  case (int)DC::ALIGN: {
     auto arg = numeric_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
     u16 value;
@@ -134,88 +141,88 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
     (void)arg->serialize(buf, bits::hostOrder());
     if (!(value == 1 || value == 2 || value == 4 || value == 8))
       throw ParserError(ParserError::NullaryError::Argument_ExpectedPowerOfTwo, _buffer->matched_interval());
-    return std::make_shared<ir::DotAlign>(arg);
+    return std::make_shared<DotAlign>(arg);
   }
-  case ir::DotCommands::ASCII: {
+  case (int)DC::ASCII: {
     if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
       throw ParserError(ParserError::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
     else {
       const auto asStr = std::string{maybeStr->view()};
-      ir::attr::Argument arg{std::make_shared<pepp::ast::String>(asStr)};
-      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::ASCII, arg);
+      Argument arg{std::make_shared<pepp::ast::String>(asStr)};
+      return std::make_shared<DotLiteral>(DotLiteral::Which::ASCII, arg);
     }
   }
-  case ir::DotCommands::BLOCK: {
+  case (int)DC::BLOCK: {
     auto arg = numeric_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
-    return std::make_shared<ir::DotBlock>(arg);
+    return std::make_shared<DotBlock>(arg);
   }
-  case ir::DotCommands::BYTE: {
+  case (int)DC::BYTE: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 1)
         throw ParserError(ParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
-      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Byte, ir::attr::Argument{numeric});
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
       if (ident->minimum_size() > 1)
         throw ParserError(ParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
-      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Byte, ir::attr::Argument{ident});
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte, Argument{ident});
     } else throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
-  case ir::DotCommands::EQUATE: {
+  case (int)DC::EQUATE: {
     auto arg = argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
     else if (arg->minimum_size() > 2)
       throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
     else if (!symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Required, _buffer->matched_interval());
-    return std::make_shared<ir::DotEquate>(ir::attr::SymbolDeclaration{*symbol}, arg);
+    return std::make_shared<DotEquate>(SymbolDeclaration{*symbol}, arg);
   }
-  case ir::DotCommands::EXPORT: {
+  case (int)PDC::EXPORT: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     arg->symbol()->binding = pepp::core::symbol::Binding::Global;
-    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::EXPORT, ir::attr::Argument{arg});
+    return std::make_shared<DotAnnotate>(DotAnnotate::Which::EXPORT, Argument{arg});
   }
-  case ir::DotCommands::IMPORT: {
+  case (int)PDC::IMPORT: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
     arg->symbol()->binding = pepp::core::symbol::Binding::Weak;
-    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::IMPORT, ir::attr::Argument{arg});
+    return std::make_shared<DotAnnotate>(DotAnnotate::Which::IMPORT, Argument{arg});
   }
-  case ir::DotCommands::INPUT: {
+  case (int)PDC::INPUT: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
-    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::INPUT, ir::attr::Argument{arg});
+    return std::make_shared<DotAnnotate>(DotAnnotate::Which::INPUT, Argument{arg});
   }
-  case ir::DotCommands::ORG: {
+  case (int)DC::ORG: {
     auto arg = hex_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedHex, _buffer->matched_interval());
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
-    return std::make_shared<ir::DotOrg>(ir::DotOrg::Behavior::ORG, arg);
+    return std::make_shared<DotOrg>(DotOrg::Behavior::ORG, arg);
   }
-  case ir::DotCommands::OUTPUT: {
+  case (int)PDC::OUTPUT: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
-    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::OUTPUT, ir::attr::Argument{arg});
+    return std::make_shared<DotAnnotate>(DotAnnotate::Which::OUTPUT, Argument{arg});
   }
-  case ir::DotCommands::SCALL: {
+  case (int)PDC::SCALL: {
     auto arg = identifier_argument();
     if (!arg) throw ParserError(ParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
     else if (symbol)
       throw ParserError(ParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
-    return std::make_shared<ir::DotAnnotate>(ir::DotAnnotate::Which::SCALL, ir::attr::Argument{arg});
+    return std::make_shared<DotAnnotate>(DotAnnotate::Which::SCALL, Argument{arg});
   }
-  case ir::DotCommands::SECTION: {
+  case (int)DC::SECTION: {
     if (auto maybeSecName = _buffer->match<lex::StringConstant>(); !maybeSecName)
       throw ParserError(ParserError::NullaryError::Section_StringName, _buffer->matched_interval());
     else if (!_buffer->match_literal(","))
@@ -228,18 +235,17 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
       auto flags = bits::to_lower(maybeFlags->view());
       using bits::contains;
       bool r = contains(flags, "r"), w = contains(flags, "w"), x = contains(flags, "x"), z = contains(flags, "z");
-      return std::make_shared<ir::DotSection>(ir::attr::Identifier(*maybeSecName->value),
-                                              ir::attr::SectionFlags(r, w, x, z));
+      return std::make_shared<DotSection>(Identifier(*maybeSecName->value), SectionFlags(r, w, x, z));
     }
   }
-  case ir::DotCommands::WORD: {
+  case (int)DC::WORD: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 2)
         throw ParserError(ParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
-      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Word, ir::attr::Argument{numeric});
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Word, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
-      return std::make_shared<ir::DotLiteral>(ir::DotLiteral::Which::Word, ir::attr::Argument{ident});
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Word, Argument{ident});
     } else throw ParserError(ParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
   default: throw std::logic_error("Unreachable");
@@ -247,33 +253,32 @@ std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::pseudo(Opti
   return nullptr;
 }
 
-std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::line(OptionalSymbol symbol) {
-  std::shared_ptr<pepp::tc::ir::LinearIR> ret = nullptr;
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(OptionalSymbol symbol) {
+  std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   if (auto instr = instruction(); instr) ret = instr;
   else if (auto dot = pseudo(symbol); dot) ret = dot;
   else return nullptr;
 
   if (auto comment = _buffer->match<lex::InlineComment>(); comment)
-    ret->insert(std::make_unique<ir::attr::Comment>(*comment->value));
+    ret->insert(std::make_unique<Comment>(*comment->value));
 
   // Avoid re-attaching existing symbol declaration (e.g., .EQUATE in pseudo).
-  if (symbol && !ret->has_attribute<ir::attr::SymbolDeclaration>())
-    ret->insert(std::make_unique<ir::attr::SymbolDeclaration>(*symbol));
+  if (symbol && !ret->has_attribute<SymbolDeclaration>()) ret->insert(std::make_unique<SymbolDeclaration>(*symbol));
   return ret;
 }
 
-std::shared_ptr<pepp::tc::ir::LinearIR> pepp::tc::parser::PepParser::statement() {
-  std::shared_ptr<pepp::tc::ir::LinearIR> ret = nullptr;
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
+  std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   lex::Checkpoint cp(*_buffer);
 
   if (auto empty = _buffer->match<tc::lex::Empty>(); empty) {
-    auto line = std::make_shared<ir::EmptyLine>();
+    auto line = std::make_shared<EmptyLine>();
     line->source_interval = empty->location();
     return line;
   }
 
   if (auto comment = _buffer->match<tc::lex::InlineComment>(); comment) {
-    auto line = std::make_shared<ir::CommentLine>(ir::attr::Comment(*comment->value));
+    auto line = std::make_shared<CommentLine>(Comment(*comment->value));
     line->source_interval = comment->location();
     ret = line;
   } else {

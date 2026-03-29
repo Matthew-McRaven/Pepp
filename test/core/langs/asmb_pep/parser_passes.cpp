@@ -15,6 +15,8 @@
  */
 
 #include <catch.hpp>
+#include "core/compile/ir_linear/line_dot.hpp"
+#include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
@@ -28,7 +30,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
   SECTION("No input") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(" "));
@@ -65,9 +67,9 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     auto r0 = std::dynamic_pointer_cast<MonadicInstruction>(results[0]);
     REQUIRE(r0);
     CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::NOTA);
-    auto attr = r0->attribute(attr::Type::SymbolDeclaration);
+    auto attr = r0->attribute(SymbolDeclaration::TYPE);
     REQUIRE(attr);
-    auto sym = (pepp::tc::ir::attr::SymbolDeclaration *)attr;
+    auto sym = (SymbolDeclaration *)attr;
     CHECK(sym->entry->name == "symb");
     CHECK(sym->entry->is_singly_defined());
   }
@@ -127,7 +129,7 @@ TEST_CASE("Pepp ASM parser dot commands",
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
 
   SECTION(".ALIGN") {
     {

@@ -32,10 +32,10 @@ std::string format_as_columns(const std::string &col0, const std::string &col1, 
 std::string format_source(bits::span<std::shared_ptr<lex::Token> const> tokens);
 
 // Format a single IR line as if by format_source(<tokens>).
-std::string format_source(const ir::LinearIR *line);
+std::string format_source(const LinearIR *line);
 
 // Format a single line
-std::vector<std::string> format_listing(const ir::LinearIR *line, const IRMemoryAddressTable &addresses,
+std::vector<std::string> format_listing(const LinearIR *line, const IRMemoryAddressTable &addresses,
                                         const ProgramObjectCodeResult &object_code);
 std::vector<std::string> format_listing(const PepIRProgram &program, const IRMemoryAddressTable &addresses,
                                         const ProgramObjectCodeResult &object_code);

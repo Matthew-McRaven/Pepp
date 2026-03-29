@@ -49,7 +49,7 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
   SECTION("One section, .ORG at front") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(ex1));

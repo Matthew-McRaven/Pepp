@@ -1,6 +1,8 @@
 #include "core/langs/asmb_pep/text_format.hpp"
 #include <fmt/format.h>
 #include <string>
+#include "core/compile/ir_linear/line_comment.hpp"
+#include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_value/base.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
@@ -195,111 +197,104 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
 }
 
 namespace pepp::tc {
-struct SourceVisitor : public ir::LinearIRVisitor {
+struct SourceVisitor : public PepIRVisitor {
   std::string text;
-  void visit(const ir::EmptyLine *) override;
-  void visit(const ir::CommentLine *) override;
-  void visit(const ir::MonadicInstruction *) override;
-  void visit(const ir::DyadicInstruction *) override;
-  void visit(const ir::DotAlign *) override;
-  void visit(const ir::DotLiteral *) override;
-  void visit(const ir::DotBlock *) override;
-  void visit(const ir::DotEquate *) override;
-  void visit(const ir::DotSection *) override;
-  void visit(const ir::DotAnnotate *) override;
-  void visit(const ir::DotOrg *) override;
+  void visit(const EmptyLine *);
+  void visit(const CommentLine *);
+  void visit(const MonadicInstruction *);
+  void visit(const DyadicInstruction *);
+  void visit(const DotAlign *);
+  void visit(const DotLiteral *);
+  void visit(const DotBlock *);
+  void visit(const DotEquate *);
+  void visit(const DotSection *);
+  void visit(const DotAnnotate *);
+  void visit(const DotOrg *);
 };
 } // namespace pepp::tc
 
-void pepp::tc::SourceVisitor::visit(const ir::EmptyLine *) { text = ""; }
+void pepp::tc::SourceVisitor::visit(const EmptyLine *) { text = ""; }
 
-void pepp::tc::SourceVisitor::visit(const ir::CommentLine *line) {
+void pepp::tc::SourceVisitor::visit(const CommentLine *line) {
   auto comment = ";" + line->comment.value;
   text = format_as_columns(comment, "", "", "");
 }
 
-void pepp::tc::SourceVisitor::visit(const ir::MonadicInstruction *line) {
+void pepp::tc::SourceVisitor::visit(const MonadicInstruction *line) {
   std::string symbol = "", mn = "", comment = "";
-  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+  if (auto maybe_symbol = line->typed_attribute<SymbolDeclaration>(); maybe_symbol)
     symbol = std::string{maybe_symbol->entry->name} + ":";
   mn = isa::Pep10::string(line->mnemonic.instruction);
-  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->value;
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, mn, "", comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const ir::DyadicInstruction *line) {
+void pepp::tc::SourceVisitor::visit(const DyadicInstruction *line) {
   std::vector<std::string> arg_list;
   std::string symbol = "", mn = "", comment = "";
-  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+  if (auto maybe_symbol = line->typed_attribute<SymbolDeclaration>(); maybe_symbol)
     symbol = std::string{maybe_symbol->entry->name} + ":";
   mn = isa::Pep10::string(line->mnemonic.instruction);
   arg_list.emplace_back(line->argument.value->string());
   auto addr_mode = line->addr_mode.addr_mode;
   if (!isa::Pep10::canElideAddressingMode(line->mnemonic.instruction, addr_mode))
     arg_list.emplace_back(isa::Pep10::string(addr_mode));
-  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->value;
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   const auto joined_args = fmt::format("{}", fmt::join(arg_list, ","));
   text = format_as_columns(symbol, mn, joined_args, comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const ir::DotAlign *line) {
+void pepp::tc::SourceVisitor::visit(const DotAlign *line) {
   std::string symbol = "", comment = "";
-  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+  if (auto maybe_symbol = line->typed_attribute<SymbolDeclaration>(); maybe_symbol)
     symbol = std::string{maybe_symbol->entry->name} + ":";
-  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->value;
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, ".ALIGN", line->argument.value->string(), comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const ir::DotLiteral *line) {
+void pepp::tc::SourceVisitor::visit(const DotLiteral *line) {
   std::string symbol = "", dot = "", comment = "";
-  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+  if (auto maybe_symbol = line->typed_attribute<SymbolDeclaration>(); maybe_symbol)
     symbol = std::string{maybe_symbol->entry->name} + ":";
-  using Which = ir::DotLiteral::Which;
+  using Which = DotLiteral::Which;
   switch (line->which) {
   case Which::ASCII: dot = ".ASCII"; break;
   case Which::Byte: dot = ".BYTE"; break;
   case Which::Word: dot = ".WORD"; break;
   }
 
-  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->value;
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, dot, line->argument.value->string(), comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const ir::DotBlock *line) {
+void pepp::tc::SourceVisitor::visit(const DotBlock *line) {
   std::string symbol = "", comment = "";
-  if (auto maybe_symbol = line->typed_attribute<ir::attr::SymbolDeclaration>(); maybe_symbol)
+  if (auto maybe_symbol = line->typed_attribute<SymbolDeclaration>(); maybe_symbol)
     symbol = std::string{maybe_symbol->entry->name} + ":";
-  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->value;
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   text = format_as_columns(symbol, ".BLOCK", line->argument.value->string(), comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const ir::DotEquate *line) {
+void pepp::tc::SourceVisitor::visit(const DotEquate *line) {
   std::string comment = "";
-  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->value;
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   text = format_as_columns(std::string{line->symbol.entry->name} + ":", ".EQUATE", line->argument.value->string(),
                            comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const ir::DotSection *line) {
+void pepp::tc::SourceVisitor::visit(const DotSection *line) {
   std::array<std::string, 2> args;
   args[0] = fmt::format("\"{}\"", line->name.value);
   args[1] = fmt::format("\"{}\"", line->flags.to_string());
   std::string comment = "";
-  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->value;
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   const auto joined_args = fmt::format("{}", fmt::join(args, ", "));
   text = format_as_columns("", ".SECTION", joined_args, comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const ir::DotAnnotate *line) {
+void pepp::tc::SourceVisitor::visit(const DotAnnotate *line) {
   std::string dot = "", comment = "";
-  using Which = ir::DotAnnotate::Which;
+  using Which = DotAnnotate::Which;
   switch (line->which) {
   case Which::EXPORT: dot = ".EXPORT"; break;
   case Which::IMPORT: dot = ".IMPORT"; break;
@@ -308,31 +303,29 @@ void pepp::tc::SourceVisitor::visit(const ir::DotAnnotate *line) {
   case Which::SCALL: dot = ".SCALL"; break;
   }
 
-  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->value;
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   text = format_as_columns("", dot, line->argument.value->string(), comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const ir::DotOrg *line) {
+void pepp::tc::SourceVisitor::visit(const DotOrg *line) {
   std::string dot = "", comment = "";
-  using Behavior = ir::DotOrg::Behavior;
+  using Behavior = DotOrg::Behavior;
   switch (line->behavior) {
   case Behavior::BURN: dot = ".BURN"; break;
   case Behavior::ORG: dot = ".ORG"; break;
   }
 
-  if (auto maybe_comment = line->typed_attribute<ir::attr::Comment>(); maybe_comment)
-    comment = ";" + maybe_comment->value;
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   text = format_as_columns("", dot, line->argument.value->string(), comment);
 }
 
-std::string pepp::tc::format_source(const ir::LinearIR *line) {
+std::string pepp::tc::format_source(const LinearIR *line) {
   SourceVisitor r;
-  line->accept(&r);
+  accept(r, line);
   return r.text;
 }
 
-void format_listing(const pepp::tc::ir::LinearIR *line, const pepp::tc::IRMemoryAddressTable &addresses,
+void format_listing(const pepp::tc::LinearIR *line, const pepp::tc::IRMemoryAddressTable &addresses,
                     const pepp::tc::ProgramObjectCodeResult &object_code, std::vector<std::string> &out) {
   auto source_line = pepp::tc::format_source(line);
   auto address_it = addresses.find(line);
@@ -359,7 +352,7 @@ void format_listing(const pepp::tc::ir::LinearIR *line, const pepp::tc::IRMemory
   }
 }
 
-std::vector<std::string> pepp::tc::format_listing(const ir::LinearIR *line, const IRMemoryAddressTable &addresses,
+std::vector<std::string> pepp::tc::format_listing(const LinearIR *line, const IRMemoryAddressTable &addresses,
                                                   const ProgramObjectCodeResult &object_code) {
   std::vector<std::string> ret;
   ::format_listing(line, addresses, object_code, ret);

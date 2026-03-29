@@ -19,7 +19,7 @@ class DiagnosticTable;
 
 struct SectionDescriptor {
   std::string name;
-  pepp::tc::ir::attr::SectionFlags flags;
+  pepp::tc::SectionFlags flags;
   u16 alignment = 1, org_count = 0;
   std::optional<u16> base_address = std::nullopt;
   u16 low_address = 0, high_address = 0;
@@ -34,8 +34,7 @@ struct SectionDescriptor {
   u16 section_index = section_base_index;
 };
 
-static const SectionDescriptor default_descriptor = {.name = ".text",
-                                                     .flags = ir::attr::SectionFlags(true, true, true, false)};
+static const SectionDescriptor default_descriptor = {.name = ".text", .flags = SectionFlags(true, true, true, false)};
 
 struct SectionAnalysisResults {
   std::vector<std::pair<SectionDescriptor, PepIRProgram>> grouped_ir;
@@ -66,11 +65,11 @@ IRMemoryAddressTable assign_addresses(std::vector<std::pair<SectionDescriptor, P
 
 // Create a lookup data structure that converts IR pointers back to the generated object code.
 // Since IR no longer know their own address, we need to cache the object code because it cannot easily be regenerated.
-using IR2ObjectPair = std::pair<const ir::LinearIR *, std::span<u8>>;
+using IR2ObjectPair = std::pair<const LinearIR *, std::span<u8>>;
 struct IR2ObjectComparator {
   bool operator()(const IR2ObjectPair &lhs, const IR2ObjectPair &rhs) const { return lhs.first < rhs.first; }
-  bool operator()(ir::LinearIR *const lhs, ir::LinearIR *const rhs) const { return lhs < rhs; }
-  bool operator()(const ir::LinearIR *const lhs, const ir::LinearIR *const rhs) const { return lhs < rhs; }
+  bool operator()(LinearIR *const lhs, LinearIR *const rhs) const { return lhs < rhs; }
+  bool operator()(const LinearIR *const lhs, const LinearIR *const rhs) const { return lhs < rhs; }
 };
 using IR2ObjectCodeMap = fc::flat_map<std::vector<IR2ObjectPair>, IR2ObjectComparator>;
 struct PepStaticRelocation {
@@ -98,11 +97,11 @@ ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable &,
                                        std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog);
 
 // Create a lookup data structure that converts IR pointers back to their listing line number.
-using IR2ListingLinePair = std::pair<const ir::LinearIR *, u16>;
+using IR2ListingLinePair = std::pair<const LinearIR *, u16>;
 struct IR2ListingLineComparator {
   bool operator()(const IR2ListingLinePair &lhs, const IR2ListingLinePair &rhs) const { return lhs.first < rhs.first; }
-  bool operator()(ir::LinearIR *const lhs, ir::LinearIR *const rhs) const { return lhs < rhs; }
-  bool operator()(const ir::LinearIR *const lhs, const ir::LinearIR *const rhs) const { return lhs < rhs; }
+  bool operator()(LinearIR *const lhs, LinearIR *const rhs) const { return lhs < rhs; }
+  bool operator()(const LinearIR *const lhs, const LinearIR *const rhs) const { return lhs < rhs; }
 };
 using IR2ListingLineMap = fc::flat_map<std::vector<IR2ListingLinePair>, IR2ListingLineComparator>;
 

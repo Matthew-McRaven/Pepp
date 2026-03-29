@@ -14,9 +14,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <catch.hpp>
-#include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
+#include <catch.hpp>
+#include "core/compile/ir_linear/line_empty.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
 #include "toolchain/link/mmio.hpp"
 
@@ -42,7 +43,7 @@ TEST_CASE("Pepp ASM codegen sectioning",
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
   pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(ex1));
   auto results = p.parse(diag);
@@ -70,7 +71,7 @@ TEST_CASE("Pepp ASM codegen address assignment",
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
   SECTION("No ORG") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(ex1));
@@ -115,7 +116,7 @@ TEST_CASE("Pepp ASM codegen .SCALL", "[scope:core][scope:core.langs][level:asmb3
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
 
   pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(R"(
@@ -143,7 +144,7 @@ TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT",
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
 
   pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(R"(

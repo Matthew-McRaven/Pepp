@@ -1,8 +1,10 @@
 #include "core/langs/asmb_pep/codegen.hpp"
+#include <core/compile/ir_linear/line_comment.hpp>
 #include <elfio/elfio.hpp>
 #include <list>
 #include <numeric>
 #include <ranges>
+#include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
@@ -24,14 +26,14 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &di
     // TODO: Check all symbol usages are not undefined
     // TODO: .BURN for this section.
 
-    using Type = ir::LinearIR::Type;
+    using Type = LinearIRType;
 
     // Compile-time visitor pattern where the only virtual call should be type().
     switch (line->type()) {
-    case Type::DotSection: {
+    case DotSection::TYPE: {
       // If no existing section has the same name, create a new section with the provided flags.
       // When the section already exists, ensure that the flags match before switching to that section,
-      auto as_section = std::static_pointer_cast<pepp::tc::ir::DotSection>(line);
+      auto as_section = std::static_pointer_cast<pepp::tc::DotSection>(line);
       auto flags = as_section->flags;
       auto name = as_section->name.value;
       auto existing_sec =
@@ -47,30 +49,30 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &di
       } else active = &*existing_sec;
       break;
     }
-    case Type::DotAlign: {
-      auto as_align = std::static_pointer_cast<pepp::tc::ir::DotAlign>(line);
+    case DotAlign::TYPE: {
+      auto as_align = std::static_pointer_cast<pepp::tc::DotAlign>(line);
       active->first.alignment = std::max(active->first.alignment, as_align->argument.value->value_as<u16>());
       break;
     }
-    case Type::DotAnnotate: {
-      auto as_annotate = std::static_pointer_cast<pepp::tc::ir::DotAnnotate>(line);
+    case DotAnnotate::TYPE: {
+      auto as_annotate = std::static_pointer_cast<pepp::tc::DotAnnotate>(line);
       auto arg_str = as_annotate->argument.value->string();
-      if (as_annotate->which == ir::DotAnnotate::Which::SCALL) ret.system_calls.emplace_back(arg_str);
-      else if (as_annotate->which == ir::DotAnnotate::Which::INPUT)
+      if (as_annotate->which == DotAnnotate::Which::SCALL) ret.system_calls.emplace_back(arg_str);
+      else if (as_annotate->which == DotAnnotate::Which::INPUT)
         ret.mmios.emplace_back(obj::IO{.name = arg_str, .type = obj::IO::Type::kInput});
-      else if (as_annotate->which == ir::DotAnnotate::Which::OUTPUT)
+      else if (as_annotate->which == DotAnnotate::Which::OUTPUT)
         ret.mmios.emplace_back(obj::IO{.name = arg_str, .type = obj::IO::Type::kOutput});
       break;
     }
-    case Type::DotOrg: {
-      auto as_org = std::static_pointer_cast<pepp::tc::ir::DotOrg>(line);
+    case DotOrg::TYPE: {
+      auto as_org = std::static_pointer_cast<pepp::tc::DotOrg>(line);
       active->first.org_count++;
       break;
     }
     default: break;
     }
 
-    if (auto symbol_attr = line->typed_attribute<ir::attr::SymbolDeclaration>(); symbol_attr) {
+    if (auto symbol_attr = line->typed_attribute<SymbolDeclaration>(); symbol_attr) {
       if (!symbol_attr->entry->is_singly_defined()) {
         auto formatted = fmt::format("Multiply defined symbol {}", symbol_attr->entry->name);
         throw std::logic_error(formatted);
@@ -145,14 +147,14 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
       u16 symbol_base = base_address, next_base = base_address, size = maybe_size.value_or(0);
 
       // Perform special handling for non-code-generating dot commands
-      using Type = ir::LinearIR::Type;
+      using Type = LinearIRType;
       switch (line->type()) {
-      case Type::DotOrg:
-        base_address = std::static_pointer_cast<ir::DotOrg>(line)->argument.value->template value_as<u16>();
+      case (int)Type::DotOrg:
+        base_address = std::static_pointer_cast<DotOrg>(line)->argument.value->template value_as<u16>();
         symbol_base = next_base = base_address;
         break;
-      case Type::DotEquate: {
-        auto as_equate = std::static_pointer_cast<ir::DotEquate>(line);
+      case (int)Type::DotEquate: {
+        auto as_equate = std::static_pointer_cast<DotEquate>(line);
         auto symbol = as_equate->symbol.entry;
         auto argument = as_equate->argument.value;
         // Re-use from previous assembler
@@ -177,7 +179,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
         next_base = (base_address + size) % 0x10000;
         // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
         // in which case no adjustment is necessary.
-        ret.container.emplace_back(line.get(), ir::attr::Address(base_address, size));
+        ret.container.emplace_back(line.get(), Address(base_address, size));
         base_address = next_base;
       } else {
         next_base = (base_address - size) % 0x10000;
@@ -186,13 +188,13 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
         auto adjustedAddress = next_base + (size > 0 ? 1 : 0);
         // If we use newBase, we are off-by-one when size is non-zero.
         symbol_base = adjustedAddress;
-        ret.container.emplace_back(line.get(), ir::attr::Address(adjustedAddress % 0x10000, size));
+        ret.container.emplace_back(line.get(), Address(adjustedAddress % 0x10000, size));
         base_address = next_base;
       }
       sec_desc.byte_count += size;
 
-      if (auto line_symbol = line->template typed_attribute<ir::attr::SymbolDeclaration>(); line_symbol) {
-        auto isCode = dynamic_cast<ir::DyadicInstruction *>(&*line) || dynamic_cast<ir::MonadicInstruction *>(&*line);
+      if (auto line_symbol = line->template typed_attribute<SymbolDeclaration>(); line_symbol) {
+        auto isCode = dynamic_cast<DyadicInstruction *>(&*line) || dynamic_cast<MonadicInstruction *>(&*line);
         const auto type = isCode ? pepp::core::symbol::Type::Code : pepp::core::symbol::Type::Object;
         line_symbol->entry->value =
             std::make_shared<pepp::core::symbol::LocationValue>(size, sizeof(u16), symbol_base, 0, type);
@@ -209,9 +211,9 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
       // Split the program into two ranges: the region before the ORG and the rest.
       auto it = sec.second.begin();
       for (; it != sec.second.end(); it++)
-        if ((*it)->type() == ir::LinearIR::Type::DotOrg) break;
+        if ((*it)->type() == DotOrg::TYPE) break;
 
-      auto org_arg = static_pointer_cast<ir::DotOrg>(*it)->argument.value->value_as<u16>();
+      auto org_arg = static_pointer_cast<DotOrg>(*it)->argument.value->value_as<u16>();
       // Find index of first ORG and assign BACKWARD from there, exluding the ORG. Set section's low_address.
       base_address = org_arg - 1, direction = Direction::Backward;
       for_lines(std::views::reverse(std::ranges::subrange(sec.second.begin(), it)), sec.first);
@@ -255,7 +257,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
 }
 
 namespace pepp::tc {
-struct ObjectCodeVisitor : public ir::LinearIRVisitor {
+struct ObjectCodeVisitor : public PepIRVisitor {
   const IRMemoryAddressTable &ir_to_address;
   const u16 base_address, section_idx;
   // On each call, out_bytes will be shortened by the size of the visited line;
@@ -265,17 +267,17 @@ struct ObjectCodeVisitor : public ir::LinearIRVisitor {
   ObjectCodeVisitor(const IRMemoryAddressTable &, const u16 base_address, const u16 section_idx, bits::span<u8>,
                     std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &,
                     IR2ObjectCodeMap &);
-  void visit(const ir::EmptyLine *) override;
-  void visit(const ir::CommentLine *) override;
-  void visit(const ir::MonadicInstruction *) override;
-  void visit(const ir::DyadicInstruction *) override;
-  void visit(const ir::DotAlign *) override;
-  void visit(const ir::DotLiteral *) override;
-  void visit(const ir::DotBlock *) override;
-  void visit(const ir::DotEquate *) override;
-  void visit(const ir::DotSection *) override;
-  void visit(const ir::DotAnnotate *) override;
-  void visit(const ir::DotOrg *) override;
+  void visit(const EmptyLine *);
+  void visit(const CommentLine *);
+  void visit(const MonadicInstruction *);
+  void visit(const DyadicInstruction *);
+  void visit(const DotAlign *);
+  void visit(const DotLiteral *);
+  void visit(const DotBlock *);
+  void visit(const DotEquate *);
+  void visit(const DotSection *);
+  void visit(const DotAnnotate *);
+  void visit(const DotOrg *);
 };
 
 pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(
@@ -285,21 +287,21 @@ pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(
     : ir_to_address(ir_to_address), base_address(base_address), section_idx(section_idx), out_bytes(out_bytes),
       relocations(relocs), ir_to_object_code(ir_to_object_code) {}
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::EmptyLine *) {
+void pepp::tc::ObjectCodeVisitor::visit(const EmptyLine *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::CommentLine *) {
+void pepp::tc::ObjectCodeVisitor::visit(const CommentLine *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::MonadicInstruction *line) {
+void pepp::tc::ObjectCodeVisitor::visit(const MonadicInstruction *line) {
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(1)});
   out_bytes = out_bytes.subspan(1);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DyadicInstruction *line) {
+void pepp::tc::ObjectCodeVisitor::visit(const DyadicInstruction *line) {
   auto addr_info = ir_to_address.at(line);
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
   // Emit relocations for undefined symbolic arguments.
@@ -316,14 +318,14 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::DyadicInstruction *line) {
   out_bytes = out_bytes.subspan(3);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAlign *line) {
+void pepp::tc::ObjectCodeVisitor::visit(const DotAlign *line) {
   auto addr_info = ir_to_address.at(line);
   std::ranges::fill(out_bytes.first(addr_info.size), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotLiteral *line) {
+void pepp::tc::ObjectCodeVisitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
   // Emit relocations for undefined symbolic arguments.
   auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
@@ -340,26 +342,26 @@ void pepp::tc::ObjectCodeVisitor::visit(const ir::DotLiteral *line) {
   out_bytes = out_bytes.subspan(addr_info.size);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotBlock *line) {
+void pepp::tc::ObjectCodeVisitor::visit(const DotBlock *line) {
   auto addr_info = ir_to_address.at(line);
   std::ranges::fill(out_bytes.first(addr_info.size), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotEquate *) {
+void pepp::tc::ObjectCodeVisitor::visit(const DotEquate *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotSection *) {
+void pepp::tc::ObjectCodeVisitor::visit(const DotSection *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotAnnotate *) {
+void pepp::tc::ObjectCodeVisitor::visit(const DotAnnotate *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const ir::DotOrg *) {
+void pepp::tc::ObjectCodeVisitor::visit(const DotOrg *) {
   // Does not generate object code
 }
 
@@ -409,7 +411,7 @@ pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
     auto oc_subspan = bits::span<u8>(code_begin, code_end);
     ObjectCodeVisitor visitor(addresses, sec.low_address, it, oc_subspan, ret.relocations, ret.ir_to_object_code);
     offset.reloc_offset = ret.relocations.size();
-    for (const auto &line : ir) line->accept(&visitor);
+    for (const auto &line : ir) accept(visitor, line.get());
     offset.reloc_size = offset.reloc_offset - ret.relocations.size();
   }
 
@@ -527,7 +529,7 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
   ret.elf = create_elf();
   ret.section_offsets.resize(prog.size(), 0);
 
-  auto getOrCreateBSS = [&](ir::attr::SectionFlags &flags) {
+  auto getOrCreateBSS = [&](SectionFlags &flags) {
     if (activeSeg == nullptr || activeSeg->get_file_size() != 0) {
       activeSeg = ret.elf->segments.add();
       activeSeg->set_type(ELFIO::PT_LOAD);
@@ -542,7 +544,7 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, Pe
     return activeSeg;
   };
 
-  auto getOrCreateBits = [&](ir::attr::SectionFlags &flags) {
+  auto getOrCreateBits = [&](SectionFlags &flags) {
     if (activeSeg == nullptr || activeSeg->get_file_size() == 0 ||
         !(((activeSeg->get_flags() & ELFIO::PF_R) > 0 == flags.r) &&
           ((activeSeg->get_flags() & ELFIO::PF_W) > 0 == flags.w) &&

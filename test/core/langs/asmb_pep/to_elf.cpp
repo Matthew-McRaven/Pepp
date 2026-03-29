@@ -16,6 +16,8 @@
 
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
+#include "core/compile/ir_linear/line_dot.hpp"
+#include "core/compile/ir_linear/line_empty.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
@@ -51,7 +53,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
-  using namespace pepp::tc::ir;
+  using namespace pepp::tc;
   SECTION("No ORG") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(ex1));

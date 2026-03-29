@@ -1,4 +1,4 @@
-#include "core/langs/riscv/riscv_lexer.hpp"
+#include "core/langs/asmb_riscv/lexer.hpp"
 
 pepp::langs::RISCVLexer::RISCVLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
                                     tc::support::SeekableData &&data)
