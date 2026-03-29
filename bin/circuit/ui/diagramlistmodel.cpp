@@ -72,7 +72,9 @@ FilterDiagramListModel::FilterDiagramListModel(QObject *parent) : QSortFilterPro
 
 void FilterDiagramListModel::setFilterGroupFilter(Filter filter) {
   if (_filter != filter) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
     beginFilterChange();
+#endif
     _filter = filter;
 
     switch (_filter) {
@@ -82,7 +84,11 @@ void FilterDiagramListModel::setFilterGroupFilter(Filter filter) {
     default: _filterString.clear();
     }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
     endFilterChange(QSortFilterProxyModel::Direction::Rows);
+#else
+    invalidateFilter();
+#endif
     emit filterChanged();
   }
 }
