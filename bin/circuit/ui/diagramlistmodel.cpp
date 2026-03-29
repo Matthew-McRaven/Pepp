@@ -132,27 +132,26 @@ FilterDiagramListModel::FilterDiagramListModel(QObject *parent)
 
 void FilterDiagramListModel::setFilterGroupFilter(Filter filter)
 {
-    if (_filter != filter) {
-        beginFilterChange();
-        _filter = filter;
+  if (_filter != filter) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+    beginFilterChange();
+#endif
+    _filter = filter;
 
-        switch (_filter) {
-        case Arrow:
-            _filterString = "Arrow";
-            break;
-        case Diagram:
-            _filterString = "Diagram";
-            break;
-        case Line:
-            _filterString = "Line";
-            break;
-        default:
-            _filterString.clear();
-        }
-
-        endFilterChange(QSortFilterProxyModel::Direction::Rows);
-        emit filterChanged();
+    switch (_filter) {
+    case Arrow: _filterString = "Arrow"; break;
+    case Diagram: _filterString = "Diagram"; break;
+    case Line: _filterString = "Line"; break;
+    default: _filterString.clear();
     }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+    endFilterChange(QSortFilterProxyModel::Direction::Rows);
+#else
+    invalidateFilter();
+#endif
+
+    emit filterChanged();
+  }
 }
 
 void FilterDiagramListModel::setModel(DiagramListModel *model)
