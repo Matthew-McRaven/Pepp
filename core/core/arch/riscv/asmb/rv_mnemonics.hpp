@@ -49,6 +49,8 @@ struct MnemonicDescriptor {
   // Pseudo-instructions that can be encoded in terms of a real mnemonic should prefer a non-pseudo encoding.
   static MnemonicDescriptor Pseudo();
 
+  u8 opcode() const;
+
   std::span<const Operand> operands() const noexcept;
   Type type() const noexcept;
 

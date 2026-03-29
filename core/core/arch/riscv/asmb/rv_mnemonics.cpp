@@ -73,6 +73,10 @@ std::span<const riscv::Operand> riscv::MnemonicDescriptor::operands() const noex
 
 riscv::MnemonicDescriptor::Type riscv::MnemonicDescriptor::type() const noexcept { return _type; }
 
+u8 riscv::MnemonicDescriptor::opcode() const {
+  return _type == Type::Pseudo ? throw std::runtime_error("Pseudo instructions do not have a single opcode") : _opcode7;
+}
+
 void riscv::MnemonicDescriptor::append_operand(Operand operand) {
   for (int it = 0; it < _operands.size(); it++) {
     if (_operands[it].type == Operand::Type::Invalid) {
