@@ -273,6 +273,18 @@ u8 riscv::MnemonicDescriptor::width_imm() const noexcept {
   }
 }
 
+bool riscv::MnemonicDescriptor::operator==(const MnemonicDescriptor &other) const noexcept {
+  if (_type != other._type) return false;
+  else if (_flags != other._flags) return false;
+  else if (_opcode7 != other._opcode7 || _funct3 != other._funct3 || _imm_or_funct7 != other._imm_or_funct7 ||
+           _rs1 != other._rs1 || _rs2 != other._rs2 || _rd != other._rd)
+    return false;
+  for (size_t i = 0; i < _operands.size(); i++)
+    if (_operands[i].type != other._operands[i].type || _operands[i].destination != other._operands[i].destination)
+      return false;
+  return true;
+}
+
 riscv::rv_instruction2 riscv::MnemonicDescriptor::encode(Values v) const {
   switch (_type) {
   case Type::INVALID: return riscv::rv_instruction2(0u);

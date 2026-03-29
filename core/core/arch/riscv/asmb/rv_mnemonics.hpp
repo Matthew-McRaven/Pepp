@@ -97,6 +97,8 @@ struct MnemonicDescriptor {
   template <typename Instruction> Instruction encode(Values) const;
   rv_instruction2 encode(Values) const;
 
+  bool operator==(const MnemonicDescriptor &other) const noexcept;
+
 protected:
   MnemonicDescriptor(Type type);
   MnemonicDescriptor(Type, uint8_t opcode7);
@@ -106,6 +108,7 @@ protected:
     u8 rd : 1 = 0;
     // Must enforce mutual exclusion between imm and funct7, because they always occupy the same slot.
     u8 imm : 1 = 0;
+    bool operator==(const Flags &other) const noexcept = default;
   } _flags;
   Type _type = Type::INVALID;
   u8 _opcode7 = 0, _funct3 = 0;
