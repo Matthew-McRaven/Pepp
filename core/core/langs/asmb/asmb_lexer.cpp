@@ -64,6 +64,14 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
         current_token = std::make_shared<Integer>(LocationInterval{loc_start, _cursor.location()}, sign * val, fmt);
       } else current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
       break;
+    } else if (next == '(' && _opts.allow_parens) {
+      _cursor.advance(1);
+      current_token = std::make_shared<Literal>(LocationInterval{loc_start, _cursor.location()}, "(");
+      break;
+    } else if (next == ')' && _opts.allow_parens) {
+      _cursor.advance(1);
+      current_token = std::make_shared<Literal>(LocationInterval{loc_start, _cursor.location()}, ")");
+      break;
     } else if (auto maybeSymbol = _cursor.matchView(symbol); !maybeSymbol.empty()) {
       auto match = maybeSymbol.str(0);
       _cursor.advance(match.size());

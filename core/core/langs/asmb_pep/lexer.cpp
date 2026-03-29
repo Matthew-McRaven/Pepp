@@ -5,5 +5,6 @@ pepp::tc::lex::PepLexer::PepLexer(std::shared_ptr<std::unordered_set<std::string
     : AsmbLexer(identifier_pool, std::move(data), options()) {}
 
 pepp::tc::lex::AsmbOptions pepp::tc::lex::PepLexer::options() {
-  return pepp::tc::lex::AsmbOptions{.allow_macros = true, .allow_dot_in_ident = false, .line_comment_leader = ";"};
+  return pepp::tc::lex::AsmbOptions{
+      .allow_macros = true, .allow_dot_in_ident = false, .allow_parens = false, .line_comment_leader = ";"};
 }

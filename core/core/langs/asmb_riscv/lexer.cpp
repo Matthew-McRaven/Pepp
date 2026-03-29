@@ -5,5 +5,6 @@ pepp::langs::RISCVLexer::RISCVLexer(std::shared_ptr<std::unordered_set<std::stri
     : AsmbLexer(identifier_pool, std::move(data), options()) {}
 
 pepp::tc::lex::AsmbOptions pepp::langs::RISCVLexer::options() {
-  return pepp::tc::lex::AsmbOptions{.allow_macros = false, .allow_dot_in_ident = true, .line_comment_leader = "#"};
+  return pepp::tc::lex::AsmbOptions{
+      .allow_macros = false, .allow_dot_in_ident = true, .allow_parens = true, .line_comment_leader = "#"};
 }
