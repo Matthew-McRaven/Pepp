@@ -73,14 +73,14 @@ static const auto BGE = MnemonicDescriptor::B(RV32I_BRANCH, 0b101).with_operand(
 static const auto BGEU = MnemonicDescriptor::B(RV32I_BRANCH, 0b111).with_operand(_RS1, _RS2, _IMM);
 
 // Load and Store instructions
-static const auto LB = MnemonicDescriptor::I(RV32I_LOAD, 0b000).with_operand(_RD, _RS1, _IMM);
-static const auto LH = MnemonicDescriptor::I(RV32I_LOAD, 0b001).with_operand(_RD, _RS1, _IMM);
-static const auto LW = MnemonicDescriptor::I(RV32I_LOAD, 0b010).with_operand(_RD, _RS1, _IMM);
-static const auto LBU = MnemonicDescriptor::I(RV32I_LOAD, 0b100).with_operand(_RD, _RS1, _IMM);
-static const auto LHU = MnemonicDescriptor::I(RV32I_LOAD, 0b101).with_operand(_RD, _RS1, _IMM);
-static const auto SB = MnemonicDescriptor::S(RV32I_STORE, 0b000).with_operand(_RS1, _RS2, _IMM);
-static const auto SH = MnemonicDescriptor::S(RV32I_STORE, 0b001).with_operand(_RS1, _RS2, _IMM);
-static const auto SW = MnemonicDescriptor::S(RV32I_STORE, 0b010).with_operand(_RS1, _RS2, _IMM);
+static const auto LB = MnemonicDescriptor::I(RV32I_LOAD, 0b000).with_operand(_RD, _IMM, _RS1);
+static const auto LH = MnemonicDescriptor::I(RV32I_LOAD, 0b001).with_operand(_RD, _IMM, _RS1);
+static const auto LW = MnemonicDescriptor::I(RV32I_LOAD, 0b010).with_operand(_RD, _IMM, _RS1);
+static const auto LBU = MnemonicDescriptor::I(RV32I_LOAD, 0b100).with_operand(_RD, _IMM, _RS1);
+static const auto LHU = MnemonicDescriptor::I(RV32I_LOAD, 0b101).with_operand(_RD, _IMM, _RS1);
+static const auto SB = MnemonicDescriptor::S(RV32I_STORE, 0b000).with_operand(_RS2, _IMM, _RS1);
+static const auto SH = MnemonicDescriptor::S(RV32I_STORE, 0b001).with_operand(_RS2, _IMM, _RS1);
+static const auto SW = MnemonicDescriptor::S(RV32I_STORE, 0b010).with_operand(_RS2, _IMM, _RS1);
 
 // Memory Ordering instructions
 static const auto FENCE = MnemonicDescriptor::IFence(0b0000).with_operand(_PRED, _SUCC).with_rs1(0).with_rd(0);

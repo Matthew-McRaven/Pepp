@@ -79,4 +79,18 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_i->imm);
     CHECK(as_i->imm->value_as<u32>() == 0xfeed);
   }
+  SECTION("sw x1, 0(x3)") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("sw x1, 0xfeed(x3)"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    auto as_i = std::dynamic_pointer_cast<STypeIR>(results[0]);
+    CHECK(as_i);
+    CHECK(as_i->mnemonic.mn == riscv::SW);
+    CHECK(as_i->rs2 == 1);
+    CHECK(as_i->rs1 == 3);
+    CHECK(as_i->imm);
+    CHECK(as_i->imm->value_as<u32>() == 0xfeed);
+  }
 }

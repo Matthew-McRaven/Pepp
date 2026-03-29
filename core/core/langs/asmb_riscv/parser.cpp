@@ -87,6 +87,7 @@ std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_load(ri
     throw ParserError(ParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
   else return std::make_shared<ITypeIR>(desc, rd.value(), rs.value(), arg);
 }
+
 std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_arith(riscv::MnemonicDescriptor desc) {
   if (const auto rd = register_integer(); !rd)
     throw ParserError(ParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
@@ -99,6 +100,22 @@ std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_arith(r
   else if (const auto imm = argument(); !imm)
     throw ParserError(ParserError::NullaryError::Argument_ExpectedImm, _buffer->matched_interval());
   else return std::make_shared<ITypeIR>(desc, rd.value(), rs1.value(), imm);
+}
+
+std::shared_ptr<pepp::tc::STypeIR> pepp::tc::parser::RISCVParser::s_type(riscv::MnemonicDescriptor desc) {
+  if (const auto rs2 = register_integer(); !rs2)
+    throw ParserError(ParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
+  else if (!_buffer->match_literal(","))
+    throw ParserError(ParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
+  else if (auto arg = argument(); !arg)
+    throw ParserError(ParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
+  else if (!_buffer->match_literal("("))
+    throw ParserError(ParserError::NullaryError::Token_MissingLParen, _buffer->matched_interval());
+  else if (const auto rs1 = register_integer(); !rs1)
+    throw ParserError(ParserError::NullaryError::Argument_ExpectedMemory, _buffer->matched_interval());
+  else if (!_buffer->match_literal(")"))
+    throw ParserError(ParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
+  else return std::make_shared<STypeIR>(desc, rs1.value(), rs2.value(), arg);
 }
 
 std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::instruction() {
@@ -114,10 +131,10 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::ins
   case riscv::MnemonicDescriptor::Type::I:
     if (desc.mn.opcode() == RV32I_LOAD) return i_type_load(desc.mn);
     else return i_type_arith(desc.mn);
-  case riscv::MnemonicDescriptor::Type::S: break;
+  case riscv::MnemonicDescriptor::Type::S: return s_type(desc.mn);
   case riscv::MnemonicDescriptor::Type::B: break;
-  case riscv::MnemonicDescriptor::Type::U: break;
   case riscv::MnemonicDescriptor::Type::J: break;
+  case riscv::MnemonicDescriptor::Type::U: break;
   case riscv::MnemonicDescriptor::Type::Pseudo: break;
   default: break;
   }
