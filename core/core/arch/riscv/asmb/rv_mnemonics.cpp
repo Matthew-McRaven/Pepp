@@ -83,21 +83,6 @@ void riscv::MnemonicDescriptor::append_operand(Operand operand) {
   throw std::runtime_error("Too many operands for this mnemonic");
 }
 
-riscv::MnemonicDescriptor &&riscv::MnemonicDescriptor::with_operand(Operand first,
-                                                                    std::same_as<Operand> auto... rest) && {
-  append_operand(first);
-  if constexpr (sizeof...(rest) > 0) return std::move(*this).with_operand(rest...);
-  return std::move(*this);
-}
-
-riscv::MnemonicDescriptor
-riscv::MnemonicDescriptor::replaced_operands(std::same_as<Operand> auto... ops) const noexcept {
-  static const Operand invalid{.type = Operand::Type::Invalid, .destination = Operand::Destination::Invalid};
-  MnemonicDescriptor ret = *this;
-  ret._operands.fill(invalid);
-  return std::move(ret).with_operand(ops...);
-}
-
 bool riscv::MnemonicDescriptor::allows_rs1() const noexcept {
   switch (_type) {
   case Type::INVALID: return false;

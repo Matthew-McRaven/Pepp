@@ -1,6 +1,5 @@
 #pragma once
 
-#include <map>
 #include <stdexcept>
 #include "core/compile/source/location.hpp"
 namespace pepp::tc {

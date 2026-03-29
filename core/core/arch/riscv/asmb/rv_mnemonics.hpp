@@ -140,4 +140,17 @@ template <> InstructionS MnemonicDescriptor::encode<InstructionS>(Values) const;
 template <> InstructionU MnemonicDescriptor::encode<InstructionU>(Values) const;
 template <> InstructionB MnemonicDescriptor::encode<InstructionB>(Values) const;
 template <> InstructionJ MnemonicDescriptor::encode<InstructionJ>(Values) const;
+
+MnemonicDescriptor &&MnemonicDescriptor::with_operand(Operand first, std::same_as<Operand> auto... rest) && {
+  append_operand(first);
+  if constexpr (sizeof...(rest) > 0) return std::move(*this).with_operand(rest...);
+  return std::move(*this);
+}
+
+MnemonicDescriptor MnemonicDescriptor::replaced_operands(std::same_as<Operand> auto... ops) const noexcept {
+  static const Operand invalid{.type = Operand::Type::Invalid, .destination = Operand::Destination::Invalid};
+  MnemonicDescriptor ret = *this;
+  ret._operands.fill(invalid);
+  return std::move(ret).with_operand(ops...);
+}
 } // namespace riscv
