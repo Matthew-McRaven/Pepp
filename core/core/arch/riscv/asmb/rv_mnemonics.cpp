@@ -74,14 +74,13 @@ std::span<const riscv::Operand> riscv::MnemonicDescriptor::operands() const noex
 riscv::MnemonicDescriptor::Type riscv::MnemonicDescriptor::type() const noexcept { return _type; }
 
 void riscv::MnemonicDescriptor::append_operand(Operand operand) {
-  int it = 0;
-  for (; it < _operands.size(); it++) {
+  for (int it = 0; it < _operands.size(); it++) {
     if (_operands[it].type == Operand::Type::Invalid) {
       _operands[it] = operand;
       return;
     }
   }
-  if (it == _operands.size()) throw std::runtime_error("Too many operands for this mnemonic");
+  throw std::runtime_error("Too many operands for this mnemonic");
 }
 
 riscv::MnemonicDescriptor &&riscv::MnemonicDescriptor::with_operand(Operand first,
@@ -293,7 +292,15 @@ riscv::MnemonicDescriptor &&riscv::MnemonicDescriptor::with_imm(u32 imm) && {
   return std::move(*this);
 }
 
-riscv::MnemonicDescriptor::MnemonicDescriptor(Type type, u8 opcode) : _type(type), _opcode7(opcode) {}
+riscv::MnemonicDescriptor::MnemonicDescriptor(Type type) : _type(type) {
+  static const Operand invalid{.type = Operand::Type::Invalid, .destination = Operand::Destination::Invalid};
+  _operands.fill(invalid);
+}
+
+riscv::MnemonicDescriptor::MnemonicDescriptor(Type type, u8 opcode) : _type(type), _opcode7(opcode) {
+  static const Operand invalid{.type = Operand::Type::Invalid, .destination = Operand::Destination::Invalid};
+  _operands.fill(invalid);
+}
 
 template <> riscv::InstructionR riscv::MnemonicDescriptor::encode<riscv::InstructionR>(Values v) const {
   const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
