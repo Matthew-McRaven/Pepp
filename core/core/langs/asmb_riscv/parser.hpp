@@ -54,6 +54,9 @@ private:
   std::shared_ptr<pepp::ast::IRValue> numeric_argument();
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();
+  std::shared_ptr<pepp::tc::RTypeIR> r_type(riscv::MnemonicDescriptor desc);
+  std::shared_ptr<pepp::tc::ITypeIR> i_type_load(riscv::MnemonicDescriptor desc);
+  std::shared_ptr<pepp::tc::ITypeIR> i_type_arith(riscv::MnemonicDescriptor desc);
   std::shared_ptr<pepp::tc::IntegerInstruction> instruction();
   // std::shared_ptr<pepp::tc::LinearIR> pseudo(OptionalSymbol symbol);
   std::shared_ptr<pepp::tc::LinearIR> line(OptionalSymbol symbol);

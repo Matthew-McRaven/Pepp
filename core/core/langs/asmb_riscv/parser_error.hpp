@@ -9,8 +9,13 @@ public:
     Argument_ExpectedRD,
     Argument_ExpectedRS1,
     Argument_ExpectedRS2,
+    Argument_ExpectedMemory,
+    Argument_ExpectedImm,
+    Argument_InvalidIntegerFormat,
     Token_MissingNewline,
     Token_MissingComma,
+    Token_MissingLParen,
+    Token_MissingRParen,
   };
   enum class UnaryError { Token_Invalid };
 
