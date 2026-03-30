@@ -52,6 +52,7 @@ struct UTypeIR : public IntegerInstruction {
 
 struct JTypeIR : public IntegerInstruction {
   static constexpr int TYPE = static_cast<int>(RISCVIRType::J);
+  JTypeIR(riscv::MnemonicDescriptor desc, u8 rd, std::shared_ptr<pepp::ast::IRValue> imm);
   int type() const override;
 };
 } // namespace pepp::tc

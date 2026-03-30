@@ -107,4 +107,17 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_i->imm);
     CHECK(as_i->imm->value_as<u32>() == 15);
   }
+  SECTION("J Type: JaL x31, -72") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("JaL x31, -72"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    auto as_i = std::dynamic_pointer_cast<JTypeIR>(results[0]);
+    CHECK(as_i);
+    CHECK(as_i->mnemonic.mn == riscv::JAL);
+    CHECK(as_i->rd == 31);
+    CHECK(as_i->imm);
+    CHECK(as_i->imm->value_as<i32>() == -72);
+  }
 }

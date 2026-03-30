@@ -134,6 +134,17 @@ std::shared_ptr<pepp::tc::BTypeIR> pepp::tc::parser::RISCVParser::b_type(riscv::
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
   else return std::make_shared<BTypeIR>(desc, rs1.value(), rs2.value(), arg);
 }
+
+std::shared_ptr<pepp::tc::JTypeIR> pepp::tc::parser::RISCVParser::j_type(riscv::MnemonicDescriptor desc) {
+  if (const auto rd = register_integer(); !rd)
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
+  else if (!_buffer->match_literal(","))
+    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
+  else if (auto arg = argument(); !arg)
+    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
+  else return std::make_shared<JTypeIR>(desc, rd.value(), arg);
+}
+
 std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::instruction() {
   lex::Checkpoint cp(*_buffer);
   const auto maybe_instr = _buffer->match<lex::Identifier>();
@@ -151,7 +162,7 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::ins
     else return i_type_arith(desc.mn);
   case riscv::MnemonicDescriptor::Type::S: return s_type(desc.mn);
   case riscv::MnemonicDescriptor::Type::B: return b_type(desc.mn);
-  case riscv::MnemonicDescriptor::Type::J: break;
+  case riscv::MnemonicDescriptor::Type::J: return j_type(desc.mn);
   case riscv::MnemonicDescriptor::Type::U: break;
   case riscv::MnemonicDescriptor::Type::Pseudo: break;
   default: break;
