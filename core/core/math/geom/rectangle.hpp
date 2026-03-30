@@ -117,7 +117,8 @@ template <typename T> constexpr Rectangle<T> Rectangle<T>::from_point_size(T x, 
   return Rectangle(Point<T>(x, y), Size<T>(width, height));
 }
 
-template <typename T> std::size_t area(const Rectangle<T> &rect) {
+// Use auto here to auto
+template <typename T> auto area(const Rectangle<T> &rect) -> std::invoke_result_t<std::multiplies<>, T, T> {
   if (!rect.valid()) return 0;
   else return rect.height() * rect.width();
 }

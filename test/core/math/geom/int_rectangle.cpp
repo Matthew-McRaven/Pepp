@@ -18,12 +18,13 @@
 #include <catch/catch.hpp>
 #include "core/integers.h"
 #include "core/math/geom/interval.hpp"
+using namespace pepp::core;
+using Rect = Rectangle<i16>;
+using Pt = Point<i16>;
+using Ivl = Interval<i16>;
+using RD = RectangleDecomposer<i16>;
 
-TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
-  using namespace pepp::core;
-  using Rect = Rectangle<i16>;
-  using Pt = Point<i16>;
-  using Ivl = Interval<i16>;
+TEST_CASE("Integer Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   SECTION("Construction") {
     // Re-orders ranges as needed.
     CHECK_NOTHROW(Rect(Ivl{2, 2}, Ivl{-2, 4}) == Rect(Ivl{-2, 2}, Ivl{2, 4}));
@@ -165,13 +166,7 @@ TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   }
 }
 
-TEST_CASE("Rectangle Decomposition", "[scope:core][scope:core.math][kind:unit][arch:*]") {
-  using namespace pepp::core;
-  using Pt = Point<i16>;
-  using Rect = Rectangle<i16>;
-  using Ivl = Interval<i16>;
-  using RD = RectangleDecomposer<i16>;
-
+TEST_CASE("Integer Rectangle Decomposition", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   SECTION("Aligned 8x8 rect @ 0,0") {
     Rect r0(Ivl{0, 7}, Ivl{0, 7});
     RD rd0(r0);
