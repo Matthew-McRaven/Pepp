@@ -3,7 +3,7 @@
 #include "core/math/bitmanip/strings.hpp"
 #include "fmt/format.h"
 
-pepp::ast::String::String() {}
+pepp::ast::String::String() = default;
 
 pepp::ast::String::String(std::string value) {
   auto start = value.begin();
@@ -13,6 +13,7 @@ pepp::ast::String::String(std::string value) {
     okay &= bits::charactersToByte(start, value.end(), temp);
     _bytes.push_back(temp);
   }
+  _size = _bytes.size();
 
   if (!okay) {
     static const char *const e = "Invalid escape sequence in string";
@@ -42,13 +43,13 @@ std::string pepp::ast::String::raw_string() const {
   return out;
 }
 
-pepp::ast::Character::Character() {}
+pepp::ast::Character::Character() = default;
 
 pepp::ast::Character::Character(char value) : _value(value) {}
 
-pepp::ast::Character::Character(const Character &other) {}
+pepp::ast::Character::Character(const Character &other) : _value(other._value) {}
 
-pepp::ast::Character::Character(Character &&other) noexcept {}
+pepp::ast::Character::Character(Character &&other) noexcept { swap(*this, other); }
 
 [[nodiscard]]
 u32 pepp::ast::Character::serialize(bits::span<u8> dest, bits::Order destEndian, u32 max_size) const noexcept {

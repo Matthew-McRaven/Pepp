@@ -6,7 +6,7 @@ const pepp::tc::AAttribute *pepp::tc::CommentLine::attribute(int type) const {
 }
 
 void pepp::tc::CommentLine::insert(std::unique_ptr<AAttribute> attr) {
-  if (attr->type() == CommentLine::TYPE) comment = *(static_cast<Comment *>(attr.release()));
+  if (attr->type() == Comment::TYPE) comment = *(static_cast<Comment *>(attr.release()));
   else LinearIR::insert(std::move(attr));
 }
 

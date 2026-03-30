@@ -8,7 +8,7 @@ namespace pepp::tc {
 struct Identifier : public AAttribute {
   static constexpr int TYPE = static_cast<int>(Type::Identifier);
   int type() const override;
-  Identifier(std::string v);
+  explicit Identifier(std::string v);
   std::string value;
   std::string_view view() const;
 };

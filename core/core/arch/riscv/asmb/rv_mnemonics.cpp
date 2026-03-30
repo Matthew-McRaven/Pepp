@@ -365,7 +365,7 @@ template <> riscv::InstructionJ riscv::MnemonicDescriptor::encode<riscv::Instruc
 
 static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {
   using namespace riscv;
-  auto add = [&](riscv::Mnemonic mn) { mn_set.insert(mn); };
+  auto add = [&](const riscv::Mnemonic &mn) { mn_set.insert(mn); };
   add({"lui", LUI});
   add({"auipc", AUIPC});
   add({"jal", JAL});
@@ -411,7 +411,7 @@ static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {
 
 static void add_rv32i_psueodo_instructions(riscv::MnemonicSet &mn_set) {
   using namespace riscv;
-  auto add = [&](riscv::Mnemonic mn) { mn_set.insert(mn); };
+  auto add = [&](const riscv::Mnemonic &mn) { mn_set.insert(mn); };
   // with .option pic
   // load address: la rd, symbol -> auipc rd, symbol[31:12]; addi rd, rd, symbol[11:0]
   // else

@@ -140,9 +140,10 @@ inline bool contains(std::string_view haystack, std::string_view needle) {
 }
 
 inline std::string rtrimmed(const std::string &str) {
+  if (str.empty()) return {};
   // Perform right-strip of string. `QString::trimmed() const` trims both ends.
   std::size_t lastIndex = str.size() - 1;
-  while (std::isspace(str[lastIndex]) && lastIndex > 0) lastIndex--;
+  while (std::isspace((u8)str[lastIndex]) && lastIndex > 0) lastIndex--;
   // If line is all spaces, then the string should be empty.
   if (lastIndex == 0) return {};
   // Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
@@ -150,9 +151,10 @@ inline std::string rtrimmed(const std::string &str) {
 }
 
 inline std::string_view rtrimmed_view(const std::string &str) {
+  if (str.empty()) return {};
   // Perform right-strip of string. `QString::trimmed() const` trims both ends.
   std::size_t lastIndex = str.size() - 1;
-  while (std::isspace(str[lastIndex]) && lastIndex > 0) lastIndex--;
+  while (std::isspace((u8)str[lastIndex]) && lastIndex > 0) lastIndex--;
   // If line is all spaces, then the string should be empty.
   if (lastIndex == 0) return std::string_view();
   // Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).

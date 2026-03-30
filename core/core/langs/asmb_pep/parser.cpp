@@ -143,7 +143,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     (void)arg->serialize(buf, bits::hostOrder());
     if (!(value == 1 || value == 2 || value == 4 || value == 8))
       throw PepParserError(PepParserError::NullaryError::Argument_ExpectedPowerOfTwo, _buffer->matched_interval());
-    return std::make_shared<DotAlign>(arg);
+    return std::make_shared<DotAlign>(Argument{arg});
   }
   case (int)DC::ASCII: {
     if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
@@ -157,7 +157,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
   case (int)DC::BLOCK: {
     auto arg = numeric_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
-    return std::make_shared<DotBlock>(arg);
+    return std::make_shared<DotBlock>(Argument{arg});
   }
   case (int)DC::BYTE: {
     auto arg = argument();
@@ -178,7 +178,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
     else if (!symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Required, _buffer->matched_interval());
-    return std::make_shared<DotEquate>(SymbolDeclaration{*symbol}, arg);
+    return std::make_shared<DotEquate>(SymbolDeclaration{*symbol}, Argument{arg});
   }
   case (int)PDC::EXPORT: {
     auto arg = identifier_argument();
@@ -211,7 +211,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedHex, _buffer->matched_interval());
     else if (symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
-    return std::make_shared<DotOrg>(DotOrg::Behavior::ORG, arg);
+    return std::make_shared<DotOrg>(DotOrg::Behavior::ORG, Argument{arg});
   }
   case (int)PDC::OUTPUT: {
     auto arg = identifier_argument();

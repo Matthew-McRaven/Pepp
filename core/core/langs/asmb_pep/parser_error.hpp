@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <string>
 #include "core/compile/source/location.hpp"
 namespace pepp::tc {
 class PepParserError final : public std::logic_error {

@@ -1,5 +1,6 @@
 #pragma once
-#include <memory.h>
+#include <bit>
+#include <memory>
 #include "core/arch/riscv/isa/rvi.hpp"
 #include "core/integers.h"
 namespace riscv {

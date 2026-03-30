@@ -17,6 +17,7 @@
 
 #include "./mmio.hpp"
 #include <spdlog/spdlog.h>
+#include "core/integers.h"
 #include "core/math/bitmanip/copy.hpp"
 const ELFIO::section *obj::getMMIONoteSection(const ELFIO::elfio &elf) {
   for (auto &sec : elf.sections)
@@ -73,9 +74,9 @@ void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, std::ve
 
     // Must use copy helper to maintain stable bit order between host platforms.
     // ELF_half (16b for symtab section index) and ELF32_WORD (32b for symbol index)
-    uint8_t desc[2 + 4];
+    u8 desc[2 + 4];
     bits::span descSpan = {desc};
-    SPDLOG_TRACE("MMIO note: {:0x}{:0x}", *(quint32 *)desc, *(quint16 *)(desc + 4));
+    SPDLOG_TRACE("MMIO note: {:0x}{:0x}", *(u32 *)desc, *(u16 *)(desc + 4));
     auto stIndex = symTab->get_index();
     bits::memcpy_endian(descSpan.first(2), bits::Order::BigEndian, stIndex);
     bits::memcpy_endian(descSpan.subspan(2), bits::Order::BigEndian, it);

@@ -9,7 +9,7 @@ namespace pepp::tc {
 struct Argument : public AAttribute {
   static constexpr int TYPE = static_cast<int>(Type::Argument);
   int type() const override;
-  Argument(std::shared_ptr<pepp::ast::IRValue> value);
+  explicit Argument(std::shared_ptr<pepp::ast::IRValue> value);
   std::shared_ptr<pepp::ast::IRValue> value;
 };
 } // namespace pepp::tc
