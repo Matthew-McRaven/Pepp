@@ -25,7 +25,7 @@ using i16q2 = cnl::scaled_integer<i16, cnl::power<-2>>;
 using Rect = Rectangle<i16q2>;
 using Pt = Point<i16q2>;
 using Ivl = Interval<i16q2>;
-using RD = RectangleDecomposer<i16q2>;
+using RD = RectangleDecomposer<i16>;
 
 TEST_CASE("Fixed-Point Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   SECTION("Construction") {
@@ -33,7 +33,10 @@ TEST_CASE("Fixed-Point Rectangle Ops", "[scope:core][scope:core.math][kind:unit]
     CHECK_NOTHROW(Rect(Ivl{2, 2}, Ivl{-2, 4}) == Rect(Ivl{-2, 2}, Ivl{2, 4}));
     // Various static "constructors" work the same as the underlying constructor.
     CHECK(Rect(Pt{-2, 2}, Pt{2, 4}) == Rect::from_point_point(-2, 2, 2, 4));
-    CHECK(Rect(Pt{-2, 2}, Pt{2, 4}) == Rect::from_point_size(-2, 2, 5, 3));
+    CHECK(Rect(Pt{-2, 2}, Pt{2.75, 4.75}) == Rect::from_point_size(-2, 2, 5, 3));
+  }
+  SECTION("Avoid epsilon/ 1 quantum errors for fractionals") {
+    CHECK(Rect(Pt{-2, 2}, Pt{2.75, 4.75}) == Rect(Pt{-2, 2}, Size<i16q2>{5, 3}));
   }
   SECTION("Normalization") {
     auto a = Rect::from_point_point(2, 2, -2, -2);
@@ -173,72 +176,51 @@ TEST_CASE("Fixed-Point Rectangle Ops", "[scope:core][scope:core.math][kind:unit]
 }
 
 TEST_CASE("Fixed-Point Rectangle Decomposition", "[scope:core][scope:core.math][kind:unit][arch:*]") {
-  SECTION("Aligned 8x8 rect @ 0,0") {
-    Rect r0(Ivl{0, 7}, Ivl{0, 7});
-    RD rd0(r0);
+  SECTION("Aligned 1x1 rect @ 0,0") {
+    const i16q2 max = 1.75;
+    CHECK(to_rep(max) == 7);
+
+    Rect r0(Ivl{0, max}, Ivl{0, max});
+    const auto underlying = to_underlying_rect(r0);
+    CHECK(underlying.x() == Interval<i16>{0, 7});
+    CHECK(underlying.y() == Interval<i16>{0, 7});
+    RD rd0(underlying);
     CHECK(std::distance(rd0.begin(), rd0.end()) == 1);
     auto begin = rd0.begin(), end = rd0.end();
 
     auto clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{8, 8});
-    CHECK((*begin).first == Pt{0, 0});
+    CHECK((*begin).first == Point<i16>{0, 0});
     CHECK((*begin).second == clip);
     begin++;
 
     CHECK(begin == end);
   }
-  // Fill top-right, then one col in top-left, then one row in bottom-left, then one cell bottom-right.
-  SECTION("Aligned 9x9 rect @ 0,0") {
-    Rect r0(Ivl{0, 8}, Ivl{0, 8});
-    RD rd0(r0);
+  SECTION("Aligned 4x4 rect @ 0,0") {
+    Rect r0(Ivl{0, 3}, Ivl{0, 3});
+    const auto underlying = to_underlying_rect(r0);
+    CHECK(underlying.x() == Interval<i16>{0, 3 * 4});
+    CHECK(underlying.y() == Interval<i16>{0, 3 * 4});
+    RD rd0(underlying);
     CHECK(std::distance(rd0.begin(), rd0.end()) == 4);
     auto begin = rd0.begin(), end = rd0.end();
 
     auto clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{8, 8});
-    CHECK((*begin).first == Pt{0, 0});
+    CHECK((*begin).first == Point<i16>{0, 0});
     CHECK((*begin).second == clip);
     begin++;
 
-    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{1, 8});
-    CHECK((*begin).first == Pt{8, 0});
+    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{5, 8});
+    CHECK((*begin).first == Point<i16>{8, 0});
     CHECK((*begin).second == clip);
     begin++;
 
-    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{8, 1});
-    CHECK((*begin).first == Pt{0, 8});
+    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{8, 5});
+    CHECK((*begin).first == Point<i16>{0, 8});
     CHECK((*begin).second == clip);
     begin++;
 
-    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{1, 1});
-    CHECK((*begin).first == Pt{8, 8});
-    CHECK((*begin).second == clip);
-    begin++;
-
-    CHECK(begin == end);
-  }
-  // One cell in each of the 4 quadrants
-  SECTION("Unaligned 2x2 rect @ 7,7") {
-    Rect r0(Ivl{7, 8}, Ivl{7, 8});
-    RD rd0(r0);
-    CHECK(std::distance(rd0.begin(), rd0.end()) == 4);
-    auto begin = rd0.begin(), end = rd0.end();
-
-    auto clip = Rectangle<u8>(Point<u8>{7, 7}, Size<u8>{1, 1});
-    CHECK((*begin).first == Pt{0, 0});
-    CHECK((*begin).second == clip);
-    begin++;
-
-    clip = Rectangle<u8>(Point<u8>{0, 7}, Size<u8>{1, 1});
-    CHECK((*begin).first == Pt{8, 0});
-    CHECK((*begin).second == clip);
-    begin++;
-
-    clip = Rectangle<u8>(Point<u8>{7, 0}, Size<u8>{1, 1});
-    CHECK((*begin).first == Pt{0, 8});
-    CHECK((*begin).second == clip);
-    begin++;
-
-    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{1, 1});
-    CHECK((*begin).first == Pt{8, 8});
+    clip = Rectangle<u8>(Point<u8>{0, 0}, Size<u8>{5, 5});
+    CHECK((*begin).first == Point<i16>{8, 8});
     CHECK((*begin).second == clip);
     begin++;
 

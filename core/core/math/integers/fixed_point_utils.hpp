@@ -10,6 +10,8 @@ auto operator<=>(cnl::scaled_integer<Rep, Scale> const &lhs, cnl::scaled_integer
   return cnl::_impl::to_rep(lhs) <=> cnl::_impl::to_rep(rhs);
 }
 
+template <typename T> using rep_t = typename rep_of<T>::type;
+
 // Helpers to extract the Rep and Scale from a scaled_integer, which are used in wider_type to recursively construct
 // wider fixed point types.
 template <typename T> struct scaled_integer_traits;

@@ -22,6 +22,11 @@
 #include "core/math/integers/wider.hpp"
 namespace pepp::core {
 
+template <typename T> constexpr T quantum() {
+  if constexpr (std::is_integral_v<T>) return T{1};
+  else return std::bit_cast<T>(cnl::rep_t<T>{1});
+}
+
 // Represent a mathematically closed interval [lower, upper], which is inclusive of both endpoints.
 // If lower >= upper, the interval is treated as empty, and all empty intervals are equivalent.
 // This interval started as a helper for memory address ranges, for which closed intervals make the most sense.
@@ -72,10 +77,13 @@ public:
 };
 
 template <typename T> Interval<T>::Interval() {
-  if constexpr (requires { T() + 1; }) {
+  if constexpr (requires {
+                  T() + quantum<T>();
+                  T() + 1;
+                }) {
     // Not all tpyes (e.g., source locations) can be incremented.
     // For integer intervals, making _lower=_upper+1 is the easiest
-    _lower = T() + 1;
+    _lower = T() + quantum<T>();
     _upper = T();
   } else if constexpr (requires { T::invalid(); }) {
     // Otherwise use underlying type's "invalid" value.
