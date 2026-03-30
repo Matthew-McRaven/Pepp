@@ -27,7 +27,7 @@ public:
   String(const String &other);
   String(String &&other) noexcept;
   String &operator=(String other);
-  friend void swap(String &first, String &second) {
+  friend void swap(String &first, String &second) noexcept {
     using std::swap;
     swap(first._size, second._size);
     swap(first._bytes, second._bytes);
@@ -51,7 +51,7 @@ public:
   Character(const Character &other);
   Character(Character &&other) noexcept;
   Character &operator=(Character other);
-  friend void swap(Character &first, Character &second) {
+  friend void swap(Character &first, Character &second) noexcept {
     using std::swap;
     swap(first._value, second._value);
   }

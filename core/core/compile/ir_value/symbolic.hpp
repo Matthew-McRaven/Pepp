@@ -33,7 +33,7 @@ public:
   Symbolic(const Symbolic &other);
   Symbolic(Symbolic &&other) noexcept;
   Symbolic &operator=(Symbolic other);
-  friend void swap(Symbolic &first, Symbolic &second) {
+  friend void swap(Symbolic &first, Symbolic &second) noexcept {
     using std::swap;
     swap(first._ptr_size_bytes, second._ptr_size_bytes);
     swap(first._value, second._value);

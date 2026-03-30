@@ -22,7 +22,7 @@ struct Numeric : public IRValue {
 public:
   explicit Numeric() noexcept;
   Numeric(u64 value, u8 size) noexcept;
-  friend void swap(Numeric &first, Numeric &second) {
+  friend void swap(Numeric &first, Numeric &second) noexcept {
     using std::swap;
     swap(first._size, second._size);
     swap(first._value, second._value);
@@ -49,7 +49,7 @@ public:
   SignedDecimal(const SignedDecimal &other) noexcept;
   SignedDecimal(SignedDecimal &&other) noexcept;
   SignedDecimal &operator=(SignedDecimal other);
-  friend void swap(SignedDecimal &first, SignedDecimal &second) {
+  friend void swap(SignedDecimal &first, SignedDecimal &second) noexcept {
     using std::swap;
     swap((Numeric &)first, (Numeric &)second);
   }
@@ -65,7 +65,7 @@ public:
   UnsignedDecimal(const UnsignedDecimal &other) noexcept;
   UnsignedDecimal(UnsignedDecimal &&other) noexcept;
   UnsignedDecimal &operator=(UnsignedDecimal other);
-  friend void swap(UnsignedDecimal &first, UnsignedDecimal &second) {
+  friend void swap(UnsignedDecimal &first, UnsignedDecimal &second) noexcept {
     using std::swap;
     swap((Numeric &)first, (Numeric &)second);
   }
@@ -81,7 +81,7 @@ public:
   Hexadecimal(const Hexadecimal &other) noexcept;
   Hexadecimal(Hexadecimal &&other) noexcept;
   Hexadecimal &operator=(Hexadecimal other);
-  friend void swap(Hexadecimal &first, Hexadecimal &second) {
+  friend void swap(Hexadecimal &first, Hexadecimal &second) noexcept {
     using std::swap;
     swap((Numeric &)first, (Numeric &)second);
   }
