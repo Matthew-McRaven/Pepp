@@ -38,6 +38,14 @@ pepp::tc::STypeIR::STypeIR(riscv::MnemonicDescriptor desc, u8 rs1, u8 rs2, std::
 }
 
 int pepp::tc::STypeIR::type() const { return TYPE; }
+pepp::tc::BTypeIR::BTypeIR(riscv::MnemonicDescriptor desc, u8 rs1, u8 rs2, std::shared_ptr<ast::IRValue> imm)
+    : IntegerInstruction(desc) {
+  this->rs1 = rs1;
+  this->rs2 = rs2;
+  this->imm = imm;
+}
+
 int pepp::tc::BTypeIR::type() const { return TYPE; }
+
 int pepp::tc::UTypeIR::type() const { return TYPE; }
 int pepp::tc::JTypeIR::type() const { return TYPE; }

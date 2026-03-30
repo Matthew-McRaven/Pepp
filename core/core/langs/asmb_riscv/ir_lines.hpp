@@ -41,6 +41,7 @@ struct STypeIR : public IntegerInstruction {
 
 struct BTypeIR : public IntegerInstruction {
   static constexpr int TYPE = static_cast<int>(RISCVIRType::B);
+  BTypeIR(riscv::MnemonicDescriptor desc, u8 rs1, u8 rs2, std::shared_ptr<pepp::ast::IRValue> imm);
   int type() const override;
 };
 

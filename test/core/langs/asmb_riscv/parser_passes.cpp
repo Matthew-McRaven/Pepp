@@ -38,7 +38,7 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<EmptyLine>(results[0]));
   }
-  SECTION("add x1, x2, x3") {
+  SECTION("R Type: add x1, x2, x3") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("add x1, x2, x3"));
     auto results = p.parse(diag);
@@ -51,7 +51,7 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_r->rs1 == 2);
     CHECK(as_r->rs2 == 3);
   }
-  SECTION("lw x1, 0(x3)") {
+  SECTION("I Type: lw x1, 0(x3)") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("lw x1, 0(x3)"));
     auto results = p.parse(diag);
@@ -65,7 +65,7 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_i->imm);
     CHECK(as_i->imm->value_as<u32>() == 0);
   }
-  SECTION("addi x1, x7, 0xfeed") {
+  SECTION("I Type: addi x1, x7, 0xfeed") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("addi x1, x7, 0xfeed"));
     auto results = p.parse(diag);
@@ -79,7 +79,7 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_i->imm);
     CHECK(as_i->imm->value_as<u32>() == 0xfeed);
   }
-  SECTION("sw x1, 0(x3)") {
+  SECTION("S Type: sw x1, 0(x3)") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("sw x1, 0xfeed(x3)"));
     auto results = p.parse(diag);
@@ -92,5 +92,19 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_i->rs1 == 3);
     CHECK(as_i->imm);
     CHECK(as_i->imm->value_as<u32>() == 0xfeed);
+  }
+  SECTION("B Type: beq x5, x7, 15") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("beq x5, x7, 15"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    auto as_i = std::dynamic_pointer_cast<BTypeIR>(results[0]);
+    CHECK(as_i);
+    CHECK(as_i->mnemonic.mn == riscv::BEQ);
+    CHECK(as_i->rs1 == 5);
+    CHECK(as_i->rs2 == 7);
+    CHECK(as_i->imm);
+    CHECK(as_i->imm->value_as<u32>() == 15);
   }
 }

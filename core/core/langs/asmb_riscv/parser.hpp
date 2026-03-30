@@ -58,6 +58,7 @@ private:
   std::shared_ptr<pepp::tc::ITypeIR> i_type_load(riscv::MnemonicDescriptor desc);
   std::shared_ptr<pepp::tc::ITypeIR> i_type_arith(riscv::MnemonicDescriptor desc);
   std::shared_ptr<pepp::tc::STypeIR> s_type(riscv::MnemonicDescriptor desc);
+  std::shared_ptr<pepp::tc::BTypeIR> b_type(riscv::MnemonicDescriptor desc);
   std::shared_ptr<pepp::tc::IntegerInstruction> instruction();
   // std::shared_ptr<pepp::tc::LinearIR> pseudo(OptionalSymbol symbol);
   std::shared_ptr<pepp::tc::LinearIR> line(OptionalSymbol symbol);

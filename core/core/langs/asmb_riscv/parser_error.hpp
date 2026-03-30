@@ -9,7 +9,7 @@ public:
     Argument_ExpectedRD,
     Argument_ExpectedRS1,
     Argument_ExpectedRS2,
-    Argument_ExpectedMemory,
+    Argument_ExpectedIdentNumeric,
     Argument_ExpectedImm,
     Argument_InvalidIntegerFormat,
     Token_MissingNewline,
