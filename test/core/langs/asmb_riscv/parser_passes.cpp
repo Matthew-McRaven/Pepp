@@ -85,13 +85,13 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
-    auto as_i = std::dynamic_pointer_cast<STypeIR>(results[0]);
-    CHECK(as_i);
-    CHECK(as_i->mnemonic.mn == riscv::SW);
-    CHECK(as_i->rs2 == 1);
-    CHECK(as_i->rs1 == 3);
-    CHECK(as_i->imm);
-    CHECK(as_i->imm->value_as<u32>() == 0xfeed);
+    auto as_s = std::dynamic_pointer_cast<STypeIR>(results[0]);
+    CHECK(as_s);
+    CHECK(as_s->mnemonic.mn == riscv::SW);
+    CHECK(as_s->rs2 == 1);
+    CHECK(as_s->rs1 == 3);
+    CHECK(as_s->imm);
+    CHECK(as_s->imm->value_as<u32>() == 0xfeed);
   }
   SECTION("B Type: BEQ x5, x7, 15") {
     pepp::tc::DiagnosticTable diag;
@@ -99,13 +99,13 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
-    auto as_i = std::dynamic_pointer_cast<BTypeIR>(results[0]);
-    CHECK(as_i);
-    CHECK(as_i->mnemonic.mn == riscv::BEQ);
-    CHECK(as_i->rs1 == 5);
-    CHECK(as_i->rs2 == 7);
-    CHECK(as_i->imm);
-    CHECK(as_i->imm->value_as<u32>() == 15);
+    auto as_b = std::dynamic_pointer_cast<BTypeIR>(results[0]);
+    CHECK(as_b);
+    CHECK(as_b->mnemonic.mn == riscv::BEQ);
+    CHECK(as_b->rs1 == 5);
+    CHECK(as_b->rs2 == 7);
+    CHECK(as_b->imm);
+    CHECK(as_b->imm->value_as<u32>() == 15);
   }
   SECTION("J Type: JaL x31, -72") {
     pepp::tc::DiagnosticTable diag;
@@ -113,11 +113,24 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
-    auto as_i = std::dynamic_pointer_cast<JTypeIR>(results[0]);
-    CHECK(as_i);
-    CHECK(as_i->mnemonic.mn == riscv::JAL);
-    CHECK(as_i->rd == 31);
-    CHECK(as_i->imm);
-    CHECK(as_i->imm->value_as<i32>() == -72);
+    auto as_j = std::dynamic_pointer_cast<JTypeIR>(results[0]);
+    CHECK(as_j);
+    CHECK(as_j->mnemonic.mn == riscv::JAL);
+    CHECK(as_j->rd == 31);
+    CHECK(as_j->imm);
+    CHECK(as_j->imm->value_as<i32>() == -72);
+  }
+  SECTION("U Type: auipc x31, 0xcafe") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("auipc x31, 0xcafe"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    auto as_u = std::dynamic_pointer_cast<UTypeIR>(results[0]);
+    CHECK(as_u);
+    CHECK(as_u->mnemonic.mn == riscv::AUIPC);
+    CHECK(as_u->rd == 31);
+    CHECK(as_u->imm);
+    CHECK(as_u->imm->value_as<u32>() == 0xcafe);
   }
 }
