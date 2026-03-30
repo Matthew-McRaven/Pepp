@@ -133,12 +133,18 @@ bool DiagramData::moveData(const PeppPt &oldLocation, const PeppPt &newLocation)
   if (data == nullptr) return false;
 
   if (_diagram_map.can_move_absolute(id.value(), newLocation)) {
-    if (_diagram_map.move_absolute(id.value(), newLocation)) {
-      //  Save key in cell for later lookups
+    try {
+      if (_diagram_map.move_absolute(id.value(), newLocation)) {
+        //  Save key in cell for later lookups
 
-      data->setKey({newLocation, data->key().size()});
+        data->setKey({newLocation, data->key().size()});
 
-      return true;
+        return true;
+      }
+    } catch (...) {
+      //  If we get here, it is a bug. can_move should fail for same ID. If we
+      //  are here, can_move returned true, but the actual move threw an exception.
+      //  Just return.
     }
   }
   return false;
