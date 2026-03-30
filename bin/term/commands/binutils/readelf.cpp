@@ -154,7 +154,7 @@ void ReadElfTask::debug_line(ELFIO::elfio &elf) const {
   int ctr = 0;
   std::cout << "  ";
   for (const auto &map : linemaps) {
-    std::cout << ((QString)map).toStdString();
+    std::cout << ((std::string)map);
     if (ctr++ % columns == columns - 1) std::cout << std::endl << "  ";
     else std::cout << " ";
   }

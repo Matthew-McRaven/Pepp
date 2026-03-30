@@ -17,6 +17,7 @@
 
 #include "./mmio.hpp"
 #include <spdlog/spdlog.h>
+#include "core/integers.h"
 #include "core/math/bitmanip/copy.hpp"
 const ELFIO::section *obj::getMMIONoteSection(const ELFIO::elfio &elf) {
   for (auto &sec : elf.sections)
@@ -51,7 +52,7 @@ void addNoteSeg(ELFIO::elfio &elf) {
   }
 }
 
-void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, QList<IO> mmios) {
+void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, std::vector<IO> mmios) {
   SPDLOG_INFO("Creating MMIO declarations");
   ELFIO::symbol_section_accessor symTabAc(elf, symTab);
   auto noteSec = addMMIONoteSection(elf);
@@ -68,16 +69,14 @@ void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, QList<I
     if (!symTabAc.get_symbol(it, name, value, size, bind, type, index, other)) continue;
 
     // Search the MMIO list for a matching entry, skip to next iteration if no match.
-    QString nameQs = QString::fromStdString(name);
-    auto target =
-        std::find_if(mmios.cbegin(), mmios.cend(), [&nameQs](const ::obj::IO &io) { return io.name == nameQs; });
+    auto target = std::find_if(mmios.cbegin(), mmios.cend(), [&name](const ::obj::IO &io) { return io.name == name; });
     if (target == mmios.cend()) continue;
 
     // Must use copy helper to maintain stable bit order between host platforms.
     // ELF_half (16b for symtab section index) and ELF32_WORD (32b for symbol index)
-    quint8 desc[2 + 4];
+    u8 desc[2 + 4];
     bits::span descSpan = {desc};
-    SPDLOG_TRACE("MMIO note: {:0x}{:0x}", *(quint32 *)desc, *(quint16 *)(desc + 4));
+    SPDLOG_TRACE("MMIO note: {:0x}{:0x}", *(u32 *)desc, *(u16 *)(desc + 4));
     auto stIndex = symTab->get_index();
     bits::memcpy_endian(descSpan.first(2), bits::Order::BigEndian, stIndex);
     bits::memcpy_endian(descSpan.subspan(2), bits::Order::BigEndian, it);
@@ -89,7 +88,7 @@ void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, QList<I
   }
 }
 
-void obj::addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, QString symbol) {
+void obj::addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, std::string symbol) {
   ELFIO::symbol_section_accessor symTabAc(elf, symTab);
   auto noteSec = addMMIONoteSection(elf);
   addNoteSeg(elf);
@@ -104,12 +103,11 @@ void obj::addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, QString s
     // Skip to next iteration if it does not name a valid symbol
     if (!symTabAc.get_symbol(it, name, value, size, bind, type, index, other)) continue;
 
-    QString nameQs = QString::fromStdString(name);
-    if (symbol != nameQs) continue;
+    if (symbol != name) continue;
 
     // Must use copy helper to maintain stable bit order between host platforms.
     // ELF_half (16b for symtab section index) and ELF32_WORD (32b for symbol index)
-    quint8 desc[2 + 4];
+    uint8_t desc[2 + 4];
     bits::span descSpan = {desc};
     auto stIndex = symTab->get_index();
     bits::memcpy_endian(descSpan.first(2), bits::Order::BigEndian, stIndex);
@@ -118,11 +116,11 @@ void obj::addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, QString s
   }
 }
 
-QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
+std::vector<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
   auto noteSec = getMMIONoteSection(elf);
   if (noteSec == nullptr) return {};
   auto noteAc = ELFIO::const_note_section_accessor(elf, noteSec);
-  auto ret = QList<obj::AddressedIO>{};
+  std::vector<obj::AddressedIO> ret{};
   ELFIO::Elf_Word noteType = 0, descSize = 0;
   std::string name;
   char *desc = 0;
@@ -130,7 +128,7 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
     // Check that note exists and is from me.
     if (!noteAc.get_note(it, noteType, name, desc, descSize)) continue;
     else if (name != "pepp.mmios") continue;
-    auto descSpan = bits::span<const quint8>{reinterpret_cast<const quint8 *>(desc), descSize};
+    auto descSpan = bits::span<const uint8_t>{reinterpret_cast<const uint8_t *>(desc), descSize};
     // Copy out symbol table index + symbol index into that table.
     auto stIndex = bits::memcpy_endian<ELFIO::Elf_Half>(descSpan.first(2), bits::Order::BigEndian);
     auto symIt = bits::memcpy_endian<ELFIO::Elf_Xword>(descSpan.subspan(2), bits::Order::BigEndian);
@@ -150,14 +148,14 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
     case 0x13: type = IO::Type::kIDE; break;
     }
     if (noteType == 0x11 || noteType == 0x12) {
-      ret.push_back(obj::AddressedIO{{.name = QString::fromStdString(name), .type = type},
-                                     static_cast<quint16>(value),
-                                     static_cast<quint16>(value + std::max<decltype(size)>(size - 1, 0))});
+      ret.push_back(obj::AddressedIO{{.name = name, .type = type},
+                                     static_cast<uint16_t>(value),
+                                     static_cast<uint16_t>(value + std::max<decltype(size)>(size - 1, 0))});
     } else if (noteType == 0x13) {
-      ret.push_back(obj::AddressedIO{{.name = QString::fromStdString(name), .type = type},
-                                     static_cast<quint16>(value),
+      ret.push_back(obj::AddressedIO{{.name = name, .type = type},
+                                     static_cast<uint16_t>(value),
                                      // IDE uses 8 bytes worth of registers.
-                                     static_cast<quint16>(value + 7)});
+                                     static_cast<uint16_t>(value + 7)});
     }
   }
   return ret;

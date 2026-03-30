@@ -74,6 +74,8 @@ public:
   // Return all symbols contained by the table. Mutable to allow transformations by visitors.
   auto entries() noexcept -> map_t &;
 
+  inline auto pool() const noexcept -> std::shared_ptr<const bts::StringPool> { return _pool; }
+
 private:
   u16 _pointer_size;
 

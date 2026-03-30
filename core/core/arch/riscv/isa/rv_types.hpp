@@ -40,6 +40,17 @@
 
 namespace riscv
 {
+enum class InstructionType : uint8_t {
+  UNKNOWN = 0,
+  // RV-I
+  R,
+  I,
+  S,
+  B,
+  U,
+  J,
+  A
+};
 
 template <class T>
 concept AddressType = std::same_as<T, std::uint32_t> || std::same_as<T, std::uint64_t>;
@@ -89,6 +100,7 @@ template <AddressType address_type> using register_type = address_type;
 template <AddressType address_type> struct Instruction {
   instruction_handler<address_type> handler; // callback for executing one instruction
   instruction_printer<address_type> printer; // callback for logging one instruction
+  InstructionType type = InstructionType::UNKNOWN;
 };
 
 class MachineException : public std::exception {

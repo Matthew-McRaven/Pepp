@@ -4,6 +4,7 @@ namespace pepp::tc::lex {
 struct AsmbOptions {
   bool allow_macros = true;
   bool allow_dot_in_ident = true;
+  bool allow_parens = false;
   std::string line_comment_leader = ";";
 };
 struct AsmbLexer : public ALexer {

@@ -28,10 +28,10 @@ void pas::ops::pepp::GatherIODefinitions::operator()(const ast::Node &node) {
   ::obj::IO::Type type = (directive == "INPUT") ? ::obj::IO::Type::kInput : ::obj::IO::Type::kOutput;
   auto arg = node.get<ast::generic::Argument>().value;
   auto symbol = arg->rawString();
-  ios.append({.name = symbol, .type = type});
+  ios.emplace_back(::obj::IO{.name = symbol.toStdString(), .type = type});
 }
 
-QList<::obj::IO> pas::ops::pepp::gatherIODefinitions(const ast::Node &node) {
+std::vector<::obj::IO> pas::ops::pepp::gatherIODefinitions(const ast::Node &node) {
   GatherIODefinitions ret;
   generic::Or<pepp::isInput, pepp::isOutput> pred;
   ast::apply_recurse_if(node, pred, ret);

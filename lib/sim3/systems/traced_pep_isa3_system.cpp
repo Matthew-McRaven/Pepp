@@ -65,7 +65,8 @@ QSharedPointer<sim::api2::tick::Recipient> create_cpu(pepp::Architecture arch, s
 }
 } // namespace
 
-targets::isa::System::System(pepp::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios)
+targets::isa::System::System(pepp::Architecture arch, QList<obj::MemoryRegion> regions,
+                             std::vector<obj::AddressedIO> mmios)
     : _regions(), _arch(arch), _cpu(create_cpu(arch, desc_cpu(nextID()), _nextIDGenerator)),
       _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
@@ -235,7 +236,7 @@ QSharedPointer<sim::memory::Dense<quint16>> allocate(QVector<QSharedPointer<sim:
 }
 
 void targets::isa::System::reconfigure(pepp::Architecture arch, QList<obj::MemoryRegion> regions,
-                                       QList<obj::AddressedIO> mmios) {
+                                       std::vector<obj::AddressedIO> mmios) {
   using enum pepp::Architecture;
   // Take underlying memory and reuse it for new devices.
   using std::swap;
@@ -275,26 +276,26 @@ void targets::isa::System::reconfigure(pepp::Architecture arch, QList<obj::Memor
   for (const auto &mmio : mmios) {
     auto span = AddressSpan(0, static_cast<quint16>(mmio.maxOffset - mmio.minOffset));
     if (mmio.type == obj::IO::Type::kInput) {
-      auto desc = desc_mmi(nextID(), mmio.name);
+      auto desc = desc_mmi(nextID(), QString::fromStdString(mmio.name));
       addDevice(desc);
       auto mem = QSharedPointer<sim::memory::Input<quint16>>::create(desc, span);
       _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
-      _mmi[mmio.name] = mem;
+      _mmi[QString::fromStdString(mmio.name)] = mem;
       // By default, charIn should raise an error when it runs out of input.
       if (mmio.name == "charIn") mem->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
     } else if (mmio.type == obj::IO::Type::kOutput) {
-      auto desc = desc_mmo(nextID(), mmio.name);
+      auto desc = desc_mmo(nextID(), QString::fromStdString(mmio.name));
       addDevice(desc);
       auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(desc, span);
       _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
-      _mmo[mmio.name] = mem;
+      _mmo[QString::fromStdString(mmio.name)] = mem;
     } else if (mmio.type == obj::IO::Type::kIDE) {
-      auto desc = desc_ide(nextID(), mmio.name);
+      auto desc = desc_ide(nextID(), QString::fromStdString(mmio.name));
       addDevice(desc);
       auto mem = QSharedPointer<sim::memory::IDEController>::create(desc, 0, _nextIDGenerator);
       mem->setTarget(&*_bus, nullptr);
       _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
-      _ide[mmio.name] = mem;
+      _ide[QString::fromStdString(mmio.name)] = mem;
     } else {
       throw std::logic_error("Unreachable");
     }

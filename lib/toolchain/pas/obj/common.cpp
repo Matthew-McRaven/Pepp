@@ -1,6 +1,7 @@
 #include "./common.hpp"
 #include <elfio/elfio.hpp>
 #include <zpp_bits.h>
+#include "core/langs/asmb_pep/codegen.hpp"
 #include "toolchain/pas/operations/generic/addr2line.hpp"
 #include "toolchain/symbol/table.hpp"
 
@@ -123,12 +124,5 @@ std::vector<pas::obj::common::BinaryLineMapping> pas::obj::common::getLineMappin
 }
 
 ELFIO::section *pas::obj::common::detail::getLineMappingSection(ELFIO::elfio &elf) {
-  ELFIO::section *lineNumbers = nullptr;
-  for (auto &sec : elf.sections) {
-    if (sec->get_name() == lineMapStr && sec->get_type() == ELFIO::SHT_PROGBITS) {
-      lineNumbers = sec.get();
-      break;
-    }
-  }
-  return lineNumbers;
+  return pepp::tc::getLineMappingSection(elf);
 }

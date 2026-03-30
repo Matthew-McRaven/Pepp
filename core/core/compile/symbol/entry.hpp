@@ -61,6 +61,7 @@ public:
   typename symbol::LeafTable &parent;
   // The value taken on by this symbol.
   std::shared_ptr<symbol::AbstractValue> value;
+  u16 section_index = 0;
 
   bool is_singly_defined() const noexcept;
   bool is_undefined() const noexcept;

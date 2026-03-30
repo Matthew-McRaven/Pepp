@@ -22,6 +22,7 @@
 #include <vector>
 #include "../../integers.h"
 #include "core/math/bitmanip/span.hpp"
+#include "fmt/format.h"
 
 namespace bits {
 template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end, u8 &value) {
@@ -68,6 +69,21 @@ template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end
     value = head;
   }
   return true;
+}
+
+template <typename OutputIt> OutputIt byteToEscaped(u8 value, OutputIt out) {
+  switch (value) {
+  case '\\': return *out++ = '\\', *out++ = '\\', out;
+  case '\b': return *out++ = '\\', *out++ = 'b', out;
+  case '\f': return *out++ = '\\', *out++ = 'f', out;
+  case '\n': return *out++ = '\\', *out++ = 'n', out;
+  case '\r': return *out++ = '\\', *out++ = 'r', out;
+  case '\t': return *out++ = '\\', *out++ = 't', out;
+  case '\v': return *out++ = '\\', *out++ = 'v', out;
+  case '\0': return *out++ = '\\', *out++ = '0', out;
+  }
+  if (value >= 0x20 && value < 0x7F) return *out++ = static_cast<char>(value), out;
+  else return fmt::format_to(out, "\\x{:02X}", value);
 }
 
 struct SeparatorRule {
@@ -122,4 +138,27 @@ inline std::string_view chopped(std::string_view sv, std::size_t n) {
 inline bool contains(std::string_view haystack, std::string_view needle) {
   return haystack.find(needle) != std::string_view::npos;
 }
+
+inline std::string rtrimmed(const std::string &str) {
+  if (str.empty()) return {};
+  // Perform right-strip of string. `QString::trimmed() const` trims both ends.
+  std::size_t lastIndex = str.size() - 1;
+  while (std::isspace((u8)str[lastIndex]) && lastIndex > 0) lastIndex--;
+  // If line is all spaces, then the string should be empty.
+  if (lastIndex == 0) return {};
+  // Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
+  return str.substr(0, lastIndex + 1);
+}
+
+inline std::string_view rtrimmed_view(const std::string &str) {
+  if (str.empty()) return {};
+  // Perform right-strip of string. `QString::trimmed() const` trims both ends.
+  std::size_t lastIndex = str.size() - 1;
+  while (std::isspace((u8)str[lastIndex]) && lastIndex > 0) lastIndex--;
+  // If line is all spaces, then the string should be empty.
+  if (lastIndex == 0) return std::string_view();
+  // Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
+  return std::string_view(str).substr(0, lastIndex + 1);
+}
+
 } // namespace bits
