@@ -134,6 +134,8 @@ bool DiagramData::moveData(const PeppPt &oldLocation, const PeppPt &newLocation)
 
   if (_diagram_map.can_move_absolute(id.value(), newLocation)) {
     try {
+      //  MATTHEW. This is the function that throws. Try block
+      //  doesn't prevent crash.
       if (_diagram_map.move_absolute(id.value(), newLocation)) {
         //  Save key in cell for later lookups
 
@@ -144,7 +146,8 @@ bool DiagramData::moveData(const PeppPt &oldLocation, const PeppPt &newLocation)
     } catch (...) {
       //  If we get here, it is a bug. can_move should fail for same ID. If we
       //  are here, can_move returned true, but the actual move threw an exception.
-      //  Just return.
+      //  Just continue.
+      //  MATTHEW. Put your breakpoint here.
     }
   }
   return false;
