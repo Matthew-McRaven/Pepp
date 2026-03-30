@@ -126,13 +126,13 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   const int rows = 10;
   const int cols = 10;
 
-  DiagramProperties *to = addDiagram(2, 2);
+  DiagramProperties *to = addDiagram(6, 4);
   if (to == nullptr) return;
 
   //  Add block data
   to->setName(lookup[0]);
   to->setType(DiagramType::ANDGate);
-  to->setOrientation(180);
+  to->setOrientation(0);
   to->setSelected(false);
   getImage(*to);
 
@@ -155,26 +155,26 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   // MATTHEW END TEST DATA*/
 
   //  data life time managed by model
-  DiagramProperties *from1 = addDiagram(6, 2);
+  DiagramProperties *from1 = addDiagram(2, 2);
   if (from1 == nullptr) return;
 
   //  Add block data
   from1->setName(lookup[2]);
   from1->setType(DiagramType::Inverter);
-  from1->setOrientation(180);
+  from1->setOrientation(0);
   from1->setSelected(false);
   getImage(*from1);
 
   addLine(from1, to);
 
   //  data life time managed by model
-  DiagramProperties *from2 = addDiagram(6, 6);
+  DiagramProperties *from2 = addDiagram(2, 6);
   if (from2 == nullptr) return;
 
   //  Add block data
   from2->setName(lookup[5]);
   from2->setType(DiagramType::XORGate);
-  from2->setOrientation(180);
+  from2->setOrientation(0);
   getImage(*from2);
 
   addLine(from2, to);
@@ -247,10 +247,12 @@ void GraphicCanvas::cacheImages(const QString &source) {
   if (renderer.isValid()) {
     //  SVG dimensions should not matter, but rendering SVG at anything
     //  but a direct multiple of the width creates visual issues.
-    int dim = 48 * 3; //_background.width() * grid_to_px;
+    int width = 48 * 3;
+    // int height = 32 * 3;
+
     // qDebug() << "dim, width, widthMM, logicalDpiX" << dim << _background.width()
     //          << _background.widthMM() << _background.logicalDpiX();
-    QPixmap image(dim, dim);
+    QPixmap image(width, width);
     image.fill(Qt::transparent);
 
     // Get QPainter that paints to the image
@@ -406,10 +408,6 @@ void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
     //  If image is null, then it's properties were reset, update image
     getImage(*props);
 
-  //  Print grid is slightly out of alignment with background.
-  //  This is a shim to match diagram placement with background.
-  // screen_rect.adjust(-3, 1, -3, 1); // 0,2,0,0
-
   //  Paint diagram
   painter->drawPixmap(screen_rect.toRect(), *props->image());
 
@@ -446,14 +444,14 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   const auto newIndex = _model->index(row, col);
 
   DiagramProperties *data = _model->dataModel().createDiagramProps(
-      PeppRect::from_point_size(row, col, minor_per_major / 2, minor_per_major / 2));
+      PeppRect::from_point_size(row, col, minor_per_major - 1, minor_per_major / 2));
   if (data == nullptr) return nullptr;
 
   //  Newly added items are always current item
   setCurrentDiagram(data);
 
   //  Add block data
-  setGrid(data, row, col);
+  setGrid(data);
 
   if (_template != nullptr) {
     data->setName(_template->name());
@@ -494,12 +492,16 @@ void GraphicCanvas::setBoundingBox() {
   }
 }
 
-void GraphicCanvas::setGrid(DiagramProperties *data, const i16 row, const i16 col) {
+void GraphicCanvas::setGrid(DiagramProperties *data) {
   //  Column and row represents center point, not top left
   //  Save in grid coordinates, not screen coordinates
-  PeppRect gridRect = PeppRect::from_point_size(minor_block_size * row - major_block_size / 2 + _margin,
-                                                minor_block_size * col - major_block_size / 2 + _margin,
+  PeppRect gridRect = PeppRect::from_point_size(minor_block_size * data->key().left() - major_block_size / 2 + _margin,
+                                                minor_block_size * data->key().top() - major_block_size / 2 + _margin,
                                                 major_block_size - _margin * 2, major_block_size - _margin * 2);
+  //  Change to native size after spatial_map is updated.
+  PeppRect gridRect2 =
+      PeppRect::from_point_size(minor_block_size * data->key().left(), minor_block_size * data->key().top(),
+                                minor_block_size * data->key().width(), minor_block_size * data->key().height());
 
   //  Add block data
   data->setGridRectangle(gridRect);
@@ -578,6 +580,14 @@ void GraphicCanvas::rotateClockwise() {
 
   _currentDiagram->setOrientation(_currentDiagram->orientation() + 90);
 
+  //  Height and width are different sizes, update key
+  auto size = _currentDiagram->key().size();
+  PeppSize newSize{size.width(), size.height()};
+  PeppRect rect{_currentDiagram->key().top_left(), newSize};
+  _currentDiagram->setKey(rect);
+
+  setGrid(_currentDiagram);
+
   //  Repaint rectangle
   update();
 }
@@ -587,6 +597,12 @@ void GraphicCanvas::rotateCounterClockwise() {
 
   const int orientation = _currentDiagram->orientation() == 0 ? 270 : _currentDiagram->orientation() - 90;
   _currentDiagram->setOrientation(orientation);
+  auto size = _currentDiagram->key().size();
+  PeppSize newSize{size.width(), size.height()};
+  PeppRect rect{_currentDiagram->key().top_left(), newSize};
+  _currentDiagram->setKey(rect);
+
+  setGrid(_currentDiagram);
 
   //  Repaint rectangle
   update();
@@ -929,7 +945,8 @@ void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
   }
 
   //  Remap paint grid after move
-  setGrid(data, newLocation.x(), newLocation.y());
+  // setGrid(data, newLocation.x(), newLocation.y());
+  setGrid(data);
 
   update();
 }
@@ -997,7 +1014,8 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
     moveDiagram(oldLocation, newLocation);
 
     //  Remap paint grid after move
-    setGrid(_currentDiagram, newLocation.x(), newLocation.y());
+    // setGrid(_currentDiagram, newLocation.x(), newLocation.y());
+    setGrid(_currentDiagram);
 
     update();
 

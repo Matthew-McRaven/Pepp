@@ -164,7 +164,7 @@ private:
   DiagramProperties *addDiagram(const i16 row, const i16 col);
   void addLine(DiagramProperties *from, DiagramProperties *to);
 
-  void setGrid(DiagramProperties *data, const i16 row, const i16 col);
+  void setGrid(DiagramProperties *data);
 
   //  Respond to data changes in model
   void updateCell(const QModelIndex &from, const QModelIndex &to);

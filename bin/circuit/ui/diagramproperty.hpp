@@ -55,21 +55,6 @@ struct DiagramProperty {
     Invalid = 0xffffffff,
   };
 
-  bool setOrientation(const u32 v) {
-    //  Limit to 360 degrees
-    bool changed = false;
-    const auto angle = v % 360;
-    if (orientation != angle) {
-      const auto slice = static_cast<u32>(angle / 90);
-
-      //  Only support 90 degree changes
-      orientation = slice * 90;
-
-      changed = true;
-    }
-    return changed;
-  }
-
   u32 orientation = 0; // Pointing Left
 };
 

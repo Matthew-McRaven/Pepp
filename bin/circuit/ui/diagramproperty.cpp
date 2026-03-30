@@ -270,16 +270,27 @@ void DiagramProperties::setSelected(const bool v) {
 }
 
 void DiagramProperties::setOrientation(const quint32 v) {
-  if (_properties.setOrientation(v)) {
-    //  Clear cached image
-    _pixMap = nullptr;
-
-    //  Rotation affects line placement
-    updateInputPinPt();
-    updateOutputPinPt();
-
-    emit imageChanged();
+  //  Limit to 360 degrees
+  const auto angle = v % 360;
+  if (_properties.orientation == angle) {
+    //  Nothing changed
+    return;
   }
+
+  //  Diagram changed
+  const auto slice = static_cast<u32>(angle / 90);
+
+  //  Only support 90 degree changes
+  _properties.orientation = slice * 90;
+
+  //  Clear cached image
+  _pixMap = nullptr;
+
+  //  Rotation affects line placement
+  updateInputPinPt();
+  updateOutputPinPt();
+
+  emit imageChanged();
 }
 
 void DiagramProperties::setKey(const PeppRect &v) {
