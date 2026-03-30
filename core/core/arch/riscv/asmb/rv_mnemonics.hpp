@@ -102,7 +102,7 @@ struct MnemonicDescriptor {
   bool operator==(const MnemonicDescriptor &other) const noexcept;
 
 protected:
-  MnemonicDescriptor(Type type);
+  explicit MnemonicDescriptor(Type type);
   MnemonicDescriptor(Type, uint8_t opcode7);
   struct Flags {
     u8 rs1 : 1 = 0;

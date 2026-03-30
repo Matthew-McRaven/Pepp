@@ -260,6 +260,7 @@ u8 riscv::MnemonicDescriptor::width_imm() const noexcept {
   case Type::J: return 20;
   case Type::Pseudo: return 0;
   }
+  return 0;
 }
 
 bool riscv::MnemonicDescriptor::operator==(const MnemonicDescriptor &other) const noexcept {
