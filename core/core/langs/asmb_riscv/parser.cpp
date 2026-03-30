@@ -9,6 +9,7 @@
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/parser_error.hpp"
+#include "core/math/bitmanip/strings.hpp"
 
 pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data)
     : _pool(std::make_shared<std::unordered_set<std::string>>()),
@@ -137,7 +138,9 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::ins
   lex::Checkpoint cp(*_buffer);
   const auto maybe_instr = _buffer->match<lex::Identifier>();
   if (!maybe_instr) return cp.rollback(), nullptr;
-  const auto maybe_desc = riscv::string_to_mnemonic.find(maybe_instr->to_string());
+  auto instr_str = maybe_instr->to_string();
+  bits::to_lower_inplace(instr_str);
+  const auto maybe_desc = riscv::string_to_mnemonic.find(instr_str);
   if (maybe_desc == riscv::string_to_mnemonic.end()) return cp.rollback(), nullptr;
   const auto desc = *maybe_desc;
 

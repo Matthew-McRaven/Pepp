@@ -93,9 +93,9 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_i->imm);
     CHECK(as_i->imm->value_as<u32>() == 0xfeed);
   }
-  SECTION("B Type: beq x5, x7, 15") {
+  SECTION("B Type: BEQ x5, x7, 15") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("beq x5, x7, 15"));
+    auto p = Parser(data("BEQ x5, x7, 15"));
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
