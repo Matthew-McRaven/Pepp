@@ -124,20 +124,16 @@ Pane {
                     if (root.diagramModel == null || inputArea.index.row === -1)
                         return;
 
-                    //  Update model with new data
                     var item = root.gateModel.diagramTemplate(gateType.currentIndex);
 
-                    //  Get data for current index
-                    const data = root.diagramModel.item(inputArea.index);
+                    root.diagramModel.setData(inputArea.index, item.name, DiagramDataModel.Name);
+                    root.diagramModel.setData(inputArea.index, item.qrcFile, DiagramDataModel.ImageSource);
+                    root.diagramModel.setData(inputArea.index, item.key, DiagramDataModel.DiagramType);
+                    root.diagramModel.setData(inputArea.index, orientation.currentValue, DiagramDataModel.Orientation);
+                    root.diagramModel.setData(inputArea.index, input.value, DiagramDataModel.InputNo);
+                    root.diagramModel.setData(inputArea.index, output.value, DiagramDataModel.OutputNo);
 
-                    data.name = item.name;
-                    data.imageSource = item.qrcFile;
-                    data.type = item.key;
-                    data.orientation = orientation.currentValue;
-                    data.inputNo = input.value;
-                    data.outputNo = output.value;
-
-                    root.diagramModel.update(inputArea.index);
+                    //root.diagramModel.update(inputArea.index);
                 }
             }
             Button {

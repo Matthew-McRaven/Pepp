@@ -143,9 +143,6 @@ class DiagramProperties : public BaseProperties {
 public:
   explicit DiagramProperties(QObject *parent = nullptr);
 
-  // QVariant get(int role) const;
-  // void set(int role, const QVariant &data);
-
   //  Data functions
   quint16 inputNo() const { return _inputPins.maxSize(); }
   quint16 outputNo() const { return _outputPins.maxSize(); }

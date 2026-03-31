@@ -173,25 +173,6 @@ DiagramProperties::DiagramProperties(QObject *parent) : BaseProperties(parent) {
   _outputPins.setMaxSize(1);
 }
 
-/*void DiagramProperties::set(int role, const QVariant &data) {
-  switch (role) {
-  case DiagramProperty::Role::Name: setName(data.toString()); break;
-  case DiagramProperty::Role::ImageSource: setImageSource(data.toString()); break;
-  case DiagramProperty::Role::Type: setType(static_cast<DiagramType::Type>(data.toInt())); break;
-  case DiagramProperty::Role::InputNo: setInputNo(data.toInt()); break;
-  case DiagramProperty::Role::OutputNo: setOutputNo(data.toInt()); break;
-  case DiagramProperty::Role::Selected: setSelected(data.toBool()); break;
-  case DiagramProperty::Role::Orientation: setOrientation(data.toInt()); break;
-  case DiagramProperty::Role::Rectangle:
-    auto oldRect = data.toRect();
-    PeppPt pt{static_cast<i16>(oldRect.x()), static_cast<i16>(oldRect.y())};
-    PeppSize size{static_cast<i16>(oldRect.width()), static_cast<i16>(oldRect.height())};
-    PeppRect rect(pt, size);
-    _baseProperties.key = rect;
-    break;
-  }
-}*/
-
 void DiagramProperties::setId(const quint32 v) {
   if (BaseProperties::setId(v)) {
     emit nameChanged();
