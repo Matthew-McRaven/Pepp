@@ -85,17 +85,17 @@ bool pepp::core::SpatialMap::can_move_relative(std::span<Identifier> ids, Point<
     for (auto overlap : overlaps)
       // If any of the items overlapped are not being moved, then the move will fail.
       // Since we sorted the items above, this search is O(lg n) rather than O(n).
-      if (!std::binary_search(ids.begin(), ids.end(), overlap.first)) return false;
+      if (!std::binary_search(ids.begin(), ids.end(), overlap.second)) return false;
   }
   return true;
 }
 
-bool pepp::core::SpatialMap::move_relative(Identifier id, Point<i16> delta, bool transpose) noexcept {
+bool pepp::core::SpatialMap::move_relative(Identifier id, Point<i16> delta, bool transpose) {
   std::array<Identifier, 1> arr{id};
   return move_relative(arr, delta, transpose);
 }
 
-bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16> delta, bool transpose) noexcept {
+bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16> delta, bool transpose) {
   if (ids.empty()) return true;
   else if (delta == Point<i16>{0, 0}) return true;
   else if (!can_move_relative(ids, delta)) return false;
@@ -127,14 +127,14 @@ bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16>
   return true;
 }
 
-bool pepp::core::SpatialMap::can_move_absolute(Identifier id, Point<i16> new_pos, bool transpose) const noexcept {
+bool pepp::core::SpatialMap::can_move_absolute(Identifier id, Point<i16> new_pos, bool transpose) const {
   auto rect_it = _index_to_rectangle.find(id);
   if (rect_it == _index_to_rectangle.end()) return false;
   const auto src = rect_it->second;
   return can_move_relative(id, new_pos - src.top_left(), transpose);
 }
 
-bool pepp::core::SpatialMap::move_absolute(Identifier id, Point<i16> new_pos, bool transpose) noexcept {
+bool pepp::core::SpatialMap::move_absolute(Identifier id, Point<i16> new_pos, bool transpose) {
   auto rect_it = _index_to_rectangle.find(id);
   if (rect_it == _index_to_rectangle.end()) return false;
   const auto src = rect_it->second;

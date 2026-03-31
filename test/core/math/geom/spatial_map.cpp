@@ -92,7 +92,7 @@ TEST_CASE("Spatial Map", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     CHECK(map.overlap(partial_overlap));
     auto overlapping = map.overlapping(partial_overlap);
     CHECK(std::ranges::distance(overlapping) == 1);
-    CHECK(overlapping.front().second == base);
+    CHECK(overlapping.front().first == base);
   }
   SECTION("Relative movement") {
     const Rect base(Ivl{6, 7}, Ivl{6, 7});
@@ -140,9 +140,9 @@ TEST_CASE("Spatial Map", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     auto overlapping = map.overlapping(base);
     CHECK(std::ranges::distance(overlapping) == 2);
     auto it = overlapping.begin();
-    CHECK(it->first == *id1);
+    CHECK(it->second == *id1);
     it++;
-    CHECK(it->first == *id2);
+    CHECK(it->second == *id2);
   }
   SECTION("Dave's test case") {
     const auto first = Rect::from_point_size(2, 3, 4, 4);
@@ -199,7 +199,7 @@ TEST_CASE("Spatial Map", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     auto id0 = map.try_add(r0), id1 = map.try_add(r1);
     CHECK(id0.has_value());
     CHECK(id1.has_value());
-    std::vector<u32> move{{id0.value()}};
+    std::vector<u32> move{id0.value()};
     CHECK(!map.can_move_relative(move, Pt{2, 2}));
     CHECK(!map.move_relative(move, Pt{2, 2}));
     CHECK(map.at(r0) == id0);

@@ -40,14 +40,14 @@ public:
   std::optional<Identifier> at(Rectangle<i16> rect) const noexcept;
   // Return all of the items that partially intersect with a rectangle.
   auto overlapping(Rectangle<i16> rect) const noexcept {
-    const auto lam = [rect](const auto &pair) { return intersects(rect, pair.second); };
-    const auto &container = _index_to_rectangle.container;
+    const auto lam = [rect](const auto &pair) { return intersects(rect, pair.first); };
+    const auto &container = _rectangle_to_index.container;
     // Exclude items which are entirely above / below the target rect.
     // As this is a binary search, the average case should only filter O(lg n) items rather than O(n)
     auto lower = std::lower_bound(container.cbegin(), container.cend(), rect.top(),
-                                  [](const auto &pair, i16 val) { return pair.second.bottom() < val; });
+                                  [](const auto &pair, i16 val) { return pair.first.bottom() < val; });
     auto upper = std::upper_bound(container.cbegin(), container.cend(), rect.bottom(),
-                                  [](i16 val, const auto &pair) { return val < pair.second.top(); });
+                                  [](i16 val, const auto &pair) { return val < pair.first.top(); });
 
     return std::ranges::subrange(lower, upper) | std::views::filter(lam);
   }
@@ -57,16 +57,16 @@ public:
   // This "multi-move" variant accepts ids in arbitrary order, but will sort the pointed-to data in place before
   // analyzing. This reduces the time complextiy to O(n lg n) rather than O(n^2).
   bool can_move_relative(std::span<Identifier> ids, Point<i16> delta, bool transpose = false) const noexcept;
-  bool move_relative(Identifier id, Point<i16> delta, bool transpose = false) noexcept;
+  bool move_relative(Identifier id, Point<i16> delta, bool transpose = false);
   // This "multi-move" variant will sort the pointed-to data along in reverse along the delta vector to prevent spurious
   // collisions.
-  bool move_relative(std::span<Identifier> ids, Point<i16> delta, bool transpose = false) noexcept;
+  bool move_relative(std::span<Identifier> ids, Point<i16> delta, bool transpose = false);
   // Set the top left coordinate of the rectangle. Returns false if the move would cause a collision, ignoring
   // collisions with itself. No multi-move overloads are provided, because it makes no sense to place multiple things in
   // the same place. As a caller, you would need to identify which item you are adjusting with resepct to, compute the
   // delta, and call the relative multi-move.
-  bool can_move_absolute(Identifier id, Point<i16> new_pos, bool transpose = false) const noexcept;
-  bool move_absolute(Identifier id, Point<i16> new_pos, bool transpose = false) noexcept;
+  bool can_move_absolute(Identifier id, Point<i16> new_pos, bool transpose = false) const;
+  bool move_absolute(Identifier id, Point<i16> new_pos, bool transpose = false);
 
   // Returns the smallest bounding box containing all rectangles in the spatial map.
   Rectangle<i16> bounding_box() const noexcept;
