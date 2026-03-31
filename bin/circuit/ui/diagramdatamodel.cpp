@@ -87,14 +87,32 @@ QVariant DiagramDataModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return {};
 
   const auto *item = _data.getDiagramProps(convertIndex(index));
-  return item->get(role);
+
+  // return item->get(role);
+  if (item == nullptr) return {};
+  switch (role) {
+  case DiagramDataModel::Role::Id: return item->id();
+  case DiagramDataModel::Role::Name: return item->name();
+  case DiagramDataModel::Role::ImageSource: return item->imageSource();
+  case DiagramDataModel::Role::DiagramType: return item->type();
+  case DiagramDataModel::Role::InputNo: return item->inputNo();
+  case DiagramDataModel::Role::OutputNo: return item->outputNo();
+  case DiagramDataModel::Role::Selected: return item->selected();
+  case DiagramDataModel::Role::Orientation:
+    return item->orientation();
+    /*case DiagramProperty::Role::Rectangle:
+      const auto key = item->key();
+      const int x = key.x().lower();
+      const int y = key.y().lower();
+      return QRect(x, y, key.width(), key.height());*/
+  }
 }
 
 bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, int role) {
   if (!index.isValid()) return false;
 
   //  Set currently selected if value is true
-  if (role == DiagramProperty::Role::Selected && value.toBool()) {
+  if (role == DiagramDataModel::Role::Selected && value.toBool()) {
     setCurrentIndex(index);
     emit dataChanged(index, index);
   }
@@ -102,7 +120,33 @@ bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, 
   auto *item = _data.getDiagramProps(convertIndex(index));
   if (item == nullptr) return false;
 
-  item->set(role, value);
+  switch (role) {
+  case DiagramDataModel::Role::Name: item->setName(value.toString()); break;
+  case DiagramDataModel::Role::ImageSource: item->setImageSource(value.toString()); break;
+  case DiagramDataModel::Role::DiagramType: item->setType(static_cast<DiagramType::Type>(value.toInt())); break;
+  case DiagramDataModel::Role::InputNo: item->setInputNo(value.toInt()); break;
+  case DiagramDataModel::Role::OutputNo: item->setOutputNo(value.toInt()); break;
+  case DiagramDataModel::Role::Selected: item->setSelected(value.toBool()); break;
+  case DiagramDataModel::Role::Orientation: {
+    const int oldV = item->orientation();
+    const int newV = value.toInt();
+
+    item->setOrientation(newV);
+    //  Was there a switch between vertical and horizontal?
+    bool noChange = (std::abs(oldV - newV) % 180) == 0;
+    if (!noChange) _data.rotateData(item->id());
+    break;
+  }
+    /*case DiagramProperty::Role::Rectangle:
+      auto oldRect = data.toRect();
+      PeppPt pt{static_cast<i16>(oldRect.x()), static_cast<i16>(oldRect.y())};
+      PeppSize size{static_cast<i16>(oldRect.width()), static_cast<i16>(oldRect.height())};
+      PeppRect rect(pt, size);
+      _baseProperties.key = rect;
+      break;*/
+  }
+
+  // item->set(role, value);
   emit dataChanged(index, index);
 
   return true;
@@ -115,10 +159,12 @@ Qt::ItemFlags DiagramDataModel::flags(const QModelIndex &index) const {
 }
 
 QHash<int, QByteArray> DiagramDataModel::roleNames() const {
-  return {{DiagramProperty::Role::Name, "name"},
-          {DiagramProperty::Role::Id, "id"},
-          {DiagramProperty::Role::ImageSource, "imageSource"},
-          {DiagramProperty::Role::Type, "diagramType"},
-          {DiagramProperty::Role::InputNo, "inputNo"},
-          {DiagramProperty::Role::OutputNo, "outputNo"}};
+  return {{DiagramDataModel::Role::Name, "name"},
+          {DiagramDataModel::Role::Id, "id"},
+          {DiagramDataModel::Role::ImageSource, "imageSource"},
+          {DiagramDataModel::Role::DiagramType, "diagramType"},
+          {DiagramDataModel::Role::InputNo, "inputNo"},
+          {DiagramDataModel::Role::OutputNo, "outputNo"},
+          {DiagramDataModel::Role::Selected, "selected"},
+          {DiagramDataModel::Role::Orientation, "orientation"}};
 }

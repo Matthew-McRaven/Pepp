@@ -38,23 +38,6 @@ struct LineProperty {
 };
 
 struct DiagramProperty {
-
-  enum Role : u32 {
-    Name = Qt::DisplayRole,
-    Id = Qt::UserRole + 1,
-    ImageSource,
-    Type,
-    InputNo,
-    OutputNo,
-
-    Selected,
-    Orientation,
-    Rectangle,
-
-    //  Indicates invalid state from parsing input files
-    Invalid = 0xffffffff,
-  };
-
   u32 orientation = 0; // Pointing Left
 };
 
@@ -160,8 +143,8 @@ class DiagramProperties : public BaseProperties {
 public:
   explicit DiagramProperties(QObject *parent = nullptr);
 
-  QVariant get(int role) const;
-  void set(int role, const QVariant &data);
+  // QVariant get(int role) const;
+  // void set(int role, const QVariant &data);
 
   //  Data functions
   quint16 inputNo() const { return _inputPins.maxSize(); }

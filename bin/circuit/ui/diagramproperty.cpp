@@ -173,27 +173,7 @@ DiagramProperties::DiagramProperties(QObject *parent) : BaseProperties(parent) {
   _outputPins.setMaxSize(1);
 }
 
-QVariant DiagramProperties::get(int role) const {
-  switch (role) {
-  case DiagramProperty::Role::Id: return id();
-  case DiagramProperty::Role::Name: return name();
-  case DiagramProperty::Role::ImageSource: return imageSource();
-  case DiagramProperty::Role::Type: return type();
-  case DiagramProperty::Role::InputNo: return inputNo();
-  case DiagramProperty::Role::OutputNo: return outputNo();
-  case DiagramProperty::Role::Selected: return selected();
-  case DiagramProperty::Role::Orientation: return orientation();
-  case DiagramProperty::Role::Rectangle:
-    const int x = _baseProperties.key.x().lower();
-    const int y = _baseProperties.key.y().lower();
-    return QRect(x, y, _baseProperties.key.width(), _baseProperties.key.height());
-  }
-
-  //  Not found
-  return {};
-}
-
-void DiagramProperties::set(int role, const QVariant &data) {
+/*void DiagramProperties::set(int role, const QVariant &data) {
   switch (role) {
   case DiagramProperty::Role::Name: setName(data.toString()); break;
   case DiagramProperty::Role::ImageSource: setImageSource(data.toString()); break;
@@ -210,7 +190,7 @@ void DiagramProperties::set(int role, const QVariant &data) {
     _baseProperties.key = rect;
     break;
   }
-}
+}*/
 
 void DiagramProperties::setId(const quint32 v) {
   if (BaseProperties::setId(v)) {

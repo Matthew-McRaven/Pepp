@@ -460,7 +460,7 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   getImage(*data);
 
   //  Set select flag
-  _model->setData(newIndex, true, DiagramProperty::Role::Selected);
+  _model->setData(newIndex, true, DiagramDataModel::Role::Selected);
 
   return data;
 }
@@ -499,9 +499,9 @@ void GraphicCanvas::setGrid(DiagramProperties *data) {
                                                 minor_block_size * data->key().top() - major_block_size / 2 + _margin,
                                                 major_block_size - _margin * 2, major_block_size - _margin * 2);
   //  Change to native size after spatial_map is updated.
-  PeppRect gridRect2 =
-      PeppRect::from_point_size(minor_block_size * data->key().left(), minor_block_size * data->key().top(),
-                                minor_block_size * data->key().width(), minor_block_size * data->key().height());
+  // PeppRect gridRect2 =
+  //    PeppRect::from_point_size(minor_block_size * data->key().left(), minor_block_size * data->key().top(),
+  //                              minor_block_size * data->key().width(), minor_block_size * data->key().height());
 
   //  Add block data
   data->setGridRectangle(gridRect);
@@ -580,11 +580,13 @@ void GraphicCanvas::rotateClockwise() {
 
   _currentDiagram->setOrientation(_currentDiagram->orientation() + 90);
 
+  //  Rotate diagram in hit model
+  rotateDiagram(_currentDiagram);
   //  Height and width are different sizes, update key
-  auto size = _currentDiagram->key().size();
-  PeppSize newSize{size.width(), size.height()};
-  PeppRect rect{_currentDiagram->key().top_left(), newSize};
-  _currentDiagram->setKey(rect);
+  // auto size = _currentDiagram->key().size();
+  // PeppSize newSize{size.width(), size.height()};
+  // PeppRect rect{_currentDiagram->key().top_left(), newSize};
+  //_currentDiagram->setKey(rect);
 
   setGrid(_currentDiagram);
 
@@ -596,11 +598,14 @@ void GraphicCanvas::rotateCounterClockwise() {
   if (_currentDiagram == nullptr) return;
 
   const int orientation = _currentDiagram->orientation() == 0 ? 270 : _currentDiagram->orientation() - 90;
-  _currentDiagram->setOrientation(orientation);
-  auto size = _currentDiagram->key().size();
-  PeppSize newSize{size.width(), size.height()};
-  PeppRect rect{_currentDiagram->key().top_left(), newSize};
-  _currentDiagram->setKey(rect);
+
+  //  Rotate diagram in hit model
+  rotateDiagram(_currentDiagram);
+  //_currentDiagram->setOrientation(orientation);
+  // auto size = _currentDiagram->key().size();
+  // PeppSize newSize{size.width(), size.height()};
+  // PeppRect rect{_currentDiagram->key().top_left(), newSize};
+  // currentDiagram->setKey(rect);
 
   setGrid(_currentDiagram);
 
@@ -836,9 +841,7 @@ void GraphicCanvas::unselectLines() {
   // setCursor(Qt::ArrowCursor);
 }
 
-
 void GraphicCanvas::mouseUngrabEvent() {}
-
 void GraphicCanvas::hoverEnterEvent(QHoverEvent *event) {}
 void GraphicCanvas::hoverLeaveEvent(QHoverEvent *event) {}
 void GraphicCanvas::hoverMoveEvent(QHoverEvent *event) {}
@@ -945,7 +948,6 @@ void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
   }
 
   //  Remap paint grid after move
-  // setGrid(data, newLocation.x(), newLocation.y());
   setGrid(data);
 
   update();

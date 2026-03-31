@@ -27,7 +27,11 @@ public:
     ImageSource,
     InputNo,
     OutputNo,
+
+    Selected,
+    Orientation,
   };
+  Q_ENUM(Role)
 
   DiagramData &dataModel() { return _data; }
   const DiagramData &dataModel() const { return _data; }
