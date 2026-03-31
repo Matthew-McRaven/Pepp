@@ -64,19 +64,21 @@ std::optional<pepp::core::SpatialMap::Identifier> pepp::core::SpatialMap::at(Rec
   return std::nullopt;
 }
 
-bool pepp::core::SpatialMap::can_move_relative(Identifier id, Point<i16> delta) const noexcept {
+bool pepp::core::SpatialMap::can_move_relative(Identifier id, Point<i16> delta, bool transpose) const noexcept {
   std::array<Identifier, 1> arr{id};
-  return can_move_relative(arr, delta);
+  return can_move_relative(arr, delta, transpose);
 }
 
-bool pepp::core::SpatialMap::can_move_relative(std::span<Identifier> ids, Point<i16> delta) const noexcept {
+bool pepp::core::SpatialMap::can_move_relative(std::span<Identifier> ids, Point<i16> delta,
+                                               bool transpose) const noexcept {
   if (ids.empty()) return true;
   else if (delta == Point<i16>{0, 0}) return true;
   std::sort(ids.begin(), ids.end());
   for (const auto id : ids) {
     auto rect_it = _index_to_rectangle.find(id);
     if (rect_it == _index_to_rectangle.end()) return false;
-    const auto src = rect_it->second, dest = src.translated(delta);
+    const auto src = rect_it->second;
+    const auto dest = transpose ? src.translated(delta).transposed() : src.translated(delta);
     // This should be ~O(1), since items cannot overlap.
     auto overlaps = overlapping(dest);
     // Iterate over the collection of objects which partially overlap with dest.
@@ -88,12 +90,12 @@ bool pepp::core::SpatialMap::can_move_relative(std::span<Identifier> ids, Point<
   return true;
 }
 
-bool pepp::core::SpatialMap::move_relative(Identifier id, Point<i16> delta) noexcept {
+bool pepp::core::SpatialMap::move_relative(Identifier id, Point<i16> delta, bool transpose) noexcept {
   std::array<Identifier, 1> arr{id};
-  return move_relative(arr, delta);
+  return move_relative(arr, delta, transpose);
 }
 
-bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16> delta) noexcept {
+bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16> delta, bool transpose) noexcept {
   if (ids.empty()) return true;
   else if (delta == Point<i16>{0, 0}) return true;
   else if (!can_move_relative(ids, delta)) return false;
@@ -111,7 +113,8 @@ bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16>
   // Move each rectangle. Because we already sorted by position, we prevent collisions between rectangles within our
   // selected set.
   for (const auto id : ids) {
-    const auto src = _index_to_rectangle.at(id), dest = src.translated(delta);
+    const auto src = _index_to_rectangle.at(id);
+    const auto dest = transpose ? src.translated(delta).transposed() : src.translated(delta);
     _index_to_rectangle.insert_or_assign(id, dest);
     _rectangle_to_index.erase(src);
     _rectangle_to_index.insert_or_assign(dest, id);
@@ -124,18 +127,18 @@ bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16>
   return true;
 }
 
-bool pepp::core::SpatialMap::can_move_absolute(Identifier id, Point<i16> new_pos) const noexcept {
+bool pepp::core::SpatialMap::can_move_absolute(Identifier id, Point<i16> new_pos, bool transpose) const noexcept {
   auto rect_it = _index_to_rectangle.find(id);
   if (rect_it == _index_to_rectangle.end()) return false;
   const auto src = rect_it->second;
-  return can_move_relative(id, new_pos - src.top_left());
+  return can_move_relative(id, new_pos - src.top_left(), transpose);
 }
 
-bool pepp::core::SpatialMap::move_absolute(Identifier id, Point<i16> new_pos) noexcept {
+bool pepp::core::SpatialMap::move_absolute(Identifier id, Point<i16> new_pos, bool transpose) noexcept {
   auto rect_it = _index_to_rectangle.find(id);
   if (rect_it == _index_to_rectangle.end()) return false;
   const auto src = rect_it->second;
-  return move_relative(id, new_pos - src.top_left());
+  return move_relative(id, new_pos - src.top_left(), transpose);
 }
 
 // Unoptimized. Should cache the bounding box and only update on add/remove.
