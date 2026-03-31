@@ -951,6 +951,20 @@ void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
   update();
 }
 
+void GraphicCanvas::rotateDiagram(DiagramProperties *diagram) {
+  if (diagram == nullptr) {
+    return;
+  }
+
+  //  Update grid coordinates
+  if (!_model->dataModel().rotateData(diagram->id())) return;
+
+  //  Remap paint grid after move
+  setGrid(diagram);
+
+  update();
+}
+
 void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event) {
   // qDebug() << "dragEnterEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {

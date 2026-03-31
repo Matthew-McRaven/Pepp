@@ -133,9 +133,6 @@ bool DiagramData::moveData(const PeppPt &oldLocation, const PeppPt &newLocation)
   if (data == nullptr) return false;
 
   if (_diagram_map.can_move_absolute(id.value(), newLocation)) {
-    try {
-      //  MATTHEW. This is the function that throws. Try block
-      //  doesn't prevent crash.
       if (_diagram_map.move_absolute(id.value(), newLocation)) {
         //  Save key in cell for later lookups
 
@@ -143,12 +140,6 @@ bool DiagramData::moveData(const PeppPt &oldLocation, const PeppPt &newLocation)
 
         return true;
       }
-    } catch (...) {
-      //  If we get here, it is a bug. can_move should fail for same ID. If we
-      //  are here, can_move returned true, but the actual move threw an exception.
-      //  Just continue.
-      //  MATTHEW. Put your breakpoint here.
-    }
   }
   return false;
 }
@@ -156,3 +147,41 @@ bool DiagramData::moveData(const PeppPt &oldLocation, const PeppPt &newLocation)
 bool DiagramData::canMoveData(const PeppId id, const PeppPt &newLocation) const {
   return _diagram_map.can_move_absolute(id, newLocation);
 }
+
+bool DiagramData::rotateData(const PeppId id) {
+  auto box = _diagram_map.bounding_box(id);
+  qDebug() << "box x" << box.x().lower() << "y" << box.y().lower() << "height" << box.height() << "width"
+           << box.width();
+  //  Only diagrams can be rotated
+  auto *data = getDiagramProps(id);
+  if (data == nullptr) return false;
+
+  //  Temporary shim to keep diagram in same place during rotation
+  //  Without shim, upper left changes, which will move diagram to
+  //  different screen location
+  i16 newX = data->key().top();
+  i16 newY = data->key().left();
+  PeppPt adjustedKey(newX, newY);
+  qDebug() << "adj key x" << adjustedKey.x() << "y" << adjustedKey.y();
+  //<< "height" << key.height() << "width" << key.width();
+
+  //  move_relative below moves image in addition to rotate in place.
+  //  if (_diagram_map.can_move_relative(id, {0, 0}, true)) {
+  //    if (_diagram_map.move_relative(id, {0, 0}, true)) {
+  if (_diagram_map.can_move_absolute(id, adjustedKey, true)) {
+    if (_diagram_map.move_absolute(id, adjustedKey, true)) {
+      //  Save key in cell for later lookups
+
+      PeppRect newLocation = _diagram_map.bounding_box(id);
+      qDebug() << "new box" << newLocation.x().lower() << "y" << newLocation.y().lower() << "height"
+               << newLocation.height() << "width" << newLocation.width();
+
+      data->setKey(newLocation);
+
+      return true;
+    }
+  }
+  return false;
+}
+
+bool DiagramData::rotateMoveData(const PeppId id) const { return _diagram_map.can_move_relative(id, {0, 0}, true); }

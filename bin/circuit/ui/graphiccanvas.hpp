@@ -143,6 +143,7 @@ private:
   void setVScroll(qint8 change);
   void setHScroll(qint8 change);
   void moveDiagram(PeppPt oldLocation, PeppPt newLocation);
+  void rotateDiagram(DiagramProperties *diagram);
   bool hitTest(QPointF newPoint) const;
 
   //  Sets currently selected diagram/line

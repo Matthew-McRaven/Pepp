@@ -56,4 +56,6 @@ public:
   bool clearDiagramData(const PeppKey &key);
   bool moveData(const PeppPt &oldLocation, const PeppPt &newLocation);
   bool canMoveData(const PeppId id, const PeppPt &newLocation) const;
+  bool rotateData(const PeppId id);
+  bool rotateMoveData(const PeppId id) const;
 };
