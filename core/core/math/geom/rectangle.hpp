@@ -81,6 +81,8 @@ template <typename T> struct Rectangle {
   void translate(Point<T> delta) noexcept;
   Rectangle<T> translated(T delta_x, T delta_y) const noexcept;
   Rectangle<T> translated(Point<T> delta) const noexcept;
+  void transpose() noexcept;
+  Rectangle<T> transposed() const noexcept;
 
 private:
   Interval<T> _x, _y;
@@ -148,6 +150,14 @@ template <typename T> Rectangle<T> Rectangle<T>::translated(T delta_x, T delta_y
 
 template <typename T> Rectangle<T> Rectangle<T>::translated(Point<T> delta) const noexcept {
   return translated(delta.x(), delta.y());
+}
+
+template <typename T> void Rectangle<T>::transpose() noexcept { std::swap(_x, _y); }
+
+template <typename T> Rectangle<T> Rectangle<T>::transposed() const noexcept {
+  auto ret = *this;
+  ret.transpose();
+  return ret;
 }
 
 template <typename T> bool contains(const Rectangle<T> &rect, const Point<T> &inner) {

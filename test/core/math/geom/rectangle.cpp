@@ -163,6 +163,10 @@ TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     CHECK(intersection(r1, r3) == Rect(Ivl{2, 4}, Ivl{0, 1}));
     CHECK(hull(r1, r3) == r1);
   }
+  SECTION("Transposed") {
+    CHECK(r1.transposed() == Rect(Ivl{0, 5}, Ivl{0, 10}));
+    CHECK(r1.transposed().transposed() == r1);
+  }
 }
 
 TEST_CASE("Rectangle Decomposition", "[scope:core][scope:core.math][kind:unit][arch:*]") {
