@@ -72,7 +72,7 @@ bool pepp::core::SpatialMap::can_move_relative(Identifier id, Point<i16> delta, 
 bool pepp::core::SpatialMap::can_move_relative(std::span<Identifier> ids, Point<i16> delta,
                                                bool transpose) const noexcept {
   if (ids.empty()) return true;
-  else if (delta == Point<i16>{0, 0}) return true;
+  else if (delta == Point<i16>{0, 0} && !transpose) return true;
   std::sort(ids.begin(), ids.end());
   for (const auto id : ids) {
     auto rect_it = _index_to_rectangle.find(id);
@@ -97,7 +97,7 @@ bool pepp::core::SpatialMap::move_relative(Identifier id, Point<i16> delta, bool
 
 bool pepp::core::SpatialMap::move_relative(std::span<Identifier> ids, Point<i16> delta, bool transpose) {
   if (ids.empty()) return true;
-  else if (delta == Point<i16>{0, 0}) return true;
+  else if (delta == Point<i16>{0, 0} && !transpose) return true;
   else if (!can_move_relative(ids, delta)) return false;
 
   // Sort ids by position along the delta direction vector.
