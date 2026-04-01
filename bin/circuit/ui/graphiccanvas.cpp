@@ -364,14 +364,6 @@ void GraphicCanvas::paint(QPainter *painter) {
     //  Skip painting rectangles that are outside the viewport.
     if (pepp::core::intersects(grid_viewport, line->gridRectangle())) paint_line(painter, line);
   }
-
-  //  Diagrams are painted on minor grid axis. Overwrite lines.
-  /*for (auto &prop : _model->dataModel().cells()) {
-    //  Skip painting rectangles that are outside the viewport.
-    auto *diagram = prop.get();
-    if (pepp::core::intersects(grid_viewport, diagram->gridRectangle())) paint_one(painter, diagram);
-  }*/
-  // qDebug() << "grid_viewport: " << grid_viewport;
 }
 
 void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
@@ -947,7 +939,6 @@ void GraphicCanvas::rotateDiagram(DiagramProperties *diagram) {
 }
 
 void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event) {
-  // qDebug() << "dragEnterEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
     if (event->source() == this) {
       event->setDropAction(Qt::MoveAction);
@@ -962,11 +953,9 @@ void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event) {
 
 void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event) {
   event->ignore();
-  // qDebug() << "dragLeaveEvent";
 }
 
 void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event) {
-  // qDebug() << "dragMoveEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
     if (hitTest(event->position())) {
       return;
@@ -1050,7 +1039,7 @@ void GraphicCanvas::startDrag(const QPoint point) {
   //  Size image based on current zoom and screen DPI. Margin is in grid coordinates, and
   //  there are 2 equal margins.
   const auto curSize = (screen_block - (_margin * grid_to_px * 2)) * _currentZoom;
-  auto dragPix = _currentDiagram->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
+  auto dragPix = _currentDiagram->image()->scaledToWidth(curSize, Qt::SmoothTransformation);
   drag->setPixmap(dragPix);
 
   //  Use center point for hit detection
