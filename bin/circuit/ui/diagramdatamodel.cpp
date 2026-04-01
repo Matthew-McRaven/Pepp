@@ -1,5 +1,6 @@
 #include "diagramdatamodel.hpp"
 #include "graphiccanvas.hpp" //  GraphicCanvas::diagramGeometry
+
 DiagramDataModel::DiagramDataModel(QObject *parent) : QAbstractTableModel(parent) {}
 
 bool DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newIndex) {
@@ -100,11 +101,6 @@ QVariant DiagramDataModel::data(const QModelIndex &index, int role) const {
   case DiagramDataModel::Role::Selected: return item->selected();
   case DiagramDataModel::Role::Orientation:
     return item->orientation();
-    /*case DiagramProperty::Role::Rectangle:
-      const auto key = item->key();
-      const int x = key.x().lower();
-      const int y = key.y().lower();
-      return QRect(x, y, key.width(), key.height());*/
   }
 }
 
@@ -143,13 +139,6 @@ bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, 
     }
     break;
   }
-    /*case DiagramProperty::Role::Rectangle:
-      auto oldRect = data.toRect();
-      PeppPt pt{static_cast<i16>(oldRect.x()), static_cast<i16>(oldRect.y())};
-      PeppSize size{static_cast<i16>(oldRect.width()), static_cast<i16>(oldRect.height())};
-      PeppRect rect(pt, size);
-      _baseProperties.key = rect;
-      break;*/
   }
 
   emit dataChanged(index, index);

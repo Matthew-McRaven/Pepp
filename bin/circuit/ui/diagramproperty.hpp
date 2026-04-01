@@ -130,16 +130,6 @@ private:
 
 class DiagramProperties : public BaseProperties {
   Q_OBJECT
-  QML_ELEMENT
-
-  Q_PROPERTY(quint32 id READ id CONSTANT) // Read only
-  Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
-  Q_PROPERTY(QString imageSource READ imageSource WRITE setImageSource NOTIFY imageChanged)
-  Q_PROPERTY(DiagramType::Type type READ type WRITE setType NOTIFY typeChanged)
-  Q_PROPERTY(quint16 inputNo READ inputNo WRITE setInputNo NOTIFY inputChanged)
-  Q_PROPERTY(quint16 outputNo READ outputNo WRITE setOutputNo NOTIFY outputChanged)
-  Q_PROPERTY(quint16 orientation READ orientation WRITE setOrientation NOTIFY imageChanged)
-
 public:
   explicit DiagramProperties(QObject *parent = nullptr);
 
