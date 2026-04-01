@@ -11,12 +11,11 @@ Item {
     property alias filterList: filterModel
     property alias diagramOnly: diagramOnlyList
 
-    function setStamp(index){
+    function setStamp(index) {
 
         //  Only diagrams can be stamped. Clear stamp for others
         //console.log("Current:", filterModel.filter);
-        if(filterModel.filter !== FilterDiagramListModel.Diagram)
-        {
+        if (filterModel.filter !== FilterDiagramListModel.Diagram) {
             root.currentStamp = null;
             return;
         }
@@ -36,8 +35,8 @@ Item {
         filter: FilterDiagramListModel.Arrow
 
         onFilterChanged: {
-            if(filterModel.filter !== FilterDiagramListModel.Diagram)
-                root.currentStamp=null;
+            if (filterModel.filter !== FilterDiagramListModel.Diagram)
+                root.currentStamp = null;
         }
     }
 

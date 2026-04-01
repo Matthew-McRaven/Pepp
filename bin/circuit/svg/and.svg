@@ -5,10 +5,10 @@
   <!--rect width="48" height="32" fill="red" fill-opacity=".25" /-->
         <path
 	d="
-	M 28 0
-	a 15 15 0 0 1 0 32
+	M 28 1
+	a 15 15 0 0 1 0 30
 	H 5
-	V 0
+	V 1
 	Z"
 	style="fill:white;stroke:#000000;stroke-width:1" />
 </svg>

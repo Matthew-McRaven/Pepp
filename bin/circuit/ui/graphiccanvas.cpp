@@ -230,7 +230,7 @@ void GraphicCanvas::cacheImages(const QString &source) {
     //  SVG dimensions should not matter, but rendering SVG at anything
     //  but a direct multiple of the width creates visual issues.
     int width = 48 * 3;
-    int height = 32 * 3 + _margin * 2;
+    int height = 34 * 3;
 
     // qDebug() << "dim, width, widthMM, logicalDpiX" << dim << _background.width()
     //          << _background.widthMM() << _background.logicalDpiX();
@@ -1039,7 +1039,12 @@ void GraphicCanvas::startDrag(const QPoint point) {
   //  Size image based on current zoom and screen DPI. Margin is in grid coordinates, and
   //  there are 2 equal margins.
   const auto curSize = (screen_block - (_margin * grid_to_px * 2)) * _currentZoom;
-  auto dragPix = _currentDiagram->image()->scaledToWidth(curSize, Qt::SmoothTransformation);
+
+  QPixmap dragPix;
+  if (_currentDiagram->key().width() > _currentDiagram->key().height())
+    dragPix = _currentDiagram->image()->scaledToWidth(curSize, Qt::SmoothTransformation);
+  else dragPix = _currentDiagram->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
+
   drag->setPixmap(dragPix);
 
   //  Use center point for hit detection
