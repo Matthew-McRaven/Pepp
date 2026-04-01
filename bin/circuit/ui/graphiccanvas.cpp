@@ -582,12 +582,8 @@ void GraphicCanvas::rotateClockwise() {
 
   //  Rotate diagram in hit model
   rotateDiagram(_currentDiagram);
-  //  Height and width are different sizes, update key
-  // auto size = _currentDiagram->key().size();
-  // PeppSize newSize{size.width(), size.height()};
-  // PeppRect rect{_currentDiagram->key().top_left(), newSize};
-  //_currentDiagram->setKey(rect);
 
+  //  Set drawing size
   setGrid(_currentDiagram);
 
   //  Repaint rectangle
@@ -598,15 +594,12 @@ void GraphicCanvas::rotateCounterClockwise() {
   if (_currentDiagram == nullptr) return;
 
   const int orientation = _currentDiagram->orientation() == 0 ? 270 : _currentDiagram->orientation() - 90;
+  _currentDiagram->setOrientation(orientation);
 
   //  Rotate diagram in hit model
   rotateDiagram(_currentDiagram);
-  //_currentDiagram->setOrientation(orientation);
-  // auto size = _currentDiagram->key().size();
-  // PeppSize newSize{size.width(), size.height()};
-  // PeppRect rect{_currentDiagram->key().top_left(), newSize};
-  // currentDiagram->setKey(rect);
 
+  //  Set drawing size
   setGrid(_currentDiagram);
 
   //  Repaint rectangle
