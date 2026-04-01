@@ -60,6 +60,7 @@ template <typename T> struct Interval {
   }
   inline T lower() const { return _lower; }
   inline T upper() const { return _upper; }
+  inline T midpoint_approximate() const { return _lower + (_upper - _lower) / 2; }
   // If T::invalid() exists, returns true if _upper and _lower are valid AND _lower<=_upper
   // Otherwise returns true if _lower <= _upper.
   bool valid() const noexcept;
