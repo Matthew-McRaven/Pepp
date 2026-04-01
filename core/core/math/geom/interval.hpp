@@ -18,8 +18,15 @@
 #include <assert.h>
 #include <ostream>
 #include "core/integers.h"
-
+#include "core/math/integers/fixed_point_utils.hpp"
+#include "core/math/integers/wider.hpp"
 namespace pepp::core {
+
+template <typename T> constexpr T quantum() {
+  if constexpr (std::is_integral_v<T>) return T{1};
+  else return std::bit_cast<T>(cnl::rep_t<T>{1});
+}
+
 // Represent a mathematically closed interval [lower, upper], which is inclusive of both endpoints.
 // If lower >= upper, the interval is treated as empty, and all empty intervals are equivalent.
 // This interval started as a helper for memory address ranges, for which closed intervals make the most sense.
@@ -53,6 +60,7 @@ template <typename T> struct Interval {
   }
   inline T lower() const { return _lower; }
   inline T upper() const { return _upper; }
+  inline T midpoint_approximate() const { return _lower + (_upper - _lower) / 2; }
   // If T::invalid() exists, returns true if _upper and _lower are valid AND _lower<=_upper
   // Otherwise returns true if _lower <= _upper.
   bool valid() const noexcept;
@@ -70,10 +78,13 @@ public:
 };
 
 template <typename T> Interval<T>::Interval() {
-  if constexpr (requires { T() + 1; }) {
+  if constexpr (requires {
+                  T() + quantum<T>();
+                  T() + 1;
+                }) {
     // Not all tpyes (e.g., source locations) can be incremented.
     // For integer intervals, making _lower=_upper+1 is the easiest
-    _lower = T() + 1;
+    _lower = T() + quantum<T>();
     _upper = T();
   } else if constexpr (requires { T::invalid(); }) {
     // Otherwise use underlying type's "invalid" value.
@@ -110,13 +121,13 @@ template <typename T> Interval<T> Interval<T>::normalized() const noexcept {
 // Two variants of size, depending on if the right endpoint is included. For example, for integers, [0, 0] has size 1 if
 // the right endpoint is included, and size 0 if it is not. This is the only algorithm which does not always treat the
 // interval as closed.
-template <typename T, bool exclude_right = false> std::size_t size(const Interval<T> &interval) {
-  static constexpr std::size_t offset = exclude_right ? 0 : 1;
-  if (!interval.valid()) return 0;
-  else return static_cast<std::size_t>(interval.upper()) - static_cast<std::size_t>(interval.lower()) + offset;
+template <typename T, bool exclude_right = false> wider_type_t<T> size(const Interval<T> &interval) {
+  static constexpr wider_type_t<T> offset = exclude_right ? 0 : 1;
+  if (!interval.valid()) return wider_type_t<T>{0};
+  else return static_cast<wider_type_t<T>>(interval.upper()) - static_cast<wider_type_t<T>>(interval.lower()) + offset;
 }
-template <typename T> std::size_t size_inclusive(const Interval<T> &interval) { return size<T, false>(interval); }
-template <typename T> std::size_t size_exclusive(const Interval<T> &interval) { return size<T, true>(interval); }
+template <typename T> wider_type_t<T> size_inclusive(const Interval<T> &interval) { return size<T, false>(interval); }
+template <typename T> wider_type_t<T> size_exclusive(const Interval<T> &interval) { return size<T, true>(interval); }
 
 // Check if the first argument completely contains the second argument.
 // For the non-interval overload, inner is casted to the closed interval [inner,inner].

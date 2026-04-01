@@ -133,4 +133,5 @@ TEST_CASE("Interval Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     // Invertible
     CHECK(offset_map(offset_map<i16>(2, i05, i14), i14, i05) == 2);
   }
+  SECTION("Approximate midpoint") { CHECK(i14.midpoint_approximate() == 2); }
 }

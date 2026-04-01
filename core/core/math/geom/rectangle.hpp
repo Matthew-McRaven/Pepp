@@ -31,7 +31,7 @@ template <typename T> struct Rectangle {
   explicit Rectangle(Point<T> pt) : _x(pt.x()), _y(pt.y()) {}
   // Caller must provide a non-zero size
   Rectangle(Point<T> pt, Size<T> size)
-      : _x(pt.x(), pt.x() + size.width() - 1), _y(pt.y(), pt.y() + size.height() - 1) {}
+      : _x(pt.x(), pt.x() + size.width() - quantum<T>()), _y(pt.y(), pt.y() + size.height() - quantum<T>()) {}
   Rectangle(Interval<T> x, Interval<T> y) : _x(std::move(x)), _y(std::move(y)) {}
   Rectangle(Point<T> top_left, Point<T> bottom_right) noexcept;
   static constexpr Rectangle from_point_point(T x1, T y1, T x2, T y2) noexcept;
@@ -59,6 +59,7 @@ template <typename T> struct Rectangle {
   // These are screen-ish coordinates, with y increasing downward.
   Point<T> top_left() const noexcept { return {_x.lower(), _y.lower()}; };
   Point<T> bottom_right() const noexcept { return {_x.upper(), _y.upper()}; };
+  Point<T> midpoint_and_b() const noexcept { return Point<T>(_x.midpoint_approximate(), _y.midpoint_approximate()); }
   const Interval<T> &x() const noexcept { return _x; }
   const Interval<T> &y() const noexcept { return _y; }
   //  x and y do not return actual points. Discuss with Matthew if we can rename x and y above
@@ -119,7 +120,8 @@ template <typename T> constexpr Rectangle<T> Rectangle<T>::from_point_size(T x, 
   return Rectangle(Point<T>(x, y), Size<T>(width, height));
 }
 
-template <typename T> std::size_t area(const Rectangle<T> &rect) {
+// Use auto here to auto
+template <typename T> auto area(const Rectangle<T> &rect) -> std::invoke_result_t<std::multiplies<>, T, T> {
   if (!rect.valid()) return 0;
   else return rect.height() * rect.width();
 }
@@ -163,9 +165,11 @@ template <typename T> Rectangle<T> Rectangle<T>::transposed() const noexcept {
 template <typename T> bool contains(const Rectangle<T> &rect, const Point<T> &inner) {
   return contains(rect.x(), inner.x()) && contains(rect.y(), inner.y());
 }
+
 template <typename T> bool contains(const Rectangle<T> &outer, const Rectangle<T> &inner) {
   return contains(outer.x(), inner.x()) && contains(outer.y(), inner.y());
 }
+
 template <typename T> bool intersects(const Rectangle<T> &lhs, const Rectangle<T> &rhs) {
   return intersects(lhs.x(), rhs.x()) && intersects(lhs.y(), rhs.y());
 }
@@ -173,6 +177,7 @@ template <typename T> bool intersects(const Rectangle<T> &lhs, const Rectangle<T
 template <typename T> Rectangle<T> intersection(const Rectangle<T> &lhs, const Rectangle<T> &rhs) {
   return {intersection(lhs.x(), rhs.x()), intersection(lhs.y(), rhs.y())};
 }
+
 // Smallest rectangle which containing the entirety ofboth lhs and rhs.
 template <typename T> Rectangle<T> hull(const Rectangle<T> &lhs, const Rectangle<T> &rhs) {
   return {hull(lhs.x(), rhs.x()), hull(lhs.y(), rhs.y())};
@@ -182,10 +187,26 @@ template <typename T> std::ostream &operator<<(std::ostream &os, const Rectangle
   return os << "Rectangle(" << rect.x() << ", " << rect.y() << ")";
 }
 
+// Convert a scaled_integer rectangle to its underlying representation.
+// If the rectangle is already an integer, this is a no-op.
+template <typename T> Rectangle<cnl::rep_t<T>> to_underlying_rect(const Rectangle<T> &rect) {
+  if constexpr (std::is_same_v<T, cnl::rep_t<T>>) {
+    return rect;
+  } else {
+    auto to_rep = [](T v) -> cnl::rep_t<T> { return cnl::_impl::to_rep(v); };
+    return Rectangle<cnl::rep_t<T>>(Point<cnl::rep_t<T>>(to_rep(rect.x().lower()), to_rep(rect.y().lower())),
+                                    Point<cnl::rep_t<T>>(to_rep(rect.x().upper()), to_rep(rect.y().upper())));
+  }
+}
+
 // The SparseOccupancyGrid wants to clip a larger rectangle to a variety of aligned 8x8 grids.
 // It was easier to implement this "decomposition" of a large rectangle into many smaller ones as a reusable component
 // than in-place. This class breaks the input rectangle into non-overlapping rectangles that cover the same area, but
 // are aligned to an 8x8 grid.
+//
+// While you *can* use this with a fractional integer, it will probably not be helpful.
+// The goal of this class is to break a large rectangle into 8x8 bit chunks which map to the bits of an occupancy grid.
+// When using a scaled integer, an 8x8 rectangle spans arbitrarily large number of 8x8 bit chunks.
 template <typename T> class RectangleDecomposer {
 public:
   RectangleDecomposer(Rectangle<T> rect) noexcept : _rect(rect) {}
