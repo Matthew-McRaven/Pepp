@@ -165,8 +165,9 @@ TEST_CASE("Integer Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arc
     CHECK(hull(r1, r3) == r1);
   }
   SECTION("Transposed") {
-    CHECK(r1.transposed() == Rect(Ivl{0, 5}, Ivl{0, 10}));
-    CHECK(r1.transposed().transposed() == r1);
+    auto r = Rect(Ivl{3, 13}, Ivl{4, 9});
+    CHECK(r.transposed() == Rect(Ivl{3, 8}, Ivl{4, 14}));
+    CHECK(r.transposed().transposed() == r);
   }
 }
 

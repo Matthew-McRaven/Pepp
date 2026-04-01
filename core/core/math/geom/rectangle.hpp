@@ -82,6 +82,7 @@ template <typename T> struct Rectangle {
   void translate(Point<T> delta) noexcept;
   Rectangle<T> translated(T delta_x, T delta_y) const noexcept;
   Rectangle<T> translated(Point<T> delta) const noexcept;
+  // Keeping the same top-left corner, swap the height and width of the rectangle.
   void transpose() noexcept;
   Rectangle<T> transposed() const noexcept;
 
@@ -154,7 +155,10 @@ template <typename T> Rectangle<T> Rectangle<T>::translated(Point<T> delta) cons
   return translated(delta.x(), delta.y());
 }
 
-template <typename T> void Rectangle<T>::transpose() noexcept { std::swap(_x, _y); }
+template <typename T> void Rectangle<T>::transpose() noexcept {
+  const T _width = width(), _height = height();
+  *this = Rectangle<T>(Point<T>(_x.lower(), _y.lower()), Size<T>(_height, _width));
+}
 
 template <typename T> Rectangle<T> Rectangle<T>::transposed() const noexcept {
   auto ret = *this;
