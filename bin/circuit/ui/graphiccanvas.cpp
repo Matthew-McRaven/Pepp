@@ -467,6 +467,14 @@ void GraphicCanvas::setBoundingBox() {
 }
 
 void GraphicCanvas::setGrid(DiagramProperties *data) {
+  //  Update screen dimensions
+  data->setGridRectangle(GraphicCanvas::diagramGeometry(data));
+
+  //  Track dimensions of canvas area. Affects scrollbars
+  setBoundingBox();
+}
+
+PeppRect GraphicCanvas::diagramGeometry(DiagramProperties *data) {
   //  Column and row represents center point, not top left
   //  Save in grid coordinates, not screen coordinates
   /*PeppRect gridRect =
@@ -480,12 +488,7 @@ void GraphicCanvas::setGrid(DiagramProperties *data) {
 
   PeppRect gridRect = PeppRect::from_point_size(minor_block_size * data->key().left() - width / 2,
                                                 minor_block_size * data->key().top() - height / 2, width, height);
-
-  //  Add block data
-  data->setGridRectangle(gridRect);
-
-  //  Track dimensions of canvas area. Affects scrollbars
-  setBoundingBox();
+  return gridRect;
 }
 
 void GraphicCanvas::getImage(DiagramProperties &props) {
@@ -998,7 +1001,6 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
     moveDiagram(oldLocation, newLocation);
 
     //  Remap paint grid after move
-    // setGrid(_currentDiagram, newLocation.x(), newLocation.y());
     setGrid(_currentDiagram);
 
     update();

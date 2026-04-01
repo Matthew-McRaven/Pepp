@@ -1,5 +1,5 @@
 #include "diagramdatamodel.hpp"
-
+#include "graphiccanvas.hpp" //  GraphicCanvas::diagramGeometry
 DiagramDataModel::DiagramDataModel(QObject *parent) : QAbstractTableModel(parent) {}
 
 bool DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newIndex) {
@@ -133,8 +133,14 @@ bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, 
 
     item->setOrientation(newV);
     //  Was there a switch between vertical and horizontal?
-    bool noChange = (std::abs(oldV - newV) % 180) == 0;
-    if (!noChange) _data.rotateData(item->id());
+    bool change = ((oldV + newV) % 180) != 0;
+    if (change) {
+      _data.rotateData(item->id());
+
+      //  Rotate swaps height and width of collision mask
+      //  We need to perform same transformation to screen size
+      item->setGridRectangle(GraphicCanvas::diagramGeometry(item));
+    }
     break;
   }
     /*case DiagramProperty::Role::Rectangle:
@@ -146,7 +152,6 @@ bool DiagramDataModel::setData(const QModelIndex &index, const QVariant &value, 
       break;*/
   }
 
-  // item->set(role, value);
   emit dataChanged(index, index);
 
   return true;

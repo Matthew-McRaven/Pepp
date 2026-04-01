@@ -94,6 +94,8 @@ public:
   auto filter() const { return _filter; }
   void setFilter(const FilterDiagramListModel::Filter filter);
 
+  static PeppRect diagramGeometry(DiagramProperties *data);
+
 protected:
   //  Mouse events
   // void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -184,7 +186,7 @@ private:
   const i16 lines_per_minor = 4;
   const i16 minor_per_major = 4;
   const i16 line_block_size = 2;
-  const i16 minor_block_size = 8;
+  static constexpr i16 minor_block_size = 8;
   const i16 major_block_size = minor_block_size * minor_per_major;
   const float screen_block = major_block_size * grid_to_px;
   const i16 _margin = 4;
