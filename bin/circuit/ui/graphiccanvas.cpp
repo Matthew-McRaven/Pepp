@@ -136,24 +136,6 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   to->setSelected(false);
   getImage(*to);
 
-  /*MATTHEW START TEST DATA*/
-
-  //  Working example
-  /*const DiagramProperties *data1 = _model->dataModel().getDiagramProps(PeppRect::from_point_size(2, 3, 4, 4));
-  Q_ASSERT(data1 != nullptr);
-  Q_ASSERT(from->id() == data1->id());
-
-  //  Search by id
-  const DiagramProperties *data2 = _model->dataModel().getDiagramProps(from->id());
-  Q_ASSERT(data2 != nullptr);
-  Q_ASSERT(from->id() == data2->id());
-
-  //  Search by point
-  const DiagramProperties *data3 = _model->dataModel().getDiagramProps({2, 3});
-  Q_ASSERT(data3 != nullptr);
-  Q_ASSERT(from->id() == data3->id());
-  // MATTHEW END TEST DATA*/
-
   //  data life time managed by model
   DiagramProperties *from1 = addDiagram(2, 2);
   if (from1 == nullptr) return;
@@ -248,11 +230,11 @@ void GraphicCanvas::cacheImages(const QString &source) {
     //  SVG dimensions should not matter, but rendering SVG at anything
     //  but a direct multiple of the width creates visual issues.
     int width = 48 * 3;
-    // int height = 32 * 3;
+    int height = 32 * 3 + _margin * 2;
 
     // qDebug() << "dim, width, widthMM, logicalDpiX" << dim << _background.width()
     //          << _background.widthMM() << _background.logicalDpiX();
-    QPixmap image(width, width);
+    QPixmap image(width, height);
     image.fill(Qt::transparent);
 
     // Get QPainter that paints to the image
@@ -495,13 +477,17 @@ void GraphicCanvas::setBoundingBox() {
 void GraphicCanvas::setGrid(DiagramProperties *data) {
   //  Column and row represents center point, not top left
   //  Save in grid coordinates, not screen coordinates
-  PeppRect gridRect = PeppRect::from_point_size(minor_block_size * data->key().left() - major_block_size / 2 + _margin,
-                                                minor_block_size * data->key().top() - major_block_size / 2 + _margin,
-                                                major_block_size - _margin * 2, major_block_size - _margin * 2);
-  //  Change to native size after spatial_map is updated.
-  // PeppRect gridRect2 =
-  //    PeppRect::from_point_size(minor_block_size * data->key().left(), minor_block_size * data->key().top(),
-  //                              minor_block_size * data->key().width(), minor_block_size * data->key().height());
+  /*PeppRect gridRect =
+    PeppRect::from_point_size(minor_block_size * data->key().left() - major_block_size / 2 + _margin,
+                              minor_block_size * data->key().top()  - major_block_size / 2 + _margin,
+                              major_block_size - _margin * 2,
+                              major_block_size - _margin * 2);
+  */
+  const i16 width = minor_block_size * data->key().width();
+  const i16 height = minor_block_size * data->key().height();
+
+  PeppRect gridRect = PeppRect::from_point_size(minor_block_size * data->key().left() - width / 2,
+                                                minor_block_size * data->key().top() - height / 2, width, height);
 
   //  Add block data
   data->setGridRectangle(gridRect);
