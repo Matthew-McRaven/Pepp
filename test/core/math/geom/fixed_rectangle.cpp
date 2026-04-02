@@ -181,7 +181,7 @@ TEST_CASE("Fixed-Point Rectangle Decomposition", "[scope:core][scope:core.math][
     CHECK(to_rep(max) == 7);
 
     Rect r0(Ivl{0, max}, Ivl{0, max});
-    const auto underlying = to_underlying_rect(r0);
+    const auto underlying = to_underlying_repr(r0);
     CHECK(underlying.x() == Interval<i16>{0, 7});
     CHECK(underlying.y() == Interval<i16>{0, 7});
     RD rd0(underlying);
@@ -197,7 +197,7 @@ TEST_CASE("Fixed-Point Rectangle Decomposition", "[scope:core][scope:core.math][
   }
   SECTION("Aligned 4x4 rect @ 0,0") {
     Rect r0(Ivl{0, 3}, Ivl{0, 3});
-    const auto underlying = to_underlying_rect(r0);
+    const auto underlying = to_underlying_repr(r0);
     CHECK(underlying.x() == Interval<i16>{0, 3 * 4});
     CHECK(underlying.y() == Interval<i16>{0, 3 * 4});
     RD rd0(underlying);

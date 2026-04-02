@@ -193,7 +193,7 @@ template <typename T> std::ostream &operator<<(std::ostream &os, const Rectangle
 
 // Convert a scaled_integer rectangle to its underlying representation.
 // If the rectangle is already an integer, this is a no-op.
-template <typename T> Rectangle<cnl::rep_t<T>> to_underlying_rect(const Rectangle<T> &rect) {
+template <typename T> Rectangle<cnl::rep_t<T>> to_underlying_repr(const Rectangle<T> &rect) {
   if constexpr (std::is_same_v<T, cnl::rep_t<T>>) {
     return rect;
   } else {

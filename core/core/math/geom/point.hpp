@@ -16,6 +16,7 @@
 #pragma once
 #include <algorithm>
 #include <utility>
+#include "core/math/integers/fixed_point_utils.hpp"
 
 namespace pepp::core {
 // I have multiple classes which act as a vector with two components.
@@ -75,6 +76,17 @@ public:
   }
   Point translated(Point delta) const noexcept { return translated(delta.elements[0], delta.elements[1]); }
 };
+
+// Convert a scaled_integer rectangle to its underlying representation.
+// If the rectangle is already an integer, this is a no-op.
+template <typename T> Point<cnl::rep_t<T>> to_underlying_repr(const Point<T> &pt) {
+  if constexpr (std::is_same_v<T, cnl::rep_t<T>>) {
+    return pt;
+  } else {
+    auto to_rep = [](T v) -> cnl::rep_t<T> { return cnl::_impl::to_rep(v); };
+    return Point<cnl::rep_t<T>>(to_rep(pt.x()), to_rep(pt.y()));
+  }
+}
 
 // Create component-wise + and - operators for Point.
 template <typename T> inline Point<T> operator+(const Point<T> &lhs, const Point<T> &rhs) noexcept {
