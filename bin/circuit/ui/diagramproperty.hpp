@@ -174,15 +174,13 @@ public:
 
   // Display functions
   QString name() const { return _name; }
-  QString imageSource() const { return _imageSrc; }
-  QPixmap *image() const { return _pixMap; }
+  u32 imageKey() const { return _mipmapKey; }
 
   void setName(const QString v);
-  void setImageSource(const QString v);
 
   // bool selected() const { return _isSelected; }
   void setSelected(const bool v);
-  void setImage(QPixmap *v);
+  void setImageKey(u32 key);
 
   int orientation() const { return _properties.orientation; }
   void setOrientation(const quint32 v);
@@ -210,10 +208,8 @@ private:
 
   //  Display properties properties
   QString _name;
-  QString _imageSrc;
-
   //  Presentation variables that require Qt stay in this class
-  QPixmap *_pixMap = nullptr;
+  u32 _mipmapKey = 0;
 
   Pins _inputPins;
   Pins _outputPins;

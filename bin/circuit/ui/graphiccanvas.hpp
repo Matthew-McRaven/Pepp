@@ -8,6 +8,7 @@
 #include "diagramproperty.hpp"
 
 #include "core/math/geom/rectangle.hpp"
+#include "pixmaps/mipmapstore.hpp"
 
 /*  Rectangle questions
  *  1. To search for an item, I need to know the width/height. Can we lookup
@@ -150,7 +151,7 @@ private:
   void unselectLines();
 
   //  Render and cache images for painting
-  void cacheImages(const QString &source);
+  u32 cacheImages(const QString &source);
 
   //  Render and cache background lines
   void cacheBackground();
@@ -187,10 +188,8 @@ private:
   const i16 _margin = 4;
 
   //  Cached images
-  QList<QPixmap> _svgs;
-  QList<QPixmap> _svgsBottom;
-  QList<QPixmap> _svgsLeft;
-  QList<QPixmap> _svgsTop;
+  MipmapStore _mipmaps;
+  std::map<DiagramType::Type, u32> _typeToMipmapKey;
 
   // Top-left corner of the viewport in grid coordinates
   PeppPt _top_left;

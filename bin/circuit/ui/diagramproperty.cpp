@@ -187,23 +187,10 @@ void DiagramProperties::setName(const QString v) {
   }
 }
 
-void DiagramProperties::setImageSource(const QString v) {
-  if (_imageSrc != v) {
-    _imageSrc = v;
-
-    //  Clear cached image
-    _pixMap = nullptr;
-
-    emit imageChanged();
-  }
-}
-
 void DiagramProperties::setType(const DiagramType::Type v) {
   if (BaseProperties::setType(v)) {
-
     //  Clear cached image
-    _pixMap = nullptr;
-
+    _mipmapKey = 0;
     emit typeChanged();
   }
 }
@@ -246,7 +233,7 @@ void DiagramProperties::setOrientation(const quint32 v) {
   _properties.orientation = slice * 90;
 
   //  Clear cached image
-  _pixMap = nullptr;
+  _mipmapKey = 0;
 
   //  Rotation affects line placement
   updateInputPinPt();
@@ -273,11 +260,7 @@ void DiagramProperties::setGridRectangle(const PeppRect &v) {
   }
 }
 
-void DiagramProperties::setImage(QPixmap *v) {
-  if (_pixMap != v) {
-    _pixMap = v;
-  }
-}
+void DiagramProperties::setImageKey(u32 key) { _mipmapKey = key; }
 
 void DiagramProperties::updateOutputPinPt() {
   //  Output at 0 degrees exits to right

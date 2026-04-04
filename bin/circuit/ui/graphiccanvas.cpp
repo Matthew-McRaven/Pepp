@@ -24,12 +24,12 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   cacheBackground();
 
   //  Create image copies for later painting
-  cacheImages(":/and");
-  cacheImages(":/or");
-  cacheImages(":/inverter");
-  cacheImages(":/nand");
-  cacheImages(":/nor");
-  cacheImages(":/xor");
+  _typeToMipmapKey[DiagramType::ANDGate] = cacheImages(":/and");
+  _typeToMipmapKey[DiagramType::ORGate] = cacheImages(":/or");
+  _typeToMipmapKey[DiagramType::Inverter] = cacheImages(":/inverter");
+  _typeToMipmapKey[DiagramType::NANDGate] = cacheImages(":/nand");
+  _typeToMipmapKey[DiagramType::NORGate] = cacheImages(":/nor");
+  _typeToMipmapKey[DiagramType::XORGate] = cacheImages(":/xor");
 
   updateData();
 }
@@ -151,35 +151,11 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   addLine(from2, to);
 }
 
-void GraphicCanvas::cacheImages(const QString &source) {
-  //  Pre-render SVG files so that paint is not slowed down
-  QSvgRenderer renderer(source);
-  renderer.setAspectRatioMode(Qt::KeepAspectRatio);
-
-  if (renderer.isValid()) {
-    //  SVG dimensions should not matter, but rendering SVG at anything
-    //  but a direct multiple of the width creates visual issues.
-    int width = 48 * 3;
-    int height = 34 * 3;
-
-    // qDebug() << "dim, width, widthMM, logicalDpiX" << dim << _background.width()
-    //          << _background.widthMM() << _background.logicalDpiX();
-    QPixmap image(width, height);
-    image.fill(Qt::transparent);
-
-    // Get QPainter that paints to the image
-    QPainter painter(&image);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-
-    renderer.render(&painter);
-    _svgs.emplace_back(image);
-
-    //  Make copy of rotated image to speed up drawing
-    _svgsBottom.emplaceBack(image.transformed(QTransform().rotate(90)));
-    _svgsLeft.emplaceBack(image.transformed(QTransform().rotate(180)));
-    _svgsTop.emplaceBack(image.transformed(QTransform().rotate(270)));
-  }
+u32 GraphicCanvas::cacheImages(const QString &source) {
+  auto mipmap_source = MipmapSource::from_svg_file(source);
+  QSize size(48 * 3, 34 * 3);
+  auto key_for = _mipmaps.insert(mipmap_source, size, Direction::Right, {});
+  return key_for;
 }
 
 void GraphicCanvas::cacheBackground() {
@@ -306,14 +282,14 @@ void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
     painter->drawRect(screen_rect);
   }
 
-  //  If image is not null, it can be output
-  if (props->image() == nullptr)
-
-    //  If image is null, then it's properties were reset, update image
-    getImage(*props);
+  //  If image is null, then it's properties were reset, update image
+  if (props->imageKey() == 0) getImage(*props);
 
   //  Paint diagram
-  painter->drawPixmap(screen_rect.toRect(), *props->image());
+  // Get mipmaps for the current image.
+  const auto mip = _mipmaps.mipmap(props->imageKey());
+  const auto best = mip.best_for(screen_rect.size().toSize(), props->orientation());
+  painter->drawPixmap(screen_rect.toRect(), best);
 
   //  Paint input pins
   painter->setPen(QPen(QColorConstants::Svg::aqua, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
@@ -420,19 +396,15 @@ PeppRect GraphicCanvas::diagramGeometry(DiagramProperties *data) {
 }
 
 void GraphicCanvas::getImage(DiagramProperties &props) {
-  QPixmap *image = nullptr;
-
   //  If type has not been selected, just return.
   if (props.type() == DiagramType::Invalid) return;
-
-  //  Get cached copy for drawing
-  switch (props.orientation()) {
-  case 90: image = &_svgsBottom[props.type()]; break;
-  case 180: image = &_svgsLeft[props.type()]; break;
-  case 270: image = &_svgsTop[props.type()]; break;
-  default: image = &_svgs[props.type()];
-  }
-  props.setImage(image);
+  else if (const auto key_it = _typeToMipmapKey.find(props.type()); key_it == _typeToMipmapKey.end()) {
+    qWarning() << "No image key found for diagram type:" << props.type();
+    return;
+  } else if (!_mipmaps.contains(key_it->second)) {
+    qWarning() << "No mipmaps found for diagram type:" << props.type();
+    return;
+  } else props.setImageKey(key_it->second);
 }
 
 QRectF GraphicCanvas::grid_to_screen(const PeppRect &rect) const {
@@ -953,9 +925,19 @@ void GraphicCanvas::startDrag(const QPoint point) {
   const auto curSize = (screen_block - (_margin * grid_to_px * 2)) * _currentZoom;
 
   QPixmap dragPix;
-  if (_currentDiagram->key().width() > _currentDiagram->key().height())
-    dragPix = _currentDiagram->image()->scaledToWidth(curSize, Qt::SmoothTransformation);
-  else dragPix = _currentDiagram->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
+  const auto key = _currentDiagram->imageKey();
+  if (!_mipmaps.contains(key)) {
+    qWarning() << "No mipmaps found for diagram type:" << _currentDiagram->type();
+    return;
+  } else if (_currentDiagram->key().width() > _currentDiagram->key().height()) {
+    dragPix = _mipmaps.mipmap(key)
+                  .best_for(QSize(curSize, curSize), _currentDiagram->orientation())
+                  .scaledToWidth(curSize, Qt::SmoothTransformation);
+  } else {
+    dragPix = _mipmaps.mipmap(key)
+                  .best_for(QSize(curSize, curSize), _currentDiagram->orientation())
+                  .scaledToHeight(curSize, Qt::SmoothTransformation);
+  }
 
   drag->setPixmap(dragPix);
 

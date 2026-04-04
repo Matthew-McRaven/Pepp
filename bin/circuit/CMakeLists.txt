@@ -25,6 +25,10 @@ qt_add_qml_module(
   ui/diagramproperty.cpp
   ui/graphiccanvas.hpp
   ui/graphiccanvas.cpp
+  ui/pixmaps/mipmappixmap.cpp
+  ui/pixmaps/mipmapsource.cpp
+  ui/pixmaps/mipmapstore.cpp
+  ui/pixmaps/prerotatedpixmap.cpp
   DEPENDENCIES
   QtQuick)
 
