@@ -381,7 +381,7 @@ void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
   line->setInputDiagram(to);
 }
 
-void GraphicCanvas::setBoundingBox() {
+void GraphicCanvas::cacheBoundingBox() {
   const auto logicRect = _data.boundingRect();
   const auto totalWidth = logicRect.right() * minor_block_size;
   const auto totalHeight = logicRect.bottom() * minor_block_size;
@@ -399,7 +399,7 @@ void GraphicCanvas::setGrid(DiagramProperties *data) {
   data->setGridRectangle(GraphicCanvas::diagramGeometry(data));
 
   //  Track dimensions of canvas area. Affects scrollbars
-  setBoundingBox();
+  cacheBoundingBox();
 }
 
 PeppRect GraphicCanvas::diagramGeometry(DiagramProperties *data) {
@@ -807,7 +807,7 @@ void GraphicCanvas::setVScroll(qint8 change) {
     y = std::min(contentHeight(), originY() + block);
 
     //  Moving item down can increase bounding rectangle
-    setBoundingBox();
+    cacheBoundingBox();
   }
 
   //  Update screen
@@ -825,7 +825,7 @@ void GraphicCanvas::setHScroll(qint8 change) {
     x = std::min(contentWidth(), originX() + block);
 
     //  Moving item right can increase bounding rectangle
-    setBoundingBox();
+    cacheBoundingBox();
   }
 
   //  Update screen
