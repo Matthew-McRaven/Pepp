@@ -39,6 +39,7 @@ bool BaseProperties::setGridRectangle(const PeppRect &v) {
 bool BaseProperties::setSelected(const bool v) {
   if (_baseProperties.isSelected != v) {
     _baseProperties.isSelected = v;
+    emit selectedChanged();
     return true;
   }
   return false;

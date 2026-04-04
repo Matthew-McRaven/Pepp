@@ -3,7 +3,7 @@
 #include <QPixmap>
 #include <QQuickPaintedItem>
 
-#include "diagramdatamodel.hpp"
+#include "diagramdata.hpp"
 #include "diagramlistmodel.hpp"
 #include "diagramproperty.hpp"
 
@@ -42,7 +42,6 @@ class GraphicCanvas : public QQuickPaintedItem {
   Q_PROPERTY(float yScrollbar READ yScrollbar WRITE setYScrollbar NOTIFY boundsChanged FINAL)
 
   //  Set and access datamodel and template
-  Q_PROPERTY(DiagramDataModel *model READ model WRITE setModel NOTIFY boundsChanged FINAL)
   Q_PROPERTY(DiagramTemplate *template READ stamp WRITE setStamp NOTIFY stampChanged FINAL)
   Q_PROPERTY(DiagramProperties *currentDiagram READ currentDiagram NOTIFY currentItemChanged FINAL)
   Q_PROPERTY(FilterDiagramListModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
@@ -79,9 +78,6 @@ public:
   void setXScrollbar(float x);
   void setYScrollbar(float y);
 
-  DiagramDataModel *model() const { return _model; }
-  void setModel(DiagramDataModel *model);
-
   DiagramTemplate *stamp() const { return _template; }
   void setStamp(DiagramTemplate *stamp);
 
@@ -117,7 +113,6 @@ protected:
 
 signals:
   void boundsChanged();
-  void modelChanged();
   void originChanged();
   void stampChanged();
   void currentItemChanged();
@@ -220,7 +215,7 @@ private:
   LineProperties *_currentLine = nullptr;
 
   //  Data model
-  DiagramDataModel *_model = nullptr;
+  DiagramData _data;
   DiagramTemplate *_template = nullptr;
   DiagramProperties *_currentDiagram = nullptr;
   FilterDiagramListModel::Filter _filter = FilterDiagramListModel::None;

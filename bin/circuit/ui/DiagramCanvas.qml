@@ -26,7 +26,7 @@ Item {
         originY: scrollView.contentY
         xScrollbar: vsb.visible ? vsb.width : 0
         yScrollbar: hsb.visible ? hsb.height : 0
-        model: root.dataModel
+        // model: root.dataModel
         template: root.currentStamp
         filter: FilterDiagramListModel.None
 

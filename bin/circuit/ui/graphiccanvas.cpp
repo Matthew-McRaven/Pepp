@@ -7,7 +7,6 @@
 #include <QPainter>
 #include <QSvgRenderer>
 #include <Qt> //  Keyboard constants
-#include "diagramdatamodel.hpp"
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   //  Enable mouse
@@ -32,9 +31,7 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   cacheImages(":/nor");
   cacheImages(":/xor");
 
-  //  The data model is initialized after construction.
-  //  Trigger test data loading once model is setup using event
-  QObject::connect(this, &GraphicCanvas::modelChanged, this, &GraphicCanvas::updateData);
+  updateData();
 }
 
 void GraphicCanvas::setOriginX(float x) {
@@ -60,14 +57,6 @@ void GraphicCanvas::setYScrollbar(float y) {
   if (std::abs(y - _scrollbarWidth.bottom()) > .0001) {
     _scrollbarWidth.setBottom(y);
     emit boundsChanged();
-    update();
-  }
-}
-
-void GraphicCanvas::setModel(DiagramDataModel *model) {
-  if (model != _model) {
-    _model = model;
-    emit modelChanged();
     update();
   }
 }
@@ -116,11 +105,11 @@ void GraphicCanvas::setFilter(const FilterDiagramListModel::Filter filter) {
 
 void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   //  Model must exist before it can be connected.
-  QObject::connect(_model, &DiagramDataModel::dataChanged, this, &GraphicCanvas::updateCell);
+  // TODO: mmcraven. signal should be connected once when the property viewer is set.
+  // QObject::connect(_model, &DiagramDataModel::dataChanged, this, &GraphicCanvas::updateCell);
 
   //  Test data-remove below in prod
   static std::array<QString, 6> lookup{"AND Gate", "OR Gate", "Inverter", "NAND Gate", "NOR Gate", "XOR Gate"};
-  if (_model == nullptr) return;
 
   //  Loop to create blocks. Fill Full Grid
   const int rows = 10;
@@ -160,65 +149,6 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   getImage(*from2);
 
   addLine(from2, to);
-
-  //  Add block data
-  /*DiagramProperties *to2 = addDiagram(6, 10);
-  if (to2 == nullptr) return;
-  to2->setName(lookup[4]);
-  to2->setType(DiagramType::NORGate);
-  to2->setOrientation(90);
-  to2->setSelected(false);
-  getImage(*to2);*/
-
-  /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
-
-  index = _model->index(2, 1);
-  data = _model->createItem(index);
-
-  //  Add block data
-  data->setName(lookup[1]);
-  data->setRectangle({2, 1, 2, 2});
-  data->setGridRectangle(gridRect);
-  data->setType(1);
-  data->setOrientation(90);
-  getImage(*data);
-
-  gridRect.moveTopLeft({5 * minor_block_size, 3 * minor_block_size});
-
-  index = _model->index(5, 3);
-  data = _model->createItem(index);
-
-  //  Add block data
-  data->setName(lookup[1]);
-  data->setRectangle({5, 3, 2, 2});
-  data->setGridRectangle(gridRect);
-  data->setType(1);
-  data->setOrientation(180);
-  getImage(*data);
-  */
-  /*for (auto i = 0; i < cols; ++i) {
-      for (auto j = 0; j < rows; ++j) {
-          QRect gridRect{minor_block_size * (i + (j % 2)),
-                         minor_block_size * (j + (i % 2)),
-                         major_block_size,
-                         major_block_size};
-
-          auto index = _model->index(i, j);
-          DiagramProperties *data = _model->createItem(index);
-
-          //  Add block data
-          data->setName(lookup[i % _svgs.size()]);
-          data->setRectangle({i, j, 2, 2});
-          data->setGridRectangle(gridRect);
-          data->setType(i % _svgs.size());
-          data->setOrientation(90 * j);
-          getImage(*data);
-
-          //  Keep track of canvas size
-          _dimensions = _dimensions.united(gridRect);
-      }
-  }*/
-  //  End of test data
 }
 
 void GraphicCanvas::cacheImages(const QString &source) {
@@ -352,14 +282,14 @@ void GraphicCanvas::paint(QPainter *painter) {
   }
 
   //  Diagrams are painted on minor grid axis. Overwrite lines.
-  for (auto &prop : _model->dataModel().cells()) {
+  for (auto &prop : _data.cells()) {
     //  Skip painting rectangles that are outside the viewport.
     auto *diagram = prop.get();
     if (pepp::core::intersects(grid_viewport, diagram->gridRectangle())) paint_one(painter, diagram);
   }
 
   //  Draw lines first. Diagrams will clip lines
-  for (auto &prop : _model->dataModel().lines()) {
+  for (auto &prop : _data.lines()) {
     auto *line = prop.get();
     //  Skip painting rectangles that are outside the viewport.
     if (pepp::core::intersects(grid_viewport, line->gridRectangle())) paint_line(painter, line);
@@ -414,11 +344,8 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   //  Center point may put diagram off of page, return if either index is negative.
   if (col < 0 || row < 0) return nullptr;
 
-  //  Create index and check for data
-  const auto newIndex = _model->index(row, col);
-
-  DiagramProperties *data = _model->dataModel().createDiagramProps(
-      PeppRect::from_point_size(row, col, minor_per_major - 1, minor_per_major / 2));
+  DiagramProperties *data =
+      _data.createDiagramProps(PeppRect::from_point_size(row, col, minor_per_major - 1, minor_per_major / 2));
   if (data == nullptr) return nullptr;
 
   //  Newly added items are always current item
@@ -434,7 +361,8 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   getImage(*data);
 
   //  Set select flag
-  _model->setData(newIndex, true, DiagramDataModel::Role::Selected);
+  // TODO: mmcraven, add selection flag
+  // _model->setData(newIndex, true, DiagramDataModel::Role::Selected);
 
   return data;
 }
@@ -443,7 +371,7 @@ void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
   //  Calculate maximum line dimensions
   const auto key = LineProperties::recalculateKey(from, /*to*/ from);
 
-  LineProperties *line = _model->dataModel().createLineProps(key);
+  LineProperties *line = _data.createLineProps(key);
 
   if (line == nullptr) return;
 
@@ -454,7 +382,7 @@ void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
 }
 
 void GraphicCanvas::setBoundingBox() {
-  const auto logicRect = _model->dataModel().boundingRect();
+  const auto logicRect = _data.boundingRect();
   const auto totalWidth = logicRect.right() * minor_block_size;
   const auto totalHeight = logicRect.bottom() * minor_block_size;
   PeppRect gridRect = PeppRect::from_point_size(0, 0, totalWidth, totalHeight);
@@ -716,7 +644,7 @@ bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
   DiagramProperties *found = nullptr;
 
   //  See if existing item was clicked and clear selection
-  for (auto &props : _model->dataModel().cells()) {
+  for (auto &props : _data.cells()) {
     // Skip painting rectangles that are outside the viewport.
     if (!pepp::core::contains(props->gridRectangle(), point)) {
       if (props->selected()) {
@@ -738,12 +666,8 @@ bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
 
     //  Bypass model
     found->setSelected(true);
-
     setCurrentDiagram(found);
-
-    //  Signal update to QML controls
-    const auto index = _model->index(found->key().left(), found->key().top());
-    _model->setCurrentIndex(index);
+    // TODO: mmcraven, modify selection for property view.
   }
 
   //  Repaint
@@ -759,7 +683,7 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
   unselectDiagrams();
 
   //  See if existing item was clicked and clear selection
-  for (auto &props : _model->dataModel().lines()) {
+  for (auto &props : _data.lines()) {
     // Skip painting rectangles that are outside the viewport.
     if (!pepp::core::contains(props->gridRectangle(), point)) {
       if (props->selected()) {
@@ -779,9 +703,7 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
     setCurrentLine(props.get());
 
     //  Signal update to QML controls
-    const auto index = _model->index(props->key().left(), props->key().top());
-    _model->setCurrentIndex(index);
-
+    // TODO: mmcraven, modify selection for propert viewer.
     found = true;
   }
   //  Repaint
@@ -792,7 +714,7 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
 
 //  Used to clear all diagram selections
 void GraphicCanvas::unselectDiagrams() {
-  for (auto &props : _model->dataModel().cells()) {
+  for (auto &props : _data.cells()) {
     props->setSelected(false);
   }
 
@@ -802,7 +724,7 @@ void GraphicCanvas::unselectDiagrams() {
 
 //  Used to clear all line selections
 void GraphicCanvas::unselectLines() {
-  for (auto &props : _model->dataModel().lines()) {
+  for (auto &props : _data.lines()) {
     props->setSelected(false);
   }
 
@@ -912,32 +834,20 @@ void GraphicCanvas::setHScroll(qint8 change) {
 
 void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
   //  Update grid coordinates
-  if (!_model->dataModel().moveData(oldLocation, newLocation)) return;
+  if (!_data.moveData(oldLocation, newLocation)) return;
 
   //  Update grid coordinates
-  DiagramProperties *data = _model->dataModel().getDiagramProps(newLocation);
+  DiagramProperties *data = _data.getDiagramProps(newLocation);
 
-  if (data == nullptr) {
-    return;
-  }
-
-  //  Remap paint grid after move
-  setGrid(data);
-
+  if (data == nullptr) return;
+  setGrid(data); //  Remap paint grid after move
   update();
 }
 
 void GraphicCanvas::rotateDiagram(DiagramProperties *diagram) {
-  if (diagram == nullptr) {
-    return;
-  }
-
-  //  Update grid coordinates
-  if (!_model->dataModel().rotateData(diagram->id())) return;
-
-  //  Remap paint grid after move
-  setGrid(diagram);
-
+  if (diagram == nullptr) return;
+  else if (!_data.rotateData(diagram->id())) return; //  Update grid coordinates
+  setGrid(diagram);                                  //  Remap paint grid after move
   update();
 }
 
@@ -1073,7 +983,7 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
 
   if (lastPt != newLocation) {
     lastPt = newLocation;
-    lastResult = _model->dataModel().canMoveData(_currentDiagram->id(), newLocation);
+    lastResult = _data.canMoveData(_currentDiagram->id(), newLocation);
     // qDebug() << lastPt.x() << lastPt.y() << lastResult;
   }
   //  Can move is True if there is no hit. Flip to indicate if hit or not
@@ -1088,7 +998,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
   switch (key) {
   case Qt::Key_Delete:
     if (_currentDiagram != nullptr) {
-      _model->dataModel().clearDiagramData(_currentDiagram->key());
+      _data.clearDiagramData(_currentDiagram->key());
 
       //  Clear current item, and notify QML
       setCurrentDiagram(nullptr);

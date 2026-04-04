@@ -10,7 +10,7 @@ Pane {
     id: root
 
     //  Model containing all diagrams
-    required property DiagramDataModel diagramModel
+    required property var diagramModel
 
     //  List of available gates
     required property FilterDiagramListModel gateModel

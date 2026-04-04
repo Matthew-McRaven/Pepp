@@ -43,6 +43,8 @@ struct DiagramProperty {
 
 class BaseProperties : public QObject {
   Q_OBJECT
+  Q_PROPERTY(bool selected READ selected WRITE setSelected NOTIFY selectedChanged FINAL)
+
 public:
   explicit BaseProperties(QObject *parent = nullptr);
   virtual ~BaseProperties() {}
@@ -60,6 +62,8 @@ public:
 
   bool selected() const { return _baseProperties.isSelected; }
   bool setSelected(const bool v);
+signals:
+  void selectedChanged();
 
 protected:
   BaseProperty _baseProperties;
@@ -130,6 +134,7 @@ private:
 
 class DiagramProperties : public BaseProperties {
   Q_OBJECT
+  QML_NAMED_ELEMENT(DiagramProperties)
 public:
   explicit DiagramProperties(QObject *parent = nullptr);
 

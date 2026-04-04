@@ -12,10 +12,6 @@ Rectangle {
 
     property real cellWidth: 100
 
-    DiagramDataModel {
-        id: diagramModel
-    }
-
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
@@ -44,7 +40,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
 
-                diagramModel: diagramModel
+                diagramModel: null
                 gateModel: sourceListView.diagramOnly
             }
         }
@@ -135,7 +131,6 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                dataModel: diagramModel
                 currentStamp: sourceListView.currentStamp
                 filter: FilterDiagramListModel.None
                 z: -1
