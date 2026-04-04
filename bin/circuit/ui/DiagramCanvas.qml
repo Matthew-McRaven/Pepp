@@ -8,7 +8,6 @@ import CircuitDesign
 Item {
     id: root
     property DiagramTemplate currentStamp: null
-    property alias dataModel: scrollView.model
     property alias filter: canvas.filter
     focus: true //  Control with focus receives keyboard events
 
@@ -22,17 +21,20 @@ Item {
 
         //  Data passed to control
         // Tie the canvas's top-left to the flickable's content position
-        originX: scrollView.contentX
-        originY: scrollView.contentY
-        xScrollbar: vsb.visible ? vsb.width : 0
-        yScrollbar: hsb.visible ? hsb.height : 0
-        // model: root.dataModel
+        originX: flickable.contentX
+        originY: flickable.contentY
+        xScrollbar: hsb.position
+        yScrollbar: hsb.position
         template: root.currentStamp
         filter: FilterDiagramListModel.None
 
-        anchors.fill: parent
-        anchors.bottomMargin: hsb.visible ? hsb.height : 0
-        anchors.rightMargin: vsb.visible ? vsb.width : 0
+        anchors {
+            left: parent.left
+            right: vsb.left
+            top: parent.top
+            bottom: hsb.top
+        }
+
         clip: true
 
         //  Context menu for canvas
@@ -44,7 +46,7 @@ Item {
 
                     //  Check to see if there is no current item
                     if (item)
-                        canvas.rotateClockwise();
+                    canvas.rotateClockwise();
                 }
             }
             MenuItem {
@@ -54,39 +56,58 @@ Item {
 
                     //  Check to see if there is no current item
                     if (item)
-                        canvas.rotateCounterClockwise();
+                    canvas.rotateCounterClockwise();
                 }
             }
         }
     }
 
-    TableView {
-        id: scrollView
-
-        anchors.fill: parent
-
-        z: -1
+    Flickable {
+        id: flickable
+        anchors {
+            left: parent.left
+            right: vsb.left
+            top: parent.top
+            bottom: hsb.top
+        }
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         // Ensure that have non-empty content, even if the canvas is currently empty.
-        contentWidth: canvas.contentWidth
-        contentHeight: canvas.contentHeight
-
-        ScrollBar.vertical: ScrollBar {
-            id: vsb
-            policy: ScrollBar.AsNeeded
+        contentWidth: Math.max(canvas.width, canvas.contentWidth, 1920)
+        contentHeight: Math.max(canvas.height, canvas.contentHeight, 1080)
+        // A dummy item which gives us something to scroll against
+        onContentWidthChanged: console.log("Content width changed", contentWidth)
+        onContentHeightChanged: console.log("Content height changed", contentHeight)
+        Item {
+            width: canvas.contentWidth
+            height: canvas.contentHeight
         }
-        ScrollBar.horizontal: ScrollBar {
-            id: hsb
-            policy: ScrollBar.AsNeeded
-        }
-    }   //  TableView
+        ScrollBar.vertical: vsb
+        ScrollBar.horizontal: hsb
+    }
+    ScrollBar {
+        id: vsb
+        visible: flickable.contentHeight > flickable.height
+        policy: visible? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        width: visible ? implicitWidth : 0
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+    }
+    ScrollBar {
+        id: hsb
+        visible: flickable.contentWidth > flickable.width
+        policy: visible? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+    }
 
     Keys.onPressed: event => {
         //  Forward keypress events from QML to canvas
         //  Canvas will return true if keypress was handled
         event.accepted = canvas.keyPress(event.key, event.modifiers);
-    //console.log( event.key, event.modifiers);
+        //console.log( event.key, event.modifiers);
     }
 
     //  This is a hack. I'm not able to disable Canvas from taking focus.
