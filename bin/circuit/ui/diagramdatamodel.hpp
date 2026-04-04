@@ -4,7 +4,6 @@
 #include <QtQml/qqmlregistration.h> // Required header for QML_ELEMENT
 
 #include "diagramdata.hpp"
-#include "diagramtype.hpp"
 
 class DiagramDataModel : public QAbstractTableModel {
   Q_OBJECT
@@ -39,10 +38,6 @@ public:
   explicit DiagramDataModel(QObject *parent = nullptr);
 
   //  Custom functions accessed by QML
-  Q_INVOKABLE void update(const QModelIndex &index);
-  Q_INVOKABLE bool clearItemData(const QModelIndexList &indexes);
-  Q_INVOKABLE bool clearItemData(const QModelIndex &index) override;
-  Q_INVOKABLE DiagramProperties *item(const QModelIndex &index);
   Q_INVOKABLE QModelIndex index(int row, int column, const QModelIndex &parent = {}) const override;
 
   const QModelIndex currentIndex() const;

@@ -24,30 +24,6 @@ bool DiagramDataModel::move(const QModelIndex oldIndex, const QModelIndex newInd
   return true;
 }
 
-void DiagramDataModel::update(const QModelIndex &index) {
-  if (!index.isValid()) return;
-
-  emit dataChanged(index, index);
-}
-
-bool DiagramDataModel::clearItemData(const QModelIndexList &indexes) {
-  bool ok = true;
-  for (const QModelIndex &index : indexes) ok &= clearItemData(index);
-  return ok;
-}
-
-bool DiagramDataModel::clearItemData(const QModelIndex &index) {
-  if (!index.isValid()) return false;
-
-  const auto *data = item(index);
-
-  if (_data.clearDiagramData(data->key())) {
-    emit dataChanged(index, index);
-    return true;
-  }
-  return false;
-}
-
 const QModelIndex DiagramDataModel::currentIndex() const { return _current; }
 
 void DiagramDataModel::setCurrentIndex(const QModelIndex v) {
@@ -55,13 +31,6 @@ void DiagramDataModel::setCurrentIndex(const QModelIndex v) {
     _current = v;
     emit currentIndexChanged();
   }
-}
-
-DiagramProperties *DiagramDataModel::item(const QModelIndex &index) {
-  if (!index.isValid()) return nullptr;
-
-  auto data = _data.getDiagramProps(convertIndex(index));
-  return data;
 }
 
 QModelIndex DiagramDataModel::index(int row, int column, const QModelIndex &parent) const {
