@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "common_types.hpp"
 #include "core/integers.h"
 #include "core/math/geom/rectangle.hpp"
 
@@ -16,11 +17,11 @@ struct AlignmentConstraint {
   // easier in practice.
   // Modulus must always be >0 and offset+1 <modules.
   // A modulus of 1 effectively disables alignment constraints.
-  i16 x_modulus = 1, x_offset = 0;
-  i16 y_modulus = 1, y_offset = 0;
+  schematic::Coord x_modulus = 1, x_offset = 0;
+  schematic::Coord y_modulus = 1, y_offset = 0;
 
-  pepp::core::Point<i16> nearest_aligned_point(const pepp::core::Point<i16> &pt) const noexcept;
-  bool is_aligned(const pepp::core::Point<i16> &pt) const noexcept;
+  schematic::Point nearest_aligned_point(const schematic::Point &pt) const noexcept;
+  bool is_aligned(const schematic::Point &pt) const noexcept;
 };
 
 struct Blueprint {
@@ -30,7 +31,7 @@ struct Blueprint {
     PinType type = PinType::HighZ;
   };
 
-  pepp::core::Rectangle<i16> geometry;
+  schematic::Rectangle geometry;
   std::vector<Pin> pins;
   AlignmentConstraint alignmentConstraint;
 

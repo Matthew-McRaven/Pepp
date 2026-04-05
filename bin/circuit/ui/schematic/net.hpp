@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/integers.h"
+
 struct Net {
   u32 id = 0;
 };

@@ -2,27 +2,26 @@
 #include <memory>
 #include <ranges>
 #include "core/integers.h"
-#include "core/math/geom/rectangle.hpp"
 #include "orient.hpp"
 #include "schematic/blueprint.hpp"
 
 struct Component {
   struct Pin {
     u32 component_id, pin_id;
-    pepp::core::Rectangle<i16> geometry;
+    schematic::Rectangle geometry;
     PinType type = PinType::HighZ;
     // Combine component_id and pin_id to globally identify the pin within the circuit.
     u64 global_pin_id() const;
   };
 
-  Component(std::shared_ptr<Blueprint> t, pepp::core::Point<i16> position, Direction orient = Direction::Right);
+  Component(std::shared_ptr<Blueprint> t, schematic::Point position, Direction orient = Direction::Right);
 
   u32 id() const;
   void set_id(u32 id);
   Direction direction() const;
   void set_direction(Direction dir);
-  void set_position(pepp::core::Point<i16> position);
-  pepp::core::Rectangle<i16> geometry() const;
+  void set_position(schematic::Point position);
+  schematic::Rectangle geometry() const;
 
   auto pins() const {
     const auto l = [this](const Blueprint::Pin &pin) -> Component::Pin {
@@ -42,9 +41,9 @@ struct Component {
   u16 clock_pin_count() const;
 
 private:
-  pepp::core::Rectangle<i16> resolve_relative_geometry(const pepp::core::Rectangle<i16> &geom) const;
+  schematic::Rectangle resolve_relative_geometry(const schematic::Rectangle &geom) const;
   Direction _orientation = Direction::Left;
-  pepp::core::Point<i16> _position;
+  schematic::Point _position;
   // Must start 0-initialized (an invalid value) because placement may fail due to lack of space in floorplan.
   u32 _id = 0;
   std::shared_ptr<Blueprint> _template;
