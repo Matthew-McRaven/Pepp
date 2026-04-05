@@ -8,6 +8,7 @@ schematic::BlueprintID BlueprintLibrary::add_blueprint(const std::string &name, 
   auto id = schematic::BlueprintID(_next_id++);
   _blueprints[id] = blueprint;
   _name_to_id[name] = id;
+  return id;
 }
 
 std::shared_ptr<Blueprint> BlueprintLibrary::get_blueprint(schematic::BlueprintID id) {
