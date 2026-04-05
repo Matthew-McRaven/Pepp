@@ -25,7 +25,35 @@ schematic::Rectangle Component::geometry() const {
   PEPP_UNREACHABLE();
 }
 
-schematic::Rectangle Component::resolve_relative_geometry(const pepp::core::Rectangle<i16> &geom) const {
+u16 Component::pin_count() const { return _template->pins.size(); }
+
+u16 Component::input_pin_count() const { return _template->input_pins(); }
+
+Component::Pin Component::input_pin(u16 pin_id) const {
+  for (int pin_index = 0, input_index = 0; pin_index < _template->pins.size(); ++pin_index) {
+    if (_template->pins[pin_index].type == PinType::Input) {
+      if (input_index == pin_id) return instantiate_pin(_template->pins[pin_index], pin_index);
+      ++input_index;
+    }
+  }
+  throw std::out_of_range("Invalid input pin id");
+}
+
+u16 Component::output_pin_count() const { return _template->output_pins(); }
+
+Component::Pin Component::output_pin(u16 pin_id) const {
+  for (int pin_index = 0, output_index = 0; pin_index < _template->pins.size(); ++pin_index) {
+    if (_template->pins[pin_index].type == PinType::Output) {
+      if (output_index == pin_id) return instantiate_pin(_template->pins[pin_index], pin_index);
+      ++output_index;
+    }
+  }
+  throw std::out_of_range("Invalid output pin id");
+}
+
+u16 Component::clock_pin_count() const { return _template->clock_pins(); }
+
+pepp::core::Rectangle<i16> Component::resolve_relative_geometry(const pepp::core::Rectangle<i16> &geom) const {
   // Bounds in the template's natural orientation.
   const i16 tw = _template->size.width();
   const i16 th = _template->size.height();
@@ -62,10 +90,12 @@ schematic::Rectangle Component::resolve_relative_geometry(const pepp::core::Rect
   return rotated.translated(_position);
 }
 
-u16 Component::input_pin_count() const { return _template->input_pins(); }
-
-u16 Component::output_pin_count() const { return _template->output_pins(); }
-
-u16 Component::clock_pin_count() const { return _template->clock_pins(); }
-
-u16 Component::pint_count() const { return _template->pins.size(); }
+Component::Pin Component::instantiate_pin(const Blueprint::Pin &pin, u16 pin_id) const {
+  Component::Pin placed;
+  placed.component_id = this->_id;
+  u32 pin_index = &pin - &_template->pins[0];
+  placed.pin_id = schematic::LocalPinID{pin_index};
+  placed.type = pin.type;
+  placed.geometry = resolve_relative_geometry(pin.geometry).translated(_position);
+  return placed;
+}

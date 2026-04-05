@@ -30,7 +30,7 @@ struct Blueprint {
     pepp::core::Rectangle<i16> geometry;
     PinType type = PinType::HighZ;
   };
-
+  virtual ~Blueprint() = default;
   schematic::Size size;
   std::vector<Pin> pins;
   AlignmentConstraint alignmentConstraint;
