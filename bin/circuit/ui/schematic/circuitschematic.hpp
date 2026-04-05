@@ -30,6 +30,9 @@ public:
                                                         Direction dir);
   bool remove_component(schematic::ComponentID id);
 
+  bool has_pin(schematic::GlobalPinID pin_id) const;
+  schematic::Rectangle pin_geometry(schematic::GlobalPinID pin_id) const;
+
 private:
   fc::vector_map<schematic::ComponentID, std::shared_ptr<Component>> _components;
   std::vector<Connection> _connections;

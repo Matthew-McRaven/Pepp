@@ -79,3 +79,16 @@ bool CircuitSchematic::remove_component(schematic::ComponentID id) {
   _components.erase(id);
   return true;
 }
+
+bool CircuitSchematic::has_pin(schematic::GlobalPinID pin_id) const {
+  const auto comp = component(pin_id.component_id);
+  return comp != nullptr && comp->pin_count() > pin_id.local_pin_id.value;
+}
+
+schematic::Rectangle CircuitSchematic::pin_geometry(schematic::GlobalPinID pin_id) const {
+  const auto comp = component(pin_id.component_id);
+  if (comp == nullptr) throw std::runtime_error("Component does not exist");
+  else if (comp->pin_count() <= pin_id.local_pin_id.value) throw std::runtime_error("Pin does not exist");
+  const auto &pin = comp->pin(pin_id.local_pin_id.value);
+  return pin.geometry;
+}

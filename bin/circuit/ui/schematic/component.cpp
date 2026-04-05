@@ -25,6 +25,8 @@ schematic::Rectangle Component::geometry() const {
   PEPP_UNREACHABLE();
 }
 
+Component::Pin Component::pin(u16 pin_id) const { return instantiate_pin(_template->pins[pin_id], pin_id); }
+
 u16 Component::pin_count() const { return _template->pins.size(); }
 
 u16 Component::input_pin_count() const { return _template->input_pins(); }
