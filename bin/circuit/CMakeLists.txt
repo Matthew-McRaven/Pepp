@@ -16,8 +16,8 @@ qt_add_qml_module(
   # ui/Line.qml
   ui/DiagramListView.qml
   SOURCES
-  ui/diagramdata.hpp
-  ui/diagramdata.cpp
+
+
   ui/diagramtype.hpp
   ui/diagramlistmodel.hpp
   ui/diagramlistmodel.cpp

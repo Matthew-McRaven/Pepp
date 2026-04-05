@@ -14,12 +14,13 @@ public:
   auto &connections() { return _connections; }
   const auto &connections() const { return _connections; }
 
-  auto bounding_rect() const { return _floorplan.bounding_box(); }
+  auto bounding_box() const { return _floorplan.bounding_box(); }
 
   std::shared_ptr<Component> component(schematic::ComponentID id);
   const std::shared_ptr<Component> component(schematic::ComponentID id) const;
 
   bool empty() const;
+  std::optional<schematic::ComponentID> component_at(schematic::Point location) const;
   bool can_move_component(schematic::ComponentID id, schematic::Point location) const;
   bool move_component(schematic::ComponentID id, schematic::Point location);
   bool can_rotate_component(schematic::ComponentID id, Direction dir) const;

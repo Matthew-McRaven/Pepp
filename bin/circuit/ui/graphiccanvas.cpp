@@ -258,18 +258,21 @@ void GraphicCanvas::paint(QPainter *painter) {
   }
 
   //  Diagrams are painted on minor grid axis. Overwrite lines.
-  for (auto &prop : _data.cells()) {
+  for (auto &prop : _data.components()) {
     //  Skip painting rectangles that are outside the viewport.
-    auto *diagram = prop.get();
-    if (pepp::core::intersects(grid_viewport, diagram->gridRectangle())) paint_one(painter, diagram);
+    auto diagram = prop.second;
+    if (pepp::core::intersects(grid_viewport, diagram->geometry()))
+      (void)diagram; // TODO: mmcraven, re-enable painting.
+    // paint_one(painter, diagram);
   }
 
   //  Draw lines first. Diagrams will clip lines
-  for (auto &prop : _data.lines()) {
+  // TODO: mmcraven, re-add line/connection drawing
+  /*for (auto &prop : _data.lines()) {
     auto *line = prop.get();
     //  Skip painting rectangles that are outside the viewport.
     if (pepp::core::intersects(grid_viewport, line->gridRectangle())) paint_line(painter, line);
-  }
+  }*/
 }
 
 void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
@@ -320,8 +323,9 @@ DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
   //  Center point may put diagram off of page, return if either index is negative.
   if (col < 0 || row < 0) return nullptr;
 
-  DiagramProperties *data =
-      _data.createDiagramProps(PeppRect::from_point_size(row, col, minor_per_major - 1, minor_per_major / 2));
+  // TODO: mmcraven
+  // _data.createDiagramProps(PeppRect::from_point_size(row, col, minor_per_major - 1, minor_per_major / 2));
+  DiagramProperties *data = nullptr;
   if (data == nullptr) return nullptr;
 
   //  Newly added items are always current item
@@ -347,7 +351,8 @@ void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
   //  Calculate maximum line dimensions
   const auto key = LineProperties::recalculateKey(from, /*to*/ from);
 
-  LineProperties *line = _data.createLineProps(key);
+  // TODO: mmcraven, _data.createLineProps(key);
+  LineProperties *line = nullptr;
 
   if (line == nullptr) return;
 
@@ -358,14 +363,13 @@ void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
 }
 
 void GraphicCanvas::cacheBoundingBox() {
-  const auto logicRect = _data.boundingRect();
+  const auto logicRect = _data.bounding_box();
   const auto totalWidth = logicRect.right() * minor_block_size;
   const auto totalHeight = logicRect.bottom() * minor_block_size;
   PeppRect gridRect = PeppRect::from_point_size(0, 0, totalWidth, totalHeight);
   //  See if dimensions changed
   if (_dimensions != gridRect) {
     _dimensions = pepp::core::hull(_dimensions, gridRect);
-
     emit boundsChanged();
   }
 }
@@ -373,7 +377,6 @@ void GraphicCanvas::cacheBoundingBox() {
 void GraphicCanvas::setGrid(DiagramProperties *data) {
   //  Update screen dimensions
   data->setGridRectangle(GraphicCanvas::diagramGeometry(data));
-
   //  Track dimensions of canvas area. Affects scrollbars
   cacheBoundingBox();
 }
@@ -616,22 +619,21 @@ bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
   DiagramProperties *found = nullptr;
 
   //  See if existing item was clicked and clear selection
-  for (auto &props : _data.cells()) {
+  for (auto &props : _data.components()) {
     // Skip painting rectangles that are outside the viewport.
-    if (!pepp::core::contains(props->gridRectangle(), point)) {
-      if (props->selected()) {
-
-        //  Bypass model
+    if (!pepp::core::contains(props.second->geometry(), point)) {
+      //  Bypass model
+      // TODO: mmcraven, readd visual property of "selection"
+      /*if (props->selected()) {
         props->setSelected(false);
-
         //  Update unselected rectangle
         setCurrentDiagram(nullptr);
-      }
+      }*/
       continue;
     }
 
-    //  Found diagram property
-    found = props.get();
+    //  TODO: Found diagram property
+    // found = props.get();
   }
 
   if (found != nullptr) {
@@ -655,9 +657,10 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
   unselectDiagrams();
 
   //  See if existing item was clicked and clear selection
-  for (auto &props : _data.lines()) {
+  for (auto &props : _data.connections()) {
+    // TODO:
     // Skip painting rectangles that are outside the viewport.
-    if (!pepp::core::contains(props->gridRectangle(), point)) {
+    /*if (!pepp::core::contains(props->gridRectangle(), point)) {
       if (props->selected()) {
         //  Item was previously selected, clear old highlight
         //  Bypass model
@@ -667,12 +670,11 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
         setCurrentLine(nullptr);
       }
       continue;
-    }
+    }*/
 
-    //  Bypass model
-    props->setSelected(true);
-
-    setCurrentLine(props.get());
+    // TODO: Bypass model
+    // props->setSelected(true);
+    // setCurrentLine(props.get());
 
     //  Signal update to QML controls
     // TODO: mmcraven, modify selection for propert viewer.
@@ -686,8 +688,8 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
 
 //  Used to clear all diagram selections
 void GraphicCanvas::unselectDiagrams() {
-  for (auto &props : _data.cells()) {
-    props->setSelected(false);
+  for (auto &props : _data.components()) {
+    // TODO: mmcraven props->setSelected(false);
   }
 
   //  Update unselected rectangle
@@ -696,8 +698,8 @@ void GraphicCanvas::unselectDiagrams() {
 
 //  Used to clear all line selections
 void GraphicCanvas::unselectLines() {
-  for (auto &props : _data.lines()) {
-    props->setSelected(false);
+  for (auto &props : _data.connections()) {
+    // TODO: mmcraven props->setSelected(false);
   }
 
   //  Update unselected rectangle
@@ -805,21 +807,21 @@ void GraphicCanvas::setHScroll(qint8 change) {
 }
 
 void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
-  //  Update grid coordinates
-  if (!_data.moveData(oldLocation, newLocation)) return;
-
-  //  Update grid coordinates
-  DiagramProperties *data = _data.getDiagramProps(newLocation);
-
-  if (data == nullptr) return;
-  setGrid(data); //  Remap paint grid after move
+  auto maybe_component_id = _data.component_at(oldLocation);
+  if (!maybe_component_id || !_data.can_move_component(*maybe_component_id, newLocation)) return;
+  _data.move_component(*maybe_component_id, newLocation);
+  cacheBoundingBox();
   update();
 }
 
 void GraphicCanvas::rotateDiagram(DiagramProperties *diagram) {
   if (diagram == nullptr) return;
-  else if (!_data.rotateData(diagram->id())) return; //  Update grid coordinates
-  setGrid(diagram);                                  //  Remap paint grid after move
+  const auto id = schematic::ComponentID{diagram->id()};
+  const auto current_orientation = from_angle(diagram->orientation());
+  const auto next_orientation = clockwise(current_orientation);
+  if (!_data.can_rotate_component(id, next_orientation)) return;
+  else _data.rotate_component(id, next_orientation);
+  cacheBoundingBox();
   update();
 }
 
@@ -965,7 +967,7 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
 
   if (lastPt != newLocation) {
     lastPt = newLocation;
-    lastResult = _data.canMoveData(_currentDiagram->id(), newLocation);
+    lastResult = _data.can_move_component(schematic::ComponentID{_currentDiagram->id()}, newLocation);
     // qDebug() << lastPt.x() << lastPt.y() << lastResult;
   }
   //  Can move is True if there is no hit. Flip to indicate if hit or not
@@ -976,11 +978,12 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
   const bool alt = modifier & Qt::AltModifier;
   const bool shf = modifier & Qt::ShiftModifier;
   const bool ctr = modifier & Qt::ControlModifier;
-
+  schematic::ComponentID current_id =
+      _currentDiagram != nullptr ? schematic::ComponentID{_currentDiagram->id()} : schematic::ComponentID{};
   switch (key) {
   case Qt::Key_Delete:
     if (_currentDiagram != nullptr) {
-      _data.clearDiagramData(_currentDiagram->key());
+      _data.remove_component(current_id);
 
       //  Clear current item, and notify QML
       setCurrentDiagram(nullptr);

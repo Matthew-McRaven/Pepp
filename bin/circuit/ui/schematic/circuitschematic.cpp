@@ -14,16 +14,21 @@ const std::shared_ptr<Component> CircuitSchematic::component(schematic::Componen
 
 bool CircuitSchematic::empty() const { return _components.empty(); }
 
+std::optional<schematic::ComponentID> CircuitSchematic::component_at(schematic::Point location) const {
+  if (const auto id = _floorplan.at(location); id) return schematic::ComponentID{id.value()};
+  else return std::nullopt;
+}
+
 bool CircuitSchematic::can_move_component(schematic::ComponentID id, schematic::Point location) const {
   if (const auto &comp = component(id); comp == nullptr) return false;
-  else return _floorplan.can_move_absolute(id, location);
+  else return _floorplan.can_move_absolute(id.value, location);
 }
 
 bool CircuitSchematic::move_component(schematic::ComponentID id, schematic::Point location) {
   // Only components can be moved by this method; nets are ignored.
   if (auto comp = component(id); comp == nullptr) return false;
   else if (!can_move_component(id, location)) return false;
-  else if (_floorplan.move_absolute(id, location)) {
+  else if (_floorplan.move_absolute(id.value, location)) {
     comp->set_position(location);
     return true;
   } else return false;
@@ -37,7 +42,7 @@ bool CircuitSchematic::can_rotate_component(schematic::ComponentID id, Direction
   // Rotating by 180 degrees does not change footprint.
   else if (parallel(cd, dir)) return true;
   // Else rotation is perpenedicular and requires a transpose in floorplan.
-  else return _floorplan.can_move_relative(id, {0, 0}, true);
+  else return _floorplan.can_move_relative(id.value, {0, 0}, true);
 }
 
 bool CircuitSchematic::rotate_component(schematic::ComponentID id, Direction dir) {
@@ -50,7 +55,7 @@ bool CircuitSchematic::rotate_component(schematic::ComponentID id, Direction dir
     return true;
   } else { // Direction is perpendicular, so both pin oritentation and floorplan need updates.
     comp->set_direction(dir);
-    return _floorplan.can_move_relative(id, {0, 0}, true);
+    return _floorplan.can_move_relative(id.value, {0, 0}, true);
   }
 }
 
@@ -59,17 +64,18 @@ std::optional<schematic::ComponentID> CircuitSchematic::place_component(std::sha
   std::shared_ptr<Component> comp = std::make_shared<Component>(blueprint, location, dir);
   auto maybe_id = _floorplan.try_add(comp->geometry());
   if (maybe_id) {
-    // Component starts with invalid id. Update Component's ID with value returned by floorplan before inserting into
-    // lookup table.
+    // Update Component's ID (which is initially invalid) with value returned by floorplan before inserting into map.
     comp->set_id(maybe_id.value());
-    _components.insert({maybe_id.value(), comp});
+    schematic::ComponentID id{maybe_id.value()};
+    _components.emplace(id, comp);
+    return id;
   }
-  return maybe_id;
+  return std::nullopt;
 }
 
 bool CircuitSchematic::remove_component(schematic::ComponentID id) {
   if (auto it = _components.find(id); it == _components.end()) return false;
-  _floorplan.remove(id);
+  _floorplan.remove(id.value);
   _components.erase(id);
   return true;
 }

@@ -3,9 +3,9 @@
 #include <QPixmap>
 #include <QQuickPaintedItem>
 
-#include "diagramdata.hpp"
 #include "diagramlistmodel.hpp"
 #include "diagramproperty.hpp"
+#include "schematic/circuitschematic.hpp"
 
 #include "core/math/geom/rectangle.hpp"
 #include "pixmaps/mipmapstore.hpp"
@@ -214,7 +214,7 @@ private:
   LineProperties *_currentLine = nullptr;
 
   //  Data model
-  DiagramData _data;
+  CircuitSchematic _data;
   DiagramTemplate *_template = nullptr;
   DiagramProperties *_currentDiagram = nullptr;
   FilterDiagramListModel::Filter _filter = FilterDiagramListModel::None;
