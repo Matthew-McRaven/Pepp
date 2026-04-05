@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common_types.hpp"
 #include "core/integers.h"
 
 struct Net {
@@ -7,6 +8,7 @@ struct Net {
 };
 
 struct Connection {
-  u32 component_src, pin_src;
-  u32 component_dst, pin_dst;
+  schematic::GlobalPinID src, dst;
+  bool operator==(const Connection &other) const = default;
+  auto operator<=>(const Connection &other) const = default;
 };

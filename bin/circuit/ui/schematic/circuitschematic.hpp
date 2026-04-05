@@ -33,6 +33,8 @@ public:
   bool has_pin(schematic::GlobalPinID pin_id) const;
   schematic::Rectangle pin_geometry(schematic::GlobalPinID pin_id) const;
 
+  bool add_connection(schematic::GlobalPinID from, schematic::GlobalPinID to);
+
 private:
   fc::vector_map<schematic::ComponentID, std::shared_ptr<Component>> _components;
   std::vector<Connection> _connections;

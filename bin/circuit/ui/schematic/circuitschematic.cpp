@@ -92,3 +92,28 @@ schematic::Rectangle CircuitSchematic::pin_geometry(schematic::GlobalPinID pin_i
   const auto &pin = comp->pin(pin_id.local_pin_id.value);
   return pin.geometry;
 }
+
+bool CircuitSchematic::add_connection(schematic::GlobalPinID src, schematic::GlobalPinID dst) {
+  // TODO: Check that src is an output
+  // TODO: Check that dst is an input or a clock.
+  // TODO: Check that dst is not already driven by another connection
+  // TODO: return a status code rather than true/false. An output pin driven by multiple inputs is valid to draw, just
+  // not simulate.
+  Connection conn{src, dst};
+  if (!has_pin(src)) {
+    std::cerr << "Source pin does not exist";
+    return false;
+  } else if (!has_pin(dst)) {
+    std::cerr << "Destination pin does not exist";
+    return false;
+  }
+  const auto &c = connections();
+  auto it = std::find(c.cbegin(), c.cend(), conn);
+  if (it != c.cend()) {
+    std::cerr << "Connection already exists";
+    return false;
+  } else {
+    connections().push_back(conn);
+    return true;
+  }
+}
