@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <type_traits>
 #include <variant>
 namespace sim {
 template <typename T, typename VARIANT_T> struct is_variant_member;
