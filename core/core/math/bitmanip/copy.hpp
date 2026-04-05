@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include <algorithm>
 #include <cstring>
 #include <stdint.h>
 #include "core/math/bitmanip/order.hpp"

@@ -100,7 +100,7 @@ public:
 private:
   bool _readonly = false;
   mutable bool _opened = false, _use_fallback = false;
-  std::string _path = 0;
+  std::string _path = "";
 
 #if defined(_WIN32)
   mutable void *_hFile = nullptr;

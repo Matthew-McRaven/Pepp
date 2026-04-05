@@ -38,7 +38,7 @@ project(Pepp VERSION 0.15.1 LANGUAGES C CXX)
 include(config/cmake/inject_defs.cmake)
 # Not respected by all generators, but incredibly useful when debugging builds.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Needed to avoid exporting every symbol in every DLL on Windows. Some corner
 # cases still require we export symbols manually.

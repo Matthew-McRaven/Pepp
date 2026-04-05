@@ -32,6 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
+#include <algorithm>
 #include "../notraced_riscv_isa3_system.hpp"
 
 namespace riscv {
