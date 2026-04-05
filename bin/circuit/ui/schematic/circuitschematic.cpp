@@ -64,9 +64,9 @@ std::optional<schematic::ComponentID> CircuitSchematic::place_component(std::sha
   std::shared_ptr<Component> comp = std::make_shared<Component>(blueprint, location, dir);
   auto maybe_id = _floorplan.try_add(comp->geometry());
   if (maybe_id) {
-    // Update Component's ID (which is initially invalid) with value returned by floorplan before inserting into map.
-    comp->set_id(maybe_id.value());
     schematic::ComponentID id{maybe_id.value()};
+    // Update Component's ID (which is initially invalid) with value returned by floorplan before inserting into map.
+    comp->set_id(id);
     _components.emplace(id, comp);
     return id;
   }

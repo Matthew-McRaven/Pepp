@@ -7,7 +7,8 @@
 
 struct Component {
   struct Pin {
-    u32 component_id, pin_id;
+    schematic::ComponentID component_id;
+    schematic::LocalPinID pin_id;
     schematic::Rectangle geometry;
     PinType type = PinType::HighZ;
     // Combine component_id and pin_id to globally identify the pin within the circuit.
@@ -16,8 +17,8 @@ struct Component {
 
   Component(std::shared_ptr<Blueprint> t, schematic::Point position, Direction orient = Direction::Right);
 
-  u32 id() const;
-  void set_id(u32 id);
+  schematic::ComponentID id() const;
+  void set_id(schematic::ComponentID id);
   Direction direction() const;
   void set_direction(Direction dir);
   void set_position(schematic::Point position);
@@ -27,7 +28,8 @@ struct Component {
     const auto l = [this](const Blueprint::Pin &pin) -> Component::Pin {
       Component::Pin placed;
       placed.component_id = this->_id;
-      placed.pin_id = &pin - &_template->pins[0];
+      u32 pin_index = &pin - &_template->pins[0];
+      placed.pin_id = schematic::LocalPinID{pin_index};
       placed.type = pin.type;
       placed.geometry = resolve_relative_geometry(pin.geometry).translated(_position);
       return placed;
@@ -45,6 +47,6 @@ private:
   Direction _orientation = Direction::Left;
   schematic::Point _position;
   // Must start 0-initialized (an invalid value) because placement may fail due to lack of space in floorplan.
-  u32 _id = 0;
+  schematic::ComponentID _id{};
   std::shared_ptr<Blueprint> _template;
 };

@@ -4,9 +4,9 @@
 Component::Component(std::shared_ptr<Blueprint> t, schematic::Point position, Direction orient)
     : _template(t), _position(position), _orientation(orient) {}
 
-u32 Component::id() const { return _id; }
+schematic::ComponentID Component::id() const { return _id; }
 
-void Component::set_id(u32 id) { _id = id; }
+void Component::set_id(schematic::ComponentID id) { _id = id; }
 
 Direction Component::direction() const { return _orientation; }
 

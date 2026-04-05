@@ -15,11 +15,28 @@ struct BlueprintID {
   auto operator<=>(const BlueprintID &) const = default;
   bool operator==(const BlueprintID &) const = default;
 };
+struct LocalPinID {
+  LocalPinID() = default;
+  inline explicit LocalPinID(u32 id) : value(id) {}
+  u32 value = 0;
+  auto operator<=>(const LocalPinID &) const = default;
+  bool operator==(const LocalPinID &) const = default;
+};
 struct ComponentID {
   ComponentID() = default;
   inline explicit ComponentID(u32 id) : value(id) {}
   u32 value = 0;
   auto operator<=>(const ComponentID &) const = default;
   bool operator==(const ComponentID &) const = default;
+};
+struct GlobalPinID {
+  GlobalPinID() = default;
+  inline explicit GlobalPinID(u64 id) : component_id(id >> 32), local_pin_id(id & 0xFFFFFFFF) {}
+  GlobalPinID(ComponentID component_id, LocalPinID local_pin_id)
+      : component_id(component_id), local_pin_id(local_pin_id) {}
+  ComponentID component_id;
+  LocalPinID local_pin_id;
+  auto operator<=>(const GlobalPinID &) const = default;
+  bool operator==(const GlobalPinID &) const = default;
 };
 } // namespace schematic
