@@ -43,8 +43,6 @@ struct GlobalPinID {
 };
 } // namespace schematic
 
-namespace std {
 template <class Tag, class U> struct std::hash<schematic::Handle<Tag, U>> {
   size_t operator()(const schematic::Handle<Tag, U> &k) const noexcept { return std::hash<U>{}(k.value); }
 };
-} // namespace std
