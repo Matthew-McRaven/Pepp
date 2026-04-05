@@ -23,7 +23,7 @@ struct AlignmentConstraint {
   bool is_aligned(const pepp::core::Point<i16> &pt) const noexcept;
 };
 
-struct ComponentTemplate {
+struct Blueprint {
   struct Pin {
     // Position is rleative to the geometry of the containing component.
     pepp::core::Rectangle<i16> geometry;
@@ -40,7 +40,7 @@ struct ComponentTemplate {
 };
 
 // A an atomic component which cannot be broken down any futher
-struct BuiltinComponentTemplate : public ComponentTemplate {
+struct BuiltinBlueprint : public Blueprint {
   enum class Type {
     Buffer,
     AND,
@@ -56,11 +56,11 @@ struct BuiltinComponentTemplate : public ComponentTemplate {
 };
 
 // A component which is itself composed of other components. For example, a 2-input multiplexer.
-struct BlockComponentTemplate : public ComponentTemplate {};
+struct BlockBlueprint : public Blueprint {};
 
 // A group of related component templates.
 // For example, each AND gate with a different number of inputs counts as a separate template.
 // However, the property editor should allow you to pick between the various allowed templates within the family.
 struct ComponentFamily {
-  std::vector<ComponentTemplate> templates;
+  std::vector<Blueprint> templates;
 };

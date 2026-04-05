@@ -1,9 +1,9 @@
-#include "component_instance.hpp"
+#include "component.hpp"
 #include "core/macros.hpp"
 
-ComponentInstance::ComponentInstance(ComponentTemplate t, pepp::core::Point<i16> position, Direction orient) {}
+Component::Component(Blueprint *t, pepp::core::Point<i16> position, Direction orient) {}
 
-pepp::core::Rectangle<i16> ComponentInstance::geometry() const {
+pepp::core::Rectangle<i16> Component::geometry() const {
   auto geom = _template->geometry.translated(_position);
   switch (_orientation) {
   case Direction::Left: return geom;
@@ -14,7 +14,7 @@ pepp::core::Rectangle<i16> ComponentInstance::geometry() const {
   PEPP_UNREACHABLE();
 }
 
-pepp::core::Rectangle<i16> ComponentInstance::resolve_relative_geometry(const pepp::core::Rectangle<i16> &geom) const {
+pepp::core::Rectangle<i16> Component::resolve_relative_geometry(const pepp::core::Rectangle<i16> &geom) const {
   // Bounds in the template's natural orientation.
   const i16 tw = _template->geometry.width();
   const i16 th = _template->geometry.height();
@@ -51,8 +51,10 @@ pepp::core::Rectangle<i16> ComponentInstance::resolve_relative_geometry(const pe
   return rotated.translated(_position);
 }
 
-u16 ComponentInstance::input_pin_count() const { return _template->input_pins(); }
+u16 Component::input_pin_count() const { return _template->input_pins(); }
 
-u16 ComponentInstance::output_pin_count() const { return _template->output_pins(); }
+u16 Component::output_pin_count() const { return _template->output_pins(); }
 
-u16 ComponentInstance::clock_pin_count() const { return _template->clock_pins(); }
+u16 Component::clock_pin_count() const { return _template->clock_pins(); }
+
+u16 Component::pint_count() const { return _template->pins.size(); }
