@@ -31,7 +31,7 @@ struct Blueprint {
     PinType type = PinType::HighZ;
   };
 
-  schematic::Rectangle geometry;
+  schematic::Size size;
   std::vector<Pin> pins;
   AlignmentConstraint alignmentConstraint;
 

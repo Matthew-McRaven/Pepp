@@ -1,7 +1,8 @@
 #include "component.hpp"
 #include "core/macros.hpp"
 
-Component::Component(std::shared_ptr<Blueprint> t, pepp::core::Point<i16> position, Direction orient) {}
+Component::Component(std::shared_ptr<Blueprint> t, schematic::Point position, Direction orient)
+    : _template(t), _position(position), _orientation(orient) {}
 
 u32 Component::id() const { return _id; }
 
@@ -11,10 +12,10 @@ Direction Component::direction() const { return _orientation; }
 
 void Component::set_direction(Direction dir) { _orientation = dir; }
 
-void Component::set_position(pepp::core::Point<i16> position) { _position = position; }
+void Component::set_position(schematic::Point position) { _position = position; }
 
-pepp::core::Rectangle<i16> Component::geometry() const {
-  auto geom = _template->geometry.translated(_position);
+schematic::Rectangle Component::geometry() const {
+  auto geom = schematic::Rectangle(_position, _template->size);
   switch (_orientation) {
   case Direction::Left: return geom;
   case Direction::Right: return geom;
@@ -24,10 +25,10 @@ pepp::core::Rectangle<i16> Component::geometry() const {
   PEPP_UNREACHABLE();
 }
 
-pepp::core::Rectangle<i16> Component::resolve_relative_geometry(const pepp::core::Rectangle<i16> &geom) const {
+schematic::Rectangle Component::resolve_relative_geometry(const pepp::core::Rectangle<i16> &geom) const {
   // Bounds in the template's natural orientation.
-  const i16 tw = _template->geometry.width();
-  const i16 th = _template->geometry.height();
+  const i16 tw = _template->size.width();
+  const i16 th = _template->size.height();
 
   // Rotations are clockwise in Y-down coordinate system. The geometry of the template is assume to start at (0,0).
   //
@@ -55,7 +56,7 @@ pepp::core::Rectangle<i16> Component::resolve_relative_geometry(const pepp::core
   // Normalize since rotation may have swapped which corner is top-left.
   const i16 new_left = std::min(x1, x2), new_right = std::max(x1, x2);
   const i16 new_top = std::min(y1, y2), new_bottom = std::max(y1, y2);
-  auto rotated = pepp::core::Rectangle<i16>::from_point_point(new_left, new_top, new_right, new_bottom);
+  auto rotated = schematic::Rectangle::from_point_point(new_left, new_top, new_right, new_bottom);
 
   // Then apply the instance's position offset.
   return rotated.translated(_position);
