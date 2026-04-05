@@ -5,6 +5,7 @@
 #include <QRect>
 #include <QtQml/qqmlregistration.h> // Required header for QML_ELEMENT
 
+#include "common_types.hpp"
 #include "core/math/geom/rectangle.hpp"
 
 #include "diagramtype.hpp"
@@ -174,13 +175,15 @@ public:
 
   // Display functions
   QString name() const { return _name; }
-  u32 imageKey() const { return _mipmapKey; }
+  u32 imageKey() const { return _mipmapKey.value; }
+  schematic::MipmapStoreKey typesafeImageKey() const { return _mipmapKey; }
 
   void setName(const QString v);
 
   // bool selected() const { return _isSelected; }
   void setSelected(const bool v);
   void setImageKey(u32 key);
+  void setTypesafeImageKey(const schematic::MipmapStoreKey &key);
 
   int orientation() const { return _properties.orientation; }
   void setOrientation(const quint32 v);
@@ -209,7 +212,7 @@ private:
   //  Display properties properties
   QString _name;
   //  Presentation variables that require Qt stay in this class
-  u32 _mipmapKey = 0;
+  schematic::MipmapStoreKey _mipmapKey;
 
   Pins _inputPins;
   Pins _outputPins;

@@ -151,7 +151,7 @@ private:
   void unselectLines();
 
   //  Render and cache images for painting
-  u32 cacheImages(const QString &source);
+  schematic::MipmapStoreKey cacheImages(const QString &source);
 
   //  Render and cache background lines
   void cacheBackground();
@@ -189,7 +189,7 @@ private:
 
   //  Cached images
   MipmapStore _mipmaps;
-  std::map<DiagramType::Type, u32> _typeToMipmapKey;
+  std::map<DiagramType::Type, schematic::MipmapStoreKey> _typeToMipmapKey;
 
   // Top-left corner of the viewport in grid coordinates
   PeppPt _top_left;

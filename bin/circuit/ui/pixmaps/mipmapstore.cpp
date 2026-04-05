@@ -5,7 +5,7 @@ MipmapStore::Key MipmapStore::insert(MipmapSource source, QSize base_size, Direc
   MipmapEntry entry;
   entry.source = std::move(source);
   entry.mipmap = entry.source.build(base_size, dir, constraints);
-  const Key key = _next_key++;
+  const Key key{(u32)_next_key++};
   _entries[key] = std::move(entry);
   return key;
 }

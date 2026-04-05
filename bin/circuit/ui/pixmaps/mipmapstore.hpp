@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common_types.hpp"
 #include "core/integers.h"
 #include "mipmapsource.hpp"
 
@@ -16,7 +17,7 @@ struct MipmapEntry {
 // recalculate() exists to rebuild mips level when display properties change.
 class MipmapStore {
 public:
-  using Key = u32;
+  using Key = schematic::MipmapStoreKey;
 
   // Insert or replace an entry. Returns the key (for chaining or caller convenience).
   Key insert(MipmapSource source, QSize base_size, Direction dir, MipmapConstraint constraints = {});

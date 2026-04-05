@@ -28,6 +28,15 @@ struct ComponentID {
   u32 value = 0;
   auto operator<=>(const ComponentID &) const = default;
   bool operator==(const ComponentID &) const = default;
+  inline bool operator!() const { return value == 0; }
+};
+struct MipmapStoreKey {
+  MipmapStoreKey() = default;
+  inline explicit MipmapStoreKey(u32 id) : value(id) {}
+  u32 value = 0;
+  auto operator<=>(const MipmapStoreKey &) const = default;
+  bool operator==(const MipmapStoreKey &) const = default;
+  inline bool operator!() const { return value == 0; }
 };
 struct GlobalPinID {
   GlobalPinID() = default;
@@ -40,3 +49,9 @@ struct GlobalPinID {
   bool operator==(const GlobalPinID &) const = default;
 };
 } // namespace schematic
+
+namespace std {
+template <> struct std::hash<schematic::MipmapStoreKey> {
+  size_t operator()(const schematic::MipmapStoreKey &k) const noexcept { return std::hash<u32>{}(k.value); }
+};
+} // namespace std

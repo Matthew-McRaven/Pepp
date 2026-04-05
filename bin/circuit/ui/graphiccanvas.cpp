@@ -151,7 +151,7 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
   addLine(from2, to);
 }
 
-u32 GraphicCanvas::cacheImages(const QString &source) {
+schematic::MipmapStoreKey GraphicCanvas::cacheImages(const QString &source) {
   auto mipmap_source = MipmapSource::from_svg_file(source);
   QSize size(48 * 3, 34 * 3);
   auto key_for = _mipmaps.insert(mipmap_source, size, Direction::Right, {});
@@ -290,7 +290,7 @@ void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
 
   //  Paint diagram
   // Get mipmaps for the current image.
-  const auto mip = _mipmaps.mipmap(props->imageKey());
+  const auto mip = _mipmaps.mipmap(props->typesafeImageKey());
   const auto best = mip.best_for(screen_rect.size().toSize(), props->orientation());
   painter->drawPixmap(screen_rect.toRect(), best);
 
@@ -407,7 +407,7 @@ void GraphicCanvas::getImage(DiagramProperties &props) {
   } else if (!_mipmaps.contains(key_it->second)) {
     qWarning() << "No mipmaps found for diagram type:" << props.type();
     return;
-  } else props.setImageKey(key_it->second);
+  } else props.setTypesafeImageKey(key_it->second);
 }
 
 QRectF GraphicCanvas::grid_to_screen(const PeppRect &rect) const {
@@ -927,7 +927,7 @@ void GraphicCanvas::startDrag(const QPoint point) {
   const auto curSize = (screen_block - (_margin * grid_to_px * 2)) * _currentZoom;
 
   QPixmap dragPix;
-  const auto key = _currentDiagram->imageKey();
+  const auto key = _currentDiagram->typesafeImageKey();
   if (!_mipmaps.contains(key)) {
     qWarning() << "No mipmaps found for diagram type:" << _currentDiagram->type();
     return;
