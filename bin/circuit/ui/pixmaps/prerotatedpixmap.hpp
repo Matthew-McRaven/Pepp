@@ -1,8 +1,7 @@
 #pragma once
 
 #include <QPixmap>
-
-enum class Direction { Left, Right, Up, Down };
+#include "../schematic/orient.hpp"
 
 // Store a pixmap which has been aligned to the four cardinal directions. This allows for efficient retrieval of the
 // correctly rotated pixmap for a given direction, without needing to rotate on-the-fly during rendering.

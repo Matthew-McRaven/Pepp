@@ -29,6 +29,10 @@ qt_add_qml_module(
   ui/pixmaps/mipmapsource.cpp
   ui/pixmaps/mipmapstore.cpp
   ui/pixmaps/prerotatedpixmap.cpp
+  ui/schematic/component_instance.cpp
+  ui/schematic/component_template.cpp
+  ui/schematic/net.cpp
+  ui/schematic/schematiclibrary.cpp
   DEPENDENCIES
   QtQuick)
 
