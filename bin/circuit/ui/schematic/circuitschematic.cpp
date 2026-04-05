@@ -1,0 +1,75 @@
+#include "circuitschematic.hpp"
+
+CircuitSchematic::CircuitSchematic() {}
+
+std::shared_ptr<Component> CircuitSchematic::component(schematic::ComponentID id) {
+  if (auto it = _components.find(id); it == _components.end()) return nullptr;
+  else return it->second;
+}
+
+const std::shared_ptr<Component> CircuitSchematic::component(schematic::ComponentID id) const {
+  if (auto it = _components.find(id); it == _components.end()) return nullptr;
+  else return it->second;
+}
+
+bool CircuitSchematic::empty() const { return _components.empty(); }
+
+bool CircuitSchematic::can_move_component(schematic::ComponentID id, schematic::Point location) const {
+  if (const auto &comp = component(id); comp == nullptr) return false;
+  else return _floorplan.can_move_absolute(id, location);
+}
+
+bool CircuitSchematic::move_component(schematic::ComponentID id, schematic::Point location) {
+  // Only components can be moved by this method; nets are ignored.
+  if (auto comp = component(id); comp == nullptr) return false;
+  else if (!can_move_component(id, location)) return false;
+  else if (_floorplan.move_absolute(id, location)) {
+    comp->set_position(location);
+    return true;
+  } else return false;
+}
+
+bool CircuitSchematic::can_rotate_component(schematic::ComponentID id, Direction dir) const {
+  using D = Direction;
+  if (const auto &comp = component(id); comp == nullptr) return false;
+  // Reject no-op rotation
+  else if (const auto cd = comp->direction(); cd == dir) return false;
+  // Rotating by 180 degrees does not change footprint.
+  else if (parallel(cd, dir)) return true;
+  // Else rotation is perpenedicular and requires a transpose in floorplan.
+  else return _floorplan.can_move_relative(id, {0, 0}, true);
+}
+
+bool CircuitSchematic::rotate_component(schematic::ComponentID id, Direction dir) {
+  using D = Direction;
+  if (const auto &comp = component(id); comp == nullptr) return false;
+  else if (!can_rotate_component(id, dir)) return false;
+  else if (const auto cd = comp->direction();
+           parallel(cd, dir)) { // Rotate pins by 180 degress without updating floorplan
+    comp->set_direction(dir);
+    return true;
+  } else { // Direction is perpendicular, so both pin oritentation and floorplan need updates.
+    comp->set_direction(dir);
+    return _floorplan.can_move_relative(id, {0, 0}, true);
+  }
+}
+
+std::optional<schematic::ComponentID> CircuitSchematic::place_component(std::shared_ptr<Blueprint> blueprint,
+                                                                        schematic::Point location, Direction dir) {
+  std::shared_ptr<Component> comp = std::make_shared<Component>(blueprint, location, dir);
+  auto maybe_id = _floorplan.try_add(comp->geometry());
+  if (maybe_id) {
+    // Component starts with invalid id. Update Component's ID with value returned by floorplan before inserting into
+    // lookup table.
+    comp->set_id(maybe_id.value());
+    _components.insert({maybe_id.value(), comp});
+  }
+  return maybe_id;
+}
+
+bool CircuitSchematic::remove_component(schematic::ComponentID id) {
+  if (auto it = _components.find(id); it == _components.end()) return false;
+  _floorplan.remove(id);
+  _components.erase(id);
+  return true;
+}

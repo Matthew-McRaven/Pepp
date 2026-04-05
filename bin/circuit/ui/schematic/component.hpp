@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <ranges>
 #include "core/integers.h"
 #include "core/math/geom/rectangle.hpp"
@@ -14,8 +15,13 @@ struct Component {
     u64 global_pin_id() const;
   };
 
-  Component(Blueprint *t, pepp::core::Point<i16> position, Direction orient = Direction::Right);
+  Component(std::shared_ptr<Blueprint> t, pepp::core::Point<i16> position, Direction orient = Direction::Right);
 
+  u32 id() const;
+  void set_id(u32 id);
+  Direction direction() const;
+  void set_direction(Direction dir);
+  void set_position(pepp::core::Point<i16> position);
   pepp::core::Rectangle<i16> geometry() const;
 
   auto pins() const {
@@ -39,6 +45,7 @@ private:
   pepp::core::Rectangle<i16> resolve_relative_geometry(const pepp::core::Rectangle<i16> &geom) const;
   Direction _orientation = Direction::Left;
   pepp::core::Point<i16> _position;
-  u32 _id;
-  Blueprint *_template;
+  // Must start 0-initialized (an invalid value) because placement may fail due to lack of space in floorplan.
+  u32 _id = 0;
+  std::shared_ptr<Blueprint> _template;
 };

@@ -1,7 +1,17 @@
 #include "component.hpp"
 #include "core/macros.hpp"
 
-Component::Component(Blueprint *t, pepp::core::Point<i16> position, Direction orient) {}
+Component::Component(std::shared_ptr<Blueprint> t, pepp::core::Point<i16> position, Direction orient) {}
+
+u32 Component::id() const { return _id; }
+
+void Component::set_id(u32 id) { _id = id; }
+
+Direction Component::direction() const { return _orientation; }
+
+void Component::set_direction(Direction dir) { _orientation = dir; }
+
+void Component::set_position(pepp::core::Point<i16> position) { _position = position; }
 
 pepp::core::Rectangle<i16> Component::geometry() const {
   auto geom = _template->geometry.translated(_position);
