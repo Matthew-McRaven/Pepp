@@ -743,10 +743,10 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
     const auto geom = comp->geometry();
     // IDK where the magic constant "8" comes from, but removing it causes drag+drop to fail.
     const auto dropLocation = grid_to_index(point) * (i16)8;
-    const auto newLocation = dropLocation - PeppPt{static_cast<schematic::Coord>(geom.width() / 2),
-                                                   static_cast<schematic::Coord>(geom.height() / 2)};
-
-    moveComponent(id, newLocation);
+    const auto unaligned = dropLocation - PeppPt{static_cast<schematic::Coord>(geom.width() / 2),
+                                                 static_cast<schematic::Coord>(geom.height() / 2)};
+    auto aligned = comp->blueprint()->alignmentConstraint.nearest_aligned_point(unaligned);
+    moveComponent(id, aligned);
 
     //  Remap paint grid after move
     cacheBoundingBox();
@@ -834,8 +834,9 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
            << "has selected" << std::holds_alternative<Component *>(_selected);*/
   if (lastPt != newLocation && std::holds_alternative<Component *>(_selected)) {
     auto comp = std::get<Component *>(_selected);
+    auto aligned = comp->blueprint()->alignmentConstraint.nearest_aligned_point(newLocation);
     lastPt = newLocation;
-    lastResult = schematic->can_move_component(comp->id(), newLocation);
+    lastResult = schematic->can_move_component(comp->id(), aligned);
   }
   //  Can move is True if there is no hit. Flip to indicate if hit or not
   return !lastResult;
