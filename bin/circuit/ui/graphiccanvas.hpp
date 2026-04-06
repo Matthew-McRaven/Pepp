@@ -91,8 +91,6 @@ public:
   auto filter() const { return _filter; }
   void setFilter(const FilterDiagramListModel::Filter filter);
 
-  static PeppRect diagramGeometry(DiagramProperties *data);
-
 protected:
   //  Mouse events
   // void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -120,7 +118,9 @@ signals:
   void filterChanged();
 
 private:
-  void getImage(DiagramProperties &props);
+  //  Render and cache images for painting
+  schematic::MipmapStoreKey cacheSVG(const QString &source);
+  schematic::MipmapStoreKey getImage(Component *comp);
 
   //  Custom mouse event handlers
   void contextMenuEvent(QMouseEvent *event);
@@ -128,7 +128,7 @@ private:
   void lineLeftClickEvent(QMouseEvent *event, DiagramProperties *current);
 
   // Helepr for painting a single rect that has already "passed" the clipping test.
-  void paint_one(QPainter *painter, DiagramProperties *props);
+  void paint_one(QPainter *painter, Component *comp);
   void paint_line(QPainter *painter, const LineProperties *props);
   QRectF grid_to_screen(const PeppRect &rect) const;
   PeppRect screen_to_grid(QRectF rect) const;
@@ -140,8 +140,8 @@ private:
   void setZoom(qint8 change);
   void setVScroll(qint8 change);
   void setHScroll(qint8 change);
-  void moveDiagram(PeppPt oldLocation, PeppPt newLocation);
-  void rotateDiagram(DiagramProperties *diagram);
+  void moveComponent(PeppPt oldLocation, PeppPt newLocation);
+  void rotateComponent(schematic::ComponentID comp);
   bool hitTest(QPointF newPoint) const;
 
   //  Sets currently selected diagram/line
@@ -150,18 +150,14 @@ private:
   void unselectDiagrams();
   void unselectLines();
 
-  //  Render and cache images for painting
-  schematic::MipmapStoreKey cacheImages(const QString &source);
 
   //  Render and cache background lines
   void cacheBackground();
 
-  //  Insert test data
-  void updateData();
-
   //  Add diagram, and center in cell
-  DiagramProperties *addDiagram(const i16 row, const i16 col);
   void addLine(DiagramProperties *from, DiagramProperties *to);
+  std::optional<schematic::ComponentID> place_component(std::shared_ptr<Blueprint> blueprint, schematic::Point location,
+                                                        Direction dir);
 
   void setGrid(DiagramProperties *data);
 
@@ -190,7 +186,9 @@ private:
   std::shared_ptr<CircuitProject> _project = nullptr;
   //  Cached images
   std::shared_ptr<MipmapStore> _mipmaps = nullptr;
-  std::map<DiagramType::Type, schematic::MipmapStoreKey> _typeToMipmapKey;
+
+  // Visual properties
+  std::map<Component *, BaseProperties *> _visual_properties;
 
   // Top-left corner of the viewport in grid coordinates
   PeppPt _top_left;

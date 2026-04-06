@@ -75,9 +75,9 @@ pepp::core::Rectangle<i16> Component::resolve_relative_geometry(const pepp::core
   //   Down  (270°):  (x, y) → (y, tw - x)         bounds: th × tw
   auto rotate_point = [&](i16 x, i16 y) -> std::pair<i16, i16> {
     switch (_orientation) {
-    case Direction::Left: return {x, y};
+    case Direction::Right: return {x, y};
+    case Direction::Left: return {static_cast<i16>(tw - x), static_cast<i16>(th - y)};
     case Direction::Up: return {static_cast<i16>(th - y), x};
-    case Direction::Right: return {static_cast<i16>(tw - x), static_cast<i16>(th - y)};
     case Direction::Down: return {y, static_cast<i16>(tw - x)};
     }
     PEPP_UNREACHABLE();
@@ -100,6 +100,6 @@ Component::Pin Component::instantiate_pin(const Blueprint::Pin &pin, u16 pin_id)
   u32 pin_index = &pin - &_template->pins[0];
   placed.pin_id = schematic::LocalPinID{pin_index};
   placed.type = pin.type;
-  placed.geometry = resolve_relative_geometry(pin.geometry).translated(_position);
+  placed.geometry = resolve_relative_geometry(pin.geometry);
   return placed;
 }

@@ -19,8 +19,8 @@ public:
   bool contains_file(const std::string &file_path) const;
   std::size_t size() const;
 
-  u32 add_builtin_blueprints();
-  void add_test_data();
+  u32 add_builtin_blueprints(i16 multiplier = 1);
+  void add_test_data(i16 multiplier = 1);
 
   inline std::shared_ptr<CircuitSchematic> schematic() const { return _schematic; }
 

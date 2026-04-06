@@ -29,6 +29,7 @@ public:
   //  Returns nullptr if absent.
   const MipmapEntry *find(Key key) const;
   MipmapEntry *find(Key key);
+  std::optional<Key> find(const std::string &file_path) const;
 
   // Access mipmap directly and throws if absent.
   const MipmappedPrerotatedPixmap &mipmap(Key key) const;
@@ -39,5 +40,6 @@ public:
 private:
   int _next_key = 1;
   std::unordered_map<Key, MipmapEntry> _entries;
+  std::unordered_map<std::string, Key> _source_to_key;
   std::shared_ptr<CircuitProject> _project;
 };

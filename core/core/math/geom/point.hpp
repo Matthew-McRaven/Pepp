@@ -97,6 +97,11 @@ template <typename T> inline Point<T> operator-(const Point<T> &lhs, const Point
   return Point<T>{static_cast<T>(lhs.x() - rhs.x()), static_cast<T>(lhs.y() - rhs.y())};
 }
 
+template <typename T> inline Point<T> operator*(const Point<T> &pt, T scalar) noexcept {
+  return Point<T>{static_cast<T>(pt.x() * scalar), static_cast<T>(pt.y() * scalar)};
+}
+template <typename T> inline Point<T> operator*(T scalar, const Point<T> &pt) noexcept { return pt * scalar; }
+
 // A size of an entity in 2d space, often combined with a point to form a rectangle.
 template <typename T> class Size : private Vec2<T> {
 public:
