@@ -207,6 +207,13 @@ private:
 
   //  Drag start
   QPointF _dragStartPosition{-1, -1};
+  struct DragRect {
+    bool has_hit = false;
+    schematic::Rectangle drop_location;
+    bool operator==(const DragRect &other) const = default;
+  };
+  // Hold the "drop" coordinate in logical coordinates and if the drop is expected to be valid.
+  mutable std::optional<DragRect> _currentDragShadow = std::nullopt;
 
   //  Line information
   DiagramProperties *_firstPoint = nullptr;

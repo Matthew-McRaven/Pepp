@@ -212,10 +212,16 @@ void GraphicCanvas::paint(QPainter *painter) {
     painter->setPen(QPen(color, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter->drawLine(screenTo, screenFrom);
   }
+
+  if (_currentDragShadow) {
+    const auto screen_rect = grid_to_screen(_currentDragShadow->drop_location);
+    const QColor bg = _currentDragShadow->has_hit ? QColorConstants::Svg::red : QColorConstants::Svg::green;
+    painter->setBrush(bg);
+    painter->drawRect(screen_rect);
+  }
 }
 
 void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
-
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
   auto screen_rect = grid_to_screen(comp->geometry());
@@ -698,14 +704,19 @@ void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event) {
 }
 
 void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event) {
+  // Stopped dragging w/o dropping. Must clear drag shadow and update, else we keep rendering the shadow rectangle until
+  // the next drag event.
+  _currentDragShadow = std::nullopt;
+  update();
   event->ignore();
 }
 
 void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event) {
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
-    if (hitTest(event->position())) {
-      return;
-    }
+    auto oldShadow = _currentDragShadow;
+    bool has_hit = hitTest(event->position());
+    if (oldShadow != _currentDragShadow) update();
+    if (has_hit) return;
 
     if (event->source() == this) {
       event->setDropAction(Qt::MoveAction);
@@ -720,11 +731,14 @@ void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event) {
 }
 
 void GraphicCanvas::dropEvent(QDropEvent *event) {
-  // qDebug() << "dropEvent";
+  qDebug() << "dropEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
     // setCursor(Qt::ArrowCursor);
 
     if (hitTest(event->position())) {
+      qDebug() << "bailing early";
+      _currentDragShadow = std::nullopt;
+      update();
       //  There is a hit on an existing item, abort move
       return;
     }
@@ -740,13 +754,10 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
     qDebug() << _dragStartPosition << "dropEvent: " << event->position() << "grid point: " << point.x() << ","
              << point.y();
     const auto comp = _project->schematic()->component(id);
-    const auto geom = comp->geometry();
     // IDK where the magic constant "8" comes from, but removing it causes drag+drop to fail.
-    const auto dropLocation = grid_to_index(point) * (i16)8;
-    const auto unaligned = dropLocation - PeppPt{static_cast<schematic::Coord>(geom.width() / 2),
-                                                 static_cast<schematic::Coord>(geom.height() / 2)};
-    auto aligned = comp->blueprint()->alignmentConstraint.nearest_aligned_point(unaligned);
-    moveComponent(id, aligned);
+    const auto dropLocation = _currentDragShadow->drop_location.top_left();
+    moveComponent(id, dropLocation);
+    _currentDragShadow = std::nullopt;
 
     //  Remap paint grid after move
     cacheBoundingBox();
@@ -821,8 +832,6 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
   //  Mouse location in grid coordinates to
   //  to determine rectangle hit.
   const auto point = screen_to_grid(newPoint);
-  // IDK where the magic constant "8" comes from, but removing it causes drag+drop to fail.
-  const auto newLocation = grid_to_index(point) * (i16)8;
   const auto schematic = _project->schematic();
 
   //  This function can be called dozens of times per second when dragging an item.
@@ -832,11 +841,21 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
   static PeppPt lastPt{-1, -1};
   /*qDebug() << "hitTest: " << newPoint << "lastPt: " << grid_to_screen(lastPt) << "lastResult: " << lastResult
            << "has selected" << std::holds_alternative<Component *>(_selected);*/
-  if (lastPt != newLocation && std::holds_alternative<Component *>(_selected)) {
-    auto comp = std::get<Component *>(_selected);
-    auto aligned = comp->blueprint()->alignmentConstraint.nearest_aligned_point(newLocation);
-    lastPt = newLocation;
+  if (lastPt != point && std::holds_alternative<Component *>(_selected)) {
+    const auto comp = std::get<Component *>(_selected);
+    const auto geom = comp->geometry();
+    // Compute the size of the item being dragged in the screen space
+    const auto tl = grid_to_screen(geom.top_left()), br = grid_to_screen(geom.bottom_right());
+    const auto screenRect = QRectF(tl, br);
+    // Shift newPoint by 1/2 the size of screen-space rectangle so that hit test is based on the center.
+    // Shift MUST be done in screen space, else we get weird quantization bugs of algnment constraints.
+    const auto shifted = newPoint - QPointF(screenRect.width() / 2, screenRect.height() / 2);
+    const auto unaligned = screen_to_grid(shifted);
+    auto aligned = comp->blueprint()->alignmentConstraint.nearest_aligned_point(unaligned);
+    lastPt = point;
     lastResult = schematic->can_move_component(comp->id(), aligned);
+    _currentDragShadow =
+        DragRect{.has_hit = !lastResult, .drop_location = schematic::Rectangle(aligned, comp->geometry().size())};
   }
   //  Can move is True if there is no hit. Flip to indicate if hit or not
   return !lastResult;
