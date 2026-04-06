@@ -40,15 +40,26 @@ std::optional<MipmapStore::Key> MipmapStore::find(const std::string &file_path) 
   return it != _source_to_key.cend() ? std::optional<Key>{it->second} : std::nullopt;
 }
 
-const MipmappedPrerotatedPixmap &MipmapStore::mipmap(Key key) const {
-  if (!_entries.contains(key)) {
-    throw std::out_of_range("MipmapStore::mipmap: key not found");
-  }
-  return _entries.at(key).mipmap;
+const MipmappedPrerotatedPixmap *MipmapStore::mipmap(Key key) const {
+  if (!_entries.contains(key)) throw std::out_of_range("MipmapStore::mipmap: key not found");
+  return &_entries.at(key).mipmap;
 }
 
 bool MipmapStore::contains(Key key) const { return _entries.find(key) != _entries.end(); }
 
 std::size_t MipmapStore::size() const { return _entries.size(); }
+
+void MipmapStore::debug_dump_to_dir(QString dir) const {
+  for (const auto &[key, entry] : _entries) {
+    const auto base_path = dir + "/" + QString::number(key.value);
+    for (int level = 0; level < entry.mipmap.level_count(); ++level) {
+      auto at_level = entry.mipmap.at_level(level);
+      at_level->down()->save(base_path + "_mip" + QString::number(level) + "_down.png");
+      at_level->left()->save(base_path + "_mip" + QString::number(level) + "_left.png");
+      at_level->right()->save(base_path + "_mip" + QString::number(level) + "_right.png");
+      at_level->up()->save(base_path + "_mip" + QString::number(level) + "_up.png");
+    }
+  }
+}
 
 const std::unordered_map<MipmapStore::Key, MipmapEntry> &MipmapStore::entries() const { return _entries; }

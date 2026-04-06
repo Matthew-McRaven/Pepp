@@ -235,10 +235,11 @@ void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
   //  Paint diagram
   // Get mipmaps for the current image.
   const auto mip = _mipmaps->mipmap(mipmap_key);
-  const auto best = mip.best_for(screen_rect.size().toSize(), comp->direction());
+  const auto best = mip->best_for(screen_rect.size().toSize(), comp->direction());
+  qDebug() << best->size();
   // painter->save();
   // painter->setClipRect(screen_rect);
-  painter->drawPixmap(screen_rect.toRect(), best);
+  painter->drawPixmap(screen_rect.toRect(), *best);
   // painter->restore();
   // painter->setPen(QPen(QColorConstants::Svg::red, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
   // painter->drawRect(screen_rect);
@@ -802,12 +803,12 @@ void GraphicCanvas::startDrag(const QPoint point) {
   const auto geom = comp->geometry();
   if (geom.width() > geom.height()) {
     dragPix = _mipmaps->mipmap(key)
-                  .best_for(QSize(curSize, curSize), comp->direction())
-                  .scaledToWidth(curSize, Qt::SmoothTransformation);
+                  ->best_for(QSize(curSize, curSize), comp->direction())
+                  ->scaledToWidth(curSize, Qt::SmoothTransformation);
   } else {
     dragPix = _mipmaps->mipmap(key)
-                  .best_for(QSize(curSize, curSize), comp->direction())
-                  .scaledToHeight(curSize, Qt::SmoothTransformation);
+                  ->best_for(QSize(curSize, curSize), comp->direction())
+                  ->scaledToHeight(curSize, Qt::SmoothTransformation);
   }
 
   drag->setPixmap(dragPix);

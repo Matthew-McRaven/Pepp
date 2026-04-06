@@ -32,13 +32,12 @@ public:
   static MipmappedPrerotatedPixmap from(const QPixmap &pixmap, Direction dir, MipmapConstraint constraints = {});
 
   // Return the best prerotated pixmap to render at dst_size.
-  const PrerotatedPixmap &best_for(QSize dst_size) const;
+  const PrerotatedPixmap *best_for(QSize dst_size) const;
   // Convenience overloads for getting one of the individual prerotated pixmaps directly.
-  const QPixmap &best_for(QSize dst_size, Direction dir) const;
-  const QPixmap &best_for(QSize dst_size, int angle) const;
+  const QPixmap *best_for(QSize dst_size, Direction dir) const;
   // Access a specific mip level. Level 0 is full resolution.
   // Out-of-range requests clamp to the smallest available mip.
-  const PrerotatedPixmap &at_level(int level) const;
+  const PrerotatedPixmap *at_level(int level) const;
   // Pick the best mip for drawing at dst_size, given the level-0 source size.
   // Returns the level where source >= destination (i.e. we downsample, not upsample).
   int level_for(QSize dst_size) const;

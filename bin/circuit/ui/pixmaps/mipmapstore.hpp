@@ -32,10 +32,11 @@ public:
   std::optional<Key> find(const std::string &file_path) const;
 
   // Access mipmap directly and throws if absent.
-  const MipmappedPrerotatedPixmap &mipmap(Key key) const;
+  const MipmappedPrerotatedPixmap *mipmap(Key key) const;
   bool contains(Key key) const; // Is the key present?
   std::size_t size() const;
   const std::unordered_map<Key, MipmapEntry> &entries() const;
+  void debug_dump_to_dir(QString dir) const;
 
 private:
   int _next_key = 1;

@@ -61,29 +61,23 @@ MipmappedPrerotatedPixmap MipmappedPrerotatedPixmap::from(const QPixmap &pixmap,
   Q_UNREACHABLE();
 }
 
-const PrerotatedPixmap &MipmappedPrerotatedPixmap::best_for(QSize dst_size) const {
+const PrerotatedPixmap *MipmappedPrerotatedPixmap::best_for(QSize dst_size) const {
   return at_level(level_for(dst_size));
 }
 
-const QPixmap &MipmappedPrerotatedPixmap::best_for(QSize dst_size, Direction dir) const {
-  const auto rotated = best_for(dst_size);
-  return rotated.get(dir);
+const QPixmap *MipmappedPrerotatedPixmap::best_for(QSize dst_size, Direction dir) const {
+  return best_for(dst_size)->get(dir);
 }
 
-const QPixmap &MipmappedPrerotatedPixmap::best_for(QSize dst_size, int angle) const {
-  const auto rotated = best_for(dst_size);
-  return rotated.get(angle);
-}
-
-const PrerotatedPixmap &MipmappedPrerotatedPixmap::at_level(int level) const {
+const PrerotatedPixmap *MipmappedPrerotatedPixmap::at_level(int level) const {
   if (level < 0) level = 0;
   if (level >= int(_levels.size())) level = int(_levels.size()) - 1;
-  return _levels[level];
+  return &_levels[level];
 }
 
 int MipmappedPrerotatedPixmap::level_for(QSize dst_size) const {
   if (_levels.empty() || dst_size.isEmpty()) return 0;
-  const QSize src = _levels[0].left().size(); // any orientation works for ratio
+  const QSize src = _levels[0].left()->size(); // any orientation works for ratio
   const qreal ratio_w = qreal(src.width()) / dst_size.width();
   const qreal ratio_h = qreal(src.height()) / dst_size.height();
   const qreal ratio = qMin(ratio_w, ratio_h); // conservative: pick finer mip
@@ -128,14 +122,7 @@ MipmappedPrerotatedPixmap MipmappedPrerotatedPixmap::build_svg(QSvgRenderer &svg
   while (size.width() >= cn.min_dimension && size.height() >= cn.min_dimension &&
          result._levels.size() <= cn.max_levels) {
     const auto rendered = render_svg(svg, size);
-    /*const QString basename =
-        QString("%1_level%2_%3x%4").arg(prefix).arg(result._levels.size()).arg(size.width()).arg(size.height());
-    if (!rendered.save(basename + ".png", "PNG"))  qWarning() << "Failed to save mip dump:" << basename + ".png";*/
     const auto prerotated = from_fn(rendered);
-    /*prerotated.left().save(basename + "_left.png", "PNG");
-    prerotated.right().save(basename + "_right.png", "PNG");
-    prerotated.up().save(basename + "_up.png", "PNG");
-    prerotated.down().save(basename + "_down.png", "PNG");*/
     result._levels.push_back(prerotated);
     size = QSize(size.width() / 2, size.height() / 2);
   }
