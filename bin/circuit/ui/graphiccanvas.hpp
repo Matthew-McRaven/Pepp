@@ -44,7 +44,6 @@ class GraphicCanvas : public QQuickPaintedItem {
 
   //  Set and access datamodel and template
   Q_PROPERTY(DiagramTemplate *template READ stamp WRITE setStamp NOTIFY stampChanged FINAL)
-  Q_PROPERTY(DiagramProperties *currentDiagram READ currentDiagram NOTIFY currentItemChanged FINAL)
   Q_PROPERTY(FilterDiagramListModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
 
 public:
@@ -81,9 +80,6 @@ public:
 
   DiagramTemplate *stamp() const { return _template; }
   void setStamp(DiagramTemplate *stamp);
-
-  DiagramProperties *currentDiagram() const { return _currentDiagram; }
-  void setCurrentDiagram(DiagramProperties *item);
 
   LineProperties *currentLine() const { return _currentLine; }
   void setCurrentLine(LineProperties *item);
@@ -145,6 +141,7 @@ private:
   bool hitTest(QPointF newPoint) const;
 
   //  Sets currently selected diagram/line
+  void ensureProperties(Component *comp);
   bool setSelectedDiagram(const PeppPt &point);
   bool setSelectedLine(const PeppPt &point);
   void unselectDiagrams();
@@ -158,8 +155,6 @@ private:
   void addLine(DiagramProperties *from, DiagramProperties *to);
   std::optional<schematic::ComponentID> place_component(std::shared_ptr<Blueprint> blueprint, schematic::Point location,
                                                         Direction dir);
-
-  void setGrid(DiagramProperties *data);
 
   //  Respond to data changes in model
   void updateCell(const QModelIndex &from, const QModelIndex &to);
@@ -187,9 +182,6 @@ private:
   //  Cached images
   std::shared_ptr<MipmapStore> _mipmaps = nullptr;
 
-  // Visual properties
-  std::map<Component *, BaseProperties *> _visual_properties;
-
   // Top-left corner of the viewport in grid coordinates
   PeppPt _top_left;
   PeppRect _dimensions;
@@ -204,7 +196,8 @@ private:
   //  Make fixed color for now
   QColor _highlight = QColorConstants::Svg::cornflowerblue;
   QColor _normal = QColorConstants::Svg::black;
-
+  // Selection information
+  std::variant<std::monostate, Component *> _selected = std::monostate{};
   //  Drag start
   QPointF _dragStartPosition{-1, -1};
 
@@ -214,6 +207,5 @@ private:
 
   //  Data model
   DiagramTemplate *_template = nullptr;
-  DiagramProperties *_currentDiagram = nullptr;
   FilterDiagramListModel::Filter _filter = FilterDiagramListModel::None;
 };

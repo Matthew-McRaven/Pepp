@@ -9,6 +9,7 @@
 #include "core/math/geom/rectangle.hpp"
 
 #include "diagramtype.hpp"
+#include "schematic/component.hpp"
 
 //  Forward declarations
 class DiagramProperties;
@@ -22,7 +23,7 @@ struct LineProperty {};
 struct DiagramProperty {
 };
 
-class BaseProperties : public QObject {
+class BaseProperties : public QObject, public ComponentVisualProperties {
   Q_OBJECT
   Q_PROPERTY(bool selected READ selected WRITE setSelected NOTIFY selectedChanged FINAL)
 
