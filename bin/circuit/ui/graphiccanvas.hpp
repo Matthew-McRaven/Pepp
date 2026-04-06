@@ -50,7 +50,8 @@ public:
   GraphicCanvas(QQuickItem *parent = nullptr);
   void paint(QPainter *painter) override;
 
-  //  Context menu (right click)
+  //  Sets currently selected diagram/line
+  Q_INVOKABLE bool hasSelectedComponent();
   Q_INVOKABLE void rotateClockwise();
   Q_INVOKABLE void rotateCounterClockwise();
 
@@ -140,7 +141,6 @@ private:
   void rotateComponent(schematic::ComponentID comp);
   bool hitTest(QPointF newPoint) const;
 
-  //  Sets currently selected diagram/line
   void ensureProperties(Component *comp);
   bool setSelectedDiagram(const PeppPt &point);
   bool setSelectedLine(const PeppPt &point);

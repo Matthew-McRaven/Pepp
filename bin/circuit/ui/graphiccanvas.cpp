@@ -215,12 +215,10 @@ void GraphicCanvas::paint(QPainter *painter) {
 }
 
 void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
-  // TODO: mmcraven, must create props after-the-fact
-  // auto props = _visual_properties[comp];
 
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
-  auto screen_rect = grid_to_screen(comp->geometry()); //.adjusted(2, 2, -2, -2);
+  auto screen_rect = grid_to_screen(comp->geometry());
   std::cerr << "Rect Geometry: " << comp->geometry() << std::endl;
   auto props = static_cast<BaseProperties *>(comp->properties);
   //  Check state, and set outline if selected
@@ -836,15 +834,16 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
   static bool lastResult{false};
   static PeppPt lastPt{-1, -1};
 
-  if (lastPt != newLocation) {
+  if (lastPt != newLocation && std::holds_alternative<Component *>(_selected)) {
+    auto comp = std::get<Component *>(_selected);
     lastPt = newLocation;
-    // TODO: mmcraven, reenable active/selection
-    // lastResult = schematic->can_move_component(schematic::ComponentID{_currentDiagram}, newLocation);
-    // qDebug() << lastPt.x() << lastPt.y() << lastResult;
+    lastResult = schematic->can_move_component(comp->id(), newLocation);
   }
   //  Can move is True if there is no hit. Flip to indicate if hit or not
   return !lastResult;
 }
+
+bool GraphicCanvas::hasSelectedComponent() { return std::holds_alternative<Component *>(_selected); }
 
 void GraphicCanvas::ensureProperties(Component *comp) {
   if (comp->properties == nullptr) {

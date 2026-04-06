@@ -65,20 +65,14 @@ Item {
                 MenuItem {
                     text: "Rotate Left"
                     onTriggered: {
-                        var item = canvas.currentDiagram;
-
-                        //  Check to see if there is no current item
-                        if (item)
+                        if (canvas.hasSelectedComponent())
                         canvas.rotateClockwise();
                     }
                 }
                 MenuItem {
                     text: "Rotate right"
                     onTriggered: {
-                        var item = canvas.currentDiagram;
-
-                        //  Check to see if there is no current item
-                        if (item)
+                        if (canvas.hasSelectedComponent())
                         canvas.rotateCounterClockwise();
                     }
                 }
