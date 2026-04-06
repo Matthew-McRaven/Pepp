@@ -4,8 +4,7 @@
 #include <string>
 #include "common_types.hpp"
 #include "flat/flat_map.hpp"
-
-class Blueprint;
+#include "schematic/blueprint.hpp" // Should be able to forward declare, but MSVC gets confused while linking.
 
 struct BlueprintGroup {
   std::string name;
