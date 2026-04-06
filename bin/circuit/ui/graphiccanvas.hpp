@@ -126,7 +126,7 @@ private:
 
   // Helepr for painting a single rect that has already "passed" the clipping test.
   void paint_one(QPainter *painter, Component *comp);
-  void paint_line(QPainter *painter, const LineProperties *props);
+  void paint_line(QPainter *painter, Connection con);
   QRectF grid_to_screen(const PeppRect &rect) const;
   PeppRect screen_to_grid(QRectF rect) const;
   PeppPt screen_to_grid(QPointF point) const;

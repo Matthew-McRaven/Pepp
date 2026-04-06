@@ -198,20 +198,26 @@ void GraphicCanvas::paint(QPainter *painter) {
     currentBlock.translate(screen_block, -screen_block * row);
   }
 
+  auto schematic = _project->schematic();
   //  Diagrams are painted on minor grid axis. Overwrite lines.
-  for (auto &it : _project->schematic()->components()) {
+  for (auto &it : schematic->components()) {
     //  Skip painting rectangles that are outside the viewport.
     auto comp = it.second;
     if (pepp::core::intersects(grid_viewport, comp->geometry())) paint_one(painter, comp.get());
   }
 
-  //  Draw lines first. Diagrams will clip lines
-  // TODO: mmcraven, re-add line/connection drawing
-  /*for (auto &prop : _data.lines()) {
-    auto *line = prop.get();
-    //  Skip painting rectangles that are outside the viewport.
-    if (pepp::core::intersects(grid_viewport, line->gridRectangle())) paint_line(painter, line);
-  }*/
+  for (auto &it : schematic->connections()) {
+    const auto src = schematic->pin_geometry(it.src);
+    const auto dst = schematic->pin_geometry(it.dst);
+    const auto span = pepp::core::hull(dst, src);
+    // Skip connections entirely outside viewport.
+    if (!pepp::core::intersects(grid_viewport, span)) continue;
+    const auto screenTo = grid_to_screen(src.center_approximate());
+    const auto screenFrom = grid_to_screen(dst.center_approximate());
+    QColor color = _normal;
+    painter->setPen(QPen(color, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter->drawLine(screenTo, screenFrom);
+  }
 }
 
 void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
@@ -234,13 +240,7 @@ void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
   // Get mipmaps for the current image.
   const auto mip = _mipmaps->mipmap(mipmap_key);
   const auto best = mip->best_for(screen_rect.size().toSize(), comp->direction());
-  qDebug() << best->size();
-  // painter->save();
-  // painter->setClipRect(screen_rect);
   painter->drawPixmap(screen_rect.toRect(), *best);
-  // painter->restore();
-  // painter->setPen(QPen(QColorConstants::Svg::red, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-  // painter->drawRect(screen_rect);
 
   //  Paint input pins
   painter->setPen(QPen(QColorConstants::Svg::aqua, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
@@ -257,18 +257,7 @@ void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
   }
 }
 
-void GraphicCanvas::paint_line(QPainter *painter, const LineProperties *props) {
-  // TODO: mmcraven
-  // Convert our absolute grid coordinates to screen coordinates.
-  // Grid is inset so that selection box appears inside current cell
-  /*const auto screenTo = grid_to_screen(props->outputPoint());
-  const auto screenFrom = grid_to_screen(props->inputPoint());
-
-  //  Check state, and set color if selected
-  QColor color = props->selected() ? _highlight : _normal;
-  painter->setPen(QPen(color, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-  painter->drawLine(screenTo, screenFrom);*/
-}
+void GraphicCanvas::paint_line(QPainter *painter, Connection con) {}
 
 void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
   //  Calculate maximum line dimensions

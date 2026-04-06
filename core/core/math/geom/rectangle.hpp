@@ -59,7 +59,9 @@ template <typename T> struct Rectangle {
   // These are screen-ish coordinates, with y increasing downward.
   Point<T> top_left() const noexcept { return {_x.lower(), _y.lower()}; };
   Point<T> bottom_right() const noexcept { return {_x.upper(), _y.upper()}; };
-  Point<T> midpoint_and_b() const noexcept { return Point<T>(_x.midpoint_approximate(), _y.midpoint_approximate()); }
+  Point<T> center_approximate() const noexcept {
+    return Point<T>(_x.midpoint_approximate(), _y.midpoint_approximate());
+  }
   const Interval<T> &x() const noexcept { return _x; }
   const Interval<T> &y() const noexcept { return _y; }
   //  x and y do not return actual points. Discuss with Matthew if we can rename x and y above
