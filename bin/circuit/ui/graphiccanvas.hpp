@@ -138,6 +138,7 @@ private:
   void setVScroll(qint8 change);
   void setHScroll(qint8 change);
   void moveComponent(PeppPt oldLocation, PeppPt newLocation);
+  void moveComponent(schematic::ComponentID comp, PeppPt newLocation);
   void rotateComponent(schematic::ComponentID comp);
   bool hitTest(QPointF newPoint) const;
 

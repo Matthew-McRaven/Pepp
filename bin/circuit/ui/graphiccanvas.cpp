@@ -662,8 +662,13 @@ void GraphicCanvas::setHScroll(qint8 change) {
 void GraphicCanvas::moveComponent(PeppPt oldLocation, PeppPt newLocation) {
   auto schematic = _project->schematic();
   auto maybe_component_id = schematic->component_at(oldLocation);
-  if (!maybe_component_id || !schematic->can_move_component(*maybe_component_id, newLocation)) return;
-  schematic->move_component(*maybe_component_id, newLocation);
+  if (maybe_component_id) return moveComponent(*maybe_component_id, newLocation);
+}
+
+void GraphicCanvas::moveComponent(schematic::ComponentID comp, PeppPt newLocation) {
+  auto schematic = _project->schematic();
+  if (!schematic->can_move_component(comp, newLocation)) return;
+  schematic->move_component(comp, newLocation);
   cacheBoundingBox();
   update();
 }
@@ -729,15 +734,20 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
     QByteArray itemData = event->mimeData()->data("application/x-dnditemdata");
     QDataStream dataStream(&itemData, QIODevice::ReadOnly);
 
-    i16 oldX, oldY;
-    dataStream >> oldX >> oldY;
-
-    const PeppPt oldLocation(oldX, oldY);
+    schematic::ComponentID id;
+    dataStream >> id.value;
 
     const auto point = screen_to_grid(event->position());
-    const auto newLocation = grid_to_index(point);
+    qDebug() << _dragStartPosition << "dropEvent: " << event->position() << "grid point: " << point.x() << ","
+             << point.y();
+    const auto comp = _project->schematic()->component(id);
+    const auto geom = comp->geometry();
+    // IDK where the magic constant "8" comes from, but removing it causes drag+drop to fail.
+    const auto dropLocation = grid_to_index(point) * (i16)8;
+    const auto newLocation = dropLocation - PeppPt{static_cast<schematic::Coord>(geom.width() / 2),
+                                                   static_cast<schematic::Coord>(geom.height() / 2)};
 
-    moveComponent(oldLocation, newLocation);
+    moveComponent(id, newLocation);
 
     //  Remap paint grid after move
     cacheBoundingBox();
@@ -758,6 +768,7 @@ void GraphicCanvas::startDrag(const QPoint point) {
   //  Temporarily remove item from lookup. During hit detection, item
   //  will return true when pointing to self. Item is reset or saved
   //  in drop event.
+  setSelectedDiagram(screen_to_grid(point));
   if (!std::holds_alternative<Component *>(_selected)) return;
   auto comp = std::get<Component *>(_selected);
 
@@ -769,7 +780,7 @@ void GraphicCanvas::startDrag(const QPoint point) {
   QDataStream dataStream(&itemData, QIODevice::WriteOnly);
 
   //  Save old data to stream
-  // TODO: mmcraven, dataStream << _currentDiagram->key().left() << _currentDiagram->key().top();
+  dataStream << comp->id().value;
 
   QMimeData *mimeData = new QMimeData;
   mimeData->setData("application/x-dnditemdata", itemData);
@@ -781,7 +792,6 @@ void GraphicCanvas::startDrag(const QPoint point) {
 
   QPixmap dragPix;
 
-  // TODO: mmcraven, need access to selected id.
   const auto key = getImage(comp);
   if (!_mipmaps->contains(key)) {
     qWarning() << "No mipmaps found for diagram :" << comp->id().value;
@@ -804,8 +814,6 @@ void GraphicCanvas::startDrag(const QPoint point) {
   QPointF offset{curSize / 2, curSize / 2};
   drag->setHotSpot(offset.toPoint());
 
-  // setCursor(Qt::OpenHandCursor);
-
   //  If this function is not called, the drag will not start
   drag->exec();
 }
@@ -814,7 +822,8 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
   //  Mouse location in grid coordinates to
   //  to determine rectangle hit.
   const auto point = screen_to_grid(newPoint);
-  const auto newLocation = grid_to_index(point);
+  // IDK where the magic constant "8" comes from, but removing it causes drag+drop to fail.
+  const auto newLocation = grid_to_index(point) * (i16)8;
   const auto schematic = _project->schematic();
 
   //  This function can be called dozens of times per second when dragging an item.
@@ -822,7 +831,8 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
   //  prior result, and only call canMoveData when we have moved to a new grid area.
   static bool lastResult{false};
   static PeppPt lastPt{-1, -1};
-
+  /*qDebug() << "hitTest: " << newPoint << "lastPt: " << grid_to_screen(lastPt) << "lastResult: " << lastResult
+           << "has selected" << std::holds_alternative<Component *>(_selected);*/
   if (lastPt != newLocation && std::holds_alternative<Component *>(_selected)) {
     auto comp = std::get<Component *>(_selected);
     lastPt = newLocation;
