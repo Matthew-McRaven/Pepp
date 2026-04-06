@@ -7,6 +7,7 @@
 #include <QPainter>
 #include <QSvgRenderer>
 #include <Qt> //  Keyboard constants
+#include "schematic/blueprintlibrary.hpp"
 #include "schematic/circuitproject.hpp"
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
@@ -58,22 +59,14 @@ void GraphicCanvas::setYScrollbar(float y) {
   }
 }
 
-void GraphicCanvas::setStamp(DiagramTemplate *stamp) {
-  if (stamp != _template) {
-    if (stamp == nullptr) {
-      _template = nullptr;
-    } else {
-      //  Is valid stamp
-      if (stamp->diagramType() == "Diagram") {
-        _template = stamp;
-      } else {
-        _template = nullptr;
-      }
-    }
-    //  Changing template only affects current item to stamp down
-    //  Does not require a redraw
-    emit stampChanged();
-  }
+void GraphicCanvas::setBlueprint(u32 bp) {
+  schematic::BlueprintID id{bp};
+  if (id == _selectedBlueprint) return;
+  else if (id == schematic::BlueprintID{}) return;
+  _selectedBlueprint = id;
+  //  Changing template only affects current item to stamp down
+  //  Does not require a redraw
+  emit blueprintChanged();
 }
 
 void GraphicCanvas::setCurrentLine(LineProperties *item) {
@@ -225,7 +218,7 @@ void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
   auto screen_rect = grid_to_screen(comp->geometry());
-  std::cerr << "Rect Geometry: " << comp->geometry() << std::endl;
+  // std::cerr << "Rect Geometry: " << comp->geometry() << std::endl;
   auto props = static_cast<BaseProperties *>(comp->properties);
   //  Check state, and set outline if selected
   if (props && props->selected()) {
@@ -245,14 +238,14 @@ void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
   //  Paint input pins
   painter->setPen(QPen(QColorConstants::Svg::aqua, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
   for (const auto &pin : comp->input_pins()) {
-    std::cerr << "ipin geometry: " << pin.geometry << std::endl;
+    // std::cerr << "ipin geometry: " << pin.geometry << std::endl;
     painter->drawEllipse(grid_to_screen(pin.geometry));
   }
 
   //  Paint output pins
   painter->setPen(QPen(QColorConstants::Svg::lime, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
   for (const auto &pin : comp->output_pins()) {
-    std::cerr << "opin geometry: " << pin.geometry << std::endl;
+    // std::cerr << "opin geometry: " << pin.geometry << std::endl;
     painter->drawEllipse(grid_to_screen(pin.geometry));
   }
 }
@@ -274,9 +267,10 @@ void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
   // line->setInputDiagram(to);
 }
 
-std::optional<schematic::ComponentID> GraphicCanvas::place_component(std::shared_ptr<Blueprint> blueprint,
+std::optional<schematic::ComponentID> GraphicCanvas::place_component(schematic::BlueprintID id,
                                                                      schematic::Point location, Direction dir) {
   auto schematic = _project->schematic();
+  auto blueprint = _project->library()->get_blueprint(id);
   auto maybe_id = schematic->place_component(blueprint, location, dir);
   if (maybe_id) {
     auto comp = schematic->component(*maybe_id);
@@ -449,17 +443,18 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
 
 void GraphicCanvas::diagramLeftClickEvent(QMouseEvent *event, const PeppPt &point) {
   //  No template is selected, just return
-  if (_template == nullptr) {
+  if (_selectedBlueprint == schematic::BlueprintID{}) {
     event->setAccepted(false);
     return;
   }
 
-  const auto index = grid_to_index(point);
+  // TODO: another copy of that magic 8 constant.
+  const auto index = (i16)8 * grid_to_index(point);
   //  If we get here, we have a new item. Insert into canvas
   //  Use coordinate as center point
-  // DiagramProperties *data = addDiagram(index.x(), index.y());
+  auto id = place_component(_selectedBlueprint, index, Direction::Right);
   //  If no data is returned, the column is invalid. Assume parent will handle
-  // event->setAccepted(data != nullptr ? true : false);
+  event->setAccepted(id.has_value());
 }
 
 void GraphicCanvas::lineLeftClickEvent(QMouseEvent *event, DiagramProperties *current) {

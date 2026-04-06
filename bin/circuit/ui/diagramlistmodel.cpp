@@ -1,68 +1,57 @@
 #include "diagramlistmodel.hpp"
 #include <QImage>
+#include <QPixmap>
+#include "schematic/blueprintlibrary.hpp"
 
-DiagramTemplate::DiagramTemplate(QObject *parent) : QObject(parent) {};
-DiagramTemplate::DiagramTemplate(DiagramType::Type key, QString name, QString type, QString qrc, QString file,
-                                 QObject *parent)
-    : QObject(parent), _key(key), _name(name), _diagramType(type), _qrcFile(qrc), _file(file) {};
-
-DiagramListModel::DiagramListModel(QObject *parent) : QAbstractListModel(parent) {
-  _diagrams.append(new DiagramTemplate(DiagramType::Invalid, "Move", "Arrow", "qrc:/move", "svg/move-arrow.svg", this));
-  _diagrams.append(new DiagramTemplate(DiagramType::ANDGate, "AND Gate", "Diagram", "qrc:/and", "svg/and.svg", this));
-
-  _diagrams.append(new DiagramTemplate(DiagramType::ORGate, "OR Gate", "Diagram", "qrc:/or", "svg/or.svg", this));
-  _diagrams.append(
-      new DiagramTemplate(DiagramType::Inverter, "Inverter", "Diagram", "qrc:/inverter", "svg/inverter.svg", this));
-  _diagrams.append(
-      new DiagramTemplate(DiagramType::NANDGate, "NAND Gate", "Diagram", "qrc:/nand", "svg/nand.svg", this));
-  _diagrams.append(new DiagramTemplate(DiagramType::NORGate, "NOR Gate", "Diagram", "qrc:/nor", "svg/nor.svg", this));
-  _diagrams.append(new DiagramTemplate(DiagramType::XORGate, "XOR Gate", "Diagram", "qrc:/xor", "svg/xor.svg", this));
-  _diagrams.append(new DiagramTemplate(DiagramType::Line, "Line", "Line", "qrc:/line", "svg/line.svg", this));
-  _diagrams.append(
-      new DiagramTemplate(DiagramType::MultiLine, "Multiline", "Line", "qrc:/multiline", "svg/multiline.svg", this));
-  _diagrams.append(new DiagramTemplate(DiagramType::Bus, "Bus", "Line", "qrc:/bus", "svg/bus.svg", this));
-}
+DiagramListModel::DiagramListModel(QObject *parent) : QAbstractListModel(parent) {}
 
 int DiagramListModel::rowCount(const QModelIndex &parent) const {
   // For list models only the root node (an invalid parent) should return the list's size. For all
   // other (valid) parents, rowCount() should return 0 so that it does not become a tree model.
-  if (parent.isValid()) return 0;
-
-  return _diagrams.size();
+  if (parent.isValid() || _project == nullptr) return 0;
+  const auto library = _project->library();
+  return library->groups().size();
 }
 
 QVariant DiagramListModel::data(const QModelIndex &index, int role) const {
-  if (!index.isValid()) return {};
-
-  const auto *item = this->diagramTemplate(index.row()); //_diagrams.at(index.row());
+  if (!index.isValid() || _project == nullptr) return {};
+  const auto library = _project->library();
+  const auto &groups = library->groups();
+  const auto &group = groups.container.at(index.row());
 
   switch (role) {
-  case Role::Key: return item->key();
-  case Role::Name: return item->name();
-  case Role::DiagramType: return item->diagramType();
-  case Role::QrcFile: return item->qrcFile();
-  case Role::File: return item->file();
+  case Role::Name: return QString::fromStdString(group.second->name);
+  case Role::Path: {
+    const auto img = group.second->image;
+    const std::string fname = **_project->find_file(img);
+    // icon.source expects the string to start with qrc:/
+    return "qrc" + QString::fromStdString(fname);
+  }
   }
 
   //  property not found
   return {};
 }
 
-QHash<int, QByteArray> DiagramListModel::roleNames() const {
-  return {{Role::Name, "name"},
-          {Role::Key, "key"},
-          {Role::DiagramType, "shapeType"},
-          {Role::File, "file"},
-          {Role::QrcFile, "qrcFile"}};
+QHash<int, QByteArray> DiagramListModel::roleNames() const { return {{Role::Name, "name"}, {Role::Path, "path"}}; }
+
+void DiagramListModel::setProject(CircuitProject *project) {
+  if (_project != project) {
+    _project = project;
+    emit projectChanged();
+    beginResetModel();
+    endResetModel();
+  }
 }
 
-DiagramTemplate *DiagramListModel::diagramTemplate(int index) const {
-  if (0 <= index && index < _diagrams.size()) {
-    return _diagrams.at(index);
-  }
-
-  //  Index is invalid rate
-  return nullptr;
+u32 DiagramListModel::blueprint(int index) const {
+  if (_project == nullptr) return schematic::BlueprintID{}.value;
+  const auto library = _project->library();
+  const auto &groups = library->groups();
+  if (index < 0 || index >= static_cast<int>(groups.size())) return schematic::BlueprintID{}.value;
+  const auto &group = groups.container.at(index);
+  if (group.second->members.empty()) return schematic::BlueprintID{}.value;
+  else return group.second->members.begin()->value;
 }
 
 FilterDiagramListModel::FilterDiagramListModel(QObject *parent) : QSortFilterProxyModel(parent) {
@@ -100,21 +89,14 @@ void FilterDiagramListModel::setModel(DiagramListModel *model) {
   }
 }
 
-DiagramTemplate *FilterDiagramListModel::diagramTemplate(int proxy) const {
-  const auto proxyIndex = index(proxy, 0);
-  const auto srcIndex = mapToSource(proxyIndex);
-
-  DiagramListModel *srcModel = static_cast<DiagramListModel *>(sourceModel());
-
-  return srcModel->diagramTemplate(srcIndex.row());
-}
 bool FilterDiagramListModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const {
   //  If no filtering, return everything
   if (_filter == Filter::None) return true;
 
   //  Filter on diagram type
   QModelIndex index = sourceModel()->index(sourceRow, 0, sourceParent);
-  return sourceModel()->data(index, DiagramListModel::DiagramType) == _filterString;
+  return true;
+  // return sourceModel()->data(index, DiagramListModel::DiagramType) == _filterString;
 }
 
 /*bool FilterDiagramListModel::lessThan(const QModelIndex &left, const QModelIndex &right) const

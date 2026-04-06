@@ -23,6 +23,8 @@ public:
   std::shared_ptr<const Blueprint> get_blueprint(const std::string &name) const;
   std::shared_ptr<Blueprint> get_blueprint(const std::string &name);
 
+  const auto &groups() const { return _groups; }
+
 private:
   u32 _next_id = 1, _next_group = 1;
   fc::vector_map<schematic::BlueprintID, std::shared_ptr<Blueprint>> _blueprints = {};

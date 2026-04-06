@@ -25,7 +25,7 @@ Rectangle {
 
             DiagramListView {
                 id: sourceListView
-
+                project: canvas.project
                 Layout.alignment: Qt.AlignTop
                 Layout.fillWidth: true
             }
@@ -39,9 +39,9 @@ Rectangle {
                 id: props
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
-
                 diagramModel: null
-                gateModel: sourceListView.diagramOnly
+
+                gateModel: null
             }
         }
 
@@ -81,9 +81,7 @@ Rectangle {
 
                         if (result === null)
                         return;
-
-                        sourceListView.filterList.filter = result;
-                        canvas.filter = result
+                        canvas.filter = result;
                     }
                 }
 
@@ -131,7 +129,7 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                currentStamp: sourceListView.currentStamp
+                blueprint: sourceListView.blueprint
                 filter: FilterDiagramListModel.None
                 z: -1
             }

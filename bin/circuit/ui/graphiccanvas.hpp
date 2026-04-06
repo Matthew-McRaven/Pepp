@@ -43,7 +43,8 @@ class GraphicCanvas : public QQuickPaintedItem {
   Q_PROPERTY(float yScrollbar READ yScrollbar WRITE setYScrollbar NOTIFY boundsChanged FINAL)
 
   //  Set and access datamodel and template
-  Q_PROPERTY(DiagramTemplate *template READ stamp WRITE setStamp NOTIFY stampChanged FINAL)
+  Q_PROPERTY(CircuitProject *project READ project NOTIFY projectChanged FINAL)
+  Q_PROPERTY(u32 blueprint READ blueprint WRITE setBlueprint NOTIFY blueprintChanged FINAL)
   Q_PROPERTY(FilterDiagramListModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
 
 public:
@@ -79,8 +80,8 @@ public:
   void setXScrollbar(float x);
   void setYScrollbar(float y);
 
-  DiagramTemplate *stamp() const { return _template; }
-  void setStamp(DiagramTemplate *stamp);
+  u32 blueprint() const { return _selectedBlueprint.value; }
+  void setBlueprint(u32 bp);
 
   LineProperties *currentLine() const { return _currentLine; }
   void setCurrentLine(LineProperties *item);
@@ -110,9 +111,10 @@ protected:
 signals:
   void boundsChanged();
   void originChanged();
-  void stampChanged();
   void currentItemChanged();
   void filterChanged();
+  void projectChanged();
+  void blueprintChanged();
 
 private:
   //  Render and cache images for painting
@@ -142,6 +144,7 @@ private:
   void rotateComponent(schematic::ComponentID comp);
   bool hitTest(QPointF newPoint) const;
 
+  inline CircuitProject *project() const { return _project.get(); }
   void ensureProperties(Component *comp);
   bool setSelectedDiagram(const PeppPt &point);
   bool setSelectedLine(const PeppPt &point);
@@ -154,7 +157,7 @@ private:
 
   //  Add diagram, and center in cell
   void addLine(DiagramProperties *from, DiagramProperties *to);
-  std::optional<schematic::ComponentID> place_component(std::shared_ptr<Blueprint> blueprint, schematic::Point location,
+  std::optional<schematic::ComponentID> place_component(schematic::BlueprintID, schematic::Point location,
                                                         Direction dir);
 
   //  Respond to data changes in model
@@ -197,8 +200,11 @@ private:
   //  Make fixed color for now
   QColor _highlight = QColorConstants::Svg::cornflowerblue;
   QColor _normal = QColorConstants::Svg::black;
+
   // Selection information
   std::variant<std::monostate, Component *> _selected = std::monostate{};
+  schematic::BlueprintID _selectedBlueprint{};
+
   //  Drag start
   QPointF _dragStartPosition{-1, -1};
 
@@ -207,6 +213,5 @@ private:
   LineProperties *_currentLine = nullptr;
 
   //  Data model
-  DiagramTemplate *_template = nullptr;
   FilterDiagramListModel::Filter _filter = FilterDiagramListModel::None;
 };

@@ -23,6 +23,7 @@ public:
   void add_test_data(i16 multiplier = 1);
 
   inline std::shared_ptr<CircuitSchematic> schematic() const { return _schematic; }
+  inline std::shared_ptr<BlueprintLibrary> library() const { return _library; }
 
 private:
   std::shared_ptr<CircuitSchematic> _schematic;

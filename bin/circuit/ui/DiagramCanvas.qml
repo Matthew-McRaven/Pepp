@@ -7,8 +7,9 @@ import CircuitDesign
 
 Item {
     id: root
-    property DiagramTemplate currentStamp: null
+    property var blueprint: 0
     property alias filter: canvas.filter
+    property alias project: canvas.project
     focus: true //  Control with focus receives keyboard events
 
     Flickable {
@@ -47,7 +48,7 @@ Item {
             originY: flickable.contentY
             xScrollbar: hsb.position
             yScrollbar: vsb.position
-            template: root.currentStamp
+            blueprint: root.blueprint
             filter: FilterDiagramListModel.None
             x:0
             y:0
