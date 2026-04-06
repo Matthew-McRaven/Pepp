@@ -871,8 +871,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
       auto comp = std::get<Component *>(_selected);
       //  We are moving item
       auto start = comp->geometry().top_left();
-      //  Do not move beyond left margin
-      auto dest = start.with_x(std::max(2, start.x() - 1));
+      auto dest = start.with_x(start.x() - 1);
       moveComponent(start, dest);
     } else setHScroll(-1);
     return true;
@@ -890,8 +889,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
       auto comp = std::get<Component *>(_selected);
       //  We are moving item
       auto start = comp->geometry().top_left();
-      //  Do not move beyond top margin
-      auto dest = start.with_y(std::max(2, start.y() - 1));
+      auto dest = start.with_y(start.y() - 1);
       moveComponent(start, dest);
     } else setVScroll(-1);
     return true;
