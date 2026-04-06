@@ -44,6 +44,33 @@ schematic::Point AlignmentConstraint::nearest_aligned_point(const schematic::Poi
   };
 }
 
+schematic::Point AlignmentConstraint::nearest_aligned_point(const schematic::Point &pt, Direction d) const noexcept {
+  switch (d) {
+  case Direction::Left: return nearest_aligned_point_left(pt);
+  case Direction::Right: return nearest_aligned_point_right(pt);
+  case Direction::Up: return nearest_aligned_point_up(pt);
+  case Direction::Down: return nearest_aligned_point_down(pt);
+  }
+}
+
+schematic::Point AlignmentConstraint::nearest_aligned_point_right(const schematic::Point &pt) const noexcept {
+  return {align_component(pt.x() + (x_modulus - 1) / 2, x_modulus, x_offset),
+          align_component(pt.y(), y_modulus, y_offset)};
+}
+
+schematic::Point AlignmentConstraint::nearest_aligned_point_left(const schematic::Point &pt) const noexcept {
+  return {align_component(pt.x() - x_modulus / 2, x_modulus, x_offset), align_component(pt.y(), y_modulus, y_offset)};
+}
+
+schematic::Point AlignmentConstraint::nearest_aligned_point_down(const schematic::Point &pt) const noexcept {
+  return {align_component(pt.x(), x_modulus, x_offset),
+          align_component(pt.y() + (y_modulus - 1) / 2, y_modulus, y_offset)};
+}
+
+schematic::Point AlignmentConstraint::nearest_aligned_point_up(const schematic::Point &pt) const noexcept {
+  return {align_component(pt.x(), x_modulus, x_offset), align_component(pt.y() - y_modulus / 2, y_modulus, y_offset)};
+}
+
 bool AlignmentConstraint::is_aligned(const schematic::Point &pt) const noexcept {
   return align_component(pt.x(), x_modulus, x_offset) == pt.x() &&
          align_component(pt.y(), y_modulus, y_offset) == pt.y();

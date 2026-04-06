@@ -12,8 +12,9 @@
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   _project = std::make_shared<CircuitProject>();
-  _project->add_builtin_blueprints(4 * lines_per_minor);
-  _project->add_test_data(4 * lines_per_minor);
+  // Magic constant 8.
+  _project->add_builtin_blueprints((i16)8);
+  _project->add_test_data((i16)8);
 
   _mipmaps = std::make_shared<MipmapStore>(_project);
 
@@ -654,16 +655,19 @@ void GraphicCanvas::setHScroll(qint8 change) {
   setOriginX(x);
 }
 
-void GraphicCanvas::moveComponent(PeppPt oldLocation, PeppPt newLocation) {
+void GraphicCanvas::moveComponent(PeppPt oldLocation, PeppPt newLocation, bool enforce_alignment) {
   auto schematic = _project->schematic();
   auto maybe_component_id = schematic->component_at(oldLocation);
-  if (maybe_component_id) return moveComponent(*maybe_component_id, newLocation);
+  if (maybe_component_id) return moveComponent(*maybe_component_id, newLocation, enforce_alignment);
 }
 
-void GraphicCanvas::moveComponent(schematic::ComponentID comp, PeppPt newLocation) {
+void GraphicCanvas::moveComponent(schematic::ComponentID id, PeppPt newLocation, bool enforce_alignment) {
   auto schematic = _project->schematic();
-  if (!schematic->can_move_component(comp, newLocation)) return;
-  schematic->move_component(comp, newLocation);
+  const auto comp = schematic->component(id);
+  const auto alignedLocation =
+      enforce_alignment ? comp->blueprint()->alignmentConstraint.nearest_aligned_point(newLocation) : newLocation;
+  if (!schematic->can_move_component(id, alignedLocation)) return;
+  schematic->move_component(id, alignedLocation);
   cacheBoundingBox();
   update();
 }
@@ -876,7 +880,8 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
       //  We are moving item
       auto start = comp->geometry().top_left();
       auto dest = start.with_x(start.x() - 1);
-      moveComponent(start, dest);
+      dest = comp->blueprint()->alignmentConstraint.nearest_aligned_point_left(dest);
+      moveComponent(start, dest, true);
     } else setHScroll(-1);
     return true;
   case Qt::Key_Right:
@@ -885,6 +890,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
       //  We are moving item
       auto start = comp->geometry().top_left();
       auto dest = start.with_x(start.x() + 1);
+      dest = comp->blueprint()->alignmentConstraint.nearest_aligned_point_right(dest);
       moveComponent(start, dest);
     } else setHScroll(1);
     return true;
@@ -894,6 +900,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
       //  We are moving item
       auto start = comp->geometry().top_left();
       auto dest = start.with_y(start.y() - 1);
+      dest = comp->blueprint()->alignmentConstraint.nearest_aligned_point_up(dest);
       moveComponent(start, dest);
     } else setVScroll(-1);
     return true;
@@ -903,6 +910,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
       //  We are moving item
       auto start = comp->geometry().top_left();
       auto dest = start.with_y(start.y() + 1);
+      dest = comp->blueprint()->alignmentConstraint.nearest_aligned_point_down(dest);
       moveComponent(start, dest);
     } else setVScroll(1);
     return true;

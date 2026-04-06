@@ -8,6 +8,10 @@ std::shared_ptr<BuiltinBlueprint> add_2x1(CircuitProject &f, BlueprintLibrary &l
                                           schematic::BlueprintGroupID gid, const std::string &name) {
   using namespace pepp::core;
   auto ret = std::make_shared<BuiltinBlueprint>();
+  // Ensure alignment is always non-zero to avoid a /0 in alignment calculations.
+  // Dividing by 2 is an arbitrary choice I've made for demo purposes.
+  const auto align = std::max<schematic::Coord>(multiplier / 2, 1);
+  ret->alignmentConstraint = AlignmentConstraint{.x_modulus = align, .y_modulus = align};
   ret->size =
       schematic::Size{static_cast<schematic::Coord>(3 * multiplier), static_cast<schematic::Coord>(2 * multiplier)};
   ret->pins = {

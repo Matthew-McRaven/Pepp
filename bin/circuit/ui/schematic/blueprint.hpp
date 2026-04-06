@@ -3,6 +3,7 @@
 #include "common_types.hpp"
 #include "core/integers.h"
 #include "core/math/geom/rectangle.hpp"
+#include "schematic/orient.hpp"
 
 enum class PinType : u8 {
   HighZ = 0,
@@ -21,6 +22,11 @@ struct AlignmentConstraint {
   schematic::Coord y_modulus = 1, y_offset = 0;
 
   schematic::Point nearest_aligned_point(const schematic::Point &pt) const noexcept;
+  schematic::Point nearest_aligned_point(const schematic::Point &pt, Direction d) const noexcept;
+  schematic::Point nearest_aligned_point_right(const schematic::Point &pt) const noexcept;
+  schematic::Point nearest_aligned_point_down(const schematic::Point &pt) const noexcept;
+  schematic::Point nearest_aligned_point_left(const schematic::Point &pt) const noexcept;
+  schematic::Point nearest_aligned_point_up(const schematic::Point &pt) const noexcept;
   bool is_aligned(const schematic::Point &pt) const noexcept;
 };
 
