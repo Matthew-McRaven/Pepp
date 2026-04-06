@@ -7,9 +7,17 @@
 #include <QPainter>
 #include <QSvgRenderer>
 #include <Qt> //  Keyboard constants
-#include "diagramdatamodel.hpp"
+#include "schematic/blueprintlibrary.hpp"
+#include "schematic/circuitproject.hpp"
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
+  _project = std::make_shared<CircuitProject>();
+  // Magic constant 8.
+  _project->add_builtin_blueprints((i16)8);
+  _project->add_test_data((i16)8);
+
+  _mipmaps = std::make_shared<MipmapStore>(_project);
+
   //  Enable mouse
   setAcceptedMouseButtons(Qt::AllButtons);
   setAcceptHoverEvents(true); // Enable hover events if needed
@@ -23,28 +31,16 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
 
   //  Create background gid
   cacheBackground();
-
-  //  Create image copies for later painting
-  cacheImages(":/and");
-  cacheImages(":/or");
-  cacheImages(":/inverter");
-  cacheImages(":/nand");
-  cacheImages(":/nor");
-  cacheImages(":/xor");
-
-  //  The data model is initialized after construction.
-  //  Trigger test data loading once model is setup using event
-  QObject::connect(this, &GraphicCanvas::modelChanged, this, &GraphicCanvas::updateData);
 }
 
 void GraphicCanvas::setOriginX(float x) {
-  _top_left.setX(x / grid_to_px / _currentZoom);
+  _top_left.set_x(x / grid_to_px / _currentZoom);
   emit originChanged();
   update();
 }
 
 void GraphicCanvas::setOriginY(float y) {
-  _top_left.setY(y / grid_to_px / _currentZoom);
+  _top_left.set_y(y / grid_to_px / _currentZoom);
   emit originChanged();
   update();
 }
@@ -64,38 +60,14 @@ void GraphicCanvas::setYScrollbar(float y) {
   }
 }
 
-void GraphicCanvas::setModel(DiagramDataModel *model) {
-  if (model != _model) {
-    _model = model;
-    emit modelChanged();
-    update();
-  }
-}
-
-void GraphicCanvas::setStamp(DiagramTemplate *stamp) {
-  if (stamp != _template) {
-    if (stamp == nullptr) {
-      _template = nullptr;
-    } else {
-      //  Is valid stamp
-      if (stamp->diagramType() == "Diagram") {
-        _template = stamp;
-      } else {
-        _template = nullptr;
-      }
-    }
-    //  Changing template only affects current item to stamp down
-    //  Does not require a redraw
-    emit stampChanged();
-  }
-}
-
-void GraphicCanvas::setCurrentDiagram(DiagramProperties *item) {
-  if (item != _currentDiagram) {
-    _currentDiagram = item;
-    update();
-    emit currentItemChanged();
-  }
+void GraphicCanvas::setBlueprint(u32 bp) {
+  schematic::BlueprintID id{bp};
+  if (id == _selectedBlueprint) return;
+  else if (id == schematic::BlueprintID{}) return;
+  _selectedBlueprint = id;
+  //  Changing template only affects current item to stamp down
+  //  Does not require a redraw
+  emit blueprintChanged();
 }
 
 void GraphicCanvas::setCurrentLine(LineProperties *item) {
@@ -114,142 +86,11 @@ void GraphicCanvas::setFilter(const FilterDiagramListModel::Filter filter) {
   }
 }
 
-void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
-  //  Model must exist before it can be connected.
-  QObject::connect(_model, &DiagramDataModel::dataChanged, this, &GraphicCanvas::updateCell);
-
-  //  Test data-remove below in prod
-  static std::array<QString, 6> lookup{"AND Gate", "OR Gate", "Inverter", "NAND Gate", "NOR Gate", "XOR Gate"};
-  if (_model == nullptr) return;
-
-  //  Loop to create blocks. Fill Full Grid
-  const int rows = 10;
-  const int cols = 10;
-
-  DiagramProperties *to = addDiagram(6, 4);
-  if (to == nullptr) return;
-
-  //  Add block data
-  to->setName(lookup[0]);
-  to->setType(DiagramType::ANDGate);
-  to->setOrientation(0);
-  to->setSelected(false);
-  getImage(*to);
-
-  //  data life time managed by model
-  DiagramProperties *from1 = addDiagram(2, 2);
-  if (from1 == nullptr) return;
-
-  //  Add block data
-  from1->setName(lookup[2]);
-  from1->setType(DiagramType::Inverter);
-  from1->setOrientation(0);
-  from1->setSelected(false);
-  getImage(*from1);
-
-  addLine(from1, to);
-
-  //  data life time managed by model
-  DiagramProperties *from2 = addDiagram(2, 6);
-  if (from2 == nullptr) return;
-
-  //  Add block data
-  from2->setName(lookup[5]);
-  from2->setType(DiagramType::XORGate);
-  from2->setOrientation(0);
-  getImage(*from2);
-
-  addLine(from2, to);
-
-  //  Add block data
-  /*DiagramProperties *to2 = addDiagram(6, 10);
-  if (to2 == nullptr) return;
-  to2->setName(lookup[4]);
-  to2->setType(DiagramType::NORGate);
-  to2->setOrientation(90);
-  to2->setSelected(false);
-  getImage(*to2);*/
-
-  /*gridRect.moveTopLeft({2 * minor_block_size, 1 * minor_block_size});
-
-  index = _model->index(2, 1);
-  data = _model->createItem(index);
-
-  //  Add block data
-  data->setName(lookup[1]);
-  data->setRectangle({2, 1, 2, 2});
-  data->setGridRectangle(gridRect);
-  data->setType(1);
-  data->setOrientation(90);
-  getImage(*data);
-
-  gridRect.moveTopLeft({5 * minor_block_size, 3 * minor_block_size});
-
-  index = _model->index(5, 3);
-  data = _model->createItem(index);
-
-  //  Add block data
-  data->setName(lookup[1]);
-  data->setRectangle({5, 3, 2, 2});
-  data->setGridRectangle(gridRect);
-  data->setType(1);
-  data->setOrientation(180);
-  getImage(*data);
-  */
-  /*for (auto i = 0; i < cols; ++i) {
-      for (auto j = 0; j < rows; ++j) {
-          QRect gridRect{minor_block_size * (i + (j % 2)),
-                         minor_block_size * (j + (i % 2)),
-                         major_block_size,
-                         major_block_size};
-
-          auto index = _model->index(i, j);
-          DiagramProperties *data = _model->createItem(index);
-
-          //  Add block data
-          data->setName(lookup[i % _svgs.size()]);
-          data->setRectangle({i, j, 2, 2});
-          data->setGridRectangle(gridRect);
-          data->setType(i % _svgs.size());
-          data->setOrientation(90 * j);
-          getImage(*data);
-
-          //  Keep track of canvas size
-          _dimensions = _dimensions.united(gridRect);
-      }
-  }*/
-  //  End of test data
-}
-
-void GraphicCanvas::cacheImages(const QString &source) {
-  //  Pre-render SVG files so that paint is not slowed down
-  QSvgRenderer renderer(source);
-  renderer.setAspectRatioMode(Qt::KeepAspectRatio);
-
-  if (renderer.isValid()) {
-    //  SVG dimensions should not matter, but rendering SVG at anything
-    //  but a direct multiple of the width creates visual issues.
-    int width = 48 * 3;
-    int height = 34 * 3;
-
-    // qDebug() << "dim, width, widthMM, logicalDpiX" << dim << _background.width()
-    //          << _background.widthMM() << _background.logicalDpiX();
-    QPixmap image(width, height);
-    image.fill(Qt::transparent);
-
-    // Get QPainter that paints to the image
-    QPainter painter(&image);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-
-    renderer.render(&painter);
-    _svgs.emplace_back(image);
-
-    //  Make copy of rotated image to speed up drawing
-    _svgsBottom.emplaceBack(image.transformed(QTransform().rotate(90)));
-    _svgsLeft.emplaceBack(image.transformed(QTransform().rotate(180)));
-    _svgsTop.emplaceBack(image.transformed(QTransform().rotate(270)));
-  }
+schematic::MipmapStoreKey GraphicCanvas::cacheSVG(const QString &source) {
+  auto mipmap_source = MipmapSource::from_svg_file(source);
+  QSize size(48 * 4 * 3, 34 * 4 * 3);
+  auto key_for = _mipmaps->insert(mipmap_source, size, Direction::Right, {});
+  return key_for;
 }
 
 void GraphicCanvas::cacheBackground() {
@@ -351,160 +192,124 @@ void GraphicCanvas::paint(QPainter *painter) {
     currentBlock.translate(screen_block, -screen_block * row);
   }
 
+  auto schematic = _project->schematic();
   //  Diagrams are painted on minor grid axis. Overwrite lines.
-  for (auto &prop : _model->dataModel().cells()) {
+  for (auto &it : schematic->components()) {
     //  Skip painting rectangles that are outside the viewport.
-    auto *diagram = prop.get();
-    if (pepp::core::intersects(grid_viewport, diagram->gridRectangle())) paint_one(painter, diagram);
+    auto comp = it.second;
+    if (pepp::core::intersects(grid_viewport, comp->geometry())) paint_one(painter, comp.get());
   }
 
-  //  Draw lines first. Diagrams will clip lines
-  for (auto &prop : _model->dataModel().lines()) {
-    auto *line = prop.get();
-    //  Skip painting rectangles that are outside the viewport.
-    if (pepp::core::intersects(grid_viewport, line->gridRectangle())) paint_line(painter, line);
+  for (auto &it : schematic->connections()) {
+    const auto src = schematic->pin_geometry(it.src);
+    const auto dst = schematic->pin_geometry(it.dst);
+    const auto span = pepp::core::hull(dst, src);
+    // Skip connections entirely outside viewport.
+    if (!pepp::core::intersects(grid_viewport, span)) continue;
+    const auto screenTo = grid_to_screen(src.center_approximate());
+    const auto screenFrom = grid_to_screen(dst.center_approximate());
+    QColor color = _normal;
+    painter->setPen(QPen(color, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter->drawLine(screenTo, screenFrom);
+  }
+
+  if (_currentDragShadow) {
+    const auto screen_rect = grid_to_screen(_currentDragShadow->drop_location);
+    const QColor bg = _currentDragShadow->has_hit ? QColorConstants::Svg::red : QColorConstants::Svg::green;
+    painter->setBrush(bg);
+    painter->drawRect(screen_rect);
   }
 }
 
-void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
+void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
   // Convert our absolute grid coordinates to screen coordinates.
   // Grid is inset so that selection box appears inside current cell
-  auto screen_rect = grid_to_screen(props->gridRectangle()); //.adjusted(2, 2, -2, -2);
+  auto screen_rect = grid_to_screen(comp->geometry());
+  // std::cerr << "Rect Geometry: " << comp->geometry() << std::endl;
+  auto props = static_cast<BaseProperties *>(comp->properties.get());
   //  Check state, and set outline if selected
-  if (props->selected()) {
+  if (props && props->selected()) {
     painter->setPen(QPen(_highlight, 2, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
     painter->drawRect(screen_rect);
   }
 
-  //  If image is not null, it can be output
-  if (props->image() == nullptr)
-
-    //  If image is null, then it's properties were reset, update image
-    getImage(*props);
+  //  If image is null, then it's properties were reset, update image
+  const auto mipmap_key = getImage(comp);
 
   //  Paint diagram
-  painter->drawPixmap(screen_rect.toRect(), *props->image());
+  // Get mipmaps for the current image.
+  const auto mip = _mipmaps->mipmap(mipmap_key);
+  const auto best = mip->best_for(screen_rect.size().toSize(), comp->direction());
+  painter->drawPixmap(screen_rect.toRect(), *best);
 
   //  Paint input pins
   painter->setPen(QPen(QColorConstants::Svg::aqua, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-  for (const auto &iPin : props->inputPins()) {
-    painter->drawEllipse(grid_to_screen(iPin));
+  for (const auto &pin : comp->input_pins()) {
+    // std::cerr << "ipin geometry: " << pin.geometry << std::endl;
+    painter->drawEllipse(grid_to_screen(pin.geometry));
   }
 
   //  Paint output pins
   painter->setPen(QPen(QColorConstants::Svg::lime, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-  for (const auto &oPin : props->outputPins()) {
-    painter->drawEllipse(grid_to_screen(oPin));
+  for (const auto &pin : comp->output_pins()) {
+    // std::cerr << "opin geometry: " << pin.geometry << std::endl;
+    painter->drawEllipse(grid_to_screen(pin.geometry));
   }
 }
 
-void GraphicCanvas::paint_line(QPainter *painter, const LineProperties *props) {
-  // Convert our absolute grid coordinates to screen coordinates.
-  // Grid is inset so that selection box appears inside current cell
-  const auto screenTo = grid_to_screen(props->outputPoint());
-  const auto screenFrom = grid_to_screen(props->inputPoint());
-
-  //  Check state, and set color if selected
-  QColor color = props->selected() ? _highlight : _normal;
-  painter->setPen(QPen(color, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-  painter->drawLine(screenTo, screenFrom);
-}
-
-DiagramProperties *GraphicCanvas::addDiagram(const i16 row, const i16 col) {
-  //  Center point may put diagram off of page, return if either index is negative.
-  if (col < 0 || row < 0) return nullptr;
-
-  //  Create index and check for data
-  const auto newIndex = _model->index(row, col);
-
-  DiagramProperties *data = _model->dataModel().createDiagramProps(
-      PeppRect::from_point_size(row, col, minor_per_major - 1, minor_per_major / 2));
-  if (data == nullptr) return nullptr;
-
-  //  Newly added items are always current item
-  setCurrentDiagram(data);
-
-  //  Add block data
-  setGrid(data);
-
-  if (_template != nullptr) {
-    data->setName(_template->name());
-    data->setType(_template->key());
-  }
-  getImage(*data);
-
-  //  Set select flag
-  _model->setData(newIndex, true, DiagramDataModel::Role::Selected);
-
-  return data;
-}
+void GraphicCanvas::paint_line(QPainter *painter, Connection con) {}
 
 void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
   //  Calculate maximum line dimensions
-  const auto key = LineProperties::recalculateKey(from, /*to*/ from);
+  // const auto key = LineProperties::recalculateKey(from, /*to*/ from);
 
-  LineProperties *line = _model->dataModel().createLineProps(key);
+  // TODO: mmcraven, _data.createLineProps(key);
+  LineProperties *line = nullptr;
 
   if (line == nullptr) return;
 
   //  Set line type
-  line->setType(DiagramType::Line);
-  line->setOutputDiagram(from);
-  line->setInputDiagram(to);
+  // line->setType(DiagramType::Line);
+  // line->setOutputDiagram(from);
+  // line->setInputDiagram(to);
 }
 
-void GraphicCanvas::setBoundingBox() {
-  const auto logicRect = _model->dataModel().boundingRect();
+std::optional<schematic::ComponentID> GraphicCanvas::place_component(schematic::BlueprintID id,
+                                                                     schematic::Point location, Direction dir) {
+  auto schematic = _project->schematic();
+  auto blueprint = _project->library()->get_blueprint(id);
+  auto maybe_id = schematic->place_component(blueprint, location, dir);
+  if (maybe_id) {
+    auto comp = schematic->component(*maybe_id);
+    ensureProperties(comp.get());
+    return maybe_id;
+  }
+  return std::nullopt;
+}
+
+void GraphicCanvas::cacheBoundingBox() {
+  const auto logicRect = _project->schematic()->bounding_box();
   const auto totalWidth = logicRect.right() * minor_block_size;
   const auto totalHeight = logicRect.bottom() * minor_block_size;
   PeppRect gridRect = PeppRect::from_point_size(0, 0, totalWidth, totalHeight);
   //  See if dimensions changed
   if (_dimensions != gridRect) {
     _dimensions = pepp::core::hull(_dimensions, gridRect);
-
     emit boundsChanged();
   }
 }
 
-void GraphicCanvas::setGrid(DiagramProperties *data) {
-  //  Update screen dimensions
-  data->setGridRectangle(GraphicCanvas::diagramGeometry(data));
-
-  //  Track dimensions of canvas area. Affects scrollbars
-  setBoundingBox();
-}
-
-PeppRect GraphicCanvas::diagramGeometry(DiagramProperties *data) {
-  //  Column and row represents center point, not top left
-  //  Save in grid coordinates, not screen coordinates
-  /*PeppRect gridRect =
-    PeppRect::from_point_size(minor_block_size * data->key().left() - major_block_size / 2 + _margin,
-                              minor_block_size * data->key().top()  - major_block_size / 2 + _margin,
-                              major_block_size - _margin * 2,
-                              major_block_size - _margin * 2);
-  */
-  const i16 width = minor_block_size * data->key().width();
-  const i16 height = minor_block_size * data->key().height();
-
-  PeppRect gridRect = PeppRect::from_point_size(minor_block_size * data->key().left() - width / 2,
-                                                minor_block_size * data->key().top() - height / 2, width, height);
-  return gridRect;
-}
-
-void GraphicCanvas::getImage(DiagramProperties &props) {
-  QPixmap *image = nullptr;
-
-  //  If type has not been selected, just return.
-  if (props.type() == DiagramType::Invalid) return;
-
-  //  Get cached copy for drawing
-  switch (props.orientation()) {
-  case 90: image = &_svgsBottom[props.type()]; break;
-  case 180: image = &_svgsLeft[props.type()]; break;
-  case 270: image = &_svgsTop[props.type()]; break;
-  default: image = &_svgs[props.type()];
+schematic::MipmapStoreKey GraphicCanvas::getImage(Component *comp) {
+  auto as_builtin = dynamic_cast<const BuiltinBlueprint *>(comp->blueprint());
+  if (as_builtin != nullptr) {
+    const auto img = comp->blueprint()->image;
+    const auto fname = _project->find_file(img);
+    if (!fname) throw std::logic_error("Image key does not correspond to a tracked file");
+    const auto maybe_mipmap = _mipmaps->find(**fname);
+    if (!maybe_mipmap) return cacheSVG(QString::fromStdString(**fname));
+    return *maybe_mipmap;
   }
-  props.setImage(image);
+  throw std::logic_error("Unimplemented image type");
 }
 
 QRectF GraphicCanvas::grid_to_screen(const PeppRect &rect) const {
@@ -557,38 +362,20 @@ void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to) {
 }
 
 void GraphicCanvas::rotateClockwise() {
-  if (_currentDiagram == nullptr) return;
-
-  _currentDiagram->setOrientation(_currentDiagram->orientation() + 90);
-
-  //  Rotate diagram in hit model
-  rotateDiagram(_currentDiagram);
-
-  //  Set drawing size
-  setGrid(_currentDiagram);
-
-  //  Repaint rectangle
-  update();
+  if (std::holds_alternative<Component *>(_selected)) {
+    auto comp = std::get<Component *>(_selected);
+    if (_project->schematic()->rotate_component(comp->id(), clockwise(comp->direction()))) update();
+  }
 }
 
 void GraphicCanvas::rotateCounterClockwise() {
-  if (_currentDiagram == nullptr) return;
-
-  const int orientation = _currentDiagram->orientation() == 0 ? 270 : _currentDiagram->orientation() - 90;
-  _currentDiagram->setOrientation(orientation);
-
-  //  Rotate diagram in hit model
-  rotateDiagram(_currentDiagram);
-
-  //  Set drawing size
-  setGrid(_currentDiagram);
-
-  //  Repaint rectangle
-  update();
+  if (std::holds_alternative<Component *>(_selected)) {
+    auto comp = std::get<Component *>(_selected);
+    if (_project->schematic()->rotate_component(comp->id(), counter_clockwise(comp->direction()))) update();
+  }
 }
 
 //  Mouse events - Comment out unused events for now
-/*void GraphicCanvas::mouseDoubleClickEvent(QMouseEvent *event) {}*/
 
 void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {
   // qDebug() << "MouseMove" << event;
@@ -599,13 +386,12 @@ void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {
   //  to determine rectangle hit.
   const auto point = screen_to_grid(event->position());
 
-  //  See if existing item was clicked
-  if (setSelectedDiagram(point)) {
+  //  See if existing item was clicked, if so begi
+  if (_project->schematic()->component_at(point)) {
+    setSelectedDiagram(point);
     startDrag(event->pos());
-
     //  Another item was selected
     event->setAccepted(true);
-
     return;
   }
 }
@@ -633,9 +419,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
 
   //  Check if context menu
   if (event->button() == Qt::RightButton) {
-    if (_filter != FilterDiagramListModel::Line) {
-      contextMenuEvent(event);
-    }
+    if (_filter != FilterDiagramListModel::Line) contextMenuEvent(event);
     return;
   }
 
@@ -650,18 +434,15 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
     if (areDiagrams) {
       if (_filter == FilterDiagramListModel::Line) {
         //  If filter is a line, then we are adding line
-        lineLeftClickEvent(event, _currentDiagram);
+        // TODO: mmcraven lineLeftClickEvent(event, _currentDiagram);
       } else {
         //  If diagram, we are handling a drag event
         _dragStartPosition = event->position();
       }
-    } else {
-      diagramLeftClickEvent(event, point);
-    }
+    } else diagramLeftClickEvent(event, point);
+
     return;
   }
-  // if (_filter == FilterDiagramListModel::Line) {
-  // }
 
   //  User did not pick diagram, see if line is selected
   setSelectedLine(point);
@@ -669,22 +450,18 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
 
 void GraphicCanvas::diagramLeftClickEvent(QMouseEvent *event, const PeppPt &point) {
   //  No template is selected, just return
-  if (_template == nullptr) {
+  if (_selectedBlueprint == schematic::BlueprintID{}) {
     event->setAccepted(false);
     return;
   }
 
-  //  Images are stored by row and column.
-  //  Due to integer math, items closer to next row or column are still in same column/row.
-  //  Calculate rounding difference
-  const auto index = grid_to_index(point);
-
+  // TODO: another copy of that magic 8 constant.
+  const auto index = (i16)8 * grid_to_index(point);
   //  If we get here, we have a new item. Insert into canvas
   //  Use coordinate as center point
-  DiagramProperties *data = addDiagram(index.x(), index.y());
-
+  auto id = place_component(_selectedBlueprint, index, Direction::Right);
   //  If no data is returned, the column is invalid. Assume parent will handle
-  event->setAccepted(data != nullptr ? true : false);
+  event->setAccepted(id.has_value());
 }
 
 void GraphicCanvas::lineLeftClickEvent(QMouseEvent *event, DiagramProperties *current) {
@@ -710,58 +487,44 @@ void GraphicCanvas::lineLeftClickEvent(QMouseEvent *event, DiagramProperties *cu
 }
 
 bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
+  auto schematic = _project->schematic();
+
   //  If selecting diagram, then unselect all lines
   unselectLines();
 
-  DiagramProperties *found = nullptr;
-
+  _selected = std::monostate{};
   //  See if existing item was clicked and clear selection
-  for (auto &props : _model->dataModel().cells()) {
-    // Skip painting rectangles that are outside the viewport.
-    if (!pepp::core::contains(props->gridRectangle(), point)) {
-      if (props->selected()) {
-
-        //  Bypass model
-        props->setSelected(false);
-
-        //  Update unselected rectangle
-        setCurrentDiagram(nullptr);
-      }
-      continue;
+  for (auto &it : schematic->components()) {
+    const auto [id, comp] = it;
+    auto props = static_cast<BaseProperties *>(comp->properties.get());
+    // Don't break, because we want to ensure all other items are unselected.
+    if (pepp::core::contains(comp->geometry(), point)) {
+      _selected = comp.get();
+      ensureProperties(comp.get());
+      static_cast<BaseProperties *>(comp->properties.get())->setSelected(true);
+    } else {
+      if (props != nullptr && props->selected()) props->setSelected(false);
     }
-
-    //  Found diagram property
-    found = props.get();
-  }
-
-  if (found != nullptr) {
-
-    //  Bypass model
-    found->setSelected(true);
-
-    setCurrentDiagram(found);
-
-    //  Signal update to QML controls
-    const auto index = _model->index(found->key().left(), found->key().top());
-    _model->setCurrentIndex(index);
   }
 
   //  Repaint
   update();
 
-  return found != nullptr;
+  return std::holds_alternative<Component *>(_selected);
 }
 
 bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
+  auto schematic = _project->schematic();
   bool found{false};
 
   //  Line was selected. Clear diagram selection
   unselectDiagrams();
 
   //  See if existing item was clicked and clear selection
-  for (auto &props : _model->dataModel().lines()) {
+  for (auto &props : schematic->connections()) {
+    // TODO:
     // Skip painting rectangles that are outside the viewport.
-    if (!pepp::core::contains(props->gridRectangle(), point)) {
+    /*if (!pepp::core::contains(props->gridRectangle(), point)) {
       if (props->selected()) {
         //  Item was previously selected, clear old highlight
         //  Bypass model
@@ -771,17 +534,14 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
         setCurrentLine(nullptr);
       }
       continue;
-    }
+    }*/
 
-    //  Bypass model
-    props->setSelected(true);
-
-    setCurrentLine(props.get());
+    // TODO: Bypass model
+    // props->setSelected(true);
+    // setCurrentLine(props.get());
 
     //  Signal update to QML controls
-    const auto index = _model->index(props->key().left(), props->key().top());
-    _model->setCurrentIndex(index);
-
+    // TODO: mmcraven, modify selection for propert viewer.
     found = true;
   }
   //  Repaint
@@ -792,34 +552,25 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
 
 //  Used to clear all diagram selections
 void GraphicCanvas::unselectDiagrams() {
-  for (auto &props : _model->dataModel().cells()) {
-    props->setSelected(false);
+  for (auto &it : _project->schematic()->components()) {
+    const auto [id, comp] = it;
+    auto props = static_cast<BaseProperties *>(comp->properties.get());
+    if (props != nullptr && props->selected()) props->setSelected(false);
   }
-
-  //  Update unselected rectangle
-  setCurrentDiagram(nullptr);
+  if (std::holds_alternative<Component *>(_selected)) {
+    _selected = std::monostate{};
+  };
 }
 
 //  Used to clear all line selections
 void GraphicCanvas::unselectLines() {
-  for (auto &props : _model->dataModel().lines()) {
-    props->setSelected(false);
+  for (auto &props : _project->schematic()->connections()) {
+    // TODO: mmcraven props->setSelected(false);
   }
 
   //  Update unselected rectangle
   setCurrentLine(nullptr);
 }
-
-/*void GraphicCanvas::mouseReleaseEvent(QMouseEvent *event) {
-  // qDebug() << "MouseRelease" << event;
-  // setCursor(Qt::ArrowCursor);
-}
-
-void GraphicCanvas::mouseUngrabEvent() {}
-void GraphicCanvas::hoverEnterEvent(QHoverEvent *event) {}
-void GraphicCanvas::hoverLeaveEvent(QHoverEvent *event) {}
-void GraphicCanvas::hoverMoveEvent(QHoverEvent *event) {}
-*/
 
 void GraphicCanvas::wheelEvent(QWheelEvent *event) {
   // A positive value for angleDelta().y() indicates the wheel was rotated
@@ -885,7 +636,7 @@ void GraphicCanvas::setVScroll(qint8 change) {
     y = std::min(contentHeight(), originY() + block);
 
     //  Moving item down can increase bounding rectangle
-    setBoundingBox();
+    cacheBoundingBox();
   }
 
   //  Update screen
@@ -903,41 +654,39 @@ void GraphicCanvas::setHScroll(qint8 change) {
     x = std::min(contentWidth(), originX() + block);
 
     //  Moving item right can increase bounding rectangle
-    setBoundingBox();
+    cacheBoundingBox();
   }
 
   //  Update screen
   setOriginX(x);
 }
 
-void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
-  //  Update grid coordinates
-  if (!_model->dataModel().moveData(oldLocation, newLocation)) return;
+void GraphicCanvas::moveComponent(PeppPt oldLocation, PeppPt newLocation, bool enforce_alignment) {
+  auto schematic = _project->schematic();
+  auto maybe_component_id = schematic->component_at(oldLocation);
+  if (maybe_component_id) return moveComponent(*maybe_component_id, newLocation, enforce_alignment);
+}
 
-  //  Update grid coordinates
-  DiagramProperties *data = _model->dataModel().getDiagramProps(newLocation);
-
-  if (data == nullptr) {
-    return;
-  }
-
-  //  Remap paint grid after move
-  setGrid(data);
-
+void GraphicCanvas::moveComponent(schematic::ComponentID id, PeppPt newLocation, bool enforce_alignment) {
+  auto schematic = _project->schematic();
+  const auto comp = schematic->component(id);
+  const auto alignedLocation =
+      enforce_alignment ? comp->blueprint()->alignmentConstraint.nearest_aligned_point(newLocation) : newLocation;
+  if (!schematic->can_move_component(id, alignedLocation)) return;
+  schematic->move_component(id, alignedLocation);
+  cacheBoundingBox();
   update();
 }
 
-void GraphicCanvas::rotateDiagram(DiagramProperties *diagram) {
-  if (diagram == nullptr) {
-    return;
-  }
-
-  //  Update grid coordinates
-  if (!_model->dataModel().rotateData(diagram->id())) return;
-
-  //  Remap paint grid after move
-  setGrid(diagram);
-
+void GraphicCanvas::rotateComponent(schematic::ComponentID id) {
+  auto schematic = _project->schematic();
+  auto comp = schematic->component(id);
+  if (!comp) return;
+  const auto current_orientation = comp->direction();
+  const auto next_orientation = clockwise(current_orientation);
+  if (!schematic->can_rotate_component(id, next_orientation)) return;
+  else schematic->rotate_component(id, next_orientation);
+  cacheBoundingBox();
   update();
 }
 
@@ -955,14 +704,19 @@ void GraphicCanvas::dragEnterEvent(QDragEnterEvent *event) {
 }
 
 void GraphicCanvas::dragLeaveEvent(QDragLeaveEvent *event) {
+  // Stopped dragging w/o dropping. Must clear drag shadow and update, else we keep rendering the shadow rectangle until
+  // the next drag event.
+  _currentDragShadow = std::nullopt;
+  update();
   event->ignore();
 }
 
 void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event) {
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
-    if (hitTest(event->position())) {
-      return;
-    }
+    auto oldShadow = _currentDragShadow;
+    bool has_hit = hitTest(event->position());
+    if (oldShadow != _currentDragShadow) update();
+    if (has_hit) return;
 
     if (event->source() == this) {
       event->setDropAction(Qt::MoveAction);
@@ -977,11 +731,14 @@ void GraphicCanvas::dragMoveEvent(QDragMoveEvent *event) {
 }
 
 void GraphicCanvas::dropEvent(QDropEvent *event) {
-  // qDebug() << "dropEvent";
+  qDebug() << "dropEvent";
   if (event->mimeData()->hasFormat("application/x-dnditemdata")) {
     // setCursor(Qt::ArrowCursor);
 
     if (hitTest(event->position())) {
+      qDebug() << "bailing early";
+      _currentDragShadow = std::nullopt;
+      update();
       //  There is a hit on an existing item, abort move
       return;
     }
@@ -990,19 +747,20 @@ void GraphicCanvas::dropEvent(QDropEvent *event) {
     QByteArray itemData = event->mimeData()->data("application/x-dnditemdata");
     QDataStream dataStream(&itemData, QIODevice::ReadOnly);
 
-    i16 oldX, oldY;
-    dataStream >> oldX >> oldY;
-
-    const PeppPt oldLocation(oldX, oldY);
+    schematic::ComponentID id;
+    dataStream >> id.value;
 
     const auto point = screen_to_grid(event->position());
-    const auto newLocation = grid_to_index(point);
-
-    moveDiagram(oldLocation, newLocation);
+    qDebug() << _dragStartPosition << "dropEvent: " << event->position() << "grid point: " << point.x() << ","
+             << point.y();
+    const auto comp = _project->schematic()->component(id);
+    // IDK where the magic constant "8" comes from, but removing it causes drag+drop to fail.
+    const auto dropLocation = _currentDragShadow->drop_location.top_left();
+    moveComponent(id, dropLocation);
+    _currentDragShadow = std::nullopt;
 
     //  Remap paint grid after move
-    setGrid(_currentDiagram);
-
+    cacheBoundingBox();
     update();
 
     if (event->source() == this) {
@@ -1020,9 +778,9 @@ void GraphicCanvas::startDrag(const QPoint point) {
   //  Temporarily remove item from lookup. During hit detection, item
   //  will return true when pointing to self. Item is reset or saved
   //  in drop event.
-  if (_currentDiagram == nullptr) {
-    return;
-  }
+  setSelectedDiagram(screen_to_grid(point));
+  if (!std::holds_alternative<Component *>(_selected)) return;
+  auto comp = std::get<Component *>(_selected);
 
   //  Setup drag operation
   _dragStartPosition = point;
@@ -1032,7 +790,7 @@ void GraphicCanvas::startDrag(const QPoint point) {
   QDataStream dataStream(&itemData, QIODevice::WriteOnly);
 
   //  Save old data to stream
-  dataStream << _currentDiagram->key().left() << _currentDiagram->key().top();
+  dataStream << comp->id().value;
 
   QMimeData *mimeData = new QMimeData;
   mimeData->setData("application/x-dnditemdata", itemData);
@@ -1043,17 +801,28 @@ void GraphicCanvas::startDrag(const QPoint point) {
   const auto curSize = (screen_block - (_margin * grid_to_px * 2)) * _currentZoom;
 
   QPixmap dragPix;
-  if (_currentDiagram->key().width() > _currentDiagram->key().height())
-    dragPix = _currentDiagram->image()->scaledToWidth(curSize, Qt::SmoothTransformation);
-  else dragPix = _currentDiagram->image()->scaledToHeight(curSize, Qt::SmoothTransformation);
+
+  const auto key = getImage(comp);
+  if (!_mipmaps->contains(key)) {
+    qWarning() << "No mipmaps found for diagram :" << comp->id().value;
+    return;
+  }
+  const auto geom = comp->geometry();
+  if (geom.width() > geom.height()) {
+    dragPix = _mipmaps->mipmap(key)
+                  ->best_for(QSize(curSize, curSize), comp->direction())
+                  ->scaledToWidth(curSize, Qt::SmoothTransformation);
+  } else {
+    dragPix = _mipmaps->mipmap(key)
+                  ->best_for(QSize(curSize, curSize), comp->direction())
+                  ->scaledToHeight(curSize, Qt::SmoothTransformation);
+  }
 
   drag->setPixmap(dragPix);
 
   //  Use center point for hit detection
   QPointF offset{curSize / 2, curSize / 2};
   drag->setHotSpot(offset.toPoint());
-
-  // setCursor(Qt::OpenHandCursor);
 
   //  If this function is not called, the drag will not start
   drag->exec();
@@ -1063,35 +832,57 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
   //  Mouse location in grid coordinates to
   //  to determine rectangle hit.
   const auto point = screen_to_grid(newPoint);
-  const auto newLocation = grid_to_index(point);
+  const auto schematic = _project->schematic();
 
   //  This function can be called dozens of times per second when dragging an item.
   //  The canMoveData function can be expensive if called excessively. Cache
   //  prior result, and only call canMoveData when we have moved to a new grid area.
   static bool lastResult{false};
   static PeppPt lastPt{-1, -1};
-
-  if (lastPt != newLocation) {
-    lastPt = newLocation;
-    lastResult = _model->dataModel().canMoveData(_currentDiagram->id(), newLocation);
-    // qDebug() << lastPt.x() << lastPt.y() << lastResult;
+  /*qDebug() << "hitTest: " << newPoint << "lastPt: " << grid_to_screen(lastPt) << "lastResult: " << lastResult
+           << "has selected" << std::holds_alternative<Component *>(_selected);*/
+  if (lastPt != point && std::holds_alternative<Component *>(_selected)) {
+    const auto comp = std::get<Component *>(_selected);
+    const auto geom = comp->geometry();
+    // Compute the size of the item being dragged in the screen space
+    const auto tl = grid_to_screen(geom.top_left()), br = grid_to_screen(geom.bottom_right());
+    const auto screenRect = QRectF(tl, br);
+    // Shift newPoint by 1/2 the size of screen-space rectangle so that hit test is based on the center.
+    // Shift MUST be done in screen space, else we get weird quantization bugs of algnment constraints.
+    const auto shifted = newPoint - QPointF(screenRect.width() / 2, screenRect.height() / 2);
+    const auto unaligned = screen_to_grid(shifted);
+    auto aligned = comp->blueprint()->alignmentConstraint.nearest_aligned_point(unaligned);
+    lastPt = point;
+    lastResult = schematic->can_move_component(comp->id(), aligned);
+    _currentDragShadow =
+        DragRect{.has_hit = !lastResult, .drop_location = schematic::Rectangle(aligned, comp->geometry().size())};
   }
   //  Can move is True if there is no hit. Flip to indicate if hit or not
   return !lastResult;
+}
+
+bool GraphicCanvas::hasSelectedComponent() { return std::holds_alternative<Component *>(_selected); }
+
+void GraphicCanvas::ensureProperties(Component *comp) {
+  if (comp->properties == nullptr) {
+    comp->properties = std::make_unique<DiagramProperties>(nullptr);
+  }
 }
 
 bool GraphicCanvas::keyPress(const int key, const int modifier) {
   const bool alt = modifier & Qt::AltModifier;
   const bool shf = modifier & Qt::ShiftModifier;
   const bool ctr = modifier & Qt::ControlModifier;
+  // TODO: mmcraven, reenable active/selection
 
   switch (key) {
   case Qt::Key_Delete:
-    if (_currentDiagram != nullptr) {
-      _model->dataModel().clearDiagramData(_currentDiagram->key());
-
-      //  Clear current item, and notify QML
-      setCurrentDiagram(nullptr);
+    if (std::holds_alternative<Component *>(_selected)) {
+      auto comp = std::get<Component *>(_selected);
+      _selected = std::monostate{};
+      _project->schematic()->remove_component(comp->id());
+      // TODO: notify QML
+      update(); // Clear current item.
     }
     return true;
 
@@ -1103,37 +894,44 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
     //  Nove item is current. Othewise move background.
     //  Control also means move background
   case Qt::Key_Left:
-    if (_currentDiagram != nullptr && !ctr) {
+
+    if (std::holds_alternative<Component *>(_selected) && !ctr) {
+      auto comp = std::get<Component *>(_selected);
       //  We are moving item
-      PeppPt newLocation = _currentDiagram->key().top_left();
-      //  Do not move beyond left margin
-      newLocation.setX(std::max(2, newLocation.x() - 1));
-      moveDiagram(_currentDiagram->key().top_left(), newLocation);
+      auto start = comp->geometry().top_left();
+      auto dest = start.with_x(start.x() - 1);
+      dest = comp->blueprint()->alignmentConstraint.nearest_aligned_point_left(dest);
+      moveComponent(start, dest, true);
     } else setHScroll(-1);
     return true;
   case Qt::Key_Right:
-    if (_currentDiagram != nullptr && !ctr) {
+    if (std::holds_alternative<Component *>(_selected) && !ctr) {
+      auto comp = std::get<Component *>(_selected);
       //  We are moving item
-      PeppPt newLocation = _currentDiagram->key().top_left();
-      newLocation.setX(newLocation.x() + 1);
-      moveDiagram(_currentDiagram->key().top_left(), newLocation);
+      auto start = comp->geometry().top_left();
+      auto dest = start.with_x(start.x() + 1);
+      dest = comp->blueprint()->alignmentConstraint.nearest_aligned_point_right(dest);
+      moveComponent(start, dest);
     } else setHScroll(1);
     return true;
   case Qt::Key_Up:
-    if (_currentDiagram != nullptr && !ctr) {
+    if (std::holds_alternative<Component *>(_selected) && !ctr) {
+      auto comp = std::get<Component *>(_selected);
       //  We are moving item
-      PeppPt newLocation = _currentDiagram->key().top_left();
-      //  Do not move beyond top margin
-      newLocation.setY(std::max(2, newLocation.y() - 1));
-      moveDiagram(_currentDiagram->key().top_left(), newLocation);
+      auto start = comp->geometry().top_left();
+      auto dest = start.with_y(start.y() - 1);
+      dest = comp->blueprint()->alignmentConstraint.nearest_aligned_point_up(dest);
+      moveComponent(start, dest);
     } else setVScroll(-1);
     return true;
   case Qt::Key_Down:
-    if (_currentDiagram != nullptr && !ctr) {
+    if (std::holds_alternative<Component *>(_selected) && !ctr) {
+      auto comp = std::get<Component *>(_selected);
       //  We are moving item
-      PeppPt newLocation = _currentDiagram->key().top_left();
-      newLocation.setY(newLocation.y() + 1);
-      moveDiagram(_currentDiagram->key().top_left(), newLocation);
+      auto start = comp->geometry().top_left();
+      auto dest = start.with_y(start.y() + 1);
+      dest = comp->blueprint()->alignmentConstraint.nearest_aligned_point_down(dest);
+      moveComponent(start, dest);
     } else setVScroll(1);
     return true;
     /*case Qt::Key_PageUp:

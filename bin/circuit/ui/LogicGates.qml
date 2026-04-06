@@ -12,10 +12,6 @@ Rectangle {
 
     property real cellWidth: 100
 
-    DiagramDataModel {
-        id: diagramModel
-    }
-
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
@@ -29,7 +25,7 @@ Rectangle {
 
             DiagramListView {
                 id: sourceListView
-
+                project: canvas.project
                 Layout.alignment: Qt.AlignTop
                 Layout.fillWidth: true
             }
@@ -43,9 +39,9 @@ Rectangle {
                 id: props
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
+                diagramModel: null
 
-                diagramModel: diagramModel
-                gateModel: sourceListView.diagramOnly
+                gateModel: null
             }
         }
 
@@ -85,9 +81,7 @@ Rectangle {
 
                         if (result === null)
                         return;
-
-                        sourceListView.filterList.filter = result;
-                        canvas.filter = result
+                        canvas.filter = result;
                     }
                 }
 
@@ -135,8 +129,7 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                dataModel: diagramModel
-                currentStamp: sourceListView.currentStamp
+                blueprint: sourceListView.blueprint
                 filter: FilterDiagramListModel.None
                 z: -1
             }

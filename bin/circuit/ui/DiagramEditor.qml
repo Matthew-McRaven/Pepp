@@ -10,7 +10,7 @@ Pane {
     id: root
 
     //  Model containing all diagrams
-    required property DiagramDataModel diagramModel
+    required property var diagramModel
 
     //  List of available gates
     required property FilterDiagramListModel gateModel
@@ -132,8 +132,6 @@ Pane {
                     root.diagramModel.setData(inputArea.index, orientation.currentValue, DiagramDataModel.Orientation);
                     root.diagramModel.setData(inputArea.index, input.value, DiagramDataModel.InputNo);
                     root.diagramModel.setData(inputArea.index, output.value, DiagramDataModel.OutputNo);
-
-                    //root.diagramModel.update(inputArea.index);
                 }
             }
             Button {

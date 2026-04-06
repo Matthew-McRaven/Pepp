@@ -3,11 +3,12 @@
 #include <QPixmap>
 #include <QQuickPaintedItem>
 
-#include "diagramdatamodel.hpp"
 #include "diagramlistmodel.hpp"
 #include "diagramproperty.hpp"
+#include "schematic/circuitschematic.hpp"
 
 #include "core/math/geom/rectangle.hpp"
+#include "pixmaps/mipmapstore.hpp"
 
 /*  Rectangle questions
  *  1. To search for an item, I need to know the width/height. Can we lookup
@@ -42,16 +43,16 @@ class GraphicCanvas : public QQuickPaintedItem {
   Q_PROPERTY(float yScrollbar READ yScrollbar WRITE setYScrollbar NOTIFY boundsChanged FINAL)
 
   //  Set and access datamodel and template
-  Q_PROPERTY(DiagramDataModel *model READ model WRITE setModel NOTIFY boundsChanged FINAL)
-  Q_PROPERTY(DiagramTemplate *template READ stamp WRITE setStamp NOTIFY stampChanged FINAL)
-  Q_PROPERTY(DiagramProperties *currentDiagram READ currentDiagram NOTIFY currentItemChanged FINAL)
+  Q_PROPERTY(CircuitProject *project READ project NOTIFY projectChanged FINAL)
+  Q_PROPERTY(u32 blueprint READ blueprint WRITE setBlueprint NOTIFY blueprintChanged FINAL)
   Q_PROPERTY(FilterDiagramListModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
 
 public:
   GraphicCanvas(QQuickItem *parent = nullptr);
   void paint(QPainter *painter) override;
 
-  //  Context menu (right click)
+  //  Sets currently selected diagram/line
+  Q_INVOKABLE bool hasSelectedComponent();
   Q_INVOKABLE void rotateClockwise();
   Q_INVOKABLE void rotateCounterClockwise();
 
@@ -61,7 +62,7 @@ public:
   // Max bounds based on contained rectangles.
   float contentWidth() const { return _dimensions.width() * grid_to_px * _currentZoom; }
   float contentHeight() const { return _dimensions.height() * grid_to_px * _currentZoom; }
-  void setBoundingBox();
+  void cacheBoundingBox();
 
   // The top-left corner, as measured in "screen" coordinates
   float originX() const { return _top_left.x() * grid_to_px * _currentZoom; }
@@ -79,22 +80,14 @@ public:
   void setXScrollbar(float x);
   void setYScrollbar(float y);
 
-  DiagramDataModel *model() const { return _model; }
-  void setModel(DiagramDataModel *model);
-
-  DiagramTemplate *stamp() const { return _template; }
-  void setStamp(DiagramTemplate *stamp);
-
-  DiagramProperties *currentDiagram() const { return _currentDiagram; }
-  void setCurrentDiagram(DiagramProperties *item);
+  u32 blueprint() const { return _selectedBlueprint.value; }
+  void setBlueprint(u32 bp);
 
   LineProperties *currentLine() const { return _currentLine; }
   void setCurrentLine(LineProperties *item);
 
   auto filter() const { return _filter; }
   void setFilter(const FilterDiagramListModel::Filter filter);
-
-  static PeppRect diagramGeometry(DiagramProperties *data);
 
 protected:
   //  Mouse events
@@ -117,14 +110,16 @@ protected:
 
 signals:
   void boundsChanged();
-  void modelChanged();
   void originChanged();
-  void stampChanged();
   void currentItemChanged();
   void filterChanged();
+  void projectChanged();
+  void blueprintChanged();
 
 private:
-  void getImage(DiagramProperties &props);
+  //  Render and cache images for painting
+  schematic::MipmapStoreKey cacheSVG(const QString &source);
+  schematic::MipmapStoreKey getImage(Component *comp);
 
   //  Custom mouse event handlers
   void contextMenuEvent(QMouseEvent *event);
@@ -132,8 +127,8 @@ private:
   void lineLeftClickEvent(QMouseEvent *event, DiagramProperties *current);
 
   // Helepr for painting a single rect that has already "passed" the clipping test.
-  void paint_one(QPainter *painter, DiagramProperties *props);
-  void paint_line(QPainter *painter, const LineProperties *props);
+  void paint_one(QPainter *painter, Component *comp);
+  void paint_line(QPainter *painter, Connection con);
   QRectF grid_to_screen(const PeppRect &rect) const;
   PeppRect screen_to_grid(QRectF rect) const;
   PeppPt screen_to_grid(QPointF point) const;
@@ -144,30 +139,26 @@ private:
   void setZoom(qint8 change);
   void setVScroll(qint8 change);
   void setHScroll(qint8 change);
-  void moveDiagram(PeppPt oldLocation, PeppPt newLocation);
-  void rotateDiagram(DiagramProperties *diagram);
+  void moveComponent(PeppPt oldLocation, PeppPt newLocation, bool enforce_alignment = true);
+  void moveComponent(schematic::ComponentID comp, PeppPt newLocation, bool enforce_alignment = true);
+  void rotateComponent(schematic::ComponentID comp);
   bool hitTest(QPointF newPoint) const;
 
-  //  Sets currently selected diagram/line
+  inline CircuitProject *project() const { return _project.get(); }
+  void ensureProperties(Component *comp);
   bool setSelectedDiagram(const PeppPt &point);
   bool setSelectedLine(const PeppPt &point);
   void unselectDiagrams();
   void unselectLines();
 
-  //  Render and cache images for painting
-  void cacheImages(const QString &source);
 
   //  Render and cache background lines
   void cacheBackground();
 
-  //  Insert test data
-  void updateData();
-
   //  Add diagram, and center in cell
-  DiagramProperties *addDiagram(const i16 row, const i16 col);
   void addLine(DiagramProperties *from, DiagramProperties *to);
-
-  void setGrid(DiagramProperties *data);
+  std::optional<schematic::ComponentID> place_component(schematic::BlueprintID, schematic::Point location,
+                                                        Direction dir);
 
   //  Respond to data changes in model
   void updateCell(const QModelIndex &from, const QModelIndex &to);
@@ -191,11 +182,9 @@ private:
   const float screen_block = major_block_size * grid_to_px;
   const i16 _margin = 4;
 
+  std::shared_ptr<CircuitProject> _project = nullptr;
   //  Cached images
-  QList<QPixmap> _svgs;
-  QList<QPixmap> _svgsBottom;
-  QList<QPixmap> _svgsLeft;
-  QList<QPixmap> _svgsTop;
+  std::shared_ptr<MipmapStore> _mipmaps = nullptr;
 
   // Top-left corner of the viewport in grid coordinates
   PeppPt _top_left;
@@ -212,16 +201,24 @@ private:
   QColor _highlight = QColorConstants::Svg::cornflowerblue;
   QColor _normal = QColorConstants::Svg::black;
 
+  // Selection information
+  std::variant<std::monostate, Component *> _selected = std::monostate{};
+  schematic::BlueprintID _selectedBlueprint{};
+
   //  Drag start
   QPointF _dragStartPosition{-1, -1};
+  struct DragRect {
+    bool has_hit = false;
+    schematic::Rectangle drop_location;
+    bool operator==(const DragRect &other) const = default;
+  };
+  // Hold the "drop" coordinate in logical coordinates and if the drop is expected to be valid.
+  mutable std::optional<DragRect> _currentDragShadow = std::nullopt;
 
   //  Line information
   DiagramProperties *_firstPoint = nullptr;
   LineProperties *_currentLine = nullptr;
 
   //  Data model
-  DiagramDataModel *_model = nullptr;
-  DiagramTemplate *_template = nullptr;
-  DiagramProperties *_currentDiagram = nullptr;
   FilterDiagramListModel::Filter _filter = FilterDiagramListModel::None;
 };

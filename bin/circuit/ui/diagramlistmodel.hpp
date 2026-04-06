@@ -6,48 +6,16 @@
 #include <QtQmlIntegration>
 
 #include "diagramtype.hpp"
-
-class DiagramTemplate : public QObject {
-  Q_OBJECT
-  QML_ELEMENT
-
-  Q_PROPERTY(DiagramType::Type key READ key CONSTANT) // Read only
-  Q_PROPERTY(QString name READ name CONSTANT)
-  Q_PROPERTY(QString diagramType READ diagramType CONSTANT)
-  Q_PROPERTY(QString qrcFile READ qrcFile CONSTANT)
-  Q_PROPERTY(QString file READ file CONSTANT)
-
-  DiagramType::Type _key{DiagramType::Invalid};
-  QString _name;
-  QString _diagramType;
-  QString _qrcFile;
-  QString _file;
-
-public:
-  explicit DiagramTemplate(QObject *parent = nullptr);
-  DiagramTemplate(DiagramType::Type key, QString name, QString type, QString qrc, QString file,
-                  QObject *parent = nullptr);
-  DiagramType::Type key() const { return _key; }
-  QString name() const { return _name; }
-  QString diagramType() const { return _diagramType; }
-  QString qrcFile() const { return _qrcFile; }
-  QString file() const { return _file; }
-};
+#include "schematic/blueprint.hpp"
+#include "schematic/circuitproject.hpp"
 
 class DiagramListModel : public QAbstractListModel {
   Q_OBJECT
+  Q_PROPERTY(CircuitProject *project READ project WRITE setProject NOTIFY projectChanged);
   QML_ELEMENT
 
-  QList<DiagramTemplate *> _diagrams;
-
 public:
-  enum Role {
-    Name = Qt::DisplayRole,
-    Key = Qt::UserRole + 1,
-    DiagramType,
-    QrcFile,
-    File,
-  };
+  enum Role { Name = Qt::DisplayRole, Path = Qt::UserRole + 1 };
   explicit DiagramListModel(QObject *parent = nullptr);
 
   // Basic functionality:
@@ -55,8 +23,16 @@ public:
 
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
   QHash<int, QByteArray> roleNames() const override;
+  CircuitProject *project() const { return _project; }
+  void setProject(CircuitProject *project = nullptr);
 
-  Q_INVOKABLE DiagramTemplate *diagramTemplate(int index) const;
+  Q_INVOKABLE u32 blueprint(int index) const;
+
+signals:
+  void projectChanged();
+
+private:
+  CircuitProject *_project = nullptr;
 };
 
 class FilterDiagramListModel : public QSortFilterProxyModel {
@@ -78,7 +54,6 @@ public:
   DiagramListModel *model() const { return static_cast<DiagramListModel *>(sourceModel()); }
   void setModel(DiagramListModel *model = nullptr);
 
-  Q_INVOKABLE DiagramTemplate *diagramTemplate(int index) const;
 
 protected:
   bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
