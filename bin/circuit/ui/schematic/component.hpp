@@ -4,9 +4,12 @@
 #include "core/integers.h"
 #include "orient.hpp"
 #include "schematic/blueprint.hpp"
+// Will always be some QObject derived class that hold Qt-related properties of the component.
+// The UI is responsible for creating them as needed, but Component will destroy them inside Component's dtor.
 struct ComponentVisualProperties {
   virtual ~ComponentVisualProperties() = 0;
 };
+
 struct Component {
   struct Pin {
     schematic::ComponentID component_id;
@@ -20,7 +23,7 @@ struct Component {
   Component(std::shared_ptr<Blueprint> t, schematic::Point position, Direction orient = Direction::Right);
 
   // Non-owning pointer. Never call delete on it. May be nullptr if Component has not been touched by the UI.
-  ComponentVisualProperties *properties = nullptr;
+  std::unique_ptr<ComponentVisualProperties> properties = nullptr;
   schematic::ComponentID id() const;
   void set_id(schematic::ComponentID id);
   Direction direction() const;

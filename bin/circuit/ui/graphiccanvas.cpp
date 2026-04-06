@@ -219,7 +219,7 @@ void GraphicCanvas::paint_one(QPainter *painter, Component *comp) {
   // Grid is inset so that selection box appears inside current cell
   auto screen_rect = grid_to_screen(comp->geometry());
   // std::cerr << "Rect Geometry: " << comp->geometry() << std::endl;
-  auto props = static_cast<BaseProperties *>(comp->properties);
+  auto props = static_cast<BaseProperties *>(comp->properties.get());
   //  Check state, and set outline if selected
   if (props && props->selected()) {
     painter->setPen(QPen(_highlight, 2, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
@@ -489,12 +489,12 @@ bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
   //  See if existing item was clicked and clear selection
   for (auto &it : schematic->components()) {
     const auto [id, comp] = it;
-    auto props = static_cast<BaseProperties *>(comp->properties);
+    auto props = static_cast<BaseProperties *>(comp->properties.get());
     // Don't break, because we want to ensure all other items are unselected.
     if (pepp::core::contains(comp->geometry(), point)) {
       _selected = comp.get();
       ensureProperties(comp.get());
-      static_cast<BaseProperties *>(comp->properties)->setSelected(true);
+      static_cast<BaseProperties *>(comp->properties.get())->setSelected(true);
     } else {
       if (props != nullptr && props->selected()) props->setSelected(false);
     }
@@ -547,7 +547,7 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
 void GraphicCanvas::unselectDiagrams() {
   for (auto &it : _project->schematic()->components()) {
     const auto [id, comp] = it;
-    auto props = static_cast<BaseProperties *>(comp->properties);
+    auto props = static_cast<BaseProperties *>(comp->properties.get());
     if (props != nullptr && props->selected()) props->setSelected(false);
   }
   if (std::holds_alternative<Component *>(_selected)) {
@@ -841,8 +841,7 @@ bool GraphicCanvas::hasSelectedComponent() { return std::holds_alternative<Compo
 
 void GraphicCanvas::ensureProperties(Component *comp) {
   if (comp->properties == nullptr) {
-    DiagramProperties *props = new DiagramProperties(this);
-    comp->properties = props;
+    comp->properties = std::make_unique<DiagramProperties>(nullptr);
   }
 }
 
