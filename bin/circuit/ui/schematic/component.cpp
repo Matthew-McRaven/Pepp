@@ -1,6 +1,8 @@
 #include "component.hpp"
 #include "core/macros.hpp"
 
+schematic::GlobalPinID Component::Pin::global_pin_id() const { return schematic::GlobalPinID{component_id, pin_id}; }
+
 Component::Component(std::shared_ptr<Blueprint> t, schematic::Point position, Direction orient)
     : _template(t), _position(position), _orientation(orient) {}
 

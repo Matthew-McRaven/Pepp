@@ -33,7 +33,7 @@ qt_add_qml_module(
   ui/schematic/blueprintlibrary.cpp
   ui/schematic/circuitschematic.cpp
   ui/schematic/orient.cpp
-  ui/pixmaps/filestore.cpp
+  ui/schematic/circuitproject.cpp
   DEPENDENCIES
   QtQuick)
 

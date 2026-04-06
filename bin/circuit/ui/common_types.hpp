@@ -27,6 +27,7 @@ template <class Tag, class Underlying = u32> struct Handle {
 };
 
 using BlueprintID = Handle<struct BlueprintIDTag>;
+using BlueprintGroupID = Handle<struct BlueprintGroupIDTag>;
 using LocalPinID = Handle<struct LocalPinIDTag>;
 using ComponentID = Handle<struct ComponentIDTag>;
 using ImageFileKey = Handle<struct ImageFileKeyTag>;

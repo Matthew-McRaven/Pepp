@@ -7,10 +7,14 @@
 #include <QPainter>
 #include <QSvgRenderer>
 #include <Qt> //  Keyboard constants
+#include "schematic/circuitproject.hpp"
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
-  _file_store = std::make_shared<FileStore>();
-  _mipmaps = std::make_shared<MipmapStore>(_file_store);
+  _project = std::make_shared<CircuitProject>();
+  _project->add_builtin_blueprints();
+  _project->add_test_data();
+
+  _mipmaps = std::make_shared<MipmapStore>(_project);
 
   //  Enable mouse
   setAcceptedMouseButtons(Qt::AllButtons);
@@ -261,7 +265,7 @@ void GraphicCanvas::paint(QPainter *painter) {
   }
 
   //  Diagrams are painted on minor grid axis. Overwrite lines.
-  for (auto &prop : _data.components()) {
+  for (auto &prop : _project->schematic()->components()) {
     //  Skip painting rectangles that are outside the viewport.
     auto diagram = prop.second;
     if (pepp::core::intersects(grid_viewport, diagram->geometry()))
@@ -366,7 +370,7 @@ void GraphicCanvas::addLine(DiagramProperties *from, DiagramProperties *to) {
 }
 
 void GraphicCanvas::cacheBoundingBox() {
-  const auto logicRect = _data.bounding_box();
+  const auto logicRect = _project->schematic()->bounding_box();
   const auto totalWidth = logicRect.right() * minor_block_size;
   const auto totalHeight = logicRect.bottom() * minor_block_size;
   PeppRect gridRect = PeppRect::from_point_size(0, 0, totalWidth, totalHeight);
@@ -622,7 +626,7 @@ bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
   DiagramProperties *found = nullptr;
 
   //  See if existing item was clicked and clear selection
-  for (auto &props : _data.components()) {
+  for (auto &props : _project->schematic()->components()) {
     // Skip painting rectangles that are outside the viewport.
     if (!pepp::core::contains(props.second->geometry(), point)) {
       //  Bypass model
@@ -660,7 +664,7 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
   unselectDiagrams();
 
   //  See if existing item was clicked and clear selection
-  for (auto &props : _data.connections()) {
+  for (auto &props : _project->schematic()->connections()) {
     // TODO:
     // Skip painting rectangles that are outside the viewport.
     /*if (!pepp::core::contains(props->gridRectangle(), point)) {
@@ -691,7 +695,7 @@ bool GraphicCanvas::setSelectedLine(const PeppPt &point) {
 
 //  Used to clear all diagram selections
 void GraphicCanvas::unselectDiagrams() {
-  for (auto &props : _data.components()) {
+  for (auto &props : _project->schematic()->components()) {
     // TODO: mmcraven props->setSelected(false);
   }
 
@@ -701,7 +705,7 @@ void GraphicCanvas::unselectDiagrams() {
 
 //  Used to clear all line selections
 void GraphicCanvas::unselectLines() {
-  for (auto &props : _data.connections()) {
+  for (auto &props : _project->schematic()->connections()) {
     // TODO: mmcraven props->setSelected(false);
   }
 
@@ -810,9 +814,9 @@ void GraphicCanvas::setHScroll(qint8 change) {
 }
 
 void GraphicCanvas::moveDiagram(PeppPt oldLocation, PeppPt newLocation) {
-  auto maybe_component_id = _data.component_at(oldLocation);
-  if (!maybe_component_id || !_data.can_move_component(*maybe_component_id, newLocation)) return;
-  _data.move_component(*maybe_component_id, newLocation);
+  auto maybe_component_id = _project->schematic()->component_at(oldLocation);
+  if (!maybe_component_id || !_project->schematic()->can_move_component(*maybe_component_id, newLocation)) return;
+  _project->schematic()->move_component(*maybe_component_id, newLocation);
   cacheBoundingBox();
   update();
 }
@@ -822,8 +826,8 @@ void GraphicCanvas::rotateDiagram(DiagramProperties *diagram) {
   const auto id = schematic::ComponentID{diagram->id()};
   const auto current_orientation = from_angle(diagram->orientation());
   const auto next_orientation = clockwise(current_orientation);
-  if (!_data.can_rotate_component(id, next_orientation)) return;
-  else _data.rotate_component(id, next_orientation);
+  if (!_project->schematic()->can_rotate_component(id, next_orientation)) return;
+  else _project->schematic()->rotate_component(id, next_orientation);
   cacheBoundingBox();
   update();
 }
@@ -970,7 +974,7 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
 
   if (lastPt != newLocation) {
     lastPt = newLocation;
-    lastResult = _data.can_move_component(schematic::ComponentID{_currentDiagram->id()}, newLocation);
+    lastResult = _project->schematic()->can_move_component(schematic::ComponentID{_currentDiagram->id()}, newLocation);
     // qDebug() << lastPt.x() << lastPt.y() << lastResult;
   }
   //  Can move is True if there is no hit. Flip to indicate if hit or not
@@ -986,7 +990,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
   switch (key) {
   case Qt::Key_Delete:
     if (_currentDiagram != nullptr) {
-      _data.remove_component(current_id);
+      _project->schematic()->remove_component(current_id);
 
       //  Clear current item, and notify QML
       setCurrentDiagram(nullptr);

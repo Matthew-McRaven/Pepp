@@ -12,7 +12,7 @@ struct Component {
     schematic::Rectangle geometry;
     PinType type = PinType::HighZ;
     // Combine component_id and pin_id to globally identify the pin within the circuit.
-    u64 global_pin_id() const;
+    schematic::GlobalPinID global_pin_id() const;
   };
 
   Component(std::shared_ptr<Blueprint> t, schematic::Point position, Direction orient = Direction::Right);

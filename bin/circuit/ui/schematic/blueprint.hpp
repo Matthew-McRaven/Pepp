@@ -59,10 +59,3 @@ struct BuiltinBlueprint : public Blueprint {
 
 // A component which is itself composed of other components. For example, a 2-input multiplexer.
 struct BlockBlueprint : public Blueprint {};
-
-// A group of related component templates.
-// For example, each AND gate with a different number of inputs counts as a separate template.
-// However, the property editor should allow you to pick between the various allowed templates within the family.
-struct ComponentFamily {
-  std::vector<Blueprint> templates;
-};

@@ -1,14 +1,13 @@
 #include "mipmapstore.hpp"
+#include "schematic/circuitproject.hpp"
 
-MipmapStore::MipmapStore(std::shared_ptr<FileStore> file_store) : _file_store(std::move(file_store)) {}
+MipmapStore::MipmapStore(std::shared_ptr<CircuitProject> project) : _project(std::move(project)) {}
 
 MipmapStore::Key MipmapStore::insert(MipmapSource source, QSize base_size, Direction dir,
                                      MipmapConstraint constraints) {
   MipmapEntry entry;
 
-  if (!source.source_path().isEmpty()) {
-    _file_store->insert(source.source_path().toStdString());
-  }
+  if (!source.source_path().isEmpty()) _project->track_file(source.source_path().toStdString());
 
   entry.source = std::move(source);
   entry.mipmap = entry.source.build(base_size, dir, constraints);

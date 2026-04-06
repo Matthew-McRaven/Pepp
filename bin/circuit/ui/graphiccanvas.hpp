@@ -187,8 +187,8 @@ private:
   const float screen_block = major_block_size * grid_to_px;
   const i16 _margin = 4;
 
+  std::shared_ptr<CircuitProject> _project = nullptr;
   //  Cached images
-  std::shared_ptr<FileStore> _file_store = nullptr;
   std::shared_ptr<MipmapStore> _mipmaps = nullptr;
   std::map<DiagramType::Type, schematic::MipmapStoreKey> _typeToMipmapKey;
 
@@ -215,7 +215,6 @@ private:
   LineProperties *_currentLine = nullptr;
 
   //  Data model
-  CircuitSchematic _data;
   DiagramTemplate *_template = nullptr;
   DiagramProperties *_currentDiagram = nullptr;
   FilterDiagramListModel::Filter _filter = FilterDiagramListModel::None;

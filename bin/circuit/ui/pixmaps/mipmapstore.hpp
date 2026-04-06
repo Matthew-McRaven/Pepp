@@ -2,7 +2,6 @@
 
 #include "common_types.hpp"
 #include "core/integers.h"
-#include "filestore.hpp"
 #include "mipmapsource.hpp"
 
 // An entry in the store is the source + the mipmap built from it.
@@ -11,6 +10,8 @@ struct MipmapEntry {
   MipmappedPrerotatedPixmap mipmap;
 };
 
+class CircuitProject;
+
 // Effectively a wrapper for std::map, but with specializations on insert/replace that generate mipmaps on our behalf.
 // They Key is opaque and is entirely unrelated to DiagramType::Type. The key 0 is reserved to indicate an invalid key.
 // Once inserted, keys cannot be deleted to prevent use-after frees. The contents of an entry can be replaced.
@@ -18,7 +19,7 @@ struct MipmapEntry {
 // recalculate() exists to rebuild mips level when display properties change.
 class MipmapStore {
 public:
-  MipmapStore(std::shared_ptr<FileStore> file_store);
+  MipmapStore(std::shared_ptr<CircuitProject> project);
   using Key = schematic::MipmapStoreKey;
 
   // Returns the key (for chaining or caller convenience).
@@ -38,5 +39,5 @@ public:
 private:
   int _next_key = 1;
   std::unordered_map<Key, MipmapEntry> _entries;
-  std::shared_ptr<FileStore> _file_store;
+  std::shared_ptr<CircuitProject> _project;
 };
