@@ -77,6 +77,13 @@ bool CircuitSchematic::remove_component(schematic::ComponentID id) {
   if (auto it = _components.find(id); it == _components.end()) return false;
   _floorplan.remove(id.value);
   _components.erase(id);
+  // Iterate over all connections and remove any connections to/from this component.
+  // Adding/removing components should be rare, so can afford the O(N) scan.
+  connections().erase(std::remove_if(connections().begin(), connections().end(),
+                                     [id](const Connection &conn) {
+                                       return conn.src.component_id == id || conn.dst.component_id == id;
+                                     }),
+                      connections().end());
   return true;
 }
 
