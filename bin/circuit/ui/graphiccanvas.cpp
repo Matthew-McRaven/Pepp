@@ -847,8 +847,6 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
   const bool ctr = modifier & Qt::ControlModifier;
   // TODO: mmcraven, reenable active/selection
 
-  /*schematic::ComponentID current_id =
-      _currentDiagram != nullptr ? schematic::ComponentID{_currentDiagram->id()} : schematic::ComponentID{};*/
   switch (key) {
   case Qt::Key_Delete:
     if (std::holds_alternative<Component *>(_selected)) {
@@ -902,7 +900,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
       auto comp = std::get<Component *>(_selected);
       //  We are moving item
       auto start = comp->geometry().top_left();
-      auto dest = start.with_x(start.y() + 1);
+      auto dest = start.with_y(start.y() + 1);
       moveComponent(start, dest);
     } else setVScroll(1);
     return true;
