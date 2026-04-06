@@ -2,6 +2,7 @@
 
 #include "common_types.hpp"
 #include "core/integers.h"
+#include "filestore.hpp"
 #include "mipmapsource.hpp"
 
 // An entry in the store is the source + the mipmap built from it.
@@ -17,11 +18,11 @@ struct MipmapEntry {
 // recalculate() exists to rebuild mips level when display properties change.
 class MipmapStore {
 public:
+  MipmapStore(std::shared_ptr<FileStore> file_store);
   using Key = schematic::MipmapStoreKey;
 
-  // Insert or replace an entry. Returns the key (for chaining or caller convenience).
+  // Returns the key (for chaining or caller convenience).
   Key insert(MipmapSource source, QSize base_size, Direction dir, MipmapConstraint constraints = {});
-  bool replace(Key key, MipmapSource source, QSize base_size, Direction dir, MipmapConstraint constraints = {});
   void recalculate(Key key, QSize base_size, Direction dir, MipmapConstraint constraints = {});
 
   //  Returns nullptr if absent.
@@ -35,6 +36,7 @@ public:
   const std::unordered_map<Key, MipmapEntry> &entries() const;
 
 private:
-  std::unordered_map<Key, MipmapEntry> _entries;
   int _next_key = 1;
+  std::unordered_map<Key, MipmapEntry> _entries;
+  std::shared_ptr<FileStore> _file_store;
 };

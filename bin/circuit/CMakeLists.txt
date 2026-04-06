@@ -16,8 +16,6 @@ qt_add_qml_module(
   # ui/Line.qml
   ui/DiagramListView.qml
   SOURCES
-
-
   ui/diagramtype.hpp
   ui/diagramlistmodel.hpp
   ui/diagramlistmodel.cpp
@@ -35,6 +33,7 @@ qt_add_qml_module(
   ui/schematic/blueprintlibrary.cpp
   ui/schematic/circuitschematic.cpp
   ui/schematic/orient.cpp
+  ui/pixmaps/filestore.cpp
   DEPENDENCIES
   QtQuick)
 

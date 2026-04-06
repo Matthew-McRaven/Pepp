@@ -8,10 +8,11 @@ MipmapSource MipmapSource::from_svg_file(const QString &path) {
     qWarning() << "MipmapSource::from_svg_file: failed to open" << path << ":" << file.errorString();
     return MipmapSource{};
   }
-  return MipmapSource(file.readAll());
+  MipmapSource ret;
+  ret._source = file.readAll();
+  ret._source_path = path;
+  return ret;
 }
-
-MipmapSource MipmapSource::from_svg_data(QByteArray data) { return MipmapSource(data); }
 
 MipmapSource MipmapSource::from_pixmap(QPixmap pixmap) { return MipmapSource(std::move(pixmap)); }
 

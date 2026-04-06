@@ -1,24 +1,20 @@
 #include "mipmapstore.hpp"
 
+MipmapStore::MipmapStore(std::shared_ptr<FileStore> file_store) : _file_store(std::move(file_store)) {}
+
 MipmapStore::Key MipmapStore::insert(MipmapSource source, QSize base_size, Direction dir,
                                      MipmapConstraint constraints) {
   MipmapEntry entry;
+
+  if (!source.source_path().isEmpty()) {
+    _file_store->insert(source.source_path().toStdString());
+  }
+
   entry.source = std::move(source);
   entry.mipmap = entry.source.build(base_size, dir, constraints);
   const Key key{(u32)_next_key++};
   _entries[key] = std::move(entry);
   return key;
-}
-
-bool MipmapStore::replace(Key key, MipmapSource source, QSize base_size, Direction dir, MipmapConstraint constraints) {
-  if (!_entries.contains(key)) {
-    return false;
-  }
-  MipmapEntry entry;
-  entry.source = std::move(source);
-  entry.mipmap = entry.source.build(base_size, dir, constraints);
-  _entries[key] = std::move(entry);
-  return true;
 }
 
 void MipmapStore::recalculate(Key key, QSize base_size, Direction dir, MipmapConstraint constraints) {

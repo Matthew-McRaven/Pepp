@@ -188,7 +188,8 @@ private:
   const i16 _margin = 4;
 
   //  Cached images
-  MipmapStore _mipmaps;
+  std::shared_ptr<FileStore> _file_store = nullptr;
+  std::shared_ptr<MipmapStore> _mipmaps = nullptr;
   std::map<DiagramType::Type, schematic::MipmapStoreKey> _typeToMipmapKey;
 
   // Top-left corner of the viewport in grid coordinates

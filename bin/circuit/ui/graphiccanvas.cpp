@@ -9,6 +9,9 @@
 #include <Qt> //  Keyboard constants
 
 GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
+  _file_store = std::make_shared<FileStore>();
+  _mipmaps = std::make_shared<MipmapStore>(_file_store);
+
   //  Enable mouse
   setAcceptedMouseButtons(Qt::AllButtons);
   setAcceptHoverEvents(true); // Enable hover events if needed
@@ -154,7 +157,7 @@ void GraphicCanvas::updateData() { //  Trigger repaint on data model updates
 schematic::MipmapStoreKey GraphicCanvas::cacheImages(const QString &source) {
   auto mipmap_source = MipmapSource::from_svg_file(source);
   QSize size(48 * 3, 34 * 3);
-  auto key_for = _mipmaps.insert(mipmap_source, size, Direction::Right, {});
+  auto key_for = _mipmaps->insert(mipmap_source, size, Direction::Right, {});
   return key_for;
 }
 
@@ -290,7 +293,7 @@ void GraphicCanvas::paint_one(QPainter *painter, DiagramProperties *props) {
 
   //  Paint diagram
   // Get mipmaps for the current image.
-  const auto mip = _mipmaps.mipmap(props->typesafeImageKey());
+  const auto mip = _mipmaps->mipmap(props->typesafeImageKey());
   const auto best = mip.best_for(screen_rect.size().toSize(), props->orientation());
   painter->drawPixmap(screen_rect.toRect(), best);
 
@@ -404,7 +407,7 @@ void GraphicCanvas::getImage(DiagramProperties &props) {
   else if (const auto key_it = _typeToMipmapKey.find(props.type()); key_it == _typeToMipmapKey.end()) {
     qWarning() << "No image key found for diagram type:" << props.type();
     return;
-  } else if (!_mipmaps.contains(key_it->second)) {
+  } else if (!_mipmaps->contains(key_it->second)) {
     qWarning() << "No mipmaps found for diagram type:" << props.type();
     return;
   } else props.setTypesafeImageKey(key_it->second);
@@ -928,15 +931,15 @@ void GraphicCanvas::startDrag(const QPoint point) {
 
   QPixmap dragPix;
   const auto key = _currentDiagram->typesafeImageKey();
-  if (!_mipmaps.contains(key)) {
+  if (!_mipmaps->contains(key)) {
     qWarning() << "No mipmaps found for diagram type:" << _currentDiagram->type();
     return;
   } else if (_currentDiagram->key().width() > _currentDiagram->key().height()) {
-    dragPix = _mipmaps.mipmap(key)
+    dragPix = _mipmaps->mipmap(key)
                   .best_for(QSize(curSize, curSize), _currentDiagram->orientation())
                   .scaledToWidth(curSize, Qt::SmoothTransformation);
   } else {
-    dragPix = _mipmaps.mipmap(key)
+    dragPix = _mipmaps->mipmap(key)
                   .best_for(QSize(curSize, curSize), _currentDiagram->orientation())
                   .scaledToHeight(curSize, Qt::SmoothTransformation);
   }
