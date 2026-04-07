@@ -26,8 +26,8 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
-ARG QT_MINOR="10"
-ARG QT_PATCH="2"
+ARG QT_MINOR="11"
+ARG QT_PATCH="0"
 # major/minor
 ARG QT_RELEASE="6.${QT_MINOR}"
 # major/minor/patch
@@ -70,7 +70,7 @@ RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 RUN cd /emsdk && git pull && ./emsdk install ${EMSDK_VERSION} && ./emsdk activate ${EMSDK_VERSION} && echo uname -a /emsdk.arch
 # Install shadertools and 3d modules otherwise building from sources will fail.
 RUN python3 -m venv /venv && source /venv/bin/activate \
-  && pip install aqtinstall &&  aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools qtquick3d qt3d --outputdir /qt \
+  && pip install aqtinstall &&  aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools qtquick3d qt3d qtcanvaspainter qtlottie --outputdir /qt \
   && rm aqtinstall.log && rm -rf /venv
 
 # Use separate step to build Qt to avoid inflating the size of the build image further.
@@ -90,20 +90,23 @@ RUN wget -q "https://download.qt.io/official_releases/qt/${QT_RELEASE}/${QT_VERS
     && mv /build-qt/qt-everywhere-src-${QT_VERSION} /build-qt/${QT_VERSION} \
     && rm qt-everywhere-src-${QT_VERSION}.tar.xz
 
-# Extra args with which to build Qt
-ARG QT_WASM_XARGS=""
+
 # Must activate EMSDK or it will not build. Skip some features that would require installing additional libraries.
 # Enable excptions, because that was the whole point of building Qt from the sources
 RUN source /emsdk/emsdk_env.sh \
-    && cd /build-qt/${QT_VERSION} \
-    && ./configure -qt-host-path /qt/${QT_VERSION}/gcc_64 -platform wasm-emscripten \
-       -no-feature-thread -feature-wasm-exceptions ${QT_WASM_XARGS} \
-       -skip qtremoteobjects -skip qtwebengine -skip qtscxml -skip qthttpserver \
-       -skip qtwebview -skip qtwebchannel -skip qtsensors -skip qtwebsockets -skip qtlocation \
-       -skip qtpositioning -skip qtactiveqt -skip qt5compat -skip qtlottie \
-       -prefix /qt/${QT_VERSION}/wasm_singlethread
+    && cmake -S /build-qt/${QT_VERSION} -B /build-qt/${QT_VERSION}/build -G Ninja \
+       -DCMAKE_TOOLCHAIN_FILE=/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake \
+       -DQT_HOST_PATH=/qt/${QT_VERSION}/gcc_64 \
+       -DFEATURE_thread=OFF \
+       -DFEATURE_wasm_exceptions=ON \
+       -DQT_QMAKE_TARGET_MKSPEC=wasm-emscripten \
+       -DCMAKE_INSTALL_PREFIX=/qt/${QT_VERSION}/wasm_singlethread \
+       -DBUILD_qtremoteobjects=OFF  -DBUILD_qtwebengine=OFF -DBUILD_qtscxml=OFF -DBUILD_qthttpserver=OFF \
+       -DBUILD_qtwebview=OFF -DBUILD_qtwebchannel=OFF -DBUILD_qtsensors=OFF -DBUILD_qtwebsockets=OFF \
+       -DBUILD_qtlocation=OFF -DBUILD_qtpositioning=OFF -DBUILD_qtactiveqt=OFF -DBUILD_qt5compat=OFF \
+       -DBUILD_qtlottie=OFF -DBUILD_qtcanvaspainter=OFF -DBUILD_qtgraphs=OFF -DBUILD_qtdbus=OFF
 # Separate build from configure so that I get better logs
-RUN cd /build-qt/${QT_VERSION} \
+RUN cd /build-qt/${QT_VERSION}/build \
     && cmake --build . --parallel \
     && cmake --install .
 
