@@ -2,7 +2,7 @@ name: 'Install CMake & Qt'
 inputs:
   qt_version:
     required: true
-    default: '6.10.2'
+    default: '6.11.0'
   cache-key-prefix:
     required: false
 runs:
@@ -47,6 +47,7 @@ runs:
       with:
         version: ${{ inputs.qt_version }}
         cache: true
-        extra: "--base https://mirrors.ocf.berkeley.edu/qt"
         tools: 'tools_ifw,qt.tools.ifw.47'
-        modules: 'qtshadertools qtimageformats'
+        modules: 'qtshadertools qtimageformats qtcanvaspainter'
+        # Currently released version of aqtinstall does not support Qt 6.11, but recent (~April 2026) commits do.
+        aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e'
