@@ -7,63 +7,18 @@ import QtQuick.Layouts
 Item {
     id: root
 
-    property var currentStamp: null
-    property alias filterList: filterModel
-    property alias diagramOnly: diagramOnlyList
+    property var blueprint: null
+    property alias project: diagramModel.project
+    //property alias diagramOnly: diagramOnlyList
 
-    function setStamp(index){
-
-        //  Only diagrams can be stamped. Clear stamp for others
-        //console.log("Current:", filterModel.filter);
-        if(filterModel.filter !== FilterDiagramListModel.Diagram)
-        {
-            root.currentStamp = null;
-            return;
-        }
-
-        root.currentStamp = filterModel.diagramTemplate(index);
-        console.log("Current:", root.currentStamp.name);
+    function setStamp(index) {
+        root.blueprint = diagramModel.blueprint(index);
     }
 
     DiagramListModel {
         id: diagramModel
     }
 
-    //  Filter list for properties box
-    FilterDiagramListModel {
-        id: filterModel
-        model: diagramModel
-        filter: FilterDiagramListModel.Arrow
-
-        onFilterChanged: {
-            if(filterModel.filter !== FilterDiagramListModel.Diagram)
-                root.currentStamp=null;
-        }
-    }
-
-    //  Filter list for properties box
-    FilterDiagramListModel {
-        id: diagramOnlyList
-        model: diagramModel
-        filter: FilterDiagramListModel.Diagram
-    }
-
-    /*SortFilterProxyModel {
-        id: diagramOnlyList
-        model: diagramModel
-
-        // Filter based on whether the 'shapeType' role
-        filters: [
-            FunctionFilter {
-                function filter(data: RoleData): bool {
-                    return data.shapeType === "Diagram";
-                }
-            }
-        ]
-    }
-    component RoleData: QtObject {
-        property string shapeType
-    }*/
 
     ButtonGroup {
         id: buttonGroup
@@ -89,13 +44,11 @@ Item {
 
         Repeater {
             id: rep
-            model: filterModel
+            model: diagramModel
             delegate: Button {
                 id: btn
                 required property string name
-                required property string file
-                required property string qrcFile
-                required property int index
+                required property var path
 
                 implicitWidth: 100
                 implicitHeight: 60
@@ -104,7 +57,7 @@ Item {
                 display: AbstractButton.TextUnderIcon
 
                 text: btn.name
-                icon.source: btn.qrcFile
+                icon.source: btn.path
                 icon.color: "transparent"
                 icon.width: btn.implicitWidth * .5
                 icon.height: btn.implicitHeight * .55

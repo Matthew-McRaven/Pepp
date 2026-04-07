@@ -18,15 +18,67 @@
 #include <catch/catch.hpp>
 #include "core/integers.h"
 #include "core/math/geom/interval.hpp"
+using namespace pepp::core;
+using Rect = Rectangle<i16>;
+using Pt = Point<i16>;
+using Ivl = Interval<i16>;
+using RD = RectangleDecomposer<i16>;
 
-TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
-  using namespace pepp::core;
-  using Rect = Rectangle<i16>;
-  using Ivl = Interval<i16>;
-
+TEST_CASE("Integer Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   SECTION("Construction") {
     // Re-orders ranges as needed.
     CHECK_NOTHROW(Rect(Ivl{2, 2}, Ivl{-2, 4}) == Rect(Ivl{-2, 2}, Ivl{2, 4}));
+    // Various static "constructors" work the same as the underlying constructor.
+    CHECK(Rect(Pt{-2, 2}, Pt{2, 4}) == Rect::from_point_point(-2, 2, 2, 4));
+    CHECK(Rect(Pt{-2, 2}, Pt{2, 4}) == Rect::from_point_size(-2, 2, 5, 3));
+  }
+  SECTION("Normalization") {
+    auto a = Rect::from_point_point(2, 2, -2, -2);
+    const auto b = Rect::from_point_point(-2, -2, 2, 2);
+    CHECK(a != b);
+    CHECK(!a.valid());
+    CHECK(b.valid());
+    CHECK(a.normalized() != a);
+    CHECK(a.normalized() == b);
+    a.normalize();
+    CHECK(a == b);
+    CHECK(b.normalized() == b);
+  }
+  SECTION("Accessors") {
+    auto a = Rect::from_point_point(-3, -2, 4, 5);
+    CHECK(a.left() == -3);
+    CHECK(a.right() == 4);
+    CHECK(a.top() == -2);
+    CHECK(a.bottom() == 5);
+  }
+  SECTION("adjust") {
+    auto start = Rect::from_point_point(1, 1, 3, 3);
+    const auto end = Rect::from_point_point(0, 2, 5, 1);
+    CHECK(start.adjusted(-1, +1, +2, -2) == end);
+    auto a = start;
+    a.adjust(-1, +1, +2, -2);
+    CHECK(a == end);
+  }
+  SECTION("adjust turns into invalid") {
+    auto start = Rect::from_point_point(1, 1, 1, 1);
+    const auto end = Rect::from_point_point(2, 2, 1, 1);
+    CHECK(start.adjusted(+1, +1, -1, -1) == end);
+    CHECK(!end.valid());
+  }
+  SECTION("translate") {
+    auto start = Rect::from_point_point(1, 1, 3, 3);
+    const auto end = Rect::from_point_point(2, 0, 4, 2);
+    CHECK(start.translated(+1, -1) == end);
+    auto a = start;
+    a.translate(+1, -1);
+    CHECK(a == end);
+
+    // Check that the point overloads work too.
+    Point<i16> delta{1, -1};
+    CHECK(start.translated(delta) == end);
+    a = start;
+    a.translate(delta);
+    CHECK(a == end);
   }
   // 1 overlaps 2, 1 contains 3. 2 does not overlap 3.
   Rect r1(Ivl{0, 10}, Ivl{0, 5});
@@ -112,15 +164,14 @@ TEST_CASE("Rectangle Ops", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     CHECK(intersection(r1, r3) == Rect(Ivl{2, 4}, Ivl{0, 1}));
     CHECK(hull(r1, r3) == r1);
   }
+  SECTION("Transposed") {
+    auto r = Rect(Ivl{3, 13}, Ivl{4, 9});
+    CHECK(r.transposed() == Rect(Ivl{3, 8}, Ivl{4, 14}));
+    CHECK(r.transposed().transposed() == r);
+  }
 }
 
-TEST_CASE("Rectangle Decomposition", "[scope:core][scope:core.math][kind:unit][arch:*]") {
-  using namespace pepp::core;
-  using Pt = Point<i16>;
-  using Rect = Rectangle<i16>;
-  using Ivl = Interval<i16>;
-  using RD = RectangleDecomposer<i16>;
-
+TEST_CASE("Integer Rectangle Decomposition", "[scope:core][scope:core.math][kind:unit][arch:*]") {
   SECTION("Aligned 8x8 rect @ 0,0") {
     Rect r0(Ivl{0, 7}, Ivl{0, 7});
     RD rd0(r0);

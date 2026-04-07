@@ -1,6 +1,9 @@
 #pragma once
 #include <flat/flat_map.hpp>
+#include <flat/flat_set.hpp>
 #include <optional>
+#include <ranges>
+#include <span>
 #include "core/math/bitmanip/span.hpp"
 #include "core/math/geom/occupancy_grid_sparse.hpp"
 namespace pepp::core {
@@ -30,13 +33,46 @@ public:
   // Will be ~O(1) whereas at() is O(lgn). Prefer this for collision checks when the colliding item does not matter.
   bool overlap(Rectangle<i16> rect) const noexcept;
   bool overlap(Point<i16> pt) const noexcept;
+  // Return the single item at the point or nullopt if that position is empty.
+  std::optional<Identifier> at(Point<i16> rect) const noexcept;
+  // If rect matches an internal item exactly, return it. Otherwise return nullopt. If you want all of the items which
+  // partially overlap rect, use overlapping(rect) instead.
   std::optional<Identifier> at(Rectangle<i16> rect) const noexcept;
+  // Return all of the items that partially intersect with a rectangle.
+  auto overlapping(Rectangle<i16> rect) const noexcept {
+    const auto lam = [rect](const auto &pair) { return intersects(rect, pair.first); };
+    const auto &container = _rectangle_to_index.container;
+    // Exclude items which are entirely above / below the target rect.
+    // As this is a binary search, the average case should only filter O(lg n) items rather than O(n)
+    auto lower = std::lower_bound(container.cbegin(), container.cend(), rect.top(),
+                                  [](const auto &pair, i16 val) { return pair.first.bottom() < val; });
+    auto upper = std::upper_bound(container.cbegin(), container.cend(), rect.bottom(),
+                                  [](i16 val, const auto &pair) { return val < pair.first.top(); });
+
+    return std::ranges::subrange(lower, upper) | std::views::filter(lam);
+  }
+
+  // Shift relative to the top left corner of the rectangle. Returns false if the move would cause a collision, ignoring
+  bool can_move_relative(Identifier id, Point<i16> delta, bool transpose = false) const noexcept;
+  // This "multi-move" variant accepts ids in arbitrary order, but will sort the pointed-to data in place before
+  // analyzing. This reduces the time complextiy to O(n lg n) rather than O(n^2).
+  bool can_move_relative(std::span<Identifier> ids, Point<i16> delta, bool transpose = false) const noexcept;
+  bool move_relative(Identifier id, Point<i16> delta, bool transpose = false);
+  // This "multi-move" variant will sort the pointed-to data along in reverse along the delta vector to prevent spurious
+  // collisions.
+  bool move_relative(std::span<Identifier> ids, Point<i16> delta, bool transpose = false);
+  // Set the top left coordinate of the rectangle. Returns false if the move would cause a collision, ignoring
+  // collisions with itself. No multi-move overloads are provided, because it makes no sense to place multiple things in
+  // the same place. As a caller, you would need to identify which item you are adjusting with resepct to, compute the
+  // delta, and call the relative multi-move.
+  bool can_move_absolute(Identifier id, Point<i16> new_pos, bool transpose = false) const;
+  bool move_absolute(Identifier id, Point<i16> new_pos, bool transpose = false);
 
   // Returns the smallest bounding box containing all rectangles in the spatial map.
   Rectangle<i16> bounding_box() const noexcept;
   // Returns the smallest bounding box containing all rectangles in the spatial map with the given identifiers.
   Rectangle<i16> bounding_box(bits::span<const Identifier> ids) const noexcept;
-  // Return the bounding box of a single rectangle...which is just that recatngle...
+  // Return the bounding box of a single rectangle...which is just that rectangle...
   Rectangle<i16> bounding_box(Identifier id) const noexcept;
 
   auto begin() const noexcept { return _index_to_rectangle.cbegin(); }

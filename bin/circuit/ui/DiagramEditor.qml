@@ -10,7 +10,7 @@ Pane {
     id: root
 
     //  Model containing all diagrams
-    required property DiagramDataModel diagramModel
+    required property var diagramModel
 
     //  List of available gates
     required property FilterDiagramListModel gateModel
@@ -20,7 +20,7 @@ Pane {
         spacing: 2
         bottomPadding: 0
 
-        enabled: inputArea.index.row != -1
+        enabled: inputArea.index.row !== -1
 
         property var index: root.diagramModel.currentIndex
 
@@ -31,17 +31,15 @@ Pane {
 
         function updateInput() {
             //  Negative row indicates unitialized qindex
-            if(root.diagramModel == null || inputArea.index.row == -1)
+            if (root.diagramModel == null || inputArea.index.row === -1)
                 return;
 
             //  Get data for current index
-            const item = root.diagramModel.item(inputArea.index);
-
-            id.text = item.id;
-            gateType.currentValue = item.name;
-            orientation.currentValue = item.orientation;
-            input.value = item.inputNo;
-            output.value = item.outputNo;
+            id.text = root.diagramModel.data(inputArea.index, DiagramDataModel.Id);
+            gateType.currentValue = root.diagramModel.data(inputArea.index, DiagramDataModel.Name);
+            orientation.currentValue = root.diagramModel.data(inputArea.index, DiagramDataModel.Orientation);
+            input.value = root.diagramModel.data(inputArea.index, DiagramDataModel.InputNo);
+            output.value = root.diagramModel.data(inputArea.index, DiagramDataModel.OutputNo);
         }
 
         Grid {
@@ -72,16 +70,27 @@ Pane {
             ComboBox {
                 id: orientation
                 model: [
-                    {value: 0, text: "Right"},
-                    {value: 90, text: "Bottom"},
-                    {value: 180, text: "Left"},
-                    {value: 270, text: "Top"}
+                    {
+                        value: 0,
+                        text: "Right"
+                    },
+                    {
+                        value: 90,
+                        text: "Bottom"
+                    },
+                    {
+                        value: 180,
+                        text: "Left"
+                    },
+                    {
+                        value: 270,
+                        text: "Top"
+                    }
                 ]
                 textRole: "text"
                 valueRole: "value"
                 currentValue: 0
             }
-
 
             Label {
                 text: "Input Number:"
@@ -89,7 +98,7 @@ Pane {
             SpinBox {
                 id: input
                 from: 1
-                to: 6
+                to: 8
                 value: 2
             }
 
@@ -112,23 +121,17 @@ Pane {
                 onClicked: {
                     //  If source data is bad, just return
                     //  Negative row indicates unitialized qindex
-                    if(root.diagramModel == null || inputArea.index.row == -1)
+                    if (root.diagramModel == null || inputArea.index.row === -1)
                         return;
 
-                    //  Update model with new data
                     var item = root.gateModel.diagramTemplate(gateType.currentIndex);
 
-                    //  Get data for current index
-                    const data = root.diagramModel.item(inputArea.index);
-
-                    data.name = item.name;
-                    data.imageSource = item.qrcFile;
-                    data.type = item.key;
-                    data.orientation = orientation.currentValue;
-                    data.inputNo = input.value;
-                    data.outputNo = output.value;
-
-                    root.diagramModel.update(inputArea.index);
+                    root.diagramModel.setData(inputArea.index, item.name, DiagramDataModel.Name);
+                    root.diagramModel.setData(inputArea.index, item.qrcFile, DiagramDataModel.ImageSource);
+                    root.diagramModel.setData(inputArea.index, item.key, DiagramDataModel.DiagramType);
+                    root.diagramModel.setData(inputArea.index, orientation.currentValue, DiagramDataModel.Orientation);
+                    root.diagramModel.setData(inputArea.index, input.value, DiagramDataModel.InputNo);
+                    root.diagramModel.setData(inputArea.index, output.value, DiagramDataModel.OutputNo);
                 }
             }
             Button {

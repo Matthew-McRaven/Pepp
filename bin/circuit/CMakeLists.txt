@@ -6,7 +6,6 @@ qt_add_qml_module(
   CircuitDesign
   VERSION
   1.0
-  # URI com.pepperdine.edu
   RESOURCES
   svg/CircuitDesign.qrc
   QML_FILES
@@ -14,14 +13,9 @@ qt_add_qml_module(
   ui/LogicGates.qml
   ui/DiagramCanvas.qml
   ui/DiagramEditor.qml
-  ui/Line.qml
+  # ui/Line.qml
   ui/DiagramListView.qml
   SOURCES
-  ui/diagramdata.hpp
-  ui/diagramdata.cpp
-  ui/diagramdatamodel.hpp
-  ui/diagramdatamodel.cpp
-  ui/diagramkey.hpp
   ui/diagramtype.hpp
   ui/diagramlistmodel.hpp
   ui/diagramlistmodel.cpp
@@ -29,6 +23,17 @@ qt_add_qml_module(
   ui/diagramproperty.cpp
   ui/graphiccanvas.hpp
   ui/graphiccanvas.cpp
+  ui/pixmaps/mipmappixmap.cpp
+  ui/pixmaps/mipmapsource.cpp
+  ui/pixmaps/mipmapstore.cpp
+  ui/pixmaps/prerotatedpixmap.cpp
+  ui/schematic/component.cpp
+  ui/schematic/blueprint.cpp
+  ui/schematic/net.cpp
+  ui/schematic/blueprintlibrary.cpp
+  ui/schematic/circuitschematic.cpp
+  ui/schematic/orient.cpp
+  ui/schematic/circuitproject.cpp
   DEPENDENCIES
   QtQuick)
 
@@ -47,7 +52,14 @@ set_target_properties(
              MACOSX_BUNDLE TRUE
              WIN32_EXECUTABLE TRUE)
 
-target_link_libraries(CircuitDesign PRIVATE Qt6::Core Qt6::Gui Qt6::Svg
-                                            Qt6::Qml Qt6::Quick Qt6::Widgets)
+target_link_libraries(
+  CircuitDesign
+  PRIVATE Qt6::Core
+          Qt6::Gui
+          Qt6::Svg
+          Qt6::Qml
+          Qt6::Quick
+          Qt6::Widgets
+          pepp-core)
 
 set_target_properties(CircuitDesign PROPERTIES FOLDER "qtc_runnable")

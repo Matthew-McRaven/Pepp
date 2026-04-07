@@ -3,6 +3,7 @@ include(ExternalProject)
 include(Json.cmake)
 include(zpp_bits.cmake)
 include(Flat.cmake)
+include(cnl.cmake)
 add_subdirectory(catch)
 set(FMT_INSTALL
     OFF

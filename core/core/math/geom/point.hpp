@@ -16,6 +16,7 @@
 #pragma once
 #include <algorithm>
 #include <utility>
+#include "core/math/integers/fixed_point_utils.hpp"
 
 namespace pepp::core {
 // I have multiple classes which act as a vector with two components.
@@ -61,7 +62,55 @@ public:
 
   inline T x() const noexcept { return this->elements[0]; }
   inline T y() const noexcept { return this->elements[1]; }
+  void set_x(T x) { this->elements[0] = x; }
+  void set_y(T y) { this->elements[1] = y; }
+  Point with_x(T x) const noexcept {
+    Point result(*this);
+    result.set_x(x);
+    return result;
+  }
+  Point with_y(T y) const noexcept {
+    Point result(*this);
+    result.set_y(y);
+    return result;
+  }
+  void translate(T dx, T dy) noexcept {
+    this->elements[0] += dx;
+    this->elements[1] += dy;
+  }
+  void translate(Point delta) noexcept { translate(delta.elements[0], delta.elements[1]); }
+  Point translated(T dx, T dy) const noexcept {
+    Point result(*this);
+    result.translate(dx, dy);
+    return result;
+  }
+  Point translated(Point delta) const noexcept { return translated(delta.elements[0], delta.elements[1]); }
 };
+
+// Convert a scaled_integer rectangle to its underlying representation.
+// If the rectangle is already an integer, this is a no-op.
+template <typename T> Point<cnl::rep_t<T>> to_underlying_repr(const Point<T> &pt) {
+  if constexpr (std::is_same_v<T, cnl::rep_t<T>>) {
+    return pt;
+  } else {
+    auto to_rep = [](T v) -> cnl::rep_t<T> { return cnl::_impl::to_rep(v); };
+    return Point<cnl::rep_t<T>>(to_rep(pt.x()), to_rep(pt.y()));
+  }
+}
+
+// Create component-wise + and - operators for Point.
+template <typename T> inline Point<T> operator+(const Point<T> &lhs, const Point<T> &rhs) noexcept {
+  return Point<T>{static_cast<T>(lhs.x() + rhs.x()), static_cast<T>(lhs.y() + rhs.y())};
+}
+
+template <typename T> inline Point<T> operator-(const Point<T> &lhs, const Point<T> &rhs) noexcept {
+  return Point<T>{static_cast<T>(lhs.x() - rhs.x()), static_cast<T>(lhs.y() - rhs.y())};
+}
+
+template <typename T> inline Point<T> operator*(const Point<T> &pt, T scalar) noexcept {
+  return Point<T>{static_cast<T>(pt.x() * scalar), static_cast<T>(pt.y() * scalar)};
+}
+template <typename T> inline Point<T> operator*(T scalar, const Point<T> &pt) noexcept { return pt * scalar; }
 
 // A size of an entity in 2d space, often combined with a point to form a rectangle.
 template <typename T> class Size : private Vec2<T> {

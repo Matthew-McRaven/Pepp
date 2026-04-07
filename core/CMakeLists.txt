@@ -13,5 +13,6 @@ target_link_libraries(
          kitty
          mockturtle
          elfio
-         zpp_bits)
+         zpp_bits
+         cnl)
 target_include_directories(pepp-core PUBLIC ${CMAKE_CURRENT_LIST_DIR})

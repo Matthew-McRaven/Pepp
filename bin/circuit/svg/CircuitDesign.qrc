@@ -12,5 +12,6 @@
         <file alias="bus">bus.svg</file>
         <file alias="move">move-arrow.svg</file>
         <file alias="select">select-pointer.svg</file>
+        <file alias="align">align.svg</file>
     </qresource>
 </RCC>
