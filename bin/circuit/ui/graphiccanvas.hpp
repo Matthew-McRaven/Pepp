@@ -3,7 +3,7 @@
 #include <QPixmap>
 #include <QQuickPaintedItem>
 
-#include "diagramlistmodel.hpp"
+#include "blueprintlibrarymodel.hpp"
 #include "diagramproperty.hpp"
 #include "schematic/circuitschematic.hpp"
 

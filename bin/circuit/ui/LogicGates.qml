@@ -23,7 +23,7 @@ Rectangle {
             SplitView.maximumWidth: SplitView.preferredWidth
             SplitView.minimumWidth: SplitView.preferredWidth
 
-            DiagramListView {
+            BluePrintListView {
                 id: sourceListView
                 project: canvas.project
                 Layout.alignment: Qt.AlignTop
@@ -68,19 +68,19 @@ Rectangle {
                     onClicked: btn => {
                         var result;
                         switch (btn.text) {
-                            case "arrow":
+                        case "arrow":
                             result = FilterDiagramListModel.Arrow;
                             break;
-                            case "diagram":
+                        case "diagram":
                             result = FilterDiagramListModel.Diagram;
                             break;
-                            case "line":
+                        case "line":
                             result = FilterDiagramListModel.Line;
                             break;
                         }
 
                         if (result === null)
-                        return;
+                            return;
                         canvas.filter = result;
                     }
                 }
