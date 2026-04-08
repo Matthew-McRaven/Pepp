@@ -15,7 +15,7 @@ class BlueprintLibraryModel : public QAbstractListModel {
   QML_ELEMENT
 
 public:
-  enum Role { Name = Qt::DisplayRole, Path = Qt::UserRole + 1 };
+  enum Role { Name = Qt::DisplayRole, Path = Qt::UserRole + 1, Id };
   explicit BlueprintLibraryModel(QObject *parent = nullptr);
 
   // Basic functionality:

@@ -12,7 +12,6 @@ Item {
     //property alias diagramOnly: diagramOnlyList
 
     function setStamp(index) {
-        root.blueprint = diagramModel.blueprint(index);
     }
 
     BlueprintLibraryModel {
@@ -24,11 +23,13 @@ Item {
         buttons: source.children.filter(child => child !== rep)
 
         Component.onCompleted: {
-            root.setStamp(0);
+            root.blueprint = diagramModel.blueprint(0);
+            //console.log("BP", root.blueprint, "index", index);
         }
         onClicked: btn => {
-            //  Index is injected by Repeater delegate. Does not exist as buttonGroup property
-            root.setStamp(btn.index);
+            //  Id is injected by Repeater delegate. Does not exist as buttonGroup property
+            root.blueprint = btn.id;
+        //console.log("id", root.blueprint);
         }
     }
 
@@ -48,6 +49,7 @@ Item {
                 id: btn
                 required property string name
                 required property var path
+                required property int id
 
                 implicitWidth: 100
                 implicitHeight: 60

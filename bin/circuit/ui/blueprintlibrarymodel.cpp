@@ -27,20 +27,23 @@ QVariant BlueprintLibraryModel::data(const QModelIndex &index, int role) const {
     // icon.source expects the string to start with qrc:/
     return "qrc" + QString::fromStdString(fname);
   }
+  case Role::Id: return group.first.value;
   }
 
   //  property not found
   return {};
 }
 
-QHash<int, QByteArray> BlueprintLibraryModel::roleNames() const { return {{Role::Name, "name"}, {Role::Path, "path"}}; }
+QHash<int, QByteArray> BlueprintLibraryModel::roleNames() const {
+  return {{Role::Name, "name"}, {Role::Path, "path"}, {Role::Id, "id"}};
+}
 
 void BlueprintLibraryModel::setProject(CircuitProject *project) {
   if (_project != project) {
-    _project = project;
-    emit projectChanged();
     beginResetModel();
+    _project = project;
     endResetModel();
+    emit projectChanged();
   }
 }
 
