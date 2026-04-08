@@ -13,12 +13,11 @@ qt_add_qml_module(
   ui/LogicGates.qml
   ui/DiagramCanvas.qml
   ui/DiagramEditor.qml
-  # ui/Line.qml
-  ui/DiagramListView.qml
+  ui/BluePrintListView.qml
   SOURCES
   ui/diagramtype.hpp
-  ui/diagramlistmodel.hpp
-  ui/diagramlistmodel.cpp
+  ui/blueprintlibrarymodel.hpp
+  ui/blueprintlibrarymodel.cpp
   ui/diagramproperty.hpp
   ui/diagramproperty.cpp
   ui/graphiccanvas.hpp
