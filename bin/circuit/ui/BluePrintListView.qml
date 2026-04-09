@@ -9,7 +9,6 @@ Item {
 
     property var blueprint: null
     property alias project: diagramModel.project
-    //property alias diagramOnly: diagramOnlyList
 
     function setStamp(index) {
     }
@@ -23,13 +22,13 @@ Item {
         buttons: source.children.filter(child => child !== rep)
 
         Component.onCompleted: {
-            root.blueprint = diagramModel.blueprint(0);
-            //console.log("BP", root.blueprint, "index", index);
+            const btn = buttons[0];
+            root.blueprint = btn.id;
+            btn.checked = true;
         }
         onClicked: btn => {
             //  Id is injected by Repeater delegate. Does not exist as buttonGroup property
             root.blueprint = btn.id;
-        //console.log("id", root.blueprint);
         }
     }
 

@@ -63,19 +63,25 @@ Rectangle {
                     buttons: selector.children
 
                     Component.onCompleted: {
+                        //  Enable select and disable diagram selections
                         buttonGroup.buttons[0].checked = true;
+                        sourceListView.enabled = false;
                     }
                     onClicked: btn => {
                         var result;
                         switch (btn.text) {
                         case "arrow":
                             result = FilterDiagramListModel.Arrow;
+                            sourceListView.enabled = false;
                             break;
                         case "diagram":
                             result = FilterDiagramListModel.Diagram;
+                            //  Blueprint is only active when in diagram mode.
+                            sourceListView.enabled = true;
                             break;
                         case "line":
                             result = FilterDiagramListModel.Line;
+                            sourceListView.enabled = false;
                             break;
                         }
 
