@@ -23,9 +23,14 @@ Rectangle {
             SplitView.maximumWidth: SplitView.preferredWidth
             SplitView.minimumWidth: SplitView.preferredWidth
 
+            BlueprintLibraryModel {
+                id: blueprintModel
+                project: canvas.project
+            }
+
             BluePrintListView {
                 id: sourceListView
-                project: canvas.project
+                blueprintModel: blueprintModel
                 Layout.alignment: Qt.AlignTop
                 Layout.fillWidth: true
             }
@@ -40,8 +45,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
                 diagramModel: null
-
-                gateModel: null
+                blueprintModel: blueprintModel
             }
         }
 

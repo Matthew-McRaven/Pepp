@@ -8,14 +8,8 @@ Item {
     id: root
 
     property var blueprint: null
-    property alias project: diagramModel.project
-
-    function setStamp(index) {
-    }
-
-    BlueprintLibraryModel {
-        id: diagramModel
-    }
+    //  List of available blueprints for current project
+    required property BlueprintLibraryModel blueprintModel
 
     ButtonGroup {
         id: buttonGroup
@@ -43,7 +37,7 @@ Item {
 
         Repeater {
             id: rep
-            model: diagramModel
+            model: blueprintModel
             delegate: Button {
                 id: btn
                 required property string name

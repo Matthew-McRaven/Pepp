@@ -12,8 +12,8 @@ Pane {
     //  Model containing all diagrams
     required property var diagramModel
 
-    //  List of available gates
-    required property FilterDiagramListModel gateModel
+    //  List of available blueprints for current project
+    required property BlueprintLibraryModel blueprintModel
 
     Column {
         id: inputArea
@@ -54,13 +54,23 @@ Pane {
             }
 
             Label {
-                text: "Gate Type:"
+                text: "Family:"
+            }
+            ComboBox {
+                id: gateFamily
+                model: root.blueprintModel
+                textRole: "name"
+                valueRole: "id"
+                currentValue: ""
+            }
+            Label {
+                text: "Type:"
             }
             ComboBox {
                 id: gateType
-                model: root.gateModel
+                model: root.blueprintModel
                 textRole: "name"
-                valueRole: "name"
+                valueRole: "id"
                 currentValue: ""
             }
 
@@ -92,7 +102,7 @@ Pane {
                 currentValue: 0
             }
 
-            Label {
+            /*Label {
                 text: "Input Number:"
             }
             SpinBox {
@@ -110,9 +120,9 @@ Pane {
                 from: 1
                 to: 3
                 value: 1
-            }
+            }*/
         }   //  Grid
-        Row {
+        /*Row {
             Button {
                 id: saveBtn
                 text: "Save"
@@ -143,6 +153,6 @@ Pane {
                     inputArea.updateInput();
                 }
             }
-        }   //  Row
+        }*/   //  Row
     }   //  Column
 }   //  Panle
