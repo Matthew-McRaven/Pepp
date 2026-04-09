@@ -12,7 +12,7 @@ qt_add_qml_module(
   Main.qml
   ui/LogicGates.qml
   ui/DiagramCanvas.qml
-  ui/DiagramEditor.qml
+  ui/ComponentEditor.qml
   ui/BluePrintListView.qml
   SOURCES
   ui/diagramtype.hpp

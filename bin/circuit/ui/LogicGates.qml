@@ -5,7 +5,7 @@ import QtQuick.Controls
 import QtQuick.VectorImage
 import QtQuick.Layouts
 
-import CircuitDesign
+//import CircuitDesign
 
 Rectangle {
     id: root
@@ -40,7 +40,7 @@ Rectangle {
                 Layout.fillHeight: true
             }
 
-            DiagramEditor {
+            ComponentEditor {
                 id: props
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
