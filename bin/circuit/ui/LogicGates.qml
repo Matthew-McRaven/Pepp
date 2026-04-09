@@ -75,16 +75,16 @@ Rectangle {
                         var result;
                         switch (btn.text) {
                         case "arrow":
-                            result = FilterDiagramListModel.Arrow;
+                            result = BlueprintLibraryModel.Arrow;
                             sourceListView.enabled = false;
                             break;
                         case "diagram":
-                            result = FilterDiagramListModel.Diagram;
+                            result = BlueprintLibraryModel.Diagram;
                             //  Blueprint is only active when in diagram mode.
                             sourceListView.enabled = true;
                             break;
                         case "line":
-                            result = FilterDiagramListModel.Line;
+                            result = BlueprintLibraryModel.Line;
                             sourceListView.enabled = false;
                             break;
                         }
@@ -140,7 +140,7 @@ Rectangle {
                 Layout.fillHeight: true
 
                 blueprint: sourceListView.blueprint
-                filter: FilterDiagramListModel.None
+                filter: BlueprintLibraryModel.None
                 z: -1
             }
         }   //  ColumnLayout

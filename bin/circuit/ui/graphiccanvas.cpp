@@ -78,7 +78,7 @@ void GraphicCanvas::setCurrentLine(LineProperties *item) {
   }
 }
 
-void GraphicCanvas::setFilter(const FilterDiagramListModel::Filter filter) {
+void GraphicCanvas::setFilter(const BlueprintLibraryModel::Filter filter) {
   if (filter != _filter) {
     _filter = filter;
 
@@ -419,7 +419,7 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
 
   //  Check if context menu
   if (event->button() == Qt::RightButton) {
-    if (_filter != FilterDiagramListModel::Line) contextMenuEvent(event);
+    if (_filter != BlueprintLibraryModel::Line) contextMenuEvent(event);
     return;
   }
 
@@ -429,10 +429,10 @@ void GraphicCanvas::mousePressEvent(QMouseEvent *event) {
 
   //  Prioritize diagram hits over line hits
   const auto areDiagrams = setSelectedDiagram(point);
-  if (areDiagrams || _filter == FilterDiagramListModel::Diagram) {
+  if (areDiagrams || _filter == BlueprintLibraryModel::Diagram) {
     //  See if existing item was clicked
     if (areDiagrams) {
-      if (_filter == FilterDiagramListModel::Line) {
+      if (_filter == BlueprintLibraryModel::Line) {
         //  If filter is a line, then we are adding line
         // TODO: mmcraven lineLeftClickEvent(event, _currentDiagram);
       } else {

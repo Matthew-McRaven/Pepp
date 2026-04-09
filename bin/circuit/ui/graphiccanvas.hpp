@@ -45,7 +45,7 @@ class GraphicCanvas : public QQuickPaintedItem {
   //  Set and access datamodel and template
   Q_PROPERTY(CircuitProject *project READ project NOTIFY projectChanged FINAL)
   Q_PROPERTY(u32 blueprint READ blueprint WRITE setBlueprint NOTIFY blueprintChanged FINAL)
-  Q_PROPERTY(FilterDiagramListModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
+  Q_PROPERTY(BlueprintLibraryModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
 
 public:
   GraphicCanvas(QQuickItem *parent = nullptr);
@@ -87,7 +87,7 @@ public:
   void setCurrentLine(LineProperties *item);
 
   auto filter() const { return _filter; }
-  void setFilter(const FilterDiagramListModel::Filter filter);
+  void setFilter(const BlueprintLibraryModel::Filter filter);
 
 protected:
   //  Mouse events
@@ -220,5 +220,5 @@ private:
   LineProperties *_currentLine = nullptr;
 
   //  Data model
-  FilterDiagramListModel::Filter _filter = FilterDiagramListModel::None;
+  BlueprintLibraryModel::Filter _filter = BlueprintLibraryModel::None;
 };

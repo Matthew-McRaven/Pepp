@@ -16,6 +16,8 @@ class BlueprintLibraryModel : public QAbstractListModel {
 
 public:
   enum Role { Name = Qt::DisplayRole, Path = Qt::UserRole + 1, Id };
+  enum Filter { Arrow = Qt::UserRole + 1, Diagram, Line, None = 0xffffffff };
+  Q_ENUM(Filter)
   explicit BlueprintLibraryModel(QObject *parent = nullptr);
 
   // Basic functionality:
@@ -33,36 +35,4 @@ signals:
 
 private:
   CircuitProject *_project = nullptr;
-};
-
-class FilterDiagramListModel : public QSortFilterProxyModel {
-  Q_OBJECT
-  QML_ELEMENT
-
-  Q_PROPERTY(Filter filter READ filterGroupType WRITE setFilterGroupFilter NOTIFY filterChanged);
-  Q_PROPERTY(BlueprintLibraryModel *model READ model WRITE setModel NOTIFY modelChanged);
-
-public:
-  enum Filter { Arrow = Qt::UserRole + 1, Diagram, Line, None = 0xffffffff };
-  Q_ENUM(Filter)
-
-  explicit FilterDiagramListModel(QObject *parent = nullptr);
-
-  // Basic functionality:
-  Filter filterGroupType() const { return _filter; }
-  void setFilterGroupFilter(Filter filter = Filter::None);
-  BlueprintLibraryModel *model() const { return static_cast<BlueprintLibraryModel *>(sourceModel()); }
-  void setModel(BlueprintLibraryModel *model = nullptr);
-
-protected:
-  bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
-  // bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
-
-signals:
-  void filterChanged();
-  void modelChanged();
-
-private:
-  Filter _filter = Filter::None;
-  QString _filterString;
 };
