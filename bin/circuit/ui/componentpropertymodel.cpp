@@ -1,8 +1,6 @@
 #include "componentpropertymodel.hpp"
 
-ComponentPropertyModel::ComponentPropertyModel(QObject *parent) : QAbstractListModel(parent) {
-  _project = std::make_shared<CircuitProject>();
-}
+ComponentPropertyModel::ComponentPropertyModel(QObject *parent) : QAbstractListModel(parent) {}
 
 int ComponentPropertyModel::rowCount(const QModelIndex &parent) const {
   // For list models only the root node (an invalid parent) should return the list's size. For all
@@ -34,7 +32,16 @@ Qt::ItemFlags ComponentPropertyModel::flags(const QModelIndex &index) const {
   return QAbstractItemModel::flags(index) | Qt::ItemIsEditable; // FIXME: Implement me!
 }
 
-bool ComponentPropertyModel::insertRows(int row, int count, const QModelIndex &parent) {
+void ComponentPropertyModel::setProject(CircuitProject *project) {
+  if (_project != project) {
+    beginResetModel();
+    _project = project;
+    endResetModel();
+    emit projectChanged();
+  }
+}
+
+/*bool ComponentPropertyModel::insertRows(int row, int count, const QModelIndex &parent) {
   beginInsertRows(parent, row, row + count - 1);
   // FIXME: Implement me!
   endInsertRows();
@@ -46,4 +53,4 @@ bool ComponentPropertyModel::removeRows(int row, int count, const QModelIndex &p
   // FIXME: Implement me!
   endRemoveRows();
   return true;
-}
+}*/

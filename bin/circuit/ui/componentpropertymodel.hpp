@@ -1,16 +1,19 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QtQml/qqmlregistration.h> // Required header for QML_ELEMENT
 
-// #include "schematic/blueprintlibrary.hpp"
 #include "schematic/circuitproject.hpp"
 
 class ComponentPropertyModel : public QAbstractListModel {
   Q_OBJECT
+  QML_ELEMENT
+  Q_PROPERTY(CircuitProject *project READ project WRITE setProject NOTIFY projectChanged);
 
-  std::shared_ptr<CircuitProject> _project = nullptr;
+  CircuitProject *_project = nullptr;
 
 public:
+  enum Role { Name = Qt::DisplayRole, Id = Qt::UserRole + 1, Direction };
   explicit ComponentPropertyModel(QObject *parent = nullptr);
 
   // Basic functionality:
@@ -23,11 +26,9 @@ public:
 
   Qt::ItemFlags flags(const QModelIndex &index) const override;
 
-  // Add data:
-  bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
+  CircuitProject *project() const { return _project; }
+  void setProject(CircuitProject *project = nullptr);
 
-  // Remove data:
-  bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
-
-private:
+signals:
+  void projectChanged();
 };

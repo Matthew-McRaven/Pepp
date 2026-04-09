@@ -15,7 +15,7 @@ qt_add_qml_module(
   ui/ComponentEditor.qml
   ui/BluePrintListView.qml
   SOURCES
-  ui/diagramtype.hpp
+
   ui/blueprintlibrarymodel.hpp
   ui/blueprintlibrarymodel.cpp
   ui/componentpropertymodel.hpp

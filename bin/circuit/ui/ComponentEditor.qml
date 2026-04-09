@@ -4,7 +4,6 @@ import QtQuick
 import QtQuick.Controls
 
 import CircuitDesign
-import DiagramEnum
 
 Pane {
     id: root
@@ -35,11 +34,11 @@ Pane {
                 return;
 
             //  Get data for current index
-            id.text = root.diagramModel.data(inputArea.index, DiagramDataModel.Id);
+            /*id.text = root.diagramModel.data(inputArea.index, DiagramDataModel.Id);
             gateType.currentValue = root.diagramModel.data(inputArea.index, DiagramDataModel.Name);
             orientation.currentValue = root.diagramModel.data(inputArea.index, DiagramDataModel.Orientation);
             input.value = root.diagramModel.data(inputArea.index, DiagramDataModel.InputNo);
-            output.value = root.diagramModel.data(inputArea.index, DiagramDataModel.OutputNo);
+            output.value = root.diagramModel.data(inputArea.index, DiagramDataModel.OutputNo);*/
         }
 
         Grid {
