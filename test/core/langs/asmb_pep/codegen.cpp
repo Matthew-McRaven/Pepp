@@ -16,6 +16,7 @@
 
 #include "core/langs/asmb_pep/codegen.hpp"
 #include <catch.hpp>
+#include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/parser.hpp"

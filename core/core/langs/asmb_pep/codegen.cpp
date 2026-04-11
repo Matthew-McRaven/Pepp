@@ -4,22 +4,24 @@
 #include <list>
 #include <numeric>
 #include <ranges>
+#include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/langs/asmb/elfio_utils.hpp"
+#include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
 #include "zpp_bits.h"
 
-pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &diag, PepIRProgram &prog,
+pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &diag, IRProgram &prog,
                                                              SectionDescriptor initial_section) {
   SectionAnalysisResults ret;
-  ret.grouped_ir.emplace_back(std::make_pair(initial_section, pepp::tc::PepIRProgram{}));
+  ret.grouped_ir.emplace_back(std::make_pair(initial_section, pepp::tc::IRProgram{}));
   auto &grouped_ir = ret.grouped_ir;
   auto *active = &grouped_ir[0];
   for (auto &line : prog) {
@@ -42,7 +44,7 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &di
         pepp::tc::SectionDescriptor desc{.name = name, .flags = flags};
         // Compute the index in the ELF file which this section will become.
         desc.section_index = desc.section_base_index + ret.grouped_ir.size();
-        grouped_ir.emplace_back(std::make_pair(desc, pepp::tc::PepIRProgram{}));
+        grouped_ir.emplace_back(std::make_pair(desc, pepp::tc::IRProgram{}));
         active = &grouped_ir.back();
       } else if (existing_sec->first.flags != flags) {
         throw std::logic_error("Modifying flags for an existing section");
@@ -90,8 +92,8 @@ struct SectionAddrInfo {
   int index, previous;
 };
 
-pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                                          u16 initial_base_address) {
+pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress>
+pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, u16 initial_base_address) {
   enum class Direction { Forward, Backward } direction = Direction::Forward;
 
   // Pre-allocate vector according to the total size of the IR lines in all sections.
@@ -102,7 +104,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   // ITEMS ARE NOT INSERTED IN SORTED ORDER. DO NOT USE AS A MAP UNTIL SORTING.
   // Since all IR lines across all PepIRProgram have unique (C++) addresses, we can blindly append and sort later.
   // This gives O(1) insert rather than  n* O(nlgn) with the requirement for a manual sort before returning.
-  IRMemoryAddressTable ret;
+  IRMemoryAddressTable<pepp::tc::PeppAddress> ret;
   ret.container.reserve(size);
 
   // Process all sections affected by one .ORG before processing any sections affected by the next one.
@@ -179,7 +181,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
         next_base = (base_address + size) % 0x10000;
         // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
         // in which case no adjustment is necessary.
-        ret.container.emplace_back(line.get(), Address(base_address, size));
+        ret.container.emplace_back(line.get(), PeppAddress(base_address, size));
         base_address = next_base;
       } else {
         next_base = (base_address - size) % 0x10000;
@@ -188,7 +190,7 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
         auto adjustedAddress = next_base + (size > 0 ? 1 : 0);
         // If we use newBase, we are off-by-one when size is non-zero.
         symbol_base = adjustedAddress;
-        ret.container.emplace_back(line.get(), Address(adjustedAddress % 0x10000, size));
+        ret.container.emplace_back(line.get(), PeppAddress(adjustedAddress % 0x10000, size));
         base_address = next_base;
       }
       sec_desc.byte_count += size;
@@ -252,20 +254,20 @@ pepp::tc::IRMemoryAddressTable pepp::tc::assign_addresses(std::vector<std::pair<
   }
 
   // Establish flat_map invariant, which is that the container is sorted.
-  std::sort(ret.container.begin(), ret.container.end(), detail::IRComparator{});
+  std::sort(ret.container.begin(), ret.container.end(), detail::IRComparator<PeppAddress>{});
   return ret;
 }
 
 namespace pepp::tc {
 struct ObjectCodeVisitor : public PepIRVisitor {
-  const IRMemoryAddressTable &ir_to_address;
+  const IRMemoryAddressTable<PeppAddress> &ir_to_address;
   const u16 base_address, section_idx;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
-  std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &relocations;
+  std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  ObjectCodeVisitor(const IRMemoryAddressTable &, const u16 base_address, const u16 section_idx, bits::span<u8>,
-                    std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &,
+  ObjectCodeVisitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, const u16 section_idx,
+                    bits::span<u8>, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &,
                     IR2ObjectCodeMap &);
   void visit(const EmptyLine *);
   void visit(const CommentLine *);
@@ -281,8 +283,8 @@ struct ObjectCodeVisitor : public PepIRVisitor {
 };
 
 pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(
-    const IRMemoryAddressTable &ir_to_address, const u16 base_address, const u16 section_idx, bits::span<u8> out_bytes,
-    std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, PepStaticRelocation> &relocs,
+    const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address, const u16 section_idx,
+    bits::span<u8> out_bytes, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocs,
     IR2ObjectCodeMap &ir_to_object_code)
     : ir_to_address(ir_to_address), base_address(base_address), section_idx(section_idx), out_bytes(out_bytes),
       relocations(relocs), ir_to_object_code(ir_to_object_code) {}
@@ -310,7 +312,7 @@ void pepp::tc::ObjectCodeVisitor::visit(const DyadicInstruction *line) {
     auto symbol = as_symbolic_arg->symbol();
     if (symbol->is_undefined()) {
       u16 offset = addr_info.address - base_address;
-      relocations.insert({symbol, PepStaticRelocation{.section_offset = offset, .section_idx = section_idx}});
+      relocations.insert({symbol, StaticRelocation{.section_offset = offset, .section_idx = section_idx}});
     }
   }
   (void)line->argument.value->serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
@@ -333,7 +335,7 @@ void pepp::tc::ObjectCodeVisitor::visit(const DotLiteral *line) {
     auto symbol = as_symbolic_arg->symbol();
     if (symbol->is_undefined()) {
       u16 offset = addr_info.address - base_address;
-      relocations.insert({symbol, PepStaticRelocation{.section_offset = offset, .section_idx = section_idx}});
+      relocations.insert({symbol, StaticRelocation{.section_offset = offset, .section_idx = section_idx}});
     }
   }
   (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
@@ -384,9 +386,8 @@ struct SectionOffsets {
   size_t reloc_offset = 0, reloc_size = 0;
 };
 } // namespace
-pepp::tc::ProgramObjectCodeResult
-pepp::tc::to_object_code(const IRMemoryAddressTable &addresses,
-                         std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog) {
+pepp::tc::ProgramObjectCodeResult pepp::tc::to_object_code(const IRMemoryAddressTable<PeppAddress> &addresses,
+                                                           std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
   ProgramObjectCodeResult ret;
   std::vector<SectionOffsets> offsets(prog.size(), SectionOffsets{});
   u32 object_size = 0, ir_count = 0;
@@ -468,8 +469,9 @@ static ELFIO::section *get_or_create_rel(ELFIO::elfio &elf, const std::string &s
 
 pepp::tc::IR2ListingLineMap
 write_line_mapping(ELFIO::elfio &elf,
-                   const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::PepIRProgram>> &prog,
-                   const pepp::tc::IRMemoryAddressTable &addrs, const pepp::tc::ProgramObjectCodeResult &object_code) {
+                   const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>> &prog,
+                   const pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress> &addrs,
+                   const pepp::tc::ProgramObjectCodeResult &object_code) {
   auto line_section = pepp::tc::getLineMappingSection(elf);
   if (line_section == nullptr) {
     line_section = elf.sections.add(pepp::tc::lineMapStr);
@@ -520,9 +522,9 @@ write_line_mapping(ELFIO::elfio &elf,
   return ret;
 }
 
-pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, PepIRProgram>> &prog,
-                                     const IRMemoryAddressTable &addrs, const ProgramObjectCodeResult &object_code,
-                                     const std::vector<obj::IO> &mmios) {
+pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                     const IRMemoryAddressTable<PeppAddress> &addrs,
+                                     const ProgramObjectCodeResult &object_code, const std::vector<obj::IO> &mmios) {
 
   ELFIO::segment *activeSeg = nullptr;
   ElfResult ret;

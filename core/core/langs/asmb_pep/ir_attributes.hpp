@@ -33,8 +33,8 @@ struct Pep10AddrMode : public AAttribute {
 
 // Intentionally NOT an AAttribute, because I do not want it stored in my primary IR.
 // I want it stored in a side table
-struct Address {
-  Address(u16 address, u16 size) : address(address), size(size) {}
+struct PeppAddress {
+  PeppAddress(u16 address, u16 size) : address(address), size(size) {}
   u16 address = 0, size = 0;
 };
 

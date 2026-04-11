@@ -1,4 +1,5 @@
 #include "core/langs/asmb_pep/parser.hpp"
+#include "core/arch/pep/isa/pep10.hpp"
 #include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
@@ -11,6 +12,7 @@
 #include "core/compile/symbol/types.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/lexer.hpp"
 #include "core/langs/asmb_pep/parser_error.hpp"
 #include "core/math/bitmanip/strings.hpp"
@@ -20,8 +22,8 @@ pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)
       _lexer(std::make_shared<lex::PepLexer>(_pool, std::move(data))), _buffer(std::make_shared<lex::Buffer>(&*_lexer)),
       _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)) {}
 
-pepp::tc::PepIRProgram pepp::tc::parser::PepParser::parse(DiagnosticTable &diag) {
-  PepIRProgram lines;
+pepp::tc::IRProgram pepp::tc::parser::PepParser::parse(DiagnosticTable &diag) {
+  IRProgram lines;
   while (_buffer->input_remains()) {
     try {
       if (auto line = statement(); line) lines.emplace_back(line);

@@ -4,7 +4,7 @@
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/source/seekable.hpp"
-#include "core/langs/asmb_pep/ir_program.hpp"
+#include "core/langs/asmb/ir_program.hpp"
 
 /*
  * N= { <argument>, <instruction>, <line>, <pseudo>, <statement> }
@@ -32,7 +32,7 @@ namespace parser {
 struct PepParser {
   PepParser(support::SeekableData &&data);
 
-  PepIRProgram parse(DiagnosticTable &);
+  IRProgram parse(DiagnosticTable &);
   std::shared_ptr<pepp::core::symbol::LeafTable> symbol_table() const;
 
   void debug_print_tokens(bool debug);

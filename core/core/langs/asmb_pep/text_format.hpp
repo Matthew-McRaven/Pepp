@@ -1,6 +1,7 @@
 #pragma once
-#include "core/langs/asmb_pep/ir_program.hpp"
+#include "core/langs/asmb/ir_program.hpp"
 #include "core/math/bitmanip/span.hpp"
+#include "ir_attributes.hpp"
 
 namespace pepp::tc {
 namespace lex {
@@ -35,8 +36,8 @@ std::string format_source(bits::span<std::shared_ptr<lex::Token> const> tokens);
 std::string format_source(const LinearIR *line);
 
 // Format a single line
-std::vector<std::string> format_listing(const LinearIR *line, const IRMemoryAddressTable &addresses,
+std::vector<std::string> format_listing(const LinearIR *line, const IRMemoryAddressTable<PeppAddress> &addresses,
                                         const ProgramObjectCodeResult &object_code);
-std::vector<std::string> format_listing(const PepIRProgram &program, const IRMemoryAddressTable &addresses,
+std::vector<std::string> format_listing(const IRProgram &program, const IRMemoryAddressTable<PeppAddress> &addresses,
                                         const ProgramObjectCodeResult &object_code);
 } // namespace pepp::tc

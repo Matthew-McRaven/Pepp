@@ -5,8 +5,8 @@
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/langs/asmb/ir_program.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
-#include "core/langs/asmb_riscv/ir_program.hpp"
 #include "core/langs/asmb_riscv/lexer.hpp"
 
 /*
@@ -42,7 +42,7 @@ namespace parser {
 struct RISCVParser {
   RISCVParser(support::SeekableData &&data);
 
-  RISCVIRProgram parse(DiagnosticTable &);
+  IRProgram parse(DiagnosticTable &);
   std::shared_ptr<pepp::core::symbol::LeafTable> symbol_table() const;
 
   void debug_print_tokens(bool debug);
