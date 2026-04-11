@@ -53,6 +53,23 @@ struct ProgramObjectCodeResult {
   std::vector<SectionSpans> section_spans;
 };
 
+struct SectionDescriptor {
+  std::string name;
+  pepp::tc::SectionFlags flags;
+  u16 alignment = 1, org_count = 0;
+  std::optional<u16> base_address = std::nullopt;
+  u32 low_address = 0, high_address = 0;
+  // Number of bytes that will be written out to ELF file.
+  // Not high_address-low_address because .ORG can mess with address!
+  u32 byte_count = 0;
+  // Symbols need to know which section they are going to be relocated against.
+  // Rather than wait until the elf file has been generated, we can verify (through source code inspection!) the number
+  // that will be assigned to the first non-ELF-plumbing section.
+  // Then, splitting to sections can increment this counter AND update the symbol declaration's links.
+  static constexpr u16 section_base_index = 3;
+  u16 section_index = section_base_index;
+};
+
 struct ElfResult {
   std::shared_ptr<ELFIO::elfio> elf;
   // Some sections in the program are not omitted to to ELF file.
