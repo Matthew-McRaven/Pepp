@@ -51,7 +51,7 @@ IRMemoryAddressTable<RISCVAddress> riscv_assign_addresses(std::vector<std::pair<
 ProgramObjectCodeResult riscv_to_object_code(const IRMemoryAddressTable<RISCVAddress> &,
                                              std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);
 
-ElfResult to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                 const IRMemoryAddressTable<RISCVAddress> &addrs, const ProgramObjectCodeResult &object_code);
+ElfResult riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                       const IRMemoryAddressTable<RISCVAddress> &addrs, const ProgramObjectCodeResult &object_code);
 
 } // namespace pepp::tc

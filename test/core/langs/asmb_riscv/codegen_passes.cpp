@@ -21,6 +21,7 @@
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
+#include "elfio/elfio.hpp"
 
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
@@ -39,6 +40,7 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(diag.count() == 0);
     auto result = pepp::tc::riscv_split_to_sections(diag, results);
     CHECK(diag.count() == 0);
+    auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::riscv_assign_addresses(sections, 0xfeed);
     CHECK(addresses.container.size() == 1);
@@ -49,5 +51,9 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(addresses.at(&*instr).address == 0xfeed);
     CHECK(addresses.at(&*instr).size == 4);
     auto object_code = pepp::tc::riscv_to_object_code(addresses, sections);
+    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code);
+    pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
+    elf_result.elf->save("dummy_riscv.elf");
+    CHECK(elf_result.elf->sections[".text"]->get_size() == 4);
   }
 }

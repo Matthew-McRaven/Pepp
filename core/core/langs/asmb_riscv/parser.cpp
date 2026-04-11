@@ -16,6 +16,8 @@ pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data)
       _lexer(std::make_shared<langs::RISCVLexer>(_pool, std::move(data))),
       _buffer(std::make_shared<lex::Buffer>(&*_lexer)), _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)) {}
 
+std::shared_ptr<pepp::core::symbol::LeafTable> pepp::tc::parser::RISCVParser::symbol_table() const { return _symtab; }
+
 pepp::tc::IRProgram pepp::tc::parser::RISCVParser::parse(DiagnosticTable &diag) {
   IRProgram lines;
   while (_buffer->input_remains()) {

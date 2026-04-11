@@ -295,9 +295,10 @@ write_line_mapping(ELFIO::elfio &elf,
   return ret;
 }
 
-pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                                     const IRMemoryAddressTable<PeppAddress> &addrs,
-                                     const ProgramObjectCodeResult &object_code, const std::vector<obj::IO> &mmios) {
+pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                          const IRMemoryAddressTable<PeppAddress> &addrs,
+                                          const ProgramObjectCodeResult &object_code,
+                                          const std::vector<obj::IO> &mmios) {
 
   ELFIO::segment *activeSeg = nullptr;
   ElfResult ret;
@@ -404,4 +405,3 @@ pepp::tc::ElfResult pepp::tc::to_elf(std::vector<std::pair<SectionDescriptor, IR
   //  pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
   return ret;
 }
-
