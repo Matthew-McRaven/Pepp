@@ -16,6 +16,7 @@
 
 #include "core/langs/asmb_pep/codegen.hpp"
 #include <catch.hpp>
+#include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
@@ -54,7 +55,7 @@ TEST_CASE("Pepp ASM codegen sectioning",
   CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
   CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-  auto result = pepp::tc::split_to_sections(diag, results);
+  auto result = pepp::tc::pepp_split_to_sections(diag, results);
   CHECK(diag.count() == 0);
   auto &sections = result.grouped_ir;
   CHECK(sections.size() == 3);
@@ -83,10 +84,10 @@ TEST_CASE("Pepp ASM codegen address assignment",
     CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-    auto result = pepp::tc::split_to_sections(diag, results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, results);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
     CHECK(sections.size() == 3);
 
     CHECK(sections[0].first.name == ".text");
@@ -125,7 +126,7 @@ TEST_CASE("Pepp ASM codegen .SCALL", "[scope:core][scope:core.langs][level:asmb3
   auto results = p.parse(diag);
   CHECK(diag.count() == 0);
   REQUIRE(results.size() == 3);
-  auto result = pepp::tc::split_to_sections(diag, results);
+  auto result = pepp::tc::pepp_split_to_sections(diag, results);
   CHECK(diag.count() == 0);
   auto const &scalls = result.system_calls;
   CHECK(scalls.size() == 2);
@@ -153,7 +154,7 @@ TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT",
   auto results = p.parse(diag);
   CHECK(diag.count() == 0);
   REQUIRE(results.size() == 3);
-  auto result = pepp::tc::split_to_sections(diag, results);
+  auto result = pepp::tc::pepp_split_to_sections(diag, results);
   CHECK(diag.count() == 0);
   auto &mmios = result.mmios;
   CHECK(mmios.size() == 2);

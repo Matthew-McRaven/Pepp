@@ -7,6 +7,7 @@
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
+#include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "fmt/ranges.h"
@@ -325,7 +326,8 @@ std::string pepp::tc::format_source(const LinearIR *line) {
   return r.text;
 }
 
-void format_listing(const pepp::tc::LinearIR *line, const pepp::tc::IRMemoryAddressTable &addresses,
+void format_listing(const pepp::tc::LinearIR *line,
+                    const pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress> &addresses,
                     const pepp::tc::ProgramObjectCodeResult &object_code, std::vector<std::string> &out) {
   auto source_line = pepp::tc::format_source(line);
   auto address_it = addresses.find(line);
@@ -352,14 +354,16 @@ void format_listing(const pepp::tc::LinearIR *line, const pepp::tc::IRMemoryAddr
   }
 }
 
-std::vector<std::string> pepp::tc::format_listing(const LinearIR *line, const IRMemoryAddressTable &addresses,
+std::vector<std::string> pepp::tc::format_listing(const LinearIR *line,
+                                                  const IRMemoryAddressTable<pepp::tc::PeppAddress> &addresses,
                                                   const ProgramObjectCodeResult &object_code) {
   std::vector<std::string> ret;
   ::format_listing(line, addresses, object_code, ret);
   return ret;
 }
 
-std::vector<std::string> pepp::tc::format_listing(const PepIRProgram &program, const IRMemoryAddressTable &addresses,
+std::vector<std::string> pepp::tc::format_listing(const IRProgram &program,
+                                                  const IRMemoryAddressTable<pepp::tc::PeppAddress> &addresses,
                                                   const ProgramObjectCodeResult &object_code) {
   std::vector<std::string> ret;
   for (const auto &line : program) ::format_listing(&*line, addresses, object_code, ret);
