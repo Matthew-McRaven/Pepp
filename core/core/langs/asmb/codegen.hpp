@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <map>
 #include <numeric>
 #include <ranges>
 #include <vector>
@@ -8,16 +9,38 @@
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/langs/asmb/ir_program.hpp"
-#include "elf_symtab.hpp"
 
 namespace pepp::tc {
 namespace detail {
 struct SectionAddrInfo {
   int index, previous;
 };
+
+struct SectionOffsets {
+  size_t object_code_offset = 0, object_code_size = 0;
+  size_t reloc_offset = 0, reloc_size = 0;
+};
 } // namespace detail
 
 using LineToSymbolType = pepp::core::symbol::Type(const pepp::tc::LinearIR *);
+
+struct SectionDescriptor {
+  std::string name;
+  pepp::tc::SectionFlags flags;
+  u16 alignment = 1, org_count = 0;
+  std::optional<u16> base_address = std::nullopt;
+  u32 low_address = 0, high_address = 0;
+  // Number of bytes that will be written out to ELF file.
+  // Not high_address-low_address because .ORG can mess with address!
+  u32 byte_count = 0;
+  // Symbols need to know which section they are going to be relocated against.
+  // Rather than wait until the elf file has been generated, we can verify (through source code inspection!) the number
+  // that will be assigned to the first non-ELF-plumbing section.
+  // Then, splitting to sections can increment this counter AND update the symbol declaration's links.
+  static constexpr u16 section_base_index = 3;
+  u16 section_index = section_base_index;
+};
+
 // assign_addresses iterates over sections from prog, grouping non-ORG sections contiguously with the nearest ORG
 // section to its left. Sections before the first .ORG are an exception, and are grouped with the nearest .ORG to the
 // right. When no .ORG is present, all sections are treated as a single group starting at initial_base_address.
@@ -196,6 +219,89 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
 
   // Establish flat_map invariant, which is that the container is sorted.
   std::sort(ret.container.begin(), ret.container.end(), detail::IRComparator<Address>{});
+  return ret;
+}
+
+// Create a lookup data structure that converts IR pointers back to the generated object code.
+// Since IR no longer know their own address, we need to cache the object code because it cannot easily be regenerated.
+using IR2ObjectPair = std::pair<const LinearIR *, std::span<u8>>;
+struct IR2ObjectComparator {
+  bool operator()(const IR2ObjectPair &lhs, const IR2ObjectPair &rhs) const { return lhs.first < rhs.first; }
+  bool operator()(LinearIR *const lhs, LinearIR *const rhs) const { return lhs < rhs; }
+  bool operator()(const LinearIR *const lhs, const LinearIR *const rhs) const { return lhs < rhs; }
+};
+using IR2ObjectCodeMap = fc::flat_map<std::vector<IR2ObjectPair>, IR2ObjectComparator>;
+
+struct StaticRelocation {
+  // Offset into a section's object code (in bytes) which needs relocation.
+  // Per ELF spec, needs to be offset for relocatable object files rather than an address to simplify linker.
+  u32 section_offset;
+  u32 section_idx; // section index in prog, not ELF.
+};
+
+struct ProgramObjectCodeResult {
+  IR2ObjectCodeMap ir_to_object_code;
+  // Group relocations by symbol rather than by section so that we can write the symbol table and relocations
+  // simultaneously.
+  std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> relocations;
+  // A common arena for all section's object code
+  std::vector<u8> object_code;
+  struct SectionSpans {
+    std::span<u8> object_code;
+  };
+  // Use section indicies from original "prog" and provides only the object code for a particular section descriptor.
+  std::vector<SectionSpans> section_spans;
+};
+
+template <typename Address, typename Visitor>
+ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable<Address> &addresses,
+                                       std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
+  ProgramObjectCodeResult ret;
+  std::vector<detail::SectionOffsets> offsets(prog.size(), detail::SectionOffsets{});
+  u32 object_size = 0, ir_count = 0;
+  for (u32 it = 0; it < prog.size(); it++) {
+    const auto &sec = prog[it];
+    if (sec.first.flags.z) continue; // No bytes in ELF for Z section; no relocations possible.
+    offsets[it].object_code_size = sec.first.byte_count;
+    offsets[it].object_code_offset = object_size;
+    object_size += sec.first.byte_count;
+    ir_count += sec.second.size();
+  }
+  ret.object_code.resize(object_size, 0);
+  ret.ir_to_object_code.container.reserve(ir_count);
+  ret.section_spans.reserve(prog.size());
+
+  for (u32 it = 0; it < prog.size(); it++) {
+    const auto &[sec, ir] = prog[it];
+    auto &offset = offsets[it];
+    auto code_begin = ret.object_code.begin() + offset.object_code_offset;
+    auto code_end = code_begin + offset.object_code_size;
+
+    auto oc_subspan = bits::span<u8>(code_begin, code_end);
+    Visitor visitor(addresses, sec.low_address, it, oc_subspan, ret.relocations, ret.ir_to_object_code);
+    offset.reloc_offset = ret.relocations.size();
+    for (const auto &line : ir) visitor.accept(line.get());
+    offset.reloc_size = offset.reloc_offset - ret.relocations.size();
+  }
+
+  // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate
+  // relocation info.
+  using SectionSpans = ProgramObjectCodeResult::SectionSpans;
+  for (u32 it = 0; it < prog.size(); it++) {
+    const auto &[desc, ir] = prog[it];
+    auto &offset = offsets[it];
+    // Z sections need entries in section_spans, but those entries should be empty.
+    if (desc.flags.z) {
+      ret.section_spans.emplace_back(SectionSpans{{}});
+    } else {
+      auto code_begin = ret.object_code.begin() + offset.object_code_offset;
+      auto code_end = code_begin + offset.object_code_size;
+      ret.section_spans.emplace_back(SectionSpans{bits::span<u8>(code_begin, code_end)});
+    }
+  }
+
+  //  Establish flat-map invariant
+  std::sort(ret.ir_to_object_code.container.begin(), ret.ir_to_object_code.container.end(), IR2ObjectComparator{});
   return ret;
 }
 } // namespace pepp::tc

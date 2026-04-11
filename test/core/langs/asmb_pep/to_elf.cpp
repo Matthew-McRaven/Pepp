@@ -71,7 +71,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
     auto elf_result = pepp::tc::to_elf(sections, addresses, object_code, result.mmios);
     pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
 
@@ -90,7 +90,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
     auto elf_result = pepp::tc::to_elf(sections, addresses, object_code, result.mmios);
     pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
 
@@ -118,7 +118,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
     auto elf_result = pepp::tc::to_elf(sections, addresses, object_code, result.mmios);
     pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
     CHECK(object_code.relocations.size() == 4);

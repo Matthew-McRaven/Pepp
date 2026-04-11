@@ -99,51 +99,51 @@ pepp::tc::pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgr
 }
 
 namespace pepp::tc {
-struct ObjectCodeVisitor : public PepIRVisitor {
+struct PeppObjectVistitor : public PepIRVisitor {
   const IRMemoryAddressTable<PeppAddress> &ir_to_address;
   const u16 base_address, section_idx;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
   std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  ObjectCodeVisitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, const u16 section_idx,
-                    bits::span<u8>, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &,
-                    IR2ObjectCodeMap &);
-  void visit(const EmptyLine *);
-  void visit(const CommentLine *);
-  void visit(const MonadicInstruction *);
-  void visit(const DyadicInstruction *);
-  void visit(const DotAlign *);
-  void visit(const DotLiteral *);
-  void visit(const DotBlock *);
-  void visit(const DotEquate *);
-  void visit(const DotSection *);
-  void visit(const DotAnnotate *);
-  void visit(const DotOrg *);
+  PeppObjectVistitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, const u16 section_idx,
+                     bits::span<u8>, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &,
+                     IR2ObjectCodeMap &);
+  void visit(const EmptyLine *) override;
+  void visit(const CommentLine *) override;
+  void visit(const MonadicInstruction *) override;
+  void visit(const DyadicInstruction *) override;
+  void visit(const DotAlign *) override;
+  void visit(const DotLiteral *) override;
+  void visit(const DotBlock *) override;
+  void visit(const DotEquate *) override;
+  void visit(const DotSection *) override;
+  void visit(const DotAnnotate *) override;
+  void visit(const DotOrg *) override;
 };
 
-pepp::tc::ObjectCodeVisitor::ObjectCodeVisitor(
+pepp::tc::PeppObjectVistitor::PeppObjectVistitor(
     const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address, const u16 section_idx,
     bits::span<u8> out_bytes, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocs,
     IR2ObjectCodeMap &ir_to_object_code)
     : ir_to_address(ir_to_address), base_address(base_address), section_idx(section_idx), out_bytes(out_bytes),
       relocations(relocs), ir_to_object_code(ir_to_object_code) {}
 
-void pepp::tc::ObjectCodeVisitor::visit(const EmptyLine *) {
+void pepp::tc::PeppObjectVistitor::visit(const EmptyLine *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const CommentLine *) {
+void pepp::tc::PeppObjectVistitor::visit(const CommentLine *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const MonadicInstruction *line) {
+void pepp::tc::PeppObjectVistitor::visit(const MonadicInstruction *line) {
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(1)});
   out_bytes = out_bytes.subspan(1);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const DyadicInstruction *line) {
+void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   auto addr_info = ir_to_address.at(line);
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
   // Emit relocations for undefined symbolic arguments.
@@ -160,14 +160,14 @@ void pepp::tc::ObjectCodeVisitor::visit(const DyadicInstruction *line) {
   out_bytes = out_bytes.subspan(3);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const DotAlign *line) {
+void pepp::tc::PeppObjectVistitor::visit(const DotAlign *line) {
   auto addr_info = ir_to_address.at(line);
   std::ranges::fill(out_bytes.first(addr_info.size), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const DotLiteral *line) {
+void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
   // Emit relocations for undefined symbolic arguments.
   auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
@@ -184,26 +184,26 @@ void pepp::tc::ObjectCodeVisitor::visit(const DotLiteral *line) {
   out_bytes = out_bytes.subspan(addr_info.size);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const DotBlock *line) {
+void pepp::tc::PeppObjectVistitor::visit(const DotBlock *line) {
   auto addr_info = ir_to_address.at(line);
   std::ranges::fill(out_bytes.first(addr_info.size), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const DotEquate *) {
+void pepp::tc::PeppObjectVistitor::visit(const DotEquate *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const DotSection *) {
+void pepp::tc::PeppObjectVistitor::visit(const DotSection *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const DotAnnotate *) {
+void pepp::tc::PeppObjectVistitor::visit(const DotAnnotate *) {
   // Does not generate object code
 }
 
-void pepp::tc::ObjectCodeVisitor::visit(const DotOrg *) {
+void pepp::tc::PeppObjectVistitor::visit(const DotOrg *) {
   // Does not generate object code
 }
 
@@ -218,64 +218,12 @@ ELFIO::section *getLineMappingSection(ELFIO::elfio &elf) {
   return lineNumbers;
 }
 
-} // namespace pepp::tc
-
-namespace {
-struct SectionOffsets {
-  size_t object_code_offset = 0, object_code_size = 0;
-  size_t reloc_offset = 0, reloc_size = 0;
-};
-} // namespace
-pepp::tc::ProgramObjectCodeResult pepp::tc::to_object_code(const IRMemoryAddressTable<PeppAddress> &addresses,
-                                                           std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
-  ProgramObjectCodeResult ret;
-  std::vector<SectionOffsets> offsets(prog.size(), SectionOffsets{});
-  u32 object_size = 0, ir_count = 0;
-  for (u32 it = 0; it < prog.size(); it++) {
-    const auto &sec = prog[it];
-    if (sec.first.flags.z) continue; // No bytes in ELF for Z section; no relocations possible.
-    offsets[it].object_code_size = sec.first.byte_count;
-    offsets[it].object_code_offset = object_size;
-    object_size += sec.first.byte_count;
-    ir_count += sec.second.size();
-  }
-  ret.object_code.resize(object_size, 0);
-  ret.ir_to_object_code.container.reserve(ir_count);
-  ret.section_spans.reserve(prog.size());
-
-  for (u32 it = 0; it < prog.size(); it++) {
-    const auto &[sec, ir] = prog[it];
-    auto &offset = offsets[it];
-    auto code_begin = ret.object_code.begin() + offset.object_code_offset;
-    auto code_end = code_begin + offset.object_code_size;
-
-    auto oc_subspan = bits::span<u8>(code_begin, code_end);
-    ObjectCodeVisitor visitor(addresses, sec.low_address, it, oc_subspan, ret.relocations, ret.ir_to_object_code);
-    offset.reloc_offset = ret.relocations.size();
-    for (const auto &line : ir) accept(visitor, line.get());
-    offset.reloc_size = offset.reloc_offset - ret.relocations.size();
-  }
-
-  // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate
-  // relocation info.
-  using SectionSpans = ProgramObjectCodeResult::SectionSpans;
-  for (u32 it = 0; it < prog.size(); it++) {
-    const auto &[desc, ir] = prog[it];
-    auto &offset = offsets[it];
-    // Z sections need entries in section_spans, but those entries should be empty.
-    if (desc.flags.z) {
-      ret.section_spans.emplace_back(SectionSpans{{}});
-    } else {
-      auto code_begin = ret.object_code.begin() + offset.object_code_offset;
-      auto code_end = code_begin + offset.object_code_size;
-      ret.section_spans.emplace_back(SectionSpans{bits::span<u8>(code_begin, code_end)});
-    }
-  }
-
-  //  Establish flat-map invariant
-  std::sort(ret.ir_to_object_code.container.begin(), ret.ir_to_object_code.container.end(), IR2ObjectComparator{});
-  return ret;
+ProgramObjectCodeResult pepp_to_object_code(const IRMemoryAddressTable<PeppAddress> &addresses,
+                                            std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
+  return to_object_code<PeppAddress, PeppObjectVistitor>(addresses, prog);
 }
+
+} // namespace pepp::tc
 
 static std::shared_ptr<ELFIO::elfio> create_elf() {
   SPDLOG_INFO("Creating pep/10 ELF");

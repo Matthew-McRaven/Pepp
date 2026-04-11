@@ -48,5 +48,6 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(addresses.count(&*instr) == 1);
     CHECK(addresses.at(&*instr).address == 0xfeed);
     CHECK(addresses.at(&*instr).size == 4);
+    auto object_code = pepp::tc::riscv_to_object_code(addresses, sections);
   }
 }

@@ -53,7 +53,7 @@ TEST_CASE("Pepp ASM object code output",
   auto &sections = sectioned_ir.grouped_ir;
   CHECK(sections.size() == 3);
   auto addresses = pepp::tc::pepp_assign_addresses(sections);
-  auto object_code = to_object_code(addresses, sections);
+  auto object_code = pepp_to_object_code(addresses, sections);
   CHECK(object_code.section_spans.size() == 3);
   auto s0 = object_code.section_spans[0];
   CHECK(s0.object_code.size() == 6);
