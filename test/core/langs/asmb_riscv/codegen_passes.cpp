@@ -19,6 +19,7 @@
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 
 namespace {
@@ -36,9 +37,16 @@ TEST_CASE("RISCV ASM code generator",
     auto p = Parser(data("add x1, x2, x3"));
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    // auto result = pepp::tc::split_to_sections(diag, results);
+    auto result = pepp::tc::riscv_split_to_sections(diag, results);
     CHECK(diag.count() == 0);
-    // auto &sections = result.grouped_ir;
-    // auto addresses = pepp::tc::assign_addresses(sections);
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::riscv_assign_addresses(sections, 0xfeed);
+    CHECK(addresses.container.size() == 1);
+    auto instr = std::dynamic_pointer_cast<RTypeIR>(sections[0].second[0]);
+    CHECK(instr != nullptr);
+    CHECK(instr->mnemonic.mn == riscv::ADD);
+    CHECK(addresses.count(&*instr) == 1);
+    CHECK(addresses.at(&*instr).address == 0xfeed);
+    CHECK(addresses.at(&*instr).size == 4);
   }
 }

@@ -23,7 +23,7 @@ class DiagnosticTable;
 
 static const SectionDescriptor default_descriptor = {.name = ".text", .flags = SectionFlags(true, true, true, false)};
 
-struct SectionAnalysisResults {
+struct RISCVSectionAnalysisResults {
   std::vector<std::pair<SectionDescriptor, IRProgram>> grouped_ir;
 };
 
@@ -32,8 +32,8 @@ struct SectionAnalysisResults {
 //
 // Also extracts system-calls and memory-mapped IO declarations since this is the one time we iterate overthe whole IR
 // at once.
-SectionAnalysisResults split_to_sections(DiagnosticTable &diag, IRProgram &prog,
-                                         SectionDescriptor initial_section = default_descriptor);
+RISCVSectionAnalysisResults riscv_split_to_sections(DiagnosticTable &diag, IRProgram &prog,
+                                                    SectionDescriptor initial_section = default_descriptor);
 
 // assign_addresses iterates over sections from prog, grouping non-ORG sections contiguously with the nearest ORG
 // section to its left. Sections before the first .ORG are an exception, and are grouped with the nearest .ORG to the
@@ -45,8 +45,8 @@ SectionAnalysisResults split_to_sections(DiagnosticTable &diag, IRProgram &prog,
 // starting in the .ORG section.
 //
 // When a .BURN <num> is present, grouping occurs as-if an extra section was append to prog which contains a .ORG <num>.
-IRMemoryAddressTable<RISCVAddress> assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                                                    u32 initial_base_address = 0);
+IRMemoryAddressTable<RISCVAddress> riscv_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                                          u32 initial_base_address = 0);
 
 ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable<RISCVAddress> &,
                                        std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);

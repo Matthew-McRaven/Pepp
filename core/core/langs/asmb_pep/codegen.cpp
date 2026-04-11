@@ -10,6 +10,7 @@
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
+#include "core/langs/asmb/codegen.hpp"
 #include "core/langs/asmb/elfio_utils.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
@@ -18,9 +19,9 @@
 #include "spdlog/spdlog.h"
 #include "zpp_bits.h"
 
-pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &diag, IRProgram &prog,
-                                                             SectionDescriptor initial_section) {
-  SectionAnalysisResults ret;
+pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(DiagnosticTable &diag, IRProgram &prog,
+                                                                      SectionDescriptor initial_section) {
+  PeppSectionAnalysisResults ret;
   ret.grouped_ir.emplace_back(std::make_pair(initial_section, pepp::tc::IRProgram{}));
   auto &grouped_ir = ret.grouped_ir;
   auto *active = &grouped_ir[0];
@@ -88,174 +89,13 @@ pepp::tc::SectionAnalysisResults pepp::tc::split_to_sections(DiagnosticTable &di
   return ret;
 }
 
-struct SectionAddrInfo {
-  int index, previous;
-};
-
 pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress>
-pepp::tc::assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, u16 initial_base_address) {
-  enum class Direction { Forward, Backward } direction = Direction::Forward;
-
-  // Pre-allocate vector according to the total size of the IR lines in all sections.
-  // This overrserves storage---not all IR lines generate object code---but is a stable upper bound and avoid
-  // reallocation in the address-assignment loop.
-  i64 size = 0;
-  for (const auto &[desc, ir] : prog) size += ir.size();
-  // ITEMS ARE NOT INSERTED IN SORTED ORDER. DO NOT USE AS A MAP UNTIL SORTING.
-  // Since all IR lines across all PepIRProgram have unique (C++) addresses, we can blindly append and sort later.
-  // This gives O(1) insert rather than  n* O(nlgn) with the requirement for a manual sort before returning.
-  IRMemoryAddressTable<pepp::tc::PeppAddress> ret;
-  ret.container.reserve(size);
-
-  // Process all sections affected by one .ORG before processing any sections affected by the next one.
-  // There may be some IR lines in an .ORG section that are before the .ORG and iterating left-to-right lets us assign
-  // addresses to those items correctly.
-  std::vector<SectionAddrInfo> sorted_work;
-  sorted_work.reserve(prog.size());
-
-  // Phase 1: Determine the order in which sections should be assigned addresses.
-  // This is generally left-to-right, unless there are sections before the first .ORG or the program contains a .BURN,
-  // in which case some subset of sections is assigned right-to-left.
-
-  // Sections before the first .ORG need to be grouped right rather than left
-  i64 first_org_section = -1;
-  // Record all sections which contain at least one .ORG
-  for (int it = 0; it < prog.size(); it++) {
-    if (prog[it].first.org_count > 0) {
-      sorted_work.emplace_back(SectionAddrInfo{it, it});
-      // If this is the first .ORG, we need to insert the the first 0..it sections
-      if (first_org_section == -1) {
-        first_org_section = it;
-        for (int jt = it - 1; jt >= 0; jt--) sorted_work.emplace_back(SectionAddrInfo{jt, jt + 1});
-      }
-    } else if (first_org_section != -1) sorted_work.emplace_back(SectionAddrInfo{it, it - 1});
-  }
-
-  // Program contained no .ORGs. Act as if first section begins with a .ORG <initial_base_address>.
-  if (first_org_section == -1) {
-    sorted_work.insert(sorted_work.begin(), SectionAddrInfo{0, 0});
-    for (int it = 1; it < prog.size(); it++) sorted_work.emplace_back(SectionAddrInfo{it, it - 1});
-  }
-
-  if (prog.size() != sorted_work.size()) throw std::logic_error("Layout of sections failed");
-
-  // Phase 2: assign addresses for each section to each line of IR.
-  u16 base_address = 0;
-
-  // Using templates to type-erase the difference between forward and reverse iterators
-  auto for_lines = [&](auto &&range, SectionDescriptor &sec_desc) {
-    for (auto &line : range) {
-      auto maybe_size = line->object_size(base_address);
-      u16 symbol_base = base_address, next_base = base_address, size = maybe_size.value_or(0);
-
-      // Perform special handling for non-code-generating dot commands
-      using Type = LinearIRType;
-      switch (line->type()) {
-      case (int)Type::DotOrg:
-        base_address = std::static_pointer_cast<DotOrg>(line)->argument.value->template value_as<u16>();
-        symbol_base = next_base = base_address;
-        break;
-      case (int)Type::DotEquate: {
-        auto as_equate = std::static_pointer_cast<DotEquate>(line);
-        auto symbol = as_equate->symbol.entry;
-        auto argument = as_equate->argument.value;
-        // Re-use from previous assembler
-        if (auto symbolic = dynamic_cast<pepp::ast::Symbolic *>(&*argument); symbolic != nullptr) {
-          auto other = symbolic->symbol();
-          symbol->value = std::make_shared<pepp::core::symbol::AliasValue>(2, other);
-        } else {
-          auto masked_bits = bits::MaskedBits{.byteCount = 2, .bitPattern = 0, .mask = 0xFFFF};
-          (void)argument->serialize(bits::span<u8>{reinterpret_cast<u8 *>(&masked_bits.bitPattern), 2},
-                                    bits::hostOrder());
-          symbol->value = std::make_shared<pepp::core::symbol::ConstantValue>(masked_bits);
-        }
-        continue; // Must resume loop early, or symbol will be clobbered below.
-      }
-      default: break;
-      }
-
-      if (!maybe_size.has_value()) continue;
-      else if (direction == Direction::Forward) {
-        // Must explicitly handle address wrap-around, because math inside set
-        // address widens implicitly.
-        next_base = (base_address + size) % 0x10000;
-        // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
-        // in which case no adjustment is necessary.
-        ret.container.emplace_back(line.get(), PeppAddress(base_address, size));
-        base_address = next_base;
-      } else {
-        next_base = (base_address - size) % 0x10000;
-        // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
-        // in which case no adjustment is necessary.
-        auto adjustedAddress = next_base + (size > 0 ? 1 : 0);
-        // If we use newBase, we are off-by-one when size is non-zero.
-        symbol_base = adjustedAddress;
-        ret.container.emplace_back(line.get(), PeppAddress(adjustedAddress % 0x10000, size));
-        base_address = next_base;
-      }
-      sec_desc.byte_count += size;
-
-      if (auto line_symbol = line->template typed_attribute<SymbolDeclaration>(); line_symbol) {
-        auto isCode = dynamic_cast<DyadicInstruction *>(&*line) || dynamic_cast<MonadicInstruction *>(&*line);
-        const auto type = isCode ? pepp::core::symbol::Type::Code : pepp::core::symbol::Type::Object;
-        line_symbol->entry->value =
-            std::make_shared<pepp::core::symbol::LocationValue>(size, sizeof(u16), symbol_base, 0, type);
-      }
-    }
+pepp::tc::pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, u16 initial_base_address) {
+  static const auto f = [](const pepp::tc::LinearIR *line) -> pepp::core::symbol::Type {
+    auto isCode = dynamic_cast<const DyadicInstruction *>(&*line) || dynamic_cast<const MonadicInstruction *>(&*line);
+    return isCode ? pepp::core::symbol::Type::Code : pepp::core::symbol::Type::Object;
   };
-
-  for (auto &sec_idx : sorted_work) {
-    auto &sec = prog[sec_idx.index];
-
-    // If this section contains the first org, there may be some lines BEFORE that org which need to be assigned
-    // backwards.
-    if (sec_idx.index == first_org_section) {
-      // Split the program into two ranges: the region before the ORG and the rest.
-      auto it = sec.second.begin();
-      for (; it != sec.second.end(); it++)
-        if ((*it)->type() == DotOrg::TYPE) break;
-
-      auto org_arg = static_pointer_cast<DotOrg>(*it)->argument.value->value_as<u16>();
-      // Find index of first ORG and assign BACKWARD from there, exluding the ORG. Set section's low_address.
-      base_address = org_arg - 1, direction = Direction::Backward;
-      for_lines(std::views::reverse(std::ranges::subrange(sec.second.begin(), it)), sec.first);
-      sec.first.low_address = base_address;
-
-      // Assign rest of section (including ORG) FORWARD. Set section's high_address.
-      base_address = org_arg, direction = Direction::Forward;
-      for_lines(std::views::all(std::ranges::subrange(it, sec.second.end())), sec.first);
-      sec.first.high_address = base_address;
-      continue; // Skip normal address computations.
-    }
-
-    // Determine base address and direction for the section.
-    if (sec_idx.index == sec_idx.previous) {
-      // Program did not contain any ORGs, use address parameter.
-      if (sec_idx.index == 0) base_address = initial_base_address;
-      else base_address = prog[sec_idx.index - 1].first.high_address;
-      direction = Direction::Forward;
-    } else if (sec_idx.index > sec_idx.previous) {
-      direction = Direction::Forward;
-      base_address = prog[sec_idx.previous].first.high_address;
-    } else {
-      direction = Direction::Backward;
-      base_address = prog[sec_idx.previous].first.low_address;
-    }
-
-    if (direction == Direction::Forward) {
-      sec.first.low_address = base_address;
-      for_lines(std::views::all(sec.second), sec.first);
-      sec.first.high_address = base_address;
-    } else {
-      sec.first.high_address = base_address;
-      for_lines(std::views::reverse(sec.second), sec.first);
-      sec.first.low_address = base_address;
-    }
-  }
-
-  // Establish flat_map invariant, which is that the container is sorted.
-  std::sort(ret.container.begin(), ret.container.end(), detail::IRComparator<PeppAddress>{});
-  return ret;
+  return assign_addresses<PeppAddress>(prog, f, initial_base_address);
 }
 
 namespace pepp::tc {
