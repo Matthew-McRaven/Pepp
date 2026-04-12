@@ -14,7 +14,7 @@ group "img" {
 
 
 variable "VERSION" {
-  default = "v0.18.0"
+  default = "v0.18.1"
 }
 
 target "gcc-riscv" {
@@ -59,7 +59,7 @@ target "wasm-dbg" {
   platforms = ["linux/amd64"]
   target = "output-wasm"
   args {
-    QT_WASM_XARGS = "-sanitize address  -sanitize undefined -device-option QT_WASM_SOURCE_MAP=1"
+    QT_WASM_XARGS = "-DFEATURE_sanitize_address=ON -DFEATURE_sanitize_undefined=ON -DQT_QMAKE_DEVICE_OPTIONS=QT_WASM_SOURCE_MAP=1"
   }
 }
 
@@ -71,7 +71,7 @@ target "dev-wasm-dbg" {
   target = "output-gcc"
   args {
     BASE_IMAGE = "mcr.microsoft.com/devcontainers/base:ubuntu"
-    QT_WASM_XARGS = "-sanitize address  -sanitize undefined -device-option QT_WASM_SOURCE_MAP=1"
+    QT_WASM_XARGS = "-DFEATURE_sanitize_address=ON -DFEATURE_sanitize_undefined=ON -DQT_QMAKE_DEVICE_OPTIONS=QT_WASM_SOURCE_MAP=1"
   }
 }
 

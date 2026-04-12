@@ -70,7 +70,7 @@ RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 RUN cd /emsdk && git pull && ./emsdk install ${EMSDK_VERSION} && ./emsdk activate ${EMSDK_VERSION} && echo uname -a /emsdk.arch
 # Install shadertools and 3d modules otherwise building from sources will fail.
 RUN python3 -m venv /venv && source /venv/bin/activate \
-  && pip install aqtinstall &&  aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools qtquick3d qt3d qtcanvaspainter qtlottie --outputdir /qt \
+  && pip install aqtinstall &&  aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools --outputdir /qt \
   && rm aqtinstall.log && rm -rf /venv
 
 # Use separate step to build Qt to avoid inflating the size of the build image further.
@@ -90,12 +90,15 @@ RUN wget -q "https://download.qt.io/official_releases/qt/${QT_RELEASE}/${QT_VERS
     && mv /build-qt/qt-everywhere-src-${QT_VERSION} /build-qt/${QT_VERSION} \
     && rm qt-everywhere-src-${QT_VERSION}.tar.xz
 
+# Extra args with which to build Qt
+ARG QT_WASM_XARGS=""
 
 # Must activate EMSDK or it will not build. Skip some features that would require installing additional libraries.
 # Enable excptions, because that was the whole point of building Qt from the sources
 RUN source /emsdk/emsdk_env.sh \
-    && cmake -S /build-qt/${QT_VERSION} -B /build-qt/${QT_VERSION}/build -G Ninja \
+    && cmake -S /build-qt/${QT_VERSION} -B /build-qt/${QT_VERSION}/build -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel \
        -DCMAKE_TOOLCHAIN_FILE=/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake \
+       ${QT_WASM_XARGS} \
        -DQT_HOST_PATH=/qt/${QT_VERSION}/gcc_64 \
        -DFEATURE_thread=OFF \
        -DFEATURE_wasm_exceptions=ON \
@@ -104,11 +107,21 @@ RUN source /emsdk/emsdk_env.sh \
        -DBUILD_qtremoteobjects=OFF  -DBUILD_qtwebengine=OFF -DBUILD_qtscxml=OFF -DBUILD_qthttpserver=OFF \
        -DBUILD_qtwebview=OFF -DBUILD_qtwebchannel=OFF -DBUILD_qtsensors=OFF -DBUILD_qtwebsockets=OFF \
        -DBUILD_qtlocation=OFF -DBUILD_qtpositioning=OFF -DBUILD_qtactiveqt=OFF -DBUILD_qt5compat=OFF \
-       -DBUILD_qtlottie=OFF -DBUILD_qtcanvaspainter=OFF -DBUILD_qtgraphs=OFF -DBUILD_qtdbus=OFF
+       -DBUILD_qtlottie=OFF -DBUILD_qtcanvaspainter=OFF -DBUILD_qtgraphs=OFF -DBUILD_qtdbus=OFF \
+       -DBUILD_qt3d=OFF -DBUILD_qtcharts=OFF -DBUILD_qtserialport=OFF -DBUILD_qtserialbus=OFF -DBUILD_qtspeech=OFF \
+       -DBUILD_qtquick3d=OFF -DBUILD_qtquick3dphysics=OFF\
+       -DBUILD_qtmultimedia=OFF -DBUILD_qtdatavis3d=OFF \
+       -DBUILD_qtvirtualkeyboard=OFF \
+       -DBUILD_qtopcua=OFF -DBUILD_qtcoap=OFF -DBUILD_qtmqtt=OFF -DBUILD_qtnetworkauth=OFF \
+       -DBUILD_qtpdf=OFF -DBUILD_qtdoc=OFF \
+       -DFEATURE_ssl=OFF -DFEATURE_dtls=OFF -DFEATURE_ocsp=OFF \
+       -DFEATURE_sql_mysql=OFF -DFEATURE_sql_psql=OFF -DFEATURE_sql_odbc=OFF \
+       -DFEATURE_imageformat_webp=ON \
+       -DFEATURE_printer=OFF -DFEATURE_printdialog=OFF -DFEATURE_printpreviewdialog=OFF -DFEATURE_printpreviewwidget=OFF
 # Separate build from configure so that I get better logs
 RUN cd /build-qt/${QT_VERSION}/build \
     && cmake --build . --parallel \
-    && cmake --install .
+    && cmake --install . --prefix /qt/${QT_VERSION}/wasm_singlethread
 
 # Only copy over WASM artifacts, since we already have GCC from the base image.
 FROM base-wasm AS output-wasm
