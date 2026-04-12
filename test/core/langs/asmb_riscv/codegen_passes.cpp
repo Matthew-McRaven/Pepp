@@ -33,7 +33,7 @@ TEST_CASE("RISCV ASM code generator",
   using Parser = pepp::tc::parser::RISCVParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc;
-  SECTION("R Type: add x1, x2, x3") {
+  SECTION("R Type: add x1, x2, x3") { // matches sources of samples add.S
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("add x1, x2, x3"));
     auto results = p.parse(diag);
@@ -55,5 +55,12 @@ TEST_CASE("RISCV ASM code generator",
     pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
     elf_result.elf->save("dummy_riscv.elf");
     CHECK(elf_result.elf->sections[".text"]->get_size() == 4);
+    // Per samples directory, bytes should be little-endian b3 00 31 00
+    auto text_section = elf_result.elf->sections[".text"];
+    auto data = text_section->get_data();
+    CHECK((u8)data[0] == 0xb3);
+    CHECK((u8)data[1] == 0x00);
+    CHECK((u8)data[2] == 0x31);
+    CHECK((u8)data[3] == 0x00);
   }
 }
