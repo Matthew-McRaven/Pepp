@@ -2,6 +2,7 @@
 #include "core/arch/riscv/isa/rv_instruction_list.hpp"
 #include "core/compile/ir_linear/attr_symbol.hpp"
 #include "core/compile/ir_linear/line_comment.hpp"
+#include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/text.hpp"
@@ -44,11 +45,11 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
   lex::Checkpoint cp(*_buffer);
   if (auto maybeInteger = _buffer->match<lex::Integer>(); maybeInteger) {
     if (maybeInteger->format == lex::Integer::Format::SignedDec)
-      return std::make_shared<pepp::ast::SignedDecimal>(maybeInteger->value, 2);
+      return std::make_shared<pepp::ast::SignedDecimal>(maybeInteger->value, 4);
     else if (maybeInteger->format == lex::Integer::Format::Hex)
-      return std::make_shared<pepp::ast::Hexadecimal>(maybeInteger->value, 2);
+      return std::make_shared<pepp::ast::Hexadecimal>(maybeInteger->value, 4);
     else if (maybeInteger->format == lex::Integer::Format::UnsignedDec)
-      return std::make_shared<pepp::ast::UnsignedDecimal>(maybeInteger->value, 2);
+      return std::make_shared<pepp::ast::UnsignedDecimal>(maybeInteger->value, 4);
     else
       throw RISCVParserError(RISCVParserError::NullaryError::Argument_InvalidIntegerFormat,
                              _buffer->matched_interval());
@@ -61,6 +62,16 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
     auto asStr = std::string{maybeStr->view()};
     return std::make_shared<pepp::ast::String>(asStr);
   } else return nullptr;
+}
+
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::numeric_argument() {
+  auto arg = argument();
+  return std::dynamic_pointer_cast<pepp::ast::Numeric>(arg);
+}
+
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::hex_argument() {
+  auto arg = argument();
+  return std::dynamic_pointer_cast<pepp::ast::Hexadecimal>(arg);
 }
 
 std::shared_ptr<pepp::tc::RTypeIR> pepp::tc::parser::RISCVParser::r_type(riscv::MnemonicDescriptor desc) {
@@ -182,10 +193,126 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::ins
   return nullptr;
 }
 
+namespace {
+using DC = pepp::tc::DotCommands;
+// using PDC = pepp::tc::DotCommands;
+static const auto dot_map =
+    std::map<std::string, int>{{"ALIGN", (int)DC::ALIGN}, {"ASCII", (int)DC::ASCII},     {"BLOCK", (int)DC::BLOCK},
+                               {"BYTE", (int)DC::BYTE},   {"EQUATE", (int)DC::EQUATE},   {"HALF", (int)DC::HALF},
+                               {"ORG", (int)DC::ORG},     {"SECTION", (int)DC::SECTION}, {"WORD", (int)DC::WORD}};
+} // namespace
+
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(OptionalSymbol symbol) {
+  auto dot = _buffer->match<lex::DotCommand>();
+  auto dot_str = bits::to_upper(dot->to_string());
+  auto it = dot_map.find(dot_str);
+  if (it == dot_map.cend())
+    throw RISCVParserError(RISCVParserError::UnaryError::Dot_Invalid, dot_str, _buffer->matched_interval());
+
+  switch (it->second) {
+  case (int)DC::ALIGN: {
+    auto arg = numeric_argument();
+    if (!arg)
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+    u16 value;
+    bits::span<u8> buf{(u8 *)&value, 2};
+    (void)arg->serialize(buf, bits::hostOrder());
+    if (!(value == 1 || value == 2 || value == 4 || value == 8))
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedPowerOfTwo, _buffer->matched_interval());
+    return std::make_shared<DotAlign>(Argument{arg});
+  }
+  case (int)DC::ASCII: {
+    if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
+    else {
+      const auto asStr = std::string{maybeStr->view()};
+      Argument arg{std::make_shared<pepp::ast::String>(asStr)};
+      return std::make_shared<DotLiteral>(DotLiteral::Which::ASCII, arg);
+    }
+  }
+  case (int)DC::BLOCK: {
+    auto arg = numeric_argument();
+    if (!arg)
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+    return std::make_shared<DotBlock>(Argument{arg});
+  }
+  case (int)DC::BYTE: {
+    auto arg = argument();
+    if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
+      if (numeric->minimum_size() > 1)
+        throw RISCVParserError(RISCVParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{numeric});
+    } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
+      if (ident->minimum_size() > 1)
+        throw RISCVParserError(RISCVParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{ident});
+    } else
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+  }
+  case (int)DC::HALF: {
+    auto arg = argument();
+    if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
+      if (numeric->minimum_size() > 2)
+        throw RISCVParserError(RISCVParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{numeric});
+    } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{ident});
+    } else
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+  }
+  case (int)DC::WORD: {
+    auto arg = argument();
+    if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
+      if (numeric->minimum_size() > 4)
+        throw RISCVParserError(RISCVParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte4, Argument{numeric});
+    } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte4, Argument{ident});
+    } else
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+  }
+  case (int)DC::EQUATE: {
+    auto arg = argument();
+    if (!arg)
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+    else if (arg->minimum_size() > 2)
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
+    else if (!symbol)
+      throw RISCVParserError(RISCVParserError::NullaryError::SymbolDeclaration_Required, _buffer->matched_interval());
+    return std::make_shared<DotEquate>(SymbolDeclaration{*symbol}, Argument{arg});
+  }
+  case (int)DC::ORG: {
+    auto arg = hex_argument();
+    if (!arg) throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedHex, _buffer->matched_interval());
+    else if (symbol)
+      throw RISCVParserError(RISCVParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    return std::make_shared<DotOrg>(DotOrg::Behavior::ORG, Argument{arg});
+  }
+  case (int)DC::SECTION: {
+    if (auto maybeSecName = _buffer->match<lex::StringConstant>(); !maybeSecName)
+      throw RISCVParserError(RISCVParserError::NullaryError::Section_StringName, _buffer->matched_interval());
+    else if (!_buffer->match_literal(","))
+      throw RISCVParserError(RISCVParserError::NullaryError::Section_TwoArgs, _buffer->matched_interval());
+    else if (auto maybeFlags = _buffer->match<lex::StringConstant>(); !maybeFlags)
+      throw RISCVParserError(RISCVParserError::NullaryError::Section_StringFlags, _buffer->matched_interval());
+    else if (symbol)
+      throw RISCVParserError(RISCVParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    else {
+      auto flags = bits::to_lower(maybeFlags->view());
+      using bits::contains;
+      bool r = contains(flags, "r"), w = contains(flags, "w"), x = contains(flags, "x"), z = contains(flags, "z");
+      return std::make_shared<DotSection>(Identifier(*maybeSecName->value), SectionFlags(r, w, x, z));
+    }
+  }
+  default: throw std::logic_error("Unreachable");
+  }
+  return nullptr;
+}
+
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(OptionalSymbol symbol) {
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   if (auto instr = instruction(); instr) ret = instr;
-  // else if (auto dot = pseudo(symbol); dot) ret = dot;
+  else if (auto dot = pseudo(symbol); dot) ret = dot;
   else return nullptr;
 
   if (auto comment = _buffer->match<lex::InlineComment>(); comment)

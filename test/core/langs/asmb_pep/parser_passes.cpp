@@ -233,7 +233,7 @@ TEST_CASE("Pepp ASM parser dot commands",
     CHECK(std::dynamic_pointer_cast<DotAnnotate>(results[0]));
   }
 
-  SECTION(".OUTPUT") {
+  SECTION(".ORG") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(".ORG 0xfeed"));
     auto results = p.parse(diag);
