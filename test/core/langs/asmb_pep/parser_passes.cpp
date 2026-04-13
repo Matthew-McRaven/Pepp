@@ -139,7 +139,9 @@ TEST_CASE("Pepp ASM parser dot commands",
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);
-      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+      auto casted = std::dynamic_pointer_cast<DotAlign>(results[0]);
+      CHECK(casted);
+      CHECK(casted->which == DotAlign::Which::ByteCount);
     }
     {
       pepp::tc::DiagnosticTable diag;
@@ -147,7 +149,9 @@ TEST_CASE("Pepp ASM parser dot commands",
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);
-      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+      auto casted = std::dynamic_pointer_cast<DotAlign>(results[0]);
+      CHECK(casted);
+      CHECK(casted->which == DotAlign::Which::ByteCount);
     }
   }
 
@@ -233,7 +237,7 @@ TEST_CASE("Pepp ASM parser dot commands",
     CHECK(std::dynamic_pointer_cast<DotAnnotate>(results[0]));
   }
 
-  SECTION(".OUTPUT") {
+  SECTION(".ORG") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(".ORG 0xfeed"));
     auto results = p.parse(diag);

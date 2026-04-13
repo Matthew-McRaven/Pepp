@@ -13,12 +13,24 @@ public:
     Argument_ExpectedIdentNumeric,
     Argument_ExpectedImm,
     Argument_InvalidIntegerFormat,
+    Argument_ExpectedInteger,
+    Argument_ExpectedIdentifier,
+    Argument_ExpectedHex,
+    Argument_ExpectedString,
+    Argument_Exceeded1Byte,
+    Argument_Exceeded2Bytes,
+    Argument_Exceeded4Bytes,
+    Section_StringName,
+    Section_TwoArgs,
+    Section_StringFlags,
+    SymbolDeclaration_Required,
+    SymbolDeclaration_Forbidden,
     Token_MissingNewline,
     Token_MissingComma,
     Token_MissingLParen,
     Token_MissingRParen,
   };
-  enum class UnaryError { Token_Invalid };
+  enum class UnaryError { Token_Invalid, Dot_Invalid };
 
   static const std::string to_string(NullaryError);
   static const std::string to_string(UnaryError, std::string &arg);

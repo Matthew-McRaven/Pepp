@@ -55,6 +55,8 @@ public:
   DefinitionState state;
   // The binding type of this symbol (i.e., global vs local).
   Binding binding;
+  // Control the visibility of this symbol when linking.
+  Visibility visibility = Visibility::Default;
   //! Unique name as appearing in source code.
   std::string_view name;
   //! Non-owning reference to containing symbol table.

@@ -16,12 +16,53 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
   auto &grouped_ir = ret.grouped_ir;
   auto *active = &grouped_ir[0];
   for (auto &line : prog) {
+    // TODO: Check all symbol usages are not undefined
+    // TODO: .ORG for this section.
+    using Type = LinearIRType;
+
+    // Compile-time visitor pattern where the only virtual call should be type().
+    switch (line->type()) {
+    case DotSection::TYPE: {
+      // If no existing section has the same name, create a new section with the provided flags.
+      // When the section already exists, ensure that the flags match before switching to that section,
+      auto as_section = std::static_pointer_cast<pepp::tc::DotSection>(line);
+      auto flags = as_section->flags;
+      auto name = as_section->name.value;
+      auto existing_sec =
+          std::find_if(grouped_ir.begin(), grouped_ir.end(), [&name](auto &i) { return i.first.name == name; });
+      if (existing_sec == grouped_ir.end()) {
+        pepp::tc::SectionDescriptor desc{.name = name, .flags = flags};
+        // Compute the index in the ELF file which this section will become.
+        desc.section_index = desc.section_base_index + ret.grouped_ir.size();
+        grouped_ir.emplace_back(std::make_pair(desc, pepp::tc::IRProgram{}));
+        active = &grouped_ir.back();
+      } else if (existing_sec->first.flags != flags) {
+        throw std::logic_error("Modifying flags for an existing section");
+      } else active = &*existing_sec;
+      break;
+    }
+    case DotAlign::TYPE: {
+      auto as_align = std::static_pointer_cast<pepp::tc::DotAlign>(line);
+      active->first.alignment = std::max(active->first.alignment, as_align->argument.value->value_as<u16>());
+      break;
+    }
+    case DotOrg::TYPE: {
+      auto as_org = std::static_pointer_cast<pepp::tc::DotOrg>(line);
+      active->first.org_count++;
+      break;
+    }
+    default: break;
+    }
+
     if (auto symbol_attr = line->typed_attribute<SymbolDeclaration>(); symbol_attr) {
-      if (!symbol_attr->entry->is_singly_defined())
-        throw std::logic_error(fmt::format("Multiply defined symbol {}", symbol_attr->entry->name));
+      if (!symbol_attr->entry->is_singly_defined()) {
+        auto formatted = fmt::format("Multiply defined symbol {}", symbol_attr->entry->name);
+        throw std::logic_error(formatted);
+      }
       // Symbols need to know their defining section to enable relocations.
       symbol_attr->entry->section_index = active->first.section_index;
     }
+
     active->second.emplace_back(line);
   }
   return ret;

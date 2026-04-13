@@ -22,4 +22,4 @@ void pepp::tc::LinearIR::insert(std::unique_ptr<AAttribute> attr) {
   *link = std::move(node);
 }
 
-std::optional<u16> pepp::tc::LinearIR::object_size(u16) const { return std::nullopt; }
+std::optional<u64> pepp::tc::LinearIR::object_size(u64) const { return std::nullopt; }

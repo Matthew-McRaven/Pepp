@@ -2,7 +2,7 @@
 #include "core/compile/ir_value/base.hpp"
 #include "core/macros.hpp"
 
-pepp::tc::DotAlign::DotAlign(Argument arg) : argument(arg) {}
+pepp::tc::DotAlign::DotAlign(Which kind, Argument arg) : which(kind), argument(arg) {}
 
 const pepp::tc::AAttribute *pepp::tc::DotAlign::attribute(int type) const {
   if (type == Argument::TYPE) return &argument;
@@ -14,11 +14,16 @@ void pepp::tc::DotAlign::insert(std::unique_ptr<AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<u16> pepp::tc::DotAlign::object_size(u16 base_address) const {
-  u16 align = argument.value->value_as<u16>();
+std::optional<u64> pepp::tc::DotAlign::object_size(u64 base_address) const {
+  u64 value = argument.value->value_as<u64>();
+  u64 align;
+  switch (which) {
+  case Which::ByteCount: align = value; break;
+  case Which::Pow2: align = 1 << value; break;
+  }
   auto ret = (align - (base_address % align)) % align;
   // If return value would be 0, choose nullopt to prevent useless address in listing.
-  return ret == 0 ? std::nullopt : std::optional<u16>(ret);
+  return ret == 0 ? std::nullopt : std::optional<u64>(ret);
   // if (direction == Direction::Forward) return (align - (base_address % align)) % align;
   // else if (direction == Direction::Backward) return base_address % align;
   // else return 0;
@@ -38,11 +43,12 @@ void pepp::tc::DotLiteral::insert(std::unique_ptr<AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<u16> pepp::tc::DotLiteral::object_size(u16) const {
+std::optional<u64> pepp::tc::DotLiteral::object_size(u64) const {
   switch (which) {
   case Which::ASCII: return argument.value->serialized_size();
-  case Which::Byte: return 1;
-  case Which::Word: return 2;
+  case Which::Byte1: return 1;
+  case Which::Byte2: return 2;
+  case Which::Byte4: return 4;
   }
 
   PEPP_UNREACHABLE();
@@ -62,7 +68,7 @@ void pepp::tc::DotBlock::insert(std::unique_ptr<AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<u16> pepp::tc::DotBlock::object_size(u16) const { return argument.value->value_as<u16>(); }
+std::optional<u64> pepp::tc::DotBlock::object_size(u64) const { return argument.value->value_as<u64>(); }
 
 int pepp::tc::DotBlock::type() const { return TYPE; }
 

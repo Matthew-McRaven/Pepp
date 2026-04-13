@@ -83,5 +83,11 @@ enum class Binding : u8 {
   Global, // Requires a symbol be defined in only one translation unit.
   Weak    // A global definition that may be overridden by a Global
 };
+enum class Visibility : u8 {
+  Default,
+  Internal,  // Neither visible nor referenced outside of the defining module.
+  Hidden,    // Resolved normally at static link, and either made local or dropped from shared objects.
+  Protected, // References within the defining module will always bind to the local definition.
+};
 
 } // namespace pepp::core::symbol

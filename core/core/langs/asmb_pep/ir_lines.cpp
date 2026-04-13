@@ -16,7 +16,7 @@ void pepp::tc::MonadicInstruction::insert(std::unique_ptr<AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<u16> pepp::tc::MonadicInstruction::object_size(u16 base_address) const { return 1; }
+std::optional<u64> pepp::tc::MonadicInstruction::object_size(u64 base_address) const { return 1; }
 
 int pepp::tc::MonadicInstruction::type() const { return TYPE; }
 
@@ -34,7 +34,7 @@ void pepp::tc::DyadicInstruction::insert(std::unique_ptr<AAttribute> attr) {
   else LinearIR::insert(std::move(attr));
 }
 
-std::optional<u16> pepp::tc::DyadicInstruction::object_size(u16) const { return 3; }
+std::optional<u64> pepp::tc::DyadicInstruction::object_size(u64) const { return 3; }
 
 int pepp::tc::DyadicInstruction::type() const { return TYPE; }
 

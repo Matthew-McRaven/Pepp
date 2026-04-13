@@ -258,7 +258,7 @@ ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable<Address> &addr
                                        std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
   ProgramObjectCodeResult ret;
   std::vector<detail::SectionOffsets> offsets(prog.size(), detail::SectionOffsets{});
-  u32 object_size = 0, ir_count = 0;
+  u64 object_size = 0, ir_count = 0;
   for (u32 it = 0; it < prog.size(); it++) {
     const auto &sec = prog[it];
     if (sec.first.flags.z) continue; // No bytes in ELF for Z section; no relocations possible.

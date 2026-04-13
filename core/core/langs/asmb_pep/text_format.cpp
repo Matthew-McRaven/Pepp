@@ -1,5 +1,6 @@
 #include "core/langs/asmb_pep/text_format.hpp"
 #include <fmt/format.h>
+#include <stdexcept>
 #include <string>
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
@@ -260,8 +261,9 @@ void pepp::tc::SourceVisitor::visit(const DotLiteral *line) {
   using Which = DotLiteral::Which;
   switch (line->which) {
   case Which::ASCII: dot = ".ASCII"; break;
-  case Which::Byte: dot = ".BYTE"; break;
-  case Which::Word: dot = ".WORD"; break;
+  case Which::Byte1: dot = ".BYTE"; break;
+  case Which::Byte2: dot = ".WORD"; break;
+  default: throw std::invalid_argument("Invalid DotLiteral kind");
   }
 
   if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;

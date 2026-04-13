@@ -2,18 +2,33 @@
 
 #include "core/arch/riscv/asmb/rv_mnemonics.hpp"
 #include "core/compile/ir_linear/line_base.hpp"
+#include "core/compile/ir_linear/line_dot.hpp"
 #include "core/langs/asmb_riscv/ir_attributes.hpp"
 
 namespace pepp::ast {
 class IRValue;
 }
+
 namespace pepp::tc {
+enum class RISCVDotCommands : int {
+  ASCIZ = static_cast<int>(DotCommands::FIRST_USER),
+  ALIGN_P2,
+  ALIGN_BYTE,
+  SYMBOL_GLOBAL,
+  SYMBOL_LOCAL,
+  SYMBOL_WEAK,
+  SYMBOL_HIDDEN,
+  SECTION_TEXT,
+  SECTION_BSS,
+  SECTION_RODATA,
+  SECTION_DATA,
+};
 enum class RISCVIRType : int { R = static_cast<int>(LinearIRType::FirstUser), I, S, B, U, J };
 struct IntegerInstruction : public LinearIR {
   IntegerInstruction(riscv::MnemonicDescriptor desc);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
-  std::optional<u16> object_size(u16 base_address) const override;
+  std::optional<u64> object_size(u64 base_address) const override;
 
   RISCVMnemonicAttribute mnemonic;
   u8 rd, rs1, rs2;
@@ -56,4 +71,16 @@ struct JTypeIR : public IntegerInstruction {
   JTypeIR(riscv::MnemonicDescriptor desc, u8 rd, std::shared_ptr<pepp::ast::IRValue> imm);
   int type() const override;
 };
+
+struct DotSymbol : public LinearIR {
+  static constexpr int TYPE = static_cast<int>(LinearIRType::DotSymbol);
+  enum class Which { Global, Local, Weak, Hidden } which;
+  // Arg must always be an identifier
+  DotSymbol(Which which, Argument arg);
+  const AAttribute *attribute(int type) const override;
+  void insert(std::unique_ptr<AAttribute> attr) override;
+  int type() const override;
+  Argument argument;
+};
+
 } // namespace pepp::tc

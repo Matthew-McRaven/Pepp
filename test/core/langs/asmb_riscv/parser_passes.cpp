@@ -16,6 +16,7 @@
 
 #include <catch.hpp>
 #include "core/arch/riscv/asmb/rvi_patterns.hpp"
+#include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
@@ -132,5 +133,276 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_u->rd == 31);
     CHECK(as_u->imm);
     CHECK(as_u->imm->value_as<u32>() == 0xcafe);
+  }
+}
+
+TEST_CASE("RISCV ASM parser dot commands",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Lexer = pepp::langs::RISCVLexer;
+  using Parser = pepp::tc::parser::RISCVParser;
+  using SymbolTable = pepp::core::symbol::LeafTable;
+  using namespace pepp::tc;
+
+  SECTION(".ALIGN") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".ALIGN 1"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto casted = std::dynamic_pointer_cast<DotAlign>(results[0]);
+      CHECK(casted);
+      CHECK(casted->which == DotAlign::Which::Pow2);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("s: .ALIGN 3"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+  }
+
+  SECTION(".BALIGN") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".BALIGN 1"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("s: .BALIGN 3"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+  }
+
+  SECTION(".P2ALIGN") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".P2ALIGN 1"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("s: .P2ALIGN 3"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+  }
+
+  SECTION(".ASCII") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".ASCII \"hi\""));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".ASCII \"\""));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+    }
+  }
+
+  SECTION(".ASCIZ") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".ASCIZ \"hi\""));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".STRING \"\""));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+    }
+  }
+
+  SECTION(".BLOCK") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".BLOCK 7"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotBlock>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".ZERO 7"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotBlock>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".skip 7"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotBlock>(results[0]));
+    }
+  }
+
+  SECTION(".BYTE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".BYTE 255"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+  }
+
+  SECTION(".BYTE 0") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".BYTE 0"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+  }
+
+  SECTION(".EQUATE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("s: .EQUATE 10"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
+  }
+
+  SECTION(".HALF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".HALF 0xFFFF"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+  }
+
+  SECTION(".ORG") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".ORG 0xfeed"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotOrg>(results[0]));
+  }
+
+  SECTION(".SECTION") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".SECTION \".text\", \"rw\""));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".text");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == true);
+      CHECK(r0->flags.x == false);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".SECTION \".\", \"x\""));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".");
+      CHECK(r0->flags.r == false);
+      CHECK(r0->flags.w == false);
+      CHECK(r0->flags.x == true);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".TEXT"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".text");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == false);
+      CHECK(r0->flags.x == true);
+      CHECK(r0->flags.z == false);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".BSS"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".bss");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == true);
+      CHECK(r0->flags.x == false);
+      CHECK(r0->flags.z == true);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".data"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".data");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == true);
+      CHECK(r0->flags.x == false);
+      CHECK(r0->flags.z == false);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".rodata"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".rodata");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == false);
+      CHECK(r0->flags.x == false);
+      CHECK(r0->flags.z == false);
+    }
+  }
+
+  SECTION(".WORD") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".WORD 0xFEEDBEEF"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
   }
 }

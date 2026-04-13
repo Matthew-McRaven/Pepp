@@ -14,7 +14,7 @@ void pepp::tc::IntegerInstruction::insert(std::unique_ptr<AAttribute> attr) {
   } else LinearIR::insert(std::move(attr));
 }
 
-std::optional<u16> pepp::tc::IntegerInstruction::object_size(u16 base_address) const { return 4; }
+std::optional<u64> pepp::tc::IntegerInstruction::object_size(u64 base_address) const { return 4; }
 
 pepp::tc::RTypeIR::RTypeIR(riscv::MnemonicDescriptor desc, u8 rd, u8 rs1, u8 rs2) : IntegerInstruction(desc) {
   this->rd = rd;
@@ -62,3 +62,17 @@ pepp::tc::JTypeIR::JTypeIR(riscv::MnemonicDescriptor desc, u8 rd, std::shared_pt
   this->rd = rd;
   this->imm = imm;
 }
+
+pepp::tc::DotSymbol::DotSymbol(Which which, Argument arg) : which(which), argument(arg) {}
+
+const pepp::tc::AAttribute *pepp::tc::DotSymbol::attribute(int type) const {
+  if (type == Argument::TYPE) return &argument;
+  else return LinearIR::attribute(type);
+}
+
+void pepp::tc::DotSymbol::insert(std::unique_ptr<AAttribute> attr) {
+  if (attr->type() == Argument::TYPE) argument = *(static_cast<Argument *>(attr.release()));
+  else LinearIR::insert(std::move(attr));
+}
+
+int pepp::tc::DotSymbol::type() const { return TYPE; }
