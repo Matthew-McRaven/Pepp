@@ -96,7 +96,7 @@ ARG QT_WASM_XARGS=""
 # Must activate EMSDK or it will not build. Skip some features that would require installing additional libraries.
 # Enable excptions, because that was the whole point of building Qt from the sources
 RUN source /emsdk/emsdk_env.sh \
-    && cmake -S /build-qt/${QT_VERSION} -B /build-qt/${QT_VERSION}/build -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel \
+    && cmake -S /build-qt/${QT_VERSION} -B /build-qt/${QT_VERSION}/build -G Ninja \
        -DCMAKE_TOOLCHAIN_FILE=/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake \
        ${QT_WASM_XARGS} \
        -DQT_HOST_PATH=/qt/${QT_VERSION}/gcc_64 \
