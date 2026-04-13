@@ -145,7 +145,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     (void)arg->serialize(buf, bits::hostOrder());
     if (!(value == 1 || value == 2 || value == 4 || value == 8))
       throw PepParserError(PepParserError::NullaryError::Argument_ExpectedPowerOfTwo, _buffer->matched_interval());
-    return std::make_shared<DotAlign>(Argument{arg});
+    return std::make_shared<DotAlign>(DotAlign::Which::ByteCount, Argument{arg});
   }
   case (int)DC::ASCII: {
     if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)

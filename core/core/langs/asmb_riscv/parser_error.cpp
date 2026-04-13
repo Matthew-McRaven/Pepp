@@ -15,7 +15,6 @@ const std::string pepp::tc::RISCVParserError::to_string(NullaryError err) {
   case NullaryError::Argument_InvalidIntegerFormat: return "Invalid integer format";
   case NullaryError::Argument_ExpectedInteger: return "Expected integer argument";
   case NullaryError::Argument_ExpectedHex: return "Expected hexadecimal argument";
-  case NullaryError::Argument_ExpectedPowerOfTwo: return "Expected power of two (1, 2, 4, or 8)";
   case NullaryError::Argument_ExpectedString: return "Expected string argument";
   case NullaryError::Argument_Exceeded1Byte: return "Argument exceeds 1 byte";
   case NullaryError::Argument_Exceeded2Bytes: return "Argument exceeds 2 bytes";

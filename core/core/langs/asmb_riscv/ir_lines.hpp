@@ -12,6 +12,8 @@ class IRValue;
 namespace pepp::tc {
 enum class RISCVDotCommands : int {
   ASCIZ = static_cast<int>(DotCommands::FIRST_USER),
+  ALIGN_P2,
+  ALIGN_BYTE,
 };
 enum class RISCVIRType : int { R = static_cast<int>(LinearIRType::FirstUser), I, S, B, U, J };
 struct IntegerInstruction : public LinearIR {

@@ -11,7 +11,8 @@ enum class DotCommands { ALIGN, ASCII, ASCIZ, BLOCK, BYTE, EQUATE, HALF, ORG, SE
 
 struct DotAlign : public LinearIR {
   static constexpr int TYPE = static_cast<int>(LinearIRType::DotAlign);
-  explicit DotAlign(Argument arg);
+  enum class Which { ByteCount, Pow2 } which;
+  explicit DotAlign(Which kind, Argument arg);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
   std::optional<u16> object_size(u16 base_address) const override;

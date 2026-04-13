@@ -15,7 +15,6 @@ public:
     Argument_InvalidIntegerFormat,
     Argument_ExpectedInteger,
     Argument_ExpectedHex,
-    Argument_ExpectedPowerOfTwo,
     Argument_ExpectedString,
     Argument_Exceeded1Byte,
     Argument_Exceeded2Bytes,

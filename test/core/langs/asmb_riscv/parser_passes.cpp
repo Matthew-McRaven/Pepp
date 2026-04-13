@@ -150,11 +150,51 @@ TEST_CASE("RISCV ASM parser dot commands",
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);
+      auto casted = std::dynamic_pointer_cast<DotAlign>(results[0]);
+      CHECK(casted);
+      CHECK(casted->which == DotAlign::Which::Pow2);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("s: .ALIGN 3"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+  }
+
+  SECTION(".BALIGN") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".BALIGN 1"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
       CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
     }
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("s: .ALIGN 4"));
+      auto p = Parser(data("s: .BALIGN 3"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+  }
+
+  SECTION(".P2ALIGN") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".P2ALIGN 1"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotAlign>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("s: .P2ALIGN 3"));
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);

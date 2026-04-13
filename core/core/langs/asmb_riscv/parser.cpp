@@ -197,7 +197,8 @@ namespace {
 using DC = pepp::tc::DotCommands;
 using LDC = pepp::tc::RISCVDotCommands;
 static const auto dot_map = std::map<std::string, int>{
-    {"ALIGN", (int)DC::ALIGN},
+    {"P2ALIGN", (int)LDC::ALIGN_P2},
+    {"BALIGN", (int)LDC::ALIGN_BYTE},
     {"ASCII", (int)DC::ASCII},
     {"ASCIZ", (int)LDC::ASCIZ},
     {"BLOCK", (int)DC::BLOCK},
@@ -209,6 +210,11 @@ static const auto dot_map = std::map<std::string, int>{
     {"WORD", (int)DC::WORD},
     // Aliases for previous directives
     {"STRING", (int)LDC::ASCIZ},
+    {"EQU", (int)DC::EQUATE},
+    {"SET", (int)DC::EQUATE},
+    // On RISC-V targets, aligns are treated as powers-of-2 by default.
+    {"ALIGN", {(int)LDC::ALIGN_P2}},
+
 };
 } // namespace
 
@@ -220,16 +226,23 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
     throw RISCVParserError(RISCVParserError::UnaryError::Dot_Invalid, dot_str, _buffer->matched_interval());
 
   switch (it->second) {
-  case (int)DC::ALIGN: {
+  case (int)LDC::ALIGN_P2: {
     auto arg = numeric_argument();
     if (!arg)
       throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
     u16 value;
     bits::span<u8> buf{(u8 *)&value, 2};
     (void)arg->serialize(buf, bits::hostOrder());
-    if (!(value == 1 || value == 2 || value == 4 || value == 8))
-      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedPowerOfTwo, _buffer->matched_interval());
-    return std::make_shared<DotAlign>(Argument{arg});
+    return std::make_shared<DotAlign>(DotAlign::Which::Pow2, Argument{arg});
+  }
+  case (int)LDC::ALIGN_BYTE: {
+    auto arg = numeric_argument();
+    if (!arg)
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+    u16 value;
+    bits::span<u8> buf{(u8 *)&value, 2};
+    (void)arg->serialize(buf, bits::hostOrder());
+    return std::make_shared<DotAlign>(DotAlign::Which::ByteCount, Argument{arg});
   }
   case (int)DC::ASCII: {
     if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
