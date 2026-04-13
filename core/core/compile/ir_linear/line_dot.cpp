@@ -41,8 +41,9 @@ void pepp::tc::DotLiteral::insert(std::unique_ptr<AAttribute> attr) {
 std::optional<u16> pepp::tc::DotLiteral::object_size(u16) const {
   switch (which) {
   case Which::ASCII: return argument.value->serialized_size();
-  case Which::Byte: return 1;
-  case Which::Word: return 2;
+  case Which::Byte1: return 1;
+  case Which::Byte2: return 2;
+  case Which::Byte4: return 2;
   }
 
   PEPP_UNREACHABLE();

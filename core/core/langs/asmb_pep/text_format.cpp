@@ -260,8 +260,8 @@ void pepp::tc::SourceVisitor::visit(const DotLiteral *line) {
   using Which = DotLiteral::Which;
   switch (line->which) {
   case Which::ASCII: dot = ".ASCII"; break;
-  case Which::Byte: dot = ".BYTE"; break;
-  case Which::Word: dot = ".WORD"; break;
+  case Which::Byte1: dot = ".BYTE"; break;
+  case Which::Byte2: dot = ".WORD"; break;
   }
 
   if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;

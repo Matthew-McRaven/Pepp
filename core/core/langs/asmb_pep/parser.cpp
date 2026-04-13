@@ -166,11 +166,11 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 1)
         throw PepParserError(PepParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
-      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte, Argument{numeric});
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
       if (ident->minimum_size() > 1)
         throw PepParserError(PepParserError::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
-      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte, Argument{ident});
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{ident});
     } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
   case (int)DC::EQUATE: {
@@ -252,9 +252,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 2)
         throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
-      return std::make_shared<DotLiteral>(DotLiteral::Which::Word, Argument{numeric});
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
-      return std::make_shared<DotLiteral>(DotLiteral::Which::Word, Argument{ident});
+      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{ident});
     } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
   default: throw std::logic_error("Unreachable");
