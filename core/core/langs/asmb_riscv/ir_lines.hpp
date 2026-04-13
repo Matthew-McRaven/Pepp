@@ -2,12 +2,17 @@
 
 #include "core/arch/riscv/asmb/rv_mnemonics.hpp"
 #include "core/compile/ir_linear/line_base.hpp"
+#include "core/compile/ir_linear/line_dot.hpp"
 #include "core/langs/asmb_riscv/ir_attributes.hpp"
 
 namespace pepp::ast {
 class IRValue;
 }
+
 namespace pepp::tc {
+enum class RISCVDotCommands : int {
+  ASCIZ = static_cast<int>(DotCommands::FIRST_USER),
+};
 enum class RISCVIRType : int { R = static_cast<int>(LinearIRType::FirstUser), I, S, B, U, J };
 struct IntegerInstruction : public LinearIR {
   IntegerInstruction(riscv::MnemonicDescriptor desc);

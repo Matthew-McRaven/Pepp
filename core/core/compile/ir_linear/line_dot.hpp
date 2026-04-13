@@ -7,7 +7,7 @@
 #include "core/compile/ir_linear/line_base.hpp"
 
 namespace pepp::tc {
-enum class DotCommands { ALIGN, ASCII, BLOCK, BYTE, EQUATE, HALF, ORG, SECTION, WORD, FIRST_USER };
+enum class DotCommands { ALIGN, ASCII, ASCIZ, BLOCK, BYTE, EQUATE, HALF, ORG, SECTION, WORD, FIRST_USER };
 
 struct DotAlign : public LinearIR {
   static constexpr int TYPE = static_cast<int>(LinearIRType::DotAlign);

@@ -195,11 +195,21 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::ins
 
 namespace {
 using DC = pepp::tc::DotCommands;
-// using PDC = pepp::tc::DotCommands;
-static const auto dot_map =
-    std::map<std::string, int>{{"ALIGN", (int)DC::ALIGN}, {"ASCII", (int)DC::ASCII},     {"BLOCK", (int)DC::BLOCK},
-                               {"BYTE", (int)DC::BYTE},   {"EQUATE", (int)DC::EQUATE},   {"HALF", (int)DC::HALF},
-                               {"ORG", (int)DC::ORG},     {"SECTION", (int)DC::SECTION}, {"WORD", (int)DC::WORD}};
+using LDC = pepp::tc::RISCVDotCommands;
+static const auto dot_map = std::map<std::string, int>{
+    {"ALIGN", (int)DC::ALIGN},
+    {"ASCII", (int)DC::ASCII},
+    {"ASCIZ", (int)LDC::ASCIZ},
+    {"BLOCK", (int)DC::BLOCK},
+    {"BYTE", (int)DC::BYTE},
+    {"EQUATE", (int)DC::EQUATE},
+    {"HALF", (int)DC::HALF},
+    {"ORG", (int)DC::ORG},
+    {"SECTION", (int)DC::SECTION},
+    {"WORD", (int)DC::WORD},
+    // Aliases for previous directives
+    {"STRING", (int)LDC::ASCIZ},
+};
 } // namespace
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(OptionalSymbol symbol) {
@@ -226,6 +236,15 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
       throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
     else {
       const auto asStr = std::string{maybeStr->view()};
+      Argument arg{std::make_shared<pepp::ast::String>(asStr)};
+      return std::make_shared<DotLiteral>(DotLiteral::Which::ASCII, arg);
+    }
+  }
+  case (int)LDC::ASCIZ: {
+    if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
+    else {
+      const auto asStr = std::string{maybeStr->view()} + '\0';
       Argument arg{std::make_shared<pepp::ast::String>(asStr)};
       return std::make_shared<DotLiteral>(DotLiteral::Which::ASCII, arg);
     }

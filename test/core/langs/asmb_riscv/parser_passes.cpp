@@ -181,6 +181,25 @@ TEST_CASE("RISCV ASM parser dot commands",
     }
   }
 
+  SECTION(".ASCIZ") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".ASCIZ \"hi\""));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".STRING \"\""));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+    }
+  }
+
   SECTION(".BLOCK") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(".BLOCK 7"));
