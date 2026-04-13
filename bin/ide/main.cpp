@@ -100,6 +100,9 @@ public:
 #include <emscripten.h>
 PeppApplication *g_app = nullptr;
 QQmlApplicationEngine *g_engine = nullptr;
+std::vector<std::string> g_argv_storage;
+std::vector<char *> g_argv_ptrs;
+int g_argc = 0;
 #endif
 
 int main(int argc, char **argv) {
@@ -135,13 +138,18 @@ int main(int argc, char **argv) {
   }
 
   using namespace Qt::StringLiterals;
-  // Must forward args for things like QML debugger to work.
-  auto remaining_argvs = cli.remaining_for_passthrough();
-  std::vector<char *> new_argvs(remaining_argvs.size());
-  for (int it = 0; it < remaining_argvs.size(); it++) new_argvs[it] = remaining_argvs[it].data();
-  new_argvs.emplace(new_argvs.begin(), argv[0]);
-  int new_argc = new_argvs.size();
+
 #ifdef __EMSCRIPTEN__
+  auto remaining_argvs = cli.remaining_for_passthrough();
+  g_argv_storage.reserve(remaining_argvs.size() + 1);
+  g_argv_storage.push_back(argv[0]);
+  for (auto &s : remaining_argvs) g_argv_storage.push_back(s);
+
+  g_argv_ptrs.reserve(g_argv_storage.size() + 1);
+  for (auto &s : g_argv_storage) g_argv_ptrs.push_back(s.data());
+  g_argv_ptrs.push_back(nullptr); // Qt requires null-terminated argv array
+
+  g_argc = static_cast<int>(g_argv_storage.size());
   // clang-format off
   // Make a persistent FS for themes. `true` to load from disk 2 mem
   EM_ASM(
@@ -154,11 +162,17 @@ int main(int argc, char **argv) {
       });
       );
   // clang-format on
-  g_app = new PeppApplication(new_argc, new_argvs.data());
+  g_app = new PeppApplication(g_argc, g_argv_ptrs.data());
   PeppApplication *app_ptr = g_app;
   g_engine = new QQmlApplicationEngine;
   QQmlApplicationEngine &engine = *g_engine;
 #else
+  // Must forward args for things like QML debugger to work.
+  auto remaining_argvs = cli.remaining_for_passthrough();
+  std::vector<char *> new_argvs(remaining_argvs.size());
+  for (int it = 0; it < remaining_argvs.size(); it++) new_argvs[it] = remaining_argvs[it].data();
+  new_argvs.emplace(new_argvs.begin(), argv[0]);
+  int new_argc = new_argvs.size();
   PeppApplication app(new_argc, new_argvs.data());
   PeppApplication *app_ptr = &app;
   QQmlApplicationEngine engine;
