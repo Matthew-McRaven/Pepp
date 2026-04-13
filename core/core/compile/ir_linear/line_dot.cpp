@@ -15,8 +15,8 @@ void pepp::tc::DotAlign::insert(std::unique_ptr<AAttribute> attr) {
 }
 
 std::optional<u16> pepp::tc::DotAlign::object_size(u16 base_address) const {
-  u16 value = argument.value->value_as<u16>();
-  u16 align;
+  u32 value = argument.value->value_as<u16>();
+  u32 align;
   switch (which) {
   case Which::ByteCount: align = value; break;
   case Which::Pow2: align = 1 << value; break;
