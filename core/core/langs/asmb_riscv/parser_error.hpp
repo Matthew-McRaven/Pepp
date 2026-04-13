@@ -14,6 +14,7 @@ public:
     Argument_ExpectedImm,
     Argument_InvalidIntegerFormat,
     Argument_ExpectedInteger,
+    Argument_ExpectedIdentifier,
     Argument_ExpectedHex,
     Argument_ExpectedString,
     Argument_Exceeded1Byte,

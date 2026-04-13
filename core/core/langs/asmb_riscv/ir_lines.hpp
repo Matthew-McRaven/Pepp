@@ -14,6 +14,10 @@ enum class RISCVDotCommands : int {
   ASCIZ = static_cast<int>(DotCommands::FIRST_USER),
   ALIGN_P2,
   ALIGN_BYTE,
+  SYMBOL_GLOBAL,
+  SYMBOL_LOCAL,
+  SYMBOL_WEAK,
+  SYMBOL_HIDDEN,
 };
 enum class RISCVIRType : int { R = static_cast<int>(LinearIRType::FirstUser), I, S, B, U, J };
 struct IntegerInstruction : public LinearIR {
@@ -63,4 +67,16 @@ struct JTypeIR : public IntegerInstruction {
   JTypeIR(riscv::MnemonicDescriptor desc, u8 rd, std::shared_ptr<pepp::ast::IRValue> imm);
   int type() const override;
 };
+
+struct DotSymbol : public LinearIR {
+  static constexpr int TYPE = static_cast<int>(LinearIRType::DotSymbol);
+  enum class Which { Global, Local, Weak, Hidden } which;
+  // Arg must always be an identifier
+  DotSymbol(Which which, Argument arg);
+  const AAttribute *attribute(int type) const override;
+  void insert(std::unique_ptr<AAttribute> attr) override;
+  int type() const override;
+  Argument argument;
+};
+
 } // namespace pepp::tc

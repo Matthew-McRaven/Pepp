@@ -99,8 +99,15 @@ void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, pepp::core::symbol::Le
 
       u8 info = (bind << 4) + (type & 0xf);
 
-      symbol_idx = symAc.add_symbol(nameIdx, value->value()(), entry->value->size(), info, 0,
-                                    secIdx); // leave other as 0, don't mess with visibility.
+      u8 vis = ELFIO::STV_DEFAULT;
+      switch (entry->visibility) {
+      case pepp::core::symbol::Visibility::Default: vis = ELFIO::STV_DEFAULT; break;
+      case pepp::core::symbol::Visibility::Hidden: vis = ELFIO::STV_HIDDEN; break;
+      case pepp::core::symbol::Visibility::Protected: vis = ELFIO::STV_PROTECTED; break;
+      case core::symbol::Visibility::Internal: vis = ELFIO::STV_INTERNAL; break;
+      }
+
+      symbol_idx = symAc.add_symbol(nameIdx, value->value()(), entry->value->size(), info, vis, secIdx);
     }
     // For all sections, for all relocations entries against this symbol
     // Create a relocation section for the current section if it does not exist, and append a relocation entry.

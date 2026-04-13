@@ -6,6 +6,7 @@
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/text.hpp"
+#include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
@@ -72,6 +73,11 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::numeric_argum
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::hex_argument() {
   auto arg = argument();
   return std::dynamic_pointer_cast<pepp::ast::Hexadecimal>(arg);
+}
+
+std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::RISCVParser::identifier_argument() {
+  auto arg = argument();
+  return std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg);
 }
 
 std::shared_ptr<pepp::tc::RTypeIR> pepp::tc::parser::RISCVParser::r_type(riscv::MnemonicDescriptor desc) {
@@ -197,24 +203,28 @@ namespace {
 using DC = pepp::tc::DotCommands;
 using LDC = pepp::tc::RISCVDotCommands;
 static const auto dot_map = std::map<std::string, int>{
-    {"P2ALIGN", (int)LDC::ALIGN_P2},
-    {"BALIGN", (int)LDC::ALIGN_BYTE},
     {"ASCII", (int)DC::ASCII},
     {"ASCIZ", (int)LDC::ASCIZ},
+    {"BALIGN", (int)LDC::ALIGN_BYTE},
     {"BLOCK", (int)DC::BLOCK},
     {"BYTE", (int)DC::BYTE},
     {"EQUATE", (int)DC::EQUATE},
+    {"GLOBAL", (int)LDC::SYMBOL_GLOBAL},
     {"HALF", (int)DC::HALF},
+    {"HIDDEN", (int)LDC::SYMBOL_HIDDEN},
+    {"LOCAL", (int)LDC::SYMBOL_LOCAL},
     {"ORG", (int)DC::ORG},
+    {"P2ALIGN", (int)LDC::ALIGN_P2},
     {"SECTION", (int)DC::SECTION},
+    {"WEAK", (int)LDC::SYMBOL_WEAK},
     {"WORD", (int)DC::WORD},
     // Aliases for previous directives
-    {"STRING", (int)LDC::ASCIZ},
-    {"EQU", (int)DC::EQUATE},
-    {"SET", (int)DC::EQUATE},
     // On RISC-V targets, aligns are treated as powers-of-2 by default.
     {"ALIGN", {(int)LDC::ALIGN_P2}},
-
+    {"EQU", (int)DC::EQUATE},
+    {"GLOBL", (int)LDC::SYMBOL_GLOBAL},
+    {"SET", (int)DC::EQUATE},
+    {"STRING", (int)LDC::ASCIZ},
 };
 } // namespace
 
@@ -226,15 +236,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
     throw RISCVParserError(RISCVParserError::UnaryError::Dot_Invalid, dot_str, _buffer->matched_interval());
 
   switch (it->second) {
-  case (int)LDC::ALIGN_P2: {
-    auto arg = numeric_argument();
-    if (!arg)
-      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
-    u16 value;
-    bits::span<u8> buf{(u8 *)&value, 2};
-    (void)arg->serialize(buf, bits::hostOrder());
-    return std::make_shared<DotAlign>(DotAlign::Which::Pow2, Argument{arg});
-  }
+  case (int)LDC::ALIGN_P2: [[fallthrough]];
   case (int)LDC::ALIGN_BYTE: {
     auto arg = numeric_argument();
     if (!arg)
@@ -242,8 +244,35 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
     u16 value;
     bits::span<u8> buf{(u8 *)&value, 2};
     (void)arg->serialize(buf, bits::hostOrder());
-    return std::make_shared<DotAlign>(DotAlign::Which::ByteCount, Argument{arg});
+    DotAlign::Which w = (it->second == (int)LDC::ALIGN_P2) ? DotAlign::Which::Pow2 : DotAlign::Which::ByteCount;
+    return std::make_shared<DotAlign>(w, Argument{arg});
   }
+  case (int)LDC::SYMBOL_GLOBAL: [[fallthrough]];
+  case (int)LDC::SYMBOL_HIDDEN: [[fallthrough]];
+  case (int)LDC::SYMBOL_LOCAL: [[fallthrough]];
+  case (int)LDC::SYMBOL_WEAK: {
+
+    auto arg = identifier_argument();
+    if (!arg)
+      throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    DotSymbol::Which w;
+    if (it->second == (int)LDC::SYMBOL_GLOBAL) {
+      w = DotSymbol::Which::Global;
+      arg->symbol()->binding = pepp::core::symbol::Binding::Global;
+    } else if (it->second == (int)LDC::SYMBOL_HIDDEN) {
+      w = DotSymbol::Which::Hidden;
+      arg->symbol()->visibility = pepp::core::symbol::Visibility::Hidden;
+    } else if (it->second == (int)LDC::SYMBOL_LOCAL) {
+      w = DotSymbol::Which::Local;
+      arg->symbol()->binding = pepp::core::symbol::Binding::Local;
+    } else {
+      w = DotSymbol::Which::Weak;
+      arg->symbol()->binding = pepp::core::symbol::Binding::Weak;
+    }
+
+    return std::make_shared<DotSymbol>(w, Argument{arg});
+  }
+
   case (int)DC::ASCII: {
     if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
       throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
