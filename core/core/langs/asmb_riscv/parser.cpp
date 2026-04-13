@@ -229,7 +229,9 @@ static const auto dot_map = std::map<std::string, int>{
     {"EQU", (int)DC::EQUATE},
     {"GLOBL", (int)LDC::SYMBOL_GLOBAL},
     {"SET", (int)DC::EQUATE},
+    {"SKIP", (int)DC::BLOCK},
     {"STRING", (int)LDC::ASCIZ},
+    {"ZERO", (int)DC::BLOCK},
 };
 } // namespace
 

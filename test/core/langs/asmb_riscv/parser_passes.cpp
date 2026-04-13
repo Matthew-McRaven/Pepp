@@ -241,12 +241,30 @@ TEST_CASE("RISCV ASM parser dot commands",
   }
 
   SECTION(".BLOCK") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".BLOCK 7"));
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    REQUIRE(results.size() == 1);
-    CHECK(std::dynamic_pointer_cast<DotBlock>(results[0]));
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".BLOCK 7"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotBlock>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".ZERO 7"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotBlock>(results[0]));
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".skip 7"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<DotBlock>(results[0]));
+    }
   }
 
   SECTION(".BYTE") {
