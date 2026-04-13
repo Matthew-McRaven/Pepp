@@ -28,7 +28,7 @@ struct IntegerInstruction : public LinearIR {
   IntegerInstruction(riscv::MnemonicDescriptor desc);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
-  std::optional<u16> object_size(u16 base_address) const override;
+  std::optional<u64> object_size(u64 base_address) const override;
 
   RISCVMnemonicAttribute mnemonic;
   u8 rd, rs1, rs2;

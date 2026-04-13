@@ -15,7 +15,7 @@ struct DotAlign : public LinearIR {
   explicit DotAlign(Which kind, Argument arg);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
-  std::optional<u16> object_size(u16 base_address) const override;
+  std::optional<u64> object_size(u64 base_address) const override;
   int type() const override;
   Argument argument;
 };
@@ -26,7 +26,7 @@ struct DotLiteral : public LinearIR { // ASCII, byte, word
   DotLiteral(Which kind, Argument arg);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
-  std::optional<u16> object_size(u16 base_address) const override;
+  std::optional<u64> object_size(u64 base_address) const override;
   int type() const override;
   Argument argument;
 };
@@ -36,7 +36,7 @@ struct DotBlock : public LinearIR { // Block
   explicit DotBlock(Argument arg);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
-  std::optional<u16> object_size(u16 base_address) const override;
+  std::optional<u64> object_size(u64 base_address) const override;
   int type() const override;
   Argument argument;
 };

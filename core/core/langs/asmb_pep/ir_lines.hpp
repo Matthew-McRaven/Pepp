@@ -25,7 +25,7 @@ struct MonadicInstruction : public LinearIR {
   explicit MonadicInstruction(Pep10Mnemonic m) : mnemonic(m) {}
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
-  std::optional<u16> object_size(u16 base_address) const override;
+  std::optional<u64> object_size(u64 base_address) const override;
   int type() const override;
   Pep10Mnemonic mnemonic;
 };
@@ -35,7 +35,7 @@ struct DyadicInstruction : public LinearIR {
   DyadicInstruction(Pep10Mnemonic m, Pep10AddrMode am, Argument arg) : mnemonic(m), addr_mode(am), argument(arg) {}
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
-  std::optional<u16> object_size(u16 base_address) const override;
+  std::optional<u64> object_size(u64 base_address) const override;
   int type() const override;
   Pep10Mnemonic mnemonic;
   Pep10AddrMode addr_mode;
