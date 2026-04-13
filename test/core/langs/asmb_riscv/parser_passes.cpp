@@ -321,6 +321,62 @@ TEST_CASE("RISCV ASM parser dot commands",
       CHECK(r0->flags.w == false);
       CHECK(r0->flags.x == true);
     }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".TEXT"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".text");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == false);
+      CHECK(r0->flags.x == true);
+      CHECK(r0->flags.z == false);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".BSS"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".bss");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == true);
+      CHECK(r0->flags.x == false);
+      CHECK(r0->flags.z == true);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".data"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".data");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == true);
+      CHECK(r0->flags.x == false);
+      CHECK(r0->flags.z == false);
+    }
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(".rodata"));
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      auto r0 = std::dynamic_pointer_cast<DotSection>(results[0]);
+      REQUIRE(r0);
+      CHECK(r0->name.value == ".rodata");
+      CHECK(r0->flags.r == true);
+      CHECK(r0->flags.w == false);
+      CHECK(r0->flags.x == false);
+      CHECK(r0->flags.z == false);
+    }
   }
 
   SECTION(".WORD") {

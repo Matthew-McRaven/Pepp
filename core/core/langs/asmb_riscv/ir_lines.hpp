@@ -18,6 +18,10 @@ enum class RISCVDotCommands : int {
   SYMBOL_LOCAL,
   SYMBOL_WEAK,
   SYMBOL_HIDDEN,
+  SECTION_TEXT,
+  SECTION_BSS,
+  SECTION_RODATA,
+  SECTION_DATA,
 };
 enum class RISCVIRType : int { R = static_cast<int>(LinearIRType::FirstUser), I, S, B, U, J };
 struct IntegerInstruction : public LinearIR {

@@ -218,6 +218,11 @@ static const auto dot_map = std::map<std::string, int>{
     {"SECTION", (int)DC::SECTION},
     {"WEAK", (int)LDC::SYMBOL_WEAK},
     {"WORD", (int)DC::WORD},
+    // Aliases for .SECTION
+    {"TEXT", (int)LDC::SECTION_TEXT},
+    {"BSS", (int)LDC::SECTION_BSS},
+    {"RODATA", (int)LDC::SECTION_RODATA},
+    {"DATA", (int)LDC::SECTION_DATA},
     // Aliases for previous directives
     // On RISC-V targets, aligns are treated as powers-of-2 by default.
     {"ALIGN", {(int)LDC::ALIGN_P2}},
@@ -364,6 +369,30 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
       bool r = contains(flags, "r"), w = contains(flags, "w"), x = contains(flags, "x"), z = contains(flags, "z");
       return std::make_shared<DotSection>(Identifier(*maybeSecName->value), SectionFlags(r, w, x, z));
     }
+  }
+  case (int)LDC::SECTION_TEXT: {
+    static const std::string name = ".text";
+    _pool->insert(name);
+    SectionFlags flags(true, false, true, false);
+    return std::make_shared<DotSection>(Identifier(name), flags);
+  }
+  case (int)LDC::SECTION_BSS: {
+    static const std::string name = ".bss";
+    _pool->insert(name);
+    SectionFlags flags(true, true, false, true);
+    return std::make_shared<DotSection>(Identifier(name), flags);
+  }
+  case (int)LDC::SECTION_RODATA: {
+    static const std::string name = ".rodata";
+    _pool->insert(name);
+    SectionFlags flags(true, false, false, false);
+    return std::make_shared<DotSection>(Identifier(name), flags);
+  }
+  case (int)LDC::SECTION_DATA: {
+    static const std::string name = ".data";
+    _pool->insert(name);
+    SectionFlags flags(true, true, false, false);
+    return std::make_shared<DotSection>(Identifier(name), flags);
   }
   default: throw std::logic_error("Unreachable");
   }
