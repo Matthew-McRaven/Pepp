@@ -5,12 +5,21 @@ import QtQuick.Controls
 import QtQuick.VectorImage
 import QtQuick.Layouts
 
-//import CircuitDesign
-
 Rectangle {
     id: root
 
     property real cellWidth: 100
+
+    BlueprintLibraryModel {
+        id: blueprintModel
+        project: canvas.project
+    }
+
+    ComponentPropertyModel {
+        id: componentModel
+        project: canvas.project
+        componentId: canvas.componentId ?? 0
+    }
 
     SplitView {
         anchors.fill: parent
@@ -22,11 +31,6 @@ Rectangle {
             SplitView.preferredWidth: root.cellWidth * 2 + 5
             SplitView.maximumWidth: SplitView.preferredWidth
             SplitView.minimumWidth: SplitView.preferredWidth
-
-            BlueprintLibraryModel {
-                id: blueprintModel
-                project: canvas.project
-            }
 
             BluePrintListView {
                 id: sourceListView
@@ -44,7 +48,7 @@ Rectangle {
                 id: props
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
-                diagramModel: null
+                componentModel: componentModel
                 blueprintModel: blueprintModel
             }
         }

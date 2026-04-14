@@ -47,12 +47,29 @@ void BlueprintLibraryModel::setProject(CircuitProject *project) {
   }
 }
 
-u32 BlueprintLibraryModel::blueprint(int index) const {
-  if (_project == nullptr) return schematic::BlueprintID{}.value;
+void BlueprintLibraryModel::setBlueprint(u32 blueprint) {
+  if (_blueprintGroupId.value != blueprint) {
+
+    _blueprintGroupId.value = blueprint;
+    createBlueprintList();
+
+    emit blueprintChanged();
+  }
+}
+
+void BlueprintLibraryModel::createBlueprintList() {
+  if (_blueprintGroupId.value <= 0) return;
+
   const auto library = _project->library();
   const auto &groups = library->groups();
-  if (index < 0 || index >= static_cast<int>(groups.size())) return schematic::BlueprintID{}.value;
-  const auto &group = groups.container.at(index);
-  if (group.second->members.empty()) return schematic::BlueprintID{}.value;
-  else return group.second->members.begin()->value;
+
+  _currentBlueprints.clear();
+  if (const auto group = groups.find(_blueprintGroupId); group != groups.end()) {
+
+    for (const auto types : group->second->members) {
+      auto it = library->blueprints().find(types);
+      if (it == library->blueprints().end()) continue;
+      _currentBlueprints.append(QString::fromStdString(it->second->name));
+    }
+  }
 }

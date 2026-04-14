@@ -8,8 +8,8 @@ import CircuitDesign
 Pane {
     id: root
 
-    //  Model containing all diagrams
-    required property var diagramModel
+    //  Model containing all components in current project
+    required property ComponentPropertyModel componentModel
 
     //  List of available blueprints for current project
     required property BlueprintLibraryModel blueprintModel
@@ -19,18 +19,11 @@ Pane {
         spacing: 2
         bottomPadding: 0
 
-        enabled: inputArea.index.row !== -1
-
-        property var index: root.diagramModel.currentIndex
-
-        onIndexChanged: {
-            //  Copies data from model to input areas
-            inputArea.updateInput();
-        }
+        //enabled: root.componentModel.component !== null ? true : false
 
         function updateInput() {
             //  Negative row indicates unitialized qindex
-            if (root.diagramModel == null || inputArea.index.row === -1)
+            if (root.componentModel == null)
                 return;
 
             //  Get data for current index
@@ -49,7 +42,7 @@ Pane {
             }
             Label {
                 id: id
-                text: "  "
+                text: root.componentModel.id ?? " "
             }
 
             Label {
@@ -61,16 +54,19 @@ Pane {
                 textRole: "name"
                 valueRole: "id"
                 currentValue: ""
+                onActivated: {
+                    root.blueprintModel.blueprint = gateFamily.currentValue;
+
+                    console.log("Family", gateFamily.currentValue);
+                    console.log("Types", root.blueprintModel.blueprintTypes);
+                }
             }
             Label {
                 text: "Type:"
             }
             ComboBox {
                 id: gateType
-                model: root.blueprintModel
-                textRole: "name"
-                valueRole: "id"
-                currentValue: ""
+                model: root.blueprintModel.blueprintTypes
             }
 
             Label {
@@ -98,28 +94,8 @@ Pane {
                 ]
                 textRole: "text"
                 valueRole: "value"
-                currentValue: 0
+                currentValue: root.componentModel.direction
             }
-
-            /*Label {
-                text: "Input Number:"
-            }
-            SpinBox {
-                id: input
-                from: 1
-                to: 8
-                value: 2
-            }
-
-            Label {
-                text: "Output Number:"
-            }
-            SpinBox {
-                id: output
-                from: 1
-                to: 3
-                value: 1
-            }*/
         }   //  Grid
         /*Row {
             Button {
