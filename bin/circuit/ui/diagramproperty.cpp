@@ -5,8 +5,8 @@
 BaseProperties::BaseProperties(QObject *parent) : QObject(parent) {}
 
 bool BaseProperties::setSelected(const bool v) {
-  if (_baseProperties.isSelected != v) {
-    _baseProperties.isSelected = v;
+  if (_isSelected != v) {
+    _isSelected = v;
     emit selectedChanged();
     return true;
   }

@@ -21,6 +21,7 @@ std::shared_ptr<BuiltinBlueprint> add_2x1(CircuitProject &f, BlueprintLibrary &l
       Blueprint::Pin{schematic::Rectangle::from_point_size(0, multiplier * 1, multiplier * 1, multiplier * 1),
                      PinType::Input},
   };
+  ret->name = name;
   auto ret_id = library.add_blueprint(name, ret);
   library.add_blueprint_to_group(gid, ret_id);
   return ret;

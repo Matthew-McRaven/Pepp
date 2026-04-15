@@ -41,6 +41,7 @@ struct Blueprint {
   std::vector<Pin> pins;
   AlignmentConstraint alignmentConstraint;
   schematic::ImageFileKey image;
+  std::string name;
 
   u16 input_pins() const;
   u16 output_pins() const;

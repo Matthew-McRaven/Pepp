@@ -7,9 +7,10 @@ import CircuitDesign
 
 Item {
     id: root
-    property var blueprint: 0
+    property int blueprint: 0
     property alias filter: canvas.filter
     property alias project: canvas.project
+    property alias component: canvas.componentId
     focus: true //  Control with focus receives keyboard events
 
     Flickable {
@@ -49,9 +50,9 @@ Item {
             xScrollbar: hsb.position
             yScrollbar: vsb.position
             blueprint: root.blueprint
-            filter: FilterDiagramListModel.None
-            x:0
-            y:0
+            filter: BlueprintLibraryModel.None
+            x: 0
+            y: 0
             width: flickable.width
             height: flickable.height
             transform: Translate {
@@ -67,28 +68,24 @@ Item {
                     text: "Rotate Left"
                     onTriggered: {
                         if (canvas.hasSelectedComponent())
-                        canvas.rotateClockwise();
+                            canvas.rotateClockwise();
                     }
                 }
                 MenuItem {
                     text: "Rotate right"
                     onTriggered: {
                         if (canvas.hasSelectedComponent())
-                        canvas.rotateCounterClockwise();
+                            canvas.rotateCounterClockwise();
                     }
                 }
-
             }
         }
-
     }
-
-
 
     ScrollBar {
         id: vsb
         visible: flickable.contentHeight > flickable.height
-        policy: visible? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        policy: visible ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
         width: visible ? implicitWidth : 0
         anchors.right: parent.right
         anchors.top: parent.top
@@ -97,18 +94,17 @@ Item {
     ScrollBar {
         id: hsb
         visible: flickable.contentWidth > flickable.width
-        policy: visible? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        policy: visible ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
     }
 
-
     Keys.onPressed: event => {
         //  Forward keypress events from QML to canvas
         //  Canvas will return true if keypress was handled
         event.accepted = canvas.keyPress(event.key, event.modifiers);
-        //console.log( event.key, event.modifiers);
+    //console.log( event.key, event.modifiers);
     }
 
     //  This is a hack. I'm not able to disable Canvas from taking focus.

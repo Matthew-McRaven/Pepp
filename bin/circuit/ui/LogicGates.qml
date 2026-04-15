@@ -5,12 +5,21 @@ import QtQuick.Controls
 import QtQuick.VectorImage
 import QtQuick.Layouts
 
-import CircuitDesign
-
 Rectangle {
     id: root
 
     property real cellWidth: 100
+
+    BlueprintLibraryModel {
+        id: blueprintModel
+        project: canvas.project
+    }
+
+    ComponentPropertyModel {
+        id: componentModel
+        project: canvas.project
+        componentId: canvas.componentId ?? 0
+    }
 
     SplitView {
         anchors.fill: parent
@@ -23,9 +32,9 @@ Rectangle {
             SplitView.maximumWidth: SplitView.preferredWidth
             SplitView.minimumWidth: SplitView.preferredWidth
 
-            DiagramListView {
+            BluePrintListView {
                 id: sourceListView
-                project: canvas.project
+                blueprintModel: blueprintModel
                 Layout.alignment: Qt.AlignTop
                 Layout.fillWidth: true
             }
@@ -35,13 +44,12 @@ Rectangle {
                 Layout.fillHeight: true
             }
 
-            DiagramEditor {
+            ComponentEditor {
                 id: props
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
-                diagramModel: null
-
-                gateModel: null
+                componentModel: componentModel
+                blueprintModel: blueprintModel
             }
         }
 
@@ -63,24 +71,30 @@ Rectangle {
                     buttons: selector.children
 
                     Component.onCompleted: {
+                        //  Enable select and disable diagram selections
                         buttonGroup.buttons[0].checked = true;
+                        sourceListView.enabled = false;
                     }
                     onClicked: btn => {
                         var result;
                         switch (btn.text) {
-                            case "arrow":
-                            result = FilterDiagramListModel.Arrow;
+                        case "arrow":
+                            result = BlueprintLibraryModel.Arrow;
+                            sourceListView.enabled = false;
                             break;
-                            case "diagram":
-                            result = FilterDiagramListModel.Diagram;
+                        case "diagram":
+                            result = BlueprintLibraryModel.Diagram;
+                            //  Blueprint is only active when in diagram mode.
+                            sourceListView.enabled = true;
                             break;
-                            case "line":
-                            result = FilterDiagramListModel.Line;
+                        case "line":
+                            result = BlueprintLibraryModel.Line;
+                            sourceListView.enabled = false;
                             break;
                         }
 
                         if (result === null)
-                        return;
+                            return;
                         canvas.filter = result;
                     }
                 }
@@ -130,7 +144,7 @@ Rectangle {
                 Layout.fillHeight: true
 
                 blueprint: sourceListView.blueprint
-                filter: FilterDiagramListModel.None
+                filter: BlueprintLibraryModel.None
                 z: -1
             }
         }   //  ColumnLayout

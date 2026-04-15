@@ -24,6 +24,7 @@ public:
   std::shared_ptr<Blueprint> get_blueprint(const std::string &name);
 
   const auto &groups() const { return _groups; }
+  const auto &blueprints() const { return _blueprints; }
 
 private:
   u32 _next_id = 1, _next_group = 1;

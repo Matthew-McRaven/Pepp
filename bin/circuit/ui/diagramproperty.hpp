@@ -8,20 +8,10 @@
 #include "common_types.hpp"
 #include "core/math/geom/rectangle.hpp"
 
-#include "diagramtype.hpp"
 #include "schematic/component.hpp"
 
 //  Forward declarations
 class DiagramProperties;
-
-struct BaseProperty {
-  bool isSelected = false;
-};
-
-struct LineProperty {};
-
-struct DiagramProperty {
-};
 
 class BaseProperties : public QObject, public ComponentVisualProperties {
   Q_OBJECT
@@ -31,13 +21,13 @@ public:
   explicit BaseProperties(QObject *parent = nullptr);
   virtual ~BaseProperties() {}
 
-  bool selected() const { return _baseProperties.isSelected; }
+  bool selected() const { return _isSelected; }
   bool setSelected(const bool v);
 signals:
   void selectedChanged();
 
 protected:
-  BaseProperty _baseProperties;
+  bool _isSelected = false;
 };
 
 class LineProperties : public BaseProperties {
@@ -46,7 +36,6 @@ public:
   explicit LineProperties(QObject *parent = nullptr);
 
 private:
-  LineProperty _properties;
 };
 
 class DiagramProperties : public BaseProperties {
@@ -56,7 +45,6 @@ public:
   explicit DiagramProperties(QObject *parent = nullptr);
 
 private:
-  DiagramProperty _properties;
 
   i16 _margin = 4;
 };
