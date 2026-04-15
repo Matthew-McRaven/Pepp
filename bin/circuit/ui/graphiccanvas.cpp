@@ -7,6 +7,8 @@
 #include <QPainter>
 #include <QSvgRenderer>
 #include <Qt> //  Keyboard constants
+#include <variant>
+
 #include "schematic/blueprintlibrary.hpp"
 #include "schematic/circuitproject.hpp"
 
@@ -14,7 +16,20 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   _project = std::make_shared<CircuitProject>();
   // Magic constant 8.
   _project->add_builtin_blueprints((i16)8);
+
+  //  TEST DATA. REMOVE IN PRODUCTION
   _project->add_test_data((i16)8);
+
+  //  Pick first item of test data. Remove after testing complete
+  auto &it = _project->schematic()->components().front();
+  _selected = it.second.get();
+
+  if (hasSelectedComponent()) {
+    ensureProperties(it.second.get());
+    static_cast<BaseProperties *>(it.second->properties.get())->setSelected(true);
+  }
+
+  // END TEST DATA
 
   _mipmaps = std::make_shared<MipmapStore>(_project);
 
@@ -362,15 +377,15 @@ void GraphicCanvas::updateCell(const QModelIndex &from, const QModelIndex &to) {
 }
 
 void GraphicCanvas::rotateClockwise() {
-  if (std::holds_alternative<Component *>(_selected)) {
-    auto comp = std::get<Component *>(_selected);
+  auto *comp = component();
+  if (comp != nullptr) {
     if (_project->schematic()->rotate_component(comp->id(), clockwise(comp->direction()))) update();
   }
 }
 
 void GraphicCanvas::rotateCounterClockwise() {
-  if (std::holds_alternative<Component *>(_selected)) {
-    auto comp = std::get<Component *>(_selected);
+  auto *comp = component();
+  if (comp != nullptr) {
     if (_project->schematic()->rotate_component(comp->id(), counter_clockwise(comp->direction()))) update();
   }
 }
@@ -507,7 +522,8 @@ bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
     }
   }
 
-  //  Repaint
+  //  Repaint and notify QML
+  emit componentChanged();
   update();
 
   return std::holds_alternative<Component *>(_selected);
@@ -559,7 +575,10 @@ void GraphicCanvas::unselectDiagrams() {
   }
   if (std::holds_alternative<Component *>(_selected)) {
     _selected = std::monostate{};
-  };
+
+    //  Notify QML
+    emit componentChanged();
+  }
 }
 
 //  Used to clear all line selections
@@ -861,7 +880,17 @@ bool GraphicCanvas::hitTest(QPointF newPoint) const {
   return !lastResult;
 }
 
-bool GraphicCanvas::hasSelectedComponent() { return std::holds_alternative<Component *>(_selected); }
+Component *GraphicCanvas::component() const {
+  if (hasSelectedComponent()) return std::get<Component *>(_selected);
+  return nullptr;
+}
+
+u32 GraphicCanvas::componentId() const {
+  if (hasSelectedComponent()) return std::get<Component *>(_selected)->id().value;
+  return 0;
+}
+
+bool GraphicCanvas::hasSelectedComponent() const { return std::holds_alternative<Component *>(_selected); }
 
 void GraphicCanvas::ensureProperties(Component *comp) {
   if (comp->properties == nullptr) {
@@ -875,17 +904,20 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
   const bool ctr = modifier & Qt::ControlModifier;
   // TODO: mmcraven, reenable active/selection
 
+  //  Most keys work directly on component
+  const auto *comp = component();
+
   switch (key) {
-  case Qt::Key_Delete:
-    if (std::holds_alternative<Component *>(_selected)) {
-      auto comp = std::get<Component *>(_selected);
-      _selected = std::monostate{};
+  case Qt::Key_Delete: {
+    if (comp != nullptr) {
       _project->schematic()->remove_component(comp->id());
-      // TODO: notify QML
+      // Notify QML
+      _selected = std::monostate{};
+      emit componentChanged();
       update(); // Clear current item.
     }
     return true;
-
+  }
   case Qt::Key_Home:
     setOriginY(0);
     setOriginX(0);
@@ -895,8 +927,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
     //  Control also means move background
   case Qt::Key_Left:
 
-    if (std::holds_alternative<Component *>(_selected) && !ctr) {
-      auto comp = std::get<Component *>(_selected);
+    if (comp != nullptr && !ctr) {
       //  We are moving item
       auto start = comp->geometry().top_left();
       auto dest = start.with_x(start.x() - 1);
@@ -905,8 +936,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
     } else setHScroll(-1);
     return true;
   case Qt::Key_Right:
-    if (std::holds_alternative<Component *>(_selected) && !ctr) {
-      auto comp = std::get<Component *>(_selected);
+    if (comp != nullptr && !ctr) {
       //  We are moving item
       auto start = comp->geometry().top_left();
       auto dest = start.with_x(start.x() + 1);
@@ -915,8 +945,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
     } else setHScroll(1);
     return true;
   case Qt::Key_Up:
-    if (std::holds_alternative<Component *>(_selected) && !ctr) {
-      auto comp = std::get<Component *>(_selected);
+    if (comp != nullptr && !ctr) {
       //  We are moving item
       auto start = comp->geometry().top_left();
       auto dest = start.with_y(start.y() - 1);
@@ -925,8 +954,7 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
     } else setVScroll(-1);
     return true;
   case Qt::Key_Down:
-    if (std::holds_alternative<Component *>(_selected) && !ctr) {
-      auto comp = std::get<Component *>(_selected);
+    if (comp != nullptr && !ctr) {
       //  We are moving item
       auto start = comp->geometry().top_left();
       auto dest = start.with_y(start.y() + 1);

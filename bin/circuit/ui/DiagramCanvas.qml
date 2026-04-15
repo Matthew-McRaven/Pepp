@@ -7,9 +7,10 @@ import CircuitDesign
 
 Item {
     id: root
-    property var blueprint: 0
+    property int blueprint: 0
     property alias filter: canvas.filter
     property alias project: canvas.project
+    property alias component: canvas.componentId
     focus: true //  Control with focus receives keyboard events
 
     Flickable {

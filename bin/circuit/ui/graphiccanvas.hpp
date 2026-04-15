@@ -10,13 +10,6 @@
 #include "core/math/geom/rectangle.hpp"
 #include "pixmaps/mipmapstore.hpp"
 
-/*  Rectangle questions
- *  1. To search for an item, I need to know the width/height. Can we lookup
- *  based on just the top left corner? If I do not pass width/height, item is not found.
- *  In future, we will have diagrams of various sizes. I will not always know the width/height
- *  of the item I'm looking up.
- */
-
 using PeppRect = pepp::core::Rectangle<i16>;
 using PeppSize = pepp::core::Size<i16>;
 using PeppPt = pepp::core::Point<i16>;
@@ -45,6 +38,7 @@ class GraphicCanvas : public QQuickPaintedItem {
   //  Set and access datamodel and template
   Q_PROPERTY(CircuitProject *project READ project NOTIFY projectChanged FINAL)
   Q_PROPERTY(u32 blueprint READ blueprint WRITE setBlueprint NOTIFY blueprintChanged FINAL)
+  Q_PROPERTY(u32 componentId READ componentId NOTIFY componentChanged FINAL)
   Q_PROPERTY(BlueprintLibraryModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
 
 public:
@@ -52,7 +46,7 @@ public:
   void paint(QPainter *painter) override;
 
   //  Sets currently selected diagram/line
-  Q_INVOKABLE bool hasSelectedComponent();
+  Q_INVOKABLE bool hasSelectedComponent() const;
   Q_INVOKABLE void rotateClockwise();
   Q_INVOKABLE void rotateCounterClockwise();
 
@@ -82,6 +76,9 @@ public:
 
   u32 blueprint() const { return _selectedBlueprint.value; }
   void setBlueprint(u32 bp);
+
+  Component *component() const;
+  u32 componentId() const;
 
   LineProperties *currentLine() const { return _currentLine; }
   void setCurrentLine(LineProperties *item);
@@ -115,6 +112,7 @@ signals:
   void filterChanged();
   void projectChanged();
   void blueprintChanged();
+  void componentChanged();
 
 private:
   //  Render and cache images for painting
