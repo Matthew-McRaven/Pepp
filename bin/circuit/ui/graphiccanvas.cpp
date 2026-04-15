@@ -390,6 +390,14 @@ void GraphicCanvas::rotateCounterClockwise() {
   }
 }
 
+void GraphicCanvas::rotateTwice() {
+  auto *comp = component();
+  if (comp != nullptr) {
+    const auto twice = counter_clockwise(counter_clockwise(comp->direction()));
+    if (_project->schematic()->rotate_component(comp->id(), twice)) update();
+  }
+}
+
 //  Mouse events - Comment out unused events for now
 
 void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {
