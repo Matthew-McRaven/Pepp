@@ -1,4 +1,5 @@
 #include "blueprint.hpp"
+#include "core/macros.hpp"
 
 u16 Blueprint::input_pins() const {
   int it = 0;
@@ -51,6 +52,7 @@ schematic::Point AlignmentConstraint::nearest_aligned_point(const schematic::Poi
   case Direction::Up: return nearest_aligned_point_up(pt);
   case Direction::Down: return nearest_aligned_point_down(pt);
   }
+  PEPP_UNREACHABLE();
 }
 
 schematic::Point AlignmentConstraint::nearest_aligned_point_right(const schematic::Point &pt) const noexcept {
