@@ -78,6 +78,13 @@ Item {
                             canvas.rotateCounterClockwise();
                     }
                 }
+                MenuItem {
+                    text: "Flip"
+                    onTriggered: {
+                        if (canvas.hasSelectedComponent())
+                            canvas.rotateTwice();
+                    }
+                }
             }
         }
     }

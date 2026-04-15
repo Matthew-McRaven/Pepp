@@ -49,6 +49,7 @@ public:
   Q_INVOKABLE bool hasSelectedComponent() const;
   Q_INVOKABLE void rotateClockwise();
   Q_INVOKABLE void rotateCounterClockwise();
+  Q_INVOKABLE void rotateTwice();
 
   //  Handle keypress events from QML
   Q_INVOKABLE bool keyPress(const int key, const int modifier);
