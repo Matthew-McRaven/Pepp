@@ -79,10 +79,6 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
         bits::to_upper_inplace(col1);
         space_after_comma = true;
         break;
-      case (int)ATT::MacroInvocation:
-        state = States::ARGED1;
-        col1 = "@" + token->to_string();
-        break;
       case (int)CTT::Identifier:
         state = States::ARGED1;
         col1 = token->to_string();
@@ -109,10 +105,7 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
         bits::to_upper_inplace(col1);
         space_after_comma = true;
         break;
-      case (int)ATT::MacroInvocation:
-        state = States::ARGED1;
-        col1 = "@" + token->to_string();
-        break;
+
       case (int)CTT::Identifier:
         state = States::ARGED1;
         col1 = token->to_string();

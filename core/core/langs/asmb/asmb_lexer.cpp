@@ -15,12 +15,20 @@ pepp::tc::lex::AsmbLexer::AsmbLexer(std::shared_ptr<std::unordered_set<std::stri
 
 bool pepp::tc::lex::AsmbLexer::input_remains() const { return _cursor.input_remains(); }
 
+static const std::string identifier_dot_at_str = R"([@a-zA-Z_][a-zA-Z0-9_.]*)";
+static const std::string identifier_nodot_at_str = R"([@a-zA-Z_][a-zA-Z0-9_]*)";
+static const std::string identifier_dot_noat_str = R"([a-zA-Z_][a-zA-Z0-9_.]*)";
+static const std::string identifier_nodot_noat_str = R"([a-zA-Z_][a-zA-Z0-9_]*)";
+
 std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
   using LocationInterval = support::LocationInterval;
-  static const std::regex identifier_nodot("[a-zA-Z_][a-zA-Z0-9_]*");
-  static const std::regex identifier_dot("[a-zA-Z_][a-zA-Z0-9_.]*");
-  const std::regex &identifier = _opts.allow_dot_in_ident ? identifier_dot : identifier_nodot;
-  static const std::regex macroInvoke("@[a-zA-Z][a-zA-Z0-9_]*");
+  static const std::regex identifier_dot_at(identifier_dot_at_str);
+  static const std::regex identifier_nodot_at(identifier_nodot_at_str);
+  static const std::regex identifier_dot_noat(identifier_dot_noat_str);
+  static const std::regex identifier_nodot_noat(identifier_nodot_noat_str);
+  const std::regex &identifier = _opts.allow_dot_in_ident
+                                     ? (_opts.allow_at_in_ident ? identifier_dot_at : identifier_dot_noat)
+                                     : (_opts.allow_at_in_ident ? identifier_nodot_at : identifier_nodot_noat);
   static const std::regex directive("\\.[a-zA-Z][a-zA-Z0-9_]*");
   static const std::regex symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
   static const std::regex decimal("[0-9]+");
@@ -83,14 +91,6 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
       _cursor.advance(match.size());
       auto const *id = &*_pool->emplace(match).first;
       current_token = std::make_shared<Identifier>(LocationInterval{loc_start, _cursor.location()}, id);
-      break;
-    } else if (auto maybeMacro = _cursor.matchView(macroInvoke); !maybeMacro.empty()) {
-      auto match = maybeMacro.str(0);
-      _cursor.advance(match.size());
-      auto const *id = &*_pool->emplace(match.substr(1)).first; // Drop leading @
-      if (_opts.allow_macros)
-        current_token = std::make_shared<MacroInvocation>(LocationInterval{loc_start, _cursor.location()}, id);
-      else current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
       break;
     } else if (auto maybeDot = _cursor.matchView(directive); !maybeDot.empty()) {
       auto match = maybeDot.str(0);

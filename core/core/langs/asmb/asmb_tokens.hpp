@@ -4,20 +4,13 @@ namespace pepp::tc::lex {
 
 enum class AsmTokenType {
   DotCommand = static_cast<int>(CommonTokenType::_FirstUser) << 0,
-  MacroInvocation = static_cast<int>(CommonTokenType::_FirstUser) << 1,
-  CharacterConstant = static_cast<int>(CommonTokenType::_FirstUser) << 2,
-  StringConstant = static_cast<int>(CommonTokenType::_FirstUser) << 3,
+  CharacterConstant = static_cast<int>(CommonTokenType::_FirstUser) << 1,
+  StringConstant = static_cast<int>(CommonTokenType::_FirstUser) << 2,
 };
 
 struct DotCommand : public Identifier {
   DotCommand(support::LocationInterval loc, std::string const *v);
   static constexpr int TYPE = static_cast<int>(AsmTokenType::DotCommand);
-  int type() const override;
-};
-
-struct MacroInvocation : public Identifier {
-  MacroInvocation(support::LocationInterval loc, std::string const *v);
-  static constexpr int TYPE = static_cast<int>(AsmTokenType::MacroInvocation);
   int type() const override;
 };
 

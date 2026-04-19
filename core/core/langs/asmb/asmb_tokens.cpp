@@ -5,11 +5,6 @@ pepp::tc::lex::DotCommand::DotCommand(support::LocationInterval loc, std::string
 
 int pepp::tc::lex::DotCommand::type() const { return TYPE; }
 
-pepp::tc::lex::MacroInvocation::MacroInvocation(support::LocationInterval loc, std::string const *v)
-    : Identifier(loc, v) {}
-
-int pepp::tc::lex::MacroInvocation::type() const { return TYPE; }
-
 pepp::tc::lex::CharacterConstant::CharacterConstant(support::LocationInterval loc, std::string value)
     : Token(loc), value(value) {}
 
