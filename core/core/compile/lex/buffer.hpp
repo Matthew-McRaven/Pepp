@@ -57,6 +57,9 @@ public:
   size_t count_matched_tokens() const;
   bits::span<std::shared_ptr<Token> const> matched_tokens() const;
   support::LocationInterval matched_interval() const;
+  // In some instances, the parser bypasses the token buffer to consume tokens directly from the lexer.
+  // Sometimes we read one too many tokens in this mode and those tokens need to be re-buffered.
+  void push_token(std::shared_ptr<Token> t);
 
 private:
   ALexer *_lex;

@@ -29,6 +29,8 @@ size_t pepp::tc::lex::Buffer::count_buffered_tokens() const { return _tokens.siz
 
 size_t pepp::tc::lex::Buffer::count_matched_tokens() const { return _head; }
 
+void pepp::tc::lex::Buffer::push_token(std::shared_ptr<Token> t) { _tokens.push_back(t); }
+
 pepp::tc::support::LocationInterval pepp::tc::lex::Buffer::matched_interval() const {
   auto toks = matched_tokens();
   if (toks.empty()) return support::LocationInterval();
