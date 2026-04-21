@@ -17,10 +17,10 @@
 #include "core/langs/asmb_pep/parser_error.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
-pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data)
+pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data, std::shared_ptr<MacroRegistry> reg)
     : _pool(std::make_shared<std::unordered_set<std::string>>()),
       _lexer(std::make_shared<lex::PepLexer>(_pool, std::move(data))), _buffer(std::make_shared<lex::Buffer>(&*_lexer)),
-      _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)) {}
+      _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)), _macros(reg) {}
 
 pepp::tc::IRProgram pepp::tc::parser::PepParser::parse(DiagnosticTable &diag) {
   IRProgram lines;

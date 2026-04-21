@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
+#include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 
@@ -30,7 +31,7 @@ class PepLexer;
 class DiagnosticTable;
 namespace parser {
 struct PepParser {
-  PepParser(support::SeekableData &&data);
+  PepParser(support::SeekableData &&data, std::shared_ptr<pepp::tc::MacroRegistry> reg);
 
   IRProgram parse(DiagnosticTable &);
   std::shared_ptr<pepp::core::symbol::LeafTable> symbol_table() const;
@@ -54,6 +55,7 @@ private:
   std::shared_ptr<lex::PepLexer> _lexer;
   std::shared_ptr<lex::Buffer> _buffer;
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
+  std::shared_ptr<pepp::tc::MacroRegistry> _macros;
 };
 } // namespace parser
 } // namespace tc

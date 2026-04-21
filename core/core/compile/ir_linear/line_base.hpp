@@ -62,6 +62,7 @@ enum class LinearIRType : int {
   DotLiteral,
   DotOrg,
   DotSection,
+  Macro,
   FirstUser,
 };
 } // namespace pepp::tc

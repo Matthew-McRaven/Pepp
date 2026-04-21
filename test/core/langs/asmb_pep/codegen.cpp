@@ -45,8 +45,9 @@ TEST_CASE("Pepp ASM codegen sectioning",
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc;
+  using MR = pepp::tc::MacroRegistry;
   pepp::tc::DiagnosticTable diag;
-  auto p = Parser(data(ex1));
+  auto p = Parser(data(ex1), std::make_shared<MR>());
   auto results = p.parse(diag);
   CHECK(diag.count() == 0);
   REQUIRE(results.size() == 11);
@@ -72,10 +73,11 @@ TEST_CASE("Pepp ASM codegen address assignment",
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
+  using MR = pepp::tc::MacroRegistry;
   using namespace pepp::tc;
   SECTION("No ORG") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(ex1));
+    auto p = Parser(data(ex1), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 11);
@@ -117,12 +119,14 @@ TEST_CASE("Pepp ASM codegen .SCALL", "[scope:core][scope:core.langs][level:asmb3
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
+  using MR = pepp::tc::MacroRegistry;
   using namespace pepp::tc;
 
   pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(R"(
     .SCALL DECI
-    .scall deco)"));
+    .scall deco)"),
+                  std::make_shared<MR>());
   auto results = p.parse(diag);
   CHECK(diag.count() == 0);
   REQUIRE(results.size() == 3);
@@ -145,12 +149,14 @@ TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT",
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
+  using MR = pepp::tc::MacroRegistry;
   using namespace pepp::tc;
 
   pepp::tc::DiagnosticTable diag;
   auto p = Parser(data(R"(
     .INPUT DECI
-    .OUTPUT deco)"));
+    .OUTPUT deco)"),
+                  std::make_shared<MR>());
   auto results = p.parse(diag);
   CHECK(diag.count() == 0);
   REQUIRE(results.size() == 3);
