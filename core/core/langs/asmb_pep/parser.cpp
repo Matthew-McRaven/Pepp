@@ -108,7 +108,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(OptionalS
   std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
   while (!rest.empty()) {
     std::tie(head, rest) = pepp::tc::split_exclusive(rest, split_args);
-    auto arg = token_join(head);
+    const auto first_loc = head.front()->location().lower(), last_loc = head.back()->location().upper();
+    auto arg = _lexer->view(support::LocationInterval(first_loc, last_loc));
     SPDLOG_WARN("Parsed macro argument: '{}'", arg);
     args.emplace_back(arg);
   }
@@ -363,7 +364,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
     while (!rest.empty()) {
       std::tie(head, rest) = pepp::tc::split_exclusive(rest, split_args);
-      auto arg = token_join(head);
+      const auto first_loc = head.front()->location().lower(), last_loc = head.back()->location().upper();
+      auto arg = _lexer->view(support::LocationInterval(first_loc, last_loc));
       SPDLOG_WARN("Defining macro argument: '{}'", arg);
       args.emplace_back(arg);
     }
@@ -452,7 +454,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
         SPDLOG_WARN("Finished parsing inline macro body with {} tokens", tokens.size());
         // TODO: emplace the macro definition in the registry using the re-assembled/collected body tokens.
         // TODO: need raw representation, else we lose details (e.g., identifier vs dot command).
-        auto str = token_join(tokens);
+        const auto first_loc = tokens.front()->location().lower(), last_loc = tokens.back()->location().upper();
+        auto str = _lexer->view(support::LocationInterval(first_loc, last_loc));
         SPDLOG_WARN("Re-assembled macro body:\n{}", str);
       }
     }

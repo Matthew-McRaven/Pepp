@@ -39,8 +39,6 @@ protected:
   support::LocationInterval _loc;
 };
 
-std::string token_join(bits::span<std::shared_ptr<Token> const> tokens);
-
 // Common token types across all lexers.
 struct Invalid : public Token {
   // You should be able to provide a loc for an invalid token!

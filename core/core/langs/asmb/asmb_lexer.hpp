@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include "core/compile/lex/lexer.hpp"
 namespace pepp::tc::lex {
 struct AsmbOptions {
@@ -20,10 +21,15 @@ struct AsmbLexer : public ALexer {
 
   bool input_remains() const override;
   std::shared_ptr<Token> next_token() override;
+  // Provide a string view between two locations.
+  // Only works for already-parsed locations. If interval outside of parsed text, will return empty stringview.
+  std::string_view view(support::LocationInterval loc) const;
 
 private:
   AsmbOptions _opts;
   std::unique_ptr<std::regex> _lineCommentRegex = nullptr;
+  // Not needed in base lexer since we only need it to support macros/conditionals.
+  std::map<decltype(support::Location::row), size_t> _row_to_streampos;
 };
 
 } // namespace pepp::tc::lex

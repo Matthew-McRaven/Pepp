@@ -15,6 +15,14 @@ pepp::tc::lex::AsmbLexer::AsmbLexer(std::shared_ptr<std::unordered_set<std::stri
 
 bool pepp::tc::lex::AsmbLexer::input_remains() const { return _cursor.input_remains(); }
 
+std::string_view pepp::tc::lex::AsmbLexer::view(support::LocationInterval loc) const {
+  const auto start_row = loc.lower().row, end_row = loc.upper().row;
+  const auto maybe_start = _row_to_streampos.find(start_row), maybe_end = _row_to_streampos.find(end_row);
+  if (maybe_start == _row_to_streampos.end() || maybe_end == _row_to_streampos.end()) return std::string_view{};
+  const auto start_pos = maybe_start->second + loc.lower().column, end_pos = maybe_end->second + loc.upper().column;
+  return _cursor.view_between(start_pos, end_pos);
+}
+
 static const std::string identifier_dot_at_str = R"([@a-zA-Z_][a-zA-Z0-9_.]*)";
 static const std::string identifier_nodot_at_str = R"([@a-zA-Z_][a-zA-Z0-9_]*)";
 static const std::string identifier_dot_noat_str = R"([a-zA-Z_][a-zA-Z0-9_.]*)";
@@ -38,6 +46,10 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
   static const std::regex strConstant(R"("([^"\\]|\\[bvnrt\\0"]|\\[xX][0-9a-fA-F]{2})*\")");
   std::shared_ptr<pepp::tc::lex::Token> current_token = nullptr;
   auto loc_start = _cursor.location();
+  // Ensure when a token starts a newline that we update row:location mapping.
+  if (loc_start.column == 0 && !_row_to_streampos.contains(loc_start.row))
+    _row_to_streampos[loc_start.row] = _cursor.end();
+
   while (input_remains()) {
     auto next = _cursor.peek();
     if (next == '\n') {
