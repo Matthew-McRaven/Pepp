@@ -41,6 +41,15 @@ public:
     }
     return nullptr;
   }
+  template <typename... Types>
+    requires((std::derived_from<Types, Token> && ...) &&
+             (requires { std::integral_constant<int, Types::TYPE>{}; } && ...))
+  std::shared_ptr<Token> match_not() {
+    // Takes the bitwise NOT of the combined mask of all types.
+    constexpr int combined = ~(Types::TYPE | ...);
+    return match(combined);
+  }
+  std::shared_ptr<Token> match_not(int mask) { return match(~mask); }
   std::shared_ptr<Token> match_literal(const std::string &);
   // Returns the next token if it matches the mask, otherwise returns nullptr.
   std::shared_ptr<Token> peek(int mask = -1);
