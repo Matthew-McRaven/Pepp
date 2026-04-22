@@ -117,3 +117,19 @@ void pepp::tc::DotOrg::insert(std::unique_ptr<AAttribute> attr) {
 }
 
 int pepp::tc::DotOrg::type() const { return TYPE; }
+
+pepp::tc::DotConditional::DotConditional(Behavior behavior) : behavior(behavior), argument({}) {}
+
+pepp::tc::DotConditional::DotConditional(Behavior behavior, Argument arg) : behavior(behavior), argument(arg) {}
+
+void pepp::tc::DotConditional::insert(std::unique_ptr<AAttribute> attr) {
+  if (attr->type() == Argument::TYPE) argument = *(static_cast<Argument *>(attr.release()));
+  else LinearIR::insert(std::move(attr));
+}
+
+int pepp::tc::DotConditional::type() const { return TYPE; }
+
+const pepp::tc::AAttribute *pepp::tc::DotConditional::attribute(int type) const {
+  if (type == Argument::TYPE) return &argument;
+  else return LinearIR::attribute(type);
+}
