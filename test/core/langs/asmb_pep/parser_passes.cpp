@@ -458,3 +458,23 @@ TEST_CASE("Pepp ASM parser dot commands",
     CHECK(std::dynamic_pointer_cast<DotConditional>(results[8]));
   }
 }
+
+TEST_CASE("Pepp ASM parser with macros",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using Parser = pepp::tc::parser::PepParser;
+  using SymbolTable = pepp::core::symbol::LeafTable;
+  using namespace pepp::tc;
+  using MR = pepp::tc::MacroRegistry;
+  SECTION("nullary macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto macro = std::make_shared<MacroDefinition>(MacroDefinition{"@TEST", {}, ""});
+    mr->insert(macro);
+    auto p = Parser(data("@TEST $feed"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    // CHECK(std::dynamic_pointer_cast<void*>(results[0]));
+  }
+}

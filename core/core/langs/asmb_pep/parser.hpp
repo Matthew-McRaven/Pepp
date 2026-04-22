@@ -46,6 +46,7 @@ private:
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();
   std::shared_ptr<LinearIR> instruction();
+  std::shared_ptr<LinearIR> macro(OptionalSymbol symbol);
   std::shared_ptr<LinearIR> pseudo(OptionalSymbol symbol);
   std::shared_ptr<LinearIR> line(OptionalSymbol symbol);
   std::shared_ptr<LinearIR> statement();

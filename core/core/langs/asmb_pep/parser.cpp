@@ -4,6 +4,7 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/ir_value/text.hpp"
@@ -15,7 +16,9 @@
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/lexer.hpp"
 #include "core/langs/asmb_pep/parser_error.hpp"
+#include "core/langs/asmb_pep/text_format.hpp"
 #include "core/math/bitmanip/strings.hpp"
+#include "spdlog/spdlog.h"
 
 pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data, std::shared_ptr<MacroRegistry> reg)
     : _pool(std::make_shared<std::unordered_set<std::string>>()),
@@ -77,6 +80,42 @@ std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::PepParser::identifier_arg
     return std::make_shared<pepp::ast::Symbolic>(2, entry);
   }
   return nullptr;
+}
+
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(OptionalSymbol symbol) {
+  // helper predicate to split token span on comma literals.
+  static const auto split_args = [](std::shared_ptr<pepp::tc::lex::Token> const &t) {
+    if (t->type() != tc::lex::Literal::TYPE) return false;
+    auto lit = std::static_pointer_cast<tc::lex::Literal>(t);
+    return lit->literal == ",";
+  };
+  lex::Checkpoint cp(*_buffer);
+  auto maybe_macro = _buffer->match<lex::Identifier>();
+  if (!maybe_macro) return cp.rollback(), nullptr;
+  auto macro = maybe_macro->to_string();
+  auto macro_def = _macros->find(macro);
+  if (macro_def == nullptr) return cp.rollback(), nullptr;
+  else cp.commit();
+
+  while (auto matched = _buffer->match_not<tc::lex::Empty, tc::lex::EoF, tc::lex::InlineComment>()) {
+    // Consume all no-comments, non-empty tokens until the end of the current line.
+  }
+  // Get tokens after the macro name, split on commas, re-assmble to strings.
+  auto tokens = _buffer->matched_tokens_after(cp);
+  std::vector<std::string> args;
+  std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
+  while (!rest.empty()) {
+    std::tie(head, rest) = pepp::tc::split_exclusive(rest, split_args);
+    auto arg = token_join(head);
+    SPDLOG_WARN("Parsed macro argument: '{}'", arg);
+    args.emplace_back(arg);
+  }
+  SPDLOG_WARN("Parsed macro invocation: '{}', with {} arguments", macro, args.size());
+  auto ret = std::make_shared<MacroLine>(macro_def, args);
+  // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
+  // TODO: Attach symbol def
+  // TODO: push an entry on the conditional stack to enter skip mode.
+  return ret;
 }
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::instruction() {
@@ -319,8 +358,10 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(OptionalSymbol symbol) {
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
-  if (auto instr = instruction(); instr) ret = instr;
-  else if (auto dot = pseudo(symbol); dot) ret = dot;
+  if (auto dot = pseudo(symbol); dot) ret = dot;
+  else if (auto macro = this->macro(symbol); macro) ret = macro;
+  else if (auto instr = instruction(); instr) ret = instr;
+
   else return nullptr;
 
   if (auto comment = _buffer->match<lex::InlineComment>(); comment)
