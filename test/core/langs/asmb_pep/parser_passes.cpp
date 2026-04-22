@@ -302,4 +302,159 @@ TEST_CASE("Pepp ASM parser dot commands",
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
   }
+
+  SECTION("Trivial true .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 3);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+  }
+  SECTION("Trivial false .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 0\n.BYTE 5\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+  }
+
+  SECTION("Trivial nested true-true .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.IF 1\n.BYTE 5\n.endif\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 5);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[4]));
+  }
+  SECTION("Trivial nested true-false .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n .IF 0\n .BYTE 5\n .endif\n .ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("Trivial nested false-false .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 0\n .IF 0\n .BYTE 5\n .ENDIF\n .ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+  }
+  SECTION("Trivial nested false-true .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 0\n.IF 1\n.BYTE 5\n.ENDIF\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+  }
+
+  SECTION("Trivial false .IF + true elseif") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 0\n.BYTE 5\n.byte 5\n.ELSEIF 1\n .WORD 1\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("Trivial true .IF + true elseif") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ELSEIF 1\n .WORD 1\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("Ignore not-taken .ELSEIF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ELSEIF 1\n .WORD 1\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("Ignore not-taken .ELSE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ELSEIF 1\n .WORD 1\n.ELSE\n.WORD 5\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("nested ELSEIF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(.IF 0
+    	.align
+		.ELSEIF 1	
+			.IF 0
+				.align 2
+			.ELSEIF 1
+				.word 2
+			.endif
+		.ENDIF)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 7);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[4]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[5]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[6]));
+  }
+  SECTION("nested ELSE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(.IF 0
+    	.align
+		.ELSEIF 0
+    .ELSE	
+			.IF 0
+				.align 2
+			.ELSEIF 0
+      .ELSE
+				.word 2
+			.endif
+		.ENDIF)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 9);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[4]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[5]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[6]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[7]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[8]));
+  }
 }

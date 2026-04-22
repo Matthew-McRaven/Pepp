@@ -224,4 +224,37 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(start->second == PE::to_string(NullaryError::Section_StringFlags));
     }
   }
+  SECTION("Unterminated .IF") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("\n.IF 0"), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 1);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      CHECK(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Conditional_Unterminated));
+    }
+  }
+  SECTION("Unmatched .ELSEIF") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("\n.elseif 0"), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 1);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      CHECK(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedElseif));
+    }
+  }
+  SECTION("Unmatched .ENDIF") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("\n.endif"), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 1);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      CHECK(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedEndif));
+    }
+  }
 }

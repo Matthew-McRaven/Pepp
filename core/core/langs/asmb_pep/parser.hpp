@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <stack>
 #include <unordered_set>
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
@@ -56,6 +57,16 @@ private:
   std::shared_ptr<lex::Buffer> _buffer;
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
   std::shared_ptr<pepp::tc::MacroRegistry> _macros;
+
+  struct ConditionalStack {
+    bool matched_any = false; // True if any conditional guard has been meet at this level. Used to prevent selecting
+                              // further elseif/else blocks
+    bool matched_this_stmt = false; // Only true in the conditional block which first matches is guard
+    bool matched_else = false;      // Prevent matching an elseif after an else
+  };
+  std::vector<ConditionalStack> _conditionals;
+  // Skip mode is true when any element in _conditionals sets matched_this_stmt=false.
+  bool skip_mode() const;
 };
 } // namespace parser
 } // namespace tc

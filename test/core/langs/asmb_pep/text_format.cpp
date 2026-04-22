@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "core/langs/asmb_pep/text_format.hpp"
 #include <catch.hpp>
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/source/seekable.hpp"
@@ -23,7 +24,6 @@
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/lexer.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
-#include "core/langs/asmb_pep/text_format.hpp"
 
 namespace {
 static auto idpool = []() { return std::make_shared<std::unordered_set<std::string>>(); };
@@ -319,6 +319,27 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()) == lexer_formatted);
+  }
+  SECTION(".IF") {
+    static const auto txt = ".IF 1\n.BYTE 15\n.ENDIF";
+    auto l = Lexer(idpool(), data(txt));
+    auto b = Buffer(&l);
+    while (b.input_remains()) b.match(-1);
+    auto sp = b.matched_tokens();
+    auto pred = [](const std::shared_ptr<Token> &t) { return t->type() == Empty::TYPE; };
+    auto [l1, rest1] = pepp::tc::split_inclusive(sp, pred);
+    auto [l2, rest2] = pepp::tc::split_inclusive(rest1, pred);
+    auto [l3, rest3] = pepp::tc::split_inclusive(rest2, pred);
+    CHECK(l1.size() == 3);
+    CHECK(l2.size() == 3);
+    CHECK(l3.size() == 1);
+    CHECK(rest3.empty());
+    auto l1_formatted = format_source(l1);
+    CHECK(l1_formatted == "         .IF     1");
+    auto l2_formatted = format_source(l2);
+    CHECK(l2_formatted == "         .BYTE   15");
+    auto l3_formatted = format_source(l3);
+    CHECK(l3_formatted == "         .ENDIF");
   }
 }
 

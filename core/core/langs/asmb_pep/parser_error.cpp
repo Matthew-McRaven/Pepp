@@ -24,6 +24,11 @@ const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   case NullaryError::Section_TwoArgs: return ".SECTION requires two arguments";
   case NullaryError::Section_StringFlags: return ".SECTION flags must be a string";
   case NullaryError::Token_MissingNewline: return "Expected \\n";
+  case NullaryError::Conditional_UnmatchedEndif: return "Unmatched .ENDIF directive";
+  case NullaryError::Conditional_Unterminated: return "Unterminated conditional directive";
+  case NullaryError::Conditional_UnmatchedElseif: return "Unmatched .ELSEIF directive";
+  case NullaryError::Conditional_UnmatchedElse: return "Unmatched .ELSE directive";
+  case NullaryError::Conditional_MultipleElse: return "Multiple .ELSE directives in the same conditional";
   }
   PEPP_UNREACHABLE();
 }

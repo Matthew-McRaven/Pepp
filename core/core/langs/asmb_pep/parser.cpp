@@ -127,7 +127,8 @@ static const auto dot_map =
                                {"BYTE", (int)DC::BYTE},      {"EQUATE", (int)DC::EQUATE}, {"EXPORT", (int)PDC::EXPORT},
                                {"IMPORT", (int)PDC::IMPORT}, {"INPUT", (int)PDC::INPUT},  {"ORG", (int)DC::ORG},
                                {"OUTPUT", (int)PDC::OUTPUT}, {"SCALL", (int)PDC::SCALL},  {"SECTION", (int)DC::SECTION},
-                               {"WORD", (int)DC::WORD}};
+                               {"WORD", (int)DC::WORD},      {"IF", (int)DC::IF},         {"ELSEIF", (int)DC::ELSEIF},
+                               {"ELSE", (int)DC::ELSE},      {"ENDIF", (int)DC::ENDIF}};
 } // namespace
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(OptionalSymbol symbol) {
   auto dot = _buffer->match<lex::DotCommand>();
@@ -258,6 +259,59 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{ident});
     } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
+  case (int)DC::IF: {
+    auto arg = argument();
+    if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_Missing, _buffer->matched_interval());
+    else if (symbol)
+      throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    bool matched = arg->value_as<i16>() != 0;
+    _conditionals.emplace_back(
+        ConditionalStack{.matched_any = matched, .matched_this_stmt = matched, .matched_else = false});
+    return std::make_shared<DotConditional>(DotConditional::Behavior::IF, Argument{arg});
+  }
+  case (int)DC::ELSEIF: {
+    auto arg = argument();
+    if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_Missing, _buffer->matched_interval());
+    else if (symbol)
+      throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    else if (_conditionals.empty())
+      throw PepParserError(PepParserError::NullaryError::Conditional_UnmatchedElseif, _buffer->matched_interval());
+
+    auto &tos = _conditionals.back();
+    if (tos.matched_else) {
+      throw PepParserError(PepParserError::NullaryError::Conditional_UnmatchedElseif, _buffer->matched_interval());
+    } else if (tos.matched_any) _conditionals.back().matched_this_stmt = false;
+    else {
+      tos.matched_this_stmt = (arg->value_as<i16>() != 0);
+      tos.matched_any = tos.matched_any || tos.matched_this_stmt;
+    }
+    return std::make_shared<DotConditional>(DotConditional::Behavior::ELSEIF, Argument{arg});
+  }
+  case (int)DC::ELSE: {
+    if (symbol)
+      throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    else if (_conditionals.empty())
+      throw PepParserError(PepParserError::NullaryError::Conditional_UnmatchedElse, _buffer->matched_interval());
+
+    auto &tos = _conditionals.back();
+    if (tos.matched_else)
+      throw PepParserError(PepParserError::NullaryError::Conditional_MultipleElse, _buffer->matched_interval());
+    else if (tos.matched_any) tos.matched_this_stmt = false;
+    else {
+      tos.matched_this_stmt = true;
+      tos.matched_any = true;
+    }
+    tos.matched_else = true;
+    return std::make_shared<DotConditional>(DotConditional::Behavior::ELSE);
+  }
+  case (int)DC::ENDIF: {
+    if (symbol)
+      throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    if (_conditionals.empty())
+      throw PepParserError(PepParserError::NullaryError::Conditional_UnmatchedEndif, _buffer->matched_interval());
+    _conditionals.pop_back();
+    return std::make_shared<DotConditional>(DotConditional::Behavior::ENDIF);
+  }
   default: throw std::logic_error("Unreachable");
   }
   return nullptr;
@@ -279,8 +333,38 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(OptionalSy
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
-  lex::Checkpoint cp(*_buffer);
 
+  auto start_depth = _conditionals.size();
+  const auto start_ival = _lexer->current_location();
+  // Consume tokens directly from lexer without buffering to avoid buffer-clearing bugs.
+  while (skip_mode() && _lexer->input_remains()) {
+    auto token = _lexer->next_token();
+    // Check if the next line is a conditional directive that could increase our skip depth.
+    // Do not consume the ENDIF which leaves skip mode so that we can properly emit the IR line.
+    if (token && token->type() == lex::DotCommand::TYPE) {
+      auto dot_str = bits::to_upper(token->to_string());
+      // If we hit an .IF, increment our conditional depth to avoid confusion with nested inactive conditionals.
+      if (dot_str == "IF")
+        _conditionals.emplace_back(
+            ConditionalStack{.matched_any = false, .matched_this_stmt = false, .matched_else = false});
+      else if ((dot_str == "ELSEIF" || dot_str == "ELSE") && start_depth == _conditionals.size() &&
+               !_conditionals.back().matched_any) {
+        // Need to parse this branch! It may make our condition true.
+        _buffer->push_token(token);
+        break;
+      } else if (dot_str == "ENDIF") {
+        if (start_depth < _conditionals.size()) _conditionals.pop_back();
+        // Do not consume ENDIF token closing the conditional that entered skip mode. Re-buffer that token so we can
+        // take a normal parsing path for it and emit the proper IR for the closing directive.
+        else {
+          _buffer->push_token(token);
+          break;
+        }
+      }
+    }
+  }
+
+  lex::Checkpoint cp(*_buffer);
   if (auto empty = _buffer->match<tc::lex::Empty>(); empty) {
     auto line = std::make_shared<EmptyLine>();
     line->source_interval = empty->location();
@@ -291,7 +375,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
     auto line = std::make_shared<CommentLine>(Comment(*comment->value));
     line->source_interval = comment->location();
     ret = line;
-  } else {
+  }
+  // Avoid line() if no input remains (e.g., due to unterminated macro or conditional).
+  else if (_buffer->input_remains()) {
     auto symbol = _buffer->match<lex::SymbolDeclaration>();
     if (symbol && symbol->to_string().length() > 7)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_TooLong, _buffer->matched_interval());
@@ -308,6 +394,12 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
 
   if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains())
     throw PepParserError(PepParserError::NullaryError::Token_MissingNewline, _buffer->matched_interval());
+  else if (!_buffer->input_remains() && _conditionals.size() > 0) {
+    const auto end_ival = _lexer->current_location();
+    support::LocationInterval ival{start_ival, end_ival};
+    throw PepParserError(PepParserError::NullaryError::Conditional_Unterminated, ival);
+  }
+
   return ret;
 }
 
@@ -315,4 +407,9 @@ void pepp::tc::parser::PepParser::synchronize() {
   // Scan until we reach a newline.
   static const auto mask = ~(lex::Empty::TYPE | lex::EoF::TYPE);
   while (_buffer->input_remains() && _buffer->match(mask));
+}
+
+bool pepp::tc::parser::PepParser::skip_mode() const {
+  return std::reduce(_conditionals.begin(), _conditionals.end(), false,
+                     [](bool acc, const ConditionalStack &cs) { return acc || (!cs.matched_this_stmt); });
 }

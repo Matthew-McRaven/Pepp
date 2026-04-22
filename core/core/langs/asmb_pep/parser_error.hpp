@@ -26,6 +26,11 @@ public:
     Section_TwoArgs,
     Section_StringFlags,
     Token_MissingNewline,
+    Conditional_UnmatchedEndif,
+    Conditional_UnmatchedElseif,
+    Conditional_UnmatchedElse,
+    Conditional_MultipleElse,
+    Conditional_Unterminated,
   };
   enum class UnaryError {
     Mnemonic_Invalid,
