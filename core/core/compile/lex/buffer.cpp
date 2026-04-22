@@ -40,8 +40,8 @@ pepp::tc::support::LocationInterval pepp::tc::lex::Buffer::matched_interval() co
 }
 
 bits::span<const std::shared_ptr<pepp::tc::lex::Token>>
-pepp::tc::lex::Buffer::matched_tokens_after(const Checkpoint &cp) const {
-  return bits::span<std::shared_ptr<pepp::tc::lex::Token> const>(_tokens.cbegin() + cp._head, _tokens.cbegin() + _head);
+pepp::tc::lex::Buffer::matched_tokens_after(const Marker &m) const {
+  return bits::span<std::shared_ptr<pepp::tc::lex::Token> const>(_tokens.cbegin() + m._head, _tokens.cbegin() + _head);
 }
 
 bits::span<std::shared_ptr<pepp::tc::lex::Token> const> pepp::tc::lex::Buffer::matched_tokens() const {
@@ -87,10 +87,9 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::Buffer::peek_literal(const 
   else return nullptr;
 }
 
-pepp::tc::lex::Checkpoint::Checkpoint(Buffer &buf) : _buf(buf) {
-  _head = _buf._head;
-  _buf._checkpoints++;
-}
+pepp::tc::lex::Marker::Marker(const Buffer &buf) : _buf(buf), _head(buf._head) {}
+
+pepp::tc::lex::Checkpoint::Checkpoint(Buffer &buf) : _buf(buf), _marker(buf) { _buf._checkpoints++; }
 
 pepp::tc::lex::Checkpoint::~Checkpoint() {
   _buf._checkpoints--;
@@ -98,6 +97,8 @@ pepp::tc::lex::Checkpoint::~Checkpoint() {
   if (_buf._checkpoints == 0) _buf.clear_tokens();
 }
 
-void pepp::tc::lex::Checkpoint::rollback() { _buf._head = _head; }
+void pepp::tc::lex::Checkpoint::rollback() { _buf._head = _marker._head; }
 
-void pepp::tc::lex::Checkpoint::commit() { _head = _buf._head; }
+void pepp::tc::lex::Checkpoint::commit() { _marker._head = _buf._head; }
+
+pepp::tc::lex::Marker pepp::tc::lex::Checkpoint::marker() const { return _marker; }

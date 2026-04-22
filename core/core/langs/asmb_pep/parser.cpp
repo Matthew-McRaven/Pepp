@@ -103,7 +103,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(OptionalS
     // Consume all no-comments, non-empty tokens until the end of the current line.
   }
   // Get tokens after the macro name, split on commas, re-assmble to strings.
-  auto tokens = _buffer->matched_tokens_after(cp);
+  auto tokens = _buffer->matched_tokens_after(cp.marker());
   std::vector<std::string> args;
   std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
   while (!rest.empty()) {
@@ -358,7 +358,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     if (!name)
       throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
     lex::Checkpoint cp(*_buffer);
-    auto tokens = _buffer->matched_tokens_after(cp);
+    auto tokens = _buffer->matched_tokens_after(cp.marker());
     std::vector<std::string> args;
     std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
     while (!rest.empty()) {

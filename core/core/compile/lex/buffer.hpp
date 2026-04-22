@@ -25,6 +25,7 @@ namespace pepp::tc::lex {
 struct Token;
 struct ALexer;
 class Checkpoint;
+class Marker;
 
 class Buffer {
 public:
@@ -65,7 +66,7 @@ public:
   size_t count_buffered_tokens() const;
   size_t count_matched_tokens() const;
   // Return all tokens in the buffer between checkpoints head and our head.
-  bits::span<std::shared_ptr<Token> const> matched_tokens_after(const Checkpoint &) const;
+  bits::span<std::shared_ptr<Token> const> matched_tokens_after(const Marker &) const;
   bits::span<std::shared_ptr<Token> const> matched_tokens() const;
   support::LocationInterval matched_interval() const;
   // In some instances, the parser bypasses the token buffer to consume tokens directly from the lexer.
@@ -76,8 +77,24 @@ private:
   ALexer *_lex;
   std::vector<std::shared_ptr<Token>> _tokens;
   size_t _head = 0, _checkpoints = 0;
+  friend class Marker;
   friend class Checkpoint;
   void clear_tokens();
+};
+
+// Represent a location in a buffer in a manner opaque to the end user.
+// Do not hold on to this beyond the scope in which it was created.
+// It WILL be invalidated when the buffer is cleared, which may happen anytime a Checkpoint falls out of scope.
+// Mostly useful when trying to recover text of difficult-to-parse constructs, like macro & conditional bodies.
+class Marker {
+public:
+  explicit Marker(const Buffer &buf);
+
+private:
+  friend class Buffer;
+  friend class Checkpoint;
+  const Buffer &_buf;
+  size_t _head = 0;
 };
 
 // Effectively a semaphor for the buffer? As long as one checkpoint exists, Buffer's tokens will not be cleared.
@@ -96,11 +113,12 @@ public:
   void rollback();
   // Set this checkpoint's head to the buffer's current head.
   void commit();
+  Marker marker() const;
 
 private:
   friend class Buffer;
   Buffer &_buf;
-  size_t _head = 0;
+  Marker _marker;
 };
 
 } // namespace pepp::tc::lex
