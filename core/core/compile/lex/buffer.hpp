@@ -68,6 +68,8 @@ public:
   // Return all tokens in the buffer between checkpoints head and our head.
   bits::span<std::shared_ptr<Token> const> matched_tokens_after(const Marker &) const;
   bits::span<std::shared_ptr<Token> const> matched_tokens() const;
+  // Return all tokens after _head, which are tokens not-yet matched.
+  bits::span<std::shared_ptr<Token> const> buffered_tokens() const;
   support::LocationInterval matched_interval() const;
   // In some instances, the parser bypasses the token buffer to consume tokens directly from the lexer.
   // Sometimes we read one too many tokens in this mode and those tokens need to be re-buffered.

@@ -29,6 +29,10 @@ size_t pepp::tc::lex::Buffer::count_buffered_tokens() const { return _tokens.siz
 
 size_t pepp::tc::lex::Buffer::count_matched_tokens() const { return _head; }
 
+bits::span<const std::shared_ptr<pepp::tc::lex::Token>> pepp::tc::lex::Buffer::buffered_tokens() const {
+  return bits::span<std::shared_ptr<pepp::tc::lex::Token> const>(_tokens.cbegin() + _head, _tokens.cend());
+}
+
 void pepp::tc::lex::Buffer::push_token(std::shared_ptr<Token> t) { _tokens.push_back(t); }
 
 pepp::tc::support::LocationInterval pepp::tc::lex::Buffer::matched_interval() const {

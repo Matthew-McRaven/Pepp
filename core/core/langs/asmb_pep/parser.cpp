@@ -357,8 +357,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     auto name = identifier_argument();
     if (!name)
       throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
-    lex::Checkpoint cp(*_buffer);
-    auto tokens = _buffer->matched_tokens_after(cp.marker());
+    lex::Marker marker(*_buffer);
+    auto tokens = _buffer->matched_tokens_after(marker);
     std::vector<std::string> args;
     std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
     while (!rest.empty()) {
@@ -437,6 +437,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
   while ((_active_macro_defs > 0 || skip_mode()) && _lexer->input_remains()) {
     auto token = _lexer->next_token();
     if (_active_macro_defs > 0) {
+      // Need to capture all body tokens! Else chaos ensues.
+      _buffer->push_token(token);
       // Need to count start / ends of macro definitions.
       if (token && token->type() == lex::DotCommand::TYPE) {
         auto dot_str = bits::to_upper(token->to_string());
@@ -444,7 +446,14 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
         else if (dot_str == "ENDM") _active_macro_defs--;
       }
       if (_active_macro_defs == 0) {
+        // Flush collected tokens so future statements parse normally.
+        lex::Checkpoint cp(*_buffer);
+        auto tokens = _buffer->buffered_tokens();
+        SPDLOG_WARN("Finished parsing inline macro body with {} tokens", tokens.size());
         // TODO: emplace the macro definition in the registry using the re-assembled/collected body tokens.
+        // TODO: need raw representation, else we lose details (e.g., identifier vs dot command).
+        auto str = token_join(tokens);
+        SPDLOG_WARN("Re-assembled macro body:\n{}", str);
       }
     }
     // Check if the next line is a conditional directive that could increase our skip depth.
