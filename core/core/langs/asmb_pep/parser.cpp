@@ -415,6 +415,6 @@ void pepp::tc::parser::PepParser::synchronize() {
 }
 
 bool pepp::tc::parser::PepParser::skip_mode() const {
-  return std::reduce(_conditionals.begin(), _conditionals.end(), false,
-                     [](bool acc, const ConditionalStack &cs) { return acc || (!cs.matched_this_stmt); });
+  return std::accumulate(_conditionals.begin(), _conditionals.end(), false,
+                         [](bool acc, const ConditionalStack &cs) { return acc || (!cs.matched_this_stmt); });
 }
