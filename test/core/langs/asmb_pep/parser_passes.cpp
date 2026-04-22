@@ -17,6 +17,7 @@
 #include <catch.hpp>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
@@ -459,7 +460,7 @@ TEST_CASE("Pepp ASM parser dot commands",
   }
 }
 
-TEST_CASE("Pepp ASM parser with macros",
+TEST_CASE("Pepp ASM parser with macros instantiations",
           "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
@@ -475,6 +476,24 @@ TEST_CASE("Pepp ASM parser with macros",
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
-    // CHECK(std::dynamic_pointer_cast<void*>(results[0]));
+    CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[0]));
+  }
+}
+
+TEST_CASE("Pepp ASM parser with macros definitions",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using Parser = pepp::tc::parser::PepParser;
+  using SymbolTable = pepp::core::symbol::LeafTable;
+  using namespace pepp::tc;
+  using MR = pepp::tc::MacroRegistry;
+  SECTION("nullary macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto p = Parser(data(".macro @TEST\n.byte 0xfe\n.endm"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<InlineMacroDefinition>(results[0]));
   }
 }

@@ -22,6 +22,7 @@ enum class DotCommands {
   ELSEIF,
   ELSE,
   ENDIF,
+  INLINE_MACRO,
   FIRST_USER
 };
 

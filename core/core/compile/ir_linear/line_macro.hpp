@@ -3,9 +3,9 @@
 #include "core/compile/ir_linear/line_base.hpp"
 namespace pepp::tc {
 struct MacroDefinition;
-struct MacroLine : public LinearIR {
-  static constexpr int TYPE = static_cast<int>(LinearIRType::Macro);
-  explicit MacroLine(std::shared_ptr<const MacroDefinition> d, std::vector<std::string> args);
+struct MacroInstantiation : public LinearIR {
+  static constexpr int TYPE = static_cast<int>(LinearIRType::MacroInstantiation);
+  explicit MacroInstantiation(std::shared_ptr<const MacroDefinition> d, std::vector<std::string> args);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
   int type() const override;
@@ -13,5 +13,16 @@ struct MacroLine : public LinearIR {
   // I expoect usage will always check against the macro type and then static_cast.
   std::shared_ptr<const MacroDefinition> macro;
   std::vector<std::string> arguments;
+};
+
+struct InlineMacroDefinition : public LinearIR {
+  static constexpr int TYPE = static_cast<int>(LinearIRType::MacroDefinition);
+  explicit InlineMacroDefinition(std::string name, std::vector<std::string> args);
+  const AAttribute *attribute(int type) const override;
+  void insert(std::unique_ptr<AAttribute> attr) override;
+  int type() const override;
+  std::string name;
+  std::vector<std::string> arguments;
+  std::string body;
 };
 } // namespace pepp::tc

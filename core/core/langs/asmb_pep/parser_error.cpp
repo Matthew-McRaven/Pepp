@@ -29,6 +29,7 @@ const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   case NullaryError::Conditional_UnmatchedElseif: return "Unmatched .ELSEIF directive";
   case NullaryError::Conditional_UnmatchedElse: return "Unmatched .ELSE directive";
   case NullaryError::Conditional_MultipleElse: return "Multiple .ELSE directives in the same conditional";
+  case NullaryError::Macro_Unterminated: return "Unterminated macro definition";
   }
   PEPP_UNREACHABLE();
 }

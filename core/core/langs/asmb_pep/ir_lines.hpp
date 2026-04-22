@@ -11,7 +11,7 @@ enum class PepIRType : int {
   Monadic = static_cast<int>(LinearIRType::FirstUser),
   Dyadic,
   DotAnnotate,
-  MacroInvocation
+  MacroInstantiation
 };
 
 enum class PepDotCommands : int {

@@ -82,13 +82,15 @@ std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::PepParser::identifier_arg
   return nullptr;
 }
 
+static const auto split_args = [](std::shared_ptr<pepp::tc::lex::Token> const &t) {
+  if (t->type() != pepp::tc::lex::Literal::TYPE) return false;
+  auto lit = std::static_pointer_cast<pepp::tc::lex::Literal>(t);
+  return lit->literal == ",";
+};
+
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(OptionalSymbol symbol) {
   // helper predicate to split token span on comma literals.
-  static const auto split_args = [](std::shared_ptr<pepp::tc::lex::Token> const &t) {
-    if (t->type() != tc::lex::Literal::TYPE) return false;
-    auto lit = std::static_pointer_cast<tc::lex::Literal>(t);
-    return lit->literal == ",";
-  };
+
   lex::Checkpoint cp(*_buffer);
   auto maybe_macro = _buffer->match<lex::Identifier>();
   if (!maybe_macro) return cp.rollback(), nullptr;
@@ -111,7 +113,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(OptionalS
     args.emplace_back(arg);
   }
   SPDLOG_WARN("Parsed macro invocation: '{}', with {} arguments", macro, args.size());
-  auto ret = std::make_shared<MacroLine>(macro_def, args);
+  auto ret = std::make_shared<MacroInstantiation>(macro_def, args);
   // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
   // TODO: Attach symbol def
   // TODO: push an entry on the conditional stack to enter skip mode.
@@ -161,13 +163,13 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::instruction() {
 namespace {
 using DC = pepp::tc::DotCommands;
 using PDC = pepp::tc::PepDotCommands;
-static const auto dot_map =
-    std::map<std::string, int>{{"ALIGN", (int)DC::ALIGN},    {"ASCII", (int)DC::ASCII},   {"BLOCK", (int)DC::BLOCK},
-                               {"BYTE", (int)DC::BYTE},      {"EQUATE", (int)DC::EQUATE}, {"EXPORT", (int)PDC::EXPORT},
-                               {"IMPORT", (int)PDC::IMPORT}, {"INPUT", (int)PDC::INPUT},  {"ORG", (int)DC::ORG},
-                               {"OUTPUT", (int)PDC::OUTPUT}, {"SCALL", (int)PDC::SCALL},  {"SECTION", (int)DC::SECTION},
-                               {"WORD", (int)DC::WORD},      {"IF", (int)DC::IF},         {"ELSEIF", (int)DC::ELSEIF},
-                               {"ELSE", (int)DC::ELSE},      {"ENDIF", (int)DC::ENDIF}};
+static const auto dot_map = std::map<std::string, int>{
+    {"ALIGN", (int)DC::ALIGN},    {"ASCII", (int)DC::ASCII},   {"BLOCK", (int)DC::BLOCK},
+    {"BYTE", (int)DC::BYTE},      {"EQUATE", (int)DC::EQUATE}, {"EXPORT", (int)PDC::EXPORT},
+    {"IMPORT", (int)PDC::IMPORT}, {"INPUT", (int)PDC::INPUT},  {"ORG", (int)DC::ORG},
+    {"OUTPUT", (int)PDC::OUTPUT}, {"SCALL", (int)PDC::SCALL},  {"SECTION", (int)DC::SECTION},
+    {"WORD", (int)DC::WORD},      {"IF", (int)DC::IF},         {"ELSEIF", (int)DC::ELSEIF},
+    {"ELSE", (int)DC::ELSE},      {"ENDIF", (int)DC::ENDIF},   {"MACRO", (int)DC::INLINE_MACRO}};
 } // namespace
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(OptionalSymbol symbol) {
   auto dot = _buffer->match<lex::DotCommand>();
@@ -351,6 +353,24 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     _conditionals.pop_back();
     return std::make_shared<DotConditional>(DotConditional::Behavior::ENDIF);
   }
+  case (int)DC::INLINE_MACRO: {
+    auto name = identifier_argument();
+    if (!name)
+      throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    lex::Checkpoint cp(*_buffer);
+    auto tokens = _buffer->matched_tokens_after(cp);
+    std::vector<std::string> args;
+    std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
+    while (!rest.empty()) {
+      std::tie(head, rest) = pepp::tc::split_exclusive(rest, split_args);
+      auto arg = token_join(head);
+      SPDLOG_WARN("Defining macro argument: '{}'", arg);
+      args.emplace_back(arg);
+    }
+    SPDLOG_WARN("Defining inline macro: '{}', with {} arguments", name->string(), args.size());
+    _active_macro_defs++;
+    return std::make_shared<InlineMacroDefinition>(name->string(), args);
+  }
   default: throw std::logic_error("Unreachable");
   }
   return nullptr;
@@ -414,11 +434,22 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
   auto start_depth = _conditionals.size();
   const auto start_ival = _lexer->current_location();
   // Consume tokens directly from lexer without buffering to avoid buffer-clearing bugs.
-  while (skip_mode() && _lexer->input_remains()) {
+  while ((_active_macro_defs > 0 || skip_mode()) && _lexer->input_remains()) {
     auto token = _lexer->next_token();
+    if (_active_macro_defs > 0) {
+      // Need to count start / ends of macro definitions.
+      if (token && token->type() == lex::DotCommand::TYPE) {
+        auto dot_str = bits::to_upper(token->to_string());
+        if (dot_str == "MACRO") _active_macro_defs++;
+        else if (dot_str == "ENDM") _active_macro_defs--;
+      }
+      if (_active_macro_defs == 0) {
+        // TODO: emplace the macro definition in the registry using the re-assembled/collected body tokens.
+      }
+    }
     // Check if the next line is a conditional directive that could increase our skip depth.
     // Do not consume the ENDIF which leaves skip mode so that we can properly emit the IR line.
-    if (token && token->type() == lex::DotCommand::TYPE) {
+    else if (token && token->type() == lex::DotCommand::TYPE) {
       auto dot_str = bits::to_upper(token->to_string());
       // If we hit an .IF, increment our conditional depth to avoid confusion with nested inactive conditionals.
       if (dot_str == "IF")
@@ -440,7 +471,12 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
       }
     }
   }
-  if (!_buffer->input_remains() && _conditionals.size() > 0) {
+
+  if (!_buffer->input_remains() && _active_macro_defs > 0) {
+    const auto end_ival = _lexer->current_location();
+    support::LocationInterval ival{start_ival, end_ival};
+    throw PepParserError(PepParserError::NullaryError::Macro_Unterminated, ival);
+  } else if (!_buffer->input_remains() && _conditionals.size() > 0) {
     const auto end_ival = _lexer->current_location();
     support::LocationInterval ival{start_ival, end_ival};
     throw PepParserError(PepParserError::NullaryError::Conditional_Unterminated, ival);

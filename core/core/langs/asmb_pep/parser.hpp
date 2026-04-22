@@ -66,6 +66,9 @@ private:
     bool matched_else = false;      // Prevent matching an elseif after an else
   };
   std::vector<ConditionalStack> _conditionals;
+  // if non-zero, takes precedence over _conditionals until 0.
+  // incremented when macro returns non-nullptr, decremented by the skip loop in statement
+  u16 _active_macro_defs = 0;
   // Skip mode is true when any element in _conditionals sets matched_this_stmt=false.
   bool skip_mode() const;
 };
