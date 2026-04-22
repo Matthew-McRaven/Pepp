@@ -64,6 +64,8 @@ public:
   bool input_remains() const;
   size_t count_buffered_tokens() const;
   size_t count_matched_tokens() const;
+  // Return all tokens in the buffer between checkpoints head and our head.
+  bits::span<std::shared_ptr<Token> const> matched_tokens_after(const Checkpoint &) const;
   bits::span<std::shared_ptr<Token> const> matched_tokens() const;
   support::LocationInterval matched_interval() const;
   // In some instances, the parser bypasses the token buffer to consume tokens directly from the lexer.
@@ -92,8 +94,11 @@ public:
 
   // Reset the buffer to the state it was in when this checkpoint was created.
   void rollback();
+  // Set this checkpoint's head to the buffer's current head.
+  void commit();
 
 private:
+  friend class Buffer;
   Buffer &_buf;
   size_t _head = 0;
 };

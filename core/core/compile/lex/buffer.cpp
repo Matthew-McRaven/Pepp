@@ -39,6 +39,11 @@ pepp::tc::support::LocationInterval pepp::tc::lex::Buffer::matched_interval() co
   return support::LocationInterval(lb, ub);
 }
 
+bits::span<const std::shared_ptr<pepp::tc::lex::Token>>
+pepp::tc::lex::Buffer::matched_tokens_after(const Checkpoint &cp) const {
+  return bits::span<std::shared_ptr<pepp::tc::lex::Token> const>(_tokens.cbegin() + cp._head, _tokens.cbegin() + _head);
+}
+
 bits::span<std::shared_ptr<pepp::tc::lex::Token> const> pepp::tc::lex::Buffer::matched_tokens() const {
   return bits::span<std::shared_ptr<pepp::tc::lex::Token> const>(_tokens.cbegin(), _tokens.cbegin() + _head);
 }
@@ -94,3 +99,5 @@ pepp::tc::lex::Checkpoint::~Checkpoint() {
 }
 
 void pepp::tc::lex::Checkpoint::rollback() { _buf._head = _head; }
+
+void pepp::tc::lex::Checkpoint::commit() { _head = _buf._head; }
