@@ -13,6 +13,7 @@ enum class PepIRType : int {
   DotAnnotate,
   MacroInvocation
 };
+
 enum class PepDotCommands : int {
   EXPORT = static_cast<int>(DotCommands::FIRST_USER),
   IMPORT,
@@ -20,6 +21,7 @@ enum class PepDotCommands : int {
   OUTPUT,
   SCALL,
 };
+
 struct MonadicInstruction : public LinearIR {
   static constexpr int TYPE = static_cast<int>(PepIRType::Monadic);
   explicit MonadicInstruction(Pep10Mnemonic m) : mnemonic(m) {}
@@ -41,8 +43,6 @@ struct DyadicInstruction : public LinearIR {
   Pep10AddrMode addr_mode;
   Argument argument;
 };
-
-struct MacroInvocation : public LinearIR {};
 
 struct DotAnnotate : public LinearIR {
   static constexpr int TYPE = static_cast<int>(LinearIRType::DotAnnotate);
