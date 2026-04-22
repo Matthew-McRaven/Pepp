@@ -89,3 +89,9 @@ int pepp::tc::lex::Literal::type() const { return TYPE; }
 std::string pepp::tc::lex::Literal::type_name() const { return "Literal"; }
 
 std::string pepp::tc::lex::Literal::to_string() const { return literal; }
+
+std::string pepp::tc::lex::token_join(bits::span<const std::shared_ptr<Token>> tokens) {
+  std::ostringstream os;
+  for (const auto &t : tokens) os << t->to_string();
+  return os.str();
+}

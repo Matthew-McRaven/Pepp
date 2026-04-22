@@ -1,6 +1,8 @@
 #pragma once
+#include <memory>
 #include <string>
 #include "core/compile/source/location.hpp"
+#include "core/math/bitmanip/span.hpp"
 
 namespace pepp::tc::lex {
 enum class CommonTokenType {
@@ -36,6 +38,8 @@ struct Token {
 protected:
   support::LocationInterval _loc;
 };
+
+std::string token_join(bits::span<std::shared_ptr<Token> const> tokens);
 
 // Common token types across all lexers.
 struct Invalid : public Token {
