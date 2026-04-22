@@ -334,6 +334,42 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(OptionalSy
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
 
+  {
+    // Limit lifetime of checkpoint to avoid clearing pushed-back token after skip loop.
+    lex::Checkpoint cp(*_buffer);
+    if (auto empty = _buffer->match<tc::lex::Empty>(); empty) {
+      auto line = std::make_shared<EmptyLine>();
+      line->source_interval = empty->location();
+      return line;
+    }
+    if (auto comment = _buffer->match<tc::lex::InlineComment>(); comment) {
+      auto line = std::make_shared<CommentLine>(Comment(*comment->value));
+      line->source_interval = comment->location();
+      ret = line;
+    }
+    // Avoid line() if no input remains (e.g., due to unterminated macro or conditional).
+    else if (_buffer->input_remains()) {
+      auto symbol = _buffer->match<lex::SymbolDeclaration>();
+      if (symbol && symbol->to_string().length() > 7)
+        throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_TooLong, _buffer->matched_interval());
+
+      auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
+      ret = line(symbol_decl);
+      if (!ret) {
+        auto next = _buffer->peek();
+        throw PepParserError(PepParserError::UnaryError::Token_Invalid, next->repr(), _buffer->matched_interval());
+      } else {
+        ret->source_interval = _buffer->matched_interval();
+      }
+    }
+
+    if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains())
+      throw PepParserError(PepParserError::NullaryError::Token_MissingNewline, _buffer->matched_interval());
+  }
+  // Start skip loop _after_ parsing the statement which entered the skip loop.
+  // This way we can preserve an invariant that the first token consumed by statement is a part of the returned IR line.
+  // This is particularly helpful for macros definitions where we need to associate the macro IR object with its inline
+  // body.
   auto start_depth = _conditionals.size();
   const auto start_ival = _lexer->current_location();
   // Consume tokens directly from lexer without buffering to avoid buffer-clearing bugs.
@@ -363,38 +399,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
       }
     }
   }
-
-  lex::Checkpoint cp(*_buffer);
-  if (auto empty = _buffer->match<tc::lex::Empty>(); empty) {
-    auto line = std::make_shared<EmptyLine>();
-    line->source_interval = empty->location();
-    return line;
-  }
-
-  if (auto comment = _buffer->match<tc::lex::InlineComment>(); comment) {
-    auto line = std::make_shared<CommentLine>(Comment(*comment->value));
-    line->source_interval = comment->location();
-    ret = line;
-  }
-  // Avoid line() if no input remains (e.g., due to unterminated macro or conditional).
-  else if (_buffer->input_remains()) {
-    auto symbol = _buffer->match<lex::SymbolDeclaration>();
-    if (symbol && symbol->to_string().length() > 7)
-      throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_TooLong, _buffer->matched_interval());
-
-    auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
-    ret = line(symbol_decl);
-    if (!ret) {
-      auto next = _buffer->peek();
-      throw PepParserError(PepParserError::UnaryError::Token_Invalid, next->repr(), _buffer->matched_interval());
-    } else {
-      ret->source_interval = _buffer->matched_interval();
-    }
-  }
-
-  if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains())
-    throw PepParserError(PepParserError::NullaryError::Token_MissingNewline, _buffer->matched_interval());
-  else if (!_buffer->input_remains() && _conditionals.size() > 0) {
+  if (!_buffer->input_remains() && _conditionals.size() > 0) {
     const auto end_ival = _lexer->current_location();
     support::LocationInterval ival{start_ival, end_ival};
     throw PepParserError(PepParserError::NullaryError::Conditional_Unterminated, ival);
