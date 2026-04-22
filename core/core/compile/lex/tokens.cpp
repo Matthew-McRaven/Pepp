@@ -1,5 +1,6 @@
 #include "./tokens.hpp"
 #include <fmt/format.h>
+#include <sstream>
 #include "core/math/bitmanip/strings.hpp"
 
 pepp::tc::lex::Token::Token(support::LocationInterval loc) : _loc(loc) {}
@@ -17,11 +18,13 @@ pepp::tc::support::Location pepp::tc::lex::Token::start() const { return _loc.lo
 
 pepp::tc::support::Location pepp::tc::lex::Token::end() const { return _loc.upper(); }
 
-pepp::tc::lex::Invalid::Invalid(support::LocationInterval loc) : Token(loc) {}
+pepp::tc::lex::Invalid::Invalid(support::LocationInterval loc, std::string content) : Token(loc), content(content) {}
 
 int pepp::tc::lex::Invalid::type() const { return TYPE; }
 
 std::string pepp::tc::lex::Invalid::type_name() const { return "Invalid"; }
+
+std::string pepp::tc::lex::Invalid::to_string() const { return content; }
 
 pepp::tc::lex::EoF::EoF(support::LocationInterval loc) : Token(loc) {}
 

@@ -115,7 +115,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::MicroLexer::next_token() {
       break;
     } else {
       _cursor.advance(1);
-      current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+      current_token =
+          std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
     }
   }

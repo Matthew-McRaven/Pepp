@@ -40,10 +40,12 @@ protected:
 // Common token types across all lexers.
 struct Invalid : public Token {
   // You should be able to provide a loc for an invalid token!
-  explicit Invalid(support::LocationInterval loc);
+  explicit Invalid(support::LocationInterval loc, std::string content);
   static constexpr int TYPE = static_cast<int>(CommonTokenType::Invalid);
   int type() const override;
   std::string type_name() const override;
+  std::string to_string() const override;
+  std::string content;
 };
 
 struct EoF : public Token {

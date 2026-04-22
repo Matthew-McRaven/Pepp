@@ -70,7 +70,9 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
         (void)std::from_chars(match.data(), match.data() + match.size(), val, 10);
         auto fmt = sign < 0 ? Format::SignedDec : Format::UnsignedDec;
         current_token = std::make_shared<Integer>(LocationInterval{loc_start, _cursor.location()}, sign * val, fmt);
-      } else current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+      } else
+        current_token =
+            std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
     } else if (next == '(' && _opts.allow_parens) {
       _cursor.advance(1);
@@ -100,7 +102,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
       break;
     } else if (next == '.') { // Bad dot command!
       _cursor.advance(1);
-      current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+      current_token =
+          std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
     } else if (auto maybeHex = _cursor.matchView(hexadecimal); !maybeHex.empty()) {
       auto match = maybeHex.str(0);
@@ -114,7 +117,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
     } else if (auto maybeBadHex = _cursor.matchView(badHex); !maybeBadHex.empty()) {
       auto match = maybeBadHex.str(0);
       _cursor.advance(match.size());
-      current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+      current_token =
+          std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
     } else if (auto maybeDec = _cursor.matchView(decimal); !maybeDec.empty()) {
       using Format = Integer::Format;
@@ -142,7 +146,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
         break;
       } else {
         _cursor.advance(1);
-        current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+        current_token =
+            std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
         break;
       }
     } else if (next == '"') {
@@ -156,12 +161,14 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
         break;
       } else {
         _cursor.advance(1);
-        current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+        current_token =
+            std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
         break;
       }
     } else {
       _cursor.advance(1);
-      current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+      current_token =
+          std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
     }
   }
