@@ -51,6 +51,15 @@ public:
     return match(combined);
   }
   std::shared_ptr<Token> match_not(int mask) { return match(~mask); }
+
+  // match_until matches tokens in a loop until a token matches the mask. Returns the number of tokens matched.
+  template <typename... Types>
+    requires((std::derived_from<Types, Token> && ...) &&
+             (requires { std::integral_constant<int, Types::TYPE>{}; } && ...))
+  size_t match_until() {
+    return match_until((Types::TYPE | ...));
+  }
+  size_t match_until(int mask);
   std::shared_ptr<Token> match_literal(const std::string &);
   // Returns the next token if it matches the mask, otherwise returns nullptr.
   std::shared_ptr<Token> peek(int mask = -1);

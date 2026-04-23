@@ -19,6 +19,12 @@
 
 pepp::tc::lex::Buffer::Buffer(ALexer *lex) : _lex(lex), _tokens(), _head(0) {}
 
+size_t pepp::tc::lex::Buffer::match_until(int mask) {
+  int matched = 0;
+  while (input_remains() && match_not(mask) != nullptr) matched++;
+  return matched;
+}
+
 bool pepp::tc::lex::Buffer::input_remains() const {
   // If we have an unmatched token then input remains, otherwise delegate to lexer.
   // Failure to test head causes peek()'ing the last token to cause input_remains to be false.
