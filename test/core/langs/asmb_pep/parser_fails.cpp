@@ -257,6 +257,26 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedEndif));
     }
   }
+  SECTION("Unmatched .ELSE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("\n.ELSE"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+    CHECK(start != end);
+    CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedElse));
+  }
+  // TODO: this test case is not producing the expected error message
+  /*SECTION("Multiple .ELSE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF\n.ELSE\n.ELSE\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+    CHECK(start != end);
+    CHECK(start->second == PE::to_string(NullaryError::Conditional_MultipleElse));
+
+  }*/
   SECTION("Unterminated .macro") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("\n.macro @TEST"), std::make_shared<MR>());
