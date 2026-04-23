@@ -22,7 +22,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "../../../ds/case_insensitive.hpp"
+#include "core/ds/string_compare.hpp"
 
 namespace isa::detail::pep10 {
 enum class Mnemonic {

@@ -49,14 +49,16 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
   using Lexer = pepp::tc::lex::PepLexer;
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
+  using MR = pepp::tc::MacroRegistry;
   using namespace pepp::tc;
   SECTION("One section, .ORG at front") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(ex1));
+    auto p = Parser(data(ex1), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 3);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
@@ -71,11 +73,12 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
   }
   SECTION("One section, .ORG in middle") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(ex2));
+    auto p = Parser(data(ex2), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 3);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
@@ -90,11 +93,12 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
   }
   SECTION("Two sections, .ORG at start of second section") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(ex3));
+    auto p = Parser(data(ex3), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 5);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
@@ -115,11 +119,12 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
   }
   SECTION("Two sections, .ORG in middle of second section") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(ex4));
+    auto p = Parser(data(ex4), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 6);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);

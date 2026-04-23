@@ -157,17 +157,17 @@ TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:a
   SECTION("Macro invocations") {
     auto pool = idpool();
     auto l = Lexer(pool, data("@a @bCd @b0 @b9 @a_word"), p10);
-    check_next_string(l, (int)ATT::MacroInvocation, "a");
-    check_next_string(l, (int)ATT::MacroInvocation, "bCd");
-    check_next_string(l, (int)ATT::MacroInvocation, "b0");
-    check_next_string(l, (int)ATT::MacroInvocation, "b9");
-    check_next_string(l, (int)ATT::MacroInvocation, "a_word");
+    check_next_string(l, (int)CTT::Identifier, "@a");
+    check_next_string(l, (int)CTT::Identifier, "@bCd");
+    check_next_string(l, (int)CTT::Identifier, "@b0");
+    check_next_string(l, (int)CTT::Identifier, "@b9");
+    check_next_string(l, (int)CTT::Identifier, "@a_word");
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
-    CHECK(pool->contains("a"));
-    CHECK(!pool->contains("@a"));
-    CHECK(pool->contains("b9"));
-    CHECK(!pool->contains("@b9"));
+    CHECK(!pool->contains("a"));
+    CHECK(pool->contains("@a"));
+    CHECK(!pool->contains("b9"));
+    CHECK(pool->contains("@b9"));
   }
   SECTION("Unsigned decimal") {
     auto l = Lexer(idpool(), data("0 00 000 10 65537"), p10);

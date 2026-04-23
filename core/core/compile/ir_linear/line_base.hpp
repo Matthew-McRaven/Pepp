@@ -55,13 +55,15 @@ enum class LinearIRType : int {
   Empty,
   Comment,
   DotAlign,
-  DotAnnotate,
   DotSymbol,
   DotBlock,
   DotEquate,
   DotLiteral,
   DotOrg,
   DotSection,
+  DotConditional,
+  MacroInstantiation,
+  MacroDefinition,
   FirstUser,
 };
 } // namespace pepp::tc

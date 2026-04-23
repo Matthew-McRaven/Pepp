@@ -17,11 +17,13 @@
 #include <catch.hpp>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
+#include "spdlog/spdlog.h"
 
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
@@ -32,9 +34,10 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc;
+  using MR = pepp::tc::MacroRegistry;
   SECTION("No input") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(" "));
+    auto p = Parser(data(" "), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -42,7 +45,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   }
   SECTION("Empty lines") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("   \n   "));
+    auto p = Parser(data("   \n   "), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 2);
@@ -51,7 +54,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   }
   SECTION("Monadic instructions") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("NOTA"));
+    auto p = Parser(data("NOTA"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -61,7 +64,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   }
   SECTION("Monadic instructions declaring symbols") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("symb: NOTA"));
+    auto p = Parser(data("symb: NOTA"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -76,7 +79,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   }
   SECTION("Dyadic instructions") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("ADDA 10,i"));
+    auto p = Parser(data("ADDA 10,i"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -88,7 +91,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   }
   SECTION("Dyadic instructions with optional addressing modes") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("BR 10"));
+    auto p = Parser(data("BR 10"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -101,7 +104,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   }
   SECTION("Dyadic instructions with large argument") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("BR 0xffff"));
+    auto p = Parser(data("BR 0xffff"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -113,7 +116,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   }
   SECTION("Dyadic instructions with symbolic argument") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("this:BR this,x"));
+    auto p = Parser(data("this:BR this,x"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -131,11 +134,12 @@ TEST_CASE("Pepp ASM parser dot commands",
   using Parser = pepp::tc::parser::PepParser;
   using SymbolTable = pepp::core::symbol::LeafTable;
   using namespace pepp::tc;
+  using MR = pepp::tc::MacroRegistry;
 
   SECTION(".ALIGN") {
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(".ALIGN 1"));
+      auto p = Parser(data(".ALIGN 1"), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);
@@ -145,7 +149,7 @@ TEST_CASE("Pepp ASM parser dot commands",
     }
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("s: .ALIGN 4"));
+      auto p = Parser(data("s: .ALIGN 4"), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);
@@ -158,7 +162,7 @@ TEST_CASE("Pepp ASM parser dot commands",
   SECTION(".ASCII") {
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(".ASCII \"hi\""));
+      auto p = Parser(data(".ASCII \"hi\""), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);
@@ -166,7 +170,7 @@ TEST_CASE("Pepp ASM parser dot commands",
     }
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(".ASCII \"\""));
+      auto p = Parser(data(".ASCII \"\""), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);
@@ -176,7 +180,7 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".BLOCK") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".BLOCK 7"));
+    auto p = Parser(data(".BLOCK 7"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -185,7 +189,7 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".BYTE") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".BYTE 255"));
+    auto p = Parser(data(".BYTE 255"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -194,7 +198,7 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".BYTE0") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".BYTE 0"));
+    auto p = Parser(data(".BYTE 0"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -203,7 +207,7 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".EQUATE") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("s: .EQUATE 10"));
+    auto p = Parser(data("s: .EQUATE 10"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -212,7 +216,7 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".EXPORT") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".EXPORT charIn"));
+    auto p = Parser(data(".EXPORT charIn"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -221,7 +225,7 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".IMPORT") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".IMPORT charIn"));
+    auto p = Parser(data(".IMPORT charIn"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -230,7 +234,7 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".INPUT") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".INPUT charIn"));
+    auto p = Parser(data(".INPUT charIn"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -239,7 +243,7 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".ORG") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".ORG 0xfeed"));
+    auto p = Parser(data(".ORG 0xfeed"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -248,7 +252,7 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".OUTPUT") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".OUTPUT charOut"));
+    auto p = Parser(data(".OUTPUT charOut"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -258,7 +262,7 @@ TEST_CASE("Pepp ASM parser dot commands",
   SECTION(".SECTION") {
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(".SECTION \".text\", \"rw\""));
+      auto p = Parser(data(".SECTION \".text\", \"rw\""), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);
@@ -271,7 +275,7 @@ TEST_CASE("Pepp ASM parser dot commands",
     }
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(".SECTION \".\", \"x\""));
+      auto p = Parser(data(".SECTION \".\", \"x\""), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 1);
@@ -285,7 +289,7 @@ TEST_CASE("Pepp ASM parser dot commands",
   }
   SECTION(".SCALL") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".SCALL feed"));
+    auto p = Parser(data(".SCALL feed"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
@@ -294,10 +298,236 @@ TEST_CASE("Pepp ASM parser dot commands",
 
   SECTION(".WORD") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".WORD 0xFFFF"));
+    auto p = Parser(data(".WORD 0xFFFF"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+  }
+
+  SECTION("Trivial true .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 3);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+  }
+  SECTION("Trivial false .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 0\n.BYTE 5\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+  }
+
+  SECTION("Trivial nested true-true .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.IF 1\n.BYTE 5\n.endif\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 5);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[4]));
+  }
+  SECTION("Trivial nested true-false .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n .IF 0\n .BYTE 5\n .endif\n .ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("Trivial nested false-false .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 0\n .IF 0\n .BYTE 5\n .ENDIF\n .ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+  }
+  SECTION("Trivial nested false-true .IF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 0\n.IF 1\n.BYTE 5\n.ENDIF\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+  }
+
+  SECTION("Trivial false .IF + true elseif") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 0\n.BYTE 5\n.byte 5\n.ELSEIF 1\n .WORD 1\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("Trivial true .IF + true elseif") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ELSEIF 1\n .WORD 1\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("Ignore not-taken .ELSEIF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ELSEIF 1\n .WORD 1\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("Ignore not-taken .ELSE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ELSEIF 1\n .WORD 1\n.ELSE\n.WORD 5\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+  }
+  SECTION("nested ELSEIF") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(.IF 0
+    	.align
+		.ELSEIF 1	
+			.IF 0
+				.align 2
+			.ELSEIF 1
+				.word 2
+			.endif
+		.ENDIF)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 7);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[4]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[5]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[6]));
+  }
+  SECTION("nested ELSE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(.IF 0
+    	.align
+		.ELSEIF 0
+    .ELSE	
+			.IF 0
+				.align 2
+			.ELSEIF 0
+      .ELSE
+				.word 2
+			.endif
+		.ENDIF)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 9);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[1]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[4]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[5]));
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[6]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[7]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[8]));
+  }
+}
+
+TEST_CASE("Pepp ASM parser with macros instantiations",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using Parser = pepp::tc::parser::PepParser;
+  using SymbolTable = pepp::core::symbol::LeafTable;
+  using namespace pepp::tc;
+  using MR = pepp::tc::MacroRegistry;
+  SECTION("nullary macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto macro = std::make_shared<MacroDefinition>(MacroDefinition{"@TEST", {}, ".byte 15\n"});
+    mr->insert(macro);
+    auto p = Parser(data("@TEST"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[0]));
+  }
+  SECTION("unary macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto macro = std::make_shared<MacroDefinition>(MacroDefinition{"@TEST", {{.name = "feed"}}, ".byte \\feed\n"});
+    mr->insert(macro);
+    auto p = Parser(data("@TEST 15"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
+    REQUIRE(results.size() == 1);
+    auto as_mi = std::dynamic_pointer_cast<MacroInstantiation>(results[0]);
+    CHECK(as_mi);
+    CHECK(as_mi->lines.size() == 1);
+    auto as_mi_line0 = std::dynamic_pointer_cast<DotLiteral>(as_mi->lines[0]);
+    REQUIRE(as_mi_line0);
+    CHECK(as_mi_line0->argument.value->value_as<u16>() == 15);
+  }
+}
+
+TEST_CASE("Pepp ASM parser with macros definitions",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using Parser = pepp::tc::parser::PepParser;
+  using SymbolTable = pepp::core::symbol::LeafTable;
+  using namespace pepp::tc;
+  using MR = pepp::tc::MacroRegistry;
+  SECTION("nullary macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto p = Parser(data(".macro @TEST\n.byte 0xfe\n.endm"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<InlineMacroDefinition>(results[0]));
+    CHECK(mr->contains("@TEST"));
+    CHECK(mr->find("@TEST")->arguments.empty());
+    CHECK(mr->find("@TEST")->body == ".byte 0xfe");
+  }
+  SECTION("unary macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto p = Parser(data(".macro @TEST feed\n.byte \\feed\n.endm"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<InlineMacroDefinition>(results[0]));
+    CHECK(mr->contains("@TEST"));
+    CHECK(mr->find("@TEST")->arguments.size() == 1);
+    CHECK(mr->find("@TEST")->arguments.at(0).name == "feed");
+    CHECK(mr->find("@TEST")->body == ".byte \\feed");
   }
 }

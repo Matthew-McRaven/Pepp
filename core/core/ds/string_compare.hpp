@@ -18,7 +18,15 @@ using ci_stringview = std::basic_string_view<char, bts::ci_char_traits>;
 ci_stringview to_ci_stringview(std::string_view sv) noexcept;
 
 namespace detail {} // namespace detail
+// Transparent, case-sensitive hash for std::string / std::string_view.
 // Transparent, case-insensitive hash for std::string / std::string_view.
+struct cs_hash {
+  using is_transparent = void;
+
+  std::size_t operator()(std::string_view s) const noexcept { return std::hash<std::string_view>{}(s); }
+  std::size_t operator()(std::string const &s) const noexcept { return (*this)(std::string_view{s}); }
+};
+
 struct ci_hash {
   using is_transparent = void;
 
@@ -38,6 +46,18 @@ struct ci_hash {
   }
 
   std::size_t operator()(std::string const &s) const noexcept { return (*this)(std::string_view{s}); }
+};
+
+// Transparent, case-sensitive equality.
+struct cs_eq {
+  using is_transparent = void;
+
+  bool operator()(std::string_view a, std::string_view b) const noexcept { return a == b; }
+  bool operator()(std::string const &a, std::string const &b) const noexcept {
+    return (*this)(std::string_view{a}, std::string_view{b});
+  }
+  bool operator()(std::string const &a, std::string_view b) const noexcept { return (*this)(std::string_view{a}, b); }
+  bool operator()(std::string_view a, std::string const &b) const noexcept { return (*this)(a, std::string_view{b}); }
 };
 
 // Transparent, case-insensitive equality.

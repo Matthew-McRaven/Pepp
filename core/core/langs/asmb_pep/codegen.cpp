@@ -1,11 +1,12 @@
 #include "core/langs/asmb_pep/codegen.hpp"
-#include <core/compile/ir_linear/line_comment.hpp>
 #include <elfio/elfio.hpp>
 #include <list>
 #include <numeric>
 #include <ranges>
+#include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
@@ -25,10 +26,10 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
   ret.grouped_ir.emplace_back(std::make_pair(initial_section, pepp::tc::IRProgram{}));
   auto &grouped_ir = ret.grouped_ir;
   auto *active = &grouped_ir[0];
+
   for (auto &line : prog) {
     // TODO: Check all symbol usages are not undefined
     // TODO: .BURN for this section.
-
     using Type = LinearIRType;
 
     // Compile-time visitor pattern where the only virtual call should be type().
@@ -72,6 +73,9 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       active->first.org_count++;
       break;
     }
+    case InlineMacroDefinition::TYPE: [[fallthrough]];
+    case MacroInstantiation::TYPE: throw std::logic_error("Cannot perform code generation on macros");
+
     default: break;
     }
 
@@ -120,6 +124,8 @@ struct PeppObjectVistitor : public PepIRVisitor {
   void visit(const DotSection *) override;
   void visit(const DotAnnotate *) override;
   void visit(const DotOrg *) override;
+  void visit(const InlineMacroDefinition *) override;
+  void visit(const MacroInstantiation *) override;
 };
 
 pepp::tc::PeppObjectVistitor::PeppObjectVistitor(
@@ -204,6 +210,14 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAnnotate *) {
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const DotOrg *) {
+  // Does not generate object code
+}
+
+void pepp::tc::PeppObjectVistitor::visit(const InlineMacroDefinition *) {
+  // Does not generate object code
+}
+
+void pepp::tc::PeppObjectVistitor::visit(const MacroInstantiation *) {
   // Does not generate object code
 }
 

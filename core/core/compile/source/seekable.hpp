@@ -45,6 +45,10 @@ struct SeekableData {
   match matchView(const std::regex &re);
   support::Location location() const;
 
+  size_t start() const;
+  size_t end() const;
+  std::string_view view_between(size_t start, size_t end) const;
+
 private:
   std::string data = "\n";
   // Offsets into data

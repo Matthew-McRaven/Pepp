@@ -3,6 +3,9 @@
 #include "core/macros.hpp"
 #include "fmt/format.h"
 
+static const auto recursion_msg = "Macro expansion exceeded maximum recursion depth";
+pepp::tc::PepRecursionError::PepRecursionError(pepp::tc::support::LocationInterval ival) : logic_error(recursion_msg) {}
+
 const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   switch (err) {
   case NullaryError::Argument_InvalidIntegerFormat: return "Unrecognized integer format";
@@ -24,17 +27,26 @@ const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   case NullaryError::Section_TwoArgs: return ".SECTION requires two arguments";
   case NullaryError::Section_StringFlags: return ".SECTION flags must be a string";
   case NullaryError::Token_MissingNewline: return "Expected \\n";
+  case NullaryError::Conditional_UnmatchedEndif: return "Unmatched .ENDIF directive";
+  case NullaryError::Conditional_Unterminated: return "Unterminated conditional directive";
+  case NullaryError::Conditional_UnmatchedElseif: return "Unmatched .ELSEIF directive";
+  case NullaryError::Conditional_UnmatchedElse: return "Unmatched .ELSE directive";
+  case NullaryError::Conditional_MultipleElse: return "Multiple .ELSE directives in the same conditional";
+  case NullaryError::Macro_Unterminated: return "Unterminated macro definition";
+  case NullaryError::Macro_UnmatchedEndm: return "Unmatched .ENDM directive";
+  case NullaryError::Macro_ExcessiveRecursion: return recursion_msg;
   }
   PEPP_UNREACHABLE();
 }
 
-const std::string pepp::tc::PepParserError::to_string(UnaryError err, std::string &arg) {
+const std::string pepp::tc::PepParserError::to_string(UnaryError err, const std::string &arg) {
   switch (err) {
   case UnaryError::Mnemonic_Invalid: return fmt::format("Invalid mnemonic \"{}\".", arg);
   case UnaryError::AddressingMode_InvalidForMnemonic:
     return fmt::format("Illegal addressing mode \"{}\" for this instruction", arg);
   case UnaryError::Dot_Invalid: return fmt::format("Invalid pseudo-operation \"{}\".", arg);
   case UnaryError::Token_Invalid: return fmt::format("Unrecognized token: {}", arg);
+  case UnaryError::Macro_Redefinition: return fmt::format("Redefinition of macro \"{}\".", arg);
   }
   PEPP_UNREACHABLE();
 }

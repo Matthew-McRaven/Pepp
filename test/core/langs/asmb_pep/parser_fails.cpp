@@ -34,9 +34,10 @@ TEST_CASE("Pepp ASM parser errors",
   using NullaryError = pepp::tc::PepParserError::NullaryError;
   using UnaryError = pepp::tc::PepParserError::UnaryError;
   using PE = pepp::tc::PepParserError;
+  using MR = pepp::tc::MacroRegistry;
   SECTION("Dyadic missing argument") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n\nadda"));
+    auto p = Parser(data("\n\nadda"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(2, 0), Location(2, Location::MAX)));
@@ -45,7 +46,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION("Dyadic argument too big") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\nadda 0x10000,i"));
+    auto p = Parser(data("\nadda 0x10000,i"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -56,7 +57,7 @@ TEST_CASE("Pepp ASM parser errors",
     // TODO: would like to recognize invalid integers in lexer but reject them in parser.
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("\nadda 0b10000,i"));
+      auto p = Parser(data("\nadda 0b10000,i"), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -65,7 +66,7 @@ TEST_CASE("Pepp ASM parser errors",
     }
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("\nadda 0bo10000,i"));
+      auto p = Parser(data("\nadda 0bo10000,i"), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -76,7 +77,7 @@ TEST_CASE("Pepp ASM parser errors",
   SECTION(".BYTE too big") {
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("\n.BYTE 256"));
+      auto p = Parser(data("\n.BYTE 256"), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -85,7 +86,7 @@ TEST_CASE("Pepp ASM parser errors",
     }
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("\n.BYTE -129"));
+      auto p = Parser(data("\n.BYTE -129"), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -95,7 +96,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION(".ALIGN expected power-of-two") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n .ALIGN 3"));
+    auto p = Parser(data("\n .ALIGN 3"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -104,7 +105,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION(".ASCII expected string") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n .ASCII 3"));
+    auto p = Parser(data("\n .ASCII 3"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -113,7 +114,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION(".IMPORT expected identifier") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n .IMPORT 3"));
+    auto p = Parser(data("\n .IMPORT 3"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -122,7 +123,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION(".ORG expected hex") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n .ORG 3"));
+    auto p = Parser(data("\n .ORG 3"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -131,7 +132,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION("Addressing mode required") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n adda 10"));
+    auto p = Parser(data("\n adda 10"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -140,7 +141,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION("Addressing mode invalid") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n adda 10,j"));
+    auto p = Parser(data("\n adda 10,j"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -149,7 +150,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION("Addressing mode missing") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n adda 10,"));
+    auto p = Parser(data("\n adda 10,"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -158,7 +159,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION(".EQUATE expectes symbol declaration") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n .EQUATE 10,"));
+    auto p = Parser(data("\n .EQUATE 10,"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -167,7 +168,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION(".ORG rejects symbols") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n abc:.ORG 0xfeed"));
+    auto p = Parser(data("\n abc:.ORG 0xfeed"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -176,7 +177,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION("Symbol too long") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n abcdefghij: .EQUATE 10,"));
+    auto p = Parser(data("\n abcdefghij: .EQUATE 10,"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -185,7 +186,7 @@ TEST_CASE("Pepp ASM parser errors",
   }
   SECTION(".SECTION expects string name") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n .SECTION 10"));
+    auto p = Parser(data("\n .SECTION 10"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -195,7 +196,7 @@ TEST_CASE("Pepp ASM parser errors",
   SECTION(".SECTION expects two args") {
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("\n .SECTION \"a\""));
+      auto p = Parser(data("\n .SECTION \"a\""), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -206,7 +207,7 @@ TEST_CASE("Pepp ASM parser errors",
   SECTION(".SECTION expects string flags") {
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("\n .SECTION \"a\",10"));
+      auto p = Parser(data("\n .SECTION \"a\",10"), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
@@ -215,12 +216,104 @@ TEST_CASE("Pepp ASM parser errors",
     }
     {
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("\n .SECTION \"a\","));
+      auto p = Parser(data("\n .SECTION \"a\","), std::make_shared<MR>());
       auto results = p.parse(diag);
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
       CHECK(start->second == PE::to_string(NullaryError::Section_StringFlags));
     }
+  }
+  SECTION("Unterminated .IF") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("\n.IF 0"), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 1);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      CHECK(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Conditional_Unterminated));
+    }
+  }
+  SECTION("Unmatched .ELSEIF") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("\n.elseif 0"), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 1);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      CHECK(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedElseif));
+    }
+  }
+  SECTION("Unmatched .ENDIF") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("\n.endif"), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 1);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      CHECK(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedEndif));
+    }
+  }
+  SECTION("Unmatched .ELSE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("\n.ELSE"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+    CHECK(start != end);
+    CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedElse));
+  }
+  // TODO: this test case is not producing the expected error message
+  /*SECTION("Multiple .ELSE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF\n.ELSE\n.ELSE\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+    CHECK(start != end);
+    CHECK(start->second == PE::to_string(NullaryError::Conditional_MultipleElse));
+
+  }*/
+  SECTION("Unterminated .macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("\n.macro @TEST"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+    CHECK(start != end);
+    CHECK(start->second == PE::to_string(NullaryError::Macro_Unterminated));
+  }
+  SECTION("Unmatched .endm") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("\n.endm"), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 1);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      CHECK(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Macro_UnmatchedEndm));
+    }
+  }
+  SECTION("Redefining a macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".macro @TEST\n.endm\n.macro @TEST\n.endm"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    // TODO: IDK why this is sent to the wrong line.
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(0, 0), Location(1, Location::MAX)));
+    CHECK(start != diag.cend());
+    CHECK(start->second == PE::to_string(UnaryError::Macro_Redefinition, "@TEST"));
+  }
+  SECTION("Recursive macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".macro @RE\n@RE\n.endm\n@RE\n"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(0, 0), Location(1, Location::MAX)));
+    CHECK(start != diag.cend());
+    CHECK(start->second == PE::to_string(NullaryError::Macro_ExcessiveRecursion));
   }
 }

@@ -32,6 +32,21 @@ std::string format_as_columns(const std::string &col0, const std::string &col1, 
 // grab the original source text for the source interval.
 std::string format_source(bits::span<std::shared_ptr<lex::Token> const> tokens);
 
+// Split a span of tokens into a head+rest pair, where head includes all items up-to and including the first item
+// matching the predicate.
+// Useful for splitting token streams on newline boundaries.
+template <typename T, typename F> std::pair<std::span<T>, std::span<T>> split_inclusive(std::span<T> s, F predicate) {
+  for (std::size_t i = 0; i < s.size(); ++i)
+    if (predicate(s[i])) return {s.first(i + 1), s.subspan(i + 1)};
+  return {s, std::span<T>{}};
+}
+// Same as split_inclusive, but useful for excluding the newline boundaries.
+template <typename T, typename F> std::pair<std::span<T>, std::span<T>> split_exclusive(std::span<T> s, F predicate) {
+  for (std::size_t i = 0; i < s.size(); ++i)
+    if (predicate(s[i])) return {s.first(i), s.subspan(i + 1)};
+  return {s, std::span<T>{}};
+}
+
 // Format a single IR line as if by format_source(<tokens>).
 std::string format_source(const LinearIR *line);
 

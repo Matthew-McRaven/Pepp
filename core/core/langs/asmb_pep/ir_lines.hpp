@@ -7,12 +7,8 @@
 #include "core/langs/asmb_pep/ir_attributes.hpp"
 
 namespace pepp::tc {
-enum class PepIRType : int {
-  Monadic = static_cast<int>(LinearIRType::FirstUser),
-  Dyadic,
-  DotAnnotate,
-  MacroInvocation
-};
+enum class PepIRType : int { Monadic = static_cast<int>(LinearIRType::FirstUser), Dyadic, DotAnnotate };
+
 enum class PepDotCommands : int {
   EXPORT = static_cast<int>(DotCommands::FIRST_USER),
   IMPORT,
@@ -20,6 +16,7 @@ enum class PepDotCommands : int {
   OUTPUT,
   SCALL,
 };
+
 struct MonadicInstruction : public LinearIR {
   static constexpr int TYPE = static_cast<int>(PepIRType::Monadic);
   explicit MonadicInstruction(Pep10Mnemonic m) : mnemonic(m) {}
@@ -42,10 +39,8 @@ struct DyadicInstruction : public LinearIR {
   Argument argument;
 };
 
-struct MacroInvocation : public LinearIR {};
-
 struct DotAnnotate : public LinearIR {
-  static constexpr int TYPE = static_cast<int>(LinearIRType::DotAnnotate);
+  static constexpr int TYPE = static_cast<int>(PepIRType::DotAnnotate);
   enum class Which { EXPORT, IMPORT, INPUT, OUTPUT, SCALL } which;
   // Arg must always be an identifier
   DotAnnotate(Which dir, Argument arg);
@@ -56,5 +51,8 @@ struct DotAnnotate : public LinearIR {
 };
 
 bool defines_symbol(const LinearIR &line);
+// If you add new IR types, you will also need to update the body of this function.
+// Otherwise the new IR types will not allow symbols to be moved into them, forcing extra `.block 0` to be emitted.
+bool allows_symbol(const LinearIR &line);
 
 } // namespace pepp::tc

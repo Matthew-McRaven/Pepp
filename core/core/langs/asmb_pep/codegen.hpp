@@ -27,6 +27,8 @@ struct PeppSectionAnalysisResults {
   std::vector<obj::IO> mmios;
 };
 
+// Expects that tree-like IR has already been flattened in a previous step.
+// See pepp::tc::parser::flatten_macros.
 // The returned vector points to the same underlying IR as the (linear) input program.
 // This allows addresses to be propogated to input original. which is useful for generating the listing.
 //

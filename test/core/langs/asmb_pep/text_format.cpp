@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "core/langs/asmb_pep/text_format.hpp"
 #include <catch.hpp>
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/source/seekable.hpp"
@@ -23,7 +24,6 @@
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/lexer.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
-#include "core/langs/asmb_pep/text_format.hpp"
 
 namespace {
 static auto idpool = []() { return std::make_shared<std::unordered_set<std::string>>(); };
@@ -35,6 +35,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
   using Buffer = pepp::tc::lex::Buffer;
   using Checkpoint = pepp::tc::lex::Checkpoint;
   using Parser = pepp::tc::parser::PepParser;
+  using MR = pepp::tc::MacroRegistry;
   using namespace pepp::tc::lex;
   using pepp::tc::format_source;
   SECTION("Empty Line") {
@@ -47,7 +48,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto lexer_formatted = format_source(sp);
     CHECK(lexer_formatted == "");
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
@@ -64,7 +65,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto lexer_formatted = format_source(sp);
     CHECK(lexer_formatted == R"(;******* STRO)");
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
@@ -83,7 +84,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
       auto lexer_formatted = format_source(sp);
       CHECK(lexer_formatted == "         NOTA                ;hi");
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt));
+      auto p = Parser(data(txt), std::make_shared<MR>());
       auto r = p.parse(diag);
       CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
@@ -102,7 +103,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
       auto lexer_formatted = format_source(sp);
       CHECK(lexer_formatted == "this:    NOTA                ;hi");
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt));
+      auto p = Parser(data(txt), std::make_shared<MR>());
       auto r = p.parse(diag);
       CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
@@ -125,7 +126,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
       auto lexer_formatted = format_source(sp);
       CHECK(lexer_formatted == "         ADDA    15,d        ;hi");
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt));
+      auto p = Parser(data(txt), std::make_shared<MR>());
       auto r = p.parse(diag);
       CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
@@ -146,7 +147,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
       auto lexer_formatted = format_source(sp);
       CHECK(lexer_formatted == "this:    ADDA    this,sfx");
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt));
+      auto p = Parser(data(txt), std::make_shared<MR>());
       auto r = p.parse(diag);
       CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
@@ -168,7 +169,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
       auto lexer_formatted = format_source(sp);
       CHECK(lexer_formatted == "this:    ADDA    this,sfx");
       pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt));
+      auto p = Parser(data(txt), std::make_shared<MR>());
       auto r = p.parse(diag);
       CHECK(diag.count() == 0);
       CHECK(r.size() == 1);
@@ -200,7 +201,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto lexer_formatted = format_source(sp);
     CHECK(lexer_formatted == R"(execErr: .ALIGN  8)");
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
@@ -219,7 +220,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto lexer_formatted = format_source(sp);
     CHECK(lexer_formatted == R"(execErr: .ASCII  "Main failed with return value \0")");
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
@@ -238,7 +239,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto lexer_formatted = format_source(sp);
     CHECK(lexer_formatted == R"(execErr: .BLOCK  8)");
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
@@ -257,7 +258,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto lexer_formatted = format_source(sp);
     CHECK(lexer_formatted == R"(execErr: .EQUATE 8)");
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
@@ -277,7 +278,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto lexer_formatted = format_source(sp);
     CHECK(lexer_formatted == R"(         .SECTION "text", "rx")");
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
@@ -295,7 +296,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto lexer_formatted = format_source(sp);
     CHECK(lexer_formatted == R"(         .EXPORT feed)");
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
@@ -313,11 +314,32 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto lexer_formatted = format_source(sp);
     CHECK(lexer_formatted == R"(         .ORG    0xFEED)");
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
     CHECK(format_source(r[0].get()) == lexer_formatted);
+  }
+  SECTION(".IF") {
+    static const auto txt = ".IF 1\n.BYTE 15\n.ENDIF";
+    auto l = Lexer(idpool(), data(txt));
+    auto b = Buffer(&l);
+    while (b.input_remains()) b.match(-1);
+    auto sp = b.matched_tokens();
+    auto pred = [](const std::shared_ptr<Token> &t) { return t->type() == Empty::TYPE; };
+    auto [l1, rest1] = pepp::tc::split_inclusive(sp, pred);
+    auto [l2, rest2] = pepp::tc::split_inclusive(rest1, pred);
+    auto [l3, rest3] = pepp::tc::split_inclusive(rest2, pred);
+    CHECK(l1.size() == 3);
+    CHECK(l2.size() == 3);
+    CHECK(l3.size() == 1);
+    CHECK(rest3.empty());
+    auto l1_formatted = format_source(l1);
+    CHECK(l1_formatted == "         .IF     1");
+    auto l2_formatted = format_source(l2);
+    CHECK(l2_formatted == "         .BYTE   15");
+    auto l3_formatted = format_source(l3);
+    CHECK(l3_formatted == "         .ENDIF");
   }
 }
 
@@ -327,17 +349,19 @@ TEST_CASE("Pepp ASM listing formatting",
   using Buffer = pepp::tc::lex::Buffer;
   using Checkpoint = pepp::tc::lex::Checkpoint;
   using Parser = pepp::tc::parser::PepParser;
+  using MR = pepp::tc::MacroRegistry;
   using namespace pepp::tc::lex;
   using pepp::tc::format_listing;
   using pepp::tc::format_source;
   SECTION("Comment-only") {
     static const auto txt = R"(;******* STRO)";
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
-    auto result = pepp::tc::pepp_split_to_sections(diag, r);
+    auto code = pepp::tc::parser::flatten_macros(r);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
@@ -351,11 +375,12 @@ TEST_CASE("Pepp ASM listing formatting",
     static const auto txt = R"(this: NOTA ;hi
 ADDA 15,d ;hi)";
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 2);
-    auto result = pepp::tc::pepp_split_to_sections(diag, r);
+    auto code = pepp::tc::parser::flatten_macros(r);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
@@ -369,11 +394,12 @@ ADDA 15,d ;hi)";
   SECTION(".BLOCK") {
     static const auto txt = R"(execErr:   .BLOCK     7  )";
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt));
+    auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
     CHECK(r.size() == 1);
-    auto result = pepp::tc::pepp_split_to_sections(diag, r);
+    auto code = pepp::tc::parser::flatten_macros(r);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);

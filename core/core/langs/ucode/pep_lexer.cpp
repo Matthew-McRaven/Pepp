@@ -4,7 +4,7 @@
 #include <spdlog/spdlog.h>
 #include "./pep_tokens.hpp"
 #include "core/compile/lex/tokens.hpp"
-#include "core/ds/case_insensitive.hpp"
+#include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
 pepp::tc::lex::MicroLexer::MicroLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
@@ -115,7 +115,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::MicroLexer::next_token() {
       break;
     } else {
       _cursor.advance(1);
-      current_token = std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()});
+      current_token =
+          std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
     }
   }

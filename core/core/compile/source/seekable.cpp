@@ -44,6 +44,14 @@ void pepp::tc::support::SeekableData::skip(size_t n) {
 
 void pepp::tc::support::SeekableData::newline() { _loc.row++, _loc.column = 0; }
 
+size_t pepp::tc::support::SeekableData::start() const { return _start; }
+
+size_t pepp::tc::support::SeekableData::end() const { return _end; }
+
+std::string_view pepp::tc::support::SeekableData::view_between(size_t start, size_t end) const {
+  return std::string_view{data}.substr(start, end - start);
+}
+
 pepp::tc::support::SeekableData::match pepp::tc::support::SeekableData::matchView(const std::regex &re) {
   auto str = std::string_view{data}.substr(_start);
 

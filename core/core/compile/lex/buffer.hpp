@@ -25,6 +25,7 @@ namespace pepp::tc::lex {
 struct Token;
 struct ALexer;
 class Checkpoint;
+class Marker;
 
 class Buffer {
 public:
@@ -41,6 +42,24 @@ public:
     }
     return nullptr;
   }
+  template <typename... Types>
+    requires((std::derived_from<Types, Token> && ...) &&
+             (requires { std::integral_constant<int, Types::TYPE>{}; } && ...))
+  std::shared_ptr<Token> match_not() {
+    // Takes the bitwise NOT of the combined mask of all types.
+    constexpr int combined = ~(Types::TYPE | ...);
+    return match(combined);
+  }
+  std::shared_ptr<Token> match_not(int mask) { return match(~mask); }
+
+  // match_until matches tokens in a loop until a token matches the mask. Returns the number of tokens matched.
+  template <typename... Types>
+    requires((std::derived_from<Types, Token> && ...) &&
+             (requires { std::integral_constant<int, Types::TYPE>{}; } && ...))
+  size_t match_until() {
+    return match_until((Types::TYPE | ...));
+  }
+  size_t match_until(int mask);
   std::shared_ptr<Token> match_literal(const std::string &);
   // Returns the next token if it matches the mask, otherwise returns nullptr.
   std::shared_ptr<Token> peek(int mask = -1);
@@ -55,15 +74,38 @@ public:
   bool input_remains() const;
   size_t count_buffered_tokens() const;
   size_t count_matched_tokens() const;
+  // Return all tokens in the buffer between checkpoints head and our head.
+  bits::span<std::shared_ptr<Token> const> matched_tokens_after(const Marker &) const;
   bits::span<std::shared_ptr<Token> const> matched_tokens() const;
+  // Return all tokens after _head, which are tokens not-yet matched.
+  bits::span<std::shared_ptr<Token> const> buffered_tokens() const;
   support::LocationInterval matched_interval() const;
+  // In some instances, the parser bypasses the token buffer to consume tokens directly from the lexer.
+  // Sometimes we read one too many tokens in this mode and those tokens need to be re-buffered.
+  void push_token(std::shared_ptr<Token> t);
 
 private:
   ALexer *_lex;
   std::vector<std::shared_ptr<Token>> _tokens;
   size_t _head = 0, _checkpoints = 0;
+  friend class Marker;
   friend class Checkpoint;
   void clear_tokens();
+};
+
+// Represent a location in a buffer in a manner opaque to the end user.
+// Do not hold on to this beyond the scope in which it was created.
+// It WILL be invalidated when the buffer is cleared, which may happen anytime a Checkpoint falls out of scope.
+// Mostly useful when trying to recover text of difficult-to-parse constructs, like macro & conditional bodies.
+class Marker {
+public:
+  explicit Marker(const Buffer &buf);
+
+private:
+  friend class Buffer;
+  friend class Checkpoint;
+  const Buffer &_buf;
+  size_t _head = 0;
 };
 
 // Effectively a semaphor for the buffer? As long as one checkpoint exists, Buffer's tokens will not be cleared.
@@ -80,10 +122,14 @@ public:
 
   // Reset the buffer to the state it was in when this checkpoint was created.
   void rollback();
+  // Set this checkpoint's head to the buffer's current head.
+  void commit();
+  Marker marker() const;
 
 private:
+  friend class Buffer;
   Buffer &_buf;
-  size_t _head = 0;
+  Marker _marker;
 };
 
 } // namespace pepp::tc::lex

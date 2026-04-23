@@ -20,7 +20,7 @@
 #include <stdexcept>
 #include <stdint.h>
 #include <unordered_map>
-#include "../../../ds/case_insensitive.hpp"
+#include "core/ds/string_compare.hpp"
 namespace pepp::tc::arch {
 namespace detail::pep9_registers {
 enum class NamedRegisters {
