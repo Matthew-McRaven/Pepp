@@ -515,7 +515,7 @@ TEST_CASE("Pepp ASM parser with macros definitions",
     CHECK(std::dynamic_pointer_cast<InlineMacroDefinition>(results[0]));
     CHECK(mr->contains("@TEST"));
     CHECK(mr->find("@TEST")->arguments.empty());
-    CHECK(mr->find("@TEST")->body == ".byte 0xfe\n");
+    CHECK(mr->find("@TEST")->body == ".byte 0xfe");
   }
   SECTION("unary macro") {
     pepp::tc::DiagnosticTable diag;
@@ -528,6 +528,6 @@ TEST_CASE("Pepp ASM parser with macros definitions",
     CHECK(mr->contains("@TEST"));
     CHECK(mr->find("@TEST")->arguments.size() == 1);
     CHECK(mr->find("@TEST")->arguments.at(0).name == "feed");
-    CHECK(mr->find("@TEST")->body == ".byte \\feed\n");
+    CHECK(mr->find("@TEST")->body == ".byte \\feed");
   }
 }

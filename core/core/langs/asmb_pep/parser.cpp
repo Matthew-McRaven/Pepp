@@ -157,7 +157,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
     const auto arg_value = args.size() > it ? args.at(it) : macro_def->arguments.at(it).default_value.value_or("");
     rep["\\" + arg_name] = arg_value;
   }
-  auto new_body = replace_macro_arguments(macro_def->body, rep);
+  auto new_body = bits::rtrimmed(replace_macro_arguments(macro_def->body, rep));
   auto new_lexer = std::make_shared<lex::PepLexer>(_pool, support::SeekableData{std::move(new_body)});
   auto new_buffer = std::make_shared<lex::Buffer>(&*new_lexer);
   _lexer_stack.emplace(new_lexer, new_buffer);
@@ -499,11 +499,20 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
       if (token && token->type() == lex::DotCommand::TYPE) {
         auto dot_str = bits::to_upper(token->to_string());
         if (dot_str == "MACRO") _active_macro_defs++;
-        else if (dot_str == "ENDM") _active_macro_defs--;
+        else if (dot_str == "ENDM") {
+          if (lexer->input_remains()) {
+            auto la2 = lexer->next_token();
+            if (!la2 || la2->type() != lex::Empty::TYPE)
+              throw PepParserError(PepParserError::NullaryError::Token_MissingNewline, buf->matched_interval());
+            buf->push_token(la2);
+          }
+          _active_macro_defs--;
+        }
       }
-      auto as_macro = std::dynamic_pointer_cast<InlineMacroDefinition>(ret);
-      if (!as_macro) throw std::logic_error("Expected an InlineMacroDefinition");
-      else if (_active_macro_defs == 0) {
+
+      if (_active_macro_defs == 0) {
+        auto as_macro = std::dynamic_pointer_cast<InlineMacroDefinition>(ret);
+        if (!as_macro) throw std::logic_error("Expected an InlineMacroDefinition");
         // Flush collected tokens so future statements parse normally.
         lex::Checkpoint cp(*buf);
         auto tokens = buf->buffered_tokens();
@@ -514,10 +523,10 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
         for (const auto &arg : as_macro->arguments)
           macro_def->arguments.emplace_back(MacroDefinition::Argument{.name = arg, .default_value = std::nullopt});
 
-        // Strip final .ENDM token from macro body while handling edgecase of an empty body.
-        if (tokens.size() > 1) {
+        // Strip final .ENDM NEWLINE token from macro body while handling edgecase of an empty body.
+        if (tokens.size() > 2) {
           // Drop trailing .endm token from macro body.
-          tokens = tokens.subspan(0, tokens.size() - 1);
+          tokens = tokens.subspan(0, tokens.size() - 2);
 
           const auto first_loc = tokens.front()->location().lower(), last_loc = tokens.back()->location().upper();
           auto str = lexer->view(support::LocationInterval(first_loc, last_loc));
