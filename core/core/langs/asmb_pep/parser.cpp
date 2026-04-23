@@ -77,8 +77,14 @@ std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::PepParser::identifier_arg
   return nullptr;
 }
 
+static const u8 MAX_PARSE_DEPTH = 8;
 pepp::tc::IRProgram pepp::tc::parser::PepParser::do_parse(DiagnosticTable &diag,
                                                           std::optional<support::LocationInterval> root_loc) {
+  // Prevent infinite recursion of macro expansions by arbitrarily bounding parse depth.
+  if (_lexer_stack.size() > MAX_PARSE_DEPTH) {
+    throw PepParserError(PepParserError::UnaryError::Token_Invalid, "Exceeded maximum parse depth",
+                         root_loc.value_or(support::LocationInterval()));
+  }
   auto buf = active_buffer();
   IRProgram lines;
   while (buf->input_remains()) {
