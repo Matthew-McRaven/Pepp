@@ -145,10 +145,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
     std::tie(head, rest) = pepp::tc::split_exclusive(rest, split_args);
     const auto first_loc = head.front()->location().lower(), last_loc = head.back()->location().upper();
     auto arg = lexer->view(support::LocationInterval(first_loc, last_loc));
-    SPDLOG_WARN("Parsed macro argument: '{}'", arg);
     args.emplace_back(arg);
   }
-  SPDLOG_WARN("Parsed macro invocation: '{}', with {} arguments", macro, args.size());
   auto ret = std::make_shared<MacroInstantiation>(macro_def, args);
   auto rep = _counters.counters_for(macro_def->name);
   // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
@@ -161,9 +159,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   auto new_lexer = std::make_shared<lex::PepLexer>(_pool, support::SeekableData{std::move(new_body)});
   auto new_buffer = std::make_shared<lex::Buffer>(&*new_lexer);
   _lexer_stack.emplace(new_lexer, new_buffer);
-  SPDLOG_WARN("Expanded macro '{}', pushing new lexer and making recursive leap", macro_def->name);
   ret->lines = do_parse(diag, buf->matched_interval());
-  SPDLOG_WARN("Popped back from recursive leap for macro '{}', had {} lines", macro_def->name, ret->lines.size());
 
   // TODO: Attach symbol def
   return ret;
@@ -415,10 +411,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       std::tie(head, rest) = pepp::tc::split_exclusive(rest, split_args);
       const auto first_loc = head.front()->location().lower(), last_loc = head.back()->location().upper();
       auto arg = lexer->view(support::LocationInterval(first_loc, last_loc));
-      SPDLOG_WARN("Defining macro argument: '{}'", arg);
       args.emplace_back(arg);
     }
-    SPDLOG_WARN("Defining inline macro: '{}', with {} arguments", name->string(), args.size());
     _active_macro_defs++;
     return std::make_shared<InlineMacroDefinition>(name->string(), args);
   }
@@ -516,7 +510,6 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
         // Flush collected tokens so future statements parse normally.
         lex::Checkpoint cp(*buf);
         auto tokens = buf->buffered_tokens();
-        SPDLOG_WARN("Finished parsing inline macro body with {} tokens", tokens.size());
 
         auto macro_def = std::make_shared<MacroDefinition>();
         macro_def->name = as_macro->name;
@@ -530,7 +523,6 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
 
           const auto first_loc = tokens.front()->location().lower(), last_loc = tokens.back()->location().upper();
           auto str = lexer->view(support::LocationInterval(first_loc, last_loc));
-          SPDLOG_WARN("Re-assembled macro body:\n{}", str);
           macro_def->body = str;
         } else macro_def->body = "";
 
