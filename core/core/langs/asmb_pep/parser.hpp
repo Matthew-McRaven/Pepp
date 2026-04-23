@@ -80,6 +80,8 @@ private:
   // Skip mode is true when any element in _conditionals sets matched_this_stmt=false.
   bool in_false_conditional() const;
 };
+
+IRProgram flatten_macros(IRProgram const &program);
 } // namespace parser
 } // namespace tc
 } // namespace pepp

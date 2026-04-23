@@ -581,3 +581,32 @@ bool pepp::tc::parser::PepParser::in_false_conditional() const {
   return std::accumulate(_conditionals.begin(), _conditionals.end(), false,
                          [](bool acc, const ConditionalStack &cs) { return acc || (!cs.matched_this_stmt); });
 }
+
+pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program) {
+  IRProgram ret;
+  // While copying the input is annoying,we can prepend to the dequeue easily enough.
+  // To handle tree structures
+  std::deque<std::shared_ptr<tc::LinearIR>> work_queue;
+  // Insert all lines into a work queue, which allows us to flatten macros as we go.
+  work_queue.insert(work_queue.end(), program.begin(), program.end());
+  while (!work_queue.empty()) {
+    auto line = work_queue.front();
+    work_queue.pop_front();
+    switch (line->type()) {
+    case InlineMacroDefinition::TYPE: continue;
+    case MacroInstantiation::TYPE: {
+      // Extract all of the macro lines to the front of the work queue.
+      auto as_macro = std::static_pointer_cast<pepp::tc::MacroInstantiation>(line);
+      auto lines = as_macro->lines;
+      // Remove the final trailing \n for nicer listing output.
+      bool skip_last = lines.back()->type() == EmptyLine::TYPE;
+      // TODO: at this time, we should also move the symbol from the MacroInstantiation into a .block 0
+      work_queue.insert(work_queue.begin(), lines.begin(), lines.end() - (skip_last ? 1 : 0));
+      // Do not insert macro IR into the flattned result. It is only used to group existing lines.
+      continue;
+    }
+    default: ret.emplace_back(line);
+    }
+  }
+  return ret;
+}

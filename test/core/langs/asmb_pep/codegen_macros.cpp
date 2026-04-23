@@ -63,16 +63,15 @@ TEST_CASE("Pepp macro ASM codegen address assignment",
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 14);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto oc = pepp::tc::pepp_to_object_code(addresses, result.grouped_ir);
     CHECK(sections.size() == 3);
-    IRProgram all_lines;
-    for (const auto &[_, lines] : sections) all_lines.insert(all_lines.end(), lines.begin(), lines.end());
-    for (const auto &l : format_listing(all_lines, addresses, oc)) SPDLOG_WARN("Listed:  {}", l);
+    for (const auto &l : format_listing(code, addresses, oc)) SPDLOG_WARN("Listed:  {}", l);
 
     CHECK(sections[0].first.name == ".text");
     CHECK(sections[0].second.size() == 5);

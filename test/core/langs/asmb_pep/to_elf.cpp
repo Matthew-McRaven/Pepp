@@ -66,7 +66,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
     CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
 
     auto symbol_tab = p.symbol_table();
@@ -87,7 +88,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
                     std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
@@ -115,7 +117,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     for (auto &d : diag) std::cerr << d.second << "\n";
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
 
     auto symbol_tab = p.symbol_table();

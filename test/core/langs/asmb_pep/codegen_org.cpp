@@ -57,7 +57,8 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 3);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
@@ -76,7 +77,8 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 3);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
@@ -95,7 +97,8 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 5);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
@@ -120,7 +123,8 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 6);
-    auto result = pepp::tc::pepp_split_to_sections(diag, results);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);

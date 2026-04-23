@@ -26,18 +26,10 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
   ret.grouped_ir.emplace_back(std::make_pair(initial_section, pepp::tc::IRProgram{}));
   auto &grouped_ir = ret.grouped_ir;
   auto *active = &grouped_ir[0];
-  // While copying the input is annoying,we can prepend to the dequeue easily enough.
-  // To handle tree structures
-  std::deque<std::shared_ptr<tc::LinearIR>> work_queue;
-  // Insert all lines into a work queue, which allows us to flatten macros as we go.
-  work_queue.insert(work_queue.end(), prog.begin(), prog.end());
-  while (!work_queue.empty()) {
-    auto line = work_queue.front();
-    work_queue.pop_front();
 
+  for (auto &line : prog) {
     // TODO: Check all symbol usages are not undefined
     // TODO: .BURN for this section.
-
     using Type = LinearIRType;
 
     // Compile-time visitor pattern where the only virtual call should be type().
@@ -81,18 +73,9 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       active->first.org_count++;
       break;
     }
-    case InlineMacroDefinition::TYPE: continue;
+    case InlineMacroDefinition::TYPE: [[fallthrough]];
+    case MacroInstantiation::TYPE: throw std::logic_error("Cannot perform code generation on macros");
 
-    case MacroInstantiation::TYPE: {
-      // Extract all of the macro lines to the front of the work queue.
-      auto as_macro = std::static_pointer_cast<pepp::tc::MacroInstantiation>(line);
-      auto lines = as_macro->lines;
-      // Remove the final trailing \n for nicer listing output.
-      bool skip_last = lines.back()->type() == EmptyLine::TYPE;
-      work_queue.insert(work_queue.begin(), lines.begin(), lines.end() - (skip_last ? 1 : 0));
-      // Do not insert macro IR into the flattned result. It is only used to group existing lines.
-      continue;
-    }
     default: break;
     }
 

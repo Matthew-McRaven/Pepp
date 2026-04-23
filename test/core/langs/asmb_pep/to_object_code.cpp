@@ -49,7 +49,8 @@ TEST_CASE("Pepp ASM object code output",
   auto p = Parser(data(ex1), std::make_shared<MR>());
   auto full_ir = p.parse(diag);
   CHECK(diag.count() == 0);
-  auto sectioned_ir = pepp::tc::pepp_split_to_sections(diag, full_ir);
+  auto code = pepp::tc::parser::flatten_macros(full_ir);
+  auto sectioned_ir = pepp::tc::pepp_split_to_sections(diag, code);
   CHECK(diag.count() == 0);
   auto &sections = sectioned_ir.grouped_ir;
   CHECK(sections.size() == 3);
