@@ -110,6 +110,9 @@ pepp::tc::IRProgram pepp::tc::parser::PepParser::do_parse(DiagnosticTable &diag,
       diag.add_message(root_loc.value_or(e.loc), e.what());
     }
   }
+  // Pop the lexer for this context before returning to caller.
+  // Don't pop root context, we probably want it for later.
+  if (_lexer_stack.size() > 1) _lexer_stack.pop();
   return lines;
 }
 
