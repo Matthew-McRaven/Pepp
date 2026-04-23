@@ -17,6 +17,7 @@
 #include <catch.hpp>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
@@ -93,5 +94,52 @@ TEST_CASE("Pepp macro ASM codegen address assignment",
     CHECK(addresses.find(&*s2[0]) == addresses.end());
     CHECK(addresses.at(&*s2[1]).address == 38);
     CHECK(addresses.at(&*s2[2]).address == 39);
+  }
+  SECTION("Move symbol into macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto md = std::make_shared<MacroDefinition>();
+    md->name = "test";
+    md->body = ".byte 17";
+    CHECK(mr->insert(md));
+    auto p = Parser(data("hi:test"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[0]);
+    CHECK(macro);
+    CHECK(macro->has_attribute<SymbolDeclaration>());
+    CHECK(macro->lines.size() == 1);
+    CHECK(!macro->lines[0]->has_attribute<SymbolDeclaration>());
+    auto code = pepp::tc::parser::flatten_macros(results);
+    CHECK(code.size() == 1);
+    auto ptr = std::dynamic_pointer_cast<pepp::tc::DotLiteral>(code[0]);
+    CHECK(ptr);
+    CHECK(ptr->has_attribute<SymbolDeclaration>());
+  }
+  SECTION("Add .block 0 to macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto md = std::make_shared<MacroDefinition>();
+    md->name = "test";
+    md->body = "bye: .byte 17";
+    CHECK(mr->insert(md));
+    auto p = Parser(data("hi:test"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[0]);
+    CHECK(macro);
+    CHECK(macro->has_attribute<SymbolDeclaration>());
+    CHECK(macro->lines.size() == 1);
+    CHECK(macro->lines[0]->has_attribute<SymbolDeclaration>());
+    auto code = pepp::tc::parser::flatten_macros(results);
+    CHECK(code.size() == 2);
+    auto ptr0 = std::dynamic_pointer_cast<pepp::tc::DotBlock>(code[0]);
+    CHECK(ptr0);
+    CHECK(ptr0->has_attribute<SymbolDeclaration>());
+    auto ptr1 = std::dynamic_pointer_cast<pepp::tc::DotLiteral>(code[1]);
+    CHECK(ptr1);
+    CHECK(ptr1->has_attribute<SymbolDeclaration>());
   }
 }

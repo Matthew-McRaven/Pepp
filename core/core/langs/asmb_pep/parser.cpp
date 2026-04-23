@@ -19,7 +19,6 @@
 #include "core/langs/asmb_pep/parser_error.hpp"
 #include "core/langs/asmb_pep/text_format.hpp"
 #include "core/math/bitmanip/strings.hpp"
-#include "spdlog/spdlog.h"
 
 pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data, std::shared_ptr<MacroRegistry> reg)
     : _pool(std::make_shared<std::unordered_set<std::string>>()),
@@ -600,8 +599,33 @@ pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program) {
       auto lines = as_macro->lines;
       // Remove the final trailing \n for nicer listing output.
       bool skip_last = lines.back()->type() == EmptyLine::TYPE;
-      // TODO: at this time, we should also move the symbol from the MacroInstantiation into a .block 0
       work_queue.insert(work_queue.begin(), lines.begin(), lines.end() - (skip_last ? 1 : 0));
+
+      // If the macro instantiation has a symbol definition, we need to move it into the body of the macro
+      if (as_macro->has_attribute<SymbolDeclaration>()) {
+        auto sym_decl = as_macro->typed_attribute<SymbolDeclaration>();
+        std::shared_ptr<LinearIR> first_code_line = nullptr;
+        // Find the first line of code which accepts a symbol in the macro body.
+        // If a line that generates object code is found before a line which accepts a symbol, we are forced to emit a
+        // .block 0.
+        for (const auto &l : lines) {
+          if (allows_symbol(*l)) {
+            first_code_line = l;
+            break;
+          } else if (l->object_size(0).has_value()) break;
+        }
+        // If that line does not have a symbol, "move" the macro's symbol declaration to that line.
+        // Otherwise, insert a .block 0
+        if (first_code_line && !first_code_line->has_attribute<SymbolDeclaration>()) {
+          first_code_line->insert(std::make_unique<SymbolDeclaration>(sym_decl->entry));
+        } else {
+          auto zero_arg = std::make_shared<pepp::ast::UnsignedDecimal>(0, 1);
+          auto dot_block = std::make_shared<DotBlock>(Argument{zero_arg});
+          dot_block->insert(std::make_unique<SymbolDeclaration>(sym_decl->entry));
+          work_queue.push_front(dot_block);
+        }
+      }
+
       // Do not insert macro IR into the flattned result. It is only used to group existing lines.
       continue;
     }
