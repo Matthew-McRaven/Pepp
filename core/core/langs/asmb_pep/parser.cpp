@@ -475,7 +475,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
   auto start_depth = _conditionals.size();
   const auto start_ival = lexer->current_location();
   // Consume tokens directly from lexer without buffering to avoid buffer-clearing bugs.
-  while ((_active_macro_defs > 0 || skip_mode()) && lexer->input_remains()) {
+  while ((_active_macro_defs > 0 || in_false_conditional()) && lexer->input_remains()) {
     auto token = lexer->next_token();
     if (_active_macro_defs > 0) {
       // Need to capture all body tokens! Else chaos ensues.
@@ -561,7 +561,7 @@ void pepp::tc::parser::PepParser::synchronize() {
   while (buf->input_remains() && buf->match(mask));
 }
 
-bool pepp::tc::parser::PepParser::skip_mode() const {
+bool pepp::tc::parser::PepParser::in_false_conditional() const {
   return std::accumulate(_conditionals.begin(), _conditionals.end(), false,
                          [](bool acc, const ConditionalStack &cs) { return acc || (!cs.matched_this_stmt); });
 }

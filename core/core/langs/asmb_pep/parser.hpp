@@ -78,7 +78,7 @@ private:
   // incremented when macro returns non-nullptr, decremented by the skip loop in statement
   u16 _active_macro_defs = 0;
   // Skip mode is true when any element in _conditionals sets matched_this_stmt=false.
-  bool skip_mode() const;
+  bool in_false_conditional() const;
 };
 } // namespace parser
 } // namespace tc
