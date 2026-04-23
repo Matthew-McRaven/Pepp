@@ -23,6 +23,7 @@
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
+#include "spdlog/spdlog.h"
 
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
@@ -495,5 +496,23 @@ TEST_CASE("Pepp ASM parser with macros definitions",
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<InlineMacroDefinition>(results[0]));
+    CHECK(mr->contains("@TEST"));
+    CHECK(mr->find("@TEST")->arguments.empty());
+    CHECK(mr->find("@TEST")->body == ".byte 0xfe\n");
+  }
+  SECTION("unary macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto p = Parser(data(".macro @TEST feed\n.byte \\feed\n.endm"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
+
+    REQUIRE(results.size() == 1);
+    CHECK(std::dynamic_pointer_cast<InlineMacroDefinition>(results[0]));
+    CHECK(mr->contains("@TEST"));
+    CHECK(mr->find("@TEST")->arguments.size() == 1);
+    CHECK(mr->find("@TEST")->arguments.at(0).name == "feed");
+    CHECK(mr->find("@TEST")->body == ".byte \\feed\n");
   }
 }

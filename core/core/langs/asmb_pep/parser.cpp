@@ -360,7 +360,10 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     auto name = identifier_argument();
     if (!name)
       throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    // Mark the start of the macro's arguments
     lex::Marker marker(*_buffer);
+    // Consume tokens until the EoL is reached, then attempt to split into arguments.
+    _buffer->match_until<lex::Empty, lex::EoF>();
     auto tokens = _buffer->matched_tokens_after(marker);
     std::vector<std::string> args;
     std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
@@ -459,14 +462,23 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
         lex::Checkpoint cp(*_buffer);
         auto tokens = _buffer->buffered_tokens();
         SPDLOG_WARN("Finished parsing inline macro body with {} tokens", tokens.size());
-        const auto first_loc = tokens.front()->location().lower(), last_loc = tokens.back()->location().upper();
-        auto str = _lexer->view(support::LocationInterval(first_loc, last_loc));
-        SPDLOG_WARN("Re-assembled macro body:\n{}", str);
+
         auto macro_def = std::make_shared<MacroDefinition>();
         macro_def->name = as_macro->name;
         for (const auto &arg : as_macro->arguments)
           macro_def->arguments.emplace_back(MacroDefinition::Argument{.name = arg, .default_value = std::nullopt});
-        macro_def->body = str;
+
+        // Strip final .ENDM token from macro body while handling edgecase of an empty body.
+        if (tokens.size() > 1) {
+          // Drop trailing .endm token from macro body.
+          tokens = tokens.subspan(0, tokens.size() - 1);
+
+          const auto first_loc = tokens.front()->location().lower(), last_loc = tokens.back()->location().upper();
+          auto str = _lexer->view(support::LocationInterval(first_loc, last_loc));
+          SPDLOG_WARN("Re-assembled macro body:\n{}", str);
+          macro_def->body = str;
+        } else macro_def->body = "";
+
         auto success = _macros->insert(macro_def);
         if (!success)
           throw PepParserError(PepParserError::UnaryError::Macro_Redefinition, as_macro->name,
