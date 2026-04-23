@@ -7,12 +7,7 @@
 #include "core/langs/asmb_pep/ir_attributes.hpp"
 
 namespace pepp::tc {
-enum class PepIRType : int {
-  Monadic = static_cast<int>(LinearIRType::FirstUser),
-  Dyadic,
-  DotAnnotate,
-  MacroInstantiation
-};
+enum class PepIRType : int { Monadic = static_cast<int>(LinearIRType::FirstUser), Dyadic, DotAnnotate };
 
 enum class PepDotCommands : int {
   EXPORT = static_cast<int>(DotCommands::FIRST_USER),
@@ -45,7 +40,7 @@ struct DyadicInstruction : public LinearIR {
 };
 
 struct DotAnnotate : public LinearIR {
-  static constexpr int TYPE = static_cast<int>(LinearIRType::DotAnnotate);
+  static constexpr int TYPE = static_cast<int>(PepIRType::DotAnnotate);
   enum class Which { EXPORT, IMPORT, INPUT, OUTPUT, SCALL } which;
   // Arg must always be an identifier
   DotAnnotate(Which dir, Argument arg);

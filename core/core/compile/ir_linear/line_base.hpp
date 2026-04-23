@@ -55,7 +55,6 @@ enum class LinearIRType : int {
   Empty,
   Comment,
   DotAlign,
-  DotAnnotate,
   DotSymbol,
   DotBlock,
   DotEquate,
