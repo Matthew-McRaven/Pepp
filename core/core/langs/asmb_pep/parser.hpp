@@ -50,12 +50,18 @@ private:
   std::shared_ptr<LinearIR> pseudo(OptionalSymbol symbol);
   std::shared_ptr<LinearIR> line(OptionalSymbol symbol);
   std::shared_ptr<LinearIR> statement();
+  // Body which actually does the parsing until the top lexer in _lexer_stack is exhausted.
+  // If root_loc is nullopt, the location from the PepParserError and underlying IR will be left untouched.
+  // Otherwise, all "source" locations will be updated to point to root_loc.
+  IRProgram do_parse(DiagnosticTable &diag, std::optional<support::LocationInterval> root_loc);
 
   void synchronize();
 
   std::shared_ptr<std::unordered_set<std::string>> _pool;
-  std::shared_ptr<lex::PepLexer> _lexer;
-  std::shared_ptr<lex::Buffer> _buffer;
+  lex::Buffer *active_buffer() { return _lexer_stack.top().second.get(); }
+  lex::PepLexer *active_lexer() { return _lexer_stack.top().first.get(); }
+  std::stack<std::pair<std::shared_ptr<lex::PepLexer>, std::shared_ptr<lex::Buffer>>> _lexer_stack;
+  std::shared_ptr<lex::PepLexer> _root_lexer;
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
   std::shared_ptr<pepp::tc::MacroRegistry> _macros;
 
