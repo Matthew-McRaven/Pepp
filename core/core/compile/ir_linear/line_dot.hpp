@@ -23,6 +23,7 @@ enum class DotCommands {
   ELSE,
   ENDIF,
   INLINE_MACRO,
+  END_MACRO, // Not a real directive in our IR, but used as a marker for unmatched .endm
   FIRST_USER
 };
 

@@ -32,6 +32,7 @@ public:
     Conditional_MultipleElse,
     Conditional_Unterminated,
     Macro_Unterminated,
+    Macro_UnmatchedEndm,
   };
   enum class UnaryError {
     Mnemonic_Invalid,

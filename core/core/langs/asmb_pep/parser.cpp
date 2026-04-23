@@ -170,7 +170,8 @@ static const auto dot_map = std::map<std::string, int>{
     {"IMPORT", (int)PDC::IMPORT}, {"INPUT", (int)PDC::INPUT},  {"ORG", (int)DC::ORG},
     {"OUTPUT", (int)PDC::OUTPUT}, {"SCALL", (int)PDC::SCALL},  {"SECTION", (int)DC::SECTION},
     {"WORD", (int)DC::WORD},      {"IF", (int)DC::IF},         {"ELSEIF", (int)DC::ELSEIF},
-    {"ELSE", (int)DC::ELSE},      {"ENDIF", (int)DC::ENDIF},   {"MACRO", (int)DC::INLINE_MACRO}};
+    {"ELSE", (int)DC::ELSE},      {"ENDIF", (int)DC::ENDIF},   {"MACRO", (int)DC::INLINE_MACRO},
+    {"ENDM", (int)DC::END_MACRO}};
 } // namespace
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(OptionalSymbol symbol) {
   auto dot = _buffer->match<lex::DotCommand>();
@@ -372,6 +373,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     SPDLOG_WARN("Defining inline macro: '{}', with {} arguments", name->string(), args.size());
     _active_macro_defs++;
     return std::make_shared<InlineMacroDefinition>(name->string(), args);
+  }
+  case (int)DC::END_MACRO: {
+    throw PepParserError(PepParserError::NullaryError::Macro_UnmatchedEndm, _buffer->matched_interval());
   }
   default: throw std::logic_error("Unreachable");
   }
