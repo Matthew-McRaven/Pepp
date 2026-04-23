@@ -1,11 +1,12 @@
 #include "core/langs/asmb_pep/codegen.hpp"
-#include <core/compile/ir_linear/line_comment.hpp>
 #include <elfio/elfio.hpp>
 #include <list>
 #include <numeric>
 #include <ranges>
+#include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
@@ -120,6 +121,8 @@ struct PeppObjectVistitor : public PepIRVisitor {
   void visit(const DotSection *) override;
   void visit(const DotAnnotate *) override;
   void visit(const DotOrg *) override;
+  void visit(const InlineMacroDefinition *) override;
+  void visit(const MacroInstantiation *) override;
 };
 
 pepp::tc::PeppObjectVistitor::PeppObjectVistitor(
@@ -204,6 +207,14 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAnnotate *) {
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const DotOrg *) {
+  // Does not generate object code
+}
+
+void pepp::tc::PeppObjectVistitor::visit(const InlineMacroDefinition *) {
+  // Does not generate object code
+}
+
+void pepp::tc::PeppObjectVistitor::visit(const MacroInstantiation *) {
   // Does not generate object code
 }
 

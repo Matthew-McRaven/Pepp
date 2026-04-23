@@ -29,6 +29,7 @@ struct PeppSectionAnalysisResults {
 
 // The returned vector points to the same underlying IR as the (linear) input program.
 // This allows addresses to be propogated to input original. which is useful for generating the listing.
+// It is also responsible for flattening and tree-like IR (i.e., macros) into a linear sequence prior to grouping.
 //
 // Also extracts system-calls and memory-mapped IO declarations since this is the one time we iterate overthe whole IR
 // at once.

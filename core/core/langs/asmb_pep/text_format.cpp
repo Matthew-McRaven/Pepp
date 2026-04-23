@@ -4,7 +4,9 @@
 #include <string>
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_value/base.hpp"
+#include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
@@ -205,6 +207,8 @@ struct SourceVisitor : public PepIRVisitor {
   void visit(const DotSection *);
   void visit(const DotAnnotate *);
   void visit(const DotOrg *);
+  void visit(const InlineMacroDefinition *);
+  void visit(const MacroInstantiation *);
 };
 } // namespace pepp::tc
 
@@ -314,6 +318,9 @@ void pepp::tc::SourceVisitor::visit(const DotOrg *line) {
   if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   text = format_as_columns("", dot, line->argument.value->string(), comment);
 }
+
+void pepp::tc::SourceVisitor::visit(const InlineMacroDefinition *m) { text = fmt::format(".macro {}", m->name); }
+void pepp::tc::SourceVisitor::visit(const MacroInstantiation *m) { text = fmt::format("{}", m->macro->name); }
 
 std::string pepp::tc::format_source(const LinearIR *line) {
   SourceVisitor r;
