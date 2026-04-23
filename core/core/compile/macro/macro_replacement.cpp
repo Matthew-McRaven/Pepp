@@ -39,3 +39,11 @@ std::string pepp::tc::replace_macro_arguments(std::string_view input, MacroRepla
   result.append(data + last_pos, len - last_pos);
   return result;
 }
+
+pepp::tc::MacroReplacements pepp::tc::MacroCounters::counters_for(std::string name) {
+  MacroReplacements ret;
+  ret["\\()"] = "";
+  ret["\\+"] = std::to_string(_total++);
+  ret["\\@"] = _counters[name]++;
+  return ret;
+}

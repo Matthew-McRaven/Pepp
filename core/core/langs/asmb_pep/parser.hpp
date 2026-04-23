@@ -5,6 +5,7 @@
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/macro/macro_registry.hpp"
+#include "core/compile/macro/macro_replacement.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 
@@ -65,6 +66,7 @@ private:
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
   std::shared_ptr<pepp::tc::MacroRegistry> _macros;
 
+  MacroCounters _counters;
   struct ConditionalStack {
     bool matched_any = false; // True if any conditional guard has been meet at this level. Used to prevent selecting
                               // further elseif/else blocks

@@ -135,7 +135,20 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   }
   SPDLOG_WARN("Parsed macro invocation: '{}', with {} arguments", macro, args.size());
   auto ret = std::make_shared<MacroInstantiation>(macro_def, args);
+  auto rep = _counters.counters_for(macro_def->name);
   // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
+  for (int it = 0; it < macro_def->arguments.size(); it++) {
+    const auto arg_name = macro_def->arguments.at(it).name;
+    const auto arg_value = args.size() > it ? args.at(it) : macro_def->arguments.at(it).default_value.value_or("");
+    rep[arg_name] = arg_value;
+  }
+  auto new_body = replace_macro_arguments(macro_def->body, rep);
+  auto new_lexer = std::make_shared<lex::PepLexer>(_pool, support::SeekableData{std::move(new_body)});
+  auto new_buffer = std::make_shared<lex::Buffer>(&*new_lexer);
+  _lexer_stack.emplace(new_lexer, new_buffer);
+  SPDLOG_WARN("Expanded macro '{}', pushing new lexer and making recursive leap", macro_def->name);
+  // auto lines = do_parse(diag, buf->matched_interval());
+
   // TODO: Attach symbol def
   // TODO: push an entry on the conditional stack to enter skip mode.
   return ret;
