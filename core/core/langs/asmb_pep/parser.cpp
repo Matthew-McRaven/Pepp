@@ -77,13 +77,15 @@ std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::PepParser::identifier_arg
   return nullptr;
 }
 
-static const u8 MAX_PARSE_DEPTH = 8;
+static const u8 MAX_PARSE_DEPTH = 4;
 pepp::tc::IRProgram pepp::tc::parser::PepParser::do_parse(DiagnosticTable &diag,
                                                           std::optional<support::LocationInterval> root_loc) {
   // Prevent infinite recursion of macro expansions by arbitrarily bounding parse depth.
   if (_lexer_stack.size() > MAX_PARSE_DEPTH) {
-    throw PepParserError(PepParserError::UnaryError::Token_Invalid, "Exceeded maximum parse depth",
-                         root_loc.value_or(support::LocationInterval()));
+    // We've only entered the loop n-1 times, but we need to pop n lexers.
+    // Pop an extra one here for that sake.
+    _lexer_stack.pop();
+    throw PepRecursionError(root_loc.value_or(support::LocationInterval()));
   }
   auto buf = active_buffer();
   IRProgram lines;
@@ -92,6 +94,16 @@ pepp::tc::IRProgram pepp::tc::parser::PepParser::do_parse(DiagnosticTable &diag,
       if (auto line = statement(diag); line) {
         // if(root_loc) line->source_interval = *root_loc;
         lines.emplace_back(line);
+      }
+    } catch (PepRecursionError &e) {
+      if (_lexer_stack.size() == 2) {
+        // About to re-enter the root context, convert to a normal parser error so we can use the normal logging
+        _lexer_stack.pop();
+        throw PepParserError(PepParserError::NullaryError::Macro_ExcessiveRecursion, root_loc.value_or(e.loc));
+      } else {
+        // Bubble up error until we reach the root context.
+        _lexer_stack.pop();
+        throw;
       }
     } catch (PepParserError &e) {
       synchronize();
@@ -140,17 +152,17 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   for (int it = 0; it < macro_def->arguments.size(); it++) {
     const auto arg_name = macro_def->arguments.at(it).name;
     const auto arg_value = args.size() > it ? args.at(it) : macro_def->arguments.at(it).default_value.value_or("");
-    rep[arg_name] = arg_value;
+    rep["\\" + arg_name] = arg_value;
   }
   auto new_body = replace_macro_arguments(macro_def->body, rep);
   auto new_lexer = std::make_shared<lex::PepLexer>(_pool, support::SeekableData{std::move(new_body)});
   auto new_buffer = std::make_shared<lex::Buffer>(&*new_lexer);
   _lexer_stack.emplace(new_lexer, new_buffer);
   SPDLOG_WARN("Expanded macro '{}', pushing new lexer and making recursive leap", macro_def->name);
-  // auto lines = do_parse(diag, buf->matched_interval());
+  ret->lines = do_parse(diag, buf->matched_interval());
+  SPDLOG_WARN("Popped back from recursive leap for macro '{}', had {} lines", macro_def->name, ret->lines.size());
 
   // TODO: Attach symbol def
-  // TODO: push an entry on the conditional stack to enter skip mode.
   return ret;
 }
 

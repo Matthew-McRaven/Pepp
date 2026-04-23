@@ -307,4 +307,13 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(start != diag.cend());
     CHECK(start->second == PE::to_string(UnaryError::Macro_Redefinition, "@TEST"));
   }
+  SECTION("Recursive macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".macro @RE\n@RE\n.endm\n@RE\n"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(0, 0), Location(1, Location::MAX)));
+    CHECK(start != diag.cend());
+    CHECK(start->second == PE::to_string(NullaryError::Macro_ExcessiveRecursion));
+  }
 }

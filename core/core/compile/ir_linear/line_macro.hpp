@@ -1,6 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <vector>
 #include "core/compile/ir_linear/line_base.hpp"
+
 namespace pepp::tc {
 struct MacroDefinition;
 struct MacroInstantiation : public LinearIR {
@@ -13,6 +16,7 @@ struct MacroInstantiation : public LinearIR {
   // I expoect usage will always check against the macro type and then static_cast.
   std::shared_ptr<const MacroDefinition> macro;
   std::vector<std::string> arguments;
+  std::vector<std::shared_ptr<LinearIR>> lines;
 };
 
 struct InlineMacroDefinition : public LinearIR {

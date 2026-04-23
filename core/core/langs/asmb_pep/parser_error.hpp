@@ -4,6 +4,12 @@
 #include <string>
 #include "core/compile/source/location.hpp"
 namespace pepp::tc {
+class PepRecursionError final : public std::logic_error {
+public:
+  explicit PepRecursionError(pepp::tc::support::LocationInterval ival);
+  const pepp::tc::support::LocationInterval loc;
+};
+
 class PepParserError final : public std::logic_error {
 public:
   enum class NullaryError {
@@ -33,6 +39,7 @@ public:
     Conditional_Unterminated,
     Macro_Unterminated,
     Macro_UnmatchedEndm,
+    Macro_ExcessiveRecursion,
   };
   enum class UnaryError {
     Mnemonic_Invalid,

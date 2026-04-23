@@ -471,13 +471,30 @@ TEST_CASE("Pepp ASM parser with macros instantiations",
   SECTION("nullary macro") {
     pepp::tc::DiagnosticTable diag;
     auto mr = std::make_shared<MR>();
-    auto macro = std::make_shared<MacroDefinition>(MacroDefinition{"@TEST", {}, ""});
+    auto macro = std::make_shared<MacroDefinition>(MacroDefinition{"@TEST", {}, ".byte 15\n"});
     mr->insert(macro);
-    auto p = Parser(data("@TEST $feed"), mr);
+    auto p = Parser(data("@TEST"), mr);
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[0]));
+  }
+  SECTION("unary macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto macro = std::make_shared<MacroDefinition>(MacroDefinition{"@TEST", {{.name = "feed"}}, ".byte \\feed\n"});
+    mr->insert(macro);
+    auto p = Parser(data("@TEST 15"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
+    REQUIRE(results.size() == 1);
+    auto as_mi = std::dynamic_pointer_cast<MacroInstantiation>(results[0]);
+    CHECK(as_mi);
+    CHECK(as_mi->lines.size() == 1);
+    auto as_mi_line0 = std::dynamic_pointer_cast<DotLiteral>(as_mi->lines[0]);
+    REQUIRE(as_mi_line0);
+    CHECK(as_mi_line0->argument.value->value_as<u16>() == 15);
   }
 }
 
@@ -506,8 +523,6 @@ TEST_CASE("Pepp ASM parser with macros definitions",
     auto p = Parser(data(".macro @TEST feed\n.byte \\feed\n.endm"), mr);
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
-
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<InlineMacroDefinition>(results[0]));
     CHECK(mr->contains("@TEST"));

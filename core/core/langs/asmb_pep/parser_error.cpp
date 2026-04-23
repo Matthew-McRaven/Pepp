@@ -3,6 +3,9 @@
 #include "core/macros.hpp"
 #include "fmt/format.h"
 
+static const auto recursion_msg = "Macro expansion exceeded maximum recursion depth";
+pepp::tc::PepRecursionError::PepRecursionError(pepp::tc::support::LocationInterval ival) : logic_error(recursion_msg) {}
+
 const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   switch (err) {
   case NullaryError::Argument_InvalidIntegerFormat: return "Unrecognized integer format";
@@ -31,6 +34,7 @@ const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   case NullaryError::Conditional_MultipleElse: return "Multiple .ELSE directives in the same conditional";
   case NullaryError::Macro_Unterminated: return "Unterminated macro definition";
   case NullaryError::Macro_UnmatchedEndm: return "Unmatched .ENDM directive";
+  case NullaryError::Macro_ExcessiveRecursion: return recursion_msg;
   }
   PEPP_UNREACHABLE();
 }
