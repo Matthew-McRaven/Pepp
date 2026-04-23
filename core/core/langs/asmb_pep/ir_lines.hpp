@@ -51,5 +51,8 @@ struct DotAnnotate : public LinearIR {
 };
 
 bool defines_symbol(const LinearIR &line);
+// If you add new IR types, you will also need to update the body of this function.
+// Otherwise the new IR types will not allow symbols to be moved into them, forcing extra `.block 0` to be emitted.
+bool allows_symbol(const LinearIR &line);
 
 } // namespace pepp::tc

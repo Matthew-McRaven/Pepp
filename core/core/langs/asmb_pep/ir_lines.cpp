@@ -56,3 +56,24 @@ bool pepp::tc::defines_symbol(const LinearIR &line) {
   auto sym = line.attribute(SymbolDeclaration::TYPE);
   return sym != nullptr;
 }
+
+bool pepp::tc::allows_symbol(const LinearIR &line) {
+  switch (line.type()) {
+  case (int)LinearIRType::Empty: return false;
+  case (int)LinearIRType::Comment: return false;
+  case (int)LinearIRType::DotAlign: return true;
+  case (int)LinearIRType::DotSymbol: return true;
+  case (int)LinearIRType::DotBlock: return true;
+  case (int)LinearIRType::DotEquate: return true;
+  case (int)LinearIRType::DotLiteral: return true;
+  case (int)LinearIRType::DotOrg: return false;
+  case (int)LinearIRType::DotSection: return false;
+  case (int)LinearIRType::DotConditional: return false;
+  case (int)LinearIRType::MacroInstantiation: return true;
+  case (int)LinearIRType::MacroDefinition: return false;
+  case (int)PepIRType::Monadic: return true;
+  case (int)PepIRType::Dyadic: return true;
+  case (int)PepIRType::DotAnnotate: return false;
+  default: return false;
+  }
+}
