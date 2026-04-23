@@ -14,7 +14,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "case_insensitive.hpp"
+#include "core/ds/string_compare.hpp"
+
 pepp::bts::ci_stringview pepp::bts::to_ci_stringview(std::string_view sv) noexcept {
   return ci_stringview{sv.data(), sv.size()};
 }

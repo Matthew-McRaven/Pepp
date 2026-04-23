@@ -25,7 +25,7 @@
 #include "./pep_lexer.hpp"
 #include "./pep_tokens.hpp"
 #include "core/compile/lex/buffer.hpp"
-#include "core/ds/case_insensitive.hpp"
+#include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
 namespace pepp::tc::parse {
