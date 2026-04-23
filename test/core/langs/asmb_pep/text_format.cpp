@@ -24,6 +24,7 @@
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/lexer.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
+#include "spdlog/spdlog.h"
 
 namespace {
 static auto idpool = []() { return std::make_shared<std::unordered_set<std::string>>(); };
@@ -340,6 +341,40 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     CHECK(l2_formatted == "         .BYTE   15");
     auto l3_formatted = format_source(l3);
     CHECK(l3_formatted == "         .ENDIF");
+  }
+  SECTION("Macro Definition") {
+    static const auto txt =
+        R"(.MACRO my_macro arg1, arg2
+.BYTE 0
+.ENDM
+)";
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(txt), std::make_shared<MR>());
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
+    for (const auto &d : diag) SPDLOG_WARN(" {}", d.second);
+    CHECK(r.size() == 1);
+    auto source = format_source(r[0].get());
+
+    CHECK(source ==
+          R"(         .MACRO my_macro arg1, arg2
+.BYTE 0
+         .ENDM)");
+  }
+  SECTION("Macro Instance") {
+    static const auto txt = R"(execErr:   my_macro  ;comment)";
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto md = std::make_shared<pepp::tc::MacroDefinition>();
+    md->name = "my_macro";
+    md->body = "";
+    CHECK(mr->insert(md));
+    auto p = Parser(data(txt), mr);
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
+    CHECK(r.size() == 1);
+    auto source = format_source(r[0].get());
+    CHECK(source == R"(execErr: my_macro             ;comment)");
   }
 }
 

@@ -524,7 +524,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
 
           const auto first_loc = tokens.front()->location().lower(), last_loc = tokens.back()->location().upper();
           auto str = lexer->view(support::LocationInterval(first_loc, last_loc));
-          macro_def->body = str;
+          as_macro->body = macro_def->body = str;
         } else macro_def->body = "";
 
         auto success = _macros->insert(macro_def);

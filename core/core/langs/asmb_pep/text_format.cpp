@@ -28,8 +28,10 @@ enum class States {
   // Format will therefore accept programs the assembler would reject, like `ADDA 10,10,10`
   ARGED1, // Implements [ARG] | COMMENT | NEWLINE
   // A pair to implement (, ARG)*
-  ARGED2, // In this state, you've seen one argument, so you expect COMMA | EMPTY | COMMENT.
-  ARGED3, // You've seen a comma, so you need to see an ARG to be valid list.
+  ARGED2,            // In this state, you've seen one argument, so you expect COMMA | EMPTY | COMMENT.
+  ARGED3,            // You've seen a comma, so you need to see an ARG to be valid list.
+  MACRO_EXPECT_NAME, // when you hit .macro, you are looking for a space and an identifier. Then you look for an
+                     // arugment list (arged1)
   // Sentinel to help terminate iteration.
   END,
 };
@@ -76,9 +78,11 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
         col0 = token->to_string() + ":";
         break;
       case (int)ATT::DotCommand:
-        state = States::ARGED1;
         col1 = "." + token->to_string();
         bits::to_upper_inplace(col1);
+        // Need special formatting for macros
+        if (col1 == ".MACRO") state = States::MACRO_EXPECT_NAME;
+        else state = States::ARGED1;
         space_after_comma = true;
         break;
       case (int)CTT::Identifier:
@@ -186,6 +190,14 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
       default: valid = false;
       }
       break;
+    case States::MACRO_EXPECT_NAME:
+      switch ((int)token->type()) {
+      case (int)CTT::Identifier:
+        state = States::ARGED1;
+        col1 += token->to_string();
+        break;
+      default: valid = false;
+      }
     default: break;
     }
   }
@@ -319,8 +331,29 @@ void pepp::tc::SourceVisitor::visit(const DotOrg *line) {
   text = format_as_columns("", dot, line->argument.value->string(), comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const InlineMacroDefinition *m) { text = fmt::format(".macro {}", m->name); }
-void pepp::tc::SourceVisitor::visit(const MacroInstantiation *m) { text = fmt::format("{}", m->macro->name); }
+void pepp::tc::SourceVisitor::visit(const InlineMacroDefinition *line) {
+  std::string symbol = "", comment = "";
+
+  const auto args = fmt::format("{}", fmt::join(line->arguments, ", "));
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
+
+  text = fmt::format(
+      "{}\n{}\n{}",                                                 // Each macho is composed of 3 parts
+      format_as_columns("", ".MACRO " + line->name, args, comment), // The declaration, which includes the arg list.
+      bits::rtrimmed_view(line->body),                              // The body text, which we cannot format nicely
+      format_as_columns("", ".ENDM", "", "")                        // And the trailing .endm
+  );
+}
+
+void pepp::tc::SourceVisitor::visit(const MacroInstantiation *line) {
+
+  std::string symbol = "", comment = "";
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
+  if (auto maybe_symbol = line->typed_attribute<SymbolDeclaration>(); maybe_symbol)
+    symbol = std::string{maybe_symbol->entry->name} + ":";
+  const auto joined_args = fmt::format("{}", fmt::join(line->arguments, ", "));
+  text = format_as_columns(symbol, line->macro->name, joined_args, comment);
+}
 
 std::string pepp::tc::format_source(const LinearIR *line) {
   SourceVisitor r;
