@@ -8,6 +8,7 @@
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/ir_value/text.hpp"
+#include "core/compile/macro/macro_replacement.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/types.hpp"
@@ -451,16 +452,25 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
         if (dot_str == "MACRO") _active_macro_defs++;
         else if (dot_str == "ENDM") _active_macro_defs--;
       }
-      if (_active_macro_defs == 0) {
+      auto as_macro = std::dynamic_pointer_cast<InlineMacroDefinition>(ret);
+      if (!as_macro) throw std::logic_error("Expected an InlineMacroDefinition");
+      else if (_active_macro_defs == 0) {
         // Flush collected tokens so future statements parse normally.
         lex::Checkpoint cp(*_buffer);
         auto tokens = _buffer->buffered_tokens();
         SPDLOG_WARN("Finished parsing inline macro body with {} tokens", tokens.size());
-        // TODO: emplace the macro definition in the registry using the re-assembled/collected body tokens.
-        // TODO: need raw representation, else we lose details (e.g., identifier vs dot command).
         const auto first_loc = tokens.front()->location().lower(), last_loc = tokens.back()->location().upper();
         auto str = _lexer->view(support::LocationInterval(first_loc, last_loc));
         SPDLOG_WARN("Re-assembled macro body:\n{}", str);
+        auto macro_def = std::make_shared<MacroDefinition>();
+        macro_def->name = as_macro->name;
+        for (const auto &arg : as_macro->arguments)
+          macro_def->arguments.emplace_back(MacroDefinition::Argument{.name = arg, .default_value = std::nullopt});
+        macro_def->body = str;
+        auto success = _macros->insert(macro_def);
+        if (!success)
+          throw PepParserError(PepParserError::UnaryError::Macro_Redefinition, as_macro->name,
+                               {start_ival, tokens.back()->location().upper()});
       }
     }
     // Check if the next line is a conditional directive that could increase our skip depth.

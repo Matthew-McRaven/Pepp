@@ -257,4 +257,34 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedEndif));
     }
   }
+  SECTION("Unterminated .macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("\n.macro @TEST"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+    CHECK(start != end);
+    CHECK(start->second == PE::to_string(NullaryError::Macro_Unterminated));
+  }
+  SECTION("Unmatched .endm") {
+    {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data("\n.endm"), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 1);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      CHECK(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Macro_UnmatchedEndm));
+    }
+  }
+  SECTION("Redefining a macro") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".macro @TEST\n.endm\n.macro @TEST\n.endm"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    // TODO: IDK why this is sent to the wrong line.
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(0, 0), Location(1, Location::MAX)));
+    CHECK(start != diag.cend());
+    CHECK(start->second == PE::to_string(UnaryError::Macro_Redefinition, "@TEST"));
+  }
 }

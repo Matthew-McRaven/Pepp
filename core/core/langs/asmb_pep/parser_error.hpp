@@ -39,10 +39,11 @@ public:
     AddressingMode_InvalidForMnemonic,
     Dot_Invalid,
     Token_Invalid,
+    Macro_Redefinition,
   };
 
   static const std::string to_string(NullaryError);
-  static const std::string to_string(UnaryError, std::string &arg);
+  static const std::string to_string(UnaryError, const std::string &arg);
   explicit PepParserError(NullaryError err, pepp::tc::support::LocationInterval);
   explicit PepParserError(UnaryError err, std::string arg1, pepp::tc::support::LocationInterval);
   const pepp::tc::support::LocationInterval loc;
