@@ -89,7 +89,7 @@ pepp::tc::IRProgram pepp::tc::parser::PepParser::do_parse(DiagnosticTable &diag,
   IRProgram lines;
   while (buf->input_remains()) {
     try {
-      if (auto line = statement(); line) {
+      if (auto line = statement(diag); line) {
         // if(root_loc) line->source_interval = *root_loc;
         lines.emplace_back(line);
       }
@@ -107,7 +107,7 @@ static const auto split_args = [](std::shared_ptr<pepp::tc::lex::Token> const &t
   return lit->literal == ",";
 };
 
-std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(OptionalSymbol symbol) {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(DiagnosticTable &diag, OptionalSymbol symbol) {
   auto buf = active_buffer();
   auto lexer = active_lexer();
   // helper predicate to split token span on comma literals.
@@ -402,11 +402,11 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
   return nullptr;
 }
 
-std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(OptionalSymbol symbol) {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(DiagnosticTable &diag, OptionalSymbol symbol) {
   auto buf = active_buffer();
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   if (auto dot = pseudo(symbol); dot) ret = dot;
-  else if (auto macro = this->macro(symbol); macro) ret = macro;
+  else if (auto macro = this->macro(diag, symbol); macro) ret = macro;
   else if (auto instr = instruction(); instr) ret = instr;
 
   else return nullptr;
@@ -418,7 +418,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(OptionalSy
   return ret;
 }
 
-std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(DiagnosticTable &diag) {
   auto buf = active_buffer();
   auto lexer = active_lexer();
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
@@ -443,7 +443,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement() {
         throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_TooLong, buf->matched_interval());
 
       auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
-      ret = line(symbol_decl);
+      ret = line(diag, symbol_decl);
       if (!ret) {
         auto next = buf->peek();
         throw PepParserError(PepParserError::UnaryError::Token_Invalid, next->repr(), buf->matched_interval());

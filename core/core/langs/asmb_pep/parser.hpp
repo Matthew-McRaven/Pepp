@@ -46,10 +46,10 @@ private:
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();
   std::shared_ptr<LinearIR> instruction();
-  std::shared_ptr<LinearIR> macro(OptionalSymbol symbol);
+  std::shared_ptr<LinearIR> macro(DiagnosticTable &, OptionalSymbol symbol);
   std::shared_ptr<LinearIR> pseudo(OptionalSymbol symbol);
-  std::shared_ptr<LinearIR> line(OptionalSymbol symbol);
-  std::shared_ptr<LinearIR> statement();
+  std::shared_ptr<LinearIR> line(DiagnosticTable &, OptionalSymbol symbol);
+  std::shared_ptr<LinearIR> statement(DiagnosticTable &);
   // Body which actually does the parsing until the top lexer in _lexer_stack is exhausted.
   // If root_loc is nullopt, the location from the PepParserError and underlying IR will be left untouched.
   // Otherwise, all "source" locations will be updated to point to root_loc.
