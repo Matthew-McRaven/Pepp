@@ -4,8 +4,9 @@ pepp::tc::MacroRegistry::MacroRegistry(std::shared_ptr<const MacroRegistry> pare
 
 std::shared_ptr<const pepp::tc::MacroDefinition> pepp::tc::MacroRegistry::find(const std::string &name,
                                                                                SearchMode mode) const {
-  if (mode == SearchMode::Local || mode == SearchMode::LocalThenParent)
+  if (mode == SearchMode::Local || mode == SearchMode::LocalThenParent) {
     if (auto it = _macros.find(name); it != _macros.cend()) return !it->deleted ? it->definition : nullptr;
+  }
   if (mode == SearchMode::Parent || mode == SearchMode::LocalThenParent)
     return _parent ? _parent->find(name, SearchMode::LocalThenParent) : nullptr;
   return nullptr;

@@ -1,7 +1,10 @@
 #pragma once
 #include <memory>
+#include <optional>
 #include <stack>
+#include <string>
 #include <unordered_set>
+#include <vector>
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/macro/macro_registry.hpp"

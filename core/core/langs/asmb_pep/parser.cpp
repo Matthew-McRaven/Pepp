@@ -1,4 +1,6 @@
 #include "core/langs/asmb_pep/parser.hpp"
+#include <deque>
+#include <numeric>
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_comment.hpp"

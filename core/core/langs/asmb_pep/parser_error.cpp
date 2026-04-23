@@ -4,7 +4,8 @@
 #include "fmt/format.h"
 
 static const auto recursion_msg = "Macro expansion exceeded maximum recursion depth";
-pepp::tc::PepRecursionError::PepRecursionError(pepp::tc::support::LocationInterval ival) : logic_error(recursion_msg) {}
+pepp::tc::PepRecursionError::PepRecursionError(pepp::tc::support::LocationInterval ival)
+    : logic_error(recursion_msg), loc(ival) {}
 
 const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   switch (err) {

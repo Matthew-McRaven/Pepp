@@ -44,6 +44,6 @@ pepp::tc::MacroReplacements pepp::tc::MacroCounters::counters_for(std::string na
   MacroReplacements ret;
   ret["\\()"] = "";
   ret["\\+"] = std::to_string(_total++);
-  ret["\\@"] = _counters[name]++;
+  ret["\\@"] = std::to_string(_counters[name]++);
   return ret;
 }
