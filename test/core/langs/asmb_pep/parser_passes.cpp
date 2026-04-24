@@ -530,4 +530,52 @@ TEST_CASE("Pepp ASM parser with macros definitions",
     CHECK(mr->find("@TEST")->arguments.at(0).name == "feed");
     CHECK(mr->find("@TEST")->body == ".byte \\feed");
   }
+  SECTION("\\@ increments as expected") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto md = std::make_shared<MacroDefinition>();
+    md->name = "@TEST";
+    md->body = ".byte \\@";
+    CHECK(mr->insert(md));
+    auto p = Parser(data("@TEST\n@TEST\n@TEST"), mr);
+    auto parsed = p.parse(diag);
+    CHECK(diag.count() == 0);
+    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
+    REQUIRE(parsed.size() == 3);
+    auto flattened = parser::flatten_macros(parsed);
+    CHECK(flattened.size() == 3);
+    for (int it = 0; it < 3; it++) {
+      auto ptr = std::dynamic_pointer_cast<DotLiteral>(flattened[it]);
+      REQUIRE(ptr);
+      CHECK(ptr->argument.value->value_as<u16>() == it);
+    }
+  }
+  SECTION("\\+ increments as expected") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    auto md1 = std::make_shared<MacroDefinition>();
+    md1->name = "@TEST1";
+    md1->body = ".byte \\+";
+    CHECK(mr->insert(md1));
+    auto md2 = std::make_shared<MacroDefinition>();
+    md2->name = "@TEST2";
+    md2->body = ".byte \\+";
+    CHECK(mr->insert(md2));
+    auto p = Parser(data("@TEST1\n@TEST2\n@TEST1"), mr);
+    auto parsed = p.parse(diag);
+    CHECK(diag.count() == 0);
+    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
+    REQUIRE(parsed.size() == 3);
+    auto flattened = parser::flatten_macros(parsed);
+    CHECK(flattened.size() == 3);
+    auto ptr0 = std::dynamic_pointer_cast<DotLiteral>(flattened[0]);
+    REQUIRE(ptr0);
+    CHECK(ptr0->argument.value->value_as<u16>() == 0);
+    auto ptr1 = std::dynamic_pointer_cast<DotLiteral>(flattened[1]);
+    REQUIRE(ptr1);
+    CHECK(ptr1->argument.value->value_as<u16>() == 0);
+    auto ptr2 = std::dynamic_pointer_cast<DotLiteral>(flattened[2]);
+    REQUIRE(ptr2);
+    CHECK(ptr2->argument.value->value_as<u16>() == 1);
+  }
 }
