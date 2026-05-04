@@ -70,7 +70,7 @@ RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 RUN cd /emsdk && git pull && ./emsdk install ${EMSDK_VERSION} && ./emsdk activate ${EMSDK_VERSION} && echo uname -a /emsdk.arch
 # Install shadertools and 3d modules otherwise building from sources will fail.
 RUN python3 -m venv /venv && source /venv/bin/activate \
-  && pip install aqtinstall &&  aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools --outputdir /qt \
+  && pip install aqtinstall==3.3.0 &&  aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools --outputdir /qt \
   && rm aqtinstall.log && rm -rf /venv
 
 # Use separate step to build Qt to avoid inflating the size of the build image further.
