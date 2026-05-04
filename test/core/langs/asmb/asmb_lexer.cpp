@@ -100,6 +100,14 @@ TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:a
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
+  SECTION("Arithmetic ops") {
+    auto l = Lexer(idpool(), data("   *\n&  "), p10);
+    auto c = check_next(l, (int)CTT::Invalid);
+    check_next(l, (int)CTT::Empty);
+    c = check_next(l, (int)CTT::Invalid);
+    check_next(l, (int)CTT::Empty);
+    CHECK(!l.input_remains());
+  }
   SECTION("Comment") {
     // pep-style inline comments
     auto l = Lexer(idpool(), data(" ;Comment here\n"), p10);

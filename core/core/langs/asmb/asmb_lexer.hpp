@@ -6,7 +6,12 @@ struct AsmbOptions {
   bool allow_dot_in_ident = true;
   bool allow_parens = false;          // Tokenize ( and ) as literals rather than invalid tokens.
   bool allow_macro_arguments = false; // Macros arguments start with a backslash like \arg1
-  bool allow_at_in_ident = false;     // Allow @ in identifiers, which is used for macros instatniations in Pep/10.
+  bool allow_at_in_ident = false;     // Allow @ in identifiers, which is used for macros instantiations in Pep/10.
+  // Match all GNU as operators, per: https://sourceware.org/binutils/docs-2.24/as/Expressions.html#Expressions
+  // Enabling this flag disables parsing of signed integers. Operator precedence is required to determine if +- are
+  // unary prefix or binary infix.
+  // Multi-character operators need to be "fused" at the parser level.
+  bool recognize_operators = false;
   std::string line_comment_leader = ";";
 };
 struct AsmbLexer : public ALexer {
@@ -30,6 +35,7 @@ private:
   std::unique_ptr<std::regex> _lineCommentRegex = nullptr;
   // Not needed in base lexer since we only need it to support macros/conditionals.
   std::map<decltype(support::Location::row), size_t> _row_to_streampos;
+  std::unordered_set<char> _literals;
 };
 
 } // namespace pepp::tc::lex
