@@ -26,3 +26,14 @@ std::string pepp::tc::lex::StringConstant::type_name() const { return "StringCon
 std::string pepp::tc::lex::StringConstant::to_string() const { return fmt::format("\"{}\"", view()); }
 
 std::string pepp::tc::lex::StringConstant::repr() const { return fmt::format("{}({})", type_name(), view()); }
+
+pepp::tc::lex::MacroPlaceholder::MacroPlaceholder(support::LocationInterval loc, const std::string *v)
+    : Identifier(loc, v) {}
+
+int pepp::tc::lex::MacroPlaceholder::type() const { return TYPE; }
+
+std::string pepp::tc::lex::MacroPlaceholder::type_name() const { return "MacroPlaceholder"; }
+
+std::string pepp::tc::lex::MacroPlaceholder::to_string() const { return fmt::format("\\{}", view()); }
+
+std::string pepp::tc::lex::MacroPlaceholder::repr() const { return fmt::format("{}({})", type_name(), view()); }

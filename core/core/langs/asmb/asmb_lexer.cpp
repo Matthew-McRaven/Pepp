@@ -68,6 +68,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
   const std::regex &identifier = _opts.allow_dot_in_ident
                                      ? (_opts.allow_at_in_ident ? identifier_dot_at : identifier_dot_noat)
                                      : (_opts.allow_at_in_ident ? identifier_nodot_at : identifier_nodot_noat);
+  static const std::regex macroarg(R"(\\([@a-zA-Z_+][a-zA-Z0-9_.]*|\(\)))");
   static const std::regex directive("\\.[a-zA-Z][a-zA-Z0-9_]*");
   static const std::regex symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
   static const std::regex decimal("[0-9]+");
@@ -114,6 +115,16 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
         auto fmt = sign < 0 ? Format::SignedDec : Format::UnsignedDec;
         current_token = std::make_shared<Integer>(LocationInterval{loc_start, _cursor.location()}, sign * val, fmt);
       } else
+        current_token =
+            std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
+      break;
+    } else if (auto maybeMacroArg = _cursor.matchView(macroarg); !maybeMacroArg.empty()) {
+      auto match = maybeMacroArg.str(0);
+      _cursor.advance(match.size());
+      auto const *id = &*_pool->emplace(match.substr(1)).first; // Drop leading backslash
+      if (_opts.allow_macro_arguments)
+        current_token = std::make_shared<MacroPlaceholder>(LocationInterval{loc_start, _cursor.location()}, id);
+      else
         current_token =
             std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
