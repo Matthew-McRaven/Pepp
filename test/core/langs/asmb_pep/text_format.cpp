@@ -378,6 +378,45 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
   }
 }
 
+TEST_CASE("Pepp ASM macro argument source formatting",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Lexer = pepp::tc::lex::PepLexer;
+  using Buffer = pepp::tc::lex::Buffer;
+  using Checkpoint = pepp::tc::lex::Checkpoint;
+  using Parser = pepp::tc::parser::PepParser;
+  using MR = pepp::tc::MacroRegistry;
+  using namespace pepp::tc::lex;
+  using pepp::tc::format_source;
+  using T = std::tuple<std::string, std::string>;
+  auto [input, expected] = GENERATE(
+      as<T>{},
+      // Force a line break.
+      std::make_tuple("\\m", "         \\m"),                                        // as-if an monadic instruction
+      std::make_tuple("id: \\m", "id:      \\m"),                                    // as-if a monadic instruction
+      std::make_tuple("id: \\m\\m", "id:      \\m\\m"),                              // as-if a monadic instruction
+      std::make_tuple("a\\m", "         A\\m"),                                      // as-if a monadic instruction
+      std::make_tuple("\\m\\()a\\m", "         \\m\\()A\\m"),                        // as-if a monadic instruction
+      std::make_tuple("\\m\\m", "         \\m\\m"),                                  // as-if a monadic instruction
+      std::make_tuple("\\m \\m", "         \\m      \\m"),                           // as-if a branch instruction
+      std::make_tuple("id:\\m \\m", "id:      \\m      \\m"),                        // as-if a branch instruction
+      std::make_tuple("\\m\\m \\m", "         \\m\\m    \\m"),                       // as-if a branch instruction
+      std::make_tuple("\\m\\m \\m\\m", "         \\m\\m    \\m\\m"),                 // as-if a branch instruction
+      std::make_tuple("\\m\\m \\m\\m;com", "         \\m\\m    \\m\\m        ;com"), // as-if a branch instruction
+      std::make_tuple("id: \\m\\m \\m\\m", "id:      \\m\\m    \\m\\m"),             // as-if a branch instruction
+      std::make_tuple("id: \\m \\m,\\m", "id:      \\m      \\m,\\m"),               // as-if a dyadic instruction
+      std::make_tuple("id: id \\m\\m,\\m", "id:      ID      \\m\\m,\\m"),           // as-if a dyadic instruction
+      std::make_tuple("id: id \\m\\m,\\m\\m", "id:      ID      \\m\\m,\\m\\m")      // as-if a dyadic instruction
+  );
+
+  auto l = Lexer(idpool(), data(input + "\n"));
+  auto b = Buffer(&l);
+  Checkpoint{b};
+  b.match_until<pepp::tc::lex::Empty>();
+  auto sp = b.matched_tokens();
+  auto lexer_formatted = format_source(sp);
+  CHECK(lexer_formatted == expected);
+}
+
 TEST_CASE("Pepp ASM listing formatting",
           "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Lexer = pepp::tc::lex::PepLexer;

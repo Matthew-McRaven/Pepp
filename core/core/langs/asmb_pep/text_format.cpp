@@ -45,6 +45,107 @@ std::string pepp::tc::format_as_columns(const std::string &col0, const std::stri
   return bits::rtrimmed(formatted);
 }
 
+namespace {
+/* A helper class to group macro placeholders around a "stem" token.
+ * To format macro placeholders correctly, each of the following should format like a single token when not separated by
+ * spaces. e.g., `A        \m\()A        A\m        \m\()A\m\m`. There is a special case where the stem token is itself
+ * a macro placeholder, which occurs when a macro placeholder is freestanding e.g, `A     \m`
+ *
+ * The terminology here dervies a bit from lingusitics. The stem refers to the core token around which macro
+ * placeholders are "glued on". Macro placeholders before the stem are prefixes, and those after the stem are suffixes:
+ * e.g., `\prefix1\prefix2\()STEM\suffix1\suffix2`.
+ *
+ * Either the prefix or suffix or both can be empty, but the stem token will always be non-null if input remains.
+ * There can only be one stem token per group, and only macro placeholders can be affixes (i.e., prefix or suffix).
+ * The most common case is a single stem token with empty affixes.
+ *
+ * The prefix+stem+suffix is stored in head, whil all remaining tokens are stored in rest.
+ */
+struct TokenGroup {
+  int stem_token_type = (int)pepp::tc::lex::CommonTokenType::Invalid;
+  int stem_token_index = -1;
+  std::span<std::shared_ptr<pepp::tc::lex::Token> const> head = {}, rest = {};
+  // Return the stem token
+  pepp::tc::lex::Token const *stem() const {
+    if (stem_token_index < 0 || stem_token_index >= head.size()) return nullptr;
+    return &*head[stem_token_index];
+  }
+  // Format the "stem" token in head specially, and use default formatting for prefix and suffix.
+  std::string formatted_head(std::string formatted_stem) const {
+    // Create a std::span of the
+    auto prefix = head.subspan(0, stem_token_index);
+    auto suffix = head.subspan(stem_token_index + 1);
+    auto prefix_strs = prefix | std::views::transform([](const auto &elem) { return elem->to_string(); });
+    auto suffix_strs = suffix | std::views::transform([](const auto &elem) { return elem->to_string(); });
+    return fmt::format("{}{}{}", fmt::join(prefix_strs, ""), formatted_stem, fmt::join(suffix_strs, ""));
+  }
+  // Use default formatting for all parts of the head.
+  std::string formatted_head() {
+    auto head_strs = head | std::views::transform([](const auto &elem) { return elem->to_string(); });
+    return fmt::format("{}", fmt::join(head_strs, ""));
+  }
+};
+
+// Helper to idenfitiy when two tokens are touching each other (e.g., not separated by spaces.
+bool adjacent(pepp::tc::support::LocationInterval first, pepp::tc::support::LocationInterval second) {
+  // By definition, an interval is adjacent to itself. Needed to establish the loop invariant for next_group.
+  if (first == second) return true;
+  // Otherwise intervals must describe same row.
+  const bool same_row = first.upper().row == second.lower().row;
+  // There is sometimes an off-by-1 where the upper.column ==lower.column
+  // Rather than have complex == tests, we can just compute the distance.
+  const bool adjacent_columns = second.lower().column - first.upper().column <= 0;
+  return same_row && adjacent_columns;
+}
+
+// Given a span of tokens, return a TokenGroup representing the longest prefix of tokens that meets the requirements
+// prefix+stem+suffix. The remaining tokens are in the "rest" field of the return value. Will return an empty/invalid
+// group if input is already exhausted.
+TokenGroup next_group(std::span<std::shared_ptr<pepp::tc::lex::Token> const> tokens) {
+  using CTT = pepp::tc::lex::CommonTokenType;
+  // comments/empty/eof/literals to "combine" with macro placeholders either to their left or their right.
+  static const int left_uncombinable = (int)CTT::InlineComment | (int)CTT::Empty | (int)CTT::EoF | (int)CTT::Literal;
+  // Symbol declarations allow placeholders to combine from the left but not the right.
+  // e.g., `\a\()World:` is fine, but `world:\a` is not.
+  static const int right_uncombinable = left_uncombinable | (int)CTT::SymbolDeclaration;
+  if (tokens.empty()) return {};
+  auto it = tokens.begin(), stem_token_iterator = tokens.begin(), prev = it;
+
+  // Consume adjacent tokens until we find a non-macro-placeholder token, which is the stem.
+  while (it != tokens.end() && adjacent((*prev)->location(), (*it)->location())) {
+    // Avoid combining specified token types with placeholders to their left.
+    if (const int type = (*it)->type(); (type & left_uncombinable) != 0) {
+      // If starting with an uncombinable token, it must be consumed to ensure forward progress.
+      if (prev == it) it++;
+      // Current value of it becomes the first token of rest.
+      goto ret;
+    } else if (type != (int)pepp::tc::lex::AsmTokenType::MacroPlaceholder) {
+      prev = it, stem_token_iterator = it++;
+      break;
+    } else prev = it++;
+  }
+
+  // Avoid combining specified tokens with placeholders to their right.
+  if (((*stem_token_iterator)->type() & right_uncombinable) != 0) goto ret;
+
+  // Continue consuming adjacent tokens after the stem, which are the suffixes. Do not consume a token which could be
+  // the next group's stem.
+  while (it != tokens.end() && adjacent((*prev)->location(), (*it)->location())) {
+    if (const int type = (*it)->type(); type != (int)pepp::tc::lex::AsmTokenType::MacroPlaceholder) {
+      // If prev is begin (occurs w/2 adjacent stem tokens), do not reset. Else head is empty, CTD ensues.
+      if (prev != tokens.begin()) it = prev;
+      break;
+    } else prev = it++;
+  }
+ret:
+  return TokenGroup{.stem_token_type = (*stem_token_iterator)->type(),
+                    .stem_token_index = (i32)std::distance(tokens.begin(), stem_token_iterator),
+                    .head = std::span(tokens.begin(), it),
+                    .rest = std::span(it, tokens.end())};
+}
+
+} // namespace
+
 std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const> tokens) {
   using CTT = lex::CommonTokenType;
   using ATT = lex::AsmTokenType;
@@ -60,35 +161,60 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
   // Accumulate arguments in a list rather directly into the corresponding column.
   std::vector<std::string> arg_list;
   std::string col0 = "", col1 = "", col2 = "", col3 = "", temp = "";
-
   auto state = States::START;
-  for (const auto &token : tokens) {
+  auto handle_argument = [&](auto &group) {
+    state = States::ARGED2;
+    scanned_args++;
+    temp = group.stem()->to_string();
+    if (scanned_args == force_lowercase_on_arg) bits::to_lower_inplace(temp);
+    arg_list.emplace_back(group.formatted_head(temp));
+  };
+  // Combine the argument list into a comma-separated string, inserted into the second column.
+  auto finalize_args = [&]() { col2 = fmt::format("{}", fmt::join(arg_list, space_after_comma ? ", " : ",")); };
+  // Process tokens on (prefix+stem+suffix) group at a time.
+  // next_group guarantees a non-empty head as long as the input is non-empty.
+  std::span<std::shared_ptr<lex::Token> const> rest = tokens;
+  while (!rest.empty()) {
+    auto group = next_group(rest);
+    rest = group.rest;
     if (!valid || state == States::END) break;
     switch (state) {
     case States::START:
-      switch ((int)token->type()) {
+      switch ((int)group.stem_token_type) {
       case (int)CTT::EoF: [[fallthrough]];
-      case (int)CTT::Empty: state = States::END; break;
+      case (int)CTT::Empty: valid = group.head.size() == 1, state = States::END; break;
       case (int)CTT::InlineComment:
         state = States::COMMENT;
-        col0 = ";" + token->to_string();
+        col0 = group.formatted_head(";" + group.stem()->to_string());
         break;
       case (int)CTT::SymbolDeclaration:
         state = States::SYMBOL;
-        col0 = token->to_string() + ":";
+        col0 = group.formatted_head(group.stem()->to_string() + ":");
+        break;
+      case (int)ATT::MacroPlaceholder:
+        state = States::ARGED1;
+        col1 = group.formatted_head();
         break;
       case (int)ATT::DotCommand:
-        col1 = "." + token->to_string();
-        bits::to_upper_inplace(col1);
+        temp = "." + group.stem()->to_string();
+        bits::to_upper_inplace(temp);
+        col1 = group.formatted_head(temp);
         // Need special formatting for macros
         if (col1 == ".MACRO") state = States::MACRO_EXPECT_NAME;
         else state = States::ARGED1;
         space_after_comma = true;
         break;
+      case (int)CTT::Literal:
+        if (group.stem()->to_string() == ":" && group.head.size() > 1) {
+          state = States::SYMBOL;
+          col0 = group.formatted_head();
+        } else valid = false;
+        break;
       case (int)CTT::Identifier:
         state = States::ARGED1;
-        col1 = token->to_string();
-        bits::to_upper_inplace(col1);
+        temp = group.stem()->to_string();
+        bits::to_upper_inplace(temp);
+        col1 = group.formatted_head(temp);
         force_lowercase_on_arg = 2;
         break;
       default: valid = false;
@@ -96,7 +222,7 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
       break;
 
     case States::COMMENT:
-      switch ((int)token->type()) {
+      switch ((int)group.stem_token_type) {
       case (int)CTT::EoF: [[fallthrough]];
       case (int)CTT::Empty: state = States::END; break;
       default: valid = false;
@@ -104,18 +230,25 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
       break;
 
     case States::SYMBOL:
-      switch ((int)token->type()) {
+      switch ((int)group.stem_token_type) {
       case (int)ATT::DotCommand:
         state = States::ARGED1;
-        col1 = "." + token->to_string();
-        bits::to_upper_inplace(col1);
+        temp = "." + group.stem()->to_string();
+        bits::to_upper_inplace(temp);
+        col1 = group.formatted_head(temp);
         space_after_comma = true;
         break;
-
       case (int)CTT::Identifier:
         state = States::ARGED1;
-        col1 = token->to_string();
-        bits::to_upper_inplace(col1);
+        temp = group.stem()->to_string();
+        bits::to_upper_inplace(temp);
+        col1 = (temp);
+        force_lowercase_on_arg = 2;
+        break;
+      case (int)ATT::MacroPlaceholder:
+        state = States::ARGED1;
+        col1 = group.formatted_head();
+        // Treat macro placeholder as-if an instruction.
         force_lowercase_on_arg = 2;
         break;
       default: valid = false;
@@ -124,30 +257,28 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
 
     // Optional argument OR some kind of EoL/comment
     case States::ARGED1:
-      switch ((int)token->type()) {
+      switch ((int)group.stem_token_type) {
       case (int)CTT::EoF: [[fallthrough]];
       case (int)CTT::Empty:
-        col2 = fmt::format("{}", fmt::join(arg_list, space_after_comma ? ", " : ","));
+        finalize_args();
         state = States::END;
         break;
       case (int)CTT::InlineComment:
-        col2 = fmt::format("{}", fmt::join(arg_list, space_after_comma ? ", " : ","));
-        col3 = ";" + token->to_string();
+        finalize_args();
+        col3 = ";" + group.stem()->to_string();
         state = States::COMMENT;
         break;
       case (int)CTT::Literal:
-        if (token->to_string() == ",") state = States::ARGED2;
+        if (group.stem()->to_string() == ",") state = States::ARGED2;
         else valid = false;
         break;
       case (int)CTT::Integer: [[fallthrough]];
       case (int)ATT::CharacterConstant: [[fallthrough]];
       case (int)ATT::StringConstant: [[fallthrough]];
-      case (int)CTT::Identifier:
-        state = States::ARGED2;
-        scanned_args++;
-        temp = token->to_string();
-        if (scanned_args == force_lowercase_on_arg) bits::to_lower_inplace(temp);
-        arg_list.emplace_back(temp);
+      case (int)CTT::Identifier: handle_argument(group); break;
+      case (int)ATT::MacroPlaceholder:
+        state = States::ARGED2, scanned_args++;
+        arg_list.push_back(group.formatted_head());
         break;
       default: valid = false;
       }
@@ -155,19 +286,19 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
 
     // Last state was an argument! So we can be an EOL or the start of the next arg in a list
     case States::ARGED2:
-      switch ((int)token->type()) {
+      switch ((int)group.stem_token_type) {
       case (int)CTT::EoF: [[fallthrough]];
       case (int)CTT::Empty:
-        col2 = fmt::format("{}", fmt::join(arg_list, space_after_comma ? ", " : ","));
+        finalize_args();
         state = States::END;
         break;
       case (int)CTT::InlineComment:
-        col2 = fmt::format("{}", fmt::join(arg_list, space_after_comma ? ", " : ","));
-        col3 = ";" + token->to_string();
+        finalize_args();
+        col3 = ";" + group.stem()->to_string();
         state = States::COMMENT;
         break;
       case (int)CTT::Literal:
-        if (token->to_string() == ",") state = States::ARGED3;
+        if (group.stem()->to_string() == ",") state = States::ARGED3;
         else valid = false;
         break;
       default: valid = false;
@@ -176,33 +307,35 @@ std::string pepp::tc::format_source(std::span<std::shared_ptr<lex::Token> const>
 
     // Search for an argument seperator
     case States::ARGED3:
-      switch ((int)token->type()) {
+      switch ((int)group.stem_token_type) {
       case (int)CTT::Integer: [[fallthrough]];
       case (int)ATT::CharacterConstant: [[fallthrough]];
       case (int)ATT::StringConstant: [[fallthrough]];
-      case (int)CTT::Identifier:
-        state = States::ARGED2;
-        scanned_args++;
-        temp = token->to_string();
-        if (scanned_args == force_lowercase_on_arg) bits::to_lower_inplace(temp);
-        arg_list.emplace_back(temp);
+      case (int)CTT::Identifier: handle_argument(group); break;
+      case (int)ATT::MacroPlaceholder:
+        state = States::ARGED2, scanned_args++;
+        arg_list.push_back(group.formatted_head());
         break;
       default: valid = false;
       }
       break;
     case States::MACRO_EXPECT_NAME:
-      switch ((int)token->type()) {
+      switch ((int)group.stem_token_type) {
       case (int)CTT::Identifier:
         state = States::ARGED1;
-        col1 += token->to_string();
+        col1 += " " + group.formatted_head(group.stem()->to_string());
         break;
       default: valid = false;
       }
     default: break;
     }
   }
-  if (valid) return format_as_columns(col0, col1, col2, col3);
-  return "";
+
+  if (!valid) return "";
+  // Reached end-of-input w/o hitting an EoF or empty token. This should still format correctly, and requires
+  // finalization of args.
+  else if (!arg_list.empty()) finalize_args();
+  return format_as_columns(col0, col1, col2, col3);
 }
 
 namespace pepp::tc {
