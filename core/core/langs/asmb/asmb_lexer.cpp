@@ -7,10 +7,41 @@
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
+static std::unordered_set<char> literals_for(pepp::tc::lex::AsmbOptions opts) {
+  static const std::unordered_set<char> parens{'(', ')'};
+  static const std::unordered_set<char> operators{'+', '-', '*', '/', '%', '|', '&', '^', '=', '~', '!', '<', '>'};
+  static const std::unordered_set<char> r_with_both = [&] {
+    auto r = parens;
+    r.insert(operators.begin(), operators.end());
+    r.insert(',');
+    return r;
+  }();
+
+  static const std::unordered_set<char> r_parens_only = [&] {
+    auto r = parens;
+    r.insert(',');
+    return r;
+  }();
+
+  static const std::unordered_set<char> r_ops_only = [&] {
+    auto r = operators;
+    r.insert(',');
+    return r;
+  }();
+
+  static const std::unordered_set<char> r_comma_only{','};
+
+  if (opts.allow_parens && opts.recognize_operators) return r_with_both;
+  else if (opts.allow_parens && !opts.recognize_operators) return r_parens_only;
+  else if (!opts.allow_parens && opts.recognize_operators) return r_ops_only;
+  else return r_comma_only;
+}
+
 pepp::tc::lex::AsmbLexer::AsmbLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
                                     support::SeekableData &&data, AsmbOptions options)
     : ALexer(identifier_pool, std::move(data)), _opts(options) {
   _lineCommentRegex = std::make_unique<std::regex>(options.line_comment_leader + "[^\n]*");
+  _literals = literals_for(options);
 }
 
 bool pepp::tc::lex::AsmbLexer::input_remains() const { return _cursor.input_remains(); }
@@ -37,6 +68,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
   const std::regex &identifier = _opts.allow_dot_in_ident
                                      ? (_opts.allow_at_in_ident ? identifier_dot_at : identifier_dot_noat)
                                      : (_opts.allow_at_in_ident ? identifier_nodot_at : identifier_nodot_noat);
+  static const std::regex macroarg(R"(\\([@a-zA-Z_+][a-zA-Z0-9_.]*|\(\)))");
   static const std::regex directive("\\.[a-zA-Z][a-zA-Z0-9_]*");
   static const std::regex symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
   static const std::regex decimal("[0-9]+");
@@ -66,11 +98,11 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
       _cursor.skip(1);
       loc_start = _cursor.location();
       continue;
-    } else if (next == ',') {
+    } else if (_literals.contains(next)) {
       _cursor.advance(1);
-      current_token = std::make_shared<Literal>(LocationInterval{loc_start, _cursor.location()}, ",");
+      current_token = std::make_shared<Literal>(LocationInterval{loc_start, _cursor.location()}, std::string{next});
       break;
-    } else if (next == '+' || next == '-') {
+    } else if (!_opts.recognize_operators && (next == '+' || next == '-')) {
       auto sign = (next == '-') ? -1 : 1;
       // "Eat" the sign so that we can parse the number after it.
       _cursor.skip(1);
@@ -86,13 +118,15 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
         current_token =
             std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
-    } else if (next == '(' && _opts.allow_parens) {
-      _cursor.advance(1);
-      current_token = std::make_shared<Literal>(LocationInterval{loc_start, _cursor.location()}, "(");
-      break;
-    } else if (next == ')' && _opts.allow_parens) {
-      _cursor.advance(1);
-      current_token = std::make_shared<Literal>(LocationInterval{loc_start, _cursor.location()}, ")");
+    } else if (auto maybeMacroArg = _cursor.matchView(macroarg); !maybeMacroArg.empty()) {
+      auto match = maybeMacroArg.str(0);
+      _cursor.advance(match.size());
+      auto const *id = &*_pool->emplace(match.substr(1)).first; // Drop leading backslash
+      if (_opts.allow_macro_arguments)
+        current_token = std::make_shared<MacroPlaceholder>(LocationInterval{loc_start, _cursor.location()}, id);
+      else
+        current_token =
+            std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
     } else if (auto maybeSymbol = _cursor.matchView(symbol); !maybeSymbol.empty()) {
       auto match = maybeSymbol.str(0);

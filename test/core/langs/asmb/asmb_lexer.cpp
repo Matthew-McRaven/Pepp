@@ -100,6 +100,32 @@ TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:a
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
+  SECTION("Arithmetic ops") {
+    auto l = Lexer(idpool(), data("   *\n&  "), p10);
+    auto c = check_next(l, (int)CTT::Invalid);
+    check_next(l, (int)CTT::Empty);
+    c = check_next(l, (int)CTT::Invalid);
+    check_next(l, (int)CTT::Empty);
+    CHECK(!l.input_remains());
+  }
+  SECTION("Special macro placeholders") {
+    auto l = Lexer(idpool(), data("\\@\\+\\()"), p10);
+    auto c = check_next(l, (int)ATT::MacroPlaceholder);
+    CHECK(c->to_string() == "\\@");
+    c = check_next(l, (int)ATT::MacroPlaceholder);
+    CHECK(c->to_string() == "\\+");
+    c = check_next(l, (int)ATT::MacroPlaceholder);
+    CHECK(c->to_string() == "\\()");
+    CHECK(!l.input_remains());
+  }
+  SECTION("Identifier macro placeholders") {
+    auto l = Lexer(idpool(), data("\\foo\\bar"), p10);
+    auto c = check_next(l, (int)ATT::MacroPlaceholder);
+    CHECK(c->to_string() == "\\foo");
+    c = check_next(l, (int)ATT::MacroPlaceholder);
+    CHECK(c->to_string() == "\\bar");
+    CHECK(!l.input_remains());
+  }
   SECTION("Comment") {
     // pep-style inline comments
     auto l = Lexer(idpool(), data(" ;Comment here\n"), p10);
