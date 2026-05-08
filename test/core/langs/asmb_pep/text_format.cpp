@@ -361,6 +361,45 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
 .BYTE 0
          .ENDM)");
   }
+  SECTION("Macro definition with placeholders") {
+    static const auto txt =
+        R"(.macro test hello,world
+LDWa a\hello,\world
+.endm
+)";
+    auto l = Lexer(idpool(), data(txt));
+    auto b = Buffer(&l);
+    auto p = Parser(data(txt), std::make_shared<MR>());
+    pepp::tc::DiagnosticTable diag;
+    auto r = p.parse(diag);
+    CHECK(diag.count() == 0);
+    CHECK(r.size() == 1);
+    {
+      Checkpoint{b};
+      CHECK(b.match<DotCommand>());
+      CHECK(b.match<Identifier>());
+      CHECK(b.match<Identifier>());
+      CHECK(b.match_literal(","));
+      CHECK(b.match<Identifier>());
+      CHECK(b.match<Empty>());
+      auto sp = b.matched_tokens();
+      auto lexer_formatted = format_source(sp);
+      CHECK(lexer_formatted == R"(         .MACRO test hello, world)");
+      // CHECK(format_source(r[0].get()) == lexer_formatted);
+    }
+    {
+      Checkpoint{b};
+      CHECK(b.match<Identifier>());
+      CHECK(b.match<Identifier>());
+      CHECK(b.match<MacroPlaceholder>());
+      CHECK(b.match_literal(","));
+      CHECK(b.match<MacroPlaceholder>());
+      CHECK(b.match<Empty>());
+      auto sp = b.matched_tokens();
+      auto lexer_formatted = format_source(sp);
+      CHECK(lexer_formatted == R"(         LDWA    a\hello,\world)");
+    }
+  }
   SECTION("Macro Instance") {
     static const auto txt = R"(execErr:   my_macro  ;comment)";
     pepp::tc::DiagnosticTable diag;

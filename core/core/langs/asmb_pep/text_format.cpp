@@ -131,11 +131,8 @@ TokenGroup next_group(std::span<std::shared_ptr<pepp::tc::lex::Token> const> tok
   // Continue consuming adjacent tokens after the stem, which are the suffixes. Do not consume a token which could be
   // the next group's stem.
   while (it != tokens.end() && adjacent((*prev)->location(), (*it)->location())) {
-    if (const int type = (*it)->type(); type != (int)pepp::tc::lex::AsmTokenType::MacroPlaceholder) {
-      // If prev is begin (occurs w/2 adjacent stem tokens), do not reset. Else head is empty, CTD ensues.
-      if (prev != tokens.begin()) it = prev;
-      break;
-    } else prev = it++;
+    if (const int type = (*it)->type(); type != (int)pepp::tc::lex::AsmTokenType::MacroPlaceholder) break;
+    else prev = it++;
   }
 ret:
   return TokenGroup{.stem_token_type = (*stem_token_iterator)->type(),
