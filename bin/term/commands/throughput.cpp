@@ -54,7 +54,7 @@ void ThroughputTask::run() {
   using namespace Qt::StringLiterals;
   auto env = nullptr;
   // Add some spurious breakpoints which will not be hit
-  auto debugger = std::make_shared<pepp::debug::Debugger>(env);
+  // auto debugger = std::make_shared<pepp::debug::Debugger>(env);
   /*pepp::debug::Parser p(*debugger->cache);
   for (int it = 0; it < 128; it++) debugger->bps->addBP(2048 + it);
   auto bp = p.compile("10 + 2");
@@ -63,16 +63,16 @@ void ThroughputTask::run() {
     emit finished(1);
     return;
   }*/
-  debugger->bps->addBP(0 /*, bp.get()*/);
+  // debugger->bps->addBP(0 /*, bp.get()*/);
   auto [mem, cpu] = make();
-  cpu->setDebugger(&*debugger);
+  // cpu->setDebugger(&*debugger);
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
   // Infinite looping branch to 0.
   auto program = std::array<quint8, 3>{static_cast<quint8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
   mem->write(0, {program.data(), program.size()}, rw);
   auto start = std::chrono::high_resolution_clock::now();
-  auto maxInstr = 1'000'000;
+  auto maxInstr = 100'000'000;
   for (int it = 0; it < maxInstr; it++) cpu->clock(it);
   auto end = std::chrono::high_resolution_clock::now();
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
