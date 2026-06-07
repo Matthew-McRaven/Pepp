@@ -142,13 +142,13 @@ void do_version_rd(pepp::bts::ElfMachineType t, std::string fname) {
     verneed1.vn_cnt = 2;
     vs_writer.add_ver(std::move(verneed1));
     PackedElfVernaux<E> vernaux1;
-    vernaux1.vna_hash = elf_hash(std::span{"GLIBC_2.17", 10});
+    vernaux1.vna_hash = pepp::elf_hash(std::span{"GLIBC_2.17", 10});
     vernaux1.vna_flags = 0;
     vernaux1.vna_other = 2;
     vernaux1.vna_name = v217;
     vs_writer.add_aux(0, std::move(vernaux1));
     PackedElfVernaux<E> vernaux2;
-    vernaux2.vna_hash = elf_hash(std::span{"GLIBC_2.34", 10});
+    vernaux2.vna_hash = pepp::elf_hash(std::span{"GLIBC_2.34", 10});
     vernaux2.vna_flags = 0;
     vernaux2.vna_other = 3;
     vernaux2.vna_name = v234;
@@ -165,7 +165,7 @@ void do_version_rd(pepp::bts::ElfMachineType t, std::string fname) {
       vd.vd_flags = flags;
       vd.vd_ndx = ndx;
       vd.vd_cnt = cnt;
-      vd.vd_hash = elf_hash(std::span{name_sv.data(), name_sv.size()});
+      vd.vd_hash = pepp::elf_hash(std::span{name_sv.data(), name_sv.size()});
       // vd_aux / vd_next should be filled by the writer (or you must patch them)
       vd_writer.add_ver(std::move(vd));
     };
