@@ -17,7 +17,6 @@
 #include <catch.hpp>
 #include "core/ds/u64_bitset.hpp"
 
-// Boost already has a test suite
 TEST_CASE("FixedBitset", "[scope:core][kind:unit][arch:*]") {
   using namespace pepp;
   using Bitset = FixedBitset<64>;
@@ -34,6 +33,27 @@ TEST_CASE("FixedBitset", "[scope:core][kind:unit][arch:*]") {
     CHECK(!zeros.any());
 
     CHECK(ones.count() == 64);
+    CHECK(zeros.count() == 0);
+    CHECK(ones.size() == zeros.size());
+
+    CHECK(ones == (ones | zeros));
+    CHECK(ones == (ones ^ zeros));
+    CHECK(zeros == (ones & zeros));
+  }
+  SECTION("31-bit vector. all zeroes/ones") {
+    using namespace pepp;
+    using Bitset = FixedBitset<31>;
+    Bitset ones = Bitset::ones(), zeros = Bitset::zeros();
+    CHECK(sizeof(Bitset) == sizeof(u32));
+    CHECK(ones.all());
+    CHECK(!ones.none());
+    CHECK(ones.any());
+
+    CHECK(!zeros.all());
+    CHECK(zeros.none());
+    CHECK(!zeros.any());
+
+    CHECK(ones.count() == 31);
     CHECK(zeros.count() == 0);
     CHECK(ones.size() == zeros.size());
 

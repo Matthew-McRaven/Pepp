@@ -123,8 +123,15 @@ public:
   constexpr u64 operator()() const { return _storage; }
 
 private:
-  u64 _storage = 0;
-  static constexpr u64 MASK = (COUNT == 64) ? (~0ULL) : (1ULL << COUNT) - 1;
+  using storage_t =
+      std::conditional_t<(COUNT <= 8), u8,
+                         std::conditional_t<(COUNT <= 16), u16, std::conditional_t<(COUNT <= 32), u32, u64>>>;
+  storage_t _storage = 0;
+  static constexpr storage_t MASK_generator() noexcept {
+    if constexpr (sizeof(storage_t) * 8 == COUNT) return ~storage_t(0);
+    else return (storage_t(1) << COUNT) - 1;
+  }
+  static constexpr storage_t MASK = MASK_generator();
 };
 
 template <size_t N> FixedBitset<N> operator&(const FixedBitset<N> &lhs, const FixedBitset<N> &rhs) noexcept {
