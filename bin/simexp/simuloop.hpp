@@ -205,12 +205,6 @@ template <typename StopCondition> DiscreteEventSimulator::Status DiscreteEventSi
   return {};
 }
 
-struct DRAM {
-  void handle_event(DiscreteEventSimulator &s, const Event *ev) {
-    fmt::println("Handling command: device={}, type={}", ev->source, static_cast<u8>(ev->type));
-  }
-};
-
 template <typename T> struct MemoryAwaiter {
   u8 dependent, src_id;
   u32 addr;
@@ -261,36 +255,6 @@ struct DelayAwaiter {
     sim.schedule_over(dependee->base.event_index, dependent, handle, delay);
   }
   void await_resume() {}
-};
-
-struct Bus {
-  DiscreteEventSimulator *sim = nullptr;
-  // Resumable register_callback(const Event &cmd) { co_return; }
-  void handle_event(DiscreteEventSimulator &s, const Event *ev) {
-    fmt::println("[{:02x}{:02x}] Selecting handler", ev->source, static_cast<u8>(ev->type));
-    switch (ev->type) {
-      /*case Event::Type::ReadRequest: {
-        // Select next-level device(s) based on address(es)
-        auto child = s.make_event<MemoryRequest>();
-        child->base.source = 0x01;
-        child->base.type = Event::Type::ReadRequest;
-        // s->post_event(child);
-      }
-      case Event::Type::WriteRequest: {
-        // Select next-level device(s) based on address(es)
-        auto child = s.make_event<MemoryRequest>();
-        child->base.source = 0x01;
-        child->base.type = Event::Type::WriteRequest;
-
-         // s->post_event(child);
-       }
-       case Event::Type::ClearRequest: break;
-       case Event::Type::Invalid: break;
-       case Event::Type::Delay: break;*/
-    }
-
-    // s->submit(register_callback(cmd));
-  }
 };
 
 struct Pep10CPU {
