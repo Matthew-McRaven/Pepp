@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
     sim.execute(maxi);
     ic = sim.icount, cc = sim.current_tick, wc = sim.wcount;
   } else {
-    DiscreteEventSimulator s;
+    EventLoop s;
     Pep10CPU sim;
     s.cpu = &sim;
     i64 *ptr = &sim.icount;
@@ -62,7 +62,8 @@ int main(int argc, char *argv[]) {
     s.schedule(ev->base.event_index, 0);
     s.run([ptr, maxi]() { return *ptr >= maxi; });
     ic = sim.icount, cc = s.current_tick(), wc = sim.wcount;
-    fmt::println("Executed {}, posted {} and retired {} events", s.executed, s.posted, s.retired);
+    fmt::println("Executed {}, allocated {} and freed {} events", s._counters.executed, s._counters.allocated,
+                 s._counters.freed);
   }
 
   std::printf("Simulation finished after %lld instructions and %llu cycles\n", ic, cc);
