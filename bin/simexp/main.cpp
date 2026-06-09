@@ -1,12 +1,19 @@
-// See https://simpy.readthedocs.io/en/latest/examples/carwash.html
 
+#include <algorithm>
 #include <cstdio>
-#include <string>
+#include <exception>
+#include <ios>
+#include <random>
+#include <span>
+#include <variant>
+#include <vector>
+
+#include "./simuloop.hpp"
 #include "core/ds/hash/djb.hpp"
 #include "core/integers.h"
-#include "simuloop.hpp"
+#include "fmt/base.h"
 
-using pepp::djb;
+#include <coroutine>
 
 struct SimulatorFast {
   i16 regs[8];
@@ -18,7 +25,7 @@ struct SimulatorFast {
   template <typename I> I read_memory(u32 address) {
     // fmt::println("{:04d} read_memory request for address {:08x}", loop.current_tick, address);
     current_tick += 1;
-    return djb(address); // Dummy value
+    return pepp::djb(address); // Dummy value
   }
   [[clang::noinline]] void execute(int maxi) {
     while (icount < maxi) {
@@ -57,11 +64,13 @@ int main(int argc, char *argv[]) {
     DiscreteEventSimulator s;
     Pep10CPU sim;
     s.cpu = &sim;
+    i64 *ptr = &sim.icount;
     auto ev = s.make_event<ClockEvent>();
     ev->base.type = Event::Type::Clock;
     s.schedule(ev->base.event_index, 0);
-    s.run([&sim, maxi]() { return sim.icount >= maxi; });
+    s.run([ptr, maxi]() { return *ptr >= maxi; });
     ic = sim.icount, cc = s.current_tick(), wc = sim.wcount;
+    fmt::println("Executed {}, posted {} and retired {} events", s.executed, s.posted, s.retired);
   }
 
   std::printf("Simulation finished after %lld instructions and %llu cycles\n", ic, cc);

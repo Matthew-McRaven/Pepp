@@ -1,18 +1,15 @@
 #pragma once
 #include <bit>
-#include <cassert>
 #include <concepts>
 #include <coroutine>
 #include <exception>
 #include <functional>
 #include <memory>
 #include <variant>
+#include "core/ds/hash/djb.hpp"
 #include "core/ds/u64_bitset.hpp"
 #include "core/integers.h"
 #include "fmt/base.h"
-
-using device_id_t = u8;
-using path_t = u16;
 
 class DiscreteEventSimulator;
 
@@ -27,7 +24,6 @@ struct Event {
   u8 source = 0;
   u8 event_index = 0;
 };
-
 template <typename T>
 concept EventLike = requires(T t) {
   { t.base } -> std::same_as<Event &>;
@@ -57,7 +53,6 @@ struct MemoryRequest {
 struct SequenceEvent {
   Event base;
 };
-
 // You received a clock. Congrats.
 struct ClockEvent {
   Event base;
@@ -86,11 +81,20 @@ public:
   enum class Status {};
   Status run(u64 max_ticks);
   Status run(std::function<bool()> pause);
+  // If no events are scheduled, just advance the clock.
+  bool skip(u64 ticks);
+  // While the function variant of run is more flexible, it introduces significant performance pessimization on the hot
+  // path (~20% slower). This template allows the compiler to general better code where the stopping condition is a
+  // simple lambda.
+  template <typename StopCondition> [[clang::noinline]] Status run(StopCondition &&stop);
 
   u64 current_tick() const noexcept { return _current_tick; }
 
   // Take the index of an already-allocated event slot, and schedule it to run after the given delay in ticks.
   void schedule(u8 index, u64 delay = 0);
+  u64 posted = 0, retired = 0, executed = 0;
+  // Atomically "replace" an already schedule event with a new one.
+  void schedule_over(u8 dependee, u8 dependent, std::coroutine_handle<> resume, u64 delay);
   bool scheduled(u8 index) const;
   // Take an scheduled-but-not-executing event index (dependent), and
   void mark_depends(u8 dependent, EventMask dependees);
@@ -115,13 +119,15 @@ public:
     size_t slot_index;
     if (_event_slots_used.count() == MAX_EVENTS) throw std::runtime_error("No free event slots available");
     _event_slots_used.enable_bit(slot_index = _event_slots_used.countr_one());
+
     EventSlot &slot = _event_slots[slot_index];
     // Avoiding UB by using placement new. construct_as technically has UB, but it's supposed to be "fine".
     // c++23 brings start_lifetime_as, which is the correct tool but not yet available on all platforms.
     auto ret = std::launder(new (slot.data) DerivedEvent{std::forward<Args>(args)...});
     ret->base.event_index = slot_index;
-    _paused_queue[slot_index] = nullptr;
+    _coro_slots[slot_index] = nullptr;
     // fmt::println("{:04x} Allocated event {}", current_tick(), slot_index);
+    posted++;
     return ret;
   }
   void dump_state() const;
@@ -137,7 +143,7 @@ private:
   u64 _current_tick = 0;
 
   /*
-   *  Data members for allocating events within this class
+   * Data members for allocating events within this class
    */
 
   template <typename... Ts> struct Slot {
@@ -151,11 +157,12 @@ private:
   };
   using EventSlot = Slot<Event, MemoryRequest, SequenceEvent, ClockEvent>;
 
-  pepp::FixedBitset<MAX_EVENTS> _event_slots_used;
+  // mutable gem5::UncontendedMutex _event_slots_mutex;
+  EventMask _event_slots_used;
   alignas(alignof(EventSlot)) std::array<EventSlot, MAX_EVENTS> _event_slots;
+  std::array<std::coroutine_handle<>, MAX_EVENTS> _coro_slots{nullptr};
   // Ensure no padding is added to event slot,
   static_assert(sizeof(_event_slots) == MAX_EVENTS * sizeof(EventSlot));
-
   /*
    * Members for maintaining event dependencies.
    * When an event
@@ -167,22 +174,76 @@ private:
    * Data members for maintaining the actual event queue.
    */
   struct ScheduledEvent {
-    u64 tick;
-    u8 event_index;
-    // If nullptr, this event is freshly scheduled and has not yet executed.
-    // If non-null, this event was partially executed before waiting for dependencies to resolve.
-    std::coroutine_handle<> resume = nullptr;
+    u64 tick : 48;
+    u64 event_index : 8;
     auto operator<=>(const ScheduledEvent &o) const { return tick <=> o.tick; }
   };
   // This event queue is effectively double-ended. The left/low side contains events which are scheduled and ready to be
   // consumed.
   // The paused section is entirely unsorted, while the scheduled section is partially sorted (top 1) by lowest tick.
   std::array<ScheduledEvent, MAX_EVENTS> _event_queue;
-  std::array<std::coroutine_handle<>, MAX_EVENTS> _paused_queue;
   u16 _queue_size = 0;
-  // If 1, in _event_queue, otherwise in _paused_queue.
-  EventMask _queue_select;
 };
+template <typename StopCondition> DiscreteEventSimulator::Status DiscreteEventSimulator::run(StopCondition &&stop) {
+  while (!stop() && _queue_size > 0) {
+    // dump_state();
+    //  fmt::println("{:04x} Starting evloop", current_tick());
+    /*
+     * 1. Determine which event should be processed next and advance _current_tick.
+     */
+    const auto scheduled_idx = _event_queue[0].event_index;
+    _current_tick = _event_queue[0].tick, executed++;
+    // If there are item left in the queue, maintain top-1 sorting requirement
+    if (_queue_size-- > 1) {
+      // Move the last scheduled event to fill the hole caused by popping front
+      _event_queue[0] = _event_queue[_queue_size];
+      resort_queue();
+      // std::partial_sort(_event_queue.begin(), _event_queue.begin() + 1, _event_queue.begin() + _queue_size);
+    }
+
+    // fmt::println("{:04x} Selected event index {} for execution", ev_time, scheduled.event_index);
+
+    /*
+     * 2. Execute or resume that event.
+     */
+    // This event was paused due to dependencies. Resume its coroutine.
+    if (auto coro = _coro_slots[scheduled_idx]; coro) {
+      _coro_slots[scheduled_idx] = nullptr;
+      coro.resume();
+    } else {
+      const Event *ev = reinterpret_cast<const Event *>(_event_slots[scheduled_idx].data);
+      // TODO: find the associated handler for that event and call handle_event
+      handle_event(ev);
+    }
+
+    /*
+     * 3. Check if the event executed to completion. If so, unmark dependencies and free the slot.
+     */
+    int promoted = 0;
+    // std::lock_guard lock(_event_slots_mutex);
+    //  This event executed to completion. Unmark any events which depend on it,
+    if (!_coro_slots[scheduled_idx]) {
+
+      EventMask waiters = _event_dependents[scheduled_idx];
+      _event_dependents[scheduled_idx].clear();
+
+      for (u64 bits = waiters(); bits;) {
+        u8 paused_idx = std::countr_zero(bits);
+        bits &= bits - 1;
+        _event_dependencies[paused_idx].reset(scheduled_idx);
+        if (_event_dependencies[paused_idx].none()) {
+          promoted++;
+          const auto dest_idx = _queue_size++;
+          new (&_event_queue[dest_idx]) ScheduledEvent(_current_tick, paused_idx);
+        }
+        free_event(scheduled_idx);
+      }
+
+      if (promoted > 0) resort_queue();
+    }
+  }
+  return {};
+}
 
 struct DRAM {
   void handle_event(DiscreteEventSimulator &s, const Event *ev) {
@@ -190,31 +251,57 @@ struct DRAM {
   }
 };
 
-template <typename T> struct EventAwaiter {
-  u8 dependent;
+template <typename T> struct MemoryAwaiter {
+  u8 dependent, src_id;
+  u32 addr;
+  MemoryRequest::Kind type;
+  u64 delay = 0;
   T result{};
-  DiscreteEventSimulator::EventMask dependee_mask;
   DiscreteEventSimulator &sim;
+  // MemoryRequest *request = nullptr; // store event pointer
+  MemoryAwaiter(DiscreteEventSimulator &s, u8 dependent, u8 src_id, u64 delay = 0)
+      : dependent(dependent), src_id(src_id), delay(delay), sim(s) {}
+  static MemoryAwaiter<T> read(DiscreteEventSimulator &s, u8 dependent, u8 src_id, u32 addr, u64 delay = 0) {
+    MemoryAwaiter<T> ret(s, dependent, src_id, delay);
+    ret.type = MemoryRequest::Kind::Read;
+    ret.addr = addr;
+    return ret;
+  }
 
-  EventAwaiter(DiscreteEventSimulator &s, u8 dependent_id, DiscreteEventSimulator::EventMask dependee_mask)
-      : dependent(dependent_id), dependee_mask(dependee_mask), sim(s) {}
-  bool await_ready() { return false; } // always post
+  bool await_ready() {
+    // "fake" a happy path where the result can be instantly computed -- like when the value is cached.
+    if (type == MemoryRequest::Kind::Read) result = pepp::djb(addr);
+    return this->sim.skip(this->delay);
+  }
 
-  void await_suspend(std::coroutine_handle<> handle) { sim.pause(dependent, dependee_mask, handle); }
-
+  void await_suspend(std::coroutine_handle<> handle) {
+    auto dependee = this->sim.make_event<MemoryRequest>();
+    dependee->base.type = Event::Type::MemoryAccess;
+    dependee->base.source = src_id;
+    dependee->address = addr;
+    dependee->len = sizeof(T);
+    dependee->type = type;
+    dependee->buffer = reinterpret_cast<u8 *>(&this->result);
+    sim.schedule_over(dependee->base.event_index, dependent, handle, delay);
+  }
   T await_resume() { return result; }
 };
-template <typename T> struct MemoryAwaiter : public EventAwaiter<T> {
-  MemoryRequest *request = nullptr; // store event pointer
-  MemoryAwaiter(DiscreteEventSimulator &s, u8 dependent_id, DiscreteEventSimulator::EventMask dependee_mask)
-      : EventAwaiter<T>(s, dependent_id, dependee_mask) {}
-  void await_suspend(std::coroutine_handle<> handle) {
-    if (request) request->buffer = reinterpret_cast<u8 *>(&this->result);
-    EventAwaiter<T>::await_suspend(handle);
-  }
-};
 
-using DelayAwaiter = EventAwaiter<std::monostate>;
+struct DelayAwaiter {
+  u8 dependent, src_id;
+  u64 delay = 0;
+  DiscreteEventSimulator &sim;
+  DelayAwaiter(DiscreteEventSimulator &s, u8 dependent, u8 src_id, u64 delay = 0)
+      : dependent(dependent), src_id(src_id), delay(delay), sim(s) {}
+  bool await_ready() { return this->sim.skip(this->delay); }
+  void await_suspend(std::coroutine_handle<> handle) {
+    auto dependee = this->sim.make_event<SequenceEvent>();
+    dependee->base.type = Event::Type::SequenceEvent;
+    dependee->base.source = src_id;
+    sim.schedule_over(dependee->base.event_index, dependent, handle, delay);
+  }
+  void await_resume() {}
+};
 
 struct Bus {
   DiscreteEventSimulator *sim = nullptr;
@@ -235,11 +322,11 @@ struct Bus {
         child->base.source = 0x01;
         child->base.type = Event::Type::WriteRequest;
 
-        // s->post_event(child);
-      }*/
-      // case Event::Type::ClearRequest: break;
-      // case Event::Type::Invalid: break;
-      // case Event::Type::Delay: break;
+         // s->post_event(child);
+       }
+       case Event::Type::ClearRequest: break;
+       case Event::Type::Invalid: break;
+       case Event::Type::Delay: break;*/
     }
 
     // s->submit(register_callback(cmd));
@@ -292,49 +379,33 @@ struct Pep10CPU {
   } _coro;
 
   template <typename T> MemoryAwaiter<T> read(DiscreteEventSimulator &s, u16 addr, u8 idx) {
-    auto dependee = s.make_event<MemoryRequest>();
-    dependee->base.source = id;
-    dependee->base.type = Event::Type::MemoryAccess;
-    dependee->address = addr;
-
-    dependee->len = sizeof(T);
-    dependee->type = MemoryRequest::Kind::Read;
-    auto ret = MemoryAwaiter<T>(s, idx, index_to_bitmask(dependee->base.event_index));
-    dependee->buffer = reinterpret_cast<u8 *>(&ret.result);
-    s.schedule(dependee->base.event_index, 1);
-    ret.request = dependee;
-    return ret;
+    return MemoryAwaiter<T>::read(s, idx, id, addr, 1);
   }
-  DelayAwaiter delay(DiscreteEventSimulator &s, u64 ticks, u64 idx) {
-    auto dependee = s.make_event<SequenceEvent>();
-    dependee->base.source = id;
-    dependee->base.type = Event::Type::SequenceEvent;
-    auto ret = DelayAwaiter(s, idx, index_to_bitmask(dependee->base.event_index));
-    return ret;
-  }
+  DelayAwaiter delay(DiscreteEventSimulator &s, u64 ticks, u64 idx) { return DelayAwaiter(s, idx, id, ticks); }
   Resumable instruction_execute_coro(DiscreteEventSimulator &s) {
     while (true) {
       const Event *ev = co_await Resumable::promise_type::NextEvent{};
-      fmt::println("{:04d}[{}] Intsr begin", s.current_tick(), id);
+      // fmt::println("{:04x}[{}] Intsr begin", s.current_tick(), id);
       auto await_is_read = read<u8>(s, pc, ev->event_index);
       u8 mn = co_await await_is_read;
-      fmt::println("{:04d}[{}] op fetched", s.current_tick(), id);
+      // fmt::println("{:04x}[{}] op fetched", s.current_tick(), id);
       pc++;
       if (mn < 0x80) {
-        fmt::println("{:04d}[{}] unary execute", s.current_tick(), id);
-        //    co_await execute_unary(loop, mn);
+        // fmt::println("{:04x}[{}] unary execute", s.current_tick(), id);
+        //     co_await execute_unary(loop, mn);
         co_await delay(s, 2, ev->event_index); // unary takes 2 cycles
         wcount += mn;
       } else {
-        fmt::println("{:04d}[{}] opspec fetching", s.current_tick(), id);
+        // fmt::println("{:04x}[{}] opspec fetching", s.current_tick(), id);
         u16 operand = co_await read<u16>(s, pc, ev->event_index);
         pc += 2;
-        fmt::println("{:04d}[{}] opspec fetched", s.current_tick(), id);
-        fmt::println("{:04d}[{}] nonunary execute", s.current_tick(), id);
+        // fmt::println("{:04x}[{}] opspec fetched", s.current_tick(), id);
+        // fmt::println("{:04x}[{}] nonunary execute", s.current_tick(), id);
         co_await delay(s, 4, ev->event_index); // nonunary takes 4 cycles
         wcount += operand << mn;
       }
       icount = icount + 1;
+      s.schedule(ev->event_index, 0);
     }
   }
   void post(const Event *ev) {
@@ -344,6 +415,7 @@ struct Pep10CPU {
   }
   void handle_event(DiscreteEventSimulator &s, const Event *ev) {
     if (!_coro.handle) _coro = instruction_execute_coro(s);
+
     post(ev), _coro.handle.resume();
   }
 };
