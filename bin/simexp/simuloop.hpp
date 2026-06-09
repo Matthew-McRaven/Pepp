@@ -120,7 +120,8 @@ public:
     // c++23 brings start_lifetime_as, which is the correct tool but not yet available on all platforms.
     auto ret = std::launder(new (slot.data) DerivedEvent{std::forward<Args>(args)...});
     ret->base.event_index = slot_index;
-    fmt::println("{:04x} Allocated event {}", current_tick(), slot_index);
+    _paused_queue[slot_index] = nullptr;
+    // fmt::println("{:04x} Allocated event {}", current_tick(), slot_index);
     return ret;
   }
   void dump_state() const;
@@ -159,11 +160,9 @@ private:
    * Members for maintaining event dependencies.
    * When an event
    */
-  struct Dependencies {
-    // Events which depend on this event.
-    EventMask dependent_mask;
-  };
-  std::array<Dependencies, MAX_EVENTS> _event_dependencies;
+  std::array<EventMask, MAX_EVENTS> _event_dependencies;
+  std::array<EventMask, MAX_EVENTS> _event_dependents;
+
   /*
    * Data members for maintaining the actual event queue.
    */
@@ -176,13 +175,13 @@ private:
     auto operator<=>(const ScheduledEvent &o) const { return tick <=> o.tick; }
   };
   // This event queue is effectively double-ended. The left/low side contains events which are scheduled and ready to be
-  // consumed. The right/high side contains events which are paused due to dependencies. When all dependencies of a
-  // paused event are resolved, it can be rescheduled for the next tick.
+  // consumed.
   // The paused section is entirely unsorted, while the scheduled section is partially sorted (top 1) by lowest tick.
   std::array<ScheduledEvent, MAX_EVENTS> _event_queue;
+  std::array<std::coroutine_handle<>, MAX_EVENTS> _paused_queue;
   u16 _queue_size = 0;
-  u16 _paused_top = MAX_EVENTS;
-  EventMask _paused = 0, _scheduled = 0;
+  // If 1, in _event_queue, otherwise in _paused_queue.
+  EventMask _queue_select;
 };
 
 struct DRAM {

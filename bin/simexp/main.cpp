@@ -60,17 +60,7 @@ int main(int argc, char *argv[]) {
     auto ev = s.make_event<ClockEvent>();
     ev->base.type = Event::Type::Clock;
     s.schedule(ev->base.event_index, 0);
-    s.run(100);
-    // s.make_event<>()
-    //  Simulator sim;
-    //  Simulator sim2;
-    //  sim.id = 1, sim2.id = 2;
-    //  auto hnd1 = sim.schedule(maxi / 2, el);
-    //  auto hnd2 = sim2.schedule(maxi / 2, el);
-    //    Kick off both at t=0
-    //  el.push_pending(EventLoop::Event{.type = EventLoop::EventType::Delay, .ready_at = 0, .handle = hnd1.handle});
-    //  el.push_pending(EventLoop::Event{.type = EventLoop::EventType::Delay, .ready_at = 0, .handle = hnd2.handle});
-    //  s.run([&cpu, maxi]() { return cpu.wcount < maxi; });
+    s.run([&sim, maxi]() { return sim.icount >= maxi; });
     ic = sim.icount, cc = s.current_tick(), wc = sim.wcount;
   }
 

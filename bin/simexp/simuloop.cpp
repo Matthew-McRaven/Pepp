@@ -33,16 +33,20 @@ DiscreteEventSimulator::Status DiscreteEventSimulator::run(std::function<bool()>
      * 1. Determine which event should be processed next and advance _current_tick.
      */
     ScheduledEvent scheduled;
-    scheduled = _event_queue[0];
-    // If there are item left in the queue, maintain top-1 sorting requirement
-    if (_queue_size-- > 1) {
-      // Move the last scheduled event to fill the hole caused by popping front
-      _event_queue[0] = _event_queue[_queue_size];
-      resort_queue();
-      // std::partial_sort(_event_queue.begin(), _event_queue.begin() + 1, _event_queue.begin() + _queue_size);
+    {
+      // std::lock_guard lock(_event_slots_mutex);
+      scheduled = _event_queue[0];
+      // If there are item left in the queue, maintain top-1 sorting requirement
+      if (_queue_size-- > 1) {
+        // Move the last scheduled event to fill the hole caused by popping front
+        _event_queue[0] = _event_queue[_queue_size];
+        resort_queue();
+        // std::partial_sort(_event_queue.begin(), _event_queue.begin() + 1, _event_queue.begin() + _queue_size);
+      }
+      _current_tick = scheduled.tick;
+      _queue_select.reset(scheduled.event_index);
     }
     _current_tick = scheduled.tick;
-    _scheduled.reset(scheduled.event_index);
     const auto ev_time = scheduled.tick;
     fmt::println("{:04x} Selected event index {} for execution", ev_time, scheduled.event_index);
 
@@ -61,51 +65,52 @@ DiscreteEventSimulator::Status DiscreteEventSimulator::run(std::function<bool()>
     /*
      * 3. Check if the event executed to completion. If so, unmark dependencies and free the slot.
      */
-    bool need_free = false;
     int promoted = 0;
-    // This event executed to completion. Unmark any events which depend on it,
-    if (!_paused.test(scheduled.event_index)) {
-      for (u8 it = _paused_top; it < MAX_EVENTS; it++) {
-        auto paused_info = _event_queue[it];
-        const auto paused_index = paused_info.event_index;
-        // Clear that event's dependency on this event
-        _event_dependencies[paused_index].dependent_mask.reset(scheduled.event_index);
-        // If that was the last dependency for the paused event, move it to the scheduled portion of the queue.
-        if (_event_dependencies[paused_index].dependent_mask.none()) {
+    // std::lock_guard lock(_event_slots_mutex);
+    //  This event executed to completion. Unmark any events which depend on it,
+    if (!_queue_select.test(scheduled.event_index)) {
+
+      EventMask waiters = _event_dependents[scheduled.event_index];
+      _event_dependents[scheduled.event_index].clear();
+
+      for (u64 bits = waiters(); bits;) {
+        u8 paused_idx = std::countr_zero(bits);
+        bits &= bits - 1;
+        _event_dependencies[paused_idx].reset(scheduled.event_index);
+        if (_event_dependencies[paused_idx].none()) {
           promoted++;
-          // reschedule the promoted event for this tick
-          paused_info.tick = current_tick();
-          // This paused event has no more dependencies! Move it to the scheduled portion of the queue.
-          _event_queue[_queue_size++] = std::move(paused_info);
-          _paused.reset(paused_index), _scheduled.enable_bit(paused_index);
-          // Fill any hole left by moving the paused event
-          _event_queue[it] = std::move(_event_queue[_paused_top++]);
+          const auto dest_idx = _queue_size++;
+          new (&_event_queue[dest_idx]) ScheduledEvent(_current_tick, paused_idx, _paused_queue[paused_idx]);
+          _queue_select.enable_bit(paused_idx);
         }
-        need_free = !_scheduled.test(scheduled.event_index);
-        if (promoted > 0) resort_queue();
+        free_event(scheduled.event_index);
       }
+
+      if (promoted > 0) resort_queue();
     }
-    if (need_free) free_event(scheduled.event_index);
   }
   return {};
 }
 
 void DiscreteEventSimulator::schedule(u8 index, u64 delay) {
   auto tick = current_tick() + delay;
-  if (_scheduled.test(index)) [[unlikely]]
+  // std::lock_guard lock(_event_slots_mutex);
+  if (_queue_select.test(index)) [[unlikely]]
     throw std::runtime_error("Event index is already scheduled");
-  else if (_paused.test(index)) [[unlikely]] throw std::runtime_error("Cannot schedule a paused event");
-  fmt::println("{:04x} Scheduling event index {} for execution on {}", current_tick(), index, tick);
-  // Create a new scheduled event in-place at the tail end of the scheduled queue.
+  // fmt::println("{:04x} Scheduling event index {} for execution on {}", current_tick(), index, tick);
+  //  Create a new scheduled event in-place at the tail end of the scheduled queue.
   new (&_event_queue[_queue_size++]) ScheduledEvent{.tick = tick, .event_index = index};
   // In the unlikely event where the new event is scheduled to execute before the previously earliest event, swap it
   // to the front. This maintains the top-1 sorting invariant for the scheduled portion.
   if (_queue_size > 1 && _event_queue[_queue_size - 1].tick < _event_queue[0].tick) [[unlikely]]
     std::swap(_event_queue[0], _event_queue[_queue_size - 1]);
-  _scheduled.enable_bit(index);
+  _queue_select.enable_bit(index);
 }
 
-bool DiscreteEventSimulator::scheduled(u8 index) const { return _scheduled.test(index); }
+bool DiscreteEventSimulator::scheduled(u8 index) const {
+  // std::lock_guard lock(_event_slots_mutex);
+  return _queue_select.test(index);
+}
 
 void DiscreteEventSimulator::mark_depends(u8 dependent, EventMask dependees) {
   fmt::println("{:04x} Set dependencies of {} to {:x}", _current_tick, dependent, (u64)dependees());
@@ -116,7 +121,12 @@ void DiscreteEventSimulator::mark_depends(u8 dependent, EventMask dependees) {
     if (_event_queue[idx].event_index == dependent)
       throw std::runtime_error("Cannot mark dependencies for an event which is already scheduled for execution");
   }
-  _event_dependencies[dependent].dependent_mask |= dependees;
+  _event_dependencies[dependent] |= dependees;
+  for (u64 bits = dependees(); bits;) {
+    u8 dependee = std::countr_zero(bits);
+    bits &= bits - 1;
+    _event_dependents[dependee].enable_bit(dependent);
+  }
 }
 
 void DiscreteEventSimulator::pause(u8 dependent, EventMask dependees, std::coroutine_handle<> resume) {
@@ -126,25 +136,30 @@ void DiscreteEventSimulator::pause(u8 dependent, EventMask dependees, std::corou
   else if (resume == nullptr) [[unlikely]] throw std::invalid_argument("Resume handle cannot be null");
   fmt::println("{:04x} Pausing {} and setting dependencies to {:x}", _current_tick, dependent, (u64)dependees());
 
-  _event_dependencies[dependent].dependent_mask |= dependees;
-  if (_paused.test(dependent)) [[unlikely]]
+  // Compute reverse dependencies to speed up hot code in event loop.
+  _event_dependencies[dependent] |= dependees;
+  for (u64 bits = dependees(); bits;) {
+    u8 dependee = std::countr_zero(bits);
+    bits &= bits - 1;
+    _event_dependents[dependee].enable_bit(dependent);
+  }
+
+  if (!_queue_select.test(dependent)) [[unlikely]]
     return;
-  _paused.enable_bit(dependent), _scheduled.clear_bit(dependent);
+  _queue_select.clear_bit(dependent);
   // Check if the event is currently scheduled for execution.
   u16 idx = 0;
   for (; idx < _queue_size; idx++)
     if (_event_queue[idx].event_index == dependent) break;
 
-  // The event is currently scheduled! Move it to the paused section of the list, and update its resume handle.
+  // The event is currently scheduled! Move it to the paused list and update its resume handle.
   if (idx != _queue_size) {
-    // Move the to-be-paused event to be the top of the paused queue.
-    _event_queue[--_paused_top] = std::move(_event_queue[idx]);
-    // And move the last scheduled event into the now-empty slot.
-    // if --queue_size == idx, it it a no-op. Otherwise, we fill the hole we left in the queue.
+    const auto dest_idx = _event_queue[idx].event_index;
+    // Move last item into the hole.
     _event_queue[idx] = std::move(_event_queue[--_queue_size]);
-    // Patch the resume handler for the paused event
-    _event_queue[_paused_top].resume = resume;
-  } else _event_queue[--_paused_top] = ScheduledEvent{.tick = 0, .event_index = dependent, .resume = resume};
+    _paused_queue[dest_idx] = resume;
+    if (idx == 0) resort_queue();
+  } else _paused_queue[dependent] = resume;
 }
 
 void DiscreteEventSimulator::dump_state() const { lockless_dumpstate(); }
@@ -152,8 +167,8 @@ void DiscreteEventSimulator::dump_state() const { lockless_dumpstate(); }
 void DiscreteEventSimulator::lockless_dumpstate() const {
   fmt::println("{:04x} Current simulation state:", _current_tick);
   fmt::println("     Allocated events: {}", _event_slots_used.count());
-  fmt::println("       paused: {}", _paused.count());
-  fmt::println("       scheduled: {}", _scheduled.count());
+  fmt::println("       paused: {}", MAX_EVENTS - _queue_select.count());
+  fmt::println("       scheduled: {}", _queue_select.count());
   fmt::println("     Event Descriptors");
   for (int it = 0; it < MAX_EVENTS; it++) {
     if (_event_slots_used.test(it)) {
@@ -175,12 +190,12 @@ void DiscreteEventSimulator::lockless_dumpstate() const {
     fmt::println("       {:02x}: tick={}, resume={}", scheduled.event_index, scheduled.tick,
                  scheduled.resume ? "yes" : "no");
   }
-  fmt::println("     Paused Events ({})", MAX_EVENTS - _paused_top);
+  /*fmt::println("     Paused Events ({})", _paused.count());
   for (int it = _paused_top; it < MAX_EVENTS; it++) {
     const auto &paused = _event_queue[it];
-    const auto depset = _event_dependencies[paused.event_index].dependent_mask;
+    const auto depset = _event_dependencies[paused.event_index];
     fmt::println("       {:02x}: dependencies={:x}", paused.event_index, (u64)depset());
-  }
+  }*/
 }
 
 void DiscreteEventSimulator::free_event(Event *ev) {
@@ -192,11 +207,12 @@ void DiscreteEventSimulator::free_event(Event *ev) {
   size_t slot_index = (reinterpret_cast<std::byte *>(ev) - _event_slots[0].data) / sizeof(EventSlot);
   fmt::println("{:04x} Freeing {}", _current_tick, slot_index);
   std::destroy_at(ev);
-  _event_slots_used.reset(slot_index);
-  _scheduled.reset(slot_index), _paused.reset(slot_index);
-  _event_dependencies[slot_index].dependent_mask.clear();
-  if (_event_dependencies[slot_index].dependent_mask.any()) [[unlikely]]
-    throw std::runtime_error("Event still has dependents when freed");
+    _event_slots_used.clear_bit(slot_index);
+    _queue_select.clear_bit(slot_index);
+    _event_dependencies[slot_index].clear();
+    _event_dependents[slot_index].clear();
+    if (_event_dependencies[slot_index].any()) [[unlikely]]
+      throw std::runtime_error("Event still has dependents when freed");
 }
 
 void DiscreteEventSimulator::free_event(u8 idx) { free_event(reinterpret_cast<Event *>(_event_slots[idx].data)); }
