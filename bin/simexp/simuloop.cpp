@@ -1,5 +1,6 @@
 #include "simuloop.hpp"
 #include <algorithm>
+#include "./pep10isa.hpp"
 #include "core/ds/hash/djb.hpp"
 
 DiscreteEventSimulator::Status DiscreteEventSimulator::run(u64 max_ticks) {

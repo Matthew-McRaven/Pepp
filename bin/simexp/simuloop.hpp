@@ -144,6 +144,7 @@ private:
   std::array<ScheduledEvent, MAX_EVENTS> _event_queue;
   u16 _queue_size = 0;
 };
+
 template <typename StopCondition> DiscreteEventSimulator::Status DiscreteEventSimulator::run(StopCondition &&stop) {
   while (!stop() && _queue_size > 0) {
     // dump_state();
@@ -255,91 +256,4 @@ struct DelayAwaiter {
     sim.schedule_over(dependee->base.event_index, dependent, handle, delay);
   }
   void await_resume() {}
-};
-
-struct Pep10CPU {
-  i16 regs[8];
-  bool nzvc[4];
-  u16 pc = 0;
-  int id = 0;
-  i64 icount = 0, wcount = 0;
-
-  struct Resumable {
-    // Just an alias to the coro handle already in _coro, but it makes this promise easier to use.
-    std::coroutine_handle<> handle = nullptr;
-    struct promise_type {
-      DiscreteEventSimulator &sim;
-      const Event *current_event = nullptr; // written before resume
-
-      // First argument provided implicitly due to coro being a member fn
-      promise_type(Pep10CPU &self, DiscreteEventSimulator &s) : sim(s) {}
-
-      Resumable get_return_object() {
-        auto h = std::coroutine_handle<promise_type>::from_promise(*this);
-        return Resumable{h};
-      }
-      // Do not suspsend b/c we want to reach the first "input" point before returning to the outer loop.
-      std::suspend_never initial_suspend() { return {}; }
-      std::suspend_never final_suspend() noexcept { return {}; }
-      void return_void() {}
-      void unhandled_exception() { std::terminate(); }
-      struct NextEvent {};
-      struct NextEventAwaitable {
-        promise_type &promise;
-        bool await_ready() { return promise.current_event != nullptr; }
-        void await_suspend(std::coroutine_handle<> h) {}
-        const Event *await_resume() {
-          auto ret = promise.current_event;
-          promise.current_event =
-              nullptr; // Clear event after resuming, to prevent accidentally reusing it on the next await.
-          return ret;
-        }
-      };
-
-      // Passthrough for any awaitable that isn't NextEvent
-      template <typename T> auto await_transform(T &&t) { return std::forward<T>(t); }
-      auto await_transform(NextEvent) { return NextEventAwaitable{*this}; }
-    };
-  } _coro;
-
-  template <typename T> MemoryAwaiter<T> read(DiscreteEventSimulator &s, u16 addr, u8 idx) {
-    return MemoryAwaiter<T>::read(s, idx, id, addr, 1);
-  }
-  DelayAwaiter delay(DiscreteEventSimulator &s, u64 ticks, u64 idx) { return DelayAwaiter(s, idx, id, ticks); }
-  Resumable instruction_execute_coro(DiscreteEventSimulator &s) {
-    while (true) {
-      const Event *ev = co_await Resumable::promise_type::NextEvent{};
-      // fmt::println("{:04x}[{}] Intsr begin", s.current_tick(), id);
-      auto await_is_read = read<u8>(s, pc, ev->event_index);
-      u8 mn = co_await await_is_read;
-      // fmt::println("{:04x}[{}] op fetched", s.current_tick(), id);
-      pc++;
-      if (mn < 0x80) {
-        // fmt::println("{:04x}[{}] unary execute", s.current_tick(), id);
-        //     co_await execute_unary(loop, mn);
-        co_await delay(s, 2, ev->event_index); // unary takes 2 cycles
-        wcount += mn;
-      } else {
-        // fmt::println("{:04x}[{}] opspec fetching", s.current_tick(), id);
-        u16 operand = co_await read<u16>(s, pc, ev->event_index);
-        pc += 2;
-        // fmt::println("{:04x}[{}] opspec fetched", s.current_tick(), id);
-        // fmt::println("{:04x}[{}] nonunary execute", s.current_tick(), id);
-        co_await delay(s, 4, ev->event_index); // nonunary takes 4 cycles
-        wcount += operand << mn;
-      }
-      icount = icount + 1;
-      s.schedule(ev->event_index, 0);
-    }
-  }
-  void post(const Event *ev) {
-    using Promise = Resumable::promise_type;
-    auto typed = std::coroutine_handle<Promise>::from_address(_coro.handle.address());
-    typed.promise().current_event = ev;
-  }
-  void handle_event(DiscreteEventSimulator &s, const Event *ev) {
-    if (!_coro.handle) _coro = instruction_execute_coro(s);
-
-    post(ev), _coro.handle.resume();
-  }
 };
