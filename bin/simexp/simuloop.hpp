@@ -245,36 +245,6 @@ struct Bus {
   }
 };
 
-template <std::size_t N, typename Owner, typename Promise> struct StaticCoro {
-  alignas(64) std::byte storage[N];
-  bool in_use = false;
-  Owner *owner = nullptr; // set on first use
-  std::coroutine_handle<> handle;
-
-  explicit operator bool() const { return handle && !handle.done(); }
-  void resume() { handle.resume(); }
-  void assign(std::coroutine_handle<> h) { handle = h; }
-};
-
-template <typename PromiseType, typename Owner, auto SlotMember> struct StaticAllocator {
-  Owner *_owner = nullptr; // stored in promise
-  StaticAllocator(Owner &owner) : _owner(&owner) {}
-  static void *operator new(std::size_t size, Owner &owner, auto &&...) {
-    auto &slot = owner.*SlotMember;
-    assert(size <= sizeof(slot.storage));
-    assert(!slot.in_use);
-    slot.in_use = true;
-    slot.owner = &owner;
-    return slot.storage;
-  }
-
-  static void operator delete(void *ptr, std::size_t) {
-    auto h = std::coroutine_handle<PromiseType>::from_address(ptr);
-    auto *o = h.promise()._owner;
-    (o->*SlotMember).in_use = false;
-  }
-};
-
 struct Pep10CPU {
   i16 regs[8];
   bool nzvc[4];
@@ -283,21 +253,19 @@ struct Pep10CPU {
   volatile i64 icount = 0;
   i64 wcount = 0;
   static constexpr std::size_t FRAME_SIZE = 512;
-  StaticCoro<FRAME_SIZE, Pep10CPU, struct Resumable> _handler;
 
   struct Resumable {
-    // Just an alias to the coro handle already in _handler, but it makes this promise easier to use.
-    std::coroutine_handle<> handle;
-    struct promise_type : StaticAllocator<promise_type, Pep10CPU, &Pep10CPU::_handler> {
+    // Just an alias to the coro handle already in _coro, but it makes this promise easier to use.
+    std::coroutine_handle<> handle = nullptr;
+    struct promise_type {
       DiscreteEventSimulator &sim;
       const Event *current_event = nullptr; // written before resume
 
       // First argument provided implicitly due to coro being a member fn
-      promise_type(Pep10CPU &self, DiscreteEventSimulator &s) : StaticAllocator(self), sim(s) {}
+      promise_type(Pep10CPU &self, DiscreteEventSimulator &s) : sim(s) {}
 
       Resumable get_return_object() {
         auto h = std::coroutine_handle<promise_type>::from_promise(*this);
-        _owner->_handler.assign(h);
         return Resumable{h};
       }
       std::suspend_always initial_suspend() { return {}; }
@@ -321,7 +289,7 @@ struct Pep10CPU {
       template <typename T> auto await_transform(T &&t) { return std::forward<T>(t); }
       auto await_transform(NextEvent) { return NextEventAwaitable{*this}; }
     };
-  };
+  } _coro;
 
   template <typename T> MemoryAwaiter<T> read(DiscreteEventSimulator &s, u16 addr, u8 idx) {
     auto dependee = s.make_event<MemoryRequest>();
@@ -363,11 +331,11 @@ struct Pep10CPU {
   }
   void post(const Event *ev) {
     using Promise = Resumable::promise_type;
-    auto typed = std::coroutine_handle<Promise>::from_address(_handler.handle.address());
+    auto typed = std::coroutine_handle<Promise>::from_address(_coro.handle.address());
     typed.promise().current_event = ev;
   }
   void handle_event(DiscreteEventSimulator &s, const Event *ev) {
-    if (!_handler) instruction_execute_coro(s);
-    post(ev), _handler.resume();
+    if (!_coro.handle) _coro = instruction_execute_coro(s);
+    post(ev), _coro.handle.resume();
   }
 };
