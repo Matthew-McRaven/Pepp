@@ -6,57 +6,17 @@
 #include <functional>
 #include <memory>
 #include <variant>
+#include "./events.hpp"
 #include "core/ds/hash/djb.hpp"
 #include "core/ds/u64_bitset.hpp"
 #include "core/integers.h"
 #include "fmt/base.h"
-
-class DiscreteEventSimulator;
-
-// Any time you add a new event type, you must also modify the "slot" type in DES.√
-struct Event {
-  enum class Type : u8 {
-    Invalid = 0,
-    MemoryAccess,
-    SequenceEvent,
-    Clock,
-  } type = Type::Invalid;
-  u8 source = 0;
-  u8 event_index = 0;
-};
-template <typename T>
-concept EventLike = requires(T t) {
-  { t.base } -> std::same_as<Event &>;
-} || std::derived_from<T, Event>;
 
 inline u64 index_to_bitmask(u8 index) {
   if (index >= 64) [[unlikely]]
     throw std::out_of_range("Index must be less than 64");
   return 1ULL << index;
 }
-
-static_assert(std::is_standard_layout_v<Event>);
-struct MemoryRequest {
-  Event base;
-  enum class Kind {
-    Read,
-    Write,
-    Clear,
-  } type;
-
-  u32 address; // initiator-side address which read is requested for
-  u32 len;     // number of bytes being read; also the size of arena pointer to by buffer
-  u8 *buffer;  // A pointer to some stable bytes to read/write.
-};
-
-// No-op event. Can be used to synthesize a delay
-struct SequenceEvent {
-  Event base;
-};
-// You received a clock. Congrats.
-struct ClockEvent {
-  Event base;
-};
 
 class Pep10CPU;
 class DiscreteEventSimulator {
