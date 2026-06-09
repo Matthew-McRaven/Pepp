@@ -115,6 +115,12 @@ struct DelayAwaitable {
 struct Task {
   std::coroutine_handle<> handle; // store the handle
   struct promise_type {
+    EventLoop &loop;
+    template <typename... Args> promise_type(Args &&...args) : loop(extract_loop(std::forward<Args>(args)...)) {}
+    // Base case — found it
+    EventLoop &extract_loop(EventLoop &loop, auto &&...) { return loop; }
+    // Recursive case — skip this argument, try the rest
+    EventLoop &extract_loop(auto &&, auto &&...rest) { return extract_loop(rest...); }
     Task get_return_object() { return Task{std::coroutine_handle<promise_type>::from_promise(*this)}; }
     std::suspend_always initial_suspend() { return {}; } // start immediately
     std::suspend_never final_suspend() noexcept { return {}; }
@@ -158,7 +164,7 @@ struct Simulator {
     MemoryAwaitable::AddrInfo info{.address = address, .length = sizeof(I)};
     return MemoryAwaitable{.loop = loop, .address = info};
   }
-  [[clang::noinline]] Task execute(int maxi, EventLoop &loop) {
+  [[clang::noinline]] Task schedule(int maxi, EventLoop &loop) {
     while (icount < maxi) {
       // fmt::println("{:04d}[{}] Intsr begin", loop.current_tick, id);
       u8 mn = (u8) co_await read_memory<u8>(pc, loop);
@@ -234,8 +240,8 @@ int main(int argc, char *argv[]) {
     Simulator sim;
     Simulator sim2;
     sim.id = 1, sim2.id = 2;
-    auto hnd1 = sim.execute(maxi / 2, el);
-    auto hnd2 = sim2.execute(maxi / 2, el);
+    auto hnd1 = sim.schedule(maxi / 2, el);
+    auto hnd2 = sim2.schedule(maxi / 2, el);
     //  Kick off both at t=0
     el.push_pending(EventLoop::Event{.type = EventLoop::EventType::Delay, .ready_at = 0, .handle = hnd1.handle});
     el.push_pending(EventLoop::Event{.type = EventLoop::EventType::Delay, .ready_at = 0, .handle = hnd2.handle});
