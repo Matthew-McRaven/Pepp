@@ -40,10 +40,6 @@ void EventLoop::schedule(u8 index, u64 delay) {
     throw std::runtime_error("Event index is already scheduled");
   //  Create a new scheduled event in-place at the tail end of the scheduled queue.
   new (&_event_queue[_queue_size++]) ScheduledEvent{.tick = tick, .event_index = index};
-  // In the unlikely event where the new event is scheduled to execute before the previously earliest event, swap it
-  // to the front. This maintains the top-1 sorting invariant for the scheduled portion.
-  if (_queue_size > 1 && _event_queue[_queue_size - 1].tick < _event_queue[0].tick) [[unlikely]]
-    std::swap(_event_queue[0], _event_queue[_queue_size - 1]);
 }
 
 void EventLoop::schedule_over(u8 dependee, u8 dependent, std::coroutine_handle<> resume, u64 delay) {
@@ -67,10 +63,7 @@ void EventLoop::schedule_over(u8 dependee, u8 dependent, std::coroutine_handle<>
   // The dependent is currently scheduled! Rather than pause that event and schedule a new one, just steal its spot
   if (idx != _queue_size) _event_queue[idx] = ScheduledEvent{.tick = _current_tick + delay, .event_index = dependee};
   // Event is not scheduled (already paused?), so we need to allocate a new spot.
-  else new (&_event_queue[_queue_size++]) ScheduledEvent{.tick = _current_tick + delay, .event_index = dependee};
-  // While I might be able to optimize the placement algorithm to avoid resort, this is a sane default for now until
-  // profiling proves otherwise.
-  if (_queue_size > 1) resort_queue();
+  else new (&_event_queue[idx = _queue_size++]) ScheduledEvent{.tick = _current_tick + delay, .event_index = dependee};
 }
 
 bool EventLoop::scheduled(u8 index) const {

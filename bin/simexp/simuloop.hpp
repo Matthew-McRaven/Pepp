@@ -139,6 +139,7 @@ template <typename StopCondition> EventLoop::Status EventLoop::run(StopCondition
     /*
      * 1. Determine which event should be processed next and advance _current_tick.
      */
+    resort_queue();
     const auto scheduled_idx = _event_queue[0].event_index;
     _current_tick = _event_queue[0].tick, _counters.executed++;
     // If there are item left in the queue, maintain top-1 sorting requirement
@@ -171,7 +172,6 @@ template <typename StopCondition> EventLoop::Status EventLoop::run(StopCondition
         free_event(scheduled_idx);
       }
     }
-    if (_queue_size > 1) resort_queue();
   }
   return {};
 }
