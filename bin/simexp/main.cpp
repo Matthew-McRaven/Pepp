@@ -1,19 +1,10 @@
 
-#include <algorithm>
 #include <cstdio>
-#include <exception>
-#include <ios>
-#include <random>
-#include <span>
-#include <variant>
-#include <vector>
-
+#include <string>
 #include "./simuloop.hpp"
 #include "core/ds/hash/djb.hpp"
 #include "core/integers.h"
 #include "fmt/base.h"
-
-#include <coroutine>
 
 struct SimulatorFast {
   i16 regs[8];
