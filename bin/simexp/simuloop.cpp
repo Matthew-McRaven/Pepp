@@ -1,5 +1,6 @@
 #include "simuloop.hpp"
 #include <algorithm>
+#include <fmt/format.h>
 #include "./pep10isa.hpp"
 #include "core/ds/hash/djb.hpp"
 
@@ -38,6 +39,8 @@ bool DiscreteEventSimulator::skip(u64 ticks) {
   }
   return false;
 }
+
+u64 DiscreteEventSimulator::current_tick() const noexcept { return _current_tick; }
 
 void DiscreteEventSimulator::schedule(u8 index, u64 delay) {
   auto tick = current_tick() + delay;

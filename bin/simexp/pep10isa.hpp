@@ -1,6 +1,7 @@
 #pragma once
 
 #include <coroutine>
+#include <exception>
 #include "./events.hpp"
 #include "./simuloop.hpp"
 

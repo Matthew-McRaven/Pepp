@@ -1,16 +1,11 @@
 #pragma once
 #include <bit>
-#include <concepts>
 #include <coroutine>
-#include <exception>
 #include <functional>
-#include <memory>
-#include <variant>
 #include "./events.hpp"
 #include "core/ds/hash/djb.hpp"
 #include "core/ds/u64_bitset.hpp"
 #include "core/integers.h"
-#include "fmt/base.h"
 
 inline u64 index_to_bitmask(u8 index) {
   if (index >= 64) [[unlikely]]
@@ -48,7 +43,7 @@ public:
   // simple lambda.
   template <typename StopCondition> [[clang::noinline]] Status run(StopCondition &&stop);
 
-  u64 current_tick() const noexcept { return _current_tick; }
+  u64 current_tick() const noexcept;
 
   // Take the index of an already-allocated event slot, and schedule it to run after the given delay in ticks.
   void schedule(u8 index, u64 delay = 0);
@@ -60,36 +55,7 @@ public:
   void mark_depends(u8 dependent, EventMask dependees);
   void pause(u8 dependent, EventMask dependees, std::coroutine_handle<> resume);
 
-  template <typename DerivedEvent, typename... Args> DerivedEvent *make_event(Args... args) {
-    // The type you are allocating should be an event
-    static_assert(EventLike<DerivedEvent>);
-    // That event should be one of the supported types in our event slot.
-    static_assert(EventSlot::contains<DerivedEvent>);
-    // Blindly copying the event data as bytes should just work, which requires standard layout.
-    static_assert(std::is_standard_layout_v<DerivedEvent>);
-    // We won't call your subclass's destructor, so notify users at compile time if they try to create such an event
-    static_assert(std::is_trivially_destructible_v<DerivedEvent>);
-
-    // Our event slots should be properly sized and aligned for your event type.
-    static_assert(sizeof(DerivedEvent) <= sizeof(_event_slots[0]));
-    static_assert(alignof(DerivedEvent) <= alignof(EventSlot));
-
-    // Minimize the amount of work in the critical section. Allocate the slot index before entering that critical
-    // section.
-    size_t slot_index;
-    if (_event_slots_used.count() == MAX_EVENTS) throw std::runtime_error("No free event slots available");
-    _event_slots_used.enable_bit(slot_index = _event_slots_used.countr_one());
-
-    EventSlot &slot = _event_slots[slot_index];
-    // Avoiding UB by using placement new. construct_as technically has UB, but it's supposed to be "fine".
-    // c++23 brings start_lifetime_as, which is the correct tool but not yet available on all platforms.
-    auto ret = std::launder(new (slot.data) DerivedEvent{std::forward<Args>(args)...});
-    ret->base.event_index = slot_index;
-    _coro_slots[slot_index] = nullptr;
-    // fmt::println("{:04x} Allocated event {}", current_tick(), slot_index);
-    posted++;
-    return ret;
-  }
+  template <typename DerivedEvent, typename... Args> DerivedEvent *make_event(Args... args);
   void dump_state() const;
 
 private:
@@ -144,6 +110,37 @@ private:
   std::array<ScheduledEvent, MAX_EVENTS> _event_queue;
   u16 _queue_size = 0;
 };
+
+template <typename DerivedEvent, typename... Args> DerivedEvent *DiscreteEventSimulator::make_event(Args... args) {
+  // The type you are allocating should be an event
+  static_assert(EventLike<DerivedEvent>);
+  // That event should be one of the supported types in our event slot.
+  static_assert(EventSlot::contains<DerivedEvent>);
+  // Blindly copying the event data as bytes should just work, which requires standard layout.
+  static_assert(std::is_standard_layout_v<DerivedEvent>);
+  // We won't call your subclass's destructor, so notify users at compile time if they try to create such an event
+  static_assert(std::is_trivially_destructible_v<DerivedEvent>);
+
+  // Our event slots should be properly sized and aligned for your event type.
+  static_assert(sizeof(DerivedEvent) <= sizeof(_event_slots[0]));
+  static_assert(alignof(DerivedEvent) <= alignof(EventSlot));
+
+  // Minimize the amount of work in the critical section. Allocate the slot index before entering that critical
+  // section.
+  size_t slot_index;
+  if (_event_slots_used.count() == MAX_EVENTS) throw std::runtime_error("No free event slots available");
+  _event_slots_used.enable_bit(slot_index = _event_slots_used.countr_one());
+
+  EventSlot &slot = _event_slots[slot_index];
+  // Avoiding UB by using placement new. construct_as technically has UB, but it's supposed to be "fine".
+  // c++23 brings start_lifetime_as, which is the correct tool but not yet available on all platforms.
+  auto ret = std::launder(new (slot.data) DerivedEvent{std::forward<Args>(args)...});
+  ret->base.event_index = slot_index;
+  _coro_slots[slot_index] = nullptr;
+  // fmt::println("{:04x} Allocated event {}", current_tick(), slot_index);
+  posted++;
+  return ret;
+}
 
 template <typename StopCondition> DiscreteEventSimulator::Status DiscreteEventSimulator::run(StopCondition &&stop) {
   while (!stop() && _queue_size > 0) {
