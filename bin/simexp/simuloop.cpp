@@ -17,9 +17,9 @@ void EventLoop::register_device(u8 source, EventHandler *handler) {
 }
 
 u16 combine(u8 source, Event::Type type) {
-  const u16 ret = static_cast<u16>(source) * event_type_count() + static_cast<u8>(type);
-  return ret;
+  return static_cast<u16>(source) * event_type_count() + static_cast<u8>(type);
 }
+
 void EventLoop::register_handler(u8 source, Event::Type ev, u8 handler) {
   const auto size = source + 1;
   if (handlers.size() < size * event_type_count()) handlers.resize(size * event_type_count(), 0);
@@ -71,7 +71,7 @@ void EventLoop::schedule_over(u8 dependee, u8 dependent, u64 delay) {
   // The dependent is currently scheduled! Rather than pause that event and schedule a new one, just steal its spot
   if (idx != _queue_size) _event_queue[idx] = ScheduledEvent{.tick = _current_tick + delay, .event_index = dependee};
   // Event is not scheduled (already paused?), so we need to allocate a new spot.
-  else new (&_event_queue[idx = _queue_size++]) ScheduledEvent{.tick = _current_tick + delay, .event_index = dependee};
+  else new (&_event_queue[_queue_size++]) ScheduledEvent{.tick = _current_tick + delay, .event_index = dependee};
 }
 
 bool EventLoop::scheduled(u8 index) const { return _scheduled_events.test(index); }
