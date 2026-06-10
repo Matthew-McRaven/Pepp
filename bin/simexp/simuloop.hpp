@@ -15,14 +15,27 @@ inline u64 index_to_bitmask(u8 index) {
   return 1ULL << index;
 }
 
-struct EventQueue {};
-
 class Pep10CPU;
 class EventLoop {
   static constexpr size_t MAX_EVENTS = 32;
 
 public:
-  Pep10CPU *cpu = nullptr;
+  struct EventEntry {
+    u8 source;
+    Event::Type type;
+    bool operator==(EventEntry const &other) const = default;
+  };
+  // The handler function for a specific device ID.
+  std::vector<EventHandler *> devices;
+  // A vector sized to event_type_count() * # of devices.
+  // The handle for (device, ev) is at [device*event_type_count() + (u8)ev).
+  // Since 0 is a reserved device ID, we use 0 as a sentinel value to indicate that no handler is registered for a
+  // device/event pair. When handlers gets too large and starts having poor memory performance, switch to
+  // ankerl::unordered_dense::map<EventEntry, u8, EventEntry::Hash>.
+  std::vector<u8> handlers;
+
+  void register_device(u8 source, EventHandler *handler);
+  void register_handler(u8 source, Event::Type ev, u8 handler);
   void handle_event(const Event *ev);
   using EventMask = pepp::FixedBitset<MAX_EVENTS>;
   EventLoop() = default;

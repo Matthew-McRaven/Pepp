@@ -1,7 +1,6 @@
 #include "simuloop.hpp"
 #include <algorithm>
 #include <fmt/format.h>
-#include "./pep10isa.hpp"
 #include "core/ds/hash/djb.hpp"
 
 EventLoop::Status EventLoop::run(u64 max_ticks) {
@@ -12,17 +11,35 @@ EventLoop::Status EventLoop::run(std::function<bool()> pause) {
   return run([this, &pause] { return pause(); });
 }
 
+void EventLoop::register_device(u8 source, EventHandler *handler) {
+  const auto size = source + 1;
+  if (devices.size() < size) devices.resize(size, nullptr);
+  devices[source] = handler;
+}
+
+u16 combine(u8 source, Event::Type type) {
+  const u16 ret = static_cast<u16>(source) * event_type_count() + static_cast<u8>(type);
+  return ret;
+}
+void EventLoop::register_handler(u8 source, Event::Type ev, u8 handler) {
+  const auto size = source + 1;
+  if (handlers.size() < size * event_type_count()) handlers.resize(size * event_type_count(), 0);
+  handlers[combine(source, ev)] = handler;
+}
+
 void EventLoop::handle_event(const Event *ev) {
-  switch (ev->type) {
-  case Event::Type::Invalid: break;
-  case Event::Type::MemoryAccess: {
-    auto mem_ev = reinterpret_cast<const MemoryRequest *>(ev);
-    auto hash = pepp::djb(mem_ev->address);
-    memcpy(mem_ev->buffer, (u8 *)&hash, std::min<u8>(mem_ev->len, sizeof(hash)));
-  } break;
-  case Event::Type::SequenceEvent: break;
-  case Event::Type::Clock: cpu->handle_event(*this, ev);
-  }
+  EventHandler *hnd = nullptr;
+  const auto target = handlers[combine(ev->source, ev->type)];
+  if (target == 0 || (hnd = devices[target]) == nullptr) [[unlikely]] {
+    switch (ev->type) {
+    case Event::Type::MemoryAccess: {
+      auto mem_ev = reinterpret_cast<const MemoryRequest *>(ev);
+      auto hash = pepp::djb(mem_ev->address);
+      memcpy(mem_ev->buffer, (u8 *)&hash, std::min<u8>(mem_ev->len, sizeof(hash)));
+    } break;
+    default: break;
+    }
+  } else hnd->handle_event(ev);
 }
 
 bool EventLoop::skip(u64 ticks) {

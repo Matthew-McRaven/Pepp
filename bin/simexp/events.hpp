@@ -7,15 +7,12 @@
 // Any time you add a new event type, you must also modify the "slot" type in DES.
 struct Event {
   bool recurs = false;
-  enum class Type : u8 {
-    Invalid = 0,
-    MemoryAccess,
-    SequenceEvent,
-    Clock,
-  } type = Type::Invalid;
+  enum class Type : u8 { Invalid = 0, MemoryAccess, SequenceEvent, Clock, MAX } type = Type::Invalid;
   u8 source = 0;
   u8 event_index = 0;
 };
+
+u8 constexpr event_type_count() { return static_cast<u8>(Event::Type::MAX); }
 
 static_assert(std::is_standard_layout_v<Event>);
 
@@ -66,3 +63,8 @@ struct Slot {
   alignas(alignment) std::byte data[padded_size];
 };
 using EventSlot = Slot<Event, MemoryRequest, SequenceEvent, ClockEvent>;
+
+struct EventHandler {
+  virtual ~EventHandler() = default;
+  virtual void handle_event(const Event *ev) = 0;
+};

@@ -55,11 +55,15 @@ int main(int argc, char *argv[]) {
   } else {
     EventLoop s;
     Pep10CPU sim;
-    s.cpu = &sim;
+    sim.loop = &s;
+    sim.id = 1;
+    s.register_device(sim.id, &sim);
+    s.register_handler(sim.id, Event::Type::Clock, sim.id);
     i64 *ptr = &sim.icount;
     auto ev = s.make_event<ClockEvent>();
     ev->base.type = Event::Type::Clock;
     ev->base.recurs = true;
+    ev->base.source = sim.id;
     s.schedule(ev->base.event_index, 0);
     s.run([ptr, maxi]() { return *ptr >= maxi; });
     ic = sim.icount, cc = s.current_tick(), wc = sim.wcount;

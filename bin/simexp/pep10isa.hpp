@@ -5,13 +5,13 @@
 #include "./events.hpp"
 #include "./simuloop.hpp"
 
-struct Pep10CPU {
+struct Pep10CPU : public EventHandler {
   i16 regs[8];
   bool nzvc[4];
   u16 pc = 0;
   int id = 0;
   i64 icount = 0, wcount = 0;
-
+  EventLoop *loop = nullptr; // set by EventLoop when added as a device
   struct Resumable {
     // Just an alias to the coro handle already in _coro, but it makes this promise easier to use.
     std::coroutine_handle<> handle = nullptr;
@@ -48,5 +48,5 @@ struct Pep10CPU {
   DelayAwaiter delay(EventLoop &s, u64 ticks, u64 idx) { return DelayAwaiter(s, idx, id, ticks); }
   Resumable instruction_execute_coro(EventLoop &s);
   void post(const Event *ev);
-  void handle_event(EventLoop &s, const Event *ev);
+  void handle_event(const Event *ev);
 };
