@@ -10,10 +10,11 @@ EventLoop::Status EventLoop::run(std::function<bool()> pause) {
   return run([this, &pause] { return pause(); });
 }
 
-void EventLoop::register_device(u8 source, EventHandler *handler) {
-  const auto size = source + 1;
+void EventLoop::register_device(EventHandler *handler) {
+  const auto id = handler->id();
+  const auto size = id + 1;
   if (devices.size() < size) devices.resize(size, nullptr);
-  devices[source] = handler;
+  devices[id] = handler;
 }
 
 u16 combine(u8 source, Event::Type type) {

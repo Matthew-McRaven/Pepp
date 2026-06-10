@@ -34,7 +34,7 @@ public:
   // ankerl::unordered_dense::map<EventEntry, u8, EventEntry::Hash>.
   std::vector<u8> handlers;
 
-  void register_device(u8 source, EventHandler *handler);
+  void register_device(EventHandler *handler);
   void register_handler(u8 source, Event::Type ev, u8 handler);
   void handle_event(const Event *ev);
   using EventMask = pepp::FixedBitset<MAX_EVENTS>;

@@ -67,4 +67,18 @@ using EventSlot = Slot<Event, MemoryRequest, SequenceEvent, ClockEvent>;
 struct EventHandler {
   virtual ~EventHandler() = default;
   virtual void handle_event(const Event *ev) = 0;
+  virtual u8 id() const = 0;
+};
+
+template <typename Target, typename Derived> struct EventFilter : public EventHandler {
+  virtual ~EventFilter() = default;
+
+  EventFilter(Target *target) : _target(target) {}
+
+  void handle_event(const Event *ev) override {
+    if (static_cast<Derived *>(this)->filter(ev)) _target->handle_event(ev);
+  }
+
+private:
+  Target *_target;
 };

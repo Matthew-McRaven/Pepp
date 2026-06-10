@@ -6,20 +6,33 @@
 #include "./simuloop.hpp"
 
 struct DRAM : public EventHandler {
-  int id = 0;
-  void handle_event(const Event *ev) {
+  int _id = 0;
+  void handle_event(const Event *ev) override {
     if (ev->type == Event::Type::MemoryAccess) {
       auto mem_ev = reinterpret_cast<const MemoryRequest *>(ev);
       auto hash = pepp::djb(mem_ev->address);
       memcpy(mem_ev->buffer, (u8 *)&hash, std::min<u8>(mem_ev->len, sizeof(hash)));
     }
   }
+  u8 id() const override { return _id; }
 };
+
+template <typename Target> struct AccessSnooper : public EventFilter<Target, AccessSnooper<Target>> {
+  int _id = 0;
+  u64 access_count = 0;
+  AccessSnooper(Target *target) : EventFilter<Target, AccessSnooper<Target>>(target) {}
+  u8 id() const override { return _id; }
+  bool filter(const Event *ev) {
+    if (ev->type == Event::Type::MemoryAccess) access_count++;
+    return true;
+  }
+};
+
 struct Pep10CPU : public EventHandler {
   i16 regs[8];
   bool nzvc[4];
   u16 pc = 0;
-  int id = 0;
+  int _id = 0;
   i64 icount = 0, wcount = 0;
   EventLoop *loop = nullptr; // set by EventLoop when added as a device
   struct Resumable {
@@ -53,10 +66,11 @@ struct Pep10CPU : public EventHandler {
   } _coro{};
 
   template <typename T> MemoryAwaiter<T> read(EventLoop &s, u16 addr, u8 idx) {
-    return MemoryAwaiter<T>::read(s, idx, id, addr, 1);
+    return MemoryAwaiter<T>::read(s, idx, _id, addr, 1);
   }
-  DelayAwaiter delay(EventLoop &s, u64 ticks, u64 idx) { return DelayAwaiter(s, idx, id, ticks); }
+  DelayAwaiter delay(EventLoop &s, u64 ticks, u64 idx) { return DelayAwaiter(s, idx, _id, ticks); }
   Resumable instruction_execute_coro(EventLoop &s);
   void post(const Event *ev);
-  void handle_event(const Event *ev);
+  void handle_event(const Event *ev) override;
+  u8 id() const override { return _id; }
 };

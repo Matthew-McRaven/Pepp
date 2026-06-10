@@ -56,23 +56,28 @@ int main(int argc, char *argv[]) {
     EventLoop s;
     Pep10CPU sim;
     sim.loop = &s;
-    sim.id = 1;
+    sim._id = 1;
     DRAM dram;
-    dram.id = 2;
-    s.register_device(sim.id, &sim);
-    s.register_device(dram.id, &dram);
-    s.register_handler(sim.id, Event::Type::Clock, sim.id);
-    s.register_handler(sim.id, Event::Type::MemoryAccess, dram.id);
+    dram._id = 2;
+    // AccessSnooper<DRAM> snooper(&dram);
+    AccessSnooper<EventHandler> snooper(&dram);
+    snooper._id = 3;
+    s.register_device(&sim);
+    s.register_device(&dram);
+    s.register_device(&snooper);
+    s.register_handler(sim.id(), Event::Type::Clock, sim.id());
+    s.register_handler(sim.id(), Event::Type::MemoryAccess, snooper.id());
     i64 *ptr = &sim.icount;
     auto ev = s.make_event<ClockEvent>();
     ev->base.type = Event::Type::Clock;
     ev->base.recurs = true;
-    ev->base.source = sim.id;
+    ev->base.source = sim.id();
     s.schedule(ev->base.event_index, 0);
     s.run([ptr, maxi]() { return *ptr >= maxi; });
     ic = sim.icount, cc = s.current_tick(), wc = sim.wcount;
     fmt::println("Executed {}, allocated {} and freed {} events", s._counters.executed, s._counters.allocated,
                  s._counters.freed);
+    fmt::println("Access memory {} times", snooper.access_count);
   }
 
   std::printf("Simulation finished after %lld instructions and %llu cycles\n", ic, cc);
