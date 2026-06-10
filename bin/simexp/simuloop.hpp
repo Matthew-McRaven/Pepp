@@ -45,16 +45,16 @@ private:
 public:
   u64 current_tick() const noexcept;
   // Take the index of an allocated event and schedule it to run after a given tick delay.
-  void schedule(u8 index, u64 delay = 0, std::coroutine_handle<> resume = nullptr);
+  void schedule(u8 index, u64 delay = 0);
   // Returns true if the event index is currently scheduled for execution.
   bool scheduled(u8 index) const;
   // Remove dependent event from the schedule until all events in dependees have executed, at which point dependent is
   // re-scheduled for execution. If resume is not a nullptr, that coroutine will be executed rather the the original
   // event handler.
-  void pause(u8 dependent, EventMask dependees, std::coroutine_handle<> resume);
+  void pause(u8 dependent, EventMask dependees);
   // Mark dependent as paused on dependee, and schedule dependee for execution with a delay.
   // More efficient than a pause() followed by a schedule()
-  void schedule_over(u8 dependee, u8 dependent, std::coroutine_handle<> resume, u64 delay);
+  void schedule_over(u8 dependee, u8 dependent, u64 delay);
 
   struct Counters {
     u64 allocated = 0; // Call count for make_event
@@ -81,7 +81,7 @@ private:
   u8 paused_events() const { return _event_slots_used.count() - _queue_size; }
   EventMask _event_slots_used;
   alignas(alignof(EventSlot)) std::array<EventSlot, MAX_EVENTS> _event_slots;
-  std::array<std::coroutine_handle<>, MAX_EVENTS> _coro_slots{nullptr};
+  EventMask _scheduled_events = {0};
   // Ensure no padding is added to event slot,
   static_assert(sizeof(_event_slots) == MAX_EVENTS * sizeof(EventSlot));
   /*
@@ -130,7 +130,6 @@ template <EventLike DerivedEvent, typename... Args> DerivedEvent *EventLoop::mak
   // c++23 brings start_lifetime_as, which is the correct tool but not yet available on all platforms.
   auto ret = std::launder(new (slot.data) DerivedEvent{std::forward<Args>(args)...});
   ret->base.event_index = slot_index;
-  _coro_slots[slot_index] = nullptr;
   _counters.allocated++;
   return ret;
 }
@@ -150,18 +149,14 @@ template <typename StopCondition> EventLoop::Status EventLoop::run(StopCondition
     /*
      * 2. Execute or resume that event.
      */
-    // Prefer to use the coroutine associated with an event if it exists
-    if (auto coro = _coro_slots[scheduled_idx]; coro) std::exchange(_coro_slots[scheduled_idx], nullptr).resume();
-    else {
-      // TODO: find the associated handler for that event and call handle_event
-      handle_event(ev);
-    }
+    _scheduled_events.clear_bit(scheduled_idx);
+    handle_event(ev);
 
     /*
      * 3. Check if the event executed to completion. If so, unmark dependencies and free the slot.
      */
     //  This event executed to completion. Unmark any events which depend on it,
-    if (!_coro_slots[scheduled_idx]) {
+    if (!_scheduled_events[scheduled_idx]) {
       for (u64 bits = _event_dependents[scheduled_idx](); bits;) {
         u8 paused_idx = std::countr_zero(bits);
         bits &= bits - 1;
@@ -208,7 +203,7 @@ template <typename T> struct MemoryAwaiter {
     dependee->len = sizeof(T);
     dependee->type = type;
     dependee->buffer = reinterpret_cast<u8 *>(&this->result);
-    sim.schedule_over(dependee->base.event_index, dependent, handle, delay);
+    sim.schedule_over(dependee->base.event_index, dependent, delay);
   }
   T await_resume() { return result; }
 };
@@ -224,7 +219,7 @@ struct DelayAwaiter {
     auto dependee = this->sim.make_event<SequenceEvent>();
     dependee->base.type = Event::Type::SequenceEvent;
     dependee->base.source = src_id;
-    sim.schedule_over(dependee->base.event_index, dependent, handle, delay);
+    sim.schedule_over(dependee->base.event_index, dependent, delay);
   }
   void await_resume() {}
 };

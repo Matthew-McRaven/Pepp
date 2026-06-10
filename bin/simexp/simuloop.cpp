@@ -32,31 +32,30 @@ bool EventLoop::skip(u64 ticks) {
 
 u64 EventLoop::current_tick() const noexcept { return _current_tick; }
 
-void EventLoop::schedule(u8 index, u64 delay, std::coroutine_handle<> resume) {
+void EventLoop::schedule(u8 index, u64 delay) {
   auto tick = current_tick() + delay;
-  if (_coro_slots[index]) [[unlikely]]
+  if (_scheduled_events[index]) [[unlikely]]
     throw std::runtime_error("Event index is already scheduled");
   //  Create a new scheduled event in-place at the tail end of the scheduled queue.
   new (&_event_queue[_queue_size++]) ScheduledEvent{.tick = tick, .event_index = index};
-  _coro_slots[index] = resume;
+  _scheduled_events.enable_bit(index);
 }
 
-void EventLoop::schedule_over(u8 dependee, u8 dependent, std::coroutine_handle<> resume, u64 delay) {
-  if (_coro_slots[dependee]) [[unlikely]]
+void EventLoop::schedule_over(u8 dependee, u8 dependent, u64 delay) {
+  if (_scheduled_events[dependee]) [[unlikely]]
     throw std::runtime_error("Dependee already scheduled");
 
   // Mark dependent as waiting on dependee
   _event_dependencies[dependent] |= index_to_bitmask(dependee);
-  _coro_slots[dependent] = resume;
+  _scheduled_events[dependent] = false;
   // Mark dependee as blocking dependent.
   _event_dependents[dependee] |= index_to_bitmask(dependent);
+  _scheduled_events.enable_bit(dependee);
 
   // Check if the event is currently scheduled for execution.
   u16 idx = 0;
   for (; idx < _queue_size; idx++) {
-    if (_event_queue[idx].event_index == dependent) {
-      break;
-    }
+    if (_event_queue[idx].event_index == dependent) break;
   }
 
   // The dependent is currently scheduled! Rather than pause that event and schedule a new one, just steal its spot
@@ -65,20 +64,14 @@ void EventLoop::schedule_over(u8 dependee, u8 dependent, std::coroutine_handle<>
   else new (&_event_queue[idx = _queue_size++]) ScheduledEvent{.tick = _current_tick + delay, .event_index = dependee};
 }
 
-bool EventLoop::scheduled(u8 index) const {
-  for (u16 idx = 0; idx < _queue_size; idx++) {
-    if (_event_queue[idx].event_index == index) return true;
-  }
-  return false;
-}
+bool EventLoop::scheduled(u8 index) const { return _scheduled_events.test(index); }
 
-void EventLoop::pause(u8 dependent, EventMask dependees, std::coroutine_handle<> resume) {
+void EventLoop::pause(u8 dependent, EventMask dependees) {
   if (dependent >= MAX_EVENTS) [[unlikely]]
     throw std::out_of_range("Dependent index must be less than MAX_EVENTS");
   else if (dependees.test(dependent)) [[unlikely]] throw std::runtime_error("Event cannot depend on itself");
-  else if (resume == nullptr) [[unlikely]] throw std::invalid_argument("Resume handle cannot be null");
 
-  _coro_slots[dependent] = resume;
+  _scheduled_events[dependent] = true;
 
   // Compute reverse dependencies to speed up hot code in event loop.
   _event_dependencies[dependent] |= dependees;
@@ -125,7 +118,7 @@ void EventLoop::dump_state() const {
     const auto &scheduled = _event_queue[it];
     used_slots.clear_bit(scheduled.event_index);
     fmt::println("       {:02x}: tick={}, resume={}", scheduled.event_index, scheduled.tick,
-                 _coro_slots[scheduled.event_index] ? "yes" : "no");
+                 _scheduled_events[scheduled.event_index] ? "no" : "yes");
   }
   fmt::println("     Paused Event");
   for (; used_slots.any();) {
@@ -153,7 +146,7 @@ void EventLoop::free_event(u8 idx) {
   std::destroy_at((Event *)_event_slots[idx].data);
 
   _counters.freed++;
-  _coro_slots[idx] = nullptr;
+  _scheduled_events.clear_bit(idx);
   _event_dependencies[idx].clear(), _event_dependents[idx].clear();
   _event_slots_used.clear_bit(idx);
 }
