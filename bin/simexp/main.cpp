@@ -57,8 +57,12 @@ int main(int argc, char *argv[]) {
     Pep10CPU sim;
     sim.loop = &s;
     sim.id = 1;
+    DRAM dram;
+    dram.id = 2;
     s.register_device(sim.id, &sim);
+    s.register_device(dram.id, &dram);
     s.register_handler(sim.id, Event::Type::Clock, sim.id);
+    s.register_handler(sim.id, Event::Type::MemoryAccess, dram.id);
     i64 *ptr = &sim.icount;
     auto ev = s.make_event<ClockEvent>();
     ev->base.type = Event::Type::Clock;

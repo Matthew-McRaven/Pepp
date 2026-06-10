@@ -5,6 +5,16 @@
 #include "./events.hpp"
 #include "./simuloop.hpp"
 
+struct DRAM : public EventHandler {
+  int id = 0;
+  void handle_event(const Event *ev) {
+    if (ev->type == Event::Type::MemoryAccess) {
+      auto mem_ev = reinterpret_cast<const MemoryRequest *>(ev);
+      auto hash = pepp::djb(mem_ev->address);
+      memcpy(mem_ev->buffer, (u8 *)&hash, std::min<u8>(mem_ev->len, sizeof(hash)));
+    }
+  }
+};
 struct Pep10CPU : public EventHandler {
   i16 regs[8];
   bool nzvc[4];

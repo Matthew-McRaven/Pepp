@@ -1,7 +1,6 @@
 #include "simuloop.hpp"
 #include <algorithm>
 #include <fmt/format.h>
-#include "core/ds/hash/djb.hpp"
 
 EventLoop::Status EventLoop::run(u64 max_ticks) {
   return run([this, max_ticks] { return current_tick() >= max_ticks; });
@@ -31,14 +30,8 @@ void EventLoop::handle_event(const Event *ev) {
   EventHandler *hnd = nullptr;
   const auto target = handlers[combine(ev->source, ev->type)];
   if (target == 0 || (hnd = devices[target]) == nullptr) [[unlikely]] {
-    switch (ev->type) {
-    case Event::Type::MemoryAccess: {
-      auto mem_ev = reinterpret_cast<const MemoryRequest *>(ev);
-      auto hash = pepp::djb(mem_ev->address);
-      memcpy(mem_ev->buffer, (u8 *)&hash, std::min<u8>(mem_ev->len, sizeof(hash)));
-    } break;
-    default: break;
-    }
+    throw std::runtime_error(
+        fmt::format("No handler registered for event type {} from source {}", static_cast<u8>(ev->type), ev->source));
   } else hnd->handle_event(ev);
 }
 
