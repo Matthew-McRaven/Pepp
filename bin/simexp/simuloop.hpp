@@ -1,7 +1,9 @@
 #pragma once
+#include <array>
 #include <bit>
 #include <coroutine>
 #include <functional>
+#include <utility>
 #include "./events.hpp"
 #include "core/ds/hash/djb.hpp"
 #include "core/ds/u64_bitset.hpp"
