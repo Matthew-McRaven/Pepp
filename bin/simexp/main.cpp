@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
     i64 *ptr = &sim.icount;
     auto ev = s.make_event<ClockEvent>();
     ev->base.type = Event::Type::Clock;
+    ev->base.recurs = true;
     s.schedule(ev->base.event_index, 0);
     s.run([ptr, maxi]() { return *ptr >= maxi; });
     ic = sim.icount, cc = s.current_tick(), wc = sim.wcount;

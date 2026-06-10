@@ -6,6 +6,7 @@
 #include "core/integers.h"
 // Any time you add a new event type, you must also modify the "slot" type in DES.
 struct Event {
+  bool recurs = false;
   enum class Type : u8 {
     Invalid = 0,
     MemoryAccess,

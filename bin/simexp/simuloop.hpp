@@ -45,7 +45,7 @@ private:
 public:
   u64 current_tick() const noexcept;
   // Take the index of an allocated event and schedule it to run after a given tick delay.
-  void schedule(u8 index, u64 delay = 0);
+  void schedule(u8 index, u64 delay = 0, std::coroutine_handle<> resume = nullptr);
   // Returns true if the event index is currently scheduled for execution.
   bool scheduled(u8 index) const;
   // Remove dependent event from the schedule until all events in dependees have executed, at which point dependent is
@@ -78,6 +78,7 @@ public:
   void dump_state() const;
 
 private:
+  u8 paused_events() const { return _event_slots_used.count() - _queue_size; }
   EventMask _event_slots_used;
   alignas(alignof(EventSlot)) std::array<EventSlot, MAX_EVENTS> _event_slots;
   std::array<std::coroutine_handle<>, MAX_EVENTS> _coro_slots{nullptr};
@@ -137,7 +138,6 @@ template <EventLike DerivedEvent, typename... Args> DerivedEvent *EventLoop::mak
 template <typename StopCondition> EventLoop::Status EventLoop::run(StopCondition &&stop) {
   while (!stop() && _queue_size > 0) {
     // dump_state();
-    //  fmt::println("{:04x} Starting evloop", current_tick());
     /*
      * 1. Determine which event should be processed next and advance _current_tick.
      */
@@ -146,14 +146,13 @@ template <typename StopCondition> EventLoop::Status EventLoop::run(StopCondition
     _current_tick = _event_queue[0].tick, _counters.executed++;
     // If there are item left in the queue, maintain top-1 sorting requirement
     if (_queue_size-- > 1) _event_queue[0] = _event_queue[_queue_size];
-
+    const Event *ev = reinterpret_cast<const Event *>(_event_slots[scheduled_idx].data);
     /*
      * 2. Execute or resume that event.
      */
     // Prefer to use the coroutine associated with an event if it exists
     if (auto coro = _coro_slots[scheduled_idx]; coro) std::exchange(_coro_slots[scheduled_idx], nullptr).resume();
     else {
-      const Event *ev = reinterpret_cast<const Event *>(_event_slots[scheduled_idx].data);
       // TODO: find the associated handler for that event and call handle_event
       handle_event(ev);
     }
@@ -170,9 +169,8 @@ template <typename StopCondition> EventLoop::Status EventLoop::run(StopCondition
         if (_event_dependencies[paused_idx].none()) {
           new (&_event_queue[_queue_size++]) ScheduledEvent(_current_tick, paused_idx);
         }
-        // TODO: definitely a bug that this is done in the loop, but the simulator stops working when I hoist it out.
-        free_event(scheduled_idx);
       }
+      if (!ev->recurs) free_event(scheduled_idx);
     }
   }
   return {};

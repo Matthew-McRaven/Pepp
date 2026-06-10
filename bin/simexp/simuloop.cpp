@@ -26,20 +26,19 @@ void EventLoop::handle_event(const Event *ev) {
 }
 
 bool EventLoop::skip(u64 ticks) {
-  if (_queue_size == 0) {
-    return _current_tick += ticks, true;
-  }
+  if (_queue_size == 0) return _current_tick += ticks, true;
   return false;
 }
 
 u64 EventLoop::current_tick() const noexcept { return _current_tick; }
 
-void EventLoop::schedule(u8 index, u64 delay) {
+void EventLoop::schedule(u8 index, u64 delay, std::coroutine_handle<> resume) {
   auto tick = current_tick() + delay;
   if (_coro_slots[index]) [[unlikely]]
     throw std::runtime_error("Event index is already scheduled");
   //  Create a new scheduled event in-place at the tail end of the scheduled queue.
   new (&_event_queue[_queue_size++]) ScheduledEvent{.tick = tick, .event_index = index};
+  _coro_slots[index] = resume;
 }
 
 void EventLoop::schedule_over(u8 dependee, u8 dependent, std::coroutine_handle<> resume, u64 delay) {
@@ -67,8 +66,10 @@ void EventLoop::schedule_over(u8 dependee, u8 dependent, std::coroutine_handle<>
 }
 
 bool EventLoop::scheduled(u8 index) const {
-  // std::lock_guard lock(_event_slots_mutex);
-  return _coro_slots[index] == nullptr;
+  for (u16 idx = 0; idx < _queue_size; idx++) {
+    if (_event_queue[idx].event_index == index) return true;
+  }
+  return false;
 }
 
 void EventLoop::pause(u8 dependent, EventMask dependees, std::coroutine_handle<> resume) {
@@ -101,8 +102,8 @@ void EventLoop::pause(u8 dependent, EventMask dependees, std::coroutine_handle<>
 void EventLoop::dump_state() const {
   fmt::println("{:04x} Current simulation state:", _current_tick);
   fmt::println("     Allocated events: {}", _event_slots_used.count());
-  // fmt::println("       paused: {}", MAX_EVENTS - _queue_select.count());
-  // fmt::println("       scheduled: {}", _queue_select.count());
+  fmt::println("       paused: {}", paused_events());
+  fmt::println("       scheduled: {}", _queue_size);
   fmt::println("     Event Descriptors");
   for (int it = 0; it < MAX_EVENTS; it++) {
     if (_event_slots_used.test(it)) {
@@ -118,40 +119,44 @@ void EventLoop::dump_state() const {
       }
     }
   }
-  fmt::println("     Scheduled Events ({})", _queue_size);
+  auto used_slots = _event_slots_used;
+  fmt::println("     Scheduled Events");
   for (int it = 0; it < _queue_size; it++) {
     const auto &scheduled = _event_queue[it];
+    used_slots.clear_bit(scheduled.event_index);
     fmt::println("       {:02x}: tick={}, resume={}", scheduled.event_index, scheduled.tick,
                  _coro_slots[scheduled.event_index] ? "yes" : "no");
   }
-  /*fmt::println("     Paused Events ({})", _paused.count());
-  for (int it = _paused_top; it < MAX_EVENTS; it++) {
-    const auto &paused = _event_queue[it];
-    const auto depset = _event_dependencies[paused.event_index];
-    fmt::println("       {:02x}: dependencies={:x}", paused.event_index, (u64)depset());
-  }*/
+  fmt::println("     Paused Event");
+  for (; used_slots.any();) {
+    const auto paused_idx = used_slots.countr_one() - 1;
+    used_slots.clear_bit(paused_idx);
+
+    const auto depset = _event_dependencies[paused_idx];
+    fmt::println("       {:02x}: dependencies={:x}", paused_idx, (u64)depset());
+  }
 }
 
 void EventLoop::free_event(Event *ev) {
   // Ensure that the event actually belongs to us.
   if (const void *address = ev; address == nullptr) [[unlikely]]
     return;
-  else if (address < _event_slots[0].data || address >= _event_slots[MAX_EVENTS - 1].data + sizeof(EventSlot))
-      [[unlikely]]
-    throw std::runtime_error("Invalid event pointer");
-  // Do not destroy until after we have computed its slot.
   size_t slot_index = (reinterpret_cast<std::byte *>(ev) - _event_slots[0].data) / sizeof(EventSlot);
-  std::destroy_at(ev);
-
-  _counters.freed++;
-  _coro_slots[slot_index] = nullptr;
-  _event_dependencies[slot_index].clear(), _event_dependents[slot_index].clear();
-  _event_slots_used.clear_bit(slot_index);
-  if (_event_dependencies[slot_index].any()) [[unlikely]]
-    throw std::runtime_error("Event still has dependents when freed");
+  free_event(slot_index);
 }
 
-void EventLoop::free_event(u8 idx) { free_event(reinterpret_cast<Event *>(_event_slots[idx].data)); }
+void EventLoop::free_event(u8 idx) {
+  if (idx >= MAX_EVENTS) [[unlikely]]
+    throw std::runtime_error("Index too high");
+  else if (!_event_slots_used.test(idx)) [[unlikely]] throw std::runtime_error("Event slot is not currently allocated");
+  else if (_event_dependencies[idx].any()) [[unlikely]] throw std::runtime_error("Event still has dependencies");
+  std::destroy_at((Event *)_event_slots[idx].data);
+
+  _counters.freed++;
+  _coro_slots[idx] = nullptr;
+  _event_dependencies[idx].clear(), _event_dependents[idx].clear();
+  _event_slots_used.clear_bit(idx);
+}
 
 void EventLoop::resort_queue() {
   if (_queue_size <= 1) return; // No need to sort if we have 0 or 1 events
