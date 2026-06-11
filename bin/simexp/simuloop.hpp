@@ -30,7 +30,7 @@ template <typename T> struct MemoryAwaiter {
   }
 
   void await_suspend(std::coroutine_handle<> handle) {
-    auto dependee = this->sim.allocator.make_event<MemoryRequest>();
+    auto dependee = this->sim.allocator.alloc<MemoryRequest>();
     dependee->base.type = Event::Type::MemoryAccess;
     dependee->base.source = src_id;
     dependee->address = addr;
@@ -50,7 +50,7 @@ struct DelayAwaiter {
       : dependent(dependent), src_id(src_id), delay(delay), sim(s) {}
   bool await_ready() { return this->sim.scheduler.skip(this->delay); }
   void await_suspend(std::coroutine_handle<> handle) {
-    auto dependee = this->sim.allocator.make_event<SequenceEvent>();
+    auto dependee = this->sim.allocator.alloc<SequenceEvent>();
     dependee->base.type = Event::Type::SequenceEvent;
     dependee->base.source = src_id;
     sim.scheduler.schedule_over(dependee->base.event_index, dependent, delay);

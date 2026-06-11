@@ -64,19 +64,19 @@ int main(int argc, char *argv[]) {
     s.dispatcher.register_device(&dram);
     s.dispatcher.register_handler(sim.id(), Event::Type::Clock, sim.id());
     s.dispatcher.register_handler(sim.id(), Event::Type::MemoryAccess, dram.id());
-    auto snooper = s.dispatcher.install_filter<AccessSnooper<DRAM>>({sim.id(), Event::Type::MemoryAccess});
-    snooper->_id = 3;
+    // auto snooper = s.dispatcher.install_filter<AccessSnooper<DRAM>>({sim.id(), Event::Type::MemoryAccess});
+    // snooper->_id = 3;
     i64 *ptr = &sim.icount;
-    auto ev = s.allocator.make_event<ClockEvent>();
+    auto ev = s.allocator.alloc<ClockEvent>();
     ev->base.type = Event::Type::Clock;
     ev->base.recurs = true;
     ev->base.source = sim.id();
     s.scheduler.schedule(ev->base.event_index, 0);
     s.run([ptr, maxi]() { return *ptr >= maxi; });
     ic = sim.icount, cc = s.scheduler.current_tick(), wc = sim.wcount;
-    /*fmt::println("Executed {}, allocated {} and freed {} events", s._counters.executed, s._counters.allocated,
-                 s._counters.freed);*/
-    fmt::println("Access memory {} times", snooper->access_count);
+    fmt::println("Executed {}, allocated {} and freed {} events", s.scheduler.total_executed(),
+                 s.allocator.total_allocated(), s.allocator.total_freed());
+    // fmt::println("Access memory {} times", snooper->access_count);
   }
 
   std::printf("Simulation finished after %lld instructions and %llu cycles\n", ic, cc);

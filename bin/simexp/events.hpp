@@ -4,6 +4,8 @@
 #include <concepts>
 #include <cstddef>
 #include "core/integers.h"
+
+static constexpr u64 MAX_EVENTS = 64;
 // Any time you add a new event type, you must also modify the "slot" type in DES.
 struct Event {
   bool recurs = false;
