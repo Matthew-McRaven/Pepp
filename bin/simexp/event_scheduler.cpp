@@ -26,10 +26,9 @@ void EventScheduler::schedule_over(u8 dependee, u8 dependent, u64 delay) {
 
   // Mark dependent as waiting on dependee
   _dependencies[dependent] |= index_to_bitmask(dependee);
-  _scheduled[dependent] = false;
   // Mark dependee as blocking dependent.
   _dependents[dependee] |= index_to_bitmask(dependent);
-  _scheduled.enable_bit(dependee);
+  _scheduled.clear_bit(dependent), _scheduled.enable_bit(dependee);
 
   // Check if the event is currently scheduled for execution.
   u16 idx = 0;
