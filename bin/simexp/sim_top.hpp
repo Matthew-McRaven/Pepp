@@ -2,6 +2,7 @@
 #include <map>
 #include <string>
 #include "./event_loop.hpp"
+#include "fmt/format.h"
 
 struct Descriptor {
   using ID = u8;
@@ -46,12 +47,21 @@ public:
   template <typename ConcreteDevice, typename... Args>
   ConcreteDevice *make_device(Device *parent, std::string_view self_name, Args &&...args);
 
-  template <typename ConcreteDevice, typename... Args> void *make_filter(Args &&...args);
+  template <typename ConcreteFilter, typename... Args>
+  ConcreteFilter *make_filter(EventDispatcher::Entry target, Args &&...args);
 
 private:
   EventLoop _loop;
   u8 _next_id = 1;
   IDGenerator _next_id_gen = [this]() { return _next_id++; };
+  // A wrapper device for filters so that they can be querried in the device list and be destroyed correctly.
+  // The actual EventHandler used by the dispatcher will be the stored filter member.
+  // Both the filter member and the wrapper device have the same device ID.
+  template <typename ConcreteFilter> struct FilterWrapper : public Device {
+    FilterWrapper(Descriptor desc, EventDispatcher::Filter<ConcreteFilter> *ptr) : Device(desc), filter(ptr) {}
+    std::unique_ptr<EventDispatcher::Filter<ConcreteFilter>> filter;
+    void handle_event(const Event *ev) override { throw std::logic_error("Should not be called"); }
+  };
 
   std::map<Descriptor::ID, Device *> _id_to_device;
 };
@@ -82,4 +92,14 @@ ConcreteDevice *Simulator::make_device(Device *parent, std::string_view self_nam
 
   _loop.dispatcher.register_device(device);
   return device;
+}
+
+template <typename ConcreteFilter, typename... Args>
+ConcreteFilter *Simulator::make_filter(EventDispatcher::Entry target, Args &&...args) {
+  const auto id = _next_id_gen();
+  auto ret = _loop.dispatcher.install_filter<ConcreteFilter>(id, target, std::forward<Args>(args)...);
+  const auto basename = fmt::format("d{:02x}_t{:02x}", target.source, (u8)target.type);
+  const auto descriptor = Descriptor{.id = _next_id_gen(), .basename = basename, .fullname = "/filters/" + basename};
+  _id_to_device[id] = new FilterWrapper<ConcreteFilter>(descriptor, ret);
+  return ret;
 }

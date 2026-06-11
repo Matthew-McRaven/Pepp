@@ -32,7 +32,7 @@ public:
 
   void handle_event(const Event *ev) const;
   template <typename DerivedFilter, typename... Args>
-  DerivedFilter *install_filter(EventDispatcher::Entry target, Args &&...args);
+  DerivedFilter *install_filter(u8 filter_id, EventDispatcher::Entry target, Args &&...args);
 
 private:
   // The handler function for a specific device ID.
@@ -53,12 +53,12 @@ template <typename Derived> void EventDispatcher::Filter<Derived>::handle_event(
 }
 
 template <typename DerivedFilter, typename... Args>
-inline DerivedFilter *EventDispatcher::install_filter(Entry target, Args &&...args) {
+inline DerivedFilter *EventDispatcher::install_filter(u8 filter_id, Entry target, Args &&...args) {
   static_assert(std::derived_from<DerivedFilter, EventDispatcher::Filter<DerivedFilter>>,
                 "Filter must derive from EventLoop::EventFilter");
   auto handler = this->handler_for(target);
   auto ret = new DerivedFilter(*this, handler, std::forward<Args>(args)...);
-  ret->_id = 3;
+  ret->_id = filter_id;
   register_device(ret);
   register_handler(target.source, target.type, ret->id());
   return ret;

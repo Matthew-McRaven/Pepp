@@ -57,8 +57,7 @@ int main(int argc, char *argv[]) {
     auto dram = s.make_device<DRAM>("dram");
     s.dispatcher().register_handler(cpu->id(), Event::Type::Clock, cpu->id());
     s.dispatcher().register_handler(cpu->id(), Event::Type::MemoryAccess, dram->id());
-    // auto snooper = s.dispatcher.install_filter<AccessSnooper<DRAM>>({sim.id(), Event::Type::MemoryAccess});
-    // snooper->_id = 3;
+    auto snooper = s.make_filter<AccessSnooper<DRAM>>({cpu->id(), Event::Type::MemoryAccess});
     i64 *ptr = &cpu->icount;
     auto ev = s.allocator().alloc<ClockEvent>(cpu->id());
     ev->base.recurs = true;
@@ -67,7 +66,7 @@ int main(int argc, char *argv[]) {
     ic = cpu->icount, cc = s.scheduler().current_tick(), wc = cpu->wcount;
     fmt::println("Executed {}, allocated {} and freed {} events", s.scheduler().total_executed(),
                  s.allocator().total_allocated(), s.allocator().total_freed());
-    // fmt::println("Access memory {} times", snooper->access_count);
+    fmt::println("Access memory {} times", snooper->access_count);
   }
 
   std::printf("Simulation finished after %lld instructions and %llu cycles\n", ic, cc);
