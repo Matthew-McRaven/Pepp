@@ -15,7 +15,7 @@ struct EventScheduler {
   bool skip(u64 ticks);
 
   // Returns true if the event index is currently scheduled for execution.
-  bool scheduled(u8 index) const;
+  bool scheduled(u8 index) const { return _scheduled.test(index); }
   // Take the index of an allocated event and schedule it to run after a given tick delay.
   void schedule(u8 index, u64 delay = 0);
   // Mark dependent as paused on dependee, and schedule dependee for execution with a delay.

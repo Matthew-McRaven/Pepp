@@ -15,9 +15,6 @@ void EventAllocator::free(u8 idx) {
   std::destroy_at((Event *)_slots[idx].data);
 
   _counters.freed++;
-  // TODO: how to communicate to scheduler that event is freed??
-  //_scheduled.clear_bit(idx);
-  //_event_dependencies[idx].clear(), _event_dependents[idx].clear();
   _slots_used.clear_bit(idx);
 }
 

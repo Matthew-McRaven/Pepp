@@ -11,8 +11,6 @@ bool EventScheduler::skip(u64 ticks) {
   return false;
 }
 
-bool EventScheduler::scheduled(u8 index) const { return _scheduled.test(index); }
-
 void EventScheduler::schedule(u8 index, u64 delay) {
   auto tick = current_tick() + delay;
   if (_scheduled[index]) [[unlikely]]
@@ -88,6 +86,7 @@ void EventScheduler::retire(u8 idx) {
     _dependencies[paused_idx].reset(idx);
     if (_dependencies[paused_idx].none()) new (&_queue[_queue_size++]) ScheduledEvent(_current_tick, paused_idx);
   }
+  _dependents[idx].reset(), _dependencies[idx].reset();
 }
 
 void EventScheduler::resort_queue() {

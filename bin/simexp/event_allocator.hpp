@@ -23,6 +23,7 @@ struct EventAllocator {
    */
   // Allocate a new event in the internal buffer but do not schedule that event.
   template <EventLike DerivedEvent, typename... Args> DerivedEvent *alloc(Args... args);
+  // Precondition: event has been `retired()` in the scheduler.
   void free(Event *ev);
   void free(u8 idx);
 
