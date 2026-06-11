@@ -15,27 +15,56 @@ inline u64 index_to_bitmask(u8 index) {
   return 1ULL << index;
 }
 
-class Pep10CPU;
-class EventLoop {
-  static constexpr size_t MAX_EVENTS = 32;
-
+class EventDispatcher {
 public:
-  struct EventEntry {
+  struct Entry {
     u8 source;
     Event::Type type;
-    bool operator==(EventEntry const &other) const = default;
+    bool operator==(Entry const &other) const = default;
   };
+  struct Handler {
+    virtual ~Handler() = default;
+    virtual void handle_event(const Event *ev) = 0;
+    virtual u8 id() const = 0;
+  };
+  template <typename Derived> struct Filter : public EventDispatcher::Handler {
+    virtual ~Filter() = default;
+    Filter(EventDispatcher &loop, u8 previous);
+    void handle_event(const Event *ev) override;
+
+  private:
+    EventDispatcher &_disp;
+    u8 _previous;
+  };
+  void register_device(Handler *handler);
+  u16 hash(u8 source, Event::Type type) const;
+  void register_handler(u8 source, Event::Type ev, u8 handler);
+  u8 handler_for(Entry entry) const;
+  u8 handler_for(u8 source, Event::Type ev) const;
+
+  void handle_event(const Event *ev) const;
+
+private:
   // The handler function for a specific device ID.
-  std::vector<EventHandler *> devices;
+  std::vector<Handler *> _devices;
   // A vector sized to event_type_count() * # of devices.
   // The handle for (device, ev) is at [device*event_type_count() + (u8)ev).
   // Since 0 is a reserved device ID, we use 0 as a sentinel value to indicate that no handler is registered for a
   // device/event pair. When handlers gets too large and starts having poor memory performance, switch to
   // ankerl::unordered_dense::map<EventEntry, u8, EventEntry::Hash>.
-  std::vector<u8> handlers;
+  std::vector<u8> _handlers;
+};
 
-  void register_device(EventHandler *handler);
+class EventLoop {
+  static constexpr size_t MAX_EVENTS = 32;
+public:
+  EventDispatcher _dispatcher;
+  void register_device(EventDispatcher::Handler *handler);
   void register_handler(u8 source, Event::Type ev, u8 handler);
+  u8 handler_for(EventDispatcher::Entry entry) const;
+  u8 handler_for(u8 source, Event::Type ev) const;
+  template <typename Derived, typename... Args> Derived *install_filter(EventDispatcher::Entry target, Args &&...args);
+
   void handle_event(const Event *ev);
   using EventMask = pepp::FixedBitset<MAX_EVENTS>;
   EventLoop() = default;
@@ -125,6 +154,27 @@ private:
   // Enforce the top-1 sorting invariant.
   void resort_queue();
 };
+
+template <typename Derived>
+
+EventDispatcher::Filter<Derived>::Filter(EventDispatcher &disp, u8 previous) : _disp(disp), _previous(previous) {}
+
+template <typename Derived> void EventDispatcher::Filter<Derived>::handle_event(const Event *ev) {
+  if (static_cast<Derived *>(this)->filter(ev))
+    if (auto hnd = _disp._devices[_previous]; hnd) hnd->handle_event(ev);
+}
+
+template <typename DerivedFilter, typename... Args>
+DerivedFilter *EventLoop::install_filter(EventDispatcher::Entry target, Args &&...args) {
+  static_assert(std::derived_from<DerivedFilter, EventDispatcher::Filter<DerivedFilter>>,
+                "Filter must derive from EventLoop::EventFilter");
+  auto handler = this->handler_for(target);
+  auto ret = new DerivedFilter(this->_dispatcher, handler, std::forward<Args>(args)...);
+  ret->_id = 3;
+  register_device(ret);
+  register_handler(target.source, target.type, ret->id());
+  return ret;
+}
 
 template <EventLike DerivedEvent, typename... Args> DerivedEvent *EventLoop::make_event(Args... args) {
   static_assert(!std::is_same_v<DerivedEvent, Event>, "Can't allocate a base event");

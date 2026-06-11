@@ -60,13 +60,12 @@ int main(int argc, char *argv[]) {
     DRAM dram;
     dram._id = 2;
     // AccessSnooper<DRAM> snooper(&dram);
-    AccessSnooper<EventHandler> snooper(&dram);
-    snooper._id = 3;
     s.register_device(&sim);
     s.register_device(&dram);
-    s.register_device(&snooper);
     s.register_handler(sim.id(), Event::Type::Clock, sim.id());
-    s.register_handler(sim.id(), Event::Type::MemoryAccess, snooper.id());
+    s.register_handler(sim.id(), Event::Type::MemoryAccess, dram.id());
+    auto snooper = s.install_filter<AccessSnooper<DRAM>>({sim.id(), Event::Type::MemoryAccess});
+    snooper->_id = 3;
     i64 *ptr = &sim.icount;
     auto ev = s.make_event<ClockEvent>();
     ev->base.type = Event::Type::Clock;
@@ -77,7 +76,7 @@ int main(int argc, char *argv[]) {
     ic = sim.icount, cc = s.current_tick(), wc = sim.wcount;
     fmt::println("Executed {}, allocated {} and freed {} events", s._counters.executed, s._counters.allocated,
                  s._counters.freed);
-    fmt::println("Access memory {} times", snooper.access_count);
+    fmt::println("Access memory {} times", snooper->access_count);
   }
 
   std::printf("Simulation finished after %lld instructions and %llu cycles\n", ic, cc);

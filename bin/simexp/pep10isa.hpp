@@ -5,7 +5,7 @@
 #include "./events.hpp"
 #include "./simuloop.hpp"
 
-struct DRAM : public EventHandler {
+struct DRAM : public EventDispatcher::Handler {
   int _id = 0;
   void handle_event(const Event *ev) override {
     if (ev->type == Event::Type::MemoryAccess) {
@@ -17,10 +17,10 @@ struct DRAM : public EventHandler {
   u8 id() const override { return _id; }
 };
 
-template <typename Target> struct AccessSnooper : public EventFilter<Target, AccessSnooper<Target>> {
+template <typename Target> struct AccessSnooper : public EventDispatcher::Filter<AccessSnooper<Target>> {
   int _id = 0;
   u64 access_count = 0;
-  AccessSnooper(Target *target) : EventFilter<Target, AccessSnooper<Target>>(target) {}
+  AccessSnooper(EventDispatcher &disp, u8 previous) : EventDispatcher::Filter<AccessSnooper<Target>>(disp, previous) {}
   u8 id() const override { return _id; }
   bool filter(const Event *ev) {
     if (ev->type == Event::Type::MemoryAccess) access_count++;
@@ -28,7 +28,7 @@ template <typename Target> struct AccessSnooper : public EventFilter<Target, Acc
   }
 };
 
-struct Pep10CPU : public EventHandler {
+struct Pep10CPU : public EventDispatcher::Handler {
   i16 regs[8];
   bool nzvc[4];
   u16 pc = 0;
