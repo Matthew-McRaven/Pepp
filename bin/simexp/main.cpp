@@ -52,29 +52,21 @@ int main(int argc, char *argv[]) {
     sim.execute(maxi);
     ic = sim.icount, cc = sim.current_tick, wc = sim.wcount;
   } else {
-    EventLoop s;
-    Pep10CPU sim;
-    sim.loop = &s;
-    sim._id = 1;
-    DRAM dram;
-    dram._id = 2;
-    // AccessSnooper<DRAM> snooper(&dram);
-    s.dispatcher.register_device(&sim);
-    s.dispatcher.register_device(&dram);
-    s.dispatcher.register_handler(sim.id(), Event::Type::Clock, sim.id());
-    s.dispatcher.register_handler(sim.id(), Event::Type::MemoryAccess, dram.id());
+    Simulator s;
+    auto cpu = s.make_device<Pep10CPU, EventLoop &>("cpu", s.loop());
+    auto dram = s.make_device<DRAM>("dram");
+    s.dispatcher().register_handler(cpu->id(), Event::Type::Clock, cpu->id());
+    s.dispatcher().register_handler(cpu->id(), Event::Type::MemoryAccess, dram->id());
     // auto snooper = s.dispatcher.install_filter<AccessSnooper<DRAM>>({sim.id(), Event::Type::MemoryAccess});
     // snooper->_id = 3;
-    i64 *ptr = &sim.icount;
-    auto ev = s.allocator.alloc<ClockEvent>();
-    ev->base.type = Event::Type::Clock;
+    i64 *ptr = &cpu->icount;
+    auto ev = s.allocator().alloc<ClockEvent>(cpu->id());
     ev->base.recurs = true;
-    ev->base.source = sim.id();
-    s.scheduler.schedule(ev->base.event_index, 0);
+    s.scheduler().schedule(ev->base.event_index, 0);
     s.run([ptr, maxi]() { return *ptr >= maxi; });
-    ic = sim.icount, cc = s.scheduler.current_tick(), wc = sim.wcount;
-    fmt::println("Executed {}, allocated {} and freed {} events", s.scheduler.total_executed(),
-                 s.allocator.total_allocated(), s.allocator.total_freed());
+    ic = cpu->icount, cc = s.scheduler().current_tick(), wc = cpu->wcount;
+    fmt::println("Executed {}, allocated {} and freed {} events", s.scheduler().total_executed(),
+                 s.allocator().total_allocated(), s.allocator().total_freed());
     // fmt::println("Access memory {} times", snooper->access_count);
   }
 

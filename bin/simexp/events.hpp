@@ -40,12 +40,16 @@ static_assert(EventLike<MemoryRequest>);
 
 // A no-op event which can be used to synthetically delay a dependent event.
 struct SequenceEvent {
+  SequenceEvent() : base() { base.type = Event::Type::SequenceEvent; }
+  SequenceEvent(u8 source) : SequenceEvent() { base.source = source; }
   Event base;
 };
 static_assert(EventLike<SequenceEvent>);
 
 // You received a clock. Congrats.
 struct ClockEvent {
+  ClockEvent() : base() { base.type = Event::Type::Clock; }
+  ClockEvent(u8 source) : ClockEvent() { base.source = source; }
   Event base;
 };
 static_assert(EventLike<ClockEvent>);

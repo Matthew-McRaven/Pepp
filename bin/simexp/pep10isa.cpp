@@ -38,7 +38,7 @@ void Pep10CPU::post(const Event *ev) {
 }
 
 void Pep10CPU::handle_event(const Event *ev) {
-  if (!_coro.handle) _coro = instruction_execute_coro(*loop);
+  if (!_coro.handle) _coro = instruction_execute_coro(loop);
 
   post(ev), _coro.handle.resume();
 }

@@ -7,7 +7,8 @@ qt_add_executable(
   event_dispatch.cpp
   event_loop.cpp
   event_allocator.cpp
-  event_scheduler.cpp)
+  event_scheduler.cpp
+  sim_top.cpp)
 
 target_link_libraries(simexp PRIVATE pepp-core)
 set_target_properties(simexp PROPERTIES FOLDER "qtc_runnable")
