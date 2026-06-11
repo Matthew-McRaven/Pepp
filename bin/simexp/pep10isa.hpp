@@ -5,7 +5,7 @@
 #include "./events.hpp"
 #include "core/ds/hash/djb.hpp"
 #include "event_dispatch.hpp"
-#include "event_queue.hpp"
+#include "event_loop.hpp"
 
 struct DRAM : public EventDispatcher::Handler {
   int _id = 0;

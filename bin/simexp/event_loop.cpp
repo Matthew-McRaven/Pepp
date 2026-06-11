@@ -1,4 +1,4 @@
-#include "event_queue.hpp"
+#include "event_loop.hpp"
 #include "fmt/base.h"
 
 EventLoop::Status EventLoop::run(u64 max_ticks) {

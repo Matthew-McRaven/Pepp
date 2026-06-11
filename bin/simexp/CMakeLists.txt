@@ -5,7 +5,7 @@ qt_add_executable(
   main.cpp
   pep10isa.cpp
   event_dispatch.cpp
-  event_queue.cpp
+  event_loop.cpp
   event_allocator.cpp
   event_scheduler.cpp)
 
