@@ -2,7 +2,6 @@
 #include <cstdio>
 #include <string>
 #include "./pep10isa.hpp"
-#include "./simuloop.hpp"
 #include "core/ds/hash/djb.hpp"
 #include "core/integers.h"
 #include "fmt/base.h"
