@@ -60,11 +60,11 @@ int main(int argc, char *argv[]) {
     DRAM dram;
     dram._id = 2;
     // AccessSnooper<DRAM> snooper(&dram);
-    s.register_device(&sim);
-    s.register_device(&dram);
-    s.register_handler(sim.id(), Event::Type::Clock, sim.id());
-    s.register_handler(sim.id(), Event::Type::MemoryAccess, dram.id());
-    auto snooper = s.install_filter<AccessSnooper<DRAM>>({sim.id(), Event::Type::MemoryAccess});
+    s.dispatcher.register_device(&sim);
+    s.dispatcher.register_device(&dram);
+    s.dispatcher.register_handler(sim.id(), Event::Type::Clock, sim.id());
+    s.dispatcher.register_handler(sim.id(), Event::Type::MemoryAccess, dram.id());
+    auto snooper = s.dispatcher.install_filter<AccessSnooper<DRAM>>({sim.id(), Event::Type::MemoryAccess});
     snooper->_id = 3;
     i64 *ptr = &sim.icount;
     auto ev = s.make_event<ClockEvent>();

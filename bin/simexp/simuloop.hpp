@@ -43,6 +43,8 @@ public:
   u8 handler_for(u8 source, Event::Type ev) const;
 
   void handle_event(const Event *ev) const;
+  template <typename DerivedFilter, typename... Args>
+  DerivedFilter *install_filter(EventDispatcher::Entry target, Args &&...args);
 
 private:
   // The handler function for a specific device ID.
@@ -58,14 +60,8 @@ private:
 class EventLoop {
   static constexpr size_t MAX_EVENTS = 32;
 public:
-  EventDispatcher _dispatcher;
-  void register_device(EventDispatcher::Handler *handler);
-  void register_handler(u8 source, Event::Type ev, u8 handler);
-  u8 handler_for(EventDispatcher::Entry entry) const;
-  u8 handler_for(u8 source, Event::Type ev) const;
-  template <typename Derived, typename... Args> Derived *install_filter(EventDispatcher::Entry target, Args &&...args);
+  EventDispatcher dispatcher;
 
-  void handle_event(const Event *ev);
   using EventMask = pepp::FixedBitset<MAX_EVENTS>;
   EventLoop() = default;
   // Disable copy/move for now. I know I'll want to clone a simulator (which is a form of copy) at some point.
@@ -165,11 +161,11 @@ template <typename Derived> void EventDispatcher::Filter<Derived>::handle_event(
 }
 
 template <typename DerivedFilter, typename... Args>
-DerivedFilter *EventLoop::install_filter(EventDispatcher::Entry target, Args &&...args) {
+inline DerivedFilter *EventDispatcher::install_filter(Entry target, Args &&...args) {
   static_assert(std::derived_from<DerivedFilter, EventDispatcher::Filter<DerivedFilter>>,
                 "Filter must derive from EventLoop::EventFilter");
   auto handler = this->handler_for(target);
-  auto ret = new DerivedFilter(this->_dispatcher, handler, std::forward<Args>(args)...);
+  auto ret = new DerivedFilter(*this, handler, std::forward<Args>(args)...);
   ret->_id = 3;
   register_device(ret);
   register_handler(target.source, target.type, ret->id());
@@ -213,7 +209,7 @@ template <typename StopCondition> EventLoop::Status EventLoop::run(StopCondition
      * 2. Execute or resume that event.
      */
     _scheduled_events.clear_bit(scheduled_idx);
-    handle_event(ev);
+    dispatcher.handle_event(ev);
 
     /*
      * 3. Check if the event executed to completion. If so, unmark dependencies and free the slot.

@@ -44,18 +44,6 @@ EventLoop::Status EventLoop::run(std::function<bool()> pause) {
   return run([this, &pause] { return pause(); });
 }
 
-void EventLoop::register_device(EventDispatcher::Handler *handler) { return _dispatcher.register_device(handler); }
-
-void EventLoop::register_handler(u8 source, Event::Type ev, u8 handler) {
-  return _dispatcher.register_handler(source, ev, handler);
-}
-
-u8 EventLoop::handler_for(EventDispatcher::Entry entry) const { return _dispatcher.handler_for(entry); }
-
-u8 EventLoop::handler_for(u8 source, Event::Type ev) const { return _dispatcher.handler_for(source, ev); }
-
-void EventLoop::handle_event(const Event *ev) { return _dispatcher.handle_event(ev); }
-
 bool EventLoop::skip(u64 ticks) {
   if (_queue_size == 0) return _current_tick += ticks, true;
   return false;
