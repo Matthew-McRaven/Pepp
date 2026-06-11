@@ -27,7 +27,7 @@ Pep10CPU::Resumable Pep10CPU::instruction_execute_coro(EventLoop &s) {
       pc += 2, requeue_delay = 4, wcount += operand << mn;
     }
     icount = icount + 1;
-    s.schedule(ev->event_index, requeue_delay);
+    s.scheduler.schedule(ev->event_index, requeue_delay);
   }
 }
 
