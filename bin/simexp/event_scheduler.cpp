@@ -68,7 +68,7 @@ void EventScheduler::pause(u8 dependent, pepp::FixedBitset<MAX_EVENTS> dependees
   }
 }
 
-u8 EventScheduler::pop_front() {
+u8 EventScheduler::next_event() {
   resort_queue();
   const auto scheduled_idx = _queue[0].event_index;
   _current_tick = _queue[0].tick, _counters.executed++;
@@ -78,7 +78,7 @@ u8 EventScheduler::pop_front() {
   return scheduled_idx;
 }
 
-void EventScheduler::retire(u8 idx) {
+void EventScheduler::complete(u8 idx) {
   for (u64 bits = _dependents[idx](); bits;) {
     u8 paused_idx = std::countr_zero(bits);
     bits &= bits - 1;

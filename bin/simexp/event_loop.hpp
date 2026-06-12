@@ -40,13 +40,13 @@ template <typename StopCondition> EventLoop::Status EventLoop::run(StopCondition
   while (!stop() && scheduler.current_scheduled() > 0) {
     // dump_state();
     // 1. Determine which event should be processed next and advance _current_tick
-    const auto ev_index = scheduler.pop_front();
-    // 2. Execute or resume that event.
+    const auto ev_index = scheduler.next_event();
     const auto ev = allocator[ev_index];
-    dispatcher.handle_event(ev);
+    // 2. Execute or resume that event.
+    dispatcher.dispatch(ev);
     // 3. If event executed excuted to completion, release its dependents and possible free its slot.
     if (!scheduler.scheduled(ev_index)) {
-      scheduler.retire(ev_index);
+      scheduler.complete(ev_index);
       if (!ev->recurs) allocator.free(ev_index);
     }
   }

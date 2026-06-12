@@ -55,8 +55,8 @@ int main(int argc, char *argv[]) {
     Simulator s;
     auto cpu = s.make_device<Pep10CPU, EventLoop &>("cpu", s.loop());
     auto dram = s.make_device<DRAM>("dram");
-    s.dispatcher().register_handler(cpu->id(), Event::Type::Clock, cpu->id());
-    s.dispatcher().register_handler(cpu->id(), Event::Type::MemoryAccess, dram->id());
+    s.dispatcher().map_handler(cpu->id(), Event::Type::Clock, cpu->id());
+    s.dispatcher().map_handler(cpu->id(), Event::Type::MemoryAccess, dram->id());
     auto snooper = s.make_filter<AccessSnooper<DRAM>>({cpu->id(), Event::Type::MemoryAccess});
     i64 *ptr = &cpu->icount;
     auto ev = s.allocator().alloc<ClockEvent>(cpu->id());

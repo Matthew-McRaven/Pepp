@@ -27,9 +27,9 @@ struct EventScheduler {
   void pause(u8 dependent, pepp::FixedBitset<MAX_EVENTS> dependees);
 
   // Pop the top element from the queue and update current tick. Return value is the index of the event to be handled.
-  u8 pop_front();
+  u8 next_event();
   // Mark all dependees of dependent as no longer block on dependent.
-  void retire(u8 dependent);
+  void complete(u8 dependent);
 
 private:
   // Enforce the top-1 sorting invariant.

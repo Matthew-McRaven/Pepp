@@ -8,8 +8,8 @@
 #include "event_loop.hpp"
 #include "sim_top.hpp"
 
-struct DRAM : public Device {
-  DRAM(Descriptor descriptor) : Device(descriptor) {}
+struct DRAM : public EventHandlingDevice {
+  DRAM(Descriptor descriptor) : EventHandlingDevice(descriptor) {}
   void handle_event(const Event *ev) override {
     if (ev->type == Event::Type::MemoryAccess) {
       auto mem_ev = reinterpret_cast<const MemoryRequest *>(ev);
@@ -83,8 +83,8 @@ struct DelayAwaiter {
   void await_resume() {}
 };
 
-struct Pep10CPU : public Device {
-  Pep10CPU(Descriptor descriptor, EventLoop &loop) : Device(descriptor), loop(loop) {}
+struct Pep10CPU : public EventHandlingDevice {
+  Pep10CPU(Descriptor descriptor, EventLoop &loop) : EventHandlingDevice(descriptor), loop(loop) {}
   i16 regs[8];
   bool nzvc[4];
   u16 pc = 0;
