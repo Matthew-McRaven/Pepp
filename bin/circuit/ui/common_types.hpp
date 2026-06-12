@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/ds/opaque_handle.hpp"
 #include "core/integers.h"
 #include "core/math/geom/rectangle.hpp"
 namespace schematic {
@@ -9,23 +10,7 @@ using Rectangle = pepp::core::Rectangle<Coord>;
 using Point = pepp::core::Point<Coord>;
 using Size = pepp::core::Size<Coord>;
 
-// Tag is a phantom type that makes each instantiation a distinct type,
-// so Handle<FooTag> and Handle<BarTag> cannot be mixed.
-// You can make up any tag you want; the tag does not need an associated definition.
-template <class Tag, class Underlying = u32> struct Handle {
-  using underlying_type = Underlying;
-  Underlying value = 0;
-
-  Handle() = default;
-  constexpr explicit Handle(Underlying v) : value(v) {}
-
-  auto operator<=>(const Handle &) const = default;
-  bool operator==(const Handle &) const = default;
-
-  constexpr bool operator!() const { return value == 0; }
-  constexpr explicit operator bool() const { return value != 0; }
-};
-
+template <typename T, typename V = u32> using Handle = pepp::OpaqueHandle<T, V>;
 using BlueprintID = Handle<struct BlueprintIDTag>;
 using BlueprintGroupID = Handle<struct BlueprintGroupIDTag>;
 using LocalPinID = Handle<struct LocalPinIDTag>;
