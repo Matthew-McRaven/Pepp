@@ -16,18 +16,18 @@ const Event *Pep10CPU::Resumable::promise_type::NextEventAwaitable::await_resume
 Pep10CPU::Resumable Pep10CPU::instruction_execute_coro(EventLoop &s) {
   while (true) {
     const Event *ev = co_await Resumable::promise_type::NextEvent{};
-    auto await_is_read = read<u8>(s, pc, ev->event_index);
+    auto await_is_read = read<u8>(s, pc, ev->event_id);
     u8 mn = co_await await_is_read;
     u8 requeue_delay = 0;
     pc++;
     if (mn < 0x80) {
       requeue_delay = 2, wcount += mn;
     } else {
-      u16 operand = co_await read<u16>(s, pc, ev->event_index);
+      u16 operand = co_await read<u16>(s, pc, ev->event_id);
       pc += 2, requeue_delay = 4, wcount += operand << mn;
     }
     icount = icount + 1;
-    s.scheduler.schedule(ev->event_index, requeue_delay);
+    s.scheduler.schedule(ev->event_id, requeue_delay);
   }
 }
 

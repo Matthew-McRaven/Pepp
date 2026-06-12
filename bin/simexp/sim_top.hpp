@@ -1,12 +1,13 @@
 #pragma once
 #include <map>
+#include <memory>
 #include <string>
 #include "./event_loop.hpp"
 #include "fmt/format.h"
 #include "sim_device.hpp"
 
 class Simulator : public Device {
-  static constexpr Descriptor _desc{.id = 0, .basename = "/", .fullname = "/"};
+  static constexpr Descriptor _desc{.id = Device::ID{0}, .basename = "/", .fullname = "/"};
 
 public:
   Simulator() : Device(_desc) {}
@@ -25,7 +26,7 @@ public:
   ConcreteDevice *make_device(std::string_view self_name, Args &&...args);
   // Make a device that is a child of a given device
   template <typename ConcreteDevice, typename... Args>
-  ConcreteDevice *make_device(Descriptor::ID parent, std::string_view self_name, Args &&...args);
+  ConcreteDevice *make_device(Device::ID parent, std::string_view self_name, Args &&...args);
   template <typename ConcreteDevice, typename... Args>
   ConcreteDevice *make_device(Device *parent, std::string_view self_name, Args &&...args);
 
@@ -34,8 +35,8 @@ public:
 
 private:
   EventLoop _loop;
-  u8 _next_id = 1;
-  IDGenerator _next_id_gen = [this]() { return _next_id++; };
+  Device::ID::underlying_type _next_id = 1;
+  IDGenerator _next_id_gen = [this]() { return Device::ID{_next_id++}; };
   // A wrapper device for filters so that they can be querried in the device list and be destroyed correctly.
   // The actual EventHandler used by the dispatcher will be the stored filter member.
   // Both the filter member and the wrapper device have the same device ID.
@@ -44,7 +45,7 @@ private:
     std::unique_ptr<EventDispatcher::Filter<ConcreteFilter>> filter;
   };
 
-  std::map<Descriptor::ID, Device *> _id_to_device;
+  std::map<Device::ID, Device *> _id_to_device;
 };
 
 template <typename StopCondition> EventLoop::Status Simulator::run(StopCondition &&stop) { return _loop.run(stop); }
@@ -56,7 +57,7 @@ ConcreteDevice *Simulator::make_device(std::string_view self_name, Args &&...arg
 }
 
 template <typename ConcreteDevice, typename... Args>
-ConcreteDevice *Simulator::make_device(Descriptor::ID parent, std::string_view self_name, Args &&...args) {
+ConcreteDevice *Simulator::make_device(Device::ID parent, std::string_view self_name, Args &&...args) {
   if (auto it = _id_to_device.find(parent); it != _id_to_device.end())
     return make_device<ConcreteDevice>(it->second, self_name, std::forward<Args>(args)...);
   else throw std::runtime_error("Parent device not found");
@@ -72,7 +73,7 @@ ConcreteDevice *Simulator::make_device(Device *parent, std::string_view self_nam
   const auto descriptor = Descriptor{.id = _next_id_gen(), .basename = basename, .fullname = fullprefix + basename};
   auto device = new ConcreteDevice(descriptor, std::forward<Args>(args)...);
 
-  _loop.dispatcher.add_handler(device);
+  _loop.dispatcher.add_handler(descriptor.id, device);
   return device;
 }
 
@@ -80,7 +81,7 @@ template <typename ConcreteFilter, typename... Args>
 ConcreteFilter *Simulator::make_filter(EventDispatcher::DispatchKey DispatchKey, Args &&...args) {
   const auto id = _next_id_gen();
   auto ret = _loop.dispatcher.install_filter<ConcreteFilter>(id, DispatchKey, std::forward<Args>(args)...);
-  const auto basename = fmt::format("d{:02x}_t{:02x}", DispatchKey.source, (u8)DispatchKey.type);
+  const auto basename = fmt::format("d{:02x}_t{:02x}", DispatchKey.source.value, (u8)DispatchKey.type);
   const auto descriptor = Descriptor{.id = _next_id_gen(), .basename = basename, .fullname = "/filters/" + basename};
   _id_to_device[id] = new FilterWrapper<ConcreteFilter>(descriptor, ret);
   return ret;

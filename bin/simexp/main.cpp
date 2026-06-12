@@ -5,6 +5,7 @@
 #include "core/ds/hash/djb.hpp"
 #include "core/integers.h"
 #include "fmt/base.h"
+#include "sim_top.hpp"
 
 struct SimulatorFast {
   i16 regs[8];
@@ -57,16 +58,16 @@ int main(int argc, char *argv[]) {
     auto dram = s.make_device<DRAM>("dram");
     s.dispatcher().map_handler(cpu->id(), Event::Type::Clock, cpu->id());
     s.dispatcher().map_handler(cpu->id(), Event::Type::MemoryAccess, dram->id());
-    auto snooper = s.make_filter<AccessSnooper<DRAM>>({cpu->id(), Event::Type::MemoryAccess});
+    // auto snooper = s.make_filter<AccessSnooper<DRAM>>({cpu->id(), Event::Type::MemoryAccess});
     i64 *ptr = &cpu->icount;
     auto ev = s.allocator().alloc<ClockEvent>(cpu->id());
     ev->base.recurs = true;
-    s.scheduler().schedule(ev->base.event_index, 0);
+    s.scheduler().schedule(ev->base.event_id, 0);
     s.run([ptr, maxi]() { return *ptr >= maxi; });
     ic = cpu->icount, cc = s.scheduler().current_tick(), wc = cpu->wcount;
     fmt::println("Executed {}, allocated {} and freed {} events", s.scheduler().total_executed(),
                  s.allocator().total_allocated(), s.allocator().total_freed());
-    fmt::println("Access memory {} times", snooper->access_count);
+    // fmt::println("Access memory {} times", snooper->access_count);
   }
 
   std::printf("Simulation finished after %lld instructions and %llu cycles\n", ic, cc);

@@ -3,15 +3,20 @@
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include "./sim_device.hpp"
+#include "core/ds/opaque_handle.hpp"
 #include "core/integers.h"
 
 static constexpr u64 MAX_EVENTS = 64;
+
 // Any time you add a new event type, you must also modify the "slot" type in DES.
 struct Event {
+  using ID = pepp::OpaqueHandle<struct EventID, u8>;
+
   bool recurs = false;
   enum class Type : u8 { Invalid = 0, MemoryAccess, SequenceEvent, Clock, MAX } type = Type::Invalid;
-  u8 source = 0;
-  u8 event_index = 0;
+  Device::ID source{0};
+  ID event_id{0};
 };
 
 u8 constexpr event_type_count() { return static_cast<u8>(Event::Type::MAX); }
@@ -41,7 +46,7 @@ static_assert(EventLike<MemoryRequest>);
 // A no-op event which can be used to synthetically delay a dependent event.
 struct SequenceEvent {
   SequenceEvent() : base() { base.type = Event::Type::SequenceEvent; }
-  SequenceEvent(u8 source) : SequenceEvent() { base.source = source; }
+  SequenceEvent(Device::ID source) : SequenceEvent() { base.source = source; }
   Event base;
 };
 static_assert(EventLike<SequenceEvent>);
@@ -49,7 +54,7 @@ static_assert(EventLike<SequenceEvent>);
 // You received a clock. Congrats.
 struct ClockEvent {
   ClockEvent() : base() { base.type = Event::Type::Clock; }
-  ClockEvent(u8 source) : ClockEvent() { base.source = source; }
+  ClockEvent(Device::ID source) : ClockEvent() { base.source = source; }
   Event base;
 };
 static_assert(EventLike<ClockEvent>);

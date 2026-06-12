@@ -15,21 +15,21 @@ struct EventScheduler {
   bool skip(u64 ticks);
 
   // Returns true if the event index is currently scheduled for execution.
-  bool scheduled(u8 index) const { return _scheduled.test(index); }
+  bool scheduled(Event::ID index) const { return _scheduled.test(index.value); }
   // Take the index of an allocated event and schedule it to run after a given tick delay.
-  void schedule(u8 index, u64 delay = 0);
+  void schedule(Event::ID index, u64 delay = 0);
   // Mark dependent as paused on dependee, and schedule dependee for execution with a delay.
   // More efficient than a pause() followed by a schedule()
-  void schedule_over(u8 dependee, u8 dependent, u64 delay);
+  void schedule_over(Event::ID dependee, Event::ID dependent, u64 delay);
   // Remove dependent event from the schedule until all events in dependees have executed, at which point dependent is
   // re-scheduled for execution. If resume is not a nullptr, that coroutine will be executed rather the the original
   // event handler.
-  void pause(u8 dependent, pepp::FixedBitset<MAX_EVENTS> dependees);
+  void pause(Event::ID dependent, pepp::FixedBitset<MAX_EVENTS> dependees);
 
   // Pop the top element from the queue and update current tick. Return value is the index of the event to be handled.
-  u8 next_event();
+  Event::ID next_event();
   // Mark all dependees of dependent as no longer block on dependent.
-  void complete(u8 dependent);
+  void complete(Event::ID dependent);
 
 private:
   // Enforce the top-1 sorting invariant.

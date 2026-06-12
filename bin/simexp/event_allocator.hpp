@@ -7,16 +7,19 @@
 #include "core/integers.h"
 
 struct EventAllocator {
+
   // Various performance counters for this allocater
   u8 current_allocated() const { return _slots_used.count(); }
   u64 total_allocated() const { return _counters.allocated; }
   u64 total_freed() const { return _counters.freed; }
 
   // Element accessors
-  Event *at(u8 idx);
-  const Event *at(u8 idx) const;
-  auto operator[](size_t idx) -> Event * { return reinterpret_cast<Event *>(_slots[idx].data); }
-  auto operator[](size_t idx) const -> const Event * { return reinterpret_cast<const Event *>(_slots[idx].data); }
+  Event *at(Event::ID idx);
+  const Event *at(Event::ID idx) const;
+  auto operator[](Event::ID idx) -> Event * { return reinterpret_cast<Event *>(_slots[idx.value].data); }
+  auto operator[](Event::ID idx) const -> const Event * {
+    return reinterpret_cast<const Event *>(_slots[idx.value].data);
+  }
 
   /*
    * Allocator API
@@ -25,7 +28,7 @@ struct EventAllocator {
   template <EventLike DerivedEvent, typename... Args> DerivedEvent *alloc(Args... args);
   // Precondition: event has been `retired()` in the scheduler.
   void free(Event *ev);
-  void free(u8 idx);
+  void free(Event::ID idx);
 
 private:
   pepp::FixedBitset<MAX_EVENTS> _slots_used;
@@ -54,7 +57,7 @@ template <EventLike DerivedEvent, typename... Args> DerivedEvent *EventAllocator
   // Avoiding UB by using placement new. construct_as technically has UB, but it's supposed to be "fine".
   // c++23 brings start_lifetime_as, which is the correct tool but not yet available on all platforms.
   auto ret = std::launder(new (slot.data) DerivedEvent{std::forward<Args>(args)...});
-  ret->base.event_index = slot_index;
+  ret->base.event_id = Event::ID(slot_index);
   _counters.allocated++;
   return ret;
 }

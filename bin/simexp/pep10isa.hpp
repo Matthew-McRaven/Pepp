@@ -6,7 +6,7 @@
 #include "core/ds/hash/djb.hpp"
 #include "event_dispatch.hpp"
 #include "event_loop.hpp"
-#include "sim_top.hpp"
+#include "sim_eventhandle.hpp"
 
 struct DRAM : public EventHandlingDevice {
   DRAM(Descriptor descriptor) : EventHandlingDevice(descriptor) {}
@@ -20,10 +20,11 @@ struct DRAM : public EventHandlingDevice {
 };
 
 template <typename Target> struct AccessSnooper : public EventDispatcher::Filter<AccessSnooper<Target>> {
-  int _id = 0;
+  Device::ID _id{0};
   u64 access_count = 0;
-  AccessSnooper(EventDispatcher &disp, u8 previous) : EventDispatcher::Filter<AccessSnooper<Target>>(disp, previous) {}
-  u8 id() const override { return _id; }
+  AccessSnooper(EventDispatcher &disp, Device::ID previous, Device::ID self_id)
+      : EventDispatcher::Filter<AccessSnooper<Target>>(disp, previous), _id(self_id) {}
+  Device::ID id() const override { return _id; }
   bool filter(const Event *ev) {
     if (ev->type == Event::Type::MemoryAccess) access_count++;
     return true;
@@ -31,16 +32,17 @@ template <typename Target> struct AccessSnooper : public EventDispatcher::Filter
 };
 
 template <typename T> struct MemoryAwaiter {
-  u8 dependent, src_id;
+  Event::ID dependent;
+  Device::ID src_id;
   u32 addr;
   MemoryRequest::Kind type;
   u64 delay = 0;
   T result{};
   EventLoop &sim;
   // MemoryRequest *request = nullptr; // store event pointer
-  MemoryAwaiter(EventLoop &s, u8 dependent, u8 src_id, u64 delay = 0)
+  MemoryAwaiter(EventLoop &s, Event::ID dependent, Device::ID src_id, u64 delay = 0)
       : dependent(dependent), src_id(src_id), delay(delay), sim(s) {}
-  static MemoryAwaiter<T> read(EventLoop &s, u8 dependent, u8 src_id, u32 addr, u64 delay = 0) {
+  static MemoryAwaiter<T> read(EventLoop &s, Event::ID dependent, Device::ID src_id, u32 addr, u64 delay = 0) {
     MemoryAwaiter<T> ret(s, dependent, src_id, delay);
     ret.type = MemoryRequest::Kind::Read;
     ret.addr = addr;
@@ -62,23 +64,24 @@ template <typename T> struct MemoryAwaiter {
     dependee->len = sizeof(T);
     dependee->type = type;
     dependee->buffer = reinterpret_cast<u8 *>(&this->result);
-    sim.scheduler.schedule_over(dependee->base.event_index, dependent, delay);
+    sim.scheduler.schedule_over(dependee->base.event_id, dependent, delay);
   }
   T await_resume() { return result; }
 };
 
 struct DelayAwaiter {
-  u8 dependent, src_id;
+  Event::ID dependent;
+  Device::ID src_id;
   u64 delay = 0;
   EventLoop &sim;
-  DelayAwaiter(EventLoop &s, u8 dependent, u8 src_id, u64 delay = 0)
+  DelayAwaiter(EventLoop &s, Event::ID dependent, Device::ID src_id, u64 delay = 0)
       : dependent(dependent), src_id(src_id), delay(delay), sim(s) {}
   bool await_ready() { return this->sim.scheduler.skip(this->delay); }
   void await_suspend(std::coroutine_handle<> handle) {
     auto dependee = this->sim.allocator.alloc<SequenceEvent>();
     dependee->base.type = Event::Type::SequenceEvent;
     dependee->base.source = src_id;
-    sim.scheduler.schedule_over(dependee->base.event_index, dependent, delay);
+    sim.scheduler.schedule_over(dependee->base.event_id, dependent, delay);
   }
   void await_resume() {}
 };
@@ -120,10 +123,10 @@ struct Pep10CPU : public EventHandlingDevice {
     };
   } _coro{};
 
-  template <typename T> MemoryAwaiter<T> read(EventLoop &s, u16 addr, u8 idx) {
+  template <typename T> MemoryAwaiter<T> read(EventLoop &s, u16 addr, Event::ID idx) {
     return MemoryAwaiter<T>::read(s, idx, id(), addr, 1);
   }
-  DelayAwaiter delay(EventLoop &s, u64 ticks, u64 idx) { return DelayAwaiter(s, idx, id(), ticks); }
+  DelayAwaiter delay(EventLoop &s, u64 ticks, Event::ID idx) { return DelayAwaiter(s, idx, id(), ticks); }
   Resumable instruction_execute_coro(EventLoop &s);
   void post(const Event *ev);
   void handle_event(const Event *ev) override;
