@@ -59,7 +59,7 @@ struct PulseSchedule {
     // Shift [0, 2*_jitter+1] to [-jitter, +jitter]
     return j - (i64)jitter;
   }
-  constexpr u64 next_clock_tick(u64 tick) const noexcept;
+  constexpr u64 next_clock_tick(u64 tick, u8 delay_cycles = 1) const noexcept;
   bool operator==(const PulseSchedule &rhs) const noexcept = default;
 };
 
@@ -79,6 +79,7 @@ private:
   PulseSchedule _sched;
 };
 consteval void allow_opaque_handle_increment(PulseSchedule::PulseIndex);
+consteval void allow_opaque_handle_add(PulseSchedule::PulseIndex);
 
 struct ScaledClock : public AClock {
   // if jitter_scale is nont-a-number, it will copy the value from period_scale
@@ -148,7 +149,9 @@ public:
   ConcreteClock *make_clock(Device::Descriptor desc, Args &&...args);
 
   void map_device_clock(Device::ID device, Device::ID clock);
-  void request_clock(Device::ID device);
+  // Simulate "skipping" delay_cycles cycles before scheduling.
+  // For timing-accurate cores, should always be 1.
+  void request_clock(Device::ID device, u8 delay_cycles = 1);
   // Only handles UpdateClockScheduleEvent
   void handle_event(const Event *ev) override;
 

@@ -6,6 +6,7 @@
 #include "core/ds/hash/djb.hpp"
 #include "event_dispatch.hpp"
 #include "event_loop.hpp"
+#include "sim_clocktree.hpp"
 #include "sim_eventhandle.hpp"
 
 struct DRAM : public EventHandlingDevice {
@@ -87,12 +88,14 @@ struct DelayAwaiter {
 };
 
 struct Pep10CPU : public EventHandlingDevice {
-  Pep10CPU(Descriptor descriptor, EventLoop &loop) : EventHandlingDevice(descriptor), loop(loop) {}
+  Pep10CPU(Descriptor descriptor, EventLoop &loop, pepp::ClockGovernor &clock)
+      : EventHandlingDevice(descriptor), loop(loop), clock(clock) {}
   i16 regs[8];
   bool nzvc[4];
   u16 pc = 0;
   i64 icount = 0, wcount = 0;
   EventLoop &loop;
+  pepp::ClockGovernor &clock;
   struct Resumable {
     // Just an alias to the coro handle already in _coro, but it makes this promise easier to use.
     std::coroutine_handle<> handle = nullptr;

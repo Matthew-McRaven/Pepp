@@ -54,8 +54,8 @@ int main(int argc, char *argv[]) {
     ic = sim.icount, cc = sim.current_tick, wc = sim.wcount;
   } else {
     Simulator s;
-    auto clock = s.make_clock<pepp::IdealClock>("xtal", 1);
-    auto cpu = s.make_device<Pep10CPU, EventLoop &>("cpu", s.loop());
+    auto clock = s.make_clock<pepp::IdealClock>("xtal", 100);
+    auto cpu = s.make_device<Pep10CPU, EventLoop &>("cpu", s.loop(), s.clocks);
     s.clocks.map_device_clock(cpu->id(), clock->id());
     auto dram = s.make_device<DRAM>("dram");
     s.dispatcher().map_handler(cpu->id(), Event::Type::ClockReceipt, cpu->id());
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
     // fmt::println("Access memory {} times", snooper->access_count);
   }
 
-  std::printf("Simulation finished after %lld instructions and %llu cycles\n", ic, cc);
+  std::printf("Simulation finished after %lld instructions and %llu ticks\n", ic, cc);
   std::printf("Bogus wc %lld\n", wc);
   return 0;
 }

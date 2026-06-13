@@ -18,16 +18,21 @@ Pep10CPU::Resumable Pep10CPU::instruction_execute_coro(EventLoop &s) {
     const Event *ev = co_await Resumable::promise_type::NextEvent{};
     auto await_is_read = read<u8>(s, pc, ev->event_id);
     u8 mn = co_await await_is_read;
-    u8 requeue_delay = 0;
+    u8 requeue_cycle_delay = 0;
     pc++;
     if (mn < 0x80) {
-      requeue_delay = 2, wcount += mn;
+      requeue_cycle_delay = 2, wcount += mn;
     } else {
       u16 operand = co_await read<u16>(s, pc, ev->event_id);
-      pc += 2, requeue_delay = 4, wcount += operand << mn;
+      pc += 2, requeue_cycle_delay = 4, wcount += operand << mn;
     }
     icount = icount + 1;
-    s.scheduler.schedule(ev->event_id, requeue_delay);
+    clock.request_clock(id(), requeue_cycle_delay);
+    // Force re-entry into event loop to ensure timing correctness.
+    // TODO: find some clever way to combine with NextEvent!
+    using Promise = Resumable::promise_type;
+    auto typed = std::coroutine_handle<Promise>::from_address(_coro.handle.address());
+    typed.promise().current_event = nullptr;
   }
 }
 

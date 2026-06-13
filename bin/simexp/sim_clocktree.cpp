@@ -13,13 +13,13 @@ void pepp::ClockGovernor::map_device_clock(ID device, ID clock) {
   _events_to_schedule.emplace_back(ev);
 }
 
-void pepp::ClockGovernor::request_clock(ID device) {
+void pepp::ClockGovernor::request_clock(ID device, u8 delay_cycles) {
   auto ev = _device_to_event[device.value];
   const auto clock_id = _device_to_clock[device.value];
-  const auto &clock = _clocks[clock_id];
-  // const auto next_time = clock->;
-  // const auto delay = _clocks[_device_to_clock[device.value]].;
-  const u64 delay = 0;
+  const auto &[clock, schedule] = _clocks[clock_id];
+  const auto now = _loop.scheduler.current_tick();
+  const auto next_time = schedule.next_clock_tick(now, delay_cycles);
+  const auto delay = next_time - now;
   _loop.scheduler.schedule(ev->base.event_id, delay);
 }
 
@@ -36,8 +36,8 @@ void pepp::ClockGovernor::handle_event(const Event *ev) {
     _clocks[ev->clock] = std::make_pair(clock, new_schedule);
   }
 }
-constexpr u64 pepp::PulseSchedule::next_clock_tick(u64 tick) const noexcept {
+constexpr u64 pepp::PulseSchedule::next_clock_tick(u64 tick, u8 delay_cycles) const noexcept {
   // get pulse index for current tick, increment it
-  const auto idx = ++index_of(tick);
+  const auto idx = index_of(tick) + delay_cycles;
   return edge_time(idx);
 }
