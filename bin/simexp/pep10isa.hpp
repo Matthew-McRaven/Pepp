@@ -79,7 +79,7 @@ struct DelayAwaiter {
   bool await_ready() { return this->sim.scheduler.skip(this->delay); }
   void await_suspend(std::coroutine_handle<> handle) {
     auto dependee = this->sim.allocator.alloc<SequenceEvent>();
-    dependee->base.type = Event::Type::SequenceEvent;
+    dependee->base.type = Event::Type::Sequence;
     dependee->base.source = src_id;
     sim.scheduler.schedule_over(dependee->base.event_id, dependent, delay);
   }

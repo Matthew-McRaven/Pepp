@@ -14,7 +14,14 @@ struct Event {
   using ID = pepp::OpaqueHandle<struct EventID, u8>;
 
   bool recurs = false;
-  enum class Type : u8 { Invalid = 0, MemoryAccess, SequenceEvent, Clock, MAX } type = Type::Invalid;
+  enum class Type : u8 {
+    Invalid = 0,
+    MemoryAccess,
+    Sequence,
+    ClockReceipt,
+    UpdateClockSchedule,
+    MAX
+  } type = Type::Invalid;
   Device::ID source{0};
   ID event_id{0};
 };
@@ -45,19 +52,26 @@ static_assert(EventLike<MemoryRequest>);
 
 // A no-op event which can be used to synthetically delay a dependent event.
 struct SequenceEvent {
-  SequenceEvent() : base() { base.type = Event::Type::SequenceEvent; }
+  SequenceEvent() : base() { base.type = Event::Type::Sequence; }
   SequenceEvent(Device::ID source) : SequenceEvent() { base.source = source; }
   Event base;
 };
 static_assert(EventLike<SequenceEvent>);
 
 // You received a clock. Congrats.
-struct ClockEvent {
-  ClockEvent() : base() { base.type = Event::Type::Clock; }
-  ClockEvent(Device::ID source) : ClockEvent() { base.source = source; }
+struct ClockReceipt {
+  ClockReceipt() : base() { base.type = Event::Type::ClockReceipt; }
+  ClockReceipt(Device::ID source) : ClockReceipt() { base.source = source; }
+  Event base;
+  Device::ID clock;
+};
+static_assert(EventLike<ClockReceipt>);
+
+struct UpdateClockScheduleEvent {
+  UpdateClockScheduleEvent() : base() { base.type = Event::Type::UpdateClockSchedule; }
+  UpdateClockScheduleEvent(Device::ID source) : UpdateClockScheduleEvent() { base.source = source; }
   Event base;
 };
-static_assert(EventLike<ClockEvent>);
 
 // Helper to ensure that the array of events can accomodate placement new with any of our event types without any
 // padding. The design pattern has a shared first member (Event base) to avoid UB with unrelated types.
@@ -73,4 +87,4 @@ struct Slot {
   static constexpr std::size_t padded_size = (size + alignment - 1) & ~(alignment - 1);
   alignas(alignment) std::byte data[padded_size];
 };
-using EventSlot = Slot<Event, MemoryRequest, SequenceEvent, ClockEvent>;
+using EventSlot = Slot<Event, MemoryRequest, SequenceEvent, ClockReceipt, UpdateClockScheduleEvent>;

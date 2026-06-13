@@ -54,15 +54,15 @@ int main(int argc, char *argv[]) {
     ic = sim.icount, cc = sim.current_tick, wc = sim.wcount;
   } else {
     Simulator s;
+    auto clock = s.make_clock<pepp::IdealClock>("xtal", 1);
     auto cpu = s.make_device<Pep10CPU, EventLoop &>("cpu", s.loop());
+    s.clocks.map_device_clock(cpu->id(), clock->id());
     auto dram = s.make_device<DRAM>("dram");
-    s.dispatcher().map_handler(cpu->id(), Event::Type::Clock, cpu->id());
+    s.dispatcher().map_handler(cpu->id(), Event::Type::ClockReceipt, cpu->id());
     s.dispatcher().map_handler(cpu->id(), Event::Type::MemoryAccess, dram->id());
     // auto snooper = s.make_filter<AccessSnooper<DRAM>>({cpu->id(), Event::Type::MemoryAccess});
     i64 *ptr = &cpu->icount;
-    auto ev = s.allocator().alloc<ClockEvent>(cpu->id());
-    ev->base.recurs = true;
-    s.scheduler().schedule(ev->base.event_id, 0);
+    s.init_clocks();
     s.run([ptr, maxi]() { return *ptr >= maxi; });
     ic = cpu->icount, cc = s.scheduler().current_tick(), wc = cpu->wcount;
     fmt::println("Executed {}, allocated {} and freed {} events", s.scheduler().total_executed(),

@@ -4,14 +4,18 @@
 #include <string>
 #include "./event_loop.hpp"
 #include "fmt/format.h"
+#include "sim_clocktree.hpp"
 #include "sim_device.hpp"
 
 class Simulator : public Device {
   static constexpr Descriptor _desc{.id = Device::ID{0}, .basename = "/", .fullname = "/"};
+  static constexpr Descriptor _clocks{
+      .id = Device::ID{1}, .basename = "clocktree", .fullname = _desc.fullname + "clocktree"};
 
 public:
-  Simulator() : Device(_desc) {}
-  ~Simulator() override;
+  pepp::ClockGovernor clocks;
+  Simulator() : Device(_desc), clocks(_clocks, _loop) {}
+  ~Simulator() override = default;
   EventAllocator &allocator() { return _loop.allocator; }
   EventScheduler &scheduler() { return _loop.scheduler; }
   EventDispatcher &dispatcher() { return _loop.dispatcher; }
@@ -29,13 +33,18 @@ public:
   ConcreteDevice *make_device(Device::ID parent, std::string_view self_name, Args &&...args);
   template <typename ConcreteDevice, typename... Args>
   ConcreteDevice *make_device(Device *parent, std::string_view self_name, Args &&...args);
+  template <typename ConcreteClock, typename... Args>
+  ConcreteClock *make_clock(std::string_view self_name, Args &&...args);
 
   template <typename ConcreteFilter, typename... Args>
-  ConcreteFilter *make_filter(EventDispatcher::DispatchKey DispatchKey, Args &&...args);
+  ConcreteFilter *make_filter(EventDispatcher::DispatchKey dispatch_key, Args &&...args);
+
+  // Schedule the initial UpdateClockSchedule event.
+  void init_clocks();
 
 private:
   EventLoop _loop;
-  Device::ID::underlying_type _next_id = 1;
+  Device::ID::underlying_type _next_id = 2;
   IDGenerator _next_id_gen = [this]() { return Device::ID{_next_id++}; };
   // A wrapper device for filters so that they can be querried in the device list and be destroyed correctly.
   // The actual EventHandler used by the dispatcher will be the stored filter member.
@@ -45,14 +54,14 @@ private:
     std::unique_ptr<EventDispatcher::Filter<ConcreteFilter>> filter;
   };
 
-  std::map<Device::ID, Device *> _id_to_device;
+  std::map<Device::ID, std::unique_ptr<Device>> _id_to_device;
 };
 
 template <typename StopCondition> EventLoop::Status Simulator::run(StopCondition &&stop) { return _loop.run(stop); }
 
 template <typename ConcreteDevice, typename... Args>
 ConcreteDevice *Simulator::make_device(std::string_view self_name, Args &&...args) {
-  static_assert(std::derived_from<ConcreteDevice, Device>, "Device must be derived from Device");
+  static_assert(std::is_base_of_v<Device, ConcreteDevice>, "Device must be derived from Device");
   return make_device<ConcreteDevice>(this, self_name, std::forward<Args>(args)...);
 }
 
@@ -65,16 +74,30 @@ ConcreteDevice *Simulator::make_device(Device::ID parent, std::string_view self_
 
 template <typename ConcreteDevice, typename... Args>
 ConcreteDevice *Simulator::make_device(Device *parent, std::string_view self_name, Args &&...args) {
-  static_assert(std::derived_from<ConcreteDevice, Device>, "Device must be derived from Device");
-  static_assert(std::derived_from<ConcreteDevice, EventDispatcher::Handler>, "Device must be derived from Device");
+  static_assert(std::is_base_of_v<Device, ConcreteDevice>, "ConcreteDevice must be derived from Device");
   // The root element has a trailing /, but internal nodes do not. Avoid doubling // in the fullname.
   const auto fullprefix = parent->descriptor().fullname + (parent->descriptor().fullname.ends_with("/") ? "" : "/");
   const auto basename = std::string(self_name);
   const auto descriptor = Descriptor{.id = _next_id_gen(), .basename = basename, .fullname = fullprefix + basename};
   auto device = new ConcreteDevice(descriptor, std::forward<Args>(args)...);
-
-  _loop.dispatcher.add_handler(descriptor.id, device);
+  // If the device is an event handler, add it as a usable handler in the dispatcher. Not all devices (e.g., this,
+  // ClockGovernor) are handlers.
+  if constexpr (std::is_base_of_v<EventDispatcher::Handler, ConcreteDevice>) {
+    _loop.dispatcher.add_handler(descriptor.id, device);
+  }
   return device;
+}
+
+template <typename ConcreteClock, typename... Args>
+ConcreteClock *Simulator::make_clock(std::string_view self_name, Args &&...args) {
+  const auto id = _next_id_gen();
+  const std::string basename(self_name);
+  const auto fullprefix = clocks.descriptor().fullname;
+  const auto desc = Descriptor{.id = _next_id_gen(), .basename = basename, .fullname = fullprefix + "/" + basename};
+
+  auto ret = clocks.make_clock<ConcreteClock>(desc, std::forward<Args>(args)...);
+  _id_to_device[id] = std::unique_ptr<Device>{ret};
+  return ret;
 }
 
 template <typename ConcreteFilter, typename... Args>
