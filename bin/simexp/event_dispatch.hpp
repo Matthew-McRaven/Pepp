@@ -16,7 +16,7 @@ public:
     virtual void handle_event(const Event *ev) = 0;
     virtual Device::ID id() const = 0;
   };
-  template <typename Derived> struct Filter : public EventDispatcher::Handler {
+  template <typename ConcreteFilter> struct Filter : public EventDispatcher::Handler {
     virtual ~Filter() = default;
     Filter(EventDispatcher &loop, Device::ID previous);
     void handle_event(const Event *ev) override;
@@ -32,8 +32,8 @@ public:
   Device::ID handler_for(Device::ID source, Event::Type ev) const;
 
   void dispatch(const Event *ev) const;
-  template <typename DerivedFilter, typename... Args>
-  DerivedFilter *install_filter(Device::ID filter_id, DispatchKey DispatchKey, Args &&...args);
+  template <typename ConcreteFilter, typename... Args>
+  ConcreteFilter *install_filter(Device::ID filter_id, DispatchKey DispatchKey, Args &&...args);
 
 private:
   // The handler function for a specific device ID.
@@ -49,21 +49,21 @@ private:
   constexpr u16 hash(DispatchKey DispatchKey) const noexcept { return hash(DispatchKey.source, DispatchKey.type); }
   std::vector<Device::ID::underlying_type> _dispatch_table;
 };
-template <typename Derived>
-EventDispatcher::Filter<Derived>::Filter(EventDispatcher &disp, Device::ID previous)
+template <typename ConcreteFilter>
+EventDispatcher::Filter<ConcreteFilter>::Filter(EventDispatcher &disp, Device::ID previous)
     : _disp(disp), _previous(previous) {}
 
-template <typename Derived> void EventDispatcher::Filter<Derived>::handle_event(const Event *ev) {
-  if (static_cast<Derived *>(this)->filter(ev))
+template <typename ConcreteFilter> void EventDispatcher::Filter<ConcreteFilter>::handle_event(const Event *ev) {
+  if (static_cast<ConcreteFilter *>(this)->filter(ev))
     if (auto hnd = _disp._handlers[_previous.value]; hnd) hnd->handle_event(ev);
 }
 
-template <typename DerivedFilter, typename... Args>
-inline DerivedFilter *EventDispatcher::install_filter(Device::ID filter_id, DispatchKey DispatchKey, Args &&...args) {
-  static_assert(std::derived_from<DerivedFilter, EventDispatcher::Filter<DerivedFilter>>,
+template <typename ConcreteFilter, typename... Args>
+inline ConcreteFilter *EventDispatcher::install_filter(Device::ID filter_id, DispatchKey DispatchKey, Args &&...args) {
+  static_assert(std::derived_from<ConcreteFilter, EventDispatcher::Filter<ConcreteFilter>>,
                 "Filter must derive from EventLoop::EventFilter");
   auto handler = this->handler_for(DispatchKey);
-  auto ret = new DerivedFilter(*this, handler, filter_id, std::forward<Args>(args)...);
+  auto ret = new ConcreteFilter(*this, handler, filter_id, std::forward<Args>(args)...);
   add_handler(filter_id, ret);
   map_handler(DispatchKey, filter_id);
   return ret;
