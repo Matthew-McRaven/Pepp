@@ -45,6 +45,12 @@ struct SimulatorFast {
   }
 };
 
+consteval u64 ns_from_hz(long double hz) { return (u64)(1'000'000'000.0L / hz + 0.5L); }
+
+consteval u64 operator""_hz(unsigned long long f) { return ns_from_hz((long double)f); }
+consteval u64 operator""_khz(unsigned long long f) { return ns_from_hz((long double)f * 1e3L); }
+consteval u64 operator""_mhz(unsigned long long f) { return ns_from_hz((long double)f * 1e6L); }
+
 int main(int argc, char *argv[]) {
   int maxi = 100'000'000;
   u64 ic = 0, cc = 0, wc = 0;
@@ -54,7 +60,8 @@ int main(int argc, char *argv[]) {
     ic = sim.icount, cc = sim.current_tick, wc = sim.wcount;
   } else {
     Simulator s;
-    auto clock = s.make_clock<pepp::IdealClock>("xtal", 100);
+
+    auto clock = s.make_clock<pepp::IdealClock>("xtal", 16_mhz);
     auto cpu = s.make_device<Pep10CPU, EventLoop &>("cpu", s.loop(), s.clocks);
     s.clocks.map_device_clock(cpu->id(), clock->id());
     auto dram = s.make_device<DRAM>("dram");
