@@ -18,8 +18,8 @@ qt_add_qml_module(
 
   ui/blueprintlibrarymodel.hpp
   ui/blueprintlibrarymodel.cpp
-  ui/componentpropertymodel.hpp
-  ui/componentpropertymodel.cpp
+  ui/componentwrapper.hpp
+  ui/componentwrapper.cpp
   ui/diagramproperty.hpp
   ui/diagramproperty.cpp
   ui/graphiccanvas.hpp

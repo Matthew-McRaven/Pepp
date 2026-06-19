@@ -22,7 +22,8 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
 
   //  Pick first item of test data. Remove after testing complete
   auto &it = _project->schematic()->components().front();
-  _selected = it.second.get();
+  //_selected = it.second.get();
+  setSelectedComponent(it.second.get());
 
   if (hasSelectedComponent()) {
     ensureProperties(it.second.get());
@@ -44,7 +45,7 @@ GraphicCanvas::GraphicCanvas(QQuickItem *parent) : QQuickPaintedItem(parent) {
   setFlag(QQuickItem::ItemAcceptsDrops, true);
   // setFlag(ItemAcceptsInputMethod, false);
 
-  //  Create background gid
+  //  Create background grid
   cacheBackground();
 }
 
@@ -398,6 +399,29 @@ void GraphicCanvas::rotateTwice() {
   }
 }
 
+//  Orignal component has no Qt primatives. Return object wrapper
+//  that can be manipulated in QML.
+ComponentWrapper *GraphicCanvas::componentWrapper() {
+  auto *comp = component();
+  if (comp != nullptr) {
+    _wrapper.setComponent(comp);
+    return &_wrapper;
+  }
+
+  return nullptr;
+}
+
+void GraphicCanvas::setSelectedComponent(Component *comp) {
+  if (comp == nullptr) {
+    //  Clear selections
+    _selected = std::monostate{};
+    _wrapper.setComponent();
+  } else {
+    _selected = comp;
+    _wrapper.setComponent(comp);
+  }
+}
+
 //  Mouse events - Comment out unused events for now
 
 void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {
@@ -409,7 +433,7 @@ void GraphicCanvas::mouseMoveEvent(QMouseEvent *event) {
   //  to determine rectangle hit.
   const auto point = screen_to_grid(event->position());
 
-  //  See if existing item was clicked, if so begi
+  //  See if existing item was clicked, if so begin
   if (_project->schematic()->component_at(point)) {
     setSelectedDiagram(point);
     startDrag(event->pos());
@@ -515,14 +539,16 @@ bool GraphicCanvas::setSelectedDiagram(const PeppPt &point) {
   //  If selecting diagram, then unselect all lines
   unselectLines();
 
-  _selected = std::monostate{};
+  //_selected = std::monostate{};
+  setSelectedComponent();
   //  See if existing item was clicked and clear selection
   for (auto &it : schematic->components()) {
     const auto [id, comp] = it;
     auto props = static_cast<BaseProperties *>(comp->properties.get());
     // Don't break, because we want to ensure all other items are unselected.
     if (pepp::core::contains(comp->geometry(), point)) {
-      _selected = comp.get();
+      //_selected = comp.get();
+      setSelectedComponent(comp.get());
       ensureProperties(comp.get());
       static_cast<BaseProperties *>(comp->properties.get())->setSelected(true);
     } else {
@@ -582,7 +608,8 @@ void GraphicCanvas::unselectDiagrams() {
     if (props != nullptr && props->selected()) props->setSelected(false);
   }
   if (std::holds_alternative<Component *>(_selected)) {
-    _selected = std::monostate{};
+    //_selected = std::monostate{};
+    setSelectedComponent();
 
     //  Notify QML
     emit componentChanged();
@@ -920,7 +947,8 @@ bool GraphicCanvas::keyPress(const int key, const int modifier) {
     if (comp != nullptr) {
       _project->schematic()->remove_component(comp->id());
       // Notify QML
-      _selected = std::monostate{};
+      //_selected = std::monostate{};
+      setSelectedComponent();
       emit componentChanged();
       update(); // Clear current item.
     }

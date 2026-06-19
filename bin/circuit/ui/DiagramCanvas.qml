@@ -10,7 +10,10 @@ Item {
     property int blueprint: 0
     property alias filter: canvas.filter
     property alias project: canvas.project
-    property alias component: canvas.componentId
+    //property alias componentId: canvas.componentId
+
+    //  Currently selected component, if any
+    property alias componentWrapper: canvas.componentWrapper
     focus: true //  Control with focus receives keyboard events
 
     Flickable {

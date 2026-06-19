@@ -4,6 +4,8 @@
 #include <QQuickPaintedItem>
 
 #include "blueprintlibrarymodel.hpp"
+#include "componentwrapper.hpp"
+
 #include "diagramproperty.hpp"
 #include "schematic/circuitschematic.hpp"
 
@@ -13,8 +15,6 @@
 using PeppRect = pepp::core::Rectangle<i16>;
 using PeppSize = pepp::core::Size<i16>;
 using PeppPt = pepp::core::Point<i16>;
-
-class DiagramDataModel;
 
 // "screen" coordinates are pixels, in a range specified by our containing Flickable.
 // "grid" coordinates are integer values. Currently, 1 grid unit = 4 screen pixels, but this should
@@ -40,6 +40,8 @@ class GraphicCanvas : public QQuickPaintedItem {
   Q_PROPERTY(u32 blueprint READ blueprint WRITE setBlueprint NOTIFY blueprintChanged FINAL)
   Q_PROPERTY(u32 componentId READ componentId NOTIFY componentChanged FINAL)
   Q_PROPERTY(BlueprintLibraryModel::Filter filter READ filter WRITE setFilter NOTIFY filterChanged FINAL)
+
+  Q_PROPERTY(ComponentWrapper *componentWrapper READ componentWrapper NOTIFY currentItemChanged FINAL)
 
 public:
   GraphicCanvas(QQuickItem *parent = nullptr);
@@ -78,6 +80,8 @@ public:
   u32 blueprint() const { return _selectedBlueprint.value; }
   void setBlueprint(u32 bp);
 
+  ComponentWrapper *componentWrapper();
+  void setSelectedComponent(Component *comp = nullptr);
   Component *component() const;
   u32 componentId() const;
 
@@ -202,6 +206,7 @@ private:
 
   // Selection information
   std::variant<std::monostate, Component *> _selected = std::monostate{};
+  ComponentWrapper _wrapper;
   schematic::BlueprintID _selectedBlueprint{};
 
   //  Drag start

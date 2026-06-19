@@ -15,12 +15,6 @@ Rectangle {
         project: canvas.project
     }
 
-    ComponentPropertyModel {
-        id: componentModel
-        project: canvas.project
-        componentId: canvas.componentId ?? 0
-    }
-
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
@@ -48,7 +42,7 @@ Rectangle {
                 id: props
                 Layout.alignment: Qt.AlignBottom
                 Layout.fillWidth: true
-                componentModel: componentModel
+                component: canvas.componentWrapper
                 blueprintModel: blueprintModel
             }
         }

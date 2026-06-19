@@ -9,7 +9,8 @@ Pane {
     id: root
 
     //  Model containing all components in current project
-    required property ComponentPropertyModel componentModel
+    //required property ComponentPropertyModel componentModel
+    required property ComponentWrapper component
 
     //  List of available blueprints for current project
     required property BlueprintLibraryModel blueprintModel
@@ -19,11 +20,11 @@ Pane {
         spacing: 2
         bottomPadding: 0
 
-        //enabled: root.componentModel.component !== null ? true : false
+        enabled: root.component !== null ? true : false
 
         function updateInput() {
             //  Negative row indicates unitialized qindex
-            if (root.componentModel == null)
+            if (root.component == null)
                 return;
 
             //  Get data for current index
@@ -42,7 +43,7 @@ Pane {
             }
             Label {
                 id: id
-                text: root.componentModel.id ?? " "
+                text: root.component.id !== 0 ? root.component.id : "N/A"
             }
 
             Label {
