@@ -30,7 +30,7 @@ builtins::Figure::~Figure() {
 
 pepp::Architecture_Enum builtins::Figure::arch() const { return _arch; }
 
-pepp::QML_Architecture builtins::Figure::qml_arch() const { return to_qml_type(_arch); }
+int builtins::Figure::qml_arch() const { return (int)_arch; }
 
 pepp::Abstraction builtins::Figure::level() const { return _level; }
 

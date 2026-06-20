@@ -34,7 +34,7 @@ namespace builtins {
  */
 class Figure : public QObject {
   Q_OBJECT
-  Q_PROPERTY(pepp::QML_Architecture arch READ qml_arch CONSTANT);
+  Q_PROPERTY(int arch READ qml_arch CONSTANT);
   Q_PROPERTY(pepp::Abstraction level READ level CONSTANT);
   Q_PROPERTY(pepp::Features features READ features CONSTANT);
   Q_PROPERTY(QString prefix READ prefix CONSTANT);
@@ -60,7 +60,7 @@ public:
   ~Figure();
 
   pepp::Architecture_Enum arch() const;
-  pepp::QML_Architecture qml_arch() const;
+  int qml_arch() const;
   pepp::Abstraction level() const;
   pepp::Features features() const;
 

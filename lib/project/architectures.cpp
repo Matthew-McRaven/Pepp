@@ -2,13 +2,7 @@
 
 pepp::ArchitectureHelper::ArchitectureHelper(QObject *parent) : QObject(parent) {}
 
-QString pepp::ArchitectureHelper::string(pepp::ArchitectureHelper::Architecture arch) {
-  const auto casted = to_cpp_type(arch);
+QString pepp::ArchitectureHelper::string(int arch) {
+  const auto casted = static_cast<pepp::Architecture_Enum>(arch);
   return QString::fromStdString(pepp::arch_as_string(casted));
-}
-
-pepp::ArchitectureUtils::ArchitectureUtils(QObject *parent) : QObject(parent) {}
-
-QString pepp::ArchitectureUtils::archAsString(pepp::ArchitectureHelper::Architecture arch) {
-  return ArchitectureHelper::string(arch);
 }

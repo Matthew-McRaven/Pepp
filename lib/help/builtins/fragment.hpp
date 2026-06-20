@@ -77,12 +77,13 @@ public:
 
 class Macro : public QObject {
   Q_OBJECT
-  Q_PROPERTY(pepp::QML_Architecture arch MEMBER arch);
+  Q_PROPERTY(int arch READ qml_arch CONSTANT);
   Q_PROPERTY(QString name MEMBER name);
   Q_PROPERTY(QString text MEMBER text);
 
 public:
-  pepp::QML_Architecture arch;
+  int qml_arch() const { return (int)arch; }
+  pepp::Architecture_Enum arch;
   QString name;
   QString text;
 };

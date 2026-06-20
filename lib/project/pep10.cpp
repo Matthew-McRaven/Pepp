@@ -325,7 +325,7 @@ project::Environment Pep_ISA::env() const {
   return _env;
 }
 
-pepp::QML_Architecture Pep_ISA::architecture() const { return to_qml_type(_env.arch); }
+pepp::Architecture_Enum Pep_ISA::architecture() const { return _env.arch; }
 
 pepp::Abstraction Pep_ISA::abstraction() const { return _env.level; }
 
@@ -587,7 +587,7 @@ bool Pep_ISA::onLoadObject() {
 bool Pep_ISA::onFormatObject() {
   ObjectUtilities utils;
   utils.setBytesPerRow(16);
-  auto includeZZ = to_cpp_type(architecture()) != pepp::Architecture_Enum::PEP10;
+  auto includeZZ = architecture() != pepp::Architecture_Enum::PEP10;
   auto fmt = utils.format(_objectCodeText, includeZZ);
   setObjectCodeText(fmt);
   return true;
@@ -1058,7 +1058,7 @@ bool Pep_ASMB::_onAssemble(bool doLoad) {
 
   auto userBytes = helper.bytes(false);
   QString objectCodeText =
-      pas::ops::pepp::bytesToObject(userBytes, 16, to_cpp_type(architecture()) != pepp::Architecture_Enum::PEP10);
+      pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture_Enum::PEP10);
 
   _system->reconfigure(*elf);
   if (doLoad) _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
@@ -1118,7 +1118,7 @@ bool Pep_ASMB::onAssembleThenFormat() {
     setUserAsmText(source.join("\n"));
     auto userBytes = helper.bytes(false);
     QString objectCodeText =
-        pas::ops::pepp::bytesToObject(userBytes, 16, to_cpp_type(architecture()) != pepp::Architecture_Enum::PEP10);
+        pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture_Enum::PEP10);
     setObjectCodeText(objectCodeText);
   }
   emit requestSourceBreakpoints();
@@ -1332,7 +1332,7 @@ Pep_MA::Pep_MA(project::Environment env, QObject *parent)
 
 project::Environment Pep_MA::env() const { return _env; }
 
-pepp::QML_Architecture Pep_MA::architecture() const { return to_qml_type(_env.arch); }
+pepp::Architecture_Enum Pep_MA::architecture() const { return _env.arch; }
 
 pepp::Abstraction Pep_MA::abstraction() const { return _env.level; }
 

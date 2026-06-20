@@ -204,13 +204,13 @@ QString ProjectModel::describe(int index) const {
   pepp::Architecture_Enum arch;
   pepp::Abstraction abs;
   if (auto isa = dynamic_cast<Pep_ISA *>(_projects[index].impl.get())) {
-    arch = to_cpp_type(isa->architecture());
+    arch = isa->architecture();
     abs = isa->abstraction();
   } else if (auto asmb = dynamic_cast<Pep_ASMB *>(_projects[index].impl.get())) {
-    arch = to_cpp_type(asmb->architecture());
+    arch = asmb->architecture();
     abs = asmb->abstraction();
   } else if (auto ma = dynamic_cast<Pep_MA *>(_projects[index].impl.get())) {
-    arch = to_cpp_type(ma->architecture());
+    arch = ma->architecture();
     abs = ma->abstraction();
   } else return "";
   QString abs_str = abs_enum.valueToKey((int)abs);
@@ -266,11 +266,11 @@ const std::map<std::tuple<pepp::Abstraction, pepp::Architecture_Enum, pepp::Feat
 
 std::tuple<pepp::Abstraction, pepp::Architecture_Enum, pepp::Features> envFromPtr(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
-    return {asmb->abstraction(), to_cpp_type(asmb->architecture()), pepp::Features::None};
+    return {asmb->abstraction(), asmb->architecture(), pepp::Features::None};
   } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
-    return {isa->abstraction(), to_cpp_type(isa->architecture()), pepp::Features::None};
+    return {isa->abstraction(), isa->architecture(), pepp::Features::None};
   } else if (auto ma = qobject_cast<const Pep_MA *>(item)) {
-    return {ma->abstraction(), to_cpp_type(ma->architecture()), (pepp::Features)ma->features()};
+    return {ma->abstraction(), ma->architecture(), (pepp::Features)ma->features()};
   }
   return {pepp::Abstraction::NO_ABS, pepp::Architecture_Enum::NO_ARCH, pepp::Features::None};
 }
@@ -305,7 +305,7 @@ std::string defaultExtensionFor(const QObject *item) {
 
 void prependRecent(const QString &fname, pepp::Architecture_Enum arch, pepp::Abstraction level, pepp::Features feats) {
   auto settings = pepp::settings::detail::AppSettingsData::getInstance();
-  settings->general()->pushRecentFile(fname, to_qml_type(arch), level, feats);
+  settings->general()->pushRecentFile(fname, arch, level, feats);
 }
 
 auto recentFiles() {
@@ -686,8 +686,8 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
 
 ProjectTypeFilterModel::ProjectTypeFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 
-void ProjectTypeFilterModel::setArchitecture(pepp::QML_Architecture qml_arch) {
-  const auto arch = to_cpp_type(qml_arch);
+void ProjectTypeFilterModel::setArchitecture(int qml_arch) {
+  const auto arch = pepp::Architecture_Enum(qml_arch);
   if (_architecture == arch) return;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
   beginFilterChange();

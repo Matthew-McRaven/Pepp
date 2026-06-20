@@ -45,7 +45,7 @@ class Registry;
 class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
-  Q_PROPERTY(pepp::QML_Architecture architecture READ architecture CONSTANT)
+  Q_PROPERTY(int architecture READ qml_architecture CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
   Q_PROPERTY(int features READ features CONSTANT)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
@@ -86,7 +86,8 @@ public:
   };
   explicit Pep_ISA(project::Environment env, QObject *parent = nullptr, bool initializeSystem = true);
   virtual project::Environment env() const;
-  virtual pepp::QML_Architecture architecture() const;
+  int qml_architecture() const { return (int)architecture(); }
+  virtual pepp::Architecture_Enum architecture() const;
   virtual pepp::Abstraction abstraction() const;
   virtual int features() const;
   Q_INVOKABLE virtual QString delegatePath() const;
@@ -288,7 +289,7 @@ protected:
 class Pep_MA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
-  Q_PROPERTY(pepp::QML_Architecture architecture READ architecture CONSTANT)
+  Q_PROPERTY(int architecture READ qml_architecture CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
   Q_PROPERTY(int features READ features CONSTANT)
   Q_PROPERTY(QString lexerLanguage READ lexerLanguage CONSTANT)
@@ -318,7 +319,8 @@ public:
   };
   explicit Pep_MA(project::Environment env, QObject *parent = nullptr);
   virtual project::Environment env() const;
-  virtual pepp::QML_Architecture architecture() const;
+  int qml_architecture() const { return (int)architecture(); }
+  virtual pepp::Architecture_Enum architecture() const;
   virtual pepp::Abstraction abstraction() const;
   virtual int features() const;
   virtual QString lexerLanguage() const;

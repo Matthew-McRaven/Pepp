@@ -167,10 +167,10 @@ void HelpFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
   emit sourceModelChanged();
 }
 
-pepp::QML_Architecture HelpFilterModel::architecture() const { return pepp::to_qml_type(_architecture); }
+int HelpFilterModel::architecture() const { return (int)_architecture; }
 
-void HelpFilterModel::setArchitecture(pepp::QML_Architecture architecture) {
-  const auto converted = pepp::to_cpp_type(architecture);
+void HelpFilterModel::setArchitecture(int architecture) {
+  const auto converted = static_cast<pepp::Architecture_Enum>(architecture);
   if (_architecture == converted) return;
   _architecture = converted;
   invalidateRowsFilter();

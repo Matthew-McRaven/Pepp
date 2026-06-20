@@ -96,7 +96,7 @@ private:
 
 class HelpFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
-  Q_PROPERTY(pepp::QML_Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
+  Q_PROPERTY(int architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
   Q_PROPERTY(pepp::Abstraction abstraction READ abstraction WRITE setAbstraction NOTIFY abstractionChanged)
   Q_PROPERTY(QAbstractItemModel *model READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
   Q_PROPERTY(bool showWIPItems READ showWIPItems WRITE setShowWIPItems NOTIFY showWIPItemsChanged)
@@ -106,8 +106,8 @@ public:
   explicit HelpFilterModel(QObject *parent = nullptr);
 
   void setSourceModel(QAbstractItemModel *sourceModel) override;
-  pepp::QML_Architecture architecture() const;
-  void setArchitecture(pepp::QML_Architecture architecture);
+  int architecture() const;
+  void setArchitecture(int architecture);
   pepp::Abstraction abstraction() const;
   void setAbstraction(pepp::Abstraction abstraction);
   bool showWIPItems() const;

@@ -41,22 +41,7 @@ public:
   };
   Q_ENUM(Architecture)
   ArchitectureHelper(QObject *parent = nullptr);
-  Q_INVOKABLE static QString string(Architecture architecture);
+  Q_INVOKABLE static QString string(int architecture);
 };
 
-using QML_Architecture = ArchitectureHelper::Architecture;
-class ArchitectureUtils : public QObject {
-  Q_OBJECT
-  QML_ELEMENT
-public:
-  ArchitectureUtils(QObject *parent = nullptr);
-  Q_INVOKABLE QString archAsString(pepp::ArchitectureHelper::Architecture architecture);
-};
-
-constexpr pepp::Architecture_Enum to_cpp_type(pepp::ArchitectureHelper::Architecture arch) noexcept {
-  return static_cast<pepp::Architecture_Enum>(arch);
-}
-constexpr QML_Architecture to_qml_type(pepp::Architecture_Enum arch) noexcept {
-  return static_cast<QML_Architecture>(arch);
-}
 } // namespace pepp

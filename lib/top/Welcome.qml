@@ -22,9 +22,6 @@ Item {
     NuAppSettings {
         id: settings
     }
-    ArchitectureUtils {
-        id: utils
-    }
 
     //  Font metrics for new layout
     FontMetrics {
