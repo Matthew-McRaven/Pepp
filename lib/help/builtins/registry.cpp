@@ -82,13 +82,13 @@ QString builtins::Registry::contentFor(Fragment &element) {
   return _contents[&element];
 }
 
-void builtins::Registry::addAssembler(pepp::Architecture_Enum arch, std::unique_ptr<Assembler> &&assembler) {
+void builtins::Registry::addAssembler(pepp::Architecture arch, std::unique_ptr<Assembler> &&assembler) {
   _assemblers[arch] = std::move(assembler);
 }
 
-void builtins::Registry::addFormatter(pepp::Architecture_Enum arch, QString format,
+void builtins::Registry::addFormatter(pepp::Architecture arch, QString format,
                                       std::unique_ptr<Formatter> &&formatter) {
-  auto p = QPair<pepp::Architecture_Enum, QString>(arch, format);
+  auto p = QPair<pepp::Architecture, QString>(arch, format);
   _formatters[p] = std::move(formatter);
 }
 
@@ -186,7 +186,7 @@ std::optional<std::pair<QString, QString>> ch_fig_from_str(const QString &key) {
   return std::make_pair(chFigSplit[0], chFigSplit[1]);
 }
 
-std::optional<pepp::Architecture_Enum> arch_from_str(const QString &key) {
+std::optional<pepp::Architecture> arch_from_str(const QString &key) {
   bool okay = false;
   auto ret = pepp::string_to_arch(key.toStdString(), &okay);
   if (!okay) {
@@ -291,7 +291,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
   auto [chapterName, figureName] = *chFig;
 
   // Extract architecture / abstraction from manifest into enumerated constants
-  auto arch = pepp::Architecture_Enum::NO_ARCH;
+  auto arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   if (auto maybeArch = arch_from_str(manifest["arch"].toString("")); !maybeArch) return std::monostate();
   else arch = *maybeArch;

@@ -45,7 +45,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   using regs = pepp::tc::arch::Pep9Registers;
   using Code = pepp::tc::arch::Pep9ByteBus::Code;
   using Parser = pepp::tc::parse::MicroParser<uarch, regs>;
-  const auto arch = pepp::Architecture_Enum::PEP10;
+  const auto arch = pepp::Architecture::PEP10;
   SECTION("Register set preconditions") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);
@@ -139,7 +139,7 @@ TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   using regs = pepp::tc::arch::Pep9Registers;
   using Code = pepp::tc::arch::Pep9WordBus::Code;
   using Parser = pepp::tc::parse::MicroParser<uarch, regs>;
-  const auto arch = pepp::Architecture_Enum::PEP10;
+  const auto arch = pepp::Architecture::PEP10;
   SECTION("Register set preconditions") {
     auto [mem, cpu] = make<targets::pep9::mc2::CPUByteBus>();
     cpu.setTarget(&mem, nullptr);

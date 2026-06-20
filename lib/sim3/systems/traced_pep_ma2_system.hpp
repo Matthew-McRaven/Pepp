@@ -34,7 +34,7 @@ template <typename Address> class SimpleBus;
 namespace targets::ma {
 class System : public sim::api2::System<u16> {
 public:
-  System(pepp::Architecture_Enum arch, pepp::Features feats);
+  System(pepp::Architecture arch, pepp::Features feats);
   // System interface
   std::pair<sim::api2::tick::Type, sim::api2::tick::Result> tick(sim::api2::Scheduler::Mode mode) override;
   sim::api2::tick::Type currentTick() const override;
@@ -48,7 +48,7 @@ public:
   // Set default register values.
   void init();
 
-  pepp::Architecture_Enum architecture() const;
+  pepp::Architecture architecture() const;
   targets::pep9::mc2::BaseCPU *cpu();
   sim::memory::SimpleBus<u16> *bus();
 
@@ -57,7 +57,7 @@ private:
   sim::api2::device::IDGenerator _nextIDGenerator = [this]() { return _nextID++; };
   sim::api2::tick::Type _tick = 0;
 
-  pepp::Architecture_Enum _arch = pepp::Architecture_Enum::NO_ARCH;
+  pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
   pepp::Features _feats = pepp::Features::None;
   QSharedPointer<targets::pep9::mc2::BaseCPU> _cpu = nullptr;
   QSharedPointer<sim::memory::Dense<u16>> _rawMemory = nullptr;

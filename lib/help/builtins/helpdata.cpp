@@ -134,7 +134,7 @@ QSharedPointer<HelpEntry> ui_root() {
 }
 
 QSharedPointer<HelpEntry> workflows_root() {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   using enum pepp::Abstraction;
 
   auto mc2 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Microcode", "MDText.qml");
@@ -230,7 +230,7 @@ QSharedPointer<HelpEntry> greencard10_root() {
   mmio->sortName = "006";
   auto isa = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Instruction Set Architecture",
                                                "Greencard.qml");
-  isa->props = QVariantMap{{"architecture", QVariant((int)pepp::Architecture_Enum::PEP10)}};
+  isa->props = QVariantMap{{"architecture", QVariant((int)pepp::Architecture::PEP10)}};
   isa->slug = "isa";
   isa->sortName = "0";
   isa->addChildren({c_bit, n_bit, addr, reg, mmio});
@@ -298,7 +298,7 @@ QSharedPointer<HelpEntry> greencard10_root() {
   mc->sortName = "3";
   mc->addChildren({alu});
 
-  int p10 = bitmask_all_levels(pepp::Architecture_Enum::PEP10);
+  int p10 = bitmask_all_levels(pepp::Architecture::PEP10);
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, p10, "Pep/10 Reference", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/index.html"_s)}};
@@ -325,7 +325,7 @@ QSharedPointer<HelpEntry> greencard9_root() {
   mmio->sortName = "006";
   auto isa = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Instruction Set Architecture",
                                                "Greencard.qml");
-  isa->props = QVariantMap{{"architecture", QVariant((int)pepp::Architecture_Enum::PEP9)}};
+  isa->props = QVariantMap{{"architecture", QVariant((int)pepp::Architecture::PEP9)}};
   isa->sortName = "0";
   isa->addChildren({c_bit, n_bit, addr, reg, mmio});
 
@@ -369,7 +369,7 @@ QSharedPointer<HelpEntry> greencard9_root() {
   mc->sortName = "3";
   mc->addChildren({alu});
 
-  int p9 = bitmask_all_levels(pepp::Architecture_Enum::PEP9);
+  int p9 = bitmask_all_levels(pepp::Architecture::PEP9);
   auto root =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, p9, "Pep/9 Reference", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
@@ -378,8 +378,8 @@ QSharedPointer<HelpEntry> greencard9_root() {
   return root;
 }
 
-QString lexerLang(pepp::Architecture_Enum arch, pepp::Abstraction level, pepp::Features feat) {
-  using enum pepp::Architecture_Enum;
+QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feat) {
+  using enum pepp::Architecture;
   using enum pepp::Abstraction;
   using namespace bits;
   if (level == MA2) {
@@ -409,11 +409,11 @@ QString lexerLang(pepp::Architecture_Enum arch, pepp::Abstraction level, pepp::F
 }
 
 namespace {
-pepp::Architecture_Enum edition_to_arch(int edition) {
+pepp::Architecture edition_to_arch(int edition) {
   switch (edition) {
-  case 4: return pepp::Architecture_Enum::PEP8; break;
-  case 5: return pepp::Architecture_Enum::PEP9; break;
-  case 6: return pepp::Architecture_Enum::PEP10; break;
+  case 4: return pepp::Architecture::PEP8; break;
+  case 5: return pepp::Architecture::PEP9; break;
+  case 6: return pepp::Architecture::PEP10; break;
   default:
     static const char *const e = "Unknown edition";
     qCritical(e);
@@ -496,7 +496,7 @@ std::array<QSharedPointer<HelpEntry>, 3> problems_root(const builtins::Registry 
 QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   auto abs_mask =
       bitmask(pepp::Abstraction::ASMB3) | bitmask(pepp::Abstraction::OS4) | bitmask(pepp::Abstraction::ASMB5);
-  auto mask = bitmask(pepp::Architecture_Enum::PEP10) << shift | abs_mask;
+  auto mask = bitmask(pepp::Architecture::PEP10) << shift | abs_mask;
   auto books = reg.books();
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
@@ -540,7 +540,7 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
     static const QString pl = "LDWA %1, i\nSCALL $1, $2\n";
     auto displayTitle = scall;
     auto sortTitle = u"%1 %2"_s.arg(it++).arg(scall);
-    static const auto scall_mask = bitmask(pepp::Architecture_Enum::PEP10, pepp::Abstraction::ASMB5);
+    static const auto scall_mask = bitmask(pepp::Architecture::PEP10, pepp::Abstraction::ASMB5);
     auto entry = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, scall_mask, displayTitle,
                                                    "../builtins/Macro.qml");
     entry->sortName = sortTitle;
@@ -562,8 +562,8 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   return root;
 }
 
-int bitmask(pepp::Architecture_Enum arch) {
-  using enum pepp::Architecture_Enum;
+int bitmask(pepp::Architecture arch) {
+  using enum pepp::Architecture;
   switch (arch) {
   case NO_ARCH: return 0;
   case PEP8: return 1 << 0;
@@ -593,7 +593,7 @@ int bitmask(pepp::Abstraction level) {
   }
 }
 
-int bitmask(pepp::Architecture_Enum arch, pepp::Abstraction level) { return bitmask(arch) << shift | bitmask(level); }
+int bitmask(pepp::Architecture arch, pepp::Abstraction level) { return bitmask(arch) << shift | bitmask(level); }
 
 bool masked(int lhs, int rhs) {
   static_assert(shift >= 0);
@@ -604,7 +604,7 @@ bool masked(int lhs, int rhs) {
   return mask_upper > 0 && mask_lower > 0;
 }
 
-int bitmask_all_levels(pepp::Architecture_Enum arch) {
+int bitmask_all_levels(pepp::Architecture arch) {
   int level_mask = (1 << shift) - 1;
   return bitmask(arch) << shift | (-1 & level_mask);
 }

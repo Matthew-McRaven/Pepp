@@ -124,7 +124,7 @@ signals:
   void showWIPItemsChanged();
 
 private:
-  pepp::Architecture_Enum _architecture = pepp::Architecture_Enum::NO_ARCH;
+  pepp::Architecture _architecture = pepp::Architecture::NO_ARCH;
   pepp::Abstraction _abstraction = pepp::Abstraction::NO_ABS;
   bool _showWIPItems = false;
 };

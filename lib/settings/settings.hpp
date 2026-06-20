@@ -52,13 +52,13 @@ class RecentFile {
   QML_VALUE_TYPE(recent_file)
 public:
   RecentFile() = default;
-  RecentFile(const QString &filePath, pepp::Architecture_Enum arch, pepp::Abstraction level, pepp::Features features)
+  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level, pepp::Features features)
       : _path(filePath), _arch(arch), _level(level), _features(features) {};
   RecentFile(const RecentFile &other) noexcept = default;
   RecentFile &operator=(const RecentFile &other) noexcept = default;
   QString path() const { return _path; }
   int qml_arch() const { return (int)_arch; }
-  pepp::Architecture_Enum arch() const { return _arch; }
+  pepp::Architecture arch() const { return _arch; }
   pepp::Abstraction abstraction() const { return _level; }
   pepp::Features features() const { return _features; }
 
@@ -66,7 +66,7 @@ public:
 
 private:
   QString _path = "";
-  pepp::Architecture_Enum _arch = pepp::Architecture_Enum::NO_ARCH;
+  pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction _level = pepp::Abstraction::NO_ABS;
   pepp::Features _features = pepp::Features::None;
 };
@@ -111,7 +111,7 @@ public:
   int defaultEdition() const;
   void setDefaultEdition(int edition);
   int qml_defaultArch() const;
-  pepp::Architecture_Enum defaultArch() const;
+  pepp::Architecture defaultArch() const;
   void setDefaultArch(int arch);
   pepp::Abstraction defaultAbstraction() const;
   bool showDebugComponents() const;
@@ -128,7 +128,7 @@ public:
   QString externalFigureDirectory() const;
   void setExternalFigureDirectory(const QString &path);
   QString figureDirectory() const;
-  Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture_Enum arch, pepp::Abstraction level,
+  Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture arch, pepp::Abstraction level,
                                   pepp::Features features);
   Q_INVOKABLE void clearRecentFiles();
   // Really should be in a seperate class, but I only use it when touching recent files.
@@ -151,7 +151,7 @@ private:
   void refreshRecentFileCache() const;
   mutable QList<RecentFile> _recentFileCache;
   const int defaultDefaultEdition = 6;
-  const pepp::Architecture_Enum defaultDefaultArch = pepp::Architecture_Enum::PEP10;
+  const pepp::Architecture defaultDefaultArch = pepp::Architecture::PEP10;
   const pepp::Abstraction defaultDefaultAbstraction = pepp::Abstraction::ASMB5;
   const bool defaultShowDebugComponents = false;
   bool validateMaxRecentFiles(int max) const;

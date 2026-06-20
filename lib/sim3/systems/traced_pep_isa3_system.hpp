@@ -41,7 +41,7 @@ template <typename Address> class ReadOnly;
 namespace targets::isa {
 class System : public sim::api2::System<u16> {
 public:
-  System(pepp::Architecture_Enum arch, QList<obj::MemoryRegion> regions, std::vector<obj::AddressedIO> mmios);
+  System(pepp::Architecture arch, QList<obj::MemoryRegion> regions, std::vector<obj::AddressedIO> mmios);
   // System interface
   std::pair<sim::api2::tick::Type, sim::api2::tick::Result> tick(sim::api2::Scheduler::Mode mode) override;
   sim::api2::tick::Type currentTick() const override;
@@ -55,7 +55,7 @@ public:
   // Set default register values.
   void init();
 
-  pepp::Architecture_Enum architecture() const;
+  pepp::Architecture architecture() const;
   sim::api2::tick::Recipient *cpu();
 
   sim::memory::SimpleBus<u16> *bus();
@@ -70,7 +70,7 @@ public:
   void reconfigure(const ELFIO::elfio &elf);
 
 private:
-  void reconfigure(pepp::Architecture_Enum arch, QList<obj::MemoryRegion> regions, std::vector<obj::AddressedIO> mmios);
+  void reconfigure(pepp::Architecture arch, QList<obj::MemoryRegion> regions, std::vector<obj::AddressedIO> mmios);
   sim::api2::device::ID _nextID = 0;
   sim::api2::device::IDGenerator _nextIDGenerator = [this]() { return _nextID++; };
   sim::api2::tick::Type _tick = 0;
@@ -83,7 +83,7 @@ private:
                            u16 baseOffset = 0);
   QList<ReloadHelper> _regions;
 
-  const pepp::Architecture_Enum _arch = pepp::Architecture_Enum::NO_ARCH;
+  const pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
   QSharedPointer<sim::api2::tick::Recipient> _cpu = nullptr;
   QSharedPointer<sim::memory::SimpleBus<u16>> _bus = nullptr;
   QSharedPointer<sim::api2::Paths> _paths = nullptr;

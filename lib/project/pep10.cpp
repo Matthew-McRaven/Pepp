@@ -95,7 +95,7 @@ struct SystemAssembly {
 };
 
 SystemAssembly make_isa_system(project::Environment env, const builtins::Registry *books) {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   QSharedPointer<const builtins::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
@@ -147,7 +147,7 @@ QString cs5e_os(const builtins::Registry *books) {
 
 // TODO: fix
 SystemAssembly make_asmb_system(project::Environment env, QString os, const builtins::Registry *books) {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   QSharedPointer<const builtins::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
@@ -291,7 +291,7 @@ Pep_ISA::Pep_ISA(project::Environment env, QObject *parent, bool initializeSyste
 }
 
 void Pep_ISA::bindToSystem() {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP9:
     _flags = flag_model<targets::pep9::isa::CPU, isa::Pep9>(&*_system, this);
@@ -325,7 +325,7 @@ project::Environment Pep_ISA::env() const {
   return _env;
 }
 
-pepp::Architecture_Enum Pep_ISA::architecture() const { return _env.arch; }
+pepp::Architecture Pep_ISA::architecture() const { return _env.arch; }
 
 pepp::Abstraction Pep_ISA::abstraction() const { return _env.level; }
 
@@ -336,7 +336,7 @@ QString Pep_ISA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep
 ARawMemory *Pep_ISA::memory() const { return _memory; }
 
 OpcodeModel *Pep_ISA::mnemonics() const {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP9: {
     static OpcodeModel *model = new OpcodeModel();
@@ -390,7 +390,7 @@ int Pep_ISA::enabledSteps() const {
 }
 
 int Pep_ISA::allowedSteps() const {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   if (_state != State::DebugPaused) return 0b0;
   using S = project::StepEnableFlags::Value;
   // TODO: have CPU tell you if next instr can step into.
@@ -447,7 +447,7 @@ bool Pep_ISA::isEmpty() const { return _objectCodeText.isEmpty(); }
 bool Pep_ISA::ignoreOS() const { return true; }
 
 bool Pep_ISA::pcInOS() const {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   quint16 pc;
   // Update cpu-dependent fields in memory before triggering a GUI update.
   switch (_env.arch) {
@@ -557,7 +557,7 @@ bool Pep_ISA::onLoadObject() {
   quint8 is;
   quint16 sp, pc;
   bool isUnary;
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
@@ -587,7 +587,7 @@ bool Pep_ISA::onLoadObject() {
 bool Pep_ISA::onFormatObject() {
   ObjectUtilities utils;
   utils.setBytesPerRow(16);
-  auto includeZZ = architecture() != pepp::Architecture_Enum::PEP10;
+  auto includeZZ = architecture() != pepp::Architecture::PEP10;
   auto fmt = utils.format(_objectCodeText, includeZZ);
   setObjectCodeText(fmt);
   return true;
@@ -658,7 +658,7 @@ auto generateStepCondition(targets::isa::System *system, qint16 offset, bool ign
 }
 
 bool Pep_ISA::onISAStep() {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   bool nextIsTrap = false;
   quint8 is;
   quint16 pc;
@@ -691,7 +691,7 @@ bool Pep_ISA::onISAStepInto() { return stepDepthHelper(1); }
 bool Pep_ISA::onISAStepOut() { return stepDepthHelper(-1); }
 
 bool Pep_ISA::onClearCPU() {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
@@ -834,7 +834,7 @@ void Pep_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
 }
 
 void Pep_ISA::updateMemPCSP() const {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   quint8 is;
   quint16 sp, pc;
   bool isUnary;
@@ -864,7 +864,7 @@ void Pep_ISA::updateMemPCSP() const {
 }
 
 bool Pep_ISA::stepDepthHelper(qint16 offset) {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   _state = State::DebugExec;
   _stepsSinceLastInteraction = 0;
   _pendingPause = false;
@@ -889,7 +889,7 @@ project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
 Pep_ASMB::Pep_ASMB(project::Environment env, QObject *parent) : Pep_ISA(env, parent, false) {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   using enum pepp::Abstraction;
   switch (_env.arch) {
   case PEP9: _osAsmText = cs5e_os(&*_books); break;
@@ -1016,7 +1016,7 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
 }
 
 bool Pep_ASMB::_onAssemble(bool doLoad) {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   _userList = _osList = "";
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
   switch (_env.arch) {
@@ -1058,7 +1058,7 @@ bool Pep_ASMB::_onAssemble(bool doLoad) {
 
   auto userBytes = helper.bytes(false);
   QString objectCodeText =
-      pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture_Enum::PEP10);
+      pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture::PEP10);
 
   _system->reconfigure(*elf);
   if (doLoad) _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
@@ -1093,7 +1093,7 @@ bool Pep_ASMB::onAssembleThenLoad() {
 
 bool Pep_ASMB::onAssembleThenFormat() {
   emit clearMessages();
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   _userList = _osList = "";
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
   switch (_env.arch) {
@@ -1118,7 +1118,7 @@ bool Pep_ASMB::onAssembleThenFormat() {
     setUserAsmText(source.join("\n"));
     auto userBytes = helper.bytes(false);
     QString objectCodeText =
-        pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture_Enum::PEP10);
+        pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture::PEP10);
     setObjectCodeText(objectCodeText);
   }
   emit requestSourceBreakpoints();
@@ -1194,7 +1194,7 @@ void Pep_ASMB::onClearEditorErrors() {
 }
 
 void Pep_ASMB::prepareSim() {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   // Must assemble first, otherwise we might load an outdated version of the OS
   // via _system->init(). Specifically, outdated memory-mapped vector values.
   if (!_onAssemble(true)) return;
@@ -1251,7 +1251,7 @@ void Pep_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
 }
 
 void Pep_ASMB::updatePCLine() {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   quint16 pc = 0;
   switch (_env.arch) {
   case PEP9: {
@@ -1332,7 +1332,7 @@ Pep_MA::Pep_MA(project::Environment env, QObject *parent)
 
 project::Environment Pep_MA::env() const { return _env; }
 
-pepp::Architecture_Enum Pep_MA::architecture() const { return _env.arch; }
+pepp::Architecture Pep_MA::architecture() const { return _env.arch; }
 
 pepp::Abstraction Pep_MA::abstraction() const { return _env.level; }
 
@@ -1340,7 +1340,7 @@ int Pep_MA::features() const { return (int)_env.features; }
 
 QString Pep_MA::lexerLanguage() const {
   using namespace bits;
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP8: return "Pep8Micro";
   case PEP9: [[fallthrough]];
@@ -1359,7 +1359,7 @@ ARawMemory *Pep_MA::memory() const { return _memory; }
 pepp::ConnectionsHolder const *Pep_MA::connections() const { return &_holder; }
 
 OpcodeModel *Pep_MA::mnemonics() const {
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP9: {
     static OpcodeModel *model = new OpcodeModel();
@@ -1446,7 +1446,7 @@ QString Pep_MA::contentsForExtension(const QString &ext) const {
 
 int Pep_MA::rendering_type() const {
   using namespace bits;
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   switch (_env.arch) {
     // Pep/8 only has a 1-byte databus variant
   case PEP8: return 0;
@@ -1641,7 +1641,7 @@ void Pep_MA::bindToSystem() {
   using namespace bits;
   _paint_key.clear();
   load_common_vars();
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP9: break;
   case PEP10: break;
@@ -1828,7 +1828,7 @@ void Pep_MA::load_twobyte_vars() {
 
 bool Pep_MA::_microassemble(bool override_source_text) {
   using namespace bits;
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   switch (_env.arch) {
   case PEP8: return _microassemble8(override_source_text);
   case PEP9: [[fallthrough]];

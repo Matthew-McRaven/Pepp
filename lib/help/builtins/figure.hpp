@@ -54,12 +54,12 @@ class Figure : public QObject {
   Q_PROPERTY(QString defaultFragmentName READ defaultFragmentName CONSTANT);
 
 public:
-  Figure(pepp::Architecture_Enum arch, pepp::Abstraction level, pepp::Features feats, QString prefix, QString chapter,
+  Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats, QString prefix, QString chapter,
          QString figure, bool isProblem = false);
 
   ~Figure();
 
-  pepp::Architecture_Enum arch() const;
+  pepp::Architecture arch() const;
   int qml_arch() const;
   pepp::Abstraction level() const;
   pepp::Features features() const;
@@ -108,7 +108,7 @@ signals:
   void fragmentsChanged();
 
 private:
-  const pepp::Architecture_Enum _arch;
+  const pepp::Architecture _arch;
   const pepp::Abstraction _level;
   const pepp::Features _features = pepp::Features::None;
   const QString _prefix, _chapterName, _figureName;

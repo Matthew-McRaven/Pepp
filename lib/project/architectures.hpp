@@ -33,11 +33,11 @@ class ArchitectureHelper : public QObject {
 public:
   // Have to shadow the earlier enum, because Q_ENUM only works enums declared inside this class.
   enum class Architecture {
-    NO_ARCH = (int)pepp::Architecture_Enum::NO_ARCH,
-    PEP8 = (int)pepp::Architecture_Enum::PEP8,
-    PEP9 = (int)pepp::Architecture_Enum::PEP9,
-    PEP10 = (int)pepp::Architecture_Enum::PEP10,
-    RISCV = (int)pepp::Architecture_Enum::RISCV,
+    NO_ARCH = (int)pepp::Architecture::NO_ARCH,
+    PEP8 = (int)pepp::Architecture::PEP8,
+    PEP9 = (int)pepp::Architecture::PEP9,
+    PEP10 = (int)pepp::Architecture::PEP10,
+    RISCV = (int)pepp::Architecture::RISCV,
   };
   Q_ENUM(Architecture)
   ArchitectureHelper(QObject *parent = nullptr);

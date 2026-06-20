@@ -85,7 +85,7 @@ struct ProjectType {
   QString details{};
   QString chapter{};
   QString description{};
-  pepp::Architecture_Enum arch = pepp::Architecture_Enum::NO_ARCH;
+  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   pepp::Features features = pepp::Features::None;
   CompletionState state = CompletionState::INCOMPLETE;
@@ -162,7 +162,7 @@ signals:
   void showDuplicateFeaturesChanged();
 
 private:
-  pepp::Architecture_Enum _architecture = pepp::Architecture_Enum::NO_ARCH;
+  pepp::Architecture _architecture = pepp::Architecture::NO_ARCH;
   int _edition = 0;
   bool _showIncomplete = false, _showPartial = false, _showDuplicateFeatures = true;
 };

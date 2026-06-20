@@ -5,11 +5,11 @@
 #include "toolchain/pas/operations/pepp/string.hpp"
 
 struct PepAssembler : public builtins::Registry::Assembler {
-  PepAssembler(const builtins::Registry *registry, pepp::Architecture_Enum arch) : _registry(registry), _arch(arch) {}
+  PepAssembler(const builtins::Registry *registry, pepp::Architecture arch) : _registry(registry), _arch(arch) {}
   QVariant operator()(const QString &os, const QString &user) override {
     QSharedPointer<macro::Registry> macros;
-    if (_arch == pepp::Architecture_Enum::PEP10) macros = helpers::cs6e_macros(_registry);
-    else if (_arch == pepp::Architecture_Enum::PEP9) macros = helpers::cs5e_macros(_registry);
+    if (_arch == pepp::Architecture::PEP10) macros = helpers::cs6e_macros(_registry);
+    else if (_arch == pepp::Architecture::PEP9) macros = helpers::cs5e_macros(_registry);
     else {
       qWarning("Unsupported architecture for assembler");
       return {};
@@ -40,7 +40,7 @@ struct PepAssembler : public builtins::Registry::Assembler {
 
 private:
   const builtins::Registry *_registry;
-  pepp::Architecture_Enum _arch;
+  pepp::Architecture _arch;
 };
 
 template <typename ISA> QString formatH(QVariant assembled) {
@@ -116,18 +116,18 @@ QSharedPointer<builtins::Registry> helpers::builtins_registry(bool use_app_setti
 
 QSharedPointer<builtins::Registry> helpers::registry_with_assemblers(bool use_app_settings, QString directory) {
   auto registry = builtins_registry(use_app_settings, directory);
-  registry->addAssembler(pepp::Architecture_Enum::PEP10,
-                         std::make_unique<PepAssembler>(&*registry, pepp::Architecture_Enum::PEP10));
-  registry->addFormatter(pepp::Architecture_Enum::PEP10, "peph", std::make_unique<Pep10HFormatter>());
-  registry->addFormatter(pepp::Architecture_Enum::PEP10, "pepb", std::make_unique<Pep10BFormatter>());
-  registry->addFormatter(pepp::Architecture_Enum::PEP10, "pepl", std::make_unique<Pep10LFormatter>());
-  registry->addFormatter(pepp::Architecture_Enum::PEP10, "pepo", std::make_unique<Pep10OFormatter>());
-  registry->addAssembler(pepp::Architecture_Enum::PEP9,
-                         std::make_unique<PepAssembler>(&*registry, pepp::Architecture_Enum::PEP9));
-  registry->addFormatter(pepp::Architecture_Enum::PEP9, "peph", std::make_unique<Pep9HFormatter>());
-  registry->addFormatter(pepp::Architecture_Enum::PEP9, "pepb", std::make_unique<Pep9BFormatter>());
-  registry->addFormatter(pepp::Architecture_Enum::PEP9, "pepl", std::make_unique<Pep9LFormatter>());
-  registry->addFormatter(pepp::Architecture_Enum::PEP9, "pepo", std::make_unique<Pep9OFormatter>());
+  registry->addAssembler(pepp::Architecture::PEP10,
+                         std::make_unique<PepAssembler>(&*registry, pepp::Architecture::PEP10));
+  registry->addFormatter(pepp::Architecture::PEP10, "peph", std::make_unique<Pep10HFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP10, "pepb", std::make_unique<Pep10BFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP10, "pepl", std::make_unique<Pep10LFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP10, "pepo", std::make_unique<Pep10OFormatter>());
+  registry->addAssembler(pepp::Architecture::PEP9,
+                         std::make_unique<PepAssembler>(&*registry, pepp::Architecture::PEP9));
+  registry->addFormatter(pepp::Architecture::PEP9, "peph", std::make_unique<Pep9HFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP9, "pepb", std::make_unique<Pep9BFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP9, "pepl", std::make_unique<Pep9LFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP9, "pepo", std::make_unique<Pep9OFormatter>());
   return registry;
 }
 

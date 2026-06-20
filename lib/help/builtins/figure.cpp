@@ -17,7 +17,7 @@
 
 #include "figure.hpp"
 
-builtins::Figure::Figure(pepp::Architecture_Enum arch, pepp::Abstraction level, pepp::Features feats, QString prefix,
+builtins::Figure::Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats, QString prefix,
                          QString chapter, QString figure, bool isProblem)
     : QObject(nullptr), _arch(arch), _level(level), _features(feats), _prefix(prefix), _chapterName(chapter),
       _figureName(figure), _isProblem(isProblem) {}
@@ -28,7 +28,7 @@ builtins::Figure::~Figure() {
   for (auto value : _allFragments) delete value;
 }
 
-pepp::Architecture_Enum builtins::Figure::arch() const { return _arch; }
+pepp::Architecture builtins::Figure::arch() const { return _arch; }
 
 int builtins::Figure::qml_arch() const { return (int)_arch; }
 

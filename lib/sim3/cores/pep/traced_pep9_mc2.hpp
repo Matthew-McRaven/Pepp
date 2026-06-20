@@ -54,7 +54,7 @@ public:
   // Reset status back to okay. Do not fix registers / memory / etc.
   virtual void init();
   Status status() const;
-  void setConstantRegisters(pepp::Architecture_Enum which);
+  void setConstantRegisters(pepp::Architecture which);
   void resetMicroPC();
   u16 microPC() const noexcept;
   // 0 means no memory access, [1-3] are the cycles where access happens.

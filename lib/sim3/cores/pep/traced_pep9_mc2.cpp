@@ -51,7 +51,7 @@ sim::api2::device::Descriptor targets::pep9::mc2::BaseCPU::device() const { retu
 
 void targets::pep9::mc2::BaseCPU::init() { _status = Status::Ok; }
 
-void targets::pep9::mc2::BaseCPU::setConstantRegisters(pepp::Architecture_Enum which) {
+void targets::pep9::mc2::BaseCPU::setConstantRegisters(pepp::Architecture which) {
   writeReg(22, 0x00);
   writeReg(23, 0x01);
   writeReg(24, 0x02);
@@ -61,11 +61,11 @@ void targets::pep9::mc2::BaseCPU::setConstantRegisters(pepp::Architecture_Enum w
   writeReg(30, 0xFE);
   writeReg(31, 0xFF);
   switch (which) {
-  case pepp::Architecture_Enum::PEP9:
+  case pepp::Architecture::PEP9:
     writeReg(28, 0xF7);
     writeReg(29, 0xFB);
     break;
-  case pepp::Architecture_Enum::PEP10:
+  case pepp::Architecture::PEP10:
     writeReg(28, 0xF0);
     writeReg(29, 0xF6);
     break;

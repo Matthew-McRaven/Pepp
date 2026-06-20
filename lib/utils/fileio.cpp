@@ -39,7 +39,7 @@ void FileIO::save(const QString &filename, const QString &data) {
 
 void FileIO::loadCodeViaDialog(const QString &filters) {
   // arch, abstraction
-  using enum pepp::Architecture_Enum;
+  using enum pepp::Architecture;
   using enum pepp::Abstraction;
   using enum pepp::Features;
   static const int B1 = (int)OneByte;

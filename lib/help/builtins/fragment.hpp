@@ -83,7 +83,7 @@ class Macro : public QObject {
 
 public:
   int qml_arch() const { return (int)arch; }
-  pepp::Architecture_Enum arch;
+  pepp::Architecture arch;
   QString name;
   QString text;
 };

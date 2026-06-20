@@ -87,7 +87,7 @@ public:
   explicit Pep_ISA(project::Environment env, QObject *parent = nullptr, bool initializeSystem = true);
   virtual project::Environment env() const;
   int qml_architecture() const { return (int)architecture(); }
-  virtual pepp::Architecture_Enum architecture() const;
+  virtual pepp::Architecture architecture() const;
   virtual pepp::Abstraction abstraction() const;
   virtual int features() const;
   Q_INVOKABLE virtual QString delegatePath() const;
@@ -320,7 +320,7 @@ public:
   explicit Pep_MA(project::Environment env, QObject *parent = nullptr);
   virtual project::Environment env() const;
   int qml_architecture() const { return (int)architecture(); }
-  virtual pepp::Architecture_Enum architecture() const;
+  virtual pepp::Architecture architecture() const;
   virtual pepp::Abstraction abstraction() const;
   virtual int features() const;
   virtual QString lexerLanguage() const;
