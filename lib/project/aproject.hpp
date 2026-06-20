@@ -72,7 +72,7 @@ public:
 // TODO: Expose values on AProject directly
 struct Environment {
   pepp::Architecture arch;
-  pepp::Abstraction level;
+  pepp::AbstractionEnu level;
   pepp::Features features;
 };
 } // namespace project

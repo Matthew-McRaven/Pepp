@@ -46,7 +46,7 @@ class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(int architecture READ qml_architecture CONSTANT)
-  Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(int abstraction READ qml_abstraction CONSTANT)
   Q_PROPERTY(int features READ features CONSTANT)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
@@ -88,7 +88,8 @@ public:
   virtual project::Environment env() const;
   int qml_architecture() const { return (int)architecture(); }
   virtual pepp::Architecture architecture() const;
-  virtual pepp::Abstraction abstraction() const;
+  int qml_abstraction() const { return (int)abstraction(); }
+  virtual pepp::AbstractionEnu abstraction() const;
   virtual int features() const;
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
@@ -290,7 +291,7 @@ class Pep_MA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(int architecture READ qml_architecture CONSTANT)
-  Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(int abstraction READ qml_abstraction CONSTANT)
   Q_PROPERTY(int features READ features CONSTANT)
   Q_PROPERTY(QString lexerLanguage READ lexerLanguage CONSTANT)
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
@@ -321,7 +322,8 @@ public:
   virtual project::Environment env() const;
   int qml_architecture() const { return (int)architecture(); }
   virtual pepp::Architecture architecture() const;
-  virtual pepp::Abstraction abstraction() const;
+  int qml_abstraction() const { return (int)abstraction(); }
+  virtual pepp::AbstractionEnu abstraction() const;
   virtual int features() const;
   virtual QString lexerLanguage() const;
   Q_INVOKABLE virtual QString delegatePath() const;

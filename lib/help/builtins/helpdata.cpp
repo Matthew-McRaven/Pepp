@@ -135,7 +135,7 @@ QSharedPointer<HelpEntry> ui_root() {
 
 QSharedPointer<HelpEntry> workflows_root() {
   using enum pepp::Architecture;
-  using enum pepp::Abstraction;
+  using enum pepp::AbstractionEnu;
 
   auto mc2 = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Microcode", "MDText.qml");
   mc2->props = QVariantMap{{"file", QVariant(u":/help/workflow/mc2.html"_s)}};
@@ -378,9 +378,9 @@ QSharedPointer<HelpEntry> greencard9_root() {
   return root;
 }
 
-QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feat) {
+QString lexerLang(pepp::Architecture arch, pepp::AbstractionEnu level, pepp::Features feat) {
   using enum pepp::Architecture;
-  using enum pepp::Abstraction;
+  using enum pepp::AbstractionEnu;
   using namespace bits;
   if (level == MA2) {
     QString archStr;
@@ -483,7 +483,7 @@ std::array<QSharedPointer<HelpEntry>, 3> problems_root(const builtins::Registry 
     // Hide the "problems" otherwise, because it is empty.
     QString title = u"Problems, %1th Edition"_s.arg(match);
     const auto arch_mask = bitmask(arch);
-    const auto abstr_mask = bitmask(pepp::Abstraction::MA2);
+    const auto abstr_mask = bitmask(pepp::AbstractionEnu::MA2);
     auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, (arch_mask) << shift | abstr_mask,
                                                   title, "MDText.qml");
     root->isExternal = reg.usingExternalFigures();
@@ -495,7 +495,7 @@ std::array<QSharedPointer<HelpEntry>, 3> problems_root(const builtins::Registry 
 }
 QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   auto abs_mask =
-      bitmask(pepp::Abstraction::ASMB3) | bitmask(pepp::Abstraction::OS4) | bitmask(pepp::Abstraction::ASMB5);
+      bitmask(pepp::AbstractionEnu::ASMB3) | bitmask(pepp::AbstractionEnu::OS4) | bitmask(pepp::AbstractionEnu::ASMB5);
   auto mask = bitmask(pepp::Architecture::PEP10) << shift | abs_mask;
   auto books = reg.books();
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
@@ -540,7 +540,7 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
     static const QString pl = "LDWA %1, i\nSCALL $1, $2\n";
     auto displayTitle = scall;
     auto sortTitle = u"%1 %2"_s.arg(it++).arg(scall);
-    static const auto scall_mask = bitmask(pepp::Architecture::PEP10, pepp::Abstraction::ASMB5);
+    static const auto scall_mask = bitmask(pepp::Architecture::PEP10, pepp::AbstractionEnu::ASMB5);
     auto entry = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, scall_mask, displayTitle,
                                                    "../builtins/Macro.qml");
     entry->sortName = sortTitle;
@@ -577,8 +577,8 @@ int bitmask(pepp::Architecture arch) {
   }
 }
 
-int bitmask(pepp::Abstraction level) {
-  using enum pepp::Abstraction;
+int bitmask(pepp::AbstractionEnu level) {
+  using enum pepp::AbstractionEnu;
   switch (level) {
   case NO_ABS: return 0;
   case MA2: return 1 << 0;
@@ -593,7 +593,7 @@ int bitmask(pepp::Abstraction level) {
   }
 }
 
-int bitmask(pepp::Architecture arch, pepp::Abstraction level) { return bitmask(arch) << shift | bitmask(level); }
+int bitmask(pepp::Architecture arch, pepp::AbstractionEnu level) { return bitmask(arch) << shift | bitmask(level); }
 
 bool masked(int lhs, int rhs) {
   static_assert(shift >= 0);

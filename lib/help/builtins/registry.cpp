@@ -196,15 +196,15 @@ std::optional<pepp::Architecture> arch_from_str(const QString &key) {
   return ret;
 }
 
-std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
+std::optional<pepp::AbstractionEnu> abs_from_str(const QString &key) {
   auto keyStr = key.toUpper().toStdString();
   bool okay = false;
-  auto archInt = QMetaEnum::fromType<pepp::Abstraction>().keyToValue(keyStr.data(), &okay);
+  auto ret = pepp::string_to_level(key.toStdString(), &okay);
   if (!okay) {
-    qWarning("Invalid figure abstraction: %s", keyStr.data());
+    SPDLOG_WARN("Invalid figure abstraction: {}", key.toStdString());
     return std::nullopt;
   }
-  return static_cast<pepp::Abstraction>(archInt);
+  return ret;
 }
 
 ::builtins::Fragment *loadFragment(const QJsonObject &item, const QDir &manifestDir, builtins::Figure *parent,
@@ -292,7 +292,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
 
   // Extract architecture / abstraction from manifest into enumerated constants
   auto arch = pepp::Architecture::NO_ARCH;
-  pepp::Abstraction level = pepp::Abstraction::NO_ABS;
+  auto level = pepp::AbstractionEnu::NO_ABS;
   if (auto maybeArch = arch_from_str(manifest["arch"].toString("")); !maybeArch) return std::monostate();
   else arch = *maybeArch;
   if (auto maybeLevel = abs_from_str(manifest["abstraction"].toString("")); !maybeLevel) return std::monostate();

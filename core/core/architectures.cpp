@@ -45,3 +45,48 @@ pepp::Architecture pepp::string_to_arch(const std::string &str, bool *okay) {
   if (okay) *okay = false;
   return Architecture::NO_ARCH;
 }
+
+struct LevelData {
+  std::string basic, pretty;
+};
+
+std::map<pepp::AbstractionEnu, LevelData> init_levels() {
+  using namespace pepp;
+  std::map<pepp::AbstractionEnu, LevelData> m{};
+  m[AbstractionEnu::MA2] = {"MA2", "Microarchitecture 2"};
+  m[AbstractionEnu::ISA3] = {"ISA3", "Instruction Set Architecture 3"};
+  m[AbstractionEnu::ASMB3] = {"Asmb3", "Assembly 3"};
+  m[AbstractionEnu::ASMB5] = {"Asmb5", "Assembly 5"};
+  m[AbstractionEnu::OS4] = {"OS4", "Operating System 4"};
+  return m;
+}
+
+static const auto levels = init_levels();
+
+bool pepp::is_valid_level(AbstractionEnu level) noexcept { return levels.find(level) != levels.end(); }
+
+bool pepp::is_valid_level(int level) noexcept { return is_valid_level(static_cast<AbstractionEnu>(level)); }
+
+std::string pepp::level_as_string(AbstractionEnu level) {
+  if (auto it = levels.find(level); it != levels.end()) return it->second.basic;
+  SPDLOG_WARN("Unknown level in level_as_string: {}", static_cast<int>(level));
+  return "Unknown";
+}
+
+std::string pepp::level_as_pretty_string(AbstractionEnu level) {
+  if (auto it = levels.find(level); it != levels.end()) return it->second.pretty;
+  SPDLOG_WARN("Unknown level in level_as_pretty_string: {}", static_cast<int>(level));
+  return "Unknown-Pretty";
+}
+
+pepp::AbstractionEnu pepp::string_to_level(const std::string &str, bool *okay) {
+  using namespace pepp::bts;
+  for (const auto &it : levels) {
+    if (ci_eq()(it.second.basic, str) || ci_eq()(it.second.pretty, str)) {
+      if (okay) *okay = true;
+      return it.first;
+    }
+  }
+  if (okay) *okay = false;
+  return AbstractionEnu::NO_ABS;
+}

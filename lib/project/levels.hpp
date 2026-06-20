@@ -20,6 +20,7 @@
 #include <QString>
 #include <QtCore>
 #include <QtQmlIntegration>
+#include "core/architectures.hpp"
 
 // Must be in separate file to prevent circuluar include in Qt MOC.
 namespace pepp {
@@ -30,21 +31,19 @@ class AbstractionHelper : public QObject {
   QML_UNCREATABLE("Error:Only enums")
 
 public:
-  enum class Abstraction {
-    NO_ABS = -1,
+  enum class Abstractionss {
+    NO_ABS = (int)pepp::AbstractionEnu::NO_ABS,
     // LG1 = 1,
-    MA2 = 20,
-    ISA3 = 30,
-    ASMB3 = 31,
-    OS4 = 40,
-    ASMB5 = 50,
+    MA2 = (int)pepp::AbstractionEnu::MA2,
+    ISA3 = (int)pepp::AbstractionEnu::ISA3,
+    ASMB3 = (int)pepp::AbstractionEnu::ASMB3,
+    OS4 = (int)pepp::AbstractionEnu::OS4,
+    ASMB5 = (int)pepp::AbstractionEnu::ASMB5,
     // HOL6 = 6,
     // APP7 = 7,
   };
-  Q_ENUM(Abstraction)
+  Q_ENUM(Abstractionss)
   AbstractionHelper(QObject *parent = nullptr);
-  Q_INVOKABLE QString string(Abstraction abstraction) const;
+  Q_INVOKABLE QString string(Abstractionss abstraction) const;
 };
-using Abstraction = AbstractionHelper::Abstraction;
-QString abstractionAsPrettyString(AbstractionHelper::Abstraction abstraction);
 } // namespace pepp
