@@ -18,7 +18,7 @@
 #pragma once
 
 #include <QObject>
-
+#include "nlohmann/json.hpp"
 // Needed to prevent type_traits from complaining that Book has throwing dtor.
 #include "book.hpp"
 #include "project/architectures.hpp"
@@ -63,14 +63,14 @@ public:
 private:
   using _Figure = QSharedPointer<builtins::Figure>;
   using _Macro = QList<QSharedPointer<macro::Declaration>>;
-  std::variant<std::monostate, _Figure, _Macro> loadManifestV2(const QJsonDocument &manifest, const QString &path);
-  std::variant<std::monostate, _Figure, _Macro> loadFigureV2(const QJsonDocument &manifest, const QString &path);
-  std::variant<std::monostate, _Figure, _Macro> loadMacroV2(const QJsonDocument &manifest, const QString &path);
+  std::variant<std::monostate, _Figure, _Macro> loadManifestV2(const nlohmann::json &manifest, const QString &path);
+  std::variant<std::monostate, _Figure, _Macro> loadFigureV2(const nlohmann::json &manifest, const QString &path);
+  std::variant<std::monostate, _Figure, _Macro> loadMacroV2(const nlohmann::json &manifest, const QString &path);
 
   void linkFigureOS(const QString &manifestPath, QSharedPointer<Figure> figure,
                     QSharedPointer<const builtins::Book> book);
   ::builtins::Test *loadTest(QString testDirPath);
-  ::builtins::Fragment *loadFragment(const QJsonObject &item, const QDir &manifestDir, builtins::Figure *parent);
+  ::builtins::Fragment *loadFragment(const nlohmann::json &item, const QDir &manifestDir, builtins::Figure *parent);
 
   QSharedPointer<::builtins::Book> loadBook(QString tocPath);
   std::unique_ptr<FilesystemProvider> _fs;
@@ -85,8 +85,6 @@ private:
   std::map<pepp::Architecture, std::unique_ptr<Assembler>> _assemblers;
   std::map<QPair<pepp::Architecture, QString>, std::unique_ptr<Formatter>> _formatters;
 };
-
-namespace detail {} // end namespace detail
 
 class QRCFSProvider : public Registry::FilesystemProvider {
 public:
