@@ -52,7 +52,7 @@ concept HasLength = requires(T t) {
 
 class UpdateFrameLength {
 public:
-  UpdateFrameLength(quint16 length, sim::api2::frame::Header &out) : _length(length), _out(out){};
+  UpdateFrameLength(u16 length, sim::api2::frame::Header &out) : _length(length), _out(out){};
   template <HasLength Header> void operator()(const Header &header) {
     Header copy = header;
     copy.length = _length;
@@ -61,13 +61,13 @@ public:
   void operator()(const auto &) {};
 
 private:
-  quint16 _length = 0;
+  u16 _length = 0;
   sim::api2::frame::Header &_out;
 };
 
 struct GetFrameLength {
-  template <HasLength Header> quint16 operator()(const Header &header) const { return header.length; }
-  quint16 operator()(const auto &) const { return 0; };
+  template <HasLength Header> u16 operator()(const Header &header) const { return header.length; }
+  u16 operator()(const auto &) const { return 0; };
 };
 
 template <typename T>
@@ -76,7 +76,7 @@ concept HasBackOffset = requires(T t) {
 };
 class UpdateFrameBackOffset {
 public:
-  UpdateFrameBackOffset(quint16 back_offset, sim::api2::frame::Header &out) : _back_offset(back_offset), _out(out){};
+  UpdateFrameBackOffset(u16 back_offset, sim::api2::frame::Header &out) : _back_offset(back_offset), _out(out){};
   template <HasBackOffset Header> void operator()(const Header &header) {
     Header copy = header;
     copy.back_offset = _back_offset;
@@ -85,12 +85,12 @@ public:
   void operator()(const auto &) {};
 
 private:
-  quint16 _back_offset = 0;
+  u16 _back_offset = 0;
   sim::api2::frame::Header &_out;
 };
 
 struct GetFrameBackOffset {
-  template <HasBackOffset Header> quint16 operator()(const Header &header) const { return header.back_offset; }
-  quint16 operator()(const auto &) const { return 0; };
+  template <HasBackOffset Header> u16 operator()(const Header &header) const { return header.back_offset; }
+  u16 operator()(const auto &) const { return 0; };
 };
 } // namespace sim::trace2

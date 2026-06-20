@@ -26,7 +26,7 @@ namespace targets::pep10::isa {
 class CPU : public sim::api2::tick::Recipient,
             public sim::api2::trace::Source,
             public sim::api2::trace::Sink,
-            public sim::api2::memory::Initiator<quint16> {
+            public sim::api2::memory::Initiator<u16> {
 
 public:
   CPU(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen);
@@ -36,8 +36,8 @@ public:
   CPU(const CPU &) = delete;
   CPU &operator=(const CPU &) = delete;
 
-  sim::api2::memory::Target<quint8> *regs();
-  sim::api2::memory::Target<quint8> *csrs();
+  sim::api2::memory::Target<u8> *regs();
+  sim::api2::memory::Target<u8> *csrs();
   sim::api2::device::Descriptor device() const;
   enum class Status {
     Ok = 0,
@@ -47,11 +47,11 @@ public:
   Status status() const;
   // Helper to convert OS to an operand value.
   // It will use Application access, and will not trigger MMIO.
-  std::optional<quint16> currentOperand();
-  quint16 startingPC() const;
+  std::optional<u16> currentOperand();
+  u16 startingPC() const;
   // Set the starting PC to the current PC. Needed to get 1st step correct.
   void updateStartingPC();
-  quint16 depth() const;
+  u16 depth() const;
 
   // Target interface
   const sim::api2::tick::Source *getSource() override;
@@ -67,12 +67,12 @@ public:
   const sim::api2::trace::Buffer *buffer() const override { return _tb; }
 
   // Initiator interface
-  void setTarget(sim::api2::memory::Target<quint16> *target, void *port) override;
+  void setTarget(sim::api2::memory::Target<u16> *target, void *port) override;
 
   void setDebugger(pepp::debug::Debugger *debugger);
   void clearDebugger();
 
-  void setCallsViaRet(const QSet<quint16> &calls);
+  void setCallsViaRet(const QSet<u16> &calls);
   void clearCallsViaRet();
 
 private:
@@ -80,29 +80,29 @@ private:
   void incrDepth();
   void decrDepth();
   // TODO: This probably needs to be cleared between simulations
-  quint16 _depth = 0, _startingPC = 0;
+  u16 _depth = 0, _startingPC = 0;
   Status _status = Status::Ok;
   sim::api2::device::Descriptor _device;
-  sim::memory::Dense<quint8> _regs, _csrs;
-  sim::api2::memory::Target<quint16> *_memory;
+  sim::memory::Dense<u8> _regs, _csrs;
+  sim::api2::memory::Target<u16> *_memory;
 
   sim::api2::tick::Source *_clock = nullptr;
   sim::api2::trace::Buffer *_tb = nullptr;
   pepp::debug::Debugger *_dbg = nullptr;
 
-  quint16 readReg(::isa::Pep10::Register reg);
-  void writeReg(::isa::Pep10::Register reg, quint16 val);
+  u16 readReg(::isa::Pep10::Register reg);
+  void writeReg(::isa::Pep10::Register reg, u16 val);
   bool readCSR(::isa::Pep10::CSR csr);
   void writeCSR(::isa::Pep10::CSR csr, bool val);
-  quint8 readPackedCSR();
-  void writePackedCSR(quint8 val);
+  u8 readPackedCSR();
+  void writePackedCSR(u8 val);
 
-  sim::api2::tick::Result unaryDispatch(quint8 is, quint16 pc);
-  sim::api2::tick::Result nonunaryDispatch(quint8 is, quint16 os, quint16 pc);
-  void decodeStoreOperand(quint8 is, quint16 os, quint16 &decoded, bool traced = true);
-  void decodeLoadOperand(quint8 is, quint16 os, quint16 &decoded, bool traced = true);
+  sim::api2::tick::Result unaryDispatch(u8 is, u16 pc);
+  sim::api2::tick::Result nonunaryDispatch(u8 is, u16 os, u16 pc);
+  void decodeStoreOperand(u8 is, u16 os, u16 &decoded, bool traced = true);
+  void decodeLoadOperand(u8 is, u16 os, u16 &decoded, bool traced = true);
   // We have an assembler-level hack to allow indirect calls via a RET mnemonic.
   // When used in that way, we need to increment the depth rather than decrement it.
-  QSet<quint16> _callsViaRet = {};
+  QSet<u16> _callsViaRet = {};
 };
 } // namespace targets::pep10::isa

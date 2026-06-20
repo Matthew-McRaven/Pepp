@@ -3,13 +3,13 @@
 Lines2Addresses::Lines2Addresses(std::vector<std::pair<int, u32>> source, std::vector<std::pair<int, u32>> list)
     : _source(source), _listing(list) {}
 
-std::optional<quint32> Lines2Addresses::source2Address(int l) { return _source.address(l); }
+std::optional<u32> Lines2Addresses::source2Address(int l) { return _source.address(l); }
 
-std::optional<quint32> Lines2Addresses::list2Address(int l) { return _listing.address(l); }
+std::optional<u32> Lines2Addresses::list2Address(int l) { return _listing.address(l); }
 
-std::optional<int> Lines2Addresses::address2Source(quint32 address) { return _source.line(address); }
+std::optional<int> Lines2Addresses::address2Source(u32 address) { return _source.line(address); }
 
-std::optional<int> Lines2Addresses::address2List(quint32 address) { return _listing.line(address); }
+std::optional<int> Lines2Addresses::address2List(u32 address) { return _listing.line(address); }
 
 std::optional<int> Lines2Addresses::source2List(int source) {
   auto addr = source2Address(source);
@@ -51,14 +51,14 @@ std::optional<ScopedLines2Addresses::scope> ScopedLines2Addresses::name2scope(QS
   return std::nullopt;
 }
 
-std::optional<quint32> ScopedLines2Addresses::source2Address(int sourceLine, scope s) const {
+std::optional<u32> ScopedLines2Addresses::source2Address(int sourceLine, scope s) const {
   if (s < 0 || s >= _source2Addr.size()) return std::nullopt;
   auto m = _source2Addr[s];
   if (auto r = m.find(sourceLine); r == m.cend()) return std::nullopt;
   else return r->second;
 }
 
-std::optional<quint32> ScopedLines2Addresses::list2Address(int listLine, scope s) const {
+std::optional<u32> ScopedLines2Addresses::list2Address(int listLine, scope s) const {
   if (s < 0 || s >= _list2Addr.size()) return std::nullopt;
   auto m = _list2Addr[s];
   if (auto r = m.find(listLine); r == m.cend()) return std::nullopt;
@@ -80,13 +80,13 @@ std::optional<int> ScopedLines2Addresses::source2List(int source, scope s) const
 }
 
 std::optional<std::tuple<ScopedLines2Addresses::scope, int>>
-ScopedLines2Addresses::address2Source(quint32 address) const {
+ScopedLines2Addresses::address2Source(u32 address) const {
   if (_addr2Source.contains(address)) return _addr2Source.at(address);
   return std::nullopt;
 }
 
 std::optional<std::tuple<ScopedLines2Addresses::scope, int>>
-ScopedLines2Addresses::address2List(quint32 address) const {
+ScopedLines2Addresses::address2List(u32 address) const {
   if (_addr2List.contains(address)) return _addr2List.at(address);
   return std::nullopt;
 }

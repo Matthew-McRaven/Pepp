@@ -258,10 +258,10 @@ pepp::debug::Value pepp::debug::MemoryRead::evaluate(CachePolicy mode, Environme
   auto ret_type = operators::op1_dereference_typeof(*rtti, v);
   auto address = value_bits(v);
   auto bytecount = bitness(types::unbox(ret_type)) / 8;
-  quint64 readBuf = 0;
+  u64 readBuf = 0;
   switch (bytecount) {
   case 1: readBuf = env.read_mem_u8(address); break;
-  case 4: readBuf |= (quint32)(env.read_mem_u16(address += 2) << 16); [[fallthrough]];
+  case 4: readBuf |= (u32)(env.read_mem_u16(address += 2) << 16); [[fallthrough]];
   case 2: readBuf |= env.read_mem_u16(address); break;
   default: throw std::logic_error("MemoryRead: Unsupported size");
   }
@@ -422,7 +422,7 @@ void pepp::debug::MemberAccess::link() {
 namespace {
 struct MemberAccessVisitor {
   template <typename T> using Box = pepp::debug::types::Box<T>;
-  quint64 v;
+  u64 v;
   pepp::debug::Environment &env;
   pepp::debug::Value operator()(const Box<pepp::debug::types::Never> &type) const { return pepp::debug::VNever{}; }
   pepp::debug::Value operator()(const Box<pepp::debug::types::Primitive> &type) const {
@@ -807,16 +807,16 @@ pepp::debug::Value pepp::debug::MemoryReadCastDeref::evaluate(CachePolicy mode, 
   auto address = value_bits(v);
   auto bytecount = bitness(unbox(this->_cast_to)) / 8;
 
-  quint64 readBuf = 0;
+  u64 readBuf = 0;
   switch (bytecount) {
   case 1: readBuf = env.read_mem_u8(address); break;
-  case 4: readBuf |= (quint32)(env.read_mem_u16(address += 2) << 16); [[fallthrough]];
+  case 4: readBuf |= (u32)(env.read_mem_u16(address += 2) << 16); [[fallthrough]];
   case 2: readBuf |= env.read_mem_u16(address); break;
   default: throw std::logic_error("MemoryRead: Unsupported size");
   }
   auto mem_bits = from_bits(unbox(this->_cast_to), readBuf);
   auto casted = operators::op2_typecast(*env.type_info(), mem_bits, this->_cast_to);
-  quint64 vb = value_bits(casted);
+  u64 vb = value_bits(casted);
 
   _state.mark_clean();
   return *(_state.value = casted);

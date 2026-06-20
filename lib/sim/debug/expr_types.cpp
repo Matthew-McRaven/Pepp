@@ -152,11 +152,11 @@ struct IsUnsignedVisitor {
 };
 
 struct BitnessVisitor {
-  quint8 operator()(const Never &) const { return 0; }
-  quint8 operator()(const Primitive &v) { return bitness(v.primitive); }
-  quint8 operator()(const Pointer &v) { return 8 * v.pointer_size; }
-  quint8 operator()(const Array &v) { return 8 * v.pointer_size; }
-  quint8 operator()(const Struct &v) { return 8 * v.pointer_size; }
+  u8 operator()(const Never &) const { return 0; }
+  u8 operator()(const Primitive &v) { return bitness(v.primitive); }
+  u8 operator()(const Pointer &v) { return 8 * v.pointer_size; }
+  u8 operator()(const Array &v) { return 8 * v.pointer_size; }
+  u8 operator()(const Struct &v) { return 8 * v.pointer_size; }
 };
 
 struct QStringVisitor {
@@ -249,7 +249,7 @@ pepp::debug::types::Type pepp::debug::types::unbox(const pepp::debug::types::Box
 
 bool pepp::debug::types::is_unsigned(const Type &type) { return std::visit(::detail::IsUnsignedVisitor{}, type); }
 
-quint8 pepp::debug::types::bitness(const Type &type) { return std::visit(::detail::BitnessVisitor{}, type); }
+u8 pepp::debug::types::bitness(const Type &type) { return std::visit(::detail::BitnessVisitor{}, type); }
 
 QString pepp::debug::types::to_string(const Type &type) { return std::visit(::detail::QStringVisitor{}, type); }
 
@@ -292,9 +292,9 @@ bool pepp::debug::types::operator==(const Type &lhs, const BoxedType &rhs) {
   return (lhs <=> rhs) == std::strong_ordering::equal;
 }
 
-quint32 pepp::debug::types::SerializationHelper::index_for_string(const QString &str) { return _strs.add(str); }
+u32 pepp::debug::types::SerializationHelper::index_for_string(const QString &str) { return _strs.add(str); }
 
-QString pepp::debug::types::SerializationHelper::string_for_index(quint32 index) { return _strs.at(index); }
+QString pepp::debug::types::SerializationHelper::string_for_index(u32 index) { return _strs.at(index); }
 
 uint64_t pepp::debug::types::mask_pointer_bits(uint8_t pointer_byte_size, uint64_t bits) {
   if (pointer_byte_size == 8) return bits;

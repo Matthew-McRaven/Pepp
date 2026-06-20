@@ -5,7 +5,7 @@ std::strong_ordering pepp::debug::VNever::operator<=>(const VNever &) const { re
 
 bool pepp::debug::VNever::operator==(const VNever &) const { return true; }
 
-pepp::debug::VPrimitive pepp::debug::VPrimitive::with_bits(const VPrimitive &type, quint64 new_value) {
+pepp::debug::VPrimitive pepp::debug::VPrimitive::with_bits(const VPrimitive &type, u64 new_value) {
   using enum pepp::debug::types::Primitives;
   auto hnd = types::TypeInfo::DirectHandle(type.primitive);
   switch (type.primitive) {
@@ -26,7 +26,7 @@ pepp::debug::VPrimitive pepp::debug::VPrimitive::promote(const VPrimitive &value
   return from(new_type, value.bits);
 }
 
-pepp::debug::VPrimitive pepp::debug::VPrimitive::from(types::Primitives new_type, quint64 bits) {
+pepp::debug::VPrimitive pepp::debug::VPrimitive::from(types::Primitives new_type, u64 bits) {
   using enum pepp::debug::types::Primitives;
   auto hnd = types::TypeInfo::DirectHandle(new_type);
   switch (new_type) {
@@ -159,7 +159,7 @@ struct VariantFromBitsVisitor {
   }
 };
 struct ValueFromBitsVisitor {
-  quint64 bits;
+  u64 bits;
   pepp::debug::Value operator()(const types::Never &) const { return VNever{}; }
   pepp::debug::Value operator()(const types::Primitive &type) const { return VPrimitive::from(type.primitive, bits); }
   // TODO: these actually need RTTI
@@ -180,6 +180,6 @@ QVariant pepp::debug::from_bits(const Value &v, const types::TypeInfo *info) {
   return std::visit(::detail::VariantFromBitsVisitor{info}, v);
 }
 
-pepp::debug::Value pepp::debug::from_bits(const types::Type &type, quint64 bits) {
+pepp::debug::Value pepp::debug::from_bits(const types::Type &type, u64 bits) {
   return std::visit(::detail::ValueFromBitsVisitor{bits}, type);
 }

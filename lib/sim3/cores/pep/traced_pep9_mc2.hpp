@@ -36,19 +36,19 @@ namespace targets::pep9::mc2 {
 class BaseCPU : public sim::api2::tick::Recipient,
                 public sim::api2::trace::Source,
                 public sim::api2::trace::Sink,
-                public sim::api2::memory::Initiator<quint16> {
+                public sim::api2::memory::Initiator<u16> {
 public:
   using CSRs = pepp::tc::arch::Pep9Registers::CSRs;
-  BaseCPU(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen, quint8 hiddenRegCount);
+  BaseCPU(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen, u8 hiddenRegCount);
   virtual ~BaseCPU() = 0;
   BaseCPU(BaseCPU &&other) noexcept = default;
   BaseCPU &operator=(BaseCPU &&other) = default;
   BaseCPU(const BaseCPU &) = delete;
   BaseCPU &operator=(const BaseCPU &) = delete;
 
-  sim::api2::memory::Target<quint8> *bankRegs();
-  sim::api2::memory::Target<quint8> *hiddenRegs();
-  sim::api2::memory::Target<quint8> *csrs();
+  sim::api2::memory::Target<u8> *bankRegs();
+  sim::api2::memory::Target<u8> *hiddenRegs();
+  sim::api2::memory::Target<u8> *csrs();
   sim::api2::device::Descriptor device() const;
   enum class Status { Ok = 0, Halted, ChangedAddress, ChangedData, MemoryTooSoon };
   // Reset status back to okay. Do not fix registers / memory / etc.
@@ -56,10 +56,10 @@ public:
   Status status() const;
   void setConstantRegisters(pepp::Architecture which);
   void resetMicroPC();
-  quint16 microPC() const noexcept;
+  u16 microPC() const noexcept;
   // 0 means no memory access, [1-3] are the cycles where access happens.
   // 3 can wrap to 1 with back-to-back accesses.
-  quint8 memoryCycle() const noexcept;
+  u8 memoryCycle() const noexcept;
   virtual void setMicrocode(const pepp::MicrocodeChoice &mc) = 0;
   virtual void applyPreconditions(const pepp::TestChoice &tests) = 0;
   virtual std::vector<bool> testPostconditions(const pepp::TestChoice &tests) = 0;
@@ -74,29 +74,29 @@ public:
   const sim::api2::trace::Buffer *buffer() const override { return _tb; }
 
   // Initiator interface
-  void setTarget(sim::api2::memory::Target<quint16> *target, void *port) override;
+  void setTarget(sim::api2::memory::Target<u16> *target, void *port) override;
 
   void setDebugger(pepp::debug::Debugger *debugger);
   void clearDebugger();
 
 protected:
   Status _status = Status::Ok;
-  quint16 _microPC = 0;
+  u16 _microPC = 0;
   sim::api2::device::Descriptor _device;
-  sim::memory::Dense<quint8> _bankRegs, _hiddenRegs, _csrs;
-  sim::api2::memory::Target<quint16> *_memory;
+  sim::memory::Dense<u8> _bankRegs, _hiddenRegs, _csrs;
+  sim::api2::memory::Target<u16> *_memory;
 
   sim::api2::tick::Source *_clock = nullptr;
   sim::api2::trace::Buffer *_tb = nullptr;
   pepp::debug::Debugger *_dbg = nullptr;
 
-  quint8 readReg(quint8 reg);
-  void writeReg(quint8 reg, quint8 val);
+  u8 readReg(u8 reg);
+  void writeReg(u8 reg, u8 val);
   bool readCSR(CSRs reg);
   void writeCSR(CSRs reg, bool val);
 
   struct MemoryTransaction {
-    quint8 onCycle = 0;
+    u8 onCycle = 0;
   } memStatus;
 };
 
@@ -127,8 +127,8 @@ public:
 
 private:
   std::vector<pepp::tc::arch::Pep9ByteBus::Code> _microcode;
-  quint8 readHidden(HiddenRegisters reg);
-  void writeHidden(HiddenRegisters reg, quint8 val);
+  u8 readHidden(HiddenRegisters reg);
+  void writeHidden(HiddenRegisters reg, u8 val);
 };
 class CPUWordBus : public BaseCPU {
 public:
@@ -157,7 +157,7 @@ public:
 
 private:
   std::vector<pepp::tc::arch::Pep9WordBus::Code> _microcode;
-  quint8 readHidden(HiddenRegisters reg);
-  void writeHidden(HiddenRegisters reg, quint8 val);
+  u8 readHidden(HiddenRegisters reg);
+  void writeHidden(HiddenRegisters reg, u8 val);
 };
 } // namespace targets::pep9::mc2

@@ -29,7 +29,7 @@
 #include "toolchain/link/mmio.hpp"
 using namespace Qt::StringLiterals;
 
-using AddressSpan = sim::api2::memory::AddressSpan<quint16>;
+using AddressSpan = sim::api2::memory::AddressSpan<u16>;
 namespace {
 sim::api2::device::Descriptor desc_cpu(sim::api2::device::ID id) {
   return {.id = id, .baseName = "cpu", .fullName = "/cpu"};
@@ -68,7 +68,7 @@ QSharedPointer<sim::api2::tick::Recipient> create_cpu(pepp::Architecture arch, s
 targets::isa::System::System(pepp::Architecture arch, QList<obj::MemoryRegion> regions,
                              std::vector<obj::AddressedIO> mmios)
     : _regions(), _arch(arch), _cpu(create_cpu(arch, desc_cpu(nextID()), _nextIDGenerator)),
-      _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
+      _bus(QSharedPointer<sim::memory::SimpleBus<u16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
 
   _bus->setPathManager(_paths);
@@ -107,8 +107,8 @@ QSharedPointer<const sim::api2::Paths> targets::isa::System::pathManager() const
 
 void targets::isa::System::init() {
   using enum pepp::Architecture;
-  quint8 buf[2];
-  bits::span<quint8> bufSpan = {buf};
+  u8 buf[2];
+  bits::span<u8> bufSpan = {buf};
   // Reload default values into DDR.
   doReloadEntries();
   // 1. Clear registers and CSRs before inserting non-0 values.
@@ -122,9 +122,9 @@ void targets::isa::System::init() {
     auto regs = cpu->regs(), csrs = cpu->csrs();
     regs->clear(0), csrs->clear(0);
     bufSpan[0] = bufSpan[1] = 0;
-    writeRegister<ISA>(regs, ISA::Register::PC, bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian), gs);
-    _bus->read(static_cast<quint16>(ISA::MemoryVectors::UserStackPtr), bufSpan, gs);
-    writeRegister<ISA>(regs, ISA::Register::SP, bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian), gs);
+    writeRegister<ISA>(regs, ISA::Register::PC, bits::memcpy_endian<u16>(bufSpan, bits::Order::BigEndian), gs);
+    _bus->read(static_cast<u16>(ISA::MemoryVectors::UserStackPtr), bufSpan, gs);
+    writeRegister<ISA>(regs, ISA::Register::SP, bits::memcpy_endian<u16>(bufSpan, bits::Order::BigEndian), gs);
     cpu->updateStartingPC();
     break;
   }
@@ -133,10 +133,10 @@ void targets::isa::System::init() {
     targets::pep10::isa::CPU *cpu = dynamic_cast<targets::pep10::isa::CPU *>(_cpu.data());
     auto regs = cpu->regs(), csrs = cpu->csrs();
     regs->clear(0), csrs->clear(0);
-    _bus->read(static_cast<quint16>(ISA::MemoryVectors::Dispatcher), bufSpan, gs);
-    writeRegister<ISA>(regs, ISA::Register::PC, bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian), gs);
-    _bus->read(static_cast<quint16>(ISA::MemoryVectors::SystemStackPtr), bufSpan, gs);
-    writeRegister<ISA>(regs, ISA::Register::SP, bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian), gs);
+    _bus->read(static_cast<u16>(ISA::MemoryVectors::Dispatcher), bufSpan, gs);
+    writeRegister<ISA>(regs, ISA::Register::PC, bits::memcpy_endian<u16>(bufSpan, bits::Order::BigEndian), gs);
+    _bus->read(static_cast<u16>(ISA::MemoryVectors::SystemStackPtr), bufSpan, gs);
+    writeRegister<ISA>(regs, ISA::Register::SP, bits::memcpy_endian<u16>(bufSpan, bits::Order::BigEndian), gs);
     cpu->updateStartingPC();
     break;
   }
@@ -148,18 +148,18 @@ pepp::Architecture targets::isa::System::architecture() const { return _arch; }
 
 sim::api2::tick::Recipient *targets::isa::System::cpu() { return &*_cpu; }
 
-sim::memory::SimpleBus<quint16> *targets::isa::System::bus() { return &*_bus; }
+sim::memory::SimpleBus<u16> *targets::isa::System::bus() { return &*_bus; }
 
 QStringList targets::isa::System::inputs() const { return _mmi.keys(); }
 
-sim::memory::Input<quint16> *targets::isa::System::input(QString name) {
+sim::memory::Input<u16> *targets::isa::System::input(QString name) {
   if (auto find = _mmi.find(name); find != _mmi.end()) return &**find;
   return nullptr;
 }
 
 QStringList targets::isa::System::outputs() const { return _mmo.keys(); }
 
-sim::memory::Output<quint16> *targets::isa::System::output(QString name) {
+sim::memory::Output<u16> *targets::isa::System::output(QString name) {
   if (auto find = _mmo.find(name); find != _mmo.end()) return &**find;
   return nullptr;
 }
@@ -173,24 +173,24 @@ sim::memory::IDEController *targets::isa::System::ideController(QString name) {
 
 void targets::isa::System::doReloadEntries() {
   for (const auto &reg : _regions) {
-    using size_type = bits::span<const quint8>::size_type;
+    using size_type = bits::span<const u8>::size_type;
     reg.target->write(reg.base,
-                      {reinterpret_cast<const quint8 *>(reg.data.data()), static_cast<size_type>(reg.data.size())}, gs);
+                      {reinterpret_cast<const u8 *>(reg.data.data()), static_cast<size_type>(reg.data.size())}, gs);
   }
 }
 
 // Duplicated logic from systemFromElf to get the params to pass to reconfigure.
 void targets::isa::System::reconfigure(const ELFIO::elfio &elf) {
 
-  using size_type = bits::span<const quint8>::size_type;
+  using size_type = bits::span<const u8>::size_type;
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
   pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   // determine arch from ELF.
   switch (elf.get_machine()) {
-  case (((quint16)'p') << 8) | ((quint16)'9'): arch = pepp::Architecture::PEP9; break;
-  case (((quint16)'p') << 8) | ((quint16)'x'): arch = pepp::Architecture::PEP10; break;
+  case (((u16)'p') << 8) | ((u16)'9'): arch = pepp::Architecture::PEP9; break;
+  case (((u16)'p') << 8) | ((u16)'x'): arch = pepp::Architecture::PEP10; break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 
@@ -200,7 +200,7 @@ void targets::isa::System::reconfigure(const ELFIO::elfio &elf) {
 // Using previous allocated Dense memory devices, allocate a "new" Dense memory with the specified parameters.
 // Will attempt to find an exact match in the pool, and if not, will attempt to find the smallest memory that can fit
 // the request. If no memory can fit the request, allocate a new Dense memory.
-QSharedPointer<sim::memory::Dense<quint16>> allocate(QVector<QSharedPointer<sim::memory::Dense<quint16>>> &pool,
+QSharedPointer<sim::memory::Dense<u16>> allocate(QVector<QSharedPointer<sim::memory::Dense<u16>>> &pool,
                                                      sim::api2::device::Descriptor desc, AddressSpan span) {
   // Attempt to find exact match in pool.
   for (int index = 0; index < pool.size(); index++) {
@@ -227,7 +227,7 @@ QSharedPointer<sim::memory::Dense<quint16>> allocate(QVector<QSharedPointer<sim:
   }
 
   // No element large enough to hold, so allocate a new one.
-  if (index >= pool.size()) return QSharedPointer<sim::memory::Dense<quint16>>::create(desc, span);
+  if (index >= pool.size()) return QSharedPointer<sim::memory::Dense<u16>>::create(desc, span);
   // Otherwise re-use the selected memory, resizing the span.
   auto ret = pool.takeAt(index);
   ret->setDevice(desc);
@@ -255,30 +255,30 @@ void targets::isa::System::reconfigure(pepp::Architecture arch, QList<obj::Memor
 
   // Construct Dense memory, ignoring W bit, since we have no mechanism for it.
   for (const auto &reg : regions) {
-    auto span = AddressSpan(0, static_cast<quint16>(reg.maxOffset - reg.minOffset));
+    auto span = AddressSpan(0, static_cast<u16>(reg.maxOffset - reg.minOffset));
     auto desc = desc_dense(nextID());
     auto mem = allocate(rawPool, desc, span);
     _rawMemory.push_back(mem);
-    sim::api2::memory::Target<quint16> *target = &*mem;
+    sim::api2::memory::Target<u16> *target = &*mem;
     if (!reg.w) {
-      auto ro = QSharedPointer<sim::memory::ReadOnly<quint16>>::create(false);
+      auto ro = QSharedPointer<sim::memory::ReadOnly<u16>>::create(false);
       _readonly.push_back(ro);
       ro->setTarget(target, nullptr);
       target = &*ro;
     }
     _bus->pushFrontTarget(AddressSpan(reg.minOffset, reg.maxOffset), target);
-    appendReloadEntries(mem, reg, static_cast<quint16>(-reg.minOffset));
+    appendReloadEntries(mem, reg, static_cast<u16>(-reg.minOffset));
     // Perform load!
-    loadRegion(*mem, reg, static_cast<quint16>(-reg.minOffset));
+    loadRegion(*mem, reg, static_cast<u16>(-reg.minOffset));
   }
 
   // Create MMIO, do not perform buffering
   for (const auto &mmio : mmios) {
-    auto span = AddressSpan(0, static_cast<quint16>(mmio.maxOffset - mmio.minOffset));
+    auto span = AddressSpan(0, static_cast<u16>(mmio.maxOffset - mmio.minOffset));
     if (mmio.type == obj::IO::Type::kInput) {
       auto desc = desc_mmi(nextID(), QString::fromStdString(mmio.name));
       addDevice(desc);
-      auto mem = QSharedPointer<sim::memory::Input<quint16>>::create(desc, span);
+      auto mem = QSharedPointer<sim::memory::Input<u16>>::create(desc, span);
       _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
       _mmi[QString::fromStdString(mmio.name)] = mem;
       // By default, charIn should raise an error when it runs out of input.
@@ -286,7 +286,7 @@ void targets::isa::System::reconfigure(pepp::Architecture arch, QList<obj::Memor
     } else if (mmio.type == obj::IO::Type::kOutput) {
       auto desc = desc_mmo(nextID(), QString::fromStdString(mmio.name));
       addDevice(desc);
-      auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(desc, span);
+      auto mem = QSharedPointer<sim::memory::Output<u16>>::create(desc, span);
       _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
       _mmo[QString::fromStdString(mmio.name)] = mem;
     } else if (mmio.type == obj::IO::Type::kIDE) {
@@ -311,7 +311,7 @@ void targets::isa::System::reconfigure(pepp::Architecture arch, QList<obj::Memor
     if (_mmo.find("pwrOff") == _mmo.end()) {
       auto desc = desc_mmo(nextID(), "pwrOff");
       addDevice(desc);
-      _mmo["pwrOff"] = QSharedPointer<sim::memory::Output<quint16>>::create(desc, AddressSpan(0, 0));
+      _mmo["pwrOff"] = QSharedPointer<sim::memory::Output<u16>>::create(desc, AddressSpan(0, 0));
     }
     cpu->setPwrOff(_mmo["pwrOff"].data());
     cpu->setTarget(&*_bus, nullptr);
@@ -333,14 +333,14 @@ void targets::isa::System::reconfigure(pepp::Architecture arch, QList<obj::Memor
   _bus->setBuffer(buf);
 }
 
-void targets::isa::System::appendReloadEntries(QSharedPointer<sim::api2::memory::Target<quint16>> mem,
-                                               const obj::MemoryRegion &reg, quint16 baseOffset) {
-  quint16 base = baseOffset + reg.minOffset;
+void targets::isa::System::appendReloadEntries(QSharedPointer<sim::api2::memory::Target<u16>> mem,
+                                               const obj::MemoryRegion &reg, u16 baseOffset) {
+  u16 base = baseOffset + reg.minOffset;
   for (const auto seg : reg.segs) {
     auto fileData = seg->get_data();
     auto size = seg->get_file_size();
     if (fileData == nullptr) continue;
-    std::vector<quint8> data(size);
+    std::vector<u8> data(size);
     std::copy(fileData, fileData + size, data.data());
     _regions.push_back(ReloadHelper{.target = mem, .base = base, .data = std::move(data)});
     base += size;
@@ -348,15 +348,15 @@ void targets::isa::System::appendReloadEntries(QSharedPointer<sim::api2::memory:
 }
 
 QSharedPointer<targets::isa::System> targets::isa::systemFromElf(const ELFIO::elfio &elf, bool loadUserImmediate) {
-  using size_type = bits::span<const quint8>::size_type;
+  using size_type = bits::span<const u8>::size_type;
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
   pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   // determine arch from ELF.
   switch (elf.get_machine()) {
-  case (((quint16)'p') << 8) | ((quint16)'9'): arch = pepp::Architecture::PEP9; break;
-  case (((quint16)'p') << 8) | ((quint16)'x'): arch = pepp::Architecture::PEP10; break;
+  case (((u16)'p') << 8) | ((u16)'9'): arch = pepp::Architecture::PEP9; break;
+  case (((u16)'p') << 8) | ((u16)'x'): arch = pepp::Architecture::PEP10; break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 
@@ -365,14 +365,14 @@ QSharedPointer<targets::isa::System> targets::isa::systemFromElf(const ELFIO::el
   // Either immediately load user program into memory, or buffer behind correct
   // port.
   if (loadUserImmediate) {
-    quint16 address = 0;
+    u16 address = 0;
     auto bus = ret->bus();
     auto seg = elf.segments[0];
-    auto ptr = reinterpret_cast<const quint8 *>(seg->get_data());
+    auto ptr = reinterpret_cast<const u8 *>(seg->get_data());
     const auto ret = bus->write(address, {ptr, static_cast<size_type>(seg->get_file_size())}, gs);
   } else {
     auto seg = elf.segments[0];
-    auto ptr = reinterpret_cast<const quint8 *>(seg->get_data());
+    auto ptr = reinterpret_cast<const u8 *>(seg->get_data());
     auto mmi = ret->input("charIn");
     Q_ASSERT(mmi != nullptr);
     auto endpoint = mmi->endpoint();
@@ -382,32 +382,32 @@ QSharedPointer<targets::isa::System> targets::isa::systemFromElf(const ELFIO::el
   return ret;
 }
 
-bool targets::isa::loadRegion(sim::api2::memory::Target<quint16> &mem, const obj::MemoryRegion &reg,
-                              quint16 baseOffset) {
+bool targets::isa::loadRegion(sim::api2::memory::Target<u16> &mem, const obj::MemoryRegion &reg,
+                              u16 baseOffset) {
   constexpr auto gs = sim::api2::memory::Operation{
       .type = sim::api2::memory::Operation::Type::Application,
       .kind = sim::api2::memory::Operation::Kind::data,
   };
   auto ret = true;
-  quint16 base = baseOffset + reg.minOffset;
+  u16 base = baseOffset + reg.minOffset;
   for (const auto seg : reg.segs) {
     auto fileData = seg->get_data();
     auto size = seg->get_file_size();
     if (fileData == nullptr) continue;
-    using size_type = bits::span<const quint8>::size_type;
-    mem.write(base, {reinterpret_cast<const quint8 *>(fileData), static_cast<size_type>(size)}, gs);
+    using size_type = bits::span<const u8>::size_type;
+    mem.write(base, {reinterpret_cast<const u8 *>(fileData), static_cast<size_type>(size)}, gs);
     base += size;
   }
   return ret;
 }
 
-bool targets::isa::loadElfSegments(sim::api2::memory::Target<quint16> &mem, const ELFIO::elfio &elf) {
+bool targets::isa::loadElfSegments(sim::api2::memory::Target<u16> &mem, const ELFIO::elfio &elf) {
   const auto gs = sim::api2::memory::Operation{
       .type = sim::api2::memory::Operation::Type::Application,
       .kind = sim::api2::memory::Operation::Kind::data,
   };
 
-  using size_type = bits::span<const quint8>::size_type;
+  using size_type = bits::span<const u8>::size_type;
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   bool ret = true;

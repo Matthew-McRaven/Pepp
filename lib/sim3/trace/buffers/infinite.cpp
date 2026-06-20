@@ -28,7 +28,7 @@ bool sim::trace2::InfiniteBuffer::trace(sim::api2::device::ID deviceID, bool ena
   return true;
 }
 
-bool sim::trace2::InfiniteBuffer::traced(quint16 deviceID) const { return _sinks.contains(deviceID); }
+bool sim::trace2::InfiniteBuffer::traced(u16 deviceID) const { return _sinks.contains(deviceID); }
 
 bool sim::trace2::InfiniteBuffer::writeFragment(const sim::api2::trace::Fragment &fragment) {
   if (auto hdr = std::visit(sim::trace2::AsFrameHeader{}, fragment); hdr.index() != 0) {
@@ -37,7 +37,7 @@ bool sim::trace2::InfiniteBuffer::writeFragment(const sim::api2::trace::Fragment
 
     // Zero out length field of header, and set back_offset.
     std::visit(sim::trace2::UpdateFrameLength{0, hdr}, hdr);
-    quint16 back_offset = _out.position() - _lastFrameStart;
+    u16 back_offset = _out.position() - _lastFrameStart;
     std::visit(sim::trace2::UpdateFrameBackOffset{back_offset, hdr}, hdr);
 
     // Save current offset to enable updateFrameHeader() to overwrite length in the future.
@@ -61,8 +61,8 @@ bool sim::trace2::InfiniteBuffer::updateFrameHeader() {
 
   if (auto hdr = std::visit(sim::trace2::AsFrameHeader{}, w); hdr.index() != 0) {
     // TODO: Ensure that length fits in 16 bits.
-    quint32 length = curOutPos - _lastFrameStart;
-    std::visit(sim::trace2::UpdateFrameLength{static_cast<quint16>(length), hdr}, hdr);
+    u32 length = curOutPos - _lastFrameStart;
+    std::visit(sim::trace2::UpdateFrameLength{static_cast<u16>(length), hdr}, hdr);
 
     // Overwrite existing frame header to update "length" field.
     _out.reset(_lastFrameStart);

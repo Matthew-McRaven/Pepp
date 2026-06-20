@@ -19,7 +19,7 @@
 // In API v1, errors are communicated via an Error field.
 // In API v2 (this version), errors are communicated via exceptions.
 namespace sim::api2::tick {
-using Type = quint32;
+using Type = u32;
 struct Result {
   // After this tick, should control be returned to execution enviroment?
   bool pause = false;

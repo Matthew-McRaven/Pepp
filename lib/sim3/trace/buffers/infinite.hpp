@@ -24,7 +24,7 @@ class IsTraced {
 public:
   IsTraced(QSet<sim::api2::device::ID> devices) : _devices(devices){};
   template <HasDevice Header> bool operator()(const Header &header) const {
-    quint16 val = header.device;
+    u16 val = header.device;
     return _devices.contains(val);
   };
   bool operator()(const auto &) const { return false; }
@@ -42,8 +42,8 @@ public:
   using FrameIterator = api2::trace::FrameIterator;
   InfiniteBuffer();
   // Buffer interface
-  bool trace(quint16 deviceID, bool enabled) override;
-  bool traced(quint16 deviceID) const override;
+  bool trace(u16 deviceID, bool enabled) override;
+  bool traced(u16 deviceID) const override;
   bool writeFragment(const api2::trace::Fragment &) override;
   bool updateFrameHeader() override;
   void dropLast() override;

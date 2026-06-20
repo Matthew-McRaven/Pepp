@@ -47,23 +47,23 @@ public:
 using BoxedType =
     std::variant<Box<struct Never>, Box<struct Primitive>, Box<struct Pointer>, Box<struct Array>, Box<struct Struct>>;
 struct SerializationHelper {
-  quint16 index_for_type(const BoxedType &type) const {
+  u16 index_for_type(const BoxedType &type) const {
     auto it = _type_to_index.find(type);
     if (it != _type_to_index.end()) return it->second;
     throw std::out_of_range("Type not registered in SerializationHelper");
   }
-  BoxedType type_for_index(quint16 index) const {
+  BoxedType type_for_index(u16 index) const {
     for (const auto &[type, idx] : _type_to_index)
       if (idx == index) return type;
     throw std::out_of_range("No type found for index in SerializationHelper");
   }
-  quint32 index_for_string(const QString &);
-  QString string_for_index(quint32);
+  u32 index_for_string(const QString &);
+  QString string_for_index(u32);
   friend class TypeInfo;
 
 private:
   StringInternPool _strs;
-  std::map<BoxedType, quint16> _type_to_index;
+  std::map<BoxedType, u16> _type_to_index;
 };
 } // namespace pepp::debug::types
 
@@ -77,7 +77,7 @@ Primitives make_unsigned(Primitives);
 Primitives common_type(Primitives lhs, Primitives rhs);
 QString to_string(Primitives);
 
-enum class MetaType : quint16 { Never = 0, Primitive = 1, Pointer = 2, Array = 3, Struct = 4 };
+enum class MetaType : u16 { Never = 0, Primitive = 1, Pointer = 2, Array = 3, Struct = 4 };
 struct Never {
   static const MetaType meta = MetaType::Never;
   std::strong_ordering operator<=>(const Never &) const;
@@ -92,10 +92,10 @@ struct Primitive {
   bool operator==(const Primitive &) const;
   constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *) {
     if (archive.kind() == zpp::bits::kind::out) {
-      quint8 tmp = static_cast<quint8>(self.primitive);
+      u8 tmp = static_cast<u8>(self.primitive);
       return archive(tmp);
     } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
-      quint8 tmp;
+      u8 tmp;
       auto ret = archive(tmp);
       self.primitive = static_cast<Primitives>(tmp);
       return ret;
@@ -107,7 +107,7 @@ struct Primitive {
 
 struct Pointer {
   static const MetaType meta = MetaType::Pointer;
-  quint8 pointer_size = 2;
+  u8 pointer_size = 2;
   BoxedType to = Box<Never>();
   std::strong_ordering operator<=>(const Pointer &) const;
   bool operator==(const Pointer &) const;
@@ -118,7 +118,7 @@ struct Pointer {
       return archive(helper->index_for_type(self.to)); // Use helper to convert our pointer to an index!
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
-      quint16 index;
+      u16 index;
       if (auto errc = archive(index); errc.code != std::errc()) return errc;
       self.to = helper->type_for_index(index);
       return std::errc{};
@@ -129,8 +129,8 @@ struct Pointer {
 
 struct Array {
   static const MetaType meta = MetaType::Array;
-  quint8 pointer_size = 2;
-  quint16 length = 2;
+  u8 pointer_size = 2;
+  u16 length = 2;
   BoxedType of = Box<Never>{nullptr};
   std::strong_ordering operator<=>(const Array &) const;
   bool operator==(const Array &) const;
@@ -144,7 +144,7 @@ struct Array {
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
       else if (errc = archive(self.length); errc.code != std::errc()) return errc;
-      quint16 index;
+      u16 index;
       if (auto errc = archive(index); errc.code != std::errc()) return errc;
       self.of = helper->type_for_index(index);
       return std::errc{};
@@ -155,7 +155,7 @@ struct Array {
 
 struct Struct {
   static const MetaType meta = MetaType::Struct;
-  quint8 pointer_size = 2;
+  u8 pointer_size = 2;
   // Map names to types + offsets
   using Tuple = std::tuple<QString, BoxedType, uint16_t>;
   std::vector<std::tuple<QString, BoxedType, uint16_t>> members;
@@ -167,7 +167,7 @@ struct Struct {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
-      else if (errc = archive((quint8)self.members.size()); errc.code != std::errc()) return errc;
+      else if (errc = archive((u8)self.members.size()); errc.code != std::errc()) return errc;
       for (const auto &[name, type, offset] : self.members) {
         if (auto errc = archive(helper->index_for_string(name)); errc.code != std::errc()) return errc;
         else if (errc = archive(helper->index_for_type(type)); errc.code != std::errc()) return errc;
@@ -176,19 +176,19 @@ struct Struct {
       return std::errc{};
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
-      quint8 tmp = 0;
+      u8 tmp = 0;
       if (auto errc = archive(tmp); errc.code != std::errc()) return errc;
       self.members.resize(tmp);
       for (int it = 0; it < tmp; ++it) {
-        quint32 string_idx = 0;
+        u32 string_idx = 0;
         if (auto errc = archive(string_idx); errc.code != std::errc()) return errc;
         QString name = helper->string_for_index(string_idx);
 
-        quint16 type_index = 0;
+        u16 type_index = 0;
         if (auto errc = archive(type_index); errc.code != std::errc()) return errc;
         auto boxed_type = helper->type_for_index(type_index);
 
-        quint16 offset = 0;
+        u16 offset = 0;
         if (auto errc = archive(offset); errc.code != std::errc()) return errc;
 
         self.members[it] = std::make_tuple(name, boxed_type, offset);
@@ -208,7 +208,7 @@ BoxedType box(Primitives type);
 BoxedType box(const Type &type);
 Type unbox(const BoxedType &type);
 bool is_unsigned(const Type &type);
-quint8 bitness(const Type &type);
+u8 bitness(const Type &type);
 QString to_string(const Type &type);
 MetaType metatype(const Type &type);
 namespace detail {
@@ -221,10 +221,10 @@ template <typename T> struct SerializeVistor {
 static zpp::bits::errc serialize(auto &archive, auto &type, SerializationHelper *helper) {
   using archive_type = std::remove_cvref_t<decltype(archive)>;
   if constexpr (archive_type::kind() == zpp::bits::kind::out) {
-    if (auto errc = archive((quint8)type.index()); errc.code != std::errc()) return errc;
+    if (auto errc = archive((u8)type.index()); errc.code != std::errc()) return errc;
     return std::visit(detail::SerializeVistor{archive, helper}, type);
   } else {
-    quint8 index = 0;
+    u8 index = 0;
     if (auto errc = archive(index); errc.code != std::errc()) return errc;
     switch (index) {
     case 0: type = Never{}; return std::errc();

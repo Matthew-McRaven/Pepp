@@ -14,9 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <QtCore>
 #include <algorithm>
 #include <vector>
+#include "core/integers.h"
 
 /*
  * This class assigns a unique identifier to each data path. Embedding that identifier in a trace packet allows us to
@@ -47,8 +47,8 @@ class Paths {
   // This avoids additional indirection from a std::set (which is usually a balanced tree).
   // We ensure that for each device, each parent_context appears in at most one node.
   struct H {
-    quint16 previous_step = EMPTY;
-    quint16 step_index = 0; // Index into _steps containing {EMPTY, EMPTY, 0}.
+    u16 previous_step = EMPTY;
+    u16 step_index = 0; // Index into _steps containing {EMPTY, EMPTY, 0}.
     // Ignore nodeIndex as there will never be duplicate parents.
     auto operator<=>(const H &other) const { return previous_step <=> other.previous_step; }
   };
@@ -58,18 +58,18 @@ public:
   struct Step {
     // Pointers to nodes stored as indices into _steps.
     // I don't want to waste 4-12 bytes for pointers.
-    quint16 previous_step = EMPTY, current_step = EMPTY;
+    u16 previous_step = EMPTY, current_step = EMPTY;
     // Device which is traversed during this step.
-    quint16 device = 0;
+    u16 device = 0;
   };
 
-  static const quint16 EMPTY = 0;
-  quint16 add(quint16 parent, quint16 device) {
+  static const u16 EMPTY = 0;
+  u16 add(u16 parent, u16 device) {
     // Prevent adding a path that exists.
     if (auto tmp = find(parent, device); tmp != EMPTY)
       return tmp;
     // Use the current size as a unique identifier.
-    quint16 current = _steps.size();
+    u16 current = _steps.size();
 
     _steps.emplace_back(Step{parent, current, device});
     // Ensure we don't perform OOB access.
@@ -82,7 +82,7 @@ public:
     return current;
   }
 
-  quint16 find(quint16 parent, quint16 device) const {
+  u16 find(u16 parent, u16 device) const {
     if (device >= _device_to_paths.size())
       return 0;
     auto paths = _device_to_paths[device];
@@ -93,7 +93,7 @@ public:
   }
 
   // Allows chasing a path to the root.
-  const Step &operator[](quint16 step_index) const { return _steps.at(step_index); }
+  const Step &operator[](u16 step_index) const { return _steps.at(step_index); }
 
   void clear() {
     _steps.clear();

@@ -13,7 +13,7 @@ static constexpr int SLOT_RENDER_WIDTH = SLOT_NAME_WIDTH + SLOT_VALUE_WIDTH + SL
 static constexpr int FRAME_RENDER_WIDTH = SLOT_RENDER_WIDTH + 4;
 } // namespace
 
-pepp::debug::Slot::Slot(quint32 address, quint32 size, QString name, std::shared_ptr<Term> expr, Frame *parent)
+pepp::debug::Slot::Slot(u32 address, u32 size, QString name, std::shared_ptr<Term> expr, Frame *parent)
     : _address(address), _size(size), _name(std::move(name)), _expr(std::move(expr)), _parent(parent) {}
 
 pepp::debug::Slot::Slot(Slot &&other)
@@ -39,9 +39,9 @@ pepp::debug::Slot &pepp::debug::Slot::operator=(Slot &&other) {
   return *this;
 }
 
-quint32 pepp::debug::Slot::address() const { return _address; }
+u32 pepp::debug::Slot::address() const { return _address; }
 
-quint32 pepp::debug::Slot::size() const { return _size; }
+u32 pepp::debug::Slot::size() const { return _size; }
 
 QString pepp::debug::Slot::name() const { return _name; }
 
@@ -53,7 +53,7 @@ std::string pepp::debug::Slot::value() const {
   auto cached = _expr ? _expr->evaluator().cache() : pepp::debug::EvaluationCache{};
   std::string value_as_string = "";
   if (cached.value) {
-    value_as_string = fmt::format("{:x}", pepp::debug::value_bits<quint16>(*cached.value));
+    value_as_string = fmt::format("{:x}", pepp::debug::value_bits<u16>(*cached.value));
   }
   return value_as_string;
 }
@@ -69,7 +69,7 @@ pepp::debug::Slot::operator std::string() const {
   return fmt::format("{: <7} |{: ^6}| {:04x}", _name.toStdString(), value(), _address);
 }
 
-pepp::debug::Frame::Frame(quint32 baseAddress, Stack *parent) : _baseAddress(baseAddress), _parent(parent) {}
+pepp::debug::Frame::Frame(u32 baseAddress, Stack *parent) : _baseAddress(baseAddress), _parent(parent) {}
 
 pepp::debug::Frame::Frame(Frame &&other)
     : _baseAddress(other._baseAddress), _parent(other._parent), _active(other._active),
@@ -99,10 +99,10 @@ bool pepp::debug::Frame::active() const { return _active; }
 
 void pepp::debug::Frame::setActive(bool active) { _active = active; }
 
-quint32 pepp::debug::Frame::base_address() const { return _baseAddress; }
+u32 pepp::debug::Frame::base_address() const { return _baseAddress; }
 
-quint32 pepp::debug::Frame::top_address() const {
-  quint32 address = 0;
+u32 pepp::debug::Frame::top_address() const {
+  u32 address = 0;
   for (const auto &it : std::as_const(_slots)) address = qMax(address, it.address() + it.size());
   return address;
 }
@@ -160,7 +160,7 @@ pepp::debug::Frame::operator std::vector<std::string>() const {
   return inner;
 }
 
-pepp::debug::Stack::Stack(quint32 baseAddress) : _baseAddress(baseAddress) {}
+pepp::debug::Stack::Stack(u32 baseAddress) : _baseAddress(baseAddress) {}
 
 pepp::debug::Stack::Stack(Stack &&other) : _baseAddress(other._baseAddress), _frames(std::move(other._frames)) {
   other._baseAddress = 0;
@@ -175,10 +175,10 @@ pepp::debug::Stack &pepp::debug::Stack::operator=(Stack &&other) {
   return *this;
 }
 
-quint32 pepp::debug::Stack::base_address() const { return _baseAddress; }
+u32 pepp::debug::Stack::base_address() const { return _baseAddress; }
 
-quint32 pepp::debug::Stack::top_address() const {
-  quint32 address = 0;
+u32 pepp::debug::Stack::top_address() const {
+  u32 address = 0;
   for (const auto &it : std::as_const(_frames)) address = qMin(address, it.top_address());
   return address;
 }
@@ -210,7 +210,7 @@ std::size_t pepp::debug::Stack::size() const { return _frames.size(); }
 
 bool pepp::debug::Stack::empty() const { return _frames.empty(); }
 
-bool pepp::debug::Stack::contains(quint32 address) const {
+bool pepp::debug::Stack::contains(u32 address) const {
   if (address > base_address()) return false;
   return address >= top_address();
 }

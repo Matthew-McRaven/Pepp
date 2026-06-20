@@ -84,7 +84,7 @@ template <typename T>
 concept HasAddress = requires(T t) {
   { t.address } -> std::convertible_to<decltype(t.address)>;
 };
-using Addr_t = quint16;
+using Addr_t = u16;
 template <typename T> class GetAddress {
 public:
   template <HasAddress Header> std::optional<T> operator()(const Header &header) const {

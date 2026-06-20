@@ -68,14 +68,14 @@ public:
   virtual FrameIterator crend() const = 0;
   // Paths must be stored on TB and not some other object, since the average target only has access to a TB.
   // Use a PathGuard to manipulate the current path.
-  quint16 currentPath() const { return _paths.top(); }
+  u16 currentPath() const { return _paths.top(); }
 
   virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
   virtual bool traced(device::ID deviceID) const = 0;
 
   inline void emitFrameStart() { writeFragment({sim::api2::frame::header::Trace{}}); }
   template <typename Address>
-  void emitWrite(sim::api2::device::ID id, Address address, bits::span<const quint8> src, bits::span<quint8> dest) {
+  void emitWrite(sim::api2::device::ID id, Address address, bits::span<const u8> src, bits::span<u8> dest) {
     using vb = decltype(api2::packet::header::Write::address);
     if (traced(id)) {
       auto address_bytes = vb::from_address<Address>(address);
@@ -88,7 +88,7 @@ public:
   // A write to a MM port appends to the state of that port.
   // We do not need to know previous value, since the pub/sub system records it.
   template <typename Address>
-  void emitMMWrite(sim::api2::device::ID id, Address address, bits::span<const quint8> src) {
+  void emitMMWrite(sim::api2::device::ID id, Address address, bits::span<const u8> src) {
     using vb = decltype(api2::packet::header::Write::address);
     if (traced(id)) {
       auto header = api2::packet::header::Write{.device = id, .address = vb::from_address(address)};
@@ -106,7 +106,7 @@ public:
   }
   // Generate a ImpureRead packet. Bytes will not be XOR encoded.
   // We do not need to know previous value, since the pub/sub system records it.
-  template <typename Address> void emitMMRead(sim::api2::device::ID id, Address address, bits::span<const quint8> src) {
+  template <typename Address> void emitMMRead(sim::api2::device::ID id, Address address, bits::span<const u8> src) {
     using vb = decltype(api2::packet::header::Write::address);
     if (traced(id)) {
       auto header = api2::packet::header::ImpureRead{.device = id, .address = vb::from_address(address)};
@@ -115,7 +115,7 @@ public:
     }
   }
   template <typename Address>
-  void emitIncrement(sim::api2::device::ID id, Address address, bits::span<const quint8> val) {
+  void emitIncrement(sim::api2::device::ID id, Address address, bits::span<const u8> val) {
     using vb = decltype(api2::packet::header::PureRead::address);
     if (traced(id)) {
       auto header = api2::packet::header::Increment{.device = id, .address = vb::from_address(address)};
@@ -128,7 +128,7 @@ protected:
   // Max payload size is a compile time constant, so compute at compile time.
   using vb = sim::api2::packet::payload::Variable;
   static constexpr auto payload_max_size = vb::N;
-  inline void emit_payloads(bits::span<const quint8> buf1, bits::span<const quint8> buf2) {
+  inline void emit_payloads(bits::span<const u8> buf1, bits::span<const u8> buf2) {
     auto data_len = std::min(buf1.size(), buf2.size());
     // Split the data into chunks that are `payload_max_size` bytes long.
     for (u32 it = 0; it < data_len;) {
@@ -138,14 +138,14 @@ protected:
       auto bytes = api2::packet::VariableBytes<payload_max_size>(payload_len, continues);
 
       // XOR-encode data to reduce storage by 2x.
-      bits::memcpy_xor(bits::span<quint8>{bytes.bytes}, buf1.subspan(it, payload_len), buf2.subspan(it, payload_len));
+      bits::memcpy_xor(bits::span<u8>{bytes.bytes}, buf1.subspan(it, payload_len), buf2.subspan(it, payload_len));
 
       api2::packet::payload::Variable payload{std::move(bytes)};
       writeFragment({payload});
       it += payload_len;
     }
   }
-  inline void emit_payloads(bits::span<const quint8> buf) {
+  inline void emit_payloads(bits::span<const u8> buf) {
     auto data_len = buf.size();
     // Split the data into chunks that are `payload_max_size` bytes long.
     for (u32 it = 0; it < data_len;) {
@@ -154,7 +154,7 @@ protected:
       // Additional payloads needed if it is more than N elements away from data_len.
       auto bytes = api2::packet::VariableBytes<payload_max_size>(payload_len, continues);
 
-      bits::memcpy(bits::span<quint8>{bytes.bytes}, buf.subspan(it, payload_len));
+      bits::memcpy(bits::span<u8>{bytes.bytes}, buf.subspan(it, payload_len));
       api2::packet::payload::Variable payload{std::move(bytes)};
       writeFragment({payload});
       it += payload_len;
@@ -187,7 +187,7 @@ public:
   PathGuard &operator=(PathGuard &&) = default;
 
 private:
-  quint16 _path = 0;
+  u16 _path = 0;
   Buffer *_buffer = 0;
 };
 } // namespace sim::api2::trace

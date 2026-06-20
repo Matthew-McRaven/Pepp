@@ -38,18 +38,18 @@ public:
     std::strong_ordering operator<=>(const DirectHandle &rhs) const;
     MetaType metatype() const;
     // Helper to pretty-print the handle.
-    quint16 index() const { return ((_metatype & 0x7) << 13) | (_type & 0x1FFF); }
+    u16 index() const { return ((_metatype & 0x7) << 13) | (_type & 0x1FFF); }
     inline operator QString() const { return QStringLiteral("DirectHandle(%1)").arg(index()); }
 
   private:
     friend class TypeInfo;
-    DirectHandle(MetaType, quint16);
+    DirectHandle(MetaType, u16);
 
     // Must be allowed to cast to MetaType
-    quint16 _metatype : 3;
+    u16 _metatype : 3;
     // Remaining 13 bits to distingush within the metatype.
     // Each metatype can figure out what to do with these bits individually.
-    quint16 _type : 13;
+    u16 _type : 13;
   };
   DirectHandle register_direct(Type &);
   DirectHandle register_direct(types::Primitives);
@@ -77,13 +77,13 @@ public:
     friend std::ostream &operator<<(std::ostream &, const IndirectHandle &);
     friend std::istream &operator>>(std::istream &is, IndirectHandle &h);
     // Helper to pretty-print the handle.
-    inline quint16 index() const { return _index; }
+    inline u16 index() const { return _index; }
     inline operator QString() const { return QStringLiteral("IndirectHandle(%1)").arg(_index); }
 
   private:
-    explicit IndirectHandle(quint16 index);
+    explicit IndirectHandle(u16 index);
     friend class TypeInfo;
-    quint16 _index = 0;
+    u16 _index = 0;
   };
 
   // Allows us to have multiple sets of {name:type} bindings, which will be useful when switching between source files.
@@ -129,7 +129,7 @@ private:
   // Second member in pair is the topological sort index. When serializing, sort items by this value before writing out.
   using DirectTypeMap = std::map<BoxedType, std::pair<DirectHandle, uint16_t>, CompareType>;
   DirectTypeMap _directTypes;
-  std::vector<quint16> _nextDirectHandle = std::vector<quint16>(int(MetaType::Struct) + 1, 0);
+  std::vector<u16> _nextDirectHandle = std::vector<u16>(int(MetaType::Struct) + 1, 0);
 
   // Members for indirect types
   std::map<QString, IndirectHandle> _nameToIndirect;
@@ -164,21 +164,21 @@ public:
       });
 
       // Hand-serialize the vector of boxed types. First the length, then all members.
-      if (auto errc = archive((quint16)b.size()); errc.code != std::errc()) return errc;
+      if (auto errc = archive((u16)b.size()); errc.code != std::errc()) return errc;
       for (const auto &item : b) {
         auto t = unbox(item); // Unbox first because otherwise we can't take a ref.
         if (auto errc = types::serialize(archive, t, h); errc.code != std::errc()) return errc;
       }
 
       // Serialize indirect types registrations.
-      if (auto errc = archive((quint16)self._nameToIndirect.size()); errc.code != std::errc()) return errc;
+      if (auto errc = archive((u16)self._nameToIndirect.size()); errc.code != std::errc()) return errc;
       for (const auto &[name, hnd] : self._nameToIndirect) {
         if (auto errc = archive(h->index_for_string(name)); errc.code != std::errc()) return errc;
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
       }
 
       // Serialize the indirect types for each scope
-      if (auto errc = archive((quint16)self._indirectTypes.indirectTypes.size()); errc.code != std::errc()) return errc;
+      if (auto errc = archive((u16)self._indirectTypes.indirectTypes.size()); errc.code != std::errc()) return errc;
       for (const auto &[hnd, type] : self._indirectTypes.indirectTypes) {
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
         auto type_index = h->index_for_type(type.type);
@@ -186,7 +186,7 @@ public:
       }
       return std::errc();
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
-      quint16 type_count = 0;
+      u16 type_count = 0;
       // Load string pool.
       if (auto errc = archive(h->_strs.container()); errc.code != std::errc()) return errc;
 
@@ -199,26 +199,26 @@ public:
       }
 
       // Load indirect type registrations.
-      quint16 indirect_handle_count = 0;
+      u16 indirect_handle_count = 0;
       if (auto errc = archive(indirect_handle_count); errc.code != std::errc()) return errc;
       for (int it = 0; it < indirect_handle_count; ++it) {
-        quint32 string_idx = 0;
+        u32 string_idx = 0;
         if (auto errc = archive(string_idx); errc.code != std::errc()) return errc;
         QString name = h->string_for_index(string_idx);
 
-        quint16 index = 0;
+        u16 index = 0;
         if (auto errc = archive(index); errc.code != std::errc()) return errc;
 
         self._nameToIndirect[name] = IndirectHandle{index};
       }
 
       // Load indirect types for each scope
-      quint16 tmp = 0;
+      u16 tmp = 0;
       if (auto errc = archive(tmp); errc.code != std::errc()) return errc;
       for (auto it = 0; it < tmp; it++) {
         IndirectHandle hnd;
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
-        quint16 type_index = 0;
+        u16 type_index = 0;
         if (auto errc = archive(type_index); errc.code != std::errc()) return errc;
         auto type = h->type_for_index(type_index);
         self._indirectTypes.indirectTypes[hnd] = Versioned<OptType>{type};

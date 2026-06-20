@@ -32,7 +32,7 @@ template <typename Address> class SimpleBus;
 } // namespace sim
 
 namespace targets::ma {
-class System : public sim::api2::System<quint16> {
+class System : public sim::api2::System<u16> {
 public:
   System(pepp::Architecture arch, pepp::Features feats);
   // System interface
@@ -50,7 +50,7 @@ public:
 
   pepp::Architecture architecture() const;
   targets::pep9::mc2::BaseCPU *cpu();
-  sim::memory::SimpleBus<quint16> *bus();
+  sim::memory::SimpleBus<u16> *bus();
 
 private:
   sim::api2::device::ID _nextID = 0;
@@ -60,8 +60,8 @@ private:
   pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
   pepp::Features _feats = pepp::Features::None;
   QSharedPointer<targets::pep9::mc2::BaseCPU> _cpu = nullptr;
-  QSharedPointer<sim::memory::Dense<quint16>> _rawMemory = nullptr;
-  QSharedPointer<sim::memory::SimpleBus<quint16>> _bus = nullptr;
+  QSharedPointer<sim::memory::Dense<u16>> _rawMemory = nullptr;
+  QSharedPointer<sim::memory::SimpleBus<u16>> _bus = nullptr;
   QSharedPointer<sim::api2::Paths> _paths = nullptr;
   QMap<sim::api2::device::ID, sim::api2::device::Descriptor> _devices = {};
 };

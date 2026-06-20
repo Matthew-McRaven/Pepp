@@ -5,7 +5,7 @@
 #include "exports.hpp"
 namespace pepp::debug {
 Q_NAMESPACE_EXPORT(PEPP_EXPORT);
-enum class Opcodes : quint8 {
+enum class Opcodes : u8 {
   INVALID = 0,
   PUSH,
   POP,
@@ -29,18 +29,18 @@ struct MemoryOp {
   static zpp::bits::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
-      if (auto errc = archive((quint8)self.op); errc != std::errc()) return errc;
+      if (auto errc = archive((u8)self.op); errc != std::errc()) return errc;
       else if (errc = archive(self.name.toStdString()); errc != std::errc()) return errc;
-      quint16 tmp = h.index_for_type(self.type);
+      u16 tmp = h.index_for_type(self.type);
       return archive(tmp);
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
-      quint8 tmp = 0;
+      u8 tmp = 0;
       if (auto errc = archive(tmp); errc.code != std::errc()) return errc;
       self.op = static_cast<Opcodes>(tmp);
       std::string s;
       if (auto errc = archive(s); errc.code != std::errc()) return errc;
       self.name = QString::fromStdString(s);
-      quint16 tmp2 = 0;
+      u16 tmp2 = 0;
       if (auto errc = archive(tmp2); errc.code != std::errc()) return errc;
       self.type = h.type_for_index(tmp2);
       return std::errc();
@@ -58,9 +58,9 @@ struct FrameManagement {
   }
   static constexpr zpp::bits::errc serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
-    if constexpr (archive_type::kind() == zpp::bits::kind::out) return archive((quint8)self.op);
+    if constexpr (archive_type::kind() == zpp::bits::kind::out) return archive((u8)self.op);
     else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
-      quint8 tmp = 0;
+      u8 tmp = 0;
       if (auto errc = archive(tmp); errc.code != std::errc()) return errc;
       self.op = static_cast<Opcodes>(tmp);
       return std::errc();
@@ -105,11 +105,11 @@ template <typename T> struct SerializeVistor {
 static zpp::bits::errc serialize_op(auto &archive, auto &type, pepp::debug::types::SerializationHelper &h) {
   using archive_type = std::remove_cvref_t<decltype(archive)>;
   if constexpr (archive_type::kind() == zpp::bits::kind::out) {
-    if (auto errc = archive((quint8)type.index()); errc.code != std::errc()) return errc;
+    if (auto errc = archive((u8)type.index()); errc.code != std::errc()) return errc;
     return std::visit(detail::SerializeVistor{h, archive}, type);
   } else {
     // TODO: Read in the type
-    quint8 index = 0;
+    u8 index = 0;
     if (auto errc = archive(index); errc.code != std::errc()) return errc;
     switch (index) {
     case 0: {
@@ -149,12 +149,12 @@ struct CommandPacket {
   static auto serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) -> zpp::bits::errc {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
-      if (auto errc = archive((quint16)self.ops.size()); errc.code != std::errc()) return errc;
+      if (auto errc = archive((u16)self.ops.size()); errc.code != std::errc()) return errc;
       for (const auto &op : self.ops) {
         if (auto errc = serialize_op(archive, op, h); errc.code != std::errc()) return errc;
       }
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
-      quint16 size = 0;
+      u16 size = 0;
       if (auto errc = archive(size); errc.code != std::errc()) return errc;
       for (int i = 0; i < size; ++i) {
         StackOp op;
@@ -180,12 +180,12 @@ struct CommandFrame {
   static auto serialize(auto &archive, auto &self, pepp::debug::types::SerializationHelper &h) -> zpp::bits::errc {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
-      if (auto errc = archive((quint16)self.packets.size()); errc.code != std::errc()) return errc;
+      if (auto errc = archive((u16)self.packets.size()); errc.code != std::errc()) return errc;
       for (const auto &packet : self.packets) {
         if (auto errc = packet.serialize(archive, packet, h); errc.code != std::errc()) return errc;
       }
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
-      quint16 size = 0;
+      u16 size = 0;
       if (auto errc = archive(size); errc.code != std::errc()) return errc;
       for (int i = 0; i < size; ++i) {
         CommandPacket packet;

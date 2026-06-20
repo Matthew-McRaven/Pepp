@@ -14,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <QtCore>
 #include <zpp_bits.h>
+#include "core/integers.h"
 
 namespace sim::api2::frame {
 // DO NOT SET "length" OR "back_offset"! The trace buffer will fill in these
@@ -30,17 +30,17 @@ struct Trace {
   // The code responsible for starting a new frame needs to
   // go back and update this field.
   // If 0, then this is the last frame in the trace.
-  quint16 length = 0;
+  u16 length = 0;
   // Number of bytes to the start of the previous FrameHeader.
   // If 0, then this is the first frame in the trace.
-  zpp::bits::varint<quint16> back_offset = 0;
+  zpp::bits::varint<u16> back_offset = 0;
 };
 // If a single frame grows too large, its length will overflow a 16b int.
 // To avoid this, the trace buffer can automatically insert an Extender header.
 // Physically, it starts a new frame. Logically, the packets in each should be
 // considered to belong to the same frame.
 struct Extender {
-  quint16 length = 0, back_offset = 0xFFFF;
+  u16 length = 0, back_offset = 0xFFFF;
 };
 } // namespace header
 // If you add a type, update Fragment trace/buffer.hpp

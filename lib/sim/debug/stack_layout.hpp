@@ -19,7 +19,7 @@ class Frame;
 
 class Slot final : public LayoutNode {
 public:
-  Slot(quint32 address, quint32 size, QString name, std::shared_ptr<pepp::debug::Term> expr, Frame *parent);
+  Slot(u32 address, u32 size, QString name, std::shared_ptr<pepp::debug::Term> expr, Frame *parent);
   // Copying is not safe because we cannot clone expr, but we want to keep move for speed.
   Slot(const Slot &) = delete;
   Slot &operator=(const Slot &) = delete;
@@ -27,8 +27,8 @@ public:
   Slot &operator=(Slot &&other);
   ~Slot() override = default;
 
-  quint32 address() const;
-  quint32 size() const;
+  u32 address() const;
+  u32 size() const;
   QString name() const;
   std::shared_ptr<pepp::debug::Term> expr();
   std::shared_ptr<const pepp::debug::Term> expr() const;
@@ -43,7 +43,7 @@ public:
 
 private:
   // Size is a cached value from _expr.
-  quint32 _address, _size;
+  u32 _address, _size;
   QString _name;
   std::shared_ptr<pepp::debug::Term> _expr;
   Frame *_parent = nullptr;
@@ -55,7 +55,7 @@ class Frame final : public LayoutNode {
   using const_iterator = typename container::const_iterator;
 
 public:
-  Frame(quint32 baseAddress, Stack *parent);
+  Frame(u32 baseAddress, Stack *parent);
   // Records cannot be copied, and we are a container of records. Keep move for performance
   Frame(const Frame &) = delete;
   Frame &operator=(const Frame &) = delete;
@@ -66,8 +66,8 @@ public:
   Stack *parent();
   bool active() const;
   void setActive(bool active);
-  quint32 base_address() const;
-  quint32 top_address() const;
+  u32 base_address() const;
+  u32 top_address() const;
 
   void pushSlot(Slot &&slot);
   Slot popSlot();
@@ -89,7 +89,7 @@ public:
 
 private:
   bool _active = false;
-  quint32 _baseAddress = -1;
+  u32 _baseAddress = -1;
   Stack *_parent = nullptr;
   container _slots = {};
 };
@@ -100,7 +100,7 @@ class Stack final : public LayoutNode {
   using const_iterator = typename container::const_iterator;
 
 public:
-  Stack(quint32 baseAddress);
+  Stack(u32 baseAddress);
   // Same note on rule-of-5 as Frame
   Stack(const Stack &) = delete;
   Stack &operator=(const Stack &) = delete;
@@ -108,8 +108,8 @@ public:
   Stack &operator=(Stack &&other);
   ~Stack() override = default;
 
-  quint32 base_address() const;
-  quint32 top_address() const;
+  u32 base_address() const;
+  u32 top_address() const;
 
   Frame &pushFrame();
   void popFrame();
@@ -122,7 +122,7 @@ public:
   iterator end();
   std::size_t size() const;
   bool empty() const;
-  bool contains(quint32 address) const;
+  bool contains(u32 address) const;
   const Frame *at(std::size_t index) const;
   const Frame *reverse_at(std::size_t index) const;
   Frame *top();
@@ -131,7 +131,7 @@ public:
 
 private:
   container _frames = {};
-  quint32 _baseAddress = -1;
+  u32 _baseAddress = -1;
 };
 
 } // namespace pepp::debug

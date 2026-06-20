@@ -1,7 +1,7 @@
 #include "traced_pep_ma2_system.hpp"
 #include "core/math/bitmanip/enums.hpp"
 using namespace Qt::StringLiterals;
-using AddressSpan = sim::api2::memory::AddressSpan<quint16>;
+using AddressSpan = sim::api2::memory::AddressSpan<u16>;
 namespace {
 sim::api2::device::Descriptor desc_cpu(sim::api2::device::ID id) {
   return {.id = id, .baseName = "cpu", .fullName = "/cpu"};
@@ -16,9 +16,9 @@ sim::api2::device::Descriptor desc_dense(sim::api2::device::ID id) {
 
 targets::ma::System::System(pepp::Architecture arch, pepp::Features feats)
     : _arch(arch),
-      _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
+      _bus(QSharedPointer<sim::memory::SimpleBus<u16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
-  _rawMemory = QSharedPointer<sim::memory::Dense<quint16>>::create(desc_dense(nextID()), AddressSpan(0, 0xFFFF));
+  _rawMemory = QSharedPointer<sim::memory::Dense<u16>>::create(desc_dense(nextID()), AddressSpan(0, 0xFFFF));
   _paths->clear();
   _paths->add(0, _bus->deviceID());
   _bus->pushFrontTarget(AddressSpan(0, 0xFFFF), _rawMemory.get());
@@ -77,4 +77,4 @@ pepp::Architecture targets::ma::System::architecture() const { return _arch; }
 
 targets::pep9::mc2::BaseCPU *targets::ma::System::cpu() { return _cpu.get(); }
 
-sim::memory::SimpleBus<quint16> *targets::ma::System::bus() { return _bus.get(); }
+sim::memory::SimpleBus<u16> *targets::ma::System::bus() { return _bus.get(); }

@@ -38,37 +38,37 @@ sim::api2::memory::Operation gs_i = {
 template <typename T> using AddressSpan = sim::api2::memory::AddressSpan<T>;
 targets::pep9::isa::CPU::CPU(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen)
     : _device(device), _regs({.id = gen(), .baseName = "regs", .fullName = _device.fullName + "/regs"},
-                             AddressSpan<quint8>(0, quint8(::isa::Pep9::RegisterCount * 2 - 1))),
+                             AddressSpan<u8>(0, u8(::isa::Pep9::RegisterCount * 2 - 1))),
       _csrs({.id = gen(), .baseName = "csrs", .fullName = _device.fullName + "/csrs"},
-            AddressSpan<quint8>(0, quint8(::isa::Pep9::CSRCount - 1))) {}
+            AddressSpan<u8>(0, u8(::isa::Pep9::CSRCount - 1))) {}
 
-sim::api2::memory::Target<quint8> *targets::pep9::isa::CPU::regs() { return &_regs; }
+sim::api2::memory::Target<u8> *targets::pep9::isa::CPU::regs() { return &_regs; }
 
-sim::api2::memory::Target<quint8> *targets::pep9::isa::CPU::csrs() { return &_csrs; }
+sim::api2::memory::Target<u8> *targets::pep9::isa::CPU::csrs() { return &_csrs; }
 
 sim::api2::device::Descriptor targets::pep9::isa::CPU::device() const { return _device; }
 
 targets::pep9::isa::CPU::Status targets::pep9::isa::CPU::status() const { return _status; }
 
-void targets::pep9::isa::CPU::setPwrOff(sim::memory::Output<quint16> *pwrOff) { _pwrOff = pwrOff; }
+void targets::pep9::isa::CPU::setPwrOff(sim::memory::Output<u16> *pwrOff) { _pwrOff = pwrOff; }
 
-std::optional<quint16> targets::pep9::isa::CPU::currentOperand() {
+std::optional<u16> targets::pep9::isa::CPU::currentOperand() {
   using Register = ::isa::Pep9::Register;
   auto is = readReg(Register::IS), os = readReg(Register::OS);
   auto instrDef = ::isa::Pep9::opcodeLUT[is];
   if (::isa::Pep9::isValidAddressingMode(instrDef.instr.mnemon, instrDef.mode) && !instrDef.instr.unary) {
-    quint16 operand = 0;
+    u16 operand = 0;
     ::isa::Pep9::isStore(is) ? decodeStoreOperand(is, os, operand, false) : decodeLoadOperand(is, os, operand, false);
     return operand;
   }
   return std::nullopt;
 }
 
-quint16 targets::pep9::isa::CPU::startingPC() const { return _startingPC; }
+u16 targets::pep9::isa::CPU::startingPC() const { return _startingPC; }
 
 void targets::pep9::isa::CPU::updateStartingPC() { _startingPC = readReg(::isa::Pep9::Register::PC); }
 
-quint16 targets::pep9::isa::CPU::depth() const { return _depth; }
+u16 targets::pep9::isa::CPU::depth() const { return _depth; }
 
 const sim::api2::tick::Source *targets::pep9::isa::CPU::getSource() { return _clock; }
 
@@ -76,10 +76,10 @@ void targets::pep9::isa::CPU::setSource(sim::api2::tick::Source *clock) { _clock
 
 sim::api2::tick::Result targets::pep9::isa::CPU::clock(sim::api2::tick::Type currentTick) {
   using Register = ::isa::Pep9::Register;
-  quint16 pc = _startingPC = readReg(Register::PC);
+  u16 pc = _startingPC = readReg(Register::PC);
 
   // Instruction specifier fetch + writeback.
-  quint8 is = 0;
+  u8 is = 0;
   _memory->read(pc, {&is, 1}, rw_i);
   writeReg(Register::IS, is);
   pc += 1;
@@ -90,8 +90,8 @@ sim::api2::tick::Result targets::pep9::isa::CPU::clock(sim::api2::tick::Type cur
     ret = unaryDispatch(is, pc);
   } else {
     // Instruction specifier fetch + writeback.
-    quint16 os = 0;
-    _memory->read(pc, {reinterpret_cast<quint8 *>(&os), 2}, rw_i);
+    u16 os = 0;
+    _memory->read(pc, {reinterpret_cast<u8 *>(&os), 2}, rw_i);
     os = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(os) : os;
     writeReg(Register::OS, os);
     // Execute nonunary dispatch, which is responsible for writing back PC.
@@ -120,32 +120,32 @@ void targets::pep9::isa::CPU::trace(bool enabled) {
   _csrs.trace(enabled);
 }
 
-void targets::pep9::isa::CPU::setTarget(sim::api2::memory::Target<quint16> *target, void *port) { _memory = target; }
+void targets::pep9::isa::CPU::setTarget(sim::api2::memory::Target<u16> *target, void *port) { _memory = target; }
 
 void targets::pep9::isa::CPU::setDebugger(pepp::debug::Debugger *debugger) { _dbg = debugger; }
 
 void targets::pep9::isa::CPU::clearDebugger() { _dbg = nullptr; }
 
 void targets::pep9::isa::CPU::incrDepth() {
-  static const quint8 amt = 1;
+  static const u8 amt = 1;
   _depth++;
-  if (_tb) _tb->emitIncrement<quint8>(_device.id, 0, {&amt, 1});
+  if (_tb) _tb->emitIncrement<u8>(_device.id, 0, {&amt, 1});
 }
 
 void targets::pep9::isa::CPU::decrDepth() {
-  static const quint8 amt = -1;
+  static const u8 amt = -1;
   if (_depth != 0) _depth--;
-  if (_tb) _tb->emitIncrement<quint8>(_device.id, 0, {&amt, 1});
+  if (_tb) _tb->emitIncrement<u8>(_device.id, 0, {&amt, 1});
 }
 
-quint16 targets::pep9::isa::CPU::readReg(::isa::Pep9::Register reg) {
-  quint16 ret = 0;
-  targets::isa::readRegister<::isa::Pep9, quint8>(&_regs, reg, ret, rw_d);
+u16 targets::pep9::isa::CPU::readReg(::isa::Pep9::Register reg) {
+  u16 ret = 0;
+  targets::isa::readRegister<::isa::Pep9, u8>(&_regs, reg, ret, rw_d);
   return ret;
 }
 
-void targets::pep9::isa::CPU::writeReg(::isa::Pep9::Register reg, quint16 val) {
-  targets::isa::writeRegister<::isa::Pep9, quint8>(&_regs, reg, val, rw_d);
+void targets::pep9::isa::CPU::writeReg(::isa::Pep9::Register reg, u16 val) {
+  targets::isa::writeRegister<::isa::Pep9, u8>(&_regs, reg, val, rw_d);
 }
 
 bool targets::pep9::isa::CPU::readCSR(::isa::Pep9::CSR csr) {
@@ -155,35 +155,35 @@ bool targets::pep9::isa::CPU::readCSR(::isa::Pep9::CSR csr) {
 }
 
 void targets::pep9::isa::CPU::writeCSR(::isa::Pep9::CSR csr, bool val) {
-  targets::isa::writeCSR<::isa::Pep9, quint8>(&_csrs, csr, val, rw_d);
+  targets::isa::writeCSR<::isa::Pep9, u8>(&_csrs, csr, val, rw_d);
 }
 
-quint8 targets::pep9::isa::CPU::readPackedCSR() {
-  quint8 ret = 0;
+u8 targets::pep9::isa::CPU::readPackedCSR() {
+  u8 ret = 0;
   targets::isa::readPackedCSR<::isa::Pep9>(&_csrs, ret, rw_d);
   return ret;
 }
 
-void targets::pep9::isa::CPU::writePackedCSR(quint8 val) {
+void targets::pep9::isa::CPU::writePackedCSR(u8 val) {
   targets::isa::writePackedCSR<::isa::Pep9>(&_csrs, val, rw_d);
 }
 
-sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint16 pc) {
+sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(u8 is, u16 pc) {
   using ISA = ::isa::Pep9;
   using mn = ISA::Mnemonic;
   using Register = ISA::Pep9::Register;
 
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto mnemonic = ::isa::Pep9::opcodeLUT[is];
-  quint16 a = readReg(Register::A), sp = readReg(Register::SP), x = readReg(Register::X);
-  quint16 startPC = pc - 1; // Needed to notify debugger on traps.
-  quint16 tmp = 0;
-  bits::span<const quint8> tmpSpan = {reinterpret_cast<const quint8 *>(&tmp), sizeof(tmp)};
-  quint8 tmp8 = 0;
+  u16 a = readReg(Register::A), sp = readReg(Register::SP), x = readReg(Register::X);
+  u16 startPC = pc - 1; // Needed to notify debugger on traps.
+  u16 tmp = 0;
+  bits::span<const u8> tmpSpan = {reinterpret_cast<const u8 *>(&tmp), sizeof(tmp)};
+  u8 tmp8 = 0;
   // Long enough to either hold all regs or one ctx switch block.
-  static constexpr quint8 registersBytes = 2 * ::isa::Pep9::RegisterCount;
-  quint8 ctx[std::max<std::size_t>(registersBytes, 10)];
-  auto ctxSpan = bits::span<quint8>{ctx, sizeof(ctx)};
+  static constexpr u8 registersBytes = 2 * ::isa::Pep9::RegisterCount;
+  u8 ctx[std::max<std::size_t>(registersBytes, 10)];
+  auto ctxSpan = bits::span<u8>{ctx, sizeof(ctx)};
   auto [n, z, v, c] = targets::isa::unpackCSR<ISA>(readPackedCSR());
 
   switch (mnemonic.instr.mnemon) {
@@ -193,7 +193,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     break;
 
   case mn::RET:
-    _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    _memory->read(sp, {reinterpret_cast<u8 *>(&tmp), 2}, rw_d);
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
     if (swap) tmp = bits::byteswap(tmp);
@@ -210,22 +210,22 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     _regs.read(0, {ctx, tmp}, rw_d);
 
     // Reload NZVC
-    _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp8), 1}, rw_d);
+    _memory->read(sp, {reinterpret_cast<u8 *>(&tmp8), 1}, rw_d);
     writePackedCSR(tmp8);
 
     // Load A into ctx. No need for byteswap, _memory is little endian as are
     // regs.
-    _memory->read(sp + 1, {ctx + 2 * static_cast<quint8>(Register::A), 2}, rw_d);
+    _memory->read(sp + 1, {ctx + 2 * static_cast<u8>(Register::A), 2}, rw_d);
     swap ? bits::byteswap(tmp) : tmp;
 
     // Load X into ctx
-    _memory->read(sp + 3, {ctx + 2 * static_cast<quint8>(Register::X), 2}, rw_d);
+    _memory->read(sp + 3, {ctx + 2 * static_cast<u8>(Register::X), 2}, rw_d);
 
     // Load PC into ctx
-    _memory->read(sp + 5, {ctx + 2 * static_cast<quint8>(Register::PC), 2}, rw_d);
+    _memory->read(sp + 5, {ctx + 2 * static_cast<u8>(Register::PC), 2}, rw_d);
 
     // Load SP into ctx
-    _memory->read(sp + 7, {ctx + 2 * static_cast<quint8>(Register::SP), 2}, rw_d);
+    _memory->read(sp + 7, {ctx + 2 * static_cast<u8>(Register::SP), 2}, rw_d);
 
     // Bulk write-back regs, saving a number of bits on trace metadata.
     _regs.write(0, {ctx, registersBytes}, rw_d);
@@ -233,8 +233,8 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     tmp = sp + 10;
     // Using "host"'s variables, so byte swap if necessary.
     if (swap) tmp = bits::byteswap(tmp);
-    _memory->write(static_cast<quint16>(::isa::Pep9::MemoryVectors::SystemStackPtr),
-                   {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    _memory->write(static_cast<u16>(::isa::Pep9::MemoryVectors::SystemStackPtr),
+                   {reinterpret_cast<u8 *>(&tmp), 2}, rw_d);
     decrDepth();
     if (_dbg) {
       _dbg->bps->notifyPCChanged(readReg(Register::PC));
@@ -319,7 +319,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
   case mn::ASRA:
     // Shift all bits to the right by 1 position. Since using unsigned shift,
     // must explicitly perform sign extension by hand.
-    tmp = static_cast<quint16>(a >> 1 | ((a & 0x8000) ? 1 << 15 : 0));
+    tmp = static_cast<u16>(a >> 1 | ((a & 0x8000) ? 1 << 15 : 0));
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
@@ -333,7 +333,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
   case mn::ASRX:
     // Shift all bits to the right by 1 position. Since using unsigned shift,
     // must explicitly perform sign extension by hand.
-    tmp = static_cast<quint16>(x >> 1 | ((x & 0x8000) ? 1 << 15 : 0));
+    tmp = static_cast<u16>(x >> 1 | ((x & 0x8000) ? 1 << 15 : 0));
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
@@ -347,7 +347,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
 
   case mn::ROLA:
     // Shift the carry in to low order bit.
-    tmp = static_cast<quint16>(a << 1 | (c ? 1 : 0));
+    tmp = static_cast<u16>(a << 1 | (c ? 1 : 0));
     // Carry out if register starts with high order 1.
     c = a & 0x8000;
     writeReg(Register::A, tmp);
@@ -355,7 +355,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     break;
   case mn::ROLX:
     // Shift the carry in to low order bit.
-    tmp = static_cast<quint16>(x << 1 | (c ? 1 : 0));
+    tmp = static_cast<u16>(x << 1 | (c ? 1 : 0));
     // Carry out if register starts with high order 1.
     c = x & 0x8000;
     writeReg(Register::X, tmp);
@@ -404,8 +404,8 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     ctx[9] = is;
 
     // Read system stack address.
-    _memory->read(static_cast<quint16>(::isa::Pep9::MemoryVectors::SystemStackPtr),
-                  {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    _memory->read(static_cast<u16>(::isa::Pep9::MemoryVectors::SystemStackPtr),
+                  {reinterpret_cast<u8 *>(&tmp), 2}, rw_d);
     if (swap) tmp = bits::byteswap(tmp);
 
     // Allocate ctx frame with -=.
@@ -414,7 +414,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     writeReg(Register::SP, tmp);
 
     // Read trap handler pc.
-    _memory->read(static_cast<quint16>(::isa::Pep9::MemoryVectors::TrapHandler), {reinterpret_cast<quint8 *>(&tmp), 2},
+    _memory->read(static_cast<u16>(::isa::Pep9::MemoryVectors::TrapHandler), {reinterpret_cast<u8 *>(&tmp), 2},
                   rw_d);
     if (swap) tmp = bits::byteswap(tmp);
     pc = tmp;
@@ -436,18 +436,18 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
   return {.pause = 0, .delay = 1};
 }
 
-sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
+sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(u8 is, u16 os, u16 pc) {
   using ISA = ::isa::Pep9;
   using mn = ISA::Mnemonic;
   using Register = ISA::Register;
 
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto mnemonic = ::isa::Pep9::opcodeLUT[is];
-  quint16 a = readReg(Register::A), sp = readReg(Register::SP), x = readReg(Register::X), temp = 0;
+  u16 a = readReg(Register::A), sp = readReg(Register::SP), x = readReg(Register::X), temp = 0;
 
-  quint16 operand = 0;
+  u16 operand = 0;
 
-  quint16 tmp = 0;
+  u16 tmp = 0;
   auto [n, z, v, c] = targets::isa::unpackCSR<ISA>(readPackedCSR());
 
   auto instrDef = ::isa::Pep9::opcodeLUT[is];
@@ -468,7 +468,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
   case mn::CALL:
     // Write PC to stack
     tmp = swap ? bits::byteswap(pc) : pc;
-    _memory->write(sp -= 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    _memory->write(sp -= 2, {reinterpret_cast<u8 *>(&tmp), 2}, rw_d);
     pc = operand;
     writeReg(Register::SP, sp);
     incrDepth();
@@ -534,7 +534,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     // bit remain.
     v = (~(a ^ (~operand + 1)) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
-    c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
+    c = tmp < a || tmp < static_cast<u16>(1 + ~operand);
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::SUBX:
@@ -550,7 +550,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     // and operand are the same, and one input & the output differ in sign.
     v = (~(x ^ (~operand + 1)) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
-    c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
+    c = tmp < x || tmp < static_cast<u16>(1 + ~operand);
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
@@ -604,7 +604,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     // bit remain.
     v = (~(a ^ (~operand + 1)) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
-    c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
+    c = tmp < a || tmp < static_cast<u16>(1 + ~operand);
     // Invert N bit if there was signed overflow.
     n ^= v;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
@@ -621,7 +621,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     // bit remain.
     v = (~(x ^ (~operand + 1)) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
-    c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
+    c = tmp < x || tmp < static_cast<u16>(1 + ~operand);
     // Invert N bit if there was signed overflow.
     n ^= v;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
@@ -683,20 +683,20 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
 
   case mn::STWA:
     tmp = swap ? bits::byteswap(a) : a;
-    _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    _memory->write(operand, {reinterpret_cast<u8 *>(&tmp), 2}, rw_d);
     break;
   case mn::STWX:
     tmp = swap ? bits::byteswap(x) : x;
-    _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    _memory->write(operand, {reinterpret_cast<u8 *>(&tmp), 2}, rw_d);
     break;
 
   case mn::STBA:
     tmp = swap ? bits::byteswap(a) : a;
-    _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp) + 1, 1}, rw_d);
+    _memory->write(operand, {reinterpret_cast<u8 *>(&tmp) + 1, 1}, rw_d);
     break;
   case mn::STBX:
     tmp = swap ? bits::byteswap(x) : x;
-    _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp) + 1, 1}, rw_d);
+    _memory->write(operand, {reinterpret_cast<u8 *>(&tmp) + 1, 1}, rw_d);
     break;
   default:
     writeReg(Register::PC, pc);
@@ -710,7 +710,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
   return {.pause = 0, .delay = 1};
 }
 
-void targets::pep9::isa::CPU::decodeStoreOperand(quint8 is, quint16 os, quint16 &decoded, bool traced) {
+void targets::pep9::isa::CPU::decodeStoreOperand(u8 is, u16 os, u16 &decoded, bool traced) {
   using Register = ::isa::Pep9::Register;
   using am = ::isa::Pep9::AddressingMode;
   auto acc_i = traced ? rw_i : gs_i;
@@ -722,18 +722,18 @@ void targets::pep9::isa::CPU::decodeStoreOperand(quint8 is, quint16 os, quint16 
   // case am::I:
   case am::D: decoded = os; break;
   case am::N:
-    _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
+    _memory->read(os, {reinterpret_cast<u8 *>(&decoded), 2}, acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::S: decoded = os + readReg(Register::SP); break;
   case am::X: decoded = os + readReg(Register::X); break;
   case am::SX: decoded = os + readReg(Register::SP) + readReg(Register::X); break;
   case am::SF:
-    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
+    _memory->read(os + readReg(Register::SP), {reinterpret_cast<u8 *>(&decoded), 2}, acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
-    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
+    _memory->read(os + readReg(Register::SP), {reinterpret_cast<u8 *>(&decoded), 2}, acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     decoded += readReg(Register::X);
     break;
@@ -741,7 +741,7 @@ void targets::pep9::isa::CPU::decodeStoreOperand(quint8 is, quint16 os, quint16 
   }
 }
 
-void targets::pep9::isa::CPU::decodeLoadOperand(quint8 is, quint16 os, quint16 &decoded, bool traced) {
+void targets::pep9::isa::CPU::decodeLoadOperand(u8 is, u16 os, u16 &decoded, bool traced) {
   using Register = ::isa::Pep9::Register;
   using mn = ::isa::Pep9::Mnemonic;
   using am = ::isa::Pep9::AddressingMode;
@@ -751,56 +751,56 @@ void targets::pep9::isa::CPU::decodeLoadOperand(quint8 is, quint16 os, quint16 &
   auto instruction = ::isa::Pep9::opcodeLUT[is];
   auto mnemon = instruction.instr.mnemon;
   bool isByte = mnemon == mn::LDBA || mnemon == mn::LDBX || mnemon == mn::CPBA || mnemon == mn::CPBX;
-  quint16 mask = isByte ? 0xFF : 0xFFFF;
+  u16 mask = isByte ? 0xFF : 0xFFFF;
   switch (instruction.mode) {
   case am::I: decoded = os; break;
   case am::D:
-    _memory->read(os, {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
+    _memory->read(os, {reinterpret_cast<u8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::N:
-    _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
+    _memory->read(os, {reinterpret_cast<u8 *>(&decoded), 2}, acc_i);
 
     if (swap) decoded = bits::byteswap(decoded);
     _memory->read(decoded,
-                  {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
+                  {reinterpret_cast<u8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::S:
     _memory->read(os + readReg(Register::SP),
-                  {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
+                  {reinterpret_cast<u8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::X:
     _memory->read(os + readReg(Register::X),
-                  {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
+                  {reinterpret_cast<u8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::SX:
     _memory->read(os + readReg(Register::SP) + readReg(Register::X),
-                  {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
+                  {reinterpret_cast<u8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::SF:
-    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
+    _memory->read(os + readReg(Register::SP), {reinterpret_cast<u8 *>(&decoded), 2}, acc_i);
 
     if (swap) decoded = bits::byteswap(decoded);
     _memory->read(decoded,
-                  {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
+                  {reinterpret_cast<u8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
-    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
+    _memory->read(os + readReg(Register::SP), {reinterpret_cast<u8 *>(&decoded), 2}, acc_i);
 
     if (swap) decoded = bits::byteswap(decoded);
     _memory->read(decoded + readReg(Register::X),
-                  {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
+                  {reinterpret_cast<u8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
     if (swap) decoded = bits::byteswap(decoded);
     break;
