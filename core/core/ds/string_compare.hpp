@@ -2,6 +2,7 @@
 
 #include <string>
 #include <string_view>
+#include "core/ds/hash/fnv.hpp"
 
 namespace pepp::bts {
 
@@ -30,20 +31,7 @@ struct cs_hash {
 struct ci_hash {
   using is_transparent = void;
 
-  std::size_t operator()(std::string_view s) const noexcept {
-    // FNV-1a (64-bit on 64-bit platforms); any stable hash is fine.
-    std::size_t h = sizeof(std::size_t) == 8 ? static_cast<std::size_t>(1469598103934665603ull)
-                                             : static_cast<std::size_t>(2166136261u);
-
-    constexpr std::size_t prime =
-        sizeof(std::size_t) == 8 ? static_cast<std::size_t>(1099511628211ull) : static_cast<std::size_t>(16777619u);
-
-    for (unsigned char c : s) {
-      h ^= static_cast<std::size_t>(ci_char_traits::to_lower(c));
-      h *= prime;
-    }
-    return h;
-  }
+  std::size_t operator()(std::string_view s) const noexcept { return pepp::case_insensitive_fnv_1a<ci_char_traits>(s); }
 
   std::size_t operator()(std::string const &s) const noexcept { return (*this)(std::string_view{s}); }
 };

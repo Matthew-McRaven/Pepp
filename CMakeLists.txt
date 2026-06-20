@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.25)
 
 # Needed so GENERATED is propogated See:
 # https://cmake.org/cmake/help/latest/policy/CMP0118.html Discussion here:

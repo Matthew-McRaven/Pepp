@@ -149,6 +149,7 @@ template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E> void do_hash(pepp::bts::
   CHECK(hs_reader.find_hashed_symbol("yankee") == 25);
   CHECK(hs_reader.find_hashed_symbol("zulu") == 26);
 }
+
 template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
 void do_gnuhash(pepp::bts::ElfMachineType t, std::string fname) {
   using namespace pepp::bts;
@@ -272,22 +273,10 @@ void do_gnuhash(pepp::bts::ElfMachineType t, std::string fname) {
 
 TEST_CASE("Emit .gnu.hash and .hash sections", "[scope:elf][kind:unit][arch:*]") {
   using namespace pepp::bts;
+  using pepp::djb;
+  using pepp::elf_hash;
   using Packed = PackedElfLE32;
-  SECTION("Validate hash functions for known values") {
-    // Sample hashes from: https://flapenguin.me/elf-dt-hash
-    CHECK(elf_hash(std::span{"", 0}) == 0);
-    CHECK(elf_hash(std::span{"printf", 6}) == 0x077905a6);
-    CHECK(elf_hash(std::span{"exit", 4}) == 0x0006cf04);
-    CHECK(elf_hash(std::span{"syscall", 7}) == 0x0b09985c);
-    CHECK(elf_hash(std::span{"flapenguin.me", 13}) == 0x03987915);
 
-    // Do not include null terminators for sake of matching existing hashes
-    CHECK(gnu_elf_hash(std::span{"", 0}) == 0x00001505);
-    CHECK(gnu_elf_hash(std::span{"printf", 6}) == 0x156b2bb8);
-    CHECK(gnu_elf_hash(std::span{"exit", 4}) == 0x7c967e3f);
-    CHECK(gnu_elf_hash(std::span{"syscall", 7}) == 0xbac212a0);
-    CHECK(gnu_elf_hash(std::span{"flapenguin.me", 13}) == 0x8ae9f18e);
-  }
   SECTION("Emit a working 32-bit, little-endian .hash") {
     do_hash<ElfBits::b32, ElfEndian::le>(ElfMachineType::EM_386, "compat_hash_32le.elf");
   }

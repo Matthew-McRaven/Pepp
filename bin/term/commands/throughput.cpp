@@ -18,8 +18,9 @@
 #include "throughput.hpp"
 #include <chrono>
 #include <iostream>
-#include "sim3/subsystems/ram/dense.hpp"
+#include "core/integers.h"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
+#include "sim3/subsystems/ram/dense.hpp"
 const auto desc_mem = sim::api2::device::Descriptor{
     .id = 1,
     .baseName = "ram",
@@ -54,7 +55,7 @@ void ThroughputTask::run() {
   using namespace Qt::StringLiterals;
   auto env = nullptr;
   // Add some spurious breakpoints which will not be hit
-  auto debugger = std::make_shared<pepp::debug::Debugger>(env);
+  // auto debugger = std::make_shared<pepp::debug::Debugger>(env);
   /*pepp::debug::Parser p(*debugger->cache);
   for (int it = 0; it < 128; it++) debugger->bps->addBP(2048 + it);
   auto bp = p.compile("10 + 2");
@@ -63,22 +64,24 @@ void ThroughputTask::run() {
     emit finished(1);
     return;
   }*/
-  debugger->bps->addBP(0 /*, bp.get()*/);
+  // debugger->bps->addBP(0 /*, bp.get()*/);
   auto [mem, cpu] = make();
-  cpu->setDebugger(&*debugger);
+  // cpu->setDebugger(&*debugger);
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
   // Infinite looping branch to 0.
-  auto program = std::array<quint8, 3>{static_cast<quint8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
+  const auto program = std::array<quint8, 3>{static_cast<quint8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
   mem->write(0, {program.data(), program.size()}, rw);
-  auto start = std::chrono::high_resolution_clock::now();
-  auto maxInstr = 1'000'000;
+  const auto start = std::chrono::high_resolution_clock::now();
+  const auto maxInstr = 100'000'000;
   for (int it = 0; it < maxInstr; it++) cpu->clock(it);
-  auto end = std::chrono::high_resolution_clock::now();
-  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  auto dt = 1.0 / (ms.count() / 1000.0);
-  std::cout << u"Duration was: %1\n"_s.arg(ms.count()).toStdString();
-  std::cout << u"Throughput was: %1\n"_s.arg(dt * maxInstr).toStdString();
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  const auto dt = 1.0 / (ms.count() / 1000.0);
+  const auto locale = std::locale("en_US.UTF-8");
+  fmt::println("Duration: {} ms", ms.count());
+  std::cout << fmt::format(locale, "Instructions: {:L}\n", maxInstr);
+  std::cout << fmt::format(locale, "Throughput: {:L} instructions/second\n", (i32)(dt * maxInstr));
 
   emit finished(0);
 }
