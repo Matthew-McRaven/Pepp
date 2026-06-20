@@ -80,5 +80,25 @@ struct ci_eq {
   bool operator()(std::string const &a, std::string_view b) const noexcept { return (*this)(std::string_view{a}, b); }
   bool operator()(std::string_view a, std::string const &b) const noexcept { return (*this)(a, std::string_view{b}); }
 };
+// Transparent, case-insensitive less than.
+struct ci_lt {
+  using is_transparent = void;
+
+  bool operator()(std::string_view a, std::string_view b) const noexcept {
+    if (a.size() != b.size()) return false;
+    for (std::size_t i = 0; i < a.size(); ++i) {
+      const auto ca = ci_char_traits::to_lower(static_cast<unsigned char>(a[i]));
+      const auto cb = ci_char_traits::to_lower(static_cast<unsigned char>(b[i]));
+      if (ca >= cb) return false;
+    }
+    return true;
+  }
+
+  bool operator()(std::string const &a, std::string const &b) const noexcept {
+    return (*this)(std::string_view{a}, std::string_view{b});
+  }
+  bool operator()(std::string const &a, std::string_view b) const noexcept { return (*this)(std::string_view{a}, b); }
+  bool operator()(std::string_view a, std::string const &b) const noexcept { return (*this)(a, std::string_view{b}); }
+};
 
 } // namespace pepp::core

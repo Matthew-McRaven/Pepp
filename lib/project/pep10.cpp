@@ -1341,12 +1341,13 @@ int Pep_MA::features() const { return (int)_env.features; }
 QString Pep_MA::lexerLanguage() const {
   using namespace bits;
   using enum pepp::Architecture;
+  using enum pepp::FeaturesEnu;
   switch (_env.arch) {
   case PEP8: return "Pep8Micro";
   case PEP9: [[fallthrough]];
   case PEP10:
-    if (any(_env.features & pepp::Features::TwoByte)) return "Pep9Micro2";
-    else if (any(_env.features & pepp::Features::OneByte)) return "Pep9Micro1";
+    if (any(_env.features & TwoByte)) return "Pep9Micro2";
+    else if (any(_env.features & OneByte)) return "Pep9Micro1";
     [[fallthrough]];
   default: return "";
   }
@@ -1452,7 +1453,7 @@ int Pep_MA::rendering_type() const {
   case PEP8: return 0;
   case PEP9: [[fallthrough]];
   case PEP10:
-    if (any(_env.features & pepp::Features::TwoByte)) return 1;
+    if (any(_env.features & pepp::FeaturesEnu::TwoByte)) return 1;
     return 0;
   default: return -1;
   }
@@ -1647,7 +1648,7 @@ void Pep_MA::bindToSystem() {
   case PEP10: break;
   default: throw std::logic_error("Unimplemented");
   }
-  if (any(_env.features & pepp::Features::TwoByte)) load_twobyte_vars();
+  if (any(_env.features & pepp::FeaturesEnu::TwoByte)) load_twobyte_vars();
   else load_onebyte_vars();
 
   using TMAS = sim::trace2::TranslatingModifiedAddressSink<quint16>;
@@ -1833,7 +1834,7 @@ bool Pep_MA::_microassemble(bool override_source_text) {
   case PEP8: return _microassemble8(override_source_text);
   case PEP9: [[fallthrough]];
   case PEP10:
-    if (any(_env.features & pepp::Features::TwoByte)) return _microassemble9_10_2(override_source_text);
+    if (any(_env.features & pepp::FeaturesEnu::TwoByte)) return _microassemble9_10_2(override_source_text);
     else return _microassemble9_10_1(override_source_text);
   default: return false;
   }

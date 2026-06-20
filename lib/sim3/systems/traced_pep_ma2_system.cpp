@@ -14,7 +14,7 @@ sim::api2::device::Descriptor desc_dense(sim::api2::device::ID id) {
 }
 } // namespace
 
-targets::ma::System::System(pepp::Architecture arch, pepp::Features feats)
+targets::ma::System::System(pepp::Architecture arch, pepp::FeaturesEnu feats)
     : _arch(arch),
       _bus(QSharedPointer<sim::memory::SimpleBus<u16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
@@ -23,18 +23,19 @@ targets::ma::System::System(pepp::Architecture arch, pepp::Features feats)
   _paths->add(0, _bus->deviceID());
   _bus->pushFrontTarget(AddressSpan(0, 0xFFFF), _rawMemory.get());
   using namespace bits;
+  using enum pepp::FeaturesEnu;
   switch (arch) {
-  case pepp::Architecture::PEP8: _feats = pepp::Features::OneByte; _cpu = nullptr;
+  case pepp::Architecture::PEP8: _feats = OneByte; _cpu = nullptr;
   case pepp::Architecture::PEP9: [[fallthrough]];
   case pepp::Architecture::PEP10:
-    if (any(pepp::Features::TwoByte & feats)) {
-      _feats = pepp::Features::TwoByte;
+    if (any(TwoByte & feats)) {
+      _feats = TwoByte;
       _cpu = QSharedPointer<targets::pep9::mc2::CPUWordBus>::create(desc_cpu(nextID()), _nextIDGenerator);
     } else {
-      _feats = pepp::Features::OneByte;
+      _feats = OneByte;
       _cpu = QSharedPointer<targets::pep9::mc2::CPUByteBus>::create(desc_cpu(nextID()), _nextIDGenerator);
     }
-  default: _feats = pepp::Features::None; break;
+  default: _feats = None; break;
   }
   if (_cpu) _cpu->setTarget(&*_bus, nullptr);
 }

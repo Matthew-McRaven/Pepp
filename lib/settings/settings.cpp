@@ -61,10 +61,10 @@ QDataStream &pepp::settings::operator>>(QDataStream &in, RecentFile &rf) {
 
   in >> path >> archInt >> absInt >> featInt;
   if (in.status() != QDataStream::Ok) {
-    featInt = (int)pepp::Features::None;
+    featInt = (int)pepp::FeaturesEnu::None;
   }
   rf = pepp::settings::RecentFile(path, static_cast<pepp::Architecture>(archInt),
-                                  static_cast<pepp::Abstraction>(absInt), static_cast<pepp::Features>(featInt));
+                                  static_cast<pepp::Abstraction>(absInt), static_cast<pepp::FeaturesEnu>(featInt));
   return in;
 }
 
@@ -235,7 +235,7 @@ QString pepp::settings::GeneralCategory::figureDirectory() const {
 }
 
 void pepp::settings::GeneralCategory::pushRecentFile(const QString &fileName, pepp::Architecture arch,
-                                                     pepp::Abstraction level, pepp::Features features) {
+                                                     pepp::Abstraction level, pepp::FeaturesEnu features) {
   if (_recentFileCache.empty()) refreshRecentFileCache();
   auto from = std::remove_if(_recentFileCache.begin(), _recentFileCache.end(),
                              [&fileName](auto &i) { return i.path() == fileName; });

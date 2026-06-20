@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include "core/integers.h"
+#include "core/math/bitmanip/enums.hpp"
 
 namespace pepp {
 
@@ -33,4 +35,14 @@ bool is_valid_level(int level) noexcept;
 std::string level_as_string(Abstraction level);
 std::string level_as_pretty_string(Abstraction level);
 Abstraction string_to_level(const std::string &str, bool *okay = nullptr);
+
+enum class FeaturesEnu : i32 {
+  None = 0,
+  OneByte = 1 << 0,
+  TwoByte = 1 << 1,
+  NoOS = 1 << 2,
+};
+consteval void is_bitflags(FeaturesEnu);
+std::string features_as_pretty_string(FeaturesEnu features);
+FeaturesEnu parse_features(const std::string &str);
 } // namespace pepp

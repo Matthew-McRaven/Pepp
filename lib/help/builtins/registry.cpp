@@ -297,7 +297,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
   else arch = *maybeArch;
   if (auto maybeLevel = abs_from_str(manifest["abstraction"].toString("")); !maybeLevel) return std::monostate();
   else level = *maybeLevel;
-  pepp::Features feats = pepp::parseFeatures(manifest["features"].toString(""));
+  auto feats = pepp::parse_features(manifest["features"].toString("").toStdString());
 
   const auto prefix = type == "problem" ? "Problem" : "Figure";
   auto figure =

@@ -17,7 +17,7 @@
 
 #include "figure.hpp"
 
-builtins::Figure::Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats, QString prefix,
+builtins::Figure::Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::FeaturesEnu feats, QString prefix,
                          QString chapter, QString figure, bool isProblem)
     : QObject(nullptr), _arch(arch), _level(level), _features(feats), _prefix(prefix), _chapterName(chapter),
       _figureName(figure), _isProblem(isProblem) {}
@@ -36,7 +36,9 @@ pepp::Abstraction builtins::Figure::level() const { return _level; }
 
 int builtins::Figure::qml_level() const { return (int)_level; }
 
-pepp::Features builtins::Figure::features() const { return _features; }
+pepp::FeaturesEnu builtins::Figure::features() const { return _features; }
+
+int builtins::Figure::qml_features() const { return (int)_features; }
 
 QString builtins::Figure::prefix() const { return _prefix; }
 

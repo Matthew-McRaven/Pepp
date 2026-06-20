@@ -47,21 +47,22 @@ class RecentFile {
   Q_PROPERTY(QString path MEMBER _path CONSTANT)
   Q_PROPERTY(int arch READ qml_arch CONSTANT)
   Q_PROPERTY(int abstraction READ qml_level CONSTANT)
-  Q_PROPERTY(pepp::Features features MEMBER _features CONSTANT)
+  Q_PROPERTY(int features READ qml_features CONSTANT)
   QML_UNCREATABLE("")
   QML_VALUE_TYPE(recent_file)
 public:
   RecentFile() = default;
-  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level, pepp::Features features)
+  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level, pepp::FeaturesEnu features)
       : _path(filePath), _arch(arch), _level(level), _features(features) {};
   RecentFile(const RecentFile &other) noexcept = default;
   RecentFile &operator=(const RecentFile &other) noexcept = default;
   QString path() const { return _path; }
   int qml_arch() const { return (int)_arch; }
   int qml_level() const { return (int)_level; }
+  int qml_features() const { return (int)_features; }
   pepp::Architecture arch() const { return _arch; }
   pepp::Abstraction abstraction() const { return _level; }
-  pepp::Features features() const { return _features; }
+  pepp::FeaturesEnu features() const { return _features; }
 
   Qt::strong_ordering operator<=>(const RecentFile &other) const;
 
@@ -69,7 +70,7 @@ private:
   QString _path = "";
   pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction _level = pepp::Abstraction::NO_ABS;
-  pepp::Features _features = pepp::Features::None;
+  pepp::FeaturesEnu _features = pepp::FeaturesEnu::None;
 };
 QDataStream &operator<<(QDataStream &out, const pepp::settings::RecentFile &rf);
 
@@ -131,7 +132,7 @@ public:
   void setExternalFigureDirectory(const QString &path);
   QString figureDirectory() const;
   Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture arch, pepp::Abstraction level,
-                                  pepp::Features features);
+                                  pepp::FeaturesEnu features);
   Q_INVOKABLE void clearRecentFiles();
   // Really should be in a seperate class, but I only use it when touching recent files.
   Q_INVOKABLE QString fileNameFor(const QString &fullPath);

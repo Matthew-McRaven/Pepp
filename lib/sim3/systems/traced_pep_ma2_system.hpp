@@ -34,7 +34,7 @@ template <typename Address> class SimpleBus;
 namespace targets::ma {
 class System : public sim::api2::System<u16> {
 public:
-  System(pepp::Architecture arch, pepp::Features feats);
+  System(pepp::Architecture arch, pepp::FeaturesEnu feats);
   // System interface
   std::pair<sim::api2::tick::Type, sim::api2::tick::Result> tick(sim::api2::Scheduler::Mode mode) override;
   sim::api2::tick::Type currentTick() const override;
@@ -58,7 +58,7 @@ private:
   sim::api2::tick::Type _tick = 0;
 
   pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
-  pepp::Features _feats = pepp::Features::None;
+  pepp::FeaturesEnu _feats = pepp::FeaturesEnu::None;
   QSharedPointer<targets::pep9::mc2::BaseCPU> _cpu = nullptr;
   QSharedPointer<sim::memory::Dense<u16>> _rawMemory = nullptr;
   QSharedPointer<sim::memory::SimpleBus<u16>> _bus = nullptr;

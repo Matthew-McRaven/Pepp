@@ -1,6 +1,7 @@
 #include "architectures.hpp"
 #include <map>
 #include "core/ds/string_compare.hpp"
+#include "fmt/ranges.h"
 #include "spdlog/spdlog.h"
 
 struct ArchData {
@@ -89,4 +90,45 @@ pepp::Abstraction pepp::string_to_level(const std::string &str, bool *okay) {
   }
   if (okay) *okay = false;
   return Abstraction::NO_ABS;
+}
+
+std::map<pepp::FeaturesEnu, std::string> init_feats() {
+  using enum pepp::FeaturesEnu;
+  std::map<pepp::FeaturesEnu, std::string> m{};
+  m[OneByte] = "OneByte";
+  m[TwoByte] = "TwoByte";
+  m[NoOS] = "NoOS";
+  return m;
+}
+
+std::map<std::string, pepp::FeaturesEnu, pepp::bts::ci_lt> init_reverse_feats() {
+  std::map<std::string, pepp::FeaturesEnu, pepp::bts::ci_lt> m{};
+  for (const auto &it : init_feats()) m[it.second] = it.first;
+  return m;
+}
+
+static const auto feats = init_feats();
+static const auto reverse_feats = init_reverse_feats();
+pepp::FeaturesEnu pepp::parse_features(const std::string &str) {
+  using namespace bits;
+
+  auto ret = pepp::FeaturesEnu::None;
+  for (size_t start = 0, end = str.find(","); start != std::string::npos; start = end, end = str.find(",", start)) {
+    const auto substr = str.substr(start, end - start);
+    if (auto it = reverse_feats.find(substr); it == reverse_feats.end())
+      spdlog::warn("Ignoring invalid feature {}", str.substr(start, end - start));
+    else ret |= it->second;
+  }
+  return ret;
+}
+
+std::string pepp::features_as_pretty_string(pepp::FeaturesEnu features) {
+  using namespace bits;
+  using enum pepp::FeaturesEnu;
+
+  std::vector<std::string> f;
+  if (any(features & OneByte)) f.emplace_back(feats.at(OneByte));
+  if (any(features & TwoByte)) f.emplace_back(feats.at(TwoByte));
+  if (any(features & NoOS)) f.emplace_back(feats.at(NoOS));
+  return f.empty() ? "None" : fmt::format("{}", fmt::join(f, ", "));
 }

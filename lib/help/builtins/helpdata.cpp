@@ -378,7 +378,7 @@ QSharedPointer<HelpEntry> greencard9_root() {
   return root;
 }
 
-QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feat) {
+QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, pepp::FeaturesEnu feat) {
   using enum pepp::Architecture;
   using enum pepp::Abstraction;
   using namespace bits;
@@ -390,7 +390,7 @@ QString lexerLang(pepp::Architecture arch, pepp::Abstraction level, pepp::Featur
     default: return "";
     }
     int featNum = 1;
-    if (any(feat & pepp::Features::TwoByte)) featNum = 2;
+    if (any(feat & pepp::FeaturesEnu::TwoByte)) featNum = 2;
     return QStringLiteral("%1Micro%2").arg(archStr).arg(featNum);
   }
   QString archStr = "", levelStr = "";

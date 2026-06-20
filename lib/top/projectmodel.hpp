@@ -43,8 +43,8 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   bool setData(const QModelIndex &index, const QVariant &value, int role) override;
-  Q_INVOKABLE Pep_MA *pep9MA2(pepp::Features features);
-  Q_INVOKABLE Pep_MA *pep10MA2(pepp::Features features);
+  Q_INVOKABLE Pep_MA *pep9MA2(int features);
+  Q_INVOKABLE Pep_MA *pep10MA2(int features);
   Q_INVOKABLE Pep_ISA *pep10ISA();
   Q_INVOKABLE Pep_ISA *pep9ISA();
   Q_INVOKABLE Pep_ASMB *pep10ASMB(int abstraction);
@@ -87,7 +87,7 @@ struct ProjectType {
   QString description{};
   pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
-  pepp::Features features = pepp::Features::None;
+  pepp::FeaturesEnu features = pepp::FeaturesEnu::None;
   CompletionState state = CompletionState::INCOMPLETE;
   int edition = 0;
   bool placeholder = false;
