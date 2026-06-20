@@ -70,13 +70,13 @@ bool pepp::Book::add_problem(std::shared_ptr<Figure> problem) noexcept {
   } else return false;
 }
 
-const std::vector<std::shared_ptr<pepp::MacroWrapper>> &pepp::Book::macros() const noexcept { return _macros; }
+const std::vector<std::shared_ptr<pepp::MacroFile>> &pepp::Book::macros() const noexcept { return _macros; }
 
-std::shared_ptr<const pepp::MacroWrapper> pepp::Book::find_macro(std::string name) const noexcept {
+std::shared_ptr<const pepp::MacroFile> pepp::Book::find_macro(std::string name) const noexcept {
   u64 count = 0;
-  std::shared_ptr<const MacroWrapper> result = nullptr;
+  std::shared_ptr<const MacroFile> result = nullptr;
   for (const auto &ptr : _macros) {
-    if (ptr->definition->name == name) {
+    if (ptr->name == name) {
       result = ptr;
       count++;
     }
@@ -87,10 +87,10 @@ std::shared_ptr<const pepp::MacroWrapper> pepp::Book::find_macro(std::string nam
   } else return result;
 }
 
-bool pepp::Book::add_macro(std::shared_ptr<MacroWrapper> macro) noexcept {
+bool pepp::Book::add_macro(std::shared_ptr<MacroFile> macro) noexcept {
   // TODO: Adding N macros will take N^2 time because of the calls to find.
   // Will be necessary to speed this up for large N.
-  if (find_macro(macro->definition->name) == nullptr) {
+  if (find_macro(macro->name) == nullptr) {
     _macros.push_back(macro);
     return true;
   } else return false;

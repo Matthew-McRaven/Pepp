@@ -23,8 +23,8 @@
 #include <memory>
 #include <string>
 #include <variant>
+#include <vector>
 #include "core/architectures.hpp"
-#include "core/compile/macro/macro_registry.hpp"
 
 namespace pepp {
 static const char *default_builtins_path = "/";
@@ -34,6 +34,7 @@ class Fragment;
 class Test;
 
 class BuiltinRegistry {
+public:
   struct Assembler {
     virtual ~Assembler() = default;
     virtual std::any operator()(const std::string &os, const std::string &user) = 0;
@@ -42,26 +43,30 @@ class BuiltinRegistry {
     virtual ~Formatter() = default;
     virtual std::string operator()(std::any assembled) = 0;
   };
+  struct FilesystemProvider {
+    virtual ~FilesystemProvider() = default;
+    virtual std::string dir_of(const std::string &path, const std::string &parent = "") const = 0;
+    virtual std::string read_file(const std::string &path, const std::string &parent = "") const = 0;
+    // Return the relative paths of all files and subdirectories within the given directory. Does not recurse.
+    virtual std::vector<std::string> enumerate_files(const std::string &directory) const = 0;
+    // Return true if these are not the "compiled in" figures.
+    virtual bool using_external_figures() const = 0;
+  };
   // Crawling the filesystem create books is handled inside CTOR.
-  explicit BuiltinRegistry(std::string directory = default_builtins_path);
+  explicit BuiltinRegistry(std::unique_ptr<FilesystemProvider> fs);
   std::list<std::shared_ptr<const pepp::Book>> books() const;
   std::shared_ptr<const pepp::Book> find_book(std::string name) const;
-  bool using_external_figures() const { return _usingExternalFigures; }
+  bool using_external_figures() const { return _fs->using_external_figures(); }
   void add_dependency(const Fragment *dependent, const Fragment *dependee);
   std::string content_for(Fragment &fragment);
   void add_assembler(pepp::Architecture arch, std::unique_ptr<Assembler> &&assembler);
   void add_formatter(pepp::Architecture arch, std::string format, std::unique_ptr<Formatter> &&formatter);
-
 private:
-  using _Figure = std::shared_ptr<const Figure>;
-  using _Macro = std::list<std::shared_ptr<const tc::MacroDefinition>>;
-  std::variant<std::monostate, _Figure, _Macro> load_manifest(const void *&manifest, const std::string &path);
-  std::variant<std::monostate, _Figure, _Macro> load_figure(const void *&manifest, const std::string &path);
-  std::variant<std::monostate, _Figure, _Macro> load_macro(const void *&manifest, const std::string &path);
-
   std::shared_ptr<Book> load_book(const std::string &toc_path);
+  void link_figure_to_OS(const std::string &manifest_path, std::shared_ptr<Figure> figure,
+                         std::shared_ptr<const Book> book);
 
-  bool _usingExternalFigures = false;
+  std::unique_ptr<FilesystemProvider> _fs;
   std::list<std::shared_ptr<const pepp::Book>> _books;
   // Given an element, determine which element it depends on.
   std::map<const Fragment * /*dependent*/, const Fragment * /*dependee*/> _dependencies;
@@ -72,12 +77,5 @@ private:
   std::map<pepp::Architecture, std::unique_ptr<Assembler>> _assemblers;
   std::map<std::pair<pepp::Architecture, std::string>, std::unique_ptr<Formatter>> _formatters;
 };
-
-namespace detail {
-Test *load_test(const std::string &test_dir);
-void link_figure_to_OS(const std::string &manifest_path, std::shared_ptr<Figure> figure,
-                       std::shared_ptr<const Book> book);
-std::list<std::string> enumerate_books(const std::string &prefix);
-} // end namespace detail
 
 } // namespace pepp

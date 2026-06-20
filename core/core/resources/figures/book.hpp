@@ -21,15 +21,20 @@
 #include <string>
 #include <vector>
 #include "core/architectures.hpp"
-#include "core/compile/macro/macro_registry.hpp"
 
 namespace pepp {
-struct MacroWrapper {
-  // The actual macro (arg count, body, name)
-  std::shared_ptr<const tc::MacroDefinition> definition;
+// TODO: when we port to the new assembler, all of these fields will change.
+// The file on the disk might contain multiple macro defs, so to actually know what macros a file defines you have to
+// parse it. Because Pepp still uses the old assembler, we still have to support files starting with the `@MACRO_NAME #`
+// format.
+struct MacroFile {
+  std::string name;
+  std::string body;
+  u8 argcount;
   // Meta-information used to filter & sort macros within the book.
-  bool hidden = false;
+  std::string family;
   pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+  bool hidden = false;
 };
 
 class Figure;
@@ -54,16 +59,16 @@ public:
   bool add_problem(std::shared_ptr<Figure> problem) noexcept;
 
   // Return a container of all macros within this book.
-  const std::vector<std::shared_ptr<MacroWrapper>> &macros() const noexcept;
+  const std::vector<std::shared_ptr<MacroFile>> &macros() const noexcept;
   // Return a pointer to the macro with the given name, or a nullptr if no such macro exists.
   // We do not allow multiple  macros with the same name.
-  std::shared_ptr<const MacroWrapper> find_macro(std::string name) const noexcept;
+  std::shared_ptr<const MacroFile> find_macro(std::string name) const noexcept;
   // Register a macro as part of this book, returning false if a macro with the same name already exists.
-  bool add_macro(std::shared_ptr<MacroWrapper> macro) noexcept;
+  bool add_macro(std::shared_ptr<MacroFile> macro) noexcept;
 
 private:
   std::string _name;
   std::vector<std::shared_ptr<Figure>> _figures = {}, _problems = {};
-  std::vector<std::shared_ptr<MacroWrapper>> _macros = {};
+  std::vector<std::shared_ptr<MacroFile>> _macros = {};
 };
 } // namespace pepp

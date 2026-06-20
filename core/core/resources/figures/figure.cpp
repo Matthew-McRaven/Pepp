@@ -62,6 +62,11 @@ const std::list<const pepp::Test *> &pepp::Figure::tests() const { return _tests
 
 void pepp::Figure::add_test(const Test *test) { _tests.push_back(test); }
 
+const pepp::Fragment *pepp::Figure::find_fragment(const std::string &name) const {
+  if (auto ret = _named_fragments.find(name); ret != _named_fragments.cend()) return ret->second;
+  else return nullptr;
+}
+
 const std::vector<const pepp::Fragment *> &pepp::Figure::fragments() const { return _all_fragments; }
 
 bool pepp::Figure::add_fragment(const pepp::Fragment *fragment) {

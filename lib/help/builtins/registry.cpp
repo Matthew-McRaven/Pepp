@@ -331,7 +331,6 @@ builtins::Fragment *builtins::Registry::loadFragment(const nlohmann::json &item,
   return fragment.release();
 }
 
-namespace {} // namespace
 std::variant<std::monostate, builtins::Registry::_Figure, builtins::Registry::_Macro>
 builtins::Registry::loadManifestV2(const nlohmann::json &manifest, const QString &path) {
   const auto type = str_of(manifest, "type");
