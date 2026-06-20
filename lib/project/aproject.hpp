@@ -73,7 +73,7 @@ public:
 struct Environment {
   pepp::Architecture arch;
   pepp::Abstraction level;
-  pepp::FeaturesEnu features;
+  pepp::Features features;
 };
 } // namespace project
 

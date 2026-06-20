@@ -52,7 +52,7 @@ class RecentFile {
   QML_VALUE_TYPE(recent_file)
 public:
   RecentFile() = default;
-  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level, pepp::FeaturesEnu features)
+  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level, pepp::Features features)
       : _path(filePath), _arch(arch), _level(level), _features(features) {};
   RecentFile(const RecentFile &other) noexcept = default;
   RecentFile &operator=(const RecentFile &other) noexcept = default;
@@ -62,7 +62,7 @@ public:
   int qml_features() const { return (int)_features; }
   pepp::Architecture arch() const { return _arch; }
   pepp::Abstraction abstraction() const { return _level; }
-  pepp::FeaturesEnu features() const { return _features; }
+  pepp::Features features() const { return _features; }
 
   Qt::strong_ordering operator<=>(const RecentFile &other) const;
 
@@ -70,7 +70,7 @@ private:
   QString _path = "";
   pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction _level = pepp::Abstraction::NO_ABS;
-  pepp::FeaturesEnu _features = pepp::FeaturesEnu::None;
+  pepp::Features _features = pepp::Features::None;
 };
 QDataStream &operator<<(QDataStream &out, const pepp::settings::RecentFile &rf);
 
@@ -132,7 +132,7 @@ public:
   void setExternalFigureDirectory(const QString &path);
   QString figureDirectory() const;
   Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture arch, pepp::Abstraction level,
-                                  pepp::FeaturesEnu features);
+                                  pepp::Features features);
   Q_INVOKABLE void clearRecentFiles();
   // Really should be in a seperate class, but I only use it when touching recent files.
   Q_INVOKABLE QString fileNameFor(const QString &fullPath);

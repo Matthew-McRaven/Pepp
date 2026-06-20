@@ -87,7 +87,7 @@ struct ProjectType {
   QString description{};
   pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
-  pepp::FeaturesEnu features = pepp::FeaturesEnu::None;
+  pepp::Features features = pepp::Features::None;
   CompletionState state = CompletionState::INCOMPLETE;
   int edition = 0;
   bool placeholder = false;

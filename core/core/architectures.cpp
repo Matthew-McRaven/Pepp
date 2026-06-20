@@ -92,27 +92,27 @@ pepp::Abstraction pepp::string_to_level(const std::string &str, bool *okay) {
   return Abstraction::NO_ABS;
 }
 
-std::map<pepp::FeaturesEnu, std::string> init_feats() {
-  using enum pepp::FeaturesEnu;
-  std::map<pepp::FeaturesEnu, std::string> m{};
+std::map<pepp::Features, std::string> init_feats() {
+  using enum pepp::Features;
+  std::map<pepp::Features, std::string> m{};
   m[OneByte] = "OneByte";
   m[TwoByte] = "TwoByte";
   m[NoOS] = "NoOS";
   return m;
 }
 
-std::map<std::string, pepp::FeaturesEnu, pepp::bts::ci_lt> init_reverse_feats() {
-  std::map<std::string, pepp::FeaturesEnu, pepp::bts::ci_lt> m{};
+std::map<std::string, pepp::Features, pepp::bts::ci_lt> init_reverse_feats() {
+  std::map<std::string, pepp::Features, pepp::bts::ci_lt> m{};
   for (const auto &it : init_feats()) m[it.second] = it.first;
   return m;
 }
 
 static const auto feats = init_feats();
 static const auto reverse_feats = init_reverse_feats();
-pepp::FeaturesEnu pepp::parse_features(const std::string &str) {
+pepp::Features pepp::parse_features(const std::string &str) {
   using namespace bits;
 
-  auto ret = pepp::FeaturesEnu::None;
+  auto ret = pepp::Features::None;
   for (size_t start = 0, end = str.find(","); start != std::string::npos; start = end, end = str.find(",", start)) {
     const auto substr = str.substr(start, end - start);
     if (auto it = reverse_feats.find(substr); it == reverse_feats.end())
@@ -122,9 +122,9 @@ pepp::FeaturesEnu pepp::parse_features(const std::string &str) {
   return ret;
 }
 
-std::string pepp::features_as_pretty_string(pepp::FeaturesEnu features) {
+std::string pepp::features_as_pretty_string(pepp::Features features) {
   using namespace bits;
-  using enum pepp::FeaturesEnu;
+  using enum pepp::Features;
 
   std::vector<std::string> f;
   if (any(features & OneByte)) f.emplace_back(feats.at(OneByte));

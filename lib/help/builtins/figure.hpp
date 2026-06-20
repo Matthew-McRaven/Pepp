@@ -54,7 +54,7 @@ class Figure : public QObject {
   Q_PROPERTY(QString defaultFragmentName READ defaultFragmentName CONSTANT);
 
 public:
-  Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::FeaturesEnu feats, QString prefix, QString chapter,
+  Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats, QString prefix, QString chapter,
          QString figure, bool isProblem = false);
 
   ~Figure();
@@ -63,7 +63,7 @@ public:
   int qml_arch() const;
   pepp::Abstraction level() const;
   int qml_level() const;
-  pepp::FeaturesEnu features() const;
+  pepp::Features features() const;
   int qml_features() const;
 
   QString prefix() const;
@@ -112,7 +112,7 @@ signals:
 private:
   const pepp::Architecture _arch;
   const pepp::Abstraction _level;
-  const pepp::FeaturesEnu _features = pepp::FeaturesEnu::None;
+  const pepp::Features _features = pepp::Features::None;
   const QString _prefix, _chapterName, _figureName;
   const bool _isProblem = false;
   QString _description{};

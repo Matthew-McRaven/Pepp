@@ -14,7 +14,7 @@ sim::api2::device::Descriptor desc_dense(sim::api2::device::ID id) {
 }
 } // namespace
 
-targets::ma::System::System(pepp::Architecture arch, pepp::FeaturesEnu feats)
+targets::ma::System::System(pepp::Architecture arch, pepp::Features feats)
     : _arch(arch),
       _bus(QSharedPointer<sim::memory::SimpleBus<u16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
@@ -23,7 +23,7 @@ targets::ma::System::System(pepp::Architecture arch, pepp::FeaturesEnu feats)
   _paths->add(0, _bus->deviceID());
   _bus->pushFrontTarget(AddressSpan(0, 0xFFFF), _rawMemory.get());
   using namespace bits;
-  using enum pepp::FeaturesEnu;
+  using enum pepp::Features;
   switch (arch) {
   case pepp::Architecture::PEP8: _feats = OneByte; _cpu = nullptr;
   case pepp::Architecture::PEP9: [[fallthrough]];

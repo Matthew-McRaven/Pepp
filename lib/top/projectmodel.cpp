@@ -73,9 +73,9 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
 }
 
 Pep_MA *ProjectModel::pep9MA2(int feats_int) {
-  using F = pepp::FeaturesEnu;
+  using F = pepp::Features;
   using namespace bits;
-  auto feats = static_cast<pepp::FeaturesEnu>(feats_int);
+  auto feats = static_cast<pepp::Features>(feats_int);
   // If neither one byte or two byte are set, default to one-byte
   if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
 
@@ -91,9 +91,9 @@ Pep_MA *ProjectModel::pep9MA2(int feats_int) {
 }
 
 Pep_MA *ProjectModel::pep10MA2(int feats_int) {
-  using F = pepp::FeaturesEnu;
+  using F = pepp::Features;
   using namespace bits;
-  auto feats = static_cast<pepp::FeaturesEnu>(feats_int);
+  auto feats = static_cast<pepp::Features>(feats_int);
   // If neither one byte or two byte are set, default to one-byte
   if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
   const project::Environment env{.arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::MA2, .features = feats};
@@ -115,7 +115,7 @@ const auto placeholder = QStringLiteral("Unnamed %1");
 
 Pep_ISA *ProjectModel::pep10ISA() {
   static const project::Environment env{
-      .arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::ISA3, .features = pepp::FeaturesEnu::None};
+      .arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::ISA3, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -128,7 +128,7 @@ Pep_ISA *ProjectModel::pep10ISA() {
 
 Pep_ISA *ProjectModel::pep9ISA() {
   static const project::Environment env{
-      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ISA3, .features = pepp::FeaturesEnu::None};
+      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ISA3, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -141,8 +141,7 @@ Pep_ISA *ProjectModel::pep9ISA() {
 
 Pep_ASMB *ProjectModel::pep10ASMB(int abstraction_int) {
   const auto abstraction = static_cast<pepp::Abstraction>(abstraction_int);
-  project::Environment env{
-      .arch = pepp::Architecture::PEP10, .level = abstraction, .features = pepp::FeaturesEnu::None};
+  project::Environment env{.arch = pepp::Architecture::PEP10, .level = abstraction, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -155,7 +154,7 @@ Pep_ASMB *ProjectModel::pep10ASMB(int abstraction_int) {
 
 Pep_ASMB *ProjectModel::pep9ASMB() {
   project::Environment env{
-      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ASMB5, .features = pepp::FeaturesEnu::None};
+      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ASMB5, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -223,55 +222,55 @@ int ProjectModel::rowOf(const QObject *item) const {
   return -1;
 }
 
-const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, pepp::FeaturesEnu, std::string>, const char *>
+const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, pepp::Features, std::string>, const char *>
     extensions = {
-        {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10, pepp::FeaturesEnu::None, "pepo"},
+        {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10, pepp::Features::None, "pepo"},
          "Pep/10 Object Code (*.pepo)"},
 
-        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::FeaturesEnu::None, "pep"},
+        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::Features::None, "pep"},
          "Pep/10 Assembly Code (*.pep)"},
-        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::FeaturesEnu::None, "pepo"},
+        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::Features::None, "pepo"},
          "Pep/10 Object Code (*.pepo)"},
-        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::FeaturesEnu::None, "pepl"},
+        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::Features::None, "pepl"},
          "Pep/10 Assembly Listing (*.pepl)"},
 
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::FeaturesEnu::None, "pep"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pep"},
          "Pep/10 Assembly Code (*.pep)"},
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::FeaturesEnu::None, "pepo"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pepo"},
          "Pep/10 Object Code (*.pepo)"},
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::FeaturesEnu::None, "pepl"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pepl"},
          "Pep/10 Assembly Listing (*.pepl)"},
 
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::FeaturesEnu::OneByte, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::OneByte, "pepcpu"},
          "Pep/10 Microcode Code, 1-byte (*.pepcpu)"},
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::FeaturesEnu::TwoByte, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::TwoByte, "pepcpu"},
          "Pep/10 Microcode Code, 2-byte (*.pepcpu)"},
 
-        {{pepp::Abstraction::ISA3, pepp::Architecture::PEP9, pepp::FeaturesEnu::None, "pepo"},
+        {{pepp::Abstraction::ISA3, pepp::Architecture::PEP9, pepp::Features::None, "pepo"},
          "Pep/9 Object Code (*.pepo)"},
 
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::FeaturesEnu::None, "pep"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pep"},
          "Pep/9 Assembly Code (*.pep)"},
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::FeaturesEnu::None, "pepo"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pepo"},
          "Pep/9 Object Code (*.pepo)"},
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::FeaturesEnu::None, "pepl"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pepl"},
          "Pep/9 Assembly Listing (*.pepl)"},
 
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::FeaturesEnu::OneByte, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::OneByte, "pepcpu"},
          "Pep/9 Microcode Code, 1-byte (*.pepcpu)"},
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::FeaturesEnu::TwoByte, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::TwoByte, "pepcpu"},
          "Pep/9 Microcode Code, 2-byte (*.pepcpu)"},
 };
 
-std::tuple<pepp::Abstraction, pepp::Architecture, pepp::FeaturesEnu> envFromPtr(const QObject *item) {
+std::tuple<pepp::Abstraction, pepp::Architecture, pepp::Features> envFromPtr(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
-    return {asmb->abstraction(), asmb->architecture(), pepp::FeaturesEnu::None};
+    return {asmb->abstraction(), asmb->architecture(), pepp::Features::None};
   } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
-    return {isa->abstraction(), isa->architecture(), pepp::FeaturesEnu::None};
+    return {isa->abstraction(), isa->architecture(), pepp::Features::None};
   } else if (auto ma = qobject_cast<const Pep_MA *>(item)) {
-    return {ma->abstraction(), ma->architecture(), (pepp::FeaturesEnu)ma->features()};
+    return {ma->abstraction(), ma->architecture(), (pepp::Features)ma->features()};
   }
-  return {pepp::Abstraction::NO_ABS, pepp::Architecture::NO_ARCH, pepp::FeaturesEnu::None};
+  return {pepp::Abstraction::NO_ABS, pepp::Architecture::NO_ARCH, pepp::Features::None};
 }
 
 QByteArray primaryTextFromPtr(const QObject *item) {
@@ -302,7 +301,7 @@ std::string defaultExtensionFor(const QObject *item) {
   return "pep";
 }
 
-void prependRecent(const QString &fname, pepp::Architecture arch, pepp::Abstraction level, pepp::FeaturesEnu feats) {
+void prependRecent(const QString &fname, pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats) {
   auto settings = pepp::settings::detail::AppSettingsData::getInstance();
   settings->general()->pushRecentFile(fname, arch, level, feats);
 }
@@ -501,7 +500,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Develop and debug microcode programs with a 1-byte data bus",
               .arch = a,
               .level = MA2,
-              .features = pepp::FeaturesEnu::OneByte,
+              .features = pepp::Features::OneByte,
               .state = CompletionState::COMPLETE,
               .edition = 6});
   vec.append({.name = "Pep/10",
@@ -511,7 +510,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Develop and debug microcode programs with a 2-byte data bus",
               .arch = a,
               .level = MA2,
-              .features = pepp::FeaturesEnu::TwoByte,
+              .features = pepp::Features::TwoByte,
               .state = CompletionState::COMPLETE,
               .edition = 6,
               .is_duplicate_feature = true});
@@ -554,7 +553,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .description = "Develop and debug microcode programs with a 1-byte data bus",
               .arch = a,
               .level = MA2,
-              .features = pepp::FeaturesEnu::OneByte,
+              .features = pepp::Features::OneByte,
               .state = CompletionState::COMPLETE,
               .edition = 5});
   vec.append({.name = "Pep/9",
@@ -564,7 +563,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .description = "Develop and debug microcode programs with a 2-byte data bus",
               .arch = a,
               .level = MA2,
-              .features = pepp::FeaturesEnu::TwoByte,
+              .features = pepp::Features::TwoByte,
               .state = CompletionState::COMPLETE,
               .edition = 5,
               .is_duplicate_feature = true});
@@ -607,7 +606,7 @@ void init_pep8(QList<ProjectType> &vec) {
               .description = "Missing",
               .arch = a,
               .level = MA2,
-              .features = pepp::FeaturesEnu::OneByte,
+              .features = pepp::Features::OneByte,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
 }

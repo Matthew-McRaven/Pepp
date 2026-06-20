@@ -36,13 +36,13 @@ std::string level_as_string(Abstraction level);
 std::string level_as_pretty_string(Abstraction level);
 Abstraction string_to_level(const std::string &str, bool *okay = nullptr);
 
-enum class FeaturesEnu : i32 {
+enum class Features : i32 {
   None = 0,
   OneByte = 1 << 0,
   TwoByte = 1 << 1,
   NoOS = 1 << 2,
 };
-consteval void is_bitflags(FeaturesEnu);
-std::string features_as_pretty_string(FeaturesEnu features);
-FeaturesEnu parse_features(const std::string &str);
+consteval void is_bitflags(Features);
+std::string features_as_pretty_string(Features features);
+Features parse_features(const std::string &str);
 } // namespace pepp
