@@ -13,7 +13,8 @@ void addMacros(macro::Registry &registry, const std::list<std::string> &dirs, QS
 
 class AsmHelper {
 public:
-  AsmHelper(QSharedPointer<macro::Registry> registry, QString os, pepp::Architecture arch = pepp::Architecture::PEP10);
+  AsmHelper(QSharedPointer<macro::Registry> registry, QString os,
+            pepp::Architecture_Enum arch = pepp::Architecture_Enum::PEP10);
   void setUserText(QString user);
   bool assemble();
   QStringList errors();
@@ -29,7 +30,7 @@ public:
   QSharedPointer<const pas::ast::Node> userRoot() const { return _userRoot; }
 
 private:
-  pepp::Architecture _arch;
+  pepp::Architecture_Enum _arch;
   QSharedPointer<macro::Registry> _reg;
   QString _os;
   std::optional<QString> _user = std::nullopt;

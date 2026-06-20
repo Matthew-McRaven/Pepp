@@ -107,7 +107,7 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
     if (!frags.contains("pepcpu")) continue;
     auto name = u"Figure %1.%2"_s.arg(figure->chapterName()).arg(figure->figureName());
     auto nameAsStd = name.toStdString();
-    int ed = figure->arch() == pepp::Architecture::PEP9 ? 5 : 6;
+    int ed = figure->arch() == pepp::Architecture_Enum::PEP9 ? 5 : 6;
     DYNAMIC_SECTION("Microassemble CS" << ed << "E: " << nameAsStd) {
       auto source = frags.value("pepcpu", nullptr);
       CHECK(figure->typesafeTests().size() > 0);

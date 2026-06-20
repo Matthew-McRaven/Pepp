@@ -167,11 +167,12 @@ void HelpFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
   emit sourceModelChanged();
 }
 
-pepp::Architecture HelpFilterModel::architecture() const { return _architecture; }
+pepp::QML_Architecture HelpFilterModel::architecture() const { return pepp::to_qml_type(_architecture); }
 
-void HelpFilterModel::setArchitecture(pepp::Architecture architecture) {
-  if (_architecture == architecture) return;
-  _architecture = architecture;
+void HelpFilterModel::setArchitecture(pepp::QML_Architecture architecture) {
+  const auto converted = pepp::to_cpp_type(architecture);
+  if (_architecture == converted) return;
+  _architecture = converted;
   invalidateRowsFilter();
   emit architectureChanged();
 }
@@ -209,7 +210,7 @@ QModelIndex HelpFilterModel::indexFromSlug(const QString &slug) {
 bool HelpFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
   auto sm = sourceModel();
   if (!sm) return false;
-  if (_abstraction == pepp::Abstraction::NO_ABS && _architecture == pepp::Architecture::NO_ARCH) {
+  if (_abstraction == pepp::Abstraction::NO_ABS && _architecture == pepp::Architecture_Enum::NO_ARCH) {
     return true;
   }
   int32_t mask = bitmask(_architecture, _abstraction);

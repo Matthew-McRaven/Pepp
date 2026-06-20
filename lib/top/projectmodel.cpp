@@ -78,7 +78,8 @@ Pep_MA *ProjectModel::pep9MA2(pepp::Features feats) {
   // If neither one byte or two byte are set, default to one-byte
   if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
 
-  const project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::MA2, .features = feats};
+  const project::Environment env{
+      .arch = pepp::Architecture_Enum::PEP9, .level = pepp::Abstraction::MA2, .features = feats};
   auto ptr = std::make_unique<Pep_MA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -94,7 +95,8 @@ Pep_MA *ProjectModel::pep10MA2(pepp::Features feats) {
   using namespace bits;
   // If neither one byte or two byte are set, default to one-byte
   if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
-  const project::Environment env{.arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::MA2, .features = feats};
+  const project::Environment env{
+      .arch = pepp::Architecture_Enum::PEP10, .level = pepp::Abstraction::MA2, .features = feats};
   auto ptr = std::make_unique<Pep_MA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -113,7 +115,7 @@ const auto placeholder = QStringLiteral("Unnamed %1");
 
 Pep_ISA *ProjectModel::pep10ISA() {
   static const project::Environment env{
-      .arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::ISA3, .features = pepp::Features::None};
+      .arch = pepp::Architecture_Enum::PEP10, .level = pepp::Abstraction::ISA3, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -126,7 +128,7 @@ Pep_ISA *ProjectModel::pep10ISA() {
 
 Pep_ISA *ProjectModel::pep9ISA() {
   static const project::Environment env{
-      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ISA3, .features = pepp::Features::None};
+      .arch = pepp::Architecture_Enum::PEP9, .level = pepp::Abstraction::ISA3, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -138,7 +140,8 @@ Pep_ISA *ProjectModel::pep9ISA() {
 }
 
 Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
-  project::Environment env{.arch = pepp::Architecture::PEP10, .level = abstraction, .features = pepp::Features::None};
+  project::Environment env{
+      .arch = pepp::Architecture_Enum::PEP10, .level = abstraction, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -151,7 +154,7 @@ Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
 
 Pep_ASMB *ProjectModel::pep9ASMB() {
   project::Environment env{
-      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ASMB5, .features = pepp::Features::None};
+      .arch = pepp::Architecture_Enum::PEP9, .level = pepp::Abstraction::ASMB5, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -194,24 +197,24 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
 }
 
 QString ProjectModel::describe(int index) const {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   if (index < 0 || index >= (int)_projects.size()) return {};
 
   auto abs_enum = QMetaEnum::fromType<pepp::Abstraction>();
-  pepp::Architecture arch;
+  pepp::Architecture_Enum arch;
   pepp::Abstraction abs;
   if (auto isa = dynamic_cast<Pep_ISA *>(_projects[index].impl.get())) {
-    arch = isa->architecture();
+    arch = to_cpp_type(isa->architecture());
     abs = isa->abstraction();
   } else if (auto asmb = dynamic_cast<Pep_ASMB *>(_projects[index].impl.get())) {
-    arch = asmb->architecture();
+    arch = to_cpp_type(asmb->architecture());
     abs = asmb->abstraction();
   } else if (auto ma = dynamic_cast<Pep_MA *>(_projects[index].impl.get())) {
-    arch = ma->architecture();
+    arch = to_cpp_type(ma->architecture());
     abs = ma->abstraction();
   } else return "";
   QString abs_str = abs_enum.valueToKey((int)abs);
-  return QStringLiteral("%1, %2").arg(pepp::archAsPrettyString(arch), pepp::abstractionAsPrettyString(abs));
+  return QStringLiteral("%1, %2").arg(pepp::arch_as_pretty_string(arch), pepp::abstractionAsPrettyString(abs));
 }
 
 int ProjectModel::rowOf(const QObject *item) const {
@@ -221,55 +224,55 @@ int ProjectModel::rowOf(const QObject *item) const {
   return -1;
 }
 
-const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, pepp::Features, std::string>, const char *>
+const std::map<std::tuple<pepp::Abstraction, pepp::Architecture_Enum, pepp::Features, std::string>, const char *>
     extensions = {
-        {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10, pepp::Features::None, "pepo"},
+        {{pepp::Abstraction::ISA3, pepp::Architecture_Enum::PEP10, pepp::Features::None, "pepo"},
          "Pep/10 Object Code (*.pepo)"},
 
-        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::Features::None, "pep"},
+        {{pepp::Abstraction::ASMB3, pepp::Architecture_Enum::PEP10, pepp::Features::None, "pep"},
          "Pep/10 Assembly Code (*.pep)"},
-        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::Features::None, "pepo"},
+        {{pepp::Abstraction::ASMB3, pepp::Architecture_Enum::PEP10, pepp::Features::None, "pepo"},
          "Pep/10 Object Code (*.pepo)"},
-        {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, pepp::Features::None, "pepl"},
+        {{pepp::Abstraction::ASMB3, pepp::Architecture_Enum::PEP10, pepp::Features::None, "pepl"},
          "Pep/10 Assembly Listing (*.pepl)"},
 
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pep"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture_Enum::PEP10, pepp::Features::None, "pep"},
          "Pep/10 Assembly Code (*.pep)"},
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pepo"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture_Enum::PEP10, pepp::Features::None, "pepo"},
          "Pep/10 Object Code (*.pepo)"},
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, pepp::Features::None, "pepl"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture_Enum::PEP10, pepp::Features::None, "pepl"},
          "Pep/10 Assembly Listing (*.pepl)"},
 
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::OneByte, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture_Enum::PEP10, pepp::Features::OneByte, "pepcpu"},
          "Pep/10 Microcode Code, 1-byte (*.pepcpu)"},
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP10, pepp::Features::TwoByte, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture_Enum::PEP10, pepp::Features::TwoByte, "pepcpu"},
          "Pep/10 Microcode Code, 2-byte (*.pepcpu)"},
 
-        {{pepp::Abstraction::ISA3, pepp::Architecture::PEP9, pepp::Features::None, "pepo"},
+        {{pepp::Abstraction::ISA3, pepp::Architecture_Enum::PEP9, pepp::Features::None, "pepo"},
          "Pep/9 Object Code (*.pepo)"},
 
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pep"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture_Enum::PEP9, pepp::Features::None, "pep"},
          "Pep/9 Assembly Code (*.pep)"},
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pepo"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture_Enum::PEP9, pepp::Features::None, "pepo"},
          "Pep/9 Object Code (*.pepo)"},
-        {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, pepp::Features::None, "pepl"},
+        {{pepp::Abstraction::ASMB5, pepp::Architecture_Enum::PEP9, pepp::Features::None, "pepl"},
          "Pep/9 Assembly Listing (*.pepl)"},
 
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::OneByte, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture_Enum::PEP9, pepp::Features::OneByte, "pepcpu"},
          "Pep/9 Microcode Code, 1-byte (*.pepcpu)"},
-        {{pepp::Abstraction::MA2, pepp::Architecture::PEP9, pepp::Features::TwoByte, "pepcpu"},
+        {{pepp::Abstraction::MA2, pepp::Architecture_Enum::PEP9, pepp::Features::TwoByte, "pepcpu"},
          "Pep/9 Microcode Code, 2-byte (*.pepcpu)"},
 };
 
-std::tuple<pepp::Abstraction, pepp::Architecture, pepp::Features> envFromPtr(const QObject *item) {
+std::tuple<pepp::Abstraction, pepp::Architecture_Enum, pepp::Features> envFromPtr(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
-    return {asmb->abstraction(), asmb->architecture(), pepp::Features::None};
+    return {asmb->abstraction(), to_cpp_type(asmb->architecture()), pepp::Features::None};
   } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
-    return {isa->abstraction(), isa->architecture(), pepp::Features::None};
+    return {isa->abstraction(), to_cpp_type(isa->architecture()), pepp::Features::None};
   } else if (auto ma = qobject_cast<const Pep_MA *>(item)) {
-    return {ma->abstraction(), ma->architecture(), (pepp::Features)ma->features()};
+    return {ma->abstraction(), to_cpp_type(ma->architecture()), (pepp::Features)ma->features()};
   }
-  return {pepp::Abstraction::NO_ABS, pepp::Architecture::NO_ARCH, pepp::Features::None};
+  return {pepp::Abstraction::NO_ABS, pepp::Architecture_Enum::NO_ARCH, pepp::Features::None};
 }
 
 QByteArray primaryTextFromPtr(const QObject *item) {
@@ -300,9 +303,9 @@ std::string defaultExtensionFor(const QObject *item) {
   return "pep";
 }
 
-void prependRecent(const QString &fname, pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats) {
+void prependRecent(const QString &fname, pepp::Architecture_Enum arch, pepp::Abstraction level, pepp::Features feats) {
   auto settings = pepp::settings::detail::AppSettingsData::getInstance();
-  settings->general()->pushRecentFile(fname, arch, level, feats);
+  settings->general()->pushRecentFile(fname, to_qml_type(arch), level, feats);
 }
 
 auto recentFiles() {
@@ -454,7 +457,7 @@ void ProjectModel::appendProject(std::unique_ptr<QObject> &&obj) {
 }
 
 void init_pep10(QList<ProjectType> &vec) {
-  auto a = pepp::Architecture::PEP10;
+  auto a = pepp::Architecture_Enum::PEP10;
   using pepp::Abstraction;
   vec.append({.name = "Pep/10",
               .levelText = "ISA3",
@@ -515,7 +518,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .is_duplicate_feature = true});
 }
 void init_pep9(QList<ProjectType> &vec) {
-  auto a = pepp::Architecture::PEP9;
+  auto a = pepp::Architecture_Enum::PEP9;
   using pepp::Abstraction;
   vec.append({.name = "Pep/9",
               .levelText = "ISA3",
@@ -568,7 +571,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .is_duplicate_feature = true});
 }
 void init_pep8(QList<ProjectType> &vec) {
-  auto a = pepp::Architecture::PEP8;
+  auto a = pepp::Architecture_Enum::PEP8;
   using pepp::Abstraction;
   vec.append({.name = "Pep/8",
               .levelText = "ISA3",
@@ -610,7 +613,7 @@ void init_pep8(QList<ProjectType> &vec) {
               .edition = 4});
 }
 void init_riscv(QList<ProjectType> &vec) {
-  auto a = pepp::Architecture::RISCV;
+  auto a = pepp::Architecture_Enum::RISCV;
   using pepp::Abstraction;
   vec.append({.name = "RISC-V",
               .levelText = "Asmb3",
@@ -644,7 +647,7 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::EditionRole): return static_cast<int>(_projects[index.row()].edition);
   case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
   case static_cast<int>(Roles::CombinedArchLevelRole): {
-    QString arch_str = archAsPrettyString(_projects[index.row()].arch);
+    QString arch_str = QString::fromStdString(pepp::arch_as_pretty_string(_projects[index.row()].arch));
     QString abs_str = abstractionAsPrettyString(_projects[index.row()].level);
     return u"%1, %2"_s.arg(arch_str, abs_str);
   }
@@ -683,7 +686,8 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
 
 ProjectTypeFilterModel::ProjectTypeFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 
-void ProjectTypeFilterModel::setArchitecture(pepp::Architecture arch) {
+void ProjectTypeFilterModel::setArchitecture(pepp::QML_Architecture qml_arch) {
+  const auto arch = to_cpp_type(qml_arch);
   if (_architecture == arch) return;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
   beginFilterChange();
@@ -704,7 +708,7 @@ void ProjectTypeFilterModel::setEdition(int edition) {
   if (_edition == edition) return;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
   beginFilterChange();
-  _architecture = pepp::Architecture::NO_ARCH;
+  _architecture = pepp::Architecture_Enum::NO_ARCH;
   _edition = edition;
   endFilterChange();
 #else
@@ -759,13 +763,13 @@ bool ProjectTypeFilterModel::filterAcceptsRow(int source_row, const QModelIndex 
   bool isIncomplete = !sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::CompleteRole)).toBool();
   bool isPartial =
       sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::PartiallyCompleteRole)).toBool();
-  auto arch = static_cast<pepp::Architecture>(
+  auto arch = static_cast<pepp::Architecture_Enum>(
       sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::ArchitectureRole)).toInt());
   auto edition = sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::EditionRole)).toInt();
   auto is_duplicate_feature =
       sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::IsDuplicateFeature)).toInt();
   if (!_showDuplicateFeatures && is_duplicate_feature) return false;
-  if (_architecture != pepp::Architecture::NO_ARCH && arch != _architecture) return false;
+  if (_architecture != pepp::Architecture_Enum::NO_ARCH && arch != _architecture) return false;
   else if (_edition != 0 && edition != _edition) return false;
   else if (!_showIncomplete && isIncomplete) return false;
   else if (!_showPartial && isPartial) return false;

@@ -38,13 +38,13 @@ void helpers::addMacros(::macro::Registry &registry, const std::list<std::string
   for (auto &dir : dirs) addMacro(registry, dir, arch);
 }
 
-helpers::AsmHelper::AsmHelper(QSharedPointer<::macro::Registry> registry, QString os, pepp::Architecture arch)
+helpers::AsmHelper::AsmHelper(QSharedPointer<::macro::Registry> registry, QString os, pepp::Architecture_Enum arch)
     : _arch(arch), _reg(registry), _os(os) {}
 
 void helpers::AsmHelper::setUserText(QString user) { _user = user; }
 
 bool helpers::AsmHelper::assemble() {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   using ka = pas::ast::generic::KeepAlive;
   _callViaRets.clear();
   switch (_arch) {
@@ -146,7 +146,7 @@ QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
 }
 
 QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<std::vector<quint8> *> userObj) {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   switch (_arch) {
   case PEP9:
     _elf = pas::obj::pep9::createElf();
@@ -189,7 +189,7 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<std::vector<q
 }
 
 QStringList helpers::AsmHelper::listing(bool os) {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   try {
     switch (_arch) {
     case PEP9:
@@ -206,7 +206,7 @@ QStringList helpers::AsmHelper::listing(bool os) {
 }
 
 QList<QPair<QString, QString>> helpers::AsmHelper::splitListing(bool os) {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   try {
     switch (_arch) {
     case PEP9:
@@ -223,7 +223,7 @@ QList<QPair<QString, QString>> helpers::AsmHelper::splitListing(bool os) {
 }
 
 QStringList helpers::AsmHelper::formattedSource(bool os) {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   try {
     switch (_arch) {
     case PEP9:
@@ -240,7 +240,7 @@ QStringList helpers::AsmHelper::formattedSource(bool os) {
 }
 
 QList<quint8> helpers::AsmHelper::bytes(bool os) {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   try {
     switch (_arch) {
     case PEP9:

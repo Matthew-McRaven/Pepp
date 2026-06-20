@@ -34,7 +34,7 @@ namespace builtins {
  */
 class Figure : public QObject {
   Q_OBJECT
-  Q_PROPERTY(pepp::Architecture arch READ arch CONSTANT);
+  Q_PROPERTY(pepp::QML_Architecture arch READ qml_arch CONSTANT);
   Q_PROPERTY(pepp::Abstraction level READ level CONSTANT);
   Q_PROPERTY(pepp::Features features READ features CONSTANT);
   Q_PROPERTY(QString prefix READ prefix CONSTANT);
@@ -54,12 +54,13 @@ class Figure : public QObject {
   Q_PROPERTY(QString defaultFragmentName READ defaultFragmentName CONSTANT);
 
 public:
-  Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::Features feats, QString prefix, QString chapter,
+  Figure(pepp::Architecture_Enum arch, pepp::Abstraction level, pepp::Features feats, QString prefix, QString chapter,
          QString figure, bool isProblem = false);
 
   ~Figure();
 
-  pepp::Architecture arch() const;
+  pepp::Architecture_Enum arch() const;
+  pepp::QML_Architecture qml_arch() const;
   pepp::Abstraction level() const;
   pepp::Features features() const;
 
@@ -107,7 +108,7 @@ signals:
   void fragmentsChanged();
 
 private:
-  const pepp::Architecture _arch;
+  const pepp::Architecture_Enum _arch;
   const pepp::Abstraction _level;
   const pepp::Features _features = pepp::Features::None;
   const QString _prefix, _chapterName, _figureName;

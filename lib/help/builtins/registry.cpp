@@ -20,6 +20,7 @@
 #include <QDirIterator>
 #include <QJsonDocument>
 #include <QStringConverter>
+#include <spdlog/spdlog.h>
 #include "book.hpp"
 #include "figure.hpp"
 #include "fragment.hpp"
@@ -81,12 +82,13 @@ QString builtins::Registry::contentFor(Fragment &element) {
   return _contents[&element];
 }
 
-void builtins::Registry::addAssembler(pepp::Architecture arch, std::unique_ptr<Assembler> &&assembler) {
+void builtins::Registry::addAssembler(pepp::Architecture_Enum arch, std::unique_ptr<Assembler> &&assembler) {
   _assemblers[arch] = std::move(assembler);
 }
 
-void builtins::Registry::addFormatter(pepp::Architecture arch, QString format, std::unique_ptr<Formatter> &&formatter) {
-  auto p = QPair<pepp::Architecture, QString>(arch, format);
+void builtins::Registry::addFormatter(pepp::Architecture_Enum arch, QString format,
+                                      std::unique_ptr<Formatter> &&formatter) {
+  auto p = QPair<pepp::Architecture_Enum, QString>(arch, format);
   _formatters[p] = std::move(formatter);
 }
 
@@ -98,13 +100,13 @@ void builtins::Registry::computeDependencies(const Fragment *dependee) {
   if (dependents.isEmpty()) return;
   auto figure = dependee->figure.lock();
   if (figure == nullptr) {
-    qWarning("Dependee %s has no figure", dependee->name.toStdString().c_str());
+    SPDLOG_WARN("Dependee %s has no figure", dependee->name.toStdString());
     return;
   }
   auto assembler = _assemblers.find(figure->arch());
   if (assembler == _assemblers.end()) {
-    qWarning("No assembler for architecture %s",
-             QMetaEnum::fromType<pepp::Architecture>().valueToKey(static_cast<int>(dependee->figure.lock()->arch())));
+    const auto arch = pepp::arch_as_string(dependee->figure.lock()->arch());
+    SPDLOG_WARN("No assembler for architecture {}", arch);
     return;
   }
   auto os = figure->defaultOS();
@@ -115,15 +117,15 @@ void builtins::Registry::computeDependencies(const Fragment *dependee) {
   for (const auto &dependent : std::as_const(dependents)) {
     auto figure = dependent->figure.lock();
     if (figure == nullptr) {
-      qWarning("Dependent %s has no figure", dependent->name.toStdString().c_str());
+      SPDLOG_WARN("Dependent {} has no figure", dependent->name.toStdString());
       _contents[dependent] = "";
       continue;
     }
     auto formatter = _formatters.find({figure->arch(), dependent->language});
     if (formatter == _formatters.end()) {
-      qWarning("No formatter for architecture %s and format %s",
-               QMetaEnum::fromType<pepp::Architecture>().valueToKey(static_cast<int>(figure->arch())),
-               dependent->language.toStdString().c_str());
+      const auto arch = pepp::arch_as_string(dependee->figure.lock()->arch());
+      SPDLOG_WARN("No formatter for architecture {} and format {}", arch, dependent->language.toStdString());
+
       _contents[dependent] = "";
       continue;
     }
@@ -184,15 +186,14 @@ std::optional<std::pair<QString, QString>> ch_fig_from_str(const QString &key) {
   return std::make_pair(chFigSplit[0], chFigSplit[1]);
 }
 
-std::optional<pepp::Architecture> arch_from_str(const QString &key) {
-  auto keyStr = key.toUpper().toStdString();
+std::optional<pepp::Architecture_Enum> arch_from_str(const QString &key) {
   bool okay = false;
-  auto archInt = QMetaEnum::fromType<pepp::Architecture>().keyToValue(keyStr.data(), &okay);
+  auto ret = pepp::string_to_arch(key.toStdString(), &okay);
   if (!okay) {
-    qWarning("Invalid figure architecture: %s", keyStr.data());
+    SPDLOG_WARN("Invalid figure architecture: {}", key.toStdString());
     return std::nullopt;
   }
-  return static_cast<pepp::Architecture>(archInt);
+  return ret;
 }
 
 std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
@@ -290,7 +291,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
   auto [chapterName, figureName] = *chFig;
 
   // Extract architecture / abstraction from manifest into enumerated constants
-  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+  auto arch = pepp::Architecture_Enum::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   if (auto maybeArch = arch_from_str(manifest["arch"].toString("")); !maybeArch) return std::monostate();
   else arch = *maybeArch;

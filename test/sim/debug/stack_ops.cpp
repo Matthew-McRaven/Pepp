@@ -41,7 +41,7 @@ TEST_CASE("Serialize stack ops", "[scope:debug][kind:unit][arch:*]") {
   REQUIRE(os_fig.get() != nullptr);
   auto text = os_fig->findFragment("pep")->contents();
   REQUIRE(text.size() > 100);
-  helpers::AsmHelper asm_helper(registry, text, pepp::Architecture::PEP10);
+  helpers::AsmHelper asm_helper(registry, text, pepp::Architecture_Enum::PEP10);
   asm_helper.setUserText("");
   REQUIRE(asm_helper.assemble());
   auto elf = asm_helper.elf();

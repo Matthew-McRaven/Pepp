@@ -24,34 +24,39 @@
 
 // Must be in separate file to prevent circuluar include in Qt MOC.
 namespace pepp {
+
 class ArchitectureHelper : public QObject {
   Q_GADGET
   QML_NAMED_ELEMENT(Architecture)
   QML_UNCREATABLE("Error:Only enums")
 
 public:
-  // Must exactly mirror enumerated constants of "core/architectures.hpp".
-  // I want these enumerated constants to be exposed to QML as named values, which only works with enum members of this
-  // struct.
+  // Have to shadow the earlier enum, because Q_ENUM only works enums declared inside this class.
   enum class Architecture {
-    NO_ARCH = (int)pepp::Architecture_Enums::NO_ARCH,
-    PEP8 = (int)pepp::Architecture_Enums::PEP8,
-    PEP9 = (int)pepp::Architecture_Enums::PEP9,
-    PEP10 = (int)pepp::Architecture_Enums::PEP10,
-    RISCV = (int)pepp::Architecture_Enums::RISCV,
+    NO_ARCH = (int)pepp::Architecture_Enum::NO_ARCH,
+    PEP8 = (int)pepp::Architecture_Enum::PEP8,
+    PEP9 = (int)pepp::Architecture_Enum::PEP9,
+    PEP10 = (int)pepp::Architecture_Enum::PEP10,
+    RISCV = (int)pepp::Architecture_Enum::RISCV,
   };
   Q_ENUM(Architecture)
   ArchitectureHelper(QObject *parent = nullptr);
   Q_INVOKABLE static QString string(Architecture architecture);
 };
-QString archAsPrettyString(ArchitectureHelper::Architecture architecture);
-using Architecture = ArchitectureHelper::Architecture;
+
+using QML_Architecture = ArchitectureHelper::Architecture;
 class ArchitectureUtils : public QObject {
   Q_OBJECT
   QML_ELEMENT
 public:
   ArchitectureUtils(QObject *parent = nullptr);
-  Q_INVOKABLE QString archAsString(ArchitectureHelper::Architecture architecture);
+  Q_INVOKABLE QString archAsString(pepp::ArchitectureHelper::Architecture architecture);
 };
 
+constexpr pepp::Architecture_Enum to_cpp_type(pepp::ArchitectureHelper::Architecture arch) noexcept {
+  return static_cast<pepp::Architecture_Enum>(arch);
+}
+constexpr QML_Architecture to_qml_type(pepp::Architecture_Enum arch) noexcept {
+  return static_cast<QML_Architecture>(arch);
+}
 } // namespace pepp

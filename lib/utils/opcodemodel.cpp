@@ -182,10 +182,10 @@ GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn, QString bits = "") {
 
 void GreencardModel::make_pep10() {
   using enum isa::detail::pep10::Mnemonic;
-  if (_arch == pepp::Architecture::PEP10) return;
+  if (_arch == pepp::Architecture_Enum::PEP10) return;
 
   beginResetModel();
-  _arch = pepp::Architecture::PEP10;
+  _arch = pepp::Architecture_Enum::PEP10;
   _rows.clear();
   _rows.emplace_back(Row{.sort_order = 0,
                          .bit_pattern = "0000 0000",
@@ -243,10 +243,10 @@ void GreencardModel::make_pep10() {
 
 void GreencardModel::make_pep9() {
   using enum isa::detail::pep9::Mnemonic;
-  if (_arch == pepp::Architecture::PEP9) return;
+  if (_arch == pepp::Architecture_Enum::PEP9) return;
 
   beginResetModel();
-  _arch = pepp::Architecture::PEP9;
+  _arch = pepp::Architecture_Enum::PEP9;
   _rows.clear();
   _rows.emplace_back(from_mn(STOP));
   _rows.emplace_back(from_mn(RET));
@@ -346,7 +346,7 @@ QVariant GreencardFilterModel::data(const QModelIndex &index, int role) const {
     auto data = d.toString().toLower();
     if (data == "" || data == "monadic" || data == "u") return d;
     else if (auto casted = qobject_cast<GreencardModel *>(sourceModel());
-             casted && casted->arch() == pepp::Architecture::PEP10)
+             casted && casted->arch() == pepp::Architecture_Enum::PEP10)
       return "Dyadic";
     else return "Nonunary";
   } else return d;

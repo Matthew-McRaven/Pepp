@@ -85,7 +85,7 @@ struct ProjectType {
   QString details{};
   QString chapter{};
   QString description{};
-  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+  pepp::Architecture_Enum arch = pepp::Architecture_Enum::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   pepp::Features features = pepp::Features::None;
   CompletionState state = CompletionState::INCOMPLETE;
@@ -131,7 +131,7 @@ private:
 class ProjectTypeFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
   // Filter may either be architecture OR edition. Setting one clears the other.
-  Q_PROPERTY(pepp::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
+  Q_PROPERTY(pepp::QML_Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
   Q_PROPERTY(int edition READ edition WRITE setEdition NOTIFY editionChanged)
   Q_PROPERTY(bool showIncomplete READ showIncomplete WRITE setShowIncomplete NOTIFY showIncompleteChanged)
   Q_PROPERTY(bool showPartiallyComplete READ showPartial WRITE setShowPartial NOTIFY showPartialChanged)
@@ -141,9 +141,9 @@ class ProjectTypeFilterModel : public QSortFilterProxyModel {
 
 public:
   explicit ProjectTypeFilterModel(QObject *parent = nullptr);
-  pepp::Architecture architecture() const { return _architecture; }
+  pepp::QML_Architecture architecture() const { return to_qml_type(_architecture); }
   int edition() const { return _edition; }
-  void setArchitecture(pepp::Architecture arch);
+  void setArchitecture(pepp::QML_Architecture arch);
   void setEdition(int edition);
   bool showIncomplete() const { return _showIncomplete; }
   void setShowIncomplete(bool value);
@@ -162,7 +162,7 @@ signals:
   void showDuplicateFeaturesChanged();
 
 private:
-  pepp::Architecture _architecture = pepp::Architecture::NO_ARCH;
+  pepp::Architecture_Enum _architecture = pepp::Architecture_Enum::NO_ARCH;
   int _edition = 0;
   bool _showIncomplete = false, _showPartial = false, _showDuplicateFeatures = true;
 };

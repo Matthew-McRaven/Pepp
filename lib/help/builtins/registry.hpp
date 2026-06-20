@@ -50,8 +50,8 @@ public:
   bool usingExternalFigures() const { return _usingExternalFigures; }
   void addDependency(const Fragment *dependent, const Fragment *dependee);
   QString contentFor(Fragment &fragment);
-  void addAssembler(pepp::Architecture arch, std::unique_ptr<Assembler> &&assembler);
-  void addFormatter(pepp::Architecture arch, QString format, std::unique_ptr<Formatter> &&formatter);
+  void addAssembler(pepp::Architecture_Enum arch, std::unique_ptr<Assembler> &&assembler);
+  void addFormatter(pepp::Architecture_Enum arch, QString format, std::unique_ptr<Formatter> &&formatter);
 
 private:
   using _Figure = QSharedPointer<builtins::Figure>;
@@ -70,8 +70,8 @@ private:
   void computeDependencies(const Fragment *dependee);
   QMap<const Fragment *, QString> _contents;
   // Use std::map so that unique pointers are less painful. QMap COW features do not interact well.
-  std::map<pepp::Architecture, std::unique_ptr<Assembler>> _assemblers;
-  std::map<QPair<pepp::Architecture, QString>, std::unique_ptr<Formatter>> _formatters;
+  std::map<pepp::Architecture_Enum, std::unique_ptr<Assembler>> _assemblers;
+  std::map<QPair<pepp::Architecture_Enum, QString>, std::unique_ptr<Formatter>> _formatters;
 };
 
 namespace detail {

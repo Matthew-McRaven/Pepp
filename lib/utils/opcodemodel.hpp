@@ -80,11 +80,11 @@ public:
   Q_INVOKABLE void make_pep10();
   Q_INVOKABLE void make_pep9();
 
-  pepp::Architecture arch() const { return _arch; }
+  pepp::Architecture_Enum arch() const { return _arch; }
 
 private:
   std::vector<Row> _rows = {};
-  pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
+  pepp::Architecture_Enum _arch = pepp::Architecture_Enum::NO_ARCH;
 };
 
 class GreencardFilterModel : public QSortFilterProxyModel {

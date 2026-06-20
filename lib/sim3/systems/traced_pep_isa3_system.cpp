@@ -54,9 +54,9 @@ const auto gs = sim::api2::memory::Operation{
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 
-QSharedPointer<sim::api2::tick::Recipient> create_cpu(pepp::Architecture arch, sim::api2::device::Descriptor desc,
+QSharedPointer<sim::api2::tick::Recipient> create_cpu(pepp::Architecture_Enum arch, sim::api2::device::Descriptor desc,
                                                       sim::api2::device::IDGenerator gen) {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   switch (arch) {
   case PEP9: return QSharedPointer<targets::pep9::isa::CPU>::create(desc, gen);
   case PEP10: return QSharedPointer<targets::pep10::isa::CPU>::create(desc, gen);
@@ -65,7 +65,7 @@ QSharedPointer<sim::api2::tick::Recipient> create_cpu(pepp::Architecture arch, s
 }
 } // namespace
 
-targets::isa::System::System(pepp::Architecture arch, QList<obj::MemoryRegion> regions,
+targets::isa::System::System(pepp::Architecture_Enum arch, QList<obj::MemoryRegion> regions,
                              std::vector<obj::AddressedIO> mmios)
     : _regions(), _arch(arch), _cpu(create_cpu(arch, desc_cpu(nextID()), _nextIDGenerator)),
       _bus(QSharedPointer<sim::memory::SimpleBus<u16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
@@ -106,7 +106,7 @@ void targets::isa::System::setBuffer(sim::api2::trace::Buffer *buffer) {
 QSharedPointer<const sim::api2::Paths> targets::isa::System::pathManager() const { return _paths; }
 
 void targets::isa::System::init() {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   u8 buf[2];
   bits::span<u8> bufSpan = {buf};
   // Reload default values into DDR.
@@ -144,7 +144,7 @@ void targets::isa::System::init() {
   }
 }
 
-pepp::Architecture targets::isa::System::architecture() const { return _arch; }
+pepp::Architecture_Enum targets::isa::System::architecture() const { return _arch; }
 
 sim::api2::tick::Recipient *targets::isa::System::cpu() { return &*_cpu; }
 
@@ -186,11 +186,11 @@ void targets::isa::System::reconfigure(const ELFIO::elfio &elf) {
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
-  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+  pepp::Architecture_Enum arch = pepp::Architecture_Enum::NO_ARCH;
   // determine arch from ELF.
   switch (elf.get_machine()) {
-  case (((u16)'p') << 8) | ((u16)'9'): arch = pepp::Architecture::PEP9; break;
-  case (((u16)'p') << 8) | ((u16)'x'): arch = pepp::Architecture::PEP10; break;
+  case (((u16)'p') << 8) | ((u16)'9'): arch = pepp::Architecture_Enum::PEP9; break;
+  case (((u16)'p') << 8) | ((u16)'x'): arch = pepp::Architecture_Enum::PEP10; break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 
@@ -235,9 +235,9 @@ QSharedPointer<sim::memory::Dense<u16>> allocate(QVector<QSharedPointer<sim::mem
   return ret;
 }
 
-void targets::isa::System::reconfigure(pepp::Architecture arch, QList<obj::MemoryRegion> regions,
+void targets::isa::System::reconfigure(pepp::Architecture_Enum arch, QList<obj::MemoryRegion> regions,
                                        std::vector<obj::AddressedIO> mmios) {
-  using enum pepp::Architecture;
+  using enum pepp::Architecture_Enum;
   // Take underlying memory and reuse it for new devices.
   using std::swap;
   decltype(_rawMemory) rawPool = {};
@@ -352,11 +352,11 @@ QSharedPointer<targets::isa::System> targets::isa::systemFromElf(const ELFIO::el
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
-  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+  auto arch = pepp::Architecture_Enum::NO_ARCH;
   // determine arch from ELF.
   switch (elf.get_machine()) {
-  case (((u16)'p') << 8) | ((u16)'9'): arch = pepp::Architecture::PEP9; break;
-  case (((u16)'p') << 8) | ((u16)'x'): arch = pepp::Architecture::PEP10; break;
+  case (((u16)'p') << 8) | ((u16)'9'): arch = pepp::Architecture_Enum::PEP9; break;
+  case (((u16)'p') << 8) | ((u16)'x'): arch = pepp::Architecture_Enum::PEP10; break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 
@@ -407,7 +407,6 @@ bool targets::isa::loadElfSegments(sim::api2::memory::Target<u16> &mem, const EL
       .kind = sim::api2::memory::Operation::Kind::data,
   };
 
-  using size_type = bits::span<const u8>::size_type;
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   bool ret = true;
