@@ -122,7 +122,6 @@ if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8)
 endif()
 
 add_subdirectory(3rd-party)
-add_subdirectory(data/books)
 
 enable_testing()
 
