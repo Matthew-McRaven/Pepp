@@ -30,7 +30,8 @@ void loadBookMacros(QSharedPointer<const builtins::Book> book, QSharedPointer<ma
 
 } // namespace
 TEST_CASE("Avoid breaking changes to CS6E operating system", "[scope:asm][kind:e2e][arch:pep10][scope:lol]") {
-  auto book_registry = builtins::Registry();
+  auto fs = builtins::makeQRCFSProvider();
+  auto book_registry = builtins::Registry(std::move(fs));
   auto book = book_registry.findBook("Computer Systems, 6th Edition");
 
   REQUIRE_FALSE(book.isNull());

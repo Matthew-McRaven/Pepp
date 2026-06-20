@@ -83,7 +83,8 @@ QSharedPointer<ELFIO::elfio> assemble(QString os, User user, QSharedPointer<macr
 }
 
 QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output) {
-  auto bookReg = builtins::Registry();
+  auto fs = builtins::makeQRCFSProvider();
+  auto bookReg = builtins::Registry(std::move(fs));
   // Load book contents, macros.
   auto bookPtr = book(bookReg);
   auto reg = registry(bookPtr, {});
@@ -122,7 +123,8 @@ QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo
 
 TEST_CASE("Pep/9 Figure Assembly", "[scope:asm][kind:e2e][arch:pep9]") {
   using namespace Qt::StringLiterals;
-  auto bookReg = builtins::Registry();
+  auto fs = builtins::makeQRCFSProvider();
+  auto bookReg = builtins::Registry(std::move(fs));
   auto bookPtr = book(bookReg);
   auto figures = bookPtr->figures();
   for (auto &figure : figures) {

@@ -31,11 +31,13 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     REQUIRE(toc_file.open(QIODevice::WriteOnly));
     toc_file.write(toc.toUtf8());
     toc_file.close();
-    auto reg = builtins::Registry(dir.path());
+    auto fs = builtins::makeQRCFSProvider(dir.path());
+    auto reg = builtins::Registry(std::move(fs));
     REQUIRE(reg.books().size() == 1);
   }
   SECTION("Can load default books") {
-    auto reg = builtins::Registry(builtins::default_book_path);
+    auto fs = builtins::makeQRCFSProvider();
+    auto reg = builtins::Registry(std::move(fs));
     REQUIRE(reg.books().size() == 3);
     // TODO: CS4E still has no figures and would fail the next line.
     // for (const auto &book : reg.books()) CHECK(!book->figures().empty());
@@ -47,7 +49,8 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     REQUIRE(toc_file.open(QIODevice::WriteOnly));
     toc_file.write("{");
     toc_file.close();
-    auto reg = builtins::Registry(dir.path());
+    auto fs = builtins::makeQRCFSProvider(dir.path());
+    auto reg = builtins::Registry(std::move(fs));
     REQUIRE(reg.books().size() == 0);
   }
   SECTION("Does not crash on malformed figure") {
@@ -62,7 +65,8 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     REQUIRE(figure_file.open(QIODevice::WriteOnly));
     figure_file.write("{");
     figure_file.close();
-    auto reg = builtins::Registry(dir.path());
+    auto fs = builtins::makeQRCFSProvider(dir.path());
+    auto reg = builtins::Registry(std::move(fs));
     REQUIRE(reg.books().size() == 1);
     auto book = reg.findBook("Test");
     REQUIRE(book != nullptr);

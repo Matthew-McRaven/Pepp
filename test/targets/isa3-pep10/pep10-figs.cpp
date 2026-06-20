@@ -94,7 +94,8 @@ void assemble(ELFIO::elfio &elf, QString os, User user, QSharedPointer<macro::Re
 }
 
 QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output) {
-  auto bookReg = builtins::Registry();
+  auto fs = builtins::makeQRCFSProvider();
+  auto bookReg = builtins::Registry(std::move(fs));
   // Load book contents, macros.
   auto bookPtr = book(bookReg);
   auto reg = registry(bookPtr, {});
@@ -172,7 +173,8 @@ da: .WORD 0xFEED\n\
 ";
 TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   using namespace Qt::StringLiterals;
-  auto bookReg = builtins::Registry();
+  auto fs = builtins::makeQRCFSProvider();
+  auto bookReg = builtins::Registry(std::move(fs));
   auto bookPtr = book(bookReg);
   auto assemblerFig = bookPtr->findFigure("os", "assembler");
   REQUIRE(!assemblerFig.isNull());
@@ -238,7 +240,8 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
 
 TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   using namespace Qt::StringLiterals;
-  auto bookReg = builtins::Registry();
+  auto fs = builtins::makeQRCFSProvider();
+  auto bookReg = builtins::Registry(std::move(fs));
   auto bookPtr = book(bookReg);
   auto figures = bookPtr->figures();
   for (auto &figure : figures) {

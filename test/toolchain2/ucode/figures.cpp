@@ -91,7 +91,8 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
   using uarch2 = pepp::tc::arch::Pep9WordBus;
   using regs = pepp::tc::arch::Pep9Registers;
   using namespace Qt::StringLiterals;
-  auto bookReg = builtins::Registry();
+  auto fs = builtins::makeQRCFSProvider();
+  auto bookReg = builtins::Registry(std::move(fs));
   auto book5 = helpers::book(5, &bookReg);
   auto book6 = helpers::book(6, &bookReg);
   auto figures5 = book5->figures(), figures6 = book6->figures();

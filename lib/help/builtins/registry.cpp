@@ -27,19 +27,11 @@
 #include "toolchain/macro/declaration.hpp"
 #include "toolchain2/macro/parse.hpp"
 
-// Helper method to open a file and read all of its bytes
-QByteArray read(QString path) {
-  QFile asFile(path);
-  asFile.open(QFile::ReadOnly);
-  auto bytes = asFile.readAll();
-  asFile.close();
-  return bytes;
-}
 
 using namespace Qt::StringLiterals;
-builtins::Registry::Registry(QString directory) {
-  _usingExternalFigures = (directory != builtins::default_book_path);
-  for (const auto &bookPath : detail::enumerateBooks(directory)) {
+
+builtins::Registry::Registry(std::unique_ptr<FilesystemProvider> fs) : _fs(std::move(fs)) {
+  for (const auto &bookPath : _fs->enumerateFiles("")) {
     auto book = loadBook(bookPath);
     if (book == nullptr) qWarning("%s", u"Failed to load book at %1"_s.arg(bookPath).toStdString().c_str());
     else if (findBook(book->name()) != nullptr) qFatal("Duplicate book");
@@ -90,6 +82,42 @@ void builtins::Registry::addFormatter(pepp::Architecture arch, QString format,
                                       std::unique_ptr<Formatter> &&formatter) {
   auto p = QPair<pepp::Architecture, QString>(arch, format);
   _formatters[p] = std::move(formatter);
+}
+
+builtins::Test *builtins::Registry::loadTest(QString testDirPath) {
+  auto test = new builtins::Test();
+  QDirIterator dir(testDirPath);
+  while (dir.hasNext()) {
+    auto file = dir.next();
+    if (!QFileInfo(file).isFile() && !file.endsWith(".txt")) continue;
+    QString data = _fs->readFile(file);
+    data.replace("\r", "");
+    if (file.endsWith("input.txt")) test->input = data;
+    else if (file.endsWith("output.txt")) test->output = data;
+  }
+  return test;
+}
+
+void builtins::Registry::linkFigureOS(const QString &manifestPath, QSharedPointer<Figure> figure,
+                                      QSharedPointer<const Book> book) {
+  // Read figure manifest to determine if figure is an OS, or if it links
+  // against an existing figure.
+  auto manifestBytes = _fs->readFile(manifestPath);
+  auto manifest = QJsonDocument::fromJson(manifestBytes.toUtf8());
+  auto isOs = manifest["is_os"];
+  if (isOs.isBool() && isOs.toBool()) return;
+  QString chFig = manifest["default_os"].toString();
+  if (chFig.isEmpty()) return;
+  // Chapter and figure are separated by : in a manifest file.
+  if (chFig.indexOf(":") == -1) qFatal("Invalid OS figure name");
+  auto osChFigSplit = chFig.split(":");
+  auto osChapterName = osChFigSplit[0];
+  auto osFigureName = osChFigSplit[1];
+  auto os = book->findFigure(osChapterName, osFigureName);
+  if (!os) {
+    qWarning("Could not find OS for %s", chFig.toStdString().c_str());
+  }
+  figure->setDefaultOS(os.data());
 }
 
 void builtins::Registry::computeDependencies(const Fragment *dependee) {
@@ -151,8 +179,6 @@ QString selectLines(QString &input, int startLine, int endLine) {
   return input.mid(lineStarts[startIdx], lineStarts[endIdx] - lineStarts[startIdx]);
 }
 
-QString loadFromFile(QString path) { return read(path); }
-
 QString templatize(QString input, QMap<QString, QString> substitutions) {
   for (const auto &[key, value] : substitutions.asKeyValueRange()) input.replace(u"{%1}"_s.arg(key), value);
   return input;
@@ -207,8 +233,9 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
   return ret;
 }
 
-::builtins::Fragment *loadFragment(const QJsonObject &item, const QDir &manifestDir, builtins::Figure *parent,
-                                   builtins::Registry *registry) {
+} // namespace
+
+builtins::Fragment *builtins::Registry::loadFragment(const QJsonObject &item, const QDir &manifestDir, Figure *parent) {
   // Use smart pointer to avoid cleanup on error paths.
   auto fragment = std::make_unique<builtins::Fragment>();
   fragment->name = item["name"].toString("");
@@ -236,7 +263,7 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
     // Require one of "element" or "file" to be present.
     if (from["file"].isString()) {
       auto absPath = manifestDir.absoluteFilePath(from["file"].toString());
-      fragment->contentsFn = [=]() { return loadFromFile(absPath); };
+      fragment->contentsFn = [this, absPath]() { return _fs->readFile(absPath); };
     } else if (from["element"].isString()) {
       auto dependee = parent->findFragment(from["element"].toString());
       if (dependee == nullptr) {
@@ -245,9 +272,9 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
         return nullptr;
       }
 
-      registry->addDependency(fragment.get(), dependee);
+      addDependency(fragment.get(), dependee);
       auto elementPtr = fragment.get();
-      fragment->contentsFn = [registry, elementPtr]() { return registry->contentFor(*elementPtr); };
+      fragment->contentsFn = [this, elementPtr]() { return contentFor(*elementPtr); };
     } else {
       qWarning("Did not specify a valid source");
       return nullptr;
@@ -271,7 +298,6 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
 
   return fragment.release();
 }
-} // namespace
 
 std::variant<std::monostate, builtins::Registry::_Figure, builtins::Registry::_Macro>
 builtins::Registry::loadManifestV2(const QJsonDocument &manifest, const QString &path) {
@@ -310,7 +336,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
   auto ios = manifest["tests"];
   auto iosArray = ios.toArray();
   for (auto ioDir : std::as_const(iosArray)) {
-    auto io = detail::loadTest(manifestDir.absoluteFilePath(ioDir.toString()));
+    auto io = loadTest(manifestDir.absoluteFilePath(ioDir.toString()));
     if (io == nullptr) {
       qWarning("Invalid IO: %s", ioDir.toString().toStdString().c_str());
       return std::monostate();
@@ -327,7 +353,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
     // Perform templatization on manifest values.
     auto fragmentObject = fragmentIter.toObject();
     templateize(fragmentObject, substitutions);
-    auto item = loadFragment(fragmentObject, manifestDir, &*figure, this);
+    auto item = loadFragment(fragmentObject, manifestDir, &*figure);
     if (item == nullptr) {
       qWarning("Failed to load element %s", fragmentObject["name"].toString("").toStdString().c_str());
       continue;
@@ -356,7 +382,7 @@ builtins::Registry::loadMacroV2(const QJsonDocument &manifest, const QString &pa
     auto path = templatize(fragmentObject[fragmentIter].toString(), substitutions);
 
     // Load the macro
-    auto macroText = read(manifestDir.absoluteFilePath(path));
+    auto macroText = _fs->readFile(manifestDir.absoluteFilePath(path));
     auto macroBody = macroText.sliced(macroText.indexOf("\n") + 1);
     auto parsed = macro::analyze_macro_definition(macroText);
     bool isHidden = manifest["isHidden"].toBool(false);
@@ -376,7 +402,7 @@ builtins::Registry::loadMacroV2(const QJsonDocument &manifest, const QString &pa
 QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
   static const auto bookNameKey = "bookName";
   // Read ToC to get book name
-  auto tocBytes = read(tocPath);
+  auto tocBytes = _fs->readFile(tocPath).toUtf8();
   auto toc = QJsonDocument::fromJson(tocBytes);
   if (toc[bookNameKey].isUndefined()) return nullptr;
   // And create a book object to stick figures in
@@ -390,7 +416,7 @@ QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
     auto next = iter.next();
 
     if (next.endsWith("manifest.json")) {
-      auto manifestBytes = read(next);
+      auto manifestBytes = _fs->readFile(next).toUtf8();
       auto manifest = QJsonDocument::fromJson(manifestBytes);
       if (manifest["version"].toInt(0) == 2) {
         auto item = loadManifestV2(manifest, next);
@@ -421,50 +447,22 @@ QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
   }
 
   // Revist all figures and attempt to link to default OS
-  for (auto &[path, figure] : revisit) detail::linkFigureOS(path, figure, book);
+  for (auto &[path, figure] : revisit) linkFigureOS(path, figure, book);
 
   return book;
 }
 
-builtins::Test *builtins::detail::loadTest(QString testDirPath) {
-  auto test = new builtins::Test();
-  QDirIterator dir(testDirPath);
-  while (dir.hasNext()) {
-    auto file = dir.next();
-    if (!QFileInfo(file).isFile() && !file.endsWith(".txt")) continue;
-    QString data = read(file);
-    data.replace("\r", "");
-    if (file.endsWith("input.txt")) test->input = data;
-    else if (file.endsWith("output.txt")) test->output = data;
-  }
-  return test;
+QString builtins::QRCFSProvider::readFile(const QString &path) {
+  QFile asFile(resolve(path));
+  (void)asFile.open(QFile::ReadOnly);
+  auto bytes = asFile.readAll();
+  asFile.close();
+  return bytes;
 }
 
-void builtins::detail::linkFigureOS(QString manifestPath, QSharedPointer<Figure> figure,
-                                    QSharedPointer<const Book> book) {
-  // Read figure manifest to determine if figure is an OS, or if it links
-  // against an existing figure.
-  auto manifestBytes = read(manifestPath);
-  auto manifest = QJsonDocument::fromJson(manifestBytes);
-  auto isOs = manifest["is_os"];
-  if (isOs.isBool() && isOs.toBool()) return;
-  QString chFig = manifest["default_os"].toString();
-  if (chFig.isEmpty()) return;
-  // Chapter and figure are separated by : in a manifest file.
-  if (chFig.indexOf(":") == -1) qFatal("Invalid OS figure name");
-  auto osChFigSplit = chFig.split(":");
-  auto osChapterName = osChFigSplit[0];
-  auto osFigureName = osChFigSplit[1];
-  auto os = book->findFigure(osChapterName, osFigureName);
-  if (!os) {
-    qWarning("Could not find OS for %s", chFig.toStdString().c_str());
-  }
-  figure->setDefaultOS(os.data());
-}
-
-QList<QString> builtins::detail::enumerateBooks(QString prefix) {
+QStringList builtins::QRCFSProvider::enumerateFiles(const QString &directory) {
   QList<QString> ret;
-  QDirIterator iter(prefix);
+  QDirIterator iter(resolve(directory));
   // Walk the QRC (or filesystem), looking for folders than contain book
   // manifests (toc.json)
   while (iter.hasNext()) {
@@ -474,4 +472,15 @@ QList<QString> builtins::detail::enumerateBooks(QString prefix) {
       ret.push_back(maybeManifest.fileName());
   }
   return ret;
+}
+
+bool builtins::QRCFSProvider::using_external_figures() const { return _prefix != default_book_path; }
+
+QString builtins::QRCFSProvider::resolve(QString path) const {
+  if (QDir::isAbsolutePath(path)) return path;
+  return _prefix + "/" + path;
+}
+
+std::unique_ptr<builtins::Registry::FilesystemProvider> builtins::makeQRCFSProvider(QString prefix) {
+  return std::make_unique<QRCFSProvider>(std::move(prefix));
 }

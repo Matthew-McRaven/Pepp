@@ -110,8 +110,9 @@ struct Pep9OFormatter : public builtins::Registry::Formatter {
 
 QSharedPointer<builtins::Registry> helpers::builtins_registry(bool use_app_settings, QString directory) {
   using R = QSharedPointer<builtins::Registry>;
-  if (use_app_settings) return R::create(pepp::settings::AppSettings().general()->figureDirectory());
-  else return R::create(directory);
+  const auto dir = use_app_settings ? pepp::settings::AppSettings().general()->figureDirectory() : directory;
+  auto fs_provider = builtins::makeQRCFSProvider(dir);
+  return R::create(std::move(fs_provider));
 }
 
 QSharedPointer<builtins::Registry> helpers::registry_with_assemblers(bool use_app_settings, QString directory) {

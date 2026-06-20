@@ -43,11 +43,18 @@ public:
     virtual ~Formatter() = default;
     virtual QString operator()(QVariant assembled) = 0;
   };
+  struct FilesystemProvider {
+    virtual ~FilesystemProvider() = default;
+    virtual QString readFile(const QString &path) = 0;
+    virtual QStringList enumerateFiles(const QString &directory) = 0;
+    // Return true if these are not the "compiled in" figures.
+    virtual bool using_external_figures() const = 0;
+  };
   // Crawling the Qt help system to create books is handled inside CTOR.
-  explicit Registry(QString directory = default_book_path);
+  explicit Registry(std::unique_ptr<FilesystemProvider> fs);
   QList<QSharedPointer<const builtins::Book>> books() const;
   QSharedPointer<const builtins::Book> findBook(QString name) const;
-  bool usingExternalFigures() const { return _usingExternalFigures; }
+  bool usingExternalFigures() const { return _fs->using_external_figures(); }
   void addDependency(const Fragment *dependent, const Fragment *dependee);
   QString contentFor(Fragment &fragment);
   void addAssembler(pepp::Architecture arch, std::unique_ptr<Assembler> &&assembler);
@@ -60,8 +67,13 @@ private:
   std::variant<std::monostate, _Figure, _Macro> loadFigureV2(const QJsonDocument &manifest, const QString &path);
   std::variant<std::monostate, _Figure, _Macro> loadMacroV2(const QJsonDocument &manifest, const QString &path);
 
+  void linkFigureOS(const QString &manifestPath, QSharedPointer<Figure> figure,
+                    QSharedPointer<const builtins::Book> book);
+  ::builtins::Test *loadTest(QString testDirPath);
+  ::builtins::Fragment *loadFragment(const QJsonObject &item, const QDir &manifestDir, builtins::Figure *parent);
+
   QSharedPointer<::builtins::Book> loadBook(QString tocPath);
-  bool _usingExternalFigures = false;
+  std::unique_ptr<FilesystemProvider> _fs;
   QList<QSharedPointer<const builtins::Book>> _books;
   // Given an element, determine which element it depends on.
   QMap<const Fragment * /*dependent*/, const Fragment * /*dependee*/> _dependencies;
@@ -74,11 +86,18 @@ private:
   std::map<QPair<pepp::Architecture, QString>, std::unique_ptr<Formatter>> _formatters;
 };
 
-namespace detail {
-::builtins::Test *loadTest(QString testDirPath);
-void linkFigureOS(QString manifestPath, QSharedPointer<::builtins::Figure> figure,
-                  QSharedPointer<const builtins::Book> book);
-QList<QString> enumerateBooks(QString prefix);
+namespace detail {} // end namespace detail
 
-} // end namespace detail
+class QRCFSProvider : public Registry::FilesystemProvider {
+public:
+  explicit QRCFSProvider(QString prefix) : _prefix(std::move(prefix)) {}
+  QString readFile(const QString &path) override;
+  QStringList enumerateFiles(const QString &directory) override;
+  bool using_external_figures() const override;
+
+private:
+  QString resolve(QString path) const;
+  QString _prefix;
+};
+std::unique_ptr<Registry::FilesystemProvider> makeQRCFSProvider(QString prefix = default_book_path);
 } // end namespace builtins

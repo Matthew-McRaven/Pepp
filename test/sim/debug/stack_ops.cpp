@@ -33,8 +33,8 @@ QSharedPointer<const builtins::Book> book(builtins::Registry &reg) {
 TEST_CASE("Serialize stack ops", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   using P = types::Primitives;
-
-  auto bookReg = builtins::Registry();
+  auto fs = builtins::makeQRCFSProvider();
+  auto bookReg = builtins::Registry(std::move(fs));
   auto bookPtr = book(bookReg);
   auto os_fig = bookPtr->findFigure("os", "pep10os");
   auto registry = helpers::registry(bookPtr, {});
