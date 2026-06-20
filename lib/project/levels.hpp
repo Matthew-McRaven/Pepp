@@ -31,7 +31,9 @@ class AbstractionHelper : public QObject {
   QML_UNCREATABLE("Error:Only enums")
 
 public:
-  enum class Abstractionss {
+  // If you find yourself accessing this enum from C++, stop. It's just a hack to make the constants available on a
+  // singleton in QML
+  enum class OnlyUsableFromQML_Abstraction {
     NO_ABS = (int)pepp::Abstraction::NO_ABS,
     // LG1 = 1,
     MA2 = (int)pepp::Abstraction::MA2,
@@ -42,8 +44,8 @@ public:
     // HOL6 = 6,
     // APP7 = 7,
   };
-  Q_ENUM(Abstractionss)
+  Q_ENUM(OnlyUsableFromQML_Abstraction)
   AbstractionHelper(QObject *parent = nullptr);
-  Q_INVOKABLE QString string(Abstractionss abstraction) const;
+  Q_INVOKABLE QString string(int abstraction) const;
 };
 } // namespace pepp

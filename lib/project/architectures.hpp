@@ -32,14 +32,16 @@ class ArchitectureHelper : public QObject {
 
 public:
   // Have to shadow the earlier enum, because Q_ENUM only works enums declared inside this class.
-  enum class Architecture {
+  // If you find yourself accessing this enum from C++, stop. It's just a hack to make the constants available on a
+  // singleton in QML
+  enum class OnlyUsableFromQML_Architectures {
     NO_ARCH = (int)pepp::Architecture::NO_ARCH,
     PEP8 = (int)pepp::Architecture::PEP8,
     PEP9 = (int)pepp::Architecture::PEP9,
     PEP10 = (int)pepp::Architecture::PEP10,
     RISCV = (int)pepp::Architecture::RISCV,
   };
-  Q_ENUM(Architecture)
+  Q_ENUM(OnlyUsableFromQML_Architectures)
   ArchitectureHelper(QObject *parent = nullptr);
   Q_INVOKABLE static QString string(int architecture);
 };
