@@ -89,7 +89,7 @@ public:
   int qml_architecture() const { return (int)architecture(); }
   virtual pepp::Architecture architecture() const;
   int qml_abstraction() const { return (int)abstraction(); }
-  virtual pepp::AbstractionEnu abstraction() const;
+  virtual pepp::Abstraction abstraction() const;
   virtual int features() const;
   Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
@@ -323,7 +323,7 @@ public:
   int qml_architecture() const { return (int)architecture(); }
   virtual pepp::Architecture architecture() const;
   int qml_abstraction() const { return (int)abstraction(); }
-  virtual pepp::AbstractionEnu abstraction() const;
+  virtual pepp::Abstraction abstraction() const;
   virtual int features() const;
   virtual QString lexerLanguage() const;
   Q_INVOKABLE virtual QString delegatePath() const;

@@ -32,13 +32,13 @@ class AbstractionHelper : public QObject {
 
 public:
   enum class Abstractionss {
-    NO_ABS = (int)pepp::AbstractionEnu::NO_ABS,
+    NO_ABS = (int)pepp::Abstraction::NO_ABS,
     // LG1 = 1,
-    MA2 = (int)pepp::AbstractionEnu::MA2,
-    ISA3 = (int)pepp::AbstractionEnu::ISA3,
-    ASMB3 = (int)pepp::AbstractionEnu::ASMB3,
-    OS4 = (int)pepp::AbstractionEnu::OS4,
-    ASMB5 = (int)pepp::AbstractionEnu::ASMB5,
+    MA2 = (int)pepp::Abstraction::MA2,
+    ISA3 = (int)pepp::Abstraction::ISA3,
+    ASMB3 = (int)pepp::Abstraction::ASMB3,
+    OS4 = (int)pepp::Abstraction::OS4,
+    ASMB5 = (int)pepp::Abstraction::ASMB5,
     // HOL6 = 6,
     // APP7 = 7,
   };

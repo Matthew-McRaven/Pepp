@@ -47,7 +47,7 @@ public:
   Q_INVOKABLE Pep_MA *pep10MA2(pepp::Features features);
   Q_INVOKABLE Pep_ISA *pep10ISA();
   Q_INVOKABLE Pep_ISA *pep9ISA();
-  Q_INVOKABLE Pep_ASMB *pep10ASMB(pepp::Abstraction abstraction);
+  Q_INVOKABLE Pep_ASMB *pep10ASMB(int abstraction);
   Q_INVOKABLE Pep_ASMB *pep9ASMB();
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,

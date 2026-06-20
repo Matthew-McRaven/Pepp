@@ -78,8 +78,7 @@ Pep_MA *ProjectModel::pep9MA2(pepp::Features feats) {
   // If neither one byte or two byte are set, default to one-byte
   if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
 
-  const project::Environment env{
-      .arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::MA2, .features = feats};
+  const project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::MA2, .features = feats};
   auto ptr = std::make_unique<Pep_MA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -95,8 +94,7 @@ Pep_MA *ProjectModel::pep10MA2(pepp::Features feats) {
   using namespace bits;
   // If neither one byte or two byte are set, default to one-byte
   if (none(feats & (F::OneByte | F::TwoByte))) feats = feats | F::OneByte;
-  const project::Environment env{
-      .arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::MA2, .features = feats};
+  const project::Environment env{.arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::MA2, .features = feats};
   auto ptr = std::make_unique<Pep_MA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -139,7 +137,8 @@ Pep_ISA *ProjectModel::pep9ISA() {
   return ret;
 }
 
-Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
+Pep_ASMB *ProjectModel::pep10ASMB(int abstraction_int) {
+  const auto abstraction = static_cast<pepp::Abstraction>(abstraction_int);
   project::Environment env{
       .arch = pepp::Architecture::PEP10, .level = abstraction, .features = pepp::Features::None};
   auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
@@ -200,7 +199,6 @@ QString ProjectModel::describe(int index) const {
   using enum pepp::Architecture;
   if (index < 0 || index >= (int)_projects.size()) return {};
 
-  auto abs_enum = QMetaEnum::fromType<pepp::Abstraction>();
   pepp::Architecture arch;
   pepp::Abstraction abs;
   if (auto isa = dynamic_cast<Pep_ISA *>(_projects[index].impl.get())) {
@@ -213,8 +211,7 @@ QString ProjectModel::describe(int index) const {
     arch = ma->architecture();
     abs = ma->abstraction();
   } else return "";
-  QString abs_str = abs_enum.valueToKey((int)abs);
-  return QStringLiteral("%1, %2").arg(pepp::arch_as_pretty_string(arch), pepp::abstractionAsPrettyString(abs));
+  return QStringLiteral("%1, %2").arg(pepp::arch_as_pretty_string(arch), pepp::level_as_string(abs));
 }
 
 int ProjectModel::rowOf(const QObject *item) const {
@@ -458,14 +455,14 @@ void ProjectModel::appendProject(std::unique_ptr<QObject> &&obj) {
 
 void init_pep10(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP10;
-  using pepp::Abstraction;
+  using enum pepp::Abstraction;
   vec.append({.name = "Pep/10",
               .levelText = "ISA3",
               .details = "Bare Metal",
               .chapter = "4",
               .description = "Develop and debug machine language programs in bare metal mode.",
               .arch = a,
-              .level = Abstraction::ISA3,
+              .level = ISA3,
               .state = CompletionState::COMPLETE,
               .edition = 6});
   vec.append({.name = "Pep/10",
@@ -474,7 +471,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .chapter = "5",
               .description = "Develop and debug assembly language programs in bare metal mode.",
               .arch = a,
-              .level = Abstraction::ASMB3,
+              .level = ASMB3,
               .state = CompletionState::COMPLETE,
               .edition = 6});
   vec.append({.name = "Pep/10",
@@ -484,7 +481,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Develop and debug assembly language programs alongside Pep/10's operating system.\nThis "
                              "level enables you to utilize OS features using system calls for enhanced functionality.",
               .arch = a,
-              .level = Abstraction::ASMB5,
+              .level = ASMB5,
               .state = CompletionState::COMPLETE,
               .edition = 6});
   vec.append({.name = "Pep/10",
@@ -492,7 +489,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .chapter = "8",
               .description = "Missing",
               .arch = a,
-              .level = Abstraction::OS4,
+              .level = OS4,
               .state = CompletionState::PARTIAL,
               .edition = 6});
   vec.append({.name = "Pep/10",
@@ -501,7 +498,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .chapter = "11",
               .description = "Develop and debug microcode programs with a 1-byte data bus",
               .arch = a,
-              .level = Abstraction::MA2,
+              .level = MA2,
               .features = pepp::Features::OneByte,
               .state = CompletionState::COMPLETE,
               .edition = 6});
@@ -511,7 +508,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .chapter = "11",
               .description = "Develop and debug microcode programs with a 2-byte data bus",
               .arch = a,
-              .level = Abstraction::MA2,
+              .level = MA2,
               .features = pepp::Features::TwoByte,
               .state = CompletionState::COMPLETE,
               .edition = 6,
@@ -519,14 +516,14 @@ void init_pep10(QList<ProjectType> &vec) {
 }
 void init_pep9(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP9;
-  using pepp::Abstraction;
+  using enum pepp::Abstraction;
   vec.append({.name = "Pep/9",
               .levelText = "ISA3",
               .details = "Bare Metal",
               .chapter = "4",
               .description = "Develop and debug machine language programs.",
               .arch = a,
-              .level = Abstraction::ISA3,
+              .level = ISA3,
               .state = CompletionState::COMPLETE,
               .edition = 5});
   vec.append({.name = "Pep/9",
@@ -537,7 +534,7 @@ void init_pep9(QList<ProjectType> &vec) {
                   "Develop and debug assembly language programs alongside Pep/9's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
               .arch = a,
-              .level = Abstraction::ASMB5,
+              .level = ASMB5,
               .state = CompletionState::COMPLETE,
               .edition = 5});
   vec.append({.name = "Pep/9",
@@ -545,7 +542,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .chapter = "8",
               .description = "Missing",
               .arch = a,
-              .level = Abstraction::OS4,
+              .level = OS4,
               .state = CompletionState::INCOMPLETE,
               .edition = 5});
   vec.append({.name = "Pep/9",
@@ -554,7 +551,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .chapter = "12",
               .description = "Develop and debug microcode programs with a 1-byte data bus",
               .arch = a,
-              .level = Abstraction::MA2,
+              .level = MA2,
               .features = pepp::Features::OneByte,
               .state = CompletionState::COMPLETE,
               .edition = 5});
@@ -564,7 +561,7 @@ void init_pep9(QList<ProjectType> &vec) {
               .chapter = "12",
               .description = "Develop and debug microcode programs with a 2-byte data bus",
               .arch = a,
-              .level = Abstraction::MA2,
+              .level = MA2,
               .features = pepp::Features::TwoByte,
               .state = CompletionState::COMPLETE,
               .edition = 5,
@@ -572,14 +569,14 @@ void init_pep9(QList<ProjectType> &vec) {
 }
 void init_pep8(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP8;
-  using pepp::Abstraction;
+  using enum pepp::Abstraction;
   vec.append({.name = "Pep/8",
               .levelText = "ISA3",
               .details = "Bare Metal",
               .chapter = "4",
               .description = "Develop and debug machine language programs.",
               .arch = a,
-              .level = Abstraction::ISA3,
+              .level = ISA3,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
   vec.append({.name = "Pep/8",
@@ -590,7 +587,7 @@ void init_pep8(QList<ProjectType> &vec) {
                   "Develop and debug assembly language programs alongside Pep/8's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
               .arch = a,
-              .level = Abstraction::ASMB5,
+              .level = ASMB5,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
   vec.append({.name = "Pep/8",
@@ -598,7 +595,7 @@ void init_pep8(QList<ProjectType> &vec) {
               .chapter = "8",
               .description = "Missing",
               .arch = a,
-              .level = Abstraction::OS4,
+              .level = OS4,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
   vec.append({.name = "Pep/8",
@@ -607,21 +604,21 @@ void init_pep8(QList<ProjectType> &vec) {
               .chapter = "12",
               .description = "Missing",
               .arch = a,
-              .level = Abstraction::MA2,
+              .level = MA2,
               .features = pepp::Features::OneByte,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
 }
 void init_riscv(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::RISCV;
-  using pepp::Abstraction;
+  using enum pepp::Abstraction;
   vec.append({.name = "RISC-V",
               .levelText = "Asmb3",
               .details = "Bare Metal",
               .chapter = "12",
               .description = "Develop and debug machine language programs in bare metal mode.",
               .arch = a,
-              .level = Abstraction::ASMB3,
+              .level = ASMB3,
               .state = CompletionState::INCOMPLETE,
               .edition = 6});
 }
@@ -648,7 +645,7 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
   case static_cast<int>(Roles::CombinedArchLevelRole): {
     QString arch_str = QString::fromStdString(pepp::arch_as_pretty_string(_projects[index.row()].arch));
-    QString abs_str = abstractionAsPrettyString(_projects[index.row()].level);
+    QString abs_str = QString::fromStdString(pepp::level_as_string(_projects[index.row()].level));
     return u"%1, %2"_s.arg(arch_str, abs_str);
   }
   case static_cast<int>(Roles::CompleteRole): return _projects[index.row()].state == CompletionState::COMPLETE;

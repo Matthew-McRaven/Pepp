@@ -125,6 +125,6 @@ signals:
 
 private:
   pepp::Architecture _architecture = pepp::Architecture::NO_ARCH;
-  pepp::AbstractionEnu _abstraction = pepp::AbstractionEnu::NO_ABS;
+  pepp::Abstraction _abstraction = pepp::Abstraction::NO_ABS;
   bool _showWIPItems = false;
 };

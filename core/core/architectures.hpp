@@ -17,7 +17,7 @@ std::string arch_as_string(Architecture architecture);
 std::string arch_as_pretty_string(Architecture architecture);
 Architecture string_to_arch(const std::string &str, bool *okay = nullptr);
 
-enum class AbstractionEnu {
+enum class Abstraction {
   NO_ABS = -1,
   // LG1 = 1,
   MA2 = 20,
@@ -28,9 +28,9 @@ enum class AbstractionEnu {
   // HOL6 = 6,
   // APP7 = 7,
 };
-bool is_valid_level(AbstractionEnu level) noexcept;
+bool is_valid_level(Abstraction level) noexcept;
 bool is_valid_level(int level) noexcept;
-std::string level_as_string(AbstractionEnu level);
-std::string level_as_pretty_string(AbstractionEnu level);
-AbstractionEnu string_to_level(const std::string &str, bool *okay = nullptr);
+std::string level_as_string(Abstraction level);
+std::string level_as_pretty_string(Abstraction level);
+Abstraction string_to_level(const std::string &str, bool *okay = nullptr);
 } // namespace pepp

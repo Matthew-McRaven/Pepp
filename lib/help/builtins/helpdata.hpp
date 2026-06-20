@@ -33,7 +33,7 @@ std::array<QSharedPointer<HelpEntry>, 3> problems_root(const builtins::Registry 
 QSharedPointer<HelpEntry> os_root();
 QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg);
 int bitmask(pepp::Architecture arch);
-int bitmask(pepp::AbstractionEnu level);
-int bitmask(pepp::Architecture arch, pepp::AbstractionEnu level);
+int bitmask(pepp::Abstraction level);
+int bitmask(pepp::Architecture arch, pepp::Abstraction level);
 int bitmask_all_levels(pepp::Architecture arch);
 bool masked(int lhs, int rhs);

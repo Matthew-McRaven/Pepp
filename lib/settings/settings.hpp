@@ -52,7 +52,7 @@ class RecentFile {
   QML_VALUE_TYPE(recent_file)
 public:
   RecentFile() = default;
-  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::AbstractionEnu level, pepp::Features features)
+  RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level, pepp::Features features)
       : _path(filePath), _arch(arch), _level(level), _features(features) {};
   RecentFile(const RecentFile &other) noexcept = default;
   RecentFile &operator=(const RecentFile &other) noexcept = default;
@@ -60,7 +60,7 @@ public:
   int qml_arch() const { return (int)_arch; }
   int qml_level() const { return (int)_level; }
   pepp::Architecture arch() const { return _arch; }
-  pepp::AbstractionEnu abstraction() const { return _level; }
+  pepp::Abstraction abstraction() const { return _level; }
   pepp::Features features() const { return _features; }
 
   Qt::strong_ordering operator<=>(const RecentFile &other) const;
@@ -68,7 +68,7 @@ public:
 private:
   QString _path = "";
   pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
-  pepp::AbstractionEnu _level = pepp::AbstractionEnu::NO_ABS;
+  pepp::Abstraction _level = pepp::Abstraction::NO_ABS;
   pepp::Features _features = pepp::Features::None;
 };
 QDataStream &operator<<(QDataStream &out, const pepp::settings::RecentFile &rf);
@@ -115,7 +115,7 @@ public:
   pepp::Architecture defaultArch() const;
   void setDefaultArch(int arch);
   int qml_defaultAbstraction() const;
-  pepp::AbstractionEnu defaultAbstraction() const;
+  pepp::Abstraction defaultAbstraction() const;
   bool showDebugComponents() const;
   void setShowDebugComponents(bool show);
   void setDefaultAbstraction(int abstraction);
@@ -130,7 +130,7 @@ public:
   QString externalFigureDirectory() const;
   void setExternalFigureDirectory(const QString &path);
   QString figureDirectory() const;
-  Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture arch, pepp::AbstractionEnu level,
+  Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture arch, pepp::Abstraction level,
                                   pepp::Features features);
   Q_INVOKABLE void clearRecentFiles();
   // Really should be in a seperate class, but I only use it when touching recent files.
@@ -154,7 +154,7 @@ private:
   mutable QList<RecentFile> _recentFileCache;
   const int defaultDefaultEdition = 6;
   const pepp::Architecture defaultDefaultArch = pepp::Architecture::PEP10;
-  const pepp::AbstractionEnu defaultDefaultAbstraction = pepp::AbstractionEnu::ASMB5;
+  const pepp::Abstraction defaultDefaultAbstraction = pepp::Abstraction::ASMB5;
   const bool defaultShowDebugComponents = false;
   bool validateMaxRecentFiles(int max) const;
   const int defaultMaxRecentFiles = 5;

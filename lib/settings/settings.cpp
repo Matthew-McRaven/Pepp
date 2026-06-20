@@ -64,7 +64,7 @@ QDataStream &pepp::settings::operator>>(QDataStream &in, RecentFile &rf) {
     featInt = (int)pepp::Features::None;
   }
   rf = pepp::settings::RecentFile(path, static_cast<pepp::Architecture>(archInt),
-                                  static_cast<pepp::AbstractionEnu>(absInt), static_cast<pepp::Features>(featInt));
+                                  static_cast<pepp::Abstraction>(absInt), static_cast<pepp::Features>(featInt));
   return in;
 }
 
@@ -119,11 +119,13 @@ void pepp::settings::GeneralCategory::setDefaultArch(int arch) {
   emit defaultArchChanged();
 }
 
-pepp::AbstractionEnu pepp::settings::GeneralCategory::defaultAbstraction() const {
+int pepp::settings::GeneralCategory::qml_defaultAbstraction() const { return (int)defaultAbstraction(); }
+
+pepp::Abstraction pepp::settings::GeneralCategory::defaultAbstraction() const {
   bool casted = false;
   auto value = _settings.value(defaultAbstractionKey);
   if (auto asInt = value.toInt(&casted); value.isValid() && casted && pepp::is_valid_level(asInt))
-    return static_cast<pepp::AbstractionEnu>(asInt);
+    return static_cast<pepp::Abstraction>(asInt);
   else {
     _settings.setValue(defaultAbstractionKey, (int)defaultDefaultAbstraction);
     return defaultDefaultAbstraction;
@@ -233,7 +235,7 @@ QString pepp::settings::GeneralCategory::figureDirectory() const {
 }
 
 void pepp::settings::GeneralCategory::pushRecentFile(const QString &fileName, pepp::Architecture arch,
-                                                     pepp::AbstractionEnu level, pepp::Features features) {
+                                                     pepp::Abstraction level, pepp::Features features) {
   if (_recentFileCache.empty()) refreshRecentFileCache();
   auto from = std::remove_if(_recentFileCache.begin(), _recentFileCache.end(),
                              [&fileName](auto &i) { return i.path() == fileName; });
