@@ -20,6 +20,7 @@
 #include <QString>
 #include <QtCore>
 #include <QtQmlIntegration>
+#include "core/architectures.hpp"
 
 // Must be in separate file to prevent circuluar include in Qt MOC.
 namespace pepp {
@@ -29,13 +30,15 @@ class ArchitectureHelper : public QObject {
   QML_UNCREATABLE("Error:Only enums")
 
 public:
+  // Must exactly mirror enumerated constants of "core/architectures.hpp".
+  // I want these enumerated constants to be exposed to QML as named values, which only works with enum members of this
+  // struct.
   enum class Architecture {
-    NO_ARCH = -1, //! Architecture is unspecified.
-    PEP8 = 80,    //! The figure must be used with the Pep/8 toolchain.
-    PEP9 = 90,    //! The figure must be used with the Pep/9 toolchain.
-    PEP10 = 100,  //! The figure must be use with the Pep/10 toolchain
-    RISCV = 1000, //! The figure must be used with the RISC-V toolchain, which is
-    //! undefined as of 2023-02-14.
+    NO_ARCH = (int)pepp::Architecture_Enums::NO_ARCH,
+    PEP8 = (int)pepp::Architecture_Enums::PEP8,
+    PEP9 = (int)pepp::Architecture_Enums::PEP9,
+    PEP10 = (int)pepp::Architecture_Enums::PEP10,
+    RISCV = (int)pepp::Architecture_Enums::RISCV,
   };
   Q_ENUM(Architecture)
   ArchitectureHelper(QObject *parent = nullptr);
@@ -48,7 +51,7 @@ class ArchitectureUtils : public QObject {
   QML_ELEMENT
 public:
   ArchitectureUtils(QObject *parent = nullptr);
-  Q_INVOKABLE QString archAsString(Architecture architecture);
+  Q_INVOKABLE QString archAsString(ArchitectureHelper::Architecture architecture);
 };
 
 } // namespace pepp

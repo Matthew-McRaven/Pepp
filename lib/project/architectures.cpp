@@ -8,7 +8,7 @@ QString pepp::ArchitectureHelper::string(Architecture architecture) {
 
 pepp::ArchitectureUtils::ArchitectureUtils(QObject *parent) : QObject(parent) {}
 
-QString pepp::ArchitectureUtils::archAsString(Architecture architecture) {
+QString pepp::ArchitectureUtils::archAsString(ArchitectureHelper::Architecture architecture) {
   return ArchitectureHelper::string(architecture);
 }
 
