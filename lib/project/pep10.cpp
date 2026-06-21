@@ -1685,12 +1685,18 @@ void Pep_MA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
     if (upc < microcode.size()) {
       pepp::connections_for(_holder.c, microcode[upc], memory_cycle);
       _activeLine = microcode[upc];
+    } else {
+      _activeLine = pepp::OneByteMC9Line{};
+      pepp::connections_for(_holder.c, std::get<pepp::OneByteMC9Line>(_activeLine), memory_cycle);
     }
   } else if (std::holds_alternative<pepp::TwoByteMC9>(this->_microcode)) {
     const auto &microcode = std::get<pepp::TwoByteMC9>(this->_microcode);
     if (upc < microcode.size()) {
       pepp::connections_for(_holder.c, microcode[upc], memory_cycle);
       _activeLine = microcode[upc];
+    } else {
+      _activeLine = pepp::TwoByteMC9Line{};
+      pepp::connections_for(_holder.c, std::get<pepp::TwoByteMC9Line>(_activeLine), memory_cycle);
     }
   }
   emit updateGUI(from);
@@ -1716,10 +1722,9 @@ void Pep_MA::updateBPAtAddress(quint32 address, Action action) {
 
 void Pep_MA::updatePC() {
   auto pc = _system->cpu()->microPC();
-  if (auto line = _line2addr.line(pc); !line) return;
-  else {
-    emit editorAction(*line, Action::HighlightExclusive);
-  }
+  if (auto line = _line2addr.line(pc); line) emit editorAction(*line, Action::HighlightExclusive);
+  // No line corresponds to this PC, so un-highlight all lines.
+  else emit editorAction(-1, Action::HighlightExclusive);
 }
 
 namespace {
