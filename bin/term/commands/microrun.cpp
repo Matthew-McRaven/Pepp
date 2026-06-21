@@ -68,7 +68,7 @@ void MicroRunTask::run() {
   } else unit_test_text = source_text;
 
   QStringList errors;
-  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+  auto arch = pepp::Architecture::NO_ARCH;
   switch (_ed) {
   case 5: arch = pepp::Architecture::PEP9; break;
   case 6: arch = pepp::Architecture::PEP10; break;

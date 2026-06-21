@@ -19,17 +19,17 @@
 
 targets::isa::IllegalOpcode::IllegalOpcode() : std::runtime_error("Illegal Opcode") {}
 
-template <> quint8 targets::isa::packCSR<isa::Pep10>(bool n, bool z, bool v, bool c) {
+template <> u8 targets::isa::packCSR<isa::Pep10>(bool n, bool z, bool v, bool c) {
   return (n << 3) | (z << 2) | (v << 1) | (c << 0);
 }
-template <> quint8 targets::isa::packCSR<isa::Pep9>(bool n, bool z, bool v, bool c) {
+template <> u8 targets::isa::packCSR<isa::Pep9>(bool n, bool z, bool v, bool c) {
   return (n << 3) | (z << 2) | (v << 1) | (c << 0);
 }
 
-template <> std::tuple<bool, bool, bool, bool> targets::isa::unpackCSR<isa::Pep10>(quint8 value) {
+template <> std::tuple<bool, bool, bool, bool> targets::isa::unpackCSR<isa::Pep10>(u8 value) {
   return {value & 0b1000, value & 0b0100, value & 0b0010, value & 0b0001};
 }
 
-template <> std::tuple<bool, bool, bool, bool> targets::isa::unpackCSR<isa::Pep9>(quint8 value) {
+template <> std::tuple<bool, bool, bool, bool> targets::isa::unpackCSR<isa::Pep9>(u8 value) {
   return {value & 0b1000, value & 0b0100, value & 0b0010, value & 0b0001};
 }

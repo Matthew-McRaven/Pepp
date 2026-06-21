@@ -17,13 +17,14 @@
 #include "toolchain/pas/driver/pep10.hpp"
 #include <catch.hpp>
 #include "core/arch/pep/isa/pep10.hpp"
-#include "help/builtins/book.hpp"
-#include "help/builtins/figure.hpp"
-#include "help/builtins/registry.hpp"
+#include "core/resources/figures/book.hpp"
+#include "core/resources/figures/builtin_registry.hpp"
+#include "help/builtins/figure_wrappers.hpp"
 #include "sim3/subsystems/bus/simple.hpp"
 #include "sim3/systems/traced_pep_isa3_system.hpp"
 #include "toolchain/link/memmap.hpp"
 #include "toolchain/link/mmio.hpp"
+#include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/obj/pep10.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
@@ -41,8 +42,15 @@ static const auto is_pwrOff = [](const auto &x) {
   return x.name == "pwrOff" && x.type == obj::IO::Type::kOutput && x.minOffset == 0xFFFF && x.maxOffset == 0xFFFF;
 };
 
-void loadBookMacros(QSharedPointer<const builtins::Book> book, QSharedPointer<macro::Registry> registry) {
-  for (auto &macro : book->macros()) registry->registerMacro(macro::types::Core, macro);
+void loadBookMacros(std::shared_ptr<const pepp::Book> book, QSharedPointer<macro::Registry> registry) {
+  for (auto &macro : book->macros()) {
+    // TODO: hideous conversion from current book type to the old macro type. Refactor to remove this copy.
+    const auto arch = pepp::arch_as_string(macro->arch);
+    auto macroDecl = QSharedPointer<::macro::Declaration>::create(
+        QString::fromStdString(macro->name), macro->argcount, QString::fromStdString(macro->body),
+        QString::fromStdString(arch), QString::fromStdString(macro->family), macro->hidden);
+    registry->registerMacro(::macro::types::Core, macroDecl);
+  }
 }
 
 void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
@@ -54,19 +62,20 @@ void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
 } // namespace
 
 TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
-  auto book_registry = builtins::Registry();
-  auto book = book_registry.findBook("Computer Systems, 6th Edition");
+  auto fs = builtins::QtFilesystemProvider::create();
+  auto bookReg = pepp::BuiltinRegistry(std::move(fs));
+  auto book = bookReg.find_book("Computer Systems, 6th Edition");
   SECTION("Standalone") {
     // Load macros on each iteration to prevent macros from migrating between
     // tests.
     auto registry = QSharedPointer<macro::Registry>::create();
-    REQUIRE_FALSE(book.isNull());
+    REQUIRE(book != nullptr);
     for (auto &fig : book->figures()) {
-      if (!fig->typesafeNamedFragments().contains("pep")) continue;
-      QString chapter = fig->chapterName();
-      QString figName = fig->figureName();
-      QString body = fig->typesafeNamedFragments()["pep"]->contents();
-      bool isOS = fig->isOS();
+      if (!fig->has_fragment("pep")) continue;
+      QString chapter = QString::fromStdString(fig->name_chapter());
+      QString figName = QString::fromStdString(fig->name_figure());
+      QString body = QString::fromStdString(fig->find_fragment("pep")->contents());
+      bool isOS = fig->is_os();
       DYNAMIC_SECTION(chapter.toStdString() << "." << figName.toStdString()) {
         loadBookMacros(book, registry);
         if (!isOS) injectFakeSCallMacros(registry);
@@ -91,19 +100,19 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   SECTION("Unified") {
     // Load macros on each iteration to prevent macros from migrating between tests.
     auto registry = QSharedPointer<macro::Registry>::create();
-    REQUIRE_FALSE(book.isNull());
+    REQUIRE(book != nullptr);
     loadBookMacros(book, registry);
     for (auto &fig : book->figures()) {
-      auto defaultOS = fig->defaultOS();
-      if (!fig->typesafeNamedFragments().contains("pep")) continue;
-      else if (fig->isOS()) continue;
+      auto defaultOS = fig->default_os();
+      if (!fig->has_fragment("pep")) continue;
+      else if (fig->is_os()) continue;
       else if (defaultOS == nullptr) continue;
-      else if (!defaultOS->typesafeNamedFragments().contains("pep")) continue;
-      QString chapter = fig->chapterName();
-      QString figName = fig->figureName();
-      QString osBody = defaultOS->typesafeNamedFragments()["pep"]->contents();
-      QString userBody = fig->typesafeNamedFragments()["pep"]->contents();
-      bool isFullOS = bool(defaultOS->figureName() == "full");
+      else if (!defaultOS->has_fragment("pep")) continue;
+      QString chapter = QString::fromStdString(fig->name_chapter());
+      QString figName = QString::fromStdString(fig->name_figure());
+      QString osBody = QString::fromStdString(defaultOS->find_fragment("pep")->contents());
+      QString userBody = QString::fromStdString(fig->find_fragment("pep")->contents());
+      bool isFullOS = bool(defaultOS->name_figure() == "full");
 
       DYNAMIC_SECTION(chapter.toStdString() << "." << figName.toStdString()) {
         auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(
@@ -199,16 +208,17 @@ static const char *binlist = "0000     1101 0001 1111 1111 1111 1101\n"
                              "0015     0000 0000";
 }; // namespace
 TEST_CASE("CS6E hex/bin listing", "[scope:asm][kind:e2e][arch:pep10]") {
-  auto book_registry = builtins::Registry();
-  auto book = book_registry.findBook("Computer Systems, 6th Edition");
+  auto fs = builtins::QtFilesystemProvider::create();
+  auto bookReg = pepp::BuiltinRegistry(std::move(fs));
+  auto book = bookReg.find_book("Computer Systems, 6th Edition");
 
-  REQUIRE_FALSE(book.isNull());
+  REQUIRE(book != nullptr);
   auto registry = QSharedPointer<macro::Registry>::create();
-  auto fig = book->findFigure("04", "24");
-  auto defaultOS = fig->defaultOS();
+  auto fig = book->find_figure("04", "24");
+  auto defaultOS = fig->default_os();
   REQUIRE(defaultOS != nullptr);
-  QString osBody = defaultOS->typesafeNamedFragments()["pep"]->contents();
-  QString userBody = fig->typesafeNamedFragments()["pep"]->contents();
+  QString osBody = QString::fromStdString(defaultOS->find_fragment("pep")->contents());
+  QString userBody = QString::fromStdString(fig->find_fragment("pep")->contents());
 
   auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(
       {{osBody, {.isOS = true, .ignoreUndefinedSymbols = false}},

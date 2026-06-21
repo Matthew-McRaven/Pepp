@@ -18,7 +18,6 @@
 #include "../basic_lazy_sink.hpp"
 #include "../shared.hpp"
 #include "core/math/bitmanip/strings.hpp"
-#include "help/builtins/figure.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "sim3/subsystems/bus/simple.hpp"
@@ -59,15 +58,14 @@ bool RunTask::loadToElf() {
   }
   auto books = helpers::builtins_registry(false);
   auto book = helpers::book(_ed, &*books);
-  if (book.isNull())
-    return false;
+  if (book == nullptr) return false;
   QString osContents;
   if (_forceBm && _ed == 6) {
-    auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep10baremetal");
+    osContents = QString::fromStdString(os->default_fragment_text());
   } else if (!_osIn.has_value()) {
-    auto os = book->findFigure("os", "pep10os");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep10os");
+    osContents = QString::fromStdString(os->default_fragment_text());
   } else {
     QFile oIn(QString::fromStdString(*_osIn)); // auto-closes
     oIn.open(QIODevice::ReadOnly | QIODevice::Text);

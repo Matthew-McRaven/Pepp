@@ -16,7 +16,7 @@
 #include "settings.hpp"
 #include <QQmlEngine>
 #include <QtCompare>
-#include "help/builtins/registry.hpp"
+#include "help/builtins/figure_wrappers.hpp"
 
 pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
 
@@ -77,8 +77,8 @@ pepp::settings::GeneralCategory::GeneralCategory(QObject *parent) : Category(par
 void pepp::settings::GeneralCategory::sync() { _settings.sync(); }
 
 void pepp::settings::GeneralCategory::resetToDefault() {
-  setDefaultArch(defaultDefaultArch);
-  setDefaultAbstraction(defaultDefaultAbstraction);
+  setDefaultArch((int)defaultDefaultArch);
+  setDefaultAbstraction((int)defaultDefaultAbstraction);
   setMaxRecentFiles(defaultMaxRecentFiles);
   setShowMenuHotkeys(defaultShowMenuHotkeys);
   setShowChangeDialog(defaultShowChangeDialog);
@@ -101,11 +101,12 @@ void pepp::settings::GeneralCategory::setDefaultEdition(int edition) {
   emit defaultEditionChanged();
 }
 
+int pepp::settings::GeneralCategory::qml_defaultArch() const { return (int)defaultArch(); }
+
 pepp::Architecture pepp::settings::GeneralCategory::defaultArch() const {
   bool casted = false;
-  auto archEnum = QMetaEnum::fromType<pepp::Architecture>();
   auto value = _settings.value(defaultArchKey);
-  if (auto asInt = value.toInt(&casted); value.isValid() && casted && archEnum.valueToKey(asInt) != nullptr)
+  if (auto asInt = value.toInt(&casted); value.isValid() && casted && pepp::is_valid_arch(asInt))
     return static_cast<pepp::Architecture>(asInt);
   else {
     _settings.setValue(defaultArchKey, (int)defaultDefaultArch);
@@ -113,16 +114,17 @@ pepp::Architecture pepp::settings::GeneralCategory::defaultArch() const {
   }
 }
 
-void pepp::settings::GeneralCategory::setDefaultArch(pepp::Architecture arch) {
-  _settings.setValue(defaultArchKey, (int)arch);
+void pepp::settings::GeneralCategory::setDefaultArch(int arch) {
+  _settings.setValue(defaultArchKey, arch);
   emit defaultArchChanged();
 }
 
+int pepp::settings::GeneralCategory::qml_defaultAbstraction() const { return (int)defaultAbstraction(); }
+
 pepp::Abstraction pepp::settings::GeneralCategory::defaultAbstraction() const {
   bool casted = false;
-  auto absEnum = QMetaEnum::fromType<pepp::Abstraction>();
   auto value = _settings.value(defaultAbstractionKey);
-  if (auto asInt = value.toInt(&casted); value.isValid() && casted && absEnum.valueToKey(asInt) != nullptr)
+  if (auto asInt = value.toInt(&casted); value.isValid() && casted && pepp::is_valid_level(asInt))
     return static_cast<pepp::Abstraction>(asInt);
   else {
     _settings.setValue(defaultAbstractionKey, (int)defaultDefaultAbstraction);
@@ -144,8 +146,8 @@ void pepp::settings::GeneralCategory::setShowDebugComponents(bool show) {
   emit showDebugComponentsChanged();
 }
 
-void pepp::settings::GeneralCategory::setDefaultAbstraction(pepp::Abstraction abstraction) {
-  _settings.setValue(defaultAbstractionKey, (int)abstraction);
+void pepp::settings::GeneralCategory::setDefaultAbstraction(int abstraction) {
+  _settings.setValue(defaultAbstractionKey, abstraction);
   emit defaultAbstractionChanged();
 }
 

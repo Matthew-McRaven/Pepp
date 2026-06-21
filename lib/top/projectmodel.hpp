@@ -43,11 +43,11 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   bool setData(const QModelIndex &index, const QVariant &value, int role) override;
-  Q_INVOKABLE Pep_MA *pep9MA2(pepp::Features features);
-  Q_INVOKABLE Pep_MA *pep10MA2(pepp::Features features);
+  Q_INVOKABLE Pep_MA *pep9MA2(int features);
+  Q_INVOKABLE Pep_MA *pep10MA2(int features);
   Q_INVOKABLE Pep_ISA *pep10ISA();
   Q_INVOKABLE Pep_ISA *pep9ISA();
-  Q_INVOKABLE Pep_ASMB *pep10ASMB(pepp::Abstraction abstraction);
+  Q_INVOKABLE Pep_ASMB *pep10ASMB(int abstraction);
   Q_INVOKABLE Pep_ASMB *pep9ASMB();
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
@@ -131,7 +131,7 @@ private:
 class ProjectTypeFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
   // Filter may either be architecture OR edition. Setting one clears the other.
-  Q_PROPERTY(pepp::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
+  Q_PROPERTY(int architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
   Q_PROPERTY(int edition READ edition WRITE setEdition NOTIFY editionChanged)
   Q_PROPERTY(bool showIncomplete READ showIncomplete WRITE setShowIncomplete NOTIFY showIncompleteChanged)
   Q_PROPERTY(bool showPartiallyComplete READ showPartial WRITE setShowPartial NOTIFY showPartialChanged)
@@ -141,9 +141,9 @@ class ProjectTypeFilterModel : public QSortFilterProxyModel {
 
 public:
   explicit ProjectTypeFilterModel(QObject *parent = nullptr);
-  pepp::Architecture architecture() const { return _architecture; }
+  int architecture() const { return (int)_architecture; }
   int edition() const { return _edition; }
-  void setArchitecture(pepp::Architecture arch);
+  void setArchitecture(int arch);
   void setEdition(int edition);
   bool showIncomplete() const { return _showIncomplete; }
   void setShowIncomplete(bool value);

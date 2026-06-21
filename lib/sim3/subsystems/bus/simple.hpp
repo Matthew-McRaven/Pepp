@@ -39,10 +39,10 @@ public:
   sim::api2::device::ID deviceID() const override { return _device.id; }
   sim::api2::device::Descriptor device() const override { return _device; }
   AddressSpan span() const override;
-  api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
-  api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
-  void clear(quint8 fill) override;
-  void dump(bits::span<quint8> dest) const override;
+  api2::memory::Result read(Address address, bits::span<u8> dest, api2::memory::Operation op) const override;
+  api2::memory::Result write(Address address, bits::span<const u8> src, api2::memory::Operation op) override;
+  void clear(u8 fill) override;
+  void dump(bits::span<u8> dest) const override;
 
   // Translator interface
   std::tuple<bool, sim::api2::device::ID, Address> forward(Address address) const override;
@@ -75,12 +75,12 @@ private:
   }
   using TargetPair = std::pair<sim::api2::device::ID, api2::memory::Target<Address> *>;
   struct LBID {
-    inline bool operator()(const TargetPair &V, const quint16 find) const { return V.first < find; }
+    inline bool operator()(const TargetPair &V, const u16 find) const { return V.first < find; }
   };
 
   AddressSpan _span;
   api2::device::Descriptor _device;
-  sim::trace2::AddressBiMap<Address, quint16> _addrs;
+  sim::trace2::AddressBiMap<Address, u16> _addrs;
   QVector<TargetPair> _devices;
   QSharedPointer<sim::api2::Paths> _paths = nullptr;
   mutable api2::trace::Buffer *_tb = nullptr;
@@ -97,7 +97,7 @@ SimpleBus<Address>::SimpleBus(api2::device::Descriptor device, AddressSpan span)
 template <typename Address> typename SimpleBus<Address>::AddressSpan SimpleBus<Address>::span() const { return _span; }
 
 template <typename Address>
-api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8> dest,
+api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<u8> dest,
                                               api2::memory::Operation op) const {
   using pepp::core::offset_map;
   // TODO: add trace code that we traversed the bus.
@@ -129,7 +129,7 @@ api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8
   return {};
 }
 template <typename Address>
-api2::memory::Result SimpleBus<Address>::write(Address address, bits::span<const quint8> src,
+api2::memory::Result SimpleBus<Address>::write(Address address, bits::span<const u8> src,
                                                api2::memory::Operation op) {
   using pepp::core::offset_map, pepp::core::size;
   // TODO: add trace code that we traversed the bus.
@@ -159,11 +159,11 @@ api2::memory::Result SimpleBus<Address>::write(Address address, bits::span<const
   return {};
 }
 
-template <typename Address> void SimpleBus<Address>::clear(quint8 fill) {
+template <typename Address> void SimpleBus<Address>::clear(u8 fill) {
   for (auto dev : _devices) dev.second->clear(fill);
 }
 
-template <typename Address> void SimpleBus<Address>::dump(bits::span<quint8> dest) const {
+template <typename Address> void SimpleBus<Address>::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   // Can't iterate devices directly, as this would not respect layering.
   for (auto &rit : _addrs.regions()) {

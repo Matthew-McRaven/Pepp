@@ -26,7 +26,7 @@ template <typename Address>
 class Input : public api2::memory::Target<Address>, public api2::trace::Source, public api2::trace::Sink {
 public:
   using AddressSpan = typename api2::memory::AddressSpan<Address>;
-  Input(api2::device::Descriptor device, AddressSpan span, quint8 defaultValue = 0);
+  Input(api2::device::Descriptor device, AddressSpan span, u8 defaultValue = 0);
   ~Input() = default;
   Input(Input &&other) noexcept = default;
   Input &operator=(Input &&other) = default;
@@ -40,10 +40,10 @@ public:
   sim::api2::device::ID deviceID() const override { return _device.id; }
   sim::api2::device::Descriptor device() const override { return _device; }
   AddressSpan span() const override;
-  api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
-  api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
-  void clear(quint8 fill) override;
-  void dump(bits::span<quint8> dest) const override;
+  api2::memory::Result read(Address address, bits::span<u8> dest, api2::memory::Operation op) const override;
+  api2::memory::Result write(Address address, bits::span<const u8> src, api2::memory::Operation op) override;
+  void clear(u8 fill) override;
+  void dump(bits::span<u8> dest) const override;
 
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
@@ -54,39 +54,39 @@ public:
   bool analyze(api2::trace::PacketIterator iter, sim::api2::trace::Direction) override;
 
   // Helpers
-  QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> endpoint();
+  QSharedPointer<typename detail::Channel<Address, u8>::Endpoint> endpoint();
   void setFailPolicy(api2::memory::FailPolicy policy);
 
 private:
-  quint8 _fill;
+  u8 _fill;
   AddressSpan _span;
   api2::device::Descriptor _device;
-  QSharedPointer<detail::Channel<Address, quint8>> _channel;
-  QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> _endpoint;
+  QSharedPointer<detail::Channel<Address, u8>> _channel;
+  QSharedPointer<typename detail::Channel<Address, u8>::Endpoint> _endpoint;
   api2::memory::FailPolicy _policy = api2::memory::FailPolicy::RaiseError;
 
   api2::trace::Buffer *_tb = nullptr;
 };
 
 template <typename Address>
-Input<Address>::Input(api2::device::Descriptor device, AddressSpan span, quint8 defaultValue)
+Input<Address>::Input(api2::device::Descriptor device, AddressSpan span, u8 defaultValue)
     : _fill(defaultValue), _span(span), _device(device),
-      _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)), _endpoint(_channel->new_endpoint()) {
+      _channel(QSharedPointer<detail::Channel<Address, u8>>::create(_fill)), _endpoint(_channel->new_endpoint()) {
   if (_span.lower() != _span.upper()) throw std::logic_error("MMI only handles bytes.");
 }
 
 template <typename Address> typename Input<Address>::AddressSpan Input<Address>::span() const { return _span; }
 
-template <typename Address> void Input<Address>::clear(quint8 fill) {
+template <typename Address> void Input<Address>::clear(u8 fill) {
   _fill = fill;
   _channel->clear(fill);
   _endpoint->set_to_head();
 }
 
-template <typename Address> void Input<Address>::dump(bits::span<quint8> dest) const {
+template <typename Address> void Input<Address>::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   auto v = *_endpoint->current_value();
-  bits::memcpy(dest, bits::span<const quint8>{&v, sizeof(v)});
+  bits::memcpy(dest, bits::span<const u8>{&v, sizeof(v)});
 }
 
 template <typename Address> void Input<Address>::trace(bool enabled) {
@@ -94,7 +94,7 @@ template <typename Address> void Input<Address>::trace(bool enabled) {
 }
 
 template <typename Address>
-QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> Input<Address>::endpoint() {
+QSharedPointer<typename detail::Channel<Address, u8>::Endpoint> Input<Address>::endpoint() {
   return _channel->new_endpoint();
 }
 
@@ -128,7 +128,7 @@ bool Input<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Dire
 template <typename Address> void Input<Address>::setBuffer(api2::trace::Buffer *tb) { _tb = tb; }
 
 template <typename Address>
-api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const {
+api2::memory::Result Input<Address>::read(Address address, bits::span<u8> dest, api2::memory::Operation op) const {
   using E = api2::memory::Error;
   using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
@@ -136,17 +136,17 @@ api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> de
 
   if (address < _span.lower() || maxDestAddr > _span.upper()) throw E(E::Type::OOBAccess, address);
   else if (op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) {
-    quint8 tmp = *_endpoint->current_value();
-    bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
+    u8 tmp = *_endpoint->current_value();
+    bits::memcpy(dest, bits::span<const u8>{&tmp, 1});
     // Return early to avoid guard extra guard condition in trace code.
     return {};
   } else if (auto next = _endpoint->next_value(); _policy == api2::memory::FailPolicy::RaiseError && !next) {
     throw E(E::Type::NeedsMMI, address);
   } else if (_policy == api2::memory::FailPolicy::YieldDefaultValue && !next) {
-    bits::memcpy(dest, bits::span<const quint8>{&_fill, 1});
+    bits::memcpy(dest, bits::span<const u8>{&_fill, 1});
   } else {
-    quint8 tmp = *next;
-    bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
+    u8 tmp = *next;
+    bits::memcpy(dest, bits::span<const u8>{&tmp, 1});
   }
 
   // All paths to here are non-application code, and should emit a trace
@@ -156,7 +156,7 @@ api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> de
 }
 
 template <typename Address>
-api2::memory::Result Input<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation) {
+api2::memory::Result Input<Address>::write(Address address, bits::span<const u8> src, api2::memory::Operation) {
   using E = api2::memory::Error;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));

@@ -22,11 +22,11 @@
 namespace sim::memory {
 class IDEController : public sim::api2::trace::Source,
                       public sim::api2::trace::Sink,
-                      public sim::api2::memory::Target<quint16>,
-                      public sim::api2::memory::Initiator<quint16> {
+                      public sim::api2::memory::Target<u16>,
+                      public sim::api2::memory::Initiator<u16> {
 public:
-  using AddressSpan = typename api2::memory::AddressSpan<quint16>;
-  IDEController(api2::device::Descriptor device, quint16 base, sim::api2::device::IDGenerator gen);
+  using AddressSpan = typename api2::memory::AddressSpan<u16>;
+  IDEController(api2::device::Descriptor device, u16 base, sim::api2::device::IDGenerator gen);
   ~IDEController() = default;
   IDEController(IDEController &&other) noexcept = default;
   IDEController &operator=(IDEController &&other) = default;
@@ -36,15 +36,15 @@ public:
   IDEController &operator=(const IDEController &) = delete;
 #pragma pack(push, 1)
   struct IDERegs {
-    quint8 ideCMD;
-    quint8 offLBA;
-    quint16 LBA;
-    quint16 addrDMA;
-    quint16 lenDMA;
+    u8 ideCMD;
+    u8 offLBA;
+    u16 LBA;
+    u16 addrDMA;
+    u16 lenDMA;
   };
 #pragma pack(pop)
-  static const quint32 sectorSize = 256;
-  enum class RegisterOffsets : quint8 {
+  static const u32 sectorSize = 256;
+  enum class RegisterOffsets : u8 {
     ideCMD = 0,
     offLBA = 1,
     LBA = 2,
@@ -60,11 +60,11 @@ public:
   IDERegs regs() const;
   void setRegs(IDERegs regs, bool triggerExec = false);
   void execute(Commands command);
-  const sim::memory::Dense<quint32> *disk() const;
-  sim::memory::Dense<quint32> *disk();
+  const sim::memory::Dense<u32> *disk() const;
+  sim::memory::Dense<u32> *disk();
 
   // Initiator interface
-  void setTarget(sim::api2::memory::Target<quint16> *target, void *port) override;
+  void setTarget(sim::api2::memory::Target<u16> *target, void *port) override;
 
   // Sink interface
   bool analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) override;
@@ -73,10 +73,10 @@ public:
   sim::api2::device::ID deviceID() const override { return _device.id; }
   sim::api2::device::Descriptor device() const override { return _device; }
   AddressSpan span() const override;
-  api2::memory::Result read(quint16 address, bits::span<quint8> dest, api2::memory::Operation op) const override;
-  api2::memory::Result write(quint16 address, bits::span<const quint8> src, api2::memory::Operation op) override;
-  void clear(quint8 fill) override;
-  void dump(bits::span<quint8> dest) const override;
+  api2::memory::Result read(u16 address, bits::span<u8> dest, api2::memory::Operation op) const override;
+  api2::memory::Result write(u16 address, bits::span<const u8> src, api2::memory::Operation op) override;
+  void clear(u8 fill) override;
+  void dump(bits::span<u8> dest) const override;
 
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
@@ -85,10 +85,10 @@ public:
 
 private:
   api2::device::Descriptor _device;
-  sim::api2::memory::Target<quint16> *_target = nullptr;
-  sim::memory::Dense<quint16> _regs;
-  sim::memory::Dense<quint32> _disk;
-  std::array<quint8, sectorSize> _buffer;
+  sim::api2::memory::Target<u16> *_target = nullptr;
+  sim::memory::Dense<u16> _regs;
+  sim::memory::Dense<u32> _disk;
+  std::array<u8, sectorSize> _buffer;
 
   // Helper to enable RAII for _inExec.
   class ExecGuard {

@@ -1,6 +1,5 @@
 #pragma once
 #include <elfio/elfio.hpp>
-#include "help/builtins/book.hpp"
 #include "project/architectures.hpp"
 #include "project/levels.hpp"
 #include "sim/debug/line_map.hpp"
@@ -13,7 +12,8 @@ void addMacros(macro::Registry &registry, const std::list<std::string> &dirs, QS
 
 class AsmHelper {
 public:
-  AsmHelper(QSharedPointer<macro::Registry> registry, QString os, pepp::Architecture arch = pepp::Architecture::PEP10);
+  AsmHelper(QSharedPointer<macro::Registry> registry, QString os,
+            pepp::Architecture arch = pepp::Architecture::PEP10);
   void setUserText(QString user);
   bool assemble();
   QStringList errors();

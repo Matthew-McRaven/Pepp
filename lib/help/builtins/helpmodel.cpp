@@ -167,18 +167,20 @@ void HelpFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
   emit sourceModelChanged();
 }
 
-pepp::Architecture HelpFilterModel::architecture() const { return _architecture; }
+int HelpFilterModel::architecture() const { return (int)_architecture; }
 
-void HelpFilterModel::setArchitecture(pepp::Architecture architecture) {
-  if (_architecture == architecture) return;
-  _architecture = architecture;
+void HelpFilterModel::setArchitecture(int architecture) {
+  const auto converted = static_cast<pepp::Architecture>(architecture);
+  if (_architecture == converted) return;
+  _architecture = converted;
   invalidateRowsFilter();
   emit architectureChanged();
 }
 
-pepp::Abstraction HelpFilterModel::abstraction() const { return _abstraction; }
+int HelpFilterModel::abstraction() const { return (int)_abstraction; }
 
-void HelpFilterModel::setAbstraction(pepp::Abstraction abstraction) {
+void HelpFilterModel::setAbstraction(int as_int) {
+  const auto abstraction = static_cast<pepp::Abstraction>(as_int);
   if (_abstraction == abstraction) return;
   _abstraction = abstraction;
   invalidateRowsFilter();

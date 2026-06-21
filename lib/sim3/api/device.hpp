@@ -14,10 +14,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <QtCore>
+#include <QString>
+#include <functional>
+#include "core/integers.h"
 
 namespace sim::api2::device {
-using ID = quint16; // Only use 9 bits (max of 512)!
+using ID = u16; // Only use 9 bits (max of 512)!
 struct Descriptor {
   device::ID id; // Must uniquely identify a device within a system.
   void *compatible;

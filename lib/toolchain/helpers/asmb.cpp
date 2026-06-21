@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include "core/arch/pep/isa/pep10.hpp"
-#include "help/builtins/registry.hpp"
+#include "declaration.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/pas/ast/generic/attr_keeepalive.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
@@ -271,8 +271,15 @@ Lines2Addresses helpers::AsmHelper::address2Lines(bool os) {
 
 QSet<quint16> helpers::AsmHelper::callViaRets() { return _callViaRets; }
 
-QSharedPointer<macro::Registry> helpers::registry(QSharedPointer<const builtins::Book> book, QStringList directory) {
+QSharedPointer<macro::Registry> helpers::registry(std::shared_ptr<const pepp::Book> book, QStringList directory) {
   auto macroRegistry = QSharedPointer<::macro::Registry>::create();
-  for (auto &macro : book->macros()) macroRegistry->registerMacro(::macro::types::Core, macro);
+  for (auto &macro : book->macros()) {
+    // TODO: hideous conversion from current book type to the old macro type. Refactor to remove this copy.
+    const auto arch = pepp::arch_as_string(macro->arch);
+    auto macroDecl = QSharedPointer<::macro::Declaration>::create(
+        QString::fromStdString(macro->name), macro->argcount, QString::fromStdString(macro->body),
+        QString::fromStdString(arch), QString::fromStdString(macro->family), macro->hidden);
+    macroRegistry->registerMacro(::macro::types::Core, macroDecl);
+  }
   return macroRegistry;
 }

@@ -17,15 +17,15 @@ class BreakpointSet : public QObject {
 public:
   explicit BreakpointSet();
   explicit BreakpointSet(pepp::debug::ExpressionCache *cache, pepp::debug::Environment *env);
-  void addBP(quint16 address, pepp::debug::Term *condition = nullptr);
-  void modify_condition(quint16 address, pepp::debug::Term *condition);
-  void removeBP(quint16 address);
-  bool hasBP(quint16 address) const;
+  void addBP(u16 address, pepp::debug::Term *condition = nullptr);
+  void modify_condition(u16 address, pepp::debug::Term *condition);
+  void removeBP(u16 address);
+  bool hasBP(u16 address) const;
   void clearBPs();
-  void notifyPCChanged(quint16 newValue);
+  void notifyPCChanged(u16 newValue);
   std::size_t count() const;
 
-  std::span<quint16> breakpoints();
+  std::span<u16> breakpoints();
   std::span<std::unique_ptr<pepp::debug::CachedEvaluator>> conditions();
   pepp::debug::ExpressionCache *expressionCache();
   pepp::debug::Environment *env();
@@ -33,9 +33,9 @@ public:
   bool hit() const;
   void clearHit();
 signals:
-  void breakpointAdded(quint16 address);
-  void breakpointRemoved(quint16 address);
-  void conditionChanged(quint16 address, bool conditional);
+  void breakpointAdded(u16 address);
+  void breakpointRemoved(u16 address);
+  void conditionChanged(u16 address, bool conditional);
   void breakpointsCleared();
 
 private:
@@ -43,7 +43,7 @@ private:
   // Packs an 8-byte interval into each bit, and a 64-byte per interval per byte.
   // Should consume ~1024 bytes of memory total for Pepp procesors.
   std::bitset<0x1'00'00 / 8> _bitmask;
-  std::vector<quint16> _breakpoints;
+  std::vector<u16> _breakpoints;
   std::vector<std::unique_ptr<pepp::debug::CachedEvaluator>> _conditions;
   // Need to be carried around because we hold terms
   pepp::debug::ExpressionCache *_cache = nullptr;
@@ -82,7 +82,7 @@ signals:
   void lines2addressChanged();
 
 private:
-  std::map<quint16, EditableWatchExpression> _conditionEditor;
+  std::map<u16, EditableWatchExpression> _conditionEditor;
   std::vector<EditableWatchExpression::VolatileCache> _volatiles;
   BreakpointSet *_breakpoints = nullptr;
   ScopedLines2Addresses *_lines2address = nullptr;
@@ -103,13 +103,13 @@ public:
   std::unique_ptr<StackTracer> stack_trace = nullptr;
 
   // Per the note on StackTracer, I need the sp *after* the instruction was executed, but the pc from before.
-  void notifyCall(quint16 pc, quint16 spAfter);
-  void notifyRet(quint16 pc, quint16 spAfter);
-  void notifyTrapCall(quint16 pc, quint16 spAfter);
-  void notifyTrapRet(quint16 pc, quint16 spAfter);
-  void notifyAddSP(quint16 pc, quint16 spAfter);
-  void notifySubSP(quint16 pc, quint16 spAfter);
-  void notifySetSP(quint16 pc, quint16 spAfter);
+  void notifyCall(u16 pc, u16 spAfter);
+  void notifyRet(u16 pc, u16 spAfter);
+  void notifyTrapCall(u16 pc, u16 spAfter);
+  void notifyTrapRet(u16 pc, u16 spAfter);
+  void notifyAddSP(u16 pc, u16 spAfter);
+  void notifySubSP(u16 pc, u16 spAfter);
+  void notifySetSP(u16 pc, u16 spAfter);
 
 private:
   std::shared_ptr<spdlog::logger> _logger;

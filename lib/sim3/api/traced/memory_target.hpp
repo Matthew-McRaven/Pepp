@@ -27,13 +27,13 @@ template <typename Address> struct Target {
   virtual device::Descriptor device() const = 0;
 
   virtual AddressSpan<Address> span() const = 0;
-  virtual Result read(Address address, bits::span<quint8> dest, Operation op) const = 0;
-  virtual Result write(Address address, bits::span<const quint8> src, Operation op) = 0;
-  virtual void clear(quint8 fill) = 0;
+  virtual Result read(Address address, bits::span<u8> dest, Operation op) const = 0;
+  virtual Result write(Address address, bits::span<const u8> src, Operation op) = 0;
+  virtual void clear(u8 fill) = 0;
 
   // If dest is larger than maxOffset-minOffset+1, copy bytes from this target
   // to the span.
-  virtual void dump(bits::span<quint8> dest) const = 0;
+  virtual void dump(bits::span<u8> dest) const = 0;
 };
 
 // If you act like a bus you need to implement this. It allows decoding of packets into their initiator's address space.

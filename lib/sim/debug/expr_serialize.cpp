@@ -1,6 +1,6 @@
 #include "./expr_serialize.hpp"
 
-quint32 pepp::debug::types::StringInternPool::add(const QString &str) {
+u32 pepp::debug::types::StringInternPool::add(const QString &str) {
   if (_added.contains(str)) return _added[str];
   auto ret = _added[str] = _data.size();
   auto utf8 = str.toUtf8();
@@ -9,9 +9,9 @@ quint32 pepp::debug::types::StringInternPool::add(const QString &str) {
   return ret;
 }
 
-const char *pepp::debug::types::StringInternPool::at(quint32 i) { return _data.data() + i; }
+const char *pepp::debug::types::StringInternPool::at(u32 i) { return _data.data() + i; }
 
-quint32 pepp::debug::types::StringInternPool::size() const { return _data.size(); }
+u32 pepp::debug::types::StringInternPool::size() const { return _data.size(); }
 
 const char *pepp::debug::types::StringInternPool::data() const { return _data.data(); }
 

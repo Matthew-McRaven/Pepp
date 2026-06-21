@@ -44,7 +44,7 @@ pepp::debug::types::TypeInfo::DirectHandle::DirectHandle(Primitives t)
   }
 }
 
-pepp::debug::types::TypeInfo::DirectHandle::DirectHandle(MetaType meta, quint16 type)
+pepp::debug::types::TypeInfo::DirectHandle::DirectHandle(MetaType meta, u16 type)
     : _metatype((int)meta), _type(type) {
   // Requires TypeInfo give us a unique (metatype, type) pair.
 }
@@ -104,14 +104,14 @@ std::strong_ordering pepp::debug::types::TypeInfo::IndirectHandle::operator<=>(c
   return _index <=> rhs._index;
 }
 
-pepp::debug::types::TypeInfo::IndirectHandle::IndirectHandle(quint16 index) : _index(index) {}
+pepp::debug::types::TypeInfo::IndirectHandle::IndirectHandle(u16 index) : _index(index) {}
 
 std::pair<bool, pepp::debug::types::TypeInfo::IndirectHandle>
 pepp::debug::types::TypeInfo::register_indirect(const QString &name) {
   QMutexLocker locker(&_mut);
   if (const auto it = _nameToIndirect.find(name); it != _nameToIndirect.end()) return {false, it->second};
   else {
-    IndirectHandle hnd((quint16)_nameToIndirect.size());
+    IndirectHandle hnd((u16)_nameToIndirect.size());
     Type t = types::Never{};
     auto [boxed_type, _] = add_or_get_direct(t);
     _indirectTypes.indirectTypes[hnd] = (Versioned<OptType>{boxed_type});

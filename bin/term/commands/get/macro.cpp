@@ -24,16 +24,8 @@ GetMacroTask::GetMacroTask(int ed, std::string name, QObject *parent) : Task(par
 
 void GetMacroTask::run() {
   auto books = helpers::builtins_registry(false);
-  auto book = helpers::book(ed, &*books);
-  if (book.isNull())
-    return emit finished(1);
-
-  auto macro = book->findMacro(QString::fromStdString(name));
-  if (macro.isNull())
-    return emit finished(1);
-
-  auto body = macro->body();
-  std::cout << body.toStdString() << std::endl;
-
+  if (auto book = helpers::book(ed, &*books); book == nullptr) return emit finished(1);
+  else if (auto macro = book->find_macro(name); macro == nullptr) return emit finished(1);
+  else std::cout << macro->body << std::endl;
   return emit finished(0);
 }

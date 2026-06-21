@@ -1,10 +1,6 @@
 #include "microobjectmodel.hpp"
 #include "core/arch/pep/uarch/pep.hpp"
 #include "core/langs/ucode/pep_parser.hpp"
-#include "help/builtins/book.hpp"
-#include "help/builtins/figure.hpp"
-#include "help/builtins/registry.hpp"
-#include "toolchain/helpers/assemblerregistry.hpp"
 
 Microcode::Microcode(pepp::MicrocodeChoice mc, pepp::Line2Address l2a, QObject *parent)
     : QObject(parent), choice(mc), line2addr(l2a) {}

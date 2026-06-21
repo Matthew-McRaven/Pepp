@@ -87,7 +87,7 @@ std::ostream &operator<<(std::ostream &os, const IntervalSet<T, right_inclusive>
 
 // Each device must only appear in the map once. D type allows sticking custom data in a given node.
 // As a class invariant, we ensure that no Nodes exist with overlapping from intervals.
-template <std::unsigned_integral T, typename D = quint16> class AddressBiMap {
+template <std::unsigned_integral T, typename D = u16> class AddressBiMap {
 public:
   // A single address translation. device indicates the device which owns the "to" address range.
   // Data is a custom tag to store additional information, like context IDs for address translation.

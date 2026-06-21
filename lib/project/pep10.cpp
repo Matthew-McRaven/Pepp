@@ -23,7 +23,6 @@
 #include "core/math/bitmanip/enums.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "cpu/formats.hpp"
-#include "help/builtins/figure.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "sim3/cores/pep/traced_pep9_isa3.hpp"
@@ -94,23 +93,23 @@ struct SystemAssembly {
   QSharedPointer<targets::isa::System> system;
 };
 
-SystemAssembly make_isa_system(project::Environment env, const builtins::Registry *books) {
+SystemAssembly make_isa_system(project::Environment env, const pepp::BuiltinRegistry *books) {
   using enum pepp::Architecture;
-  QSharedPointer<const builtins::Book> book;
+  std::shared_ptr<const pepp::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
   switch (env.arch) {
   case PEP9: {
     book = helpers::book(5, &*books);
-    auto os = book->findFigure("os", "pep9os");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep9os");
+    osContents = QString::fromStdString(os->find_fragment("pep")->contents());
     macroRegistry = helpers::cs5e_macros(&*books);
     break;
   }
   case PEP10: {
     book = helpers::book(6, &*books);
-    auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep10baremetal");
+    osContents = QString::fromStdString(os->find_fragment("pep")->contents());
     macroRegistry = helpers::cs6e_macros(&*books);
     break;
   }
@@ -128,41 +127,41 @@ SystemAssembly make_isa_system(project::Environment env, const builtins::Registr
   return ret;
 }
 
-QString cs6e_bm(const builtins::Registry *books) {
+QString cs6e_bm(const pepp::BuiltinRegistry *books) {
   auto book = helpers::book(6, books);
-  auto os = book->findFigure("os", "pep10baremetal");
-  return os->typesafeNamedFragments()["pep"]->contents();
+  auto os = book->find_figure("os", "pep10baremetal");
+  return QString::fromStdString(os->find_fragment("pep")->contents());
 }
-QString cs6e_os(const builtins::Registry *books) {
+QString cs6e_os(const pepp::BuiltinRegistry *books) {
   auto book = helpers::book(6, books);
-  auto os = book->findFigure("os", "pep10os");
-  return os->typesafeNamedFragments()["pep"]->contents();
+  auto os = book->find_figure("os", "pep10os");
+  return QString::fromStdString(os->find_fragment("pep")->contents());
 }
 
-QString cs5e_os(const builtins::Registry *books) {
+QString cs5e_os(const pepp::BuiltinRegistry *books) {
   auto book = helpers::book(5, books);
-  auto os = book->findFigure("os", "pep9os");
-  return os->typesafeNamedFragments()["pep"]->contents();
+  auto os = book->find_figure("os", "pep9os");
+  return QString::fromStdString(os->find_fragment("pep")->contents());
 }
 
 // TODO: fix
-SystemAssembly make_asmb_system(project::Environment env, QString os, const builtins::Registry *books) {
+SystemAssembly make_asmb_system(project::Environment env, QString os, const pepp::BuiltinRegistry *books) {
   using enum pepp::Architecture;
-  QSharedPointer<const builtins::Book> book;
+  std::shared_ptr<const pepp::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
   switch (env.arch) {
   case PEP9: {
     book = helpers::book(5, &*books);
-    auto os = book->findFigure("os", "pep9os");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep9os");
+    osContents = QString::fromStdString(os->find_fragment("pep")->contents());
     macroRegistry = helpers::cs5e_macros(&*books);
     break;
   }
   case PEP10: {
     book = helpers::book(6, &*books);
-    auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep10baremetal");
+    osContents = QString::fromStdString(os->find_fragment("pep")->contents());
     macroRegistry = helpers::cs6e_macros(&*books);
     break;
   }
@@ -1057,7 +1056,8 @@ bool Pep_ASMB::_onAssemble(bool doLoad) {
   emit listingChanged();
 
   auto userBytes = helper.bytes(false);
-  QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture::PEP10);
+  QString objectCodeText =
+      pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture::PEP10);
 
   _system->reconfigure(*elf);
   if (doLoad) _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
@@ -1116,7 +1116,8 @@ bool Pep_ASMB::onAssembleThenFormat() {
     auto source = helper.formattedSource(false);
     setUserAsmText(source.join("\n"));
     auto userBytes = helper.bytes(false);
-    QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture::PEP10);
+    QString objectCodeText =
+        pas::ops::pepp::bytesToObject(userBytes, 16, architecture() != pepp::Architecture::PEP10);
     setObjectCodeText(objectCodeText);
   }
   emit requestSourceBreakpoints();
@@ -1338,12 +1339,14 @@ int Pep_MA::features() const { return (int)_env.features; }
 
 QString Pep_MA::lexerLanguage() const {
   using namespace bits;
+  using enum pepp::Architecture;
+  using enum pepp::Features;
   switch (_env.arch) {
-  case pepp::Architecture::PEP8: return "Pep8Micro";
-  case pepp::Architecture::PEP9: [[fallthrough]];
-  case pepp::Architecture::PEP10:
-    if (any(_env.features & pepp::Features::TwoByte)) return "Pep9Micro2";
-    else if (any(_env.features & pepp::Features::OneByte)) return "Pep9Micro1";
+  case PEP8: return "Pep8Micro";
+  case PEP9: [[fallthrough]];
+  case PEP10:
+    if (any(_env.features & TwoByte)) return "Pep9Micro2";
+    else if (any(_env.features & OneByte)) return "Pep9Micro1";
     [[fallthrough]];
   default: return "";
   }
@@ -1443,11 +1446,12 @@ QString Pep_MA::contentsForExtension(const QString &ext) const {
 
 int Pep_MA::rendering_type() const {
   using namespace bits;
+  using enum pepp::Architecture;
   switch (_env.arch) {
     // Pep/8 only has a 1-byte databus variant
-  case pepp::ArchitectureHelper::Architecture::PEP8: return 0;
-  case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
-  case pepp::ArchitectureHelper::Architecture::PEP10:
+  case PEP8: return 0;
+  case PEP9: [[fallthrough]];
+  case PEP10:
     if (any(_env.features & pepp::Features::TwoByte)) return 1;
     return 0;
   default: return -1;
@@ -1829,10 +1833,11 @@ void Pep_MA::load_twobyte_vars() {
 
 bool Pep_MA::_microassemble(bool override_source_text) {
   using namespace bits;
+  using enum pepp::Architecture;
   switch (_env.arch) {
-  case pepp::ArchitectureHelper::Architecture::PEP8: return _microassemble8(override_source_text);
-  case pepp::ArchitectureHelper::Architecture::PEP9: [[fallthrough]];
-  case pepp::ArchitectureHelper::Architecture::PEP10:
+  case PEP8: return _microassemble8(override_source_text);
+  case PEP9: [[fallthrough]];
+  case PEP10:
     if (any(_env.features & pepp::Features::TwoByte)) return _microassemble9_10_2(override_source_text);
     else return _microassemble9_10_1(override_source_text);
   default: return false;

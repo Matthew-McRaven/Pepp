@@ -14,9 +14,9 @@ struct VNever : public types::Never {
 struct VPrimitive : public types::Primitive {
   types::TypeInfo::DirectHandle type_handle;
   uint64_t bits;
-  static VPrimitive with_bits(const VPrimitive &type, quint64);
+  static VPrimitive with_bits(const VPrimitive &type, u64);
   static VPrimitive promote(const VPrimitive &value, types::Primitives new_type);
-  static VPrimitive from(types::Primitives new_type, quint64 bits);
+  static VPrimitive from(types::Primitives new_type, u64 bits);
   static VPrimitive True();
   static VPrimitive False();
   static VPrimitive i8(int8_t v);
@@ -73,7 +73,7 @@ template <std::integral T = uint64_t> T value_bits(const Value &v) {
   return static_cast<T>(ret);
 }
 QVariant from_bits(const Value &v, const types::TypeInfo *info);
-Value from_bits(const types::Type &, quint64 bits);
+Value from_bits(const types::Type &, u64 bits);
 
 // Overloading not possible since they need an extra argument
 namespace operators {

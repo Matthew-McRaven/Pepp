@@ -105,7 +105,7 @@ namespace {
 static const pepp::debug::CommandFrame call = pepp::debug::CommandFrame{.packets = {pepp::debug::CommandPacket{}}};
 }
 
-void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, InstructionType type) {
+void pepp::debug::StackTracer::notifyInstruction(u16 pc, u16 spAfter, InstructionType type) {
   std::string cmds_str = "";
   std::optional<const pepp::debug::CommandFrame *> cf = std::nullopt;
   if (auto cmds = _debug_info.commands.find(pc); cmds != _debug_info.commands.end()) {
@@ -119,7 +119,7 @@ void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, In
   } else {
     sp_str = fmt::format("SP:{:04x}     ", spAfter);
   }
-  quint16 spBefore = _lastSP.value_or(spAfter);
+  u16 spBefore = _lastSP.value_or(spAfter);
   _lastSP = spAfter;
 
   // Set to non-null if you want the active stack to be changed after processing stack commands.
@@ -168,19 +168,19 @@ void pepp::debug::StackTracer::notifyInstruction(quint16 pc, quint16 spAfter, In
   }
 }
 
-std::optional<const pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) const {
+std::optional<const pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(u32 addr) const {
   for (const auto &stack : _stacks)
     if (stack->contains(addr)) return stack.get();
   return std::nullopt;
 }
 
-std::optional<pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(quint32 addr) {
+std::optional<pepp::debug::Stack *> pepp::debug::StackTracer::stackAtAddress(u32 addr) {
   for (auto &stack : _stacks)
     if (stack->contains(addr)) return stack.get();
   return std::nullopt;
 }
 
-pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(quint32 address) {
+pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(u32 address) {
   std::optional<pepp::debug::Stack *> stack = stackAtAddress(address);
   if (stack) return stack.value();
   auto new_stack = std::make_shared<pepp::debug::Stack>(address);
@@ -192,21 +192,21 @@ pepp::debug::Stack *pepp::debug::StackTracer::getOrAddStack(quint32 address) {
   return new_stack.get();
 }
 
-void pepp::debug::StackTracer::pushSlot(QString name, quint32 address, types::BoxedType type) {
+void pepp::debug::StackTracer::pushSlot(QString name, u32 address, types::BoxedType type) {
   if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("{: <4} No active stack to push to!", "");
   else if (auto tframe = _activeStack->top(); !tframe)
     _error = Errors::ToSFrameNull, _logger->warn("{: <4} Top frame is null", "");
   else {
     auto HexHint = pepp::debug::detail::UnsignedConstant::Format::Hex;
-    auto addr = _exprCache.add_or_return(Constant((quint16)address, HexHint));
+    auto addr = _exprCache.add_or_return(Constant((u16)address, HexHint));
     auto memlookup = _exprCache.add_or_return(MemoryReadCastDeref(addr, type));
     if (_env) memlookup->evaluator().evaluate(CachePolicy::UseNever, *_env);
-    quint32 size = types::bitness(unbox(type)) / 8;
+    u32 size = types::bitness(unbox(type)) / 8;
     tframe->pushSlot(std::move(Slot(address, size, name, memlookup, tframe)));
   }
 }
 
-void pepp::debug::StackTracer::popSlot(quint16 expectedSize) {
+void pepp::debug::StackTracer::popSlot(u16 expectedSize) {
   if (!_activeStack) _error = Errors::NoActiveStack, _logger->warn("        No active stack to return from!");
   else if (auto tframe = _activeStack->top(); !tframe)
     _error = Errors::ToSFrameNull, _logger->warn("        Top frame is null");
@@ -218,8 +218,8 @@ void pepp::debug::StackTracer::popSlot(quint16 expectedSize) {
   else tframe->popSlot();
 }
 
-void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, quint16 spBefore, quint16 spAfter,
-                                                   std::optional<quint16> spFuture) {
+void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, u16 spBefore, u16 spAfter,
+                                                   std::optional<u16> spFuture) {
   if (_error != Errors::OK) return; // Early return to prevent processing an already-broken stack.
 
   qint16 expectedDelta = spAfter - spBefore, actualDelta = 0;
@@ -239,7 +239,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
         // Otherwise it just activates the frame
         else tframe->setActive(true);
         auto memop = std::get<MemoryOp>(op);
-        quint16 size = types::bitness(unbox(memop.type)) / 8;
+        u16 size = types::bitness(unbox(memop.type)) / 8;
         spBefore -= size, actualDelta -= size;
         pushSlot(memop.name, spBefore, memop.type);
         _logger->info("{: <7} CALL'ed {} bytes", "", size);
@@ -247,7 +247,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
       }
       case Opcodes::PUSH: {
         auto memop = std::get<MemoryOp>(op);
-        quint16 size = types::bitness(unbox(memop.type)) / 8;
+        u16 size = types::bitness(unbox(memop.type)) / 8;
         spBefore -= size, actualDelta -= size;
         pushSlot(memop.name, spBefore, memop.type);
         _logger->info("{: <7} ALLOC'ed {} bytes", "", size);
@@ -255,7 +255,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
       }
       case Opcodes::RET: {
         auto memop = std::get<MemoryOp>(op);
-        quint16 size = types::bitness(unbox(memop.type)) / 8;
+        u16 size = types::bitness(unbox(memop.type)) / 8;
         popSlot(size);
         spBefore += size, actualDelta += size;
         _logger->info("{: <7} RET'ed {} bytes", "", size);
@@ -268,7 +268,7 @@ void pepp::debug::StackTracer::processCommandFrame(const CommandFrame &frame, qu
       }
       case Opcodes::POP: {
         auto memop = std::get<MemoryOp>(op);
-        quint16 size = types::bitness(unbox(memop.type)) / 8;
+        u16 size = types::bitness(unbox(memop.type)) / 8;
         popSlot(size);
         spBefore += size, actualDelta += size;
         _logger->info("{: <7} DEALLOC'ed {} bytes", "", size);

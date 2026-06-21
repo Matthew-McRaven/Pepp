@@ -14,17 +14,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "favoritefiguremodel.hpp"
-#include "figure.hpp"
+#include "core/resources/figures/builtin_registry.hpp"
+#include "core/resources/figures/figure.hpp"
 #include "textutils.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
+
+#include <QQmlEngine>
 FavoriteFigureModel::FavoriteFigureModel(QObject *parent) : QAbstractListModel(parent) {
   _registry = helpers::builtins_registry(false);
   auto _6e = helpers::book(6, &*_registry);
   static const std::vector<std::pair<const char *, const char *>> figs = {
       {"05", "03"}, {"05", "06"}, {"05", "07"}, {"05", "10"}};
   for (const auto &[ch, fig] : figs) {
-    auto f = _6e->findFigure(QString::fromLatin1(ch), QString::fromLatin1(fig));
-    if (f) _figures.append(f);
+    auto f = _6e->find_figure(ch, fig);
+    if (f) {
+      auto fw = std::make_unique<builtins::FigureWrapper>(f);
+      QQmlEngine::setObjectOwnership(fw.get(), QQmlEngine::CppOwnership);
+      _figures.push_back(std::move(fw));
+    }
   }
 }
 
@@ -32,14 +39,16 @@ int FavoriteFigureModel::rowCount(const QModelIndex &parent) const { return _fig
 
 QVariant FavoriteFigureModel::data(const QModelIndex &index, int role) const {
   using namespace Qt::StringLiterals;
-  static const auto rl0 = removeLeading0;
   if (!index.isValid() || index.row() < 0 || index.row() >= _figures.size()) return {};
-  auto fig = _figures.at(index.row());
+  auto &wrapped_fig = _figures.at(index.row());
+  auto fig = wrapped_fig->underlying();
   switch (role) {
-  case (int)Roles::FigurePtrRole: return QVariant::fromValue(fig.get());
-  case (int)Roles::NameRole: return u"%1.%2"_s.arg(rl0(fig->chapterName()), rl0(fig->figureName()));
-  case (int)Roles::TypeRole: return fig->defaultFragmentName();
-  case (int)Roles::DescriptionRole: return fig->description();
+  case (int)Roles::FigurePtrRole: return QVariant::fromValue(wrapped_fig.get());
+  case (int)Roles::NameRole:
+    return u"%1.%2"_s.arg(removeLeading0(QString::fromStdString(fig->name_chapter())),
+                          removeLeading0(QString::fromStdString(fig->name_figure())));
+  case (int)Roles::TypeRole: return QString::fromStdString(fig->default_fragment_name());
+  case (int)Roles::DescriptionRole: return QString::fromStdString(fig->description());
   }
   return QVariant();
 }

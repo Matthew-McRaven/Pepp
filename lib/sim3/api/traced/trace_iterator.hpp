@@ -51,7 +51,7 @@ template <Level... Args> struct HierarchicalIterator;
 template <Level Current> struct HierarchicalIterator<Current> {
 public:
   using iterator_category = std::forward_iterator_tag;
-  using difference_type = quint64;
+  using difference_type = u64;
   using _helper = typename std::conditional<Current == Level::Packet, packet::Header, packet::Payload>::type;
   using value_type = typename std::conditional<Current == Level::Frame, frame::Header, _helper>::type;
   using pointer = const value_type *;

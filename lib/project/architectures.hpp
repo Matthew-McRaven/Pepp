@@ -20,35 +20,30 @@
 #include <QString>
 #include <QtCore>
 #include <QtQmlIntegration>
+#include "core/architectures.hpp"
 
 // Must be in separate file to prevent circuluar include in Qt MOC.
 namespace pepp {
+
 class ArchitectureHelper : public QObject {
   Q_GADGET
   QML_NAMED_ELEMENT(Architecture)
   QML_UNCREATABLE("Error:Only enums")
 
 public:
-  enum class Architecture {
-    NO_ARCH = -1, //! Architecture is unspecified.
-    PEP8 = 80,    //! The figure must be used with the Pep/8 toolchain.
-    PEP9 = 90,    //! The figure must be used with the Pep/9 toolchain.
-    PEP10 = 100,  //! The figure must be use with the Pep/10 toolchain
-    RISCV = 1000, //! The figure must be used with the RISC-V toolchain, which is
-    //! undefined as of 2023-02-14.
+  // Have to shadow the earlier enum, because Q_ENUM only works enums declared inside this class.
+  // If you find yourself accessing this enum from C++, stop. It's just a hack to make the constants available on a
+  // singleton in QML
+  enum class OnlyUsableFromQML_Architectures {
+    NO_ARCH = (int)pepp::Architecture::NO_ARCH,
+    PEP8 = (int)pepp::Architecture::PEP8,
+    PEP9 = (int)pepp::Architecture::PEP9,
+    PEP10 = (int)pepp::Architecture::PEP10,
+    RISCV = (int)pepp::Architecture::RISCV,
   };
-  Q_ENUM(Architecture)
+  Q_ENUM(OnlyUsableFromQML_Architectures)
   ArchitectureHelper(QObject *parent = nullptr);
-  Q_INVOKABLE static QString string(Architecture architecture);
-};
-QString archAsPrettyString(ArchitectureHelper::Architecture architecture);
-using Architecture = ArchitectureHelper::Architecture;
-class ArchitectureUtils : public QObject {
-  Q_OBJECT
-  QML_ELEMENT
-public:
-  ArchitectureUtils(QObject *parent = nullptr);
-  Q_INVOKABLE QString archAsString(Architecture architecture);
+  Q_INVOKABLE static QString string(int architecture);
 };
 
 } // namespace pepp

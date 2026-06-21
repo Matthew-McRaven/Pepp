@@ -20,6 +20,7 @@
 #include <qabstractitemmodel.h>
 #include "aproject.hpp"
 #include "core/langs/ucode/ir_variant.hpp"
+#include "core/resources/figures/builtin_registry.hpp"
 #include "cpu/ma2/dataflow.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
@@ -39,14 +40,11 @@
 #include "utils/opcodemodel.hpp"
 #include "utils/strings.hpp"
 
-namespace builtins {
-class Registry;
-}
 class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
-  Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
-  Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(int architecture READ qml_architecture CONSTANT)
+  Q_PROPERTY(int abstraction READ qml_abstraction CONSTANT)
   Q_PROPERTY(int features READ features CONSTANT)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
@@ -86,7 +84,9 @@ public:
   };
   explicit Pep_ISA(project::Environment env, QObject *parent = nullptr, bool initializeSystem = true);
   virtual project::Environment env() const;
+  int qml_architecture() const { return (int)architecture(); }
   virtual pepp::Architecture architecture() const;
+  int qml_abstraction() const { return (int)abstraction(); }
   virtual pepp::Abstraction abstraction() const;
   virtual int features() const;
   Q_INVOKABLE virtual QString delegatePath() const;
@@ -192,7 +192,7 @@ protected:
   using Action = EditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
-  QSharedPointer<builtins::Registry> _books = {};
+  std::shared_ptr<pepp::BuiltinRegistry> _books = {};
   void loadCharIn();
   // TODO: at some point this type info needs to be extracted from the assembler + loader.
   pepp::debug::types::TypeInfo _typeInfo;
@@ -288,8 +288,8 @@ protected:
 class Pep_MA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
-  Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
-  Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(int architecture READ qml_architecture CONSTANT)
+  Q_PROPERTY(int abstraction READ qml_abstraction CONSTANT)
   Q_PROPERTY(int features READ features CONSTANT)
   Q_PROPERTY(QString lexerLanguage READ lexerLanguage CONSTANT)
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
@@ -318,7 +318,9 @@ public:
   };
   explicit Pep_MA(project::Environment env, QObject *parent = nullptr);
   virtual project::Environment env() const;
+  int qml_architecture() const { return (int)architecture(); }
   virtual pepp::Architecture architecture() const;
+  int qml_abstraction() const { return (int)abstraction(); }
   virtual pepp::Abstraction abstraction() const;
   virtual int features() const;
   virtual QString lexerLanguage() const;

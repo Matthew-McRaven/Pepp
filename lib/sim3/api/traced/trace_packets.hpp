@@ -14,8 +14,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <QtCore>
+#include <array>
+#include <spdlog/spdlog.h>
 #include <zpp_bits.h>
+#include "core/integers.h"
 #include "core/math/bitmanip/copy.hpp"
 #include "core/math/bitmanip/span.hpp"
 
@@ -37,28 +39,28 @@ template <size_t N> struct VariableBytes {
     this->len = 0;
     bytes.fill(0);
   }
-  explicit VariableBytes(quint8 len, bool continues = false) {
+  explicit VariableBytes(u8 len, bool continues = false) {
     this->len = (len & len_mask()) | (continues ? 0x80 : 0x00);
     bytes.fill(0);
   }
 
-  VariableBytes(quint8 len, bits::span<const quint8> src, bool continues = false) {
+  VariableBytes(u8 len, bits::span<const u8> src, bool continues = false) {
     this->len = (len & len_mask()) | (continues ? 0x80 : 0x00);
-    bits::memcpy(bits::span<quint8>{bytes.data(), len}, src);
+    bits::memcpy(bits::span<u8>{bytes.data(), len}, src);
   }
 
   template <std::unsigned_integral Address> static VariableBytes from_address(Address address) {
     constexpr auto len = sizeof(address);
     // Copy address bytes into bytes array.
-    return VariableBytes(len, bits::span<const quint8>((quint8 *)&address, len));
+    return VariableBytes(len, bits::span<const u8>((u8 *)&address, len));
   }
 
   template <std::unsigned_integral Address> Address to_address() const {
     Address address = 0;
-    auto addr_span = bits::span<quint8>((quint8 *)&address, sizeof(address));
+    auto addr_span = bits::span<u8>((u8 *)&address, sizeof(address));
     // Rely on memcpy to perform bounds checking between len and
     // sizeof(address).
-    bits::memcpy(addr_span, bits::span<const quint8>{bytes.data(), len});
+    bits::memcpy(addr_span, bits::span<const u8>{bytes.data(), len});
     return address;
   }
 
@@ -75,7 +77,7 @@ template <size_t N> struct VariableBytes {
       if (errc.code != std::errc()) return errc;
       else if (self.len == 0) return errc;
 
-      // Let compiler deduce [const quint8] vs [quint8].
+      // Let compiler deduce [const u8] vs [u8].
       auto span = std::span(self.bytes.data(), len);
       return archive(zpp::bits::bytes(span, len));
     }
@@ -90,28 +92,28 @@ template <size_t N> struct VariableBytes {
 
       // We serialized the length ourselves. If we pass array_view directly,
       // size will be serialzed again.
-      auto array_view = bits::span<quint8>(self.bytes.data(), len);
+      auto array_view = bits::span<u8>(self.bytes.data(), len);
       return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
     } else if (archive.kind() == zpp::bits::kind::in) {
       const char *const e = "Can't read into const";
-      qCritical(e);
+      SPDLOG_CRITICAL(e);
       throw std::logic_error(e);
     }
     const char *const e = "Unreachable";
-    qCritical(e);
+    SPDLOG_CRITICAL(e);
     throw std::logic_error(e);
   }
 
   bool continues() const { return len & ~len_mask(); }
 
-  static constexpr quint8 len_mask() { return 0x7f; }
+  static constexpr u8 len_mask() { return 0x7f; }
 
   // Ensure that we don't clobber flags with a too-large array.
   static_assert(N < len_mask() + 1);
 
   // High order bit is used for "continues" flag.
-  quint8 len = 0;
-  std::array<quint8, N> bytes = {0};
+  u8 len = 0;
+  std::array<u8, N> bytes = {0};
 
   // Used to allow membership in std::set.
   auto operator<=>(const VariableBytes<N> &other) const {
@@ -124,12 +126,12 @@ template <size_t N> struct VariableBytes {
   bool operator==(const VariableBytes<N> &other) const = default;
 };
 
-using device_id_t = zpp::bits::varint<quint16>;
+using device_id_t = zpp::bits::varint<u16>;
 // Type used to associate a packet with the series of devices it traverses.
 // A path of 0 implies no address translation.
 // See: api2/path.hpp
-using path_t = quint16;
-enum class DeltaEncoding : quint8 {
+using path_t = u16;
+enum class DeltaEncoding : u8 {
   XOR, // The old and new values are XOR'ed together
 };
 
@@ -143,7 +145,7 @@ struct Clear {
 struct PureRead {
   device_id_t device = 0;
   zpp::bits::varint<path_t> path = 0;
-  zpp::bits::varint<quint64> payload_len = 0;
+  zpp::bits::varint<u64> payload_len = 0;
   static constexpr std::size_t N = 8;
   VariableBytes<N> address = VariableBytes<N>{0};
 };
@@ -168,7 +170,7 @@ struct Write {
 // Can be either a ++ or -- operation, so treat payload as signed.
 struct Increment {
   device_id_t device = 0;
-  zpp::bits::varint<quint64> payload_len = 0;
+  zpp::bits::varint<u64> payload_len = 0;
   static constexpr std::size_t N = 8;
   VariableBytes<N> address = VariableBytes<N>{0};
 };

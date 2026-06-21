@@ -19,9 +19,9 @@
 #include <elfio/elfio.hpp>
 #include "core/math/bitmanip/strings.hpp"
 #include "core/math/bitmanip/swap.hpp"
-#include "help/builtins/book.hpp"
-#include "help/builtins/figure.hpp"
-#include "help/builtins/registry.hpp"
+#include "core/resources/figures/book.hpp"
+#include "core/resources/figures/builtin_registry.hpp"
+#include "help/builtins/figure_wrappers.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"
 #include "sim3/cores/pep/traced_pep9_isa3.hpp"
 #include "sim3/subsystems/bus/simple.hpp"
@@ -32,6 +32,7 @@
 #include "sim3/systems/traced_pep_isa3_system.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/link/mmio.hpp"
+#include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/driver/pep9.hpp"
 #include "toolchain/pas/obj/pep9.hpp"
@@ -50,16 +51,23 @@ static const auto gs = sim::api2::memory::Operation{
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 
-QSharedPointer<const builtins::Book> book(builtins::Registry &reg) {
-  QString bookName = "Computer Systems, 5th Edition";
+std::shared_ptr<const pepp::Book> book(pepp::BuiltinRegistry &reg) {
+  auto bookName = "Computer Systems, 5th Edition";
 
-  auto book = reg.findBook(bookName);
+  auto book = reg.find_book(bookName);
   return book;
 }
 
-QSharedPointer<macro::Registry> registry(QSharedPointer<const builtins::Book> book, QStringList directory) {
+QSharedPointer<macro::Registry> registry(std::shared_ptr<const pepp::Book> book, QStringList directory) {
   auto macroRegistry = QSharedPointer<::macro::Registry>::create();
-  for (auto &macro : book->macros()) macroRegistry->registerMacro(::macro::types::Core, macro);
+  for (auto &macro : book->macros()) {
+    // TODO: hideous conversion from current book type to the old macro type. Refactor to remove this copy.
+    const auto arch = pepp::arch_as_string(macro->arch);
+    auto macroDecl = QSharedPointer<::macro::Declaration>::create(
+        QString::fromStdString(macro->name), macro->argcount, QString::fromStdString(macro->body),
+        QString::fromStdString(arch), QString::fromStdString(macro->family), macro->hidden);
+    macroRegistry->registerMacro(::macro::types::Core, macroDecl);
+  }
   return macroRegistry;
 }
 
@@ -83,7 +91,8 @@ QSharedPointer<ELFIO::elfio> assemble(QString os, User user, QSharedPointer<macr
 }
 
 QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output) {
-  auto bookReg = builtins::Registry();
+  auto fs = builtins::QtFilesystemProvider::create();
+  auto bookReg = pepp::BuiltinRegistry(std::move(fs));
   // Load book contents, macros.
   auto bookPtr = book(bookReg);
   auto reg = registry(bookPtr, {});
@@ -122,28 +131,30 @@ QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo
 
 TEST_CASE("Pep/9 Figure Assembly", "[scope:asm][kind:e2e][arch:pep9]") {
   using namespace Qt::StringLiterals;
-  auto bookReg = builtins::Registry();
+  auto fs = builtins::QtFilesystemProvider::create();
+  auto bookReg = pepp::BuiltinRegistry(std::move(fs));
   auto bookPtr = book(bookReg);
+  REQUIRE(bookPtr != nullptr);
   auto figures = bookPtr->figures();
   for (auto &figure : figures) {
-    // if (!(figure->chapterName() == "06" && figure->figureName() == "08")) continue;
-    // if (!(figure->chapterName() == "06" && figure->figureName() == "25")) continue;
-    if (!figure->typesafeNamedFragments().contains("pep") && !figure->typesafeNamedFragments().contains("pepo")) continue;
-    else if (figure->isOS()) continue;
-    QString userPep = {}, userPepo = {};
-    if (figure->typesafeNamedFragments().contains("pep"))
-      userPep = QString(figure->typesafeNamedFragments()["pep"]->contents()).replace(lf, "");
-    else if (figure->typesafeNamedFragments().contains("pepo"))
-      userPepo = QString(figure->typesafeNamedFragments()["pepo"]->contents()).replace(lf, "");
-    auto os = QString(figure->defaultOS()->typesafeNamedFragments()["pep"]->contents()).replace(lf, "");
-    auto ch = figure->chapterName(), fig = figure->figureName();
+    if (!figure->has_fragment("pep") && !figure->has_fragment("pepo")) continue;
+    else if (figure->is_os()) continue;
+    QString userPep = "", userPepo = "";
+    if (figure->has_fragment("pep"))
+      userPep = QString::fromStdString(figure->find_fragment("pep")->contents()).replace(lf, "");
+    else if (figure->has_fragment("pepo"))
+      userPepo = QString::fromStdString(figure->find_fragment("pepo")->contents()).replace(lf, "");
+    REQUIRE(figure->default_os() != nullptr);
+    REQUIRE(figure->default_os()->has_fragment("pep"));
+    auto os = QString::fromStdString(figure->default_os()->find_fragment("pep")->contents()).replace(lf, "");
+    auto ch = figure->name_chapter(), fig = figure->name_figure();
     int num = 0;
-    for (auto io : figure->typesafeTests()) {
+    for (auto io : figure->tests()) {
       auto name = u"Figure %1.%2 on IO %3"_s.arg(ch).arg(fig).arg(num);
       auto nameAsStd = name.toStdString();
 
-      QString input = io->input.toString().replace(lf, "");
-      QByteArray output = io->output.toString().replace(lf, "").toUtf8();
+      QString input = QString::fromStdString(io->input).replace(lf, "");
+      QByteArray output = QString::fromStdString(io->output).replace(lf, "").toUtf8();
       DYNAMIC_SECTION(nameAsStd << " on: " << input.toStdString()) {
         auto elf = smoke(os, userPep, userPepo, input, output);
         std::string fname = u"cs5e.%1%2.elf"_s.arg(ch, fig).toStdString();

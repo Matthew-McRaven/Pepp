@@ -19,10 +19,11 @@
 
 #include <QtCore>
 #include <optional>
+#include "core/integers.h"
 
 namespace sim::memory::detail {
 
-template <typename offset_t, typename val_size_t = quint8>
+template <typename offset_t, typename val_size_t = u8>
 class Channel : public QEnableSharedFromThis<Channel<offset_t, val_size_t>> {
   /**
    * Not a storage device itself, but meant to ease implementation of

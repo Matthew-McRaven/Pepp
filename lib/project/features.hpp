@@ -35,19 +35,15 @@ class FeatureHelper : public QObject {
   QML_UNCREATABLE("Error:Only enums")
 
 public:
-  enum class Features : i32 {
+  enum class OnlyUsableFromQML_ArchitecturesFeatures : i32 {
     None = 0,
     OneByte = 1,
     TwoByte = 2,
     NoOS = 4,
   };
-  Q_ENUM(Features)
+  Q_ENUM(OnlyUsableFromQML_ArchitecturesFeatures)
   FeatureHelper(QObject *parent = nullptr);
-  Q_INVOKABLE QString string(Features abstraction) const;
 };
 // Tag to enable bitwise ops on enum constant
-consteval void is_bitflags(FeatureHelper::Features);
-using Features = FeatureHelper::Features;
-QString featuresAsPrettyString(FeatureHelper::Features abstraction);
-Features parseFeatures(const QString &str);
+
 } // namespace pepp

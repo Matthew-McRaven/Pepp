@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2023-2026 J. Stanley Warford, Matthew McRaven
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,7 +16,7 @@
  */
 #include "fragment.hpp"
 
-QString builtins::Fragment::contents() const {
-  if (!_contents.has_value()) _contents = contentsFn();
-  return *_contents;
+std::string pepp::Fragment::contents() const {
+  if (!_contents.has_value()) _contents = contents_fn();
+  return _contents.value();
 }

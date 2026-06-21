@@ -45,9 +45,9 @@ public:
 class RecentFile {
   Q_GADGET
   Q_PROPERTY(QString path MEMBER _path CONSTANT)
-  Q_PROPERTY(pepp::Architecture arch MEMBER _arch CONSTANT)
-  Q_PROPERTY(pepp::Abstraction abstraction MEMBER _level CONSTANT)
-  Q_PROPERTY(pepp::Features features MEMBER _features CONSTANT)
+  Q_PROPERTY(int arch READ qml_arch CONSTANT)
+  Q_PROPERTY(int abstraction READ qml_level CONSTANT)
+  Q_PROPERTY(int features READ qml_features CONSTANT)
   QML_UNCREATABLE("")
   QML_VALUE_TYPE(recent_file)
 public:
@@ -57,6 +57,9 @@ public:
   RecentFile(const RecentFile &other) noexcept = default;
   RecentFile &operator=(const RecentFile &other) noexcept = default;
   QString path() const { return _path; }
+  int qml_arch() const { return (int)_arch; }
+  int qml_level() const { return (int)_level; }
+  int qml_features() const { return (int)_features; }
   pepp::Architecture arch() const { return _arch; }
   pepp::Abstraction abstraction() const { return _level; }
   pepp::Features features() const { return _features; }
@@ -80,9 +83,9 @@ class GeneralCategory : public Category {
   // "Defaults" group box
   // When given a file with an ambiguous extension, interpret it using this architecture.
   Q_PROPERTY(int defaultEdition READ defaultEdition WRITE setDefaultEdition NOTIFY defaultEditionChanged)
-  Q_PROPERTY(pepp::Architecture defaultArch READ defaultArch WRITE setDefaultArch NOTIFY defaultArchChanged)
-  Q_PROPERTY(pepp::Abstraction defaultAbstraction READ defaultAbstraction WRITE setDefaultAbstraction NOTIFY
-                 defaultAbstractionChanged)
+  Q_PROPERTY(int defaultArch READ qml_defaultArch WRITE setDefaultArch NOTIFY defaultArchChanged)
+  Q_PROPERTY(
+      int defaultAbstraction READ qml_defaultAbstraction WRITE setDefaultAbstraction NOTIFY defaultAbstractionChanged)
   Q_PROPERTY(
       bool showDebugComponents READ showDebugComponents WRITE setShowDebugComponents NOTIFY showDebugComponentsChanged)
   // "Menus" group box
@@ -109,12 +112,14 @@ public:
 
   int defaultEdition() const;
   void setDefaultEdition(int edition);
+  int qml_defaultArch() const;
   pepp::Architecture defaultArch() const;
-  void setDefaultArch(pepp::Architecture arch);
+  void setDefaultArch(int arch);
+  int qml_defaultAbstraction() const;
   pepp::Abstraction defaultAbstraction() const;
   bool showDebugComponents() const;
   void setShowDebugComponents(bool show);
-  void setDefaultAbstraction(pepp::Abstraction abstraction);
+  void setDefaultAbstraction(int abstraction);
   int maxRecentFiles() const;
   void setMaxRecentFiles(int max);
   bool showMenuHotkeys() const;

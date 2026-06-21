@@ -9,7 +9,7 @@ pepp::debug::BreakpointSet::BreakpointSet(ExpressionCache *cache, Environment *e
   _bitmask.reset();
 }
 
-void pepp::debug::BreakpointSet::addBP(quint16 address, pepp::debug::Term *condition) {
+void pepp::debug::BreakpointSet::addBP(u16 address, pepp::debug::Term *condition) {
   if (hasBP(address)) return;
   // Last element < address, since we've confirmed address is not in _breakpoints.
   auto lower = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), address);
@@ -26,7 +26,7 @@ void pepp::debug::BreakpointSet::addBP(quint16 address, pepp::debug::Term *condi
   emit breakpointAdded(address);
 }
 
-void pepp::debug::BreakpointSet::modify_condition(quint16 address, Term *condition) {
+void pepp::debug::BreakpointSet::modify_condition(u16 address, Term *condition) {
   if (!hasBP(address)) return;
   auto iter = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), address);
   auto offset = std::distance(_breakpoints.cbegin(), iter);
@@ -35,7 +35,7 @@ void pepp::debug::BreakpointSet::modify_condition(quint16 address, Term *conditi
   emit conditionChanged(address, condition != nullptr);
 }
 
-void pepp::debug::BreakpointSet::removeBP(quint16 address) {
+void pepp::debug::BreakpointSet::removeBP(u16 address) {
   if (!hasBP(address)) return;
   for (int it = 0; it < _breakpoints.size(); it++) {
     if (_breakpoints[it] == address) {
@@ -53,7 +53,7 @@ void pepp::debug::BreakpointSet::removeBP(quint16 address) {
   emit breakpointRemoved(address);
 }
 
-bool pepp::debug::BreakpointSet::hasBP(quint16 address) const {
+bool pepp::debug::BreakpointSet::hasBP(u16 address) const {
   // Use _bitmask to determine if any nearby addresses has a breakpoint.
   // Traverse tree/set/map only if we need to refine the search.
   if (!_bitmask[address / 8]) return false;
@@ -66,7 +66,7 @@ void pepp::debug::BreakpointSet::clearBPs() {
   _conditions.clear();
 }
 
-void pepp::debug::BreakpointSet::notifyPCChanged(quint16 newValue) {
+void pepp::debug::BreakpointSet::notifyPCChanged(u16 newValue) {
   if (auto iter = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), newValue);
       iter != _breakpoints.cend() && *iter == newValue) {
     auto offset = std::distance(_breakpoints.cbegin(), iter);
@@ -79,7 +79,7 @@ void pepp::debug::BreakpointSet::notifyPCChanged(quint16 newValue) {
 
 std::size_t pepp::debug::BreakpointSet::count() const { return _breakpoints.size(); }
 
-std::span<quint16> pepp::debug::BreakpointSet::breakpoints() { return _breakpoints; }
+std::span<u16> pepp::debug::BreakpointSet::breakpoints() { return _breakpoints; }
 
 std::span<std::unique_ptr<pepp::debug::CachedEvaluator>> pepp::debug::BreakpointSet::conditions() {
   return std::span(_conditions);
@@ -239,7 +239,7 @@ void pepp::debug::BreakpointTableModel::onBreakpointsChanged() {
   if (_breakpoints == nullptr || _breakpoints->env() == nullptr) return;
   beginResetModel();
   auto bp_list = _breakpoints->breakpoints();
-  std::set<quint16> bp_set = std::set<quint16>(bp_list.begin(), bp_list.end());
+  std::set<u16> bp_set = std::set<u16>(bp_list.begin(), bp_list.end());
   // Remove our items not in their list, i.e., remove items in ours - theirs.
   for (auto it = _conditionEditor.begin(); it != _conditionEditor.end();) {
     if (!bp_set.contains(it->first)) it = _conditionEditor.erase(it);
@@ -282,37 +282,37 @@ pepp::debug::Debugger::Debugger(Environment *env) : env(env), _logger(spdlog::ge
 }
 
 using namespace Qt::StringLiterals;
-void pepp::debug::Debugger::notifyCall(quint16 pc, quint16 spAfter) {
+void pepp::debug::Debugger::notifyCall(u16 pc, u16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
     stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::CALL);
 }
 
-void pepp::debug::Debugger::notifyRet(quint16 pc, quint16 spAfter) {
+void pepp::debug::Debugger::notifyRet(u16 pc, u16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
     stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::RET);
 }
 
-void pepp::debug::Debugger::notifyTrapCall(quint16 pc, quint16 spAfter) {
+void pepp::debug::Debugger::notifyTrapCall(u16 pc, u16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
     stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::TRAP);
 }
 
-void pepp::debug::Debugger::notifyTrapRet(quint16 pc, quint16 spAfter) {
+void pepp::debug::Debugger::notifyTrapRet(u16 pc, u16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
     stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::TRAPRET);
 }
 
-void pepp::debug::Debugger::notifyAddSP(quint16 pc, quint16 spAfter) {
+void pepp::debug::Debugger::notifyAddSP(u16 pc, u16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
     stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::DEALLOCATE);
 }
 
-void pepp::debug::Debugger::notifySubSP(quint16 pc, quint16 spAfter) {
+void pepp::debug::Debugger::notifySubSP(u16 pc, u16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
     stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::ALLOCATE);
 }
 
-void pepp::debug::Debugger::notifySetSP(quint16 pc, quint16 spAfter) {
+void pepp::debug::Debugger::notifySetSP(u16 pc, u16 spAfter) {
   if (stack_trace && stack_trace->canTrace())
     stack_trace->notifyInstruction(pc, spAfter, StackTracer::InstructionType::ASSIGNMENT);
 }

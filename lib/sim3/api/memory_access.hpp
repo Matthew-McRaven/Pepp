@@ -41,13 +41,13 @@ public:
   template <typename Address>
   Error(Type type, Address address)
       : std::runtime_error(format(address)), _type(type), _address(address), _width(sizeof(Address)){};
-  quint64 address() const { return _address; }
-  quint8 byte_count() const { return _width; }
+  u64 address() const { return _address; }
+  u8 byte_count() const { return _width; }
   Type type() const { return _type; }
 
 private:
   Type _type;
-  quint64 _address, _width;
+  u64 _address, _width;
 };
 
 struct Result {
@@ -67,7 +67,7 @@ struct Result {
 // In API v2, these have been condensed into a Operation::Type, eliminating the
 // impossible case.
 struct Operation {
-  enum class Type : quint8 {
+  enum class Type : u8 {
     // Access triggered by the application / user interface.
     // Should not trigger memory-mapped IO, cache misses, etc.
     Application = 1,

@@ -18,10 +18,11 @@
 #include <QAbstractItemModel>
 #include <QtQmlIntegration>
 #include <qsortfilterproxymodel.h>
+#include "figure_wrappers.hpp"
 #include "project/architectures.hpp"
 #include "project/levels.hpp"
-namespace builtins {
-class Registry;
+namespace pepp {
+class BuiltinRegistry;
 }
 class HelpModel;
 
@@ -52,6 +53,8 @@ public:
   QString slug;
   // Props which will be injected into the delegate.
   QVariantMap props = {};
+  // If this is a figure entry, this is a pointer which owns a FigureWrapper.
+  std::unique_ptr<builtins::FigureWrapper> figureWrapper = nullptr;
   void addChild(QSharedPointer<HelpEntry> child);
   void addChildren(QVector<QSharedPointer<HelpEntry>> children);
   // TODO: remove when all are no longer WIP.
@@ -90,14 +93,14 @@ private:
     return nullptr;
   }
   // Registry data must outlive referrents or we get untraceable sgefaults inside QML.
-  QSharedPointer<builtins::Registry> _reg = nullptr;
+  std::shared_ptr<pepp::BuiltinRegistry> _reg = nullptr;
   QSet<ptrdiff_t> _indices;
 };
 
 class HelpFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
-  Q_PROPERTY(pepp::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
-  Q_PROPERTY(pepp::Abstraction abstraction READ abstraction WRITE setAbstraction NOTIFY abstractionChanged)
+  Q_PROPERTY(int architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
+  Q_PROPERTY(int abstraction READ abstraction WRITE setAbstraction NOTIFY abstractionChanged)
   Q_PROPERTY(QAbstractItemModel *model READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
   Q_PROPERTY(bool showWIPItems READ showWIPItems WRITE setShowWIPItems NOTIFY showWIPItemsChanged)
   QML_NAMED_ELEMENT(FilteredHelpModel)
@@ -106,10 +109,10 @@ public:
   explicit HelpFilterModel(QObject *parent = nullptr);
 
   void setSourceModel(QAbstractItemModel *sourceModel) override;
-  pepp::Architecture architecture() const;
-  void setArchitecture(pepp::Architecture architecture);
-  pepp::Abstraction abstraction() const;
-  void setAbstraction(pepp::Abstraction abstraction);
+  int architecture() const;
+  void setArchitecture(int architecture);
+  int abstraction() const;
+  void setAbstraction(int abstraction);
   bool showWIPItems() const;
   void setShowWIPItems(bool show);
   Q_INVOKABLE QModelIndex indexFromSlug(const QString &slug);

@@ -36,10 +36,10 @@ public:
   sim::api2::device::ID deviceID() const override { return _target->deviceID(); }
   sim::api2::device::Descriptor device() const override { return _target->device(); }
   AddressSpan span() const override;
-  api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
-  api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
-  void clear(quint8 fill) override;
-  void dump(bits::span<quint8> dest) const override;
+  api2::memory::Result read(Address address, bits::span<u8> dest, api2::memory::Operation op) const override;
+  api2::memory::Result write(Address address, bits::span<const u8> src, api2::memory::Operation op) override;
+  void clear(u8 fill) override;
+  void dump(bits::span<u8> dest) const override;
 
   // Initiator interface
 
@@ -56,18 +56,18 @@ template <typename Address> typename ReadOnly<Address>::AddressSpan ReadOnly<Add
   return _target->span();
 }
 
-template <typename Address> void ReadOnly<Address>::clear(quint8 fill) { _target->clear(fill); }
+template <typename Address> void ReadOnly<Address>::clear(u8 fill) { _target->clear(fill); }
 
-template <typename Address> void ReadOnly<Address>::dump(bits::span<quint8> dest) const { _target->dump(dest); }
+template <typename Address> void ReadOnly<Address>::dump(bits::span<u8> dest) const { _target->dump(dest); }
 
 template <typename Address>
-api2::memory::Result ReadOnly<Address>::read(Address address, bits::span<quint8> dest,
+api2::memory::Result ReadOnly<Address>::read(Address address, bits::span<u8> dest,
                                              api2::memory::Operation op) const {
   return _target->read(address, dest, op);
 }
 
 template <typename Address>
-api2::memory::Result ReadOnly<Address>::write(Address address, bits::span<const quint8> src,
+api2::memory::Result ReadOnly<Address>::write(Address address, bits::span<const u8> src,
                                               api2::memory::Operation op) {
   using E = api2::memory::Error;
   // Length is 1-indexed, address are 0, so must offset by -1.
