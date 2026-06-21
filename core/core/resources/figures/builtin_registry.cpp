@@ -138,17 +138,17 @@ pepp::Test *load_test(const std::string &test_dir, const pepp::BuiltinRegistry::
   to_visit.push_back(test_dir);
 
   while (!to_visit.empty()) {
-    auto file = to_visit.front();
+    auto current_path = to_visit.front();
     to_visit.pop_front();
-    if (auto children = fs->enumerate_files(file); !children.empty()) {
-      for (auto &child : children) to_visit.push_back(fs->dir_of(child, file));
+    if (auto children = fs->enumerate_files(current_path); !children.empty()) {
+      for (auto &child : children) to_visit.push_back(child);
       continue;
-    } else if (!file.ends_with(".txt")) continue;
-    auto data = fs->read_file(file);
+    } else if (!current_path.ends_with(".txt")) continue;
+    auto data = fs->read_file(current_path);
     // replace all \r with nothing, normalizing line endings to \n
     std::erase(data, '\r');
-    if (file.ends_with("input.txt")) test->input = data;
-    else if (file.ends_with("output.txt")) test->output = data;
+    if (current_path.ends_with("input.txt")) test->input = data;
+    else if (current_path.ends_with("output.txt")) test->output = data;
   }
   return test;
 }
@@ -163,17 +163,17 @@ pepp::Fragment *load_fragment(const nlohmann::json &item, const std::string &man
     return nullptr;
   } else fragment->language = str_of(item, "format");
 
-  fragment->isHidden = bool_of(item, "hidden", false);
-  if (auto isDefault = bool_of(item, "isDefault", false); isDefault && fragment->isHidden) {
+  fragment->is_hidden = bool_of(item, "hidden", false);
+  if (auto isDefault = bool_of(item, "isDefault", false); isDefault && fragment->is_hidden) {
     SPDLOG_WARN("isDefault is incompatible with isHidden for {}", fragment->name);
     return nullptr;
   } else if (isDefault && fragment->name.empty()) {
     SPDLOG_WARN("Default fragment must be named {}", fragment->name);
     return nullptr;
-  } else fragment->isDefault = isDefault;
+  } else fragment->is_default = isDefault;
 
-  fragment->copyType = str_of(item, "copyType");
-  fragment->exportPath = str_of(item, "export");
+  fragment->copy_type = str_of(item, "copyType");
+  fragment->export_path = str_of(item, "export");
 
   if (!item.contains("from") || !item["from"].is_object()) {
     SPDLOG_WARN("Fragment {} missing required 'from' object", fragment->name);
@@ -182,8 +182,8 @@ pepp::Fragment *load_fragment(const nlohmann::json &item, const std::string &man
     // Require one of "element" or "file" to be present.
     if (from.contains("file") && from["file"].is_string()) {
       auto rel_path = str_of(from, "file");
-      auto abs_path = fs->dir_of(rel_path, manifest_dir);
-      fragment->contentsFn = [fs, abs_path]() { return fs->read_file(abs_path); };
+      auto abs_path = fs->join(rel_path, manifest_dir);
+      fragment->contents_fn = [fs, abs_path]() { return fs->read_file(abs_path); };
     } else if (from.contains("element") && from["element"].is_string()) {
       auto key = str_of(from, "element");
       auto dependee = parent->find_fragment(key);
@@ -195,7 +195,7 @@ pepp::Fragment *load_fragment(const nlohmann::json &item, const std::string &man
 
       registry->add_dependency(fragment.get(), dependee);
       auto element_ptr = fragment.get();
-      fragment->contentsFn = [registry, element_ptr]() { return registry->content_for(*element_ptr); };
+      fragment->contents_fn = [registry, element_ptr]() { return registry->content_for(*element_ptr); };
     } else {
       SPDLOG_WARN("Fragment {} did not specify a valid source", fragment->name);
       return nullptr;
@@ -203,13 +203,13 @@ pepp::Fragment *load_fragment(const nlohmann::json &item, const std::string &man
 
     // Extract a subset of lines from the file.
     if (from.contains("lines") && from["lines"].is_array()) {
-      auto contentsFn = fragment->contentsFn;
+      auto contentsFn = fragment->contents_fn;
       if (auto lines = from["lines"]; !lines[0].is_number() || !lines[1].is_number()) {
         SPDLOG_WARN("Invalid line numbers for {}", fragment->name);
         return nullptr;
       } else {
         int start = int_at(lines, 0, 0), end = int_at(lines, 1, -1);
-        fragment->contentsFn = [contentsFn, start, end]() {
+        fragment->contents_fn = [contentsFn, start, end]() {
           auto contents = contentsFn();
           return std::string{select_lines(contents, start, end)};
         };
@@ -256,7 +256,7 @@ std::variant<std::monostate, _Figure, _Macro> load_figure(const nlohmann::json &
         return std::monostate();
       }
       auto io_str = tests_it.get<std::string>();
-      auto abs_dir = fs->dir_of(io_str, manifest_dir);
+      auto abs_dir = fs->join(io_str, manifest_dir);
       auto io = load_test(abs_dir, fs);
       if (io == nullptr) {
         SPDLOG_WARN("Failed to load test from directory {}", abs_dir);
@@ -284,7 +284,7 @@ std::variant<std::monostate, _Figure, _Macro> load_figure(const nlohmann::json &
     }
     item->figure = figure;
     figure->add_fragment(item);
-    if (item->isDefault && !_default.has_value()) _default = item->name;
+    if (item->is_default && !_default.has_value()) _default = item->name;
   }
   figure->set_default_fragment_name(_default.value_or("pepo"));
 
@@ -355,7 +355,8 @@ std::variant<std::monostate, _Figure, _Macro> load_macro(const nlohmann::json &m
     const auto path = templatize(value.get<std::string>(), substitutions);
 
     // Load the macro
-    const auto macro_text = fs->read_file(path, manifest_dir);
+    const auto macro_file_path = fs->join(path, manifest_dir);
+    const auto macro_text = fs->read_file(macro_file_path);
     auto nl = macro_text.find('\n');
     const auto macro_body = (nl == std::string::npos) ? std::string{} : macro_text.substr(nl + 1);
     // TODO: extracting the macro body this way is incorrect -- we will actually need to run the macro through the first
@@ -482,9 +483,10 @@ void pepp::BuiltinRegistry::compute_dependencies(const Fragment *dependee) {
   }
 }
 
-std::shared_ptr<pepp::Book> pepp::BuiltinRegistry::load_book(const std::string &toc_path) {
+std::shared_ptr<pepp::Book> pepp::BuiltinRegistry::load_book(const std::string &book_dir) {
   static const auto bookNameKey = "bookName";
   // Read ToC to get book name
+  const auto toc_path = _fs->join("toc.json", book_dir);
   auto toc_bytes = _fs->read_file(toc_path);
   nlohmann::json toc;
   try {
@@ -501,7 +503,7 @@ std::shared_ptr<pepp::Book> pepp::BuiltinRegistry::load_book(const std::string &
   // Explore the book's subdirectories, looking for figures and macros
   std::deque<std::string> to_visit;
   // Any time we visit a directory, scan that directory's children for more directories and manifest files.
-  to_visit.push_back(toc_path);
+  to_visit.push_back(book_dir);
 
   // Maintain a list of figures that need to be linked to their default OS
   std::list<std::tuple<std::string, std::shared_ptr<Figure>>> revisit;
@@ -513,7 +515,13 @@ std::shared_ptr<pepp::Book> pepp::BuiltinRegistry::load_book(const std::string &
       for (const auto &child : children) to_visit.push_back(child);
     } else if (next.ends_with("manifest.json")) {
       auto manifest_bytes = _fs->read_file(next);
-      auto manifest = nlohmann::json::parse(manifest_bytes);
+      nlohmann::json manifest;
+      try {
+        manifest = nlohmann::json::parse(manifest_bytes);
+      } catch (const nlohmann::json::parse_error &e) {
+        SPDLOG_WARN("Failed to parse manifest at {}: {}", next, e.what());
+        continue;
+      }
       if (auto v = int_of(manifest, "version", 0); v == 2) {
         auto item = load_manifest(manifest, next, _fs.get(), this);
         if (std::holds_alternative<std::monostate>(item)) {
@@ -551,8 +559,8 @@ void pepp::BuiltinRegistry::link_figure_to_OS(const std::string &manifest_path, 
     SPDLOG_WARN("Failed to parse manifest at {}: {}", manifest_path, e.what());
     return;
   }
-
-  if (!manifest.contains("is_os") || !manifest["is_os"].get<bool>()) return;
+  // If this is an operting system, it would be meaningless to link it to an OS.
+  if (manifest.contains("is_os") && manifest["is_os"].get<bool>()) return;
   std::string ch_fig = str_of(manifest, "default_os");
   // Some figures (like microocde) don't use an OS, so it's not an error for this to be missing
   if (ch_fig.empty()) return;

@@ -20,6 +20,7 @@
 #include <qabstractitemmodel.h>
 #include "aproject.hpp"
 #include "core/langs/ucode/ir_variant.hpp"
+#include "core/resources/figures/builtin_registry.hpp"
 #include "cpu/ma2/dataflow.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
@@ -39,9 +40,6 @@
 #include "utils/opcodemodel.hpp"
 #include "utils/strings.hpp"
 
-namespace builtins {
-class Registry;
-}
 class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
@@ -194,7 +192,7 @@ protected:
   using Action = EditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
-  QSharedPointer<builtins::Registry> _books = {};
+  std::shared_ptr<pepp::BuiltinRegistry> _books = {};
   void loadCharIn();
   // TODO: at some point this type info needs to be extracted from the assembler + loader.
   pepp::debug::types::TypeInfo _typeInfo;

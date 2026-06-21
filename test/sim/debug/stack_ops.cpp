@@ -16,32 +16,33 @@
 
 #include <catch.hpp>
 
-#include "help/builtins/figure.hpp"
-#include "help/builtins/registry.hpp"
+#include "core/resources/figures/builtin_registry.hpp"
+#include "help/builtins/figure_wrappers.hpp"
 #include "sim/debug/expr_parser.hpp"
 #include "sim/debug/expr_rtti.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/pas/obj/trace_tags.hpp"
 
-QSharedPointer<const builtins::Book> book(builtins::Registry &reg) {
-  QString bookName = "Computer Systems, 6th Edition";
-  auto book = reg.findBook(bookName);
+std::shared_ptr<const pepp::Book> book(pepp::BuiltinRegistry &reg) {
+  std::string bookName = "Computer Systems, 6th Edition";
+  auto book = reg.find_book(bookName);
   return book;
 }
 
 TEST_CASE("Serialize stack ops", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   using P = types::Primitives;
-  auto fs = builtins::makeQRCFSProvider();
-  auto bookReg = builtins::Registry(std::move(fs));
+  auto fs = builtins::QtFilesystemProvider::create();
+  auto bookReg = pepp::BuiltinRegistry(std::move(fs));
   auto bookPtr = book(bookReg);
-  auto os_fig = bookPtr->findFigure("os", "pep10os");
+  REQUIRE(bookPtr != nullptr);
+  auto os_fig = bookPtr->find_figure("os", "pep10os");
   auto registry = helpers::registry(bookPtr, {});
   REQUIRE(os_fig.get() != nullptr);
-  auto text = os_fig->findFragment("pep")->contents();
+  auto text = os_fig->find_fragment("pep")->contents();
   REQUIRE(text.size() > 100);
-  helpers::AsmHelper asm_helper(registry, text, pepp::Architecture::PEP10);
+  helpers::AsmHelper asm_helper(registry, QString::fromStdString(text), pepp::Architecture::PEP10);
   asm_helper.setUserText("");
   REQUIRE(asm_helper.assemble());
   auto elf = asm_helper.elf();

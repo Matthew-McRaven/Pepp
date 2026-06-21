@@ -16,42 +16,35 @@
 
 #include "fig.hpp"
 #include <iostream>
-#include "help/builtins/figure.hpp"
+#include "core/resources/figures/book.hpp"
+#include "fmt/format.h"
 #include "toolchain/helpers/assemblerregistry.hpp"
 
 GetFigTask::GetFigTask(int ed, std::string ch, std::string fig, std::string type, bool isFigure, QObject *parent)
     : Task(parent), ed(ed), isFigure(isFigure), ch(ch), fig(fig), type(type) {}
 
 void GetFigTask::run() {
-  using namespace Qt::StringLiterals;
-  static const auto err_noitem = u"%1 %2.%3 does not exist.\n"_s;
-  static const auto err_novar = u"%1 %2.%3 does not contain a \"%4\" variant.\n"_s;
+
   auto books = helpers::builtins_registry(false);
   auto book = helpers::book(ed, &*books);
-  if (book.isNull())
-    return emit finished(1);
-  QSharedPointer<const builtins::Figure> item = nullptr;
-  if (isFigure)
-    item = book->findFigure(QString::fromStdString(ch), QString::fromStdString(fig));
-  else
-    item = book->findProblem(QString::fromStdString(ch), QString::fromStdString(fig));
-  if (item.isNull()) {
-    std::cerr << err_noitem.arg(isFigure ? "Figure" : "Problem")
-                     .arg(QString::fromStdString(ch), QString::fromStdString(fig))
-                     .toStdString();
+  if (book == nullptr) return emit finished(1);
+  std::shared_ptr<const pepp::Figure> item = nullptr;
+  if (isFigure) item = book->find_figure(ch, fig);
+  else item = book->find_problem(ch, fig);
+  if (item == nullptr) {
+    std::cerr << fmt::format("{} {}.{} does not exist.\n", isFigure ? "Figure" : "Problem", ch, fig);
     return emit finished(1);
   }
 
-  auto type = QString::fromStdString(this->type);
-  if (!item->typesafeNamedFragments().contains(type)) {
-    std::cerr << err_novar.arg(isFigure ? "Figure" : "Problem")
-                     .arg(QString::fromStdString(ch), QString::fromStdString(fig), type)
-                     .toStdString();
+  if (!item->has_fragment(this->type)) {
+    std::cerr << fmt::format("{} {}.{} does not contain a \"{}\" variant.\n", isFigure ? "Figure" : "Problem", ch, fig,
+                             type);
+
     return emit finished(2);
   }
 
-  auto body = item->typesafeNamedFragments()[type]->contents();
-  std::cout << body.toStdString() << std::endl;
+  auto body = item->find_fragment(type)->contents();
+  std::cout << body << std::endl;
 
   return emit finished(0);
 }

@@ -30,13 +30,13 @@ public:
   std::string language;
   //! The textual contents of the element
   std::string contents() const;
-  std::function<std::string()> contentsFn = Fragment::empty;
+  std::function<std::string()> contents_fn = Fragment::empty;
   //! The figure which contains this element. Needed to access default OS / test
   //! items.
   std::weak_ptr<Figure> figure;
-  std::string name, copyType;
-  bool isDefault = false, isHidden = false;
-  std::string exportPath = "";
+  std::string name, copy_type;
+  bool is_default = false, is_hidden = false;
+  std::string export_path = "";
 
 protected:
   static inline std::string empty() { return ""; }

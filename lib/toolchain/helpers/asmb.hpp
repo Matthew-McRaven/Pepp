@@ -1,6 +1,5 @@
 #pragma once
 #include <elfio/elfio.hpp>
-#include "help/builtins/book.hpp"
 #include "project/architectures.hpp"
 #include "project/levels.hpp"
 #include "sim/debug/line_map.hpp"

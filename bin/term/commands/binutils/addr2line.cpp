@@ -18,7 +18,6 @@
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_dump.hpp>
 #include <iostream>
-#include "help/builtins/figure.hpp"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/pas/obj/common.hpp"
 

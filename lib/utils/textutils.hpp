@@ -16,6 +16,8 @@
 #pragma once
 
 #include <QString>
+#include <string>
 
 QString removeLeading0(const QString &str);
+std::string removeLeading0(const std::string &str);
 QStringView rtrimmed(const QString &str);

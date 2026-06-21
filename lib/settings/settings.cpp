@@ -16,7 +16,7 @@
 #include "settings.hpp"
 #include <QQmlEngine>
 #include <QtCompare>
-#include "help/builtins/registry.hpp"
+#include "help/builtins/figure_wrappers.hpp"
 
 pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
 

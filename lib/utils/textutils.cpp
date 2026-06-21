@@ -23,6 +23,13 @@ QString removeLeading0(const QString &str) {
   return str;
 }
 
+std::string removeLeading0(const std::string &str) {
+  for (int it = 0; it < str.size(); it++) {
+    if (str.at(it) != '0') return str.substr(it);
+  }
+  // Should be unreacheable, but here for safety.
+  return str;
+}
 QStringView rtrimmed(const QString &str) {
   // Perform right-strip of string. `QString::trimmed() const` trims both ends.
   qsizetype lastIndex = str.size() - 1;

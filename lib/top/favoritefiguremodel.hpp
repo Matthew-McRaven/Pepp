@@ -16,10 +16,11 @@
 #pragma once
 #include <QtCore/qabstractitemmodel.h>
 #include <qqmlintegration.h>
-namespace builtins {
-class Registry;
-class Figure;
-} // namespace builtins
+#include "figure_wrappers.hpp"
+
+namespace pepp {
+class BuiltinRegistry;
+} // namespace pepp
 
 class FavoriteFigureModel : public QAbstractListModel {
   Q_OBJECT
@@ -43,6 +44,6 @@ signals:
   void rowCountChanged(int);
 
 private:
-  QSharedPointer<builtins::Registry> _registry;
-  QList<QSharedPointer<const builtins::Figure>> _figures;
+  std::shared_ptr<pepp::BuiltinRegistry> _registry;
+  std::vector<std::unique_ptr<builtins::FigureWrapper>> _figures;
 };

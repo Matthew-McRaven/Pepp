@@ -16,7 +16,8 @@
 
 #include <QTemporaryDir>
 #include <catch.hpp>
-#include "help/builtins/registry.hpp"
+#include "core/resources/figures/builtin_registry.hpp"
+#include "help/builtins/figure_wrappers.hpp"
 
 QString toc = "{"
               "\"bookName\" : \"Test\","
@@ -31,13 +32,14 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     REQUIRE(toc_file.open(QIODevice::WriteOnly));
     toc_file.write(toc.toUtf8());
     toc_file.close();
-    auto fs = builtins::makeQRCFSProvider(dir.path());
-    auto reg = builtins::Registry(std::move(fs));
+    auto fs = builtins::QtFilesystemProvider::create(dir.path());
+    auto reg = pepp::BuiltinRegistry(std::move(fs));
+
     REQUIRE(reg.books().size() == 1);
   }
   SECTION("Can load default books") {
-    auto fs = builtins::makeQRCFSProvider();
-    auto reg = builtins::Registry(std::move(fs));
+    auto fs = builtins::QtFilesystemProvider::create();
+    auto reg = pepp::BuiltinRegistry(std::move(fs));
     REQUIRE(reg.books().size() == 3);
     // TODO: CS4E still has no figures and would fail the next line.
     // for (const auto &book : reg.books()) CHECK(!book->figures().empty());
@@ -49,8 +51,8 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     REQUIRE(toc_file.open(QIODevice::WriteOnly));
     toc_file.write("{");
     toc_file.close();
-    auto fs = builtins::makeQRCFSProvider(dir.path());
-    auto reg = builtins::Registry(std::move(fs));
+    auto fs = builtins::QtFilesystemProvider::create(dir.path());
+    auto reg = pepp::BuiltinRegistry(std::move(fs));
     REQUIRE(reg.books().size() == 0);
   }
   SECTION("Does not crash on malformed figure") {
@@ -65,10 +67,10 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     REQUIRE(figure_file.open(QIODevice::WriteOnly));
     figure_file.write("{");
     figure_file.close();
-    auto fs = builtins::makeQRCFSProvider(dir.path());
-    auto reg = builtins::Registry(std::move(fs));
+    auto fs = builtins::QtFilesystemProvider::create(dir.path());
+    auto reg = pepp::BuiltinRegistry(std::move(fs));
     REQUIRE(reg.books().size() == 1);
-    auto book = reg.findBook("Test");
+    auto book = reg.find_book("Test");
     REQUIRE(book != nullptr);
     REQUIRE(book->figures().empty());
   }

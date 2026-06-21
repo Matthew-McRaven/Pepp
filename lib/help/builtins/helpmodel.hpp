@@ -18,10 +18,11 @@
 #include <QAbstractItemModel>
 #include <QtQmlIntegration>
 #include <qsortfilterproxymodel.h>
+#include "figure_wrappers.hpp"
 #include "project/architectures.hpp"
 #include "project/levels.hpp"
-namespace builtins {
-class Registry;
+namespace pepp {
+class BuiltinRegistry;
 }
 class HelpModel;
 
@@ -52,6 +53,8 @@ public:
   QString slug;
   // Props which will be injected into the delegate.
   QVariantMap props = {};
+  // If this is a figure entry, this is a pointer which owns a FigureWrapper.
+  std::unique_ptr<builtins::FigureWrapper> figureWrapper = nullptr;
   void addChild(QSharedPointer<HelpEntry> child);
   void addChildren(QVector<QSharedPointer<HelpEntry>> children);
   // TODO: remove when all are no longer WIP.
@@ -90,7 +93,7 @@ private:
     return nullptr;
   }
   // Registry data must outlive referrents or we get untraceable sgefaults inside QML.
-  QSharedPointer<builtins::Registry> _reg = nullptr;
+  std::shared_ptr<pepp::BuiltinRegistry> _reg = nullptr;
   QSet<ptrdiff_t> _indices;
 };
 

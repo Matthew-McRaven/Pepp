@@ -16,8 +16,10 @@
 #include "helpdata.hpp"
 #include "aproject.hpp"
 #include "core/math/bitmanip/enums.hpp"
-#include "help/builtins/figure.hpp"
-#include "help/builtins/registry.hpp"
+#include "core/resources/figures/builtin_registry.hpp"
+#include "core/resources/figures/figure.hpp"
+#include "fmt/format.h"
+#include "help/builtins/figure_wrappers.hpp"
 #include "helpmodel.hpp"
 #include "utils/textutils.hpp"
 
@@ -420,25 +422,27 @@ pepp::Architecture edition_to_arch(int edition) {
     throw std::invalid_argument(e);
   }
 }
-void process_one_figure(QList<QSharedPointer<HelpEntry>> &children, QSharedPointer<builtins::Figure> item) {
+void process_one_figure(QList<QSharedPointer<HelpEntry>> &children, std::shared_ptr<pepp::Figure> item) {
   // Skip explicitly hidden figures (like the assembler).
-  if (item->isHidden()) return;
-  static const auto pl = QStringLiteral("%1 %2.%3");
-  auto displayTitle = pl.arg(item->prefix(), removeLeading0(item->chapterName()), removeLeading0(item->figureName()));
-  auto sortTitle = pl.arg(item->prefix(), item->chapterName(), item->figureName());
+  if (item->is_hidden()) return;
+  const auto displayTitle = QString::fromStdString(fmt::format(
+      "{} {}.{}", item->name_prefix(), removeLeading0(item->name_chapter()), removeLeading0(item->name_figure())));
+  const auto sortTitle =
+      QString::fromStdString(fmt::format("{} {}.{}", item->name_prefix(), item->name_chapter(), item->name_figure()));
   int mask = bitmask(item->arch(), item->level());
   auto entry =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, mask, displayTitle, "../builtins/Figure2.qml");
+  entry->figureWrapper = std::make_unique<builtins::FigureWrapper>(item);
   entry->sortName = sortTitle;
   entry->props = QVariantMap{{"title", displayTitle},
-                             {"payload", QVariant::fromValue(item.data())},
+                             {"payload", QVariant::fromValue(entry->figureWrapper.get())},
                              {"lexerLang", lexerLang(item->arch(), item->level(), item->features())},
                              {"architecture", QVariant((int)item->arch())}};
   children.push_back(entry);
 }
 } // namespace
 
-std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry &reg) {
+std::array<QSharedPointer<HelpEntry>, 3> examples_root(const pepp::BuiltinRegistry &reg) {
   std::array<QSharedPointer<HelpEntry>, 3> ret;
   auto books = reg.books();
   if (books.size() != ret.size()) throw std::logic_error("Number of books does not match array size");
@@ -449,14 +453,14 @@ std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry 
     QList<QSharedPointer<HelpEntry>> children;
     for (const auto &figure : book->figures()) process_one_figure(children, figure);
 
-    auto match = re.match(book->name()).captured(0);
+    auto match = re.match(QString::fromStdString(book->name())).captured(0);
     int edition = match.toInt();
     auto arch = edition_to_arch(edition);
 
     QString title = u"Figures, %1th Edition"_s.arg(match);
     auto root =
         QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, bitmask_all_levels(arch), title, "MDText.qml");
-    root->isExternal = reg.usingExternalFigures();
+    root->isExternal = reg.using_external_figures();
     root->props = QVariantMap{{"file", QVariant(u":/help/figures.md"_s)}};
     root->addChildren(children);
     ret[it++] = root;
@@ -464,7 +468,7 @@ std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry 
   return ret;
 }
 
-std::array<QSharedPointer<HelpEntry>, 3> problems_root(const builtins::Registry &reg) {
+std::array<QSharedPointer<HelpEntry>, 3> problems_root(const pepp::BuiltinRegistry &reg) {
   std::array<QSharedPointer<HelpEntry>, 3> ret;
   auto books = reg.books();
   if (books.size() != ret.size()) throw std::logic_error("Number of books does not match array size");
@@ -475,7 +479,7 @@ std::array<QSharedPointer<HelpEntry>, 3> problems_root(const builtins::Registry 
     QList<QSharedPointer<HelpEntry>> children;
     for (const auto &problem : book->problems()) process_one_figure(children, problem);
 
-    auto match = re.match(book->name()).captured(0);
+    auto match = re.match(QString::fromStdString(book->name())).captured(0);
     int edition = match.toInt();
     auto arch = edition_to_arch(edition);
 
@@ -486,21 +490,21 @@ std::array<QSharedPointer<HelpEntry>, 3> problems_root(const builtins::Registry 
     const auto abstr_mask = bitmask(pepp::Abstraction::MA2);
     auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, (arch_mask) << shift | abstr_mask,
                                                   title, "MDText.qml");
-    root->isExternal = reg.usingExternalFigures();
+    root->isExternal = reg.using_external_figures();
     root->props = QVariantMap{{"file", QVariant(u":/help/problems.md"_s)}};
     root->addChildren(children);
     ret[it++] = root;
   }
   return ret;
 }
-QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
+QSharedPointer<HelpEntry> macros_root(const pepp::BuiltinRegistry &reg) {
   auto abs_mask =
       bitmask(pepp::Abstraction::ASMB3) | bitmask(pepp::Abstraction::OS4) | bitmask(pepp::Abstraction::ASMB5);
   auto mask = bitmask(pepp::Architecture::PEP10) << shift | abs_mask;
   auto books = reg.books();
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/blank.md"_s)}};
-  root->isExternal = reg.usingExternalFigures();
+  root->isExternal = reg.using_external_figures();
 
   QMap<QString, QSharedPointer<HelpEntry>> families;
   families[""] = root;
@@ -517,20 +521,20 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   for (const auto &book : books) {
     for (const auto &macro : book->macros()) {
       // Skip explicitly hidden macros (like the C library).
-      if (macro->hidden()) continue;
+      if (macro->hidden) continue;
       static const auto pl = QStringLiteral("%1");
-      auto displayTitle = pl.arg(macro->name());
-      auto sortTitle = pl.arg(macro->name());
+      auto displayTitle = pl.arg(QString::fromStdString(macro->name));
+      auto sortTitle = displayTitle;
       auto entry = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, mask, displayTitle,
                                                      "../builtins/Macro.qml");
       entry->sortName = sortTitle;
-      QVariantMap nested = {{"text", QVariant::fromValue(macro->body())}, {"description", ""}};
+      QVariantMap nested = {{"text", QVariant::fromValue(QString::fromStdString(macro->body))}, {"description", ""}};
       entry->props = QVariantMap{
           {"title", displayTitle},
           {"payload", nested},
           {"lexerLang", "Pep/10 ASM"},
       };
-      addOrGet(macro->family(), mask)->addChild(entry);
+      addOrGet(QString::fromStdString(macro->family), mask)->addChild(entry);
     }
   }
   // Hack to add the default system calls into the macro list.

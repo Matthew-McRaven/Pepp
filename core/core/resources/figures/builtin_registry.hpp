@@ -45,9 +45,10 @@ public:
   };
   struct FilesystemProvider {
     virtual ~FilesystemProvider() = default;
-    virtual std::string dir_of(const std::string &path, const std::string &parent = "") const = 0;
-    virtual std::string read_file(const std::string &path, const std::string &parent = "") const = 0;
-    // Return the relative paths of all files and subdirectories within the given directory. Does not recurse.
+    virtual std::string join(const std::string &path, const std::string &parent) const = 0;
+    virtual std::string dir_of(const std::string &path) const = 0;
+    virtual std::string read_file(const std::string &path) const = 0;
+    // Return the full paths of all files within the given directory. If the path is a file, it returns an empty vector.
     virtual std::vector<std::string> enumerate_files(const std::string &directory) const = 0;
     // Return true if these are not the "compiled in" figures.
     virtual bool using_external_figures() const = 0;

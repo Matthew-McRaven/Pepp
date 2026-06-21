@@ -18,7 +18,6 @@
 #include "core/arch/pep/isa/pep10.hpp"
 #include "../../basic_lazy_sink.hpp"
 #include "../../shared.hpp"
-#include "help/builtins/figure.hpp"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "toolchain/helpers/asmb.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
@@ -59,8 +58,7 @@ void AsmTask::emitElfTo(std::string fname) { elfOut = fname; }
 void AsmTask::run() {
   auto books = helpers::builtins_registry(false);
   auto book = helpers::book(ed, &*books);
-  if (book.isNull())
-    return emit finished(2);
+  if (book == nullptr) return emit finished(2);
   auto macroRegistry = helpers::registry(book, {});
   helpers::addMacros(*macroRegistry, macroDirs, "Pep/10");
 
@@ -70,26 +68,31 @@ void AsmTask::run() {
     if (!uIn.exists()) {
       _log.error("Source file does not exist.\n");
       emit finished(3);
+    } else if (!uIn.open(QIODevice::ReadOnly | QIODevice::Text)) {
+      _log.error("Failed to open source file for reading:  {}", userIn);
+      emit finished(3);
     }
-    uIn.open(QIODevice::ReadOnly | QIODevice::Text);
     userContents = uIn.readAll();
   }
 
   // If no OS, default to full.
   QString osContents;
   if (this->forceBm) {
-    auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep10baremetal");
+    osContents = QString::fromStdString(os->default_fragment_text());
   } else if (!osIn || osIn->empty()) {
-    auto os = book->findFigure("os", "pep10os");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep10os");
+    osContents = QString::fromStdString(os->default_fragment_text());
   } else {
     QFile oIn(QString::fromStdString(*osIn)); // auto-closes
     if (!oIn.exists()) {
       _log.error("OS file does not exist.\n");
       emit finished(4);
     }
-    oIn.open(QIODevice::ReadOnly | QIODevice::Text);
+    if (!oIn.open(QIODevice::ReadOnly | QIODevice::Text)) {
+      _log.error("Failed to open OS file for reading:  {}", *osIn);
+      emit finished(5);
+    }
     osContents = oIn.readAll();
   }
   helpers::AsmHelper helper(macroRegistry, osContents);

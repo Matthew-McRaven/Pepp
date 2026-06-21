@@ -20,9 +20,7 @@
 #include "core/langs/ucode/pep_parser.hpp"
 #include "core/langs/ucode/pep_str.hpp"
 #include "fmt/ranges.h"
-#include "help/builtins/book.hpp"
-#include "help/builtins/figure.hpp"
-#include "help/builtins/registry.hpp"
+#include "help/builtins/figure_wrappers.hpp"
 #include "sim3/cores/pep/traced_pep9_mc2.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
@@ -55,8 +53,8 @@ void execute(CPU &cpu, auto &mem, std::string name, auto assembledFig, auto figu
   REQUIRE(microcode.size() > 0);
   cpu.setMicrocode(std::move(microcode));
   int num = 0;
-  for (auto io : figure->typesafeTests()) {
-    QString input = io->input.toString().replace(lf, "");
+  for (auto io : figure->tests()) {
+    QString input = QString::fromStdString(io->input).replace(lf, "");
     DYNAMIC_SECTION(name << " on: " << input.toStdString()) {
       auto assembledTest = pepp::tc::parse::MicroParser<uarch, regs>(input.toStdString()).parse();
       if (assembledTest.errors.size() > 0) {
@@ -91,38 +89,40 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
   using uarch2 = pepp::tc::arch::Pep9WordBus;
   using regs = pepp::tc::arch::Pep9Registers;
   using namespace Qt::StringLiterals;
-  auto fs = builtins::makeQRCFSProvider();
-  auto bookReg = builtins::Registry(std::move(fs));
+  auto fs = builtins::QtFilesystemProvider::create();
+  auto bookReg = pepp::BuiltinRegistry(std::move(fs));
   auto book5 = helpers::book(5, &bookReg);
   auto book6 = helpers::book(6, &bookReg);
+  REQUIRE(book5 != nullptr);
+  REQUIRE(book6 != nullptr);
   auto figures5 = book5->figures(), figures6 = book6->figures();
   auto probs5 = book5->problems(), probs6 = book6->problems();
-  QList<QList<QSharedPointer<builtins::Figure>>> _combined = {figures5, probs5, figures6, probs6};
+  std::vector<std::vector<std::shared_ptr<pepp::Figure>>> _combined = {figures5, probs5, figures6, probs6};
   auto [mem1, cpu1] = make<targets::pep9::mc2::CPUByteBus>();
   auto [mem2, cpu2] = make<targets::pep9::mc2::CPUWordBus>();
   cpu1.setTarget(&mem1, nullptr);
   cpu2.setTarget(&mem2, nullptr);
   auto combined = std::views::join(_combined);
   for (auto &figure : combined) {
-    const auto &frags = figure->typesafeNamedFragments();
-    if (!frags.contains("pepcpu")) continue;
-    auto name = u"Figure %1.%2"_s.arg(figure->chapterName()).arg(figure->figureName());
+    const auto &frags = figure->named_fragments();
+    if (!figure->has_fragment("pepcpu")) continue;
+    auto name = u"Figure %1.%2"_s.arg(figure->name_chapter()).arg(figure->name_figure());
     auto nameAsStd = name.toStdString();
     int ed = figure->arch() == pepp::Architecture::PEP9 ? 5 : 6;
     DYNAMIC_SECTION("Microassemble CS" << ed << "E: " << nameAsStd) {
-      auto source = frags.value("pepcpu", nullptr);
-      CHECK(figure->typesafeTests().size() > 0);
+      auto source = frags.at("pepcpu");
+      CHECK(figure->tests().size() > 0);
       REQUIRE(source != nullptr);
       if (source->language == "pepcpu1") {
-        auto assembledFig = pepp::tc::parse::MicroParser<uarch1, regs>(source->contents().toStdString()).parse();
+        auto assembledFig = pepp::tc::parse::MicroParser<uarch1, regs>(source->contents()).parse();
         if (assembledFig.errors.size() > 0) {
           QStringList errors;
           for (const auto &[line, error] : assembledFig.errors) errors.append(u"%1: %2"_s.arg(line).arg(error));
           FAIL("Errors in " + nameAsStd + " microassembly: " + errors.join(", ").toStdString());
         }
         // Check that all tests assemble too
-        for (auto io : figure->typesafeTests()) {
-          QString input = io->input.toString().replace(lf, "");
+        for (auto io : figure->tests()) {
+          QString input = QString::fromStdString(io->input).replace(lf, "");
           auto assembledTest = pepp::tc::parse::MicroParser<uarch1, regs>(input.toStdString()).parse();
           if (assembledTest.errors.size() > 0) {
             QStringList errors;
@@ -130,18 +130,18 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
             FAIL("Errors in tests assembly: " + errors.join(", ").toStdString());
           }
         }
-        if (figure->isProblem()) continue;
+        if (figure->is_problem()) continue;
         execute<targets::pep9::mc2::CPUByteBus, uarch1, regs>(cpu1, mem1, nameAsStd, assembledFig, figure);
       } else if (source->language == "pepcpu2") {
-        auto assembledFig = pepp::tc::parse::MicroParser<uarch2, regs>(source->contents().toStdString()).parse();
+        auto assembledFig = pepp::tc::parse::MicroParser<uarch2, regs>(source->contents()).parse();
         if (assembledFig.errors.size() > 0) {
           QStringList errors;
           for (const auto &[line, error] : assembledFig.errors) errors.append(u"%1: %2"_s.arg(line).arg(error));
           FAIL("Errors in " + nameAsStd + " microassembly: " + errors.join(", ").toStdString());
         }
         // Check that all tests assemble too
-        for (auto io : figure->typesafeTests()) {
-          QString input = io->input.toString().replace(lf, "");
+        for (auto io : figure->tests()) {
+          QString input = QString::fromStdString(io->input).replace(lf, "");
           auto assembledTest = pepp::tc::parse::MicroParser<uarch2, regs>(input.toStdString()).parse();
           if (assembledTest.errors.size() > 0) {
             QStringList errors;
@@ -149,9 +149,9 @@ TEST_CASE("Pep/9 Microcode Assembly & Simulation", "[scope:mc2][kind:e2e][arch:p
             FAIL("Errors in tests assembly: " + errors.join(", ").toStdString());
           }
         }
-        if (figure->isProblem()) continue;
+        if (figure->is_problem()) continue;
         execute<targets::pep9::mc2::CPUWordBus, uarch2, regs>(cpu2, mem2, nameAsStd, assembledFig, figure);
-      } else FAIL("Unrecognized microcode format: " << source->language.toStdString());
+      } else FAIL("Unrecognized microcode format: " << source->language);
     }
   }
 }

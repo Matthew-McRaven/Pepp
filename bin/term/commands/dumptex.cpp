@@ -16,7 +16,6 @@
 
 #include "dumptex.hpp"
 #include <QDir>
-#include "help/builtins/figure.hpp"
 #include "toolchain/helpers/assemblerregistry.hpp"
 
 DumpTexTask::DumpTexTask(QString dir, QObject *parent) : Task(parent), _dir(dir) {}
@@ -40,13 +39,13 @@ void DumpTexTask::run() {
   }
   auto books = helpers::registry_with_assemblers();
   auto book = helpers::book(6, &*books);
-  if (book.isNull()) return emit finished(1);
+  if (book == nullptr) return emit finished(1);
 
   for (const auto &figure : book->figures()) {
-    for (const auto &element : figure->typesafeFragments()) {
-      if (element->exportPath.isEmpty()) continue;
-      auto disk_path = base_output_path.absoluteFilePath(element->exportPath);
-      auto contents = rstrip(element->contents()) + "\n";
+    for (const auto &element : figure->fragments()) {
+      if (element->export_path.empty()) continue;
+      auto disk_path = base_output_path.absoluteFilePath(QString::fromStdString(element->export_path));
+      auto contents = rstrip(QString::fromStdString(element->contents())) + "\n";
       QFile file(disk_path);
       if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << "Failed to open file for writing: " << disk_path;

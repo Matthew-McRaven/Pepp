@@ -62,6 +62,12 @@ const std::list<const pepp::Test *> &pepp::Figure::tests() const { return _tests
 
 void pepp::Figure::add_test(const Test *test) { _tests.push_back(test); }
 
+bool pepp::Figure::has_fragment(const std::string &name) const {
+  return _named_fragments.find(name) != _named_fragments.cend();
+}
+
+const std::map<std::string, const pepp::Fragment *> &pepp::Figure::named_fragments() const { return _named_fragments; }
+
 const pepp::Fragment *pepp::Figure::find_fragment(const std::string &name) const {
   if (auto ret = _named_fragments.find(name); ret != _named_fragments.cend()) return ret->second;
   else return nullptr;

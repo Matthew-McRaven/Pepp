@@ -15,30 +15,38 @@
  */
 
 #include <catch.hpp>
-#include "help/builtins/book.hpp"
-#include "help/builtins/figure.hpp"
-#include "help/builtins/registry.hpp"
+#include "core/resources/figures/book.hpp"
+#include "core/resources/figures/builtin_registry.hpp"
+#include "help/builtins/figure_wrappers.hpp"
+#include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
 
 namespace {
-void loadBookMacros(QSharedPointer<const builtins::Book> book, QSharedPointer<macro::Registry> registry) {
-  for (auto &macro : book->macros()) registry->registerMacro(macro::types::Core, macro);
+void loadBookMacros(std::shared_ptr<const pepp::Book> book, QSharedPointer<macro::Registry> registry) {
+  for (auto &macro : book->macros()) {
+    // TODO: hideous conversion from current book type to the old macro type. Refactor to remove this copy.
+    const auto arch = pepp::arch_as_string(macro->arch);
+    auto macroDecl = QSharedPointer<::macro::Declaration>::create(
+        QString::fromStdString(macro->name), macro->argcount, QString::fromStdString(macro->body),
+        QString::fromStdString(arch), QString::fromStdString(macro->family), macro->hidden);
+    registry->registerMacro(::macro::types::Core, macroDecl);
+  }
 }
 
 } // namespace
 TEST_CASE("Avoid breaking changes to CS6E operating system", "[scope:asm][kind:e2e][arch:pep10][scope:lol]") {
-  auto fs = builtins::makeQRCFSProvider();
-  auto book_registry = builtins::Registry(std::move(fs));
-  auto book = book_registry.findBook("Computer Systems, 6th Edition");
+  auto fs = builtins::QtFilesystemProvider::create();
+  auto bookReg = pepp::BuiltinRegistry(std::move(fs));
+  auto book = bookReg.find_book("Computer Systems, 6th Edition");
 
-  REQUIRE_FALSE(book.isNull());
+  REQUIRE(book != nullptr);
   auto registry = QSharedPointer<macro::Registry>::create();
   loadBookMacros(book, registry);
-  auto fig = book->findFigure("os", "pep10os");
-  auto osBody = fig->defaultFragmentText();
+  auto fig = book->find_figure("os", "pep10os");
+  auto osBody = QString::fromStdString(fig->default_fragment_text());
 
   auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(
       {{osBody, {.isOS = true, .ignoreUndefinedSymbols = false}}}, registry);

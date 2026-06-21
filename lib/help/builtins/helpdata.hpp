@@ -18,8 +18,8 @@
 #include "core/architectures.hpp"
 #include "project/levels.hpp"
 
-namespace builtins {
-class Registry;
+namespace pepp {
+class BuiltinRegistry;
 }
 class HelpEntry;
 QSharedPointer<HelpEntry> starting_root();
@@ -28,10 +28,10 @@ QSharedPointer<HelpEntry> workflows_root();
 QSharedPointer<HelpEntry> advanced_root();
 QSharedPointer<HelpEntry> greencard10_root();
 QSharedPointer<HelpEntry> greencard9_root();
-std::array<QSharedPointer<HelpEntry>, 3> examples_root(const builtins::Registry &reg);
-std::array<QSharedPointer<HelpEntry>, 3> problems_root(const builtins::Registry &reg);
+std::array<QSharedPointer<HelpEntry>, 3> examples_root(const pepp::BuiltinRegistry &reg);
+std::array<QSharedPointer<HelpEntry>, 3> problems_root(const pepp::BuiltinRegistry &reg);
 QSharedPointer<HelpEntry> os_root();
-QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg);
+QSharedPointer<HelpEntry> macros_root(const pepp::BuiltinRegistry &reg);
 int bitmask(pepp::Architecture arch);
 int bitmask(pepp::Abstraction level);
 int bitmask(pepp::Architecture arch, pepp::Abstraction level);

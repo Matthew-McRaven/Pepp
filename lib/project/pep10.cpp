@@ -23,7 +23,6 @@
 #include "core/math/bitmanip/enums.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "cpu/formats.hpp"
-#include "help/builtins/figure.hpp"
 #include "sim3/cores/pep/traced_helpers.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "sim3/cores/pep/traced_pep9_isa3.hpp"
@@ -94,23 +93,23 @@ struct SystemAssembly {
   QSharedPointer<targets::isa::System> system;
 };
 
-SystemAssembly make_isa_system(project::Environment env, const builtins::Registry *books) {
+SystemAssembly make_isa_system(project::Environment env, const pepp::BuiltinRegistry *books) {
   using enum pepp::Architecture;
-  QSharedPointer<const builtins::Book> book;
+  std::shared_ptr<const pepp::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
   switch (env.arch) {
   case PEP9: {
     book = helpers::book(5, &*books);
-    auto os = book->findFigure("os", "pep9os");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep9os");
+    osContents = QString::fromStdString(os->find_fragment("pep")->contents());
     macroRegistry = helpers::cs5e_macros(&*books);
     break;
   }
   case PEP10: {
     book = helpers::book(6, &*books);
-    auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep10baremetal");
+    osContents = QString::fromStdString(os->find_fragment("pep")->contents());
     macroRegistry = helpers::cs6e_macros(&*books);
     break;
   }
@@ -128,41 +127,41 @@ SystemAssembly make_isa_system(project::Environment env, const builtins::Registr
   return ret;
 }
 
-QString cs6e_bm(const builtins::Registry *books) {
+QString cs6e_bm(const pepp::BuiltinRegistry *books) {
   auto book = helpers::book(6, books);
-  auto os = book->findFigure("os", "pep10baremetal");
-  return os->typesafeNamedFragments()["pep"]->contents();
+  auto os = book->find_figure("os", "pep10baremetal");
+  return QString::fromStdString(os->find_fragment("pep")->contents());
 }
-QString cs6e_os(const builtins::Registry *books) {
+QString cs6e_os(const pepp::BuiltinRegistry *books) {
   auto book = helpers::book(6, books);
-  auto os = book->findFigure("os", "pep10os");
-  return os->typesafeNamedFragments()["pep"]->contents();
+  auto os = book->find_figure("os", "pep10os");
+  return QString::fromStdString(os->find_fragment("pep")->contents());
 }
 
-QString cs5e_os(const builtins::Registry *books) {
+QString cs5e_os(const pepp::BuiltinRegistry *books) {
   auto book = helpers::book(5, books);
-  auto os = book->findFigure("os", "pep9os");
-  return os->typesafeNamedFragments()["pep"]->contents();
+  auto os = book->find_figure("os", "pep9os");
+  return QString::fromStdString(os->find_fragment("pep")->contents());
 }
 
 // TODO: fix
-SystemAssembly make_asmb_system(project::Environment env, QString os, const builtins::Registry *books) {
+SystemAssembly make_asmb_system(project::Environment env, QString os, const pepp::BuiltinRegistry *books) {
   using enum pepp::Architecture;
-  QSharedPointer<const builtins::Book> book;
+  std::shared_ptr<const pepp::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
   switch (env.arch) {
   case PEP9: {
     book = helpers::book(5, &*books);
-    auto os = book->findFigure("os", "pep9os");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep9os");
+    osContents = QString::fromStdString(os->find_fragment("pep")->contents());
     macroRegistry = helpers::cs5e_macros(&*books);
     break;
   }
   case PEP10: {
     book = helpers::book(6, &*books);
-    auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeNamedFragments()["pep"]->contents();
+    auto os = book->find_figure("os", "pep10baremetal");
+    osContents = QString::fromStdString(os->find_fragment("pep")->contents());
     macroRegistry = helpers::cs6e_macros(&*books);
     break;
   }

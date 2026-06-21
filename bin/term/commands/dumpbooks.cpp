@@ -18,7 +18,7 @@
 #include <QDir>
 #include <iostream>
 #include "../shared.hpp"
-#include "help/builtins/registry.hpp"
+#include "help/builtins/figure_wrappers.hpp"
 
 DumpBooksTask::DumpBooksTask(QString dir, QObject *parent) : Task(parent), _dir(dir) {}
 

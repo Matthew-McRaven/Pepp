@@ -17,6 +17,6 @@
 #include "fragment.hpp"
 
 std::string pepp::Fragment::contents() const {
-  if (!_contents.has_value()) _contents = contentsFn();
+  if (!_contents.has_value()) _contents = contents_fn();
   return _contents.value();
 }

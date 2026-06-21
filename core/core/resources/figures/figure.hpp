@@ -57,8 +57,10 @@ public:
   const std::list<const Test *> &tests() const;
   void add_test(const Test *test);
 
+  bool has_fragment(const std::string &name) const;
   const Fragment *find_fragment(const std::string &name) const;
   const std::vector<const Fragment *> &fragments() const;
+  const std::map<std::string, const Fragment *> &named_fragments() const;
   // Transfer ownership to this. Must be deleted in this object's destructor
   bool add_fragment(const Fragment *fragment);
   std::string default_fragment_name() const;
