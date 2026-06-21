@@ -101,8 +101,9 @@ std::map<pepp::Features, std::string> init_feats() {
   return m;
 }
 
-std::map<std::string, pepp::Features, pepp::bts::ci_lt> init_reverse_feats() {
-  std::map<std::string, pepp::Features, pepp::bts::ci_lt> m{};
+using RMap = std::unordered_map<std::string, pepp::Features, pepp::bts::ci_hash, pepp::bts::ci_eq>;
+RMap init_reverse_feats() {
+  RMap m{};
   for (const auto &it : init_feats()) m[it.second] = it.first;
   return m;
 }
@@ -113,11 +114,25 @@ pepp::Features pepp::parse_features(const std::string &str) {
   using namespace bits;
 
   auto ret = pepp::Features::None;
-  for (size_t start = 0, end = str.find(","); start != std::string::npos; start = end, end = str.find(",", start)) {
-    const auto substr = str.substr(start, end - start);
-    if (auto it = reverse_feats.find(substr); it == reverse_feats.end())
-      spdlog::warn("Ignoring invalid feature {}", str.substr(start, end - start));
-    else ret |= it->second;
+  size_t start = 0;
+  while (start < str.size()) {
+    const auto end = str.find(',', start);
+    auto token = str.substr(start, end == std::string::npos ? std::string::npos : (end - start));
+    // Trim whitespace.
+    const auto first = token.find_first_not_of(" \t\n\r");
+    if (first == std::string::npos) {
+      token.clear();
+    } else {
+      const auto last = token.find_last_not_of(" \t\n\r");
+      token = token.substr(first, last - first + 1);
+    }
+    if (!token.empty()) {
+      if (auto it = reverse_feats.find(token); it == reverse_feats.end())
+        spdlog::warn("Ignoring invalid feature {}", token);
+      else ret |= it->second;
+    }
+    if (end == std::string::npos) break;
+    start = end + 1;
   }
   return ret;
 }
