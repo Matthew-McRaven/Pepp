@@ -25,7 +25,10 @@ targets::ma::System::System(pepp::Architecture arch, pepp::Features feats)
   using namespace bits;
   using enum pepp::Features;
   switch (arch) {
-  case pepp::Architecture::PEP8: _feats = OneByte; _cpu = nullptr;
+  case pepp::Architecture::PEP8:
+    _feats = OneByte;
+    _cpu = nullptr;
+    break;
   case pepp::Architecture::PEP9: [[fallthrough]];
   case pepp::Architecture::PEP10:
     if (any(TwoByte & feats)) {
@@ -35,6 +38,7 @@ targets::ma::System::System(pepp::Architecture arch, pepp::Features feats)
       _feats = OneByte;
       _cpu = QSharedPointer<targets::pep9::mc2::CPUByteBus>::create(desc_cpu(nextID()), _nextIDGenerator);
     }
+    break;
   default: _feats = None; break;
   }
   if (_cpu) _cpu->setTarget(&*_bus, nullptr);
