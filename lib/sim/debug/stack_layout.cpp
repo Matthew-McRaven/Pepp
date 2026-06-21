@@ -178,7 +178,7 @@ pepp::debug::Stack &pepp::debug::Stack::operator=(Stack &&other) {
 u32 pepp::debug::Stack::base_address() const { return _baseAddress; }
 
 u32 pepp::debug::Stack::top_address() const {
-  u32 address = 0;
+  u32 address = _baseAddress;
   for (const auto &it : std::as_const(_frames)) address = qMin(address, it.top_address());
   return address;
 }
