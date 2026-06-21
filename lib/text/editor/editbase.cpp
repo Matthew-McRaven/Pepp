@@ -92,7 +92,7 @@ void EditBase::onLineAction(int line, Action action) {
   case Action::HighlightExclusive:
     send(SCI_GOTOLINE, line);
     send(SCI_INDICATORCLEARRANGE, 0, send(SCI_GETLENGTH));
-    send(SCI_INDICATORFILLRANGE, start, end - start);
+    if (line >= 0) send(SCI_INDICATORFILLRANGE, start, end - start);
     break;
   case Action::MakeConditional:
     if (markers & conditionalBPStyleMask) return;
