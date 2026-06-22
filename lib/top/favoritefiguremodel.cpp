@@ -22,17 +22,10 @@
 #include <QQmlEngine>
 FavoriteFigureModel::FavoriteFigureModel(QObject *parent) : QAbstractListModel(parent) {
   _registry = helpers::builtins_registry(false);
-  auto _6e = helpers::book(6, &*_registry);
-  static const std::vector<std::pair<const char *, const char *>> figs = {
-      {"05", "03"}, {"05", "06"}, {"05", "07"}, {"05", "10"}};
-  for (const auto &[ch, fig] : figs) {
-    auto f = _6e->find_figure(ch, fig);
-    if (f) {
-      auto fw = std::make_unique<builtins::FigureWrapper>(f);
-      QQmlEngine::setObjectOwnership(fw.get(), QQmlEngine::CppOwnership);
-      _figures.push_back(std::move(fw));
-    }
-  }
+  _favoritesCategory = pepp::settings::detail::AppSettingsData::getInstance()->favorites();
+  connect(_favoritesCategory, &pepp::settings::FavoriteFigureCategory::favoritesChanged, this,
+          &FavoriteFigureModel::onFavoritesChanged);
+  onFavoritesChanged();
 }
 
 int FavoriteFigureModel::rowCount(const QModelIndex &parent) const { return _figures.size(); }
@@ -60,4 +53,23 @@ QHash<int, QByteArray> FavoriteFigureModel::roleNames() const {
   base[(int)Roles::TypeRole] = "type";
   base[(int)Roles::DescriptionRole] = "description";
   return base;
+}
+
+void FavoriteFigureModel::add_figure(builtins::FigureWrapper *figure) { _favoritesCategory->addFavorite(figure); }
+
+void FavoriteFigureModel::onFavoritesChanged() {
+  beginResetModel();
+  _figures.clear();
+  auto favorites = _favoritesCategory->favorites();
+  auto _6e = helpers::book(6, &*_registry);
+  for (const auto &fav : std::as_const(favorites)) {
+    auto f = _6e->find_figure(fav.chapter().toStdString(), fav.figure().toStdString());
+    if (f) {
+      auto fw = std::make_unique<builtins::FigureWrapper>(f);
+      QQmlEngine::setObjectOwnership(fw.get(), QQmlEngine::CppOwnership);
+      _figures.push_back(std::move(fw));
+    }
+  }
+  std::sort(_figures.begin(), _figures.end());
+  endResetModel();
 }

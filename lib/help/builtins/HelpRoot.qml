@@ -170,6 +170,18 @@ Item {
                     const idx = treeDelegate.treeView.index(row, column);
                     treeDelegate.treeView.selectionModel.setCurrentIndex(idx, ItemSelectionModel.ClearAndSelect);
                 }
+                CheckBox {
+                    anchors {
+                        left: parent.left
+                        verticalCenter: parent.verticalCenter
+                    }
+                    visible: model.canFavorite
+                    checked: model.isFavorite === true
+                    onClicked: {
+                        const idx = treeDelegate.treeView.index(row, column);
+                        helpModel.toggleFavorite(idx);
+                    }
+                }
             }
         }
     }

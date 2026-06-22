@@ -438,6 +438,7 @@ void process_one_figure(QList<QSharedPointer<HelpEntry>> &children, std::shared_
                              {"payload", QVariant::fromValue(entry->figureWrapper.get())},
                              {"lexerLang", lexerLang(item->arch(), item->level(), item->features())},
                              {"architecture", QVariant((int)item->arch())}};
+  entry->canFavorite = true;
   children.push_back(entry);
 }
 } // namespace

@@ -59,6 +59,7 @@ public:
   void addChildren(QVector<QSharedPointer<HelpEntry>> children);
   // TODO: remove when all are no longer WIP.
   bool isWIP = false, isExternal = false;
+  bool canFavorite = false, isFavorite = false;
 
 private:
   friend HelpModel;
@@ -72,7 +73,18 @@ class HelpModel : public QAbstractItemModel {
   QML_ELEMENT
 
 public:
-  enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props, Sort, WIP, External };
+  enum class Roles {
+    Category = Qt::UserRole + 1,
+    Tags,
+    Name,
+    Delegate,
+    Props,
+    Sort,
+    WIP,
+    External,
+    CanFavorite,
+    IsFavorite
+  };
   Q_ENUM(Roles);
   explicit HelpModel(QObject *parent = nullptr);
   QModelIndex index(int row, int column, const QModelIndex &parent) const override;
@@ -82,6 +94,11 @@ public:
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
   QModelIndex indexFromSlug(const QString &slug);
+
+  void toggleFavorite(const QModelIndex &index);
+
+private slots:
+  void onFavoritesChanged();
 
 private:
   QList<QSharedPointer<HelpEntry>> _roots;
@@ -116,10 +133,12 @@ public:
   bool showWIPItems() const;
   void setShowWIPItems(bool show);
   Q_INVOKABLE QModelIndex indexFromSlug(const QString &slug);
+  Q_INVOKABLE void toggleFavorite(const QModelIndex &index) const;
 
 protected:
   bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
   bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
+
 signals:
   void sourceModelChanged();
   void architectureChanged();

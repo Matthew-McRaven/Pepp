@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "helpmodel.hpp"
+#include <deque>
 #include "./registry.hpp"
 #include "helpdata.hpp"
 #include "settings/settings.hpp"
@@ -48,6 +49,9 @@ HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
   _indexOfMacros = 11;
 
   for (auto &root : _roots) addToIndex(root);
+  auto favs = pepp::settings::detail::AppSettingsData::getInstance()->favorites();
+  connect(favs, &pepp::settings::FavoriteFigureCategory::favoritesChanged, this, &HelpModel::onFavoritesChanged);
+  onFavoritesChanged();
 }
 
 QModelIndex HelpModel::index(int row, int column, const QModelIndex &parent) const {
@@ -104,7 +108,16 @@ QVariant HelpModel::data(const QModelIndex &index, int role) const {
   case (int)Roles::Delegate: return entry->delegate;
   case (int)Roles::Props: return entry->props;
   case (int)Roles::WIP: return entry->isWIP;
-  case (int)Roles::External: return entry->isExternal; ;
+  case (int)Roles::External: return entry->isExternal;
+  case (int)Roles::CanFavorite: return entry->canFavorite;
+  case (int)Roles::IsFavorite: {
+    if (!entry->figureWrapper) return QVariant();
+    // TODO: pick the right edition
+    const int ed = 6;
+    const QString ch = entry->figureWrapper->chapterName();
+    const QString fig = entry->figureWrapper->figureName();
+    return entry->isFavorite;
+  }
   }
   return QVariant();
 }
@@ -119,6 +132,8 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   ret[static_cast<int>(Roles::Props)] = "props";
   ret[static_cast<int>(Roles::WIP)] = "isWIP";
   ret[static_cast<int>(Roles::External)] = "isExternal";
+  ret[static_cast<int>(Roles::CanFavorite)] = "canFavorite";
+  ret[static_cast<int>(Roles::IsFavorite)] = "isFavorite";
   return ret;
 }
 
@@ -148,6 +163,13 @@ QModelIndex HelpModel::indexFromSlug(const QString &slug) {
   return {};
 }
 
+void HelpModel::toggleFavorite(const QModelIndex &index) {
+  if (auto entry = ptr(index); !entry || !entry->figureWrapper) return;
+  else if (auto favs = pepp::settings::detail::AppSettingsData::getInstance()->favorites(); entry->isFavorite)
+    favs->removeFavorite(entry->figureWrapper.get());
+  else favs->addFavorite(entry->figureWrapper.get());
+}
+
 void HelpModel::addToIndex(QSharedPointer<HelpEntry> entry) {
   _indices.insert(reinterpret_cast<ptrdiff_t>(entry.data()));
   for (auto &child : entry->_children) addToIndex(child);
@@ -156,6 +178,29 @@ void HelpModel::addToIndex(QSharedPointer<HelpEntry> entry) {
 void HelpModel::removeFromIndex(QSharedPointer<HelpEntry> entry) {
   _indices.remove(reinterpret_cast<ptrdiff_t>(entry.data()));
   for (auto &child : entry->_children) removeFromIndex(child);
+}
+
+void HelpModel::onFavoritesChanged() {
+  // Iterate over all elements, looking for those with a FigureWrapper.
+  auto favs = pepp::settings::detail::AppSettingsData::getInstance()->favorites();
+  std::deque<std::pair<QModelIndex, HelpEntry *>> to_update;
+  std::function<void(const QModelIndex &)> recurse = [&](const QModelIndex &index) {
+    auto entry = ptr(index);
+    if (entry && entry->figureWrapper) to_update.emplace_back(index, entry);
+    for (int i = 0; i < rowCount(index); i++) recurse(this->index(i, 0, index));
+  };
+  recurse(QModelIndex());
+  int ed = 6;
+  for (const auto &[index, entry] : to_update) {
+    const QString ch = entry->figureWrapper->chapterName();
+    const QString fig = entry->figureWrapper->figureName();
+    const auto ff = pepp::settings::FavoriteFigure(ed, ch, fig);
+    const bool is_fav = favs->contains(ff);
+    if (entry->isFavorite != is_fav) {
+      entry->isFavorite = is_fav;
+      emit dataChanged(index, index, {static_cast<int>(Roles::IsFavorite)});
+    }
+  }
 }
 
 HelpFilterModel::HelpFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
@@ -206,6 +251,13 @@ QModelIndex HelpFilterModel::indexFromSlug(const QString &slug) {
   if (!source_idx.isValid()) return {};
   if (!filterAcceptsRow(source_idx.row(), source_idx.parent())) return {};
   return mapFromSource(source_idx);
+}
+
+void HelpFilterModel::toggleFavorite(const QModelIndex &index) const {
+  if (auto sm = sourceModel(); !sm) return;
+  else if (auto casted = qobject_cast<HelpModel *>(sm); !casted) return;
+  else if (auto source_idx = mapToSource(index); !source_idx.isValid()) return;
+  else casted->toggleFavorite(source_idx);
 }
 
 bool HelpFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
