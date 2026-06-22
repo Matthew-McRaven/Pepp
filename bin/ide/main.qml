@@ -110,6 +110,8 @@ ApplicationWindow {
         });
         sidebar.switchToMode("Welcome");
         pm.rowCountChanged.connect(noOpenProjectCheck);
+        actions.appdev.defaultFigures.triggered.connect(settings.favorites.reset);
+        actions.help.clearFigures.triggered.connect(settings.favorites.clear);
     }
 
     // Provide a default font for menu items.

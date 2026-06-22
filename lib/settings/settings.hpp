@@ -300,10 +300,13 @@ public:
   QString name() const override;
   QString source() const override;
   void sync() override;
+  // Reset internal state to default without emitting a changed event.
   void resetToDefault() override;
+  // Reset to default & emit a changed event.
+  Q_INVOKABLE void reset();
 
   QList<FavoriteFigure> favorites() const;
-  void clear();
+  Q_INVOKABLE void clear();
   void addFavorite(const builtins::FigureWrapper *figure);
   void removeFavorite(const builtins::FigureWrapper *figure);
   bool contains(FavoriteFigure figure) const;

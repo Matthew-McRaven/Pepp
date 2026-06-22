@@ -231,6 +231,9 @@ MenuBar {
         ShortcutMenuItem {
             action: actions.help.resetSettings
         }
+        ShortcutMenuItem {
+            action: actions.help.clearFigures
+        }
     }
 
     // Only meant for testing the app, not meant for deployment to users!
@@ -239,6 +242,9 @@ MenuBar {
         ShortcutMenuItem {
             text: qsTr("Clear Changelog Cache")
             onTriggered: actions.appdev.clearChangelogCache.trigger()
+        }
+        ShortcutMenuItem {
+            onTriggered: actions.appdev.defaultFigures.trigger()
         }
         ShortcutMenuItem {
             text: actions.appdev.openSelftest.text

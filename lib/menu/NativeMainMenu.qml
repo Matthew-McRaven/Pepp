@@ -360,6 +360,10 @@ Labs.MenuBar {
             text: actions.help.resetSettings.text
             onTriggered: actions.help.resetSettings.trigger()
         }
+        Labs.MenuItem {
+            text: actions.help.clearFigures.text
+            onTriggered: actions.help.clearFigures.trigger()
+        }
     }
     // Only meant for testing the app, not meant for deployment to users!
     Labs.Menu {
@@ -374,6 +378,10 @@ Labs.MenuBar {
         Labs.MenuItem {
             text: qsTr("&Reload Figures")
             onTriggered: actions.appdev.reloadFigures.trigger()
+        }
+        Labs.MenuItem {
+            text: actions.appdev.defaultFigures.text
+            onTriggered: actions.appdev.defaultFigures.trigger()
         }
         Labs.MenuItem {
             text: actions.appdev.openSelftest.text
