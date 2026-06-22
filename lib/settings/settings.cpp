@@ -524,9 +524,7 @@ void pepp::settings::FavoriteFigureCategory::clear() {
 }
 
 void pepp::settings::FavoriteFigureCategory::addFavorite(const builtins::FigureWrapper *figure) {
-  // int edition = figure->underlying()->;
-  // TODO: edition needs to be included in figure! Hardcode to 6.
-  int edition = 6;
+  int edition = pepp::figure_edition(*figure->underlying());
   const QString chapter = QString::fromStdString(figure->underlying()->name_chapter());
   const QString fig = QString::fromStdString(figure->underlying()->name_figure());
   FavoriteFigure newFav{edition, chapter, fig};
@@ -539,9 +537,7 @@ void pepp::settings::FavoriteFigureCategory::addFavorite(const builtins::FigureW
 }
 
 void pepp::settings::FavoriteFigureCategory::removeFavorite(const builtins::FigureWrapper *figure) {
-  // int edition = figure->underlying()->;
-  // TODO: edition needs to be included in figure! Hardcode to 6.
-  int edition = 6;
+  int edition = pepp::figure_edition(*figure->underlying());
   const QString chapter = QString::fromStdString(figure->underlying()->name_chapter());
   const QString fig = QString::fromStdString(figure->underlying()->name_figure());
   FavoriteFigure newFav{edition, chapter, fig};

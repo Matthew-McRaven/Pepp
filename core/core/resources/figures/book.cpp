@@ -19,6 +19,8 @@
 #include "figure.hpp"
 #include "spdlog/spdlog.h"
 
+#include <core/ds/string_compare.hpp>
+
 pepp::Book::Book(std::string name) : _name(name) {}
 
 std::string pepp::Book::name() const noexcept { return _name; }
@@ -94,4 +96,35 @@ bool pepp::Book::add_macro(std::shared_ptr<MacroFile> macro) noexcept {
     _macros.push_back(macro);
     return true;
   } else return false;
+}
+
+static const std::string _cs4e_name = "Computer Systems, 4th Edition";
+static const std::string _cs5e_name = "Computer Systems, 5th Edition";
+static const std::string _cs6e_name = "Computer Systems, 6th Edition";
+static const std::string _unknown_name = "Unknown";
+int pepp::edition_number(const std::string &book_name) {
+  static const std::unordered_map<std::string, int, bts::ci_hash, bts::ci_eq> name_to_edition = {
+      {_cs4e_name, 4},
+      {_cs5e_name, 5},
+      {_cs6e_name, 6},
+  };
+  auto it = name_to_edition.find(book_name);
+  if (it == name_to_edition.end()) return -1;
+  return it->second;
+}
+
+const std::string &pepp::edition_name(int edition_numner) {
+  static const std::unordered_map<int, std::string> edition_to_name = {
+      {4, _cs4e_name},
+      {5, _cs5e_name},
+      {6, _cs6e_name},
+  };
+  auto it = edition_to_name.find(edition_numner);
+  if (it == edition_to_name.end()) return _unknown_name;
+  return edition_to_name.at(edition_numner);
+}
+
+int pepp::figure_edition(const Figure &figure) {
+  if (auto book = figure.book().lock(); !book) return -1;
+  else return edition_number(book->name());
 }

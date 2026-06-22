@@ -528,6 +528,7 @@ std::shared_ptr<pepp::Book> pepp::BuiltinRegistry::load_book(const std::string &
           SPDLOG_WARN("Failed to load manifest {} for {}", next, book->name());
         } else if (std::holds_alternative<_Figure>(item)) {
           auto figure = std::get<_Figure>(item);
+          figure->set_book(book);
           revisit.push_back({next, figure});
           if (figure->is_problem()) book->add_problem(figure);
           else book->add_figure(figure);

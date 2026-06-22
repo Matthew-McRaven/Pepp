@@ -27,6 +27,7 @@
 namespace pepp {
 class Fragment;
 class Test;
+class Book;
 class Figure {
 public:
   Figure(pepp::Architecture arch, pepp::Abstraction level, pepp::Features features, std::string prefix,
@@ -69,6 +70,9 @@ public:
   std::string default_fragment_text() const;
   std::string default_os_text() const;
 
+  std::weak_ptr<Book> book() const;
+  void set_book(std::weak_ptr<Book> book);
+
 private:
   const pepp::Architecture _arch;
   const pepp::Abstraction _level;
@@ -82,6 +86,7 @@ private:
   std::map<std::string, const Fragment *> _named_fragments = {};
   std::vector<const Fragment *> _all_fragments = {};
   std::string _default_fragment_name = {};
+  std::weak_ptr<Book> _book = {};
 };
 
 } // namespace pepp

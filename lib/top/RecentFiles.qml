@@ -312,6 +312,7 @@ Item {
                             required property string name
                             required property string type
                             required property string description
+                            required property string edition
 
                             radius: 5
                             color: palette.window
@@ -352,13 +353,20 @@ Item {
                                     //  Spacer
                                     Layout.fillHeight: true
                                 }
-                                Label {
+                                RowLayout {
                                     Layout.fillWidth: true
-
-                                    text: `<b>Figure ${btn2.name}</b> `
-                                    font.pointSize: root.font.pointSize * 1.2
-                                    color: palette.accent
+                                    Label {
+                                        text: `<b>Figure ${btn2.name}</b>`
+                                        font.pointSize: root.font.pointSize * 1.2
+                                        color: palette.accent
+                                    }
+                                    Label {
+                                        text: `<i>${btn2.edition}</i> `
+                                        font.pointSize: root.font.pointSize * .8
+                                        color: palette.accent
+                                    }
                                 }
+
                                 Label {
                                     Layout.fillWidth: true
 

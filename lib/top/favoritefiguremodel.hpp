@@ -32,6 +32,7 @@ public:
     FigurePtrRole = Qt::UserRole + 1,
     NameRole,
     TypeRole,
+    EditionRole,
     DescriptionRole,
   };
   Q_ENUM(Roles);

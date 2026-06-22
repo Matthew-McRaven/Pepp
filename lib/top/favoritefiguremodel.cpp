@@ -42,6 +42,14 @@ QVariant FavoriteFigureModel::data(const QModelIndex &index, int role) const {
                           removeLeading0(QString::fromStdString(fig->name_figure())));
   case (int)Roles::TypeRole: return QString::fromStdString(fig->default_fragment_name());
   case (int)Roles::DescriptionRole: return QString::fromStdString(fig->description());
+  case (int)Roles::EditionRole: {
+    if (auto book = fig->book().lock(); !book) return {};
+    else {
+      auto name = book->name();
+      auto edition = pepp::edition_number(name);
+      return u"%1th Edition"_s.arg(edition);
+    }
+  }
   }
   return QVariant();
 }
@@ -52,6 +60,7 @@ QHash<int, QByteArray> FavoriteFigureModel::roleNames() const {
   base[(int)Roles::NameRole] = "name";
   base[(int)Roles::TypeRole] = "type";
   base[(int)Roles::DescriptionRole] = "description";
+  base[(int)Roles::EditionRole] = "edition";
   return base;
 }
 
@@ -61,10 +70,9 @@ void FavoriteFigureModel::onFavoritesChanged() {
   beginResetModel();
   _figures.clear();
   auto favorites = _favoritesCategory->favorites();
-  auto _6e = helpers::book(6, &*_registry);
   for (const auto &fav : std::as_const(favorites)) {
-    auto f = _6e->find_figure(fav.chapter().toStdString(), fav.figure().toStdString());
-    if (f) {
+    if (auto book = helpers::book(fav.edition(), &*_registry); !book) continue;
+    else if (auto f = book->find_figure(fav.chapter().toStdString(), fav.figure().toStdString()); f) {
       auto fw = std::make_unique<builtins::FigureWrapper>(f);
       QQmlEngine::setObjectOwnership(fw.get(), QQmlEngine::CppOwnership);
       _figures.push_back(std::move(fw));
