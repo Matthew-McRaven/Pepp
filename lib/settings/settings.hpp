@@ -13,6 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#pragma once
 #include <QObject>
 #include <QtQmlIntegration>
 #include "palette.hpp"
@@ -22,6 +23,10 @@
 
 class QJSEngine;
 class QQmlEngine;
+
+namespace builtins {
+class FigureWrapper;
+}
 
 namespace pepp::settings {
 class Category : public QObject {
@@ -257,6 +262,60 @@ public:
   QString source() const override { return "KeymapCategoryDelegate.qml"; };
 };
 
+class FavoriteFigure {
+  Q_GADGET
+  Q_PROPERTY(int edition READ edition CONSTANT)
+  Q_PROPERTY(QString chapter READ chapter CONSTANT)
+  Q_PROPERTY(QString figure READ figure CONSTANT)
+  QML_UNCREATABLE("")
+  QML_VALUE_TYPE(favorite_figure)
+public:
+  FavoriteFigure() = default;
+  FavoriteFigure(int edition, const QString &chapter, const QString &figure)
+      : _edition(edition), _chapter(chapter), _figure(figure) {};
+  FavoriteFigure(const FavoriteFigure &other) noexcept = default;
+  FavoriteFigure &operator=(const FavoriteFigure &other) noexcept = default;
+
+  int edition() const { return _edition; }
+  QString chapter() const { return _chapter; }
+  QString figure() const { return _figure; }
+
+  Qt::strong_ordering operator<=>(const FavoriteFigure &other) const;
+  bool operator==(const FavoriteFigure &other) const = default;
+
+private:
+  int _edition = 0;
+  QString _chapter = "", _figure = "";
+};
+
+QDataStream &operator<<(QDataStream &out, const pepp::settings::FavoriteFigure &rf);
+QDataStream &operator>>(QDataStream &in, pepp::settings::FavoriteFigure &rf);
+
+class FavoriteFigureCategory : public Category {
+  Q_OBJECT
+  QML_NAMED_ELEMENT(FavoriteFigures)
+  Q_PROPERTY(QList<FavoriteFigure> favorites READ favorites NOTIFY favoritesChanged)
+public:
+  explicit FavoriteFigureCategory(QObject *parent = nullptr);
+  QString name() const override;
+  QString source() const override;
+  void sync() override;
+  void resetToDefault() override;
+
+  QList<FavoriteFigure> favorites() const;
+  void clear();
+  void addFavorite(const builtins::FigureWrapper *figure);
+  void removeFavorite(const builtins::FigureWrapper *figure);
+  bool contains(FavoriteFigure figure) const;
+signals:
+  void favoritesChanged();
+
+private:
+  void refreshFavoritesCache() const;
+  mutable QList<FavoriteFigure> _favoritesCache;
+  mutable QSettings _settings;
+};
+
 namespace detail {
 class AppSettingsData {
 public:
@@ -268,6 +327,7 @@ public:
   EditorCategory *editor() const { return _editor; };
   SimulatorCategory *simulator() const { return _simulator; };
   KeyMapCategory *keymap() const { return _keymap; };
+  FavoriteFigureCategory *favorites() const { return _favorites; };
 
 private:
   AppSettingsData();
@@ -277,6 +337,7 @@ private:
   SimulatorCategory *_simulator = nullptr;
   KeyMapCategory *_keymap = nullptr;
   QList<Category *> _categories;
+  FavoriteFigureCategory *_favorites = nullptr;
 };
 
 } // namespace detail
@@ -290,6 +351,7 @@ class AppSettings : public QObject {
   Q_PROPERTY(EditorCategory *editor READ editor NOTIFY editorChanged)
   Q_PROPERTY(SimulatorCategory *simulator READ simulator NOTIFY simulatorChanged)
   Q_PROPERTY(KeyMapCategory *keymap READ keymap NOTIFY keymapChanged)
+  Q_PROPERTY(FavoriteFigureCategory *favorites READ favorites NOTIFY favoritesChanged)
   QML_NAMED_ELEMENT(NuAppSettings)
   Q_CLASSINFO("DefaultProperty", "categories")
 
@@ -302,6 +364,7 @@ public:
   EditorCategory *editor() const;
   SimulatorCategory *simulator() const;
   KeyMapCategory *keymap() const;
+  FavoriteFigureCategory *favorites() const;
   Q_INVOKABLE void loadPalette(const QString &path);
   Q_INVOKABLE void resetToDefault();
 public slots:
@@ -314,6 +377,7 @@ signals:
   void editorChanged();
   void simulatorChanged();
   void keymapChanged();
+  void favoritesChanged();
 
 private:
   detail::AppSettingsData *_data = nullptr;

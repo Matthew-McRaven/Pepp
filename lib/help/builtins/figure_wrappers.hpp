@@ -124,6 +124,7 @@ public:
   FigureWrapper(std::shared_ptr<const pepp::Figure> wrapper) : QObject(nullptr), _wrapper(wrapper) {}
   ~FigureWrapper() = default;
   const pepp::Figure *underlying() const { return _wrapper.get(); }
+  std::shared_ptr<const pepp::Figure> underlying_shared() const { return _wrapper; }
 
   pepp::Architecture arch() const { return _wrapper->arch(); }
   int qml_arch() const { return static_cast<int>(_wrapper->arch()); }

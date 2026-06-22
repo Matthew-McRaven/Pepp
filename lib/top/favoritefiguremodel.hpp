@@ -17,6 +17,7 @@
 #include <QtCore/qabstractitemmodel.h>
 #include <qqmlintegration.h>
 #include "figure_wrappers.hpp"
+#include "settings/settings.hpp"
 
 namespace pepp {
 class BuiltinRegistry;
@@ -40,10 +41,14 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
+  Q_INVOKABLE void add_figure(builtins::FigureWrapper *figure);
+public slots:
+  void onFavoritesChanged();
 signals:
   void rowCountChanged(int);
 
 private:
   std::shared_ptr<pepp::BuiltinRegistry> _registry;
+  pepp::settings::FavoriteFigureCategory *_favoritesCategory;
   std::vector<std::unique_ptr<builtins::FigureWrapper>> _figures;
 };

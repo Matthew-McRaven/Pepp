@@ -38,6 +38,8 @@ static const char *themeRootKey = "Theme";
 static const char *themePathKey = "Theme/activePath";
 // Simulator
 static const char *maxStepbackBufferKBKey = "Simulator/maxStepbackBufferKB";
+// Favorite Figures
+static const char *favoriteFiguresKey = "FavoriteFigures/figures";
 
 Qt::strong_ordering pepp::settings::RecentFile::operator<=>(const RecentFile &other) const {
   if (_arch != other._arch) return qCompareThreeWay(_arch, other._arch);
@@ -437,6 +439,7 @@ pepp::settings::detail::AppSettingsData::AppSettingsData() {
   _categories.append(_editor = new EditorCategory(nullptr));
   _categories.append(_simulator = new SimulatorCategory(nullptr));
   _categories.append(_keymap = new KeyMapCategory(nullptr));
+  _favorites = new FavoriteFigureCategory(nullptr);
 }
 
 pepp::settings::AppSettings::AppSettings(QObject *parent)
@@ -446,6 +449,7 @@ QList<pepp::settings::Category *> pepp::settings::AppSettings::categories() cons
 pepp::settings::GeneralCategory *pepp::settings::AppSettings::general() const { return _data->general(); }
 pepp::settings::ThemeCategory *pepp::settings::AppSettings::theme() const { return _data->theme(); }
 pepp::settings::Palette *pepp::settings::AppSettings::themePalette() const { return _data->themePalette(); }
+pepp::settings::FavoriteFigureCategory *pepp::settings::AppSettings::favorites() const { return _data->favorites(); }
 pepp::settings::EditorCategory *pepp::settings::AppSettings::editor() const { return _data->editor(); }
 pepp::settings::SimulatorCategory *pepp::settings::AppSettings::simulator() const { return _data->simulator(); }
 pepp::settings::KeyMapCategory *pepp::settings::AppSettings::keymap() const { return _data->keymap(); }
@@ -461,4 +465,106 @@ void pepp::settings::AppSettings::resetToDefault() {
 
 void pepp::settings::AppSettings::sync() {
   for (auto category : categories()) category->sync();
+  _data->favorites()->sync();
+}
+
+Qt::strong_ordering pepp::settings::FavoriteFigure::operator<=>(const FavoriteFigure &other) const {
+  if (auto cmp = _edition <=> other._edition; cmp != Qt::strong_ordering::equal) return cmp;
+  else if (auto cmp = _chapter <=> other._chapter; cmp != Qt::strong_ordering::equal) return cmp;
+  else return _figure <=> other._figure;
+}
+
+QDataStream &pepp::settings::operator<<(QDataStream &out, const FavoriteFigure &ff) {
+  out << static_cast<qint32>(ff.edition());
+  out << ff.chapter();
+  out << ff.figure();
+  return out;
+}
+
+QDataStream &pepp::settings::operator>>(QDataStream &in, FavoriteFigure &ff) {
+  qint32 editionInt;
+  QString chapter, figure;
+
+  in >> editionInt >> chapter >> figure;
+  ff = pepp::settings::FavoriteFigure(editionInt, chapter, figure);
+
+  return in;
+}
+
+QList<pepp::settings::FavoriteFigure> pepp::settings::FavoriteFigureCategory::favorites() const {
+  if (_favoritesCache.empty()) refreshFavoritesCache();
+  return _favoritesCache;
+}
+
+pepp::settings::FavoriteFigureCategory::FavoriteFigureCategory(QObject *parent) : Category(parent) {
+  if (!_settings.contains(favoriteFiguresKey)) FavoriteFigureCategory::resetToDefault();
+}
+
+QString pepp::settings::FavoriteFigureCategory::name() const { return "Favorite Figures"; }
+
+QString pepp::settings::FavoriteFigureCategory::source() const { return ""; }
+
+void pepp::settings::FavoriteFigureCategory::sync() { _settings.sync(); }
+
+void pepp::settings::FavoriteFigureCategory::resetToDefault() {
+  _favoritesCache.clear();
+  _favoritesCache.push_back(FavoriteFigure(6, "05", "03"));
+  _favoritesCache.push_back(FavoriteFigure(6, "05", "06"));
+  _favoritesCache.push_back(FavoriteFigure(6, "05", "07"));
+  _favoritesCache.push_back(FavoriteFigure(6, "05", "10"));
+  QVariantList out;
+  for (const auto &item : std::as_const(_favoritesCache)) out.emplaceBack(QVariant::fromValue(item));
+  _settings.setValue(favoriteFiguresKey, out);
+};
+
+void pepp::settings::FavoriteFigureCategory::clear() {
+  _favoritesCache.clear();
+  _settings.setValue(favoriteFiguresKey, QVariantList{});
+  emit favoritesChanged();
+}
+
+void pepp::settings::FavoriteFigureCategory::addFavorite(const builtins::FigureWrapper *figure) {
+  // int edition = figure->underlying()->;
+  // TODO: edition needs to be included in figure! Hardcode to 6.
+  int edition = 6;
+  const QString chapter = QString::fromStdString(figure->underlying()->name_chapter());
+  const QString fig = QString::fromStdString(figure->underlying()->name_figure());
+  FavoriteFigure newFav{edition, chapter, fig};
+  if (_favoritesCache.contains(newFav)) return;
+  _favoritesCache.push_back(newFav);
+  QVariantList out;
+  for (const auto &item : std::as_const(_favoritesCache)) out.emplaceBack(QVariant::fromValue(item));
+  _settings.setValue(favoriteFiguresKey, out);
+  emit favoritesChanged();
+}
+
+void pepp::settings::FavoriteFigureCategory::removeFavorite(const builtins::FigureWrapper *figure) {
+  // int edition = figure->underlying()->;
+  // TODO: edition needs to be included in figure! Hardcode to 6.
+  int edition = 6;
+  const QString chapter = QString::fromStdString(figure->underlying()->name_chapter());
+  const QString fig = QString::fromStdString(figure->underlying()->name_figure());
+  FavoriteFigure newFav{edition, chapter, fig};
+  if (!_favoritesCache.contains(newFav)) return;
+  _favoritesCache.removeIf([&](auto i) { return i == newFav; });
+  QVariantList out;
+  for (const auto &item : std::as_const(_favoritesCache)) out.emplaceBack(QVariant::fromValue(item));
+  _settings.setValue(favoriteFiguresKey, out);
+  emit favoritesChanged();
+}
+
+bool pepp::settings::FavoriteFigureCategory::contains(FavoriteFigure figure) const {
+  if (_favoritesCache.empty()) refreshFavoritesCache();
+  return _favoritesCache.contains(figure);
+}
+
+void pepp::settings::FavoriteFigureCategory::refreshFavoritesCache() const {
+  auto value = _settings.value(favoriteFiguresKey, QVariantList{});
+  if (!value.isValid()) _favoritesCache = {};
+  else if (!value.canConvert<QVariantList>()) _favoritesCache = {};
+  QVariantList tmpList = value.toList();
+  for (auto &item : tmpList) {
+    if (item.canConvert<FavoriteFigure>()) _favoritesCache.append(item.value<FavoriteFigure>());
+    else qWarning() << "Invalid item in favorites  cache:" << item;
+  }
 }
