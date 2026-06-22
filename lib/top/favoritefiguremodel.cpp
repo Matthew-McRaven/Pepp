@@ -78,6 +78,8 @@ void FavoriteFigureModel::onFavoritesChanged() {
       _figures.push_back(std::move(fw));
     }
   }
-  std::sort(_figures.begin(), _figures.end());
+  std::sort(_figures.begin(), _figures.end(),
+            [](const std::unique_ptr<builtins::FigureWrapper> &lhs,
+               const std::unique_ptr<builtins::FigureWrapper> &rhs) { return *lhs < *rhs; });
   endResetModel();
 }

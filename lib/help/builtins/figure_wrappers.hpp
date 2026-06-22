@@ -153,6 +153,8 @@ public:
   QVariantList tests() const;
   QVariantMap namedFragments() const;
 
+  std::strong_ordering operator<=>(const FigureWrapper &rhs) const;
+
 private:
   std::shared_ptr<const pepp::Figure> _wrapper;
 };

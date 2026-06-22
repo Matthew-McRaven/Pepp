@@ -43,6 +43,15 @@ QVariantMap builtins::FigureWrapper::namedFragments() const {
   return v;
 }
 
+std::strong_ordering builtins::FigureWrapper::operator<=>(const FigureWrapper &rhs) const {
+  auto lhs_book = _wrapper->book().lock(), rhs_book = rhs._wrapper->book().lock();
+  if (!lhs_book || !rhs_book) throw std::logic_error("You have no book. This should be impossible");
+  auto lhs_ed = pepp::edition_number(lhs_book->name()), rhs_ed = pepp::edition_number(rhs_book->name());
+  if (lhs_ed != rhs_ed) return lhs_ed <=> rhs_ed;
+  if (auto cmp = _wrapper->name_chapter() <=> rhs._wrapper->name_chapter(); cmp != 0) return cmp;
+  return _wrapper->name_figure() <=> rhs._wrapper->name_figure();
+}
+
 const QVariantList builtins::BookWrapper::figures() const {
   // Avoid reallocation on every call by caching return value.
   if (!_figures.isEmpty()) return _figures;
