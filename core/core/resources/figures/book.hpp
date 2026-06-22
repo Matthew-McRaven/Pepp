@@ -38,6 +38,14 @@ struct MacroFile {
 };
 
 class Figure;
+// Given the name of a Computer Systems edition, return the edition number (4..6). If not a recognized edition, return
+// -1.
+int edition_number(const std::string &book_name);
+// Give the above edition number (4..6) return the full name of the edition, or "Unknown" if not recognized.
+const std::string &edition_name(int edition_numner);
+// Return the edition of Computer Systems to which a figure belongs, or -1.
+int figure_edition(const pepp::Figure &figure);
+
 class Book {
 public:
   using FigureVec = const std::vector<std::shared_ptr<Figure>> &;

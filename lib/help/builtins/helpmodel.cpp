@@ -112,10 +112,6 @@ QVariant HelpModel::data(const QModelIndex &index, int role) const {
   case (int)Roles::CanFavorite: return entry->canFavorite;
   case (int)Roles::IsFavorite: {
     if (!entry->figureWrapper) return QVariant();
-    // TODO: pick the right edition
-    const int ed = 6;
-    const QString ch = entry->figureWrapper->chapterName();
-    const QString fig = entry->figureWrapper->figureName();
     return entry->isFavorite;
   }
   }
@@ -190,8 +186,8 @@ void HelpModel::onFavoritesChanged() {
     for (int i = 0; i < rowCount(index); i++) recurse(this->index(i, 0, index));
   };
   recurse(QModelIndex());
-  int ed = 6;
   for (const auto &[index, entry] : to_update) {
+    int ed = pepp::figure_edition(*entry->figureWrapper->underlying());
     const QString ch = entry->figureWrapper->chapterName();
     const QString fig = entry->figureWrapper->figureName();
     const auto ff = pepp::settings::FavoriteFigure(ed, ch, fig);

@@ -105,3 +105,7 @@ std::string pepp::Figure::default_os_text() const {
   if (_default_os) return _default_os->default_fragment_text();
   return {};
 }
+
+void pepp::Figure::set_book(std::weak_ptr<Book> book) { _book = book; }
+
+std::weak_ptr<pepp::Book> pepp::Figure::book() const { return _book; }

@@ -137,14 +137,7 @@ std::shared_ptr<pepp::BuiltinRegistry> helpers::registry_with_assemblers(bool us
 }
 
 std::shared_ptr<const pepp::Book> helpers::book(int ed, const pepp::BuiltinRegistry *reg) {
-  std::string book_name;
-  switch (ed) {
-  case 4: book_name = "Computer Systems, 4th Edition"; break;
-  case 5: book_name = "Computer Systems, 5th Edition"; break;
-  case 6: book_name = "Computer Systems, 6th Edition"; break;
-  default: return nullptr;
-  }
-
+  std::string book_name = pepp::edition_name(ed);
   auto book = reg->find_book(book_name);
   return book;
 }
