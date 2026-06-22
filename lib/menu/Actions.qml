@@ -289,11 +289,11 @@ QtObject {
             enabled: project?.allowedSteps & StepEnableFlags.Step
             property string nativeText: ""
             onTriggered: {
-                if(project.onISAStep)
+                if (project.onISAStep)
                     project.onISAStep();
-                else if(project.onMAStep)
+                else if (project.onMAStep)
                     project.onMAStep();
-                else if(project.onStep)
+                else if (project.onStep)
                     project.onStep();
             }
             text: qsTr("&Single Step")
@@ -321,12 +321,12 @@ QtObject {
         }
         readonly property var removeAllBreakpoints: Action {
             onTriggered: {
-                if(project.onISARemoveAllBreakpoints)
+                if (project.onISARemoveAllBreakpoints)
                     project.onISARemoveAllBreakpoints();
-                else if(project.onMARemoveAllBreakpoints)
+                else if (project.onMARemoveAllBreakpoints)
                     project.onMARemoveAllBreakpoints();
-                else if(project.onRemoveAllBreakpoints)
-                     project.onRemoveAllBreakpoints();
+                else if (project.onRemoveAllBreakpoints)
+                    project.onRemoveAllBreakpoints();
             }
             text: qsTr("&Remove All Breakpoints")
             icon.source: "image://icons/blank.svg"
@@ -366,6 +366,11 @@ QtObject {
             icon.source: "image://icons/blank.svg"
             onShortcutChanged: updateNativeText(this)
         }
+        readonly property var clearFigures: Action {
+            text: qsTr("&Clear Favorite Figures")
+            icon.source: "image://icons/blank.svg"
+            onShortcutChanged: updateNativeText(this)
+        }
     }
 
     readonly property var appdev: QtObject {
@@ -380,6 +385,11 @@ QtObject {
         readonly property var openSelftest: Action {
             text: qsTr("Open self-test GUI")
             icon.source: "image://icons/blank.svg"
+        }
+        readonly property var defaultFigures: Action {
+            text: qsTr("&Reload Initial Favorites")
+            icon.source: "image://icons/blank.svg"
+            onShortcutChanged: updateNativeText(this)
         }
     }
 }

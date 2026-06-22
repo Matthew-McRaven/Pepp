@@ -515,6 +515,11 @@ void pepp::settings::FavoriteFigureCategory::resetToDefault() {
   QVariantList out;
   for (const auto &item : std::as_const(_favoritesCache)) out.emplaceBack(QVariant::fromValue(item));
   _settings.setValue(favoriteFiguresKey, out);
+}
+
+void pepp::settings::FavoriteFigureCategory::reset() {
+  resetToDefault();
+  emit favoritesChanged();
 };
 
 void pepp::settings::FavoriteFigureCategory::clear() {
