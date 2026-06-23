@@ -173,7 +173,18 @@ Item {
                 CheckBox {
                     anchors {
                         left: parent.left
-                        verticalCenter: parent.verticalCenter
+                        top: parent.top
+                        bottom: parent.bottom
+                        leftMargin: 5
+                    }
+                    indicator: Text {
+                        text: "★"
+                        font.pixelSize: 14
+                        color: model.isFavorite ? settings.extPalette.circuitSecondary.background : settings.extPalette.brightText.background
+                        visible: model.isFavorite || parent.hovered
+                        verticalAlignment: Text.AlignVCenter
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
                     }
                     visible: model.canFavorite
                     checked: model.isFavorite === true
