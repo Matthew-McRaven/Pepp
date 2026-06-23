@@ -64,7 +64,10 @@ QHash<int, QByteArray> FavoriteFigureModel::roleNames() const {
   return base;
 }
 
-void FavoriteFigureModel::add_figure(builtins::FigureWrapper *figure) { _favoritesCategory->addFavorite(figure); }
+void FavoriteFigureModel::add_figure(builtins::FigureWrapper *figure) {
+  _favoritesCategory->addFavorite(figure);
+  emit rowCountChanged(_figures.size());
+}
 
 void FavoriteFigureModel::onFavoritesChanged() {
   beginResetModel();
@@ -81,5 +84,6 @@ void FavoriteFigureModel::onFavoritesChanged() {
   std::sort(_figures.begin(), _figures.end(),
             [](const std::unique_ptr<builtins::FigureWrapper> &lhs,
                const std::unique_ptr<builtins::FigureWrapper> &rhs) { return *lhs < *rhs; });
+  emit rowCountChanged(_figures.size());
   endResetModel();
 }
