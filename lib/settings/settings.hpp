@@ -387,3 +387,4 @@ private:
 };
 } // namespace pepp::settings
 Q_DECLARE_METATYPE(pepp::settings::RecentFile)
+Q_DECLARE_METATYPE(pepp::settings::FavoriteFigure)
