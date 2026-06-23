@@ -244,7 +244,7 @@ MenuBar {
             onTriggered: actions.appdev.clearChangelogCache.trigger()
         }
         ShortcutMenuItem {
-            onTriggered: actions.appdev.defaultFigures.trigger()
+            action: actions.appdev.defaultFigures
         }
         ShortcutMenuItem {
             text: actions.appdev.openSelftest.text
