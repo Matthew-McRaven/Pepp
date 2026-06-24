@@ -34,8 +34,6 @@ public:
   void setBlueprint(u32 blueprint);
 
   QVariant blueprintTypes() { return QVariant::fromValue(_currentBlueprints); }
-  // Q_INVOKABLE QVariant blueprintCount() { return QVariant::fromValue(_currentBlueprints.size()); }
-  //  Q_INVOKABLE u32 blueprint(int index) const;
 
 signals:
   void projectChanged();
