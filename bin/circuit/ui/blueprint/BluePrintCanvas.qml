@@ -1,0 +1,56 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.VectorImage
+
+Item {
+    id: root
+    /*property var currentStamp: null
+    property var currentIndex: tableView.selectionModel.currentIndex //selectedItem()
+    property alias dataModel: tableView.model
+
+    function deleteItem(index) {
+        root.dataModel.clearItemData(index);
+        root.dataModel.update(index);
+    }
+
+    function addItem(index, file, role = DiagramProperty.ImageSource) {
+        root.dataModel.setData(index, file, role);
+        root.dataModel.update(index);
+    }*/
+
+    ScrollView {
+        id: scrollView
+        anchors.fill: root
+
+        contentItem: Column {
+            spacing: 0
+
+            Repeater {
+                id: columns
+                model: 10
+                Row {
+                    Repeater {
+                        id: rows
+                        model: 10
+                        GridLines {}
+                    }
+                }
+            }
+        }   //  contentItem
+    }   //  ScrollView
+
+    /*VectorImage {
+        id: dragImage
+        width: 75
+        height: 75
+
+        opacity: .5
+        visible: dragArea.drag.active
+        source: "qrc:/inverter"
+        fillMode: Image.PreserveAspectFit
+        preferredRendererType: VectorImage.CurveRenderer
+    }*/
+}   //  Item
