@@ -5,6 +5,8 @@ import QtQuick.Controls
 import QtQuick.VectorImage
 import QtQuick.Layouts
 
+import "./blueprint" as Bp
+
 Rectangle {
     id: root
 
@@ -138,7 +140,13 @@ Rectangle {
                 }
             }   //  Pane
 
-            DiagramCanvas {
+            Bp.BluePrintCanvas {
+                id: canvas
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
+
+            /*DiagramCanvas {
                 id: canvas
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -146,7 +154,7 @@ Rectangle {
                 blueprint: sourceListView.blueprint
                 filter: BlueprintLibraryModel.None
                 z: -1
-            }
+            }*/
         }   //  ColumnLayout
     }   //  SplitView
 }

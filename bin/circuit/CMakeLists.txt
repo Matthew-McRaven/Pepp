@@ -14,6 +14,10 @@ qt_add_qml_module(
   ui/DiagramCanvas.qml
   ui/ComponentEditor.qml
   ui/BluePrintListView.qml
+  ui/blueprint/BluePrintEditor.qml
+  ui/blueprint/BluePrintCanvas.qml
+  ui/blueprint/GridLines.qml
+  ui/blueprint/BluePrint.qml
   SOURCES
 
   ui/blueprintlibrarymodel.hpp
