@@ -8,8 +8,8 @@
 #include "sim_device.hpp"
 
 class Simulator : public Device {
-  static constexpr Descriptor _desc{.id = Device::ID{0}, .basename = "/", .fullname = "/"};
-  static constexpr Descriptor _clocks{
+  inline static const Descriptor _desc{.id = Device::ID{0}, .basename = "/", .fullname = "/"};
+  inline static const Descriptor _clocks{
       .id = Device::ID{1}, .basename = "clocktree", .fullname = _desc.fullname + "clocktree"};
 
 public:
