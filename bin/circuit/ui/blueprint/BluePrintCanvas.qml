@@ -7,31 +7,31 @@ import QtQuick.VectorImage
 
 Item {
     id: root
-    /*property var currentStamp: null
-    property var currentIndex: tableView.selectionModel.currentIndex //selectedItem()
-    property alias dataModel: tableView.model
-
-    function deleteItem(index) {
-        root.dataModel.clearItemData(index);
-        root.dataModel.update(index);
-    }
-
-    function addItem(index, file, role = DiagramProperty.ImageSource) {
-        root.dataModel.setData(index, file, role);
-        root.dataModel.update(index);
-    }*/
-
-    ScrollView {
+    /*ScrollView {
         id: scrollView
-        anchors.fill: root
+        anchors.fill: parent
 
-        contentItem: Column {
+        contentItem:*/
+    Pane {
+        spacing: 0
+        anchors.fill: parent
+        contentWidth: image.implicitWidth
+        contentHeight: image.implicitHeight
+
+        background: Rectangle {
+            color: "#f0f0f0"
+        }
+
+        Column {
             spacing: 0
+            anchors.top: parent.top
+            anchors.left: parent.left
 
             Repeater {
                 id: columns
                 model: 10
                 Row {
+                    spacing: 0
                     Repeater {
                         id: rows
                         model: 10
@@ -40,17 +40,20 @@ Item {
                 }
             }
         }   //  contentItem
-    }   //  ScrollView
 
-    /*VectorImage {
-        id: dragImage
-        width: 75
-        height: 75
+        VectorImage {
+            id: image
 
-        opacity: .5
-        visible: dragArea.drag.active
-        source: "qrc:/inverter"
-        fillMode: Image.PreserveAspectFit
-        preferredRendererType: VectorImage.CurveRenderer
-    }*/
+            z: -1
+            anchors.top: parent.top
+            anchors.left: parent.left
+            width: 300
+            height: 200
+
+            source: "qrc:/or"
+            //fillMode: Image.PreserveAspectFit
+            preferredRendererType: VectorImage.CurveRenderer
+        }
+    }   //  Pane
+    //}   //  ScrollView
 }   //  Item
