@@ -96,6 +96,7 @@ struct Result {
 };
 
 struct Target {
+  static constexpr Device::Type TypeMask = Device::Type::MemoryTarget;
   virtual ~Target() = default;
   // Needed by Translators to perform standalone address translation.
   virtual Device::ID device_ID() const = 0;
@@ -123,7 +124,8 @@ struct Target {
   }
 };
 
-template <typename Address> struct Initiator {
+struct Initiator {
+  static constexpr Device::Type TypeMask = Device::Type::MemoryInitiator;
   virtual ~Initiator() = default;
   // Sets the memory backing for a particular port (i.e., set the I and D caches
   // separately) If port is nullptr, then all ports will use the target,

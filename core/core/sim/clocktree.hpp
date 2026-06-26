@@ -65,6 +65,7 @@ consteval void allow_opaque_handle_increment(PulseSchedule::PulseIndex);
 consteval void allow_opaque_handle_add(PulseSchedule::PulseIndex);
 
 struct ClockSource : public Device {
+  static constexpr Device::Type TypeMask = Device::Type::ClockSource;
   ClockSource(Device::Descriptor desc) : Device(std::move(desc)) {}
   virtual constexpr PulseSchedule schedule() const = 0;
   constexpr Device::ID id() const { return Device::descriptor().id; }
@@ -126,6 +127,7 @@ private:
 };
 
 struct ClockSink {
+  static constexpr Device::Type TypeMask = Device::Type::ClockSink;
   virtual ~ClockSink() = default;
   virtual void clock_tick(PulseSchedule::PulseIndex idx, u64 tick) = 0;
   virtual void set_clock_source(const ClockSource *src) = 0;

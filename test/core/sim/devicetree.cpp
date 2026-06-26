@@ -15,9 +15,18 @@
  */
 #include <catch.hpp>
 #include <ranges>
+#include "core/math/bitmanip/enums.hpp"
 #include "core/sim/adevice.hpp"
 
+struct DeviceWithType : public Device {
+  DeviceWithType(Descriptor desc, Type type) : Device(desc), _type(type) {}
+  Type type() const override { return _type; }
+
+private:
+  Type _type;
+};
 TEST_CASE("DeviceTree", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
+  using namespace bits;
   static const Device::Descriptor root_desc{Device::ID{0}, "/", "/", "root"};
   static const Device::Descriptor alpha_desc{Device::ID{1}, "alpha", "/alpha", "alpha-compatible"};
   static const Device::Descriptor beta_desc{Device::ID{2}, "beta", "/beta", "beta-compatible"};
@@ -25,7 +34,9 @@ TEST_CASE("DeviceTree", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
                                              "delta-compatible"};
   static const Device::Descriptor gamma_desc{Device::ID{3}, "gamma", alpha_desc.child_name("gamma"),
                                              "gamma-compatible"};
-  static Device root(root_desc), alpha(alpha_desc), beta(beta_desc), delta(delta_desc), gamma(gamma_desc);
+  using T = Device::Type;
+  static DeviceWithType root(root_desc, T::Root), alpha(alpha_desc, T::ClockSink | T::MemoryInitiator),
+      beta(beta_desc, T::MemoryTarget), delta(delta_desc, T::MemoryTarget), gamma(gamma_desc, T::MemoryTarget);
   DeviceTree root_tree(&root, nullptr);
   auto alpha_tree = root_tree.append_child(&alpha);
   auto beta_tree = root_tree.append_child(&beta);
@@ -51,5 +62,9 @@ TEST_CASE("DeviceTree", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
   SECTION("Filter for ID") {
     auto view = root_tree | std::views::filter([](Device *dt) { return dt->descriptor().id == Device::ID{1}; });
     CHECK(std::distance(view.begin(), view.end()) == 1);
+  }
+  SECTION("Filter for type") {
+    auto view = root_tree | std::views::filter([](Device *dt) { return any(dt->type() & T::MemoryTarget); });
+    CHECK(std::distance(view.begin(), view.end()) == 3);
   }
 }
