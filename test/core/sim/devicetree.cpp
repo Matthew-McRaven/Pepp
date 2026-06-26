@@ -13,10 +13,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "core/sim/devicetree.hpp"
 #include <catch.hpp>
 #include <ranges>
 #include "core/math/bitmanip/enums.hpp"
-#include "core/sim/adevice.hpp"
+#include "core/sim/api.hpp"
 
 struct DeviceWithType : public Device {
   DeviceWithType(Descriptor desc, Type type) : Device(desc), _type(type) {}
@@ -25,6 +26,24 @@ struct DeviceWithType : public Device {
 private:
   Type _type;
 };
+
+struct SubclassingDevice : public Device, ClockSource {
+  SubclassingDevice(Descriptor desc) : Device(desc) {}
+  Type type() const override { return Type::ClockSource; }
+  PulseSchedule schedule() const override { return {.period = 100, .jitter = 10, .seed = 0}; }
+};
+
+TEST_CASE("New devices test", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
+  using namespace bits;
+  static const Device::Descriptor desc{Device::ID{0}, "test", "/test", "test-compatible"};
+  SubclassingDevice dev(desc);
+  auto tree = DeviceTree(&dev, nullptr);
+  CHECK(tree.device == &dev);
+  auto erased = tree.device;
+  CHECK(any(erased->type() & Device::Type::ClockSource));
+  CHECK(erased->capability<ClockSource>() == &dev);
+  CHECK(erased->capability<ClockSink>() == nullptr);
+}
 TEST_CASE("DeviceTree", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
   using namespace bits;
   static const Device::Descriptor root_desc{Device::ID{0}, "/", "/", "root"};

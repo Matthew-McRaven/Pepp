@@ -17,7 +17,8 @@
 #include <map>
 #include <memory>
 #include <vector>
-#include "core/sim/adevice.hpp"
+#include "core/sim/api.hpp"
+#include "core/sim/devicetree.hpp"
 
 /*struct Scheduler {
   virtual tick::Recipient *next(tick::Type current) = 0;

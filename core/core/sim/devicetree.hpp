@@ -1,56 +1,6 @@
 #pragma once
 
-#include <functional>
-#include <string>
-#include "core/ds/opaque_handle.hpp"
-#include "core/integers.h"
-
-struct Device {
-  using ID = pepp::OpaqueHandle<struct DeviceID, u8>;
-  using IDGenerator = std::function<Device::ID()>;
-  struct Descriptor {
-    ID id = Device::ID{0};
-    std::string basename = "", fullname = "", compatible = "";
-    std::string child_name(std::string_view child_basename) const;
-  };
-  // Bitflags telling you what interfaces this abstract device implements.
-  // e.g., if any(type() & Type::MemoryTarget), then this device implements the MemoryTarget interface.
-  // You could then get a pointer to the interface by calling capability(Type::MemoryTarget).
-  // It is a bitmask, allowing a device to implement multiple interfaces.
-  enum class Type : u64 {
-    None = 0,
-    Root = 1,
-    // Generic device types
-    MemoryTarget = Root << 1,
-    MemoryInitiator = MemoryTarget << 1,
-    ClockSource = MemoryInitiator << 1,
-    ClockSink = ClockSource << 1,
-    MASK = (ClockSink << 1) - 1,
-  };
-
-  Device(Descriptor desc) : _desc(desc) {}
-  virtual ~Device() = default;
-  const Descriptor &descriptor() const { return _desc; }
-  // Helper to test if this device implements a particular interface type.
-  virtual Type type() const { return Type::None; }
-  // Features specific to the concrete  instance of the device.
-  virtual u64 features() const { return 0; }
-  // Given one of the interface types, return an instance of that interface if this device implements it, otherwise
-  // return nullptr.
-  template <typename Concrete> Concrete *capability(Device *d) {
-    if (d->type() & Concrete::TypeMask) return static_cast<Concrete *>(d->capability(Concrete::TypeMask));
-    return nullptr;
-  }
-
-protected:
-  // Subclasses should override this to return a pointer to the appropriate interface if the requested type is
-  // supported, otherwise nullptr.
-  virtual void *capability(Type) { return nullptr; }
-
-private:
-  Descriptor _desc;
-};
-consteval void is_bitflags(Device::Type);
+#include "./api.hpp"
 
 struct DeviceTree {
   DeviceTree(Device *device, DeviceTree *parent) : device(device), parent(parent), owned(nullptr) {}
