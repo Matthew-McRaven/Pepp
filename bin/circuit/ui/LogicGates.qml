@@ -140,13 +140,7 @@ Rectangle {
                 }
             }   //  Pane
 
-            Bp.BluePrintCanvas {
-                id: canvas
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
-
-            /*DiagramCanvas {
+            DiagramCanvas {
                 id: canvas
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -154,7 +148,7 @@ Rectangle {
                 blueprint: sourceListView.blueprint
                 filter: BlueprintLibraryModel.None
                 z: -1
-            }*/
+            }
         }   //  ColumnLayout
     }   //  SplitView
 }
