@@ -32,6 +32,7 @@ class Buffer;
 
 class System : public Device {
 public:
+  static constexpr Device::Type TypeMask = Device::Type::SystemRoot;
   System();
   ~System() = default;
   System(const System &) = delete;
