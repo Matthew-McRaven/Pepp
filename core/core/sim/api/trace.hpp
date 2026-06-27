@@ -24,6 +24,7 @@
 
 class Buffer {
 public:
+  static constexpr Device::Type TypeMask = Device::Type::TraceBuffer;
   virtual ~Buffer() = default;
 
   // Create a new frame header and write it to the buffer
@@ -42,6 +43,24 @@ public:
   virtual bool traced(Device::ID deviceID) const = 0;
 };
 
+class TraceSource {
+public:
+  static constexpr Device::Type TypeMask = Device::Type::TraceSource;
+  virtual ~TraceSource() = default;
+  virtual void set_buffer(Buffer *tb) = 0;
+  virtual const Buffer *buffer() const = 0;
+  virtual void trace(bool enabled) = 0;
+  virtual bool traced() const = 0;
+};
+
+class TraceSink {
+public:
+  static constexpr Device::Type TypeMask = Device::Type::TraceSink;
+  virtual ~TraceSink() = default;
+  virtual bool analyze(void *iter, void *dir) = 0;
+};
+
+// Low-level packets itended for serialization, not for parsing
 namespace packets {
 enum class Types : u8 {
   // no payload nor address
@@ -85,3 +104,11 @@ struct Increment {
 };
 
 } // namespace packets
+
+// Packet actually intended for parsing
+struct Unified {
+  packets::Types type;
+  Device::ID device;
+  u32 address;
+  std::span<const u8> data;
+};
