@@ -83,10 +83,10 @@ bool DeviceTree::Iterator<Const>::operator!=(const Iterator<Other> &o) const {
 template <bool Const>
 DeviceTree::Iterator<Const>::node_ptr DeviceTree::Iterator<Const>::preorder(const DeviceTree *root,
                                                                             DeviceTree *current) {
-  if (!current) return nullptr;
   using node = DeviceTree::Iterator<Const>::node_ptr;
+  if (!current) return nullptr;
   // First child if present, otherwise next sibling, which requires climbing into parent
-  if (!current->children.empty()) return current->children.front().get();
+  else if (!current->children.empty()) return current->children.front().get();
   // Otherwise climb until we find an unvisited next sibling.
   while (current != root && current->parent) {
     // Find the index of the current node in the parent, and return it's right sibling.
