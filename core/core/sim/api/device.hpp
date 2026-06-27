@@ -56,7 +56,7 @@ struct Device {
   virtual ~Device() = default;
   const Descriptor &descriptor() const { return _desc; }
   // Helper to test if this device implements a particular interface type.
-  virtual Type type() const { return Type::None; }
+  virtual Device::Type type() const { return Type::None; }
   // Features specific to the concrete  instance of the device.
   virtual u64 features() const { return 0; }
   // Given one of the interface types, return an instance of that interface if this device implements it, otherwise
@@ -77,3 +77,10 @@ private:
   Descriptor _desc;
 };
 consteval void is_bitflags(Device::Type);
+
+// Can't be inside class def because is_bitflags is not yet visible.
+inline Device *Device::capability(Type t) {
+  using namespace bits;
+  if (any(type() & t)) return this;
+  else return nullptr;
+}
