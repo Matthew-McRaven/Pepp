@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <string>
-#include "./api.hpp"
+#include "core/sim/api/device.hpp"
 
 struct DeviceTree {
   DeviceTree(Device *device, DeviceTree *parent) : device(device), parent(parent), owned(nullptr) {}

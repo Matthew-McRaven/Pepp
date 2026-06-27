@@ -17,7 +17,8 @@
 #include <catch.hpp>
 #include <ranges>
 #include "core/math/bitmanip/enums.hpp"
-#include "core/sim/api.hpp"
+#include "core/sim/api/clock.hpp"
+#include "core/sim/api/device.hpp"
 
 struct DeviceWithType : public Device {
   DeviceWithType(Descriptor desc, Type type) : Device(desc), _type(type) {}

@@ -17,7 +17,7 @@
 #include <map>
 #include <memory>
 #include <vector>
-#include "core/sim/api.hpp"
+#include "core/sim/api/device.hpp"
 #include "core/sim/devicetree.hpp"
 
 /*struct Scheduler {

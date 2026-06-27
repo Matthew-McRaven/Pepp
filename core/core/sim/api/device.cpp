@@ -1,4 +1,4 @@
-#include "core/sim/api.hpp"
+#include "core/sim/api/device.hpp"
 
 Device *Device::capability(Device::Type t) {
   using namespace bits;
