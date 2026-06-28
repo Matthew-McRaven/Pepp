@@ -50,8 +50,6 @@ public:
   bool traced() const override;
 
   // Target interface
-  Device::ID device_ID() const override;
-  Device::Configuration device() const override;
   AddressSpan span() const override;
   Result read(Address address, bits::span<u8> dest, Operation op) const override;
   Result write(Address address, bits::span<const u8> src, Operation op) override;

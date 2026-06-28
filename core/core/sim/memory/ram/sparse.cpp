@@ -27,10 +27,6 @@ void Sparse::trace(bool enabled) {
 
 bool Sparse::traced() const { return _tb ? _tb->traced(_id) : false; }
 
-Device::ID Sparse::device_ID() const { return _id; }
-
-Device::Configuration Sparse::device() const { return _config; }
-
 AddressSpan Sparse::span() const { return _config.span; }
 
 Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) const {

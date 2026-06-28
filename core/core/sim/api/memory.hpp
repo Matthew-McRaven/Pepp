@@ -75,9 +75,6 @@ struct Target {
 
   static constexpr Device::Type TypeMask = Device::Type::MemoryTarget;
   virtual ~Target() = default;
-  // Needed by Translators to perform standalone address translation.
-  virtual Device::ID device_ID() const = 0;
-  virtual Device::Configuration device() const = 0;
 
   virtual AddressSpan span() const = 0;
   virtual Result read(Address address, bits::span<u8> dest, Operation op) const = 0;

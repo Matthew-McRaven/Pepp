@@ -31,10 +31,6 @@ void Dense::trace(bool enabled) {
 
 bool Dense::traced() const { return _tb ? _tb->traced(_id) : false; }
 
-Device::ID Dense::device_ID() const { return _id; }
-
-Device::Configuration Dense::device() const { return _config; }
-
 AddressSpan Dense::span() const { return _config.span; }
 
 Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) const {
