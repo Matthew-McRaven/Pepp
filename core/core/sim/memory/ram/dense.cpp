@@ -1,7 +1,7 @@
 #include "dense.hpp"
 #include "core/sim/memory/errors.hpp"
 
-Dense::Dense(Descriptor device, Device::ID id, AddressSpan span, u8 defaultValue)
+Dense::Dense(Configuration device, Device::ID id, AddressSpan span, u8 defaultValue)
     : Device(std::move(device), id), _fill(defaultValue), _span(span) {
   _data.resize(size_inclusive(_span), _fill);
 }
@@ -30,7 +30,7 @@ bool Dense::traced() const { return _tb ? _tb->traced(Device::id()) : false; }
 
 Device::ID Dense::device_ID() const { return Device::id(); }
 
-Device::Descriptor Dense::device() const { return Device::descriptor(); }
+Device::Configuration Dense::device() const { return Device::config(); }
 
 AddressSpan Dense::span() const { return _span; }
 

@@ -22,7 +22,7 @@
 
 class Dense : public Device, Target, Traceable {
 public:
-  Dense(Device::Descriptor device, Device::ID id, AddressSpan span, u8 defaultValue = 0);
+  Dense(Device::Configuration device, Device::ID id, AddressSpan span, u8 defaultValue = 0);
   ~Dense() = default;
   Dense(Dense &&other) noexcept = default;
   Dense &operator=(Dense &&other) = default;
@@ -45,7 +45,7 @@ public:
 
   // Target interface
   Device::ID device_ID() const override;
-  Device::Descriptor device() const override;
+  Device::Configuration device() const override;
   AddressSpan span() const override;
   Result read(Address address, bits::span<u8> dest, Operation op) const override;
   Result write(Address address, bits::span<const u8> src, Operation op) override;

@@ -9,7 +9,7 @@ namespace pepp {
 
 // Describe a jitter-free clock that operates at a fixed frequency
 struct IdealClock : public Device, public ClockSource {
-  IdealClock(Device::Descriptor desc, Device::ID id, u64 period)
+  IdealClock(Device::Configuration desc, Device::ID id, u64 period)
       : Device(std::move(desc), id), ClockSource(), _sched({.period = period}) {}
 
   constexpr PulseSchedule schedule() const override { return _sched; }
@@ -20,7 +20,7 @@ private:
 
 struct ScaledClock : public Device, public ClockSource {
   // if jitter_scale is nont-a-number, it will copy the value from period_scale
-  ScaledClock(Device::Descriptor desc, Device::ID id, std::shared_ptr<ClockSource> parent, float period_scale,
+  ScaledClock(Device::Configuration desc, Device::ID id, std::shared_ptr<ClockSource> parent, float period_scale,
               float jitter_scale = std::numeric_limits<double>::quiet_NaN())
       : Device(std::move(desc), id), ClockSource(), _parent(std::move(parent)), _period_scale(period_scale) {
     _jitter_scale = (jitter_scale != jitter_scale) ? period_scale : jitter_scale;
@@ -41,7 +41,7 @@ private:
 struct MuxClock : public Device, public ClockSource {
   // Connect to clock index 0 by default.
   template <typename... Choices>
-  explicit MuxClock(Device::Descriptor desc, Device::ID id, Choices &&...choices)
+  explicit MuxClock(Device::Configuration desc, Device::ID id, Choices &&...choices)
       : Device(std::move(desc), id), ClockSource(), _index(0), _choices{std::forward<Choices>(choices)...} {
     if (_choices.size() == 0) throw std::runtime_error("MuxClockNode must have at least one choice");
   }

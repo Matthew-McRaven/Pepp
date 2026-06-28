@@ -24,7 +24,7 @@
 struct Device {
   using ID = pepp::OpaqueHandle<struct DeviceID, u8>;
   using IDGenerator = std::function<Device::ID()>;
-  struct Descriptor {
+  struct Configuration {
     std::string basename = "", fullname = "", compatible = "";
     std::string child_name(std::string_view child_basename) const;
   };
@@ -50,9 +50,9 @@ struct Device {
     MASK = (SystemRoot << 1) - 1,
   };
 
-  Device(Descriptor desc, Device::ID id) : _desc(desc), _id(id) {}
+  Device(Configuration desc, Device::ID id) : _conf(desc), _id(id) {}
   virtual ~Device() = default;
-  const Descriptor &descriptor() const { return _desc; }
+  const Configuration &config() const { return _conf; }
   const Device::ID &id() const { return _id; }
   // Helper to test if this device implements a particular interface type.
   virtual Device::Type type() const { return Type::None; }
@@ -73,7 +73,7 @@ protected:
   virtual Device *capability(Device::Type t);
 
 private:
-  Descriptor _desc;
+  Configuration _conf;
   ID _id;
 };
 consteval void is_bitflags(Device::Type);

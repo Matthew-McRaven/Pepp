@@ -20,7 +20,7 @@
 #include "core/sim/memory/errors.hpp"
 
 namespace {
-auto desc = Device::Descriptor{.basename = "dev", .fullname = "/dev"};
+auto desc = Device::Configuration{.basename = "dev", .fullname = "/dev"};
 auto op = Operation{
     .type = Operation::Type::Standard,
     .kind = Operation::Kind::data,

@@ -25,7 +25,7 @@
 
 class Sparse : public Device, public Target, public Traceable {
 public:
-  Sparse(Device::Descriptor device, Device::ID id, AddressSpan span, u8 defaultValue = 0);
+  Sparse(Device::Configuration device, Device::ID id, AddressSpan span, u8 defaultValue = 0);
   ~Sparse() = default;
   Sparse(Sparse &&other) noexcept = default;
   Sparse &operator=(Sparse &&other) = default;
@@ -47,7 +47,7 @@ public:
 
   // Target interface
   Device::ID device_ID() const override;
-  Device::Descriptor device() const override;
+  Device::Configuration device() const override;
   AddressSpan span() const override;
   Result read(Address address, bits::span<u8> dest, Operation op) const override;
   Result write(Address address, bits::span<const u8> src, Operation op) override;
