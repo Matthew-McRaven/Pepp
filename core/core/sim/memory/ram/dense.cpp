@@ -11,7 +11,7 @@ std::span<const u8> Dense::data() const { return std::span<const u8>{_data.data(
 Device::Type Dense::type() const {
   using namespace bits;
   using T = Device::Type;
-  return T::MemoryTarget | T::TraceSource | T::TraceSink;
+  return T::MemoryTarget | T::Traceable;
 }
 
 u64 Dense::features() const { return 0; }
@@ -19,6 +19,8 @@ u64 Dense::features() const { return 0; }
 void Dense::set_buffer(Buffer *tb) { _tb = tb; }
 
 const Buffer *Dense::buffer() const { return _tb; }
+
+bool Dense::can_generate_traces() const { return true; }
 
 void Dense::trace(bool enabled) {
   if (_tb) _tb->trace(Device::descriptor().id, enabled);

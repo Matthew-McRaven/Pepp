@@ -43,21 +43,21 @@ public:
   virtual bool traced(Device::ID deviceID) const = 0;
 };
 
-class TraceSource {
-public:
-  static constexpr Device::Type TypeMask = Device::Type::TraceSource;
-  virtual ~TraceSource() = default;
+// A unified produce-consumer for traces.
+// It expects that anything which produces or consumes traces be a Device (which means it exists in the device tree).
+// can_generate_traces() should return true if the device is ever capable of generating traces in the buffer.
+// traced() should return true if the device is currently generating traces in the buffer, and trace provides a
+// programtic toggle.
+// For example, a debugger would return false from both traced() and can_generate_traces().
+// A memory system would always return true from can_generate_traces(), but traced() would depend on the configuration
+// of the system-under-test.
+class Traceable {
+  static constexpr Device::Type TypeMask = Device::Type::Traceable;
   virtual void set_buffer(Buffer *tb) = 0;
   virtual const Buffer *buffer() const = 0;
+  virtual bool can_generate_traces() const = 0;
   virtual void trace(bool enabled) = 0;
   virtual bool traced() const = 0;
-};
-
-class TraceSink {
-public:
-  static constexpr Device::Type TypeMask = Device::Type::TraceSink;
-  virtual ~TraceSink() = default;
-  virtual bool analyze(void *iter, void *dir) = 0;
 };
 
 // Low-level packets itended for serialization, not for parsing

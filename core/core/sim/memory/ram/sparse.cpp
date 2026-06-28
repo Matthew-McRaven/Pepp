@@ -7,7 +7,7 @@ Sparse::Sparse(Descriptor device, AddressSpan span, u8 defaultValue)
 Device::Type Sparse::type() const {
   using namespace bits;
   using T = Device::Type;
-  return T::MemoryTarget | T::TraceSource | T::TraceSink;
+  return T::MemoryTarget | T::Traceable;
 }
 
 u64 Sparse::features() const { return 0; }
@@ -15,6 +15,8 @@ u64 Sparse::features() const { return 0; }
 void Sparse::set_buffer(Buffer *tb) { _tb = tb; }
 
 const Buffer *Sparse::buffer() const { return _tb; }
+
+bool Sparse::can_generate_traces() const { return true; }
 
 void Sparse::trace(bool enabled) {
   if (_tb) _tb->trace(Device::descriptor().id, enabled);

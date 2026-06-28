@@ -45,10 +45,9 @@ struct Device {
     // Synthetic devices, which are not part of the original device tree but are created by the simulator to allow
     // access to portions of the simulation
     TraceBuffer = ClockSink << 1,
-    TraceSource = TraceBuffer << 1,
-    TraceSink = TraceSource << 1,
+    Traceable = TraceBuffer << 1,
     // Keep the synthetic system root at the end of the list by convention.
-    SystemRoot = TraceSink << 1,
+    SystemRoot = Traceable << 1,
     MASK = (SystemRoot << 1) - 1,
   };
 
