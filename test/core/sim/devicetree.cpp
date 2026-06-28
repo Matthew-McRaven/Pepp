@@ -21,17 +21,27 @@
 #include "core/sim/api/device.hpp"
 
 struct DeviceWithType : public Device {
-  DeviceWithType(Configuration desc, Device::ID id, Type type) : Device(desc, id), _type(type) {}
+  DeviceWithType(Configuration config, Device::ID id, Type type) : Device(), _config(config), _id(id), _type(type) {}
   Type type() const override { return _type; }
+  const Configuration &config() const override { return _config; }
+  const Device::ID id() const override { return _id; }
 
 private:
+  Configuration _config;
+  Device::ID _id;
   Type _type;
 };
 
 struct SubclassingDevice : public Device, ClockSource {
-  SubclassingDevice(Configuration desc, Device::ID id) : Device(desc, id) {}
+  SubclassingDevice(Configuration config, Device::ID id) : Device(), _config(config), _id(id) {}
   Type type() const override { return Type::ClockSource; }
   PulseSchedule schedule() const override { return {.period = 100, .jitter = 10, .seed = 0}; }
+  const Configuration &config() const override { return _config; }
+  const Device::ID id() const override { return _id; }
+
+private:
+  Configuration _config;
+  Device::ID _id;
 };
 
 TEST_CASE("New devices test", "[scope:core][scope:core.sim][kind:unit][arch:*]") {

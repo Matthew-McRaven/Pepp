@@ -20,7 +20,7 @@
 #include "core/sim/memory/errors.hpp"
 
 namespace {
-auto desc = Device::Configuration{.basename = "dev", .fullname = "/dev"};
+auto base_desc = Device::Configuration{.basename = "dev", .fullname = "/dev"};
 auto op = Operation{
     .type = Operation::Type::Standard,
     .kind = Operation::Kind::data,
@@ -40,9 +40,10 @@ TEST_CASE("(new) Dense storage in-bounds access", "[scope:core][scope:core.sim][
       {8, 8},
   }));
   auto span = AddressSpan(offset, 255);
-
+  auto cfg = Dense::Configuration(Device::Configuration{base_desc});
+  cfg.span = span, cfg.fill = 0xFE;
   // Initialize a memory block to a fixed value
-  Dense dev(desc, Device::ID{}, span, 0xFE);
+  Dense dev(cfg, Device::ID{});
 
   // Create an 8-byte temporary buffer.
   u64 reg = 0;
@@ -66,8 +67,10 @@ TEST_CASE("(new) Dense storage in-bounds access", "[scope:core][scope:core.sim][
 TEST_CASE("(new) Dense storage out-of-bounds access", "[scope:core][scope:core.sim][kind:int][arch:*][!throws]") {
   auto span = AddressSpan(0x10, 0x10);
 
+  auto cfg = Dense::Configuration(Device::Configuration{base_desc});
+  cfg.span = span, cfg.fill = 0xFE;
   // Initialize a memory block to a fixed value
-  Dense dev(desc, Device::ID{}, span, 0xFE);
+  Dense dev(cfg, Device::ID{});
 
   // Create an 8-byte temporary buffer.
   u64 reg = 0;

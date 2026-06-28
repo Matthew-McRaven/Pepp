@@ -32,6 +32,9 @@ class Buffer;
 
 class System : public Device {
 public:
+  struct Configuration : public Device::Configuration {
+    // No additional configuration for now.
+  };
   static constexpr Device::Type TypeMask = Device::Type::SystemRoot;
   System();
   ~System() = default;
@@ -39,6 +42,9 @@ public:
   System(System &&) = delete;
   System &operator=(const System &) = delete;
   System &operator=(System &&) = delete;
+
+  const Configuration &config() const override { return _config; }
+  const Device::ID id() const override { return _self_id; }
 
   Device::ID next_ID();
   Device::IDGenerator gen_next_ID();
@@ -55,6 +61,8 @@ public:
   ConcreteDevice *make_device(Device *parent, std::string_view self_name, Args &&...args);
 
 private:
+  Configuration _config{{.basename = "/", .fullname = "/"}};
+  Device::ID _self_id = Device::ID(0);
   Device::ID _next_ID = Device::ID(1);
   Device::IDGenerator _gen_next_ID = [] { return Device::ID(0); };
   static inline Device::Configuration _root_desc{.basename = "/", .fullname = "/"};

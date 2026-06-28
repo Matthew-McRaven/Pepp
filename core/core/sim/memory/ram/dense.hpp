@@ -22,7 +22,11 @@
 
 class Dense : public Device, Target, Traceable {
 public:
-  Dense(Device::Configuration device, Device::ID id, AddressSpan span, u8 defaultValue = 0);
+  struct Configuration : public Device::Configuration {
+    AddressSpan span;
+    u8 fill = 0;
+  };
+  Dense(Configuration device, Device::ID id);
   ~Dense() = default;
   Dense(Dense &&other) noexcept = default;
   Dense &operator=(Dense &&other) = default;
@@ -33,6 +37,8 @@ public:
   std::span<const u8> data() const;
 
   // Device interface
+  const Configuration &config() const override;
+  const Device::ID id() const override;
   Device::Type type() const override;
   u64 features() const override;
 
@@ -53,8 +59,8 @@ public:
   void dump(bits::span<u8> dest) const override;
 
 private:
-  u8 _fill;
-  AddressSpan _span;
+  Configuration _config;
+  Device::ID _id;
   std::vector<u8> _data;
   Buffer *_tb = nullptr;
 };

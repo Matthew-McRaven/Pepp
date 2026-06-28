@@ -50,10 +50,9 @@ struct Device {
     MASK = (SystemRoot << 1) - 1,
   };
 
-  Device(Configuration desc, Device::ID id) : _conf(desc), _id(id) {}
   virtual ~Device() = default;
-  const Configuration &config() const { return _conf; }
-  const Device::ID &id() const { return _id; }
+  virtual const Configuration &config() const = 0;
+  virtual const Device::ID id() const = 0;
   // Helper to test if this device implements a particular interface type.
   virtual Device::Type type() const { return Type::None; }
   // Features specific to the concrete  instance of the device.
@@ -71,10 +70,6 @@ protected:
   // Subclasses should override this to return a pointer to the appropriate interface if the requested type is
   // supported, otherwise nullptr.
   virtual Device *capability(Device::Type t);
-
-private:
-  Configuration _conf;
-  ID _id;
 };
 consteval void is_bitflags(Device::Type);
 

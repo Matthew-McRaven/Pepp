@@ -1,8 +1,11 @@
 #include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/memory/errors.hpp"
 
-Sparse::Sparse(Configuration device, Device::ID id, AddressSpan span, u8 defaultValue)
-    : Device(std::move(device), id), _fill(defaultValue), _span(span) {}
+Sparse::Sparse(Configuration config, Device::ID id) : Device(), _config(config), _id(id) {}
+
+const Sparse::Configuration &Sparse::config() const { return _config; }
+
+const Device::ID Sparse::id() const { return _id; }
 
 Device::Type Sparse::type() const {
   using namespace bits;
@@ -19,23 +22,24 @@ const Buffer *Sparse::buffer() const { return _tb; }
 bool Sparse::can_generate_traces() const { return true; }
 
 void Sparse::trace(bool enabled) {
-  if (_tb) _tb->trace(Device::id(), enabled);
+  if (_tb) _tb->trace(_id, enabled);
 }
 
-bool Sparse::traced() const { return _tb ? _tb->traced(Device::id()) : false; }
+bool Sparse::traced() const { return _tb ? _tb->traced(_id) : false; }
 
-Device::ID Sparse::device_ID() const { return Device::id(); }
+Device::ID Sparse::device_ID() const { return _id; }
 
-Device::Configuration Sparse::device() const { return Device::config(); }
+Device::Configuration Sparse::device() const { return _config; }
 
-AddressSpan Sparse::span() const { return _span; }
+AddressSpan Sparse::span() const { return _config.span; }
 
 Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) const {
   using E = Error;
+  const auto span = _config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, dest.size() - 1));
-  if (address < _span.lower() || max_addr > _span.upper()) throw E(E::Type::OOBAccess, address);
-  auto offset = address - _span.lower();
+  if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
+  auto offset = address - span.lower();
 
   // TODO: emit a pure read to TB.
   // Ignore reads from UI, since this device only issues pure reads.
@@ -53,7 +57,7 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
       assert(src.size() >= len);
       bits::memcpy(dest.first(len), src.first(len));
     } else {
-      std::fill_n(dest.begin(), len, _fill);
+      std::fill_n(dest.begin(), len, _config.fill);
     }
 
     offset += len;
@@ -64,12 +68,12 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
 }
 
 Target::Result Sparse::write(Address address, bits::span<const u8> src, Operation op) {
-
   using E = Error;
+  auto span = _config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, src.size() - 1));
-  if (address < _span.lower() || max_addr > _span.upper()) throw E(E::Type::OOBAccess, address);
-  auto offset = address - _span.lower();
+  if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
+  auto offset = address - span.lower();
 
   // Record changes, even if the come from UI. Otherwise, step back fails.
   // Ignore reads from UI, since this device only issues pure reads.
@@ -100,7 +104,7 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
 
 void Sparse::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
-  _fill = fill;
+  _config.fill = fill;
   for (auto &[_, meta] : _pages) _free.push(meta);
   _pages.clear();
 }
@@ -108,11 +112,10 @@ void Sparse::clear(u8 fill) {
 void Sparse::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   for (const auto &[addr, meta] : _pages) {
-    auto dest_subspan = dest.subspan(addr - _span.lower(), meta.data.size());
+    auto dest_subspan = dest.subspan(addr - _config.span.lower(), meta.data.size());
     const auto src_subspan = bits::span<const u8>{meta.data.data(), meta.data.size()};
     bits::memcpy(dest_subspan, src_subspan);
   }
-  // bits::memcpy(dest, bits::span<const u8>{_data.data(), std::size_t(_data.size())});
 }
 
 Sparse::PageMeta Sparse::make_page(bool init) {
@@ -125,6 +128,6 @@ Sparse::PageMeta Sparse::make_page(bool init) {
     ret = PageMeta{};
     ret.data = _data.back();
   }
-  if (init) std::fill(ret.data.begin(), ret.data.end(), _fill);
+  if (init) std::fill(ret.data.begin(), ret.data.end(), _config.fill);
   return ret;
 }

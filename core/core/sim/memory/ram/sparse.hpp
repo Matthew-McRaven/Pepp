@@ -25,7 +25,11 @@
 
 class Sparse : public Device, public Target, public Traceable {
 public:
-  Sparse(Device::Configuration device, Device::ID id, AddressSpan span, u8 defaultValue = 0);
+  struct Configuration : public Device::Configuration {
+    AddressSpan span;
+    u8 fill = 0;
+  };
+  Sparse(Configuration config, Device::ID id);
   ~Sparse() = default;
   Sparse(Sparse &&other) noexcept = default;
   Sparse &operator=(Sparse &&other) = default;
@@ -35,6 +39,8 @@ public:
   Sparse &operator=(const Sparse &) = delete;
 
   // Device interface
+  const Configuration &config() const override;
+  const Device::ID id() const override;
   Device::Type type() const override;
   u64 features() const override;
 
@@ -55,6 +61,8 @@ public:
   void dump(bits::span<u8> dest) const override;
 
 private:
+  Configuration _config;
+  Device::ID _id;
   static constexpr u32 SPARSE_PAGE_SIZE = 256;
   static constexpr u32 SPARSE_PAGE_MASK = SPARSE_PAGE_SIZE - 1;
   using PageData = std::array<u8, SPARSE_PAGE_SIZE>;
@@ -67,10 +75,8 @@ private:
   // Prefferentially pull from _free, otherwise allocate a new data page.
   // Initialize all values in page to _fill if true, otherwise returned array as-is.
   PageMeta make_page(bool init = true);
-  u8 _fill = 0;
   std::unordered_map<Address, PageMeta> _pages;
   std::stack<PageMeta> _free;
   std::list<PageData> _data;
-  AddressSpan _span;
   Buffer *_tb = nullptr;
 };

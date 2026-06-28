@@ -1,12 +1,15 @@
 #include "dense.hpp"
 #include "core/sim/memory/errors.hpp"
 
-Dense::Dense(Configuration device, Device::ID id, AddressSpan span, u8 defaultValue)
-    : Device(std::move(device), id), _fill(defaultValue), _span(span) {
-  _data.resize(size_inclusive(_span), _fill);
+Dense::Dense(Configuration config, Device::ID id) : Device(), _config(config), _id(id) {
+  _data.resize(size_inclusive(_config.span), _config.fill);
 }
 
 std::span<const u8> Dense::data() const { return std::span<const u8>{_data.data(), std::size_t(_data.size())}; }
+
+const Device::ID Dense::id() const { return _id; }
+
+const Dense::Configuration &Dense::config() const { return _config; }
 
 Device::Type Dense::type() const {
   using namespace bits;
@@ -23,23 +26,24 @@ const Buffer *Dense::buffer() const { return _tb; }
 bool Dense::can_generate_traces() const { return true; }
 
 void Dense::trace(bool enabled) {
-  if (_tb) _tb->trace(Device::id(), enabled);
+  if (_tb) _tb->trace(_id, enabled);
 }
 
-bool Dense::traced() const { return _tb ? _tb->traced(Device::id()) : false; }
+bool Dense::traced() const { return _tb ? _tb->traced(_id) : false; }
 
-Device::ID Dense::device_ID() const { return Device::id(); }
+Device::ID Dense::device_ID() const { return _id; }
 
-Device::Configuration Dense::device() const { return Device::config(); }
+Device::Configuration Dense::device() const { return _config; }
 
-AddressSpan Dense::span() const { return _span; }
+AddressSpan Dense::span() const { return _config.span; }
 
 Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) const {
   using E = Error;
+  const auto span = _config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, dest.size() - 1));
-  if (address < _span.lower() || max_addr > _span.upper()) throw E(E::Type::OOBAccess, address);
-  const auto offset = address - _span.lower();
+  if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
+  const auto offset = address - span.lower();
   const auto src = bits::span<const u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   // TODO: emit a pure read to TB.
   // Ignore reads from UI, since this device only issues pure reads.
@@ -52,10 +56,11 @@ Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) c
 
 Target::Result Dense::write(Address address, bits::span<const u8> src, Operation op) {
   using E = Error;
+  auto span = _config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, src.size() - 1));
-  if (address < _span.lower() || max_addr > _span.upper()) throw E(E::Type::OOBAccess, address);
-  const auto offset = address - _span.lower();
+  if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
+  const auto offset = address - span.lower();
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   // Record changes, even if the come from UI. Otherwise, step back fails.
   // Ignore reads from UI, since this device only issues pure reads.
@@ -68,7 +73,7 @@ Target::Result Dense::write(Address address, bits::span<const u8> src, Operation
 
 void Dense::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
-  _fill = fill;
+  _config.fill = fill;
   std::fill(_data.begin(), _data.end(), fill);
 }
 
