@@ -1,8 +1,8 @@
 #include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/memory/errors.hpp"
 
-Sparse::Sparse(Descriptor device, AddressSpan span, u8 defaultValue)
-    : Device(std::move(device)), _fill(defaultValue), _span(span) {}
+Sparse::Sparse(Descriptor device, Device::ID id, AddressSpan span, u8 defaultValue)
+    : Device(std::move(device), id), _fill(defaultValue), _span(span) {}
 
 Device::Type Sparse::type() const {
   using namespace bits;
@@ -19,12 +19,12 @@ const Buffer *Sparse::buffer() const { return _tb; }
 bool Sparse::can_generate_traces() const { return true; }
 
 void Sparse::trace(bool enabled) {
-  if (_tb) _tb->trace(Device::descriptor().id, enabled);
+  if (_tb) _tb->trace(Device::id(), enabled);
 }
 
-bool Sparse::traced() const { return _tb ? _tb->traced(Device::descriptor().id) : false; }
+bool Sparse::traced() const { return _tb ? _tb->traced(Device::id()) : false; }
 
-Device::ID Sparse::device_ID() const { return Device::descriptor().id; }
+Device::ID Sparse::device_ID() const { return Device::id(); }
 
 Device::Descriptor Sparse::device() const { return Device::descriptor(); }
 

@@ -22,7 +22,7 @@
 
 class Dense : public Device, Target, Traceable {
 public:
-  Dense(Device::Descriptor device, AddressSpan span, u8 defaultValue = 0);
+  Dense(Device::Descriptor device, Device::ID id, AddressSpan span, u8 defaultValue = 0);
   ~Dense() = default;
   Dense(Dense &&other) noexcept = default;
   Dense &operator=(Dense &&other) = default;

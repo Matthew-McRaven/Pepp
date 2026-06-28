@@ -57,14 +57,14 @@ public:
 private:
   Device::ID _next_ID = Device::ID(1);
   Device::IDGenerator _gen_next_ID = [] { return Device::ID(0); };
-  static inline Device::Descriptor _root_desc{.id = Device::ID(0), .basename = "/", .fullname = "/"};
+  static inline Device::Descriptor _root_desc{.basename = "/", .fullname = "/"};
   std::unique_ptr<DeviceTree> _root = nullptr;
   std::map<Device::ID, DeviceTree *> _id_to_device;
 };
 
 template <typename ConcreteDevice, typename... Args>
 ConcreteDevice *System::make_device(Device *parent, std::string_view self_name, Args &&...args) {
-  const auto id = parent->descriptor().id;
+  const auto id = parent->id();
   if (auto it = _id_to_device.find(id); it != _id_to_device.end())
     return make_device<ConcreteDevice>(id, self_name, std::forward<Args>(args)...);
   else throw std::runtime_error("Parent device not found");
@@ -76,9 +76,9 @@ ConcreteDevice *System::make_device(Device::ID parent_id, std::string_view self_
   if (device_tree == _id_to_device.end()) throw std::runtime_error("Parent device not found");
   auto &parent = device_tree->second->device;
   static_assert(std::is_base_of_v<Device, ConcreteDevice>, "ConcreteDevice must be derived from Device");
-  const auto descriptor = Device::Descriptor{
-      .id = next_ID(), .basename = std::string(self_name), .fullname = parent->descriptor().child_name(self_name)};
-  auto device = std::make_unique<ConcreteDevice>(descriptor, std::forward<Args>(args)...);
+  const auto descriptor =
+      Device::Descriptor{.basename = std::string(self_name), .fullname = parent->descriptor().child_name(self_name)};
+  auto device = std::make_unique<ConcreteDevice>(descriptor, next_ID(), std::forward<Args>(args)...);
   auto ptr = device.get();
   device_tree->second->children.push_back(std::make_unique<DeviceTree>(std::move(device, device_tree->second)));
   return ptr;

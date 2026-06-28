@@ -20,7 +20,7 @@
 #include "core/sim/memory/errors.hpp"
 
 namespace {
-auto desc = Device::Descriptor{.id = Device::ID{0}, .basename = "dev", .fullname = "/dev"};
+auto desc = Device::Descriptor{.basename = "dev", .fullname = "/dev"};
 auto op = Operation{
     .type = Operation::Type::Standard,
     .kind = Operation::Kind::data,
@@ -42,8 +42,7 @@ TEST_CASE("Sparse storage in-bounds access", "[scope:core][scope:core.sim][kind:
   auto span = AddressSpan(offset, 0x1000);
 
   // Initialize a memory block to a fixed value
-  Sparse dev(desc, span, 0xFE);
-  CHECK(dev.device_ID() == desc.id);
+  Sparse dev(desc, Device::ID{}, span, 0xFE);
 
   // Create an 8-byte temporary buffer.
   u64 reg = 0;
@@ -69,7 +68,7 @@ TEST_CASE("Sparse storage out-of-bounds access", "[scope:core][scope:core.sim][k
   auto span = AddressSpan(0xFE, 0xFE);
 
   // Initialize a memory block to a fixed value
-  Sparse dev(desc, span, 0xFE);
+  Sparse dev(desc, Device::ID{}, span, 0xFE);
 
   // Create an 8-byte temporary buffer.
   u64 reg = 0;

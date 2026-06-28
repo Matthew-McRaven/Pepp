@@ -25,7 +25,7 @@
 
 class Sparse : public Device, public Target, public Traceable {
 public:
-  Sparse(Device::Descriptor device, AddressSpan span, u8 defaultValue = 0);
+  Sparse(Device::Descriptor device, Device::ID id, AddressSpan span, u8 defaultValue = 0);
   ~Sparse() = default;
   Sparse(Sparse &&other) noexcept = default;
   Sparse &operator=(Sparse &&other) = default;

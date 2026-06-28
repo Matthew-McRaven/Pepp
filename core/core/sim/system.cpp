@@ -4,7 +4,7 @@ using namespace bits;
 consteval void allow_opaque_handle_increment(Device::ID);
 
 System::System()
-    : Device(_root_desc), _gen_next_ID([this]() { return next_ID(); }),
+    : Device(_root_desc, ID{0}), _gen_next_ID([this]() { return next_ID(); }),
       _root(std::make_unique<DeviceTree>(this, nullptr)) {}
 
 Device::ID System::next_ID() { return _next_ID++; }
