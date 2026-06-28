@@ -14,10 +14,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <catch.hpp>
-#include "core/sim/memory/errors.hpp"
-
 #include "core/sim/memory/ram/dense.hpp"
+#include <catch.hpp>
+#include "./compare.hpp"
+#include "core/sim/memory/errors.hpp"
 
 namespace {
 auto desc = Device::Descriptor{.id = Device::ID{0}, .basename = "dev", .fullname = "/dev"};
@@ -26,10 +26,6 @@ auto op = Operation{
     .kind = Operation::Kind::data,
 };
 
-void compare(const u8 *lhs, const u8 *rhs, u8 length) {
-  if (lhs == nullptr || rhs == nullptr) return;
-  for (int it = 0; it < length; it++) CHECK(lhs[it] == rhs[it]);
-};
 } // namespace
 
 TEST_CASE("(new) Dense storage in-bounds access", "[scope:core][scope:core.sim][kind:int][arch:*]") {
