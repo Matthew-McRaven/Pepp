@@ -9,14 +9,15 @@ namespace pepp {
 
 // Describe a jitter-free clock that operates at a fixed frequency
 struct IdealClock : public Device, ClockSource {
-  struct Configuration : public Device::Configuration {
+  struct Configuration {
+    Device::Configuration base;
     u64 period;
   };
   IdealClock(Configuration config, Device::ID id)
       : Device(), ClockSource(), _config(config), _id(id), _sched({.period = config.period}) {}
 
   constexpr PulseSchedule schedule() const override { return _sched; }
-  const Configuration &config() const override { return _config; }
+  const Device::Configuration &config() const override { return _config.base; }
   const Device::ID id() const override { return _id; }
 
 private:
@@ -26,7 +27,8 @@ private:
 };
 
 struct ScaledClock : public Device, public ClockSource {
-  struct Configuration : public Device::Configuration {
+  struct Configuration {
+    Device::Configuration base;
     float period_scale;
     // If not-a-number, configured devices will copy the value from period_scale
     float jitter_scale = std::numeric_limits<double>::quiet_NaN();
@@ -42,7 +44,7 @@ struct ScaledClock : public Device, public ClockSource {
                          .jitter = static_cast<u64>(par.jitter * _config.jitter_scale),
                          .seed = par.seed};
   }
-  const Configuration &config() const override { return _config; }
+  const Device::Configuration &config() const override { return _config.base; }
   const Device::ID id() const override { return _id; }
 
 private:
@@ -53,8 +55,8 @@ private:
 
 // A clock node which can choose between multiple parent clocks.
 struct MuxClock : public Device, public ClockSource {
-  struct Configuration : public Device::Configuration {
-    // No additional configuration for now.
+  struct Configuration {
+    Device::Configuration base;
   };
   // Connect to clock index 0 by default.
   template <typename... Choices>
@@ -70,7 +72,7 @@ struct MuxClock : public Device, public ClockSource {
   }
   std::span<std::shared_ptr<ClockSource>> choices() { return _choices; }
   constexpr PulseSchedule schedule() const override { return _choices[_index]->schedule(); }
-  const Configuration &config() const override { return _config; }
+  const Device::Configuration &config() const override { return _config.base; }
   const Device::ID id() const override { return _id; }
 
 private:

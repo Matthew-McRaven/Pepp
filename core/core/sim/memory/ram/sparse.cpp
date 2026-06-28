@@ -3,7 +3,7 @@
 
 Sparse::Sparse(Configuration config, Device::ID id) : Device(), _config(config), _id(id) {}
 
-const Sparse::Configuration &Sparse::config() const { return _config; }
+const Device::Configuration &Sparse::config() const { return _config.base; }
 
 const Device::ID Sparse::id() const { return _id; }
 

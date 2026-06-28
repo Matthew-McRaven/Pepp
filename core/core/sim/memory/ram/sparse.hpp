@@ -25,7 +25,8 @@
 
 class Sparse : public Device, public Target, public Traceable {
 public:
-  struct Configuration : public Device::Configuration {
+  struct Configuration {
+    Device::Configuration base;
     AddressSpan span;
     u8 fill = 0;
   };
@@ -39,7 +40,7 @@ public:
   Sparse &operator=(const Sparse &) = delete;
 
   // Device interface
-  const Configuration &config() const override;
+  const Device::Configuration &config() const override;
   const Device::ID id() const override;
   Device::Type type() const override;
   u64 features() const override;

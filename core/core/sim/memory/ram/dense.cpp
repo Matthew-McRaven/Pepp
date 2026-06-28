@@ -9,7 +9,7 @@ std::span<const u8> Dense::data() const { return std::span<const u8>{_data.data(
 
 const Device::ID Dense::id() const { return _id; }
 
-const Dense::Configuration &Dense::config() const { return _config; }
+const Device::Configuration &Dense::config() const { return _config.base; }
 
 Device::Type Dense::type() const {
   using namespace bits;
