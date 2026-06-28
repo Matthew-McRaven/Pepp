@@ -55,9 +55,9 @@ public:
   void dump(bits::span<u8> dest) const override;
 
 private:
-  static constexpr u32 PAGE_SIZE = 256;
-  static constexpr u32 PAGE_MASK = PAGE_SIZE - 1;
-  using PageData = std::array<u8, PAGE_SIZE>;
+  static constexpr u32 SPARSE_PAGE_SIZE = 256;
+  static constexpr u32 SPARSE_PAGE_MASK = SPARSE_PAGE_SIZE - 1;
+  using PageData = std::array<u8, SPARSE_PAGE_SIZE>;
   // I plan on adding cow/shared pages. Someday each "slot" in _pages will point to a PageMeta (rather than by value).
   // With the by-value approach, I can't have COW semantics.
   struct PageMeta {

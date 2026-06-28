@@ -44,9 +44,9 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
     ;
 
   while (dest.size() > 0) {
-    const auto page_addr = offset & ~PAGE_MASK;
-    const auto page_offset = offset & PAGE_MASK;
-    const auto len = std::min<u32>(dest.size(), PAGE_SIZE - page_offset);
+    const auto page_addr = offset & ~SPARSE_PAGE_MASK;
+    const auto page_offset = offset & SPARSE_PAGE_MASK;
+    const auto len = std::min<u32>(dest.size(), SPARSE_PAGE_SIZE - page_offset);
     if (const auto it = _pages.find(page_addr); it != _pages.end()) {
       const auto &page = it->second;
       const auto src = bits::span<const u8>{page.data.data(), page.data.size()}.subspan(page_offset);
@@ -78,9 +78,9 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
     ;
 
   while (src.size() > 0) {
-    const auto page_addr = offset & ~PAGE_MASK;
-    const auto page_offset = offset & PAGE_MASK;
-    const auto len = std::min<u32>(src.size(), PAGE_SIZE - page_offset);
+    const auto page_addr = offset & ~SPARSE_PAGE_MASK;
+    const auto page_offset = offset & SPARSE_PAGE_MASK;
+    const auto len = std::min<u32>(src.size(), SPARSE_PAGE_SIZE - page_offset);
     // Search for a page. If it does not exist, allocate it.
     PageMeta *dst_page = nullptr;
     if (auto it = _pages.find(page_addr); it != _pages.end()) dst_page = &it->second;
