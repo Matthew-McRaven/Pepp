@@ -40,8 +40,7 @@ TEST_CASE("(new) Dense storage in-bounds access", "[scope:core][scope:core.sim][
       {8, 8},
   }));
   auto span = AddressSpan(offset, 255);
-  auto cfg = Dense::Configuration(Device::Configuration{base_desc});
-  cfg.span = span, cfg.fill = 0xFE;
+  auto cfg = Dense::Configuration{.base=Device::Configuration{base_desc}, .span=span, .fill=0xFE};
   // Initialize a memory block to a fixed value
   Dense dev(cfg, Device::ID{});
 
@@ -67,8 +66,7 @@ TEST_CASE("(new) Dense storage in-bounds access", "[scope:core][scope:core.sim][
 TEST_CASE("(new) Dense storage out-of-bounds access", "[scope:core][scope:core.sim][kind:int][arch:*][!throws]") {
   auto span = AddressSpan(0x10, 0x10);
 
-  auto cfg = Dense::Configuration(Device::Configuration{base_desc});
-  cfg.span = span, cfg.fill = 0xFE;
+  auto cfg = Dense::Configuration{.base=Device::Configuration{base_desc}, .span=span, .fill=0xFE};
   // Initialize a memory block to a fixed value
   Dense dev(cfg, Device::ID{});
 
