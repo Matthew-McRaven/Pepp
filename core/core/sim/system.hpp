@@ -56,13 +56,10 @@ public:
   void set_buffer(trace::Buffer *buffer);
 
   // Create a device that is a child of the root (this system)
-  template <typename ConcreteDevice, typename... Args>
-  ConcreteDevice *make_device(std::string_view self_name, Args &&...args);
+  template <typename ConcreteDevice, typename... Args> ConcreteDevice *make_device(Args &&...args);
   // Create children under a given device.
-  template <typename ConcreteDevice, typename... Args>
-  ConcreteDevice *make_device(Device::ID parent, std::string_view self_name, Args &&...args);
-  template <typename ConcreteDevice, typename... Args>
-  ConcreteDevice *make_device(Device *parent, std::string_view self_name, Args &&...args);
+  template <typename ConcreteDevice, typename... Args> ConcreteDevice *make_device(Device::ID parent, Args &&...args);
+  template <typename ConcreteDevice, typename... Args> ConcreteDevice *make_device(Device *parent, Args &&...args);
 
   // Return a pointer to a device by name, or nullptr if not found.
   // While these could be free function operating on DeviceTrees, it's more convenient for 2-stage device initialization
@@ -83,29 +80,29 @@ private:
 };
 
 template <typename ConcreteDevice, typename... Args>
-ConcreteDevice *System::make_device(Device *parent, std::string_view self_name, Args &&...args) {
+ConcreteDevice *System::make_device(Device *parent, Args &&...args) {
   const auto id = parent->id();
   if (auto it = _id_to_device.find(id); it != _id_to_device.end())
-    return make_device<ConcreteDevice>(id, self_name, std::forward<Args>(args)...);
+    return make_device<ConcreteDevice>(id, std::forward<Args>(args)...);
   else throw std::runtime_error("Parent device not found");
 }
 
 template <typename ConcreteDevice, typename... Args>
-ConcreteDevice *System::make_device(Device::ID parent_id, std::string_view self_name, Args &&...args) {
+ConcreteDevice *System::make_device(Device::ID parent_id, Args &&...args) {
   auto device_tree = _id_to_device.find(parent_id);
   if (device_tree == _id_to_device.end()) throw std::runtime_error("Parent device not found");
   auto &parent = device_tree->second->device;
   static_assert(std::is_base_of_v<Device, ConcreteDevice>, "ConcreteDevice must be derived from Device");
-  const auto descriptor =
-      Device::Configuration{.basename = std::string(self_name), .fullname = parent->config().child_name(self_name)};
-  auto device = std::make_unique<ConcreteDevice>(descriptor, next_ID(), std::forward<Args>(args)...);
+  auto device = std::make_unique<ConcreteDevice>(next_ID(), std::forward<Args>(args)...);
   auto ptr = device.get();
-  device_tree->second->children.push_back(std::make_unique<DeviceTree>(std::move(device, device_tree->second)));
+  { // Force child_dt to go out of scope after move.
+    auto child_dt = std::make_unique<DeviceTree>(std::move(device), device_tree->second);
+    device_tree->second->children.push_back(std::move(child_dt));
+  }
   return ptr;
 }
 
-template <typename ConcreteDevice, typename... Args>
-ConcreteDevice *System::make_device(std::string_view self_name, Args &&...args) {
+template <typename ConcreteDevice, typename... Args> ConcreteDevice *System::make_device(Args &&...args) {
   static_assert(std::is_base_of_v<Device, ConcreteDevice>, "Device must be derived from Device");
-  return make_device<ConcreteDevice>(this, self_name, std::forward<Args>(args)...);
+  return make_device<ConcreteDevice>(this, std::forward<Args>(args)...);
 }
