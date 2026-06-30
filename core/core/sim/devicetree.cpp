@@ -1,9 +1,14 @@
 #include "devicetree.hpp"
 
-std::string Device::Configuration::child_name(std::string_view child_basename) const {
-  auto fullprefix = this->fullname + (this->fullname.ends_with("/") ? "" : "/");
-  fullprefix.append(child_basename);
+std::string child_name(std::string_view view_fullname, std::string_view view_child) {
+  auto fullname = std::string(view_fullname);
+  auto fullprefix = fullname + (fullname.ends_with("/") ? "" : "/");
+  fullprefix.append(std::string{view_child});
   return fullprefix;
+}
+
+std::string Device::Configuration::child_name(std::string_view child_basename) const {
+  return ::child_name(fullname, child_basename);
 }
 
 DeviceTree *DeviceTree::append_child(Device *dev) {

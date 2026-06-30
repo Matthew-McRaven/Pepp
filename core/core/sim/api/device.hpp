@@ -21,6 +21,8 @@
 #include "core/integers.h"
 #include "core/math/bitmanip/enums.hpp"
 
+class System;
+std::string child_name(std::string_view parent_fullname, std::string_view child_basename);
 struct Device {
   using ID = pepp::OpaqueHandle<struct DeviceID, u8>;
   using IDGenerator = std::function<Device::ID()>;
@@ -51,6 +53,9 @@ struct Device {
   };
 
   virtual ~Device() = default;
+  // Some devices need further initialization after the full device tree has been constructed.
+  // Classes which require this 2nd stage of init should override this method.
+  virtual void initialize(System *) {}
   virtual const Configuration &config() const = 0;
   virtual const Device::ID id() const = 0;
   // Helper to test if this device implements a particular interface type.

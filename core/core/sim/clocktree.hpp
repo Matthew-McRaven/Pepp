@@ -16,7 +16,7 @@ struct IdealClock : public Device, ClockSource {
   IdealClock(Configuration config, Device::ID id)
       : Device(), ClockSource(), _config(config), _id(id), _sched({.period = config.period}) {}
 
-  constexpr PulseSchedule schedule() const override { return _sched; }
+  PulseSchedule schedule() const override { return _sched; }
   const Device::Configuration &config() const override { return _config.base; }
   const Device::ID id() const override { return _id; }
 
@@ -33,24 +33,21 @@ struct ScaledClock : public Device, public ClockSource {
     // If not-a-number, configured devices will copy the value from period_scale
     float jitter_scale = std::numeric_limits<double>::quiet_NaN();
   };
+  struct DeferredConfiguration {
+    std::string parent_name;
+  };
 
-  ScaledClock(Configuration config, Device::ID id, std::shared_ptr<ClockSource> parent)
-      : Device(), ClockSource(), _config(config), _id(id), _parent(std::move(parent)) {
-    if (_config.jitter_scale != _config.jitter_scale) _config.jitter_scale = _config.period_scale;
-  }
-  constexpr PulseSchedule schedule() const override {
-    const auto par = _parent->schedule();
-    return PulseSchedule{.period = static_cast<u64>(par.period * _config.period_scale),
-                         .jitter = static_cast<u64>(par.jitter * _config.jitter_scale),
-                         .seed = par.seed};
-  }
+  ScaledClock(Configuration config, Device::ID id, DeferredConfiguration deferred);
+  void initialize(System *) override;
+  PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config.base; }
   const Device::ID id() const override { return _id; }
 
 private:
-  Configuration _config;
   Device::ID _id;
-  std::shared_ptr<ClockSource> _parent;
+  Configuration _config;
+  DeferredConfiguration _deferred;
+  ClockSource *_parent = nullptr;
 };
 
 // A clock node which can choose between multiple parent clocks.
@@ -58,6 +55,11 @@ struct MuxClock : public Device, public ClockSource {
   struct Configuration {
     Device::Configuration base;
   };
+  struct DeferredConfiguration {
+    int selected = 0;
+    std::vector<std::string> names;
+  };
+
   // Connect to clock index 0 by default.
   template <typename... Choices>
   explicit MuxClock(Configuration config, Device::ID id, Choices &&...choices)
@@ -65,25 +67,23 @@ struct MuxClock : public Device, public ClockSource {
     if (_choices.size() == 0) throw std::runtime_error("MuxClockNode must have at least one choice");
   }
 
-  void select_clock(u16 index) {
-    if (index >= _choices.size()) throw std::runtime_error("MuxClockNode: index out of range");
-    else if (index == _index) return; // No change
-    _index = index;
-  }
-  std::span<std::shared_ptr<ClockSource>> choices() { return _choices; }
-  constexpr PulseSchedule schedule() const override { return _choices[_index]->schedule(); }
+  explicit MuxClock(Configuration config, Device::ID id, DeferredConfiguration choices);
+  void initialize(System *) override;
+
+  void select_clock(u16 index);
+  std::span<ClockSource *> choices() { return _choices; }
+  PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config.base; }
   const Device::ID id() const override { return _id; }
 
 private:
-  const ClockSource *selected_clock() const {
-    if (_index > _choices.size()) return nullptr;
-    else return _choices[_index].get();
-  }
+  const ClockSource *selected_clock() const;
   u16 _index = -1;
-  Configuration _config;
   Device::ID _id;
-  std::vector<std::shared_ptr<ClockSource>> _choices;
+  Configuration _config;
+  DeferredConfiguration _deferred;
+
+  std::vector<ClockSource *> _choices;
 };
 
 } // namespace pepp

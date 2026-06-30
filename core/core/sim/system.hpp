@@ -42,6 +42,10 @@ public:
   System(System &&) = delete;
   System &operator=(const System &) = delete;
   System &operator=(System &&) = delete;
+  // System* will be ignored and call the 0-artity variant.
+  void initialize(System *sys) override;
+  // Iterate over all devices in the tree and call initialize on each of them.
+  void initialize();
 
   const Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _self_id; }

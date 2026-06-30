@@ -11,6 +11,14 @@ consteval void allow_opaque_handle_increment(Device::ID);
 System::System()
     : Device(), _gen_next_ID([this]() { return next_ID(); }), _root(std::make_unique<DeviceTree>(this, nullptr)) {}
 
+void System::initialize(System *sys) { return initialize(); }
+
+void System::initialize() {
+  // Finish initializing devices in a post-order traversal.
+  for (auto dev : *_root)
+    if (dev != this) dev->initialize(this);
+}
+
 Device::ID System::next_ID() { return _next_ID++; }
 
 Device::IDGenerator System::gen_next_ID() { return _gen_next_ID; }
