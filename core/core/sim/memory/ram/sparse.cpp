@@ -1,7 +1,7 @@
 #include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/memory/errors.hpp"
 
-Sparse::Sparse(Configuration config, Device::ID id) : Device(), _config(config), _id(id) {}
+Sparse::Sparse(Device::ID id, Configuration config) : Device(), _config(config), _id(id) {}
 
 const Device::Configuration &Sparse::config() const { return _config.base; }
 

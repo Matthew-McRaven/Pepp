@@ -30,7 +30,7 @@ public:
     AddressSpan span;
     u8 fill = 0;
   };
-  Sparse(Configuration config, Device::ID id);
+  Sparse(Device::ID id, Configuration config);
   ~Sparse() = default;
   Sparse(Sparse &&other) noexcept = default;
   Sparse &operator=(Sparse &&other) = default;

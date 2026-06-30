@@ -42,7 +42,7 @@ TEST_CASE("Sparse storage in-bounds access", "[scope:core][scope:core.sim][kind:
   auto span = AddressSpan(offset, 0x1000);
   auto cfg = Sparse::Configuration{.base=Device::Configuration{base_desc}, .span=span, .fill=0xFE};
   // Initialize a memory block to a fixed value
-  Sparse dev(cfg, Device::ID{});
+  Sparse dev(Device::ID{}, cfg);
 
   // Create an 8-byte temporary buffer.
   u64 reg = 0;
@@ -69,7 +69,7 @@ TEST_CASE("Sparse storage out-of-bounds access", "[scope:core][scope:core.sim][k
 
   auto cfg = Sparse::Configuration{.base=Device::Configuration{base_desc}, .span=span, .fill=0xFE};
   // Initialize a memory block to a fixed value
-  Sparse dev(cfg, Device::ID{});
+  Sparse dev(Device::ID{}, cfg);
 
   // Create an 8-byte temporary buffer.
   u64 reg = 0;

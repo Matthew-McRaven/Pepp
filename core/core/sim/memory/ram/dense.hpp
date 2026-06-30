@@ -27,7 +27,7 @@ public:
     AddressSpan span;
     u8 fill = 0;
   };
-  Dense(Configuration device, Device::ID id);
+  Dense(Device::ID id, Configuration device);
   ~Dense() = default;
   Dense(Dense &&other) noexcept = default;
   Dense &operator=(Dense &&other) = default;

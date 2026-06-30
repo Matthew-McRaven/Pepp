@@ -1,7 +1,7 @@
 #include "dense.hpp"
 #include "core/sim/memory/errors.hpp"
 
-Dense::Dense(Configuration config, Device::ID id) : Device(), _config(config), _id(id) {
+Dense::Dense(Device::ID id, Configuration config) : Device(), _config(config), _id(id) {
   _data.resize(size_inclusive(_config.span), _config.fill);
 }
 
