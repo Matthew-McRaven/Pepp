@@ -60,6 +60,14 @@ public:
   template <typename ConcreteDevice, typename... Args>
   ConcreteDevice *make_device(Device *parent, std::string_view self_name, Args &&...args);
 
+  // Return a pointer to a device by name, or nullptr if not found.
+  // While these could be free function operating on DeviceTrees, it's more convenient for 2-stage device initialization
+  // for the System to provide the lookup.
+  Device *find_absolute(std::string_view name);
+  // Combine relative_to and name to form an absolute path and call find_absolute. Names starting with '/' are treated
+  // as absolute by default and will not be combined with parent.
+  Device *find_relative(std::string_view name, std::string_view parent);
+
 private:
   Configuration _config{{.basename = "/", .fullname = "/"}};
   Device::ID _self_id = Device::ID(0);
