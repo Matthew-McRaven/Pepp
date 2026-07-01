@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.VectorImage
 
 //  Top level window
 Item {
@@ -14,135 +13,48 @@ Item {
         orientation: Qt.Horizontal
         padding: 5
 
-        TabBar {
-            id: tab
+        Rectangle {
+            id: tabs
 
             SplitView.preferredWidth: 205
             SplitView.maximumWidth: SplitView.preferredWidth
             SplitView.minimumWidth: SplitView.preferredWidth
             SplitView.fillHeight: true
 
-            TabButton {
-                text: "Gate Editor"
+            TabBar {
+                id: tab
+                width: tabs.width
+
+                TabButton {
+                    text: "Gate Editor"
+                }
+                TabButton {
+                    text: "Pin Editor"
+                }
             }
-            TabButton {
-                text: "Pin Editor"
-            }
+
+            StackLayout {
+                id: view
+                anchors.topMargin: tab.height + 1
+                anchors.fill: parent
+                currentIndex: tab.currentIndex
+
+                //  Gate selection
+                GateProperties {
+                    id: gates
+
+                    Layout.fillWidth: true
+                }
+
+                Rectangle {
+                    id: pins
+                    color: "red"
+                    Layout.fillWidth: true
+                }
+            }   //  StackLayout
         }
 
-        StackLayout {
-            SplitView.preferredWidth: 205
-            SplitView.maximumWidth: SplitView.preferredWidth
-            SplitView.minimumWidth: SplitView.preferredWidth
-            currentIndex: tab.currentIndex
-
-            SplitView.fillHeight: true
-            //  Gate selection
-            ColumnLayout {
-                id: gates
-                SplitView.preferredWidth: 205
-                SplitView.maximumWidth: SplitView.preferredWidth
-                SplitView.minimumWidth: SplitView.preferredWidth
-                SplitView.fillHeight: true
-
-                Image {
-                    id: image
-
-                    //width: 205
-                    Layout.fillWidth: true
-                    source: "qrc:///gatelist"
-                    fillMode: Image.PreserveAspectFit
-                }
-
-                Grid {
-                    columns: 2
-                    spacing: 5
-                    Label {
-                        text: "Dimensions"
-                    }
-                    Label {
-                        //  Spacer for heading
-                        text: " "
-                    }
-
-                    Label {
-                        text: "Family:"
-                    }
-                    ComboBox {
-                        id: gateFamily
-                        model: ["AND", "OR", "NAND", "NOR", "XOR", "Inverter"]
-                        currentValue: "OR"
-                    }
-                    Label {
-                        text: "Type:"
-                    }
-                    ComboBox {
-                        id: gateType
-                        model: ["OR 2x1"]
-                        currentIndex: 0
-                    }
-
-                    Label {
-                        text: "Orientation:"
-                    }
-                    ComboBox {
-                        id: orientation
-                        model: [
-                            {
-                                value: 0,
-                                text: "Right"
-                            },
-                            {
-                                value: 90,
-                                text: "Bottom"
-                            },
-                            {
-                                value: 180,
-                                text: "Left"
-                            },
-                            {
-                                value: 270,
-                                text: "Top"
-                            }
-                        ]
-                        textRole: "text"
-                        valueRole: "value"
-                        currentIndex: 0
-                    }
-                    Label {
-                        text: "Height"
-                    }
-                    SpinBox {
-                        from: 2
-                        to: 10
-                        stepSize: 1
-                        value: 2
-                    }
-                    Label {
-                        text: "Width"
-                    }
-                    SpinBox {
-                        from: 3
-                        to: 10
-                        stepSize: 1
-                        value: 3
-                    }
-                    Item {
-                        //  Spacer for heading
-                    }
-                }   //  Grid
-
-                Item {
-                    //  A spacer
-                    Layout.fillHeight: true
-                }
-            }   //  ColumnLayout
-            Rectangle {
-                id: pins
-                color: "red"
-                anchors.fill: parent
-            }
-        }   //  StackLayout
+        //  Canvas area - right side
         ColumnLayout {
             spacing: 0
             Pane {
