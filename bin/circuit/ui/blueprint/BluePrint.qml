@@ -46,9 +46,9 @@ Item {
                     Layout.fillWidth: true
                 }
 
-                Rectangle {
+                PinProperties {
                     id: pins
-                    color: "red"
+
                     Layout.fillWidth: true
                 }
             }   //  StackLayout
