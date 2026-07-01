@@ -14,106 +14,135 @@ Item {
         orientation: Qt.Horizontal
         padding: 5
 
-        //  Gate selection
-        ColumnLayout {
+        TabBar {
+            id: tab
 
             SplitView.preferredWidth: 205
             SplitView.maximumWidth: SplitView.preferredWidth
             SplitView.minimumWidth: SplitView.preferredWidth
             SplitView.fillHeight: true
 
-            Image {
-                id: image
-
-                width: 205
-                source: "qrc:///gatelist"
-                fillMode: Image.PreserveAspectFit
+            TabButton {
+                text: "Gate Editor"
             }
+            TabButton {
+                text: "Pin Editor"
+            }
+        }
 
-            Grid {
-                columns: 2
-                spacing: 5
-                Label {
-                    text: "Dimensions"
-                }
-                Label {
-                    //  Spacer for heading
-                    text: " "
+        StackLayout {
+            SplitView.preferredWidth: 205
+            SplitView.maximumWidth: SplitView.preferredWidth
+            SplitView.minimumWidth: SplitView.preferredWidth
+            currentIndex: tab.currentIndex
+
+            SplitView.fillHeight: true
+            //  Gate selection
+            ColumnLayout {
+                id: gates
+                SplitView.preferredWidth: 205
+                SplitView.maximumWidth: SplitView.preferredWidth
+                SplitView.minimumWidth: SplitView.preferredWidth
+                SplitView.fillHeight: true
+
+                Image {
+                    id: image
+
+                    //width: 205
+                    Layout.fillWidth: true
+                    source: "qrc:///gatelist"
+                    fillMode: Image.PreserveAspectFit
                 }
 
-                Label {
-                    text: "Family:"
-                }
-                ComboBox {
-                    id: gateFamily
-                    model: ["AND", "OR", "NAND", "NOR", "XOR", "Inverter"]
-                    currentValue: "OR"
-                }
-                Label {
-                    text: "Type:"
-                }
-                ComboBox {
-                    id: gateType
-                    model: ["OR 2x1"]
-                    currentIndex: 0
-                }
+                Grid {
+                    columns: 2
+                    spacing: 5
+                    Label {
+                        text: "Dimensions"
+                    }
+                    Label {
+                        //  Spacer for heading
+                        text: " "
+                    }
 
-                Label {
-                    text: "Orientation:"
-                }
-                ComboBox {
-                    id: orientation
-                    model: [
-                        {
-                            value: 0,
-                            text: "Right"
-                        },
-                        {
-                            value: 90,
-                            text: "Bottom"
-                        },
-                        {
-                            value: 180,
-                            text: "Left"
-                        },
-                        {
-                            value: 270,
-                            text: "Top"
-                        }
-                    ]
-                    textRole: "text"
-                    valueRole: "value"
-                    currentIndex: 0
-                }
-                Label {
-                    text: "Height"
-                }
-                SpinBox {
-                    from: 2
-                    to: 10
-                    stepSize: 1
-                    value: 2
-                }
-                Label {
-                    text: "Width"
-                }
-                SpinBox {
-                    from: 3
-                    to: 10
-                    stepSize: 1
-                    value: 3
-                }
+                    Label {
+                        text: "Family:"
+                    }
+                    ComboBox {
+                        id: gateFamily
+                        model: ["AND", "OR", "NAND", "NOR", "XOR", "Inverter"]
+                        currentValue: "OR"
+                    }
+                    Label {
+                        text: "Type:"
+                    }
+                    ComboBox {
+                        id: gateType
+                        model: ["OR 2x1"]
+                        currentIndex: 0
+                    }
+
+                    Label {
+                        text: "Orientation:"
+                    }
+                    ComboBox {
+                        id: orientation
+                        model: [
+                            {
+                                value: 0,
+                                text: "Right"
+                            },
+                            {
+                                value: 90,
+                                text: "Bottom"
+                            },
+                            {
+                                value: 180,
+                                text: "Left"
+                            },
+                            {
+                                value: 270,
+                                text: "Top"
+                            }
+                        ]
+                        textRole: "text"
+                        valueRole: "value"
+                        currentIndex: 0
+                    }
+                    Label {
+                        text: "Height"
+                    }
+                    SpinBox {
+                        from: 2
+                        to: 10
+                        stepSize: 1
+                        value: 2
+                    }
+                    Label {
+                        text: "Width"
+                    }
+                    SpinBox {
+                        from: 3
+                        to: 10
+                        stepSize: 1
+                        value: 3
+                    }
+                    Item {
+                        //  Spacer for heading
+                    }
+                }   //  Grid
+
                 Item {
-                    //  Spacer for heading
+                    //  A spacer
+                    Layout.fillHeight: true
                 }
-            }   //  Grid
-
-            Item {
-                //  A spacer
-                Layout.fillHeight: true
+            }   //  ColumnLayout
+            Rectangle {
+                id: pins
+                color: "red"
+                anchors.fill: parent
             }
-        }   //  ColumnLayout
-
+        }   //  StackLayout
         ColumnLayout {
             spacing: 0
             Pane {
