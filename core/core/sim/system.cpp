@@ -8,8 +8,9 @@
 using namespace bits;
 consteval void allow_opaque_handle_increment(Device::ID);
 
-System::System()
-    : Device(), _gen_next_ID([this]() { return next_ID(); }), _root(std::make_unique<DeviceTree>(this, nullptr)) {}
+System::System(Configuration config)
+    : Device(), _config(config), _gen_next_ID([this]() { return next_ID(); }),
+      _root(std::make_unique<DeviceTree>(this, nullptr)) {}
 
 void System::initialize(System *sys) { return initialize(); }
 

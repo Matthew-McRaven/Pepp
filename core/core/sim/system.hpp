@@ -36,7 +36,7 @@ public:
     // No additional configuration for now.
   };
   static constexpr Device::Type TypeMask = Device::Type::SystemRoot;
-  System();
+  System(Configuration config = Configuration{{.basename = "/", .fullname = "/"}});
   ~System() = default;
   System(const System &) = delete;
   System(System &&) = delete;
