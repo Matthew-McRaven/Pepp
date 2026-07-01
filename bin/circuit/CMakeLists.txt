@@ -18,6 +18,7 @@ qt_add_qml_module(
   ui/blueprint/BluePrintCanvas.qml
   ui/blueprint/GridLines.qml
   ui/blueprint/BluePrint.qml
+  ui/blueprint/GateProperties.qml
   SOURCES
 
   ui/blueprintlibrarymodel.hpp
