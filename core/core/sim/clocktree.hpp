@@ -8,7 +8,7 @@
 namespace pepp {
 
 // Describe a jitter-free clock that operates at a fixed frequency
-struct IdealClock final : public Device, ClockSource {
+struct IdealClock final : public Device, public ClockSource {
   struct Configuration : public Device::Configuration {
     Immediate<u64> period;
   };

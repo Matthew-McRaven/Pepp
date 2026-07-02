@@ -20,7 +20,7 @@
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
 
-class Dense final : public Device, Target, Traceable {
+class Dense final : public Device, public Target, public Traceable {
 public:
   struct Configuration : public Device::Configuration {
     Immediate<u8> fill{0};
