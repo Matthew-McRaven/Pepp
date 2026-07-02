@@ -100,6 +100,16 @@ if(PEPP_BUILD_GUI)
     Svg
     Sql
     OPTIONAL_COMPONENTS Concurrent)
+  # Starting in Qt 6.10, we get a cmake error in one of our deps if we do not
+  # explicitly find these private components. These targets are not explicitly
+  # exported prior to 6.10, and attempting to find them on 6.9- will cause
+  # configuration to fail.
+  if(Qt6_VERSION VERSION_GREATER_EQUAL 6.10)
+    find_package(
+      Qt6 ${Qt6_VERSION}
+      COMPONENTS
+      REQUIRED GuiPrivate QuickPrivate)
+  endif()
   qt_policy(SET QTP0003 NEW) # Use BUILD_SHARED_LIBS as the default library type
   set(CMAKE_AUTOMOC ON)
   set(CMAKE_AUTORCC ON)
