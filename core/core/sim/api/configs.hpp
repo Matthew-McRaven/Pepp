@@ -35,8 +35,18 @@ public:
     _value = value;
     return *this;
   }
+  template <typename A> bool operator==(A &&value) const { return _value == value; }
 
   T operator*() const { return _value; }
+  auto operator->() {
+    if constexpr (std::is_pointer_v<T>) return _value;
+    else return &_value;
+  }
+
+  auto operator->() const {
+    if constexpr (std::is_pointer_v<T>) return _value;
+    else return &_value;
+  }
 
 private:
   T _value;
