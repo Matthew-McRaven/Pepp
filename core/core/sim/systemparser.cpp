@@ -4,6 +4,48 @@
 #include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/system.hpp"
 
+template <std::integral T> T as_int(const nlohmann::json &value) {
+  using l = std::numeric_limits<T>;
+  if constexpr (std::is_unsigned_v<T>) {
+    if (value.is_number_unsigned()) {
+      u64 v = value.get<u64>();
+      if (v > l::max()) throw ParsingError("Unsigned integer field too large");
+      return static_cast<T>(v);
+    } else if (value.is_number_integer()) {
+      i64 v = value.get<i64>();
+      if (v < 0) throw ParsingError("Unsigned integer field cannot be negative");
+      return static_cast<T>(v);
+    }
+  } else {
+    if (value.is_number_integer()) {
+      i64 v = value.get<i64>();
+      if (v < l::min() || v > l::max()) throw ParsingError("Signed integer field out of range");
+      return static_cast<T>(v);
+    } else if (value.is_number_unsigned()) {
+      u64 v = value.get<u64>();
+      if (v > static_cast<u64>(l::max())) throw ParsingError("Signed integer field out of range");
+      return static_cast<T>(v);
+    }
+  }
+  // If we've made it to here, it's a string or not an integer
+  if (!value.is_string()) throw ParsingError("Field must be an integer or string containing an integer");
+  auto str = value.get<std::string>();
+  int base = 10, prefix_size = 0, sign = 1;
+  // Extract base from prefix, and handle explict signs for decimals.
+  if (str.starts_with("0b") || str.starts_with("0B")) base = 2, prefix_size = 2;
+  else if (str.starts_with("0o") || str.starts_with("0O")) base = 8, prefix_size = 2;
+  else if (str.starts_with("0x") || str.starts_with("0X")) base = 16, prefix_size = 2;
+  else if (str.starts_with("-")) prefix_size = 1, sign = -1;
+  else if (str.starts_with("+")) prefix_size = 1;
+  // Throw erorr if - and unsigned type.
+  if (std::is_unsigned_v<T> && sign < 0) throw ParsingError("Unsigned integer field cannot be negative");
+
+  auto sub = str.substr(prefix_size);
+  T ret;
+  auto [ptr, ec] = std::from_chars(sub.data(), sub.data() + sub.size(), ret, base);
+  if (ec != std::errc() || ptr != sub.end().base()) throw ParsingError("Failed to parse integer from string");
+  return static_cast<T>(sign) * ret;
+}
 void parse_standard_fields(const nlohmann::json &node, Device::Configuration &cfg) {
   if (node.contains("compatible") && !node["compatible"].is_null())
     cfg.compatible = node["compatible"].get<std::string>();
@@ -38,11 +80,11 @@ void parse_node_ram_dense(const nlohmann::json &self, System *sys, Device *paren
     parse_standard_fields(self, cfg);
     if (cfg.basename->empty()) throw ParsingError("RAM must have a basename");
     if (!self.contains("min_offset") || self["min_offset"].is_null()) throw ParsingError("RAM must have a min_offset");
-    auto min = self["min_offset"].get<u32>();
+    auto min = as_int<u32>(self["min_offset"]);
     if (!self.contains("max_offset") || self["max_offset"].is_null()) throw ParsingError("RAM must have a max_offset");
-    auto max = self["max_offset"].get<u32>();
+    auto max = as_int<u32>(self["max_offset"]);
     cfg.span = AddressSpan{min, max};
-    if (self.contains("fill") && !self["fill"].is_null()) cfg.fill = self["fill"].get<u8>();
+    if (self.contains("fill") && !self["fill"].is_null()) cfg.fill = as_int<u8>(self["fill"]);
   } catch (const nlohmann::json::type_error &e) {
     throw ParsingError("Failed to parse dense RAM: " + std::string(e.what()));
   }

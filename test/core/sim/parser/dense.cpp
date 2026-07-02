@@ -72,13 +72,13 @@ TEST_CASE("System Parser, Dense, Passes", "[scope:core][scope:core.sim][kind:uni
     auto casted = mem->capability<Target>();
     REQUIRE(casted != nullptr);
   }
-  /*SECTION("coerce string to int") {
+  SECTION("coerce string to int") {
     static const char *js = R"j({
       "children": [
       {
         "compatible": "ram,dense",
         "basename": "memory",
-        "min_offset": "0",
+        "min_offset": "0b000001",
         "max_offset": "1024"
       }
       ]
@@ -91,9 +91,31 @@ TEST_CASE("System Parser, Dense, Passes", "[scope:core][scope:core.sim][kind:uni
     CHECK(mem->config().compatible == Dense::compatible);
     auto casted = mem->capability<Target>();
     REQUIRE(casted != nullptr);
-    CHECK(casted->span().lower() == 0);
+    CHECK(casted->span().lower() == 1);
     CHECK(casted->span().upper() == 1024);
-  }*/
+  }
+  SECTION("hex, oct to int") {
+    static const char *js = R"j({
+      "children": [
+      {
+        "compatible": "ram,dense",
+        "basename": "memory",
+        "min_offset": "0o17",
+        "max_offset": "0xfeed"
+      }
+      ]
+    })j";
+    ParsingContext ctx;
+    auto s = parse_system(js, ctx);
+    REQUIRE(s != nullptr);
+    auto mem = s->find_relative("memory", "/");
+    REQUIRE(mem != nullptr);
+    CHECK(mem->config().compatible == Dense::compatible);
+    auto casted = mem->capability<Target>();
+    REQUIRE(casted != nullptr);
+    CHECK(casted->span().lower() == 017);
+    CHECK(casted->span().upper() == 0xfeed);
+  }
 }
 
 TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit][arch:*][!throws]") {
@@ -168,6 +190,50 @@ TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit
         "min_offset": 0,
         "max_offset": 1024,
         "fill": "not an integer"
+      }
+      ]
+    })j";
+    ParsingContext ctx;
+    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+  }
+  SECTION("bad octal") {
+    static const char *js = R"j({
+      "children": [
+      {
+        "compatible": "ram,dense",
+        "basename": "memory",
+        "min_offset": 0,
+        "max_offset": 1024,
+        "fill": "0o88"
+      }
+      ]
+    })j";
+    ParsingContext ctx;
+    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+  }
+  SECTION("out-of-range fill") {
+    static const char *js = R"j({
+      "children": [
+      {
+        "compatible": "ram,dense",
+        "basename": "memory",
+        "min_offset": 0,
+        "max_offset": 1024,
+        "fill": "0x100"
+      }
+      ]
+    })j";
+    ParsingContext ctx;
+    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+  }
+  SECTION("negative in unsigned slot") {
+    static const char *js = R"j({
+      "children": [
+      {
+        "compatible": "ram,dense",
+        "basename": "memory",
+        "min_offset": -100,
+        "max_offset": 1024,
       }
       ]
     })j";
