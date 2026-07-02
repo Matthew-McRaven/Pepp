@@ -85,7 +85,6 @@ private:
 template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
 ConcreteDevice *System::make_device(Device *parent, ConcreteConfig &&cfg, Args &&...args) {
   static_assert(std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>);
-
   const auto id = parent->id();
   if (auto it = _id_to_device.find(id); it != _id_to_device.end())
     return make_device<ConcreteDevice>(id, cfg, std::forward<Args>(args)...);

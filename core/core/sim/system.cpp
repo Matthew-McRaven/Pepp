@@ -17,6 +17,8 @@ System::System(Configuration config)
   else if (_config.basename->starts_with("/")) _config.basename = *_config.basename;
   else _config.basename = "/" + *_config.basename;
   _config.fullname = *_config.basename;
+  // Ensure we can lookup this device by ID.
+  _id_to_device[*_config.id] = _root.get();
 }
 
 void System::initialize(System *sys) { return initialize(); }
