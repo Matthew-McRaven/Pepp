@@ -1,11 +1,11 @@
 #include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/memory/errors.hpp"
 
-Sparse::Sparse(Device::ID id, Configuration config) : Device(), _config(config), _id(id) {}
+Sparse::Sparse(Configuration config) : Device(), _config(config) {}
 
-const Device::Configuration &Sparse::config() const { return _config.base; }
+const Device::Configuration &Sparse::config() const { return _config; }
 
-const Device::ID Sparse::id() const { return _id; }
+const Device::ID Sparse::id() const { return *_config.id; }
 
 Device::Type Sparse::type() const {
   using namespace bits;
@@ -22,16 +22,16 @@ const Buffer *Sparse::buffer() const { return _tb; }
 bool Sparse::can_generate_traces() const { return true; }
 
 void Sparse::trace(bool enabled) {
-  if (_tb) _tb->trace(_id, enabled);
+  if (_tb) _tb->trace(id(), enabled);
 }
 
-bool Sparse::traced() const { return _tb ? _tb->traced(_id) : false; }
+bool Sparse::traced() const { return _tb ? _tb->traced(id()) : false; }
 
-AddressSpan Sparse::span() const { return _config.span; }
+AddressSpan Sparse::span() const { return *_config.span; }
 
 Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) const {
   using E = Error;
-  const auto span = _config.span;
+  const auto span = *_config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
@@ -53,7 +53,7 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
       assert(src.size() >= len);
       bits::memcpy(dest.first(len), src.first(len));
     } else {
-      std::fill_n(dest.begin(), len, _config.fill);
+      std::fill_n(dest.begin(), len, *_config.fill);
     }
 
     offset += len;
@@ -65,7 +65,7 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
 
 Target::Result Sparse::write(Address address, bits::span<const u8> src, Operation op) {
   using E = Error;
-  auto span = _config.span;
+  auto span = *_config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, src.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
@@ -108,7 +108,7 @@ void Sparse::clear(u8 fill) {
 void Sparse::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   for (const auto &[addr, meta] : _pages) {
-    auto dest_subspan = dest.subspan(addr - _config.span.lower(), meta.data.size());
+    auto dest_subspan = dest.subspan(addr - (*_config.span).lower(), meta.data.size());
     const auto src_subspan = bits::span<const u8>{meta.data.data(), meta.data.size()};
     bits::memcpy(dest_subspan, src_subspan);
   }
@@ -124,6 +124,6 @@ Sparse::PageMeta Sparse::make_page(bool init) {
     ret = PageMeta{};
     ret.data = _data.back();
   }
-  if (init) std::fill(ret.data.begin(), ret.data.end(), _config.fill);
+  if (init) std::fill(ret.data.begin(), ret.data.end(), *_config.fill);
   return ret;
 }

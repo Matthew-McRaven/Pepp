@@ -33,7 +33,7 @@ Device *System::find_relative(std::string_view name, std::string_view parent) {
 
 Device *System::find_absolute(std::string_view name) {
   DeviceTree *root = _root.get();
-  auto ptr = (*root) | std::views::filter([&name](Device *dt) { return dt->config().fullname == name; });
+  auto ptr = (*root) | std::views::filter([&name](Device *dt) { return *dt->config().fullname == name; });
   auto count = std::ranges::distance(ptr);
   if (count > 1) {
     SPDLOG_WARN("System::find_absolute: multiple devices found with name {}", name);

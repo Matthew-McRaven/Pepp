@@ -36,7 +36,7 @@ public:
     // No additional configuration for now.
   };
   static constexpr Device::Type TypeMask = Device::Type::SystemRoot;
-  System(Configuration config = Configuration{{.basename = "/", .fullname = "/"}});
+  System(Configuration config = Configuration{{.id = Device::ID{0}, .basename{"/"}, .fullname{"/"}}});
   ~System() = default;
   System(const System &) = delete;
   System(System &&) = delete;
@@ -48,7 +48,7 @@ public:
   void initialize();
 
   const Configuration &config() const override { return _config; }
-  const Device::ID id() const override { return _self_id; }
+  const Device::ID id() const override { return *_config.id; }
 
   Device::ID next_ID();
   Device::IDGenerator gen_next_ID();
@@ -56,10 +56,13 @@ public:
   void set_buffer(trace::Buffer *buffer);
 
   // Create a device that is a child of the root (this system)
-  template <typename ConcreteDevice, typename... Args> ConcreteDevice *make_device(Args &&...args);
+  template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+  ConcreteDevice *make_device(ConcreteConfig &&cfg, Args &&...args);
   // Create children under a given device.
-  template <typename ConcreteDevice, typename... Args> ConcreteDevice *make_device(Device::ID parent, Args &&...args);
-  template <typename ConcreteDevice, typename... Args> ConcreteDevice *make_device(Device *parent, Args &&...args);
+  template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+  ConcreteDevice *make_device(Device::ID parent, ConcreteConfig &&cfg, Args &&...args);
+  template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+  ConcreteDevice *make_device(Device *parent, ConcreteConfig &&cfg, Args &&...args);
 
   // Return a pointer to a device by name, or nullptr if not found.
   // While these could be free function operating on DeviceTrees, it's more convenient for 2-stage device initialization
@@ -70,30 +73,35 @@ public:
   Device *find_relative(std::string_view name, std::string_view parent);
 
 private:
-  Configuration _config{{.basename = "/", .fullname = "/"}};
-  Device::ID _self_id = Device::ID(0);
+  Configuration _config{{.basename{"/"}, .fullname{"/"}}};
   Device::ID _next_ID = Device::ID(1);
   Device::IDGenerator _gen_next_ID = [] { return Device::ID(0); };
-  static inline Device::Configuration _root_desc{.basename = "/", .fullname = "/"};
+  static inline Device::Configuration _root_desc{.basename{"/"}, .fullname{"/"}};
   std::unique_ptr<DeviceTree> _root = nullptr;
   std::map<Device::ID, DeviceTree *> _id_to_device;
 };
 
-template <typename ConcreteDevice, typename... Args>
-ConcreteDevice *System::make_device(Device *parent, Args &&...args) {
+template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+ConcreteDevice *System::make_device(Device *parent, ConcreteConfig &&cfg, Args &&...args) {
+  static_assert(std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>);
+
   const auto id = parent->id();
   if (auto it = _id_to_device.find(id); it != _id_to_device.end())
-    return make_device<ConcreteDevice>(id, std::forward<Args>(args)...);
+    return make_device<ConcreteDevice>(id, cfg, std::forward<Args>(args)...);
   else throw std::runtime_error("Parent device not found");
 }
 
-template <typename ConcreteDevice, typename... Args>
-ConcreteDevice *System::make_device(Device::ID parent_id, Args &&...args) {
+template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+ConcreteDevice *System::make_device(Device::ID parent_id, ConcreteConfig &&cfg, Args &&...args) {
+  static_assert(std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>);
+
   auto device_tree = _id_to_device.find(parent_id);
   if (device_tree == _id_to_device.end()) throw std::runtime_error("Parent device not found");
   auto &parent = device_tree->second->device;
   static_assert(std::is_base_of_v<Device, ConcreteDevice>, "ConcreteDevice must be derived from Device");
-  auto device = std::make_unique<ConcreteDevice>(next_ID(), std::forward<Args>(args)...);
+  cfg.id = next_ID();
+  cfg.fullname = parent->config().child_name(*cfg.basename);
+  auto device = std::make_unique<ConcreteDevice>(cfg, std::forward<Args>(args)...);
   auto ptr = device.get();
   { // Force child_dt to go out of scope after move.
     auto child_dt = std::make_unique<DeviceTree>(std::move(device), device_tree->second);
@@ -102,7 +110,10 @@ ConcreteDevice *System::make_device(Device::ID parent_id, Args &&...args) {
   return ptr;
 }
 
-template <typename ConcreteDevice, typename... Args> ConcreteDevice *System::make_device(Args &&...args) {
+template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+ConcreteDevice *System::make_device(ConcreteConfig &&cfg, Args &&...args) {
+  static_assert(std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>);
+
   static_assert(std::is_base_of_v<Device, ConcreteDevice>, "Device must be derived from Device");
-  return make_device<ConcreteDevice>(this, std::forward<Args>(args)...);
+  return make_device<ConcreteDevice>(this, cfg, std::forward<Args>(args)...);
 }

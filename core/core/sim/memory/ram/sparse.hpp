@@ -23,14 +23,13 @@
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
 
-class Sparse : public Device, public Target, public Traceable {
+class Sparse final : public Device, public Target, public Traceable {
 public:
-  struct Configuration {
-    Device::Configuration base;
-    AddressSpan span;
-    u8 fill = 0;
+  struct Configuration : public Device::Configuration {
+    Immediate<u8> fill = 0;
+    Immediate<AddressSpan> span;
   };
-  Sparse(Device::ID id, Configuration config);
+  Sparse(Configuration config);
   ~Sparse() = default;
   Sparse(Sparse &&other) noexcept = default;
   Sparse &operator=(Sparse &&other) = default;
@@ -61,7 +60,6 @@ public:
 
 private:
   Configuration _config;
-  Device::ID _id;
   static constexpr u32 SPARSE_PAGE_SIZE = 256;
   static constexpr u32 SPARSE_PAGE_MASK = SPARSE_PAGE_SIZE - 1;
   using PageData = std::array<u8, SPARSE_PAGE_SIZE>;

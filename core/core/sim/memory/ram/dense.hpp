@@ -20,14 +20,13 @@
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
 
-class Dense : public Device, Target, Traceable {
+class Dense final : public Device, Target, Traceable {
 public:
-  struct Configuration {
-    Device::Configuration base;
-    AddressSpan span;
-    u8 fill = 0;
+  struct Configuration : public Device::Configuration {
+    Immediate<u8> fill{0};
+    Immediate<AddressSpan> span;
   };
-  Dense(Device::ID id, Configuration device);
+  Dense(Configuration device);
   ~Dense() = default;
   Dense(Dense &&other) noexcept = default;
   Dense &operator=(Dense &&other) = default;
@@ -59,7 +58,6 @@ public:
 
 private:
   Configuration _config;
-  Device::ID _id;
   std::vector<u8> _data;
   Buffer *_tb = nullptr;
 };

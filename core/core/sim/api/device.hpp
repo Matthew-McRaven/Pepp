@@ -20,6 +20,7 @@
 #include "core/ds/opaque_handle.hpp"
 #include "core/integers.h"
 #include "core/math/bitmanip/enums.hpp"
+#include "core/sim/api/configs.hpp"
 
 class System;
 std::string child_name(std::string_view parent_fullname, std::string_view child_basename);
@@ -27,7 +28,9 @@ struct Device {
   using ID = pepp::OpaqueHandle<struct DeviceID, u8>;
   using IDGenerator = std::function<Device::ID()>;
   struct Configuration {
-    std::string basename = "", fullname = "", compatible = "";
+    Computed<Device::ID> id;
+    Immediate<std::string> basename, compatible;
+    Computed<std::string> fullname;
     std::string child_name(std::string_view child_basename) const;
   };
   // Bitflags telling you what interfaces this abstract device implements.

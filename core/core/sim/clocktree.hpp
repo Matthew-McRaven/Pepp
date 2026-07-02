@@ -8,81 +8,67 @@
 namespace pepp {
 
 // Describe a jitter-free clock that operates at a fixed frequency
-struct IdealClock : public Device, ClockSource {
-  struct Configuration {
-    Device::Configuration base;
-    u64 period;
+struct IdealClock final : public Device, ClockSource {
+  struct Configuration : public Device::Configuration {
+    Immediate<u64> period;
   };
-  IdealClock(Configuration config, Device::ID id)
-      : Device(), ClockSource(), _config(config), _id(id), _sched({.period = config.period}) {}
+  IdealClock(Configuration config) : Device(), ClockSource(), _config(config), _sched({.period = *config.period}) {}
 
   PulseSchedule schedule() const override { return _sched; }
-  const Device::Configuration &config() const override { return _config.base; }
-  const Device::ID id() const override { return _id; }
+  const Device::Configuration &config() const override { return _config; }
+  const Device::ID id() const override { return *_config.id; }
 
 private:
   PulseSchedule _sched;
   Configuration _config;
-  Device::ID _id;
 };
 
-struct ScaledClock : public Device, public ClockSource {
-  struct Configuration {
-    Device::Configuration base;
-    float period_scale;
+struct ScaledClock final : public Device, public ClockSource {
+  struct Configuration : public Device::Configuration {
+    Immediate<float> period_scale;
     // If not-a-number, configured devices will copy the value from period_scale
-    float jitter_scale = std::numeric_limits<double>::quiet_NaN();
-  };
-  struct DeferredConfiguration {
-    std::string parent_name;
+    Immediate<float> jitter_scale = std::numeric_limits<float>::quiet_NaN();
+    Deferred<std::string> parent_name;
   };
 
-  ScaledClock(Configuration config, Device::ID id, DeferredConfiguration deferred);
+  ScaledClock(Configuration config);
   void initialize(System *) override;
   PulseSchedule schedule() const override;
-  const Device::Configuration &config() const override { return _config.base; }
-  const Device::ID id() const override { return _id; }
+  const Device::Configuration &config() const override { return _config; }
+  const Device::ID id() const override { return *_config.id; }
 
 private:
-  Device::ID _id;
   Configuration _config;
-  DeferredConfiguration _deferred;
   ClockSource *_parent = nullptr;
 };
 
 // A clock node which can choose between multiple parent clocks.
-struct MuxClock : public Device, public ClockSource {
-  struct Configuration {
-    Device::Configuration base;
-  };
-  struct DeferredConfiguration {
-    int selected = 0;
-    std::vector<std::string> names;
+struct MuxClock final : public Device, public ClockSource {
+  struct Configuration : public Device::Configuration {
+    Deferred<u16> selected;
+    Deferred<std::vector<std::string>> names;
   };
 
   // Connect to clock index 0 by default.
   template <typename... Choices>
-  explicit MuxClock(Configuration config, Device::ID id, Choices &&...choices)
-      : Device(), ClockSource(), _index(0), _config(config), _id(id), _choices{std::forward<Choices>(choices)...} {
+  explicit MuxClock(Configuration config, Choices &&...choices)
+      : Device(), ClockSource(), _index(0), _config(config), _choices{std::forward<Choices>(choices)...} {
     if (_choices.size() == 0) throw std::runtime_error("MuxClockNode must have at least one choice");
   }
 
-  explicit MuxClock(Configuration config, Device::ID id, DeferredConfiguration choices);
+  explicit MuxClock(Configuration config);
   void initialize(System *) override;
 
   void select_clock(u16 index);
   std::span<ClockSource *> choices() { return _choices; }
   PulseSchedule schedule() const override;
-  const Device::Configuration &config() const override { return _config.base; }
-  const Device::ID id() const override { return _id; }
+  const Device::Configuration &config() const override { return _config; }
+  const Device::ID id() const override { return *_config.id; }
 
 private:
   const ClockSource *selected_clock() const;
   u16 _index = -1;
-  Device::ID _id;
   Configuration _config;
-  DeferredConfiguration _deferred;
-
   std::vector<ClockSource *> _choices;
 };
 

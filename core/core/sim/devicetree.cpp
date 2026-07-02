@@ -8,7 +8,7 @@ std::string child_name(std::string_view view_fullname, std::string_view view_chi
 }
 
 std::string Device::Configuration::child_name(std::string_view child_basename) const {
-  return ::child_name(fullname, child_basename);
+  return ::child_name(*fullname, child_basename);
 }
 
 DeviceTree *DeviceTree::append_child(Device *dev) {

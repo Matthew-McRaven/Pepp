@@ -21,33 +21,37 @@
 #include "core/sim/api/device.hpp"
 
 struct DeviceWithType : public Device {
-  DeviceWithType(Configuration config, Device::ID id, Type type) : Device(), _config(config), _id(id), _type(type) {}
+  DeviceWithType(Configuration config, Type type) : Device(), _config(config), _type(type) {}
   Type type() const override { return _type; }
   const Configuration &config() const override { return _config; }
-  const Device::ID id() const override { return _id; }
+  const Device::ID id() const override { return *_config.id; }
 
 private:
   Configuration _config;
-  Device::ID _id;
+
   Type _type;
 };
 
 struct SubclassingDevice : public Device, ClockSource {
-  SubclassingDevice(Configuration config, Device::ID id) : Device(), _config(config), _id(id) {}
+  SubclassingDevice(Configuration config) : Device(), _config(config) {}
   Type type() const override { return Type::ClockSource; }
   PulseSchedule schedule() const override { return {.period = 100, .jitter = 10, .seed = 0}; }
   const Configuration &config() const override { return _config; }
-  const Device::ID id() const override { return _id; }
+  const Device::ID id() const override { return *_config.id; }
 
 private:
   Configuration _config;
-  Device::ID _id;
 };
 
 TEST_CASE("New devices test", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
   using namespace bits;
-  static const Device::Configuration desc{"test", "/test", "test-compatible"};
-  SubclassingDevice dev(desc, Device::ID{0});
+  static const Device::Configuration desc{
+      .id = Device::ID{0},
+      .basename = "test",
+      .compatible = "test-compatible",
+      .fullname = "/test",
+  };
+  SubclassingDevice dev(desc);
   auto tree = DeviceTree(&dev, nullptr);
   CHECK(tree.device == &dev);
   auto erased = tree.device;
@@ -57,16 +61,39 @@ TEST_CASE("New devices test", "[scope:core][scope:core.sim][kind:unit][arch:*]")
 }
 TEST_CASE("DeviceTree", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
   using namespace bits;
-  static const Device::Configuration root_desc{"/", "/", "root"};
-  static const Device::Configuration alpha_desc{"alpha", "/alpha", "alpha-compatible"};
-  static const Device::Configuration beta_desc{"beta", "/beta", "beta-compatible"};
-  static const Device::Configuration delta_desc{"delta", alpha_desc.child_name("delta"), "delta-compatible"};
-  static const Device::Configuration gamma_desc{"gamma", alpha_desc.child_name("gamma"), "gamma-compatible"};
+  static const Device::Configuration root_desc{
+      .id = Device::ID{0},
+      .basename = "/",
+      .compatible = "root",
+      .fullname = "/",
+  };
+  static const Device::Configuration alpha_desc{
+      .id = Device::ID{1},
+      .basename = "alpha",
+      .compatible = "alpha-compatible",
+      .fullname = "/alpha",
+  };
+  static const Device::Configuration beta_desc{
+      .id = Device::ID{2},
+      .basename = "beta",
+      .compatible = "beta-compatible",
+      .fullname = "/beta",
+  };
+  static const Device::Configuration delta_desc{
+      .id = Device::ID{3},
+      .basename = "delta",
+      .compatible = "delta-compatible",
+      .fullname = alpha_desc.child_name("delta"),
+  };
+  static const Device::Configuration gamma_desc{
+      .id = Device::ID{4},
+      .basename = "gamma",
+      .compatible = "gamma-compatible",
+      .fullname = alpha_desc.child_name("gamma"),
+  };
   using T = Device::Type;
-  static DeviceWithType root(root_desc, Device::ID{0}, T::Root),
-      alpha(alpha_desc, Device::ID{1}, T::ClockSink | T::MemoryInitiator),
-      beta(beta_desc, Device::ID{2}, T::MemoryTarget), delta(delta_desc, Device::ID{4}, T::MemoryTarget),
-      gamma(gamma_desc, Device::ID{3}, T::MemoryTarget);
+  static DeviceWithType root(root_desc, T::Root), alpha(alpha_desc, T::ClockSink | T::MemoryInitiator),
+      beta(beta_desc, T::MemoryTarget), delta(delta_desc, T::MemoryTarget), gamma(gamma_desc, T::MemoryTarget);
   DeviceTree root_tree(&root, nullptr);
   auto alpha_tree = root_tree.append_child(&alpha);
   auto beta_tree = root_tree.append_child(&beta);
@@ -86,7 +113,7 @@ TEST_CASE("DeviceTree", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
     CHECK(std::distance(view.begin(), view.end()) == 5);
   }
   SECTION("Filter on basename") {
-    auto view = root_tree | std::views::filter([](Device *dt) { return dt->config().basename == "alpha"; });
+    auto view = root_tree | std::views::filter([](Device *dt) { return *dt->config().basename == "alpha"; });
     CHECK(std::distance(view.begin(), view.end()) == 1);
   }
   SECTION("Filter for ID") {
