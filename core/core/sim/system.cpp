@@ -10,7 +10,14 @@ consteval void allow_opaque_handle_increment(Device::ID);
 
 System::System(Configuration config)
     : Device(), _config(config), _gen_next_ID([this]() { return next_ID(); }),
-      _root(std::make_unique<DeviceTree>(this, nullptr)) {}
+      _root(std::make_unique<DeviceTree>(this, nullptr)) {
+  _config.id = Device::ID{0};
+  // Ensure that basename always == fullname, and that the name starts with a /
+  if (_config.basename->empty()) _config.basename = "/";
+  else if (_config.basename->starts_with("/")) _config.basename = *_config.basename;
+  else _config.basename = "/" + *_config.basename;
+  _config.fullname = *_config.basename;
+}
 
 void System::initialize(System *sys) { return initialize(); }
 

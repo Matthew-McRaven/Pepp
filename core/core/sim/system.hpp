@@ -36,7 +36,8 @@ public:
     // No additional configuration for now.
   };
   static constexpr Device::Type TypeMask = Device::Type::SystemRoot;
-  System(Configuration config = Configuration{{.id = Device::ID{0}, .basename{"/"}, .fullname{"/"}}});
+  inline static std::string compatible = "system,root";
+  System(Configuration config = Configuration{{.basename = "/", .compatible = System::compatible}});
   ~System() = default;
   System(const System &) = delete;
   System(System &&) = delete;
