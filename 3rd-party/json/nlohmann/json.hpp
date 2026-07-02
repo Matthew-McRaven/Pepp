@@ -15,6 +15,7 @@
  * file docs/README.md.                                                     *
 \****************************************************************************/
 
+#include "./json_fwd.hpp"
 #ifndef INCLUDE_NLOHMANN_JSON_HPP_
 #define INCLUDE_NLOHMANN_JSON_HPP_
 
@@ -103,23 +104,6 @@
     #define NLOHMANN_JSON_NAMESPACE_NO_VERSION 0
 #endif
 
-// Construct the namespace ABI tags component
-#define NLOHMANN_JSON_ABI_TAGS_CONCAT_EX(a, b, c) json_abi ## a ## b ## c
-#define NLOHMANN_JSON_ABI_TAGS_CONCAT(a, b, c) \
-    NLOHMANN_JSON_ABI_TAGS_CONCAT_EX(a, b, c)
-
-#define NLOHMANN_JSON_ABI_TAGS                                       \
-    NLOHMANN_JSON_ABI_TAGS_CONCAT(                                   \
-            NLOHMANN_JSON_ABI_TAG_DIAGNOSTICS,                       \
-            NLOHMANN_JSON_ABI_TAG_LEGACY_DISCARDED_VALUE_COMPARISON, \
-            NLOHMANN_JSON_ABI_TAG_DIAGNOSTIC_POSITIONS)
-
-// Construct the namespace version component
-#define NLOHMANN_JSON_NAMESPACE_VERSION_CONCAT_EX(major, minor, patch) \
-    _v ## major ## _ ## minor ## _ ## patch
-#define NLOHMANN_JSON_NAMESPACE_VERSION_CONCAT(major, minor, patch) \
-    NLOHMANN_JSON_NAMESPACE_VERSION_CONCAT_EX(major, minor, patch)
-
 #if NLOHMANN_JSON_NAMESPACE_NO_VERSION
 #define NLOHMANN_JSON_NAMESPACE_VERSION
 #else
@@ -129,10 +113,6 @@
                                            NLOHMANN_JSON_VERSION_PATCH)
 #endif
 
-// Combine namespace components
-#define NLOHMANN_JSON_NAMESPACE_CONCAT_EX(a, b) a ## b
-#define NLOHMANN_JSON_NAMESPACE_CONCAT(a, b) \
-    NLOHMANN_JSON_NAMESPACE_CONCAT_EX(a, b)
 
 #ifndef NLOHMANN_JSON_NAMESPACE
 #define NLOHMANN_JSON_NAMESPACE               \
