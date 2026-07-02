@@ -64,6 +64,8 @@ struct Operation {
   enum class Kind : bool { instruction = false, data = true } kind;
 };
 
+static constexpr auto op_i_std = Operation{.type = Operation::Type::Standard, .kind = Operation::Kind::instruction};
+
 struct Target {
   struct Result {
     // Number of simulation ticks required to complete the memory op.
