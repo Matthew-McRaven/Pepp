@@ -52,6 +52,7 @@ public:
 // A memory system would always return true from can_generate_traces(), but traced() would depend on the configuration
 // of the system-under-test.
 class Traceable {
+public:
   static constexpr Device::Type TypeMask = Device::Type::Traceable;
   virtual void set_buffer(Buffer *tb) = 0;
   virtual const Buffer *buffer() const = 0;
