@@ -92,16 +92,6 @@ struct Target {
   template <std::integral I, bool byteswap = false> Result write(Address address, I src, Operation op);
 };
 
-// If you act like a bus you need to implement this. It allows decoding of packets into their initiator's address space.
-struct Translator {
-  static constexpr Device::Type TypeMask = Device::Type::MemoryTranslator;
-  virtual ~Translator() = default;
-  virtual std::tuple<bool, Device::ID, Address> forward(Address address) const = 0;
-  virtual std::optional<Address> backward(Device::ID child, Address address) const = 0;
-  // virtual void setPathManager(QSharedPointer<api2::Paths> paths) = 0;
-  // virtual QSharedPointer<const api2::Paths> pathManager() const = 0;
-};
-
 struct Initiator {
   static constexpr Device::Type TypeMask = Device::Type::MemoryInitiator;
   virtual ~Initiator() = default;

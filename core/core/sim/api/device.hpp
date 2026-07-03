@@ -42,8 +42,7 @@ struct Device {
     Root = 1,
     // Generic device types
     MemoryTarget = Root << 1,
-    MemoryTranslator = MemoryTarget << 1,
-    MemoryInitiator = MemoryTranslator << 1,
+    MemoryInitiator = MemoryTarget << 1,
     ClockSource = MemoryInitiator << 1,
     ClockSink = ClockSource << 1,
     // Synthetic devices, which are not part of the original device tree but are created by the simulator to allow
