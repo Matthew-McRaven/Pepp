@@ -97,9 +97,9 @@ struct Initiator {
   virtual ~Initiator() = default;
   // Sets the memory backing for a particular port (i.e., set the I and D caches
   // separately) If port is nullptr, then all ports will use the target,
-  virtual void bind_port(Target *target, std::string_view port_name = {}) = 0;
-  virtual const std::span<const std::string> list_ports() const = 0;
-  virtual Target *get_port(std::string_view port_name = {}) const = 0;
+  // virtual void bind_port(Target *target, std::string_view port_name = {}) = 0;
+  // virtual const std::span<const std::string> list_ports() const = 0;
+  // virtual Target *get_port(std::string_view port_name = {}) const = 0;
 };
 
 /*
