@@ -75,3 +75,12 @@ constexpr bool none(T lhs) noexcept {
 }
 
 } // namespace bits
+
+template <class T>
+  requires(std::is_enum_v<T> && requires(T e) { is_bitflags(e); })
+struct std::hash<T> {
+  std::size_t operator()(const T &v) const noexcept {
+    using U = std::underlying_type_t<T>;
+    return std::hash<U>{}(static_cast<U>(v));
+  }
+};
