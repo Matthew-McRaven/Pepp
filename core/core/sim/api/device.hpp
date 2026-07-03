@@ -80,6 +80,12 @@ protected:
 };
 consteval void is_bitflags(Device::Type);
 
+template <> struct std::hash<Device::ID> {
+  std::size_t operator()(const Device::ID &v) const noexcept {
+    return std::hash<Device::ID::underlying_type>{}(v.value);
+  }
+};
+
 // Can't be inside class def because is_bitflags is not yet visible.
 inline Device *Device::capability(Type t) {
   using namespace bits;
