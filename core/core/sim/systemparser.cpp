@@ -42,8 +42,9 @@ template <std::integral T> T as_int(const nlohmann::json &value) {
 
   auto sub = str.substr(prefix_size);
   T ret;
-  auto [ptr, ec] = std::from_chars(sub.data(), sub.data() + sub.size(), ret, base);
-  if (ec != std::errc() || ptr != sub.end().base()) throw ParsingError("Failed to parse integer from string");
+  const auto* sub_end = sub.data() + sub.size();
+  auto [ptr, ec] = std::from_chars(sub.data(), sub_end, ret, base);
+  if (ec != std::errc() || ptr != sub_end) throw ParsingError("Failed to parse integer from string");
   return static_cast<T>(sign) * ret;
 }
 void parse_standard_fields(const nlohmann::json &node, Device::Configuration &cfg) {
