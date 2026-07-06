@@ -10,6 +10,7 @@ void native_add16i(Interpreter *interp) {
   i16 result = lhs + rhs;
   interp->push_psp(result);
 }
+
 void native_lit(Interpreter *interp) {
   u16 *nxt_ip = &interp->cb.nxt_ip;
   u16 value = interp->read<u16>(*nxt_ip);
@@ -64,6 +65,11 @@ void native_over16(Interpreter *interp) {
   interp->push_psp(second);
   interp->push_psp(first);
   interp->push_psp(second);
+}
+
+void native_dot(Interpreter *interp) {
+  auto tos = interp->pop_psp<i16>();
+  std::cout << tos << std::endl;
 }
 
 void native_key(Interpreter *interp) {
@@ -250,9 +256,7 @@ void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit) {
     auto cfa = hdr.pcode();
     interp->cb.w = cfa;
     auto opcode = interp->read<u16>(cfa);
-    auto it = interp->native_words.find(opcode);
-    if (it != interp->native_words.end()) it->second(interp);
-    else std::cerr << "Unknown opcode in interpret: " << opcode << std::endl;
+    interp->dispatch(opcode);
   } else { // Otherwise, compile it into the current definition.
     interp->write_here_pp<u16>(hdr.pcode());
   }

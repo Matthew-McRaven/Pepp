@@ -72,3 +72,10 @@ NiceDictHeader dict_header(Interpreter *interp, std::string_view name, Flags fla
 
   return NiceDictHeader(interp, addr_of_link);
 }
+
+NativeDictEntry dict_insert_native(Interpreter *i, NativeOpcode h, Flags flags, std::string_view name) {
+  auto opcode = i->register_native(h);
+  if (name.empty()) name = h.name;
+  auto hdr = dict_insert(i, name, flags, std::array<u16, 1>{opcode});
+  return NativeDictEntry{.h = h, .hdr = hdr};
+}

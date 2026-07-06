@@ -18,13 +18,19 @@ class AValue {};
 // memory layout
 // 0x0000: initial value of ip, trampoline to real entry point
 // 0x0010: initial value of here
-// 0x3000: initial value of psp, growing towards 0x4000
-// 0x4000: initial value of rsp, growing towards 0x3000
+// 0x0800: initial value of psp, growing towards 0x0FFF
+// 0x0FFE: initial value of rsp, growing towards 0x0800
 // OSP is not part of the memory map, because it is actually a vector of C++ objects.
 
 class Interpreter;
 
-using NativeWord = std::function<void(Interpreter *)>;
+struct NativeOpcode {
+  // How many bytes should the stack have been adjusted by?
+  i16 stack_delta;
+  std::string name;
+  using Handler = std::function<void(Interpreter *)>;
+  Handler h;
+};
 
 enum class Flags : u8 {
   IMMEDIATE = 0x80,
@@ -67,7 +73,8 @@ public:
   void step();
   void run();
 
-  std::unordered_map<u16, NativeWord> native_words;
+  std::unordered_map<u16, NativeOpcode> native_words;
+  void dispatch(u16 opcode);
   alignas(16) std::array<u8, 4096> memory;
   u16 write(u16 base, std::span<const u8> data);
   u16 write(u16 base, std::span<const u16> data);
@@ -125,7 +132,7 @@ public:
   void write_here_pp(std::span<const u16> code) {
     for (auto c : code) write_here_pp<u16>(c);
   }
-  u16 register_native(NativeWord word) {
+  u16 register_native(NativeOpcode word) {
     i16 opcode = -((i16)native_words.size() + 1);
     native_words[opcode] = word;
     return opcode;

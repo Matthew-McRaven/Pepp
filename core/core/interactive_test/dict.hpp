@@ -47,6 +47,13 @@ private:
   u16 _nt_addr;
 };
 
+struct NativeDictEntry {
+  NativeOpcode h;
+  NiceDictHeader hdr;
+  u16 code0() const { return hdr.code0(); }
+  u16 pcode() const { return hdr.pcode(); }
+};
+
 // Implement using C++ iterator tags
 struct DictionaryIterator {
   DictionaryIterator(Interpreter *interp, u16 start_addr) : _interp(interp), _link(start_addr) {}
@@ -81,3 +88,5 @@ inline DictionaryIterator end(Interpreter *interp) { return DictionaryIterator(i
 NiceDictHeader dict_insert(Interpreter *i, std::string_view name, Flags flags, std::span<const u16> code = {});
 // Write out the header, up-to and not including codeword.
 NiceDictHeader dict_header(Interpreter *i, std::string_view name, Flags flags);
+
+NativeDictEntry dict_insert_native(Interpreter *i, NativeOpcode h, Flags flags, std::string_view name = "");

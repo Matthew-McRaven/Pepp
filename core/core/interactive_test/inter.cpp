@@ -19,25 +19,38 @@ void Interpreter::step() {
   }
   cb.w = opcode_direct;
   auto opcode = read<u16>(opcode_direct);
-  std::cerr << fmt::format("cur_ip={:04x}, *cur_ip={:04x}, **cur_ip={:04x}\n", cb.cur_ip, opcode_direct, opcode);
-  std::cerr << fmt::format("  state={:1x},psp={:04x}, rsp={:04x}, here={:04x}, latest={:04x}\n", (i16)cb.state, cb.psp,
-                           cb.rsp, cb.here, cb.latest);
 
   if (opcode == 0) {
     cb.alive = false;
     return;
   }
-  auto it = native_words.find(opcode);
-  if (it != native_words.end()) {
-    it->second(this);
-  } else {
-    std::cerr << fmt::format("Unknown opcode **cur_ip={:x}\n", opcode);
-    cb.alive = false;
-  }
+  dispatch(opcode);
 }
 
 void Interpreter::run() {
   while (cb.alive) step();
+}
+
+void Interpreter::dispatch(u16 opcode) {
+  auto it = native_words.find(opcode);
+  if (it != native_words.end()) {
+    std::cerr << fmt::format("{:9}, cur_ip={:04x}, *cur_ip={:04x}, **cur_ip={:04x}\n", it->second.name, cb.cur_ip, cb.w,
+                             opcode);
+    std::cerr << fmt::format("   state={:1x},psp={:04x}, rsp={:04x}, here={:04x}, latest={:04x}\n", (i16)cb.state,
+                             cb.psp, cb.rsp, cb.here, cb.latest);
+    const auto init_psp = cb.psp;
+    it->second.h(this);
+    const auto final_psp = cb.psp;
+    auto delta = final_psp - init_psp;
+    if (delta != it->second.stack_delta)
+      std::cerr << fmt::format("  warning: native word stack delta mismatch. Expected {}, got {}.\n",
+                               it->second.stack_delta, delta);
+    std::cerr << fmt::format("   state={:1x},psp={:04x}, rsp={:04x}, here={:04x}, latest={:04x}\n", (i16)cb.state,
+                             cb.psp, cb.rsp, cb.here, cb.latest);
+  } else {
+    std::cerr << fmt::format(". Unknown opcode **cur_ip={:x}\n", opcode);
+    cb.alive = false;
+  }
 }
 
 u16 Interpreter::write(u16 base, std::span<const u8> data) {

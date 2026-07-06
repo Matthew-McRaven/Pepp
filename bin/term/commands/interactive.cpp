@@ -89,74 +89,54 @@ void InteractiveTask::run() {
   std::string input;
   Interpreter p;
 
-  // opcodes without dict entries.
-  auto op_stop = p.register_native(native_halt);
+  // Words with automatic registration.
+  auto h_stop = dict_insert_native(&p, Halt, {});
+  auto h_dup = dict_insert_native(&p, Dup16, {});
+  auto h_drop = dict_insert_native(&p, Drop16, {});
+  auto h_add16i = dict_insert_native(&p, Add16i, {}, "+");
+  auto h_dot = dict_insert_native(&p, Dot, {}, ".");
+  auto h_docol = dict_insert_native(&p, Docol, {}, "docol");
+  auto h_exit = dict_insert_native(&p, Exitcol, {});
+  auto h_create = dict_insert_native(&p, Create, {});
+  auto h_comma = dict_insert_native(&p, Comma, {});
+  auto h_lit = dict_insert_native(&p, Lit, {});
+  auto h_latest = dict_insert_native(&p, Latest, {});
+  auto h_fetch = dict_insert_native(&p, Fetch, {}, "@");
+  auto h_hidden = dict_insert_native(&p, Hidden, {});
+  auto h_rbrac = dict_insert_native(&p, Rbrac, {}, "]");
+  auto h_lbrac = dict_insert_native(&p, Lbrac, Flags::IMMEDIATE, "[");
+  auto h_branch = dict_insert_native(&p, Branch, {});
+  auto h_lateststore = dict_insert_native(&p, LatestStore, {}, "latest!");
 
-  auto op_dup16 = p.register_native(native_dup16);
-  auto d_dup = dict_insert(&p, "dup", {}, {std::array<u16, 1>{op_dup16}});
-
-  auto op_add16i = p.register_native(native_add16i);
-  auto d_add16i = dict_insert(&p, "+", {}, {std::array<u16, 1>{op_add16i}});
-
-  auto op_dot = p.register_native([](Interpreter *i) {
-    auto tos = i->pop_psp<i16>();
-    std::cout << tos << std::endl;
-  });
-  auto d_dot = dict_insert(&p, ".", {}, {std::array<u16, 1>{op_dot}});
-
-  auto op_docol = p.register_native(native_docol);
-  auto d_docol = dict_insert(&p, "docol", {}, {std::array<u16, 1>{op_docol}});
-  auto op_exitcol = p.register_native(native_exitcol);
-  auto d_exit = dict_insert(&p, "exit", {}, {std::array<u16, 1>{op_exitcol}});
-
+  // Word which require per-instance state.
   const u16 spad = p.cb.here;
   p.cb.here += 32;
-  auto op_word = p.register_native([&spad](Interpreter *i) { native_word(i, spad); });
-  auto d_word = dict_insert(&p, "word", {}, {std::array<u16, 1>{op_word}});
+  NativeOpcode Word = {
+      .stack_delta = 4,
+      .name = "word",
+      .h = [&spad](Interpreter *i) { native_word(i, spad); },
+  };
+  auto h_word = dict_insert_native(&p, Word, {}, "word");
 
-  auto op_create = p.register_native(native_create);
-  auto d_create = dict_insert(&p, "create", {}, {std::array<u16, 1>{op_create}});
-  auto op_comma = p.register_native(native_comma);
-  auto d_comma = dict_insert(&p, ",", {}, {std::array<u16, 1>{op_comma}});
-  auto op_lit = p.register_native(native_lit);
-  auto d_lit = dict_insert(&p, "lit", {}, {std::array<u16, 1>{op_lit}});
+  NativeOpcode RspInitVal = {
+      .stack_delta = 2,
+      .name = "rspinitval",
+      .h = [](Interpreter *i) { i->push_psp(Interpreter::INITIAL_RSP); },
+  };
+  auto h_rspinitval = dict_insert_native(&p, RspInitVal, {});
 
-  auto op_latest = p.register_native(native_latest);
-  auto d_latest = dict_insert(&p, "latest", {}, {std::array<u16, 1>{op_latest}});
+  NativeOpcode RspStore{
+      .stack_delta = -2, .name = "rspstoreval", .h = [](Interpreter *i) { i->cb.rsp = i->pop_psp<u16>(); }};
+  auto h_rspstore = dict_insert_native(&p, RspStore, {});
 
-  auto op_fetch = p.register_native(native_fetch);
-  auto d_fetch = dict_insert(&p, "@", {}, {std::array<u16, 1>{op_fetch}});
+  NativeOpcode Interp = {
+      .stack_delta = 0,
+      .name = "interpret",
+      .h = [&spad, &h_lit](Interpreter *i) { native_interpret(i, spad, h_lit.pcode()); },
+  };
+  auto h_interp = dict_insert_native(&p, Interp, {}, "interpret");
 
-  auto op_hidden = p.register_native(native_hidden);
-  auto d_hidden = dict_insert(&p, "hidden", {}, {std::array<u16, 1>{op_hidden}});
-
-  auto op_rbrac = p.register_native(native_rbrac);
-  auto d_rbrac = dict_insert(&p, "]", {}, {std::array<u16, 1>{op_rbrac}});
-  auto op_lbrac = p.register_native(native_lbrac);
-  auto d_lbrac = dict_insert(&p, "[", Flags::IMMEDIATE, {std::array<u16, 1>{op_lbrac}});
-
-  auto op_colon = std::array<u16, 11>{d_docol.code0(),  d_word.pcode(),  d_create.pcode(), d_lit.pcode(),
-                                      d_docol.pcode(),  d_fetch.pcode(), d_comma.pcode(),  d_latest.pcode(),
-                                      d_hidden.pcode(), d_rbrac.pcode(), d_exit.pcode()};
-  auto d_colon = dict_insert(&p, ":", {}, op_colon);
-  auto op_semi = std::array<u16, 8>{d_docol.code0(),  d_lit.pcode(),    d_exit.pcode(),  d_comma.pcode(),
-                                    d_latest.pcode(), d_hidden.pcode(), d_lbrac.pcode(), d_exit.pcode()};
-  auto d_semi = dict_insert(&p, ";", Flags::IMMEDIATE, op_semi);
-
-  auto op_rspinitval = p.register_native([](Interpreter *i) { i->push_psp(Interpreter::INITIAL_RSP); });
-  auto d_rspinit = dict_insert(&p, "r0", {}, {std::array<u16, 1>{op_rspinitval}});
-  auto op_rspstore = p.register_native([](Interpreter *i) { i->cb.rsp = i->pop_psp<u16>(); });
-  auto d_rspstore = dict_insert(&p, "rsp!", {}, {std::array<u16, 1>{op_rspstore}});
-
-  auto op_branch = p.register_native(native_branch);
-  auto d_branch = dict_insert(&p, "branch", {}, {std::array<u16, 1>{op_branch}});
-  auto op_interp = p.register_native([&](Interpreter *i) { native_interpret(i, spad, d_lit.pcode()); });
-  auto d_interp = dict_insert(&p, "interpret", {}, {std::array<u16, 1>{op_interp}});
-
-  auto op_quit = std::array<u16, 6>{d_docol.code0(),  d_rspinit.pcode(), d_rspstore.pcode(),
-                                    d_interp.pcode(), d_branch.pcode(),  (u16)-10};
-  auto d_quit = dict_insert(&p, "quit", {}, op_quit);
-  auto o_dumpdict = p.register_native([](Interpreter *i) {
+  auto f_dd = [](Interpreter *i) {
     auto b = begin(i), e = end(i);
     while (b != e) {
       auto v = *b;
@@ -165,10 +145,22 @@ void InteractiveTask::run() {
                                (i16)v.code0());
       b++;
     }
-  });
-  auto d_dumpdict = dict_insert(&p, "dumpdict", {}, {std::array<u16, 1>{o_dumpdict}});
-  auto op_lateststore = p.register_native(native_lateststore);
-  auto d_lateststore = dict_insert(&p, "latest!", {}, {std::array<u16, 1>{op_lateststore}});
+  };
+  NativeOpcode DumpDict = {.stack_delta = 0, .name = "dumpdict", .h = f_dd};
+  auto h_dumpdict = dict_insert_native(&p, DumpDict, Flags::IMMEDIATE);
+
+  // "FORTH" words, implemented in terms of docol
+  auto op_colon =
+      std::array<u16, 10>{h_docol.code0(), h_word.pcode(),  h_create.pcode(), h_hidden.pcode(), h_lit.pcode(),
+                          h_docol.pcode(), h_fetch.pcode(), h_comma.pcode(),  h_rbrac.pcode(),  h_exit.pcode()};
+  auto d_colon = dict_insert(&p, ":", {}, op_colon);
+  auto op_semi = std::array<u16, 8>{h_docol.code0(),  h_lit.pcode(),    h_exit.pcode(),  h_comma.pcode(),
+                                    h_latest.pcode(), h_hidden.pcode(), h_lbrac.pcode(), h_exit.pcode()};
+  auto d_semi = dict_insert(&p, ";", Flags::IMMEDIATE, op_semi);
+
+  auto op_quit = std::array<u16, 6>{h_docol.code0(),  h_rspinitval.pcode(), h_rspstore.pcode(),
+                                    h_interp.pcode(), h_branch.pcode(),     (u16)-10};
+  auto d_quit = dict_insert(&p, "quit", {}, op_quit);
 
   p.write(d_quit.pcode(), 0);
   std::cout.flush();
