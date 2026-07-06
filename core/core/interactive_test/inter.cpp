@@ -93,29 +93,3 @@ u16 dict_insert(Interpreter *interp, std::string name, Flags flags, std::span<co
 
   return addr_of_link;
 }
-
-void native_add16i(Interpreter *interp) {
-  i16 lhs = interp->pop_psp<i16>();
-  i16 rhs = interp->pop_psp<i16>();
-  i16 result = lhs + rhs;
-  interp->push_psp(result);
-}
-
-void native_dup16(Interpreter *interp) {
-  i16 value = interp->pop_psp<i16>();
-  interp->push_psp(value);
-  interp->push_psp(value);
-}
-
-void native_docol(Interpreter *interp) {
-  // Push next ip onto return stack
-  interp->push_rsp(interp->cb.nxt_ip);
-  interp->cb.nxt_ip = interp->cb.w + 2;
-}
-
-void native_exitcol(Interpreter *interp) {
-  // Pop top of RSP into next ip.
-  interp->cb.nxt_ip = interp->pop_rsp<u16>();
-}
-
-void native_halt(Interpreter *interp) { interp->cb.alive = false; }

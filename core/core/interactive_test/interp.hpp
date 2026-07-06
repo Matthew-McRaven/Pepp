@@ -192,13 +192,3 @@ inline DictionaryIterator end(Interpreter *interp) { return DictionaryIterator(i
 
 // If 0, will auto-fill codeword
 u16 dict_insert(Interpreter *i, std::string name, Flags flags, std::span<const u16> code = {}, u16 codeword = 0);
-
-// ( i16 i16 -- i16)
-void native_add16i(Interpreter *interp);
-// (i16 -- i16 i16)
-void native_dup16(Interpreter *interp);
-
-void native_docol(Interpreter *interp);
-void native_exitcol(Interpreter *interp);
-
-void native_halt(Interpreter *interp);
