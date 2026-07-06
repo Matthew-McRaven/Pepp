@@ -3,6 +3,7 @@
 #include "./interp.hpp"
 #include "core/integers.h"
 #include "core/interactive_test/dict.hpp"
+#include "fmt/format.h"
 
 void native_add16i(Interpreter *interp) {
   i16 lhs = interp->pop_psp<i16>();
@@ -34,6 +35,10 @@ void native_exitcol(Interpreter *interp) {
   // Pop top of RSP into next ip.
   interp->cb.nxt_ip = interp->pop_rsp<u16>();
 }
+
+void native_rspinitval(Interpreter *interp) { interp->push_psp(Interpreter::INITIAL_RSP); }
+
+void native_rspstoreval(Interpreter *interp) { interp->cb.rsp = interp->pop_psp<u16>(); }
 
 void native_halt(Interpreter *interp) { interp->cb.alive = false; }
 void native_latest(Interpreter *interp) { interp->push_psp(interp->cb.latest); }
@@ -266,3 +271,16 @@ void native_lateststore(Interpreter *interp) {
   u16 value = interp->pop_psp<u16>();
   interp->cb.latest = value;
 }
+
+void native_dumpdict(Interpreter *interp) {
+  auto b = begin(interp), e = end(interp);
+  while (b != e) {
+    auto v = *b;
+    std::cout << fmt::format("{:9}({:3}): 0x{:04x}", v.name(), (u16)v.strlen_flags(), b.link())
+              << fmt::format("  &pcode==0x{:04x}; pcode==0x{:04x}; *pcode=={}\n", (i16)v.pcode_addr(), (i16)v.pcode(),
+                             (i16)v.code0());
+    b++;
+  }
+}
+
+void native_toggle_debug(Interpreter *interp) { interp->cb.do_debug = !interp->cb.do_debug; }

@@ -107,6 +107,10 @@ void InteractiveTask::run() {
   auto h_lbrac = dict_insert_native(&p, Lbrac, Flags::IMMEDIATE, "[");
   auto h_branch = dict_insert_native(&p, Branch, {});
   auto h_lateststore = dict_insert_native(&p, LatestStore, {}, "latest!");
+  auto h_rspinitval = dict_insert_native(&p, RspInitVal, {});
+  auto h_rspstore = dict_insert_native(&p, RspStoreVal, {});
+  auto h_dumpdict = dict_insert_native(&p, DumpDict, {});
+  auto h_toggledebug = dict_insert_native(&p, ToggleDebug, {});
 
   // Word which require per-instance state.
   const u16 spad = p.cb.here;
@@ -118,36 +122,12 @@ void InteractiveTask::run() {
   };
   auto h_word = dict_insert_native(&p, Word, {}, "word");
 
-  NativeOpcode RspInitVal = {
-      .stack_delta = 2,
-      .name = "rspinitval",
-      .h = [](Interpreter *i) { i->push_psp(Interpreter::INITIAL_RSP); },
-  };
-  auto h_rspinitval = dict_insert_native(&p, RspInitVal, {});
-
-  NativeOpcode RspStore{
-      .stack_delta = -2, .name = "rspstoreval", .h = [](Interpreter *i) { i->cb.rsp = i->pop_psp<u16>(); }};
-  auto h_rspstore = dict_insert_native(&p, RspStore, {});
-
   NativeOpcode Interp = {
       .stack_delta = 0,
       .name = "interpret",
       .h = [&spad, &h_lit](Interpreter *i) { native_interpret(i, spad, h_lit.pcode()); },
   };
   auto h_interp = dict_insert_native(&p, Interp, {}, "interpret");
-
-  auto f_dd = [](Interpreter *i) {
-    auto b = begin(i), e = end(i);
-    while (b != e) {
-      auto v = *b;
-      std::cout << fmt::format("{:9}({:3}): 0x{:04x}", v.name(), (u16)v.strlen_flags(), b.link())
-                << fmt::format("  &pcode==0x{:04x}; pcode==0x{:04x}; *pcode=={}\n", (i16)v.pcode_addr(), (i16)v.pcode(),
-                               (i16)v.code0());
-      b++;
-    }
-  };
-  NativeOpcode DumpDict = {.stack_delta = 0, .name = "dumpdict", .h = f_dd};
-  auto h_dumpdict = dict_insert_native(&p, DumpDict, Flags::IMMEDIATE);
 
   // "FORTH" words, implemented in terms of docol
   auto op_colon =
@@ -167,11 +147,4 @@ void InteractiveTask::run() {
   std::cerr.flush();
   p.run();
   return emit finished(0);
-  while (std::getline(std::cin, input)) {
-    if (input.empty()) break;
-    // Copy into p
-    // auto r = p.eval(input);
-    // if (r.flow == tcl::ControlFlow::FERROR) std::cerr << "  Error: " << r.value << std::endl;
-    // else if (!r.value.empty()) std::cout << r.value << std::endl;
-  }
 }

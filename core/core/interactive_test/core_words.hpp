@@ -55,6 +55,20 @@ inline static const NativeOpcode Lit{
     .h = native_lit,
 };
 
+// Stack initialization
+void native_rspinitval(Interpreter *interp);
+static const NativeOpcode RspInitVal{
+    .stack_delta = 2,
+    .name = "r0",
+    .h = native_rspinitval,
+};
+void native_rspstoreval(Interpreter *interp);
+static const NativeOpcode RspStoreVal{
+    .stack_delta = -2,
+    .name = "rsp!",
+    .h = native_rspstoreval,
+};
+
 /*
  * Words for compilation
  */
@@ -197,3 +211,20 @@ void native_zbranch(Interpreter *interp);
  * The interpreter!!
  */
 void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit);
+
+/*
+ * Debug tools
+ */
+void native_dumpdict(Interpreter *interp);
+inline static const NativeOpcode DumpDict{
+    .stack_delta = 0,
+    .name = "dumpdict",
+    .h = native_dumpdict,
+};
+
+void native_toggle_debug(Interpreter *interp);
+inline static const NativeOpcode ToggleDebug{
+    .stack_delta = 0,
+    .name = "~debug",
+    .h = native_toggle_debug,
+};

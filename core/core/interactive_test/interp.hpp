@@ -55,7 +55,7 @@ public:
   static const u16 INITIAL_PSP = 0x800;
   static const u16 INITIAL_RSP = 0xFFE;
   struct ControlBlock {
-    bool alive = true;
+    bool alive = true, do_debug = false;
     u8 state = 0x00; // interpreter state
     u8 _pad_ = 0;
     u16 cur_ip = 0x0000;   // Current codeword being executed.

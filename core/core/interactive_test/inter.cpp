@@ -34,10 +34,12 @@ void Interpreter::run() {
 void Interpreter::dispatch(u16 opcode) {
   auto it = native_words.find(opcode);
   if (it != native_words.end()) {
-    std::cerr << fmt::format("{:9}, cur_ip={:04x}, *cur_ip={:04x}, **cur_ip={:04x}\n", it->second.name, cb.cur_ip, cb.w,
-                             opcode);
-    std::cerr << fmt::format("   state={:1x},psp={:04x}, rsp={:04x}, here={:04x}, latest={:04x}\n", (i16)cb.state,
-                             cb.psp, cb.rsp, cb.here, cb.latest);
+    if (cb.do_debug) {
+      std::cerr << fmt::format("{:9}, cur_ip={:04x}, *cur_ip={:04x}, **cur_ip={:04x}\n", it->second.name, cb.cur_ip,
+                               cb.w, opcode);
+      std::cerr << fmt::format("   state={:1x},psp={:04x}, rsp={:04x}, here={:04x}, latest={:04x}\n", (i16)cb.state,
+                               cb.psp, cb.rsp, cb.here, cb.latest);
+    }
     const auto init_psp = cb.psp;
     it->second.h(this);
     const auto final_psp = cb.psp;
@@ -45,8 +47,10 @@ void Interpreter::dispatch(u16 opcode) {
     if (delta != it->second.stack_delta)
       std::cerr << fmt::format("  warning: native word stack delta mismatch. Expected {}, got {}.\n",
                                it->second.stack_delta, delta);
-    std::cerr << fmt::format("   state={:1x},psp={:04x}, rsp={:04x}, here={:04x}, latest={:04x}\n", (i16)cb.state,
-                             cb.psp, cb.rsp, cb.here, cb.latest);
+    if (cb.do_debug) {
+      std::cerr << fmt::format("   state={:1x},psp={:04x}, rsp={:04x}, here={:04x}, latest={:04x}\n", (i16)cb.state,
+                               cb.psp, cb.rsp, cb.here, cb.latest);
+    }
   } else {
     std::cerr << fmt::format(". Unknown opcode **cur_ip={:x}\n", opcode);
     cb.alive = false;
