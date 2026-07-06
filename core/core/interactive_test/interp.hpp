@@ -39,23 +39,6 @@ enum class Flags : u8 {
 };
 consteval void is_bitflags(Flags);
 
-// Fixed-sized fields, preceded by variable-length header fields and followed by code.
-struct DictHeader {
-  enum class StaticOffsets : u16 {
-    LINK = 0x00,
-    STRLEN = 0x02,
-    FLAGS = 0x02,
-    CODE = 0x04,
-  };
-  u16 link;
-  u8 strlen_flags;
-  u8 pad;
-  u16 codeword;
-};
-static_assert(sizeof(DictHeader) == 6, "DictHeader must be 6 bytes");
-// Must be trivially copyable
-static_assert(std::is_trivially_copyable_v<DictHeader>, "DictHeader must be trivially copyable");
-
 class Interpreter {
 public:
   enum class State : u8 {
@@ -94,7 +77,7 @@ public:
     bits::span<u8> dest{memory.data() + addr, sizeof(I)};
     bits::memcpy(dest, src);
   }
-  template <std::integral I> I read(u16 addr) {
+  template <std::integral I> I read(u16 addr) const {
     I ret;
     bits::span<u8> dest{(u8 *)&ret, sizeof(I)};
     bits::span<const u8> src{memory.data(), memory.size()};
@@ -147,48 +130,3 @@ public:
     return opcode;
   }
 };
-
-// Implement using C++ iterator tags
-struct DictionaryIterator {
-  struct Value {
-    const char *name;
-    Flags flags;
-    u16 codeword;
-  };
-  DictionaryIterator(Interpreter *interp, u16 start_addr) : _interp(interp), _link(start_addr) {}
-  using iterator_category = std::forward_iterator_tag;
-  using difference_type = std::ptrdiff_t;
-  using value_type = Value;
-
-  value_type operator*() const noexcept {
-    auto hdr = std::bit_cast<const DictHeader *>(_interp->memory.data() + _link);
-    Value ret;
-    ret.codeword = hdr->codeword;
-    ret.flags = static_cast<Flags>(hdr->strlen_flags);
-    const auto len = hdr->strlen_flags & (u8)Flags::MAX_LEN;
-    ret.name = ((const char *)hdr) - len - 1;
-    return ret;
-  }
-  DictionaryIterator &operator++() noexcept {
-    auto hdr = std::bit_cast<const DictHeader *>(_interp->memory.data() + _link);
-    _link = hdr->link;
-    return *this;
-  }
-  DictionaryIterator operator++(int) {
-    auto prev = *this;
-    ++*this;
-    return prev;
-  }
-  bool operator==(const DictionaryIterator &other) const noexcept = default;
-  u16 link() const { return _link; }
-
-private:
-  const Interpreter *_interp;
-  u16 _link;
-};
-
-inline DictionaryIterator begin(Interpreter *interp) { return DictionaryIterator(interp, interp->cb.latest); }
-inline DictionaryIterator end(Interpreter *interp) { return DictionaryIterator(interp, 0); }
-
-// If 0, will auto-fill codeword
-u16 dict_insert(Interpreter *i, std::string name, Flags flags, std::span<const u16> code = {}, u16 codeword = 0);

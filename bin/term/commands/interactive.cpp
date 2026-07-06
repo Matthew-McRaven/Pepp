@@ -18,6 +18,7 @@
 #include <catch.hpp>
 #include <iostream>
 #include "core/interactive_test/core_words.hpp"
+#include "core/interactive_test/dict.hpp"
 #include "core/interactive_test/interp.hpp"
 #include "core/sim/system.hpp"
 #include "fmt/format.h"
@@ -105,24 +106,21 @@ void InteractiveTask::run() {
   auto d_docol = dict_insert(&p, "docol", {}, {std::array<u16, 1>{op_docol}});
   auto d_exit = dict_insert(&p, "exit", {}, {std::array<u16, 1>{op_exitcol}});
   auto d_push_num = dict_insert(&p, "pushd", {}, {std::array<u16, 1>{op_push_num}});
-  auto d_14 = dict_insert(
-      &p, "14", {}, std::array<u16, 5>{(u16)(d_push_num + 4), (u16)(d_dup + 4), (u16)(d_add16i + 4), (u16)(d_exit + 4)},
-      (u16)(d_docol + 6));
-  auto d_28 = dict_insert(&p, "28", {},
-                          std::array<u16, 5>{(u16)(d_14 + 4), (u16)(d_14 + 4), (u16)(d_add16i + 4), (u16)(d_exit + 4)},
-                          (u16)(d_docol + 6));
-  auto d_42 = dict_insert(&p, "42", {},
-                          std::array<u16, 5>{(u16)(d_14 + 4), (u16)(d_28 + 4), (u16)(d_add16i + 4), (u16)(d_exit + 4)},
-                          (u16)(d_docol + 6));
+  auto d_14 = dict_insert(&p, "14", {}, std::array<u16, 5>{d_push_num.cfa(), d_dup.cfa(), d_add16i.cfa(), d_exit.cfa()},
+                          d_docol.cfa() + 2);
+  auto d_28 = dict_insert(&p, "28", {}, std::array<u16, 5>{d_14.cfa(), d_14.cfa(), d_add16i.cfa(), d_exit.cfa()},
+                          d_docol.cfa() + 2);
+  auto d_42 = dict_insert(&p, "42", {}, std::array<u16, 5>{d_14.cfa(), d_28.cfa(), d_add16i.cfa(), d_exit.cfa()},
+                          d_docol.cfa() + 2);
   auto b = begin(&p), e = end(&p);
   while (b != e) {
     auto v = *b;
-    std::cout << fmt::format("{:9}: 0x{:04x}\n", v.name, b.link());
-    std::cout << "  " << (u16)v.flags << std::endl;
-    std::cout << fmt::format(" 0x{:04x}\n", (i16)v.codeword);
+    std::cout << fmt::format("{:9}: 0x{:04x}\n", v.name(), b.link());
+    std::cout << "  " << (u16)v.strlen_flags() << std::endl;
+    std::cout << fmt::format(" 0x{:04x}\n", (i16)v.codeword());
     b++;
   }
-  std::array<u16, 3> code = {(u16)(d_42 + 4), (u16)(d_dot + 4), (u16)(d_stop + 4)};
+  std::array<u16, 3> code = {d_42.cfa(), d_dot.cfa(), d_stop.cfa()};
   p.write(0, code);
   p.run();
   return emit finished(0);
