@@ -11,6 +11,7 @@ struct RawDictHeader {
     STRLEN = 0x02,
     FLAGS = 0x02,
     CODE = 0x04,
+    DATA = 0x06,
   };
   u16 link;
   u8 strlen_flags;
@@ -24,21 +25,27 @@ static_assert(std::is_trivially_copyable_v<RawDictHeader>, "RawDictHeader must b
 // field. Does not match the memory layout of the actual dict header!!
 class NiceDictHeader {
 public:
-  NiceDictHeader(const Interpreter *interp, u16 nt_addr);
+  NiceDictHeader(Interpreter *interp, u16 nt_addr);
   std::string_view name() const;
   u16 cfa() const;
+  u16 dfa() const;
   u16 codeword();
   u16 link() const;
+  u16 link_addr() const;
   u8 strlen_flags() const;
 
+  u16 nt() const { return _nt_addr; }
+  void toggle_hidden();
+
 private:
-  const Interpreter *_interp;
+  Interpreter *_interp;
   u16 _nt_addr;
 };
 
 // Implement using C++ iterator tags
 struct DictionaryIterator {
   DictionaryIterator(Interpreter *interp, u16 start_addr) : _interp(interp), _link(start_addr) {}
+  DictionaryIterator(Interpreter *interp) : _interp(interp), _link(interp->cb.latest) {}
   using iterator_category = std::forward_iterator_tag;
   using difference_type = std::ptrdiff_t;
   using value_type = NiceDictHeader;
@@ -58,7 +65,7 @@ struct DictionaryIterator {
   u16 link() const { return _link; }
 
 private:
-  const Interpreter *_interp;
+  Interpreter *_interp;
   u16 _link;
 };
 
@@ -66,5 +73,7 @@ inline DictionaryIterator begin(Interpreter *interp) { return DictionaryIterator
 inline DictionaryIterator end(Interpreter *interp) { return DictionaryIterator(interp, 0); }
 
 // If 0, will auto-fill codeword
-NiceDictHeader dict_insert(Interpreter *i, std::string name, Flags flags, std::span<const u16> code = {},
+NiceDictHeader dict_insert(Interpreter *i, std::string_view name, Flags flags, std::span<const u16> code = {},
                            u16 codeword = 0);
+// Write out the header, up-to and not including codeword.
+NiceDictHeader dict_header(Interpreter *i, std::string_view name, Flags flags);

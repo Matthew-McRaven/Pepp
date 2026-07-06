@@ -1,27 +1,49 @@
 #include "dict.hpp"
 #include "core/math/bitmanip/enums.hpp"
 
-NiceDictHeader::NiceDictHeader(const Interpreter *interp, u16 nt_addr) : _interp(interp), _nt_addr(nt_addr) {}
+NiceDictHeader::NiceDictHeader(Interpreter *interp, u16 nt_addr) : _interp(interp), _nt_addr(nt_addr) {}
 
 std::string_view NiceDictHeader::name() const {
   const auto len = strlen_flags() & (u8)Flags::MAX_LEN;
-  const u8 start_offset = _nt_addr - len - 1;
+  const u16 start_offset = _nt_addr - len - 1;
   auto addr = _interp->memory.data() + start_offset;
-  return std::string_view((const char *)addr, len + 1);
+  return std::string_view((const char *)addr, len);
 }
 
 u16 NiceDictHeader::cfa() const { return _nt_addr + (u16)RawDictHeader::StaticOffsets::CODE; }
 
+u16 NiceDictHeader::dfa() const { return _nt_addr + (u16)RawDictHeader::StaticOffsets::DATA; }
+
 u16 NiceDictHeader::codeword() { return _interp->read<u16>(cfa()); }
 
-u16 NiceDictHeader::link() const { return _interp->read<u16>(_nt_addr + (u16)RawDictHeader::StaticOffsets::LINK); }
+u16 NiceDictHeader::link() const { return _interp->read<u16>(link_addr()); }
+
+u16 NiceDictHeader::link_addr() const { return _nt_addr + (u16)RawDictHeader::StaticOffsets::LINK; }
 
 u8 NiceDictHeader::strlen_flags() const {
   return _interp->read<u8>(_nt_addr + (u16)RawDictHeader::StaticOffsets::FLAGS);
 }
 
-NiceDictHeader dict_insert(Interpreter *interp, std::string name, Flags flags, std::span<const u16> code,
+void NiceDictHeader::toggle_hidden() {
+  u8 flags = strlen_flags();
+  flags ^= (u8)Flags::HIDDEN;
+  _interp->write(flags, _nt_addr + (u16)RawDictHeader::StaticOffsets::FLAGS);
+}
+
+NiceDictHeader dict_insert(Interpreter *interp, std::string_view name, Flags flags, std::span<const u16> code,
                            u16 codeword) {
+  auto ret = dict_header(interp, name, flags);
+  auto *here = &interp->cb.here;
+  // Write out codeword
+  if (codeword == 0) interp->write_here_pp<u16>(*here + 2);
+  else interp->write_here_pp<u16>(codeword);
+  interp->cb.latest = ret.link_addr();
+  // And write out any associated code.
+  if (!code.empty()) interp->write_here_pp(code);
+  return ret;
+}
+
+NiceDictHeader dict_header(Interpreter *interp, std::string_view name, Flags flags) {
   using namespace bits;
   static const u16 alignment = 2;
   const bool needs_null = name.ends_with("\0");
@@ -44,12 +66,6 @@ NiceDictHeader dict_insert(Interpreter *interp, std::string name, Flags flags, s
   const u8 with_flags = len | (u8)(flags & Flags::FLAG_MASK);
   interp->write_here_pp(with_flags);
   interp->write_here_pp<u8>(0);
-  // Write out codeword
-  if (codeword == 0) interp->write_here_pp<u16>(*here + 2);
-  else interp->write_here_pp<u16>(codeword);
-  // And write out any associated code.
-  if (!code.empty()) interp->write_here_pp(code);
 
-  interp->cb.latest = addr_of_link;
   return NiceDictHeader(interp, addr_of_link);
 }
