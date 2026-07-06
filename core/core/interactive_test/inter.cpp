@@ -11,22 +11,17 @@ void Interpreter::step() {
   if (!cb.alive) return;
   cb.cur_ip = cb.nxt_ip;
   cb.nxt_ip += 2;
-  auto opcode_indirect = read<u16>(cb.cur_ip);
-  if (opcode_indirect >= memory.size()) {
-    std::cerr << "**Opcode  out of bounds: " << opcode_indirect << std::endl;
-    cb.alive = false;
-    return;
-  }
-  cb.w = opcode_indirect;
-  auto opcode_direct = read<u16>(opcode_indirect);
+  auto opcode_direct = read<u16>(cb.cur_ip);
   if (opcode_direct >= memory.size()) {
     std::cerr << "*Opcode direct address out of bounds: " << opcode_direct << std::endl;
     cb.alive = false;
     return;
   }
+  cb.w = opcode_direct;
   auto opcode = read<u16>(opcode_direct);
-  std::cerr << fmt::format("cur_ip={:04x}, *cur_ip={:04x}, **cur_ip={:04x}, ***cur_ip={:04x}\n", cb.cur_ip,
-                           opcode_indirect, opcode_direct, opcode);
+  std::cerr << fmt::format("cur_ip={:04x}, *cur_ip={:04x}, **cur_ip={:04x}\n", cb.cur_ip, opcode_direct, opcode);
+  std::cerr << fmt::format("  state={:1x},psp={:04x}, rsp={:04x}, here={:04x}, latest={:04x}\n", (i16)cb.state, cb.psp,
+                           cb.rsp, cb.here, cb.latest);
 
   if (opcode == 0) {
     cb.alive = false;

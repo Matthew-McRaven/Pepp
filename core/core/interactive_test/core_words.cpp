@@ -14,6 +14,7 @@ void native_lit(Interpreter *interp) {
   u16 *nxt_ip = &interp->cb.nxt_ip;
   u16 value = interp->read<u16>(*nxt_ip);
   *nxt_ip += 2;
+  interp->push_psp(value);
 }
 
 void native_dup16(Interpreter *interp) {
@@ -69,6 +70,7 @@ void native_key(Interpreter *interp) {
   // If buffer is empty, read all available text from stdin into the interpreter's buffer
   if (interp->chars.empty()) {
     std::getline(std::cin, interp->storage);
+    interp->storage += '\n'; // Add a newline to simulate pressing enter
     interp->chars = interp->storage;
   }
   // Return those characters one at a time.
@@ -87,7 +89,7 @@ void native_emit(Interpreter *interp) {
   std::cout << c;
 }
 
-void native_word(Interpreter *interp, u16 buffer_addr) {
+u16 word_helper(Interpreter *interp, u16 buffer_addr) {
   u16 initial = buffer_addr;
   // Consume leading whitespace
   while (true) {
@@ -115,13 +117,16 @@ void native_word(Interpreter *interp, u16 buffer_addr) {
   }
   // Ensure word is null terminated
   interp->write<char>(0, buffer_addr++);
-  interp->push_psp(initial);
-  interp->push_psp(buffer_addr - initial - 1); // Length of the word
+  u16 size = buffer_addr - initial - 1; // Exclude null terminator
+  return size;
+}
+void native_word(Interpreter *interp, u16 buffer_addr) {
+  auto size = word_helper(interp, buffer_addr);
+  interp->push_psp(buffer_addr);
+  interp->push_psp(size);
 }
 
-void native_number(Interpreter *interp) {
-  u16 size = interp->pop_psp<u16>();
-  u16 addr = interp->pop_psp<u16>();
+std::optional<i32> number_helper(Interpreter *interp, u16 addr, u16 size) {
   std::string_view str(reinterpret_cast<const char *>(interp->memory.data() + addr), size);
   i32 base = 10, prefix_size = 0, sign = 1;
   // Extract base from prefix, and handle explict signs for decimals.
@@ -136,13 +141,34 @@ void native_number(Interpreter *interp) {
   i32 ret;
   const auto *sub_end = sub.data() + sub.size();
   auto [ptr, ec] = std::from_chars(sub.data(), sub_end, ret, base);
-  // Handle errors, difference between signed, unsigned.
+  // Catch error even if we don't do anything with it.
   if (ec != std::errc() || ptr != sub_end) {
     std::cerr << "Not a number: " << str;
-    interp->push_psp((i16)0);
-    return;
-  } else if (sign == -1) interp->push_psp<i16>(-ret);
-  else interp->push_psp<u16>(ret);
+    return std::nullopt;
+  }
+  return sign * ret;
+}
+void native_number(Interpreter *interp) {
+  u16 size = interp->pop_psp<u16>();
+  u16 addr = interp->pop_psp<u16>();
+  auto res = number_helper(interp, addr, size);
+  if (res.has_value()) interp->push_psp((i16)res.value());
+  else interp->push_psp((i16)0);
+}
+
+u16 find_helper(Interpreter *interp, u16 addr, u16 size) {
+  DictionaryIterator iter(interp);
+  const auto end = DictionaryIterator(interp, 0);
+  std::string_view str(reinterpret_cast<const char *>(interp->memory.data() + addr), size);
+  for (; iter != end; ++iter) {
+    auto hdr = *iter;
+    // Must compare lenghts before names, else HIDDEN bit will not work
+    if ((hdr.strlen_flags() & (u8)Flags::LEN) != size) continue;
+    std::string_view name = hdr.name();
+    if (name == str) return hdr.link_addr();
+  }
+  // Not found, push 0.
+  return 0;
 }
 
 void native_find(Interpreter *interp) {
@@ -150,31 +176,14 @@ void native_find(Interpreter *interp) {
   const auto end = DictionaryIterator(interp, 0);
   u16 size = interp->pop_psp<u16>();
   u16 addr = interp->pop_psp<u16>();
-  std::string_view str(reinterpret_cast<const char *>(interp->memory.data() + addr), size);
-  for (; iter != end; ++iter) {
-    auto hdr = *iter;
-    // Must compare lenghts before names, else HIDDEN bit will not work
-    if ((hdr.strlen_flags() & (u8)Flags::LEN) != size) continue;
-    std::string_view name = hdr.name();
-    if (name == str) {
-      interp->push_psp(hdr.link_addr());
-      return;
-    }
-  }
-  // Not found, push 0.
-  interp->push_psp((u16)0);
+  u16 ret = find_helper(interp, addr, size);
+  interp->push_psp(ret);
 }
 
 void native_cfa(Interpreter *interp) {
   u16 nt_addr = interp->pop_psp<u16>();
   NiceDictHeader hdr(interp, nt_addr);
-  interp->push_psp(hdr.cfa());
-}
-
-void native_dfa(Interpreter *interp) {
-  u16 nt_addr = interp->pop_psp<u16>();
-  NiceDictHeader hdr(interp, nt_addr);
-  interp->push_psp(hdr.dfa());
+  interp->push_psp(hdr.pcode());
 }
 
 void native_create(Interpreter *interp) {
@@ -183,7 +192,10 @@ void native_create(Interpreter *interp) {
   std::string_view name(reinterpret_cast<const char *>(interp->memory.data() + addr), size);
   Flags flags = (Flags)0;
   auto ret = dict_header(interp, name, flags);
+  // By default, code is place /after/ the header.
+  interp->write_here_pp<u16>(interp->cb.here + 2);
   interp->push_psp(ret.nt());
+  interp->cb.latest = ret.nt();
 }
 
 void native_comma(Interpreter *interp) {
@@ -191,9 +203,9 @@ void native_comma(Interpreter *interp) {
   interp->write_here_pp<u16>(value);
 }
 
-void native_lbrac(Interpreter *interp) { interp->cb.state = (u8)Interpreter::State::Compiling; }
+void native_lbrac(Interpreter *interp) { interp->cb.state = (u8)Interpreter::State::Immediate; }
 
-void native_rbrac(Interpreter *interp) { interp->cb.state = (u8)Interpreter::State::Immediate; }
+void native_rbrac(Interpreter *interp) { interp->cb.state = (u8)Interpreter::State::Compiling; }
 
 void native_branch(Interpreter *interp) {
   // Read offset from next slot after IP
@@ -210,4 +222,43 @@ void native_zbranch(Interpreter *interp) {
   else interp->cb.nxt_ip += 2;
 }
 
-void native_interpret(Interpreter *interp) { std::cerr << "Fuck you"; }
+void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit) {
+  auto size = word_helper(interp, word_buffer);
+  auto nt_addr = find_helper(interp, word_buffer, size);
+
+  // Not found, try to parse as a number.
+  if (nt_addr == 0) {
+    auto num = number_helper(interp, word_buffer, size);
+    // If compiling, must comple as a literal.
+    if (!num.has_value()) {
+      std::cerr << "Not a number: " << std::string_view((const char *)interp->memory.data() + word_buffer, size)
+                << std::endl;
+    } else if (interp->cb.state == (u8)Interpreter::State::Compiling) {
+      interp->write_here_pp(pcode_lit);
+      interp->write_here_pp<u16>(num.value_or(0));
+    } else {
+      interp->push_psp<u16>(num.value_or(0));
+    }
+    return;
+  }
+
+  // Get dict entry for the found word.
+  auto hdr = NiceDictHeader(interp, nt_addr);
+  // If it is immediate, or we are in immediate mode, execute the word.
+  // Replicate machinery of step b/c we need to control dispatch.
+  if (hdr.immediate() || interp->cb.state == (u8)Interpreter::State::Immediate) {
+    auto cfa = hdr.pcode();
+    interp->cb.w = cfa;
+    auto opcode = interp->read<u16>(cfa);
+    auto it = interp->native_words.find(opcode);
+    if (it != interp->native_words.end()) it->second(interp);
+    else std::cerr << "Unknown opcode in interpret: " << opcode << std::endl;
+  } else { // Otherwise, compile it into the current definition.
+    interp->write_here_pp<u16>(hdr.pcode());
+  }
+}
+
+void native_lateststore(Interpreter *interp) {
+  u16 value = interp->pop_psp<u16>();
+  interp->cb.latest = value;
+}

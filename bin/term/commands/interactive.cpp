@@ -100,7 +100,7 @@ void InteractiveTask::run() {
 
   auto op_dot = p.register_native([](Interpreter *i) {
     auto tos = i->pop_psp<i16>();
-    std::cout << tos;
+    std::cout << tos << std::endl;
   });
   auto d_dot = dict_insert(&p, ".", {}, {std::array<u16, 1>{op_dot}});
 
@@ -131,15 +131,16 @@ void InteractiveTask::run() {
   auto d_hidden = dict_insert(&p, "hidden", {}, {std::array<u16, 1>{op_hidden}});
 
   auto op_rbrac = p.register_native(native_rbrac);
-  auto d_rbrac = dict_insert(&p, "]", Flags::IMMEDIATE, {std::array<u16, 1>{op_rbrac}});
+  auto d_rbrac = dict_insert(&p, "]", {}, {std::array<u16, 1>{op_rbrac}});
   auto op_lbrac = p.register_native(native_lbrac);
-  auto d_lbrac = dict_insert(&p, "[", {}, {std::array<u16, 1>{op_lbrac}});
+  auto d_lbrac = dict_insert(&p, "[", Flags::IMMEDIATE, {std::array<u16, 1>{op_lbrac}});
 
-  auto op_colon = std::array<u16, 9>{d_word.cfa(),   d_create.cfa(), d_lit.cfa(),   d_docol.cfa(), d_comma.cfa(),
-                                     d_latest.cfa(), d_hidden.cfa(), d_rbrac.cfa(), d_exit.cfa()};
+  auto op_colon = std::array<u16, 11>{d_docol.code0(),  d_word.pcode(),  d_create.pcode(), d_lit.pcode(),
+                                      d_docol.pcode(),  d_fetch.pcode(), d_comma.pcode(),  d_latest.pcode(),
+                                      d_hidden.pcode(), d_rbrac.pcode(), d_exit.pcode()};
   auto d_colon = dict_insert(&p, ":", {}, op_colon);
-  auto op_semi = std::array<u16, 7>{d_lit.cfa(),    d_exit.cfa(),  d_comma.cfa(), d_latest.cfa(),
-                                    d_hidden.cfa(), d_lbrac.cfa(), d_exit.cfa()};
+  auto op_semi = std::array<u16, 8>{d_docol.code0(),  d_lit.pcode(),    d_exit.pcode(),  d_comma.pcode(),
+                                    d_latest.pcode(), d_hidden.pcode(), d_lbrac.pcode(), d_exit.pcode()};
   auto d_semi = dict_insert(&p, ";", Flags::IMMEDIATE, op_semi);
 
   auto op_rspinitval = p.register_native([](Interpreter *i) { i->push_psp(Interpreter::INITIAL_RSP); });
@@ -149,21 +150,29 @@ void InteractiveTask::run() {
 
   auto op_branch = p.register_native(native_branch);
   auto d_branch = dict_insert(&p, "branch", {}, {std::array<u16, 1>{op_branch}});
-  auto op_interp = p.register_native(native_interpret);
+  auto op_interp = p.register_native([&](Interpreter *i) { native_interpret(i, spad, d_lit.pcode()); });
   auto d_interp = dict_insert(&p, "interpret", {}, {std::array<u16, 1>{op_interp}});
 
-  auto op_quit = std::array<u16, 5>{d_rspinit.dfa(), d_rspstore.dfa(), d_interp.dfa(), d_branch.dfa(), (u16)-8};
+  auto op_quit = std::array<u16, 6>{d_docol.code0(),  d_rspinit.pcode(), d_rspstore.pcode(),
+                                    d_interp.pcode(), d_branch.pcode(),  (u16)-10};
   auto d_quit = dict_insert(&p, "quit", {}, op_quit);
+  auto o_dumpdict = p.register_native([](Interpreter *i) {
+    auto b = begin(i), e = end(i);
+    while (b != e) {
+      auto v = *b;
+      std::cout << fmt::format("{:9}({:3}): 0x{:04x}", v.name(), (u16)v.strlen_flags(), b.link())
+                << fmt::format("  &pcode==0x{:04x}; pcode==0x{:04x}; *pcode=={}\n", (i16)v.pcode_addr(), (i16)v.pcode(),
+                               (i16)v.code0());
+      b++;
+    }
+  });
+  auto d_dumpdict = dict_insert(&p, "dumpdict", {}, {std::array<u16, 1>{o_dumpdict}});
+  auto op_lateststore = p.register_native(native_lateststore);
+  auto d_lateststore = dict_insert(&p, "latest!", {}, {std::array<u16, 1>{op_lateststore}});
 
-  auto b = begin(&p), e = end(&p);
-  while (b != e) {
-    auto v = *b;
-    std::cout << fmt::format("{:9}: 0x{:04x}\n", v.name(), b.link());
-    std::cout << "  " << (u16)v.strlen_flags() << std::endl;
-    std::cout << fmt::format("  0x{:04x}\n", (i16)v.codeword());
-    b++;
-  }
-  p.write(d_quit.dfa(), 0);
+  p.write(d_quit.pcode(), 0);
+  std::cout.flush();
+  std::cerr.flush();
   p.run();
   return emit finished(0);
   while (std::getline(std::cin, input)) {

@@ -16,9 +16,9 @@ struct RawDictHeader {
   u16 link;
   u8 strlen_flags;
   u8 pad;
-  u16 codeword;
+  u16 pcode;
 };
-static_assert(sizeof(RawDictHeader) == 6, "RawDictHeader must be 6 bytes");
+static_assert(sizeof(RawDictHeader) == 6, "RawDictHeader must be 8 bytes");
 static_assert(std::is_trivially_copyable_v<RawDictHeader>, "RawDictHeader must be trivially copyable");
 
 // Wrapper around the RawDictHeader to give you some more useful C++-ish information, like the relative address of a
@@ -27,15 +27,20 @@ class NiceDictHeader {
 public:
   NiceDictHeader(Interpreter *interp, u16 nt_addr);
   std::string_view name() const;
-  u16 cfa() const;
-  u16 dfa() const;
-  u16 codeword();
+  // Address of the pcode field
+  u16 pcode_addr() const;
+  // Value of the pcode field.
+  u16 pcode() const;
+  // Return the value at mem[pcode].
+  u16 code0() const;
+
   u16 link() const;
   u16 link_addr() const;
   u8 strlen_flags() const;
 
   u16 nt() const { return _nt_addr; }
   void toggle_hidden();
+  bool immediate() const;
 
 private:
   Interpreter *_interp;
@@ -73,7 +78,6 @@ inline DictionaryIterator begin(Interpreter *interp) { return DictionaryIterator
 inline DictionaryIterator end(Interpreter *interp) { return DictionaryIterator(interp, 0); }
 
 // If 0, will auto-fill codeword
-NiceDictHeader dict_insert(Interpreter *i, std::string_view name, Flags flags, std::span<const u16> code = {},
-                           u16 codeword = 0);
+NiceDictHeader dict_insert(Interpreter *i, std::string_view name, Flags flags, std::span<const u16> code = {});
 // Write out the header, up-to and not including codeword.
 NiceDictHeader dict_header(Interpreter *i, std::string_view name, Flags flags);

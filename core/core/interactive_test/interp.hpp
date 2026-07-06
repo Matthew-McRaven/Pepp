@@ -77,6 +77,7 @@ public:
     bits::span<u8> dest{memory.data() + addr, sizeof(I)};
     bits::memcpy(dest, src);
   }
+
   template <std::integral I> I read(u16 addr) const {
     I ret;
     bits::span<u8> dest{(u8 *)&ret, sizeof(I)};
@@ -86,8 +87,8 @@ public:
     return ret;
   }
   template <std::integral I> void push_psp(I value) {
-    cb.psp += sizeof(I);
     write(value, cb.psp);
+    cb.psp += sizeof(I);
   }
   template <std::integral I> I pop_psp() {
     if (cb.psp <= INITIAL_PSP) {
@@ -95,16 +96,16 @@ public:
       cb.alive = false;
       return 0;
     }
-    auto value = read<I>(cb.psp);
     cb.psp -= sizeof(I);
+    auto value = read<I>(cb.psp);
     return value;
   }
   template <std::integral I> void push_rsp(I value) {
-    cb.rsp -= sizeof(I);
     if (cb.rsp >= memory.size()) {
       std::cerr << "Overflow";
     }
     write(value, cb.rsp);
+    cb.rsp -= sizeof(I);
   }
   template <std::integral I> I pop_rsp() {
     if (cb.rsp >= INITIAL_RSP) {
@@ -112,8 +113,8 @@ public:
       cb.alive = false;
       return 0;
     }
-    auto value = read<I>(cb.rsp);
     cb.rsp += sizeof(I);
+    auto value = read<I>(cb.rsp);
     return value;
   }
   template <std::integral I> void write_here_pp(I v) {

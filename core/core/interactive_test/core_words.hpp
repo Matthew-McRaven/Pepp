@@ -43,6 +43,7 @@ void native_emit(Interpreter *interp);
 void native_word(Interpreter *interp, u16 buffer_addr);
 // ( addr size -- i16)
 void native_number(Interpreter *interp);
+void native_lateststore(Interpreter *interp);
 
 /*
  * Dict manip
@@ -51,8 +52,6 @@ void native_number(Interpreter *interp);
 void native_find(Interpreter *interp);
 // (nt -- cfa)
 void native_cfa(Interpreter *interp);
-// (nt -- dfa)
-void native_dfa(Interpreter *interp);
 // ( addr size -- nt)
 void native_create(Interpreter *interp);
 // (i16 -- ), pop data and write to here++
@@ -69,4 +68,4 @@ void native_zbranch(Interpreter *interp);
 /*
  * The interpreter!!
  */
-void native_interpret(Interpreter *interp);
+void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit);

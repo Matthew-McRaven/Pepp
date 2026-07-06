@@ -10,11 +10,11 @@ std::string_view NiceDictHeader::name() const {
   return std::string_view((const char *)addr, len);
 }
 
-u16 NiceDictHeader::cfa() const { return _nt_addr + (u16)RawDictHeader::StaticOffsets::CODE; }
+u16 NiceDictHeader::pcode_addr() const { return _nt_addr + (u16)RawDictHeader::StaticOffsets::CODE; }
 
-u16 NiceDictHeader::dfa() const { return _nt_addr + (u16)RawDictHeader::StaticOffsets::DATA; }
+u16 NiceDictHeader::pcode() const { return _interp->read<u16>(pcode_addr()); }
 
-u16 NiceDictHeader::codeword() { return _interp->read<u16>(cfa()); }
+u16 NiceDictHeader::code0() const { return _interp->read<u16>(pcode()); }
 
 u16 NiceDictHeader::link() const { return _interp->read<u16>(link_addr()); }
 
@@ -30,13 +30,16 @@ void NiceDictHeader::toggle_hidden() {
   _interp->write(flags, _nt_addr + (u16)RawDictHeader::StaticOffsets::FLAGS);
 }
 
-NiceDictHeader dict_insert(Interpreter *interp, std::string_view name, Flags flags, std::span<const u16> code,
-                           u16 codeword) {
+bool NiceDictHeader::immediate() const {
+  u8 flags = strlen_flags();
+  return (flags & (u8)Flags::IMMEDIATE) != 0;
+}
+
+NiceDictHeader dict_insert(Interpreter *interp, std::string_view name, Flags flags, std::span<const u16> code) {
   auto ret = dict_header(interp, name, flags);
   auto *here = &interp->cb.here;
-  // Write out codeword
-  if (codeword == 0) interp->write_here_pp<u16>(*here + 2);
-  else interp->write_here_pp<u16>(codeword);
+  // Last field is a pointer to code.
+  interp->write_here_pp<u16>(*here + 2);
   interp->cb.latest = ret.link_addr();
   // And write out any associated code.
   if (!code.empty()) interp->write_here_pp(code);
