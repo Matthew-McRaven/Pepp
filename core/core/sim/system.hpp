@@ -73,6 +73,8 @@ public:
   // as absolute by default and will not be combined with parent.
   Device *find_relative(std::string_view name, std::string_view parent);
 
+  DeviceTree *root() { return _root.get(); }
+
 private:
   Configuration _config{{.basename{"/"}, .fullname{"/"}}};
   Device::ID _next_ID = Device::ID(1);
