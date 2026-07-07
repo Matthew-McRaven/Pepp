@@ -21,12 +21,14 @@ void make_system(Interpreter *interp) {
   interp->push_psp((u16)interp->allocate_object(sys_value));
 }
 
-void register_native_heap_fns(Interpreter *p) {
-  dict_insert_native(p, ValueTypeName, {});
-  dict_insert_native(p, ValueDescribe, {});
-  dict_insert_native(p, MakeSystem, {});
-
-  dict_insert_native(p, DumpObjects, {});
+void system_devcount(Interpreter *interp) {
+  auto idx = interp->pop_psp<u16>();
+  auto obj = interp->get_object(idx);
+  auto casted = std::dynamic_pointer_cast<SystemValue>(obj);
+  if (!casted) {
+    std::cerr << "No system at index " << idx << std::endl;
+    interp->push_psp((u16)0);
+  } else interp->push_psp(casted->devcount());
 }
 
 std::shared_ptr<SystemValue> SystemValue::make() {
@@ -46,4 +48,58 @@ void dump_objects(Interpreter *interp) {
   auto heap = interp->get_object_heap();
   for (const auto &[id, obj] : heap)
     std::cout << fmt::format("[{:04x}](*{}):  {}\n", id, obj->type_name(), obj->describe());
+}
+
+std::string DenseConfigValue::get_field(std::string_view name) const {}
+
+void DenseConfigValue::set_field(std::string_view name, std::string_view value) {}
+
+std::shared_ptr<DenseConfigValue> DenseConfigValue::make() { return std::make_shared<DenseConfigValue>(); }
+
+void make_dense_config(Interpreter *interp) {
+  auto value = DenseConfigValue::make();
+  interp->push_psp((u16)interp->allocate_object(value));
+}
+
+void make_dense_device(Interpreter *interp) {
+  auto cfg_idx = interp->pop_psp<u16>();
+  auto cfg_obj = interp->get_object(cfg_idx);
+  auto cfg_ptr = std::dynamic_pointer_cast<DenseConfigValue>(cfg_obj);
+  auto sys_idx = interp->pop_psp<u16>();
+  auto sys_obj = interp->get_object(sys_idx);
+  auto sys_ptr = std::dynamic_pointer_cast<SystemValue>(sys_obj);
+  if (!cfg_ptr) {
+    std::cerr << "No config at index " << cfg_idx << std::endl;
+    interp->push_psp((u16)0);
+    return;
+  }
+  if (!sys_ptr) {
+    std::cerr << "No system at index " << sys_idx << std::endl;
+    interp->push_psp((u16)0);
+    return;
+  }
+  auto device_value = DenseDeviceValue::make(sys_ptr, cfg_ptr);
+  interp->push_psp((u16)interp->allocate_object(device_value));
+}
+
+std::shared_ptr<DenseDeviceValue> DenseDeviceValue::make(std::shared_ptr<SystemValue> sys_val,
+                                                         std::shared_ptr<DenseConfigValue> cfg_val) {
+
+  auto sys = sys_val->value();
+  auto cfg = cfg_val->value();
+  auto ret = std::make_shared<DenseDeviceValue>();
+  ret->_sys = sys;
+  ret->_value = sys->make_device<Dense>(sys.get(), Dense::Configuration{cfg});
+  return ret;
+}
+
+void register_native_heap_fns(Interpreter *p) {
+  dict_insert_native(p, ValueTypeName, {});
+  dict_insert_native(p, ValueDescribe, {});
+  dict_insert_native(p, MakeSystem, {});
+  dict_insert_native(p, SystemDevCount, {});
+  dict_insert_native(p, MakeDenseConfig, {});
+  dict_insert_native(p, MakeDenseDevice, {});
+
+  dict_insert_native(p, DumpObjects, {});
 }
