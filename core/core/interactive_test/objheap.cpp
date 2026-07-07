@@ -1,4 +1,5 @@
 #include "objheap.hpp"
+#include "core/interactive_test/core_words.hpp"
 #include "core/interactive_test/dict.hpp"
 #include "fmt/format.h"
 
@@ -100,6 +101,22 @@ void register_native_heap_fns(Interpreter *p) {
   dict_insert_native(p, SystemDevCount, {});
   dict_insert_native(p, MakeDenseConfig, {});
   dict_insert_native(p, MakeDenseDevice, {});
-
   dict_insert_native(p, DumpObjects, {});
+  const u16 arg1_spad = p->cb.here;
+  p->cb.here += 32;
+  NativeOpcode PushA1 = {
+      .stack_delta = 2,
+      .name = "a1",
+      .h = [arg1_spad](Interpreter *i) { push_constant(i, arg1_spad); },
+  };
+  dict_insert_native(p, PushA1, {});
+  const u16 arg2_spad = p->cb.here;
+  p->cb.here += 32;
+  NativeOpcode PushA2 = {
+      .stack_delta = 2,
+      .name = "a2",
+      .h = [arg2_spad](Interpreter *i) { push_constant(i, arg2_spad); },
+  };
+  dict_insert_native(p, PushA2, {});
+  // : cfg.set word a1 cmove0 word a2 cmove0 ; <cfg_opcode>;
 }
