@@ -153,10 +153,7 @@ std::optional<i32> number_helper(Interpreter *interp, u16 addr, u16 size) {
   const auto *sub_end = sub.data() + sub.size();
   auto [ptr, ec] = std::from_chars(sub.data(), sub_end, ret, base);
   // Catch error even if we don't do anything with it.
-  if (ec != std::errc() || ptr != sub_end) {
-    std::cerr << "Not a number: " << str;
-    return std::nullopt;
-  }
+  if (ec != std::errc() || ptr != sub_end) return std::nullopt;
   return sign * ret;
 }
 void native_number(Interpreter *interp) {
@@ -233,22 +230,27 @@ void native_zbranch(Interpreter *interp) {
   else interp->cb.nxt_ip += 2;
 }
 
-void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit) {
+void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit, u16 pcode_quit) {
   auto size = word_helper(interp, word_buffer);
   auto nt_addr = find_helper(interp, word_buffer, size);
+  std::string_view word_buffer_str(reinterpret_cast<const char *>(interp->memory.data() + word_buffer), size);
 
   // Not found, try to parse as a number.
   if (nt_addr == 0) {
     auto num = number_helper(interp, word_buffer, size);
     // If compiling, must comple as a literal.
     if (!num.has_value()) {
-      std::cerr << "Not a number: " << std::string_view((const char *)interp->memory.data() + word_buffer, size)
-                << std::endl;
+      auto cfa = pcode_quit;
+      interp->cb.w = cfa;
+      auto opcode = interp->read<u16>(cfa);
+      std::cout << word_buffer_str << " ?" << std::endl;
+      return interp->dispatch(opcode);
     } else if (interp->cb.state == (u8)Interpreter::State::Compiling) {
       interp->write_here_pp(pcode_lit);
       interp->write_here_pp<u16>(num.value_or(0));
     } else {
       interp->push_psp<u16>(num.value_or(0));
+      std::cout << "  ok\n";
     }
     return;
   }
@@ -265,6 +267,8 @@ void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit) {
   } else { // Otherwise, compile it into the current definition.
     interp->write_here_pp<u16>(hdr.pcode());
   }
+
+  if (interp->cb.state == (u8)Interpreter::State::Immediate) std::cout << "  ok\n";
 }
 
 void native_lateststore(Interpreter *interp) {
@@ -318,11 +322,13 @@ void register_core_words(Interpreter *p) {
       .h = [&spad](Interpreter *i) { native_word(i, spad); },
   };
   auto h_word = dict_insert_native(p, Word, {}, "word");
-
+  u16 lit_pcode = h_lit.pcode();
+  // This is being leaked, but I'm trying to ref
+  u16 *quit_pcode = new u16{0};
   NativeOpcode Interp = {
       .stack_delta = 0,
       .name = "interpret",
-      .h = [&spad, &h_lit](Interpreter *i) { native_interpret(i, spad, h_lit.pcode()); },
+      .h = [spad, lit_pcode, &quit_pcode](Interpreter *i) { native_interpret(i, spad, lit_pcode, *quit_pcode); },
   };
   auto h_interp = dict_insert_native(p, Interp, {}, "interpret");
 
@@ -338,4 +344,5 @@ void register_core_words(Interpreter *p) {
   auto op_quit = std::array<u16, 6>{h_docol.code0(),  h_rspinitval.pcode(), h_rspstore.pcode(),
                                     h_interp.pcode(), h_branch.pcode(),     (u16)-10};
   auto d_quit = dict_insert(p, "quit", {}, op_quit);
+  *quit_pcode = d_quit.pcode();
 }

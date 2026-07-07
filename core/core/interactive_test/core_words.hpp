@@ -210,7 +210,7 @@ void native_zbranch(Interpreter *interp);
 /*
  * The interpreter!!
  */
-void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit);
+void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit, u16 pcode_quit);
 
 /*
  * Debug tools
