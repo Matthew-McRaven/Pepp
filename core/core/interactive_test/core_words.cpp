@@ -378,4 +378,4 @@ void native_print_nullterminated(Interpreter *interp) {
   }
 }
 
-void push_constant(Interpreter *interp, u16 addr) { interp->push_psp(interp->cb.here); }
+void push_constant(Interpreter *interp, u16 addr) { interp->push_psp(addr); }
