@@ -3,11 +3,12 @@
 #include <array>
 #include <functional>
 #include <iostream>
+#include <map>
+#include <memory>
 #include <unordered_map>
 #include "core/integers.h"
 #include "core/math/bitmanip/copy.hpp"
 #include "core/math/bitmanip/span.hpp"
-class AValue {};
 
 // A simple forth-like interpreter. All "opcodes" are 16-bits.
 // Negative opcodes are implemented directly in C++, while positive opcodes are implemented in terms of other opcodes.
@@ -22,6 +23,7 @@ class AValue {};
 // 0x0FFE: initial value of rsp, growing towards 0x0800
 // OSP is not part of the memory map, because it is actually a vector of C++ objects.
 
+class AValue;
 class Interpreter;
 
 struct NativeOpcode {
@@ -139,4 +141,21 @@ public:
   }
   std::string storage;
   std::string_view chars;
+
+private:
+  u16 _next_object_id = 1;
+  std::map<u16, std::shared_ptr<AValue>> object_heap;
+
+public:
+  const std::map<u16, std::shared_ptr<AValue>> &get_object_heap() const { return object_heap; }
+  u16 allocate_object(std::shared_ptr<AValue> obj) {
+    auto id = _next_object_id++;
+    object_heap[id] = obj;
+    return id;
+  }
+  std::shared_ptr<AValue> get_object(u16 id) {
+    auto it = object_heap.find(id);
+    if (it != object_heap.end()) return it->second;
+    return nullptr;
+  }
 };

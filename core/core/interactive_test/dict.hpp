@@ -83,6 +83,7 @@ private:
 
 inline DictionaryIterator begin(Interpreter *interp) { return DictionaryIterator(interp, interp->cb.latest); }
 inline DictionaryIterator end(Interpreter *interp) { return DictionaryIterator(interp, 0); }
+std::optional<NiceDictHeader> dict_find(Interpreter *interp, std::string_view name);
 
 // If 0, will auto-fill codeword
 NiceDictHeader dict_insert(Interpreter *i, std::string_view name, Flags flags, std::span<const u16> code = {});

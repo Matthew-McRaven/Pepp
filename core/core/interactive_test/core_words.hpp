@@ -228,3 +228,5 @@ inline static const NativeOpcode ToggleDebug{
     .name = "~debug",
     .h = native_toggle_debug,
 };
+
+void register_core_words(Interpreter *interp);

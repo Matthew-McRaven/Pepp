@@ -79,3 +79,14 @@ NativeDictEntry dict_insert_native(Interpreter *i, NativeOpcode h, Flags flags, 
   auto hdr = dict_insert(i, name, flags, std::array<u16, 1>{opcode});
   return NativeDictEntry{.h = h, .hdr = hdr};
 }
+
+std::optional<NiceDictHeader> dict_find(Interpreter *interp, std::string_view name) {
+  auto b = begin(interp), e = end(interp);
+  while (b != e) {
+    auto v = *b;
+    b++;
+    if ((v.strlen_flags() & (u8)Flags::LEN) != name.size()) continue;
+    else if (v.name() == name) return v;
+  }
+  return std::nullopt;
+}
