@@ -44,10 +44,10 @@ void Interpreter::dispatch(u16 opcode) {
     it->second.h(this);
     const auto final_psp = cb.psp;
     auto delta = final_psp - init_psp;
-    if (delta != it->second.stack_delta)
-      std::cerr << fmt::format("  warning: native word stack delta mismatch. Expected {}, got {}.\n",
-                               it->second.stack_delta, delta);
     if (cb.do_debug) {
+      if (delta != it->second.stack_delta)
+        std::cerr << fmt::format("  warning: native word stack delta mismatch. Expected {}, got {}.\n",
+                                 it->second.stack_delta, delta);
       std::cerr << fmt::format("   state={:1x},psp={:04x}, rsp={:04x}, here={:04x}, latest={:04x}\n", (i16)cb.state,
                                cb.psp, cb.rsp, cb.here, cb.latest);
     }
