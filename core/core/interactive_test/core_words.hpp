@@ -70,6 +70,36 @@ static const NativeOpcode RspStoreVal{
 };
 
 /*
+ * Data movement
+ */
+// (src cnt dst -- )
+// Should be compatible with `WORD <pushdest>`, assuming you can find the dest again.
+void native_cmove(Interpreter *interp);
+inline static const NativeOpcode CMove{
+    .stack_delta = -6,
+    .name = "cmove",
+    .h = native_cmove,
+};
+// (src cnt dst -- )
+// Same as cmove, but appends a 0 in dst.
+void native_cmove0(Interpreter *interp);
+inline static const NativeOpcode CMove0{
+    .stack_delta = -6,
+    .name = "cmove0",
+    .h = native_cmove,
+};
+
+// ( ptr -- )
+// Print characters from memory at pointer until the first null byte.
+void native_print_nullterminated(Interpreter *interp);
+inline static const NativeOpcode PrintNullTerminated{
+    .stack_delta = -2,
+    .name = "print0",
+    .h = native_print_nullterminated,
+};
+void push_constant(Interpreter *interp, u16 addr);
+
+/*
  * Words for compilation
  */
 void native_docol(Interpreter *interp);

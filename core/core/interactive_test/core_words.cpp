@@ -311,6 +311,9 @@ void register_core_words(Interpreter *p) {
   auto h_rspstore = dict_insert_native(p, RspStoreVal, {});
   auto h_dumpdict = dict_insert_native(p, DumpDict, {});
   auto h_toggledebug = dict_insert_native(p, ToggleDebug, {});
+  auto h_cmove = dict_insert_native(p, CMove, {});
+  auto h_cmove0 = dict_insert_native(p, CMove0, {});
+  auto h_print0 = dict_insert_native(p, PrintNullTerminated, {});
 
   // Word which require per-instance state.
   const u16 spad = p->cb.here;
@@ -318,9 +321,15 @@ void register_core_words(Interpreter *p) {
   NativeOpcode Word = {
       .stack_delta = 4,
       .name = "word",
-      .h = [&spad](Interpreter *i) { native_word(i, spad); },
+      .h = [spad](Interpreter *i) { native_word(i, spad); },
   };
   auto h_word = dict_insert_native(p, Word, {}, "word");
+  NativeOpcode WordBuffer = {
+      .stack_delta = 4,
+      .name = "&word",
+      .h = [spad](Interpreter *i) { push_constant(i, spad); },
+  };
+  auto h_wordbuffer = dict_insert_native(p, WordBuffer, {}, "&word");
   u16 lit_pcode = h_lit.pcode();
   NativeOpcode Interp = {
       .stack_delta = 0,
@@ -342,3 +351,31 @@ void register_core_words(Interpreter *p) {
                                     h_interp.pcode(), h_branch.pcode(),     (u16)-10};
   auto d_quit = dict_insert(p, "quit", {}, op_quit);
 }
+
+void native_cmove(Interpreter *interp) {
+  u16 dst = interp->pop_psp<u16>();
+  u16 size = interp->pop_psp<u16>();
+  u16 src = interp->pop_psp<u16>();
+  auto src_span = std::span<const u8>(interp->memory.data() + src, size);
+  interp->write(dst, src_span);
+}
+
+void native_cmove0(Interpreter *interp) {
+  u16 dst = interp->pop_psp<u16>();
+  u16 size = interp->pop_psp<u16>();
+  u16 src = interp->pop_psp<u16>();
+  auto src_span = std::span<const u8>(interp->memory.data() + src, size);
+  interp->write(dst, src_span);
+  u16 null_terminator_addr = dst + size;
+  interp->write<u8>(0, null_terminator_addr);
+}
+void native_print_nullterminated(Interpreter *interp) {
+  u16 addr = interp->pop_psp<u16>();
+  while (true) {
+    u8 c = interp->read<u8>(addr++);
+    if (c == 0) break;
+    std::cout << static_cast<char>(c);
+  }
+}
+
+void push_constant(Interpreter *interp, u16 addr) { interp->push_psp(interp->cb.here); }
