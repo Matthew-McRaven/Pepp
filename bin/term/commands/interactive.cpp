@@ -77,6 +77,7 @@ void InteractiveTask::run() {
   std::string input;
   Interpreter p;
   register_core_words(&p);
+  register_2ndcore_words(&p);
   register_native_heap_fns(&p);
   std::cout.flush();
   std::cerr.flush();

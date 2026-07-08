@@ -313,34 +313,20 @@ void native_toggle_debug(Interpreter *interp) { interp->cb.do_debug = !interp->c
 
 void register_core_words(Interpreter *p) {
   // Words with automatic registration.
-  auto h_stop = dict_insert_native(p, Halt, {});
-  auto h_dup = dict_insert_native(p, Dup16, {});
-  auto h_drop = dict_insert_native(p, Drop16, {});
-  auto h_add16i = dict_insert_native(p, Add16i, {});
-  auto h_sub16i = dict_insert_native(p, Sub16i, {});
-  auto h_dot = dict_insert_native(p, Dot, {}, ".");
+  dict_insert_native(p, Halt, {});
   auto h_docol = dict_insert_native(p, Docol, {}, "docol");
   auto h_exit = dict_insert_native(p, Exitcol, {});
   auto h_create = dict_insert_native(p, Create, {});
   auto h_comma = dict_insert_native(p, Comma, {});
   auto h_lit = dict_insert_native(p, Lit, {});
   auto h_latest = dict_insert_native(p, Latest, {});
-  auto h_here = dict_insert_native(p, Here, {});
   auto h_fetch = dict_insert_native(p, Fetch, {}, "@");
   auto h_hidden = dict_insert_native(p, Hidden, {});
   auto h_rbrac = dict_insert_native(p, Rbrac, {}, "]");
   auto h_lbrac = dict_insert_native(p, Lbrac, Flags::IMMEDIATE, "[");
   auto h_branch = dict_insert_native(p, Branch, {});
-  auto h_lateststore = dict_insert_native(p, LatestStore, {}, "latest!");
   auto h_rspinitval = dict_insert_native(p, RspInitVal, {});
   auto h_rspstore = dict_insert_native(p, RspStoreVal, {});
-  auto h_psp = dict_insert_native(p, PspVal, {});
-  auto h_rsp = dict_insert_native(p, RspVal, {});
-  auto h_dumpdict = dict_insert_native(p, DumpDict, {});
-  auto h_toggledebug = dict_insert_native(p, ToggleDebug, {});
-  auto h_cmove = dict_insert_native(p, CMove, {});
-  auto h_cmove0 = dict_insert_native(p, CMove0, {});
-  auto h_print0 = dict_insert_native(p, PrintNullTerminated, {});
 
   // Word which require per-instance state.
   const u16 spad = p->cb.here;
@@ -365,7 +351,8 @@ void register_core_words(Interpreter *p) {
   };
   auto h_interp = dict_insert_native(p, Interp, {}, "interpret");
 
-  // "FORTH" words, implemented in terms of docol
+  // "FORTH" words, implemented in terms of docol.
+  // So early in the dictionary that we can't use :; ore true FORTH definitions yet.
   auto op_colon =
       std::array<u16, 10>{h_docol.code0(), h_word.pcode(),  h_create.pcode(), h_hidden.pcode(), h_lit.pcode(),
                           h_docol.pcode(), h_fetch.pcode(), h_comma.pcode(),  h_rbrac.pcode(),  h_exit.pcode()};
@@ -406,3 +393,20 @@ void native_print_nullterminated(Interpreter *interp) {
 }
 
 void push_constant(Interpreter *interp, u16 addr) { interp->push_psp(addr); }
+
+void register_2ndcore_words(Interpreter *p) {
+  auto h_dup = dict_insert_native(p, Dup16, {});
+  auto h_drop = dict_insert_native(p, Drop16, {});
+  auto h_add16i = dict_insert_native(p, Add16i, {});
+  auto h_sub16i = dict_insert_native(p, Sub16i, {});
+  auto h_dot = dict_insert_native(p, Dot, {}, ".");
+  auto h_here = dict_insert_native(p, Here, {});
+  auto h_lateststore = dict_insert_native(p, LatestStore, {}, "latest!");
+  auto h_psp = dict_insert_native(p, PspVal, {});
+  auto h_rsp = dict_insert_native(p, RspVal, {});
+  auto h_dumpdict = dict_insert_native(p, DumpDict, {});
+  auto h_toggledebug = dict_insert_native(p, ToggleDebug, {});
+  auto h_cmove = dict_insert_native(p, CMove, {});
+  auto h_cmove0 = dict_insert_native(p, CMove0, {});
+  auto h_print0 = dict_insert_native(p, PrintNullTerminated, {});
+}
