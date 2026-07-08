@@ -1,3 +1,4 @@
+#include <string>
 #include "./core_words.hpp"
 #include "core/interactive_test/dict.hpp"
 #include "core/interactive_test/interp.hpp"
