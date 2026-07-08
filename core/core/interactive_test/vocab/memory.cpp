@@ -2,6 +2,17 @@
 #include "core/interactive_test/dict.hpp"
 #include "core/interactive_test/interp.hpp"
 
+// (address data -- )
+void native_store(Interpreter *interp) {
+  u16 addr = interp->pop_psp<u16>();
+  u16 value = interp->pop_psp<u16>();
+  interp->write<u16>(value, addr);
+}
+inline static const NativeOpcode Store{
+    .stack_delta = -4,
+    .name = "!",
+    .h = native_store,
+};
 // (src cnt dst -- )
 // Should be compatible with `WORD <pushdest>`, assuming you can find the dest again.
 void native_cmove(Interpreter *interp) {
@@ -35,6 +46,7 @@ inline static const NativeOpcode CMove0{
 };
 
 void register_memory_words(Interpreter *p) {
-  auto h_cmove = dict_insert_native(p, CMove, {});
-  auto h_cmove0 = dict_insert_native(p, CMove0, {});
+  dict_insert_native(p, Store, {});
+  dict_insert_native(p, CMove, {});
+  dict_insert_native(p, CMove0, {});
 }
