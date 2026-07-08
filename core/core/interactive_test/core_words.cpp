@@ -78,12 +78,22 @@ void native_dot(Interpreter *interp) {
 }
 
 void native_key(Interpreter *interp) {
-  // If buffer is empty, read all available text from stdin into the interpreter's buffer
+  // If our span of chararacters is empty, fgetch more input!
   if (interp->chars.empty()) {
-    std::getline(std::cin, interp->storage);
-    interp->storage += '\n'; // Add a newline to simulate pressing enter
+    // Prefer to take input from the array of buffered strings
+    if (!interp->buffered.empty()) {
+      interp->storage = interp->buffered.front();
+      interp->buffered.erase(interp->buffered.begin());
+
+    } else { // Otherwise resort to stdin
+      std::getline(std::cin, interp->storage);
+    }
+    // Ensure content is newline terminated
+    if (!interp->storage.ends_with('\n')) interp->storage += '\n';
     interp->chars = interp->storage;
   }
+  // If buffer is empty, read all available text from stdin into the interpreter's buffer
+
   // Return those characters one at a time.
   if (!interp->chars.empty()) {
     char c = interp->chars.front();
