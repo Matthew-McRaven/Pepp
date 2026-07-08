@@ -81,9 +81,6 @@ void InteractiveTask::run() {
   std::cout.flush();
   std::cerr.flush();
 
-  // Force all definitions to be preloaded prior to start REPL.
-  p.buffered.clear();
-  p.run_on("");
   p.input_source = std::make_unique<StdinInput>();
   p.run();
   return emit finished(0);

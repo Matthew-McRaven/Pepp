@@ -38,7 +38,7 @@ void register_control_words(Interpreter *p) {
   dict_insert_native(p, ZBranch, {});
   dict_insert_native(p, Tick, {});
   // Compile 0-branch, saving location onto stack and compile a dummy offset
-  p->buffer(": if immediate ' 0branch , here 0 ,		;");
+  p->run_on(": if immediate ' 0branch , here 0 ,		;");
   // Calculate offset from the address on the stack and back-fill the value
-  p->buffer(": then immediate dup 2 + here swap - swap ! ;");
+  p->run_on(": then immediate dup 2 + here swap - swap ! ;");
 }
