@@ -1,6 +1,6 @@
 #include "objheap.hpp"
-#include "core/interactive_test/core_words.hpp"
 #include "core/interactive_test/dict.hpp"
+#include "core/interactive_test/vocab/core_words.hpp"
 #include "fmt/format.h"
 
 AValue::~AValue() = default;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./interp.hpp"
+#include "../interp.hpp"
 #include "core/integers.h"
 class Interpreter;
 

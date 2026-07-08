@@ -17,10 +17,10 @@
 #include "./interactive.hpp"
 #include <catch.hpp>
 #include <iostream>
-#include "core/interactive_test/core_words.hpp"
 #include "core/interactive_test/dict.hpp"
 #include "core/interactive_test/interp.hpp"
 #include "core/interactive_test/objheap.hpp"
+#include "core/interactive_test/vocab/core_words.hpp"
 #include "core/sim/system.hpp"
 #include "fmt/format.h"
 #include "fmt/ranges.h"

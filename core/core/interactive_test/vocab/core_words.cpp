@@ -1,6 +1,6 @@
 #include "core_words.hpp"
 #include <charconv>
-#include "./interp.hpp"
+#include "../interp.hpp"
 #include "core/integers.h"
 #include "core/interactive_test/dict.hpp"
 #include "fmt/format.h"
