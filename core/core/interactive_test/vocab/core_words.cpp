@@ -299,7 +299,7 @@ void register_core_words(Interpreter *p) {
       .name = "interpret",
       .h = [spad, lit_pcode](Interpreter *i) { native_interpret(i, spad, lit_pcode); },
   };
-  auto h_interp = dict_insert_native(p, Interp, {}, "interpret");
+  auto h_interp = dict_insert_native(p, Interp, {}, "coreint");
 
   // "FORTH" words, implemented in terms of docol.
   // So early in the dictionary that we can't use :; ore true FORTH definitions yet.
