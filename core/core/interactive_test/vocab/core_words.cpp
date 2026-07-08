@@ -133,8 +133,9 @@ void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit) {
   auto nt_addr = find_helper(interp, word_buffer, size);
   std::string_view word_buffer_str(reinterpret_cast<const char *>(interp->memory.data() + word_buffer), size);
 
-  // Not found, try to parse as a number.
-  if (nt_addr == 0) {
+  // Input string was empty/null. Do not parse.
+  if (word_buffer_str.empty() || (word_buffer_str.size() == 1 && word_buffer_str[0] == '\0')) return;
+  else if (nt_addr == 0) { // Not found, try to parse as a number.
     auto num = number_helper(interp, word_buffer, size);
     // If compiling, must comple as a literal.
     if (!num.has_value()) {
@@ -163,8 +164,6 @@ void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit) {
       interp->write_here_pp<u16>(hdr.pcode());
     }
   }
-  if (interp->cb.state == (u8)Interpreter::State::Immediate && !interp->has_input() && interp->used_stdin)
-    std::cout << "  ok\n";
 }
 
 void native_rspinitval(Interpreter *interp) { interp->push_psp(Interpreter::INITIAL_RSP); }
