@@ -40,6 +40,16 @@ void Interpreter::run() {
   while (cb.alive) step();
 }
 
+void Interpreter::run_on(std::string_view input) {
+  auto old_alive = cb.alive;
+  auto old_input = std::move(input_source);
+  input_source = std::make_unique<NoInput>();
+  if (!input.empty()) buffered.push_back(std::string(input));
+  while (cb.alive) step();
+  cb.alive = old_alive;
+  input_source = std::move(old_input);
+}
+
 void Interpreter::dispatch(u16 opcode) {
   auto it = native_words.find(opcode);
   if (it != native_words.end()) {
