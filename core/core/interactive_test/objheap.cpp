@@ -140,5 +140,6 @@ void register_native_heap_fns(Interpreter *p) {
       .name = "cfg.set",
       .h = [arg1_spad, arg2_spad](Interpreter *i) { config_set_field(i, arg1_spad, arg2_spad); },
   };
-  // : cfg.set word a1 cmove0 word a2 cmove0 cfg.set ;
+  auto h_setfield = dict_insert_native(p, SetField, {});
+  p->buffered.emplace_back(": cfg.set word a1 cmove0 word a2 cmove0 cfg.set ;\n");
 }
