@@ -19,7 +19,8 @@ Interpreter::Interpreter() { std::fill(memory.begin(), memory.end(), 0); }
 
 void Interpreter::step() {
   if (!cb.alive) return;
-  cb.cur_ip = cb.nxt_ip;
+  cb.cur_ip = redirect_next_step.value_or(cb.nxt_ip);
+  redirect_next_step = std::nullopt;
   cb.nxt_ip += 2;
   auto opcode_direct = read<u16>(cb.cur_ip);
   if (opcode_direct >= memory.size()) {

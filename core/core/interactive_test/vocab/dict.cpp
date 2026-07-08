@@ -27,7 +27,7 @@ void native_cfa(Interpreter *interp) {
 
 inline static const NativeOpcode CFA{
     .stack_delta = 0,
-    .name = "cfa",
+    .name = ">cfa",
     .h = native_cfa,
 };
 

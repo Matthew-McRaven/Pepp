@@ -97,6 +97,8 @@ public:
     u16 here = 0x0010;     // next free memory location
     u16 latest = 0x0000;   // latest dictionary entry
   } cb{};
+  // Excute the word at this IP next without modifying nxt_ip.
+  std::optional<u16> redirect_next_step = std::nullopt;
 
   Interpreter();
 

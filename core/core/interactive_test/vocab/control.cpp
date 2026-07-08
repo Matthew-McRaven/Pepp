@@ -34,9 +34,20 @@ inline static const NativeOpcode Tick{
     .h = native_tick,
 };
 
+void native_execute(Interpreter *interp) {
+  u16 xt = interp->pop_psp<u16>();
+  interp->redirect_next_step = xt;
+}
+inline static const NativeOpcode Execute{
+    .stack_delta = -2,
+    .name = "execute",
+    .h = native_execute,
+};
+
 void register_control_words(Interpreter *p) {
   dict_insert_native(p, ZBranch, {});
   dict_insert_native(p, Tick, {});
+  dict_insert_native(p, Execute, {});
   // Compile 0-branch, saving location onto stack and compile a dummy offset
   p->run_on(": if immediate ' 0branch , here 0 ,		;");
   // Calculate offset from the address on the stack and back-fill the value
