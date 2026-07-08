@@ -28,7 +28,23 @@ inline static const NativeOpcode ToggleDebug{
     .h = native_toggle_debug,
 };
 
+void native_dumphex(Interpreter *interp) {
+  auto len = interp->pop_psp<u16>();
+  auto addr = interp->pop_psp<u16>();
+  for (u16 i = 0; i < len; i++) {
+    auto b = interp->read<u8>(addr + i);
+    interp->append_output(fmt::format("{:02x} ", b));
+  }
+  interp->append_output("\n");
+}
+static const NativeOpcode DumpHex{
+    .stack_delta = -4,
+    .name = "dumphex",
+    .h = native_dumphex,
+};
+
 void register_debug_words(Interpreter *p) {
-  auto h_dumpdict = dict_insert_native(p, DumpDict, {});
-  auto h_toggledebug = dict_insert_native(p, ToggleDebug, {});
+  dict_insert_native(p, DumpDict, {});
+  dict_insert_native(p, ToggleDebug, {});
+  dict_insert_native(p, DumpHex, {});
 }

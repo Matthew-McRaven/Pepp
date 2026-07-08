@@ -91,6 +91,7 @@ void native_key(Interpreter *interp);
  * Register the following words:
  * dumpdict ( -- ), print the contents of the dictionary to output
  * ~debug   ( -- ), toggle debug mode on or off
+ * dumphex  ( addr len -- ), print the bytes at addr with length len in hex to output
  */
 void register_debug_words(Interpreter *interp);
 
