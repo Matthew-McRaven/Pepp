@@ -254,6 +254,7 @@ void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit) {
       // Force simulator to go back to entry point.
       interp->cb.nxt_ip = 0;
       std::cout << word_buffer_str << " ?" << std::endl;
+      interp->chars = std::string_view(); // Clear chars to force new input on next iteration.
       return;
     } else if (interp->cb.state == (u8)Interpreter::State::Compiling) {
       interp->write_here_pp(pcode_lit);
