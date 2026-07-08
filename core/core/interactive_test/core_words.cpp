@@ -40,8 +40,14 @@ void native_rspinitval(Interpreter *interp) { interp->push_psp(Interpreter::INIT
 
 void native_rspstoreval(Interpreter *interp) { interp->cb.rsp = interp->pop_psp<u16>(); }
 
+void native_psp(Interpreter *interp) { interp->push_psp(interp->cb.psp); }
+
+void native_rsp(Interpreter *interp) { interp->push_psp(interp->cb.rsp); }
+
 void native_halt(Interpreter *interp) { interp->cb.alive = false; }
 void native_latest(Interpreter *interp) { interp->push_psp(interp->cb.latest); }
+
+void native_here(Interpreter *interp) { interp->push_psp(interp->cb.here); }
 void native_fetch(Interpreter *interp) {
   i16 addr = interp->pop_psp<i16>();
   i16 value = interp->read<i16>(addr);
@@ -311,6 +317,7 @@ void register_core_words(Interpreter *p) {
   auto h_comma = dict_insert_native(p, Comma, {});
   auto h_lit = dict_insert_native(p, Lit, {});
   auto h_latest = dict_insert_native(p, Latest, {});
+  auto h_here = dict_insert_native(p, Here, {});
   auto h_fetch = dict_insert_native(p, Fetch, {}, "@");
   auto h_hidden = dict_insert_native(p, Hidden, {});
   auto h_rbrac = dict_insert_native(p, Rbrac, {}, "]");
@@ -319,6 +326,8 @@ void register_core_words(Interpreter *p) {
   auto h_lateststore = dict_insert_native(p, LatestStore, {}, "latest!");
   auto h_rspinitval = dict_insert_native(p, RspInitVal, {});
   auto h_rspstore = dict_insert_native(p, RspStoreVal, {});
+  auto h_psp = dict_insert_native(p, PspVal, {});
+  auto h_rsp = dict_insert_native(p, RspVal, {});
   auto h_dumpdict = dict_insert_native(p, DumpDict, {});
   auto h_toggledebug = dict_insert_native(p, ToggleDebug, {});
   auto h_cmove = dict_insert_native(p, CMove, {});

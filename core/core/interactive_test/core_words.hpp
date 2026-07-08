@@ -69,6 +69,21 @@ static const NativeOpcode RspStoreVal{
     .h = native_rspstoreval,
 };
 
+// ( -- u16) push current psp value
+void native_psp(Interpreter *interp);
+static const NativeOpcode PspVal{
+    .stack_delta = 2,
+    .name = "psp",
+    .h = native_psp,
+};
+// ( -- u16) push current rsp value onto psp
+void native_rsp(Interpreter *interp);
+inline static const NativeOpcode RspVal{
+    .stack_delta = 2,
+    .name = "rsp",
+    .h = native_rsp,
+};
+
 /*
  * Data movement
  */
@@ -125,6 +140,12 @@ inline static const NativeOpcode Latest{
     .stack_delta = 2,
     .name = "latest",
     .h = native_latest,
+};
+void native_here(Interpreter *interp);
+inline static const NativeOpcode Here{
+    .stack_delta = 2,
+    .name = "here",
+    .h = native_here,
 };
 void native_fetch(Interpreter *interp);
 inline static const NativeOpcode Fetch{
