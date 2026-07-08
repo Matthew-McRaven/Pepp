@@ -51,9 +51,25 @@ void dump_objects(Interpreter *interp) {
     std::cout << fmt::format("[{:04x}](*{}):  {}\n", id, obj->type_name(), obj->describe());
 }
 
+void config_set_field(Interpreter *interp, u16 addr_name, u16 addr_value) {
+  const char *name_ptr = (const char *)&interp->memory[addr_name];
+  const char *value_ptr = (const char *)&interp->memory[addr_value];
+  std::string_view name(name_ptr), value(value_ptr);
+  auto cfg_idx = interp->pop_psp<u16>();
+  auto cfg_obj = interp->get_object(cfg_idx);
+  auto cfg_ptr = std::dynamic_pointer_cast<Configuration>(cfg_obj);
+  if (!cfg_ptr) {
+    std::cerr << "No config at index " << cfg_idx << std::endl;
+    return;
+  }
+  cfg_ptr->set_field(name, value);
+}
+
 std::string DenseConfigValue::get_field(std::string_view name) const { return ""; }
 
-void DenseConfigValue::set_field(std::string_view name, std::string_view value) {}
+void DenseConfigValue::set_field(std::string_view name, std::string_view value) {
+  std::cout << "Setting field '" << name << "' to '" << value << "'\n";
+}
 
 std::shared_ptr<DenseConfigValue> DenseConfigValue::make() { return std::make_shared<DenseConfigValue>(); }
 
@@ -118,5 +134,11 @@ void register_native_heap_fns(Interpreter *p) {
       .h = [arg2_spad](Interpreter *i) { push_constant(i, arg2_spad); },
   };
   dict_insert_native(p, PushA2, {});
-  // : cfg.set word a1 cmove0 word a2 cmove0 ; <cfg_opcode>;
+
+  NativeOpcode SetField = {
+      .stack_delta = -2,
+      .name = "cfg.set",
+      .h = [arg1_spad, arg2_spad](Interpreter *i) { config_set_field(i, arg1_spad, arg2_spad); },
+  };
+  // : cfg.set word a1 cmove0 word a2 cmove0 cfg.set ;
 }

@@ -86,6 +86,10 @@ private:
 
 class DeviceValue : public AValue {};
 
+// (idx[cfg] -- )
+// Uses values from the internal buffers in a1, a2
+void config_set_field(Interpreter *interp, u16 name, u16 vale);
+
 class DenseDeviceValue : public DeviceValue {
 
 public:
