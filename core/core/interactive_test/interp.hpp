@@ -142,6 +142,8 @@ public:
   std::vector<std::string> buffered;
   std::string storage;
   std::string_view chars;
+  bool used_stdin = false;
+  bool has_input() const { return !chars.empty() || !buffered.empty(); }
 
 private:
   u16 _next_object_id = 1;

@@ -87,6 +87,7 @@ void native_key(Interpreter *interp) {
 
     } else { // Otherwise resort to stdin
       std::getline(std::cin, interp->storage);
+      interp->used_stdin = true;
     }
     // Ensure content is newline terminated
     if (!interp->storage.ends_with('\n')) interp->storage += '\n';
@@ -259,25 +260,23 @@ void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit) {
       interp->write_here_pp<u16>(num.value_or(0));
     } else {
       interp->push_psp<u16>(num.value_or(0));
-      std::cout << "  ok\n";
     }
-    return;
+  } else {
+    // Get dict entry for the found word.
+    auto hdr = NiceDictHeader(interp, nt_addr);
+    // If it is immediate, or we are in immediate mode, execute the word.
+    // Replicate machinery of step b/c we need to control dispatch.
+    if (hdr.immediate() || interp->cb.state == (u8)Interpreter::State::Immediate) {
+      auto cfa = hdr.pcode();
+      interp->cb.w = cfa;
+      auto opcode = interp->read<u16>(cfa);
+      interp->dispatch(opcode);
+    } else { // Otherwise, compile it into the current definition.
+      interp->write_here_pp<u16>(hdr.pcode());
+    }
   }
-
-  // Get dict entry for the found word.
-  auto hdr = NiceDictHeader(interp, nt_addr);
-  // If it is immediate, or we are in immediate mode, execute the word.
-  // Replicate machinery of step b/c we need to control dispatch.
-  if (hdr.immediate() || interp->cb.state == (u8)Interpreter::State::Immediate) {
-    auto cfa = hdr.pcode();
-    interp->cb.w = cfa;
-    auto opcode = interp->read<u16>(cfa);
-    interp->dispatch(opcode);
-  } else { // Otherwise, compile it into the current definition.
-    interp->write_here_pp<u16>(hdr.pcode());
-  }
-
-  if (interp->cb.state == (u8)Interpreter::State::Immediate) std::cout << "  ok\n";
+  if (interp->cb.state == (u8)Interpreter::State::Immediate && !interp->has_input() && interp->used_stdin)
+    std::cout << "  ok\n";
 }
 
 void native_lateststore(Interpreter *interp) {
