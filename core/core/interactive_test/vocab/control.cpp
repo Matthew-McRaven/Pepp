@@ -18,8 +18,27 @@ void native_zbranch(Interpreter *interp) {
 }
 inline static const NativeOpcode ZBranch{
     .stack_delta = 0,
-    .name = "branch0",
+    .name = "0branch",
     .h = native_zbranch,
 };
 
-void register_control_words(Interpreter *interp) { dict_insert_native(interp, ZBranch, {}); }
+void native_tick(Interpreter *interp) {
+  u16 *nxt_ip = &interp->cb.nxt_ip;
+  u16 value = interp->read<u16>(*nxt_ip);
+  interp->push_psp(value);
+  *nxt_ip += 2;
+}
+inline static const NativeOpcode Tick{
+    .stack_delta = 2,
+    .name = "'",
+    .h = native_tick,
+};
+
+void register_control_words(Interpreter *p) {
+  dict_insert_native(p, ZBranch, {});
+  dict_insert_native(p, Tick, {});
+  // Compile 0-branch, saving location onto stack and compile a dummy offset
+  p->buffer(": if immediate ' 0branch , here 0 ,		;");
+  // Calculate offset from the address on the stack and back-fill the value
+  p->buffer(": then immediate dup 2 + here swap - swap ! ;");
+}

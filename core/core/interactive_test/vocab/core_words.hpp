@@ -114,7 +114,9 @@ void register_dict_words(Interpreter *interp);
 /*
  * Implemented in control.cpp
  * Register the following words:
- * BRANCH0 ( i16 -- ), pop the top of the stack, if it is 0, read the next 16-bit value at current IP and add it to IP
+ * 0BRANCH ( i16 -- ), pop the top of the stack, if it is 0, read the next 16-bit value at current IP and add it to IP
+ * '       ( -- xt), read the next word word, push its xt onto the psp.
+ *                   Uses a hack so that it only works in compile mode.
  */
 void register_control_words(Interpreter *interp);
 
