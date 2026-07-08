@@ -77,6 +77,8 @@ void register_memory_words(Interpreter *interp);
  * EMIT  ( i8 -- ), write the character on top of the stack to output
  * NUMBER( addr len -- i16), convert the string at addr with length len to an integer and push it onto the stack
  * PRINT0( addr -- ), print the null-terminated string at addr to output
+ * STRLEN( addr -- len), compute the length of the null-terminated string at addr and push it onto the stack.
+ *                       Len does not include the null terminator.
  *
  * WORD and &WORD are implemented in core as a requirement of find.
  * Helpers for WORD and NUMBER are also implemented in core.

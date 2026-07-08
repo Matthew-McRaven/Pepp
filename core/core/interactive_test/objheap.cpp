@@ -126,6 +126,9 @@ void register_native_heap_fns(Interpreter *p) {
       .h = [arg1_spad](Interpreter *i) { push_constant(i, arg1_spad); },
   };
   dict_insert_native(p, PushA1, {});
+  p->run_on(": word!a1 word a1 cmove ;");
+  p->run_on(": find@a1 a1 dup word!a1 strlen find ;");
+
   const u16 arg2_spad = p->cb.here;
   p->cb.here += 32;
   NativeOpcode PushA2 = {
@@ -134,6 +137,7 @@ void register_native_heap_fns(Interpreter *p) {
       .h = [arg2_spad](Interpreter *i) { push_constant(i, arg2_spad); },
   };
   dict_insert_native(p, PushA2, {});
+  p->run_on(": word!ca2 word a2 cmove ;");
 
   NativeOpcode SetField = {
       .stack_delta = -2,

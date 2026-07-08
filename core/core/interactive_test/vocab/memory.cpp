@@ -45,8 +45,26 @@ inline static const NativeOpcode CMove0{
     .h = native_cmove,
 };
 
+// ( ptr -- len)
+void native_strlen(Interpreter *interp) {
+  u16 addr = interp->pop_psp<u16>();
+  u16 ret = 0;
+  while (true) {
+    u8 c = interp->read<u8>(addr++);
+    if (c == 0) break;
+    ret++;
+  }
+  interp->push_psp(ret);
+}
+inline static const NativeOpcode Strlen{
+    .stack_delta = 0,
+    .name = "strlen",
+    .h = native_strlen,
+};
+
 void register_memory_words(Interpreter *p) {
   dict_insert_native(p, Store, {});
   dict_insert_native(p, CMove, {});
   dict_insert_native(p, CMove0, {});
+  dict_insert_native(p, Strlen, {});
 }
