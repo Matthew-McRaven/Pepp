@@ -31,7 +31,20 @@ inline static const NativeOpcode CFA{
     .h = native_cfa,
 };
 
+// mark latest word as immediate
+void native_immediate(Interpreter *interp) {
+  u16 latest = interp->cb.latest;
+  NiceDictHeader hdr(interp, latest);
+  hdr.toggle_immediate();
+}
+inline static const NativeOpcode Immediate{
+    .stack_delta = 0,
+    .name = "immediate",
+    .h = native_immediate,
+};
+
 void register_dict_words(Interpreter *interp) {
   dict_insert_native(interp, Find, {});
   dict_insert_native(interp, CFA, {});
+  dict_insert_native(interp, Immediate, {});
 }

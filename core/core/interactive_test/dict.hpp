@@ -41,6 +41,7 @@ public:
   u16 nt() const { return _nt_addr; }
   void toggle_hidden();
   bool immediate() const;
+  void toggle_immediate();
 
 private:
   Interpreter *_interp;

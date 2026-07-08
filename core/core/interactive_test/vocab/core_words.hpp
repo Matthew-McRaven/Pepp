@@ -104,8 +104,9 @@ void register_sys_globals_words(Interpreter *interp);
 /*
  * Implemented in dict.cpp
  * Register the following words:
- * FIND    ( addr len -- nt|0), find the word with the given name and push its NT onto the stack, or 0 if not found
- * CFA     ( nt -- cfa), push the code field address of the word at NT onto the stack
+ * FIND      ( addr len -- nt|0), find the word with the given name and push its NT onto the stack, or 0 if not found
+ * CFA       ( nt -- cfa), push the code field address of the word at NT onto the stack
+ * IMMEDIATE ( -- ), mark the latest word as immediate
  */
 void register_dict_words(Interpreter *interp);
 

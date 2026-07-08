@@ -35,6 +35,12 @@ bool NiceDictHeader::immediate() const {
   return (flags & (u8)Flags::IMMEDIATE) != 0;
 }
 
+void NiceDictHeader::toggle_immediate() {
+  u8 flags = strlen_flags();
+  flags ^= (u8)Flags::IMMEDIATE;
+  _interp->write(flags, _nt_addr + (u16)RawDictHeader::StaticOffsets::FLAGS);
+}
+
 NiceDictHeader dict_insert(Interpreter *interp, std::string_view name, Flags flags, std::span<const u16> code) {
   auto ret = dict_header(interp, name, flags);
   auto *here = &interp->cb.here;
