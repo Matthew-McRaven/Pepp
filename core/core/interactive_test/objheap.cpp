@@ -51,7 +51,7 @@ void dump_objects(Interpreter *interp) {
     std::cout << fmt::format("[{:04x}](*{}):  {}\n", id, obj->type_name(), obj->describe());
 }
 
-std::string DenseConfigValue::get_field(std::string_view name) const {}
+std::string DenseConfigValue::get_field(std::string_view name) const { return ""; }
 
 void DenseConfigValue::set_field(std::string_view name, std::string_view value) {}
 
