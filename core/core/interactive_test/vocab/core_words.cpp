@@ -268,6 +268,7 @@ void register_core_words(Interpreter *p) {
   dict_insert_native(p, Halt, {});
   auto h_docol = dict_insert_native(p, Nest, {});
   auto h_exit = dict_insert_native(p, Unnest, {});
+
   const u16 spad = p->cb.here;
   p->cb.here += 32;
   NativeOpcode Word = {
@@ -306,8 +307,10 @@ void register_core_words(Interpreter *p) {
       std::array<u16, 10>{h_docol.code0(), h_word.pcode(),  h_create.pcode(), h_hidden.pcode(), h_lit.pcode(),
                           h_docol.pcode(), h_fetch.pcode(), h_comma.pcode(),  h_rbrac.pcode(),  h_exit.pcode()};
   dict_insert(p, ":", {}, op_colon);
-  auto op_semi = std::array<u16, 8>{h_docol.code0(),  h_lit.pcode(),    h_exit.pcode(),  h_comma.pcode(),
-                                    h_latest.pcode(), h_hidden.pcode(), h_lbrac.pcode(), h_exit.pcode()};
+  auto op_carrot = std::array<u16, 5>{h_docol.code0(), h_lit.pcode(), h_exit.pcode(), h_comma.pcode(), h_exit.pcode()};
+  auto h_carrot = dict_insert(p, "^", Flags::IMMEDIATE, op_carrot);
+  auto op_semi = std::array<u16, 8>{h_docol.code0(),  h_carrot.pcode(), h_latest.pcode(),
+                                    h_hidden.pcode(), h_lbrac.pcode(),  h_exit.pcode()};
   dict_insert(p, ";", Flags::IMMEDIATE, op_semi);
 
   auto h_rspinitval = dict_insert_native(p, RspInitVal, {});

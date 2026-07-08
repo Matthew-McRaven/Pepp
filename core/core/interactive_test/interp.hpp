@@ -139,6 +139,7 @@ public:
     native_words[opcode] = word;
     return opcode;
   }
+  void buffer(std::string_view input) { buffered.push_back(std::string(input)); }
   std::vector<std::string> buffered;
   std::string storage;
   std::string_view chars;

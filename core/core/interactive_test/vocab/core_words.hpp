@@ -8,8 +8,8 @@ class Interpreter;
  * Implemented in core.cpp
  * Register the following words:
  * HALT     ( -- ), stop executing instructions
- * DOCOL    ( -- ), push the next IP onto return stack and set IP to the address of the word being executed
- * EXIT     ( -- ), pop the top of the return stack into IP,
+ * NEST     ( -- ), push the next IP onto return stack and set IP to the address of the word being executed
+ * UNNEST   ( -- ), pop the top of the return stack into IP,
  * WORD     ( -- addr len ), read the next word from input and return its address and length
  * &WORD    ( -- addr ), push the address of the buffer used by WORD onto the param stack
  * CREATE   ( addr len -- nt ), create a new word in the dictionary from a name. Push the NT of the newly created word.
@@ -21,6 +21,7 @@ class Interpreter;
  * [        ( -- ), enter IMMEDIATE mode, so that words will be executed instead of compiled
  * ]        ( -- ), enter COMPILE mode, so that words will be compiled instead of executed
  * COREINT  ( -- ), the basic FORTH interpreter implemented in machine code
+ * ^        ( -- ), equivalent to FIND UNNEST ,
  * :        ( -- ), read the next word & create a new def. Enter COMPILE mode
  * ;        ( -- ), complete the word started by : and exit COMPILE mode
  * R0       ( -- u16), push the initial value of the return stack pointer onto the param stack
