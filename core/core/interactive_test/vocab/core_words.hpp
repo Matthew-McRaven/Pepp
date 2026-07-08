@@ -5,12 +5,13 @@
 class Interpreter;
 
 /*
- * Register the following words
+ * Implemented in core.cpp
+ * Register the following words:
  * HALT     ( -- ), stop executing instructions
  * DOCOL    ( -- ), push the next IP onto return stack and set IP to the address of the word being executed
  * EXIT     ( -- ), pop the top of the return stack into IP,
  * WORD     ( -- addr len ), read the next word from input and return its address and length
- * &WROD    ( -- addr ), push the address of the buffer used by WORD onto the param stack
+ * &WORD    ( -- addr ), push the address of the buffer used by WORD onto the param stack
  * CREATE   ( addr len -- nt ), create a new word in the dictionary from a name. Push the NT of the newly created word.
  * HIDDEN   ( nt -- ), mark the word at NT as hidden, so it will not be found by name
  * LATEST   ( -- nt ), push the NT of the latest word onto the param stack
@@ -28,289 +29,92 @@ class Interpreter;
  * QUIT     ( -- ), start the interpreter loop, discarding values on the return stack
  */
 void register_core_words(Interpreter *interp);
-
-void register_2ndcore_words(Interpreter *interp);
-
-/*
- * Manipulate elements on stack
- */
-// ( a b -- b a)
-void native_swap16(Interpreter *interp);
-inline static const NativeOpcode Swap16{
-    .stack_delta = 0,
-    .name = "swap",
-    .h = native_swap16,
-};
-
-// (i16 -- i16 i16)
-void native_dup16(Interpreter *interp);
-inline static const NativeOpcode Dup16{
-    .stack_delta = 2,
-    .name = "dup",
-    .h = native_dup16,
-};
-
-// (i16 -- )
-void native_drop16(Interpreter *interp);
-inline static const NativeOpcode Drop16{
-    .stack_delta = -2,
-    .name = "drop",
-    .h = native_drop16,
-};
-
-// (a b -- a b a)
-void native_over16(Interpreter *interp);
-inline static const NativeOpcode Over16{
-    .stack_delta = 2,
-    .name = "over",
-    .h = native_over16,
-};
-
-// ( i16 i16 -- i16)
-void native_add16i(Interpreter *interp);
-inline static const NativeOpcode Add16i{
-    .stack_delta = -2,
-    .name = "+",
-    .h = native_add16i,
-};
-
-// ( i16 i16 -- i16)
-void native_sub16i(Interpreter *interp);
-inline static const NativeOpcode Sub16i{
-    .stack_delta = -2,
-    .name = "-",
-    .h = native_sub16i,
-};
-// Read the byte after this opcode and push it onto the param stack.
-// ( -- i16)
-void native_lit(Interpreter *interp);
-inline static const NativeOpcode Lit{
-    .stack_delta = 2,
-    .name = "lit",
-    .h = native_lit,
-};
-
-// Stack initialization
-void native_rspinitval(Interpreter *interp);
-static const NativeOpcode RspInitVal{
-    .stack_delta = 2,
-    .name = "r0",
-    .h = native_rspinitval,
-};
-void native_rspstoreval(Interpreter *interp);
-static const NativeOpcode RspStoreVal{
-    .stack_delta = -2,
-    .name = "rsp!",
-    .h = native_rspstoreval,
-};
-
-// ( -- u16) push current psp value
-void native_psp(Interpreter *interp);
-static const NativeOpcode PspVal{
-    .stack_delta = 2,
-    .name = "psp",
-    .h = native_psp,
-};
-// ( -- u16) push current rsp value onto psp
-void native_rsp(Interpreter *interp);
-inline static const NativeOpcode RspVal{
-    .stack_delta = 2,
-    .name = "rsp",
-    .h = native_rsp,
-};
-
-/*
- * Data movement
- */
-// (src cnt dst -- )
-// Should be compatible with `WORD <pushdest>`, assuming you can find the dest again.
-void native_cmove(Interpreter *interp);
-inline static const NativeOpcode CMove{
-    .stack_delta = -6,
-    .name = "cmove",
-    .h = native_cmove,
-};
-// (src cnt dst -- )
-// Same as cmove, but appends a 0 in dst.
-void native_cmove0(Interpreter *interp);
-inline static const NativeOpcode CMove0{
-    .stack_delta = -6,
-    .name = "cmove0",
-    .h = native_cmove,
-};
-
-// ( ptr -- )
-// Print characters from memory at pointer until the first null byte.
-void native_print_nullterminated(Interpreter *interp);
-inline static const NativeOpcode PrintNullTerminated{
-    .stack_delta = -2,
-    .name = "print0",
-    .h = native_print_nullterminated,
-};
+// Helper method if all your opcode does is push a constant onto PSP.
 void push_constant(Interpreter *interp, u16 addr);
-
-/*
- * Words for compilation
- */
-void native_docol(Interpreter *interp);
-inline static const NativeOpcode Docol{
-    .stack_delta = 0,
-    .name = "docol",
-    .h = native_docol,
-};
-void native_exitcol(Interpreter *interp);
-inline static const NativeOpcode Exitcol{
-    .stack_delta = 0,
-    .name = "exit",
-    .h = native_exitcol,
-};
-void native_halt(Interpreter *interp);
-inline static const NativeOpcode Halt{
-    .stack_delta = 0,
-    .name = "halt",
-    .h = native_halt,
-};
-void native_latest(Interpreter *interp);
-inline static const NativeOpcode Latest{
-    .stack_delta = 2,
-    .name = "latest",
-    .h = native_latest,
-};
-void native_here(Interpreter *interp);
-inline static const NativeOpcode Here{
-    .stack_delta = 2,
-    .name = "here",
-    .h = native_here,
-};
-void native_fetch(Interpreter *interp);
-inline static const NativeOpcode Fetch{
-    .stack_delta = 0,
-    .name = "@",
-    .h = native_fetch,
-};
-void native_hidden(Interpreter *interp);
-inline static const NativeOpcode Hidden{
-    .stack_delta = -2,
-    .name = "hidden",
-    .h = native_hidden,
-};
-
-/*
- * Words for IO
- */
-
-// (i16 -- )
-void native_dot(Interpreter *interp);
-inline static const NativeOpcode Dot{
-    .stack_delta = -2,
-    .name = ".",
-    .h = native_dot,
-};
-// Usually this would buffer IO /inside/ the VM. However, to get INTERP working more quickly, we will delegate all IO to
-// the host. ( -- i8 )
-void native_key(Interpreter *interp);
-inline static const NativeOpcode Key{
-    .stack_delta = 2,
-    .name = "key",
-    .h = native_key,
-};
-// (i8 -- )
-void native_emit(Interpreter *interp);
-inline static const NativeOpcode Emit{
-    .stack_delta = -2,
-    .name = "emit",
-    .h = native_emit,
-};
+// Given a pointer to a temp buffer, the implementation of the WORD operation.
 // Read individual characters from stdin into a local buffer, searching for the first non-blank character.
-// ( -- addr size )
-void native_word(Interpreter *interp, u16 buffer_addr);
-// ( addr size -- i16)
-void native_number(Interpreter *interp);
-inline static const NativeOpcode Number{
-    .stack_delta = -2,
-    .name = "number",
-    .h = native_number,
-};
-void native_lateststore(Interpreter *interp);
-inline static const NativeOpcode LatestStore{
-    .stack_delta = -2,
-    .name = "latest!",
-    .h = native_lateststore,
-};
+u16 word_helper(Interpreter *interp, u16 buffer_addr);
+// Shared number parsing logic "hardware" routine. (addr, size) are a pointer, probably from WORD.
+std::optional<i32> number_helper(Interpreter *interp, u16 addr, u16 size);
+// Shared "harware" routine for traversing the dictionary to find a word from its name.
+u16 find_helper(Interpreter *interp, u16 addr, u16 size);
 
 /*
- * Dict manip
+ * Implemented in arithmetic.cpp
+ * Register the following words:
+ * +     ( i16 i16 -- i16 ), add the top two words of the stack
+ * -     ( i16 i16 -- i16 ), subtract the top two words of the stack
  */
-// ( addr size -- nt|0)
-void native_find(Interpreter *interp);
-inline static const NativeOpcode Find{
-    .stack_delta = -2,
-    .name = "find",
-    .h = native_find,
-};
-// (nt -- cfa)
-void native_cfa(Interpreter *interp);
-inline static const NativeOpcode CFA{
-    .stack_delta = 0,
-    .name = "cfa",
-    .h = native_cfa,
-};
-// ( addr size -- nt)
-void native_create(Interpreter *interp);
-inline static const NativeOpcode Create{
-    .stack_delta = -2,
-    .name = "create",
-    .h = native_create,
-};
-// (i16 -- ), pop data and write to here++
-void native_comma(Interpreter *interp);
-inline static const NativeOpcode Comma{
-    .stack_delta = -2,
-    .name = ",",
-    .h = native_comma,
-};
-void native_lbrac(Interpreter *interp);
-inline static const NativeOpcode Lbrac{
-    .stack_delta = 0,
-    .name = "[",
-    .h = native_lbrac,
-};
-void native_rbrac(Interpreter *interp);
-inline static const NativeOpcode Rbrac{
-    .stack_delta = 0,
-    .name = "]",
-    .h = native_rbrac,
-};
+void register_arithmetic_words(Interpreter *interp);
 
 /*
- * Branching
+ * Implemented in stack.cpp
+ * Register the following words:
+ * SWAP  ( a b -- b a ), swap the top two words of the stack
+ * DUP   ( i16 -- i16 i16 ), duplicate the top word of the stack
+ * DROP  ( i16 -- ), drop the top word of the stack
+ * OVER  ( a b -- a b a ), copy the second word of the stack to the top
  */
-void native_branch(Interpreter *interp);
-inline static const NativeOpcode Branch{
-    .stack_delta = 0,
-    .name = "branch",
-    .h = native_branch,
-};
-void native_zbranch(Interpreter *interp);
+void register_stack_words(Interpreter *interp);
 
 /*
- * The interpreter!!
+ * Implemented in memory.cpp
+ * Register the following words:
+ * CMOVE  ( src cnt dst -- ), copy cnt bytes from src to dst
+ * CMOVE0 ( src cnt dst -- ), copy cnt bytes from src to dst and append a null byte to dst
+ *
+ * @ and ! are already defined in core_words as a requirement of :;
  */
-void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit, u16 pcode_quit);
+void register_memory_words(Interpreter *interp);
 
 /*
- * Debug tools
+ * Implemented in io.cpp
+ * Register the following words:
+ * .     ( i16 -- ), print the top word of the stack as a signed integer
+ * KEY   ( -- i8 ), read a character from input and push it onto the stack
+ * EMIT  ( i8 -- ), write the character on top of the stack to output
+ * NUMBER( addr len -- i16), convert the string at addr with length len to an integer and push it onto the stack
+ * PRINT0( addr -- ), print the null-terminated string at addr to output
+ *
+ * WORD and &WORD are implemented in core as a requirement of find.
+ * Helpers for WORD and NUMBER are also implemented in core.
  */
-void native_dumpdict(Interpreter *interp);
-inline static const NativeOpcode DumpDict{
-    .stack_delta = 0,
-    .name = "dumpdict",
-    .h = native_dumpdict,
-};
+void register_io_words(Interpreter *interp);
+void native_key(Interpreter *interp);
 
-void native_toggle_debug(Interpreter *interp);
-inline static const NativeOpcode ToggleDebug{
-    .stack_delta = 0,
-    .name = "~debug",
-    .h = native_toggle_debug,
-};
+/*
+ * Implemented in debug.cpp
+ * Register the following words:
+ * dumpdict ( -- ), print the contents of the dictionary to output
+ * ~debug   ( -- ), toggle debug mode on or off
+ */
+void register_debug_words(Interpreter *interp);
+
+/*
+ * Implemented in sys_globals.cpp
+ * Register the following words:
+ * PSP     ( -- u16), push the current value of the param stack pointer onto the param stack
+ * RSP     ( -- u16), push the current value of the return stack pointer onto the param stack
+ * HERE    ( -- u16), push the current value of the HERE pointer onto the param stack
+ * LATEST! ( u16 -- ), write the value on top of the param stack to the LATEST pointer
+ */
+void register_sys_globals_words(Interpreter *interp);
+
+/*
+ * Implemented in dict.cpp
+ * Register the following words:
+ * FIND    ( addr len -- nt|0), find the word with the given name and push its NT onto the stack, or 0 if not found
+ * CFA     ( nt -- cfa), push the code field address of the word at NT onto the stack
+ */
+void register_dict_words(Interpreter *interp);
+
+/*
+ * Implemented in control.cpp
+ * Register the following words:
+ * BRANCH0 ( i16 -- ), pop the top of the stack, if it is 0, read the next 16-bit value at current IP and add it to IP
+ */
+void register_control_words(Interpreter *interp);
+
+// Register all of the above words into the interpreter.
+// This is a good starting point for a general-purpose VM.
+void register_common_words(Interpreter *interp);

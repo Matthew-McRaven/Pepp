@@ -76,8 +76,7 @@ void InteractiveTask::run() {
   std::cout << "Interactive mode. Type something and press enter (Ctrl+D to exit):" << std::endl;
   std::string input;
   Interpreter p;
-  register_core_words(&p);
-  register_2ndcore_words(&p);
+  register_common_words(&p);
   register_native_heap_fns(&p);
   std::cout.flush();
   std::cerr.flush();
