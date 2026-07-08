@@ -19,17 +19,23 @@ Interpreter::Interpreter() { std::fill(memory.begin(), memory.end(), 0); }
 
 void Interpreter::step() {
   if (!cb.alive) return;
-  cb.cur_ip = redirect_next_step.value_or(cb.nxt_ip);
-  redirect_next_step = std::nullopt;
-  cb.nxt_ip += 2;
-  auto opcode_direct = read<u16>(cb.cur_ip);
-  if (opcode_direct >= memory.size()) {
-    std::cerr << "*Opcode direct address out of bounds: " << opcode_direct << std::endl;
+
+  u16 opcode = 0;
+  if (redirect_next_step.has_value()) {
+    redirect_next_step = std::nullopt;
+    cb.w = *redirect_next_step;
+  } else {
+    cb.cur_ip = cb.nxt_ip;
+    redirect_next_step = std::nullopt;
+    cb.nxt_ip += 2;
+    cb.w = read<u16>(cb.cur_ip);
+  }
+
+  if (cb.w >= memory.size()) {
+    std::cerr << "*Opcode direct address out of bounds: " << cb.w << std::endl;
     cb.alive = false;
     return;
-  }
-  cb.w = opcode_direct;
-  auto opcode = read<u16>(opcode_direct);
+  } else opcode = read<u16>(cb.w);
 
   if (opcode == 0) {
     cb.alive = false;
