@@ -47,6 +47,20 @@ enum class Flags : u8 {
 };
 consteval void is_bitflags(Flags);
 
+struct AInput {
+  virtual ~AInput() = default;
+  virtual std::optional<std::string> readline() = 0;
+  virtual bool has_input() const = 0;
+};
+struct NoInput : public AInput {
+  std::optional<std::string> readline() override;
+  bool has_input() const override { return false; }
+};
+struct StdinInput : public AInput {
+  std::optional<std::string> readline() override;
+  bool has_input() const override { return true; }
+};
+
 class Interpreter {
 public:
   enum class State : u8 {
@@ -74,6 +88,7 @@ public:
 
   void step();
   void run();
+  void run_on(std::string_view input);
 
   std::unordered_map<u16, NativeOpcode> native_words;
   void dispatch(u16 opcode);
@@ -140,9 +155,25 @@ public:
     return opcode;
   }
   void buffer(std::string_view input) { buffered.push_back(std::string(input)); }
+  void get_input() {
+    auto maybe_text = input_source->readline();
+    if (maybe_text.has_value()) {
+      storage = maybe_text.value();
+      used_stdin = true;
+    } else {
+      storage.clear();
+    }
+  }
+  std::string take_output() {
+    std::string ret = std::move(outut);
+    outut.clear();
+    return ret;
+  }
   std::vector<std::string> buffered;
   std::string storage;
   std::string_view chars;
+  std::string outut;
+  std::unique_ptr<AInput> input_source{std::make_unique<NoInput>()};
   bool used_stdin = false;
   bool has_input() const { return !chars.empty() || !buffered.empty(); }
 

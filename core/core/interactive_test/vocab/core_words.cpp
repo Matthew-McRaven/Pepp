@@ -213,11 +213,8 @@ u16 word_helper(Interpreter *interp, u16 buffer_addr) {
   while (true) {
     native_key(interp);
     char c = interp->pop_psp<char>();
-    if (c == 0 || std::isspace(c)) {
-      // Null terminate the string and return
-
-      break;
-    } else {
+    if (c == 0 || std::isspace(c)) break;
+    else {
       // Write character to buffer
       interp->write<char>(c, buffer_addr++);
     }

@@ -23,16 +23,20 @@ void native_key(Interpreter *interp) {
     if (!interp->buffered.empty()) {
       interp->storage = interp->buffered.front();
       interp->buffered.erase(interp->buffered.begin());
-
-    } else { // Otherwise resort to stdin
-      std::getline(std::cin, interp->storage);
-      interp->used_stdin = true;
+    }
+    // Try to use interp's input source, if it exists
+    else if (interp->input_source->has_input()) {
+      interp->get_input();
+    } else {
+      // If no more chars, push 0 to indicate EOF
+      interp->push_psp((char)0);
+      interp->cb.alive = false;
+      return;
     }
     // Ensure content is newline terminated
     if (!interp->storage.ends_with('\n')) interp->storage += '\n';
     interp->chars = interp->storage;
   }
-  // If buffer is empty, read all available text from stdin into the interpreter's buffer
 
   // Return those characters one at a time.
   if (!interp->chars.empty()) {

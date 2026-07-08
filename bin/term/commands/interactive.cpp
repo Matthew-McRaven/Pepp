@@ -82,6 +82,8 @@ void InteractiveTask::run() {
   std::cerr.flush();
   NiceDictHeader h_quit = *dict_find(&p, "quit");
   p.write(h_quit.pcode(), 0);
+  p.input_source = std::make_unique<StdinInput>();
+  p.cb.alive = true;
   p.run();
   return emit finished(0);
 }

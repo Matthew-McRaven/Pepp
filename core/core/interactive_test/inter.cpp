@@ -1,9 +1,18 @@
 #include <algorithm>
 #include <iostream>
+#include <string>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/math/bitmanip/enums.hpp"
 #include "fmt/format.h"
 #include "interp.hpp"
+
+std::optional<std::string> StdinInput::readline() {
+  std::string ret;
+  if (!std::getline(std::cin, ret)) return std::nullopt;
+  return ret;
+}
+
+std::optional<std::string> NoInput::readline() { return std::nullopt; }
 
 Interpreter::Interpreter() { std::fill(memory.begin(), memory.end(), 0); }
 
