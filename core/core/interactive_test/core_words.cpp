@@ -12,6 +12,13 @@ void native_add16i(Interpreter *interp) {
   interp->push_psp(result);
 }
 
+void native_sub16i(Interpreter *interp) {
+  i16 lhs = interp->pop_psp<i16>();
+  i16 rhs = interp->pop_psp<i16>();
+  i16 result = lhs - rhs;
+  interp->push_psp(result);
+}
+
 void native_lit(Interpreter *interp) {
   u16 *nxt_ip = &interp->cb.nxt_ip;
   u16 value = interp->read<u16>(*nxt_ip);
@@ -309,7 +316,8 @@ void register_core_words(Interpreter *p) {
   auto h_stop = dict_insert_native(p, Halt, {});
   auto h_dup = dict_insert_native(p, Dup16, {});
   auto h_drop = dict_insert_native(p, Drop16, {});
-  auto h_add16i = dict_insert_native(p, Add16i, {}, "+");
+  auto h_add16i = dict_insert_native(p, Add16i, {});
+  auto h_sub16i = dict_insert_native(p, Sub16i, {});
   auto h_dot = dict_insert_native(p, Dot, {}, ".");
   auto h_docol = dict_insert_native(p, Docol, {}, "docol");
   auto h_exit = dict_insert_native(p, Exitcol, {});

@@ -46,6 +46,14 @@ inline static const NativeOpcode Add16i{
     .name = "+",
     .h = native_add16i,
 };
+
+// ( i16 i16 -- i16)
+void native_sub16i(Interpreter *interp);
+inline static const NativeOpcode Sub16i{
+    .stack_delta = -2,
+    .name = "-",
+    .h = native_sub16i,
+};
 // Read the byte after this opcode and push it onto the param stack.
 // ( -- i16)
 void native_lit(Interpreter *interp);
