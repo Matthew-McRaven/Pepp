@@ -80,10 +80,11 @@ void InteractiveTask::run() {
   register_native_heap_fns(&p);
   std::cout.flush();
   std::cerr.flush();
-  NiceDictHeader h_quit = *dict_find(&p, "quit");
-  p.write(h_quit.pcode(), 0);
+
+  // Force all definitions to be preloaded prior to start REPL.
+  p.buffered.clear();
+  p.run_on("");
   p.input_source = std::make_unique<StdinInput>();
-  p.cb.alive = true;
   p.run();
   return emit finished(0);
 }

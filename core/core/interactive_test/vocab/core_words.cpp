@@ -317,6 +317,10 @@ void register_core_words(Interpreter *p) {
   auto op_quit = std::array<u16, 6>{h_docol.code0(),  h_rspinitval.pcode(), h_rspstore.pcode(),
                                     h_interp.pcode(), h_branch.pcode(),     (u16)-10};
   dict_insert(p, "quit", {}, op_quit);
+
+  // Install the "quit" handler at the start point, which is address 0.
+  NiceDictHeader h_quit = *dict_find(p, "quit");
+  p->write(h_quit.pcode(), 0);
 }
 
 void register_common_words(Interpreter *p) {
