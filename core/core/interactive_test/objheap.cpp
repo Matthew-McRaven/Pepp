@@ -8,13 +8,13 @@ AValue::~AValue() = default;
 void native_value_typename(Interpreter *interp) {
   u16 idx = interp->pop_psp<u16>();
   auto obj = interp->get_object(idx);
-  std::cout << (obj ? obj->type_name() : "null") << std::endl;
+  interp->append_output(fmt::format("{}\n", obj ? obj->type_name() : "null"));
 }
 
 void native_value_describe(Interpreter *interp) {
   u16 idx = interp->pop_psp<u16>();
   auto obj = interp->get_object(idx);
-  std::cout << (obj ? obj->describe() : "null") << std::endl;
+  interp->append_output(fmt::format("{}\n", obj ? obj->describe() : "null"));
 }
 
 void make_system(Interpreter *interp) {
@@ -48,7 +48,7 @@ u16 SystemValue::devcount() const {
 void dump_objects(Interpreter *interp) {
   auto heap = interp->get_object_heap();
   for (const auto &[id, obj] : heap)
-    std::cout << fmt::format("[{:04x}](*{}):  {}\n", id, obj->type_name(), obj->describe());
+    interp->append_output(fmt::format("[{:04x}](*{}):  {}\n", id, obj->type_name(), obj->describe()));
 }
 
 void config_set_field(Interpreter *interp, u16 addr_name, u16 addr_value) {
@@ -68,7 +68,7 @@ void config_set_field(Interpreter *interp, u16 addr_name, u16 addr_value) {
 std::string DenseConfigValue::get_field(std::string_view name) const { return ""; }
 
 void DenseConfigValue::set_field(std::string_view name, std::string_view value) {
-  std::cout << "Setting field '" << name << "' to '" << value << "'\n";
+  // interp->append_output(fmt::format("Setting field '{}' to '{}'\n", name, value));
 }
 
 std::shared_ptr<DenseConfigValue> DenseConfigValue::make() { return std::make_shared<DenseConfigValue>(); }

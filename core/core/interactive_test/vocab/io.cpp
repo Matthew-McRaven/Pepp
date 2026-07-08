@@ -1,3 +1,4 @@
+#include <fmt/format.h>
 #include <string>
 #include "./core_words.hpp"
 #include "core/interactive_test/dict.hpp"
@@ -6,7 +7,7 @@
 // (i16 -- )
 void native_dot(Interpreter *interp) {
   auto tos = interp->pop_psp<i16>();
-  std::cout << tos << std::endl;
+  interp->append_output(fmt::format("{}\n", tos));
 }
 inline static const NativeOpcode Dot{
     .stack_delta = -2,
@@ -56,7 +57,7 @@ inline static const NativeOpcode Key{
 // (i8 -- )
 void native_emit(Interpreter *interp) {
   const auto c = interp->pop_psp<char>();
-  std::cout << c;
+  interp->append_output(std::string(1, c));
 }
 inline static const NativeOpcode Emit{
     .stack_delta = -2,
@@ -86,7 +87,7 @@ void native_print_nullterminated(Interpreter *interp) {
   while (true) {
     u8 c = interp->read<u8>(addr++);
     if (c == 0) break;
-    std::cout << static_cast<char>(c);
+    interp->append_output(std::string(1, static_cast<char>(c)));
   }
 }
 inline static const NativeOpcode PrintNullTerminated{

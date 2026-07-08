@@ -4,6 +4,7 @@
 #include "core/math/bitmanip/copy.hpp"
 #include "core/math/bitmanip/enums.hpp"
 #include "fmt/format.h"
+#include "fmt/ranges.h"
 #include "interp.hpp"
 
 std::optional<std::string> StdinInput::readline() {
@@ -90,3 +91,7 @@ u16 Interpreter::zeros(u16 base, u16 count) {
   std::fill(memory.begin() + base, memory.begin() + base + count, 0);
   return base + count;
 }
+
+void Interpreter::append_output(std::string text) { output->write(text); }
+void StdoutOutput::write(std::string_view text) { std::cout << text; }
+void BufferedOutput::write(std::string_view text) { buffer.push_back(std::string(text)); }

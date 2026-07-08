@@ -61,6 +61,20 @@ struct StdinInput : public AInput {
   bool has_input() const override { return true; }
 };
 
+struct AOutput {
+  virtual ~AOutput() = default;
+  virtual void write(std::string_view text) = 0;
+};
+
+struct StdoutOutput : public AOutput {
+  void write(std::string_view text) override;
+};
+
+struct BufferedOutput : public AOutput {
+  std::vector<std::string> buffer;
+  void write(std::string_view text) override;
+};
+
 class Interpreter {
 public:
   enum class State : u8 {
@@ -164,16 +178,12 @@ public:
       storage.clear();
     }
   }
-  std::string take_output() {
-    std::string ret = std::move(outut);
-    outut.clear();
-    return ret;
-  }
+  void append_output(std::string text);
   std::vector<std::string> buffered;
   std::string storage;
   std::string_view chars;
-  std::string outut;
   std::unique_ptr<AInput> input_source{std::make_unique<NoInput>()};
+  std::unique_ptr<AOutput> output{std::make_unique<StdoutOutput>()};
   bool used_stdin = false;
   bool has_input() const { return !chars.empty() || !buffered.empty(); }
 
