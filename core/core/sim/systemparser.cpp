@@ -79,7 +79,7 @@ void parse_node_ram_dense(const nlohmann::json &self, System *sys, Device *paren
   Dense::Configuration cfg;
   try {
     parse_standard_fields(self, cfg);
-    if (cfg.basename->empty()) throw ParsingError("RAM must have a basename");
+    if (cfg.basename.empty()) throw ParsingError("RAM must have a basename");
     if (!self.contains("min_offset") || self["min_offset"].is_null()) throw ParsingError("RAM must have a min_offset");
     auto min = as_int<u32>(self["min_offset"]);
     if (!self.contains("max_offset") || self["max_offset"].is_null()) throw ParsingError("RAM must have a max_offset");
@@ -112,10 +112,10 @@ std::unique_ptr<System> parse_system(std::string_view body, ParsingContext &cont
   System::Configuration cfg;
   try {
     parse_standard_fields(as_json, cfg);
-    if (cfg.compatible->empty()) cfg.compatible = System::compatible;
+    if (cfg.compatible.empty()) cfg.compatible = System::compatible;
     else if (cfg.compatible != System::compatible)
       throw ParsingError("System description must have compatible: " + std::string(System::compatible));
-    if (cfg.basename->empty()) cfg.basename = "/";
+    if (cfg.basename.empty()) cfg.basename = "/";
   } catch (const nlohmann::json::type_error &e) {
     throw ParsingError("Failed to parse system description: " + std::string(e.what()));
   }

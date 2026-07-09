@@ -24,7 +24,7 @@ struct DeviceWithType : public Device {
   DeviceWithType(Configuration config, Type type) : Device(), _config(config), _type(type) {}
   Type type() const override { return _type; }
   const Configuration &config() const override { return _config; }
-  const Device::ID id() const override { return *_config.id; }
+  const Device::ID id() const override { return _config.id; }
 
 private:
   Configuration _config;
@@ -37,7 +37,7 @@ struct SubclassingDevice : public Device, ClockSource {
   Type type() const override { return Type::ClockSource; }
   PulseSchedule schedule() const override { return {.period = 100, .jitter = 10, .seed = 0}; }
   const Configuration &config() const override { return _config; }
-  const Device::ID id() const override { return *_config.id; }
+  const Device::ID id() const override { return _config.id; }
 
 private:
   Configuration _config;
@@ -83,13 +83,13 @@ TEST_CASE("DeviceTree", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
       .id = Device::ID{3},
       .basename = "delta",
       .compatible = "delta-compatible",
-      .fullname = alpha_desc.child_name("delta"),
+      .fullname = child_name(alpha_desc.fullname, "delta"),
   };
   static const Device::Configuration gamma_desc{
       .id = Device::ID{4},
       .basename = "gamma",
       .compatible = "gamma-compatible",
-      .fullname = alpha_desc.child_name("gamma"),
+      .fullname = child_name(alpha_desc.fullname, "gamma"),
   };
   using T = Device::Type;
   static DeviceWithType root(root_desc, T::Root), alpha(alpha_desc, T::ClockSink | T::MemoryInitiator),
@@ -113,7 +113,7 @@ TEST_CASE("DeviceTree", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
     CHECK(std::distance(view.begin(), view.end()) == 5);
   }
   SECTION("Filter on basename") {
-    auto view = root_tree | std::views::filter([](Device *dt) { return *dt->config().basename == "alpha"; });
+    auto view = root_tree | std::views::filter([](Device *dt) { return dt->config().basename == "alpha"; });
     CHECK(std::distance(view.begin(), view.end()) == 1);
   }
   SECTION("Filter for ID") {

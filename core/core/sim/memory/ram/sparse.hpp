@@ -27,8 +27,8 @@ class Sparse final : public Device, public Target, public Traceable {
 public:
   static const inline std::string compatible = "ram,sparse";
   struct Configuration : public Device::Configuration {
-    Immediate<u8> fill = 0;
-    Immediate<AddressSpan> span;
+    u8 fill = 0;
+    AddressSpan span{};
   };
   Sparse(Configuration config);
   ~Sparse() = default;

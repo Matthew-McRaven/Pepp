@@ -13,12 +13,12 @@ System::System(Configuration config)
       _root(std::make_unique<DeviceTree>(this, nullptr)) {
   _config.id = Device::ID{0};
   // Ensure that basename always == fullname, and that the name starts with a /
-  if (_config.basename->empty()) _config.basename = "/";
-  else if (_config.basename->starts_with("/")) _config.basename = *_config.basename;
-  else _config.basename = "/" + *_config.basename;
-  _config.fullname = *_config.basename;
+  if (_config.basename.empty()) _config.basename = "/";
+  else if (_config.basename.starts_with("/")) _config.basename = _config.basename;
+  else _config.basename = "/" + _config.basename;
+  _config.fullname = _config.basename;
   // Ensure we can lookup this device by ID.
-  _id_to_device[*_config.id] = _root.get();
+  _id_to_device[_config.id] = _root.get();
 }
 
 void System::initialize(System *sys) { return initialize(); }
@@ -42,7 +42,7 @@ Device *System::find_relative(std::string_view name, std::string_view parent) {
 
 Device *System::find_absolute(std::string_view name) {
   DeviceTree *root = _root.get();
-  auto ptr = (*root) | std::views::filter([&name](Device *dt) { return *dt->config().fullname == name; });
+  auto ptr = (*root) | std::views::filter([&name](Device *dt) { return dt->config().fullname == name; });
   auto count = std::ranges::distance(ptr);
   if (count > 1) {
     SPDLOG_WARN("System::find_absolute: multiple devices found with name {}", name);

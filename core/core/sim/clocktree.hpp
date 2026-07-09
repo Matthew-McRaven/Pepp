@@ -10,13 +10,13 @@ namespace pepp {
 // Describe a jitter-free clock that operates at a fixed frequency
 struct IdealClock final : public Device, public ClockSource {
   struct Configuration : public Device::Configuration {
-    Immediate<u64> period;
+    u64 period;
   };
-  IdealClock(Configuration config) : Device(), ClockSource(), _config(config), _sched({.period = *config.period}) {}
+  IdealClock(Configuration config) : Device(), ClockSource(), _config(config), _sched({.period = config.period}) {}
 
   PulseSchedule schedule() const override { return _sched; }
   const Device::Configuration &config() const override { return _config; }
-  const Device::ID id() const override { return *_config.id; }
+  const Device::ID id() const override { return _config.id; }
 
 private:
   PulseSchedule _sched;
@@ -25,17 +25,17 @@ private:
 
 struct ScaledClock final : public Device, public ClockSource {
   struct Configuration : public Device::Configuration {
-    Immediate<float> period_scale;
+    float period_scale;
     // If not-a-number, configured devices will copy the value from period_scale
-    Immediate<float> jitter_scale = std::numeric_limits<float>::quiet_NaN();
-    Deferred<std::string> parent_name;
+    float jitter_scale = std::numeric_limits<float>::quiet_NaN();
+    std::string parent_name;
   };
 
   ScaledClock(Configuration config);
   void initialize(System *) override;
   PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config; }
-  const Device::ID id() const override { return *_config.id; }
+  const Device::ID id() const override { return _config.id; }
 
 private:
   Configuration _config;
@@ -45,8 +45,8 @@ private:
 // A clock node which can choose between multiple parent clocks.
 struct MuxClock final : public Device, public ClockSource {
   struct Configuration : public Device::Configuration {
-    Deferred<u16> selected;
-    Deferred<std::vector<std::string>> names;
+    u16 selected;
+    std::vector<std::string> names;
   };
 
   // Connect to clock index 0 by default.
@@ -63,7 +63,7 @@ struct MuxClock final : public Device, public ClockSource {
   std::span<ClockSource *> choices() { return _choices; }
   PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config; }
-  const Device::ID id() const override { return *_config.id; }
+  const Device::ID id() const override { return _config.id; }
 
 private:
   const ClockSource *selected_clock() const;

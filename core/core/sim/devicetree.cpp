@@ -7,10 +7,6 @@ std::string child_name(std::string_view view_fullname, std::string_view view_chi
   return fullprefix;
 }
 
-std::string Device::Configuration::child_name(std::string_view child_basename) const {
-  return ::child_name(*fullname, child_basename);
-}
-
 DeviceTree *DeviceTree::append_child(Device *dev) {
   auto ptr = std::make_unique<DeviceTree>(dev, this);
   auto ret = ptr.get();

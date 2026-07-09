@@ -2,12 +2,12 @@
 #include "core/sim/memory/errors.hpp"
 
 Dense::Dense(Configuration config) : Device(), _config(config) {
-  _data.resize(size_inclusive(*_config.span), *_config.fill);
+  _data.resize(size_inclusive(_config.span), _config.fill);
 }
 
 std::span<const u8> Dense::data() const { return std::span<const u8>{_data.data(), std::size_t(_data.size())}; }
 
-const Device::ID Dense::id() const { return *_config.id; }
+const Device::ID Dense::id() const { return _config.id; }
 
 const Device::Configuration &Dense::config() const { return _config; }
 
@@ -31,11 +31,11 @@ void Dense::trace(bool enabled) {
 
 bool Dense::traced() const { return _tb ? _tb->traced(id()) : false; }
 
-AddressSpan Dense::span() const { return *_config.span; }
+AddressSpan Dense::span() const { return _config.span; }
 
 Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) const {
   using E = Error;
-  const auto span = *_config.span;
+  const auto span = _config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
@@ -52,7 +52,7 @@ Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) c
 
 Target::Result Dense::write(Address address, bits::span<const u8> src, Operation op) {
   using E = Error;
-  auto span = *_config.span;
+  auto span = _config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, src.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);

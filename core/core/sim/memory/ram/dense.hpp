@@ -24,8 +24,8 @@ class Dense final : public Device, public Target, public Traceable {
 public:
   static const inline std::string compatible = "ram,dense";
   struct Configuration : public Device::Configuration {
-    Immediate<u8> fill{0};
-    Immediate<AddressSpan> span;
+    u8 fill{0};
+    AddressSpan span{};
   };
   Dense(Configuration device);
   ~Dense() = default;

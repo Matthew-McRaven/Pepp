@@ -28,10 +28,9 @@ struct Device {
   using ID = pepp::OpaqueHandle<struct DeviceID, u8>;
   using IDGenerator = std::function<Device::ID()>;
   struct Configuration {
-    Computed<Device::ID> id;
-    Immediate<std::string> basename, compatible;
-    Computed<std::string> fullname;
-    std::string child_name(std::string_view child_basename) const;
+    Device::ID id;
+    std::string basename, compatible;
+    std::string fullname;
   };
   // Bitflags telling you what interfaces this abstract device implements.
   // e.g., if any(type() & Type::MemoryTarget), then this device implements the MemoryTarget interface.

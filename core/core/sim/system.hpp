@@ -49,7 +49,7 @@ public:
   void initialize();
 
   const Configuration &config() const override { return _config; }
-  const Device::ID id() const override { return *_config.id; }
+  const Device::ID id() const override { return _config.id; }
 
   Device::ID next_ID();
   Device::IDGenerator gen_next_ID();
@@ -105,7 +105,7 @@ ConcreteDevice *System::make_device(Device::ID parent_id, ConcreteConfig &&cfg, 
   auto &parent = device_tree->second->device;
   static_assert(std::is_base_of_v<Device, ConcreteDevice>, "ConcreteDevice must be derived from Device");
   cfg.id = next_ID();
-  cfg.fullname = parent->config().child_name(*cfg.basename);
+  cfg.fullname = child_name(parent->config().fullname, cfg.basename);
   auto device = std::make_unique<ConcreteDevice>(cfg, std::forward<Args>(args)...);
   auto ptr = device.get();
   { // Force child_dt to go out of scope after move.

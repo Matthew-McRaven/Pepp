@@ -1,7 +1,13 @@
+
 #pragma once
 #include <concepts>
+#include <functional>
 #include <optional>
 #include <string>
+#include <unordered_set>
+#include <variant>
+#include "core/ds/string_compare.hpp"
+#include "core/integers.h"
 
 /*
  * With our 2-phase parser, configurations have 3 kinds of values:
@@ -20,37 +26,3 @@
  *
  */
 
-enum class ConfigType { Immediate, Deferred, Computed };
-template <ConfigType t, typename T> class ConfigField {
-public:
-  template <typename A> ConfigField(A &&value) : _value(value) {}
-  // default copy/move/assignment
-  ConfigField() = default;
-  ConfigField(const ConfigField &other) = default;
-  ConfigField(ConfigField &&other) noexcept = default;
-  // copy-assign
-  ConfigField &operator=(const ConfigField &other) = default;
-  ConfigField &operator=(ConfigField &&other) noexcept = default;
-  template <typename A> ConfigField &operator=(A &&value) {
-    _value = value;
-    return *this;
-  }
-  template <typename A> bool operator==(A &&value) const { return _value == value; }
-
-  T operator*() const { return _value; }
-  auto operator->() {
-    if constexpr (std::is_pointer_v<T>) return _value;
-    else return &_value;
-  }
-
-  auto operator->() const {
-    if constexpr (std::is_pointer_v<T>) return _value;
-    else return &_value;
-  }
-
-private:
-  T _value;
-};
-template <typename T> using Immediate = ConfigField<ConfigType::Immediate, T>;
-template <typename T> using Deferred = ConfigField<ConfigType::Deferred, T>;
-template <typename T> using Computed = ConfigField<ConfigType::Computed, T>;
