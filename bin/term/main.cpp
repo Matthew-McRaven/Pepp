@@ -29,6 +29,7 @@
 #include "commands/dumptex.hpp"
 #include "commands/get-qrc.hpp"
 #include "commands/get.hpp"
+#include "commands/interactive.hpp"
 #include "commands/license.hpp"
 #include "commands/ls-imgfmt.hpp"
 #include "commands/ls-qrc.hpp"
@@ -98,6 +99,7 @@ int main(int argc, char **argv) {
   registerThroughput(app, task, shared_flags);
   registerDumpBooks(app, task, shared_flags);
   registerDumpTex(app, task, shared_flags);
+  registerInteractive(app, task, shared_flags);
 
   auto modified_args = std::vector<const char *>();
   for (int it = 0; it < argc; ++it) modified_args.push_back(argv[it]);

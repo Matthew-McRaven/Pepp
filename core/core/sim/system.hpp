@@ -58,11 +58,14 @@ public:
 
   // Create a device that is a child of the root (this system)
   template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+    requires std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>
   ConcreteDevice *make_device(ConcreteConfig &&cfg, Args &&...args);
   // Create children under a given device.
   template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+    requires std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>
   ConcreteDevice *make_device(Device::ID parent, ConcreteConfig &&cfg, Args &&...args);
   template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+    requires std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>
   ConcreteDevice *make_device(Device *parent, ConcreteConfig &&cfg, Args &&...args);
 
   // Return a pointer to a device by name, or nullptr if not found.
@@ -72,6 +75,8 @@ public:
   // Combine relative_to and name to form an absolute path and call find_absolute. Names starting with '/' are treated
   // as absolute by default and will not be combined with parent.
   Device *find_relative(std::string_view name, std::string_view parent);
+
+  DeviceTree *root() { return _root.get(); }
 
 private:
   Configuration _config{{.basename{"/"}, .fullname{"/"}}};
@@ -83,8 +88,8 @@ private:
 };
 
 template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+  requires std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>
 ConcreteDevice *System::make_device(Device *parent, ConcreteConfig &&cfg, Args &&...args) {
-  static_assert(std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>);
   const auto id = parent->id();
   if (auto it = _id_to_device.find(id); it != _id_to_device.end())
     return make_device<ConcreteDevice>(id, cfg, std::forward<Args>(args)...);
@@ -92,8 +97,8 @@ ConcreteDevice *System::make_device(Device *parent, ConcreteConfig &&cfg, Args &
 }
 
 template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+  requires std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>
 ConcreteDevice *System::make_device(Device::ID parent_id, ConcreteConfig &&cfg, Args &&...args) {
-  static_assert(std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>);
 
   auto device_tree = _id_to_device.find(parent_id);
   if (device_tree == _id_to_device.end()) throw std::runtime_error("Parent device not found");
@@ -111,9 +116,10 @@ ConcreteDevice *System::make_device(Device::ID parent_id, ConcreteConfig &&cfg, 
 }
 
 template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
+  requires std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>
 ConcreteDevice *System::make_device(ConcreteConfig &&cfg, Args &&...args) {
-  static_assert(std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>);
 
   static_assert(std::is_base_of_v<Device, ConcreteDevice>, "Device must be derived from Device");
-  return make_device<ConcreteDevice>(this, cfg, std::forward<Args>(args)...);
+  // Avoid looking up this device ID, when we already have it stored in _config.
+  return make_device<ConcreteDevice>(_config.id, cfg, std::forward<Args>(args)...);
 }
