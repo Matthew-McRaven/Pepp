@@ -7,7 +7,7 @@ void native_dumpdict(Interpreter *interp) {
   auto b = begin(interp), e = end(interp);
   while (b != e) {
     auto v = *b;
-    interp->append_output(fmt::format("{:9}({:3}): 0x{:04x}", v.name(), (u16)v.strlen_flags(), b.link()));
+    interp->append_output(fmt::format("{:16}({:3}): 0x{:04x}", v.name(), (u16)v.strlen_flags(), b.link()));
     interp->append_output(fmt::format("  &pcode==0x{:04x}; pcode==0x{:04x}; *pcode=={}\n", (i16)v.pcode_addr(),
                                       (i16)v.pcode(), (i16)v.code0()));
     b++;
