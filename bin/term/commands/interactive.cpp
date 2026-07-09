@@ -18,8 +18,8 @@
 #include <catch.hpp>
 #include <iostream>
 #include "core/interactive_test/dict.hpp"
+#include "core/interactive_test/hostobjs/vocab.hpp"
 #include "core/interactive_test/interp.hpp"
-#include "core/interactive_test/objheap.hpp"
 #include "core/interactive_test/vocab/core_words.hpp"
 #include "core/sim/system.hpp"
 #include "fmt/format.h"
@@ -77,7 +77,7 @@ void InteractiveTask::run() {
   std::string input;
   Interpreter p;
   register_common_words(&p);
-  register_native_heap_fns(&p);
+  register_devicemgmt_words(&p);
   std::cout.flush();
   std::cerr.flush();
 
