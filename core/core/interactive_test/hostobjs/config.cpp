@@ -1,11 +1,31 @@
+#include <nlohmann/json.hpp>
 #include "./vocab.hpp"
 #include "core/interactive_test/dict.hpp"
 #include "core/interactive_test/vocab/core_words.hpp"
 #include "fmt/format.h"
 
+// Must not be in header, since it needs the full definition of nlohmann::json
+class InteractiveConfiguration : public AValue {
+public:
+  virtual ~InteractiveConfiguration() override = default;
+  std::string get_field(std::string_view name) const;
+  void set_field(std::string_view name, std::string_view value);
+  bool has_field(std::string_view name) const;
+  static std::shared_ptr<InteractiveConfiguration> make();
+
+  // AValue interface
+  std::string type_name() const override;
+  Type type_code() const override;
+  std::string describe() const override;
+  const nlohmann::json &fields() const { return _fields; }
+
+private:
+  nlohmann::json _fields = nlohmann::json::object();
+};
+
 std::string InteractiveConfiguration::get_field(std::string_view name) const {
   if (auto v = _fields.find(name); v == _fields.end()) return "";
-  else return v->second;
+  else return v->get<std::string>();
 }
 
 void InteractiveConfiguration::set_field(std::string_view name, std::string_view value) {
@@ -149,11 +169,7 @@ void native_cfg_dump(Interpreter *interp) {
   if (auto casted = std::dynamic_pointer_cast<InteractiveConfiguration>(cfg);
       cfg->type_code() != AValue::Type::InteractiveConfig || casted == nullptr)
     throw std::runtime_error("Object is not a configuration object");
-  else {
-    for (const auto &[name, value] : *casted) {
-      interp->append_output(fmt::format("  {}: {}\n", name, value));
-    }
-  }
+  else interp->append_output(casted->fields().dump() + "\n");
 }
 inline static const NativeOpcode CfgDump{
     .stack_delta = -2,

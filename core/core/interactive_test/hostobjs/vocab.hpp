@@ -51,24 +51,5 @@ public:
  */
 void register_config_words(Interpreter *interp);
 
-class InteractiveConfiguration : public AValue {
-public:
-  virtual ~InteractiveConfiguration() override = default;
-  std::string get_field(std::string_view name) const;
-  void set_field(std::string_view name, std::string_view value);
-  bool has_field(std::string_view name) const;
-  static std::shared_ptr<InteractiveConfiguration> make();
-
-  // AValue interface
-  std::string type_name() const override;
-  Type type_code() const override;
-  std::string describe() const override;
-  auto begin() const { return _fields.begin(); }
-  auto end() const { return _fields.end(); }
-
-private:
-  std::unordered_map<std::string, std::string, pepp::bts::cs_hash, pepp::bts::cs_eq> _fields;
-};
-
 // Register all of the words defined in this directory.
 void register_devicemgmt_words(Interpreter *interp);
