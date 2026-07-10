@@ -44,6 +44,16 @@ std::optional<i32> number_helper(Interpreter *interp, u16 addr, u16 size);
 u16 find_helper(Interpreter *interp, u16 addr, u16 size);
 
 /*
+ * Implemented in sys_globals.cpp
+ * Register the following words:
+ * PSP     ( -- u16), push the current value of the param stack pointer onto the param stack
+ * RSP     ( -- u16), push the current value of the return stack pointer onto the param stack
+ * HERE    ( -- u16), push the current value of the HERE pointer onto the param stack
+ * LATEST! ( u16 -- ), write the value on top of the param stack to the LATEST pointer
+ */
+void register_sys_globals_words(Interpreter *interp);
+
+/*
  * Implemented in arithmetic.cpp
  * Register the following words:
  * +     ( i16 i16 -- i16 ), add the top two words of the stack
@@ -98,16 +108,6 @@ u16 strlen_helper(Interpreter *interp, u16 addr);
  * dumphex  ( addr len -- ), print the bytes at addr with length len in hex to output
  */
 void register_debug_words(Interpreter *interp);
-
-/*
- * Implemented in sys_globals.cpp
- * Register the following words:
- * PSP     ( -- u16), push the current value of the param stack pointer onto the param stack
- * RSP     ( -- u16), push the current value of the return stack pointer onto the param stack
- * HERE    ( -- u16), push the current value of the HERE pointer onto the param stack
- * LATEST! ( u16 -- ), write the value on top of the param stack to the LATEST pointer
- */
-void register_sys_globals_words(Interpreter *interp);
 
 /*
  * Implemented in dict.cpp

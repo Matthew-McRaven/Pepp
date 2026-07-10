@@ -337,12 +337,12 @@ void register_core_words(Interpreter *p) {
 
 void register_common_words(Interpreter *p) {
   register_core_words(p);
+  register_sys_globals_words(p);
   register_arithmetic_words(p);
   register_stack_words(p);
   register_memory_words(p);
   register_io_words(p);
   register_debug_words(p);
-  register_sys_globals_words(p);
   register_dict_words(p);
   register_control_words(p);
 }
