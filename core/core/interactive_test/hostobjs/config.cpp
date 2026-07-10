@@ -179,17 +179,20 @@ inline static const NativeOpcode CfgDump{
 
 void register_config_words(Interpreter *p) {
   dict_insert_native(p, CfgAlloc, {});
-  p->run_on(": cfg.walloc word cfg.alloc ;");
+  p->run_on(" var cfg drop"); // create a var to hold the index of the WIP config. var returns the addr of the variable,
+                              // which we don't need.
+  p->run_on(": cfg.walloc word!t1 t1 cfg.alloc cfg ! ;");
   dict_insert_native(p, CfgSet, {});
-  p->run_on(": cfg.wset word!t1 word!t2 t1 t2 cfg.set ;");
+  p->run_on(": cfg.wset cfg @ word!t1 word!t2 t1 t2 cfg.set ;");
   dict_insert_native(p, CfgPrint, {});
-  p->run_on(": cfg.wprint word!t1 t1 cfg.print ;");
+  p->run_on(": cfg.wprint cfg @ word!t1 t1 cfg.print ;");
   dict_insert_native(p, CfgHas, {});
-  p->run_on(": cfg.whas word!t1 t1 cfg.has ;");
+  p->run_on(": cfg.whas cfg @ word!t1 t1 cfg.has ;");
   dict_insert_native(p, CfgGet, {});
   // Bury t2 under cfg[idx] before building the rest of the stack for get
   // (e.g., name buf). When get consumes cfg-name-buf, t2 is on the stack
   // which combines with returned vals of get (len ok) to form (t2/buf len ok)
-  p->run_on(": cfg.wget t2 swap word!t1 t1 t2 cfg.get ;");
+  p->run_on(": cfg.wget t2 cfg @ word!t1 t1 t2 cfg.get ;");
   dict_insert_native(p, CfgDump, {});
+  p->run_on(": cfg.wdump cfg @ cfg.dump ;");
 }

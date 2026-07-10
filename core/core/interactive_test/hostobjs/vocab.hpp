@@ -34,20 +34,22 @@ public:
 /*
  * Implemented in acfg.cpp
  * Register the following words:
+ * cfg         ( -- addr), variable holding the configuration object being worked on by cfg.w* words.
  * cfg.alloc   (name  -- idx[cfg]), allocate a new configuration object and push its index onto the stack
  *                 The type of the config is determined by the string argument (ptr to null terminated str).
- * cfg.walloc  ( -- idx[cfg]), reads the next word and call alloc with it
+ * cfg.walloc  ( -- idx[cfg]), reads the next word and call alloc with it. Sets cfg.
  * cfg.set     (idx[cfg] name value -- ), treating name and value as ptrs to null terminated strings,
  *                 call set_field on the configuration object
- * cfg.wset    (idx[cfg] -- ), reads the next two words and call set with them
+ * cfg.wset    ( -- ), reads the next two words and call set with them
  * cfg.print   (idx[cfg] name -- ), treating name as a cstr, get the associated field and print its value as a string.
- * cfg.wprint  (idx[cfg] -- ), reads the next word and call print with it
+ * cfg.wprint  ( -- ), reads the next word and call print with it
  * cfg.has     (idx[cfg] name -- u16), treating name as a cstr, push 1 if the field exists, 0 otherwise.
- * cfg.whas    (idx[cfg] -- u16), reads the next word and call has with it
+ * cfg.whas    (-- u16), reads the next word and call has with it
  * cfg.get     (idx[cfg] name buf -- len ok), treating name as a cstr, copy the field value as a string into buf, and
  *                 push the len written. If ok is false, the field does not exist
- * cfg.wget    (idx[cfg] -- buf len ok), reads the next word and call get_str with it
+ * cfg.wget    ( -- buf len ok), reads the next word and call get_str with it
  * cfg.dump    (idx[cfg] -- ), print all fields and values of the configuration object to output
+ * cfg.wdump   ( -- )
  */
 void register_config_words(Interpreter *interp);
 
