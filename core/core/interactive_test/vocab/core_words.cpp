@@ -193,6 +193,18 @@ inline static const NativeOpcode Branch{
     .h = native_branch,
 };
 
+void native_tick(Interpreter *interp) {
+  u16 *nxt_ip = &interp->cb.nxt_ip;
+  u16 value = interp->read<u16>(*nxt_ip);
+  interp->push_psp(value);
+  *nxt_ip += 2;
+}
+inline static const NativeOpcode Tick{
+    .stack_delta = 2,
+    .name = "'",
+    .h = native_tick,
+};
+
 void push_constant(Interpreter *interp, u16 addr) { interp->push_psp(addr); }
 
 u16 word_helper(Interpreter *interp, u16 buffer_addr) {
@@ -316,6 +328,7 @@ void register_core_words(Interpreter *p) {
   auto op_quit = std::array<u16, 6>{h_docol.code0(),  h_rspinitval.pcode(), h_rspstore.pcode(),
                                     h_interp.pcode(), h_branch.pcode(),     (u16)-10};
   dict_insert(p, "quit", {}, op_quit);
+  dict_insert_native(p, Tick, {});
 
   // Install the "quit" handler at the start point, which is address 0.
   NiceDictHeader h_quit = *dict_find(p, "quit");

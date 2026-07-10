@@ -28,6 +28,9 @@ class Interpreter;
  * RSP!     ( u16-- ), write the value on top of the param stack to the return stack pointer
  * BRANCH   ( -- ), read the next 16-bit value at current IP and add it to IP
  * QUIT     ( -- ), start the interpreter loop, discarding values on the return stack
+ * '        ( -- xt), read the next word word, push its xt onto the psp. Only works in compile mode.
+ *                    While not technically required for bootstrapping, it's basically impossible
+ *                    to create new defining words without it.
  */
 void register_core_words(Interpreter *interp);
 // Helper method if all your opcode does is push a constant onto PSP.
@@ -119,8 +122,6 @@ void register_dict_words(Interpreter *interp);
  * Implemented in control.cpp
  * Register the following words:
  * 0BRANCH ( i16 -- ), pop the top of the stack, if it is 0, read the next 16-bit value at current IP and add it to IP
- * '       ( -- xt), read the next word word, push its xt onto the psp.
- *                   Uses a hack so that it only works in compile mode.
  */
 void register_control_words(Interpreter *interp);
 

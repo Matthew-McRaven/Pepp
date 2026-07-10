@@ -22,18 +22,6 @@ inline static const NativeOpcode ZBranch{
     .h = native_zbranch,
 };
 
-void native_tick(Interpreter *interp) {
-  u16 *nxt_ip = &interp->cb.nxt_ip;
-  u16 value = interp->read<u16>(*nxt_ip);
-  interp->push_psp(value);
-  *nxt_ip += 2;
-}
-inline static const NativeOpcode Tick{
-    .stack_delta = 2,
-    .name = "'",
-    .h = native_tick,
-};
-
 void native_execute(Interpreter *interp) {
   u16 xt = interp->pop_psp<u16>();
   interp->redirect_next_step = xt;
@@ -46,7 +34,6 @@ inline static const NativeOpcode Execute{
 
 void register_control_words(Interpreter *p) {
   dict_insert_native(p, ZBranch, {});
-  dict_insert_native(p, Tick, {});
   dict_insert_native(p, Execute, {});
   // Compile 0-branch, saving location onto stack and compile a dummy offset
   p->run_on(": if immediate ' 0branch , here 0 ,		;");
