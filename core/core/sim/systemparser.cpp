@@ -52,30 +52,30 @@ void parse_standard_fields(const nlohmann::json &node, Device::Configuration &cf
     cfg.compatible = node["compatible"].get<std::string>();
   if (node.contains("basename") && !node["basename"].is_null()) cfg.basename = node["basename"].get<std::string>();
 }
-void parse_node_ram_dense(const nlohmann::json &node, System *sys, Device *parent, ParsingContext &ctx);
-void parse_node_ram_sparse(const nlohmann::json &node, System *sys, Device *parent, ParsingContext &ctx);
-void parse_node_ram(const nlohmann::json &node, System *sys, Device *parent, ParsingContext &ctx);
+Device *parse_node_ram_dense(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent);
+Device *parse_node_ram_sparse(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent);
+Device *parse_node_ram(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent);
 
-using Parser = std::function<void(const nlohmann::json &, System *, Device *, ParsingContext &)>;
+using Parser = std::function<Device *(const nlohmann::json &, ParsingContext &, System *, Device *)>;
 static const std::map<std::string, Parser> parsers = {
     {Dense::compatible, Parser{parse_node_ram_dense}},
     {Sparse::compatible, Parser{parse_node_ram_sparse}},
     {"ram", Parser{parse_node_ram}},
 };
-void dispatch_parser(const nlohmann::json &node, System *sys, Device *parent, ParsingContext &ctx) {
+Device *dispatch_parser(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent) {
   auto compatible = node["compatible"].get<std::string>();
   auto it = parsers.find(compatible);
   if (it == parsers.end()) throw ParsingError("Unknown compatible type: " + compatible);
-  it->second(node, sys, parent, ctx);
+  return it->second(node, ctx, sys, parent);
 }
-void dispatch_children(const nlohmann::json &node, System *sys, Device *parent, ParsingContext &ctx) {
+void dispatch_children(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent) {
   if (!node.contains("children")) return;
   auto children = node["children"];
   if (!children.is_array()) throw ParsingError("Children must be an array");
-  for (const auto &child : children) dispatch_parser(child, sys, parent, ctx);
+  for (const auto &child : children) dispatch_parser(child, ctx, sys, parent);
 }
 
-void parse_node_ram_dense(const nlohmann::json &self, System *sys, Device *parent, ParsingContext &ctx) {
+Device *parse_node_ram_dense(const nlohmann::json &self, ParsingContext &ctx, System *sys, Device *parent) {
   Dense::Configuration cfg;
   try {
     parse_standard_fields(self, cfg);
@@ -91,14 +91,16 @@ void parse_node_ram_dense(const nlohmann::json &self, System *sys, Device *paren
   }
 
   auto dense = sys->make_device<Dense>(parent, cfg);
-  dispatch_children(self, sys, dense, ctx);
+  dispatch_children(self, ctx, sys, dense);
+  return dense;
 }
-void parse_node_ram_sparse(const nlohmann::json &self, System *sys, Device *parent, ParsingContext &ctx) {
-  dispatch_children(self, sys, parent, ctx);
+Device *parse_node_ram_sparse(const nlohmann::json &self, ParsingContext &ctx, System *sys, Device *parent) {
+  dispatch_children(self, ctx, sys, parent);
+  return nullptr;
 }
-void parse_node_ram(const nlohmann::json &self, System *sys, Device *parent, ParsingContext &ctx) {
-  if (false) parse_node_ram_dense(self, sys, parent, ctx);
-  else parse_node_ram_sparse(self, sys, parent, ctx);
+Device *parse_node_ram(const nlohmann::json &self, ParsingContext &ctx, System *sys, Device *parent) {
+  if (false) return parse_node_ram_dense(self, ctx, sys, parent);
+  else return parse_node_ram_sparse(self, ctx, sys, parent);
 }
 
 std::unique_ptr<System> parse_system(std::string_view body, ParsingContext &context) {
@@ -120,6 +122,18 @@ std::unique_ptr<System> parse_system(std::string_view body, ParsingContext &cont
     throw ParsingError("Failed to parse system description: " + std::string(e.what()));
   }
   std::unique_ptr<System> system = std::make_unique<System>(cfg);
-  dispatch_children(as_json, system.get(), system.get(), context);
+  dispatch_children(as_json, context, system.get(), system.get());
   return system;
+}
+
+Device *parse_device(std::string_view body, ParsingContext &ctx, System *sys, Device *parent) {
+  if (sys == nullptr) throw ParsingError("System must be non-null");
+  if (parent == nullptr) parent = sys;
+  nlohmann::json as_json;
+  try {
+    as_json = nlohmann::json::parse(body);
+  } catch (const nlohmann::json::parse_error &e) {
+    throw ParsingError("Failed to parse device description: " + std::string(e.what()));
+  }
+  return dispatch_parser(as_json, ctx, sys, parent);
 }

@@ -20,7 +20,6 @@
 #include "core/ds/opaque_handle.hpp"
 #include "core/integers.h"
 #include "core/math/bitmanip/enums.hpp"
-#include "core/sim/api/configs.hpp"
 
 class System;
 std::string child_name(std::string_view parent_fullname, std::string_view child_basename);

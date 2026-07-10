@@ -45,16 +45,19 @@ inline static const NativeOpcode CMove0{
     .h = native_cmove,
 };
 
-// ( ptr -- len)
-void native_strlen(Interpreter *interp) {
-  u16 addr = interp->pop_psp<u16>();
+u16 strlen_helper(Interpreter *interp, u16 addr) {
   u16 ret = 0;
   while (true) {
     u8 c = interp->read<u8>(addr++);
     if (c == 0) break;
     ret++;
   }
-  interp->push_psp(ret);
+  return ret;
+}
+// ( ptr -- len)
+void native_strlen(Interpreter *interp) {
+  u16 addr = interp->pop_psp<u16>();
+  interp->push_psp(strlen_helper(interp, addr));
 }
 inline static const NativeOpcode Strlen{
     .stack_delta = 0,

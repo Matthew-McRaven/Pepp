@@ -85,6 +85,7 @@ void register_memory_words(Interpreter *interp);
  */
 void register_io_words(Interpreter *interp);
 void native_key(Interpreter *interp);
+u16 strlen_helper(Interpreter *interp, u16 addr);
 
 /*
  * Implemented in debug.cpp

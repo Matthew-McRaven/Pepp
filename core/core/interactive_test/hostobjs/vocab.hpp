@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../interp.hpp"
+#include "core/ds/string_compare.hpp"
 #include "core/integers.h"
+
 class Interpreter;
 
 /*
@@ -10,14 +12,18 @@ class Interpreter;
  * obj.typename  ( idx[obj] -- ), print the type name of the object at idx to output
  * obj.type      ( idx[obj] -- u16), push the type code of the object at index onto the stack
  * obj.describe  ( idx[obj] -- ), print the description of the object at idx to output
+ * t1            ( -- addr), push the address of a scratch buffer onto the stack
+ * word!t1       ( -- ), execute word and copy its buffer to t1
+ * t2            ( -- addr), push the address of a scratch buffer onto the stack
+ * word!t2       ( -- ), execute word and copy its buffer to t2
+ * dumpobjs      ( -- ), print the contents of the object table to output
  */
 void register_value_words(Interpreter *interp);
 class AValue {
 public:
   enum class Type : u16 {
     Undefined = 0,
-    Config_System = 1,
-    Device_System = 2,
+    InteractiveConfig = 1,
   };
   virtual ~AValue() = 0;
   virtual std::string type_name() const = 0;
@@ -25,14 +31,11 @@ public:
   virtual std::string describe() const = 0;
 };
 
-// Register all of the words defined in this directory.
-void register_devicemgmt_words(Interpreter *interp);
-
 /*
  * Implemented in acfg.cpp
  * Register the following words:
- * cfg.alloc   (addr len -- idx[cfg]), allocate a new configuration object and push its index onto the stack
- *                 The type of the config is determined by the string argument.
+ * cfg.alloc   (name  -- idx[cfg]), allocate a new configuration object and push its index onto the stack
+ *                 The type of the config is determined by the string argument (ptr to null terminated str).
  * cfg.walloc  ( -- idx[cfg]), reads the next word and call alloc with it
  * cfg.set     (idx[cfg] name value -- ), treating name and value as ptrs to null terminated strings,
  *                 call set_field on the configuration object
@@ -41,26 +44,31 @@ void register_devicemgmt_words(Interpreter *interp);
  * cfg.wprint  (idx[cfg] -- ), reads the next word and call print with it
  * cfg.has     (idx[cfg] name -- u16), treating name as a cstr, push 1 if the field exists, 0 otherwise.
  * cfg.whas    (idx[cfg] -- u16), reads the next word and call has with it
- * cfg.type    (idx[cfg] name -- u16), push the type code of the configuration field onto the stack
- * cfg.wtype   (idx[cfg] -- u16), reads the next word and call type with it
- * cfg.get_str (idx[cfg] name buf -- len ok), treating name as a cstr, copy the field value as a string into buf, and
+ * cfg.get     (idx[cfg] name buf -- len ok), treating name as a cstr, copy the field value as a string into buf, and
  *                 push the len written. If ok is false, the field does not exist
- * cfg.wget_str(idx[cfg] -- buf len ok), reads the next word and call get_str with it
- * cfg.get_int (idx[cfg] name -- i16 ok), treating name as a cstr, push the field value as an integer onto the stack.
- *                 if ok is 0, the field could not be converted to an int.
- * cfg.wget_int(idx[cfg] -- i16 ok), reads the next word and call get_int with it
+ * cfg.wget    (idx[cfg] -- buf len ok), reads the next word and call get_str with it
+ * cfg.dump    (idx[cfg] -- ), print all fields and values of the configuration object to output
  */
 void register_config_words(Interpreter *interp);
 
-class Configuration : public AValue {
+class InteractiveConfiguration : public AValue {
 public:
-  enum class Type : u16 {
-    undefined = 0,
-    i16 = 1,
-  };
-  virtual ~Configuration() override = default;
-  virtual std::string get_field(std::string_view name) const = 0;
-  virtual void set_field(std::string_view name, std::string_view value) = 0;
-  virtual bool has_field(std::string_view name) const { return false; }
-  virtual Type field_type(std::string_view name) const { return Type::undefined; }
+  virtual ~InteractiveConfiguration() override = default;
+  std::string get_field(std::string_view name) const;
+  void set_field(std::string_view name, std::string_view value);
+  bool has_field(std::string_view name) const;
+  static std::shared_ptr<InteractiveConfiguration> make();
+
+  // AValue interface
+  std::string type_name() const override;
+  Type type_code() const override;
+  std::string describe() const override;
+  auto begin() const { return _fields.begin(); }
+  auto end() const { return _fields.end(); }
+
+private:
+  std::unordered_map<std::string, std::string, pepp::bts::cs_hash, pepp::bts::cs_eq> _fields;
 };
+
+// Register all of the words defined in this directory.
+void register_devicemgmt_words(Interpreter *interp);
