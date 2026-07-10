@@ -143,6 +143,7 @@ void native_interpret(Interpreter *interp, u16 word_buffer, u16 pcode_lit) {
       interp->cb.nxt_ip = 0;
       interp->append_output(fmt::format("{} ?\n", word_buffer_str));
       interp->chars = std::string_view(); // Clear chars to force new input on next iteration.
+      interp->cb.state = (u8)Interpreter::State::Immediate;
       return;
     } else if (interp->cb.state == (u8)Interpreter::State::Compiling) {
       interp->write_here_pp(pcode_lit);
