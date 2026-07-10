@@ -74,7 +74,7 @@ void register_stack_words(Interpreter *interp);
 /*
  * Implemented in memory.cpp
  * Register the following words:
- * !      ( addr i16 -- ), store the top word of the stack at addr
+ * !      ( i16 addr -- ), value at NOS to the addr at TOS
  * CMOVE  ( src cnt dst -- ), copy cnt bytes from src to dst
  * CMOVE0 ( src cnt dst -- ), copy cnt bytes from src to dst and append a null byte to dst
  *
