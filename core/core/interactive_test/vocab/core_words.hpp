@@ -77,6 +77,7 @@ void register_stack_words(Interpreter *interp);
  * !      ( i16 addr -- ), value at NOS to the addr at TOS
  * CMOVE  ( src cnt dst -- ), copy cnt bytes from src to dst
  * CMOVE0 ( src cnt dst -- ), copy cnt bytes from src to dst and append a null byte to dst
+ * var    ( -- addr ), create a new vairable (consuming next word), push its addr onto stack.
  *
  * @ and ! are already defined in core_words as a requirement of :;
  */

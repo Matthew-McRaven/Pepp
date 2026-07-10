@@ -70,4 +70,11 @@ void register_memory_words(Interpreter *p) {
   dict_insert_native(p, CMove, {});
   dict_insert_native(p, CMove0, {});
   dict_insert_native(p, Strlen, {});
+  p->run_on(": var word create drop" // Create a new dict entry from the next word. discard nt.
+            " ' nest @ ,"            // Emit opcode of docol.
+            " ' lit , "              // Emit lit
+            " here 4 + ,"            // Make lit's value a pointer to the next cell
+            " ' unnest ,"            // Emit unnest
+            " here 0 ,"              // leave pointer to storage on stack, and allocate 2-bytes of storage.
+            " ;");
 }
