@@ -1,6 +1,7 @@
 import QtQuick
 
 import "./ui" as Ui
+import "./ui/blueprint" as Bp
 
 Window {
     width: 1024
@@ -8,7 +9,10 @@ Window {
     visible: true
     title: qsTr("Circuit Design")
 
-    Ui.LogicGates {
+    //Ui.LogicGates {
+    //    anchors.fill: parent
+    //}
+    Bp.BluePrintEditor {
         anchors.fill: parent
     }
 }
