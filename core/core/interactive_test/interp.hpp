@@ -61,6 +61,14 @@ struct StdinInput : public AInput {
   bool has_input() const override { return true; }
 };
 
+struct StringInput : public AInput {
+  std::string input;
+  size_t pos = 0;
+  StringInput(std::string_view str) : input(str) {}
+  std::optional<std::string> readline() override;
+  bool has_input() const override { return pos < input.size(); }
+};
+
 struct AOutput {
   virtual ~AOutput() = default;
   virtual void write(std::string_view text) = 0;
@@ -170,7 +178,6 @@ public:
     native_words[opcode] = word;
     return opcode;
   }
-  void buffer(std::string_view input) { buffered.push_back(std::string(input)); }
   void get_input() {
     auto maybe_text = input_source->readline();
     if (maybe_text.has_value()) {
@@ -181,13 +188,12 @@ public:
     }
   }
   void append_output(std::string text);
-  std::vector<std::string> buffered;
   std::string storage;
   std::string_view chars;
   std::unique_ptr<AInput> input_source{std::make_unique<NoInput>()};
   std::unique_ptr<AOutput> output{std::make_unique<StdoutOutput>()};
   bool used_stdin = false;
-  bool has_input() const { return !chars.empty() || !buffered.empty(); }
+  bool has_input() const { return !chars.empty(); }
 
 private:
   u16 _next_object_id = 1;

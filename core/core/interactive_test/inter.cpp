@@ -15,6 +15,13 @@ std::optional<std::string> StdinInput::readline() {
 
 std::optional<std::string> NoInput::readline() { return std::nullopt; }
 
+std::optional<std::string> StringInput::readline() {
+  if (input.empty()) return std::nullopt;
+  auto end = input.find_first_of("\n", pos);
+  std::string ret = input.substr(pos, end - pos);
+  pos = (end == std::string::npos) ? input.size() : end + 1;
+  return ret;
+}
 Interpreter::Interpreter() { std::fill(memory.begin(), memory.end(), 0); }
 
 void Interpreter::step() {
@@ -51,8 +58,7 @@ void Interpreter::run() {
 void Interpreter::run_on(std::string_view input) {
   auto old_alive = cb.alive;
   auto old_input = std::move(input_source);
-  input_source = std::make_unique<NoInput>();
-  if (!input.empty()) buffered.push_back(std::string(input));
+  input_source = std::make_unique<StringInput>(std::string(input));
   while (cb.alive) step();
   cb.alive = old_alive;
   input_source = std::move(old_input);

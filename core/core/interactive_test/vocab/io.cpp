@@ -20,13 +20,8 @@ inline static const NativeOpcode Dot{
 void native_key(Interpreter *interp) {
   // If our span of chararacters is empty, fgetch more input!
   if (interp->chars.empty()) {
-    // Prefer to take input from the array of buffered strings
-    if (!interp->buffered.empty()) {
-      interp->storage = interp->buffered.front();
-      interp->buffered.erase(interp->buffered.begin());
-    }
     // Try to use interp's input source, if it exists
-    else if (interp->input_source->has_input()) {
+    if (interp->input_source->has_input()) {
       interp->get_input();
     } else {
       // If no more chars, push 0 to indicate EOF
