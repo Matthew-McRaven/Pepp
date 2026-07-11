@@ -4,6 +4,7 @@
 #include "../interp.hpp"
 #include "core/ds/string_compare.hpp"
 #include "core/integers.h"
+#include "core/sim/api/device.hpp"
 
 class Interpreter;
 
@@ -25,6 +26,7 @@ public:
   enum class Type : u16 {
     Undefined = 0,
     InteractiveConfig = 1,
+    Device = 2,
   };
   virtual ~AValue() = 0;
   virtual std::string type_name() const = 0;
@@ -71,6 +73,33 @@ public:
 
 private:
   std::shared_ptr<nlohmann::json> _fields = nullptr;
+};
+
+/*
+ * Implemented in system.cpp
+ * sys           (-- addr), variable holding the system object being worked on by sys.w* words.
+ * sys.alloc     (idx[cfx]  -- idx[sys]), allocate a new system object and push its index onto the stack
+ * sys.walloc    ( -- idx[sys])
+ * sys.devcount  (idx[sys] -- u16), push the number of devices in the system onto the stack
+ * sys.wdevcount ( -- u16)
+ */
+void register_system_words(Interpreter *interp);
+class DeviceValue : public AValue {
+  // AValue interface
+public:
+  DeviceValue(Device *dev);
+  std::string type_name() const override;
+  Type type_code() const override;
+  std::string describe() const override;
+  static std::shared_ptr<DeviceValue> make(Device *);
+  Device *dev;
+};
+class SystemValue : public DeviceValue {
+public:
+  SystemValue(std::unique_ptr<System> sys);
+  static std::shared_ptr<DeviceValue> make(std::unique_ptr<System> sys);
+  std::unique_ptr<System> sys;
+  u16 device_count() const;
 };
 
 // Register all of the words defined in this directory.
