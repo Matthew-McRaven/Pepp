@@ -107,4 +107,18 @@ u16 Interpreter::zeros(u16 base, u16 count) {
 
 void Interpreter::append_output(std::string text) { output->write(text); }
 void StdoutOutput::write(std::string_view text) { std::cout << text; }
-void BufferedOutput::write(std::string_view text) { buffer.push_back(std::string(text)); }
+void BufferedOutput::write(std::string_view text) {
+  if (text.empty()) return;
+
+  size_t start = 0;
+  while (start < text.size()) {
+    size_t pos = text.find('\n', start);
+    // Include the newline in the segment; if none found, take the rest (partial line)
+    size_t end = (pos == std::string_view::npos) ? text.size() : pos + 1;
+    std::string_view segment = text.substr(start, end - start);
+    // Prefer to complete the last line in the buffer if it does not contain a newline. Otherwise, start a newline.
+    if (!buffer.empty() && buffer.back().back() != '\n') buffer.back().append(segment);
+    else buffer.push_back(std::string(segment));
+    start = end;
+  }
+}

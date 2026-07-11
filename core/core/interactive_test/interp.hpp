@@ -79,7 +79,12 @@ struct StdoutOutput : public AOutput {
 };
 
 struct BufferedOutput : public AOutput {
+  // All strings in buffer are terminated by a newline, with the possible exception of the last line.
+  // This policy makes it much easier to write unit tests over the interpeter, which is the main purpose of this output
+  // class.
   std::vector<std::string> buffer;
+  // When text is inserted (via write), it is split on newlines and each line is appended to the buffer.
+  // If the last line does not contain \n, future writes will append to that line until a \n is reached.
   void write(std::string_view text) override;
 };
 
