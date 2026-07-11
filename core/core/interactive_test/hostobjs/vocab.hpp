@@ -74,8 +74,9 @@ private:
  * Implemented in system.cpp
  * sys           (-- addr), variable holding the system object being worked on by sys.w* words.
  * dev.parent    ( -- addr ), variable for holding the parent device
- * sys.alloc     ( -- ). allocate a new system object and push its index onto the stack. reads from cfg,
+ * sys.alloc     ( -- ) allocate a new system object and push its index onto the stack. reads from cfg,
  *                   writes to sys, dev.parent
+ * sys.init      ( -- ) recursively initialize() the devices of the system
  * sys.devcount  ( -- u16), push the number of devices in the system onto the stack
  */
 void register_system_words(Interpreter *interp);

@@ -59,6 +59,21 @@ inline static const NativeOpcode SysDevCount{
     .h = native_sys_devcount,
 };
 
+void native_sys_init(Interpreter *interp) {
+  auto sys_idx = interp->pop_psp<u16>();
+  auto sys_val = interp->get_object(sys_idx);
+  if (!sys_val) throw std::runtime_error("Invalid system object index");
+  if (auto casted = std::dynamic_pointer_cast<SystemValue>(sys_val);
+      sys_val->type_code() != AValue::Type::Device || casted == nullptr)
+    throw std::runtime_error("Object is not a system object");
+  else casted->sys->initialize();
+}
+inline static const NativeOpcode SysInit{
+    .stack_delta = -2,
+    .name = "sys.init",
+    .h = native_sys_init,
+};
+
 void register_system_words(Interpreter *p) {
   p->run_on(" var sys drop");
   p->run_on(" var dev.parent drop");
@@ -66,4 +81,6 @@ void register_system_words(Interpreter *p) {
   p->run_on(fmt::format(": sys.alloc cfg @ op 0x{:04x} sys ! sys @ dev.parent ! ;", op_alloc));
   auto op_devcount = p->register_native(SysDevCount);
   p->run_on(fmt::format(": sys.devcount sys @ op 0x{:04x} ;", op_devcount));
+  auto op_init = p->register_native(SysInit);
+  p->run_on(fmt::format(": sys.init sys @ op 0x{:04x} ;", op_init));
 }
