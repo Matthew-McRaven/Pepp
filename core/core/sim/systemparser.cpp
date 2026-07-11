@@ -136,17 +136,7 @@ std::unique_ptr<System> parse_system(std::string_view body, ParsingContext &cont
     throw ParsingError("Failed to parse system description: " + std::string(e.what()));
   }
   if (!as_json.is_object()) throw ParsingError("System description must be a JSON object");
-  System::Configuration cfg;
-  try {
-    parse_standard_fields(as_json, cfg);
-    if (cfg.compatible.empty()) cfg.compatible = System::compatible;
-    else if (cfg.compatible != System::compatible)
-      throw ParsingError("System description must have compatible: " + std::string(System::compatible));
-    if (cfg.basename.empty()) cfg.basename = "/";
-  } catch (const nlohmann::json::type_error &e) {
-    throw ParsingError("Failed to parse system description: " + std::string(e.what()));
-  }
-  std::unique_ptr<System> system = std::make_unique<System>(cfg);
+  auto system = create_system(as_json, context);
   dispatch_children(as_json, context, system.get(), system.get());
   return system;
 }
@@ -166,4 +156,18 @@ Device *parse_device(std::string_view body, ParsingContext &ctx, System *sys, De
 void prefill_keys(nlohmann::json &obj, std::string_view compatible) {
   if (auto it = parsers.find(compatible); it == parsers.end()) prefill_default(obj);
   else return it->second.fill(obj);
+}
+
+std::unique_ptr<System> create_system(nlohmann::json &obj, ParsingContext &ctx) {
+  System::Configuration cfg;
+  try {
+    parse_standard_fields(obj, cfg);
+    if (cfg.compatible.empty()) cfg.compatible = System::compatible;
+    else if (cfg.compatible != System::compatible)
+      throw ParsingError("System description must have compatible: " + std::string(System::compatible));
+    if (cfg.basename.empty()) cfg.basename = "/";
+  } catch (const nlohmann::json::type_error &e) {
+    throw ParsingError("Failed to parse system description: " + std::string(e.what()));
+  }
+  return std::make_unique<System>(cfg);
 }
