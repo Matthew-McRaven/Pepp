@@ -61,8 +61,9 @@ inline static const NativeOpcode SysDevCount{
 
 void register_system_words(Interpreter *p) {
   p->run_on(" var sys drop");
+  p->run_on(" var dev.parent drop");
   dict_insert_native(p, SysAlloc, {});
-  p->run_on(": sys.walloc cfg @ sys.alloc sys ! ;");
+  p->run_on(": sys.walloc cfg @ sys.alloc sys ! sys @ dev.parent ! ;");
   dict_insert_native(p, SysDevCount, {});
   p->run_on(": sys.wdevcount sys @ sys.devcount ;");
 }

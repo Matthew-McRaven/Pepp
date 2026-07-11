@@ -78,8 +78,9 @@ private:
 /*
  * Implemented in system.cpp
  * sys           (-- addr), variable holding the system object being worked on by sys.w* words.
+ * dev.parent    ( -- addr ), variable for holding the parent device
  * sys.alloc     (idx[cfx]  -- idx[sys]), allocate a new system object and push its index onto the stack
- * sys.walloc    ( -- idx[sys])
+ * sys.walloc    ( -- idx[sys]). Sets both sys and parent.
  * sys.devcount  (idx[sys] -- u16), push the number of devices in the system onto the stack
  * sys.wdevcount ( -- u16)
  */
