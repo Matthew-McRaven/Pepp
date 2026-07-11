@@ -41,8 +41,8 @@ void native_dev_basename(Interpreter *p) {
 
   auto basename = casted_dev->dev->config().basename;
   p->write(buf, std::span<const u8>((const u8 *)basename.data(), basename.size()));
-  p->write(0, buf + basename.size());
-  p->push_psp((u16)basename.size());
+  p->write(0, (u16)buf + basename.size());
+  p->push_psp<u16>(basename.size());
 }
 inline static const NativeOpcode DevBaseName{
     .stack_delta = -2,
@@ -58,8 +58,8 @@ void native_dev_fullname(Interpreter *p) {
 
   auto basename = casted_dev->dev->config().fullname;
   p->write(buf, std::span<const u8>((const u8 *)basename.data(), basename.size()));
-  p->write(0, buf + basename.size());
-  p->push_psp((u16)basename.size());
+  p->write(0, (u16)buf + basename.size());
+  p->push_psp<u16>(basename.size());
 }
 inline static const NativeOpcode DevFullName{
     .stack_delta = -2,
@@ -74,7 +74,7 @@ void native_dev_type(Interpreter *p) {
   if (!casted_dev) throw std::runtime_error("Invalid device object index");
 
   auto type = casted_dev->dev->type();
-  p->push_psp((u16)type);
+  p->push_psp<u16>((u16)type);
 }
 inline static const NativeOpcode DevType{
     .stack_delta = 0,
@@ -88,7 +88,7 @@ void native_dev_id(Interpreter *p) {
   auto casted_dev = std::dynamic_pointer_cast<DeviceValue>(dev_val);
   if (!casted_dev) throw std::runtime_error("Invalid device object index");
 
-  p->push_psp((u16)casted_dev->dev->id().value);
+  p->push_psp<u16>(casted_dev->dev->id().value);
 }
 inline static const NativeOpcode DevID{
     .stack_delta = 0,

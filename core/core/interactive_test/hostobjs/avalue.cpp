@@ -19,7 +19,7 @@ inline static const NativeOpcode ValueTypeName{
 void native_value_type(Interpreter *interp) {
   u16 idx = interp->pop_psp<u16>();
   auto obj = interp->get_object(idx);
-  interp->push_psp((u16)(obj ? (u16)obj->type_code() : (u16)AValue::Type::Undefined));
+  interp->push_psp((u16)(obj ? obj->type_code() : AValue::Type::Undefined));
 }
 inline static const NativeOpcode ValueType{
     .stack_delta = 0,

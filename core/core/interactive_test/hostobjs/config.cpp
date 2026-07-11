@@ -39,7 +39,7 @@ void native_cfg_alloc(Interpreter *interp) {
   std::string_view type_str{(const char *)interp->memory.data() + addr, len};
   auto cfg = InteractiveConfiguration::make();
   prefill_keys(cfg->fields(), type_str);
-  interp->push_psp((u16)interp->allocate_object(cfg));
+  interp->push_psp<u16>(interp->allocate_object(cfg));
 }
 inline static const NativeOpcode CfgAlloc{
     .stack_delta = 0,
