@@ -1,5 +1,6 @@
 #include "systemparser.hpp"
 #include <nlohmann/json.hpp>
+#include "core/ds/string_compare.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/system.hpp"
@@ -53,21 +54,31 @@ void parse_standard_fields(const nlohmann::json &node, Device::Configuration &cf
   if (node.contains("basename") && !node["basename"].is_null()) cfg.basename = node["basename"].get<std::string>();
 }
 Device *parse_node_ram_dense(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent);
+void prefill_node_ram_dense(nlohmann::json &obj);
 Device *parse_node_ram_sparse(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent);
+void prefill_node_ram_sparse(nlohmann::json &obj);
 Device *parse_node_ram(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent);
 
 using Parser = std::function<Device *(const nlohmann::json &, ParsingContext &, System *, Device *)>;
-static const std::map<std::string, Parser> parsers = {
-    {Dense::compatible, Parser{parse_node_ram_dense}},
-    {Sparse::compatible, Parser{parse_node_ram_sparse}},
-    {"ram", Parser{parse_node_ram}},
+using Prefiller = std::function<void(nlohmann::json &)>;
+void prefill_default(nlohmann::json &obj) {}
+struct ParserEntry {
+  Parser parser;
+  Prefiller fill;
 };
+static const std::unordered_map<std::string, ParserEntry, pepp::bts::cs_hash, pepp::bts::cs_eq> parsers = {
+    {Dense::compatible, ParserEntry{parse_node_ram_dense, prefill_node_ram_dense}},
+    {Sparse::compatible, ParserEntry{parse_node_ram_sparse, prefill_node_ram_sparse}},
+    {"ram", ParserEntry{parse_node_ram, prefill_default}},
+};
+
 Device *dispatch_parser(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent) {
   auto compatible = node["compatible"].get<std::string>();
   auto it = parsers.find(compatible);
   if (it == parsers.end()) throw ParsingError("Unknown compatible type: " + compatible);
-  return it->second(node, ctx, sys, parent);
+  return it->second.parser(node, ctx, sys, parent);
 }
+
 void dispatch_children(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent) {
   if (!node.contains("children")) return;
   auto children = node["children"];
@@ -94,6 +105,13 @@ Device *parse_node_ram_dense(const nlohmann::json &self, ParsingContext &ctx, Sy
   dispatch_children(self, ctx, sys, dense);
   return dense;
 }
+void prefill_node_ram_dense(nlohmann::json &obj) {
+  obj["compatible"] = Dense::compatible;
+  obj["basename"];
+  obj["min_offset"];
+  obj["max_offset"];
+  obj["fill"] = 0;
+}
 Device *parse_node_ram_sparse(const nlohmann::json &self, ParsingContext &ctx, System *sys, Device *parent) {
   dispatch_children(self, ctx, sys, parent);
   return nullptr;
@@ -101,6 +119,13 @@ Device *parse_node_ram_sparse(const nlohmann::json &self, ParsingContext &ctx, S
 Device *parse_node_ram(const nlohmann::json &self, ParsingContext &ctx, System *sys, Device *parent) {
   if (false) return parse_node_ram_dense(self, ctx, sys, parent);
   else return parse_node_ram_sparse(self, ctx, sys, parent);
+}
+void prefill_node_ram_sparse(nlohmann::json &obj) {
+  obj["compatible"] = Sparse::compatible;
+  obj["basename"];
+  obj["min_offset"];
+  obj["max_offset"];
+  obj["fill"] = 0;
 }
 
 std::unique_ptr<System> parse_system(std::string_view body, ParsingContext &context) {
@@ -136,4 +161,9 @@ Device *parse_device(std::string_view body, ParsingContext &ctx, System *sys, De
     throw ParsingError("Failed to parse device description: " + std::string(e.what()));
   }
   return dispatch_parser(as_json, ctx, sys, parent);
+}
+
+void prefill_keys(nlohmann::json &obj, std::string_view compatible) {
+  if (auto it = parsers.find(compatible); it == parsers.end()) prefill_default(obj);
+  else return it->second.fill(obj);
 }

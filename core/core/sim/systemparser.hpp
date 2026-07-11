@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include "core/sim/devicetree.hpp"
 
@@ -20,3 +21,5 @@ std::unique_ptr<System> parse_system(std::string_view body, ParsingContext &cont
 // if parent is nullptr, then system will be used as the parent. Throws parsing error if system is nullptr.
 // Returns non-owning pointer. Owner is the system (and its device tree).
 Device *parse_device(std::string_view body, ParsingContext &ctx, System *sys, Device *parent);
+
+void prefill_keys(nlohmann::json &obj, std::string_view compatible);

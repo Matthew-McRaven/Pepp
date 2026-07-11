@@ -2,6 +2,7 @@
 #include "./vocab.hpp"
 #include "core/interactive_test/dict.hpp"
 #include "core/interactive_test/vocab/core_words.hpp"
+#include "core/sim/systemparser.hpp"
 #include "fmt/format.h"
 
 // Must not be in header, since it needs the full definition of nlohmann::json
@@ -18,6 +19,7 @@ public:
   Type type_code() const override;
   std::string describe() const override;
   const nlohmann::json &fields() const { return _fields; }
+  nlohmann::json &fields() { return _fields; }
 
 private:
   nlohmann::json _fields = nlohmann::json::object();
@@ -50,8 +52,8 @@ void native_cfg_alloc(Interpreter *interp) {
   auto addr = interp->pop_psp<u16>();
   auto len = strlen_helper(interp, addr);
   std::string_view type_str{(const char *)interp->memory.data() + addr, len};
-  // TODO: prefill fields (like compatible) based on the type_str/
   auto cfg = InteractiveConfiguration::make();
+  prefill_keys(cfg->fields(), type_str);
   interp->push_psp((u16)interp->allocate_object(cfg));
 }
 inline static const NativeOpcode CfgAlloc{
