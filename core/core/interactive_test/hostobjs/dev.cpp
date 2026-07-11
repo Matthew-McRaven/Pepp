@@ -98,14 +98,14 @@ inline static const NativeOpcode DevID{
 
 void register_device_words(Interpreter *p) {
   p->run_on("var dev drop");
-  dict_insert_native(p, DevAlloc, {});
-  p->run_on(": dev.walloc sys @ dev.parent @ cfg @ dev.alloc dev ! ;");
-  dict_insert_native(p, DevBaseName, {});
-  p->run_on(": dev.wbasename t1 dev @ t1 dev.basename ;");
-  dict_insert_native(p, DevFullName, {});
-  p->run_on(": dev.wfullname t1 dev @ t1 dev.fullname ;");
-  dict_insert_native(p, DevType, {});
-  p->run_on(": dev.wtype dev @ dev.type ;");
-  dict_insert_native(p, DevID, {});
-  p->run_on(": dev.wid dev @ dev.id ;");
+  auto op_alloc = p->register_native(DevAlloc);
+  p->run_on(fmt::format(": dev.alloc sys @ dev.parent @ cfg @ op 0x{:04x} dev ! ;", op_alloc));
+  auto op_basename = p->register_native(DevBaseName);
+  p->run_on(fmt::format(": dev.basename t1 dev @ t1 op 0x{:04x} ;", op_basename));
+  auto op_fullname = p->register_native(DevFullName);
+  p->run_on(fmt::format(": dev.fullname t1 dev @ t1 op 0x{:04x} ;", op_fullname));
+  auto op_type = p->register_native(DevType);
+  p->run_on(fmt::format(": dev.type dev @ op 0x{:04x} ;", op_type));
+  auto op_id = p->register_native(DevID);
+  p->run_on(fmt::format(": dev.id dev @ op 0x{:04x} ;", op_id));
 }

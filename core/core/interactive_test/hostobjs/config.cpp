@@ -135,15 +135,13 @@ void native_cfg_get(Interpreter *interp) {
       interp->write(buf_addr, std::span<const u8>((const u8 *)value.data(), value.size()));
       interp->write<u8>(0, buf_addr + value.size()); // null terminate
       interp->push_psp((u16)value.size());
-      interp->push_psp((u16)1); // ok
     } else {
       interp->push_psp((u16)0); // len
-      interp->push_psp((u16)0); // ok
     }
   }
 }
 inline static const NativeOpcode CfgGet{
-    .stack_delta = -2,
+    .stack_delta = -4,
     .name = "cfg.get",
     .h = native_cfg_get,
 };
@@ -165,21 +163,23 @@ inline static const NativeOpcode CfgDump{
 };
 
 void register_config_words(Interpreter *p) {
-  dict_insert_native(p, CfgAlloc, {});
+
   p->run_on(" var cfg drop"); // create a var to hold the index of the WIP config. var returns the addr of the variable,
                               // which we don't need.
-  p->run_on(": cfg.walloc word!t1 t1 cfg.alloc cfg ! ;");
-  dict_insert_native(p, CfgSet, {});
-  p->run_on(": cfg.wset cfg @ word!t1 word!t2 t1 t2 cfg.set ;");
-  dict_insert_native(p, CfgPrint, {});
-  p->run_on(": cfg.wprint cfg @ word!t1 t1 cfg.print ;");
-  dict_insert_native(p, CfgHas, {});
-  p->run_on(": cfg.whas cfg @ word!t1 t1 cfg.has ;");
-  dict_insert_native(p, CfgGet, {});
+
+  auto op_alloc = p->register_native(CfgAlloc);
+  p->run_on(fmt::format(": cfg.alloc word!t1 t1 op 0x{:4x} cfg ! ; ", op_alloc));
+  auto op_set = p->register_native(CfgSet);
+  p->run_on(fmt::format(": cfg.set cfg @ word!t1 word!t2 t1 t2 op 0x{:4x} ;", op_set));
+  auto op_print = p->register_native(CfgPrint);
+  p->run_on(fmt::format(": cfg.print cfg @ word!t1 t1 op 0x{:4x} ;", op_print));
+  auto op_has = p->register_native(CfgHas);
+  p->run_on(fmt::format(": cfg.has cfg @ word!t1 t1 op 0x{:4x} ;", op_has));
+  auto op_get = p->register_native(CfgGet);
   // Bury t2 under cfg[idx] before building the rest of the stack for get
   // (e.g., name buf). When get consumes cfg-name-buf, t2 is on the stack
   // which combines with returned vals of get (len ok) to form (t2/buf len ok)
-  p->run_on(": cfg.wget t2 cfg @ word!t1 t1 t2 cfg.get ;");
-  dict_insert_native(p, CfgDump, {});
-  p->run_on(": cfg.wdump cfg @ cfg.dump ;");
+  p->run_on(fmt::format(": cfg.get t2 cfg @ word!t1 t1 t2 op 0x{:4x} ;", op_get));
+  auto op_dump = p->register_native(CfgDump);
+  p->run_on(fmt::format(": cfg.dump cfg @ op 0x{:4x} ;", op_dump));
 }

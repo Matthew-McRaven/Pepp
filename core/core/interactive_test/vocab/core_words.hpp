@@ -123,6 +123,8 @@ void register_dict_words(Interpreter *interp);
  * Implemented in control.cpp
  * Register the following words:
  * 0BRANCH ( i16 -- ), pop the top of the stack, if it is 0, read the next 16-bit value at current IP and add it to IP
+ * op      ( -- ), read the following word as a number. Insert that native opcode into this word in a way it can be
+ *             executed with docol.
  */
 void register_control_words(Interpreter *interp);
 

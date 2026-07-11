@@ -39,4 +39,10 @@ void register_control_words(Interpreter *p) {
   p->run_on(": if immediate ' 0branch , here 0 ,		;");
   // Calculate offset from the address on the stack and back-fill the value
   p->run_on(": then immediate dup 2 + here swap - swap ! ;");
+  p->run_on(": op immediate"
+            " word number"    // Read next word into TOS
+            " ' branch , 2 ," // Branch over the location where we will put the opcode
+            " here swap ,"    // Write out the native opcode "under" the branch
+            " , ;"            // Write out the pointer to the opcode we just wrote.
+  );
 }

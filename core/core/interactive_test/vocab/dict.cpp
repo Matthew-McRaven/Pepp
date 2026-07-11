@@ -43,8 +43,8 @@ inline static const NativeOpcode Immediate{
     .h = native_immediate,
 };
 
-void register_dict_words(Interpreter *interp) {
-  dict_insert_native(interp, Find, {});
-  dict_insert_native(interp, CFA, {});
-  dict_insert_native(interp, Immediate, Flags::IMMEDIATE);
+void register_dict_words(Interpreter *p) {
+  dict_insert_native(p, Find, {});
+  dict_insert_native(p, CFA, {});
+  dict_insert_native(p, Immediate, Flags::IMMEDIATE);
 }
