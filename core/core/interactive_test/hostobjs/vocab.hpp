@@ -103,5 +103,20 @@ public:
   u16 device_count() const;
 };
 
+/*
+ * Implemented in dev.cpp
+ * dev            ( -- addr ), variable for holding the current device
+ * dev.alloc      (idx[sys] idx[par] idx[cfg] -- idx[dev]), allocate a new device and push its index onto the stack
+ * dev.walloc     ( -- ), Read system, parent, and cfg before allocating a device.
+ * dev.basename   (idx[dev] buf -- len) write the basename of the device to buf, pushing len onto stack
+ * dev.wbasename  ( -- buf len) get device basename into buffer on stack
+ * dev.fullname   (idx[dev] buf -- len) write the fullname of the device to buf, pushing len onto stack
+ * dev.wfullname  ( -- buf len) get device fullname into buffer on stack
+ * dev.type       (idx[dev] -- u16) push the type of the device onto the stack
+ * dev.wtype      ( -- u16) push the type of the device onto the stack
+ * dev.id         (idx[dev] -- u16) push the id of the device onto the stack
+ * dev.wid        ( -- u16) push the id of the device onto the stack
+ */
+void register_device_words(Interpreter *interp);
 // Register all of the words defined in this directory.
 void register_devicemgmt_words(Interpreter *interp);

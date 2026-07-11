@@ -150,7 +150,11 @@ Device *parse_device(std::string_view body, ParsingContext &ctx, System *sys, De
   } catch (const nlohmann::json::parse_error &e) {
     throw ParsingError("Failed to parse device description: " + std::string(e.what()));
   }
-  return dispatch_parser(as_json, ctx, sys, parent);
+  return create_device(as_json, ctx, sys, parent);
+}
+
+Device *create_device(const nlohmann::json &obj, ParsingContext &ctx, System *sys, Device *parent) {
+  return dispatch_parser(obj, ctx, sys, parent);
 }
 
 void prefill_keys(nlohmann::json &obj, std::string_view compatible) {
@@ -158,7 +162,7 @@ void prefill_keys(nlohmann::json &obj, std::string_view compatible) {
   else return it->second.fill(obj);
 }
 
-std::unique_ptr<System> create_system(nlohmann::json &obj, ParsingContext &ctx) {
+std::unique_ptr<System> create_system(const nlohmann::json &obj, ParsingContext &ctx) {
   System::Configuration cfg;
   try {
     parse_standard_fields(obj, cfg);
