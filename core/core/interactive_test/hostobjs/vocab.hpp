@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
 #include "../interp.hpp"
 #include "core/ds/string_compare.hpp"
 #include "core/integers.h"
@@ -32,7 +33,7 @@ public:
 };
 
 /*
- * Implemented in acfg.cpp
+ * Implemented in config.cpp
  * Register the following words:
  * cfg         ( -- addr), variable holding the configuration object being worked on by cfg.w* words.
  * cfg.alloc   (name  -- idx[cfg]), allocate a new configuration object and push its index onto the stack
@@ -52,6 +53,25 @@ public:
  * cfg.wdump   ( -- )
  */
 void register_config_words(Interpreter *interp);
+class InteractiveConfiguration : public AValue {
+public:
+  InteractiveConfiguration();
+  virtual ~InteractiveConfiguration() override = default;
+  std::string get_field(std::string_view name) const;
+  void set_field(std::string_view name, std::string_view value);
+  bool has_field(std::string_view name) const;
+  static std::shared_ptr<InteractiveConfiguration> make();
+
+  // AValue interface
+  std::string type_name() const override;
+  Type type_code() const override;
+  std::string describe() const override;
+  const nlohmann::json &fields() const;
+  nlohmann::json &fields();
+
+private:
+  std::shared_ptr<nlohmann::json> _fields = nullptr;
+};
 
 // Register all of the words defined in this directory.
 void register_devicemgmt_words(Interpreter *interp);

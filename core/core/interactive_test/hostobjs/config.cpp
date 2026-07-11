@@ -5,36 +5,21 @@
 #include "core/sim/systemparser.hpp"
 #include "fmt/format.h"
 
-// Must not be in header, since it needs the full definition of nlohmann::json
-class InteractiveConfiguration : public AValue {
-public:
-  virtual ~InteractiveConfiguration() override = default;
-  std::string get_field(std::string_view name) const;
-  void set_field(std::string_view name, std::string_view value);
-  bool has_field(std::string_view name) const;
-  static std::shared_ptr<InteractiveConfiguration> make();
+InteractiveConfiguration::InteractiveConfiguration() : _fields(std::make_shared<nlohmann::json>()) {}
+const nlohmann::json &InteractiveConfiguration::fields() const { return *_fields; }
 
-  // AValue interface
-  std::string type_name() const override;
-  Type type_code() const override;
-  std::string describe() const override;
-  const nlohmann::json &fields() const { return _fields; }
-  nlohmann::json &fields() { return _fields; }
-
-private:
-  nlohmann::json _fields = nlohmann::json::object();
-};
+nlohmann::json &InteractiveConfiguration::fields() { return *_fields; }
 
 std::string InteractiveConfiguration::get_field(std::string_view name) const {
-  if (auto v = _fields.find(name); v == _fields.end()) return "";
+  if (auto v = _fields->find(name); v == _fields->end()) return "";
   else return v->get<std::string>();
 }
 
 void InteractiveConfiguration::set_field(std::string_view name, std::string_view value) {
-  _fields[std::string(name)] = std::string(value);
+  (*_fields)[std::string(name)] = std::string(value);
 }
 
-bool InteractiveConfiguration::has_field(std::string_view name) const { return _fields.find(name) != _fields.end(); }
+bool InteractiveConfiguration::has_field(std::string_view name) const { return _fields->find(name) != _fields->end(); }
 
 std::shared_ptr<InteractiveConfiguration> InteractiveConfiguration::make() {
   return std::make_shared<InteractiveConfiguration>();
@@ -43,7 +28,7 @@ std::shared_ptr<InteractiveConfiguration> InteractiveConfiguration::make() {
 std::string InteractiveConfiguration::type_name() const { return "Configuration"; }
 
 std::string InteractiveConfiguration::describe() const {
-  return fmt::format("<Configuration with {} fields>", _fields.size());
+  return fmt::format("<Configuration with {} fields>", _fields->size());
 }
 
 AValue::Type InteractiveConfiguration::type_code() const { return AValue::Type::InteractiveConfig; }
