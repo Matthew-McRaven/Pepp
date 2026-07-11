@@ -125,6 +125,8 @@ public:
   u16 write(u16 base, std::span<const u8> data);
   u16 write(u16 base, std::span<const u16> data);
   u16 zeros(u16 base, u16 count);
+  bits::span<u8> memspan(u16 addr, u16 len) { return bits::span<u8>(memory.data() + addr, len); }
+  bits::span<const u8> memspan(u16 addr, u16 len) const { return bits::span<const u8>(memory.data() + addr, len); }
   template <std::integral I> void write(I value, u16 addr) {
     bits::span<const u8> src{reinterpret_cast<const u8 *>(&value), sizeof(I)};
     bits::span<u8> dest{memory.data() + addr, sizeof(I)};

@@ -108,5 +108,14 @@ public:
  * dev.id         ( -- u16) push the id of the dev onto the stack
  */
 void register_device_words(Interpreter *interp);
+
+/*
+ * Implemented in target.cpp
+ * tgt.read16     ( src len dst -- ), src is number in targets addr space, dst is a location in vm
+ * tgt.write16    ( src len dst -- ), src is an address in vm addr space, dst is in targets
+ *
+ * All reads/writes are performed with BufferInternalAccess. Addresses are sign-extended to 32 bits for the target.
+ */
+void register_target_words(Interpreter *interp);
 // Register all of the words defined in this directory.
 void register_devicemgmt_words(Interpreter *interp);
