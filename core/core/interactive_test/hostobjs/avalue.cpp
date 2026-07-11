@@ -62,7 +62,7 @@ void register_value_words(Interpreter *p) {
       .h = [arg1_spad](Interpreter *i) { push_constant(i, arg1_spad); },
   };
   dict_insert_native(p, PushA1, {});
-  p->run_on(": word!t1 word t1 cmove ;");
+  p->run_on(": word!t1 word 1 + t1 cmove ;");
 
   const u16 arg2_spad = p->cb.here;
   p->cb.here += 32;
@@ -72,5 +72,5 @@ void register_value_words(Interpreter *p) {
       .h = [arg2_spad](Interpreter *i) { push_constant(i, arg2_spad); },
   };
   dict_insert_native(p, PushA2, {});
-  p->run_on(": word!t2 word t2 cmove ;");
+  p->run_on(": word!t2 word 1 + t2 cmove ;");
 }
