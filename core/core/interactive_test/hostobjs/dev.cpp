@@ -41,6 +41,7 @@ void native_dev_basename(Interpreter *p) {
 
   auto basename = casted_dev->dev->config().basename;
   p->write(buf, std::span<const u8>((const u8 *)basename.data(), basename.size()));
+  p->write(0, buf + basename.size());
   p->push_psp((u16)basename.size());
 }
 inline static const NativeOpcode DevBaseName{
@@ -57,6 +58,7 @@ void native_dev_fullname(Interpreter *p) {
 
   auto basename = casted_dev->dev->config().fullname;
   p->write(buf, std::span<const u8>((const u8 *)basename.data(), basename.size()));
+  p->write(0, buf + basename.size());
   p->push_psp((u16)basename.size());
 }
 inline static const NativeOpcode DevFullName{
@@ -99,9 +101,9 @@ void register_device_words(Interpreter *p) {
   dict_insert_native(p, DevAlloc, {});
   p->run_on(": dev.walloc sys @ dev.parent @ cfg @ dev.alloc dev ! ;");
   dict_insert_native(p, DevBaseName, {});
-  p->run_on(": dev.wbasename dev @ dev.basename ;");
+  p->run_on(": dev.wbasename t1 dev @ t1 dev.basename ;");
   dict_insert_native(p, DevFullName, {});
-  p->run_on(": dev.wfullname dev @ dev.fullname ;");
+  p->run_on(": dev.wfullname t1 dev @ t1 dev.fullname ;");
   dict_insert_native(p, DevType, {});
   p->run_on(": dev.wtype dev @ dev.type ;");
   dict_insert_native(p, DevID, {});
