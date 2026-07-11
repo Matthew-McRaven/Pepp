@@ -47,7 +47,7 @@ TEST_CASE("REPL -- simulator & device mangament", "[scope:core][scope:core.repl]
                               "cfg.set min_offset 0\n"
                               "cfg.set max_offset 100\n"
                               "cfg.set basename test\n"
-                              "cfg.set fill 15\n"
+                              "cfg.set fill 75\n"
                               "dev.alloc\n";
     Interpreter p;
 
@@ -84,5 +84,17 @@ TEST_CASE("REPL -- simulator & device mangament", "[scope:core][scope:core.repl]
     CHECK(span[3] == 13);
     CHECK(span[4] == 14);
     CHECK(span[5] != 15);
+
+    // Copy 4 consecutive values into target at address 50
+    p.run_on("t2 4 50 tgt.write16\n");
+    // Read an extra byte on either end to ensure that our write is limited to the correct span.
+    std::array<u8, 6> tmp;
+    tgt->read(49, tmp, {});
+    CHECK(tmp[0] == 75);
+    CHECK(tmp[1] == 10);
+    CHECK(tmp[2] == 11);
+    CHECK(tmp[3] == 12);
+    CHECK(tmp[4] == 13);
+    CHECK(tmp[5] == 75);
   }
 }
