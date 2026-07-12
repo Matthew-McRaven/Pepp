@@ -16,11 +16,16 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string>
 #include "core/ds/opaque_handle.hpp"
 #include "core/integers.h"
 #include "core/math/bitmanip/enums.hpp"
 
+// An object with heavy dependencies on nlohmann/json
+// Will will only operate on pointers to it in our headers, and implementing its API in CPP
+// does require pullin in json header. See systemparser.hpp for details.
+struct DeviceSerializer;
 class System;
 std::string child_name(std::string_view parent_fullname, std::string_view child_basename);
 struct Device {
@@ -62,6 +67,8 @@ struct Device {
   virtual Device::Type type() const { return Type::None; }
   // Features specific to the concrete  instance of the device.
   virtual u64 features() const { return 0; }
+  // Return a ptr to a type which can convert this object to/from JSON.
+  virtual std::unique_ptr<DeviceSerializer> serializer() const = 0;
   // Given one of the interface types, return an instance of that interface if this device implements it, otherwise
   // return nullptr.
   template <typename Concrete> Concrete *capability() {

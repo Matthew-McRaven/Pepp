@@ -1,4 +1,5 @@
 #include "./clocktree.hpp"
+#include "core/sim/systemparser.hpp"
 #include "system.hpp"
 
 pepp::ScaledClock::ScaledClock(Configuration config) : Device(), ClockSource(), _config(config) {
@@ -20,6 +21,8 @@ PulseSchedule pepp::ScaledClock::schedule() const {
                        .jitter = static_cast<u64>(par.jitter * _config.jitter_scale),
                        .seed = par.seed};
 }
+
+std::unique_ptr<DeviceSerializer> pepp::ScaledClock::serializer() const { return nullptr; }
 
 pepp::MuxClock::MuxClock(Configuration config) : Device(), ClockSource(), _index(0), _config(config) {}
 
@@ -45,7 +48,11 @@ PulseSchedule pepp::MuxClock::schedule() const {
   return _choices[_index]->schedule();
 }
 
+std::unique_ptr<DeviceSerializer> pepp::MuxClock::serializer() const { return nullptr; }
+
 const ClockSource *pepp::MuxClock::selected_clock() const {
   if (_index > _choices.size()) return nullptr;
   else return _choices[_index];
 }
+
+std::unique_ptr<DeviceSerializer> pepp::IdealClock::serializer() const { return nullptr; }

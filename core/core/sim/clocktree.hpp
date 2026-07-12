@@ -17,6 +17,7 @@ struct IdealClock final : public Device, public ClockSource {
   PulseSchedule schedule() const override { return _sched; }
   const Device::Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
+  std::unique_ptr<DeviceSerializer> serializer() const override;
 
 private:
   PulseSchedule _sched;
@@ -36,6 +37,7 @@ struct ScaledClock final : public Device, public ClockSource {
   PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
+  std::unique_ptr<DeviceSerializer> serializer() const override;
 
 private:
   Configuration _config;
@@ -64,6 +66,7 @@ struct MuxClock final : public Device, public ClockSource {
   PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
+  std::unique_ptr<DeviceSerializer> serializer() const override;
 
 private:
   const ClockSource *selected_clock() const;

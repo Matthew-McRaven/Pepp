@@ -48,78 +48,80 @@ template <std::integral T> T as_int(const nlohmann::json &value) {
   if (ec != std::errc() || ptr != sub_end) throw ParsingError("Failed to parse integer from string");
   return static_cast<T>(sign) * ret;
 }
+
+i8 as_i8(const nlohmann::json &node) { return as_int<i8>(node); }
+
+u8 as_u8(const nlohmann::json &node) { return as_int<u8>(node); }
+
+i16 as_i16(const nlohmann::json &node) { return as_int<i16>(node); }
+
+u16 as_u16(const nlohmann::json &node) { return as_int<u16>(node); }
+
+i32 as_i32(const nlohmann::json &node) { return as_int<i32>(node); }
+
+u32 as_u32(const nlohmann::json &node) { return as_int<u32>(node); }
+
 void parse_standard_fields(const nlohmann::json &node, Device::Configuration &cfg) {
   if (node.contains("compatible") && !node["compatible"].is_null())
     cfg.compatible = node["compatible"].get<std::string>();
   if (node.contains("basename") && !node["basename"].is_null()) cfg.basename = node["basename"].get<std::string>();
 }
-Device *parse_node_ram_dense(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent);
-void prefill_node_ram_dense(nlohmann::json &obj);
-Device *parse_node_ram_sparse(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent);
-void prefill_node_ram_sparse(nlohmann::json &obj);
-Device *parse_node_ram(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent);
 
-using Parser = std::function<Device *(const nlohmann::json &, ParsingContext &, System *, Device *)>;
-using Prefiller = std::function<void(nlohmann::json &)>;
-void prefill_default(nlohmann::json &obj) {}
-struct ParserEntry {
-  Parser parser;
-  Prefiller fill;
-};
-static const std::unordered_map<std::string, ParserEntry, pepp::bts::cs_hash, pepp::bts::cs_eq> parsers = {
-    {Dense::compatible, ParserEntry{parse_node_ram_dense, prefill_node_ram_dense}},
-    {Sparse::compatible, ParserEntry{parse_node_ram_sparse, prefill_node_ram_sparse}},
-    {"ram", ParserEntry{parse_node_ram, prefill_default}},
-};
+// Helper which can choose between dense and sparse RAM based on the provided properties.
+// e.g., choose dense when size is small and sparse when large.
+Device *parse_node_ram(const nlohmann::json &node, System *sys, Device *parent);
+void prefill_node_ram(nlohmann::json &obj);
+std::unique_ptr<DeviceSerializer> make_serializer_ram() {
+  DeviceSerializer s{
+      .parser = parse_node_ram,
+      .prefill = prefill_node_ram,
+      .serialize = nullptr,
+      .compatible = "ram",
+  };
+  return std::make_unique<DeviceSerializer>(std::move(s));
+}
+
+// Use immediately-invoked function expression to avoid the fact that intiailizer-list elements are copied, which breaks
+// with unique_ptr.
+static const std::unordered_map<std::string, std::unique_ptr<DeviceSerializer>, pepp::bts::cs_hash, pepp::bts::cs_eq>
+    parsers = [] {
+      std::unordered_map<std::string, std::unique_ptr<DeviceSerializer>, pepp::bts::cs_hash, pepp::bts::cs_eq> m;
+      m.emplace(Dense::compatible, Dense::make_serializer());
+      m.emplace(Sparse::compatible, Sparse::make_serializer());
+      m.emplace("ram", make_serializer_ram());
+      return m;
+    }();
 
 Device *dispatch_parser(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent) {
   auto compatible = node["compatible"].get<std::string>();
   auto it = parsers.find(compatible);
   if (it == parsers.end()) throw ParsingError("Unknown compatible type: " + compatible);
-  return it->second.parser(node, ctx, sys, parent);
+  return it->second->parser(node, sys, parent);
 }
 
 void dispatch_children(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent) {
   if (!node.contains("children")) return;
   auto children = node["children"];
   if (!children.is_array()) throw ParsingError("Children must be an array");
-  for (const auto &child : children) dispatch_parser(child, ctx, sys, parent);
-}
-
-Device *parse_node_ram_dense(const nlohmann::json &self, ParsingContext &ctx, System *sys, Device *parent) {
-  Dense::Configuration cfg;
-  try {
-    parse_standard_fields(self, cfg);
-    if (cfg.basename.empty()) throw ParsingError("RAM must have a basename");
-    if (!self.contains("min_offset") || self["min_offset"].is_null()) throw ParsingError("RAM must have a min_offset");
-    auto min = as_int<u32>(self["min_offset"]);
-    if (!self.contains("max_offset") || self["max_offset"].is_null()) throw ParsingError("RAM must have a max_offset");
-    auto max = as_int<u32>(self["max_offset"]);
-    cfg.span = AddressSpan{min, max};
-    if (self.contains("fill") && !self["fill"].is_null()) cfg.fill = as_int<u8>(self["fill"]);
-  } catch (const nlohmann::json::type_error &e) {
-    throw ParsingError("Failed to parse dense RAM: " + std::string(e.what()));
+  for (const auto &child : children) {
+    auto dev = dispatch_parser(child, ctx, sys, parent);
+    dispatch_children(child, ctx, sys, dev);
   }
-
-  auto dense = sys->make_device<Dense>(parent, cfg);
-  dispatch_children(self, ctx, sys, dense);
-  return dense;
 }
-void prefill_node_ram_dense(nlohmann::json &obj) {
-  obj["compatible"] = Dense::compatible;
+
+Device *parse_node_ram(const nlohmann::json &self, System *sys, Device *parent) {
+  if (true) return parsers.find("ram,dense")->second->parser(self, sys, parent);
+  else return parsers.find("ram,sparse")->second->parser(self, sys, parent);
+}
+
+void prefill_node_ram(nlohmann::json &obj) {
+  obj["compatible"] = "ram";
   obj["basename"];
   obj["min_offset"];
   obj["max_offset"];
   obj["fill"] = 0;
 }
-Device *parse_node_ram_sparse(const nlohmann::json &self, ParsingContext &ctx, System *sys, Device *parent) {
-  dispatch_children(self, ctx, sys, parent);
-  return nullptr;
-}
-Device *parse_node_ram(const nlohmann::json &self, ParsingContext &ctx, System *sys, Device *parent) {
-  if (false) return parse_node_ram_dense(self, ctx, sys, parent);
-  else return parse_node_ram_sparse(self, ctx, sys, parent);
-}
+
 void prefill_node_ram_sparse(nlohmann::json &obj) {
   obj["compatible"] = Sparse::compatible;
   obj["basename"];
@@ -158,8 +160,7 @@ Device *create_device(const nlohmann::json &obj, ParsingContext &ctx, System *sy
 }
 
 void prefill_keys(nlohmann::json &obj, std::string_view compatible) {
-  if (auto it = parsers.find(compatible); it == parsers.end()) prefill_default(obj);
-  else return it->second.fill(obj);
+  if (auto it = parsers.find(compatible); it != parsers.end()) it->second->prefill(obj);
 }
 
 std::unique_ptr<System> create_system(const nlohmann::json &obj, ParsingContext &ctx) {

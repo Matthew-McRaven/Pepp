@@ -1,6 +1,7 @@
 #include "simplebus.hpp"
 #include "core/sim/memory/errors.hpp"
 #include "core/sim/system.hpp"
+#include "core/sim/systemparser.hpp"
 
 SimpleBus::SimpleBus(Configuration cfg) : _config(cfg) {}
 
@@ -27,6 +28,10 @@ Device::Type SimpleBus::type() const {
   using namespace bits;
   return Device::Type::MemoryTarget | Device::Type::MemoryInitiator | Device::Type::Traceable;
 }
+
+std::unique_ptr<DeviceSerializer> SimpleBus::serializer() const { return make_serializer(); }
+
+std::unique_ptr<DeviceSerializer> SimpleBus::make_serializer() { return nullptr; }
 
 void SimpleBus::set_buffer(Buffer *tb) {
   _tb = tb;

@@ -1,5 +1,37 @@
 #include "dense.hpp"
+#include <nlohmann/json.hpp>
 #include "core/sim/memory/errors.hpp"
+#include "core/sim/system.hpp"
+#include "core/sim/systemparser.hpp"
+
+namespace {
+Device *create_dense(const nlohmann::json &self, System *sys, Device *par) {
+  Dense::Configuration cfg;
+  try {
+    parse_standard_fields(self, cfg);
+    if (cfg.basename.empty()) throw ParsingError("RAM must have a basename");
+    if (!self.contains("min_offset") || self["min_offset"].is_null()) throw ParsingError("RAM must have a min_offset");
+    auto min = as_u32(self["min_offset"]);
+    if (!self.contains("max_offset") || self["max_offset"].is_null()) throw ParsingError("RAM must have a max_offset");
+    auto max = as_u32(self["max_offset"]);
+    cfg.span = AddressSpan{min, max};
+    if (self.contains("fill") && !self["fill"].is_null()) cfg.fill = as_i8(self["fill"]);
+  } catch (const nlohmann::json::type_error &e) {
+    throw ParsingError("Failed to parse dense RAM: " + std::string(e.what()));
+  }
+  return sys->make_device<Dense>(par, cfg);
+}
+void prefill_dense(nlohmann::json &obj) {
+  obj["compatible"] = Dense::compatible;
+  obj["basename"];
+  obj["min_offset"];
+  obj["max_offset"];
+  obj["fill"] = 0;
+}
+void serialize_dense(nlohmann::json &obj, const System *sys, const Device *self) {
+  throw std::logic_error("Dense::serialize not implemented");
+}
+} // namespace
 
 Dense::Dense(Configuration config) : Device(), _config(config) {
   _data.resize(size_inclusive(_config.span), _config.fill);
@@ -18,6 +50,14 @@ Device::Type Dense::type() const {
 }
 
 u64 Dense::features() const { return 0; }
+
+std::unique_ptr<DeviceSerializer> Dense::serializer() const { return make_serializer(); }
+
+std::unique_ptr<DeviceSerializer> Dense::make_serializer() {
+  DeviceSerializer s{
+      .parser = create_dense, .prefill = prefill_dense, .serialize = serialize_dense, .compatible = Dense::compatible};
+  return std::make_unique<DeviceSerializer>(std::move(s));
+}
 
 void Dense::set_buffer(Buffer *tb) { _tb = tb; }
 

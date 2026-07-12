@@ -19,12 +19,14 @@
 #include "core/math/bitmanip/enums.hpp"
 #include "core/sim/api/clock.hpp"
 #include "core/sim/api/device.hpp"
+#include "core/sim/systemparser.hpp"
 
 struct DeviceWithType : public Device {
   DeviceWithType(Configuration config, Type type) : Device(), _config(config), _type(type) {}
   Type type() const override { return _type; }
   const Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
+  std::unique_ptr<DeviceSerializer> serializer() const override { return nullptr; }
 
 private:
   Configuration _config;
@@ -38,6 +40,7 @@ struct SubclassingDevice : public Device, ClockSource {
   PulseSchedule schedule() const override { return {.period = 100, .jitter = 10, .seed = 0}; }
   const Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
+  std::unique_ptr<DeviceSerializer> serializer() const override { return nullptr; }
 
 private:
   Configuration _config;

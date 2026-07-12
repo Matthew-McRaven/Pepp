@@ -4,6 +4,7 @@
 #include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/enums.hpp"
 #include "core/sim/devicetree.hpp"
+#include "core/sim/systemparser.hpp"
 
 using namespace bits;
 consteval void allow_opaque_handle_increment(Device::ID);
@@ -28,6 +29,10 @@ void System::initialize() {
   for (auto dev : *_root)
     if (dev != this) dev->initialize(this);
 }
+
+std::unique_ptr<DeviceSerializer> System::serializer() const { return make_serializer(); }
+
+std::unique_ptr<DeviceSerializer> System::make_serializer() { return nullptr; }
 
 Device::ID System::next_ID() { return _next_ID++; }
 

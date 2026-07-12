@@ -142,6 +142,8 @@ public:
   const Device::Configuration &config() const override;
   const Device::ID id() const override;
   Device::Type type() const override;
+  std::unique_ptr<DeviceSerializer> serializer() const override;
+  static std::unique_ptr<DeviceSerializer> make_serializer();
 
   // Traceable interface
   void set_buffer(Buffer *tb) override;

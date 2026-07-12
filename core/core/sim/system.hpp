@@ -47,6 +47,9 @@ public:
   void initialize(System *sys) override;
   // Iterate over all devices in the tree and call initialize on each of them.
   void initialize();
+  // Return a ptr to a type which can convert this object to/from JSON.
+  std::unique_ptr<DeviceSerializer> serializer() const override;
+  static std::unique_ptr<DeviceSerializer> make_serializer();
 
   const Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
