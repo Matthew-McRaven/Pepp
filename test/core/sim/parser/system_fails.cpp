@@ -26,21 +26,18 @@ TEST_CASE("System Parser, System, Fails", "[scope:core][scope:core.sim][kind:uni
       "compatible": "system,groot",
       "basename": "/"
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
   SECTION("name as int") {
     static const char *js = R"j({
       "basename": 5
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
   SECTION("compatible as int") {
     static const char *js = R"j({
       "compatible": 5
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
 }

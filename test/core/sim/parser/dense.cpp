@@ -34,8 +34,8 @@ TEST_CASE("System Parser, Dense, Passes", "[scope:core][scope:core.sim][kind:uni
       }
       ]
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     CHECK(s->config().basename == "/");
     CHECK(s->config().fullname == "/");
@@ -63,8 +63,8 @@ TEST_CASE("System Parser, Dense, Passes", "[scope:core][scope:core.sim][kind:uni
       }
       ]
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     auto mem = s->find_relative("memory", "/");
     REQUIRE(mem != nullptr);
@@ -83,8 +83,8 @@ TEST_CASE("System Parser, Dense, Passes", "[scope:core][scope:core.sim][kind:uni
       }
       ]
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     auto mem = s->find_relative("memory", "/");
     REQUIRE(mem != nullptr);
@@ -105,8 +105,8 @@ TEST_CASE("System Parser, Dense, Passes", "[scope:core][scope:core.sim][kind:uni
       }
       ]
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     auto mem = s->find_relative("memory", "/");
     REQUIRE(mem != nullptr);
@@ -132,8 +132,8 @@ TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit
       }
       ]
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
   SECTION("needs max_offset") {
     static const char *js = R"j({
@@ -146,8 +146,8 @@ TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit
       }
       ]
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
   // Integer offsets
   SECTION("min_offset must be integer") {
@@ -162,8 +162,8 @@ TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit
       }
       ]
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
   SECTION("max_offset must be integer") {
     static const char *js = R"j({
@@ -177,8 +177,8 @@ TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit
       }
       ]
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
   // fill must be an integer
   SECTION("fill must be integer") {
@@ -193,8 +193,8 @@ TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit
       }
       ]
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
   SECTION("bad octal") {
     static const char *js = R"j({
@@ -208,8 +208,8 @@ TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit
       }
       ]
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
   SECTION("out-of-range fill") {
     static const char *js = R"j({
@@ -223,8 +223,8 @@ TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit
       }
       ]
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
   SECTION("negative in unsigned slot") {
     static const char *js = R"j({
@@ -237,7 +237,7 @@ TEST_CASE("System Parser, Dense, Fails", "[scope:core][scope:core.sim][kind:unit
       }
       ]
     })j";
-    ParsingContext ctx;
-    REQUIRE_THROWS_AS(parse_system(js, ctx), ParsingError);
+
+    REQUIRE_THROWS_AS(parse_system(js), ParsingError);
   }
 }

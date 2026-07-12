@@ -21,8 +21,7 @@ void native_dev_alloc(Interpreter *p) {
   auto casted_sys = std::dynamic_pointer_cast<SystemValue>(sys_val);
   if (!casted_sys) throw std::runtime_error("Invalid system object index");
 
-  ParsingContext ctx;
-  auto device = create_device(cfg_casted->fields(), ctx, casted_sys->sys.get(), casted_par->dev);
+  auto device = create_device(cfg_casted->fields(), casted_sys->sys.get(), casted_par->dev);
   p->push_psp(p->allocate_object(DeviceValue::make(device)));
 }
 

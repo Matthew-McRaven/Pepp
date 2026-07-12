@@ -26,8 +26,8 @@ TEST_CASE("System Parser, System, Passes", "[scope:core][scope:core.sim][kind:un
       "compatible": "system,root",
       "basename": "/"
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     CHECK(s->config().basename == "/");
     CHECK(s->config().fullname == "/");
@@ -37,8 +37,7 @@ TEST_CASE("System Parser, System, Passes", "[scope:core][scope:core.sim][kind:un
     static const char *js = R"j({
       "compatible": "system,root"
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     CHECK(s->config().basename == "/");
     CHECK(s->config().fullname == "/");
@@ -48,8 +47,8 @@ TEST_CASE("System Parser, System, Passes", "[scope:core][scope:core.sim][kind:un
     static const char *js = R"j({
       "basename": "/"
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     CHECK(s->config().basename == "/");
     CHECK(s->config().fullname == "/");
@@ -60,8 +59,8 @@ TEST_CASE("System Parser, System, Passes", "[scope:core][scope:core.sim][kind:un
       "compatible": "system,root",
       "basename": "day"
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     CHECK(s->config().basename == "/day");
     CHECK(s->config().fullname == "/day");
@@ -70,8 +69,8 @@ TEST_CASE("System Parser, System, Passes", "[scope:core][scope:core.sim][kind:un
   SECTION("missing compatible, basename") {
     static const char *js = R"j({
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     CHECK(s->config().basename == "/");
     CHECK(s->config().fullname == "/");
@@ -81,8 +80,8 @@ TEST_CASE("System Parser, System, Passes", "[scope:core][scope:core.sim][kind:un
     static const char *js = R"j({
       "beef":"chicken"
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     CHECK(s->config().basename == "/");
     CHECK(s->config().fullname == "/");
@@ -93,8 +92,8 @@ TEST_CASE("System Parser, System, Passes", "[scope:core][scope:core.sim][kind:un
       "id":7,
       "fullname": "/feed"
     })j";
-    ParsingContext ctx;
-    auto s = parse_system(js, ctx);
+
+    auto s = parse_system(js);
     REQUIRE(s != nullptr);
     CHECK(s->config().basename == "/");
     CHECK(s->config().fullname == "/");

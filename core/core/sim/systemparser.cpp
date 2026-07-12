@@ -92,28 +92,11 @@ static const std::unordered_map<std::string, std::unique_ptr<DeviceSerializer>, 
       return m;
     }();
 
-Device *dispatch_parser(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent) {
-  auto compatible = node["compatible"].get<std::string>();
-  auto it = parsers.find(compatible);
-  if (it == parsers.end()) throw ParsingError("Unknown compatible type: " + compatible);
-  return it->second->parser(node, sys, parent);
-}
-
-void dispatch_children(const nlohmann::json &node, ParsingContext &ctx, System *sys, Device *parent) {
-  if (!node.contains("children")) return;
-  auto children = node["children"];
-  if (!children.is_array()) throw ParsingError("Children must be an array");
-  for (const auto &child : children) {
-    auto dev = dispatch_parser(child, ctx, sys, parent);
-    dispatch_children(child, ctx, sys, dev);
-  }
-}
-
+// Helpers which choose between available RAM modules depending on the configuration properties.
 Device *parse_node_ram(const nlohmann::json &self, System *sys, Device *parent) {
   if (true) return parsers.find("ram,dense")->second->parser(self, sys, parent);
   else return parsers.find("ram,sparse")->second->parser(self, sys, parent);
 }
-
 void prefill_node_ram(nlohmann::json &obj) {
   obj["compatible"] = "ram";
   obj["basename"];
@@ -122,15 +105,26 @@ void prefill_node_ram(nlohmann::json &obj) {
   obj["fill"] = 0;
 }
 
-void prefill_node_ram_sparse(nlohmann::json &obj) {
-  obj["compatible"] = Sparse::compatible;
-  obj["basename"];
-  obj["min_offset"];
-  obj["max_offset"];
-  obj["fill"] = 0;
+// Helper to identify the right parser based on compatible value and invoke it.
+Device *dispatch_parser(const nlohmann::json &node, System *sys, Device *parent) {
+  auto compatible = node["compatible"].get<std::string>();
+  auto it = parsers.find(compatible);
+  if (it == parsers.end()) throw ParsingError("Unknown compatible type: " + compatible);
+  return it->second->parser(node, sys, parent);
 }
 
-std::unique_ptr<System> parse_system(std::string_view body, ParsingContext &context) {
+// Handle recursion into children nodes. Parse each child, then recurse into that node's children.
+void dispatch_children(const nlohmann::json &node, System *sys, Device *parent) {
+  if (!node.contains("children")) return;
+  auto children = node["children"];
+  if (!children.is_array()) throw ParsingError("Children must be an array");
+  for (const auto &child : children) {
+    auto dev = dispatch_parser(child, sys, parent);
+    dispatch_children(child, sys, dev);
+  }
+}
+
+std::unique_ptr<System> parse_system(std::string_view body) {
   nlohmann::json as_json;
   try {
     as_json = nlohmann::json::parse(body);
@@ -138,32 +132,23 @@ std::unique_ptr<System> parse_system(std::string_view body, ParsingContext &cont
     throw ParsingError("Failed to parse system description: " + std::string(e.what()));
   }
   if (!as_json.is_object()) throw ParsingError("System description must be a JSON object");
-  auto system = create_system(as_json, context);
-  dispatch_children(as_json, context, system.get(), system.get());
+  auto system = create_system(as_json);
+  // Handle the recursive step where all children are recursively constructed.
+  dispatch_children(as_json, system.get(), system.get());
   return system;
 }
 
-Device *parse_device(std::string_view body, ParsingContext &ctx, System *sys, Device *parent) {
+Device *create_device(const nlohmann::json &obj, System *sys, Device *parent) {
   if (sys == nullptr) throw ParsingError("System must be non-null");
   if (parent == nullptr) parent = sys;
-  nlohmann::json as_json;
-  try {
-    as_json = nlohmann::json::parse(body);
-  } catch (const nlohmann::json::parse_error &e) {
-    throw ParsingError("Failed to parse device description: " + std::string(e.what()));
-  }
-  return create_device(as_json, ctx, sys, parent);
-}
-
-Device *create_device(const nlohmann::json &obj, ParsingContext &ctx, System *sys, Device *parent) {
-  return dispatch_parser(obj, ctx, sys, parent);
+  return dispatch_parser(obj, sys, parent);
 }
 
 void prefill_keys(nlohmann::json &obj, std::string_view compatible) {
   if (auto it = parsers.find(compatible); it != parsers.end()) it->second->prefill(obj);
 }
 
-std::unique_ptr<System> create_system(const nlohmann::json &obj, ParsingContext &ctx) {
+std::unique_ptr<System> create_system(const nlohmann::json &obj) {
   System::Configuration cfg;
   try {
     parse_standard_fields(obj, cfg);

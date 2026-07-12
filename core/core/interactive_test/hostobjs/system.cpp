@@ -31,9 +31,8 @@ void native_sys_alloc(Interpreter *interp) {
       cfg->type_code() != AValue::Type::InteractiveConfig || casted == nullptr)
     throw std::runtime_error("Object is not a configuration object");
   else {
-    ParsingContext ctx;
-    auto sys = create_system(casted->fields(), ctx);
-    interp->push_psp((u16)interp->allocate_object(SystemValue::make(std::move(sys))));
+    auto sys = create_system(casted->fields());
+    interp->push_psp<u16>(interp->allocate_object(SystemValue::make(std::move(sys))));
   }
 }
 inline static const NativeOpcode SysAlloc{
@@ -50,7 +49,7 @@ void native_sys_devcount(Interpreter *interp) {
       sys_val->type_code() != AValue::Type::Device || casted == nullptr)
     throw std::runtime_error("Object is not a system object");
   else {
-    interp->push_psp((u16)casted->device_count());
+    interp->push_psp<u16>(casted->device_count());
   }
 }
 inline static const NativeOpcode SysDevCount{
