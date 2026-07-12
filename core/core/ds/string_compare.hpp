@@ -25,27 +25,18 @@ struct cs_hash {
   using is_transparent = void;
 
   std::size_t operator()(std::string_view s) const noexcept { return std::hash<std::string_view>{}(s); }
-  std::size_t operator()(std::string const &s) const noexcept { return (*this)(std::string_view{s}); }
 };
 
 struct ci_hash {
   using is_transparent = void;
 
   std::size_t operator()(std::string_view s) const noexcept { return pepp::case_insensitive_fnv_1a<ci_char_traits>(s); }
-
-  std::size_t operator()(std::string const &s) const noexcept { return (*this)(std::string_view{s}); }
 };
 
 // Transparent, case-sensitive equality.
 struct cs_eq {
   using is_transparent = void;
-
   bool operator()(std::string_view a, std::string_view b) const noexcept { return a == b; }
-  bool operator()(std::string const &a, std::string const &b) const noexcept {
-    return (*this)(std::string_view{a}, std::string_view{b});
-  }
-  bool operator()(std::string const &a, std::string_view b) const noexcept { return (*this)(std::string_view{a}, b); }
-  bool operator()(std::string_view a, std::string const &b) const noexcept { return (*this)(a, std::string_view{b}); }
 };
 
 // Transparent, case-insensitive equality.
@@ -61,12 +52,6 @@ struct ci_eq {
     }
     return true;
   }
-
-  bool operator()(std::string const &a, std::string const &b) const noexcept {
-    return (*this)(std::string_view{a}, std::string_view{b});
-  }
-  bool operator()(std::string const &a, std::string_view b) const noexcept { return (*this)(std::string_view{a}, b); }
-  bool operator()(std::string_view a, std::string const &b) const noexcept { return (*this)(a, std::string_view{b}); }
 };
 
 } // namespace pepp::core
