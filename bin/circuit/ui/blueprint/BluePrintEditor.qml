@@ -8,6 +8,7 @@ import QtQuick.Dialogs
 Item {
     id: root
 
+    //  Temporary model for laying out screen
     ListModel {
         id: gatesList
         ListElement {
@@ -70,10 +71,10 @@ Item {
     Component {
         id: displayDelegate
         Rectangle {
-            id: rowID
             width: 300
-            height: 40
-            Row {
+            height: 50
+            Column {
+                id: gateParent
                 anchors.fill: parent
                 anchors.leftMargin: 10
                 anchors.rightMargin: 10
@@ -85,18 +86,23 @@ Item {
                     wrapMode: Text.WrapAnywhere
                 }
 
-                Repeater {
-                    model: types
-                    Text {
-                        text: typeName + "\t"
+                //ListView {
+                //orientation: ListView.Horizontal
+                Row {
+                    Repeater {
+                        model: types
+                        Button {
+                            implicitHeight: 25
+                            implicitWidth: 75
+                            text: typeName
+                        }
                     }
-                }
-            }
-        }
-    }
+                }   //  Row
+            }   //  Column
+        }   //  Rectangle
+    }   //  Component
 
     ListView {
-        id: disp
         anchors.fill: parent
         model: gatesList
         delegate: displayDelegate
