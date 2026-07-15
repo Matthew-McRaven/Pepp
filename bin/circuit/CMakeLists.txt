@@ -61,6 +61,7 @@ target_link_libraries(
           Qt6::Qml
           Qt6::Quick
           Qt6::Widgets
+          Qt::QuickControls2
           pepp-core)
 
 set_target_properties(CircuitDesign PROPERTIES FOLDER "qtc_runnable")
