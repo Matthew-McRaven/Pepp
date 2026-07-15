@@ -76,8 +76,8 @@ Item {
     Component {
         id: displayDelegate
         Rectangle {
-            width: 300
-            height: 80
+            width: parent.width
+            height: 100
             Column {
                 id: gateParent
                 anchors.fill: parent
@@ -86,14 +86,14 @@ Item {
                 Text {
                     id: nameID
                     text: family
-                    font.pixelSize: 12
-                    width: 60
+                    font.pixelSize: 18
+                    font.bold: true
+                    width: gateParent.width //60
                     wrapMode: Text.WrapAnywhere
                 }
 
-                //ListView {
-                //orientation: ListView.Horizontal
                 Row {
+                    spacing: 10
                     Repeater {
                         model: types
                         Button {
