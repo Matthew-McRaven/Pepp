@@ -87,7 +87,7 @@ Item {
                     id: nameID
                     text: family
                     font.pixelSize: 12
-                    width: 50
+                    width: 60
                     wrapMode: Text.WrapAnywhere
                 }
 
@@ -98,14 +98,35 @@ Item {
                         model: types
                         Button {
                             id: button
-                            implicitHeight: 50
+                            implicitHeight: 60
                             implicitWidth: 75
                             display: AbstractButton.TextUnderIcon
 
-                            text: typeName
-                            icon.source: familyIcon
-                            icon.width: button.implicitWidth * .55
-                            icon.height: button.implicitHeight * .55
+                            contentItem: ColumnLayout {
+                                spacing: 0
+                                Image {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    source: familyIcon
+                                }
+
+                                Label {
+                                    Layout.alignment: Qt.AlignHCenter
+
+                                    text: typeName
+                                    //  Highlight color used for button down
+                                    color: button.down ? palette.highlightedText : palette.buttonText
+                                }
+                            }
+
+                            background: Rectangle {
+                                //  Highlight color used for button down
+                                color: button.down ? palette.highlight : palette.button
+                                opacity: .7
+                                border.width: 2
+                                //  Highlight color used for button down
+                                border.color: button.hovered ? palette.highlight : palette.placeholderText //"gray"
+                                radius: 5
+                            }
                         }
                     }
                 }   //  Row
