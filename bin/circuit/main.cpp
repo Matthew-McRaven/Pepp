@@ -1,12 +1,15 @@
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
+#include <QQuickStyle> //  Fusion style
 
-#include "diagramproperty.hpp"
+// #include "diagramproperty.hpp"
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+
+    QQuickStyle::setStyle("Fusion");
 
     QQmlApplicationEngine engine;
     QObject::connect(
