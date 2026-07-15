@@ -13,6 +13,7 @@ Item {
         id: gatesList
         ListElement {
             family: "And"
+            familyIcon: "qrc:/and"
             types: [
                 ListElement {
                     typeName: "2x1"
@@ -21,6 +22,7 @@ Item {
         }
         ListElement {
             family: "Or"
+            familyIcon: "qrc:/or"
             types: [
                 ListElement {
                     typeName: "2x1"
@@ -32,6 +34,7 @@ Item {
         }
         ListElement {
             family: "Inverter"
+            familyIcon: "qrc:/inverter"
             types: [
                 ListElement {
                     typeName: "2x1"
@@ -43,6 +46,7 @@ Item {
         }
         ListElement {
             family: "Nand"
+            familyIcon: "qrc:/nand"
             types: [
                 ListElement {
                     typeName: "2x1"
@@ -57,6 +61,7 @@ Item {
         }
         ListElement {
             family: "Nor"
+            familyIcon: "qrc:/nor"
             types: [
                 ListElement {
                     typeName: "2x1"
@@ -72,7 +77,7 @@ Item {
         id: displayDelegate
         Rectangle {
             width: 300
-            height: 50
+            height: 80
             Column {
                 id: gateParent
                 anchors.fill: parent
@@ -92,9 +97,15 @@ Item {
                     Repeater {
                         model: types
                         Button {
-                            implicitHeight: 25
+                            id: button
+                            implicitHeight: 50
                             implicitWidth: 75
+                            display: AbstractButton.TextUnderIcon
+
                             text: typeName
+                            icon.source: familyIcon
+                            icon.width: button.implicitWidth * .55
+                            icon.height: button.implicitHeight * .55
                         }
                     }
                 }   //  Row
