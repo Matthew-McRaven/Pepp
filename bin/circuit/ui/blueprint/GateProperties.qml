@@ -3,8 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 
-//import CircuitDesign
-
 Pane {
     id: root
 
@@ -13,6 +11,9 @@ Pane {
 
     //  List of available blueprints for current project
     //required property BlueprintLibraryModel blueprintModel
+
+    property int labelWidth: 75
+    property int dataWidth: 100
 
     Column {
         id: inputArea
@@ -39,20 +40,25 @@ Pane {
             spacing: 5
             Label {
                 text: "Name:"
+                width: root.labelWidth
             }
             Text {
                 text: "2 x 1"
+                width: root.dataWidth
             }
             Label {
                 text: "Behavior:"
+                width: root.labelWidth
             }
             ComboBox {
                 id: gateFamily
                 model: ["AND", "OR", "NAND", "NOR", "XOR", "Inverter"]
                 currentIndex: 0
+                width: root.dataWidth
             }
             Label {
                 text: "Dimensions"
+                width: root.labelWidth
             }
             Label {
                 //  Spacer for heading
@@ -61,8 +67,10 @@ Pane {
 
             Label {
                 text: "  Height"
+                width: root.labelWidth
             }
             SpinBox {
+                width: root.dataWidth / 2
                 from: 2
                 to: 10
                 stepSize: 1
@@ -70,8 +78,10 @@ Pane {
             }
             Label {
                 text: "  Width"
+                width: root.labelWidth
             }
             SpinBox {
+                width: root.dataWidth / 2
                 from: 3
                 to: 10
                 stepSize: 1
