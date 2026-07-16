@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls //  SplitView
-//import QtQuick.Layouts // RowLayout
+import QtQuick.Layouts  // StackLayout
 
 import "./ui" as Ui
 import "./ui/blueprint" as Bp
@@ -24,15 +24,41 @@ Window {
             SplitView.fillHeight: true
             SplitView.fillWidth: true
         }
-        /*Bp.GateProperties {
+
+        Rectangle {
+            id: tabs
             SplitView.fillHeight: true
             SplitView.preferredWidth: 200
             SplitView.minimumWidth: 140
-        }*/
-        Bp.PinProperties {
-            SplitView.fillHeight: true
-            SplitView.preferredWidth: 200
-            SplitView.minimumWidth: 140
-        }
+
+            TabBar {
+                id: tab
+                width: tabs.width
+
+                TabButton {
+                    text: "Gate Editor"
+                }
+                TabButton {
+                    text: "Pin Editor"
+                }
+            }
+
+            StackLayout {
+                id: view
+                anchors.topMargin: tab.height + 1
+                anchors.fill: parent
+                currentIndex: tab.currentIndex
+
+                //  Gate selection
+                Bp.GateProperties {
+                    Layout.fillWidth: true
+                }
+
+                //  Pin logic
+                Bp.PinProperties {
+                    Layout.fillWidth: true
+                }
+            }   //  StackLayout
+        }   //  Rectangle
     }
 }

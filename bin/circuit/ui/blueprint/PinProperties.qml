@@ -6,30 +6,23 @@ import QtQuick.Layouts
 import QtQuick.VectorImage
 
 //  Control for pin properties
-ColumnLayout {
+Pane {
     id: root
-    spacing: 0
+    //spacing: 0
 
     property int labelWidth: 75
     property int dataWidth: 100
+
     Grid {
         columns: 2
         spacing: 5
-        Label {
-            text: "Pin Properties"
-            width: root.labelWidth
-        }
-        Label {
-            //  Spacer for heading
-            text: " "
-        }
-
         Label {
             text: "Pin Name:"
             width: root.labelWidth
         }
         Text {
             text: "Input 1"
+            width: root.dataWidth
         }
 
         Label {
@@ -74,9 +67,4 @@ ColumnLayout {
             value: 3
         }
     }   //  Grid
-
-    Item {
-        //  A spacer
-        Layout.fillHeight: true
-    }
 }   //  ColumnLayout
