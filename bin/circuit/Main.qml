@@ -24,7 +24,12 @@ Window {
             SplitView.fillHeight: true
             SplitView.fillWidth: true
         }
-        Bp.GateEditor {
+        /*Bp.GateProperties {
+            SplitView.fillHeight: true
+            SplitView.preferredWidth: 200
+            SplitView.minimumWidth: 140
+        }*/
+        Bp.PinProperties {
             SplitView.fillHeight: true
             SplitView.preferredWidth: 200
             SplitView.minimumWidth: 140
