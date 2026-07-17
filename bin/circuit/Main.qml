@@ -8,11 +8,13 @@ import "./ui" as Ui
 import "./ui/blueprint" as Bp
 
 Window {
+    id: root
     width: 1024
     height: 720
     visible: true
     title: qsTr("Circuit Design")
 
+    property int preferredWidth: 200
     //Ui.LogicGates {
     //    anchors.fill: parent
     //}
@@ -27,18 +29,19 @@ Window {
 
         ColumnLayout {
             SplitView.fillHeight: true
-            SplitView.preferredWidth: 200
+            SplitView.preferredWidth: root.preferredWidth
             SplitView.minimumWidth: 140
 
             Bp.BluePrintThumbNail {
-                Layout.preferredWidth: 175
-                Layout.preferredHeight: 175
+                Layout.preferredWidth: root.preferredWidth
+                Layout.preferredHeight: root.preferredWidth
             }
 
             Rectangle {
                 id: tabs
 
                 Layout.fillHeight: true
+                Layout.preferredWidth: root.preferredWidth
 
                 TabBar {
                     id: tab
