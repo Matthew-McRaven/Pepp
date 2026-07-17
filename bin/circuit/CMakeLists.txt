@@ -17,6 +17,9 @@ qt_add_qml_module(
   ui/blueprint/BluePrintEditor.qml
   ui/blueprint/GateProperties.qml
   ui/blueprint/PinProperties.qml
+  ui/blueprint/BluePrintThumbNail.qml
+  ui/blueprint/GridLines.qml
+
   SOURCES
   ui/blueprintlibrarymodel.hpp
   ui/blueprintlibrarymodel.cpp
