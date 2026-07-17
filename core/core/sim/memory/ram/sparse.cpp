@@ -4,6 +4,78 @@
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
+PagePool::PagePool(AddressSpan span, u8 fill) : _span(span), _fill(fill) {}
+
+void PagePool::read(Address address, bits::span<u8> dest) const {
+  auto offset = address - _span.lower();
+  while (dest.size() > 0) {
+    const auto page_addr = offset & ~SPARSE_PAGE_MASK;
+    const auto page_offset = offset & SPARSE_PAGE_MASK;
+    const auto len = std::min<u32>(dest.size(), SPARSE_PAGE_SIZE - page_offset);
+    if (const auto it = _pages.find(page_addr); it != _pages.end()) {
+      const auto &page = it->second;
+      const auto src = bits::span<const u8>{page.data.data(), page.data.size()}.subspan(page_offset);
+      assert(src.size() >= len);
+      bits::memcpy(dest.first(len), src.first(len));
+    } else {
+      std::fill_n(dest.begin(), len, _fill);
+    }
+
+    offset += len;
+    dest = dest.subspan(len);
+  }
+}
+
+void PagePool::write(Address address, bits::span<const u8> src) {
+  auto offset = address - _span.lower();
+  while (src.size() > 0) {
+    const auto page_addr = offset & ~SPARSE_PAGE_MASK;
+    const auto page_offset = offset & SPARSE_PAGE_MASK;
+    const auto len = std::min<u32>(src.size(), SPARSE_PAGE_SIZE - page_offset);
+    // Search for a page. If it does not exist, allocate it.
+    PageMeta *dst_page = nullptr;
+    if (auto it = _pages.find(page_addr); it != _pages.end()) dst_page = &it->second;
+    else dst_page = &(_pages[page_addr] = make_page());
+
+    assert(dst_page != nullptr);
+    auto dst = bits::span<u8>{dst_page->data.data(), dst_page->data.size()}.subspan(page_offset);
+    assert(src.size() >= len);
+    assert(dst.size() >= len);
+    bits::memcpy(dst.first(len), src.first(len));
+    offset += len;
+    src = src.subspan(len);
+  }
+}
+
+void PagePool::clear(u8 fill) {
+  _fill = fill;
+  for (auto &[_, meta] : _pages) _free.push(meta);
+  _pages.clear();
+}
+
+void PagePool::dump(bits::span<u8> dest) const {
+  if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
+  for (const auto &[addr, meta] : _pages) {
+    auto dest_subspan = dest.subspan(addr - _span.lower(), meta.data.size());
+    const auto src_subspan = bits::span<const u8>{meta.data.data(), meta.data.size()};
+    bits::memcpy(dest_subspan, src_subspan);
+  }
+}
+
+PagePool::PageMeta PagePool::make_page(bool init) {
+  PageMeta ret;
+  if (!_free.empty()) {
+    ret = _free.top();
+    _free.pop();
+  } else {
+    _data.emplace_back();
+    ret = PageMeta{};
+    ret.data = _data.back();
+  }
+  if (init) std::fill(ret.data.begin(), ret.data.end(), _fill);
+  return ret;
+}
+
 namespace {
 Device *create_sparse(const nlohmann::json &self, System *sys, Device *par) {
   Sparse::Configuration cfg;
@@ -33,7 +105,7 @@ void serialize_sparse(nlohmann::json &obj, const System *sys, const Device *self
 }
 } // namespace
 
-Sparse::Sparse(Configuration config) : Device(), _config(config) {}
+Sparse::Sparse(Configuration config) : Device(), _config(config), _pool(_config.span, _config.fill) {}
 
 const Device::Configuration &Sparse::config() const { return _config; }
 
@@ -77,31 +149,13 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
-  auto offset = address - span.lower();
 
   // TODO: emit a pure read to TB.
   // Ignore reads from UI, since this device only issues pure reads.
   // Ignore reads from buffer internal operations.
   if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) && _tb)
     ;
-
-  while (dest.size() > 0) {
-    const auto page_addr = offset & ~SPARSE_PAGE_MASK;
-    const auto page_offset = offset & SPARSE_PAGE_MASK;
-    const auto len = std::min<u32>(dest.size(), SPARSE_PAGE_SIZE - page_offset);
-    if (const auto it = _pages.find(page_addr); it != _pages.end()) {
-      const auto &page = it->second;
-      const auto src = bits::span<const u8>{page.data.data(), page.data.size()}.subspan(page_offset);
-      assert(src.size() >= len);
-      bits::memcpy(dest.first(len), src.first(len));
-    } else {
-      std::fill_n(dest.begin(), len, _config.fill);
-    }
-
-    offset += len;
-    dest = dest.subspan(len);
-  }
-
+  _pool.read(address, dest);
   return {};
 }
 
@@ -111,61 +165,20 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, src.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
-  auto offset = address - span.lower();
 
   // Record changes, even if the come from UI. Otherwise, step back fails.
   // Ignore reads from UI, since this device only issues pure reads.
   // Ignore reads from buffer internal operations.
   if (op.type != Operation::Type::BufferInternal && _tb)
     ;
-
-  while (src.size() > 0) {
-    const auto page_addr = offset & ~SPARSE_PAGE_MASK;
-    const auto page_offset = offset & SPARSE_PAGE_MASK;
-    const auto len = std::min<u32>(src.size(), SPARSE_PAGE_SIZE - page_offset);
-    // Search for a page. If it does not exist, allocate it.
-    PageMeta *dst_page = nullptr;
-    if (auto it = _pages.find(page_addr); it != _pages.end()) dst_page = &it->second;
-    else dst_page = &(_pages[page_addr] = make_page());
-
-    assert(dst_page != nullptr);
-    auto dst = bits::span<u8>{dst_page->data.data(), dst_page->data.size()}.subspan(page_offset);
-    assert(src.size() >= len);
-    assert(dst.size() >= len);
-    bits::memcpy(dst.first(len), src.first(len));
-    offset += len;
-    src = src.subspan(len);
-  }
-
+  _pool.write(address, src);
   return {};
 }
 
 void Sparse::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
   _config.fill = fill;
-  for (auto &[_, meta] : _pages) _free.push(meta);
-  _pages.clear();
+  _pool.clear(fill);
 }
 
-void Sparse::dump(bits::span<u8> dest) const {
-  if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
-  for (const auto &[addr, meta] : _pages) {
-    auto dest_subspan = dest.subspan(addr - (_config.span).lower(), meta.data.size());
-    const auto src_subspan = bits::span<const u8>{meta.data.data(), meta.data.size()};
-    bits::memcpy(dest_subspan, src_subspan);
-  }
-}
-
-Sparse::PageMeta Sparse::make_page(bool init) {
-  PageMeta ret;
-  if (!_free.empty()) {
-    ret = _free.top();
-    _free.pop();
-  } else {
-    _data.emplace_back();
-    ret = PageMeta{};
-    ret.data = _data.back();
-  }
-  if (init) std::fill(ret.data.begin(), ret.data.end(), _config.fill);
-  return ret;
-}
+void Sparse::dump(bits::span<u8> dest) const { _pool.dump(dest); }

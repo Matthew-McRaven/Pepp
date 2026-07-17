@@ -18,10 +18,48 @@
 #include <list>
 #include <stack>
 #include <unordered_map>
-#include <unordered_set>
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
+
+// In the future, consider combining with core/ds/alloc/paged.hpp.
+// I cannot combine them today, because PagedAllocator is not sparse.
+// e.g., the page at 0x1'0000'0000 will not be allocated until all preceding page are allocated.
+// This PagePool is intentionally spare because it is trying to store a large address space with the minimum number of
+// bytes.
+class PagePool {
+public:
+  explicit PagePool(AddressSpan span, u8 fill = 0);
+  ~PagePool() = default;
+  PagePool(PagePool &&other) noexcept = default;
+  PagePool &operator=(PagePool &&other) = default;
+  PagePool(const PagePool &) = delete;
+  PagePool &operator=(const PagePool &) = delete;
+
+  void read(Address address, bits::span<u8> dest) const;
+  void write(Address address, bits::span<const u8> src);
+  void clear(u8 fill);
+  void dump(bits::span<u8> dest) const;
+
+private:
+  u8 _fill;
+  AddressSpan _span;
+  static constexpr u32 SPARSE_PAGE_SIZE = 256;
+  static constexpr u32 SPARSE_PAGE_MASK = SPARSE_PAGE_SIZE - 1;
+  using PageData = std::array<u8, SPARSE_PAGE_SIZE>;
+  // I plan on adding cow/shared pages. Someday each "slot" in _pages will point to a PageMeta (rather than by value).
+  // With the by-value approach, I can't have COW semantics.
+  struct PageMeta {
+    PageData data;
+  };
+  // Return a new PageMeta which points to an unused data page.
+  // Prefferentially pull from _free, otherwise allocate a new data page.
+  // Initialize all values in page to _fill if true, otherwise returned array as-is.
+  PageMeta make_page(bool init = true);
+  std::unordered_map<Address, PageMeta> _pages;
+  std::stack<PageMeta> _free;
+  std::list<PageData> _data;
+};
 
 class Sparse final : public Device, public Target, public Traceable {
 public:
@@ -63,20 +101,6 @@ public:
 
 private:
   Configuration _config;
-  static constexpr u32 SPARSE_PAGE_SIZE = 256;
-  static constexpr u32 SPARSE_PAGE_MASK = SPARSE_PAGE_SIZE - 1;
-  using PageData = std::array<u8, SPARSE_PAGE_SIZE>;
-  // I plan on adding cow/shared pages. Someday each "slot" in _pages will point to a PageMeta (rather than by value).
-  // With the by-value approach, I can't have COW semantics.
-  struct PageMeta {
-    PageData data;
-  };
-  // Return a new PageMeta which points to an unused data page.
-  // Prefferentially pull from _free, otherwise allocate a new data page.
-  // Initialize all values in page to _fill if true, otherwise returned array as-is.
-  PageMeta make_page(bool init = true);
-  std::unordered_map<Address, PageMeta> _pages;
-  std::stack<PageMeta> _free;
-  std::list<PageData> _data;
+  PagePool _pool;
   Buffer *_tb = nullptr;
 };
