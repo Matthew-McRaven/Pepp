@@ -10,6 +10,7 @@ Item {
 
     Pane {
         spacing: 0
+        padding: 0
         anchors.fill: parent
         contentWidth: image.implicitWidth
         contentHeight: image.implicitHeight
@@ -18,33 +19,19 @@ Item {
             color: "#f0f0f0"
         }
 
-        Column {
-            spacing: 0
-            anchors.top: parent.top
-            anchors.left: parent.left
-
-            Repeater {
-                id: columns
-                model: 10
-                Row {
-                    spacing: 0
-                    Repeater {
-                        id: rows
-                        model: 10
-                        GridLines {}
-                    }
-                }
-            }
-        }   //  contentItem
+        GridLines {
+            anchors.fill: parent
+        }
 
         VectorImage {
             id: image
 
             z: -1
-            anchors.top: parent.top
-            anchors.left: parent.left
+            //anchors.top: parent.top
+            //anchors.left: parent.left
+            anchors.centerIn: parent
             width: root.width
-            height: root.height
+            height: root.height * .75
 
             source: "qrc:/or"
             //fillMode: Image.PreserveAspectFit

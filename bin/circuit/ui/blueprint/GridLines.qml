@@ -4,23 +4,24 @@ import QtQuick.Shapes
 
 Shape {
     id: root
-    width: 100
-    height: 100
+    implicitWidth: 100
+    implicitHeight: 100
 
     property color lineColor: "cornflowerblue" // "gainsboro", "cornflowerblue", "blue"
     property var strokeStyle: ShapePath.DashLine // ShapePath.SolidLine
     property var dashPattern: [1, 3] // [ 1, 3 ], [1, 6]
 
+    //  Vertical lines
     ShapePath {
         strokeWidth: 1
         strokeColor: root.lineColor
         strokeStyle: root.strokeStyle
         dashPattern: root.dashPattern
-        startX: 25
+        startX: 0
         startY: 0
         PathLine {
-            x: 25
-            y: 100
+            x: 0
+            y: root.height          //  100
         }
     }
     ShapePath {
@@ -28,11 +29,11 @@ Shape {
         strokeColor: root.lineColor
         strokeStyle: root.strokeStyle
         dashPattern: root.dashPattern
-        startX: 50
+        startX: root.width / 4      //  25
         startY: 0
         PathLine {
-            x: 50
-            y: 100
+            x: root.width / 4       //  25
+            y: root.height          //  100
         }
     }
     ShapePath {
@@ -40,11 +41,11 @@ Shape {
         strokeColor: root.lineColor
         strokeStyle: root.strokeStyle
         dashPattern: root.dashPattern
-        startX: 75
+        startX: root.width / 2      //  50
         startY: 0
         PathLine {
-            x: 75
-            y: 100
+            x: root.width / 2       //  50
+            y: root.height          //  100
         }
     }
     ShapePath {
@@ -52,11 +53,36 @@ Shape {
         strokeColor: root.lineColor
         strokeStyle: root.strokeStyle
         dashPattern: root.dashPattern
-        startX: 100
+        startX: root.width * .75    //  75
         startY: 0
         PathLine {
-            x: 100
-            y: 100
+            x: root.width * .75     //  75
+            y: root.height          //  100
+        }
+    }
+    ShapePath {
+        strokeWidth: 1
+        strokeColor: root.lineColor
+        strokeStyle: root.strokeStyle
+        dashPattern: root.dashPattern
+        startX: root.width   //  100
+        startY: 0
+        PathLine {
+            x: root.width   //  100
+            y: root.height      //  100
+        }
+    }
+    //  Horizontal lines
+    ShapePath {
+        strokeWidth: 1
+        strokeColor: root.lineColor
+        strokeStyle: root.strokeStyle
+        dashPattern: root.dashPattern
+        startX: 0
+        startY: 0
+        PathLine {
+            x: root.width      //  100
+            y: 0
         }
     }
     ShapePath {
@@ -65,10 +91,10 @@ Shape {
         strokeStyle: root.strokeStyle
         dashPattern: root.dashPattern
         startX: 0
-        startY: 25
+        startY: root.height / 4 //  25
         PathLine {
-            x: 100
-            y: 25
+            x: root.width      //  100
+            y: root.height / 4 //  25
         }
     }
     ShapePath {
@@ -77,10 +103,10 @@ Shape {
         strokeStyle: root.strokeStyle
         dashPattern: root.dashPattern
         startX: 0
-        startY: 50
+        startY: root.height / 2 //  50
         PathLine {
-            x: 100
-            y: 50
+            x: root.width       //  100
+            y: root.height / 2  //  50
         }
     }
     ShapePath {
@@ -89,10 +115,10 @@ Shape {
         strokeStyle: root.strokeStyle
         dashPattern: root.dashPattern
         startX: 0
-        startY: 75
+        startY: root.height * .75   //  75
         PathLine {
-            x: 100
-            y: 75
+            x: root.width           //  100
+            y: root.height * .75    //  75
         }
     }
     ShapePath {
@@ -101,10 +127,10 @@ Shape {
         strokeStyle: root.strokeStyle
         dashPattern: root.dashPattern
         startX: 0
-        startY: 100
+        startY: root.height //  100
         PathLine {
-            x: 100
-            y: 100
+            x: root.width   //  100
+            y: root.height  //  100
         }
     }
 }
