@@ -37,8 +37,7 @@ auto make = []() {
   auto m1 = system->make_device<Dense>(d1);
   auto m2 = system->make_device<Dense>(d2);
   auto m3 = system->make_device<Dense>(d3);
-  SimpleBus::Configuration b1(base_b1);
-  b1.span = AddressSpan(0, 5);
+  SimpleBus::Configuration b1{{base_b1}, 0, AddressSpan(0, 5)};
   b1.mappings.push_back(Mapping{
       .target = m1->config().fullname,
       .source_span = AddressSpan(0, 1),
