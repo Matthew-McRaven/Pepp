@@ -74,6 +74,68 @@ inline static const NativeOpcode CfgSet{
     .name = "cfg.set",
     .h = native_cfg_set,
 };
+
+// ( parent_idx cfg_idx name-- ) Insert a JSON object into a parent configuration
+void native_cfg_insert(Interpreter *interp) {
+  auto name_addr = interp->pop_psp<u16>();
+  auto name_len = strlen_helper(interp, name_addr);
+
+  auto cfg_idx = interp->pop_psp<u16>();
+  auto par_idx = interp->pop_psp<u16>();
+  std::string_view name{(const char *)interp->memory.data() + name_addr, name_len};
+
+  auto cfg = interp->get_object(cfg_idx);
+  auto par = interp->get_object(par_idx);
+
+  if (!cfg) throw std::runtime_error("Invalid configuration object index");
+  else if (!par) throw std::runtime_error("Invalid parent configuration object index");
+  else if (auto cfg_casted = std::dynamic_pointer_cast<InteractiveConfiguration>(cfg);
+           cfg->type_code() != AValue::Type::InteractiveConfig || cfg_casted == nullptr)
+    throw std::runtime_error("Object is not a configuration object");
+  else if (auto par_casted = std::dynamic_pointer_cast<InteractiveConfiguration>(par);
+           par->type_code() != AValue::Type::InteractiveConfig || par_casted == nullptr)
+    throw std::runtime_error("Parent object is not a configuration object");
+  else par_casted->fields()[name] = cfg_casted->fields();
+}
+inline static const NativeOpcode CfgInsert{
+    .stack_delta = -6,
+    .name = "cfg.insert",
+    .h = native_cfg_insert,
+};
+
+void native_cfg_append(Interpreter *interp) {
+  auto name_addr = interp->pop_psp<u16>();
+  auto name_len = strlen_helper(interp, name_addr);
+
+  auto cfg_idx = interp->pop_psp<u16>();
+  auto par_idx = interp->pop_psp<u16>();
+  std::string_view name{(const char *)interp->memory.data() + name_addr, name_len};
+
+  auto cfg = interp->get_object(cfg_idx);
+  auto par = interp->get_object(par_idx);
+
+  if (!cfg) throw std::runtime_error("Invalid configuration object index");
+  else if (!par) throw std::runtime_error("Invalid parent configuration object index");
+  else if (auto cfg_casted = std::dynamic_pointer_cast<InteractiveConfiguration>(cfg);
+           cfg->type_code() != AValue::Type::InteractiveConfig || cfg_casted == nullptr)
+    throw std::runtime_error("Object is not a configuration object");
+  else if (auto par_casted = std::dynamic_pointer_cast<InteractiveConfiguration>(par);
+           par->type_code() != AValue::Type::InteractiveConfig || par_casted == nullptr)
+    throw std::runtime_error("Parent object is not a configuration object");
+  else {
+    // If array, just append the child config
+    if (auto json = par_casted->fields()[name]; json.is_array()) json.push_back(cfg_casted->fields());
+    // If non-existent, must first create array, then insert.
+    else if (json.is_null()) par_casted->fields()[name] = nlohmann::json::array({cfg_casted->fields()});
+    else throw std::runtime_error("Field is not an array");
+  }
+}
+inline static const NativeOpcode CfgAppend{
+    .stack_delta = -6,
+    .name = "cfg.append",
+    .h = native_cfg_append,
+};
+
 void native_cfg_print(Interpreter *interp) {
   auto name_addr = interp->pop_psp<u16>();
   auto name_len = strlen_helper(interp, name_addr);
@@ -170,11 +232,15 @@ void register_config_words(Interpreter *p) {
 
   p->run_on(" var cfg drop"); // create a var to hold the index of the WIP config. var returns the addr of the variable,
                               // which we don't need.
-
+  p->run_on(" var cfg.parent drop");
   auto op_alloc = p->register_native(CfgAlloc);
   p->run_on(fmt::format(": cfg.alloc word!t1 t1 op 0x{:4x} cfg ! ; ", op_alloc));
   auto op_set = p->register_native(CfgSet);
   p->run_on(fmt::format(": cfg.set cfg @ word!t1 word!t2 t1 t2 op 0x{:4x} ;", op_set));
+  auto op_insert = p->register_native(CfgInsert);
+  p->run_on(fmt::format(": cfg.insert cfg.parent @ cfg @ word!t1 t1 op 0x{:4x} cfg.parent @ cfg ! ;", op_insert));
+  auto op_append = p->register_native(CfgAppend);
+  p->run_on(fmt::format(": cfg.append cfg.parent @ cfg @ word!t1 t1 op 0x{:4x} cfg.parent @ cfg ! ;", op_append));
   auto op_print = p->register_native(CfgPrint);
   p->run_on(fmt::format(": cfg.print cfg @ word!t1 t1 op 0x{:4x} ;", op_print));
   auto op_has = p->register_native(CfgHas);

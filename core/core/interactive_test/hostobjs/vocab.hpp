@@ -42,10 +42,15 @@ public:
  * Implemented in config.cpp
  * Register the following words:
  * cfg         ( -- addr), variable holding the configuration object being worked on by cfg.w* words.
+ * cfg.parent  ( -- addr), variable holding the parent configuration object of the current configuration object.
+ *                         Only intended for use when creating nested JSON objects (e.g., SimpleBus mappings).
  * cfg.alloc   (  -- idx[cfg]), allocate a new configuration object and push its index onto the stack
  *                 The type of the config is determined by the string argument (ptr to null terminated str).
  *                 next words is the name of the config
  * cfg.set     ( -- ) read next two words. first word is name, second is value.
+ * cfg.append  ( -- ) read the next word (key). If cfg.parent[key] is an array, append cfg as the last entry. Reset cfg
+ *                    to cfg.parent
+ * cfg.insert  ( -- ) read the next word (key). Set cfg.parent[key] to cfg. Reset cfg to cfg.parent
  * cfg.print   ( -- ), reads next word as a field name. print the associate field on cfg.
  * cfg.has     ( -- 0|1), read next word, treat as field name. pushes 1 if cfg contains that field, 0 if not.
  * cfg.get     ( -- buf len), read next word, treat as field name. copies the string value of that field name into
