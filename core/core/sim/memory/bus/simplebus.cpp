@@ -1,9 +1,83 @@
 #include "simplebus.hpp"
+#include <nlohmann/json.hpp>
+#include "core/math/bitmanip/strings.hpp"
 #include "core/sim/memory/errors.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
+namespace {
+AddressSpan parse_span(const nlohmann::json &obj, const std::string &prefix = "") {
+  if (!obj.contains(prefix + "min_offset") || obj[prefix + "min_offset"].is_null())
+    throw ParsingError("SimpleBus must have a min_offset");
+  auto min = as_u32(obj[prefix + "min_offset"]);
+  if (!obj.contains(prefix + "max_offset") || obj[prefix + "max_offset"].is_null())
+    throw ParsingError("SimpleBus must have a max_offset");
+  auto max = as_u32(obj[prefix + "max_offset"]);
+  return AddressSpan{min, max};
+}
+Device *create_simplebus(const nlohmann::json &self, System *sys, Device *par) {
+  using namespace bits;
+  SimpleBus::Configuration cfg;
+  using Access = SimpleBus::Configuration::Mapping::Access;
+  try {
+    parse_standard_fields(self, cfg);
+    if (cfg.basename.empty()) throw ParsingError("SimpleBus must have a basename");
+    cfg.span = parse_span(self);
+
+    if (self.contains("fill") && !self["fill"].is_null()) cfg.fill = as_i8(self["fill"]);
+    if (self.contains("fail_policy") && !self["fail_policy"].is_null()) {
+      auto policy = bits::to_lower(self["fail_policy"].get<std::string>());
+      if (policy == "raise_error") cfg.fail_policy = FailPolicy::RaiseError;
+      else if (policy == "yield_default") cfg.fail_policy = FailPolicy::YieldDefaultValue;
+      else throw ParsingError("Unknown fail_policy: " + policy);
+    }
+    if (self.contains("mappings") && self["mappings"].is_array()) {
+      for (const auto &mapping : self["mappings"]) {
+        SimpleBus::Configuration::Mapping m;
+        if (!mapping.contains("target") || mapping["target"].is_null())
+          throw ParsingError("SimpleBus mapping must have a string target");
+        m.target = mapping["target"].get<std::string>();
+        // Check for source min and max offset
+        m.source_span = parse_span(mapping, "source_");
+        // Check for target offset
+        if (!mapping.contains("target_offset") || mapping["target_offset"].is_null())
+          throw ParsingError("SimpleBus mapping must have a target_offset");
+        m.target_offset = as_u32(mapping["target_offset"]);
+        // Search for read/write/execute values
+        if (mapping.contains("access") && !mapping["access"].is_null()) {
+          auto access = bits::to_lower(mapping["access"].get<std::string>());
+          m.access = Access::None;
+          if (access.find("r") == std::string::npos) m.access |= Access::Read;
+          if (access.find("w") == std::string::npos) m.access |= Access::Write;
+          if (access.find("x") == std::string::npos) m.access |= Access::Execute;
+        }
+        cfg.mappings.push_back(m);
+      }
+    } else throw ParsingError("SimpleBus must have a mappings array");
+  } catch (const nlohmann::json::type_error &e) {
+    throw ParsingError("Failed to parse SimpleBus: " + std::string(e.what()));
+  }
+  return sys->make_device<SimpleBus>(par, cfg);
+}
+void prefill_simplebus(nlohmann::json &obj) {
+  obj["compatible"] = SimpleBus::compatible;
+  obj["basename"];
+  obj["min_offset"];
+  obj["max_offset"];
+  obj["mappings"] = nlohmann::json::array();
+  obj["fail_policy"] = "raise_error";
+  obj["fill"] = 0;
+}
+
+void serialize_simplebus(nlohmann::json &obj, const System *sys, const Device *self) {
+  throw std::logic_error("Dense::serialize not implemented");
+}
+
+} // namespace
+
 SimpleBus::SimpleBus(Configuration cfg) : _config(cfg) {}
+
+const std::vector<SimpleBus::Configuration::Mapping> &SimpleBus::mappings() const { return _config.mappings; }
 
 void SimpleBus::initialize(System *sys) {
   for (auto &mapping : _config.mappings) {
@@ -11,7 +85,7 @@ void SimpleBus::initialize(System *sys) {
     if (!target_dev) throw std::logic_error("SimpleBus::initialize: mapping target not found: " + mapping.target);
     if (auto as_target = dynamic_cast<Target *>(target_dev); as_target != nullptr) {
       auto target_span = pepp::core::Interval<u32>::from_point_size(mapping.target_offset,
-                                                                    pepp::core::size_inclusive(mapping.source_span));
+                                                                    pepp::core::size_exclusive(mapping.source_span));
       _addrs.insert_or_overwrite(mapping.source_span, target_span, target_dev->id(), mapping.access);
       _devices[target_dev->id()] = as_target;
     } else {
@@ -31,7 +105,13 @@ Device::Type SimpleBus::type() const {
 
 std::unique_ptr<DeviceSerializer> SimpleBus::serializer() const { return make_serializer(); }
 
-std::unique_ptr<DeviceSerializer> SimpleBus::make_serializer() { return nullptr; }
+std::unique_ptr<DeviceSerializer> SimpleBus::make_serializer() {
+  DeviceSerializer s{.parser = create_simplebus,
+                     .prefill = prefill_simplebus,
+                     .serialize = serialize_simplebus,
+                     .compatible = SimpleBus::compatible};
+  return std::make_unique<DeviceSerializer>(std::move(s));
+}
 
 void SimpleBus::set_buffer(Buffer *tb) {
   _tb = tb;
@@ -69,7 +149,7 @@ Target::Result SimpleBus::read(Address address, bits::span<u8> dst, Operation op
     // Convert bus address => device address
     auto src = offset_map<Address>(address + offset, region->from, region->to);
     // TODO: stop ignoring the result of the write. If the device returns an error, we should propagate it.
-    (void)dev->write(src, dst.subspan(offset, usable_len), op);
+    (void)dev->read(src, dst.subspan(offset, usable_len), op);
     offset += usable_len, length -= usable_len;
   }
   return {};

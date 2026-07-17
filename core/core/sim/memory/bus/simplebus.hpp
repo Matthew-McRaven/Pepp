@@ -111,16 +111,20 @@ private:
   std::vector<Node> _elements;
 };
 
+// Bug: only raise_error policy works. Both read & write need to be updated to ingore faulting addresses in the case of
+// yield_default.
 class SimpleBus final : public Device, public Target, public Initiator, public Traceable {
 public:
-  static const inline std::string compatible = "ram,dense";
+  static const inline std::string compatible = "bus,simple";
   struct Configuration : public Device::Configuration {
     u8 fill{0};
+    // encoded as min_offset and max_offset
     AddressSpan span;
+    // Options are "yield_default" and "raise_error"
     FailPolicy fail_policy = FailPolicy::RaiseError;
 
     struct Mapping {
-      enum Access : u8 { Read = 1 << 0, Write = 1 << 1, Execute = 1 << 2 };
+      enum Access : u8 { None = 0, Read = 1 << 0, Write = 1 << 1, Execute = 1 << 2 };
       std::string target;
       Access access = (Access)(Access::Read | Access::Write | Access::Execute);
       AddressSpan source_span;
@@ -136,6 +140,7 @@ public:
   // multiple objects to share a device descriptor.
   SimpleBus(const SimpleBus &) = delete;
   SimpleBus &operator=(const SimpleBus &) = delete;
+  const std::vector<Configuration::Mapping> &mappings() const;
 
   // Device interface
   void initialize(System *) override;
@@ -167,3 +172,5 @@ private:
   std::unordered_map<Device::ID, Target *> _devices;
   Buffer *_tb = nullptr;
 };
+
+consteval void is_bitflags(SimpleBus::Configuration::Mapping::Access);
