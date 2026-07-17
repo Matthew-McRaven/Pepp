@@ -49,11 +49,22 @@ inline static const NativeOpcode DumpObjects{
     .h = dump_objects,
 };
 
+void free_object(Interpreter *interp) {
+  u16 idx = interp->pop_psp<u16>();
+  interp->free_object(idx);
+}
+inline static const NativeOpcode FreeObject{
+    .stack_delta = -2,
+    .name = "obj.free",
+    .h = free_object,
+};
+
 void register_value_words(Interpreter *p) {
   dict_insert_native(p, ValueTypeName, {});
   dict_insert_native(p, ValueType, {});
   dict_insert_native(p, ValueDescribe, {});
   dict_insert_native(p, DumpObjects, {});
+  dict_insert_native(p, FreeObject, {});
   const u16 arg1_spad = p->cb.here;
   p->cb.here += 32;
   NativeOpcode PushA1 = {

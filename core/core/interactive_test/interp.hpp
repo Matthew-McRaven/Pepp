@@ -205,17 +205,12 @@ public:
 private:
   u16 _next_object_id = 1;
   std::map<u16, std::shared_ptr<AValue>> object_heap;
+  std::unordered_map<void * /*data*/, u16 /*heap idx*/> heap_lut;
 
 public:
   const std::map<u16, std::shared_ptr<AValue>> &get_object_heap() const { return object_heap; }
-  u16 allocate_object(std::shared_ptr<AValue> obj) {
-    auto id = _next_object_id++;
-    object_heap[id] = obj;
-    return id;
-  }
-  std::shared_ptr<AValue> get_object(u16 id) {
-    auto it = object_heap.find(id);
-    if (it != object_heap.end()) return it->second;
-    return nullptr;
-  }
+  u16 allocate_object(std::shared_ptr<AValue> obj);
+  std::shared_ptr<AValue> get_object(u16 id);
+  std::optional<u16> object_from_data(void *data);
+  void free_object(u16 id);
 };

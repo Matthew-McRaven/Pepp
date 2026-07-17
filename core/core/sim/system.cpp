@@ -45,6 +45,16 @@ Device *System::find_relative(std::string_view name, std::string_view parent) {
   else return find_absolute(child_name(parent, name));
 }
 
+Device *System::find_by_id(ID id) {
+  DeviceTree *root = _root.get();
+  auto ptr = (*root) | std::views::filter([&id](Device *dt) { return dt->config().id == id; });
+  if (std::ranges::distance(ptr) > 1) {
+    SPDLOG_WARN("System::find_by_id: multiple devices found with ID {}", id.value);
+    return nullptr;
+  } else if (std::ranges::distance(ptr) == 0) return nullptr;
+  else return *ptr.begin();
+}
+
 Device *System::find_absolute(std::string_view name) {
   DeviceTree *root = _root.get();
   auto ptr = (*root) | std::views::filter([&name](Device *dt) { return dt->config().fullname == name; });

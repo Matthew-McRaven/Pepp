@@ -1,3 +1,4 @@
+#include "interp.hpp"
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -5,7 +6,7 @@
 #include "core/math/bitmanip/enums.hpp"
 #include "fmt/format.h"
 #include "fmt/ranges.h"
-#include "interp.hpp"
+#include "hostobjs/vocab.hpp"
 
 std::optional<std::string> StdinInput::readline() {
   std::string ret;
@@ -106,6 +107,34 @@ u16 Interpreter::zeros(u16 base, u16 count) {
 }
 
 void Interpreter::append_output(std::string text) { output->write(text); }
+
+u16 Interpreter::allocate_object(std::shared_ptr<AValue> obj) {
+  auto id = _next_object_id++;
+  object_heap[id] = obj;
+  heap_lut[obj->data()] = id;
+  return id;
+}
+
+std::shared_ptr<AValue> Interpreter::get_object(u16 id) {
+  auto it = object_heap.find(id);
+  if (it != object_heap.end()) return it->second;
+  return nullptr;
+}
+
+std::optional<u16> Interpreter::object_from_data(void *data) {
+  auto it = heap_lut.find(data);
+  if (it != heap_lut.end()) return it->second;
+  return std::nullopt;
+}
+
+void Interpreter::free_object(u16 id) {
+  auto it = object_heap.find(id);
+  if (it != object_heap.end()) {
+    heap_lut.erase(it->second->data());
+    object_heap.erase(it);
+  }
+}
+
 void StdoutOutput::write(std::string_view text) { std::cout << text; }
 void BufferedOutput::write(std::string_view text) {
   if (text.empty()) return;

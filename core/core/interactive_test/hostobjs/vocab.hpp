@@ -14,6 +14,7 @@ class Interpreter;
  * obj.typename  ( idx[obj] -- ), print the type name of the object at idx to output
  * obj.type      ( idx[obj] -- u16), push the type code of the object at index onto the stack
  * obj.describe  ( idx[obj] -- ), print the description of the object at idx to output
+ * obj.free      ( idx[obj] -- ), free the object at index, removing it from the heap
  * t1            ( -- addr), push the address of a scratch buffer onto the stack
  * word!t1       ( -- ), execute word and copy its buffer to t1
  * t2            ( -- addr), push the address of a scratch buffer onto the stack
@@ -32,6 +33,9 @@ public:
   virtual std::string type_name() const = 0;
   virtual Type type_code() const = 0;
   virtual std::string describe() const = 0;
+  // Return a pointer to the underlying object data.
+  // It is used to perform a reverse lookup from the data pointer to the value wrapper.
+  virtual void *data() const = 0;
 };
 
 /*
@@ -65,6 +69,7 @@ public:
   std::string describe() const override;
   const nlohmann::json &fields() const;
   nlohmann::json &fields();
+  void *data() const override;
 
 private:
   std::shared_ptr<nlohmann::json> _fields = nullptr;
@@ -78,6 +83,7 @@ private:
  *                   writes to sys, dev.parent
  * sys.init      ( -- ) recursively initialize() the devices of the system
  * sys.devcount  ( -- u16), push the number of devices in the system onto the stack
+ * sys.device    ( u16 -- u16), given a device ID, push the heap index of that device onto the stack.
  */
 void register_system_words(Interpreter *interp);
 class DeviceValue : public AValue {
@@ -87,6 +93,7 @@ public:
   std::string type_name() const override;
   Type type_code() const override;
   std::string describe() const override;
+  void *data() const override;
   static std::shared_ptr<DeviceValue> make(Device *);
   Device *dev;
 };

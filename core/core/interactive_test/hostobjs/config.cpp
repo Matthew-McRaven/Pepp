@@ -10,6 +10,10 @@ const nlohmann::json &InteractiveConfiguration::fields() const { return *_fields
 
 nlohmann::json &InteractiveConfiguration::fields() { return *_fields; }
 
+void *InteractiveConfiguration::data() const {
+  return (void *)_fields.get(); // Return the pointer to the underlying JSON object
+}
+
 std::string InteractiveConfiguration::get_field(std::string_view name) const {
   if (auto v = _fields->find(name); v == _fields->end()) return "";
   else return v->get<std::string>();
