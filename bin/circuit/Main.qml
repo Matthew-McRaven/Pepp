@@ -25,40 +25,50 @@ Window {
             SplitView.fillWidth: true
         }
 
-        Rectangle {
-            id: tabs
+        ColumnLayout {
             SplitView.fillHeight: true
             SplitView.preferredWidth: 200
             SplitView.minimumWidth: 140
 
-            TabBar {
-                id: tab
-                width: tabs.width
-
-                TabButton {
-                    text: "Gate Editor"
-                }
-                TabButton {
-                    text: "Pin Editor"
-                }
+            Bp.BluePrintThumbNail {
+                Layout.preferredWidth: 175
+                Layout.preferredHeight: 175
             }
 
-            StackLayout {
-                id: view
-                anchors.topMargin: tab.height + 1
-                anchors.fill: parent
-                currentIndex: tab.currentIndex
+            Rectangle {
+                id: tabs
 
-                //  Gate selection
-                Bp.GateProperties {
-                    Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                TabBar {
+                    id: tab
+                    width: tabs.width
+
+                    TabButton {
+                        text: "Gate Editor"
+                    }
+                    TabButton {
+                        text: "Pin Editor"
+                    }
                 }
 
-                //  Pin logic
-                Bp.PinProperties {
-                    Layout.fillWidth: true
-                }
-            }   //  StackLayout
-        }   //  Rectangle
-    }
+                StackLayout {
+                    id: view
+                    anchors.topMargin: tab.height + 1
+                    anchors.fill: parent
+                    currentIndex: tab.currentIndex
+
+                    //  Gate selection
+                    Bp.GateProperties {
+                        Layout.fillWidth: true
+                    }
+
+                    //  Pin logic
+                    Bp.PinProperties {
+                        Layout.fillWidth: true
+                    }
+                }   //  StackLayout
+            }   //  Rectangle
+        }   //  ColumnLayout
+    }   //  SplitView
 }
