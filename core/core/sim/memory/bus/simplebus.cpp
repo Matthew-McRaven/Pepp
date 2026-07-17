@@ -39,9 +39,8 @@ Device *create_simplebus(const nlohmann::json &self, System *sys, Device *par) {
         m.target = mapping["target"].get<std::string>();
         // Check for source min and max offset
         m.source_span = parse_span(mapping, "source_");
-        // Check for target offset
-        if (!mapping.contains("target_offset") || mapping["target_offset"].is_null())
-          throw ParsingError("SimpleBus mapping must have a target_offset");
+        // Check for target offset, defaulting to 0 if not provided.
+        if (!mapping.contains("target_offset") || mapping["target_offset"].is_null()) m.target_offset = 0;
         m.target_offset = as_u32(mapping["target_offset"]);
         // Search for read/write/execute values
         if (mapping.contains("access") && !mapping["access"].is_null()) {

@@ -128,7 +128,7 @@ public:
       std::string target;
       Access access = (Access)(Access::Read | Access::Write | Access::Execute);
       AddressSpan source_span;
-      Address target_offset;
+      Address target_offset = 0;
     };
     std::vector<Mapping> mappings;
   };
