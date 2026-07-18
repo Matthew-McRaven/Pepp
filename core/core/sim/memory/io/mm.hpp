@@ -50,10 +50,10 @@ public:
   void push(u8 value);
   u8 at(Address index) const;
   void clear();
-  size_t size() const;
-  bool empty() const;
+  size_t size() const noexcept;
+  bool empty() const noexcept;
   // Read the most recent value in the queue, or return default value if empty.
-  u8 latest_or(u8 def) const;
+  u8 latest_or(u8 def) const noexcept;
 
 private:
   Address _max_index;

@@ -50,15 +50,15 @@ u8 IOQueue::at(Address index) const {
 
 void IOQueue::clear() { _data.clear(0); }
 
-size_t IOQueue::size() const {
+size_t IOQueue::size() const noexcept {
   return _max_index; // Since we always push to the end, the size is equal to the max index.
 }
 
-bool IOQueue::empty() const {
+bool IOQueue::empty() const noexcept {
   return size() == 0; // If the size is 0, then the queue is empty.
 }
 
-u8 IOQueue::latest_or(u8 def) const {
+u8 IOQueue::latest_or(u8 def) const noexcept {
   if (empty()) return def;
   else return at(_max_index - 1);
 }
