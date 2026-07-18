@@ -174,7 +174,7 @@ void serialize_children(const DeviceTree *parent, const System *sys, nlohmann::j
     serialize_children(child.get(), sys, child_obj);
     children.push_back(std::move(child_obj));
   }
-  obj["children"] = std::move(children);
+  if (!children.empty()) obj["children"] = std::move(children);
 }
 
 void serialize_system(const System *sys, nlohmann::json &obj) {
