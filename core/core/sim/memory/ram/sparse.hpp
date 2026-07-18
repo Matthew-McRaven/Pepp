@@ -27,23 +27,23 @@
 // e.g., the page at 0x1'0000'0000 will not be allocated until all preceding page are allocated.
 // This PagePool is intentionally spare because it is trying to store a large address space with the minimum number of
 // bytes.
+// It has no upper or lower bounds, and pages will be lazily allocated on demand.
 class PagePool {
 public:
-  explicit PagePool(AddressSpan span, u8 fill = 0);
+  explicit PagePool(u8 fill = 0);
   ~PagePool() = default;
   PagePool(PagePool &&other) noexcept = default;
   PagePool &operator=(PagePool &&other) = default;
   PagePool(const PagePool &) = delete;
   PagePool &operator=(const PagePool &) = delete;
 
-  void read(Address address, bits::span<u8> dest) const;
-  void write(Address address, bits::span<const u8> src);
+  void read(Address offset, bits::span<u8> dest) const;
+  void write(Address offset, bits::span<const u8> src);
   void clear(u8 fill);
   void dump(bits::span<u8> dest) const;
 
 private:
   u8 _fill;
-  AddressSpan _span;
   static constexpr u32 SPARSE_PAGE_SIZE = 256;
   static constexpr u32 SPARSE_PAGE_MASK = SPARSE_PAGE_SIZE - 1;
   using PageData = std::array<u8, SPARSE_PAGE_SIZE>;

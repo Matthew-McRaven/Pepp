@@ -4,10 +4,9 @@
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
-PagePool::PagePool(AddressSpan span, u8 fill) : _span(span), _fill(fill) {}
+PagePool::PagePool(u8 fill) : _fill(fill) {}
 
-void PagePool::read(Address address, bits::span<u8> dest) const {
-  auto offset = address - _span.lower();
+void PagePool::read(Address offset, bits::span<u8> dest) const {
   while (dest.size() > 0) {
     const auto page_addr = offset & ~SPARSE_PAGE_MASK;
     const auto page_offset = offset & SPARSE_PAGE_MASK;
@@ -26,8 +25,7 @@ void PagePool::read(Address address, bits::span<u8> dest) const {
   }
 }
 
-void PagePool::write(Address address, bits::span<const u8> src) {
-  auto offset = address - _span.lower();
+void PagePool::write(Address offset, bits::span<const u8> src) {
   while (src.size() > 0) {
     const auto page_addr = offset & ~SPARSE_PAGE_MASK;
     const auto page_offset = offset & SPARSE_PAGE_MASK;
@@ -56,7 +54,7 @@ void PagePool::clear(u8 fill) {
 void PagePool::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   for (const auto &[addr, meta] : _pages) {
-    auto dest_subspan = dest.subspan(addr - _span.lower(), meta.data.size());
+    auto dest_subspan = dest.subspan(addr, meta.data.size());
     const auto src_subspan = bits::span<const u8>{meta.data.data(), meta.data.size()};
     bits::memcpy(dest_subspan, src_subspan);
   }
@@ -105,7 +103,7 @@ void serialize_sparse(nlohmann::json &obj, const System *sys, const Device *self
 }
 } // namespace
 
-Sparse::Sparse(Configuration config) : Device(), _config(config), _pool(_config.span, _config.fill) {}
+Sparse::Sparse(Configuration config) : Device(), _config(config), _pool(_config.fill) {}
 
 const Device::Configuration &Sparse::config() const { return _config; }
 
@@ -155,7 +153,8 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
   // Ignore reads from buffer internal operations.
   if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) && _tb)
     ;
-  _pool.read(address, dest);
+  const auto offset = address - span.lower();
+  _pool.read(offset, dest);
   return {};
 }
 
@@ -171,7 +170,8 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
   // Ignore reads from buffer internal operations.
   if (op.type != Operation::Type::BufferInternal && _tb)
     ;
-  _pool.write(address, src);
+  const auto offset = address - span.lower();
+  _pool.write(offset, src);
   return {};
 }
 
