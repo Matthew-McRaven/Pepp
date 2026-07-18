@@ -89,6 +89,7 @@ private:
  * sys.init      ( -- ) recursively initialize() the devices of the system
  * sys.devcount  ( -- u16), push the number of devices in the system onto the stack
  * sys.device    ( u16 -- u16), given a device ID, push the heap index of that device onto the stack.
+ * sys.json      ( -- ), print the system's JSON to output
  */
 void register_system_words(Interpreter *interp);
 class DeviceValue : public AValue {

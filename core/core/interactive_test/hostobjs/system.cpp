@@ -1,4 +1,5 @@
 #include "core/sim/system.hpp"
+#include <nlohmann/json.hpp>
 #include "./vocab.hpp"
 #include "core/interactive_test/dict.hpp"
 #include "core/interactive_test/vocab/core_words.hpp"
@@ -96,7 +97,23 @@ void native_sys_id(Interpreter *interp) {
     }
   }
 }
-inline static const NativeOpcode SysId{.stack_delta = -2, .name = "sys.id", .h = native_sys_id};
+inline static const NativeOpcode SysId{.stack_delta = -4, .name = "sys.id", .h = native_sys_id};
+
+// (sys_idx -- )
+void native_sys_json(Interpreter *interp) {
+  auto sys_idx = interp->pop_psp<u16>();
+  auto sys_val = interp->get_object(sys_idx);
+  if (!sys_val) throw std::runtime_error("Invalid system object index");
+  if (auto casted = std::dynamic_pointer_cast<SystemValue>(sys_val);
+      sys_val->type_code() != AValue::Type::Device || casted == nullptr)
+    throw std::runtime_error("Object is not a system object");
+  else {
+    nlohmann::json obj;
+    serialize_system(casted->sys.get(), obj);
+    interp->output->write(fmt::format("{}", obj.dump(2)));
+  }
+}
+inline static const NativeOpcode SysJson{.stack_delta = -2, .name = "sys.json", .h = native_sys_json};
 
 void register_system_words(Interpreter *p) {
   p->run_on(" var sys drop");
@@ -109,4 +126,6 @@ void register_system_words(Interpreter *p) {
   p->run_on(fmt::format(": sys.init sys @ op 0x{:04x} ;", op_init));
   auto op_id = p->register_native(SysId);
   p->run_on(fmt::format(": sys.device sys @ op 0x{:04x} ;", op_id));
+  auto op_json = p->register_native(SysJson);
+  p->run_on(fmt::format(": sys.json sys @ op 0x{:04x} ;", op_json));
 }
