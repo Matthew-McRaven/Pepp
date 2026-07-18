@@ -83,6 +83,7 @@ public:
   Device *find_by_id(Device::ID id);
 
   DeviceTree *root() { return _root.get(); }
+  const DeviceTree *root() const { return _root.get(); }
 
 private:
   Configuration _config{{.basename{"/"}, .fullname{"/"}}};

@@ -165,3 +165,21 @@ std::unique_ptr<System> create_system(const nlohmann::json &obj) {
   }
   return std::make_unique<System>(cfg);
 }
+
+void serialize_children(const DeviceTree *parent, const System *sys, nlohmann::json &obj) {
+  nlohmann::json children = nlohmann::json::array();
+  for (const auto &child : parent->children) {
+    nlohmann::json child_obj;
+    child->device->serializer()->serialize(child_obj, sys, child->device);
+    serialize_children(child.get(), sys, child_obj);
+    children.push_back(std::move(child_obj));
+  }
+  obj["children"] = std::move(children);
+}
+
+void serialize_system(const System *sys, nlohmann::json &obj) {
+  obj["compatible"] = sys->config().compatible;
+  obj["basename"] = sys->config().basename;
+  const auto dt = sys->root();
+  serialize_children(dt, sys, obj);
+}

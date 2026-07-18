@@ -32,6 +32,8 @@ void System::initialize() {
 
 std::unique_ptr<DeviceSerializer> System::serializer() const { return make_serializer(); }
 
+// Serialization is handled inline in systemparser. Serializer does not transfer ownership of allocated object to
+// caller, which is required when initializing a System ex nihilo.
 std::unique_ptr<DeviceSerializer> System::make_serializer() { return nullptr; }
 
 Device::ID System::next_ID() { return _next_ID++; }

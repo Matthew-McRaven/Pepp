@@ -36,6 +36,8 @@ std::unique_ptr<System> create_system(const nlohmann::json &obj);
 // Identifiies correct device parser based on the compatible field.
 Device *create_device(const nlohmann::json &obj, System *sys, Device *parent);
 
+void serialize_system(const System *sys, nlohmann::json &obj);
+
 // Helpers to extract integer values from a JSON node.
 // If the field is a string, attempt to parse that field.
 // Throws ParsingError if the value is not present not convertible to an integer.

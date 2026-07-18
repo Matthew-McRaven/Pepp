@@ -100,4 +100,21 @@ TEST_CASE("System Parser, System, Passes", "[scope:core][scope:core.sim][kind:un
     CHECK(s->config().compatible == System::compatible);
     CHECK(s->id() == Device::ID{0});
   }
+
+  SECTION("serializes to itself") {
+    static const char *js = R"j({
+      "basename": "/feed"
+    })j";
+
+    auto s = parse_system(js);
+    REQUIRE(s != nullptr);
+    CHECK(s->config().basename == "/feed");
+    CHECK(s->config().fullname == "/feed");
+    CHECK(s->config().compatible == System::compatible);
+    CHECK(s->id() == Device::ID{0});
+
+    nlohmann::json out;
+    serialize_system(s.get(), out);
+    CHECK(out["basename"] == "/feed");
+  }
 }
