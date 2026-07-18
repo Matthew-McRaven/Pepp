@@ -83,6 +83,8 @@ public:
     u8 fill{0};
     MemoryMappedRegister::IODirection direction = MemoryMappedRegister::IODirection::None;
     AddressSpan span{};
+    // Options are "yield_default" and "raise_error"
+    FailPolicy fail_policy = FailPolicy::RaiseError;
   };
   MemoryMappedRegister(Configuration device);
   ~MemoryMappedRegister() = default;

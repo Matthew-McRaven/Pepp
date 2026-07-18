@@ -108,6 +108,18 @@ TEST_CASE("(new) MemoryMappedReg  storage in-bounds access", "[scope:core][scope
     CHECK(!ob.at_end());
     CHECK(*ob == 0xCA);
   }
+
+  SECTION("Return default value when fail_policy == YieldDefaultValue") {
+    auto span = AddressSpan(0x17, 0x17);
+    auto cfg = MemoryMappedRegister::Configuration{Device::Configuration{base_desc}};
+    cfg.span = span, cfg.fill = 0xFE, cfg.id = {};
+    cfg.direction = MemoryMappedRegister::IODirection::Input;
+    cfg.fail_policy = FailPolicy::YieldDefaultValue;
+    MemoryMappedRegister dev(cfg);
+    *tmp = 0;
+    REQUIRE_NOTHROW(dev.read(0x17, {tmp, 1}, op));
+    CHECK(*tmp == 0xFE);
+  }
 }
 
 TEST_CASE("(new) MemoryMappedReg storage out-of-bounds access",

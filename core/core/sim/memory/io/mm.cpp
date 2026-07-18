@@ -127,26 +127,23 @@ Target::Result MemoryMappedRegister::read(Address address, bits::span<u8> dest, 
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
-  const auto offset = address - span.lower();
 
   u8 src = _config.fill;
   // Only consumes input when the operation is not part of application-internal updates.
   const bool advances_input = !(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal);
   // This is an input register, so we read from the input queue. If the input queue is empty, we might raise an error
   if (any(_config.direction & MemoryMappedRegister::IODirection::Input)) {
-    // value_or will always return a value, even if at the end of the input.
-    src = _input_it.value_or(_config.fill);
-    // Rather than have this check on both sides of the read (one to catch at_end(), one to increment), perform both
-    // checks here. If the empty, we perform a spurious read of the input queue (without incrementing any iterators!)
+    // If at the end of the input queue, make a decision based on our fail policy.
+    if (advances_input && _input_it.at_end()) {
+      if (_config.fail_policy == FailPolicy::RaiseError) throw Error(Error::Type::NeedsMMI, address);
+      else src = _config.fill;
+    } else src = _input_it.value_or(_config.fill);
+
     if (advances_input) {
-      // TOOD: based on _config, we might return a default value rather than throw.
-      if (_input_it.at_end() && true) {
-        throw Error(Error::Type::NeedsMMI, address);
-      }
       // TODO: emit an impure read to TB.
       if (_tb)
         ;
-      ++_input_it;
+      if (!(_input_it.at_end())) ++_input_it;
     }
   } else if (any(_config.direction & MemoryMappedRegister::IODirection::Output)) {
     // If an output register, return the most recently written value.
@@ -163,12 +160,11 @@ Target::Result MemoryMappedRegister::write(Address address, bits::span<const u8>
   // Length is 1-indexed, address are 0, so must offset by -1.
   const auto max_addr = (address + std::max<Address>(0, src.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
-  const auto offset = address - span.lower();
 
   // Only advances output when the write isn't related to some app/debugger state change.
   const bool advances_output = !(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal);
-  // This is an input register, so we read from the input queue. If the input queue is empty, we might raise an error
-  if (any(_config.direction & MemoryMappedRegister::IODirection::Output)) {
+  // This is an output reg. Only enqueue value if the operation is not part of an app-internal update.
+  if (advances_output && any(_config.direction & MemoryMappedRegister::IODirection::Output)) {
     // TODO: emit write to TB.
     if (_tb)
       ;
