@@ -110,7 +110,7 @@ void native_sys_json(Interpreter *interp) {
   else {
     nlohmann::json obj;
     serialize_system(casted->sys.get(), obj);
-    interp->output->write(fmt::format("{}", obj.dump(2)));
+    interp->output->write(fmt::format("{}\n", obj.dump(2)));
   }
 }
 inline static const NativeOpcode SysJson{.stack_delta = -2, .name = "sys.json", .h = native_sys_json};

@@ -84,6 +84,7 @@ void native_print_nullterminated(Interpreter *interp) {
     if (c == 0) break;
     interp->append_output(std::string(1, static_cast<char>(c)));
   }
+  interp->append_output("\n");
 }
 inline static const NativeOpcode PrintNullTerminated{
     .stack_delta = -2,
