@@ -68,8 +68,37 @@ void prefill_simplebus(nlohmann::json &obj) {
   obj["fill"] = 0;
 }
 
+void serialize_mapping(nlohmann::json &obj, const SimpleBus::Configuration::Mapping &mapping) {
+  obj["target"] = mapping.target;
+  obj["source_min_offset"] = mapping.source_span.lower();
+  obj["source_max_offset"] = mapping.source_span.upper();
+  obj["target_offset"] = mapping.target_offset;
+  std::string access;
+  if (mapping.access & SimpleBus::Configuration::Mapping::Access::Read) access += "r";
+  if (mapping.access & SimpleBus::Configuration::Mapping::Access::Write) access += "w";
+  if (mapping.access & SimpleBus::Configuration::Mapping::Access::Execute) access += "x";
+  obj["access"] = access;
+}
+
 void serialize_simplebus(nlohmann::json &obj, const System *sys, const Device *self) {
-  throw std::logic_error("Dense::serialize not implemented");
+  auto casted = dynamic_cast<const SimpleBus *>(self);
+  if (!casted) throw std::logic_error("serialize_simplebus called on non-SimpleBus device");
+  obj["compatible"] = SimpleBus::compatible;
+  obj["basename"] = casted->config().basename;
+  obj["min_offset"] = casted->casted_config().span.lower();
+  obj["max_offset"] = casted->casted_config().span.upper();
+  if (casted->casted_config().fill != 0) obj["fill"] = casted->casted_config().fill;
+  switch (casted->casted_config().fail_policy) {
+  case FailPolicy::RaiseError: break; // Default value; do not serialize.
+  case FailPolicy::YieldDefaultValue: obj["fail_policy"] = "yield_default"; break;
+  }
+  nlohmann::json mappings = nlohmann::json::array();
+  for (const auto &mapping : casted->mappings()) {
+    nlohmann::json mapping_obj;
+    serialize_mapping(mapping_obj, mapping);
+    mappings.push_back(mapping_obj);
+  }
+  obj["mappings"] = mappings;
 }
 
 } // namespace
@@ -94,6 +123,8 @@ void SimpleBus::initialize(System *sys) {
 }
 
 const Device::Configuration &SimpleBus::config() const { return _config; }
+
+const SimpleBus::Configuration &SimpleBus::casted_config() const { return _config; }
 
 const Device::ID SimpleBus::id() const { return _config.id; }
 

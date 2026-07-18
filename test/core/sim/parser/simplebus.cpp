@@ -146,6 +146,19 @@ TEST_CASE("System Parser, SimpleBus, Passes", "[scope:core][scope:core.sim][kind
     REQUIRE(casted != nullptr);
     // Read to mapped address. Read default value of target.
     CHECK(casted->read<u8>(0x10, op_i_std).second == 13);
+
+    // Serialization
+    nlohmann::json obj;
+    bus->serializer()->serialize(obj, s.get(), bus);
+    CHECK(obj["compatible"] == SimpleBus::compatible);
+    CHECK(obj["basename"] == "bus");
+    CHECK(obj["min_offset"] == 0);
+    CHECK(obj["max_offset"] == 1024);
+    CHECK(obj["fail_policy"] == "yield_default");
+    CHECK(obj["mappings"][0]["source_min_offset"] == 0);
+    CHECK(obj["mappings"][0]["source_max_offset"] == 20);
+    CHECK(obj["mappings"][0]["target_offset"] == 80);
+    CHECK(obj["mappings"][0]["target"] == "/memory");
   }
 }
 
