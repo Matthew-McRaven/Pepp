@@ -20,10 +20,11 @@ IOQueue::Iterator IOQueue::Iterator::operator++(int) {
   return tmp;
 }
 
-bool IOQueue::Iterator::operator!=(const Iterator &other) const {
-  if (_q != other._q) return true;
-  else if (at_end() && other.at_end()) return false;
-  else return _index != other._index;
+bool IOQueue::Iterator::operator!=(const Iterator &other) const { return !(*this == other); }
+
+bool IOQueue::Iterator::operator==(const Iterator &other) const {
+  if (_q != other._q) return false;
+  else return _index == other._index;
 }
 
 bool IOQueue::Iterator::at_end() const { return _index >= _q->size(); }
@@ -37,9 +38,7 @@ u8 IOQueue::Iterator::value_or(u8 def) const {
 
 IOQueue::Iterator IOQueue::begin() { return Iterator(this, 0); }
 
-IOQueue::Iterator IOQueue::end() {
-  return Iterator(this, -1); // end iterator is always at index -1, which is beyond the end of the queue.
-}
+IOQueue::Iterator IOQueue::end() { return Iterator(this, size()); }
 
 void IOQueue::push(u8 value) { _data.write(_max_index++, {&value, 1}); }
 
@@ -69,6 +68,10 @@ MemoryMappedRegister::MemoryMappedRegister(Configuration config) : Device(), _co
   if (_config.span.lower() != _config.span.upper())
     throw std::logic_error("Memory-Mapped Reg must only span single byte.");
 }
+
+IOQueue &MemoryMappedRegister::input() { return _input; }
+
+IOQueue &MemoryMappedRegister::output() { return _output; }
 
 const Device::Configuration &MemoryMappedRegister::config() const { return _config; }
 
@@ -136,8 +139,9 @@ Target::Result MemoryMappedRegister::read(Address address, bits::span<u8> dest, 
     // Rather than have this check on both sides of the read (one to catch at_end(), one to increment), perform both
     // checks here. If the empty, we perform a spurious read of the input queue (without incrementing any iterators!)
     if (advances_input) {
-      if (_input_it.at_end()) {
-        // TODO: throw exception that we ran out of MMI!
+      // TOOD: based on _config, we might return a default value rather than throw.
+      if (_input_it.at_end() && true) {
+        throw Error(Error::Type::NeedsMMI, address);
       }
       // TODO: emit an impure read to TB.
       if (_tb)

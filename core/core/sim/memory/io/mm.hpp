@@ -34,10 +34,8 @@ public:
     Iterator(IOQueue *q, size_t index);
     Iterator &operator++();
     Iterator operator++(int);
-    // treat all _index beyond _q->max_index as equal to eachother.
-    // This gives us a nice property that the end iterator can be init'ed to _index=-1, and all iterators beyond the end
-    // will compare equal to it. Essentially, this lets us avoid invalidation of end iterator on insertion.
     bool operator!=(const Iterator &other) const;
+    bool operator==(const Iterator &other) const;
     bool at_end() const;
     u8 operator*() const;
     u8 value_or(u8) const;
@@ -47,6 +45,7 @@ public:
     size_t _index = -1;
   };
   Iterator begin();
+  // On insert, previously captured end() iterator will become invalidated.
   Iterator end();
   void push(u8 value);
   u8 at(Address index) const;
@@ -93,7 +92,9 @@ public:
   // multiple objects to share a device descriptor.
   MemoryMappedRegister(const MemoryMappedRegister &) = delete;
   MemoryMappedRegister &operator=(const MemoryMappedRegister &) = delete;
-  std::span<const u8> data() const;
+
+  IOQueue &input();
+  IOQueue &output();
 
   // Device interface
   const Device::Configuration &config() const override;

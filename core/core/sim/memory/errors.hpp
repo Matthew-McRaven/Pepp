@@ -21,17 +21,17 @@
 class Error : public std::runtime_error {
 public:
   enum class Type {
-    Unmapped,  // Attempted to read a physical address with no device present.
-    OOBAccess, // Attempted out-of-bound access on a storage device.
-    NeedsMMI,  // Attempted to read MMI that had no buffered input.
-    WriteToRO, // Attempt to write to read-only memory.
+    Unmapped = 1,  // Attempted to read a physical address with no device present.
+    OOBAccess = 2, // Attempted out-of-bound access on a storage device.
+    NeedsMMI = 3,  // Attempted to read MMI that had no buffered input.
+    WriteToRO = 4, // Attempt to write to read-only memory.
   };
-  template <typename Address> static const std::string format(Address address) {
-    return fmt::format("Memory access error at 0x{:08x}", address);
+  template <typename Address> static const std::string format(Address address, Type type) {
+    return fmt::format("Memory access error #{} at 0x{:08x}", (i16)type, address);
   }
   template <typename Address>
   Error(Type type, Address address)
-      : std::runtime_error(format(address)), _type(type), _address(address), _width(sizeof(Address)){};
+      : std::runtime_error(format(address, type)), _type(type), _address(address), _width(sizeof(Address)){};
   u64 address() const { return _address; }
   u8 byte_count() const { return _width; }
   Type type() const { return _type; }
