@@ -39,7 +39,7 @@ void prefill_sparse(nlohmann::json &obj) {
 }
 void serialize_sparse(nlohmann::json &obj, const System *sys, const Device *self) {
   auto casted = dynamic_cast<const Sparse *>(self);
-  if (!casted) throw std::logic_error("serialize_dense called on non-Dense device");
+  if (!casted) throw std::logic_error("serialize_sparse called on non-Sparse device");
   obj["compatible"] = Sparse::compatible;
   obj["basename"] = casted->config().basename;
   obj["min_offset"] = casted->casted_config().span.lower();

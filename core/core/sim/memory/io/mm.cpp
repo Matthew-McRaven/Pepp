@@ -108,7 +108,7 @@ void prefill_mmreg(nlohmann::json &obj) {
 void serialize_mmreg(nlohmann::json &obj, const System *sys, const Device *self) {
   using namespace bits;
   auto casted = dynamic_cast<const MemoryMappedRegister *>(self);
-  if (!casted) throw std::logic_error("serialize_dense called on non-Dense device");
+  if (!casted) throw std::logic_error("serialize_mmreg called on non-MemoryMappedRegister device");
   obj["compatible"] = MemoryMappedRegister::compatible;
   obj["basename"] = casted->config().basename;
   obj["offset"] = casted->casted_config().span.lower();
