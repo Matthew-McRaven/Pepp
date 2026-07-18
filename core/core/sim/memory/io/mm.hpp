@@ -15,10 +15,10 @@
  */
 
 #pragma once
+#include "core/ds/alloc/paged.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
-#include "core/sim/memory/ram/sparse.hpp"
 
 // Helper class to buffer a series of characters for read/write for memory-mapped IO.
 // Backed by a datastructure that can grow arbitrarily without reallocating or moving existing elements.
@@ -58,7 +58,7 @@ public:
 
 private:
   Address _max_index;
-  std::unique_ptr<PagePool> _data;
+  pepp::bts::PagedPool<u8> _data;
 };
 
 // This class differs from the previous memory-mapped IO implementation in the previous version of the simulator.

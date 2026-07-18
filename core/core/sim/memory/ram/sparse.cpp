@@ -4,74 +4,13 @@
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
-PagePool::PagePool(u8 fill) : _fill(fill) {}
-
-void PagePool::read(Address offset, bits::span<u8> dest) const {
-  while (dest.size() > 0) {
-    const auto page_addr = offset & ~SPARSE_PAGE_MASK;
-    const auto page_offset = offset & SPARSE_PAGE_MASK;
-    const auto len = std::min<u32>(dest.size(), SPARSE_PAGE_SIZE - page_offset);
-    if (const auto it = _pages.find(page_addr); it != _pages.end()) {
-      const auto &page = it->second;
-      const auto src = bits::span<const u8>{page.data.data(), page.data.size()}.subspan(page_offset);
-      assert(src.size() >= len);
-      bits::memcpy(dest.first(len), src.first(len));
-    } else {
-      std::fill_n(dest.begin(), len, _fill);
-    }
-
-    offset += len;
-    dest = dest.subspan(len);
-  }
-}
-
-void PagePool::write(Address offset, bits::span<const u8> src) {
-  while (src.size() > 0) {
-    const auto page_addr = offset & ~SPARSE_PAGE_MASK;
-    const auto page_offset = offset & SPARSE_PAGE_MASK;
-    const auto len = std::min<u32>(src.size(), SPARSE_PAGE_SIZE - page_offset);
-    // Search for a page. If it does not exist, allocate it.
-    PageMeta *dst_page = nullptr;
-    if (auto it = _pages.find(page_addr); it != _pages.end()) dst_page = &it->second;
-    else dst_page = &(_pages[page_addr] = make_page());
-
-    assert(dst_page != nullptr);
-    auto dst = bits::span<u8>{dst_page->data.data(), dst_page->data.size()}.subspan(page_offset);
-    assert(src.size() >= len);
-    assert(dst.size() >= len);
-    bits::memcpy(dst.first(len), src.first(len));
-    offset += len;
-    src = src.subspan(len);
-  }
-}
-
-void PagePool::clear(u8 fill) {
-  _fill = fill;
-  for (auto &[_, meta] : _pages) _free.push(meta);
-  _pages.clear();
-}
-
-void PagePool::dump(bits::span<u8> dest) const {
+void dump(const pepp::bts::PagedPool<u8> &p, bits::span<u8> dest) {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
-  for (const auto &[addr, meta] : _pages) {
-    auto dest_subspan = dest.subspan(addr, meta.data.size());
-    const auto src_subspan = bits::span<const u8>{meta.data.data(), meta.data.size()};
+  for (const auto &[addr, pg] : p.pages()) {
+    auto dest_subspan = dest.subspan(addr, pg.size());
+    const auto src_subspan = bits::span<const u8>{pg.data(), pg.size()};
     bits::memcpy(dest_subspan, src_subspan);
   }
-}
-
-PagePool::PageMeta PagePool::make_page(bool init) {
-  PageMeta ret;
-  if (!_free.empty()) {
-    ret = _free.top();
-    _free.pop();
-  } else {
-    _data.emplace_back();
-    ret = PageMeta{};
-    ret.data = _data.back();
-  }
-  if (init) std::fill(ret.data.begin(), ret.data.end(), _fill);
-  return ret;
 }
 
 namespace {
@@ -181,4 +120,4 @@ void Sparse::clear(u8 fill) {
   _pool.clear(fill);
 }
 
-void Sparse::dump(bits::span<u8> dest) const { _pool.dump(dest); }
+void Sparse::dump(bits::span<u8> dest) const { ::dump(_pool, dest); }

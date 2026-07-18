@@ -170,8 +170,7 @@ pepp::bts::PooledString pepp::bts::StringPool::allocate(std::string_view str, Ad
   bool needs_null_terminator = (terminator == AddNullTerminator::Always) ||
                                (terminator == AddNullTerminator::IfNotPresent && !is_null_terminated);
   if (needs_null_terminator) ++str_length;
-  if (size_t(str_length) >= PagedAllocator<char>::MAX_PAGE_SIZE)
-    throw std::invalid_argument("String too long to allocate");
+  if (size_t(str_length) >= Page<char>::MAX_PAGE_SIZE) throw std::invalid_argument("String too long to allocate");
 
   // Check existing pages for space, allocating the string in the first page that has enough space.
   // If I were smarter, I might try different algos other than first-fit to reduce fragmentation.

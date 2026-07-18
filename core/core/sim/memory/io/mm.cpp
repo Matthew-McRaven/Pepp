@@ -41,15 +41,15 @@ IOQueue::Iterator IOQueue::end() {
   return Iterator(this, -1); // end iterator is always at index -1, which is beyond the end of the queue.
 }
 
-void IOQueue::push(u8 value) { _data->write(_max_index++, {&value, 1}); }
+void IOQueue::push(u8 value) { _data.write(_max_index++, {&value, 1}); }
 
 u8 IOQueue::at(Address index) const {
   u8 res;
-  _data->read(index, bits::span<u8>{&res, 1});
+  _data.read(index, bits::span<u8>{&res, 1});
   return res;
 }
 
-void IOQueue::clear() { _data->clear(0); }
+void IOQueue::clear() { _data.clear(0); }
 
 size_t IOQueue::size() const {
   return _max_index; // Since we always push to the end, the size is equal to the max index.
