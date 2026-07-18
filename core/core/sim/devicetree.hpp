@@ -4,6 +4,12 @@
 #include <string>
 #include "core/sim/api/device.hpp"
 
+/*
+ * DeviceTree has two ownership models for Devices: owning and non-owning.
+ * DeviceTree claims ownership of a device when the constructor is called with a unique_ptr.
+ * All other methods of creating a DeviceTree (via a Device* in ctor or append_child) are non-owning.
+ * In the dtor, the DeviceTree will only free the device if it owns it.
+ */
 struct DeviceTree {
   DeviceTree(Device *device, DeviceTree *parent) : device(device), parent(parent), owned(nullptr) {}
   DeviceTree(std::unique_ptr<Device> device, DeviceTree *parent)
@@ -43,7 +49,10 @@ struct DeviceTree {
   auto end() const { return Iterator<true>(nullptr, this); }
   auto cbegin() const { return Iterator<true>(this); }
   auto cend() const { return Iterator<true>(nullptr, this); }
+  // Helper to check if this node owns its device.
+  bool owning() const { return owned != nullptr; }
 
+  // Create a new DeviceTree child node, and insert the non-owning Device* into that new node.
   DeviceTree *append_child(Device *dev);
 
 private:
