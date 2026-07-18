@@ -29,7 +29,13 @@ void prefill_dense(nlohmann::json &obj) {
   obj["fill"] = 0;
 }
 void serialize_dense(nlohmann::json &obj, const System *sys, const Device *self) {
-  throw std::logic_error("Dense::serialize not implemented");
+  auto casted = dynamic_cast<const Dense *>(self);
+  if (!casted) throw std::logic_error("serialize_dense called on non-Dense device");
+  obj["compatible"] = Dense::compatible;
+  obj["basename"] = casted->config().basename;
+  obj["min_offset"] = casted->casted_config().span.lower();
+  obj["max_offset"] = casted->casted_config().span.upper();
+  if (casted->casted_config().fill != 0) obj["fill"] = casted->casted_config().fill;
 }
 } // namespace
 
@@ -42,6 +48,8 @@ std::span<const u8> Dense::data() const { return std::span<const u8>{_data.data(
 const Device::ID Dense::id() const { return _config.id; }
 
 const Device::Configuration &Dense::config() const { return _config; }
+
+const Dense::Configuration &Dense::casted_config() const { return _config; }
 
 Device::Type Dense::type() const {
   using namespace bits;

@@ -116,6 +116,29 @@ TEST_CASE("System Parser, Sparse, Passes", "[scope:core][scope:core.sim][kind:un
     CHECK(casted->span().lower() == 017);
     CHECK(casted->span().upper() == 0xfeed);
   }
+  SECTION("serialization") {
+    static const char *js = R"j({
+      "children": [
+      {
+        "compatible": "ram,sparse",
+        "basename": "memory",
+        "min_offset": 0,
+        "max_offset": 1024
+      }
+      ]
+    })j";
+
+    auto s = parse_system(js);
+    REQUIRE(s != nullptr);
+    auto mem = s->find_relative("memory", "/");
+    REQUIRE(mem != nullptr);
+    nlohmann::json obj;
+    mem->serializer()->serialize(obj, s.get(), mem);
+    CHECK(obj["compatible"] == Sparse::compatible);
+    CHECK(obj["basename"] == "memory");
+    CHECK(obj["min_offset"] == 0);
+    CHECK(obj["max_offset"] == 1024);
+  }
 }
 
 TEST_CASE("System Parser, Sparse, Fails", "[scope:core][scope:core.sim][kind:unit][arch:*][!throws]") {

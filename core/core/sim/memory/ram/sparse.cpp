@@ -38,13 +38,21 @@ void prefill_sparse(nlohmann::json &obj) {
   obj["fill"] = 0;
 }
 void serialize_sparse(nlohmann::json &obj, const System *sys, const Device *self) {
-  throw std::logic_error("Sparse::serialize not implemented");
+  auto casted = dynamic_cast<const Sparse *>(self);
+  if (!casted) throw std::logic_error("serialize_dense called on non-Dense device");
+  obj["compatible"] = Sparse::compatible;
+  obj["basename"] = casted->config().basename;
+  obj["min_offset"] = casted->casted_config().span.lower();
+  obj["max_offset"] = casted->casted_config().span.upper();
+  if (casted->casted_config().fill != 0) obj["fill"] = casted->casted_config().fill;
 }
 } // namespace
 
 Sparse::Sparse(Configuration config) : Device(), _config(config), _pool(_config.fill) {}
 
 const Device::Configuration &Sparse::config() const { return _config; }
+
+const Sparse::Configuration &Sparse::casted_config() const { return _config; }
 
 const Device::ID Sparse::id() const { return _config.id; }
 
