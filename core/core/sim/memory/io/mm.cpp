@@ -106,7 +106,27 @@ void prefill_mmreg(nlohmann::json &obj) {
   obj["fail_policy"] = "raise_error";
 }
 void serialize_mmreg(nlohmann::json &obj, const System *sys, const Device *self) {
-  throw std::logic_error("Dense::serialize not implemented");
+  using namespace bits;
+  auto casted = dynamic_cast<const MemoryMappedRegister *>(self);
+  if (!casted) throw std::logic_error("serialize_dense called on non-Dense device");
+  obj["compatible"] = MemoryMappedRegister::compatible;
+  obj["basename"] = casted->config().basename;
+  obj["offset"] = casted->casted_config().span.lower();
+  if (casted->casted_config().fill != 0) obj["fill"] = casted->casted_config().fill;
+  switch (casted->casted_config().direction) {
+  case MemoryMappedRegister::IODirection::None: obj["direction"] = "none"; break;
+  case MemoryMappedRegister::IODirection::Input: obj["direction"] = "in"; break;
+  case MemoryMappedRegister::IODirection::Output: obj["direction"] = "out"; break;
+  case (MemoryMappedRegister::IODirection::Input | MemoryMappedRegister::IODirection::Output):
+    obj["direction"] = "inout";
+    break;
+  default: throw std::logic_error("Invalid MemoryMappedRegister direction");
+  }
+  switch (casted->casted_config().fail_policy) {
+  case FailPolicy::YieldDefaultValue: obj["fail_policy"] = "yield_default"; break;
+  case FailPolicy::RaiseError: obj["fail_policy"] = "raise_error"; break;
+  default: throw std::logic_error("Invalid MemoryMappedRegister fail_policy");
+  }
 }
 } // namespace
 
@@ -121,6 +141,8 @@ IOQueue &MemoryMappedRegister::input() { return _input; }
 IOQueue &MemoryMappedRegister::output() { return _output; }
 
 const Device::Configuration &MemoryMappedRegister::config() const { return _config; }
+
+const MemoryMappedRegister::Configuration &MemoryMappedRegister::casted_config() const { return _config; }
 
 const Device::ID MemoryMappedRegister::id() const { return _config.id; }
 

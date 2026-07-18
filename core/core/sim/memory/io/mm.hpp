@@ -104,6 +104,7 @@ public:
 
   // Device interface
   const Device::Configuration &config() const override;
+  const Configuration &casted_config() const;
   const Device::ID id() const override;
   Device::Type type() const override;
   u64 features() const override;

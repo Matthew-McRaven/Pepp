@@ -154,6 +154,28 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     CHECK(any(((MemoryMappedRegister::Configuration &)casted->config()).direction & Direction::Output));
     CHECK(any(((MemoryMappedRegister::Configuration &)casted->config()).direction & Direction::Input));
   }
+  SECTION("serialization") {
+    static const char *js = R"j({
+      "children": [
+      {
+        "compatible": "io,reg",
+        "basename": "memory",
+        "offset": 1
+      }
+      ]
+    })j";
+
+    auto s = parse_system(js);
+    REQUIRE(s != nullptr);
+    auto mem = s->find_relative("memory", "/");
+    REQUIRE(mem != nullptr);
+    nlohmann::json obj;
+    mem->serializer()->serialize(obj, s.get(), mem);
+    CHECK(obj["compatible"] == MemoryMappedRegister::compatible);
+    CHECK(obj["basename"] == "memory");
+    CHECK(obj["offset"] == 1);
+    CHECK(obj["direction"] == "none");
+  }
 }
 
 TEST_CASE("System Parser, MemoryMappedRegister, Fails", "[scope:core][scope:core.sim][kind:unit][arch:*][!throws]") {
