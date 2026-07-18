@@ -75,9 +75,13 @@ class MemoryMappedRegister final : public Device, public Target, public Traceabl
 public:
   static const inline std::string compatible = "io,reg";
   enum class IODirection : u8 {
+    // "none"
     None = 0,
+    // "in"
     Input = 1 << 0,
+    // "out"
     Output = 1 << 1,
+    // Combination is "inout"
   };
   struct Configuration : public Device::Configuration {
     u8 fill{0};

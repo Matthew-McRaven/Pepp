@@ -1,8 +1,9 @@
 #include "mm.hpp"
 #include <nlohmann/json.hpp>
 #include "core/math/bitmanip/enums.hpp"
+#include "core/math/bitmanip/strings.hpp"
 #include "core/sim/memory/errors.hpp"
-#include "core/sim/memory/ram/sparse.hpp"
+#include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
 IOQueue::Iterator::Iterator() : _q(nullptr), _index(-1) {}
@@ -63,6 +64,52 @@ u8 IOQueue::latest_or(u8 def) const noexcept {
   else return at(_max_index - 1);
 }
 
+namespace {
+Device *create_mmreg(const nlohmann::json &self, System *sys, Device *par) {
+  using namespace bits;
+  MemoryMappedRegister::Configuration cfg;
+  try {
+    parse_standard_fields(self, cfg);
+    if (cfg.basename.empty()) throw ParsingError("MemoryMappedRegister must have a basename");
+    if (!self.contains("offset") || self["offset"].is_null())
+      throw ParsingError("MemoryMappedRegister must have a offset");
+    auto offset = as_u32(self["offset"]);
+
+    cfg.span = AddressSpan{offset, offset};
+    if (self.contains("fill") && !self["fill"].is_null()) cfg.fill = as_i8(self["fill"]);
+    if (self.contains("direction") && !self["direction"].is_null()) {
+      auto dir_str = to_lower(self["direction"].get<std::string>());
+      if (dir_str == "none") cfg.direction = MemoryMappedRegister::IODirection::None;
+      else if (dir_str == "in") cfg.direction = MemoryMappedRegister::IODirection::Input;
+      else if (dir_str == "out") cfg.direction = MemoryMappedRegister::IODirection::Output;
+      else if (dir_str == "inout")
+        cfg.direction = MemoryMappedRegister::IODirection::Input | MemoryMappedRegister::IODirection::Output;
+      else throw ParsingError("MemoryMappedRegister direction must be one of: none, in, out, inout");
+    }
+    if (self.contains("fail_policy") && !self["fail_policy"].is_null()) {
+      auto policy_str = to_lower(self["fail_policy"].get<std::string>());
+      if (policy_str == "raise_error") cfg.fail_policy = FailPolicy::RaiseError;
+      else if (policy_str == "yield_default") cfg.fail_policy = FailPolicy::YieldDefaultValue;
+      else throw ParsingError("MemoryMappedRegister fail_policy must be one of: raise_error, yield_default");
+    }
+  } catch (const nlohmann::json::type_error &e) {
+    throw ParsingError("Failed to parse dense MemoryMappedRegister: " + std::string(e.what()));
+  }
+  return sys->make_device<MemoryMappedRegister>(par, cfg);
+}
+void prefill_mmreg(nlohmann::json &obj) {
+  obj["compatible"] = MemoryMappedRegister::compatible;
+  obj["basename"];
+  obj["offset"];
+  obj["fill"] = 0;
+  obj["direction"] = "none";
+  obj["fail_policy"] = "raise_error";
+}
+void serialize_mmreg(nlohmann::json &obj, const System *sys, const Device *self) {
+  throw std::logic_error("Dense::serialize not implemented");
+}
+} // namespace
+
 MemoryMappedRegister::MemoryMappedRegister(Configuration config) : Device(), _config(config), _input(), _output() {
   _input_it = _input.begin();
   if (_config.span.lower() != _config.span.upper())
@@ -87,7 +134,13 @@ u64 MemoryMappedRegister::features() const { return 0; }
 
 std::unique_ptr<DeviceSerializer> MemoryMappedRegister::serializer() const { return make_serializer(); }
 
-std::unique_ptr<DeviceSerializer> MemoryMappedRegister::make_serializer() { return nullptr; }
+std::unique_ptr<DeviceSerializer> MemoryMappedRegister::make_serializer() {
+  DeviceSerializer s{.parser = create_mmreg,
+                     .prefill = prefill_mmreg,
+                     .serialize = serialize_mmreg,
+                     .compatible = MemoryMappedRegister::compatible};
+  return std::make_unique<DeviceSerializer>(std::move(s));
+}
 
 void MemoryMappedRegister::set_buffer(Buffer *tb) { _tb = tb; }
 

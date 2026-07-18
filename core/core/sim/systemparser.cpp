@@ -2,6 +2,7 @@
 #include <nlohmann/json.hpp>
 #include "core/ds/string_compare.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
+#include "core/sim/memory/io/mm.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/system.hpp"
@@ -91,6 +92,7 @@ static const std::unordered_map<std::string, std::unique_ptr<DeviceSerializer>, 
       m.emplace(Sparse::compatible, Sparse::make_serializer());
       m.emplace("ram", make_serializer_ram());
       m.emplace(SimpleBus::compatible, SimpleBus::make_serializer());
+      m.emplace(MemoryMappedRegister::compatible, MemoryMappedRegister::make_serializer());
       return m;
     }();
 
