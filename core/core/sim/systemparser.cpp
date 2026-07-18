@@ -169,6 +169,7 @@ std::unique_ptr<System> create_system(const nlohmann::json &obj) {
 void serialize_children(const DeviceTree *parent, const System *sys, nlohmann::json &obj) {
   nlohmann::json children = nlohmann::json::array();
   for (const auto &child : parent->children) {
+    if (child->device->config().skip_serialize) continue;
     nlohmann::json child_obj;
     child->device->serializer()->serialize(child_obj, sys, child->device);
     serialize_children(child.get(), sys, child_obj);

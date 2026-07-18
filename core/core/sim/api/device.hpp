@@ -31,10 +31,16 @@ std::string child_name(std::string_view parent_fullname, std::string_view child_
 struct Device {
   using ID = pepp::OpaqueHandle<struct DeviceID, u8>;
   using IDGenerator = std::function<Device::ID()>;
+  // Do not parse or serialize: id, fullname, or skip_serialize.
+  // They are inferred at device creation time
   struct Configuration {
     Device::ID id;
     std::string basename, compatible;
     std::string fullname;
+    // If true, this device will not be serialized. This is useful when one device spawns child devices which were not
+    // part of the original parse tree. For example, the register banks and CSRs of a Pep/10 CPU are created during CPU
+    // construction.
+    bool skip_serialize = false;
   };
   // Bitflags telling you what interfaces this abstract device implements.
   // e.g., if any(type() & Type::MemoryTarget), then this device implements the MemoryTarget interface.
