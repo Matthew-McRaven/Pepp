@@ -7,8 +7,8 @@
 void dump(const pepp::bts::PagedPool<u8> &p, bits::span<u8> dest) {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   for (const auto &[addr, pg] : p.pages()) {
-    auto dest_subspan = dest.subspan(addr, pg.size());
-    const auto src_subspan = bits::span<const u8>{pg.data(), pg.size()};
+    auto dest_subspan = dest.subspan(addr, pg.capacity());
+    const auto src_subspan = bits::span<const u8>{pg.data(), pg.capacity()};
     bits::memcpy(dest_subspan, src_subspan);
   }
 }

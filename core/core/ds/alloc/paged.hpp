@@ -27,11 +27,12 @@
 
 namespace pepp::bts {
 
-// Holds multiple allocations in a contiguous block, with capacity being a power-of-two.
-// Like a slab allocator, individual allocations cannot be freed. Deallocation is not currently supported, but would
-// imply invalidation of existing offsets higher than the deallocated one.
-template <std::integral I> struct Page {
-
+// A class which represents a power-of-2-sized block of contiguous memory.
+// PagedPool uses this primitive to construct a lazyily-allocated sparse array of memory,
+// while PagedAllocator (and Slab) add allocation APIs on top of this primitive.
+// TODO: add copy-on-write, sharing semantics
+template <std::integral I> class Page {
+public:
   static constexpr size_t MIN_PAGE_SIZE = 256;      // Minimum size for a single page.
   static constexpr size_t DEFAULT_PAGE_SIZE = 4096; // Default allocation size for a single page.
   static constexpr size_t MAX_PAGE_SIZE = 65535;    // Maximum number of elements than can be stored in a single page.
@@ -49,43 +50,21 @@ template <std::integral I> struct Page {
   Page(Page &&) noexcept = default;
   Page &operator=(Page &&) noexcept = default;
 
-  // Copy elements into next free space, advancing size.
-  // Require data be aligned % align (padding at start) with pad (padding at end).
-  // Both align and pad are in element counts, not bytes.
-  page_offset_t append(bits::span<const I> data, size_t byte_align = 0, size_t byte_pad = 0, I fill = 0);
-  // An append will all elements set to `fill`.
-  page_offset_t allocate_initialized(size_t size, I fill = 0);
-  // Bump size without modifying underlying data.
-  page_offset_t allocate_uninitialized(size_t size);
-  // Check if the requested size can fit in the remaining space.
-  bool can_fit(bits::span<const I> request, size_t align = 0, size_t pad = 0) const noexcept;
-  bool can_fit(size_t request) const noexcept;
-  // Set size to 0 without writing to underlying data.
-  void clear() noexcept;
   // Set underlying data without modifying siz, capacity.
   void fill(page_offset_t from, page_offset_t to, I fill) noexcept;
   void fill(I fill) noexcept;
-
-  page_offset_t size() const noexcept;
   page_offset_t capacity() const noexcept;
-  page_offset_t remaining_capacity() const noexcept;
   I *data() noexcept;
   const I *data() const noexcept;
-  // Compute the size of a proposed allocation at the nexr available slot, ensuring a given byte alignment and byte
-  // padding at the end. Returns the size (in elements) needed to satisfy the request. May overalign/overpad to
-  // to achieve an integral number of elements.
-  // Align bytes should be power-of-two.
-  size_t padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept;
 
 private:
-  page_offset_t _capacity = 0, _size = 0;
+  page_offset_t _capacity = 0;
   // Allocated on construction.
   std::unique_ptr<I[]> _data = nullptr;
 };
 
 // A class meant for representing sparse data, like a the RAM of a 32-bit system.
 // It has no upper-bound on size, and pages are lazily allocated.
-// This is at a lower-level of abstraction than PagedAllocator, and does not attempt to use any
 template <std::integral I> class PagedPool {
 public:
   explicit PagedPool(u8 fill = 0);
@@ -113,6 +92,45 @@ private:
   I _fill = 0;
   std::stack<Page<I>> _free;
   std::unordered_map<size_t, Page<I>> _pages;
+};
+
+// Holds multiple allocations in a contiguous block, with capacity being a power-of-two.
+// Like a slab allocator, individual allocations cannot be freed. Deallocation is not currently supported, but would
+// imply invalidation of existing offsets higher than the deallocated one.
+// Adds an allocation API on top of Page, and tracks how many bytes are allocated within this page.
+template <std::integral I> struct Slab : public Page<I> {
+  using page_offset_t = typename Page<I>::page_offset_t;
+  // Pages are contain unintialized data up to capacity. Capacity is rounded to nearest power-of-two.
+  explicit Slab(page_offset_t capacity);
+  // Don't allow implicit copy, because this class owns an expensive resource.
+  Slab(const Slab &) = delete;
+  Slab &operator=(const Slab &) = delete;
+  Slab(Slab &&) noexcept = default;
+  Slab &operator=(Slab &&) noexcept = default;
+
+  // Set size to 0 without writing to underlying data.
+  void clear() noexcept;
+  // Copy elements into next free space, advancing size.
+  // Require data be aligned % align (padding at start) with pad (padding at end).
+  // Both align and pad are in element counts, not bytes.
+  page_offset_t append(bits::span<const I> data, size_t byte_align = 0, size_t byte_pad = 0, I fill = 0);
+  // An append will all elements set to `fill`.
+  page_offset_t allocate_initialized(size_t size, I fill = 0);
+  // Bump size without modifying underlying data.
+  page_offset_t allocate_uninitialized(size_t size);
+  // Check if the requested size can fit in the remaining space.
+  bool can_fit(bits::span<const I> request, size_t align = 0, size_t pad = 0) const noexcept;
+  bool can_fit(size_t request) const noexcept;
+  page_offset_t used_capacity() const noexcept;
+  page_offset_t remaining_capacity() const noexcept;
+  // Compute the size of a proposed allocation at the nexr available slot, ensuring a given byte alignment and byte
+  // padding at the end. Returns the size (in elements) needed to satisfy the request. May overalign/overpad to
+  // to achieve an integral number of elements.
+  // Align bytes should be power-of-two.
+  size_t padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept;
+
+private:
+  page_offset_t _used = 0;
 };
 
 // A class meant to allocate large numbers of small objects efficiently like  strings in a .shstrab section of an ELF
@@ -155,9 +173,9 @@ public:
    *===============*/
   PageIndices indices_for_offset(global_offset_t offset) const;
   global_offset_t offset_for_indices(PageIndices indices) const;
-  Page<I> &page(page_index_t index);
-  const Page<I> &page(page_index_t index) const;
-  bits::span<Page<I> const> pages() const noexcept;
+  Slab<I> &page(page_index_t index);
+  const Slab<I> &page(page_index_t index) const;
+  bits::span<Slab<I> const> pages() const noexcept;
   /*======================
    *= Element Creation   =
    *======================*/
@@ -199,62 +217,21 @@ public:
 private:
   // Number of elements currently allocated.
   size_t _size = 0;
-  std::vector<Page<I>> _pages = {};
+  std::vector<Slab<I>> _pages = {};
   // Cached offsets for the start of each page, to speed up indices_for_offset calculations.
   // Any call which inserts in the middle must update this vector.
   // Sorted by definition, so binary_search / upper/lower bounds will work.
   std::vector<size_t> _page_base = {};
 };
 
-template <std::integral I>
-size_t Page<I>::padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept {
-  if (align_bytes > alignof(I)) {
-    const std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(_data.get() + _size);
-    const size_t mis = static_cast<size_t>(addr % align_bytes);
-    if (mis) count += bits::ceil_div(align_bytes - mis, sizeof(I));
-  }
-  return count + bits::ceil_div(pad_bytes, sizeof(I));
-}
-
+/*
+ * Page
+ */
 template <std::integral I>
 Page<I>::Page(page_offset_t capacity) : _capacity(bits::nearest_power_of_two(capacity)), _data(new I[_capacity]) {
   if (_capacity < MIN_PAGE_SIZE) throw std::invalid_argument("Allocation smaller than MIN_PAGE_SIZE");
   else if (_capacity > MAX_PAGE_SIZE) throw std::invalid_argument("Allocation larger than MAX_PAGE_SIZE");
 }
-
-template <std::integral I>
-Page<I>::page_offset_t Page<I>::append(bits::span<const I> data, size_t align, size_t pad, I fill) {
-  static_assert(std::is_trivially_copyable_v<I>);
-  const auto total_size = this->padded_size(data.size(), align, pad);
-  const auto padded_base = this->padded_size(_size, align, 0);
-  if (total_size > remaining_capacity()) throw std::runtime_error("Page overflow");
-  this->fill(_size, padded_base, fill);
-  std::copy(data.begin(), data.end(), _data.get() + padded_base);
-  this->fill(padded_base + data.size(), _size + total_size, fill);
-  _size += total_size;
-  return padded_base; // Return aligned pointer
-}
-
-template <std::integral I> Page<I>::page_offset_t Page<I>::allocate_initialized(size_t size, I v) {
-  if (size > remaining_capacity()) throw std::runtime_error("Page overflow");
-  fill(_size, _size + size, v);
-  return std::exchange(_size, _size + size);
-}
-
-template <std::integral I> Page<I>::page_offset_t Page<I>::allocate_uninitialized(size_t size) {
-  if (size > remaining_capacity()) throw std::runtime_error("Page overflow");
-  return std::exchange(_size, _size + size);
-}
-
-template <std::integral I> inline bool Page<I>::can_fit(size_t request) const noexcept {
-  return request <= remaining_capacity();
-}
-
-template <std::integral I> bool Page<I>::can_fit(bits::span<const I> request, size_t align, size_t pad) const noexcept {
-  return padded_size(request.size(), align, pad) <= remaining_capacity();
-}
-
-template <std::integral I> void Page<I>::clear() noexcept { _size = 0; }
 
 template <std::integral I> void Page<I>::fill(page_offset_t from, page_offset_t to, I fill) noexcept {
   from = std::min(from, _capacity), to = std::min(to, _capacity);
@@ -264,18 +241,66 @@ template <std::integral I> void Page<I>::fill(page_offset_t from, page_offset_t 
 
 template <std::integral I> inline void Page<I>::fill(I fill) noexcept { fill(0, _capacity, fill); }
 
-template <std::integral I> typename Page<I>::page_offset_t Page<I>::remaining_capacity() const noexcept {
-  return _capacity - _size;
-}
-
-template <std::integral I> typename Page<I>::page_offset_t Page<I>::capacity() const noexcept { return _capacity; }
-
-template <std::integral I> typename Page<I>::page_offset_t Page<I>::size() const noexcept { return _size; }
-
 template <std::integral I> I *Page<I>::data() noexcept { return _data.get(); }
 
 template <std::integral I> const I *Page<I>::data() const noexcept { return _data.get(); }
 
+template <std::integral I> typename Page<I>::page_offset_t Page<I>::capacity() const noexcept { return _capacity; }
+
+/*
+ * Slab
+ */
+template <std::integral I> Slab<I>::Slab(page_offset_t capacity) : Page<I>(capacity), _used(0) {}
+
+template <std::integral I> void Slab<I>::clear() noexcept { _used = 0; }
+
+template <std::integral I>
+Slab<I>::page_offset_t Slab<I>::append(bits::span<const I> data, size_t align, size_t pad, I fill) {
+  static_assert(std::is_trivially_copyable_v<I>);
+  const auto total_size = this->padded_size(data.size(), align, pad);
+  const auto padded_base = this->padded_size(_used, align, 0);
+  if (total_size > remaining_capacity()) throw std::runtime_error("Page overflow");
+  this->fill(_used, padded_base, fill);
+  std::copy(data.begin(), data.end(), this->data() + padded_base);
+  this->fill(padded_base + data.size(), _used + total_size, fill);
+  _used += total_size;
+  return padded_base; // Return aligned pointer
+}
+
+template <std::integral I> Slab<I>::page_offset_t Slab<I>::allocate_initialized(size_t size, I v) {
+  if (size > remaining_capacity()) throw std::runtime_error("Page overflow");
+  this->fill(_used, _used + size, v);
+  return std::exchange(_used, _used + size);
+}
+
+template <std::integral I> Slab<I>::page_offset_t Slab<I>::allocate_uninitialized(size_t size) {
+  if (size > remaining_capacity()) throw std::runtime_error("Page overflow");
+  return std::exchange(_used, _used + size);
+}
+
+template <std::integral I> bool Slab<I>::can_fit(size_t request) const noexcept {
+  return request <= remaining_capacity();
+}
+
+template <std::integral I> bool Slab<I>::can_fit(bits::span<const I> request, size_t align, size_t pad) const noexcept {
+  return padded_size(request.size(), align, pad) <= remaining_capacity();
+}
+
+template <std::integral I> typename Slab<I>::page_offset_t Slab<I>::used_capacity() const noexcept { return _used; }
+
+template <std::integral I> typename Slab<I>::page_offset_t Slab<I>::remaining_capacity() const noexcept {
+  return Page<I>::capacity() - _used;
+}
+
+template <std::integral I>
+size_t Slab<I>::padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept {
+  if (align_bytes > alignof(I)) {
+    const std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(this->data() + _used);
+    const size_t mis = static_cast<size_t>(addr % align_bytes);
+    if (mis) count += bits::ceil_div(align_bytes - mis, sizeof(I));
+  }
+  return count + bits::ceil_div(pad_bytes, sizeof(I));
+}
 /*
  * PagedPool
  */
@@ -289,8 +314,7 @@ template <std::integral I> void PagedPool<I>::read(size_t offset, bits::span<I> 
     const auto len = std::min<u32>(dest.size(), SPARSE_PAGE_SIZE - page_offset);
     if (const auto it = _pages.find(page_addr); it != _pages.end()) {
       const auto &page = it->second;
-      const auto src = bits::span<const I>{page.data(), page.size()}.subspan(page_offset);
-      // assert(src.size() >= len);
+      const auto src = bits::span<const I>{page.data(), page.capacity()}.subspan(page_offset);
       ::bits::memcpy(dest.first(len), src.first(len));
     } else {
       std::fill_n(dest.begin(), len, _fill);
@@ -314,10 +338,7 @@ template <std::integral I> void PagedPool<I>::write(size_t offset, bits::span<co
       dst_page = &(_pages.find(page_addr)->second);
     }
 
-    // assert(dst_page != nullptr);
-    auto dst = bits::span<u8>{dst_page->data(), dst_page->size()}.subspan(page_offset);
-    // assert(src.size() >= len);
-    // assert(dst.size() >= len);
+    auto dst = bits::span<u8>{dst_page->data(), dst_page->capacity()}.subspan(page_offset);
     bits::memcpy(dst.first(len), src.first(len));
     offset += len;
     src = src.subspan(len);
@@ -336,7 +357,7 @@ template <std::integral I> Page<I> PagedPool<I>::make_page(bool init) {
     s.pop();
     return item;
   };
-  Page<I> ret = (_free.empty() ? Page<I>(Page<I>(SPARSE_PAGE_SIZE)) : take(_free));
+  Page<I> ret = (_free.empty() ? Page<I>(SPARSE_PAGE_SIZE) : take(_free));
   if (init) std::fill(ret.data(), ret.data() + ret.capacity(), _fill);
   return ret;
 }
@@ -365,25 +386,25 @@ PagedAllocator<I>::global_offset_t PagedAllocator<I>::offset_for_indices(PageInd
   return _page_base.at(indices.index) + indices.offset;
 }
 
-template <std::integral I> Page<I> &PagedAllocator<I>::page(page_index_t index) { return _pages[index]; }
+template <std::integral I> Slab<I> &PagedAllocator<I>::page(page_index_t index) { return _pages[index]; }
 
-template <std::integral I> const Page<I> &PagedAllocator<I>::page(page_index_t index) const { return _pages[index]; }
+template <std::integral I> const Slab<I> &PagedAllocator<I>::page(page_index_t index) const { return _pages[index]; }
 
-template <std::integral I> bits::span<const Page<I>> PagedAllocator<I>::pages() const noexcept {
-  return bits::span<const Page<I>>{_pages.data(), _pages.size()};
+template <std::integral I> bits::span<const Slab<I>> PagedAllocator<I>::pages() const noexcept {
+  return bits::span<const Slab<I>>{_pages.data(), _pages.size()};
 }
 
 template <std::integral I>
 PagedAllocator<I>::global_offset_t PagedAllocator<I>::append(bits::span<const I> data, size_t align, size_t pad,
                                                              I fill) {
   if (!_pages.empty() && _pages.back().can_fit(data, align, pad)) {
-    size_t old_size = _pages.back().size();
+    size_t old_size = _pages.back().used_capacity();
     _pages.back().append(data, align, pad, fill);
-    return std::exchange(_size, _size + _pages.back().size() - old_size);
+    return std::exchange(_size, _size + _pages.back().used_capacity() - old_size);
   } else {
-    _pages.emplace_back(std::max<size_t>(Page<I>::DEFAULT_PAGE_SIZE, data.size())), _page_base.emplace_back(_size);
+    _pages.emplace_back(std::max<size_t>(Slab<I>::DEFAULT_PAGE_SIZE, data.size())), _page_base.emplace_back(_size);
     _pages.back().append(data, align, pad, fill);
-    return std::exchange(_size, _size + _pages.back().size());
+    return std::exchange(_size, _size + _pages.back().used_capacity());
   }
 }
 
@@ -391,7 +412,7 @@ template <std::integral I>
 PagedAllocator<I>::global_offset_t PagedAllocator<I>::allocate_initialized(global_offset_t size, I fill) {
   if (!_pages.empty() && _pages.back().can_fit(size)) _pages.back().allocate_initialized(size, fill);
   else {
-    _pages.emplace_back(std::max<size_t>(Page<I>::DEFAULT_PAGE_SIZE, size)), _page_base.emplace_back(_size);
+    _pages.emplace_back(std::max<size_t>(Slab<I>::DEFAULT_PAGE_SIZE, size)), _page_base.emplace_back(_size);
     _pages.back().allocate_initialized(size, fill);
   }
   return std::exchange(_size, _size + size);
@@ -401,7 +422,7 @@ template <std::integral I>
 PagedAllocator<I>::global_offset_t PagedAllocator<I>::allocate_uninitialized(global_offset_t size) {
   if (!_pages.empty() && _pages.back().can_fit(size)) _pages.back().allocate_uninitialized(size);
   else {
-    _pages.emplace_back(std::max<size_t>(Page<I>::DEFAULT_PAGE_SIZE, size)), _page_base.emplace_back(_size);
+    _pages.emplace_back(std::max<size_t>(Slab<I>::DEFAULT_PAGE_SIZE, size)), _page_base.emplace_back(_size);
     _pages.back().allocate_uninitialized(size);
   }
   return std::exchange(_size, _size + size);
@@ -430,7 +451,7 @@ PagedAllocator<I>::InsertResult PagedAllocator<I>::insert(bits::span<const I> da
 template <std::integral I> bits::span<I> PagedAllocator<I>::get(global_offset_t offset, size_t length) noexcept {
   if (offset + length > _size) return {};
   auto [page_index, page_offset] = indices_for_offset(offset);
-  if (auto &page = _pages[page_index]; page_offset + length > page.size()) return {};
+  if (auto &page = _pages[page_index]; page_offset + length > page.used_capacity()) return {};
   else return bits::span<I>(page.data() + page_offset, length);
 }
 
@@ -438,7 +459,7 @@ template <std::integral I>
 bits::span<const I> PagedAllocator<I>::get(global_offset_t offset, size_t length) const noexcept {
   if (offset + length > _size) return {};
   auto [page_index, page_offset] = indices_for_offset(offset);
-  if (auto &page = _pages[page_index]; page_offset + length > page.size()) return {};
+  if (auto &page = _pages[page_index]; page_offset + length > page.used_capacity()) return {};
   else return bits::span<const I>(page.data() + page_offset, length);
 }
 

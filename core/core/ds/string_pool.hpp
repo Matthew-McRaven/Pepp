@@ -94,9 +94,9 @@ private:
  */
 class StringPool {
 public:
-  static const auto MIN_PAGE_SIZE = Page<char>::MIN_PAGE_SIZE;
-  static const auto DEFAULT_PAGE_SIZE = Page<char>::DEFAULT_PAGE_SIZE;
-  static const auto MAX_PAGE_SIZE = Page<char>::MAX_PAGE_SIZE;
+  static const auto MIN_PAGE_SIZE = Slab<char>::MIN_PAGE_SIZE;
+  static const auto DEFAULT_PAGE_SIZE = Slab<char>::DEFAULT_PAGE_SIZE;
+  static const auto MAX_PAGE_SIZE = Slab<char>::MAX_PAGE_SIZE;
   using PooledStringSet = std::set<PooledString, PooledString::Less>;
 
   StringPool();
@@ -123,8 +123,8 @@ public:
   PooledString insert(std::string_view str, AddNullTerminator terminator = AddNullTerminator::Never);
 
   // Helpers to access underlying pages & identifiers, useful for writing debugger algos that "dump" the string pool.
-  std::vector<Page<char>>::const_iterator pages_cbegin() const;
-  std::vector<Page<char>>::const_iterator pages_cend() const;
+  std::vector<Slab<char>>::const_iterator pages_cbegin() const;
+  std::vector<Slab<char>>::const_iterator pages_cend() const;
   PooledStringSet::const_iterator identifiers_cbegin() const;
   PooledStringSet::const_iterator identifiers_cend() const;
 

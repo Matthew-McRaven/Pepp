@@ -80,7 +80,7 @@ void pepp::bts::PagedStorage::set(size_t offset, bits::span<const u8> data) {
   while (data.size() > 0) {
     auto [page_index, page_offset] = _allocator.indices_for_offset(offset);
     auto &page = _allocator.page(page_index);
-    auto to_write = std::min<size_t>(data.size(), page.size() - page_offset);
+    auto to_write = std::min<size_t>(data.size(), page.used_capacity() - page_offset);
     std::memcpy(page.data() + page_offset, data.data(), to_write);
     offset += to_write, data = data.subspan(to_write);
   }
@@ -101,9 +101,10 @@ void pepp::bts::PagedStorage::clear(size_t) { _allocator.clear(); }
 size_t pepp::bts::PagedStorage::calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const {
   if (_allocator.size() == 0) return dst_offset;
   for (const auto &page : _allocator.pages()) {
-    if (page.size() == 0) continue;
-    layout.emplace_back(LayoutItem{dst_offset, bits::span<const u8>{page.data(), static_cast<size_t>(page.size())}});
-    dst_offset += page.size();
+    if (page.used_capacity() == 0) continue;
+    layout.emplace_back(
+        LayoutItem{dst_offset, bits::span<const u8>{page.data(), static_cast<size_t>(page.used_capacity())}});
+    dst_offset += page.used_capacity();
   }
   return dst_offset;
 }
@@ -111,9 +112,9 @@ size_t pepp::bts::PagedStorage::calculate_layout(std::vector<LayoutItem> &layout
 size_t pepp::bts::PagedStorage::find(bits::span<const u8> data) const noexcept {
   size_t offset = 0;
   for (const auto &page : _allocator.pages()) {
-    auto it = std::search(page.data(), page.data() + page.size(), data.begin(), data.end());
-    if (it != page.data() + page.size()) return offset + static_cast<size_t>(it - page.data());
-    offset += page.size();
+    auto it = std::search(page.data(), page.data() + page.used_capacity(), data.begin(), data.end());
+    if (it != page.data() + page.used_capacity()) return offset + static_cast<size_t>(it - page.data());
+    offset += page.used_capacity();
   }
   return offset;
 }
@@ -124,7 +125,7 @@ size_t pepp::bts::PagedStorage::strlen(size_t offset) const noexcept {
   size_t length = 0;
   while (start_page_index < _allocator.pages().size()) {
     auto &page = _allocator.page(start_page_index);
-    for (size_t it = start_page_offset; it < page.size(); it++)
+    for (size_t it = start_page_offset; it < page.used_capacity(); it++)
       if (page.data()[it] == '\0') return length;
       else length++;
     start_page_offset = 0, start_page_index++;
