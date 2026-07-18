@@ -14,9 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/sim/memory/io/mm.hpp"
 #include <catch.hpp>
 #include "core/sim/memory/errors.hpp"
+#include "core/sim/memory/io/fifo.hpp"
 
 namespace {
 auto base_desc = Device::Configuration{.basename = "dev", .fullname = "/dev"};
@@ -36,7 +36,7 @@ TEST_CASE("(new) MemoryMappedReg  storage in-bounds access", "[scope:core][scope
   }));
   auto span = AddressSpan(offset, offset);
   const u32 length = pepp::core::size_inclusive(span);
-  auto cfg = MemoryMappedRegister::Configuration{Device::Configuration{base_desc}};
+  auto cfg = FIFORegister::Configuration{Device::Configuration{base_desc}};
   cfg.span = span, cfg.fill = 0xFE, cfg.id = {};
 
   // Create an 8-byte temporary buffer.
@@ -46,8 +46,8 @@ TEST_CASE("(new) MemoryMappedReg  storage in-bounds access", "[scope:core][scope
   SECTION("read from read-only") {
     const u8 buffered = 19;
     auto local = cfg;
-    local.direction = MemoryMappedRegister::IODirection::Input;
-    MemoryMappedRegister dev(local);
+    local.direction = FIFORegister::Direction::Input;
+    FIFORegister dev(local);
     auto &i = dev.input();
     i.push(buffered);
 
@@ -59,8 +59,8 @@ TEST_CASE("(new) MemoryMappedReg  storage in-bounds access", "[scope:core][scope
   // writeonly will not consume from input queue.
   SECTION("read from write-only") {
     auto local = cfg;
-    local.direction = MemoryMappedRegister::IODirection::Output;
-    MemoryMappedRegister dev(local);
+    local.direction = FIFORegister::Direction::Output;
+    FIFORegister dev(local);
     auto &i = dev.input();
     auto &o = dev.output();
     auto ob = o.end();
@@ -76,8 +76,8 @@ TEST_CASE("(new) MemoryMappedReg  storage in-bounds access", "[scope:core][scope
   // write to readonly is ignored
   SECTION("write to readonly-only") {
     auto local = cfg;
-    local.direction = MemoryMappedRegister::IODirection::Input;
-    MemoryMappedRegister dev(local);
+    local.direction = FIFORegister::Direction::Input;
+    FIFORegister dev(local);
     auto &o = dev.output();
     auto ob = o.end();
     *tmp = 0xCA;
@@ -93,8 +93,8 @@ TEST_CASE("(new) MemoryMappedReg  storage in-bounds access", "[scope:core][scope
   // write to writeonly updates output queue.
   SECTION("write to write-only") {
     auto local = cfg;
-    local.direction = MemoryMappedRegister::IODirection::Output;
-    MemoryMappedRegister dev(local);
+    local.direction = FIFORegister::Direction::Output;
+    FIFORegister dev(local);
     auto &o = dev.output();
     auto ob = o.end();
     *tmp = 0xCA;
@@ -111,11 +111,11 @@ TEST_CASE("(new) MemoryMappedReg  storage in-bounds access", "[scope:core][scope
 
   SECTION("Return default value when fail_policy == YieldDefaultValue") {
     auto span = AddressSpan(0x17, 0x17);
-    auto cfg = MemoryMappedRegister::Configuration{Device::Configuration{base_desc}};
+    auto cfg = FIFORegister::Configuration{Device::Configuration{base_desc}};
     cfg.span = span, cfg.fill = 0xFE, cfg.id = {};
-    cfg.direction = MemoryMappedRegister::IODirection::Input;
+    cfg.direction = FIFORegister::Direction::Input;
     cfg.fail_policy = FailPolicy::YieldDefaultValue;
-    MemoryMappedRegister dev(cfg);
+    FIFORegister dev(cfg);
     *tmp = 0;
     REQUIRE_NOTHROW(dev.read(0x17, {tmp, 1}, op));
     CHECK(*tmp == 0xFE);
@@ -128,16 +128,16 @@ TEST_CASE("(new) MemoryMappedReg storage out-of-bounds access",
   u8 *tmp = (u8 *)&reg;
   SECTION("MMReg must be single byte") {
     auto span = AddressSpan(255, 400);
-    auto cfg = MemoryMappedRegister::Configuration{Device::Configuration{base_desc}};
+    auto cfg = FIFORegister::Configuration{Device::Configuration{base_desc}};
     cfg.span = span, cfg.fill = 0xFE, cfg.id = {};
-    REQUIRE_THROWS_AS([&cfg]() { MemoryMappedRegister dev(cfg); }(), std::logic_error);
+    REQUIRE_THROWS_AS([&cfg]() { FIFORegister dev(cfg); }(), std::logic_error);
   }
   SECTION("OOB read + write to inputonly") {
     auto span = AddressSpan(0x17, 0x17);
-    auto cfg = MemoryMappedRegister::Configuration{Device::Configuration{base_desc}};
+    auto cfg = FIFORegister::Configuration{Device::Configuration{base_desc}};
     cfg.span = span, cfg.fill = 0xFE, cfg.id = {};
-    cfg.direction = MemoryMappedRegister::IODirection::Input;
-    MemoryMappedRegister dev(cfg);
+    cfg.direction = FIFORegister::Direction::Input;
+    FIFORegister dev(cfg);
     REQUIRE_THROWS_AS(dev.read(0x16, {tmp, 1}, op), Error);
     REQUIRE_THROWS_AS(dev.read(0x18, {tmp, 1}, op), Error);
     REQUIRE_THROWS_AS(dev.write(0x16, {tmp, 1}, op), Error);
@@ -145,10 +145,10 @@ TEST_CASE("(new) MemoryMappedReg storage out-of-bounds access",
   }
   SECTION("OOB read + write to writeonly") {
     auto span = AddressSpan(0x17, 0x17);
-    auto cfg = MemoryMappedRegister::Configuration{Device::Configuration{base_desc}};
+    auto cfg = FIFORegister::Configuration{Device::Configuration{base_desc}};
     cfg.span = span, cfg.fill = 0xFE, cfg.id = {};
-    cfg.direction = MemoryMappedRegister::IODirection::Output;
-    MemoryMappedRegister dev(cfg);
+    cfg.direction = FIFORegister::Direction::Output;
+    FIFORegister dev(cfg);
     REQUIRE_THROWS_AS(dev.read(0x16, {tmp, 1}, op), Error);
     REQUIRE_THROWS_AS(dev.read(0x18, {tmp, 1}, op), Error);
     REQUIRE_THROWS_AS(dev.write(0x16, {tmp, 1}, op), Error);
@@ -156,10 +156,10 @@ TEST_CASE("(new) MemoryMappedReg storage out-of-bounds access",
   }
   SECTION("Throw when out of MMI") {
     auto span = AddressSpan(0x17, 0x17);
-    auto cfg = MemoryMappedRegister::Configuration{Device::Configuration{base_desc}};
+    auto cfg = FIFORegister::Configuration{Device::Configuration{base_desc}};
     cfg.span = span, cfg.fill = 0xFE, cfg.id = {};
-    cfg.direction = MemoryMappedRegister::IODirection::Input;
-    MemoryMappedRegister dev(cfg);
+    cfg.direction = FIFORegister::Direction::Input;
+    FIFORegister dev(cfg);
     REQUIRE_THROWS_AS(dev.read(0x17, {tmp, 1}, op), Error);
   }
 }

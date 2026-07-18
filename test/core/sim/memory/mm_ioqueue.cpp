@@ -15,12 +15,12 @@
  */
 
 #include <catch.hpp>
-#include "core/sim/memory/io/mm.hpp"
+#include "core/sim/memory/io/fifo.hpp"
 
 TEST_CASE("MemoryMappedReg IOQueue", "[scope:core][scope:core.sim][kind:int][arch:*]") {
 
   SECTION("Ops on empty queue") {
-    auto q = IOQueue{};
+    auto q = FIFORegister::FIFO{};
     CHECK(q.size() == 0);
     CHECK(q.empty());
     CHECK(q.end().at_end());
@@ -29,7 +29,7 @@ TEST_CASE("MemoryMappedReg IOQueue", "[scope:core][scope:core.sim][kind:int][arc
   }
 
   SECTION("Insert one item") {
-    auto q = IOQueue{};
+    auto q = FIFORegister::FIFO{};
     CHECK(q.size() == 0);
     CHECK(q.empty());
     CHECK(q.end().at_end());
@@ -44,9 +44,9 @@ TEST_CASE("MemoryMappedReg IOQueue", "[scope:core][scope:core.sim][kind:int][arc
   }
 
   SECTION("Insert multiple item") {
-    auto q = IOQueue{};
+    auto q = FIFORegister::FIFO{};
     int it = 0;
-    u8 values[] = {17, 18, 20};
+    u8 values[] = {17, 18, 20, 0xFE, 0xED};
     q.push(values[0]);
     q.push(values[1]);
     q.push(values[2]);

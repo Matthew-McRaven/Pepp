@@ -13,20 +13,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "core/sim/memory/io/mm.hpp"
+#include "core/sim/memory/io/fifo.hpp"
 #include <catch.hpp>
 #include <nlohmann/json.hpp>
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
-TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
+TEST_CASE("System Parser, FIFORegister, Passes", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
   using namespace bits;
 
   SECTION("with name, compatible") {
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "offset": 0,
         "fill": 27
@@ -43,7 +43,7 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     REQUIRE(mem != nullptr);
     CHECK(mem->config().basename == "memory");
     CHECK(mem->config().fullname == "/memory");
-    CHECK(mem->config().compatible == MemoryMappedRegister::compatible);
+    CHECK(mem->config().compatible == FIFORegister::compatible);
     CHECK(any(mem->type() & Device::Type::MemoryTarget));
     auto casted = mem->capability<Target>();
     REQUIRE(casted != nullptr);
@@ -54,7 +54,7 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "offset": 27
       }
@@ -65,7 +65,7 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     REQUIRE(s != nullptr);
     auto mem = s->find_relative("memory", "/");
     REQUIRE(mem != nullptr);
-    CHECK(mem->config().compatible == MemoryMappedRegister::compatible);
+    CHECK(mem->config().compatible == FIFORegister::compatible);
     auto casted = mem->capability<Target>();
     REQUIRE(casted != nullptr);
     CHECK(casted->span().lower() == 27);
@@ -75,7 +75,7 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "offset": 27,
 				"fail_policy": "yield_default"
@@ -86,17 +86,17 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     auto s = parse_system(js);
     REQUIRE(s != nullptr);
     auto mem = s->find_relative("memory", "/");
-    auto casted = dynamic_cast<MemoryMappedRegister *>(mem);
+    auto casted = dynamic_cast<FIFORegister *>(mem);
     REQUIRE(casted != nullptr);
-    CHECK(((MemoryMappedRegister::Configuration &)casted->config()).fail_policy == FailPolicy::YieldDefaultValue);
+    CHECK(((FIFORegister::Configuration &)casted->config()).fail_policy == FailPolicy::YieldDefaultValue);
   }
   SECTION("direction: input") {
     using namespace bits;
-    using Direction = MemoryMappedRegister::IODirection;
+    using Direction = FIFORegister::Direction;
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "offset": 27,
         "direction" :"in"
@@ -107,17 +107,17 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     auto s = parse_system(js);
     REQUIRE(s != nullptr);
     auto mem = s->find_relative("memory", "/");
-    auto casted = dynamic_cast<MemoryMappedRegister *>(mem);
+    auto casted = dynamic_cast<FIFORegister *>(mem);
     REQUIRE(casted != nullptr);
-    CHECK(any(((MemoryMappedRegister::Configuration &)casted->config()).direction & Direction::Input));
+    CHECK(any(((FIFORegister::Configuration &)casted->config()).direction & Direction::Input));
   }
   SECTION("direction: output") {
     using namespace bits;
-    using Direction = MemoryMappedRegister::IODirection;
+    using Direction = FIFORegister::Direction;
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "offset": 27,
         "direction" :"out"
@@ -128,17 +128,17 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     auto s = parse_system(js);
     REQUIRE(s != nullptr);
     auto mem = s->find_relative("memory", "/");
-    auto casted = dynamic_cast<MemoryMappedRegister *>(mem);
+    auto casted = dynamic_cast<FIFORegister *>(mem);
     REQUIRE(casted != nullptr);
-    CHECK(any(((MemoryMappedRegister::Configuration &)casted->config()).direction & Direction::Output));
+    CHECK(any(((FIFORegister::Configuration &)casted->config()).direction & Direction::Output));
   }
   SECTION("direction: output") {
     using namespace bits;
-    using Direction = MemoryMappedRegister::IODirection;
+    using Direction = FIFORegister::Direction;
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "offset": 27,
         "direction" :"inout"
@@ -149,16 +149,16 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     auto s = parse_system(js);
     REQUIRE(s != nullptr);
     auto mem = s->find_relative("memory", "/");
-    auto casted = dynamic_cast<MemoryMappedRegister *>(mem);
+    auto casted = dynamic_cast<FIFORegister *>(mem);
     REQUIRE(casted != nullptr);
-    CHECK(any(((MemoryMappedRegister::Configuration &)casted->config()).direction & Direction::Output));
-    CHECK(any(((MemoryMappedRegister::Configuration &)casted->config()).direction & Direction::Input));
+    CHECK(any(((FIFORegister::Configuration &)casted->config()).direction & Direction::Output));
+    CHECK(any(((FIFORegister::Configuration &)casted->config()).direction & Direction::Input));
   }
   SECTION("serialization") {
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "offset": 1
       }
@@ -171,21 +171,21 @@ TEST_CASE("System Parser, MemoryMappedRegister, Passes", "[scope:core][scope:cor
     REQUIRE(mem != nullptr);
     nlohmann::json obj;
     mem->serializer()->serialize(obj, s.get(), mem);
-    CHECK(obj["compatible"] == MemoryMappedRegister::compatible);
+    CHECK(obj["compatible"] == FIFORegister::compatible);
     CHECK(obj["basename"] == "memory");
     CHECK(obj["offset"] == 1);
     CHECK(obj["direction"] == "none");
   }
 }
 
-TEST_CASE("System Parser, MemoryMappedRegister, Fails", "[scope:core][scope:core.sim][kind:unit][arch:*][!throws]") {
+TEST_CASE("System Parser, FIFORegister, Fails", "[scope:core][scope:core.sim][kind:unit][arch:*][!throws]") {
   using namespace bits;
 
   SECTION("needs offset") {
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "fill": 0
       }
@@ -199,7 +199,7 @@ TEST_CASE("System Parser, MemoryMappedRegister, Fails", "[scope:core][scope:core
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "offset": "not an integer",
         "fill": 0
@@ -215,7 +215,7 @@ TEST_CASE("System Parser, MemoryMappedRegister, Fails", "[scope:core][scope:core
     static const char *js = R"j({
       "children": [
       {
-        "compatible": "io,reg",
+        "compatible": "io,fifo",
         "basename": "memory",
         "offset": 27,
         "fill": "not an integer"
