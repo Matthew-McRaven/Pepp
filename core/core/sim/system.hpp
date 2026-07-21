@@ -117,6 +117,7 @@ ConcreteDevice *System::make_device(Device::ID parent_id, ConcreteConfig &&cfg, 
   auto ptr = device.get();
   { // Force child_dt to go out of scope after move.
     auto child_dt = std::make_unique<DeviceTree>(std::move(device), device_tree->second);
+    _id_to_device[cfg.id] = child_dt.get();
     device_tree->second->children.push_back(std::move(child_dt));
   }
   return ptr;
