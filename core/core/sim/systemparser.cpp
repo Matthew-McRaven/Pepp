@@ -1,6 +1,7 @@
 #include "systemparser.hpp"
 #include <nlohmann/json.hpp>
 #include "core/ds/string_compare.hpp"
+#include "core/sim/cores/cpu/pep_isa.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/io/fifo.hpp"
 #include "core/sim/memory/ram/dense.hpp"
@@ -93,6 +94,7 @@ static const std::unordered_map<std::string, std::unique_ptr<DeviceSerializer>, 
       m.emplace("ram", make_serializer_ram());
       m.emplace(SimpleBus::compatible, SimpleBus::make_serializer());
       m.emplace(FIFORegister::compatible, FIFORegister::make_serializer());
+      m.emplace(PepISA3CPU::compatible, PepISA3CPU::make_serializer());
       return m;
     }();
 

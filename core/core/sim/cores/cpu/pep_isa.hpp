@@ -25,6 +25,8 @@ public:
   PepISA3CPU(const PepISA3CPU &) = delete;
   PepISA3CPU &operator=(const PepISA3CPU &) = delete;
 
+  const Target *target() const;
+
   // Device interface
   void initialize(System *) override;
   const Device::Configuration &config() const override;
