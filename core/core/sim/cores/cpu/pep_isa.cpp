@@ -293,6 +293,22 @@ void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond) {
   if (taken) self->write_register(isa::Pep10::Register::PC, operand);
 }
 
+void handle_addsp(PepISA3CPU *self, Op op) {
+  const u16 op_addr = decode_op_addr(self, op.addr);
+  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const auto sp = self->read_register(isa::Pep10::Register::SP) + operand;
+  self->write_register(isa::Pep10::Register::SP, sp);
+  // TODO: if (_dbg) _dbg->notifyAddSP(pc - 3, sp);
+}
+
+void handle_subsp(PepISA3CPU *self, Op op) {
+  const u16 op_addr = decode_op_addr(self, op.addr);
+  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const auto sp = self->read_register(isa::Pep10::Register::SP) - operand;
+  self->write_register(isa::Pep10::Register::SP, sp);
+  // TODO: if (_dbg) _dbg->notifySubSP(pc - 3, sp);
+}
+
 void handle_addr(PepISA3CPU *self, Op op) {
   isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   u16 op_addr = decode_op_addr(self, op.addr);
@@ -584,8 +600,8 @@ void PepISA3CPU::handle(Op opcode) {
   case isa::SharedOpBehavior::CALL: break;
   case isa::SharedOpBehavior::SCALL: break;
   case isa::SharedOpBehavior::TRAP_CALL: break;
-  case isa::SharedOpBehavior::ADDSP: break;
-  case isa::SharedOpBehavior::SUBSP: break;
+  case isa::SharedOpBehavior::ADDSP: return handle_addsp(this, opcode);
+  case isa::SharedOpBehavior::SUBSP: return handle_subsp(this, opcode);
   case isa::SharedOpBehavior::ADD: return handle_addr(this, opcode);
   case isa::SharedOpBehavior::SUB: return handle_subr(this, opcode);
   case isa::SharedOpBehavior::AND: return handle_bitopr(this, opcode, Bitop::AND);
