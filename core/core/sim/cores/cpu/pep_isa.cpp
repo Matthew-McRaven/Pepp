@@ -272,6 +272,27 @@ void handle_sret(PepISA3CPU *self) {
   // Skip "normal" return path, since we've already written to PC.
 }
 
+enum class BranchCondition { UNCONDITIONAL, LE, LT, EQ, NE, GE, GT, V, C };
+
+void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond) {
+  const auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  const u16 op_addr = decode_op_addr(self, op.addr);
+  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  bool taken;
+  switch (cond) {
+  case BranchCondition::UNCONDITIONAL: taken = true; break;
+  case BranchCondition::LE: taken = n || z; break;
+  case BranchCondition::LT: taken = n; break;
+  case BranchCondition::EQ: taken = z; break;
+  case BranchCondition::NE: taken = !z; break;
+  case BranchCondition::GE: taken = !n; break;
+  case BranchCondition::GT: taken = !n && !z; break;
+  case BranchCondition::V: taken = v; break;
+  case BranchCondition::C: taken = c; break;
+  }
+  if (taken) self->write_register(isa::Pep10::Register::PC, operand);
+}
+
 void handle_addr(PepISA3CPU *self, Op op) {
   isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   u16 op_addr = decode_op_addr(self, op.addr);
@@ -551,15 +572,15 @@ void PepISA3CPU::handle(Op opcode) {
   case isa::SharedOpBehavior::NOT: return handle_notr(this, (R)opcode.target);
   case isa::SharedOpBehavior::ROL: return handle_rolr(this, (R)opcode.target);
   case isa::SharedOpBehavior::ROR: return handle_rorr(this, (R)opcode.target);
-  case isa::SharedOpBehavior::BR: break;
-  case isa::SharedOpBehavior::BRLE: break;
-  case isa::SharedOpBehavior::BRLT: break;
-  case isa::SharedOpBehavior::BREQ: break;
-  case isa::SharedOpBehavior::BRNE: break;
-  case isa::SharedOpBehavior::BRGE: break;
-  case isa::SharedOpBehavior::BRGT: break;
-  case isa::SharedOpBehavior::BRV: break;
-  case isa::SharedOpBehavior::BRC: break;
+  case isa::SharedOpBehavior::BR: return handle_branch(this, opcode, BranchCondition::UNCONDITIONAL);
+  case isa::SharedOpBehavior::BRLE: return handle_branch(this, opcode, BranchCondition::LE);
+  case isa::SharedOpBehavior::BRLT: return handle_branch(this, opcode, BranchCondition::LT);
+  case isa::SharedOpBehavior::BREQ: return handle_branch(this, opcode, BranchCondition::EQ);
+  case isa::SharedOpBehavior::BRNE: return handle_branch(this, opcode, BranchCondition::NE);
+  case isa::SharedOpBehavior::BRGE: return handle_branch(this, opcode, BranchCondition::GE);
+  case isa::SharedOpBehavior::BRGT: return handle_branch(this, opcode, BranchCondition::GT);
+  case isa::SharedOpBehavior::BRV: return handle_branch(this, opcode, BranchCondition::V);
+  case isa::SharedOpBehavior::BRC: return handle_branch(this, opcode, BranchCondition::C);
   case isa::SharedOpBehavior::CALL: break;
   case isa::SharedOpBehavior::SCALL: break;
   case isa::SharedOpBehavior::TRAP_CALL: break;
