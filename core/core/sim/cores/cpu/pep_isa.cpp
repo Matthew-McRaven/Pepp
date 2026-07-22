@@ -1,5 +1,6 @@
 #include "pep_isa.hpp"
 #include <nlohmann/json.hpp>
+#include "core/arch/pep/isa/pep10.hpp"
 #include "core/ds/string_compare.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
@@ -55,6 +56,24 @@ void serialize_pepisacpu(nlohmann::json &obj, const System *sys, const Device *s
 }
 } // namespace
 
+static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
+
+using Opcode = isa::detail::Opcode;
+void unimpl_handler(PepISA3CPU *self, Opcode op) { throw std::logic_error("Unimplemented instruction encountered"); }
+
+void handle_ret(PepISA3CPU *self, Opcode op) {
+  // self->decrement_call_depth();
+  // u16 sp = self->read_reg(sp)
+  u16 sp;
+  self->target()->read<u16, swap>(sp, {});
+  // self->write_reg(0);
+}
+
+void handle_movflga(PepISA3CPU *self, Opcode op) {
+  // read NZVC
+  // write to A.
+}
+
 PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
   auto make_regs = [](System *sys, Device::ID parent) {
     auto device = sys->find_by_id(parent);
@@ -84,10 +103,16 @@ PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
 const Target *PepISA3CPU::target() const { return _target; }
 
 void PepISA3CPU::initialize(System *sys) {
+  using enum isa::detail::OpBehavior;
   auto dev = sys->find_relative(_config.target, _config.fullname);
   if (!dev) throw std::runtime_error("PepISA3CPU: could not find target device " + _config.target);
   _target = dev->capability<Target>();
   if (!_target) throw std::runtime_error("PepISA3CPU: device " + _config.target + " is not a memory target");
+  switch (_config.isa) {
+  case ISA::Pep8: throw std::logic_error("PepISA3CPU: ISA " + isa_to_string(_config.isa) + " not implemented");
+  case ISA::Pep9: throw std::logic_error("PepISA3CPU: ISA " + isa_to_string(_config.isa) + " not implemented");
+  case ISA::Pep10: _opcodes = isa::Pep10::opcode_plane; break;
+  }
 }
 
 const Device::Configuration &PepISA3CPU::config() const { return _config; }
@@ -137,3 +162,64 @@ void PepISA3CPU::trace(bool enabled) {
 }
 
 bool PepISA3CPU::traced() const { return _tb ? _tb->traced(id()) : false; }
+
+void PepISA3CPU::handle(isa::detail::Opcode opcode) {
+  switch (opcode.behavior) {
+  case isa::detail::OpBehavior::UNIMPL: unimpl_handler(this, opcode); break;
+  case isa::detail::OpBehavior::RET: break;
+  case isa::detail::OpBehavior::SRET: break;
+  case isa::detail::OpBehavior::MOVFLGA: break;
+  case isa::detail::OpBehavior::MOVAFLG: break;
+  case isa::detail::OpBehavior::MOVSPA: break;
+  case isa::detail::OpBehavior::MOVASP: break;
+  case isa::detail::OpBehavior::NEGA: break;
+  case isa::detail::OpBehavior::NEGX: break;
+  case isa::detail::OpBehavior::ASLA: break;
+  case isa::detail::OpBehavior::ASLX: break;
+  case isa::detail::OpBehavior::ASRA: break;
+  case isa::detail::OpBehavior::ASRX: break;
+  case isa::detail::OpBehavior::NOTA: break;
+  case isa::detail::OpBehavior::NOTX: break;
+  case isa::detail::OpBehavior::ROLA: break;
+  case isa::detail::OpBehavior::ROLX: break;
+  case isa::detail::OpBehavior::RORA: break;
+  case isa::detail::OpBehavior::RORX: break;
+  case isa::detail::OpBehavior::BR: break;
+  case isa::detail::OpBehavior::BRLE: break;
+  case isa::detail::OpBehavior::BRLT: break;
+  case isa::detail::OpBehavior::BREQ: break;
+  case isa::detail::OpBehavior::BRNE: break;
+  case isa::detail::OpBehavior::BRGE: break;
+  case isa::detail::OpBehavior::BRGT: break;
+  case isa::detail::OpBehavior::BRV: break;
+  case isa::detail::OpBehavior::BRC: break;
+  case isa::detail::OpBehavior::CALL: break;
+  case isa::detail::OpBehavior::SCALL: break;
+  case isa::detail::OpBehavior::TRAP_CALL: break;
+  case isa::detail::OpBehavior::ADDSP: break;
+  case isa::detail::OpBehavior::SUBSP: break;
+  case isa::detail::OpBehavior::ADDA: break;
+  case isa::detail::OpBehavior::ADDX: break;
+  case isa::detail::OpBehavior::SUBA: break;
+  case isa::detail::OpBehavior::SUBX: break;
+  case isa::detail::OpBehavior::ANDA: break;
+  case isa::detail::OpBehavior::ANDX: break;
+  case isa::detail::OpBehavior::ORA: break;
+  case isa::detail::OpBehavior::ORX: break;
+  case isa::detail::OpBehavior::XORA: break;
+  case isa::detail::OpBehavior::XORX: break;
+  case isa::detail::OpBehavior::CPWA: break;
+  case isa::detail::OpBehavior::CPWX: break;
+  case isa::detail::OpBehavior::CPBA: break;
+  case isa::detail::OpBehavior::CPBX: break;
+  case isa::detail::OpBehavior::LDWA: break;
+  case isa::detail::OpBehavior::LDWX: break;
+  case isa::detail::OpBehavior::LDBA: break;
+  case isa::detail::OpBehavior::LDBX: break;
+  case isa::detail::OpBehavior::STWA: break;
+  case isa::detail::OpBehavior::STWX: break;
+  case isa::detail::OpBehavior::STBA: break;
+  case isa::detail::OpBehavior::STBX: break;
+  default: throw std::logic_error("Unknown opcode behavior");
+  }
+}

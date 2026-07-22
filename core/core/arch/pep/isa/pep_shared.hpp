@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include "core/integers.h"
 
 /*
  * Copyright (c) 2023-2026 J. Stanley Warford, Matthew McRaven
@@ -21,6 +22,86 @@
  */
 
 namespace isa::detail {
+
+// The simulation
+enum class OpBehavior : u8 {
+  INVALID = 0,
+  UNIMPL,
+  RET,
+  SRET, // Covers RETTR and SRET
+  MOVFLGA,
+  MOVAFLG,
+  MOVSPA,
+  MOVASP,
+  HW_NOP,
+  NEGA,
+  NEGX,
+  ASLA,
+  ASLX,
+  ASRA,
+  ASRX,
+  NOTA,
+  NOTX,
+  ROLA,
+  ROLX,
+  RORA,
+  RORX,
+  BR,
+  BRLE,
+  BRLT,
+  BREQ,
+  BRNE,
+  BRGE,
+  BRGT,
+  BRV,
+  BRC,
+  CALL,
+  SCALL,
+  TRAP_CALL, // Different from SCALL in that it must clear X register.
+  ADDSP,
+  SUBSP,
+  ADDA,
+  ADDX,
+  SUBA,
+  SUBX,
+  ANDA,
+  ANDX,
+  ORA,
+  ORX,
+  XORA,
+  XORX,
+  CPWA,
+  CPWX,
+  CPBA,
+  CPBX,
+  LDWA,
+  LDWX,
+  LDBA,
+  LDBX,
+  STWA,
+  STWX,
+  STBA,
+  STBX,
+  // Must be last, by convention!
+  MAX_VALUE
+};
+enum class OpAddrMode : u8 {
+  Unary, // Unary
+  I,     // Immediate
+  D,     // Direct
+  N,     // Indirect
+  S,     // Stack
+  SF,    // Stack deferred
+  X,     // Indexed
+  SX,    // Stack indexed
+  SFX,   // Stack deferred indexed
+};
+struct Opcode {
+  OpBehavior behavior;
+  OpAddrMode addr;
+};
+
+using OpcodePlane = std::array<Opcode, 256>;
 
 template <typename Mnemonic> uint8_t opcode(Mnemonic mnemonic) { return static_cast<uint8_t>(mnemonic); }
 

@@ -1,10 +1,12 @@
 #pragma once
 
+#include "core/arch/pep/isa/pep_shared.hpp"
 #include "core/sim/api/clock.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
 class Dense;
+
 class PepISA3CPU final : public Device, public ClockSink, public Traceable, public Initiator {
 public:
   static const inline std::string compatible = "cpu,pep,isa3";
@@ -13,6 +15,7 @@ public:
     Pep9 = 2,
     Pep10 = 3,
   };
+
   struct Configuration : public Device::Configuration {
     ISA isa = ISA::Pep10;
     // Name of device to use as the target for memory access. Resolved to Target* during initialize().
@@ -53,5 +56,8 @@ private:
   Buffer *_tb = nullptr;
   Dense *_regbank = nullptr, *_csrs = nullptr;
   Target *_target = nullptr;
+  isa::detail::OpcodePlane _opcodes;
+
+  void handle(isa::detail::Opcode opcode);
   const ClockSource *_clk = nullptr;
 };
