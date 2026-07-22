@@ -64,7 +64,7 @@ static const Operation rw_d{.type = Operation::Type::Standard, .kind = Operation
 // Return the /address/ of the operand value, which is usable for both load and store instructions.
 // For store-type operands, this is the address you write to. For load-type operands, you will need to read from this
 // address to get the actual operand specifier.
-u16 decode_op_addr(PepISA3CPU *self, isa::detail::OpAddrMode addr) {
+u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
   // Fetch current PC
   u16 pc = self->read_register(isa::Pep10::Register::PC);
   // Increment PC by 2 to point to next instruction.
@@ -75,19 +75,19 @@ u16 decode_op_addr(PepISA3CPU *self, isa::detail::OpAddrMode addr) {
   self->write_register(isa::Pep10::Register::OS, opr);
 
   switch (addr) {
-  case isa::detail::OpAddrMode::I: return pc;
-  case isa::detail::OpAddrMode::N: opr = target->read<u16, swap>(opr, rw_d).second; [[fallthrough]];
-  case isa::detail::OpAddrMode::D: return opr;
+  case isa::SharedAddrMode::I: return pc;
+  case isa::SharedAddrMode::N: opr = target->read<u16, swap>(opr, rw_d).second; [[fallthrough]];
+  case isa::SharedAddrMode::D: return opr;
 
-  case isa::detail::OpAddrMode::SF:
+  case isa::SharedAddrMode::SF:
     opr = self->read_register(isa::Pep10::Register::SP) + opr;
     return self->target()->read<u16, swap>(opr, rw_d).second;
 
-  case isa::detail::OpAddrMode::S: return self->read_register(isa::Pep10::Register::SP) + opr;
-  case isa::detail::OpAddrMode::X: return self->read_register(isa::Pep10::Register::X) + opr;
-  case isa::detail::OpAddrMode::SX:
+  case isa::SharedAddrMode::S: return self->read_register(isa::Pep10::Register::SP) + opr;
+  case isa::SharedAddrMode::X: return self->read_register(isa::Pep10::Register::X) + opr;
+  case isa::SharedAddrMode::SX:
     return self->read_register(isa::Pep10::Register::X) + self->read_register(isa::Pep10::Register::SP) + opr;
-  case isa::detail::OpAddrMode::SFX:
+  case isa::SharedAddrMode::SFX:
     opr = self->read_register(isa::Pep10::Register::SP) + opr;
     return self->read_register(isa::Pep10::Register::X) + self->target()->read<u16, swap>(opr, rw_d).second;
   }
@@ -110,7 +110,7 @@ std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc) {
   bool c = nzvc & (1 << 3);
   return {n, z, v, c};
 }
-using Opcode = isa::detail::Opcode;
+using Op = isa::SharedOp;
 void unimpl_handler(PepISA3CPU *) { throw std::logic_error("Unimplemented instruction encountered"); }
 
 void handle_ret(PepISA3CPU *self) {
@@ -272,7 +272,7 @@ void handle_sret(PepISA3CPU *self) {
   // Skip "normal" return path, since we've already written to PC.
 }
 
-void handle_addr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+void handle_addr(PepISA3CPU *self, Op op, isa::Pep10::Register reg) {
   u16 op_addr = decode_op_addr(self, op.addr);
   u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
   auto src = self->read_register(reg);
@@ -292,7 +292,7 @@ void handle_addr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_subr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+void handle_subr(PepISA3CPU *self, Op op, isa::Pep10::Register reg) {
   u16 op_addr = decode_op_addr(self, op.addr);
   u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
   auto src = self->read_register(reg);
@@ -318,7 +318,7 @@ enum class Bitop {
   XOR,
 };
 
-void handle_bitopr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg, Bitop bitop) {
+void handle_bitopr(PepISA3CPU *self, Op op, isa::Pep10::Register reg, Bitop bitop) {
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
   u16 op_addr = decode_op_addr(self, op.addr);
   u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
@@ -337,7 +337,7 @@ void handle_bitopr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg, Bitop 
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_ldwr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+void handle_ldwr(PepISA3CPU *self, Op op, isa::Pep10::Register reg) {
   u16 op_addr = decode_op_addr(self, op.addr);
   u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
@@ -349,7 +349,7 @@ void handle_ldwr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_ldbr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+void handle_ldbr(PepISA3CPU *self, Op op, isa::Pep10::Register reg) {
   u16 op_addr = decode_op_addr(self, op.addr);
   u8 operand = self->target()->read<u8>(op_addr, rw_d).second;
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
@@ -361,19 +361,19 @@ void handle_ldbr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_stwr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+void handle_stwr(PepISA3CPU *self, Op op, isa::Pep10::Register reg) {
   u16 op_addr = decode_op_addr(self, op.addr);
   u16 src = self->read_register(reg);
   self->target()->write<u16, swap>(op_addr, src, rw_d);
 }
 
-void handle_stbr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+void handle_stbr(PepISA3CPU *self, Op op, isa::Pep10::Register reg) {
   u16 op_addr = decode_op_addr(self, op.addr);
   u8 src = self->read_register(reg);
   self->target()->write<u8>(op_addr, src, rw_d);
 }
 
-void handle_cpwr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+void handle_cpwr(PepISA3CPU *self, Op op, isa::Pep10::Register reg) {
   u16 op_addr = decode_op_addr(self, op.addr);
   u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
   auto src = self->read_register(reg);
@@ -395,7 +395,7 @@ void handle_cpwr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_cpbr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+void handle_cpbr(PepISA3CPU *self, Op op, isa::Pep10::Register reg) {
   u16 op_addr = decode_op_addr(self, op.addr);
   u8 operand = self->target()->read<u8>(op_addr, rw_d).second;
   auto src = self->read_register(reg);
@@ -439,7 +439,7 @@ PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
 const Target *PepISA3CPU::target() const { return _target; }
 
 void PepISA3CPU::initialize(System *sys) {
-  using enum isa::detail::OpBehavior;
+  using enum isa::SharedOpBehavior;
   auto dev = sys->find_relative(_config.target, _config.fullname);
   if (!dev) throw std::runtime_error("PepISA3CPU: could not find target device " + _config.target);
   _target = dev->capability<Target>();
@@ -525,64 +525,64 @@ void PepISA3CPU::write_packed_csr(u8 value) {
   }
 }
 
-void PepISA3CPU::handle(isa::detail::Opcode opcode) {
+void PepISA3CPU::handle(Op opcode) {
   switch (opcode.behavior) {
-  case isa::detail::OpBehavior::UNIMPL: return unimpl_handler(this);
-  case isa::detail::OpBehavior::RET: return handle_ret(this);
-  case isa::detail::OpBehavior::SRET: return handle_sret(this);
-  case isa::detail::OpBehavior::MOVFLGA: return handle_movflga(this);
-  case isa::detail::OpBehavior::MOVAFLG: return handle_movaflg(this);
-  case isa::detail::OpBehavior::MOVSPA: return handle_movspa(this);
-  case isa::detail::OpBehavior::MOVASP: return handle_movasp(this);
-  case isa::detail::OpBehavior::HW_NOP: return handle_nop(this);
-  case isa::detail::OpBehavior::NEGA: return handle_negr(this, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::NEGX: return handle_negr(this, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::ASLA: return handle_aslr(this, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::ASLX: return handle_aslr(this, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::ASRA: return handle_asrr(this, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::ASRX: return handle_asrr(this, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::NOTA: return handle_notr(this, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::NOTX: return handle_notr(this, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::ROLA: return handle_rolr(this, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::ROLX: return handle_rolr(this, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::RORA: return handle_rorr(this, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::RORX: return handle_rorr(this, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::BR: break;
-  case isa::detail::OpBehavior::BRLE: break;
-  case isa::detail::OpBehavior::BRLT: break;
-  case isa::detail::OpBehavior::BREQ: break;
-  case isa::detail::OpBehavior::BRNE: break;
-  case isa::detail::OpBehavior::BRGE: break;
-  case isa::detail::OpBehavior::BRGT: break;
-  case isa::detail::OpBehavior::BRV: break;
-  case isa::detail::OpBehavior::BRC: break;
-  case isa::detail::OpBehavior::CALL: break;
-  case isa::detail::OpBehavior::SCALL: break;
-  case isa::detail::OpBehavior::TRAP_CALL: break;
-  case isa::detail::OpBehavior::ADDSP: break;
-  case isa::detail::OpBehavior::SUBSP: break;
-  case isa::detail::OpBehavior::ADDA: return handle_addr(this, opcode, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::ADDX: return handle_addr(this, opcode, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::SUBA: return handle_subr(this, opcode, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::SUBX: return handle_subr(this, opcode, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::ANDA: return handle_bitopr(this, opcode, isa::Pep10::Register::A, Bitop::AND);
-  case isa::detail::OpBehavior::ANDX: return handle_bitopr(this, opcode, isa::Pep10::Register::X, Bitop::AND);
-  case isa::detail::OpBehavior::ORA: return handle_bitopr(this, opcode, isa::Pep10::Register::A, Bitop::OR);
-  case isa::detail::OpBehavior::ORX: return handle_bitopr(this, opcode, isa::Pep10::Register::X, Bitop::OR);
-  case isa::detail::OpBehavior::XORA: return handle_bitopr(this, opcode, isa::Pep10::Register::A, Bitop::XOR);
-  case isa::detail::OpBehavior::XORX: return handle_bitopr(this, opcode, isa::Pep10::Register::X, Bitop::XOR);
-  case isa::detail::OpBehavior::CPWA: return handle_cpwr(this, opcode, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::CPWX: return handle_cpwr(this, opcode, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::CPBA: return handle_cpbr(this, opcode, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::CPBX: return handle_cpbr(this, opcode, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::LDWA: return handle_ldwr(this, opcode, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::LDWX: return handle_ldwr(this, opcode, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::LDBA: return handle_ldbr(this, opcode, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::LDBX: return handle_ldbr(this, opcode, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::STWA: return handle_stwr(this, opcode, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::STWX: return handle_stwr(this, opcode, isa::Pep10::Register::X);
-  case isa::detail::OpBehavior::STBA: return handle_stbr(this, opcode, isa::Pep10::Register::A);
-  case isa::detail::OpBehavior::STBX: return handle_stbr(this, opcode, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::UNIMPL: return unimpl_handler(this);
+  case isa::SharedOpBehavior::RET: return handle_ret(this);
+  case isa::SharedOpBehavior::SRET: return handle_sret(this);
+  case isa::SharedOpBehavior::MOVFLGA: return handle_movflga(this);
+  case isa::SharedOpBehavior::MOVAFLG: return handle_movaflg(this);
+  case isa::SharedOpBehavior::MOVSPA: return handle_movspa(this);
+  case isa::SharedOpBehavior::MOVASP: return handle_movasp(this);
+  case isa::SharedOpBehavior::HW_NOP: return handle_nop(this);
+  case isa::SharedOpBehavior::NEGA: return handle_negr(this, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::NEGX: return handle_negr(this, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::ASLA: return handle_aslr(this, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::ASLX: return handle_aslr(this, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::ASRA: return handle_asrr(this, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::ASRX: return handle_asrr(this, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::NOTA: return handle_notr(this, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::NOTX: return handle_notr(this, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::ROLA: return handle_rolr(this, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::ROLX: return handle_rolr(this, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::RORA: return handle_rorr(this, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::RORX: return handle_rorr(this, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::BR: break;
+  case isa::SharedOpBehavior::BRLE: break;
+  case isa::SharedOpBehavior::BRLT: break;
+  case isa::SharedOpBehavior::BREQ: break;
+  case isa::SharedOpBehavior::BRNE: break;
+  case isa::SharedOpBehavior::BRGE: break;
+  case isa::SharedOpBehavior::BRGT: break;
+  case isa::SharedOpBehavior::BRV: break;
+  case isa::SharedOpBehavior::BRC: break;
+  case isa::SharedOpBehavior::CALL: break;
+  case isa::SharedOpBehavior::SCALL: break;
+  case isa::SharedOpBehavior::TRAP_CALL: break;
+  case isa::SharedOpBehavior::ADDSP: break;
+  case isa::SharedOpBehavior::SUBSP: break;
+  case isa::SharedOpBehavior::ADDA: return handle_addr(this, opcode, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::ADDX: return handle_addr(this, opcode, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::SUBA: return handle_subr(this, opcode, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::SUBX: return handle_subr(this, opcode, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::ANDA: return handle_bitopr(this, opcode, isa::Pep10::Register::A, Bitop::AND);
+  case isa::SharedOpBehavior::ANDX: return handle_bitopr(this, opcode, isa::Pep10::Register::X, Bitop::AND);
+  case isa::SharedOpBehavior::ORA: return handle_bitopr(this, opcode, isa::Pep10::Register::A, Bitop::OR);
+  case isa::SharedOpBehavior::ORX: return handle_bitopr(this, opcode, isa::Pep10::Register::X, Bitop::OR);
+  case isa::SharedOpBehavior::XORA: return handle_bitopr(this, opcode, isa::Pep10::Register::A, Bitop::XOR);
+  case isa::SharedOpBehavior::XORX: return handle_bitopr(this, opcode, isa::Pep10::Register::X, Bitop::XOR);
+  case isa::SharedOpBehavior::CPWA: return handle_cpwr(this, opcode, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::CPWX: return handle_cpwr(this, opcode, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::CPBA: return handle_cpbr(this, opcode, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::CPBX: return handle_cpbr(this, opcode, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::LDWA: return handle_ldwr(this, opcode, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::LDWX: return handle_ldwr(this, opcode, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::LDBA: return handle_ldbr(this, opcode, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::LDBX: return handle_ldbr(this, opcode, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::STWA: return handle_stwr(this, opcode, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::STWX: return handle_stwr(this, opcode, isa::Pep10::Register::X);
+  case isa::SharedOpBehavior::STBA: return handle_stbr(this, opcode, isa::Pep10::Register::A);
+  case isa::SharedOpBehavior::STBX: return handle_stbr(this, opcode, isa::Pep10::Register::X);
   default: throw std::logic_error("Unknown opcode behavior");
   }
 }

@@ -22,7 +22,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "core/arch/pep/isa/pep_shared.hpp"
+#include "core/arch/pep/isa/pep_shared_ops.hpp"
 #include "core/ds/string_compare.hpp"
 
 namespace isa::detail::pep10 {
@@ -126,50 +126,50 @@ struct Opcode {
   AddressingMode mode;
   bool valid;
 };
-constexpr std::pair<std::array<Opcode, 256>, isa::detail::OpcodePlane> initOpcodes() {
+constexpr std::pair<std::array<Opcode, 256>, isa::OpcodePlane> initOpcodes() {
   using M = Mnemonic;
   using T = InstructionType;
   using AM = AddressingMode;
   auto mn = std::array<Opcode, 256>();
-  auto bh = isa::detail::OpcodePlane();
+  auto bh = isa::OpcodePlane();
   auto add_ix = [&mn](Instruction i) {
     auto base = static_cast<uint8_t>(i.mnemon);
     mn[base] = {.instr = i, .mode = AM::I, .valid = true};
     mn[base + 1] = {.instr = i, .mode = AM::X, .valid = true};
   };
-  auto bh_ix = [&bh](u8 base, isa::detail::OpBehavior b) {
-    bh[base] = {.behavior = b, .addr = isa::detail::OpAddrMode::I};
-    bh[base + 1] = {.behavior = b, .addr = isa::detail::OpAddrMode::X};
+  auto bh_ix = [&bh](u8 base, isa::SharedOpBehavior b) {
+    bh[base] = {.behavior = b, .addr = isa::SharedAddrMode::I};
+    bh[base + 1] = {.behavior = b, .addr = isa::SharedAddrMode::X};
   };
-  auto bh_unary_aaa = [&bh](u8 base, isa::detail::OpBehavior b) {
-    bh[base] = {.behavior = b, .addr = isa::detail::OpAddrMode::Unary};
-    bh[base + 1] = {.behavior = b, .addr = isa::detail::OpAddrMode::Unary};
-    bh[base + 2] = {.behavior = b, .addr = isa::detail::OpAddrMode::Unary};
-    bh[base + 3] = {.behavior = b, .addr = isa::detail::OpAddrMode::Unary};
-    bh[base + 4] = {.behavior = b, .addr = isa::detail::OpAddrMode::Unary};
-    bh[base + 5] = {.behavior = b, .addr = isa::detail::OpAddrMode::Unary};
-    bh[base + 6] = {.behavior = b, .addr = isa::detail::OpAddrMode::Unary};
-    bh[base + 7] = {.behavior = b, .addr = isa::detail::OpAddrMode::Unary};
+  auto bh_unary_aaa = [&bh](u8 base, isa::SharedOpBehavior b) {
+    bh[base] = {.behavior = b, .addr = isa::SharedAddrMode::Unary};
+    bh[base + 1] = {.behavior = b, .addr = isa::SharedAddrMode::Unary};
+    bh[base + 2] = {.behavior = b, .addr = isa::SharedAddrMode::Unary};
+    bh[base + 3] = {.behavior = b, .addr = isa::SharedAddrMode::Unary};
+    bh[base + 4] = {.behavior = b, .addr = isa::SharedAddrMode::Unary};
+    bh[base + 5] = {.behavior = b, .addr = isa::SharedAddrMode::Unary};
+    bh[base + 6] = {.behavior = b, .addr = isa::SharedAddrMode::Unary};
+    bh[base + 7] = {.behavior = b, .addr = isa::SharedAddrMode::Unary};
   };
-  auto bh_all_aaa = [&bh](u8 base, isa::detail::OpBehavior b) {
-    bh[base] = {.behavior = b, .addr = isa::detail::OpAddrMode::I};
-    bh[base + 1] = {.behavior = b, .addr = isa::detail::OpAddrMode::D};
-    bh[base + 2] = {.behavior = b, .addr = isa::detail::OpAddrMode::N};
-    bh[base + 3] = {.behavior = b, .addr = isa::detail::OpAddrMode::S};
-    bh[base + 4] = {.behavior = b, .addr = isa::detail::OpAddrMode::SF};
-    bh[base + 5] = {.behavior = b, .addr = isa::detail::OpAddrMode::X};
-    bh[base + 6] = {.behavior = b, .addr = isa::detail::OpAddrMode::SX};
-    bh[base + 7] = {.behavior = b, .addr = isa::detail::OpAddrMode::SFX};
+  auto bh_all_aaa = [&bh](u8 base, isa::SharedOpBehavior b) {
+    bh[base] = {.behavior = b, .addr = isa::SharedAddrMode::I};
+    bh[base + 1] = {.behavior = b, .addr = isa::SharedAddrMode::D};
+    bh[base + 2] = {.behavior = b, .addr = isa::SharedAddrMode::N};
+    bh[base + 3] = {.behavior = b, .addr = isa::SharedAddrMode::S};
+    bh[base + 4] = {.behavior = b, .addr = isa::SharedAddrMode::SF};
+    bh[base + 5] = {.behavior = b, .addr = isa::SharedAddrMode::X};
+    bh[base + 6] = {.behavior = b, .addr = isa::SharedAddrMode::SX};
+    bh[base + 7] = {.behavior = b, .addr = isa::SharedAddrMode::SFX};
   };
-  auto bh_noi_aaa = [&bh](u8 base, isa::detail::OpBehavior b) {
-    bh[base] = {.behavior = isa::detail::OpBehavior::INVALID, .addr = isa::detail::OpAddrMode::Unary};
-    bh[base + 1] = {.behavior = b, .addr = isa::detail::OpAddrMode::D};
-    bh[base + 2] = {.behavior = b, .addr = isa::detail::OpAddrMode::N};
-    bh[base + 3] = {.behavior = b, .addr = isa::detail::OpAddrMode::S};
-    bh[base + 4] = {.behavior = b, .addr = isa::detail::OpAddrMode::SF};
-    bh[base + 5] = {.behavior = b, .addr = isa::detail::OpAddrMode::X};
-    bh[base + 6] = {.behavior = b, .addr = isa::detail::OpAddrMode::SX};
-    bh[base + 7] = {.behavior = b, .addr = isa::detail::OpAddrMode::SFX};
+  auto bh_noi_aaa = [&bh](u8 base, isa::SharedOpBehavior b) {
+    bh[base] = {.behavior = isa::SharedOpBehavior::INVALID, .addr = isa::SharedAddrMode::Unary};
+    bh[base + 1] = {.behavior = b, .addr = isa::SharedAddrMode::D};
+    bh[base + 2] = {.behavior = b, .addr = isa::SharedAddrMode::N};
+    bh[base + 3] = {.behavior = b, .addr = isa::SharedAddrMode::S};
+    bh[base + 4] = {.behavior = b, .addr = isa::SharedAddrMode::SF};
+    bh[base + 5] = {.behavior = b, .addr = isa::SharedAddrMode::X};
+    bh[base + 6] = {.behavior = b, .addr = isa::SharedAddrMode::SX};
+    bh[base + 7] = {.behavior = b, .addr = isa::SharedAddrMode::SFX};
   };
   auto add_all = [&mn](Instruction i) {
     auto base = static_cast<uint8_t>(i.mnemon);
@@ -184,128 +184,128 @@ constexpr std::pair<std::array<Opcode, 256>, isa::detail::OpcodePlane> initOpcod
   };
 
   mn[0x00] = {.instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true}, .mode = AM::NONE, .valid = false};
-  bh[0x00] = {.behavior = isa::detail::OpBehavior::INVALID, .addr = isa::detail::OpAddrMode::Unary};
+  bh[0x00] = {.behavior = isa::SharedOpBehavior::INVALID, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::RET] = {.instr = {.mnemon = M::RET, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::RET] = {.behavior = isa::detail::OpBehavior::RET, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::RET] = {.behavior = isa::SharedOpBehavior::RET, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::SRET] = {.instr = {.mnemon = M::SRET, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::SRET] = {.behavior = isa::detail::OpBehavior::SRET, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::SRET] = {.behavior = isa::SharedOpBehavior::SRET, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::MOVFLGA] = {
       .instr = {.mnemon = M::MOVFLGA, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::MOVFLGA] = {.behavior = isa::detail::OpBehavior::MOVFLGA, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::MOVFLGA] = {.behavior = isa::SharedOpBehavior::MOVFLGA, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::MOVAFLG] = {
       .instr = {.mnemon = M::MOVAFLG, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::MOVAFLG] = {.behavior = isa::detail::OpBehavior::MOVAFLG, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::MOVAFLG] = {.behavior = isa::SharedOpBehavior::MOVAFLG, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::MOVSPA] = {
       .instr = {.mnemon = M::MOVSPA, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::MOVSPA] = {.behavior = isa::detail::OpBehavior::MOVSPA, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::MOVSPA] = {.behavior = isa::SharedOpBehavior::MOVSPA, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::MOVASP] = {
       .instr = {.mnemon = M::MOVASP, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::MOVASP] = {.behavior = isa::detail::OpBehavior::MOVASP, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::MOVASP] = {.behavior = isa::SharedOpBehavior::MOVASP, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::NOP] = {.instr = {.mnemon = M::NOP, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::NOP] = {.behavior = isa::detail::OpBehavior::HW_NOP, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::NOP] = {.behavior = isa::SharedOpBehavior::HW_NOP, .addr = isa::SharedAddrMode::Unary};
 
   // Gap
   for (int it = (int)M::NOP + 1; it < (int)M::NOTA; it++) {
     mn[it] = {.instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true}, .mode = AM::NONE, .valid = false};
-    bh[it] = {.behavior = isa::detail::OpBehavior::UNIMPL, .addr = isa::detail::OpAddrMode::Unary};
+    bh[it] = {.behavior = isa::SharedOpBehavior::UNIMPL, .addr = isa::SharedAddrMode::Unary};
   }
 
   mn[(uint8_t)M::NEGA] = {.instr = {.mnemon = M::NEGA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::NEGA] = {.behavior = isa::detail::OpBehavior::NEGA, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::NEGA] = {.behavior = isa::SharedOpBehavior::NEGA, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::NEGX] = {.instr = {.mnemon = M::NEGX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::NEGX] = {.behavior = isa::detail::OpBehavior::NEGX, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::NEGX] = {.behavior = isa::SharedOpBehavior::NEGX, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::ASLA] = {.instr = {.mnemon = M::ASLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::ASLA] = {.behavior = isa::detail::OpBehavior::ASLA, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::ASLA] = {.behavior = isa::SharedOpBehavior::ASLA, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::ASLX] = {.instr = {.mnemon = M::ASLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::ASLX] = {.behavior = isa::detail::OpBehavior::ASLX, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::ASLX] = {.behavior = isa::SharedOpBehavior::ASLX, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::ASRA] = {.instr = {.mnemon = M::ASRA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::ASRA] = {.behavior = isa::detail::OpBehavior::ASRA, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::ASRA] = {.behavior = isa::SharedOpBehavior::ASRA, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::ASRX] = {.instr = {.mnemon = M::ASRX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::ASRX] = {.behavior = isa::detail::OpBehavior::ASRX, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::ASRX] = {.behavior = isa::SharedOpBehavior::ASRX, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::NOTA] = {.instr = {.mnemon = M::NOTA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::NOTA] = {.behavior = isa::detail::OpBehavior::NOTA, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::NOTA] = {.behavior = isa::SharedOpBehavior::NOTA, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::NOTX] = {.instr = {.mnemon = M::NOTX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::NOTX] = {.behavior = isa::detail::OpBehavior::NOTX, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::NOTX] = {.behavior = isa::SharedOpBehavior::NOTX, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::ROLA] = {.instr = {.mnemon = M::ROLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::ROLA] = {.behavior = isa::detail::OpBehavior::ROLA, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::ROLA] = {.behavior = isa::SharedOpBehavior::ROLA, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::ROLX] = {.instr = {.mnemon = M::ROLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::ROLX] = {.behavior = isa::detail::OpBehavior::ROLX, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::ROLX] = {.behavior = isa::SharedOpBehavior::ROLX, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::RORA] = {.instr = {.mnemon = M::RORA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::RORA] = {.behavior = isa::detail::OpBehavior::RORA, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::RORA] = {.behavior = isa::SharedOpBehavior::RORA, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::RORX] = {.instr = {.mnemon = M::RORX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::RORX] = {.behavior = isa::detail::OpBehavior::RORX, .addr = isa::detail::OpAddrMode::Unary};
+  bh[(uint8_t)M::RORX] = {.behavior = isa::SharedOpBehavior::RORX, .addr = isa::SharedAddrMode::Unary};
 
   add_ix({.mnemon = M::BR, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::BR, isa::detail::OpBehavior::BR);
+  bh_ix((uint8_t)M::BR, isa::SharedOpBehavior::BR);
   add_ix({.mnemon = M::BRLE, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::BRLE, isa::detail::OpBehavior::BRLE);
+  bh_ix((uint8_t)M::BRLE, isa::SharedOpBehavior::BRLE);
   add_ix({.mnemon = M::BRLT, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::BRLT, isa::detail::OpBehavior::BRLT);
+  bh_ix((uint8_t)M::BRLT, isa::SharedOpBehavior::BRLT);
   add_ix({.mnemon = M::BREQ, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::BREQ, isa::detail::OpBehavior::BREQ);
+  bh_ix((uint8_t)M::BREQ, isa::SharedOpBehavior::BREQ);
   add_ix({.mnemon = M::BRNE, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::BRNE, isa::detail::OpBehavior::BRNE);
+  bh_ix((uint8_t)M::BRNE, isa::SharedOpBehavior::BRNE);
   add_ix({.mnemon = M::BRGE, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::BRGE, isa::detail::OpBehavior::BRGE);
+  bh_ix((uint8_t)M::BRGE, isa::SharedOpBehavior::BRGE);
   add_ix({.mnemon = M::BRGT, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::BRGT, isa::detail::OpBehavior::BRGT);
+  bh_ix((uint8_t)M::BRGT, isa::SharedOpBehavior::BRGT);
   add_ix({.mnemon = M::BRV, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::BRV, isa::detail::OpBehavior::BRV);
+  bh_ix((uint8_t)M::BRV, isa::SharedOpBehavior::BRV);
   add_ix({.mnemon = M::BRC, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::BRC, isa::detail::OpBehavior::BRC);
+  bh_ix((uint8_t)M::BRC, isa::SharedOpBehavior::BRC);
   add_ix({.mnemon = M::CALL, .type = T::A_ix, .unary = 0});
-  bh_ix((uint8_t)M::CALL, isa::detail::OpBehavior::CALL);
+  bh_ix((uint8_t)M::CALL, isa::SharedOpBehavior::CALL);
   add_all({.mnemon = M::SCALL, .type = T::AAA_all, .unary = 1});
-  bh_unary_aaa((uint8_t)M::SCALL, isa::detail::OpBehavior::SCALL);
+  bh_unary_aaa((uint8_t)M::SCALL, isa::SharedOpBehavior::SCALL);
 
   add_all({.mnemon = M::LDWA, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::LDWA, isa::detail::OpBehavior::LDWA);
+  bh_all_aaa((uint8_t)M::LDWA, isa::SharedOpBehavior::LDWA);
   add_all({.mnemon = M::LDWX, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::LDWX, isa::detail::OpBehavior::LDWX);
+  bh_all_aaa((uint8_t)M::LDWX, isa::SharedOpBehavior::LDWX);
   add_all({.mnemon = M::LDBA, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::LDBA, isa::detail::OpBehavior::LDBA);
+  bh_all_aaa((uint8_t)M::LDBA, isa::SharedOpBehavior::LDBA);
   add_all({.mnemon = M::LDBX, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::LDBX, isa::detail::OpBehavior::LDBX);
+  bh_all_aaa((uint8_t)M::LDBX, isa::SharedOpBehavior::LDBX);
   add_all({.mnemon = M::STWA, .type = T::RAAA_noi, .unary = 0});
-  bh_noi_aaa((uint8_t)M::STWA, isa::detail::OpBehavior::STWA);
+  bh_noi_aaa((uint8_t)M::STWA, isa::SharedOpBehavior::STWA);
   add_all({.mnemon = M::STWX, .type = T::RAAA_noi, .unary = 0});
-  bh_noi_aaa((uint8_t)M::STWX, isa::detail::OpBehavior::STWX);
+  bh_noi_aaa((uint8_t)M::STWX, isa::SharedOpBehavior::STWX);
   add_all({.mnemon = M::STBA, .type = T::RAAA_noi, .unary = 0});
-  bh_noi_aaa((uint8_t)M::STBA, isa::detail::OpBehavior::STBA);
+  bh_noi_aaa((uint8_t)M::STBA, isa::SharedOpBehavior::STBA);
   add_all({.mnemon = M::STBX, .type = T::RAAA_noi, .unary = 0});
-  bh_noi_aaa((uint8_t)M::STBX, isa::detail::OpBehavior::STBX);
+  bh_noi_aaa((uint8_t)M::STBX, isa::SharedOpBehavior::STBX);
   add_all({.mnemon = M::CPWA, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::CPWA, isa::detail::OpBehavior::CPWA);
+  bh_all_aaa((uint8_t)M::CPWA, isa::SharedOpBehavior::CPWA);
   add_all({.mnemon = M::CPWX, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::CPWX, isa::detail::OpBehavior::CPWX);
+  bh_all_aaa((uint8_t)M::CPWX, isa::SharedOpBehavior::CPWX);
   add_all({.mnemon = M::CPBA, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::CPBA, isa::detail::OpBehavior::CPBA);
+  bh_all_aaa((uint8_t)M::CPBA, isa::SharedOpBehavior::CPBA);
   add_all({.mnemon = M::CPBX, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::CPBX, isa::detail::OpBehavior::CPBX);
+  bh_all_aaa((uint8_t)M::CPBX, isa::SharedOpBehavior::CPBX);
   add_all({.mnemon = M::ADDA, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::ADDA, isa::detail::OpBehavior::ADDA);
+  bh_all_aaa((uint8_t)M::ADDA, isa::SharedOpBehavior::ADDA);
   add_all({.mnemon = M::ADDX, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::ADDX, isa::detail::OpBehavior::ADDX);
+  bh_all_aaa((uint8_t)M::ADDX, isa::SharedOpBehavior::ADDX);
   add_all({.mnemon = M::SUBA, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::SUBA, isa::detail::OpBehavior::SUBA);
+  bh_all_aaa((uint8_t)M::SUBA, isa::SharedOpBehavior::SUBA);
   add_all({.mnemon = M::SUBX, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::SUBX, isa::detail::OpBehavior::SUBX);
+  bh_all_aaa((uint8_t)M::SUBX, isa::SharedOpBehavior::SUBX);
   add_all({.mnemon = M::ANDA, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::ANDA, isa::detail::OpBehavior::ANDA);
+  bh_all_aaa((uint8_t)M::ANDA, isa::SharedOpBehavior::ANDA);
   add_all({.mnemon = M::ANDX, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::ANDX, isa::detail::OpBehavior::ANDX);
+  bh_all_aaa((uint8_t)M::ANDX, isa::SharedOpBehavior::ANDX);
   add_all({.mnemon = M::ORA, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::ORA, isa::detail::OpBehavior::ORA);
+  bh_all_aaa((uint8_t)M::ORA, isa::SharedOpBehavior::ORA);
   add_all({.mnemon = M::ORX, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::ORX, isa::detail::OpBehavior::ORX);
+  bh_all_aaa((uint8_t)M::ORX, isa::SharedOpBehavior::ORX);
   add_all({.mnemon = M::XORA, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::XORA, isa::detail::OpBehavior::XORA);
+  bh_all_aaa((uint8_t)M::XORA, isa::SharedOpBehavior::XORA);
   add_all({.mnemon = M::XORX, .type = T::RAAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::XORX, isa::detail::OpBehavior::XORX);
+  bh_all_aaa((uint8_t)M::XORX, isa::SharedOpBehavior::XORX);
   add_all({.mnemon = M::ADDSP, .type = T::AAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::ADDSP, isa::detail::OpBehavior::ADDSP);
+  bh_all_aaa((uint8_t)M::ADDSP, isa::SharedOpBehavior::ADDSP);
   add_all({.mnemon = M::SUBSP, .type = T::AAA_all, .unary = 0});
-  bh_all_aaa((uint8_t)M::SUBSP, isa::detail::OpBehavior::SUBSP);
+  bh_all_aaa((uint8_t)M::SUBSP, isa::SharedOpBehavior::SUBSP);
   return {mn, bh};
 };
 
@@ -382,7 +382,7 @@ struct Pep10 {
   static bool requiresAddressingMode(Mnemonic mnemonic);
   static bool canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   constexpr static std::array<Opcode, 256> opcodeLUT = std::get<0>(detail::pep10::initOpcodes());
-  constexpr static isa::detail::OpcodePlane opcode_plane = std::get<1>(detail::pep10::initOpcodes());
+  constexpr static isa::OpcodePlane opcode_plane = std::get<1>(detail::pep10::initOpcodes());
   static std::set<std::string> const &legalDirectives();
   static bool isLegalDirective(const std::string &directive);
 

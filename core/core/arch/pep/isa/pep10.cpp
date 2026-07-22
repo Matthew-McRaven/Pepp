@@ -17,7 +17,7 @@
 #include "core/arch/pep/isa/pep10.hpp"
 #include <bitset>
 #include "core/math/bitmanip/strings.hpp"
-#include "pep_shared.hpp"
+#include "pep_shared_utils.hpp"
 
 static auto register_maps() {
   std::map<isa::Pep10::Register, std::string> reg_to_str;

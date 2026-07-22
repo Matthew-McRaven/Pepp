@@ -21,10 +21,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-namespace isa::detail {
+namespace isa {
 
 // The possible simulation behaviors of the pep CPU, formed by a union over all instructions of Pep8, 9, and 10.
-enum class OpBehavior : u8 {
+enum class SharedOpBehavior : u8 {
   INVALID = 0,
   UNIMPL,
   RET,
@@ -85,7 +85,7 @@ enum class OpBehavior : u8 {
   // Must be last, by convention!
   MAX_VALUE
 };
-enum class OpAddrMode : u8 {
+enum class SharedAddrMode : u8 {
   Unary, // Unary
   I,     // Immediate
   D,     // Direct
@@ -96,44 +96,10 @@ enum class OpAddrMode : u8 {
   SX,    // Stack indexed
   SFX,   // Stack deferred indexed
 };
-struct Opcode {
-  OpBehavior behavior;
-  OpAddrMode addr;
+struct SharedOp {
+  SharedOpBehavior behavior;
+  SharedAddrMode addr;
 };
 
-using OpcodePlane = std::array<Opcode, 256>;
-
-template <typename Mnemonic> uint8_t opcode(Mnemonic mnemonic) { return static_cast<uint8_t>(mnemonic); }
-
-template <typename AddressingMode, typename Mnemonic> uint8_t opcode(Mnemonic mnemonic, AddressingMode addr) {
-  using M = Mnemonic;
-  using AM = AddressingMode;
-  auto base = opcode(mnemonic);
-  // TODO: Look up instruction type instead of doing opcode math.
-  if (base >= static_cast<uint8_t>(M::BR) && base <= static_cast<uint8_t>(M::CALL))
-    return base | (addr == AM::X ? 1 : 0);
-  static const char *const e = "Invalid ADDR mode";
-  switch (addr) {
-  case AM::NONE: std::cerr << e; throw std::logic_error(e);
-  case AM::I: return base | 0x0;
-  case AM::D: return base | 0x1;
-  case AM::N: return base | 0x2;
-  case AM::S: return base | 0x3;
-  case AM::SF: return base | 0x4;
-  case AM::X: return base | 0x5;
-  case AM::SX: return base | 0x6;
-  case AM::SFX: return base | 0x7;
-  case AM::ALL: std::cerr << e; throw std::logic_error(e);
-  case AM::INVALID: std::cerr << e; throw std::logic_error(e);
-  }
-  static const char *const e2 = "Unreachable";
-  std::cerr << e2;
-  throw std::logic_error(e2);
-}
-
-template <typename Mnemonic> bool isStore(Mnemonic mnemonic) {
-  using M = Mnemonic;
-  if (mnemonic == M::STBA || mnemonic == M::STWA || mnemonic == M::STBX || mnemonic == M::STWX) return true;
-  else return false;
-}
-} // namespace isa::detail
+using OpcodePlane = std::array<SharedOp, 256>;
+} // namespace isa

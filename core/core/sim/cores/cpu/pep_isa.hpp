@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/arch/pep/isa/pep10.hpp"
-#include "core/arch/pep/isa/pep_shared.hpp"
+#include "core/arch/pep/isa/pep_shared_ops.hpp"
 #include "core/sim/api/clock.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
@@ -71,9 +71,9 @@ private:
   Buffer *_tb = nullptr;
   Dense *_regbank = nullptr, *_csrs = nullptr;
   Target *_target = nullptr;
-  isa::detail::OpcodePlane _opcodes;
+  isa::OpcodePlane _opcodes;
 
-  void handle(isa::detail::Opcode opcode);
+  void handle(isa::SharedOp opcode);
   const ClockSource *_clk = nullptr;
 };
 
