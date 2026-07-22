@@ -293,6 +293,18 @@ void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond) {
   if (taken) self->write_register(isa::Pep10::Register::PC, operand);
 }
 
+void handle_call(PepISA3CPU *self, Op op) {
+  const u16 op_addr = decode_op_addr(self, op.addr);
+  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 pc = self->read_register(isa::Pep10::Register::PC);
+  u16 sp = self->read_register(isa::Pep10::Register::SP);
+  self->target()->write<u16, swap>(sp -= 2, pc, rw_d);
+  self->write_register(isa::Pep10::Register::SP, sp);
+  self->write_register(isa::Pep10::Register::PC, operand);
+  self->increment_call_depth();
+  // TODO: if (_dbg) _dbg->notifyCall(pc - 3, sp);
+}
+
 void handle_addsp(PepISA3CPU *self, Op op) {
   const u16 op_addr = decode_op_addr(self, op.addr);
   const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
@@ -597,9 +609,9 @@ void PepISA3CPU::handle(Op opcode) {
   case isa::SharedOpBehavior::BRGT: return handle_branch(this, opcode, BranchCondition::GT);
   case isa::SharedOpBehavior::BRV: return handle_branch(this, opcode, BranchCondition::V);
   case isa::SharedOpBehavior::BRC: return handle_branch(this, opcode, BranchCondition::C);
-  case isa::SharedOpBehavior::CALL: break;
+  case isa::SharedOpBehavior::CALL: return handle_call(this, opcode);
   case isa::SharedOpBehavior::SCALL: break;
-  case isa::SharedOpBehavior::TRAP_CALL: break;
+  case isa::SharedOpBehavior::TRAP_CALL: throw std::logic_error("Unimplemented instruction: TRAP_CALL");
   case isa::SharedOpBehavior::ADDSP: return handle_addsp(this, opcode);
   case isa::SharedOpBehavior::SUBSP: return handle_subsp(this, opcode);
   case isa::SharedOpBehavior::ADD: return handle_addr(this, opcode);
