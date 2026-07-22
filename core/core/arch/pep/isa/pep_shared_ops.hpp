@@ -34,18 +34,12 @@ enum class SharedOpBehavior : u8 {
   MOVSPA,
   MOVASP,
   HW_NOP,
-  NEGA,
-  NEGX,
-  ASLA,
-  ASLX,
-  ASRA,
-  ASRX,
-  NOTA,
-  NOTX,
-  ROLA,
-  ROLX,
-  RORA,
-  RORX,
+  NEG,
+  ASL,
+  ASR,
+  NOT,
+  ROL,
+  ROR,
   BR,
   BRLE,
   BRLT,
@@ -60,28 +54,17 @@ enum class SharedOpBehavior : u8 {
   TRAP_CALL, // Different from SCALL in that it must clear X register.
   ADDSP,
   SUBSP,
-  ADDA,
-  ADDX,
-  SUBA,
-  SUBX,
-  ANDA,
-  ANDX,
-  ORA,
-  ORX,
-  XORA,
-  XORX,
-  CPWA,
-  CPWX,
-  CPBA,
-  CPBX,
-  LDWA,
-  LDWX,
-  LDBA,
-  LDBX,
-  STWA,
-  STWX,
-  STBA,
-  STBX,
+  ADD,
+  SUB,
+  AND,
+  OR,
+  XOR,
+  CPW,
+  CPB,
+  LDW,
+  LDB,
+  STW,
+  STB,
   // Must be last, by convention!
   MAX_VALUE
 };
@@ -96,9 +79,12 @@ enum class SharedAddrMode : u8 {
   SX,    // Stack indexed
   SFX,   // Stack deferred indexed
 };
+
 struct SharedOp {
   SharedOpBehavior behavior;
   SharedAddrMode addr;
+  // Use your arch-specific enum value here. -1 is a placeholder for None.
+  u8 target = -1;
 };
 
 using OpcodePlane = std::array<SharedOp, 256>;
