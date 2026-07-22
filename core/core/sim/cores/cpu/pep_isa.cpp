@@ -55,7 +55,31 @@ void serialize_pepisacpu(nlohmann::json &obj, const System *sys, const Device *s
 }
 } // namespace
 
-PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {}
+PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
+  auto make_regs = [](System *sys, Device::ID parent) {
+    auto device = sys->find_by_id(parent);
+    auto self = dynamic_cast<PepISA3CPU *>(device);
+    Dense::Configuration cfg;
+    cfg.basename = "regs";
+    cfg.fill = 0;
+    cfg.span = {0, 31 * sizeof(u16)};
+    cfg.skip_serialize = true;
+    self->_regbank = sys->make_device<Dense>(parent, cfg);
+  };
+  sys->make_deferred(DeferredDevice{.parent = _config.id, .ctor = make_regs});
+  auto make_csrs = [](System *sys, Device::ID parent) {
+    auto device = sys->find_by_id(parent);
+    auto self = dynamic_cast<PepISA3CPU *>(device);
+    Dense::Configuration cfg;
+    cfg.basename = "csrs";
+    cfg.fill = 0;
+    // N, Z, V, C
+    cfg.span = {0, 3};
+    cfg.skip_serialize = true;
+    self->_csrs = sys->make_device<Dense>(parent, cfg);
+  };
+  sys->make_deferred(DeferredDevice{.parent = _config.id, .ctor = make_csrs});
+}
 
 const Target *PepISA3CPU::target() const { return _target; }
 
@@ -64,25 +88,6 @@ void PepISA3CPU::initialize(System *sys) {
   if (!dev) throw std::runtime_error("PepISA3CPU: could not find target device " + _config.target);
   _target = dev->capability<Target>();
   if (!_target) throw std::runtime_error("PepISA3CPU: device " + _config.target + " is not a memory target");
-  {
-    Dense::Configuration cfg;
-    cfg.basename = "regs";
-    cfg.fill = 0;
-    cfg.span = {0, 31 * sizeof(u16)};
-    cfg.skip_serialize = true;
-    _regbank = sys->make_device<Dense>(this, cfg);
-    _regbank->initialize(sys);
-  }
-  {
-    Dense::Configuration cfg;
-    cfg.basename = "csrs";
-    cfg.fill = 0;
-    // N, Z, V, C
-    cfg.span = {0, 3};
-    cfg.skip_serialize = true;
-    _csrs = sys->make_device<Dense>(this, cfg);
-    _csrs->initialize(sys);
-  }
 }
 
 const Device::Configuration &PepISA3CPU::config() const { return _config; }

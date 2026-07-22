@@ -42,8 +42,8 @@ TEST_CASE("System Parser,  Pep/10 ISA3 CPU, Passes", "[scope:core][scope:core.si
 
     auto s = parse_system(js);
     REQUIRE(s != nullptr);
-    // Contains system root, memory, cpu.
-    REQUIRE(std::distance(s->root()->begin(), s->root()->end()) == 3);
+    // Contains system root, memory, cpu, csrs, regs
+    REQUIRE(std::distance(s->root()->begin(), s->root()->end()) == 5);
     s->initialize();
     CHECK(s->config().basename == "/");
     CHECK(s->config().fullname == "/");

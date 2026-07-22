@@ -42,6 +42,8 @@ Device::IDGenerator System::gen_next_ID() { return _gen_next_ID; }
 
 void System::set_buffer(trace::Buffer *buffer) { throw std::logic_error("Unimplemented"); }
 
+void System::make_deferred(DeferredDevice ctor) { _deferred_constructors.push_back(std::move(ctor)); }
+
 Device *System::find_relative(std::string_view name, std::string_view parent) {
   if (name.starts_with("/")) return find_absolute(name);
   else return find_absolute(child_name(parent, name));

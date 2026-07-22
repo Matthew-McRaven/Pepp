@@ -1,3 +1,5 @@
+
+#include <queue>
 /*
  * /Copyright (c) 2024-2025. Stanley Warford, Matthew McRaven
  *  This program is free software: you can redistribute it and/or modify
@@ -29,6 +31,21 @@
 namespace trace {
 class Buffer;
 }
+
+struct DeferredDevice {
+  // Do not capture pointer to device in case the device moves during construction.
+  // After the device is constructed it will be in a stable location inside the system.
+  // We can find_by_id and cast to the correct type.
+  Device::ID parent;
+  // Rather than forcing ctor to capture sys, we pass it in as an argument.
+  // The caller of this class will always be a system, so it should be trivial to pass in this :)
+  // The signature covers the parameters needed to construct a CPU's register bank without having any captures.
+  // More complex cases may need captures with the onus on the person who constructed this DeferredDevice to properly
+  // manage lifetimes and the possibility of the parent device having been moved.
+  std::function<void(System *, Device::ID)> ctor;
+  // Syntactic sugar to call our function pointer with the correct argument.
+  void operator()(System *sys) { ctor(sys, parent); }
+};
 
 class System : public Device {
 public:
@@ -71,6 +88,11 @@ public:
     requires std::same_as<std::remove_cvref_t<ConcreteConfig>, typename ConcreteDevice::Configuration>
   ConcreteDevice *make_device(Device *parent, ConcreteConfig &&cfg, Args &&...args);
 
+  // Perform an action after finishing the current make_device call. This is highly useful for creating a child device
+  // after it's parent has been fully constructed, e.g., make a register bank after creating the CPU. In the case of
+  // multiple make_deferred calls, the are executed in FIFO order.
+  void make_deferred(DeferredDevice ctor);
+
   // Return a pointer to a device by name, or nullptr if not found.
   // While these could be free function operating on DeviceTrees, it's more convenient for 2-stage device initialization
   // for the System to provide the lookup.
@@ -92,6 +114,12 @@ private:
   static inline Device::Configuration _root_desc{.basename{"/"}, .fullname{"/"}};
   std::unique_ptr<DeviceTree> _root = nullptr;
   std::map<Device::ID, DeviceTree *> _id_to_device;
+  // Prevent infinite recursion on make_device while doing deferred initialization.
+  // The top level call to make_device sets this flag to true, and that top level call will pull all of the work out of
+  // the ctor list. While ctors may themselves enqueue more deferred ctors, they will be processed within the top-level
+  // call in a FIFO order.
+  bool _doing_deferred = false;
+  std::deque<DeferredDevice> _deferred_constructors;
 };
 
 template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
@@ -119,6 +147,19 @@ ConcreteDevice *System::make_device(Device::ID parent_id, ConcreteConfig &&cfg, 
     auto child_dt = std::make_unique<DeviceTree>(std::move(device), device_tree->second);
     _id_to_device[cfg.id] = child_dt.get();
     device_tree->second->children.push_back(std::move(child_dt));
+  }
+  // If we are not already processing deferred ctors, then process all of the deferred ctors now.
+  // This recurses, because ctor always calls make_device. And in theory, this can recurse arbitrarily,
+  // because a deferred device could depend on a further deferred device. Replace recursion with a queue, which also has
+  // the nice benefit of constructing in FIFO order.
+  if (!_doing_deferred && !_deferred_constructors.empty()) {
+    _doing_deferred = true;
+    while (!_deferred_constructors.empty()) {
+      auto ctor = std::move(_deferred_constructors.front());
+      _deferred_constructors.pop_front();
+      ctor(this);
+    }
+    _doing_deferred = false;
   }
   return ptr;
 }
