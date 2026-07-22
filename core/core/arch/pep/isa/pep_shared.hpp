@@ -23,7 +23,7 @@
 
 namespace isa::detail {
 
-// The simulation
+// The possible simulation behaviors of the pep CPU, formed by a union over all instructions of Pep8, 9, and 10.
 enum class OpBehavior : u8 {
   INVALID = 0,
   UNIMPL,

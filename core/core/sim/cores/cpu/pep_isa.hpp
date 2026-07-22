@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/isa/pep_shared.hpp"
 #include "core/sim/api/clock.hpp"
 #include "core/sim/api/device.hpp"
@@ -29,6 +30,7 @@ public:
   PepISA3CPU &operator=(const PepISA3CPU &) = delete;
 
   const Target *target() const;
+  Target *target();
 
   // Device interface
   void initialize(System *) override;
@@ -51,6 +53,19 @@ public:
   void trace(bool enabled) override;
   bool traced() const override;
 
+  void increment_call_depth();
+  void decrement_call_depth();
+
+  template <typename RegisterType> u16 read_register(RegisterType reg);
+  template <typename RegisterType> void write_register(RegisterType reg, u16 value);
+  template <typename CSRType> bool read_csr(CSRType csr);
+  template <typename CSRType> void write_csr(CSRType csr, bool value);
+  u8 read_packed_csr();
+  void write_packed_csr(u8 value);
+
+  Dense *registers() const { return _regbank; }
+  Dense *csrs() const { return _csrs; }
+
 private:
   Configuration _config;
   Buffer *_tb = nullptr;
@@ -61,3 +76,23 @@ private:
   void handle(isa::detail::Opcode opcode);
   const ClockSource *_clk = nullptr;
 };
+
+template <typename RegisterType> inline void PepISA3CPU::write_register(RegisterType reg, u16 value) {
+  static const Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
+  _target->write<u16, bits::hostOrder() != bits::Order::BigEndian>(static_cast<u8>(reg) * 2, value, op);
+}
+
+template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterType reg) {
+  static const Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
+  return _target->read<u16, bits::hostOrder() != bits::Order::BigEndian>(static_cast<u8>(reg) * 2, op).second;
+}
+
+template <typename CSRType> inline void PepISA3CPU::write_csr(CSRType csr, bool value) {
+  const static Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
+  _target->write<u8, false>(static_cast<u8>(csr), (u8)value, op);
+}
+
+template <typename CSRType> inline bool PepISA3CPU::read_csr(CSRType csr) {
+  const static Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
+  return _target->read<u8, false>(static_cast<u8>(csr), op).second != 0;
+}

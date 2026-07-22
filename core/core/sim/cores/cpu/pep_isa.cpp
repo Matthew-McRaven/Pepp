@@ -56,23 +56,359 @@ void serialize_pepisacpu(nlohmann::json &obj, const System *sys, const Device *s
 }
 } // namespace
 
+namespace {
 static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
+static const Operation rw_d{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
 
+// Read word at Mem[PC] and store to OS, incrementing PC by 2.
+// Return the /address/ of the operand value, which is usable for both load and store instructions.
+// For store-type operands, this is the address you write to. For load-type operands, you will need to read from this
+// address to get the actual operand specifier.
+u16 decode_op_addr(PepISA3CPU *self, isa::detail::OpAddrMode addr) {
+  // Fetch current PC
+  u16 pc = self->read_register(isa::Pep10::Register::PC);
+  // Increment PC by 2 to point to next instruction.
+  self->write_register(isa::Pep10::Register::PC, pc + 2);
+  auto target = self->target();
+  // Read value at mem[PC] into OS register.
+  u16 opr = target->read<u16, swap>(pc, rw_d).second;
+  self->write_register(isa::Pep10::Register::OS, opr);
+
+  switch (addr) {
+  case isa::detail::OpAddrMode::I: return pc;
+  case isa::detail::OpAddrMode::N: opr = target->read<u16, swap>(opr, rw_d).second; [[fallthrough]];
+  case isa::detail::OpAddrMode::D: return opr;
+
+  case isa::detail::OpAddrMode::SF:
+    opr = self->read_register(isa::Pep10::Register::SP) + opr;
+    return self->target()->read<u16, swap>(opr, rw_d).second;
+
+  case isa::detail::OpAddrMode::S: return self->read_register(isa::Pep10::Register::SP) + opr;
+  case isa::detail::OpAddrMode::X: return self->read_register(isa::Pep10::Register::X) + opr;
+  case isa::detail::OpAddrMode::SX:
+    return self->read_register(isa::Pep10::Register::X) + self->read_register(isa::Pep10::Register::SP) + opr;
+  case isa::detail::OpAddrMode::SFX:
+    opr = self->read_register(isa::Pep10::Register::SP) + opr;
+    return self->read_register(isa::Pep10::Register::X) + self->target()->read<u16, swap>(opr, rw_d).second;
+  }
+  throw std::logic_error("Invalid addressing mode for decode_op_addr");
+}
+
+u8 pack_csr(bool n, bool z, bool v, bool c) {
+  u8 nzvc = 0;
+  if (n) nzvc |= 1 << 0;
+  if (z) nzvc |= 1 << 1;
+  if (v) nzvc |= 1 << 2;
+  if (c) nzvc |= 1 << 3;
+  return nzvc;
+}
+
+std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc) {
+  bool n = nzvc & (1 << 0);
+  bool z = nzvc & (1 << 1);
+  bool v = nzvc & (1 << 2);
+  bool c = nzvc & (1 << 3);
+  return {n, z, v, c};
+}
 using Opcode = isa::detail::Opcode;
-void unimpl_handler(PepISA3CPU *self, Opcode op) { throw std::logic_error("Unimplemented instruction encountered"); }
+void unimpl_handler(PepISA3CPU *) { throw std::logic_error("Unimplemented instruction encountered"); }
 
-void handle_ret(PepISA3CPU *self, Opcode op) {
-  // self->decrement_call_depth();
-  // u16 sp = self->read_reg(sp)
-  u16 sp;
-  self->target()->read<u16, swap>(sp, {});
-  // self->write_reg(0);
+void handle_ret(PepISA3CPU *self) {
+  self->decrement_call_depth();
+  u16 sp = self->read_register(isa::Pep10::Register::SP);
+  auto addr = self->target()->read<u16, swap>(sp, rw_d).second;
+  self->write_register(isa::Pep10::Register::PC, addr);
+  // TODO: notify debugger of ret @ PC
 }
 
-void handle_movflga(PepISA3CPU *self, Opcode op) {
-  // read NZVC
-  // write to A.
+void handle_movflga(PepISA3CPU *self) {
+  auto nzvc = self->read_packed_csr();
+  self->write_register(isa::Pep10::Register::A, nzvc);
 }
+
+void handle_movaflg(PepISA3CPU *self) {
+  auto nzvc = self->read_register(isa::Pep10::Register::A);
+  self->write_packed_csr(nzvc);
+}
+
+void handle_movspa(PepISA3CPU *self) {
+  auto sp = self->read_register(isa::Pep10::Register::SP);
+  self->write_register(isa::Pep10::Register::A, sp);
+}
+
+void handle_movasp(PepISA3CPU *self) {
+  auto a = self->read_register(isa::Pep10::Register::A);
+  self->write_register(isa::Pep10::Register::SP, a);
+}
+
+void handle_nop(PepISA3CPU *) {}
+
+void handle_negr(PepISA3CPU *self, isa::Pep10::Register reg) {
+  u16 src = self->read_register(reg);
+  u16 tmp = ~src + 1;
+  bool n = tmp & 0x8000;
+  bool z = tmp == 0x0000;
+  bool v = tmp == 0x8000;
+  bool c = src == 0x0000;
+  self->write_register(reg, tmp);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_aslr(PepISA3CPU *self, isa::Pep10::Register reg) {
+  auto src = self->read_register(reg);
+  // Store in temp, because we need acc for status bit computation.
+  u16 tmp = src << 1;
+  // Is negative if high order bit is 1.
+  bool n = tmp & 0x8000;
+  // Is zero if all bits are 0's.
+  bool z = tmp == 0x0000;
+  // Signed overflow occurs when the starting & ending values of the high
+  // order bit differ (a xor temp == 1). Then shift the result over by 15
+  // places to only keep high order bit (which is the sign).
+  bool v = (src ^ tmp) >> 15;
+  // Carry out if register starts with high order 1.
+  bool c = src & 0x8000;
+  self->write_register(reg, tmp);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_asrr(PepISA3CPU *self, isa::Pep10::Register reg) {
+  auto src = self->read_register(reg);
+  // Shift all bits to the right by 1 position. Since using unsigned shift,
+  // must explicitly perform sign extension by hand.
+  u16 tmp = static_cast<u16>(src >> 1 | ((src & 0x8000) ? 1 << 15 : 0));
+  // Is negative if high order bit is 1.
+  bool n = tmp & 0x8000;
+  // Is zero if all bits are 0's.
+  bool z = tmp == 0x000;
+  // Carry out if register starts with low order 1.
+  bool c = src & 0x1;
+  bool v = 0;
+  self->write_register(reg, tmp);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_notr(PepISA3CPU *self, isa::Pep10::Register reg) {
+  auto src = self->read_register(reg);
+  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  u16 tmp = ~src;
+  n = tmp & 0x8000;
+  z = tmp == 0x0000;
+  self->write_register(reg, tmp);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_rolr(PepISA3CPU *self, isa::Pep10::Register reg) {
+  auto src = self->read_register(reg);
+  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  // Shift the carry in to low order bit.
+  u16 tmp = static_cast<u16>(src << 1 | (c ? 1 : 0));
+  n = tmp & 0x8000;
+  z = tmp == 0x0000;
+  // Carry out if register starts with high order 1.
+  c = src & 0x8000;
+  self->write_register(reg, tmp);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg) {
+  auto src = self->read_register(reg);
+  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  // Shift the carry in to high order bit.
+  u16 tmp = src >> 1 | (c ? 1 << 15 : 0);
+  n = tmp & 0x8000;
+  z = tmp == 0x0000;
+  // Carry out if register starts with low order 1.
+  c = src & 0x1;
+  self->write_register(reg, tmp);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_sret(PepISA3CPU *self) {
+  // Long enough to either hold all regs or one ctx switch block.
+  static constexpr u8 registersBytes = 2 * ::isa::Pep10::RegisterCount;
+  u8 ctx[std::max<std::size_t>(registersBytes, 12)];
+  auto ctxSpan = bits::span<u8>{ctx, sizeof(ctx)};
+
+  auto memory = self->target();
+  // Fill ctx with all register's current values.
+  // Then we can do a single write back to _regs and only generate 1 trace
+  // packet.
+  auto regs = self->registers();
+  u16 sp = self->read_register(isa::Pep10::Register::SP);
+  u16 tmp = size_inclusive(regs->span());
+  regs->read(0, {ctx, tmp}, rw_d);
+
+  // Reload NZVC
+  auto csrs = memory->read<u8>(sp, rw_d).second;
+  self->write_packed_csr(csrs);
+
+  // Load A into ctx. No need for byteswap, _memory is little endian as are
+  // regs.
+  memory->read(sp + 1, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::A), 2}, rw_d);
+
+  // Load X into ctx
+  memory->read(sp + 3, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::X), 2}, rw_d);
+
+  // Load PC into ctx
+  memory->read(sp + 5, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::PC), 2}, rw_d);
+
+  // Load SP into ctx
+  memory->read(sp + 7, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::SP), 2}, rw_d);
+
+  // Bulk write-back regs, saving a number of bits on trace metadata.
+  regs->write(0, {ctx, registersBytes}, rw_d);
+
+  tmp = sp + 12;
+  // Using "host"'s variables, so byte swap if necessary.
+  if (swap) tmp = bits::byteswap(tmp);
+  memory->write(static_cast<u16>(::isa::Pep10::MemoryVectors::SystemStackPtr), {reinterpret_cast<u8 *>(&tmp), 2}, rw_d);
+
+  self->decrement_call_depth();
+  if (false) {
+    //_dbg->bps->notifyPCChanged(readReg(Register::PC));
+    //_dbg->notifyTrapRet(pc - 1, readReg(Register::SP));
+  }
+  // Skip "normal" return path, since we've already written to PC.
+}
+
+void handle_addr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+  u16 op_addr = decode_op_addr(self, op.addr);
+  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  auto src = self->read_register(reg);
+  u16 tmp = src + operand;
+  // Is negative if high order bit is 1.
+  bool n = tmp & 0x8000;
+  // Is zero if all bits are 0's.
+  bool z = tmp == 0x0000;
+  // There is a signed overflow iff the high order bits of the register
+  // and operand are the same, and one input & the output differ in sign.
+  // >> Shifts in 0's (unsigned shorts), so after shift, only high order
+  // bit remain.
+  bool v = (~(src ^ operand) & (src ^ tmp)) >> 15;
+  // Carry out iff result is unsigned less than register or operand.
+  bool c = tmp < src || tmp < operand;
+  self->write_register(reg, tmp);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_subr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+  u16 op_addr = decode_op_addr(self, op.addr);
+  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  auto src = self->read_register(reg);
+  u16 tmp = src + ~operand + 1;
+  // Is negative if high order bit is 1.
+  bool n = tmp & 0x8000;
+  // Is zero if all bits are 0's.
+  bool z = tmp == 0x0000;
+  // There is a signed overflow iff the high order bits of the register
+  // and operand are the same, and one input & the output differ in sign.
+  // >> Shifts in 0's (unsigned shorts), so after shift, only high order
+  // bit remain.
+  bool v = (~(src ^ (~operand + 1)) & (src ^ tmp)) >> 15;
+  // Carry out iff result is unsigned less than register or operand.
+  bool c = tmp < src || tmp < static_cast<u16>(1 + ~operand);
+  self->write_register(reg, tmp);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+enum class Bitop {
+  AND,
+  OR,
+  XOR,
+};
+
+void handle_bitopr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg, Bitop bitop) {
+  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  u16 op_addr = decode_op_addr(self, op.addr);
+  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  auto src = self->read_register(reg);
+  u16 tmp;
+  switch (bitop) {
+  case Bitop::AND: tmp = src & operand; break;
+  case Bitop::OR: tmp = src | operand; break;
+  case Bitop::XOR: tmp = src ^ operand; break;
+  }
+  // Is negative if high order bit is 1.
+  n = tmp & 0x8000;
+  // Is zero if all bits are 0's.
+  z = tmp == 0x0000;
+  self->write_register(reg, tmp);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_ldwr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+  u16 op_addr = decode_op_addr(self, op.addr);
+  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  // Is negative if high order bit is 1.
+  n = operand & 0x8000;
+  z = operand == 0x0000;
+
+  self->write_register(reg, operand);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_ldbr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+  u16 op_addr = decode_op_addr(self, op.addr);
+  u8 operand = self->target()->read<u8>(op_addr, rw_d).second;
+  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  // LDBr always clears n.
+  n = 0;
+  z = operand == 0x0000;
+
+  self->write_register(reg, operand);
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_stwr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+  u16 op_addr = decode_op_addr(self, op.addr);
+  u16 src = self->read_register(reg);
+  self->target()->write<u16, swap>(op_addr, src, rw_d);
+}
+
+void handle_stbr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+  u16 op_addr = decode_op_addr(self, op.addr);
+  u8 src = self->read_register(reg);
+  self->target()->write<u8>(op_addr, src, rw_d);
+}
+
+void handle_cpwr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+  u16 op_addr = decode_op_addr(self, op.addr);
+  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  auto src = self->read_register(reg);
+  u16 neg = ~operand + 1;
+  u16 tmp = src + neg;
+  // Is negative if high order bit is 1.
+  bool n = tmp & 0x8000;
+  // Is zero if all bits are 0's.
+  bool z = tmp == 0x0000;
+  // There is a signed overflow iff the high order bits of the register
+  // and operand are the same, and one input & the output differ in sign.
+  // >> Shifts in 0's (unsigned shorts), so after shift, only high order
+  // bit remain.
+  bool v = (~(src ^ neg) & (src ^ tmp)) >> 15;
+  // Carry out iff result is unsigned less than register or operand.
+  bool c = tmp < src || tmp < neg;
+  // Invert N bit if there was signed overflow.
+  n ^= v;
+  self->write_packed_csr(pack_csr(n, z, v, c));
+}
+
+void handle_cpbr(PepISA3CPU *self, Opcode op, isa::Pep10::Register reg) {
+  u16 op_addr = decode_op_addr(self, op.addr);
+  u8 operand = self->target()->read<u8>(op_addr, rw_d).second;
+  auto src = self->read_register(reg);
+  // The result is the decoded operand specifier plus A/X. mask down to a byte.
+  u16 tmp = (src + ~operand + 1) & 0xff;
+  // Is negative if high order bit is 1.
+  bool n = tmp & 0x80;
+  // Is zero if all bits are 0's.
+  bool z = tmp == 0x00;
+  // RTL specifies that VC get 0.
+  self->write_packed_csr(pack_csr(n, z, 0, 0));
+}
+} // namespace
 
 PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
   auto make_regs = [](System *sys, Device::ID parent) {
@@ -163,27 +499,54 @@ void PepISA3CPU::trace(bool enabled) {
 
 bool PepISA3CPU::traced() const { return _tb ? _tb->traced(id()) : false; }
 
+void PepISA3CPU::increment_call_depth() {
+  // TODO:
+}
+
+void PepISA3CPU::decrement_call_depth() {
+  // TODO:
+}
+
+u8 PepISA3CPU::read_packed_csr() {
+  const auto size = size_inclusive(_csrs->span());
+  u8 ret = 0;
+  for (u8 i = 0; i < size; ++i) {
+    auto bit = ((Target *)_csrs)->read<u8, false>(i, rw_d).second;
+    ret |= (bit ? 1 : 0) << i;
+  }
+  return ret;
+}
+
+void PepISA3CPU::write_packed_csr(u8 value) {
+  const auto size = size_inclusive(_csrs->span());
+  for (u8 i = 0; i < size; ++i) {
+    auto bit = (value >> i) & 1;
+    ((Target *)_csrs)->write<u8, false>(i, bit, rw_d);
+  }
+}
+
 void PepISA3CPU::handle(isa::detail::Opcode opcode) {
   switch (opcode.behavior) {
-  case isa::detail::OpBehavior::UNIMPL: unimpl_handler(this, opcode); break;
-  case isa::detail::OpBehavior::RET: break;
-  case isa::detail::OpBehavior::SRET: break;
-  case isa::detail::OpBehavior::MOVFLGA: break;
-  case isa::detail::OpBehavior::MOVAFLG: break;
-  case isa::detail::OpBehavior::MOVSPA: break;
-  case isa::detail::OpBehavior::MOVASP: break;
-  case isa::detail::OpBehavior::NEGA: break;
-  case isa::detail::OpBehavior::NEGX: break;
-  case isa::detail::OpBehavior::ASLA: break;
-  case isa::detail::OpBehavior::ASLX: break;
-  case isa::detail::OpBehavior::ASRA: break;
-  case isa::detail::OpBehavior::ASRX: break;
-  case isa::detail::OpBehavior::NOTA: break;
-  case isa::detail::OpBehavior::NOTX: break;
-  case isa::detail::OpBehavior::ROLA: break;
-  case isa::detail::OpBehavior::ROLX: break;
-  case isa::detail::OpBehavior::RORA: break;
-  case isa::detail::OpBehavior::RORX: break;
+  case isa::detail::OpBehavior::UNIMPL: return unimpl_handler(this);
+  case isa::detail::OpBehavior::RET: return handle_ret(this);
+  case isa::detail::OpBehavior::SRET: return handle_sret(this);
+  case isa::detail::OpBehavior::MOVFLGA: return handle_movflga(this);
+  case isa::detail::OpBehavior::MOVAFLG: return handle_movaflg(this);
+  case isa::detail::OpBehavior::MOVSPA: return handle_movspa(this);
+  case isa::detail::OpBehavior::MOVASP: return handle_movasp(this);
+  case isa::detail::OpBehavior::HW_NOP: return handle_nop(this);
+  case isa::detail::OpBehavior::NEGA: return handle_negr(this, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::NEGX: return handle_negr(this, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::ASLA: return handle_aslr(this, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::ASLX: return handle_aslr(this, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::ASRA: return handle_asrr(this, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::ASRX: return handle_asrr(this, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::NOTA: return handle_notr(this, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::NOTX: return handle_notr(this, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::ROLA: return handle_rolr(this, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::ROLX: return handle_rolr(this, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::RORA: return handle_rorr(this, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::RORX: return handle_rorr(this, isa::Pep10::Register::X);
   case isa::detail::OpBehavior::BR: break;
   case isa::detail::OpBehavior::BRLE: break;
   case isa::detail::OpBehavior::BRLT: break;
@@ -198,28 +561,29 @@ void PepISA3CPU::handle(isa::detail::Opcode opcode) {
   case isa::detail::OpBehavior::TRAP_CALL: break;
   case isa::detail::OpBehavior::ADDSP: break;
   case isa::detail::OpBehavior::SUBSP: break;
-  case isa::detail::OpBehavior::ADDA: break;
-  case isa::detail::OpBehavior::ADDX: break;
-  case isa::detail::OpBehavior::SUBA: break;
-  case isa::detail::OpBehavior::SUBX: break;
-  case isa::detail::OpBehavior::ANDA: break;
-  case isa::detail::OpBehavior::ANDX: break;
-  case isa::detail::OpBehavior::ORA: break;
-  case isa::detail::OpBehavior::ORX: break;
-  case isa::detail::OpBehavior::XORA: break;
-  case isa::detail::OpBehavior::XORX: break;
-  case isa::detail::OpBehavior::CPWA: break;
-  case isa::detail::OpBehavior::CPWX: break;
-  case isa::detail::OpBehavior::CPBA: break;
-  case isa::detail::OpBehavior::CPBX: break;
-  case isa::detail::OpBehavior::LDWA: break;
-  case isa::detail::OpBehavior::LDWX: break;
-  case isa::detail::OpBehavior::LDBA: break;
-  case isa::detail::OpBehavior::LDBX: break;
-  case isa::detail::OpBehavior::STWA: break;
-  case isa::detail::OpBehavior::STWX: break;
-  case isa::detail::OpBehavior::STBA: break;
-  case isa::detail::OpBehavior::STBX: break;
+  case isa::detail::OpBehavior::ADDA: return handle_addr(this, opcode, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::ADDX: return handle_addr(this, opcode, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::SUBA: return handle_subr(this, opcode, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::SUBX: return handle_subr(this, opcode, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::ANDA: return handle_bitopr(this, opcode, isa::Pep10::Register::A, Bitop::AND);
+  case isa::detail::OpBehavior::ANDX: return handle_bitopr(this, opcode, isa::Pep10::Register::X, Bitop::AND);
+  case isa::detail::OpBehavior::ORA: return handle_bitopr(this, opcode, isa::Pep10::Register::A, Bitop::OR);
+  case isa::detail::OpBehavior::ORX: return handle_bitopr(this, opcode, isa::Pep10::Register::X, Bitop::OR);
+  case isa::detail::OpBehavior::XORA: return handle_bitopr(this, opcode, isa::Pep10::Register::A, Bitop::XOR);
+  case isa::detail::OpBehavior::XORX: return handle_bitopr(this, opcode, isa::Pep10::Register::X, Bitop::XOR);
+  case isa::detail::OpBehavior::CPWA: return handle_cpwr(this, opcode, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::CPWX: return handle_cpwr(this, opcode, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::CPBA: return handle_cpbr(this, opcode, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::CPBX: return handle_cpbr(this, opcode, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::LDWA: return handle_ldwr(this, opcode, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::LDWX: return handle_ldwr(this, opcode, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::LDBA: return handle_ldbr(this, opcode, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::LDBX: return handle_ldbr(this, opcode, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::STWA: return handle_stwr(this, opcode, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::STWX: return handle_stwr(this, opcode, isa::Pep10::Register::X);
+  case isa::detail::OpBehavior::STBA: return handle_stbr(this, opcode, isa::Pep10::Register::A);
+  case isa::detail::OpBehavior::STBX: return handle_stbr(this, opcode, isa::Pep10::Register::X);
   default: throw std::logic_error("Unknown opcode behavior");
   }
 }
+Target *PepISA3CPU::target() { return _target; }
