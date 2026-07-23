@@ -79,20 +79,20 @@ private:
 
 template <typename RegisterType> inline void PepISA3CPU::write_register(RegisterType reg, u16 value) {
   static const Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
-  _target->write<u16, bits::hostOrder() != bits::Order::BigEndian>(static_cast<u8>(reg) * 2, value, op);
+  ((Target *)_regbank)->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op);
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterType reg) {
   static const Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
-  return _target->read<u16, bits::hostOrder() != bits::Order::BigEndian>(static_cast<u8>(reg) * 2, op).second;
+  return ((Target *)_regbank)->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op).second;
 }
 
 template <typename CSRType> inline void PepISA3CPU::write_csr(CSRType csr, bool value) {
   const static Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
-  _target->write<u8, false>(static_cast<u8>(csr), (u8)value, op);
+  ((Target *)_csrs)->write<u8, bits::host_is_le>(static_cast<u8>(csr), (u8)value, op);
 }
 
 template <typename CSRType> inline bool PepISA3CPU::read_csr(CSRType csr) {
   const static Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
-  return _target->read<u8, false>(static_cast<u8>(csr), op).second != 0;
+  return ((Target *)_csrs)->read<u8, bits::host_is_le>(static_cast<u8>(csr), op).second != 0;
 }
