@@ -84,7 +84,7 @@ struct SharedOp {
   SharedOpBehavior behavior;
   SharedAddrMode addr;
   // Use your arch-specific enum value here. -1 is a placeholder for None.
-  u8 target = -1;
+  u8 target = static_cast<u8>(-1);
 };
 
 using OpcodePlane = std::array<SharedOp, 256>;
