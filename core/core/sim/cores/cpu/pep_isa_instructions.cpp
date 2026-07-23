@@ -3,7 +3,6 @@
 #include "core/sim/memory/ram/dense.hpp"
 
 namespace {
-static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
 static const Operation rw_d{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
 u8 pack_csr(bool n, bool z, bool v, bool c) {
   u8 nzvc = 0;
@@ -30,17 +29,17 @@ u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
   self->write_register(isa::Pep10::Register::PC, pc + 2);
   auto target = self->target();
   // Read value at mem[PC] into OS register.
-  u16 opr = target->read<u16, swap>(pc, rw_d).second;
+  u16 opr = target->read<u16, bits::host_is_le>(pc, rw_d).second;
   self->write_register(isa::Pep10::Register::OS, opr);
 
   switch (addr) {
   case isa::SharedAddrMode::I: return pc;
-  case isa::SharedAddrMode::N: opr = target->read<u16, swap>(opr, rw_d).second; [[fallthrough]];
+  case isa::SharedAddrMode::N: opr = target->read<u16, bits::host_is_le>(opr, rw_d).second; [[fallthrough]];
   case isa::SharedAddrMode::D: return opr;
 
   case isa::SharedAddrMode::SF:
     opr = self->read_register(isa::Pep10::Register::SP) + opr;
-    return self->target()->read<u16, swap>(opr, rw_d).second;
+    return self->target()->read<u16, bits::host_is_le>(opr, rw_d).second;
 
   case isa::SharedAddrMode::S: return self->read_register(isa::Pep10::Register::SP) + opr;
   case isa::SharedAddrMode::X: return self->read_register(isa::Pep10::Register::X) + opr;
@@ -48,7 +47,7 @@ u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
     return self->read_register(isa::Pep10::Register::X) + self->read_register(isa::Pep10::Register::SP) + opr;
   case isa::SharedAddrMode::SFX:
     opr = self->read_register(isa::Pep10::Register::SP) + opr;
-    return self->read_register(isa::Pep10::Register::X) + self->target()->read<u16, swap>(opr, rw_d).second;
+    return self->read_register(isa::Pep10::Register::X) + self->target()->read<u16, bits::host_is_le>(opr, rw_d).second;
   }
   throw std::logic_error("Invalid addressing mode for decode_op_addr");
 }
@@ -58,7 +57,7 @@ void unimpl_handler(PepISA3CPU *) { throw std::logic_error("Unimplemented instru
 void handle_ret(PepISA3CPU *self) {
   self->decrement_call_depth();
   u16 sp = self->read_register(isa::Pep10::Register::SP);
-  auto addr = self->target()->read<u16, swap>(sp, rw_d).second;
+  auto addr = self->target()->read<u16, bits::host_is_le>(sp, rw_d).second;
   self->write_register(isa::Pep10::Register::PC, addr);
   // TODO: notify debugger of ret @ PC
 }
@@ -100,7 +99,7 @@ void handle_sret(PepISA3CPU *self) {
 
   tmp = sp + 12;
   // Using "host"'s variables, so byte swap if necessary.
-  if (swap) tmp = bits::byteswap(tmp);
+  if (bits::host_is_le) tmp = bits::byteswap(tmp);
   memory->write(static_cast<u16>(::isa::Pep10::MemoryVectors::SystemStackPtr), {reinterpret_cast<u8 *>(&tmp), 2}, rw_d);
 
   self->decrement_call_depth();
@@ -216,7 +215,7 @@ void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg) {
 
 void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr) {
   const auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
-  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
   bool taken;
   switch (cond) {
   case BranchCondition::UNCONDITIONAL: taken = true; break;
@@ -233,10 +232,10 @@ void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr) {
 }
 
 void handle_call(PepISA3CPU *self, Op op, u16 op_addr) {
-  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
   const u16 pc = self->read_register(isa::Pep10::Register::PC);
   u16 sp = self->read_register(isa::Pep10::Register::SP);
-  self->target()->write<u16, swap>(sp -= 2, pc, rw_d);
+  self->target()->write<u16, bits::host_is_le>(sp -= 2, pc, rw_d);
   self->write_register(isa::Pep10::Register::SP, sp);
   self->write_register(isa::Pep10::Register::PC, op_spec);
   self->increment_call_depth();
@@ -244,14 +243,14 @@ void handle_call(PepISA3CPU *self, Op op, u16 op_addr) {
 }
 
 void handle_addsp(PepISA3CPU *self, Op op, u16 op_addr) {
-  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
   const auto sp = self->read_register(isa::Pep10::Register::SP) + op_spec;
   self->write_register(isa::Pep10::Register::SP, sp);
   // TODO: if (_dbg) _dbg->notifyAddSP(pc - 3, sp);
 }
 
 void handle_subsp(PepISA3CPU *self, Op op, u16 op_addr) {
-  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
   const auto sp = self->read_register(isa::Pep10::Register::SP) - op_spec;
   self->write_register(isa::Pep10::Register::SP, sp);
   // TODO: if (_dbg) _dbg->notifySubSP(pc - 3, sp);
@@ -259,7 +258,7 @@ void handle_subsp(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_addr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
   const u16 src = self->read_register(reg);
   const u16 tmp = src + op_spec;
   // Is negative if high order bit is 1.
@@ -279,7 +278,7 @@ void handle_addr(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_subr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 operand = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
   const u16 src = self->read_register(reg);
   const u16 tmp = src + ~operand + 1;
   // Is negative if high order bit is 1.
@@ -299,7 +298,7 @@ void handle_subr(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
   const u16 src = self->read_register(reg);
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
   u16 tmp;
@@ -318,7 +317,7 @@ void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop, u16 op_addr) {
 
 void handle_cpwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 operand = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
   const u16 src = self->read_register(reg);
   const u16 neg = ~operand + 1;
   const u16 tmp = src + neg;
@@ -354,7 +353,7 @@ void handle_cpbr(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_ldwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
   // Is negative if high order bit is 1.
   n = op_spec & 0x8000;
@@ -379,7 +378,7 @@ void handle_ldbr(PepISA3CPU *self, Op op, u16 op_addr) {
 void handle_stwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   u16 src = self->read_register(reg);
-  self->target()->write<u16, swap>(op_addr, src, rw_d);
+  self->target()->write<u16, bits::host_is_le>(op_addr, src, rw_d);
 }
 
 void handle_stbr(PepISA3CPU *self, Op op, u16 op_addr) {
