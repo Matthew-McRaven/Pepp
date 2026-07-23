@@ -590,7 +590,7 @@ void PepISA3CPU::handle(Op opcode) {
   case NOT: return handle_notr(this, (R)opcode.target);
   case ROL: return handle_rolr(this, (R)opcode.target);
   case ROR: return handle_rorr(this, (R)opcode.target);
-  case SCALL: break;
+  case SCALL: throw std::logic_error("Unimplemented instruction: SCALL");
   case TRAP_CALL: throw std::logic_error("Unimplemented instruction: TRAP_CALL");
   default: break;
   }
