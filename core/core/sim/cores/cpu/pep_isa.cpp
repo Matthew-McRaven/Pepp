@@ -123,7 +123,16 @@ std::unique_ptr<DeviceSerializer> PepISA3CPU::make_serializer() {
   return std::make_unique<DeviceSerializer>(std::move(s));
 }
 
-void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) { (void)idx, (void)tick; }
+void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
+  // Fetch & increment pc
+  auto pc = read_register(isa::Pep10::Register::PC);
+  u8 is = _target->read<u8, false>(pc, rw_d).second;
+  pc += 1;
+  write_register(isa::Pep10::Register::PC, pc);
+  write_register(isa::Pep10::Register::IS, is);
+  handle(_opcodes[is]);
+  // TODO: handle breakpoints, debug info, etc
+}
 
 void PepISA3CPU::set_clock_source(const ClockSource *src) { _clk = src; }
 
