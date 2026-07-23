@@ -274,10 +274,9 @@ void handle_sret(PepISA3CPU *self) {
 
 enum class BranchCondition { UNCONDITIONAL, LE, LT, EQ, NE, GE, GT, V, C };
 
-void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond) {
+void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr) {
   const auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
-  const u16 op_addr = decode_op_addr(self, op.addr);
-  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
   bool taken;
   switch (cond) {
   case BranchCondition::UNCONDITIONAL: taken = true; break;
@@ -290,43 +289,39 @@ void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond) {
   case BranchCondition::V: taken = v; break;
   case BranchCondition::C: taken = c; break;
   }
-  if (taken) self->write_register(isa::Pep10::Register::PC, operand);
+  if (taken) self->write_register(isa::Pep10::Register::PC, op_spec);
 }
 
-void handle_call(PepISA3CPU *self, Op op) {
-  const u16 op_addr = decode_op_addr(self, op.addr);
-  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+void handle_call(PepISA3CPU *self, Op op, u16 op_addr) {
+  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
   const u16 pc = self->read_register(isa::Pep10::Register::PC);
   u16 sp = self->read_register(isa::Pep10::Register::SP);
   self->target()->write<u16, swap>(sp -= 2, pc, rw_d);
   self->write_register(isa::Pep10::Register::SP, sp);
-  self->write_register(isa::Pep10::Register::PC, operand);
+  self->write_register(isa::Pep10::Register::PC, op_spec);
   self->increment_call_depth();
   // TODO: if (_dbg) _dbg->notifyCall(pc - 3, sp);
 }
 
-void handle_addsp(PepISA3CPU *self, Op op) {
-  const u16 op_addr = decode_op_addr(self, op.addr);
-  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
-  const auto sp = self->read_register(isa::Pep10::Register::SP) + operand;
+void handle_addsp(PepISA3CPU *self, Op op, u16 op_addr) {
+  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const auto sp = self->read_register(isa::Pep10::Register::SP) + op_spec;
   self->write_register(isa::Pep10::Register::SP, sp);
   // TODO: if (_dbg) _dbg->notifyAddSP(pc - 3, sp);
 }
 
-void handle_subsp(PepISA3CPU *self, Op op) {
-  const u16 op_addr = decode_op_addr(self, op.addr);
-  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
-  const auto sp = self->read_register(isa::Pep10::Register::SP) - operand;
+void handle_subsp(PepISA3CPU *self, Op op, u16 op_addr) {
+  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const auto sp = self->read_register(isa::Pep10::Register::SP) - op_spec;
   self->write_register(isa::Pep10::Register::SP, sp);
   // TODO: if (_dbg) _dbg->notifySubSP(pc - 3, sp);
 }
 
-void handle_addr(PepISA3CPU *self, Op op) {
-  isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  u16 op_addr = decode_op_addr(self, op.addr);
-  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
-  auto src = self->read_register(reg);
-  u16 tmp = src + operand;
+void handle_addr(PepISA3CPU *self, Op op, u16 op_addr) {
+  const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
+  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 src = self->read_register(reg);
+  const u16 tmp = src + op_spec;
   // Is negative if high order bit is 1.
   bool n = tmp & 0x8000;
   // Is zero if all bits are 0's.
@@ -335,19 +330,18 @@ void handle_addr(PepISA3CPU *self, Op op) {
   // and operand are the same, and one input & the output differ in sign.
   // >> Shifts in 0's (unsigned shorts), so after shift, only high order
   // bit remain.
-  bool v = (~(src ^ operand) & (src ^ tmp)) >> 15;
+  bool v = (~(src ^ op_spec) & (src ^ tmp)) >> 15;
   // Carry out iff result is unsigned less than register or operand.
-  bool c = tmp < src || tmp < operand;
+  bool c = tmp < src || tmp < op_spec;
   self->write_register(reg, tmp);
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_subr(PepISA3CPU *self, Op op) {
+void handle_subr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  u16 op_addr = decode_op_addr(self, op.addr);
-  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
-  auto src = self->read_register(reg);
-  u16 tmp = src + ~operand + 1;
+  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 src = self->read_register(reg);
+  const u16 tmp = src + ~operand + 1;
   // Is negative if high order bit is 1.
   bool n = tmp & 0x8000;
   // Is zero if all bits are 0's.
@@ -369,17 +363,16 @@ enum class Bitop {
   XOR,
 };
 
-void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop) {
+void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
+  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 src = self->read_register(reg);
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
-  u16 op_addr = decode_op_addr(self, op.addr);
-  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
-  auto src = self->read_register(reg);
   u16 tmp;
   switch (bitop) {
-  case Bitop::AND: tmp = src & operand; break;
-  case Bitop::OR: tmp = src | operand; break;
-  case Bitop::XOR: tmp = src ^ operand; break;
+  case Bitop::AND: tmp = src & op_spec; break;
+  case Bitop::OR: tmp = src | op_spec; break;
+  case Bitop::XOR: tmp = src ^ op_spec; break;
   }
   // Is negative if high order bit is 1.
   n = tmp & 0x8000;
@@ -389,53 +382,48 @@ void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop) {
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_ldwr(PepISA3CPU *self, Op op) {
+void handle_ldwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  u16 op_addr = decode_op_addr(self, op.addr);
-  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, swap>(op_addr, rw_d).second;
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
   // Is negative if high order bit is 1.
-  n = operand & 0x8000;
-  z = operand == 0x0000;
+  n = op_spec & 0x8000;
+  z = op_spec == 0x0000;
 
-  self->write_register(reg, operand);
+  self->write_register(reg, op_spec);
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_ldbr(PepISA3CPU *self, Op op) {
+void handle_ldbr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  u16 op_addr = decode_op_addr(self, op.addr);
-  u8 operand = self->target()->read<u8>(op_addr, rw_d).second;
+  const u8 op_spec = self->target()->read<u8>(op_addr, rw_d).second;
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
   // LDBr always clears n.
   n = 0;
-  z = operand == 0x0000;
+  z = op_spec == 0x0000;
 
-  self->write_register(reg, operand);
+  self->write_register(reg, op_spec);
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_stwr(PepISA3CPU *self, Op op) {
+void handle_stwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  u16 op_addr = decode_op_addr(self, op.addr);
   u16 src = self->read_register(reg);
   self->target()->write<u16, swap>(op_addr, src, rw_d);
 }
 
-void handle_stbr(PepISA3CPU *self, Op op) {
+void handle_stbr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  u16 op_addr = decode_op_addr(self, op.addr);
-  u8 src = self->read_register(reg);
+  const u8 src = self->read_register(reg);
   self->target()->write<u8>(op_addr, src, rw_d);
 }
 
-void handle_cpwr(PepISA3CPU *self, Op op) {
+void handle_cpwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  u16 op_addr = decode_op_addr(self, op.addr);
-  u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
-  auto src = self->read_register(reg);
-  u16 neg = ~operand + 1;
-  u16 tmp = src + neg;
+  const u16 operand = self->target()->read<u16, swap>(op_addr, rw_d).second;
+  const u16 src = self->read_register(reg);
+  const u16 neg = ~operand + 1;
+  const u16 tmp = src + neg;
   // Is negative if high order bit is 1.
   bool n = tmp & 0x8000;
   // Is zero if all bits are 0's.
@@ -452,13 +440,12 @@ void handle_cpwr(PepISA3CPU *self, Op op) {
   self->write_packed_csr(pack_csr(n, z, v, c));
 }
 
-void handle_cpbr(PepISA3CPU *self, Op op) {
+void handle_cpbr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  u16 op_addr = decode_op_addr(self, op.addr);
-  u8 operand = self->target()->read<u8>(op_addr, rw_d).second;
-  auto src = self->read_register(reg);
+  const u8 op_spec = self->target()->read<u8>(op_addr, rw_d).second;
+  const auto src = self->read_register(reg);
   // The result is the decoded operand specifier plus A/X. mask down to a byte.
-  u16 tmp = (src + ~operand + 1) & 0xff;
+  u16 tmp = (src + ~op_spec + 1) & 0xff;
   // Is negative if high order bit is 1.
   bool n = tmp & 0x80;
   // Is zero if all bits are 0's.
@@ -585,46 +572,55 @@ void PepISA3CPU::write_packed_csr(u8 value) {
 
 void PepISA3CPU::handle(Op opcode) {
   using R = isa::Pep10::Register;
+  using BC = BranchCondition;
+  using enum isa::SharedOpBehavior;
+  // Monadic
   switch (opcode.behavior) {
-  case isa::SharedOpBehavior::UNIMPL: return unimpl_handler(this);
-  case isa::SharedOpBehavior::RET: return handle_ret(this);
-  case isa::SharedOpBehavior::SRET: return handle_sret(this);
-  case isa::SharedOpBehavior::MOVFLGA: return handle_movflga(this);
-  case isa::SharedOpBehavior::MOVAFLG: return handle_movaflg(this);
-  case isa::SharedOpBehavior::MOVSPA: return handle_movspa(this);
-  case isa::SharedOpBehavior::MOVASP: return handle_movasp(this);
-  case isa::SharedOpBehavior::HW_NOP: return handle_nop(this);
-  case isa::SharedOpBehavior::NEG: return handle_negr(this, (R)opcode.target);
-  case isa::SharedOpBehavior::ASL: return handle_aslr(this, (R)opcode.target);
-  case isa::SharedOpBehavior::ASR: return handle_asrr(this, (R)opcode.target);
-  case isa::SharedOpBehavior::NOT: return handle_notr(this, (R)opcode.target);
-  case isa::SharedOpBehavior::ROL: return handle_rolr(this, (R)opcode.target);
-  case isa::SharedOpBehavior::ROR: return handle_rorr(this, (R)opcode.target);
-  case isa::SharedOpBehavior::BR: return handle_branch(this, opcode, BranchCondition::UNCONDITIONAL);
-  case isa::SharedOpBehavior::BRLE: return handle_branch(this, opcode, BranchCondition::LE);
-  case isa::SharedOpBehavior::BRLT: return handle_branch(this, opcode, BranchCondition::LT);
-  case isa::SharedOpBehavior::BREQ: return handle_branch(this, opcode, BranchCondition::EQ);
-  case isa::SharedOpBehavior::BRNE: return handle_branch(this, opcode, BranchCondition::NE);
-  case isa::SharedOpBehavior::BRGE: return handle_branch(this, opcode, BranchCondition::GE);
-  case isa::SharedOpBehavior::BRGT: return handle_branch(this, opcode, BranchCondition::GT);
-  case isa::SharedOpBehavior::BRV: return handle_branch(this, opcode, BranchCondition::V);
-  case isa::SharedOpBehavior::BRC: return handle_branch(this, opcode, BranchCondition::C);
-  case isa::SharedOpBehavior::CALL: return handle_call(this, opcode);
-  case isa::SharedOpBehavior::SCALL: break;
-  case isa::SharedOpBehavior::TRAP_CALL: throw std::logic_error("Unimplemented instruction: TRAP_CALL");
-  case isa::SharedOpBehavior::ADDSP: return handle_addsp(this, opcode);
-  case isa::SharedOpBehavior::SUBSP: return handle_subsp(this, opcode);
-  case isa::SharedOpBehavior::ADD: return handle_addr(this, opcode);
-  case isa::SharedOpBehavior::SUB: return handle_subr(this, opcode);
-  case isa::SharedOpBehavior::AND: return handle_bitopr(this, opcode, Bitop::AND);
-  case isa::SharedOpBehavior::OR: return handle_bitopr(this, opcode, Bitop::OR);
-  case isa::SharedOpBehavior::XOR: return handle_bitopr(this, opcode, Bitop::XOR);
-  case isa::SharedOpBehavior::CPW: return handle_cpwr(this, opcode);
-  case isa::SharedOpBehavior::CPB: return handle_cpbr(this, opcode);
-  case isa::SharedOpBehavior::LDW: return handle_ldwr(this, opcode);
-  case isa::SharedOpBehavior::LDB: return handle_ldbr(this, opcode);
-  case isa::SharedOpBehavior::STW: return handle_stwr(this, opcode);
-  case isa::SharedOpBehavior::STB: return handle_stbr(this, opcode);
+  case UNIMPL: return unimpl_handler(this);
+  case RET: return handle_ret(this);
+  case SRET: return handle_sret(this);
+  case MOVFLGA: return handle_movflga(this);
+  case MOVAFLG: return handle_movaflg(this);
+  case MOVSPA: return handle_movspa(this);
+  case MOVASP: return handle_movasp(this);
+  case HW_NOP: return handle_nop(this);
+  case NEG: return handle_negr(this, (R)opcode.target);
+  case ASL: return handle_aslr(this, (R)opcode.target);
+  case ASR: return handle_asrr(this, (R)opcode.target);
+  case NOT: return handle_notr(this, (R)opcode.target);
+  case ROL: return handle_rolr(this, (R)opcode.target);
+  case ROR: return handle_rorr(this, (R)opcode.target);
+  case SCALL: break;
+  case TRAP_CALL: throw std::logic_error("Unimplemented instruction: TRAP_CALL");
+  default: break;
+  }
+
+  // Dyadic
+  u16 op_addr = decode_op_addr(this, opcode.addr);
+  switch (opcode.behavior) {
+  case BR: return handle_branch(this, opcode, BC::UNCONDITIONAL, op_addr);
+  case BRLE: return handle_branch(this, opcode, BC::LE, op_addr);
+  case BRLT: return handle_branch(this, opcode, BC::LT, op_addr);
+  case BREQ: return handle_branch(this, opcode, BC::EQ, op_addr);
+  case BRNE: return handle_branch(this, opcode, BC::NE, op_addr);
+  case BRGE: return handle_branch(this, opcode, BC::GE, op_addr);
+  case BRGT: return handle_branch(this, opcode, BC::GT, op_addr);
+  case BRV: return handle_branch(this, opcode, BC::V, op_addr);
+  case BRC: return handle_branch(this, opcode, BC::C, op_addr);
+  case CALL: return handle_call(this, opcode, op_addr);
+  case ADDSP: return handle_addsp(this, opcode, op_addr);
+  case SUBSP: return handle_subsp(this, opcode, op_addr);
+  case ADD: return handle_addr(this, opcode, op_addr);
+  case SUB: return handle_subr(this, opcode, op_addr);
+  case AND: return handle_bitopr(this, opcode, Bitop::AND, op_addr);
+  case OR: return handle_bitopr(this, opcode, Bitop::OR, op_addr);
+  case XOR: return handle_bitopr(this, opcode, Bitop::XOR, op_addr);
+  case CPW: return handle_cpwr(this, opcode, op_addr);
+  case CPB: return handle_cpbr(this, opcode, op_addr);
+  case LDW: return handle_ldwr(this, opcode, op_addr);
+  case LDB: return handle_ldbr(this, opcode, op_addr);
+  case STW: return handle_stwr(this, opcode, op_addr);
+  case STB: return handle_stbr(this, opcode, op_addr);
   default: throw std::logic_error("Unknown opcode behavior");
   }
 }
