@@ -1,6 +1,7 @@
 #include "pep_isa.hpp"
 #include <nlohmann/json.hpp>
 #include "core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pep/isa/pep9.hpp"
 #include "core/ds/string_compare.hpp"
 #include "core/sim/cores/cpu/pep_isa_instructions.hpp"
 #include "core/sim/memory/ram/dense.hpp"
@@ -96,7 +97,7 @@ void PepISA3CPU::initialize(System *sys) {
   if (!_target) throw std::runtime_error("PepISA3CPU: device " + _config.target + " is not a memory target");
   switch (_config.isa) {
   case ISA::Pep8: throw std::logic_error("PepISA3CPU: ISA " + isa_to_string(_config.isa) + " not implemented");
-  case ISA::Pep9: throw std::logic_error("PepISA3CPU: ISA " + isa_to_string(_config.isa) + " not implemented");
+  case ISA::Pep9: _opcodes = isa::Pep9::opcode_plane; break;
   case ISA::Pep10: _opcodes = isa::Pep10::opcode_plane; break;
   }
 }
@@ -191,6 +192,7 @@ void PepISA3CPU::handle(Op opcode) {
   // Monadic
   switch (opcode.behavior) {
   case UNIMPL: return unimpl_handler(this);
+  case STOP: throw std::logic_error("Unimplemented instruction: STOP");
   case RET: return handle_ret(this);
   case SRET: return handle_sret(this);
   case MOVFLGA: return handle_movflga(this);
