@@ -339,7 +339,8 @@ void handle_cpwr(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_cpbr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u8 op_spec = self->target()->read<u8>(op_addr, rw_d).second;
+  // op_addr is address for 2-byte operands, so we need an offset of 1.
+  const u8 op_spec = self->target()->read<u8>(op_addr + 1, rw_d).second;
   const auto src = self->read_register(reg);
   // The result is the decoded operand specifier plus A/X. mask down to a byte.
   u16 tmp = (src + ~op_spec + 1) & 0xff;
@@ -365,7 +366,8 @@ void handle_ldwr(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_ldbr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u8 op_spec = self->target()->read<u8>(op_addr, rw_d).second;
+  // op_addr is address for 2-byte operands, so we need an offset of 1.
+  const u8 op_spec = self->target()->read<u8>(op_addr + 1, rw_d).second;
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
   // LDBr always clears n.
   n = 0;
