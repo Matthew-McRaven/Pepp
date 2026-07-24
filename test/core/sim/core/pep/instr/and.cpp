@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
-#include "./instr_shared.hpp"
+#include "./api.hpp"
 
 namespace {
 template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void inner(isa::Pep10::Mnemonic op) {
@@ -24,11 +24,10 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
   auto [init_reg] = GENERATE(table<u16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
   DYNAMIC_SECTION("with initial value " << init_reg) {
     for (u16 opspec = 0; static_cast<u32>(opspec) + 1 < 0x1'0000; opspec++) {
-      auto endRegVal = static_cast<u16>(opspec + init_reg);
+      auto endRegVal = static_cast<u16>(opspec & init_reg);
 
       // Object code for instruction under test.
-      auto program =
-          std::array<u8, 3>{(u8)op, static_cast<uint8_t>((opspec >> 8) & 0xff), static_cast<uint8_t>(opspec & 0xff)};
+      auto program = std::array<u8, 3>{(u8)op, static_cast<u8>((opspec >> 8) & 0xff), static_cast<u8>(opspec & 0xff)};
 
       cpu->registers()->clear(0);
       cpu->csrs()->clear(0);
@@ -48,17 +47,8 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
       // Check that target status bits match RTL.
       CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
       CHECK(!!csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
-      auto input_sign_match = ~(init_reg ^ opspec) & 0x8000;
-      auto output_sign_match = ~(endRegVal ^ init_reg) & 0x8000;
-      // Explicitly check that if input signs do no match, thatV is always
-      // false.
-      auto signed_overflow = input_sign_match ? input_sign_match != output_sign_match : false;
-      CHECK(!!csr(cpu, isa::Pep10::CSR::V) == signed_overflow);
-      // Don't use bit twiddling here. This validates that my bit twiddles in
-      // the CPU are logically equivalent to to carrying into bit 17 of a
-      // 32-bit type.
-      auto result = static_cast<uint32_t>(init_reg) + static_cast<uint32_t>(opspec);
-      CHECK(csr(cpu, isa::Pep10::CSR::C) == (result >= 0x1'0000 ? 1 : 0));
+      CHECK(csr(cpu, isa::Pep10::CSR::V) == 0);
+      CHECK(csr(cpu, isa::Pep10::CSR::C) == 0);
     }
   }
 }
@@ -66,9 +56,9 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
 
 TEST_CASE("(new) ADDA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
-  inner<Register::A, Register::X>(isa::Pep10::Mnemonic::ADDA);
+  inner<Register::A, Register::X>(isa::Pep10::Mnemonic::ANDA);
 }
 TEST_CASE("(new) ADDX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
-  inner<Register::X, Register::A>(isa::Pep10::Mnemonic::ADDX);
+  inner<Register::X, Register::A>(isa::Pep10::Mnemonic::ANDX);
 }
