@@ -17,8 +17,9 @@
 #include "./api.hpp"
 
 namespace {
-template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void inner_add(isa::Pep10::Mnemonic op) {
-  auto [sys, mem, cpu] = make_cpu();
+template <typename Register, typename CSR, typename Mnemonic>
+void inner_add(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mnemonic op) {
+  auto [sys, mem, cpu] = make_cpu(isa);
   // Loop over a subset of possible values for the target register.
   u16 tmp;
   auto [init_reg] = GENERATE(table<u16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
@@ -37,33 +38,34 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
       REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
       REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
 
-      CHECK(reg(cpu, isa::Pep10::Register::SP) == 0);
+      CHECK(reg(cpu, Register::SP) == 0);
       CHECK(reg(cpu, other_reg) == 0);
-      CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x3);
-      CHECK(reg(cpu, isa::Pep10::Register::IS) == (u8)op);
+      CHECK(reg(cpu, Register::PC) == 0x3);
+      CHECK(reg(cpu, Register::IS) == (u8)op);
       // OS loaded the Mem[0x0001-0x0002].
-      CHECK(reg(cpu, isa::Pep10::Register::OS) == opspec);
+      CHECK(reg(cpu, Register::OS) == opspec);
       // Check that target register had arithmetic performed.
       CHECK(reg(cpu, target_reg) == endRegVal);
       // Check that target status bits match RTL.
-      CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
-      CHECK(!!csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
+      CHECK(csr(cpu, CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
+      CHECK(!!csr(cpu, CSR::Z) == (endRegVal == 0));
       auto input_sign_match = ~(init_reg ^ opspec) & 0x8000;
       auto output_sign_match = ~(endRegVal ^ init_reg) & 0x8000;
       // Explicitly check that if input signs do no match, thatV is always
       // false.
       auto signed_overflow = input_sign_match ? input_sign_match != output_sign_match : false;
-      CHECK(!!csr(cpu, isa::Pep10::CSR::V) == signed_overflow);
+      CHECK(!!csr(cpu, CSR::V) == signed_overflow);
       // Don't use bit twiddling here. This validates that my bit twiddles in
       // the CPU are logically equivalent to to carrying into bit 17 of a
       // 32-bit type.
-      auto result = static_cast<uint32_t>(init_reg) + static_cast<uint32_t>(opspec);
-      CHECK(csr(cpu, isa::Pep10::CSR::C) == (result >= 0x1'0000 ? 1 : 0));
+      u32 result = static_cast<u32>(init_reg) + static_cast<u32>(opspec);
+      CHECK(csr(cpu, CSR::C) == (result >= 0x1'0000 ? 1 : 0));
     }
   }
 }
-template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void inner_sub(isa::Pep10::Mnemonic op) {
-  auto [sys, mem, cpu] = make_cpu();
+template <typename Register, typename CSR, typename Mnemonic>
+void inner_sub(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mnemonic op) {
+  auto [sys, mem, cpu] = make_cpu(isa);
   // Loop over a subset of possible values for the target register.
   u16 tmp;
   auto [init_reg] = GENERATE(table<u16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
@@ -72,8 +74,7 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
       auto endRegVal = static_cast<u16>((~opspec + 1) + init_reg);
 
       // Object code for instruction under test.
-      auto program =
-          std::array<u8, 3>{(u8)op, static_cast<uint8_t>((opspec >> 8) & 0xff), static_cast<uint8_t>(opspec & 0xff)};
+      auto program = std::array<u8, 3>{(u8)op, static_cast<u8>((opspec >> 8) & 0xff), static_cast<u8>(opspec & 0xff)};
 
       cpu->registers()->clear(0);
       cpu->csrs()->clear(0);
@@ -82,23 +83,23 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
       REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
       REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
 
-      CHECK(reg(cpu, isa::Pep10::Register::SP) == 0);
+      CHECK(reg(cpu, Register::SP) == 0);
       CHECK(reg(cpu, other_reg) == 0);
-      CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x3);
-      CHECK(reg(cpu, isa::Pep10::Register::IS) == (u8)op);
+      CHECK(reg(cpu, Register::PC) == 0x3);
+      CHECK(reg(cpu, Register::IS) == (u8)op);
       // OS loaded the Mem[0x0001-0x0002].
-      CHECK(reg(cpu, isa::Pep10::Register::OS) == opspec);
+      CHECK(reg(cpu, Register::OS) == opspec);
       // Check that target register had arithmetic performed.
       CHECK(reg(cpu, target_reg) == endRegVal);
       // Check that target status bits match RTL.
-      CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
-      CHECK(!!csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
+      CHECK(csr(cpu, CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
+      CHECK(!!csr(cpu, CSR::Z) == (endRegVal == 0));
       auto input_sign_match = ~(init_reg ^ (~opspec + 1)) & 0x8000;
       auto output_sign_match = ~(endRegVal ^ init_reg) & 0x8000;
       // Explicitly check that if input signs do no match, thatV is always
       // false.
       bool signed_overflow = input_sign_match ? input_sign_match != output_sign_match : false;
-      CHECK(!!csr(cpu, isa::Pep10::CSR::V) == signed_overflow);
+      CHECK(!!csr(cpu, CSR::V) == signed_overflow);
       // Don't use bit twiddling here. This validates that my bit twiddles in
       // the CPU are logically equivalent to to carrying into bit 17 of a
       // 32-bit type.
@@ -109,20 +110,40 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
 }
 } // namespace
 
-TEST_CASE("(new) ADDA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, ADDA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
-  inner_add<Register::A, Register::X>(isa::Pep10::Mnemonic::ADDA);
+  using CSR = isa::Pep10::CSR;
+  using MN = isa::Pep10::Mnemonic;
+  inner_add<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::ADDA);
 }
-TEST_CASE("(new) ADDX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, ADDX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
-  inner_add<Register::X, Register::A>(isa::Pep10::Mnemonic::ADDX);
+  using CSR = isa::Pep10::CSR;
+  using MN = isa::Pep10::Mnemonic;
+  inner_add<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::ADDX);
+}
+TEST_CASE("(new) Pep/9, ADDA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep10::Register;
+  using CSR = isa::Pep9::CSR;
+  using MN = isa::Pep9::Mnemonic;
+  // inner_add<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::ADDA);
+}
+TEST_CASE("(new) Pep/9,, ADDX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep9::Register;
+  using CSR = isa::Pep9::CSR;
+  using MN = isa::Pep9::Mnemonic;
+  // inner_add<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::ADDX);
 }
 
-TEST_CASE("(new) SUBA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, SUBA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
-  inner_sub<Register::A, Register::X>(isa::Pep10::Mnemonic::SUBA);
+  using CSR = isa::Pep10::CSR;
+  using MN = isa::Pep10::Mnemonic;
+  inner_sub<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::SUBA);
 }
-TEST_CASE("(new) SUBX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, SUBX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
-  inner_sub<Register::X, Register::A>(isa::Pep10::Mnemonic::SUBX);
+  using CSR = isa::Pep10::CSR;
+  using MN = isa::Pep10::Mnemonic;
+  inner_sub<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::SUBX);
 }
