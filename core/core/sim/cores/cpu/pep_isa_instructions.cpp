@@ -4,6 +4,8 @@
 
 namespace {
 static const Operation rw_d{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
+} // namespace
+
 u8 pack_csr(bool n, bool z, bool v, bool c) {
   u8 nzvc = 0;
   if (n) nzvc |= 1 << 3;
@@ -12,6 +14,7 @@ u8 pack_csr(bool n, bool z, bool v, bool c) {
   if (c) nzvc |= 1 << 0;
   return nzvc;
 }
+
 std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc) {
   bool n = nzvc & (1 << 3);
   bool z = nzvc & (1 << 2);
@@ -19,8 +22,6 @@ std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc) {
   bool c = nzvc & (1 << 0);
   return {n, z, v, c};
 }
-
-} // namespace
 
 u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
   // Fetch current PC
