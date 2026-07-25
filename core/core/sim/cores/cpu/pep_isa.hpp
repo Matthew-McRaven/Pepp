@@ -8,6 +8,14 @@
 #include "core/sim/api/trace.hpp"
 class Dense;
 
+/*
+ * The following classes of instructions are still not tested. Those tests require a more complete system model to
+ * implement.
+ * - All trap entry instructions
+ * - All trap exit instructions
+ * - The Pep/9 STOP intruction
+ * - All Pep/10 illegal / unimplemented instructions
+ */
 class PepISA3CPU final : public Device, public ClockSink, public Traceable, public Initiator {
 public:
   static const inline std::string compatible = "cpu,pep,isa3";
