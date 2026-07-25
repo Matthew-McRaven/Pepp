@@ -38,7 +38,7 @@ struct DeviceTree {
     template <bool Other> bool operator!=(const Iterator<Other> &o) const;
 
   private:
-    static node_ptr preorder(const DeviceTree *root, DeviceTree *current);
+    static node_ptr preorder(node_ptr root, node_ptr current);
     // Store the root so that we can avoid ascending above our starting level.
     node_ptr _root = nullptr, _cur = nullptr;
   };
@@ -90,8 +90,7 @@ bool DeviceTree::Iterator<Const>::operator!=(const Iterator<Other> &o) const {
 // Scanning could be improved/cached, but I opted to reduce memory footprint of the iterator at the cost of iteration
 // time. Querying the tree should be a rare occurence.
 template <bool Const>
-DeviceTree::Iterator<Const>::node_ptr DeviceTree::Iterator<Const>::preorder(const DeviceTree *root,
-                                                                            DeviceTree *current) {
+DeviceTree::Iterator<Const>::node_ptr DeviceTree::Iterator<Const>::preorder(node_ptr root, node_ptr current) {
   using node = DeviceTree::Iterator<Const>::node_ptr;
   if (!current) return nullptr;
   // First child if present, otherwise next sibling, which requires climbing into parent
