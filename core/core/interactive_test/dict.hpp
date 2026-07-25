@@ -18,7 +18,7 @@ struct RawDictHeader {
   u8 pad;
   u16 pcode;
 };
-static_assert(sizeof(RawDictHeader) == 6, "RawDictHeader must be 8 bytes");
+static_assert(sizeof(RawDictHeader) == 6, "RawDictHeader must be 6 bytes");
 static_assert(std::is_trivially_copyable_v<RawDictHeader>, "RawDictHeader must be trivially copyable");
 
 // Wrapper around the RawDictHeader to give you some more useful C++-ish information, like the relative address of a
