@@ -168,21 +168,20 @@ void PepISA3CPU::decrement_call_depth() {
 }
 
 u8 PepISA3CPU::read_packed_csr() {
-  const auto size = size_inclusive(_csrs->span());
   u8 ret = 0;
-  for (u8 i = 0; i < size; ++i) {
-    auto bit = ((Target *)_csrs)->read<u8, false>(i, rw_d).second;
-    ret |= (bit ? 1 : 0) << i;
-  }
+  ret |= read_csr(isa::Pep10::CSR::N) ? 1 << 3 : 0;
+  ret |= read_csr(isa::Pep10::CSR::Z) ? 1 << 2 : 0;
+  ret |= read_csr(isa::Pep10::CSR::V) ? 1 << 1 : 0;
+  ret |= read_csr(isa::Pep10::CSR::C) ? 1 << 0 : 0;
   return ret;
 }
 
 void PepISA3CPU::write_packed_csr(u8 value) {
   const auto size = size_inclusive(_csrs->span());
-  for (u8 i = 0; i < size; ++i) {
-    auto bit = (value >> i) & 1;
-    ((Target *)_csrs)->write<u8, false>(i, bit, rw_d);
-  }
+  write_csr(isa::Pep10::CSR::N, (value >> 3) & 1);
+  write_csr(isa::Pep10::CSR::Z, (value >> 2) & 1);
+  write_csr(isa::Pep10::CSR::V, (value >> 1) & 1);
+  write_csr(isa::Pep10::CSR::C, (value >> 0) & 1);
 }
 
 void PepISA3CPU::handle(Op opcode) {

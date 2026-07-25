@@ -6,17 +6,17 @@ namespace {
 static const Operation rw_d{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
 u8 pack_csr(bool n, bool z, bool v, bool c) {
   u8 nzvc = 0;
-  if (n) nzvc |= 1 << 0;
-  if (z) nzvc |= 1 << 1;
-  if (v) nzvc |= 1 << 2;
-  if (c) nzvc |= 1 << 3;
+  if (n) nzvc |= 1 << 3;
+  if (z) nzvc |= 1 << 2;
+  if (v) nzvc |= 1 << 1;
+  if (c) nzvc |= 1 << 0;
   return nzvc;
 }
 std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc) {
-  bool n = nzvc & (1 << 0);
-  bool z = nzvc & (1 << 1);
-  bool v = nzvc & (1 << 2);
-  bool c = nzvc & (1 << 3);
+  bool n = nzvc & (1 << 3);
+  bool z = nzvc & (1 << 2);
+  bool v = nzvc & (1 << 1);
+  bool c = nzvc & (1 << 0);
   return {n, z, v, c};
 }
 
