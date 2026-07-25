@@ -44,8 +44,6 @@ void inner_not(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
     // Check that target register had arithmetic performed.
     CHECK(reg(cpu, target_reg) == endRegVal);
 
-    // Check that target register had arithmetic performed.
-    CHECK(reg(cpu, target_reg) == endRegVal);
     // Check that target status bits match RTL.
     CHECK(csr(cpu, CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
     CHECK(!!csr(cpu, CSR::Z) == (endRegVal == 0));
