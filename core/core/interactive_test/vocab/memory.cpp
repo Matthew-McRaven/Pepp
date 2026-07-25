@@ -42,7 +42,7 @@ void native_cmove0(Interpreter *interp) {
 inline static const NativeOpcode CMove0{
     .stack_delta = -6,
     .name = "cmove0",
-    .h = native_cmove,
+    .h = native_cmove0,
 };
 
 u16 strlen_helper(Interpreter *interp, u16 addr) {
