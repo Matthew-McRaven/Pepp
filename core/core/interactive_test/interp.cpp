@@ -30,8 +30,8 @@ void Interpreter::step() {
 
   u16 opcode = 0;
   if (redirect_next_step.has_value()) {
-    redirect_next_step = std::nullopt;
     cb.w = *redirect_next_step;
+    redirect_next_step = std::nullopt;
   } else {
     cb.cur_ip = cb.nxt_ip;
     redirect_next_step = std::nullopt;
