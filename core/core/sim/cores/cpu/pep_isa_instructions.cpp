@@ -60,6 +60,7 @@ void handle_ret(PepISA3CPU *self) {
   u16 sp = self->read_register(isa::Pep10::Register::SP);
   auto addr = self->target()->read<u16, bits::host_is_le>(sp, rw_d).second;
   self->write_register(isa::Pep10::Register::PC, addr);
+  self->write_register(isa::Pep10::Register::SP, sp + 2);
   // TODO: notify debugger of ret @ PC
 }
 
