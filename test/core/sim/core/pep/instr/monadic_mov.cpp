@@ -76,45 +76,45 @@ void inner_movr(PepISA3CPU::ISA isa, Register src_reg, Register dest_reg, Mnemon
 
 } // namespace
 
-TEST_CASE("(new) Pep/10, MOVFLGA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, MOVFLGA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_movflg<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::MOVFLGA);
 }
-TEST_CASE("(new) Pep/9, MOVFLGA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, MOVFLGA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_movflg<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, MN::MOVFLGA);
 }
-TEST_CASE("(new) Pep/10, MOVAFLG, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, MOVAFLG", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_movflg<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::MOVAFLG);
 }
-TEST_CASE("(new) Pep/9, MOVAFLG, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, MOVAFLG", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_movflg<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, MN::MOVAFLG);
 }
 
-TEST_CASE("(new) Pep/10, MOVSPA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, MOVSPA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_movr<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::SP, Register::A, MN::MOVSPA);
 }
-TEST_CASE("(new) Pep/9, MOVSPA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, MOVSPA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_movr<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::SP, Register::A, MN::MOVSPA);
 }
 
-TEST_CASE("(new) Pep/10, MOVASP, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, MOVASP", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;

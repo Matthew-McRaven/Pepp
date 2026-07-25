@@ -180,100 +180,100 @@ void inner_ror(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
 
 } // namespace
 
-TEST_CASE("(new) Pep/10, ASLA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, ASLA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_asl<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::ASLA);
 }
-TEST_CASE("(new) Pep/10, ASLX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, ASLX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_asl<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::ASLX);
 }
-TEST_CASE("(new) Pep/9, ASLA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, ASLA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_asl<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::ASLA);
 }
-TEST_CASE("(new) Pep/9, ASLX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, ASLX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_asl<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::ASLX);
 }
 
-TEST_CASE("(new) Pep/10, ASRA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, ASRA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_asr<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::ASRA);
 }
-TEST_CASE("(new) Pep/10, ASRX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, ASRX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_asr<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::ASRX);
 }
-TEST_CASE("(new) Pep/9, ASRA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, ASRA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_asr<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::ASRA);
 }
-TEST_CASE("(new) Pep/9, ASRX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, ASRX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_asr<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::ASRX);
 }
 
-TEST_CASE("(new) Pep/10, ROLA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, ROLA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_rol<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::ROLA);
 }
-TEST_CASE("(new) Pep/10, ROLX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, ROLX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_rol<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::ROLX);
 }
-TEST_CASE("(new) Pep/9, ROLA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, ROLA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_rol<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::ROLA);
 }
-TEST_CASE("(new) Pep/9, ROLX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, ROLX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_rol<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::ROLX);
 }
 
-TEST_CASE("(new) Pep/10, RORA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, RORA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_ror<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::RORA);
 }
-TEST_CASE("(new) Pep/10, RORX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, RORX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
   inner_ror<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::RORX);
 }
-TEST_CASE("(new) Pep/9, RORA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, RORA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_ror<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::RORA);
 }
-TEST_CASE("(new) Pep/9, RORX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/9, RORX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep9::Register;
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;

@@ -38,7 +38,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner(PepISA3
 
 } // namespace
 
-TEST_CASE("(new) Pep/10, NOP, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+TEST_CASE("(new) Pep/10, NOP", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
