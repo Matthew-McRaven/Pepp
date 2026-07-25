@@ -1,3 +1,4 @@
+#pragma once
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/isa/pep9.hpp"
 #include "core/sim/cores/cpu/pep_isa.hpp"
