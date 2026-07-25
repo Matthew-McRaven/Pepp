@@ -26,7 +26,7 @@ Device *create_sparse(const nlohmann::json &self, System *sys, Device *par) {
     cfg.span = AddressSpan{min, max};
     if (self.contains("fill") && !self["fill"].is_null()) cfg.fill = as_i8(self["fill"]);
   } catch (const nlohmann::json::type_error &e) {
-    throw ParsingError("Failed to parse dense RAM: " + std::string(e.what()));
+    throw ParsingError("Failed to parse sparse RAM: " + std::string(e.what()));
   }
   return sys->make_device<Sparse>(par, cfg);
 }
