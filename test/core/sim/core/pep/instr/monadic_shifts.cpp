@@ -98,6 +98,86 @@ void inner_asr(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
   }
 }
 
+template <typename Register, typename CSR, typename Mnemonic>
+void inner_rol(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mnemonic op) {
+  auto [sys, mem, cpu] = make_cpu(isa);
+  // Loop over a subset of possible values for the target register.
+  u16 tmp;
+  auto [init_reg] = GENERATE(table<u16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
+  auto [carry] = GENERATE(table<u8>({0, 1}));
+  DYNAMIC_SECTION("with initial value==" << init_reg << " and carry==" << (char)carry) {
+    auto endRegVal = static_cast<u16>((init_reg << 1) | (carry & 1));
+
+    // Object code for instruction under test.
+    auto program = std::array<u8, 1>{(u8)op};
+
+    cpu->registers()->clear(0);
+    cpu->csrs()->clear(0);
+    cpu->write_register(target_reg, init_reg);
+    ((Target *)cpu->csrs())->write<u8>(static_cast<u8>(CSR::C), carry, rw);
+
+    REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
+    REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+
+    CHECK(reg(cpu, Register::SP) == 0);
+    CHECK(reg(cpu, other_reg) == 0);
+    CHECK(reg(cpu, Register::PC) == 0x1);
+    CHECK(reg(cpu, Register::IS) == (u8)op);
+    // Check that target register had arithmetic performed.
+    CHECK(reg(cpu, target_reg) == endRegVal);
+
+    // Check that target register had arithmetic performed.
+    CHECK(reg(cpu, target_reg) == endRegVal);
+    // Check that target status bits match RTL.
+    CHECK(csr(cpu, CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
+    CHECK(csr(cpu, CSR::Z) == (endRegVal == 0 ? 1 : 0));
+    auto new_reg = reg(cpu, target_reg);
+    CHECK(csr(cpu, CSR::V) == 0);
+    // Carry out if high order bit was non-zero
+    CHECK(csr(cpu, CSR::C) == ((init_reg & 0x8000) ? 1 : 0));
+  }
+}
+
+template <typename Register, typename CSR, typename Mnemonic>
+void inner_ror(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mnemonic op) {
+  auto [sys, mem, cpu] = make_cpu(isa);
+  // Loop over a subset of possible values for the target register.
+  u16 tmp;
+  auto [init_reg] = GENERATE(table<u16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
+  auto [carry] = GENERATE(table<u8>({0, 1}));
+  DYNAMIC_SECTION("with initial value==" << init_reg << " and carry==" << (char)carry) {
+    auto endRegVal = static_cast<u16>(static_cast<u16>(init_reg >> 1) | (carry ? 1 << 15 : 0));
+
+    // Object code for instruction under test.
+    auto program = std::array<u8, 1>{(u8)op};
+
+    cpu->registers()->clear(0);
+    cpu->csrs()->clear(0);
+    cpu->write_register(target_reg, init_reg);
+    ((Target *)cpu->csrs())->write<u8>(static_cast<u8>(CSR::C), carry, rw);
+
+    REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
+    REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+
+    CHECK(reg(cpu, Register::SP) == 0);
+    CHECK(reg(cpu, other_reg) == 0);
+    CHECK(reg(cpu, Register::PC) == 0x1);
+    CHECK(reg(cpu, Register::IS) == (u8)op);
+    // Check that target register had arithmetic performed.
+    CHECK(reg(cpu, target_reg) == endRegVal);
+
+    // Check that target register had arithmetic performed.
+    CHECK(reg(cpu, target_reg) == endRegVal);
+    // Check that target status bits match RTL.
+    CHECK(csr(cpu, CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
+    CHECK(csr(cpu, CSR::Z) == (endRegVal == 0 ? 1 : 0));
+    auto new_reg = reg(cpu, target_reg);
+    CHECK(csr(cpu, CSR::V) == 0);
+    // Carry out if low order bit was non-zero
+    CHECK(csr(cpu, CSR::C) == (u16)(init_reg & 0x1));
+  }
+}
+
 } // namespace
 
 TEST_CASE("(new) Pep/10, ASLA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
@@ -148,4 +228,54 @@ TEST_CASE("(new) Pep/9, ASRX, i", "[scope:core][scope:core.sim][kind:unit][arch:
   using CSR = isa::Pep9::CSR;
   using MN = isa::Pep9::Mnemonic;
   inner_asr<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::ASRX);
+}
+
+TEST_CASE("(new) Pep/10, ROLA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep10::Register;
+  using CSR = isa::Pep10::CSR;
+  using MN = isa::Pep10::Mnemonic;
+  inner_rol<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::ROLA);
+}
+TEST_CASE("(new) Pep/10, ROLX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep10::Register;
+  using CSR = isa::Pep10::CSR;
+  using MN = isa::Pep10::Mnemonic;
+  inner_rol<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::ROLX);
+}
+TEST_CASE("(new) Pep/9, ROLA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep9::Register;
+  using CSR = isa::Pep9::CSR;
+  using MN = isa::Pep9::Mnemonic;
+  inner_rol<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::ROLA);
+}
+TEST_CASE("(new) Pep/9, ROLX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep9::Register;
+  using CSR = isa::Pep9::CSR;
+  using MN = isa::Pep9::Mnemonic;
+  inner_rol<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::ROLX);
+}
+
+TEST_CASE("(new) Pep/10, RORA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep10::Register;
+  using CSR = isa::Pep10::CSR;
+  using MN = isa::Pep10::Mnemonic;
+  inner_ror<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::RORA);
+}
+TEST_CASE("(new) Pep/10, RORX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep10::Register;
+  using CSR = isa::Pep10::CSR;
+  using MN = isa::Pep10::Mnemonic;
+  inner_ror<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::RORX);
+}
+TEST_CASE("(new) Pep/9, RORA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep9::Register;
+  using CSR = isa::Pep9::CSR;
+  using MN = isa::Pep9::Mnemonic;
+  inner_ror<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::RORA);
+}
+TEST_CASE("(new) Pep/9, RORX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  using Register = isa::Pep9::Register;
+  using CSR = isa::Pep9::CSR;
+  using MN = isa::Pep9::Mnemonic;
+  inner_ror<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::RORX);
 }
