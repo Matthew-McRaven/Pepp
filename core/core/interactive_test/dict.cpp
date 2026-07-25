@@ -55,16 +55,16 @@ NiceDictHeader dict_insert(Interpreter *interp, std::string_view name, Flags fla
 NiceDictHeader dict_header(Interpreter *interp, std::string_view name, Flags flags) {
   using namespace bits;
   static const u16 alignment = 2;
-  const bool needs_null = name.ends_with("\0");
+  const bool has_null = (!name.empty() && name.ends_with('\0'));
   auto *here = &interp->cb.here;
   // Add pading before string so that CFA will be aligned. Optionally 1 to enforce that all strings are null terminated.
-  const auto unpadded_cfa = *here + (needs_null ? 1 : 0) + (u16)RawDictHeader::StaticOffsets::CODE + name.size();
+  const auto unpadded_cfa = *here + (!has_null ? 1 : 0) + (u16)RawDictHeader::StaticOffsets::CODE + name.size();
   const u8 pad = (alignment - (unpadded_cfa % alignment)) % alignment;
   *here = interp->zeros(*here, pad);
   // Write out name
   *here = interp->write(*here, bits::span<const u8>{(const u8 *)name.data(), name.size()});
   // Add null terminator if source does not already include it.
-  if (needs_null) *here = interp->zeros(*here, 1);
+  if (!has_null) *here = interp->zeros(*here, 1);
 
   // Write out backlink
   const u16 addr_of_link = *here;
