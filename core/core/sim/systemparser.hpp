@@ -1,4 +1,6 @@
 #pragma once
+#include <exception>
+#include <functional>
 #include <map>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
