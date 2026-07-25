@@ -42,6 +42,7 @@ public:
 
   // Device interface
   void initialize(System *) override;
+  void scan_debug_hardware(HWDebug *dbg) override;
   const Device::Configuration &config() const override;
   const Configuration &casted_config() const;
   const Device::ID id() const override;

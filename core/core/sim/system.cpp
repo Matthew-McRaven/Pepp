@@ -4,10 +4,13 @@
 #include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/enums.hpp"
 #include "core/sim/devicetree.hpp"
+#include "core/sim/hwdebug/hwdebug.hpp"
 #include "core/sim/systemparser.hpp"
 
 using namespace bits;
 consteval void allow_opaque_handle_increment(Device::ID);
+
+void Device::scan_debug_hardware(HWDebug *) {}
 
 System::System(Configuration config)
     : Device(), _config(config), _gen_next_ID([this]() { return next_ID(); }),
@@ -20,6 +23,7 @@ System::System(Configuration config)
   _config.fullname = _config.basename;
   // Ensure we can lookup this device by ID.
   _id_to_device[_config.id] = _root.get();
+  _hwdbg = std::make_unique<HWDebug>(this);
 }
 
 void System::initialize(System *sys) { return initialize(); }
@@ -27,7 +31,10 @@ void System::initialize(System *sys) { return initialize(); }
 void System::initialize() {
   // Finish initializing devices in a post-order traversal.
   for (auto dev : *_root)
-    if (dev != this) dev->initialize(this);
+    if (dev != this) {
+      dev->initialize(this);
+      dev->scan_debug_hardware(_hwdbg.get());
+    }
 }
 
 std::unique_ptr<DeviceSerializer> System::serializer() const { return make_serializer(); }
@@ -54,6 +61,10 @@ Device *System::find_by_id(ID id) {
   if (it == _id_to_device.end()) return nullptr;
   return it->second ? it->second->device : nullptr;
 }
+
+HWDebug *System::hw_debugger() { return _hwdbg.get(); }
+
+const HWDebug *System::hw_debugger() const { return _hwdbg.get(); }
 
 Device *System::find_absolute(std::string_view name) {
   DeviceTree *root = _root.get();

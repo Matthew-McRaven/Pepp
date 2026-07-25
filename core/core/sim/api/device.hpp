@@ -27,6 +27,9 @@
 // does require pullin in json header. See systemparser.hpp for details.
 struct DeviceSerializer;
 class System;
+// A class which represents physical debuggin hardware, like a JTAG.
+class HWDebug;
+
 std::string child_name(std::string_view parent_fullname, std::string_view child_basename);
 struct Device {
   using ID = pepp::OpaqueHandle<struct DeviceID, u8>;
@@ -67,6 +70,9 @@ struct Device {
   // Some devices need further initialization after the full device tree has been constructed.
   // Classes which require this 2nd stage of init should override this method.
   virtual void initialize(System *) {}
+  // Always called after initialize(System*) by the System to allow this device to expose hardware debug information.
+  // Default implementation does nothing, and is implemented in system.cpp to avoid pulling in HWDebug definition here.
+  virtual void scan_debug_hardware(HWDebug *);
   virtual const Configuration &config() const = 0;
   virtual const Device::ID id() const = 0;
   // Helper to test if this device implements a particular interface type.
