@@ -2,11 +2,24 @@
 #include <nlohmann/json.hpp>
 
 std::string templatize(std::string input, const std::map<std::string, std::string> &substitutions) {
-  for (const auto &[search, replace] : substitutions) {
-    for (std::size_t pos = input.find(search); pos != std::string::npos; pos = input.find(search, pos + input.size()))
-      input.replace(pos, search.size(), replace);
+  std::string result;
+  result.reserve(input.size());
+  // Try to match each position against a substitution.
+  for (std::size_t pos = 0; pos < input.size();) {
+    bool matched = false;
+    for (const auto &[search, replace] : substitutions) {
+      // If we have a hit, copy replace into result and advance position.
+      if (!search.empty() && input.compare(pos, search.size(), search) == 0) {
+        result += replace;
+        pos += search.size();
+        matched = true;
+        break;
+      }
+    }
+    // If position does not match, copy that character forward.
+    if (!matched) result += input[pos++];
   }
-  return input;
+  return result;
 }
 
 void templatize(nlohmann::json &object, const std::map<std::string, std::string> &substitutions) {
