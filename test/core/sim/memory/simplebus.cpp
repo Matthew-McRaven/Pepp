@@ -65,13 +65,14 @@ TEST_CASE("(new) SimpleBus storage in-bounds access", "[scope:core][scope:core.s
   bits::memclr(bufSpan);
 
   // Can write to each individual memory and read on bus.
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 3; i++) {
     auto m = memArr[i];
     bits::memcpy_endian(bufSpan, bits::Order::BigEndian, u16(0x0001));
     REQUIRE_NOTHROW(m->write(0, bufSpan, rw));
     bits::memclr(bufSpan);
     REQUIRE_NOTHROW(bus->read(0 + i * 2, bufSpan, rw));
-    for (int j = 0; j < 1; j++) CHECK(buf[j] == j);
+    CHECK(buf[0] == 0);
+    CHECK(buf[1] == 1);
   }
 }
 
@@ -85,9 +86,10 @@ TEST_CASE("(new) SimpleBus group in-bounds access", "[scope:core][scope:core.sim
   bits::memclr(bufSpan);
 
   // Can write to bus and read each individual memory.
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 3; i++) {
     auto m = memArr[i];
     REQUIRE_NOTHROW(m->read(0, bufSpan.first(2), rw));
-    for (int j = 0; j < 1; j++) CHECK(buf[j] == i * 2 + j);
+    CHECK(buf[0] == i * 2 + 0);
+    CHECK(buf[1] == i * 2 + 1);
   }
 }
