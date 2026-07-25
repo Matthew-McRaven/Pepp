@@ -44,6 +44,7 @@ template <typename T> struct Interval {
     swap(lhs._lower, rhs._lower);
     swap(lhs._upper, rhs._upper);
   }
+  static Interval<T> from_point_size(T point, u64 size) { return Interval<T>(point, T(point + size)); }
   ~Interval() = default;
   auto operator<=>(const Interval &other) const noexcept {
     if (bool lhs_empty = !valid(), rhs_empty = !other.valid(); lhs_empty && rhs_empty)

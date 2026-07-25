@@ -1,0 +1,67 @@
+#include "system.hpp"
+#include <ranges>
+#include <spdlog/spdlog.h>
+#include "core/ds/string_compare.hpp"
+#include "core/math/bitmanip/enums.hpp"
+#include "core/sim/devicetree.hpp"
+#include "core/sim/systemparser.hpp"
+
+using namespace bits;
+consteval void allow_opaque_handle_increment(Device::ID);
+
+System::System(Configuration config)
+    : Device(), _config(config), _gen_next_ID([this]() { return next_ID(); }),
+      _root(std::make_unique<DeviceTree>(this, nullptr)) {
+  _config.id = Device::ID{0};
+  // Ensure that basename always == fullname, and that the name starts with a /
+  if (_config.basename.empty()) _config.basename = "/";
+  else if (_config.basename.starts_with("/")) _config.basename = _config.basename;
+  else _config.basename = "/" + _config.basename;
+  _config.fullname = _config.basename;
+  // Ensure we can lookup this device by ID.
+  _id_to_device[_config.id] = _root.get();
+}
+
+void System::initialize(System *sys) { return initialize(); }
+
+void System::initialize() {
+  // Finish initializing devices in a post-order traversal.
+  for (auto dev : *_root)
+    if (dev != this) dev->initialize(this);
+}
+
+std::unique_ptr<DeviceSerializer> System::serializer() const { return make_serializer(); }
+
+// Serialization is handled inline in systemparser. Serializer does not transfer ownership of allocated object to
+// caller, which is required when initializing a System ex nihilo.
+std::unique_ptr<DeviceSerializer> System::make_serializer() { return nullptr; }
+
+Device::ID System::next_ID() { return _next_ID++; }
+
+Device::IDGenerator System::gen_next_ID() { return _gen_next_ID; }
+
+void System::set_buffer(trace::Buffer *buffer) { throw std::logic_error("Unimplemented"); }
+
+void System::make_deferred(DeferredDevice ctor) { _deferred_constructors.push_back(std::move(ctor)); }
+
+Device *System::find_relative(std::string_view name, std::string_view parent) {
+  if (name.starts_with("/")) return find_absolute(name);
+  else return find_absolute(child_name(parent, name));
+}
+
+Device *System::find_by_id(ID id) {
+  auto it = _id_to_device.find(id);
+  if (it == _id_to_device.end()) return nullptr;
+  return it->second ? it->second->device : nullptr;
+}
+
+Device *System::find_absolute(std::string_view name) {
+  DeviceTree *root = _root.get();
+  auto ptr = (*root) | std::views::filter([&name](Device *dt) { return dt->config().fullname == name; });
+  auto count = std::ranges::distance(ptr);
+  if (count > 1) {
+    SPDLOG_WARN("System::find_absolute: multiple devices found with name {}", name);
+    return nullptr;
+  } else if (count == 0) return nullptr;
+  else return *ptr.begin();
+}

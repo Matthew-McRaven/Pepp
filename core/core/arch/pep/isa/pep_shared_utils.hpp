@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include "core/integers.h"
 
 /*
  * Copyright (c) 2023-2026 J. Stanley Warford, Matthew McRaven

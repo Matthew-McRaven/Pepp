@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <regex>
 #include <spdlog/spdlog.h>
+#include "core/io/json_helpers.hpp"
 #include "core/resources/figures/book.hpp"
 #include "core/resources/figures/figure.hpp"
 #include "core/resources/figures/fragment.hpp"
@@ -39,27 +40,6 @@ std::string_view select_lines(const std::string &input, int startLine, int endLi
   std::size_t len = lineStarts[endIdx] - from;
   if (from > input.size()) return {};
   return std::string_view{input}.substr(from, std::min(len, input.size() - from));
-}
-
-// Perform template substitution on a single string
-std::string templatize(std::string input, std::map<std::string, std::string> substitutions) {
-  for (const auto &[key, value] : substitutions) {
-    const std::string token = "{" + key + "}";
-    for (std::size_t pos = input.find(token); pos != std::string::npos; pos = input.find(token, pos + value.size()))
-      input.replace(pos, token.size(), value);
-  }
-  return input;
-}
-
-// Perform template substitution on all string values in a JSON object, recursively.
-void templateize(nlohmann::json &object, std::map<std::string, std::string> substitutions) {
-  for (auto &[key, value] : object.items()) {
-    if (value.is_object()) {
-      templateize(value, substitutions);
-    } else if (value.is_string()) {
-      object[key] = templatize(value.get<std::string>(), substitutions);
-    }
-  }
 }
 
 // Helper to parse a name into (chapter, figure) parts
@@ -266,7 +246,7 @@ std::variant<std::monostate, _Figure, _Macro> load_figure(const nlohmann::json &
     }
   }
 
-  auto substitutions = std::map<std::string, std::string>{{"ch", chapter_name}, {"fig", figure_name}};
+  auto substitutions = std::map<std::string, std::string>{{"{ch}", chapter_name}, {"{fig}", figure_name}};
 
   // Add elements
   std::optional<std::string> _default = std::nullopt;
@@ -276,7 +256,7 @@ std::variant<std::monostate, _Figure, _Macro> load_figure(const nlohmann::json &
   }
   for (const auto &frag_it : std::as_const(manifest["fragments"])) {
     nlohmann::json templatized = frag_it;
-    templateize(templatized, substitutions);
+    templatize(templatized, substitutions);
     auto item = load_fragment(templatized, manifest_dir, &*figure, fs, registry);
     if (item == nullptr) {
       SPDLOG_WARN("Failed to load element {}", str_of(templatized, "name"));
@@ -351,7 +331,7 @@ std::variant<std::monostate, _Figure, _Macro> load_macro(const nlohmann::json &m
     }
 
     // Perform templatization on manifest values.
-    const auto substitutions = std::map<std::string, std::string>{{"name", key}};
+    const auto substitutions = std::map<std::string, std::string>{{"{name}", key}};
     const auto path = templatize(value.get<std::string>(), substitutions);
 
     // Load the macro

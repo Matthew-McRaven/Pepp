@@ -41,4 +41,6 @@ constexpr Order hostOrder() {
 #endif
 }
 
+static constexpr bool host_is_le = bits::hostOrder() == bits::Order::LittleEndian;
+
 } // namespace bits

@@ -1,0 +1,59 @@
+#include <tuple>
+#include "core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pep/isa/pep_shared_ops.hpp"
+#include "core/integers.h"
+
+class PepISA3CPU;
+
+using Op = isa::SharedOp;
+
+u8 pack_csr(bool n, bool z, bool v, bool c);
+std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc);
+
+// Read word at Mem[PC] and store to OS, incrementing PC by 2.
+// Return the /address/ of the operand value, which is usable for both load and store instructions.
+// For store-type operands, this is the address you write to. For load-type operands, you will need to read from this
+// address to get the actual operand specifier.
+u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr);
+
+void unimpl_handler(PepISA3CPU *);
+
+void handle_ret(PepISA3CPU *self);
+void handle_sret(PepISA3CPU *self);
+void handle_movflga(PepISA3CPU *self);
+void handle_movaflg(PepISA3CPU *self);
+void handle_movspa(PepISA3CPU *self);
+void handle_movasp(PepISA3CPU *self);
+void handle_nop(PepISA3CPU *);
+
+void handle_negr(PepISA3CPU *self, isa::Pep10::Register reg);
+void handle_aslr(PepISA3CPU *self, isa::Pep10::Register reg);
+void handle_asrr(PepISA3CPU *self, isa::Pep10::Register reg);
+void handle_notr(PepISA3CPU *self, isa::Pep10::Register reg);
+void handle_rolr(PepISA3CPU *self, isa::Pep10::Register reg);
+void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg);
+
+enum class BranchCondition { UNCONDITIONAL, LE, LT, EQ, NE, GE, GT, V, C };
+
+void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr);
+void handle_call(PepISA3CPU *self, Op op, u16 op_addr);
+
+void handle_addsp(PepISA3CPU *self, Op op, u16 op_addr);
+void handle_subsp(PepISA3CPU *self, Op op, u16 op_addr);
+void handle_addr(PepISA3CPU *self, Op op, u16 op_addr);
+void handle_subr(PepISA3CPU *self, Op op, u16 op_addr);
+
+enum class Bitop {
+  AND,
+  OR,
+  XOR,
+};
+
+void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop, u16 op_addr);
+void handle_cpwr(PepISA3CPU *self, Op op, u16 op_addr);
+void handle_cpbr(PepISA3CPU *self, Op op, u16 op_addr);
+
+void handle_ldwr(PepISA3CPU *self, Op op, u16 op_addr);
+void handle_ldbr(PepISA3CPU *self, Op op, u16 op_addr);
+void handle_stwr(PepISA3CPU *self, Op op, u16 op_addr);
+void handle_stbr(PepISA3CPU *self, Op op, u16 op_addr);
