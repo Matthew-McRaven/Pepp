@@ -56,4 +56,11 @@ template <class Tag, class Underlying = u32> struct OpaqueHandle {
     return OpaqueHandle{rhs.value + lhs};
   }
 };
+
+template <class T, class = void> struct handle_hash;
+template <class Tag, class Underlying> struct handle_hash<OpaqueHandle<Tag, Underlying>> {
+  std::size_t operator()(const OpaqueHandle<Tag, Underlying> &v) const noexcept {
+    return std::hash<Underlying>{}(v.value);
+  }
+};
 } // namespace pepp
