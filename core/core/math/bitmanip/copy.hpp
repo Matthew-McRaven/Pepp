@@ -33,7 +33,7 @@ template <typename T, std::size_t size = std::dynamic_extent> void memclr(bits::
 }
 
 template <std::integral T, std::integral U> T memcpy_endian(U src) {
-  return memcpy_endian<T>({&src, sizeof(U)}, bits::hostOrder());
+  return memcpy_endian<T>(span<uint8_t>{reinterpret_cast<uint8_t *>(&src), sizeof(T)}, bits::hostOrder());
 }
 
 // When src is longer than dest, truncates high-order bytes (like casting
