@@ -47,6 +47,23 @@ using ::std::bit_cast;
 using detail::bit_cast;
 #endif
 
+// Reverse all bytes in a span. Not a true byteswap, because it is unaware of word boundaries. However, it is a useful
+// primitive for implementing a word-aware byteswap.
+template <typename T>
+  requires(std::same_as<T, u8> || std::same_as<T, i8> || std::same_as<T, std::byte>)
+constexpr void bytereverse(std::span<T> value) noexcept {
+#ifdef PEPP_HAS_RANGES_REVERSE
+  std::ranges::reverse(value);
+#else
+  auto first = value.begin();
+  auto last = value.end();
+  while (first != last && first != --last) {
+    std::iter_swap(first, last);
+    ++first;
+  }
+#endif
+}
+
 #ifdef PEPP_HAS_RANGES_REVERSE
 // Use (better) range version when possible
 template <std::integral T> constexpr T byteswap(T value) noexcept {
