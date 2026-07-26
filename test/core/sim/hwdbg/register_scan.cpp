@@ -60,20 +60,25 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_call(Pe
   cpu->registers()->clear(0);
   cpu->csrs()->clear(0);
   cpu->write_register(Register::SP, init_sp);
+  cpu->write_packed_csr(pack_csr(true, false, true, false)); // NZVC = 1010
 
   REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
 
-  auto dbg = sys->hw_debugger();
+  auto dbg = sys->register_scan();
 
-  CHECK(dbg->read(*dbg->find("PC")) == end_pc);
-  CHECK(dbg->read(*dbg->find("SP")) == init_sp - 2);
-  const auto sp = dbg->read(*dbg->find("SP"));
+  CHECK(dbg->read<u16>(*dbg->find("PC")) == end_pc);
+  CHECK(dbg->read<u16>(*dbg->find("SP")) == init_sp - 2);
+  const auto sp = dbg->read<u16>(*dbg->find("SP"));
   const auto mem_sp = ((Target *)mem)->read<u16, bits::host_is_le>(sp, rw).second;
   CHECK(mem_sp == 0x0003); // The return address is 0x0003, since that was the next PC prior to call.
-  CHECK(dbg->read(*dbg->find("IS")) == (u8)op);
-  CHECK(dbg->read(*dbg->find("OS")) == 0xDEAD);
-  CHECK(dbg->read(*dbg->find("X")) == 0);
-  CHECK(dbg->read(*dbg->find("A")) == 0);
+  CHECK(dbg->read<u8>(*dbg->find("IS")) == (u8)op);
+  CHECK(dbg->read<u16>(*dbg->find("OS")) == 0xDEAD);
+  CHECK(dbg->read<u16>(*dbg->find("X")) == 0);
+  CHECK(dbg->read<u16>(*dbg->find("A")) == 0);
+  CHECK(dbg->read<u8>(*dbg->find("N")) == true);
+  CHECK(dbg->read<u8>(*dbg->find("Z")) == false);
+  CHECK(dbg->read<u8>(*dbg->find("V")) == true);
+  CHECK(dbg->read<u8>(*dbg->find("C")) == false);
 }
 
 } // namespace

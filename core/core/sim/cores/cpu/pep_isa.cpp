@@ -4,7 +4,7 @@
 #include "core/arch/pep/isa/pep9.hpp"
 #include "core/ds/string_compare.hpp"
 #include "core/sim/cores/cpu/pep_isa_instructions.hpp"
-#include "core/sim/hwdebug/hwdebug.hpp"
+#include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
@@ -101,29 +101,36 @@ void PepISA3CPU::initialize(System *sys) {
   case ISA::Pep9: _opcodes = isa::Pep9::opcode_plane; break;
   case ISA::Pep10: _opcodes = isa::Pep10::opcode_plane; break;
   }
-}
 
-// We must expose names on our children (crs, regs) because those devices think of themselves as flat storage.
-// Only this class understands how to map between register names and offsets.
-void PepISA3CPU::scan_debug_hardware(HWDebug *dbg) {
+  auto scan = sys->register_scan();
+  // Scanned register
+  using SR = RegisterScan::Register;
+  static const auto BE = bits::Order::BigEndian;
+  static const auto LE = bits::Order::LittleEndian;
+  static const auto RW = RegisterScan::Register::ReadWrite;
   // Core registers
   using R = isa::Pep10::Register;
   static const auto rid = _regbank->id();
   static const auto r2i = [](const R &r) -> u16 { return static_cast<u16>(r) * 2; };
-  dbg->expose(NamedLocation{.type = DebugType::u16, .target = rid, .name = "A", .offset = r2i(R::A)});
-  dbg->expose(NamedLocation{.type = DebugType::u16, .target = rid, .name = "X", .offset = r2i(R::X)});
-  dbg->expose(NamedLocation{.type = DebugType::u16, .target = rid, .name = "PC", .offset = r2i(R::PC)});
-  dbg->expose(NamedLocation{.type = DebugType::u16, .target = rid, .name = "SP", .offset = r2i(R::SP)});
-  dbg->expose(NamedLocation{.type = DebugType::u8, .target = rid, .name = "IS", .offset = r2i(R::IS)});
-  dbg->expose(NamedLocation{.type = DebugType::u16, .target = rid, .name = "OS", .offset = r2i(R::OS)});
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::A), .name = "A"});
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::X), .name = "X"});
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::PC), .name = "PC"});
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::SP), .name = "SP"});
+  scan->expose(SR{.order = BE, .byte_width = 1, .access = RW, .target = rid, .offset = r2i(R::IS) + 1, .name = "IS"});
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::OS), .name = "OS"});
   // CSRs / Flags
   using C = isa::Pep10::CSR;
   static const auto cid = _csrs->id();
-  static const auto c2i = [](const C &c) -> u16 { return static_cast<u16>(c); };
-  dbg->expose(NamedLocation{.type = DebugType::u1, .target = cid, .name = "N", .offset = c2i(C::N)});
-  dbg->expose(NamedLocation{.type = DebugType::u1, .target = cid, .name = "Z", .offset = c2i(C::Z)});
-  dbg->expose(NamedLocation{.type = DebugType::u1, .target = cid, .name = "V", .offset = c2i(C::V)});
-  dbg->expose(NamedLocation{.type = DebugType::u1, .target = cid, .name = "C", .offset = c2i(C::C)});
+  using F = SR::Field;
+  // Should really be 4 separate fields, but I want to test that my fields work as expected.
+  // When moving to 4 fields, no need for bit offsets.
+  // Bit 31 is MSB, 0 is LSB. Considering these are 4 consecutive bytes, the offsets make sense.
+  auto n = F{.access = RW, .bit_offset = 24, .bit_width = 1, .name = "N"};
+  auto z = F{.access = RW, .bit_offset = 16, .bit_width = 1, .name = "Z"};
+  auto v = F{.access = RW, .bit_offset = 8, .bit_width = 1, .name = "V"};
+  auto c = F{.access = RW, .bit_offset = 0, .bit_width = 1, .name = "C"};
+  scan->expose(SR{
+      .order = BE, .byte_width = 4, .access = RW, .target = cid, .offset = 0, .name = "NZVC", .fields = {n, z, v, c}});
 }
 
 const Device::Configuration &PepISA3CPU::config() const { return _config; }

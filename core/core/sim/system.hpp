@@ -20,8 +20,8 @@
 #include <memory>
 #include <vector>
 #include "core/sim/api/device.hpp"
+#include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/devicetree.hpp"
-#include "core/sim/hwdebug/hwdebug.hpp"
 
 /*struct Scheduler {
   virtual tick::Recipient *next(tick::Type current) = 0;
@@ -108,8 +108,8 @@ public:
   DeviceTree *root() { return _root.get(); }
   const DeviceTree *root() const { return _root.get(); }
 
-  HWDebug *hw_debugger();
-  const HWDebug *hw_debugger() const;
+  RegisterScan *register_scan();
+  const RegisterScan *register_scan() const;
 
 private:
   Configuration _config{{.basename{"/"}, .fullname{"/"}}};
@@ -117,7 +117,7 @@ private:
   Device::IDGenerator _gen_next_ID = [] { return Device::ID(0); };
   static inline Device::Configuration _root_desc{.basename{"/"}, .fullname{"/"}};
   std::unique_ptr<DeviceTree> _root = nullptr;
-  std::unique_ptr<HWDebug> _hwdbg = nullptr;
+  std::unique_ptr<RegisterScan> _hwdbg{};
   std::map<Device::ID, DeviceTree *> _id_to_device;
   // Prevent infinite recursion on make_device while doing deferred initialization.
   // The top level call to make_device sets this flag to true, and that top level call will pull all of the work out of
