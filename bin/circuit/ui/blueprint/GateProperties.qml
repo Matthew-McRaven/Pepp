@@ -35,6 +35,10 @@ Pane {
             output.value = root.diagramModel.data(inputArea.index, DiagramDataModel.OutputNo);*/
         }
 
+        Component.onCompleted: {
+            t.selectAll();
+        }
+
         Grid {
             columns: 2
             spacing: 5
@@ -42,9 +46,19 @@ Pane {
                 text: "Name:"
                 width: root.labelWidth
             }
-            Text {
-                text: "2 x 1"
-                width: root.dataWidth
+            Rectangle {
+                color: "white"
+                width: t.width
+                height: t.height
+                border {
+                    color: "#a9a9a9"
+                    width: 1
+                }
+                TextEdit {
+                    id: t
+                    text: "2 x 1"
+                    width: root.dataWidth
+                }
             }
             Label {
                 text: "Behavior:"
@@ -52,9 +66,20 @@ Pane {
             }
             ComboBox {
                 id: gateFamily
+                model: ["AND", "OR", "NAND", "NOR", "XOR", "Inverter", "Custom"]
+                currentIndex: 0
+                width: root.dataWidth
+            }
+            Label {
+                text: "Image:"
+                width: root.labelWidth
+            }
+            ComboBox {
+                id: imageFamily
                 model: ["AND", "OR", "NAND", "NOR", "XOR", "Inverter"]
                 currentIndex: 0
                 width: root.dataWidth
+                enabled: gateFamily.displayText == "Custom"
             }
             Label {
                 text: "Dimensions"

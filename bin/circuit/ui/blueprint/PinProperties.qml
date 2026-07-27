@@ -28,7 +28,7 @@ Pane {
             width: t.width
             height: t.height
             border {
-                color: Palette.midlight
+                color: "#a9a9a9"
                 width: 1
             }
             TextEdit {
