@@ -258,6 +258,19 @@ void RegisterBlaster::decode() {
     case 0: break;
     }
   } break;
+  case Opcode::TRADDR: {
+    switch (_regs.IS.word_len) {
+    default: [[fallthrough]];
+    case 7: _regs.DS = read16(iop + 12); [[fallthrough]];
+    case 6: _regs.DP.lo = read16(iop + 10); [[fallthrough]];
+    case 5: _regs.DP.hi = read16(iop + 8); [[fallthrough]];
+    case 4: _regs.ID.hi = read16(iop + 6); [[fallthrough]];
+    case 3: _regs.OFF.lo = read16(iop + 4); [[fallthrough]];
+    case 2: _regs.OFF.hi = read16(iop + 2); [[fallthrough]];
+    case 1: _regs.ID.lo = read16(iop + 0), _csrs.TR = 0; [[fallthrough]];
+    case 0: break;
+    }
+  }
   }
 }
 

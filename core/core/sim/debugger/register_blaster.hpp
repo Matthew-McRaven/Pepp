@@ -131,7 +131,6 @@ public:
     BRLE = 0b00'1101,
     BRNE = 0b00'1110,
     BR = 0b00'1111,
-
     // From here we begin memory / register operations. Memory operation act directly on a Target*, whereas Register
     // operations operate on a RegisterRef from a RegisterScan. While the encoding bits interleave mem/reg ops, they are
     // enumerated separately because they have different semantics.
@@ -142,9 +141,6 @@ public:
     // Both are programmed the same way. While not mandatory, there is no convenient way to set ACCESS,ID,OFF registers.
     // If the DS packet register is present, it is loaded. DP is set to the address following DS.
     // If the DS register is NOT present, then DP/DS are assumed to have been set via an LDP instruction.
-    // When MOD1/MOD2 are set, MOD1.lo indicates the originating device (e.g., the CPU) and MOD2 indicates the address
-    // in
-    // the originating device's address space which triggered this access. Useful for reversing address translations!
     // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo DS
     // All remaining data after DS (location 5) is treated as a data payload. If you need more than 251*2 bytes of
     // data, use a LDP instruction and then do not include a DS.
@@ -184,6 +180,19 @@ public:
     // Packet registers: ID.hi, ID.lo
     // Same deal on F.
     CLRREG = 0b01'0111,
+    // Instructions which explicitly modify the way (source, address) is translated to (target, offset).
+    // Those translations are actually used to create a /reverse/ map, which maps (target, offset) to a
+    // (source,address).
+    // Reverse address translation is a requirement to make updating the memory dump faster.
+    // For memories whose address translation changes over time (e.g., caches), you will need to insert extra, custom
+    // opcodes to update the translation table. This op is only really helpful for fixed translations, as it is not
+    // invertible. Making invertible translations is a lot easier if you add new per-device opcodes, since they can
+    // depend on the structure of that device rather than creating some insane, generic mechanism.
+    // ID.hi holds source. ID.lo hold target. OFF.hi/lo holds target address. DP.hi/lo holds source address.
+    // DS hold the translation in size.
+    // Packet registers: (target) ID.lo, (target addr hi) OFF.hi, (target addr lo) OFF.lo, (source) ID.hi,
+    //                   (source addr hi) DP.hi, (source addr lo) DP.lo, (size)DS
+    TRADDR = 0b01'1000,
     // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
     MAX = ((u8)CLRREG) + 1,
   };
