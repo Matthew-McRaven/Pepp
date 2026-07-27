@@ -35,7 +35,7 @@ template <std::integral I> class Page {
 public:
   static constexpr size_t MIN_PAGE_SIZE = 256;      // Minimum size for a single page.
   static constexpr size_t DEFAULT_PAGE_SIZE = 4096; // Default allocation size for a single page.
-  static constexpr size_t MAX_PAGE_SIZE = 65535;    // Maximum number of elements than can be stored in a single page.
+  static constexpr size_t MAX_PAGE_SIZE = 65536;    // Maximum number of elements than can be stored in a single page.
   static_assert(MIN_PAGE_SIZE <= MAX_PAGE_SIZE, "");
   static_assert(DEFAULT_PAGE_SIZE <= MAX_PAGE_SIZE, "");
 
@@ -56,6 +56,8 @@ public:
   page_offset_t capacity() const noexcept;
   I *data() noexcept;
   const I *data() const noexcept;
+  std::span<I> span() noexcept { return std::span<I>(_data.get(), _capacity); }
+  std::span<const I> span() const noexcept { return std::span<const I>(_data.get(), _capacity); }
 
 private:
   page_offset_t _capacity = 0;
@@ -110,14 +112,22 @@ template <std::integral I> struct Slab : public Page<I> {
 
   // Set size to 0 without writing to underlying data.
   void clear() noexcept;
+  // Set all elements to value before calling clear().
+  void fill_clear(I value) noexcept;
+
   // Copy elements into next free space, advancing size.
   // Require data be aligned % align (padding at start) with pad (padding at end).
   // Both align and pad are in element counts, not bytes.
   page_offset_t append(bits::span<const I> data, size_t byte_align = 0, size_t byte_pad = 0, I fill = 0);
+  // Alternate overload to append which takes many spans (at the end) all with the same align/pad/fill requirements.
+  template <typename... Spans> page_offset_t append(size_t byte_align, size_t byte_pad, I fill, Spans... spans);
+  // Append a series of spans with no alignment or padding.
+  template <typename... Spans> page_offset_t append_packed(Spans... spans);
   // An append will all elements set to `fill`.
   page_offset_t allocate_initialized(size_t size, I fill = 0);
   // Bump size without modifying underlying data.
   page_offset_t allocate_uninitialized(size_t size);
+
   // Check if the requested size can fit in the remaining space.
   bool can_fit(bits::span<const I> request, size_t align = 0, size_t pad = 0) const noexcept;
   bool can_fit(size_t request) const noexcept;
@@ -254,6 +264,12 @@ template <std::integral I> Slab<I>::Slab(page_offset_t capacity) : Page<I>(capac
 
 template <std::integral I> void Slab<I>::clear() noexcept { _used = 0; }
 
+template <std::integral I> void Slab<I>::fill_clear(I value) noexcept {
+  // Fill from start to our high water mark.
+  this->fill(0, _used, value);
+  clear();
+}
+
 template <std::integral I>
 Slab<I>::page_offset_t Slab<I>::append(bits::span<const I> data, size_t align, size_t pad, I fill) {
   static_assert(std::is_trivially_copyable_v<I>);
@@ -265,6 +281,21 @@ Slab<I>::page_offset_t Slab<I>::append(bits::span<const I> data, size_t align, s
   this->fill(padded_base + data.size(), _used + total_size, fill);
   _used += total_size;
   return padded_base; // Return aligned pointer
+}
+
+template <std::integral I>
+template <typename... Spans>
+Slab<I>::page_offset_t Slab<I>::append(size_t byte_align, size_t byte_pad, I fill, Spans... spans) {
+  page_offset_t first{};
+  bool is_first = true;
+  ((is_first ? (first = append(spans, byte_align, byte_pad, fill), is_first = false)
+             : (append(spans, byte_align, byte_pad, fill), false)),
+   ...);
+  return first;
+}
+
+template <std::integral I> template <typename... Spans> Slab<I>::page_offset_t Slab<I>::append_packed(Spans... spans) {
+  return append(size_t{0}, size_t{0}, I{0}, spans...);
 }
 
 template <std::integral I> Slab<I>::page_offset_t Slab<I>::allocate_initialized(size_t size, I v) {
