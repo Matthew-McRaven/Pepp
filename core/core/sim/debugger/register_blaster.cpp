@@ -1,7 +1,7 @@
 #include "register_blaster.hpp"
 #include <bit>
 
-RegisterBlaster::RegisterBlaster() { _handlers.fill(&null_handler); }
+RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr) : _mgr(mgr) {}
 
 void RegisterBlaster::execute_one() {
   if (_csrs.CLRMOD) {
@@ -48,16 +48,18 @@ void RegisterBlaster::execute_one() {
   default: break;
   }
   // Callbacks when we execute an instruction!
-  _handlers[(u8)_regs.IS.ocpode](*this);
 }
 
 void RegisterBlaster::run() {
   while (_csrs.L) execute_one();
 }
 
+pepp::bts::Buffer *RegisterBlaster::ibuffer() { return _mgr->find((pepp::bts::Buffer::ID)_regs.IP.hi); }
+
 void RegisterBlaster::decode() {
+  const auto ibp = (pepp::bts::Buffer::ID)_regs.IP.hi;
   // read 16 bits at ip.lo from data and increment.
-  u16 opcode = read16(_regs.IP.lo);
+  u16 opcode = read16(ibp, _regs.IP.lo);
   // Perform bit-cracking to expose fields
   _regs.IS = OpWord(opcode);
   _csrs.CLRMOD = _regs.IS.clrmod;
@@ -65,13 +67,14 @@ void RegisterBlaster::decode() {
   // refer to this variable that than IP. This lets us pre-increment IP and avoid difficulties with branching / early
   // returns.
   const auto iop = 2 + _regs.IP.lo;
+
   // Mask out low-order bit, because opcodes are naturally aligned.
   _regs.IP.lo = (_regs.IP.lo + 2 + _regs.IS.word_len * 2) & 0xFFFE;
   switch (static_cast<Opcode>(_regs.IS.ocpode)) {
   case Opcode::HALT: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 1: _regs.MOD1.lo = read16(iop + 2), _csrs.M1 = 1; [[fallthrough]];
+    case 1: _regs.MOD1.lo = read16(ibp, iop + 2), _csrs.M1 = 1; [[fallthrough]];
     case 0: break;
     }
     _csrs.L = 0;
@@ -81,24 +84,24 @@ void RegisterBlaster::decode() {
     push(_regs.IP);
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 2: _regs.IP.hi = read16(iop + 2); [[fallthrough]];
-    case 1: _regs.IP.lo = read16(iop + 0);
+    case 2: _regs.IP.hi = read16(ibp, iop + 2); [[fallthrough]];
+    case 1: _regs.IP.lo = read16(ibp, iop + 0);
     case 0: break;
     }
   } break;
   case Opcode::SYN: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 4: _regs.MOD2.lo = read16(iop + 6); [[fallthrough]];
-    case 3: _regs.MOD2.hi = read16(iop + 4), _csrs.M2 = 1; [[fallthrough]];
-    case 2: _regs.MOD1.lo = read16(iop + 2); [[fallthrough]];
-    case 1: _regs.MOD1.hi = read16(iop + 0), _csrs.M1 = 1; [[fallthrough]];
+    case 4: _regs.MOD2.lo = read16(ibp, iop + 6); [[fallthrough]];
+    case 3: _regs.MOD2.hi = read16(ibp, iop + 4), _csrs.M2 = 1; [[fallthrough]];
+    case 2: _regs.MOD1.lo = read16(ibp, iop + 2); [[fallthrough]];
+    case 1: _regs.MOD1.hi = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
     case 0: break;
     }
   } break;
   case Opcode::LMR: {
     if (_regs.IS.word_len == 0) break;
-    u16 mask = read16(iop + 0);
+    u16 mask = read16(ibp, iop + 0);
     u16 pos = 1;
     while (mask != 0 && pos <= _regs.IS.word_len) {
       // Position of lowest set bit.
@@ -107,7 +110,7 @@ void RegisterBlaster::decode() {
       RegMask masked = (RegMask)(1u << i);
       mask &= mask - 1; // Clear lowest bit
 
-      u16 temp = read16(iop + pos * 2);
+      u16 temp = read16(ibp, iop + pos * 2);
       pos += 1;
 
       switch (masked) {
@@ -143,13 +146,13 @@ void RegisterBlaster::decode() {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
     case 2:
-      _regs.MOD2.hi = read16(iop + 2);
-      _regs.MOD2.lo = read16(iop + 0);
+      _regs.MOD2.hi = read16(ibp, iop + 2);
+      _regs.MOD2.lo = read16(ibp, iop + 0);
       _csrs.M2 = 1;
       break;
     case 1:
       _regs.MOD2.hi = _regs.IP.hi;
-      _regs.MOD2.lo = read16(iop + 0);
+      _regs.MOD2.lo = read16(ibp, iop + 0);
       _csrs.M2 = 1;
       break;
     case 0: break;
@@ -168,13 +171,13 @@ void RegisterBlaster::decode() {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
     case 2:
-      _regs.MOD2.hi = read16(iop + 2);
-      _regs.MOD2.lo = read16(iop + 0);
+      _regs.MOD2.hi = read16(ibp, iop + 2);
+      _regs.MOD2.lo = read16(ibp, iop + 0);
       _csrs.M2 = 1;
       break;
     case 1:
       _regs.MOD2.hi = _regs.IP.hi;
-      _regs.MOD2.lo = read16(iop + 0);
+      _regs.MOD2.lo = read16(ibp, iop + 0);
       _csrs.M2 = 1;
       break;
     case 0: break;
@@ -185,14 +188,14 @@ void RegisterBlaster::decode() {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
     case 5:
-      _regs.DS = read16(iop + 8);
+      _regs.DS = read16(ibp, iop + 8);
       _regs.DP.hi = _regs.IP.hi;
       _regs.DP.lo = iop + 10;
       [[fallthrough]];
-    case 4: _regs.OFF.lo = read16(iop + 6); [[fallthrough]];
-    case 3: _regs.OFF.hi = read16(iop + 4); [[fallthrough]];
-    case 2: _regs.ID.lo = read16(iop + 2), _csrs.TR = 0; [[fallthrough]];
-    case 1: _regs.ACCESS = read16(iop + 0); [[fallthrough]];
+    case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
+    case 3: _regs.OFF.hi = read16(ibp, iop + 4); [[fallthrough]];
+    case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
+    case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
     case 0: break;
     }
   } break;
@@ -200,22 +203,22 @@ void RegisterBlaster::decode() {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
     case 5:
-      _regs.DS = read16(iop + 8);
+      _regs.DS = read16(ibp, iop + 8);
       _regs.DP.hi = _regs.IP.hi;
       _regs.DP.lo = iop + 10;
       [[fallthrough]];
-    case 4: _regs.OFF.lo = read16(iop + 6); [[fallthrough]];
-    case 3: _regs.OFF.hi = read16(iop + 4); [[fallthrough]];
-    case 2: _regs.ID.lo = read16(iop + 2), _csrs.TR = 0; [[fallthrough]];
-    case 1: _regs.MOD1.lo = read16(iop + 0), _csrs.M1 = 1; [[fallthrough]];
+    case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
+    case 3: _regs.OFF.hi = read16(ibp, iop + 4); [[fallthrough]];
+    case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
+    case 1: _regs.MOD1.lo = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
     case 0: break;
     }
   } break;
   case Opcode::CLRMEM: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 2: _regs.ID.lo = read16(iop + 2), _csrs.TR = 0; [[fallthrough]];
-    case 1: _regs.MOD1.lo = read16(iop + 0), _csrs.M1 = 1; [[fallthrough]];
+    case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
+    case 1: _regs.MOD1.lo = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
     case 0: break;
     }
   } break;
@@ -224,14 +227,14 @@ void RegisterBlaster::decode() {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
     case 5:
-      _regs.DS = read16(iop + 8);
+      _regs.DS = read16(ibp, iop + 8);
       _regs.DP.hi = _regs.IP.hi;
       _regs.DP.lo = iop + 10;
       [[fallthrough]];
-    case 4: _regs.OFF.lo = read16(iop + 6); [[fallthrough]];
-    case 3: _regs.ID.lo = read16(iop + 4); [[fallthrough]];
-    case 2: _regs.ID.hi = read16(iop + 2), _csrs.TR = 1; [[fallthrough]];
-    case 1: _regs.ACCESS = read16(iop + 0); [[fallthrough]];
+    case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
+    case 3: _regs.ID.lo = read16(ibp, iop + 4); [[fallthrough]];
+    case 2: _regs.ID.hi = read16(ibp, iop + 2), _csrs.TR = 1; [[fallthrough]];
+    case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
     case 0: break;
     }
   } break;
@@ -239,42 +242,51 @@ void RegisterBlaster::decode() {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
     case 5:
-      _regs.DS = read16(iop + 8);
+      _regs.DS = read16(ibp, iop + 8);
       _regs.DP.hi = _regs.IP.hi;
       _regs.DP.lo = iop + 10;
       [[fallthrough]];
-    case 4: _regs.OFF.lo = read16(iop + 6); [[fallthrough]];
-    case 3: _regs.ID.lo = read16(iop + 4); [[fallthrough]];
-    case 2: _regs.ID.hi = read16(iop + 2), _csrs.TR = 1; [[fallthrough]];
-    case 1: _regs.MOD1.lo = read16(iop + 0), _csrs.M1 = 1; [[fallthrough]];
+    case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
+    case 3: _regs.ID.lo = read16(ibp, iop + 4); [[fallthrough]];
+    case 2: _regs.ID.hi = read16(ibp, iop + 2), _csrs.TR = 1; [[fallthrough]];
+    case 1: _regs.MOD1.lo = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
     case 0: break;
     }
   } break;
   case Opcode::CLRREG: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 2: _regs.ID.lo = read16(iop + 2); [[fallthrough]];
-    case 1: _regs.ID.hi = read16(iop + 0), _csrs.TR = 1; [[fallthrough]];
+    case 2: _regs.ID.lo = read16(ibp, iop + 2); [[fallthrough]];
+    case 1: _regs.ID.hi = read16(ibp, iop + 0), _csrs.TR = 1; [[fallthrough]];
     case 0: break;
     }
   } break;
   case Opcode::TRADDR: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 7: _regs.DS = read16(iop + 12); [[fallthrough]];
-    case 6: _regs.DP.lo = read16(iop + 10); [[fallthrough]];
-    case 5: _regs.DP.hi = read16(iop + 8); [[fallthrough]];
-    case 4: _regs.ID.hi = read16(iop + 6); [[fallthrough]];
-    case 3: _regs.OFF.lo = read16(iop + 4); [[fallthrough]];
-    case 2: _regs.OFF.hi = read16(iop + 2); [[fallthrough]];
-    case 1: _regs.ID.lo = read16(iop + 0), _csrs.TR = 0; [[fallthrough]];
+    case 7: _regs.DS = read16(ibp, iop + 12); [[fallthrough]];
+    case 6: _regs.DP.lo = read16(ibp, iop + 10); [[fallthrough]];
+    case 5: _regs.DP.hi = read16(ibp, iop + 8); [[fallthrough]];
+    case 4: _regs.ID.hi = read16(ibp, iop + 6); [[fallthrough]];
+    case 3: _regs.OFF.lo = read16(ibp, iop + 4); [[fallthrough]];
+    case 2: _regs.OFF.hi = read16(ibp, iop + 2); [[fallthrough]];
+    case 1: _regs.ID.lo = read16(ibp, iop + 0), _csrs.TR = 0; [[fallthrough]];
     case 0: break;
     }
   }
   }
 }
 
-void null_handler(RegisterBlaster &) {}
+u16 RegisterBlaster::read16(pepp::bts::Buffer::ID id, u16 offset) {
+  auto buf = _mgr->find(id);
+  if (!buf) {
+    _csrs.L = 0;
+    _regs.MOD1.lo = (u16)StopCause::InvalidIBuffer;
+    return 0;
+  }
+  auto _data = buf->data();
+  return ((u16)_data[offset + 0]) | (u16)_data[offset + 1] << 8;
+}
 
 void RegisterBlaster::push(SegmentPair v) {
   if (_regs.SP + 4 > _stack.size()) {
@@ -302,4 +314,7 @@ RegisterBlaster::SegmentPair RegisterBlaster::pop() {
   return v;
 }
 
-void blaster_br_handler(RegisterBlaster &blaster) {}
+void init_ibuffer(RegisterBlaster &blaster, pepp::bts::Buffer::ID id, u16 offset) {
+  blaster.regs().IP.hi = id.value;
+  blaster.regs().IP.lo = offset & 0xFFFE;
+}

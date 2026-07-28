@@ -1,10 +1,9 @@
 #pragma once
 #include <array>
 #include <functional>
-#include <span>
+#include <memory>
+#include "core/ds/alloc/pagechain.hpp"
 #include "core/integers.h"
-#include "core/math/bitmanip/enums.hpp"
-#include "core/math/bitmanip/span.hpp"
 
 // This is basically an ASIC with a custom instruction set used to copy  values into a simulator's
 // registers+memory.
@@ -44,11 +43,11 @@
 // We provide a helper to install the same handler for all BR mnemonics for your convenience.
 class RegisterBlaster {
 public:
-  using Buffer = std::span<u8, 0x1'0000>;
   enum class StopCause {
     None = 0,
     StackOverflow,
     StackUnderflow,
+    InvalidIBuffer,
   };
 
   struct Flags {
@@ -282,10 +281,9 @@ public:
 
   // Yes, this pays an indirect call with some trampoline magic, but it allows the register blaster and trace buffer to
   // become the same class. That execution speed penalty is more than worth it to me to consolidate the two types.
-  using OpcodeCallback = std::function<void(RegisterBlaster &)>;
   using CMPCallback = std::function<void(RegisterBlaster &, bool)>;
 
-  RegisterBlaster();
+  RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr);
   // Disable copy/move since this class is EXPENSIVE
   RegisterBlaster(const RegisterBlaster &) = delete;
   RegisterBlaster(RegisterBlaster &&) = delete;
@@ -296,10 +294,6 @@ public:
   void execute_one();
   // Call execute_one in a loop until L==0.
   void run();
-  // After executing a particular opcode,
-  // TODO: rather than add callbacks everywhere... I think I want to make this class virtual and allow replacing
-  // execute_one(), This would allow subclasses to override opcode behavior w/o overriding opcode decoding.
-  void set_op_callback(Opcode op, OpcodeCallback cb) { _handlers[(u8)op] = cb; }
   u16 register_cmp_callback(CMPCallback cb) {
     u16 id = _cmp_callbacks.size();
     _cmp_callbacks.push_back(cb);
@@ -309,28 +303,26 @@ public:
   const auto &csrs() const { return _csrs; }
   auto &regs() { return _regs; }
   const auto &regs() const { return _regs; }
-
-  bits::span<u8> data() { return _data; }
+  pepp::bts::BufferManager &mgr() { return *_mgr; }
+  const pepp::bts::BufferManager &mgr() const { return *_mgr; }
+  pepp::bts::Buffer *ibuffer();
 
 private:
   // Fetch the word under IP, increment the IP, and set the registers & flags according to the decoded opcode.
   void decode();
   // Perform an LE read of 2 bytes at an offset.
-  u16 read16(u16 offset) const { return ((u16)_data[offset + 0]) | (u16)_data[offset + 1] << 8; }
+  u16 read16(pepp::bts::Buffer::ID, u16 offset);
   // SP -= 4 and return the 4 bytes. IF SP would underflow stack, set L=0 and set cause in MOD1.lo
   SegmentPair pop();
   // SP +=4 and write the 4 bytes. If SP would overflow stack, set L = 0 and set cause in MOD1.lo
   void push(SegmentPair v);
-  std::array<u8, 0x1'0000> _data;
+  std::shared_ptr<pepp::bts::BufferManager> _mgr;
   std::array<u8, 256> _stack;
-  std::array<OpcodeCallback, (u8)Opcode::MAX> _handlers;
   // Should really be a map so you can delete callbacks, but I can't be bothered to add the ID variable right now.
   std::vector<CMPCallback> _cmp_callbacks;
   Flags _csrs{};
   State _regs{};
 };
-
-void null_handler(RegisterBlaster &);
 
 template <RegisterBlaster::Opcode Op, bool clrmod, typename... M>
 constexpr std::array<u8, 2 * (1 + sizeof...(M))> emit(M... mods) {
@@ -345,14 +337,12 @@ constexpr std::array<u8, 2 * (1 + sizeof...(M))> emit(M... mods) {
   }
   return bytes;
 }
+
+// Sets
+void init_ibuffer(RegisterBlaster &blaster, pepp::bts::Buffer::ID id, u16 offset = 0);
+
 consteval void is_bitflags(RegisterBlaster::RegMask);
 consteval void is_bitflags(RegisterBlaster::ConditionCode);
-
-consteval auto DP_MASK() {
-  using namespace bits;
-  using RM = RegisterBlaster::RegMask;
-  return static_cast<u16>(RM::DP_HI) | static_cast<u16>(RM::DP_LO) | static_cast<u16>(RM::DS);
-}
 
 template <bool clrmod, std::size_t N>
 constexpr auto lmr(std::array<std::pair<RegisterBlaster::RegMask, u16>, N> pairs) {
@@ -380,8 +370,6 @@ template <bool clrmod = true, typename... P> constexpr auto lmr_of(P... pairs) {
   using RM = RegisterBlaster::RegMask;
   return lmr<clrmod>(std::array<std::pair<RM, u16>, sizeof...(P)>{pairs...});
 }
-
-void blaster_br_handler(RegisterBlaster &blaster);
 
 // Helpers
 template <typename... M> auto halt(M... m) { return emit<RegisterBlaster::Opcode::HALT, true>(m...); }
