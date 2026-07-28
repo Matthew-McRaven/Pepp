@@ -19,7 +19,6 @@ qt_add_qml_module(
   ui/blueprint/PinProperties.qml
   ui/blueprint/BluePrintThumbNail.qml
   ui/blueprint/GridLines.qml
-
   SOURCES
   ui/blueprintlibrarymodel.hpp
   ui/blueprintlibrarymodel.cpp
@@ -68,5 +67,15 @@ target_link_libraries(
           Qt6::Widgets
           Qt::QuickControls2
           pepp-core)
+
+include(FetchContent)
+FetchContent_Declare(
+  lunasvg
+  GIT_REPOSITORY https://github.com/sammycage/lunasvg.git
+  GIT_TAG v3.5.0)
+FetchContent_MakeAvailable(lunasvg)
+
+# Link LunaSVG to your target
+target_link_libraries(CircuitDesign PRIVATE lunasvg::lunasvg)
 
 set_target_properties(CircuitDesign PROPERTIES FOLDER "qtc_runnable")
