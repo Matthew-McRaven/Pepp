@@ -51,8 +51,16 @@ public:
     None = 0,
     StackOverflow,
     StackUnderflow,
+    IllegalOpcode,
     InvalidIBuffer,
+    InvalidDBuffer,
+    WrongTR,
+    MissingSystem,
+    RegisterInvalid,
     RegisterSizeMismatch,
+    RegisterWidthIllegal,
+    TargetInvalid,
+    TargetNotMemory,
   };
 
   struct Flags {
@@ -322,8 +330,8 @@ public:
   pepp::bts::Buffer *ibuffer();
 
 protected:
-  void set_soft_stop();
-  void set_hard_stop();
+  void soft_stop(StopCause cause = StopCause::None);
+  void hard_stop(StopCause cause = StopCause::None);
   // Assuming register state is already set, execute the instruction. It is virtual so you can change execution behavior
   // in subclasses.
   virtual void execute();

@@ -1,5 +1,6 @@
 #include "register_blaster.hpp"
 #include <bit>
+#include "core/sim/api/memory.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/system.hpp"
 #include "register_scanner.hpp"
@@ -45,14 +46,18 @@ void RegisterBlaster::run_indirect(std::span<pepp::bts::Buffer::Location> locs) 
 
 pepp::bts::Buffer *RegisterBlaster::ibuffer() { return _mgr->find((pepp::bts::Buffer::ID)_regs.IP.hi); }
 
-void RegisterBlaster::set_soft_stop() {
+void RegisterBlaster::soft_stop(StopCause cause) {
   _csrs.L = 0;
   _csrs.F = 0;
+  _csrs.M1 = 1;
+  _regs.MOD1.lo = (u16)cause;
 }
 
-void RegisterBlaster::set_hard_stop() {
+void RegisterBlaster::hard_stop(StopCause cause) {
   _csrs.L = 0;
   _csrs.F = 1;
+  _csrs.M1 = 1;
+  _regs.MOD1.lo = (u16)cause;
 }
 
 void RegisterBlaster::decode() {
@@ -73,10 +78,10 @@ void RegisterBlaster::decode() {
   case Opcode::HALT: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 1: _regs.MOD1.lo = read16(ibp, iop + 2), _csrs.M1 = 1; [[fallthrough]];
-    case 0: break;
+    case 1: soft_stop((StopCause)read16(ibp, iop + 2)); break;
+    case 0: soft_stop(); break;
     }
-    set_soft_stop();
+
   } break;
   case Opcode::RET: _regs.IP = pop(); break;
   case Opcode::CALL: {
@@ -273,7 +278,7 @@ void RegisterBlaster::decode() {
     }
   }
     // Treat unrecognized upcodes as hard failures.
-  default: set_hard_stop(); break;
+  default: hard_stop(StopCause::IllegalOpcode); break;
   }
 }
 
@@ -308,7 +313,7 @@ void RegisterBlaster::execute() {
   // case Opcode::SETMEMX:
   // case Opcode::SETREG:
   // case Opcode::SETREGX:
-  // case Opcode::CMPMEM:
+  // case Opcode::CMPMEM: return execute_cmpmem();
   case Opcode::CMPREG: return execute_cmpreg();
   // case Opcode::CLRMEM:
   // case Opcode::CLRREG:
@@ -320,12 +325,13 @@ void RegisterBlaster::execute_cmpreg() {
 
   using R = RegisterScan;
   // Not in register mode or there is no system. Either way, comparsion will fail.
-  if (_csrs.TR == 0 || _scan == nullptr) return set_hard_stop();
+  if (_csrs.TR == 0) return hard_stop(StopCause::WrongTR);
+  else if (_scan == nullptr) return hard_stop(StopCause::MissingSystem);
 
   // Attempt to convert our ID registers
   R::RegisterRef reg_ref{R::Register::ID{_regs.ID.hi}, R::Register::Field::ID{_regs.ID.lo}};
   auto pair = _scan->resolve(reg_ref);
-  if (pair.first == nullptr) return set_hard_stop();
+  if (pair.first == nullptr) return hard_stop(StopCause::RegisterInvalid);
   // Manually unpack to make debugging easier.
   auto reg = pair.first;
   auto field = pair.second;
@@ -334,7 +340,7 @@ void RegisterBlaster::execute_cmpreg() {
   if (field == nullptr) {
     // If size mismatch, then we would have to do a partial comparison.
     // That sounds annoying, so skip.
-    if (reg->byte_width != _regs.DS) return set_hard_stop();
+    if (reg->byte_width != _regs.DS) return hard_stop(StopCause::RegisterSizeMismatch);
     switch (reg->byte_width) {
     case 1: {
       u8 actual = _scan->read<u8>(reg_ref);
@@ -359,7 +365,7 @@ void RegisterBlaster::execute_cmpreg() {
       else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
       else _csrs.Z = 0, _csrs.N = 0;
     } break;
-    default: set_hard_stop(); break;
+    default: hard_stop(StopCause::RegisterWidthIllegal); break;
     }
   } else { // Compare only a single field.
     throw std::runtime_error("Field comparison not implemented");
