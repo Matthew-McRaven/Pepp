@@ -191,11 +191,6 @@ void RegisterBlaster::decode() {
   case Opcode::SETMEMX: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 5:
-      _regs.DS = read16(ibp, iop + 8);
-      _regs.DP.hi = _regs.IP.hi;
-      _regs.DP.lo = iop + 10;
-      [[fallthrough]];
     case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
     case 3: _regs.OFF.hi = read16(ibp, iop + 4); [[fallthrough]];
     case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
@@ -206,11 +201,6 @@ void RegisterBlaster::decode() {
   case Opcode::CMPMEM: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 5:
-      _regs.DS = read16(ibp, iop + 8);
-      _regs.DP.hi = _regs.IP.hi;
-      _regs.DP.lo = iop + 10;
-      [[fallthrough]];
     case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
     case 3: _regs.OFF.hi = read16(ibp, iop + 4); [[fallthrough]];
     case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
@@ -230,11 +220,6 @@ void RegisterBlaster::decode() {
   case Opcode::SETREGX: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 5:
-      _regs.DS = read16(ibp, iop + 8);
-      _regs.DP.hi = _regs.IP.hi;
-      _regs.DP.lo = iop + 10;
-      [[fallthrough]];
     case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
     case 3: _regs.ID.lo = read16(ibp, iop + 4); [[fallthrough]];
     case 2: _regs.ID.hi = read16(ibp, iop + 2), _csrs.TR = 1; [[fallthrough]];
@@ -245,11 +230,6 @@ void RegisterBlaster::decode() {
   case Opcode::CMPREG: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 4:
-      _regs.DS = read16(ibp, iop + 6);
-      _regs.DP.hi = _regs.IP.hi;
-      _regs.DP.lo = iop + 8;
-      [[fallthrough]];
     case 3: _regs.ID.lo = read16(ibp, iop + 4); [[fallthrough]];
     case 2: _regs.ID.hi = read16(ibp, iop + 2), _csrs.TR = 1; [[fallthrough]];
     case 1: _regs.MOD1.lo = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
@@ -277,6 +257,26 @@ void RegisterBlaster::decode() {
     case 0: break;
     }
   }
+  case Opcode::LDPI: {
+    switch (_regs.IS.word_len) {
+    default: [[fallthrough]];
+    case 1:
+      _regs.DS = read16(ibp, iop + 0);
+      _regs.DP.hi = _regs.IP.hi;
+      _regs.DP.lo = iop + 2;
+      break;
+    case 0: break;
+    }
+  } break;
+  case Opcode::LDP: {
+    switch (_regs.IS.word_len) {
+    default: [[fallthrough]];
+    case 3: _regs.DP.hi = read16(ibp, iop + 4); [[fallthrough]];
+    case 2: _regs.DS = read16(ibp, iop + 2); [[fallthrough]];
+    case 1: _regs.DP.lo = read16(ibp, iop + 0); [[fallthrough]];
+    case 0: break;
+    }
+  } break;
     // Treat unrecognized upcodes as hard failures.
   default: hard_stop(StopCause::IllegalOpcode); break;
   }

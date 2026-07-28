@@ -152,37 +152,24 @@ public:
     // Set copies data from DP into the target address and the X variant performs a read-XOR-write with the data. The x
     // variant is very helpful for encoding traces, whereas the base version is more useful for register blasting.
     // Both are programmed the same way. While not mandatory, there is no convenient way to set ACCESS,ID,OFF registers.
-    // If the DS packet register is present, it is loaded. DP is set to the address following DS.
-    // If the DS register is NOT present, then DP/DS are assumed to have been set via an LDP instruction.
-    // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo DS
-    // All remaining data after DS (location 5) is treated as a data payload. If you need more than 251*2 bytes of
-    // data, use a LDP instruction and then do not include a DS.
+    // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo
     // Successfully accesses must set F to 0. Failed acceses must set F to 1.
     SETMEM = 0b01'0000,
     SETMEMX = 0b01'0010,
     // Almost identical to mem variants, except that the ID register is 2 words rather than 1 and offset is a single
-    // word.
-    // MOD1/MOD2 address tracking is ignored.
-    // Packet registers: ACCESS, ID.hi, ID.lo, OFF.lo, DS
-    // Registers can't exceed 64-bits. While you can use the LDP/SET* combo as in SETMEM, it's better to include the
-    // payload w/this instruction.
-    // Same deal on F
+    // word. Registers can't exceed 64-bits / DS==8. Sets F on failure.
+    // Packet registers: ACCESS, ID.hi, ID.lo, OFF.lo.
     SETREG = 0b01'0001,
     SETREGX = 0b01'0011,
     // Compare memory at DP with the target at offset.
     // MOD1 is assumed to hold a condition code (lge) and MOD2 holds a comparison callback address. If the comparison
-    // does
-    // not match condition code, the callback is invoked.
-    // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo, DS
-    // All remaining data after DS is treated as a data payload.
-    // All remaining data after DS (location 5) is treated as a data payload. If you need more than 251*2 bytes of data,
-    // use a LDP instruction and then do not include a DS.
-    // Packet registers: MOD1.LO, ID.lo, OFF.hi, OFF.lo, DS
+    // does not match condition code, the callback is invoked.
+    // Packet registers: MOD1.LO, ID.lo, OFF.hi, OFF.lo
     // Same deal on F.
     CMPMEM = 0b01'0100,
     // Same as CMPMEM, except that the ID register is 2 words and there is no offset into register.
     // If DS != register size, hard stops.
-    // Packet registers: MOD1.lo, ID.hi, ID.lo, DS
+    // Packet registers: MOD1.lo, ID.hi, ID.lo
     // Same deal on F.
     CMPREG = 0b01'0101,
     // Clear the memory module of a target
@@ -207,6 +194,14 @@ public:
     // Packet registers: (target) ID.lo, (target addr hi) OFF.hi, (target addr lo) OFF.lo, (source) ID.hi,
     //                   (source addr hi) DP.hi, (source addr lo) DP.lo, (size)DS
     TRADDR = 0b01'1000,
+    // Packet containing inline data.
+    // DS is the first word and is required. DP is set to the address of the following word.
+    // All remaining words are treated as data.
+    // Packet registers: DS
+    LDPI = 0b01'1001,
+    // Load DP and DS registers.
+    // Packet registers: DP.lo, DS, DP.hi
+    LDP = 0b01'1010,
     // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
     MAX = ((u8)CLRREG) + 1,
   };
@@ -426,6 +421,9 @@ template <typename... M> auto setreg(M... m) { return emit<RegisterBlaster::Opco
 template <typename... M> auto setregx(M... m) { return emit<RegisterBlaster::Opcode::SETREGX, true>(m...); }
 template <typename... M> auto cmpreg(M... m) { return emit<RegisterBlaster::Opcode::CMPREG, true>(m...); }
 template <typename... M> auto clrreg(M... m) { return emit<RegisterBlaster::Opcode::CLRREG, true>(m...); }
+template <typename... M> auto traddr(M... m) { return emit<RegisterBlaster::Opcode::TRADDR, true>(m...); }
+template <typename... M> auto ldpi(M... m) { return emit<RegisterBlaster::Opcode::LDPI, true>(m...); }
+template <typename... M> auto ldp(M... m) { return emit<RegisterBlaster::Opcode::LDP, true>(m...); }
 template <typename... M> auto ldmod1hi(M... m) {
   return emit<RegisterBlaster::Opcode::LMR, false>((u16)RegisterBlaster::RegMask::MOD1_HI, m...);
 }
