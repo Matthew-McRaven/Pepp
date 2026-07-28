@@ -14,16 +14,20 @@ public:
   static constexpr size_t SIZE = 0x1'0000; // 2^16 bytes, or 64KiB.
   Buffer(const Buffer &) = delete;
   ID id() const { return _id; }
+  struct Location {
+    Buffer::ID id;
+    Buffer::page_offset_t offset;
+  };
+  // Returns a Location which points to the next free by in the buffer.
+  // Useful when appending data to the buffer.
+  Location location() const { return Location{_id, (u16)used_capacity()}; }
 
 private:
   friend class BufferManager;
   Buffer(ID id);
   ID _id;
 };
-struct BufferLocation {
-  Buffer::ID id;
-  Buffer::page_offset_t offset;
-};
+
 consteval void allow_opaque_handle_increment(Buffer::ID);
 
 // Gives the appearance (API) of being a buffer, but really is a contiguous chain of buffers.
@@ -39,11 +43,11 @@ public:
   // Copy elements into next free space, advancing size.
   // Require data be aligned % align (padding at start) with pad (padding at end).
   // Both align and pad are in element counts, not bytes.
-  BufferLocation append(bits::span<const u8> data, size_t byte_align = 0, size_t byte_pad = 0, u8 fill = 0);
+  Buffer::Location append(bits::span<const u8> data, size_t byte_align = 0, size_t byte_pad = 0, u8 fill = 0);
   // An append will all elements set to `fill`.
-  BufferLocation allocate_initialized(size_t size, u8 fill = 0);
+  Buffer::Location allocate_initialized(size_t size, u8 fill = 0);
   // Bump size without modifying underlying data.
-  BufferLocation allocate_uninitialized(size_t size);
+  Buffer ::Location allocate_uninitialized(size_t size);
   u16 buffer_count() const;
   // Given a buffer ID, return the pointer to that buffer
   Buffer *buffer(Buffer::ID id);

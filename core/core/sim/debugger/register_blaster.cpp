@@ -2,6 +2,7 @@
 #include <bit>
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/system.hpp"
+#include "register_scanner.hpp"
 
 RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system)
     : _mgr(mgr), _system(system) {
@@ -9,7 +10,7 @@ RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr, 
   else _scan = nullptr;
 }
 
-void RegisterBlaster::update_ip(pepp::bts::BufferLocation loc) { return update_ip(loc.id, loc.offset); }
+void RegisterBlaster::update_ip(pepp::bts::Buffer::Location loc) { return update_ip(loc.id, loc.offset); }
 
 void RegisterBlaster::update_ip(pepp::bts::Buffer::ID id, u16 offset) {
   _regs.IP.hi = id.value;
@@ -26,7 +27,7 @@ void RegisterBlaster::step() {
   execute();
 }
 
-void RegisterBlaster::run_direct(pepp::bts::BufferLocation loc) {
+void RegisterBlaster::run_direct(pepp::bts::Buffer::Location loc) {
   // Bring the blaster back into the live state (L==1).
   // Clear F bit in case last program terminated with hardfail.
   // "soft stop" is L==0,F==0, "hard stop is L==0,F==1.
@@ -35,7 +36,7 @@ void RegisterBlaster::run_direct(pepp::bts::BufferLocation loc) {
   while (_csrs.L) step();
 }
 
-void RegisterBlaster::run_indirect(std::span<pepp::bts::BufferLocation> locs) {
+void RegisterBlaster::run_indirect(std::span<pepp::bts::Buffer::Location> locs) {
   // Run the program at each location. Check for a hard stop condition. On hard stop, abort the loop.
   // On a normal/soft stop, resume execution of the next program.
   for (const auto &loc : locs)
@@ -302,14 +303,48 @@ void RegisterBlaster::execute() {
       _regs.IP.lo = (_regs.IP.lo + _regs.MOD2.lo) & 0xFFFE;
       _regs.IP.hi = _regs.MOD2.hi;
     }
-  }
+  } break;
   // TODO: handle calls into system!
   // case Opcode::SETMEM:
   // case Opcode::SETMEMX:
   // case Opcode::SETREG:
   // case Opcode::SETREGX:
   // case Opcode::CMPMEM:
-  // case Opcode::CMPREG:
+  case Opcode::CMPREG: {
+    using R = RegisterScan;
+    // Not in register mode or there is not system.
+    if (_csrs.TR == 0 || _scan == nullptr) {
+      set_hard_stop();
+      break;
+    }
+    R::RegisterRef reg_ref{R::Register::ID{_regs.ID.hi}, R::Register::Field::ID{_regs.ID.lo}};
+    auto pair = _scan->resolve(reg_ref);
+    if (pair.first == nullptr) {
+      set_hard_stop();
+      break;
+    }
+    // Manually unpack to make debugging easier.
+    auto reg = pair.first;
+    auto field = pair.second;
+    switch (reg->byte_width) {
+    case 1: {
+      u8 actual = _scan->read<u8>(reg_ref);
+      throw std::runtime_error("Not implemented");
+    } break;
+    case 2: {
+      u16 actual = _scan->read<u16>(reg_ref);
+      u16 expected = read16((pepp::bts::Buffer::ID)_regs.DP.hi, _regs.DP.lo);
+      if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
+      else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
+      else _csrs.Z = 0, _csrs.N = 0;
+    } break;
+    case 4: {
+      u32 actual = _scan->read<u32>(reg_ref);
+      throw std::runtime_error("Not implemented");
+    } break;
+    default: set_hard_stop(); break;
+    }
+  }
   // case Opcode::CLRMEM:
   // case Opcode::CLRREG:
   default: break;

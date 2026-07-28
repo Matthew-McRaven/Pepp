@@ -68,6 +68,8 @@ std::unique_ptr<RegisterBlaster> System::make_blaster() {
   return std::make_unique<RegisterBlaster>(_buffer_manager, this);
 }
 
+std::shared_ptr<pepp::bts::BufferManager> System::buffer_manager() { return _buffer_manager; }
+
 Device *System::find_absolute(std::string_view name) {
   DeviceTree *root = _root.get();
   auto ptr = (*root) | std::views::filter([&name](Device *dt) { return dt->config().fullname == name; });

@@ -116,6 +116,7 @@ public:
   const RegisterScan *register_scan() const;
 
   std::unique_ptr<RegisterBlaster> make_blaster();
+  std::shared_ptr<pepp::bts::BufferManager> buffer_manager();
 
 private:
   Configuration _config{{.basename{"/"}, .fullname{"/"}}};

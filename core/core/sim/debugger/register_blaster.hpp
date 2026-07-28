@@ -295,17 +295,17 @@ public:
   RegisterBlaster &operator=(const RegisterBlaster &) = delete;
   RegisterBlaster &operator=(RegisterBlaster &&) = delete;
 
-  void update_ip(pepp::bts::BufferLocation loc);
+  void update_ip(pepp::bts::Buffer::Location loc);
   void update_ip(pepp::bts::Buffer::ID, u16 offset = 0);
   // Assuming some code is already under IP, try to run it!
   void step();
   // Update IP to point to loc, then call step() in a loop while L==1.
   // Each program executed this way must terminate with a HALT.
   // At the end of a call to run_direct, L is always 0.
-  void run_direct(pepp::bts::BufferLocation loc);
+  void run_direct(pepp::bts::Buffer::Location loc);
   // For each buffer location set L=1 and call run_direct.
   // Only stops when reacing the end of this buffer, or on "hard stop", where L==0 && F==1.
-  void run_indirect(std::span<pepp::bts::BufferLocation> locs);
+  void run_indirect(std::span<pepp::bts::Buffer::Location> locs);
   u16 register_cmp_callback(CMPCallback cb) {
     u16 id = _cmp_callbacks.size();
     _cmp_callbacks.push_back(cb);
