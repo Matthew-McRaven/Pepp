@@ -20,13 +20,14 @@
 TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   auto ibuff = mgr->alloc_buffer();
+  using namespace EncodedOp;
   // Simplest possible program which sets a single register and halts.
   // Check that halt flag is set and that target register gains a value.
   SECTION("Can copy values into common registers") {
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
-    ibuff->append_packed(ldmod1lo(0x1234), halt());
+    ibuff->append_packed(LDMOD1Lo_1(0x1234).encode(), Halt_0().encode());
 
     CHECK(blaster.csrs().L == 1);
     CHECK(blaster.csrs().M1 == 0);
@@ -45,12 +46,10 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
-    ibuff->append_packed(
-        lmr_of<false>(
-            std::pair{M::MOD1_LO, u16(0x1234)}, std::pair{M::ID_HI, u16(0xFEED)},
-            std::pair{M::DP_LO,
-                      u16(0xBEEF)}), // Mix up the order of registers to ensure lmr/lmr_of sort them correctly.
-        halt());
+    // Mix up the order of registers to ensure lmr/lmr_of sort them correctly.
+    ibuff->append_packed(LMR_of<false>(std::pair{M::MOD1_LO, u16(0x1234)}, std::pair{M::ID_HI, u16(0xFEED)},
+                                       std::pair{M::DP_LO, u16(0xBEEF)}));
+    ibuff->append_packed(Halt_0().encode());
 
     CHECK(blaster.csrs().L == 1);
     CHECK(blaster.csrs().M1 == 0);
@@ -73,9 +72,9 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
-    ibuff->append_packed(br(0x6),                                         // Branch over the load register instruction.
-                         lmr_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), // Hopefully not executed.
-                         halt());
+    ibuff->append_packed(BR_1(0x6).encode(),                              // Branch over the load register instruction.
+                         LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), // Hopefully not executed.
+                         Halt_0().encode());
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
@@ -92,7 +91,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
     blaster.csrs().Z = 0;
-    ibuff->append_packed(breq(0x6), lmr_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), halt());
+    ibuff->append_packed(BREQ_1(0x6).encode(), LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), Halt_0().encode());
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
@@ -107,7 +106,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
     blaster.csrs().Z = 1;
-    ibuff->append_packed(breq(0x6), lmr_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), halt());
+    ibuff->append_packed(BREQ_1(0x6).encode(), LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), Halt_0().encode());
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());

@@ -203,7 +203,7 @@ public:
     // Packet registers: DP.lo, DS, DP.hi
     LDP = 0b01'1010,
     // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
-    MAX = ((u8)CLRREG) + 1,
+    MAX = ((u8)LDP) + 1,
   };
   // Instructions to the RegisterBlaster are always multiples of 16bits
   struct OpWord {
@@ -354,8 +354,16 @@ private:
   std::vector<u8> _tmp;
 };
 
+consteval void is_bitflags(RegisterBlaster::RegMask);
+consteval void is_bitflags(RegisterBlaster::ConditionCode);
+
+// Encoded ops are helpers to take a structure representing an opcode and convert it to bytes.
+namespace EncodedOp {
+using StopCause = RegisterBlaster::StopCause;
+using SegmentPair = RegisterBlaster::SegmentPair;
+
 template <RegisterBlaster::Opcode Op, bool clrmod, typename... M>
-constexpr std::array<u8, 2 * (1 + sizeof...(M))> emit(M... mods) {
+constexpr std::array<u8, 2 * (1 + sizeof...(M))> encode_op(M... mods) {
   static_assert((std::is_convertible_v<M, u16> && ...), "mod words must be u16");
   const std::array<u16, 1 + sizeof...(M)> words = {RegisterBlaster::OpWord(Op, clrmod, sizeof...(M)).as_u16(),
                                                    static_cast<u16>(mods)...};
@@ -368,12 +376,53 @@ constexpr std::array<u8, 2 * (1 + sizeof...(M))> emit(M... mods) {
   return bytes;
 }
 
+struct Halt_1 {
+  RegisterBlaster::StopCause cause;
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::HALT, true>(static_cast<u16>(cause)); };
+};
+struct Halt_0 {
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::HALT, true>(); };
+};
 
-consteval void is_bitflags(RegisterBlaster::RegMask);
-consteval void is_bitflags(RegisterBlaster::ConditionCode);
+struct Ret_0 {
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::RET, true>(); }
+};
 
+struct Call_2 {
+  SegmentPair next_ip;
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::CALL, true>(next_ip.lo, next_ip.hi); }
+};
+struct Call_1 {
+  u16 next_ip_lo;
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::CALL, true>(next_ip_lo); }
+};
+struct Call_0 {
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::CALL, true>(); }
+};
+struct Syn_4 {
+  SegmentPair timestamp_lo;
+  SegmentPair timestamp_hi;
+  constexpr auto encode() const {
+    return encode_op<RegisterBlaster::Opcode::SYN, true>(timestamp_lo.hi, timestamp_lo.lo, timestamp_hi.hi,
+                                                         timestamp_hi.lo);
+  }
+};
+struct Syn_2 {
+  SegmentPair timestamp_lo;
+  constexpr auto encode() const {
+    return encode_op<RegisterBlaster::Opcode::SYN, true>(timestamp_lo.hi, timestamp_lo.lo);
+  }
+};
+
+struct Syn_0 {
+  SegmentPair timestamp_lo;
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::SYN, true>(); }
+};
+
+// Use lmr/lmr_of if you want to emit LMR instructions. They're variadic. I won't help you with a struct because that
+// struct will be way too fat or it will incur dynamic memory alloc.
 template <bool clrmod, std::size_t N>
-constexpr auto lmr(std::array<std::pair<RegisterBlaster::RegMask, u16>, N> pairs) {
+constexpr auto LMR(std::array<std::pair<RegisterBlaster::RegMask, u16>, N> pairs) {
   // Sort by mask value ascending (smallest bit first) — insertion sort, constexpr-friendly.
   for (std::size_t i = 1; i < N; ++i) {
     auto key = pairs[i];
@@ -391,48 +440,174 @@ constexpr auto lmr(std::array<std::pair<RegisterBlaster::RegMask, u16>, N> pairs
 
   // Pull sorted values into an index sequence so we can expand into emit().
   return [&]<std::size_t... I>(std::index_sequence<I...>) {
-    return emit<RegisterBlaster::Opcode::LMR, clrmod>(combined, pairs[I].second...);
+    return encode_op<RegisterBlaster::Opcode::LMR, clrmod>(combined, pairs[I].second...);
   }(std::make_index_sequence<N>{});
 }
-template <bool clrmod = true, typename... P> constexpr auto lmr_of(P... pairs) {
+template <bool clrmod = true, typename... P> constexpr auto LMR_of(P... pairs) {
   using RM = RegisterBlaster::RegMask;
-  return lmr<clrmod>(std::array<std::pair<RM, u16>, sizeof...(P)>{pairs...});
+  return LMR<clrmod>(std::array<std::pair<RM, u16>, sizeof...(P)>{pairs...});
 }
 
+struct LDMOD1Hi_1 {
+  u16 value;
+  constexpr auto encode() const {
+    return encode_op<RegisterBlaster::Opcode::LMR, false>((u16)RegisterBlaster::RegMask::MOD1_HI, value);
+  }
+};
+
+struct LDMOD1Lo_1 {
+  u16 value;
+  constexpr auto encode() const {
+    return encode_op<RegisterBlaster::Opcode::LMR, false>((u16)RegisterBlaster::RegMask::MOD1_LO, value);
+  }
+};
+
+struct LDMOD2Hi_1 {
+  u16 value;
+  constexpr auto encode() const {
+    return encode_op<RegisterBlaster::Opcode::LMR, false>((u16)RegisterBlaster::RegMask::MOD2_HI, value);
+  }
+};
+
+struct LDMOD2Lo_1 {
+  u16 value;
+  constexpr auto encode() const {
+    return encode_op<RegisterBlaster::Opcode::LMR, false>((u16)RegisterBlaster::RegMask::MOD2_LO, value);
+  }
+};
+
+template <RegisterBlaster::Opcode BRT> struct _BR_2 {
+  SegmentPair displacement;
+  constexpr auto encode() const { return encode_op<BRT, true>(displacement.lo, displacement.hi); }
+};
+template <RegisterBlaster::Opcode BRT> struct _BR_1 {
+  u16 displacement_lo;
+  constexpr auto encode() const { return encode_op<BRT, true>(displacement_lo); }
+};
+template <RegisterBlaster::Opcode BRT> struct _BR_0 {
+  constexpr auto encode() const { return encode_op<BRT, true>(); }
+};
+
+// Create 2/1/0 variants for NOP / BREQ / BRGT / BRGE / BRLT / BRLE / BRNE / BR using the above templates
+
+using NOP_0 = _BR_0<RegisterBlaster::Opcode::NOP>;
+using BREQ_2 = _BR_2<RegisterBlaster::Opcode::BREQ>;
+using BREQ_1 = _BR_1<RegisterBlaster::Opcode::BREQ>;
+using BRGT_2 = _BR_2<RegisterBlaster::Opcode::BRGT>;
+using BRGT_1 = _BR_1<RegisterBlaster::Opcode::BRGT>;
+using BRGE_2 = _BR_2<RegisterBlaster::Opcode::BRGE>;
+using BRGE_1 = _BR_1<RegisterBlaster::Opcode::BRGE>;
+using BRLT_2 = _BR_2<RegisterBlaster::Opcode::BRLT>;
+using BRLT_1 = _BR_1<RegisterBlaster::Opcode::BRLT>;
+using BRLE_2 = _BR_2<RegisterBlaster::Opcode::BRLE>;
+using BRLE_1 = _BR_1<RegisterBlaster::Opcode::BRLE>;
+using BRNE_2 = _BR_2<RegisterBlaster::Opcode::BRNE>;
+using BRNE_1 = _BR_1<RegisterBlaster::Opcode::BRNE>;
+using BR_2 = _BR_2<RegisterBlaster::Opcode::BR>;
+using BR_1 = _BR_1<RegisterBlaster::Opcode::BR>;
+
+// LDPI is variadic width b/c of the way we load data.
+// So, give me bytes and I'll encode a packet for you and set DS automatically.
+
+// Compile-time packing of bytes into LE words for use by encode_op.
+template <std::size_t N> constexpr auto pack_bytes(std::array<u8, N> data) {
+  constexpr std::size_t WordCount = (N + 1) / 2;
+  std::array<u16, WordCount> words{};
+  for (std::size_t i = 0; i < N; i += 2) {
+    u16 w = data[i];
+    if (i + 1 < N) w |= static_cast<u16>(data[i + 1]) << 8;
+    words[i / 2] = w;
+  }
+  return words;
+}
+
+template <std::size_t N> constexpr auto ldpi(std::array<u8, N> data) {
+  auto words = pack_bytes(data);
+  return encode_op<RegisterBlaster::Opcode::LDPI, true>((u16)N, words);
+}
+
+template <std::size_t N> constexpr auto ldpi(std::array<u16, N> words) {
+  return encode_op<RegisterBlaster::Opcode::LDPI, true>((u16)N * 2, words);
+}
+
+template <typename... W> constexpr auto ldpi_w(W... ws) {
+  static_assert((std::is_convertible_v<W, u16> && ...), "words must be u16");
+  constexpr std::size_t N = sizeof...(W);
+  return encode_op<RegisterBlaster::Opcode::LDPI, true>(2 * (u16)N, ws...);
+}
+
+struct LDP_3 {
+  SegmentPair DP;
+  u16 DS;
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::LDP, true>(DP.lo, DS, DP.hi); }
+};
+struct LDP_2 {
+  SegmentPair DP;
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::LDP, true>(DP.lo, DP.hi); }
+};
+struct LDP_1 {
+  u16 DP_lo;
+  constexpr auto encode() const { return encode_op<RegisterBlaster::Opcode::LDP, true>(DP_lo); }
+};
+
+} // namespace EncodedOp
+
+// Decoded Ops may include extra fields
+namespace DecodedOp {
+using SegmentPair = RegisterBlaster::SegmentPair;
+using Halt = EncodedOp::Halt_1;
+struct Ret {
+  SegmentPair next_ip;
+};
+struct Call {
+  SegmentPair next_ip;
+  SegmentPair ret_ip;
+};
+struct Syn {
+  SegmentPair timestamp_lo;
+  SegmentPair timestamp_hi;
+};
+struct LMR {
+  RegisterBlaster::RegMask mask;
+  std::span<u16> regs;
+};
+struct BR {
+  RegisterBlaster::ConditionCode condition;
+  SegmentPair displacement;
+};
+struct LDPI {
+  std::span<u16> data;
+};
+struct LDP {
+  SegmentPair DP;
+  u16 DS;
+};
+} // namespace DecodedOp
 // Helpers
-template <typename... M> auto halt(M... m) { return emit<RegisterBlaster::Opcode::HALT, true>(m...); }
-template <typename... M> auto ret(M... m) { return emit<RegisterBlaster::Opcode::RET, true>(m...); }
-template <typename... M> auto call(M... m) { return emit<RegisterBlaster::Opcode::CALL, true>(m...); }
-template <typename... M> auto syn(M... m) { return emit<RegisterBlaster::Opcode::SYN, true>(m...); }
-template <typename... M> auto nop(M... m) { return emit<RegisterBlaster::Opcode::NOP, true>(m...); }
-template <typename... M> auto brf(M... m) { return emit<RegisterBlaster::Opcode::BRF, true>(m...); }
-template <typename... M> auto breq(M... m) { return emit<RegisterBlaster::Opcode::BREQ, true>(m...); }
-template <typename... M> auto brgt(M... m) { return emit<RegisterBlaster::Opcode::BRGT, true>(m...); }
-template <typename... M> auto brge(M... m) { return emit<RegisterBlaster::Opcode::BRGE, true>(m...); }
-template <typename... M> auto brlt(M... m) { return emit<RegisterBlaster::Opcode::BRLT, true>(m...); }
-template <typename... M> auto brle(M... m) { return emit<RegisterBlaster::Opcode::BRLE, true>(m...); }
-template <typename... M> auto brne(M... m) { return emit<RegisterBlaster::Opcode::BRNE, true>(m...); }
-template <typename... M> auto br(M... m) { return emit<RegisterBlaster::Opcode::BR, true>(m...); }
-template <typename... M> auto setmem(M... m) { return emit<RegisterBlaster::Opcode::SETMEM, true>(m...); }
-template <typename... M> auto setmemx(M... m) { return emit<RegisterBlaster::Opcode::SETMEMX, true>(m...); }
-template <typename... M> auto cmpmem(M... m) { return emit<RegisterBlaster::Opcode::CMPMEM, true>(m...); }
-template <typename... M> auto clrmem(M... m) { return emit<RegisterBlaster::Opcode::CLRMEM, true>(m...); }
-template <typename... M> auto setreg(M... m) { return emit<RegisterBlaster::Opcode::SETREG, true>(m...); }
-template <typename... M> auto setregx(M... m) { return emit<RegisterBlaster::Opcode::SETREGX, true>(m...); }
-template <typename... M> auto cmpreg(M... m) { return emit<RegisterBlaster::Opcode::CMPREG, true>(m...); }
-template <typename... M> auto clrreg(M... m) { return emit<RegisterBlaster::Opcode::CLRREG, true>(m...); }
-template <typename... M> auto traddr(M... m) { return emit<RegisterBlaster::Opcode::TRADDR, true>(m...); }
-template <typename... M> auto ldpi(M... m) { return emit<RegisterBlaster::Opcode::LDPI, true>(m...); }
-template <typename... M> auto ldp(M... m) { return emit<RegisterBlaster::Opcode::LDP, true>(m...); }
-template <typename... M> auto ldmod1hi(M... m) {
-  return emit<RegisterBlaster::Opcode::LMR, false>((u16)RegisterBlaster::RegMask::MOD1_HI, m...);
+template <typename... M> auto setmem(M... m) {
+  return EncodedOp::encode_op<RegisterBlaster::Opcode::SETMEM, true>(m...);
 }
-template <typename... M> auto ldmod1lo(M... m) {
-  return emit<RegisterBlaster::Opcode::LMR, false>((u16)RegisterBlaster::RegMask::MOD1_LO, m...);
+template <typename... M> auto setmemx(M... m) {
+  return EncodedOp::encode_op<RegisterBlaster::Opcode::SETMEMX, true>(m...);
 }
-template <typename... M> auto ldmod2hi(M... m) {
-  return emit<RegisterBlaster::Opcode::LMR, false>((u16)RegisterBlaster::RegMask::MOD2_HI, m...);
+template <typename... M> auto cmpmem(M... m) {
+  return EncodedOp::encode_op<RegisterBlaster::Opcode::CMPMEM, true>(m...);
 }
-template <typename... M> auto ldmod2lo(M... m) {
-  return emit<RegisterBlaster::Opcode::LMR, false>((u16)RegisterBlaster::RegMask::MOD2_LO, m...);
+template <typename... M> auto clrmem(M... m) {
+  return EncodedOp::encode_op<RegisterBlaster::Opcode::CLRMEM, true>(m...);
+}
+template <typename... M> auto setreg(M... m) {
+  return EncodedOp::encode_op<RegisterBlaster::Opcode::SETREG, true>(m...);
+}
+template <typename... M> auto setregx(M... m) {
+  return EncodedOp::encode_op<RegisterBlaster::Opcode::SETREGX, true>(m...);
+}
+template <typename... M> auto cmpreg(M... m) {
+  return EncodedOp::encode_op<RegisterBlaster::Opcode::CMPREG, true>(m...);
+}
+template <typename... M> auto clrreg(M... m) {
+  return EncodedOp::encode_op<RegisterBlaster::Opcode::CLRREG, true>(m...);
+}
+template <typename... M> auto traddr(M... m) {
+  return EncodedOp::encode_op<RegisterBlaster::Opcode::TRADDR, true>(m...);
 }

@@ -20,6 +20,7 @@
 
 TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   using CC = RegisterBlaster::ConditionCode;
+  using namespace EncodedOp;
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto bufmgr = sys->buffer_manager();
   auto ibuff = bufmgr->alloc_buffer();
@@ -29,7 +30,7 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     auto blaster = sys->make_blaster();
     ibuff->fill_clear(0);
     blaster->update_ip(ibuff->id());
-    ibuff->append_packed(ldmod1lo(0x1234), halt());
+    ibuff->append_packed(LDMOD1Lo_1(0x1234).encode(), Halt_0().encode());
 
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().M1 == 0);
@@ -51,9 +52,9 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     auto ref = *scan->find("A");
     auto loc = ibuff->location();
     // Condition code, register, field, data size, data[0], data[1].
-    ibuff->append(ldpi(0x02, 0xFEED));
+    ibuff->append(ldpi_w(0xFEED));
     ibuff->append(cmpreg((u16)CC::E, ref.reg.value, ref.field.value));
-    ibuff->append(halt());
+    ibuff->append(Halt_0().encode());
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().F == 0);
