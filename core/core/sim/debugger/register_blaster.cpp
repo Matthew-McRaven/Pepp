@@ -313,7 +313,7 @@ void RegisterBlaster::execute() {
   // case Opcode::SETMEMX:
   // case Opcode::SETREG:
   // case Opcode::SETREGX:
-  // case Opcode::CMPMEM: return execute_cmpmem();
+  case Opcode::CMPMEM: return execute_cmpmem();
   case Opcode::CMPREG: return execute_cmpreg();
   // case Opcode::CLRMEM:
   // case Opcode::CLRREG:
@@ -370,6 +370,52 @@ void RegisterBlaster::execute_cmpreg() {
   } else { // Compare only a single field.
     throw std::runtime_error("Field comparison not implemented");
   }
+
+  // Check if the CSRs satisfy the provided condition code.
+  if (_csrs.M1) {
+    using CC = RegisterBlaster::ConditionCode;
+    const u16 cc = _regs.MOD1.lo & (u16)CC::MASK;
+    const bool pass_e = _csrs.Z && (cc & (u16)CC::E);
+    const bool pass_l = _csrs.N && (cc & (u16)CC::L);
+    const bool pass_g = !_csrs.N && !_csrs.Z && (cc & (u16)CC::G);
+    const bool pass = pass_e | pass_l | pass_g;
+    // If condition code fails and MOD1/MOD2 are set, invoke the failure callback.
+    if (!pass && _csrs.M1 && _csrs.M2) {
+      // TODO: insert a call to the designated failure callback.
+    }
+  }
+}
+
+namespace {
+Operation rw_cmp{
+    .type = Operation::Type::BufferInternal,
+    .kind = Operation::Kind::data,
+};
+}
+void RegisterBlaster::execute_cmpmem() {
+  // Not in register mode or there is no system. Either way, comparsion will fail.
+  if (_csrs.TR == 1) return hard_stop(StopCause::WrongTR);
+  else if (_system == nullptr) return hard_stop(StopCause::MissingSystem);
+
+  // Attempt to convert our ID to a target;
+  auto id = Device::ID{static_cast<u8>(_regs.ID.lo)};
+  auto dev = _system->find_by_id(id);
+  if (!dev) return hard_stop(StopCause::TargetInvalid);
+  auto target = dev->capability<Target>();
+  if (!target) return hard_stop(StopCause::TargetNotMemory);
+
+  if (_tmp.size() < _regs.DS) _tmp.resize(_regs.DS);
+  bits::span<u8> actual(_tmp.data(), _regs.DS);
+  auto dbuff = _mgr->find((pepp::bts::Buffer::ID)_regs.DP.hi);
+  if (!dbuff) return hard_stop(StopCause::InvalidDBuffer);
+  auto expected = dbuff->span().subspan(_regs.DP.lo, _regs.DS);
+  if (actual.size() != expected.size()) return hard_stop(StopCause::RegisterSizeMismatch);
+  target->read(_regs.OFF.as_u32(), actual, rw_cmp);
+  auto cmp = std::memcmp(actual.data(), expected.data(), _regs.DS);
+  // Set conditions according to memcmp result.
+  if (cmp == 0) _csrs.Z = 1, _csrs.N = 0;
+  else if (cmp < 0) _csrs.Z = 0, _csrs.N = 1;
+  else _csrs.Z = 0, _csrs.N = 0;
 
   // Check if the CSRs satisfy the provided condition code.
   if (_csrs.M1) {

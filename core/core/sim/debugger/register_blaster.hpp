@@ -336,6 +336,7 @@ protected:
   // in subclasses.
   virtual void execute();
   void execute_cmpreg();
+  void execute_cmpmem();
 
 private:
   // Fetch the word under IP, increment the IP, and set the registers & flags according to the decoded opcode.
@@ -355,6 +356,7 @@ private:
   std::vector<CMPCallback> _cmp_callbacks;
   Flags _csrs{};
   State _regs{};
+  std::vector<u8> _tmp;
 };
 
 template <RegisterBlaster::Opcode Op, bool clrmod, typename... M>
