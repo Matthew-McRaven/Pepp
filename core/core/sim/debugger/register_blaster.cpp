@@ -46,14 +46,14 @@ void RegisterBlaster::run_indirect(std::span<pepp::bts::Buffer::Location> locs) 
 
 pepp::bts::Buffer *RegisterBlaster::ibuffer() { return _mgr->find((pepp::bts::Buffer::ID)_regs.IP.hi); }
 
-void RegisterBlaster::soft_stop(StopCause cause) {
+void RegisterBlaster::soft_stop(tvm::StopCause cause) {
   _csrs.L = 0;
   _csrs.F = 0;
   _csrs.M1 = 1;
   _regs.MOD1.lo = (u16)cause;
 }
 
-void RegisterBlaster::hard_stop(StopCause cause) {
+void RegisterBlaster::hard_stop(tvm::StopCause cause) {
   _csrs.L = 0;
   _csrs.F = 1;
   _csrs.M1 = 1;
@@ -61,11 +61,12 @@ void RegisterBlaster::hard_stop(StopCause cause) {
 }
 
 void RegisterBlaster::decode() {
+  using namespace tvm;
   const auto ibp = (pepp::bts::Buffer::ID)_regs.IP.hi;
   // read 16 bits at ip.lo from data and increment.
   u16 opcode = read16(ibp, _regs.IP.lo);
   // Perform bit-cracking to expose fields
-  _regs.IS = OpWord(opcode);
+  _regs.IS = tvm::OpWord(opcode);
   _csrs.CLRMOD = _regs.IS.clrmod;
   // Whenever a packet needs an a refernece relative to the IP's offset into the current buffer,
   // refer to this variable that than IP. This lets us pre-increment IP and avoid difficulties with branching / early
@@ -283,6 +284,7 @@ void RegisterBlaster::decode() {
 }
 
 void RegisterBlaster::execute() {
+  using namespace tvm;
   // For instructions which don't just program registers, insert their behaviors here
   switch (static_cast<Opcode>(_regs.IS.ocpode)) {
 
@@ -296,7 +298,7 @@ void RegisterBlaster::execute() {
   case Opcode::BRNE: [[fallthrough]];
   case Opcode::BR: {
     using namespace bits;
-    using CC = RegisterBlaster::ConditionCode;
+    using CC = tvm::ConditionCode;
     const u16 cc = _regs.MOD1.lo & (u16)CC::MASK;
     const bool pass_e = _csrs.Z && (cc & (u16)CC::E);
     const bool pass_l = _csrs.N && (cc & (u16)CC::L);
@@ -322,7 +324,7 @@ void RegisterBlaster::execute() {
 }
 
 void RegisterBlaster::execute_cmpreg() {
-
+  using StopCause = tvm::StopCause;
   using R = RegisterScan;
   // Not in register mode or there is no system. Either way, comparsion will fail.
   if (_csrs.TR == 0) return hard_stop(StopCause::WrongTR);
@@ -373,7 +375,7 @@ void RegisterBlaster::execute_cmpreg() {
 
   // Check if the CSRs satisfy the provided condition code.
   if (_csrs.M1) {
-    using CC = RegisterBlaster::ConditionCode;
+    using CC = tvm::ConditionCode;
     const u16 cc = _regs.MOD1.lo & (u16)CC::MASK;
     const bool pass_e = _csrs.Z && (cc & (u16)CC::E);
     const bool pass_l = _csrs.N && (cc & (u16)CC::L);
@@ -393,6 +395,7 @@ Operation rw_cmp{
 };
 }
 void RegisterBlaster::execute_cmpmem() {
+  using StopCause = tvm::StopCause;
   // Not in register mode or there is no system. Either way, comparsion will fail.
   if (_csrs.TR == 1) return hard_stop(StopCause::WrongTR);
   else if (_system == nullptr) return hard_stop(StopCause::MissingSystem);
@@ -419,7 +422,7 @@ void RegisterBlaster::execute_cmpmem() {
 
   // Check if the CSRs satisfy the provided condition code.
   if (_csrs.M1) {
-    using CC = RegisterBlaster::ConditionCode;
+    using CC = tvm::ConditionCode;
     const u16 cc = _regs.MOD1.lo & (u16)CC::MASK;
     const bool pass_e = _csrs.Z && (cc & (u16)CC::E);
     const bool pass_l = _csrs.N && (cc & (u16)CC::L);
@@ -433,22 +436,17 @@ void RegisterBlaster::execute_cmpmem() {
 }
 
 u16 RegisterBlaster::read16(pepp::bts::Buffer::ID id, u16 offset) {
+  using StopCause = tvm::StopCause;
   auto buf = _mgr->find(id);
-  if (!buf) {
-    _csrs.L = 0;
-    _regs.MOD1.lo = (u16)StopCause::InvalidIBuffer;
-    return 0;
-  }
+  if (!buf) return hard_stop(StopCause::InvalidIBuffer), 0;
+
   auto _data = buf->data();
   return ((u16)_data[offset + 0]) | (u16)_data[offset + 1] << 8;
 }
 
-void RegisterBlaster::push(SegmentPair v) {
-  if (_regs.SP + 4 > _stack.size()) {
-    _csrs.L = 0;
-    _regs.MOD1.lo = (u16)StopCause::StackOverflow;
-    return;
-  }
+void RegisterBlaster::push(tvm::SegmentPair v) {
+  using StopCause = tvm::StopCause;
+  if (_regs.SP + 4 > _stack.size()) return soft_stop(StopCause::StackOverflow);
   _stack[_regs.SP + 0] = (u8)(v.hi >> 8);
   _stack[_regs.SP + 1] = (u8)(v.hi & 0xFF);
   _stack[_regs.SP + 2] = (u8)(v.lo >> 8);
@@ -456,17 +454,12 @@ void RegisterBlaster::push(SegmentPair v) {
   _regs.SP += 4;
 }
 
-RegisterBlaster::SegmentPair RegisterBlaster::pop() {
-  if (_regs.SP < 3) {
-    _csrs.L = 0;
-    _regs.MOD1.lo = (u16)StopCause::StackUnderflow;
-    return {};
-  }
-  SegmentPair v;
+tvm::SegmentPair RegisterBlaster::pop() {
+  if (_regs.SP < 3) return soft_stop(tvm::StopCause::StackUnderflow), tvm::SegmentPair{};
+
+  tvm::SegmentPair v;
   _regs.SP -= 4;
   v.hi = (static_cast<u16>(_stack[_regs.SP + 0]) << 8) | static_cast<u16>(_stack[_regs.SP + 1]);
   v.lo = (static_cast<u16>(_stack[_regs.SP + 2]) << 8) | static_cast<u16>(_stack[_regs.SP + 3]);
   return v;
 }
-
-void init_ibuffer(RegisterBlaster &blaster, pepp::bts::Buffer::ID id, u16 offset) {}

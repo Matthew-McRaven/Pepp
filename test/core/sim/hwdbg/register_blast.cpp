@@ -20,7 +20,7 @@
 TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   auto ibuff = mgr->alloc_buffer();
-  using namespace EncodedOp;
+  using namespace tvm::EncodedOp;
   // Simplest possible program which sets a single register and halts.
   // Check that halt flag is set and that target register gains a value.
   SECTION("Can copy values into common registers") {
@@ -42,7 +42,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
 
   // Check that load masked register correctly re-orders the registers according to mask precedence.
   SECTION("Load multiple registers") {
-    using M = RegisterBlaster::RegMask;
+    using M = tvm::RegMask;
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
@@ -68,7 +68,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
 
   // Test that branches are/not  taken by inserting a load register "under" the branch
   SECTION("Unconditional branch!") {
-    using M = RegisterBlaster::RegMask;
+    using M = tvm::RegMask;
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
@@ -86,7 +86,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
   }
 
   SECTION("Conditional branch (not taken)") {
-    using M = RegisterBlaster::RegMask;
+    using M = tvm::RegMask;
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
@@ -101,7 +101,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
   }
 
   SECTION("Conditional branch (taken)") {
-    using M = RegisterBlaster::RegMask;
+    using M = tvm::RegMask;
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());

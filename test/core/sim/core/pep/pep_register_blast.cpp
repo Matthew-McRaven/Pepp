@@ -19,8 +19,8 @@
 #include "core/sim/debugger/register_blaster.hpp"
 
 TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
-  using CC = RegisterBlaster::ConditionCode;
-  using namespace EncodedOp;
+  using CC = tvm::ConditionCode;
+  using namespace tvm::EncodedOp;
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto bufmgr = sys->buffer_manager();
   auto ibuff = bufmgr->alloc_buffer();
