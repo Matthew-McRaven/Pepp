@@ -52,6 +52,7 @@ public:
     StackOverflow,
     StackUnderflow,
     InvalidIBuffer,
+    RegisterSizeMismatch,
   };
 
   struct Flags {
@@ -171,8 +172,9 @@ public:
     // Packet registers: MOD1.LO, ID.lo, OFF.hi, OFF.lo, DS
     // Same deal on F.
     CMPMEM = 0b01'0100,
-    // Same as CMPMEM, except that the ID register is 2 words rather than 1 and offset is a single word.
-    // Packet registers: MOD1.lo, ID.hi, ID.lo, OFF.lo, DS
+    // Same as CMPMEM, except that the ID register is 2 words and there is no offset into register.
+    // If DS != register size, hard stops.
+    // Packet registers: MOD1.lo, ID.hi, ID.lo, DS
     // Same deal on F.
     CMPREG = 0b01'0101,
     // Clear the memory module of a target
@@ -322,13 +324,15 @@ public:
 protected:
   void set_soft_stop();
   void set_hard_stop();
+  // Assuming register state is already set, execute the instruction. It is virtual so you can change execution behavior
+  // in subclasses.
+  virtual void execute();
+  void execute_cmpreg();
 
 private:
   // Fetch the word under IP, increment the IP, and set the registers & flags according to the decoded opcode.
   void decode();
-  // Assuming register state is already set, execute the instruction. It is virtual so you can change execution behavior
-  // in subclasses.
-  virtual void execute();
+
   // Perform an LE read of 2 bytes at an offset.
   u16 read16(pepp::bts::Buffer::ID, u16 offset);
   // SP -= 4 and return the 4 bytes. IF SP would underflow stack, set L=0 and set cause in MOD1.lo

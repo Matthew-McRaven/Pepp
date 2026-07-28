@@ -240,12 +240,11 @@ void RegisterBlaster::decode() {
   case Opcode::CMPREG: {
     switch (_regs.IS.word_len) {
     default: [[fallthrough]];
-    case 5:
-      _regs.DS = read16(ibp, iop + 8);
+    case 4:
+      _regs.DS = read16(ibp, iop + 6);
       _regs.DP.hi = _regs.IP.hi;
-      _regs.DP.lo = iop + 10;
+      _regs.DP.lo = iop + 8;
       [[fallthrough]];
-    case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
     case 3: _regs.ID.lo = read16(ibp, iop + 4); [[fallthrough]];
     case 2: _regs.ID.hi = read16(ibp, iop + 2), _csrs.TR = 1; [[fallthrough]];
     case 1: _regs.MOD1.lo = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
@@ -310,26 +309,39 @@ void RegisterBlaster::execute() {
   // case Opcode::SETREG:
   // case Opcode::SETREGX:
   // case Opcode::CMPMEM:
-  case Opcode::CMPREG: {
-    using R = RegisterScan;
-    // Not in register mode or there is not system.
-    if (_csrs.TR == 0 || _scan == nullptr) {
-      set_hard_stop();
-      break;
-    }
-    R::RegisterRef reg_ref{R::Register::ID{_regs.ID.hi}, R::Register::Field::ID{_regs.ID.lo}};
-    auto pair = _scan->resolve(reg_ref);
-    if (pair.first == nullptr) {
-      set_hard_stop();
-      break;
-    }
-    // Manually unpack to make debugging easier.
-    auto reg = pair.first;
-    auto field = pair.second;
+  case Opcode::CMPREG: return execute_cmpreg();
+  // case Opcode::CLRMEM:
+  // case Opcode::CLRREG:
+  default: break;
+  }
+}
+
+void RegisterBlaster::execute_cmpreg() {
+
+  using R = RegisterScan;
+  // Not in register mode or there is no system. Either way, comparsion will fail.
+  if (_csrs.TR == 0 || _scan == nullptr) return set_hard_stop();
+
+  // Attempt to convert our ID registers
+  R::RegisterRef reg_ref{R::Register::ID{_regs.ID.hi}, R::Register::Field::ID{_regs.ID.lo}};
+  auto pair = _scan->resolve(reg_ref);
+  if (pair.first == nullptr) return set_hard_stop();
+  // Manually unpack to make debugging easier.
+  auto reg = pair.first;
+  auto field = pair.second;
+
+  // Whole-register comparison.
+  if (field == nullptr) {
+    // If size mismatch, then we would have to do a partial comparison.
+    // That sounds annoying, so skip.
+    if (reg->byte_width != _regs.DS) return set_hard_stop();
     switch (reg->byte_width) {
     case 1: {
       u8 actual = _scan->read<u8>(reg_ref);
-      throw std::runtime_error("Not implemented");
+      u8 expected = read16((pepp::bts::Buffer::ID)_regs.DP.hi, _regs.DP.lo) & 0xff;
+      if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
+      else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
+      else _csrs.Z = 0, _csrs.N = 0;
     } break;
     case 2: {
       u16 actual = _scan->read<u16>(reg_ref);
@@ -340,14 +352,31 @@ void RegisterBlaster::execute() {
     } break;
     case 4: {
       u32 actual = _scan->read<u32>(reg_ref);
-      throw std::runtime_error("Not implemented");
+      u16 expected_hi = read16((pepp::bts::Buffer::ID)_regs.DP.hi, _regs.DP.lo);
+      u16 expected_lo = read16((pepp::bts::Buffer::ID)_regs.DP.hi, _regs.DP.lo + 2);
+      u32 expected = (static_cast<u32>(expected_hi) << 16) | expected_lo;
+      if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
+      else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
+      else _csrs.Z = 0, _csrs.N = 0;
     } break;
     default: set_hard_stop(); break;
     }
+  } else { // Compare only a single field.
+    throw std::runtime_error("Field comparison not implemented");
   }
-  // case Opcode::CLRMEM:
-  // case Opcode::CLRREG:
-  default: break;
+
+  // Check if the CSRs satisfy the provided condition code.
+  if (_csrs.M1) {
+    using CC = RegisterBlaster::ConditionCode;
+    const u16 cc = _regs.MOD1.lo & (u16)CC::MASK;
+    const bool pass_e = _csrs.Z && (cc & (u16)CC::E);
+    const bool pass_l = _csrs.N && (cc & (u16)CC::L);
+    const bool pass_g = !_csrs.N && !_csrs.Z && (cc & (u16)CC::G);
+    const bool pass = pass_e | pass_l | pass_g;
+    // If condition code fails and MOD1/MOD2 are set, invoke the failure callback.
+    if (!pass && _csrs.M1 && _csrs.M2) {
+      // TODO: insert a call to the designated failure callback.
+    }
   }
 }
 

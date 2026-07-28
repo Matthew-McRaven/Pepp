@@ -50,8 +50,8 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     cpu->write_register(isa::Pep10::Register::A, 0xFEED);
     auto ref = *scan->find("A");
     auto loc = ibuff->location();
-    // Condition code, register, field, offset, data size, data[0], data[1].
-    ibuff->append(cmpreg((u16)CC::E, ref.reg.value, ref.field.value, 0, 0x2, 0xFEED));
+    // Condition code, register, field, data size, data[0], data[1].
+    ibuff->append(cmpreg((u16)CC::E, ref.reg.value, ref.field.value, 0x2, 0xFEED));
     ibuff->append(halt());
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);
