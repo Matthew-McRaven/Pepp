@@ -82,24 +82,28 @@ enum class Opcode : u8 {
   // Set copies data from DP into the target address and the X variant performs a read-XOR-write with the data. The x
   // variant is very helpful for encoding traces, whereas the base version is more useful for register blasting.
   // Both are programmed the same way. While not mandatory, there is no convenient way to set ACCESS,ID,OFF registers.
-  // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo
+  // If MOD1 is provided, it is used as a temporary override for size. In this case MOD2.hi is set to IP.hi,
+  // and MOD2.lo is set to the location 6. Passing IP-relative data via MOD1/MOD2 is the "immediate" variant.
+  // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo, MOD1.lo
   // Successfully accesses must set F to 0. Failed acceses must set F to 1.
   SETMEM = 0b01'0000,
   SETMEMX = 0b01'0010,
-  // Almost identical to mem variants, except that the ID register is 2 words rather than 1 and offset is a single
-  // word. Registers can't exceed 64-bits / DS==8. Sets F on failure.
-  // Packet registers: ACCESS, ID.hi, ID.lo, OFF.lo.
+  // Almost identical to mem variants, except that the ID register is 2 words rather than 1 and is not present.
+  // Registers can't exceed 64-bits / DS==8. Sets F on memory access failure.
+  // If MOD1 is provided, it is used as a temporary override for size. In this case MOD2.hi is set to IP.hi,
+  // and MOD2.lo is set to the location 5. Passing IP-relative data via MOD1/MOD2 is the "immediate" variant.
+  // Packet registers: ACCESS, ID.hi, ID.lo, MOD1.lo
   SETREG = 0b01'0001,
   SETREGX = 0b01'0011,
-  // Compare memory at DP with the target at offset.
-  // MOD1 is assumed to hold a condition code (lge) and MOD2 holds a comparison callback address. If the comparison
-  // does not match condition code, the callback is invoked.
-  // Packet registers: MOD1.LO, ID.lo, OFF.hi, OFF.lo
+  // Compare memory at DP with the target at offset, setting status bits accordingly
+  // If MOD1.lo is provided, it uses the same immediate data semantics as SETMEM.
+  // Packet registers: ID.lo, OFF.hi, OFF.lo, MOD1.lo
   // Same deal on F.
   CMPMEM = 0b01'0100,
   // Same as CMPMEM, except that the ID register is 2 words and there is no offset into register.
-  // If DS != register size, hard stops.
-  // Packet registers: MOD1.lo, ID.hi, ID.lo
+  // If MOD1.lo is provided, it uses the same immediate data semantics as SETMEM.
+  // If data size != register size, hard stops.
+  // Packet registers:  ID.hi, ID.lo
   // Same deal on F.
   CMPREG = 0b01'0101,
   // Clear the memory module of a target
@@ -124,16 +128,29 @@ enum class Opcode : u8 {
   // Packet registers: (target) ID.lo, (target addr hi) OFF.hi, (target addr lo) OFF.lo, (source) ID.hi,
   //                   (source addr hi) DP.hi, (source addr lo) DP.lo, (size)DS
   TRADDR = 0b01'1000,
-  // Packet containing inline data.
-  // DS is the first word and is required. DP is set to the address of the following word.
-  // All remaining words are treated as data.
-  // Packet registers: DS
-  LDPI = 0b01'1001,
-  // Load DP and DS registers.
+  // Explicitly load DP and DS registers.
   // Packet registers: DP.lo, DS, DP.hi
-  LDP = 0b01'1010,
+  LDP = 0b01'1001,
+  /*
+   * This begins a section of DP-relative operations, which can be used to reduce code size for repeated operations if
+   * you store data sequentially.
+   */
+  // "Accumulate" DS into DP.lo / aka add DS to DP.lo and load a new DS.
+  // When data is tightly packed w/o alignment in data buffer, this gives us a 32-bit op to form a new data pointer.
+  // Packet registers: DS
+  ACCDP = 0b01'1010,
+  // Variant of ACCDP where the DP.lo increment is explicitly provided. If your data is aligned, you are basically
+  // required to use this variant.
+  // Packet registers: increment for DP.lo, DS
+  INCDP = 0b01'1011,
+
+  // Conditional call back
+  // MOD1.lo contains a condition code, MOD2.hi/lo contains the index of a callback function.
+  // Callback is invoked in condition code DOES NOT match the current condition code. Useful for checking if register
+  // assertions fail.
+  CCB = 0b01'1100,
   // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
-  MAX = ((u8)LDP) + 1,
+  MAX = ((u8)CCB) + 1,
 };
 
 // Modifications to RegisterBlaster::Sate also require updating these register masks.
@@ -359,33 +376,30 @@ template <std::size_t N> constexpr auto pack_bytes(std::array<u8, N> data) {
   return words;
 }
 
-template <std::size_t N> constexpr auto ldpi(std::array<u8, N> data) {
-  auto words = pack_bytes(data);
-  return encode_op<Opcode::LDPI, true>((u16)N, words);
-}
-
-template <std::size_t N> constexpr auto ldpi(std::array<u16, N> words) {
-  return encode_op<Opcode::LDPI, true>((u16)N * 2, words);
-}
-
-template <typename... W> constexpr auto ldpi_w(W... ws) {
-  static_assert((std::is_convertible_v<W, u16> && ...), "words must be u16");
-  constexpr std::size_t N = sizeof...(W);
-  return encode_op<Opcode::LDPI, true>(2 * (u16)N, ws...);
-}
-
 struct LDP_3 {
   SegmentPair DP;
   u16 DS;
   constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP.lo, DS, DP.hi); }
 };
 struct LDP_2 {
-  SegmentPair DP;
-  constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP.lo, DP.hi); }
+  u16 DP_lo;
+  u16 DS;
+  constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP_lo, DS); }
 };
 struct LDP_1 {
   u16 DP_lo;
   constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP_lo); }
+};
+
+struct ACCDP_1 {
+  u16 DS;
+  constexpr auto encode() const { return encode_op<Opcode::ACCDP, true>(DS); }
+};
+
+struct INCDP_2 {
+  u16 dp_incr;
+  u16 DS;
+  constexpr auto encode() const { return encode_op<Opcode::INCDP, true>(dp_incr, DS); }
 };
 
 } // namespace EncodedOp

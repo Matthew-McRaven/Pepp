@@ -24,6 +24,7 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto bufmgr = sys->buffer_manager();
   auto ibuff = bufmgr->alloc_buffer();
+  auto dbuff = bufmgr->alloc_buffer();
   // Simplest possible program which sets a single register and halts.
   // Check that halt flag is set and that target register gains a value.
   SECTION("Validate that a system-created RegisterBlaster works") {
@@ -44,16 +45,15 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
   }
   // Simplest possible program which sets a single register and halts.
   // Check that halt flag is set and that target register gains a value.
-  SECTION("Compare accumulator") {
+  SECTION("Compare accumulator (immediate)") {
     auto blaster = sys->make_blaster();
     ibuff->fill_clear(0);
     auto scan = sys->register_scan();
     cpu->write_register(isa::Pep10::Register::A, 0xFEED);
     auto ref = *scan->find("A");
     auto loc = ibuff->location();
-    // Condition code, register, field, data size, data[0], data[1].
-    ibuff->append(ldpi_w(0xFEED));
-    ibuff->append(cmpreg((u16)CC::E, ref.reg.value, ref.field.value));
+    // Register, field, data size, data words.
+    ibuff->append(cmpreg(ref.reg.value, ref.field.value, 0x02, 0xFEED));
     ibuff->append(Halt_0().encode());
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);
@@ -61,6 +61,47 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     CHECK(blaster->csrs().Z == 0);
     // After comparison, Z bit should be set.
     blaster->run_direct(loc);
+    CHECK(blaster->csrs().L == 0);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(blaster->csrs().Z == 1);
+  }
+  // Simplest possible program which sets a single register and halts.
+  // Check that halt flag is set and that target register gains a value.
+  SECTION("Compare accumulator / X (DP)") {
+    auto blaster = sys->make_blaster();
+    ibuff->fill_clear(0);
+    auto scan = sys->register_scan();
+    cpu->write_register(isa::Pep10::Register::A, 0xFEED);
+    cpu->write_register(isa::Pep10::Register::X, 0xBEEF);
+    auto a = *scan->find("A");
+    auto x = *scan->find("X");
+    auto loc1 = ibuff->location();
+    // Have to store data in little-endian format, because VM is LE...
+    dbuff->append(std::array<u8, 2>{0xED, 0xFE});
+    dbuff->append(std::array<u8, 2>{0xEF, 0xBE});
+    // First program comparse A to FEED. Should set z bit=1
+    ibuff->append(LDP_3(tvm::SegmentPair{.hi = dbuff->id().value, .lo = 0}, 2).encode());
+    // Use non-immediate variant, which
+    ibuff->append(cmpreg(a.reg.value, a.field.value));
+    ibuff->append(Halt_0().encode());
+    // The second program compares X to BEEF. Should set z bit=1
+    auto loc2 = ibuff->location();
+    // Rather than form a new DP triple, use one of the incrementing opcodes!
+    ibuff->append(ACCDP_1(2).encode());
+    ibuff->append(cmpreg(x.reg.value, x.field.value));
+    ibuff->append(Halt_0().encode());
+    // Before execution, system should be live with the z-bit unset
+    CHECK(blaster->csrs().L == 1);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(blaster->csrs().Z == 0);
+    // After comparison, Z bit should be set.
+    blaster->run_direct(loc1);
+    CHECK(blaster->csrs().L == 0);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(blaster->csrs().Z == 1);
+    // Force-clear Z to ensure that the next program sets it again.
+    blaster->csrs().Z = 0;
+    blaster->run_direct(loc2);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 1);
