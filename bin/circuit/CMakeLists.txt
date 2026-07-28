@@ -69,6 +69,20 @@ target_link_libraries(
           pepp-core)
 
 include(FetchContent)
+
+if(EMSCRIPTEN)
+  # QT_FEATURE_wasm_exceptions is defined in Qt's config when built with wasm
+  # EH.
+  if(QT_FEATURE_wasm_exceptions)
+    set(_ljmp -fwasm-exceptions -sSUPPORT_LONGJMP=wasm)
+  else()
+    set(_ljmp -sSUPPORT_LONGJMP=emscripten)
+  endif()
+
+  add_compile_options(${_ljmp})
+  add_link_options(${_ljmp})
+endif()
+
 FetchContent_Declare(
   lunasvg
   GIT_REPOSITORY https://github.com/sammycage/lunasvg.git

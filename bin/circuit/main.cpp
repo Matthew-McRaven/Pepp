@@ -50,32 +50,51 @@ static const char kWinterStyle[] = R"CSS(
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+  QGuiApplication app(argc, argv);
 
-    QQuickStyle::setStyle("Fusion");
+  QQuickStyle::setStyle("Fusion");
 
-    QQmlApplicationEngine engine;
-    QObject::connect(
-        &engine,
-        &QQmlApplicationEngine::objectCreationFailed,
-        &app,
-        []() { QCoreApplication::exit(-1); },
-        Qt::QueuedConnection);
-    engine.loadFromModule("CircuitDesign", "Main");
+  QQmlApplicationEngine engine;
+  QObject::connect(
+      &engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() { QCoreApplication::exit(-1); },
+      Qt::QueuedConnection);
+  engine.loadFromModule("CircuitDesign", "Main");
+  app.setWindowIcon(QIcon{":/icon"});
 
-    app.setWindowIcon(QIcon{":/icon"});
+  qDebug() << "Opening LunaSVG version:" << lunasvg_version_string();
+  // See if we can render without crashing on multiple platforms.
+  auto document = Document::loadFromData(kLandspaceContent);
+  qDebug() << "document width:" << document->width() << "height:" << document->height();
 
-    // See if we can render without crashing on multiple platforms.
-    auto document = Document::loadFromData(kLandspaceContent);
+  document->applyStyleSheet(kSummerStyle);
+  auto base = QCoreApplication::applicationDirPath();
+  {
+    auto bitmap = document->renderToBitmap();
+    // LunaSVG bitmap is premultiplied ARGB32 (BGRA byte order on little-endian).
+    // Convert to a format Qt handles cleanly.
+    bitmap.convertToRGBA(); // ensures RGBA byte order
 
-    document->applyStyleSheet(kSummerStyle);
-    auto base = QCoreApplication::applicationDirPath().toStdString();
-    document->renderToBitmap().writeToPng(base + "/summer.png");
-
+    QImage image(bitmap.data(), bitmap.width(), bitmap.height(), bitmap.stride(),
+                 QImage::Format_RGBA8888_Premultiplied);
+    qDebug() << "bitmap width:" << bitmap.width() << "height:" << bitmap.height() << "stride:" << bitmap.stride();
+    // QImage does not copy the buffer above, so copy before bitmap goes out of scope.
+    image.save(base + "/summer.png", "PNG");
+  }
+  {
     document->applyStyleSheet(kWinterStyle);
-    document->renderToBitmap().writeToPng(base + "/winter.png");
+    auto bitmap = document->renderToBitmap();
+    // LunaSVG bitmap is premultiplied ARGB32 (BGRA byte order on little-endian).
+    // Convert to a format Qt handles cleanly.
+    bitmap.convertToRGBA(); // ensures RGBA byte order
 
-    return app.exec();
+    QImage image(bitmap.data(), bitmap.width(), bitmap.height(), bitmap.stride(),
+                 QImage::Format_RGBA8888_Premultiplied);
+
+    // QImage does not copy the buffer above, so copy before bitmap goes out of scope.
+    image.save(base + "/winter.png", "PNG");
+  }
+
+  return app.exec();
 }
 
 /*  To Do
