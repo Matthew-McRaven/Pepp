@@ -1,7 +1,13 @@
 #include "register_blaster.hpp"
 #include <bit>
+#include "core/sim/debugger/register_scanner.hpp"
+#include "core/sim/system.hpp"
 
-RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr) : _mgr(mgr) {}
+RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system)
+    : _mgr(mgr), _system(system) {
+  if (_system) _scan = _system->register_scan();
+  else _scan = nullptr;
+}
 
 void RegisterBlaster::update_ip(pepp::bts::BufferLocation loc) { return update_ip(loc.id, loc.offset); }
 

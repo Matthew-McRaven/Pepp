@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 #include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/enums.hpp"
+#include "core/sim/debugger/register_blaster.hpp"
 #include "core/sim/devicetree.hpp"
 #include "core/sim/systemparser.hpp"
 
@@ -11,7 +12,8 @@ consteval void allow_opaque_handle_increment(Device::ID);
 
 System::System(Configuration config)
     : Device(), _config(config), _gen_next_ID([this]() { return next_ID(); }),
-      _root(std::make_unique<DeviceTree>(this, nullptr)) {
+      _root(std::make_unique<DeviceTree>(this, nullptr)),
+      _buffer_manager(std::make_shared<pepp::bts::BufferManager>()) {
   _config.id = Device::ID{0};
   // Ensure that basename always == fullname, and that the name starts with a /
   if (_config.basename.empty()) _config.basename = "/";
@@ -61,6 +63,10 @@ Device *System::find_by_id(ID id) {
 RegisterScan *System::register_scan() { return _hwdbg.get(); }
 
 const RegisterScan *System::register_scan() const { return _hwdbg.get(); }
+
+std::unique_ptr<RegisterBlaster> System::make_blaster() {
+  return std::make_unique<RegisterBlaster>(_buffer_manager, this);
+}
 
 Device *System::find_absolute(std::string_view name) {
   DeviceTree *root = _root.get();

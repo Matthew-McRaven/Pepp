@@ -29,9 +29,13 @@
   virtual void reschedule(device::ID device, tick::Type startingOn) = 0;
 };*/
 
+namespace pepp::bts {
+class BufferManager;
+}
 namespace trace {
 class Buffer;
 }
+class RegisterBlaster;
 
 struct DeferredDevice {
   // Do not capture pointer to device in case the device moves during construction.
@@ -111,6 +115,8 @@ public:
   RegisterScan *register_scan();
   const RegisterScan *register_scan() const;
 
+  std::unique_ptr<RegisterBlaster> make_blaster();
+
 private:
   Configuration _config{{.basename{"/"}, .fullname{"/"}}};
   Device::ID _next_ID = Device::ID(1);
@@ -119,6 +125,8 @@ private:
   std::unique_ptr<DeviceTree> _root = nullptr;
   std::unique_ptr<RegisterScan> _hwdbg{};
   std::map<Device::ID, DeviceTree *> _id_to_device;
+  // A class which owns various debug & trace buffers.
+  std::shared_ptr<pepp::bts::BufferManager> _buffer_manager;
   // Prevent infinite recursion on make_device while doing deferred initialization.
   // The top level call to make_device sets this flag to true, and that top level call will pull all of the work out of
   // the ctor list. While ctors may themselves enqueue more deferred ctors, they will be processed within the top-level

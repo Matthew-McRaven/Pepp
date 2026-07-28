@@ -5,6 +5,10 @@
 #include "core/ds/alloc/pagechain.hpp"
 #include "core/integers.h"
 
+// The system class from core/sim/system.hpp
+class System;
+class RegisterScan;
+
 // This is basically an ASIC with a custom instruction set used to copy  values into a simulator's
 // registers+memory.
 // The machine uses little-endian 16-bit words. Opcodes are always one word and called OpWords. Instructions are a
@@ -283,8 +287,8 @@ public:
   // Yes, this pays an indirect call with some trampoline magic, but it allows the register blaster and trace buffer to
   // become the same class. That execution speed penalty is more than worth it to me to consolidate the two types.
   using CMPCallback = std::function<void(RegisterBlaster &, bool)>;
-
-  RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr);
+  // Non-owning pointer to system.
+  RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr);
   // Disable copy/move since this class is EXPENSIVE
   RegisterBlaster(const RegisterBlaster &) = delete;
   RegisterBlaster(RegisterBlaster &&) = delete;
@@ -332,6 +336,8 @@ private:
   // SP +=4 and write the 4 bytes. If SP would overflow stack, set L = 0 and set cause in MOD1.lo
   void push(SegmentPair v);
   std::shared_ptr<pepp::bts::BufferManager> _mgr;
+  System *_system = nullptr;
+  RegisterScan *_scan;
   std::array<u8, 256> _stack;
   // Should really be a map so you can delete callbacks, but I can't be bothered to add the ID variable right now.
   std::vector<CMPCallback> _cmp_callbacks;
