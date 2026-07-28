@@ -9,7 +9,7 @@ class BufferManager;
 // A 2^16 byte slab of memory which is identifiable by a 16-bit ID.
 class Buffer : public Slab<u8> {
 public:
-  using page_offset_t = typename Slab<u8>::page_offset_t;
+  using page_offset_t = u16;
   using ID = pepp::OpaqueHandle<struct BufferID, u16>;
   static constexpr size_t SIZE = 0x1'0000; // 2^16 bytes, or 64KiB.
   Buffer(const Buffer &) = delete;
@@ -20,6 +20,10 @@ private:
   Buffer(ID id);
   ID _id;
 };
+struct BufferLocation {
+  Buffer::ID id;
+  Buffer::page_offset_t offset;
+};
 consteval void allow_opaque_handle_increment(Buffer::ID);
 
 // Gives the appearance (API) of being a buffer, but really is a contiguous chain of buffers.
@@ -28,12 +32,6 @@ consteval void allow_opaque_handle_increment(Buffer::ID);
 // all buffers back into the manager's pool.
 class BufferChain {
 public:
-  static constexpr size_t SIZE = Buffer::SIZE;
-  using page_offset_t = u16;
-  struct Location {
-    Buffer::ID id;
-    page_offset_t offset;
-  };
 
   ~BufferChain() noexcept;
   // Return pages from the chain to the manager's pool.
@@ -41,11 +39,11 @@ public:
   // Copy elements into next free space, advancing size.
   // Require data be aligned % align (padding at start) with pad (padding at end).
   // Both align and pad are in element counts, not bytes.
-  Location append(bits::span<const u8> data, size_t byte_align = 0, size_t byte_pad = 0, u8 fill = 0);
+  BufferLocation append(bits::span<const u8> data, size_t byte_align = 0, size_t byte_pad = 0, u8 fill = 0);
   // An append will all elements set to `fill`.
-  Location allocate_initialized(size_t size, u8 fill = 0);
+  BufferLocation allocate_initialized(size_t size, u8 fill = 0);
   // Bump size without modifying underlying data.
-  Location allocate_uninitialized(size_t size);
+  BufferLocation allocate_uninitialized(size_t size);
   u16 buffer_count() const;
   // Given a buffer ID, return the pointer to that buffer
   Buffer *buffer(Buffer::ID id);

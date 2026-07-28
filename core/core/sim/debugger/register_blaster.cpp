@@ -3,58 +3,50 @@
 
 RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr) : _mgr(mgr) {}
 
-void RegisterBlaster::execute_one() {
+void RegisterBlaster::update_ip(pepp::bts::BufferLocation loc) { return update_ip(loc.id, loc.offset); }
+
+void RegisterBlaster::update_ip(pepp::bts::Buffer::ID id, u16 offset) {
+  _regs.IP.hi = id.value;
+  _regs.IP.lo = offset & 0xFFFE;
+}
+
+void RegisterBlaster::step() {
   if (_csrs.CLRMOD) {
     _regs.MOD1 = {};
     _regs.MOD2 = {};
     _csrs.M1 = 0, _csrs.M2 = 0;
   }
   decode();
-
-  // For instructions which don't just program registers, insert their behaviors here
-  switch (static_cast<Opcode>(_regs.IS.ocpode)) {
-
-  case Opcode::BRF: [[fallthrough]];
-  case Opcode::NOP: [[fallthrough]];
-  case Opcode::BREQ: [[fallthrough]];
-  case Opcode::BRGT: [[fallthrough]];
-  case Opcode::BRGE: [[fallthrough]];
-  case Opcode::BRLT: [[fallthrough]];
-  case Opcode::BRLE: [[fallthrough]];
-  case Opcode::BRNE: [[fallthrough]];
-  case Opcode::BR: {
-    using namespace bits;
-    using CC = RegisterBlaster::ConditionCode;
-    const u16 cc = _regs.MOD1.lo & (u16)CC::MASK;
-    const bool pass_e = _csrs.Z && (cc & (u16)CC::E);
-    const bool pass_l = _csrs.N && (cc & (u16)CC::L);
-    const bool pass_g = !_csrs.N && !_csrs.Z && (cc & (u16)CC::G);
-    const bool pass_f = _csrs.F && (cc & (u16)CC::F);
-    const bool taken = pass_e | pass_l | pass_g | pass_f;
-    if (taken & _csrs.M2) {
-      _regs.IP.lo = (_regs.IP.lo + _regs.MOD2.lo) & 0xFFFE;
-      _regs.IP.hi = _regs.MOD2.hi;
-    }
-  }
-  // TODO: handle calls into system!
-  // case Opcode::SETMEM:
-  // case Opcode::SETMEMX:
-  // case Opcode::SETREG:
-  // case Opcode::SETREGX:
-  // case Opcode::CMPMEM:
-  // case Opcode::CMPREG:
-  // case Opcode::CLRMEM:
-  // case Opcode::CLRREG:
-  default: break;
-  }
-  // Callbacks when we execute an instruction!
+  execute();
 }
 
-void RegisterBlaster::run() {
-  while (_csrs.L) execute_one();
+void RegisterBlaster::run_direct(pepp::bts::BufferLocation loc) {
+  // Bring the blaster back into the live state (L==1).
+  // Clear F bit in case last program terminated with hardfail.
+  // "soft stop" is L==0,F==0, "hard stop is L==0,F==1.
+  _csrs.L = 1, _csrs.F = 0;
+  update_ip(loc);
+  while (_csrs.L) step();
+}
+
+void RegisterBlaster::run_indirect(std::span<pepp::bts::BufferLocation> locs) {
+  // Run the program at each location. Check for a hard stop condition. On hard stop, abort the loop.
+  // On a normal/soft stop, resume execution of the next program.
+  for (const auto &loc : locs)
+    if (run_direct(loc); _csrs.F == 1) break;
 }
 
 pepp::bts::Buffer *RegisterBlaster::ibuffer() { return _mgr->find((pepp::bts::Buffer::ID)_regs.IP.hi); }
+
+void RegisterBlaster::set_soft_stop() {
+  _csrs.L = 0;
+  _csrs.F = 0;
+}
+
+void RegisterBlaster::set_hard_stop() {
+  _csrs.L = 0;
+  _csrs.F = 1;
+}
 
 void RegisterBlaster::decode() {
   const auto ibp = (pepp::bts::Buffer::ID)_regs.IP.hi;
@@ -77,7 +69,7 @@ void RegisterBlaster::decode() {
     case 1: _regs.MOD1.lo = read16(ibp, iop + 2), _csrs.M1 = 1; [[fallthrough]];
     case 0: break;
     }
-    _csrs.L = 0;
+    set_soft_stop();
   } break;
   case Opcode::RET: _regs.IP = pop(); break;
   case Opcode::CALL: {
@@ -274,6 +266,47 @@ void RegisterBlaster::decode() {
     case 0: break;
     }
   }
+    // Treat unrecognized upcodes as hard failures.
+  default: set_hard_stop(); break;
+  }
+}
+
+void RegisterBlaster::execute() {
+  // For instructions which don't just program registers, insert their behaviors here
+  switch (static_cast<Opcode>(_regs.IS.ocpode)) {
+
+  case Opcode::BRF: [[fallthrough]];
+  case Opcode::NOP: [[fallthrough]];
+  case Opcode::BREQ: [[fallthrough]];
+  case Opcode::BRGT: [[fallthrough]];
+  case Opcode::BRGE: [[fallthrough]];
+  case Opcode::BRLT: [[fallthrough]];
+  case Opcode::BRLE: [[fallthrough]];
+  case Opcode::BRNE: [[fallthrough]];
+  case Opcode::BR: {
+    using namespace bits;
+    using CC = RegisterBlaster::ConditionCode;
+    const u16 cc = _regs.MOD1.lo & (u16)CC::MASK;
+    const bool pass_e = _csrs.Z && (cc & (u16)CC::E);
+    const bool pass_l = _csrs.N && (cc & (u16)CC::L);
+    const bool pass_g = !_csrs.N && !_csrs.Z && (cc & (u16)CC::G);
+    const bool pass_f = _csrs.F && (cc & (u16)CC::F);
+    const bool taken = pass_e | pass_l | pass_g | pass_f;
+    if (taken & _csrs.M2) {
+      _regs.IP.lo = (_regs.IP.lo + _regs.MOD2.lo) & 0xFFFE;
+      _regs.IP.hi = _regs.MOD2.hi;
+    }
+  }
+  // TODO: handle calls into system!
+  // case Opcode::SETMEM:
+  // case Opcode::SETMEMX:
+  // case Opcode::SETREG:
+  // case Opcode::SETREGX:
+  // case Opcode::CMPMEM:
+  // case Opcode::CMPREG:
+  // case Opcode::CLRMEM:
+  // case Opcode::CLRREG:
+  default: break;
   }
 }
 
@@ -314,7 +347,4 @@ RegisterBlaster::SegmentPair RegisterBlaster::pop() {
   return v;
 }
 
-void init_ibuffer(RegisterBlaster &blaster, pepp::bts::Buffer::ID id, u16 offset) {
-  blaster.regs().IP.hi = id.value;
-  blaster.regs().IP.lo = offset & 0xFFFE;
-}
+void init_ibuffer(RegisterBlaster &blaster, pepp::bts::Buffer::ID id, u16 offset) {}

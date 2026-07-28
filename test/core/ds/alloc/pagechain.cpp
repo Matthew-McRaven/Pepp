@@ -52,12 +52,12 @@ TEST_CASE("Validations of Buffer chain classes", "[kind:unit][arch:*][!throws][t
     const auto chain = mgr->alloc_chain();
     CHECK(chain->buffer_count() == 0);
     CHECK(mgr->allocated_buffers() == 0);
-    chain->allocate_uninitialized(BufferChain::SIZE);
+    chain->allocate_uninitialized(Buffer::SIZE);
     CHECK(chain->buffer_count() == 1);
     CHECK(mgr->allocated_buffers() == 1);
     CHECK(chain->buffer(0)->id() != Buffer::ID{0});
     CHECK(chain->successor(chain->buffer(0)->id()) == Buffer::ID{0});
-    chain->allocate_uninitialized(BufferChain::SIZE);
+    chain->allocate_uninitialized(Buffer::SIZE);
     CHECK(mgr->allocated_buffers() == 2);
     CHECK(chain->buffer_count() == 2);
     CHECK(chain->buffer(1)->id() != Buffer::ID{0});

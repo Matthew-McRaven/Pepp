@@ -25,17 +25,17 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
   SECTION("Can copy values into common registers") {
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
-    init_ibuffer(blaster, ibuff->id());
+    blaster.update_ip(ibuff->id());
     ibuff->append_packed(ldmod1lo(0x1234), halt());
 
     CHECK(blaster.csrs().L == 1);
     CHECK(blaster.csrs().M1 == 0);
     CHECK(blaster.regs().MOD1.lo == 0);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.csrs().L == 1);
     CHECK(blaster.csrs().M1 == 1);
     CHECK(blaster.regs().MOD1.lo == 0x1234);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.csrs().L == 0);
   }
 
@@ -44,7 +44,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     using M = RegisterBlaster::RegMask;
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
-    init_ibuffer(blaster, ibuff->id());
+    blaster.update_ip(ibuff->id());
     ibuff->append_packed(
         lmr_of<false>(
             std::pair{M::MOD1_LO, u16(0x1234)}, std::pair{M::ID_HI, u16(0xFEED)},
@@ -57,13 +57,13 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     CHECK(blaster.regs().MOD1.lo == 0);
     CHECK(blaster.regs().ID.hi == 0);
     CHECK(blaster.regs().DP.lo == 0);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.csrs().L == 1);
     CHECK(blaster.csrs().M1 == 1);
     CHECK(blaster.regs().MOD1.lo == 0x1234);
     CHECK(blaster.regs().ID.hi == 0xFEED);
     CHECK(blaster.regs().DP.lo == 0xBEEF);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.csrs().L == 0);
   }
 
@@ -72,16 +72,16 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     using M = RegisterBlaster::RegMask;
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
-    init_ibuffer(blaster, ibuff->id());
+    blaster.update_ip(ibuff->id());
     ibuff->append_packed(br(0x6),                                         // Branch over the load register instruction.
                          lmr_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), // Hopefully not executed.
                          halt());
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.csrs().L == 1);
     CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.csrs().L == 0);
     CHECK(blaster.regs().DP.lo != 0xBEEF);
   }
@@ -90,14 +90,14 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     using M = RegisterBlaster::RegMask;
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
-    init_ibuffer(blaster, ibuff->id());
+    blaster.update_ip(ibuff->id());
     blaster.csrs().Z = 0;
     ibuff->append_packed(breq(0x6), lmr_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), halt());
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.regs().DP.lo == 0xBEEF);
   }
 
@@ -105,14 +105,14 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     using M = RegisterBlaster::RegMask;
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
-    init_ibuffer(blaster, ibuff->id());
+    blaster.update_ip(ibuff->id());
     blaster.csrs().Z = 1;
     ibuff->append_packed(breq(0x6), lmr_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), halt());
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.execute_one());
+    REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.regs().DP.lo != 0xBEEF);
   }
 }

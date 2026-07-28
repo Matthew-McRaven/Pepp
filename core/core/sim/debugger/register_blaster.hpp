@@ -86,7 +86,8 @@ public:
 
   // Must fit into 6 bits because of the OpWord struct.
   enum class Opcode : u8 {
-    // Set L flag to 0, halting the blaster. MOD1 is cause, MOD2 is ignored.
+    // Set L flag to 0, halting the blaster and F to 0. MOD1 is cause, MOD2 is ignored.
+    // If the machine is halted and L==0 and F==1, it "hard stop". L==0 and F==0 is a "soft stop".
     // 1 Packet registers: MOD1.lo
     HALT = 0b00'0000,
     // Pop IP from SP. MOD1 and MOD2 are ignored
@@ -290,10 +291,17 @@ public:
   RegisterBlaster &operator=(const RegisterBlaster &) = delete;
   RegisterBlaster &operator=(RegisterBlaster &&) = delete;
 
+  void update_ip(pepp::bts::BufferLocation loc);
+  void update_ip(pepp::bts::Buffer::ID, u16 offset = 0);
   // Assuming some code is already under IP, try to run it!
-  void execute_one();
-  // Call execute_one in a loop until L==0.
-  void run();
+  void step();
+  // Update IP to point to loc, then call step() in a loop while L==1.
+  // Each program executed this way must terminate with a HALT.
+  // At the end of a call to run_direct, L is always 0.
+  void run_direct(pepp::bts::BufferLocation loc);
+  // For each buffer location set L=1 and call run_direct.
+  // Only stops when reacing the end of this buffer, or on "hard stop", where L==0 && F==1.
+  void run_indirect(std::span<pepp::bts::BufferLocation> locs);
   u16 register_cmp_callback(CMPCallback cb) {
     u16 id = _cmp_callbacks.size();
     _cmp_callbacks.push_back(cb);
@@ -307,9 +315,16 @@ public:
   const pepp::bts::BufferManager &mgr() const { return *_mgr; }
   pepp::bts::Buffer *ibuffer();
 
+protected:
+  void set_soft_stop();
+  void set_hard_stop();
+
 private:
   // Fetch the word under IP, increment the IP, and set the registers & flags according to the decoded opcode.
   void decode();
+  // Assuming register state is already set, execute the instruction. It is virtual so you can change execution behavior
+  // in subclasses.
+  virtual void execute();
   // Perform an LE read of 2 bytes at an offset.
   u16 read16(pepp::bts::Buffer::ID, u16 offset);
   // SP -= 4 and return the 4 bytes. IF SP would underflow stack, set L=0 and set cause in MOD1.lo
@@ -338,8 +353,6 @@ constexpr std::array<u8, 2 * (1 + sizeof...(M))> emit(M... mods) {
   return bytes;
 }
 
-// Sets
-void init_ibuffer(RegisterBlaster &blaster, pepp::bts::Buffer::ID id, u16 offset = 0);
 
 consteval void is_bitflags(RegisterBlaster::RegMask);
 consteval void is_bitflags(RegisterBlaster::ConditionCode);

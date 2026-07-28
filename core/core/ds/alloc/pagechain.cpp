@@ -11,35 +11,35 @@ void pepp::bts::BufferChain::clear() noexcept {
   _buffer_count = 0;
 }
 
-pepp::bts::BufferChain::Location pepp::bts::BufferChain::allocate_uninitialized(size_t size) {
+pepp::bts::BufferLocation pepp::bts::BufferChain::allocate_uninitialized(size_t size) {
   auto buf = tail();
   if (!buf->can_fit(size)) {
     append_buffer();
     buf = tail();
   }
   const auto off = buf->allocate_uninitialized(size);
-  return Location{buf->id(), (u16)off};
+  return BufferLocation{buf->id(), (u16)off};
 }
 
-pepp::bts::BufferChain::Location pepp::bts::BufferChain::allocate_initialized(size_t size, u8 fill) {
+pepp::bts::BufferLocation pepp::bts::BufferChain::allocate_initialized(size_t size, u8 fill) {
   auto buf = tail();
   if (!buf->can_fit(size)) {
     append_buffer();
     buf = tail();
   }
   const auto off = buf->allocate_initialized(size, fill);
-  return Location{buf->id(), (u16)off};
+  return BufferLocation{buf->id(), (u16)off};
 }
 
-pepp::bts::BufferChain::Location pepp::bts::BufferChain::append(bits::span<const u8> data, size_t byte_align,
-                                                                size_t byte_pad, u8 fill) {
+pepp::bts::BufferLocation pepp::bts::BufferChain::append(bits::span<const u8> data, size_t byte_align, size_t byte_pad,
+                                                         u8 fill) {
   auto buf = tail();
   if (!buf->can_fit(data, byte_align, byte_pad)) {
     append_buffer();
     buf = tail();
   }
   const auto off = buf->append(data, byte_align, byte_pad, fill);
-  return Location{buf->id(), (u16)off};
+  return BufferLocation{buf->id(), (u16)off};
 }
 
 u16 pepp::bts::BufferChain::buffer_count() const { return _buffer_count; }
