@@ -5,6 +5,13 @@
 #include "core/sim/system.hpp"
 #include "register_scanner.hpp"
 
+namespace {
+Operation rw_cmp{
+    .type = Operation::Type::BufferInternal,
+    .kind = Operation::Kind::data,
+};
+}
+
 RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system)
     : _mgr(mgr), _system(system) {
   if (_system) _scan = _system->register_scan();
@@ -25,7 +32,7 @@ void RegisterBlaster::step() {
     _csrs.M1 = 0, _csrs.M2 = 0;
   }
   decode();
-  execute();
+  if (_csrs.L) execute();
 }
 
 void RegisterBlaster::run_direct(pepp::bts::Buffer::Location loc) {
@@ -76,247 +83,11 @@ void RegisterBlaster::decode() {
   // Mask out low-order bit, because opcodes are naturally aligned.
   _regs.IP.lo = (_regs.IP.lo + 2 + _regs.IS.word_len * 2) & 0xFFFE;
   switch (static_cast<Opcode>(_regs.IS.ocpode)) {
-  case Opcode::HALT: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 1: soft_stop((StopCause)read16(ibp, iop + 2)); break;
-    case 0: soft_stop(); break;
-    }
-
-  } break;
-  case Opcode::RET: _regs.IP = pop(); break;
-  case Opcode::CALL: {
-    push(_regs.IP);
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 2: _regs.IP.hi = read16(ibp, iop + 2); [[fallthrough]];
-    case 1: _regs.IP.lo = read16(ibp, iop + 0);
-    case 0: break;
-    }
-  } break;
-  case Opcode::SYN: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 4: _regs.MOD2.lo = read16(ibp, iop + 6); [[fallthrough]];
-    case 3: _regs.MOD2.hi = read16(ibp, iop + 4), _csrs.M2 = 1; [[fallthrough]];
-    case 2: _regs.MOD1.lo = read16(ibp, iop + 2); [[fallthrough]];
-    case 1: _regs.MOD1.hi = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
-    case 0: break;
-    }
-  } break;
-  case Opcode::LMR: {
-    if (_regs.IS.word_len == 0) break;
-    u16 mask = read16(ibp, iop + 0);
-    u16 pos = 1;
-    while (mask != 0 && pos <= _regs.IS.word_len) {
-      // Position of lowest set bit.
-      int i = std::countr_zero(mask); // position of lowest set bit, 0..13
-      // Mask for that single bit.
-      RegMask masked = (RegMask)(1u << i);
-      mask &= mask - 1; // Clear lowest bit
-
-      u16 temp = read16(ibp, iop + pos * 2);
-      pos += 1;
-
-      switch (masked) {
-      case RegMask::IP_HI: _regs.IP.hi = temp; break;
-      case RegMask::IP_LO:
-        _regs.IP.lo = temp & 0xFFFE;
-        break; // Must mask low order bit to force IP to be word-aligned.
-      case RegMask::DP_HI: _regs.DP.hi = temp; break;
-      case RegMask::DP_LO: _regs.DP.lo = temp; break;
-      case RegMask::DS: _regs.DS = temp; break;
-      case RegMask::ACCESS: _regs.ACCESS = temp; break;
-      case RegMask::ID_HI: _regs.ID.hi = temp; break;
-      case RegMask::ID_LO: _regs.ID.lo = temp; break;
-      case RegMask::OFF_HI: _regs.OFF.hi = temp; break;
-      case RegMask::OFF_LO: _regs.OFF.lo = temp; break;
-      case RegMask::MOD1_HI: _regs.MOD1.hi = temp, _csrs.M1 = 1; break;
-      case RegMask::MOD1_LO: _regs.MOD1.lo = temp, _csrs.M1 = 1; break;
-      case RegMask::MOD2_HI: _regs.MOD2.hi = temp, _csrs.M2 = 1; break;
-      case RegMask::MOD2_LO: _regs.MOD2.lo = temp, _csrs.M2 = 1; break;
-      case RegMask::FLAGS: {
-        bool old_l = _csrs.L;
-        _csrs = Flags(temp & 0xFF);
-        _csrs.L = old_l;
-        break;
-      }
-      default: break; // Ignore unknown bits. This allows future expansion of the mask without breaking old blasters.
-      }
-    }
-  } break;
-  case Opcode::BRF: {
-    // Per opcode, set condition code F.
-    _regs.MOD1.lo = (u16)ConditionCode::F, _csrs.M1 = 1;
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 2:
-      _regs.MOD2.hi = read16(ibp, iop + 2);
-      _regs.MOD2.lo = read16(ibp, iop + 0);
-      _csrs.M2 = 1;
-      break;
-    case 1:
-      _regs.MOD2.hi = _regs.IP.hi;
-      _regs.MOD2.lo = read16(ibp, iop + 0);
-      _csrs.M2 = 1;
-      break;
-    case 0: break;
-    }
-  } break;
-  case Opcode::NOP: [[fallthrough]];
-  case Opcode::BREQ: [[fallthrough]];
-  case Opcode::BRGT: [[fallthrough]];
-  case Opcode::BRGE: [[fallthrough]];
-  case Opcode::BRLT: [[fallthrough]];
-  case Opcode::BRLE: [[fallthrough]];
-  case Opcode::BRNE: [[fallthrough]];
-  case Opcode::BR: {
-    // Per Opcode, lge bits are the lowest 3 bits, so mask is 0x7.
-    _regs.MOD1.lo = _regs.IS.ocpode & 0x7, _csrs.M1 = 1;
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 2:
-      _regs.MOD2.hi = read16(ibp, iop + 2);
-      _regs.MOD2.lo = read16(ibp, iop + 0);
-      _csrs.M2 = 1;
-      break;
-    case 1:
-      _regs.MOD2.hi = _regs.IP.hi;
-      _regs.MOD2.lo = read16(ibp, iop + 0);
-      _csrs.M2 = 1;
-      break;
-    case 0: break;
-    }
-  } break;
-  case Opcode::SETMEM: [[fallthrough]]; // Difference between SETMEM/X is in execution, not decoding
-  case Opcode::SETMEMX: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 5:
-      _regs.MOD1.lo = read16(ibp, iop + 8);
-      _regs.MOD2.hi = _regs.IP.hi;
-      _regs.MOD2.lo = iop + 10;
-      _csrs.M1 = _csrs.M2 = 1;
-      [[fallthrough]];
-    case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
-    case 3: _regs.OFF.hi = read16(ibp, iop + 4); [[fallthrough]];
-    case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
-    case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
-    case 0: break;
-    }
-  } break;
-  case Opcode::CMPMEM: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 4:
-      _regs.MOD1.lo = read16(ibp, iop + 6);
-      _regs.MOD2.hi = _regs.IP.hi;
-      _regs.MOD2.lo = iop + 8;
-      _csrs.M1 = _csrs.M2 = 1;
-      [[fallthrough]];
-    case 3: _regs.OFF.lo = read16(ibp, iop + 4); [[fallthrough]];
-    case 2: _regs.OFF.hi = read16(ibp, iop + 2); [[fallthrough]];
-    case 1: _regs.ID.lo = read16(ibp, iop + 0), _csrs.TR = 0; [[fallthrough]];
-    case 0: break;
-    }
-  } break;
-  case Opcode::CLRMEM: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
-    case 1: _regs.MOD1.lo = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
-    case 0: break;
-    }
-  } break;
-  case Opcode::SETREG: [[fallthrough]]; // Difference between SETREG/X is in execution, not decoding
-  case Opcode::SETREGX: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 4:
-      _regs.MOD1.lo = read16(ibp, iop + 6);
-      _regs.MOD2.hi = _regs.IP.hi;
-      _regs.MOD2.lo = iop + 8;
-      _csrs.M1 = _csrs.M2 = 1;
-      [[fallthrough]];
-    case 3: _regs.ID.lo = read16(ibp, iop + 4); [[fallthrough]];
-    case 2: _regs.ID.hi = read16(ibp, iop + 2), _csrs.TR = 1; [[fallthrough]];
-    case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
-    case 0: break;
-    }
-  } break;
-  case Opcode::CMPREG: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 3:
-      _regs.MOD1.lo = read16(ibp, iop + 4);
-      _regs.MOD2.hi = _regs.IP.hi;
-      _regs.MOD2.lo = iop + 6;
-      _csrs.M1 = _csrs.M2 = 1;
-      [[fallthrough]];
-    case 2: _regs.ID.lo = read16(ibp, iop + 2); [[fallthrough]];
-    case 1: _regs.ID.hi = read16(ibp, iop + 0), _csrs.TR = 1; [[fallthrough]];
-    case 0: break;
-    }
-  } break;
-  case Opcode::CLRREG: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 2: _regs.ID.lo = read16(ibp, iop + 2); [[fallthrough]];
-    case 1: _regs.ID.hi = read16(ibp, iop + 0), _csrs.TR = 1; [[fallthrough]];
-    case 0: break;
-    }
-  } break;
-  case Opcode::TRADDR: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 7: _regs.DS = read16(ibp, iop + 12); [[fallthrough]];
-    case 6: _regs.DP.lo = read16(ibp, iop + 10); [[fallthrough]];
-    case 5: _regs.DP.hi = read16(ibp, iop + 8); [[fallthrough]];
-    case 4: _regs.ID.hi = read16(ibp, iop + 6); [[fallthrough]];
-    case 3: _regs.OFF.lo = read16(ibp, iop + 4); [[fallthrough]];
-    case 2: _regs.OFF.hi = read16(ibp, iop + 2); [[fallthrough]];
-    case 1: _regs.ID.lo = read16(ibp, iop + 0), _csrs.TR = 0; [[fallthrough]];
-    case 0: break;
-    }
-  }
-  case Opcode::LDP: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 3: _regs.DP.hi = read16(ibp, iop + 4); [[fallthrough]];
-    case 2: _regs.DS = read16(ibp, iop + 2); [[fallthrough]];
-    case 1: _regs.DP.lo = read16(ibp, iop + 0); [[fallthrough]];
-    case 0: break;
-    }
-  } break;
-  case Opcode::ACCDP: {
-    u16 old_ds = 0;
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 1:
-      old_ds = _regs.DS;
-      _regs.DS = read16(ibp, iop + 0);
-      [[fallthrough]];
-    case 0: _regs.DP.lo += old_ds;
-    }
-  } break;
-  case Opcode::INCDP: {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 2: _regs.DS = read16(ibp, iop + 2);
-    case 1: _regs.DP.lo += read16(ibp, iop + 0);
-    case 0: break;
-    }
-  } break;
-    // Treat unrecognized upcodes as hard failures.
-  default: hard_stop(StopCause::IllegalOpcode); break;
-  }
-}
-
-void RegisterBlaster::execute() {
-  using namespace tvm;
-  // For instructions which don't just program registers, insert their behaviors here
-  switch (static_cast<Opcode>(_regs.IS.ocpode)) {
-
+  case Opcode::HALT: _decoded = decode_halt(ibp, iop); break;
+  case Opcode::RET: _decoded = decode_ret(ibp, iop); break;
+  case Opcode::CALL: _decoded = decode_call(ibp, iop); break;
+  case Opcode::SYN: _decoded = decode_syn(ibp, iop); break;
+  case Opcode::LMR: _decoded = decode_lmr(ibp, iop); break;
   case Opcode::BRF: [[fallthrough]];
   case Opcode::NOP: [[fallthrough]];
   case Opcode::BREQ: [[fallthrough]];
@@ -325,34 +96,443 @@ void RegisterBlaster::execute() {
   case Opcode::BRLT: [[fallthrough]];
   case Opcode::BRLE: [[fallthrough]];
   case Opcode::BRNE: [[fallthrough]];
-  case Opcode::BR: {
-    using namespace bits;
-    using CC = tvm::ConditionCode;
-    const u16 cc = _regs.MOD1.lo & (u16)CC::MASK;
-    const bool pass_e = _csrs.Z && (cc & (u16)CC::E);
-    const bool pass_l = _csrs.N && (cc & (u16)CC::L);
-    const bool pass_g = !_csrs.N && !_csrs.Z && (cc & (u16)CC::G);
-    const bool pass_f = _csrs.F && (cc & (u16)CC::F);
-    const bool taken = pass_e | pass_l | pass_g | pass_f;
-    if (taken & _csrs.M2) {
-      _regs.IP.lo = (_regs.IP.lo + _regs.MOD2.lo) & 0xFFFE;
-      _regs.IP.hi = _regs.MOD2.hi;
-    }
-  } break;
-  // TODO: handle calls into system!
-  // case Opcode::SETMEM:
-  // case Opcode::SETMEMX:
-  // case Opcode::SETREG:
-  // case Opcode::SETREGX:
-  case Opcode::CMPMEM: return execute_cmpmem();
-  case Opcode::CMPREG: return execute_cmpreg();
-  // case Opcode::CLRMEM:
-  // case Opcode::CLRREG:
-  default: break;
+  case Opcode::BR: _decoded = decode_br(ibp, iop); break;
+  case Opcode::SETMEM: [[fallthrough]]; // Difference between SETMEM/X is in execution, not decoding
+  case Opcode::SETMEMX: _decoded = decode_setmem(ibp, iop); break;
+  case Opcode::CMPMEM: _decoded = decode_cmpmem(ibp, iop); break;
+  case Opcode::CLRMEM: _decoded = decode_clrmem(ibp, iop); break;
+  case Opcode::SETREG: [[fallthrough]]; // Difference between SETREG/X is in execution, not decoding
+  case Opcode::SETREGX: _decoded = decode_setreg(ibp, iop); break;
+  case Opcode::CMPREG: _decoded = decode_cmpreg(ibp, iop); break;
+  case Opcode::CLRREG: _decoded = decode_clrreg(ibp, iop); break;
+  case Opcode::TRADDR: _decoded = decode_traddr(ibp, iop); break;
+  case Opcode::LDP: _decoded = decode_ldp(ibp, iop); break;
+  case Opcode::ACCDP: _decoded = decode_accdp(ibp, iop); break;
+  case Opcode::INCDP: _decoded = decode_incdp(ibp, iop); break;
+  default: hard_stop(StopCause::IllegalOpcode); break; // Treat unrecognized upcodes as hard failures.
   }
 }
 
-void RegisterBlaster::execute_cmpreg() {
+tvm::DecodedOp::Halt RegisterBlaster::decode_halt(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::Halt ret;
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 1: ret.cause = (tvm::StopCause)read16(ibp, iop + 2); break;
+  case 0: ret.cause = tvm::StopCause::None; break;
+  }
+  return ret;
+}
+
+tvm::DecodedOp::Ret RegisterBlaster::decode_ret(pepp::bts::Buffer::ID ibp, u16 iop) {
+  // No-op for decoding, since all data is passed on stack.
+  return {};
+}
+
+tvm::DecodedOp::Call RegisterBlaster::decode_call(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::Call ret;
+  ret.next_ip.hi = _regs.IP.hi, ret.next_ip.lo = iop + 0;
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 2: ret.next_ip.hi = read16(ibp, iop + 2); [[fallthrough]];
+  case 1: ret.next_ip.lo = read16(ibp, iop + 0);
+  case 0: break;
+  }
+  return ret;
+}
+
+tvm::DecodedOp::Syn RegisterBlaster::decode_syn(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::Syn ret;
+  // TODO: switching to immediate vs DP data
+  /*switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 4: _regs.MOD1.lo = read16(ibp, iop + 6); [[fallthrough]];
+  case 3: ret.timestamp_hi.hi = read16(ibp, iop + 4), _csrs.[[fallthrough]];
+  case 2: ret.timestamp_lo.lo = read16(ibp, iop + 2); [[fallthrough]];
+  case 1: ret.timestamp_lo.hi = read16(ibp, iop + 0), ret.has_lo = true; [[fallthrough]];
+  case 0: break;
+  }*/
+  return ret;
+}
+
+tvm::DecodedOp::LMR RegisterBlaster::decode_lmr(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::LMR ret;
+  if (_regs.IS.word_len == 0) return ret;
+  ret.mask = (tvm::RegMask)read16(ibp, iop + 0);
+  auto count = _regs.IS.word_len - 1;
+  auto buf = _mgr->find(ibp);
+  if (buf == nullptr) return ret;
+  ret.data = buf->span().subspan(iop + 2, count * 2);
+  return ret;
+}
+
+tvm::DecodedOp::BR RegisterBlaster::decode_br(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::BR ret;
+  // Select condition code base on the original opcode.
+  if (_regs.IS.ocpode == (u8)tvm::Opcode::BRF) ret.condition = tvm::ConditionCode::F;
+  else ret.condition = (tvm::ConditionCode)(_regs.IS.ocpode & 0x7);
+  _regs.MOD1.lo = (u16)ret.condition, _csrs.M1 = 1;
+
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 2:
+    ret.displacement.hi = read16(ibp, iop + 2);
+    ret.displacement.lo = read16(ibp, iop + 0);
+    _regs.MOD2 = ret.displacement, _csrs.M2 = 1;
+    break;
+  case 1:
+    ret.displacement.hi = _regs.IP.hi;
+    ret.displacement.lo = read16(ibp, iop + 0);
+    _regs.MOD2 = ret.displacement, _csrs.M2 = 1;
+    break;
+  case 0:
+    ret.displacement.hi = _regs.IP.hi;
+    ret.displacement.lo = iop + 0;
+    break;
+  }
+  return ret;
+}
+
+tvm::DecodedOp::SetMem RegisterBlaster::decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::SetMem ret;
+  ret.xor_encoded = (_regs.IS.ocpode == (u8)tvm::Opcode::SETMEMX);
+  // Unless (5) is provided, data is DP relative rather than immediate
+  ret.data = _regs.DP;
+  ret.size = _regs.DS;
+
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 5:
+    // If MOD1/MOD2 are set, then read from them rather than the data registers.
+    // This allows "immediate" versions to avoid clobbering DP regs.
+    _regs.MOD1.lo = read16(ibp, iop + 8);
+    _regs.MOD2.hi = _regs.IP.hi;
+    _regs.MOD2.lo = iop + 10;
+    _csrs.M1 = _csrs.M2 = 1;
+    ret.data = _regs.MOD2;
+    ret.size = _regs.MOD1.lo;
+    [[fallthrough]];
+  case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
+  case 3: _regs.OFF.hi = read16(ibp, iop + 4); [[fallthrough]];
+  case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
+  case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
+  }
+  ret.access = _regs.ACCESS;
+  ret.target = (Device::ID)_regs.ID.lo;
+  ret.offset = _regs.OFF.as_u32();
+  return ret;
+}
+
+tvm::DecodedOp::CmpMem RegisterBlaster::decode_cmpmem(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::CmpMem ret;
+  // Unless (4) is provided, data is DP relative rather than immediate
+  ret.data = _regs.DP;
+  ret.size = _regs.DS;
+
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 4:
+    // If MOD1/MOD2 are set, then read from them rather than the data registers.
+    // This allows "immediate" versions to avoid clobbering DP regs.
+    _regs.MOD1.lo = read16(ibp, iop + 6);
+    _regs.MOD2.hi = _regs.IP.hi;
+    _regs.MOD2.lo = iop + 8;
+    _csrs.M1 = _csrs.M2 = 1;
+    ret.data = _regs.MOD2;
+    ret.size = _regs.MOD1.lo;
+    [[fallthrough]];
+  case 3: _regs.OFF.lo = read16(ibp, iop + 4); [[fallthrough]];
+  case 2: _regs.OFF.hi = read16(ibp, iop + 2); [[fallthrough]];
+  case 1: _regs.ID.lo = read16(ibp, iop + 0), _csrs.TR = 0; [[fallthrough]];
+  case 0: break;
+  }
+  ret.target = (Device::ID)_regs.ID.lo;
+  ret.offset = _regs.OFF.as_u32();
+  return ret;
+}
+
+tvm::DecodedOp::ClrMem RegisterBlaster::decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::ClrMem ret;
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
+  case 1: _regs.MOD1.lo = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
+  case 0: break;
+  }
+  ret.target = (Device::ID)_regs.ID.lo;
+  ret.data = (u8)_regs.MOD1.lo;
+  return ret;
+}
+
+tvm::DecodedOp::SetReg RegisterBlaster::decode_setreg(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::SetReg ret;
+  ret.xor_encoded = (_regs.IS.ocpode == (u8)tvm::Opcode::SETREGX);
+  // Unless (4) is provided, data is DP relative rather than immediate
+  ret.data = _regs.DP;
+  ret.size = _regs.DS;
+
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 4:
+    // If MOD1/MOD2 are set, then read from them rather than the data registers.
+    // This allows "immediate" versions to avoid clobbering DP regs.
+    _regs.MOD1.lo = read16(ibp, iop + 6);
+    _regs.MOD2.hi = _regs.IP.hi;
+    _regs.MOD2.lo = iop + 8;
+    _csrs.M1 = _csrs.M2 = 1;
+    ret.data = _regs.MOD2;
+    ret.size = _regs.MOD1.lo;
+    [[fallthrough]];
+  case 3: _regs.ID.lo = read16(ibp, iop + 4); [[fallthrough]];
+  case 2: _regs.ID.hi = read16(ibp, iop + 2), _csrs.TR = 1; [[fallthrough]];
+  case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
+  }
+  ret.access = _regs.ACCESS;
+  ret.reg = RegisterScan::RegisterRef{RegisterScan::Register::ID{_regs.ID.hi},
+                                      RegisterScan::Register::Field::ID{_regs.ID.lo}};
+  return ret;
+}
+
+tvm::DecodedOp::CmpReg RegisterBlaster::decode_cmpreg(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::CmpReg ret;
+  // Unless (3) is provided, data is DP relative rather than immediate
+  ret.data = _regs.DP;
+  ret.size = _regs.DS;
+
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 3:
+    // If MOD1/MOD2 are set, then read from them rather than the data registers.
+    // This allows "immediate" versions to avoid clobbering DP regs.
+    _regs.MOD1.lo = read16(ibp, iop + 4);
+    _regs.MOD2.hi = _regs.IP.hi;
+    _regs.MOD2.lo = iop + 6;
+    _csrs.M1 = _csrs.M2 = 1;
+    ret.data = _regs.MOD2;
+    ret.size = _regs.MOD1.lo;
+    [[fallthrough]];
+  case 2: _regs.ID.lo = read16(ibp, iop + 2); [[fallthrough]];
+  case 1: _regs.ID.hi = read16(ibp, iop + 0), _csrs.TR = 1; [[fallthrough]];
+  case 0: break;
+  }
+  ret.reg = RegisterScan::RegisterRef{RegisterScan::Register::ID{_regs.ID.hi},
+                                      RegisterScan::Register::Field::ID{_regs.ID.lo}};
+  return ret;
+}
+
+tvm::DecodedOp::ClrReg RegisterBlaster::decode_clrreg(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::ClrReg ret;
+
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 2: _regs.ID.lo = read16(ibp, iop + 2); [[fallthrough]];
+  case 1: _regs.ID.hi = read16(ibp, iop + 0), _csrs.TR = 1; [[fallthrough]];
+  case 0: break;
+  }
+  ret.reg = RegisterScan::RegisterRef{RegisterScan::Register::ID{_regs.ID.hi},
+                                      RegisterScan::Register::Field::ID{_regs.ID.lo}};
+  return ret;
+}
+
+tvm::DecodedOp::TRADDR RegisterBlaster::decode_traddr(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::TRADDR ret;
+  {
+    switch (_regs.IS.word_len) {
+    default: [[fallthrough]];
+    case 8: _regs.MOD1.hi = read16(ibp, iop + 14); [[fallthrough]];
+    case 7: _regs.MOD1.lo = read16(ibp, iop + 12), _csrs.M1 = 1; [[fallthrough]];
+    case 6: _regs.MOD2.lo = read16(ibp, iop + 10); [[fallthrough]];
+    case 5: _regs.MOD2.hi = read16(ibp, iop + 8), _csrs.M2 = 1; [[fallthrough]];
+    case 4: _regs.ID.hi = read16(ibp, iop + 6); [[fallthrough]];
+    case 3: _regs.OFF.lo = read16(ibp, iop + 4); [[fallthrough]];
+    case 2: _regs.OFF.hi = read16(ibp, iop + 2); [[fallthrough]];
+    case 1: _regs.ID.lo = read16(ibp, iop + 0), _csrs.TR = 0; [[fallthrough]];
+    case 0: break;
+    }
+  }
+  ret.target = (Device::ID)_regs.ID.lo;
+  ret.target_offset = _regs.OFF.as_u32();
+  ret.source = (Device::ID)_regs.ID.hi;
+  ret.source_offset = _regs.MOD2.as_u32();
+  ret.size = _regs.MOD1.as_u32();
+  return ret;
+}
+
+tvm::DecodedOp::LDP RegisterBlaster::decode_ldp(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::LDP ret;
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 3: _regs.DP.hi = read16(ibp, iop + 4); [[fallthrough]];
+  case 2: _regs.DS = read16(ibp, iop + 2); [[fallthrough]];
+  case 1: _regs.DP.lo = read16(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
+  }
+  return ret;
+}
+
+tvm::DecodedOp::DPIncr RegisterBlaster::decode_accdp(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::DPIncr ret;
+  ret.DS = ret.dp_incr = _regs.DS;
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 1: ret.DS = read16(ibp, iop + 0);
+  case 0: break;
+  }
+  return ret;
+}
+
+tvm::DecodedOp::DPIncr RegisterBlaster::decode_incdp(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::DPIncr ret;
+  ret.DS = _regs.DS;
+  ret.dp_incr = 0;
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 2: ret.DS = read16(ibp, iop + 2);
+  case 1: ret.dp_incr = read16(ibp, iop + 0);
+  case 0: break;
+  }
+  return ret;
+}
+
+void RegisterBlaster::execute() {
+  using namespace tvm;
+  // For instructions which don't just program registers, insert their behaviors here
+  switch (static_cast<Opcode>(_regs.IS.ocpode)) {
+  case Opcode::HALT: return execute_halt(std::get<tvm::DecodedOp::Halt>(_decoded));
+  case Opcode::RET: return execute_ret(std::get<tvm::DecodedOp::Ret>(_decoded));
+  case Opcode::CALL: return execute_call(std::get<tvm::DecodedOp::Call>(_decoded));
+  case Opcode::SYN: return execute_syn(std::get<tvm::DecodedOp::Syn>(_decoded));
+  case Opcode::LMR: return execute_lmr(std::get<tvm::DecodedOp::LMR>(_decoded));
+  case Opcode::BRF: [[fallthrough]];
+  case Opcode::NOP: [[fallthrough]];
+  case Opcode::BREQ: [[fallthrough]];
+  case Opcode::BRGT: [[fallthrough]];
+  case Opcode::BRGE: [[fallthrough]];
+  case Opcode::BRLT: [[fallthrough]];
+  case Opcode::BRLE: [[fallthrough]];
+  case Opcode::BRNE: [[fallthrough]];
+  case Opcode::BR: return execute_br(std::get<tvm::DecodedOp::BR>(_decoded));
+  case Opcode::SETMEM: [[fallthrough]]; // Difference between SETMEM/X is in execution, not decoding
+  case Opcode::SETMEMX: return execute_setmem(std::get<tvm::DecodedOp::SetMem>(_decoded));
+  case Opcode::CMPMEM: return execute_cmpmem(std::get<tvm::DecodedOp::CmpMem>(_decoded));
+  case Opcode::CLRMEM: return execute_clrmem(std::get<tvm::DecodedOp::ClrMem>(_decoded));
+  case Opcode::SETREG: [[fallthrough]]; // Difference between SETREG/X is in execution, not decoding
+  case Opcode::SETREGX: return execute_setreg(std::get<tvm::DecodedOp::SetReg>(_decoded));
+  case Opcode::CMPREG: return execute_cmpreg(std::get<tvm::DecodedOp::CmpReg>(_decoded));
+  case Opcode::CLRREG: return execute_clrreg(std::get<tvm::DecodedOp::ClrReg>(_decoded));
+  case Opcode::TRADDR: return execute_traddr(std::get<tvm::DecodedOp::TRADDR>(_decoded));
+  case Opcode::LDP: return execute_ldp(std::get<tvm::DecodedOp::LDP>(_decoded));
+  case Opcode::ACCDP: [[fallthrough]];
+  case Opcode::INCDP: return execute_dpincr(std::get<tvm::DecodedOp::DPIncr>(_decoded));
+  default: hard_stop(StopCause::IllegalOpcode); break;
+  }
+}
+
+void RegisterBlaster::execute_halt(tvm::DecodedOp::Halt op) { soft_stop(op.cause); }
+
+void RegisterBlaster::execute_ret(tvm::DecodedOp::Ret) { _regs.IP = pop(); }
+
+void RegisterBlaster::execute_call(tvm::DecodedOp::Call op) {
+  push(_regs.IP);
+  _regs.IP = op.next_ip;
+}
+
+void RegisterBlaster::execute_syn(tvm::DecodedOp::Syn op) {}
+
+void RegisterBlaster::execute_lmr(tvm::DecodedOp::LMR op) {
+  using namespace tvm;
+  u16 mask = (u16)op.mask;
+  auto pos = 0;
+  while (mask != 0 && pos < op.word_count()) {
+    // Position of lowest set bit.
+    int i = std::countr_zero(mask); // position of lowest set bit, 0..13
+    // Mask for that single bit.
+    RegMask masked = (RegMask)(1u << i);
+    mask &= mask - 1; // Clear lowest bit
+
+    u16 temp = op.word(pos++);
+
+    switch (masked) {
+    case RegMask::IP_HI: _regs.IP.hi = temp; break;
+    case RegMask::IP_LO: _regs.IP.lo = temp & 0xFFFE; break; // Must mask low order bit to force IP to be word-aligned.
+    case RegMask::DP_HI: _regs.DP.hi = temp; break;
+    case RegMask::DP_LO: _regs.DP.lo = temp; break;
+    case RegMask::DS: _regs.DS = temp; break;
+    case RegMask::ACCESS: _regs.ACCESS = temp; break;
+    case RegMask::ID_HI: _regs.ID.hi = temp; break;
+    case RegMask::ID_LO: _regs.ID.lo = temp; break;
+    case RegMask::OFF_HI: _regs.OFF.hi = temp; break;
+    case RegMask::OFF_LO: _regs.OFF.lo = temp; break;
+    case RegMask::MOD1_HI: _regs.MOD1.hi = temp, _csrs.M1 = 1; break;
+    case RegMask::MOD1_LO: _regs.MOD1.lo = temp, _csrs.M1 = 1; break;
+    case RegMask::MOD2_HI: _regs.MOD2.hi = temp, _csrs.M2 = 1; break;
+    case RegMask::MOD2_LO: _regs.MOD2.lo = temp, _csrs.M2 = 1; break;
+    case RegMask::FLAGS: {
+      bool old_l = _csrs.L;
+      _csrs = Flags(temp & 0xFF);
+      _csrs.L = old_l;
+      break;
+    }
+    default: break; // Ignore unknown bits. This allows future expansion of the mask without breaking old blasters.
+    }
+  }
+}
+
+void RegisterBlaster::execute_br(tvm::DecodedOp::BR op) {
+  using namespace bits;
+  using CC = tvm::ConditionCode;
+  const u16 cc = ((u16)op.condition) & (u16)CC::MASK;
+  const bool pass_e = _csrs.Z && (cc & (u16)CC::E);
+  const bool pass_l = _csrs.N && (cc & (u16)CC::L);
+  const bool pass_g = !_csrs.N && !_csrs.Z && (cc & (u16)CC::G);
+  const bool pass_f = _csrs.F && (cc & (u16)CC::F);
+  const bool taken = pass_e | pass_l | pass_g | pass_f;
+  if (taken) {
+    _regs.IP.hi = op.displacement.hi;
+    _regs.IP.lo = (_regs.IP.lo + op.displacement.lo) & 0xFFFE;
+  }
+}
+
+void RegisterBlaster::execute_setmem(tvm::DecodedOp::SetMem op) {
+  throw std::runtime_error("SETMEM execution not implemented");
+}
+
+void RegisterBlaster::execute_cmpmem(tvm::DecodedOp::CmpMem op) {
+  using StopCause = tvm::StopCause;
+  // Not in register mode or there is no system. Either way, comparsion will fail.
+  if (_csrs.TR == 1) return hard_stop(StopCause::WrongTR);
+  else if (_system == nullptr) return hard_stop(StopCause::MissingSystem);
+
+  // Attempt to convert our ID to a target;
+  auto dev = _system->find_by_id(op.target);
+  if (!dev) return hard_stop(StopCause::TargetInvalid);
+  auto target = dev->capability<Target>();
+  if (!target) return hard_stop(StopCause::TargetNotMemory);
+
+  if (_tmp.size() < op.size) _tmp.resize(op.size);
+  bits::span<u8> actual(_tmp.data(), op.size);
+  auto dbuff = _mgr->find((pepp::bts::Buffer::ID)op.data.hi);
+  if (!dbuff) return hard_stop(StopCause::InvalidDBuffer);
+  auto expected = dbuff->span().subspan(op.data.lo, op.size);
+  if (actual.size() != expected.size()) return hard_stop(StopCause::RegisterSizeMismatch);
+  target->read(op.offset, actual, rw_cmp);
+  auto cmp = std::memcmp(actual.data(), expected.data(), op.size);
+  // Set conditions according to memcmp result.
+  if (cmp == 0) _csrs.Z = 1, _csrs.N = 0;
+  else if (cmp < 0) _csrs.Z = 0, _csrs.N = 1;
+  else _csrs.Z = 0, _csrs.N = 0;
+}
+
+void RegisterBlaster::execute_clrmem(tvm::DecodedOp::ClrMem op) {
+  throw std::runtime_error("CLRMEM execution not implemented");
+}
+
+void RegisterBlaster::execute_setreg(tvm::DecodedOp::SetReg op) {
+  throw std::runtime_error("SETREG execution not implemented");
+}
+
+void RegisterBlaster::execute_cmpreg(tvm::DecodedOp::CmpReg op) {
   using StopCause = tvm::StopCause;
   using R = RegisterScan;
   // Not in register mode or there is no system. Either way, comparsion will fail.
@@ -360,47 +540,36 @@ void RegisterBlaster::execute_cmpreg() {
   else if (_scan == nullptr) return hard_stop(StopCause::MissingSystem);
 
   // Attempt to convert our ID registers
-  R::RegisterRef reg_ref{R::Register::ID{_regs.ID.hi}, R::Register::Field::ID{_regs.ID.lo}};
-  auto pair = _scan->resolve(reg_ref);
+  auto pair = _scan->resolve(op.reg);
   if (pair.first == nullptr) return hard_stop(StopCause::RegisterInvalid);
   // Manually unpack to make debugging easier.
   auto reg = pair.first;
   auto field = pair.second;
 
-  // If MOD1/MOD2 are set, then read from them rather than the data registers.
-  // This allows "immediate" versions to avoid clobbering DP regs.
-  auto eds = _regs.DS;
-  auto edp = _regs.DP;
-  if (_csrs.M1 && _csrs.M2) {
-    eds = _regs.MOD1.lo;
-    edp.hi = _regs.MOD2.hi;
-    edp.lo = _regs.MOD2.lo;
-  }
-
   // Whole-register comparison.
   if (field == nullptr) {
     // If size mismatch, then we would have to do a partial comparison.
     // That sounds annoying, so skip.
-    if (reg->byte_width != eds) return hard_stop(StopCause::RegisterSizeMismatch);
+    if (reg->byte_width != op.size) return hard_stop(StopCause::RegisterSizeMismatch);
     switch (reg->byte_width) {
     case 1: {
-      u8 actual = _scan->read<u8>(reg_ref);
-      u8 expected = read16((pepp::bts::Buffer::ID)edp.hi, edp.lo) & 0xff;
+      u8 actual = _scan->read<u8>(op.reg);
+      u8 expected = read16((pepp::bts::Buffer::ID)op.data.hi, op.data.lo) & 0xff;
       if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
       else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
       else _csrs.Z = 0, _csrs.N = 0;
     } break;
     case 2: {
-      u16 actual = _scan->read<u16>(reg_ref);
-      u16 expected = read16((pepp::bts::Buffer::ID)edp.hi, edp.lo);
+      u16 actual = _scan->read<u16>(op.reg);
+      u16 expected = read16((pepp::bts::Buffer::ID)op.data.hi, op.data.lo);
       if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
       else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
       else _csrs.Z = 0, _csrs.N = 0;
     } break;
     case 4: {
-      u32 actual = _scan->read<u32>(reg_ref);
-      u16 expected_hi = read16((pepp::bts::Buffer::ID)edp.hi, edp.lo);
-      u16 expected_lo = read16((pepp::bts::Buffer::ID)edp.hi, edp.lo + 2);
+      u32 actual = _scan->read<u32>(op.reg);
+      u16 expected_hi = read16((pepp::bts::Buffer::ID)op.data.hi, op.data.lo);
+      u16 expected_lo = read16((pepp::bts::Buffer::ID)op.data.hi, op.data.lo + 2);
       u32 expected = (static_cast<u32>(expected_hi) << 16) | expected_lo;
       if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
       else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
@@ -413,47 +582,21 @@ void RegisterBlaster::execute_cmpreg() {
   }
 }
 
-namespace {
-Operation rw_cmp{
-    .type = Operation::Type::BufferInternal,
-    .kind = Operation::Kind::data,
-};
+void RegisterBlaster::execute_clrreg(tvm::DecodedOp::ClrReg op) {
+  throw std::runtime_error("CLRREG execution not implemented");
 }
-void RegisterBlaster::execute_cmpmem() {
-  using StopCause = tvm::StopCause;
-  // Not in register mode or there is no system. Either way, comparsion will fail.
-  if (_csrs.TR == 1) return hard_stop(StopCause::WrongTR);
-  else if (_system == nullptr) return hard_stop(StopCause::MissingSystem);
 
-  // If MOD1/MOD2 are set, then read from them rather than the data registers.
-  // This allows "immediate" versions to avoid clobbering DP regs.
-  auto eds = _regs.DS;
-  auto edp = _regs.DP;
-  if (_csrs.M1 && _csrs.M2) {
-    eds = _regs.MOD1.lo;
-    edp.hi = _regs.MOD2.hi;
-    edp.lo = _regs.MOD2.lo;
-  }
+void RegisterBlaster::execute_traddr(tvm::DecodedOp::TRADDR op) {
+  throw std::runtime_error("TRADDR execution not implemented");
+}
 
-  // Attempt to convert our ID to a target;
-  auto id = Device::ID{static_cast<u8>(_regs.ID.lo)};
-  auto dev = _system->find_by_id(id);
-  if (!dev) return hard_stop(StopCause::TargetInvalid);
-  auto target = dev->capability<Target>();
-  if (!target) return hard_stop(StopCause::TargetNotMemory);
+void RegisterBlaster::execute_ldp(tvm::DecodedOp::LDP) {
+  // No-op, since this is just a stupid register copy.
+}
 
-  if (_tmp.size() < eds) _tmp.resize(eds);
-  bits::span<u8> actual(_tmp.data(), eds);
-  auto dbuff = _mgr->find((pepp::bts::Buffer::ID)edp.hi);
-  if (!dbuff) return hard_stop(StopCause::InvalidDBuffer);
-  auto expected = dbuff->span().subspan(edp.lo, eds);
-  if (actual.size() != expected.size()) return hard_stop(StopCause::RegisterSizeMismatch);
-  target->read(_regs.OFF.as_u32(), actual, rw_cmp);
-  auto cmp = std::memcmp(actual.data(), expected.data(), eds);
-  // Set conditions according to memcmp result.
-  if (cmp == 0) _csrs.Z = 1, _csrs.N = 0;
-  else if (cmp < 0) _csrs.Z = 0, _csrs.N = 1;
-  else _csrs.Z = 0, _csrs.N = 0;
+void RegisterBlaster::execute_dpincr(tvm::DecodedOp::DPIncr op) {
+  _regs.DS = op.DS;
+  _regs.DP.lo += op.dp_incr;
 }
 
 u16 RegisterBlaster::read16(pepp::bts::Buffer::ID id, u16 offset) {
