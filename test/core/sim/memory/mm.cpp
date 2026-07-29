@@ -20,10 +20,7 @@
 
 namespace {
 auto base_desc = Device::Configuration{.basename = "dev", .fullname = "/dev"};
-auto op = Operation{
-    .type = Operation::Type::Standard,
-    .kind = Operation::Kind::data,
-};
+const auto op = Operation{Operation::Type::Standard, Operation::Kind::data};
 
 } // namespace
 

@@ -21,10 +21,7 @@
 #include "core/sim/system.hpp"
 
 namespace {
-auto rw = Operation{
-    .type = Operation::Type::Standard,
-    .kind = Operation::Kind::data,
-};
+const auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
 
 auto d1 = Dense::Configuration{{.basename = "d1", .fullname = "/bus0/d1"}, 0, AddressSpan(0, 1)};
 auto d2 = Dense::Configuration{{.basename = "d2", .fullname = "/bus0/d2"}, 0, AddressSpan(0, 1)};

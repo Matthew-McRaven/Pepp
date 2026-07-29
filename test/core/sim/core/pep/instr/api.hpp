@@ -30,7 +30,7 @@ inline auto make_cpu(PepISA3CPU::ISA isa = PepISA3CPU::ISA::Pep10) {
   return std::make_tuple(std::move(system), mem, cpu);
 }
 
-static const Operation rw{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
+static const Operation rw{Operation::Type::Standard, Operation::Kind::data};
 
 static inline u16 reg(PepISA3CPU *cpu, isa::Pep10::Register reg) { return cpu->read_register(reg); };
 

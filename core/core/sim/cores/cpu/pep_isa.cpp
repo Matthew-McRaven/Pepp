@@ -11,7 +11,7 @@
 
 namespace {
 static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
-static const Operation rw_d{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
+static const Operation rw_d{Operation::Type::Standard, Operation::Kind::data};
 
 static const std::unordered_map<std::string, PepISA3CPU::ISA, pepp::bts::ci_hash, pepp::bts::ci_eq> map_str_to_isa = {
     {"pep8", PepISA3CPU::ISA::Pep8}, {"pep9", PepISA3CPU::ISA::Pep9}, {"pep10", PepISA3CPU::ISA::Pep10}};

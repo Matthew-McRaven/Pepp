@@ -19,7 +19,7 @@ void native_tgt_read16(Interpreter *interp) {
   if (!casted) throw std::runtime_error("Object is not a device object");
   auto tgt = casted->dev->capability<Target>();
   if (!tgt) throw std::runtime_error("Device is not a target device");
-  tgt->read(tgt_src, dst, {.type = Operation::Type::BufferInternal, .kind = Operation::Kind::data});
+  tgt->read(tgt_src, dst, {Operation::Type::BufferInternal, Operation::Kind::data});
 }
 inline static const NativeOpcode TgtRead16{
     .stack_delta = -8,
@@ -40,7 +40,7 @@ void native_tgt_write16(Interpreter *interp) {
   if (!casted) throw std::runtime_error("Object is not a device object");
   auto tgt = casted->dev->capability<Target>();
   if (!tgt) throw std::runtime_error("Device is not a target device");
-  tgt->write(tgt_dst, src, {.type = Operation::Type::BufferInternal, .kind = Operation::Kind::data});
+  tgt->write(tgt_dst, src, {Operation::Type::BufferInternal, Operation::Kind::data});
 }
 inline static const NativeOpcode TgtWrite16{
     .stack_delta = -8,

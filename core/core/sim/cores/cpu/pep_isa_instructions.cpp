@@ -3,7 +3,7 @@
 #include "core/sim/memory/ram/dense.hpp"
 
 namespace {
-static const Operation rw_d{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
+static const Operation rw_d(Operation::Type::Standard, Operation::Kind::data);
 } // namespace
 
 u8 pack_csr(bool n, bool z, bool v, bool c) {

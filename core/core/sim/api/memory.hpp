@@ -62,9 +62,18 @@ struct Operation {
     Standard = 0,
   } type = Type::Standard;
   enum class Kind : bool { instruction = false, data = true } kind;
+
+  constexpr u8 as_u8() const noexcept { return (static_cast<u8>(type) << 4) | static_cast<u8>(kind); }
+  constexpr Operation() noexcept = default;
+  constexpr Operation(Type type, Kind kind) noexcept : type(type), kind(kind) {}
+  constexpr Operation(const Operation &) noexcept = default;
+  constexpr Operation &operator=(const Operation &) noexcept = default;
+  constexpr Operation(Operation &&) noexcept = default;
+  constexpr Operation &operator=(Operation &&) noexcept = default;
+  constexpr Operation(u8 v) noexcept : type(static_cast<Type>((v >> 4) & 0b11)), kind(static_cast<Kind>(v & 0x01)) {}
 };
 
-static constexpr auto op_i_std = Operation{.type = Operation::Type::Standard, .kind = Operation::Kind::instruction};
+static constexpr auto op_i_std = Operation(Operation::Type::Standard, Operation::Kind::instruction);
 
 struct Target {
   struct Result {

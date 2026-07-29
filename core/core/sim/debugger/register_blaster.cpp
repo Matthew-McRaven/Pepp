@@ -6,10 +6,7 @@
 #include "register_scanner.hpp"
 
 namespace {
-Operation rw_cmp{
-    .type = Operation::Type::BufferInternal,
-    .kind = Operation::Kind::data,
-};
+const Operation rw_cmp(Operation::Type::BufferInternal, Operation::Kind::data);
 }
 
 RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system)

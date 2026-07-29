@@ -2,8 +2,9 @@
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/system.hpp"
 
-static const Operation rw{.type = Operation::Type::Application, .kind = Operation::Kind::data};
-
+namespace {
+static const Operation rw(Operation::Type::Application, Operation::Kind::data);
+}
 void RegisterScan::expose(const Register &n) {
   auto id = next_id();
   _regs[id] = std::make_unique<Register>(n);
