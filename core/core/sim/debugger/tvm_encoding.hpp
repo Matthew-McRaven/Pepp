@@ -125,7 +125,27 @@ template <Opcode BRT> struct _BR_0 {
   constexpr auto encode() const { return encode_op<BRT, true>(); }
 };
 
+// Compile-time packing of bytes into LE words for use by encode_op.
+template <std::size_t N> constexpr auto pack_bytes(std::array<u8, N> data) {
+  constexpr std::size_t WordCount = (N + 1) / 2;
+  std::array<u16, WordCount> words{};
+  for (std::size_t i = 0; i < N; i += 2) {
+    u16 w = data[i];
+    if (i + 1 < N) w |= static_cast<u16>(data[i + 1]) << 8;
+    words[i / 2] = w;
+  }
+  return words;
+}
+
 // Create 2/1/0 variants for NOP / BREQ / BRGT / BRGE / BRLT / BRLE / BRNE / BR using the above templates
+
+template <typename... M> auto setmem(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETMEM, true>(m...); }
+template <typename... M> auto setmemx(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETMEMX, true>(m...); }
+template <typename... M> auto clrmem(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::CLRMEM, true>(m...); }
+template <typename... M> auto setreg(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETREG, true>(m...); }
+template <typename... M> auto setregx(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETREGX, true>(m...); }
+template <typename... M> auto clrreg(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::CLRREG, true>(m...); }
+template <typename... M> auto traddr(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::TRADDR, true>(m...); }
 
 using NOP_0 = _BR_0<Opcode::NOP>;
 using BREQ_2 = _BR_2<Opcode::BREQ>;
@@ -143,20 +163,75 @@ using BRNE_1 = _BR_1<Opcode::BRNE>;
 using BR_2 = _BR_2<Opcode::BR>;
 using BR_1 = _BR_1<Opcode::BR>;
 
+struct CmpMem_1 {
+  u16 dev;
+  constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev); }
+};
+struct CmpMem_2 {
+  u16 dev;
+  u16 off_hi;
+  constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev, off_hi); }
+};
+struct CmpMem_3 {
+  u16 dev;
+  SegmentPair off;
+  constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev, off.hi, off.lo); }
+};
+
+struct CmpMem_4 {
+  u16 dev;
+  SegmentPair off;
+  template <std::size_t N> constexpr auto encode(const std::array<u16, N> &data) const {
+    return [&]<std::size_t... I>(std::index_sequence<I...>) {
+      return encode_op<Opcode::CMPMEM, true>(dev, off.hi, off.lo, 2 * (u16)N, data[I]...);
+    }(std::make_index_sequence<N>{});
+  }
+  template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
+    auto words = pack_bytes(data);
+    return [&]<std::size_t... I>(std::index_sequence<I...>) {
+      return encode_op<Opcode::CMPMEM, true>(dev, off.hi, off.lo, (u16)N, words[I]...);
+    }(std::make_index_sequence<(N / 2) + 1>{});
+  }
+  template <typename... D>
+    requires(std::is_convertible_v<D, u16> && ...)
+  constexpr auto encode(D... data) const {
+    return encode_op<Opcode::CMPMEM, true>(dev, off.hi, off.lo, 2 * (u16)sizeof...(D), (u16)data...);
+  }
+};
+
+struct CmpReg_1 {
+  u16 reg;
+  constexpr auto encode() const { return encode_op<Opcode::CMPREG, true>(reg); }
+};
+struct CmpReg_2 {
+  u16 reg;
+  u16 field;
+  constexpr auto encode() const { return encode_op<Opcode::CMPREG, true>(reg, field); }
+};
+
+struct CmpReg_3 {
+  u16 reg;
+  u16 field;
+  template <std::size_t N> constexpr auto encode(const std::array<u16, N> &data) const {
+    return [&]<std::size_t... I>(std::index_sequence<I...>) {
+      return encode_op<Opcode::CMPREG, true>(reg, field, 2 * (u16)N, data[I]...);
+    }(std::make_index_sequence<N>{});
+  }
+  template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
+    auto words = pack_bytes(data);
+    return [&]<std::size_t... I>(std::index_sequence<I...>) {
+      return encode_op<Opcode::CMPREG, true>(reg, field, (u16)N, words[I]...);
+    }(std::make_index_sequence<(N / 2) + 1>{});
+  }
+  template <typename... D>
+    requires(std::is_convertible_v<D, u16> && ...)
+  constexpr auto encode(D... data) const {
+    return encode_op<Opcode::CMPREG, true>(reg, field, 2 * (u16)sizeof...(D), (u16)data...);
+  }
+};
+
 // LDPI is variadic width b/c of the way we load data.
 // So, give me bytes and I'll encode a packet for you and set DS automatically.
-
-// Compile-time packing of bytes into LE words for use by encode_op.
-template <std::size_t N> constexpr auto pack_bytes(std::array<u8, N> data) {
-  constexpr std::size_t WordCount = (N + 1) / 2;
-  std::array<u16, WordCount> words{};
-  for (std::size_t i = 0; i < N; i += 2) {
-    u16 w = data[i];
-    if (i + 1 < N) w |= static_cast<u16>(data[i + 1]) << 8;
-    words[i / 2] = w;
-  }
-  return words;
-}
 
 struct LDP_3 {
   SegmentPair DP;

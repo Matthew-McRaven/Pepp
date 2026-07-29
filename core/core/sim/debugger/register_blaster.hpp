@@ -49,7 +49,6 @@ class System;
 // While opcode decoding and register programming is handled by this class, the "implementation" of each opcode is
 // customizable by providing a callback per-opcode.
 // We provide a helper to install the same handler for all BR mnemonics for your convenience.
-
 class RegisterBlaster {
 public:
   struct Flags {
@@ -203,16 +202,3 @@ private:
   std::vector<u8> _tmp;
   tvm::DecodedOp::OpChoice _decoded{};
 };
-
-// Decoded Ops may include extra fields
-namespace DecodedOp {} // namespace DecodedOp
-// Helpers
-template <typename... M> auto setmem(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETMEM, true>(m...); }
-template <typename... M> auto setmemx(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETMEMX, true>(m...); }
-template <typename... M> auto cmpmem(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::CMPMEM, true>(m...); }
-template <typename... M> auto clrmem(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::CLRMEM, true>(m...); }
-template <typename... M> auto setreg(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETREG, true>(m...); }
-template <typename... M> auto setregx(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETREGX, true>(m...); }
-template <typename... M> auto cmpreg(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::CMPREG, true>(m...); }
-template <typename... M> auto clrreg(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::CLRREG, true>(m...); }
-template <typename... M> auto traddr(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::TRADDR, true>(m...); }

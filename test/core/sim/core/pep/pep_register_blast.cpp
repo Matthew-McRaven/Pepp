@@ -53,7 +53,7 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     auto ref = *scan->find("A");
     auto loc = ibuff->location();
     // Register, field, data size, data words.
-    ibuff->append(cmpreg(ref.reg.value, ref.field.value, 0x02, 0xFEED));
+    ibuff->append(CmpReg_3(ref.reg.value, ref.field.value).encode(0xFEED));
     ibuff->append(Halt_0().encode());
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);
@@ -82,13 +82,13 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     // First program comparse A to FEED. Should set z bit=1
     ibuff->append(LDP_3(tvm::SegmentPair{.hi = dbuff->id().value, .lo = 0}, 2).encode());
     // Use non-immediate variant, which
-    ibuff->append(cmpreg(a.reg.value, a.field.value));
+    ibuff->append(CmpReg_2(a.reg.value, a.field.value).encode());
     ibuff->append(Halt_0().encode());
     // The second program compares X to BEEF. Should set z bit=1
     auto loc2 = ibuff->location();
     // Rather than form a new DP triple, use one of the incrementing opcodes!
     ibuff->append(ACCDP_1(2).encode());
-    ibuff->append(cmpreg(x.reg.value, x.field.value));
+    ibuff->append(CmpReg_2(x.reg.value, x.field.value).encode());
     ibuff->append(Halt_0().encode());
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);
@@ -102,6 +102,32 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     // Force-clear Z to ensure that the next program sets it again.
     blaster->csrs().Z = 0;
     blaster->run_direct(loc2);
+    CHECK(blaster->csrs().L == 0);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(blaster->csrs().Z == 1);
+  }
+
+  SECTION("Compare memory") {
+    auto blaster = sys->make_blaster();
+    ibuff->fill_clear(0);
+    auto scan = sys->register_scan();
+    const u32 offset = 0xFEED;
+    const u16 val = 0xBEEF;
+    ((Target *)mem)->write<u16, bits::host_is_le>(offset, 0xBEEF, rw);
+    auto loc1 = ibuff->location();
+    // Data for mem ops is stored in /whatever/ order you provided it.
+    dbuff->append(std::array<u8, 2>{0xBE, 0xEF});
+    // First program comparse A to FEED. Should set z bit=1
+    ibuff->append(LDP_3(tvm::SegmentPair{.hi = dbuff->id().value, .lo = 0}, 2).encode());
+    // Use non-immediate variant, which
+    ibuff->append(CmpMem_3{.dev = mem->id().value, .off = SegmentPair{.hi = 0, .lo = offset}}.encode());
+    ibuff->append(Halt_0().encode());
+    // Before execution, system should be live with the z-bit unset
+    CHECK(blaster->csrs().L == 1);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(blaster->csrs().Z == 0);
+    // After comparison, Z bit should be set.
+    blaster->run_direct(loc1);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 1);

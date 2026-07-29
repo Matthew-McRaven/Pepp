@@ -99,7 +99,7 @@ enum class Opcode : u8 {
   // Same as CMPMEM, except that the ID register is 2 words and there is no offset into register.
   // If MOD1.lo is provided, it uses the same immediate data semantics as SETMEM.
   // If data size != register size, hard stops.
-  // Packet registers:  ID.hi, ID.lo
+  // Packet registers:  ID.hi, ID.lo, MOD1.lo
   // Same deal on F.
   CMPREG = 0b01'0101,
   // Clear the memory module of a target
