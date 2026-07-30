@@ -199,6 +199,54 @@ struct CmpMem_4 {
   }
 };
 
+template <bool xor_encoded> struct SetMem_1 {
+  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
+  u16 access;
+  constexpr auto encode() const { return encode_op<op, true>(access); }
+};
+
+template <bool xor_encoded> struct SetMem_2 {
+  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
+  u16 access, dev;
+  constexpr auto encode() const { return encode_op<op, true>(access, dev); }
+};
+
+template <bool xor_encoded> struct SetMem_3 {
+  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
+  u16 access, dev;
+  u16 off_hi;
+  constexpr auto encode() const { return encode_op<op, true>(access, dev, off_hi); }
+};
+
+template <bool xor_encoded> struct SetMem_4 {
+  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
+  u16 access, dev;
+  SegmentPair off;
+  constexpr auto encode() const { return encode_op<op, true>(access, dev, off.hi, off.lo); }
+};
+
+template <bool xor_encoded> struct SetMem_5 {
+  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
+  u16 access, dev;
+  SegmentPair off;
+  template <std::size_t N> constexpr auto encode(const std::array<u16, N> &data) const {
+    return [&]<std::size_t... I>(std::index_sequence<I...>) {
+      return encode_op<op, true>(access, dev, off.hi, off.lo, 2 * (u16)N, data[I]...);
+    }(std::make_index_sequence<N>{});
+  }
+  template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
+    auto words = pack_bytes(data);
+    return [&]<std::size_t... I>(std::index_sequence<I...>) {
+      return encode_op<op, true>(access, dev, off.hi, off.lo, (u16)N, words[I]...);
+    }(std::make_index_sequence<(N / 2) + 1>{});
+  }
+  template <typename... D>
+    requires(std::is_convertible_v<D, u16> && ...)
+  constexpr auto encode(D... data) const {
+    return encode_op<op, true>(access, dev, off.hi, off.lo, 2 * (u16)sizeof...(D), (u16)data...);
+  }
+};
+
 struct CmpReg_1 {
   u16 reg;
   constexpr auto encode() const { return encode_op<Opcode::CMPREG, true>(reg); }
@@ -289,7 +337,7 @@ struct BR {
 };
 struct SetMem {
   bool xor_encoded;
-  u8 access;
+  Operation access;
   Device::ID target;
   u32 offset;
   SegmentPair data;
@@ -307,7 +355,7 @@ struct ClrMem {
 };
 struct SetReg {
   bool xor_encoded;
-  u8 access;
+  Operation access;
   RegisterScan::RegisterRef reg;
   SegmentPair data;
   u16 size;

@@ -50,5 +50,7 @@ template <std::integral T> void memcpy_endian(span<uint8_t> dest, Order destOrde
   memcpy_endian(dest, destOrder, span{reinterpret_cast<const uint8_t *>(&src), sizeof(T)}, bits::hostOrder());
 }
 
+// Thou shalt not overlap bits in dest with bits in other.
+void inplace_xor(bits::span<uint8_t> dest, bits::span<const uint8_t> other);
 void memcpy_xor(bits::span<uint8_t> dest, bits::span<const uint8_t> src1, bits::span<const uint8_t> src2);
 } // namespace bits

@@ -107,29 +107,35 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     CHECK(blaster->csrs().Z == 1);
   }
 
-  SECTION("Compare memory") {
+  SECTION("Set & Compare memory") {
     auto blaster = sys->make_blaster();
     ibuff->fill_clear(0);
     auto scan = sys->register_scan();
     const u32 offset = 0xFEED;
     const u16 val = 0xBEEF;
-    ((Target *)mem)->write<u16, bits::host_is_le>(offset, 0xBEEF, rw);
+
     auto loc1 = ibuff->location();
     // Data for mem ops is stored in /whatever/ order you provided it.
     dbuff->append(std::array<u8, 2>{0xBE, 0xEF});
     // First program comparse A to FEED. Should set z bit=1
     ibuff->append(LDP_3(tvm::SegmentPair{.hi = dbuff->id().value, .lo = 0}, 2).encode());
     // Use non-immediate variant, which
+    ibuff->append(
+        SetMem_4<false>{.access = rw.as_u8(), .dev = mem->id().value, .off = SegmentPair{.hi = 0, .lo = offset}}
+            .encode());
     ibuff->append(CmpMem_3{.dev = mem->id().value, .off = SegmentPair{.hi = 0, .lo = offset}}.encode());
     ibuff->append(Halt_0().encode());
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 0);
+    // Memory value should not-yet be set
+    CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == 0);
     // After comparison, Z bit should be set.
     blaster->run_direct(loc1);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 1);
+    CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == 0xBEEF);
   }
 }
