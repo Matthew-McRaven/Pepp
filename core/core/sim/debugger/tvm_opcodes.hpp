@@ -103,8 +103,8 @@ enum class Opcode : u8 {
   // Same deal on F.
   CMPREG = 0b01'0101,
   // Clear the memory module of a target
-  // MOD1.lo contains the reset value, which will be masked to 1 byte
-  // Packet registers: MOD1.lo, ID.lo
+  // MOD1.lo contains the reset value, which will be masked to 1 byte. If not provided, assumed to be 0.
+  // Packet registers: ID.lo,  MOD1.lo,
   // Same deal on F.
   CLRMEM = 0b01'0110,
   // Reset register to default value as specified by the RegisterScan.

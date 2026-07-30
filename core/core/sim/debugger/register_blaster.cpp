@@ -246,14 +246,15 @@ tvm::DecodedOp::CmpMem RegisterBlaster::decode_cmpmem(pepp::bts::Buffer::ID ibp,
 
 tvm::DecodedOp::ClrMem RegisterBlaster::decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::ClrMem ret;
+
+  ret.data = 0;
   switch (_regs.IS.word_len) {
   default: [[fallthrough]];
-  case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
-  case 1: _regs.MOD1.lo = read16(ibp, iop + 0), _csrs.M1 = 1; [[fallthrough]];
+  case 2: ret.data = _regs.MOD1.lo = read16(ibp, iop + 2), _csrs.M1 = 1; [[fallthrough]];
+  case 1: _regs.ID.lo = read16(ibp, iop + 0), _csrs.TR = 0; [[fallthrough]];
   case 0: break;
   }
   ret.target = (Device::ID)_regs.ID.lo;
-  ret.data = (u8)_regs.MOD1.lo;
   return ret;
 }
 
@@ -544,7 +545,18 @@ void RegisterBlaster::execute_cmpmem(tvm::DecodedOp::CmpMem op) {
 }
 
 void RegisterBlaster::execute_clrmem(tvm::DecodedOp::ClrMem op) {
-  throw std::runtime_error("CLRMEM execution not implemented");
+  using StopCause = tvm::StopCause;
+  // Not in register mode or there is no system. Either way, comparsion will fail.
+  if (_csrs.TR == 1) return hard_stop(StopCause::WrongTR);
+  else if (_system == nullptr) return hard_stop(StopCause::MissingSystem);
+
+  // Attempt to convert our ID to a target;
+  auto dev = _system->find_by_id(op.target);
+  if (!dev) return hard_stop(StopCause::TargetInvalid);
+  auto target = dev->capability<Target>();
+  if (!target) return hard_stop(StopCause::TargetNotMemory);
+
+  target->clear(op.data);
 }
 
 void RegisterBlaster::execute_setreg(tvm::DecodedOp::SetReg op) {

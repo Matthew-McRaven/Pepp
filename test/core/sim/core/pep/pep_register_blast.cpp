@@ -107,10 +107,9 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     CHECK(blaster->csrs().Z == 1);
   }
 
-  SECTION("Set & Compare memory") {
+  SECTION("Set, compare, and clear memory") {
     auto blaster = sys->make_blaster();
     ibuff->fill_clear(0);
-    auto scan = sys->register_scan();
     const u32 offset = 0xFEED;
     const u16 val = 0xBEEF;
 
@@ -125,17 +124,26 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
             .encode());
     ibuff->append(CmpMem_3{.dev = mem->id().value, .off = SegmentPair{.hi = 0, .lo = offset}}.encode());
     ibuff->append(Halt_0().encode());
+    auto loc2 = ibuff->location();
+    ibuff->append(ClrMem_1{.dev = mem->id().value}.encode());
+    ibuff->append(Halt_0().encode());
+
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 0);
     // Memory value should not-yet be set
-    CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == 0);
+    CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == 0x0000);
     // After comparison, Z bit should be set.
     blaster->run_direct(loc1);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 1);
-    CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == 0xBEEF);
+    CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == val);
+    // Submit 2nd program which clears memory.
+    blaster->run_direct(loc2);
+    CHECK(blaster->csrs().L == 0);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == 0x0000);
   }
 }

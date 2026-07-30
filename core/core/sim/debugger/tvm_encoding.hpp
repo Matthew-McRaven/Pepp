@@ -247,6 +247,16 @@ template <bool xor_encoded> struct SetMem_5 {
   }
 };
 
+struct ClrMem_1 {
+  u16 dev;
+  constexpr auto encode() const { return encode_op<Opcode::CLRMEM, true>(dev); }
+};
+struct ClrMem_2 {
+  u16 dev;
+  u8 reset;
+  constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev, reset); }
+};
+
 struct CmpReg_1 {
   u16 reg;
   constexpr auto encode() const { return encode_op<Opcode::CMPREG, true>(reg); }
