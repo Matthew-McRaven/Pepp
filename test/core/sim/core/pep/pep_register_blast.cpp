@@ -31,7 +31,7 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     auto blaster = sys->make_blaster();
     ibuff->fill_clear(0);
     blaster->update_ip(ibuff->id());
-    ibuff->append_packed(LDMOD1Lo_1(0x1234).encode(), Halt_0().encode());
+    ibuff->append_packed(LDMOD1Lo(0x1234).encode(), Halt<0>().encode());
 
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().M1 == 0);
@@ -53,8 +53,8 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     auto ref = *scan->find("A");
     auto loc = ibuff->location();
     // Register, field, data size, data words.
-    ibuff->append(CmpReg_3(ref.reg.value, ref.field.value).encode(0xFEED));
-    ibuff->append(Halt_0().encode());
+    ibuff->append(CmpReg<3>(ref.reg.value, ref.field.value).encode(0xFEED));
+    ibuff->append(Halt<0>().encode());
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().F == 0);
@@ -80,16 +80,16 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     dbuff->append(std::array<u8, 2>{0xED, 0xFE});
     dbuff->append(std::array<u8, 2>{0xEF, 0xBE});
     // First program comparse A to FEED. Should set z bit=1
-    ibuff->append(LDP_3(tvm::SegmentPair{.hi = dbuff->id().value, .lo = 0}, 2).encode());
+    ibuff->append(LDP<3>(tvm::SegmentPair{.hi = dbuff->id().value, .lo = 0}, 2).encode());
     // Use non-immediate variant, which
-    ibuff->append(CmpReg_2(a.reg.value, a.field.value).encode());
-    ibuff->append(Halt_0().encode());
+    ibuff->append(CmpReg<2>(a.reg.value, a.field.value).encode());
+    ibuff->append(Halt<0>().encode());
     // The second program compares X to BEEF. Should set z bit=1
     auto loc2 = ibuff->location();
     // Rather than form a new DP triple, use one of the incrementing opcodes!
-    ibuff->append(ACCDP_1(2).encode());
-    ibuff->append(CmpReg_2(x.reg.value, x.field.value).encode());
-    ibuff->append(Halt_0().encode());
+    ibuff->append(ACCDP(2).encode());
+    ibuff->append(CmpReg<2>(x.reg.value, x.field.value).encode());
+    ibuff->append(Halt<0>().encode());
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().F == 0);
@@ -117,16 +117,16 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     // Data for mem ops is stored in /whatever/ order you provided it.
     dbuff->append(std::array<u8, 2>{0xBE, 0xEF});
     // First program comparse A to FEED. Should set z bit=1
-    ibuff->append(LDP_3(tvm::SegmentPair{.hi = dbuff->id().value, .lo = 0}, 2).encode());
+    ibuff->append(LDP<3>(tvm::SegmentPair{.hi = dbuff->id().value, .lo = 0}, 2).encode());
     // Use non-immediate variant, which
     ibuff->append(
-        SetMem_4<false>{.access = rw.as_u8(), .dev = mem->id().value, .off = SegmentPair{.hi = 0, .lo = offset}}
+        SetMem<false, 4>{.access = rw.as_u8(), .dev = mem->id().value, .off = SegmentPair{.hi = 0, .lo = offset}}
             .encode());
-    ibuff->append(CmpMem_3{.dev = mem->id().value, .off = SegmentPair{.hi = 0, .lo = offset}}.encode());
-    ibuff->append(Halt_0().encode());
+    ibuff->append(CmpMem<3>{.dev = mem->id().value, .off = SegmentPair{.hi = 0, .lo = offset}}.encode());
+    ibuff->append(Halt<0>().encode());
     auto loc2 = ibuff->location();
-    ibuff->append(ClrMem_1{.dev = mem->id().value}.encode());
-    ibuff->append(Halt_0().encode());
+    ibuff->append(ClrMem<1>{.dev = mem->id().value}.encode());
+    ibuff->append(Halt<0>().encode());
 
     // Before execution, system should be live with the z-bit unset
     CHECK(blaster->csrs().L == 1);

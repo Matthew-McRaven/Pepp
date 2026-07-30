@@ -25,29 +25,33 @@ template <Opcode Op, bool clrmod, typename... M> constexpr std::array<u8, 2 * (1
   return bytes;
 }
 
-struct Halt_1 {
+template <std::size_t> struct Halt;
+template <> struct Halt<0> {
+  constexpr auto encode() const { return encode_op<Opcode::HALT, true>(); };
+};
+template <> struct Halt<1> {
   StopCause cause;
   constexpr auto encode() const { return encode_op<Opcode::HALT, true>(static_cast<u16>(cause)); };
 };
-struct Halt_0 {
-  constexpr auto encode() const { return encode_op<Opcode::HALT, true>(); };
+
+template <std::size_t> struct Ret;
+template <> struct Ret<0> {
+  constexpr auto encode() const { return encode_op<Opcode::RET, true>(); };
 };
 
-struct Ret_0 {
-  constexpr auto encode() const { return encode_op<Opcode::RET, true>(); }
+template <std::size_t> struct Call;
+template <> struct Call<0> {
+  constexpr auto encode() const { return encode_op<Opcode::CALL, true>(); }
 };
-
-struct Call_2 {
-  SegmentPair next_ip;
-  constexpr auto encode() const { return encode_op<Opcode::CALL, true>(next_ip.lo, next_ip.hi); }
-};
-struct Call_1 {
+template <> struct Call<1> {
   u16 next_ip_lo;
   constexpr auto encode() const { return encode_op<Opcode::CALL, true>(next_ip_lo); }
 };
-struct Call_0 {
-  constexpr auto encode() const { return encode_op<Opcode::CALL, true>(); }
+template <> struct Call<2> {
+  SegmentPair next_ip;
+  constexpr auto encode() const { return encode_op<Opcode::CALL, true>(next_ip.lo, next_ip.hi); }
 };
+
 struct Syn_4 {
   SegmentPair timestamp_lo;
   SegmentPair timestamp_hi;
@@ -93,37 +97,41 @@ template <bool clrmod = true, typename... P> constexpr auto LMR_of(P... pairs) {
   return LMR<clrmod>(std::array<std::pair<RM, u16>, sizeof...(P)>{pairs...});
 }
 
-struct LDMOD1Hi_1 {
+// Load a single register
+template <RegMask R> struct LDR {
   u16 value;
-  constexpr auto encode() const { return encode_op<Opcode::LMR, false>((u16)RegMask::MOD1_HI, value); }
+  constexpr auto encode() const { return encode_op<Opcode::LMR, false>((u16)R, value); }
 };
+using LDMOD1Hi = LDR<RegMask::MOD1_HI>;
+using LDMOD1Lo = LDR<RegMask::MOD1_LO>;
+using LDMOD2Hi = LDR<RegMask::MOD2_HI>;
+using LDMOD2Lo = LDR<RegMask::MOD2_LO>;
 
-struct LDMOD1Lo_1 {
-  u16 value;
-  constexpr auto encode() const { return encode_op<Opcode::LMR, false>((u16)RegMask::MOD1_LO, value); }
-};
+namespace detail {
+template <Opcode BRT, std::size_t> struct BR;
 
-struct LDMOD2Hi_1 {
-  u16 value;
-  constexpr auto encode() const { return encode_op<Opcode::LMR, false>((u16)RegMask::MOD2_HI, value); }
+template <Opcode BRT> struct BR<BRT, 0> {
+  constexpr auto encode() const { return encode_op<BRT, true>(); }
 };
-
-struct LDMOD2Lo_1 {
-  u16 value;
-  constexpr auto encode() const { return encode_op<Opcode::LMR, false>((u16)RegMask::MOD2_LO, value); }
-};
-
-template <Opcode BRT> struct _BR_2 {
-  SegmentPair displacement;
-  constexpr auto encode() const { return encode_op<BRT, true>(displacement.lo, displacement.hi); }
-};
-template <Opcode BRT> struct _BR_1 {
+template <Opcode BRT> struct BR<BRT, 1> {
   u16 displacement_lo;
   constexpr auto encode() const { return encode_op<BRT, true>(displacement_lo); }
 };
-template <Opcode BRT> struct _BR_0 {
-  constexpr auto encode() const { return encode_op<BRT, true>(); }
+template <Opcode BRT> struct BR<BRT, 2> {
+  SegmentPair displacement;
+  constexpr auto encode() const { return encode_op<BRT, true>(displacement.lo, displacement.hi); }
 };
+} // namespace detail
+
+template <std::size_t N> using NOP = detail::BR<Opcode::NOP, N>;
+template <std::size_t N> using BREQ = detail::BR<Opcode::BREQ, N>;
+template <std::size_t N> using BRGT = detail::BR<Opcode::BRGT, N>;
+template <std::size_t N> using BRGE = detail::BR<Opcode::BRGE, N>;
+template <std::size_t N> using BRLT = detail::BR<Opcode::BRLT, N>;
+template <std::size_t N> using BRLE = detail::BR<Opcode::BRLE, N>;
+template <std::size_t N> using BRNE = detail::BR<Opcode::BRNE, N>;
+template <std::size_t N> using BR = detail::BR<Opcode::BR, N>;
+template <std::size_t N> using BRF = detail::BR<Opcode::BRF, N>;
 
 // Compile-time packing of bytes into LE words for use by encode_op.
 template <std::size_t N> constexpr auto pack_bytes(std::array<u8, N> data) {
@@ -137,183 +145,129 @@ template <std::size_t N> constexpr auto pack_bytes(std::array<u8, N> data) {
   return words;
 }
 
-// Create 2/1/0 variants for NOP / BREQ / BRGT / BRGE / BRLT / BRLE / BRNE / BR using the above templates
+// Helpers to show immediate data into opcode stream.
+// Writes out size in bytes before the data bytes.
+// This matches the typical "immediate" pattern, which loads a size into MOD1.lo and then treats all other bytes as
+// payload.
+template <Opcode Op, typename Derived> struct ImmediateEncoder {
+  template <std::size_t N> constexpr auto encode(const std::array<u16, N> &data) const {
+    return static_cast<const Derived &>(*this).apply_prefix([&](auto... prefix) {
+      return [&]<std::size_t... I>(std::index_sequence<I...>) {
+        return encode_op<Op, true>(prefix..., 2 * (u16)N, data[I]...);
+      }(std::make_index_sequence<N>{});
+    });
+  }
+  template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
+    auto words = pack_bytes(data);
+    return static_cast<const Derived &>(*this).apply_prefix([&](auto... prefix) {
+      return [&]<std::size_t... I>(std::index_sequence<I...>) {
+        return encode_op<Op, true>(prefix..., (u16)N, words[I]...);
+      }(std::make_index_sequence<(N / 2) + 1>{});
+    });
+  }
+  template <typename... D>
+    requires(std::is_convertible_v<D, u16> && ...)
+  constexpr auto encode(D... data) const {
+    return static_cast<const Derived &>(*this).apply_prefix(
+        [&](auto... prefix) { return encode_op<Op, true>(prefix..., 2 * (u16)sizeof...(D), (u16)data...); });
+  }
+};
 
-template <typename... M> auto setmem(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETMEM, true>(m...); }
-template <typename... M> auto setmemx(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETMEMX, true>(m...); }
-template <typename... M> auto clrmem(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::CLRMEM, true>(m...); }
-template <typename... M> auto setreg(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETREG, true>(m...); }
-template <typename... M> auto setregx(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::SETREGX, true>(m...); }
-template <typename... M> auto clrreg(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::CLRREG, true>(m...); }
-template <typename... M> auto traddr(M... m) { return tvm::EncodedOp::encode_op<tvm::Opcode::TRADDR, true>(m...); }
-
-using NOP_0 = _BR_0<Opcode::NOP>;
-using BREQ_2 = _BR_2<Opcode::BREQ>;
-using BREQ_1 = _BR_1<Opcode::BREQ>;
-using BRGT_2 = _BR_2<Opcode::BRGT>;
-using BRGT_1 = _BR_1<Opcode::BRGT>;
-using BRGE_2 = _BR_2<Opcode::BRGE>;
-using BRGE_1 = _BR_1<Opcode::BRGE>;
-using BRLT_2 = _BR_2<Opcode::BRLT>;
-using BRLT_1 = _BR_1<Opcode::BRLT>;
-using BRLE_2 = _BR_2<Opcode::BRLE>;
-using BRLE_1 = _BR_1<Opcode::BRLE>;
-using BRNE_2 = _BR_2<Opcode::BRNE>;
-using BRNE_1 = _BR_1<Opcode::BRNE>;
-using BR_2 = _BR_2<Opcode::BR>;
-using BR_1 = _BR_1<Opcode::BR>;
-
-struct CmpMem_1 {
+template <std::size_t> struct CmpMem;
+template <> struct CmpMem<1> {
   u16 dev;
   constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev); }
 };
-struct CmpMem_2 {
+template <> struct CmpMem<2> {
   u16 dev;
   u16 off_hi;
   constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev, off_hi); }
 };
-struct CmpMem_3 {
+template <> struct CmpMem<3> {
   u16 dev;
   SegmentPair off;
   constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev, off.hi, off.lo); }
 };
-
-struct CmpMem_4 {
+template <> struct CmpMem<4> : ImmediateEncoder<Opcode::CMPMEM, CmpMem<4>> {
   u16 dev;
   SegmentPair off;
-  template <std::size_t N> constexpr auto encode(const std::array<u16, N> &data) const {
-    return [&]<std::size_t... I>(std::index_sequence<I...>) {
-      return encode_op<Opcode::CMPMEM, true>(dev, off.hi, off.lo, 2 * (u16)N, data[I]...);
-    }(std::make_index_sequence<N>{});
-  }
-  template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
-    auto words = pack_bytes(data);
-    return [&]<std::size_t... I>(std::index_sequence<I...>) {
-      return encode_op<Opcode::CMPMEM, true>(dev, off.hi, off.lo, (u16)N, words[I]...);
-    }(std::make_index_sequence<(N / 2) + 1>{});
-  }
-  template <typename... D>
-    requires(std::is_convertible_v<D, u16> && ...)
-  constexpr auto encode(D... data) const {
-    return encode_op<Opcode::CMPMEM, true>(dev, off.hi, off.lo, 2 * (u16)sizeof...(D), (u16)data...);
-  }
+  template <typename F> constexpr auto apply_prefix(F &&f) const { return f(dev, off.hi, off.lo); }
 };
 
-template <bool xor_encoded> struct SetMem_1 {
-  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
+template <bool X> inline constexpr Opcode SetMemOp = X ? Opcode::SETMEMX : Opcode::SETMEM;
+
+template <bool X, std::size_t> struct SetMem;
+
+template <bool X> struct SetMem<X, 1> {
   u16 access;
-  constexpr auto encode() const { return encode_op<op, true>(access); }
+  constexpr auto encode() const { return encode_op<SetMemOp<X>, true>(access); }
 };
-
-template <bool xor_encoded> struct SetMem_2 {
-  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
+template <bool X> struct SetMem<X, 2> {
   u16 access, dev;
-  constexpr auto encode() const { return encode_op<op, true>(access, dev); }
+  constexpr auto encode() const { return encode_op<SetMemOp<X>, true>(access, dev); }
 };
-
-template <bool xor_encoded> struct SetMem_3 {
-  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
-  u16 access, dev;
-  u16 off_hi;
-  constexpr auto encode() const { return encode_op<op, true>(access, dev, off_hi); }
+template <bool X> struct SetMem<X, 3> {
+  u16 access, dev, off_hi;
+  constexpr auto encode() const { return encode_op<SetMemOp<X>, true>(access, dev, off_hi); }
 };
-
-template <bool xor_encoded> struct SetMem_4 {
-  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
+template <bool X> struct SetMem<X, 4> {
   u16 access, dev;
   SegmentPair off;
-  constexpr auto encode() const { return encode_op<op, true>(access, dev, off.hi, off.lo); }
+  constexpr auto encode() const { return encode_op<SetMemOp<X>, true>(access, dev, off.hi, off.lo); }
 };
-
-template <bool xor_encoded> struct SetMem_5 {
-  static constexpr Opcode op = xor_encoded ? Opcode::SETMEMX : Opcode::SETMEM;
+template <bool X> struct SetMem<X, 5> : ImmediateEncoder<SetMemOp<X>, SetMem<X, 5>> {
   u16 access, dev;
   SegmentPair off;
-  template <std::size_t N> constexpr auto encode(const std::array<u16, N> &data) const {
-    return [&]<std::size_t... I>(std::index_sequence<I...>) {
-      return encode_op<op, true>(access, dev, off.hi, off.lo, 2 * (u16)N, data[I]...);
-    }(std::make_index_sequence<N>{});
-  }
-  template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
-    auto words = pack_bytes(data);
-    return [&]<std::size_t... I>(std::index_sequence<I...>) {
-      return encode_op<op, true>(access, dev, off.hi, off.lo, (u16)N, words[I]...);
-    }(std::make_index_sequence<(N / 2) + 1>{});
-  }
-  template <typename... D>
-    requires(std::is_convertible_v<D, u16> && ...)
-  constexpr auto encode(D... data) const {
-    return encode_op<op, true>(access, dev, off.hi, off.lo, 2 * (u16)sizeof...(D), (u16)data...);
-  }
+  template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, dev, off.hi, off.lo); }
 };
 
-struct ClrMem_1 {
+template <std::size_t> struct ClrMem;
+template <> struct ClrMem<1> {
   u16 dev;
   constexpr auto encode() const { return encode_op<Opcode::CLRMEM, true>(dev); }
 };
-struct ClrMem_2 {
+template <> struct ClrMem<2> {
   u16 dev;
   u8 reset;
-  constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev, reset); }
+  constexpr auto encode() const { return encode_op<Opcode::CLRMEM, true>(dev, reset); }
 };
 
-struct CmpReg_1 {
+template <std::size_t> struct CmpReg;
+template <> struct CmpReg<1> {
   u16 reg;
   constexpr auto encode() const { return encode_op<Opcode::CMPREG, true>(reg); }
 };
-struct CmpReg_2 {
-  u16 reg;
-  u16 field;
+template <> struct CmpReg<2> {
+  u16 reg, field;
   constexpr auto encode() const { return encode_op<Opcode::CMPREG, true>(reg, field); }
 };
-
-struct CmpReg_3 {
-  u16 reg;
-  u16 field;
-  template <std::size_t N> constexpr auto encode(const std::array<u16, N> &data) const {
-    return [&]<std::size_t... I>(std::index_sequence<I...>) {
-      return encode_op<Opcode::CMPREG, true>(reg, field, 2 * (u16)N, data[I]...);
-    }(std::make_index_sequence<N>{});
-  }
-  template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
-    auto words = pack_bytes(data);
-    return [&]<std::size_t... I>(std::index_sequence<I...>) {
-      return encode_op<Opcode::CMPREG, true>(reg, field, (u16)N, words[I]...);
-    }(std::make_index_sequence<(N / 2) + 1>{});
-  }
-  template <typename... D>
-    requires(std::is_convertible_v<D, u16> && ...)
-  constexpr auto encode(D... data) const {
-    return encode_op<Opcode::CMPREG, true>(reg, field, 2 * (u16)sizeof...(D), (u16)data...);
-  }
+template <> struct CmpReg<3> : ImmediateEncoder<Opcode::CMPREG, CmpReg<3>> {
+  constexpr CmpReg<3>(u16 reg, u16 field) : reg(reg), field(field) {}
+  u16 reg, field;
+  template <typename F> constexpr auto apply_prefix(F &&f) const { return f(reg, field); }
 };
 
-// LDPI is variadic width b/c of the way we load data.
-// So, give me bytes and I'll encode a packet for you and set DS automatically.
-
-struct LDP_3 {
+template <std::size_t> struct LDP;
+template <> struct LDP<1> {
+  u16 DP_lo;
+  constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP_lo); }
+};
+template <> struct LDP<2> {
+  u16 DP_lo, DS;
+  constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP_lo, DS); }
+};
+template <> struct LDP<3> {
   SegmentPair DP;
   u16 DS;
   constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP.lo, DS, DP.hi); }
 };
-struct LDP_2 {
-  u16 DP_lo;
-  u16 DS;
-  constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP_lo, DS); }
-};
-struct LDP_1 {
-  u16 DP_lo;
-  constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP_lo); }
-};
-
-struct ACCDP_1 {
+struct ACCDP {
   u16 DS;
   constexpr auto encode() const { return encode_op<Opcode::ACCDP, true>(DS); }
 };
 
-struct INCDP_2 {
-  u16 dp_incr;
-  u16 DS;
+struct INCDP {
+  u16 dp_incr, DS;
   constexpr auto encode() const { return encode_op<Opcode::INCDP, true>(dp_incr, DS); }
 };
 

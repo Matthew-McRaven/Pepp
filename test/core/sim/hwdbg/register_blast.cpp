@@ -27,7 +27,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
-    ibuff->append_packed(LDMOD1Lo_1(0x1234).encode(), Halt_0().encode());
+    ibuff->append_packed(LDMOD1Lo(0x1234).encode(), Halt<0>().encode());
 
     CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 0);
@@ -49,7 +49,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     // Mix up the order of registers to ensure lmr/lmr_of sort them correctly.
     ibuff->append_packed(LMR_of<false>(std::pair{M::MOD1_LO, u16(0x1234)}, std::pair{M::ID_HI, u16(0xFEED)},
                                        std::pair{M::DP_LO, u16(0xBEEF)}));
-    ibuff->append_packed(Halt_0().encode());
+    ibuff->append_packed(Halt<0>().encode());
 
     CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 0);
@@ -72,9 +72,9 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     RegisterBlaster blaster(mgr);
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
-    ibuff->append_packed(BR_1(0x6).encode(),                              // Branch over the load register instruction.
+    ibuff->append_packed(BR<1>(0x6).encode(),                             // Branch over the load register instruction.
                          LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), // Hopefully not executed.
-                         Halt_0().encode());
+                         Halt<0>().encode());
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
@@ -92,7 +92,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
     blaster.csrs().Z = 0;
-    ibuff->append_packed(BREQ_1(0x6).encode(), LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), Halt_0().encode());
+    ibuff->append_packed(BREQ<1>(0x6).encode(), LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), Halt<0>().encode());
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
@@ -109,7 +109,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     ibuff->fill_clear(0);
     blaster.update_ip(ibuff->id());
     blaster.csrs().Z = 1;
-    ibuff->append_packed(BREQ_1(0x6).encode(), LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), Halt_0().encode());
+    ibuff->append_packed(BREQ<1>(0x6).encode(), LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), Halt<0>().encode());
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
