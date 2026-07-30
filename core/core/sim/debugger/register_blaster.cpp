@@ -48,20 +48,16 @@ void RegisterBlaster::run_indirect(std::span<pepp::bts::Buffer::Location> locs) 
     if (run_direct(loc); _csrs.F == 1) break;
 }
 
-pepp::bts::Buffer *RegisterBlaster::ibuffer() { return _mgr->find((pepp::bts::Buffer::ID)_regs.IP.hi); }
-
 void RegisterBlaster::soft_stop(tvm::StopCause cause) {
   _csrs.L = 0;
   _csrs.F = 0;
-  _csrs.M1 = 1;
-  _regs.MOD1.lo = (u16)cause;
+  _regs.STOP_CAUSE = cause;
 }
 
 void RegisterBlaster::hard_stop(tvm::StopCause cause) {
   _csrs.L = 0;
   _csrs.F = 1;
-  _csrs.M1 = 1;
-  _regs.MOD1.lo = (u16)cause;
+  _regs.STOP_CAUSE = cause;
 }
 
 void RegisterBlaster::decode() {

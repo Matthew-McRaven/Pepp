@@ -2,7 +2,6 @@
 #include <array>
 #include <functional>
 #include <memory>
-#include <variant>
 #include "core/ds/alloc/pagechain.hpp"
 #include "core/integers.h"
 #include "core/sim/api/device.hpp"
@@ -95,7 +94,13 @@ public:
     tvm::SegmentPair OFF = {};
     // Modifiers register, whose meaning depends on the instruction being executed
     tvm::SegmentPair MOD1 = {}, MOD2 = {};
-    // Neither of the following can be accessed via regmask
+    /*
+     * None of the following registers are accessible vis load-masked-register
+     */
+    // When the machine is stopped, indicated the reason why.
+    // If None, then the machine is either running or stopped normally and can be resumed easily.
+    // If set to a cause, you need to address the underlying reason before resuming.
+    tvm::StopCause STOP_CAUSE = tvm::StopCause::None;
     // Stack pointer, used to make call/ret work.
     u16 SP = 0;
     // 16-bit integer which contains a decoded instruction.
@@ -135,7 +140,8 @@ public:
   const auto &regs() const { return _regs; }
   pepp::bts::BufferManager &mgr() { return *_mgr; }
   const pepp::bts::BufferManager &mgr() const { return *_mgr; }
-  pepp::bts::Buffer *ibuffer();
+  bool stopped() const { return _csrs.L == 0; }
+  tvm::StopCause stop_cause() const { return static_cast<tvm::StopCause>(_csrs.F); }
 
 protected:
   void soft_stop(tvm::StopCause cause = tvm::StopCause::None);

@@ -29,15 +29,15 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     blaster.update_ip(ibuff->id());
     ibuff->append_packed(LDMOD1Lo_1(0x1234).encode(), Halt_0().encode());
 
-    CHECK(blaster.csrs().L == 1);
+    CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 0);
     CHECK(blaster.regs().MOD1.lo == 0);
     REQUIRE_NOTHROW(blaster.step());
-    CHECK(blaster.csrs().L == 1);
+    CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 1);
     CHECK(blaster.regs().MOD1.lo == 0x1234);
     REQUIRE_NOTHROW(blaster.step());
-    CHECK(blaster.csrs().L == 0);
+    CHECK(blaster.stopped());
   }
 
   // Check that load masked register correctly re-orders the registers according to mask precedence.
@@ -51,19 +51,19 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
                                        std::pair{M::DP_LO, u16(0xBEEF)}));
     ibuff->append_packed(Halt_0().encode());
 
-    CHECK(blaster.csrs().L == 1);
+    CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 0);
     CHECK(blaster.regs().MOD1.lo == 0);
     CHECK(blaster.regs().ID.hi == 0);
     CHECK(blaster.regs().DP.lo == 0);
     REQUIRE_NOTHROW(blaster.step());
-    CHECK(blaster.csrs().L == 1);
+    CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 1);
     CHECK(blaster.regs().MOD1.lo == 0x1234);
     CHECK(blaster.regs().ID.hi == 0xFEED);
     CHECK(blaster.regs().DP.lo == 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
-    CHECK(blaster.csrs().L == 0);
+    CHECK((blaster.stopped() && blaster.stop_cause() == StopCause::None));
   }
 
   // Test that branches are/not  taken by inserting a load register "under" the branch
@@ -78,11 +78,12 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
-    CHECK(blaster.csrs().L == 1);
+    CHECK(!blaster.stopped());
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
-    CHECK(blaster.csrs().L == 0);
     CHECK(blaster.regs().DP.lo != 0xBEEF);
+    CHECK(blaster.stopped());
+    CHECK(blaster.stop_cause() == StopCause::None);
   }
 
   SECTION("Conditional branch (not taken)") {
@@ -98,6 +99,8 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.regs().DP.lo == 0xBEEF);
+    // Executed extra instruction, has not yet halted.
+    CHECK(!blaster.stopped());
   }
 
   SECTION("Conditional branch (taken)") {
@@ -113,5 +116,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     REQUIRE_NOTHROW(blaster.step());
     CHECK(blaster.regs().DP.lo != 0xBEEF);
+    CHECK(blaster.stopped());
+    CHECK(blaster.stop_cause() == StopCause::None);
   }
 }
