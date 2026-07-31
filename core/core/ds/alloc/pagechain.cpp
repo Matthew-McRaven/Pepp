@@ -6,6 +6,7 @@ pepp::bts::BufferChain::~BufferChain() noexcept { clear(); }
 
 void pepp::bts::BufferChain::clear() noexcept {
   _successor.clear();
+  _predecessor.clear();
   for (auto *buf : _bufs) _mgr->free_buffer(buf->id());
   _bufs.clear();
   _buffer_count = 0;
@@ -49,6 +50,11 @@ pepp::bts::Buffer::ID pepp::bts::BufferChain::successor(Buffer::ID id) {
   else return it->second;
 }
 
+pepp::bts::Buffer::ID pepp::bts::BufferChain::predecessor(Buffer::ID id) {
+  if (auto it = _predecessor.find(id); it == _predecessor.end()) return Buffer::ID{0};
+  else return it->second;
+}
+
 pepp::bts::Buffer *pepp::bts::BufferChain::buffer(size_t index) {
   if (index >= _bufs.size()) return nullptr;
   return _bufs[index];
@@ -69,7 +75,10 @@ pepp::bts::Buffer *pepp::bts::BufferChain::tail() {
 void pepp::bts::BufferChain::append_buffer() {
   auto buf = _mgr->alloc_buffer();
   _buffer_count++;
-  if (!_bufs.empty()) _successor[_bufs.back()->id()] = buf->id();
+  if (!_bufs.empty()) {
+    _successor[_bufs.back()->id()] = buf->id();
+    _predecessor[buf->id()] = _bufs.back()->id();
+  }
   _bufs.push_back(buf);
 }
 

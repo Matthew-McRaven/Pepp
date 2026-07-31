@@ -55,6 +55,8 @@ public:
   Buffer *buffer(size_t index);
   // Return the successor buffer's ID in the chain, or Buffer::ID{0} if it is the last buffer/not found.
   Buffer::ID successor(Buffer::ID id);
+  // Return the predecessor buffer's ID in the chain, or Buffer::ID{0} if it is the first buffer/not found.
+  Buffer::ID predecessor(Buffer::ID id);
 
 private:
   friend class BufferManager;
@@ -67,6 +69,7 @@ private:
   BufferManager *_mgr = nullptr;
   std::vector<Buffer *> _bufs;
   std::unordered_map<Buffer::ID, Buffer::ID, pepp::handle_hash<Buffer::ID>> _successor;
+  std::unordered_map<Buffer::ID, Buffer::ID, pepp::handle_hash<Buffer::ID>> _predecessor;
 };
 
 // Class which manages the lifetimes of Buffers and provides ID<=>Buffer mapping.
