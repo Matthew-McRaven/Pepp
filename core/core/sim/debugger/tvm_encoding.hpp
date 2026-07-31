@@ -52,10 +52,12 @@ template <Opcode Op, typename Derived> struct ImmediateEncoder {
   }
   template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
     auto words = pack_bytes(data);
+    // Odd counts must be rounded up to the next word.
+    constexpr std::size_t WordCount = (N + 1) / 2;
     return static_cast<const Derived &>(*this).apply_prefix([&](auto... prefix) {
       return [&]<std::size_t... I>(std::index_sequence<I...>) {
         return encode_op<Op, true>(prefix..., (u16)N, words[I]...);
-      }(std::make_index_sequence<(N / 2) + 1>{});
+      }(std::make_index_sequence<WordCount>{});
     });
   }
   template <typename... D>
