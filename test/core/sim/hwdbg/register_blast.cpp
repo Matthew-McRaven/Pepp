@@ -16,105 +16,111 @@
 #include <catch.hpp>
 
 #include "core/sim/debugger/register_blaster.hpp"
+#include "core/sim/debugger/tvm_tracebuffer.hpp"
 
 TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
-  auto ibuff = mgr->alloc_buffer();
   using namespace tvm::EncodedOp;
-  // Simplest possible program which sets a single register and halts.
-  // Check that halt flag is set and that target register gains a value.
+  using M = tvm::RegMask;
+  tvm::TraceBuffer tb(mgr, 1);
+  constexpr u16 S = 0;
+
+  auto prefix = [&](auto enc) { tb.emit_prefix(S, {enc.data(), enc.size()}); };
+  auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
+
   SECTION("Can copy values into common registers") {
     RegisterBlaster blaster(mgr);
-    ibuff->fill_clear(0);
-    blaster.update_ip(ibuff->id());
-    ibuff->append_packed(LDMOD1Lo(0x1234).encode(), Halt<0>().encode());
+    auto before = tb.cursor();
+
+    tb.begin(S);
+    body(LDMOD1Lo{0x1234}.encode());
+    tb.end(S);
 
     CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 0);
     CHECK(blaster.regs().MOD1.lo == 0);
-    REQUIRE_NOTHROW(blaster.step());
-    CHECK(!blaster.stopped());
+    for (auto loc : tb.range(before, tb.cursor()))
+      blaster.run_direct(loc);
+    CHECK(blaster.stopped());
     CHECK(blaster.csrs().M1 == 1);
     CHECK(blaster.regs().MOD1.lo == 0x1234);
-    REQUIRE_NOTHROW(blaster.step());
-    CHECK(blaster.stopped());
   }
 
-  // Check that load masked register correctly re-orders the registers according to mask precedence.
   SECTION("Load multiple registers") {
-    using M = tvm::RegMask;
     RegisterBlaster blaster(mgr);
-    ibuff->fill_clear(0);
-    blaster.update_ip(ibuff->id());
-    // Mix up the order of registers to ensure lmr/lmr_of sort them correctly.
-    ibuff->append_packed(LMR_of<false>(std::pair{M::MOD1_LO, u16(0x1234)}, std::pair{M::ID_HI, u16(0xFEED)},
-                                       std::pair{M::DP_LO, u16(0xBEEF)}));
-    ibuff->append_packed(Halt<0>().encode());
+    auto before = tb.cursor();
+
+    tb.begin(S);
+    body(LMR_of<false>(std::pair{M::MOD1_LO, u16(0x1234)}, std::pair{M::ID_HI, u16(0xFEED)},
+                        std::pair{M::DP_LO, u16(0xBEEF)}));
+    tb.end(S);
 
     CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 0);
     CHECK(blaster.regs().MOD1.lo == 0);
     CHECK(blaster.regs().ID.hi == 0);
     CHECK(blaster.regs().DP.lo == 0);
-    REQUIRE_NOTHROW(blaster.step());
-    CHECK(!blaster.stopped());
+    for (auto loc : tb.range(before, tb.cursor()))
+      blaster.run_direct(loc);
+    CHECK(blaster.stopped());
+    CHECK(blaster.stop_cause() == StopCause::None);
     CHECK(blaster.csrs().M1 == 1);
     CHECK(blaster.regs().MOD1.lo == 0x1234);
     CHECK(blaster.regs().ID.hi == 0xFEED);
     CHECK(blaster.regs().DP.lo == 0xBEEF);
-    REQUIRE_NOTHROW(blaster.step());
-    CHECK((blaster.stopped() && blaster.stop_cause() == StopCause::None));
   }
 
-  // Test that branches are/not  taken by inserting a load register "under" the branch
+  // Branch tests: the body contains BR + LMR + (HALT appended by TB).
+  // BR<1>(0x6) jumps over the 6-byte LMR to land on the HALT.
   SECTION("Unconditional branch!") {
-    using M = tvm::RegMask;
     RegisterBlaster blaster(mgr);
-    ibuff->fill_clear(0);
-    blaster.update_ip(ibuff->id());
-    ibuff->append_packed(BR<1>(0x6).encode(),                             // Branch over the load register instruction.
-                         LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), // Hopefully not executed.
-                         Halt<0>().encode());
+    auto before = tb.cursor();
+
+    tb.begin(S);
+    body(BR<1>{0x6}.encode());
+    body(LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}));
+    tb.end(S);
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.step());
-    CHECK(!blaster.stopped());
-    CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.step());
+    for (auto loc : tb.range(before, tb.cursor()))
+      blaster.run_direct(loc);
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     CHECK(blaster.stopped());
     CHECK(blaster.stop_cause() == StopCause::None);
   }
 
   SECTION("Conditional branch (not taken)") {
-    using M = tvm::RegMask;
     RegisterBlaster blaster(mgr);
-    ibuff->fill_clear(0);
-    blaster.update_ip(ibuff->id());
     blaster.csrs().Z = 0;
-    ibuff->append_packed(BREQ<1>(0x6).encode(), LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), Halt<0>().encode());
+    auto before = tb.cursor();
+
+    tb.begin(S);
+    body(BREQ<1>{0x6}.encode());
+    body(LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}));
+    tb.end(S);
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.step());
-    CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.step());
+    for (auto loc : tb.range(before, tb.cursor()))
+      blaster.run_direct(loc);
+    // Branch not taken: LMR executed, DP.lo set.
     CHECK(blaster.regs().DP.lo == 0xBEEF);
-    // Executed extra instruction, has not yet halted.
-    CHECK(!blaster.stopped());
+    CHECK(blaster.stopped());
   }
 
   SECTION("Conditional branch (taken)") {
-    using M = tvm::RegMask;
     RegisterBlaster blaster(mgr);
-    ibuff->fill_clear(0);
-    blaster.update_ip(ibuff->id());
     blaster.csrs().Z = 1;
-    ibuff->append_packed(BREQ<1>(0x6).encode(), LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}), Halt<0>().encode());
+    auto before = tb.cursor();
+
+    tb.begin(S);
+    body(BREQ<1>{0x6}.encode());
+    body(LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}));
+    tb.end(S);
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.step());
-    CHECK(blaster.regs().DP.lo != 0xBEEF);
-    REQUIRE_NOTHROW(blaster.step());
+    for (auto loc : tb.range(before, tb.cursor()))
+      blaster.run_direct(loc);
+    // Branch taken: LMR skipped, DP.lo unchanged.
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     CHECK(blaster.stopped());
     CHECK(blaster.stop_cause() == StopCause::None);
