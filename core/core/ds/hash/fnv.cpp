@@ -10,3 +10,9 @@ u64 pepp::fnv_1a(bits::span<const char> s) noexcept {
   }
   return h;
 }
+
+u64 pepp::fnv_1a(bits::span<const u8> s) noexcept {
+  return fnv_1a(bits::span<const char>{reinterpret_cast<const char *>(s.data()), s.size()});
+}
+
+u64 pepp::fnv_1a(std::string_view s) noexcept { return fnv_1a(bits::span<const char>{s}); }
