@@ -55,6 +55,11 @@ pepp::bts::Buffer::ID pepp::bts::BufferChain::predecessor(Buffer::ID id) {
   else return it->second;
 }
 
+void pepp::bts::BufferChain::ensure_capacity(size_t bytes) {
+  auto buf = tail();
+  if (!buf->can_fit(bytes)) append_buffer();
+}
+
 pepp::bts::Buffer *pepp::bts::BufferChain::buffer(size_t index) {
   if (index >= _bufs.size()) return nullptr;
   return _bufs[index];

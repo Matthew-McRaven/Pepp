@@ -213,10 +213,23 @@ pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(u16 submitter_id, BodyRes
   auto &node = current_node();
 
   // The subroutine is: [prefix][body or CALL][postfix]
-  // There are no separtors or terminators between these sections.
+  // There are no separators or terminators between these sections.
   // Postfix contains caller-injected instructions (if any) followed by HALT.
   // Indirect buffer programs must be complete (e.g., terminate), so the caller must ensure postfix terminates with a
   // HALT.
+  // All parts of a subroutine must land in the same buffer — we must not split code across a buffer boundary.
+
+  // Pre-encode CALL so we can measure its size before committing.
+  auto call_enc = EncodedOp::Call<2>{
+      .next_ip = SegmentPair{.hi = resolution.location.id.value, .lo = resolution.location.offset}}
+                      .encode();
+
+  // Compute total size so we can ensure all parts land in one buffer.
+  size_t total = sub.prefix.size() + sub.postfix.size();
+  if (resolution.is_template) total += call_enc.size();
+  else total += sub.body.size();
+
+  node.code->ensure_capacity(total);
 
   pepp::bts::Buffer::Location subroutine_start{};
   bool have_start = false;
@@ -232,9 +245,6 @@ pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(u16 submitter_id, BodyRes
   if (!sub.prefix.empty()) append({sub.prefix.data(), sub.prefix.size()});
 
   if (resolution.is_template) {
-    auto call_enc = EncodedOp::Call<2>{
-        .next_ip = SegmentPair{.hi = resolution.location.id.value, .lo = resolution.location.offset}}
-                        .encode();
     append({call_enc.data(), call_enc.size()});
   } else if (!sub.body.empty()) append({sub.body.data(), sub.body.size()});
 

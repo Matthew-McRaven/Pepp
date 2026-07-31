@@ -57,6 +57,9 @@ public:
   Buffer::ID successor(Buffer::ID id);
   // Return the predecessor buffer's ID in the chain, or Buffer::ID{0} if it is the first buffer/not found.
   Buffer::ID predecessor(Buffer::ID id);
+  // Ensure the tail buffer has at least `bytes` of free space.
+  // If not, advance to a fresh buffer. Use before multiple appends that must land in the same buffer.
+  void ensure_capacity(size_t bytes);
 
 private:
   friend class BufferManager;
