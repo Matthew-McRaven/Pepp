@@ -26,6 +26,46 @@ template <Opcode Op, bool clrmod, typename... M> constexpr std::array<u8, 2 * (1
   return bytes;
 }
 
+// Compile-time packing of bytes into LE words for use by encode_op.
+template <std::size_t N> constexpr auto pack_bytes(std::array<u8, N> data) {
+  constexpr std::size_t WordCount = (N + 1) / 2;
+  std::array<u16, WordCount> words{};
+  for (std::size_t i = 0; i < N; i += 2) {
+    u16 w = data[i];
+    if (i + 1 < N) w |= static_cast<u16>(data[i + 1]) << 8;
+    words[i / 2] = w;
+  }
+  return words;
+}
+
+// Helpers to show immediate data into opcode stream.
+// Writes out size in bytes before the data bytes.
+// This matches the typical "immediate" pattern, which loads a size into MOD1.lo and then treats all other bytes as
+// payload.
+template <Opcode Op, typename Derived> struct ImmediateEncoder {
+  template <std::size_t N> constexpr auto encode(const std::array<u16, N> &data) const {
+    return static_cast<const Derived &>(*this).apply_prefix([&](auto... prefix) {
+      return [&]<std::size_t... I>(std::index_sequence<I...>) {
+        return encode_op<Op, true>(prefix..., 2 * (u16)N, data[I]...);
+      }(std::make_index_sequence<N>{});
+    });
+  }
+  template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
+    auto words = pack_bytes(data);
+    return static_cast<const Derived &>(*this).apply_prefix([&](auto... prefix) {
+      return [&]<std::size_t... I>(std::index_sequence<I...>) {
+        return encode_op<Op, true>(prefix..., (u16)N, words[I]...);
+      }(std::make_index_sequence<(N / 2) + 1>{});
+    });
+  }
+  template <typename... D>
+    requires(std::is_convertible_v<D, u16> && ...)
+  constexpr auto encode(D... data) const {
+    return static_cast<const Derived &>(*this).apply_prefix(
+        [&](auto... prefix) { return encode_op<Op, true>(prefix..., 2 * (u16)sizeof...(D), (u16)data...); });
+  }
+};
+
 template <std::size_t> struct Halt;
 template <> struct Halt<0> {
   constexpr auto encode() const { return encode_op<Opcode::HALT, true>(); };
@@ -133,46 +173,6 @@ template <std::size_t N> using BRLE = detail::BR<Opcode::BRLE, N>;
 template <std::size_t N> using BRNE = detail::BR<Opcode::BRNE, N>;
 template <std::size_t N> using BR = detail::BR<Opcode::BR, N>;
 template <std::size_t N> using BRF = detail::BR<Opcode::BRF, N>;
-
-// Compile-time packing of bytes into LE words for use by encode_op.
-template <std::size_t N> constexpr auto pack_bytes(std::array<u8, N> data) {
-  constexpr std::size_t WordCount = (N + 1) / 2;
-  std::array<u16, WordCount> words{};
-  for (std::size_t i = 0; i < N; i += 2) {
-    u16 w = data[i];
-    if (i + 1 < N) w |= static_cast<u16>(data[i + 1]) << 8;
-    words[i / 2] = w;
-  }
-  return words;
-}
-
-// Helpers to show immediate data into opcode stream.
-// Writes out size in bytes before the data bytes.
-// This matches the typical "immediate" pattern, which loads a size into MOD1.lo and then treats all other bytes as
-// payload.
-template <Opcode Op, typename Derived> struct ImmediateEncoder {
-  template <std::size_t N> constexpr auto encode(const std::array<u16, N> &data) const {
-    return static_cast<const Derived &>(*this).apply_prefix([&](auto... prefix) {
-      return [&]<std::size_t... I>(std::index_sequence<I...>) {
-        return encode_op<Op, true>(prefix..., 2 * (u16)N, data[I]...);
-      }(std::make_index_sequence<N>{});
-    });
-  }
-  template <std::size_t N> constexpr auto encode(std::array<u8, N> data) const {
-    auto words = pack_bytes(data);
-    return static_cast<const Derived &>(*this).apply_prefix([&](auto... prefix) {
-      return [&]<std::size_t... I>(std::index_sequence<I...>) {
-        return encode_op<Op, true>(prefix..., (u16)N, words[I]...);
-      }(std::make_index_sequence<(N / 2) + 1>{});
-    });
-  }
-  template <typename... D>
-    requires(std::is_convertible_v<D, u16> && ...)
-  constexpr auto encode(D... data) const {
-    return static_cast<const Derived &>(*this).apply_prefix(
-        [&](auto... prefix) { return encode_op<Op, true>(prefix..., 2 * (u16)sizeof...(D), (u16)data...); });
-  }
-};
 
 template <std::size_t> struct CmpMem;
 template <> struct CmpMem<1> {
