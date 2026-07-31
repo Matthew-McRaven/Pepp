@@ -155,7 +155,8 @@ public:
   void set_trace_buffer(tvm::TraceBuffer *tb) { _tb = tb; }
   tvm::TraceBuffer *trace_buffer() const { return _tb; }
   bool stopped() const { return _csrs.L == 0; }
-  tvm::StopCause stop_cause() const { return static_cast<tvm::StopCause>(_csrs.F); }
+  // Why the machine stopped. Distinguish hard/soft stop with F bit. A normal exit uses StopCause::None && F==0.
+  tvm::StopCause stop_cause() const { return _regs.STOP_CAUSE; }
 
 protected:
   void soft_stop(tvm::StopCause cause = tvm::StopCause::None);
