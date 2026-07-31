@@ -130,8 +130,17 @@ public:
   // At the end of a call to run_direct, L is always 0.
   void run_direct(pepp::bts::Buffer::Location loc);
   // For each buffer location set L=1 and call run_direct.
-  // Only stops when reacing the end of this buffer, or on "hard stop", where L==0 && F==1.
+  // Only stops when reaching the end of this buffer, or on "hard stop", where L==0 && F==1.
   void run_indirect(std::span<pepp::bts::Buffer::Location> locs);
+  // Iterator-pair variant: works with TraceBuffer::Iterator, reverse iterators, etc.
+  // Declared as a template to avoid include'ing TraceBuffer in this header
+  template <typename It>
+  void run_indirect(It begin, It end) {
+    for (auto it = begin; it != end; ++it) {
+      run_direct(*it);
+      if (_csrs.F == 1) break;
+    }
+  }
   u16 register_cmp_callback(CMPCallback cb) {
     u16 id = _cmp_callbacks.size();
     _cmp_callbacks.push_back(cb);
