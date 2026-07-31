@@ -1,3 +1,4 @@
+#pragma once
 #include <span>
 #include <variant>
 #include "core/sim/api/device.hpp"
