@@ -11,6 +11,9 @@
 
 // The system class from core/sim/system.hpp
 class System;
+namespace tvm {
+class TraceBuffer;
+}
 
 // This is basically an ASIC with a custom instruction set used to copy  values into a simulator's
 // registers+memory.
@@ -140,6 +143,8 @@ public:
   const auto &regs() const { return _regs; }
   pepp::bts::BufferManager &mgr() { return *_mgr; }
   const pepp::bts::BufferManager &mgr() const { return *_mgr; }
+  void set_trace_buffer(tvm::TraceBuffer *tb) { _tb = tb; }
+  tvm::TraceBuffer *trace_buffer() const { return _tb; }
   bool stopped() const { return _csrs.L == 0; }
   tvm::StopCause stop_cause() const { return static_cast<tvm::StopCause>(_csrs.F); }
 
@@ -199,6 +204,7 @@ private:
   void push(tvm::SegmentPair v);
   std::shared_ptr<pepp::bts::BufferManager> _mgr;
   System *_system = nullptr;
+  tvm::TraceBuffer *_tb = nullptr;
   RegisterScan *_scan;
   std::array<u8, 256> _stack;
   // Should really be a map so you can delete callbacks, but I can't be bothered to add the ID variable right now.

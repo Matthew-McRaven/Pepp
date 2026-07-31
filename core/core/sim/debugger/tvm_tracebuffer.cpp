@@ -134,6 +134,26 @@ float TraceBuffer::ring_occupancy() const {
   return static_cast<float>(_head - _tail) / static_cast<float>(_ring.size());
 }
 
+// --- Data chain navigation ---
+
+pepp::bts::Buffer::ID TraceBuffer::data_successor(pepp::bts::Buffer::ID id) const {
+  for (auto &node : _ring) {
+    if (!node.data) continue;
+    auto succ = node.data->successor(id);
+    if (succ != pepp::bts::Buffer::ID{0}) return succ;
+  }
+  return pepp::bts::Buffer::ID{0};
+}
+
+pepp::bts::Buffer::ID TraceBuffer::data_predecessor(pepp::bts::Buffer::ID id) const {
+  for (auto &node : _ring) {
+    if (!node.data) continue;
+    auto pred = node.data->predecessor(id);
+    if (pred != pepp::bts::Buffer::ID{0}) return pred;
+  }
+  return pepp::bts::Buffer::ID{0};
+}
+
 // --- Inspection ---
 
 u32 TraceBuffer::hash(bits::span<const u8> data) { return static_cast<u32>(pepp::fnv_1a(data)); }

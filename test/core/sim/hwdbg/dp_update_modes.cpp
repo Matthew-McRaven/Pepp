@@ -78,6 +78,98 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     CHECK(blaster.regs().DS == 4);
   }
 
+  SECTION("ACCDP: forward overflow crosses buffer boundary") {
+    tvm::TraceBuffer tb(mgr, 1);
+    constexpr u16 S = 0;
+    RegisterBlaster blaster(mgr);
+    blaster.set_trace_buffer(&tb);
+    auto before = tb.cursor();
+
+    // Fill the first data buffer completely so the next append spills into a new buffer.
+    constexpr u16 TAIL = 8;
+    std::vector<u8> filler(pepp::bts::Buffer::SIZE, 0xAA);
+    tb.begin(S);
+    auto d1 = tb.append_data(S, {filler.data(), filler.size()});
+    // LDP to the last TAIL bytes of the first buffer.
+    auto ldp = LDP<3>(SegmentPair{.hi = (u16)d1.id.value, .lo = (u16)(pepp::bts::Buffer::SIZE - TAIL)}, TAIL).encode();
+    tb.emit_prefix(S, {ldp.data(), ldp.size()});
+    tb.end(S);
+
+    // Second program: the first buffer is full, so d2 lands in a successor buffer.
+    tb.begin(S);
+    auto d2 = tb.append_data(S, std::array<u8, 4>{0xDE, 0xAD, 0xBE, 0xEF});
+    REQUIRE(d2.id != d1.id); // Sanity: d2 is in a different buffer.
+    auto accdp = ACCDP{4}.encode();
+    tb.emit_prefix(S, {accdp.data(), accdp.size()});
+    tb.end(S);
+
+    auto r = tb.range(before, tb.cursor());
+    auto it = r.begin();
+
+    // Run LDP: sets DP near the end of the first buffer.
+    blaster.run_direct(*it);
+    CHECK(blaster.regs().DP.hi == d1.id.value);
+    CHECK(blaster.regs().DP.lo == pepp::bts::Buffer::SIZE - TAIL);
+    CHECK(blaster.regs().DS == TAIL);
+
+    // Run ACCDP: DP.lo += old DS (TAIL), which overflows into the successor buffer.
+    ++it;
+    blaster.run_direct(*it);
+    CHECK(blaster.regs().DP.hi == d2.id.value);
+    CHECK(blaster.regs().DP.lo == d2.offset);
+    CHECK(blaster.regs().DS == 4);
+  }
+
+  SECTION("INCDP: backward underflow crosses buffer boundary") {
+    tvm::TraceBuffer tb(mgr, 1);
+    constexpr u16 S = 0;
+    RegisterBlaster blaster(mgr);
+    blaster.set_trace_buffer(&tb);
+    auto before = tb.cursor();
+
+    // Fill first data buffer completely so the next append spills into a successor buffer.
+    constexpr u16 BACK_STEP = 16;
+    std::vector<u8> filler(pepp::bts::Buffer::SIZE, 0xBB);
+    tb.begin(S);
+    auto d1 = tb.append_data(S, {filler.data(), filler.size()});
+    tb.end(S);
+
+    // d2 lands at offset 0 of the second buffer.
+    tb.begin(S);
+    auto d2 = tb.append_data(S, std::array<u8, 4>{0x11, 0x22, 0x33, 0x44});
+    REQUIRE(d2.id != d1.id);
+    REQUIRE(d2.offset == 0);
+    // LDP to the start of d2 (second buffer).
+    auto ldp = LDP<3>(SegmentPair{.hi = (u16)d2.id.value, .lo = d2.offset}, 4).encode();
+    tb.emit_prefix(S, {ldp.data(), ldp.size()});
+    tb.end(S);
+
+    // Third program: INCDP with a negative increment to step backward past buffer boundary.
+    tb.begin(S);
+    // Step backward by BACK_STEP bytes from offset 0 — underflows into predecessor buffer.
+    u16 neg_incr = static_cast<u16>(-static_cast<int16_t>(BACK_STEP));
+    auto incdp = INCDP{neg_incr, BACK_STEP}.encode();
+    tb.emit_prefix(S, {incdp.data(), incdp.size()});
+    tb.end(S);
+
+    auto r = tb.range(before, tb.cursor());
+    auto it = r.begin();
+    ++it; // skip first empty-body program
+
+    // Run LDP: sets DP to d2 in the second buffer.
+    blaster.run_direct(*it);
+    CHECK(blaster.regs().DP.hi == d2.id.value);
+    CHECK(blaster.regs().DP.lo == d2.offset);
+    CHECK(blaster.regs().DS == 4);
+
+    // Run INCDP with negative increment: DP should land in the predecessor buffer.
+    ++it;
+    blaster.run_direct(*it);
+    CHECK(blaster.regs().DP.hi == d1.id.value);
+    CHECK(blaster.regs().DP.lo == pepp::bts::Buffer::SIZE - BACK_STEP);
+    CHECK(blaster.regs().DS == BACK_STEP);
+  }
+
   SECTION("INCDP: explicit increment for non-contiguous data") {
     // Two submitters interleave data, creating a gap in submitter A's writes.
     tvm::TraceBuffer tb(mgr, 2);

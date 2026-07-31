@@ -2,6 +2,7 @@
 #include <bit>
 #include "core/sim/api/memory.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
+#include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/system.hpp"
 #include "register_scanner.hpp"
 
@@ -627,7 +628,34 @@ void RegisterBlaster::execute_ldp(tvm::DecodedOp::LDP) {
 
 void RegisterBlaster::execute_dpincr(tvm::DecodedOp::DPIncr op) {
   _regs.DS = op.DS;
-  _regs.DP.lo += op.dp_incr;
+
+  // When no tracebuffer is available, just increment DP.lo and hope that wrapping around is good enough
+  if (_tb == nullptr) {
+    _regs.DP.lo += op.dp_incr;
+    return;
+  }
+
+  // When we have a trace buffer, we can look up the successor/predecessor buffers rather than wrapping around.
+
+  // Use signed 32-bit arithmetic so we can detect both overflow and underflow cleanly.
+  int32_t new_lo = static_cast<int32_t>(_regs.DP.lo) + static_cast<int16_t>(op.dp_incr);
+  constexpr int32_t BUF_SIZE = static_cast<int32_t>(pepp::bts::Buffer::SIZE);
+
+  if (new_lo >= BUF_SIZE) {
+    // Forward overflow: go to successor buffer.
+    auto succ = _tb->data_successor(pepp::bts::Buffer::ID{_regs.DP.hi});
+    if (succ == pepp::bts::Buffer::ID{0}) return hard_stop(tvm::StopCause::InvalidDBuffer);
+    _regs.DP.hi = succ.value;
+    _regs.DP.lo = static_cast<u16>(new_lo - BUF_SIZE);
+  } else if (new_lo < 0) {
+    // Backward underflow: go to predecessor buffer.
+    auto pred = _tb->data_predecessor(pepp::bts::Buffer::ID{_regs.DP.hi});
+    if (pred == pepp::bts::Buffer::ID{0}) return hard_stop(tvm::StopCause::InvalidDBuffer);
+    _regs.DP.hi = pred.value;
+    _regs.DP.lo = static_cast<u16>(new_lo + BUF_SIZE);
+  } else {
+    _regs.DP.lo = static_cast<u16>(new_lo);
+  }
 }
 
 u16 RegisterBlaster::read16(pepp::bts::Buffer::ID id, u16 offset) {
