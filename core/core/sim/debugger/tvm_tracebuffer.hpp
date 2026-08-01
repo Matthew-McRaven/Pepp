@@ -78,7 +78,7 @@ public:
   TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, u16 num_submitters, size_t ring_size = 4);
   ~TraceBuffer() noexcept;
 
-  // --- Submission lifecycle ---
+  // --- Submission  ---
 
   // Begin a new trace for the given submitter.
   // Clears prefix, body, and postfix scratch buffers for this submitter.
@@ -89,8 +89,6 @@ public:
   // indirect buffer, and flushes prefix + body (or CALL) + postfix into the
   // code chain. If the indirect buffer is full, advances to the next ring slot.
   pepp::bts::Buffer::Location end(u16 submitter_id);
-
-  // --- Raw emission (call between begin/end) ---
 
   // Append encoded bytes to the prefix section.
   // Not hashed. Always inlined into the code chain.

@@ -50,7 +50,9 @@ void TraceBuffer::begin(u16 submitter_id) {
 }
 
 pepp::bts::Buffer::Location TraceBuffer::end(u16 submitter_id) {
-  submitter_id %= _submitters.size();
+  // begin() and the emit_* calls all assert on range rather than wrapping, so wrapping here would only let a bad id
+  // reach end() after the rest of the submission had already been undefined behavior.
+  assert(submitter_id < _submitters.size());
   auto &sub = _submitters[submitter_id];
   assert(sub.active && "end() called without matching begin()");
 
@@ -71,8 +73,6 @@ pepp::bts::Buffer::Location TraceBuffer::end(u16 submitter_id) {
     advance_slot();
   return ret;
 }
-
-// --- Raw emission ---
 
 void TraceBuffer::emit_prefix(u16 submitter_id, bits::span<const u8> encoded) {
   assert(submitter_id < _submitters.size());

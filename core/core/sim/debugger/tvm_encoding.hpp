@@ -281,27 +281,30 @@ struct INCDP {
 
 // Helpers containing the fully-decoded layout of each opcode.
 // The values in each struct will mirror underlying registers, but with the decoder taking care of the bit-cracking and
-// register retention on your behalf.
+// register retention on your behalf. Defensive programming suggests default-initialized members due to earlier returns
+// in decoder.
 namespace DecodedOp {
 struct Halt {
-  StopCause cause;
+  StopCause cause = StopCause::None;
 };
 struct Ret {};
 
 struct Call {
-  SegmentPair next_ip;
+  SegmentPair next_ip{};
 };
 // The blaster retains no notion of time, so both sync ops hand the fully-resolved value to whoever is inspecting
 // decoded ops between the decode and execute stages. The narrower-than-64-bit encodings have already been extended:
 // zero-extended for the absolute timestamp, sign-extended for the delta.
 struct ASyn {
-  u64 timestamp;
+  u64 timestamp = 0;
 };
 struct ISyn {
-  i64 delta;
+  i64 delta = 0;
 };
 struct LMR {
-  tvm::RegMask mask;
+  // decode_lmr returns before touching this on a zero-word packet, and execute_lmr tests it before consulting the
+  // (empty) data span, so the default matters.
+  tvm::RegMask mask = (tvm::RegMask)0;
   std::span<const u8> data;
   u8 word_count() const { return data.size() / 2; }
   u16 word(u8 i) const {
@@ -310,53 +313,53 @@ struct LMR {
   }
 };
 struct BR {
-  tvm::ConditionCode condition;
-  SegmentPair displacement;
+  tvm::ConditionCode condition = (tvm::ConditionCode)0;
+  SegmentPair displacement{};
 };
 struct SetMem {
-  bool xor_encoded;
-  Operation access;
-  Device::ID target;
-  u32 offset;
-  SegmentPair data;
-  u16 size;
+  bool xor_encoded = false;
+  Operation access = 0;
+  Device::ID target{};
+  u32 offset = 0;
+  SegmentPair data{};
+  u16 size = 0;
 };
 struct CmpMem {
-  Device::ID target;
-  u32 offset;
-  SegmentPair data;
-  u16 size;
+  Device::ID target{};
+  u32 offset = 0;
+  SegmentPair data{};
+  u16 size = 0;
 };
 struct ClrMem {
-  Device::ID target;
-  u8 data;
+  Device::ID target{};
+  u8 data = 0;
 };
 struct SetReg {
-  bool xor_encoded;
-  Operation access;
-  RegisterScan::RegisterRef reg;
-  SegmentPair data;
-  u16 size;
+  bool xor_encoded = false;
+  Operation access = 0;
+  RegisterScan::RegisterRef reg{};
+  SegmentPair data{};
+  u16 size = 0;
 };
 struct CmpReg {
-  RegisterScan::RegisterRef reg;
-  SegmentPair data;
-  u16 size;
+  RegisterScan::RegisterRef reg{};
+  SegmentPair data{};
+  u16 size = 0;
 };
 struct ClrReg {
-  RegisterScan::RegisterRef reg;
+  RegisterScan::RegisterRef reg{};
 };
 
 struct TRADDR {
-  Device::ID target, source;
-  u32 target_offset, source_offset;
-  u32 size;
+  Device::ID target{}, source{};
+  u32 target_offset = 0, source_offset = 0;
+  u32 size = 0;
 };
 struct LDP {};
 
 struct DPIncr {
-  u16 dp_incr;
-  u16 DS;
+  u16 dp_incr = 0;
+  u16 DS = 0;
 };
 
 using OpChoice = std::variant<Halt, Ret, Call, ASyn, ISyn, LMR, BR, SetMem, CmpMem, ClrMem, SetReg, CmpReg, ClrReg,
