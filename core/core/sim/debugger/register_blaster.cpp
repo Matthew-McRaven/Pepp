@@ -551,7 +551,9 @@ void RegisterBlaster::execute_setmem(tvm::DecodedOp::SetMem op) {
   if (!target) return hard_stop(StopCause::TargetNotMemory);
 
   auto dbuff = _mgr->find((pepp::bts::Buffer::ID)op.data.hi);
+  // Prevent access to invalid dbuff / past its end
   if (!dbuff) return hard_stop(StopCause::InvalidDBuffer);
+  else if ((size_t)op.data.lo + op.size > dbuff->span().size()) return hard_stop(StopCause::InvalidDBuffer);
 
   bits::span<const u8> data = dbuff->span().subspan(op.data.lo, op.size);
 
@@ -583,9 +585,10 @@ void RegisterBlaster::execute_cmpmem(tvm::DecodedOp::CmpMem op) {
   if (_tmp.size() < op.size) _tmp.resize(op.size);
   bits::span<u8> actual(_tmp.data(), op.size);
   auto dbuff = _mgr->find((pepp::bts::Buffer::ID)op.data.hi);
+  // Prevent access to invalid dbuff / past its end
   if (!dbuff) return hard_stop(StopCause::InvalidDBuffer);
+  else if ((size_t)op.data.lo + op.size > dbuff->span().size()) return hard_stop(StopCause::InvalidDBuffer);
   auto expected = dbuff->span().subspan(op.data.lo, op.size);
-  if (actual.size() != expected.size()) return hard_stop(StopCause::RegisterSizeMismatch);
   target->read(op.offset, actual, rw_cmp);
   auto cmp = std::memcmp(actual.data(), expected.data(), op.size);
   // Set conditions according to memcmp result.
@@ -626,6 +629,11 @@ void RegisterBlaster::execute_cmpreg(tvm::DecodedOp::CmpReg op) {
   // Manually unpack to make debugging easier.
   auto reg = pair.first;
   auto field = pair.second;
+
+  // Prevent access to invalid dbuff / past its end
+  auto dbuff = _mgr->find((pepp::bts::Buffer::ID)op.data.hi);
+  if (!dbuff) return hard_stop(StopCause::InvalidDBuffer);
+  else if ((size_t)op.data.lo + op.size > dbuff->span().size()) return hard_stop(StopCause::InvalidDBuffer);
 
   // Whole-register comparison.
   if (field == nullptr) {
@@ -727,7 +735,8 @@ void RegisterBlaster::push(tvm::SegmentPair v) {
 }
 
 tvm::SegmentPair RegisterBlaster::pop() {
-  if (_regs.SP < 3) return soft_stop(tvm::StopCause::StackUnderflow), tvm::SegmentPair{};
+  // Ensure pop of 2*16-bit registers won't cause underflow.
+  if (_regs.SP < 4) return soft_stop(tvm::StopCause::StackUnderflow), tvm::SegmentPair{};
 
   tvm::SegmentPair v;
   _regs.SP -= 4;
