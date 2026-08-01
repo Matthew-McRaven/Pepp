@@ -62,6 +62,7 @@ public:
   template <std::integral I> I read(const RegisterRef &n);
   // Helper which writes an integral value to a register.
   template <std::integral I> void write(const RegisterRef &n, I value);
+  void clear(const RegisterRef &n);
 
   std::pair<Register *, Register::Field *> resolve(RegisterRef r);
   std::pair<const Register *, const Register::Field *> resolve(RegisterRef r) const;
@@ -70,7 +71,7 @@ public:
 
 private:
   bits::Order read(Register *, Register::Field *, bits::span<u8> dest, Byteswap bswap);
-  void write(Register *, Register::Field *, bits::span<const u8> src, Byteswap bswap);
+  void write(Register *, Register::Field *, bits::span<const u8> src, Byteswap bswap, bool force = false);
   Register::ID next_id();
 
   System *_sys;

@@ -237,6 +237,21 @@ u64 value_for(u8 width) {
   }
 }
 
+// A register the scan refuses ordinary writes to. Clearing is a reset rather than a program write, so it is expected
+// to go through anyway.
+constexpr Address READONLY_OFFSET = 0x160;
+RegisterScan::RegisterRef expose_readonly(System &sys, Dense &mem) {
+  RegisterScan::Register r{};
+  r.order = bits::Order::BigEndian;
+  r.byte_width = 4;
+  r.access = RegisterScan::Register::Access::Read;
+  r.target = mem.id();
+  r.offset = READONLY_OFFSET;
+  r.name = "ro4";
+  sys.register_scan()->expose(r);
+  return *sys.register_scan()->find("ro4");
+}
+
 // Dispatch to the integral write<I> overload whose width matches the register.
 void write_integral(RegisterScan &scan, const RegisterScan::RegisterRef &ref, u8 width, u64 value) {
   switch (width) {
@@ -452,5 +467,105 @@ TEST_CASE("NZVC fields pack independently", "[scope:core][scope:core.dbg][kind:u
     CHECK(scan->read<u8>(flag(2)) == 1);
     CHECK(scan->read<u8>(flag(3)) == 0);
     CHECK(scan->read<u32>(whole) == 0x0100'0100);
+  }
+}
+
+TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  using namespace tvm::EncodedOp;
+  constexpr u16 S = 0;
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  expose_synthetics(*sys, *mem);
+  auto *scan = sys->register_scan();
+
+  // Run a single-instruction program and report the blaster, so the opcode and the scan API can be checked against
+  // each other rather than only against themselves.
+  auto run = [&](auto enc) {
+    auto blaster = sys->make_blaster();
+    tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+    tb.begin(S);
+    tb.emit_body(S, {enc.data(), enc.size()});
+    auto loc = tb.end(S);
+    blaster->run_direct(loc);
+    return blaster;
+  };
+
+  SECTION("clear() zeroes a whole register") {
+    for (const auto &s : SYNTHETICS) {
+      INFO("register " << s.name);
+      auto ref = *scan->find(s.name);
+      scan->write<u64>(ref, 0xFFFF'FFFF'FFFF'FFFFULL);
+      REQUIRE(scan->read<u64>(ref) != 0);
+
+      scan->clear(ref);
+
+      CHECK(scan->read<u64>(ref) == 0);
+      CHECK(peek(*mem, s.offset, s.byte_width) == std::vector<u8>(s.byte_width, 0));
+    }
+  }
+
+  SECTION("clear() zeroes one field and leaves its siblings") {
+    auto whole = *scan->find("NZVC");
+    scan->write<u32>(whole, 0x0101'0101);
+
+    scan->clear(*scan->find("V"));
+
+    CHECK(scan->read<u8>(*scan->find("V")) == 0);
+    CHECK(scan->read<u8>(*scan->find("N")) == 1);
+    CHECK(scan->read<u8>(*scan->find("Z")) == 1);
+    CHECK(scan->read<u8>(*scan->find("C")) == 1);
+    CHECK(scan->read<u32>(whole) == 0x0101'0001);
+  }
+
+  SECTION("CLRREG zeroes a whole register") {
+    auto ref = *scan->find("be4");
+    scan->write<u32>(ref, 0xDEAD'BEEF);
+    REQUIRE(scan->read<u32>(ref) == 0xDEAD'BEEF);
+
+    // A field of 0 addresses the register itself rather than one of its fields.
+    auto blaster = run(ClrReg<2>{.reg = ref.reg.value, .field = 0}.encode());
+
+    CHECK(blaster->stop_cause() == StopCause::None);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(scan->read<u32>(ref) == 0);
+  }
+
+  SECTION("CLRREG zeroes a single field") {
+    auto whole = *scan->find("NZVC");
+    auto v = *scan->find("V");
+    scan->write<u32>(whole, 0x0101'0101);
+
+    auto blaster = run(ClrReg<2>{.reg = v.reg.value, .field = v.field.value}.encode());
+
+    CHECK(blaster->stop_cause() == StopCause::None);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(scan->read<u32>(whole) == 0x0101'0001);
+  }
+
+  SECTION("Clearing bypasses the read-only check") {
+    auto ro = expose_readonly(*sys, *mem);
+    constexpr std::array<u8, 4> seed{0x11, 0x22, 0x33, 0x44};
+    mem->write(READONLY_OFFSET, {seed.data(), seed.size()}, rw);
+    REQUIRE(scan->read<u32>(ro) == 0x1122'3344);
+
+    // An ordinary write is still refused -- that is what makes the clear below a bypass rather than a no-op check.
+    CHECK_THROWS(scan->write<u32>(ro, 0));
+    CHECK(scan->read<u32>(ro) == 0x1122'3344);
+
+    // A clear is a reset, not a program write, so it goes through regardless of the register's access bits.
+    CHECK_NOTHROW(scan->clear(ro));
+    CHECK(scan->read<u32>(ro) == 0);
+  }
+
+  SECTION("CLRREG bypasses the read-only check") {
+    auto ro = expose_readonly(*sys, *mem);
+    constexpr std::array<u8, 4> seed{0x11, 0x22, 0x33, 0x44};
+    mem->write(READONLY_OFFSET, {seed.data(), seed.size()}, rw);
+    REQUIRE(scan->read<u32>(ro) == 0x1122'3344);
+
+    auto blaster = run(ClrReg<2>{.reg = ro.reg.value, .field = 0}.encode());
+
+    CHECK(blaster->stop_cause() == StopCause::None);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(scan->read<u32>(ro) == 0);
   }
 }

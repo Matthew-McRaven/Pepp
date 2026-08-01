@@ -279,6 +279,17 @@ template <> struct CmpReg<3> : ImmediateEncoder<Opcode::CMPREG, CmpReg<3>> {
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(reg, field); }
 };
 
+// Same ID packet as CMPREG. No field clears whole reg.
+template <std::size_t> struct ClrReg;
+template <> struct ClrReg<1> {
+  u16 reg;
+  constexpr auto encode() const { return encode_op<Opcode::CLRREG, true>(reg); }
+};
+template <> struct ClrReg<2> {
+  u16 reg, field;
+  constexpr auto encode() const { return encode_op<Opcode::CLRREG, true>(reg, field); }
+};
+
 template <std::size_t> struct LDP;
 template <> struct LDP<1> {
   u16 DP_lo;

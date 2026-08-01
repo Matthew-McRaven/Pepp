@@ -733,7 +733,15 @@ void RegisterBlaster::execute_cmpreg(tvm::DecodedOp::CmpReg op) {
 }
 
 void RegisterBlaster::execute_clrreg(tvm::DecodedOp::ClrReg op) {
-  throw std::runtime_error("CLRREG execution not implemented");
+  using StopCause = tvm::StopCause;
+  // Not in register mode or there is no scan. Either way, the clear will fail.
+  if (_csrs.TR == 0) return hard_stop(StopCause::WrongTR);
+  else if (_scan == nullptr) return hard_stop(StopCause::MissingSystem);
+  // Resolve up front so a bad ID stops the machine the way CMPREG does. clear() reports it by throwing, and that is
+  // a std::runtime_error rather than an Error, so it would sail past try_access and out of the blaster entirely.
+  else if (_scan->resolve(op.reg).first == nullptr) return hard_stop(StopCause::RegisterInvalid);
+
+  _csrs.F = try_access([&] { _scan->clear(op.reg); }) ? 0 : 1;
 }
 
 void RegisterBlaster::execute_traddr(tvm::DecodedOp::TRADDR op) {

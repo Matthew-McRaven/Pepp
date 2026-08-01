@@ -23,6 +23,14 @@ bits::Order RegisterScan::read(const RegisterRef &ref, bits::span<u8> dest, Byte
   return read(reg, field, dest, bswap);
 }
 
+void RegisterScan::clear(const RegisterRef &r) {
+  auto [reg, field] = this->resolve(r);
+  static const u64 zero = 0;
+  static const auto zspan = bits::span<const u8>{reinterpret_cast<const u8 *>(&zero), sizeof(zero)};
+  if (!reg) throw std::runtime_error("Register not found");
+  write(reg, field, zspan, Byteswap::Never, true);
+}
+
 std::pair<RegisterScan::Register *, RegisterScan::Register::Field *> RegisterScan::resolve(RegisterRef r) {
   auto [reg, field] = std::as_const(*this).resolve(r);
   return {const_cast<Register *>(reg), const_cast<Register::Field *>(field)};
@@ -86,13 +94,14 @@ bits::Order RegisterScan::read(Register *reg, Register::Field *field, bits::span
   }
 }
 
-void RegisterScan::write(Register *reg, Register::Field *field, bits::span<const u8> src, Byteswap bswap) {
+void RegisterScan::write(Register *reg, Register::Field *field, bits::span<const u8> src, Byteswap bswap, bool force) {
   using namespace bits;
   if (!reg) throw std::runtime_error("Register not found");
   else if (auto dev = _sys->find_by_id(reg->target); !dev) throw std::runtime_error("Device not found");
   else if (auto target = dev->capability<Target>(); !target) throw std::runtime_error("Device is not a Target");
   else {
-    if (!any(reg->access & Register::Access::Write)) throw std::runtime_error("Register is not writable");
+    // `force` ignores reset value, useful in clear.
+    if (!force && !any(reg->access & Register::Access::Write)) throw std::runtime_error("Register is not writable");
     const size_t width = std::min<size_t>(reg->byte_width, sizeof(u64));
 
     // Byteswap describes src here, mirroring how it describes the destination in read().
@@ -107,7 +116,8 @@ void RegisterScan::write(Register *reg, Register::Field *field, bits::span<const
     u64 value = memcpy_endian<u64>(src, src_order);
 
     if (field) {
-      if (!any(field->access & Register::Access::Write)) throw std::runtime_error("Field is not writable");
+      if (!force && !any(field->access & Register::Access::Write))
+        throw std::runtime_error("Field is not writable");
       // Read-modify-write: the bits outside this field may belong to other fields siblings and must be unchanged.
       // Create a copy in whole, then mask out the field's previous bits before inserting the result.
       // Ensure data is in host order before masking & shifting.
@@ -125,7 +135,7 @@ void RegisterScan::write(Register *reg, Register::Field *field, bits::span<const
     // not matter -- memcpy_endian defines dest's contents outright, so no host-order assumption leaks in.
     auto out = span<u8>{reinterpret_cast<u8 *>(&value), width};
     memcpy_endian(out, reg->order, value);
-    target->write(reg->offset, out, rw);
+    target->write(reg->offset, out, force ? rw_buf : rw);
   }
 }
 
