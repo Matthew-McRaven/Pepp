@@ -55,7 +55,7 @@ struct Cursor {
 // templatization from occuring. This is because the data pointer incrments issued in the body will be different.
 //
 // For a typical Pep/N trace, I expect programs to be as follows.
-//   prefix:  Record current wall time (or wall-time delta) with SYNC
+//   prefix:  Record current wall time with ASYN, or the wall-time delta with ISYN
 //   body:    setmem/setreg paired with DP updated (ACCDP/INCDP/LDP)
 //   postfix: termination — always inlined, not hashed (HALT appended by end())
 //

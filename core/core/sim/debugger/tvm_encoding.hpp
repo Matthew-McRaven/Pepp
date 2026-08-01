@@ -95,22 +95,25 @@ template <> struct Call<2> {
   constexpr auto encode() const { return encode_op<Opcode::CALL, true>(next_ip.lo, next_ip.hi); }
 };
 
-struct Syn_4 {
-  SegmentPair timestamp_lo;
-  SegmentPair timestamp_hi;
-  constexpr auto encode() const {
-    return encode_op<Opcode::SYN, true>(timestamp_lo.hi, timestamp_lo.lo, timestamp_hi.hi, timestamp_hi.lo);
-  }
-};
-struct Syn_2 {
-  SegmentPair timestamp_lo;
-  constexpr auto encode() const { return encode_op<Opcode::SYN, true>(timestamp_lo.hi, timestamp_lo.lo); }
-};
+namespace detail {
+// The two sync ops encode identically, so share one implementation and let the opcode pick the flavor.
+template <Opcode SYNT, std::size_t> struct Syn;
 
-struct Syn_0 {
-  SegmentPair timestamp_lo;
-  constexpr auto encode() const { return encode_op<Opcode::SYN, true>(); }
+// No packet words: the timestamp is the DS bytes living at DP.
+template <Opcode SYNT> struct Syn<SYNT, 0> {
+  constexpr auto encode() const { return encode_op<SYNT, true>(); }
 };
+// Immediate: size word followed by the little-endian timestamp bytes. Carries no prefix words, since the sync ops have
+// no target/offset registers to program.
+template <Opcode SYNT> struct Syn<SYNT, 1> : ImmediateEncoder<SYNT, Syn<SYNT, 1>> {
+  template <typename F> constexpr auto apply_prefix(F &&f) const { return f(); }
+};
+} // namespace detail
+
+// Absolute timestamp. Data is treated as an unsigned little-endian integer.
+template <std::size_t N> using ASyn = detail::Syn<Opcode::ASYN, N>;
+// Incremental timestamp. Data is treated as a signed little-endian delta added to the previous timestamp.
+template <std::size_t N> using ISyn = detail::Syn<Opcode::ISYN, N>;
 
 // Use lmr/lmr_of if you want to emit LMR instructions. They're variadic. I won't help you with a struct because that
 // struct will be way too fat or it will incur dynamic memory alloc.
@@ -288,7 +291,15 @@ struct Ret {};
 struct Call {
   SegmentPair next_ip;
 };
-struct Syn {};
+// The blaster retains no notion of time, so both sync ops hand the fully-resolved value to whoever is inspecting
+// decoded ops between the decode and execute stages. The narrower-than-64-bit encodings have already been extended:
+// zero-extended for the absolute timestamp, sign-extended for the delta.
+struct ASyn {
+  u64 timestamp;
+};
+struct ISyn {
+  i64 delta;
+};
 struct LMR {
   tvm::RegMask mask;
   std::span<const u8> data;
@@ -348,7 +359,7 @@ struct DPIncr {
   u16 DS;
 };
 
-using OpChoice =
-    std::variant<Halt, Ret, Call, Syn, LMR, BR, SetMem, CmpMem, ClrMem, SetReg, CmpReg, ClrReg, TRADDR, LDP, DPIncr>;
+using OpChoice = std::variant<Halt, Ret, Call, ASyn, ISyn, LMR, BR, SetMem, CmpMem, ClrMem, SetReg, CmpReg, ClrReg,
+                              TRADDR, LDP, DPIncr>;
 } // namespace DecodedOp
 } // namespace tvm

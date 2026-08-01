@@ -157,6 +157,8 @@ public:
   bool stopped() const { return _csrs.L == 0; }
   // Why the machine stopped. Distinguish hard/soft stop with F bit. A normal exit uses StopCause::None && F==0.
   tvm::StopCause stop_cause() const { return _regs.STOP_CAUSE; }
+  // The most recently decoded instruction, with all of its operands already resolved.
+  const tvm::DecodedOp::OpChoice &decoded() const { return _decoded; }
 
 protected:
   void soft_stop(tvm::StopCause cause = tvm::StopCause::None);
@@ -166,7 +168,8 @@ protected:
   void execute_halt(tvm::DecodedOp::Halt op);
   void execute_ret(tvm::DecodedOp::Ret op);
   void execute_call(tvm::DecodedOp::Call op);
-  void execute_syn(tvm::DecodedOp::Syn op);
+  void execute_asyn(tvm::DecodedOp::ASyn op);
+  void execute_isyn(tvm::DecodedOp::ISyn op);
   void execute_lmr(tvm::DecodedOp::LMR op);
   void execute_br(tvm::DecodedOp::BR op);
   void execute_setmem(tvm::DecodedOp::SetMem op);
@@ -190,7 +193,12 @@ private:
   tvm::DecodedOp::Ret decode_ret(pepp::bts::Buffer::ID ibp, u16 iop);
   // Register write depends on a preceding stack op, which is not allowed in decode stage.
   tvm::DecodedOp::Call decode_call(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::Syn decode_syn(pepp::bts::Buffer::ID ibp, u16 iop);
+  tvm::DecodedOp::ASyn decode_asyn(pepp::bts::Buffer::ID ibp, u16 iop);
+  tvm::DecodedOp::ISyn decode_isyn(pepp::bts::Buffer::ID ibp, u16 iop);
+  // Shared operand decoding for ASYN/ISYN. Programs the MOD registers for the immediate form, then reads the
+  // little-endian timestamp bytes. `width` receives the number of bytes actually consumed so that the caller can
+  // sign-extend a delta; the returned value itself is only zero-extended.
+  u64 decode_syn_data(pepp::bts::Buffer::ID ibp, u16 iop, u8 &width);
   // Unlike other decode functions, this one does not update registers!
   // This is because the shift/extract logic is somewhat complex -- and really belongs in the execute stage.
   tvm::DecodedOp::LMR decode_lmr(pepp::bts::Buffer::ID ibp, u16 iop);

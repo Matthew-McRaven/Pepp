@@ -1,4 +1,5 @@
 #include "register_blaster.hpp"
+#include <algorithm>
 #include <bit>
 #include "core/sim/api/memory.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
@@ -80,7 +81,8 @@ void RegisterBlaster::decode() {
   case Opcode::HALT: _decoded = decode_halt(ibp, iop); break;
   case Opcode::RET: _decoded = decode_ret(ibp, iop); break;
   case Opcode::CALL: _decoded = decode_call(ibp, iop); break;
-  case Opcode::SYN: _decoded = decode_syn(ibp, iop); break;
+  case Opcode::ASYN: _decoded = decode_asyn(ibp, iop); break;
+  case Opcode::ISYN: _decoded = decode_isyn(ibp, iop); break;
   case Opcode::LMR: _decoded = decode_lmr(ibp, iop); break;
   case Opcode::BRF: [[fallthrough]];
   case Opcode::NOP: [[fallthrough]];
@@ -134,17 +136,59 @@ tvm::DecodedOp::Call RegisterBlaster::decode_call(pepp::bts::Buffer::ID ibp, u16
   return ret;
 }
 
-tvm::DecodedOp::Syn RegisterBlaster::decode_syn(pepp::bts::Buffer::ID ibp, u16 iop) {
-  tvm::DecodedOp::Syn ret;
-  // TODO: switching to immediate vs DP data
-  /*switch (_regs.IS.word_len) {
-  default: [[fallthrough]];
-  case 4: _regs.MOD1.lo = read16(ibp, iop + 6); [[fallthrough]];
-  case 3: ret.timestamp_hi.hi = read16(ibp, iop + 4), _csrs.[[fallthrough]];
-  case 2: ret.timestamp_lo.lo = read16(ibp, iop + 2); [[fallthrough]];
-  case 1: ret.timestamp_lo.hi = read16(ibp, iop + 0), ret.has_lo = true; [[fallthrough]];
-  case 0: break;
-  }*/
+u64 RegisterBlaster::decode_syn_data(pepp::bts::Buffer::ID ibp, u16 iop, u8 &size) {
+  using StopCause = tvm::StopCause;
+  // Unless a size word is provided, data is DP relative rather than immediate.
+  tvm::SegmentPair data = _regs.DP;
+  // DS is shared with the SET*/CMP* ops, so it may well be wider than a timestamp. Ignore the excess.
+  size = (u8)std::min<u16>(_regs.DS, sizeof(u64));
+
+  if (_regs.IS.word_len >= 1) {
+    // If MOD1/MOD2 are set, then read from them rather than the data registers.
+    // This allows "immediate" versions to avoid clobbering DP regs.
+    // Silently truncate to 8 bytes, since our timestamps are at most u64s.
+    _regs.MOD1.lo = std::min<u16>(read16(ibp, iop + 0), sizeof(u64));
+    _regs.MOD2.hi = _regs.IP.hi;
+    _regs.MOD2.lo = iop + 2;
+    _csrs.M1 = _csrs.M2 = 1;
+    data = _regs.MOD2;
+    size = _regs.MOD1.lo;
+  }
+
+  u64 value = 0;
+  // Ensure that dbuff exists and is in range before reading from it.
+  if (auto dbuff = _mgr->find((pepp::bts::Buffer::ID)data.hi); !dbuff) return hard_stop(StopCause::InvalidDBuffer), 0;
+  else if (auto span = dbuff->span(); (size_t)data.lo + size > span.size())
+    return hard_stop(StopCause::InvalidDBuffer), 0;
+  else {
+    for (u8 i = 0; i < size; ++i) value |= (u64)span[data.lo + i] << (8 * i);
+  }
+
+  return value;
+}
+
+tvm::DecodedOp::ASyn RegisterBlaster::decode_asyn(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::ASyn ret;
+  u8 width = 0;
+  // Absolute timestamps are unsigned, so a narrow encoding is just the low-order bytes of a bigger number.
+  ret.timestamp = decode_syn_data(ibp, iop, width);
+  return ret;
+}
+
+tvm::DecodedOp::ISyn RegisterBlaster::decode_isyn(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::ISyn ret;
+  u8 width = 0;
+  u64 raw = decode_syn_data(ibp, iop, width);
+  // Need to sign-extend the value if it is narrows than 8 bytes.
+  if (width > 0 && width < sizeof(u64)) {
+    const u64 bits = 8 * (u64)width;
+    // Mask all bits except sign bit
+    const u64 raw_sign = (u64(1) << (bits - 1));
+    // Create a mask for all bits above sign bit. Note the parentheses are different than above!
+    const u64 raw_se = ~((u64(1) << bits) - 1);
+    if (raw & raw_sign) raw |= raw_se;
+  }
+  ret.delta = (i64)raw;
   return ret;
 }
 
@@ -397,7 +441,8 @@ void RegisterBlaster::execute() {
   case Opcode::HALT: return execute_halt(std::get<tvm::DecodedOp::Halt>(_decoded));
   case Opcode::RET: return execute_ret(std::get<tvm::DecodedOp::Ret>(_decoded));
   case Opcode::CALL: return execute_call(std::get<tvm::DecodedOp::Call>(_decoded));
-  case Opcode::SYN: return execute_syn(std::get<tvm::DecodedOp::Syn>(_decoded));
+  case Opcode::ASYN: return execute_asyn(std::get<tvm::DecodedOp::ASyn>(_decoded));
+  case Opcode::ISYN: return execute_isyn(std::get<tvm::DecodedOp::ISyn>(_decoded));
   case Opcode::LMR: return execute_lmr(std::get<tvm::DecodedOp::LMR>(_decoded));
   case Opcode::BRF: [[fallthrough]];
   case Opcode::NOP: [[fallthrough]];
@@ -433,7 +478,11 @@ void RegisterBlaster::execute_call(tvm::DecodedOp::Call op) {
   _regs.IP = op.next_ip;
 }
 
-void RegisterBlaster::execute_syn(tvm::DecodedOp::Syn op) {}
+// Both sync ops are no-ops for the blaster itself, which keeps no clock. All the work happened in decode, and the
+// timestamp is carried in the decoded op for inspection code sitting between the decode and execute stages.
+void RegisterBlaster::execute_asyn(tvm::DecodedOp::ASyn op) {}
+
+void RegisterBlaster::execute_isyn(tvm::DecodedOp::ISyn op) {}
 
 void RegisterBlaster::execute_lmr(tvm::DecodedOp::LMR op) {
   using namespace tvm;

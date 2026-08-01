@@ -34,11 +34,6 @@ enum class Opcode : u8 {
   // Push next IP onto SP. Set IP.lo to MOD2.lo and IP.hi to MOD2.hi. If MOD2.hi is not set, use IP.hi.
   // 2 Packet registers: MOD2.lo, MOD2.hi
   CALL = 0b00'0010,
-  // A synchronization opcode, used to communicate a clock tick to the blaster.
-  // MOD2 contains the lo order of the timestamp as (hi, lo) and MOD1 contains the hi order of the timestamp as (hi,
-  // lo).
-  // 4 Packet registers: MOD2.hi, MOD2.lo, MOD1.hi, MOD1.lo
-  SYN = 0b00'0011, // Unused opcode
   // Load masked register.
   // First word is a bitmask which indicates which registers to load.
   // The mask is defined in RegMask.
@@ -47,8 +42,21 @@ enum class Opcode : u8 {
   // Originally, I had a different load instruction per register. This wasted a ton of opcode space & program encoding
   // space when setting more than one register at once. Take advantage of the varadicity man.
   // Packet registers: RegMask, <varies>
-  LMR = 0b00'0100,
-  // GAP101 = 0b00'0101,
+  LMR = 0b00'0011,
+  // Synchronize absolute and synchronize incremental, which both take a timestamp / clock tick.
+  // ASYN reports the full timestamp, whereas ISYN reports a signed delta to be added to the previous timestamp.
+  // The two differ only in LSB, which is set for the incremental variant.
+  // Both accept immediate or DP-relative data.
+  // If MOD1.lo is set, is is treated as the size in bytes of the immeidate data, and MOD2 is set to point to the word
+  // following MOD1.lo in the instruction stream. All remaining words in the packet are treated as data.
+  // If MOD1.lo is not provided, data is located at DP.
+  // This is the same immediate-vs-DP split used by SET*/CMP*.
+  // The data is a little-endian integer. A timestamp can't exceed 64 bits, so the resulting size will be clipped to 8
+  // bytes, regardless of data source. The blaster does not retain a timestamp, so this value is purely for higher-level
+  // analysis code.
+  // Packet registers: MOD1.lo
+  ASYN = 0b00'0100,
+  ISYN = 0b00'0101,
   // GAP110 = 0b00'0110,
   // Branch if F bit is set, using the same packet registers are comparison branches.
   // Sets MOD1.lo to ConditionCode::F.
