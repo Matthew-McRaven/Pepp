@@ -14,9 +14,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
+#include <vector>
 
 #include "core/sim/debugger/register_blaster.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
+
+namespace {
+
+// Load a program at the start of a fresh buffer and aim the blaster at it. INVCALL's targets are absolute IP offsets
+// rather than displacements, so the tests below need to know where the program starts -- which rules out going
+// through the TraceBuffer, since it picks the offset itself.
+pepp::bts::Buffer *load_program(pepp::bts::BufferManager &mgr, RegisterBlaster &blaster,
+                                bits::span<const u8> program) {
+  auto *code = mgr.alloc_buffer();
+  auto offset = code->append(program);
+  blaster.update_ip(code->id(), (u16)offset);
+  return code;
+}
+
+} // namespace
 
 TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
@@ -122,6 +138,85 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
       blaster.run_direct(loc);
     // Branch taken: LMR skipped, DP.lo unchanged.
     CHECK(blaster.regs().DP.lo != 0xBEEF);
+    CHECK(blaster.stopped());
+    CHECK(blaster.stop_cause() == StopCause::None);
+  }
+}
+
+TEST_CASE("INVCALL picks a target on the F bit", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  using namespace tvm::EncodedOp;
+
+  // Two recognizable destinations. A single step never fetches from the target, so these only have to be
+  // distinguishable, not executable.
+  constexpr u16 ON_TRUE = 0x40, ON_FALSE = 0x80;
+
+  SECTION("F set picks the true target") {
+    RegisterBlaster blaster(mgr);
+    constexpr auto program = InvCall<2>{.on_true_lo = ON_TRUE, .on_false_lo = ON_FALSE}.encode();
+    auto *code = load_program(*mgr, blaster, program);
+
+    blaster.csrs().F = 1;
+    blaster.step();
+
+    CHECK(blaster.regs().IP.hi == code->id().value);
+    CHECK(blaster.regs().IP.lo == ON_TRUE);
+  }
+
+  SECTION("F clear picks the false target") {
+    RegisterBlaster blaster(mgr);
+    constexpr auto program = InvCall<2>{.on_true_lo = ON_TRUE, .on_false_lo = ON_FALSE}.encode();
+    auto *code = load_program(*mgr, blaster, program);
+
+    blaster.csrs().F = 0;
+    blaster.step();
+
+    CHECK(blaster.regs().IP.hi == code->id().value);
+    CHECK(blaster.regs().IP.lo == ON_FALSE);
+  }
+
+  SECTION("The far form picks the whole target, buffer and all") {
+    // Both halves of the selected target have to come from the same side. Getting this wrong -- mixing one target's
+    // hi with the other's lo -- is exactly what the interleaved lo-first encoding invites.
+    constexpr auto program = InvCall<4>{.on_true = SegmentPair{.hi = 0x1234, .lo = ON_TRUE},
+                                        .on_false = SegmentPair{.hi = 0x5678, .lo = ON_FALSE}}
+                                 .encode();
+
+    RegisterBlaster on_true(mgr);
+    load_program(*mgr, on_true, program);
+    on_true.csrs().F = 1;
+    on_true.step();
+    CHECK(on_true.regs().IP.hi == 0x1234);
+    CHECK(on_true.regs().IP.lo == ON_TRUE);
+
+    RegisterBlaster on_false(mgr);
+    load_program(*mgr, on_false, program);
+    on_false.csrs().F = 0;
+    on_false.step();
+    CHECK(on_false.regs().IP.hi == 0x5678);
+    CHECK(on_false.regs().IP.lo == ON_FALSE);
+  }
+
+  SECTION("The target is called, not branched to") {
+    RegisterBlaster blaster(mgr);
+    std::vector<u8> program;
+    auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+    append(InvCall<2>{.on_true_lo = 8, .on_false_lo = ON_FALSE}.encode()); // bytes 0..5
+    append(Halt<0>{}.encode());                                            // bytes 6..7, the return point
+    append(Ret<0>{}.encode());                                             // bytes 8..9, the true target
+
+    load_program(*mgr, blaster, program);
+    blaster.csrs().F = 1;
+
+    blaster.step(); // INVCALL
+    CHECK(blaster.regs().IP.lo == 8);
+    CHECK(blaster.regs().SP == 4); // a frame was pushed, so this was a call rather than a jump
+
+    blaster.step(); // RET
+    CHECK(blaster.regs().IP.lo == 6); // the pushed address is the instruction after INVCALL
+    CHECK(blaster.regs().SP == 0);
+
+    blaster.step(); // HALT
     CHECK(blaster.stopped());
     CHECK(blaster.stop_cause() == StopCause::None);
   }

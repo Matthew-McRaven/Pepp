@@ -168,6 +168,7 @@ protected:
   void execute_halt(tvm::DecodedOp::Halt op);
   void execute_ret(tvm::DecodedOp::Ret op);
   void execute_call(tvm::DecodedOp::Call op);
+  void execute_invcall(tvm::DecodedOp::InvCall op);
   void execute_asyn(tvm::DecodedOp::ASyn op);
   void execute_isyn(tvm::DecodedOp::ISyn op);
   void execute_lmr(tvm::DecodedOp::LMR op);
@@ -193,6 +194,7 @@ private:
   tvm::DecodedOp::Ret decode_ret(pepp::bts::Buffer::ID ibp, u16 iop);
   // Register write depends on a preceding stack op, which is not allowed in decode stage.
   tvm::DecodedOp::Call decode_call(pepp::bts::Buffer::ID ibp, u16 iop);
+  tvm::DecodedOp::InvCall decode_invcall(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ASyn decode_asyn(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ISyn decode_isyn(pepp::bts::Buffer::ID ibp, u16 iop);
   // Shared operand decoding for ASYN/ISYN. Programs the MOD registers for the immediate form, then reads the

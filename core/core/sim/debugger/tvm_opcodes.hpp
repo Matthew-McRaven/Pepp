@@ -57,7 +57,15 @@ enum class Opcode : u8 {
   // Packet registers: MOD1.lo
   ASYN = 0b00'0100,
   ISYN = 0b00'0101,
-  // GAP110 = 0b00'0110,
+  // An invertible call, which picks between two targets based on CSR state. Eventually, this will be predicated on a
+  // "direction" bit, but for proof-of-concept we use the F bit. The "true" target called when F==1 (i.e. when the
+  // last memory access failed), the "false" target when F==0. One of the two is always called, and F is unchanged.
+  // The two targets are interleaved lo-first so that the near case (both targets in the current buffer) fits in 2
+  // words, the same trick the branches play with MOD2. Any target word that isn't supplied defaults to the
+  // fall-through: a missing hi becomes IP.hi, and a wholly missing target becomes the next instruction.
+  // MOD1 hold true target, MOD2 holds false target.
+  // Packet registers: (true).lo, (false).lo, (true).hi, (false).hi
+  INVCALL = 0b00'0110,
   // Branch if F bit is set, using the same packet registers are comparison branches.
   // Sets MOD1.lo to ConditionCode::F.
   // 2 Packet registers: MOD2.lo, MOD2.hi

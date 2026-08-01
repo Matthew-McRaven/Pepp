@@ -81,6 +81,7 @@ void RegisterBlaster::decode() {
   case Opcode::HALT: _decoded = decode_halt(ibp, iop); break;
   case Opcode::RET: _decoded = decode_ret(ibp, iop); break;
   case Opcode::CALL: _decoded = decode_call(ibp, iop); break;
+  case Opcode::INVCALL: _decoded = decode_invcall(ibp, iop); break;
   case Opcode::ASYN: _decoded = decode_asyn(ibp, iop); break;
   case Opcode::ISYN: _decoded = decode_isyn(ibp, iop); break;
   case Opcode::LMR: _decoded = decode_lmr(ibp, iop); break;
@@ -133,6 +134,26 @@ tvm::DecodedOp::Call RegisterBlaster::decode_call(pepp::bts::Buffer::ID ibp, u16
   case 1: ret.next_ip.lo = read16(ibp, iop + 0);
   case 0: break;
   }
+  return ret;
+}
+
+tvm::DecodedOp::InvCall RegisterBlaster::decode_invcall(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::InvCall ret;
+  // IP.lo has already been advanced past this packet, so IP is the fall-through address. Any target word the packet
+  // omits defaults to it: a missing hi word keeps IP.hi, and a wholly missing target calls the next instruction.
+  ret.on_true = ret.on_false = _regs.IP;
+  // Targets interleave lo-first, so a near call (both targets in this buffer) costs 2 words instead of 4.
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 4: ret.on_false.hi = read16(ibp, iop + 6); [[fallthrough]];
+  case 3: ret.on_true.hi = read16(ibp, iop + 4); [[fallthrough]];
+  case 2: ret.on_false.lo = read16(ibp, iop + 2); [[fallthrough]];
+  case 1: ret.on_true.lo = read16(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
+  }
+  // Mirror resolved targets into modifier registers if appropriate.
+  if (_regs.IS.word_len >= 1) _regs.MOD1 = ret.on_true, _csrs.M1 = 1;
+  if (_regs.IS.word_len >= 2) _regs.MOD2 = ret.on_false, _csrs.M2 = 1;
   return ret;
 }
 
@@ -441,6 +462,7 @@ void RegisterBlaster::execute() {
   case Opcode::HALT: return execute_halt(std::get<tvm::DecodedOp::Halt>(_decoded));
   case Opcode::RET: return execute_ret(std::get<tvm::DecodedOp::Ret>(_decoded));
   case Opcode::CALL: return execute_call(std::get<tvm::DecodedOp::Call>(_decoded));
+  case Opcode::INVCALL: return execute_invcall(std::get<tvm::DecodedOp::InvCall>(_decoded));
   case Opcode::ASYN: return execute_asyn(std::get<tvm::DecodedOp::ASyn>(_decoded));
   case Opcode::ISYN: return execute_isyn(std::get<tvm::DecodedOp::ISyn>(_decoded));
   case Opcode::LMR: return execute_lmr(std::get<tvm::DecodedOp::LMR>(_decoded));
@@ -476,6 +498,13 @@ void RegisterBlaster::execute_ret(tvm::DecodedOp::Ret) { _regs.IP = pop(); }
 void RegisterBlaster::execute_call(tvm::DecodedOp::Call op) {
   push(_regs.IP);
   _regs.IP = op.next_ip;
+}
+
+void RegisterBlaster::execute_invcall(tvm::DecodedOp::InvCall op) {
+  push(_regs.IP);
+  // F is deliberately left as-is: the callee is the one that wants to know whether it was reached because of a
+  // failure, and clearing it here would hide that from a subsequent BRF.
+  _regs.IP = _csrs.F ? op.on_true : op.on_false;
 }
 
 // Both sync ops are no-ops for the blaster itself, which keeps no clock. All the work happened in decode, and the

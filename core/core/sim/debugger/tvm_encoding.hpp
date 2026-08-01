@@ -95,6 +95,32 @@ template <> struct Call<2> {
   constexpr auto encode() const { return encode_op<Opcode::CALL, true>(next_ip.lo, next_ip.hi); }
 };
 
+// Targets are interleaved lo-first, so the 2-word form reaches both targets within the current buffer.
+// on_true is called when F==1; on_false when F==0. Anything not supplied falls through to the next instruction.
+template <std::size_t> struct InvCall;
+template <> struct InvCall<0> {
+  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(); }
+};
+template <> struct InvCall<1> {
+  u16 on_true_lo;
+  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_true_lo); }
+};
+template <> struct InvCall<2> {
+  u16 on_true_lo, on_false_lo;
+  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_true_lo, on_false_lo); }
+};
+template <> struct InvCall<3> {
+  SegmentPair on_true;
+  u16 on_false_lo;
+  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_true.lo, on_false_lo, on_true.hi); }
+};
+template <> struct InvCall<4> {
+  SegmentPair on_true, on_false;
+  constexpr auto encode() const {
+    return encode_op<Opcode::INVCALL, true>(on_true.lo, on_false.lo, on_true.hi, on_false.hi);
+  }
+};
+
 namespace detail {
 // The two sync ops encode identically, so share one implementation and let the opcode pick the flavor.
 template <Opcode SYNT, std::size_t> struct Syn;
@@ -292,6 +318,14 @@ struct Ret {};
 struct Call {
   SegmentPair next_ip{};
 };
+// Both targets are always resolved, even when the packet was short enough that one (or both) fell back to the
+// fall-through address. execute picks between them on the F bit; nothing else distinguishes the two.
+struct InvCall {
+  // Called when F==1, i.e. after a failed memory access.
+  SegmentPair on_true;
+  // Called when F==0.
+  SegmentPair on_false;
+};
 // The blaster retains no notion of time, so both sync ops hand the fully-resolved value to whoever is inspecting
 // decoded ops between the decode and execute stages. The narrower-than-64-bit encodings have already been extended:
 // zero-extended for the absolute timestamp, sign-extended for the delta.
@@ -362,7 +396,7 @@ struct DPIncr {
   u16 DS = 0;
 };
 
-using OpChoice = std::variant<Halt, Ret, Call, ASyn, ISyn, LMR, BR, SetMem, CmpMem, ClrMem, SetReg, CmpReg, ClrReg,
-                              TRADDR, LDP, DPIncr>;
+using OpChoice = std::variant<Halt, Ret, Call, InvCall, ASyn, ISyn, LMR, BR, SetMem, CmpMem, ClrMem, SetReg, CmpReg,
+                              ClrReg, TRADDR, LDP, DPIncr>;
 } // namespace DecodedOp
 } // namespace tvm
