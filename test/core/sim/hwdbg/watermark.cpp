@@ -14,8 +14,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
+#include <utility>
 
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
+
+namespace {
+
+// A one-slot ring laps after a single slot's worth of entries, which makes the wrap cheap to reach.
+constexpr u16 ENTRIES_PER_SLOT = tvm::TraceBuffer::MAX_INDIRECT_ENTRIES;
+
+// Submit `count` empty programs -- end() still appends a HALT -- and report the first and last locations.
+std::pair<pepp::bts::Buffer::Location, pepp::bts::Buffer::Location> submit_empty(tvm::TraceBuffer &tb, size_t count) {
+  constexpr u16 S = 0;
+  pepp::bts::Buffer::Location first{}, last{};
+  for (size_t i = 0; i < count; ++i) {
+    tb.begin(S);
+    last = tb.end(S);
+    if (i == 0) first = last;
+  }
+  return {first, last};
+}
+
+bool same_location(pepp::bts::Buffer::Location a, pepp::bts::Buffer::Location b) {
+  return a.id.value == b.id.value && a.offset == b.offset;
+}
+
+} // namespace
 
 TEST_CASE("Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
@@ -51,7 +75,9 @@ TEST_CASE("Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:p
     CHECK(full_fires == 0);
     CHECK(tb.ring_occupancy() == Catch::Approx(0.5f));
 
-    fill_slot(tb);
+    // Filling the second slot takes the ring to capacity. The 1.0 watermark fires as the last chance to drain, and
+    // since this callback doesn't, the advance that follows refuses to lap.
+    CHECK_THROWS_AS(fill_slot(tb), tvm::RingOverflow);
     CHECK(half_fires == 1);
     CHECK(full_fires == 1);
     CHECK(tb.ring_occupancy() == Catch::Approx(1.0f));
@@ -65,7 +91,8 @@ TEST_CASE("Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:p
     fill_slot(tb); // occ=0.5, fires
     CHECK(fires == 1);
 
-    fill_slot(tb); // occ=1.0, still above 0.5 so no re-fire
+    // occ=1.0, still above 0.5 so no re-fire. Reaching capacity undrained also refuses to lap.
+    CHECK_THROWS_AS(fill_slot(tb), tvm::RingOverflow);
     CHECK(fires == 1);
   }
 
@@ -89,8 +116,8 @@ TEST_CASE("Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:p
     int fires = 0;
     tb.on_watermark(0.5f, [&]() { fires++; });
 
-    fill_slot(tb); // occ=0.5, fires
-    fill_slot(tb); // occ=1.0
+    fill_slot(tb);                                     // occ=0.5, fires
+    CHECK_THROWS_AS(fill_slot(tb), tvm::RingOverflow); // occ=1.0, ring is now full and undrained
     CHECK(fires == 1);
 
     // Acknowledge one slot so occ drops to 0.5, exactly at threshold.
@@ -98,7 +125,8 @@ TEST_CASE("Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:p
     tb.acknowledge({1, 0});
     CHECK(tb.ring_occupancy() == Catch::Approx(0.5f));
 
-    fill_slot(tb); // occ=1.0, watermark still armed so no re-fire
+    // occ=1.0, watermark still armed so no re-fire -- and full again, so it refuses again.
+    CHECK_THROWS_AS(fill_slot(tb), tvm::RingOverflow);
     CHECK(fires == 1);
 
     // Acknowledge both consumed slots so occ drops to 0.0, which is below threshold and therefore resets.
@@ -108,4 +136,52 @@ TEST_CASE("Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:p
     fill_slot(tb); // occ=0.5, fires
     CHECK(fires == 2);
   }
+}
+
+TEST_CASE("Lapping the ring throws instead of overwriting", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  tvm::TraceBuffer tb(mgr, 1, 1);
+  constexpr u16 S = 0;
+
+  tb.begin(S);
+  auto first = tb.end(S);
+
+  // Filling the rest of the single slot leaves the ring nowhere to advance to, because nothing has been
+  // acknowledged. Rather than lapping onto trace no one has read, it refuses.
+  CHECK_THROWS_AS(submit_empty(tb, (size_t)ENTRIES_PER_SLOT - 1), tvm::RingOverflow);
+
+  // Everything accepted before the refusal is intact -- in particular the oldest entry, which a lap would clobber.
+  auto entry0 = *tb.range(tvm::Cursor{.slot = 0, .entry = 0}, tb.cursor()).begin();
+  CHECK(same_location(entry0, first));
+  CHECK(tb.instruction_count() == (size_t)ENTRIES_PER_SLOT);
+}
+
+TEST_CASE("Draining a full ring lets submission resume", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  tvm::TraceBuffer tb(mgr, 1, 1);
+  constexpr u16 S = 0;
+
+  REQUIRE_THROWS_AS(submit_empty(tb, (size_t)ENTRIES_PER_SLOT), tvm::RingOverflow);
+
+  // Consuming the slot is what unblocks the ring: acknowledge() resets it, and the next submission lands in a clean
+  // slot rather than on top of the old trace.
+  tb.acknowledge({1, 0});
+  CHECK(tb.ring_occupancy() == Catch::Approx(0.0f));
+
+  tb.begin(S);
+  CHECK_NOTHROW(tb.end(S));
+}
+
+TEST_CASE("A watermark callback that drains prevents the overflow",
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  tvm::TraceBuffer tb(mgr, 1, 1);
+
+  // Watermark callbacks run before the overflow check precisely so a callback like this one can keep the ring
+  // moving. Draining here means the advance finds a free slot and never throws. A real consumer would iterate the
+  // pending range first -- acknowledge() frees the slot's chains, so any Location handed out for it dies here.
+  tb.on_watermark(1.0f, [&]() { tb.acknowledge(tb.cursor()); });
+
+  CHECK_NOTHROW(submit_empty(tb, (size_t)ENTRIES_PER_SLOT));
+  CHECK(tb.instruction_count() == (size_t)ENTRIES_PER_SLOT);
 }

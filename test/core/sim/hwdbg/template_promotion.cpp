@@ -14,10 +14,57 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
+#include <vector>
 
 #include "core/sim/debugger/register_blaster.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
+
+namespace {
+
+// Sized so that after two promotions the template chain's buffer has exactly BOUNDARY_BODY bytes left: each promotion
+// consumes BODY + 2 (the trailing RET), and 2 * (BODY + 2) + BODY == 65536. A third body therefore fits on its own but
+// not alongside its RET, which is the only situation where the two could be separated.
+constexpr size_t BOUNDARY_BODY = 21844;
+constexpr size_t BOUNDARY_PROMOTIONS = 3;
+
+struct TemplateProbe {
+  u32 hash = 0;
+  // Where the CALL emitted by the last promoted submission points.
+  pepp::bts::Buffer::ID id{};
+  u16 offset = 0;
+};
+
+// Promote `promotions` distinct bodies by submitting each twice, then read the template location back out of the CALL
+// that replaced the last body.
+TemplateProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffer &tb,
+                                  size_t promotions = BOUNDARY_PROMOTIONS) {
+  constexpr u16 S = 0;
+  TemplateProbe probe;
+  pepp::bts::Buffer::Location loc{};
+
+  for (size_t i = 0; i < promotions; ++i) {
+    std::vector<u8> body(BOUNDARY_BODY, static_cast<u8>(0xA0 + i));
+    probe.hash = tvm::TraceBuffer::hash({body.data(), body.size()});
+    for (int pass = 0; pass < 2; ++pass) {
+      tb.begin(S);
+      tb.emit_body(S, {body.data(), body.size()});
+      loc = tb.end(S);
+    }
+  }
+
+  // With no prefix emitted, the promoted submission's program is [CALL][HALT], so the CALL is at the start.
+  auto *code = mgr.find(loc.id);
+  REQUIRE(code != nullptr);
+  const auto *p = code->data() + loc.offset;
+  REQUIRE(p[0] == 2);                              // word_len
+  REQUIRE(p[1] == (0x40 | (u8)tvm::Opcode::CALL)); // clrmod | opcode
+  probe.offset = (u16)p[2] | ((u16)p[3] << 8);     // next_ip.lo
+  probe.id = pepp::bts::Buffer::ID{(u16)((u16)p[4] | ((u16)p[5] << 8))}; // next_ip.hi
+  return probe;
+}
+
+} // namespace
 
 TEST_CASE("Template promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
@@ -224,5 +271,51 @@ TEST_CASE("Template promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pe
       CHECK(b.regs().DP.lo == 0xAAAA);  // body via template
       CHECK(b.regs().ACCESS == 0);       // postfix was dropped
     }
+  }
+}
+
+TEST_CASE("Template chain fills to a buffer boundary", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  tvm::TraceBuffer tb(mgr, 1);
+  // Stop one short: the point of interest is the state the *next* promotion would find.
+  auto probe = promote_to_boundary(*mgr, tb, BOUNDARY_PROMOTIONS - 1);
+
+  // The sizing arithmetic is only meaningful if the bodies actually promoted...
+  CHECK(tb.template_count() == BOUNDARY_PROMOTIONS - 1);
+  CHECK(tb.is_template(probe.hash));
+  CHECK(tb.template_size(probe.hash) == BOUNDARY_BODY);
+
+  // ...and if they leave exactly one body's worth of room behind. Another body fits; another body plus its RET does
+  // not. That is the boundary the next test drives into, and it is a property of the fill alone -- where the third
+  // promotion actually lands is what that test is about.
+  auto *tbuf = mgr->find(probe.id);
+  REQUIRE(tbuf != nullptr);
+  CHECK(tbuf->used_capacity() + BOUNDARY_BODY == pepp::bts::Buffer::SIZE);
+  CHECK(tbuf->used_capacity() + BOUNDARY_BODY + 2 > pepp::bts::Buffer::SIZE);
+}
+
+// A body sized flush against a buffer boundary is the case where the body and its trailing RET could end up in
+// different buffers, since a chain append that does not fit rolls over to a fresh buffer.
+TEST_CASE("A promoted template keeps its RET in the same buffer",
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  tvm::TraceBuffer tb(mgr, 1);
+  auto probe = promote_to_boundary(*mgr, tb);
+
+  auto *tbuf = mgr->find(probe.id);
+  REQUIRE(tbuf != nullptr);
+
+  // The RET is reached by falling out of the body, so it has to sit immediately after it in the same buffer.
+  // Otherwise the template runs off the end into whatever follows and never returns to the caller's postfix.
+  const size_t ret_at = (size_t)probe.offset + BOUNDARY_BODY;
+  const bool ret_in_buffer = ret_at + 2 <= tbuf->span().size();
+  CHECK(ret_in_buffer);
+  CHECK(tbuf->used_capacity() >= ret_at + 2);
+
+  // Guarded rather than REQUIREd, since reading those bytes when they are out of range would run off the buffer.
+  if (ret_in_buffer) {
+    constexpr auto ret = tvm::EncodedOp::Ret<0>{}.encode();
+    CHECK(tbuf->data()[ret_at + 0] == ret[0]);
+    CHECK(tbuf->data()[ret_at + 1] == ret[1]);
   }
 }

@@ -89,3 +89,34 @@ TEST_CASE("Find register by name in HW debugger", "[scope:core][scope:core.sim][
   using MN = isa::Pep10::Mnemonic;
   inner_call<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::CALL);
 }
+
+TEST_CASE("Register reads are host-order regardless of the register's order",
+          "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  auto *scan = sys->register_scan();
+
+  // The same 32-bit value laid out both ways in memory. read<I> reports host-order values, so both registers have to
+  // read back as the same number. The Pep cores only ever expose big-endian registers, which is why the
+  // little-endian case went unnoticed.
+  constexpr u32 VALUE = 0x1122'3344;
+  constexpr std::array<u8, 4> AS_BE{0x11, 0x22, 0x33, 0x44};
+  constexpr std::array<u8, 4> AS_LE{0x44, 0x33, 0x22, 0x11};
+  mem->write(0x10, {AS_BE.data(), AS_BE.size()}, rw);
+  mem->write(0x20, {AS_LE.data(), AS_LE.size()}, rw);
+
+  auto expose = [&](std::string name, bits::Order order, Address offset) {
+    RegisterScan::Register r{};
+    r.order = order;
+    r.byte_width = 4;
+    r.access = RegisterScan::Register::ReadWrite;
+    r.target = mem->id();
+    r.offset = offset;
+    r.name = std::move(name);
+    scan->expose(r);
+  };
+  expose("BE_REG", bits::Order::BigEndian, 0x10);
+  expose("LE_REG", bits::Order::LittleEndian, 0x20);
+
+  CHECK(scan->read<u32>(*scan->find("BE_REG")) == VALUE);
+  CHECK(scan->read<u32>(*scan->find("LE_REG")) == VALUE);
+}

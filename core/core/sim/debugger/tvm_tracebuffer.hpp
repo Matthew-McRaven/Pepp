@@ -2,6 +2,8 @@
 #include <functional>
 #include <iterator>
 #include <memory>
+#include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include "core/ds/alloc/pagechain.hpp"
@@ -10,6 +12,23 @@
 class RegisterBlaster;
 
 namespace tvm {
+
+// Thrown when the ring would advance onto a slot the consumer has never acknowledged. Continuing would destroy trace
+// history nobody has read, so the buffer refuses instead of overwriting it.
+//
+// The submission that triggered this is complete and recorded; what failed is the ring's ability to accept *more*
+// trace. You can recover by freeing some ring slots. Registering a 1.0 watermark gives you a final chance to make
+// space, since watermark callbacks run before the check.
+class RingOverflow : public std::runtime_error {
+public:
+  explicit RingOverflow(size_t slot)
+      : std::runtime_error("Trace ring lapped onto unacknowledged slot " + std::to_string(slot)), _slot(slot) {}
+  // Absolute index of the slot that could not be reused. Take % ring_size() for the physical slot.
+  size_t slot() const { return _slot; }
+
+private:
+  size_t _slot;
+};
 
 // A position within the trace buffer, identifying a specific entry in a specific ring slot.
 // Slot indices must be taken % ring size.
@@ -88,6 +107,9 @@ public:
   // checks for template promotion, writes an entry to the current ring slot's
   // indirect buffer, and flushes prefix + body (or CALL) + postfix into the
   // code chain. If the indirect buffer is full, advances to the next ring slot.
+  //
+  // Throws RingOverflow if advancing would land on a slot that has never been acknowledged. This trace was recorded,
+  // but the next one will fail. Free some space before submitting again.
   pepp::bts::Buffer::Location end(u16 submitter_id);
 
   // Append encoded bytes to the prefix section.

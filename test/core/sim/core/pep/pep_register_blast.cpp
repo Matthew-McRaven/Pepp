@@ -156,3 +156,58 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
     CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == 0x0000);
   }
 }
+
+namespace {
+
+// A 32-bit value, its little-endian byte order (TVM-required order), and its big-endian order (Pep/N required order).
+constexpr u32 WIDE_VALUE = 0x1122'3344;
+constexpr std::array<u8, 4> WIDE_LE{0x44, 0x33, 0x22, 0x11};
+constexpr std::array<u8, 4> WIDE_BE{0x11, 0x22, 0x33, 0x44};
+constexpr Address WIDE_OFFSET = 0x10;
+
+// Create a "fake" 4-byte register inside pepp for testing purposes.
+RegisterScan::RegisterRef expose_wide(System &sys, Dense &mem) {
+  RegisterScan::Register wide{};
+  wide.order = bits::Order::BigEndian;
+  wide.byte_width = 4;
+  wide.access = RegisterScan::Register::ReadWrite;
+  wide.target = mem.id();
+  wide.offset = WIDE_OFFSET;
+  wide.name = "WIDE";
+  sys.register_scan()->expose(wide);
+  mem.write(WIDE_OFFSET, {WIDE_BE.data(), WIDE_BE.size()}, rw);
+  return *sys.register_scan()->find("WIDE");
+}
+
+} // namespace
+
+TEST_CASE("Expose a 4-byte register", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  auto ref = expose_wide(*sys, *mem);
+  // The scan reads the register as a host-order u32, which is the value a compare has to match.
+  CHECK(sys->register_scan()->read<u32>(ref) == WIDE_VALUE);
+}
+
+// The 4-byte case has to assemble its two halves little-endian, matching its own 1- and 2-byte cases (see the LE data
+// in "Compare accumulator / X (DP)" above) and every other immediate in the ISA.
+TEST_CASE("CMPREG compares a 4-byte register little-endian",
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  using namespace tvm::EncodedOp;
+  constexpr u16 S = 0;
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  auto ref = expose_wide(*sys, *mem);
+  auto blaster = sys->make_blaster();
+  tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+
+  // Expected value supplied little-endian. Under the current assembly order this reads as 0x33441122 instead.
+  auto enc = CmpReg<3>(ref.reg.value, ref.field.value).encode(WIDE_LE);
+  tb.begin(S);
+  tb.emit_body(S, {enc.data(), enc.size()});
+  auto loc = tb.end(S);
+
+  blaster->run_direct(loc);
+
+  CHECK(blaster->stop_cause() == StopCause::None);
+  CHECK(blaster->csrs().Z == 1);
+  CHECK(blaster->csrs().N == 0);
+}

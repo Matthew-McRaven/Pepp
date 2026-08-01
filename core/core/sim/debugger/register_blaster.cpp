@@ -4,12 +4,23 @@
 #include "core/sim/api/memory.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
+#include "core/sim/memory/errors.hpp"
 #include "core/sim/system.hpp"
 #include "register_scanner.hpp"
 
 namespace {
 const Operation rw_cmp(Operation::Type::BufferInternal, Operation::Kind::data);
+
+// Run a target acccess and report if it succeded, used to catch bad access from targets and set the F bit accordingly.
+template <typename Fn> bool try_access(Fn &&fn) {
+  try {
+    fn();
+    return true;
+  } catch (const Error &) {
+    return false;
+  }
 }
+} // namespace
 
 RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system)
     : _mgr(mgr), _system(system) {
@@ -244,8 +255,11 @@ tvm::DecodedOp::BR RegisterBlaster::decode_br(pepp::bts::Buffer::ID ibp, u16 iop
     _regs.MOD2 = ret.displacement, _csrs.M2 = 1;
     break;
   case 0:
-    ret.displacement.hi = _regs.IP.hi;
-    ret.displacement.lo = iop + 0;
+    // try to use M2 (if set) as the displacement. If unset, use a 0-displacement from the current op
+    if (_csrs.M2) ret.displacement = _regs.MOD2;
+    else ret.displacement = {_regs.IP.hi, 0};
+    // If MOD2.hi is zero, then treat the displacement as relative to this buffer.
+    if (ret.displacement.hi == 0) ret.displacement.hi = _regs.IP.hi;
     break;
   }
   return ret;
@@ -254,6 +268,7 @@ tvm::DecodedOp::BR RegisterBlaster::decode_br(pepp::bts::Buffer::ID ibp, u16 iop
 tvm::DecodedOp::SetMem RegisterBlaster::decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::SetMem ret;
   ret.xor_encoded = (_regs.IS.ocpode == (u8)tvm::Opcode::SETMEMX);
+  _csrs.TR = 0; // Enter target mode.
   // Unless (5) is provided, data is DP relative rather than immediate
   ret.data = _regs.DP;
   ret.size = _regs.DS;
@@ -272,7 +287,7 @@ tvm::DecodedOp::SetMem RegisterBlaster::decode_setmem(pepp::bts::Buffer::ID ibp,
     [[fallthrough]];
   case 4: _regs.OFF.lo = read16(ibp, iop + 6); [[fallthrough]];
   case 3: _regs.OFF.hi = read16(ibp, iop + 4); [[fallthrough]];
-  case 2: _regs.ID.lo = read16(ibp, iop + 2), _csrs.TR = 0; [[fallthrough]];
+  case 2: _regs.ID.lo = read16(ibp, iop + 2); [[fallthrough]];
   case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
@@ -284,6 +299,7 @@ tvm::DecodedOp::SetMem RegisterBlaster::decode_setmem(pepp::bts::Buffer::ID ibp,
 
 tvm::DecodedOp::CmpMem RegisterBlaster::decode_cmpmem(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::CmpMem ret;
+  _csrs.TR = 0; // Enter target mode.
   // Unless (4) is provided, data is DP relative rather than immediate
   ret.data = _regs.DP;
   ret.size = _regs.DS;
@@ -302,7 +318,7 @@ tvm::DecodedOp::CmpMem RegisterBlaster::decode_cmpmem(pepp::bts::Buffer::ID ibp,
     [[fallthrough]];
   case 3: _regs.OFF.lo = read16(ibp, iop + 4); [[fallthrough]];
   case 2: _regs.OFF.hi = read16(ibp, iop + 2); [[fallthrough]];
-  case 1: _regs.ID.lo = read16(ibp, iop + 0), _csrs.TR = 0; [[fallthrough]];
+  case 1: _regs.ID.lo = read16(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
   ret.target = (Device::ID)_regs.ID.lo;
@@ -312,12 +328,13 @@ tvm::DecodedOp::CmpMem RegisterBlaster::decode_cmpmem(pepp::bts::Buffer::ID ibp,
 
 tvm::DecodedOp::ClrMem RegisterBlaster::decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::ClrMem ret;
-
+  _csrs.TR = 0; // Enter target mode.
   ret.data = 0;
+
   switch (_regs.IS.word_len) {
   default: [[fallthrough]];
   case 2: ret.data = _regs.MOD1.lo = read16(ibp, iop + 2), _csrs.M1 = 1; [[fallthrough]];
-  case 1: _regs.ID.lo = read16(ibp, iop + 0), _csrs.TR = 0; [[fallthrough]];
+  case 1: _regs.ID.lo = read16(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
   ret.target = (Device::ID)_regs.ID.lo;
@@ -327,6 +344,7 @@ tvm::DecodedOp::ClrMem RegisterBlaster::decode_clrmem(pepp::bts::Buffer::ID ibp,
 tvm::DecodedOp::SetReg RegisterBlaster::decode_setreg(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::SetReg ret;
   ret.xor_encoded = (_regs.IS.ocpode == (u8)tvm::Opcode::SETREGX);
+  _csrs.TR = 1; // Enter register mode.
   // Unless (4) is provided, data is DP relative rather than immediate
   ret.data = _regs.DP;
   ret.size = _regs.DS;
@@ -344,7 +362,7 @@ tvm::DecodedOp::SetReg RegisterBlaster::decode_setreg(pepp::bts::Buffer::ID ibp,
     ret.size = _regs.MOD1.lo;
     [[fallthrough]];
   case 3: _regs.ID.lo = read16(ibp, iop + 4); [[fallthrough]];
-  case 2: _regs.ID.hi = read16(ibp, iop + 2), _csrs.TR = 1; [[fallthrough]];
+  case 2: _regs.ID.hi = read16(ibp, iop + 2); [[fallthrough]];
   case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
@@ -356,6 +374,7 @@ tvm::DecodedOp::SetReg RegisterBlaster::decode_setreg(pepp::bts::Buffer::ID ibp,
 
 tvm::DecodedOp::CmpReg RegisterBlaster::decode_cmpreg(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::CmpReg ret;
+  _csrs.TR = 1; // Enter register mode.
   // Unless (3) is provided, data is DP relative rather than immediate
   ret.data = _regs.DP;
   ret.size = _regs.DS;
@@ -373,7 +392,7 @@ tvm::DecodedOp::CmpReg RegisterBlaster::decode_cmpreg(pepp::bts::Buffer::ID ibp,
     ret.size = _regs.MOD1.lo;
     [[fallthrough]];
   case 2: _regs.ID.lo = read16(ibp, iop + 2); [[fallthrough]];
-  case 1: _regs.ID.hi = read16(ibp, iop + 0), _csrs.TR = 1; [[fallthrough]];
+  case 1: _regs.ID.hi = read16(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
   ret.reg = RegisterScan::RegisterRef{RegisterScan::Register::ID{_regs.ID.hi},
@@ -383,11 +402,11 @@ tvm::DecodedOp::CmpReg RegisterBlaster::decode_cmpreg(pepp::bts::Buffer::ID ibp,
 
 tvm::DecodedOp::ClrReg RegisterBlaster::decode_clrreg(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::ClrReg ret;
-
+  _csrs.TR = 1; // Enter register mode.
   switch (_regs.IS.word_len) {
   default: [[fallthrough]];
   case 2: _regs.ID.lo = read16(ibp, iop + 2); [[fallthrough]];
-  case 1: _regs.ID.hi = read16(ibp, iop + 0), _csrs.TR = 1; [[fallthrough]];
+  case 1: _regs.ID.hi = read16(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
   ret.reg = RegisterScan::RegisterRef{RegisterScan::Register::ID{_regs.ID.hi},
@@ -397,20 +416,21 @@ tvm::DecodedOp::ClrReg RegisterBlaster::decode_clrreg(pepp::bts::Buffer::ID ibp,
 
 tvm::DecodedOp::TRADDR RegisterBlaster::decode_traddr(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::TRADDR ret;
-  {
-    switch (_regs.IS.word_len) {
-    default: [[fallthrough]];
-    case 8: _regs.MOD1.hi = read16(ibp, iop + 14); [[fallthrough]];
-    case 7: _regs.MOD1.lo = read16(ibp, iop + 12), _csrs.M1 = 1; [[fallthrough]];
-    case 6: _regs.MOD2.lo = read16(ibp, iop + 10); [[fallthrough]];
-    case 5: _regs.MOD2.hi = read16(ibp, iop + 8), _csrs.M2 = 1; [[fallthrough]];
-    case 4: _regs.ID.hi = read16(ibp, iop + 6); [[fallthrough]];
-    case 3: _regs.OFF.lo = read16(ibp, iop + 4); [[fallthrough]];
-    case 2: _regs.OFF.hi = read16(ibp, iop + 2); [[fallthrough]];
-    case 1: _regs.ID.lo = read16(ibp, iop + 0), _csrs.TR = 0; [[fallthrough]];
-    case 0: break;
-    }
+  _csrs.TR = 0; // Enter target mode
+
+  switch (_regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 8: _regs.MOD1.hi = read16(ibp, iop + 14); [[fallthrough]];
+  case 7: _regs.MOD1.lo = read16(ibp, iop + 12), _csrs.M1 = 1; [[fallthrough]];
+  case 6: _regs.MOD2.lo = read16(ibp, iop + 10); [[fallthrough]];
+  case 5: _regs.MOD2.hi = read16(ibp, iop + 8), _csrs.M2 = 1; [[fallthrough]];
+  case 4: _regs.ID.hi = read16(ibp, iop + 6); [[fallthrough]];
+  case 3: _regs.OFF.lo = read16(ibp, iop + 4); [[fallthrough]];
+  case 2: _regs.OFF.hi = read16(ibp, iop + 2); [[fallthrough]];
+  case 1: _regs.ID.lo = read16(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
   }
+
   ret.target = (Device::ID)_regs.ID.lo;
   ret.target_offset = _regs.OFF.as_u32();
   ret.source = (Device::ID)_regs.ID.hi;
@@ -586,17 +606,22 @@ void RegisterBlaster::execute_setmem(tvm::DecodedOp::SetMem op) {
 
   bits::span<const u8> data = dbuff->span().subspan(op.data.lo, op.size);
 
-  // If xor-encoded, perform extract data into temporary buffer and ^ our data into that temp
-  if (op.xor_encoded) {
-    if (_tmp.size() < op.size) _tmp.resize(op.size);
-    bits::span<u8> tmp(_tmp.data(), op.size);
-    // Lie about access type for this access to avoid side effects.
-    target->read(op.offset, tmp, rw_cmp);
-    bits::inplace_xor(tmp, data);
-    // "swap" temp buffer into data
-    data = tmp;
-  }
-  target->write(op.offset, data, op.access);
+  // The read-xor-write is one logical access: if the read fails there is nothing meaningful to write back.
+  const bool ok = try_access([&] {
+    bits::span<const u8> payload = data;
+    // If xor-encoded, perform extract data into temporary buffer and ^ our data into that temp
+    if (op.xor_encoded) {
+      if (_tmp.size() < op.size) _tmp.resize(op.size);
+      bits::span<u8> tmp(_tmp.data(), op.size);
+      // Lie about access type for this access to avoid side effects.
+      target->read(op.offset, tmp, rw_cmp);
+      bits::inplace_xor(tmp, data);
+      // "swap" temp buffer into data
+      payload = tmp;
+    }
+    target->write(op.offset, payload, op.access);
+  });
+  _csrs.F = ok ? 0 : 1;
 }
 
 void RegisterBlaster::execute_cmpmem(tvm::DecodedOp::CmpMem op) {
@@ -618,7 +643,13 @@ void RegisterBlaster::execute_cmpmem(tvm::DecodedOp::CmpMem op) {
   if (!dbuff) return hard_stop(StopCause::InvalidDBuffer);
   else if ((size_t)op.data.lo + op.size > dbuff->span().size()) return hard_stop(StopCause::InvalidDBuffer);
   auto expected = dbuff->span().subspan(op.data.lo, op.size);
-  target->read(op.offset, actual, rw_cmp);
+  if (!try_access([&] { target->read(op.offset, actual, rw_cmp); })) {
+    // Z/N are left alone: a read that never happened has nothing to say about ordering, and overwriting them would
+    // make a failed compare indistinguishable from a successful "not equal".
+    _csrs.F = 1;
+    return;
+  }
+  _csrs.F = 0;
   auto cmp = std::memcmp(actual.data(), expected.data(), op.size);
   // Set conditions according to memcmp result.
   if (cmp == 0) _csrs.Z = 1, _csrs.N = 0;
@@ -638,7 +669,7 @@ void RegisterBlaster::execute_clrmem(tvm::DecodedOp::ClrMem op) {
   auto target = dev->capability<Target>();
   if (!target) return hard_stop(StopCause::TargetNotMemory);
 
-  target->clear(op.data);
+  _csrs.F = try_access([&] { target->clear(op.data); }) ? 0 : 1;
 }
 
 void RegisterBlaster::execute_setreg(tvm::DecodedOp::SetReg op) {
@@ -669,32 +700,33 @@ void RegisterBlaster::execute_cmpreg(tvm::DecodedOp::CmpReg op) {
     // If size mismatch, then we would have to do a partial comparison.
     // That sounds annoying, so skip.
     if (reg->byte_width != op.size) return hard_stop(StopCause::RegisterSizeMismatch);
+
+    // Reading a register goes through its backing target, so it fails the same way a memory access does.
+    // Compare unsigned at the register's own width; a failed read leaves Z/N untouched, as in CMPMEM.
+    u64 actual = 0, expected = 0;
+    const bool ok = try_access([&] {
+      switch (reg->byte_width) {
+      case 1: actual = _scan->read<u8>(op.reg); break;
+      case 2: actual = _scan->read<u16>(op.reg); break;
+      case 4: actual = _scan->read<u32>(op.reg); break;
+      default: break;
+      }
+    });
+    const auto dat = (pepp::bts::Buffer::ID)op.data.hi;
     switch (reg->byte_width) {
-    case 1: {
-      u8 actual = _scan->read<u8>(op.reg);
-      u8 expected = read16((pepp::bts::Buffer::ID)op.data.hi, op.data.lo) & 0xff;
-      if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
-      else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
-      else _csrs.Z = 0, _csrs.N = 0;
-    } break;
-    case 2: {
-      u16 actual = _scan->read<u16>(op.reg);
-      u16 expected = read16((pepp::bts::Buffer::ID)op.data.hi, op.data.lo);
-      if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
-      else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
-      else _csrs.Z = 0, _csrs.N = 0;
-    } break;
-    case 4: {
-      u32 actual = _scan->read<u32>(op.reg);
-      u16 expected_hi = read16((pepp::bts::Buffer::ID)op.data.hi, op.data.lo);
-      u16 expected_lo = read16((pepp::bts::Buffer::ID)op.data.hi, op.data.lo + 2);
-      u32 expected = (static_cast<u32>(expected_hi) << 16) | expected_lo;
-      if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
-      else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
-      else _csrs.Z = 0, _csrs.N = 0;
-    } break;
-    default: hard_stop(StopCause::RegisterWidthIllegal); break;
+    case 1: expected = read16(dat, op.data.lo) & 0xff; break;
+    case 2: expected = read16(dat, op.data.lo); break;
+    case 4: expected = ((u32)read16(dat, op.data.lo + 2) << 16) | read16(dat, op.data.lo); break;
+    default: return hard_stop(StopCause::RegisterWidthIllegal);
     }
+    if (!ok) {
+      _csrs.F = 1;
+      return;
+    }
+    _csrs.F = 0;
+    if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
+    else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
+    else _csrs.Z = 0, _csrs.N = 0;
   } else { // Compare only a single field.
     throw std::runtime_error("Field comparison not implemented");
   }

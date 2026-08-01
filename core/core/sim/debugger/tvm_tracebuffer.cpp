@@ -187,8 +187,12 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
     if (body.size() >= PROMOTION_THRESHOLD) {
       // Promote: copy body to template chain.
       // Must append RET to ensure that the caller has an opportunity to run its own postifx.
-      auto loc = _templates->append(body);
+      // The RET is reached by falling out of the body, so the two must land in the same buffer. A chain append that
+      // does not fit rolls over to a fresh buffer, which would strand the RET and leave the template running off the
+      // end -- so reserve both up front, exactly as flush_to_ring does for a subroutine.
       auto ret = EncodedOp::Ret<0>{}.encode();
+      _templates->ensure_capacity(body.size() + ret.size());
+      auto loc = _templates->append(body);
       _templates->append({ret.data(), ret.size()});
 
       TemplateEntry entry{};
@@ -260,7 +264,8 @@ pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(u16 submitter_id, BodyRes
 void TraceBuffer::advance_slot() {
   _head++;
 
-  // Fire watermark callbacks.
+  // Fire watermark callbacks. Run before the overflow check below so a callback that frees the slot we are about to
+  // land on can prevent overflow.
   float occ = ring_occupancy();
   for (auto &wm : _watermarks) {
     if (!wm.fired && occ >= wm.threshold) {
@@ -271,16 +276,20 @@ void TraceBuffer::advance_slot() {
 
   // Prepare the new current node if it's been previously consumed.
   auto &node = current_node();
-  if (!node.in_use) {
-    node.count = 0;
-    // code/data chains should already be clear from acknowledge().
-  }
+  // Still in use means nobody consumed this slot's trace. Overwriting it would silently discard history, so refuse.
+  // _head stays advanced: acknowledge() resets this node, after which submission picks up from a clean slot.
+  if (node.in_use) throw RingOverflow(_head);
+  node.count = 0;
+  // code/data chains should already be clear from acknowledge().
 }
 
 // --- Indirect buffer I/O ---
 
 void TraceBuffer::write_indirect(Node &node, u16 entry, pepp::bts::Buffer::Location loc) {
   static_assert(sizeof(pepp::bts::Buffer::Location) == 4, "Location must be 4 bytes for indirect packing");
+  // Backstop for a caller that swallowed a RingOverflow and kept submitting: the offset below is a u16, so an entry
+  // at or past the maximum would wrap to 0 and quietly overwrite the oldest entry instead of failing.
+  if (entry >= MAX_INDIRECT_ENTRIES) throw RingOverflow(_head);
   u16 offset = entry * sizeof(pepp::bts::Buffer::Location);
   auto *dst = node.indirect->data() + offset;
   std::memcpy(dst, &loc, sizeof(loc));

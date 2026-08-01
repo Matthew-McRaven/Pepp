@@ -1,8 +1,11 @@
 #pragma once
+#include <algorithm>
+#include <array>
 #include <list>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 
@@ -72,10 +75,14 @@ private:
 };
 
 template <std::integral I> I RegisterScan::read(const RegisterRef &n) {
-  u64 tmp = 0;
-  bits::span<u8> tmp_span{reinterpret_cast<u8 *>(&tmp), sizeof(u64)};
-  read(n, tmp_span, Byteswap::IfHostMismatch);
-  return (I)tmp;
+  auto p = resolve(n);
+  if (!p.first) throw std::runtime_error("Register not found");
+  // Read into a fixed-size buffer so that we know where the bytes will land before we convert to host order.
+  // this avoids a posibility where we read the wrong "part" of a register and therefore return 0.
+  const size_t width = std::min<size_t>(p.first->byte_width, sizeof(u64));
+  std::array<u8, sizeof(u64)> buf{};
+  const auto order = read(n, bits::span<u8>{buf.data(), width}, Byteswap::Never);
+  return (I)bits::memcpy_endian<u64>(bits::span<const u8>{buf.data(), width}, order);
 }
 
 consteval void is_bitflags(RegisterScan::Register::Access);
