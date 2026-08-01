@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
+#include <vector>
 
 #include "./instr/api.hpp"
 #include "core/sim/debugger/register_blaster.hpp"
@@ -179,6 +180,72 @@ RegisterScan::RegisterRef expose_wide(System &sys, Dense &mem) {
   return *sys.register_scan()->find("WIDE");
 }
 
+// The Pep cores only ever expose 1- and 2-byte big-endian registers, so the rest of RegisterScan's shape space is
+// only reachable by declaring registers by hand over main memory.
+struct Synthetic {
+  const char *name;
+  bits::Order order;
+  u8 byte_width;
+  Address offset;
+};
+
+constexpr Synthetic SYNTHETICS[] = {
+    {"be1", bits::Order::BigEndian, 1, 0x100},    {"be2", bits::Order::BigEndian, 2, 0x110},
+    {"be4", bits::Order::BigEndian, 4, 0x120},    {"le1", bits::Order::LittleEndian, 1, 0x130},
+    {"le2", bits::Order::LittleEndian, 2, 0x140}, {"le4", bits::Order::LittleEndian, 4, 0x150},
+};
+
+void expose_synthetics(System &sys, Dense &mem) {
+  for (const auto &s : SYNTHETICS) {
+    RegisterScan::Register r{};
+    r.order = s.order;
+    r.byte_width = s.byte_width;
+    r.access = RegisterScan::Register::ReadWrite;
+    r.target = mem.id();
+    r.offset = s.offset;
+    r.name = s.name;
+    sys.register_scan()->expose(r);
+  }
+}
+
+// Raw bytes as they actually sit in the target, bypassing the scan entirely -- otherwise a byte-order bug in write
+// could be masked by the matching bug in read.
+std::vector<u8> peek(Dense &mem, Address offset, size_t count) {
+  std::vector<u8> out(count);
+  mem.read(offset, {out.data(), out.size()}, rw);
+  return out;
+}
+
+// The bytes `value` should occupy in a register of this width and order, spelled out by hand rather than via
+// memcpy_endian so the expectation is independent of the machinery under test.
+std::vector<u8> expected_bytes(u64 value, bits::Order order, size_t width) {
+  std::vector<u8> out(width);
+  for (size_t i = 0; i < width; ++i) {
+    const u8 byte = (u8)(value >> (8 * i)); // low-order byte first
+    out[order == bits::Order::BigEndian ? width - 1 - i : i] = byte;
+  }
+  return out;
+}
+
+// One value per width, with distinct non-zero bytes so a swapped or truncated store shows up in the bytes instead of
+// hiding behind a symmetric pattern.
+u64 value_for(u8 width) {
+  switch (width) {
+  case 1: return 0xAB;
+  case 2: return 0xABCD;
+  default: return 0xABCD'1234;
+  }
+}
+
+// Dispatch to the integral write<I> overload whose width matches the register.
+void write_integral(RegisterScan &scan, const RegisterScan::RegisterRef &ref, u8 width, u64 value) {
+  switch (width) {
+  case 1: scan.write<u8>(ref, (u8)value); break;
+  case 2: scan.write<u16>(ref, (u16)value); break;
+  default: scan.write<u32>(ref, (u32)value); break;
+  }
+}
+
 } // namespace
 
 TEST_CASE("Expose a 4-byte register", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
@@ -210,4 +277,180 @@ TEST_CASE("CMPREG compares a 4-byte register little-endian",
   CHECK(blaster->stop_cause() == StopCause::None);
   CHECK(blaster->csrs().Z == 1);
   CHECK(blaster->csrs().N == 0);
+}
+
+TEST_CASE("Write synthetic registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  expose_synthetics(*sys, *mem);
+  auto *scan = sys->register_scan();
+
+  // Wider than any register under test, with distinct non-zero bytes throughout.
+  constexpr u64 BIG = 0x1122'3344'5566'7788ULL;
+
+  SECTION("Integral write lands in the register's byte order") {
+    for (const auto &s : SYNTHETICS) {
+      INFO("register " << s.name);
+      auto ref = *scan->find(s.name);
+      const u64 v = value_for(s.byte_width);
+
+      write_integral(*scan, ref, s.byte_width, v);
+
+      CHECK(peek(*mem, s.offset, s.byte_width) == expected_bytes(v, s.order, s.byte_width));
+      CHECK(scan->read<u64>(ref) == v);
+    }
+  }
+
+  SECTION("Span write with Byteswap::Never treats the source as register order") {
+    for (const auto &s : SYNTHETICS) {
+      INFO("register " << s.name);
+      auto ref = *scan->find(s.name);
+      const u64 v = value_for(s.byte_width);
+      auto src = expected_bytes(v, s.order, s.byte_width);
+
+      scan->write(ref, {src.data(), src.size()}, RegisterScan::Byteswap::Never);
+
+      CHECK(peek(*mem, s.offset, s.byte_width) == src); // stored verbatim, no conversion
+      CHECK(scan->read<u64>(ref) == v);
+    }
+  }
+
+  SECTION("Span write with Byteswap::IfHostMismatch treats the source as host order") {
+    for (const auto &s : SYNTHETICS) {
+      INFO("register " << s.name);
+      auto ref = *scan->find(s.name);
+      const u64 v = value_for(s.byte_width);
+      // Built for whatever the host happens to be, so the assertion holds on either endianness.
+      auto src = expected_bytes(v, bits::hostOrder(), s.byte_width);
+
+      scan->write(ref, {src.data(), src.size()}, RegisterScan::Byteswap::IfHostMismatch);
+
+      CHECK(peek(*mem, s.offset, s.byte_width) == expected_bytes(v, s.order, s.byte_width));
+      CHECK(scan->read<u64>(ref) == v);
+    }
+  }
+
+  SECTION("An oversized integral source keeps the low-order bytes") {
+    for (const auto &s : SYNTHETICS) {
+      INFO("register " << s.name);
+      auto ref = *scan->find(s.name);
+      // Truncation drops high-order bytes, like a narrowing integer cast. Which end of memory that is depends on the
+      // register's order, and getting it backwards would store 0x11 rather than 0x88.
+      const u64 kept = BIG & ((1ULL << (8 * s.byte_width)) - 1);
+
+      scan->write<u64>(ref, BIG);
+
+      CHECK(peek(*mem, s.offset, s.byte_width) == expected_bytes(kept, s.order, s.byte_width));
+      CHECK(scan->read<u64>(ref) == kept);
+    }
+  }
+
+  SECTION("An oversized span source keeps the low-order bytes") {
+    for (const auto &s : SYNTHETICS) {
+      INFO("register " << s.name);
+      auto ref = *scan->find(s.name);
+      const u64 kept = BIG & ((1ULL << (8 * s.byte_width)) - 1);
+      auto src = expected_bytes(BIG, s.order, sizeof(u64));
+
+      scan->write(ref, {src.data(), src.size()}, RegisterScan::Byteswap::Never);
+
+      CHECK(peek(*mem, s.offset, s.byte_width) == expected_bytes(kept, s.order, s.byte_width));
+      CHECK(scan->read<u64>(ref) == kept);
+    }
+  }
+
+  SECTION("Widening into a larger register follows the source's signedness") {
+    // Converting to u64 is modular rather than zero-extending, so a negative source arrives as its sign-extended
+    // pattern while an unsigned source of the same width does not. That only shows when the register is wider than
+    // the source, hence the 4-byte registers.
+    for (const char *name : {"be4", "le4"}) {
+      INFO("register " << name);
+      auto ref = *scan->find(name);
+
+      scan->write<i16>(ref, -1);
+      CHECK(scan->read<u32>(ref) == 0xFFFF'FFFFu);
+      CHECK(scan->read<i32>(ref) == -1);
+
+      scan->write<u16>(ref, 0xFFFF);
+      CHECK(scan->read<u32>(ref) == 0x0000'FFFFu);
+    }
+
+    // Byte order is orthogonal to the extension, so confirm the sign fill reached memory in order too.
+    scan->write<i16>(*scan->find("be4"), -2);
+    CHECK(peek(*mem, 0x120, 4) == std::vector<u8>{0xFF, 0xFF, 0xFF, 0xFE});
+    scan->write<i16>(*scan->find("le4"), -2);
+    CHECK(peek(*mem, 0x150, 4) == std::vector<u8>{0xFE, 0xFF, 0xFF, 0xFF});
+  }
+}
+
+TEST_CASE("NZVC fields pack independently", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  auto *scan = sys->register_scan();
+
+  // The four flags are 1-bit fields of one 4-byte big-endian register, one flag per byte (bit offsets 24/16/8/0).
+  // Writing a field is a read-modify-write, so the interesting question is not whether the bit lands -- it is what
+  // happens to every bit the write does not address.
+  constexpr const char *FLAGS[] = {"N", "Z", "V", "C"};
+  constexpr u32 PACKED[] = {0x0100'0000, 0x0001'0000, 0x0000'0100, 0x0000'0001};
+
+  auto whole = *scan->find("NZVC");
+  auto flag = [&](size_t i) { return *scan->find(FLAGS[i]); };
+
+  SECTION("A flag set in isolation packs into its own byte") {
+    for (size_t i = 0; i < 4; ++i) {
+      INFO("setting " << FLAGS[i]);
+      scan->write<u32>(whole, 0);
+      scan->write<u8>(flag(i), 1);
+
+      CHECK(scan->read<u32>(whole) == PACKED[i]);
+      for (size_t j = 0; j < 4; ++j) {
+        INFO("  reading " << FLAGS[j]);
+        CHECK(scan->read<u8>(flag(j)) == (i == j ? 1 : 0));
+      }
+    }
+  }
+
+  SECTION("A flag cleared in isolation leaves its siblings set") {
+    for (size_t i = 0; i < 4; ++i) {
+      INFO("clearing " << FLAGS[i]);
+      scan->write<u32>(whole, 0x0101'0101);
+      scan->write<u8>(flag(i), 0);
+
+      CHECK(scan->read<u32>(whole) == (0x0101'0101u & ~PACKED[i]));
+      for (size_t j = 0; j < 4; ++j) {
+        INFO("  reading " << FLAGS[j]);
+        CHECK(scan->read<u8>(flag(j)) == (i == j ? 0 : 1));
+      }
+    }
+  }
+
+  SECTION("A field write touches exactly one bit of the register") {
+    // Seed every bit, including the seven spare bits in each flag's byte that no field claims. A read-modify-write
+    // whose mask is too wide -- or that skips the read entirely -- knocks some of them down.
+    for (size_t i = 0; i < 4; ++i) {
+      INFO("clearing " << FLAGS[i] << " out of an all-ones register");
+      scan->write<u32>(whole, 0xFFFF'FFFF);
+      scan->write<u8>(flag(i), 0);
+      CHECK(scan->read<u32>(whole) == (0xFFFF'FFFFu & ~PACKED[i]));
+    }
+    for (size_t i = 0; i < 4; ++i) {
+      INFO("setting " << FLAGS[i] << " out of an all-zeros register");
+      scan->write<u32>(whole, 0);
+      scan->write<u8>(flag(i), 1);
+      CHECK(scan->read<u32>(whole) == PACKED[i]);
+    }
+  }
+
+  SECTION("A mixed pattern round-trips through the fields") {
+    scan->write<u32>(whole, 0);
+    scan->write<u8>(flag(0), 1); // N
+    scan->write<u8>(flag(1), 0); // Z
+    scan->write<u8>(flag(2), 1); // V
+    scan->write<u8>(flag(3), 0); // C
+
+    CHECK(scan->read<u8>(flag(0)) == 1);
+    CHECK(scan->read<u8>(flag(1)) == 0);
+    CHECK(scan->read<u8>(flag(2)) == 1);
+    CHECK(scan->read<u8>(flag(3)) == 0);
+    CHECK(scan->read<u32>(whole) == 0x0100'0100);
+  }
 }

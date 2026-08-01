@@ -54,10 +54,14 @@ public:
     IfHostMismatch // If the register's order does not match the host order, byteswap in dest before returning.
   };
 
+  void write(const RegisterRef &n, bits::span<const u8> src, Byteswap bswap = Byteswap::Never);
   bits::Order read(const RegisterRef &n, bits::span<u8> dest, Byteswap bswap = Byteswap::Never);
+
   std::optional<RegisterRef> find(std::string_view name);
   // Helper which returns the value of a register as an integral type
   template <std::integral I> I read(const RegisterRef &n);
+  // Helper which writes an integral value to a register.
+  template <std::integral I> void write(const RegisterRef &n, I value);
 
   std::pair<Register *, Register::Field *> resolve(RegisterRef r);
   std::pair<const Register *, const Register::Field *> resolve(RegisterRef r) const;
@@ -65,6 +69,8 @@ public:
   u8 bit_width(RegisterRef r) const;
 
 private:
+  bits::Order read(Register *, Register::Field *, bits::span<u8> dest, Byteswap bswap);
+  void write(Register *, Register::Field *, bits::span<const u8> src, Byteswap bswap);
   Register::ID next_id();
 
   System *_sys;
@@ -81,8 +87,21 @@ template <std::integral I> I RegisterScan::read(const RegisterRef &n) {
   // this avoids a posibility where we read the wrong "part" of a register and therefore return 0.
   const size_t width = std::min<size_t>(p.first->byte_width, sizeof(u64));
   std::array<u8, sizeof(u64)> buf{};
-  const auto order = read(n, bits::span<u8>{buf.data(), width}, Byteswap::Never);
+  const auto order = read(p.first, p.second, bits::span<u8>{buf.data(), width}, Byteswap::Never);
   return (I)bits::memcpy_endian<u64>(bits::span<const u8>{buf.data(), width}, order);
+}
+
+template <std::integral I> void RegisterScan::write(const RegisterRef &n, I value) {
+  auto p = resolve(n);
+  if (!p.first) throw std::runtime_error("Register not found");
+  // Serialize into the register's own order up front, so the write path has nothing left to convert. This mirrors
+  // read<I>, which pulls the bytes out raw with Byteswap::Never and converts to host order here.
+  const size_t width = std::min<size_t>(p.first->byte_width, sizeof(u64));
+  u64 raw = 0;
+  auto buf = bits::span<u8>{reinterpret_cast<u8 *>(&raw), width};
+  // Cast sign-extends according to the rules of I.
+  bits::memcpy_endian(buf, p.first->order, (u64)value);
+  write(p.first, p.second, buf, Byteswap::Never);
 }
 
 consteval void is_bitflags(RegisterScan::Register::Access);
