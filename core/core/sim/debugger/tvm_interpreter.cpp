@@ -45,21 +45,28 @@ void tvm::Interpreter::step() {
   if (_csrs.L) execute();
 }
 
-void tvm::Interpreter::run(pepp::bts::Buffer::Location loc) {
-  // Bring the blaster back into the live state (L==1).
-  // Clear F bit in case last program terminated with hardfail.
-  // "soft stop" is L==0,F==0, "hard stop is L==0,F==1.
+void tvm::Interpreter::run(pepp::bts::Buffer::Location loc, RegisterRetention retain) {
+  using RR = RegisterRetention;
+
+  switch (retain) {
+  case RR::All: break;
+  case RR::DP: _regs = {.DP = _regs.DP, .DS = _regs.DS}, _csrs = {}; break;
+  case RR::None: _regs = {}, _csrs = {}; break;
+  }
+
+  // Always bring self back into life state, clearing failure bit. So All really comes with an asterisk.
   _csrs.L = 1, _csrs.F = 0;
+
   update_ip(loc);
   while (_csrs.L) step();
 }
 
-std::size_t tvm::Interpreter::run_each(std::span<const pepp::bts::Buffer::Location> locs) {
+std::size_t tvm::Interpreter::run_each(std::span<const pepp::bts::Buffer::Location> locs, RegisterRetention retain) {
   // Run the program at each location. Check for a hard stop condition. On hard stop, abort the loop.
   // On a normal/soft stop, resume execution of the next program.
   std::size_t count = 0;
   for (const auto &loc : locs) {
-    run(loc);
+    run(loc, retain);
     ++count;
     if (_csrs.F == 1) break;
   }

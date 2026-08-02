@@ -52,6 +52,13 @@ class TraceBuffer;
 // We provide a helper to install the same handler for all BR mnemonics for your convenience.
 class Interpreter {
 public:
+  // Determine which registers are preserved/retained when re-starting execution with run.
+  enum class RegisterRetention : u8 {
+    None = 0, // All registers are reset
+    DP = 1,   // DS and DP registers
+    All = 2,  // No registers are reset
+  };
+
   struct Flags {
     Flags() = default;
     Flags(u8 v)
@@ -127,15 +134,16 @@ public:
   // Update IP to point to loc, then call step() in a loop while L==1.
   // Each program executed this way must terminate with a HALT.
   // At the end of a call to run, L is always 0.
-  void run(pepp::bts::Buffer::Location loc);
+  void run(pepp::bts::Buffer::Location loc, RegisterRetention retain = RegisterRetention::All);
   // For each buffer location set L=1 and call run.
   // Only stops when reaching the end of this location buffer, or on "hard stop", where L==0 && F==1.
-  std::size_t run_each(std::span<const pepp::bts::Buffer::Location> locs);
+  std::size_t run_each(std::span<const pepp::bts::Buffer::Location> locs,
+                       RegisterRetention retain = RegisterRetention::DP);
   // Iterator-pair variant. While slower to execute, it can consume iterators from TraceBuffer without needing to
   // re-arrange them in spans first. Declared as a template to avoid include'ing TraceBuffer in this header
-  template <typename It> auto run_each(It begin, It end) {
+  template <typename It> auto run_each(It begin, It end, RegisterRetention retain = RegisterRetention::DP) {
     for (auto it = begin; it != end; ++it) {
-      run(*it);
+      run(*it, retain);
       if (_csrs.F == 1) return it;
     }
     return end;
