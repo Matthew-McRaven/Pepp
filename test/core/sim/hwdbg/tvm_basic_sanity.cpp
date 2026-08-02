@@ -38,8 +38,8 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
-  tvm::TraceBuffer tb(mgr, 1);
-  constexpr u16 S = 0;
+  tvm::TraceBuffer tb(mgr);
+  constexpr Device::ID S{1};
 
   auto prefix = [&](auto enc) { tb.emit_prefix(S, {enc.data(), enc.size()}); };
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
@@ -50,7 +50,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
 
     tb.begin(S);
     body(LDMOD1Lo{0x1234}.encode());
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 0);
@@ -69,7 +69,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
     tb.begin(S);
     body(LMR_of<false>(std::pair{M::MOD1_LO, u16(0x1234)}, std::pair{M::ID_HI, u16(0xFEED)},
                         std::pair{M::DP_LO, u16(0xBEEF)}));
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(!blaster.stopped());
     CHECK(blaster.csrs().M1 == 0);
@@ -95,7 +95,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
     tb.begin(S);
     body(BR<1>{0x6}.encode());
     body(LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}));
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     for (auto loc : tb.range(before, tb.cursor()))
@@ -113,7 +113,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
     tb.begin(S);
     body(BREQ<1>{0x6}.encode());
     body(LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}));
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     for (auto loc : tb.range(before, tb.cursor()))
@@ -131,7 +131,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
     tb.begin(S);
     body(BREQ<1>{0x6}.encode());
     body(LMR_of<false>(std::pair{M::DP_LO, u16(0xBEEF)}));
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     for (auto loc : tb.range(before, tb.cursor()))

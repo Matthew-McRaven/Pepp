@@ -25,11 +25,11 @@ constexpr u16 ENTRIES_PER_SLOT = tvm::TraceBuffer::MAX_LOCATION_ENTRIES;
 
 // Submit `count` empty programs -- end() still appends a HALT -- and report the first and last locations.
 std::pair<pepp::bts::Buffer::Location, pepp::bts::Buffer::Location> submit_empty(tvm::TraceBuffer &tb, size_t count) {
-  constexpr u16 S = 0;
+  constexpr Device::ID S{1};
   pepp::bts::Buffer::Location first{}, last{};
   for (size_t i = 0; i < count; ++i) {
     tb.begin(S);
-    last = tb.end(S);
+    last = tb.commit(S);
     if (i == 0) first = last;
   }
   return {first, last};
@@ -43,18 +43,18 @@ bool same_location(pepp::bts::Buffer::Location a, pepp::bts::Buffer::Location b)
 
 TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
-  constexpr u16 S = 0;
+  constexpr Device::ID S{1};
 
   // Fill the current slot completely, triggering advance_slot.
   auto fill_slot = [&](tvm::TraceBuffer &tb) {
     for (u16 i = 0; i < tvm::TraceBuffer::MAX_LOCATION_ENTRIES; ++i) {
       tb.begin(S);
-      tb.end(S);
+      tb.commit(S);
     }
   };
 
   SECTION("Half-watermark fires on ping-pong ring") {
-    tvm::TraceBuffer tb(mgr, 1, 2);
+    tvm::TraceBuffer tb(mgr, 2);
     int fires = 0;
     tb.on_watermark(0.5f, [&]() { fires++; });
 
@@ -65,7 +65,7 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
   }
 
   SECTION("Multiple watermarks fire at distinct thresholds") {
-    tvm::TraceBuffer tb(mgr, 1, 2);
+    tvm::TraceBuffer tb(mgr, 2);
     int half_fires = 0, full_fires = 0;
     tb.on_watermark(0.5f, [&]() { half_fires++; });
     tb.on_watermark(1.0f, [&]() { full_fires++; });
@@ -84,7 +84,7 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
   }
 
   SECTION("Watermark does not re-fire without downward crossing") {
-    tvm::TraceBuffer tb(mgr, 1, 2);
+    tvm::TraceBuffer tb(mgr, 2);
     int fires = 0;
     tb.on_watermark(0.5f, [&]() { fires++; });
 
@@ -97,7 +97,7 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
   }
 
   SECTION("Acknowledge resets watermark, allowing re-fire") {
-    tvm::TraceBuffer tb(mgr, 1, 2);
+    tvm::TraceBuffer tb(mgr, 2);
     int fires = 0;
     tb.on_watermark(0.5f, [&]() { fires++; });
 
@@ -112,7 +112,7 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
   }
 
   SECTION("Acknowledge at threshold boundary does not reset watermark") {
-    tvm::TraceBuffer tb(mgr, 1, 2);
+    tvm::TraceBuffer tb(mgr, 2);
     int fires = 0;
     tb.on_watermark(0.5f, [&]() { fires++; });
 
@@ -141,11 +141,11 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
 TEST_CASE("tvm::Interpreter: Throw rather than overwrite old data",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
-  tvm::TraceBuffer tb(mgr, 1, 1);
-  constexpr u16 S = 0;
+  tvm::TraceBuffer tb(mgr, 1);
+  constexpr Device::ID S{1};
 
   tb.begin(S);
-  auto first = tb.end(S);
+  auto first = tb.commit(S);
 
   // Filling the rest of the single slot leaves the ring nowhere to advance to, because nothing has been
   // acknowledged. Rather than lapping onto trace no one has read, it refuses.
@@ -159,8 +159,8 @@ TEST_CASE("tvm::Interpreter: Throw rather than overwrite old data",
 
 TEST_CASE("tvm::Interpreter: Resume submission after overflow", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
-  tvm::TraceBuffer tb(mgr, 1, 1);
-  constexpr u16 S = 0;
+  tvm::TraceBuffer tb(mgr, 1);
+  constexpr Device::ID S{1};
 
   REQUIRE_THROWS_AS(submit_empty(tb, (size_t)ENTRIES_PER_SLOT), tvm::RingOverflow);
 
@@ -170,12 +170,12 @@ TEST_CASE("tvm::Interpreter: Resume submission after overflow", "[scope:core][sc
   CHECK(tb.ring_occupancy() == Catch::Approx(0.0f));
 
   tb.begin(S);
-  CHECK_NOTHROW(tb.end(S));
+  CHECK_NOTHROW(tb.commit(S));
 }
 
 TEST_CASE("tvm::Interpreter: Just-in-time emptying of ring", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
-  tvm::TraceBuffer tb(mgr, 1, 1);
+  tvm::TraceBuffer tb(mgr, 1);
 
   // Watermark callbacks run before the overflow check precisely so a callback like this one can keep the ring
   // moving. Draining here means the advance finds a free slot and never throws. A real consumer would iterate the

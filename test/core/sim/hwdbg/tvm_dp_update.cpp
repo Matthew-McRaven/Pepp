@@ -23,8 +23,8 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   using namespace tvm::EncodedOp;
 
   SECTION("LDP: absolute load for first data access") {
-    tvm::TraceBuffer tb(mgr, 1);
-    constexpr u16 S = 0;
+    tvm::TraceBuffer tb(mgr);
+    constexpr Device::ID S{1};
     tvm::Interpreter blaster(mgr);
     auto before = tb.cursor();
 
@@ -32,7 +32,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     auto d = tb.append_data(S, std::array<u8, 4>{0xAA, 0xBB, 0xCC, 0xDD});
     auto ldp = LDP<3>(SegmentPair{.hi = (u16)d.id.value, .lo = d.offset}, 4).encode();
     tb.emit_prefix(S, {ldp.data(), ldp.size()});
-    tb.end(S);
+    tb.commit(S);
 
     for (auto loc : tb.range(before, tb.cursor()))
       blaster.run(loc);
@@ -42,8 +42,8 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   }
 
   SECTION("ACCDP: advance by previous DS for tightly packed data") {
-    tvm::TraceBuffer tb(mgr, 1);
-    constexpr u16 S = 0;
+    tvm::TraceBuffer tb(mgr);
+    constexpr Device::ID S{1};
     tvm::Interpreter blaster(mgr);
     auto before = tb.cursor();
 
@@ -52,7 +52,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     auto d1 = tb.append_data(S, std::array<u8, 2>{0x11, 0x22});
     auto ldp = LDP<3>(SegmentPair{.hi = (u16)d1.id.value, .lo = d1.offset}, 2).encode();
     tb.emit_prefix(S, {ldp.data(), ldp.size()});
-    tb.end(S);
+    tb.commit(S);
 
     // Program 2: ACCDP to second chunk (immediately follows d1).
     tb.begin(S);
@@ -61,7 +61,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     CHECK(d2.offset == d1.offset + 2);
     auto accdp = ACCDP{4}.encode();
     tb.emit_prefix(S, {accdp.data(), accdp.size()});
-    tb.end(S);
+    tb.commit(S);
 
     auto r = tb.range(before, tb.cursor());
     auto it = r.begin();
@@ -79,8 +79,8 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   }
 
   SECTION("ACCDP: forward overflow crosses buffer boundary") {
-    tvm::TraceBuffer tb(mgr, 1);
-    constexpr u16 S = 0;
+    tvm::TraceBuffer tb(mgr);
+    constexpr Device::ID S{1};
     tvm::Interpreter blaster(mgr);
     blaster.set_trace_buffer(&tb);
     auto before = tb.cursor();
@@ -93,7 +93,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     // LDP to the last TAIL bytes of the first buffer.
     auto ldp = LDP<3>(SegmentPair{.hi = (u16)d1.id.value, .lo = (u16)(pepp::bts::Buffer::SIZE - TAIL)}, TAIL).encode();
     tb.emit_prefix(S, {ldp.data(), ldp.size()});
-    tb.end(S);
+    tb.commit(S);
 
     // Second program: the first buffer is full, so d2 lands in a successor buffer.
     tb.begin(S);
@@ -101,7 +101,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     REQUIRE(d2.id != d1.id); // Sanity: d2 is in a different buffer.
     auto accdp = ACCDP{4}.encode();
     tb.emit_prefix(S, {accdp.data(), accdp.size()});
-    tb.end(S);
+    tb.commit(S);
 
     auto r = tb.range(before, tb.cursor());
     auto it = r.begin();
@@ -121,8 +121,8 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   }
 
   SECTION("INCDP: backward underflow crosses buffer boundary") {
-    tvm::TraceBuffer tb(mgr, 1);
-    constexpr u16 S = 0;
+    tvm::TraceBuffer tb(mgr);
+    constexpr Device::ID S{1};
     tvm::Interpreter blaster(mgr);
     blaster.set_trace_buffer(&tb);
     auto before = tb.cursor();
@@ -132,7 +132,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     std::vector<u8> filler(pepp::bts::Buffer::SIZE, 0xBB);
     tb.begin(S);
     auto d1 = tb.append_data(S, {filler.data(), filler.size()});
-    tb.end(S);
+    tb.commit(S);
 
     // d2 lands at offset 0 of the second buffer.
     tb.begin(S);
@@ -142,7 +142,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     // LDP to the start of d2 (second buffer).
     auto ldp = LDP<3>(SegmentPair{.hi = (u16)d2.id.value, .lo = d2.offset}, 4).encode();
     tb.emit_prefix(S, {ldp.data(), ldp.size()});
-    tb.end(S);
+    tb.commit(S);
 
     // Third program: INCDP with a negative increment to step backward past buffer boundary.
     tb.begin(S);
@@ -150,7 +150,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     u16 neg_incr = static_cast<u16>(-static_cast<int16_t>(BACK_STEP));
     auto incdp = INCDP{neg_incr, BACK_STEP}.encode();
     tb.emit_prefix(S, {incdp.data(), incdp.size()});
-    tb.end(S);
+    tb.commit(S);
 
     auto r = tb.range(before, tb.cursor());
     auto it = r.begin();
@@ -171,9 +171,9 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   }
 
   SECTION("INCDP: explicit increment for non-contiguous data") {
-    // Two submitters interleave data, creating a gap in submitter A's writes.
-    tvm::TraceBuffer tb(mgr, 2);
-    constexpr u16 A = 0, B = 1;
+    // Two initiators interleave data, creating a gap in initiator A's writes.
+    tvm::TraceBuffer tb(mgr);
+    constexpr Device::ID A{1}, B{2};
     tvm::Interpreter blaster(mgr);
     auto before = tb.cursor();
 
@@ -188,12 +188,12 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     CHECK(da2.offset == da1.offset + 4);
 
     // End B first so its entry is out of the way.
-    tb.end(B);
+    tb.commit(B);
 
     // A program 1: LDP to A's first chunk.
     auto ldp = LDP<3>(SegmentPair{.hi = (u16)da1.id.value, .lo = da1.offset}, 2).encode();
     tb.emit_prefix(A, {ldp.data(), ldp.size()});
-    tb.end(A);
+    tb.commit(A);
 
     // A program 2: INCDP past B's data to reach A's second chunk.
     // ACCDP would advance by old DS=2, landing on B's data. Wrong.
@@ -201,7 +201,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     tb.begin(A);
     auto incdp = INCDP{4, 2}.encode();
     tb.emit_prefix(A, {incdp.data(), incdp.size()});
-    tb.end(A);
+    tb.commit(A);
 
     auto r = tb.range(before, tb.cursor());
     auto it = r.begin();

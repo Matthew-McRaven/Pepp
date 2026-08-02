@@ -22,8 +22,8 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
-  tvm::TraceBuffer tb(mgr, 2); // two submitters
-  constexpr u16 S0 = 0, S1 = 1;
+  tvm::TraceBuffer tb(mgr); // two initiators
+  constexpr Device::ID S0{1}, S1{2};
 
   auto body_s0 = [&](auto enc) { tb.emit_body(S0, {enc.data(), enc.size()}); };
   auto body_s1 = [&](auto enc) { tb.emit_body(S1, {enc.data(), enc.size()}); };
@@ -31,7 +31,7 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
   SECTION("Data is interleaved, code is not") {
     auto before = tb.cursor();
 
-    // Both submitters open simultaneously.
+    // Both initiators recording simultaneously.
     tb.begin(S0);
     tb.begin(S1);
 
@@ -47,13 +47,13 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
     CHECK(d1.offset == d0a.offset + 2);
     CHECK(d0b.offset == d1.offset + 2);
 
-    // Each submitter emits a distinguishable body.
+    // Each initiator emits a distinguishable body.
     body_s0(LMR_of<false>(std::pair{M::MOD1_LO, u16(0xAAAA)}));
     body_s1(LMR_of<false>(std::pair{M::MOD1_LO, u16(0xBBBB)}));
 
     // End in reverse order to stress that code is not mixed.
-    tb.end(S1);
-    tb.end(S0);
+    tb.commit(S1);
+    tb.commit(S0);
 
     auto after = tb.cursor();
 
@@ -82,14 +82,14 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
     CHECK(b0.regs().MOD1.lo == 0xAAAA);
   }
 
-  SECTION("Per-submitter last_dp tracks independently") {
+  SECTION("Per-initiator last_dp tracks independently") {
     tb.begin(S0);
     tb.begin(S1);
 
     auto d0 = tb.append_data(S0, std::array<u8, 4>{0x01, 0x02, 0x03, 0x04});
     auto d1 = tb.append_data(S1, std::array<u8, 4>{0x05, 0x06, 0x07, 0x08});
 
-    // Each submitter's last_dp reflects only its own most recent write.
+    // Each initiator's last_dp reflects only its own most recent write.
     CHECK(tb.last_dp(S0).id == d0.id);
     CHECK(tb.last_dp(S0).offset == d0.offset);
     CHECK(tb.last_dp(S1).id == d1.id);
@@ -102,7 +102,7 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
 
     body_s0(LDMOD1Lo{0x0000}.encode());
     body_s1(LDMOD1Lo{0x0000}.encode());
-    tb.end(S0);
-    tb.end(S1);
+    tb.commit(S0);
+    tb.commit(S1);
   }
 }

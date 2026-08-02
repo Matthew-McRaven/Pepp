@@ -39,7 +39,7 @@ struct TemplateProbe {
 // that replaced the last body.
 TemplateProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffer &tb,
                                   size_t promotions = BOUNDARY_PROMOTIONS) {
-  constexpr u16 S = 0;
+  constexpr Device::ID S{1};
   TemplateProbe probe;
   pepp::bts::Buffer::Location loc{};
 
@@ -49,7 +49,7 @@ TemplateProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffe
     for (int pass = 0; pass < 2; ++pass) {
       tb.begin(S);
       tb.emit_body(S, {body.data(), body.size()});
-      loc = tb.end(S);
+      loc = tb.commit(S);
     }
   }
 
@@ -70,8 +70,8 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
-  tvm::TraceBuffer tb(mgr, 1);
-  constexpr u16 S = 0;
+  tvm::TraceBuffer tb(mgr);
+  constexpr Device::ID S{1};
 
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
 
@@ -86,7 +86,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // First submission: body enters pending set.
     tb.begin(S);
     body(short_body);
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(tb.pending_count() == 1);
     CHECK(tb.is_pending(h));
@@ -96,7 +96,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // Second submission: body is too short to promote; stays not-promoted.
     tb.begin(S);
     body(short_body);
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(!tb.is_template(h));
     CHECK(tb.template_count() == 0);
@@ -105,7 +105,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     for (int i = 0; i < 5; ++i) {
       tb.begin(S);
       body(short_body);
-      tb.end(S);
+      tb.commit(S);
     }
 
     CHECK(!tb.is_template(h));
@@ -124,7 +124,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // First submission: enters pending set.
     tb.begin(S);
     body(long_body);
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(tb.pending_count() == 1);
     CHECK(tb.is_pending(h));
@@ -134,7 +134,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // Second submission: promoted to template.
     tb.begin(S);
     body(long_body);
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(tb.is_template(h));
     CHECK(!tb.is_pending(h));
@@ -145,7 +145,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // Third submission: hit count increments.
     tb.begin(S);
     body(long_body);
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(tb.template_hits(h) == 3);
     CHECK(tb.template_count() == 1);
@@ -167,10 +167,10 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // Submit body_a twice to promote it.
     tb.begin(S);
     body(body_a);
-    tb.end(S);
+    tb.commit(S);
     tb.begin(S);
     body(body_a);
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(tb.is_template(h_a));
     CHECK(!tb.is_template(h_b));
@@ -179,10 +179,10 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // Submit body_b twice to promote it.
     tb.begin(S);
     body(body_b);
-    tb.end(S);
+    tb.commit(S);
     tb.begin(S);
     body(body_b);
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(tb.is_template(h_a));
     CHECK(tb.is_template(h_b));
@@ -195,7 +195,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // Additional hit to body_a doesn't affect body_b.
     tb.begin(S);
     body(body_a);
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(tb.template_hits(h_a) == 3);
     CHECK(tb.template_hits(h_b) == 2);
@@ -210,16 +210,16 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // 1st is pending, 2nd is promote.
     tb.begin(S);
     body(long_body);
-    tb.end(S);
+    tb.commit(S);
     tb.begin(S);
     body(long_body);
-    tb.end(S);
+    tb.commit(S);
     REQUIRE(tb.is_template(h));
 
     // 3rd submission uses CALL into the promoted template.
     tb.begin(S);
     body(long_body);
-    auto loc = tb.end(S);
+    auto loc = tb.commit(S);
 
     tvm::Interpreter blaster(mgr);
     blaster.run(loc);
@@ -241,18 +241,18 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     tb.begin(S);
     body(long_body);
     postfix(postfix_enc);
-    auto loc1 = tb.end(S);
+    auto loc1 = tb.commit(S);
     tb.begin(S);
     body(long_body);
     postfix(postfix_enc);
-    tb.end(S);
+    tb.commit(S);
     REQUIRE(tb.is_template(h));
 
     // Submission 3: same body, NO custom postfix, CALL + HALT only.
     // The ACCESS-setting instruction is deliberately dropped.
     tb.begin(S);
     body(long_body);
-    auto loc3 = tb.end(S);
+    auto loc3 = tb.commit(S);
 
     // Execute submission 1 (inlined body + custom postfix).
     {
@@ -277,7 +277,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
 TEST_CASE("tvm::Interpreter:  Template chain fills to a buffer boundary",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
-  tvm::TraceBuffer tb(mgr, 1);
+  tvm::TraceBuffer tb(mgr);
   // Stop one short: the point of interest is the state the *next* promotion would find.
   auto probe = promote_to_boundary(*mgr, tb, BOUNDARY_PROMOTIONS - 1);
 
@@ -300,7 +300,7 @@ TEST_CASE("tvm::Interpreter:  Template chain fills to a buffer boundary",
 TEST_CASE("tvm::Interpreter:  A promoted template keeps its RET in the same buffer",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
-  tvm::TraceBuffer tb(mgr, 1);
+  tvm::TraceBuffer tb(mgr);
   auto probe = promote_to_boundary(*mgr, tb);
 
   auto *tbuf = mgr->find(probe.id);

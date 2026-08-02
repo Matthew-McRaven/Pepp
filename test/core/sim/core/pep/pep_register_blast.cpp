@@ -25,8 +25,8 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
   using SP = tvm::SegmentPair;
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto bufmgr = sys->buffer_manager();
-  tvm::TraceBuffer tb(bufmgr, 1);
-  constexpr u16 S = 0; // submitter id
+  tvm::TraceBuffer tb(bufmgr);
+  constexpr Device::ID S{1}; // initiator id
 
   // Helpers to reduce encode-then-emit boilerplate.
   auto prefix = [&](auto enc) { tb.emit_prefix(S, {enc.data(), enc.size()}); };
@@ -39,7 +39,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     tb.begin(S);
     body(LDMOD1Lo{0x1234}.encode());
     // HALT is appended automatically by end().
-    auto loc = tb.end(S);
+    auto loc = tb.commit(S);
 
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().M1 == 0);
@@ -59,7 +59,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     auto before = tb.cursor();
     tb.begin(S);
     body(CmpReg<3>(ref.reg.value, ref.field.value).encode(0xFEED));
-    auto loc = tb.end(S);
+    auto loc = tb.commit(S);
 
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().F == 0);
@@ -85,14 +85,14 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     auto dhead = tb.append_data(S, std::array<u8, 2>{0xED, 0xFE});
     prefix(LDP<3>(SP{.hi = (u16)dhead.id.value, .lo = dhead.offset}, 2).encode());
     body(CmpReg<2>(a.reg.value, a.field.value).encode());
-    tb.end(S);
+    tb.commit(S);
 
     // Program 2: compare X to 0xBEEF. DP retained from program 1; use ACCDP.
     tb.begin(S);
     tb.append_data(S, std::array<u8, 2>{0xEF, 0xBE});
     prefix(ACCDP{2}.encode());
     body(CmpReg<2>(x.reg.value, x.field.value).encode());
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().F == 0);
@@ -129,12 +129,12 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     body(SetMem<false, 4>{.access = rw.as_u16(), .dev = mem->id().value, .off = SP{.hi = 0, .lo = (u16)offset}}
              .encode());
     body(CmpMem<3>{.dev = mem->id().value, .off = SP{.hi = 0, .lo = (u16)offset}}.encode());
-    tb.end(S);
+    tb.commit(S);
 
     // Program 2: clear memory.
     tb.begin(S);
     body(ClrMem<1>{.dev = mem->id().value}.encode());
-    tb.end(S);
+    tb.commit(S);
 
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().F == 0);
@@ -275,17 +275,17 @@ TEST_CASE("Expose a 4-byte register", "[scope:core][scope:core.dbg][kind:unit][a
 TEST_CASE("CMPREG compares a 4-byte register little-endian",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   using namespace tvm::EncodedOp;
-  constexpr u16 S = 0;
+  constexpr Device::ID S{1};
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto ref = expose_wide(*sys, *mem);
   auto blaster = sys->make_blaster();
-  tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+  tvm::TraceBuffer tb(sys->buffer_manager());
 
   // Expected value supplied little-endian. Under the current assembly order this reads as 0x33441122 instead.
   auto enc = CmpReg<3>(ref.reg.value, ref.field.value).encode(WIDE_LE);
   tb.begin(S);
   tb.emit_body(S, {enc.data(), enc.size()});
-  auto loc = tb.end(S);
+  auto loc = tb.commit(S);
 
   blaster->run(loc);
 
@@ -472,7 +472,7 @@ TEST_CASE("NZVC fields pack independently", "[scope:core][scope:core.dbg][kind:u
 
 TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   using namespace tvm::EncodedOp;
-  constexpr u16 S = 0;
+  constexpr Device::ID S{1};
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   expose_synthetics(*sys, *mem);
   auto *scan = sys->register_scan();
@@ -481,10 +481,10 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
   // each other rather than only against themselves.
   auto run = [&](auto enc) {
     auto blaster = sys->make_blaster();
-    tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+    tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
     tb.emit_body(S, {enc.data(), enc.size()});
-    auto loc = tb.end(S);
+    auto loc = tb.commit(S);
     blaster->run(loc);
     return blaster;
   };
@@ -573,7 +573,7 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
 TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   using namespace tvm::EncodedOp;
   using SP = tvm::SegmentPair;
-  constexpr u16 S = 0;
+  constexpr Device::ID S{1};
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   expose_synthetics(*sys, *mem);
   auto *scan = sys->register_scan();
@@ -582,10 +582,10 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
   // inspected.
   auto run = [&](auto build) {
     auto blaster = sys->make_blaster();
-    tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+    tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
     build(tb);
-    auto loc = tb.end(S);
+    auto loc = tb.commit(S);
     blaster->run(loc);
     return blaster;
   };
@@ -721,7 +721,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
 TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   using namespace tvm::EncodedOp;
   using SP = tvm::SegmentPair;
-  constexpr u16 S = 0;
+  constexpr Device::ID S{1};
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto *scan = sys->register_scan();
 
@@ -735,11 +735,11 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
   auto compare = [&](RegisterScan::RegisterRef ref, u32 payload) {
     std::array<u8, 4> data{(u8)payload, (u8)(payload >> 8), (u8)(payload >> 16), (u8)(payload >> 24)};
     auto blaster = sys->make_blaster();
-    tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+    tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
     auto enc = CmpReg<3>(ref.reg.value, ref.field.value).encode(data);
     tb.emit_body(S, {enc.data(), enc.size()});
-    auto loc = tb.end(S);
+    auto loc = tb.commit(S);
     blaster->run(loc);
     return blaster;
   };
@@ -806,14 +806,14 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
     auto src = expected_bytes(1, bits::Order::LittleEndian, 4);
 
     auto blaster = sys->make_blaster();
-    tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+    tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
     auto d = tb.append_data(S, {src.data(), src.size()});
     auto ldp = LDP<3>(SP{.hi = (u16)d.id.value, .lo = d.offset}, (u16)src.size()).encode();
     tb.emit_prefix(S, {ldp.data(), ldp.size()});
     auto enc = CmpReg<2>(z.reg.value, z.field.value).encode();
     tb.emit_body(S, {enc.data(), enc.size()});
-    auto loc = tb.end(S);
+    auto loc = tb.commit(S);
     blaster->run(loc);
 
     CHECK(blaster->stop_cause() == StopCause::None);

@@ -22,8 +22,8 @@ TEST_CASE("tvm::Interpreter: Location buffer iteration", "[scope:core][scope:cor
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
-  tvm::TraceBuffer tb(mgr, 1);
-  constexpr u16 S = 0;
+  tvm::TraceBuffer tb(mgr);
+  constexpr Device::ID S{1};
 
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
 
@@ -33,7 +33,7 @@ TEST_CASE("tvm::Interpreter: Location buffer iteration", "[scope:core][scope:cor
   for (int i = 0; i < N; ++i) {
     tb.begin(S);
     body(LDMOD1Lo{static_cast<u16>(i)}.encode());
-    tb.end(S);
+    tb.commit(S);
   }
   auto after = tb.cursor();
 
@@ -113,8 +113,8 @@ TEST_CASE("tvm::Interpreter: Location buffer iteration", "[scope:core][scope:cor
 TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
-  tvm::TraceBuffer tb(mgr, 1);
-  constexpr u16 S = 0;
+  tvm::TraceBuffer tb(mgr);
+  constexpr Device::ID S{1};
   constexpr u16 MAX = tvm::TraceBuffer::MAX_LOCATION_ENTRIES;
 
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
@@ -122,26 +122,26 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
   // Fill slot 0 with MAX-2 empty submissions, then 2 tagged ones at the tail.
   for (u16 i = 0; i < MAX - 2; ++i) {
     tb.begin(S);
-    tb.end(S);
+    tb.commit(S);
   }
   auto boundary_start = tb.cursor(); // {0, MAX-2}
 
   // Last 2 entries of slot 0.
   tb.begin(S);
   body(LDMOD1Lo{0xAA00}.encode());
-  tb.end(S);
+  tb.commit(S);
   tb.begin(S);
   body(LDMOD1Lo{0xAA01}.encode());
-  tb.end(S);
+  tb.commit(S);
   // Slot 0 is now full,  advance_slot fired, _head=1.
 
   // First 2 entries of slot 1.
   tb.begin(S);
   body(LDMOD1Lo{0xBB00}.encode());
-  tb.end(S);
+  tb.commit(S);
   tb.begin(S);
   body(LDMOD1Lo{0xBB01}.encode());
-  tb.end(S);
+  tb.commit(S);
   auto boundary_end = tb.cursor(); // {1, 2}
 
   SECTION("Forward iteration crosses slot boundary") {
@@ -193,8 +193,8 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
-  tvm::TraceBuffer tb(mgr, 1);
-  constexpr u16 S = 0;
+  tvm::TraceBuffer tb(mgr);
+  constexpr Device::ID S{1};
 
   // Use ACCESS (non-MOD, unaffected by CLRMOD) with clrmod=false to avoid
   // MOD clearing at the start of the HALT that end() appends.
@@ -209,7 +209,7 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
   for (int i = 0; i < N; ++i) {
     tb.begin(S);
     set_access(static_cast<u16>(i));
-    tb.end(S);
+    tb.commit(S);
   }
   auto after = tb.cursor();
 
@@ -253,18 +253,18 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
     auto mid = tb.cursor();
     tb.begin(S);
     set_access(0xAA);
-    tb.end(S);
+    tb.commit(S);
 
     tb.begin(S);
     set_access(0xBB);
     // CLRMEM without a system causes hard_stop(MissingSystem).
     auto clr = ClrMem<1>{0}.encode();
     tb.emit_postfix(S, {clr.data(), clr.size()});
-    tb.end(S);
+    tb.commit(S);
 
     tb.begin(S);
     set_access(0xCC);
-    tb.end(S);
+    tb.commit(S);
 
     auto end_cursor = tb.cursor();
     auto r = tb.range(mid, end_cursor);

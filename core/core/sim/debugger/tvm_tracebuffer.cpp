@@ -18,15 +18,13 @@ void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
 
 // --- Construction / Destruction ---
 
-TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, u16 num_submitters, size_t ring_size)
-    : _mgr(std::move(mgr)) {
+TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t ring_size) : _mgr(std::move(mgr)) {
   _ring.resize(ring_size);
   for (auto &node : _ring) {
     node.locations = _mgr->alloc_buffer();
     node.code = _mgr->alloc_chain();
     node.data = _mgr->alloc_chain();
   }
-  _submitters.resize(num_submitters);
   _templates = _mgr->alloc_chain();
 }
 
@@ -36,75 +34,79 @@ TraceBuffer::~TraceBuffer() noexcept {
   }
 }
 
-// --- Submission lifecycle ---
+// --- Recording lifecycle ---
 
-void TraceBuffer::begin(u16 submitter_id) {
-  assert(submitter_id < _submitters.size());
-  auto &sub = _submitters[submitter_id];
-  assert(!sub.active && "begin() called while submitter is already active");
-  sub.prefix.clear();
-  sub.body.clear();
-  sub.postfix.clear();
-  sub.active = true;
+TraceBuffer::Recording *TraceBuffer::find_recording(Device::ID initiator) {
+  auto it = _recordings.find(initiator);
+  return it == _recordings.end() ? nullptr : &it->second;
 }
 
-pepp::bts::Buffer::Location TraceBuffer::end(u16 submitter_id) {
-  // begin() and the emit_* calls all assert on range rather than wrapping, so wrapping here would only let a bad id
-  // reach end() after the rest of the submission had already been undefined behavior.
-  assert(submitter_id < _submitters.size());
-  auto &sub = _submitters[submitter_id];
-  assert(sub.active && "end() called without matching begin()");
+void TraceBuffer::begin(Device::ID initiator) {
+  // First recording from this initiator creates its scratch state; later ones reuse it, which is why the vectors are
+  // cleared rather than reconstructed -- clear() keeps the capacity earned by previous programs.
+  auto &rec = _recordings[initiator];
+  assert(!rec.active && "begin() called while this initiator is already recording");
+  rec.prefix.clear();
+  rec.body.clear();
+  rec.postfix.clear();
+  rec.active = true;
+}
+
+pepp::bts::Buffer::Location TraceBuffer::commit(Device::ID initiator) {
+  // Unlike begin(), this must not create an entry: a commit() for an initiator that never began is a caller bug, and
+  // default-constructing one here would silently commit an empty program.
+  auto *rec = find_recording(initiator);
+  assert(rec && "commit() called without a matching begin()");
+  assert(rec->active && "commit() called without a matching begin()");
 
   // Append HALT as the final instruction in the postfix.
   auto halt = EncodedOp::Halt<0>{}.encode();
-  sub.postfix.insert(sub.postfix.end(), halt.begin(), halt.end());
+  rec->postfix.insert(rec->postfix.end(), halt.begin(), halt.end());
 
-  auto resolution = resolve_body({sub.body.data(), sub.body.size()});
-  auto ret = flush_to_ring(submitter_id, resolution);
+  auto resolution = resolve_body({rec->body.data(), rec->body.size()});
+  auto ret = flush_to_ring(*rec, resolution);
 
   auto &node = current_node();
   node.count++;
   node.in_use = true;
-  sub.active = false;
+  rec->active = false;
   _total_instructions++;
 
   if (node.count >= MAX_LOCATION_ENTRIES) advance_slot();
   return ret;
 }
 
-void TraceBuffer::emit_prefix(u16 submitter_id, bits::span<const u8> encoded) {
-  assert(submitter_id < _submitters.size());
-  auto &sub = _submitters[submitter_id];
-  assert(sub.active);
-  sub.prefix.insert(sub.prefix.end(), encoded.begin(), encoded.end());
+void TraceBuffer::emit_prefix(Device::ID initiator, bits::span<const u8> encoded) {
+  auto *rec = find_recording(initiator);
+  assert(rec && rec->active && "emit_prefix() outside a begin()/commit() pair");
+  rec->prefix.insert(rec->prefix.end(), encoded.begin(), encoded.end());
 }
 
-void TraceBuffer::emit_body(u16 submitter_id, bits::span<const u8> encoded) {
-  assert(submitter_id < _submitters.size());
-  auto &sub = _submitters[submitter_id];
-  assert(sub.active);
-  sub.body.insert(sub.body.end(), encoded.begin(), encoded.end());
+void TraceBuffer::emit_body(Device::ID initiator, bits::span<const u8> encoded) {
+  auto *rec = find_recording(initiator);
+  assert(rec && rec->active && "emit_body() outside a begin()/commit() pair");
+  rec->body.insert(rec->body.end(), encoded.begin(), encoded.end());
 }
 
-void TraceBuffer::emit_postfix(u16 submitter_id, bits::span<const u8> encoded) {
-  assert(submitter_id < _submitters.size());
-  auto &sub = _submitters[submitter_id];
-  assert(sub.active);
-  sub.postfix.insert(sub.postfix.end(), encoded.begin(), encoded.end());
+void TraceBuffer::emit_postfix(Device::ID initiator, bits::span<const u8> encoded) {
+  auto *rec = find_recording(initiator);
+  assert(rec && rec->active && "emit_postfix() outside a begin()/commit() pair");
+  rec->postfix.insert(rec->postfix.end(), encoded.begin(), encoded.end());
 }
 
-pepp::bts::Buffer::Location TraceBuffer::append_data(u16 submitter_id, bits::span<const u8> data) {
-  assert(submitter_id < _submitters.size());
-  auto &sub = _submitters[submitter_id];
-  assert(sub.active);
+pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits::span<const u8> data) {
+  auto *rec = find_recording(initiator);
+  assert(rec && rec->active && "append_data() outside a begin()/commit() pair");
   auto loc = current_node().data->append(data);
-  sub.last_dp = loc;
+  rec->last_dp = loc;
   return loc;
 }
 
-pepp::bts::Buffer::Location TraceBuffer::last_dp(u16 submitter_id) const {
-  assert(submitter_id < _submitters.size());
-  return _submitters[submitter_id].last_dp;
+pepp::bts::Buffer::Location TraceBuffer::last_dp(Device::ID initiator) const {
+  // An initiator that has never recorded has no DP yet, which is the same answer as one that has recorded but never
+  // written data -- both get {0,0}, since Buffer::ID{0} is effectively a nullptr of the buffer manager.
+  auto it = _recordings.find(initiator);
+  return it == _recordings.end() ? pepp::bts::Buffer::Location{} : it->second.last_dp;
 }
 
 // --- Backpressure ---
@@ -210,8 +212,7 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
   return {false, {}};
 }
 
-pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(u16 submitter_id, BodyResolution resolution) {
-  auto &sub = _submitters[submitter_id];
+pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(Recording &rec, BodyResolution resolution) {
   auto &node = current_node();
 
   // The subroutine is: [prefix][body or CALL][postfix]
@@ -227,9 +228,9 @@ pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(u16 submitter_id, BodyRes
                       .encode();
 
   // Compute total size so we can ensure all parts land in one buffer.
-  size_t total = sub.prefix.size() + sub.postfix.size();
+  size_t total = rec.prefix.size() + rec.postfix.size();
   if (resolution.is_template) total += call_enc.size();
-  else total += sub.body.size();
+  else total += rec.body.size();
 
   node.code->ensure_capacity(total);
 
@@ -244,13 +245,13 @@ pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(u16 submitter_id, BodyRes
     }
   };
 
-  if (!sub.prefix.empty()) append({sub.prefix.data(), sub.prefix.size()});
+  if (!rec.prefix.empty()) append({rec.prefix.data(), rec.prefix.size()});
 
   if (resolution.is_template) {
     append({call_enc.data(), call_enc.size()});
-  } else if (!sub.body.empty()) append({sub.body.data(), sub.body.size()});
+  } else if (!rec.body.empty()) append({rec.body.data(), rec.body.size()});
 
-  append({sub.postfix.data(), sub.postfix.size()});
+  append({rec.postfix.data(), rec.postfix.size()});
 
   // Record this subroutine's entry point in the locations buffer.
   write_location(node, node.count, subroutine_start);
