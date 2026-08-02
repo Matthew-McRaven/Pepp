@@ -694,42 +694,44 @@ void RegisterBlaster::execute_cmpreg(tvm::DecodedOp::CmpReg op) {
   auto dbuff = _mgr->find((pepp::bts::Buffer::ID)op.data.hi);
   if (!dbuff) return hard_stop(StopCause::InvalidDBuffer);
   else if ((size_t)op.data.lo + op.size > dbuff->span().size()) return hard_stop(StopCause::InvalidDBuffer);
+  // If size mismatch, then we would have to do a partial comparison.
+  // That sounds annoying, so skip.
+  else if (reg->byte_width != op.size) return hard_stop(StopCause::RegisterSizeMismatch);
 
-  // Whole-register comparison.
-  if (field == nullptr) {
-    // If size mismatch, then we would have to do a partial comparison.
-    // That sounds annoying, so skip.
-    if (reg->byte_width != op.size) return hard_stop(StopCause::RegisterSizeMismatch);
-
-    // Reading a register goes through its backing target, so it fails the same way a memory access does.
-    // Compare unsigned at the register's own width; a failed read leaves Z/N untouched, as in CMPMEM.
-    u64 actual = 0, expected = 0;
-    const bool ok = try_access([&] {
-      switch (reg->byte_width) {
-      case 1: actual = _scan->read<u8>(op.reg); break;
-      case 2: actual = _scan->read<u16>(op.reg); break;
-      case 4: actual = _scan->read<u32>(op.reg); break;
-      default: break;
-      }
-    });
-    const auto dat = (pepp::bts::Buffer::ID)op.data.hi;
-    switch (reg->byte_width) {
-    case 1: expected = read16(dat, op.data.lo) & 0xff; break;
-    case 2: expected = read16(dat, op.data.lo); break;
-    case 4: expected = ((u32)read16(dat, op.data.lo + 2) << 16) | read16(dat, op.data.lo); break;
-    default: return hard_stop(StopCause::RegisterWidthIllegal);
-    }
-    if (!ok) {
-      _csrs.F = 1;
-      return;
-    }
-    _csrs.F = 0;
-    if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
-    else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
-    else _csrs.Z = 0, _csrs.N = 0;
-  } else { // Compare only a single field.
-    throw std::runtime_error("Field comparison not implemented");
+  const auto dat = (pepp::bts::Buffer::ID)op.data.hi;
+  u64 expected = 0;
+  switch (reg->byte_width) {
+  case 1: expected = read16(dat, op.data.lo) & 0xff; break;
+  case 2: expected = read16(dat, op.data.lo); break;
+  case 4: expected = ((u32)read16(dat, op.data.lo + 2) << 16) | read16(dat, op.data.lo); break;
+  default: return hard_stop(StopCause::RegisterWidthIllegal);
   }
+
+  u64 actual = 0;
+  const bool ok = try_access([&] {
+    switch (reg->byte_width) {
+    case 1: actual = _scan->read<u8>(op.reg); break;
+    case 2: actual = _scan->read<u16>(op.reg); break;
+    case 4: actual = _scan->read<u32>(op.reg); break;
+    default: break;
+    }
+  });
+  if (!ok) {
+    _csrs.F = 1;
+    return;
+  }
+
+  // If we are accessing a field, we should mask our expect value down to the size of the field, which is what
+  // _scan->read does.
+  if (field != nullptr) {
+    const u64 mask = field->bit_width >= 64 ? ~0ULL : (1ULL << field->bit_width) - 1;
+    expected &= mask;
+  }
+
+  _csrs.F = 0;
+  if (actual == expected) _csrs.Z = 1, _csrs.N = 0;
+  else if (actual < expected) _csrs.Z = 0, _csrs.N = 1;
+  else _csrs.Z = 0, _csrs.N = 0;
 }
 
 void RegisterBlaster::execute_clrreg(tvm::DecodedOp::ClrReg op) {

@@ -569,3 +569,107 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
     CHECK(scan->read<u32>(ro) == 0);
   }
 }
+
+TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  using namespace tvm::EncodedOp;
+  using SP = tvm::SegmentPair;
+  constexpr u16 S = 0;
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  auto *scan = sys->register_scan();
+
+  constexpr const char *FLAGS[] = {"N", "Z", "V", "C"};
+  // Where each flag sits when the register is read as a whole -- used only to seed state, never as a payload.
+  constexpr u32 PACKED[] = {0x0100'0000, 0x0001'0000, 0x0000'0100, 0x0000'0001};
+  auto whole = *scan->find("NZVC");
+
+  // Field payloads are LSB-aligned: the value naming "this flag is set" is 1, whatever the flag's bit offset in the
+  // containing register happens to be. That matches what the scan hands back when reading a field.
+  auto compare = [&](RegisterScan::RegisterRef ref, u32 payload) {
+    std::array<u8, 4> data{(u8)payload, (u8)(payload >> 8), (u8)(payload >> 16), (u8)(payload >> 24)};
+    auto blaster = sys->make_blaster();
+    tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+    tb.begin(S);
+    auto enc = CmpReg<3>(ref.reg.value, ref.field.value).encode(data);
+    tb.emit_body(S, {enc.data(), enc.size()});
+    auto loc = tb.end(S);
+    blaster->run_direct(loc);
+    return blaster;
+  };
+  auto flag = [&](size_t i) { return *scan->find(FLAGS[i]); };
+
+  SECTION("A set field compares equal to 1 regardless of its bit offset") {
+    for (size_t i = 0; i < 4; ++i) {
+      INFO("flag " << FLAGS[i]);
+      scan->write<u32>(whole, PACKED[i]);
+
+      auto blaster = compare(flag(i), 1);
+
+      CHECK(blaster->stop_cause() == StopCause::None);
+      CHECK(blaster->csrs().F == 0);
+      CHECK(blaster->csrs().Z == 1);
+      CHECK(blaster->csrs().N == 0);
+    }
+  }
+
+  SECTION("Each flag compares independently of its siblings") {
+    for (size_t i = 0; i < 4; ++i) {
+      INFO("only " << FLAGS[i] << " set");
+      scan->write<u32>(whole, PACKED[i]);
+      for (size_t j = 0; j < 4; ++j) {
+        INFO("  comparing " << FLAGS[j]);
+        CHECK(compare(flag(j), 1)->csrs().Z == (i == j ? 1 : 0));
+        CHECK(compare(flag(j), 0)->csrs().Z == (i == j ? 0 : 1));
+      }
+    }
+  }
+
+  SECTION("The same payload means different things to a field and to the register") {
+    // N and V both set. A payload of 1 matches the V field, because 1 is how an LSB-aligned field says "set". The
+    // identical payload against the whole register is the number 1, which 0x01000100 is not.
+    scan->write<u32>(whole, 0x0100'0100);
+
+    CHECK(compare(flag(2), 1)->csrs().Z == 1);
+    CHECK(compare(whole, 1)->csrs().Z == 0);
+  }
+
+  SECTION("A payload wider than the field is masked to the field's width") {
+    // Only bit 0 belongs to a 1-bit field; the rest of the payload is excess and must not affect the result.
+    scan->write<u32>(whole, PACKED[2]); // V set
+    CHECK(compare(flag(2), 0xFFFF'FFFF)->csrs().Z == 1);
+    CHECK(compare(flag(2), 0xFFFF'FFFE)->csrs().Z == 0);
+  }
+
+  SECTION("Field compares report ordering, not just equality") {
+    scan->write<u32>(whole, PACKED[2]); // V set
+    auto greater = compare(flag(2), 0); // 1 > 0
+    CHECK(greater->csrs().Z == 0);
+    CHECK(greater->csrs().N == 0);
+
+    scan->write<u32>(whole, 0);      // V clear
+    auto less = compare(flag(2), 1); // 0 < 1
+    CHECK(less->csrs().Z == 0);
+    CHECK(less->csrs().N == 1);
+  }
+
+  SECTION("A field compares the same way through DP-relative data") {
+    scan->write<u32>(whole, PACKED[1]); // Z set
+    auto z = flag(1);
+    // Still LSB-aligned, still the register's width -- the size check is against the containing register.
+    auto src = expected_bytes(1, bits::Order::LittleEndian, 4);
+
+    auto blaster = sys->make_blaster();
+    tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+    tb.begin(S);
+    auto d = tb.append_data(S, {src.data(), src.size()});
+    auto ldp = LDP<3>(SP{.hi = (u16)d.id.value, .lo = d.offset}, (u16)src.size()).encode();
+    tb.emit_prefix(S, {ldp.data(), ldp.size()});
+    auto enc = CmpReg<2>(z.reg.value, z.field.value).encode();
+    tb.emit_body(S, {enc.data(), enc.size()});
+    auto loc = tb.end(S);
+    blaster->run_direct(loc);
+
+    CHECK(blaster->stop_cause() == StopCause::None);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(blaster->csrs().Z == 1);
+  }
+}
