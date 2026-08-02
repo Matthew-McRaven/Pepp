@@ -122,6 +122,9 @@ void pepp::bts::BufferManager::free_buffer(Buffer::ID id) {
   if (_allocated.contains(id)) {
     // Extract value from _allocated and move it into _free_pool, allowing this data to be re-used.
     auto buf = std::move(_allocated[id]);
+    // Reset the allocation cursor so a recycled buffer is as empty as a fresh one. Without this a buffer carries its
+    // old used_capacity() back out of the pool. This only resets the capacity counter, it does not 0-out bytes.
+    buf->clear();
     _free_pool.push_back(std::move(buf));
     // Then remove the lookup from ID->Buffer, since it is no longer in use.
     _allocated.erase(id);

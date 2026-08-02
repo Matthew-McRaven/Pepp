@@ -109,7 +109,7 @@ void PepISA3CPU::initialize(System *sys) {
   static const auto RW = RegisterScan::Register::ReadWrite;
   // Core registers
   using R = isa::Pep10::Register;
-  static const auto rid = _regbank->id();
+  const auto rid = _regbank->id();
   static const auto r2i = [](const R &r) -> u16 { return static_cast<u16>(r) * 2; };
   scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::A), .name = "A"});
   scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::X), .name = "X"});
@@ -119,7 +119,7 @@ void PepISA3CPU::initialize(System *sys) {
   scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::OS), .name = "OS"});
   // CSRs / Flags
   using C = isa::Pep10::CSR;
-  static const auto cid = _csrs->id();
+  const auto cid = _csrs->id();
   using F = SR::Field;
   // Should really be 4 separate fields, but I want to test that my fields work as expected.
   // When moving to 4 fields, no need for bit offsets.

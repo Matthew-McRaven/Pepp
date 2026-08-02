@@ -283,6 +283,9 @@ private:
     pepp::bts::Buffer::Location location;
   };
   BodyResolution resolve_body(bits::span<const u8> body);
+  // True when the template recorded in `entry` holds exactly `body`. resolve_body keys templates on a truncated
+  // 32-bit hash, so a map hit alone does not prove the bodies match; this is what makes a collision safe.
+  bool template_matches(const TemplateEntry &entry, bits::span<const u8> body);
   pepp::bts::Buffer::Location flush_to_ring(Recording &rec, BodyResolution resolution);
   // Look up an in-progress recording. Returns nullptr when the initiator never called begin().
   Recording *find_recording(Device::ID initiator);

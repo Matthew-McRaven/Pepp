@@ -1,4 +1,5 @@
 #include "tvm_tracebuffer.hpp"
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include "core/ds/hash/fnv.hpp"
@@ -170,16 +171,33 @@ u16 TraceBuffer::template_size(u32 h) const {
 
 // --- Template dedup ---
 
+bool TraceBuffer::template_matches(const TemplateEntry &entry, bits::span<const u8> body) {
+  if (entry.size != body.size()) return false;
+  auto *buf = _templates->buffer(entry.location.id);
+  if (!buf) return false;
+  // span() covers the whole buffer rather than just what was appended, so bound the read explicitly.
+  auto whole = buf->span();
+  if ((size_t)entry.location.offset + entry.size > whole.size()) return false;
+  auto stored = whole.subspan(entry.location.offset, entry.size);
+  return std::equal(stored.begin(), stored.end(), body.begin());
+}
+
 TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body) {
   if (body.empty())
     return {false, {}};
 
   u32 hash = static_cast<u32>(pepp::fnv_1a(body));
 
-  // Already promoted?
-  if (auto it = _template_map.find(hash); it != _template_map.end()) {
+  // Already promoted? A hash match is not proof of a body match -- the hash is a truncated 32-bit FNV, so two distinct
+  // bodies can collide. Substituting a CALL on a collision would replay someone else's memory writes in place of this
+  // program's, which is silent and unrecoverable, so confirm the bytes before trusting the entry.
+  if (auto it = _template_map.find(hash); it != _template_map.end() && template_matches(it->second, body)) {
     it->second.hit_count++;
     return {true, it->second.location};
+  } else if (it != _template_map.end()) {
+    // Collision: this body is not the promoted one. Inline it rather than calling the wrong template. It can never be
+    // templatized itself, since the hash slot is taken, but correctness beats footprint here.
+    return {false, {}};
   }
 
   // Seen once before?
