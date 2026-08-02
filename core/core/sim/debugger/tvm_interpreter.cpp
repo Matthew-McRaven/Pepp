@@ -137,7 +137,7 @@ tvm::DecodedOp::Halt tvm::Interpreter::decode_halt(pepp::bts::Buffer::ID ibp, u1
   tvm::DecodedOp::Halt ret;
   switch (_regs.IS.word_len) {
   default: [[fallthrough]];
-  case 1: ret.cause = (tvm::StopCause)read16(ibp, iop + 2); break;
+  case 1: ret.cause = (tvm::StopCause)read16(ibp, iop + 0); break;
   case 0: ret.cause = tvm::StopCause::None; break;
   }
   return ret;
