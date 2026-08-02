@@ -570,6 +570,154 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
   }
 }
 
+TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  using namespace tvm::EncodedOp;
+  using SP = tvm::SegmentPair;
+  constexpr u16 S = 0;
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  expose_synthetics(*sys, *mem);
+  auto *scan = sys->register_scan();
+
+  // Run a one-program trace and hand back the blaster so both the register state and the stop condition can be
+  // inspected.
+  auto run = [&](auto build) {
+    auto blaster = sys->make_blaster();
+    tvm::TraceBuffer tb(sys->buffer_manager(), 1);
+    tb.begin(S);
+    build(tb);
+    auto loc = tb.end(S);
+    blaster->run_direct(loc);
+    return blaster;
+  };
+
+  // TVM payloads are little-endian regardless of the register's own order -- the same convention CMPREG's data
+  // follows, and every other immediate in the ISA. Converting to the register's order is the scan's job.
+  auto le = [](u64 value, size_t width) { return expected_bytes(value, bits::Order::LittleEndian, width); };
+
+  SECTION("SETREG stores DP-relative data into a whole register") {
+    for (const auto &s : SYNTHETICS) {
+      INFO("register " << s.name);
+      auto ref = *scan->find(s.name);
+      const u64 v = value_for(s.byte_width);
+      auto src = le(v, s.byte_width);
+
+      auto blaster = run([&](tvm::TraceBuffer &tb) {
+        auto d = tb.append_data(S, {src.data(), src.size()});
+        auto ldp = LDP<3>(SP{.hi = (u16)d.id.value, .lo = d.offset}, (u16)src.size()).encode();
+        tb.emit_prefix(S, {ldp.data(), ldp.size()});
+        auto enc = SetReg<false, 3>{.access = rw.as_u8(), .reg = ref.reg.value, .field = 0}.encode();
+        tb.emit_body(S, {enc.data(), enc.size()});
+      });
+
+      CHECK(blaster->stop_cause() == StopCause::None);
+      CHECK(blaster->csrs().F == 0);
+      CHECK(scan->read<u64>(ref) == v);
+      // The payload was little-endian; memory holds it in the register's declared order.
+      CHECK(peek(*mem, s.offset, s.byte_width) == expected_bytes(v, s.order, s.byte_width));
+    }
+  }
+
+  SECTION("SETREG stores immediate data into a whole register") {
+    for (const auto &s : SYNTHETICS) {
+      INFO("register " << s.name);
+      auto ref = *scan->find(s.name);
+      const u64 v = value_for(s.byte_width);
+
+      auto blaster = run([&](tvm::TraceBuffer &tb) {
+        auto imm = SetReg<false, 4>{.access = rw.as_u8(), .reg = ref.reg.value, .field = 0};
+        // Immediate payload is sized by the size word the encoder emits, so match the register's width exactly.
+        switch (s.byte_width) {
+        case 1: {
+          auto enc = imm.encode(std::array<u8, 1>{(u8)v});
+          tb.emit_body(S, {enc.data(), enc.size()});
+        } break;
+        case 2: {
+          auto enc = imm.encode(std::array<u8, 2>{(u8)v, (u8)(v >> 8)});
+          tb.emit_body(S, {enc.data(), enc.size()});
+        } break;
+        default: {
+          auto enc = imm.encode(std::array<u8, 4>{(u8)v, (u8)(v >> 8), (u8)(v >> 16), (u8)(v >> 24)});
+          tb.emit_body(S, {enc.data(), enc.size()});
+        } break;
+        }
+      });
+
+      CHECK(blaster->stop_cause() == StopCause::None);
+      CHECK(blaster->csrs().F == 0);
+      CHECK(scan->read<u64>(ref) == v);
+    }
+  }
+
+  SECTION("SETREGX exclusive-ors against the register's current contents") {
+    for (const auto &s : SYNTHETICS) {
+      INFO("register " << s.name);
+      auto ref = *scan->find(s.name);
+      const u64 mask = s.byte_width == 8 ? ~0ULL : (1ULL << (8 * s.byte_width)) - 1;
+      const u64 before = 0xF0F0'F0F0'F0F0'F0F0ULL & mask;
+      const u64 patch = 0x3333'3333'3333'3333ULL & mask;
+      scan->write<u64>(ref, before);
+      // Without this, a seed that failed to land would leave 0 in the register, and 0 ^ patch == patch is exactly
+      // what a missing xor also produces -- the two failures would be indistinguishable.
+      REQUIRE(scan->read<u64>(ref) == before);
+
+      auto src = le(patch, s.byte_width);
+      auto blaster = run([&](tvm::TraceBuffer &tb) {
+        auto d = tb.append_data(S, {src.data(), src.size()});
+        auto ldp = LDP<3>(SP{.hi = (u16)d.id.value, .lo = d.offset}, (u16)src.size()).encode();
+        tb.emit_prefix(S, {ldp.data(), ldp.size()});
+        auto enc = SetReg<true, 3>{.access = rw.as_u8(), .reg = ref.reg.value, .field = 0}.encode();
+        tb.emit_body(S, {enc.data(), enc.size()});
+      });
+
+      CHECK(blaster->stop_cause() == StopCause::None);
+      CHECK(blaster->csrs().F == 0);
+      CHECK(scan->read<u64>(ref) == (before ^ patch));
+    }
+  }
+
+  SECTION("SETREG sets a single field and leaves its siblings") {
+    auto whole = *scan->find("NZVC");
+    auto v = *scan->find("V");
+    scan->write<u32>(whole, 0x0000'0000);
+
+    auto blaster = run([&](tvm::TraceBuffer &tb) {
+      auto enc = SetReg<false, 4>{.access = rw.as_u8(), .reg = v.reg.value, .field = v.field.value}
+                     .encode(std::array<u8, 4>{0x01, 0x00, 0x00, 0x00});
+      tb.emit_body(S, {enc.data(), enc.size()});
+    });
+
+    CHECK(blaster->stop_cause() == StopCause::None);
+    CHECK(scan->read<u8>(v) == 1);
+    CHECK(scan->read<u32>(whole) == 0x0000'0100);
+  }
+
+  SECTION("A payload that is not the register's width hard stops") {
+    auto ref = *scan->find("be4");
+    auto blaster = run([&](tvm::TraceBuffer &tb) {
+      // Two bytes of data for a four-byte register.
+      auto enc = SetReg<false, 4>{.access = rw.as_u8(), .reg = ref.reg.value, .field = 0}
+                     .encode(std::array<u8, 2>{0xAA, 0xBB});
+      tb.emit_body(S, {enc.data(), enc.size()});
+    });
+
+    CHECK(blaster->stopped());
+    CHECK(blaster->csrs().F == 1);
+    CHECK(blaster->stop_cause() == StopCause::RegisterSizeMismatch);
+  }
+
+  SECTION("An unknown register id hard stops") {
+    auto blaster = run([&](tvm::TraceBuffer &tb) {
+      auto enc = SetReg<false, 4>{.access = rw.as_u8(), .reg = 0xBEEF, .field = 0}
+                     .encode(std::array<u8, 2>{0xAA, 0xBB});
+      tb.emit_body(S, {enc.data(), enc.size()});
+    });
+
+    CHECK(blaster->stopped());
+    CHECK(blaster->csrs().F == 1);
+    CHECK(blaster->stop_cause() == StopCause::RegisterInvalid);
+  }
+}
+
 TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   using namespace tvm::EncodedOp;
   using SP = tvm::SegmentPair;

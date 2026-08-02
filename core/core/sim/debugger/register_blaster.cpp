@@ -673,7 +673,57 @@ void RegisterBlaster::execute_clrmem(tvm::DecodedOp::ClrMem op) {
 }
 
 void RegisterBlaster::execute_setreg(tvm::DecodedOp::SetReg op) {
-  throw std::runtime_error("SETREG execution not implemented");
+  using StopCause = tvm::StopCause;
+  using R = RegisterScan;
+  // Not in register mode or there is no system. Either way, comparsion will fail.
+  if (_csrs.TR == 0) return hard_stop(StopCause::WrongTR);
+  else if (_scan == nullptr) return hard_stop(StopCause::MissingSystem);
+
+  // Attempt to convert our ID registers
+  auto pair = _scan->resolve(op.reg);
+  if (pair.first == nullptr) return hard_stop(StopCause::RegisterInvalid);
+  // Manually unpack to make debugging easier.
+  auto reg = pair.first;
+  auto field = pair.second;
+
+  // Prevent access to invalid dbuff / past its end
+  auto dbuff = _mgr->find((pepp::bts::Buffer::ID)op.data.hi);
+  if (!dbuff) return hard_stop(StopCause::InvalidDBuffer);
+  else if ((size_t)op.data.lo + op.size > dbuff->span().size()) return hard_stop(StopCause::InvalidDBuffer);
+
+  // If size mismatch, then we would have to do a partial write, and we'd need to compute host/guest endianness
+  // mismatch. That sounds annoying, so skip.
+  if (reg->byte_width != op.size) return hard_stop(StopCause::RegisterSizeMismatch);
+  const auto dat = (pepp::bts::Buffer::ID)op.data.hi;
+  u64 expected = 0;
+  switch (reg->byte_width) {
+  case 1: expected = read16(dat, op.data.lo) & 0xff; break;
+  case 2: expected = read16(dat, op.data.lo); break;
+  case 4: expected = ((u32)read16(dat, op.data.lo + 2) << 16) | read16(dat, op.data.lo); break;
+  default: return hard_stop(StopCause::RegisterWidthIllegal);
+  }
+  bits::span<const u8> data = dbuff->span().subspan(op.data.lo, op.size);
+
+  const bool ok = try_access([&] {
+    // If data is XOR-encoded, we first need to extract the current register value.
+    // TODO: this should be a BufferInternal read, not a normal one!
+    if (op.xor_encoded) {
+      switch (reg->byte_width) {
+      case 1: expected ^= _scan->read<u8>(op.reg); break;
+      case 2: expected ^= _scan->read<u16>(op.reg); break;
+      case 4: expected ^= _scan->read<u32>(op.reg); break;
+      default: break;
+      }
+    }
+    // RegisterScanner handles field vs register writes.
+    switch (reg->byte_width) {
+    case 1: _scan->write<u8>(op.reg, (u8)expected); break;
+    case 2: _scan->write<u16>(op.reg, (u16)expected); break;
+    case 4: _scan->write<u32>(op.reg, (u32)expected); break;
+    default: break;
+    }
+  });
+  _csrs.F = !ok;
 }
 
 void RegisterBlaster::execute_cmpreg(tvm::DecodedOp::CmpReg op) {

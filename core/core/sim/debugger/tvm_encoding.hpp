@@ -253,6 +253,29 @@ template <bool X> struct SetMem<X, 5> : ImmediateEncoder<SetMemOp<X>, SetMem<X, 
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, dev, off.hi, off.lo); }
 };
 
+template <bool X> inline constexpr Opcode SetRegOp = X ? Opcode::SETREGX : Opcode::SETREG;
+
+// Same shape as SetMem, except the ID is two words (register, field) and there is no offset. A field of 0 addresses
+// the whole register. The <4> form carries immediate data; the shorter ones take it from DP/DS.
+template <bool X, std::size_t> struct SetReg;
+
+template <bool X> struct SetReg<X, 1> {
+  u16 access;
+  constexpr auto encode() const { return encode_op<SetRegOp<X>, true>(access); }
+};
+template <bool X> struct SetReg<X, 2> {
+  u16 access, reg;
+  constexpr auto encode() const { return encode_op<SetRegOp<X>, true>(access, reg); }
+};
+template <bool X> struct SetReg<X, 3> {
+  u16 access, reg, field;
+  constexpr auto encode() const { return encode_op<SetRegOp<X>, true>(access, reg, field); }
+};
+template <bool X> struct SetReg<X, 4> : ImmediateEncoder<SetRegOp<X>, SetReg<X, 4>> {
+  u16 access, reg, field;
+  template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, reg, field); }
+};
+
 template <std::size_t> struct ClrMem;
 template <> struct ClrMem<1> {
   u16 dev;
