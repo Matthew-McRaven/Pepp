@@ -303,7 +303,7 @@ tvm::DecodedOp::SetMem tvm::Interpreter::decode_setmem(pepp::bts::Buffer::ID ibp
   case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
-  ret.access = _regs.ACCESS;
+  ret.access = Operation(_regs.ACCESS);
   ret.target = (Device::ID)_regs.ID.lo;
   ret.offset = _regs.OFF.as_u32();
   return ret;
@@ -378,7 +378,7 @@ tvm::DecodedOp::SetReg tvm::Interpreter::decode_setreg(pepp::bts::Buffer::ID ibp
   case 1: _regs.ACCESS = read16(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
-  ret.access = _regs.ACCESS;
+  ret.access = Operation(_regs.ACCESS);
   ret.reg = RegisterScan::RegisterRef{RegisterScan::Register::ID{_regs.ID.hi},
                                       RegisterScan::Register::Field::ID{_regs.ID.lo}};
   return ret;

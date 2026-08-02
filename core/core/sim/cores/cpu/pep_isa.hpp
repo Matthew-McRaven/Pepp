@@ -74,6 +74,9 @@ public:
   Dense *registers() const { return _regbank; }
   Dense *csrs() const { return _csrs; }
 
+  // No longer static const because it embeds this instance's id.
+  Operation op_data() const { return Operation(Operation::Type::Standard, Operation::Kind::data, id()); }
+
 private:
   Configuration _config;
   Buffer *_tb = nullptr;
@@ -86,21 +89,17 @@ private:
 };
 
 template <typename RegisterType> inline void PepISA3CPU::write_register(RegisterType reg, u16 value) {
-  static const Operation op(Operation::Type::Standard, Operation::Kind::data);
-  ((Target *)_regbank)->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op);
+  ((Target *)_regbank)->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op_data());
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterType reg) {
-  static const Operation op(Operation::Type::Standard, Operation::Kind::data);
-  return ((Target *)_regbank)->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op).second;
+  return ((Target *)_regbank)->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op_data()).second;
 }
 
 template <typename CSRType> inline void PepISA3CPU::write_csr(CSRType csr, bool value) {
-  static const Operation op(Operation::Type::Standard, Operation::Kind::data);
-  ((Target *)_csrs)->write<u8, bits::host_is_le>(static_cast<u8>(csr), (u8)value, op);
+  ((Target *)_csrs)->write<u8, bits::host_is_le>(static_cast<u8>(csr), (u8)value, op_data());
 }
 
 template <typename CSRType> inline bool PepISA3CPU::read_csr(CSRType csr) {
-  static const Operation op(Operation::Type::Standard, Operation::Kind::data);
-  return ((Target *)_csrs)->read<u8, bits::host_is_le>(static_cast<u8>(csr), op).second != 0;
+  return ((Target *)_csrs)->read<u8, bits::host_is_le>(static_cast<u8>(csr), op_data()).second != 0;
 }

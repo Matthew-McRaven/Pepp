@@ -126,7 +126,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     tb.begin(S);
     auto dhead = tb.append_data(S, std::array<u8, 2>{0xBE, 0xEF});
     prefix(LDP<3>(SP{.hi = (u16)dhead.id.value, .lo = dhead.offset}, 2).encode());
-    body(SetMem<false, 4>{.access = rw.as_u8(), .dev = mem->id().value, .off = SP{.hi = 0, .lo = (u16)offset}}
+    body(SetMem<false, 4>{.access = rw.as_u16(), .dev = mem->id().value, .off = SP{.hi = 0, .lo = (u16)offset}}
              .encode());
     body(CmpMem<3>{.dev = mem->id().value, .off = SP{.hi = 0, .lo = (u16)offset}}.encode());
     tb.end(S);
@@ -605,7 +605,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
         auto d = tb.append_data(S, {src.data(), src.size()});
         auto ldp = LDP<3>(SP{.hi = (u16)d.id.value, .lo = d.offset}, (u16)src.size()).encode();
         tb.emit_prefix(S, {ldp.data(), ldp.size()});
-        auto enc = SetReg<false, 3>{.access = rw.as_u8(), .reg = ref.reg.value, .field = 0}.encode();
+        auto enc = SetReg<false, 3>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0}.encode();
         tb.emit_body(S, {enc.data(), enc.size()});
       });
 
@@ -624,7 +624,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
       const u64 v = value_for(s.byte_width);
 
       auto blaster = run([&](tvm::TraceBuffer &tb) {
-        auto imm = SetReg<false, 4>{.access = rw.as_u8(), .reg = ref.reg.value, .field = 0};
+        auto imm = SetReg<false, 4>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0};
         // Immediate payload is sized by the size word the encoder emits, so match the register's width exactly.
         switch (s.byte_width) {
         case 1: {
@@ -665,7 +665,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
         auto d = tb.append_data(S, {src.data(), src.size()});
         auto ldp = LDP<3>(SP{.hi = (u16)d.id.value, .lo = d.offset}, (u16)src.size()).encode();
         tb.emit_prefix(S, {ldp.data(), ldp.size()});
-        auto enc = SetReg<true, 3>{.access = rw.as_u8(), .reg = ref.reg.value, .field = 0}.encode();
+        auto enc = SetReg<true, 3>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0}.encode();
         tb.emit_body(S, {enc.data(), enc.size()});
       });
 
@@ -681,7 +681,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
     scan->write<u32>(whole, 0x0000'0000);
 
     auto blaster = run([&](tvm::TraceBuffer &tb) {
-      auto enc = SetReg<false, 4>{.access = rw.as_u8(), .reg = v.reg.value, .field = v.field.value}
+      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = v.reg.value, .field = v.field.value}
                      .encode(std::array<u8, 4>{0x01, 0x00, 0x00, 0x00});
       tb.emit_body(S, {enc.data(), enc.size()});
     });
@@ -695,7 +695,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
     auto ref = *scan->find("be4");
     auto blaster = run([&](tvm::TraceBuffer &tb) {
       // Two bytes of data for a four-byte register.
-      auto enc = SetReg<false, 4>{.access = rw.as_u8(), .reg = ref.reg.value, .field = 0}
+      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0}
                      .encode(std::array<u8, 2>{0xAA, 0xBB});
       tb.emit_body(S, {enc.data(), enc.size()});
     });
@@ -707,7 +707,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
 
   SECTION("An unknown register id hard stops") {
     auto blaster = run([&](tvm::TraceBuffer &tb) {
-      auto enc = SetReg<false, 4>{.access = rw.as_u8(), .reg = 0xBEEF, .field = 0}
+      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = 0xBEEF, .field = 0}
                      .encode(std::array<u8, 2>{0xAA, 0xBB});
       tb.emit_body(S, {enc.data(), enc.size()});
     });

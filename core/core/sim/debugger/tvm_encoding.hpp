@@ -386,7 +386,7 @@ struct BR {
 };
 struct SetMem {
   bool xor_encoded = false;
-  Operation access = 0;
+  Operation access{};
   Device::ID target{};
   u32 offset = 0;
   SegmentPair data{};
@@ -404,7 +404,7 @@ struct ClrMem {
 };
 struct SetReg {
   bool xor_encoded = false;
-  Operation access = 0;
+  Operation access{};
   RegisterScan::RegisterRef reg{};
   SegmentPair data{};
   u16 size = 0;

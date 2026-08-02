@@ -11,7 +11,6 @@
 
 namespace {
 static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
-static const Operation rw_d{Operation::Type::Standard, Operation::Kind::data};
 
 static const std::unordered_map<std::string, PepISA3CPU::ISA, pepp::bts::ci_hash, pepp::bts::ci_eq> map_str_to_isa = {
     {"pep8", PepISA3CPU::ISA::Pep8}, {"pep9", PepISA3CPU::ISA::Pep9}, {"pep10", PepISA3CPU::ISA::Pep10}};
@@ -158,7 +157,9 @@ std::unique_ptr<DeviceSerializer> PepISA3CPU::make_serializer() {
 void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // Fetch & increment pc
   auto pc = read_register(isa::Pep10::Register::PC);
-  u8 is = _target->read<u8, false>(pc, rw_d).second;
+  // NOTE: this is the instruction fetch, but it is classified Kind::data rather than Kind::instruction. That predates
+  // initiator stamping and is preserved here deliberately -- changing Kind would alter how devices treat the access.
+  u8 is = _target->read<u8, false>(pc, op_data()).second;
   pc += 1;
   write_register(isa::Pep10::Register::PC, pc);
   write_register(isa::Pep10::Register::IS, is);

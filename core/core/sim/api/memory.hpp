@@ -62,15 +62,31 @@ struct Operation {
     Standard = 0,
   } type = Type::Standard;
   enum class Kind : bool { instruction = false, data = true } kind;
+  // If initiator is 0, then the access can't be traced to a particular device (e.g., a debugger touching the
+  // simulation). Otherwise, the ID of the device which originally started this access.
+  Device::ID initiator = Device::ID{0};
 
-  constexpr u8 as_u8() const noexcept { return (static_cast<u8>(type) << 4) | static_cast<u8>(kind); }
+  // The (type, kind) pair packed into a byte.
+  //   [5:4] type   [0] kind
+  constexpr u8 mode_as_u8() const noexcept { return (static_cast<u8>(type) << 4) | static_cast<u8>(kind); }
+  // Pack all fields into a u16.
+  //   [15:8] initiator   [5:4] type   [0] kind
+  constexpr u16 as_u16() const noexcept {
+    return (static_cast<u16>(initiator.value) << 8) | static_cast<u16>(mode_as_u8());
+  }
   constexpr Operation() noexcept = default;
   constexpr Operation(Type type, Kind kind) noexcept : type(type), kind(kind) {}
+  constexpr Operation(Type type, Kind kind, Device::ID initiator) noexcept
+      : type(type), kind(kind), initiator(initiator) {}
   constexpr Operation(const Operation &) noexcept = default;
   constexpr Operation &operator=(const Operation &) noexcept = default;
   constexpr Operation(Operation &&) noexcept = default;
   constexpr Operation &operator=(Operation &&) noexcept = default;
-  constexpr Operation(u8 v) noexcept : type(static_cast<Type>((v >> 4) & 0b11)), kind(static_cast<Kind>(v & 0x01)) {}
+  // Explicit to avoid decaying ints to operations.
+  // if high-order is 0 (or a u8 is promoted), then initiator is 0/root.
+  constexpr explicit Operation(u16 v) noexcept
+      : type(static_cast<Type>((v >> 4) & 0b11)), kind(static_cast<Kind>(v & 0x01)),
+        initiator(Device::ID{static_cast<u8>((v >> 8) & 0xFF)}) {}
 };
 
 static constexpr auto op_i_std = Operation(Operation::Type::Standard, Operation::Kind::instruction);
