@@ -13,7 +13,6 @@
 class System;
 namespace tvm {
 class TraceBuffer;
-}
 
 // This is basically an ASIC with a custom instruction set used to copy  values into a simulator's
 // registers+memory.
@@ -51,7 +50,7 @@ class TraceBuffer;
 // While opcode decoding and register programming is handled by this class, the "implementation" of each opcode is
 // customizable by providing a callback per-opcode.
 // We provide a helper to install the same handler for all BR mnemonics for your convenience.
-class RegisterBlaster {
+class Interpreter {
 public:
   struct Flags {
     Flags() = default;
@@ -112,14 +111,14 @@ public:
 
   // Yes, this pays an indirect call with some trampoline magic, but it allows the register blaster and trace buffer to
   // become the same class. That execution speed penalty is more than worth it to me to consolidate the two types.
-  using CMPCallback = std::function<void(RegisterBlaster &, bool)>;
+  using CMPCallback = std::function<void(tvm::Interpreter &, bool)>;
   // Non-owning pointer to system.
-  RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr);
+  Interpreter(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr);
   // Disable copy/move since this class is EXPENSIVE
-  RegisterBlaster(const RegisterBlaster &) = delete;
-  RegisterBlaster(RegisterBlaster &&) = delete;
-  RegisterBlaster &operator=(const RegisterBlaster &) = delete;
-  RegisterBlaster &operator=(RegisterBlaster &&) = delete;
+  Interpreter(const Interpreter &) = delete;
+  Interpreter(Interpreter &&) = delete;
+  Interpreter &operator=(const tvm::Interpreter &) = delete;
+  Interpreter &operator=(tvm::Interpreter &&) = delete;
 
   void update_ip(pepp::bts::Buffer::Location loc);
   void update_ip(pepp::bts::Buffer::ID, u16 offset = 0);
@@ -234,3 +233,4 @@ private:
   std::vector<u8> _tmp;
   tvm::DecodedOp::OpChoice _decoded{};
 };
+} // namespace tvm

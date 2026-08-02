@@ -31,7 +31,7 @@ private:
 consteval void allow_opaque_handle_increment(Buffer::ID);
 
 // Gives the appearance (API) of being a buffer, but really is a contiguous chain of buffers.
-// Useful for representing traces of RegisterBlaster programs, which can insert "swaps" between buffers easily.
+// Useful for representing traces of tvm::Interpreter programs, which can insert "swaps" between buffers easily.
 // This class can only be constructed by a BufferManager. When this chain is destroyed, it will release
 // all buffers back into the manager's pool.
 class BufferChain {

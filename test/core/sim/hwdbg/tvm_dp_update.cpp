@@ -15,7 +15,7 @@
  */
 #include <catch.hpp>
 
-#include "core/sim/debugger/register_blaster.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
 TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
@@ -25,7 +25,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("LDP: absolute load for first data access") {
     tvm::TraceBuffer tb(mgr, 1);
     constexpr u16 S = 0;
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     auto before = tb.cursor();
 
     tb.begin(S);
@@ -44,7 +44,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("ACCDP: advance by previous DS for tightly packed data") {
     tvm::TraceBuffer tb(mgr, 1);
     constexpr u16 S = 0;
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     auto before = tb.cursor();
 
     // Program 1: LDP to first chunk.
@@ -81,7 +81,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("ACCDP: forward overflow crosses buffer boundary") {
     tvm::TraceBuffer tb(mgr, 1);
     constexpr u16 S = 0;
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     blaster.set_trace_buffer(&tb);
     auto before = tb.cursor();
 
@@ -123,7 +123,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("INCDP: backward underflow crosses buffer boundary") {
     tvm::TraceBuffer tb(mgr, 1);
     constexpr u16 S = 0;
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     blaster.set_trace_buffer(&tb);
     auto before = tb.cursor();
 
@@ -174,7 +174,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     // Two submitters interleave data, creating a gap in submitter A's writes.
     tvm::TraceBuffer tb(mgr, 2);
     constexpr u16 A = 0, B = 1;
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     auto before = tb.cursor();
 
     tb.begin(A);

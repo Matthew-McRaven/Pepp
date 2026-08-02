@@ -9,9 +9,10 @@
 #include "core/ds/alloc/pagechain.hpp"
 #include "core/sim/debugger/tvm_opcodes.hpp"
 
-class RegisterBlaster;
 
 namespace tvm {
+
+class Interpreter;
 
 // Thrown when the ring would advance onto a slot the consumer has never acknowledged. Continuing would destroy trace
 // history nobody has read, so the buffer refuses instead of overwriting it.
@@ -43,7 +44,7 @@ struct Cursor {
 // Submission queue for TVM programs.
 //
 // TB does not provide helpers to explicitly serialize opcodes so that it won't need modification with the addition of
-// new ops. The class manages the lifetimes of buffers used by a RegisterBlaster, and provides a circular-queue
+// new ops. The class manages the lifetimes of buffers used by a tvm::Interpreter, and provides a circular-queue
 // abstraction. Submitted programs go to a ring, whose size provides an upper limit of the length of a trace histroy.
 //
 // Each ring entry can hold ~16k programs, which is limited by the size of an "indirect buffer".

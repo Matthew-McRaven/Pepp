@@ -17,10 +17,10 @@
 #include <vector>
 
 #include "./instr/api.hpp"
-#include "core/sim/debugger/register_blaster.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
-TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   using namespace tvm::EncodedOp;
   using SP = tvm::SegmentPair;
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
@@ -32,7 +32,7 @@ TEST_CASE("Access registers from RegisterBlaster", "[scope:core][scope:core.dbg]
   auto prefix = [&](auto enc) { tb.emit_prefix(S, {enc.data(), enc.size()}); };
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
 
-  SECTION("Validate that a system-created RegisterBlaster works") {
+  SECTION("Validate that a system-created tvm::Interpreter works") {
     auto blaster = sys->make_blaster();
     auto before = tb.cursor();
 

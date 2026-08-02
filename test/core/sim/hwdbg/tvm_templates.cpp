@@ -16,7 +16,7 @@
 #include <catch.hpp>
 #include <vector>
 
-#include "core/sim/debugger/register_blaster.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
@@ -66,7 +66,7 @@ TemplateProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffe
 
 } // namespace
 
-TEST_CASE("Template promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
@@ -221,7 +221,7 @@ TEST_CASE("Template promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pe
     body(long_body);
     auto loc = tb.end(S);
 
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     blaster.run_direct(loc);
     CHECK(blaster.stopped());
     CHECK(blaster.regs().DP.lo == 0xAAAA);
@@ -256,7 +256,7 @@ TEST_CASE("Template promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pe
 
     // Execute submission 1 (inlined body + custom postfix).
     {
-      RegisterBlaster b(mgr);
+      tvm::Interpreter b(mgr);
       b.run_direct(loc1);
       CHECK(b.stopped());
       CHECK(b.regs().DP.lo == 0xAAAA);
@@ -265,7 +265,7 @@ TEST_CASE("Template promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pe
 
     // Execute submission 3 (template CALL, postfix dropped).
     {
-      RegisterBlaster b(mgr);
+      tvm::Interpreter b(mgr);
       b.run_direct(loc3);
       CHECK(b.stopped());
       CHECK(b.regs().DP.lo == 0xAAAA);  // body via template
@@ -274,7 +274,8 @@ TEST_CASE("Template promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pe
   }
 }
 
-TEST_CASE("Template chain fills to a buffer boundary", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter:  Template chain fills to a buffer boundary",
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   tvm::TraceBuffer tb(mgr, 1);
   // Stop one short: the point of interest is the state the *next* promotion would find.
@@ -296,7 +297,7 @@ TEST_CASE("Template chain fills to a buffer boundary", "[scope:core][scope:core.
 
 // A body sized flush against a buffer boundary is the case where the body and its trailing RET could end up in
 // different buffers, since a chain append that does not fit rolls over to a fresh buffer.
-TEST_CASE("A promoted template keeps its RET in the same buffer",
+TEST_CASE("tvm::Interpreter:  A promoted template keeps its RET in the same buffer",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   tvm::TraceBuffer tb(mgr, 1);

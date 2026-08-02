@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 #include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/enums.hpp"
-#include "core/sim/debugger/register_blaster.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/devicetree.hpp"
 #include "core/sim/systemparser.hpp"
 
@@ -64,8 +64,8 @@ RegisterScan *System::register_scan() { return _hwdbg.get(); }
 
 const RegisterScan *System::register_scan() const { return _hwdbg.get(); }
 
-std::unique_ptr<RegisterBlaster> System::make_blaster() {
-  return std::make_unique<RegisterBlaster>(_buffer_manager, this);
+std::unique_ptr<tvm::Interpreter> System::make_blaster() {
+  return std::make_unique<tvm::Interpreter>(_buffer_manager, this);
 }
 
 std::shared_ptr<pepp::bts::BufferManager> System::buffer_manager() { return _buffer_manager; }

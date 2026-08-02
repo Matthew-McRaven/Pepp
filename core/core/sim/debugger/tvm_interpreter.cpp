@@ -1,4 +1,4 @@
-#include "register_blaster.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 #include <algorithm>
 #include <bit>
 #include "core/sim/api/memory.hpp"
@@ -22,20 +22,20 @@ template <typename Fn> bool try_access(Fn &&fn) {
 }
 } // namespace
 
-RegisterBlaster::RegisterBlaster(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system)
+tvm::Interpreter::Interpreter(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system)
     : _mgr(mgr), _system(system) {
   if (_system) _scan = _system->register_scan();
   else _scan = nullptr;
 }
 
-void RegisterBlaster::update_ip(pepp::bts::Buffer::Location loc) { return update_ip(loc.id, loc.offset); }
+void tvm::Interpreter::update_ip(pepp::bts::Buffer::Location loc) { return update_ip(loc.id, loc.offset); }
 
-void RegisterBlaster::update_ip(pepp::bts::Buffer::ID id, u16 offset) {
+void tvm::Interpreter::update_ip(pepp::bts::Buffer::ID id, u16 offset) {
   _regs.IP.hi = id.value;
   _regs.IP.lo = offset & 0xFFFE;
 }
 
-void RegisterBlaster::step() {
+void tvm::Interpreter::step() {
   if (_csrs.CLRMOD) {
     _regs.MOD1 = {};
     _regs.MOD2 = {};
@@ -45,7 +45,7 @@ void RegisterBlaster::step() {
   if (_csrs.L) execute();
 }
 
-void RegisterBlaster::run_direct(pepp::bts::Buffer::Location loc) {
+void tvm::Interpreter::run_direct(pepp::bts::Buffer::Location loc) {
   // Bring the blaster back into the live state (L==1).
   // Clear F bit in case last program terminated with hardfail.
   // "soft stop" is L==0,F==0, "hard stop is L==0,F==1.
@@ -54,26 +54,26 @@ void RegisterBlaster::run_direct(pepp::bts::Buffer::Location loc) {
   while (_csrs.L) step();
 }
 
-void RegisterBlaster::run_indirect(std::span<pepp::bts::Buffer::Location> locs) {
+void tvm::Interpreter::run_indirect(std::span<pepp::bts::Buffer::Location> locs) {
   // Run the program at each location. Check for a hard stop condition. On hard stop, abort the loop.
   // On a normal/soft stop, resume execution of the next program.
   for (const auto &loc : locs)
     if (run_direct(loc); _csrs.F == 1) break;
 }
 
-void RegisterBlaster::soft_stop(tvm::StopCause cause) {
+void tvm::Interpreter::soft_stop(tvm::StopCause cause) {
   _csrs.L = 0;
   _csrs.F = 0;
   _regs.STOP_CAUSE = cause;
 }
 
-void RegisterBlaster::hard_stop(tvm::StopCause cause) {
+void tvm::Interpreter::hard_stop(tvm::StopCause cause) {
   _csrs.L = 0;
   _csrs.F = 1;
   _regs.STOP_CAUSE = cause;
 }
 
-void RegisterBlaster::decode() {
+void tvm::Interpreter::decode() {
   using namespace tvm;
   const auto ibp = (pepp::bts::Buffer::ID)_regs.IP.hi;
   // read 16 bits at ip.lo from data and increment.
@@ -121,7 +121,7 @@ void RegisterBlaster::decode() {
   }
 }
 
-tvm::DecodedOp::Halt RegisterBlaster::decode_halt(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::Halt tvm::Interpreter::decode_halt(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::Halt ret;
   switch (_regs.IS.word_len) {
   default: [[fallthrough]];
@@ -131,12 +131,12 @@ tvm::DecodedOp::Halt RegisterBlaster::decode_halt(pepp::bts::Buffer::ID ibp, u16
   return ret;
 }
 
-tvm::DecodedOp::Ret RegisterBlaster::decode_ret(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::Ret tvm::Interpreter::decode_ret(pepp::bts::Buffer::ID ibp, u16 iop) {
   // No-op for decoding, since all data is passed on stack.
   return {};
 }
 
-tvm::DecodedOp::Call RegisterBlaster::decode_call(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::Call tvm::Interpreter::decode_call(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::Call ret;
   ret.next_ip.hi = _regs.IP.hi, ret.next_ip.lo = iop + 0;
   switch (_regs.IS.word_len) {
@@ -148,7 +148,7 @@ tvm::DecodedOp::Call RegisterBlaster::decode_call(pepp::bts::Buffer::ID ibp, u16
   return ret;
 }
 
-tvm::DecodedOp::InvCall RegisterBlaster::decode_invcall(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::InvCall tvm::Interpreter::decode_invcall(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::InvCall ret;
   // IP.lo has already been advanced past this packet, so IP is the fall-through address. Any target word the packet
   // omits defaults to it: a missing hi word keeps IP.hi, and a wholly missing target calls the next instruction.
@@ -168,7 +168,7 @@ tvm::DecodedOp::InvCall RegisterBlaster::decode_invcall(pepp::bts::Buffer::ID ib
   return ret;
 }
 
-u64 RegisterBlaster::decode_syn_data(pepp::bts::Buffer::ID ibp, u16 iop, u8 &size) {
+u64 tvm::Interpreter::decode_syn_data(pepp::bts::Buffer::ID ibp, u16 iop, u8 &size) {
   using StopCause = tvm::StopCause;
   // Unless a size word is provided, data is DP relative rather than immediate.
   tvm::SegmentPair data = _regs.DP;
@@ -199,7 +199,7 @@ u64 RegisterBlaster::decode_syn_data(pepp::bts::Buffer::ID ibp, u16 iop, u8 &siz
   return value;
 }
 
-tvm::DecodedOp::ASyn RegisterBlaster::decode_asyn(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::ASyn tvm::Interpreter::decode_asyn(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::ASyn ret;
   u8 width = 0;
   // Absolute timestamps are unsigned, so a narrow encoding is just the low-order bytes of a bigger number.
@@ -207,7 +207,7 @@ tvm::DecodedOp::ASyn RegisterBlaster::decode_asyn(pepp::bts::Buffer::ID ibp, u16
   return ret;
 }
 
-tvm::DecodedOp::ISyn RegisterBlaster::decode_isyn(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::ISyn tvm::Interpreter::decode_isyn(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::ISyn ret;
   u8 width = 0;
   u64 raw = decode_syn_data(ibp, iop, width);
@@ -224,7 +224,7 @@ tvm::DecodedOp::ISyn RegisterBlaster::decode_isyn(pepp::bts::Buffer::ID ibp, u16
   return ret;
 }
 
-tvm::DecodedOp::LMR RegisterBlaster::decode_lmr(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::LMR tvm::Interpreter::decode_lmr(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::LMR ret;
   if (_regs.IS.word_len == 0) return ret;
   ret.mask = (tvm::RegMask)read16(ibp, iop + 0);
@@ -235,7 +235,7 @@ tvm::DecodedOp::LMR RegisterBlaster::decode_lmr(pepp::bts::Buffer::ID ibp, u16 i
   return ret;
 }
 
-tvm::DecodedOp::BR RegisterBlaster::decode_br(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::BR tvm::Interpreter::decode_br(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::BR ret;
   // Select condition code base on the original opcode.
   if (_regs.IS.ocpode == (u8)tvm::Opcode::BRF) ret.condition = tvm::ConditionCode::F;
@@ -265,7 +265,7 @@ tvm::DecodedOp::BR RegisterBlaster::decode_br(pepp::bts::Buffer::ID ibp, u16 iop
   return ret;
 }
 
-tvm::DecodedOp::SetMem RegisterBlaster::decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::SetMem tvm::Interpreter::decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::SetMem ret;
   ret.xor_encoded = (_regs.IS.ocpode == (u8)tvm::Opcode::SETMEMX);
   _csrs.TR = 0; // Enter target mode.
@@ -297,7 +297,7 @@ tvm::DecodedOp::SetMem RegisterBlaster::decode_setmem(pepp::bts::Buffer::ID ibp,
   return ret;
 }
 
-tvm::DecodedOp::CmpMem RegisterBlaster::decode_cmpmem(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::CmpMem tvm::Interpreter::decode_cmpmem(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::CmpMem ret;
   _csrs.TR = 0; // Enter target mode.
   // Unless (4) is provided, data is DP relative rather than immediate
@@ -326,7 +326,7 @@ tvm::DecodedOp::CmpMem RegisterBlaster::decode_cmpmem(pepp::bts::Buffer::ID ibp,
   return ret;
 }
 
-tvm::DecodedOp::ClrMem RegisterBlaster::decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::ClrMem tvm::Interpreter::decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::ClrMem ret;
   _csrs.TR = 0; // Enter target mode.
   ret.data = 0;
@@ -341,7 +341,7 @@ tvm::DecodedOp::ClrMem RegisterBlaster::decode_clrmem(pepp::bts::Buffer::ID ibp,
   return ret;
 }
 
-tvm::DecodedOp::SetReg RegisterBlaster::decode_setreg(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::SetReg tvm::Interpreter::decode_setreg(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::SetReg ret;
   ret.xor_encoded = (_regs.IS.ocpode == (u8)tvm::Opcode::SETREGX);
   _csrs.TR = 1; // Enter register mode.
@@ -372,7 +372,7 @@ tvm::DecodedOp::SetReg RegisterBlaster::decode_setreg(pepp::bts::Buffer::ID ibp,
   return ret;
 }
 
-tvm::DecodedOp::CmpReg RegisterBlaster::decode_cmpreg(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::CmpReg tvm::Interpreter::decode_cmpreg(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::CmpReg ret;
   _csrs.TR = 1; // Enter register mode.
   // Unless (3) is provided, data is DP relative rather than immediate
@@ -400,7 +400,7 @@ tvm::DecodedOp::CmpReg RegisterBlaster::decode_cmpreg(pepp::bts::Buffer::ID ibp,
   return ret;
 }
 
-tvm::DecodedOp::ClrReg RegisterBlaster::decode_clrreg(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::ClrReg tvm::Interpreter::decode_clrreg(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::ClrReg ret;
   _csrs.TR = 1; // Enter register mode.
   switch (_regs.IS.word_len) {
@@ -414,7 +414,7 @@ tvm::DecodedOp::ClrReg RegisterBlaster::decode_clrreg(pepp::bts::Buffer::ID ibp,
   return ret;
 }
 
-tvm::DecodedOp::TRADDR RegisterBlaster::decode_traddr(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::TRADDR tvm::Interpreter::decode_traddr(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::TRADDR ret;
   _csrs.TR = 0; // Enter target mode
 
@@ -439,7 +439,7 @@ tvm::DecodedOp::TRADDR RegisterBlaster::decode_traddr(pepp::bts::Buffer::ID ibp,
   return ret;
 }
 
-tvm::DecodedOp::LDP RegisterBlaster::decode_ldp(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::LDP tvm::Interpreter::decode_ldp(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::LDP ret;
   switch (_regs.IS.word_len) {
   default: [[fallthrough]];
@@ -451,7 +451,7 @@ tvm::DecodedOp::LDP RegisterBlaster::decode_ldp(pepp::bts::Buffer::ID ibp, u16 i
   return ret;
 }
 
-tvm::DecodedOp::DPIncr RegisterBlaster::decode_accdp(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::DPIncr tvm::Interpreter::decode_accdp(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::DPIncr ret;
   ret.DS = ret.dp_incr = _regs.DS;
   switch (_regs.IS.word_len) {
@@ -462,7 +462,7 @@ tvm::DecodedOp::DPIncr RegisterBlaster::decode_accdp(pepp::bts::Buffer::ID ibp, 
   return ret;
 }
 
-tvm::DecodedOp::DPIncr RegisterBlaster::decode_incdp(pepp::bts::Buffer::ID ibp, u16 iop) {
+tvm::DecodedOp::DPIncr tvm::Interpreter::decode_incdp(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::DPIncr ret;
   ret.DS = _regs.DS;
   ret.dp_incr = 0;
@@ -475,7 +475,7 @@ tvm::DecodedOp::DPIncr RegisterBlaster::decode_incdp(pepp::bts::Buffer::ID ibp, 
   return ret;
 }
 
-void RegisterBlaster::execute() {
+void tvm::Interpreter::execute() {
   using namespace tvm;
   // For instructions which don't just program registers, insert their behaviors here
   switch (static_cast<Opcode>(_regs.IS.ocpode)) {
@@ -511,16 +511,16 @@ void RegisterBlaster::execute() {
   }
 }
 
-void RegisterBlaster::execute_halt(tvm::DecodedOp::Halt op) { soft_stop(op.cause); }
+void tvm::Interpreter::execute_halt(tvm::DecodedOp::Halt op) { soft_stop(op.cause); }
 
-void RegisterBlaster::execute_ret(tvm::DecodedOp::Ret) { _regs.IP = pop(); }
+void tvm::Interpreter::execute_ret(tvm::DecodedOp::Ret) { _regs.IP = pop(); }
 
-void RegisterBlaster::execute_call(tvm::DecodedOp::Call op) {
+void tvm::Interpreter::execute_call(tvm::DecodedOp::Call op) {
   push(_regs.IP);
   _regs.IP = op.next_ip;
 }
 
-void RegisterBlaster::execute_invcall(tvm::DecodedOp::InvCall op) {
+void tvm::Interpreter::execute_invcall(tvm::DecodedOp::InvCall op) {
   push(_regs.IP);
   // F is deliberately left as-is: the callee is the one that wants to know whether it was reached because of a
   // failure, and clearing it here would hide that from a subsequent BRF.
@@ -529,11 +529,11 @@ void RegisterBlaster::execute_invcall(tvm::DecodedOp::InvCall op) {
 
 // Both sync ops are no-ops for the blaster itself, which keeps no clock. All the work happened in decode, and the
 // timestamp is carried in the decoded op for inspection code sitting between the decode and execute stages.
-void RegisterBlaster::execute_asyn(tvm::DecodedOp::ASyn op) {}
+void tvm::Interpreter::execute_asyn(tvm::DecodedOp::ASyn op) {}
 
-void RegisterBlaster::execute_isyn(tvm::DecodedOp::ISyn op) {}
+void tvm::Interpreter::execute_isyn(tvm::DecodedOp::ISyn op) {}
 
-void RegisterBlaster::execute_lmr(tvm::DecodedOp::LMR op) {
+void tvm::Interpreter::execute_lmr(tvm::DecodedOp::LMR op) {
   using namespace tvm;
   u16 mask = (u16)op.mask;
   auto pos = 0;
@@ -572,7 +572,7 @@ void RegisterBlaster::execute_lmr(tvm::DecodedOp::LMR op) {
   }
 }
 
-void RegisterBlaster::execute_br(tvm::DecodedOp::BR op) {
+void tvm::Interpreter::execute_br(tvm::DecodedOp::BR op) {
   using namespace bits;
   using CC = tvm::ConditionCode;
   const u16 cc = ((u16)op.condition) & (u16)CC::MASK;
@@ -587,7 +587,7 @@ void RegisterBlaster::execute_br(tvm::DecodedOp::BR op) {
   }
 }
 
-void RegisterBlaster::execute_setmem(tvm::DecodedOp::SetMem op) {
+void tvm::Interpreter::execute_setmem(tvm::DecodedOp::SetMem op) {
   using StopCause = tvm::StopCause;
   // Not in register mode or there is no system. Either way, comparsion will fail.
   if (_csrs.TR == 1) return hard_stop(StopCause::WrongTR);
@@ -624,7 +624,7 @@ void RegisterBlaster::execute_setmem(tvm::DecodedOp::SetMem op) {
   _csrs.F = ok ? 0 : 1;
 }
 
-void RegisterBlaster::execute_cmpmem(tvm::DecodedOp::CmpMem op) {
+void tvm::Interpreter::execute_cmpmem(tvm::DecodedOp::CmpMem op) {
   using StopCause = tvm::StopCause;
   // Not in register mode or there is no system. Either way, comparsion will fail.
   if (_csrs.TR == 1) return hard_stop(StopCause::WrongTR);
@@ -657,7 +657,7 @@ void RegisterBlaster::execute_cmpmem(tvm::DecodedOp::CmpMem op) {
   else _csrs.Z = 0, _csrs.N = 0;
 }
 
-void RegisterBlaster::execute_clrmem(tvm::DecodedOp::ClrMem op) {
+void tvm::Interpreter::execute_clrmem(tvm::DecodedOp::ClrMem op) {
   using StopCause = tvm::StopCause;
   // Not in register mode or there is no system. Either way, comparsion will fail.
   if (_csrs.TR == 1) return hard_stop(StopCause::WrongTR);
@@ -672,7 +672,7 @@ void RegisterBlaster::execute_clrmem(tvm::DecodedOp::ClrMem op) {
   _csrs.F = try_access([&] { target->clear(op.data); }) ? 0 : 1;
 }
 
-void RegisterBlaster::execute_setreg(tvm::DecodedOp::SetReg op) {
+void tvm::Interpreter::execute_setreg(tvm::DecodedOp::SetReg op) {
   using StopCause = tvm::StopCause;
   using R = RegisterScan;
   // Not in register mode or there is no system. Either way, comparsion will fail.
@@ -726,7 +726,7 @@ void RegisterBlaster::execute_setreg(tvm::DecodedOp::SetReg op) {
   _csrs.F = !ok;
 }
 
-void RegisterBlaster::execute_cmpreg(tvm::DecodedOp::CmpReg op) {
+void tvm::Interpreter::execute_cmpreg(tvm::DecodedOp::CmpReg op) {
   using StopCause = tvm::StopCause;
   using R = RegisterScan;
   // Not in register mode or there is no system. Either way, comparsion will fail.
@@ -784,7 +784,7 @@ void RegisterBlaster::execute_cmpreg(tvm::DecodedOp::CmpReg op) {
   else _csrs.Z = 0, _csrs.N = 0;
 }
 
-void RegisterBlaster::execute_clrreg(tvm::DecodedOp::ClrReg op) {
+void tvm::Interpreter::execute_clrreg(tvm::DecodedOp::ClrReg op) {
   using StopCause = tvm::StopCause;
   // Not in register mode or there is no scan. Either way, the clear will fail.
   if (_csrs.TR == 0) return hard_stop(StopCause::WrongTR);
@@ -796,15 +796,15 @@ void RegisterBlaster::execute_clrreg(tvm::DecodedOp::ClrReg op) {
   _csrs.F = try_access([&] { _scan->clear(op.reg); }) ? 0 : 1;
 }
 
-void RegisterBlaster::execute_traddr(tvm::DecodedOp::TRADDR op) {
+void tvm::Interpreter::execute_traddr(tvm::DecodedOp::TRADDR op) {
   throw std::runtime_error("TRADDR execution not implemented");
 }
 
-void RegisterBlaster::execute_ldp(tvm::DecodedOp::LDP) {
+void tvm::Interpreter::execute_ldp(tvm::DecodedOp::LDP) {
   // No-op, since this is just a stupid register copy.
 }
 
-void RegisterBlaster::execute_dpincr(tvm::DecodedOp::DPIncr op) {
+void tvm::Interpreter::execute_dpincr(tvm::DecodedOp::DPIncr op) {
   _regs.DS = op.DS;
 
   // When no tracebuffer is available, just increment DP.lo and hope that wrapping around is good enough
@@ -836,7 +836,7 @@ void RegisterBlaster::execute_dpincr(tvm::DecodedOp::DPIncr op) {
   }
 }
 
-u16 RegisterBlaster::read16(pepp::bts::Buffer::ID id, u16 offset) {
+u16 tvm::Interpreter::read16(pepp::bts::Buffer::ID id, u16 offset) {
   using StopCause = tvm::StopCause;
   auto buf = _mgr->find(id);
   if (!buf) return hard_stop(StopCause::InvalidIBuffer), 0;
@@ -845,7 +845,7 @@ u16 RegisterBlaster::read16(pepp::bts::Buffer::ID id, u16 offset) {
   return ((u16)_data[offset + 0]) | (u16)_data[offset + 1] << 8;
 }
 
-void RegisterBlaster::push(tvm::SegmentPair v) {
+void tvm::Interpreter::push(tvm::SegmentPair v) {
   using StopCause = tvm::StopCause;
   if (_regs.SP + 4 > _stack.size()) return soft_stop(StopCause::StackOverflow);
   _stack[_regs.SP + 0] = (u8)(v.hi >> 8);
@@ -855,7 +855,7 @@ void RegisterBlaster::push(tvm::SegmentPair v) {
   _regs.SP += 4;
 }
 
-tvm::SegmentPair RegisterBlaster::pop() {
+tvm::SegmentPair tvm::Interpreter::pop() {
   // Ensure pop of 2*16-bit registers won't cause underflow.
   if (_regs.SP < 4) return soft_stop(tvm::StopCause::StackUnderflow), tvm::SegmentPair{};
 

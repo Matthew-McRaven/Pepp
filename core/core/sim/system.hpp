@@ -35,7 +35,10 @@ class BufferManager;
 namespace trace {
 class Buffer;
 }
-class RegisterBlaster;
+namespace tvm {
+class Interpreter;
+class TraceBuffer;
+} // namespace tvm
 
 struct DeferredDevice {
   // Do not capture pointer to device in case the device moves during construction.
@@ -115,7 +118,7 @@ public:
   RegisterScan *register_scan();
   const RegisterScan *register_scan() const;
 
-  std::unique_ptr<RegisterBlaster> make_blaster();
+  std::unique_ptr<tvm::Interpreter> make_blaster();
   std::shared_ptr<pepp::bts::BufferManager> buffer_manager();
 
 private:

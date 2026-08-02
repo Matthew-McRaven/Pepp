@@ -165,7 +165,7 @@ enum class Opcode : u8 {
   MAX = ((u8)CCB) + 1,
 };
 
-// Instructions to the RegisterBlaster are always multiples of 16bits
+// Instructions to the tvm::Interpreter are always multiples of 16bits
 struct OpWord {
   static constexpr auto CLRSHIFT = 6;
   constexpr OpWord() = default;
@@ -198,7 +198,7 @@ struct OpWord {
   }
 };
 
-// Modifications to RegisterBlaster::Sate also require updating these register masks.
+// Modifications to tvm::Interpreter::Sate also require updating these register masks.
 enum class RegMask : u16 {
   IP_HI = 1 << 0,
   IP_LO = 1 << 1,

@@ -15,21 +15,21 @@
  */
 #include <catch.hpp>
 
-#include "core/sim/debugger/register_blaster.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 
-TEST_CASE("ASYN timestamp decoding", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
 
   // These programs are stepped one instruction at a time rather than run to completion, because decoded() only holds
   // the current instruction -- running past the ASYN would overwrite the value under test.
-  auto load = [&](RegisterBlaster &blaster, bits::span<const u8> program) {
+  auto load = [&](tvm::Interpreter &blaster, bits::span<const u8> program) {
     auto *code = mgr->alloc_buffer();
     auto offset = code->append(program);
     blaster.update_ip(code->id(), (u16)offset);
     return code;
   };
-  auto timestamp = [](const RegisterBlaster &blaster) {
+  auto timestamp = [](const tvm::Interpreter &blaster) {
     if (std::holds_alternative<tvm::DecodedOp::ASyn>(blaster.decoded()))
       return std::get<tvm::DecodedOp::ASyn>(blaster.decoded()).timestamp;
     else if (std::holds_alternative<tvm::DecodedOp::ISyn>(blaster.decoded()))
@@ -41,7 +41,7 @@ TEST_CASE("ASYN timestamp decoding", "[scope:core][scope:core.dbg][kind:unit][ar
     constexpr auto program = ASyn<1>{}.encode(std::array<u8, 8>{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
     static_assert(program.size() == 12, "opcode word + size word + four payload words");
 
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     auto *code = load(blaster, program);
     blaster.step();
 
@@ -51,7 +51,7 @@ TEST_CASE("ASYN timestamp decoding", "[scope:core][scope:core.dbg][kind:unit][ar
 
   SECTION("A narrow unsigned immediate zero-extends") {
     constexpr auto program = ASyn<1>{}.encode(u16(0xFFFF));
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     load(blaster, program);
     blaster.step();
 
@@ -61,7 +61,7 @@ TEST_CASE("ASYN timestamp decoding", "[scope:core][scope:core.dbg][kind:unit][ar
   }
  SECTION("A narrow signed immediate sign-extends") {
     constexpr auto program = ISyn<1>{}.encode(u16(0xFFFF));
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     load(blaster, program);
     blaster.step();
 
@@ -76,7 +76,7 @@ TEST_CASE("ASYN timestamp decoding", "[scope:core][scope:core.dbg][kind:unit][ar
     // Size of the instruction is still 12 bytes
     CHECK(program[2] == 12);
 
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     load(blaster, program);
     blaster.step();
 
@@ -95,7 +95,7 @@ TEST_CASE("ASYN timestamp decoding", "[scope:core][scope:core.dbg][kind:unit][ar
     program.insert(program.end(), ldp.begin(), ldp.end());
     program.insert(program.end(), asyn.begin(), asyn.end());
 
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     load(blaster, program);
     blaster.step(); // LDP
     REQUIRE(blaster.regs().DP.hi == data->id().value);
@@ -112,7 +112,7 @@ TEST_CASE("ASYN timestamp decoding", "[scope:core][scope:core.dbg][kind:unit][ar
   SECTION("A DP-relative ASYN with no data buffer hard stops") {
     // DP starts at {0, 0}, and the manager never hands out buffer ID 0.
     constexpr auto program = ASyn<0>{}.encode();
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     load(blaster, program);
     blaster.step();
 

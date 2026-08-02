@@ -15,10 +15,10 @@
  */
 #include <catch.hpp>
 
-#include "core/sim/debugger/register_blaster.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
-TEST_CASE("Indirect buffer iteration", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: Indirect buffer iteration", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
@@ -38,7 +38,7 @@ TEST_CASE("Indirect buffer iteration", "[scope:core][scope:core.dbg][kind:unit][
   auto after = tb.cursor();
 
   SECTION("Forward iteration visits all programs in submission order") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     int count = 0;
     for (auto loc : tb.range(before, after)) {
       blaster.run_direct(loc);
@@ -50,7 +50,7 @@ TEST_CASE("Indirect buffer iteration", "[scope:core][scope:core.dbg][kind:unit][
 
   SECTION("Reverse iteration visits all programs in reverse order") {
     auto r = tb.range(before, after);
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     int count = N;
     for (auto it = r.rbegin(); it != r.rend(); ++it) {
       count--;
@@ -65,7 +65,7 @@ TEST_CASE("Indirect buffer iteration", "[scope:core][scope:core.dbg][kind:unit][
     auto it = r.begin();
 
     // Walk forward to the third entry.
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     for (int i = 0; i < 3; ++i)
       ++it;
     blaster.run_direct(*it);
@@ -92,7 +92,7 @@ TEST_CASE("Indirect buffer iteration", "[scope:core][scope:core.dbg][kind:unit][
     tvm::Cursor to{before.slot, static_cast<u16>(before.entry + 4)};
     auto r = tb.range(from, to);
 
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     std::vector<u16> values;
     for (auto loc : r) {
       blaster.run_direct(loc);
@@ -145,7 +145,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
   auto boundary_end = tb.cursor(); // {1, 2}
 
   SECTION("Forward iteration crosses slot boundary") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     std::vector<u16> values;
     for (auto loc : tb.range(boundary_start, boundary_end)) {
       blaster.run_direct(loc);
@@ -156,7 +156,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
 
   SECTION("Reverse iteration crosses slot boundary") {
     auto r = tb.range(boundary_start, boundary_end);
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     std::vector<u16> values;
     for (auto it = r.rbegin(); it != r.rend(); ++it) {
       blaster.run_direct(*it);
@@ -167,7 +167,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
 
   SECTION("Forward-backward round-trip across boundary") {
     auto r = tb.range(boundary_start, boundary_end);
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     auto it = r.begin();
 
     // Forward past boundary into slot 1.
@@ -186,5 +186,93 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
     ++it; // 0xBB01
     blaster.run_direct(*it);
     CHECK(blaster.regs().MOD1.lo == 0xBB01);
+  }
+}
+
+TEST_CASE("tvm::Interpreter:  run_indirect with iterator pair", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  using namespace tvm::EncodedOp;
+  using M = tvm::RegMask;
+  tvm::TraceBuffer tb(mgr, 1);
+  constexpr u16 S = 0;
+
+  // Use ACCESS (non-MOD, unaffected by CLRMOD) with clrmod=false to avoid
+  // MOD clearing at the start of the HALT that end() appends.
+  auto set_access = [&](u16 val) {
+    auto enc = LMR_of<false>(std::pair{M::ACCESS, val});
+    tb.emit_body(S, {enc.data(), enc.size()});
+  };
+
+  // Submit N programs, each setting ACCESS to its index.
+  constexpr int N = 5;
+  auto before = tb.cursor();
+  for (int i = 0; i < N; ++i) {
+    tb.begin(S);
+    set_access(static_cast<u16>(i));
+    tb.end(S);
+  }
+  auto after = tb.cursor();
+
+  SECTION("Forward iteration executes all programs") {
+    auto r = tb.range(before, after);
+    tvm::Interpreter blaster(mgr);
+    blaster.run_indirect(r.begin(), r.end());
+    // Last program sets ACCESS = N-1.
+    CHECK(blaster.regs().ACCESS == N - 1);
+  }
+
+  SECTION("Reverse iteration executes all programs in reverse") {
+    auto r = tb.range(before, after);
+    tvm::Interpreter blaster(mgr);
+    blaster.run_indirect(r.rbegin(), r.rend());
+    // Last program executed sets ACCESS = 0 (the first submitted program).
+    CHECK(blaster.regs().ACCESS == 0);
+  }
+
+  SECTION("Sub-range iteration executes only selected programs") {
+    tvm::Cursor from{before.slot, static_cast<u16>(before.entry + 1)};
+    tvm::Cursor to{before.slot, static_cast<u16>(before.entry + 4)};
+    auto r = tb.range(from, to);
+
+    tvm::Interpreter blaster(mgr);
+    blaster.run_indirect(r.begin(), r.end());
+    // Programs 1, 2, 3 executed; last one sets ACCESS = 3.
+    CHECK(blaster.regs().ACCESS == 3);
+  }
+
+  SECTION("Empty range is a no-op") {
+    auto r = tb.range(before, before);
+    tvm::Interpreter blaster(mgr);
+    blaster.run_indirect(r.begin(), r.end());
+    // ACCESS should remain at its default (0).
+    CHECK(blaster.regs().ACCESS == 0);
+  }
+
+  SECTION("Hard stop aborts iteration early") {
+    // Submit 3 more programs: 0xAA is normal, 0xBB triggers a hard stop (CLRMEM without a system), 0xCC is normal.
+    auto mid = tb.cursor();
+    tb.begin(S);
+    set_access(0xAA);
+    tb.end(S);
+
+    tb.begin(S);
+    set_access(0xBB);
+    // CLRMEM without a system causes hard_stop(MissingSystem).
+    auto clr = ClrMem<1>{0}.encode();
+    tb.emit_postfix(S, {clr.data(), clr.size()});
+    tb.end(S);
+
+    tb.begin(S);
+    set_access(0xCC);
+    tb.end(S);
+
+    auto end_cursor = tb.cursor();
+    auto r = tb.range(mid, end_cursor);
+    tvm::Interpreter blaster(mgr);
+    blaster.run_indirect(r.begin(), r.end());
+
+    // Program 0xAA executed normally, then 0xBB set ACCESS but CLRMEM hard-stopped, so 0xCC was never reached.
+    CHECK(blaster.regs().ACCESS == 0xBB);
+    CHECK(blaster.csrs().F == 1);
   }
 }

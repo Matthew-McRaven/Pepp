@@ -41,7 +41,7 @@ bool same_location(pepp::bts::Buffer::Location a, pepp::bts::Buffer::Location b)
 
 } // namespace
 
-TEST_CASE("Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   constexpr u16 S = 0;
 
@@ -138,7 +138,8 @@ TEST_CASE("Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:p
   }
 }
 
-TEST_CASE("Lapping the ring throws instead of overwriting", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: Throw rather than overwrite old data",
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   tvm::TraceBuffer tb(mgr, 1, 1);
   constexpr u16 S = 0;
@@ -156,7 +157,7 @@ TEST_CASE("Lapping the ring throws instead of overwriting", "[scope:core][scope:
   CHECK(tb.instruction_count() == (size_t)ENTRIES_PER_SLOT);
 }
 
-TEST_CASE("Draining a full ring lets submission resume", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: Resume submission after overflow", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   tvm::TraceBuffer tb(mgr, 1, 1);
   constexpr u16 S = 0;
@@ -172,8 +173,7 @@ TEST_CASE("Draining a full ring lets submission resume", "[scope:core][scope:cor
   CHECK_NOTHROW(tb.end(S));
 }
 
-TEST_CASE("A watermark callback that drains prevents the overflow",
-          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: Just-in-time emptying of ring", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   tvm::TraceBuffer tb(mgr, 1, 1);
 

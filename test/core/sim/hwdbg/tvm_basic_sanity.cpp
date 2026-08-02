@@ -16,7 +16,7 @@
 #include <catch.hpp>
 #include <vector>
 
-#include "core/sim/debugger/register_blaster.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
 namespace {
@@ -24,7 +24,7 @@ namespace {
 // Load a program at the start of a fresh buffer and aim the blaster at it. INVCALL's targets are absolute IP offsets
 // rather than displacements, so the tests below need to know where the program starts -- which rules out going
 // through the TraceBuffer, since it picks the offset itself.
-pepp::bts::Buffer *load_program(pepp::bts::BufferManager &mgr, RegisterBlaster &blaster,
+pepp::bts::Buffer *load_program(pepp::bts::BufferManager &mgr, tvm::Interpreter &blaster,
                                 bits::span<const u8> program) {
   auto *code = mgr.alloc_buffer();
   auto offset = code->append(program);
@@ -34,7 +34,7 @@ pepp::bts::Buffer *load_program(pepp::bts::BufferManager &mgr, RegisterBlaster &
 
 } // namespace
 
-TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
@@ -45,7 +45,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
 
   SECTION("Can copy values into common registers") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     auto before = tb.cursor();
 
     tb.begin(S);
@@ -63,7 +63,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
   }
 
   SECTION("Load multiple registers") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     auto before = tb.cursor();
 
     tb.begin(S);
@@ -89,7 +89,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
   // Branch tests: the body contains BR + LMR + (HALT appended by TB).
   // BR<1>(0x6) jumps over the 6-byte LMR to land on the HALT.
   SECTION("Unconditional branch!") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     auto before = tb.cursor();
 
     tb.begin(S);
@@ -106,7 +106,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
   }
 
   SECTION("Conditional branch (not taken)") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     blaster.csrs().Z = 0;
     auto before = tb.cursor();
 
@@ -124,7 +124,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
   }
 
   SECTION("Conditional branch (taken)") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     blaster.csrs().Z = 1;
     auto before = tb.cursor();
 
@@ -143,7 +143,7 @@ TEST_CASE("Basic RegisterBlaster", "[scope:core][scope:core.dbg][kind:unit][arch
   }
 }
 
-TEST_CASE("INVCALL picks a target on the F bit", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: INVCALL opcode", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
 
@@ -152,7 +152,7 @@ TEST_CASE("INVCALL picks a target on the F bit", "[scope:core][scope:core.dbg][k
   constexpr u16 ON_TRUE = 0x40, ON_FALSE = 0x80;
 
   SECTION("F set picks the true target") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     constexpr auto program = InvCall<2>{.on_true_lo = ON_TRUE, .on_false_lo = ON_FALSE}.encode();
     auto *code = load_program(*mgr, blaster, program);
 
@@ -164,7 +164,7 @@ TEST_CASE("INVCALL picks a target on the F bit", "[scope:core][scope:core.dbg][k
   }
 
   SECTION("F clear picks the false target") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     constexpr auto program = InvCall<2>{.on_true_lo = ON_TRUE, .on_false_lo = ON_FALSE}.encode();
     auto *code = load_program(*mgr, blaster, program);
 
@@ -182,14 +182,14 @@ TEST_CASE("INVCALL picks a target on the F bit", "[scope:core][scope:core.dbg][k
                                         .on_false = SegmentPair{.hi = 0x5678, .lo = ON_FALSE}}
                                  .encode();
 
-    RegisterBlaster on_true(mgr);
+    tvm::Interpreter on_true(mgr);
     load_program(*mgr, on_true, program);
     on_true.csrs().F = 1;
     on_true.step();
     CHECK(on_true.regs().IP.hi == 0x1234);
     CHECK(on_true.regs().IP.lo == ON_TRUE);
 
-    RegisterBlaster on_false(mgr);
+    tvm::Interpreter on_false(mgr);
     load_program(*mgr, on_false, program);
     on_false.csrs().F = 0;
     on_false.step();
@@ -198,7 +198,7 @@ TEST_CASE("INVCALL picks a target on the F bit", "[scope:core][scope:core.dbg][k
   }
 
   SECTION("The target is called, not branched to") {
-    RegisterBlaster blaster(mgr);
+    tvm::Interpreter blaster(mgr);
     std::vector<u8> program;
     auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
     append(InvCall<2>{.on_true_lo = 8, .on_false_lo = ON_FALSE}.encode()); // bytes 0..5

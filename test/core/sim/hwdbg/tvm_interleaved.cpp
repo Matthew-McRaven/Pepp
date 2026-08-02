@@ -15,10 +15,10 @@
  */
 #include <catch.hpp>
 
-#include "core/sim/debugger/register_blaster.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
-TEST_CASE("Interleaved submissions", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
@@ -71,7 +71,7 @@ TEST_CASE("Interleaved submissions", "[scope:core][scope:core.dbg][kind:unit][ar
 
     // Execute each subroutine independently — if code were interleaved,
     // these would produce wrong results or crash.
-    RegisterBlaster b0(mgr), b1(mgr);
+    tvm::Interpreter b0(mgr), b1(mgr);
 
     b1.run_direct(loc_s1);
     CHECK(b1.stopped());
