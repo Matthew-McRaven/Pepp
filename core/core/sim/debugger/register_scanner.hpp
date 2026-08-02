@@ -24,8 +24,8 @@ public:
       // Starts from 1, not 0! 0 is a reserved value.
       using ID = pepp::OpaqueHandle<struct FieldID, u16>;
       Access access = ReadWrite;
-      u8 bit_offset;
-      u8 bit_width;
+      u8 bit_offset = 0;
+      u8 bit_width = 0;
       std::string name;
     };
     struct Reference {

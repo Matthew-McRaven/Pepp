@@ -50,9 +50,9 @@ std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view nam
     const auto id = it.first;
     const auto &reg = it.second;
     if (reg->name == name) return RegisterRef{id, Register::Field::ID{0}};
-    for (int it = 0; it < reg->fields.size(); ++it) {
-      if (auto f = reg->fields[it]; f.name == name)
-        return RegisterRef{id, Register::Field::ID{static_cast<u16>(it + 1)}};
+    for (int inner = 0; inner < reg->fields.size(); ++inner) {
+      if (auto f = reg->fields[inner]; f.name == name)
+        return RegisterRef{id, Register::Field::ID{static_cast<u16>(inner + 1)}};
     }
   }
   return std::nullopt;

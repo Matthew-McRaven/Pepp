@@ -841,8 +841,8 @@ u16 tvm::Interpreter::read16(pepp::bts::Buffer::ID id, u16 offset) {
   auto buf = _mgr->find(id);
   if (!buf) return hard_stop(StopCause::InvalidIBuffer), 0;
 
-  auto _data = buf->data();
-  return ((u16)_data[offset + 0]) | (u16)_data[offset + 1] << 8;
+  auto _data = buf->span().subspan(offset, 2);
+  return ((u16)_data[0]) | (u16)_data[1] << 8;
 }
 
 void tvm::Interpreter::push(tvm::SegmentPair v) {

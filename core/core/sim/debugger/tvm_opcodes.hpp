@@ -123,7 +123,7 @@ enum class Opcode : u8 {
   // Packet registers: ID.lo,  MOD1.lo,
   // Same deal on F.
   CLRMEM = 0b01'0110,
-  // Reset register to default value as specified by the RegisterScan.
+  // Reset register to all 0.
   // Packet registers: ID.hi, ID.lo
   // Same deal on F.
   CLRREG = 0b01'0111,
