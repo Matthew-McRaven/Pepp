@@ -33,7 +33,7 @@ private:
 
 // A position within the trace buffer, identifying a specific entry in a specific ring slot.
 // Slot indices must be taken % ring size.
-// Entry is the index within that slot's indirect buffer.
+// Entry is the index within that slot's location buffer.
 struct Cursor {
   size_t slot = 0;
   u16 entry = 0;
@@ -47,8 +47,10 @@ struct Cursor {
 // new ops. The class manages the lifetimes of buffers used by a tvm::Interpreter, and provides a circular-queue
 // abstraction. Submitted programs go to a ring, whose size provides an upper limit of the length of a trace histroy.
 //
-// Each ring entry can hold ~16k programs, which is limited by the size of an "indirect buffer".
-// That indirection buffer exists to make random access in the ring O(1) instead of O(N).
+// Each ring entry can hold ~16k programs, which is limited by the size of the location buffer.
+// The elements of location buffers match the shape of the Interpreter's run_each API.
+// This means each location must point to executable code, and each program must terminate with a HALT.
+// That location buffer provides an extra level of indirection to make random access in the ring O(1) instead of O(N).
 // This is a crucial improvement over the older trace packets system which this class replaces.
 // The actual programs themselves can be however long is necessary.
 // Program data and code are stored separately per ring entry. There will always be internal fragmentation because
@@ -92,8 +94,8 @@ class TraceBuffer {
 public:
   // Minimum body size (in bytes) to be eligible for template promotion.
   static constexpr u16 PROMOTION_THRESHOLD = 8;
-  // Maximum entries per indirect buffer (64KB / sizeof(Buffer::Location)).
-  static constexpr u16 MAX_INDIRECT_ENTRIES = pepp::bts::Buffer::SIZE / sizeof(pepp::bts::Buffer::Location);
+  // Maximum entries per location buffer (64KB / sizeof(Buffer::Location)).
+  static constexpr u16 MAX_LOCATION_ENTRIES = pepp::bts::Buffer::SIZE / sizeof(pepp::bts::Buffer::Location);
 
   TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, u16 num_submitters, size_t ring_size = 4);
   ~TraceBuffer() noexcept;
@@ -106,8 +108,8 @@ public:
 
   // Finalize the current trace. Appends HALT to the postfix, hashes the body,
   // checks for template promotion, writes an entry to the current ring slot's
-  // indirect buffer, and flushes prefix + body (or CALL) + postfix into the
-  // code chain. If the indirect buffer is full, advances to the next ring slot.
+  // location buffer, and flushes prefix + body (or CALL) + postfix into the
+  // code chain. If the location buffer is full, advances to the next ring slot.
   //
   // Throws RingOverflow if advancing would land on a slot that has never been acknowledged. This trace was recorded,
   // but the next one will fail. Free some space before submitting again.
@@ -150,7 +152,7 @@ public:
 
   // --- Cursor / Iteration ---
 
-  // Bidirectional iterator over indirect buffer entries.
+  // Bidirectional iterator over location buffer entries.
   // Dereferencing yields a Buffer::Location pointing to the subroutine for that entry.
   class Iterator {
   public:
@@ -230,13 +232,13 @@ private:
   // --- Ring node ---
   struct Node {
     bool in_use = false;
-    // Indirect buffer: array of Buffer::Locations, one per traced instruction.
-    pepp::bts::Buffer *indirect = nullptr;
+    // Location buffer: array of Buffer::Locations, one per traced instruction.
+    pepp::bts::Buffer *locations = nullptr;
     // Code chain: subroutine bodies, which are prefix + body/CALL + postfix
     std::unique_ptr<pepp::bts::BufferChain> code;
     // Shared data chain: payload bytes for all submitters writing to this slot.
     std::unique_ptr<pepp::bts::BufferChain> data;
-    // Number of entries in this slot's indirect buffer.
+    // Number of entries in this slot's location buffer.
     u16 count = 0;
 
     void reset(pepp::bts::BufferManager &mgr);
@@ -270,10 +272,10 @@ private:
   // Advance _head to the next ring slot. Fires watermark callbacks as needed.
   void advance_slot();
 
-  // Write a Buffer::Location into a slot's indirect buffer at position `entry`.
-  void write_indirect(Node &node, u16 entry, pepp::bts::Buffer::Location loc);
-  // Convert an index in the indirect buffer to an executable buffer location.
-  pepp::bts::Buffer::Location read_indirect(const Node &node, u16 entry) const;
+  // Write a Buffer::Location into a slot's location buffer at position `entry`.
+  void write_location(Node &node, u16 entry, pepp::bts::Buffer::Location loc);
+  // Convert an index in the location buffer to an executable buffer location.
+  pepp::bts::Buffer::Location read_location(const Node &node, u16 entry) const;
 
   Node &current_node() { return _ring[_head % _ring.size()]; }
   const Node &current_node() const { return _ring[_head % _ring.size()]; }

@@ -45,7 +45,7 @@ void tvm::Interpreter::step() {
   if (_csrs.L) execute();
 }
 
-void tvm::Interpreter::run_direct(pepp::bts::Buffer::Location loc) {
+void tvm::Interpreter::run(pepp::bts::Buffer::Location loc) {
   // Bring the blaster back into the live state (L==1).
   // Clear F bit in case last program terminated with hardfail.
   // "soft stop" is L==0,F==0, "hard stop is L==0,F==1.
@@ -54,11 +54,16 @@ void tvm::Interpreter::run_direct(pepp::bts::Buffer::Location loc) {
   while (_csrs.L) step();
 }
 
-void tvm::Interpreter::run_indirect(std::span<pepp::bts::Buffer::Location> locs) {
+std::size_t tvm::Interpreter::run_each(std::span<const pepp::bts::Buffer::Location> locs) {
   // Run the program at each location. Check for a hard stop condition. On hard stop, abort the loop.
   // On a normal/soft stop, resume execution of the next program.
-  for (const auto &loc : locs)
-    if (run_direct(loc); _csrs.F == 1) break;
+  std::size_t count = 0;
+  for (const auto &loc : locs) {
+    run(loc);
+    ++count;
+    if (_csrs.F == 1) break;
+  }
+  return count;
 }
 
 void tvm::Interpreter::soft_stop(tvm::StopCause cause) {

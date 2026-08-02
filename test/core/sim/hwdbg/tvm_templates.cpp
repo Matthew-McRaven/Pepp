@@ -222,7 +222,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     auto loc = tb.end(S);
 
     tvm::Interpreter blaster(mgr);
-    blaster.run_direct(loc);
+    blaster.run(loc);
     CHECK(blaster.stopped());
     CHECK(blaster.regs().DP.lo == 0xAAAA);
     CHECK(blaster.regs().ID.hi == 0xBBBB);
@@ -257,7 +257,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // Execute submission 1 (inlined body + custom postfix).
     {
       tvm::Interpreter b(mgr);
-      b.run_direct(loc1);
+      b.run(loc1);
       CHECK(b.stopped());
       CHECK(b.regs().DP.lo == 0xAAAA);
       CHECK(b.regs().ACCESS == 0xBEEF); // postfix executed
@@ -266,7 +266,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     // Execute submission 3 (template CALL, postfix dropped).
     {
       tvm::Interpreter b(mgr);
-      b.run_direct(loc3);
+      b.run(loc3);
       CHECK(b.stopped());
       CHECK(b.regs().DP.lo == 0xAAAA);  // body via template
       CHECK(b.regs().ACCESS == 0);       // postfix was dropped

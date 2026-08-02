@@ -35,7 +35,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     tb.end(S);
 
     for (auto loc : tb.range(before, tb.cursor()))
-      blaster.run_direct(loc);
+      blaster.run(loc);
     CHECK(blaster.regs().DP.hi == d.id.value);
     CHECK(blaster.regs().DP.lo == d.offset);
     CHECK(blaster.regs().DS == 4);
@@ -65,13 +65,13 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
 
     auto r = tb.range(before, tb.cursor());
     auto it = r.begin();
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().DP.hi == d1.id.value);
     CHECK(blaster.regs().DP.lo == d1.offset);
     CHECK(blaster.regs().DS == 2);
 
     ++it;
-    blaster.run_direct(*it);
+    blaster.run(*it);
     // DP.lo advanced by old DS=2; DP.hi unchanged.
     CHECK(blaster.regs().DP.hi == d1.id.value);
     CHECK(blaster.regs().DP.lo == d2.offset);
@@ -107,14 +107,14 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     auto it = r.begin();
 
     // Run LDP: sets DP near the end of the first buffer.
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().DP.hi == d1.id.value);
     CHECK(blaster.regs().DP.lo == pepp::bts::Buffer::SIZE - TAIL);
     CHECK(blaster.regs().DS == TAIL);
 
     // Run ACCDP: DP.lo += old DS (TAIL), which overflows into the successor buffer.
     ++it;
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().DP.hi == d2.id.value);
     CHECK(blaster.regs().DP.lo == d2.offset);
     CHECK(blaster.regs().DS == 4);
@@ -157,14 +157,14 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     ++it; // skip first empty-body program
 
     // Run LDP: sets DP to d2 in the second buffer.
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().DP.hi == d2.id.value);
     CHECK(blaster.regs().DP.lo == d2.offset);
     CHECK(blaster.regs().DS == 4);
 
     // Run INCDP with negative increment: DP should land in the predecessor buffer.
     ++it;
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().DP.hi == d1.id.value);
     CHECK(blaster.regs().DP.lo == pepp::bts::Buffer::SIZE - BACK_STEP);
     CHECK(blaster.regs().DS == BACK_STEP);
@@ -207,13 +207,13 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     auto it = r.begin();
     ++it; // skip B's entry
 
-    blaster.run_direct(*it); // A's LDP
+    blaster.run(*it); // A's LDP
     CHECK(blaster.regs().DP.hi == da1.id.value);
     CHECK(blaster.regs().DP.lo == da1.offset);
     CHECK(blaster.regs().DS == 2);
 
     ++it;
-    blaster.run_direct(*it); // A's INCDP
+    blaster.run(*it); // A's INCDP
     CHECK(blaster.regs().DP.hi == da1.id.value); // hi unchanged
     CHECK(blaster.regs().DP.lo == da2.offset);    // skipped over B's data
     CHECK(blaster.regs().DS == 2);

@@ -18,7 +18,7 @@
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
-TEST_CASE("tvm::Interpreter: Indirect buffer iteration", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: Location buffer iteration", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
@@ -41,7 +41,7 @@ TEST_CASE("tvm::Interpreter: Indirect buffer iteration", "[scope:core][scope:cor
     tvm::Interpreter blaster(mgr);
     int count = 0;
     for (auto loc : tb.range(before, after)) {
-      blaster.run_direct(loc);
+      blaster.run(loc);
       CHECK(blaster.regs().MOD1.lo == count);
       count++;
     }
@@ -54,7 +54,7 @@ TEST_CASE("tvm::Interpreter: Indirect buffer iteration", "[scope:core][scope:cor
     int count = N;
     for (auto it = r.rbegin(); it != r.rend(); ++it) {
       count--;
-      blaster.run_direct(*it);
+      blaster.run(*it);
       CHECK(blaster.regs().MOD1.lo == count);
     }
     CHECK(count == 0);
@@ -68,19 +68,19 @@ TEST_CASE("tvm::Interpreter: Indirect buffer iteration", "[scope:core][scope:cor
     tvm::Interpreter blaster(mgr);
     for (int i = 0; i < 3; ++i)
       ++it;
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().MOD1.lo == 3);
 
     // Walk backward two steps.
     --it;
     --it;
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().MOD1.lo == 1);
 
     // Walk forward to the end, collecting remaining values.
     std::vector<u16> values;
     for (; it != r.end(); ++it) {
-      blaster.run_direct(*it);
+      blaster.run(*it);
       values.push_back(blaster.regs().MOD1.lo);
     }
     CHECK(values == std::vector<u16>{1, 2, 3, 4});
@@ -95,7 +95,7 @@ TEST_CASE("tvm::Interpreter: Indirect buffer iteration", "[scope:core][scope:cor
     tvm::Interpreter blaster(mgr);
     std::vector<u16> values;
     for (auto loc : r) {
-      blaster.run_direct(loc);
+      blaster.run(loc);
       values.push_back(blaster.regs().MOD1.lo);
     }
     CHECK(values == std::vector<u16>{1, 2, 3});
@@ -115,7 +115,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
   using namespace tvm::EncodedOp;
   tvm::TraceBuffer tb(mgr, 1);
   constexpr u16 S = 0;
-  constexpr u16 MAX = tvm::TraceBuffer::MAX_INDIRECT_ENTRIES;
+  constexpr u16 MAX = tvm::TraceBuffer::MAX_LOCATION_ENTRIES;
 
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
 
@@ -148,7 +148,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
     tvm::Interpreter blaster(mgr);
     std::vector<u16> values;
     for (auto loc : tb.range(boundary_start, boundary_end)) {
-      blaster.run_direct(loc);
+      blaster.run(loc);
       values.push_back(blaster.regs().MOD1.lo);
     }
     CHECK(values == std::vector<u16>{0xAA00, 0xAA01, 0xBB00, 0xBB01});
@@ -159,7 +159,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
     tvm::Interpreter blaster(mgr);
     std::vector<u16> values;
     for (auto it = r.rbegin(); it != r.rend(); ++it) {
-      blaster.run_direct(*it);
+      blaster.run(*it);
       values.push_back(blaster.regs().MOD1.lo);
     }
     CHECK(values == std::vector<u16>{0xBB01, 0xBB00, 0xAA01, 0xAA00});
@@ -173,23 +173,23 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
     // Forward past boundary into slot 1.
     ++it; // 0xAA01 (slot 0)
     ++it; // 0xBB00 (slot 1)
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().MOD1.lo == 0xBB00);
 
     // Step back across boundary into slot 0.
     --it; // 0xAA01 (slot 0)
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().MOD1.lo == 0xAA01);
 
     // Forward again to the end.
     ++it; // 0xBB00
     ++it; // 0xBB01
-    blaster.run_direct(*it);
+    blaster.run(*it);
     CHECK(blaster.regs().MOD1.lo == 0xBB01);
   }
 }
 
-TEST_CASE("tvm::Interpreter:  run_indirect with iterator pair", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
@@ -216,7 +216,7 @@ TEST_CASE("tvm::Interpreter:  run_indirect with iterator pair", "[scope:core][sc
   SECTION("Forward iteration executes all programs") {
     auto r = tb.range(before, after);
     tvm::Interpreter blaster(mgr);
-    blaster.run_indirect(r.begin(), r.end());
+    blaster.run_each(r.begin(), r.end());
     // Last program sets ACCESS = N-1.
     CHECK(blaster.regs().ACCESS == N - 1);
   }
@@ -224,7 +224,7 @@ TEST_CASE("tvm::Interpreter:  run_indirect with iterator pair", "[scope:core][sc
   SECTION("Reverse iteration executes all programs in reverse") {
     auto r = tb.range(before, after);
     tvm::Interpreter blaster(mgr);
-    blaster.run_indirect(r.rbegin(), r.rend());
+    blaster.run_each(r.rbegin(), r.rend());
     // Last program executed sets ACCESS = 0 (the first submitted program).
     CHECK(blaster.regs().ACCESS == 0);
   }
@@ -235,7 +235,7 @@ TEST_CASE("tvm::Interpreter:  run_indirect with iterator pair", "[scope:core][sc
     auto r = tb.range(from, to);
 
     tvm::Interpreter blaster(mgr);
-    blaster.run_indirect(r.begin(), r.end());
+    blaster.run_each(r.begin(), r.end());
     // Programs 1, 2, 3 executed; last one sets ACCESS = 3.
     CHECK(blaster.regs().ACCESS == 3);
   }
@@ -243,7 +243,7 @@ TEST_CASE("tvm::Interpreter:  run_indirect with iterator pair", "[scope:core][sc
   SECTION("Empty range is a no-op") {
     auto r = tb.range(before, before);
     tvm::Interpreter blaster(mgr);
-    blaster.run_indirect(r.begin(), r.end());
+    blaster.run_each(r.begin(), r.end());
     // ACCESS should remain at its default (0).
     CHECK(blaster.regs().ACCESS == 0);
   }
@@ -269,7 +269,7 @@ TEST_CASE("tvm::Interpreter:  run_indirect with iterator pair", "[scope:core][sc
     auto end_cursor = tb.cursor();
     auto r = tb.range(mid, end_cursor);
     tvm::Interpreter blaster(mgr);
-    blaster.run_indirect(r.begin(), r.end());
+    blaster.run_each(r.begin(), r.end());
 
     // Program 0xAA executed normally, then 0xBB set ACCESS but CLRMEM hard-stopped, so 0xCC was never reached.
     CHECK(blaster.regs().ACCESS == 0xBB);

@@ -36,7 +36,7 @@ class TraceBuffer;
 // - When more words are inserted than expected, extra values are ignored.
 //   This case is really useful for packing data into an instruction, and is explictly used by SET* instructions.
 // In an average case, this reduces exactly to the same number of words as would be used by Atombios or Nova-core,
-// except with some extra bookkeeping for the populated word count. My contributions over those previous designs
+// except with some extra bookkeeping for the populated word count. My changes over those previous designs
 // include:
 // - my XOR-encoding for SET*X instructions derives from my previous trace buffer encodings to make a single trace which
 //   contains both the "forward" and "backward" data.
@@ -126,24 +126,19 @@ public:
   void step();
   // Update IP to point to loc, then call step() in a loop while L==1.
   // Each program executed this way must terminate with a HALT.
-  // At the end of a call to run_direct, L is always 0.
-  void run_direct(pepp::bts::Buffer::Location loc);
-  // For each buffer location set L=1 and call run_direct.
-  // Only stops when reaching the end of this buffer, or on "hard stop", where L==0 && F==1.
-  void run_indirect(std::span<pepp::bts::Buffer::Location> locs);
-  // Iterator-pair variant: works with TraceBuffer::Iterator, reverse iterators, etc.
-  // Declared as a template to avoid include'ing TraceBuffer in this header
-  template <typename It>
-  void run_indirect(It begin, It end) {
+  // At the end of a call to run, L is always 0.
+  void run(pepp::bts::Buffer::Location loc);
+  // For each buffer location set L=1 and call run.
+  // Only stops when reaching the end of this location buffer, or on "hard stop", where L==0 && F==1.
+  std::size_t run_each(std::span<const pepp::bts::Buffer::Location> locs);
+  // Iterator-pair variant. While slower to execute, it can consume iterators from TraceBuffer without needing to
+  // re-arrange them in spans first. Declared as a template to avoid include'ing TraceBuffer in this header
+  template <typename It> auto run_each(It begin, It end) {
     for (auto it = begin; it != end; ++it) {
-      run_direct(*it);
-      if (_csrs.F == 1) break;
+      run(*it);
+      if (_csrs.F == 1) return it;
     }
-  }
-  u16 register_cmp_callback(CMPCallback cb) {
-    u16 id = _cmp_callbacks.size();
-    _cmp_callbacks.push_back(cb);
-    return id;
+    return end;
   }
   auto &csrs() { return _csrs; }
   const auto &csrs() const { return _csrs; }
@@ -226,8 +221,6 @@ private:
   tvm::TraceBuffer *_tb = nullptr;
   RegisterScan *_scan;
   std::array<u8, 256> _stack;
-  // Should really be a map so you can delete callbacks, but I can't be bothered to add the ID variable right now.
-  std::vector<CMPCallback> _cmp_callbacks;
   Flags _csrs{};
   State _regs{};
   std::vector<u8> _tmp;

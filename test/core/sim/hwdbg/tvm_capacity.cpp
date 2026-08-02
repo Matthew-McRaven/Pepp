@@ -21,7 +21,7 @@
 namespace {
 
 // A one-slot ring laps after a single slot's worth of entries, which makes the wrap cheap to reach.
-constexpr u16 ENTRIES_PER_SLOT = tvm::TraceBuffer::MAX_INDIRECT_ENTRIES;
+constexpr u16 ENTRIES_PER_SLOT = tvm::TraceBuffer::MAX_LOCATION_ENTRIES;
 
 // Submit `count` empty programs -- end() still appends a HALT -- and report the first and last locations.
 std::pair<pepp::bts::Buffer::Location, pepp::bts::Buffer::Location> submit_empty(tvm::TraceBuffer &tb, size_t count) {
@@ -47,7 +47,7 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
 
   // Fill the current slot completely, triggering advance_slot.
   auto fill_slot = [&](tvm::TraceBuffer &tb) {
-    for (u16 i = 0; i < tvm::TraceBuffer::MAX_INDIRECT_ENTRIES; ++i) {
+    for (u16 i = 0; i < tvm::TraceBuffer::MAX_LOCATION_ENTRIES; ++i) {
       tb.begin(S);
       tb.end(S);
     }

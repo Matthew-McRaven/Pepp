@@ -56,7 +56,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
     CHECK(blaster.csrs().M1 == 0);
     CHECK(blaster.regs().MOD1.lo == 0);
     for (auto loc : tb.range(before, tb.cursor()))
-      blaster.run_direct(loc);
+      blaster.run(loc);
     CHECK(blaster.stopped());
     CHECK(blaster.csrs().M1 == 1);
     CHECK(blaster.regs().MOD1.lo == 0x1234);
@@ -77,7 +77,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
     CHECK(blaster.regs().ID.hi == 0);
     CHECK(blaster.regs().DP.lo == 0);
     for (auto loc : tb.range(before, tb.cursor()))
-      blaster.run_direct(loc);
+      blaster.run(loc);
     CHECK(blaster.stopped());
     CHECK(blaster.stop_cause() == StopCause::None);
     CHECK(blaster.csrs().M1 == 1);
@@ -99,7 +99,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     for (auto loc : tb.range(before, tb.cursor()))
-      blaster.run_direct(loc);
+      blaster.run(loc);
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     CHECK(blaster.stopped());
     CHECK(blaster.stop_cause() == StopCause::None);
@@ -117,7 +117,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     for (auto loc : tb.range(before, tb.cursor()))
-      blaster.run_direct(loc);
+      blaster.run(loc);
     // Branch not taken: LMR executed, DP.lo set.
     CHECK(blaster.regs().DP.lo == 0xBEEF);
     CHECK(blaster.stopped());
@@ -135,7 +135,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
 
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     for (auto loc : tb.range(before, tb.cursor()))
-      blaster.run_direct(loc);
+      blaster.run(loc);
     // Branch taken: LMR skipped, DP.lo unchanged.
     CHECK(blaster.regs().DP.lo != 0xBEEF);
     CHECK(blaster.stopped());

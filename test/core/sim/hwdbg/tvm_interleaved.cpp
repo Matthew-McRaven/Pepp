@@ -57,7 +57,7 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
 
     auto after = tb.cursor();
 
-    // The indirect buffer has 2 entries.
+    // The location buffer has 2 entries.
     // Entry 0 is S1 (ended first), entry 1 is S0 (ended second).
     auto r = tb.range(before, after);
     auto it = r.begin();
@@ -73,11 +73,11 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
     // these would produce wrong results or crash.
     tvm::Interpreter b0(mgr), b1(mgr);
 
-    b1.run_direct(loc_s1);
+    b1.run(loc_s1);
     CHECK(b1.stopped());
     CHECK(b1.regs().MOD1.lo == 0xBBBB);
 
-    b0.run_direct(loc_s0);
+    b0.run(loc_s0);
     CHECK(b0.stopped());
     CHECK(b0.regs().MOD1.lo == 0xAAAA);
   }

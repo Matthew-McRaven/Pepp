@@ -44,7 +44,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().M1 == 0);
     CHECK(blaster->regs().MOD1.lo == 0);
-    blaster->run_direct(loc);
+    blaster->run(loc);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().M1 == 1);
     CHECK(blaster->regs().MOD1.lo == 0x1234);
@@ -64,7 +64,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     CHECK(blaster->csrs().L == 1);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 0);
-    blaster->run_direct(loc);
+    blaster->run(loc);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 1);
@@ -101,7 +101,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     auto r = tb.range(before, tb.cursor());
     auto it = r.begin();
     // Program 1
-    blaster->run_direct(*it);
+    blaster->run(*it);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 1);
@@ -109,7 +109,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     blaster->csrs().Z = 0;
     ++it;
     // Program 2
-    blaster->run_direct(*it);
+    blaster->run(*it);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 1);
@@ -144,14 +144,14 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     auto r = tb.range(before, tb.cursor());
     auto it = r.begin();
     // Program 1: set + compare
-    blaster->run_direct(*it);
+    blaster->run(*it);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(blaster->csrs().Z == 1);
     CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == val);
     // Program 2: clear
     ++it;
-    blaster->run_direct(*it);
+    blaster->run(*it);
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == 0x0000);
@@ -287,7 +287,7 @@ TEST_CASE("CMPREG compares a 4-byte register little-endian",
   tb.emit_body(S, {enc.data(), enc.size()});
   auto loc = tb.end(S);
 
-  blaster->run_direct(loc);
+  blaster->run(loc);
 
   CHECK(blaster->stop_cause() == StopCause::None);
   CHECK(blaster->csrs().Z == 1);
@@ -485,7 +485,7 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
     tb.begin(S);
     tb.emit_body(S, {enc.data(), enc.size()});
     auto loc = tb.end(S);
-    blaster->run_direct(loc);
+    blaster->run(loc);
     return blaster;
   };
 
@@ -586,7 +586,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
     tb.begin(S);
     build(tb);
     auto loc = tb.end(S);
-    blaster->run_direct(loc);
+    blaster->run(loc);
     return blaster;
   };
 
@@ -740,7 +740,7 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
     auto enc = CmpReg<3>(ref.reg.value, ref.field.value).encode(data);
     tb.emit_body(S, {enc.data(), enc.size()});
     auto loc = tb.end(S);
-    blaster->run_direct(loc);
+    blaster->run(loc);
     return blaster;
   };
   auto flag = [&](size_t i) { return *scan->find(FLAGS[i]); };
@@ -814,7 +814,7 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
     auto enc = CmpReg<2>(z.reg.value, z.field.value).encode();
     tb.emit_body(S, {enc.data(), enc.size()});
     auto loc = tb.end(S);
-    blaster->run_direct(loc);
+    blaster->run(loc);
 
     CHECK(blaster->stop_cause() == StopCause::None);
     CHECK(blaster->csrs().F == 0);

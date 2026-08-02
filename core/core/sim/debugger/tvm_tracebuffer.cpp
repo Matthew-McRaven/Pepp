@@ -11,7 +11,7 @@ namespace tvm {
 void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
   if (code) code->clear();
   if (data) data->clear();
-  if (indirect) indirect->clear();
+  if (locations) locations->clear();
   count = 0;
   in_use = false;
 }
@@ -22,7 +22,7 @@ TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, u16 num_
     : _mgr(std::move(mgr)) {
   _ring.resize(ring_size);
   for (auto &node : _ring) {
-    node.indirect = _mgr->alloc_buffer();
+    node.locations = _mgr->alloc_buffer();
     node.code = _mgr->alloc_chain();
     node.data = _mgr->alloc_chain();
   }
@@ -32,8 +32,7 @@ TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, u16 num_
 
 TraceBuffer::~TraceBuffer() noexcept {
   for (auto &node : _ring) {
-    if (node.indirect)
-      _mgr->free_buffer(node.indirect->id());
+    if (node.locations) _mgr->free_buffer(node.locations->id());
   }
 }
 
@@ -69,8 +68,7 @@ pepp::bts::Buffer::Location TraceBuffer::end(u16 submitter_id) {
   sub.active = false;
   _total_instructions++;
 
-  if (node.count >= MAX_INDIRECT_ENTRIES)
-    advance_slot();
+  if (node.count >= MAX_LOCATION_ENTRIES) advance_slot();
   return ret;
 }
 
@@ -219,7 +217,7 @@ pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(u16 submitter_id, BodyRes
   // The subroutine is: [prefix][body or CALL][postfix]
   // There are no separators or terminators between these sections.
   // Postfix contains caller-injected instructions (if any) followed by HALT.
-  // Indirect buffer programs must be complete (e.g., terminate), so the caller must ensure postfix terminates with a
+  // Location buffer programs must be complete (e.g., terminate), so the caller must ensure postfix terminates with a
   // HALT.
   // All parts of a subroutine must land in the same buffer — we must not split code across a buffer boundary.
 
@@ -254,8 +252,8 @@ pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(u16 submitter_id, BodyRes
 
   append({sub.postfix.data(), sub.postfix.size()});
 
-  // Record this subroutine's entry point in the indirect buffer.
-  write_indirect(node, node.count, subroutine_start);
+  // Record this subroutine's entry point in the locations buffer.
+  write_location(node, node.count, subroutine_start);
   return subroutine_start;
 }
 
@@ -283,28 +281,28 @@ void TraceBuffer::advance_slot() {
   // code/data chains should already be clear from acknowledge().
 }
 
-// --- Indirect buffer I/O ---
+// --- Location buffer I/O ---
 
-void TraceBuffer::write_indirect(Node &node, u16 entry, pepp::bts::Buffer::Location loc) {
-  static_assert(sizeof(pepp::bts::Buffer::Location) == 4, "Location must be 4 bytes for indirect packing");
+void TraceBuffer::write_location(Node &node, u16 entry, pepp::bts::Buffer::Location loc) {
+  static_assert(sizeof(pepp::bts::Buffer::Location) == 4, "Location must be 4 bytes for location packing");
   // Backstop for a caller that swallowed a RingOverflow and kept submitting: the offset below is a u16, so an entry
   // at or past the maximum would wrap to 0 and quietly overwrite the oldest entry instead of failing.
-  if (entry >= MAX_INDIRECT_ENTRIES) throw RingOverflow(_head);
+  if (entry >= MAX_LOCATION_ENTRIES) throw RingOverflow(_head);
   u16 offset = entry * sizeof(pepp::bts::Buffer::Location);
-  auto *dst = node.indirect->data() + offset;
+  auto *dst = node.locations->data() + offset;
   std::memcpy(dst, &loc, sizeof(loc));
   // If the slab hasn't tracked this write, bump its used capacity.
   // We write sequentially (entry == count before increment), so allocate_uninitialized
   // on first use of each entry position.
   size_t required = offset + sizeof(pepp::bts::Buffer::Location);
-  if (node.indirect->used_capacity() < required)
-    node.indirect->allocate_uninitialized(required - node.indirect->used_capacity());
+  if (node.locations->used_capacity() < required)
+    node.locations->allocate_uninitialized(required - node.locations->used_capacity());
 }
 
-pepp::bts::Buffer::Location TraceBuffer::read_indirect(const Node &node, u16 entry) const {
+pepp::bts::Buffer::Location TraceBuffer::read_location(const Node &node, u16 entry) const {
   u16 offset = entry * sizeof(pepp::bts::Buffer::Location);
   pepp::bts::Buffer::Location loc{};
-  auto *src = node.indirect->data() + offset;
+  auto *src = node.locations->data() + offset;
   std::memcpy(&loc, src, sizeof(loc));
   return loc;
 }
@@ -326,7 +324,7 @@ TraceBuffer::Iterator::Iterator(const TraceBuffer *tb, Cursor cursor) : _tb(tb),
 
 TraceBuffer::Iterator::reference TraceBuffer::Iterator::operator*() const {
   auto &node = _tb->node_at(_cursor.slot);
-  return _tb->read_indirect(node, _cursor.entry);
+  return _tb->read_location(node, _cursor.entry);
 }
 
 TraceBuffer::Iterator &TraceBuffer::Iterator::operator++() {
