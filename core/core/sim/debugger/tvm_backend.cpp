@@ -1,42 +1,48 @@
 #include "core/sim/debugger/tvm_backend.hpp"
 #include <bit>
+#include <variant>
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
+
+namespace {
+// Visitor for Backend::dispatch. Deliberately a hand-written struct rather than the usual pile of `[&]` lambdas: each
+// lambda would be its own closure type carrying its own copy of the two captures, so a 17-alternative overload set
+// costs ~272 bytes of stack and 34 stores to build -- per dispatched instruction, and with nothing optimized away in a
+// Debug build. This is two pointers, passed in registers.
+struct Dispatch {
+  tvm::Backend *self;
+  tvm::MachineState *state;
+
+  void operator()(const tvm::DecodedOp::Halt &op) const { self->on_halt(*state, op); }
+  void operator()(const tvm::DecodedOp::Ret &op) const { self->on_ret(*state, op); }
+  void operator()(const tvm::DecodedOp::Call &op) const { self->on_call(*state, op); }
+  void operator()(const tvm::DecodedOp::InvCall &op) const { self->on_invcall(*state, op); }
+  void operator()(const tvm::DecodedOp::ASyn &op) const { self->on_asyn(*state, op); }
+  void operator()(const tvm::DecodedOp::ISyn &op) const { self->on_isyn(*state, op); }
+  void operator()(const tvm::DecodedOp::LMR &op) const { self->on_lmr(*state, op); }
+  void operator()(const tvm::DecodedOp::BR &op) const { self->on_br(*state, op); }
+  void operator()(const tvm::DecodedOp::SetMem &op) const { self->on_setmem(*state, op); }
+  void operator()(const tvm::DecodedOp::CmpMem &op) const { self->on_cmpmem(*state, op); }
+  void operator()(const tvm::DecodedOp::ClrMem &op) const { self->on_clrmem(*state, op); }
+  void operator()(const tvm::DecodedOp::SetReg &op) const { self->on_setreg(*state, op); }
+  void operator()(const tvm::DecodedOp::CmpReg &op) const { self->on_cmpreg(*state, op); }
+  void operator()(const tvm::DecodedOp::ClrReg &op) const { self->on_clrreg(*state, op); }
+  void operator()(const tvm::DecodedOp::TRADDR &op) const { self->on_traddr(*state, op); }
+  void operator()(const tvm::DecodedOp::LDP &op) const { self->on_ldp(*state, op); }
+  void operator()(const tvm::DecodedOp::DPIncr &op) const { self->on_dpincr(*state, op); }
+};
+} // namespace
 
 namespace tvm {
 
 void Backend::dispatch(MachineState &state, const tvm::DecodedOp::OpChoice &decoded) {
-  // For instructions which don't just program registers, insert their behaviors here
-  switch (static_cast<Opcode>(state.regs.IS.ocpode)) {
-  case Opcode::HALT: return on_halt(state, std::get<tvm::DecodedOp::Halt>(decoded));
-  case Opcode::RET: return on_ret(state, std::get<tvm::DecodedOp::Ret>(decoded));
-  case Opcode::CALL: return on_call(state, std::get<tvm::DecodedOp::Call>(decoded));
-  case Opcode::INVCALL: return on_invcall(state, std::get<tvm::DecodedOp::InvCall>(decoded));
-  case Opcode::ASYN: return on_asyn(state, std::get<tvm::DecodedOp::ASyn>(decoded));
-  case Opcode::ISYN: return on_isyn(state, std::get<tvm::DecodedOp::ISyn>(decoded));
-  case Opcode::LMR: return on_lmr(state, std::get<tvm::DecodedOp::LMR>(decoded));
-  case Opcode::BRF: [[fallthrough]];
-  case Opcode::NOP: [[fallthrough]];
-  case Opcode::BREQ: [[fallthrough]];
-  case Opcode::BRGT: [[fallthrough]];
-  case Opcode::BRGE: [[fallthrough]];
-  case Opcode::BRLT: [[fallthrough]];
-  case Opcode::BRLE: [[fallthrough]];
-  case Opcode::BRNE: [[fallthrough]];
-  case Opcode::BR: return on_br(state, std::get<tvm::DecodedOp::BR>(decoded));
-  case Opcode::SETMEM: [[fallthrough]]; // Difference between SETMEM/X is in execution, not decoding
-  case Opcode::SETMEMX: return on_setmem(state, std::get<tvm::DecodedOp::SetMem>(decoded));
-  case Opcode::CMPMEM: return on_cmpmem(state, std::get<tvm::DecodedOp::CmpMem>(decoded));
-  case Opcode::CLRMEM: return on_clrmem(state, std::get<tvm::DecodedOp::ClrMem>(decoded));
-  case Opcode::SETREG: [[fallthrough]]; // Difference between SETREG/X is in execution, not decoding
-  case Opcode::SETREGX: return on_setreg(state, std::get<tvm::DecodedOp::SetReg>(decoded));
-  case Opcode::CMPREG: return on_cmpreg(state, std::get<tvm::DecodedOp::CmpReg>(decoded));
-  case Opcode::CLRREG: return on_clrreg(state, std::get<tvm::DecodedOp::ClrReg>(decoded));
-  case Opcode::TRADDR: return on_traddr(state, std::get<tvm::DecodedOp::TRADDR>(decoded));
-  case Opcode::LDP: return on_ldp(state, std::get<tvm::DecodedOp::LDP>(decoded));
-  case Opcode::ACCDP: [[fallthrough]];
-  case Opcode::INCDP: return on_dpincr(state, std::get<tvm::DecodedOp::DPIncr>(decoded));
-  default: state.hard_stop(StopCause::IllegalOpcode); break;
-  }
+  // Dispatch on the variant's own discriminant rather than re-deriving it from regs.IS. Decode already committed to an
+  // alternative when it built `decoded`, so consulting the opcode a second time would duplicate the opcode-to-handler
+  // mapping and make a std::get mismatch (i.e. a thrown bad_variant_access) representable. Visiting instead makes this
+  // total by construction: adding an alternative to OpChoice without an overload above is a compile error.
+  //
+  // Nothing is lost by dropping the opcode. Every distinction a handler needs already lives in the decoded operand --
+  // SETMEM vs SETMEMX is `xor_encoded`, the nine branch mnemonics are `condition`, ACCDP vs INCDP is `dp_incr`.
+  std::visit(Dispatch{this, &state}, decoded);
 }
 
 void Backend::on_halt(MachineState &state, const tvm::DecodedOp::Halt &op) { state.soft_stop(op.cause); }

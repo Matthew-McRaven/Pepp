@@ -31,8 +31,8 @@ public:
   void set_trace_buffer(tvm::TraceBuffer *tb) { _tb = tb; }
   tvm::TraceBuffer *trace_buffer() const { return _tb; }
 
-  // Dispatch `decoded` to the matching handler. Not virtual: the opcode-to-alternative mapping is part of the ISA, not
-  // part of what a backend gets to decide. Reads the opcode from state.regs.IS, which decode just wrote.
+  // Dispatch `decoded` to the matching handler. Not virtual: which handler an alternative belongs to is part of the
+  // ISA, not part of what a backend gets to decide.
   void dispatch(MachineState &state, const tvm::DecodedOp::OpChoice &decoded);
 
   // --- Ops that only touch MachineState: shared meaning, concrete here ---
