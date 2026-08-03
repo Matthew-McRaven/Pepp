@@ -8,6 +8,15 @@ Decoder::Decoder(std::shared_ptr<pepp::bts::BufferManager> mgr, MachineState &st
 
 void Decoder::decode() {
   auto &regs = _state.regs;
+  // Honour the previous instruction's MODCLR bit. This is a decode-stage concern -- CLRMOD means "clear MOD1/MOD2 at
+  // the start of the next instruction", and this is that start -- and keeping it here means Decoder+Backend is a
+  // complete pair. Leaving it in the driver would silently hand wrong operands to anyone who drove the two directly,
+  // since a retained MOD register is indistinguishable from a supplied one.
+  if (_state.csrs.CLRMOD) {
+    regs.MOD1 = {};
+    regs.MOD2 = {};
+    _state.csrs.M1 = 0, _state.csrs.M2 = 0;
+  }
   const auto ibp = (pepp::bts::Buffer::ID)regs.IP.hi;
   // read 16 bits at ip.lo from data and increment.
   u16 opcode = read(ibp, regs.IP.lo);

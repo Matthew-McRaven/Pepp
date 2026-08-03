@@ -7,11 +7,6 @@ Interpreter::Interpreter(std::shared_ptr<pepp::bts::BufferManager> mgr, std::uni
 
 
 void Interpreter::step() {
-  if (_state.csrs.CLRMOD) {
-    _state.regs.MOD1 = {};
-    _state.regs.MOD2 = {};
-    _state.csrs.M1 = 0, _state.csrs.M2 = 0;
-  }
   _decoder.decode();
   // Decode can fail (bad instruction buffer, out-of-range DP for a sync op, unknown opcode), in which case decoded()
   // still holds the previous instruction. Re-check L before handing anything to the backend.
