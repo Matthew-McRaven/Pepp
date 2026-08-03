@@ -33,7 +33,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
 
   SECTION("Validate that a system-created tvm::Interpreter works") {
-    auto blaster = sys->make_blaster();
+    auto blaster = sys->make_trace_interpreter();
     auto before = tb.cursor();
 
     tb.begin(S);
@@ -51,7 +51,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
   }
 
   SECTION("Compare accumulator (immediate)") {
-    auto blaster = sys->make_blaster();
+    auto blaster = sys->make_trace_interpreter();
     auto scan = sys->register_scan();
     cpu->write_register(isa::Pep10::Register::A, 0xFEED);
     auto ref = *scan->find("A");
@@ -71,7 +71,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
   }
 
   SECTION("Compare accumulator / X (DP)") {
-    auto blaster = sys->make_blaster();
+    auto blaster = sys->make_trace_interpreter();
     auto scan = sys->register_scan();
     cpu->write_register(isa::Pep10::Register::A, 0xFEED);
     cpu->write_register(isa::Pep10::Register::X, 0xBEEF);
@@ -116,7 +116,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
   }
 
   SECTION("Set, compare, and clear memory") {
-    auto blaster = sys->make_blaster();
+    auto blaster = sys->make_trace_interpreter();
     const u32 offset = 0xFEED;
     const u16 val = 0xBEEF;
 
@@ -278,7 +278,7 @@ TEST_CASE("CMPREG compares a 4-byte register little-endian",
   constexpr Device::ID S{1};
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto ref = expose_wide(*sys, *mem);
-  auto blaster = sys->make_blaster();
+  auto blaster = sys->make_trace_interpreter();
   tvm::TraceBuffer tb(sys->buffer_manager());
 
   // Expected value supplied little-endian. Under the current assembly order this reads as 0x33441122 instead.
@@ -480,7 +480,7 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
   // Run a single-instruction program and report the blaster, so the opcode and the scan API can be checked against
   // each other rather than only against themselves.
   auto run = [&](auto enc) {
-    auto blaster = sys->make_blaster();
+    auto blaster = sys->make_trace_interpreter();
     tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
     tb.emit_body(S, {enc.data(), enc.size()});
@@ -581,7 +581,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
   // Run a one-program trace and hand back the blaster so both the register state and the stop condition can be
   // inspected.
   auto run = [&](auto build) {
-    auto blaster = sys->make_blaster();
+    auto blaster = sys->make_trace_interpreter();
     tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
     build(tb);
@@ -734,7 +734,7 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
   // containing register happens to be. That matches what the scan hands back when reading a field.
   auto compare = [&](RegisterScan::RegisterRef ref, u32 payload) {
     std::array<u8, 4> data{(u8)payload, (u8)(payload >> 8), (u8)(payload >> 16), (u8)(payload >> 24)};
-    auto blaster = sys->make_blaster();
+    auto blaster = sys->make_trace_interpreter();
     tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
     auto enc = CmpReg<3>(ref.reg.value, ref.field.value).encode(data);
@@ -805,7 +805,7 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
     // Still LSB-aligned, still the register's width -- the size check is against the containing register.
     auto src = expected_bytes(1, bits::Order::LittleEndian, 4);
 
-    auto blaster = sys->make_blaster();
+    auto blaster = sys->make_trace_interpreter();
     tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
     auto d = tb.append_data(S, {src.data(), src.size()});

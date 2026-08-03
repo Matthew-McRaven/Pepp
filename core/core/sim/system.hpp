@@ -118,7 +118,7 @@ public:
   RegisterScan *register_scan();
   const RegisterScan *register_scan() const;
 
-  std::unique_ptr<tvm::Interpreter> make_blaster();
+  std::unique_ptr<tvm::Interpreter> make_trace_interpreter();
   std::shared_ptr<pepp::bts::BufferManager> buffer_manager();
 
 private:

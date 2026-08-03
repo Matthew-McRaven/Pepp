@@ -15,6 +15,7 @@
  */
 #include <catch.hpp>
 
+#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
@@ -25,7 +26,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("LDP: absolute load for first data access") {
     tvm::TraceBuffer tb(mgr);
     constexpr Device::ID S{1};
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto before = tb.cursor();
 
     tb.begin(S);
@@ -44,7 +45,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("ACCDP: advance by previous DS for tightly packed data") {
     tvm::TraceBuffer tb(mgr);
     constexpr Device::ID S{1};
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto before = tb.cursor();
 
     // Program 1: LDP to first chunk.
@@ -81,7 +82,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("ACCDP: forward overflow crosses buffer boundary") {
     tvm::TraceBuffer tb(mgr);
     constexpr Device::ID S{1};
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.set_trace_buffer(&tb);
     auto before = tb.cursor();
 
@@ -123,7 +124,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("INCDP: backward underflow crosses buffer boundary") {
     tvm::TraceBuffer tb(mgr);
     constexpr Device::ID S{1};
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.set_trace_buffer(&tb);
     auto before = tb.cursor();
 
@@ -174,7 +175,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     // Two initiators interleave data, creating a gap in initiator A's writes.
     tvm::TraceBuffer tb(mgr);
     constexpr Device::ID A{1}, B{2};
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto before = tb.cursor();
 
     tb.begin(A);

@@ -1,13 +1,11 @@
 #pragma once
-#include <array>
-#include <functional>
 #include <memory>
+#include <span>
 #include "core/ds/alloc/pagechain.hpp"
 #include "core/integers.h"
-#include "core/sim/api/device.hpp"
-#include "core/sim/debugger/register_scanner.hpp"
-#include "core/sim/debugger/tvm_encoding.hpp"
-#include "core/sim/debugger/tvm_opcodes.hpp"
+#include "core/sim/debugger/tvm_backend.hpp"
+#include "core/sim/debugger/tvm_decoder.hpp"
+#include "core/sim/debugger/tvm_machine.hpp"
 
 // The system class from core/sim/system.hpp
 class System;
@@ -47,88 +45,29 @@ class TraceBuffer;
 // - Optional registers (MOD1/MOD2) which provide optional data to an instruction that are cleared automatically.
 //   Those registers really model a bag-of-properties like my old AST design. The MODCLR bit of an opcode helps clear
 //   these automatically.
-// While opcode decoding and register programming is handled by this class, the "implementation" of each opcode is
-// customizable by providing a callback per-opcode.
-// We provide a helper to install the same handler for all BR mnemonics for your convenience.
+//
+// This class is only a convenience wrapper around other components.
+// It owns the MachineState, runs the fetch/decode/execute loop, and applies the RegisterRetention policy between
+// programs. Cracking packets belongs to Decoder and acting on them belongs to an Backend, both of which share this
+// object's MachineState. Swap the Backend to reuse the ISA for something other than reprogramming a machine --
+// inspecting which locations a program would touch, folding deltas together, and so on.
 class Interpreter {
 public:
-  // Determine which registers are preserved/retained when re-starting execution with run.
-  enum class RegisterRetention : u8 {
-    None = 0, // All registers are reset
-    DP = 1,   // DS and DP registers
-    All = 2,  // No registers are reset
-  };
+  // Retained for callers that spelled these as members of Interpreter before the decode/execute split.
+  using RegisterRetention = tvm::RegisterRetention;
+  using Flags = tvm::Flags;
+  using State = tvm::Registers;
 
-  struct Flags {
-    Flags() = default;
-    Flags(u8 v)
-        : N(v & 0x01), Z((v >> 1) & 0x01), TR((v >> 2) & 0x01), L((v >> 3) & 0x01), M1((v >> 4) & 0x01),
-          M2((v >> 5) & 0x01), CLRMOD((v >> 6) & 0x01), F((v >> 7) & 0x01) {}
-    // Result of the last comparison was negative
-    u8 N : 1 = 0;
-    // Result of the last comparison was zero
-    u8 Z : 1 = 0;
-    // If 0, in target mode / id contains a target id
-    // if 1, in register mode / id containrs a register+field ID.
-    u8 TR : 1 = 0;
-    // Live bit. If 0, the blaster is halted. If 1, the blaster is running.
-    u8 L : 1 = 1;
-    // 1 if M1/M2 are currently enabled, 0 otherwise. When setting M1 or M2 to 0, the associated register should be
-    // cleared to. Access to a disabled register must not fault.
-    u8 M1 : 1 = 0;
-    u8 M2 : 1 = 0;
-    // If 1, clear MOD1/MOD2 at the start of the next instruction.
-    u8 CLRMOD : 1 = 0;
-    // Set to 1 if the last memory access failed. The blaster will not halt, but someone should check this flag!
-    u8 F : 1 = 0;
-    u8 as_u8() const {
-      return (N << 0) | (Z << 1) | (TR << 2) | (L << 3) | (M1 << 4) | (M2 << 5) | (CLRMOD << 6) | (F << 7);
-    }
-  };
-
-  struct State {
-    // Contain the 2-byte aligned instruction pointer. hi contains buffer ptr, lo contains offset.
-    tvm::SegmentPair IP{};
-    // Some instructions  process data. hi contains that data's buffer ptr, and lo is an offset into that buffer.
-    tvm::SegmentPair DP{};
-    // Length of data at DP in bytes
-    u16 DS = 0;
-    // Contains the access kind for next memory access
-    u16 ACCESS = 0;
-    // If in target mode, lo contains the 16-bit ID of a target device
-    // If in register mode, hi is the 16-bit register ID and lo is 16-bit field ID.
-    tvm::SegmentPair ID = {};
-    // If in target mode, hi contains the 16-bit offset into the target's address space, and lo contains the 16-bit
-    // offset. If in register mode, unused.
-    tvm::SegmentPair OFF = {};
-    // Modifiers register, whose meaning depends on the instruction being executed
-    tvm::SegmentPair MOD1 = {}, MOD2 = {};
-    /*
-     * None of the following registers are accessible vis load-masked-register
-     */
-    // When the machine is stopped, indicated the reason why.
-    // If None, then the machine is either running or stopped normally and can be resumed easily.
-    // If set to a cause, you need to address the underlying reason before resuming.
-    tvm::StopCause STOP_CAUSE = tvm::StopCause::None;
-    // Stack pointer, used to make call/ret work.
-    u16 SP = 0;
-    // 16-bit integer which contains a decoded instruction.
-    tvm::OpWord IS{};
-  };
-
-  // Yes, this pays an indirect call with some trampoline magic, but it allows the register blaster and trace buffer to
-  // become the same class. That execution speed penalty is more than worth it to me to consolidate the two types.
-  using CMPCallback = std::function<void(tvm::Interpreter &, bool)>;
-  // Non-owning pointer to system.
-  Interpreter(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr);
+  // Drive `backend`, which must not be null.
+  Interpreter(std::shared_ptr<pepp::bts::BufferManager> mgr, std::unique_ptr<Backend> backend);
   // Disable copy/move since this class is EXPENSIVE
   Interpreter(const Interpreter &) = delete;
   Interpreter(Interpreter &&) = delete;
   Interpreter &operator=(const tvm::Interpreter &) = delete;
   Interpreter &operator=(tvm::Interpreter &&) = delete;
 
-  void update_ip(pepp::bts::Buffer::Location loc);
-  void update_ip(pepp::bts::Buffer::ID, u16 offset = 0);
+  void update_ip(pepp::bts::Buffer::Location loc) { _state.update_ip(loc); }
+  void update_ip(pepp::bts::Buffer::ID id, u16 offset = 0) { _state.update_ip(id, offset); }
   // Assuming some code is already under IP, try to run it!
   void step();
   // Update IP to point to loc, then call step() in a loop while L==1.
@@ -144,94 +83,35 @@ public:
   template <typename It> auto run_each(It begin, It end, RegisterRetention retain = RegisterRetention::DP) {
     for (auto it = begin; it != end; ++it) {
       run(*it, retain);
-      if (_csrs.F == 1) return it;
+      if (_state.csrs.F == 1) return it;
     }
     return end;
   }
-  auto &csrs() { return _csrs; }
-  const auto &csrs() const { return _csrs; }
-  auto &regs() { return _regs; }
-  const auto &regs() const { return _regs; }
+  auto &csrs() { return _state.csrs; }
+  const auto &csrs() const { return _state.csrs; }
+  auto &regs() { return _state.regs; }
+  const auto &regs() const { return _state.regs; }
+  // The registers, flags, and stack shared by this driver's decoder and backend.
+  MachineState &state() { return _state; }
+  const MachineState &state() const { return _state; }
+  // The backend this driver dispatches to. Downcast if you need backend-specific results (touched locations, etc).
+  Backend &backend() { return *_backend; }
+  const Backend &backend() const { return *_backend; }
   pepp::bts::BufferManager &mgr() { return *_mgr; }
   const pepp::bts::BufferManager &mgr() const { return *_mgr; }
-  void set_trace_buffer(tvm::TraceBuffer *tb) { _tb = tb; }
-  tvm::TraceBuffer *trace_buffer() const { return _tb; }
-  bool stopped() const { return _csrs.L == 0; }
+  void set_trace_buffer(tvm::TraceBuffer *tb) { _backend->set_trace_buffer(tb); }
+  tvm::TraceBuffer *trace_buffer() const { return _backend->trace_buffer(); }
+  bool stopped() const { return _state.stopped(); }
   // Why the machine stopped. Distinguish hard/soft stop with F bit. A normal exit uses StopCause::None && F==0.
-  tvm::StopCause stop_cause() const { return _regs.STOP_CAUSE; }
+  tvm::StopCause stop_cause() const { return _state.stop_cause(); }
   // The most recently decoded instruction, with all of its operands already resolved.
-  const tvm::DecodedOp::OpChoice &decoded() const { return _decoded; }
-
-protected:
-  void soft_stop(tvm::StopCause cause = tvm::StopCause::None);
-  void hard_stop(tvm::StopCause cause = tvm::StopCause::None);
-  // Takes in a decoded opcode and dispatches to the appropriate execute* function.
-  void execute();
-  void execute_halt(tvm::DecodedOp::Halt op);
-  void execute_ret(tvm::DecodedOp::Ret op);
-  void execute_call(tvm::DecodedOp::Call op);
-  void execute_invcall(tvm::DecodedOp::InvCall op);
-  void execute_asyn(tvm::DecodedOp::ASyn op);
-  void execute_isyn(tvm::DecodedOp::ISyn op);
-  void execute_lmr(tvm::DecodedOp::LMR op);
-  void execute_br(tvm::DecodedOp::BR op);
-  void execute_setmem(tvm::DecodedOp::SetMem op);
-  void execute_cmpmem(tvm::DecodedOp::CmpMem op);
-  void execute_clrmem(tvm::DecodedOp::ClrMem op);
-  void execute_setreg(tvm::DecodedOp::SetReg op);
-  void execute_cmpreg(tvm::DecodedOp::CmpReg op);
-  void execute_clrreg(tvm::DecodedOp::ClrReg op);
-  void execute_traddr(tvm::DecodedOp::TRADDR op);
-  void execute_ldp(tvm::DecodedOp::LDP op);
-  void execute_dpincr(tvm::DecodedOp::DPIncr op);
+  const tvm::DecodedOp::OpChoice &decoded() const { return _decoder.decoded(); }
 
 private:
-  // Fetch the word under IP, increment the IP, and set the registers & flags according to the decoded opcode.
-  // If the operation is not a simple register write, then store all of the register info needed to execute it in one of
-  // the DecodedOp variants.
-  void decode();
-
-  tvm::DecodedOp::Halt decode_halt(pepp::bts::Buffer::ID ibp, u16 iop);
-  // Register write is result of stackop, which is not allowed in decode stage
-  tvm::DecodedOp::Ret decode_ret(pepp::bts::Buffer::ID ibp, u16 iop);
-  // Register write depends on a preceding stack op, which is not allowed in decode stage.
-  tvm::DecodedOp::Call decode_call(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::InvCall decode_invcall(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::ASyn decode_asyn(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::ISyn decode_isyn(pepp::bts::Buffer::ID ibp, u16 iop);
-  // Shared operand decoding for ASYN/ISYN. Programs the MOD registers for the immediate form, then reads the
-  // little-endian timestamp bytes. `width` receives the number of bytes actually consumed so that the caller can
-  // sign-extend a delta; the returned value itself is only zero-extended.
-  u64 decode_syn_data(pepp::bts::Buffer::ID ibp, u16 iop, u8 &width);
-  // Unlike other decode functions, this one does not update registers!
-  // This is because the shift/extract logic is somewhat complex -- and really belongs in the execute stage.
-  tvm::DecodedOp::LMR decode_lmr(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::BR decode_br(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::SetMem decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::CmpMem decode_cmpmem(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::ClrMem decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::SetReg decode_setreg(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::CmpReg decode_cmpreg(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::ClrReg decode_clrreg(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::TRADDR decode_traddr(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::LDP decode_ldp(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::DPIncr decode_accdp(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::DPIncr decode_incdp(pepp::bts::Buffer::ID ibp, u16 iop);
-
-  // Perform an LE read of 2 bytes at an offset.
-  u16 read16(pepp::bts::Buffer::ID, u16 offset);
-  // SP -= 4 and return the 4 bytes. IF SP would underflow stack, set L=0 and set cause in MOD1.lo
-  tvm::SegmentPair pop();
-  // SP +=4 and write the 4 bytes. If SP would overflow stack, set L = 0 and set cause in MOD1.lo
-  void push(tvm::SegmentPair v);
   std::shared_ptr<pepp::bts::BufferManager> _mgr;
-  System *_system = nullptr;
-  tvm::TraceBuffer *_tb = nullptr;
-  RegisterScan *_scan;
-  std::array<u8, 256> _stack;
-  Flags _csrs{};
-  State _regs{};
-  std::vector<u8> _tmp;
-  tvm::DecodedOp::OpChoice _decoded{};
+  // Declared before the decoder, which binds a reference to it.
+  MachineState _state{};
+  Decoder _decoder;
+  std::unique_ptr<Backend> _backend;
 };
 } // namespace tvm

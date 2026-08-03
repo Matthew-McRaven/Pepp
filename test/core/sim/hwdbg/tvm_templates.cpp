@@ -16,8 +16,9 @@
 #include <catch.hpp>
 #include <vector>
 
-#include "core/sim/debugger/tvm_interpreter.hpp"
+#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
+#include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
 namespace {
@@ -221,7 +222,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     body(long_body);
     auto loc = tb.commit(S);
 
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.run(loc);
     CHECK(blaster.stopped());
     CHECK(blaster.regs().DP.lo == 0xAAAA);
@@ -256,7 +257,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
 
     // Execute submission 1 (inlined body + custom postfix).
     {
-      tvm::Interpreter b(mgr);
+      tvm::Interpreter b(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
       b.run(loc1);
       CHECK(b.stopped());
       CHECK(b.regs().DP.lo == 0xAAAA);
@@ -265,7 +266,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
 
     // Execute submission 3 (template CALL, postfix dropped).
     {
-      tvm::Interpreter b(mgr);
+      tvm::Interpreter b(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
       b.run(loc3);
       CHECK(b.stopped());
       CHECK(b.regs().DP.lo == 0xAAAA);  // body via template

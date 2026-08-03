@@ -15,6 +15,7 @@
  */
 #include <catch.hpp>
 
+#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
@@ -71,7 +72,8 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
 
     // Execute each subroutine independently — if code were interleaved,
     // these would produce wrong results or crash.
-    tvm::Interpreter b0(mgr), b1(mgr);
+    tvm::Interpreter b0(mgr, std::make_unique<tvm::ApplyBackend>(mgr)),
+        b1(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
 
     b1.run(loc_s1);
     CHECK(b1.stopped());

@@ -16,6 +16,7 @@
 #include <catch.hpp>
 #include <vector>
 
+#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
@@ -45,7 +46,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
 
   SECTION("Can copy values into common registers") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto before = tb.cursor();
 
     tb.begin(S);
@@ -63,7 +64,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
   }
 
   SECTION("Load multiple registers") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto before = tb.cursor();
 
     tb.begin(S);
@@ -89,7 +90,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
   // Branch tests: the body contains BR + LMR + (HALT appended by TB).
   // BR<1>(0x6) jumps over the 6-byte LMR to land on the HALT.
   SECTION("Unconditional branch!") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto before = tb.cursor();
 
     tb.begin(S);
@@ -106,7 +107,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
   }
 
   SECTION("Conditional branch (not taken)") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.csrs().Z = 0;
     auto before = tb.cursor();
 
@@ -124,7 +125,7 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
   }
 
   SECTION("Conditional branch (taken)") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.csrs().Z = 1;
     auto before = tb.cursor();
 
@@ -152,7 +153,7 @@ TEST_CASE("tvm::Interpreter: INVCALL opcode", "[scope:core][scope:core.dbg][kind
   constexpr u16 ON_TRUE = 0x40, ON_FALSE = 0x80;
 
   SECTION("F set picks the true target") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     constexpr auto program = InvCall<2>{.on_true_lo = ON_TRUE, .on_false_lo = ON_FALSE}.encode();
     auto *code = load_program(*mgr, blaster, program);
 
@@ -164,7 +165,7 @@ TEST_CASE("tvm::Interpreter: INVCALL opcode", "[scope:core][scope:core.dbg][kind
   }
 
   SECTION("F clear picks the false target") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     constexpr auto program = InvCall<2>{.on_true_lo = ON_TRUE, .on_false_lo = ON_FALSE}.encode();
     auto *code = load_program(*mgr, blaster, program);
 
@@ -182,14 +183,14 @@ TEST_CASE("tvm::Interpreter: INVCALL opcode", "[scope:core][scope:core.dbg][kind
                                         .on_false = SegmentPair{.hi = 0x5678, .lo = ON_FALSE}}
                                  .encode();
 
-    tvm::Interpreter on_true(mgr);
+    tvm::Interpreter on_true(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     load_program(*mgr, on_true, program);
     on_true.csrs().F = 1;
     on_true.step();
     CHECK(on_true.regs().IP.hi == 0x1234);
     CHECK(on_true.regs().IP.lo == ON_TRUE);
 
-    tvm::Interpreter on_false(mgr);
+    tvm::Interpreter on_false(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     load_program(*mgr, on_false, program);
     on_false.csrs().F = 0;
     on_false.step();
@@ -198,7 +199,7 @@ TEST_CASE("tvm::Interpreter: INVCALL opcode", "[scope:core][scope:core.dbg][kind
   }
 
   SECTION("The target is called, not branched to") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     std::vector<u8> program;
     auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
     append(InvCall<2>{.on_true_lo = 8, .on_false_lo = ON_FALSE}.encode()); // bytes 0..5

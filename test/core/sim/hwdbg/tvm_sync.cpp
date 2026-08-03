@@ -15,6 +15,7 @@
  */
 #include <catch.hpp>
 
+#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 
 TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
@@ -41,7 +42,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
     constexpr auto program = ASyn<1>{}.encode(std::array<u8, 8>{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
     static_assert(program.size() == 12, "opcode word + size word + four payload words");
 
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto *code = load(blaster, program);
     blaster.step();
 
@@ -51,7 +52,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
 
   SECTION("A narrow unsigned immediate zero-extends") {
     constexpr auto program = ASyn<1>{}.encode(u16(0xFFFF));
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     load(blaster, program);
     blaster.step();
 
@@ -61,7 +62,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
   }
  SECTION("A narrow signed immediate sign-extends") {
     constexpr auto program = ISyn<1>{}.encode(u16(0xFFFF));
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     load(blaster, program);
     blaster.step();
 
@@ -76,7 +77,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
     // Size of the instruction is still 12 bytes
     CHECK(program[2] == 12);
 
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     load(blaster, program);
     blaster.step();
 
@@ -95,7 +96,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
     program.insert(program.end(), ldp.begin(), ldp.end());
     program.insert(program.end(), asyn.begin(), asyn.end());
 
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     load(blaster, program);
     blaster.step(); // LDP
     REQUIRE(blaster.regs().DP.hi == data->id().value);
@@ -112,7 +113,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
   SECTION("A DP-relative ASYN with no data buffer hard stops") {
     // DP starts at {0, 0}, and the manager never hands out buffer ID 0.
     constexpr auto program = ASyn<0>{}.encode();
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     load(blaster, program);
     blaster.step();
 

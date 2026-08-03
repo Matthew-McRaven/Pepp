@@ -15,6 +15,7 @@
  */
 #include <catch.hpp>
 
+#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
@@ -38,7 +39,7 @@ TEST_CASE("tvm::Interpreter: Location buffer iteration", "[scope:core][scope:cor
   auto after = tb.cursor();
 
   SECTION("Forward iteration visits all programs in submission order") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     int count = 0;
     for (auto loc : tb.range(before, after)) {
       blaster.run(loc);
@@ -50,7 +51,7 @@ TEST_CASE("tvm::Interpreter: Location buffer iteration", "[scope:core][scope:cor
 
   SECTION("Reverse iteration visits all programs in reverse order") {
     auto r = tb.range(before, after);
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     int count = N;
     for (auto it = r.rbegin(); it != r.rend(); ++it) {
       count--;
@@ -65,7 +66,7 @@ TEST_CASE("tvm::Interpreter: Location buffer iteration", "[scope:core][scope:cor
     auto it = r.begin();
 
     // Walk forward to the third entry.
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     for (int i = 0; i < 3; ++i)
       ++it;
     blaster.run(*it);
@@ -92,7 +93,7 @@ TEST_CASE("tvm::Interpreter: Location buffer iteration", "[scope:core][scope:cor
     tvm::Cursor to{before.slot, static_cast<u16>(before.entry + 4)};
     auto r = tb.range(from, to);
 
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     std::vector<u16> values;
     for (auto loc : r) {
       blaster.run(loc);
@@ -145,7 +146,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
   auto boundary_end = tb.cursor(); // {1, 2}
 
   SECTION("Forward iteration crosses slot boundary") {
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     std::vector<u16> values;
     for (auto loc : tb.range(boundary_start, boundary_end)) {
       blaster.run(loc);
@@ -156,7 +157,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
 
   SECTION("Reverse iteration crosses slot boundary") {
     auto r = tb.range(boundary_start, boundary_end);
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     std::vector<u16> values;
     for (auto it = r.rbegin(); it != r.rend(); ++it) {
       blaster.run(*it);
@@ -167,7 +168,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
 
   SECTION("Forward-backward round-trip across boundary") {
     auto r = tb.range(boundary_start, boundary_end);
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto it = r.begin();
 
     // Forward past boundary into slot 1.
@@ -215,7 +216,7 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
 
   SECTION("Forward iteration executes all programs") {
     auto r = tb.range(before, after);
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.run_each(r.begin(), r.end());
     // Last program sets ACCESS = N-1.
     CHECK(blaster.regs().ACCESS == N - 1);
@@ -223,7 +224,7 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
 
   SECTION("Reverse iteration executes all programs in reverse") {
     auto r = tb.range(before, after);
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.run_each(r.rbegin(), r.rend());
     // Last program executed sets ACCESS = 0 (the first submitted program).
     CHECK(blaster.regs().ACCESS == 0);
@@ -234,7 +235,7 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
     tvm::Cursor to{before.slot, static_cast<u16>(before.entry + 4)};
     auto r = tb.range(from, to);
 
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.run_each(r.begin(), r.end());
     // Programs 1, 2, 3 executed; last one sets ACCESS = 3.
     CHECK(blaster.regs().ACCESS == 3);
@@ -242,7 +243,7 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
 
   SECTION("Empty range is a no-op") {
     auto r = tb.range(before, before);
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.run_each(r.begin(), r.end());
     // ACCESS should remain at its default (0).
     CHECK(blaster.regs().ACCESS == 0);
@@ -268,7 +269,7 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
 
     auto end_cursor = tb.cursor();
     auto r = tb.range(mid, end_cursor);
-    tvm::Interpreter blaster(mgr);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.run_each(r.begin(), r.end());
 
     // Program 0xAA executed normally, then 0xBB set ACCESS but CLRMEM hard-stopped, so 0xCC was never reached.
