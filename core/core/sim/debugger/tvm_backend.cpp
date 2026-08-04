@@ -5,7 +5,7 @@
 
 namespace {
 // Visitor for Backend::dispatch. Deliberately a hand-written struct rather than the usual pile of `[&]` lambdas: each
-// lambda would be its own closure type carrying its own copy of the two captures, so a 17-alternative overload set
+// lambda would be its own closure type carrying its own copy of the two captures, so an 18-alternative overload set
 // costs ~272 bytes of stack and 34 stores to build -- per dispatched instruction, and with nothing optimized away in a
 // Debug build. This is two pointers, passed in registers.
 struct Dispatch {
@@ -16,6 +16,7 @@ struct Dispatch {
   void operator()(const tvm::DecodedOp::Ret &op) const { self->on_ret(*state, op); }
   void operator()(const tvm::DecodedOp::Call &op) const { self->on_call(*state, op); }
   void operator()(const tvm::DecodedOp::InvCall &op) const { self->on_invcall(*state, op); }
+  void operator()(const tvm::DecodedOp::InvRet &op) const { self->on_invret(*state, op); }
   void operator()(const tvm::DecodedOp::ASyn &op) const { self->on_asyn(*state, op); }
   void operator()(const tvm::DecodedOp::ISyn &op) const { self->on_isyn(*state, op); }
   void operator()(const tvm::DecodedOp::LMR &op) const { self->on_lmr(*state, op); }
@@ -35,17 +36,18 @@ struct Dispatch {
 namespace tvm {
 
 void Backend::dispatch(MachineState &state, const tvm::DecodedOp::OpChoice &decoded) {
-  // Dispatch on the variant's own discriminant rather than re-deriving it from regs.IS. Decode already committed to an
-  // alternative when it built `decoded`, so consulting the opcode a second time would duplicate the opcode-to-handler
-  // mapping and make a std::get mismatch (i.e. a thrown bad_variant_access) representable. Visiting instead makes this
-  // total by construction: adding an alternative to OpChoice without an overload above is a compile error.
-  //
-  // Nothing is lost by dropping the opcode. Every distinction a handler needs already lives in the decoded operand --
-  // SETMEM vs SETMEMX is `xor_encoded`, the nine branch mnemonics are `condition`, ACCDP vs INCDP is `dp_incr`.
+  // Dispatch on the variant's own discriminant rather than re-deriving it from regs.IS via a switch.
+  // Failure to handle a valid opcode cause compile-time error.
   std::visit(Dispatch{this, &state}, decoded);
 }
 
-void Backend::on_halt(MachineState &state, const tvm::DecodedOp::Halt &op) { state.soft_stop(op.cause); }
+void Backend::on_halt(MachineState &state, const tvm::DecodedOp::Halt &op) {
+  // A program that leaks an INVCALL would leave the suspension active for every program after it, since _depth lives
+  // on the backend and MachineState::restart deliberately does not touch it. A backward replay would then quietly run
+  // one-way ops forwards. Refuse instead.
+  if (_depth != _floor) return state.hard_stop(StopCause::UnbalancedInvCall);
+  state.soft_stop(op.cause);
+}
 
 void Backend::on_ret(MachineState &state, const tvm::DecodedOp::Ret &) { state.regs.IP = state.pop(); }
 
@@ -55,10 +57,19 @@ void Backend::on_call(MachineState &state, const tvm::DecodedOp::Call &op) {
 }
 
 void Backend::on_invcall(MachineState &state, const tvm::DecodedOp::InvCall &op) {
+  // Read the direction before suspending it, or a backward call would pick its own forward target.
+  const bool forward = is_forward();
   state.push(state.regs.IP);
-  // F is deliberately left as-is: the callee is the one that wants to know whether it was reached because of a
-  // failure, and clearing it here would hide that from a subsequent BRF.
-  state.regs.IP = state.csrs.F ? op.on_true : op.on_false;
+  // Depth incremented on invcall, decremented on invret, which allows for nested invcalls.
+  ++_depth;
+  state.regs.IP = forward ? op.on_forward : op.on_backward;
+}
+
+void Backend::on_invret(MachineState &state, const tvm::DecodedOp::InvRet &) {
+  // Don't allow decrementing beyond out initial value, else a forward replay could turn into a backward one.
+  if (_depth <= _floor) return state.hard_stop(StopCause::UnbalancedInvCall);
+  --_depth;
+  state.regs.IP = state.pop();
 }
 
 // Both sync ops are no-ops for the blaster itself, which keeps no clock. All the work happened in decode, and the

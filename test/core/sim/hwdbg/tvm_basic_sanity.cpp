@@ -147,78 +147,317 @@ TEST_CASE("tvm::Interpreter: basic opcodes tests", "[scope:core][scope:core.dbg]
 TEST_CASE("tvm::Interpreter: INVCALL opcode", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
+  using M = tvm::RegMask;
+  using D = tvm::Direction;
 
   // Two recognizable destinations. A single step never fetches from the target, so these only have to be
   // distinguishable, not executable.
-  constexpr u16 ON_TRUE = 0x40, ON_FALSE = 0x80;
+  constexpr u16 ON_FWD = 0x40, ON_BACK = 0x80;
 
-  SECTION("F set picks the true target") {
+  // Step until the machine halts, with a bound so a direction bug shows up as a failed assertion rather than a hang.
+  auto run_to_halt = [](tvm::Interpreter &b) {
+    for (int i = 0; i < 32 && !b.stopped(); ++i) b.step();
+  };
+
+  SECTION("Stepping forward picks the forward target") {
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
-    constexpr auto program = InvCall<2>{.on_true_lo = ON_TRUE, .on_false_lo = ON_FALSE}.encode();
+    constexpr auto program = InvCall<2>{.on_forward_lo = ON_FWD, .on_backward_lo = ON_BACK}.encode();
     auto *code = load_program(*mgr, blaster, program);
 
+    blaster.backend().set_direction(D::Forward);
+    blaster.step();
+
+    CHECK(blaster.regs().IP.hi == code->id().value);
+    CHECK(blaster.regs().IP.lo == ON_FWD);
+  }
+
+  SECTION("Stepping backward picks the backward target") {
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    constexpr auto program = InvCall<2>{.on_forward_lo = ON_FWD, .on_backward_lo = ON_BACK}.encode();
+    auto *code = load_program(*mgr, blaster, program);
+
+    blaster.backend().set_direction(D::Backward);
+    blaster.step();
+
+    CHECK(blaster.regs().IP.hi == code->id().value);
+    CHECK(blaster.regs().IP.lo == ON_BACK);
+  }
+
+  SECTION("The F bit no longer selects") {
+    // F used to be the selector. A backend that still consults it would flip this program's target.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    constexpr auto program = InvCall<2>{.on_forward_lo = ON_FWD, .on_backward_lo = ON_BACK}.encode();
+    load_program(*mgr, blaster, program);
+
+    blaster.backend().set_direction(D::Forward);
     blaster.csrs().F = 1;
     blaster.step();
 
-    CHECK(blaster.regs().IP.hi == code->id().value);
-    CHECK(blaster.regs().IP.lo == ON_TRUE);
-  }
-
-  SECTION("F clear picks the false target") {
-    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
-    constexpr auto program = InvCall<2>{.on_true_lo = ON_TRUE, .on_false_lo = ON_FALSE}.encode();
-    auto *code = load_program(*mgr, blaster, program);
-
-    blaster.csrs().F = 0;
-    blaster.step();
-
-    CHECK(blaster.regs().IP.hi == code->id().value);
-    CHECK(blaster.regs().IP.lo == ON_FALSE);
+    CHECK(blaster.regs().IP.lo == ON_FWD);
+    CHECK(blaster.csrs().F == 1); // and it is left alone for a following BRF
   }
 
   SECTION("The far form picks the whole target, buffer and all") {
     // Both halves of the selected target have to come from the same side. Getting this wrong -- mixing one target's
     // hi with the other's lo -- is exactly what the interleaved lo-first encoding invites.
-    constexpr auto program = InvCall<4>{.on_true = SegmentPair{.hi = 0x1234, .lo = ON_TRUE},
-                                        .on_false = SegmentPair{.hi = 0x5678, .lo = ON_FALSE}}
+    constexpr auto program = InvCall<4>{.on_forward = SegmentPair{.hi = 0x1234, .lo = ON_FWD},
+                                        .on_backward = SegmentPair{.hi = 0x5678, .lo = ON_BACK}}
                                  .encode();
 
-    tvm::Interpreter on_true(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
-    load_program(*mgr, on_true, program);
-    on_true.csrs().F = 1;
-    on_true.step();
-    CHECK(on_true.regs().IP.hi == 0x1234);
-    CHECK(on_true.regs().IP.lo == ON_TRUE);
+    tvm::Interpreter fwd(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    load_program(*mgr, fwd, program);
+    fwd.backend().set_direction(D::Forward);
+    fwd.step();
+    CHECK(fwd.regs().IP.hi == 0x1234);
+    CHECK(fwd.regs().IP.lo == ON_FWD);
 
-    tvm::Interpreter on_false(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
-    load_program(*mgr, on_false, program);
-    on_false.csrs().F = 0;
-    on_false.step();
-    CHECK(on_false.regs().IP.hi == 0x5678);
-    CHECK(on_false.regs().IP.lo == ON_FALSE);
+    tvm::Interpreter back(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    load_program(*mgr, back, program);
+    back.backend().set_direction(D::Backward);
+    back.step();
+    CHECK(back.regs().IP.hi == 0x5678);
+    CHECK(back.regs().IP.lo == ON_BACK);
   }
 
   SECTION("The target is called, not branched to") {
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     std::vector<u8> program;
     auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
-    append(InvCall<2>{.on_true_lo = 8, .on_false_lo = ON_FALSE}.encode()); // bytes 0..5
-    append(Halt<0>{}.encode());                                            // bytes 6..7, the return point
-    append(Ret<0>{}.encode());                                             // bytes 8..9, the true target
+    append(InvCall<2>{.on_forward_lo = 8, .on_backward_lo = ON_BACK}.encode()); // bytes 0..5
+    append(Halt<0>{}.encode());                                                 // bytes 6..7, the return point
+    append(InvRet<0>{}.encode());                                               // bytes 8..9, the forward target
 
     load_program(*mgr, blaster, program);
-    blaster.csrs().F = 1;
+    blaster.backend().set_direction(D::Forward);
 
     blaster.step(); // INVCALL
     CHECK(blaster.regs().IP.lo == 8);
     CHECK(blaster.regs().SP == 4); // a frame was pushed, so this was a call rather than a jump
 
-    blaster.step(); // RET
+    blaster.step();                   // INVRET
     CHECK(blaster.regs().IP.lo == 6); // the pushed address is the instruction after INVCALL
     CHECK(blaster.regs().SP == 0);
 
     blaster.step(); // HALT
     CHECK(blaster.stopped());
     CHECK(blaster.stop_cause() == StopCause::None);
+  }
+
+  // The suspension program, used from both directions. Each arm stamps a different register, so one run tells you
+  // exactly which path was taken at both nesting levels.
+  //
+  //   0  INVCALL fwd=OUT_F bwd=OUT_B
+  //   6  HALT                          <- return point
+  //   8  OUT_F: ACCESS = 0xAAAA ; INVRET
+  //  16  OUT_B: OFF.hi = 0xBBBB ; INVCALL fwd=IN_F bwd=IN_B ; INVRET
+  //  30  IN_F:  OFF.lo = 0xCCCC ; INVRET
+  //  38  IN_B:  DS     = 0xDDDD ; INVRET
+  constexpr u16 OUT_F = 8, OUT_B = 16, IN_F = 30, IN_B = 38;
+  auto suspension_program = [&] {
+    std::vector<u8> p;
+    auto append = [&](auto enc) { p.insert(p.end(), enc.begin(), enc.end()); };
+    append(InvCall<2>{.on_forward_lo = OUT_F, .on_backward_lo = OUT_B}.encode()); // 0..5
+    append(Halt<0>{}.encode());                                                   // 6..7
+    append(LDR<M::ACCESS>{0xAAAA}.encode());                                      // 8..13
+    append(InvRet<0>{}.encode());                                                 // 14..15
+    append(LDR<M::OFF_HI>{0xBBBB}.encode());                                      // 16..21
+    append(InvCall<2>{.on_forward_lo = IN_F, .on_backward_lo = IN_B}.encode());   // 22..27
+    append(InvRet<0>{}.encode());                                                 // 28..29
+    append(LDR<M::OFF_LO>{0xCCCC}.encode());                                      // 30..35
+    append(InvRet<0>{}.encode());                                                 // 36..37
+    append(LDR<M::DS>{0xDDDD}.encode());                                          // 38..43
+    append(InvRet<0>{}.encode());                                                 // 44..45
+    return p;
+  }();
+
+  SECTION("Code reached through an INVCALL runs as forward, even in a backward replay") {
+    // This is the whole point of the opcode: the outer call takes its backward arm, but the nested call inside that
+    // arm sees itself as forward, so a restore routine can perform the writes it needs to.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    load_program(*mgr, blaster, suspension_program);
+    blaster.backend().set_direction(D::Backward);
+    run_to_halt(blaster);
+
+    CHECK(blaster.regs().OFF.hi == 0xBBBB); // outer took the backward arm
+    CHECK(blaster.regs().OFF.lo == 0xCCCC); // inner took the FORWARD arm -- suspended
+    CHECK(blaster.regs().DS != 0xDDDD);     // inner backward arm not taken
+    CHECK(blaster.regs().ACCESS != 0xAAAA); // outer forward arm not taken
+    CHECK(blaster.stopped());
+    CHECK(blaster.stop_cause() == StopCause::None); // balanced, so HALT accepted it
+    CHECK(blaster.regs().SP == 0);
+  }
+
+  SECTION("The same program forward takes only the forward arm") {
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    load_program(*mgr, blaster, suspension_program);
+    blaster.backend().set_direction(D::Forward);
+    run_to_halt(blaster);
+
+    CHECK(blaster.regs().ACCESS == 0xAAAA);
+    CHECK(blaster.regs().OFF.hi != 0xBBBB);
+    CHECK(blaster.stopped());
+    CHECK(blaster.stop_cause() == StopCause::None);
+  }
+
+  SECTION("INVRET restores the outer direction") {
+    // Two INVCALLs in sequence rather than nested: if INVRET failed to restore, the second would take the forward arm.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    std::vector<u8> program;
+    auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+    append(InvCall<2>{.on_forward_lo = 20, .on_backward_lo = 26}.encode()); // 0..5
+    append(InvCall<2>{.on_forward_lo = 32, .on_backward_lo = 38}.encode()); // 6..11
+    append(Halt<0>{}.encode());                                             // 12..13
+    append(Halt<0>{}.encode());                                             // 14..15 (padding)
+    append(Halt<0>{}.encode());                                             // 16..17 (padding)
+    append(Halt<0>{}.encode());                                             // 18..19 (padding)
+    append(LDR<M::ACCESS>{0x1111}.encode());                                // 20..25  first fwd
+    append(LDR<M::OFF_HI>{0x2222}.encode());                                // 26..31  first bwd
+    append(LDR<M::OFF_LO>{0x3333}.encode());                                // 32..37  second fwd
+    append(LDR<M::DS>{0x4444}.encode());                                    // 38..43  second bwd
+    // Every arm falls through into the next; give them all a shared INVRET at 44.
+    append(InvRet<0>{}.encode()); // 44..45
+    load_program(*mgr, blaster, program);
+    blaster.backend().set_direction(D::Backward);
+
+    blaster.step(); // INVCALL -> 26 (backward arm)
+    CHECK(blaster.regs().IP.lo == 26);
+    blaster.step(); // OFF.hi = 0x2222
+    blaster.step(); // fall through: OFF.lo = 0x3333
+    blaster.step(); // DS = 0x4444
+    blaster.step(); // INVRET -> back to 6, direction restored to backward
+    CHECK(blaster.regs().IP.lo == 6);
+    blaster.step(); // second INVCALL, must take the BACKWARD arm again
+    CHECK(blaster.regs().IP.lo == 38);
+  }
+
+  SECTION("A plain CALL inside an INVCALL does not end the suspension") {
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    std::vector<u8> program;
+    auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+    // Each arm terminates itself.
+    append(InvCall<2>{.on_forward_lo = 20, .on_backward_lo = 8}.encode());   // 0..5
+    append(Halt<0>{}.encode());                                              // 6..7  return point
+    append(Call<1>{.next_ip_lo = 26}.encode());                              // 8..11 backward arm calls a helper
+    append(InvCall<2>{.on_forward_lo = 34, .on_backward_lo = 42}.encode());  // 12..17 still suspended?
+    append(InvRet<0>{}.encode());                                            // 18..19 outer arm returns
+    append(LDR<M::ACCESS>{0x1111}.encode());                                 // 20..25 outer forward arm (unused)
+    append(LDR<M::OFF_HI>{0xB0B0}.encode());                                 // 26..31 helper body
+    append(Ret<0>{}.encode());                                               // 32..33 plain RET
+    append(LDR<M::OFF_LO>{0xF00D}.encode());                                 // 34..39 nested forward arm
+    append(InvRet<0>{}.encode());                                            // 40..41 ...and its own INVRET
+    append(LDR<M::DS>{0xDEAD}.encode());                                     // 42..47 nested backward arm
+    append(InvRet<0>{}.encode());                                            // 48..49
+    load_program(*mgr, blaster, program);
+    blaster.backend().set_direction(D::Backward);
+    run_to_halt(blaster);
+
+    CHECK(blaster.regs().OFF.hi == 0xB0B0); // the helper ran
+    // The nested INVCALL still saw itself as forward, so the plain CALL/RET round trip left the counter alone.
+    CHECK(blaster.regs().OFF.lo == 0xF00D);
+    CHECK(blaster.regs().DS != 0xDEAD);
+    CHECK(blaster.stopped());
+    CHECK(blaster.stop_cause() == StopCause::None);
+  }
+
+  SECTION("A leaked INVCALL is refused at HALT") {
+    // Without the balance check the suspension would survive into every later program, silently replaying one-way ops
+    // forwards during a backward walk.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    std::vector<u8> program;
+    auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+    append(InvCall<2>{.on_forward_lo = 6, .on_backward_lo = 6}.encode()); // 0..5
+    append(Halt<0>{}.encode());                                           // 6..7, reached with depth still raised
+    load_program(*mgr, blaster, program);
+    blaster.backend().set_direction(D::Forward);
+    run_to_halt(blaster);
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.csrs().F == 1); // hard stop
+    CHECK(blaster.stop_cause() == StopCause::UnbalancedInvCall);
+  }
+
+  SECTION("A leaked INVCALL is refused at HALT when stepping backward too") {
+    // The floor is -1 here, so the leak leaves the depth at 0 -- which reads as "forward". Exactly the state that
+    // would make the rest of a backward walk replay one-way ops the wrong way round if HALT let it through.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    std::vector<u8> program;
+    auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+    append(InvCall<2>{.on_forward_lo = 6, .on_backward_lo = 6}.encode()); // 0..5
+    append(Halt<0>{}.encode());                                           // 6..7
+    load_program(*mgr, blaster, program);
+    blaster.backend().set_direction(D::Backward);
+    run_to_halt(blaster);
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.csrs().F == 1);
+    CHECK(blaster.stop_cause() == StopCause::UnbalancedInvCall);
+  }
+
+  SECTION("An INVRET with no INVCALL is refused") {
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    std::vector<u8> program;
+    auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+    append(InvRet<0>{}.encode());
+    append(Halt<0>{}.encode());
+    load_program(*mgr, blaster, program);
+    blaster.backend().set_direction(D::Forward);
+    run_to_halt(blaster);
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.csrs().F == 1);
+    CHECK(blaster.stop_cause() == StopCause::UnbalancedInvCall);
+  }
+
+  SECTION("An INVRET below the floor is refused in a backward replay too") {
+    // -1 is the balanced floor when stepping backward. Decrementing past it would read as "forward" and corrupt the
+    // rest of the walk, so it must be caught rather than wrapping.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    std::vector<u8> program;
+    auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+    append(InvRet<0>{}.encode());
+    append(Halt<0>{}.encode());
+    load_program(*mgr, blaster, program);
+    blaster.backend().set_direction(D::Backward);
+    run_to_halt(blaster);
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.stop_cause() == StopCause::UnbalancedInvCall);
+  }
+
+  SECTION("Two INVCALLs closed by one INVRET are refused") {
+    // Partial unwind: the counts differ by one rather than being wholly absent, which a naive "did we see any INVRET"
+    // check would accept.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    std::vector<u8> program;
+    auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+    append(InvCall<2>{.on_forward_lo = 8, .on_backward_lo = 8}.encode());   // 0..5   depth 1, pushes 6
+    append(Halt<0>{}.encode());                                             // 6..7
+    append(InvCall<2>{.on_forward_lo = 16, .on_backward_lo = 16}.encode()); // 8..13  depth 2, pushes 14
+    append(Halt<0>{}.encode());                                             // 14..15 reached with depth still 1
+    append(InvRet<0>{}.encode());                                           // 16..17 depth 1, returns to 14
+    load_program(*mgr, blaster, program);
+    blaster.backend().set_direction(D::Forward);
+    run_to_halt(blaster);
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.stop_cause() == StopCause::UnbalancedInvCall);
+  }
+
+  SECTION("An extra INVRET after a balanced pair is refused") {
+    // The pair balances first, so this catches an underflow that only happens after legitimate use -- the case a
+    // simple "was an INVCALL ever seen" flag would miss.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    std::vector<u8> program;
+    auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+    append(InvCall<2>{.on_forward_lo = 8, .on_backward_lo = 8}.encode()); // 0..5  depth 1, pushes 6
+    append(InvRet<0>{}.encode());                                         // 6..7  depth 0 == floor -> refused
+    append(InvRet<0>{}.encode());                                         // 8..9  depth 0, returns to 6
+    load_program(*mgr, blaster, program);
+    blaster.backend().set_direction(D::Forward);
+    run_to_halt(blaster);
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.csrs().F == 1);
+    CHECK(blaster.stop_cause() == StopCause::UnbalancedInvCall);
   }
 }

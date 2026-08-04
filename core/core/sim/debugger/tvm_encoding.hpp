@@ -82,6 +82,12 @@ template <> struct Ret<0> {
   constexpr auto encode() const { return encode_op<Opcode::RET, true>(); };
 };
 
+// Return from an invertible subroutine, restoring the caller's direction. See Opcode::INVRET.
+template <std::size_t> struct InvRet;
+template <> struct InvRet<0> {
+  constexpr auto encode() const { return encode_op<Opcode::INVRET, true>(); };
+};
+
 template <std::size_t> struct Call;
 template <> struct Call<0> {
   constexpr auto encode() const { return encode_op<Opcode::CALL, true>(); }
@@ -96,28 +102,31 @@ template <> struct Call<2> {
 };
 
 // Targets are interleaved lo-first, so the 2-word form reaches both targets within the current buffer.
-// on_true is called when F==1; on_false when F==0. Anything not supplied falls through to the next instruction.
+// on_forward is called when stepping forward, on_backward when stepping backward. Anything not supplied falls through
+// to the next instruction.
 template <std::size_t> struct InvCall;
 template <> struct InvCall<0> {
   constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(); }
 };
 template <> struct InvCall<1> {
-  u16 on_true_lo;
-  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_true_lo); }
+  u16 on_forward_lo;
+  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_forward_lo); }
 };
 template <> struct InvCall<2> {
-  u16 on_true_lo, on_false_lo;
-  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_true_lo, on_false_lo); }
+  u16 on_forward_lo, on_backward_lo;
+  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_forward_lo, on_backward_lo); }
 };
 template <> struct InvCall<3> {
-  SegmentPair on_true;
-  u16 on_false_lo;
-  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_true.lo, on_false_lo, on_true.hi); }
+  SegmentPair on_forward;
+  u16 on_backward_lo;
+  constexpr auto encode() const {
+    return encode_op<Opcode::INVCALL, true>(on_forward.lo, on_backward_lo, on_forward.hi);
+  }
 };
 template <> struct InvCall<4> {
-  SegmentPair on_true, on_false;
+  SegmentPair on_forward, on_backward;
   constexpr auto encode() const {
-    return encode_op<Opcode::INVCALL, true>(on_true.lo, on_false.lo, on_true.hi, on_false.hi);
+    return encode_op<Opcode::INVCALL, true>(on_forward.lo, on_backward.lo, on_forward.hi, on_backward.hi);
   }
 };
 
@@ -355,11 +364,12 @@ struct Call {
 // Both targets are always resolved, even when the packet was short enough that one (or both) fell back to the
 // fall-through address. execute picks between them on the F bit; nothing else distinguishes the two.
 struct InvCall {
-  // Called when F==1, i.e. after a failed memory access.
-  SegmentPair on_true;
-  // Called when F==0.
-  SegmentPair on_false;
+  // Called when the machine is stepping forward.
+  SegmentPair on_forward;
+  // Called when the machine is stepping backward.
+  SegmentPair on_backward;
 };
+struct InvRet {};
 // The blaster retains no notion of time, so both sync ops hand the fully-resolved value to whoever is inspecting
 // decoded ops between the decode and execute stages. The narrower-than-64-bit encodings have already been extended:
 // zero-extended for the absolute timestamp, sign-extended for the delta.
@@ -430,7 +440,7 @@ struct DPIncr {
   u16 DS = 0;
 };
 
-using OpChoice = std::variant<Halt, Ret, Call, InvCall, ASyn, ISyn, LMR, BR, SetMem, CmpMem, ClrMem, SetReg, CmpReg,
-                              ClrReg, TRADDR, LDP, DPIncr>;
+using OpChoice = std::variant<Halt, Ret, Call, InvCall, InvRet, ASyn, ISyn, LMR, BR, SetMem, CmpMem, ClrMem,
+                              SetReg, CmpReg, ClrReg, TRADDR, LDP, DPIncr>;
 } // namespace DecodedOp
 } // namespace tvm

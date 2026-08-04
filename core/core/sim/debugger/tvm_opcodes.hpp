@@ -21,6 +21,9 @@ enum class StopCause {
   RegisterWidthIllegal,
   TargetInvalid,
   TargetNotMemory,
+  // An INVRET with no matching INVCALL, or a program that reached HALT while still inside one. Either way the
+  // direction counter no longer describes reality, so continuing would silently replay ops the wrong way round.
+  UnbalancedInvCall,
 };
 
 // Must fit into 6 bits because of the OpWord struct.
@@ -57,14 +60,21 @@ enum class Opcode : u8 {
   // Packet registers: MOD1.lo
   ASYN = 0b00'0100,
   ISYN = 0b00'0101,
-  // An invertible call, which picks between two targets based on CSR state. Eventually, this will be predicated on a
-  // "direction" bit, but for proof-of-concept we use the F bit. The "true" target called when F==1 (i.e. when the
-  // last memory access failed), the "false" target when F==0. One of the two is always called, and F is unchanged.
+  // An invertible call, which is the escape hatch that lets an one-way operation participate in reverse replay.
+  // Targets are picked on the replay direction, which is the forward target when stepping forward, and the backward
+  // target when stepping backward. One of the two is always called.
+  //
+  // Everything reached through an INVCALL is treated as-if forward, even if the caller is in a backwards direction.
+  // For an uninvertible op (CLRMEM), you could wrap it with an invcall. The clear is forward, and the backward
+  // portion would restore the values prior to clear. This might not be cheap, but it is possible. Both call targets
+  // must terminate in an explicit INVRET; we don't "guess" which RETs match an INVCALL. Ordinary CALLs/RETs work as
+  // expected inside a INVCALL subroutine.
+  //
   // The two targets are interleaved lo-first so that the near case (both targets in the current buffer) fits in 2
   // words, the same trick the branches play with MOD2. Any target word that isn't supplied defaults to the
   // fall-through: a missing hi becomes IP.hi, and a wholly missing target becomes the next instruction.
-  // MOD1 hold true target, MOD2 holds false target.
-  // Packet registers: (true).lo, (false).lo, (true).hi, (false).hi
+  // MOD1 holds the forward target, MOD2 holds the backward target.
+  // Packet registers: (forward).lo, (backward).lo, (forward).hi, (backward).hi
   INVCALL = 0b00'0110,
   // Branch if F bit is set, using the same packet registers are comparison branches.
   // Sets MOD1.lo to ConditionCode::F.
@@ -161,8 +171,12 @@ enum class Opcode : u8 {
   // Callback is invoked in condition code DOES NOT match the current condition code. Useful for checking if register
   // assertions fail.
   CCB = 0b01'1100,
+  // Return from an INVCALL, restoring the caller's replay direction. Distinct from RET so that unwinding an invertible
+  // subroutine is explicit: RET is used by ordinary calls nested inside one, and must not end the suspension.
+  // No packet registers.
+  INVRET = 0b01'1101,
   // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
-  MAX = ((u8)CCB) + 1,
+  MAX = ((u8)INVRET) + 1,
 };
 
 // Instructions to the tvm::Interpreter are always multiples of 16bits

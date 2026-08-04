@@ -36,6 +36,8 @@ private:
   // Register write depends on a preceding stack op, which is not allowed in decode stage.
   tvm::DecodedOp::Call decode_call(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::InvCall decode_invcall(pepp::bts::Buffer::ID ibp, u16 iop);
+  // Operand-free, like RET. Kept separate so dispatch routes it to on_invret rather than on_ret.
+  tvm::DecodedOp::InvRet decode_invret(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ASyn decode_asyn(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ISyn decode_isyn(pepp::bts::Buffer::ID ibp, u16 iop);
   // Shared operand decoding for ASYN/ISYN. Programs the MOD registers for the immediate form, then reads the

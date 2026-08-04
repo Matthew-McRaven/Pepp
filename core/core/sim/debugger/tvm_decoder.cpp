@@ -35,6 +35,7 @@ void Decoder::decode() {
   case Opcode::RET: _decoded = decode_ret(ibp, iop); break;
   case Opcode::CALL: _decoded = decode_call(ibp, iop); break;
   case Opcode::INVCALL: _decoded = decode_invcall(ibp, iop); break;
+  case Opcode::INVRET: _decoded = decode_invret(ibp, iop); break;
   case Opcode::ASYN: _decoded = decode_asyn(ibp, iop); break;
   case Opcode::ISYN: _decoded = decode_isyn(ibp, iop); break;
   case Opcode::LMR: _decoded = decode_lmr(ibp, iop); break;
@@ -94,20 +95,25 @@ tvm::DecodedOp::InvCall Decoder::decode_invcall(pepp::bts::Buffer::ID ibp, u16 i
   tvm::DecodedOp::InvCall ret;
   // IP.lo has already been advanced past this packet, so IP is the fall-through address. Any target word the packet
   // omits defaults to it: a missing hi word keeps IP.hi, and a wholly missing target calls the next instruction.
-  ret.on_true = ret.on_false = _state.regs.IP;
+  ret.on_forward = ret.on_backward = _state.regs.IP;
   // Targets interleave lo-first, so a near call (both targets in this buffer) costs 2 words instead of 4.
   switch (_state.regs.IS.word_len) {
   default: [[fallthrough]];
-  case 4: ret.on_false.hi = read(ibp, iop + 6); [[fallthrough]];
-  case 3: ret.on_true.hi = read(ibp, iop + 4); [[fallthrough]];
-  case 2: ret.on_false.lo = read(ibp, iop + 2); [[fallthrough]];
-  case 1: ret.on_true.lo = read(ibp, iop + 0); [[fallthrough]];
+  case 4: ret.on_backward.hi = read(ibp, iop + 6); [[fallthrough]];
+  case 3: ret.on_forward.hi = read(ibp, iop + 4); [[fallthrough]];
+  case 2: ret.on_backward.lo = read(ibp, iop + 2); [[fallthrough]];
+  case 1: ret.on_forward.lo = read(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
   // Mirror resolved targets into modifier registers if appropriate.
-  if (_state.regs.IS.word_len >= 1) _state.regs.MOD1 = ret.on_true, _state.csrs.M1 = 1;
-  if (_state.regs.IS.word_len >= 2) _state.regs.MOD2 = ret.on_false, _state.csrs.M2 = 1;
+  if (_state.regs.IS.word_len >= 1) _state.regs.MOD1 = ret.on_forward, _state.csrs.M1 = 1;
+  if (_state.regs.IS.word_len >= 2) _state.regs.MOD2 = ret.on_backward, _state.csrs.M2 = 1;
   return ret;
+}
+
+tvm::DecodedOp::InvRet Decoder::decode_invret(pepp::bts::Buffer::ID ibp, u16 iop) {
+  // No-op for decoding; the direction bookkeeping is entirely an execute-stage concern.
+  return {};
 }
 
 u64 Decoder::decode_syn_data(pepp::bts::Buffer::ID ibp, u16 iop, u8 &size) {

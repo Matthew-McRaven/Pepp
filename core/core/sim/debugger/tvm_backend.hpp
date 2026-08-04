@@ -6,6 +6,10 @@
 namespace tvm {
 class TraceBuffer;
 
+// Which way a trace is being replayed. Not machine state -- no opcode can read or write it, and MachineState::restart
+// must not reset it -- so it lives on the Backend as replay policy.
+enum class Direction : u8 { Forward, Backward };
+
 // Decoding instruction bytes is common to every backend, but doing something with decoded bytes varies by goal.
 // This split exists because I want to do at least two things with the same trace program
 //   - the interpreter, which applies the described writes to a System instance, which is used to implement step
@@ -31,6 +35,21 @@ public:
   void set_trace_buffer(tvm::TraceBuffer *tb) { _tb = tb; }
   tvm::TraceBuffer *trace_buffer() const { return _tb; }
 
+  // --- Replay direction ---
+  //
+  // Encoded as one signed depth so the hot-path query is a sign test. `_floor` is the value at zero INVCALL nesting:
+  // 0 when replaying forward, -1 when replaying backward. INVCALL increments and INVRET decrements, so entering an
+  // invertible subroutine from a backward replay lands on 0 -- which reads as forward, which is exactly the suspension
+  // INVCALL exists to provide. Leaving it returns to -1.
+  //
+  // The floor is stored rather than inferred because -1 is ambiguous on its own: it means "backward, balanced" or
+  // "forward, one INVRET too many", and those must not be confused.
+  void set_direction(Direction d) { _depth = _floor = (d == Direction::Backward ? -1 : 0); }
+  // The direction as the *currently executing code* sees it, i.e. after any INVCALL suspension.
+  bool is_forward() const { return _depth >= 0; }
+  // The direction the replay as a whole is running, ignoring suspension.
+  Direction direction() const { return _floor < 0 ? Direction::Backward : Direction::Forward; }
+
   // Dispatch `decoded` to the matching handler. Not virtual: which handler an alternative belongs to is part of the
   // ISA, not part of what a backend gets to decide.
   void dispatch(MachineState &state, const tvm::DecodedOp::OpChoice &decoded);
@@ -40,6 +59,7 @@ public:
   virtual void on_ret(MachineState &state, const tvm::DecodedOp::Ret &op);
   virtual void on_call(MachineState &state, const tvm::DecodedOp::Call &op);
   virtual void on_invcall(MachineState &state, const tvm::DecodedOp::InvCall &op);
+  virtual void on_invret(MachineState &state, const tvm::DecodedOp::InvRet &op);
   virtual void on_asyn(MachineState &state, const tvm::DecodedOp::ASyn &op);
   virtual void on_isyn(MachineState &state, const tvm::DecodedOp::ISyn &op);
   virtual void on_lmr(MachineState &state, const tvm::DecodedOp::LMR &op);
@@ -58,6 +78,11 @@ public:
 
 protected:
   tvm::TraceBuffer *_tb = nullptr;
+  // Count the number of invcalls vs invrets. If negative, direction will be Backwards.
+  // Must be signed because we use -1 to represent backwards.
+  // Floor is set via set_direction and unchanged from there. Depth is modified on invcall and invret.
+  // Halting a program where they are not == causes a hard stop.
+  int _depth = 0, _floor = 0;
 };
 
 } // namespace tvm
