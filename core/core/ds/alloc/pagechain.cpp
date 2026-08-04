@@ -12,14 +12,16 @@ void pepp::bts::BufferChain::clear() noexcept {
   _buffer_count = 0;
 }
 
-pepp::bts::Buffer::Location pepp::bts::BufferChain::allocate_uninitialized(size_t size) {
+pepp::bts::Buffer::Location pepp::bts::BufferChain::allocate_uninitialized(size_t size) { return reserve(size).loc; }
+
+pepp::bts::BufferChain::Reservation pepp::bts::BufferChain::reserve(size_t size) {
   auto buf = tail();
   if (!buf->can_fit(size)) {
     append_buffer();
     buf = tail();
   }
   const auto off = buf->allocate_uninitialized(size);
-  return Buffer::Location{buf->id(), (u16)off};
+  return Reservation{Buffer::Location{buf->id(), (u16)off}, buf->span().subspan(off, size)};
 }
 
 pepp::bts::Buffer::Location pepp::bts::BufferChain::allocate_initialized(size_t size, u8 fill) {

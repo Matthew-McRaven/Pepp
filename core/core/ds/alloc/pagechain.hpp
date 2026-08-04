@@ -47,7 +47,14 @@ public:
   // An append will all elements set to `fill`.
   Buffer::Location allocate_initialized(size_t size, u8 fill = 0);
   // Bump size without modifying underlying data.
-  Buffer ::Location allocate_uninitialized(size_t size);
+  Buffer::Location allocate_uninitialized(size_t size);
+  // Combine a writable span with the buffer location of allocate_uninitialized.
+  struct Reservation {
+    Buffer::Location loc;
+    bits::span<u8> bytes;
+  };
+  // Call allocate_uninitialized and return a pointer to those bytes.
+  Reservation reserve(size_t size);
   u16 buffer_count() const;
   // Given a buffer ID, return the pointer to that buffer
   Buffer *buffer(Buffer::ID id);
