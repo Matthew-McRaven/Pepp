@@ -4,7 +4,11 @@
 #include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/enums.hpp"
 #include "core/sim/debugger/tvm_apply_backend.hpp"
+#include "core/sim/api/trace.hpp"
+#include "core/sim/debugger/trace_device.hpp"
+#include "core/sim/debugger/trace_recorder.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
+#include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/devicetree.hpp"
 #include "core/sim/systemparser.hpp"
 
@@ -29,11 +33,22 @@ System::System(Configuration config)
 void System::initialize(System *sys) { return initialize(); }
 
 void System::initialize() {
+  // Trace buffer will already exist prior to init(), but it's actual TB won't be built until after it is initialized.
+  // To avoid an initialization-order nightmare, record which device is the TB. We'll use a separate pass to bind
+  // Traceables.
+  trace::BufferDevice *found = nullptr;
   // Finish initializing devices in a post-order traversal.
-  for (auto dev : *_root)
+  for (auto dev : *_root) {
     if (dev != this) {
       dev->initialize(this);
+      // Routing traces between multiple buffers is not supported, so enforce that at most one TB exists.
+      if (auto *as_buffer = dev->capability<trace::BufferDevice>(); found != nullptr)
+        throw std::logic_error("System: more than one trace buffer device");
+      else found = as_buffer;
     }
+  }
+  // With all devices initialized, perform another pass to create recorders for each traceable device.
+  if (found != nullptr) bind_recorders(found->buffer());
 }
 
 std::unique_ptr<DeviceSerializer> System::serializer() const { return make_serializer(); }
@@ -46,7 +61,12 @@ Device::ID System::next_ID() { return _next_ID++; }
 
 Device::IDGenerator System::gen_next_ID() { return _gen_next_ID; }
 
-void System::set_buffer(trace::Buffer *buffer) { throw std::logic_error("Unimplemented"); }
+void System::bind_recorders(tvm::TraceBuffer &tb) {
+  // Each Traceable must get its own device ID to allow per-ID enables to work.
+  for (auto dev : *_root)
+    if (auto *traceable = dev->capability<Traceable>(); traceable != nullptr)
+      traceable->set_recorder(trace::Recorder{&tb, dev->id()});
+}
 
 void System::make_deferred(DeferredDevice ctor) { _deferred_constructors.push_back(std::move(ctor)); }
 

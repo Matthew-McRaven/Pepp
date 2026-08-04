@@ -1,4 +1,5 @@
 #pragma once
+#include <bitset>
 #include <functional>
 #include <iterator>
 #include <memory>
@@ -44,42 +45,30 @@ struct Cursor {
 
 // Trace log of TVM programs.
 //
-// This is a log, not a work queue: nothing here is executed because it was recorded. Programs are kept so they can be
-// replayed later -- forwards to redo, backwards to undo -- and a consumer calls acknowledge() to release the slots it
-// has read. That is why the vocabulary is begin/commit/acknowledge rather than submit/dispatch.
-//
-// TB does not provide helpers to explicitly serialize opcodes so that it won't need modification with the addition of
-// new ops. The class manages the lifetimes of buffers used by a tvm::Interpreter, and provides a circular-queue
-// abstraction. Committed programs go to a ring, whose size provides an upper limit of the length of a trace histroy.
+// TB delegates serializing opcodes to trace::Recorder to avoid modification with addition of new ops.
+// The class manages the lifetimes of buffers used by a tvm::Interpreter, and provides a circular-queue
+// abstraction. Commit()'ed programs go to a ring, whose size provides an upper limit of the length of a trace histroy.
 //
 // Each ring entry can hold ~16k programs, which is limited by the size of the location buffer.
 // The elements of location buffers match the shape of the Interpreter's run_each API.
 // This means each location must point to executable code, and each program must terminate with a HALT.
 // That location buffer provides an extra level of indirection to make random access in the ring O(1) instead of O(N).
-// This is a crucial improvement over the older trace packets system which this class replaces.
+// This is a major improvement over the older trace "packet" systemx.
 // The actual programs themselves can be however long is necessary.
 // Program data and code are stored separately per ring entry. There will always be internal fragmentation because
-// data/code buffers are not shared between ring entries, which was a deliberate choice to reduce the difficult of
-// lifetime mangamenet.
+// data/code buffers are not shared between ring entries, which was a deliberate choice to reduce the difficultly of
+// lifetime mangamenet. As soon as a ring slot is freed, its pages can be released to the BufferManager.
 //
-// Recordings are keyed on the initiating device -- the Device::ID carried in Operation::initiator, i.e. the CPU whose
-// instruction caused the access, not whichever device happens to hold the bytes. That keeps everything one CPU's
-// instruction touched downstream in a single record, so it can be undone atomically. Keying this way also prevents
-// interleaving of instruction data from concurrently-recording devices.
-//
-// Recordings are sparse: most devices never initiate anything, and which ones do is not known ahead of time, so they
-// live in a map created on demand rather than an array sized to the device space. A recording's scratch buffers are
-// kept (not erased) across commit() so their capacity is reused by the next program from that same device.
 //
 // Programs are built incrementally in a per-initiator temporary buffer in 3 parts: a prefix, a body,
 // and a postfix. The program is only copied into the ring when commit() is called. The body of a program is hashed to
-// determine if it has been seen before.
-// If so, the program body is replaced with a call.
-// The body is copied into a "template" buffer if it has not yet been.
-// The template buffer is never freed to avoid dealing with the possibility of use-after-free bugs.
-// The prefix and postfix are always inlined and not considered for hashing/replacement.
+// determine if it has been seen before. If so, the program body is replaced with a call. The body is copied into a
+// "template" buffer if it has not yet been. The template buffer is never freed to avoid dealing with the possibility of
+// use-after-free bugs. The prefix and postfix are always inlined and not considered for hashing/replacement.
+// Grouping recordings by initiating device provide an atomic way to undo a single instruction even when multiple
+// initiating devices are in the system.
 //
-// Since CALLs compile down to ~6 bytes, this should provide footprint reduction for programs which are executed
+// CALLs compile down to ~6 bytes, which should provide footprint reduction for programs which are executed
 // frequently. There are only a limited number of meaningful memory access patterns in Pep/10, so I expect a high hit
 // rate over time.
 //
@@ -94,20 +83,22 @@ struct Cursor {
 //   body:    setmem/setreg paired with DP updated (ACCDP/INCDP/LDP)
 //   postfix: termination — always inlined, not hashed (HALT appended by commit())
 //
-// The caller is responsible for "remembering" the state of the registers across calls to emit*.
 // The only register this class memoizes is DP, which is required because several devices may record concurrently.
-// Each program must set all the registers it needs (except DP that is managed by us and IP/SP which are implicit).
-// Do NOT assume register programming survives across a commit() boundary, even within one initiator: replay may start
-// at any cursor, so the programs that established that state may never have run. Interpreter::run_each enforces this
-// by resetting everything but DP/DS between programs.
+// Each program must set all the registers it needs other than DP/SP.
+// Register programming does not survive across commit() boundaries due to run_each's RegisterRetention mode.
 // This decision simplifies the TraceBuffer implementation and should increase hit-rates for templatization by reducing
 // unnecessary implicit state.
-//
-// Each initiator tracks its last DP position; the caller computes DP deltas.
 class TraceBuffer {
+  // Forward-declared so the public Open handle below can name it; defined in the private section.
+  struct Recording;
+
 public:
   // Minimum body size (in bytes) to be eligible for template promotion.
+  // If a call is 6 bytes, then the body needs to exceed 6 bytes (+ 2 for a ret)
   static constexpr u16 PROMOTION_THRESHOLD = 8;
+  // Ceiling on hashes awaiting a second sighting. Bodies that never repeat would otherwise accumulate one entry per
+  // program forever, which at tens of millions of instructions is hundreds of MB and a steadily slower lookup.
+  static constexpr std::size_t MAX_PENDING_HASHES = 1u << 16;
   // Maximum entries per location buffer (64KB / sizeof(Buffer::Location)).
   static constexpr u16 MAX_LOCATION_ENTRIES = pepp::bts::Buffer::SIZE / sizeof(pepp::bts::Buffer::Location);
 
@@ -115,6 +106,10 @@ public:
   ~TraceBuffer() noexcept;
 
   // --- Recording ---
+  // True between begin() and commit() for this initiator. Since UI accesses may trigger traces, we need to be able to
+  bool is_recording(Device::ID initiator) const;
+  // Look up an in-progress recording. Returns nullptr when the initiator never called begin().
+  Recording *find_recording(Device::ID initiator);
 
   // Begin a new recording for the given initiator, creating its scratch state on first use.
   // Clears the prefix, body, and postfix scratch buffers for this initiator, retaining their capacity.
@@ -132,15 +127,21 @@ public:
   // Append encoded bytes to the prefix section.
   // Not hashed. Always inlined into the code chain.
   // Typically used to insert timestamps.
+  // Prefer Recording& variant outside of tests.
   void emit_prefix(Device::ID initiator, bits::span<const u8> encoded);
+  void emit_prefix(Recording &rec, bits::span<const u8> encoded);
 
   // Append encoded bytes to the body section, which will be de-duplicated on calls to commit.
+  // Prefer Recording& variant outside of tests.
   void emit_body(Device::ID initiator, bits::span<const u8> encoded);
+  void emit_body(Recording &rec, bits::span<const u8> encoded);
 
   // Append encoded bytes to the postfix section.
   // Not hashed. Always inlined after the body (or CALL). commit() appends HALT
   // here automatically; use this to inject instructions before the HALT.
+  // Prefer Recording& variant outside of tests.
   void emit_postfix(Device::ID initiator, bits::span<const u8> encoded);
+  void emit_postfix(Recording &rec, bits::span<const u8> encoded);
 
   // Append raw data to the current ring slot's shared data chain.
   // Returns the location where the data starts. The caller uses this
@@ -148,9 +149,37 @@ public:
   // Immediately updates this initiator's last_dp.
   pepp::bts::Buffer::Location append_data(Device::ID initiator, bits::span<const u8> data);
 
+  // Unitialized data and a writable view of it.
+  struct DataSlot {
+    pepp::bts::Buffer::Location loc;
+    bits::span<u8> bytes;
+  };
+  // Reserves a contiguous chunk of the data chain without initializing the memory, and return that memory as a span of
+  // bytes. Allows us to avoid an extra data copy in some places. Also updates the initiator's last_dp.
+  DataSlot append_data_uninitialized(Device::ID initiator, std::size_t len);
+
   // This initiator's last DP position in the shared data chain.
   // Returns {0,0} if this initiator has never written data.
   pepp::bts::Buffer::Location last_dp(Device::ID initiator) const;
+
+  DataSlot append_data_uninitialized(Recording &rec, std::size_t len);
+
+  // Where the emitted program has pointed DP so far within this recording, and the size it set. `set` is false at the
+  // start of every recording, because a program may not assume register state survived a commit() boundary -- replay
+  // can begin at any cursor. An emitter uses this to decide between an absolute DP load and a cheaper delta.
+  //
+  // Tracked per recording rather than per emitter because several devices contribute to one CPU instruction's record,
+  // and they share the one data pointer.
+  struct DpAnchor {
+    bool set = false;
+    pepp::bts::Buffer::Location at{};
+    u16 size = 0;
+  };
+  DpAnchor dp_anchor(Recording &rec) const;
+  void set_dp_anchor(Recording &rec, pepp::bts::Buffer::Location at, u16 size);
+
+  void trace(Device::ID device, bool enabled = true) { _traced[device.value] = enabled; }
+  bool traced(Device::ID device) const { return _traced[device.value]; }
 
   // --- Backpressure ---
 
@@ -261,6 +290,8 @@ private:
   };
 
   // --- Per-initiator recording state ---
+  // Do not reduce capcity between iterations. After some # of instructions, I expect we'll reach a steady state and
+  // these buffers will stop growing.
   struct Recording {
     std::vector<u8> prefix;
     std::vector<u8> body;
@@ -268,6 +299,8 @@ private:
     // Last DP this initiator set in the shared data chain.
     pepp::bts::Buffer::Location last_dp{};
     bool active = false;
+    // See DpAnchor. Reset by begin().
+    DpAnchor dp{};
   };
 
   // --- Template dedup ---
@@ -287,8 +320,6 @@ private:
   // 32-bit hash, so a map hit alone does not prove the bodies match; this is what makes a collision safe.
   bool template_matches(const TemplateEntry &entry, bits::span<const u8> body);
   pepp::bts::Buffer::Location flush_to_ring(Recording &rec, BodyResolution resolution);
-  // Look up an in-progress recording. Returns nullptr when the initiator never called begin().
-  Recording *find_recording(Device::ID initiator);
 
   // Advance _head to the next ring slot. Fires watermark callbacks as needed.
   void advance_slot();
@@ -330,6 +361,8 @@ private:
     bool fired = false;
   };
   std::vector<Watermark> _watermarks;
+  // Indexed by Device::ID, whose underlying type is u8. 32 bytes, and a lookup is a word load plus a bit test.
+  std::bitset<256> _traced;
   size_t _total_instructions = 0;
 };
 

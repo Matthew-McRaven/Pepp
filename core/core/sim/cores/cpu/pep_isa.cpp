@@ -171,25 +171,18 @@ void PepISA3CPU::set_clock_source(const ClockSource *src) { _clk = src; }
 
 const ClockSource *PepISA3CPU::clock_source() const { return _clk; }
 
-void PepISA3CPU::set_buffer(Buffer *tb) {
-  _tb = tb;
-  _regbank->set_buffer(tb);
-  _csrs->set_buffer(tb);
-}
-
-const Buffer *PepISA3CPU::buffer() const { return _tb; }
+void PepISA3CPU::set_recorder(const trace::Recorder &recorder) { _trace = recorder; }
 
 bool PepISA3CPU::can_generate_traces() const { return true; }
 
-void PepISA3CPU::trace(bool enabled) {
-  if (_tb) {
-    _tb->trace(id(), enabled);
-    _regbank->trace(enabled);
-    _csrs->trace(enabled);
-  }
-}
+bool PepISA3CPU::traced() const { return _trace.traced(); }
 
-bool PepISA3CPU::traced() const { return _tb ? _tb->traced(id()) : false; }
+void PepISA3CPU::trace(bool enabled) {
+  // The CPU is not itself a Target and it holds no state to record, so delegate to the child devices.
+  _trace.set_traced(enabled);
+  if (_regbank) _regbank->trace(enabled);
+  if (_csrs) _csrs->trace(enabled);
+}
 
 void PepISA3CPU::increment_call_depth() {
   // TODO:

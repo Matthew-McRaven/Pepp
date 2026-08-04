@@ -67,17 +67,13 @@ std::unique_ptr<DeviceSerializer> Dense::make_serializer() {
   return std::make_unique<DeviceSerializer>(std::move(s));
 }
 
-void Dense::set_buffer(Buffer *tb) { _tb = tb; }
-
-const Buffer *Dense::buffer() const { return _tb; }
+void Dense::set_recorder(const trace::Recorder &recorder) { _trace = recorder; }
 
 bool Dense::can_generate_traces() const { return true; }
 
-void Dense::trace(bool enabled) {
-  if (_tb) _tb->trace(id(), enabled);
-}
+void Dense::trace(bool enabled) { _trace.set_traced(enabled); }
 
-bool Dense::traced() const { return _tb ? _tb->traced(id()) : false; }
+bool Dense::traced() const { return _trace.traced(); }
 
 AddressSpan Dense::span() const { return _config.span; }
 
@@ -90,10 +86,6 @@ Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) c
   const auto offset = address - span.lower();
   const auto src = bits::span<const u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   // TODO: emit a pure read to TB.
-  // Ignore reads from UI, since this device only issues pure reads.
-  // Ignore reads from buffer internal operations.
-  if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) && _tb)
-    ;
   bits::memcpy(dest, src);
   return {};
 }
@@ -106,11 +98,7 @@ Target::Result Dense::write(Address address, bits::span<const u8> src, Operation
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
   const auto offset = address - span.lower();
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  // Record changes, even if the come from UI. Otherwise, step back fails.
-  // Ignore reads from UI, since this device only issues pure reads.
-  // Ignore reads from buffer internal operations.
-  if (op.type != Operation::Type::BufferInternal && _tb)
-    ;
+  _trace.emit_write(op, address, dest.first(src.size()), src);
   bits::memcpy(dest, src);
   return {};
 }

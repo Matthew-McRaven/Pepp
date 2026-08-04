@@ -32,9 +32,6 @@
 namespace pepp::bts {
 class BufferManager;
 }
-namespace trace {
-class Buffer;
-}
 namespace tvm {
 class Interpreter;
 class TraceBuffer;
@@ -82,7 +79,10 @@ public:
   Device::ID next_ID();
   Device::IDGenerator gen_next_ID();
 
-  void set_buffer(trace::Buffer *buffer);
+  // Hand every Traceable in the device tree a Recorder bound to its own ID. Devices start untraced -- this only
+  // establishes where their trace would go, not that any is collected; use TraceBuffer::trace() to switch a device on.
+  // Safe to call again to re-point at a different buffer.
+  void bind_recorders(tvm::TraceBuffer &tb);
 
   // Create a device that is a child of the root (this system)
   template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>

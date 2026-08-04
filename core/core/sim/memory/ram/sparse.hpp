@@ -19,6 +19,7 @@
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
+#include "core/sim/debugger/trace_recorder.hpp"
 
 class Sparse final : public Device, public Target, public Traceable {
 public:
@@ -46,8 +47,7 @@ public:
   static std::unique_ptr<DeviceSerializer> make_serializer();
 
   // TraceSource interface
-  void set_buffer(Buffer *tb) override;
-  const Buffer *buffer() const override;
+  void set_recorder(const trace::Recorder &recorder) override;
   bool can_generate_traces() const override;
   void trace(bool enabled) override;
   bool traced() const override;
@@ -62,5 +62,5 @@ public:
 private:
   Configuration _config;
   pepp::bts::PagedPool<u8> _pool;
-  Buffer *_tb = nullptr;
+  trace::Recorder _trace;
 };

@@ -51,6 +51,9 @@ void TraceBuffer::begin(Device::ID initiator) {
   rec.body.clear();
   rec.postfix.clear();
   rec.active = true;
+  // A program may not assume DP survived the previous commit(), so the first emitter in this recording has to state
+  // it absolutely.
+  rec.dp = {};
 }
 
 pepp::bts::Buffer::Location TraceBuffer::commit(Device::ID initiator) {
@@ -77,22 +80,40 @@ pepp::bts::Buffer::Location TraceBuffer::commit(Device::ID initiator) {
   return ret;
 }
 
+void TraceBuffer::emit_prefix(Recording &rec, bits::span<const u8> encoded) {
+  rec.prefix.insert(rec.prefix.end(), encoded.begin(), encoded.end());
+}
+
+void TraceBuffer::emit_body(Recording &rec, bits::span<const u8> encoded) {
+  rec.body.insert(rec.body.end(), encoded.begin(), encoded.end());
+}
+
+void TraceBuffer::emit_postfix(Recording &rec, bits::span<const u8> encoded) {
+  rec.postfix.insert(rec.postfix.end(), encoded.begin(), encoded.end());
+}
+
+TraceBuffer::DpAnchor TraceBuffer::dp_anchor(Recording &rec) const { return rec.dp; }
+
+void TraceBuffer::set_dp_anchor(Recording &rec, pepp::bts::Buffer::Location at, u16 size) {
+  rec.dp = DpAnchor{true, at, size};
+}
+
 void TraceBuffer::emit_prefix(Device::ID initiator, bits::span<const u8> encoded) {
-  auto *rec = find_recording(initiator);
-  assert(rec && rec->active && "emit_prefix() outside a begin()/commit() pair");
-  rec->prefix.insert(rec->prefix.end(), encoded.begin(), encoded.end());
+  auto rec = find_recording(initiator);
+  assert(rec && "emit_prefix() outside a begin()/commit() pair");
+  emit_prefix(*rec, encoded);
 }
 
 void TraceBuffer::emit_body(Device::ID initiator, bits::span<const u8> encoded) {
-  auto *rec = find_recording(initiator);
-  assert(rec && rec->active && "emit_body() outside a begin()/commit() pair");
-  rec->body.insert(rec->body.end(), encoded.begin(), encoded.end());
+  auto rec = find_recording(initiator);
+  assert(rec && "emit_body() outside a begin()/commit() pair");
+  emit_body(*rec, encoded);
 }
 
 void TraceBuffer::emit_postfix(Device::ID initiator, bits::span<const u8> encoded) {
-  auto *rec = find_recording(initiator);
-  assert(rec && rec->active && "emit_postfix() outside a begin()/commit() pair");
-  rec->postfix.insert(rec->postfix.end(), encoded.begin(), encoded.end());
+  auto rec = find_recording(initiator);
+  assert(rec && "emit_postfix() outside a begin()/commit() pair");
+  emit_postfix(*rec, encoded);
 }
 
 pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits::span<const u8> data) {
@@ -101,6 +122,23 @@ pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits:
   auto loc = current_node().data->append(data);
   rec->last_dp = loc;
   return loc;
+}
+
+TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Recording &rec, std::size_t len) {
+  const auto res = current_node().data->reserve(len);
+  rec.last_dp = res.loc;
+  return DataSlot{res.loc, res.bytes};
+}
+
+TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Device::ID initiator, std::size_t len) {
+  auto rec = find_recording(initiator);
+  assert(rec && "append_data_uninitialized() outside a begin()/commit() pair");
+  return append_data_uninitialized(*rec, len);
+}
+
+bool TraceBuffer::is_recording(Device::ID initiator) const {
+  auto it = _recordings.find(initiator);
+  return it != _recordings.end() && it->second.active;
 }
 
 pepp::bts::Buffer::Location TraceBuffer::last_dp(Device::ID initiator) const {
@@ -225,7 +263,8 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
     return {false, {}};
   }
 
-  // First occurrence.
+  // Maybe first occurrence? Cap the size of pending to some reasonable number so that it doesn't grow unboundedly.
+  if (_pending_hashes.size() >= MAX_PENDING_HASHES) _pending_hashes.clear();
   _pending_hashes.insert(hash);
   return {false, {}};
 }

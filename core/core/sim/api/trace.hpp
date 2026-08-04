@@ -14,49 +14,27 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <array>
-#include <system_error>
-#include <zpp_bits.h>
-#include "core/integers.h"
-#include "core/math/bitmanip/copy.hpp"
-#include "core/math/bitmanip/span.hpp"
 #include "core/sim/api/device.hpp"
 
-class Buffer {
-public:
-  static constexpr Device::Type TypeMask = Device::Type::TraceBuffer;
-  virtual ~Buffer() = default;
+namespace trace {
+class Recorder;
+}
 
-  // Create a new frame header and write it to the buffer
-  virtual bool begin_group(Device::ID which_device) = 0;
-  virtual bool write_packet(Device::ID group, bits::span<const u8> packet) = 0;
-
-  // Deriving classes MUST also call this implementation of clear() if overriding it.
-  virtual void clear() = 0;
-
-  // virtual FrameIterator cbegin() const = 0;
-  // virtual FrameIterator cend() const = 0;
-  // virtual FrameIterator crbegin() const = 0;
-  // virtual FrameIterator crend() const = 0;
-
-  virtual bool trace(Device::ID deviceID, bool enabled = true) = 0;
-  virtual bool traced(Device::ID deviceID) const = 0;
-};
-
-// A unified produce-consumer for traces.
-// It expects that anything which produces or consumes traces be a Device (which means it exists in the device tree).
-// can_generate_traces() should return true if the device is ever capable of generating traces in the buffer.
-// traced() should return true if the device is currently generating traces in the buffer, and trace provides a
-// programtic toggle.
-// For example, a debugger would return false from both traced() and can_generate_traces().
-// A memory system would always return true from can_generate_traces(), but traced() would depend on the configuration
-// of the system-under-test.
+// A device that can contribute to a trace.
+// At System initialization time, the System walks the device tree and binds every traceable to a trace::Recorder.
+// A Recorder is a helper class which emits changes as meaningful, invertible tvm programs.
+// We do not operate on TB directly, otherwise all Traceables would need to handle enable tracking, which would be
+// code duplicated across all devices.
 class Traceable {
 public:
   static constexpr Device::Type TypeMask = Device::Type::Traceable;
-  virtual void set_buffer(Buffer *tb) = 0;
-  virtual const Buffer *buffer() const = 0;
+  virtual ~Traceable() = default;
+  // Taken by const reference so this header needs only a forward declaration; implementors copy it by value.
+  virtual void set_recorder(const trace::Recorder &recorder) = 0;
+  // Can this device ever be traced? A debugger or TraceBuffer would answer false would answer false.
   virtual bool can_generate_traces() const = 0;
-  virtual void trace(bool enabled) = 0;
+  // Is this device currently being traced in our TB?
   virtual bool traced() const = 0;
+  // Toggle the traced state of this device in our TB. If the device cannot generate traces, this must be a no-op.
+  virtual void trace(bool enabled) = 0;
 };
