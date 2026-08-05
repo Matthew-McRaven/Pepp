@@ -155,16 +155,22 @@ std::unique_ptr<DeviceSerializer> PepISA3CPU::make_serializer() {
 }
 
 void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
+  // Create a single record for the entire instruction
+  trace::Recorder::Instruction record(_trace);
+  // TODO: when function signature changes, use that tick offset instead of this placeholder.
+  record.tick(1);
+
   // Fetch & increment pc
   auto pc = read_register(isa::Pep10::Register::PC);
-  // NOTE: this is the instruction fetch, but it is classified Kind::data rather than Kind::instruction. That predates
-  // initiator stamping and is preserved here deliberately -- changing Kind would alter how devices treat the access.
+  // TODO: Should probably be an instruction access?
   u8 is = _target->read<u8, false>(pc, op_data()).second;
   pc += 1;
+
   write_register(isa::Pep10::Register::PC, pc);
   write_register(isa::Pep10::Register::IS, is);
   handle(_opcodes[is]);
   // TODO: handle breakpoints, debug info, etc
+  record.commit();
 }
 
 void PepISA3CPU::set_clock_source(const ClockSource *src) { _clk = src; }

@@ -1,5 +1,6 @@
 #include "core/sim/debugger/trace_recorder.hpp"
 #include <algorithm>
+#include <utility>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
@@ -7,6 +8,40 @@
 namespace trace {
 
 bool Recorder::traced() const { return _tb != nullptr && _tb->traced(_emitter); }
+
+// --- Initiator side ---
+
+Recorder::Instruction::Instruction(const Recorder &rec) {
+  if (!rec.traced()) return;
+  _tb = rec._tb;
+  _initiator = rec._emitter;
+  _tb->begin(_initiator);
+}
+
+Recorder::Instruction::~Instruction() {
+  // Non-null here means commit() never ran, so we are unwinding out of a half-executed instruction.
+  if (_tb != nullptr) _tb->abort(_initiator);
+}
+
+void Recorder::Instruction::tick(i16 delta) {
+  if (_tb == nullptr) return;
+  // Resolve rather than using the Device::ID overloads, which assert on a closed recording and dereference null once
+  // NDEBUG removes the assert.
+  auto rec = _tb->find_recording(_initiator);
+  if (rec == nullptr) return;
+  // The immediate form carries its two payload bytes in the instruction stream. Reading from DP instead would be
+  // smaller, but it would spend the data pointer that the body is about to set up for its own payloads.
+  const auto isyn = tvm::EncodedOp::ISyn<1>{}.encode(static_cast<u16>(delta));
+  _tb->emit_prefix(*rec, {isyn.data(), isyn.size()});
+}
+
+void Recorder::Instruction::commit() {
+  if (_tb == nullptr) return;
+  // Clear before committing: if commit() throws RingOverflow, the destructor must not then abort a recording that
+  // commit() already closed.
+  auto *tb = std::exchange(_tb, nullptr);
+  tb->commit(_initiator);
+}
 
 void Recorder::set_traced(bool enabled) {
   if (_tb) _tb->trace(_emitter, enabled);

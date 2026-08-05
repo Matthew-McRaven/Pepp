@@ -82,6 +82,36 @@ public:
   // that would have been thrown away.
   void emit_write(const Operation &op, Address address, bits::span<const u8> now, PriorFiller fill_prior);
 
+  // A helper class which which helps open & close a recording for a single instruction.
+  class Instruction {
+  public:
+    // Opens a recording when `rec` is bound and traced, and is inert otherwise -- so an untraced CPU pays one bitset
+    // test per instruction and nothing more.
+    explicit Instruction(const Recorder &rec);
+    // If commit() was never called, abort the recording rather than commit(), since commit can throw RingOverflow.
+    // So commit() is the happy path, and this is the failure path.
+    ~Instruction();
+    Instruction(const Instruction &) = delete;
+    Instruction &operator=(const Instruction &) = delete;
+    Instruction(Instruction &&) = delete;
+    Instruction &operator=(Instruction &&) = delete;
+
+    // Record an ISYN with a relative tick count, which is the number of ticks since the PREVIOUS GLOBAL TICK FOR THAT
+    // CLOCK. This value will be provided to you by the caller of our tick() equivalent. The value is carried as two
+    // bytes and sign-extended on decode, so it spans the same range as i16.
+    void tick(i16 delta);
+
+    // Finish the record. A no-op when nothing was opened. Throws tvm::RingOverflow if the ring will become fully
+    void commit();
+
+    // True when a recording was actually opened.
+    explicit operator bool() const { return _tb != nullptr; }
+
+  private:
+    tvm::TraceBuffer *_tb = nullptr;
+    Device::ID _initiator{};
+  };
+
 private:
   // Null means this device was never bound to a buffer.
   tvm::TraceBuffer *_tb = nullptr;
