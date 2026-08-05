@@ -194,6 +194,21 @@ public:
   void trace(Device::ID device, bool enabled = true) { _traced[device.value] = enabled; }
   bool traced(Device::ID device) const { return _traced[device.value]; }
 
+  // When false, we prefer packet formats which encode offsets in the instruction,
+  // When true, we prefer packet formats which encode offsets in the datastream.
+  // If you have a consistent access pattern to offsets (register banks), set to false. All other cases should be true.
+  // Moving the address into the payload makes updating the offset more expensive but provides more opportunities for
+  // de-duplication. Not all operations support both formats, in which case this recorder will choose whichever is
+  // available
+  void set_address_in_payload(Device::ID device, bool enabled) { _address_in_payload[device.value] = enabled; }
+  bool address_in_payload(Device::ID device) const { return _address_in_payload[device.value]; }
+
+  // Address-space size at or below which System::bind_recorders will set_address_in_payload(true) for that device.
+  // Register banks, CSRs are small and have predictable access patterns. Main memory is usually big and less
+  // predictable. This is an atbitrary threshold which tries to select the right behavior by default. Systems with
+  // device-specific knowledge aree free to ignore this suggestion.
+  static constexpr std::size_t DEFAULT_NARROW_TARGET_BYTES = 256;
+
   // --- Backpressure ---
 
   // Register a callback for when ring occupancy crosses a threshold (0.0 to 1.0).
@@ -430,10 +445,10 @@ private:
   size_t _head = 0; // Next slot to write
   size_t _tail = 0; // Oldest unconsumed slot
 
-  // Sparse on purpose: only devices that actually initiate accesses ever appear, and which those are is not known
-  // until one records. Sizing this to the Device::ID space would allocate hundreds of idle std::vectors to serve the
-  // one or two CPUs that are real initiators. Entries are created on first begin() and then kept, so a device's
-  // scratch buffers keep their capacity across programs instead of reallocating on every instruction.
+  // Only devices that actually initiate accesses ever appear. That set is not known until a device starts
+  // recording. Sizing this to the Device::ID space would allocate hundreds of idle std::vectors to serve the one or two
+  // are actual initiators. Entries are created on first begin() and then kept, so a device's scratch buffers
+  // keep their capacity across programs instead of reallocating on every instruction.
   std::unordered_map<Device::ID, Recording, pepp::handle_hash<Device::ID>> _recordings;
 
   // Templates are only freed on TraceBuffer destruction to avoid lifetime management issues.
@@ -450,8 +465,10 @@ private:
     bool fired = false;
   };
   std::vector<Watermark> _watermarks;
-  // Indexed by Device::ID, whose underlying type is u8. 32 bytes, and a lookup is a word load plus a bit test.
+  // Both indexed by Device::ID, whose underlying type is u8. 32 bytes each, and a lookup is a word load plus a bit
+  // test -- cheap enough to sit on the per-write path.
   std::bitset<256> _traced;
+  std::bitset<256> _address_in_payload;
 
   // Accumulated performance counters.
   Footprint _footprint;

@@ -68,9 +68,10 @@ void Recorder::emit_write(const Operation &op, Address address, bits::span<const
   if (rec == nullptr) return;
 
   // If using SETMEMDX encoding, we need to reserve additional bytes for the OFFSET value.
-  const std::size_t prologue = _address_in_payload ? tvm::SETMEMDX_ADDRESS_BYTES : 0;
+  const bool address_in_payload = _tb->address_in_payload(_emitter);
+  const std::size_t prologue = address_in_payload ? tvm::SETMEMDX_ADDRESS_BYTES : 0;
   const auto slot = _tb->append_data_uninitialized(*rec, prologue + len);
-  if (_address_in_payload) {
+  if (address_in_payload) {
     // OFF.hi then OFF.lo, each a little-endian 16-bit word -- the layout decode_setmemdx reads back.
     slot.bytes[0] = (u8)((address >> 16) & 0xFF);
     slot.bytes[1] = (u8)((address >> 24) & 0xFF);
@@ -112,18 +113,13 @@ void Recorder::emit_write(const Operation &op, Address address, bits::span<const
   }
   _tb->set_dp_anchor(*rec, slot.loc, (u16)len, (u16)(prologue + len));
 
-  // The replayed write is classified BufferInternal so that re-applying a trace neither re-enters tracing nor
-  // re-triggers memory-mapped side effects. It keeps the original initiator, so a replayed write is still attributable
-  // to the CPU whose instruction originally caused it.
-  const Operation replay(Operation::Type::BufferInternal, Operation::Kind::data, op.initiator);
-  if (_address_in_payload) {
+  if (address_in_payload) {
     // No address or data in instruction, which increase opportunities for templatization.
-    const auto set = tvm::EncodedOp::SetMemDX<2>{.access = replay.as_u16(), .dev = _emitter.value}.encode();
+    const auto set = tvm::EncodedOp::SetMemDX<2>{.access = op.as_u16(), .dev = _emitter.value}.encode();
     _tb->emit_body(*rec, {set.data(), set.size()});
   } else {
     const auto off = tvm::SegmentPair{.hi = (u16)(address >> 16), .lo = (u16)(address & 0xFFFF)};
-    const auto set =
-        tvm::EncodedOp::SetMem<true, 4>{.access = replay.as_u16(), .dev = _emitter.value, .off = off}.encode();
+    const auto set = tvm::EncodedOp::SetMem<true, 4>{.access = op.as_u16(), .dev = _emitter.value, .off = off}.encode();
     _tb->emit_body(*rec, {set.data(), set.size()});
   }
 }

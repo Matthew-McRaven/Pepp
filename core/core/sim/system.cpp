@@ -66,12 +66,15 @@ void System::bind_recorders(tvm::TraceBuffer &tb) {
   for (auto dev : *_root) {
     auto *traceable = dev->capability<Traceable>();
     if (traceable == nullptr) continue;
+
+    traceable->set_recorder(trace::Recorder{&tb, dev->id()});
     // Try to select register banks and CSRs by filtering based on their size.
-    // For small targets, prefer to pass addresses/offsets via the trace's code rather than the trace's data stream.
-    bool wide = false;
-    if (auto *target = dev->capability<Target>(); target != nullptr)
-      wide = size_inclusive(target->span()) > trace::Recorder::NARROW_TARGET_BYTES;
-    traceable->set_recorder(trace::Recorder{&tb, dev->id(), wide});
+    // For small targets, prefer to pass addresses/offsets via the trace's code rather than the trace's data stream. A
+    // system that knows better can call set_address_in_payload() after initialize().
+    if (auto *target = dev->capability<Target>(); target != nullptr) {
+      const bool wide = size_inclusive(target->span()) > tvm::TraceBuffer::DEFAULT_NARROW_TARGET_BYTES;
+      tb.set_address_in_payload(dev->id(), wide);
+    }
   }
 }
 
