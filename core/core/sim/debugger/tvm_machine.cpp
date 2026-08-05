@@ -39,8 +39,10 @@ void MachineState::update_dp(pepp::bts::Buffer::Location loc) {
   regs.DP.lo = loc.offset;
 }
 
+// Both stack faults hard-stop rather than soft-stop. You've submitted a bogus program, and the machine will not be able
+// to recover without outside assitance.
 void MachineState::push(tvm::SegmentPair v) {
-  if (regs.SP + 4 > _stack.size()) return soft_stop(tvm::StopCause::StackOverflow);
+  if (regs.SP + 4 > _stack.size()) return hard_stop(tvm::StopCause::StackOverflow);
   _stack[regs.SP + 0] = (u8)(v.hi >> 8);
   _stack[regs.SP + 1] = (u8)(v.hi & 0xFF);
   _stack[regs.SP + 2] = (u8)(v.lo >> 8);
@@ -50,7 +52,7 @@ void MachineState::push(tvm::SegmentPair v) {
 
 tvm::SegmentPair MachineState::pop() {
   // Ensure pop of 2*16-bit registers won't cause underflow.
-  if (regs.SP < 4) return soft_stop(tvm::StopCause::StackUnderflow), tvm::SegmentPair{};
+  if (regs.SP < 4) return hard_stop(tvm::StopCause::StackUnderflow), tvm::SegmentPair{};
 
   tvm::SegmentPair v;
   regs.SP -= 4;

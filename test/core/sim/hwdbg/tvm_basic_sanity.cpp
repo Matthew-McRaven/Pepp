@@ -582,26 +582,28 @@ TEST_CASE("tvm::Interpreter: stop causes", "[scope:core][scope:core.dbg][kind:un
   // Not an exhaustive sweep of StopCause -- one representative of each way the machine can give up: a stack limit, a
   // decode failure, and an unreadable instruction buffer.
 
-  SECTION("Recursing past the stack soft-stops with StackOverflow") {
+  SECTION("Recursing past the stack hard-stops with StackOverflow") {
     // 256-byte stack, 4 bytes per frame, so the 65th push is the one that fails.
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     constexpr auto program = Call<1>{.next_ip_lo = 0}.encode(); // calls itself forever
     blaster.run(load_at(*mgr, program));
 
     CHECK(blaster.stopped());
-    CHECK(blaster.csrs().F == 0); // soft: the program is malformed, but the machine is coherent
+    // Hard: run_each must abort here rather than continue to the next record. A soft stop would be
+    // indistinguishable from a program that ran to its HALT, and the rest of this record's writes never happened.
+    CHECK(blaster.csrs().F == 1);
     CHECK(blaster.stop_cause() == StopCause::StackOverflow);
     CHECK(blaster.regs().SP == 256); // the failed push left it where it was
   }
 
-  SECTION("Returning with an empty stack soft-stops with StackUnderflow") {
+  SECTION("Returning with an empty stack hard-stops with StackUnderflow") {
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     constexpr auto program = Ret<0>{}.encode();
     load_program(*mgr, blaster, program);
     blaster.step();
 
     CHECK(blaster.stopped());
-    CHECK(blaster.csrs().F == 0);
+    CHECK(blaster.csrs().F == 1);
     CHECK(blaster.stop_cause() == StopCause::StackUnderflow);
   }
 
