@@ -66,4 +66,40 @@ TEST_CASE("Validations of Buffer chain classes", "[kind:unit][arch:*][!throws][t
     CHECK(mgr->allocated_buffers() == 0);
     CHECK(mgr->free_buffers() == 2);
   }
+  SECTION("A recycled buffer comes back empty") {
+    const auto mgr = std::make_shared<BufferManager>();
+    {
+      const auto chain = mgr->alloc_chain();
+      // Use every byte, so a buffer that kept its allocation cursor would report itself full on the way back out.
+      chain->allocate_uninitialized(Buffer::SIZE);
+      CHECK(mgr->allocated_buffers() == 1);
+    }
+    REQUIRE(mgr->free_buffers() == 1);
+
+    // Reuse must start from zero. If the cursor came back with the buffer, can_fit() fails, the chain rolls onto a
+    // second buffer, and buffer_count() gives it away -- which is what used to happen, all the way up to throwing
+    // "Page overflow" once the pool had no clean buffers left.
+    const auto chain = mgr->alloc_chain();
+    auto loc = chain->append(std::array<u8, 4>{1, 2, 3, 4});
+    CHECK(loc.offset == 0);
+    CHECK(chain->buffer_count() == 1);
+    CHECK(mgr->free_buffers() == 0);
+  }
+  SECTION("reserve hands back a writable view of the bytes it allocated") {
+    const auto mgr = std::make_shared<BufferManager>();
+    const auto chain = mgr->alloc_chain();
+    auto first = chain->reserve(4);
+    REQUIRE(first.bytes.size() == 4);
+    first.bytes[0] = 0xAA, first.bytes[3] = 0xDD;
+
+    // The span has to alias the chain's own storage. A copy would compile and silently record nothing.
+    auto *buf = chain->buffer(first.loc.id);
+    REQUIRE(buf != nullptr);
+    CHECK(buf->span()[first.loc.offset + 0] == 0xAA);
+    CHECK(buf->span()[first.loc.offset + 3] == 0xDD);
+
+    // And a second reservation must not overlap the first.
+    auto second = chain->reserve(4);
+    CHECK(second.loc.offset == first.loc.offset + 4);
+  }
 }
