@@ -480,4 +480,76 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
     }
     CHECK(tb.pending_count() <= tvm::TraceBuffer::MAX_PENDING_HASHES);
   }
+
+  SECTION("Footprint reports reports promotion savings") {
+    const auto empty = tb.footprint();
+    CHECK(empty.programs == 0);
+    CHECK(empty.total() == 0);
+    // Defined as 0 rather than dividing by zero when nothing has been recorded.
+    CHECK(empty.compression_ratio() == 0.0);
+
+    // Twenty instructions of identical shape. The first should be inlined, the remaining are calls.
+    for (u16 i = 0; i < 20; ++i) one_instruction(i, (u16)(i + 1));
+
+    const auto f = tb.footprint();
+    CHECK(f.programs == 20);
+    CHECK(f.programs == tb.instruction_count());
+    REQUIRE(tb.template_count() == 1);
+
+    // Always inlining should have a cost.
+    CHECK(f.code < f.code_if_inlined);
+    CHECK(f.templates > 0);
+    // Check that the cost of templates + code is less than the always-inlined case
+    CHECK(f.total() < f.total_if_inlined());
+    CHECK(f.compression_ratio() > 1.0);
+
+    // Payloads are untouched by promotion, so they sit on both sides of the comparison unchanged.
+    CHECK(f.data > 0);
+    CHECK(f.total() - f.data == f.code + f.templates);
+
+    // Reserved is not the same question as written: buffer_footprint counts whole buffers, so it is a multiple of the
+    // buffer size and never smaller than the bytes actually put in them.
+    CHECK(tb.buffer_footprint() % pepp::bts::Buffer::SIZE == 0);
+    CHECK(tb.buffer_footprint() >= f.total());
+
+    // Reset puts the counters back to the state the top of this section asserted, so a later measurement covers only
+    // what follows it.
+    tb.reset_footprint();
+    const auto cleared = tb.footprint();
+    CHECK(cleared.programs == 0);
+    CHECK(cleared.total() == 0);
+    CHECK(cleared.total_if_inlined() == 0);
+    CHECK(cleared.compression_ratio() == 0.0);
+    CHECK(tb.instruction_count() == 0);
+
+    // Statistics only. The buffer still holds everything it did a moment ago -- the template survived, so the next
+    // instruction of this shape is still a CALL -- and counting resumes from zero rather than from nothing.
+    CHECK(tb.template_count() == 1);
+    CHECK(tb.buffer_footprint() >= f.total());
+    one_instruction(0xAB, 0xCD);
+    const auto after = tb.footprint();
+    CHECK(after.programs == 1);
+    CHECK(after.data > 0);
+    // Promoted on the first sighting after the reset, which it could only do by reusing the surviving template.
+    CHECK(after.code < after.code_if_inlined);
+  }
+
+  SECTION("No compression for unique bodies") {
+    // Each write targets a different address, so no two bodies match and nothing is ever promoted. This is the case
+    // ordinary memory traffic hits today, because the body carries the target address literally -- only writes to a
+    // fixed address (a register bank) currently produce a repeatable body.
+    for (u16 i = 0; i < 20; ++i) {
+      tb.begin(CPU);
+      ((Target *)mem)->write<u16, bits::host_is_le>(0x100 + i * 2, i, emit_write_op);
+      tb.commit(CPU);
+    }
+
+    const auto f = tb.footprint();
+    CHECK(tb.template_count() == 0);
+    CHECK(f.templates == 0);
+    // Nothing was replaced, so both sides agree exactly and the ratio is exactly 1.
+    CHECK(f.code == f.code_if_inlined);
+    CHECK(f.compression_ratio() == 1.0);
+    CHECK(f.bytes_per_program() == f.bytes_per_program_if_inlined());
+  }
 }

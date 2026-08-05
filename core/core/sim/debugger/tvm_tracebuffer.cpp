@@ -96,7 +96,7 @@ pepp::bts::Buffer::Location TraceBuffer::commit(Device::ID initiator) {
   node.count++;
   node.in_use = true;
   rec->active = false;
-  _total_instructions++;
+  _footprint.programs++;
 
   if (node.count >= MAX_LOCATION_ENTRIES) advance_slot();
   return ret;
@@ -153,12 +153,14 @@ pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits:
   auto *rec = find_recording(initiator);
   assert(rec && rec->active && "append_data() outside a begin()/commit() pair");
   auto loc = data_chain(*rec).append(data);
+  _footprint.data += data.size();
   rec->last_dp = loc;
   return loc;
 }
 
 TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Recording &rec, std::size_t len) {
   const auto res = data_chain(rec).reserve(len);
+  _footprint.data += len;
   rec.last_dp = res.loc;
   return DataSlot{res.loc, res.bytes};
 }
@@ -204,6 +206,26 @@ void TraceBuffer::acknowledge(Cursor up_to) {
 float TraceBuffer::ring_occupancy() const {
   if (_ring.empty()) return 0.0f;
   return static_cast<float>(_head - _tail) / static_cast<float>(_ring.size());
+}
+
+// --- Footprint accounting ---
+
+TraceBuffer::Footprint TraceBuffer::footprint() const { return _footprint; }
+
+void TraceBuffer::reset_footprint() { _footprint = {}; }
+
+std::size_t TraceBuffer::buffer_footprint() const {
+  // Whole buffers, not bytes written -- this is the number that answers "how much memory is this actually holding",
+  // which Footprint deliberately does not, since a half-empty buffer costs the same as a full one.
+  std::size_t buffers = 0;
+  for (auto &node : _ring) {
+    if (node.locations) ++buffers;
+    if (node.code) buffers += node.code->buffer_count();
+    for (auto &[initiator, chain] : node.data)
+      if (chain) buffers += chain->buffer_count();
+  }
+  if (_templates) buffers += _templates->buffer_count();
+  return buffers * pepp::bts::Buffer::SIZE;
 }
 
 // --- Data chain navigation ---
@@ -292,6 +314,8 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
       _templates->ensure_capacity(body.size() + ret.size());
       auto loc = _templates->append(body);
       _templates->append({ret.data(), ret.size()});
+      // The fixed cost of promotion is the unbounded lifetime of the template chain, which is amortized over  re-uses.
+      _footprint.templates += body.size() + ret.size();
 
       TemplateEntry entry{};
       entry.location = loc;
@@ -351,6 +375,12 @@ pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(Recording &rec, BodyResol
   } else if (!rec.body.empty()) append({rec.body.data(), rec.body.size()});
 
   append({rec.postfix.data(), rec.postfix.size()});
+
+  // The number of bytes actuallly written to the code chain vs the bytes.
+  _footprint.code += total;
+  // What if this body was inlined instead of promoted? Provides a metric for how much promotion is saving us rather
+  // than making promotion an optional feature.
+  _footprint.code_if_inlined += rec.prefix.size() + rec.body.size() + rec.postfix.size();
 
   // Record this subroutine's entry point in the locations buffer.
   write_location(node, node.count, subroutine_start);

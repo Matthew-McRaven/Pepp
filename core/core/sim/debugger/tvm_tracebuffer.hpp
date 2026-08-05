@@ -263,9 +263,52 @@ public:
   // Number of distinct initiators that have ever recorded. Entries persist after commit() so their scratch capacity
   // is reused, so this counts devices seen, not devices currently recording.
   size_t recording_count() const { return _recordings.size(); }
-  size_t instruction_count() const { return _total_instructions; }
+  size_t instruction_count() const { return _footprint.programs; }
   // Current ring occupancy: (_head - _tail) / ring_size.
   float ring_occupancy() const;
+
+  // --- Footprint accounting ---
+  // A class containing performance counters (and metrics derived from them) to analyze the effectiveness of our
+  // promotion scheme. Prefer counters over a promotion_enable flag, which would require 2 runs of the same program to
+  // compare effectiveness. This counters are monotonically non-decreasing, and must survive acknowledge().
+  struct Footprint {
+    // Bytes appended to ring code chains -- prefix + (body or CALL) + postfix -- summed over every committed program.
+    std::size_t code = 0;
+    // Code size if ever body was inlined instead of using a CALL to a template.
+    // The difference `code_if_inlined - code` is the # of bytes saved by templating.
+    std::size_t code_if_inlined = 0;
+    // Bytes appended to the template chain, which is the promoted body plus ret.
+    // This is an unreclaimable cost, and must be accounted for in the compression ration.
+    std::size_t templates = 0;
+    // Bytes appended to data chains, which cannot be compressed. Ideally, this would be the largest % of the total
+    // bytes, which means our compression works.
+    std::size_t data = 0;
+    // Programs committed.
+    std::size_t programs = 0;
+
+    // Retained bytes with promotion on, and what the same trace would have cost with it off.
+    std::size_t total() const { return code + templates + data; }
+    std::size_t total_if_inlined() const { return code_if_inlined + data; }
+    // The number worth quoting against the old packet format. 0 when nothing has been committed.
+    double bytes_per_program() const { return programs ? (double)total() / (double)programs : 0.0; }
+    double bytes_per_program_if_inlined() const {
+      return programs ? (double)total_if_inlined() / (double)programs : 0.0;
+    }
+    // >1 means promotion is winning. Counts bytes written, not buffers reserved -- see buffer_footprint() for that.
+    double compression_ratio() const { return total() ? (double)total_if_inlined() / (double)total() : 0.0; }
+  };
+  // A snapshot, by value: callers routinely take one before a run and another after, and compare them.
+  Footprint footprint() const;
+
+  // Reset all footprint /counters/ to 0 while retaining all other state inside the class.
+  // Cost comparisons involving templates will be incorrect because exisitng templates' cost will no longer accounted
+  // for. A full reset to the TraceBuffer must also invoke this method.
+  void reset_footprint();
+
+  // Bytes of buffer this TraceBuffer's chains and location buffers currently hold. Unlike Footprint this counts what
+  // the allocator reserved rather than what was written, so it includes the unused tail of every partially-filled
+  // buffer -- the cost per-initiator data chains trade away to keep bodies templatizable.
+  std::size_t buffer_footprint() const;
 
   // --- Inspect template promotion, mostly used for tests
   // Hash a byte span using the same function as resolve_body.
@@ -385,7 +428,9 @@ private:
   std::vector<Watermark> _watermarks;
   // Indexed by Device::ID, whose underlying type is u8. 32 bytes, and a lookup is a word load plus a bit test.
   std::bitset<256> _traced;
-  size_t _total_instructions = 0;
+
+  // Accumulated performance counters.
+  Footprint _footprint;
 };
 
 } // namespace tvm
