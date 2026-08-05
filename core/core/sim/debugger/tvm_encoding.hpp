@@ -285,6 +285,18 @@ template <bool X> struct SetReg<X, 4> : ImmediateEncoder<SetRegOp<X>, SetReg<X, 
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, reg, field); }
 };
 
+// SETMEMX with the offset carried in the payload rather than the packet, so a body that stores to a different
+// address every time still encodes identically. See Opcode::SETMEMDX for the data layout.
+template <std::size_t> struct SetMemDX;
+template <> struct SetMemDX<1> {
+  u16 access;
+  constexpr auto encode() const { return encode_op<Opcode::SETMEMDX, true>(access); }
+};
+template <> struct SetMemDX<2> {
+  u16 access, dev;
+  constexpr auto encode() const { return encode_op<Opcode::SETMEMDX, true>(access, dev); }
+};
+
 template <std::size_t> struct ClrMem;
 template <> struct ClrMem<1> {
   u16 dev;

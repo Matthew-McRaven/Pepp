@@ -67,11 +67,21 @@ void Recorder::emit_write(const Operation &op, Address address, bits::span<const
   // begin() never called for that initiator.
   if (rec == nullptr) return;
 
+  // If using SETMEMDX encoding, we need to reserve additional bytes for the OFFSET value.
+  const std::size_t prologue = _address_in_payload ? tvm::SETMEMDX_ADDRESS_BYTES : 0;
+  const auto slot = _tb->append_data_uninitialized(*rec, prologue + len);
+  if (_address_in_payload) {
+    // OFF.hi then OFF.lo, each a little-endian 16-bit word -- the layout decode_setmemdx reads back.
+    slot.bytes[0] = (u8)((address >> 16) & 0xFF);
+    slot.bytes[1] = (u8)((address >> 24) & 0xFF);
+    slot.bytes[2] = (u8)((address >> 0) & 0xFF);
+    slot.bytes[3] = (u8)((address >> 8) & 0xFF);
+  }
+  // First 4 bytes of our allocation was an address. Use remaining bytes for the actual data value.
+  const auto payload = slot.bytes.subspan(prologue);
+  fill_prior(payload);
   // Always use now ^ old encoded payloads, since that operation is its own inverse.
-  // Use unitialized memory so we don't have to allocate separate scratch space.
-  const auto slot = _tb->append_data_uninitialized(*rec, len);
-  fill_prior(slot.bytes);
-  bits::inplace_xor(slot.bytes, now);
+  bits::inplace_xor(payload, now);
 
   // Update DP to point at our data body, using the cheapest/smallest encoding possible.
   const auto anchor = _tb->dp_anchor(*rec);
@@ -86,21 +96,37 @@ void Recorder::emit_write(const Operation &op, Address address, bits::span<const
     const auto ldp =
         tvm::EncodedOp::LDP<3>{tvm::SegmentPair{.hi = slot.loc.id.value, .lo = slot.loc.offset}, (u16)len}.encode();
     _tb->emit_body(*rec, {ldp.data(), ldp.size()});
-  } else if (slot.loc.offset == (u16)(anchor.at.offset + anchor.size)) {
-    // Packed directly after the previous payload, which is what happens when one initiator writes several times in a
-    // row. ACCDP advances DP by the *previous* DS, so this encodes in 4 bytes and carries no absolute address.
+  } else if (anchor.stride == anchor.size && slot.loc.offset == (u16)(anchor.at.offset + anchor.stride)) {
+    // Packed directly after the previous record, which is what happens when one initiator writes several times in a
+    // row. ACCDP advances DP by the *previous* DS, so this encodes in 4 bytes and carries no absolute address --
+    // making it identical across programs that touch the same things.
+    //
+    // Only valid when that previous record was exactly its payload. If the allocation != DS, we have to choose INCDP
+    // with the explicit DP increment.
     const auto accdp = tvm::EncodedOp::ACCDP{(u16)len}.encode();
     _tb->emit_body(*rec, {accdp.data(), accdp.size()});
   } else {
-    // Another initiator interleaved its data between our two payloads, so the step is explicit.
+    // The step is explicit: either the previous record carried a prologue, or something sits between the two. Still
+    // a constant for a given instruction shape, so it does not by itself spoil de-duplication.
     const auto incdp = tvm::EncodedOp::INCDP{(u16)(slot.loc.offset - anchor.at.offset), (u16)len}.encode();
     _tb->emit_body(*rec, {incdp.data(), incdp.size()});
   }
-  _tb->set_dp_anchor(*rec, slot.loc, (u16)len);
+  _tb->set_dp_anchor(*rec, slot.loc, (u16)len, (u16)(prologue + len));
 
-  const auto off = tvm::SegmentPair{.hi = (u16)(address >> 16), .lo = (u16)(address & 0xFFFF)};
-  const auto set = tvm::EncodedOp::SetMem<true, 4>{.access = op.as_u16(), .dev = _emitter.value, .off = off}.encode();
-  _tb->emit_body(*rec, {set.data(), set.size()});
+  // The replayed write is classified BufferInternal so that re-applying a trace neither re-enters tracing nor
+  // re-triggers memory-mapped side effects. It keeps the original initiator, so a replayed write is still attributable
+  // to the CPU whose instruction originally caused it.
+  const Operation replay(Operation::Type::BufferInternal, Operation::Kind::data, op.initiator);
+  if (_address_in_payload) {
+    // No address or data in instruction, which increase opportunities for templatization.
+    const auto set = tvm::EncodedOp::SetMemDX<2>{.access = replay.as_u16(), .dev = _emitter.value}.encode();
+    _tb->emit_body(*rec, {set.data(), set.size()});
+  } else {
+    const auto off = tvm::SegmentPair{.hi = (u16)(address >> 16), .lo = (u16)(address & 0xFFFF)};
+    const auto set =
+        tvm::EncodedOp::SetMem<true, 4>{.access = replay.as_u16(), .dev = _emitter.value, .off = off}.encode();
+    _tb->emit_body(*rec, {set.data(), set.size()});
+  }
 }
 
 } // namespace trace

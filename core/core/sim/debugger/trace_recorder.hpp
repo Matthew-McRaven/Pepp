@@ -28,10 +28,26 @@ namespace trace {
 //   - accesses that arrive with no recording begun for the Operation::initiator
 class Recorder {
 public:
+  // Span size is a proxy for "do this device's addresses repeat", and a crude one. It wants to become an explicit
+  // property of the device rather than a threshold guessed here.
+  // A target whose address space is at most this many bytes is assumed to write the same handful of offsets over and
+  // over (a register bank, a CSR block)  and keeps its offsets in the instruction packet. Anything larger is
+  // assumed to write a different address almost every time and moves them into the payload instead.
+  static constexpr std::size_t NARROW_TARGET_BYTES = 256;
+
   // Default-constructed recorders are inert, which is what an untraced device holds.
   Recorder() = default;
   // `emitter` is the device that owns the bytes -- the target a replayed write is aimed at.
-  Recorder(tvm::TraceBuffer *tb, Device::ID emitter) : _tb(tb), _emitter(emitter) {}
+  //
+  // `address_in_payload` selects how a write's target offset is encoded.
+  // When false, we prefer packet formats which encode offsets in the instruction,
+  // When true, we prefer packet formats which encode offsets in the datastream.
+  // If you have a consistent access pattern to offsets (register banks), set to false. ALl other cases should be true.
+  // Moving the address into the payload makes updating the offset more expensive but provides more opportunities for
+  // de-duplication. Not all operations support both formats, in which case this recorder will choose whichever is
+  // available
+  Recorder(tvm::TraceBuffer *tb, Device::ID emitter, bool address_in_payload = false)
+      : _tb(tb), _emitter(emitter), _address_in_payload(address_in_payload) {}
 
   // Whether this device's writes are being recorded.
   bool traced() const;
@@ -116,6 +132,8 @@ private:
   // Null means this device was never bound to a buffer.
   tvm::TraceBuffer *_tb = nullptr;
   Device::ID _emitter{};
+  // If true, prefer instruction variants which encode their target offset as data rather than in the instruction.
+  bool _address_in_payload = false;
 };
 
 } // namespace trace

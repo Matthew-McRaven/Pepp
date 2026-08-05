@@ -535,12 +535,11 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
   }
 
   SECTION("No compression for unique bodies") {
-    // Each write targets a different address, so no two bodies match and nothing is ever promoted. This is the case
-    // ordinary memory traffic hits today, because the body carries the target address literally -- only writes to a
-    // fixed address (a register bank) currently produce a repeatable body.
-    for (u16 i = 0; i < 20; ++i) {
+    // These bodies differ in shape because each record only differs by an address, which will be "solved" via SETMEMDX.
+    // Force each instruction to have a different number of writes to bypass that deduplication mechanism.
+    for (u16 i = 1; i <= 20; ++i) {
       tb.begin(CPU);
-      ((Target *)mem)->write<u16, bits::host_is_le>(0x100 + i * 2, i, emit_write_op);
+      for (u16 w = 0; w < i; ++w) ((Target *)mem)->write<u16, bits::host_is_le>(0x100 + w * 2, w, emit_write_op);
       tb.commit(CPU);
     }
 

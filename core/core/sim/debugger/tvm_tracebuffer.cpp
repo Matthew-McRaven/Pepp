@@ -133,8 +133,8 @@ void TraceBuffer::emit_postfix(Recording &rec, bits::span<const u8> encoded) {
 
 TraceBuffer::DpAnchor TraceBuffer::dp_anchor(Recording &rec) const { return rec.dp; }
 
-void TraceBuffer::set_dp_anchor(Recording &rec, pepp::bts::Buffer::Location at, u16 size) {
-  rec.dp = DpAnchor{true, at, size};
+void TraceBuffer::set_dp_anchor(Recording &rec, pepp::bts::Buffer::Location at, u16 size, u16 stride) {
+  rec.dp = DpAnchor{true, at, size, stride};
 }
 
 void TraceBuffer::emit_prefix(Device::ID initiator, bits::span<const u8> encoded) {

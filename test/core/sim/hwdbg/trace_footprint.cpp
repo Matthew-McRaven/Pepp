@@ -138,14 +138,8 @@ TEST_CASE("Trace footprint over a few thousand instructions",
 
   // Both loops repeat register writes at constant offsets, so both find templates to share.
   CHECK(fixed.compression_ratio() > 1.0);
-  CHECK(walking.compression_ratio() > 1.0);
-
-  // The whole point of running two loops: the only difference between them is whether the store's target address is
-  // constant, and that alone decides whether the store's body can ever be shared. Until the address moves out of the
-  // body and into the payload, ordinary memory traffic gets the worse of these two numbers.
-  CHECK(walking.compression_ratio() < fixed.compression_ratio());
-
-  // And the cost shows up twice: the walking store not only fails to share, it leaves a hash behind on every
-  // iteration for a body that will never be seen again.
-  CHECK(h_walking.tbdev->buffer().pending_count() > h_fixed.tbdev->buffer().pending_count());
+  // With the creation of SETMEMDX, the second access pattern remains friendly to deduplication.
+  CHECK(walking.compression_ratio() > 2.0);
+  // So there should only be a handful of instruction shapes, not one pending hash per store executed.
+  CHECK(h_walking.tbdev->buffer().pending_count() < 32);
 }

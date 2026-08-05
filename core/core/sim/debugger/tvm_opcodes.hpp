@@ -175,9 +175,30 @@ enum class Opcode : u8 {
   // subroutine is explicit: RET is used by ordinary calls nested inside one, and must not end the suspension.
   // No packet registers.
   INVRET = 0b01'1101,
+  // SETMEMX with the target offset taken from the data chain instead of the instruction packet.
+  //
+  // SETMEMX carries OFF in its packet, which makes the body of a program that stores to a different address each
+  // time unique -- so it can never be de-duplicated into a template, and a store costs its body in full on every
+  // execution. Here the first 4 bytes at DP are the offset (OFF.hi then OFF.lo, each a little-endian 16-bit word)
+  // and the DS payload bytes follow. The body is then byte-identical across every execution of the same store, at
+  // the price of 4 bytes of payload.
+  //
+  // Only worth it where addresses actually vary. For a register bank, whose offsets are a constant handful, SETMEMX
+  // is strictly smaller -- the emitter picks per target device.
+  //
+  // Note DS remains the *payload* size, not the size of the whole region: DP addresses the offset, and the payload
+  // starts 4 bytes later. That means DP-relative stepping cannot use ACCDP after one of these, since ACCDP advances
+  // by DS and would land 4 bytes short; emitters must use an explicit INCDP.
+  //
+  // Always XOR-encoded, because this is a specialized instruction to optimize invertible traces.
+  // Packet registers: ACCESS, ID.lo
+  SETMEMDX = 0b01'1110,
   // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
-  MAX = ((u8)INVRET) + 1,
+  MAX = ((u8)SETMEMDX) + 1,
 };
+
+// How many data-chain bytes SETMEMDX consumes as the target offset, ahead of the payload.
+inline constexpr u16 SETMEMDX_ADDRESS_BYTES = 4;
 
 // Instructions to the tvm::Interpreter are always multiples of 16bits
 struct OpWord {

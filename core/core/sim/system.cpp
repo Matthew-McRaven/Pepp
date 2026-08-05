@@ -63,9 +63,16 @@ Device::IDGenerator System::gen_next_ID() { return _gen_next_ID; }
 
 void System::bind_recorders(tvm::TraceBuffer &tb) {
   // Each Traceable must get its own device ID to allow per-ID enables to work.
-  for (auto dev : *_root)
-    if (auto *traceable = dev->capability<Traceable>(); traceable != nullptr)
-      traceable->set_recorder(trace::Recorder{&tb, dev->id()});
+  for (auto dev : *_root) {
+    auto *traceable = dev->capability<Traceable>();
+    if (traceable == nullptr) continue;
+    // Try to select register banks and CSRs by filtering based on their size.
+    // For small targets, prefer to pass addresses/offsets via the trace's code rather than the trace's data stream.
+    bool wide = false;
+    if (auto *target = dev->capability<Target>(); target != nullptr)
+      wide = size_inclusive(target->span()) > trace::Recorder::NARROW_TARGET_BYTES;
+    traceable->set_recorder(trace::Recorder{&tb, dev->id(), wide});
+  }
 }
 
 void System::make_deferred(DeferredDevice ctor) { _deferred_constructors.push_back(std::move(ctor)); }

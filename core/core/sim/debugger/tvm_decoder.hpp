@@ -49,6 +49,10 @@ private:
   tvm::DecodedOp::LMR decode_lmr(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::BR decode_br(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::SetMem decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop);
+  // Resolves to the same DecodedOp::SetMem as decode_setmem -- the only difference is where the offset came from, and
+  // by the time a backend sees it that distinction has already been resolved away. That is why there is no matching
+  // on_setmemdx handler and no new variant alternative.
+  tvm::DecodedOp::SetMem decode_setmemdx(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::CmpMem decode_cmpmem(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ClrMem decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::SetReg decode_setreg(pepp::bts::Buffer::ID ibp, u16 iop);

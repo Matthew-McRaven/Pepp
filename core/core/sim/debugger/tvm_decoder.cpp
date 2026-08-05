@@ -50,6 +50,7 @@ void Decoder::decode() {
   case Opcode::BR: _decoded = decode_br(ibp, iop); break;
   case Opcode::SETMEM: [[fallthrough]]; // Difference between SETMEM/X is in execution, not decoding
   case Opcode::SETMEMX: _decoded = decode_setmem(ibp, iop); break;
+  case Opcode::SETMEMDX: _decoded = decode_setmemdx(ibp, iop); break;
   case Opcode::CMPMEM: _decoded = decode_cmpmem(ibp, iop); break;
   case Opcode::CLRMEM: _decoded = decode_clrmem(ibp, iop); break;
   case Opcode::SETREG: [[fallthrough]]; // Difference between SETREG/X is in execution, not decoding
@@ -242,6 +243,39 @@ tvm::DecodedOp::SetMem Decoder::decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop
   case 1: regs.ACCESS = read(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
+  ret.access = Operation(regs.ACCESS);
+  ret.target = (Device::ID)regs.ID.lo;
+  ret.offset = regs.OFF.as_u32();
+  return ret;
+}
+
+tvm::DecodedOp::SetMem Decoder::decode_setmemdx(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::SetMem ret;
+  auto &regs = _state.regs;
+  // No non-XOR form of this opcode exists; see Opcode::SETMEMDX.
+  ret.xor_encoded = true;
+  _state.csrs.TR = 0; // Enter target mode.
+  ret.size = regs.DS;
+
+  switch (regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 2: regs.ID.lo = read(ibp, iop + 2); [[fallthrough]];
+  case 1: regs.ACCESS = read(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
+  }
+
+  // Offset first, then the payload. Bound both together against the buffer, since a truncated data chain would
+  // otherwise be read past twice -- once here for the offset and again in the backend for the payload.
+  auto dbuff = _mgr->find((pepp::bts::Buffer::ID)regs.DP.hi);
+  if (!dbuff) return _state.hard_stop(StopCause::InvalidDBuffer), ret;
+  auto span = dbuff->span();
+  if ((size_t)regs.DP.lo + SETMEMDX_ADDRESS_BYTES + ret.size > span.size())
+    return _state.hard_stop(StopCause::InvalidDBuffer), ret;
+  regs.OFF.hi = (u16)span[regs.DP.lo + 0] | ((u16)span[regs.DP.lo + 1] << 8);
+  regs.OFF.lo = (u16)span[regs.DP.lo + 2] | ((u16)span[regs.DP.lo + 3] << 8);
+
+  // DS stays the payload size, so the payload begins past the offset rather than at DP.
+  ret.data = tvm::SegmentPair{.hi = regs.DP.hi, .lo = (u16)(regs.DP.lo + SETMEMDX_ADDRESS_BYTES)};
   ret.access = Operation(regs.ACCESS);
   ret.target = (Device::ID)regs.ID.lo;
   ret.offset = regs.OFF.as_u32();

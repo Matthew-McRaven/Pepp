@@ -179,10 +179,16 @@ public:
   struct DpAnchor {
     bool set = false;
     pepp::bts::Buffer::Location at{};
+    // DS the program set, i.e. the payload size.
     u16 size = 0;
+    // Bytes this payload actually reserved, which is larger than `size` when the record carries something ahead of
+    // the payload. SETMEMDX reserves an extra 4 bytes for a target address.
+    // If stride != size, when you update the DP you MUST use INCDP and advance by stride rather than ACCCDP (with
+    // size). SETMEMDX+ACCDP would leave DP 4 bytes behind the new payload.
+    u16 stride = 0;
   };
   DpAnchor dp_anchor(Recording &rec) const;
-  void set_dp_anchor(Recording &rec, pepp::bts::Buffer::Location at, u16 size);
+  void set_dp_anchor(Recording &rec, pepp::bts::Buffer::Location at, u16 size, u16 stride);
 
   void trace(Device::ID device, bool enabled = true) { _traced[device.value] = enabled; }
   bool traced(Device::ID device) const { return _traced[device.value]; }
