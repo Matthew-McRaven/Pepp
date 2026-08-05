@@ -1,11 +1,16 @@
 #include "tvm_tracebuffer.hpp"
 #include <algorithm>
 #include <cassert>
+#include <iterator>
 #include <cstring>
 #include "core/ds/hash/fnv.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
 
 namespace tvm {
+
+// Ensure that the concept is modeled as expected.
+static_assert(std::input_iterator<TraceBuffer::Iterator>);
+static_assert(std::bidirectional_iterator<TraceBuffer::Iterator>);
 
 // --- Node ---
 

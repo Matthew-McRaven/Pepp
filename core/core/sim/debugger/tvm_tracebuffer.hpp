@@ -199,7 +199,11 @@ public:
   // Dereferencing yields a Buffer::Location pointing to the subroutine for that entry.
   class Iterator {
   public:
-    using iterator_category = std::bidirectional_iterator_tag;
+    // Can't be iterator_category=bidirectional_iterator_tag, because dereferencing yields a value, not a reference.
+    // For legacy algorithms, this can only be input_iterator_tag. But for C++20 ranges, we can advertise the full
+    // bi-directional concept.
+    using iterator_concept = std::bidirectional_iterator_tag;
+    using iterator_category = std::input_iterator_tag;
     using value_type = pepp::bts::Buffer::Location;
     using difference_type = std::ptrdiff_t;
     using pointer = const value_type *;
