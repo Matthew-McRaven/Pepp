@@ -19,7 +19,13 @@ void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
   // Return pages to pool while keeping the map entries
   for (auto &[initiator, chain] : data)
     if (chain) chain->clear();
-  if (locations) locations->clear();
+  // Return location buffer to pool rather than retaining it. After being reset, it's UB to access this node anyway,
+  // and allowing the buffer to re-use this data should lower total occupancy of the ring.
+  // Re-acquired on write_location().
+  if (locations) {
+    mgr.free_buffer(locations->id());
+    locations = nullptr;
+  }
   count = 0;
   in_use = false;
 }
@@ -29,9 +35,9 @@ void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
 TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t ring_size) : _mgr(std::move(mgr)) {
   _ring.resize(ring_size);
   for (auto &node : _ring) {
-    node.locations = _mgr->alloc_buffer();
     node.code = _mgr->alloc_chain();
     // Lazily allocate node.data to avoid paying for all devices up front.
+    // Also lazily allocate node.locations, which is a full 64KiB buffer that is only needed if we enable tracing.
   }
   _templates = _mgr->alloc_chain();
 }
@@ -418,6 +424,9 @@ void TraceBuffer::write_location(Node &node, u16 entry, pepp::bts::Buffer::Locat
   // Backstop for a caller that swallowed a RingOverflow and kept submitting: the offset below is a u16, so an entry
   // at or past the maximum would wrap to 0 and quietly overwrite the oldest entry instead of failing.
   if (entry >= MAX_LOCATION_ENTRIES) throw RingOverflow(_head);
+  // Acquired on first write into this slot rather than at construction or reset, so an unused ring slot holds no
+  // buffer at all.
+  if (node.locations == nullptr) node.locations = _mgr->alloc_buffer();
   u16 offset = entry * sizeof(pepp::bts::Buffer::Location);
   auto *dst = node.locations->data() + offset;
   std::memcpy(dst, &loc, sizeof(loc));
@@ -430,6 +439,9 @@ void TraceBuffer::write_location(Node &node, u16 entry, pepp::bts::Buffer::Locat
 }
 
 pepp::bts::Buffer::Location TraceBuffer::read_location(const Node &node, u16 entry) const {
+  // A slot that was never written, or one acknowledge() has reclaimed, holds no buffer. Reading from it yields the
+  // null location rather than dereferencing nothing.
+  if (node.locations == nullptr) return {};
   u16 offset = entry * sizeof(pepp::bts::Buffer::Location);
   pepp::bts::Buffer::Location loc{};
   auto *src = node.locations->data() + offset;
