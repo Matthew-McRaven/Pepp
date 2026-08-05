@@ -48,18 +48,20 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto before = tb.cursor();
 
-    // Program 1: LDP to first chunk.
+    // Program 1: LDP to first chunk. Both chunks are appended during this record, so program 2 carries no payload
+    // of its own -- which is what leaves DP where program 1 put it. A record that does carry a payload has DP seeded
+    // from the location buffer before it runs, and would not be exercising ACCDP's retention at all.
     tb.begin(S);
     auto d1 = tb.append_data(S, std::array<u8, 2>{0x11, 0x22});
+    auto d2 = tb.append_data(S, std::array<u8, 4>{0x33, 0x44, 0x55, 0x66});
+    // d2 is tightly packed after d1.
+    CHECK(d2.offset == d1.offset + 2);
     auto ldp = LDP<3>(SegmentPair{.hi = (u16)d1.id.value, .lo = d1.offset}, 2).encode();
     tb.emit_prefix(S, {ldp.data(), ldp.size()});
     tb.commit(S);
 
-    // Program 2: ACCDP to second chunk (immediately follows d1).
+    // Program 2: ACCDP to second chunk.
     tb.begin(S);
-    auto d2 = tb.append_data(S, std::array<u8, 4>{0x33, 0x44, 0x55, 0x66});
-    // d2 is tightly packed after d1.
-    CHECK(d2.offset == d1.offset + 2);
     auto accdp = ACCDP{4}.encode();
     tb.emit_prefix(S, {accdp.data(), accdp.size()});
     tb.commit(S);
@@ -91,15 +93,17 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
     std::vector<u8> filler(pepp::bts::Buffer::SIZE, 0xAA);
     tb.begin(S);
     auto d1 = tb.append_data(S, {filler.data(), filler.size()});
+    // Appended in the same record, so program 2 carries no payload and DP stays where program 1 left it. The first
+    // buffer is full, so this spills into a successor.
+    auto d2 = tb.append_data(S, std::array<u8, 4>{0xDE, 0xAD, 0xBE, 0xEF});
+    REQUIRE(d2.id != d1.id); // Sanity: d2 is in a different buffer.
     // LDP to the last TAIL bytes of the first buffer.
     auto ldp = LDP<3>(SegmentPair{.hi = (u16)d1.id.value, .lo = (u16)(pepp::bts::Buffer::SIZE - TAIL)}, TAIL).encode();
     tb.emit_prefix(S, {ldp.data(), ldp.size()});
     tb.commit(S);
 
-    // Second program: the first buffer is full, so d2 lands in a successor buffer.
+    // Second program: ACCDP overflows into the successor buffer.
     tb.begin(S);
-    auto d2 = tb.append_data(S, std::array<u8, 4>{0xDE, 0xAD, 0xBE, 0xEF});
-    REQUIRE(d2.id != d1.id); // Sanity: d2 is in a different buffer.
     auto accdp = ACCDP{4}.encode();
     tb.emit_prefix(S, {accdp.data(), accdp.size()});
     tb.commit(S);

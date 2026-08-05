@@ -74,13 +74,17 @@ public:
   // Each program executed this way must terminate with a HALT.
   // At the end of a call to run, L is always 0.
   void run(pepp::bts::Buffer::Location loc, RegisterRetention retain = RegisterRetention::All);
+  // Identical to above, except the resulting DP will be overwritten by the ProgramLocation's data field.
+  // If that field is null (Buffer::ID == 0), DP is left alone, allowing this to mirror the Buffer::Location overload.
+  void run(ProgramLocation loc, RegisterRetention retain = RegisterRetention::All);
   // For each buffer location set L=1 and call run.
   // Only stops when reaching the end of this location buffer, or on "hard stop", where L==0 && F==1.
   std::size_t run_each(std::span<const pepp::bts::Buffer::Location> locs,
                        RegisterRetention retain = RegisterRetention::DP);
+  std::size_t run_each(std::span<const ProgramLocation> locs, RegisterRetention retain = RegisterRetention::None);
   // Iterator-pair variant. While slower to execute, it can consume iterators from TraceBuffer without needing to
   // re-arrange them in spans first. Declared as a template to avoid include'ing TraceBuffer in this header
-  template <typename It> auto run_each(It begin, It end, RegisterRetention retain = RegisterRetention::DP) {
+  template <typename It> auto run_each(It begin, It end, RegisterRetention retain = RegisterRetention::None) {
     for (auto it = begin; it != end; ++it) {
       run(*it, retain);
       if (_state.csrs.F == 1) return it;

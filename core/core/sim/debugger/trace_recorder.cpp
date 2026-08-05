@@ -86,11 +86,10 @@ void Recorder::emit_write(const Operation &op, Address address, bits::span<const
   // Update DP to point at our data body, using the cheapest/smallest encoding possible.
   const auto anchor = _tb->dp_anchor(*rec);
   if (!anchor.set) {
-    // First DP-relative instruction of this recording. Perform a full LDP load in the prefix so all future ops this
-    // packet can use a delta.
-    const auto ldp =
-        tvm::EncodedOp::LDP<3>{tvm::SegmentPair{.hi = slot.loc.id.value, .lo = slot.loc.offset}, (u16)len}.encode();
-    _tb->emit_prefix(*rec, {ldp.data(), ldp.size()});
+    // This is the first data payload of this instruction. DP will be preloaded from the location buffer via
+    // run_each, but DS is left unset/0. So set DS to this payload's size
+    const auto set_ds = tvm::EncodedOp::LDR<tvm::RegMask::DS>{(u16)len}.encode();
+    _tb->emit_body(*rec, {set_ds.data(), set_ds.size()});
   } else if (anchor.at.id != slot.loc.id) {
     // The data chain rolled onto a new buffer mid-recording, which means mid-body update to DP.
     const auto ldp =

@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include "core/ds/alloc/pagechain.hpp"
 #include "core/sim/api/device.hpp"
+#include "core/sim/debugger/tvm_machine.hpp"
 #include "core/sim/debugger/tvm_opcodes.hpp"
 
 
@@ -49,7 +50,7 @@ struct Cursor {
 // The class manages the lifetimes of buffers used by a tvm::Interpreter, and provides a circular-queue
 // abstraction. Commit()'ed programs go to a ring, whose size provides an upper limit of the length of a trace histroy.
 //
-// Each ring entry can hold ~16k programs, which is limited by the size of the location buffer.
+// Each ring entry can hold ~8k programs, which is limited by the size of the location buffer.
 // The elements of location buffers match the shape of the Interpreter's run_each API.
 // This means each location must point to executable code, and each program must terminate with a HALT.
 // That location buffer provides an extra level of indirection to make random access in the ring O(1) instead of O(N).
@@ -98,8 +99,8 @@ public:
   // Ceiling on hashes awaiting a second sighting. Bodies that never repeat would otherwise accumulate one entry per
   // program forever, which at tens of millions of instructions is hundreds of MB and a steadily slower lookup.
   static constexpr std::size_t MAX_PENDING_HASHES = 1u << 16;
-  // Maximum entries per location buffer (64KB / sizeof(Buffer::Location)).
-  static constexpr u16 MAX_LOCATION_ENTRIES = pepp::bts::Buffer::SIZE / sizeof(pepp::bts::Buffer::Location);
+  // Maximum entries per location buffer (64KB / sizeof(ProgramLocation)).
+  static constexpr u16 MAX_LOCATION_ENTRIES = pepp::bts::Buffer::SIZE / sizeof(tvm::ProgramLocation);
 
   TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t ring_size = 4);
   ~TraceBuffer() noexcept;
@@ -121,7 +122,7 @@ public:
   //
   // Throws RingOverflow if advancing would land on a slot that has never been acknowledged. This trace was recorded,
   // but the next one will fail. Free some space before recording again.
-  pepp::bts::Buffer::Location commit(Device::ID initiator);
+  tvm::ProgramLocation commit(Device::ID initiator);
 
   // Discard an in-progress recording without writing anything to the ring, which occurs when a caller unwinding out of
   // a partially executed instruction due to an exception. Unlike e commit(), a no-op when nothing is recording rather
@@ -208,7 +209,7 @@ public:
   // --- Cursor / Iteration ---
 
   // Bidirectional iterator over location buffer entries.
-  // Dereferencing yields a Buffer::Location pointing to the subroutine for that entry.
+  // Dereferencing yields the ProgramLocation for that entry, which gives us the starting code and data addresses.
   class Iterator {
   public:
     // Can't be iterator_category=bidirectional_iterator_tag, because dereferencing yields a value, not a reference.
@@ -216,7 +217,7 @@ public:
     // bi-directional concept.
     using iterator_concept = std::bidirectional_iterator_tag;
     using iterator_category = std::input_iterator_tag;
-    using value_type = pepp::bts::Buffer::Location;
+    using value_type = tvm::ProgramLocation;
     using difference_type = std::ptrdiff_t;
     using pointer = const value_type *;
     using reference = value_type;
@@ -292,9 +293,14 @@ public:
     // Programs committed.
     std::size_t programs = 0;
 
-    // Retained bytes with promotion on, and what the same trace would have cost with it off.
-    std::size_t total() const { return code + templates + data; }
-    std::size_t total_if_inlined() const { return code_if_inlined + data; }
+    // Bytes written to location buffers. Worth accounting for at all because location buffers are plain Buffers
+    // rather than chains, so nothing else here sees them, and omitting them understates the total by 8 per program.
+    std::size_t locations() const { return programs * sizeof(tvm::ProgramLocation); }
+
+    // Retained bytes with promotion on, and what the same trace would have cost with it off. Location bytes sit on
+    // both sides: promotion does not change how many programs there are.
+    std::size_t total() const { return code + templates + data + locations(); }
+    std::size_t total_if_inlined() const { return code_if_inlined + data + locations(); }
     // The number worth quoting against the old packet format. 0 when nothing has been committed.
     double bytes_per_program() const { return programs ? (double)total() / (double)programs : 0.0; }
     double bytes_per_program_if_inlined() const {
@@ -364,6 +370,10 @@ private:
     bool active = false;
     // See DpAnchor. Reset by begin().
     DpAnchor dp{};
+    // Where this record's *first* data payload byte landed, which is what commit() stores in the location buffer so the
+    // driver can point DP at it before entering the program. Distinct from DpAnchor::at, which tracks the most recent
+    // payload. Null when the record wrote nothing.
+    pepp::bts::Buffer::Location data_start{};
     // Memoize the result of data_chain (in addition to its slot #) to avoid repeated map lookups in the hot recording
     // path. This keeps the write path to a size_t compare instead of a map lookup and the slot indices are never
     // invalidated. A ring that has moved on forces a re-resolve.
@@ -373,9 +383,17 @@ private:
 
   // --- Template dedup ---
   struct TemplateEntry {
+    // Where a CALL to this template should aim.
     pepp::bts::Buffer::Location location;
-    u16 size;
     u32 hit_count = 0;
+    // The bytes of the promoted body. On a hash hit, we want to compare the actual bytes to avoid collisions.
+    // This span pre-resolves location back to its buffer, avoiding a walk of the template chain on hit.
+    // While our size is really only a u16, it gets promoted to size_t on account of being a span. Always downcast size
+    // to 16 bits before use.
+    //
+    // The pointer is safe to hold as long as the template chain is not cleared, and as long as a Buffer's data is not
+    // moved out of.
+    bits::span<const u8> body{};
   };
 
   struct BodyResolution {
@@ -386,8 +404,8 @@ private:
   BodyResolution resolve_body(bits::span<const u8> body);
   // True when the template recorded in `entry` holds exactly `body`. resolve_body keys templates on a truncated
   // 32-bit hash, so a map hit alone does not prove the bodies match; this is what makes a collision safe.
-  bool template_matches(const TemplateEntry &entry, bits::span<const u8> body);
-  pepp::bts::Buffer::Location flush_to_ring(Recording &rec, BodyResolution resolution);
+  static bool template_matches(const TemplateEntry &entry, bits::span<const u8> body);
+  tvm::ProgramLocation flush_to_ring(Recording &rec, BodyResolution resolution);
 
   // This recording's data chain in the ringbuffer's head slot, creating the chain on first use.
   pepp::bts::BufferChain &data_chain(Recording &rec);
@@ -395,10 +413,10 @@ private:
   // Advance _head to the next ring slot. Fires watermark callbacks as needed.
   void advance_slot();
 
-  // Write a Buffer::Location into a slot's location buffer at position `entry`.
-  void write_location(Node &node, u16 entry, pepp::bts::Buffer::Location loc);
-  // Convert an index in the location buffer to an executable buffer location.
-  pepp::bts::Buffer::Location read_location(const Node &node, u16 entry) const;
+  // Write a ProgramLocation into a slot's location buffer at position `entry`.
+  void write_location(Node &node, u16 entry, tvm::ProgramLocation program);
+  // Read back the ProgramLocation stored at an index in the location buffer.
+  tvm::ProgramLocation read_location(const Node &node, u16 entry) const;
 
   Node &current_node() { return _ring[_head % _ring.size()]; }
   const Node &current_node() const { return _ring[_head % _ring.size()]; }

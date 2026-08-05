@@ -74,10 +74,10 @@ tvm::TraceBuffer::Footprint run(Harness &h, bits::span<const u8> program, int ti
 }
 
 void report(const char *label, const tvm::TraceBuffer &tb, const tvm::TraceBuffer::Footprint &f) {
-  SPDLOG_WARN("{}: {:.1f} B/instr over {} instrs (inlined: {:.1f}) | ratio {:.3f} | code {} templates {} data {} | "
-              "{} templates promoted, {} hashes pending | {} KiB reserved",
+  SPDLOG_WARN("{}: {:.1f} B/instr over {} instrs (inlined: {:.1f}) | ratio {:.3f} | code {} templates {} data {} "
+              "locations {} | {} templates promoted, {} hashes pending | {} KiB reserved",
               label, f.bytes_per_program(), f.programs, f.bytes_per_program_if_inlined(), f.compression_ratio(),
-              f.code, f.templates, f.data, tb.template_count(), tb.pending_count(),
+              f.code, f.templates, f.data, f.locations(), tb.template_count(), tb.pending_count(),
               tb.buffer_footprint() / 1024);
 }
 } // namespace

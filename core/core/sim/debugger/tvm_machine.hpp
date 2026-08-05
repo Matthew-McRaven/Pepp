@@ -6,6 +6,16 @@
 
 namespace tvm {
 
+// Where one recorded program lives: its entry point, and where its data payload begins.
+// It is more efficient to encode the data payload here than to insert it in a programs prefix.
+// Here it costs 4 bytes, but an LDP costs 8. Every program will need data.
+//
+// A record with no payload leaves `data` null. Buffer::ID{0} is never a valid buffer, so that is unambiguous.
+struct ProgramLocation {
+  pepp::bts::Buffer::Location code{};
+  pepp::bts::Buffer::Location data{};
+};
+
 // Which registers survive when a program restarts. See MachineState::restart.
 enum class RegisterRetention : u8 {
   None = 0, // All registers are reset
@@ -98,6 +108,9 @@ public:
 
   void update_ip(pepp::bts::Buffer::Location loc);
   void update_ip(pepp::bts::Buffer::ID id, u16 offset = 0);
+  // Point DP at `loc`. Does not touch DS: a program's first payload width is a property of its instruction shape,
+  // not of this execution, so it is stated in the body where it templates away rather than carried per program.
+  void update_dp(pepp::bts::Buffer::Location loc);
 
   // SP += 4 and write the 4 bytes. Soft-stops with StackOverflow if the stack is full.
   void push(tvm::SegmentPair v);

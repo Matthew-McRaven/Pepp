@@ -42,7 +42,7 @@ TemplateProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffe
                                   size_t promotions = BOUNDARY_PROMOTIONS) {
   constexpr Device::ID S{1};
   TemplateProbe probe;
-  pepp::bts::Buffer::Location loc{};
+  tvm::ProgramLocation loc{};
 
   for (size_t i = 0; i < promotions; ++i) {
     std::vector<u8> body(BOUNDARY_BODY, static_cast<u8>(0xA0 + i));
@@ -55,9 +55,9 @@ TemplateProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffe
   }
 
   // With no prefix emitted, the promoted submission's program is [CALL][HALT], so the CALL is at the start.
-  auto *code = mgr.find(loc.id);
+  auto *code = mgr.find(loc.code.id);
   REQUIRE(code != nullptr);
-  const auto *p = code->data() + loc.offset;
+  const auto *p = code->data() + loc.code.offset;
   REQUIRE(p[0] == 2);                              // word_len
   REQUIRE(p[1] == (0x40 | (u8)tvm::Opcode::CALL)); // clrmod | opcode
   probe.offset = (u16)p[2] | ((u16)p[3] << 8);     // next_ip.lo

@@ -79,17 +79,19 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     auto x = *scan->find("X");
 
     auto before = tb.cursor();
-    // Program 1: compare A to 0xFEED via DP-relative data.
+    // Program 1: compare A to 0xFEED via DP-relative data. Both chunks are appended during this record, so program 2
+    // carries no payload of its own -- which is what leaves DP where program 1 put it. A record that does carry one
+    // has DP seeded from its location-buffer entry before it runs, and would not exercise ACCDP's retention.
     tb.begin(S);
     // Data is LE: 0xFEED => {0xED, 0xFE}
     auto dhead = tb.append_data(S, std::array<u8, 2>{0xED, 0xFE});
+    tb.append_data(S, std::array<u8, 2>{0xEF, 0xBE});
     prefix(LDP<3>(SP{.hi = (u16)dhead.id.value, .lo = dhead.offset}, 2).encode());
     body(CmpReg<2>(a.reg.value, a.field.value).encode());
     tb.commit(S);
 
     // Program 2: compare X to 0xBEEF. DP retained from program 1; use ACCDP.
     tb.begin(S);
-    tb.append_data(S, std::array<u8, 2>{0xEF, 0xBE});
     prefix(ACCDP{2}.encode());
     body(CmpReg<2>(x.reg.value, x.field.value).encode());
     tb.commit(S);

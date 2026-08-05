@@ -68,8 +68,8 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
     auto loc_s0 = *it;
 
     // Code is laid out sequentially: S1's subroutine precedes S0's.
-    CHECK(loc_s1.id == loc_s0.id);
-    CHECK(loc_s0.offset > loc_s1.offset);
+    CHECK(loc_s1.code.id == loc_s0.code.id);
+    CHECK(loc_s0.code.offset > loc_s1.code.offset);
 
     // Execute each subroutine independently — if code were interleaved,
     // these would produce wrong results or crash.

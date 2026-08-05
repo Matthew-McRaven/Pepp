@@ -79,12 +79,13 @@ void TraceBuffer::begin(Device::ID initiator) {
   rec.body.clear();
   rec.postfix.clear();
   rec.active = true;
+  rec.data_start = {};
   // A program may not assume DP survived the previous commit(), so the first emitter in this recording has to state
   // it absolutely.
   rec.dp = {};
 }
 
-pepp::bts::Buffer::Location TraceBuffer::commit(Device::ID initiator) {
+tvm::ProgramLocation TraceBuffer::commit(Device::ID initiator) {
   // Unlike begin(), this must not create an entry: a commit() for an initiator that never began is a caller bug, and
   // default-constructing one here would silently commit an empty program.
   auto *rec = find_recording(initiator);
@@ -120,6 +121,7 @@ void TraceBuffer::abort(Device::ID initiator) {
   rec->body.clear();
   rec->postfix.clear();
   rec->dp = {};
+  rec->data_start = {};
   rec->active = false;
 }
 
@@ -160,6 +162,7 @@ pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits:
   assert(rec && rec->active && "append_data() outside a begin()/commit() pair");
   auto loc = data_chain(*rec).append(data);
   _footprint.data += data.size();
+  if (rec->data_start.id == pepp::bts::Buffer::ID{0}) rec->data_start = loc;
   rec->last_dp = loc;
   return loc;
 }
@@ -167,6 +170,9 @@ pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits:
 TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Recording &rec, std::size_t len) {
   const auto res = data_chain(rec).reserve(len);
   _footprint.data += len;
+  // The first payload of a record is where the driver will point DP before entering the program, so it has to be
+  // remembered separately from last_dp, which keeps moving.
+  if (rec.data_start.id == pepp::bts::Buffer::ID{0}) rec.data_start = res.loc;
   rec.last_dp = res.loc;
   return DataSlot{res.loc, res.bytes};
 }
@@ -274,20 +280,13 @@ u32 TraceBuffer::template_hits(u32 h) const {
 
 u16 TraceBuffer::template_size(u32 h) const {
   auto it = _template_map.find(h);
-  return it != _template_map.end() ? it->second.size : 0;
+  return it != _template_map.end() ? static_cast<u16>(it->second.body.size()) : 0;
 }
 
 // --- Template dedup ---
 
 bool TraceBuffer::template_matches(const TemplateEntry &entry, bits::span<const u8> body) {
-  if (entry.size != body.size()) return false;
-  auto *buf = _templates->buffer(entry.location.id);
-  if (!buf) return false;
-  // span() covers the whole buffer rather than just what was appended, so bound the read explicitly.
-  auto whole = buf->span();
-  if ((size_t)entry.location.offset + entry.size > whole.size()) return false;
-  auto stored = whole.subspan(entry.location.offset, entry.size);
-  return std::equal(stored.begin(), stored.end(), body.begin());
+  return std::ranges::equal(entry.body, body);
 }
 
 TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body) {
@@ -318,18 +317,22 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
       // end -- so reserve both up front, exactly as flush_to_ring does for a subroutine.
       auto ret = EncodedOp::Ret<0>{}.encode();
       _templates->ensure_capacity(body.size() + ret.size());
-      auto loc = _templates->append(body);
+      // reserve() rather than append() so the copy hands back a pointer to where the body landed. Resolving that
+      // afterwards would mean walking the chain, and doing it here -- once per promotion -- keeps it off the hit
+      // path entirely.
+      const auto res = _templates->reserve(body.size());
+      bits::memcpy(res.bytes, body);
       _templates->append({ret.data(), ret.size()});
       // The fixed cost of promotion is the unbounded lifetime of the template chain, which is amortized over  re-uses.
       _footprint.templates += body.size() + ret.size();
 
       TemplateEntry entry{};
-      entry.location = loc;
-      entry.size = static_cast<u16>(body.size());
+      entry.location = res.loc;
+      entry.body = res.bytes;
       entry.hit_count = 2;
       _template_map[hash] = entry;
       _pending_hashes.erase(hash);
-      return {true, loc};
+      return {true, res.loc};
     }
     // Below threshold — inline every time, don't re-add to pending.
     return {false, {}};
@@ -341,7 +344,7 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
   return {false, {}};
 }
 
-pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(Recording &rec, BodyResolution resolution) {
+tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution resolution) {
   auto &node = current_node();
 
   // The subroutine is: [prefix][body or CALL][postfix]
@@ -388,9 +391,10 @@ pepp::bts::Buffer::Location TraceBuffer::flush_to_ring(Recording &rec, BodyResol
   // than making promotion an optional feature.
   _footprint.code_if_inlined += rec.prefix.size() + rec.body.size() + rec.postfix.size();
 
-  // Record this subroutine's entry point in the locations buffer.
-  write_location(node, node.count, subroutine_start);
-  return subroutine_start;
+  // Record where this program starts and where its data starts.
+  const tvm::ProgramLocation program{subroutine_start, rec.data_start};
+  write_location(node, node.count, program);
+  return program;
 }
 
 // --- Ring management ---
@@ -419,34 +423,34 @@ void TraceBuffer::advance_slot() {
 
 // --- Location buffer I/O ---
 
-void TraceBuffer::write_location(Node &node, u16 entry, pepp::bts::Buffer::Location loc) {
-  static_assert(sizeof(pepp::bts::Buffer::Location) == 4, "Location must be 4 bytes for location packing");
+void TraceBuffer::write_location(Node &node, u16 entry, tvm::ProgramLocation program) {
+  static_assert(sizeof(tvm::ProgramLocation) == 8, "ProgramLocation must be 8 bytes for location packing");
   // Backstop for a caller that swallowed a RingOverflow and kept submitting: the offset below is a u16, so an entry
   // at or past the maximum would wrap to 0 and quietly overwrite the oldest entry instead of failing.
   if (entry >= MAX_LOCATION_ENTRIES) throw RingOverflow(_head);
   // Acquired on first write into this slot rather than at construction or reset, so an unused ring slot holds no
   // buffer at all.
   if (node.locations == nullptr) node.locations = _mgr->alloc_buffer();
-  u16 offset = entry * sizeof(pepp::bts::Buffer::Location);
+  u16 offset = entry * sizeof(tvm::ProgramLocation);
   auto *dst = node.locations->data() + offset;
-  std::memcpy(dst, &loc, sizeof(loc));
+  std::memcpy(dst, &program, sizeof(program));
   // If the slab hasn't tracked this write, bump its used capacity.
   // We write sequentially (entry == count before increment), so allocate_uninitialized
   // on first use of each entry position.
-  size_t required = offset + sizeof(pepp::bts::Buffer::Location);
+  size_t required = offset + sizeof(tvm::ProgramLocation);
   if (node.locations->used_capacity() < required)
     node.locations->allocate_uninitialized(required - node.locations->used_capacity());
 }
 
-pepp::bts::Buffer::Location TraceBuffer::read_location(const Node &node, u16 entry) const {
+tvm::ProgramLocation TraceBuffer::read_location(const Node &node, u16 entry) const {
   // A slot that was never written, or one acknowledge() has reclaimed, holds no buffer. Reading from it yields the
   // null location rather than dereferencing nothing.
   if (node.locations == nullptr) return {};
-  u16 offset = entry * sizeof(pepp::bts::Buffer::Location);
-  pepp::bts::Buffer::Location loc{};
+  u16 offset = entry * sizeof(tvm::ProgramLocation);
+  tvm::ProgramLocation program{};
   auto *src = node.locations->data() + offset;
-  std::memcpy(&loc, src, sizeof(loc));
-  return loc;
+  std::memcpy(&program, src, sizeof(program));
+  return program;
 }
 
 // --- Cursor / Iteration ---

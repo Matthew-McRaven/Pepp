@@ -24,9 +24,9 @@ namespace {
 constexpr u16 ENTRIES_PER_SLOT = tvm::TraceBuffer::MAX_LOCATION_ENTRIES;
 
 // Submit `count` empty programs -- end() still appends a HALT -- and report the first and last locations.
-std::pair<pepp::bts::Buffer::Location, pepp::bts::Buffer::Location> submit_empty(tvm::TraceBuffer &tb, size_t count) {
+std::pair<tvm::ProgramLocation, tvm::ProgramLocation> submit_empty(tvm::TraceBuffer &tb, size_t count) {
   constexpr Device::ID S{1};
-  pepp::bts::Buffer::Location first{}, last{};
+  tvm::ProgramLocation first{}, last{};
   for (size_t i = 0; i < count; ++i) {
     tb.begin(S);
     last = tb.commit(S);
@@ -35,8 +35,8 @@ std::pair<pepp::bts::Buffer::Location, pepp::bts::Buffer::Location> submit_empty
   return {first, last};
 }
 
-bool same_location(pepp::bts::Buffer::Location a, pepp::bts::Buffer::Location b) {
-  return a.id.value == b.id.value && a.offset == b.offset;
+bool same_location(tvm::ProgramLocation a, tvm::ProgramLocation b) {
+  return a.code.id.value == b.code.id.value && a.code.offset == b.code.offset;
 }
 
 } // namespace

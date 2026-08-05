@@ -19,9 +19,28 @@ void Interpreter::run(pepp::bts::Buffer::Location loc, RegisterRetention retain)
   while (_state.csrs.L) step();
 }
 
+void Interpreter::run(ProgramLocation loc, RegisterRetention retain) {
+  _state.restart(retain);
+  // Seed DP before IP so the body starts with its payload already addressed. Skipped for a record that carries no
+  // payload. Clobbering DP would break a program that steps relative to the one before it.
+  if (loc.data.id != pepp::bts::Buffer::ID{0}) _state.update_dp(loc.data);
+  _state.update_ip(loc.code);
+  while (_state.csrs.L) step();
+}
+
 std::size_t Interpreter::run_each(std::span<const pepp::bts::Buffer::Location> locs, RegisterRetention retain) {
   // Run the program at each location. Check for a hard stop condition. On hard stop, abort the loop.
   // On a normal/soft stop, resume execution of the next program.
+  std::size_t count = 0;
+  for (const auto &loc : locs) {
+    run(loc, retain);
+    ++count;
+    if (_state.csrs.F == 1) break;
+  }
+  return count;
+}
+
+std::size_t Interpreter::run_each(std::span<const ProgramLocation> locs, RegisterRetention retain) {
   std::size_t count = 0;
   for (const auto &loc : locs) {
     run(loc, retain);

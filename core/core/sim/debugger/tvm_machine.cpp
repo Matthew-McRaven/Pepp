@@ -33,6 +33,12 @@ void MachineState::update_ip(pepp::bts::Buffer::ID id, u16 offset) {
   regs.IP.lo = offset & 0xFFFE;
 }
 
+void MachineState::update_dp(pepp::bts::Buffer::Location loc) {
+  // No alignment mask, unlike IP: payloads are byte-granular.
+  regs.DP.hi = loc.id.value;
+  regs.DP.lo = loc.offset;
+}
+
 void MachineState::push(tvm::SegmentPair v) {
   if (regs.SP + 4 > _stack.size()) return soft_stop(tvm::StopCause::StackOverflow);
   _stack[regs.SP + 0] = (u8)(v.hi >> 8);

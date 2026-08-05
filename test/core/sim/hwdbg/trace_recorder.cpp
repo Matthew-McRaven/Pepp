@@ -503,9 +503,9 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
     CHECK(f.total() < f.total_if_inlined());
     CHECK(f.compression_ratio() > 1.0);
 
-    // Payloads are untouched by promotion, so they sit on both sides of the comparison unchanged.
+    // Payloads and location entries are untouched by promotion, so they sit on both sides unchanged.
     CHECK(f.data > 0);
-    CHECK(f.total() - f.data == f.code + f.templates);
+    CHECK(f.total() - f.data - f.locations() == f.code + f.templates);
 
     // Reserved is not the same question as written: buffer_footprint counts whole buffers, so it is a multiple of the
     // buffer size and never smaller than the bytes actually put in them.

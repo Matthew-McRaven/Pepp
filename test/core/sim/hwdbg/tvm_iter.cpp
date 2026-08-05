@@ -227,7 +227,7 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
 
   SECTION("The span overload reports how many programs ran") {
     auto r = tb.range(before, after);
-    std::vector<pepp::bts::Buffer::Location> locs(r.begin(), r.end());
+    std::vector<tvm::ProgramLocation> locs(r.begin(), r.end());
     REQUIRE(locs.size() == N);
 
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
@@ -297,7 +297,7 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
     CHECK(stopped_at == expected);
 
     // Same story through the span overload, which counts programs run -- the failing one included.
-    std::vector<pepp::bts::Buffer::Location> locs(r.begin(), r.end());
+    std::vector<tvm::ProgramLocation> locs(r.begin(), r.end());
     REQUIRE(locs.size() == 3);
     tvm::Interpreter counted(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     CHECK(counted.run_each(locs) == 2);
