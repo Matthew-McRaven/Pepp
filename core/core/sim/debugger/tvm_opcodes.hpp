@@ -24,6 +24,9 @@ enum class StopCause {
   // An INVRET with no matching INVCALL, or a program that reached HALT while still inside one. Either way the
   // direction counter no longer describes reality, so continuing would silently replay ops the wrong way round.
   UnbalancedInvCall,
+  // A legal opcode this backend does not implement. Distinct from IllegalOpcode, which means the decoder did not
+  // recognise the encoding at all: this one says the program is well-formed but aimed at the wrong backend.
+  Unimplemented,
 };
 
 // Must fit into 6 bits because of the OpWord struct.
