@@ -12,6 +12,28 @@ public:
   using page_offset_t = u16;
   using ID = pepp::OpaqueHandle<struct BufferID, u16>;
   static constexpr size_t SIZE = 0x1'0000; // 2^16 bytes, or 64KiB.
+
+  // An ID is (generation << INDEX_BITS) | index. The index selects a slot in the BufferManager; the generation says
+  // *which occupant* of that slot. Reusing an index is mandatory -- ids are 16 bits and a long session will churn
+  // through far more than 65536 buffers -- but an id left over from a previous occupant must not silently resolve to
+  // whoever holds the slot now, which is what the generation half prevents. Both halves have to fit in 16 bits,
+  // because the trace VM keeps a buffer id in half of a 32-bit register (IP.hi, DP.hi).
+  //
+  // 12/4 caps live buffers at 4095 which is 256 MiB of resident trace -- and gives a slot 16 occupants before an id can
+  // alias. Allocation hands out free indices in FIFO order specifically to stretch that: an index is not reused until
+  // every other free index has been, so 16 occupants is many ring wraps rather than 16 consecutive allocations. Retune
+  // here if either bound bites.
+  static constexpr u16 INDEX_BITS = 12;
+  static constexpr u16 INDEX_MASK = (1u << INDEX_BITS) - 1;
+  static constexpr u16 GENERATION_MASK = 0xFFFF >> INDEX_BITS;
+  // Index 0 is never handed out, which is what makes ID{0} reliably mean "no buffer"
+  static constexpr u16 MAX_LIVE_BUFFERS = INDEX_MASK;
+  static constexpr u16 index_of(ID id) noexcept { return id.value & INDEX_MASK; }
+  static constexpr u16 generation_of(ID id) noexcept { return id.value >> INDEX_BITS; }
+  static constexpr ID make_id(u16 index, u16 generation) noexcept {
+    return ID{static_cast<u16>(((generation & GENERATION_MASK) << INDEX_BITS) | (index & INDEX_MASK))};
+  }
+
   Buffer(const Buffer &) = delete;
   ID id() const { return _id; }
   struct Location {
@@ -102,9 +124,32 @@ public:
   u16 allocated_buffers() const noexcept;
 
 private:
-  std::vector<std::unique_ptr<Buffer>> _free_pool;
-  std::unordered_map<Buffer::ID, std::unique_ptr<Buffer>, pepp::handle_hash<Buffer::ID>> _allocated;
-  Buffer::ID _next_id = Buffer::ID{1};
+  // But 4095 is a valid index you say? Well, indices higher than 2<<INDEX_BITS could never refer to a valid slot,
+  // because they would be out-of-range. So use on of those as a designated "no index" value.
+  static constexpr u16 NO_INDEX = 0xFFFF;
+
+  // One entry per index ever handed out, up to Buffer::MAX_LIVE_BUFFERS.
+  // A slot keeps its 64 KiB storage across a free so the allocation is reused.
+  // A generation id is prepended to the index to to form a 16 bit id.
+  // Accesses to the same index with a different generation ID will return a nullptr to prevent use-after frees.
+  struct Slot {
+    bool live = false;
+    // Bumped on free, so ids naming the previous occupant stop resolving. Wraps; it only has to differ from the ids
+    // still in flight, not be globally unique.
+    u16 generation = 0;
+    // Intrusive free list, threaded through the slots so the free set needs no container of its own. Meaningful only
+    // while `live` is false.
+    u16 next_free = NO_INDEX;
+    std::unique_ptr<Buffer> storage;
+  };
+  // Don't "hand out" ID=0, so we can use is as a nullptr,  With 2^12-2 buffers, we can address ~256MB of code+data in a
+  // single ringbuffer. Checking if a buffer exists becomes a bounds check on the index and a generation check rather
+  // than a hash table lookup.
+  std::vector<Slot> _slots;
+  // Follow a FIFO/queue reuse rather than LIFO/stack reuse. This stretches time between free/reuse of a slot, hopefully
+  // leveling out generations too.
+  u16 _free_head = NO_INDEX, _free_tail = NO_INDEX;
+  u16 _live_count = 0, _free_count = 0;
 };
 
 } // namespace pepp::bts
