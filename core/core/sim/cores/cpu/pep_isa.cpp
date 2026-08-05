@@ -1,4 +1,5 @@
 #include "pep_isa.hpp"
+#include <array>
 #include <nlohmann/json.hpp>
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/isa/pep9.hpp"
@@ -198,21 +199,24 @@ void PepISA3CPU::decrement_call_depth() {
   // TODO:
 }
 
+// The CSR bank stores one flag per byte, in CSR enum order: N at 0, Z at 1, V at 2, C at 3. Both of these move all
+// four in a single access rather than one per flag. Perform as a single batched read/write to reduce the # of traces
+// emitted for this operation.
 u8 PepISA3CPU::read_packed_csr() {
-  u8 ret = 0;
-  ret |= read_csr(isa::Pep10::CSR::N) ? 1 << 3 : 0;
-  ret |= read_csr(isa::Pep10::CSR::Z) ? 1 << 2 : 0;
-  ret |= read_csr(isa::Pep10::CSR::V) ? 1 << 1 : 0;
-  ret |= read_csr(isa::Pep10::CSR::C) ? 1 << 0 : 0;
-  return ret;
+  std::array<u8, 4> nzvc{};
+  ((Target *)_csrs)->read(0, {nzvc.data(), nzvc.size()}, op_data());
+  return static_cast<u8>((nzvc[0] ? 1 << 3 : 0) | (nzvc[1] ? 1 << 2 : 0) | (nzvc[2] ? 1 << 1 : 0) |
+                         (nzvc[3] ? 1 << 0 : 0));
 }
 
 void PepISA3CPU::write_packed_csr(u8 value) {
-  const auto size = size_inclusive(_csrs->span());
-  write_csr(isa::Pep10::CSR::N, (value >> 3) & 1);
-  write_csr(isa::Pep10::CSR::Z, (value >> 2) & 1);
-  write_csr(isa::Pep10::CSR::V, (value >> 1) & 1);
-  write_csr(isa::Pep10::CSR::C, (value >> 0) & 1);
+  const std::array<u8, 4> nzvc{
+      static_cast<u8>((value >> 3) & 1),
+      static_cast<u8>((value >> 2) & 1),
+      static_cast<u8>((value >> 1) & 1),
+      static_cast<u8>((value >> 0) & 1),
+  };
+  ((Target *)_csrs)->write(0, {nzvc.data(), nzvc.size()}, op_data());
 }
 
 void PepISA3CPU::handle(Op opcode) {
