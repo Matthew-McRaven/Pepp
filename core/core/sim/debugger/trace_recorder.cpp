@@ -31,8 +31,11 @@ void Recorder::Instruction::tick(i16 delta) {
   if (rec == nullptr) return;
   // The immediate form carries its two payload bytes in the instruction stream. Reading from DP instead would be
   // smaller, but it would spend the data pointer that the body is about to set up for its own payloads.
+  // This runs before any wrote(), so the tick lands at the head of the body, ahead of the DP steps.
+  // The same instruction executing at different clock rates will now produce different deltas -- something we can
+  // optimize for in the future.
   const auto isyn = tvm::EncodedOp::ISyn<1>{}.encode(static_cast<u16>(delta));
-  _tb->emit_prefix(*rec, {isyn.data(), isyn.size()});
+  _tb->emit_body(*rec, {isyn.data(), isyn.size()});
 }
 
 void Recorder::Instruction::commit() {
