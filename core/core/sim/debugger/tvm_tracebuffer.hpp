@@ -72,11 +72,10 @@ struct Cursor {
 // frequently. There are only a limited number of meaningful memory access patterns in Pep/10, so I expect a high hit
 // rate over time.
 //
-// The data chain is shared between all initiators.
-// Data is written immediately rather than being buffered like code.
-// This may cause some interleaving of data between concurrently-recording devices.
-// The trace buffer ensures that the resulting programs work correctly, but the interleaved data will likely prevent
-// templatization from occuring. This is because the data pointer incrments issued in the body will be different.
+// Each initiator gets its own data chain within a ring slot, and data is written immediately rather than being
+// buffered like code. Private chains prevent interleaved data from multiple initiators from causing spurious
+// templatization failures. Chains are created on first write from an initiator, so the cost is one chain per initiator
+// actually recording not one per Device::ID.
 //
 // For a typical Pep/N trace, I expect programs to be as follows.
 //   prefix:  Record current wall time with ASYN, or the wall-time delta with ISYN
@@ -124,6 +123,13 @@ public:
   // but the next one will fail. Free some space before recording again.
   pepp::bts::Buffer::Location commit(Device::ID initiator);
 
+  // Discard an in-progress recording without writing anything to the ring, which occurs when a caller unwinding out of
+  // a partially executed instruction due to an exception. Unlike e commit(), a no-op when nothing is recording rather
+  // than an assert, since this is typically called from destructors.
+  // TODO: we probably need to expose a callback BEFORE the state is cleaned up. Writes have already been applied to
+  // registers, and we probably need to undo them.
+  void abort(Device::ID initiator);
+
   // Append encoded bytes to the prefix section.
   // Not hashed. Always inlined into the code chain.
   // Typically used to insert timestamps.
@@ -143,7 +149,7 @@ public:
   void emit_postfix(Device::ID initiator, bits::span<const u8> encoded);
   void emit_postfix(Recording &rec, bits::span<const u8> encoded);
 
-  // Append raw data to the current ring slot's shared data chain.
+  // Append raw data to this initiator's data chain in the current ring slot.
   // Returns the location where the data starts. The caller uses this
   // (along with last_dp()) to construct DP update instructions in the prefix.
   // Immediately updates this initiator's last_dp.
@@ -158,7 +164,7 @@ public:
   // bytes. Allows us to avoid an extra data copy in some places. Also updates the initiator's last_dp.
   DataSlot append_data_uninitialized(Device::ID initiator, std::size_t len);
 
-  // This initiator's last DP position in the shared data chain.
+  // This initiator's last DP position in its own data chain.
   // Returns {0,0} if this initiator has never written data.
   pepp::bts::Buffer::Location last_dp(Device::ID initiator) const;
 
@@ -285,8 +291,10 @@ private:
     pepp::bts::Buffer *locations = nullptr;
     // Code chain: subroutine bodies, which are prefix + body/CALL + postfix
     std::unique_ptr<pepp::bts::BufferChain> code;
-    // Shared data chain: payload bytes for every initiator writing to this slot.
-    std::unique_ptr<pepp::bts::BufferChain> data;
+    // One data chain per initiator writing into this slot, so that concurrent recorders cannot fragment each other's
+    // payloads. Created on first write and then kept across reset() -- a cleared chain owns no buffers, so a retained
+    // entry costs one map node and saves rebuilding the chain for an initiator that records here again.
+    std::unordered_map<Device::ID, std::unique_ptr<pepp::bts::BufferChain>, pepp::handle_hash<Device::ID>> data;
     // Number of entries in this slot's location buffer.
     u16 count = 0;
 
@@ -300,11 +308,18 @@ private:
     std::vector<u8> prefix;
     std::vector<u8> body;
     std::vector<u8> postfix;
-    // Last DP this initiator set in the shared data chain.
+    // Which initiator this belongs to, which is needed to find the right data chain.
+    Device::ID id{};
+    // Last DP this initiator set in its own data chain.
     pepp::bts::Buffer::Location last_dp{};
     bool active = false;
     // See DpAnchor. Reset by begin().
     DpAnchor dp{};
+    // Memoize the result of data_chain (in addition to its slot #) to avoid repeated map lookups in the hot recording
+    // path. This keeps the write path to a size_t compare instead of a map lookup and the slot indices are never
+    // invalidated. A ring that has moved on forces a re-resolve.
+    pepp::bts::BufferChain *chain = nullptr;
+    size_t chain_slot = 0;
   };
 
   // --- Template dedup ---
@@ -324,6 +339,9 @@ private:
   // 32-bit hash, so a map hit alone does not prove the bodies match; this is what makes a collision safe.
   bool template_matches(const TemplateEntry &entry, bits::span<const u8> body);
   pepp::bts::Buffer::Location flush_to_ring(Recording &rec, BodyResolution resolution);
+
+  // This recording's data chain in the ringbuffer's head slot, creating the chain on first use.
+  pepp::bts::BufferChain &data_chain(Recording &rec);
 
   // Advance _head to the next ring slot. Fires watermark callbacks as needed.
   void advance_slot();

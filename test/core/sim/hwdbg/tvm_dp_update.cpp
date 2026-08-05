@@ -172,32 +172,30 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   }
 
   SECTION("INCDP: explicit increment for non-contiguous data") {
-    // Two initiators interleave data, creating a gap in initiator A's writes.
+    // A program that does not consume every payload in order still needs an explicit step. Interleaving no longer
+    // produces the gap -- each initiator has its own data chain -- so the gap here comes from A appending a chunk
+    // that its own program then skips over.
     tvm::TraceBuffer tb(mgr);
-    constexpr Device::ID A{1}, B{2};
+    constexpr Device::ID A{1};
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     auto before = tb.cursor();
 
     tb.begin(A);
-    tb.begin(B);
 
     auto da1 = tb.append_data(A, std::array<u8, 2>{0x11, 0x22});
-    tb.append_data(B, std::array<u8, 2>{0xFF, 0xFF}); // B's data sits between A's writes
+    tb.append_data(A, std::array<u8, 2>{0xFF, 0xFF}); // skipped by the program below
     auto da2 = tb.append_data(A, std::array<u8, 2>{0x33, 0x44});
 
-    // A's second chunk is 4 bytes past its first (B's 2 bytes in between).
+    // A's third chunk is 4 bytes past its first (the skipped 2 bytes in between).
     CHECK(da2.offset == da1.offset + 4);
-
-    // End B first so its entry is out of the way.
-    tb.commit(B);
 
     // A program 1: LDP to A's first chunk.
     auto ldp = LDP<3>(SegmentPair{.hi = (u16)da1.id.value, .lo = da1.offset}, 2).encode();
     tb.emit_prefix(A, {ldp.data(), ldp.size()});
     tb.commit(A);
 
-    // A program 2: INCDP past B's data to reach A's second chunk.
-    // ACCDP would advance by old DS=2, landing on B's data. Wrong.
+    // A program 2: INCDP past the skipped chunk to reach A's third.
+    // ACCDP would advance by old DS=2, landing on the skipped chunk. Wrong.
     // INCDP(4, 2) advances by 4, landing on da2. Correct.
     tb.begin(A);
     auto incdp = INCDP{4, 2}.encode();
@@ -206,7 +204,6 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
 
     auto r = tb.range(before, tb.cursor());
     auto it = r.begin();
-    ++it; // skip B's entry
 
     blaster.run(*it); // A's LDP
     CHECK(blaster.regs().DP.hi == da1.id.value);

@@ -16,7 +16,9 @@ static_assert(std::bidirectional_iterator<TraceBuffer::Iterator>);
 
 void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
   if (code) code->clear();
-  if (data) data->clear();
+  // Return pages to pool while keeping the map entries
+  for (auto &[initiator, chain] : data)
+    if (chain) chain->clear();
   if (locations) locations->clear();
   count = 0;
   in_use = false;
@@ -29,7 +31,7 @@ TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t r
   for (auto &node : _ring) {
     node.locations = _mgr->alloc_buffer();
     node.code = _mgr->alloc_chain();
-    node.data = _mgr->alloc_chain();
+    // Lazily allocate node.data to avoid paying for all devices up front.
   }
   _templates = _mgr->alloc_chain();
 }
@@ -47,11 +49,26 @@ TraceBuffer::Recording *TraceBuffer::find_recording(Device::ID initiator) {
   return it == _recordings.end() ? nullptr : &it->second;
 }
 
+pepp::bts::BufferChain &TraceBuffer::data_chain(Recording &rec) {
+  // Re-resolve whenever the head entry has changed. commit() can advance the slot while another initiator is still
+  // recording, and a chain memoized against the old slot put payloads into the previous entry instead of the current
+  // one, leading to use-after-frees.
+  if (rec.chain == nullptr || rec.chain_slot != _head) {
+    auto &slot = current_node().data[rec.id];
+    if (!slot) slot = _mgr->alloc_chain();
+    // The chain is owned by a unique_ptr, so rehashing the map moves the unique_pointer, not the chain.
+    rec.chain = slot.get();
+    rec.chain_slot = _head;
+  }
+  return *rec.chain;
+}
+
 void TraceBuffer::begin(Device::ID initiator) {
   // First recording from this initiator creates its scratch state; later ones reuse it, which is why the vectors are
   // cleared rather than reconstructed -- clear() keeps the capacity earned by previous programs.
   auto &rec = _recordings[initiator];
   assert(!rec.active && "begin() called while this initiator is already recording");
+  rec.id = initiator;
   rec.prefix.clear();
   rec.body.clear();
   rec.postfix.clear();
@@ -87,6 +104,17 @@ pepp::bts::Buffer::Location TraceBuffer::commit(Device::ID initiator) {
 
 void TraceBuffer::emit_prefix(Recording &rec, bits::span<const u8> encoded) {
   rec.prefix.insert(rec.prefix.end(), encoded.begin(), encoded.end());
+}
+void TraceBuffer::abort(Device::ID initiator) {
+  auto *rec = find_recording(initiator);
+  if (rec == nullptr || !rec->active) return;
+  // Same clear-but-keep-capacity treatment begin() gives them, so aborting costs nothing the next recording has to
+  // earn back.
+  rec->prefix.clear();
+  rec->body.clear();
+  rec->postfix.clear();
+  rec->dp = {};
+  rec->active = false;
 }
 
 void TraceBuffer::emit_body(Recording &rec, bits::span<const u8> encoded) {
@@ -124,13 +152,13 @@ void TraceBuffer::emit_postfix(Device::ID initiator, bits::span<const u8> encode
 pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits::span<const u8> data) {
   auto *rec = find_recording(initiator);
   assert(rec && rec->active && "append_data() outside a begin()/commit() pair");
-  auto loc = current_node().data->append(data);
+  auto loc = data_chain(*rec).append(data);
   rec->last_dp = loc;
   return loc;
 }
 
 TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Recording &rec, std::size_t len) {
-  const auto res = current_node().data->reserve(len);
+  const auto res = data_chain(rec).reserve(len);
   rec.last_dp = res.loc;
   return DataSlot{res.loc, res.bytes};
 }
@@ -180,20 +208,29 @@ float TraceBuffer::ring_occupancy() const {
 
 // --- Data chain navigation ---
 
+// Both of these scan every slot's chains because replay has no notion of an initiator -- the machine holds a DP, not
+// a Device::ID -- so there is nothing to narrow the search with. A buffer belongs to exactly one chain at a time, so
+// the first hit is the right answer; the scan is bounded by (ring slots x initiators that recorded), which is a
+// handful. Note this remains unscoped across slots, so a recycled Buffer::ID can still match a chain in a slot other
+// than the one being replayed.
 pepp::bts::Buffer::ID TraceBuffer::data_successor(pepp::bts::Buffer::ID id) const {
   for (auto &node : _ring) {
-    if (!node.data) continue;
-    auto succ = node.data->successor(id);
-    if (succ != pepp::bts::Buffer::ID{0}) return succ;
+    for (auto &[initiator, chain] : node.data) {
+      if (!chain) continue;
+      auto succ = chain->successor(id);
+      if (succ != pepp::bts::Buffer::ID{0}) return succ;
+    }
   }
   return pepp::bts::Buffer::ID{0};
 }
 
 pepp::bts::Buffer::ID TraceBuffer::data_predecessor(pepp::bts::Buffer::ID id) const {
   for (auto &node : _ring) {
-    if (!node.data) continue;
-    auto pred = node.data->predecessor(id);
-    if (pred != pepp::bts::Buffer::ID{0}) return pred;
+    for (auto &[initiator, chain] : node.data) {
+      if (!chain) continue;
+      auto pred = chain->predecessor(id);
+      if (pred != pepp::bts::Buffer::ID{0}) return pred;
+    }
   }
   return pepp::bts::Buffer::ID{0};
 }

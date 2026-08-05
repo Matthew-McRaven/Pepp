@@ -29,24 +29,25 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
   auto body_s0 = [&](auto enc) { tb.emit_body(S0, {enc.data(), enc.size()}); };
   auto body_s1 = [&](auto enc) { tb.emit_body(S1, {enc.data(), enc.size()}); };
 
-  SECTION("Data is interleaved, code is not") {
+  SECTION("Neither data nor code is interleaved") {
     auto before = tb.cursor();
 
     // Both initiators recording simultaneously.
     tb.begin(S0);
     tb.begin(S1);
 
-    // Interleave data writes: S0, S1, S0.
+    // Interleave the calls: S0, S1, S0.
     auto d0a = tb.append_data(S0, std::array<u8, 2>{0xAA, 0xBB});
     auto d1 = tb.append_data(S1, std::array<u8, 2>{0xCC, 0xDD});
     auto d0b = tb.append_data(S0, std::array<u8, 2>{0xEE, 0xFF});
 
-    // All three writes land in the same buffer, sequentially.
-    CHECK(d0a.id == d1.id);
-    CHECK(d1.id == d0b.id);
-    // S0's second write is NOT adjacent to its first — S1's data sits between them.
-    CHECK(d1.offset == d0a.offset + 2);
-    CHECK(d0b.offset == d1.offset + 2);
+    // Each initiator has its own chain, so S1's payload lands in a different buffer entirely.
+    CHECK(d0a.id != d1.id);
+    // S0's second write stays adjacent to its first despite S1's call in between. That adjacency is the whole point:
+    // it lets the body step DP with an address-free ACCDP instead of an INCDP carrying an interleaving-specific
+    // delta, which is what keeps the body byte-identical to other programs and therefore templatizable.
+    CHECK(d0b.id == d0a.id);
+    CHECK(d0b.offset == d0a.offset + 2);
 
     // Each initiator emits a distinguishable body.
     body_s0(LMR_of<false>(std::pair{M::MOD1_LO, u16(0xAAAA)}));
