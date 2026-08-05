@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
+#include <vector>
 
 #include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
@@ -217,8 +218,20 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
   SECTION("Forward iteration executes all programs") {
     auto r = tb.range(before, after);
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
-    blaster.run_each(r.begin(), r.end());
+    auto stopped_at = blaster.run_each(r.begin(), r.end());
     // Last program sets ACCESS = N-1.
+    CHECK(blaster.regs().ACCESS == N - 1);
+    // Nothing failed, so the walk consumed the whole range.
+    CHECK(stopped_at == r.end());
+  }
+
+  SECTION("The span overload reports how many programs ran") {
+    auto r = tb.range(before, after);
+    std::vector<pepp::bts::Buffer::Location> locs(r.begin(), r.end());
+    REQUIRE(locs.size() == N);
+
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    CHECK(blaster.run_each(locs) == N);
     CHECK(blaster.regs().ACCESS == N - 1);
   }
 
@@ -270,10 +283,23 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
     auto end_cursor = tb.cursor();
     auto r = tb.range(mid, end_cursor);
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
-    blaster.run_each(r.begin(), r.end());
+    auto stopped_at = blaster.run_each(r.begin(), r.end());
 
     // Program 0xAA executed normally, then 0xBB set ACCESS but CLRMEM hard-stopped, so 0xCC was never reached.
     CHECK(blaster.regs().ACCESS == 0xBB);
     CHECK(blaster.csrs().F == 1);
+    CHECK(blaster.stop_cause() == StopCause::MissingSystem);
+
+    // The return value is the whole reason a caller can say *which* program failed rather than just that one did.
+    // It points at the offender, not past it: the second of the three.
+    auto expected = r.begin();
+    ++expected;
+    CHECK(stopped_at == expected);
+
+    // Same story through the span overload, which counts programs run -- the failing one included.
+    std::vector<pepp::bts::Buffer::Location> locs(r.begin(), r.end());
+    REQUIRE(locs.size() == 3);
+    tvm::Interpreter counted(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    CHECK(counted.run_each(locs) == 2);
   }
 }

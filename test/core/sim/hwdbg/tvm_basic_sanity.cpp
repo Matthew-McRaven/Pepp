@@ -13,6 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <array>
 #include <catch.hpp>
 #include <vector>
 
@@ -31,6 +32,13 @@ pepp::bts::Buffer *load_program(pepp::bts::BufferManager &mgr, tvm::Interpreter 
   auto offset = code->append(program);
   blaster.update_ip(code->id(), (u16)offset);
   return code;
+}
+
+// Same, but hands back a Location so the program can be driven through run() rather than step().
+pepp::bts::Buffer::Location load_at(pepp::bts::BufferManager &mgr, bits::span<const u8> program) {
+  auto *code = mgr.alloc_buffer();
+  auto offset = code->append(program);
+  return pepp::bts::Buffer::Location{code->id(), (u16)offset};
 }
 
 } // namespace
@@ -459,5 +467,166 @@ TEST_CASE("tvm::Interpreter: INVCALL opcode", "[scope:core][scope:core.dbg][kind
     CHECK(blaster.stopped());
     CHECK(blaster.csrs().F == 1);
     CHECK(blaster.stop_cause() == StopCause::UnbalancedInvCall);
+  }
+}
+
+TEST_CASE("tvm::Interpreter: HALT carries a stop cause", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  using namespace tvm::EncodedOp;
+
+  // The cause is the packet's *first* data word. Reading the second instead -- which is what decode_halt used to do --
+  // lands on the following instruction's opcode word, so the trailing HALT below makes a regression give a specific
+  // wrong answer rather than whatever happened to be in an uninitialised buffer.
+  std::vector<u8> program;
+  auto append = [&](auto enc) { program.insert(program.end(), enc.begin(), enc.end()); };
+  append(Halt<1>{StopCause::RegisterInvalid}.encode()); // 0..3, cause word at 2..3
+  append(Halt<0>{}.encode());                           // 4..5, never reached
+
+  tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+  load_program(*mgr, blaster, program);
+  blaster.step();
+
+  CHECK(blaster.stopped());
+  CHECK(blaster.csrs().F == 0); // a HALT is a soft stop however it is spelled
+  CHECK(blaster.stop_cause() == StopCause::RegisterInvalid);
+}
+
+TEST_CASE("tvm::Interpreter: register retention between programs",
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  using namespace tvm::EncodedOp;
+  using M = tvm::RegMask;
+  using RR = tvm::RegisterRetention;
+
+  // Stamps one register from each retention class, then halts.
+  std::vector<u8> seed;
+  auto seed_append = [&](auto enc) { seed.insert(seed.end(), enc.begin(), enc.end()); };
+  seed_append(LMR_of<false>(std::pair{M::DP_HI, u16(0x0011)}, std::pair{M::DP_LO, u16(0x0022)},
+                            std::pair{M::DS, u16(0x0033)}, std::pair{M::ACCESS, u16(0x0044)},
+                            std::pair{M::OFF_HI, u16(0x0055)}));
+  seed_append(Halt<0>{}.encode());
+
+  // The second program stamps ID.lo, so every case below also proves restart() brought the machine back live -- a
+  // machine left halted would skip this entirely and the assertion would fail rather than silently pass.
+  std::vector<u8> marker;
+  auto marker_append = [&](auto enc) { marker.insert(marker.end(), enc.begin(), enc.end()); };
+  marker_append(LMR_of<false>(std::pair{M::ID_LO, u16(0x0099)}));
+  marker_append(Halt<0>{}.encode());
+
+  const auto seed_loc = load_at(*mgr, seed);
+  const auto marker_loc = load_at(*mgr, marker);
+
+  SECTION("All keeps everything") {
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    blaster.run(seed_loc);
+    blaster.csrs().Z = 1;
+    blaster.run(marker_loc, RR::All);
+
+    CHECK(blaster.regs().ID.lo == 0x0099); // the second program ran, so restart left the machine live
+    CHECK(blaster.regs().DP.hi == 0x0011);
+    CHECK(blaster.regs().DP.lo == 0x0022);
+    CHECK(blaster.regs().DS == 0x0033);
+    CHECK(blaster.regs().ACCESS == 0x0044);
+    CHECK(blaster.regs().OFF.hi == 0x0055);
+    CHECK(blaster.csrs().Z == 1); // flags survive too
+  }
+
+  SECTION("DP keeps the data pointer and drops the rest") {
+    // This is run_each's default, so it is what a replay actually uses.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    blaster.run(seed_loc);
+    blaster.csrs().Z = 1;
+    blaster.run(marker_loc, RR::DP);
+
+    CHECK(blaster.regs().ID.lo == 0x0099);
+    CHECK(blaster.regs().DP.hi == 0x0011);
+    CHECK(blaster.regs().DP.lo == 0x0022);
+    CHECK(blaster.regs().DS == 0x0033);
+    CHECK(blaster.regs().ACCESS == 0);
+    CHECK(blaster.regs().OFF.hi == 0);
+    CHECK(blaster.csrs().Z == 0);
+  }
+
+  SECTION("None keeps nothing") {
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    blaster.run(seed_loc);
+    blaster.csrs().Z = 1;
+    blaster.run(marker_loc, RR::None);
+
+    CHECK(blaster.regs().ID.lo == 0x0099);
+    CHECK(blaster.regs().DP.hi == 0);
+    CHECK(blaster.regs().DP.lo == 0);
+    CHECK(blaster.regs().DS == 0);
+    CHECK(blaster.regs().ACCESS == 0);
+    CHECK(blaster.regs().OFF.hi == 0);
+    CHECK(blaster.csrs().Z == 0);
+  }
+
+  SECTION("Every mode clears a previous hard failure") {
+    // run_each decides whether to continue on the F bit, so a mode that carried F across would stop a replay dead
+    // after the first failure.
+    for (auto retain : {RR::All, RR::DP, RR::None}) {
+      tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+      blaster.csrs().F = 1;
+      blaster.run(marker_loc, retain);
+      CHECK(blaster.regs().ID.lo == 0x0099);
+      CHECK(blaster.csrs().F == 0);
+    }
+  }
+}
+
+TEST_CASE("tvm::Interpreter: stop causes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  using namespace tvm::EncodedOp;
+
+  // Not an exhaustive sweep of StopCause -- one representative of each way the machine can give up: a stack limit, a
+  // decode failure, and an unreadable instruction buffer.
+
+  SECTION("Recursing past the stack soft-stops with StackOverflow") {
+    // 256-byte stack, 4 bytes per frame, so the 65th push is the one that fails.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    constexpr auto program = Call<1>{.next_ip_lo = 0}.encode(); // calls itself forever
+    blaster.run(load_at(*mgr, program));
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.csrs().F == 0); // soft: the program is malformed, but the machine is coherent
+    CHECK(blaster.stop_cause() == StopCause::StackOverflow);
+    CHECK(blaster.regs().SP == 256); // the failed push left it where it was
+  }
+
+  SECTION("Returning with an empty stack soft-stops with StackUnderflow") {
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    constexpr auto program = Ret<0>{}.encode();
+    load_program(*mgr, blaster, program);
+    blaster.step();
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.csrs().F == 0);
+    CHECK(blaster.stop_cause() == StopCause::StackUnderflow);
+  }
+
+  SECTION("An unassigned opcode hard-stops with IllegalOpcode") {
+    // Opcodes are 6 bits and MAX is well under 63, so anything above it decodes to nothing.
+    static_assert((u8)tvm::Opcode::MAX < 63, "pick an encoding above MAX");
+    const u16 word = tvm::OpWord((tvm::Opcode)((u8)tvm::Opcode::MAX + 1), true, 0).as_u16();
+    const std::array<u8, 2> program{(u8)(word & 0xFF), (u8)(word >> 8)};
+
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    load_program(*mgr, blaster, program);
+    blaster.step();
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.csrs().F == 1); // hard: there is nothing sensible to do next
+    CHECK(blaster.stop_cause() == StopCause::IllegalOpcode);
+  }
+
+  SECTION("Fetching from a buffer that was never allocated hard-stops with InvalidIBuffer") {
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    blaster.update_ip(pepp::bts::Buffer::ID{0xFFFF}, 0);
+    blaster.step();
+
+    CHECK(blaster.stopped());
+    CHECK(blaster.csrs().F == 1);
+    CHECK(blaster.stop_cause() == StopCause::InvalidIBuffer);
   }
 }
