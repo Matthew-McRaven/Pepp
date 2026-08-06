@@ -64,8 +64,12 @@ public:
   void increment_call_depth();
   void decrement_call_depth();
 
+  // Both redirect PC accesses to _pc.
   template <typename RegisterType> u16 read_register(RegisterType reg);
   template <typename RegisterType> void write_register(RegisterType reg, u16 value);
+  // Same as above, but does not redirect PC access.
+  template <typename RegisterType> u16 read_register_uncached(RegisterType reg);
+  template <typename RegisterType> void write_register_uncached(RegisterType reg, u16 value);
   template <typename CSRType> bool read_csr(CSRType csr);
   template <typename CSRType> void write_csr(CSRType csr, bool value);
   u8 read_packed_csr();
@@ -77,24 +81,14 @@ public:
   // No longer static const because it embeds this instance's id.
   Operation op_data() const { return Operation(Operation::Type::Standard, Operation::Kind::data, id()); }
 
-  // The program counter for the duration of one instruction.
-  //
-  // clock_tick loads it from the register bank on entry and stores it back exactly once on exit; everything in
-  // between moves it through here rather than through the bank. Between instructions the bank stays authoritative,
-  // so a debugger or a test writing PC is picked up by the next tick as it always was.
-  //
-  // This exists for trace size. Every write to the bank is its own trace record, and PC moves two or three times
-  // inside one instruction -- past the opcode, past the operand specifier, and again if the instruction jumps --
-  // while only the last value means anything to a replay. Recording the intermediates cost about 2.7 payload bytes
-  // and 19 body bytes per instruction to describe states the machine was never observably in.
-  //
-  // Anything that changes PC during an instruction must go through write_pc, including a bulk write to the register
-  // bank that happens to cover it; see handle_sret.
+  // While an instruction is in flight, this contains the active PC.
+  // At the end of an instruction, it will be written back with the updated value.
   u16 read_pc() const { return _pc; }
   void write_pc(u16 value) { _pc = value; }
 
 private:
   // Only meaningful between the start and end of clock_tick. See read_pc().
+  // Coalescing these reads saves 1-2 register writes on most instructions.
   u16 _pc = 0;
   Configuration _config;
   trace::Recorder _trace;
@@ -107,10 +101,20 @@ private:
 };
 
 template <typename RegisterType> inline void PepISA3CPU::write_register(RegisterType reg, u16 value) {
+  if (reg == RegisterType::PC) _pc = value;
+  else write_register_uncached(reg, value);
+}
+
+template <typename RegisterType> inline void PepISA3CPU::write_register_uncached(RegisterType reg, u16 value) {
   ((Target *)_regbank)->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op_data());
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterType reg) {
+  if (reg == RegisterType::PC) return _pc;
+  else return read_register_uncached(reg);
+}
+
+template <typename RegisterType> inline u16 PepISA3CPU::read_register_uncached(RegisterType reg) {
   return ((Target *)_regbank)->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op_data()).second;
 }
 
