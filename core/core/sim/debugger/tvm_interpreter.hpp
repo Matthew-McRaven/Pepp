@@ -68,6 +68,7 @@ public:
 
   void update_ip(pepp::bts::Buffer::Location loc) { _state.update_ip(loc); }
   void update_ip(pepp::bts::Buffer::ID id, u16 offset = 0) { _state.update_ip(id, offset); }
+
   // Assuming some code is already under IP, try to run it!
   void step();
   // Update IP to point to loc, then call step() in a loop while L==1.
@@ -77,11 +78,10 @@ public:
   // Identical to above, except the resulting DP will be overwritten by the ProgramLocation's data field.
   // If that field is null (Buffer::ID == 0), DP is left alone, allowing this to mirror the Buffer::Location overload.
   void run(ProgramLocation loc, RegisterRetention retain = RegisterRetention::All);
+
   // For each buffer location set L=1 and call run.
   // Only stops when reaching the end of this location buffer, or on "hard stop", where L==0 && F==1.
-  std::size_t run_each(std::span<const pepp::bts::Buffer::Location> locs,
-                       RegisterRetention retain = RegisterRetention::DP);
-  std::size_t run_each(std::span<const ProgramLocation> locs, RegisterRetention retain = RegisterRetention::None);
+  std::size_t run_each(std::span<const ProgramLocation> locs, RegisterRetention retain = RegisterRetention::DP);
   // Iterator-pair variant. While slower to execute, it can consume iterators from TraceBuffer without needing to
   // re-arrange them in spans first. Declared as a template to avoid include'ing TraceBuffer in this header
   template <typename It> auto run_each(It begin, It end, RegisterRetention retain = RegisterRetention::None) {

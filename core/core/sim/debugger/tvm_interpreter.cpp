@@ -28,19 +28,9 @@ void Interpreter::run(ProgramLocation loc, RegisterRetention retain) {
   while (_state.csrs.L) step();
 }
 
-std::size_t Interpreter::run_each(std::span<const pepp::bts::Buffer::Location> locs, RegisterRetention retain) {
+std::size_t Interpreter::run_each(std::span<const ProgramLocation> locs, RegisterRetention retain) {
   // Run the program at each location. Check for a hard stop condition. On hard stop, abort the loop.
   // On a normal/soft stop, resume execution of the next program.
-  std::size_t count = 0;
-  for (const auto &loc : locs) {
-    run(loc, retain);
-    ++count;
-    if (_state.csrs.F == 1) break;
-  }
-  return count;
-}
-
-std::size_t Interpreter::run_each(std::span<const ProgramLocation> locs, RegisterRetention retain) {
   std::size_t count = 0;
   for (const auto &loc : locs) {
     run(loc, retain);
