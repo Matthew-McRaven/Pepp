@@ -27,12 +27,17 @@ void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
     locations = nullptr;
   }
   count = 0;
-  in_use = false;
+  // No slot occupies this node any more, so a Cursor still naming the old one stops resolving -- and advance_slot()
+  // is free to claim it.
+  slot = NO_SLOT;
 }
 
 // --- Construction / Destruction ---
 
 TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t ring_size) : _mgr(std::move(mgr)) {
+  // Every slot lookup is `absolute_slot % _ring.size()`, so an empty ring is a division by zero on first use rather
+  // than a buffer that simply holds nothing. Refuse it here, where the cause is still visible.
+  if (ring_size == 0) throw std::invalid_argument("TraceBuffer: ring_size must be at least 1");
   _ring.resize(ring_size);
   for (auto &node : _ring) {
     node.code = _mgr->alloc_chain();
@@ -104,7 +109,6 @@ tvm::ProgramLocation TraceBuffer::commit(Device::ID initiator) {
 
   auto &node = current_node();
   node.count++;
-  node.in_use = true;
   rec->active = false;
   _footprint.programs++;
 
@@ -197,7 +201,13 @@ void TraceBuffer::on_watermark(float threshold, WatermarkCallback cb) {
 }
 
 void TraceBuffer::acknowledge(Cursor up_to) {
-  while (_tail < up_to.slot) {
+  // Clamp to the head rather than trusting the caller. _tail running past _head would make ring_occupancy() evaluate
+  // (_head - _tail) on unsigned values, underflow, and report an occupancy in the billions -- after which watermarks
+  // fire arbitrarily and never reset. Worse, the loop below would reset() the node _head is still recording into,
+  // returning its chains to the pool while an open Recording holds a pointer into them. A cursor held from before the
+  // ring moved, or one taken from a different buffer, is an easy way to arrive here.
+  const size_t limit = std::min(up_to.slot, _head);
+  while (_tail < limit) {
     auto &node = _ring[_tail % _ring.size()];
     node.reset(*_mgr);
     _tail++;
@@ -409,9 +419,10 @@ void TraceBuffer::advance_slot() {
 
   // Prepare the new current node if it's been previously consumed.
   auto &node = current_node();
-  // Still in use means nobody consumed this slot's trace. Overwriting it would silently discard history, so refuse.
-  // _head stays advanced: acknowledge() resets this node, after which submission picks up from a clean slot.
-  if (node.in_use) throw RingOverflow(_head);
+  // A node still stamped with a slot holds trace nobody has consumed. Overwriting it would silently discard history,
+  // so refuse. _head stays advanced: acknowledge() resets this node, after which submission picks up from a clean
+  // slot. write_location() sets the stamp on every commit, so any node holding entries is caught here.
+  if (node.slot != NO_SLOT) throw RingOverflow(_head);
   node.count = 0;
   // code/data chains should already be clear from acknowledge().
 }
@@ -426,6 +437,9 @@ void TraceBuffer::write_location(Node &node, u16 entry, tvm::ProgramLocation pro
   // Acquired on first write into this slot rather than at construction or reset, so an unused ring slot holds no
   // buffer at all.
   if (node.locations == nullptr) node.locations = _mgr->alloc_buffer();
+  // Claim the node for the slot being written. write_location is the only thing that creates readable entries, so
+  // this is the point at which a Cursor naming _head becomes meaningful.
+  node.slot = _head;
   u16 offset = entry * sizeof(tvm::ProgramLocation);
   auto *dst = node.locations->data() + offset;
   std::memcpy(dst, &program, sizeof(program));
@@ -464,17 +478,20 @@ TraceBuffer::CursorRange TraceBuffer::range(Cursor from, Cursor to) const {
 TraceBuffer::Iterator::Iterator(const TraceBuffer *tb, Cursor cursor) : _tb(tb), _cursor(cursor) {}
 
 TraceBuffer::Iterator::reference TraceBuffer::Iterator::operator*() const {
-  auto &node = _tb->node_at(_cursor.slot);
-  return _tb->read_location(node, _cursor.entry);
+  // If not resident, returns nullptr rather than returning a pointer to an overwritten location.
+  const Node *node = _tb->resident_node(_cursor.slot);
+  if (node == nullptr) return {};
+  return _tb->read_location(*node, _cursor.entry);
 }
 
 TraceBuffer::Iterator &TraceBuffer::Iterator::operator++() {
   _cursor.entry++;
-  auto &node = _tb->node_at(_cursor.slot);
+  // A slot that is no longer resident reports no entries, so iteration goes to the next one.
+  const u16 count = _tb->count_at(_cursor.slot);
   // Advance to the next slot only if we've exhausted this one AND we're
   // behind _head. At the head slot, entry == count is the past-the-end
   // sentinel that cursor() returns — don't normalize past it.
-  if (_cursor.entry >= node.count && _cursor.slot < _tb->_head) {
+  if (_cursor.entry >= count && _cursor.slot < _tb->_head) {
     _cursor.slot++;
     _cursor.entry = 0;
   }
@@ -490,14 +507,17 @@ TraceBuffer::Iterator TraceBuffer::Iterator::operator++(int) {
 TraceBuffer::Iterator &TraceBuffer::Iterator::operator--() {
   if (_cursor.entry > 0) {
     _cursor.entry--;
-  } else {
-    // Move to the previous slot's last entry.
-    assert(_cursor.slot > 0 && "decrement past beginning");
-    _cursor.slot--;
-    auto &node = _tb->node_at(_cursor.slot);
-    assert(node.count > 0);
-    _cursor.entry = node.count - 1;
+    return *this;
   }
+  // Step back into the previous slot's last entry.
+  // Both gaurds ensure that you don't hit UB in release, with assert for debug where I ought to fix my code.
+  assert(_cursor.slot > 0 && "decrement past beginning");
+  if (_cursor.slot == 0) return *this;
+  const u16 count = _tb->count_at(_cursor.slot - 1);
+  assert(count > 0 && "decrement into a slot that is empty or no longer resident");
+  if (count == 0) return *this; // Don't over-decrement, else loop might run infinitely.
+  _cursor.slot--;
+  _cursor.entry = count - 1;
   return *this;
 }
 

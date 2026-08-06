@@ -292,11 +292,11 @@ public:
   pepp::bts::Buffer::ID data_predecessor(pepp::bts::Buffer::ID id) const;
 
   // --- Accessors ---
-  size_t ring_size() const { return _ring.size(); }
+  std::size_t ring_size() const { return _ring.size(); }
   // Number of distinct initiators that have ever recorded. Entries persist after commit() so their scratch capacity
   // is reused, so this counts devices seen, not devices currently recording.
-  size_t recording_count() const { return _recordings.size(); }
-  size_t instruction_count() const { return _footprint.programs; }
+  std::size_t recording_count() const { return _recordings.size(); }
+  std::size_t instruction_count() const { return _footprint.programs; }
   // Current ring occupancy: (_head - _tail) / ring_size.
   float ring_occupancy() const;
 
@@ -366,8 +366,19 @@ public:
 
 private:
   // --- Ring node ---
+  // Absolute slot index meaning "this node holds nothing". _head never approaches it.
+  static constexpr std::size_t NO_SLOT = SIZE_MAX;
+
   struct Node {
-    bool in_use = false;
+    // Which absolute ring slot currently occupies this node, or NO_SLOT when it holds nothing.
+    //
+    // A Cursor names an *absolute* slot, but a node is found by absolute_slot % ring_size -- so slot 1 and slot 5 of a
+    // four-slot ring are the same node. Without this stamp an iterator into a slot the ring had since reused would
+    // silently read the newer slot's entries and hand back a real-looking program from the wrong point in history.
+    // Comparing against it turns that into a null location, which fails loudly on replay instead.
+    //
+    // It doubles as the "this slot holds unacknowledged trace" flag advance_slot() refuses to overwrite.
+    std::size_t slot = NO_SLOT;
     // Location buffer: array of Buffer::Locations, one per traced instruction.
     pepp::bts::Buffer *locations = nullptr;
     // Code chain: subroutine bodies, which are prefix + body/CALL + postfix
@@ -446,13 +457,28 @@ private:
   const Node &current_node() const { return _ring[_head % _ring.size()]; }
   const Node &node_at(size_t absolute_slot) const { return _ring[absolute_slot % _ring.size()]; }
 
+  // The node holding `absolute_slot`, or nullptr once the ring has moved on and a later slot took over that node --
+  // i.e. non-null exactly when a Cursor naming that slot still refers to the entries it named when it was taken.
+  //
+  // Returns the node rather than a bool so that a caller needing both the test and the entries pays one modulo
+  // instead of two. _ring.size() is a runtime value, so we would have to idiv twice.
+  const Node *resident_node(size_t absolute_slot) const {
+    const Node &node = node_at(absolute_slot);
+    return node.slot == absolute_slot ? &node : nullptr;
+  }
+  // Entries readable at `absolute_slot`, or 0 when the ring has moved on and that slot is no longer resident.
+  u16 count_at(size_t absolute_slot) const {
+    const Node *node = resident_node(absolute_slot);
+    return node == nullptr ? 0 : node->count;
+  }
+
   std::shared_ptr<pepp::bts::BufferManager> _mgr;
 
   std::vector<Node> _ring;
   // _head and _tail may exceed the size of _ring.
   // they must always be taken % _ring.size().
-  size_t _head = 0; // Next slot to write
-  size_t _tail = 0; // Oldest unconsumed slot
+  std::size_t _head = 0; // Next slot to write
+  std::size_t _tail = 0; // Oldest unconsumed slot
 
   // Only devices that actually initiate accesses ever appear. That set is not known until a device starts
   // recording. Sizing this to the Device::ID space would allocate hundreds of idle std::vectors to serve the one or two
