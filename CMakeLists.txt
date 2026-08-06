@@ -9,12 +9,15 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Set OFF to use ISO C++ without compiler extensio
 
 add_executable(SvgDom
     main.cpp
+    src/Timer.h
     src/SvgDocument.cpp
     src/SvgDocument.hpp
     src/SvgDocument_p.hpp
     src/SvgParser.hpp
-    src/Timer.h
-
+    src/SvgElement.cpp
+    src/SvgElement.hpp
+    src/SvgElement_p.hpp
+    src/SvgParser.hpp
 )
 
 include(GNUInstallDirs)
