@@ -90,7 +90,10 @@ tvm::ProgramLocation TraceBuffer::commit(Device::ID initiator) {
   // default-constructing one here would silently commit an empty program.
   auto *rec = find_recording(initiator);
   assert(rec && "commit() called without a matching begin()");
-  assert(rec->active && "commit() called without a matching begin()");
+  assert((rec == nullptr || rec->active) && "commit() called without a matching begin()");
+  // Committing something that was never begun would flush a default-constructed recording, or dereference nothing at
+  // all. Report the null location instead; the caller gets a program it cannot run rather than undefined behaviour.
+  if (rec == nullptr || !rec->active) return {};
 
   // Append HALT as the final instruction in the postfix.
   auto halt = EncodedOp::Halt<0>{}.encode();
@@ -160,6 +163,7 @@ void TraceBuffer::emit_postfix(Device::ID initiator, bits::span<const u8> encode
 pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits::span<const u8> data) {
   auto *rec = find_recording(initiator);
   assert(rec && rec->active && "append_data() outside a begin()/commit() pair");
+  if (rec == nullptr || !rec->active) return {};
   auto loc = data_chain(*rec).append(data);
   _footprint.data += data.size();
   if (rec->data_start.id == pepp::bts::Buffer::ID{0}) rec->data_start = loc;
@@ -427,7 +431,7 @@ void TraceBuffer::write_location(Node &node, u16 entry, tvm::ProgramLocation pro
   static_assert(sizeof(tvm::ProgramLocation) == 8, "ProgramLocation must be 8 bytes for location packing");
   // Backstop for a caller that swallowed a RingOverflow and kept submitting: the offset below is a u16, so an entry
   // at or past the maximum would wrap to 0 and quietly overwrite the oldest entry instead of failing.
-  if (entry >= MAX_LOCATION_ENTRIES) throw RingOverflow(_head);
+  if (entry >= MAX_LOCATION_ENTRIES) throw LocationBufferFull(_head);
   // Acquired on first write into this slot rather than at construction or reset, so an unused ring slot holds no
   // buffer at all.
   if (node.locations == nullptr) node.locations = _mgr->alloc_buffer();

@@ -34,6 +34,22 @@ private:
   size_t _slot;
 };
 
+// Thrown when a single ring slot is asked to hold more programs than its location buffer has room for.
+//
+// Distinct from RingOverflow, which is about the ring lapping onto trace nobody has read. This one is a backstop: a
+// slot advances on its own once it is full, so reaching this means a caller swallowed a RingOverflow and kept
+// submitting. Reusing RingOverflow for it produced an exception whose message described the wrong problem.
+class LocationBufferFull : public std::runtime_error {
+public:
+  explicit LocationBufferFull(size_t slot)
+      : std::runtime_error("Trace slot " + std::to_string(slot) + " has no room left in its location buffer"),
+        _slot(slot) {}
+  size_t slot() const { return _slot; }
+
+private:
+  size_t _slot;
+};
+
 // A position within the trace buffer, identifying a specific entry in a specific ring slot.
 // Slot indices must be taken % ring size.
 // Entry is the index within that slot's location buffer.
