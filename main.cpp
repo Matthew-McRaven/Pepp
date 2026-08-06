@@ -10,5 +10,7 @@ int main()
 
     doc.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\aa.svg");
 
+    doc.saveAs("x:\\aa2.svg");
+
     return 0;
 }

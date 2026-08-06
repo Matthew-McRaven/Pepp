@@ -19,7 +19,7 @@
 class DocumentImpl
 {
 public:
-    DocumentImpl() {}
+    DocumentImpl() { contents.reserve(1'024); }
 
     ~DocumentImpl() = default;
     DocumentImpl(const DocumentImpl &) = default;
@@ -33,6 +33,7 @@ public:
     std::string contents{};
     size_t fileSize{};
 
+    bool save();
     bool read();
 
     void addFromParser(const std::string &key, const std::string &value, const XmlNode::Type type);

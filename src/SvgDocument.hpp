@@ -38,7 +38,8 @@ public:
     //const std::string& toSvg();
 
     bool open(const std::string &fileName, bool readOnly = false);
+    bool exists(const std::string &fileName);
+    void saveAs(const std::string &fileName);
     /*void save();
-    void saveAs(const std::string &fileName, bool ReadOnly = false);
     void close();*/
 };

@@ -54,27 +54,6 @@ Document::~Document() = default;
 Document::Document(Document &&) noexcept = default;
 Document &Document::operator=(Document &&) noexcept = default;
 
-//	Copy functions require some addition magic
-/*
-XlWorkbook::XlWorkbook( const XlWorkbook & rhs ) : impl_( nullptr )
-{
-    if( rhs.impl_ )
-        impl_ = std::make_unique<XlWorkbookImpl>( *rhs.impl_ );
-}
-XlWorkbook& XlWorkbook::operator=( const XlWorkbook & rhs )
-{
-    if( !rhs.impl_ )
-        impl_.reset();
-    else if( !impl_ )
-        impl_ = std::make_unique<XlWorkbookImpl>( *rhs.impl_ );
-    else
-    {
-        *impl_ = *rhs.impl_;  
-    }
-
-    return *this;
-}
-*/
 //  Accessors
 /*const std::string& XlWorkbook::Name() const
 {    return impl_->name; }
@@ -112,25 +91,32 @@ XlDefinedNames& XlWorkbook::Names()
 const XlDefinedNames& XlWorkbook::Names() const
 {   return impl_->names; }
 
-
-void XlWorkbook::Save()
-{
-    //  If read only, don't save
-    if( impl_->readOnly ) return;
-
-    //  Persist structures to zip file
-    impl_->writeAll( impl_->name, false, impl_->password );
-}
-
-void XlWorkbook::SaveAs( const std::string& fileName, bool readOnly,
-    const std::string& password )
-{
-    impl_->name = fileName;
-    impl_->readOnly = readOnly;
-    impl_->password = password;
-    impl_->writeAll( impl_->name, impl_->readOnly, impl_->password );
-}
 */
+
+void Document::saveAs(const std::string &fileName)
+{
+    _impl->fileName = fileName;
+
+    Timer<> t1;
+    t1.start();
+    bool success = _impl->save();
+    t1.finish();
+    std::cout << "ofstream::write: " << t1.elapsedTime() << (success ? " Pass" : " Fail")
+              << std::endl;
+}
+
+bool DocumentImpl::save()
+{
+    //	Try and open sourcefile
+    std::ofstream svgFile(fileName, std::ios::out | std::ios::binary);
+    if (!svgFile.is_open())
+        return false;
+
+    svgFile.write(contents.data(), contents.size());
+    svgFile.close();
+
+    return true;
+}
 
 bool Document::open(const std::string &fileName, bool readOnly)
 {
@@ -163,17 +149,18 @@ bool Document::open(const std::string &fileName, bool readOnly)
 bool DocumentImpl::read()
 {
     //	Try and open sourcefile
-    std::ifstream svgFile(fileName, std::ios::binary);
+    std::ifstream svgFile(fileName, std::ios::in | std::ios::binary);
     fileSize = static_cast<size_t>(std::filesystem::file_size(fileName));
 
     //  Size to current file
-    contents.resize(fileSize + 1);
+    if (fileSize > contents.size())
+        contents.resize(fileSize);
 
     //std::cout << "File size: " << fileSize << std::endl;
 
     exists = true;
 
-    //  Copy file contents to stri
+    //  Copy file contents to string
     svgFile.read(&contents[0], fileSize);
 
     return true;
