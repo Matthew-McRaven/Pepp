@@ -167,17 +167,15 @@ pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits:
   auto loc = data_chain(*rec).append(data);
   _footprint.data += data.size();
   if (rec->data_start.id == pepp::bts::Buffer::ID{0}) rec->data_start = loc;
-  rec->last_dp = loc;
   return loc;
 }
 
 TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Recording &rec, std::size_t len) {
   const auto res = data_chain(rec).reserve(len);
   _footprint.data += len;
-  // The first payload of a record is where the driver will point DP before entering the program, so it has to be
-  // remembered separately from last_dp, which keeps moving.
+  // The first payload of a record is where the driver points DP before entering the program, so it is remembered
+  // separately from the anchor, which keeps moving as further payloads are appended.
   if (rec.data_start.id == pepp::bts::Buffer::ID{0}) rec.data_start = res.loc;
-  rec.last_dp = res.loc;
   return DataSlot{res.loc, res.bytes};
 }
 
@@ -190,13 +188,6 @@ TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Device::ID initiato
 bool TraceBuffer::is_recording(Device::ID initiator) const {
   auto it = _recordings.find(initiator);
   return it != _recordings.end() && it->second.active;
-}
-
-pepp::bts::Buffer::Location TraceBuffer::last_dp(Device::ID initiator) const {
-  // An initiator that has never recorded has no DP yet, which is the same answer as one that has recorded but never
-  // written data -- both get {0,0}, since Buffer::ID{0} is effectively a nullptr of the buffer manager.
-  auto it = _recordings.find(initiator);
-  return it == _recordings.end() ? pepp::bts::Buffer::Location{} : it->second.last_dp;
 }
 
 // --- Backpressure ---

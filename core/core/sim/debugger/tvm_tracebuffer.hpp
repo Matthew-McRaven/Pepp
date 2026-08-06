@@ -167,9 +167,8 @@ public:
   void emit_postfix(Recording &rec, bits::span<const u8> encoded);
 
   // Append raw data to this initiator's data chain in the current ring slot.
-  // Returns the location where the data starts. The caller uses this
-  // (along with last_dp()) to construct DP update instructions in the prefix.
-  // Immediately updates this initiator's last_dp.
+  // Returns the location where the data starts. The caller pairs that with dp_anchor() to work out how to step DP
+  // onto it, and records the result with set_dp_anchor().
   pepp::bts::Buffer::Location append_data(Device::ID initiator, bits::span<const u8> data);
 
   // Unitialized data and a writable view of it.
@@ -178,12 +177,8 @@ public:
     bits::span<u8> bytes;
   };
   // Reserves a contiguous chunk of the data chain without initializing the memory, and return that memory as a span of
-  // bytes. Allows us to avoid an extra data copy in some places. Also updates the initiator's last_dp.
+  // bytes. Allows us to avoid an extra data copy in some places. Reports the location the same way append_data does.
   DataSlot append_data_uninitialized(Device::ID initiator, std::size_t len);
-
-  // This initiator's last DP position in its own data chain.
-  // Returns {0,0} if this initiator has never written data.
-  pepp::bts::Buffer::Location last_dp(Device::ID initiator) const;
 
   DataSlot append_data_uninitialized(Recording &rec, std::size_t len);
 
@@ -396,8 +391,6 @@ private:
     std::vector<u8> postfix;
     // Which initiator this belongs to, which is needed to find the right data chain.
     Device::ID id{};
-    // Last DP this initiator set in its own data chain.
-    pepp::bts::Buffer::Location last_dp{};
     bool active = false;
     // See DpAnchor. Reset by begin().
     DpAnchor dp{};

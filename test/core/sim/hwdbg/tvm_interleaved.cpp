@@ -84,28 +84,4 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
     CHECK(b0.stopped());
     CHECK(b0.regs().MOD1.lo == 0xAAAA);
   }
-
-  SECTION("Per-initiator last_dp tracks independently") {
-    tb.begin(S0);
-    tb.begin(S1);
-
-    auto d0 = tb.append_data(S0, std::array<u8, 4>{0x01, 0x02, 0x03, 0x04});
-    auto d1 = tb.append_data(S1, std::array<u8, 4>{0x05, 0x06, 0x07, 0x08});
-
-    // Each initiator's last_dp reflects only its own most recent write.
-    CHECK(tb.last_dp(S0).id == d0.id);
-    CHECK(tb.last_dp(S0).offset == d0.offset);
-    CHECK(tb.last_dp(S1).id == d1.id);
-    CHECK(tb.last_dp(S1).offset == d1.offset);
-
-    // S0 writes again; only S0's last_dp advances.
-    auto d0b = tb.append_data(S0, std::array<u8, 2>{0x09, 0x0A});
-    CHECK(tb.last_dp(S0).offset == d0b.offset);
-    CHECK(tb.last_dp(S1).offset == d1.offset); // unchanged
-
-    body_s0(LDMOD1Lo{0x0000}.encode());
-    body_s1(LDMOD1Lo{0x0000}.encode());
-    tb.commit(S0);
-    tb.commit(S1);
-  }
 }
