@@ -32,34 +32,38 @@ fixed-address store  : 33.5 B/instr (inlined: 112.0) | ratio 3.344 | code 66236 
 walking-address store: 49.2 B/instr (inlined: 122.0) | ratio 2.480 | code 111292 templates 316 data 36004
                        3 templates, 750 pending | 512 KiB reserved
 
-post-optimization:
+with-DP-relative-addressing:
 fixed-address store  : 28.8 B/instr (inlined:  98.0) | ratio 3.401 | code 48208  templates 232 data 38004
                        3 templates,   0 pending | 256 KiB reserved
 walking-address store: 29.2 B/instr (inlined: 101.0) | ratio 3.459 | code 48288  templates 320 data 39004
                        4 templates,   0 pending | 256 KiB reserved
+
+with-PC-coalescing:
+fixed-address store  : 26.1 B/instr over 3000 (inlined: 83.3) | ratio 3.190
+                       code 24172  templates 196  data 30006  locations 24000 | 3 templates, 0 pending
+walking-address store: 26.7 B/instr over 3000 (inlined: 87.5) | ratio 3.281
+                       code 24244  templates 276  data 31506  locations 24000 | 4 templates, 0 pending
 ```
 
-| | before | after | |
-|---|---:|---:|---|
-| fixed loop | 33.5 | **28.8** | −14% |
-| walking loop | 49.2 | **29.2** | −41% |
-| reserved memory | 512 KiB | **256 KiB** | −50% |
-| walking, pending hashes | 750 | **0** | — |
+Progress on the fixed loop. Note the middle column: `locations` was a real per-instruction cost from the beginning
+and simply was not being counted, so the early "reported" figures understated the truth by 4 B/instr.
 
-The walking and fixed loops now sit within 1.4% of each other. Whether a store's address repeats no longer affects
-what it costs to record, which was the single largest defect the first measurement exposed.
+| stage | reported | true |
+|---|---:|---:|
+| baseline | 33.5 | **37.5** |
+| after ISYN-to-body, lazy location buffers, CSR coalescing, `SETMEMDX` | 28.8 | **32.8** |
+| after moving the data pointer into the location buffer | — | **28.8** |
+| after PC coalescing | 26.1 | **26.1** |
 
 ### Allocation breakdown
 
-`code` is 48,208 / 3000 = **16.07 B/instr**, which is exactly `LDP`(8) + `CALL`(6) + `HALT`(2).
-
 | component | B/instr | share | shareable? |
 |---|---:|---:|---|
-| data payload | 12.67 | 44% | no — see "What is left" |
-| `LDP` (DP anchor) | 8.0 | 28% | no — names a per-program buffer id + offset |
-| `CALL` into template | 6.0 | 21% | — |
-| `HALT` | 2.0 | 7% | no |
-| templates, amortized | 0.08 | 0.3% | — |
+| data payload | 10.00 | 38% | no |
+| location buffer | 8.00 | 31% | no — one `ProgramLocation` per program |
+| `CALL` + `HALT` | 8.06 | 31% | — |
+| templates, amortized | 0.07 | 0.3% | — |
+
 
 There is nothing shareable left in the code stream.
 Every byte of it is either the per-program data anchor, the call into the shared body, or the terminator.
@@ -69,27 +73,38 @@ The walking loop promotes 4 templates against the fixed loop's 3, because it has
 rather than three.
 Every shape templatized in both.
 
+The `data` term decomposes as (fetch/decode bookkeeping in **bold**):
+
+| instruction | payload bytes |
+|---|---|
+| `ADDA` | **IS 2, OS 2, PC 2**, A 2, NZVC 4 = 12 |
+| `STWA` | **IS 2, OS 2, PC 2**, mem 2 + 4 address = 12 |
+| `BR` | **IS 2, OS 2, PC 2** = 6 |
+| average | **6.0 bookkeeping**, 4.0 architectural state = 10.0 |
+
+
 ## Derived: sim3 packets
 
 Fragment sizes, from `lib/sim3/api/traced/`:
 
 - **variant tag** — 1 byte. zpp_bits defaults a variant's discriminant to `std::byte{Index}` when no `serialize_id`
   is declared, and none of the sim3 fragment types declare one.
-- **`frame::header::Trace`** — tag(1) + `u16 length`(2) + `varint back_offset`(1, since frames here are < 128 B) = **4 B**
+- **`frame::header::Trace`** — tag(1) + `u16 length`(2) + `varint back_offset`(1) = **4 B**
 - **`packet::header::Write`** — tag(1) + `varint device`(1) + `varint path`(1) + `VariableBytes` address (1 length
   byte + N address bytes). Per the note in `trace_packets.hpp`, Pep/10 registers use a 1-byte address and main
-  memory 2, giving **5 B** for a register write and **6 B** for a memory write.
-- **`payload::Variable`** — tag(1) + length(1) + N payload bytes = **3 B** for a 1-byte write, **4 B** for a 2-byte write.
+  memory 2: **5 B** for a register write, **6 B** for a memory write.
+- **`payload::Variable`** — tag(1) + length(1) + N bytes: **4 B** for a 2-byte write, **6 B** for a 4-byte one.
 
-### Write counts per instruction
+So a 2-byte register write costs 9, a 4-byte CSR write 11, a 2-byte memory write 10.
 
-Measured against the original (pre-coalescing) CPU, which wrote each CSR flag separately:
+**sim3's cost depends on the CPU's write pattern, and that pattern changed underneath it.** Two of the optimizations
+below removed writes rather than shrinking encodings, and sim3 would have collected those savings too. Both
+generations are therefore derived:
 
-| instruction | writes | payload bytes |
-|---|---:|---:|
-| `ADDA` | 9 — PC(2), IS(2), PC(2), OS(2), A(2), N(1), Z(1), V(1), C(1) | 14 |
-| `STWA` | 5 — PC(2), IS(2), PC(2), OS(2), mem(2) | 10 |
-| `BR` | 5 — PC(2), IS(2), PC(2), OS(2), PC(2) | 10 |
+| | writes/instr | sim3 fixed (bytes)| sim3 walking (bytes) |
+|---|---:|---:|---:|
+| original CPU (4 separate CSR writes, PC written 2.33x) | 6.33 | 60.0 | 65.2 |
+| current CPU (one CSR write, PC written once) | 4.00 | **41.0** | **43.5** |
 
 The fixed loop averages 6.33 writes and 11.33 payload bytes per instruction. 
 That matched the measured `data` term of 11.33 B/instr, which is what validates this model.
@@ -110,11 +125,11 @@ Note sim3's cost barely moves between the two loops (60.0 vs 65.3). It pays per 
 
 | | sim3 | new, templated | new, if nothing templated |
 |---|---:|---:|---:|
-| fixed loop | 60.0 | **28.8** (2.08x better) | 98.0 (1.63x **worse**) |
-| walking loop | 65.3 | **29.2** (2.24x better) | 101.0 (1.55x **worse**) |
+| fixed loop | 41.0 | **26.1** (1.57x better) | 83.3 (2.03x **worse**) |
+| walking loop | 43.5 | **26.7** (1.63x better) | 87.5 (2.01x **worse**) |
 
-sim3 records no timestamps at all; the new format's `ISYN` is now absorbed into templates, so this comparison is
-close to like-for-like.
+sim3 also records no timestamps at all, which the new format does — so like-for-like the gap is slightly wider than
+1.57x, though `ISYN` is absorbed into templates and no longer has a separable cost to subtract.
 
 ### Reusing bodies is required
 
@@ -140,9 +155,47 @@ So, we need to support compression on every common sequence if we want comparabl
 | | sim3 | new |
 |---|---|---|
 | serializable to disk | yes (zpp_bits) | no |
-| reverse address translation | working (`AddressBiMap`, `ModifiedAddressSink`) | `TRADDR` unimplemented |
+| reverse address translation | working (`AddressBiMap`) | `TRADDR` unimplemented |
 | MMIO / impure reads | `ImpureRead` packets | not yet encoded |
 | external deps in trace core | Qt, spdlog, zpp_bits | none |
+
+## What changed, and what each delivered
+
+Projections were made before each change; measured values are what landed.
+1. **Constant `ISYN` moved from prefix to body.** The prefix is inlined into every program and never hashed, so a
+   constant tick cost its full six bytes forever. *Projected −6.0 B/instr of code; measured **−6.01**.*
+2. **Location buffers allocated lazily and returned on `acknowledge()`.** *Measured **512 → 256 KiB** reserved.*
+3. **`write_packed_csr` coalesced** from four 1-byte writes to one 4-byte write. Four `SETMEMX`+`ACCDP` pairs for
+   four bits of state, and four trips through the recorder. *Measured **−15.3 B/instr** of inlined code.*
+4. **`SETMEMDX`** — target offset carried in the payload, selected per device. *Walking loop **49.2 → 29.2**,
+   pending hashes **750 → 0**.* Must not be applied unconditionally: the offset costs 4 bytes per *write*, so
+   turning it on everywhere would have made the fixed loop ~60% worse.
+5. **Data pointer moved into the location buffer.** The absolute `LDP` at the head of every program named a buffer
+   that differed every execution, so it could never join a template. Trading 8 code bytes for 4 more location bytes
+   left the code stream as pure `CALL` + `HALT`. *Measured **32.8 → 28.8**.*
+6. **PC coalesced to one write per instruction.** PC moved two or three times inside one instruction — past the
+   opcode, past the operand specifier, and again on a jump — and only the last value means anything to a replay.
+   *Projected −2.67 B/instr of data; measured **12.67 → 10.002**, total **28.8 → 26.1**.*
+
+## What is left
+
+The code stream is finished; 8 B/instr of `CALL` + `HALT` is the floor for a randomly-seekable, bidirectionally
+replayable record, and no further de-duplication can touch it. Remaining ideas, none yet done:
+1. **Fetch/decode bookkeeping is 60% of payload.** `IS`, `OS` and `PC` are 6 of the 10 payload bytes, and all three
+   are derivable from the program image plus the previous record's PC. Not recording them would take data 10 → 4 and
+   the total to roughly **20 B/instr**. The cost is that replay stops
+   being ISA-agnostic, and that a self-modifying program would re-derive the wrong instruction. 
+2. **`CALL` is 6 bytes** — a buffer id plus an offset. An indexed reference into the template chain would fit in one
+   word. −2 B/instr.
+3. **The location entry is 8 bytes.** The data half is almost always in the same buffer as the previous entry's, so
+   a "same buffer, small delta" encoding could reach 5–6. Fiddly, and it would complicate random access.
+
+Two costs the harness still cannot see:
+
+- **Throughput.** Six changes optimized bytes while *adding* per-instruction work — an FNV hash over every body on
+  every commit. That trade has never been measured.
+- **Realistic template counts.** These loops promote 3–4 templates; a real program has ~200 instruction shapes.
+  Template lookup is now O(1), but nothing has been run at that scale.
 
 ## Reproducing
 

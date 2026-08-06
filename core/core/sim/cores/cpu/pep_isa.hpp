@@ -77,7 +77,25 @@ public:
   // No longer static const because it embeds this instance's id.
   Operation op_data() const { return Operation(Operation::Type::Standard, Operation::Kind::data, id()); }
 
+  // The program counter for the duration of one instruction.
+  //
+  // clock_tick loads it from the register bank on entry and stores it back exactly once on exit; everything in
+  // between moves it through here rather than through the bank. Between instructions the bank stays authoritative,
+  // so a debugger or a test writing PC is picked up by the next tick as it always was.
+  //
+  // This exists for trace size. Every write to the bank is its own trace record, and PC moves two or three times
+  // inside one instruction -- past the opcode, past the operand specifier, and again if the instruction jumps --
+  // while only the last value means anything to a replay. Recording the intermediates cost about 2.7 payload bytes
+  // and 19 body bytes per instruction to describe states the machine was never observably in.
+  //
+  // Anything that changes PC during an instruction must go through write_pc, including a bulk write to the register
+  // bank that happens to cover it; see handle_sret.
+  u16 read_pc() const { return _pc; }
+  void write_pc(u16 value) { _pc = value; }
+
 private:
+  // Only meaningful between the start and end of clock_tick. See read_pc().
+  u16 _pc = 0;
   Configuration _config;
   trace::Recorder _trace;
   Dense *_regbank = nullptr, *_csrs = nullptr;

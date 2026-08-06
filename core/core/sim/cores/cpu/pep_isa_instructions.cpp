@@ -21,9 +21,9 @@ std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc) {
 
 u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
   // Fetch current PC
-  u16 pc = self->read_register(isa::Pep10::Register::PC);
+  u16 pc = self->read_pc();
   // Increment PC by 2 to point to next instruction.
-  self->write_register(isa::Pep10::Register::PC, pc + 2);
+  self->write_pc(pc + 2);
   auto target = self->target();
   // Read value at mem[PC] into OS register.
   u16 opr = target->read<u16, bits::host_is_le>(pc, self->op_data()).second;
@@ -55,7 +55,7 @@ void handle_ret(PepISA3CPU *self) {
   self->decrement_call_depth();
   u16 sp = self->read_register(isa::Pep10::Register::SP);
   auto addr = self->target()->read<u16, bits::host_is_le>(sp, self->op_data()).second;
-  self->write_register(isa::Pep10::Register::PC, addr);
+  self->write_pc(addr);
   self->write_register(isa::Pep10::Register::SP, sp + 2);
   // TODO: notify debugger of ret @ PC
 }
@@ -94,6 +94,10 @@ void handle_sret(PepISA3CPU *self) {
 
   // Bulk write-back regs, saving a number of bits on trace metadata.
   regs->write(0, {ctx, registersBytes}, self->op_data());
+  // That write covered PC, restoring it from the stack. Hand it to the working copy, or clock_tick's single store
+  // would put the pre-instruction value straight back over it. Read it back through the bank rather than picking it
+  // out of ctx so this stays independent of the context block's layout and byte order.
+  self->write_pc(self->read_register(isa::Pep10::Register::PC));
 
   tmp = sp + 12;
   // Using "host"'s variables, so byte swap if necessary.
@@ -226,16 +230,16 @@ void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr) {
   case BranchCondition::V: taken = v; break;
   case BranchCondition::C: taken = c; break;
   }
-  if (taken) self->write_register(isa::Pep10::Register::PC, op_spec);
+  if (taken) self->write_pc(op_spec);
 }
 
 void handle_call(PepISA3CPU *self, Op op, u16 op_addr) {
   const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
-  const u16 pc = self->read_register(isa::Pep10::Register::PC);
+  const u16 pc = self->read_pc();
   u16 sp = self->read_register(isa::Pep10::Register::SP);
   self->target()->write<u16, bits::host_is_le>(sp -= 2, pc, self->op_data());
   self->write_register(isa::Pep10::Register::SP, sp);
-  self->write_register(isa::Pep10::Register::PC, op_spec);
+  self->write_pc(op_spec);
   self->increment_call_depth();
   // TODO: if (_dbg) _dbg->notifyCall(pc - 3, sp);
 }

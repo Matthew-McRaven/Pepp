@@ -161,15 +161,17 @@ void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // TODO: when function signature changes, use that tick offset instead of this placeholder.
   record.tick(1);
 
-  // Fetch & increment pc
-  auto pc = read_register(isa::Pep10::Register::PC);
+  // Take PC out of the register bank for the duration of this instruction. Everything below moves it through _pc,
+  // and the single store after handle() is the only version the trace ever sees. See read_pc().
+  _pc = read_register(isa::Pep10::Register::PC);
   // TODO: Should probably be an instruction access?
-  u8 is = _target->read<u8, false>(pc, op_data()).second;
-  pc += 1;
-
-  write_register(isa::Pep10::Register::PC, pc);
+  u8 is = _target->read<u8, false>(_pc, op_data()).second;
+  _pc += 1;
   write_register(isa::Pep10::Register::IS, is);
   handle(_opcodes[is]);
+  // Defer PC writeback until end of instruction to avoid ~3 updates on a BR (1 for to fetch IS, 1 to fetch OS, 1 for
+  // the branch).
+  write_register(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
   record.commit();
 }
