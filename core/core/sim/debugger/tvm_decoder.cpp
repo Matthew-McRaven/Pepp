@@ -180,8 +180,13 @@ tvm::DecodedOp::LMR Decoder::decode_lmr(pepp::bts::Buffer::ID ibp, u16 iop) {
   ret.mask = (tvm::RegMask)read(ibp, iop + 0);
   auto count = _state.regs.IS.word_len - 1;
   auto buf = _mgr->find(ibp);
-  if (buf == nullptr) return ret;
-  ret.data = buf->span().subspan(iop + 2, count * 2);
+  if (buf == nullptr) return _state.hard_stop(StopCause::InvalidIBuffer), ret;
+  // Rather than read incrementally, form a span.
+  // Bounds check before forming the span to avoid a buffer overflow/UB.
+  const auto whole = buf->span();
+  const std::size_t first = (std::size_t)iop + 2, bytes = (std::size_t)count * 2;
+  if (first + bytes > whole.size()) return _state.hard_stop(StopCause::InvalidIBuffer), ret;
+  ret.data = whole.subspan(first, bytes);
   return ret;
 }
 
