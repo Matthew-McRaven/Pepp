@@ -17,33 +17,15 @@ namespace tvm {
 
 class Interpreter;
 
-// Thrown when the ring would advance onto a slot the consumer has never acknowledged. Continuing would destroy trace
-// history nobody has read, so the buffer refuses instead of overwriting it.
-//
-// The recording that triggered this is complete and committed; what failed is the ring's ability to accept *more*
-// trace. You can recover by freeing some ring slots. Registering a 1.0 watermark gives you a final chance to make
-// space, since watermark callbacks run before the check.
+// Thrown by begin() if it would cause _head to point to an unacknowledged slot. Continuing would
+// destroy trace history nobody has read and the buffer refuses this operation. No data is lost, but the TraceBuffer has
+// lost the ability to accept new data. You recover by acknowledging some slots. Registering a 1.0 watermark gives you a
+// final chance to make space before the ring overflows.
 class RingOverflow : public std::runtime_error {
 public:
   explicit RingOverflow(size_t slot)
       : std::runtime_error("Trace ring lapped onto unacknowledged slot " + std::to_string(slot)), _slot(slot) {}
   // Absolute index of the slot that could not be reused. Take % ring_size() for the physical slot.
-  size_t slot() const { return _slot; }
-
-private:
-  size_t _slot;
-};
-
-// Thrown when a single ring slot is asked to hold more programs than its location buffer has room for.
-//
-// Distinct from RingOverflow, which is about the ring lapping onto trace nobody has read. This one is a backstop: a
-// slot advances on its own once it is full, so reaching this means a caller swallowed a RingOverflow and kept
-// submitting. Reusing RingOverflow for it produced an exception whose message described the wrong problem.
-class LocationBufferFull : public std::runtime_error {
-public:
-  explicit LocationBufferFull(size_t slot)
-      : std::runtime_error("Trace slot " + std::to_string(slot) + " has no room left in its location buffer"),
-        _slot(slot) {}
   size_t slot() const { return _slot; }
 
 private:
@@ -78,7 +60,10 @@ struct Cursor {
 //
 //
 // Programs are built incrementally in a per-initiator temporary buffer in 3 parts: a prefix, a body,
-// and a postfix. The program is only copied into the ring when commit() is called. The body of a program is hashed to
+// and a postfix. begin() claims the ring slot and the location-buffer index the program will occupy; the bytes are
+// only copied into the ring when commit() is called, which overwrites the reserved entry. Splitting it that way is
+// what orders entries by when a recording *started* rather than when it finished, and what keeps a recording that
+// outlives a slot advance writing into the slot it began in. The body of a program is hashed to
 // determine if it has been seen before. If so, the program body is replaced with a call. The body is copied into a
 // "template" buffer if it has not yet been. The template buffer is never freed to avoid dealing with the possibility of
 // use-after-free bugs. The prefix and postfix are always inlined and not considered for hashing/replacement.
@@ -127,17 +112,22 @@ public:
   // Look up an in-progress recording. Returns nullptr when the initiator never called begin().
   Recording *find_recording(Device::ID initiator);
 
-  // Begin a new recording for the given initiator, creating its scratch state on first use.
-  // Clears the prefix, body, and postfix scratch buffers for this initiator, retaining their capacity.
+  // Begin a new recording for the given initiator, creating its scratch state on first use and retaining scratch space
+  // across usages to reduce dynamic allocation frequency. This method claims a slot in the ring (and location buffer!)
+  // which is held until until either commit() or abort(). This sorts instruction on begin() order rather than commit()
+  // order. The choice of ordering is arbitrary since systems with true multiprocessing don't execute round-robin. Begin
+  // ordering reduces complexity of error handling. Reserved slots point to a valid program which immediately halts.
+  //
+  // Throws RingOverflow if this call would destroy data (i.e., this advances to a new slot, and that slot is in use).
+  // This is the only place that refusal is raised, so an instruction that gets past begin() is guaranteed somewhere to
+  // commit into. Nothing is opened when it throws.
   void begin(Device::ID initiator);
 
-  // Finalize the current recording. Appends HALT to the postfix, hashes the body,
-  // checks for template promotion, writes an entry to the current ring slot's
-  // location buffer, and flushes prefix + body (or CALL) + postfix into the
-  // code chain. If the location buffer is full, advances to the next ring slot.
+  // Finalize the current recording. Appends HALT to the postfix, hashes the body, checks for template promotion,
+  // flushes prefix + (body or CALL) + postfix into the code chain, and overwrites its reserved location entry. If this
+  // ring slot is full and no other recordings are open, advances to the next slot, which can fire watermark callbacks.
   //
-  // Throws RingOverflow if advancing would land on a slot that has never been acknowledged. This trace was recorded,
-  // but the next one will fail. Free some space before recording again.
+  // Can throw if the buffer manager runs out of buffers.
   tvm::ProgramLocation commit(Device::ID initiator);
 
   // Discard an in-progress recording without writing anything to the ring, which occurs when a caller unwinding out of
@@ -166,7 +156,7 @@ public:
   void emit_postfix(Device::ID initiator, bits::span<const u8> encoded);
   void emit_postfix(Recording &rec, bits::span<const u8> encoded);
 
-  // Append raw data to this initiator's data chain in the current ring slot.
+  // Append raw data to this initiator's data chain in the ring slot this recording claimed at begin().
   // Returns the location where the data starts. The caller pairs that with dp_anchor() to work out how to step DP
   // onto it, and records the result with set_dp_anchor().
   pepp::bts::Buffer::Location append_data(Device::ID initiator, bits::span<const u8> data);
@@ -280,8 +270,21 @@ public:
   // Return an iterable range over entries in [from, to).
   CursorRange range(Cursor from, Cursor to) const;
 
-  // Cursor pointing past the last written entry.
+  // Cursor past the last *reserved* entry, in-flight recordings included. An instruction that has begun but not
+  // committed is inside this range and dereferences to a program that immediately halts, so a consumer that races a
+  // recording replays a no-op rather than reading a half-written entry.
+  //
+  // The content of such an entry changes when that recording commits, so a range taken against this end is not
+  // stable: iterate it twice across a commit and the same position yields a halt and then the real program. Use it
+  // when you want everything the buffer knows about, including the instruction currently executing.
   Cursor cursor() const;
+
+  // Cursor past the last entry that is guaranteed final — it stops at the earliest reservation still open anywhere
+  // in the ring. Everything before this will never change, so a range taken against it is stable and safe to
+  // acknowledge once read.
+  //
+  // Equal to cursor() when nothing is recording, which is every instruction boundary in a single-initiator system.
+  Cursor committed_cursor() const;
 
   // --- Data chain navigation ---
   // Search all ring nodes' data chains for the successor of the given buffer ID.
@@ -377,7 +380,7 @@ private:
     // silently read the newer slot's entries and hand back a real-looking program from the wrong point in history.
     // Comparing against it turns that into a null location, which fails loudly on replay instead.
     //
-    // It doubles as the "this slot holds unacknowledged trace" flag advance_slot() refuses to overwrite.
+    // It doubles as the "this slot holds unacknowledged trace" flag begin() refuses to write over.
     std::size_t slot = NO_SLOT;
     // Location buffer: array of Buffer::Locations, one per traced instruction.
     pepp::bts::Buffer *locations = nullptr;
@@ -387,8 +390,14 @@ private:
     // payloads. Created on first write and then kept across reset() -- a cleared chain owns no buffers, so a retained
     // entry costs one map node and saves rebuilding the chain for an initiator that records here again.
     std::unordered_map<Device::ID, std::unique_ptr<pepp::bts::BufferChain>, pepp::handle_hash<Device::ID>> data;
-    // Number of entries in this slot's location buffer.
+    // Number of times begin() has been called on this slot, which is also the number of location-buffer entries in
+    // use. Never decremented. An entry that has not yet been committed holds a tombstone (a program that immediately
+    // halts).
     u16 count = 0;
+    // Number of recordings currently open in this slot (incremented by begin(), decremented by commit()/abort()).
+    // acknowledge() will not reclaim a slot while open > 0, because an open recording is still appending to its
+    // chains.
+    u16 open = 0;
 
     void reset(pepp::bts::BufferManager &mgr);
   };
@@ -405,15 +414,17 @@ private:
     bool active = false;
     // See DpAnchor. Reset by begin().
     DpAnchor dp{};
-    // Where this record's *first* data payload byte landed, which is what commit() stores in the location buffer so the
+    // Where this record's first data payload byte landed, which is what commit() stores in the location buffer so the
     // driver can point DP at it before entering the program. Distinct from DpAnchor::at, which tracks the most recent
     // payload. Null when the record wrote nothing.
     pepp::bts::Buffer::Location data_start{};
-    // Memoize the result of data_chain (in addition to its slot #) to avoid repeated map lookups in the hot recording
-    // path. This keeps the write path to a size_t compare instead of a map lookup and the slot indices are never
-    // invalidated. A ring that has moved on forces a re-resolve.
+    // The ring slot and location-buffer index this recording claimed at begin().
+    // Reserving these values at begin() allows safe interleaving of initiators.
+    std::size_t slot = 0;
+    u16 entry = 0;
+    // Memoize the result of data_chain to avoid a map lookup on every traced write. Resolved once per recording now
+    // that the slot cannot move underneath it; begin() clears it.
     pepp::bts::BufferChain *chain = nullptr;
-    size_t chain_slot = 0;
   };
 
   // --- Template dedup ---
@@ -456,6 +467,7 @@ private:
   Node &current_node() { return _ring[_head % _ring.size()]; }
   const Node &current_node() const { return _ring[_head % _ring.size()]; }
   const Node &node_at(size_t absolute_slot) const { return _ring[absolute_slot % _ring.size()]; }
+  Node &node_at(size_t absolute_slot) { return _ring[absolute_slot % _ring.size()]; }
 
   // The node holding `absolute_slot`, or nullptr once the ring has moved on and a later slot took over that node --
   // i.e. non-null exactly when a Cursor naming that slot still refers to the entries it named when it was taken.
@@ -488,6 +500,11 @@ private:
 
   // Templates are only freed on TraceBuffer destruction to avoid lifetime management issues.
   std::unique_ptr<pepp::bts::BufferChain> _templates;
+  // Buffer::ID{0} hard-stops the interpreter with InvalidIBuffer, which causes run_each to break. A single aborted
+  // instruction halts the entire replay. To prevent ID==0 from appearing in reserved slots, point to a valid program
+  // which contains only HALT. This program is allocated on the template chain in the ctor, and the location is stored
+  // here.
+  tvm::ProgramLocation _tombstone{};
   std::unordered_map<u32, TemplateEntry> _template_map;
   // Hashes seen once but not yet promoted. On second occurrence with
   // body.size() >= PROMOTION_THRESHOLD, the body is promoted to _templates.
@@ -501,7 +518,7 @@ private:
   };
   std::vector<Watermark> _watermarks;
   // Both indexed by Device::ID, whose underlying type is u8. 32 bytes each, and a lookup is a word load plus a bit
-  // test -- cheap enough to sit on the per-write path.
+  // test and cheap enough to sit on the per-write path.
   std::bitset<256> _traced;
   std::bitset<256> _address_in_payload;
 

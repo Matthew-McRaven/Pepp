@@ -53,6 +53,15 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
     }
   };
 
+  // Filling a slot never throws on its own. The slot advances at the end of the commit that filled it -- firing
+  // watermarks and taking occupancy up -- and the refusal happens on the way *into* the next instruction, which is
+  // this. Splitting them is what keeps RingOverflow out of commit(), and therefore out of a destructor unwinding
+  // from a faulted instruction.
+  auto one_more = [&](tvm::TraceBuffer &tb) {
+    tb.begin(S);
+    tb.commit(S);
+  };
+
   SECTION("Half-watermark fires on ping-pong ring") {
     tvm::TraceBuffer tb(mgr, 2);
     int fires = 0;
@@ -76,11 +85,12 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
     CHECK(tb.ring_occupancy() == Catch::Approx(0.5f));
 
     // Filling the second slot takes the ring to capacity. The 1.0 watermark fires as the last chance to drain, and
-    // since this callback doesn't, the advance that follows refuses to lap.
-    CHECK_THROWS_AS(fill_slot(tb), tvm::RingOverflow);
+    // since this callback doesn't, the next instruction has nowhere to go.
+    fill_slot(tb);
     CHECK(half_fires == 1);
     CHECK(full_fires == 1);
     CHECK(tb.ring_occupancy() == Catch::Approx(1.0f));
+    CHECK_THROWS_AS(one_more(tb), tvm::RingOverflow);
   }
 
   SECTION("Watermark does not re-fire without downward crossing") {
@@ -91,9 +101,10 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
     fill_slot(tb); // occ=0.5, fires
     CHECK(fires == 1);
 
-    // occ=1.0, still above 0.5 so no re-fire. Reaching capacity undrained also refuses to lap.
-    CHECK_THROWS_AS(fill_slot(tb), tvm::RingOverflow);
+    // occ=1.0, still above 0.5 so no re-fire. Reaching capacity undrained also blocks the instruction after it.
+    fill_slot(tb);
     CHECK(fires == 1);
+    CHECK_THROWS_AS(one_more(tb), tvm::RingOverflow);
   }
 
   SECTION("Acknowledge resets watermark, allowing re-fire") {
@@ -116,18 +127,20 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
     int fires = 0;
     tb.on_watermark(0.5f, [&]() { fires++; });
 
-    fill_slot(tb);                                     // occ=0.5, fires
-    CHECK_THROWS_AS(fill_slot(tb), tvm::RingOverflow); // occ=1.0, ring is now full and undrained
+    fill_slot(tb); // occ=0.5, fires
+    fill_slot(tb); // occ=1.0, ring is now full and undrained
     CHECK(fires == 1);
+    CHECK_THROWS_AS(one_more(tb), tvm::RingOverflow);
 
     // Acknowledge one slot so occ drops to 0.5, exactly at threshold.
     // Strict < means fired flag is NOT reset.
     tb.acknowledge({1, 0});
     CHECK(tb.ring_occupancy() == Catch::Approx(0.5f));
 
-    // occ=1.0, watermark still armed so no re-fire -- and full again, so it refuses again.
-    CHECK_THROWS_AS(fill_slot(tb), tvm::RingOverflow);
+    // occ=1.0, watermark still armed so no re-fire -- and full again, so the instruction after refuses again.
+    fill_slot(tb);
     CHECK(fires == 1);
+    CHECK_THROWS_AS(one_more(tb), tvm::RingOverflow);
 
     // Acknowledge both consumed slots so occ drops to 0.0, which is below threshold and therefore resets.
     tb.acknowledge({3, 0});
@@ -148,8 +161,9 @@ TEST_CASE("tvm::Interpreter: Throw rather than overwrite old data",
   auto first = tb.commit(S);
 
   // Filling the rest of the single slot leaves the ring nowhere to advance to, because nothing has been
-  // acknowledged. Rather than lapping onto trace no one has read, it refuses.
-  CHECK_THROWS_AS(submit_empty(tb, (size_t)ENTRIES_PER_SLOT - 1), tvm::RingOverflow);
+  // acknowledged. Rather than lapping onto trace no one has read, the instruction after the last one that fit
+  // refuses -- so this asks for one more than the slot holds, and the final begin() is the one that throws.
+  CHECK_THROWS_AS(submit_empty(tb, (size_t)ENTRIES_PER_SLOT), tvm::RingOverflow);
 
   // Everything accepted before the refusal is intact -- in particular the oldest entry, which a lap would clobber.
   auto entry0 = *tb.range(tvm::Cursor{.slot = 0, .entry = 0}, tb.cursor()).begin();
@@ -162,7 +176,8 @@ TEST_CASE("tvm::Interpreter: Resume submission after overflow", "[scope:core][sc
   tvm::TraceBuffer tb(mgr, 1);
   constexpr Device::ID S{1};
 
-  REQUIRE_THROWS_AS(submit_empty(tb, (size_t)ENTRIES_PER_SLOT), tvm::RingOverflow);
+  // One past what the single slot holds: the last begin() finds the ring lapped and refuses.
+  REQUIRE_THROWS_AS(submit_empty(tb, (size_t)ENTRIES_PER_SLOT + 1), tvm::RingOverflow);
 
   // Consuming the slot is what unblocks the ring: acknowledge() resets it, and the next submission lands in a clean
   // slot rather than on top of the old trace.

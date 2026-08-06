@@ -23,10 +23,10 @@
 
 namespace {
 
-// Sized so that after two promotions the template chain's buffer has exactly BOUNDARY_BODY bytes left: each promotion
-// consumes BODY + 2 (the trailing RET), and 2 * (BODY + 2) + BODY == 65536. A third body therefore fits on its own but
-// not alongside its RET, which is the only situation where the two could be separated.
-constexpr size_t BOUNDARY_BODY = 21844;
+// Sized so that after the 2-byte tombstone and two promotions, a third body fits in the remaining space but a third
+// body + its 2-byte RET does not: 2 (tombstone) + 2 * (BODY + 2) + BODY < 65536 < 2 + 2 * (BODY + 2) + BODY + 2.
+// That is the boundary where ensure_capacity must roll over to a new buffer to keep body and RET contiguous.
+constexpr size_t BOUNDARY_BODY = 21843;
 constexpr size_t BOUNDARY_PROMOTIONS = 3;
 
 struct TemplateProbe {
@@ -287,13 +287,13 @@ TEST_CASE("tvm::Interpreter:  Template chain fills to a buffer boundary",
   CHECK(tb.is_template(probe.hash));
   CHECK(tb.template_size(probe.hash) == BOUNDARY_BODY);
 
-  // ...and if they leave exactly one body's worth of room behind. Another body fits; another body plus its RET does
-  // not. That is the boundary the next test drives into, and it is a property of the fill alone -- where the third
-  // promotion actually lands is what that test is about.
+  // ...and if the remaining space fits another body but not another body + its 2-byte RET. That is the boundary the
+  // next test drives into.
   auto *tbuf = mgr->find(probe.id);
   REQUIRE(tbuf != nullptr);
-  CHECK(tbuf->used_capacity() + BOUNDARY_BODY == pepp::bts::Buffer::SIZE);
-  CHECK(tbuf->used_capacity() + BOUNDARY_BODY + 2 > pepp::bts::Buffer::SIZE);
+  size_t remaining = pepp::bts::Buffer::SIZE - tbuf->used_capacity();
+  CHECK(remaining >= BOUNDARY_BODY);
+  CHECK(remaining < BOUNDARY_BODY + 2);
 }
 
 // A body sized flush against a buffer boundary is the case where the body and its trailing RET could end up in

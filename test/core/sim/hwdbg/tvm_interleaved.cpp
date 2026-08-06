@@ -59,15 +59,18 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
 
     auto after = tb.cursor();
 
-    // The location buffer has 2 entries.
-    // Entry 0 is S1 (ended first), entry 1 is S0 (ended second).
+    // The location buffer has 2 entries, in *begin* order: S0 reserved index 0 before S1 reserved index 1, whatever
+    // order they finished in. Reserving at begin() is what stops an entry from ever landing behind a cursor a
+    // consumer has already read past.
     auto r = tb.range(before, after);
     auto it = r.begin();
-    auto loc_s1 = *it;
-    ++it;
     auto loc_s0 = *it;
+    ++it;
+    auto loc_s1 = *it;
 
-    // Code is laid out sequentially: S1's subroutine precedes S0's.
+    // Code is laid out in *commit* order, which here is the opposite: S1 finished first, so its subroutine was
+    // appended to the chain first. The two orders being independent is the point -- the index is claimed at begin(),
+    // the bytes it names are written at commit().
     CHECK(loc_s1.code.id == loc_s0.code.id);
     CHECK(loc_s0.code.offset > loc_s1.code.offset);
 
@@ -83,5 +86,85 @@ TEST_CASE("tvm::Interpreter:  Interleaved submissions", "[scope:core][scope:core
     b0.run(loc_s0);
     CHECK(b0.stopped());
     CHECK(b0.regs().MOD1.lo == 0xAAAA);
+  }
+
+  SECTION("A recording open across a slot advance stays in the slot it started in") {
+    // The regression this pins down: S0 opens, S1 fills the rest of the slot and pushes the head forward, and S0 then
+    // commits. Before slots were pinned at begin(), S0's later payloads went to the new slot while its location entry
+    // still named the old one -- so acknowledging the old slot freed the payload out from under a live record.
+    tb.begin(S0);
+    const auto d0 = tb.append_data(S0, std::array<u8, 2>{0x11, 0x22});
+    body_s0(LMR_of<false>(std::pair{M::MOD1_LO, u16(0x5A5A)}));
+
+    // S0 holds index 0, so S1 needs one fewer than the slot's capacity to take the rest of it. commit() will not
+    // advance out from under an open recording, so the head is still on slot 0 afterwards.
+    for (u16 i = 0; i + 1 < tvm::TraceBuffer::MAX_LOCATION_ENTRIES; ++i) {
+      tb.begin(S1);
+      tb.commit(S1);
+    }
+    REQUIRE(tb.cursor().slot == 0);
+
+    // This is the begin() that has to advance, because nothing else could.
+    tb.begin(S1);
+    REQUIRE(tb.cursor().slot == 1);
+    tb.commit(S1);
+
+    // Slot 0 is behind the head and fully committed apart from S0 -- but S0 is still writing to it, so reclaiming it
+    // has to wait.
+    tb.acknowledge({1, 0});
+    CHECK(tb.ring_occupancy() > 0.0f);
+
+    const auto loc = tb.commit(S0);
+    // Everything S0 wrote is in the slot it started in, and the payload is still live.
+    CHECK(loc.data.id == d0.id);
+    CHECK(loc.data.offset == d0.offset);
+    REQUIRE(mgr->find(loc.data.id) != nullptr);
+    // And it is the entry S0 reserved before any of S1's.
+    const auto entry0 = *tb.range(tvm::Cursor{0, 0}, tvm::Cursor{0, 1}).begin();
+    CHECK(entry0.code.id == loc.code.id);
+    CHECK(entry0.code.offset == loc.code.offset);
+    CHECK(entry0.data.id == loc.data.id);
+
+    tvm::Interpreter b(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    b.run(loc);
+    CHECK(b.stopped());
+    CHECK(b.csrs().F == 0);
+    CHECK(b.regs().MOD1.lo == 0x5A5A);
+
+    // With S0 closed, the slot can go.
+    tb.acknowledge({1, 0});
+    CHECK(tb.ring_occupancy() == Catch::Approx(0.0f));
+  }
+
+  SECTION("An aborted recording leaves a runnable no-op in the entry it reserved") {
+    const auto before = tb.cursor();
+
+    tb.begin(S0);
+    body_s0(LMR_of<false>(std::pair{M::MOD1_LO, u16(0xDEAD)}));
+    tb.abort(S0);
+
+    tb.begin(S1);
+    body_s1(LMR_of<false>(std::pair{M::MOD1_LO, u16(0xBEEF)}));
+    tb.commit(S1);
+
+    // The abandoned index is still an entry -- begin() reserved it, so it is inside the cursor range either way.
+    auto it = tb.range(before, tb.cursor()).begin();
+    const auto aborted = *it;
+    ++it;
+    const auto kept = *it;
+
+    tvm::Interpreter b(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    // A zeroed entry would hard-stop on Buffer::ID{0}, and run_each breaks on a hard stop -- so one aborted
+    // instruction would end the whole replay. Pointing it at a bare HALT makes it a no-op instead.
+    b.run(aborted);
+    CHECK(b.stopped());
+    CHECK(b.csrs().F == 0);
+    CHECK(b.stop_cause() == tvm::StopCause::None);
+    // The aborted body never ran.
+    CHECK(b.regs().MOD1.lo == 0);
+
+    b.run(kept);
+    CHECK(b.stopped());
+    CHECK(b.regs().MOD1.lo == 0xBEEF);
   }
 }

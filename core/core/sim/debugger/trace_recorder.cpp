@@ -40,8 +40,8 @@ void Recorder::Instruction::tick(i16 delta) {
 
 void Recorder::Instruction::commit() {
   if (_tb == nullptr) return;
-  // Clear before committing: if commit() throws RingOverflow, the destructor must not then abort a recording that
-  // commit() already closed.
+  // Clear before committing: if commit() throws, the destructor must not then abort a recording that commit()
+  // already closed.
   auto *tb = std::exchange(_tb, nullptr);
   tb->commit(_initiator);
 }
@@ -50,11 +50,11 @@ void Recorder::set_traced(bool enabled) {
   if (_tb) _tb->trace(_emitter, enabled);
 }
 
-void Recorder::emit_write(const Operation &op, Address address, bits::span<const u8> old, bits::span<const u8> now) {
+void Recorder::emit_write(const Operation &op, Address address, bits::span<const u8> prior, bits::span<const u8> now) {
   // Only pay the lambda/function ref cost when tracing is enabled.
   if (!traced()) return;
-  const std::size_t len = std::min(old.size(), now.size());
-  emit_write(op, address, now.first(len), [&](bits::span<u8> prior) { bits::memcpy(prior, old.first(len)); });
+  const std::size_t len = std::min(prior.size(), now.size());
+  emit_write(op, address, now.first(len), [&](bits::span<u8> tmp) { bits::memcpy(tmp, prior.first(len)); });
 }
 
 void Recorder::emit_write(const Operation &op, Address address, bits::span<const u8> now, PriorFiller fill_prior) {

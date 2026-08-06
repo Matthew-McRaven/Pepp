@@ -31,8 +31,6 @@ public:
   // Default-constructed recorders are inert, which is what an untraced device holds.
   Recorder() = default;
   // `emitter` is the device that owns the bytes -- the target a replayed write is aimed at.
-  //
-
   // How that device's writes encode their target offset is not settled here: it belongs to the buffer, alongside the
   // traced bit, so that there is one representation of it. See TraceBuffer::set_address_in_payload.
   Recorder(tvm::TraceBuffer *tb, Device::ID emitter) : _tb(tb), _emitter(emitter) {}
@@ -47,7 +45,6 @@ public:
   // It is prone to UB since it is a function ref. Avoid the following pattern:
   //    PriorFiller pf = [](bits::span<u8>){};  // temporary lambda destroyed after this line
   //    pf(out);                                // UB: _obj dangles
-  //
   // std::function would allocate on a path that runs for every traced memory access, which function ref makes cheaper.
   class PriorFiller {
   public:
@@ -63,37 +60,32 @@ public:
     void (*_shim)(void *, bits::span<u8>);
   };
 
-  // Record a pending write of `now` over `old` at `address`.
+  // Record a pending write of now over old at address.
   //
-  // The two spans are folded to `old ^ now` and replayed by SETMEMX, which does a read-XOR-write. That makes one
-  // record serve both directions: applied to `old` it yields `now`, applied to `now` it yields `old` back. If the
-  // spans differ in length the shorter one wins.
+  // The two spans are combined into the trace buffer as a single span old^now. We always choose a SETMEMX variant,
+  // which allows the trace to be applied either forwards or backwards.  If the spans differ in length the shorter one
+  // wins.
   //
-  // Use this when the previous bytes are already materialized, as they are for a device backed by a flat array.
-  //
-  // The record's first payload is addressed by the driver (via location buffer), and later writes in the same recording
-  // use a delta, so that bodies stay free of per-instance addresses and can be de-duplicated into the template chain.
-  void emit_write(const Operation &op, Address address, bits::span<const u8> old, bits::span<const u8> now);
+  // Prefer this overload if you don't have to allocate a temp buffer to access the old value, such as with a Dense
+  // device.
+  void emit_write(const Operation &op, Address address, bits::span<const u8> prior, bits::span<const u8> now);
 
-  // Same, for a device whose previous contents are not sitting in memory ready to read -- a paged pool, a cache, a
-  // banked memory. `fill_prior` is handed a span of exactly now.size() bytes *inside the trace record* and must write
-  // the previous contents into it; there is no scratch buffer anywhere in the path.
-  //
-  // Note the argument order: `now` takes the slot `old` occupies above, because there is no `old` to pass -- that is
-  // what fill_prior is for.
+  // Same, for a device whose previous contents are not sitting in contiguous memory, such as Sparse or a bus.
+  // fill_prior is a function reference which writes the prior bytes into a provided span. That provided span is in the
+  // trace buffer and is guaranteed to be the same length as now and it is contiguous.
   //
   // fill_prior is not invoked when the write is not being recorded, so an untraced device pays nothing for a fetch
-  // that would have been thrown away.
+  // that would have been thrown away beyond the cost of allocating a function ref.
   void emit_write(const Operation &op, Address address, bits::span<const u8> now, PriorFiller fill_prior);
 
   // A helper class which which helps open & close a recording for a single instruction.
   class Instruction {
   public:
-    // Opens a recording when `rec` is bound and traced, and is inert otherwise -- so an untraced CPU pays one bitset
+    // Opens a recording when `rec` is bound and traced, and is inert otherwise. An untraced CPU pays one bitset
     // test per instruction and nothing more.
     explicit Instruction(const Recorder &rec);
-    // If commit() was never called, abort the recording rather than commit(), since commit can throw RingOverflow.
-    // So commit() is the happy path, and this is the failure path.
+    // If commit() was never called, abort() the recording rather than commit(). Destructors run while an exception
+    // unwinds, and commit() can throw, which would call std::terminate.
     ~Instruction();
     Instruction(const Instruction &) = delete;
     Instruction &operator=(const Instruction &) = delete;
@@ -105,7 +97,7 @@ public:
     // bytes and sign-extended on decode, so it spans the same range as i16.
     void tick(i16 delta);
 
-    // Finish the record. A no-op when nothing was opened. Throws tvm::RingOverflow if the ring will become fully
+    // Finish the record. A no-op when nothing was opened.
     void commit();
 
     // True when a recording was actually opened.

@@ -15,6 +15,9 @@ static_assert(std::bidirectional_iterator<TraceBuffer::Iterator>);
 // --- Node ---
 
 void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
+  // acknowledge() is the only caller, and it already ensures that all recordings are closed. This is just being
+  // defensive.
+  assert(open == 0 && "reset() of a slot with open recordings");
   if (code) code->clear();
   // Return pages to pool while keeping the map entries
   for (auto &[initiator, chain] : data)
@@ -27,8 +30,7 @@ void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
     locations = nullptr;
   }
   count = 0;
-  // No slot occupies this node any more, so a Cursor still naming the old one stops resolving -- and advance_slot()
-  // is free to claim it.
+  // Cursors can no longer point to this node, and this node can be used by begin().
   slot = NO_SLOT;
 }
 
@@ -45,6 +47,11 @@ TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t r
     // Also lazily allocate node.locations, which is a full 64KiB buffer that is only needed if we enable tracing.
   }
   _templates = _mgr->alloc_chain();
+  // Create a tombstone entry in the template chain so reserved-but-unwritten location entries can point to a valid
+  // program. Not counted in _footprint.templates. It's only two bytes, and they are a functional requirement of the
+  // reservation system.
+  const auto halt = EncodedOp::Halt<0>{}.encode();
+  _tombstone.code = _templates->append({halt.data(), halt.size()});
 }
 
 TraceBuffer::~TraceBuffer() noexcept {
@@ -61,22 +68,29 @@ TraceBuffer::Recording *TraceBuffer::find_recording(Device::ID initiator) {
 }
 
 pepp::bts::BufferChain &TraceBuffer::data_chain(Recording &rec) {
-  // Re-resolve whenever the head entry has changed. commit() can advance the slot while another initiator is still
-  // recording, and a chain memoized against the old slot put payloads into the previous entry instead of the current
-  // one, leading to use-after-frees.
-  if (rec.chain == nullptr || rec.chain_slot != _head) {
-    auto &slot = current_node().data[rec.id];
+  // Resolved on first use and then retained. The recording pinned its slot at begin(), so we do not need to re-resolve.
+  if (rec.chain == nullptr) {
+    auto &slot = node_at(rec.slot).data[rec.id];
     if (!slot) slot = _mgr->alloc_chain();
     // The chain is owned by a unique_ptr, so rehashing the map moves the unique_pointer, not the chain.
     rec.chain = slot.get();
-    rec.chain_slot = _head;
   }
   return *rec.chain;
 }
 
 void TraceBuffer::begin(Device::ID initiator) {
-  // First recording from this initiator creates its scratch state; later ones reuse it, which is why the vectors are
-  // cleared rather than reconstructed -- clear() keeps the capacity earned by previous programs.
+  // Advance if the current slot's location buffer is full. Guarded on residency because a one-slot ring
+  // current_node() is the same node before and after an advance; without it a full slot would advance twice.
+  if (auto &head = current_node(); head.slot == _head && head.count >= MAX_LOCATION_ENTRIES) advance_slot();
+
+  // Re-read the node: a watermark callback fired by advance_slot() may have acknowledged this very slot.
+  auto &node = current_node();
+  if (node.slot != NO_SLOT && node.slot != _head) throw RingOverflow(_head);
+
+  // Allocate the location buffer now, so that neither commit() nor abort() will allocate it.
+  if (node.locations == nullptr) node.locations = _mgr->alloc_buffer();
+
+  // clear() keeps the capacity earned by previous programs.
   auto &rec = _recordings[initiator];
   assert(!rec.active && "begin() called while this initiator is already recording");
   rec.id = initiator;
@@ -85,50 +99,68 @@ void TraceBuffer::begin(Device::ID initiator) {
   rec.postfix.clear();
   rec.active = true;
   rec.data_start = {};
-  // A program may not assume DP survived the previous commit(), so the first emitter in this recording has to state
-  // it absolutely.
+  // Claim the slot and index after everything that could throw. The data chain is resolved lazily on first write.
+  node.slot = _head;
+  rec.slot = _head;
+  rec.entry = node.count++;
+  rec.chain = nullptr;
+  node.open++;
   rec.dp = {};
+
+  // Write a tombstone so that a reserved-but-uncommitted entry dereferences to a program that immediately halts,
+  // rather than stale data from a previous occupant. commit() overwrites this; abort() leaves it.
+  write_location(node, rec.entry, _tombstone);
 }
 
 tvm::ProgramLocation TraceBuffer::commit(Device::ID initiator) {
-  // Unlike begin(), this must not create an entry: a commit() for an initiator that never began is a caller bug, and
-  // default-constructing one here would silently commit an empty program.
   auto *rec = find_recording(initiator);
   assert(rec && "commit() called without a matching begin()");
   assert((rec == nullptr || rec->active) && "commit() called without a matching begin()");
-  // Committing something that was never begun would flush a default-constructed recording, or dereference nothing at
-  // all. Report the null location instead; the caller gets a program it cannot run rather than undefined behaviour.
   if (rec == nullptr || !rec->active) return {};
 
-  // Append HALT as the final instruction in the postfix.
   auto halt = EncodedOp::Halt<0>{}.encode();
   rec->postfix.insert(rec->postfix.end(), halt.begin(), halt.end());
 
+  // Release the reservation before anything that can throw. If resolve_body or flush_to_ring fails, the entry keeps
+  // its tombstone and replays as a halt.
+  auto &node = node_at(rec->slot);
+  assert(node.open > 0 && "commit() without a matching begin() reservation");
+  node.open--;
+  rec->active = false;
+
   auto resolution = resolve_body({rec->body.data(), rec->body.size()});
   auto ret = flush_to_ring(*rec, resolution);
-
-  auto &node = current_node();
-  node.count++;
-  rec->active = false;
   _footprint.programs++;
 
-  if (node.count >= MAX_LOCATION_ENTRIES) advance_slot();
+  // Advance once the slot is full and no recordings are open. Must be after flush_to_ring: advance_slot() runs
+  // watermark callbacks, and a callback that acknowledges would reset this node while we're still writing to it.
+  if (rec->slot == _head && node.count >= MAX_LOCATION_ENTRIES && node.open == 0) advance_slot();
   return ret;
 }
 
 void TraceBuffer::emit_prefix(Recording &rec, bits::span<const u8> encoded) {
   rec.prefix.insert(rec.prefix.end(), encoded.begin(), encoded.end());
 }
+
 void TraceBuffer::abort(Device::ID initiator) {
   auto *rec = find_recording(initiator);
   if (rec == nullptr || !rec->active) return;
-  // Same clear-but-keep-capacity treatment begin() gives them, so aborting costs nothing the next recording has to
-  // earn back.
+  // Release the reservation, but leave the entry itself alone. begin() wrote a tombstone there so that the index of an
+  // aborted recording is a no-op rather than requiring special iteration behavior. It is allocation-free because we
+  // want to avoid throwing. This executes inside Recorder::Instruction's destructor, where a throw would
+  // std::terminate. We still throw because of asserts, but if you hit this assert, fix your buggy program.
+  auto &node = node_at(rec->slot);
+  assert(node.open > 0 && "abort() without a matching begin() reservation");
+  node.open--;
+  // Whatever payload this record wrote stays in the data chain, unreferenced, until the slot is reclaimed. Reclaiming
+  // it would need a chain rewind, which does not exist. Keep the same clear-but-keep-capacity treatment as begin(), so
+  // that aborting costs does not incur additional memory allocations.
   rec->prefix.clear();
   rec->body.clear();
   rec->postfix.clear();
   rec->dp = {};
   rec->data_start = {};
+  rec->chain = nullptr;
   rec->active = false;
 }
 
@@ -209,6 +241,10 @@ void TraceBuffer::acknowledge(Cursor up_to) {
   const size_t limit = std::min(up_to.slot, _head);
   while (_tail < limit) {
     auto &node = _ring[_tail % _ring.size()];
+    // A recording that reserved an entry here has not closed yet, and is still appending to this node's chains.
+    // reset() would hand those buffers back underneath it. Stop rather than skip: _tail has to stay contiguous, and
+    // the caller can acknowledge the rest once the recording closes.
+    if (node.open > 0) break;
     node.reset(*_mgr);
     _tail++;
   }
@@ -350,7 +386,7 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
 }
 
 tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution resolution) {
-  auto &node = current_node();
+  auto &node = node_at(rec.slot);
 
   // The subroutine is: [prefix][body or CALL][postfix]
   // There are no separators or terminators between these sections.
@@ -398,7 +434,8 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution r
 
   // Record where this program starts and where its data starts.
   const tvm::ProgramLocation program{subroutine_start, rec.data_start};
-  write_location(node, node.count, program);
+  // Overwrites the tombstone begin() put at this index.
+  write_location(node, rec.entry, program);
   return program;
 }
 
@@ -407,45 +444,27 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution r
 void TraceBuffer::advance_slot() {
   _head++;
 
-  // Fire watermark callbacks. Run before the overflow check below so a callback that frees the slot we are about to
-  // land on can prevent overflow.
+  // Evaulate watermark callbacks
   float occ = ring_occupancy();
-  for (auto &wm : _watermarks) {
-    if (!wm.fired && occ >= wm.threshold) {
-      wm.fired = true;
-      wm.callback();
-    }
-  }
+  for (auto &wm : _watermarks)
+    if (!wm.fired && occ >= wm.threshold) wm.fired = true, wm.callback();
 
-  // Prepare the new current node if it's been previously consumed.
-  auto &node = current_node();
-  // A node still stamped with a slot holds trace nobody has consumed. Overwriting it would silently discard history,
-  // so refuse. _head stays advanced: acknowledge() resets this node, after which submission picks up from a clean
-  // slot. write_location() sets the stamp on every commit, so any node holding entries is caught here.
-  if (node.slot != NO_SLOT) throw RingOverflow(_head);
-  node.count = 0;
-  // code/data chains should already be clear from acknowledge().
+  // Overflow checking is handled by begin(ID).
 }
 
 // --- Location buffer I/O ---
 
 void TraceBuffer::write_location(Node &node, u16 entry, tvm::ProgramLocation program) {
   static_assert(sizeof(tvm::ProgramLocation) == 8, "ProgramLocation must be 8 bytes for location packing");
-  // Backstop for a caller that swallowed a RingOverflow and kept submitting: the offset below is a u16, so an entry
-  // at or past the maximum would wrap to 0 and quietly overwrite the oldest entry instead of failing.
-  if (entry >= MAX_LOCATION_ENTRIES) throw LocationBufferFull(_head);
-  // Acquired on first write into this slot rather than at construction or reset, so an unused ring slot holds no
-  // buffer at all.
-  if (node.locations == nullptr) node.locations = _mgr->alloc_buffer();
-  // Claim the node for the slot being written. write_location is the only thing that creates readable entries, so
-  // this is the point at which a Cursor naming _head becomes meaningful.
-  node.slot = _head;
+  // begin() advances the slot before handing out an index that would overflow, so every reserved entry fits.
+  assert(entry < MAX_LOCATION_ENTRIES && "location buffer overflow: entry written without a matching begin() reservation");
+  // begin() allocates the location buffer when it reserves an index, so the buffer is always present here.
+  assert(node.locations != nullptr && "write_location() into a slot with no location buffer");
   u16 offset = entry * sizeof(tvm::ProgramLocation);
   auto *dst = node.locations->data() + offset;
   std::memcpy(dst, &program, sizeof(program));
-  // If the slab hasn't tracked this write, bump its used capacity.
-  // We write sequentially (entry == count before increment), so allocate_uninitialized
-  // on first use of each entry position.
+  // Interleaved recordings may commit out of order, so an entry at index 5 can be written before index 3. Extend
+  // the buffer's used_capacity to cover this entry if it's the high-water mark so far.
   size_t required = offset + sizeof(tvm::ProgramLocation);
   if (node.locations->used_capacity() < required)
     node.locations->allocate_uninitialized(required - node.locations->used_capacity());
@@ -465,6 +484,18 @@ tvm::ProgramLocation TraceBuffer::read_location(const Node &node, u16 entry) con
 // --- Cursor / Iteration ---
 
 Cursor TraceBuffer::cursor() const { return {_head, current_node().count}; }
+
+Cursor TraceBuffer::committed_cursor() const {
+  // Walk back to the earliest reservation still open. _recordings holds one entry per initiator that has ever
+  // recorded — one or two in practice — so a scan is cheaper than maintaining a running minimum that would have to
+  // be recomputed whenever the holder of the minimum closed.
+  Cursor stable{_head, current_node().count};
+  for (const auto &[id, rec] : _recordings) {
+    if (!rec.active) continue;
+    if (const Cursor at{rec.slot, rec.entry}; at < stable) stable = at;
+  }
+  return stable;
+}
 
 TraceBuffer::CursorRange TraceBuffer::range(Cursor from, Cursor to) const {
   CursorRange r;
