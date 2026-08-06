@@ -61,7 +61,8 @@ public:
 private:
     void walk(const rapidxml::xml_node<> *node)
     {
-        //	Keep local copy of element
+        //	Keep local copy of element. This is a recursive function, and we need to
+        //  know the current element when signalling the end of the element
         std::string key;
 
         const rapidxml::node_type type = node->type();
@@ -71,20 +72,19 @@ private:
             //	Convert from character array to string
             _key.clear();
             _value.clear();
-            key.append(node->name(), node->name_size());
-            key = _key;
+            key = _key.append(node->name(), node->name_size());
 
-            //	Get attributes
+            //	Get value
             if (node->value_size()) {
                 _value.append(node->value(), node->value_size());
             }
 
-            //	No custom callback, use local variable
+            //	Signal callback that this is an element
             _xml->addFromParser(_key,
                                 _value,
                                 _root ? XmlNode::Type::RootElement : XmlNode::Type::Element);
 
-            //	Loop through attributes, if any
+            //	Loop through attributes, if any. Call back on each name/value pair.
             for (const rapidxml::xml_attribute<> *attr = node->first_attribute(); attr;
                  attr = attr->next_attribute()) {
                 //	Convert from character array to string
@@ -94,7 +94,7 @@ private:
                 _value.append(attr->value(), attr->value_size());
 
                 //	This is a callback function!
-                //  Save result
+                //  Forward attribute data
                 _xml->addFromParser(_key,
                                     _value,
                                     _root ? XmlNode::Type::RootAttribute : XmlNode::Type::Attribute);

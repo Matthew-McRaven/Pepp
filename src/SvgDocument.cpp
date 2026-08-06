@@ -42,10 +42,9 @@ Document::Document()
 {}
 
 Document::Document(const std::string &name)
-    : _impl(std::make_unique<DocumentImpl>())
+    : Document()
 {
-    //  Do not initialize sheets with blank sheets
-    //Open( name );
+    open(name);
 }
 
 //	Need to move implementation after Impl structure so unique_ptr will see full
@@ -124,7 +123,7 @@ bool Document::open(const std::string &fileName, bool readOnly)
     _impl->readOnly = readOnly;
 
     //  File open
-    if (!fs::exists(fileName)) {
+    if (!fs::exists(_impl->fileName)) {
         //  File doesn't exist, needs to initialize
         _impl->exists = false;
         return false;
@@ -133,14 +132,15 @@ bool Document::open(const std::string &fileName, bool readOnly)
     Timer<> t1;
     t1.start();
     if (!_impl->read()) {
-        std::cout << "Cannot open file: " << fileName;
+        std::cout << "Cannot open file: " << _impl->fileName;
         return false;
     }
     t1.finish();
     std::cout << "ifstream::read: " << t1.elapsedTime() << std::endl;
 
+    //  Parser will callback to this instance using method addFromParser().
     std::unique_ptr<SvgParser<DocumentImpl>> parser(new SvgParser<DocumentImpl>(*_impl));
-    //parser->parse(_impl->contents);
+    parser->parse(_impl->contents);
 
     //  Archive has data
     return true;
@@ -155,8 +155,6 @@ bool DocumentImpl::read()
     //  Size to current file
     if (fileSize > contents.size())
         contents.resize(fileSize);
-
-    //std::cout << "File size: " << fileSize << std::endl;
 
     exists = true;
 
@@ -174,20 +172,22 @@ void DocumentImpl::addFromParser(const std::string &key,
                                  const XmlNode::Type type)
 {
     static std::string element;
-    //static XlDefinedName *name = nullptr;
-    static uint32_t xmlType = 0;
 
     switch (type) {
     case XmlNode::Type::RootElement:
-        assert(key == "svg");
+        std::cout << "Root Element:" << key << " value: " << value << std::endl;
         break;
     case XmlNode::Type::RootAttribute:
+        std::cout << "Root Attribute:" << key << " value: " << value << std::endl;
         break;
     case XmlNode::Type::Element:
+        std::cout << "Start Element:" << key << " value: " << value << std::endl;
         break;
     case XmlNode::Type::Attribute:
+        std::cout << "Attribute:" << key << " value: " << value << std::endl;
         break;
     case XmlNode::Type::EndElement:
+        std::cout << "End Element:" << key << std::endl;
         break;
     }
     //  Elements to skip
