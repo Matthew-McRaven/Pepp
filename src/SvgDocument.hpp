@@ -4,6 +4,9 @@
 #include <memory>
 #include <string>
 
+//  Library classes
+#include "SvgElement.hpp"
+
 //	Forward declarations
 class DocumentImpl;
 
@@ -22,6 +25,9 @@ public:
     Document &operator=(Document &&) noexcept;
 
     //  Document searching
+    SvgElement documentElement() const;
+    SvgElement *createElement(const std::string &name = "");
+
     //SvgElement querySelector(const std::string& element);
     //SvgElement getElementById(const std::string& element);
     //List children();
@@ -30,8 +36,6 @@ public:
 
     //	Document properties.
     //	accessors
-    //const std::string &name() const;
-    //void SetName( const std::string& value );	//	VBA does not allow file name change
 
     //	File options
     //bool fromSvg(const std::string &fileName);

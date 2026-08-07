@@ -9,8 +9,11 @@
 
 //	Standard Library
 
+#include <list>
 #include <string>
-#include <unordered_map>
+#include <utility>
+
+using pair = std::pair<std::string, std::string>;
 
 //	private classes
 #include "SvgElement.hpp"
@@ -28,6 +31,8 @@ public:
 
     std::string id;
     std::string className;
+    std::string value;
     //SVGElement ownerSVGElement
-    std::unordered_map<std::string, std::string> attributes;
+    std::list<pair> attributes;
+    std::list<SvgElement *> elements;
 };

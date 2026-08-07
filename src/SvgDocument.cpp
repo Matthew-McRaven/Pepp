@@ -54,43 +54,6 @@ Document::Document(Document &&) noexcept = default;
 Document &Document::operator=(Document &&) noexcept = default;
 
 //  Accessors
-/*const std::string& XlWorkbook::Name() const
-{    return impl_->name; }
-
-XlProperties& XlWorkbook::Properties() 
-{    return impl_->props; }
-const XlProperties& XlWorkbook::Properties() const
-{    return impl_->props; }
-
-//  Return single worksheet
-XlWorksheet& XlWorkbook::Sheets( const std::string& name )
-{   return impl_->find( name ); }
-XlWorksheet& XlWorkbook::Sheets( const size_t index )
-{   return impl_->find( index ); }
-
-XlWorksheet& XlWorkbookImpl::find( const std::string& name )
-{   return sheets.find( name ); }
-XlWorksheet& XlWorkbookImpl::find( const size_t index )
-{   return sheets.find( index ); }
-
-//  Return list of worksheets
-XlWorksheets& XlWorkbook::Sheets()
-{   return impl_->sheets; }
-const XlWorksheets& XlWorkbook::Sheets() const
-{   return impl_->sheets; }
-
-XlWorksheets& XlWorkbook::Worksheets()
-{   return impl_->sheets; }
-const XlWorksheets& XlWorkbook::Worksheets() const
-{   return impl_->sheets; }
-
-//  Return list of defined range names
-XlDefinedNames& XlWorkbook::Names()
-{   return impl_->names; }
-const XlDefinedNames& XlWorkbook::Names() const
-{   return impl_->names; }
-
-*/
 
 void Document::saveAs(const std::string &fileName)
 {
@@ -140,7 +103,11 @@ bool Document::open(const std::string &fileName, bool readOnly)
 
     //  Parser will callback to this instance using method addFromParser().
     std::unique_ptr<SvgParser<DocumentImpl>> parser(new SvgParser<DocumentImpl>(*_impl));
+
+    t1.start();
     parser->parse(_impl->contents);
+    t1.finish();
+    std::cout << "parsing file: " << t1.elapsedTime() << std::endl;
 
     //  Archive has data
     return true;
@@ -164,30 +131,46 @@ bool DocumentImpl::read()
     return true;
 }
 
+SvgElement *Document::createElement(const std::string &name)
+{
+    return _impl->createElement(name);
+}
+SvgElement *DocumentImpl::createElement(const std::string &name)
+{
+    return &children.emplace_back(name);
+}
+
 //	When parsing, we want parser to return pointer to data
 //  structure for these items.
-//	Callback on xml parser
+//	This function is a callback from the xml parser
 void DocumentImpl::addFromParser(const std::string &key,
                                  const std::string &value,
                                  const XmlNode::Type type)
 {
-    static std::string element;
+    static SvgElement *element{};
 
     switch (type) {
     case XmlNode::Type::RootElement:
-        std::cout << "Root Element:" << key << " value: " << value << std::endl;
+        //  Root element is already created since it is required.
+        svgDocument.setId(key);
+        svgDocument.setValue(value);
+        parents.push_back(&svgDocument);
         break;
     case XmlNode::Type::RootAttribute:
-        std::cout << "Root Attribute:" << key << " value: " << value << std::endl;
+        //std::cout << "Root Attribute:" << key << " value: " << value << std::endl;
         break;
     case XmlNode::Type::Element:
-        std::cout << "Start Element:" << key << " value: " << value << std::endl;
+        element = createElement(key);
+        parents.back()->appendChild(element);
+        parents.push_back(element);
+        //std::cout << "Start Element:" << key << " value: " << value << std::endl;
         break;
     case XmlNode::Type::Attribute:
-        std::cout << "Attribute:" << key << " value: " << value << std::endl;
+        //std::cout << "Attribute:" << key << " value: " << value << std::endl;
         break;
     case XmlNode::Type::EndElement:
-        std::cout << "End Element:" << key << std::endl;
+        parents.pop_back();
+        //std::cout << "End Element:" << key << std::endl;
         break;
     }
     //  Elements to skip
