@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cassert>
+#include <list>
 #include <memory>
 #include <string>
 
@@ -12,6 +12,23 @@ class SvgElement
     std::unique_ptr<SvgElementImpl> _impl;
 
 public:
+    enum class SvgType {
+        SvgUnknownElement = 0,
+        SvgElementParent = 1,
+        SvgDescElement,
+        SvgMetadataElement,
+        SvgStyleElement,
+        SvgTitleElement,
+        SvgGraphicElement = 0x8000,
+        SvgSvgElement,
+        SvgGeometry = 0x8100,
+        SvgGElement,
+        SvgDefsElement,
+        SvgSymbolElement,
+        SvgUseElement,
+        SvgSwitchElement
+    };
+
     SvgElement();
     explicit SvgElement(const std::string &name, const std::string &value = "");
     ~SvgElement();
@@ -35,4 +52,6 @@ public:
     auto children() const;
     auto children();
     void appendChild(SvgElement *child);
+
+    void toXml(std::list<std::string> &output) const;
 };

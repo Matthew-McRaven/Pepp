@@ -104,3 +104,26 @@ void SvgElement::appendChild(SvgElement *child)
 {
     _impl->elements.push_back(child);
 }
+
+void SvgElement::toXml(std::list<std::string> &output) const
+{
+    //  Id currently has element name. Change when attributes are supported
+    //std::string buffer;
+    output.push_back("<" + _impl->id);
+    if (attributes().size() > 0) {
+        // Add persistence logic here
+    }
+
+    //  No child elements and no values, add end tag
+    if (_impl->elements.empty() && _impl->value.empty()) {
+        output.push_back(" />");
+        return;
+    }
+    output.push_back(">");
+
+    for (const auto *element : _impl->elements) {
+        element->toXml(output);
+    }
+    //  When child elements, add closing element
+    output.push_back("</" + _impl->id + ">");
+}

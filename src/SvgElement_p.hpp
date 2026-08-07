@@ -32,6 +32,7 @@ public:
     std::string id;
     std::string className;
     std::string value;
+    std::string type;
     //SVGElement ownerSVGElement
     std::list<pair> attributes;
     std::list<SvgElement *> elements;

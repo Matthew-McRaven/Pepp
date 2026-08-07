@@ -74,6 +74,9 @@ bool DocumentImpl::save()
     if (!svgFile.is_open())
         return false;
 
+    //  Rebuild object tree into xml
+    toXml();
+
     svgFile.write(contents.data(), contents.size());
     svgFile.close();
 
@@ -173,254 +176,32 @@ void DocumentImpl::addFromParser(const std::string &key,
         //std::cout << "End Element:" << key << std::endl;
         break;
     }
-    //  Elements to skip
-    /*if (key == "definedNames" || key == "sheets") {
-            xmlType = 1;
-        } else if (key == "definedName") {
-            //  //DefinedNames uses range name for key value
-            element = value;
-            xmlType = 2;
-        } else if (key == "sheet") {
-            element = value;
-            sheets.Add();
-            xmlType = 3;
-        } else {
-            //  Make sure we aren't processing child of parent element
-            if (xmlType == 0) {
-                //  Flag for terminating processing
-                element = key;
-                xmlType = 99;
-
-                //  Initialize parent element
-                notUsed.emplace_back(key, value);
-            } else {
-                //  Add children nodes
-                notUsed.back().add(key, value, type);
-            }
-        }
-        break;
-    case XmlNode::Type::Attribute:
-
-        //  Loop through nodes with special processing
-        switch (xmlType) {
-        case 2:
-            if (name == nullptr)
-                name = &names.Add(value, element);
-            else
-                name->Add(key, value);
-            break;
-        case 3:
-
-            sheets.list().back().add(key, value);
-
-            break;
-        case 99:
-            notUsed.back().add(key, value, type);
-            break;
-        }
-        break;
-    case XmlNode::Type::EndElement:
-        if (xmlType == 99) {
-            //  Unwind XmlElement stack
-            notUsed.back().add(key, value, type);
-
-            //  Only clear if this is parent element
-            if (element == key) {
-                xmlType = 0;
-                element.clear();
-            }
-        } else {
-            name = nullptr;
-            xmlType = 0;
-            element.clear();
-        }
-        break;
-    }*/
 }
+
+//  Loop throug all elements and get a rope of values.
+//  flatten values into a single string that is later
+//  persisted.
+void DocumentImpl::toXml()
+{
+    //  Create in memory rope of Xml structure
+    svgDocument.toXml(rope);
+
+    //  Clear previous result
+    contents.clear();
+
+    //  Create single string in memory
+    for (auto &fragment : rope) {
+        contents.append(fragment);
+    }
+
+    //  Free up memory
+    rope.clear();
+}
+
 /*
 //	Public interface
-void XlWorkbook::Close()
-{
-    //  Does not save, just resets to blank sheet
-    impl_.reset( new XlWorkbookImpl() );
-}
-
 //	Persistence functions
-void XlWorkbookImpl::readAll( ZipIt::Archive& archive )
-{
-    //  Read attributes from file
-    for( const auto& file : archive.fileList() )
-    {
-        exists = true;
-        if( contentTypes.read( archive, file.name() ) )
-            //  If true, relations file processed archive
-            continue;
-        else if( XlWorkbookImpl::file == file.name() )
-            read( archive );                            //  xl/workbook.xml 
-        else if( XlPropertiesCore::file() == file.name() )
-            //  required field
-            core.read( archive );                       //  docProps/core.xml
-        else if( XlPropertiesApp::file() == file.name() )
-            //  required field
-            app.read( archive );                        //  docProps/app.xml
-        else if( XlSharedStrings::file() == file.name() )
-            //  Shared strings are processed below. SKip file or
-            //  it will be loaded twice
-            continue;                  //  xl/sharedStrings.xml
-        else if( XlStyleSheet::file() == file.name() )
-        {
-            style = XlStyleSheet();
-            style->read( archive );                     //  xl/styles.xm
-        }
-        else if( XlTheme::file() == file.name() )
-        {
-            //  Optional files need to be constructed
-            theme = XlTheme();
-            theme->read( archive );                     //  xl/theme/theme.xml
-        }
-        else if( file.name().find("xl/worksheets/sheet") != std::string::npos )
-        { 
-            //  Shard strings need to be loaded before sheets are read
-            if( !sharedStr.isLoaded() )
-            {
-                sharedStr.read( archive );              //  xl/sharedStrings.xml
-            }
 
-            sheets.read( archive, file.name() );      //  xl/_rels/.rels
-        }
-        else
-        {
-            //  Just archive files we find but don't care about
-            auto& temp = tempFiles.emplace_back( file.name() );
-            temp.read( archive );
-        }
-    }
-}
-
-void XlWorkbookImpl::read( ZipIt::Archive& archive )
-{
-    //	Get file details
-    auto& file = archive.getFile( XlWorkbookImpl::file );
-
-    if( file.uncompressedSize() == 0 ) return;
-
-    //  Clear previous unused nodes
-    notUsed.clear();
-    
-    //  Turn stream into string
-    auto& stream = archive.getFileStream( file );
-    std::string data( file.uncompressedSize() + 1, '\0' );
-
-    stream.read( &data[0], file.uncompressedSize() );
-
-    //	Parse will call back to add below for each element found
-    //	Constructing class give stack warning, move to heap
-    std::unique_ptr<XmlParser2<XlWorkbookImpl>>
-        parser( new XmlParser2<XlWorkbookImpl>( *this ) );
-    parser->parse( data );
-
-    //  Read related .rels file
-    root.read( archive );
-}
-
-//	When parsing, we want parser to return pointer to data
-//  structure for these items.
-//	Callback on xml parser
-void XlWorkbookImpl::add( const std::string& key, const std::string& value,
-    const XmlNode::Type type )
-{
-    static std::string element;
-    static XlDefinedName* name = nullptr;
-    static uint32_t xmlType = 0;
-
-    switch( type )
-    {
-    case XmlNode::Type::RootElement:
-        assert( key == "workbook" );
-        break;
-    case XmlNode::Type::RootAttribute:
-        break;
-    case XmlNode::Type::Element:
-        //  Elements to skip
-        if( key == "definedNames" ||
-            key == "sheets" )
-        {
-            xmlType = 1;
-        }
-        else if( key == "definedName" )
-        {
-            //  //DefinedNames uses range name for key value
-            element = value;
-            xmlType = 2;
-        }
-        else if( key == "sheet" )
-        {
-            element = value;
-            sheets.Add();
-            xmlType = 3;
-        }
-        else
-        {
-            //  Make sure we aren't processing child of parent element
-            if( xmlType == 0 )
-            {
-                //  Flag for terminating processing
-                element = key;
-                xmlType = 99;
-
-                //  Initialize parent element
-                notUsed.emplace_back( key, value );
-            }
-            else
-            {
-                //  Add children nodes
-                notUsed.back().add( key, value, type );
-            }
-        }
-        break;
-    case XmlNode::Type::Attribute:
-
-        //  Loop through nodes with special processing
-        switch( xmlType )
-        {
-        case 2:
-            if( name == nullptr )
-                name = &names.Add( value, element );
-            else
-                name->Add( key, value );
-            break;
-        case 3:
-
-            sheets.list().back().add(key, value);
-
-            break;
-        case 99:
-            notUsed.back().add( key, value, type );
-            break;
-        }
-        break;
-    case XmlNode::Type::EndElement:
-        if( xmlType == 99  )
-        {
-            //  Unwind XmlElement stack
-            notUsed.back().add( key, value, type );
-
-            //  Only clear if this is parent element
-            if( element == key )
-            {
-                xmlType = 0;
-                element.clear();
-            }
-        }
-        else
-        {
-            name = nullptr;
-            xmlType = 0;
-            element.clear();
-        }
-        break;
-    }
-}
 
 bool XlWorkbookImpl::writeAll( const std::string& xlFileName, bool aReadOnly,
     const std::string& aPassword )
