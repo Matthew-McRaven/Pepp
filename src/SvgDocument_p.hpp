@@ -16,6 +16,7 @@
 //	private classes
 #include "SvgElement.hpp"
 #include "SvgParser.hpp"
+#include "XmlElement_p.hpp"
 
 class DocumentImpl
 {
@@ -37,6 +38,8 @@ public:
     std::list<SvgElement *> parents;
     std::list<SvgElement> children;
     std::list<std::string> rope; //  Temporary for persisting structure to Xml
+
+    XmlElement elements;
 
     bool save();
     bool read();
