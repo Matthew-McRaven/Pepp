@@ -18,9 +18,15 @@ derive from the SVGElement interface.
 */
 
 //	Public interface
-SvgElement::SvgElement()
-    : _impl(std::make_unique<SvgElementImpl>())
-{}
+SvgElement::SvgElement(bool base)
+{
+    if (base)
+        _impl = std::make_unique<SvgElementImpl>();
+}
+
+/*SvgElement(SvgElementImpl *derivedImpl)
+    : _impl(derivedImpl)
+{}*/
 
 SvgElement::SvgElement(const std::string &id, const std::string &value)
     : SvgElement()
@@ -80,6 +86,30 @@ std::string SvgElement::value() const
 void SvgElement::setValue(std::string value)
 {
     _impl->value = value;
+}
+std::string SvgElement::title() const
+{
+    return _impl->title;
+}
+void SvgElement::setTitle(std::string title)
+{
+    _impl->title = title;
+}
+std::string SvgElement::metadata() const
+{
+    return _impl->metadata;
+}
+void SvgElement::setMetadata(std::string metadata)
+{
+    _impl->metadata = metadata;
+}
+std::string SvgElement::desc() const
+{
+    return _impl->desc;
+}
+void SvgElement::setDesc(std::string desc)
+{
+    _impl->desc = desc;
 }
 
 auto SvgElement::attributes() const

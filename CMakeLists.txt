@@ -17,7 +17,12 @@ add_executable(SvgDom
     src/SvgElement.cpp
     src/SvgElement.hpp
     src/SvgElement_p.hpp
+    src/SvgSvgElement.cpp
+    src/SvgSvgElement.hpp
+    src/SvgSvgElement_p.hpp
     src/SvgParser.hpp
+    src/XmlElement_p.hpp
+    src/XmlAttributes_p.hpp
 )
 
 include(GNUInstallDirs)

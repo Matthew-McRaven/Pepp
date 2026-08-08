@@ -23,16 +23,21 @@ class SvgElementImpl
 public:
     SvgElementImpl() {}
 
-    ~SvgElementImpl() = default;
+    virtual ~SvgElementImpl() = default;
     SvgElementImpl(const SvgElementImpl &) = default;
     SvgElementImpl &operator=(const SvgElementImpl &) = default;
     SvgElementImpl(SvgElementImpl &&) noexcept = default;
     SvgElementImpl &operator=(SvgElementImpl &&) noexcept = default;
 
+    SvgElement::SvgType elementType = SvgElement::SvgType::SvgUnknownElement;
+
     std::string id;
     std::string className;
     std::string value;
     std::string type;
+    std::string title;
+    std::string metadata;
+    std::string desc;
     //SVGElement ownerSVGElement
     std::list<pair> attributes;
     std::list<SvgElement *> elements;

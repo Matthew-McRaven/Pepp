@@ -9,7 +9,9 @@ class SvgElementImpl;
 
 class SvgElement
 {
+protected:
     std::unique_ptr<SvgElementImpl> _impl;
+    //SvgElement(SvgElementImpl *derivedImpl);
 
 public:
     enum class SvgType {
@@ -29,9 +31,9 @@ public:
         SvgSwitchElement
     };
 
-    SvgElement();
+    SvgElement(bool base = true);
     explicit SvgElement(const std::string &name, const std::string &value = "");
-    ~SvgElement();
+    virtual ~SvgElement();
     //Cannot copy, but can move
     SvgElement(const SvgElement &);
     SvgElement &operator=(const SvgElement &);
@@ -45,6 +47,12 @@ public:
     void setClassName(std::string className);
     std::string value() const;
     void setValue(std::string value);
+    std::string title() const;
+    void setTitle(std::string title);
+    std::string metadata() const;
+    void setMetadata(std::string metadata);
+    std::string desc() const;
+    void setDesc(std::string desc);
 
     auto attributes() const;
     auto attributes();
@@ -53,5 +61,5 @@ public:
     auto children();
     void appendChild(SvgElement *child);
 
-    void toXml(std::list<std::string> &output) const;
+    virtual void toXml(std::list<std::string> &output) const;
 };
