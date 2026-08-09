@@ -65,7 +65,10 @@ u16 read16(pepp::bts::BufferManager &mgr, MachineState &state, pepp::bts::Buffer
   auto buf = mgr.find(id);
   if (!buf) return state.hard_stop(tvm::StopCause::InvalidIBuffer), 0;
 
-  auto data = buf->span().subspan(offset, 2);
+  const auto whole = buf->span();
+  if ((size_t)offset + 2 > whole.size()) return state.hard_stop(tvm::StopCause::InvalidIBuffer), 0;
+
+  auto data = whole.subspan(offset, 2);
   return ((u16)data[0]) | (u16)data[1] << 8;
 }
 

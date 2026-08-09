@@ -15,7 +15,7 @@ namespace trace {
 
 // A cheaply copyable class which provides convenient methods to write to a TraceBuffer.
 // It is bound to a particular device ID, and this recorder discards writes if that device is not actively traced.
-// It also standardizes discarding traces for Application and BufferInternal accesses.
+// It also standardizes discarding traces for BufferInternal accesses.
 //
 // Devices must report an access BEFORE it occurs (write-ahead-log), so that the trace machinery can preserve the
 // previous bytes before they are overwritten. Devices must not throw between the time they've created the trace but
@@ -25,6 +25,7 @@ namespace trace {
 //   - this recorder is unbound / TB is nullptr.
 //   - this device not being traced.
 //   - BufferInternal accesses, which are the replay machinery reading and writing through the same paths
+//     Application accesses are not filtered, but will be discarded if the is no open recording.
 //   - accesses that arrive with no recording begun for the Operation::initiator
 class Recorder {
 public:

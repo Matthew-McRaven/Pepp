@@ -74,22 +74,23 @@ bits::Order RegisterScan::read(Register *reg, Register::Field *field, bits::span
   else {
     if (!any(reg->access & Register::Access::Read)) throw std::runtime_error("Register is not readable");
     // Trim the destination to the size of the register, in case the caller provided a buffer larger than the width.
-    // have to choose first/last bast on host endianness so that later copy/swaps will work (e.g., 0-padding is on the
-    // right end).
-    if constexpr (bits::host_is_le) target->read(reg->offset, dest.last(reg->byte_width), rw);
-    else target->read(reg->offset, dest.first(reg->byte_width), rw);
+    // ave to choose first/last based on host endianness so that later copy/swaps will work (e.g., 0-padding is on the
+    // right end). Only work on this trimmed view.
+    if (dest.size() < reg->byte_width) throw std::runtime_error("Destination is narrower than the register");
+    const auto out = bits::host_is_le ? dest.last(reg->byte_width) : dest.first(reg->byte_width);
+    target->read(reg->offset, out, rw);
     if (field) {
       if (!any(field->access & Register::Access::Read)) throw std::runtime_error("Field is not readable");
       // Must convert to host-order so that bitmasking operations work
-      auto copy = bits::memcpy_endian<u64>(dest, reg->order);
+      auto copy = bits::memcpy_endian<u64>(out, reg->order);
       // Shift the field down so least-significant bit is at [0], and mask out bits beyond width
       copy = (copy >> field->bit_offset) & ((1ULL << field->bit_width) - 1);
       // Copy back into dest, converting back to the register's order.
-      bits::memcpy_endian(dest, reg->order, copy);
+      bits::memcpy_endian(out, reg->order, copy);
     }
     const bool should_swap =
         (bswap == Byteswap::Always) || (bswap == Byteswap::IfHostMismatch && reg->order != bits::hostOrder());
-    if (should_swap) bits::bytereverse(dest);
+    if (should_swap) bits::bytereverse(out);
     return reg->order;
   }
 }
