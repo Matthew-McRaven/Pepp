@@ -552,3 +552,44 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
     CHECK(f.bytes_per_program() == f.bytes_per_program_if_inlined());
   }
 }
+
+TEST_CASE("System::initialize: at most one trace buffer, wherever it sits",
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  // The device that finds the buffer is not necessarily the last one visited. This used to throw for any device
+  // initialized after the buffer, because the duplicate check tested the wrong pointer -- and it went unnoticed
+  // because every existing test happens to create its buffer last.
+  System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
+  Dense::Configuration mem_cfg{
+      Device::Configuration{.basename = "memory", .compatible = Dense::compatible},
+      0x00,
+      AddressSpan(0x0000, 0xffff),
+  };
+
+  SECTION("A buffer followed by other devices initializes") {
+    auto sys = std::make_unique<System>(root_cfg);
+    // Buffer first, then a device after it. This is the ordering that used to throw.
+    auto *tbdev = sys->make_device<trace::BufferDevice>(
+        trace::BufferDevice::Configuration{Device::Configuration{.basename = "trace"}, 4});
+    auto *mem = sys->make_device<Dense>(mem_cfg);
+    REQUIRE_NOTHROW(sys->initialize());
+
+    // The buffer was adopted, not merely tolerated. Enabling tracing for the RAM only reaches it if initialize()
+    // bound a recorder aimed at this buffer, so this distinguishes "did not throw" from "actually finished".
+    tbdev->trace(mem->id(), true);
+    auto *traceable = mem->capability<Traceable>();
+    REQUIRE(traceable != nullptr);
+    CHECK(traceable->traced());
+  }
+
+  SECTION("Two buffers separated by another device are still refused") {
+    auto sys = std::make_unique<System>(root_cfg);
+    // Non-adjacent on purpose: the old check reset its record of "seen one" on every non-buffer device, so a second
+    // buffer with anything in between slipped through.
+    sys->make_device<trace::BufferDevice>(
+        trace::BufferDevice::Configuration{Device::Configuration{.basename = "trace0"}, 4});
+    sys->make_device<Dense>(mem_cfg);
+    sys->make_device<trace::BufferDevice>(
+        trace::BufferDevice::Configuration{Device::Configuration{.basename = "trace1"}, 4});
+    CHECK_THROWS_AS(sys->initialize(), std::logic_error);
+  }
+}

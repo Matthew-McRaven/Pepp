@@ -42,9 +42,10 @@ void System::initialize() {
     if (dev != this) {
       dev->initialize(this);
       // Routing traces between multiple buffers is not supported, so enforce that at most one TB exists.
-      if (auto *as_buffer = dev->capability<trace::BufferDevice>(); found != nullptr)
-        throw std::logic_error("System: more than one trace buffer device");
-      else found = as_buffer;
+      if (auto *as_buffer = dev->capability<trace::BufferDevice>(); as_buffer != nullptr) {
+        if (found != nullptr) throw std::logic_error("System: more than one trace buffer device");
+        found = as_buffer;
+      }
     }
   }
   // With all devices initialized, perform another pass to create recorders for each traceable device.
