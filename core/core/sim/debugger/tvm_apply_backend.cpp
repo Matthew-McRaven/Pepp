@@ -67,7 +67,9 @@ void ApplyBackend::on_setmem(MachineState &state, const tvm::DecodedOp::SetMem &
       // "swap" temp buffer into data
       payload = tmp;
     }
-    target->write(op.offset, payload, op.access);
+    // Not op.access: see Backend::effective_access. The record states what the CPU did; undoing it must not restate
+    // it as something that happened again.
+    target->write(op.offset, payload, effective_access(op.access));
   });
   state.csrs.F = ok ? 0 : 1;
 }

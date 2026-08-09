@@ -77,6 +77,13 @@ public:
   virtual void on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &op) = 0;
 
 protected:
+  // The access a backend should actually perform. Forwards execution should us the operation as recorder.
+  // Backwards must use a buffer internal access, or we end up recording useless data.
+  Operation effective_access(const Operation &recorded) const {
+    if (is_forward()) return recorded;
+    return Operation(Operation::Type::BufferInternal, recorded.kind, recorded.initiator);
+  }
+
   tvm::TraceBuffer *_tb = nullptr;
   // Count the number of invcalls vs invrets. If negative, direction will be Backwards.
   // Must be signed because we use -1 to represent backwards.

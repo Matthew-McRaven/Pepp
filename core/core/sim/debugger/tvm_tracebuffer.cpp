@@ -64,7 +64,13 @@ TraceBuffer::~TraceBuffer() noexcept {
 
 TraceBuffer::Recording *TraceBuffer::find_recording(Device::ID initiator) {
   auto it = _recordings.find(initiator);
-  return it == _recordings.end() ? nullptr : &it->second;
+  // Closed recordings are not findable. Entries outlive their commit() so the scratch vectors keep their capacity,
+  // which means a bare map hit says "this initiator has recorded before", not "this initiator is recording now" --
+  // and every caller wants the second. Returning the stale one let a write that arrived outside any instruction
+  // append its payload to a finished record: the bytes were charged to the footprint and reserved in the ring, but no
+  // commit ever referenced them.
+  if (it == _recordings.end() || !it->second.active) return nullptr;
+  return &it->second;
 }
 
 pepp::bts::BufferChain &TraceBuffer::data_chain(Recording &rec) {

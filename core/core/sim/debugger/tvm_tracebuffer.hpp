@@ -109,7 +109,9 @@ public:
   // --- Recording ---
   // True between begin() and commit() for this initiator. Since UI accesses may trigger traces, we need to be able to
   bool is_recording(Device::ID initiator) const;
-  // Look up an in-progress recording. Returns nullptr when the initiator never called begin().
+  // Look up an initiator's *open* recording. Returns nullptr when it never called begin(), and equally when its last
+  // recording has already been committed or aborted -- scratch state outlives a recording, so a hit in the table is
+  // not evidence that one is in progress. Agrees with is_recording() by construction.
   Recording *find_recording(Device::ID initiator);
 
   // Begin a new recording for the given initiator, creating its scratch state on first use and retaining scratch space
