@@ -146,7 +146,6 @@ void Backend::on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op) {
   }
 
   // When we have a trace buffer, we can look up the successor/predecessor buffers rather than wrapping around.
-
   // Use signed 32-bit arithmetic so we can detect both overflow and underflow cleanly.
   int32_t new_lo = static_cast<int32_t>(regs.DP.lo) + static_cast<int16_t>(op.dp_incr);
   constexpr int32_t BUF_SIZE = static_cast<int32_t>(pepp::bts::Buffer::SIZE);

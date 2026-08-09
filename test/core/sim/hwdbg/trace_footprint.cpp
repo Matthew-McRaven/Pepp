@@ -223,11 +223,10 @@ TEST_CASE("A recorded loop reverses back to the state it started from",
   CHECK(after.sp == initial.sp);
 
   auto blaster = h.sys->make_trace_interpreter();
-  // Load-bearing, and not only for INVCALL arm selection. Each record states the access the CPU actually made, so
-  // that a trace can be analyzed; replaying that access verbatim would file the undo as new history and re-trigger
-  // any memory-mapped side effect it had. Going backwards is what tells SET* to substitute a BufferInternal access
-  // instead -- see Backend::effective_access. Drop this line and the footprint below doubles.
+  // Set up the blaster to replay the trace backwards.
   blaster->backend().set_direction(tvm::Direction::Backward);
+  // Must switch to BufferInternal, else our trace will grow unboundedly.
+  blaster->backend().set_access_mode(tvm::AccessMode::ReplaceWithInternal);
 
   // Reverse order, one program at a time. Each record XORs the bytes it changed back to what they were, so the
   // sequence only lands on `initial` if every record is replayed exactly once and in the right order -- a skipped or

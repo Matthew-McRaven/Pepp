@@ -10,6 +10,14 @@ class TraceBuffer;
 // must not reset it -- so it lives on the Backend as replay policy.
 enum class Direction : u8 { Forward, Backward };
 
+enum class AccessMode : u8 {
+  // When performing memory access, use the access field recorded in the trace. This is the default.
+  AsTraced,
+  // Do not use the access field recorded in the trace as written. Replace the Operation type with BufferInternal,
+  // keeping all other fields.
+  ReplaceWithInternal,
+};
+
 // Decoding instruction bytes is common to every backend, but doing something with decoded bytes varies by goal.
 // This split exists because I want to do at least two things with the same trace program
 //   - the interpreter, which applies the described writes to a System instance, which is used to implement step
@@ -50,6 +58,11 @@ public:
   // The direction the replay as a whole is running, ignoring suspension.
   Direction direction() const { return _floor < 0 ? Direction::Backward : Direction::Forward; }
 
+  // Allow replacing the recorded access type with BufferInternal, which allows the trace VM to avoid creating
+  // additional traces when "undo"ing
+  void set_access_mode(AccessMode m) { _access_mode = m; }
+  AccessMode access_mode() const { return _access_mode; }
+
   // Dispatch `decoded` to the matching handler. Not virtual: which handler an alternative belongs to is part of the
   // ISA, not part of what a backend gets to decide.
   void dispatch(MachineState &state, const tvm::DecodedOp::OpChoice &decoded);
@@ -77,14 +90,13 @@ public:
   virtual void on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &op) = 0;
 
 protected:
-  // The access a backend should actually perform. Forwards execution should us the operation as recorder.
-  // Backwards must use a buffer internal access, or we end up recording useless data.
   Operation effective_access(const Operation &recorded) const {
-    if (is_forward()) return recorded;
+    if (_access_mode == AccessMode::AsTraced) return recorded;
     return Operation(Operation::Type::BufferInternal, recorded.kind, recorded.initiator);
   }
 
   tvm::TraceBuffer *_tb = nullptr;
+  AccessMode _access_mode = AccessMode::AsTraced;
   // Count the number of invcalls vs invrets. If negative, direction will be Backwards.
   // Must be signed because we use -1 to represent backwards.
   // Floor is set via set_direction and unchanged from there. Depth is modified on invcall and invret.
