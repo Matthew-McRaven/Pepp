@@ -11,8 +11,8 @@ int main()
     t.start();
     Document doc{};
 
-    doc.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\aa.svg");
-    doc.saveAs("x:\\aa2.svg");
+    doc.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\aa_rect.svg");
+    doc.saveAs("x:\\aa_rect2.svg");
     t.finish();
 
     //Document doc2{"x:\\aa2.svg"};

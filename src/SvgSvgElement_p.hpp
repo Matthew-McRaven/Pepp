@@ -8,11 +8,9 @@
 // change without notice.
 
 //	Standard Library
-//#include <string>
 
 //	private classes
 #include "SvgElement_p.hpp"
-#include "SvgSvgElement.hpp"
 #include "utility_p.hpp"
 
 class SvgSvgElementImpl : public SvgElementImpl

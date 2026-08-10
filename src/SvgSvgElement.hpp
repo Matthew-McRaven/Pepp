@@ -25,5 +25,5 @@ public:
 
     //	User access functions
 
-    //virtual void toXml(std::list<std::string> &output) const override;
+    void toXml(std::list<std::string> &output) const override;
 };

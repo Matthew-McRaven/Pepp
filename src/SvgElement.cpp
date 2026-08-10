@@ -24,14 +24,10 @@ SvgElement::SvgElement(bool base)
         _impl = std::make_unique<SvgElementImpl>();
 }
 
-/*SvgElement(SvgElementImpl *derivedImpl)
-    : _impl(derivedImpl)
-{}*/
-
-SvgElement::SvgElement(const std::string &id, const std::string &value)
+SvgElement::SvgElement(const std::string &xmlName, const std::string &value)
     : SvgElement()
 {
-    _impl->id = id;
+    _impl->xmlName = xmlName;
     _impl->value = value;
 }
 
@@ -62,22 +58,23 @@ SvgElement &SvgElement::operator=(const SvgElement &rhs)
     return *this;
 }
 
-std::string SvgElement::id() const
+//  Generic Dom fields
+SvgElement::SvgType SvgElement::elementType() const
 {
-    return _impl->id;
+    return _impl->elementType;
 }
-void SvgElement::setId(std::string id)
+void SvgElement::setElementType(SvgElement::SvgType elementType)
 {
-    _impl->id = id;
+    _impl->elementType = elementType;
 }
 
-std::string SvgElement::className() const
+std::string SvgElement::xmlName() const
 {
-    return _impl->className;
+    return _impl->xmlName;
 }
-void SvgElement::setClassName(std::string className)
+void SvgElement::setXmlName(std::string xmlName)
 {
-    _impl->className = className;
+    _impl->xmlName = xmlName;
 }
 std::string SvgElement::value() const
 {
@@ -86,6 +83,24 @@ std::string SvgElement::value() const
 void SvgElement::setValue(std::string value)
 {
     _impl->value = value;
+}
+
+//  Svg specific fields
+std::string SvgElement::id() const
+{
+    return _impl->id;
+}
+void SvgElement::setId(std::string id)
+{
+    _impl->id = id;
+}
+std::string SvgElement::className() const
+{
+    return _impl->className;
+}
+void SvgElement::setClassName(std::string className)
+{
+    _impl->className = className;
 }
 std::string SvgElement::title() const
 {
@@ -112,20 +127,20 @@ void SvgElement::setDesc(std::string desc)
     _impl->desc = desc;
 }
 
-auto SvgElement::attributes() const
+const XmlAttributes &SvgElement::attributes() const
 {
     return _impl->attributes;
 }
-auto SvgElement::attributes()
+XmlAttributes &SvgElement::attributes()
 {
     return _impl->attributes;
 }
 
-auto SvgElement::children() const
+const std::list<SvgElement *> &SvgElement::children() const
 {
     return _impl->elements;
 }
-auto SvgElement::children()
+std::list<SvgElement *> &SvgElement::children()
 {
     return _impl->elements;
 }
@@ -138,10 +153,18 @@ void SvgElement::appendChild(SvgElement *child)
 void SvgElement::toXml(std::list<std::string> &output) const
 {
     //  Id currently has element name. Change when attributes are supported
-    //std::string buffer;
-    output.push_back("<" + _impl->id);
+    std::string buffer;
+    if (_impl->elementType == SvgElement::SvgType::DomComment) {
+        buffer = std::format("<!--{}-->", _impl->value);
+        output.push_back(std::move(buffer));
+        return;
+    }
+    output.push_back("<" + _impl->xmlName);
     if (attributes().size() > 0) {
-        // Add persistence logic here
+        //  Output remaining attributes
+        //  If all attributes become editable, this logic can
+        //  be removed.
+        output.push_back(_impl->attributes.write());
     }
 
     //  No child elements and no values, add end tag
@@ -151,9 +174,13 @@ void SvgElement::toXml(std::list<std::string> &output) const
     }
     output.push_back(">");
 
+    //	Save value, if present
+    if (!_impl->value.empty())
+        output.push_back(_impl->value);
+
     for (const auto *element : _impl->elements) {
         element->toXml(output);
     }
     //  When child elements, add closing element
-    output.push_back("</" + _impl->id + ">");
+    output.push_back("</" + _impl->xmlName + ">");
 }

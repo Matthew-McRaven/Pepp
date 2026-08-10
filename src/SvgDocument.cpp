@@ -103,10 +103,11 @@ bool Document::open(const std::string &fileName, bool readOnly)
     t1.finish();
     std::cout << "ifstream::read: " << t1.elapsedTime() << std::endl;
 
-    //  Parser will callback to this instance using method addFromParser().
-    //std::unique_ptr<SvgParser<DocumentImpl>> parser(new SvgParser<DocumentImpl>(*_impl));
+    //  Clear previous result
     _impl->elements.reset();
-    std::unique_ptr<SvgParser<XmlElement>> parser(new SvgParser<XmlElement>(_impl->elements));
+    //  Parser will callback to this instance using method addFromParser().
+    std::unique_ptr<SvgParser<DocumentImpl>> parser(new SvgParser<DocumentImpl>(*_impl));
+    //std::unique_ptr<SvgParser<XmlElement>> parser(new SvgParser<XmlElement>(_impl->elements));
 
     t1.start();
     parser->parse(_impl->contents);
@@ -151,30 +152,41 @@ void DocumentImpl::addFromParser(const std::string &key,
                                  const std::string &value,
                                  const XmlNode::Type type)
 {
-    static SvgElement *element{};
+    //static SvgElement *element{};
 
     switch (type) {
     case XmlNode::Type::RootElement:
         //  Root element is already created since it is required.
-        svgDocument.setId(key);
+        svgDocument.setXmlName(key);
         svgDocument.setValue(value);
         parents.push_back(&svgDocument);
         break;
     case XmlNode::Type::RootAttribute:
-        //std::cout << "Root Attribute:" << key << " value: " << value << std::endl;
+        parents.back()->attributes().add(key, value);
         break;
-    case XmlNode::Type::Element:
-        element = createElement(key);
+    case XmlNode::Type::Element: {
+        auto *element = createElement(key);
+        element->setValue(value);
         parents.back()->appendChild(element);
         parents.push_back(element);
-        //std::cout << "Start Element:" << key << " value: " << value << std::endl;
         break;
+    }
+    case XmlNode::Type::Comment: {
+        //  Comments have blank key. Comment is in value field
+        auto *element = createElement(key);
+        element->setValue(value);
+        element->setElementType(SvgElement::SvgType::DomComment);
+
+        //  A comment can never be a parent. End element is not called
+        //  Do not store value on parent stack.
+        parents.back()->appendChild(element);
+        break;
+    }
     case XmlNode::Type::Attribute:
-        //std::cout << "Attribute:" << key << " value: " << value << std::endl;
+        parents.back()->attributes().add(key, value);
         break;
     case XmlNode::Type::EndElement:
         parents.pop_back();
-        //std::cout << "End Element:" << key << std::endl;
         break;
     }
 }
@@ -187,13 +199,13 @@ void DocumentImpl::toXml()
     //  Clear previous result
     contents.clear();
 
-    const auto result = elements.write();
-    contents = result;
+    //const auto result = elements.write();
+    //contents = result;
     //  Create in memory rope of Xml structure
-    //svgDocument.toXml(rope);
+    svgDocument.toXml(rope);
 
     //  Clear previous result
-    /*contents.clear();
+    //contents.clear();
 
     //  Create single string in memory
     for (auto &fragment : rope) {
@@ -201,5 +213,5 @@ void DocumentImpl::toXml()
     }
 
     //  Free up memory
-    rope.clear();*/
+    rope.clear();
 }

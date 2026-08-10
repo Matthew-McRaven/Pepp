@@ -13,10 +13,9 @@
 #include <string>
 #include <utility>
 
-using pair = std::pair<std::string, std::string>;
-
 //	private classes
 #include "SvgElement.hpp"
+#include "XmlAttributes_p.hpp"
 
 class SvgElementImpl
 {
@@ -29,16 +28,18 @@ public:
     SvgElementImpl(SvgElementImpl &&) noexcept = default;
     SvgElementImpl &operator=(SvgElementImpl &&) noexcept = default;
 
+    //  Standard Xml Data
     SvgElement::SvgType elementType = SvgElement::SvgType::SvgUnknownElement;
+    std::string xmlName;
+    std::string value;
 
+    //  Svg specific data
     std::string id;
     std::string className;
-    std::string value;
-    std::string type;
     std::string title;
     std::string metadata;
     std::string desc;
     //SVGElement ownerSVGElement
-    std::list<pair> attributes;
     std::list<SvgElement *> elements;
+    XmlAttributes attributes;
 };

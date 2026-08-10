@@ -28,10 +28,10 @@ SvgSvgElement::SvgSvgElement()
     _impl->elementType = SvgElement::SvgType::SvgSvgElement;
 }
 
-SvgSvgElement::SvgSvgElement(const std::string &id, const std::string &value)
+SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &value)
     : SvgSvgElement()
 {
-    _impl->id = id;
+    _impl->xmlName = xmlName;
     _impl->value = value;
 }
 
@@ -63,17 +63,45 @@ SvgSvgElement &SvgSvgElement::operator=(const SvgSvgElement &rhs)
     return *this;
 }*/
 
-/*void SvgSvgElement::toXml(std::list<std::string> &output) const
+void SvgSvgElement::toXml(std::list<std::string> &output) const
 {
-    //  Id currently has element name. Change when attributes are supported
-    //std::string buffer;
-    output.push_back("<" + _impl->id);
-    if (_impl->attributes().size() > 0) {
-        // Add persistence logic here
+    using namespace std::string_literals;
+
+    //  Hard coded attribute. Spelling is case specific.
+    output.push_back("<svg");
+
+    //  Output changeable headers
+    auto temp = dynamic_cast<SvgSvgElementImpl *>(_impl.get());
+    bool customAttrData = false;
+
+    if (temp && !temp->viewBox.empty()) {
+        customAttrData = true;
+        std::string result(" viewBox=");
+        result.append(std::to_string(temp->viewBox.x()));
+        result.append(" ");
+        result.append(std::to_string(temp->viewBox.y()));
+        result.append(" ");
+        result.append(std::to_string(temp->viewBox.width()));
+        result.append(" ");
+        result.append(std::to_string(temp->viewBox.height()));
+        /*  Generated a compile error
+         * result.append(std::format("'{0} {1} {2} {3}'"s,
+                                  temp->viewBox.x(),
+                                  temp->viewBox.y(),
+                                  temp->viewBox.width(),
+                                  temp->viewBox.height()));*/
+        output.push_back(result);
+    }
+
+    if (_impl->attributes.size() > 0) {
+        //  Output remaining attributes
+        //  If all attributes become editable, this logic can
+        //  be removed.
+        output.push_back(_impl->attributes.write());
     }
 
     //  No child elements and no values, add end tag
-    if (_impl->elements.empty() && _impl->value.empty()) {
+    if (_impl->elements.empty() && _impl->value.empty() && !customAttrData) {
         output.push_back(" />");
         return;
     }
@@ -83,5 +111,5 @@ SvgSvgElement &SvgSvgElement::operator=(const SvgSvgElement &rhs)
         element->toXml(output);
     }
     //  When child elements, add closing element
-    output.push_back("</" + _impl->id + ">");
-}*/
+    output.push_back("</svg>");
+}

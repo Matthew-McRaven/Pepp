@@ -9,7 +9,7 @@
 #include "../3rdParty/rapidxml/rapidxml.hpp"
 
 namespace XmlNode {
-enum class Type { Element = 0, RootElement, RootAttribute, Attribute, EndElement };
+enum class Type { Element = 0, RootElement, RootAttribute, Attribute, EndElement, Comment };
 }
 
 //	Schema
@@ -50,7 +50,10 @@ public:
         _buffer.push_back('\0');
 
         //	Non destructive to original XML
-        _doc.parse<rapidxml::parse_fastest>(&_buffer[0]);
+        //  fastest skips comment, pi nodes, and declaration.
+        //  Add comments to parsing
+        //  parse_full
+        _doc.parse<rapidxml::parse_fastest | rapidxml::parse_comment_nodes>(&_buffer[0]);
 
         //	Go through XML starting with root node
         walk(_doc.first_node());
@@ -67,7 +70,7 @@ private:
 
         const rapidxml::node_type type = node->type();
         switch (type) {
-        case rapidxml::node_element:
+        case rapidxml::node_type::node_element:
 
             //	Convert from character array to string
             _key.clear();
@@ -112,7 +115,27 @@ private:
             _xml->addFromParser(key, "", XmlNode::Type::EndElement);
             break;
 
+        case rapidxml::node_type::node_comment:
+
+            //	Convert from character array to string
+            _key.clear();
+            _value.clear();
+
+            //  Key of comment is usually blank
+            key = _key.append(node->name(), node->name_size());
+
+            //	Get Comment
+            if (node->value_size()) {
+                _value.append(node->value(), node->value_size());
+            }
+
+            //	Signal callback that this is an element
+            _xml->addFromParser(_key, _value, XmlNode::Type::Comment);
+            break;
         default:
+            //	Convert from character array to string
+            _key.clear();
+            key = _key.append(node->name(), node->name_size());
             break;
         }
     }

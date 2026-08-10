@@ -6,17 +6,20 @@
 
 //	Forward declarations
 class SvgElementImpl;
+class XmlAttributes;
 
 class SvgElement
 {
 protected:
     std::unique_ptr<SvgElementImpl> _impl;
-    //SvgElement(SvgElementImpl *derivedImpl);
 
 public:
     enum class SvgType {
         SvgUnknownElement = 0,
-        SvgElementParent = 1,
+        //  Dom elements
+        DomComment,
+        //  SvgSpecific elements
+        SvgElementParent = 0x0100,
         SvgDescElement,
         SvgMetadataElement,
         SvgStyleElement,
@@ -41,12 +44,19 @@ public:
     SvgElement &operator=(SvgElement &&) noexcept;
 
     //	User access functions
+    //  Standard Xml
+    SvgElement::SvgType elementType() const;
+    void setElementType(SvgElement::SvgType elementType);
+    std::string xmlName() const;
+    void setXmlName(std::string xmlName);
+    std::string value() const;
+    void setValue(std::string value);
+
+    //  Svg specific functions
     std::string id() const;
     void setId(std::string id);
     std::string className() const;
     void setClassName(std::string className);
-    std::string value() const;
-    void setValue(std::string value);
     std::string title() const;
     void setTitle(std::string title);
     std::string metadata() const;
@@ -54,11 +64,11 @@ public:
     std::string desc() const;
     void setDesc(std::string desc);
 
-    auto attributes() const;
-    auto attributes();
+    const XmlAttributes &attributes() const;
+    XmlAttributes &attributes();
 
-    auto children() const;
-    auto children();
+    const std::list<SvgElement *> &children() const;
+    std::list<SvgElement *> &children();
     void appendChild(SvgElement *child);
 
     virtual void toXml(std::list<std::string> &output) const;

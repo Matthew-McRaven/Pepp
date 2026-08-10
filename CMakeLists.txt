@@ -23,6 +23,7 @@ add_executable(SvgDom
     src/SvgParser.hpp
     src/XmlElement_p.hpp
     src/XmlAttributes_p.hpp
+    src/utility_p.hpp
 )
 
 include(GNUInstallDirs)
