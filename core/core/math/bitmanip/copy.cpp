@@ -42,3 +42,10 @@ void bits::memcpy_xor(bits::span<uint8_t> dest, bits::span<const uint8_t> src1, 
   auto len = std::min(dest.size_bytes(), std::min(src1.size_bytes(), src2.size_bytes()));
   for (auto it = 0; it < len; it++) dest[it] = src1[it] ^ src2[it];
 }
+
+void bits::inplace_xor(bits::span<uint8_t> dest, bits::span<const uint8_t> other) {
+  const std::size_t len = std::min(dest.size_bytes(), other.size_bytes());
+  uint8_t *__restrict d = dest.data();
+  const uint8_t *__restrict o = other.data();
+  for (std::size_t i = 0; i < len; ++i) d[i] ^= o[i];
+}

@@ -15,6 +15,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <ranges>
 
 int main(int argc, char **argv) {

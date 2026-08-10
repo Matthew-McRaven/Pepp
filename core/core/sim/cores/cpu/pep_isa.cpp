@@ -1,16 +1,17 @@
 #include "pep_isa.hpp"
+#include <array>
 #include <nlohmann/json.hpp>
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/isa/pep9.hpp"
 #include "core/ds/string_compare.hpp"
 #include "core/sim/cores/cpu/pep_isa_instructions.hpp"
+#include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
 namespace {
 static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
-static const Operation rw_d{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
 
 static const std::unordered_map<std::string, PepISA3CPU::ISA, pepp::bts::ci_hash, pepp::bts::ci_eq> map_str_to_isa = {
     {"pep8", PepISA3CPU::ISA::Pep8}, {"pep9", PepISA3CPU::ISA::Pep9}, {"pep10", PepISA3CPU::ISA::Pep10}};
@@ -100,6 +101,36 @@ void PepISA3CPU::initialize(System *sys) {
   case ISA::Pep9: _opcodes = isa::Pep9::opcode_plane; break;
   case ISA::Pep10: _opcodes = isa::Pep10::opcode_plane; break;
   }
+
+  auto scan = sys->register_scan();
+  // Scanned register
+  using SR = RegisterScan::Register;
+  static const auto BE = bits::Order::BigEndian;
+  static const auto LE = bits::Order::LittleEndian;
+  static const auto RW = RegisterScan::Register::ReadWrite;
+  // Core registers
+  using R = isa::Pep10::Register;
+  const auto rid = _regbank->id();
+  static const auto r2i = [](const R &r) -> u16 { return static_cast<u16>(r) * 2; };
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::A), .name = "A"});
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::X), .name = "X"});
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::PC), .name = "PC"});
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::SP), .name = "SP"});
+  scan->expose(SR{.order = BE, .byte_width = 1, .access = RW, .target = rid, .offset = r2i(R::IS) + 1, .name = "IS"});
+  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::OS), .name = "OS"});
+  // CSRs / Flags
+  using C = isa::Pep10::CSR;
+  const auto cid = _csrs->id();
+  using F = SR::Field;
+  // Should really be 4 separate fields, but I want to test that my fields work as expected.
+  // When moving to 4 fields, no need for bit offsets.
+  // Bit 31 is MSB, 0 is LSB. Considering these are 4 consecutive bytes, the offsets make sense.
+  auto n = F{.access = RW, .bit_offset = 24, .bit_width = 1, .name = "N"};
+  auto z = F{.access = RW, .bit_offset = 16, .bit_width = 1, .name = "Z"};
+  auto v = F{.access = RW, .bit_offset = 8, .bit_width = 1, .name = "V"};
+  auto c = F{.access = RW, .bit_offset = 0, .bit_width = 1, .name = "C"};
+  scan->expose(SR{
+      .order = BE, .byte_width = 4, .access = RW, .target = cid, .offset = 0, .name = "NZVC", .fields = {n, z, v, c}});
 }
 
 const Device::Configuration &PepISA3CPU::config() const { return _config; }
@@ -125,39 +156,42 @@ std::unique_ptr<DeviceSerializer> PepISA3CPU::make_serializer() {
 }
 
 void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
-  // Fetch & increment pc
-  auto pc = read_register(isa::Pep10::Register::PC);
-  u8 is = _target->read<u8, false>(pc, rw_d).second;
-  pc += 1;
-  write_register(isa::Pep10::Register::PC, pc);
+  // Create a single record for the entire instruction
+  trace::Recorder::Instruction record(_trace);
+  // TODO: when function signature changes, use that tick offset instead of this placeholder.
+  record.tick(1);
+
+  // Take PC out of the register bank for the duration of this instruction. Everything below moves it through _pc,
+  // and the single store after handle() is the only version the trace ever sees. See read_pc().
+  _pc = read_register_uncached(isa::Pep10::Register::PC);
+  // TODO: Should probably be an instruction access?
+  u8 is = _target->read<u8, false>(_pc, op_data()).second;
+  _pc += 1;
   write_register(isa::Pep10::Register::IS, is);
   handle(_opcodes[is]);
+  // Defer PC writeback until end of instruction to avoid ~3 updates on a BR (1 for to fetch IS, 1 to fetch OS, 1 for
+  // the branch).
+  write_register_uncached(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
+  record.commit();
 }
 
 void PepISA3CPU::set_clock_source(const ClockSource *src) { _clk = src; }
 
 const ClockSource *PepISA3CPU::clock_source() const { return _clk; }
 
-void PepISA3CPU::set_buffer(Buffer *tb) {
-  _tb = tb;
-  _regbank->set_buffer(tb);
-  _csrs->set_buffer(tb);
-}
-
-const Buffer *PepISA3CPU::buffer() const { return _tb; }
+void PepISA3CPU::set_recorder(const trace::Recorder &recorder) { _trace = recorder; }
 
 bool PepISA3CPU::can_generate_traces() const { return true; }
 
-void PepISA3CPU::trace(bool enabled) {
-  if (_tb) {
-    _tb->trace(id(), enabled);
-    _regbank->trace(enabled);
-    _csrs->trace(enabled);
-  }
-}
+bool PepISA3CPU::traced() const { return _trace.traced(); }
 
-bool PepISA3CPU::traced() const { return _tb ? _tb->traced(id()) : false; }
+void PepISA3CPU::trace(bool enabled) {
+  // The CPU is not itself a Target and it holds no state to record, so delegate to the child devices.
+  _trace.set_traced(enabled);
+  if (_regbank) _regbank->trace(enabled);
+  if (_csrs) _csrs->trace(enabled);
+}
 
 void PepISA3CPU::increment_call_depth() {
   // TODO:
@@ -167,21 +201,24 @@ void PepISA3CPU::decrement_call_depth() {
   // TODO:
 }
 
+// The CSR bank stores one flag per byte, in CSR enum order: N at 0, Z at 1, V at 2, C at 3. Both of these move all
+// four in a single access rather than one per flag. Perform as a single batched read/write to reduce the # of traces
+// emitted for this operation.
 u8 PepISA3CPU::read_packed_csr() {
-  u8 ret = 0;
-  ret |= read_csr(isa::Pep10::CSR::N) ? 1 << 3 : 0;
-  ret |= read_csr(isa::Pep10::CSR::Z) ? 1 << 2 : 0;
-  ret |= read_csr(isa::Pep10::CSR::V) ? 1 << 1 : 0;
-  ret |= read_csr(isa::Pep10::CSR::C) ? 1 << 0 : 0;
-  return ret;
+  std::array<u8, 4> nzvc{};
+  ((Target *)_csrs)->read(0, {nzvc.data(), nzvc.size()}, op_data());
+  return static_cast<u8>((nzvc[0] ? 1 << 3 : 0) | (nzvc[1] ? 1 << 2 : 0) | (nzvc[2] ? 1 << 1 : 0) |
+                         (nzvc[3] ? 1 << 0 : 0));
 }
 
 void PepISA3CPU::write_packed_csr(u8 value) {
-  const auto size = size_inclusive(_csrs->span());
-  write_csr(isa::Pep10::CSR::N, (value >> 3) & 1);
-  write_csr(isa::Pep10::CSR::Z, (value >> 2) & 1);
-  write_csr(isa::Pep10::CSR::V, (value >> 1) & 1);
-  write_csr(isa::Pep10::CSR::C, (value >> 0) & 1);
+  const std::array<u8, 4> nzvc{
+      static_cast<u8>((value >> 3) & 1),
+      static_cast<u8>((value >> 2) & 1),
+      static_cast<u8>((value >> 1) & 1),
+      static_cast<u8>((value >> 0) & 1),
+  };
+  ((Target *)_csrs)->write(0, {nzvc.data(), nzvc.size()}, op_data());
 }
 
 void PepISA3CPU::handle(Op opcode) {

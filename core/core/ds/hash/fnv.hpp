@@ -17,6 +17,7 @@ constexpr std::size_t FNV_prime() {
 }
 } // namespace detail
 u64 fnv_1a(bits::span<const char>) noexcept;
+u64 fnv_1a(bits::span<const u8>) noexcept;
 u64 fnv_1a(std::string_view) noexcept;
 template <std::integral I> u64 fnv_1a(I value) {
   return fnv_1a(bits::span<const char>{reinterpret_cast<const char *>(&value), sizeof(I)});

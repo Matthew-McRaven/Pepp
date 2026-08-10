@@ -2,10 +2,6 @@
 #include "core/sim/cores/cpu/pep_isa.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 
-namespace {
-static const Operation rw_d{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
-} // namespace
-
 u8 pack_csr(bool n, bool z, bool v, bool c) {
   u8 nzvc = 0;
   if (n) nzvc |= 1 << 3;
@@ -25,22 +21,22 @@ std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc) {
 
 u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
   // Fetch current PC
-  u16 pc = self->read_register(isa::Pep10::Register::PC);
+  u16 pc = self->read_pc();
   // Increment PC by 2 to point to next instruction.
-  self->write_register(isa::Pep10::Register::PC, pc + 2);
+  self->write_pc(pc + 2);
   auto target = self->target();
   // Read value at mem[PC] into OS register.
-  u16 opr = target->read<u16, bits::host_is_le>(pc, rw_d).second;
+  u16 opr = target->read<u16, bits::host_is_le>(pc, self->op_data()).second;
   self->write_register(isa::Pep10::Register::OS, opr);
 
   switch (addr) {
   case isa::SharedAddrMode::I: return pc;
-  case isa::SharedAddrMode::N: opr = target->read<u16, bits::host_is_le>(opr, rw_d).second; [[fallthrough]];
+  case isa::SharedAddrMode::N: opr = target->read<u16, bits::host_is_le>(opr, self->op_data()).second; [[fallthrough]];
   case isa::SharedAddrMode::D: return opr;
 
   case isa::SharedAddrMode::SF:
     opr = self->read_register(isa::Pep10::Register::SP) + opr;
-    return self->target()->read<u16, bits::host_is_le>(opr, rw_d).second;
+    return self->target()->read<u16, bits::host_is_le>(opr, self->op_data()).second;
 
   case isa::SharedAddrMode::S: return self->read_register(isa::Pep10::Register::SP) + opr;
   case isa::SharedAddrMode::X: return self->read_register(isa::Pep10::Register::X) + opr;
@@ -48,7 +44,7 @@ u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
     return self->read_register(isa::Pep10::Register::X) + self->read_register(isa::Pep10::Register::SP) + opr;
   case isa::SharedAddrMode::SFX:
     opr = self->read_register(isa::Pep10::Register::SP) + opr;
-    return self->read_register(isa::Pep10::Register::X) + self->target()->read<u16, bits::host_is_le>(opr, rw_d).second;
+    return self->read_register(isa::Pep10::Register::X) + self->target()->read<u16, bits::host_is_le>(opr, self->op_data()).second;
   }
   throw std::logic_error("Invalid addressing mode for decode_op_addr");
 }
@@ -58,8 +54,8 @@ void unimpl_handler(PepISA3CPU *) { throw std::logic_error("Unimplemented instru
 void handle_ret(PepISA3CPU *self) {
   self->decrement_call_depth();
   u16 sp = self->read_register(isa::Pep10::Register::SP);
-  auto addr = self->target()->read<u16, bits::host_is_le>(sp, rw_d).second;
-  self->write_register(isa::Pep10::Register::PC, addr);
+  auto addr = self->target()->read<u16, bits::host_is_le>(sp, self->op_data()).second;
+  self->write_pc(addr);
   self->write_register(isa::Pep10::Register::SP, sp + 2);
   // TODO: notify debugger of ret @ PC
 }
@@ -77,32 +73,36 @@ void handle_sret(PepISA3CPU *self) {
   auto regs = self->registers();
   u16 sp = self->read_register(isa::Pep10::Register::SP);
   u16 tmp = size_inclusive(regs->span());
-  regs->read(0, {ctx, tmp}, rw_d);
+  regs->read(0, {ctx, tmp}, self->op_data());
 
   // Reload NZVC
-  auto csrs = memory->read<u8>(sp, rw_d).second;
+  auto csrs = memory->read<u8>(sp, self->op_data()).second;
   self->write_packed_csr(csrs);
 
   // Load A into ctx. No need for byteswap, _memory is little endian as are
   // regs.
-  memory->read(sp + 1, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::A), 2}, rw_d);
+  memory->read(sp + 1, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::A), 2}, self->op_data());
 
   // Load X into ctx
-  memory->read(sp + 3, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::X), 2}, rw_d);
+  memory->read(sp + 3, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::X), 2}, self->op_data());
 
   // Load PC into ctx
-  memory->read(sp + 5, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::PC), 2}, rw_d);
+  memory->read(sp + 5, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::PC), 2}, self->op_data());
 
   // Load SP into ctx
-  memory->read(sp + 7, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::SP), 2}, rw_d);
+  memory->read(sp + 7, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::SP), 2}, self->op_data());
 
   // Bulk write-back regs, saving a number of bits on trace metadata.
-  regs->write(0, {ctx, registersBytes}, rw_d);
+  regs->write(0, {ctx, registersBytes}, self->op_data());
+  // That write covered PC, restoring it from the stack. Hand it to the working copy, or clock_tick's single store
+  // would put the pre-instruction value straight back over it. Read it back through the bank rather than picking it
+  // out of ctx so this stays independent of the context block's layout and byte order.
+  self->write_pc(self->read_register(isa::Pep10::Register::PC));
 
   tmp = sp + 12;
   // Using "host"'s variables, so byte swap if necessary.
   if (bits::host_is_le) tmp = bits::byteswap(tmp);
-  memory->write(static_cast<u16>(::isa::Pep10::MemoryVectors::SystemStackPtr), {reinterpret_cast<u8 *>(&tmp), 2}, rw_d);
+  memory->write(static_cast<u16>(::isa::Pep10::MemoryVectors::SystemStackPtr), {reinterpret_cast<u8 *>(&tmp), 2}, self->op_data());
 
   self->decrement_call_depth();
   if (false) {
@@ -217,7 +217,7 @@ void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg) {
 
 void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr) {
   const auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
-  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   bool taken;
   switch (cond) {
   case BranchCondition::UNCONDITIONAL: taken = true; break;
@@ -230,29 +230,29 @@ void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr) {
   case BranchCondition::V: taken = v; break;
   case BranchCondition::C: taken = c; break;
   }
-  if (taken) self->write_register(isa::Pep10::Register::PC, op_spec);
+  if (taken) self->write_pc(op_spec);
 }
 
 void handle_call(PepISA3CPU *self, Op op, u16 op_addr) {
-  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
-  const u16 pc = self->read_register(isa::Pep10::Register::PC);
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
+  const u16 pc = self->read_pc();
   u16 sp = self->read_register(isa::Pep10::Register::SP);
-  self->target()->write<u16, bits::host_is_le>(sp -= 2, pc, rw_d);
+  self->target()->write<u16, bits::host_is_le>(sp -= 2, pc, self->op_data());
   self->write_register(isa::Pep10::Register::SP, sp);
-  self->write_register(isa::Pep10::Register::PC, op_spec);
+  self->write_pc(op_spec);
   self->increment_call_depth();
   // TODO: if (_dbg) _dbg->notifyCall(pc - 3, sp);
 }
 
 void handle_addsp(PepISA3CPU *self, Op op, u16 op_addr) {
-  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   const auto sp = self->read_register(isa::Pep10::Register::SP) + op_spec;
   self->write_register(isa::Pep10::Register::SP, sp);
   // TODO: if (_dbg) _dbg->notifyAddSP(pc - 3, sp);
 }
 
 void handle_subsp(PepISA3CPU *self, Op op, u16 op_addr) {
-  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   const auto sp = self->read_register(isa::Pep10::Register::SP) - op_spec;
   self->write_register(isa::Pep10::Register::SP, sp);
   // TODO: if (_dbg) _dbg->notifySubSP(pc - 3, sp);
@@ -260,7 +260,7 @@ void handle_subsp(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_addr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   const u16 src = self->read_register(reg);
   const u16 tmp = src + op_spec;
   // Is negative if high order bit is 1.
@@ -280,7 +280,7 @@ void handle_addr(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_subr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 operand = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
+  const u16 operand = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   const u16 src = self->read_register(reg);
   const u16 tmp = src + ~operand + 1;
   // Is negative if high order bit is 1.
@@ -300,7 +300,7 @@ void handle_subr(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   const u16 src = self->read_register(reg);
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
   u16 tmp;
@@ -319,7 +319,7 @@ void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop, u16 op_addr) {
 
 void handle_cpwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 operand = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
+  const u16 operand = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   const u16 src = self->read_register(reg);
   const u16 neg = ~operand + 1;
   const u16 tmp = src + neg;
@@ -342,7 +342,7 @@ void handle_cpwr(PepISA3CPU *self, Op op, u16 op_addr) {
 void handle_cpbr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   // op_addr is address for 2-byte operands, so we need an offset of 1.
-  const u8 op_spec = self->target()->read<u8>(op_addr + 1, rw_d).second;
+  const u8 op_spec = self->target()->read<u8>(op_addr + 1, self->op_data()).second;
   const auto src = self->read_register(reg);
   // The result is the decoded operand specifier plus A/X. mask down to a byte.
   u16 tmp = (src + ~op_spec + 1) & 0xff;
@@ -356,7 +356,7 @@ void handle_cpbr(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_ldwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
-  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, rw_d).second;
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
   // Is negative if high order bit is 1.
   n = op_spec & 0x8000;
@@ -369,7 +369,7 @@ void handle_ldwr(PepISA3CPU *self, Op op, u16 op_addr) {
 void handle_ldbr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   // op_addr is address for 2-byte operands, so we need an offset of 1.
-  const u8 op_spec = self->target()->read<u8>(op_addr + 1, rw_d).second;
+  const u8 op_spec = self->target()->read<u8>(op_addr + 1, self->op_data()).second;
   auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
   // LDBr always clears n.
   n = 0;
@@ -382,11 +382,11 @@ void handle_ldbr(PepISA3CPU *self, Op op, u16 op_addr) {
 void handle_stwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   u16 src = self->read_register(reg);
-  self->target()->write<u16, bits::host_is_le>(op_addr, src, rw_d);
+  self->target()->write<u16, bits::host_is_le>(op_addr, src, self->op_data());
 }
 
 void handle_stbr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   const u8 src = self->read_register(reg);
-  self->target()->write<u8>(op_addr, src, rw_d);
+  self->target()->write<u8>(op_addr, src, self->op_data());
 }

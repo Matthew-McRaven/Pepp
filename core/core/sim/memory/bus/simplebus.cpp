@@ -143,21 +143,15 @@ std::unique_ptr<DeviceSerializer> SimpleBus::make_serializer() {
   return std::make_unique<DeviceSerializer>(std::move(s));
 }
 
-void SimpleBus::set_buffer(Buffer *tb) {
-  _tb = tb;
-  for (auto dev : _devices)
-    if (auto as_source = dynamic_cast<Traceable *>(dev.second); as_source != nullptr) as_source->set_buffer(tb);
-}
-
-const Buffer *SimpleBus::buffer() const { return _tb; }
+// Don't pass this to children; they need their own device IDs.
+// System will set all recorders as expected.
+void SimpleBus::set_recorder(const trace::Recorder &recorder) { _trace = recorder; }
 
 bool SimpleBus::can_generate_traces() const { return true; }
 
-void SimpleBus::trace(bool enabled) {
-  if (_tb) _tb->trace(id(), enabled);
-}
+void SimpleBus::trace(bool enabled) { _trace.set_traced(enabled); }
 
-bool SimpleBus::traced() const { return _tb != nullptr && _tb->traced(id()); }
+bool SimpleBus::traced() const { return _trace.traced(); }
 
 AddressSpan SimpleBus::span() const { return _config.span; }
 

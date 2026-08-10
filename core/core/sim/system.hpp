@@ -20,6 +20,7 @@
 #include <memory>
 #include <vector>
 #include "core/sim/api/device.hpp"
+#include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/devicetree.hpp"
 
 /*struct Scheduler {
@@ -28,9 +29,13 @@
   virtual void reschedule(device::ID device, tick::Type startingOn) = 0;
 };*/
 
-namespace trace {
-class Buffer;
+namespace pepp::bts {
+class BufferManager;
 }
+namespace tvm {
+class Interpreter;
+class TraceBuffer;
+} // namespace tvm
 
 struct DeferredDevice {
   // Do not capture pointer to device in case the device moves during construction.
@@ -74,7 +79,10 @@ public:
   Device::ID next_ID();
   Device::IDGenerator gen_next_ID();
 
-  void set_buffer(trace::Buffer *buffer);
+  // Hand every Traceable in the device tree a Recorder bound to its own ID. Devices start untraced -- this only
+  // establishes where their trace would go, not that any is collected; use TraceBuffer::trace() to switch a device on.
+  // Safe to call again to re-point at a different buffer.
+  void bind_recorders(tvm::TraceBuffer &tb);
 
   // Create a device that is a child of the root (this system)
   template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
@@ -107,13 +115,22 @@ public:
   DeviceTree *root() { return _root.get(); }
   const DeviceTree *root() const { return _root.get(); }
 
+  RegisterScan *register_scan();
+  const RegisterScan *register_scan() const;
+
+  std::unique_ptr<tvm::Interpreter> make_trace_interpreter();
+  std::shared_ptr<pepp::bts::BufferManager> buffer_manager();
+
 private:
   Configuration _config{{.basename{"/"}, .fullname{"/"}}};
   Device::ID _next_ID = Device::ID(1);
   Device::IDGenerator _gen_next_ID = [] { return Device::ID(0); };
   static inline Device::Configuration _root_desc{.basename{"/"}, .fullname{"/"}};
   std::unique_ptr<DeviceTree> _root = nullptr;
+  std::unique_ptr<RegisterScan> _hwdbg{};
   std::map<Device::ID, DeviceTree *> _id_to_device;
+  // A class which owns various debug & trace buffers.
+  std::shared_ptr<pepp::bts::BufferManager> _buffer_manager;
   // Prevent infinite recursion on make_device while doing deferred initialization.
   // The top level call to make_device sets this flag to true, and that top level call will pull all of the work out of
   // the ctor list. While ctors may themselves enqueue more deferred ctors, they will be processed within the top-level

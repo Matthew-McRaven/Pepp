@@ -19,6 +19,7 @@
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
+#include "core/sim/debugger/trace_recorder.hpp"
 
 // D type allows sticking custom data in a given node.
 // As a class invariant, we ensure that no Nodes exist with overlapping from intervals.
@@ -152,8 +153,7 @@ public:
   static std::unique_ptr<DeviceSerializer> make_serializer();
 
   // Traceable interface
-  void set_buffer(Buffer *tb) override;
-  const Buffer *buffer() const override;
+  void set_recorder(const trace::Recorder &recorder) override;
   bool can_generate_traces() const override;
   void trace(bool enabled) override;
   bool traced() const override;
@@ -171,7 +171,7 @@ private:
   Configuration _config;
   AddressTranslationMap<Configuration::Mapping::Access> _addrs;
   std::unordered_map<Device::ID, Target *> _devices;
-  Buffer *_tb = nullptr;
+  trace::Recorder _trace;
 };
 
 consteval void is_bitflags(SimpleBus::Configuration::Mapping::Access);

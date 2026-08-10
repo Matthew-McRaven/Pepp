@@ -27,6 +27,7 @@
 // does require pullin in json header. See systemparser.hpp for details.
 struct DeviceSerializer;
 class System;
+
 std::string child_name(std::string_view parent_fullname, std::string_view child_basename);
 struct Device {
   using ID = pepp::OpaqueHandle<struct DeviceID, u8>;
@@ -66,6 +67,7 @@ struct Device {
   virtual ~Device() = default;
   // Some devices need further initialization after the full device tree has been constructed.
   // Classes which require this 2nd stage of init should override this method.
+  // As part of this initialize step, you should expose all registers to the Systems RegisterScan.
   virtual void initialize(System *) {}
   virtual const Configuration &config() const = 0;
   virtual const Device::ID id() const = 0;

@@ -6,6 +6,7 @@
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
+#include "core/sim/debugger/trace_recorder.hpp"
 class Dense;
 
 /*
@@ -55,17 +56,20 @@ public:
   const ClockSource *clock_source() const override;
 
   // Traceable interface
-  void set_buffer(Buffer *tb) override;
-  const Buffer *buffer() const override;
+  void set_recorder(const trace::Recorder &recorder) override;
   bool can_generate_traces() const override;
-  void trace(bool enabled) override;
   bool traced() const override;
+  void trace(bool enabled) override;
 
   void increment_call_depth();
   void decrement_call_depth();
 
+  // Both redirect PC accesses to _pc.
   template <typename RegisterType> u16 read_register(RegisterType reg);
   template <typename RegisterType> void write_register(RegisterType reg, u16 value);
+  // Same as above, but does not redirect PC access.
+  template <typename RegisterType> u16 read_register_uncached(RegisterType reg);
+  template <typename RegisterType> void write_register_uncached(RegisterType reg, u16 value);
   template <typename CSRType> bool read_csr(CSRType csr);
   template <typename CSRType> void write_csr(CSRType csr, bool value);
   u8 read_packed_csr();
@@ -74,9 +78,20 @@ public:
   Dense *registers() const { return _regbank; }
   Dense *csrs() const { return _csrs; }
 
+  // No longer static const because it embeds this instance's id.
+  Operation op_data() const { return Operation(Operation::Type::Standard, Operation::Kind::data, id()); }
+
+  // While an instruction is in flight, this contains the active PC.
+  // At the end of an instruction, it will be written back with the updated value.
+  u16 read_pc() const { return _pc; }
+  void write_pc(u16 value) { _pc = value; }
+
 private:
+  // Only meaningful between the start and end of clock_tick. See read_pc().
+  // Coalescing these reads saves 1-2 register writes on most instructions.
+  u16 _pc = 0;
   Configuration _config;
-  Buffer *_tb = nullptr;
+  trace::Recorder _trace;
   Dense *_regbank = nullptr, *_csrs = nullptr;
   Target *_target = nullptr;
   isa::OpcodePlane _opcodes;
@@ -86,21 +101,27 @@ private:
 };
 
 template <typename RegisterType> inline void PepISA3CPU::write_register(RegisterType reg, u16 value) {
-  static const Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
-  ((Target *)_regbank)->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op);
+  if (reg == RegisterType::PC) _pc = value;
+  else write_register_uncached(reg, value);
+}
+
+template <typename RegisterType> inline void PepISA3CPU::write_register_uncached(RegisterType reg, u16 value) {
+  ((Target *)_regbank)->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op_data());
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterType reg) {
-  static const Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
-  return ((Target *)_regbank)->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op).second;
+  if (reg == RegisterType::PC) return _pc;
+  else return read_register_uncached(reg);
+}
+
+template <typename RegisterType> inline u16 PepISA3CPU::read_register_uncached(RegisterType reg) {
+  return ((Target *)_regbank)->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op_data()).second;
 }
 
 template <typename CSRType> inline void PepISA3CPU::write_csr(CSRType csr, bool value) {
-  const static Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
-  ((Target *)_csrs)->write<u8, bits::host_is_le>(static_cast<u8>(csr), (u8)value, op);
+  ((Target *)_csrs)->write<u8, bits::host_is_le>(static_cast<u8>(csr), (u8)value, op_data());
 }
 
 template <typename CSRType> inline bool PepISA3CPU::read_csr(CSRType csr) {
-  const static Operation op{.type = Operation::Type::Standard, .kind = Operation::Kind::data};
-  return ((Target *)_csrs)->read<u8, bits::host_is_le>(static_cast<u8>(csr), op).second != 0;
+  return ((Target *)_csrs)->read<u8, bits::host_is_le>(static_cast<u8>(csr), op_data()).second != 0;
 }

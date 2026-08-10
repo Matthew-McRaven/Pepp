@@ -33,7 +33,8 @@ template <typename T, std::size_t size = std::dynamic_extent> void memclr(bits::
 }
 
 template <std::integral T, std::integral U> T memcpy_endian(U src) {
-  return memcpy_endian<T>({&src, sizeof(U)}, bits::hostOrder());
+  // Widening to a larger T is the job of the overload below, which 0-pads a short source.
+  return memcpy_endian<T>(span<const uint8_t>{reinterpret_cast<const uint8_t *>(&src), sizeof(U)}, bits::hostOrder());
 }
 
 // When src is longer than dest, truncates high-order bytes (like casting
@@ -50,5 +51,7 @@ template <std::integral T> void memcpy_endian(span<uint8_t> dest, Order destOrde
   memcpy_endian(dest, destOrder, span{reinterpret_cast<const uint8_t *>(&src), sizeof(T)}, bits::hostOrder());
 }
 
+// Thou shalt not overlap bits in dest with bits in other.
+void inplace_xor(bits::span<uint8_t> dest, bits::span<const uint8_t> other);
 void memcpy_xor(bits::span<uint8_t> dest, bits::span<const uint8_t> src1, bits::span<const uint8_t> src2);
 } // namespace bits

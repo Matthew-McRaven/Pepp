@@ -74,17 +74,13 @@ std::unique_ptr<DeviceSerializer> Sparse::make_serializer() {
   return std::make_unique<DeviceSerializer>(std::move(s));
 }
 
-void Sparse::set_buffer(Buffer *tb) { _tb = tb; }
-
-const Buffer *Sparse::buffer() const { return _tb; }
+void Sparse::set_recorder(const trace::Recorder &recorder) { _trace = recorder; }
 
 bool Sparse::can_generate_traces() const { return true; }
 
-void Sparse::trace(bool enabled) {
-  if (_tb) _tb->trace(id(), enabled);
-}
+void Sparse::trace(bool enabled) { _trace.set_traced(enabled); }
 
-bool Sparse::traced() const { return _tb ? _tb->traced(id()) : false; }
+bool Sparse::traced() const { return _trace.traced(); }
 
 AddressSpan Sparse::span() const { return _config.span; }
 
@@ -95,11 +91,7 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
   const auto max_addr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
 
-  // TODO: emit a pure read to TB.
-  // Ignore reads from UI, since this device only issues pure reads.
-  // Ignore reads from buffer internal operations.
-  if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) && _tb)
-    ;
+  // TODO: record the read once the ISA can encode one -- see the matching note in Dense::read.
   const auto offset = address - span.lower();
   _pool.read(offset, dest);
   return {};
@@ -112,12 +104,12 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
   const auto max_addr = (address + std::max<Address>(0, src.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
 
-  // Record changes, even if the come from UI. Otherwise, step back fails.
-  // Ignore reads from UI, since this device only issues pure reads.
-  // Ignore reads from buffer internal operations.
-  if (op.type != Operation::Type::BufferInternal && _tb)
-    ;
   const auto offset = address - span.lower();
+  // Unlike dense, we don't have a convenient span of the previous bytes, because we might not be accessing a flat
+  // array. Instead, we use the "filler" form, which will copy the bytes out of the pool into the trace buffer before we
+  // ^ in place. The callback is only executed IF the write is recorded. We still pay the price of alloc'ing a lambda,
+  // but we don't pay the cost of reading the data.
+  _trace.emit_write(op, address, src, [&](bits::span<u8> prior) { _pool.read(offset, prior); });
   _pool.write(offset, src);
   return {};
 }

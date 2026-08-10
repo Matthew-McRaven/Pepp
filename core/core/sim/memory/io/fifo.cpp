@@ -160,17 +160,13 @@ std::unique_ptr<DeviceSerializer> FIFORegister::make_serializer() {
   return std::make_unique<DeviceSerializer>(std::move(s));
 }
 
-void FIFORegister::set_buffer(Buffer *tb) { _tb = tb; }
-
-const Buffer *FIFORegister::buffer() const { return _tb; }
+void FIFORegister::set_recorder(const trace::Recorder &recorder) { _trace = recorder; }
 
 bool FIFORegister::can_generate_traces() const { return true; }
 
-void FIFORegister::trace(bool enabled) {
-  if (_tb) _tb->trace(id(), enabled);
-}
+void FIFORegister::trace(bool enabled) { _trace.set_traced(enabled); }
 
-bool FIFORegister::traced() const { return _tb ? _tb->traced(id()) : false; }
+bool FIFORegister::traced() const { return _trace.traced(); }
 
 AddressSpan FIFORegister::span() const { return _config.span; }
 
@@ -211,9 +207,7 @@ Target::Result FIFORegister::read(Address address, bits::span<u8> dest, Operatio
     } else src = _input_it.value_or(_config.fill);
 
     if (advances_input) {
-      // TODO: emit an impure read to TB.
-      if (_tb)
-        ;
+      // TODO: emit a trace which indicates that we consumed a value from the input queue, which we must emit by-value.
       if (!(_input_it.at_end())) ++_input_it;
     }
   } else if (any(_config.direction & FIFORegister::Direction::Output)) {
@@ -236,9 +230,7 @@ Target::Result FIFORegister::write(Address address, bits::span<const u8> src, Op
   const bool advances_output = !(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal);
   // This is an output reg. Only enqueue value if the operation is not part of an app-internal update.
   if (advances_output && any(_config.direction & FIFORegister::Direction::Output)) {
-    // TODO: emit write to TB.
-    if (_tb)
-      ;
+    // TODO: emit a trace which indicates that we produced a value to the output queue.
     _output.push(src.front());
   }
   // Ignore writes to non-output registers.
