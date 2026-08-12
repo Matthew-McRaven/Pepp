@@ -105,11 +105,7 @@ void SvgSvgElement::toXml(std::list<std::string> &output) const
 
     if (actualData && !actualData->viewBox.empty()) {
         customAttrData = true;
-        std::string buffer = std::format(" viewBox=\"{} {} {} {}\"",
-                                         actualData->viewBox.x(),
-                                         actualData->viewBox.y(),
-                                         actualData->viewBox.width(),
-                                         actualData->viewBox.height());
+        std::string buffer = std::format(" viewBox=\"{}\"", actualData->viewBox.toString());
         output.push_back(std::move(buffer));
     }
 

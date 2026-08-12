@@ -165,33 +165,7 @@ void DocumentImpl::addFromParser(const std::string &key,
     case XmlNode::Type::RootAttribute:
         if (key == "viewBox"s) {
             auto derivedThis = dynamic_cast<SvgSvgElement *>(parents.back());
-
-            auto view = value | std::views::split(' ');
-            int i = 0;
-            for (auto &&chunk : view) {
-                // Convert sub-range to a temporary string to use std::stoi
-                std::string token(chunk.begin(), chunk.end());
-                double d = std::stoll(token);
-
-                switch (i) {
-                case 0:
-                    derivedThis->viewBox().setX(d);
-                    break;
-                case 1:
-                    derivedThis->viewBox().setY(d);
-                    break;
-                case 2:
-                    derivedThis->viewBox().setWidth(d);
-                    break;
-                case 3:
-                    derivedThis->viewBox().setHeight(d);
-                    break;
-                }
-                ++i;
-            }
-            //  Did not compile
-            //auto vec = std::ranges::to<std::vector<int>>(double);
-            //std::cout << (double) vec.size();
+            derivedThis->viewBox().fromString(value);
             return;
         }
         parents.back()->attributes().add(key, value);
