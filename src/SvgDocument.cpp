@@ -163,11 +163,33 @@ void DocumentImpl::addFromParser(const std::string &key,
         parents.push_back(&svgDocument);
         break;
     case XmlNode::Type::RootAttribute:
+        //case XmlNode::Type::Attribute: //  No current differences in attributes
         if (key == "viewBox"s) {
             auto derivedThis = dynamic_cast<SvgSvgElement *>(parents.back());
             derivedThis->viewBox().fromString(value);
             return;
         }
+        if (key == "x"s) {
+            auto derivedThis = dynamic_cast<SvgSvgElement *>(parents.back());
+            derivedThis->setX(value);
+            return;
+        }
+        if (key == "y"s) {
+            auto derivedThis = dynamic_cast<SvgSvgElement *>(parents.back());
+            derivedThis->setY(value);
+            return;
+        }
+        if (key == "width"s) {
+            auto derivedThis = dynamic_cast<SvgSvgElement *>(parents.back());
+            derivedThis->setWidth(value);
+            return;
+        }
+        if (key == "height"s) {
+            auto derivedThis = dynamic_cast<SvgSvgElement *>(parents.back());
+            derivedThis->setHeight(value);
+            return;
+        }
+
         parents.back()->attributes().add(key, value);
         break;
     case XmlNode::Type::Element: {

@@ -1,7 +1,9 @@
 #pragma once
 #include <algorithm> //  For std::max
+#include <cassert>   //  For std::assert
 #include <charconv>  //  For std::from_chars
 #include <format>    //  For std::format
+#include <limits>    //  For std::numeric_limits
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -17,6 +19,7 @@ struct SvgUnits
         in,     // Inches
         pc,     // Pica
         pt,     // Points
+        pct,    // %
         px,     // Pixels
     };
     static SvgUnit fromString(const std::string &value)
@@ -31,6 +34,8 @@ struct SvgUnits
             return SvgUnit::in;
         if (value == "pc"s)
             return SvgUnit::pc;
+        if (value == "%"s)
+            return SvgUnit::pct;
         if (value == "pt"s)
             return SvgUnit::pt;
         if (value == "px"s)
@@ -52,6 +57,8 @@ struct SvgUnits
             return "in"s;
         case SvgUnit::pc:
             return "pc"s;
+        case SvgUnit::pct:
+            return "%"s;
         case SvgUnit::pt:
             return "pt"s;
         case SvgUnit::px:
@@ -63,9 +70,10 @@ struct SvgUnits
 
 struct SvgUnitValue
 {
-    double value = 0.0;
+    double value = std::numeric_limits<double>::denorm_min();
     SvgUnits::SvgUnit unit = SvgUnits::SvgUnit::None;
 
+    SvgUnitValue() {}
     SvgUnitValue(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None)
         : value(v)
         , unit(u)
@@ -77,7 +85,8 @@ struct SvgUnitValue
         unit = u;
     }
 
-    bool fromString(const std::string_view &sv)
+    bool empty() { return value == std::numeric_limits<double>::denorm_min(); }
+    bool fromString(const std::string_view sv)
     {
         double result{};
         auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);
@@ -98,7 +107,11 @@ struct SvgUnitValue
 
     const std::string toString() const
     {
-        std::string buffer = std::format("{}{}", value, SvgUnits::toString(unit));
+        std::string buffer;
+
+        //  If value wa never set, do not output value
+        if (value != std::numeric_limits<double>::denorm_min())
+            buffer = std::format("{}{}", value, SvgUnits::toString(unit));
         return std::move(buffer);
     }
 };
@@ -111,6 +124,19 @@ class SvgRect
     SvgUnitValue _height{-1.0};
 
 public:
+    SvgRect() = default;
+    SvgRect(const double x, const double y, const double width, const double height)
+        : _x(x)
+        , _y(y)
+        , _width(width)
+        , _height(height)
+    {}
+    ~SvgRect() = default;
+    SvgRect(const SvgRect &) = default;
+    SvgRect &operator=(const SvgRect &) = default;
+    SvgRect(SvgRect &&) noexcept = default;
+    SvgRect &operator=(SvgRect &&) noexcept = default;
+
     bool empty() const { return _width.value <= 0 || _height.value <= 0; }
 
     //  Values can be changed, but not units of measure (yet)
@@ -127,32 +153,21 @@ public:
     {
         static const char delimit(' ');
         auto view = value | std::views::split(delimit);
-        int i = 0;
-        double result{};
-        for (auto &&chunk : view) {
-            //  Convert subrange into string view and then double
-            std::string_view sv = std::string_view(chunk);
+        auto it = view.begin();
 
-            switch (i) {
-            case 0:
-                if (!_x.fromString(sv))
-                    return false;
-                break;
-            case 1:
-                if (!_y.fromString(sv))
-                    return false;
-                break;
-            case 2:
-                if (!_width.fromString(sv))
-                    return false;
-                break;
-            case 3:
-                if (!_height.fromString(sv))
-                    return false;
-                break;
-            }
-            ++i;
-        }
+        std::string_view sv = std::string_view(*it++);
+        if (!_x.fromString(sv))
+            return false;
+        assert(it != view.end());
+        if (!_y.fromString(std::string_view{*it++}))
+            return false;
+        assert(it != view.end());
+        if (!_width.fromString(std::string_view{*it++}))
+            return false;
+        assert(it != view.end());
+        if (!_height.fromString(std::string_view{*it}))
+            return false;
+        assert(it != view.end());
 
         return true;
     }

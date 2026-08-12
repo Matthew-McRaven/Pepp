@@ -127,6 +127,57 @@ void SvgElement::setDesc(std::string desc)
     _impl->desc = desc;
 }
 
+//  Dimension accessors
+auto SvgElement::x() const
+{
+    return _impl->x.value;
+}
+void SvgElement::setX(double x)
+{
+    _impl->x.value = x;
+}
+void SvgElement::setX(const std::string_view sv)
+{
+    _impl->x.fromString(sv);
+}
+auto SvgElement::y() const
+{
+    return _impl->y.value;
+}
+void SvgElement::setY(double y)
+{
+    _impl->y.value = y;
+}
+void SvgElement::setY(const std::string_view sv)
+{
+    _impl->y.fromString(sv);
+}
+auto SvgElement::width() const
+{
+    return _impl->width.value;
+}
+void SvgElement::setWidth(double width)
+{
+    _impl->width.value = std::max(width, 0.0);
+}
+void SvgElement::setWidth(const std::string_view sv)
+{
+    _impl->width.fromString(sv);
+}
+auto SvgElement::height() const
+{
+    return _impl->height;
+}
+void SvgElement::setHeight(double height)
+{
+    _impl->height.value = std::max(height, 0.0);
+}
+void SvgElement::setHeight(const std::string_view sv)
+{
+    _impl->height.fromString(sv);
+}
+
+//  Generic elements that capture unprocessed svg data
 const XmlAttributes &SvgElement::attributes() const
 {
     return _impl->attributes;
@@ -160,15 +211,38 @@ void SvgElement::toXml(std::list<std::string> &output) const
         return;
     }
     output.push_back("<" + _impl->xmlName);
+
+    bool customAttrData = false;
+    if (!_impl->x.empty()) {
+        customAttrData = true;
+        std::string buffer = std::format(" x=\"{}\"", _impl->x.toString());
+        output.push_back(std::move(buffer));
+    }
+    if (!_impl->y.empty()) {
+        customAttrData = true;
+        std::string buffer = std::format(" y=\"{}\"", _impl->y.toString());
+        output.push_back(std::move(buffer));
+    }
+    if (!_impl->width.empty()) {
+        customAttrData = true;
+        std::string buffer = std::format(" width=\"{}\"", _impl->width.toString());
+        output.push_back(std::move(buffer));
+    }
+    if (!_impl->height.empty()) {
+        customAttrData = true;
+        std::string buffer = std::format(" height=\"{}\"", _impl->height.toString());
+        output.push_back(std::move(buffer));
+    }
+
+    //  Output remaining attributes
     if (attributes().size() > 0) {
-        //  Output remaining attributes
         //  If all attributes become editable, this logic can
         //  be removed.
         output.push_back(_impl->attributes.write());
     }
 
     //  No child elements and no values, add end tag
-    if (_impl->elements.empty() && _impl->value.empty()) {
+    if (_impl->elements.empty() && _impl->value.empty() && !customAttrData) {
         output.push_back(" />");
         return;
     }

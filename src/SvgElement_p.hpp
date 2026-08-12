@@ -16,6 +16,7 @@
 //	private classes
 #include "SvgElement.hpp"
 #include "XmlAttributes_p.hpp"
+#include "utility_p.hpp"
 
 class SvgElementImpl
 {
@@ -39,7 +40,14 @@ public:
     std::string title;
     std::string metadata;
     std::string desc;
+
+    SvgUnitValue x;
+    SvgUnitValue y;
+    SvgUnitValue width;
+    SvgUnitValue height;
+
     //SVGElement ownerSVGElement
+    //  Used to store unprocessed xml elements
     std::list<SvgElement *> elements;
     XmlAttributes attributes;
 };

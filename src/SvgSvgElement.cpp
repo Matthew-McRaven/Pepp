@@ -109,6 +109,27 @@ void SvgSvgElement::toXml(std::list<std::string> &output) const
         output.push_back(std::move(buffer));
     }
 
+    if (!_impl->x.empty()) {
+        customAttrData = true;
+        std::string buffer = std::format(" x=\"{}\"", _impl->x.toString());
+        output.push_back(std::move(buffer));
+    }
+    if (!_impl->y.empty()) {
+        customAttrData = true;
+        std::string buffer = std::format(" y=\"{}\"", _impl->y.toString());
+        output.push_back(std::move(buffer));
+    }
+    if (!_impl->width.empty()) {
+        customAttrData = true;
+        std::string buffer = std::format(" width=\"{}\"", _impl->width.toString());
+        output.push_back(std::move(buffer));
+    }
+    if (!_impl->height.empty()) {
+        customAttrData = true;
+        std::string buffer = std::format(" height=\"{}\"", _impl->height.toString());
+        output.push_back(std::move(buffer));
+    }
+
     if (_impl->attributes.size() > 0) {
         //  Output remaining attributes
         //  If all attributes become editable, this logic can

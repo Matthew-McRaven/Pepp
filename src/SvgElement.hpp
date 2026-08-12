@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include "utility_p.hpp"
+
 //	Forward declarations
 class SvgElementImpl;
 class XmlAttributes;
@@ -63,6 +65,21 @@ public:
     void setMetadata(std::string metadata);
     std::string desc() const;
     void setDesc(std::string desc);
+
+    //	User access functions
+    //  Values can be changed, but not units of measure (yet)
+    auto x() const;
+    void setX(double x = 0);
+    void setX(const std::string_view sv);
+    auto y() const;
+    void setY(double y = 0);
+    void setY(const std::string_view sv);
+    auto width() const;
+    void setWidth(double width = 0);
+    void setWidth(const std::string_view sv);
+    auto height() const;
+    void setHeight(double height = 0);
+    void setHeight(const std::string_view sv);
 
     const XmlAttributes &attributes() const;
     XmlAttributes &attributes();
