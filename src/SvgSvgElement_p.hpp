@@ -11,7 +11,6 @@
 
 //	private classes
 #include "SvgElement_p.hpp"
-#include "utility_p.hpp"
 
 class SvgSvgElementImpl : public SvgElementImpl
 {
@@ -25,4 +24,5 @@ public:
     SvgSvgElementImpl &operator=(SvgSvgElementImpl &&) noexcept = default;
 
     SvgRect viewBox;
+    SvgSvgElementImpl *derivedThis{};
 };

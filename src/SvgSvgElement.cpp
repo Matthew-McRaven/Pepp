@@ -9,6 +9,7 @@
 //	Standard library
 #include <memory>
 #include <string>
+using namespace std::string_literals;
 
 /*
 From w3.org: https://www.w3.org/TR/SVG2/struct.html#InterfaceSVGSVGElement
@@ -22,7 +23,8 @@ factory methods.
 SvgSvgElement::SvgSvgElement()
     : SvgElement(false)
 {
-    //  Override base pimpl structure when overridding
+    //  Override base pimpl structure when overridding interface
+    //  _impl is memory managed
     _impl.reset(static_cast<SvgElementImpl *>(new SvgSvgElementImpl()));
 
     _impl->elementType = SvgElement::SvgType::SvgSvgElement;
@@ -63,34 +65,52 @@ SvgSvgElement &SvgSvgElement::operator=(const SvgSvgElement &rhs)
     return *this;
 }*/
 
+//  Cast base pointer to derived class. Need for all custom functions in derived class
+SvgSvgElementImpl *SvgSvgElement::derivedThis()
+{
+    static SvgSvgElementImpl *derived{};
+    if (derived == nullptr) {
+        derived = static_cast<SvgSvgElementImpl *>(_impl.get());
+    }
+    return derived;
+}
+
+const SvgSvgElementImpl *SvgSvgElement::derivedThis() const
+{
+    static SvgSvgElementImpl *derived{};
+    if (derived == nullptr) {
+        derived = static_cast<SvgSvgElementImpl *>(_impl.get());
+    }
+    return derived;
+}
+
+//  Derived class accessors
+SvgRect &SvgSvgElement::viewBox()
+{
+    return derivedThis()->viewBox;
+}
+const SvgRect &SvgSvgElement::viewBox() const
+{
+    return derivedThis()->viewBox;
+}
+
 void SvgSvgElement::toXml(std::list<std::string> &output) const
 {
-    using namespace std::string_literals;
-
     //  Hard coded attribute. Spelling is case specific.
     output.push_back("<svg");
 
     //  Output changeable headers
-    auto temp = dynamic_cast<SvgSvgElementImpl *>(_impl.get());
+    auto actualData = derivedThis();
     bool customAttrData = false;
 
-    if (temp && !temp->viewBox.empty()) {
+    if (actualData && !actualData->viewBox.empty()) {
         customAttrData = true;
-        std::string result(" viewBox=");
-        result.append(std::to_string(temp->viewBox.x()));
-        result.append(" ");
-        result.append(std::to_string(temp->viewBox.y()));
-        result.append(" ");
-        result.append(std::to_string(temp->viewBox.width()));
-        result.append(" ");
-        result.append(std::to_string(temp->viewBox.height()));
-        /*  Generated a compile error
-         * result.append(std::format("'{0} {1} {2} {3}'"s,
-                                  temp->viewBox.x(),
-                                  temp->viewBox.y(),
-                                  temp->viewBox.width(),
-                                  temp->viewBox.height()));*/
-        output.push_back(result);
+        std::string buffer = std::format(" viewBox=\"{} {} {} {}\"",
+                                         actualData->viewBox.x(),
+                                         actualData->viewBox.y(),
+                                         actualData->viewBox.width(),
+                                         actualData->viewBox.height());
+        output.push_back(std::move(buffer));
     }
 
     if (_impl->attributes.size() > 0) {

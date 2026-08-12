@@ -16,7 +16,8 @@
 //	private classes
 #include "SvgElement.hpp"
 #include "SvgParser.hpp"
-#include "XmlElement_p.hpp"
+#include "SvgSvgElement.hpp"
+//#include "XmlElement_p.hpp"
 
 class DocumentImpl
 {
@@ -34,12 +35,12 @@ public:
     std::string fileName{};
     std::string contents{};
     size_t fileSize{};
-    SvgElement svgDocument;
+    SvgSvgElement svgDocument;
     std::list<SvgElement *> parents;
     std::list<SvgElement> children;
     std::list<std::string> rope; //  Temporary for persisting structure to Xml
 
-    XmlElement elements;
+    //XmlElement elements;
 
     bool save();
     bool read();
@@ -47,15 +48,4 @@ public:
     void addFromParser(const std::string &key, const std::string &value, const XmlNode::Type type);
     SvgElement *createElement(const std::string &name);
     void toXml();
-
-    //bool writeAll( const std::string& fileName, bool aReadOnly);
-
-    /*
-	//	List of files in existing Excel file.
-	//	No processing is performed on these items.
-	//	Cache for later saving
-	std::list<XlTempFile> tempFiles;
-
-	std::optional<XlStyleSheet>	style;
-	std::optional<XlTheme>		theme;*/
 };

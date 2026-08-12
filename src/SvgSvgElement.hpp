@@ -5,13 +5,15 @@
 #include <string>
 
 #include "SvgElement.hpp"
+#include "utility_p.hpp"
 
 //	Forward declarations
 class SvgSvgElementImpl;
 
 class SvgSvgElement : public SvgElement
 {
-    //std::unique_ptr<SvgSvgElementImpl> _impl;
+    SvgSvgElementImpl *derivedThis();
+    const SvgSvgElementImpl *derivedThis() const;
 
 public:
     SvgSvgElement();
@@ -24,6 +26,8 @@ public:
     SvgSvgElement &operator=(SvgSvgElement &&) noexcept;
 
     //	User access functions
+    SvgRect &viewBox();
+    const SvgRect &viewBox() const;
 
     void toXml(std::list<std::string> &output) const override;
 };

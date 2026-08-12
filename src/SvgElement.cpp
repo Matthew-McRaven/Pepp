@@ -153,10 +153,10 @@ void SvgElement::appendChild(SvgElement *child)
 void SvgElement::toXml(std::list<std::string> &output) const
 {
     //  Id currently has element name. Change when attributes are supported
-    std::string buffer;
     if (_impl->elementType == SvgElement::SvgType::DomComment) {
-        buffer = std::format("<!--{}-->", _impl->value);
+        std::string buffer = std::format("<!--{}-->", _impl->value);
         output.push_back(std::move(buffer));
+        //  Comments cannot have children or attributes
         return;
     }
     output.push_back("<" + _impl->xmlName);

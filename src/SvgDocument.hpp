@@ -6,6 +6,7 @@
 
 //  Library classes
 #include "SvgElement.hpp"
+#include "SvgSvgElement.hpp"
 
 //	Forward declarations
 class DocumentImpl;

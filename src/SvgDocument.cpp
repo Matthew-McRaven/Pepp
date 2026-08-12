@@ -10,13 +10,16 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <ranges>
 #include <string>
-#include <sys/stat.h>
+#include <string_view>
+#include <vector>
 namespace fs = std::filesystem;
+using namespace std::string_literals;
 
 //	private classes
 #include "Timer.h"
-
+#include "XmlAttributes_p.hpp"
 /*
 From Mozilla: https://developer.mozilla.org/en-US/docs/Web/API/Document
     
@@ -104,7 +107,7 @@ bool Document::open(const std::string &fileName, bool readOnly)
     std::cout << "ifstream::read: " << t1.elapsedTime() << std::endl;
 
     //  Clear previous result
-    _impl->elements.reset();
+    //_impl->elements.reset();
     //  Parser will callback to this instance using method addFromParser().
     std::unique_ptr<SvgParser<DocumentImpl>> parser(new SvgParser<DocumentImpl>(*_impl));
     //std::unique_ptr<SvgParser<XmlElement>> parser(new SvgParser<XmlElement>(_impl->elements));
@@ -152,8 +155,6 @@ void DocumentImpl::addFromParser(const std::string &key,
                                  const std::string &value,
                                  const XmlNode::Type type)
 {
-    //static SvgElement *element{};
-
     switch (type) {
     case XmlNode::Type::RootElement:
         //  Root element is already created since it is required.
@@ -162,6 +163,37 @@ void DocumentImpl::addFromParser(const std::string &key,
         parents.push_back(&svgDocument);
         break;
     case XmlNode::Type::RootAttribute:
+        if (key == "viewBox"s) {
+            auto derivedThis = dynamic_cast<SvgSvgElement *>(parents.back());
+
+            auto view = value | std::views::split(' ');
+            int i = 0;
+            for (auto &&chunk : view) {
+                // Convert sub-range to a temporary string to use std::stoi
+                std::string token(chunk.begin(), chunk.end());
+                double d = std::stoll(token);
+
+                switch (i) {
+                case 0:
+                    derivedThis->viewBox().setX(d);
+                    break;
+                case 1:
+                    derivedThis->viewBox().setY(d);
+                    break;
+                case 2:
+                    derivedThis->viewBox().setWidth(d);
+                    break;
+                case 3:
+                    derivedThis->viewBox().setHeight(d);
+                    break;
+                }
+                ++i;
+            }
+            //  Did not compile
+            //auto vec = std::ranges::to<std::vector<int>>(double);
+            //std::cout << (double) vec.size();
+            return;
+        }
         parents.back()->attributes().add(key, value);
         break;
     case XmlNode::Type::Element: {
@@ -203,9 +235,6 @@ void DocumentImpl::toXml()
     //contents = result;
     //  Create in memory rope of Xml structure
     svgDocument.toXml(rope);
-
-    //  Clear previous result
-    //contents.clear();
 
     //  Create single string in memory
     for (auto &fragment : rope) {
