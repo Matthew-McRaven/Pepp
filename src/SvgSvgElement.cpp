@@ -94,7 +94,7 @@ const SvgRect &SvgSvgElement::viewBox() const
     return derivedThis()->viewBox;
 }
 
-void SvgSvgElement::toXml(std::list<std::string> &output) const
+void SvgSvgElement::toXml(SvgRope &output) const
 {
     //  Hard coded attribute. Spelling is case specific.
     output.push_back("<svg");
@@ -131,7 +131,7 @@ bool SvgSvgElementImpl::setAttribute(const std::string &key, const std::string &
     return SvgElementImpl::setAttribute(key, value);
 }
 
-bool SvgSvgElementImpl::attributeXml(std::list<std::string> &output) const
+bool SvgSvgElementImpl::attributeXml(SvgRope &output) const
 {
     //  Get parent attributes first
     bool hasAttributes = SvgElementImpl::attributeXml(output);

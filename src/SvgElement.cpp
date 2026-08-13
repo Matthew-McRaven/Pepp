@@ -221,7 +221,7 @@ void SvgElement::appendChild(SvgElement *child)
     _impl->elements.push_back(child);
 }
 
-void SvgElement::toXml(std::list<std::string> &output) const
+void SvgElement::toXml(SvgRope &output) const
 {
     //  Id currently has element name. Change when attributes are supported
     if (_impl->elementType == SvgElement::SvgType::DomComment) {
@@ -281,27 +281,33 @@ bool SvgElementImpl::setAttribute(const std::string &key, const std::string &val
     return true;
 }
 
-bool SvgElementImpl::attributeXml(std::list<std::string> &output) const
+bool SvgElementImpl::attributeXml(SvgRope &output) const
 {
+    std::string buffer;
     bool hasAttributes = false;
+    if (!id.empty()) {
+        hasAttributes = true;
+        buffer = std::format(" id=\"{}\"", id);
+        output.push_back(std::move(buffer));
+    }
     if (!x.empty()) {
         hasAttributes = true;
-        std::string buffer = std::format(" x=\"{}\"", x.toString());
+        buffer = std::format(" x=\"{}\"", x.toString());
         output.push_back(std::move(buffer));
     }
     if (!y.empty()) {
         hasAttributes = true;
-        std::string buffer = std::format(" y=\"{}\"", y.toString());
+        buffer = std::format(" y=\"{}\"", y.toString());
         output.push_back(std::move(buffer));
     }
     if (!width.empty()) {
         hasAttributes = true;
-        std::string buffer = std::format(" width=\"{}\"", width.toString());
+        buffer = std::format(" width=\"{}\"", width.toString());
         output.push_back(std::move(buffer));
     }
     if (!height.empty()) {
         hasAttributes = true;
-        std::string buffer = std::format(" height=\"{}\"", height.toString());
+        buffer = std::format(" height=\"{}\"", height.toString());
         output.push_back(std::move(buffer));
     }
 
@@ -310,7 +316,8 @@ bool SvgElementImpl::attributeXml(std::list<std::string> &output) const
         //  If all attributes become editable, this logic can
         //  be removed.
         hasAttributes = true;
-        output.push_back(attributes.write());
+        buffer = attributes.write();
+        output.push_back(std::move(buffer));
     }
 
     return hasAttributes;

@@ -30,7 +30,7 @@ public:
     SvgElementImpl &operator=(SvgElementImpl &&) noexcept = default;
 
     virtual bool setAttribute(const std::string &key, const std::string &value);
-    virtual bool attributeXml(std::list<std::string> &output) const;
+    virtual bool attributeXml(SvgRope &output) const;
 
     //  Standard Xml Data
     SvgElement::SvgType elementType = SvgElement::SvgType::SvgUnknownElement;

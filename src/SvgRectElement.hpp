@@ -34,6 +34,6 @@ public:
     void setRY(double y = 0);
     void setRY(const std::string_view sv);
 
-    void toXml(std::list<std::string> &output) const override;
+    void toXml(SvgRope &output) const override;
     bool setAttribute(const std::string &key, const std::string &value) override;
 };

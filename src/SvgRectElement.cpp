@@ -89,7 +89,7 @@ void SvgRectElement::setRY(const std::string_view sv)
     derivedThis()->ry.fromString(sv);
 }
 
-void SvgRectElement::toXml(std::list<std::string> &output) const
+void SvgRectElement::toXml(SvgRope &output) const
 {
     //  Hard coded attribute. Spelling is case specific.
     output.push_back("<rect");
@@ -129,7 +129,7 @@ bool SvgRectElementImpl::setAttribute(const std::string &key, const std::string 
     return SvgElementImpl::setAttribute(key, value);
 }
 
-bool SvgRectElementImpl::attributeXml(std::list<std::string> &output) const
+bool SvgRectElementImpl::attributeXml(SvgRope &output) const
 {
     //  Get parent attributes first
     bool hasAttributes = SvgElementImpl::attributeXml(output);

@@ -24,7 +24,7 @@ public:
     SvgRectElementImpl &operator=(SvgRectElementImpl &&) noexcept = default;
 
     bool setAttribute(const std::string &key, const std::string &value) override;
-    bool attributeXml(std::list<std::string> &output) const override;
+    bool attributeXml(SvgRope &output) const override;
 
     SvgUnitValue rx;
     SvgUnitValue ry;

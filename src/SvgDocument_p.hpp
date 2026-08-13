@@ -37,7 +37,7 @@ public:
     std::list<std::unique_ptr<SvgElement>> children;
 
     //  Temporaries for persisting structure to Xml
-    std::list<std::string> rope;
+    SvgRope rope;
     std::string contents{};
     size_t fileSize{};
 

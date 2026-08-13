@@ -79,11 +79,9 @@ public:
         return empty;
     }
 
-    const std::string &write() const
+    const std::string write() const
     {
-        //	Keep local copy
-        static std::string data;
-        data.clear();
+        std::string data;
 
         //	Output atributes as string
         for (const auto &attr : attrs_) {

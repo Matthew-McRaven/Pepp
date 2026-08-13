@@ -207,13 +207,20 @@ void DocumentImpl::toXml()
     //  Clear previous result
     contents.clear();
 
-    //const auto result = elements.write();
-    //contents = result;
     //  Create in memory rope of Xml structure
     svgDocument.toXml(rope);
 
+    //std::cout << "capacity.size()=" << contents.capacity() << ", rope.size()=" << rope.size()
+    //          << std::endl;
+
+    //  Resize string if Xml is longer than current string length
+    if (contents.capacity() < rope.size()) {
+        contents.resize(rope.size() + 1);
+        contents.clear();
+    }
+
     //  Create single string in memory
-    for (auto &fragment : rope) {
+    for (auto &fragment : rope.rope()) {
         contents.append(fragment);
     }
 

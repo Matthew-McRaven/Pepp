@@ -4,6 +4,7 @@
 #include <charconv>  //  For std::from_chars
 #include <format>    //  For std::format
 #include <limits>    //  For std::numeric_limits
+#include <list>      //  For std::list
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -180,5 +181,30 @@ public:
                                          _width.toString(),
                                          _height.toString());
         return std::move(buffer);
+    }
+};
+
+class SvgRope
+{
+    size_t _size = 0;
+    std::list<std::string> _rope;
+
+public:
+    size_t size() const { return _size; }
+    const auto &rope() const { return _rope; }
+    void clear()
+    {
+        _size = 0;
+        _rope.clear();
+    }
+    void push_back(std::string &&value)
+    {
+        _rope.push_back(value);
+        _size += value.size();
+    }
+    void push_back(std::string &value)
+    {
+        _rope.push_back(value);
+        _size += value.size();
     }
 };
