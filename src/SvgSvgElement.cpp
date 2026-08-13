@@ -100,45 +100,10 @@ void SvgSvgElement::toXml(std::list<std::string> &output) const
     output.push_back("<svg");
 
     //  Output changeable headers
-    auto actualData = derivedThis();
-    bool customAttrData = false;
+    _impl->attributeXml(output);
 
-    if (actualData && !actualData->viewBox.empty()) {
-        customAttrData = true;
-        std::string buffer = std::format(" viewBox=\"{}\"", actualData->viewBox.toString());
-        output.push_back(std::move(buffer));
-    }
-
-    if (!_impl->x.empty()) {
-        customAttrData = true;
-        std::string buffer = std::format(" x=\"{}\"", _impl->x.toString());
-        output.push_back(std::move(buffer));
-    }
-    if (!_impl->y.empty()) {
-        customAttrData = true;
-        std::string buffer = std::format(" y=\"{}\"", _impl->y.toString());
-        output.push_back(std::move(buffer));
-    }
-    if (!_impl->width.empty()) {
-        customAttrData = true;
-        std::string buffer = std::format(" width=\"{}\"", _impl->width.toString());
-        output.push_back(std::move(buffer));
-    }
-    if (!_impl->height.empty()) {
-        customAttrData = true;
-        std::string buffer = std::format(" height=\"{}\"", _impl->height.toString());
-        output.push_back(std::move(buffer));
-    }
-
-    if (_impl->attributes.size() > 0) {
-        //  Output remaining attributes
-        //  If all attributes become editable, this logic can
-        //  be removed.
-        output.push_back(_impl->attributes.write());
-    }
-
-    //  No child elements and no values, add end tag
-    if (_impl->elements.empty() && _impl->value.empty() && !customAttrData) {
+    //  No child elements, and no values, add end tag
+    if (_impl->elements.empty() && _impl->value.empty()) {
         output.push_back(" />");
         return;
     }
@@ -164,4 +129,17 @@ bool SvgSvgElementImpl::setAttribute(const std::string &key, const std::string &
 
     //  Let base class handle remaining elements
     return SvgElementImpl::setAttribute(key, value);
+}
+
+bool SvgSvgElementImpl::attributeXml(std::list<std::string> &output) const
+{
+    //  Get parent attributes first
+    bool hasAttributes = SvgElementImpl::attributeXml(output);
+    if (!viewBox.empty()) {
+        hasAttributes = true;
+        std::string buffer = std::format(" viewBox=\"{}\"", viewBox.toString());
+        output.push_back(std::move(buffer));
+    }
+
+    return hasAttributes;
 }

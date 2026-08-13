@@ -212,37 +212,10 @@ void SvgElement::toXml(std::list<std::string> &output) const
     }
     output.push_back("<" + _impl->xmlName);
 
-    bool customAttrData = false;
-    if (!_impl->x.empty()) {
-        customAttrData = true;
-        std::string buffer = std::format(" x=\"{}\"", _impl->x.toString());
-        output.push_back(std::move(buffer));
-    }
-    if (!_impl->y.empty()) {
-        customAttrData = true;
-        std::string buffer = std::format(" y=\"{}\"", _impl->y.toString());
-        output.push_back(std::move(buffer));
-    }
-    if (!_impl->width.empty()) {
-        customAttrData = true;
-        std::string buffer = std::format(" width=\"{}\"", _impl->width.toString());
-        output.push_back(std::move(buffer));
-    }
-    if (!_impl->height.empty()) {
-        customAttrData = true;
-        std::string buffer = std::format(" height=\"{}\"", _impl->height.toString());
-        output.push_back(std::move(buffer));
-    }
-
-    //  Output remaining attributes
-    if (attributes().size() > 0) {
-        //  If all attributes become editable, this logic can
-        //  be removed.
-        output.push_back(_impl->attributes.write());
-    }
+    _impl->attributeXml(output);
 
     //  No child elements and no values, add end tag
-    if (_impl->elements.empty() && _impl->value.empty() && !customAttrData) {
+    if (_impl->elements.empty() && _impl->value.empty()) {
         output.push_back(" />");
         return;
     }
@@ -282,4 +255,39 @@ bool SvgElementImpl::setAttribute(const std::string &key, const std::string &val
     //  Cache attributes that are not manipulated above.
     attributes.add(key, value);
     return true;
+}
+
+bool SvgElementImpl::attributeXml(std::list<std::string> &output) const
+{
+    bool hasAttributes = false;
+    if (!x.empty()) {
+        hasAttributes = true;
+        std::string buffer = std::format(" x=\"{}\"", x.toString());
+        output.push_back(std::move(buffer));
+    }
+    if (!y.empty()) {
+        hasAttributes = true;
+        std::string buffer = std::format(" y=\"{}\"", y.toString());
+        output.push_back(std::move(buffer));
+    }
+    if (!width.empty()) {
+        hasAttributes = true;
+        std::string buffer = std::format(" width=\"{}\"", width.toString());
+        output.push_back(std::move(buffer));
+    }
+    if (!height.empty()) {
+        hasAttributes = true;
+        std::string buffer = std::format(" height=\"{}\"", height.toString());
+        output.push_back(std::move(buffer));
+    }
+
+    //  Output remaining attributes
+    if (attributes.size() > 0) {
+        //  If all attributes become editable, this logic can
+        //  be removed.
+        hasAttributes = true;
+        output.push_back(attributes.write());
+    }
+
+    return hasAttributes;
 }

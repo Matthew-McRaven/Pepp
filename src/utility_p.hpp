@@ -85,7 +85,7 @@ struct SvgUnitValue
         unit = u;
     }
 
-    bool empty() { return value == std::numeric_limits<double>::denorm_min(); }
+    bool empty() const { return value == std::numeric_limits<double>::denorm_min(); }
     bool fromString(const std::string_view sv)
     {
         double result{};
