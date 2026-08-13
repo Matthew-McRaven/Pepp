@@ -14,7 +14,6 @@ class SvgElement
 {
 protected:
     std::unique_ptr<SvgElementImpl> _impl;
-
 public:
     enum class SvgType {
         SvgUnknownElement = 0,
@@ -28,6 +27,7 @@ public:
         SvgTitleElement,
         SvgGraphicElement = 0x8000,
         SvgSvgElement,
+        //  Graphic elements
         SvgGeometry = 0x8100,
         SvgGElement,
         SvgDefsElement,
@@ -55,21 +55,21 @@ public:
     //  Standard Xml
     SvgElement::SvgType elementType() const;
     void setElementType(SvgElement::SvgType elementType);
-    std::string xmlName() const;
+    std::string &xmlName() const;
     void setXmlName(std::string xmlName);
-    std::string value() const;
+    std::string &value() const;
     void setValue(std::string value);
 
     //  Svg specific functions
-    std::string id() const;
+    std::string &id() const;
     void setId(std::string id);
-    std::string className() const;
+    std::string &className() const;
     void setClassName(std::string className);
-    std::string title() const;
+    std::string &title() const;
     void setTitle(std::string title);
-    std::string metadata() const;
+    std::string &metadata() const;
     void setMetadata(std::string metadata);
-    std::string desc() const;
+    std::string &desc() const;
     void setDesc(std::string desc);
 
     //	User access functions

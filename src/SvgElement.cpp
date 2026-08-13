@@ -68,7 +68,7 @@ void SvgElement::setElementType(SvgElement::SvgType elementType)
     _impl->elementType = elementType;
 }
 
-std::string SvgElement::xmlName() const
+std::string &SvgElement::xmlName() const
 {
     return _impl->xmlName;
 }
@@ -76,7 +76,7 @@ void SvgElement::setXmlName(std::string xmlName)
 {
     _impl->xmlName = xmlName;
 }
-std::string SvgElement::value() const
+std::string &SvgElement::value() const
 {
     return _impl->value;
 }
@@ -86,7 +86,7 @@ void SvgElement::setValue(std::string value)
 }
 
 //  Svg specific fields
-std::string SvgElement::id() const
+std::string &SvgElement::id() const
 {
     return _impl->id;
 }
@@ -94,7 +94,7 @@ void SvgElement::setId(std::string id)
 {
     _impl->id = id;
 }
-std::string SvgElement::className() const
+std::string &SvgElement::className() const
 {
     return _impl->className;
 }
@@ -102,29 +102,38 @@ void SvgElement::setClassName(std::string className)
 {
     _impl->className = className;
 }
-std::string SvgElement::title() const
+std::string &SvgElement::title() const
 {
-    return _impl->title;
+    return (_impl->title == nullptr) ? _impl->empty : _impl->title->xmlName();
 }
 void SvgElement::setTitle(std::string title)
 {
-    _impl->title = title;
+    //  Add logic later to create element when missing
+    if (_impl->title != nullptr) {
+        _impl->title->setValue(title);
+    }
 }
-std::string SvgElement::metadata() const
+std::string &SvgElement::metadata() const
 {
-    return _impl->metadata;
+    return (_impl->metadata == nullptr) ? _impl->empty : _impl->metadata->xmlName();
 }
 void SvgElement::setMetadata(std::string metadata)
 {
-    _impl->metadata = metadata;
+    //  Add logic later to create element when missing
+    if (_impl->metadata != nullptr) {
+        _impl->metadata->setValue(metadata);
+    }
 }
-std::string SvgElement::desc() const
+std::string &SvgElement::desc() const
 {
-    return _impl->desc;
+    return (_impl->desc == nullptr) ? _impl->empty : _impl->desc->xmlName();
 }
 void SvgElement::setDesc(std::string desc)
 {
-    _impl->desc = desc;
+    //  Add logic later to create element when missing
+    if (_impl->desc != nullptr) {
+        _impl->desc->setValue(desc);
+    }
 }
 
 //  Dimension accessors
@@ -198,6 +207,17 @@ std::list<SvgElement *> &SvgElement::children()
 
 void SvgElement::appendChild(SvgElement *child)
 {
+    //  Certain data is contained in elements. Save
+    //  pointer to allow future programitic updates.
+    if (child->xmlName() == "desc"s) {
+        _impl->desc = child;
+    } else if (child->xmlName() == "metadata"s) {
+        _impl->metadata = child;
+    } else if (child->xmlName() == "title"s) {
+        _impl->title = child;
+    }
+    //  All elements are saved, including special elements above.
+    //  Used for persistence to Xml.
     _impl->elements.push_back(child);
 }
 
@@ -228,7 +248,7 @@ void SvgElement::toXml(std::list<std::string> &output) const
     for (const auto *element : _impl->elements) {
         element->toXml(output);
     }
-    //  When child elements, add closing element
+    //  After child elements, add closing element
     output.push_back("</" + _impl->xmlName + ">");
 }
 
@@ -239,6 +259,10 @@ bool SvgElement::setAttribute(const std::string &key, const std::string &value)
 
 bool SvgElementImpl::setAttribute(const std::string &key, const std::string &value)
 {
+    if (key == "id"s) {
+        id = value;
+        return true;
+    }
     if (key == "x"s) {
         return x.fromString(value);
     }

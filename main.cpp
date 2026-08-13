@@ -16,6 +16,11 @@ int main()
     //doc.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\car.svg"); //  500k file
     //doc.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\USStates.svg"); // Works!
 
+    auto &svg = doc.documentElement();
+    svg.setDesc("Desc from program"s);
+    svg.setMetadata("Meta from program"s);
+    svg.setTitle("Title from program"s);
+
     doc.saveAs("x:\\aa_rect2.svg");
     t.finish();
 

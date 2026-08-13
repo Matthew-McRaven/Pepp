@@ -6,6 +6,7 @@
 
 //  Library classes
 #include "SvgElement.hpp"
+#include "SvgRectElement.hpp"
 #include "SvgSvgElement.hpp"
 
 //	Forward declarations
@@ -26,7 +27,7 @@ public:
     Document &operator=(Document &&) noexcept;
 
     //  Document searching
-    SvgElement documentElement() const;
+    SvgSvgElement &documentElement() const;
     SvgElement *createElement(const std::string &name = "");
 
     //SvgElement querySelector(const std::string& element);

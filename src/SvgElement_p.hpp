@@ -40,9 +40,11 @@ public:
     //  Svg specific data
     std::string id;
     std::string className;
-    std::string title;
-    std::string metadata;
-    std::string desc;
+
+    //  Stored as Elements in svg
+    SvgElement *title{};
+    SvgElement *metadata{};
+    SvgElement *desc{};
 
     SvgUnitValue x;
     SvgUnitValue y;
@@ -53,4 +55,7 @@ public:
     //  Used to store unprocessed xml elements
     std::list<SvgElement *> elements;
     XmlAttributes attributes;
+
+    //  Returned by string functions when empy string is needed
+    std::string empty;
 };

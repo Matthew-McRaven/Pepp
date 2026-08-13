@@ -17,7 +17,6 @@
 #include "SvgElement.hpp"
 #include "SvgParser.hpp"
 #include "SvgSvgElement.hpp"
-//#include "XmlElement_p.hpp"
 
 class DocumentImpl
 {
@@ -33,15 +32,14 @@ public:
     bool readOnly = false;
     bool exists = false;
     std::string fileName{};
-    std::string contents{};
-    size_t fileSize{};
     SvgSvgElement svgDocument;
     std::list<SvgElement *> parents;
     std::list<std::unique_ptr<SvgElement>> children;
-    //std::list<SvgElement> children;
-    std::list<std::string> rope; //  Temporary for persisting structure to Xml
 
-    //XmlElement elements;
+    //  Temporaries for persisting structure to Xml
+    std::list<std::string> rope;
+    std::string contents{};
+    size_t fileSize{};
 
     bool save();
     bool read();

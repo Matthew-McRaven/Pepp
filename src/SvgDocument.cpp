@@ -10,10 +10,8 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <ranges>
 #include <string>
 #include <string_view>
-#include <vector>
 namespace fs = std::filesystem;
 using namespace std::string_literals;
 
@@ -57,7 +55,26 @@ Document::Document(Document &&) noexcept = default;
 Document &Document::operator=(Document &&) noexcept = default;
 
 //  Accessors
+SvgSvgElement &Document::documentElement() const
+{
+    return _impl->svgDocument;
+}
 
+SvgElement *Document::createElement(const std::string &name)
+{
+    return _impl->createElement(name);
+}
+SvgElement *DocumentImpl::createElement(const std::string &name)
+{
+    if (name == "rect"s)
+        children.push_back(std::make_unique<SvgRectElement>());
+    else
+        children.push_back(std::make_unique<SvgElement>(name));
+
+    return children.back().get();
+}
+
+//  File operations
 void Document::saveAs(const std::string &fileName)
 {
     _impl->fileName = fileName;
@@ -138,20 +155,6 @@ bool DocumentImpl::read()
     svgFile.read(&contents[0], fileSize);
 
     return true;
-}
-
-SvgElement *Document::createElement(const std::string &name)
-{
-    return _impl->createElement(name);
-}
-SvgElement *DocumentImpl::createElement(const std::string &name)
-{
-    if (name == "rect"s)
-        children.push_back(std::make_unique<SvgRectElement>());
-    else
-        children.push_back(std::make_unique<SvgElement>(name));
-
-    return children.back().get();
 }
 
 //	When parsing, we want parser to return pointer to data
