@@ -150,3 +150,18 @@ void SvgSvgElement::toXml(std::list<std::string> &output) const
     //  When child elements, add closing element
     output.push_back("</svg>");
 }
+
+bool SvgSvgElement::setAttribute(const std::string &key, const std::string &value)
+{
+    return _impl->setAttribute(key, value);
+}
+
+bool SvgSvgElementImpl::setAttribute(const std::string &key, const std::string &value)
+{
+    if (key == "viewBox"s) {
+        return viewBox.fromString(value);
+    }
+
+    //  Let base class handle remaining elements
+    return SvgElementImpl::setAttribute(key, value);
+}

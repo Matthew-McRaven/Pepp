@@ -29,6 +29,8 @@ public:
     SvgElementImpl(SvgElementImpl &&) noexcept = default;
     SvgElementImpl &operator=(SvgElementImpl &&) noexcept = default;
 
+    virtual bool setAttribute(const std::string &key, const std::string &value);
+
     //  Standard Xml Data
     SvgElement::SvgType elementType = SvgElement::SvgType::SvgUnknownElement;
     std::string xmlName;

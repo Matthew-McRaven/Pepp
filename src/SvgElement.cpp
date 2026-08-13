@@ -258,3 +258,28 @@ void SvgElement::toXml(std::list<std::string> &output) const
     //  When child elements, add closing element
     output.push_back("</" + _impl->xmlName + ">");
 }
+
+bool SvgElement::setAttribute(const std::string &key, const std::string &value)
+{
+    return _impl->setAttribute(key, value);
+}
+
+bool SvgElementImpl::setAttribute(const std::string &key, const std::string &value)
+{
+    if (key == "x"s) {
+        return x.fromString(value);
+    }
+    if (key == "y"s) {
+        return y.fromString(value);
+    }
+    if (key == "width"s) {
+        return width.fromString(value);
+    }
+    if (key == "height"s) {
+        return height.fromString(value);
+    }
+
+    //  Cache attributes that are not manipulated above.
+    attributes.add(key, value);
+    return true;
+}

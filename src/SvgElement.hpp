@@ -89,4 +89,5 @@ public:
     void appendChild(SvgElement *child);
 
     virtual void toXml(std::list<std::string> &output) const;
+    virtual bool setAttribute(const std::string &key, const std::string &value);
 };

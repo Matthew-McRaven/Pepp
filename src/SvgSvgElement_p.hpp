@@ -23,6 +23,8 @@ public:
     SvgSvgElementImpl(SvgSvgElementImpl &&) noexcept = default;
     SvgSvgElementImpl &operator=(SvgSvgElementImpl &&) noexcept = default;
 
+    bool setAttribute(const std::string &key, const std::string &value) override;
+
     SvgRect viewBox;
     SvgSvgElementImpl *derivedThis{};
 };
