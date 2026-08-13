@@ -10,7 +10,7 @@
 //	Standard Library
 
 #include <list>
-//#include <optional>
+#include <memory>
 #include <string>
 
 //	private classes
@@ -37,7 +37,8 @@ public:
     size_t fileSize{};
     SvgSvgElement svgDocument;
     std::list<SvgElement *> parents;
-    std::list<SvgElement> children;
+    std::list<std::unique_ptr<SvgElement>> children;
+    //std::list<SvgElement> children;
     std::list<std::string> rope; //  Temporary for persisting structure to Xml
 
     //XmlElement elements;

@@ -18,6 +18,7 @@ namespace fs = std::filesystem;
 using namespace std::string_literals;
 
 //	private classes
+#include "SvgRectElement.hpp"
 #include "Timer.h"
 #include "XmlAttributes_p.hpp"
 /*
@@ -145,7 +146,12 @@ SvgElement *Document::createElement(const std::string &name)
 }
 SvgElement *DocumentImpl::createElement(const std::string &name)
 {
-    return &children.emplace_back(name);
+    if (name == "rect"s)
+        children.push_back(std::make_unique<SvgRectElement>());
+    else
+        children.push_back(std::make_unique<SvgElement>(name));
+
+    return children.back().get();
 }
 
 //	When parsing, we want parser to return pointer to data
@@ -184,9 +190,6 @@ void DocumentImpl::addFromParser(const std::string &key,
         parents.back()->appendChild(element);
         break;
     }
-    /*case XmlNode::Type::Attribute:
-        parents.back()->attributes().add(key, value);
-        break;*/
     case XmlNode::Type::EndElement:
         parents.pop_back();
         break;

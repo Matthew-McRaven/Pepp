@@ -33,7 +33,13 @@ public:
         SvgDefsElement,
         SvgSymbolElement,
         SvgUseElement,
-        SvgSwitchElement
+        SvgSwitchElement,
+        SvgCircleElement,
+        SvgLineElement,
+        SvgPathElement,
+        SvgPolygonElement,
+        SvgRectElement,
+        SvgTextElement,
     };
 
     SvgElement(bool base = true);

@@ -17,6 +17,9 @@ add_executable(SvgDom
     src/SvgElement.cpp
     src/SvgElement.hpp
     src/SvgElement_p.hpp
+    src/SvgRectElement.cpp
+    src/SvgRectElement.hpp
+    src/SvgRectElement_p.hpp
     src/SvgSvgElement.cpp
     src/SvgSvgElement.hpp
     src/SvgSvgElement_p.hpp
