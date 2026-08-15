@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include "core/sim/api/memory.hpp"
 #include "core/sim/memory/errors.hpp"
+#include "core/sim/memory/io/fifo.hpp"
 #include "core/sim/system.hpp"
 
 namespace {
@@ -253,7 +254,29 @@ void ApplyBackend::on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &
 }
 
 void ApplyBackend::on_mmio(MachineState &state, const DecodedOp::MMIO &op) {
-  state.hard_stop(tvm::StopCause::Unimplemented);
+  // Not in target mode or there is no system.
+  if (state.csrs.TR == 1) return state.hard_stop(StopCause::WrongTR);
+  else if (_system == nullptr) return state.hard_stop(tvm::StopCause::MissingSystem);
+
+  // Attempt to convert our ID to a FIFORegister
+  auto dev = _system->find_by_id(op.target);
+  if (!dev) return state.hard_stop(StopCause::TargetInvalid);
+  auto target = dev->capability<Target>();
+  if (!target) return state.hard_stop(StopCause::TargetNotMemory);
+  auto fifo = dynamic_cast<FIFORegister *>(target);
+  if (!fifo) return state.hard_stop(StopCause::TargetNotFIFO);
+
+  // Traces cannot be replayed from the middle; you have to start from one end or the other.
+  // So, we can operate on the head/tail of the FIFO directly rather than having to modify indices.
+  if (is_forward()) {
+    if (op.write) fifo->output().push(op.data);
+    // Not a bare push: the byte may already be queued, either because an undo stepped back over it or because the
+    // user typed ahead. advance_input queues it only when the read position has run off the end.
+    else fifo->advance_input(op.data);
+  } else {
+    if (op.write) fifo->output().pop_back();
+    else fifo->rewind_input();
+  }
 }
 
 } // namespace tvm

@@ -478,10 +478,14 @@ DecodedOp::MMIO Decoder::decode_mmio(pepp::bts::Buffer::ID ibp, u16 iop) {
   auto &regs = _state.regs;
   _state.csrs.TR = 0; // Enter target mode.
   ret.size = regs.DS;
+  ret.write = false;
 
   switch (regs.IS.word_len) {
   default: [[fallthrough]];
-  case 3: regs.MOD1.lo = read(ibp, iop + 4), _state.csrs.M1 = 1; [[fallthrough]];
+  case 3:
+    regs.MOD1.lo = read(ibp, iop + 4), _state.csrs.M1 = 1;
+    ret.write = regs.MOD1.lo;
+    [[fallthrough]];
   case 2: regs.ID.lo = read(ibp, iop + 2); [[fallthrough]];
   case 1: regs.ACCESS = read(ibp, iop + 0); [[fallthrough]];
   case 0: break;
@@ -496,11 +500,13 @@ DecodedOp::MMIO Decoder::decode_mmio(pepp::bts::Buffer::ID ibp, u16 iop) {
   regs.OFF.hi = (u16)span[regs.DP.lo + 0] | ((u16)span[regs.DP.lo + 1] << 8);
   regs.OFF.lo = (u16)span[regs.DP.lo + 2] | ((u16)span[regs.DP.lo + 3] << 8);
 
-  // DS stays the payload size, so the payload begins past the offset rather than at DP.
-  ret.data = tvm::SegmentPair{.hi = regs.DP.hi, .lo = (u16)(regs.DP.lo + MMIO_PROLOGUE_BYTES)};
+  regs.DS = 1;
+  ret.data = span[regs.DP.lo + MMIO_PROLOGUE_BYTES];
+
   ret.access = Operation(regs.ACCESS);
   ret.target = (Device::ID)regs.ID.lo;
   ret.offset = regs.OFF.as_u32();
+
   return ret;
 }
 

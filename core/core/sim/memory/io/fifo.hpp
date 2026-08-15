@@ -107,6 +107,9 @@ public:
   FIFO &input();
   // Call FIFO::pop_back() on _input_it. Saturates at the front yielding the fill value rather than wrapping.
   u8 rewind_input();
+  // Step forward the read position by one byte. If the queue is empty, push the provided byte value.
+  // For non-empty queues, the byte is ignored.
+  void advance_input(u8 byte);
   FIFO &output();
 
   // Device interface

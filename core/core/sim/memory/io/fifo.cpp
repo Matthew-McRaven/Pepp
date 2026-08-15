@@ -156,6 +156,13 @@ u8 FIFORegister::rewind_input() {
   return _input_it.value_or(_config.fill);
 }
 
+void FIFORegister::advance_input(u8 byte) {
+  // Only queue the byte when there is nothing under the read position.
+  // Pushing unconditionally would cause undo/redo to not be mirrors.
+  if (_input_it.at_end()) _input.push(byte);
+  _input_it = ++_input_it;
+}
+
 FIFORegister::FIFO &FIFORegister::input() { return _input; }
 
 FIFORegister::FIFO &FIFORegister::output() { return _output; }

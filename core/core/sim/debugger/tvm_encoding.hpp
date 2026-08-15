@@ -358,16 +358,11 @@ struct INCDP {
   constexpr auto encode() const { return encode_op<Opcode::INCDP, true>(dp_incr, DS); }
 };
 
-// MMIO puts offset in the payload rather than the packet for the same reasons as SETMEMDX
+// MMIO puts offset in the payload rather than the packet for the same reasons as SETMEMDX.
+// Omitted the shorter forms because dropping the read/write bit in the 3 data word will be confusing.
+// In the future, it might be worth consuming 2 opcodes (one for in, one for out) if this instruction does not compress
+// well in practice.
 template <std::size_t> struct MMIO;
-template <> struct MMIO<1> {
-  u16 access;
-  constexpr auto encode() const { return encode_op<Opcode::MMIO, true>(access); }
-};
-template <> struct MMIO<2> {
-  u16 access, dev;
-  constexpr auto encode() const { return encode_op<Opcode::MMIO, true>(access, dev); }
-};
 template <> struct MMIO<3> {
   // false if read, true if write.
   bool read_write;
@@ -469,12 +464,12 @@ struct DPIncr {
 };
 
 struct MMIO {
+  // false is read, true is write.
   bool write = false;
-  Operation access{};
+  u8 data = 0, size = 0;
   Device::ID target{};
+  Operation access{};
   u32 offset = 0;
-  SegmentPair data{};
-  u16 size = 0;
 };
 
 using OpChoice = std::variant<Halt, Ret, Call, InvCall, InvRet, ASyn, ISyn, LMR, BR, SetMem, CmpMem, ClrMem, SetReg,

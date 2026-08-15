@@ -21,6 +21,8 @@ enum class StopCause {
   RegisterWidthIllegal,
   TargetInvalid,
   TargetNotMemory,
+  // Can't apply MMIO opcode to a non-FIFO target.
+  TargetNotFIFO,
   // An INVRET with no matching INVCALL, or a program that reached HALT while still inside one. Either way the
   // direction counter no longer describes reality, so continuing would silently replay ops the wrong way round.
   UnbalancedInvCall,
@@ -192,17 +194,21 @@ enum class Opcode : u8 {
   // Always XOR-encoded, because this is a specialized instruction to optimize invertible traces.
   // Packet registers: ACCESS, ID.lo
   SETMEMDX = 0b01'1110,
+  // An operation that modifies a FIFORegister. FIFOs can change state on read, which makes them different than other
+  // memory types. I've created a unified opcode for both reading and writing to FIFOs rather than modify SETMEM/D/X
+  // which handles both reading and writing.
+  // Sets DS to 1 for the sizeof data.
   //
-  // Data pointer contains: OFFSET, SIZE, DATA.
+  // Data pointer contains: (4)OFFSET, (1)DATA.
   // Packet registers: ACCESS, ID.lo, MOD1.lo = rd^wr
   MMIO = 0b01'1111,
   // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
   MAX = ((u8)MMIO) + 1,
 };
 
-// How many data-chain bytes SETMEMDX consumes as the target offset, ahead of the payload.
+// (4) OFFSET
 inline constexpr u16 SETMEMDX_ADDRESS_BYTES = 4;
-// (4) address
+// (4) OFFSET
 inline constexpr u16 MMIO_PROLOGUE_BYTES = 4;
 
 // Instructions to the tvm::Interpreter are always multiples of 16bits
