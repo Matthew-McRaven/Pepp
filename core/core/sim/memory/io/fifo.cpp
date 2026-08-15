@@ -65,7 +65,10 @@ u8 FIFORegister::FIFO::at(Address index) const {
   return res;
 }
 
-void FIFORegister::FIFO::clear() { _data.clear(0); }
+void FIFORegister::FIFO::clear() {
+  _data.clear(0);
+  _max_index = 0;
+}
 
 size_t FIFORegister::FIFO::size() const noexcept {
   return _max_index; // Since we always push to the end, the size is equal to the max index.
@@ -148,7 +151,10 @@ FIFORegister::FIFORegister(Configuration config) : Device(), _config(config), _i
     throw std::logic_error("Memory-Mapped Reg must only span single byte.");
 }
 
-void FIFORegister::rewind_input() const { _input_it = --_input_it; }
+u8 FIFORegister::rewind_input() {
+  _input_it = --_input_it;
+  return _input_it.value_or(_config.fill);
+}
 
 FIFORegister::FIFO &FIFORegister::input() { return _input; }
 
@@ -188,7 +194,7 @@ bool FIFORegister::traced() const { return _trace.traced(); }
 
 AddressSpan FIFORegister::span() const { return _config.span; }
 
-void FIFORegister::clear(u8 fill) {
+void FIFORegister::clear(u8) {
   _input.clear(), _output.clear();
   _input_it = _input.begin();
 }
@@ -198,7 +204,7 @@ void FIFORegister::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   u8 v = _config.fill;
   if (any(_config.direction & FIFORegister::Direction::Output)) {
-    _output.latest_or(_config.fill);
+    v = _output.latest_or(_config.fill);
   } else if (any(_config.direction & FIFORegister::Direction::Input)) {
     v = _input_it.value_or(_config.fill);
   }

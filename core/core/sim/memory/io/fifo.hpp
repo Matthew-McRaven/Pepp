@@ -74,7 +74,7 @@ public:
     u8 latest_or(u8 def) const noexcept;
 
   private:
-    Address _max_index;
+    Address _max_index = 0;
     pepp::bts::PagedPool<u8> _data;
   };
 
@@ -105,7 +105,8 @@ public:
   FIFORegister &operator=(const FIFORegister &) = delete;
 
   FIFO &input();
-  void rewind_input() const; // Decrement _input_it.
+  // Call FIFO::pop_back() on _input_it. Saturates at the front yielding the fill value rather than wrapping.
+  u8 rewind_input();
   FIFO &output();
 
   // Device interface
