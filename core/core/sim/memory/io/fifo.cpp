@@ -21,6 +21,17 @@ FIFORegister::FIFO::Iterator FIFORegister::FIFO::Iterator::operator++(int) {
   return tmp;
 }
 
+FIFORegister::FIFO::Iterator &FIFORegister::FIFO::Iterator::operator--() {
+  if (_index != 0) _index -= 1;
+  return *this;
+}
+
+FIFORegister::FIFO::Iterator FIFORegister::FIFO::Iterator::operator--(int) {
+  Iterator tmp = *this;
+  --(*this);
+  return tmp;
+}
+
 bool FIFORegister::FIFO::Iterator::operator!=(const Iterator &other) const { return !(*this == other); }
 
 bool FIFORegister::FIFO::Iterator::operator==(const Iterator &other) const {
@@ -42,6 +53,11 @@ FIFORegister::FIFO::Iterator FIFORegister::FIFO::begin() { return Iterator(this,
 FIFORegister::FIFO::Iterator FIFORegister::FIFO::end() { return Iterator(this, size()); }
 
 void FIFORegister::FIFO::push(u8 value) { _data.write(_max_index++, {&value, 1}); }
+
+u8 FIFORegister::FIFO::pop_back() {
+  if (_max_index == 0) return 0;
+  return at(--_max_index);
+}
 
 u8 FIFORegister::FIFO::at(Address index) const {
   u8 res;
@@ -131,6 +147,8 @@ FIFORegister::FIFORegister(Configuration config) : Device(), _config(config), _i
   if (_config.span.lower() != _config.span.upper())
     throw std::logic_error("Memory-Mapped Reg must only span single byte.");
 }
+
+void FIFORegister::rewind_input() const { _input_it = --_input_it; }
 
 FIFORegister::FIFO &FIFORegister::input() { return _input; }
 

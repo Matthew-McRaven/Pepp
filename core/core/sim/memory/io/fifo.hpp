@@ -49,6 +49,8 @@ public:
       Iterator(FIFO *q, size_t index);
       Iterator &operator++();
       Iterator operator++(int);
+      Iterator &operator--();
+      Iterator operator--(int);
       bool operator!=(const Iterator &other) const;
       bool operator==(const Iterator &other) const;
       bool at_end() const;
@@ -63,6 +65,7 @@ public:
     // On insert, previously captured end() iterator will become invalidated.
     Iterator end();
     void push(u8 value);
+    u8 pop_back();
     u8 at(Address index) const;
     void clear();
     size_t size() const noexcept;
@@ -102,6 +105,7 @@ public:
   FIFORegister &operator=(const FIFORegister &) = delete;
 
   FIFO &input();
+  void rewind_input() const; // Decrement _input_it.
   FIFO &output();
 
   // Device interface
