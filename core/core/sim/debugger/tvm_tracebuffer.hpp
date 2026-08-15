@@ -42,6 +42,49 @@ struct Cursor {
   bool operator==(const Cursor &) const = default;
 };
 
+// Unitialized data and a writable view of it.
+struct DataSlot {
+  pepp::bts::Buffer::Location loc;
+  bits::span<u8> bytes;
+};
+
+// --- Per-initiator recording state ---
+// Do not reduce capcity between iterations. After some # of instructions, I expect we'll reach a steady state and
+// these buffers will stop growing.
+struct DpAnchor {
+  bool set = false;
+  pepp::bts::Buffer::Location at{};
+  // DS the program set, i.e. the payload size.
+  u16 size = 0;
+  // Bytes this payload actually reserved, which is larger than `size` when the record carries something ahead of
+  // the payload. SETMEMDX reserves an extra 4 bytes for a target address.
+  // If stride != size, when you update the DP you MUST use INCDP and advance by stride rather than ACCCDP (with
+  // size). SETMEMDX+ACCDP would leave DP 4 bytes behind the new payload.
+  u16 stride = 0;
+};
+
+struct Recording {
+  std::vector<u8> prefix;
+  std::vector<u8> body;
+  std::vector<u8> postfix;
+  // Which initiator this belongs to, which is needed to find the right data chain.
+  Device::ID id{};
+  bool active = false;
+  // See DpAnchor. Reset by begin().
+  DpAnchor dp{};
+  // Where this record's first data payload byte landed, which is what commit() stores in the location buffer so the
+  // driver can point DP at it before entering the program. Distinct from DpAnchor::at, which tracks the most recent
+  // payload. Null when the record wrote nothing.
+  pepp::bts::Buffer::Location data_start{};
+  // The ring slot and location-buffer index this recording claimed at begin().
+  // Reserving these values at begin() allows safe interleaving of initiators.
+  std::size_t slot = 0;
+  u16 entry = 0;
+  // Memoize the result of data_chain to avoid a map lookup on every traced write. Resolved once per recording now
+  // that the slot cannot move underneath it; begin() clears it.
+  pepp::bts::BufferChain *chain = nullptr;
+};
+
 // Trace log of TVM programs.
 //
 // TB delegates serializing opcodes to trace::Recorder to avoid modification with addition of new ops.
@@ -90,9 +133,6 @@ struct Cursor {
 // This decision simplifies the TraceBuffer implementation and should increase hit-rates for templatization by reducing
 // unnecessary implicit state.
 class TraceBuffer {
-  // Forward-declared so the public Open handle below can name it; defined in the private section.
-  struct Recording;
-
 public:
   // Minimum body size (in bytes) to be eligible for template promotion.
   // If a call is 6 bytes, then the body needs to exceed 6 bytes (+ 2 for a ret)
@@ -163,11 +203,6 @@ public:
   // onto it, and records the result with set_dp_anchor().
   pepp::bts::Buffer::Location append_data(Device::ID initiator, bits::span<const u8> data);
 
-  // Unitialized data and a writable view of it.
-  struct DataSlot {
-    pepp::bts::Buffer::Location loc;
-    bits::span<u8> bytes;
-  };
   // Reserves a contiguous chunk of the data chain without initializing the memory, and return that memory as a span of
   // bytes. Allows us to avoid an extra data copy in some places. Reports the location the same way append_data does.
   DataSlot append_data_uninitialized(Device::ID initiator, std::size_t len);
@@ -180,17 +215,6 @@ public:
   //
   // Tracked per recording rather than per emitter because several devices contribute to one CPU instruction's record,
   // and they share the one data pointer.
-  struct DpAnchor {
-    bool set = false;
-    pepp::bts::Buffer::Location at{};
-    // DS the program set, i.e. the payload size.
-    u16 size = 0;
-    // Bytes this payload actually reserved, which is larger than `size` when the record carries something ahead of
-    // the payload. SETMEMDX reserves an extra 4 bytes for a target address.
-    // If stride != size, when you update the DP you MUST use INCDP and advance by stride rather than ACCCDP (with
-    // size). SETMEMDX+ACCDP would leave DP 4 bytes behind the new payload.
-    u16 stride = 0;
-  };
   DpAnchor dp_anchor(Recording &rec) const;
   void set_dp_anchor(Recording &rec, pepp::bts::Buffer::Location at, u16 size, u16 stride);
 
@@ -402,31 +426,6 @@ private:
     u16 open = 0;
 
     void reset(pepp::bts::BufferManager &mgr);
-  };
-
-  // --- Per-initiator recording state ---
-  // Do not reduce capcity between iterations. After some # of instructions, I expect we'll reach a steady state and
-  // these buffers will stop growing.
-  struct Recording {
-    std::vector<u8> prefix;
-    std::vector<u8> body;
-    std::vector<u8> postfix;
-    // Which initiator this belongs to, which is needed to find the right data chain.
-    Device::ID id{};
-    bool active = false;
-    // See DpAnchor. Reset by begin().
-    DpAnchor dp{};
-    // Where this record's first data payload byte landed, which is what commit() stores in the location buffer so the
-    // driver can point DP at it before entering the program. Distinct from DpAnchor::at, which tracks the most recent
-    // payload. Null when the record wrote nothing.
-    pepp::bts::Buffer::Location data_start{};
-    // The ring slot and location-buffer index this recording claimed at begin().
-    // Reserving these values at begin() allows safe interleaving of initiators.
-    std::size_t slot = 0;
-    u16 entry = 0;
-    // Memoize the result of data_chain to avoid a map lookup on every traced write. Resolved once per recording now
-    // that the slot cannot move underneath it; begin() clears it.
-    pepp::bts::BufferChain *chain = nullptr;
   };
 
   // --- Template dedup ---
