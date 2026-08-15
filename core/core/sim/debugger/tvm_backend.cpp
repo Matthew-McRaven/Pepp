@@ -4,10 +4,8 @@
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
 namespace {
-// Visitor for Backend::dispatch. Deliberately a hand-written struct rather than the usual pile of `[&]` lambdas: each
-// lambda would be its own closure type carrying its own copy of the two captures, so an 18-alternative overload set
-// costs ~272 bytes of stack and 35 stores to build -- per dispatched instruction, and with nothing optimized away in a
-// Debug build. This is two pointers, passed in registers.
+// Visitor for Backend::dispatch. Deliberately a hand-written struct rather than the usual collection of capturing
+// lambdas to avoid the the closure overhead per-alternative.
 struct Dispatch {
   tvm::Backend *self;
   tvm::MachineState *state;

@@ -25,12 +25,6 @@ enum class AccessMode : u8 {
 //   - an analyzer, one of which reports which target memory locations would be touched w/o touching, which is
 //     used to implement dirty tracking of main memory.
 //
-// Two tiers of handler:
-//   - The ops below that only move data around MachineState (control flow, the MOD/DP/register-programming ops) have
-//     concrete implementations here, because their meaning is the same everywhere. Override one only to restrict it.
-//   - The ops that reach outside the machine (SET*/CMP*/CLR*, TRADDR) are pure virtual, because there is no sensible
-//     default for "touch the target".
-//
 // An backend refuses an op by implementing that handler with a hard_stop. I did not use an opcode mask,
 // because some backends might want to implement a subset of ops which share a DecodedOP (e.g., implement unconditional
 // branches only).

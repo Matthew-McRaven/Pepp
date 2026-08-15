@@ -33,11 +33,9 @@ private:
 };
 
 // A position within the trace buffer, identifying a specific entry in a specific ring slot.
-// Slot indices must be taken % ring size.
-// Entry is the index within that slot's location buffer.
 struct Cursor {
-  size_t slot = 0;
-  u16 entry = 0;
+  size_t slot = 0; // must be taken % ring size.
+  u16 entry = 0;   // an index index within that slot's location buffer.
   auto operator<=>(const Cursor &) const = default;
   bool operator==(const Cursor &) const = default;
 };
@@ -48,10 +46,8 @@ struct DataSlot {
   bits::span<u8> bytes;
 };
 
-// --- Per-initiator recording state ---
-// Do not reduce capcity between iterations. After some # of instructions, I expect we'll reach a steady state and
-// these buffers will stop growing.
 struct DpAnchor {
+  // False if no program has written data yet
   bool set = false;
   pepp::bts::Buffer::Location at{};
   // DS the program set, i.e. the payload size.
@@ -64,9 +60,10 @@ struct DpAnchor {
 };
 
 struct Recording {
-  std::vector<u8> prefix;
-  std::vector<u8> body;
-  std::vector<u8> postfix;
+  // Buffers to hold uncommited code, which should not be reduced in size between iterations. After some # of
+  // instructions, I expect we'll reach a steady state and these buffers will stop growing and we can avoid dynamic
+  // memory allocation in the long run.
+  std::vector<u8> prefix, body, postfix;
   // Which initiator this belongs to, which is needed to find the right data chain.
   Device::ID id{};
   bool active = false;
@@ -85,8 +82,6 @@ struct Recording {
   pepp::bts::BufferChain *chain = nullptr;
 };
 
-// Trace log of TVM programs.
-//
 // TB delegates serializing opcodes to trace::Recorder to avoid modification with addition of new ops.
 // The class manages the lifetimes of buffers used by a tvm::Interpreter, and provides a circular-queue
 // abstraction. Commit()'ed programs go to a ring, whose size provides an upper limit of the length of a trace histroy.
@@ -100,7 +95,6 @@ struct Recording {
 // Program data and code are stored separately per ring entry. There will always be internal fragmentation because
 // data/code buffers are not shared between ring entries, which was a deliberate choice to reduce the difficultly of
 // lifetime mangamenet. As soon as a ring slot is freed, its pages can be released to the BufferManager.
-//
 //
 // Programs are built incrementally in a per-initiator temporary buffer in 3 parts: a prefix, a body,
 // and a postfix. begin() claims the ring slot and the location-buffer index the program will occupy; the bytes are
