@@ -103,6 +103,12 @@ bool DocumentImpl::save()
     return true;
 }
 
+bool Document::fromXml(const std::string &svgData)
+{
+    _impl->contents = svgData;
+    return _impl->parse();
+}
+
 bool Document::open(const std::string &fileName, bool readOnly)
 {
     _impl->fileName = fileName;
@@ -124,18 +130,23 @@ bool Document::open(const std::string &fileName, bool readOnly)
     t1.finish();
     std::cout << "ifstream::read: " << t1.elapsedTime() << std::endl;
 
-    //  Clear previous result
-    //_impl->elements.reset();
-    //  Parser will callback to this instance using method addFromParser().
-    std::unique_ptr<SvgParser<DocumentImpl>> parser(new SvgParser<DocumentImpl>(*_impl));
-    //std::unique_ptr<SvgParser<XmlElement>> parser(new SvgParser<XmlElement>(_impl->elements));
+    return _impl->parse();
+}
 
+bool DocumentImpl::parse()
+{
+    //  Create on heap to avoid stack warnings from compiler
+    std::unique_ptr<SvgParser<DocumentImpl>> parser(new SvgParser<DocumentImpl>(*this));
+    Timer<> t1;
     t1.start();
-    parser->parse(_impl->contents);
+    try {
+        parser->parse(contents);
+    } catch (...) {
+        std::cout << "Error parsing file." << std::endl;
+        return false;
+    }
     t1.finish();
     std::cout << "parsing file: " << t1.elapsedTime() << std::endl;
-
-    //  Archive has data
     return true;
 }
 
@@ -197,6 +208,12 @@ void DocumentImpl::addFromParser(const std::string &key,
         parents.pop_back();
         break;
     }
+}
+
+const std::string &Document::toXml()
+{
+    _impl->toXml();
+    return _impl->contents;
 }
 
 //  Loop throug all elements and get a rope of values.

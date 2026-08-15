@@ -43,6 +43,7 @@ public:
 
     bool save();
     bool read();
+    bool parse();
 
     void addFromParser(const std::string &key, const std::string &value, const XmlNode::Type type);
     SvgElement *createElement(const std::string &name);

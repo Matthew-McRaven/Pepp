@@ -40,8 +40,8 @@ public:
     //	accessors
 
     //	File options
-    //bool fromSvg(const std::string &fileName);
-    //const std::string& toSvg();
+    bool fromXml(const std::string &svgData);
+    const std::string &toXml();
 
     bool open(const std::string &fileName, bool readOnly = false);
     bool exists(const std::string &fileName);
