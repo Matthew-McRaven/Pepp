@@ -133,7 +133,7 @@ private:
   Configuration _config;
   FIFO _input, _output;
   mutable FIFO::Iterator _input_it;
-  trace::Recorder _trace;
+  mutable trace::Recorder _trace;
 };
 
 consteval void is_bitflags(FIFORegister::Direction);

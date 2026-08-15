@@ -249,10 +249,10 @@ void ApplyBackend::on_clrreg(MachineState &state, const tvm::DecodedOp::ClrReg &
 }
 
 void ApplyBackend::on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &op) {
-  // Refuse through the ISA's own failure channel rather than by throwing. TRADDR decodes and encodes like any other
-  // opcode, so a trace containing one is not a programming error in the driver -- it is a program this backend
-  // cannot run, and it should stop the machine the way every other refusal does instead of unwinding out of
-  // Interpreter::step and past run_each.
+  state.hard_stop(tvm::StopCause::Unimplemented);
+}
+
+void ApplyBackend::on_mmio(MachineState &state, const DecodedOp::MMIO &op) {
   state.hard_stop(tvm::StopCause::Unimplemented);
 }
 

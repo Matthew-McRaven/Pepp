@@ -192,12 +192,18 @@ enum class Opcode : u8 {
   // Always XOR-encoded, because this is a specialized instruction to optimize invertible traces.
   // Packet registers: ACCESS, ID.lo
   SETMEMDX = 0b01'1110,
+  //
+  // Data pointer contains: OFFSET, SIZE, DATA.
+  // Packet registers: ACCESS, ID.lo, MOD1.lo = rd^wr
+  MMIO = 0b01'1111,
   // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
-  MAX = ((u8)SETMEMDX) + 1,
+  MAX = ((u8)MMIO) + 1,
 };
 
 // How many data-chain bytes SETMEMDX consumes as the target offset, ahead of the payload.
 inline constexpr u16 SETMEMDX_ADDRESS_BYTES = 4;
+// (4) address
+inline constexpr u16 MMIO_PROLOGUE_BYTES = 4;
 
 // Instructions to the tvm::Interpreter are always multiples of 16bits
 struct OpWord {

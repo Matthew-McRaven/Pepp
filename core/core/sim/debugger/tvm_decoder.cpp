@@ -61,6 +61,7 @@ void Decoder::decode() {
   case Opcode::LDP: _decoded = decode_ldp(ibp, iop); break;
   case Opcode::ACCDP: _decoded = decode_accdp(ibp, iop); break;
   case Opcode::INCDP: _decoded = decode_incdp(ibp, iop); break;
+  case Opcode::MMIO: _decoded = decode_mmio(ibp, iop); break;
   default: _state.hard_stop(StopCause::IllegalOpcode); break; // Treat unrecognized upcodes as hard failures.
   }
 }
@@ -469,6 +470,37 @@ tvm::DecodedOp::DPIncr Decoder::decode_incdp(pepp::bts::Buffer::ID ibp, u16 iop)
   case 1: ret.dp_incr = read(ibp, iop + 0);
   case 0: break;
   }
+  return ret;
+}
+
+DecodedOp::MMIO Decoder::decode_mmio(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::MMIO ret;
+  auto &regs = _state.regs;
+  _state.csrs.TR = 0; // Enter target mode.
+  ret.size = regs.DS;
+
+  switch (regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 3: regs.MOD1.lo = read(ibp, iop + 4), _state.csrs.M1 = 1; [[fallthrough]];
+  case 2: regs.ID.lo = read(ibp, iop + 2); [[fallthrough]];
+  case 1: regs.ACCESS = read(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
+  }
+
+  // Offset first, then the payload. Bound both together against the buffer.
+  auto dbuff = _mgr->find((pepp::bts::Buffer::ID)regs.DP.hi);
+  if (!dbuff) return _state.hard_stop(StopCause::InvalidDBuffer), ret;
+  auto span = dbuff->span();
+  if ((size_t)regs.DP.lo + MMIO_PROLOGUE_BYTES + ret.size > span.size())
+    return _state.hard_stop(StopCause::InvalidDBuffer), ret;
+  regs.OFF.hi = (u16)span[regs.DP.lo + 0] | ((u16)span[regs.DP.lo + 1] << 8);
+  regs.OFF.lo = (u16)span[regs.DP.lo + 2] | ((u16)span[regs.DP.lo + 3] << 8);
+
+  // DS stays the payload size, so the payload begins past the offset rather than at DP.
+  ret.data = tvm::SegmentPair{.hi = regs.DP.hi, .lo = (u16)(regs.DP.lo + MMIO_PROLOGUE_BYTES)};
+  ret.access = Operation(regs.ACCESS);
+  ret.target = (Device::ID)regs.ID.lo;
+  ret.offset = regs.OFF.as_u32();
   return ret;
 }
 

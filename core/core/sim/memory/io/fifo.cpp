@@ -205,9 +205,9 @@ Target::Result FIFORegister::read(Address address, bits::span<u8> dest, Operatio
       if (_config.fail_policy == FailPolicy::RaiseError) throw Error(Error::Type::NeedsMMI, address);
       else src = _config.fill;
     } else src = _input_it.value_or(_config.fill);
-
+    // Record that the read consumed values from the input queue
     if (advances_input) {
-      // TODO: emit a trace which indicates that we consumed a value from the input queue, which we must emit by-value.
+      _trace.emit_mm_read(op, address, src);
       if (!(_input_it.at_end())) ++_input_it;
     }
   } else if (any(_config.direction & FIFORegister::Direction::Output)) {
@@ -230,7 +230,7 @@ Target::Result FIFORegister::write(Address address, bits::span<const u8> src, Op
   const bool advances_output = !(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal);
   // This is an output reg. Only enqueue value if the operation is not part of an app-internal update.
   if (advances_output && any(_config.direction & FIFORegister::Direction::Output)) {
-    // TODO: emit a trace which indicates that we produced a value to the output queue.
+    _trace.emit_mm_write(op, address, src.front());
     _output.push(src.front());
   }
   // Ignore writes to non-output registers.

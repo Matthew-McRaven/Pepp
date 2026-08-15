@@ -32,6 +32,7 @@ public:
   void on_cmpreg(MachineState &state, const tvm::DecodedOp::CmpReg &op) override;
   void on_clrreg(MachineState &state, const tvm::DecodedOp::ClrReg &op) override;
   void on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &op) override;
+  void on_mmio(MachineState &state, const tvm::DecodedOp::MMIO &op) override;
 
 private:
   std::shared_ptr<pepp::bts::BufferManager> _mgr;

@@ -8,8 +8,10 @@
 #include "core/sim/api/memory.hpp"
 
 namespace tvm {
+class DataSlot;
 class TraceBuffer;
-}
+class Recording;
+} // namespace tvm
 
 namespace trace {
 
@@ -79,6 +81,12 @@ public:
   // that would have been thrown away beyond the cost of allocating a function ref.
   void emit_write(const Operation &op, Address address, bits::span<const u8> now, PriorFiller fill_prior);
 
+  // Pushing a byte onto "output" side of memory-mapped FIFO.
+  void emit_mm_write(const Operation &op, Address address, u8 pushed);
+  // Popped a byte from the "input" side of the memory-mapped FIFO. Since pop from a FIFO is destructive, we must
+  // record that value, otherwise we cannot undo this action.
+  void emit_mm_read(const Operation &op, Address address, u8 popped);
+
   // A helper class which which helps open & close a recording for a single instruction.
   class Instruction {
   public:
@@ -110,6 +118,9 @@ public:
   };
 
 private:
+  // 0 if read, 1 if write.
+  void emit_mm(const Operation &op, Address address, u8 pushed, bool read_write);
+  void emit_dp_update(const tvm::DataSlot &slot, tvm::Recording &rec, u16 size, u16 prologue);
   // Null means this device was never bound to a buffer.
   tvm::TraceBuffer *_tb = nullptr;
   Device::ID _emitter{};

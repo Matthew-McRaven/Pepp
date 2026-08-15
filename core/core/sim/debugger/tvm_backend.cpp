@@ -6,7 +6,7 @@
 namespace {
 // Visitor for Backend::dispatch. Deliberately a hand-written struct rather than the usual pile of `[&]` lambdas: each
 // lambda would be its own closure type carrying its own copy of the two captures, so an 18-alternative overload set
-// costs ~272 bytes of stack and 34 stores to build -- per dispatched instruction, and with nothing optimized away in a
+// costs ~272 bytes of stack and 35 stores to build -- per dispatched instruction, and with nothing optimized away in a
 // Debug build. This is two pointers, passed in registers.
 struct Dispatch {
   tvm::Backend *self;
@@ -30,6 +30,7 @@ struct Dispatch {
   void operator()(const tvm::DecodedOp::TRADDR &op) const { self->on_traddr(*state, op); }
   void operator()(const tvm::DecodedOp::LDP &op) const { self->on_ldp(*state, op); }
   void operator()(const tvm::DecodedOp::DPIncr &op) const { self->on_dpincr(*state, op); }
+  void operator()(const tvm::DecodedOp::MMIO &op) const { self->on_mmio(*state, op); }
 };
 } // namespace
 
