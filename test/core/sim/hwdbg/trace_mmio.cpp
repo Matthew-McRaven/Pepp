@@ -235,7 +235,7 @@ TEST_CASE("trace::Recorder: MMIO on a bidirectional FIFO", "[scope:core][scope:c
   }
 
   SECTION("An MMIO record shares a data chain with an ordinary write") {
-    // Real insturctions can touch both DRAM and a FIFO register. Like SETMEMDX, the data size will not equal the
+    // Real instructions can touch both DRAM and a FIFO register. Like SETMEMDX, the data size will not equal the
     // stride.
     h.fifo->input().push(0xAB);
     h.poke_ram(0x1111);

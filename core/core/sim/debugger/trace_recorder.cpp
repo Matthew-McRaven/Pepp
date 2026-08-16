@@ -119,10 +119,10 @@ void Recorder::emit_mm(const Operation &op, Address address, u8 pushed, bool rea
   slot.bytes[1] = (u8)((address >> 24) & 0xFF);
   slot.bytes[2] = (u8)((address >> 0) & 0xFF);
   slot.bytes[3] = (u8)((address >> 8) & 0xFF);
-  // Followed by the by the data value read or written.
+  // Followed by the data value read or written.
   slot.bytes[4] = pushed;
   emit_dp_update(slot, *rec, 1, tvm::MMIO_PROLOGUE_BYTES);
-  // Emit the actual MMIO instruct after the DP update instruction.
+  // Emit the actual MMIO instruction after the DP update instruction.
   const auto mmio =
       tvm::EncodedOp::MMIO<3>{.read_write = read_write, .access = op.as_u16(), .dev = _emitter.value}.encode();
   _tb->emit_body(*rec, {mmio.data(), mmio.size()});

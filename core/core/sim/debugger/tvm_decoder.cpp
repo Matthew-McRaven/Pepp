@@ -477,7 +477,7 @@ DecodedOp::MMIO Decoder::decode_mmio(pepp::bts::Buffer::ID ibp, u16 iop) {
   tvm::DecodedOp::MMIO ret;
   auto &regs = _state.regs;
   _state.csrs.TR = 0; // Enter target mode.
-  ret.size = regs.DS;
+  ret.size = 1;
   ret.write = false;
 
   switch (regs.IS.word_len) {
@@ -500,7 +500,6 @@ DecodedOp::MMIO Decoder::decode_mmio(pepp::bts::Buffer::ID ibp, u16 iop) {
   regs.OFF.hi = (u16)span[regs.DP.lo + 0] | ((u16)span[regs.DP.lo + 1] << 8);
   regs.OFF.lo = (u16)span[regs.DP.lo + 2] | ((u16)span[regs.DP.lo + 3] << 8);
 
-  regs.DS = 1;
   ret.data = span[regs.DP.lo + MMIO_PROLOGUE_BYTES];
 
   ret.access = Operation(regs.ACCESS);

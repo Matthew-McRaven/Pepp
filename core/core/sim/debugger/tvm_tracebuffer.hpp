@@ -35,7 +35,7 @@ private:
 // A position within the trace buffer, identifying a specific entry in a specific ring slot.
 struct Cursor {
   size_t slot = 0; // must be taken % ring size.
-  u16 entry = 0;   // an index index within that slot's location buffer.
+  u16 entry = 0;   // an index within that slot's location buffer.
   auto operator<=>(const Cursor &) const = default;
   bool operator==(const Cursor &) const = default;
 };
@@ -60,7 +60,7 @@ struct DpAnchor {
 };
 
 struct Recording {
-  // Buffers to hold uncommited code, which should not be reduced in size between iterations. After some # of
+  // Buffers to hold uncommitted code, which should not be reduced in size between iterations. After some # of
   // instructions, I expect we'll reach a steady state and these buffers will stop growing and we can avoid dynamic
   // memory allocation in the long run.
   std::vector<u8> prefix, body, postfix;

@@ -5,7 +5,7 @@
 
 namespace {
 // Visitor for Backend::dispatch. Deliberately a hand-written struct rather than the usual collection of capturing
-// lambdas to avoid the the closure overhead per-alternative.
+// lambdas to avoid the closure overhead per-alternative.
 struct Dispatch {
   tvm::Backend *self;
   tvm::MachineState *state;
