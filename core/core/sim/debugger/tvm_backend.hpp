@@ -25,12 +25,6 @@ enum class AccessMode : u8 {
 //   - an analyzer, one of which reports which target memory locations would be touched w/o touching, which is
 //     used to implement dirty tracking of main memory.
 //
-// Two tiers of handler:
-//   - The ops below that only move data around MachineState (control flow, the MOD/DP/register-programming ops) have
-//     concrete implementations here, because their meaning is the same everywhere. Override one only to restrict it.
-//   - The ops that reach outside the machine (SET*/CMP*/CLR*, TRADDR) are pure virtual, because there is no sensible
-//     default for "touch the target".
-//
 // An backend refuses an op by implementing that handler with a hard_stop. I did not use an opcode mask,
 // because some backends might want to implement a subset of ops which share a DecodedOP (e.g., implement unconditional
 // branches only).
@@ -67,7 +61,7 @@ public:
   // ISA, not part of what a backend gets to decide.
   void dispatch(MachineState &state, const tvm::DecodedOp::OpChoice &decoded);
 
-  // --- Ops that only touch MachineState: shared meaning, concrete here ---
+  // Ops that only modify trace VM state.
   virtual void on_halt(MachineState &state, const tvm::DecodedOp::Halt &op);
   virtual void on_ret(MachineState &state, const tvm::DecodedOp::Ret &op);
   virtual void on_call(MachineState &state, const tvm::DecodedOp::Call &op);
@@ -80,7 +74,7 @@ public:
   virtual void on_ldp(MachineState &state, const tvm::DecodedOp::LDP &op);
   virtual void on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op);
 
-  // --- Ops that reach outside the machine: no default is meaningful ---
+  // Ops that involve the target under test.
   virtual void on_setmem(MachineState &state, const tvm::DecodedOp::SetMem &op) = 0;
   virtual void on_cmpmem(MachineState &state, const tvm::DecodedOp::CmpMem &op) = 0;
   virtual void on_clrmem(MachineState &state, const tvm::DecodedOp::ClrMem &op) = 0;
@@ -88,6 +82,7 @@ public:
   virtual void on_cmpreg(MachineState &state, const tvm::DecodedOp::CmpReg &op) = 0;
   virtual void on_clrreg(MachineState &state, const tvm::DecodedOp::ClrReg &op) = 0;
   virtual void on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &op) = 0;
+  virtual void on_mmio(MachineState &state, const tvm::DecodedOp::MMIO &op) = 0;
 
 protected:
   Operation effective_access(const Operation &recorded) const {

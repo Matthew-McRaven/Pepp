@@ -160,3 +160,80 @@ TEST_CASE("(new) MemoryMappedReg storage out-of-bounds access",
     REQUIRE_THROWS_AS(dev.read(0x17, {tmp, 1}, op), Error);
   }
 }
+
+TEST_CASE("(new) MemoryMappedReg clear and dump", "[scope:core][scope:core.sim][kind:int][arch:*]") {
+  auto span = AddressSpan(0x17, 0x17);
+  auto cfg = FIFORegister::Configuration{Device::Configuration{base_desc}};
+  cfg.span = span, cfg.fill = 0xFE, cfg.id = {};
+  u8 tmp = 0;
+
+  SECTION("clear() empties the queues rather than just blanking them") {
+    // size() is the queue's write index, so clearing the backing store without resetting it would leave the queue
+    // reporting its old length over zeroed pages -- an emptied input would hand back 0x00 forever instead of
+    // reaching the fail policy.
+    auto local = cfg;
+    local.direction = FIFORegister::Direction::Input;
+    FIFORegister dev(local);
+    dev.input().push(0x11);
+    dev.input().push(0x22);
+    REQUIRE(dev.input().size() == 2);
+
+    dev.clear(0);
+
+    CHECK(dev.input().size() == 0);
+    CHECK(dev.input().empty());
+    // Nothing is queued, so this read is out of input rather than a read of a zero byte.
+    REQUIRE_THROWS_AS(dev.read(0x17, {&tmp, 1}, op), Error);
+  }
+
+  SECTION("clear() lets a refilled queue read from the front again") {
+    auto local = cfg;
+    local.direction = FIFORegister::Direction::Input;
+    FIFORegister dev(local);
+    dev.input().push(0x11);
+    REQUIRE_NOTHROW(dev.read(0x17, {&tmp, 1}, op));
+    REQUIRE(tmp == 0x11);
+
+    dev.clear(0);
+    dev.input().push(0x33);
+
+    // The read position was reset alongside the queue, so this sees the new byte and not the end of the old one.
+    REQUIRE_NOTHROW(dev.read(0x17, {&tmp, 1}, op));
+    CHECK(tmp == 0x33);
+  }
+
+  SECTION("dump() of an output register reports the most recent value written") {
+    auto local = cfg;
+    local.direction = FIFORegister::Direction::Output;
+    FIFORegister dev(local);
+    const u8 written = 0xCA;
+    REQUIRE_NOTHROW(dev.write(0x17, {&written, 1}, op));
+
+    dev.dump({&tmp, 1});
+    CHECK(tmp == 0xCA);
+  }
+
+  SECTION("dump() of an untouched register reports the fill") {
+    auto local = cfg;
+    local.direction = FIFORegister::Direction::Output;
+    FIFORegister dev(local);
+
+    dev.dump({&tmp, 1});
+    CHECK(tmp == 0xFE);
+  }
+
+  SECTION("dump() of an input register reports the byte the next read would consume") {
+    auto local = cfg;
+    local.direction = FIFORegister::Direction::Input;
+    FIFORegister dev(local);
+    dev.input().push(0x11);
+    dev.input().push(0x22);
+
+    dev.dump({&tmp, 1});
+    CHECK(tmp == 0x11);
+
+    REQUIRE_NOTHROW(dev.read(0x17, {&tmp, 1}, op));
+    dev.dump({&tmp, 1});
+    CHECK(tmp == 0x22); // dump follows the read position
+  }
+}

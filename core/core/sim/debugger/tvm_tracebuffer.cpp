@@ -62,7 +62,7 @@ TraceBuffer::~TraceBuffer() noexcept {
 
 // --- Recording lifecycle ---
 
-TraceBuffer::Recording *TraceBuffer::find_recording(Device::ID initiator) {
+Recording *TraceBuffer::find_recording(Device::ID initiator) {
   auto it = _recordings.find(initiator);
   // Closed recordings are not findable. Entries outlive their commit() so the scratch vectors keep their capacity,
   // which means a bare map hit says "this initiator has recorded before", not "this initiator is recording now" --
@@ -178,7 +178,7 @@ void TraceBuffer::emit_postfix(Recording &rec, bits::span<const u8> encoded) {
   rec.postfix.insert(rec.postfix.end(), encoded.begin(), encoded.end());
 }
 
-TraceBuffer::DpAnchor TraceBuffer::dp_anchor(Recording &rec) const { return rec.dp; }
+DpAnchor TraceBuffer::dp_anchor(Recording &rec) const { return rec.dp; }
 
 void TraceBuffer::set_dp_anchor(Recording &rec, pepp::bts::Buffer::Location at, u16 size, u16 stride) {
   rec.dp = DpAnchor{true, at, size, stride};
@@ -212,7 +212,7 @@ pepp::bts::Buffer::Location TraceBuffer::append_data(Device::ID initiator, bits:
   return loc;
 }
 
-TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Recording &rec, std::size_t len) {
+DataSlot TraceBuffer::append_data_uninitialized(Recording &rec, std::size_t len) {
   const auto res = data_chain(rec).reserve(len);
   _footprint.data += len;
   // The first payload of a record is where the driver points DP before entering the program, so it is remembered
@@ -221,7 +221,7 @@ TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Recording &rec, std
   return DataSlot{res.loc, res.bytes};
 }
 
-TraceBuffer::DataSlot TraceBuffer::append_data_uninitialized(Device::ID initiator, std::size_t len) {
+DataSlot TraceBuffer::append_data_uninitialized(Device::ID initiator, std::size_t len) {
   auto rec = find_recording(initiator);
   assert(rec && "append_data_uninitialized() outside a begin()/commit() pair");
   return append_data_uninitialized(*rec, len);

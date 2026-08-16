@@ -21,6 +21,8 @@ enum class StopCause {
   RegisterWidthIllegal,
   TargetInvalid,
   TargetNotMemory,
+  // Can't apply MMIO opcode to a non-FIFO target.
+  TargetNotFIFO,
   // An INVRET with no matching INVCALL, or a program that reached HALT while still inside one. Either way the
   // direction counter no longer describes reality, so continuing would silently replay ops the wrong way round.
   UnbalancedInvCall,
@@ -178,30 +180,36 @@ enum class Opcode : u8 {
   // subroutine is explicit: RET is used by ordinary calls nested inside one, and must not end the suspension.
   // No packet registers.
   INVRET = 0b01'1101,
-  // SETMEMX with the target offset taken from the data chain instead of the instruction packet.
-  //
   // SETMEMX carries OFF in its packet, which makes the body of a program that stores to a different address each
-  // time unique -- so it can never be de-duplicated into a template, and a store costs its body in full on every
-  // execution. Here the first 4 bytes at DP are the offset (OFF.hi then OFF.lo, each a little-endian 16-bit word)
-  // and the DS payload bytes follow. The body is then byte-identical across every execution of the same store, at
-  // the price of 4 bytes of payload.
+  // time unique, preventing it from being templatized. For SETMEMDX,  the first 4 bytes at DP are the offset (OFF.hi,
+  // OFF.lo) each. The DS and payload bytes follow as in SETMEM/X. With the unique portion (offset) move out of the
+  // instruction packet, we have more opportunities to promote instructions to templates.
   //
-  // Only worth it where addresses actually vary. For a register bank, whose offsets are a constant handful, SETMEMX
-  // is strictly smaller -- the emitter picks per target device.
+  // When promoted to a template, SETMEMDX costs 4 bytes/instr more than SETMEM/X. For memory devices with predictable
+  // access patterns across an entire instruction (register banks, CSRs), prefer SETMEM/X.
   //
-  // Note DS remains the *payload* size, not the size of the whole region: DP addresses the offset, and the payload
-  // starts 4 bytes later. That means DP-relative stepping cannot use ACCDP after one of these, since ACCDP advances
-  // by DS and would land 4 bytes short; emitters must use an explicit INCDP.
+  // DS remains the *payload* size, not the size of the whole DP carveout. That means DP-relative stepping cannot use
+  // ACCDP after this, since ACCDP advances by DS and would land 4 bytes short. Use INCDP instead.
   //
   // Always XOR-encoded, because this is a specialized instruction to optimize invertible traces.
   // Packet registers: ACCESS, ID.lo
   SETMEMDX = 0b01'1110,
+  // An operation that modifies a FIFORegister. FIFOs can change state on read, which makes them different than other
+  // memory types. I've created a unified opcode for both reading and writing to FIFOs rather than modify SETMEM/D/X
+  // which handles both reading and writing.
+  // Sets DS to 1 for the sizeof data.
+  //
+  // Data pointer contains: (4)OFFSET, (1)DATA.
+  // Packet registers: ACCESS, ID.lo, MOD1.lo = rd^wr
+  MMIO = 0b01'1111,
   // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
-  MAX = ((u8)SETMEMDX) + 1,
+  MAX = ((u8)MMIO) + 1,
 };
 
-// How many data-chain bytes SETMEMDX consumes as the target offset, ahead of the payload.
+// (4) OFFSET
 inline constexpr u16 SETMEMDX_ADDRESS_BYTES = 4;
+// (4) OFFSET
+inline constexpr u16 MMIO_PROLOGUE_BYTES = 4;
 
 // Instructions to the tvm::Interpreter are always multiples of 16bits
 struct OpWord {

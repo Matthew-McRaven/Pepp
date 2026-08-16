@@ -42,13 +42,15 @@ public:
   public:
     struct Iterator {
     public:
-      using iterator_category = std::forward_iterator_tag;
+      using iterator_category = std::bidirectional_iterator_tag;
       using difference_type = std::ptrdiff_t;
       using value_type = u8;
       explicit Iterator();
       Iterator(FIFO *q, size_t index);
       Iterator &operator++();
       Iterator operator++(int);
+      Iterator &operator--();
+      Iterator operator--(int);
       bool operator!=(const Iterator &other) const;
       bool operator==(const Iterator &other) const;
       bool at_end() const;
@@ -63,6 +65,7 @@ public:
     // On insert, previously captured end() iterator will become invalidated.
     Iterator end();
     void push(u8 value);
+    u8 pop_back();
     u8 at(Address index) const;
     void clear();
     size_t size() const noexcept;
@@ -71,7 +74,7 @@ public:
     u8 latest_or(u8 def) const noexcept;
 
   private:
-    Address _max_index;
+    Address _max_index = 0;
     pepp::bts::PagedPool<u8> _data;
   };
 
@@ -102,6 +105,11 @@ public:
   FIFORegister &operator=(const FIFORegister &) = delete;
 
   FIFO &input();
+  // Call FIFO::pop_back() on _input_it. Saturates at the front yielding the fill value rather than wrapping.
+  u8 rewind_input();
+  // Step forward the read position by one byte. If the queue is empty, push the provided byte value.
+  // For non-empty queues, the byte is ignored.
+  void advance_input(u8 byte);
   FIFO &output();
 
   // Device interface
@@ -133,7 +141,7 @@ private:
   Configuration _config;
   FIFO _input, _output;
   mutable FIFO::Iterator _input_it;
-  trace::Recorder _trace;
+  mutable trace::Recorder _trace;
 };
 
 consteval void is_bitflags(FIFORegister::Direction);

@@ -21,6 +21,17 @@ FIFORegister::FIFO::Iterator FIFORegister::FIFO::Iterator::operator++(int) {
   return tmp;
 }
 
+FIFORegister::FIFO::Iterator &FIFORegister::FIFO::Iterator::operator--() {
+  if (_index != 0) _index -= 1;
+  return *this;
+}
+
+FIFORegister::FIFO::Iterator FIFORegister::FIFO::Iterator::operator--(int) {
+  Iterator tmp = *this;
+  --(*this);
+  return tmp;
+}
+
 bool FIFORegister::FIFO::Iterator::operator!=(const Iterator &other) const { return !(*this == other); }
 
 bool FIFORegister::FIFO::Iterator::operator==(const Iterator &other) const {
@@ -43,13 +54,21 @@ FIFORegister::FIFO::Iterator FIFORegister::FIFO::end() { return Iterator(this, s
 
 void FIFORegister::FIFO::push(u8 value) { _data.write(_max_index++, {&value, 1}); }
 
+u8 FIFORegister::FIFO::pop_back() {
+  if (_max_index == 0) return 0;
+  return at(--_max_index);
+}
+
 u8 FIFORegister::FIFO::at(Address index) const {
   u8 res;
   _data.read(index, bits::span<u8>{&res, 1});
   return res;
 }
 
-void FIFORegister::FIFO::clear() { _data.clear(0); }
+void FIFORegister::FIFO::clear() {
+  _data.clear(0);
+  _max_index = 0;
+}
 
 size_t FIFORegister::FIFO::size() const noexcept {
   return _max_index; // Since we always push to the end, the size is equal to the max index.
@@ -132,6 +151,18 @@ FIFORegister::FIFORegister(Configuration config) : Device(), _config(config), _i
     throw std::logic_error("Memory-Mapped Reg must only span single byte.");
 }
 
+u8 FIFORegister::rewind_input() {
+  _input_it = --_input_it;
+  return _input_it.value_or(_config.fill);
+}
+
+void FIFORegister::advance_input(u8 byte) {
+  // Only queue the byte when there is nothing under the read position.
+  // Pushing unconditionally would cause undo/redo to not be mirrors.
+  if (_input_it.at_end()) _input.push(byte);
+  _input_it = ++_input_it;
+}
+
 FIFORegister::FIFO &FIFORegister::input() { return _input; }
 
 FIFORegister::FIFO &FIFORegister::output() { return _output; }
@@ -170,7 +201,7 @@ bool FIFORegister::traced() const { return _trace.traced(); }
 
 AddressSpan FIFORegister::span() const { return _config.span; }
 
-void FIFORegister::clear(u8 fill) {
+void FIFORegister::clear(u8) {
   _input.clear(), _output.clear();
   _input_it = _input.begin();
 }
@@ -180,7 +211,7 @@ void FIFORegister::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   u8 v = _config.fill;
   if (any(_config.direction & FIFORegister::Direction::Output)) {
-    _output.latest_or(_config.fill);
+    v = _output.latest_or(_config.fill);
   } else if (any(_config.direction & FIFORegister::Direction::Input)) {
     v = _input_it.value_or(_config.fill);
   }
@@ -205,9 +236,9 @@ Target::Result FIFORegister::read(Address address, bits::span<u8> dest, Operatio
       if (_config.fail_policy == FailPolicy::RaiseError) throw Error(Error::Type::NeedsMMI, address);
       else src = _config.fill;
     } else src = _input_it.value_or(_config.fill);
-
+    // Record that the read consumed values from the input queue
     if (advances_input) {
-      // TODO: emit a trace which indicates that we consumed a value from the input queue, which we must emit by-value.
+      _trace.emit_mm_read(op, address, src);
       if (!(_input_it.at_end())) ++_input_it;
     }
   } else if (any(_config.direction & FIFORegister::Direction::Output)) {
@@ -230,7 +261,7 @@ Target::Result FIFORegister::write(Address address, bits::span<const u8> src, Op
   const bool advances_output = !(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal);
   // This is an output reg. Only enqueue value if the operation is not part of an app-internal update.
   if (advances_output && any(_config.direction & FIFORegister::Direction::Output)) {
-    // TODO: emit a trace which indicates that we produced a value to the output queue.
+    _trace.emit_mm_write(op, address, src.front());
     _output.push(src.front());
   }
   // Ignore writes to non-output registers.
