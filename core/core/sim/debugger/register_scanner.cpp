@@ -6,10 +6,11 @@ namespace {
 static const Operation rw(Operation::Type::Application, Operation::Kind::data);
 static const Operation rw_buf(Operation::Type::BufferInternal, Operation::Kind::data);
 }
-void RegisterScan::expose(const Register &n) {
+RegisterScan::Register::Reference RegisterScan::expose(const Register &n) {
   auto id = next_id();
   _regs[id] = std::make_unique<Register>(n);
   _exposed[n.target].push_back(id);
+  return Register::Reference{.reg = id};
 }
 
 void RegisterScan::write(const RegisterRef &ref, bits::span<const u8> src, Byteswap bswap) {

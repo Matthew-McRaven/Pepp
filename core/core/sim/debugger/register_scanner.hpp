@@ -72,7 +72,7 @@ public:
   using RegisterRef = Register::Reference;
 
   RegisterScan(System *sys) : _sys(sys) {}
-  void expose(const Register &n);
+  RegisterScan::Register::Reference expose(const Register &n);
 
   enum class Byteswap {
     Always,        // Always perform a byteswap, even when host/guest match.
