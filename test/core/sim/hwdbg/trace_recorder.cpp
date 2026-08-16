@@ -425,24 +425,24 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
     return tb.commit(CPU);
   };
 
-  SECTION("The same shape of instruction promotes to a template") {
-    CHECK(tb.template_count() == 0);
+  SECTION("The same shape of instruction promotes to a stencil") {
+    CHECK(tb.stencil_count() == 0);
 
     one_instruction(0x1111, 0x2222);
     // First sighting: nothing to match against yet.
-    CHECK(tb.template_count() == 0);
+    CHECK(tb.stencil_count() == 0);
     CHECK(tb.pending_count() == 1);
 
     one_instruction(0x3333, 0x4444);
     // Second sighting of an identical body. Under the old always-absolute-LDP encoding this could never happen: the
     // body embedded a data-buffer id that moved every time.
-    CHECK(tb.template_count() == 1);
+    CHECK(tb.stencil_count() == 1);
 
     one_instruction(0x5555, 0x6666);
-    CHECK(tb.template_count() == 1); // reused, not re-promoted
+    CHECK(tb.stencil_count() == 1); // reused, not re-promoted
   }
 
-  SECTION("Templated programs still replay correctly") {
+  SECTION("Stenciled programs still replay correctly") {
     // The body became a CALL, so this also checks the prefix anchors DP correctly for a body it no longer contains.
     poke((Target *)mem, 0x10, 0xAAAA);
     poke((Target *)mem, 0x20, 0xBBBB);
@@ -451,7 +451,7 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
     poke((Target *)mem, 0x10, 0xCCCC);
     poke((Target *)mem, 0x20, 0xDDDD);
     auto loc = one_instruction(0x1111, 0x2222);
-    REQUIRE(tb.template_count() == 1); // this one really did go through the template path
+    REQUIRE(tb.stencil_count() == 1); // this one really did go through the stencil path
 
     CHECK(peek((Target *)mem, 0x10) == 0x1111);
     CHECK(peek((Target *)mem, 0x20) == 0x2222);
@@ -467,7 +467,7 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
     tb.begin(CPU);
     ((Target *)mem)->write<u16, bits::host_is_le>(0x30, 0x9999, emit_write_op); // different address -> different body
     tb.commit(CPU);
-    CHECK(tb.template_count() == 0);
+    CHECK(tb.stencil_count() == 0);
     CHECK(tb.pending_count() == 2);
   }
 
@@ -494,18 +494,18 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
     const auto f = tb.footprint();
     CHECK(f.programs == 20);
     CHECK(f.programs == tb.instruction_count());
-    REQUIRE(tb.template_count() == 1);
+    REQUIRE(tb.stencil_count() == 1);
 
     // Always inlining should have a cost.
     CHECK(f.code < f.code_if_inlined);
-    CHECK(f.templates > 0);
-    // Check that the cost of templates + code is less than the always-inlined case
+    CHECK(f.stencils > 0);
+    // Check that the cost of stencils + code is less than the always-inlined case
     CHECK(f.total() < f.total_if_inlined());
     CHECK(f.compression_ratio() > 1.0);
 
     // Payloads and location entries are untouched by promotion, so they sit on both sides unchanged.
     CHECK(f.data > 0);
-    CHECK(f.total() - f.data - f.locations() == f.code + f.templates);
+    CHECK(f.total() - f.data - f.locations() == f.code + f.stencils);
 
     // Reserved is not the same question as written: buffer_footprint counts whole buffers, so it is a multiple of the
     // buffer size and never smaller than the bytes actually put in them.
@@ -522,15 +522,15 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
     CHECK(cleared.compression_ratio() == 0.0);
     CHECK(tb.instruction_count() == 0);
 
-    // Statistics only. The buffer still holds everything it did a moment ago -- the template survived, so the next
+    // Statistics only. The buffer still holds everything it did a moment ago -- the stencil survived, so the next
     // instruction of this shape is still a CALL -- and counting resumes from zero rather than from nothing.
-    CHECK(tb.template_count() == 1);
+    CHECK(tb.stencil_count() == 1);
     CHECK(tb.buffer_footprint() >= f.total());
     one_instruction(0xAB, 0xCD);
     const auto after = tb.footprint();
     CHECK(after.programs == 1);
     CHECK(after.data > 0);
-    // Promoted on the first sighting after the reset, which it could only do by reusing the surviving template.
+    // Promoted on the first sighting after the reset, which it could only do by reusing the surviving stencil.
     CHECK(after.code < after.code_if_inlined);
   }
 
@@ -544,8 +544,8 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
     }
 
     const auto f = tb.footprint();
-    CHECK(tb.template_count() == 0);
-    CHECK(f.templates == 0);
+    CHECK(tb.stencil_count() == 0);
+    CHECK(f.stencils == 0);
     // Nothing was replaced, so both sides agree exactly and the ratio is exactly 1.
     CHECK(f.code == f.code_if_inlined);
     CHECK(f.compression_ratio() == 1.0);

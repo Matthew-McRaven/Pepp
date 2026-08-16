@@ -46,12 +46,12 @@ TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t r
     // Lazily allocate node.data to avoid paying for all devices up front.
     // Also lazily allocate node.locations, which is a full 64KiB buffer that is only needed if we enable tracing.
   }
-  _templates = _mgr->alloc_chain();
-  // Create a tombstone entry in the template chain so reserved-but-unwritten location entries can point to a valid
-  // program. Not counted in _footprint.templates. It's only two bytes, and they are a functional requirement of the
+  _stencils = _mgr->alloc_chain();
+  // Create a tombstone entry in the stencil chain so reserved-but-unwritten location entries can point to a valid
+  // program. Not counted in _footprint.stencils. It's only two bytes, and they are a functional requirement of the
   // reservation system.
   const auto halt = EncodedOp::Halt<0>{}.encode();
-  _tombstone.code = _templates->append({halt.data(), halt.size()});
+  _tombstone.code = _stencils->append({halt.data(), halt.size()});
 }
 
 TraceBuffer::~TraceBuffer() noexcept {
@@ -283,7 +283,7 @@ std::size_t TraceBuffer::buffer_footprint() const {
     for (auto &[initiator, chain] : node.data)
       if (chain) buffers += chain->buffer_count();
   }
-  if (_templates) buffers += _templates->buffer_count();
+  if (_stencils) buffers += _stencils->buffer_count();
   return buffers * pepp::bts::Buffer::SIZE;
 }
 
@@ -320,19 +320,19 @@ pepp::bts::Buffer::ID TraceBuffer::data_predecessor(pepp::bts::Buffer::ID id) co
 
 u32 TraceBuffer::hash(bits::span<const u8> data) { return static_cast<u32>(pepp::fnv_1a(data)); }
 
-u32 TraceBuffer::template_hits(u32 h) const {
-  auto it = _template_map.find(h);
-  return it != _template_map.end() ? it->second.hit_count : 0;
+u32 TraceBuffer::stencil_hits(u32 h) const {
+  auto it = _stencil_map.find(h);
+  return it != _stencil_map.end() ? it->second.hit_count : 0;
 }
 
-u16 TraceBuffer::template_size(u32 h) const {
-  auto it = _template_map.find(h);
-  return it != _template_map.end() ? static_cast<u16>(it->second.body.size()) : 0;
+u16 TraceBuffer::stencil_size(u32 h) const {
+  auto it = _stencil_map.find(h);
+  return it != _stencil_map.end() ? static_cast<u16>(it->second.body.size()) : 0;
 }
 
-// --- Template dedup ---
+// --- Stencil dedup ---
 
-bool TraceBuffer::template_matches(const TemplateEntry &entry, bits::span<const u8> body) {
+bool TraceBuffer::stencil_matches(const StencilEntry &entry, bits::span<const u8> body) {
   return std::ranges::equal(entry.body, body);
 }
 
@@ -345,39 +345,39 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
   // Already promoted? A hash match is not proof of a body match -- the hash is a truncated 32-bit FNV, so two distinct
   // bodies can collide. Substituting a CALL on a collision would replay someone else's memory writes in place of this
   // program's, which is silent and unrecoverable, so confirm the bytes before trusting the entry.
-  if (auto it = _template_map.find(hash); it != _template_map.end() && template_matches(it->second, body)) {
+  if (auto it = _stencil_map.find(hash); it != _stencil_map.end() && stencil_matches(it->second, body)) {
     it->second.hit_count++;
     return {true, it->second.location};
-  } else if (it != _template_map.end()) {
-    // Collision: this body is not the promoted one. Inline it rather than calling the wrong template. It can never be
-    // templatized itself, since the hash slot is taken, but correctness beats footprint here.
+  } else if (it != _stencil_map.end()) {
+    // Collision: this body is not the promoted one. Inline it rather than calling the wrong stencil. It can never be
+    // promoted itself, since the hash slot is taken, but correctness beats footprint here.
     return {false, {}};
   }
 
   // Seen once before?
   if (_pending_hashes.contains(hash)) {
     if (body.size() >= PROMOTION_THRESHOLD) {
-      // Promote: copy body to template chain.
+      // Promote: copy body to stencil chain.
       // Must append RET to ensure that the caller has an opportunity to run its own postifx.
       // The RET is reached by falling out of the body, so the two must land in the same buffer. A chain append that
-      // does not fit rolls over to a fresh buffer, which would strand the RET and leave the template running off the
+      // does not fit rolls over to a fresh buffer, which would strand the RET and leave the stencil running off the
       // end -- so reserve both up front, exactly as flush_to_ring does for a subroutine.
       auto ret = EncodedOp::Ret<0>{}.encode();
-      _templates->ensure_capacity(body.size() + ret.size());
+      _stencils->ensure_capacity(body.size() + ret.size());
       // reserve() rather than append() so the copy hands back a pointer to where the body landed. Resolving that
       // afterwards would mean walking the chain, and doing it here -- once per promotion -- keeps it off the hit
       // path entirely.
-      const auto res = _templates->reserve(body.size());
+      const auto res = _stencils->reserve(body.size());
       bits::memcpy(res.bytes, body);
-      _templates->append({ret.data(), ret.size()});
-      // The fixed cost of promotion is the unbounded lifetime of the template chain, which is amortized over  re-uses.
-      _footprint.templates += body.size() + ret.size();
+      _stencils->append({ret.data(), ret.size()});
+      // The fixed cost of promotion is the unbounded lifetime of the stencil chain, which is amortized over re-uses.
+      _footprint.stencils += body.size() + ret.size();
 
-      TemplateEntry entry{};
+      StencilEntry entry{};
       entry.location = res.loc;
       entry.body = res.bytes;
       entry.hit_count = 2;
-      _template_map[hash] = entry;
+      _stencil_map[hash] = entry;
       _pending_hashes.erase(hash);
       return {true, res.loc};
     }
@@ -385,7 +385,7 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
     return {false, {}};
   }
 
-  // Maybe first occurrence? Cap the size of pending to some reasonable number so that it doesn't grow unboundedly.
+  // Maybe first occurrence? Cap the size of pending so that it doesn't grow unboundedly.
   if (_pending_hashes.size() >= MAX_PENDING_HASHES) _pending_hashes.clear();
   _pending_hashes.insert(hash);
   return {false, {}};
@@ -408,7 +408,7 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution r
 
   // Compute total size so we can ensure all parts land in one buffer.
   size_t total = rec.prefix.size() + rec.postfix.size();
-  if (resolution.is_template) total += call_enc.size();
+  if (resolution.is_stencil) total += call_enc.size();
   else total += rec.body.size();
 
   node.code->ensure_capacity(total);
@@ -426,16 +426,16 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution r
 
   if (!rec.prefix.empty()) append({rec.prefix.data(), rec.prefix.size()});
 
-  if (resolution.is_template) {
+  if (resolution.is_stencil) {
     append({call_enc.data(), call_enc.size()});
   } else if (!rec.body.empty()) append({rec.body.data(), rec.body.size()});
 
   append({rec.postfix.data(), rec.postfix.size()});
 
-  // The number of bytes actuallly written to the code chain vs the bytes.
+  // The number of bytes actually written to the code chain vs the bytes.
   _footprint.code += total;
-  // What if this body was inlined instead of promoted? Provides a metric for how much promotion is saving us rather
-  // than making promotion an optional feature.
+  // What if this body was inlined instead of promoted? Provides a metric for how much stencil promotion is saving us
+  // rather than making promotion an optional feature.
   _footprint.code_if_inlined += rec.prefix.size() + rec.body.size() + rec.postfix.size();
 
   // Record where this program starts and where its data starts.

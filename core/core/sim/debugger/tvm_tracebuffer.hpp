@@ -102,18 +102,18 @@ struct Recording {
 // what orders entries by when a recording *started* rather than when it finished, and what keeps a recording that
 // outlives a slot advance writing into the slot it began in. The body of a program is hashed to
 // determine if it has been seen before. If so, the program body is replaced with a call. The body is copied into a
-// "template" buffer if it has not yet been. The template buffer is never freed to avoid dealing with the possibility of
+// stencil buffer if it has not yet been. The stencil buffer is never freed to avoid dealing with the possibility of
 // use-after-free bugs. The prefix and postfix are always inlined and not considered for hashing/replacement.
 // Grouping recordings by initiating device provide an atomic way to undo a single instruction even when multiple
 // initiating devices are in the system.
 //
 // CALLs compile down to ~6 bytes, which should provide footprint reduction for programs which are executed
-// frequently. There are only a limited number of meaningful memory access patterns in Pep/10, so I expect a high hit
-// rate over time.
+// frequently. There are only a limited number of meaningful memory access patterns in Pep/10, so I expect a high
+// stencil hit rate over time.
 //
 // Each initiator gets its own data chain within a ring slot, and data is written immediately rather than being
 // buffered like code. Private chains prevent interleaved data from multiple initiators from causing spurious
-// templatization failures. Chains are created on first write from an initiator, so the cost is one chain per initiator
+// stencil dedup failures. Chains are created on first write from an initiator, so the cost is one chain per initiator
 // actually recording not one per Device::ID.
 //
 // For a typical Pep/N trace, I expect programs to be as follows.
@@ -124,11 +124,11 @@ struct Recording {
 // The only register this class memoizes is DP, which is required because several devices may record concurrently.
 // Each program must set all the registers it needs other than DP/SP.
 // Register programming does not survive across commit() boundaries due to run_each's RegisterRetention mode.
-// This decision simplifies the TraceBuffer implementation and should increase hit-rates for templatization by reducing
+// This decision simplifies the TraceBuffer implementation and should increase stencil hit-rates by reducing
 // unnecessary implicit state.
 class TraceBuffer {
 public:
-  // Minimum body size (in bytes) to be eligible for template promotion.
+  // Minimum body size (in bytes) to be eligible for stencil promotion.
   // If a call is 6 bytes, then the body needs to exceed 6 bytes (+ 2 for a ret)
   static constexpr u16 PROMOTION_THRESHOLD = 8;
   // Ceiling on hashes awaiting a second sighting. Bodies that never repeat would otherwise accumulate one entry per
@@ -159,7 +159,7 @@ public:
   // commit into. Nothing is opened when it throws.
   void begin(Device::ID initiator);
 
-  // Finalize the current recording. Appends HALT to the postfix, hashes the body, checks for template promotion,
+  // Finalize the current recording. Appends HALT to the postfix, hashes the body, checks for stencil promotion,
   // flushes prefix + (body or CALL) + postfix into the code chain, and overwrites its reserved location entry. If this
   // ring slot is full and no other recordings are open, advances to the next slot, which can fire watermark callbacks.
   //
@@ -330,12 +330,12 @@ public:
   struct Footprint {
     // Bytes appended to ring code chains -- prefix + (body or CALL) + postfix -- summed over every committed program.
     std::size_t code = 0;
-    // Code size if ever body was inlined instead of using a CALL to a template.
-    // The difference `code_if_inlined - code` is the # of bytes saved by templating.
+    // Code size if ever body was inlined instead of using a CALL to a stencil.
+    // The difference `code_if_inlined - code` is the # of bytes saved by stencil dedup.
     std::size_t code_if_inlined = 0;
-    // Bytes appended to the template chain, which is the promoted body plus ret.
+    // Bytes appended to the stencil chain, which is the promoted body plus ret.
     // This is an unreclaimable cost, and must be accounted for in the compression ration.
-    std::size_t templates = 0;
+    std::size_t stencils = 0;
     // Bytes appended to data chains, which cannot be compressed. Ideally, this would be the largest % of the total
     // bytes, which means our compression works.
     std::size_t data = 0;
@@ -348,7 +348,7 @@ public:
 
     // Retained bytes with promotion on, and what the same trace would have cost with it off. Location bytes sit on
     // both sides: promotion does not change how many programs there are.
-    std::size_t total() const { return code + templates + data + locations(); }
+    std::size_t total() const { return code + stencils + data + locations(); }
     std::size_t total_if_inlined() const { return code_if_inlined + data + locations(); }
     // The number worth quoting against the old packet format. 0 when nothing has been committed.
     double bytes_per_program() const { return programs ? (double)total() / (double)programs : 0.0; }
@@ -362,30 +362,30 @@ public:
   Footprint footprint() const;
 
   // Reset all footprint /counters/ to 0 while retaining all other state inside the class.
-  // Cost comparisons involving templates will be incorrect because exisitng templates' cost will no longer accounted
+  // Cost comparisons involving stencils will be incorrect because existing stencils' cost will no longer accounted
   // for. A full reset to the TraceBuffer must also invoke this method.
   void reset_footprint();
 
   // Bytes of buffer this TraceBuffer's chains and location buffers currently hold. Unlike Footprint this counts what
   // the allocator reserved rather than what was written, so it includes the unused tail of every partially-filled
-  // buffer -- the cost per-initiator data chains trade away to keep bodies templatizable.
+  // buffer -- the cost per-initiator data chains trade away to keep bodies dedup-eligible.
   std::size_t buffer_footprint() const;
 
-  // --- Inspect template promotion, mostly used for tests
+  // --- Inspect stencil promotion, mostly used for tests
   // Hash a byte span using the same function as resolve_body.
   static u32 hash(bits::span<const u8> data);
-  // Number of promoted templates.
-  size_t template_count() const { return _template_map.size(); }
+  // Number of promoted stencils.
+  size_t stencil_count() const { return _stencil_map.size(); }
   // Number of hashes seen once (awaiting second occurrence).
   size_t pending_count() const { return _pending_hashes.size(); }
-  // True if this hash has been promoted to the template chain.
-  bool is_template(u32 h) const { return _template_map.contains(h); }
+  // True if this hash has been promoted to the stencil chain.
+  bool is_stencil(u32 h) const { return _stencil_map.contains(h); }
   // True if this hash has been seen once but not yet promoted.
   bool is_pending(u32 h) const { return _pending_hashes.contains(h); }
-  // Hit count for a promoted template. Returns 0 if not promoted.
-  u32 template_hits(u32 h) const;
-  // Size of a promoted template body (bytes). Returns 0 if not promoted.
-  u16 template_size(u32 h) const;
+  // Hit count for a promoted stencil. Returns 0 if not promoted.
+  u32 stencil_hits(u32 h) const;
+  // Size of a promoted stencil body (bytes). Returns 0 if not promoted.
+  u16 stencil_size(u32 h) const;
 
 private:
   // --- Ring node ---
@@ -422,30 +422,30 @@ private:
     void reset(pepp::bts::BufferManager &mgr);
   };
 
-  // --- Template dedup ---
-  struct TemplateEntry {
-    // Where a CALL to this template should aim.
+  // --- Stencil dedup ---
+  struct StencilEntry {
+    // Where a CALL to this stencil should aim.
     pepp::bts::Buffer::Location location;
     u32 hit_count = 0;
     // The bytes of the promoted body. On a hash hit, we want to compare the actual bytes to avoid collisions.
-    // This span pre-resolves location back to its buffer, avoiding a walk of the template chain on hit.
+    // This span pre-resolves location back to its buffer, avoiding a walk of the stencil chain on hit.
     // While our size is really only a u16, it gets promoted to size_t on account of being a span. Always downcast size
     // to 16 bits before use.
     //
-    // The pointer is safe to hold as long as the template chain is not cleared, and as long as a Buffer's data is not
+    // The pointer is safe to hold as long as the stencil chain is not cleared, and as long as a Buffer's data is not
     // moved out of.
     bits::span<const u8> body{};
   };
 
   struct BodyResolution {
-    bool is_template;
-    // If is_template: location in template chain (target of CALL).
+    bool is_stencil;
+    // If is_stencil: location in stencil chain (target of CALL).
     pepp::bts::Buffer::Location location;
   };
   BodyResolution resolve_body(bits::span<const u8> body);
-  // True when the template recorded in `entry` holds exactly `body`. resolve_body keys templates on a truncated
+  // True when the stencil recorded in `entry` holds exactly `body`. resolve_body keys stencils on a truncated
   // 32-bit hash, so a map hit alone does not prove the bodies match; this is what makes a collision safe.
-  static bool template_matches(const TemplateEntry &entry, bits::span<const u8> body);
+  static bool stencil_matches(const StencilEntry &entry, bits::span<const u8> body);
   tvm::ProgramLocation flush_to_ring(Recording &rec, BodyResolution resolution);
 
   // This recording's data chain in the ringbuffer's head slot, creating the chain on first use.
@@ -493,16 +493,16 @@ private:
   // keep their capacity across programs instead of reallocating on every instruction.
   std::unordered_map<Device::ID, Recording, pepp::handle_hash<Device::ID>> _recordings;
 
-  // Templates are only freed on TraceBuffer destruction to avoid lifetime management issues.
-  std::unique_ptr<pepp::bts::BufferChain> _templates;
+  // Stencils are only freed on TraceBuffer destruction to avoid lifetime management issues.
+  std::unique_ptr<pepp::bts::BufferChain> _stencils;
   // Buffer::ID{0} hard-stops the interpreter with InvalidIBuffer, which causes run_each to break. A single aborted
   // instruction halts the entire replay. To prevent ID==0 from appearing in reserved slots, point to a valid program
-  // which contains only HALT. This program is allocated on the template chain in the ctor, and the location is stored
+  // which contains only HALT. This program is allocated on the stencil chain in the ctor, and the location is stored
   // here.
   tvm::ProgramLocation _tombstone{};
-  std::unordered_map<u32, TemplateEntry> _template_map;
+  std::unordered_map<u32, StencilEntry> _stencil_map;
   // Hashes seen once but not yet promoted. On second occurrence with
-  // body.size() >= PROMOTION_THRESHOLD, the body is promoted to _templates.
+  // body.size() >= PROMOTION_THRESHOLD, the body is promoted to _stencils.
   std::unordered_set<u32> _pending_hashes;
 
   // Watermark callbacks are fired when the number of used ring slots crosses a threshold (0.0 to 1.0).

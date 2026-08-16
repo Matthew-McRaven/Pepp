@@ -29,19 +29,19 @@ namespace {
 constexpr size_t BOUNDARY_BODY = 21843;
 constexpr size_t BOUNDARY_PROMOTIONS = 3;
 
-struct TemplateProbe {
+struct StencilProbe {
   u32 hash = 0;
   // Where the CALL emitted by the last promoted submission points.
   pepp::bts::Buffer::ID id{};
   u16 offset = 0;
 };
 
-// Promote `promotions` distinct bodies by submitting each twice, then read the template location back out of the CALL
+// Promote `promotions` distinct bodies by submitting each twice, then read the stencil location back out of the CALL
 // that replaced the last body.
-TemplateProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffer &tb,
+StencilProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffer &tb,
                                   size_t promotions = BOUNDARY_PROMOTIONS) {
   constexpr Device::ID S{1};
-  TemplateProbe probe;
+  StencilProbe probe;
   tvm::ProgramLocation loc{};
 
   for (size_t i = 0; i < promotions; ++i) {
@@ -67,7 +67,7 @@ TemplateProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffe
 
 } // namespace
 
-TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter:  Stencil promotion", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   using namespace tvm::EncodedOp;
   using M = tvm::RegMask;
@@ -81,7 +81,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     auto short_body = LDMOD1Lo{0x1234}.encode();
     auto h = tvm::TraceBuffer::hash({short_body.data(), short_body.size()});
 
-    CHECK(tb.template_count() == 0);
+    CHECK(tb.stencil_count() == 0);
     CHECK(tb.pending_count() == 0);
 
     // First submission: body enters pending set.
@@ -91,16 +91,16 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
 
     CHECK(tb.pending_count() == 1);
     CHECK(tb.is_pending(h));
-    CHECK(!tb.is_template(h));
-    CHECK(tb.template_count() == 0);
+    CHECK(!tb.is_stencil(h));
+    CHECK(tb.stencil_count() == 0);
 
     // Second submission: body is too short to promote; stays not-promoted.
     tb.begin(S);
     body(short_body);
     tb.commit(S);
 
-    CHECK(!tb.is_template(h));
-    CHECK(tb.template_count() == 0);
+    CHECK(!tb.is_stencil(h));
+    CHECK(tb.stencil_count() == 0);
 
     // Several more submissions: still never promoted.
     for (int i = 0; i < 5; ++i) {
@@ -109,8 +109,8 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
       tb.commit(S);
     }
 
-    CHECK(!tb.is_template(h));
-    CHECK(tb.template_count() == 0);
+    CHECK(!tb.is_stencil(h));
+    CHECK(tb.stencil_count() == 0);
   }
 
   SECTION("Long body is promoted on second occurrence") {
@@ -119,7 +119,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
                                    std::pair{M::DP_LO, u16(0xBEEF)});
     auto h = tvm::TraceBuffer::hash({long_body.data(), long_body.size()});
 
-    CHECK(tb.template_count() == 0);
+    CHECK(tb.stencil_count() == 0);
     CHECK(tb.pending_count() == 0);
 
     // First submission: enters pending set.
@@ -129,30 +129,30 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
 
     CHECK(tb.pending_count() == 1);
     CHECK(tb.is_pending(h));
-    CHECK(!tb.is_template(h));
-    CHECK(tb.template_count() == 0);
+    CHECK(!tb.is_stencil(h));
+    CHECK(tb.stencil_count() == 0);
 
-    // Second submission: promoted to template.
+    // Second submission: promoted to stencil.
     tb.begin(S);
     body(long_body);
     tb.commit(S);
 
-    CHECK(tb.is_template(h));
+    CHECK(tb.is_stencil(h));
     CHECK(!tb.is_pending(h));
-    CHECK(tb.template_count() == 1);
-    CHECK(tb.template_hits(h) == 2);
-    CHECK(tb.template_size(h) == long_body.size());
+    CHECK(tb.stencil_count() == 1);
+    CHECK(tb.stencil_hits(h) == 2);
+    CHECK(tb.stencil_size(h) == long_body.size());
 
     // Third submission: hit count increments.
     tb.begin(S);
     body(long_body);
     tb.commit(S);
 
-    CHECK(tb.template_hits(h) == 3);
-    CHECK(tb.template_count() == 1);
+    CHECK(tb.stencil_hits(h) == 3);
+    CHECK(tb.stencil_count() == 1);
   }
 
-  SECTION("Different bodies get separate template entries") {
+  SECTION("Different bodies get separate stencil entries") {
     // Two long bodies with different immediate values.
     auto body_a = LMR_of<false>(std::pair{M::MOD1_LO, u16(0xAAAA)}, std::pair{M::ID_HI, u16(0xBBBB)},
                                 std::pair{M::DP_LO, u16(0xCCCC)});
@@ -173,9 +173,9 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     body(body_a);
     tb.commit(S);
 
-    CHECK(tb.is_template(h_a));
-    CHECK(!tb.is_template(h_b));
-    CHECK(tb.template_count() == 1);
+    CHECK(tb.is_stencil(h_a));
+    CHECK(!tb.is_stencil(h_b));
+    CHECK(tb.stencil_count() == 1);
 
     // Submit body_b twice to promote it.
     tb.begin(S);
@@ -185,24 +185,24 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     body(body_b);
     tb.commit(S);
 
-    CHECK(tb.is_template(h_a));
-    CHECK(tb.is_template(h_b));
-    CHECK(tb.template_count() == 2);
+    CHECK(tb.is_stencil(h_a));
+    CHECK(tb.is_stencil(h_b));
+    CHECK(tb.stencil_count() == 2);
 
-    // Each template tracks hits independently.
-    CHECK(tb.template_hits(h_a) == 2);
-    CHECK(tb.template_hits(h_b) == 2);
+    // Each stencil tracks hits independently.
+    CHECK(tb.stencil_hits(h_a) == 2);
+    CHECK(tb.stencil_hits(h_b) == 2);
 
     // Additional hit to body_a doesn't affect body_b.
     tb.begin(S);
     body(body_a);
     tb.commit(S);
 
-    CHECK(tb.template_hits(h_a) == 3);
-    CHECK(tb.template_hits(h_b) == 2);
+    CHECK(tb.stencil_hits(h_a) == 3);
+    CHECK(tb.stencil_hits(h_b) == 2);
   }
 
-  SECTION("Promoted template executes correctly via CALL/RET") {
+  SECTION("Promoted stencil executes correctly via CALL/RET") {
     // Use non-MOD registers so values survive the CALL-to-RET CLRMOD clearing.
     auto long_body = LMR_of<false>(std::pair{M::DP_LO, u16(0xAAAA)}, std::pair{M::ID_HI, u16(0xBBBB)},
                                    std::pair{M::OFF_LO, u16(0xCCCC)});
@@ -215,9 +215,9 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     tb.begin(S);
     body(long_body);
     tb.commit(S);
-    REQUIRE(tb.is_template(h));
+    REQUIRE(tb.is_stencil(h));
 
-    // 3rd submission uses CALL into the promoted template.
+    // 3rd submission uses CALL into the promoted stencil.
     tb.begin(S);
     body(long_body);
     auto loc = tb.commit(S);
@@ -230,7 +230,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     CHECK(blaster.regs().OFF.lo == 0xCCCC);
   }
 
-  SECTION("Postfix is per-submission, not baked into template") {
+  SECTION("Postfix is per-submission, not baked into stencil") {
     auto postfix = [&](auto enc) { tb.emit_postfix(S, {enc.data(), enc.size()}); };
     // Body uses non-MOD registers; postfix uses ACCESS (also non-MOD).
     auto long_body = LMR_of<false>(std::pair{M::DP_LO, u16(0xAAAA)}, std::pair{M::ID_HI, u16(0xBBBB)},
@@ -247,7 +247,7 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
     body(long_body);
     postfix(postfix_enc);
     tb.commit(S);
-    REQUIRE(tb.is_template(h));
+    REQUIRE(tb.is_stencil(h));
 
     // Submission 3: same body, NO custom postfix, CALL + HALT only.
     // The ACCESS-setting instruction is deliberately dropped.
@@ -264,18 +264,18 @@ TEST_CASE("tvm::Interpreter:  Template promotion", "[scope:core][scope:core.dbg]
       CHECK(b.regs().ACCESS == 0xBEEF); // postfix executed
     }
 
-    // Execute submission 3 (template CALL, postfix dropped).
+    // Execute submission 3 (stencil CALL, postfix dropped).
     {
       tvm::Interpreter b(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
       b.run(loc3);
       CHECK(b.stopped());
-      CHECK(b.regs().DP.lo == 0xAAAA);  // body via template
+      CHECK(b.regs().DP.lo == 0xAAAA);  // body via stencil
       CHECK(b.regs().ACCESS == 0);       // postfix was dropped
     }
   }
 }
 
-TEST_CASE("tvm::Interpreter:  Template chain fills to a buffer boundary",
+TEST_CASE("tvm::Interpreter:  Stencil chain fills to a buffer boundary",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   tvm::TraceBuffer tb(mgr);
@@ -283,9 +283,9 @@ TEST_CASE("tvm::Interpreter:  Template chain fills to a buffer boundary",
   auto probe = promote_to_boundary(*mgr, tb, BOUNDARY_PROMOTIONS - 1);
 
   // The sizing arithmetic is only meaningful if the bodies actually promoted...
-  CHECK(tb.template_count() == BOUNDARY_PROMOTIONS - 1);
-  CHECK(tb.is_template(probe.hash));
-  CHECK(tb.template_size(probe.hash) == BOUNDARY_BODY);
+  CHECK(tb.stencil_count() == BOUNDARY_PROMOTIONS - 1);
+  CHECK(tb.is_stencil(probe.hash));
+  CHECK(tb.stencil_size(probe.hash) == BOUNDARY_BODY);
 
   // ...and if the remaining space fits another body but not another body + its 2-byte RET. That is the boundary the
   // next test drives into.
@@ -298,7 +298,7 @@ TEST_CASE("tvm::Interpreter:  Template chain fills to a buffer boundary",
 
 // A body sized flush against a buffer boundary is the case where the body and its trailing RET could end up in
 // different buffers, since a chain append that does not fit rolls over to a fresh buffer.
-TEST_CASE("tvm::Interpreter:  A promoted template keeps its RET in the same buffer",
+TEST_CASE("tvm::Interpreter:  A promoted stencil keeps its RET in the same buffer",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   tvm::TraceBuffer tb(mgr);
@@ -308,7 +308,7 @@ TEST_CASE("tvm::Interpreter:  A promoted template keeps its RET in the same buff
   REQUIRE(tbuf != nullptr);
 
   // The RET is reached by falling out of the body, so it has to sit immediately after it in the same buffer.
-  // Otherwise the template runs off the end into whatever follows and never returns to the caller's postfix.
+  // Otherwise the stencil runs off the end into whatever follows and never returns to the caller's postfix.
   const size_t ret_at = (size_t)probe.offset + BOUNDARY_BODY;
   const bool ret_in_buffer = ret_at + 2 <= tbuf->span().size();
   CHECK(ret_in_buffer);

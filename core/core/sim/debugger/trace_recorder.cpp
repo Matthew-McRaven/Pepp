@@ -87,7 +87,7 @@ void Recorder::emit_write(const Operation &op, Address address, bits::span<const
   emit_dp_update(slot, *rec, (u16)len, (u16)prologue);
 
   if (address_in_payload) {
-    // No address or data in instruction, which increase opportunities for templatization.
+    // No address or data in instruction, which increases opportunities for stencil dedup.
     const auto set = tvm::EncodedOp::SetMemDX<2>{.access = op.as_u16(), .dev = _emitter.value}.encode();
     _tb->emit_body(*rec, {set.data(), set.size()});
   } else {

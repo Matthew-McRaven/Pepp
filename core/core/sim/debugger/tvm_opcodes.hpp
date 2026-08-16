@@ -181,11 +181,11 @@ enum class Opcode : u8 {
   // No packet registers.
   INVRET = 0b01'1101,
   // SETMEMX carries OFF in its packet, which makes the body of a program that stores to a different address each
-  // time unique, preventing it from being templatized. For SETMEMDX,  the first 4 bytes at DP are the offset (OFF.hi,
-  // OFF.lo) each. The DS and payload bytes follow as in SETMEM/X. With the unique portion (offset) move out of the
-  // instruction packet, we have more opportunities to promote instructions to templates.
+  // time unique, preventing it from being promoted to a stencil. For SETMEMDX, the first 4 bytes at DP are the offset
+  // (OFF.hi, OFF.lo) each. The DS and payload bytes follow as in SETMEM/X. With the unique portion (offset) moved out
+  // of the instruction packet, we have more opportunities to promote instructions to stencils.
   //
-  // When promoted to a template, SETMEMDX costs 4 bytes/instr more than SETMEM/X. For memory devices with predictable
+  // When promoted to a stencil, SETMEMDX costs 4 bytes/instr more than SETMEM/X. For memory devices with predictable
   // access patterns across an entire instruction (register banks, CSRs), prefer SETMEM/X.
   //
   // DS remains the *payload* size, not the size of the whole DP carveout. That means DP-relative stepping cannot use

@@ -216,16 +216,16 @@ TEST_CASE("trace::Recorder: MMIO on a bidirectional FIFO", "[scope:core][scope:c
     CHECK(h.fifo->output().at(1) == 0x22);
   }
 
-  SECTION("Identical accesses de-duplicate into one template") {
+  SECTION("Identical accesses de-duplicate into one stencil") {
     // The point of putting the address in the payload: the body carries neither the port nor the byte, so two writes
     // to the same port produce byte-identical bodies and the second collapses into a CALL.
-    CHECK(h.tb().template_count() == 0);
+    CHECK(h.tb().stencil_count() == 0);
 
     h.instruction([&] { h.write(0x11); });
-    CHECK(h.tb().template_count() == 0); // first sighting: nothing to match against yet
+    CHECK(h.tb().stencil_count() == 0); // first sighting: nothing to match against yet
 
     auto second = h.instruction([&] { h.write(0x22); });
-    CHECK(h.tb().template_count() == 1);
+    CHECK(h.tb().stencil_count() == 1);
     REQUIRE(h.fifo->output().size() == 2);
 
     // The CALL still reaches this instruction's own payload rather than the one the template was built from.

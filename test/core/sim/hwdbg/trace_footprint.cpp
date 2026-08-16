@@ -75,10 +75,10 @@ tvm::TraceBuffer::Footprint run(Harness &h, bits::span<const u8> program, int ti
 }
 
 void report(const char *label, const tvm::TraceBuffer &tb, const tvm::TraceBuffer::Footprint &f) {
-  SPDLOG_WARN("{}: {:.1f} B/instr over {} instrs (inlined: {:.1f}) | ratio {:.3f} | code {} templates {} data {} "
-              "locations {} | {} templates promoted, {} hashes pending | {} KiB reserved",
+  SPDLOG_WARN("{}: {:.1f} B/instr over {} instrs (inlined: {:.1f}) | ratio {:.3f} | code {} stencils {} data {} "
+              "locations {} | {} stencils promoted, {} hashes pending | {} KiB reserved",
               label, f.bytes_per_program(), f.programs, f.bytes_per_program_if_inlined(), f.compression_ratio(),
-              f.code, f.templates, f.data, f.locations(), tb.template_count(), tb.pending_count(),
+              f.code, f.stencils, f.data, f.locations(), tb.stencil_count(), tb.pending_count(),
               tb.buffer_footprint() / 1024);
 }
 } // namespace
@@ -249,13 +249,13 @@ TEST_CASE("A recorded loop reverses back to the state it started from",
   // never re-enter the recorder. Without that, stepping backwards grows the very trace it is walking.
   //
   // Checked field by field as well as in total, because the failure this catches lands in exactly one of them --
-  // `data` doubles while code, templates and programs hold, since payload is appended without any commit().
+  // `data` doubles while code, stencils and programs hold, since payload is appended without any commit().
   const auto after_undo = h.tbdev->buffer().footprint();
   CHECK(after_undo.total() == before_undo.total());
   CHECK(after_undo.data == before_undo.data);
   CHECK(after_undo.code == before_undo.code);
   CHECK(after_undo.code_if_inlined == before_undo.code_if_inlined);
-  CHECK(after_undo.templates == before_undo.templates);
+  CHECK(after_undo.stencils == before_undo.stencils);
   CHECK(after_undo.programs == before_undo.programs);
   // Nothing was committed either, so the history is the same length and ends where it did.
   CHECK(h.tbdev->instruction_count() == TICKS);
