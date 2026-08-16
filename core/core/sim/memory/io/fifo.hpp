@@ -42,7 +42,7 @@ public:
   public:
     struct Iterator {
     public:
-      using iterator_category = std::forward_iterator_tag;
+      using iterator_category = std::bidirectional_iterator_tag;
       using difference_type = std::ptrdiff_t;
       using value_type = u8;
       explicit Iterator();
