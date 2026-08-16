@@ -108,16 +108,22 @@ void PepISA3CPU::initialize(System *sys) {
   static const auto BE = bits::Order::BigEndian;
   static const auto LE = bits::Order::LittleEndian;
   static const auto RW = RegisterScan::Register::ReadWrite;
+  static const auto RO = RegisterScan::Register::Access::Read;
   // Core registers
   using R = isa::Pep10::Register;
   const auto rid = _regbank->id();
   static const auto r2i = [](const R &r) -> u16 { return static_cast<u16>(r) * 2; };
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::A), .name = "A"});
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::X), .name = "X"});
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::PC), .name = "PC"});
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::SP), .name = "SP"});
-  scan->expose(SR{.order = BE, .byte_width = 1, .access = RW, .target = rid, .offset = r2i(R::IS) + 1, .name = "IS"});
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::OS), .name = "OS"});
+  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "A", .loc = r2i(R::A)});
+  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "X", .loc = r2i(R::X)});
+  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "PC", .loc = r2i(R::PC)});
+  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "SP", .loc = r2i(R::SP)});
+  scan->expose(SR{.byte_width = 1,
+                  .access = RW,
+                  .target = rid,
+                  .order = BE,
+                  .name = "IS",
+                  .loc = static_cast<Address>(r2i(R::IS) + 1)});
+  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "OS", .loc = r2i(R::OS)});
   // CSRs / Flags
   using C = isa::Pep10::CSR;
   const auto cid = _csrs->id();
@@ -129,8 +135,30 @@ void PepISA3CPU::initialize(System *sys) {
   auto z = F{.access = RW, .bit_offset = 16, .bit_width = 1, .name = "Z"};
   auto v = F{.access = RW, .bit_offset = 8, .bit_width = 1, .name = "V"};
   auto c = F{.access = RW, .bit_offset = 0, .bit_width = 1, .name = "C"};
-  scan->expose(SR{
-      .order = BE, .byte_width = 4, .access = RW, .target = cid, .offset = 0, .name = "NZVC", .fields = {n, z, v, c}});
+  scan->expose(SR{.byte_width = 4,
+                  .access = RW,
+                  .target = cid,
+                  .order = BE,
+                  .name = "NZVC",
+                  .fields = {n, z, v, c},
+                  .loc = Address(0)});
+  const auto cpuid = id();
+  // Expose call depth, which is useful for implementing step modes.
+  scan->expose(SR{.byte_width = 2,
+                  .access = RO,
+                  .type = SR::Type::Counter,
+                  .target = cpuid,
+                  .order = bits::hostOrder(),
+                  .name = "call_depth",
+                  .loc = &_count.call_depth});
+  scan->expose(SR{.byte_width = 2,
+                  .access = RO,
+                  .trace_mode = SR::Tracing::Checkpoint,
+                  .type = SR::Type::Counter,
+                  .target = cpuid,
+                  .order = bits::hostOrder(),
+                  .name = "icount",
+                  .loc = &_count.instructions});
 }
 
 const Device::Configuration &PepISA3CPU::config() const { return _config; }
@@ -174,6 +202,7 @@ void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   write_register_uncached(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
   record.commit();
+  _count.instructions += 1;
 }
 
 void PepISA3CPU::set_clock_source(const ClockSource *src) { _clk = src; }
@@ -194,11 +223,13 @@ void PepISA3CPU::trace(bool enabled) {
 }
 
 void PepISA3CPU::increment_call_depth() {
-  // TODO:
+  _count.call_depth += 1;
+  // TODO: emit a register write packet to TB
 }
 
 void PepISA3CPU::decrement_call_depth() {
-  // TODO:
+  _count.call_depth -= 1;
+  // TODO: emit a register write packet to TB
 }
 
 // The CSR bank stores one flag per byte, in CSR enum order: N at 0, Z at 1, V at 2, C at 3. Both of these move all

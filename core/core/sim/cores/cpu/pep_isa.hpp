@@ -87,6 +87,10 @@ public:
   void write_pc(u16 value) { _pc = value; }
 
 private:
+  struct PerfCounters {
+    i16 call_depth = 0;
+    u32 instructions = 0;
+  } _count = {};
   // Only meaningful between the start and end of clock_tick. See read_pc().
   // Coalescing these reads saves 1-2 register writes on most instructions.
   u16 _pc = 0;

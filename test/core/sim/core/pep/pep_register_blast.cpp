@@ -34,7 +34,6 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
 
   SECTION("Validate that a system-created tvm::Interpreter works") {
     auto blaster = sys->make_trace_interpreter();
-    auto before = tb.cursor();
 
     tb.begin(S);
     body(LDMOD1Lo{0x1234}.encode());
@@ -56,7 +55,6 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     cpu->write_register(isa::Pep10::Register::A, 0xFEED);
     auto ref = *scan->find("A");
 
-    auto before = tb.cursor();
     tb.begin(S);
     body(CmpReg<3>(ref.reg.value, ref.field.value).encode(0xFEED));
     auto loc = tb.commit(S);
@@ -175,7 +173,7 @@ RegisterScan::RegisterRef expose_wide(System &sys, Dense &mem) {
   wide.byte_width = 4;
   wide.access = RegisterScan::Register::ReadWrite;
   wide.target = mem.id();
-  wide.offset = WIDE_OFFSET;
+  wide.loc = WIDE_OFFSET;
   wide.name = "WIDE";
   sys.register_scan()->expose(wide);
   mem.write(WIDE_OFFSET, {WIDE_BE.data(), WIDE_BE.size()}, rw);
@@ -204,7 +202,7 @@ void expose_synthetics(System &sys, Dense &mem) {
     r.byte_width = s.byte_width;
     r.access = RegisterScan::Register::ReadWrite;
     r.target = mem.id();
-    r.offset = s.offset;
+    r.loc = s.offset;
     r.name = s.name;
     sys.register_scan()->expose(r);
   }
@@ -248,7 +246,7 @@ RegisterScan::RegisterRef expose_readonly(System &sys, Dense &mem) {
   r.byte_width = 4;
   r.access = RegisterScan::Register::Access::Read;
   r.target = mem.id();
-  r.offset = READONLY_OFFSET;
+  r.loc = READONLY_OFFSET;
   r.name = "ro4";
   sys.register_scan()->expose(r);
   return *sys.register_scan()->find("ro4");
@@ -516,6 +514,10 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
     CHECK(scan->read<u8>(*scan->find("Z")) == 1);
     CHECK(scan->read<u8>(*scan->find("C")) == 1);
     CHECK(scan->read<u32>(whole) == 0x0101'0001);
+  }
+  SECTION("Can inspect call_depth") {
+    auto depth = *scan->find("call_depth");
+    CHECK(scan->read<u16>(depth) == 0);
   }
 
   SECTION("CLRREG zeroes a whole register") {

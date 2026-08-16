@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
@@ -19,7 +20,27 @@ public:
   struct Register {
     using ID = pepp::OpaqueHandle<struct RegisterID, u16>;
     enum class Access : u8 { None = 0, Read = 1 << 0, Write = 1 << 1 };
-    static constexpr auto ReadWrite = (Access)((u8)Access::Read | (u8)Access::Write);
+    // Reports how the register interacts with the tracing (undo/redo) system.
+    enum class Tracing : u8 {
+      // The register's value is restored automatically on step backwards.
+      // This is the required mode for registers which are part of the architectural state of the system.
+      Automatic,
+      // The register is not restored automatically, but could be restored with a manual save + restore.
+      // This mode is appropriate for performance counters (like a counter tracking a cache hit rate) which do not
+      // affect the correctness of the system.
+      Checkpoint,
+      // The register can't be restored. Attempting to restore it would break the simulator.
+      // An example would be a register which reports the size of the trace buffer.
+      Monotonic,
+    };
+    enum class Type {
+      Architectural,      // Part of the ISA of the system
+      Microarchitectural, // A microarchitecure detail, but still part of the implementation
+      Counter,            // A performance counter which does not affect the correctness of the system
+    };
+
+    static constexpr auto ReadWrite =
+        static_cast<Access>(static_cast<u8>(Access::Read) | static_cast<u8>(Access::Write));
     struct Field {
       // Starts from 1, not 0! 0 is a reserved value.
       using ID = pepp::OpaqueHandle<struct FieldID, u16>;
@@ -35,19 +56,24 @@ public:
       bool is_register() const { return !is_field(); }
       bool is_field() const { return field.value != 0; }
     };
-    bits::Order order;
     u8 byte_width; // Width in BYTES.
     Access access = ReadWrite;
+    Tracing trace_mode = Tracing::Automatic;
+    Type type = Type::Architectural;
     Device::ID target;
-    Address offset;
+    bits::Order order;
     std::string name;
     std::vector<Field> fields;
+    // if Address, then fetch the target from a system, cast to Target* and call the appropirate method.
+    // Otherwise read/write the pointer directly.
+    using StorageLocation = std::variant<std::monostate, Address, i8 *, u8 *, i16 *, u16 *, i32 *, u32 *, i64 *, u64 *>;
+    StorageLocation loc = std::monostate{};
   };
   using RegisterRef = Register::Reference;
 
   RegisterScan(System *sys) : _sys(sys) {}
   void expose(const Register &n);
-  // Copy
+
   enum class Byteswap {
     Always,        // Always perform a byteswap, even when host/guest match.
     Never,         // Never perform a byteswap, even when host/guest mismatch.
@@ -71,6 +97,7 @@ public:
 
 private:
   bits::Order read(Register *, Register::Field *, bits::span<u8> dest, Byteswap bswap);
+  bits::Order read(Register *, Register::Field *, bits::span<u8> dest, Byteswap bswap, Operation access);
   void write(Register *, Register::Field *, bits::span<const u8> src, Byteswap bswap, bool force = false);
   Register::ID next_id();
 

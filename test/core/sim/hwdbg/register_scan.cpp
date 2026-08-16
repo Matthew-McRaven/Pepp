@@ -110,7 +110,7 @@ TEST_CASE("Register reads are host-order regardless of the register's order",
     r.byte_width = 4;
     r.access = RegisterScan::Register::ReadWrite;
     r.target = mem->id();
-    r.offset = offset;
+    r.loc = offset;
     r.name = std::move(name);
     scan->expose(r);
   };
