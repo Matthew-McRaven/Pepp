@@ -25,10 +25,10 @@ public:
 
   System *system() const { return _system; }
 
-  void on_setmem(MachineState &state, const tvm::DecodedOp::SetMem &op) override;
+  void on_deltamem(MachineState &state, const tvm::DecodedOp::DeltaMem &op) override;
   void on_cmpmem(MachineState &state, const tvm::DecodedOp::CmpMem &op) override;
   void on_clrmem(MachineState &state, const tvm::DecodedOp::ClrMem &op) override;
-  void on_setreg(MachineState &state, const tvm::DecodedOp::SetReg &op) override;
+  void on_deltareg(MachineState &state, const tvm::DecodedOp::DeltaReg &op) override;
   void on_cmpreg(MachineState &state, const tvm::DecodedOp::CmpReg &op) override;
   void on_clrreg(MachineState &state, const tvm::DecodedOp::ClrReg &op) override;
   void on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &op) override;

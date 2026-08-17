@@ -48,14 +48,18 @@ private:
   // This is because the shift/extract logic is somewhat complex -- and really belongs in the execute stage.
   tvm::DecodedOp::LMR decode_lmr(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::BR decode_br(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::SetMem decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop);
-  // Resolves to the same DecodedOp::SetMem as decode_setmem -- the only difference is where the offset came from, and
-  // by the time a backend sees it that distinction has already been resolved away. That is why there is no matching
-  // on_setmemdx handler and no new variant alternative.
-  tvm::DecodedOp::SetMem decode_setmemdx(pepp::bts::Buffer::ID ibp, u16 iop);
+  // SETMEM and SETMEMX, which differ only in the Delta they resolve to.
+  tvm::DecodedOp::DeltaMem decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop);
+  // Resolves to the same DecodedOp::DeltaMem as decode_setmem. The only difference is where the offset came from,
+  // and by the time a backend sees it that distinction has already been resolved away.
+  tvm::DecodedOp::DeltaMem decode_setmemdx(pepp::bts::Buffer::ID ibp, u16 iop);
+  // STEPMEM has to carry a endianness bit.
+  tvm::DecodedOp::DeltaMem decode_stepmem(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::CmpMem decode_cmpmem(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ClrMem decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop);
-  tvm::DecodedOp::SetReg decode_setreg(pepp::bts::Buffer::ID ibp, u16 iop);
+  // SETREG, SETREGX and STEPREG all at once: unlike their memory counterparts the three share a packet layout
+  // exactly.
+  tvm::DecodedOp::DeltaReg decode_deltareg(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::CmpReg decode_cmpreg(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ClrReg decode_clrreg(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::TRADDR decode_traddr(pepp::bts::Buffer::ID ibp, u16 iop);

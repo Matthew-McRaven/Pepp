@@ -75,10 +75,10 @@ public:
   virtual void on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op);
 
   // Ops that involve the target under test.
-  virtual void on_setmem(MachineState &state, const tvm::DecodedOp::SetMem &op) = 0;
+  virtual void on_deltamem(MachineState &state, const tvm::DecodedOp::DeltaMem &op) = 0;
   virtual void on_cmpmem(MachineState &state, const tvm::DecodedOp::CmpMem &op) = 0;
   virtual void on_clrmem(MachineState &state, const tvm::DecodedOp::ClrMem &op) = 0;
-  virtual void on_setreg(MachineState &state, const tvm::DecodedOp::SetReg &op) = 0;
+  virtual void on_deltareg(MachineState &state, const tvm::DecodedOp::DeltaReg &op) = 0;
   virtual void on_cmpreg(MachineState &state, const tvm::DecodedOp::CmpReg &op) = 0;
   virtual void on_clrreg(MachineState &state, const tvm::DecodedOp::ClrReg &op) = 0;
   virtual void on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &op) = 0;
@@ -89,6 +89,14 @@ protected:
     if (_access_mode == AccessMode::AsTraced) return recorded;
     return Operation(Operation::Type::BufferInternal, recorded.kind, recorded.initiator);
   }
+
+  // A Delta::Add payload is a signed little-endian integer, the same convention ISYN's delta uses. Fewer than 8 bytes
+  // still means the whole number, so it is sign-extended rather than zero-padded. Bytes beyond 8 are ignored.
+  static i64 signed_le(bits::span<const u8> bytes);
+  // That delta as the current replay direction should apply it. Addition is not its own inverse the way Delta::Xor
+  // is, so undoing a step means subtracting it. Negating through u64 because the most negative delta has no positive
+  // counterpart to negate to.
+  u64 directed_delta(i64 delta) const { return is_forward() ? (u64)delta : (u64)0 - (u64)delta; }
 
   tvm::TraceBuffer *_tb = nullptr;
   AccessMode _access_mode = AccessMode::AsTraced;

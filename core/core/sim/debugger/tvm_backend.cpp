@@ -1,4 +1,5 @@
 #include "core/sim/debugger/tvm_backend.hpp"
+#include <algorithm>
 #include <bit>
 #include <variant>
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
@@ -19,10 +20,10 @@ struct Dispatch {
   void operator()(const tvm::DecodedOp::ISyn &op) const { self->on_isyn(*state, op); }
   void operator()(const tvm::DecodedOp::LMR &op) const { self->on_lmr(*state, op); }
   void operator()(const tvm::DecodedOp::BR &op) const { self->on_br(*state, op); }
-  void operator()(const tvm::DecodedOp::SetMem &op) const { self->on_setmem(*state, op); }
+  void operator()(const tvm::DecodedOp::DeltaMem &op) const { self->on_deltamem(*state, op); }
   void operator()(const tvm::DecodedOp::CmpMem &op) const { self->on_cmpmem(*state, op); }
   void operator()(const tvm::DecodedOp::ClrMem &op) const { self->on_clrmem(*state, op); }
-  void operator()(const tvm::DecodedOp::SetReg &op) const { self->on_setreg(*state, op); }
+  void operator()(const tvm::DecodedOp::DeltaReg &op) const { self->on_deltareg(*state, op); }
   void operator()(const tvm::DecodedOp::CmpReg &op) const { self->on_cmpreg(*state, op); }
   void operator()(const tvm::DecodedOp::ClrReg &op) const { self->on_clrreg(*state, op); }
   void operator()(const tvm::DecodedOp::TRADDR &op) const { self->on_traddr(*state, op); }
@@ -38,6 +39,17 @@ void Backend::dispatch(MachineState &state, const tvm::DecodedOp::OpChoice &deco
   // Dispatch on the variant's own discriminant rather than re-deriving it from regs.IS via a switch.
   // Failure to handle a valid opcode cause compile-time error.
   std::visit(Dispatch{this, &state}, decoded);
+}
+
+i64 Backend::signed_le(bits::span<const u8> bytes) {
+  const std::size_t width = std::min<std::size_t>(bytes.size(), sizeof(u64));
+  u64 raw = 0;
+  for (std::size_t i = 0; i < width; ++i) raw |= (u64)bytes[i] << (8 * i);
+  if (width > 0 && width < sizeof(u64)) {
+    const u64 bits = 8 * (u64)width;
+    if (raw & (u64(1) << (bits - 1))) raw |= ~((u64(1) << bits) - 1);
+  }
+  return (i64)raw;
 }
 
 void Backend::on_halt(MachineState &state, const tvm::DecodedOp::Halt &op) {

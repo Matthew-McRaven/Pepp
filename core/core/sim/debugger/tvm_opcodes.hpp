@@ -1,5 +1,6 @@
 #pragma once
 #include "core/integers.h"
+#include "core/math/bitmanip/order.hpp"
 
 // The system class from core/sim/system.hpp
 class System;
@@ -19,6 +20,9 @@ enum class StopCause {
   RegisterInvalid,
   RegisterSizeMismatch,
   RegisterWidthIllegal,
+  // Step* operations perform arithmetic as an i64. If the target is wider than 8 bytes, we don't know which bytes to
+  // touch.
+  StepWidthIllegal,
   TargetInvalid,
   TargetNotMemory,
   // Can't apply MMIO opcode to a non-FIFO target.
@@ -29,6 +33,17 @@ enum class StopCause {
   // A legal opcode this backend does not implement. Distinct from IllegalOpcode, which means the decoder did not
   // recognise the encoding at all: this one says the program is well-formed but aimed at the wrong backend.
   Unimplemented,
+};
+
+// How a payload of a SET* operation combines with what is already at the destination.
+enum class Delta : u8 {
+  // Overwrite the destination with the payload. See: SETMEM, SETREG.
+  Assign,
+  // Read-xor-write, which has the benefit of being its own inverse. See: SETMEMX, SETREGX.
+  Xor,
+  // Read-add-write, with the payload to the destination as a signed integer, subtracting instead on a backward replay.
+  // STEP*.
+  Add,
 };
 
 // Must fit into 6 bits because of the OpWord struct.
@@ -202,8 +217,18 @@ enum class Opcode : u8 {
   // Data pointer contains: (4)OFFSET, (1)DATA.
   // Packet registers: ACCESS, ID.lo, MOD1.lo = rd^wr
   MMIO = 0b01'1111,
+  // STEP* are similar to SET*X in that they perform a read-modify-write of a memory location. The difference is that
+  // the modification operation is signed addition rather than XOR. This is useful for (program) counters.
+  // It share the same immediate semantics with SETMEM.
+  // If MOD1.hi is 0, then the target location should be interpreted as a LE number; if 1, BE.
+  // read-modify-written. Packet registers should remain LE.
+  //
+  // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo, MOD1.hi, MOD1.lo
+  STEPMEM = 0b10'0000,
+  // Packet registers: ACCESS, ID.hi, ID.lo, MOD1.lo
+  STEPREG = 0b10'0010,
   // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
-  MAX = ((u8)MMIO) + 1,
+  MAX = ((u8)STEPREG) + 1,
 };
 
 // (4) OFFSET

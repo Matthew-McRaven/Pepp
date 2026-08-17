@@ -285,6 +285,63 @@ template <bool X> struct SetReg<X, 4> : ImmediateEncoder<SetRegOp<X>, SetReg<X, 
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, reg, field); }
 };
 
+template <std::size_t> struct StepMem;
+template <> struct StepMem<1> {
+  u16 access;
+  constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access); }
+};
+template <> struct StepMem<2> {
+  u16 access, dev;
+  constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access, dev); }
+};
+template <> struct StepMem<3> {
+  u16 access, dev, off_hi;
+  constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access, dev, off_hi); }
+};
+template <> struct StepMem<4> {
+  u16 access, dev;
+  SegmentPair off;
+  constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access, dev, off.hi, off.lo); }
+};
+template <> struct StepMem<5> {
+  u16 access, dev;
+  SegmentPair off;
+  u16 order;
+  constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access, dev, off.hi, off.lo, order); }
+};
+
+// Deriving from ImmediateEncoder prevents designated initializers, so it spells out a constructor like CmpReg<3>
+// The size word is not a member: ImmediateEncoder emits it from the payload it is handed.
+template <> struct StepMem<6> : ImmediateEncoder<Opcode::STEPMEM, StepMem<6>> {
+  constexpr StepMem<6>(u16 access, u16 dev, SegmentPair off, u16 order)
+      : access(access), dev(dev), off(off), order(order) {}
+  u16 access, dev;
+  SegmentPair off;
+  u16 order;
+  template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, dev, off.hi, off.lo, order); }
+};
+
+// Same packet as SetReg, minus the X variant: a register reports its own width and byte order, so there is nothing
+// for the instruction to say about the destination.
+template <std::size_t> struct StepReg;
+template <> struct StepReg<1> {
+  u16 access;
+  constexpr auto encode() const { return encode_op<Opcode::STEPREG, true>(access); }
+};
+template <> struct StepReg<2> {
+  u16 access, reg;
+  constexpr auto encode() const { return encode_op<Opcode::STEPREG, true>(access, reg); }
+};
+template <> struct StepReg<3> {
+  u16 access, reg, field;
+  constexpr auto encode() const { return encode_op<Opcode::STEPREG, true>(access, reg, field); }
+};
+template <> struct StepReg<4> : ImmediateEncoder<Opcode::STEPREG, StepReg<4>> {
+  constexpr StepReg<4>(u16 access, u16 reg, u16 field) : access(access), reg(reg), field(field) {}
+  u16 access, reg, field;
+  template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, reg, field); }
+};
+
 // SETMEMX with the offset carried in the payload rather than the packet, so a body that stores to a different
 // address every time still encodes identically. See Opcode::SETMEMDX for the data layout.
 template <std::size_t> struct SetMemDX;
@@ -417,11 +474,24 @@ struct BR {
   tvm::ConditionCode condition = (tvm::ConditionCode)0;
   SegmentPair displacement{};
 };
-struct SetMem {
-  bool xor_encoded = false;
+// A shared decoding strucutre between all operations which modify memory (SETMEM, SETMEMX, SETMEMDX, STEPMEM). e the
+// things that Their only difference is in how data is combined with the destination.
+struct DeltaMem {
+  tvm::Delta kind = tvm::Delta::Assign;
   Operation access{};
   Device::ID target{};
   u32 offset = 0;
+  // Where the payload lives and how many bytes of it there are. For Add this is a signed little-endian integer which
+  // is usually narrower than `width`; for the other kinds it is the destination's bytes verbatim.
+  SegmentPair data{};
+  u16 size = 0;
+  bits::Order order = bits::Order::LittleEndian;
+};
+
+struct DeltaReg {
+  tvm::Delta kind = tvm::Delta::Assign;
+  Operation access{};
+  RegisterScan::RegisterRef reg{};
   SegmentPair data{};
   u16 size = 0;
 };
@@ -434,13 +504,6 @@ struct CmpMem {
 struct ClrMem {
   Device::ID target{};
   u8 data = 0;
-};
-struct SetReg {
-  bool xor_encoded = false;
-  Operation access{};
-  RegisterScan::RegisterRef reg{};
-  SegmentPair data{};
-  u16 size = 0;
 };
 struct CmpReg {
   RegisterScan::RegisterRef reg{};
@@ -472,7 +535,7 @@ struct MMIO {
   u32 offset = 0;
 };
 
-using OpChoice = std::variant<Halt, Ret, Call, InvCall, InvRet, ASyn, ISyn, LMR, BR, SetMem, CmpMem, ClrMem, SetReg,
+using OpChoice = std::variant<Halt, Ret, Call, InvCall, InvRet, ASyn, ISyn, LMR, BR, DeltaMem, CmpMem, ClrMem, DeltaReg,
                               CmpReg, ClrReg, TRADDR, LDP, DPIncr, MMIO>;
 } // namespace DecodedOp
 } // namespace tvm
