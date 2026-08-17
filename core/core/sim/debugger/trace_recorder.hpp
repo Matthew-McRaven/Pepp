@@ -87,6 +87,8 @@ public:
   // record that value, otherwise we cannot undo this action.
   void emit_mm_read(const Operation &op, Address address, u8 popped);
 
+  void emit_incr_register(const Operation &op, void *reg, i16 value);
+
   // A helper class which which helps open & close a recording for a single instruction.
   class Instruction {
   public:

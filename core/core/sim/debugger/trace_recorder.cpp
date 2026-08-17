@@ -105,6 +105,10 @@ void Recorder::emit_mm_read(const Operation &op, Address address, u8 popped) {
   return emit_mm(op, address, popped, false);
 }
 
+void Recorder::emit_incr_register(const Operation &op, void *reg, i16 value) {
+  // TODO!
+}
+
 void Recorder::emit_mm(const Operation &op, Address address, u8 pushed, bool read_write) {
   static constexpr u16 len = 1; // MMIO data payload is one byte.
   if (!traced()) return;        // Don't record for untraced.

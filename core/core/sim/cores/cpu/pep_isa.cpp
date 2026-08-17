@@ -144,13 +144,13 @@ void PepISA3CPU::initialize(System *sys) {
                   .loc = Address(0)});
   const auto cpuid = id();
   // Expose call depth, which is useful for implementing step modes.
-  scan->expose(SR{.byte_width = 2,
-                  .access = RO,
-                  .type = SR::Type::Counter,
-                  .target = cpuid,
-                  .order = bits::hostOrder(),
-                  .name = "call_depth",
-                  .loc = &_count.call_depth});
+  _ref_call_depth = scan->expose(SR{.byte_width = 2,
+                                    .access = RO,
+                                    .type = SR::Type::Counter,
+                                    .target = cpuid,
+                                    .order = bits::hostOrder(),
+                                    .name = "call_depth",
+                                    .loc = &_count.call_depth});
   scan->expose(SR{.byte_width = 2,
                   .access = RO,
                   .trace_mode = SR::Tracing::Checkpoint,
@@ -224,12 +224,12 @@ void PepISA3CPU::trace(bool enabled) {
 
 void PepISA3CPU::increment_call_depth() {
   _count.call_depth += 1;
-  // TODO: emit a register write packet to TB
+  _trace.emit_incr_register(op_data(), &_ref_call_depth, 1);
 }
 
 void PepISA3CPU::decrement_call_depth() {
   _count.call_depth -= 1;
-  // TODO: emit a register write packet to TB
+  _trace.emit_incr_register(op_data(), &_ref_call_depth, -1);
 }
 
 // The CSR bank stores one flag per byte, in CSR enum order: N at 0, Z at 1, V at 2, C at 3. Both of these move all

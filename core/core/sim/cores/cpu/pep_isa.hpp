@@ -6,7 +6,9 @@
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
+#include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
+
 class Dense;
 
 /*
@@ -91,6 +93,7 @@ private:
     i16 call_depth = 0;
     u32 instructions = 0;
   } _count = {};
+  RegisterScan::RegisterRef _ref_call_depth = {};
   // Only meaningful between the start and end of clock_tick. See read_pc().
   // Coalescing these reads saves 1-2 register writes on most instructions.
   u16 _pc = 0;
