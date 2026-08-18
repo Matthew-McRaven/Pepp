@@ -299,13 +299,12 @@ tvm::DecodedOp::DeltaMem Decoder::decode_stepmem(pepp::bts::Buffer::ID ibp, u16 
   // Unless (6) is provided, the delta is DP relative rather than immediate.
   ret.data = regs.DP;
   ret.size = regs.DS;
-  ret.order = bits::Order::LittleEndian;
+  // If MOD1 is not set, then choose LE by default.
+  ret.order = (_state.csrs.M1 && regs.MOD1.hi) ? bits::Order::BigEndian : bits::Order::LittleEndian;
 
   switch (regs.IS.word_len) {
   default: [[fallthrough]];
   case 6:
-    // If MOD1/MOD2 are set, then read from them rather than the data registers.
-    // This allows "immediate" versions to avoid clobbering DP regs.
     regs.MOD1.lo = read(ibp, iop + 10);
     regs.MOD2.hi = regs.IP.hi;
     regs.MOD2.lo = iop + 12;
