@@ -1,9 +1,15 @@
 #include "core/sim/debugger/trace_recorder.hpp"
 #include <algorithm>
+#include <array>
 #include <utility>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
+
+namespace {
+// STEPMEM's MOD1.hi: nonzero says the destination is big-endian. See Opcode::STEPMEM.
+constexpr u16 STEP_BIG_ENDIAN = 1;
+} // namespace
 
 namespace trace {
 
@@ -57,6 +63,55 @@ void Recorder::emit_write(const Operation &op, Address address, bits::span<const
   emit_write(op, address, now.first(len), [&](bits::span<u8> tmp) { bits::memcpy(tmp, prior.first(len)); });
 }
 
+void Recorder::emit_write_increment(const Operation &op, Address address, bits::span<const u8> prior,
+                                    bits::span<const u8> now) {
+  const std::size_t len = now.size();
+  if (len == 0) return;       // A write with no data is meaningless.
+  else if (!traced()) return; // Don't record for untraced.
+  else if (op.type == Operation::Type::BufferInternal)
+    return; // Access related to TB or UI. Filter or we'll loop infinitely.
+  // The delta is computed in a u64, and the packet's payload words are sized at compile time, so only the widths
+  // switched over below can take this form. Anything else still has to be recorded or the trace stops being
+  // reversible, so hand it to the XOR encoding, which is width-agnostic.
+  else if (len != 1 && len != 2 && len != 4 && len != 8) return emit_write(op, address, now, prior);
+  const auto rec = _tb->find_recording(op.initiator);
+  // begin() never called for that initiator.
+  if (rec == nullptr) return;
+
+  // The previous contents land on the stack rather than in the data chain, because unlike emit_write this record
+  // carries its payload as code and touches the data chain not at all.
+  std::array<u8, sizeof(u64)> scratch{};
+
+  // Both sides are read big-endian because the targets this is aimed at are. Reading them in the wrong order would
+  // still replay correctly -- bytes to integer and back is a bijection either way, so the sum reproduces `now`'s
+  // bytes exactly -- but the delta would stop being the same number every time the moment a carry crossed a byte
+  // boundary. A body that is not byte-identical between executions cannot be promoted to a stencil, and that
+  // promotion is the entire reason this form carries its payload as code.
+  const u64 before = bits::memcpy_endian<u64>(prior, bits::Order::BigEndian);
+  const u64 after = bits::memcpy_endian<u64>(now, bits::Order::BigEndian);
+  const u64 delta = after - before;
+
+  const auto off = tvm::SegmentPair{.hi = (u16)(address >> 16), .lo = (u16)(address & 0xFFFF)};
+  // STEPMEM reads one size for both the delta and the destination, so the payload is emitted at the width of the
+  // write. TraceBuffer::address_in_payload has no say here: there is no D variant of this opcode, and the caller
+  // asking for a step is asking for a body that stands alone.
+  const auto emit = [&]<std::size_t N>() {
+    std::array<u8, N> payload{};
+    bits::memcpy_endian(bits::span<u8>{payload.data(), N}, bits::Order::LittleEndian, delta);
+    const auto step = tvm::EncodedOp::StepMem<6>(op.as_u16(), _emitter.value, off, STEP_BIG_ENDIAN).encode(payload);
+    _tb->emit_body(*rec, {step.data(), step.size()});
+  };
+  switch (len) {
+  case 1: emit.operator()<1>(); break;
+  case 2: emit.operator()<2>(); break;
+  case 4: emit.operator()<4>(); break;
+  case 8: emit.operator()<8>(); break;
+  default: break; // Unreachable: the width guard above admits nothing else.
+  }
+  // Deliberately no emit_dp_update and no append_data. An immediate payload leaves DP and DS exactly as they were,
+  // which is also what lets a following emit_write in the same recording step from the anchor it expects.
+}
+
 void Recorder::emit_write(const Operation &op, Address address, bits::span<const u8> now, PriorFiller fill_prior) {
   const std::size_t len = now.size();
   if (len == 0) return;       // A write with no data is meaningless.
@@ -105,8 +160,28 @@ void Recorder::emit_mm_read(const Operation &op, Address address, u8 popped) {
   return emit_mm(op, address, popped, false);
 }
 
-void Recorder::emit_incr_register(const Operation &op, void *reg, i16 value) {
-  // TODO!
+void Recorder::emit_incr_register(const Operation &op, RegisterScan::RegisterRef ref, i16 value) {
+  if (value == 0) return;     // A step of nothing replays to nothing in either direction.
+  else if (!traced()) return; // Don't record for untraced.
+  else if (op.type == Operation::Type::BufferInternal)
+    return; // Access related to TB or UI. Filter or we'll loop infinitely.
+  // Register 0 is never handed out by RegisterScan::expose, so this is a device that never exposed the counter it is
+  // trying to step. Drop it here rather than letting the replay hard-stop on RegisterInvalid.
+  else if (ref.reg.value == 0) return;
+  const auto rec = _tb->find_recording(op.initiator);
+  // begin() never called for that initiator.
+  if (rec == nullptr) return;
+
+  // Nothing is appended and no DP update is emitted: the payload is immediate, so DP and DS come out as they went in.
+  // The register's width and byte order stay STEPREG's business, since the scan reports both -- which is why the
+  // delta may be narrower than the counter it steps.
+  const auto emit = [&](auto payload) {
+    const auto step = tvm::EncodedOp::StepReg<4>(op.as_u16(), ref.reg.value, ref.field.value).encode(payload);
+    _tb->emit_body(*rec, {step.data(), step.size()});
+  };
+  // Payloads are little-endian and signed. One byte covers the +-1 steps this exists for; the rest take two.
+  if (value >= -128 && value <= 127) emit(std::array<u8, 1>{(u8)value});
+  else emit(std::array<u8, 2>{(u8)(value & 0xFF), (u8)((value >> 8) & 0xFF)});
 }
 
 void Recorder::emit_mm(const Operation &op, Address address, u8 pushed, bool read_write) {

@@ -15,9 +15,9 @@
  */
 #include "core/sim/debugger/trace_recorder.hpp"
 #include <array>
+#include <catch.hpp>
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/trace_device.hpp"
-#include <catch.hpp>
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/memory/ram/dense.hpp"
@@ -254,6 +254,223 @@ TEST_CASE("trace::Recorder: emit_write()", "[scope:core][scope:core.dbg][kind:un
   }
 }
 
+TEST_CASE("trace::Recorder: emit_write_increment()", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto [sys, mem] = make_system();
+  auto mgr = sys->buffer_manager();
+  tvm::TraceBuffer tb(mgr);
+
+  constexpr Device::ID CPU{1};
+  constexpr Address ADDR = 0x1234;
+  // A location that advances by a constant, which is what this encoding exists for.
+  constexpr u16 FIRST = 0x0100, SECOND = 0x0103;
+  const std::array<u8, 2> first_bytes{0x01, 0x00}, second_bytes{0x01, 0x03}, third_bytes{0x01, 0x06};
+
+  trace::Recorder rec(&tb, mem->id());
+  tb.trace(mem->id());
+  const Operation emit_op(Operation::Type::Standard, Operation::Kind::data, CPU);
+
+  SECTION("A recorded step replays forward, then undoes itself") {
+    poke(mem, ADDR, FIRST);
+
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes);
+    auto loc = tb.commit(CPU);
+
+    auto blaster = sys->make_trace_interpreter();
+    blaster->run(loc);
+    CHECK(blaster->stop_cause() == tvm::StopCause::None);
+    CHECK(peek(mem, ADDR) == SECOND);
+
+    // Addition is not its own inverse, so undoing this one means replaying it the other way rather than running it
+    // a second time the way the XOR form does.
+    blaster->backend().set_direction(tvm::Direction::Backward);
+    blaster->run(loc);
+    CHECK(peek(mem, ADDR) == FIRST);
+  }
+
+  SECTION("The record carries nothing in the data chain") {
+    const auto before = tb.footprint();
+
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes);
+    auto loc = tb.commit(CPU);
+
+    // Both the address and the delta ride in the packet, so nothing was appended and there is no payload for run()
+    // to aim DP at. This is what "leaves DP alone" looks like from outside the recorder.
+    CHECK(tb.footprint().data == before.data);
+    CHECK(loc.data.id == pepp::bts::Buffer::ID{0});
+  }
+
+  SECTION("A following write still finds its own payload") {
+    // The risk of leaving DP alone is the record after it: emit_write steps DP from the last payload written, and a
+    // step in between must not have disturbed that anchor.
+    constexpr Address OTHER_ADDR = 0x2000;
+    poke(mem, ADDR, FIRST);
+    poke(mem, OTHER_ADDR, 0x1111);
+    const std::array<u8, 2> other_old{0x11, 0x11}, other_new{0x22, 0x22};
+
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes);
+    rec.emit_write(emit_op, OTHER_ADDR, other_old, other_new);
+    auto loc = tb.commit(CPU);
+
+    sys->make_trace_interpreter()->run(loc);
+    CHECK(peek(mem, ADDR) == SECOND);
+    CHECK(peek(mem, OTHER_ADDR) == 0x2222);
+  }
+
+  SECTION("Two steps of the same size are one stencil") {
+    // The whole reason the payload is code: a location that advances by a constant emits a byte-identical body every
+    // time, and identical bodies collapse into a call.
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes);
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 0); // seen once, not yet promoted
+
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, second_bytes, third_bytes);
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 1);
+  }
+
+  SECTION("A width the packet cannot carry falls back to the XOR form") {
+    // Three bytes will not fit the encoding, but the write still has to end up in the trace.
+    const std::array<u8, 3> old3{0x00, 0x01, 0x02}, new3{0x00, 0x01, 0x05};
+    mem->write(ADDR, {old3.data(), old3.size()}, app);
+
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, old3, new3);
+    auto loc = tb.commit(CPU);
+    // It took the emit_write path, which does reserve a payload.
+    CHECK(loc.data.id != pepp::bts::Buffer::ID{0});
+
+    sys->make_trace_interpreter()->run(loc);
+    std::array<u8, 3> actual{};
+    mem->read(ADDR, {actual.data(), actual.size()}, app);
+    CHECK(actual == new3);
+  }
+}
+
+TEST_CASE("trace::Recorder: emit_incr_register()", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto [sys, mem] = make_system();
+  tvm::TraceBuffer tb(sys->buffer_manager());
+  constexpr Device::ID CPU{1};
+
+  // A counter living in a plain member, declared the way a CPU declares its own: read-only to the debugger, backed by
+  // a pointer rather than by an address in some target's space.
+  i16 counter = 0;
+  RegisterScan::Register decl{};
+  decl.byte_width = 2;
+  decl.access = RegisterScan::Register::Access::Read;
+  decl.type = RegisterScan::Register::Type::Counter;
+  decl.target = mem->id();
+  decl.order = bits::hostOrder();
+  decl.name = "call_depth";
+  decl.loc = &counter;
+  const auto ref = sys->register_scan()->expose(decl);
+
+  trace::Recorder rec(&tb, mem->id());
+  tb.trace(mem->id());
+  const Operation emit_op(Operation::Type::Standard, Operation::Kind::data, CPU);
+
+  SECTION("A recorded step replays forward, then undoes itself") {
+    tb.begin(CPU);
+    rec.emit_incr_register(emit_op, ref, 1);
+    auto loc = tb.commit(CPU);
+
+    auto blaster = sys->make_trace_interpreter();
+    blaster->run(loc);
+    CHECK(blaster->stop_cause() == tvm::StopCause::None);
+    // Note the counter is Access::Read: a pointer-backed register is written on replay regardless, which is what
+    // makes a read-only counter restorable at all.
+    CHECK(counter == 1);
+
+    blaster->backend().set_direction(tvm::Direction::Backward);
+    blaster->run(loc);
+    CHECK(counter == 0);
+  }
+
+  SECTION("A negative step counts back down") {
+    counter = 5;
+
+    tb.begin(CPU);
+    rec.emit_incr_register(emit_op, ref, -1);
+    auto loc = tb.commit(CPU);
+
+    auto blaster = sys->make_trace_interpreter();
+    blaster->run(loc);
+    CHECK(counter == 4);
+
+    blaster->backend().set_direction(tvm::Direction::Backward);
+    blaster->run(loc);
+    CHECK(counter == 5);
+  }
+
+  SECTION("The record carries nothing in the data chain") {
+    const auto before = tb.footprint();
+
+    tb.begin(CPU);
+    rec.emit_incr_register(emit_op, ref, 1);
+    auto loc = tb.commit(CPU);
+
+    CHECK(tb.footprint().data == before.data);
+    CHECK(loc.data.id == pepp::bts::Buffer::ID{0});
+  }
+
+  SECTION("Two equal steps are one stencil") {
+    tb.begin(CPU);
+    rec.emit_incr_register(emit_op, ref, 1);
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 0); // seen once, not yet promoted
+
+    tb.begin(CPU);
+    rec.emit_incr_register(emit_op, ref, 1);
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 1);
+  }
+
+  SECTION("A zero step records nothing") {
+    const auto before = tb.footprint();
+
+    tb.begin(CPU);
+    rec.emit_incr_register(emit_op, ref, 0);
+    auto loc = tb.commit(CPU);
+
+    // Only the HALT commit() appends, so the body really was empty.
+    CHECK(tb.footprint().code == before.code + 2);
+
+    counter = 7;
+    sys->make_trace_interpreter()->run(loc);
+    CHECK(counter == 7);
+  }
+
+  SECTION("A register that was never exposed is dropped") {
+    // Handle 0 is never handed out, so this is a device that forgot to expose its counter. Recording it would hard
+    // stop the replay on RegisterInvalid, taking the rest of the trace down with it.
+    const auto before = tb.footprint();
+
+    tb.begin(CPU);
+    rec.emit_incr_register(emit_op, RegisterScan::RegisterRef{}, 1);
+    auto loc = tb.commit(CPU);
+
+    CHECK(tb.footprint().code == before.code + 2);
+    auto blaster = sys->make_trace_interpreter();
+    blaster->run(loc);
+    CHECK(blaster->stop_cause() == tvm::StopCause::None);
+  }
+
+  SECTION("An untraced device records nothing") {
+    tb.trace(mem->id(), false);
+
+    tb.begin(CPU);
+    rec.emit_incr_register(emit_op, ref, 1);
+    auto loc = tb.commit(CPU);
+
+    sys->make_trace_interpreter()->run(loc);
+    CHECK(counter == 0);
+  }
+}
+
 TEST_CASE("trace::BufferDevice: discovery and binding", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   // Build a system that contains a trace buffer device, so binding happens through System::initialize() rather than
   // by handing a buffer to bind_recorders() by hand.
@@ -302,8 +519,8 @@ TEST_CASE("trace::BufferDevice: discovery and binding", "[scope:core][scope:core
     auto &tb = tbdev->buffer();
     tb.begin(CPU);
     // Go through the device's own write path, so this exercises the Recorder that initialize() bound.
-    ((Target *)mem)->write<u16, bits::host_is_le>(ADDR, NEW, Operation(Operation::Type::Standard,
-                                                                       Operation::Kind::data, CPU));
+    ((Target *)mem)
+        ->write<u16, bits::host_is_le>(ADDR, NEW, Operation(Operation::Type::Standard, Operation::Kind::data, CPU));
     auto loc = tb.commit(CPU);
     CHECK(peek(mem, ADDR) == NEW);
 
@@ -316,8 +533,8 @@ TEST_CASE("trace::BufferDevice: discovery and binding", "[scope:core][scope:core
     auto &tb = tbdev->buffer();
     poke(mem, ADDR, OLD);
     tb.begin(CPU);
-    ((Target *)mem)->write<u16, bits::host_is_le>(ADDR, NEW, Operation(Operation::Type::Standard,
-                                                                       Operation::Kind::data, CPU));
+    ((Target *)mem)
+        ->write<u16, bits::host_is_le>(ADDR, NEW, Operation(Operation::Type::Standard, Operation::Kind::data, CPU));
     auto loc = tb.commit(CPU);
     CHECK(peek(mem, ADDR) == NEW);
 

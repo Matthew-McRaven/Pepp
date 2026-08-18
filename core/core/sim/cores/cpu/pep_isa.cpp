@@ -192,14 +192,22 @@ void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // Take PC out of the register bank for the duration of this instruction. Everything below moves it through _pc,
   // and the single store after handle() is the only version the trace ever sees. See read_pc().
   _pc = read_register_uncached(isa::Pep10::Register::PC);
+  const auto init_pc = _pc;
   // TODO: Should probably be an instruction access?
   u8 is = _target->read<u8, false>(_pc, op_data()).second;
   _pc += 1;
   write_register(isa::Pep10::Register::IS, is);
-  handle(_opcodes[is]);
   // Defer PC writeback until end of instruction to avoid ~3 updates on a BR (1 for to fetch IS, 1 to fetch OS, 1 for
   // the branch).
-  write_register_uncached(isa::Pep10::Register::PC, _pc);
+  handle(_opcodes[is]);
+  // Change in PC is range [1, 3] which is the normal increment amount and probably not from a branch.
+  // Since all instructions other than branches have a fixed PC increment, we can use a specialized increment encoding
+  // to save ~2B/instruction in the trace. We do not use the normal encoding for calls/branches, as those can have
+  // data-dependence for the branch target.
+  const auto pc_delta = _pc - init_pc;
+  if ((pc_delta & 0b11) == pc_delta) {
+    _regbank->write_increment<u16, bits::host_is_le>(static_cast<u8>(isa::Pep10::Register::PC) * 2, _pc, op_data());
+  } else write_register_uncached(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
   record.commit();
   _count.instructions += 1;
@@ -224,12 +232,13 @@ void PepISA3CPU::trace(bool enabled) {
 
 void PepISA3CPU::increment_call_depth() {
   _count.call_depth += 1;
-  _trace.emit_incr_register(op_data(), &_ref_call_depth, 1);
+  // Ordering does not matter here the way it does for a write since the prior is constant.
+  _trace.emit_incr_register(op_data(), _ref_call_depth, 1);
 }
 
 void PepISA3CPU::decrement_call_depth() {
   _count.call_depth -= 1;
-  _trace.emit_incr_register(op_data(), &_ref_call_depth, -1);
+  _trace.emit_incr_register(op_data(), _ref_call_depth, -1);
 }
 
 // The CSR bank stores one flag per byte, in CSR enum order: N at 0, Z at 1, V at 2, C at 3. Both of these move all
