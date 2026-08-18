@@ -100,6 +100,7 @@ struct ReadVisit {
   void operator()(Address addr) { throw std::runtime_error("Device is not a target"); }
   template <typename T> void operator()(const T *ptr) {
     if (sizeof(T) != out.size()) throw std::runtime_error("Register width mismatch");
+    else if (ptr == nullptr) throw std::runtime_error("Register pointer is null");
     std::memcpy(out.data(), ptr, sizeof(T));
   }
 };
@@ -161,6 +162,7 @@ struct WriteVisit {
   void operator()(Address addr) { throw std::runtime_error("Device is not a target"); }
   template <typename T> void operator()(T *ptr) {
     if (sizeof(T) != src.size()) throw std::runtime_error("Register width mismatch");
+    else if (ptr == nullptr) throw std::runtime_error("Register pointer is null");
     std::memcpy(ptr, src.data(), sizeof(T));
   }
 };
