@@ -519,6 +519,13 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
     CHECK(scan->read<u16>(depth) == 0);
   }
 
+  SECTION("Can inspect icount") {
+    // Reads the counter through the scan, which is what catches a byte_width that disagrees with the storage it
+    // points at -- the whole register throws otherwise.
+    auto count = *scan->find("icount");
+    CHECK(scan->read<u32>(count) == 0);
+  }
+
   SECTION("CLRREG zeroes a whole register") {
     auto ref = *scan->find("be4");
     scan->write<u32>(ref, 0xDEAD'BEEF);
