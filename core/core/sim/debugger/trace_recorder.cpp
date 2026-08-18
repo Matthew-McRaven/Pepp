@@ -73,14 +73,10 @@ void Recorder::emit_write_increment(const Operation &op, Address address, bits::
   // The delta is computed in a u64, and the packet's payload words are sized at compile time, so only the widths
   // switched over below can take this form. Anything else still has to be recorded or the trace stops being
   // reversible, so hand it to the XOR encoding, which is width-agnostic.
-  else if (len != 1 && len != 2 && len != 4 && len != 8) return emit_write(op, address, now, prior);
+  else if (len != 1 && len != 2 && len != 4 && len != 8) return emit_write(op, address, prior, now);
   const auto rec = _tb->find_recording(op.initiator);
   // begin() never called for that initiator.
   if (rec == nullptr) return;
-
-  // The previous contents land on the stack rather than in the data chain, because unlike emit_write this record
-  // carries its payload as code and touches the data chain not at all.
-  std::array<u8, sizeof(u64)> scratch{};
 
   // Both sides are read big-endian because the targets this is aimed at are. Reading them in the wrong order would
   // still replay correctly -- bytes to integer and back is a bijection either way, so the sum reproduces `now`'s
