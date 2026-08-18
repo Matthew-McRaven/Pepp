@@ -80,11 +80,13 @@ public:
   RegisterScan(System *sys) : _sys(sys) {}
   RegisterScan::Register::Reference expose(const Register &n);
 
-  // Where does the access originate from? Both techincally come from within this process, but distringuishing simulated
-  // traffic from the simulators' infrastructure's traffic is important.
+  // Where does the access originate from? Both techincally come from within this process, but distinguishing simulated
+  // traffic from the simulators' infrastructure's traffic is important. If the access is made on the machines behalf
+  // (e.g., a debugger poking a register to display it), the access should be Guest. Trying to reset a VM to a
+  // clean/default state or replaying a trace would be Host. The default is Guest, which is the least-permissive.
   enum class Level : u8 {
-    Guest, // The system/device tree under test.
-    Host,  // All other traffic not originating from a guest program.
+    Guest, // The system/device tree under test, and anything reaching into it on a user's behalf.
+    Host,  // The simulator's own infrastructure: replaying a trace, resetting a device, restoring a checkpoint.
   };
 
   enum class Byteswap {
