@@ -474,17 +474,18 @@ struct BR {
   tvm::ConditionCode condition = (tvm::ConditionCode)0;
   SegmentPair displacement{};
 };
-// A shared decoding strucutre between all operations which modify memory (SETMEM, SETMEMX, SETMEMDX, STEPMEM). e the
-// things that Their only difference is in how data is combined with the destination.
+// A shared decoding structure for every operation which modifies memory (SETMEM, SETMEMX, SETMEMDX, STEPMEM). Their
+// only difference is how the payload is combined with the destination, described by `kind`
 struct DeltaMem {
   tvm::Delta kind = tvm::Delta::Assign;
   Operation access{};
   Device::ID target{};
   u32 offset = 0;
-  // Where the payload lives and how many bytes of it there are. For Add this is a signed little-endian integer which
-  // is usually narrower than `width`; for the other kinds it is the destination's bytes verbatim.
+  // Where the payload lives.
   SegmentPair data{};
+  // Size is the number of bytes of data at the data pointer as well as the size of the destination.
   u16 size = 0;
+  // For non-bitwise operations, how to interpret the contents at the destination.
   bits::Order order = bits::Order::LittleEndian;
 };
 
