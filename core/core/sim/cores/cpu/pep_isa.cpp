@@ -80,8 +80,9 @@ PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
     Dense::Configuration cfg;
     cfg.basename = "csrs";
     cfg.fill = 0;
-    // N, Z, V, C
-    cfg.span = {0, 3};
+    // One byte holding NZVC in its low nibble, N at bit 3 down to C at bit 0. A byte per flag would cost 4 payload
+    // bytes in every trace record that touches the flags, to carry 4 bits.
+    cfg.span = {0, 0};
     cfg.skip_serialize = true;
     self->_csrs = sys->make_device<Dense>(parent, cfg);
   };
@@ -129,13 +130,12 @@ void PepISA3CPU::initialize(System *sys) {
   const auto cid = _csrs->id();
   using F = SR::Field;
   // Should really be 4 separate fields, but I want to test that my fields work as expected.
-  // When moving to 4 fields, no need for bit offsets.
-  // Bit 31 is MSB, 0 is LSB. Considering these are 4 consecutive bytes, the offsets make sense.
-  auto n = F{.guest_access = RW, .bit_offset = 24, .bit_width = 1, .name = "N"};
-  auto z = F{.guest_access = RW, .bit_offset = 16, .bit_width = 1, .name = "Z"};
-  auto v = F{.guest_access = RW, .bit_offset = 8, .bit_width = 1, .name = "V"};
+  // Bit 7 is MSB, 0 is LSB. The flags occupy the low nibble in CSR enum order, so N is bit 3 and C is bit 0.
+  auto n = F{.guest_access = RW, .bit_offset = 3, .bit_width = 1, .name = "N"};
+  auto z = F{.guest_access = RW, .bit_offset = 2, .bit_width = 1, .name = "Z"};
+  auto v = F{.guest_access = RW, .bit_offset = 1, .bit_width = 1, .name = "V"};
   auto c = F{.guest_access = RW, .bit_offset = 0, .bit_width = 1, .name = "C"};
-  scan->expose(SR{.byte_width = 4,
+  scan->expose(SR{.byte_width = 1,
                   .guest_access = RW,
                   .target = cid,
                   .order = BE,
@@ -244,24 +244,14 @@ void PepISA3CPU::decrement_call_depth() {
   _trace.emit_incr_register(op_data(), _ref_call_depth, -1);
 }
 
-// The CSR bank stores one flag per byte, in CSR enum order: N at 0, Z at 1, V at 2, C at 3. Both of these move all
-// four in a single access rather than one per flag. Perform as a single batched read/write to reduce the # of traces
-// emitted for this operation.
+// The CSR bank is one byte holding all four flags, N at bit 3 through C at bit 0, matching the packing at the ISA
+// layer. One access also means one trace record byte rather than 4
 u8 PepISA3CPU::read_packed_csr() {
-  std::array<u8, 4> nzvc{};
-  ((Target *)_csrs)->read(0, {nzvc.data(), nzvc.size()}, op_data());
-  return static_cast<u8>((nzvc[0] ? 1 << 3 : 0) | (nzvc[1] ? 1 << 2 : 0) | (nzvc[2] ? 1 << 1 : 0) |
-                         (nzvc[3] ? 1 << 0 : 0));
+  return static_cast<u8>(((Target *)_csrs)->read<u8, false>(0, op_data()).second & CSR_MASK);
 }
 
 void PepISA3CPU::write_packed_csr(u8 value) {
-  const std::array<u8, 4> nzvc{
-      static_cast<u8>((value >> 3) & 1),
-      static_cast<u8>((value >> 2) & 1),
-      static_cast<u8>((value >> 1) & 1),
-      static_cast<u8>((value >> 0) & 1),
-  };
-  ((Target *)_csrs)->write(0, {nzvc.data(), nzvc.size()}, op_data());
+  ((Target *)_csrs)->write<u8, false>(0, static_cast<u8>(value & CSR_MASK), op_data());
 }
 
 void PepISA3CPU::handle(Op opcode) {

@@ -400,22 +400,22 @@ TEST_CASE("NZVC fields pack independently", "[scope:core][scope:core.dbg][kind:u
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto *scan = sys->register_scan();
 
-  // The four flags are 1-bit fields of one 4-byte big-endian register, one flag per byte (bit offsets 24/16/8/0).
-  // Writing a field is a read-modify-write, so the interesting question is not whether the bit lands -- it is what
-  // happens to every bit the write does not address.
+  // The four flags are 1-bit fields of one byte, N at bit 3 down to C at bit 0. Writing a field is a read-modify-
+  // write, so the interesting question is not whether the bit lands -- it is what happens to every bit the write
+  // does not address, including the four spare bits of the high nibble.
   constexpr const char *FLAGS[] = {"N", "Z", "V", "C"};
-  constexpr u32 PACKED[] = {0x0100'0000, 0x0001'0000, 0x0000'0100, 0x0000'0001};
+  constexpr u8 PACKED[] = {0b1000, 0b0100, 0b0010, 0b0001};
 
   auto whole = *scan->find("NZVC");
   auto flag = [&](size_t i) { return *scan->find(FLAGS[i]); };
 
-  SECTION("A flag set in isolation packs into its own byte") {
+  SECTION("A flag set in isolation packs into its own bit") {
     for (size_t i = 0; i < 4; ++i) {
       INFO("setting " << FLAGS[i]);
-      scan->write<u32>(whole, 0);
+      scan->write<u8>(whole, 0);
       scan->write<u8>(flag(i), 1);
 
-      CHECK(scan->read<u32>(whole) == PACKED[i]);
+      CHECK(scan->read<u8>(whole) == PACKED[i]);
       for (size_t j = 0; j < 4; ++j) {
         INFO("  reading " << FLAGS[j]);
         CHECK(scan->read<u8>(flag(j)) == (i == j ? 1 : 0));
@@ -426,10 +426,10 @@ TEST_CASE("NZVC fields pack independently", "[scope:core][scope:core.dbg][kind:u
   SECTION("A flag cleared in isolation leaves its siblings set") {
     for (size_t i = 0; i < 4; ++i) {
       INFO("clearing " << FLAGS[i]);
-      scan->write<u32>(whole, 0x0101'0101);
+      scan->write<u8>(whole, 0b1111);
       scan->write<u8>(flag(i), 0);
 
-      CHECK(scan->read<u32>(whole) == (0x0101'0101u & ~PACKED[i]));
+      CHECK(scan->read<u8>(whole) == (0b1111u & ~PACKED[i]));
       for (size_t j = 0; j < 4; ++j) {
         INFO("  reading " << FLAGS[j]);
         CHECK(scan->read<u8>(flag(j)) == (i == j ? 0 : 1));
@@ -438,24 +438,24 @@ TEST_CASE("NZVC fields pack independently", "[scope:core][scope:core.dbg][kind:u
   }
 
   SECTION("A field write touches exactly one bit of the register") {
-    // Seed every bit, including the seven spare bits in each flag's byte that no field claims. A read-modify-write
+    // Seed every bit, including the four spare bits of the high nibble that no field claims. A read-modify-write
     // whose mask is too wide -- or that skips the read entirely -- knocks some of them down.
     for (size_t i = 0; i < 4; ++i) {
       INFO("clearing " << FLAGS[i] << " out of an all-ones register");
-      scan->write<u32>(whole, 0xFFFF'FFFF);
+      scan->write<u8>(whole, 0xFF);
       scan->write<u8>(flag(i), 0);
-      CHECK(scan->read<u32>(whole) == (0xFFFF'FFFFu & ~PACKED[i]));
+      CHECK(scan->read<u8>(whole) == (0xFFu & ~PACKED[i]));
     }
     for (size_t i = 0; i < 4; ++i) {
       INFO("setting " << FLAGS[i] << " out of an all-zeros register");
-      scan->write<u32>(whole, 0);
+      scan->write<u8>(whole, 0);
       scan->write<u8>(flag(i), 1);
-      CHECK(scan->read<u32>(whole) == PACKED[i]);
+      CHECK(scan->read<u8>(whole) == PACKED[i]);
     }
   }
 
   SECTION("A mixed pattern round-trips through the fields") {
-    scan->write<u32>(whole, 0);
+    scan->write<u8>(whole, 0);
     scan->write<u8>(flag(0), 1); // N
     scan->write<u8>(flag(1), 0); // Z
     scan->write<u8>(flag(2), 1); // V
@@ -465,7 +465,7 @@ TEST_CASE("NZVC fields pack independently", "[scope:core][scope:core.dbg][kind:u
     CHECK(scan->read<u8>(flag(1)) == 0);
     CHECK(scan->read<u8>(flag(2)) == 1);
     CHECK(scan->read<u8>(flag(3)) == 0);
-    CHECK(scan->read<u32>(whole) == 0x0100'0100);
+    CHECK(scan->read<u8>(whole) == 0b1010);
   }
 }
 
@@ -504,7 +504,7 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
 
   SECTION("clear() zeroes one field and leaves its siblings") {
     auto whole = *scan->find("NZVC");
-    scan->write<u32>(whole, 0x0101'0101);
+    scan->write<u8>(whole, 0b1111);
 
     scan->clear(*scan->find("V"));
 
@@ -512,7 +512,7 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
     CHECK(scan->read<u8>(*scan->find("N")) == 1);
     CHECK(scan->read<u8>(*scan->find("Z")) == 1);
     CHECK(scan->read<u8>(*scan->find("C")) == 1);
-    CHECK(scan->read<u32>(whole) == 0x0101'0001);
+    CHECK(scan->read<u8>(whole) == 0b1101);
   }
   SECTION("Can inspect call_depth") {
     auto depth = *scan->find("call_depth");
@@ -542,13 +542,13 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
   SECTION("CLRREG zeroes a single field") {
     auto whole = *scan->find("NZVC");
     auto v = *scan->find("V");
-    scan->write<u32>(whole, 0x0101'0101);
+    scan->write<u8>(whole, 0b1111);
 
     auto blaster = run(ClrReg<2>{.reg = v.reg.value, .field = v.field.value}.encode());
 
     CHECK(blaster->stop_cause() == StopCause::None);
     CHECK(blaster->csrs().F == 0);
-    CHECK(scan->read<u32>(whole) == 0x0101'0001);
+    CHECK(scan->read<u8>(whole) == 0b1101);
   }
 
   SECTION("Clearing bypasses the read-only check") {
@@ -731,17 +731,17 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
   SECTION("SETREG sets a single field and leaves its siblings") {
     auto whole = *scan->find("NZVC");
     auto v = *scan->find("V");
-    scan->write<u32>(whole, 0x0000'0000);
+    scan->write<u8>(whole, 0);
 
     auto blaster = run([&](tvm::TraceBuffer &tb) {
       auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = v.reg.value, .field = v.field.value}.encode(
-          std::array<u8, 4>{0x01, 0x00, 0x00, 0x00});
+          std::array<u8, 1>{0x01});
       tb.emit_body(S, {enc.data(), enc.size()});
     });
 
     CHECK(blaster->stop_cause() == StopCause::None);
     CHECK(scan->read<u8>(v) == 1);
-    CHECK(scan->read<u32>(whole) == 0x0000'0100);
+    CHECK(scan->read<u8>(whole) == 0b0010);
   }
 
   SECTION("A payload that is not the register's width hard stops") {
@@ -780,13 +780,15 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
 
   constexpr const char *FLAGS[] = {"N", "Z", "V", "C"};
   // Where each flag sits when the register is read as a whole -- used only to seed state, never as a payload.
-  constexpr u32 PACKED[] = {0x0100'0000, 0x0001'0000, 0x0000'0100, 0x0000'0001};
+  constexpr u8 PACKED[] = {0b1000, 0b0100, 0b0010, 0b0001};
   auto whole = *scan->find("NZVC");
 
   // Field payloads are LSB-aligned: the value naming "this flag is set" is 1, whatever the flag's bit offset in the
   // containing register happens to be. That matches what the scan hands back when reading a field.
   auto compare = [&](RegisterScan::RegisterRef ref, u32 payload) {
-    std::array<u8, 4> data{(u8)payload, (u8)(payload >> 8), (u8)(payload >> 16), (u8)(payload >> 24)};
+    // One byte, because the payload has to be the containing register's width. Anything above the low byte is
+    // excess the caller supplied on purpose; see the masking section below.
+    std::array<u8, 1> data{(u8)payload};
     auto blaster = sys->make_trace_interpreter();
     tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
@@ -801,7 +803,7 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
   SECTION("A set field compares equal to 1 regardless of its bit offset") {
     for (size_t i = 0; i < 4; ++i) {
       INFO("flag " << FLAGS[i]);
-      scan->write<u32>(whole, PACKED[i]);
+      scan->write<u8>(whole, PACKED[i]);
 
       auto blaster = compare(flag(i), 1);
 
@@ -815,7 +817,7 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
   SECTION("Each flag compares independently of its siblings") {
     for (size_t i = 0; i < 4; ++i) {
       INFO("only " << FLAGS[i] << " set");
-      scan->write<u32>(whole, PACKED[i]);
+      scan->write<u8>(whole, PACKED[i]);
       for (size_t j = 0; j < 4; ++j) {
         INFO("  comparing " << FLAGS[j]);
         CHECK(compare(flag(j), 1)->csrs().Z == (i == j ? 1 : 0));
@@ -827,7 +829,7 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
   SECTION("The same payload means different things to a field and to the register") {
     // N and V both set. A payload of 1 matches the V field, because 1 is how an LSB-aligned field says "set". The
     // identical payload against the whole register is the number 1, which 0x01000100 is not.
-    scan->write<u32>(whole, 0x0100'0100);
+    scan->write<u8>(whole, 0b1010);
 
     CHECK(compare(flag(2), 1)->csrs().Z == 1);
     CHECK(compare(whole, 1)->csrs().Z == 0);
@@ -835,28 +837,28 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
 
   SECTION("A payload wider than the field is masked to the field's width") {
     // Only bit 0 belongs to a 1-bit field; the rest of the payload is excess and must not affect the result.
-    scan->write<u32>(whole, PACKED[2]); // V set
+    scan->write<u8>(whole, PACKED[2]); // V set
     CHECK(compare(flag(2), 0xFFFF'FFFF)->csrs().Z == 1);
     CHECK(compare(flag(2), 0xFFFF'FFFE)->csrs().Z == 0);
   }
 
   SECTION("Field compares report ordering, not just equality") {
-    scan->write<u32>(whole, PACKED[2]); // V set
+    scan->write<u8>(whole, PACKED[2]);  // V set
     auto greater = compare(flag(2), 0); // 1 > 0
     CHECK(greater->csrs().Z == 0);
     CHECK(greater->csrs().N == 0);
 
-    scan->write<u32>(whole, 0);      // V clear
+    scan->write<u8>(whole, 0);       // V clear
     auto less = compare(flag(2), 1); // 0 < 1
     CHECK(less->csrs().Z == 0);
     CHECK(less->csrs().N == 1);
   }
 
   SECTION("A field compares the same way through DP-relative data") {
-    scan->write<u32>(whole, PACKED[1]); // Z set
+    scan->write<u8>(whole, PACKED[1]); // Z set
     auto z = flag(1);
     // Still LSB-aligned, still the register's width -- the size check is against the containing register.
-    auto src = expected_bytes(1, bits::Order::LittleEndian, 4);
+    auto src = expected_bytes(1, bits::Order::LittleEndian, 1);
 
     auto blaster = sys->make_trace_interpreter();
     tvm::TraceBuffer tb(sys->buffer_manager());
