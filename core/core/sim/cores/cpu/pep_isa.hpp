@@ -6,7 +6,9 @@
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
+#include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
+
 class Dense;
 
 /*
@@ -70,6 +72,10 @@ public:
   // Same as above, but does not redirect PC access.
   template <typename RegisterType> u16 read_register_uncached(RegisterType reg);
   template <typename RegisterType> void write_register_uncached(RegisterType reg, u16 value);
+  // The flags occupy the low nibble of the CSR bank's single byte, N at bit 3 through C at bit 0.
+  static constexpr u8 CSR_MASK = 0x0F;
+  // Which bit of that nibble a given flag is.
+  template <typename CSRType> static constexpr u8 csr_bit(CSRType csr);
   template <typename CSRType> bool read_csr(CSRType csr);
   template <typename CSRType> void write_csr(CSRType csr, bool value);
   u8 read_packed_csr();
@@ -87,6 +93,11 @@ public:
   void write_pc(u16 value) { _pc = value; }
 
 private:
+  struct PerfCounters {
+    i16 call_depth = 0;
+    u32 instructions = 0;
+  } _count = {};
+  RegisterScan::RegisterRef _ref_call_depth = {};
   // Only meaningful between the start and end of clock_tick. See read_pc().
   // Coalescing these reads saves 1-2 register writes on most instructions.
   u16 _pc = 0;
@@ -118,10 +129,18 @@ template <typename RegisterType> inline u16 PepISA3CPU::read_register_uncached(R
   return ((Target *)_regbank)->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op_data()).second;
 }
 
+// All four flags live in one byte, so a single flag is a bit of it rather than a byte of its own. The enum runs
+// N, Z, V, C and the packing puts N highest, so the flag's index counts down from the top of the nibble.
+template <typename CSRType> constexpr u8 PepISA3CPU::csr_bit(CSRType csr) {
+  return static_cast<u8>(1 << (3 - static_cast<u8>(csr)));
+}
+
 template <typename CSRType> inline void PepISA3CPU::write_csr(CSRType csr, bool value) {
-  ((Target *)_csrs)->write<u8, bits::host_is_le>(static_cast<u8>(csr), (u8)value, op_data());
+  // Read-modify-write: the other three flags share the byte and must survive.
+  const u8 bit = csr_bit(csr), packed = read_packed_csr();
+  write_packed_csr(static_cast<u8>(value ? (packed | bit) : (packed & ~bit)));
 }
 
 template <typename CSRType> inline bool PepISA3CPU::read_csr(CSRType csr) {
-  return ((Target *)_csrs)->read<u8, bits::host_is_le>(static_cast<u8>(csr), op_data()).second != 0;
+  return (read_packed_csr() & csr_bit(csr)) != 0;
 }

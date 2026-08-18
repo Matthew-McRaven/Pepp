@@ -43,17 +43,23 @@ fixed-address store  : 26.1 B/instr over 3000 (inlined: 83.3) | ratio 3.190
                        code 24172  templates 196  data 30006  locations 24000 | 3 templates, 0 pending
 walking-address store: 26.7 B/instr over 3000 (inlined: 87.5) | ratio 3.281
                        code 24244  templates 276  data 31506  locations 24000 | 4 templates, 0 pending
+STEPMEM-for-PC
+fixed-address store :  24.8 B/instr over 3000 instrs (inlined: 82.7) | ratio 3.335 
+                       code 24174 stencils 198 data 26004 locations 24000 | 3 stencils promoted, 0 hashes pending | 256 KiB reserved
+walking-address store: 25.2 B/instr over 3000 instrs (inlined: 87.0) | ratio 3.456 
+                       code 24248 stencils 280 data 27004 locations 24000 | 4 stencils promoted, 0 hashes pending | 256 KiB reserved
+PACK-NZVC               
+fixed-address store :  23.8 B/instr over 3000 instrs (inlined: 81.7) | ratio 3.433 
+                       code 24174 stencils 198 data 23001 locations 24000 | 3 stencils promoted, 0 hashes pending | 256 KiB reserved
+walking-address store: 23.7 B/instr over 3000 instrs (inlined: 85.5) | ratio 3.612 
+                       code 24248 stencils 280 data 22501 locations 24000 | 4 stencils promoted, 0 hashes pending | 256 KiB reserved
 ```
 
-Progress on the fixed loop. Note the middle column: `locations` was a real per-instruction cost from the beginning
-and simply was not being counted, so the early "reported" figures understated the truth by 4 B/instr.
+Progress on the fixed loop.
+Note the `locations` is a per-instruction cost from the beginning that was incorrectly counted on the first two rows.
+STEPMEM-for-PC uses a more efficient encoding for non-branch PC updates.
+PACK-NZVC adjusts the layout of the CSRs in host memory to fit in 1 byte rather than 4.
 
-| stage | reported | true |
-|---|---:|---:|
-| baseline | 33.5 | **37.5** |
-| after ISYN-to-body, lazy location buffers, CSR coalescing, `SETMEMDX` | 28.8 | **32.8** |
-| after moving the data pointer into the location buffer | — | **28.8** |
-| after PC coalescing | 26.1 | **26.1** |
 
 ### Allocation breakdown
 

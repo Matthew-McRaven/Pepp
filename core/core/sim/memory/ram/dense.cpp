@@ -103,6 +103,19 @@ Target::Result Dense::write(Address address, bits::span<const u8> src, Operation
   return {};
 }
 
+Target::Result Dense::write_increment(Address address, bits::span<const u8> src, Operation op) {
+  using E = Error;
+  auto span = _config.span;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  const auto max_addr = (address + std::max<Address>(0, src.size() - 1));
+  if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
+  const auto offset = address - span.lower();
+  auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
+  _trace.emit_write_increment(op, address, dest.first(src.size()), src);
+  bits::memcpy(dest, src);
+  return {};
+}
+
 void Dense::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
   _config.fill = fill;

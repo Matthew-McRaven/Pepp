@@ -1,6 +1,7 @@
 #include "core/sim/debugger/tvm_apply_backend.hpp"
 #include <cstring>
 #include <stdexcept>
+#include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/memory/errors.hpp"
 #include "core/sim/memory/io/fifo.hpp"
@@ -36,11 +37,14 @@ ApplyBackend::ApplyBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System
   else _scan = nullptr;
 }
 
-void ApplyBackend::on_setmem(MachineState &state, const tvm::DecodedOp::SetMem &op) {
+void ApplyBackend::on_deltamem(MachineState &state, const tvm::DecodedOp::DeltaMem &op) {
   using StopCause = tvm::StopCause;
   // Not in register mode or there is no system. Either way, comparsion will fail.
   if (state.csrs.TR == 1) return state.hard_stop(StopCause::WrongTR);
   else if (_system == nullptr) return state.hard_stop(StopCause::MissingSystem);
+  // Add does its arithmetic in a u64, so neither the operand nor the delta may be wider than one. This is a property
+  // of the instruction rather than of the machine, so it is checked before anything is resolved.
+  else if (op.kind == tvm::Delta::Add && op.size > sizeof(u64)) return state.hard_stop(StopCause::StepWidthIllegal);
 
   // Attempt to convert our ID to a target;
   auto dev = _system->find_by_id(op.target);
@@ -55,11 +59,14 @@ void ApplyBackend::on_setmem(MachineState &state, const tvm::DecodedOp::SetMem &
 
   bits::span<const u8> data = dbuff->span().subspan(op.data.lo, op.size);
 
-  // The read-xor-write is one logical access: if the read fails there is nothing meaningful to write back.
+  // Perform read-modify-write in a try block so we can catch exceptions and set F accordingly.
   const bool ok = try_access([&] {
     bits::span<const u8> payload = data;
-    // If xor-encoded, perform extract data into temporary buffer and ^ our data into that temp
-    if (op.xor_encoded) {
+    switch (op.kind) {
+    // The payload is the destination's new contents already.
+    case tvm::Delta::Assign: break;
+    // Extract the current contents into a temporary buffer and ^ our data into that temp.
+    case tvm::Delta::Xor: {
       if (_tmp.size() < op.size) _tmp.resize(op.size);
       bits::span<u8> tmp(_tmp.data(), op.size);
       // Lie about access type for this access to avoid side effects.
@@ -67,9 +74,21 @@ void ApplyBackend::on_setmem(MachineState &state, const tvm::DecodedOp::SetMem &
       bits::inplace_xor(tmp, data);
       // "swap" temp buffer into data
       payload = tmp;
+      break;
     }
-    // Not op.access: see Backend::effective_access. The record states what the CPU did; undoing it must not restate
-    // it as something that happened again.
+    case tvm::Delta::Add: {
+      if (_tmp.size() < op.size) _tmp.resize(op.size);
+      bits::span<u8> tmp(_tmp.data(), op.size);
+      target->read(op.offset, tmp, rw_cmp);
+      // memcpy_endian keeps the low-order bytes in either direction, so a sum that overflows the operand wraps
+      // within it rather than spilling into a neighbour.
+      const u64 sum = bits::memcpy_endian<u64>(tmp, op.order) + directed_delta(signed_le(data));
+      bits::memcpy_endian(tmp, op.order, sum);
+      payload = tmp;
+      break;
+    }
+    }
+    // When undoing, we must switch our access type, otherwise we create additional spurious traces.
     target->write(op.offset, payload, effective_access(op.access));
   });
   state.csrs.F = ok ? 0 : 1;
@@ -123,7 +142,7 @@ void ApplyBackend::on_clrmem(MachineState &state, const tvm::DecodedOp::ClrMem &
   state.csrs.F = try_access([&] { target->clear(op.data); }) ? 0 : 1;
 }
 
-void ApplyBackend::on_setreg(MachineState &state, const tvm::DecodedOp::SetReg &op) {
+void ApplyBackend::on_deltareg(MachineState &state, const tvm::DecodedOp::DeltaReg &op) {
   using StopCause = tvm::StopCause;
   // Not in register mode or there is no system. Either way, comparsion will fail.
   if (state.csrs.TR == 0) return state.hard_stop(StopCause::WrongTR);
@@ -134,46 +153,38 @@ void ApplyBackend::on_setreg(MachineState &state, const tvm::DecodedOp::SetReg &
   if (pair.first == nullptr) return state.hard_stop(StopCause::RegisterInvalid);
   // Manually unpack to make debugging easier.
   auto reg = pair.first;
-  auto field = pair.second;
 
   // Prevent access to invalid dbuff / past its end
   auto dbuff = _mgr->find((pepp::bts::Buffer::ID)op.data.hi);
   if (!dbuff) return state.hard_stop(StopCause::InvalidDBuffer);
   else if ((size_t)op.data.lo + op.size > dbuff->span().size()) return state.hard_stop(StopCause::InvalidDBuffer);
 
-  // If size mismatch, then we would have to do a partial write, and we'd need to compute host/guest endianness
-  // mismatch. That sounds annoying, so skip.
-  if (reg->byte_width != op.size) return state.hard_stop(StopCause::RegisterSizeMismatch);
-  const auto dat = (pepp::bts::Buffer::ID)op.data.hi;
-  u64 expected = 0;
-  switch (reg->byte_width) {
-  case 1: expected = read16(*_mgr, state, dat, op.data.lo) & 0xff; break;
-  case 2: expected = read16(*_mgr, state, dat, op.data.lo); break;
-  case 4:
-    expected = ((u32)read16(*_mgr, state, dat, op.data.lo + 2) << 16) | read16(*_mgr, state, dat, op.data.lo);
-    break;
-  default: return state.hard_stop(StopCause::RegisterWidthIllegal);
-  }
   bits::span<const u8> data = dbuff->span().subspan(op.data.lo, op.size);
 
+  // Everything below goes through 64 accessors, which apply the register's own byte order and mask to a field.
+  if (reg->byte_width == 0 || reg->byte_width > sizeof(u64)) return state.hard_stop(StopCause::RegisterWidthIllegal);
+  // STEPREG can have a smaller size than the register. Other operations must match size exactly.
+  else if (op.kind != tvm::Delta::Add && reg->byte_width != op.size)
+    return state.hard_stop(StopCause::RegisterSizeMismatch);
+  // Addition uses C++ primitives, so we are limited to the maximum size of an integer.
+  else if (op.kind == tvm::Delta::Add && op.size > sizeof(u64)) return state.hard_stop(StopCause::StepWidthIllegal);
+
+  // Immediates are little-endian throughout this ISA.
+  const u64 payload = bits::memcpy_endian<u64>(data, bits::Order::LittleEndian);
+
   const bool ok = try_access([&] {
-    // If data is XOR-encoded, we first need to extract the current register value.
-    // TODO: this should be a BufferInternal read, not a normal one!
-    if (op.xor_encoded) {
-      switch (reg->byte_width) {
-      case 1: expected ^= _scan->read<u8>(op.reg); break;
-      case 2: expected ^= _scan->read<u16>(op.reg); break;
-      case 4: expected ^= _scan->read<u32>(op.reg); break;
-      default: break;
-      }
+    u64 value = 0;
+    switch (op.kind) {
+    // The payload is the register's new contents already.
+    case tvm::Delta::Assign: value = payload; break;
+    case tvm::Delta::Xor: value = payload ^ _scan->read<u64>(op.reg, RegisterScan::Level::Host); break;
+    case tvm::Delta::Add:
+      value = _scan->read<u64>(op.reg, RegisterScan::Level::Host) + directed_delta(signed_le(data));
+      break;
     }
-    // RegisterScanner handles field vs register writes.
-    switch (reg->byte_width) {
-    case 1: _scan->write<u8>(op.reg, (u8)expected); break;
-    case 2: _scan->write<u16>(op.reg, (u16)expected); break;
-    case 4: _scan->write<u32>(op.reg, (u32)expected); break;
-    default: break;
-    }
+    // RegisterScanner handles field vs register writes. Level::Host because this is the machinery restoring state,
+    // not the user editing it: a counter may be read-only to the guest and still land here.
+    _scan->write<u64>(op.reg, value, RegisterScan::Level::Host);
   });
   state.csrs.F = !ok;
 }
@@ -213,9 +224,9 @@ void ApplyBackend::on_cmpreg(MachineState &state, const tvm::DecodedOp::CmpReg &
   u64 actual = 0;
   const bool ok = try_access([&] {
     switch (reg->byte_width) {
-    case 1: actual = _scan->read<u8>(op.reg); break;
-    case 2: actual = _scan->read<u16>(op.reg); break;
-    case 4: actual = _scan->read<u32>(op.reg); break;
+    case 1: actual = _scan->read<u8>(op.reg, RegisterScan::Level::Host); break;
+    case 2: actual = _scan->read<u16>(op.reg, RegisterScan::Level::Host); break;
+    case 4: actual = _scan->read<u32>(op.reg, RegisterScan::Level::Host); break;
     default: break;
     }
   });

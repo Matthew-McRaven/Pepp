@@ -114,7 +114,7 @@ void inner_rol(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
     cpu->registers()->clear(0);
     cpu->csrs()->clear(0);
     cpu->write_register(target_reg, init_reg);
-    ((Target *)cpu->csrs())->write<u8>(static_cast<u8>(CSR::C), carry, rw);
+    cpu->write_csr(CSR::C, carry != 0);
 
     REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
     REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
@@ -154,7 +154,7 @@ void inner_ror(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
     cpu->registers()->clear(0);
     cpu->csrs()->clear(0);
     cpu->write_register(target_reg, init_reg);
-    ((Target *)cpu->csrs())->write<u8>(static_cast<u8>(CSR::C), carry, rw);
+    cpu->write_csr(CSR::C, carry != 0);
 
     REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
     REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));

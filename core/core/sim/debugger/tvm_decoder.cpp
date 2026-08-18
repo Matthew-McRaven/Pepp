@@ -51,10 +51,12 @@ void Decoder::decode() {
   case Opcode::SETMEM: [[fallthrough]]; // Difference between SETMEM/X is in execution, not decoding
   case Opcode::SETMEMX: _decoded = decode_setmem(ibp, iop); break;
   case Opcode::SETMEMDX: _decoded = decode_setmemdx(ibp, iop); break;
+  case Opcode::STEPMEM: _decoded = decode_stepmem(ibp, iop); break;
   case Opcode::CMPMEM: _decoded = decode_cmpmem(ibp, iop); break;
   case Opcode::CLRMEM: _decoded = decode_clrmem(ibp, iop); break;
-  case Opcode::SETREG: [[fallthrough]]; // Difference between SETREG/X is in execution, not decoding
-  case Opcode::SETREGX: _decoded = decode_setreg(ibp, iop); break;
+  case Opcode::SETREG: [[fallthrough]]; // All three register ops share a packet layout; only the Delta differs.
+  case Opcode::SETREGX: [[fallthrough]];
+  case Opcode::STEPREG: _decoded = decode_deltareg(ibp, iop); break;
   case Opcode::CMPREG: _decoded = decode_cmpreg(ibp, iop); break;
   case Opcode::CLRREG: _decoded = decode_clrreg(ibp, iop); break;
   case Opcode::TRADDR: _decoded = decode_traddr(ibp, iop); break;
@@ -222,10 +224,10 @@ tvm::DecodedOp::BR Decoder::decode_br(pepp::bts::Buffer::ID ibp, u16 iop) {
   return ret;
 }
 
-tvm::DecodedOp::SetMem Decoder::decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop) {
-  tvm::DecodedOp::SetMem ret;
+tvm::DecodedOp::DeltaMem Decoder::decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::DeltaMem ret;
   auto &regs = _state.regs;
-  ret.xor_encoded = (regs.IS.ocpode == (u8)tvm::Opcode::SETMEMX);
+  ret.kind = (regs.IS.ocpode == (u8)tvm::Opcode::SETMEMX) ? tvm::Delta::Xor : tvm::Delta::Assign;
   _state.csrs.TR = 0; // Enter target mode.
   // Unless (5) is provided, data is DP relative rather than immediate
   ret.data = regs.DP;
@@ -255,11 +257,11 @@ tvm::DecodedOp::SetMem Decoder::decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop
   return ret;
 }
 
-tvm::DecodedOp::SetMem Decoder::decode_setmemdx(pepp::bts::Buffer::ID ibp, u16 iop) {
-  tvm::DecodedOp::SetMem ret;
+tvm::DecodedOp::DeltaMem Decoder::decode_setmemdx(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::DeltaMem ret;
   auto &regs = _state.regs;
   // No non-XOR form of this opcode exists; see Opcode::SETMEMDX.
-  ret.xor_encoded = true;
+  ret.kind = tvm::Delta::Xor;
   _state.csrs.TR = 0; // Enter target mode.
   ret.size = regs.DS;
 
@@ -285,6 +287,45 @@ tvm::DecodedOp::SetMem Decoder::decode_setmemdx(pepp::bts::Buffer::ID ibp, u16 i
   ret.access = Operation(regs.ACCESS);
   ret.target = (Device::ID)regs.ID.lo;
   ret.offset = regs.OFF.as_u32();
+
+  return ret;
+}
+
+tvm::DecodedOp::DeltaMem Decoder::decode_stepmem(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::DeltaMem ret;
+  auto &regs = _state.regs;
+  ret.kind = tvm::Delta::Add;
+  _state.csrs.TR = 0; // Enter target mode.
+  // Unless (6) is provided, the delta is DP relative rather than immediate.
+  ret.data = regs.DP;
+  ret.size = regs.DS;
+  // If MOD1 is not set, then choose LE by default.
+  ret.order = (_state.csrs.M1 && regs.MOD1.hi) ? bits::Order::BigEndian : bits::Order::LittleEndian;
+
+  switch (regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 6:
+    regs.MOD1.lo = read(ibp, iop + 10);
+    regs.MOD2.hi = regs.IP.hi;
+    regs.MOD2.lo = iop + 12;
+    _state.csrs.M2 = 1;
+    ret.data = regs.MOD2;
+    ret.size = regs.MOD1.lo;
+    [[fallthrough]];
+  case 5:
+    regs.MOD1.hi = read(ibp, iop + 8), _state.csrs.M1 = 1;
+    ret.order = regs.MOD1.hi ? bits::Order::BigEndian : bits::Order::LittleEndian;
+    [[fallthrough]];
+  case 4: regs.OFF.lo = read(ibp, iop + 6); [[fallthrough]];
+  case 3: regs.OFF.hi = read(ibp, iop + 4); [[fallthrough]];
+  case 2: regs.ID.lo = read(ibp, iop + 2); [[fallthrough]];
+  case 1: regs.ACCESS = read(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
+  }
+  ret.access = Operation(regs.ACCESS);
+  ret.target = (Device::ID)regs.ID.lo;
+  ret.offset = regs.OFF.as_u32();
+
   return ret;
 }
 
@@ -334,10 +375,14 @@ tvm::DecodedOp::ClrMem Decoder::decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop
   return ret;
 }
 
-tvm::DecodedOp::SetReg Decoder::decode_setreg(pepp::bts::Buffer::ID ibp, u16 iop) {
-  tvm::DecodedOp::SetReg ret;
+tvm::DecodedOp::DeltaReg Decoder::decode_deltareg(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::DeltaReg ret;
   auto &regs = _state.regs;
-  ret.xor_encoded = (regs.IS.ocpode == (u8)tvm::Opcode::SETREGX);
+  switch ((tvm::Opcode)regs.IS.ocpode) {
+  case tvm::Opcode::SETREGX: ret.kind = tvm::Delta::Xor; break;
+  case tvm::Opcode::STEPREG: ret.kind = tvm::Delta::Add; break;
+  default: ret.kind = tvm::Delta::Assign; break;
+  }
   _state.csrs.TR = 1; // Enter register mode.
   // Unless (4) is provided, data is DP relative rather than immediate
   ret.data = regs.DP;
@@ -360,9 +405,10 @@ tvm::DecodedOp::SetReg Decoder::decode_setreg(pepp::bts::Buffer::ID ibp, u16 iop
   case 1: regs.ACCESS = read(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
-  ret.access = Operation(regs.ACCESS);
-  ret.reg = RegisterScan::RegisterRef{RegisterScan::Register::ID{regs.ID.hi},
-                                      RegisterScan::Register::Field::ID{regs.ID.lo}};
+  // regs.ACCESS is still programmed above for whatever later instruction retains it; it just has no bearing on a
+  // register op, which reaches its device through RegisterScan rather than through a Target of its own.
+  ret.reg =
+      RegisterScan::RegisterRef{RegisterScan::Register::ID{regs.ID.hi}, RegisterScan::Register::Field::ID{regs.ID.lo}};
   return ret;
 }
 
@@ -390,8 +436,8 @@ tvm::DecodedOp::CmpReg Decoder::decode_cmpreg(pepp::bts::Buffer::ID ibp, u16 iop
   case 1: regs.ID.hi = read(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
-  ret.reg = RegisterScan::RegisterRef{RegisterScan::Register::ID{regs.ID.hi},
-                                      RegisterScan::Register::Field::ID{regs.ID.lo}};
+  ret.reg =
+      RegisterScan::RegisterRef{RegisterScan::Register::ID{regs.ID.hi}, RegisterScan::Register::Field::ID{regs.ID.lo}};
   return ret;
 }
 
@@ -405,8 +451,8 @@ tvm::DecodedOp::ClrReg Decoder::decode_clrreg(pepp::bts::Buffer::ID ibp, u16 iop
   case 1: regs.ID.hi = read(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
-  ret.reg = RegisterScan::RegisterRef{RegisterScan::Register::ID{regs.ID.hi},
-                                      RegisterScan::Register::Field::ID{regs.ID.lo}};
+  ret.reg =
+      RegisterScan::RegisterRef{RegisterScan::Register::ID{regs.ID.hi}, RegisterScan::Register::Field::ID{regs.ID.lo}};
   return ret;
 }
 

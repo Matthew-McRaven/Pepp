@@ -6,6 +6,9 @@
 #include "core/math/bitmanip/span.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
+// For RegisterScan::RegisterRef, which emit_incr_register takes by value. It is a pair of 16-bit handles, and being a
+// nested type there is no forward declaring it.
+#include "core/sim/debugger/register_scanner.hpp"
 
 namespace tvm {
 class DataSlot;
@@ -72,6 +75,18 @@ public:
   // Prefer this overload if you don't have to allocate a temp buffer to access the old value, such as with a Dense
   // device.
   void emit_write(const Operation &op, Address address, bits::span<const u8> prior, bits::span<const u8> now);
+  // Record the same write as STEPMEM, whose payload is `now - prior` rather than `now ^ prior`.
+  //
+  // Both the address/offset and the delta are encoded in the instruction packet, which means this does not impact the
+  // data chain. For memory locations which are updated by a fixed increment each instruction (program counter, cycle
+  // counter), this produces a byte-identical instruction where a SETMEMX encoding would not.
+  // For a per-cycle PC update, this saves ~2B per instruction, which is a 10% footprint savings.
+  // In all other cases (writes to main-memory), I expect STEPMEM to be worse than SETMEMX because of the presence of
+  // offset in the packet.
+  //
+  // The values are read big-endian, matching the targets this exists for. Writes whose width is not 1, 2, 4, or 8
+  // bytes fall back to emit_write.
+  void emit_write_increment(const Operation &op, Address address, bits::span<const u8> prior, bits::span<const u8> now);
 
   // Same, for a device whose previous contents are not sitting in contiguous memory, such as Sparse or a bus.
   // fill_prior is a function reference which writes the prior bytes into a provided span. That provided span is in the
@@ -86,6 +101,20 @@ public:
   // Popped a byte from the "input" side of the memory-mapped FIFO. Since pop from a FIFO is destructive, we must
   // record that value, otherwise we cannot undo this action.
   void emit_mm_read(const Operation &op, Address address, u8 popped);
+
+  // Record a signed step of a scan-exposed register: the STEPREG sibling of emit_write_increment.
+  //
+  // The register reference and the delta both ride in the instruction packet, so this writes nothing to the data
+  // chain and leaves DP and DS alone. A counter that moves by the same amount every time -- +-1 on a call depth, +1
+  // on a cycle count -- emits a byte-identical body, which promotes to a stencil and collapses the whole record to a
+  // CALL carrying no payload at all.
+  //
+  // Unlike emit_write this never reads the register, so it does not have to be called ahead of the update the way
+  // the write-ahead rule above demands; either side of the increment is fine. A zero step records nothing.
+  //
+  // Whether a given counter is worth recording at all is the caller's decision, not this one's: a Checkpoint or
+  // Monotonic register (see RegisterScan::Register::Tracing) should not be handed to it.
+  void emit_incr_register(const Operation &op, RegisterScan::RegisterRef ref, i16 value);
 
   // A helper class which which helps open & close a recording for a single instruction.
   class Instruction {

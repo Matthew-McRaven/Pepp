@@ -80,8 +80,9 @@ PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
     Dense::Configuration cfg;
     cfg.basename = "csrs";
     cfg.fill = 0;
-    // N, Z, V, C
-    cfg.span = {0, 3};
+    // One byte holding NZVC in its low nibble, N at bit 3 down to C at bit 0. A byte per flag would cost 4 payload
+    // bytes in every trace record that touches the flags, to carry 4 bits.
+    cfg.span = {0, 0};
     cfg.skip_serialize = true;
     self->_csrs = sys->make_device<Dense>(parent, cfg);
   };
@@ -108,29 +109,59 @@ void PepISA3CPU::initialize(System *sys) {
   static const auto BE = bits::Order::BigEndian;
   static const auto LE = bits::Order::LittleEndian;
   static const auto RW = RegisterScan::Register::ReadWrite;
+  static const auto RO = RegisterScan::Register::Access::Read;
   // Core registers
   using R = isa::Pep10::Register;
   const auto rid = _regbank->id();
   static const auto r2i = [](const R &r) -> u16 { return static_cast<u16>(r) * 2; };
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::A), .name = "A"});
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::X), .name = "X"});
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::PC), .name = "PC"});
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::SP), .name = "SP"});
-  scan->expose(SR{.order = BE, .byte_width = 1, .access = RW, .target = rid, .offset = r2i(R::IS) + 1, .name = "IS"});
-  scan->expose(SR{.order = BE, .byte_width = 2, .access = RW, .target = rid, .offset = r2i(R::OS), .name = "OS"});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "A", .loc = r2i(R::A)});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "X", .loc = r2i(R::X)});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "PC", .loc = r2i(R::PC)});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "SP", .loc = r2i(R::SP)});
+  scan->expose(SR{.byte_width = 1,
+                  .guest_access = RW,
+                  .target = rid,
+                  .order = BE,
+                  .name = "IS",
+                  .loc = static_cast<Address>(r2i(R::IS) + 1)});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "OS", .loc = r2i(R::OS)});
   // CSRs / Flags
   using C = isa::Pep10::CSR;
   const auto cid = _csrs->id();
   using F = SR::Field;
   // Should really be 4 separate fields, but I want to test that my fields work as expected.
-  // When moving to 4 fields, no need for bit offsets.
-  // Bit 31 is MSB, 0 is LSB. Considering these are 4 consecutive bytes, the offsets make sense.
-  auto n = F{.access = RW, .bit_offset = 24, .bit_width = 1, .name = "N"};
-  auto z = F{.access = RW, .bit_offset = 16, .bit_width = 1, .name = "Z"};
-  auto v = F{.access = RW, .bit_offset = 8, .bit_width = 1, .name = "V"};
-  auto c = F{.access = RW, .bit_offset = 0, .bit_width = 1, .name = "C"};
-  scan->expose(SR{
-      .order = BE, .byte_width = 4, .access = RW, .target = cid, .offset = 0, .name = "NZVC", .fields = {n, z, v, c}});
+  // Bit 7 is MSB, 0 is LSB. The flags occupy the low nibble in CSR enum order, so N is bit 3 and C is bit 0.
+  auto n = F{.guest_access = RW, .bit_offset = 3, .bit_width = 1, .name = "N"};
+  auto z = F{.guest_access = RW, .bit_offset = 2, .bit_width = 1, .name = "Z"};
+  auto v = F{.guest_access = RW, .bit_offset = 1, .bit_width = 1, .name = "V"};
+  auto c = F{.guest_access = RW, .bit_offset = 0, .bit_width = 1, .name = "C"};
+  scan->expose(SR{.byte_width = 1,
+                  .guest_access = RW,
+                  .target = cid,
+                  .order = BE,
+                  .name = "NZVC",
+                  .fields = {n, z, v, c},
+                  .loc = Address(0)});
+  const auto cpuid = id();
+  // Expose call depth, which is useful for implementing step modes.
+  // Read-only to the guest: hand-editing a derived counter is nonsense. host_access defaults to ReadWrite, which is
+  // what lets Tracing::Automatic restore it on a step backwards.
+  _ref_call_depth = scan->expose(SR{.byte_width = 2,
+                                    .guest_access = RO,
+                                    .type = SR::Type::Counter,
+                                    .target = cpuid,
+                                    .order = bits::hostOrder(),
+                                    .name = "call_depth",
+                                    .loc = &_count.call_depth});
+  // Width must match the storage it points at: the pointer visitors compare sizeof(T) against byte_width.
+  scan->expose(SR{.byte_width = 4,
+                  .guest_access = RO,
+                  .trace_mode = SR::Tracing::Checkpoint,
+                  .type = SR::Type::Counter,
+                  .target = cpuid,
+                  .order = bits::hostOrder(),
+                  .name = "icount",
+                  .loc = &_count.instructions});
 }
 
 const Device::Configuration &PepISA3CPU::config() const { return _config; }
@@ -164,16 +195,25 @@ void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // Take PC out of the register bank for the duration of this instruction. Everything below moves it through _pc,
   // and the single store after handle() is the only version the trace ever sees. See read_pc().
   _pc = read_register_uncached(isa::Pep10::Register::PC);
+  const auto init_pc = _pc;
   // TODO: Should probably be an instruction access?
   u8 is = _target->read<u8, false>(_pc, op_data()).second;
   _pc += 1;
   write_register(isa::Pep10::Register::IS, is);
-  handle(_opcodes[is]);
   // Defer PC writeback until end of instruction to avoid ~3 updates on a BR (1 for to fetch IS, 1 to fetch OS, 1 for
   // the branch).
-  write_register_uncached(isa::Pep10::Register::PC, _pc);
+  handle(_opcodes[is]);
+  // Change in PC is range [1, 3] which is the normal increment amount and probably not from a branch.
+  // Since all instructions other than branches have a fixed PC increment, we can use a specialized increment encoding
+  // to save ~2B/instruction in the trace. We do not use the normal encoding for calls/branches, as those can have
+  // data-dependence for the branch target.
+  const auto pc_delta = _pc - init_pc;
+  if ((pc_delta & 0b11) == pc_delta) {
+    _regbank->write_increment<u16, bits::host_is_le>(static_cast<u8>(isa::Pep10::Register::PC) * 2, _pc, op_data());
+  } else write_register_uncached(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
   record.commit();
+  _count.instructions += 1;
 }
 
 void PepISA3CPU::set_clock_source(const ClockSource *src) { _clk = src; }
@@ -194,31 +234,24 @@ void PepISA3CPU::trace(bool enabled) {
 }
 
 void PepISA3CPU::increment_call_depth() {
-  // TODO:
+  _count.call_depth += 1;
+  // Ordering does not matter here the way it does for a write since the prior is constant.
+  _trace.emit_incr_register(op_data(), _ref_call_depth, 1);
 }
 
 void PepISA3CPU::decrement_call_depth() {
-  // TODO:
+  _count.call_depth -= 1;
+  _trace.emit_incr_register(op_data(), _ref_call_depth, -1);
 }
 
-// The CSR bank stores one flag per byte, in CSR enum order: N at 0, Z at 1, V at 2, C at 3. Both of these move all
-// four in a single access rather than one per flag. Perform as a single batched read/write to reduce the # of traces
-// emitted for this operation.
+// The CSR bank is one byte holding all four flags, N at bit 3 through C at bit 0, matching the packing at the ISA
+// layer. One access also means one trace record byte rather than 4
 u8 PepISA3CPU::read_packed_csr() {
-  std::array<u8, 4> nzvc{};
-  ((Target *)_csrs)->read(0, {nzvc.data(), nzvc.size()}, op_data());
-  return static_cast<u8>((nzvc[0] ? 1 << 3 : 0) | (nzvc[1] ? 1 << 2 : 0) | (nzvc[2] ? 1 << 1 : 0) |
-                         (nzvc[3] ? 1 << 0 : 0));
+  return static_cast<u8>(((Target *)_csrs)->read<u8, false>(0, op_data()).second & CSR_MASK);
 }
 
 void PepISA3CPU::write_packed_csr(u8 value) {
-  const std::array<u8, 4> nzvc{
-      static_cast<u8>((value >> 3) & 1),
-      static_cast<u8>((value >> 2) & 1),
-      static_cast<u8>((value >> 1) & 1),
-      static_cast<u8>((value >> 0) & 1),
-  };
-  ((Target *)_csrs)->write(0, {nzvc.data(), nzvc.size()}, op_data());
+  ((Target *)_csrs)->write<u8, false>(0, static_cast<u8>(value & CSR_MASK), op_data());
 }
 
 void PepISA3CPU::handle(Op opcode) {
