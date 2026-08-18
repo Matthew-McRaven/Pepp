@@ -85,8 +85,8 @@ Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) c
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
   const auto offset = address - span.lower();
   const auto src = bits::span<const u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  // TODO: emit a pure read to TB.
   bits::memcpy(dest, src);
+  if (is_performance_countable(op)) _counters.rd_bytes += dest.size();
   return {};
 }
 
@@ -100,6 +100,7 @@ Target::Result Dense::write(Address address, bits::span<const u8> src, Operation
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   _trace.emit_write(op, address, dest.first(src.size()), src);
   bits::memcpy(dest, src);
+  if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
 }
 
@@ -113,6 +114,7 @@ Target::Result Dense::write_increment(Address address, bits::span<const u8> src,
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   _trace.emit_write_increment(op, address, dest.first(src.size()), src);
   bits::memcpy(dest, src);
+  if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
 }
 

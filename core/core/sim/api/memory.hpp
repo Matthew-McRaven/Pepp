@@ -91,6 +91,11 @@ struct Operation {
 
 static constexpr auto op_i_std = Operation(Operation::Type::Standard, Operation::Kind::instruction);
 
+// Only memory operations triggered by the guest should cause performance counters to change.
+constexpr bool is_performance_countable(Operation op) noexcept {
+  return op.type == Operation::Type::Standard || op.type == Operation::Type::Speculative;
+}
+
 struct Target {
   struct Result {
     // Number of simulation ticks required to complete the memory op.

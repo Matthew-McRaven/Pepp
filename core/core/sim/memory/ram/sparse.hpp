@@ -60,6 +60,10 @@ public:
   void dump(bits::span<u8> dest) const override;
 
 private:
+  mutable struct PerformanceCounters {
+    u32 rd_bytes = 0;
+    u32 wr_bytes = 0;
+  } _counters = {};
   Configuration _config;
   pepp::bts::PagedPool<u8> _pool;
   trace::Recorder _trace;

@@ -91,9 +91,9 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
   const auto max_addr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
 
-  // TODO: record the read once the ISA can encode one -- see the matching note in Dense::read.
   const auto offset = address - span.lower();
   _pool.read(offset, dest);
+  if (is_performance_countable(op)) _counters.rd_bytes += dest.size();
   return {};
 }
 
@@ -111,11 +111,11 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
   // but we don't pay the cost of reading the data.
   _trace.emit_write(op, address, src, [&](bits::span<u8> prior) { _pool.read(offset, prior); });
   _pool.write(offset, src);
+  if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
 }
 
 void Sparse::clear(u8 fill) {
-  // TODO: emit a "clear" trace to TB.
   _config.fill = fill;
   _pool.clear(fill);
 }
