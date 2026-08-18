@@ -1,12 +1,28 @@
 #include "register_scanner.hpp"
+#include <stdexcept>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/system.hpp"
 
 namespace {
 static const Operation rw(Operation::Type::Application, Operation::Kind::data);
 static const Operation rw_buf(Operation::Type::BufferInternal, Operation::Kind::data);
+
+// A pointer-backed register must declare the width of the storage it points at, because that is what the access
+// visitors compare against on every read and write. Checked once at expose() so a mistake fails where the register is
+// declared, rather than as an exception out of the middle of some later read. An Address has no size to check.
+struct WidthCheck {
+  const RegisterScan::Register &reg;
+  void operator()(std::monostate) const {}
+  void operator()(Address) const {}
+  template <typename T> void operator()(const T *) const {
+    if (sizeof(T) != reg.byte_width)
+      throw std::logic_error("Register " + reg.name + " declares " + std::to_string(reg.byte_width) +
+                             " bytes but points at storage of " + std::to_string(sizeof(T)));
+  }
+};
 } // namespace
 RegisterScan::Register::Reference RegisterScan::expose(const Register &n) {
+  std::visit(WidthCheck{n}, n.loc);
   auto id = next_id();
   _regs[id] = std::make_unique<Register>(n);
   _exposed[n.target].push_back(id);

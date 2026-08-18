@@ -90,6 +90,29 @@ TEST_CASE("Find register by name in HW debugger", "[scope:core][scope:core.sim][
   inner_call<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::CALL);
 }
 
+TEST_CASE("A pointer-backed register must declare its storage's width",
+          "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  auto *scan = sys->register_scan();
+  u32 counter = 0;
+
+  RegisterScan::Register r{};
+  r.order = bits::hostOrder();
+  r.target = mem->id();
+  r.name = "counter";
+  r.loc = &counter;
+
+  // The visitors compare sizeof(T) against byte_width on every access, so a mismatch that expose() let through would
+  // only surface as a throw out of the middle of some later read.
+  r.byte_width = 2;
+  CHECK_THROWS_AS(scan->expose(r), std::logic_error);
+
+  r.byte_width = 4;
+  REQUIRE_NOTHROW(scan->expose(r));
+  counter = 0x1122'3344;
+  CHECK(scan->read<u32>(*scan->find("counter")) == 0x1122'3344);
+}
+
 TEST_CASE("Register reads are host-order regardless of the register's order",
           "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
