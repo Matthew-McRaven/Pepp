@@ -83,7 +83,7 @@ struct Operation {
   constexpr Operation(Operation &&) noexcept = default;
   constexpr Operation &operator=(Operation &&) noexcept = default;
   // Explicit to avoid decaying ints to operations.
-  // if high-order is 0 (or a u8 is promoted), then initiator is 0/root.
+  // if high-order is 0, then initiator is 0/root.
   constexpr explicit Operation(u16 v) noexcept
       : type(static_cast<Type>((v >> 4) & 0b11)), kind(static_cast<Kind>(v & 0x01)),
         initiator(Device::ID{static_cast<u8>((v >> 8) & 0xFF)}) {}

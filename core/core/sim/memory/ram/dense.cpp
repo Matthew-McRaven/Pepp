@@ -45,6 +45,28 @@ Dense::Dense(Configuration config) : Device(), _config(config) {
 
 std::span<const u8> Dense::data() const { return std::span<const u8>{_data.data(), std::size_t(_data.size())}; }
 
+void Dense::initialize(System *sys) {
+  static const auto RO = RegisterScan::Register::Access::Read;
+  using SR = RegisterScan::Register;
+  auto scan = sys->register_scan();
+  scan->expose(SR{.byte_width = sizeof(_counters.rd_bytes),
+                  .guest_access = RO,
+                  .trace_mode = SR::Tracing::Checkpoint,
+                  .type = SR::Type::Counter,
+                  .target = id(),
+                  .order = bits::hostOrder(),
+                  .name = "rd_bytes",
+                  .loc = &_counters.rd_bytes});
+  scan->expose(SR{.byte_width = sizeof(_counters.wr_bytes),
+                  .guest_access = RO,
+                  .trace_mode = SR::Tracing::Checkpoint,
+                  .type = SR::Type::Counter,
+                  .target = id(),
+                  .order = bits::hostOrder(),
+                  .name = "wr_bytes",
+                  .loc = &_counters.wr_bytes});
+}
+
 const Device::ID Dense::id() const { return _config.id; }
 
 const Device::Configuration &Dense::config() const { return _config; }

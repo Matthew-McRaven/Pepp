@@ -50,6 +50,28 @@ void serialize_sparse(nlohmann::json &obj, const System *sys, const Device *self
 
 Sparse::Sparse(Configuration config) : Device(), _config(config), _pool(_config.fill) {}
 
+void Sparse::initialize(System *sys) {
+  static const auto RO = RegisterScan::Register::Access::Read;
+  using SR = RegisterScan::Register;
+  auto scan = sys->register_scan();
+  scan->expose(SR{.byte_width = sizeof(_counters.rd_bytes),
+                  .guest_access = RO,
+                  .trace_mode = SR::Tracing::Checkpoint,
+                  .type = SR::Type::Counter,
+                  .target = id(),
+                  .order = bits::hostOrder(),
+                  .name = "rd_bytes",
+                  .loc = &_counters.rd_bytes});
+  scan->expose(SR{.byte_width = sizeof(_counters.wr_bytes),
+                  .guest_access = RO,
+                  .trace_mode = SR::Tracing::Checkpoint,
+                  .type = SR::Type::Counter,
+                  .target = id(),
+                  .order = bits::hostOrder(),
+                  .name = "wr_bytes",
+                  .loc = &_counters.wr_bytes});
+}
+
 const Device::Configuration &Sparse::config() const { return _config; }
 
 const Sparse::Configuration &Sparse::casted_config() const { return _config; }
