@@ -405,7 +405,8 @@ tvm::DecodedOp::DeltaReg Decoder::decode_deltareg(pepp::bts::Buffer::ID ibp, u16
   case 1: regs.ACCESS = read(ibp, iop + 0); [[fallthrough]];
   case 0: break;
   }
-  ret.access = Operation(regs.ACCESS);
+  // regs.ACCESS is still programmed above for whatever later instruction retains it; it just has no bearing on a
+  // register op, which reaches its device through RegisterScan rather than through a Target of its own.
   ret.reg =
       RegisterScan::RegisterRef{RegisterScan::Register::ID{regs.ID.hi}, RegisterScan::Register::Field::ID{regs.ID.lo}};
   return ret;

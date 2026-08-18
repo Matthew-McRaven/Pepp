@@ -67,7 +67,7 @@ RegisterScan::RegisterRef expose(System &sys, Dense &mem, const char *name, u8 b
   RegisterScan::Register r{};
   r.order = order;
   r.byte_width = byte_width;
-  r.access = RegisterScan::Register::ReadWrite;
+  r.guest_access = RegisterScan::Register::ReadWrite;
   r.target = mem.id();
   r.loc = at;
   r.name = name;
@@ -251,13 +251,13 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
     RegisterScan::Register r{};
     r.order = bits::Order::BigEndian;
     r.byte_width = 1;
-    r.access = RegisterScan::Register::ReadWrite;
+    r.guest_access = RegisterScan::Register::ReadWrite;
     r.target = mem->id();
     r.loc = Address{0x100};
     r.name = "flags";
     // Two 4-bit halves, so a carry out of the low one would be visible in the high one.
-    r.fields.push_back({RegisterScan::Register::ReadWrite, 0, 4, "lo"});
-    r.fields.push_back({RegisterScan::Register::ReadWrite, 4, 4, "hi"});
+    r.fields.push_back({RegisterScan::Register::ReadWrite, RegisterScan::Register::ReadWrite, 0, 4, "lo"});
+    r.fields.push_back({RegisterScan::Register::ReadWrite, RegisterScan::Register::ReadWrite, 4, 4, "hi"});
     scan->expose(r);
     auto lo = *scan->find("lo");
     auto hi = *scan->find("hi");
@@ -279,7 +279,10 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
     RegisterScan::Register r{};
     r.order = bits::Order::BigEndian;
     r.byte_width = 2;
-    r.access = RegisterScan::Register::Access::Read;
+    // Denied to the host as well as the guest: replay is a host write, so denying only the guest would let it
+    // through and there would be no refusal to observe.
+    r.guest_access = RegisterScan::Register::Access::Read;
+    r.host_access = RegisterScan::Register::Access::Read;
     r.target = mem->id();
     r.loc = Address{0x100};
     r.name = "ro";

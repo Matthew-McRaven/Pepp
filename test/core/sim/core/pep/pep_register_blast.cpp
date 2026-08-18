@@ -171,7 +171,7 @@ RegisterScan::RegisterRef expose_wide(System &sys, Dense &mem) {
   RegisterScan::Register wide{};
   wide.order = bits::Order::BigEndian;
   wide.byte_width = 4;
-  wide.access = RegisterScan::Register::ReadWrite;
+  wide.guest_access = RegisterScan::Register::ReadWrite;
   wide.target = mem.id();
   wide.loc = WIDE_OFFSET;
   wide.name = "WIDE";
@@ -200,7 +200,7 @@ void expose_synthetics(System &sys, Dense &mem) {
     RegisterScan::Register r{};
     r.order = s.order;
     r.byte_width = s.byte_width;
-    r.access = RegisterScan::Register::ReadWrite;
+    r.guest_access = RegisterScan::Register::ReadWrite;
     r.target = mem.id();
     r.loc = s.offset;
     r.name = s.name;
@@ -244,7 +244,7 @@ RegisterScan::RegisterRef expose_readonly(System &sys, Dense &mem) {
   RegisterScan::Register r{};
   r.order = bits::Order::BigEndian;
   r.byte_width = 4;
-  r.access = RegisterScan::Register::Access::Read;
+  r.guest_access = RegisterScan::Register::Access::Read;
   r.target = mem.id();
   r.loc = READONLY_OFFSET;
   r.name = "ro4";
@@ -272,8 +272,7 @@ TEST_CASE("Expose a 4-byte register", "[scope:core][scope:core.dbg][kind:unit][a
 
 // The 4-byte case has to assemble its two halves little-endian, matching its own 1- and 2-byte cases (see the LE data
 // in "Compare accumulator / X (DP)" above) and every other immediate in the ISA.
-TEST_CASE("CMPREG compares a 4-byte register little-endian",
-          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("CMPREG compares a 4-byte register little-endian", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   using namespace tvm::EncodedOp;
   constexpr Device::ID S{1};
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
@@ -560,6 +559,49 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
     CHECK(scan->read<u32>(ro) == 0);
   }
 
+  SECTION("The two levels are permitted independently") {
+    // The shape a derived counter wants: nonsense for the guest to hand-edit, but the host has to be able to put it
+    // back on a step backwards.
+    RegisterScan::Register r{};
+    r.order = bits::Order::BigEndian;
+    r.byte_width = 2;
+    r.guest_access = RegisterScan::Register::Access::Read;
+    r.host_access = RegisterScan::Register::ReadWrite;
+    r.target = mem->id();
+    r.loc = Address{0x170};
+    r.name = "counter";
+    scan->expose(r);
+    auto ref = *scan->find("counter");
+
+    CHECK_THROWS(scan->write<u16>(ref, 0xBEEF));
+    CHECK(scan->read<u16>(ref) == 0);
+
+    CHECK_NOTHROW(scan->write<u16>(ref, 0xBEEF, RegisterScan::Level::Host));
+    CHECK(scan->read<u16>(ref) == 0xBEEF);
+
+    // A reset is a host write, so it goes through for the same reason.
+    CHECK_NOTHROW(scan->clear(ref));
+    CHECK(scan->read<u16>(ref) == 0);
+  }
+
+  SECTION("A register the host may not write refuses the host") {
+    // Level is a lookup, not a bypass: deny the host and even replay is refused.
+    RegisterScan::Register r{};
+    r.order = bits::Order::BigEndian;
+    r.byte_width = 2;
+    r.guest_access = RegisterScan::Register::Access::Read;
+    r.host_access = RegisterScan::Register::Access::Read;
+    r.target = mem->id();
+    r.loc = Address{0x180};
+    r.name = "frozen";
+    scan->expose(r);
+    auto ref = *scan->find("frozen");
+
+    CHECK_THROWS(scan->write<u16>(ref, 1, RegisterScan::Level::Host));
+    // And a reset cannot bypass it either, which is what Tracing::Monotonic would want.
+    CHECK_THROWS(scan->clear(ref));
+  }
+
   SECTION("CLRREG bypasses the read-only check") {
     auto ro = expose_readonly(*sys, *mem);
     constexpr std::array<u8, 4> seed{0x11, 0x22, 0x33, 0x44};
@@ -685,8 +727,8 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
     scan->write<u32>(whole, 0x0000'0000);
 
     auto blaster = run([&](tvm::TraceBuffer &tb) {
-      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = v.reg.value, .field = v.field.value}
-                     .encode(std::array<u8, 4>{0x01, 0x00, 0x00, 0x00});
+      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = v.reg.value, .field = v.field.value}.encode(
+          std::array<u8, 4>{0x01, 0x00, 0x00, 0x00});
       tb.emit_body(S, {enc.data(), enc.size()});
     });
 
@@ -699,8 +741,8 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
     auto ref = *scan->find("be4");
     auto blaster = run([&](tvm::TraceBuffer &tb) {
       // Two bytes of data for a four-byte register.
-      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0}
-                     .encode(std::array<u8, 2>{0xAA, 0xBB});
+      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0}.encode(
+          std::array<u8, 2>{0xAA, 0xBB});
       tb.emit_body(S, {enc.data(), enc.size()});
     });
 
@@ -711,8 +753,8 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
 
   SECTION("An unknown register id hard stops") {
     auto blaster = run([&](tvm::TraceBuffer &tb) {
-      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = 0xBEEF, .field = 0}
-                     .encode(std::array<u8, 2>{0xAA, 0xBB});
+      auto enc =
+          SetReg<false, 4>{.access = rw.as_u16(), .reg = 0xBEEF, .field = 0}.encode(std::array<u8, 2>{0xAA, 0xBB});
       tb.emit_body(S, {enc.data(), enc.size()});
     });
 

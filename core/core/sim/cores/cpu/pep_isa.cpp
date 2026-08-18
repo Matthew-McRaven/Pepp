@@ -113,17 +113,17 @@ void PepISA3CPU::initialize(System *sys) {
   using R = isa::Pep10::Register;
   const auto rid = _regbank->id();
   static const auto r2i = [](const R &r) -> u16 { return static_cast<u16>(r) * 2; };
-  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "A", .loc = r2i(R::A)});
-  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "X", .loc = r2i(R::X)});
-  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "PC", .loc = r2i(R::PC)});
-  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "SP", .loc = r2i(R::SP)});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "A", .loc = r2i(R::A)});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "X", .loc = r2i(R::X)});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "PC", .loc = r2i(R::PC)});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "SP", .loc = r2i(R::SP)});
   scan->expose(SR{.byte_width = 1,
-                  .access = RW,
+                  .guest_access = RW,
                   .target = rid,
                   .order = BE,
                   .name = "IS",
                   .loc = static_cast<Address>(r2i(R::IS) + 1)});
-  scan->expose(SR{.byte_width = 2, .access = RW, .target = rid, .order = BE, .name = "OS", .loc = r2i(R::OS)});
+  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "OS", .loc = r2i(R::OS)});
   // CSRs / Flags
   using C = isa::Pep10::CSR;
   const auto cid = _csrs->id();
@@ -131,12 +131,12 @@ void PepISA3CPU::initialize(System *sys) {
   // Should really be 4 separate fields, but I want to test that my fields work as expected.
   // When moving to 4 fields, no need for bit offsets.
   // Bit 31 is MSB, 0 is LSB. Considering these are 4 consecutive bytes, the offsets make sense.
-  auto n = F{.access = RW, .bit_offset = 24, .bit_width = 1, .name = "N"};
-  auto z = F{.access = RW, .bit_offset = 16, .bit_width = 1, .name = "Z"};
-  auto v = F{.access = RW, .bit_offset = 8, .bit_width = 1, .name = "V"};
-  auto c = F{.access = RW, .bit_offset = 0, .bit_width = 1, .name = "C"};
+  auto n = F{.guest_access = RW, .bit_offset = 24, .bit_width = 1, .name = "N"};
+  auto z = F{.guest_access = RW, .bit_offset = 16, .bit_width = 1, .name = "Z"};
+  auto v = F{.guest_access = RW, .bit_offset = 8, .bit_width = 1, .name = "V"};
+  auto c = F{.guest_access = RW, .bit_offset = 0, .bit_width = 1, .name = "C"};
   scan->expose(SR{.byte_width = 4,
-                  .access = RW,
+                  .guest_access = RW,
                   .target = cid,
                   .order = BE,
                   .name = "NZVC",
@@ -144,8 +144,10 @@ void PepISA3CPU::initialize(System *sys) {
                   .loc = Address(0)});
   const auto cpuid = id();
   // Expose call depth, which is useful for implementing step modes.
+  // Read-only to the guest: hand-editing a derived counter is nonsense. host_access defaults to ReadWrite, which is
+  // what lets Tracing::Automatic restore it on a step backwards.
   _ref_call_depth = scan->expose(SR{.byte_width = 2,
-                                    .access = RO,
+                                    .guest_access = RO,
                                     .type = SR::Type::Counter,
                                     .target = cpuid,
                                     .order = bits::hostOrder(),
@@ -153,7 +155,7 @@ void PepISA3CPU::initialize(System *sys) {
                                     .loc = &_count.call_depth});
   // Width must match the storage it points at: the pointer visitors compare sizeof(T) against byte_width.
   scan->expose(SR{.byte_width = 4,
-                  .access = RO,
+                  .guest_access = RO,
                   .trace_mode = SR::Tracing::Checkpoint,
                   .type = SR::Type::Counter,
                   .target = cpuid,

@@ -489,9 +489,9 @@ struct DeltaMem {
   bits::Order order = bits::Order::LittleEndian;
 };
 
+// Same for register ops. Drops both access and order, which are managed through the RegisterScan.
 struct DeltaReg {
   tvm::Delta kind = tvm::Delta::Assign;
-  Operation access{};
   RegisterScan::RegisterRef reg{};
   SegmentPair data{};
   u16 size = 0;

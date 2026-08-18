@@ -108,7 +108,7 @@ TEST_CASE("Register reads are host-order regardless of the register's order",
     RegisterScan::Register r{};
     r.order = order;
     r.byte_width = 4;
-    r.access = RegisterScan::Register::ReadWrite;
+    r.guest_access = RegisterScan::Register::ReadWrite;
     r.target = mem->id();
     r.loc = offset;
     r.name = std::move(name);

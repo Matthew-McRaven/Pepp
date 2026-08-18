@@ -5,7 +5,7 @@
 namespace {
 static const Operation rw(Operation::Type::Application, Operation::Kind::data);
 static const Operation rw_buf(Operation::Type::BufferInternal, Operation::Kind::data);
-}
+} // namespace
 RegisterScan::Register::Reference RegisterScan::expose(const Register &n) {
   auto id = next_id();
   _regs[id] = std::make_unique<Register>(n);
@@ -13,15 +13,15 @@ RegisterScan::Register::Reference RegisterScan::expose(const Register &n) {
   return Register::Reference{.reg = id};
 }
 
-void RegisterScan::write(const RegisterRef &ref, bits::span<const u8> src, Byteswap bswap) {
+void RegisterScan::write(const RegisterRef &ref, bits::span<const u8> src, Byteswap bswap, Level level) {
   using namespace bits;
   auto [reg, field] = resolve(ref);
-  return write(reg, field, src, bswap);
+  return write(reg, field, src, bswap, level);
 }
 
-bits::Order RegisterScan::read(const RegisterRef &ref, bits::span<u8> dest, Byteswap bswap) {
+bits::Order RegisterScan::read(const RegisterRef &ref, bits::span<u8> dest, Byteswap bswap, Level level) {
   auto [reg, field] = resolve(ref);
-  return read(reg, field, dest, bswap);
+  return read(reg, field, dest, bswap, level);
 }
 
 void RegisterScan::clear(const RegisterRef &r) {
@@ -29,7 +29,9 @@ void RegisterScan::clear(const RegisterRef &r) {
   static const u64 zero = 0;
   static const auto zspan = bits::span<const u8>{reinterpret_cast<const u8 *>(&zero), sizeof(zero)};
   if (!reg) throw std::runtime_error("Register not found");
-  write(reg, field, zspan, Byteswap::Never, true);
+  // A reset brings the register back to its default value, simulating a power-cycle of the device. This should allow a
+  // RO register (from the guest side) to be written.
+  write(reg, field, zspan, Byteswap::Never, Level::Host);
 }
 
 std::pair<RegisterScan::Register *, RegisterScan::Register::Field *> RegisterScan::resolve(RegisterRef r) {
@@ -78,11 +80,25 @@ struct ReadVisit {
   }
 };
 
-bits::Order RegisterScan::read(Register *reg, Register::Field *field, bits::span<u8> dest, Byteswap bswap) {
-  return read(reg, field, dest, bswap, rw);
+RegisterScan::Access RegisterScan::granted(const Register &reg, Level level) {
+  return level == Level::Host ? reg.host_access : reg.guest_access;
 }
+
+RegisterScan::Access RegisterScan::granted(const Register::Field &field, Level level) {
+  return level == Level::Host ? field.host_access : field.guest_access;
+}
+
+void RegisterScan::load(Register *reg, bits::span<u8> out, Operation access) {
+  // The device is only consulted for Address-backed storage; a pointer needs nothing from the system.
+  if (!std::holds_alternative<Address>(reg->loc)) {
+    std::visit(ReadVisit{.reg = reg, .out = out}, reg->loc);
+  } else if (auto dev = _sys->find_by_id(reg->target); !dev) throw std::runtime_error("Device not found");
+  else if (auto target = dev->capability<Target>(); !target) throw std::runtime_error("Device is not a Target");
+  else target->read(std::get<Address>(reg->loc), out, access);
+}
+
 bits::Order RegisterScan::read(Register *reg, Register::Field *field, bits::span<u8> dest, Byteswap bswap,
-                               Operation access) {
+                               Level level) {
   using namespace bits;
   if (!reg) throw std::runtime_error("Register not found");
   else if (std::holds_alternative<std::monostate>(reg->loc))
@@ -94,17 +110,13 @@ bits::Order RegisterScan::read(Register *reg, Register::Field *field, bits::span
   if (dest.size() < reg->byte_width) throw std::runtime_error("Destination is narrower than the register");
   const auto out = bits::host_is_le ? dest.last(reg->byte_width) : dest.first(reg->byte_width);
 
-  if (!std::holds_alternative<Address>(reg->loc)) {
-    std::visit(ReadVisit{.reg = reg, .out = out}, reg->loc);
-  } else if (auto dev = _sys->find_by_id(reg->target); !dev) throw std::runtime_error("Device not found");
-  else if (auto target = dev->capability<Target>(); !target) throw std::runtime_error("Device is not a Target");
-  else {
-    if (!any(reg->access & Register::Access::Read)) throw std::runtime_error("Register is not readable");
-    target->read(std::get<Address>(reg->loc), out, access);
-  }
+  // Access control is first enforced at a per-register level before accessing.
+  if (!any(granted(*reg, level) & Register::Access::Read)) throw std::runtime_error("Register is not readable");
+
+  load(reg, out, level == Level::Guest ? rw : rw_buf);
 
   if (field) {
-    if (!any(field->access & Register::Access::Read)) throw std::runtime_error("Field is not readable");
+    if (!any(granted(*field, level) & Register::Access::Read)) throw std::runtime_error("Field is not readable");
     // Must convert to host-order so that bitmasking operations work
     auto copy = bits::memcpy_endian<u64>(out, reg->order);
     // Shift the field down so least-significant bit is at [0], and mask out bits beyond width
@@ -129,11 +141,13 @@ struct WriteVisit {
   }
 };
 
-void RegisterScan::write(Register *reg, Register::Field *field, bits::span<const u8> src, Byteswap bswap, bool force) {
+void RegisterScan::write(Register *reg, Register::Field *field, bits::span<const u8> src, Byteswap bswap, Level level) {
   using namespace bits;
   if (!reg) throw std::runtime_error("Register not found");
   else if (std::holds_alternative<std::monostate>(reg->loc))
     throw std::runtime_error("Register has no storage location");
+  // Ibid read(): the declaration binds whatever the storage is, and which half of it applies depends on the level.
+  else if (!any(granted(*reg, level) & Register::Access::Write)) throw std::runtime_error("Register is not writable");
 
   const size_t width = std::min<size_t>(reg->byte_width, sizeof(u64));
 
@@ -149,41 +163,37 @@ void RegisterScan::write(Register *reg, Register::Field *field, bits::span<const
   u64 value = memcpy_endian<u64>(src, src_order);
 
   if (field) {
-    if (!force && !any(field->access & Register::Access::Write)) throw std::runtime_error("Field is not writable");
-    // Read-modify-write: the bits outside this field may belong to other fields siblings and must be unchanged.
-    // Create a copy in whole, then mask out the field's previous bits before inserting the result.
+    if (!any(granted(*field, level) & Register::Access::Write)) throw std::runtime_error("Field is not writable");
+    // Read-modify-write. Bits outside this field belong to other fields siblings and must be unchanged.
+    // Create a copy which is masked and shifted to the individual field.
     // Ensure data is in host order before masking & shifting.
     u64 whole = 0;
     auto cur = span<u8>{reinterpret_cast<u8 *>(&whole), width};
-    // Avoid MMIO on this access if it is memory-mapped.
-    read(reg, nullptr, cur, Byteswap::Never, rw_buf);
+    // Avoid mmio and do not require guest-read permission
+    load(reg, cur, rw_buf);
     whole = memcpy_endian<u64>(cur, reg->order);
     const u64 mask = field->bit_width >= 64 ? ~0ULL : (1ULL << field->bit_width) - 1;
     value = (whole & ~(mask << field->bit_offset)) | ((value & mask) << field->bit_offset);
   }
 
-  // Convert in place: memcpy_endian takes its integral source by value, so it has already copied `value` before it
-  // writes, and using value's own storage as the destination cannot alias. Which bytes of the u64 these are does
-  // not matter -- memcpy_endian defines dest's contents outright, so no host-order assumption leaks in.
+  // Ensure working copy has been transformed t the register's order.
   auto out = span<u8>{reinterpret_cast<u8 *>(&value), width};
   memcpy_endian(out, reg->order, value);
 
-  if (auto dev = _sys->find_by_id(reg->target); !dev) throw std::runtime_error("Device not found");
-  else if (!std::holds_alternative<Address>(reg->loc)) {
+  if (!std::holds_alternative<Address>(reg->loc)) {
     std::visit(WriteVisit{.reg = reg, .src = out}, reg->loc);
-  } else if (auto target = dev->capability<Target>(); !target) throw std::runtime_error("Device is not a Target");
-  else {
-    if (!force && !any(reg->access & Register::Access::Write)) throw std::runtime_error("Register is not writable");
-    target->write(std::get<Address>(reg->loc), out, force ? rw_buf : rw);
-  }
+  } else if (auto dev = _sys->find_by_id(reg->target); !dev) throw std::runtime_error("Device not found");
+  else if (auto target = dev->capability<Target>(); !target) throw std::runtime_error("Device is not a Target");
+  // Only a guest write is an Application access; the host's own writes must not trace themselves.
+  else target->write(std::get<Address>(reg->loc), out, level == Level::Guest ? rw : rw_buf);
 }
 
-RegisterScan::Register::Access RegisterScan::access(RegisterRef r) const {
+RegisterScan::Register::Access RegisterScan::access(RegisterRef r, Level level) const {
   auto [reg, field] = resolve(r);
   if (!reg) {
     throw std::runtime_error("Register not found");
-  } else if (!field) return reg->access;
-  else return field->access;
+  } else if (!field) return granted(*reg, level);
+  else return granted(*field, level);
 }
 
 RegisterScan::Register::ID RegisterScan::next_id() { return next++; }

@@ -177,12 +177,14 @@ void ApplyBackend::on_deltareg(MachineState &state, const tvm::DecodedOp::DeltaR
     switch (op.kind) {
     // The payload is the register's new contents already.
     case tvm::Delta::Assign: value = payload; break;
-    // TODO: these should be BufferInternal reads, not normal ones!
-    case tvm::Delta::Xor: value = payload ^ _scan->read<u64>(op.reg); break;
-    case tvm::Delta::Add: value = _scan->read<u64>(op.reg) + directed_delta(signed_le(data)); break;
+    case tvm::Delta::Xor: value = payload ^ _scan->read<u64>(op.reg, RegisterScan::Level::Host); break;
+    case tvm::Delta::Add:
+      value = _scan->read<u64>(op.reg, RegisterScan::Level::Host) + directed_delta(signed_le(data));
+      break;
     }
-    // RegisterScanner handles field vs register writes.
-    _scan->write<u64>(op.reg, value);
+    // RegisterScanner handles field vs register writes. Level::Host because this is the machinery restoring state,
+    // not the user editing it: a counter may be read-only to the guest and still land here.
+    _scan->write<u64>(op.reg, value, RegisterScan::Level::Host);
   });
   state.csrs.F = !ok;
 }
@@ -222,9 +224,9 @@ void ApplyBackend::on_cmpreg(MachineState &state, const tvm::DecodedOp::CmpReg &
   u64 actual = 0;
   const bool ok = try_access([&] {
     switch (reg->byte_width) {
-    case 1: actual = _scan->read<u8>(op.reg); break;
-    case 2: actual = _scan->read<u16>(op.reg); break;
-    case 4: actual = _scan->read<u32>(op.reg); break;
+    case 1: actual = _scan->read<u8>(op.reg, RegisterScan::Level::Host); break;
+    case 2: actual = _scan->read<u16>(op.reg, RegisterScan::Level::Host); break;
+    case 4: actual = _scan->read<u32>(op.reg, RegisterScan::Level::Host); break;
     default: break;
     }
   });

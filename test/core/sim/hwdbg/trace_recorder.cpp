@@ -356,12 +356,12 @@ TEST_CASE("trace::Recorder: emit_incr_register()", "[scope:core][scope:core.dbg]
   tvm::TraceBuffer tb(sys->buffer_manager());
   constexpr Device::ID CPU{1};
 
-  // A counter living in a plain member, declared the way a CPU declares its own: read-only to the debugger, backed by
-  // a pointer rather than by an address in some target's space.
+  // A counter living in a plain member, declared the way a CPU declares its own: backed by a pointer rather than by
+  // an address in some target's space, and read-only to the guest but restorable by the host.
   i16 counter = 0;
   RegisterScan::Register decl{};
   decl.byte_width = 2;
-  decl.access = RegisterScan::Register::Access::Read;
+  decl.guest_access = RegisterScan::Register::Access::Read;
   decl.type = RegisterScan::Register::Type::Counter;
   decl.target = mem->id();
   decl.order = bits::hostOrder();

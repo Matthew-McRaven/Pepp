@@ -53,7 +53,10 @@ public:
   Direction direction() const { return _floor < 0 ? Direction::Backward : Direction::Forward; }
 
   // Allow replacing the recorded access type with BufferInternal, which allows the trace VM to avoid creating
-  // additional traces when "undo"ing
+  // additional traces when "undo"ing.
+  //
+  // Applies to the ops that reach a Target directly. Register ops go through RegisterScan, which picks the access
+  // from the privilege level it is handed and is always internal there, so this does not reach them.
   void set_access_mode(AccessMode m) { _access_mode = m; }
   AccessMode access_mode() const { return _access_mode; }
 

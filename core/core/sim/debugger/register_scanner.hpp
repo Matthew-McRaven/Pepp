@@ -13,12 +13,13 @@
 // Corresponds to an AddressSpan in some Target.
 
 // A class that acts a bit like the scanchain of a JTAG debugger, allowing named entries to be exposed
-// Devices call expose(...) as part of scan_debug_hardware(...), registering locations which can be read and written by
+// Devices call expose(...) as part of initialize(...), registering locations which can be read and written by
 // a debugger.
 class RegisterScan {
 public:
   struct Register {
     using ID = pepp::OpaqueHandle<struct RegisterID, u16>;
+    // Operations allowed on a register or field.
     enum class Access : u8 { None = 0, Read = 1 << 0, Write = 1 << 1 };
     // Reports how the register interacts with the tracing (undo/redo) system.
     enum class Tracing : u8 {
@@ -44,7 +45,8 @@ public:
     struct Field {
       // Starts from 1, not 0! 0 is a reserved value.
       using ID = pepp::OpaqueHandle<struct FieldID, u16>;
-      Access access = ReadWrite;
+      Access guest_access = ReadWrite;
+      Access host_access = ReadWrite;
       u8 bit_offset = 0;
       u8 bit_width = 0;
       std::string name;
@@ -57,7 +59,10 @@ public:
       bool is_field() const { return field.value != 0; }
     };
     u8 byte_width; // Width in BYTES.
-    Access access = ReadWrite;
+    // Separate guest access from host access. A debugger may need access to a register/counter (e.g., call_depth) that
+    // should either be invisible to the guest or read-only.
+    Access guest_access = ReadWrite;
+    Access host_access = ReadWrite;
     Tracing trace_mode = Tracing::Automatic;
     Type type = Type::Architectural;
     Device::ID target;
@@ -70,9 +75,17 @@ public:
     StorageLocation loc = std::monostate{};
   };
   using RegisterRef = Register::Reference;
+  using Access = Register::Access;
 
   RegisterScan(System *sys) : _sys(sys) {}
   RegisterScan::Register::Reference expose(const Register &n);
+
+  // Where does the access originate from? Both techincally come from within this process, but distringuishing simulated
+  // traffic from the simulators' infrastructure's traffic is important.
+  enum class Level : u8 {
+    Guest, // The system/device tree under test.
+    Host,  // All other traffic not originating from a guest program.
+  };
 
   enum class Byteswap {
     Always,        // Always perform a byteswap, even when host/guest match.
@@ -80,25 +93,32 @@ public:
     IfHostMismatch // If the register's order does not match the host order, byteswap in dest before returning.
   };
 
-  void write(const RegisterRef &n, bits::span<const u8> src, Byteswap bswap = Byteswap::Never);
-  bits::Order read(const RegisterRef &n, bits::span<u8> dest, Byteswap bswap = Byteswap::Never);
+  void write(const RegisterRef &n, bits::span<const u8> src, Byteswap bswap = Byteswap::Never,
+             Level level = Level::Guest);
+  bits::Order read(const RegisterRef &n, bits::span<u8> dest, Byteswap bswap = Byteswap::Never,
+                   Level level = Level::Guest);
 
   std::optional<RegisterRef> find(std::string_view name);
   // Helper which returns the value of a register as an integral type
-  template <std::integral I> I read(const RegisterRef &n);
+  template <std::integral I> I read(const RegisterRef &n, Level level = Level::Guest);
   // Helper which writes an integral value to a register.
-  template <std::integral I> void write(const RegisterRef &n, I value);
+  template <std::integral I> void write(const RegisterRef &n, I value, Level level = Level::Guest);
+  // A reset rather than a write, so it goes in at Level::Host: a register the guest may not write still resets.
   void clear(const RegisterRef &n);
 
   std::pair<Register *, Register::Field *> resolve(RegisterRef r);
   std::pair<const Register *, const Register::Field *> resolve(RegisterRef r) const;
-  Register::Access access(RegisterRef r) const;
+  Register::Access access(RegisterRef r, Level level = Level::Guest) const;
   u8 bit_width(RegisterRef r) const;
 
 private:
-  bits::Order read(Register *, Register::Field *, bits::span<u8> dest, Byteswap bswap);
-  bits::Order read(Register *, Register::Field *, bits::span<u8> dest, Byteswap bswap, Operation access);
-  void write(Register *, Register::Field *, bits::span<const u8> src, Byteswap bswap, bool force = false);
+  bits::Order read(Register *, Register::Field *, bits::span<u8> dest, Byteswap bswap, Level level);
+  // Fetch a register's bytes out of whatever backs it without checking for guest-read access permission.
+  void load(Register *reg, bits::span<u8> out, Operation access);
+  void write(Register *, Register::Field *, bits::span<const u8> src, Byteswap bswap, Level level);
+  // What this register/field grants at `level`.
+  static Access granted(const Register &reg, Level level);
+  static Access granted(const Register::Field &field, Level level);
   Register::ID next_id();
 
   System *_sys;
@@ -108,18 +128,18 @@ private:
   std::unordered_map<Register::ID, std::unique_ptr<Register>, pepp::handle_hash<Register::ID>> _regs;
 };
 
-template <std::integral I> I RegisterScan::read(const RegisterRef &n) {
+template <std::integral I> I RegisterScan::read(const RegisterRef &n, Level level) {
   auto p = resolve(n);
   if (!p.first) throw std::runtime_error("Register not found");
   // Read into a fixed-size buffer so that we know where the bytes will land before we convert to host order.
   // this avoids a posibility where we read the wrong "part" of a register and therefore return 0.
   const size_t width = std::min<size_t>(p.first->byte_width, sizeof(u64));
   std::array<u8, sizeof(u64)> buf{};
-  const auto order = read(p.first, p.second, bits::span<u8>{buf.data(), width}, Byteswap::Never);
+  const auto order = read(p.first, p.second, bits::span<u8>{buf.data(), width}, Byteswap::Never, level);
   return (I)bits::memcpy_endian<u64>(bits::span<const u8>{buf.data(), width}, order);
 }
 
-template <std::integral I> void RegisterScan::write(const RegisterRef &n, I value) {
+template <std::integral I> void RegisterScan::write(const RegisterRef &n, I value, Level level) {
   auto p = resolve(n);
   if (!p.first) throw std::runtime_error("Register not found");
   // Serialize into the register's own order up front, so the write path has nothing left to convert. This mirrors
@@ -129,7 +149,7 @@ template <std::integral I> void RegisterScan::write(const RegisterRef &n, I valu
   auto buf = bits::span<u8>{reinterpret_cast<u8 *>(&raw), width};
   // Cast sign-extends according to the rules of I.
   bits::memcpy_endian(buf, p.first->order, (u64)value);
-  write(p.first, p.second, buf, Byteswap::Never);
+  write(p.first, p.second, buf, Byteswap::Never, level);
 }
 
 consteval void is_bitflags(RegisterScan::Register::Access);
