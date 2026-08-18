@@ -151,7 +151,8 @@ void PepISA3CPU::initialize(System *sys) {
                                     .order = bits::hostOrder(),
                                     .name = "call_depth",
                                     .loc = &_count.call_depth});
-  scan->expose(SR{.byte_width = 2,
+  // Width must match the storage it points at: the pointer visitors compare sizeof(T) against byte_width.
+  scan->expose(SR{.byte_width = 4,
                   .access = RO,
                   .trace_mode = SR::Tracing::Checkpoint,
                   .type = SR::Type::Counter,
