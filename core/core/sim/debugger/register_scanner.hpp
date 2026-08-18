@@ -100,7 +100,8 @@ public:
   bits::Order read(const RegisterRef &n, bits::span<u8> dest, Byteswap bswap = Byteswap::Never,
                    Level level = Level::Guest);
 
-  std::optional<RegisterRef> find(std::string_view name);
+  // If id is non-0, only match against registers which share the same target ID. If ID==0, match against all registers.
+  std::optional<RegisterRef> find(std::string_view name, Device::ID scope = Device::ID{0});
   // Helper which returns the value of a register as an integral type
   template <std::integral I> I read(const RegisterRef &n, Level level = Level::Guest);
   // Helper which writes an integral value to a register.

@@ -64,17 +64,25 @@ RegisterScan::resolve(RegisterRef r) const {
   else return {reg.get(), &reg->fields[field_idx]};
 }
 
-std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view name) {
+std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view name, Device::ID scope) {
+  std::optional<RegisterScan::RegisterRef> ret = std::nullopt;
   for (const auto &it : _regs) {
     const auto id = it.first;
     const auto &reg = it.second;
-    if (reg->name == name) return RegisterRef{id, Register::Field::ID{0}};
+    // If scope is 0, match all registers. If non-0, only match that exact target.
+    if (!(scope.value == 0 || reg->target == scope)) continue;
+    else if (reg->name == name) {
+      if (ret) return std::nullopt;
+      else ret = RegisterRef{id, Register::Field::ID{0}};
+    }
     for (int inner = 0; inner < reg->fields.size(); ++inner) {
-      if (auto f = reg->fields[inner]; f.name == name)
-        return RegisterRef{id, Register::Field::ID{static_cast<u16>(inner + 1)}};
+      if (auto f = reg->fields[inner]; f.name == name) {
+        if (ret) return std::nullopt;
+        else ret = RegisterRef{id, Register::Field::ID{static_cast<u16>(inner + 1)}};
+      }
     }
   }
-  return std::nullopt;
+  return ret;
 }
 
 u8 RegisterScan::bit_width(RegisterRef r) const {
