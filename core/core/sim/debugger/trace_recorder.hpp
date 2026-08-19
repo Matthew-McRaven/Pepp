@@ -105,15 +105,9 @@ public:
   // Record a signed step of a scan-exposed register: the STEPREG sibling of emit_write_increment.
   //
   // The register reference and the delta both ride in the instruction packet, so this writes nothing to the data
-  // chain and leaves DP and DS alone. A counter that moves by the same amount every time -- +-1 on a call depth, +1
-  // on a cycle count -- emits a byte-identical body, which promotes to a stencil and collapses the whole record to a
-  // CALL carrying no payload at all.
-  //
-  // Unlike emit_write this never reads the register, so it does not have to be called ahead of the update the way
-  // the write-ahead rule above demands; either side of the increment is fine. A zero step records nothing.
-  //
-  // Whether a given counter is worth recording at all is the caller's decision, not this one's: a Checkpoint or
-  // Monotonic register (see RegisterScan::Register::Tracing) should not be handed to it.
+  // chain and leaves DP and DS alone. A register incremented by a fixed amount for an instruction class will have a
+  // byte-identical body, which promotes to a stencil and collapses the whole record to a CALL carrying no
+  // payload at all.
   void emit_incr_register(const Operation &op, RegisterScan::RegisterRef ref, i16 value);
 
   // A helper class which which helps open & close a recording for a single instruction.

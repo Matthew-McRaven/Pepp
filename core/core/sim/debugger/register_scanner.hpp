@@ -21,23 +21,27 @@ public:
     using ID = pepp::OpaqueHandle<struct RegisterID, u16>;
     // Operations allowed on a register or field.
     enum class Access : u8 { None = 0, Read = 1 << 0, Write = 1 << 1 };
-    // Reports how the register interacts with the tracing (undo/redo) system.
-    enum class Tracing : u8 {
-      // The register's value is restored automatically on step backwards.
-      // This is the required mode for registers which are part of the architectural state of the system.
-      Automatic,
-      // The register is not restored automatically, but could be restored with a manual save + restore.
-      // This mode is appropriate for performance counters (like a counter tracking a cache hit rate) which do not
-      // affect the correctness of the system.
-      Checkpoint,
-      // The register can't be restored. Attempting to restore it would break the simulator.
-      // An example would be a register which reports the size of the trace buffer.
-      Monotonic,
+    // Describe reset behavior of this register and how it is updated over the duration of a simulation.
+    enum class Kind : u8 {
+      // Machine state that has a power-on value which must be restored on reset and changes (unpredictably) over time.
+      // The Pep/10 accumulator or program counter are examples of such registers.
+      State,
+      // A monotonic accumulator that is additive across devices. For example, summing rd_bytes over every RAM is
+      // meaningful. Its reset value must be 0, and it should be resetable at arbitrary times
+      Count,
+      // An instantaneous, non-additive measurement, in the OpenTelemetry sense of the word. The owning device is
+      // responsible for updating it appropriately on step-forward and -backwards, potentially using the trace system.
+      Gauge,
     };
-    enum class Type {
-      Architectural,      // Part of the ISA of the system
-      Microarchitectural, // A microarchitecure detail, but still part of the implementation
-      Counter,            // A performance counter which does not affect the correctness of the system
+    // Who can observe the register. A guest-readable cycle counter would be Count + Architectural, while an instruction
+    // tally the simulator keeps for itself is Count + Internal.
+    enum class Visibility : u8 {
+      Architectural,      // Part of the ISA of the system.
+      Microarchitectural, // A microarchitecture detail, but still part of the modeled implementation.
+      // No instructions in the ISA directly touch the registers, so a guest program cannot read nor modify it directly.
+      // That being said, Level::Guest reads/writes may still be permitted because a debugger is making modifications on
+      // the user's behalf.
+      Internal,
     };
 
     static constexpr auto ReadWrite =
@@ -63,8 +67,14 @@ public:
     // should either be invisible to the guest or read-only.
     Access guest_access = ReadWrite;
     Access host_access = ReadWrite;
-    Tracing trace_mode = Tracing::Automatic;
-    Type type = Type::Architectural;
+    // If true, the register's value will be correctly updated on step-backwards/undo, either by using an explict trace
+    // or recomputing the value as necessary. If false, the register's value won't be restored on step-backwards and may
+    // be incorrect for the remainder of the run. Micro/architecturally significant registers should be restored,
+    // otherwise step-back will not be accurate. Internal registers used to derive execution statistics can
+    // choose not to be restored, since they do not impact the correctness of the run.
+    bool restore_on_step_back = true;
+    Kind kind = Kind::State;
+    Visibility visibility = Visibility::Architectural;
     Device::ID target;
     bits::Order order;
     std::string name;

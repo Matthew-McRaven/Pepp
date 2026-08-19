@@ -598,6 +598,7 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
     r.byte_width = 2;
     r.guest_access = RegisterScan::Register::Access::Read;
     r.host_access = RegisterScan::Register::Access::Read;
+    r.restore_on_step_back = false;
     r.target = mem->id();
     r.loc = Address{0x180};
     r.name = "frozen";
@@ -605,7 +606,7 @@ TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pe
     auto ref = *scan->find("frozen");
 
     CHECK_THROWS(scan->write<u16>(ref, 1, RegisterScan::Level::Host));
-    // And a reset cannot bypass it either, which is what Tracing::Monotonic would want.
+    // reset/clear cannot circumvent the restriction, which also prevents
     CHECK_THROWS(scan->clear(ref));
   }
 

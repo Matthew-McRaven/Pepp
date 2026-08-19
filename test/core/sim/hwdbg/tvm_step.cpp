@@ -283,6 +283,7 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
     // through and there would be no refusal to observe.
     r.guest_access = RegisterScan::Register::Access::Read;
     r.host_access = RegisterScan::Register::Access::Read;
+    r.restore_on_step_back = false;
     r.target = mem->id();
     r.loc = Address{0x100};
     r.name = "ro";

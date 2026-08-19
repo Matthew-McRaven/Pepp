@@ -144,11 +144,12 @@ void PepISA3CPU::initialize(System *sys) {
                   .loc = Address(0)});
   const auto cpuid = id();
   // Expose call depth, which is useful for implementing step modes.
-  // Read-only to the guest: hand-editing a derived counter is nonsense. host_access defaults to ReadWrite, which is
-  // what lets Tracing::Automatic restore it on a step backwards.
+  // host_access defaults to ReadWrite, which is used by the trace buffer for step_back.
   _ref_call_depth = scan->expose(SR{.byte_width = 2,
                                     .guest_access = RO,
-                                    .type = SR::Type::Counter,
+                                    .restore_on_step_back = true,
+                                    .kind = SR::Kind::Gauge,
+                                    .visibility = SR::Visibility::Internal,
                                     .target = cpuid,
                                     .order = bits::hostOrder(),
                                     .name = "call_depth",
@@ -156,8 +157,9 @@ void PepISA3CPU::initialize(System *sys) {
   // Width must match the storage it points at: the pointer visitors compare sizeof(T) against byte_width.
   scan->expose(SR{.byte_width = 4,
                   .guest_access = RO,
-                  .trace_mode = SR::Tracing::Checkpoint,
-                  .type = SR::Type::Counter,
+                  .restore_on_step_back = false,
+                  .kind = SR::Kind::Count,
+                  .visibility = SR::Visibility::Internal,
                   .target = cpuid,
                   .order = bits::hostOrder(),
                   .name = "icount",

@@ -362,7 +362,8 @@ TEST_CASE("trace::Recorder: emit_incr_register()", "[scope:core][scope:core.dbg]
   RegisterScan::Register decl{};
   decl.byte_width = 2;
   decl.guest_access = RegisterScan::Register::Access::Read;
-  decl.type = RegisterScan::Register::Type::Counter;
+  decl.kind = RegisterScan::Register::Kind::Gauge;
+  decl.visibility = RegisterScan::Register::Visibility::Internal;
   decl.target = mem->id();
   decl.order = bits::hostOrder();
   decl.name = "call_depth";
