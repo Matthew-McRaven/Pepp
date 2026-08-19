@@ -15,7 +15,6 @@
  */
 #pragma once
 
-#include <string>
 #include "core/integers.h"
 #include "core/math/bitmanip/span.hpp"
 #include "core/math/bitmanip/swap.hpp"
