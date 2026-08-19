@@ -11,6 +11,11 @@
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 
+// opt-in increment found by ADL. We need to ensure that this tag is visible before first use as a template argument,
+// which is inside of the body of RegisterScan.
+struct RegisterID;
+consteval void allow_opaque_handle_increment(pepp::OpaqueHandle<RegisterID, u16>);
+
 // Corresponds to an AddressSpan in some Target.
 
 // A class that acts a bit like the scanchain of a JTAG debugger, allowing named entries to be exposed
@@ -169,4 +174,3 @@ template <std::integral I> void RegisterScan::write(const RegisterRef &n, I valu
 }
 
 consteval void is_bitflags(RegisterScan::Register::Access);
-consteval void allow_opaque_handle_increment(RegisterScan::Register::ID);
