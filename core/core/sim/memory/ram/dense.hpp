@@ -60,8 +60,12 @@ public:
   Result write(Address address, bits::span<const u8> src, Operation op) override;
   // Overloads which emit traces using an increment/offset encoding.
   // When Dense is used to hold registers, this can be a more efficient encoding than a full write.
-  Result write_increment(Address address, bits::span<const u8> src, Operation op);
-  template <std::integral I, bool byteswap> Result write_increment(Address address, I src, Operation op);
+  // order is the byte order of the destination, which is required to compute the signed difference between src and the
+  // prior contents.
+  Result write_increment(Address address, bits::span<const u8> src, Operation op,
+                         bits::Order order = bits::hostOrder());
+  template <std::integral I, bool byteswap>
+  Result write_increment(Address address, I src, Operation op, bits::Order order = bits::hostOrder());
 
   void clear(u8 fill) override;
   void dump(bits::span<u8> dest) const override;
@@ -77,7 +81,7 @@ private:
 };
 
 template <std::integral I, bool byteswap>
-inline Target::Result Dense::write_increment(Address address, I src, Operation op) {
+inline Target::Result Dense::write_increment(Address address, I src, Operation op, bits::Order order) {
   if constexpr (byteswap) src = bits::byteswap(src);
-  return write_increment(address, bits::span<const u8>(reinterpret_cast<const u8 *>(&src), sizeof(I)), op);
+  return write_increment(address, bits::span<const u8>(reinterpret_cast<const u8 *>(&src), sizeof(I)), op, order);
 }

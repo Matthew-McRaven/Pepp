@@ -84,9 +84,10 @@ public:
   // In all other cases (writes to main-memory), I expect STEPMEM to be worse than SETMEMX because of the presence of
   // offset in the packet.
   //
-  // The values are read big-endian, matching the targets this exists for. Writes whose width is not 1, 2, 4, or 8
-  // bytes fall back to emit_write.
-  void emit_write_increment(const Operation &op, Address address, bits::span<const u8> prior, bits::span<const u8> now);
+  // Byte order matters when computing the difference (now - prior), which is why we require an explicit order. Writes
+  // whose width is not 1, 2, 4, or 8 bytes fall back to emit_write.
+  void emit_write_increment(const Operation &op, Address address, bits::span<const u8> prior, bits::span<const u8> now,
+                            bits::Order order = bits::hostOrder());
 
   // Same, for a device whose previous contents are not sitting in contiguous memory, such as Sparse or a bus.
   // fill_prior is a function reference which writes the prior bytes into a provided span. That provided span is in the

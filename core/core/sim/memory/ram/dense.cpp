@@ -128,7 +128,7 @@ Target::Result Dense::write(Address address, bits::span<const u8> src, Operation
   return {};
 }
 
-Target::Result Dense::write_increment(Address address, bits::span<const u8> src, Operation op) {
+Target::Result Dense::write_increment(Address address, bits::span<const u8> src, Operation op, bits::Order order) {
   using E = Error;
   auto span = _config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
@@ -136,7 +136,7 @@ Target::Result Dense::write_increment(Address address, bits::span<const u8> src,
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
   const auto offset = address - span.lower();
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  _trace.emit_write_increment(op, address, dest.first(src.size()), src);
+  _trace.emit_write_increment(op, address, dest.first(src.size()), src, order);
   bits::memcpy(dest, src);
   if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};

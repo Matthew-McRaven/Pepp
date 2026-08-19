@@ -46,6 +46,12 @@ enum class Delta : u8 {
   Add,
 };
 
+// STEP*'s order word (MOD1.hi): set says the destination is big-endian, clear says little-endian.
+constexpr u16 encode_order(bits::Order order) { return order == bits::Order::BigEndian ? 1 : 0; }
+constexpr bits::Order decode_order(u16 order_word) {
+  return order_word ? bits::Order::BigEndian : bits::Order::LittleEndian;
+}
+
 // Must fit into 6 bits because of the OpWord struct.
 enum class Opcode : u8 {
   // Set L flag to 0, halting the blaster and F to 0. MOD1 is cause, MOD2 is ignored.

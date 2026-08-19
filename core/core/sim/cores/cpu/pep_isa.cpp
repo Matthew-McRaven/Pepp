@@ -211,7 +211,8 @@ void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // data-dependence for the branch target.
   const auto pc_delta = _pc - init_pc;
   if ((pc_delta & 0b11) == pc_delta) {
-    _regbank->write_increment<u16, bits::host_is_le>(static_cast<u8>(isa::Pep10::Register::PC) * 2, _pc, op_data());
+    _regbank->write_increment<u16, bits::host_is_le>(static_cast<u8>(isa::Pep10::Register::PC) * 2, _pc,
+                                                     op_data(), bits::Order::BigEndian);
   } else write_register_uncached(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
   record.commit();

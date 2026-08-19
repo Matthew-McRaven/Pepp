@@ -6,11 +6,6 @@
 #include "core/sim/debugger/tvm_encoding.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 
-namespace {
-// STEPMEM's MOD1.hi: nonzero says the destination is big-endian. See Opcode::STEPMEM.
-constexpr u16 STEP_BIG_ENDIAN = 1;
-} // namespace
-
 namespace trace {
 
 bool Recorder::traced() const { return _tb != nullptr && _tb->traced(_emitter); }
@@ -64,7 +59,7 @@ void Recorder::emit_write(const Operation &op, Address address, bits::span<const
 }
 
 void Recorder::emit_write_increment(const Operation &op, Address address, bits::span<const u8> prior,
-                                    bits::span<const u8> now) {
+                                    bits::span<const u8> now, bits::Order order) {
   const std::size_t len = now.size();
   if (len == 0) return;       // A write with no data is meaningless.
   else if (!traced()) return; // Don't record for untraced.
@@ -78,13 +73,9 @@ void Recorder::emit_write_increment(const Operation &op, Address address, bits::
   // begin() never called for that initiator.
   if (rec == nullptr) return;
 
-  // Both sides are read big-endian because the targets this is aimed at are. Reading them in the wrong order would
-  // still replay correctly -- bytes to integer and back is a bijection either way, so the sum reproduces `now`'s
-  // bytes exactly -- but the delta would stop being the same number every time the moment a carry crossed a byte
-  // boundary. A body that is not byte-identical between executions cannot be promoted to a stencil, and that
-  // promotion is the entire reason this form carries its payload as code.
-  const u64 before = bits::memcpy_endian<u64>(prior, bits::Order::BigEndian);
-  const u64 after = bits::memcpy_endian<u64>(now, bits::Order::BigEndian);
+  // Read the bytes from their target order into the host order.
+  const u64 before = bits::memcpy_endian<u64>(prior, order);
+  const u64 after = bits::memcpy_endian<u64>(now, order);
   const u64 delta = after - before;
 
   const auto off = tvm::SegmentPair{.hi = (u16)(address >> 16), .lo = (u16)(address & 0xFFFF)};
@@ -94,7 +85,8 @@ void Recorder::emit_write_increment(const Operation &op, Address address, bits::
   const auto emit = [&]<std::size_t N>() {
     std::array<u8, N> payload{};
     bits::memcpy_endian(bits::span<u8>{payload.data(), N}, bits::Order::LittleEndian, delta);
-    const auto step = tvm::EncodedOp::StepMem<6>(op.as_u16(), _emitter.value, off, STEP_BIG_ENDIAN).encode(payload);
+    const auto step =
+        tvm::EncodedOp::StepMem<6>(op.as_u16(), _emitter.value, off, tvm::encode_order(order)).encode(payload);
     _tb->emit_body(*rec, {step.data(), step.size()});
   };
   switch (len) {
