@@ -139,8 +139,11 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
   return {};
 }
 
+// `fill` is the caller's choice for this one operation and deliberately does not become the device's new default:
+// config().fill is the power-on value that reset() reads back, and CLRMEM replaying out of a trace must not be able
+// to redefine it.
 void Sparse::clear(u8 fill) {
-  _config.fill = fill;
+  // TODO: emit a "clear" trace to TB.
   _pool.clear(fill);
 }
 
