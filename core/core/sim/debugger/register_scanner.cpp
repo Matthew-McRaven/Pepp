@@ -85,6 +85,19 @@ std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view nam
   return ret;
 }
 
+std::size_t RegisterScan::reset(std::initializer_list<Register::Kind> kinds) {
+  using namespace bits;
+  std::size_t count = 0;
+  for (const auto &[id, reg] : _regs) {
+    if (std::find(kinds.begin(), kinds.end(), reg->kind) == kinds.end()) continue;
+    // Reject a host write is how a device says it maintains this itself, so a reset has nothing to do here.
+    else if (!any(reg->host_access & Register::Access::Write)) continue;
+    clear(RegisterRef{id, Register::Field::ID{0}});
+    ++count;
+  }
+  return count;
+}
+
 u8 RegisterScan::bit_width(RegisterRef r) const {
   auto [reg, field] = resolve(r);
   if (!reg) {

@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <initializer_list>
 #include <list>
 #include <optional>
 #include <string>
@@ -118,6 +119,8 @@ public:
   template <std::integral I> void write(const RegisterRef &n, I value, Level level = Level::Guest);
   // A reset rather than a write, so it goes in at Level::Host: a register the guest may not write still resets.
   void clear(const RegisterRef &n);
+  // Reset every exposed register of the given kind. Host-unwritable registers are skipped.
+  std::size_t reset(std::initializer_list<Register::Kind> kinds);
 
   std::pair<Register *, Register::Field *> resolve(RegisterRef r);
   std::pair<const Register *, const Register::Field *> resolve(RegisterRef r) const;
