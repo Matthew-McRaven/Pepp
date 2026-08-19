@@ -62,12 +62,12 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_call(Pe
   auto resolve_wr = dbg->resolve(*wr_bytes);
   CHECK(resolve_wr.first != nullptr);
   CHECK((i16)resolve_wr.first->target.value == (i16)mem->id().value);
-  CHECK(dbg->read<u32>(*rd_bytes) == 0);
-  CHECK(dbg->read<u32>(*wr_bytes) == 0);
+  CHECK(dbg->read<u64>(*rd_bytes) == 0);
+  CHECK(dbg->read<u64>(*wr_bytes) == 0);
   REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
-  CHECK(dbg->read<u32>(*rd_bytes) == 0);
+  CHECK(dbg->read<u64>(*rd_bytes) == 0);
   CHECK(program.size() != 0);
-  CHECK(dbg->read<u32>(*wr_bytes) == program.size());
+  CHECK(dbg->read<u64>(*wr_bytes) == program.size());
   const u16 init_sp = 0xFEED;
   const u16 end_pc = 0xDEAD;
 

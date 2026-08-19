@@ -96,7 +96,7 @@ public:
 private:
   struct PerfCounters {
     i16 call_depth = 0;
-    u32 instructions = 0;
+    u64 instructions = 0;
   } _count = {};
   RegisterScan::RegisterRef _ref_call_depth = {};
   // Only meaningful between the start and end of clock_tick. See read_pc().

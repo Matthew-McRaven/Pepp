@@ -73,8 +73,8 @@ public:
 
 private:
   mutable struct PerformanceCounters {
-    u32 rd_bytes = 0;
-    u32 wr_bytes = 0;
+    u64 rd_bytes = 0;
+    u64 wr_bytes = 0;
   } _counters = {};
   Configuration _config;
   std::vector<u8> _data;

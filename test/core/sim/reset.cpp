@@ -118,13 +118,15 @@ TEST_CASE("Device::reset", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
     REQUIRE(rd.has_value());
     REQUIRE(wr.has_value());
     (void)byte_at(mem, 0x10);
-    REQUIRE(scan->read<u32>(*rd) > 0);
-    REQUIRE(scan->read<u32>(*wr) > 0);
+    REQUIRE(scan->read<u64>(*rd) > 0);
+    REQUIRE(scan->read<u64>(*wr) > 0);
 
     // Call Dense::reset() directly to avoid the System::reset() walk.
     mem->reset();
-    CHECK(scan->read<u32>(*rd) == 0);
-    CHECK(scan->read<u32>(*wr) == 0);
+    // Read at the counter's full width. read<u32> against a u64 register truncates rather than complaining, so a
+    // reset that cleared only the low word would satisfy these.
+    CHECK(scan->read<u64>(*rd) == 0);
+    CHECK(scan->read<u64>(*wr) == 0);
   }
 
   SECTION("leaves a register backed by target memory following that memory") {
@@ -165,11 +167,11 @@ TEST_CASE("RegisterScan::reset", "[scope:core][scope:core.sim][kind:unit][arch:*
     auto rd = *scan->find("rd_bytes", mem->id());
     scan->write<u16>(ref, 0xBEEF);
     (void)byte_at(mem, 0x40);
-    REQUIRE(scan->read<u32>(rd) > 0);
+    REQUIRE(scan->read<u64>(rd) > 0);
 
     const auto touched = scan->reset({Kind::Count});
     CHECK(touched == 2); // rd_bytes and wr_bytes, and no State register
-    CHECK(scan->read<u32>(rd) == 0);
+    CHECK(scan->read<u64>(rd) == 0);
     // Machine state is not a statistic. A counters-only reset that also zeroed this would make measuring a run
     // impossible without destroying it.
     CHECK(scan->read<u16>(ref) == 0xBEEF);
