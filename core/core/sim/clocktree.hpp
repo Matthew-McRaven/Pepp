@@ -15,6 +15,7 @@ struct IdealClock final : public Device, public ClockSource {
   IdealClock(Configuration config) : Device(), ClockSource(), _config(config), _sched({.period = config.period}) {}
 
   PulseSchedule schedule() const override { return _sched; }
+  void reset() override { _sched = {.period = _config.period}; }
   const Device::Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
   std::unique_ptr<DeviceSerializer> serializer() const override;
@@ -34,6 +35,8 @@ struct ScaledClock final : public Device, public ClockSource {
 
   ScaledClock(Configuration config);
   void initialize(System *) override;
+  // schedule is compute on demand and this class otherwise has no state
+  void reset() override {}
   PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
@@ -62,6 +65,8 @@ struct MuxClock final : public Device, public ClockSource {
   void initialize(System *) override;
 
   void select_clock(u16 index);
+  // TODO: selected is ignored at construction time, so it is also ignored here.
+  void reset() override { _index = 0; }
   std::span<ClockSource *> choices() { return _choices; }
   PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config; }

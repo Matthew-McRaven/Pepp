@@ -46,6 +46,7 @@ public:
   // Device interface. The buffer is built in initialize() rather than the constructor because it needs the System's
   // BufferManager, which is only reachable once the tree exists.
   void initialize(System *sys) override;
+  void reset() override;
   const Device::Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
   Device::Type type() const override { return Device::Type::TraceBuffer; }

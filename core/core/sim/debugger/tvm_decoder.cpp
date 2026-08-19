@@ -300,7 +300,7 @@ tvm::DecodedOp::DeltaMem Decoder::decode_stepmem(pepp::bts::Buffer::ID ibp, u16 
   ret.data = regs.DP;
   ret.size = regs.DS;
   // If MOD1 is not set, then choose LE by default.
-  ret.order = (_state.csrs.M1 && regs.MOD1.hi) ? bits::Order::BigEndian : bits::Order::LittleEndian;
+  ret.order = decode_order(_state.csrs.M1 && regs.MOD1.hi);
 
   switch (regs.IS.word_len) {
   default: [[fallthrough]];
@@ -314,7 +314,7 @@ tvm::DecodedOp::DeltaMem Decoder::decode_stepmem(pepp::bts::Buffer::ID ibp, u16 
     [[fallthrough]];
   case 5:
     regs.MOD1.hi = read(ibp, iop + 8), _state.csrs.M1 = 1;
-    ret.order = regs.MOD1.hi ? bits::Order::BigEndian : bits::Order::LittleEndian;
+    ret.order = decode_order(regs.MOD1.hi);
     [[fallthrough]];
   case 4: regs.OFF.lo = read(ibp, iop + 6); [[fallthrough]];
   case 3: regs.OFF.hi = read(ibp, iop + 4); [[fallthrough]];

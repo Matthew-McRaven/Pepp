@@ -50,6 +50,35 @@ void serialize_sparse(nlohmann::json &obj, const System *sys, const Device *self
 
 Sparse::Sparse(Configuration config) : Device(), _config(config), _pool(_config.fill) {}
 
+void Sparse::initialize(System *sys) {
+  static const auto RO = RegisterScan::Register::Access::Read;
+  using SR = RegisterScan::Register;
+  auto scan = sys->register_scan();
+  scan->expose(SR{.byte_width = sizeof(_counters.rd_bytes),
+                  .guest_access = RO,
+                  .restore_on_step_back = false,
+                  .kind = SR::Kind::Count,
+                  .visibility = SR::Visibility::Internal,
+                  .target = id(),
+                  .order = bits::hostOrder(),
+                  .name = "rd_bytes",
+                  .loc = &_counters.rd_bytes});
+  scan->expose(SR{.byte_width = sizeof(_counters.wr_bytes),
+                  .guest_access = RO,
+                  .restore_on_step_back = false,
+                  .kind = SR::Kind::Count,
+                  .visibility = SR::Visibility::Internal,
+                  .target = id(),
+                  .order = bits::hostOrder(),
+                  .name = "wr_bytes",
+                  .loc = &_counters.wr_bytes});
+}
+
+void Sparse::reset() {
+  clear(_config.fill);
+  _counters = {};
+}
+
 const Device::Configuration &Sparse::config() const { return _config; }
 
 const Sparse::Configuration &Sparse::casted_config() const { return _config; }
@@ -91,9 +120,9 @@ Target::Result Sparse::read(Address address, bits::span<u8> dest, Operation op) 
   const auto max_addr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
 
-  // TODO: record the read once the ISA can encode one -- see the matching note in Dense::read.
   const auto offset = address - span.lower();
   _pool.read(offset, dest);
+  if (is_performance_countable(op)) _counters.rd_bytes += dest.size();
   return {};
 }
 
@@ -111,12 +140,15 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
   // but we don't pay the cost of reading the data.
   _trace.emit_write(op, address, src, [&](bits::span<u8> prior) { _pool.read(offset, prior); });
   _pool.write(offset, src);
+  if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
 }
 
+// `fill` is the caller's choice for this one operation and deliberately does not become the device's new default:
+// config().fill is the power-on value that reset() reads back, and CLRMEM replaying out of a trace must not be able
+// to redefine it.
 void Sparse::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
-  _config.fill = fill;
   _pool.clear(fill);
 }
 

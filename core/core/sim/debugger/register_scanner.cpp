@@ -1,6 +1,8 @@
 #include "register_scanner.hpp"
 #include <stdexcept>
+#include "core/ds/hash/fnv.hpp"
 #include "core/math/bitmanip/copy.hpp"
+#include "core/math/bitmanip/mask.hpp"
 #include "core/sim/system.hpp"
 
 namespace {
@@ -64,24 +66,107 @@ RegisterScan::resolve(RegisterRef r) const {
   else return {reg.get(), &reg->fields[field_idx]};
 }
 
-std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view name) {
+std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view name, Device::ID scope) {
+  std::optional<RegisterScan::RegisterRef> ret = std::nullopt;
   for (const auto &it : _regs) {
     const auto id = it.first;
     const auto &reg = it.second;
-    if (reg->name == name) return RegisterRef{id, Register::Field::ID{0}};
+    // If scope is 0, match all registers. If non-0, only match that exact target.
+    if (!(scope.value == 0 || reg->target == scope)) continue;
+    else if (reg->name == name) {
+      if (ret) return std::nullopt;
+      else ret = RegisterRef{id, Register::Field::ID{0}};
+    }
     for (int inner = 0; inner < reg->fields.size(); ++inner) {
-      if (auto f = reg->fields[inner]; f.name == name)
-        return RegisterRef{id, Register::Field::ID{static_cast<u16>(inner + 1)}};
+      if (auto f = reg->fields[inner]; f.name == name) {
+        if (ret) return std::nullopt;
+        else ret = RegisterRef{id, Register::Field::ID{static_cast<u16>(inner + 1)}};
+      }
     }
   }
-  return std::nullopt;
+  return ret;
+}
+
+std::size_t RegisterScan::reset(std::initializer_list<Register::Kind> kinds) {
+  using namespace bits;
+  std::size_t count = 0;
+  for (const auto &[id, reg] : _regs) {
+    if (std::find(kinds.begin(), kinds.end(), reg->kind) == kinds.end()) continue;
+    // Reject a host write is how a device says it maintains this itself, so a reset has nothing to do here.
+    else if (!any(reg->host_access & Register::Access::Write)) continue;
+    clear(RegisterRef{id, Register::Field::ID{0}});
+    ++count;
+  }
+  return count;
+}
+
+// Initialize the hash with the correct initial value for our FNV-a1 hash algorithm.
+RegisterScan::Selection::Selection(RegisterScan *scan) : _scan(scan), _hash(pepp::fnv_1a_basis()) {}
+RegisterScan::Selection::Selection() : Selection(nullptr) {}
+
+bool RegisterScan::Selection::add(RegisterRef ref) {
+  using namespace bits;
+  // A field would sample fine, but its width is bits where delta_to() subtracts at a byte width -- refuse rather
+  // than quietly widening it to the register it lives in.
+  if (_scan == nullptr || ref.is_field()) return false;
+  const auto [reg, field] = _scan->resolve(ref);
+  // Reduce sanity-checking work in sample, discarding unreadable registers, those without storage, and those larger
+  // than a sample slot.
+  if (reg == nullptr) return false;
+  else if (std::holds_alternative<std::monostate>(reg->loc)) return false;
+  else if (!any(_scan->access(ref, Level::Host) & Register::Access::Read)) return false;
+  else if (reg->byte_width > sizeof(u64)) return false;
+  _regs.push_back(ref.reg);
+  _widths.push_back(reg->byte_width);
+  _hash = pepp::fnv_1a(ref.reg.value, _hash);
+  return true;
+}
+
+std::optional<std::size_t> RegisterScan::Selection::index_of(RegisterRef ref) const {
+  // TODO: if we re-sorted registers on insert this could be lg(n) rather than n
+  if (ref.is_field()) return std::nullopt;
+  else if (const auto it = std::find(_regs.begin(), _regs.end(), ref.reg); it == _regs.end()) return std::nullopt;
+  else return static_cast<std::size_t>(std::distance(_regs.begin(), it));
+}
+
+std::optional<u64> RegisterScan::Selection::value_of(const Sample &s, RegisterRef ref) const {
+  // Avoid accessing a sample which does not belong to this selection.
+  if (s.hash() != _hash) throw std::runtime_error("Sample was not taken from this Selection");
+  else if (const auto at = index_of(ref); !at) return std::nullopt;
+  else return s.values()[*at];
+}
+
+std::optional<u64> RegisterScan::Selection::delta_of(const Sample &before, const Sample &after, RegisterRef ref) const {
+  if (before.hash() != _hash || after.hash() != _hash) throw std::runtime_error("Sample not taken from this Selection");
+  else if (const auto at = index_of(ref); !at) return std::nullopt;
+  // Same as Sample::delta_to(), but for a single register rather than the whole sample to reduce runtime cost.
+  else return (after.values()[*at] - before.values()[*at]) & bits::mask(_widths[*at]);
+}
+
+RegisterScan::Sample RegisterScan::Selection::sample() const {
+  Sample out;
+  out._hash = _hash;
+  out._widths = _widths;
+  out._values.reserve(_regs.size());
+  for (const auto id : _regs)
+    out._values.push_back(_scan->read<u64>(RegisterRef{id, Register::Field::ID{0}}, Level::Host));
+  return out;
+}
+
+std::vector<u64> RegisterScan::Sample::delta_to(const Sample &after) const {
+  if (_hash != after._hash) throw std::runtime_error("Samples come from different Selections");
+  else if (_values.size() != after._values.size()) throw std::runtime_error("Sample sizes disagree");
+  std::vector<u64> out;
+  out.reserve(_values.size());
+  for (std::size_t i = 0; i < _values.size(); ++i)
+    out.push_back((after._values[i] - _values[i]) & bits::mask(_widths[i]));
+  return out;
 }
 
 u8 RegisterScan::bit_width(RegisterRef r) const {
   auto [reg, field] = resolve(r);
-  if (!reg) {
-    throw std::runtime_error("Register not found");
-  } else if (!field) return reg->byte_width * 8;
+  if (!reg) throw std::runtime_error("Register not found");
+  else if (!field) return reg->byte_width * 8;
   else return field->bit_width;
 }
 
@@ -92,6 +177,7 @@ struct ReadVisit {
   void operator()(Address addr) { throw std::runtime_error("Device is not a target"); }
   template <typename T> void operator()(const T *ptr) {
     if (sizeof(T) != out.size()) throw std::runtime_error("Register width mismatch");
+    else if (ptr == nullptr) throw std::runtime_error("Register pointer is null");
     std::memcpy(out.data(), ptr, sizeof(T));
   }
 };
@@ -153,6 +239,7 @@ struct WriteVisit {
   void operator()(Address addr) { throw std::runtime_error("Device is not a target"); }
   template <typename T> void operator()(T *ptr) {
     if (sizeof(T) != src.size()) throw std::runtime_error("Register width mismatch");
+    else if (ptr == nullptr) throw std::runtime_error("Register pointer is null");
     std::memcpy(ptr, src.data(), sizeof(T));
   }
 };

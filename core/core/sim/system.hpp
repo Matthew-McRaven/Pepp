@@ -69,6 +69,9 @@ public:
   void initialize(System *sys) override;
   // Iterate over all devices in the tree and call initialize on each of them.
   void initialize();
+  // The exception to the reset-does-not-recurse rule. Resets its own state before calling reset() on all of its
+  // children. I don't guarentee a visitation order, so reset cannot depend on other device's state.
+  void reset() override;
   // Return a ptr to a type which can convert this object to/from JSON.
   std::unique_ptr<DeviceSerializer> serializer() const override;
   static std::unique_ptr<DeviceSerializer> make_serializer();

@@ -45,6 +45,35 @@ Dense::Dense(Configuration config) : Device(), _config(config) {
 
 std::span<const u8> Dense::data() const { return std::span<const u8>{_data.data(), std::size_t(_data.size())}; }
 
+void Dense::initialize(System *sys) {
+  static const auto RO = RegisterScan::Register::Access::Read;
+  using SR = RegisterScan::Register;
+  auto scan = sys->register_scan();
+  scan->expose(SR{.byte_width = sizeof(_counters.rd_bytes),
+                  .guest_access = RO,
+                  .restore_on_step_back = false,
+                  .kind = SR::Kind::Count,
+                  .visibility = SR::Visibility::Internal,
+                  .target = id(),
+                  .order = bits::hostOrder(),
+                  .name = "rd_bytes",
+                  .loc = &_counters.rd_bytes});
+  scan->expose(SR{.byte_width = sizeof(_counters.wr_bytes),
+                  .guest_access = RO,
+                  .restore_on_step_back = false,
+                  .kind = SR::Kind::Count,
+                  .visibility = SR::Visibility::Internal,
+                  .target = id(),
+                  .order = bits::hostOrder(),
+                  .name = "wr_bytes",
+                  .loc = &_counters.wr_bytes});
+}
+
+void Dense::reset() {
+  clear(_config.fill);
+  _counters = {};
+}
+
 const Device::ID Dense::id() const { return _config.id; }
 
 const Device::Configuration &Dense::config() const { return _config; }
@@ -85,8 +114,8 @@ Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) c
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
   const auto offset = address - span.lower();
   const auto src = bits::span<const u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  // TODO: emit a pure read to TB.
   bits::memcpy(dest, src);
+  if (is_performance_countable(op)) _counters.rd_bytes += dest.size();
   return {};
 }
 
@@ -100,10 +129,11 @@ Target::Result Dense::write(Address address, bits::span<const u8> src, Operation
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   _trace.emit_write(op, address, dest.first(src.size()), src);
   bits::memcpy(dest, src);
+  if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
 }
 
-Target::Result Dense::write_increment(Address address, bits::span<const u8> src, Operation op) {
+Target::Result Dense::write_increment(Address address, bits::span<const u8> src, Operation op, bits::Order order) {
   using E = Error;
   auto span = _config.span;
   // Length is 1-indexed, address are 0, so must offset by -1.
@@ -111,14 +141,14 @@ Target::Result Dense::write_increment(Address address, bits::span<const u8> src,
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
   const auto offset = address - span.lower();
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  _trace.emit_write_increment(op, address, dest.first(src.size()), src);
+  _trace.emit_write_increment(op, address, dest.first(src.size()), src, order);
   bits::memcpy(dest, src);
+  if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
 }
 
 void Dense::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
-  _config.fill = fill;
   std::fill(_data.begin(), _data.end(), fill);
 }
 

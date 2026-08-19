@@ -15,7 +15,6 @@
  */
 #pragma once
 
-#include <string>
 #include "core/integers.h"
 #include "core/math/bitmanip/span.hpp"
 #include "core/math/bitmanip/swap.hpp"
@@ -83,13 +82,18 @@ struct Operation {
   constexpr Operation(Operation &&) noexcept = default;
   constexpr Operation &operator=(Operation &&) noexcept = default;
   // Explicit to avoid decaying ints to operations.
-  // if high-order is 0 (or a u8 is promoted), then initiator is 0/root.
+  // if high-order is 0, then initiator is 0/root.
   constexpr explicit Operation(u16 v) noexcept
       : type(static_cast<Type>((v >> 4) & 0b11)), kind(static_cast<Kind>(v & 0x01)),
         initiator(Device::ID{static_cast<u8>((v >> 8) & 0xFF)}) {}
 };
 
 static constexpr auto op_i_std = Operation(Operation::Type::Standard, Operation::Kind::instruction);
+
+// Only memory operations triggered by the guest should cause performance counters to change.
+constexpr bool is_performance_countable(Operation op) noexcept {
+  return op.type == Operation::Type::Standard || op.type == Operation::Type::Speculative;
+}
 
 struct Target {
   struct Result {
@@ -106,6 +110,7 @@ struct Target {
   virtual AddressSpan span() const = 0;
   virtual Result read(Address address, bits::span<u8> dest, Operation op) const = 0;
   virtual Result write(Address address, bits::span<const u8> src, Operation op) = 0;
+  // If the device is composed of many devices (e.g., a SimpleBus), this method should clear all connected targets.
   virtual void clear(u8 fill) = 0;
 
   // If dest is larger than maxOffset-minOffset+1, copy bytes from this target

@@ -53,7 +53,21 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_call(Pe
   auto [sys, mem, cpu] = make_cpu(isa);
   // Object code for instruction under test.
   auto program = std::array<u8, 3>{(u8)op, 0xDE, 0xAD};
+  auto dbg = sys->register_scan();
+  auto mid = mem->id();
+  auto rd_bytes = dbg->find("rd_bytes", mid);
+  auto wr_bytes = dbg->find("wr_bytes", mid);
+  REQUIRE(rd_bytes.has_value());
+  REQUIRE(wr_bytes.has_value());
+  auto resolve_wr = dbg->resolve(*wr_bytes);
+  CHECK(resolve_wr.first != nullptr);
+  CHECK((i16)resolve_wr.first->target.value == (i16)mem->id().value);
+  CHECK(dbg->read<u64>(*rd_bytes) == 0);
+  CHECK(dbg->read<u64>(*wr_bytes) == 0);
   REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
+  CHECK(dbg->read<u64>(*rd_bytes) == 0);
+  CHECK(program.size() != 0);
+  CHECK(dbg->read<u64>(*wr_bytes) == program.size());
   const u16 init_sp = 0xFEED;
   const u16 end_pc = 0xDEAD;
 
@@ -64,7 +78,6 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_call(Pe
 
   REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
 
-  auto dbg = sys->register_scan();
 
   CHECK(dbg->read<u16>(*dbg->find("PC")) == end_pc);
   CHECK(dbg->read<u16>(*dbg->find("SP")) == init_sp - 2);
@@ -83,7 +96,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_call(Pe
 
 } // namespace
 
-TEST_CASE("Find register by name in HW debugger", "[scope:core][scope:core.sim][kind:instr][arch:pep10]") {
+TEST_CASE("Find register by name in HW debugger", "[scope:core][scope:core.dbg][kind:instr][arch:pep10]") {
   using Register = isa::Pep10::Register;
   using CSR = isa::Pep10::CSR;
   using MN = isa::Pep10::Mnemonic;
@@ -91,7 +104,7 @@ TEST_CASE("Find register by name in HW debugger", "[scope:core][scope:core.sim][
 }
 
 TEST_CASE("A pointer-backed register must declare its storage's width",
-          "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto *scan = sys->register_scan();
   u32 counter = 0;
@@ -114,7 +127,7 @@ TEST_CASE("A pointer-backed register must declare its storage's width",
 }
 
 TEST_CASE("Register reads are host-order regardless of the register's order",
-          "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto *scan = sys->register_scan();
 

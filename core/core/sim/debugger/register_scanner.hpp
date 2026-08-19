@@ -1,14 +1,21 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <initializer_list>
 #include <list>
 #include <optional>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <variant>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
+
+// opt-in increment found by ADL. We need to ensure that this tag is visible before first use as a template argument,
+// which is inside of the body of RegisterScan.
+struct RegisterID;
+consteval void allow_opaque_handle_increment(pepp::OpaqueHandle<RegisterID, u16>);
 
 // Corresponds to an AddressSpan in some Target.
 
@@ -21,23 +28,27 @@ public:
     using ID = pepp::OpaqueHandle<struct RegisterID, u16>;
     // Operations allowed on a register or field.
     enum class Access : u8 { None = 0, Read = 1 << 0, Write = 1 << 1 };
-    // Reports how the register interacts with the tracing (undo/redo) system.
-    enum class Tracing : u8 {
-      // The register's value is restored automatically on step backwards.
-      // This is the required mode for registers which are part of the architectural state of the system.
-      Automatic,
-      // The register is not restored automatically, but could be restored with a manual save + restore.
-      // This mode is appropriate for performance counters (like a counter tracking a cache hit rate) which do not
-      // affect the correctness of the system.
-      Checkpoint,
-      // The register can't be restored. Attempting to restore it would break the simulator.
-      // An example would be a register which reports the size of the trace buffer.
-      Monotonic,
+    // Describe reset behavior of this register and how it is updated over the duration of a simulation.
+    enum class Kind : u8 {
+      // Machine state that has a power-on value which must be restored on reset and changes (unpredictably) over time.
+      // The Pep/10 accumulator or program counter are examples of such registers.
+      State,
+      // A monotonic accumulator that is additive across devices. For example, summing rd_bytes over every RAM is
+      // meaningful. Its reset value must be 0, and it should be resetable at arbitrary times
+      Count,
+      // An instantaneous, non-additive measurement, in the OpenTelemetry sense of the word. The owning device is
+      // responsible for updating it appropriately on step-forward and -backwards, potentially using the trace system.
+      Gauge,
     };
-    enum class Type {
-      Architectural,      // Part of the ISA of the system
-      Microarchitectural, // A microarchitecure detail, but still part of the implementation
-      Counter,            // A performance counter which does not affect the correctness of the system
+    // Who can observe the register. A guest-readable cycle counter would be Count + Architectural, while an instruction
+    // tally the simulator keeps for itself is Count + Internal.
+    enum class Visibility : u8 {
+      Architectural,      // Part of the ISA of the system.
+      Microarchitectural, // A microarchitecture detail, but still part of the modeled implementation.
+      // No instructions in the ISA directly touch the registers, so a guest program cannot read nor modify it directly.
+      // That being said, Level::Guest reads/writes may still be permitted because a debugger is making modifications on
+      // the user's behalf.
+      Internal,
     };
 
     static constexpr auto ReadWrite =
@@ -63,8 +74,14 @@ public:
     // should either be invisible to the guest or read-only.
     Access guest_access = ReadWrite;
     Access host_access = ReadWrite;
-    Tracing trace_mode = Tracing::Automatic;
-    Type type = Type::Architectural;
+    // If true, the register's value will be correctly updated on step-backwards/undo, either by using an explict trace
+    // or recomputing the value as necessary. If false, the register's value won't be restored on step-backwards and may
+    // be incorrect for the remainder of the run. Micro/architecturally significant registers should be restored,
+    // otherwise step-back will not be accurate. Internal registers used to derive execution statistics can
+    // choose not to be restored, since they do not impact the correctness of the run.
+    bool restore_on_step_back = true;
+    Kind kind = Kind::State;
+    Visibility visibility = Visibility::Architectural;
     Device::ID target;
     bits::Order order;
     std::string name;
@@ -100,13 +117,87 @@ public:
   bits::Order read(const RegisterRef &n, bits::span<u8> dest, Byteswap bswap = Byteswap::Never,
                    Level level = Level::Guest);
 
-  std::optional<RegisterRef> find(std::string_view name);
+  // If id is non-0, only match against registers which share the same target ID. If ID==0, match against all registers.
+  std::optional<RegisterRef> find(std::string_view name, Device::ID scope = Device::ID{0});
   // Helper which returns the value of a register as an integral type
   template <std::integral I> I read(const RegisterRef &n, Level level = Level::Guest);
   // Helper which writes an integral value to a register.
   template <std::integral I> void write(const RegisterRef &n, I value, Level level = Level::Guest);
   // A reset rather than a write, so it goes in at Level::Host: a register the guest may not write still resets.
   void clear(const RegisterRef &n);
+  // Reset every exposed register of the given kind. Host-unwritable registers are skipped.
+  std::size_t reset(std::initializer_list<Register::Kind> kinds);
+
+  class Sample;
+  // A class which holds a list of registers to sample where order matters. Useful for pre-selecting performance
+  // counters you want to sample at regular intervals. This must not outlive its RegisterScan
+  class Selection {
+  public:
+    // Create an empty selection with a null scan, which will prevent you from add()ing or sample()ing
+    Selection();
+    // Create an empty which supports add() and sample().
+    explicit Selection(RegisterScan *scan);
+
+    // Append one register to the selection, returning false if it was not appended to the selection. Reasons for
+    // failure include:
+    //   - this Selection has a nullptr RegisterScan*
+    //   - the register is not exposed or has no storage
+    //   - the register is not readable by the host
+    //   - the register is a field, because of a TODO to implement the sub-byte masking
+    //   - it is wider than 8 bytes, which a Sample's u64 would silently truncate
+    bool add(RegisterRef ref);
+    bool add(Register::ID reg) { return add(RegisterRef{reg, Register::Field::ID{0}}); }
+    // Read every register in this Selection into a new Sample. Reads at Level::Host with BufferInternal access to avoid
+    // perturbing the state of the machine.
+    Sample sample() const;
+
+    // Return an internal index of the register if it is selected and nullopt otherwise. Registers in Sample can be
+    // accessed via this index.
+    std::optional<std::size_t> index_of(RegisterRef ref) const;
+    std::optional<std::size_t> index_of(Register::ID reg) const {
+      return index_of(RegisterRef{reg, Register::Field::ID{0}});
+    }
+    // Request the value or delta for a single register. Returns nullopt is the register is not part of this selection,
+    // throwing if Samples do not belong to selection.
+    std::optional<u64> value_of(const Sample &s, RegisterRef ref) const;
+    std::optional<u64> delta_of(const Sample &before, const Sample &after, RegisterRef ref) const;
+
+    std::size_t size() const { return _regs.size(); }
+    bool empty() const { return _regs.empty(); }
+    std::span<const Register::ID> registers() const { return _regs; }
+    // A hash over the inserted registers IDs in insertion order. Used to ensure that you don't diff samples belonging
+    // to two different register selections.
+    u64 hash() const { return _hash; }
+
+  private:
+    RegisterScan *_scan = nullptr;
+    std::vector<Register::ID> _regs;
+    // Carried alongside so a delta can subtract at each register's own width without consulting the scan.
+    std::vector<u8> _widths;
+    // Must be seeded properly in CTOR, but 0-initialized here to avoid pulling in a header for hashing.
+    // Updated incrementally on each add().
+    u64 _hash = 0;
+  };
+
+  // The values of a Selection's registers at one instant.
+  class Sample {
+  public:
+    std::span<const u64> values() const { return _values; }
+    std::size_t size() const { return _values.size(); }
+    u64 hash() const { return _hash; }
+    // Per-register change from this Sample to a later one, positionally aligned. Subtraction happens at each
+    // register's own width, so a counter narrower than 64 bits that wrapped still reports its true delta. Throws if
+    // the two did not come from the same Selection.
+    std::vector<u64> delta_to(const Sample &after) const;
+
+  private:
+    // Selection is the only thing that builds one.
+    friend class Selection;
+    std::vector<u64> _values;
+    std::vector<u8> _widths;
+    u64 _hash = 0;
+  };
+
 
   std::pair<Register *, Register::Field *> resolve(RegisterRef r);
   std::pair<const Register *, const Register::Field *> resolve(RegisterRef r) const;
@@ -155,4 +246,3 @@ template <std::integral I> void RegisterScan::write(const RegisterRef &n, I valu
 }
 
 consteval void is_bitflags(RegisterScan::Register::Access);
-consteval void allow_opaque_handle_increment(RegisterScan::Register::ID);

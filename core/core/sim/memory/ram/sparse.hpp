@@ -38,6 +38,8 @@ public:
   Sparse &operator=(const Sparse &) = delete;
 
   // Device interface
+  void initialize(System *) override;
+  void reset() override;
   const Device::Configuration &config() const override;
   const Configuration &casted_config() const;
   const Device::ID id() const override;
@@ -60,6 +62,10 @@ public:
   void dump(bits::span<u8> dest) const override;
 
 private:
+  mutable struct PerformanceCounters {
+    u64 rd_bytes = 0;
+    u64 wr_bytes = 0;
+  } _counters = {};
   Configuration _config;
   pepp::bts::PagedPool<u8> _pool;
   trace::Recorder _trace;

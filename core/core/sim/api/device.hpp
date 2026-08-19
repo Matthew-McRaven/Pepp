@@ -69,6 +69,9 @@ struct Device {
   // Classes which require this 2nd stage of init should override this method.
   // As part of this initialize step, you should expose all registers to the Systems RegisterScan.
   virtual void initialize(System *) {}
+  // Return this device's own state to what it held immediately after initialization. This includes clearing performance
+  // counters in addition to a Target's memory. Does not recurse into child devices.
+  virtual void reset() = 0;
   virtual const Configuration &config() const = 0;
   virtual const Device::ID id() const = 0;
   // Helper to test if this device implements a particular interface type.

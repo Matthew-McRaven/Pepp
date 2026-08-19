@@ -200,3 +200,73 @@ TEST_CASE("tvm::Interpreter: Just-in-time emptying of ring", "[scope:core][scope
   CHECK_NOTHROW(submit_empty(tb, (size_t)ENTRIES_PER_SLOT));
   CHECK(tb.instruction_count() == (size_t)ENTRIES_PER_SLOT);
 }
+
+TEST_CASE("tvm::TraceBuffer: clear()", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  constexpr Device::ID S{1};
+  tvm::TraceBuffer tb(mgr, 2);
+  tb.trace(S);
+  tb.set_address_in_payload(S, true);
+
+  // Record something before dropping it.
+  auto record_and_clear = [&]() {
+    submit_empty(tb, 16);
+    REQUIRE(tb.instruction_count() == 16);
+    REQUIRE(tb.footprint().code > 0);
+    REQUIRE(tb.cursor() != tvm::Cursor{});
+    tb.clear();
+  };
+
+  SECTION("drops recorded traces") {
+    record_and_clear();
+    CHECK(tb.instruction_count() == 0);
+    CHECK(tb.footprint().programs == 0);
+    CHECK(tb.footprint().code == 0);
+    CHECK(tb.footprint().stencils == 0);
+    CHECK(tb.cursor() == tvm::Cursor{});
+    CHECK(tb.ring_occupancy() == Catch::Approx(0.0f));
+  }
+
+  SECTION("preserves configuration values") {
+    record_and_clear();
+    CHECK(tb.traced(S));
+    CHECK(tb.address_in_payload(S));
+  }
+
+  SECTION("allows the buffer to be re-used") {
+    record_and_clear();
+    // Exercises the re-seeded tombstone: begin() writes it into the entry it reserves, so a stencil chain cleared
+    // without re-appending it would leave that entry aimed at a freed program.
+    submit_empty(tb, 4);
+    CHECK(tb.instruction_count() == 4);
+    CHECK(tb.footprint().code > 0);
+  }
+
+  SECTION("aborts an open recording rather than refusing") {
+    // Node::reset asserts open == 0 to avoid a use-after-free on data. A caller resetting the machine should not have
+    // to close recordings first.
+    tb.begin(S);
+    REQUIRE(tb.is_recording(S));
+
+    CHECK_NOTHROW(tb.clear());
+    CHECK_FALSE(tb.is_recording(S));
+
+    // The reservation was released rather than leaked, so the slot is free to record into again.
+    tb.begin(S);
+    CHECK_NOTHROW(tb.commit(S));
+    CHECK(tb.instruction_count() == 1);
+  }
+
+  SECTION("keeps watermark registrations and re-arms them") {
+    int fires = 0;
+    tb.on_watermark(0.5f, [&]() { fires++; });
+    submit_empty(tb, tvm::TraceBuffer::MAX_LOCATION_ENTRIES);
+    REQUIRE(fires == 1);
+
+    tb.clear();
+    // The callback belongs to the UI and outlives any one run but should be re-armed so it can fire again.
+    CHECK(tb.ring_occupancy() == Catch::Approx(0.0f));
+    submit_empty(tb, tvm::TraceBuffer::MAX_LOCATION_ENTRIES);
+    CHECK(fires == 2);
+  }
+}

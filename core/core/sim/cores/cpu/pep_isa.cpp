@@ -144,24 +144,31 @@ void PepISA3CPU::initialize(System *sys) {
                   .loc = Address(0)});
   const auto cpuid = id();
   // Expose call depth, which is useful for implementing step modes.
-  // Read-only to the guest: hand-editing a derived counter is nonsense. host_access defaults to ReadWrite, which is
-  // what lets Tracing::Automatic restore it on a step backwards.
+  // host_access defaults to ReadWrite, which is used by the trace buffer for step_back.
   _ref_call_depth = scan->expose(SR{.byte_width = 2,
                                     .guest_access = RO,
-                                    .type = SR::Type::Counter,
+                                    .restore_on_step_back = true,
+                                    .kind = SR::Kind::Gauge,
+                                    .visibility = SR::Visibility::Internal,
                                     .target = cpuid,
                                     .order = bits::hostOrder(),
                                     .name = "call_depth",
                                     .loc = &_count.call_depth});
   // Width must match the storage it points at: the pointer visitors compare sizeof(T) against byte_width.
-  scan->expose(SR{.byte_width = 4,
+  scan->expose(SR{.byte_width = sizeof(_count.instructions),
                   .guest_access = RO,
-                  .trace_mode = SR::Tracing::Checkpoint,
-                  .type = SR::Type::Counter,
+                  .restore_on_step_back = false,
+                  .kind = SR::Kind::Count,
+                  .visibility = SR::Visibility::Internal,
                   .target = cpuid,
                   .order = bits::hostOrder(),
                   .name = "icount",
                   .loc = &_count.instructions});
+}
+
+void PepISA3CPU::reset() {
+  _pc = 0;
+  _count = {};
 }
 
 const Device::Configuration &PepISA3CPU::config() const { return _config; }
@@ -209,7 +216,8 @@ void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // data-dependence for the branch target.
   const auto pc_delta = _pc - init_pc;
   if ((pc_delta & 0b11) == pc_delta) {
-    _regbank->write_increment<u16, bits::host_is_le>(static_cast<u8>(isa::Pep10::Register::PC) * 2, _pc, op_data());
+    _regbank->write_increment<u16, bits::host_is_le>(static_cast<u8>(isa::Pep10::Register::PC) * 2, _pc,
+                                                     op_data(), bits::Order::BigEndian);
   } else write_register_uncached(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
   record.commit();

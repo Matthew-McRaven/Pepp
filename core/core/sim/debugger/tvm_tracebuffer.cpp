@@ -41,17 +41,14 @@ TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t r
   // than a buffer that simply holds nothing. Refuse it here, where the cause is still visible.
   if (ring_size == 0) throw std::invalid_argument("TraceBuffer: ring_size must be at least 1");
   _ring.resize(ring_size);
+  // Eagerly allocate chains, and defer to clear() to populate initial data
   for (auto &node : _ring) {
     node.code = _mgr->alloc_chain();
     // Lazily allocate node.data to avoid paying for all devices up front.
     // Also lazily allocate node.locations, which is a full 64KiB buffer that is only needed if we enable tracing.
   }
   _stencils = _mgr->alloc_chain();
-  // Create a tombstone entry in the stencil chain so reserved-but-unwritten location entries can point to a valid
-  // program. Not counted in _footprint.stencils. It's only two bytes, and they are a functional requirement of the
-  // reservation system.
-  const auto halt = EncodedOp::Halt<0>{}.encode();
-  _tombstone.code = _stencils->append({halt.data(), halt.size()});
+  clear();
 }
 
 TraceBuffer::~TraceBuffer() noexcept {
@@ -236,6 +233,30 @@ bool TraceBuffer::is_recording(Device::ID initiator) const {
 
 void TraceBuffer::on_watermark(float threshold, WatermarkCallback cb) {
   _watermarks.push_back({threshold, std::move(cb), false});
+}
+
+void TraceBuffer::clear() {
+  // Node::reset asserts open == 0, so we must close all open recordings.
+  for (auto &[id, rec] : _recordings) abort(id);
+  // Then we can return the underlying buffers (if any) to the buffer manager safely.
+  for (auto &node : _ring) node.reset(*_mgr);
+  _head = _tail = 0;
+
+  // Reset all performance / footprint counters.
+  _footprint = {};
+  // All tables for stencil promotion must be cleared.
+  _stencil_map.clear(), _pending_hashes.clear(), _stencils->clear();
+  // Create a tombstone entry in the stencil chain so reserved-but-unwritten location entries can point to a valid
+  // program. Not counted in _footprint.stencils. It's only two bytes, and they are a functional requirement of the
+  // reservation system.
+  const auto halt = EncodedOp::Halt<0>{}.encode();
+  _tombstone = {};
+  _tombstone.code = _stencils->append({halt.data(), halt.size()});
+
+  // The thresholds and callbacks are the UI's registrations and outlive any one run; only whether they have fired is
+  // a property of the trace just discarded.
+  for (auto &wm : _watermarks) wm.fired = false;
+  // Deliberately untouched: _traced, _address_in_payload, _ring.size(), _mgr.
 }
 
 void TraceBuffer::acknowledge(Cursor up_to) {

@@ -122,6 +122,8 @@ void SimpleBus::initialize(System *sys) {
   }
 }
 
+void SimpleBus::reset() {}
+
 const Device::Configuration &SimpleBus::config() const { return _config; }
 
 const SimpleBus::Configuration &SimpleBus::casted_config() const { return _config; }
@@ -205,7 +207,6 @@ Target::Result SimpleBus::write(Address address, bits::span<const u8> src, Opera
 
 void SimpleBus::clear(u8 fill) {
   for (auto dev : _devices) dev.second->clear(fill);
-  _config.fill = fill;
 }
 
 void SimpleBus::dump(bits::span<u8> dest) const { throw std::logic_error("SimpleBus::dump not implemented"); }

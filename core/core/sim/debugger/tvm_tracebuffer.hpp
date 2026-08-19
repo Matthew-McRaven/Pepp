@@ -242,6 +242,11 @@ public:
   // Frees their code and data chains back to the buffer manager.
   void acknowledge(Cursor up_to);
 
+  // Drop all recordings, stencils, ring entries, etc and returns this class to it's post-construction state. Unlike
+  // acknowledge, this will force-clear slots currently being written by aborting in-progress writes.
+  // Configuration parameters survive, such as the set of traced devices and watermarks.
+  void clear();
+
   // --- Cursor / Iteration ---
 
   // Bidirectional iterator over location buffer entries.

@@ -23,6 +23,7 @@
 
 struct DeviceWithType : public Device {
   DeviceWithType(Configuration config, Type type) : Device(), _config(config), _type(type) {}
+  void reset() override {}
   Type type() const override { return _type; }
   const Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
@@ -36,6 +37,7 @@ private:
 
 struct SubclassingDevice : public Device, ClockSource {
   SubclassingDevice(Configuration config) : Device(), _config(config) {}
+  void reset() override {}
   Type type() const override { return Type::ClockSource; }
   PulseSchedule schedule() const override { return {.period = 100, .jitter = 10, .seed = 0}; }
   const Configuration &config() const override { return _config; }

@@ -84,9 +84,10 @@ public:
   // In all other cases (writes to main-memory), I expect STEPMEM to be worse than SETMEMX because of the presence of
   // offset in the packet.
   //
-  // The values are read big-endian, matching the targets this exists for. Writes whose width is not 1, 2, 4, or 8
-  // bytes fall back to emit_write.
-  void emit_write_increment(const Operation &op, Address address, bits::span<const u8> prior, bits::span<const u8> now);
+  // Byte order matters when computing the difference (now - prior), which is why we require an explicit order. Writes
+  // whose width is not 1, 2, 4, or 8 bytes fall back to emit_write.
+  void emit_write_increment(const Operation &op, Address address, bits::span<const u8> prior, bits::span<const u8> now,
+                            bits::Order order = bits::hostOrder());
 
   // Same, for a device whose previous contents are not sitting in contiguous memory, such as Sparse or a bus.
   // fill_prior is a function reference which writes the prior bytes into a provided span. That provided span is in the
@@ -105,15 +106,9 @@ public:
   // Record a signed step of a scan-exposed register: the STEPREG sibling of emit_write_increment.
   //
   // The register reference and the delta both ride in the instruction packet, so this writes nothing to the data
-  // chain and leaves DP and DS alone. A counter that moves by the same amount every time -- +-1 on a call depth, +1
-  // on a cycle count -- emits a byte-identical body, which promotes to a stencil and collapses the whole record to a
-  // CALL carrying no payload at all.
-  //
-  // Unlike emit_write this never reads the register, so it does not have to be called ahead of the update the way
-  // the write-ahead rule above demands; either side of the increment is fine. A zero step records nothing.
-  //
-  // Whether a given counter is worth recording at all is the caller's decision, not this one's: a Checkpoint or
-  // Monotonic register (see RegisterScan::Register::Tracing) should not be handed to it.
+  // chain and leaves DP and DS alone. A register incremented by a fixed amount for an instruction class will have a
+  // byte-identical body, which promotes to a stencil and collapses the whole record to a CALL carrying no
+  // payload at all.
   void emit_incr_register(const Operation &op, RegisterScan::RegisterRef ref, i16 value);
 
   // A helper class which which helps open & close a recording for a single instruction.

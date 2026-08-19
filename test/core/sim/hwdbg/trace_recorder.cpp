@@ -46,6 +46,9 @@ const Operation app(Operation::Type::Application, Operation::Kind::data);
 // Read straight out of the target, bypassing anything that might itself be traced.
 u16 peek(Target *mem, Address at) { return mem->read<u16, bits::host_is_le>(at, app).second; }
 void poke(Target *mem, Address at, u16 v) { mem->write<u16, bits::host_is_le>(at, v, app); }
+// The same, for a target laid out the other way round -- a RISC-V core rather than a Pep one.
+u16 peek_le(Target *mem, Address at) { return mem->read<u16, !bits::host_is_le>(at, app).second; }
+void poke_le(Target *mem, Address at, u16 v) { mem->write<u16, !bits::host_is_le>(at, v, app); }
 
 } // namespace
 
@@ -273,7 +276,7 @@ TEST_CASE("trace::Recorder: emit_write_increment()", "[scope:core][scope:core.db
     poke(mem, ADDR, FIRST);
 
     tb.begin(CPU);
-    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes, bits::Order::BigEndian);
     auto loc = tb.commit(CPU);
 
     auto blaster = sys->make_trace_interpreter();
@@ -292,7 +295,7 @@ TEST_CASE("trace::Recorder: emit_write_increment()", "[scope:core][scope:core.db
     const auto before = tb.footprint();
 
     tb.begin(CPU);
-    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes, bits::Order::BigEndian);
     auto loc = tb.commit(CPU);
 
     // Both the address and the delta ride in the packet, so nothing was appended and there is no payload for run()
@@ -310,7 +313,7 @@ TEST_CASE("trace::Recorder: emit_write_increment()", "[scope:core][scope:core.db
     const std::array<u8, 2> other_old{0x11, 0x11}, other_new{0x22, 0x22};
 
     tb.begin(CPU);
-    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes, bits::Order::BigEndian);
     rec.emit_write(emit_op, OTHER_ADDR, other_old, other_new);
     auto loc = tb.commit(CPU);
 
@@ -323,14 +326,108 @@ TEST_CASE("trace::Recorder: emit_write_increment()", "[scope:core][scope:core.db
     // The whole reason the payload is code: a location that advances by a constant emits a byte-identical body every
     // time, and identical bodies collapse into a call.
     tb.begin(CPU);
-    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes, bits::Order::BigEndian);
     tb.commit(CPU);
     CHECK(tb.stencil_count() == 0); // seen once, not yet promoted
 
     tb.begin(CPU);
-    rec.emit_write_increment(emit_op, ADDR, second_bytes, third_bytes);
+    rec.emit_write_increment(emit_op, ADDR, second_bytes, third_bytes, bits::Order::BigEndian);
     tb.commit(CPU);
     CHECK(tb.stencil_count() == 1);
+  }
+
+  SECTION("clear() restarts dedup rather than leaving it aimed at freed programs") {
+    // Promote once, so both dedup tables hold something that indexes into the stencil chain.
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes, bits::Order::BigEndian);
+    tb.commit(CPU);
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, second_bytes, third_bytes, bits::Order::BigEndian);
+    tb.commit(CPU);
+    REQUIRE(tb.stencil_count() == 1);
+
+    // clear() releases the stencil chain, so _stencil_map must go with it. Surviving would leave this non-zero and
+    // every entry in it pointing at a program that has been handed back to the pool.
+    tb.clear();
+    REQUIRE(tb.stencil_count() == 0);
+
+    // The same body as before the clear, which is what makes a stale table observable. A surviving _pending_hashes
+    // would treat this first occurrence as the second and promote on sight.
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes, bits::Order::BigEndian);
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 0); // seen once since the clear, exactly as from a fresh buffer
+
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, second_bytes, third_bytes, bits::Order::BigEndian);
+    const auto loc = tb.commit(CPU);
+    CHECK(tb.stencil_count() == 1);
+
+    // Counting the tables only shows they were emptied. This program is the one whose body became a CALL, so
+    // replaying it is what proves the stencil it targets is a live program in the rebuilt chain rather than a freed
+    // one -- the failure the two REQUIREs above cannot see.
+    constexpr u16 THIRD = 0x0106;
+    poke(mem, ADDR, SECOND);
+    auto blaster = sys->make_trace_interpreter();
+    blaster->run(loc);
+    CHECK(blaster->stop_cause() == tvm::StopCause::None);
+    CHECK(peek(mem, ADDR) == THIRD);
+  }
+
+  SECTION("A little-endian step replays forward, then undoes itself") {
+    // The same round trip against a little-endian destination. STEPMEM carries the order, so nothing here depends on
+    // the recorder guessing what the target looks like.
+    const std::array<u8, 2> le_first{0x00, 0x01}, le_second{0x03, 0x01};
+    poke_le(mem, ADDR, FIRST);
+
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, le_first, le_second, bits::Order::LittleEndian);
+    auto loc = tb.commit(CPU);
+
+    auto blaster = sys->make_trace_interpreter();
+    blaster->run(loc);
+    CHECK(blaster->stop_cause() == tvm::StopCause::None);
+    CHECK(peek_le(mem, ADDR) == SECOND);
+
+    blaster->backend().set_direction(tvm::Direction::Backward);
+    blaster->run(loc);
+    CHECK(peek_le(mem, ADDR) == FIRST);
+  }
+
+  // 0x00FF -> 0x0100 -> 0x0101 separates correct byte ordering from incorrect byte ordering.
+  const std::array<u8, 2> be_a{0x00, 0xFF}, be_b{0x01, 0x00}, be_c{0x01, 0x01};
+  const std::array<u8, 2> le_a{0xFF, 0x00}, le_b{0x00, 0x01}, le_c{0x01, 0x01};
+
+  SECTION("A carry out of the low byte still promotes, big-endian") {
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, be_a, be_b, bits::Order::BigEndian);
+    tb.commit(CPU);
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, be_b, be_c, bits::Order::BigEndian);
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 1);
+  }
+
+  SECTION("A carry out of the low byte still promotes, little-endian") {
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, le_a, le_b, bits::Order::LittleEndian);
+    tb.commit(CPU);
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, le_b, le_c, bits::Order::LittleEndian);
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 1);
+  }
+
+  SECTION("Declaring the wrong order costs the stencil rather than the replay") {
+    // Big-endian bytes declared little-endian. The bytes replay correctly, but the delta is computed incorrectly and
+    // stencil promotion does not occur.
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, be_a, be_b, bits::Order::LittleEndian);
+    tb.commit(CPU);
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, be_b, be_c, bits::Order::LittleEndian);
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 0);
   }
 
   SECTION("A width the packet cannot carry falls back to the XOR form") {
@@ -339,7 +436,7 @@ TEST_CASE("trace::Recorder: emit_write_increment()", "[scope:core][scope:core.db
     mem->write(ADDR, {old3.data(), old3.size()}, app);
 
     tb.begin(CPU);
-    rec.emit_write_increment(emit_op, ADDR, old3, new3);
+    rec.emit_write_increment(emit_op, ADDR, old3, new3, bits::Order::BigEndian);
     auto loc = tb.commit(CPU);
     // It took the emit_write path, which does reserve a payload.
     CHECK(loc.data.id != pepp::bts::Buffer::ID{0});
@@ -362,7 +459,8 @@ TEST_CASE("trace::Recorder: emit_incr_register()", "[scope:core][scope:core.dbg]
   RegisterScan::Register decl{};
   decl.byte_width = 2;
   decl.guest_access = RegisterScan::Register::Access::Read;
-  decl.type = RegisterScan::Register::Type::Counter;
+  decl.kind = RegisterScan::Register::Kind::Gauge;
+  decl.visibility = RegisterScan::Register::Visibility::Internal;
   decl.target = mem->id();
   decl.order = bits::hostOrder();
   decl.name = "call_depth";

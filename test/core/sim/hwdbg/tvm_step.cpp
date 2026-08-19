@@ -92,7 +92,8 @@ TEST_CASE("tvm::Interpreter: STEPMEM", "[scope:core][scope:core.dbg][kind:unit][
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
   // MOD1.hi: 0 leaves the destination little-endian, anything else makes it big-endian. The payload itself is always
   // little-endian, like every other immediate in this ISA.
-  constexpr u16 BE = 1, LE = 0;
+  constexpr u16 BE = tvm::encode_order(bits::Order::BigEndian),
+                LE = tvm::encode_order(bits::Order::LittleEndian);
 
   SECTION("A delta carries across the bytes of its destination, and undoes itself") {
     poke_be(target, ADDR, 0x00FF);
@@ -283,6 +284,7 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
     // through and there would be no refusal to observe.
     r.guest_access = RegisterScan::Register::Access::Read;
     r.host_access = RegisterScan::Register::Access::Read;
+    r.restore_on_step_back = false;
     r.target = mem->id();
     r.loc = Address{0x100};
     r.name = "ro";
