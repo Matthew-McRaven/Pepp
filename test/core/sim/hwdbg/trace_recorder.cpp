@@ -336,6 +336,44 @@ TEST_CASE("trace::Recorder: emit_write_increment()", "[scope:core][scope:core.db
     CHECK(tb.stencil_count() == 1);
   }
 
+  SECTION("clear() restarts dedup rather than leaving it aimed at freed programs") {
+    // Promote once, so both dedup tables hold something that indexes into the stencil chain.
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes, bits::Order::BigEndian);
+    tb.commit(CPU);
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, second_bytes, third_bytes, bits::Order::BigEndian);
+    tb.commit(CPU);
+    REQUIRE(tb.stencil_count() == 1);
+
+    // clear() releases the stencil chain, so _stencil_map must go with it. Surviving would leave this non-zero and
+    // every entry in it pointing at a program that has been handed back to the pool.
+    tb.clear();
+    REQUIRE(tb.stencil_count() == 0);
+
+    // The same body as before the clear, which is what makes a stale table observable. A surviving _pending_hashes
+    // would treat this first occurrence as the second and promote on sight.
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes, bits::Order::BigEndian);
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 0); // seen once since the clear, exactly as from a fresh buffer
+
+    tb.begin(CPU);
+    rec.emit_write_increment(emit_op, ADDR, second_bytes, third_bytes, bits::Order::BigEndian);
+    const auto loc = tb.commit(CPU);
+    CHECK(tb.stencil_count() == 1);
+
+    // Counting the tables only shows they were emptied. This program is the one whose body became a CALL, so
+    // replaying it is what proves the stencil it targets is a live program in the rebuilt chain rather than a freed
+    // one -- the failure the two REQUIREs above cannot see.
+    constexpr u16 THIRD = 0x0106;
+    poke(mem, ADDR, SECOND);
+    auto blaster = sys->make_trace_interpreter();
+    blaster->run(loc);
+    CHECK(blaster->stop_cause() == tvm::StopCause::None);
+    CHECK(peek(mem, ADDR) == THIRD);
+  }
+
   SECTION("A little-endian step replays forward, then undoes itself") {
     // The same round trip against a little-endian destination. STEPMEM carries the order, so nothing here depends on
     // the recorder guessing what the target looks like.

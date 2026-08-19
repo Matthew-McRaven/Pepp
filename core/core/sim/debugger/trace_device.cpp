@@ -15,7 +15,7 @@ void BufferDevice::initialize(System *sys) {
 }
 
 void BufferDevice::reset() {
-  // TODO: purge contents of the buffer, including template chains.
+  if (_tb) _tb->clear();
 }
 
 tvm::TraceBuffer &BufferDevice::buffer() {

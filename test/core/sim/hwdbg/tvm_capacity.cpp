@@ -200,3 +200,81 @@ TEST_CASE("tvm::Interpreter: Just-in-time emptying of ring", "[scope:core][scope
   CHECK_NOTHROW(submit_empty(tb, (size_t)ENTRIES_PER_SLOT));
   CHECK(tb.instruction_count() == (size_t)ENTRIES_PER_SLOT);
 }
+
+TEST_CASE("tvm::TraceBuffer: clear() drops history", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  constexpr Device::ID S{1};
+  tvm::TraceBuffer tb(mgr, 2);
+  tb.trace(S);
+  tb.set_address_in_payload(S, true);
+
+  submit_empty(tb, 16);
+  REQUIRE(tb.instruction_count() == 16);
+  REQUIRE(tb.footprint().code > 0);
+  REQUIRE(tb.cursor() != tvm::Cursor{});
+
+  tb.clear();
+
+  SECTION("everything recorded is gone") {
+    CHECK(tb.instruction_count() == 0);
+    CHECK(tb.footprint().programs == 0);
+    CHECK(tb.footprint().code == 0);
+    CHECK(tb.footprint().stencils == 0);
+    CHECK(tb.cursor() == tvm::Cursor{});
+    CHECK(tb.ring_occupancy() == Catch::Approx(0.0f));
+  }
+
+  SECTION("configuration is not") {
+    // System::bind_recorders sets address_in_payload once during initialize() and never re-derives it, so a clear
+    // that dropped it would silently change how every device encodes rather than failing.
+    CHECK(tb.traced(S));
+    CHECK(tb.address_in_payload(S));
+  }
+
+  SECTION("and the buffer still records") {
+    // Exercises the re-seeded tombstone: begin() writes it into the entry it reserves, so a stencil chain cleared
+    // without re-appending it would leave that entry aimed at a freed program.
+    submit_empty(tb, 4);
+    CHECK(tb.instruction_count() == 4);
+    CHECK(tb.footprint().code > 0);
+  }
+}
+
+TEST_CASE("tvm::TraceBuffer: clear() aborts an open recording", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  // Node::reset asserts open == 0 because it hands chains back while a Recording still points into them. A caller
+  // resetting the machine should not have to close recordings first, so clear() aborts them rather than refusing.
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  constexpr Device::ID S{1};
+  tvm::TraceBuffer tb(mgr, 2);
+  tb.trace(S);
+
+  tb.begin(S);
+  REQUIRE(tb.is_recording(S));
+
+  CHECK_NOTHROW(tb.clear());
+  CHECK_FALSE(tb.is_recording(S));
+
+  // The reservation was released rather than leaked, so the slot is free to record into again.
+  tb.begin(S);
+  CHECK_NOTHROW(tb.commit(S));
+  CHECK(tb.instruction_count() == 1);
+}
+
+TEST_CASE("tvm::TraceBuffer: clear() keeps watermark registrations and re-arms them",
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto mgr = std::make_shared<pepp::bts::BufferManager>();
+  constexpr Device::ID S{1};
+  tvm::TraceBuffer tb(mgr, 2);
+  int fires = 0;
+  tb.on_watermark(0.5f, [&]() { fires++; });
+
+  submit_empty(tb, tvm::TraceBuffer::MAX_LOCATION_ENTRIES);
+  REQUIRE(fires == 1);
+
+  tb.clear();
+  // The callback belongs to the UI and outlives any one run, but whether it has fired describes the trace that was
+  // just discarded -- so crossing the same threshold again has to report it again.
+  CHECK(tb.ring_occupancy() == Catch::Approx(0.0f));
+  submit_empty(tb, tvm::TraceBuffer::MAX_LOCATION_ENTRIES);
+  CHECK(fires == 2);
+}
