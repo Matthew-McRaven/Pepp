@@ -45,6 +45,7 @@ public:
 
   // Device interface
   void initialize(System *) override;
+  void reset() override;
   const Device::Configuration &config() const override;
   const Configuration &casted_config() const;
   const Device::ID id() const override;

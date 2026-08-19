@@ -122,6 +122,8 @@ void SimpleBus::initialize(System *sys) {
   }
 }
 
+void SimpleBus::reset() {}
+
 const Device::Configuration &SimpleBus::config() const { return _config; }
 
 const SimpleBus::Configuration &SimpleBus::casted_config() const { return _config; }
@@ -203,12 +205,7 @@ Target::Result SimpleBus::write(Address address, bits::span<const u8> src, Opera
   return {};
 }
 
-// `fill` is the caller's choice for this one operation and deliberately does not become the device's new default:
-// config().fill is the power-on value that reset() reads back, and CLRMEM replaying out of a trace must not be able
-// to redefine it.
 void SimpleBus::clear(u8 fill) {
-  // CLRMEM names one device, so the bus has to reach through to its children itself. reset() does not: the tree
-  // walk visits them directly.
   for (auto dev : _devices) dev.second->clear(fill);
 }
 

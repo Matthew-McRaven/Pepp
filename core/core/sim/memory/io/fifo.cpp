@@ -206,6 +206,8 @@ void FIFORegister::clear(u8) {
   _input_it = _input.begin();
 }
 
+void FIFORegister::reset() { clear(_config.fill); }
+
 void FIFORegister::dump(bits::span<u8> dest) const {
   using namespace bits;
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");

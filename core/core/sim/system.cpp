@@ -52,6 +52,11 @@ void System::initialize() {
   if (found != nullptr) bind_recorders(found->buffer());
 }
 
+void System::reset() {
+  for (auto dev : *_root)
+    if (dev != this) dev->reset();
+}
+
 std::unique_ptr<DeviceSerializer> System::serializer() const { return make_serializer(); }
 
 // Serialization is handled inline in systemparser. Serializer does not transfer ownership of allocated object to

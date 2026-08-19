@@ -69,6 +69,11 @@ void Dense::initialize(System *sys) {
                   .loc = &_counters.wr_bytes});
 }
 
+void Dense::reset() {
+  clear(_config.fill);
+  _counters = {};
+}
+
 const Device::ID Dense::id() const { return _config.id; }
 
 const Device::Configuration &Dense::config() const { return _config; }
@@ -142,9 +147,6 @@ Target::Result Dense::write_increment(Address address, bits::span<const u8> src,
   return {};
 }
 
-// `fill` is the caller's choice for this one operation and deliberately does not become the device's new default:
-// config().fill is the power-on value that reset() reads back, and CLRMEM replaying out of a trace must not be able
-// to redefine it.
 void Dense::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
   std::fill(_data.begin(), _data.end(), fill);

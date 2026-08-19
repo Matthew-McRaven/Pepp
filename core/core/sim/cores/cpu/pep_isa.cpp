@@ -166,6 +166,11 @@ void PepISA3CPU::initialize(System *sys) {
                   .loc = &_count.instructions});
 }
 
+void PepISA3CPU::reset() {
+  _pc = 0;
+  _count = {};
+}
+
 const Device::Configuration &PepISA3CPU::config() const { return _config; }
 
 const PepISA3CPU::Configuration &PepISA3CPU::casted_config() const { return _config; }

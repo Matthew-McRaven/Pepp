@@ -110,6 +110,7 @@ struct Target {
   virtual AddressSpan span() const = 0;
   virtual Result read(Address address, bits::span<u8> dest, Operation op) const = 0;
   virtual Result write(Address address, bits::span<const u8> src, Operation op) = 0;
+  // If the device is composed of many devices (e.g., a SimpleBus), this method should clear all connected targets.
   virtual void clear(u8 fill) = 0;
 
   // If dest is larger than maxOffset-minOffset+1, copy bytes from this target

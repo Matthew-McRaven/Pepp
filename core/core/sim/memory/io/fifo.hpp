@@ -113,6 +113,7 @@ public:
   FIFO &output();
 
   // Device interface
+  void reset() override;
   const Device::Configuration &config() const override;
   const Configuration &casted_config() const;
   const Device::ID id() const override;

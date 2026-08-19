@@ -74,6 +74,11 @@ void Sparse::initialize(System *sys) {
                   .loc = &_counters.wr_bytes});
 }
 
+void Sparse::reset() {
+  clear(_config.fill);
+  _counters = {};
+}
+
 const Device::Configuration &Sparse::config() const { return _config; }
 
 const Sparse::Configuration &Sparse::casted_config() const { return _config; }

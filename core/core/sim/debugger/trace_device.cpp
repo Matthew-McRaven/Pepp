@@ -14,6 +14,10 @@ void BufferDevice::initialize(System *sys) {
   _tb = std::make_unique<tvm::TraceBuffer>(sys->buffer_manager(), _config.ring_size);
 }
 
+void BufferDevice::reset() {
+  // TODO: purge contents of the buffer, including template chains.
+}
+
 tvm::TraceBuffer &BufferDevice::buffer() {
   if (!_tb) [[unlikely]]
     throw std::logic_error("trace::BufferDevice: buffer requested before initialize()");
