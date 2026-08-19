@@ -4,6 +4,7 @@
 #include <initializer_list>
 #include <list>
 #include <optional>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -126,6 +127,77 @@ public:
   void clear(const RegisterRef &n);
   // Reset every exposed register of the given kind. Host-unwritable registers are skipped.
   std::size_t reset(std::initializer_list<Register::Kind> kinds);
+
+  class Sample;
+  // A class which holds a list of registers to sample where order matters. Useful for pre-selecting performance
+  // counters you want to sample at regular intervals. This must not outlive its RegisterScan
+  class Selection {
+  public:
+    // Create an empty selection with a null scan, which will prevent you from add()ing or sample()ing
+    Selection();
+    // Create an empty which supports add() and sample().
+    explicit Selection(RegisterScan *scan);
+
+    // Append one register to the selection, returning false if it was not appended to the selection. Reasons for
+    // failure include:
+    //   - this Selection has a nullptr RegisterScan*
+    //   - the register is not exposed or has no storage
+    //   - the register is not readable by the host
+    //   - the register is a field, because of a TODO to implement the sub-byte masking
+    //   - it is wider than 8 bytes, which a Sample's u64 would silently truncate
+    bool add(RegisterRef ref);
+    bool add(Register::ID reg) { return add(RegisterRef{reg, Register::Field::ID{0}}); }
+    // Read every register in this Selection into a new Sample. Reads at Level::Host with BufferInternal access to avoid
+    // perturbing the state of the machine.
+    Sample sample() const;
+
+    // Return an internal index of the register if it is selected and nullopt otherwise. Registers in Sample can be
+    // accessed via this index.
+    std::optional<std::size_t> index_of(RegisterRef ref) const;
+    std::optional<std::size_t> index_of(Register::ID reg) const {
+      return index_of(RegisterRef{reg, Register::Field::ID{0}});
+    }
+    // Request the value or delta for a single register. Returns nullopt is the register is not part of this selection,
+    // throwing if Samples do not belong to selection.
+    std::optional<u64> value_of(const Sample &s, RegisterRef ref) const;
+    std::optional<u64> delta_of(const Sample &before, const Sample &after, RegisterRef ref) const;
+
+    std::size_t size() const { return _regs.size(); }
+    bool empty() const { return _regs.empty(); }
+    std::span<const Register::ID> registers() const { return _regs; }
+    // A hash over the inserted registers IDs in insertion order. Used to ensure that you don't diff samples belonging
+    // to two different register selections.
+    u64 hash() const { return _hash; }
+
+  private:
+    RegisterScan *_scan = nullptr;
+    std::vector<Register::ID> _regs;
+    // Carried alongside so a delta can subtract at each register's own width without consulting the scan.
+    std::vector<u8> _widths;
+    // Must be seeded properly in CTOR, but 0-initialized here to avoid pulling in a header for hashing.
+    // Updated incrementally on each add().
+    u64 _hash = 0;
+  };
+
+  // The values of a Selection's registers at one instant.
+  class Sample {
+  public:
+    std::span<const u64> values() const { return _values; }
+    std::size_t size() const { return _values.size(); }
+    u64 hash() const { return _hash; }
+    // Per-register change from this Sample to a later one, positionally aligned. Subtraction happens at each
+    // register's own width, so a counter narrower than 64 bits that wrapped still reports its true delta. Throws if
+    // the two did not come from the same Selection.
+    std::vector<u64> delta_to(const Sample &after) const;
+
+  private:
+    // Selection is the only thing that builds one.
+    friend class Selection;
+    std::vector<u64> _values;
+    std::vector<u8> _widths;
+    u64 _hash = 0;
+  };
+
 
   std::pair<Register *, Register::Field *> resolve(RegisterRef r);
   std::pair<const Register *, const Register::Field *> resolve(RegisterRef r) const;
