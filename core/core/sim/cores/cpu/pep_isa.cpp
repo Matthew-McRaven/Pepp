@@ -89,8 +89,6 @@ PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
   sys->make_deferred(DeferredDevice{.parent = _config.id, .ctor = make_csrs});
 }
 
-const Target *PepISA3CPU::target() const { return _target; }
-
 void PepISA3CPU::initialize(System *sys) {
   _op_data = Operation(Operation::Type::Standard, Operation::Kind::data, id());
 
@@ -317,4 +315,3 @@ void PepISA3CPU::handle(Op opcode) {
   default: throw std::logic_error("Unknown opcode behavior");
   }
 }
-Target *PepISA3CPU::target() { return _target; }

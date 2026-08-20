@@ -41,8 +41,10 @@ public:
   PepISA3CPU(const PepISA3CPU &) = delete;
   PepISA3CPU &operator=(const PepISA3CPU &) = delete;
 
-  const Target *target() const;
-  Target *target();
+  // Explicitly inlined because clang was doing  apoor job of inlining these calls, and it's called millions of times
+  // per second.
+  inline const Target *target() const { return _target; }
+  inline Target *target() { return _target; }
 
   // Device interface
   void initialize(System *) override;
