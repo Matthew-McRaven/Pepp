@@ -120,9 +120,9 @@ public:
     emit_register_xor(op, ref, static_cast<u64>(static_cast<std::make_unsigned_t<I>>(combined)), sizeof(I));
   }
 
-  // A helper class which which helps open & close a recording for a single instruction.
-  // Multiple methods are partially inlined. Allowing every TU to see tha guard condition has lead to substantially
-  // faster code.
+  // A helper class which helps open & close a recording for a single instruction.
+  // Multiple methods are partially inlined. Allowing every TU to see the guard condition causes the compiler to
+  // generate better code.
   class Instruction {
   public:
     // Opens a recording when `traced` says to, and is inert otherwise. The caller passes its own cached copy of the

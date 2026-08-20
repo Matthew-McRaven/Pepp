@@ -60,9 +60,6 @@ public:
   AddressSpan span() const override;
   Result read(Address address, bits::span<u8> dest, Operation op) const override;
   Result write(Address address, bits::span<const u8> src, Operation op) override;
-  // Re-declared an re-implemented to allow devirtualization when held through a concrete pointer.
-  template <std::integral I, bool byteswap = false> std::pair<Result, I> read(Address address, Operation op) const;
-  template <std::integral I, bool byteswap = false> Result write(Address address, I src, Operation op);
 
   // Overloads which emit traces using an increment/offset encoding.
   // When Dense is used to hold registers, this can be a more efficient encoding than a full write.
@@ -95,17 +92,6 @@ private:
  * Inline implementations
  */
 
-template <std::integral I, bool byteswap>
-std::pair<Target::Result, I> Dense::read(Address address, Operation op) const {
-  I dest;
-  auto r = read(address, bits::span<u8>(reinterpret_cast<u8 *>(&dest), sizeof(I)), op);
-  if constexpr (byteswap) dest = bits::byteswap(dest);
-  return {r, dest};
-}
-template <std::integral I, bool byteswap> Target::Result Dense::write(Address address, I src, Operation op) {
-  if constexpr (byteswap) src = bits::byteswap(src);
-  return write(address, bits::span<const u8>(reinterpret_cast<const u8 *>(&src), sizeof(I)), op);
-}
 template <std::integral I, bool byteswap>
 inline Target::Result Dense::write_increment(Address address, I src, Operation op, bits::Order order) {
   if constexpr (byteswap) src = bits::byteswap(src);
