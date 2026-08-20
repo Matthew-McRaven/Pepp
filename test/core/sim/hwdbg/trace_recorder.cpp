@@ -908,3 +908,91 @@ TEST_CASE("System::initialize: at most one trace buffer, wherever it sits",
     CHECK_THROWS_AS(sys->initialize(), std::logic_error);
   }
 }
+
+TEST_CASE("trace::Recorder: emit_write_register()", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto [sys, mem] = make_system();
+  tvm::TraceBuffer tb(sys->buffer_manager());
+  constexpr Device::ID CPU{1};
+
+  // A register living in a plain member and held in host order, which is how a specialized bank keeps them.
+  u16 reg_a = 0;
+  RegisterScan::Register decl{};
+  decl.byte_width = sizeof(reg_a);
+  decl.target = mem->id();
+  decl.order = bits::hostOrder();
+  decl.name = "A";
+  decl.loc = &reg_a;
+  const auto ref = sys->register_scan()->expose(decl);
+
+  // A one-byte register too, to ensure that all register sizes are respected.
+  u8 reg_is = 0;
+  RegisterScan::Register narrow{};
+  narrow.byte_width = sizeof(reg_is);
+  narrow.target = mem->id();
+  narrow.order = bits::hostOrder();
+  narrow.name = "IS";
+  narrow.loc = &reg_is;
+  const auto narrow_ref = sys->register_scan()->expose(narrow);
+
+  trace::Recorder rec(&tb, mem->id());
+  tb.trace(mem->id());
+  const Operation emit_op(Operation::Type::Standard, Operation::Kind::data, CPU);
+
+  SECTION("a recorded overwrite replays forward, then undoes itself") {
+    // The caller has both values in hand and hands over the xor, which is what SETREGX carries.
+    const u16 before = 0x1234, after = 0xBEEF;
+    reg_a = before;
+    tb.begin(CPU);
+    rec.emit_write_register(emit_op, ref, u16(before ^ after));
+    reg_a = after;
+    const auto loc = tb.commit(CPU);
+
+    auto blaster = sys->make_trace_interpreter();
+    reg_a = before; // rewind so the forward replay has something to do
+    blaster->run(loc);
+    CHECK(blaster->stop_cause() == tvm::StopCause::None);
+    CHECK(reg_a == after);
+
+    // Xor is its own inverse, which is the whole reason this form is used rather than SETREG.
+    blaster->backend().set_direction(tvm::Direction::Backward);
+    blaster->run(loc);
+    CHECK(reg_a == before);
+  }
+
+  SECTION("a one-byte register records a one-byte payload") {
+    // The register declares byte_width 1, so a wider packet wouldd hard-stop on RegisterSizeMismatch
+    reg_is = 0x0F;
+    tb.begin(CPU);
+    rec.emit_write_register(emit_op, narrow_ref, u8(0x0F ^ 0xA5));
+    const auto loc = tb.commit(CPU);
+
+    auto blaster = sys->make_trace_interpreter();
+    blaster->run(loc);
+    CHECK(blaster->stop_cause() == tvm::StopCause::None);
+    CHECK(reg_is == 0xA5);
+  }
+
+  SECTION("no-op writes are supressed") {
+    // Measured on the data chain rather than the code because we will always pay some code size for creating a
+    // instruction (the terminating HALT).
+    const auto before = tb.footprint();
+    tb.begin(CPU);
+    rec.emit_write_register(emit_op, ref, u16(0));
+    tb.commit(CPU);
+    CHECK(tb.footprint().data == before.data);
+  }
+
+  SECTION("two writes to the same register share a stencil") {
+    // The reason for putting the payload in the data chain is to allow different values to be written to the same
+    // register.
+    tb.begin(CPU);
+    rec.emit_write_register(emit_op, ref, u16(0x0101));
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 0); // seen once, not yet promoted
+
+    tb.begin(CPU);
+    rec.emit_write_register(emit_op, ref, u16(0xBEEF)); // deliberately a different value
+    tb.commit(CPU);
+    CHECK(tb.stencil_count() == 1);
+  }
+}

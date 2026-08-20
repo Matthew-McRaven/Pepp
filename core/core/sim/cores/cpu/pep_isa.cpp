@@ -66,32 +66,26 @@ PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
   auto make_regs = [](System *sys, Device::ID parent) {
     auto device = sys->find_by_id(parent);
     auto self = dynamic_cast<PepISA3CPU *>(device);
-    Dense::Configuration cfg;
+    PepRegisterBank::Configuration cfg;
     cfg.basename = "regs";
-    cfg.fill = 0;
-    cfg.span = {0, 31 * sizeof(u16)};
     cfg.skip_serialize = true;
-    self->_regbank = sys->make_device<Dense>(parent, cfg);
+    self->_regbank = sys->make_device<PepRegisterBank>(parent, cfg);
   };
   sys->make_deferred(DeferredDevice{.parent = _config.id, .ctor = make_regs});
   auto make_csrs = [](System *sys, Device::ID parent) {
     auto device = sys->find_by_id(parent);
     auto self = dynamic_cast<PepISA3CPU *>(device);
-    Dense::Configuration cfg;
+    PepCSRBank::Configuration cfg;
     cfg.basename = "csrs";
-    cfg.fill = 0;
-    // One byte holding NZVC in its low nibble, N at bit 3 down to C at bit 0. A byte per flag would cost 4 payload
-    // bytes in every trace record that touches the flags, to carry 4 bits.
-    cfg.span = {0, 0};
     cfg.skip_serialize = true;
-    self->_csrs = sys->make_device<Dense>(parent, cfg);
+    self->_csrs = sys->make_device<PepCSRBank>(parent, cfg);
   };
   sys->make_deferred(DeferredDevice{.parent = _config.id, .ctor = make_csrs});
 }
 
-const Target *PepISA3CPU::target() const { return _target; }
-
 void PepISA3CPU::initialize(System *sys) {
+  _op_data = Operation(Operation::Type::Standard, Operation::Kind::data, id());
+
   using enum isa::SharedOpBehavior;
   auto dev = sys->find_relative(_config.target, _config.fullname);
   if (!dev) throw std::runtime_error("PepISA3CPU: could not find target device " + _config.target);
@@ -104,44 +98,10 @@ void PepISA3CPU::initialize(System *sys) {
   }
 
   auto scan = sys->register_scan();
-  // Scanned register
   using SR = RegisterScan::Register;
-  static const auto BE = bits::Order::BigEndian;
-  static const auto LE = bits::Order::LittleEndian;
-  static const auto RW = RegisterScan::Register::ReadWrite;
   static const auto RO = RegisterScan::Register::Access::Read;
-  // Core registers
-  using R = isa::Pep10::Register;
-  const auto rid = _regbank->id();
-  static const auto r2i = [](const R &r) -> u16 { return static_cast<u16>(r) * 2; };
-  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "A", .loc = r2i(R::A)});
-  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "X", .loc = r2i(R::X)});
-  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "PC", .loc = r2i(R::PC)});
-  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "SP", .loc = r2i(R::SP)});
-  scan->expose(SR{.byte_width = 1,
-                  .guest_access = RW,
-                  .target = rid,
-                  .order = BE,
-                  .name = "IS",
-                  .loc = static_cast<Address>(r2i(R::IS) + 1)});
-  scan->expose(SR{.byte_width = 2, .guest_access = RW, .target = rid, .order = BE, .name = "OS", .loc = r2i(R::OS)});
-  // CSRs / Flags
-  using C = isa::Pep10::CSR;
-  const auto cid = _csrs->id();
-  using F = SR::Field;
-  // Should really be 4 separate fields, but I want to test that my fields work as expected.
-  // Bit 7 is MSB, 0 is LSB. The flags occupy the low nibble in CSR enum order, so N is bit 3 and C is bit 0.
-  auto n = F{.guest_access = RW, .bit_offset = 3, .bit_width = 1, .name = "N"};
-  auto z = F{.guest_access = RW, .bit_offset = 2, .bit_width = 1, .name = "Z"};
-  auto v = F{.guest_access = RW, .bit_offset = 1, .bit_width = 1, .name = "V"};
-  auto c = F{.guest_access = RW, .bit_offset = 0, .bit_width = 1, .name = "C"};
-  scan->expose(SR{.byte_width = 1,
-                  .guest_access = RW,
-                  .target = cid,
-                  .order = BE,
-                  .name = "NZVC",
-                  .fields = {n, z, v, c},
-                  .loc = Address(0)});
+  _regbank->set_initiator(id());
+  _csrs->set_initiator(id());
   const auto cpuid = id();
   // Expose call depth, which is useful for implementing step modes.
   // host_access defaults to ReadWrite, which is used by the trace buffer for step_back.
@@ -195,7 +155,7 @@ std::unique_ptr<DeviceSerializer> PepISA3CPU::make_serializer() {
 
 void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // Create a single record for the entire instruction
-  trace::Recorder::Instruction record(_trace);
+  trace::Recorder::Instruction record(_trace, _may_trace);
   // TODO: when function signature changes, use that tick offset instead of this placeholder.
   record.tick(1);
 
@@ -216,8 +176,9 @@ void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // data-dependence for the branch target.
   const auto pc_delta = _pc - init_pc;
   if ((pc_delta & 0b11) == pc_delta) {
-    _regbank->write_increment<u16, bits::host_is_le>(static_cast<u8>(isa::Pep10::Register::PC) * 2, _pc,
-                                                     op_data(), bits::Order::BigEndian);
+    auto r = _regbank->ref(isa::Pep10::Register::PC);
+    if (_may_trace) _trace.emit_incr_register(op_data(), r, static_cast<i16>(pc_delta));
+    _regbank->write_pc_untraced(_pc);
   } else write_register_uncached(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
   record.commit();
@@ -232,7 +193,9 @@ void PepISA3CPU::set_recorder(const trace::Recorder &recorder) { _trace = record
 
 bool PepISA3CPU::can_generate_traces() const { return true; }
 
-bool PepISA3CPU::traced() const { return _trace.traced(); }
+bool PepISA3CPU::traced() const { return _may_trace; }
+
+void PepISA3CPU::on_traced_changed(bool enabled) { _may_trace = enabled; }
 
 void PepISA3CPU::trace(bool enabled) {
   // The CPU is not itself a Target and it holds no state to record, so delegate to the child devices.
@@ -244,29 +207,26 @@ void PepISA3CPU::trace(bool enabled) {
 void PepISA3CPU::increment_call_depth() {
   _count.call_depth += 1;
   // Ordering does not matter here the way it does for a write since the prior is constant.
-  _trace.emit_incr_register(op_data(), _ref_call_depth, 1);
+  if (_may_trace) _trace.emit_incr_register(op_data(), _ref_call_depth, 1);
 }
 
 void PepISA3CPU::decrement_call_depth() {
   _count.call_depth -= 1;
-  _trace.emit_incr_register(op_data(), _ref_call_depth, -1);
+  if (_may_trace) _trace.emit_incr_register(op_data(), _ref_call_depth, -1);
 }
 
-// The CSR bank is one byte holding all four flags, N at bit 3 through C at bit 0, matching the packing at the ISA
-// layer. One access also means one trace record byte rather than 4
-u8 PepISA3CPU::read_packed_csr() {
-  return static_cast<u8>(((Target *)_csrs)->read<u8, false>(0, op_data()).second & CSR_MASK);
-}
+u8 PepISA3CPU::read_packed_csr() const { return _csrs->read_packed(); }
 
-void PepISA3CPU::write_packed_csr(u8 value) {
-  ((Target *)_csrs)->write<u8, false>(0, static_cast<u8>(value & CSR_MASK), op_data());
-}
+void PepISA3CPU::write_packed_csr(u8 value) { _csrs->write_packed(value); }
 
 void PepISA3CPU::handle(Op opcode) {
   using R = isa::Pep10::Register;
   using BC = BranchCondition;
   using enum isa::SharedOpBehavior;
-  // Monadic
+  const auto operand = [&] { return decode_op_addr(this, opcode.addr); };
+  // One switch over the whole behavior enum rather than two, which is significantly faster than a monadic/dyadic split.
+  // However, we can't preload operand anymore, so we need a small lambda to defer reading it until we've figured out if
+  // the insruction is dyadic or not.
   switch (opcode.behavior) {
   case UNIMPL: return unimpl_handler(this);
   case STOP: throw std::logic_error("Unimplemented instruction: STOP");
@@ -285,36 +245,29 @@ void PepISA3CPU::handle(Op opcode) {
   case ROR: return handle_rorr(this, (R)opcode.target);
   case SCALL: throw std::logic_error("Unimplemented instruction: SCALL");
   case TRAP_CALL: throw std::logic_error("Unimplemented instruction: TRAP_CALL");
-  default: break;
-  }
-
-  // Dyadic
-  u16 op_addr = decode_op_addr(this, opcode.addr);
-  switch (opcode.behavior) {
-  case BR: return handle_branch(this, opcode, BC::UNCONDITIONAL, op_addr);
-  case BRLE: return handle_branch(this, opcode, BC::LE, op_addr);
-  case BRLT: return handle_branch(this, opcode, BC::LT, op_addr);
-  case BREQ: return handle_branch(this, opcode, BC::EQ, op_addr);
-  case BRNE: return handle_branch(this, opcode, BC::NE, op_addr);
-  case BRGE: return handle_branch(this, opcode, BC::GE, op_addr);
-  case BRGT: return handle_branch(this, opcode, BC::GT, op_addr);
-  case BRV: return handle_branch(this, opcode, BC::V, op_addr);
-  case BRC: return handle_branch(this, opcode, BC::C, op_addr);
-  case CALL: return handle_call(this, opcode, op_addr);
-  case ADDSP: return handle_addsp(this, opcode, op_addr);
-  case SUBSP: return handle_subsp(this, opcode, op_addr);
-  case ADD: return handle_addr(this, opcode, op_addr);
-  case SUB: return handle_subr(this, opcode, op_addr);
-  case AND: return handle_bitopr(this, opcode, Bitop::AND, op_addr);
-  case OR: return handle_bitopr(this, opcode, Bitop::OR, op_addr);
-  case XOR: return handle_bitopr(this, opcode, Bitop::XOR, op_addr);
-  case CPW: return handle_cpwr(this, opcode, op_addr);
-  case CPB: return handle_cpbr(this, opcode, op_addr);
-  case LDW: return handle_ldwr(this, opcode, op_addr);
-  case LDB: return handle_ldbr(this, opcode, op_addr);
-  case STW: return handle_stwr(this, opcode, op_addr);
-  case STB: return handle_stbr(this, opcode, op_addr);
+  case BR: return handle_unconditional_branch(this, opcode, operand());
+  case BRLE: return handle_branch(this, opcode, BC::LE, operand());
+  case BRLT: return handle_branch(this, opcode, BC::LT, operand());
+  case BREQ: return handle_branch(this, opcode, BC::EQ, operand());
+  case BRNE: return handle_branch(this, opcode, BC::NE, operand());
+  case BRGE: return handle_branch(this, opcode, BC::GE, operand());
+  case BRGT: return handle_branch(this, opcode, BC::GT, operand());
+  case BRV: return handle_branch(this, opcode, BC::V, operand());
+  case BRC: return handle_branch(this, opcode, BC::C, operand());
+  case CALL: return handle_call(this, opcode, operand());
+  case ADDSP: return handle_addsp(this, opcode, operand());
+  case SUBSP: return handle_subsp(this, opcode, operand());
+  case ADD: return handle_addr(this, opcode, operand());
+  case SUB: return handle_subr(this, opcode, operand());
+  case AND: return handle_bitopr(this, opcode, Bitop::AND, operand());
+  case OR: return handle_bitopr(this, opcode, Bitop::OR, operand());
+  case XOR: return handle_bitopr(this, opcode, Bitop::XOR, operand());
+  case CPW: return handle_cpwr(this, opcode, operand());
+  case CPB: return handle_cpbr(this, opcode, operand());
+  case LDW: return handle_ldwr(this, opcode, operand());
+  case LDB: return handle_ldbr(this, opcode, operand());
+  case STW: return handle_stwr(this, opcode, operand());
+  case STB: return handle_stbr(this, opcode, operand());
   default: throw std::logic_error("Unknown opcode behavior");
   }
 }
-Target *PepISA3CPU::target() { return _target; }

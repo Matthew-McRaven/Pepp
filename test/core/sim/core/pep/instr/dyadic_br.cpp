@@ -44,7 +44,7 @@ void inner(PepISA3CPU::ISA isa, Mnemonic op, should_branch taken) {
     cpu->write_packed_csr(nzvc);
 
     REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
-    auto [n, z, v, c] = unpack_csrs(cpu->read_packed_csr());
+    auto [n, z, v, c] = PepCSRBank::unpack(cpu->read_packed_csr());
 
     CHECK(reg(cpu, Register::A) == 0);
     CHECK(reg(cpu, Register::X) == 0);

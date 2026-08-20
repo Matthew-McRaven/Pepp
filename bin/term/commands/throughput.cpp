@@ -19,8 +19,13 @@
 #include <chrono>
 #include <iostream>
 #include "core/integers.h"
+#include "core/sim/cores/cpu/pep_isa.hpp"
+#include "core/sim/memory/bus/simplebus.hpp"
+#include "core/sim/memory/ram/dense.hpp"
+#include "core/sim/system.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
+
 const auto desc_mem = sim::api2::device::Descriptor{
     .id = 1,
     .baseName = "ram",
@@ -35,7 +40,7 @@ const auto desc_cpu = sim::api2::device::Descriptor{
 
 const auto span = sim::api2::memory::AddressSpan<quint16>(0, 0xFFFF);
 
-auto make = []() {
+auto make_sim3() {
   int i = 3;
   sim::api2::device::IDGenerator gen = [&i]() { return i++; };
   auto storage = QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
@@ -44,15 +49,57 @@ auto make = []() {
   return std::pair{storage, cpu};
 };
 
-sim::api2::memory::Operation rw = {
-    .type = sim::api2::memory::Operation::Type::Standard,
-    .kind = sim::api2::memory::Operation::Kind::data,
-};
+auto make_core() {
+  static constexpr auto isa = PepISA3CPU::ISA::Pep10;
+  using namespace bits;
+  PepISA3CPU::Configuration cpu_cfg{Device::Configuration{
+                                        .basename = "cpu",
+                                        .compatible = PepISA3CPU::compatible,
+                                    },
+                                    isa, "/memory"};
+  System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
+  Dense::Configuration mem_cfg{
+      Device::Configuration{
+          .basename = "memory",
+          .compatible = Dense::compatible,
+      },
+      0x00,
+      AddressSpan(0x0000, 0xffff),
+  };
+  auto system = std::make_unique<System>(root_cfg);
+  auto *mem = system->make_device<Dense>(mem_cfg);
+  auto *cpu = system->make_device<PepISA3CPU>(cpu_cfg, system.get());
+  system->initialize();
+  return std::make_tuple(std::move(system), mem, cpu);
+}
 
-ThroughputTask::ThroughputTask(QObject *parent) : Task(parent) {}
+ThroughputTask::ThroughputTask(WhichVersion ver, QObject *parent) : Task(parent), _version(ver) {}
 
 void ThroughputTask::run() {
   using namespace Qt::StringLiterals;
+
+  std::chrono::high_resolution_clock::time_point start;
+  switch (_version) {
+  case WhichVersion::Sim3: start = do_sim3(); break;
+  case WhichVersion::Core: start = do_core(); break;
+  }
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  const auto dt = 1.0 / (ms.count() / 1000.0);
+  const auto locale = std::locale("en_US.UTF-8");
+  fmt::println("Duration: {} ms", ms.count());
+  std::cout << fmt::format(locale, "Instructions: {:L}\n", maxInstr);
+  std::cout << fmt::format(locale, "Throughput: {:L} instructions/second\n", (i32)(dt * maxInstr));
+
+  emit finished(0);
+}
+
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3() {
+  static constexpr sim::api2::memory::Operation rw = {
+      .type = sim::api2::memory::Operation::Type::Standard,
+      .kind = sim::api2::memory::Operation::Kind::data,
+  };
+  fmt::println("Selected: sim3");
   auto env = nullptr;
   // Add some spurious breakpoints which will not be hit
   // auto debugger = std::make_shared<pepp::debug::Debugger>(env);
@@ -65,7 +112,7 @@ void ThroughputTask::run() {
     return;
   }*/
   // debugger->bps->addBP(0 /*, bp.get()*/);
-  auto [mem, cpu] = make();
+  auto [mem, cpu] = make_sim3();
   // cpu->setDebugger(&*debugger);
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
@@ -73,15 +120,24 @@ void ThroughputTask::run() {
   const auto program = std::array<quint8, 3>{static_cast<quint8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
   mem->write(0, {program.data(), program.size()}, rw);
   const auto start = std::chrono::high_resolution_clock::now();
-  const auto maxInstr = 100'000'000;
   for (int it = 0; it < maxInstr; it++) cpu->clock(it);
-  const auto end = std::chrono::high_resolution_clock::now();
-  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  const auto dt = 1.0 / (ms.count() / 1000.0);
-  const auto locale = std::locale("en_US.UTF-8");
-  fmt::println("Duration: {} ms", ms.count());
-  std::cout << fmt::format(locale, "Instructions: {:L}\n", maxInstr);
-  std::cout << fmt::format(locale, "Throughput: {:L} instructions/second\n", (i32)(dt * maxInstr));
+  return start;
+}
 
-  emit finished(0);
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
+  static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
+  fmt::println("Selected: core");
+  auto [system, mem, cpu] = make_core();
+  cpu->write_register(isa::Pep10::Register::PC, 0x0000);
+  // Infinite looping branch to 0.
+  const auto program = std::array<u8, 3>{static_cast<u8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
+  mem->write(0x0000, {program.data(), program.size()}, rw);
+  // We are untraced, provide explicit hints to avoid recording.
+  mem->on_traced_changed(false);
+  cpu->on_traced_changed(false);
+  cpu->csrs()->on_traced_changed(false);
+  cpu->registers()->on_traced_changed(false);
+  const auto start = std::chrono::high_resolution_clock::now();
+  for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseSchedule::PulseIndex{(u64)it}, it);
+  return start;
 }

@@ -68,12 +68,21 @@ Device::ID System::next_ID() { return _next_ID++; }
 Device::IDGenerator System::gen_next_ID() { return _gen_next_ID; }
 
 void System::bind_recorders(tvm::TraceBuffer &tb) {
+  // Give the TraceBuffer a helper to convert ids to Traceables. This allows the TraceBuffer to "push" trace
+  // enable/disable information to the devices themselves.
+  auto finder = [this](Device::ID id) -> Traceable * {
+    if (auto dev = find_by_id(id); !dev) return nullptr;
+    else return dev->capability<Traceable>();
+  };
+  tb.set_traceable_finder(finder);
   // Each Traceable must get its own device ID to allow per-ID enables to work.
   for (auto dev : *_root) {
     auto *traceable = dev->capability<Traceable>();
     if (traceable == nullptr) continue;
 
     traceable->set_recorder(trace::Recorder{&tb, dev->id()});
+    // Push the current traced state to the device's local cache.
+    traceable->on_traced_changed(tb.traced(dev->id()));
     // Try to select register banks and CSRs by filtering based on their size.
     // For small targets, prefer to pass addresses/offsets via the trace's code rather than the trace's data stream. A
     // system that knows better can call set_address_in_payload() after initialize().

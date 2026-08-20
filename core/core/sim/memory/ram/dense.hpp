@@ -21,7 +21,7 @@
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
 
-class Dense final : public Device, public Target, public Traceable {
+class Dense final : public Target, public Device, public Traceable {
 public:
   static const inline std::string compatible = "ram,dense";
   struct Configuration : public Device::Configuration {
@@ -54,11 +54,13 @@ public:
   bool can_generate_traces() const override;
   void trace(bool enabled) override;
   bool traced() const override;
+  void on_traced_changed(bool enabled) override;
 
   // Target interface
   AddressSpan span() const override;
   Result read(Address address, bits::span<u8> dest, Operation op) const override;
   Result write(Address address, bits::span<const u8> src, Operation op) override;
+
   // Overloads which emit traces using an increment/offset encoding.
   // When Dense is used to hold registers, this can be a more efficient encoding than a full write.
   // order is the byte order of the destination, which is required to compute the signed difference between src and the
@@ -79,7 +81,16 @@ private:
   Configuration _config;
   std::vector<u8> _data;
   trace::Recorder _trace;
+  // If false, then we definitely aren't traced and we can skip the overhead of emit via _trace.
+  // If true, we either are traced or we don't know. Either way, we need to try to emit via _trace.
+  // Default value should be true. Only set to false if you've received a notification from the TB that you aren't
+  // traced. Ideally this would be an optional and nullopt would express the "unknown" rather than using true, but that
+  // gae up a good chunk of performance.
+  bool _may_trace = true;
 };
+/*
+ * Inline implementations
+ */
 
 template <std::integral I, bool byteswap>
 inline Target::Result Dense::write_increment(Address address, I src, Operation op, bits::Order order) {

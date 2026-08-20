@@ -7,8 +7,6 @@ class PepISA3CPU;
 
 using Op = isa::SharedOp;
 
-u8 pack_csr(bool n, bool z, bool v, bool c);
-std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc);
 
 // Read word at Mem[PC] and store to OS, incrementing PC by 2.
 // Return the /address/ of the operand value, which is usable for both load and store instructions.
@@ -36,6 +34,8 @@ void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg);
 enum class BranchCondition { UNCONDITIONAL, LE, LT, EQ, NE, GE, GT, V, C };
 
 void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr);
+// Specialization of handle_branch() which executes more efficiently.
+void handle_unconditional_branch(PepISA3CPU *self, Op op, u16 op_addr);
 void handle_call(PepISA3CPU *self, Op op, u16 op_addr);
 
 void handle_addsp(PepISA3CPU *self, Op op, u16 op_addr);

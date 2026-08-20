@@ -15,23 +15,46 @@
  */
 
 #include <QtCore>
+#include <chrono>
 #include "../shared.hpp"
 #include "../task.hpp"
+#include "CLI11.hpp"
+#include "core/integers.h"
 
 class ThroughputTask : public Task {
   Q_OBJECT
 public:
-  ThroughputTask(QObject *parent = nullptr);
-  ;
+  enum class WhichVersion { Sim3, Core };
+  ThroughputTask(WhichVersion ver, QObject *parent = nullptr);
   ~ThroughputTask() = default;
   void run();
+  // Both should return their "start" time
+  std::chrono::high_resolution_clock::time_point do_sim3();
+  std::chrono::high_resolution_clock::time_point do_core();
+  u64 maxInstr = 100'000'000;
+
+private:
+  WhichVersion _version;
 };
 
 void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto instrThruSC = app.add_subcommand("mit", "Measure instruction throughput");
+  static ThroughputTask::WhichVersion version = ThroughputTask::WhichVersion::Sim3;
+  static u64 maxInstr = 100'000'000;
+  auto versionOpt =
+      instrThruSC->add_option("-v,--version", version, "Which version to run")
+          ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
+              {"sim3", ThroughputTask::WhichVersion::Sim3}, {"core", ThroughputTask::WhichVersion::Core}}));
+
+  static auto maxInstrOpt =
+      instrThruSC->add_option("-n,--max-instr", maxInstr, "Maximum number of instructions to run");
   instrThruSC->group("");
   instrThruSC->callback([&]() {
     flags.kind = detail::SharedFlags::Kind::TERM;
-    task = [](QObject *parent) { return new ThroughputTask(parent); };
+    task = [](QObject *parent) {
+      auto ret = new ThroughputTask(version, parent);
+      ret->maxInstr = maxInstr;
+      return ret;
+    };
   });
 }

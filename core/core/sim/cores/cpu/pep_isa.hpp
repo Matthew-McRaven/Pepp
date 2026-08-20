@@ -8,8 +8,9 @@
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
+#include "core/sim/cores/cpu/pep_csrbank.hpp"
+#include "core/sim/cores/cpu/pep_regbank.hpp"
 
-class Dense;
 
 /*
  * The following classes of instructions are still not tested. Those tests require a more complete system model to
@@ -40,8 +41,10 @@ public:
   PepISA3CPU(const PepISA3CPU &) = delete;
   PepISA3CPU &operator=(const PepISA3CPU &) = delete;
 
-  const Target *target() const;
-  Target *target();
+  // Explicitly inlined because clang was doing  apoor job of inlining these calls, and it's called millions of times
+  // per second.
+  inline const Target *target() const { return _target; }
+  inline Target *target() { return _target; }
 
   // Device interface
   void initialize(System *) override;
@@ -62,6 +65,7 @@ public:
   void set_recorder(const trace::Recorder &recorder) override;
   bool can_generate_traces() const override;
   bool traced() const override;
+  void on_traced_changed(bool enabled) override;
   void trace(bool enabled) override;
 
   void increment_call_depth();
@@ -70,23 +74,27 @@ public:
   // Both redirect PC accesses to _pc.
   template <typename RegisterType> u16 read_register(RegisterType reg);
   template <typename RegisterType> void write_register(RegisterType reg, u16 value);
+  // Compile-time forms. PC is shadowed and every other register is not, so a runtime `reg` costs a branch on every
+  // access purely to ask a question the caller usually already knows the answer to. Where the register is fixed by
+  // the instruction's encoding, these fold to a member access with no branch at all.
+  template <PepRegisterBank::Register R> u16 read_register();
+  template <PepRegisterBank::Register R> void write_register(u16 value);
   // Same as above, but does not redirect PC access.
   template <typename RegisterType> u16 read_register_uncached(RegisterType reg);
   template <typename RegisterType> void write_register_uncached(RegisterType reg, u16 value);
   // The flags occupy the low nibble of the CSR bank's single byte, N at bit 3 through C at bit 0.
-  static constexpr u8 CSR_MASK = 0x0F;
   // Which bit of that nibble a given flag is.
   template <typename CSRType> static constexpr u8 csr_bit(CSRType csr);
   template <typename CSRType> bool read_csr(CSRType csr);
   template <typename CSRType> void write_csr(CSRType csr, bool value);
-  u8 read_packed_csr();
+  u8 read_packed_csr() const;
   void write_packed_csr(u8 value);
 
-  Dense *registers() const { return _regbank; }
-  Dense *csrs() const { return _csrs; }
+  PepRegisterBank *registers() const { return _regbank; }
+  PepCSRBank *csrs() const { return _csrs; }
 
   // No longer static const because it embeds this instance's id.
-  Operation op_data() const { return Operation(Operation::Type::Standard, Operation::Kind::data, id()); }
+  Operation op_data() const { return _op_data; }
 
   // While an instruction is in flight, this contains the active PC.
   // At the end of an instruction, it will be written back with the updated value.
@@ -104,9 +112,15 @@ private:
   u16 _pc = 0;
   Configuration _config;
   trace::Recorder _trace;
-  Dense *_regbank = nullptr, *_csrs = nullptr;
+  PepRegisterBank *_regbank = nullptr;
+  PepCSRBank *_csrs = nullptr;
   Target *_target = nullptr;
+  // Mirror of the buffer's traced bit, pushed by TraceBuffer::trace. Read several times per instruction, and the
+  // reason the trace hooks below cost a branch rather than a call when tracing is off.
+  bool _may_trace = true;
   isa::OpcodePlane _opcodes;
+  // Override this value once our id is known.
+  Operation _op_data = Operation(Operation::Type::Standard, Operation::Kind::data, Device::ID{0});
 
   void handle(isa::SharedOp opcode);
   const ClockSource *_clk = nullptr;
@@ -118,7 +132,8 @@ template <typename RegisterType> inline void PepISA3CPU::write_register(Register
 }
 
 template <typename RegisterType> inline void PepISA3CPU::write_register_uncached(RegisterType reg, u16 value) {
-  ((Target *)_regbank)->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op_data());
+  // Pep9 and Pep10 declare identical Register enums, so the bank's is interchangeable with either.
+  _regbank->write(static_cast<PepRegisterBank::Register>(reg), value);
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterType reg) {
@@ -126,8 +141,20 @@ template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterTy
   else return read_register_uncached(reg);
 }
 
+template <PepRegisterBank::Register R> inline u16 PepISA3CPU::read_register() {
+  // The shadow exists because PC is written many times per instruction and committed once, so it cannot come from
+  // the bank mid-instruction. Nothing else is shadowed, and this is where that stops costing a branch.
+  if constexpr (R == PepRegisterBank::Register::PC) return _pc;
+  else return _regbank->read<R>();
+}
+
+template <PepRegisterBank::Register R> inline void PepISA3CPU::write_register(u16 value) {
+  if constexpr (R == PepRegisterBank::Register::PC) _pc = value;
+  else _regbank->write<R>(value);
+}
+
 template <typename RegisterType> inline u16 PepISA3CPU::read_register_uncached(RegisterType reg) {
-  return ((Target *)_regbank)->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op_data()).second;
+  return _regbank->read(static_cast<PepRegisterBank::Register>(reg));
 }
 
 // All four flags live in one byte, so a single flag is a bit of it rather than a byte of its own. The enum runs

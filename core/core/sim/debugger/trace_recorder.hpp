@@ -41,7 +41,8 @@ public:
   // traced bit, so that there is one representation of it. See TraceBuffer::set_address_in_payload.
   Recorder(tvm::TraceBuffer *tb, Device::ID emitter) : _tb(tb), _emitter(emitter) {}
 
-  // Whether this device's writes are being recorded.
+  // Whether this device's writes are being recorded. A device on a hot path should cache this value via
+  // Traceable::on_traced_changed rather than ask per access.
   bool traced() const;
   // Switch recording of this device on or off.
   void set_traced(bool enabled);
@@ -111,15 +112,30 @@ public:
   // payload at all.
   void emit_incr_register(const Operation &op, RegisterScan::RegisterRef ref, i16 value);
 
-  // A helper class which which helps open & close a recording for a single instruction.
+  // Record an overwrite of a scan-exposed register as SETREGX, whose payload is an already-combined `now ^ prior`.
+  //
+  // The width comes from I, and must match the register's declared byte_width. Unlike the STEPREG form, the payload
+  // will be DP-relative rather than immediate to increase opportunities for stencil promotion.
+  template <std::integral I> void emit_write_register(const Operation &op, RegisterScan::RegisterRef ref, I combined) {
+    emit_register_xor(op, ref, static_cast<u64>(static_cast<std::make_unsigned_t<I>>(combined)), sizeof(I));
+  }
+
+  // A helper class which helps open & close a recording for a single instruction.
+  // Multiple methods are partially inlined. Allowing every TU to see the guard condition causes the compiler to
+  // generate better code.
   class Instruction {
   public:
-    // Opens a recording when `rec` is bound and traced, and is inert otherwise. An untraced CPU pays one bitset
-    // test per instruction and nothing more.
-    explicit Instruction(const Recorder &rec);
+    // Opens a recording when `traced` says to, and is inert otherwise. The caller passes its own cached copy of the
+    // bit rather than reaching into the TraceBuffer to avoid an expensive call for each instruction. If you don't have
+    // a cached copy, you'll need to work with your recorder instead.
+    explicit Instruction(const Recorder &rec, bool traced) {
+      if (traced) open(rec);
+    }
     // If commit() was never called, abort() the recording rather than commit(). Destructors run while an exception
     // unwinds, and commit() can throw, which would call std::terminate.
-    ~Instruction();
+    ~Instruction() {
+      if (_tb != nullptr) abort();
+    }
     Instruction(const Instruction &) = delete;
     Instruction &operator=(const Instruction &) = delete;
     Instruction(Instruction &&) = delete;
@@ -128,15 +144,26 @@ public:
     // Record an ISYN with a relative tick count, which is the number of ticks since the PREVIOUS GLOBAL TICK FOR THAT
     // CLOCK. This value will be provided to you by the caller of our tick() equivalent. The value is carried as two
     // bytes and sign-extended on decode, so it spans the same range as i16.
-    void tick(i16 delta);
+    void tick(i16 delta) {
+      if (_tb != nullptr) tick_slow(delta);
+    }
 
     // Finish the record. A no-op when nothing was opened.
-    void commit();
+    void commit() {
+      if (_tb != nullptr) commit_slow();
+    }
 
     // True when a recording was actually opened.
     explicit operator bool() const { return _tb != nullptr; }
 
   private:
+    // Out of line because each needs the TraceBuffer, which this header only forward declares. Reached only when a
+    // recording is actually open.
+    void open(const Recorder &rec);
+    void abort();
+    void tick_slow(i16 delta);
+    void commit_slow();
+
     tvm::TraceBuffer *_tb = nullptr;
     Device::ID _initiator{};
   };
@@ -144,6 +171,9 @@ public:
 private:
   // 0 if read, 1 if write.
   void emit_mm(const Operation &op, Address address, u8 pushed, bool read_write);
+  // Width-erased body of emit_write_register. Out of line because it needs the TraceBuffer, which this header only
+  // forward declares.
+  void emit_register_xor(const Operation &op, RegisterScan::RegisterRef ref, u64 combined, u8 size);
   void emit_dp_update(const tvm::DataSlot &slot, tvm::Recording &rec, u16 size, u16 prologue);
   // Null means this device was never bound to a buffer.
   tvm::TraceBuffer *_tb = nullptr;
