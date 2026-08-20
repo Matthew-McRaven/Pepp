@@ -73,6 +73,11 @@ public:
   // Both redirect PC accesses to _pc.
   template <typename RegisterType> u16 read_register(RegisterType reg);
   template <typename RegisterType> void write_register(RegisterType reg, u16 value);
+  // Compile-time forms. PC is shadowed and every other register is not, so a runtime `reg` costs a branch on every
+  // access purely to ask a question the caller usually already knows the answer to. Where the register is fixed by
+  // the instruction's encoding, these fold to a member access with no branch at all.
+  template <PepRegisterBank::Register R> u16 read_register();
+  template <PepRegisterBank::Register R> void write_register(u16 value);
   // Same as above, but does not redirect PC access.
   template <typename RegisterType> u16 read_register_uncached(RegisterType reg);
   template <typename RegisterType> void write_register_uncached(RegisterType reg, u16 value);
@@ -130,6 +135,18 @@ template <typename RegisterType> inline void PepISA3CPU::write_register_uncached
 template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterType reg) {
   if (reg == RegisterType::PC) return _pc;
   else return read_register_uncached(reg);
+}
+
+template <PepRegisterBank::Register R> inline u16 PepISA3CPU::read_register() {
+  // The shadow exists because PC is written many times per instruction and committed once, so it cannot come from
+  // the bank mid-instruction. Nothing else is shadowed, and this is where that stops costing a branch.
+  if constexpr (R == PepRegisterBank::Register::PC) return _pc;
+  else return _regbank->read<R>();
+}
+
+template <PepRegisterBank::Register R> inline void PepISA3CPU::write_register(u16 value) {
+  if constexpr (R == PepRegisterBank::Register::PC) _pc = value;
+  else _regbank->write<R>(value);
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register_uncached(RegisterType reg) {

@@ -57,41 +57,37 @@ void PepRegisterBank::set_initiator(Device::ID cpu) {
   _op = Operation(Operation::Type::Standard, Operation::Kind::data, cpu);
 }
 
-template <std::integral I> void PepRegisterBank::store(Register reg, I &slot, I value, Operation op) {
-  // The xor is one instruction here, where both values are already in hand -- which is why the recorder takes them
-  // combined rather than fetching the prior value itself.
-  if (_traced) _trace.emit_write_register(op, _refs[static_cast<u8>(reg)], static_cast<I>(slot ^ value));
-  slot = value;
-}
+void PepRegisterBank::write_a(u16 value) { write<Register::A>(value); }
+void PepRegisterBank::write_x(u16 value) { write<Register::X>(value); }
+void PepRegisterBank::write_sp(u16 value) { write<Register::SP>(value); }
+void PepRegisterBank::write_pc(u16 value) { write<Register::PC>(value); }
+void PepRegisterBank::write_os(u16 value) { write<Register::OS>(value); }
+// Truncating rather than refusing: IS is a byte, and every caller that writes it is handing over an opcode.
+void PepRegisterBank::write_is(u8 value) { write<Register::IS>(value); }
 
-void PepRegisterBank::write_a(u16 value) { store(Register::A, _a, value, _op); }
-void PepRegisterBank::write_x(u16 value) { store(Register::X, _x, value, _op); }
-void PepRegisterBank::write_sp(u16 value) { store(Register::SP, _sp, value, _op); }
-void PepRegisterBank::write_pc(u16 value) { store(Register::PC, _pc, value, _op); }
-void PepRegisterBank::write_os(u16 value) { store(Register::OS, _os, value, _op); }
-void PepRegisterBank::write_is(u8 value) { store(Register::IS, _is, value, _op); }
-
+// The runtime forms, for the few callers that genuinely do not know the register until they have decoded something.
+// Both forward to the compile-time form rather than repeating the mapping, so a register cannot be wired up correctly
+// in one of these and wrongly in the other.
 u16 PepRegisterBank::read(Register reg) const {
   switch (reg) {
-  case Register::A: return _a;
-  case Register::X: return _x;
-  case Register::SP: return _sp;
-  case Register::PC: return _pc;
-  case Register::IS: return _is;
-  case Register::OS: return _os;
+  case Register::A: return read<Register::A>();
+  case Register::X: return read<Register::X>();
+  case Register::SP: return read<Register::SP>();
+  case Register::PC: return read<Register::PC>();
+  case Register::IS: return read<Register::IS>();
+  case Register::OS: return read<Register::OS>();
   default: return 0;
   }
 }
 
 void PepRegisterBank::write(Register reg, u16 value) {
   switch (reg) {
-  case Register::A: write_a(value); break;
-  case Register::X: write_x(value); break;
-  case Register::SP: write_sp(value); break;
-  case Register::PC: write_pc(value); break;
-  // Truncating rather than refusing: IS is a byte, and every caller that writes it is handing over an opcode.
-  case Register::IS: write_is(static_cast<u8>(value)); break;
-  case Register::OS: write_os(value); break;
+  case Register::A: write<Register::A>(value); break;
+  case Register::X: write<Register::X>(value); break;
+  case Register::SP: write<Register::SP>(value); break;
+  case Register::PC: write<Register::PC>(value); break;
+  case Register::IS: write<Register::IS>(value); break;
+  case Register::OS: write<Register::OS>(value); break;
   default: break;
   }
 }

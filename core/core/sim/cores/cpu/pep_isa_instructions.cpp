@@ -2,6 +2,9 @@
 #include "core/sim/cores/cpu/pep_csrbank.hpp"
 #include "core/sim/cores/cpu/pep_isa.hpp"
 
+// The two ISAs declare identical Register enums, so one alias serves both.
+using R = isa::Pep10::Register;
+
 u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
   // Fetch current PC
   u16 pc = self->read_pc();
@@ -10,7 +13,7 @@ u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
   auto target = self->target();
   // Read value at mem[PC] into OS register.
   u16 opr = target->read<u16, bits::host_is_le>(pc, self->op_data()).second;
-  self->write_register(isa::Pep10::Register::OS, opr);
+  self->write_register<R::OS>(opr);
 
   switch (addr) {
   case isa::SharedAddrMode::I: return pc;
@@ -18,16 +21,16 @@ u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
   case isa::SharedAddrMode::D: return opr;
 
   case isa::SharedAddrMode::SF:
-    opr = self->read_register(isa::Pep10::Register::SP) + opr;
+    opr = self->read_register<R::SP>() + opr;
     return self->target()->read<u16, bits::host_is_le>(opr, self->op_data()).second;
 
-  case isa::SharedAddrMode::S: return self->read_register(isa::Pep10::Register::SP) + opr;
-  case isa::SharedAddrMode::X: return self->read_register(isa::Pep10::Register::X) + opr;
+  case isa::SharedAddrMode::S: return self->read_register<R::SP>() + opr;
+  case isa::SharedAddrMode::X: return self->read_register<R::X>() + opr;
   case isa::SharedAddrMode::SX:
-    return self->read_register(isa::Pep10::Register::X) + self->read_register(isa::Pep10::Register::SP) + opr;
+    return self->read_register<R::X>() + self->read_register<R::SP>() + opr;
   case isa::SharedAddrMode::SFX:
-    opr = self->read_register(isa::Pep10::Register::SP) + opr;
-    return self->read_register(isa::Pep10::Register::X) + self->target()->read<u16, bits::host_is_le>(opr, self->op_data()).second;
+    opr = self->read_register<R::SP>() + opr;
+    return self->read_register<R::X>() + self->target()->read<u16, bits::host_is_le>(opr, self->op_data()).second;
   }
   throw std::logic_error("Invalid addressing mode for decode_op_addr");
 }
@@ -36,10 +39,10 @@ void unimpl_handler(PepISA3CPU *) { throw std::logic_error("Unimplemented instru
 
 void handle_ret(PepISA3CPU *self) {
   self->decrement_call_depth();
-  u16 sp = self->read_register(isa::Pep10::Register::SP);
+  u16 sp = self->read_register<R::SP>();
   auto addr = self->target()->read<u16, bits::host_is_le>(sp, self->op_data()).second;
   self->write_pc(addr);
-  self->write_register(isa::Pep10::Register::SP, sp + 2);
+  self->write_register<R::SP>(sp + 2);
   // TODO: notify debugger of ret @ PC
 }
 
@@ -54,7 +57,7 @@ void handle_sret(PepISA3CPU *self) {
   // Then we can do a single write back to _regs and only generate 1 trace
   // packet.
   auto regs = self->registers();
-  u16 sp = self->read_register(isa::Pep10::Register::SP);
+  u16 sp = self->read_register<R::SP>();
   u16 tmp = size_inclusive(regs->span());
   regs->read(0, {ctx, tmp}, self->op_data());
 
@@ -81,7 +84,7 @@ void handle_sret(PepISA3CPU *self) {
   // That write covered PC, restoring it from the stack. Hand it to the working copy, or clock_tick's single store
   // would put the pre-instruction value straight back over it. Read it back through the bank rather than picking it
   // out of ctx so this stays independent of the context block's layout and byte order.
-  self->write_pc(self->read_register(isa::Pep10::Register::PC));
+  self->write_pc(self->read_register<R::PC>());
 
   tmp = sp + 12;
   // Using "host"'s variables, so byte swap if necessary.
@@ -98,22 +101,22 @@ void handle_sret(PepISA3CPU *self) {
 
 void handle_movflga(PepISA3CPU *self) {
   auto nzvc = self->read_packed_csr();
-  self->write_register(isa::Pep10::Register::A, nzvc);
+  self->write_register<R::A>(nzvc);
 }
 
 void handle_movaflg(PepISA3CPU *self) {
-  auto nzvc = self->read_register(isa::Pep10::Register::A);
+  auto nzvc = self->read_register<R::A>();
   self->write_packed_csr(nzvc);
 }
 
 void handle_movspa(PepISA3CPU *self) {
-  auto sp = self->read_register(isa::Pep10::Register::SP);
-  self->write_register(isa::Pep10::Register::A, sp);
+  auto sp = self->read_register<R::SP>();
+  self->write_register<R::A>(sp);
 }
 
 void handle_movasp(PepISA3CPU *self) {
-  auto a = self->read_register(isa::Pep10::Register::A);
-  self->write_register(isa::Pep10::Register::SP, a);
+  auto a = self->read_register<R::A>();
+  self->write_register<R::SP>(a);
 }
 
 void handle_nop(PepISA3CPU *) {}
@@ -225,9 +228,9 @@ void handle_unconditional_branch(PepISA3CPU *self, Op op, u16 op_addr) {
 void handle_call(PepISA3CPU *self, Op op, u16 op_addr) {
   const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   const u16 pc = self->read_pc();
-  u16 sp = self->read_register(isa::Pep10::Register::SP);
+  u16 sp = self->read_register<R::SP>();
   self->target()->write<u16, bits::host_is_le>(sp -= 2, pc, self->op_data());
-  self->write_register(isa::Pep10::Register::SP, sp);
+  self->write_register<R::SP>(sp);
   self->write_pc(op_spec);
   self->increment_call_depth();
   // TODO: if (_dbg) _dbg->notifyCall(pc - 3, sp);
@@ -235,15 +238,15 @@ void handle_call(PepISA3CPU *self, Op op, u16 op_addr) {
 
 void handle_addsp(PepISA3CPU *self, Op op, u16 op_addr) {
   const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
-  const auto sp = self->read_register(isa::Pep10::Register::SP) + op_spec;
-  self->write_register(isa::Pep10::Register::SP, sp);
+  const auto sp = self->read_register<R::SP>() + op_spec;
+  self->write_register<R::SP>(sp);
   // TODO: if (_dbg) _dbg->notifyAddSP(pc - 3, sp);
 }
 
 void handle_subsp(PepISA3CPU *self, Op op, u16 op_addr) {
   const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
-  const auto sp = self->read_register(isa::Pep10::Register::SP) - op_spec;
-  self->write_register(isa::Pep10::Register::SP, sp);
+  const auto sp = self->read_register<R::SP>() - op_spec;
+  self->write_register<R::SP>(sp);
   // TODO: if (_dbg) _dbg->notifySubSP(pc - 3, sp);
 }
 

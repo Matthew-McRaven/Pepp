@@ -42,13 +42,37 @@ public:
   PepRegisterBank &operator=(const PepRegisterBank &) = delete;
 
   // --- Typed access.
-  u16 read_a() const { return _a; }
-  u16 read_x() const { return _x; }
-  u16 read_sp() const { return _sp; }
-  u16 read_pc() const { return _pc; }
-  u16 read_os() const { return _os; }
+  //
+  // Expose an inline form which the compile should be able to reason about when the register is variable (but known at
+  // compile time). All other versions forward to this one, because profiling data suggests the compiler is as smart as
+  // I expect.
+  template <Register R> auto read() const {
+    if constexpr (R == Register::A) return _a;
+    else if constexpr (R == Register::X) return _x;
+    else if constexpr (R == Register::SP) return _sp;
+    else if constexpr (R == Register::PC) return _pc;
+    else if constexpr (R == Register::IS) return _is;
+    else if constexpr (R == Register::OS) return _os;
+    else static_assert(false, "no storage backs that register");
+  }
+  template <Register R> void write(u16 value) {
+    if constexpr (R == Register::IS) store(R, _is, static_cast<u8>(value), _op);
+    else if constexpr (R == Register::A) store(R, _a, value, _op);
+    else if constexpr (R == Register::X) store(R, _x, value, _op);
+    else if constexpr (R == Register::SP) store(R, _sp, value, _op);
+    else if constexpr (R == Register::PC) store(R, _pc, value, _op);
+    else if constexpr (R == Register::OS) store(R, _os, value, _op);
+    else static_assert(false, "no storage backs that register");
+  }
+
+  // Named forms, for readability where the name is what the caller is thinking in.
+  u16 read_a() const { return read<Register::A>(); }
+  u16 read_x() const { return read<Register::X>(); }
+  u16 read_sp() const { return read<Register::SP>(); }
+  u16 read_pc() const { return read<Register::PC>(); }
+  u16 read_os() const { return read<Register::OS>(); }
   // One byte, and stored as a single u8 to avoid masking a u16 to one byte on each operation.
-  u8 read_is() const { return _is; }
+  u8 read_is() const { return read<Register::IS>(); }
 
   void write_a(u16 value);
   void write_x(u16 value);
@@ -101,7 +125,12 @@ public:
 private:
   // Common tail of every typed write: record the xor if traced, then store. Templated so the recorded packet is the
   // register's own width rather than a fixed word.
-  template <std::integral I> void store(Register reg, I &slot, I value, Operation op);
+  template <std::integral I> void store(Register reg, I &slot, I value, Operation op) {
+    // The xor is one instruction here, where both values are already in hand -- which is why the recorder takes them
+    // combined rather than fetching the prior value itself.
+    if (_traced) _trace.emit_write_register(op, _refs[static_cast<u8>(reg)], static_cast<I>(slot ^ value));
+    slot = value;
+  }
   // Enum dispatch for the Target path, which has a value and a slot index but no name.
   void write_slot(Register reg, u16 value, Operation op);
 
