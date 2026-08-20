@@ -21,7 +21,7 @@
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
 
-class Dense final : public Device, public Target, public Traceable {
+class Dense final : public Target, public Device, public Traceable {
 public:
   static const inline std::string compatible = "ram,dense";
   struct Configuration : public Device::Configuration {

@@ -114,7 +114,7 @@ private:
 
 // Bug: only raise_error policy works. Both read & write need to be updated to ingore faulting addresses in the case of
 // yield_default.
-class SimpleBus final : public Device, public Target, public Initiator, public Traceable {
+class SimpleBus final : public Target, public Device, public Initiator, public Traceable {
 public:
   static const inline std::string compatible = "bus,simple";
   struct Configuration : public Device::Configuration {

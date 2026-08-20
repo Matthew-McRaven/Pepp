@@ -21,7 +21,7 @@
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
 
-class Sparse final : public Device, public Target, public Traceable {
+class Sparse final : public Target, public Device, public Traceable {
 public:
   static const inline std::string compatible = "ram,sparse";
   struct Configuration : public Device::Configuration {
