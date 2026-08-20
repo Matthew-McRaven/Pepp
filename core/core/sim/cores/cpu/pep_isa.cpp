@@ -289,7 +289,7 @@ void PepISA3CPU::handle(Op opcode) {
   // Dyadic
   u16 op_addr = decode_op_addr(this, opcode.addr);
   switch (opcode.behavior) {
-  case BR: return handle_branch(this, opcode, BC::UNCONDITIONAL, op_addr);
+  case BR: return handle_unconditional_branch(this, opcode, op_addr);
   case BRLE: return handle_branch(this, opcode, BC::LE, op_addr);
   case BRLT: return handle_branch(this, opcode, BC::LT, op_addr);
   case BREQ: return handle_branch(this, opcode, BC::EQ, op_addr);

@@ -233,6 +233,11 @@ void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr) {
   if (taken) self->write_pc(op_spec);
 }
 
+void handle_unconditional_branch(PepISA3CPU *self, Op op, u16 op_addr) {
+  const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
+  self->write_pc(op_spec);
+}
+
 void handle_call(PepISA3CPU *self, Op op, u16 op_addr) {
   const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   const u16 pc = self->read_pc();
