@@ -92,6 +92,8 @@ PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
 const Target *PepISA3CPU::target() const { return _target; }
 
 void PepISA3CPU::initialize(System *sys) {
+  _op_data = Operation(Operation::Type::Standard, Operation::Kind::data, id());
+
   using enum isa::SharedOpBehavior;
   auto dev = sys->find_relative(_config.target, _config.fullname);
   if (!dev) throw std::runtime_error("PepISA3CPU: could not find target device " + _config.target);

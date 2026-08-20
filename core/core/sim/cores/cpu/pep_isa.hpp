@@ -87,7 +87,7 @@ public:
   Dense *csrs() const { return _csrs; }
 
   // No longer static const because it embeds this instance's id.
-  Operation op_data() const { return Operation(Operation::Type::Standard, Operation::Kind::data, id()); }
+  Operation op_data() const { return _op_data; }
 
   // While an instruction is in flight, this contains the active PC.
   // At the end of an instruction, it will be written back with the updated value.
@@ -108,6 +108,8 @@ private:
   Dense *_regbank = nullptr, *_csrs = nullptr;
   Target *_target = nullptr;
   isa::OpcodePlane _opcodes;
+  // Override this value once our id is known.
+  Operation _op_data = Operation(Operation::Type::Standard, Operation::Kind::data, Device::ID{0});
 
   void handle(isa::SharedOp opcode);
   const ClockSource *_clk = nullptr;
