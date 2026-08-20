@@ -254,12 +254,10 @@ void PepISA3CPU::decrement_call_depth() {
 
 // The CSR bank is one byte holding all four flags, N at bit 3 through C at bit 0, matching the packing at the ISA
 // layer. One access also means one trace record byte rather than 4
-u8 PepISA3CPU::read_packed_csr() {
-  return static_cast<u8>(((Target *)_csrs)->read<u8, false>(0, op_data()).second & CSR_MASK);
-}
+u8 PepISA3CPU::read_packed_csr() { return static_cast<u8>(_csrs->read<u8, false>(0, op_data()).second & CSR_MASK); }
 
 void PepISA3CPU::write_packed_csr(u8 value) {
-  ((Target *)_csrs)->write<u8, false>(0, static_cast<u8>(value & CSR_MASK), op_data());
+  _csrs->write<u8, false>(0, static_cast<u8>(value & CSR_MASK), op_data());
 }
 
 void PepISA3CPU::handle(Op opcode) {

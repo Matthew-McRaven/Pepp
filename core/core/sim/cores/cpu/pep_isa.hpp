@@ -8,6 +8,7 @@
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
+#include "core/sim/memory/ram/dense.hpp"
 
 class Dense;
 
@@ -118,7 +119,7 @@ template <typename RegisterType> inline void PepISA3CPU::write_register(Register
 }
 
 template <typename RegisterType> inline void PepISA3CPU::write_register_uncached(RegisterType reg, u16 value) {
-  ((Target *)_regbank)->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op_data());
+  _regbank->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op_data());
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterType reg) {
@@ -127,7 +128,7 @@ template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterTy
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register_uncached(RegisterType reg) {
-  return ((Target *)_regbank)->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op_data()).second;
+  return _regbank->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op_data()).second;
 }
 
 // All four flags live in one byte, so a single flag is a bit of it rather than a byte of its own. The enum runs
