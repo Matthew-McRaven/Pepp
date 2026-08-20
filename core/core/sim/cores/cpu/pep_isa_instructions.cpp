@@ -1,23 +1,6 @@
 #include "pep_isa_instructions.hpp"
+#include "core/sim/cores/cpu/pep_csrbank.hpp"
 #include "core/sim/cores/cpu/pep_isa.hpp"
-#include "core/sim/memory/ram/dense.hpp"
-
-u8 pack_csr(bool n, bool z, bool v, bool c) {
-  u8 nzvc = 0;
-  if (n) nzvc |= 1 << 3;
-  if (z) nzvc |= 1 << 2;
-  if (v) nzvc |= 1 << 1;
-  if (c) nzvc |= 1 << 0;
-  return nzvc;
-}
-
-std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc) {
-  bool n = nzvc & (1 << 3);
-  bool z = nzvc & (1 << 2);
-  bool v = nzvc & (1 << 1);
-  bool c = nzvc & (1 << 0);
-  return {n, z, v, c};
-}
 
 u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr) {
   // Fetch current PC
@@ -92,8 +75,9 @@ void handle_sret(PepISA3CPU *self) {
   // Load SP into ctx
   memory->read(sp + 7, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::SP), 2}, self->op_data());
 
-  // Bulk write-back regs, saving a number of bits on trace metadata.
-  regs->write(0, {ctx, registersBytes}, self->op_data());
+  // Bulk write-back regs, saving a number of bits on trace metadata. Sized from the bank rather than from
+  // RegisterCount, which counts one more than there are registers.
+  regs->write(0, {ctx, tmp}, self->op_data());
   // That write covered PC, restoring it from the stack. Hand it to the working copy, or clock_tick's single store
   // would put the pre-instruction value straight back over it. Read it back through the bank rather than picking it
   // out of ctx so this stays independent of the context block's layout and byte order.
@@ -142,7 +126,7 @@ void handle_negr(PepISA3CPU *self, isa::Pep10::Register reg) {
   bool v = tmp == 0x8000;
   bool c = src == 0x0000;
   self->write_register(reg, tmp);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_aslr(PepISA3CPU *self, isa::Pep10::Register reg) {
@@ -160,7 +144,7 @@ void handle_aslr(PepISA3CPU *self, isa::Pep10::Register reg) {
   // Carry out if register starts with high order 1.
   bool c = src & 0x8000;
   self->write_register(reg, tmp);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_asrr(PepISA3CPU *self, isa::Pep10::Register reg) {
@@ -176,22 +160,22 @@ void handle_asrr(PepISA3CPU *self, isa::Pep10::Register reg) {
   bool c = src & 0x1;
   bool v = 0;
   self->write_register(reg, tmp);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_notr(PepISA3CPU *self, isa::Pep10::Register reg) {
   auto src = self->read_register(reg);
-  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  auto [n, z, v, c] = PepCSRBank::unpack(self->read_packed_csr());
   u16 tmp = ~src;
   n = tmp & 0x8000;
   z = tmp == 0x0000;
   self->write_register(reg, tmp);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_rolr(PepISA3CPU *self, isa::Pep10::Register reg) {
   auto src = self->read_register(reg);
-  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  auto [n, z, v, c] = PepCSRBank::unpack(self->read_packed_csr());
   // Shift the carry in to low order bit.
   u16 tmp = static_cast<u16>(src << 1 | (c ? 1 : 0));
   n = tmp & 0x8000;
@@ -199,12 +183,12 @@ void handle_rolr(PepISA3CPU *self, isa::Pep10::Register reg) {
   // Carry out if register starts with high order 1.
   c = src & 0x8000;
   self->write_register(reg, tmp);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg) {
   auto src = self->read_register(reg);
-  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  auto [n, z, v, c] = PepCSRBank::unpack(self->read_packed_csr());
   // Shift the carry in to high order bit.
   u16 tmp = src >> 1 | (c ? 1 << 15 : 0);
   n = tmp & 0x8000;
@@ -212,11 +196,11 @@ void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg) {
   // Carry out if register starts with low order 1.
   c = src & 0x1;
   self->write_register(reg, tmp);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_addr) {
-  const auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  const auto [n, z, v, c] = PepCSRBank::unpack(self->read_packed_csr());
   const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   bool taken;
   switch (cond) {
@@ -280,7 +264,7 @@ void handle_addr(PepISA3CPU *self, Op op, u16 op_addr) {
   // Carry out iff result is unsigned less than register or operand.
   bool c = tmp < src || tmp < op_spec;
   self->write_register(reg, tmp);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_subr(PepISA3CPU *self, Op op, u16 op_addr) {
@@ -300,14 +284,14 @@ void handle_subr(PepISA3CPU *self, Op op, u16 op_addr) {
   // Carry out iff result is unsigned less than register or operand.
   bool c = tmp < src || tmp < static_cast<u16>(1 + ~operand);
   self->write_register(reg, tmp);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
   const u16 src = self->read_register(reg);
-  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  auto [n, z, v, c] = PepCSRBank::unpack(self->read_packed_csr());
   u16 tmp;
   switch (bitop) {
   case Bitop::AND: tmp = src & op_spec; break;
@@ -319,7 +303,7 @@ void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop, u16 op_addr) {
   // Is zero if all bits are 0's.
   z = tmp == 0x0000;
   self->write_register(reg, tmp);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_cpwr(PepISA3CPU *self, Op op, u16 op_addr) {
@@ -341,7 +325,7 @@ void handle_cpwr(PepISA3CPU *self, Op op, u16 op_addr) {
   bool c = tmp < src || tmp < neg;
   // Invert N bit if there was signed overflow.
   n ^= v;
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_cpbr(PepISA3CPU *self, Op op, u16 op_addr) {
@@ -356,32 +340,32 @@ void handle_cpbr(PepISA3CPU *self, Op op, u16 op_addr) {
   // Is zero if all bits are 0's.
   bool z = tmp == 0x00;
   // RTL specifies that VC get 0.
-  self->write_packed_csr(pack_csr(n, z, 0, 0));
+  self->write_packed_csr(PepCSRBank::pack(n, z, 0, 0));
 }
 
 void handle_ldwr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   const u16 op_spec = self->target()->read<u16, bits::host_is_le>(op_addr, self->op_data()).second;
-  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  auto [n, z, v, c] = PepCSRBank::unpack(self->read_packed_csr());
   // Is negative if high order bit is 1.
   n = op_spec & 0x8000;
   z = op_spec == 0x0000;
 
   self->write_register(reg, op_spec);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_ldbr(PepISA3CPU *self, Op op, u16 op_addr) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   // op_addr is address for 2-byte operands, so we need an offset of 1.
   const u8 op_spec = self->target()->read<u8>(op_addr + 1, self->op_data()).second;
-  auto [n, z, v, c] = unpack_csrs(self->read_packed_csr());
+  auto [n, z, v, c] = PepCSRBank::unpack(self->read_packed_csr());
   // LDBr always clears n.
   n = 0;
   z = op_spec == 0x0000;
 
   self->write_register(reg, op_spec);
-  self->write_packed_csr(pack_csr(n, z, v, c));
+  self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
 void handle_stwr(PepISA3CPU *self, Op op, u16 op_addr) {

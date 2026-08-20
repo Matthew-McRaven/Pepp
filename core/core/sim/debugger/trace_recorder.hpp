@@ -112,6 +112,14 @@ public:
   // payload at all.
   void emit_incr_register(const Operation &op, RegisterScan::RegisterRef ref, i16 value);
 
+  // Record an overwrite of a scan-exposed register as SETREGX, whose payload is an already-combined `now ^ prior`.
+  //
+  // The width comes from I, and must match the register's declared byte_width. Unlike the STEPREG form, the payload
+  // will be DP-relative rather than immediate to increase opportunities for stencil promotion.
+  template <std::integral I> void emit_write_register(const Operation &op, RegisterScan::RegisterRef ref, I combined) {
+    emit_register_xor(op, ref, static_cast<u64>(static_cast<std::make_unsigned_t<I>>(combined)), sizeof(I));
+  }
+
   // A helper class which which helps open & close a recording for a single instruction.
   class Instruction {
   public:
@@ -145,6 +153,9 @@ public:
 private:
   // 0 if read, 1 if write.
   void emit_mm(const Operation &op, Address address, u8 pushed, bool read_write);
+  // Width-erased body of emit_write_register. Out of line because it needs the TraceBuffer, which this header only
+  // forward declares.
+  void emit_register_xor(const Operation &op, RegisterScan::RegisterRef ref, u64 combined, u8 size);
   void emit_dp_update(const tvm::DataSlot &slot, tvm::Recording &rec, u16 size, u16 prologue);
   // Null means this device was never bound to a buffer.
   tvm::TraceBuffer *_tb = nullptr;

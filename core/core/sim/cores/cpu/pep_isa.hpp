@@ -8,9 +8,9 @@
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
-#include "core/sim/memory/ram/dense.hpp"
+#include "core/sim/cores/cpu/pep_csrbank.hpp"
+#include "core/sim/cores/cpu/pep_regbank.hpp"
 
-class Dense;
 
 /*
  * The following classes of instructions are still not tested. Those tests require a more complete system model to
@@ -77,16 +77,15 @@ public:
   template <typename RegisterType> u16 read_register_uncached(RegisterType reg);
   template <typename RegisterType> void write_register_uncached(RegisterType reg, u16 value);
   // The flags occupy the low nibble of the CSR bank's single byte, N at bit 3 through C at bit 0.
-  static constexpr u8 CSR_MASK = 0x0F;
   // Which bit of that nibble a given flag is.
   template <typename CSRType> static constexpr u8 csr_bit(CSRType csr);
   template <typename CSRType> bool read_csr(CSRType csr);
   template <typename CSRType> void write_csr(CSRType csr, bool value);
-  u8 read_packed_csr();
+  u8 read_packed_csr() const;
   void write_packed_csr(u8 value);
 
-  Dense *registers() const { return _regbank; }
-  Dense *csrs() const { return _csrs; }
+  PepRegisterBank *registers() const { return _regbank; }
+  PepCSRBank *csrs() const { return _csrs; }
 
   // No longer static const because it embeds this instance's id.
   Operation op_data() const { return _op_data; }
@@ -107,7 +106,8 @@ private:
   u16 _pc = 0;
   Configuration _config;
   trace::Recorder _trace;
-  Dense *_regbank = nullptr, *_csrs = nullptr;
+  PepRegisterBank *_regbank = nullptr;
+  PepCSRBank *_csrs = nullptr;
   Target *_target = nullptr;
   isa::OpcodePlane _opcodes;
   // Override this value once our id is known.
@@ -123,7 +123,8 @@ template <typename RegisterType> inline void PepISA3CPU::write_register(Register
 }
 
 template <typename RegisterType> inline void PepISA3CPU::write_register_uncached(RegisterType reg, u16 value) {
-  _regbank->write<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, value, op_data());
+  // Pep9 and Pep10 declare identical Register enums, so the bank's is interchangeable with either.
+  _regbank->write(static_cast<PepRegisterBank::Register>(reg), value);
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterType reg) {
@@ -132,7 +133,7 @@ template <typename RegisterType> inline u16 PepISA3CPU::read_register(RegisterTy
 }
 
 template <typename RegisterType> inline u16 PepISA3CPU::read_register_uncached(RegisterType reg) {
-  return _regbank->read<u16, bits::host_is_le>(static_cast<u8>(reg) * 2, op_data()).second;
+  return _regbank->read(static_cast<PepRegisterBank::Register>(reg));
 }
 
 // All four flags live in one byte, so a single flag is a bit of it rather than a byte of its own. The enum runs

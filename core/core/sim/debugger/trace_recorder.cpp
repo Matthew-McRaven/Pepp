@@ -172,6 +172,31 @@ void Recorder::emit_incr_register(const Operation &op, RegisterScan::RegisterRef
   else emit(std::array<u8, 2>{(u8)(value & 0xFF), (u8)((value >> 8) & 0xFF)});
 }
 
+void Recorder::emit_register_xor(const Operation &op, RegisterScan::RegisterRef ref, u64 combined, u8 size) {
+  if (combined == 0) return;  // The write changed nothing, so there is nothing to undo.
+  else if (!traced()) return; // Don't record for untraced.
+  else if (op.type == Operation::Type::BufferInternal)
+    return; // Access related to TB or UI. Filter or we'll loop infinitely.
+  // Register 0 is never handed out by RegisterScan::expose, so this is a device that never exposed the register it is
+  // trying to write. Drop it here rather than letting the replay hard-stop on RegisterInvalid.
+  else if (ref.reg.value == 0) return;
+  const auto rec = _tb->find_recording(op.initiator);
+  // begin() never called for that initiator.
+  if (rec == nullptr) return;
+
+  // Payload goes in the data chain and the instruction reaches it through DP, exactly as SETMEMX does.
+  // Generic register writes don't have a discernable pattern, so emitting immediate data would supress stencil
+  // promotion.
+  const auto slot = _tb->append_data_uninitialized(*rec, size);
+  // Immediates and payloads are little-endian throughout this ISA.
+  bits::memcpy_endian(slot.bytes, bits::Order::LittleEndian, combined);
+  emit_dp_update(slot, *rec, size, 0);
+
+  const auto set =
+      tvm::EncodedOp::SetReg<true, 3>{.access = op.as_u16(), .reg = ref.reg.value, .field = ref.field.value}.encode();
+  _tb->emit_body(*rec, {set.data(), set.size()});
+}
+
 void Recorder::emit_mm(const Operation &op, Address address, u8 pushed, bool read_write) {
   static constexpr u16 len = 1; // MMIO data payload is one byte.
   if (!traced()) return;        // Don't record for untraced.

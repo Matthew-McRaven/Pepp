@@ -7,8 +7,6 @@ class PepISA3CPU;
 
 using Op = isa::SharedOp;
 
-u8 pack_csr(bool n, bool z, bool v, bool c);
-std::tuple<bool, bool, bool, bool> unpack_csrs(u8 nzvc);
 
 // Read word at Mem[PC] and store to OS, incrementing PC by 2.
 // Return the /address/ of the operand value, which is usable for both load and store instructions.
