@@ -37,4 +37,8 @@ public:
   virtual bool traced() const = 0;
   // Toggle the traced state of this device in our TB. If the device cannot generate traces, this must be a no-op.
   virtual void trace(bool enabled) = 0;
+  // Pushed by the TraceBuffer whenever this device's traced bit changes, and once at bind time for the initial value.
+  // A device whose accesses are hot enough to care can mirror it locally and skip the recorder entirely, rather than
+  // asking the buffer on every access.
+  virtual void on_traced_changed(bool enabled) {}
 };

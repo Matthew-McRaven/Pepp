@@ -41,7 +41,8 @@ public:
   // traced bit, so that there is one representation of it. See TraceBuffer::set_address_in_payload.
   Recorder(tvm::TraceBuffer *tb, Device::ID emitter) : _tb(tb), _emitter(emitter) {}
 
-  // Whether this device's writes are being recorded.
+  // Whether this device's writes are being recorded. A device on a hot path should cache this value via
+  // Traceable::on_traced_changed rather than ask per access.
   bool traced() const;
   // Switch recording of this device on or off.
   void set_traced(bool enabled);

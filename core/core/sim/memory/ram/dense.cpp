@@ -72,6 +72,7 @@ void Dense::initialize(System *sys) {
 void Dense::reset() {
   clear(_config.fill);
   _counters = {};
+  _may_trace = true;
 }
 
 const Device::ID Dense::id() const { return _config.id; }
@@ -104,6 +105,8 @@ void Dense::trace(bool enabled) { _trace.set_traced(enabled); }
 
 bool Dense::traced() const { return _trace.traced(); }
 
+void Dense::on_traced_changed(bool enabled) { _may_trace = enabled; }
+
 AddressSpan Dense::span() const { return _config.span; }
 
 Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) const {
@@ -127,7 +130,7 @@ Target::Result Dense::write(Address address, bits::span<const u8> src, Operation
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
   const auto offset = address - span.lower();
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  _trace.emit_write(op, address, dest.first(src.size()), src);
+  if (_may_trace) _trace.emit_write(op, address, dest.first(src.size()), src);
   bits::memcpy(dest, src);
   if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
@@ -141,7 +144,7 @@ Target::Result Dense::write_increment(Address address, bits::span<const u8> src,
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
   const auto offset = address - span.lower();
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  _trace.emit_write_increment(op, address, dest.first(src.size()), src, order);
+  if (_may_trace) _trace.emit_write_increment(op, address, dest.first(src.size()), src, order);
   bits::memcpy(dest, src);
   if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};

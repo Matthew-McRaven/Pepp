@@ -1,9 +1,10 @@
 #include "tvm_tracebuffer.hpp"
 #include <algorithm>
 #include <cassert>
-#include <iterator>
 #include <cstring>
+#include <iterator>
 #include "core/ds/hash/fnv.hpp"
+#include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
 
 namespace tvm {
@@ -51,11 +52,22 @@ TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t r
   clear();
 }
 
+
+void TraceBuffer::trace(Device::ID device, bool enabled) {
+  _traced[device.value] = enabled;
+  // Try to push the cached change to the device.
+  if (auto traceable = find_traceable(device); traceable) traceable->on_traced_changed(enabled);
+}
+
 TraceBuffer::~TraceBuffer() noexcept {
   for (auto &node : _ring) {
     if (node.locations) _mgr->free_buffer(node.locations->id());
   }
 }
+
+void TraceBuffer::set_traceable_finder(TraceableFinder finder) { _finder = std::move(finder); }
+
+Traceable *TraceBuffer::find_traceable(Device::ID initiator) const { return _finder ? _finder(initiator) : nullptr; }
 
 // --- Recording lifecycle ---
 

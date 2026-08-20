@@ -54,6 +54,7 @@ public:
   bool can_generate_traces() const override;
   void trace(bool enabled) override;
   bool traced() const override;
+  void on_traced_changed(bool enabled) override;
 
   // Target interface
   AddressSpan span() const override;
@@ -83,6 +84,12 @@ private:
   Configuration _config;
   std::vector<u8> _data;
   trace::Recorder _trace;
+  // If false, then we definitely aren't traced and we can skip the overhead of emit via _trace.
+  // If true, we either are traced or we don't know. Either way, we need to try to emit via _trace.
+  // Default value should be true. Only set to false if you've received a notification from the TB that you aren't
+  // traced. Ideally this would be an optional and nullopt would express the "unknown" rather than using true, but that
+  // gae up a good chunk of performance.
+  bool _may_trace = true;
 };
 /*
  * Inline implementations

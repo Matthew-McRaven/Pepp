@@ -132,6 +132,11 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
   // Infinite looping branch to 0.
   const auto program = std::array<u8, 3>{static_cast<u8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
   mem->write(0x0000, {program.data(), program.size()}, rw);
+  // We are untraced, provide explicit hints to avoid recording.
+  mem->on_traced_changed(false);
+  cpu->on_traced_changed(false);
+  cpu->csrs()->on_traced_changed(false);
+  cpu->registers()->on_traced_changed(false);
   const auto start = std::chrono::high_resolution_clock::now();
   for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseSchedule::PulseIndex{(u64)it}, it);
   return start;

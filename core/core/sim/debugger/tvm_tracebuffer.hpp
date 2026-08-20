@@ -12,6 +12,7 @@
 #include "core/sim/debugger/tvm_machine.hpp"
 #include "core/sim/debugger/tvm_opcodes.hpp"
 
+class Traceable;
 
 namespace tvm {
 
@@ -140,6 +141,12 @@ public:
   TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t ring_size = 4);
   ~TraceBuffer() noexcept;
 
+  // Helpers from the system to convert Device::IDs to instances of classes that are Traceable.
+  // Return nullptr if the device ID does not exist or is not traceable.
+  using TraceableFinder = std::function<Traceable *(Device::ID)>;
+  void set_traceable_finder(TraceableFinder finder);
+  Traceable *find_traceable(Device::ID initiator) const;
+
   // --- Recording ---
   // True between begin() and commit() for this initiator. Since UI accesses may trigger traces, we need to be able to
   bool is_recording(Device::ID initiator) const;
@@ -212,7 +219,8 @@ public:
   DpAnchor dp_anchor(Recording &rec) const;
   void set_dp_anchor(Recording &rec, pepp::bts::Buffer::Location at, u16 size, u16 stride);
 
-  void trace(Device::ID device, bool enabled = true) { _traced[device.value] = enabled; }
+  // Sets the bit and notifies the device of the update via Traceable::on_trace_changed.
+  void trace(Device::ID device, bool enabled = true);
   bool traced(Device::ID device) const { return _traced[device.value]; }
 
   // When false, we prefer packet formats which encode offsets in the instruction,
@@ -516,6 +524,9 @@ private:
     WatermarkCallback callback;
     bool fired = false;
   };
+  // Helper method to return a pointer to a Traceable given a Device::ID and notify it of tracing state changes.
+  TraceableFinder _finder = [](Device::ID) -> Traceable * { return nullptr; };
+
   std::vector<Watermark> _watermarks;
   // Both indexed by Device::ID, whose underlying type is u8. 32 bytes each, and a lookup is a word load plus a bit
   // test and cheap enough to sit on the per-write path.
