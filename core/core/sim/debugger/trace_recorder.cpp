@@ -12,20 +12,20 @@ bool Recorder::traced() const { return _tb != nullptr && _tb->traced(_emitter); 
 
 // --- Initiator side ---
 
-Recorder::Instruction::Instruction(const Recorder &rec) {
-  if (!rec.traced()) return;
+void Recorder::Instruction::open(const Recorder &rec) {
+  // The caller has already decided this is traced; an unbound recorder still has no buffer to open against.
+  if (rec._tb == nullptr) return;
   _tb = rec._tb;
   _initiator = rec._emitter;
   _tb->begin(_initiator);
 }
 
-Recorder::Instruction::~Instruction() {
-  // Non-null here means commit() never ran, so we are unwinding out of a half-executed instruction.
-  if (_tb != nullptr) _tb->abort(_initiator);
+void Recorder::Instruction::abort() {
+  // Reached from the destructor, so commit() never ran and we are unwinding out of a half-executed instruction.
+  _tb->abort(_initiator);
 }
 
-void Recorder::Instruction::tick(i16 delta) {
-  if (_tb == nullptr) return;
+void Recorder::Instruction::tick_slow(i16 delta) {
   // Resolve rather than using the Device::ID overloads, which assert on a closed recording and dereference null once
   // NDEBUG removes the assert.
   auto rec = _tb->find_recording(_initiator);
@@ -39,8 +39,7 @@ void Recorder::Instruction::tick(i16 delta) {
   _tb->emit_body(*rec, {isyn.data(), isyn.size()});
 }
 
-void Recorder::Instruction::commit() {
-  if (_tb == nullptr) return;
+void Recorder::Instruction::commit_slow() {
   // Clear before committing: if commit() throws, the destructor must not then abort a recording that commit()
   // already closed.
   auto *tb = std::exchange(_tb, nullptr);
