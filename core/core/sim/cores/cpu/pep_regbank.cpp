@@ -65,33 +65,6 @@ void PepRegisterBank::write_os(u16 value) { write<Register::OS>(value); }
 // Truncating rather than refusing: IS is a byte, and every caller that writes it is handing over an opcode.
 void PepRegisterBank::write_is(u8 value) { write<Register::IS>(value); }
 
-// The runtime forms, for the few callers that genuinely do not know the register until they have decoded something.
-// Both forward to the compile-time form rather than repeating the mapping, so a register cannot be wired up correctly
-// in one of these and wrongly in the other.
-u16 PepRegisterBank::read(Register reg) const {
-  switch (reg) {
-  case Register::A: return read<Register::A>();
-  case Register::X: return read<Register::X>();
-  case Register::SP: return read<Register::SP>();
-  case Register::PC: return read<Register::PC>();
-  case Register::IS: return read<Register::IS>();
-  case Register::OS: return read<Register::OS>();
-  default: return 0;
-  }
-}
-
-void PepRegisterBank::write(Register reg, u16 value) {
-  switch (reg) {
-  case Register::A: write<Register::A>(value); break;
-  case Register::X: write<Register::X>(value); break;
-  case Register::SP: write<Register::SP>(value); break;
-  case Register::PC: write<Register::PC>(value); break;
-  case Register::IS: write<Register::IS>(value); break;
-  case Register::OS: write<Register::OS>(value); break;
-  default: break;
-  }
-}
-
 RegisterScan::RegisterRef PepRegisterBank::ref(Register reg) const {
   const auto index = static_cast<u8>(reg);
   return index < REGISTER_COUNT ? _refs[index] : RegisterScan::RegisterRef{};

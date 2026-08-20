@@ -41,11 +41,8 @@ public:
   PepRegisterBank(const PepRegisterBank &) = delete;
   PepRegisterBank &operator=(const PepRegisterBank &) = delete;
 
-  // --- Typed access.
-  //
-  // Expose an inline form which the compile should be able to reason about when the register is variable (but known at
-  // compile time). All other versions forward to this one, because profiling data suggests the compiler is as smart as
-  // I expect.
+  // Inline, compile-time form which the compiler reduces to a register read or write, usable when you know the target
+  // register at compile time.
   template <Register R> auto read() const {
     if constexpr (R == Register::A) return _a;
     else if constexpr (R == Register::X) return _x;
@@ -65,7 +62,8 @@ public:
     else static_assert(false, "no storage backs that register");
   }
 
-  // Named forms, for readability where the name is what the caller is thinking in.
+  // Variants used at design-time when you know which register you want to use. Syntactic sugar over read<R> and
+  // write<R>
   u16 read_a() const { return read<Register::A>(); }
   u16 read_x() const { return read<Register::X>(); }
   u16 read_sp() const { return read<Register::SP>(); }
@@ -81,14 +79,33 @@ public:
   void write_os(u16 value);
   void write_is(u8 value);
 
-  // Store PC without recording. The CPU defers PC writeback to the end of an instruction and records the change
-  // itself as a STEPREG, which is smaller than a SETREGX when the delta is the same every time -- so this must not
-  // emit one as well. The caller owns the record; this owns the value.
+  // Store PC without recording a trace. Used to implement the specialized PC increment in conjuction with the CPU's
+  // clock_tick handler.
   void write_pc_untraced(u16 value) { _pc = value; }
 
-  // --- Enum dispatch, for callers holding a Register rather than a name. Switches to the above. ---
-  u16 read(Register reg) const;
-  void write(Register reg, u16 value);
+  // Inlining reduce cost of dynamic read to a jumptable rather than JT + call.
+  u16 read(Register reg) const {
+    switch (reg) {
+    case Register::A: return read<Register::A>();
+    case Register::X: return read<Register::X>();
+    case Register::SP: return read<Register::SP>();
+    case Register::PC: return read<Register::PC>();
+    case Register::IS: return read<Register::IS>();
+    case Register::OS: return read<Register::OS>();
+    default: return 0;
+    }
+  }
+  void write(Register reg, u16 value) {
+    switch (reg) {
+    case Register::A: write<Register::A>(value); break;
+    case Register::X: write<Register::X>(value); break;
+    case Register::SP: write<Register::SP>(value); break;
+    case Register::PC: write<Register::PC>(value); break;
+    case Register::IS: write<Register::IS>(value); break;
+    case Register::OS: write<Register::OS>(value); break;
+    default: break;
+    }
+  }
   // The scan reference for a register, so a CPU can name it when recording something this class does not emit.
   RegisterScan::RegisterRef ref(Register reg) const;
 
