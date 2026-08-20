@@ -65,6 +65,7 @@ public:
   void set_recorder(const trace::Recorder &recorder) override;
   bool can_generate_traces() const override;
   bool traced() const override;
+  void on_traced_changed(bool enabled) override;
   void trace(bool enabled) override;
 
   void increment_call_depth();
@@ -114,6 +115,9 @@ private:
   PepRegisterBank *_regbank = nullptr;
   PepCSRBank *_csrs = nullptr;
   Target *_target = nullptr;
+  // Mirror of the buffer's traced bit, pushed by TraceBuffer::trace. Read several times per instruction, and the
+  // reason the trace hooks below cost a branch rather than a call when tracing is off.
+  bool _may_trace = true;
   isa::OpcodePlane _opcodes;
   // Override this value once our id is known.
   Operation _op_data = Operation(Operation::Type::Standard, Operation::Kind::data, Device::ID{0});

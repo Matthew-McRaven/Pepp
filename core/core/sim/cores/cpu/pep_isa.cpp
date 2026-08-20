@@ -155,7 +155,7 @@ std::unique_ptr<DeviceSerializer> PepISA3CPU::make_serializer() {
 
 void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // Create a single record for the entire instruction
-  trace::Recorder::Instruction record(_trace, _trace.traced());
+  trace::Recorder::Instruction record(_trace, _may_trace);
   // TODO: when function signature changes, use that tick offset instead of this placeholder.
   record.tick(1);
 
@@ -176,7 +176,8 @@ void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
   // data-dependence for the branch target.
   const auto pc_delta = _pc - init_pc;
   if ((pc_delta & 0b11) == pc_delta) {
-    _trace.emit_incr_register(op_data(), _regbank->ref(isa::Pep10::Register::PC), static_cast<i16>(pc_delta));
+    auto r = _regbank->ref(isa::Pep10::Register::PC);
+    if (_may_trace) _trace.emit_incr_register(op_data(), r, static_cast<i16>(pc_delta));
     _regbank->write_pc_untraced(_pc);
   } else write_register_uncached(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
@@ -192,7 +193,9 @@ void PepISA3CPU::set_recorder(const trace::Recorder &recorder) { _trace = record
 
 bool PepISA3CPU::can_generate_traces() const { return true; }
 
-bool PepISA3CPU::traced() const { return _trace.traced(); }
+bool PepISA3CPU::traced() const { return _may_trace; }
+
+void PepISA3CPU::on_traced_changed(bool enabled) { _may_trace = enabled; }
 
 void PepISA3CPU::trace(bool enabled) {
   // The CPU is not itself a Target and it holds no state to record, so delegate to the child devices.
@@ -204,12 +207,12 @@ void PepISA3CPU::trace(bool enabled) {
 void PepISA3CPU::increment_call_depth() {
   _count.call_depth += 1;
   // Ordering does not matter here the way it does for a write since the prior is constant.
-  _trace.emit_incr_register(op_data(), _ref_call_depth, 1);
+  if (_may_trace) _trace.emit_incr_register(op_data(), _ref_call_depth, 1);
 }
 
 void PepISA3CPU::decrement_call_depth() {
   _count.call_depth -= 1;
-  _trace.emit_incr_register(op_data(), _ref_call_depth, -1);
+  if (_may_trace) _trace.emit_incr_register(op_data(), _ref_call_depth, -1);
 }
 
 u8 PepISA3CPU::read_packed_csr() const { return _csrs->read_packed(); }
