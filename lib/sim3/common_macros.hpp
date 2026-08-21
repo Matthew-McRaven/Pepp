@@ -32,6 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
+#include "core/macros.hpp"
 
 #ifdef __GNUG__
 #ifndef LIKELY
@@ -46,27 +47,21 @@
 #ifndef PEPP_HOT_PATH
 #define PEPP_HOT_PATH() __attribute__((hot))
 #endif
-#define PEPP_ALWAYS_INLINE __attribute__((always_inline))
 #define PEPP_NOINLINE __attribute__((noinline))
-#define PEPP_UNREACHABLE() __builtin_unreachable()
 #define RISCV_EXPORT __attribute__((visibility("default")))
 #elif defined(_MSC_VER)
 #define LIKELY(x) (x)
 #define UNLIKELY(x) (x)
 #define PEPP_COLD_PATH() /* */
 #define PEPP_HOT_PATH()  /* */
-#define PEPP_ALWAYS_INLINE __forceinline
 #define PEPP_NOINLINE __declspec(noinline)
-#define PEPP_UNREACHABLE() __assume(0)
 #define RISCV_EXPORT __declspec(dllexport)
 #else
 #define LIKELY(x) (x)
 #define UNLIKELY(x) (x)
 #define PEPP_COLD_PATH()   /* */
 #define PEPP_HOT_PATH()    /* */
-#define PEPP_ALWAYS_INLINE /* */
 #define PEPP_NOINLINE      /* */
-#define PEPP_UNREACHABLE() /* */
 #define RISCV_EXPORT       /* */
 #endif
 

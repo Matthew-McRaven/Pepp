@@ -66,19 +66,25 @@ template <AddressType address_t> inline void CPU<address_t>::increment_pc(int de
 
 // Use a trick to access the Machine directly on g++/clang, Linux-only for now
 #if (defined(__GNUG__) || defined(__clang__)) && defined(__linux__)
-template <AddressType address_t> PEPP_ALWAYS_INLINE inline
-Machine<address_t>& CPU<address_t>::machine() noexcept { return *reinterpret_cast<Machine<address_t>*> (this); }
-template <AddressType address_t> PEPP_ALWAYS_INLINE inline
-const Machine<address_t>& CPU<address_t>::machine() const noexcept { return *reinterpret_cast<const Machine<address_t>*> (this); }
+template <AddressType address_t> PEPP_ALWAYS_INLINE Machine<address_t> &CPU<address_t>::machine() noexcept {
+  return *reinterpret_cast<Machine<address_t> *>(this);
+}
+template <AddressType address_t> PEPP_ALWAYS_INLINE const Machine<address_t> &CPU<address_t>::machine() const noexcept {
+  return *reinterpret_cast<const Machine<address_t> *>(this);
+}
 #else
-template <AddressType address_t> PEPP_ALWAYS_INLINE inline
-Machine<address_t>& CPU<address_t>::machine() noexcept { return this->m_machine; }
-template <AddressType address_t> PEPP_ALWAYS_INLINE inline
-const Machine<address_t>& CPU<address_t>::machine() const noexcept { return this->m_machine; }
+template <AddressType address_t> PEPP_ALWAYS_INLINE Machine<address_t> &CPU<address_t>::machine() noexcept {
+  return this->m_machine;
+}
+template <AddressType address_t> PEPP_ALWAYS_INLINE const Machine<address_t> &CPU<address_t>::machine() const noexcept {
+  return this->m_machine;
+}
 #endif
 
-template <AddressType address_t> PEPP_ALWAYS_INLINE inline
-Memory<address_t>& CPU<address_t>::memory() noexcept { return machine().memory; }
-template <AddressType address_t> PEPP_ALWAYS_INLINE inline
-const Memory<address_t>& CPU<address_t>::memory() const noexcept { return machine().memory; }
+template <AddressType address_t> PEPP_ALWAYS_INLINE Memory<address_t> &CPU<address_t>::memory() noexcept {
+  return machine().memory;
+}
+template <AddressType address_t> PEPP_ALWAYS_INLINE const Memory<address_t> &CPU<address_t>::memory() const noexcept {
+  return machine().memory;
+}
 } // namespace riscv
