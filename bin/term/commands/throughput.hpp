@@ -32,6 +32,7 @@ public:
   std::chrono::high_resolution_clock::time_point do_sim3();
   std::chrono::high_resolution_clock::time_point do_core();
   u64 maxInstr = 100'000'000;
+  bool has_bps = false;
 
 private:
   WhichVersion _version;
@@ -41,6 +42,7 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
   static auto instrThruSC = app.add_subcommand("mit", "Measure instruction throughput");
   static ThroughputTask::WhichVersion version = ThroughputTask::WhichVersion::Sim3;
   static u64 maxInstr = 100'000'000;
+  static bool has_bps = false;
   auto versionOpt =
       instrThruSC->add_option("-v,--version", version, "Which version to run")
           ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
@@ -48,12 +50,16 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
 
   static auto maxInstrOpt =
       instrThruSC->add_option("-n,--max-instr", maxInstr, "Maximum number of instructions to run");
+  static auto hasBpsOpt =
+      instrThruSC->add_flag("--bps,!--no-bps", has_bps, "Add spurious breakpoints which will not be hit")
+          ->default_val(false);
   instrThruSC->group("");
   instrThruSC->callback([&]() {
     flags.kind = detail::SharedFlags::Kind::TERM;
     task = [](QObject *parent) {
       auto ret = new ThroughputTask(version, parent);
       ret->maxInstr = maxInstr;
+      ret->has_bps = has_bps;
       return ret;
     };
   });

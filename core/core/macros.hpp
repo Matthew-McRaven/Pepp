@@ -15,3 +15,11 @@
 #else
 #error "PEPP_UNREACHABLE: no supported unreachable intrinsic (need C++23 std::unreachable, MSVC, GCC, or Clang)."
 #endif
+
+#if defined(__GNUC__)
+#define PEPP_ALWAYS_INLINE inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+#define PEPP_ALWAYS_INLINE __forceinline
+#else
+#define PEPP_ALWAYS_INLINE inline
+#endif

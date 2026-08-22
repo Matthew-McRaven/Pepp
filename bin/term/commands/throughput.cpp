@@ -137,7 +137,9 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
   cpu->on_traced_changed(false);
   cpu->csrs()->on_traced_changed(false);
   cpu->registers()->on_traced_changed(false);
+  cpu->has_bps = has_bps;
   const auto start = std::chrono::high_resolution_clock::now();
   for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseSchedule::PulseIndex{(u64)it}, it);
+  fmt::println("Filter hits: {}", cpu->filter_hits());
   return start;
 }

@@ -2,15 +2,15 @@
 
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/isa/pep_shared_ops.hpp"
+#include "core/ds/bloom.hpp"
 #include "core/sim/api/clock.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
-#include "core/sim/debugger/register_scanner.hpp"
-#include "core/sim/debugger/trace_recorder.hpp"
 #include "core/sim/cores/cpu/pep_csrbank.hpp"
 #include "core/sim/cores/cpu/pep_regbank.hpp"
-
+#include "core/sim/debugger/register_scanner.hpp"
+#include "core/sim/debugger/trace_recorder.hpp"
 
 /*
  * The following classes of instructions are still not tested. Those tests require a more complete system model to
@@ -101,6 +101,12 @@ public:
   u16 read_pc() const { return _pc; }
   void write_pc(u16 value) { _pc = value; }
 
+  // TODO: when we update the bp filter, run a popcount as well.
+  // If no breakpoints were set, cache that information in a class-local variable like this one.
+  // This cached value is rarely updated and should be easy for the branch predictor to learn.
+  bool has_bps = true;
+  auto filter_hits() const { return _filter_hits; }
+
 private:
   struct PerfCounters {
     i16 call_depth = 0;
@@ -119,6 +125,9 @@ private:
   // reason the trace hooks below cost a branch rather than a call when tracing is off.
   bool _may_trace = true;
   isa::OpcodePlane _opcodes;
+  // Bloom filter used to rule out
+  pepp::SplitBlockBloom<u16, 256> _bp_filter;
+  u32 _filter_hits = 0;
   // Override this value once our id is known.
   Operation _op_data = Operation(Operation::Type::Standard, Operation::Kind::data, Device::ID{0});
 
