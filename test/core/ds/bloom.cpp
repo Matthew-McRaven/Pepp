@@ -15,7 +15,6 @@
  */
 #include "core/ds/bloom.hpp"
 #include <catch.hpp>
-#include <limits>
 #include <span>
 #include <vector>
 
