@@ -181,6 +181,10 @@ void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
     _regbank->write_pc_untraced(_pc);
   } else write_register_uncached(isa::Pep10::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
+  if (has_bps && _bp_filter.maybe_contains(_pc)) {
+    // Placeholder action to ensure that the bp check is not optimized out.
+    _filter_hits += 1;
+  }
   record.commit();
   _count.instructions += 1;
 }
