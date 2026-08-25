@@ -176,3 +176,12 @@ void Dense::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   bits::memcpy(dest, bits::span<const u8>{_data.data(), std::size_t(_data.size())});
 }
+
+void Dense::collect_changes(pepp::core::IntervalSet<Address> &changed) const {
+  // TODO: conservatively report all-changed for now
+  changed.insert(_config.span);
+}
+
+void Dense::clear_changes() {
+  // TODO: no-op for now
+}

@@ -24,8 +24,7 @@
 
 // The Pep register file, held as C++ membner variables rather than offsets into an array.
 // It replaces the previous Dense* Target. With some optimization, the compiler is better able to elide useless calls to
-// memcpy. Registers are stored in host order for the direct RegisterBank API, but exposed in LE order via Target. This
-// maintains backwards-compatibility with usage of the Dense* register bank.
+// memcpy. Registers are stored in host order for the direct RegisterBank API, but exposed in LE order via Target.
 // From the Target API, register N occupies bytes [N*2, N*2+1]
 //
 // Pep8, Pep9, amd Pep10 declare identical Register enums, so one bank serves all ISAs.
@@ -126,39 +125,36 @@ public:
   bool traced() const override;
   void on_traced_changed(bool enabled) override;
 
-  // Target interface. The slow, generic path: big-endian, bounds checked, byte addressable. Keeps
-  // backwards-compatibility with previus tests / usages.
-  using Target::read;
-  using Target::write;
+  // Target interface, providing big-endian access to the registers as-if they were a contiguous array of bytes.
   AddressSpan span() const override;
   Result read(Address address, bits::span<u8> dest, Operation op) const override;
   Result write(Address address, bits::span<const u8> src, Operation op) override;
   void clear(u8 fill) override;
   void dump(bits::span<u8> dest) const override;
+  void collect_changes(pepp::core::IntervalSet<Address> &changed) const override;
+  void clear_changes() override;
 
-  // The Operation the typed writers record under. Set once, by the CPU that owns this bank.
+  // ID of the CPU which owns this register bank, which is needed to emit traces to the correct temporary buffer when
+  // not using the Target API.
   void set_initiator(Device::ID cpu);
 
 private:
-  // Common tail of every typed write: record the xor if traced, then store. Templated so the recorded packet is the
-  // register's own width rather than a fixed word.
+  // Record a trace and then store the value in-place.
   template <std::integral I> void store(Register reg, I &slot, I value, Operation op) {
-    // The xor is one instruction here, where both values are already in hand -- which is why the recorder takes them
-    // combined rather than fetching the prior value itself.
+    // Cheap to compute new ^ old in a single instruction rather than construct a lambda which does the same thing.
     if (_traced) _trace.emit_write_register(op, _refs[static_cast<u8>(reg)], static_cast<I>(slot ^ value));
     slot = value;
   }
-  // Enum dispatch for the Target path, which has a value and a slot index but no name.
   void write_slot(Register reg, u16 value, Operation op);
 
   Configuration _config;
-  // Host order, always. Nothing here is ever byte swapped in place; the Target path converts on the way out.
+  // Avoid byte-swapping in the non-Target case by using real integers rather than an array of bytes.
   u16 _a = 0, _x = 0, _sp = 0, _pc = 0, _os = 0;
   u8 _is = 0;
-  // Filled in by initialize(). SETREGX names its target by scan id, so a write cannot be recorded without these.
+  // Filled in by initialize(), and used to emit traces.
   std::array<RegisterScan::RegisterRef, REGISTER_COUNT> _refs{};
   trace::Recorder _trace;
-  // Mirror of the buffer's traced bit, pushed via on_traced_changed(). Read on every write.
+  // Cached value of TraeBuffer::traced(this->id()) to avoid repeated lookups in our hot path.
   bool _traced = false;
   Operation _op = Operation(Operation::Type::Standard, Operation::Kind::data, Device::ID{0});
 };

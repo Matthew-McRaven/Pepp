@@ -19,6 +19,7 @@
 #include "core/math/bitmanip/span.hpp"
 #include "core/math/bitmanip/swap.hpp"
 #include "core/math/geom/interval.hpp"
+#include "core/math/geom/interval_set.hpp"
 #include "core/sim/api/device.hpp"
 
 using Tick = u32;
@@ -112,10 +113,24 @@ struct Target {
   virtual Result write(Address address, bits::span<const u8> src, Operation op) = 0;
   // If the device is composed of many devices (e.g., a SimpleBus), this method should clear all connected targets.
   virtual void clear(u8 fill) = 0;
-
-  // If dest is larger than maxOffset-minOffset+1, copy bytes from this target
-  // to the span.
+  // If dest is larger than maxOffset-minOffset+1, copy bytes from this target to the span.
   virtual void dump(bits::span<u8> dest) const = 0;
+  // Targets accumulate a set of memory locations whose values have changed since the last call to clear_changes().
+  // This is used by the simulator to repaint the GUI in O(# targets * # changes) time rather than O(trace length).
+  // Programs will often write the same memory locations and those locations tend to be clustered in space.
+  // Every write, regardless of Operation type, should be considered a change.
+  // Prefer passing a "out" parameter rather than returning a value so allocations can be reused across GUI repaints.
+  // Each deriving class has a different implementation of how it tracks changes which is optimized for that target
+  // type. For some targets (like register banks), the target will be conservative and report a change even one did
+  // not occur.
+  //
+  // IntervalSet prefers inserts be performed in a low-to-high order, otherwise insert is O(N^2) rather than
+  // O(NlgN). If you have adjacent changes, consider merging them first if you can merge in O(N) with no auxilliary
+  // memory.
+  virtual void collect_changes(pepp::core::IntervalSet<Address> &changed) const = 0;
+  // Reset the target's internal change tracking so that collect_changes() will return an empty set until the next
+  // write.
+  virtual void clear_changes() = 0;
 
   // These convenience methods are so commonly used that they tend to be declared inline in multiple project locations.
   template <std::integral I, bool byteswap = false> std::pair<Result, I> read(Address address, Operation op) const;

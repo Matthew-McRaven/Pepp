@@ -137,9 +137,12 @@ public:
   void clear(u8 fill) override;
   // If output, return most recent value written. Otherwise, return the current value of input.
   void dump(bits::span<u8> dest) const override;
+  void collect_changes(pepp::core::IntervalSet<Address> &changed) const override;
+  void clear_changes() override;
 
 private:
   Configuration _config;
+  mutable bool _changed = false;
   FIFO _input, _output;
   mutable FIFO::Iterator _input_it;
   mutable trace::Recorder _trace;

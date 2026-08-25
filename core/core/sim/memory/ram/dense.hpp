@@ -72,6 +72,8 @@ public:
 
   void clear(u8 fill) override;
   void dump(bits::span<u8> dest) const override;
+  void collect_changes(pepp::core::IntervalSet<Address> &changed) const override;
+  void clear_changes() override;
 
 private:
   mutable struct PerformanceCounters {

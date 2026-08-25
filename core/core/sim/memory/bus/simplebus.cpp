@@ -211,6 +211,14 @@ void SimpleBus::clear(u8 fill) {
 
 void SimpleBus::dump(bits::span<u8> dest) const { throw std::logic_error("SimpleBus::dump not implemented"); }
 
+void SimpleBus::collect_changes(pepp::core::IntervalSet<Address> &changed) const {
+  // No-op, since this bus owns no memory directly, and the debugger/system is responsible for walking the device tree.
+}
+
+void SimpleBus::clear_changes() {
+  // No-op, see above.
+}
+
 Target *SimpleBus::device(ID id) const {
   auto it = _devices.find(id);
   if (it != _devices.end()) return it->second;

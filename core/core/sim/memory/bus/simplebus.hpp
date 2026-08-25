@@ -165,6 +165,8 @@ public:
   Result write(Address address, bits::span<const u8> src, Operation op) override;
   void clear(u8 fill) override;
   void dump(bits::span<u8> dest) const override;
+  void collect_changes(pepp::core::IntervalSet<Address> &changed) const override;
+  void clear_changes() override;
 
 private:
   Target *device(Device::ID id) const;
