@@ -14,6 +14,7 @@ public:
   void insert(T lower, T upper) { insert(Interval<T>(lower, upper)); }
   void insert(T point) { insert(Interval<T>(point)); }
   void insert(Interval<T> interval) {
+    if (!interval.valid()) return;
     static constexpr T offset = right_inclusive ? T(1) : T(0);
     // The key assumption is that intervals are stored in sorted order, implying that a single insert
     // can only merge consectuive indices.
