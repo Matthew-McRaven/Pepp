@@ -15,7 +15,10 @@
  */
 
 #include "core/math/geom/interval_set.hpp"
+#include <bitset>
 #include <catch/catch.hpp>
+#include <random>
+#include <vector>
 #include "core/math/geom/interval.hpp"
 
 TEST_CASE("IntervalSet", "[scope:core][scope:core.math][kind:unit][arch:*]") {
@@ -220,5 +223,49 @@ TEST_CASE("IntervalSet", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     CHECK_FALSE(set.contains(1));
     CHECK_FALSE(set.contains(0xFFFE));
     CHECK(set.contains(0xFFFF));
+  }
+}
+
+namespace {
+// Extract the positions of contiguous 1s (runs) into a bitset. Used to validate merging behavior of IntervalSet.
+std::vector<pepp::core::Interval<uint8_t>> runs_of(const std::bitset<256> &bits) {
+  std::vector<pepp::core::Interval<uint8_t>> out;
+  for (int i = 0; i < 256;) {
+    if (!bits[i]) {
+      ++i;
+      continue;
+    }
+    int start = i;
+    while (i < 256 && bits[i]) ++i;
+    out.emplace_back(uint8_t(start), uint8_t(i - 1));
+  }
+  return out;
+}
+
+std::vector<pepp::core::Interval<uint8_t>> intervals_of(const pepp::core::IntervalSet<uint8_t> &set) {
+  const auto &intervals = set.intervals();
+  return {intervals.begin(), intervals.end()};
+}
+} // namespace
+
+TEST_CASE("IntervalSet agrees with a bitset oracle", "[scope:core][scope:core.math][kind:unit][arch:*]") {
+  using IS = pepp::core::IntervalSet<uint8_t>;
+  // Fixed seeds to ensure reproducible failures
+  for (uint32_t seed : {1u, 7u, 12345u, 0xDEADBEEFu}) {
+    std::mt19937 rng(seed);
+    std::uniform_int_distribution<int> pick(0, 255), len(0, 16);
+    IS set;
+    std::bitset<256> oracle;
+    // Check that the bitset agrees with the IntervalSet on each insert.
+    for (int step = 0; step < 200; ++step) {
+      int lo = pick(rng), hi = std::min(255, lo + len(rng));
+      set.insert(uint8_t(lo), uint8_t(hi));
+      for (int v = lo; v <= hi; ++v) oracle.set(v);
+      REQUIRE(intervals_of(set) == runs_of(oracle));
+    }
+    // Check that final result did not add or remove any values.
+    std::bitset<256> queried;
+    for (int v = 0; v < 256; ++v) queried[v] = set.contains(uint8_t(v));
+    REQUIRE(queried == oracle);
   }
 }
