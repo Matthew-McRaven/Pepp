@@ -130,7 +130,8 @@ void SimulatorRawMemory::clearModifiedAndUpdateGUI() {
 
 void SimulatorRawMemory::onUpdateGUI(sim::api2::trace::FrameIterator from) {
   // Remove highlighted cells from previous steps.
-  auto oldHighlights = std::set{_sink->intervals()};
+  auto current = _sink->intervals();
+  std::set<sim::trace2::Interval<quint16>> oldHighlights(current.begin(), current.end());
   oldHighlights.insert({static_cast<quint16>(_lastSP.lower()), static_cast<quint16>(_lastSP.upper())});
   oldHighlights.insert({static_cast<quint16>(_lastPC.lower()), static_cast<quint16>(_lastPC.upper())});
   // Purge data from previous updates. Must be cleared before iterating and emitting events, or highlights are wrong.
