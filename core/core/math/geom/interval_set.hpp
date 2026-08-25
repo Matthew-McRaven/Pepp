@@ -1,76 +1,68 @@
 #pragma once
 
-#include <set>
+#include <algorithm>
+#include <span>
+#include <vector>
 #include "core/math/geom/interval.hpp"
 namespace pepp::core {
 
 // Class to store and merge intervals of numeric types.
 // Good words to google: interval tree, interval set.
-// BUG: boundary arithmetic can overflow, so require unsigned to avoid UB.
 template <std::unsigned_integral T> class IntervalSet {
-  std::set<Interval<T>> _intervals;
+  // Sorted by lower endpoint, and no two elements overlap or are adjacent. This implies they are sorted by upper
+  // endpoint too. Consecutive elements are always separated by at least one uncovered value, because adjacency would
+  // have caused a merge.
+  std::vector<Interval<T>> _intervals;
 
 public:
   void insert(T lower, T upper) { insert(Interval<T>(lower, upper)); }
   void insert(T point) { insert(Interval<T>(point)); }
   void insert(Interval<T> interval) {
     if (!interval.valid()) return;
-    // Closed intervals contain 1 more element than upper-lower.
-    static constexpr T offset = T(1);
-    // The key assumption is that intervals are stored in sorted order, implying that a single insert
-    // can only merge consectuive indices.
-    // First element !< interval
-    auto next = _intervals.lower_bound(interval);
-    // Set up iterators for merging+erasing items > interval.
-    auto eraseStart = next;
-    // Initialize to sentinel value. cend indicates no erasure needed.
-    auto eraseEnd = _intervals.cend();
-
-    // Can't prev() something already at the start.
-    if (next != _intervals.cbegin()) {
-      // Prevent operating on empty set.
-      if (auto prev = std::prev(next); prev == _intervals.cend()) {
-      } else if (pepp::core::contains(*prev, interval))
-        return; // Optimization to avoid processing an insert / merge when containment is met.
-      else if (intersects(*prev, interval) || prev->upper() + offset == interval.lower()) {
-        interval = {prev->lower(), interval.upper()};
-        // prev->upper <= interval.upper due to lower_bound.
-        // Start the merge process from the previous interval, eliminating an extra erase call.
-        eraseStart = eraseEnd = prev;
-      }
+    // first is the least whose upper endpoint is at least interval.lower() - 1.
+    // last is the least element whose lower endpoint is greater than interval.upper() + 1.
+    // When first==last, interval does not merge with any elements, and we can use first as the insertion point,
+    auto first = std::lower_bound(_intervals.begin(), _intervals.end(), interval,
+                                  [](const Interval<T> &e, const Interval<T> &i) { return too_low_to_merge(e, i); });
+    auto last = std::upper_bound(first, _intervals.end(), interval,
+                                 [](const Interval<T> &i, const Interval<T> &e) { return too_high_to_merge(e, i); });
+    // first == last is analogous to begin() == end(); there are no intervals to merge with.
+    if (first == last) {
+      _intervals.insert(first, interval);
+      return;
     }
-
-    // Merge with following intervals.
-    for (auto it = eraseStart;
-         it != _intervals.end() && (intersects(*it, interval) || it->lower() == interval.upper() + offset);
-         // Set end pointer to the last element that will be erased to avoid it being cend().
-         eraseEnd = it++) {
-      // Must use max, since input interval may entirely contain it's interval.
-      // interval->lower <= it->lower due to lower_bound.
-      interval = {interval.lower(), std::max(interval.upper(), it->upper())};
-    }
-    // Prevent erase if no elements are merged.
-    if (eraseEnd != _intervals.cend())
-      // second pointer must point to the first element not erased, which is not satisfied by for loop.
-      _intervals.erase(eraseStart, std::next(eraseEnd));
-    _intervals.insert(interval);
-  };
-  // Check if a value is contained in any of the intervals using a binary search.
-  bool contains(T value) const {
-    if (_intervals.size() == 0) return false;
-    // Use O(lg n) search to find glb.
-    // If glb is at the start, this is the only interval which could contain addr.
-    else if (auto lb = _intervals.lower_bound(Interval<T>(value)); lb != _intervals.cend() && lb->lower() == value)
-      return pepp::core::contains<T>(*lb, value);
-    else if (lb == _intervals.cbegin()) return false;
-    else return pepp::core::contains<T>(*std::prev(lb), value);
+    // Non-empty, which means we need to combine all of [first, last) with interval.
+    // Remove all items in [first+1, last) from the queue, and update [first] in place.
+    Interval<T> merged{std::min(interval.lower(), first->lower()),
+                       std::max(interval.upper(), std::prev(last)->upper())};
+    *first = merged;
+    _intervals.erase(std::next(first), last);
   }
-  const std::set<Interval<T>> &intervals() const { return _intervals; }
+
+  bool contains(T value) const {
+    // Due to sorting, the first interval whose upper endpoint reaches value is the only one which could contain it.
+    auto it = std::partition_point(_intervals.begin(), _intervals.end(),
+                                   [value](const Interval<T> &e) { return e.upper() < value; });
+    return it != _intervals.end() && pepp::core::contains(*it, value);
+  }
+  std::span<const Interval<T>> intervals() const { return _intervals; }
+  // Keeps the allocation, so a set refilled every repaint stops allocating once it reaches its high-water mark.
   void clear() { _intervals.clear(); }
+
+private:
+  // Avoid +/-1 below to avoid overflow at T's extremes.
+
+  // Return true if e is less than i AND there is at least one T between them.
+  static constexpr bool too_low_to_merge(const Interval<T> &e, const Interval<T> &i) {
+    return e.upper() < i.lower() && T(i.lower() - e.upper()) > T(1);
+  }
+  // Return true if e is greate than i AND there is at least one T between them
+  static constexpr bool too_high_to_merge(const Interval<T> &e, const Interval<T> &i) {
+    return e.lower() > i.upper() && T(e.lower() - i.upper()) > T(1);
+  }
 };
 
-template <typename T>
-std::ostream &operator<<(std::ostream &os, const IntervalSet<T> &set) {
+template <typename T> std::ostream &operator<<(std::ostream &os, const IntervalSet<T> &set) {
   for (const auto &i : set.intervals()) os << i;
   return os;
 }

@@ -17,6 +17,7 @@
 #pragma once
 #include <ostream>
 #include <set>
+#include <span>
 #include "./packet_utils.hpp"
 #include "core/math/bitmanip/mask.hpp"
 #include "core/math/geom/interval_set.hpp"
@@ -157,7 +158,7 @@ public:
     return true;
   }
   void clear() { _iset.clear(); }
-  const std::set<Interval<Address>> &intervals() const { return _iset.intervals(); }
+  std::span<const Interval<Address>> intervals() const { return _iset.intervals(); }
   bool contains(Address addr) const { return _iset.contains(addr); }
 
 protected:
