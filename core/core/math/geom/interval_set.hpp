@@ -7,7 +7,7 @@ namespace pepp::core {
 // Class to store and merge intervals of numeric types.
 // Good words to google: interval tree, interval set.
 // BUG: boundary arithmetic can overflow, so require unsigned to avoid UB.
-template <std::unsigned_integral T, bool right_inclusive> class IntervalSet {
+template <std::unsigned_integral T> class IntervalSet {
   std::set<Interval<T>> _intervals;
 
 public:
@@ -15,7 +15,8 @@ public:
   void insert(T point) { insert(Interval<T>(point)); }
   void insert(Interval<T> interval) {
     if (!interval.valid()) return;
-    static constexpr T offset = right_inclusive ? T(1) : T(0);
+    // Closed intervals contain 1 more element than upper-lower.
+    static constexpr T offset = T(1);
     // The key assumption is that intervals are stored in sorted order, implying that a single insert
     // can only merge consectuive indices.
     // First element !< interval
@@ -68,8 +69,8 @@ public:
   void clear() { _intervals.clear(); }
 };
 
-template <typename T, bool right_inclusive>
-std::ostream &operator<<(std::ostream &os, const IntervalSet<T, right_inclusive> &set) {
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const IntervalSet<T> &set) {
   for (const auto &i : set.intervals()) os << i;
   return os;
 }

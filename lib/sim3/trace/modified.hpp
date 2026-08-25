@@ -26,7 +26,7 @@
 #include "sim3/api/traced/trace_endpoint.hpp"
 namespace sim::trace2 {
 template <typename T> using Interval = sim::api2::memory::Interval<T>;
-template <typename T, bool B> using IntervalSet = pepp::core::IntervalSet<T, B>;
+template <typename T> using IntervalSet = pepp::core::IntervalSet<T>;
 // Each device must only appear in the map once. D type allows sticking custom data in a given node.
 // As a class invariant, we ensure that no Nodes exist with overlapping from intervals.
 template <std::unsigned_integral T, typename D = u16> class AddressBiMap {
@@ -166,7 +166,7 @@ protected:
   virtual Address translate(device_id_t, path_t, Address addr) const { return addr; }
 
 private:
-  IntervalSet<Address, true> _iset;
+  IntervalSet<Address> _iset;
 };
 
 template <typename Address> class TranslatingModifiedAddressSink : public ModifiedAddressSink<Address> {
