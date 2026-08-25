@@ -158,18 +158,7 @@ public:
   }
   void clear() { _iset.clear(); }
   const std::set<Interval<Address>> &intervals() const { return _iset.intervals(); }
-  bool contains(Address addr) const {
-    using pepp::core::contains;
-    auto i = _iset.intervals();
-    if (i.size() == 0) return false;
-    // Use O(lg n) search to find glb.
-    // If glb is at the start, this is the only interval which could contain addr.
-    else if (auto lb = i.lower_bound(Interval<Address>{addr, addr}); lb == i.cbegin()) return contains(*lb, addr);
-    else if (lb != i.cend() && lb->lower() <= addr) return contains(*lb, addr);
-    // prev might fail if lb is cbegin.
-    else if (auto prev = std::prev(lb); prev == i.cend()) return false;
-    else return contains(*prev, addr);
-  }
+  bool contains(Address addr) const { return _iset.contains(addr); }
 
 protected:
   using path_t = api2::packet::path_t;

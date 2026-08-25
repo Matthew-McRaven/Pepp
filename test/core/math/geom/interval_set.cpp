@@ -177,6 +177,50 @@ TEST_CASE("Inclusive IntervalSet", "[scope:core][scope:core.math][kind:unit][arc
     CHECK(only.lower() == 2);
     CHECK(only.upper() == 4);
   }
+  SECTION("contains on an empty set") {
+    IS set;
+    CHECK_FALSE(set.contains(0));
+    CHECK_FALSE(set.contains(0xFFFF));
+  }
+  SECTION("contains within a single interval") {
+    IS set;
+    set.insert({5, 10});
+    CHECK_FALSE(set.contains(4));
+    CHECK(set.contains(5));
+    CHECK(set.contains(7));
+    CHECK(set.contains(10));
+    CHECK_FALSE(set.contains(11));
+  }
+  SECTION("contains across multiple intervals") {
+    IS set;
+    set.insert({0, 2});
+    set.insert({5, 10});
+    set.insert({20, 20});
+    REQUIRE(set.intervals().size() == 3);
+    // Endpoints ok, but +- 1 fail.
+    CHECK(set.contains(0));
+    CHECK(set.contains(2));
+    CHECK_FALSE(set.contains(3));
+
+    CHECK_FALSE(set.contains(4));
+    CHECK(set.contains(5));
+    CHECK(set.contains(10));
+    CHECK_FALSE(set.contains(11));
+
+    CHECK_FALSE(set.contains(19));
+    CHECK(set.contains(20));
+    CHECK_FALSE(set.contains(21));
+  }
+  SECTION("contains at the extremes of the value type") {
+    IS set;
+    set.insert({0, 0});
+    set.insert({0xFFFF, 0xFFFF});
+    REQUIRE(set.intervals().size() == 2);
+    CHECK(set.contains(0));
+    CHECK_FALSE(set.contains(1));
+    CHECK_FALSE(set.contains(0xFFFE));
+    CHECK(set.contains(0xFFFF));
+  }
 }
 
 TEST_CASE("Exclusive IntervalSet", "[scope:core][scope:core.math][kind:unit][arch:*]") {
@@ -331,5 +375,14 @@ TEST_CASE("Exclusive IntervalSet", "[scope:core][scope:core.math][kind:unit][arc
     auto only = *set.intervals().begin();
     CHECK(only.lower() == 2);
     CHECK(only.upper() == 4);
+  }
+  SECTION("contains, away from the upper endpoint") {
+    ISE set;
+    set.insert({5, 10});
+    // Only the cases where closed and half-open readings agree.
+    CHECK_FALSE(set.contains(4));
+    CHECK(set.contains(5));
+    CHECK(set.contains(7));
+    CHECK_FALSE(set.contains(11));
   }
 }

@@ -29,7 +29,7 @@ public:
     if (next != _intervals.cbegin()) {
       // Prevent operating on empty set.
       if (auto prev = std::prev(next); prev == _intervals.cend()) {
-      } else if (contains(*prev, interval))
+      } else if (pepp::core::contains(*prev, interval))
         return; // Optimization to avoid processing an insert / merge when containment is met.
       else if (intersects(*prev, interval) || prev->upper() + offset == interval.lower()) {
         interval = {prev->lower(), interval.upper()};
@@ -54,6 +54,16 @@ public:
       _intervals.erase(eraseStart, std::next(eraseEnd));
     _intervals.insert(interval);
   };
+  // Check if a value is contained in any of the intervals using a binary search.
+  bool contains(T value) const {
+    if (_intervals.size() == 0) return false;
+    // Use O(lg n) search to find glb.
+    // If glb is at the start, this is the only interval which could contain addr.
+    else if (auto lb = _intervals.lower_bound(Interval<T>(value)); lb != _intervals.cend() && lb->lower() == value)
+      return pepp::core::contains<T>(*lb, value);
+    else if (lb == _intervals.cbegin()) return false;
+    else return pepp::core::contains<T>(*std::prev(lb), value);
+  }
   const std::set<Interval<T>> &intervals() const { return _intervals; }
   void clear() { _intervals.clear(); }
 };
