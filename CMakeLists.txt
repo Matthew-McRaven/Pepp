@@ -13,21 +13,10 @@ option(BUILD_SHARED_LIBS
        "Build using shared libraries. May be ignored on some platforms" ON)
 option(PEPP_BUILD_PYTHON "Build only Python bindings" OFF)
 option(PEPP_BUILD_GUI "Build GUI applications" ON)
-# Allow normalized paths (e.g., "toolchain/pas" ) without nesting that directory
-# folder inside a nested "src" hierarchy. May cause linking issues if you do not
-# pay attention.
-include_directories(${CMAKE_CURRENT_LIST_DIR}/lib)
-
+option(PEPP_PRECOMPILE_HEADERS "Enable precompiled headers" ON)
 option(SANITIZE "Enable sanitizers" OFF)
 option(CODECOV "Enable code coverage" OFF)
 option(TIME_TRACE "Enable clang time trace" OFF)
-if(SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  add_compile_options(-fsanitize=undefined -fsanitize=address)
-  add_link_options(-fsanitize=undefined -fsanitize=address)
-endif()
-if(TIME_TRACE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  add_compile_options(-ftime-trace)
-endif()
 
 # DO NOT AUTO-FORMAT. CI looks for a line with this format to extract the
 # version.
@@ -35,7 +24,39 @@ endif()
 project(Pepp VERSION 0.16.0 LANGUAGES C CXX)
 # cmake-format: on
 
+# Allow normalized paths (e.g., "toolchain/pas" ) without nesting that directory
+# folder inside a nested "src" hierarchy. May cause linking issues if you do not
+# pay attention.
+include_directories(${CMAKE_CURRENT_LIST_DIR}/lib)
+
+if(SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  add_compile_options(-fsanitize=undefined -fsanitize=address)
+  add_link_options(-fsanitize=undefined -fsanitize=address)
+endif()
+if(TIME_TRACE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  message(STATUS "Enabling clang time trace")
+  add_compile_options(-ftime-trace)
+endif()
+
+if(PEPP_PRECOMPILE_HEADERS)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # Clang stamps the PCH with its sources' times and rejects the PCH when they
+    # differ. If using PCH with a compiler cache, this would effectively invalidate
+    # the cache. See: https://ccache.dev/manual/latest.html#_precompiled_headers
+    add_compile_options(-Xclang -fno-pch-timestamp)
+  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    # /Yl is on by default with precompiled headers.
+    # CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS exports a marker type and the linker
+    # produces a warning (LNK4022 / LNK4002). /Yl- omits the marker, and is a
+    # no-op wherever /Yc is not used. Do not combine with /Z7, else it produces
+    # LNK1211/LNK4206 instead.
+    # https://learn.microsoft.com/en-us/cpp/build/reference/yl-inject-pch-reference-for-debug-library
+    add_compile_options(/Yl-)
+  endif()
+endif()
+
 include(config/cmake/inject_defs.cmake)
+include(config/cmake/pch.cmake)
 # Not respected by all generators, but incredibly useful when debugging builds.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)

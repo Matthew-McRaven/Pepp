@@ -94,7 +94,7 @@ std::unique_ptr<Token> Lexer::nextToken() {
       }
     } while (type == MORE);
     if (token == nullptr) {
-      emit();
+      emitToken();
     }
     return std::move(token);
   }
@@ -152,20 +152,19 @@ CharStream* Lexer::getInputStream() {
   return _input;
 }
 
-void Lexer::emit(std::unique_ptr<Token> newToken) {
-  token = std::move(newToken);
-}
+void Lexer::emitToken(std::unique_ptr<Token> newToken) { token = std::move(newToken); }
 
-Token* Lexer::emit() {
-  emit(_factory->create({ this, _input }, type, _text, channel,
-    tokenStartCharIndex, getCharIndex() - 1, tokenStartLine, tokenStartCharPositionInLine));
+Token *Lexer::emitToken() {
+  emitToken(_factory->create({this, _input}, type, _text, channel, tokenStartCharIndex, getCharIndex() - 1,
+                             tokenStartLine, tokenStartCharPositionInLine));
   return token.get();
 }
 
 Token* Lexer::emitEOF() {
   size_t cpos = getCharPositionInLine();
   size_t line = getLine();
-  emit(_factory->create({ this, _input }, EOF, "", Token::DEFAULT_CHANNEL, _input->index(), _input->index() - 1, line, cpos));
+  emitToken(_factory->create({this, _input}, EOF, "", Token::DEFAULT_CHANNEL, _input->index(), _input->index() - 1,
+                             line, cpos));
   return token.get();
 }
 

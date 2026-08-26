@@ -22,8 +22,9 @@ if(EMSCRIPTEN OR NOT PEPP_BUILD_GUI)
       OFF
       CACHE BOOL "" FORCE)
 else(PEPP_BUILD_GUI)
+  # Avoid building mockturtle until we start simulating circuits.
   set(MOCKTURTLE_BUILD_TESTS
-      ON
+      OFF
       CACHE BOOL "" FORCE)
 endif()
 add_subdirectory(mockturtle)
@@ -42,7 +43,30 @@ if(PEPP_BUILD_GUI)
   # On Windows, we ship with MSVC redistributable. Mismatch on static CRT
   # linkage causes compile errors on Windows.
   set(WITH_STATIC_CRT CACHE INTERNAL FALSE FORCE)
+  # Build only the antlr4 runtime flavor we actually link. Default builds both,
+  # which wastes compile time.
+  if(BUILD_SHARED_LIBS)
+    set(ANTLR_BUILD_SHARED
+        ON
+        CACHE BOOL "" FORCE)
+    set(ANTLR_BUILD_STATIC
+        OFF
+        CACHE BOOL "" FORCE)
+    set(PEPP_ANTLR4_TARGET antlr4_shared)
+  else()
+    set(ANTLR_BUILD_SHARED
+        OFF
+        CACHE BOOL "" FORCE)
+    set(ANTLR_BUILD_STATIC
+        ON
+        CACHE BOOL "" FORCE)
+    set(PEPP_ANTLR4_TARGET antlr4_static)
+  endif()
   add_subdirectory(antlr4)
+  # Consumers link ${PEPP_ANTLR4_TARGET} rather than naming a flavor.
+  set(PEPP_ANTLR4_TARGET
+      ${PEPP_ANTLR4_TARGET}
+      PARENT_SCOPE)
 
   add_subdirectory(scintilla)
 
@@ -89,6 +113,23 @@ if(PEPP_BUILD_GUI)
   set(monaspace_SOURCE_DIR
       "${CMAKE_CURRENT_BINARY_DIR}/monaspace"
       PARENT_SCOPE)
+
+  if(PEPP_PRECOMPILE_HEADERS)
+
+    pepp_precompile_headers(scintilla_qt PRIVATE <QtCore>)
+    pepp_precompile_headers(lexilla PRIVATE <QtCore>)
+    pepp_precompile_headers(kddockwidgets PRIVATE <QtCore>)
+    # The unit-test targets only inherited catch.hpp via catch's INTERFACE PCH.
+    foreach(_t IN ITEMS lexilla_unit scintilla_unit_qt)
+      if(TARGET ${_t})
+        pepp_precompile_headers(${_t} PRIVATE <QtCore>)
+      endif()
+    endforeach()
+    pepp_precompile_headers(
+      ${PEPP_ANTLR4_TARGET} PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/antlr4/runtime/src/antlr4-common.h"
+      "${CMAKE_CURRENT_LIST_DIR}/antlr4/runtime/src/Exceptions.h")
+  endif()
 endif()
 
 # CXXGraph has some annoying packaging "stuff" for being a header-only library

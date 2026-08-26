@@ -113,14 +113,14 @@ namespace antlr4 {
     /// for efficiency reasons. Subclasses can override this method, nextToken,
     /// and getToken (to push tokens into a list and pull from that list
     /// rather than a single variable as this implementation does).
-    virtual void emit(std::unique_ptr<Token> newToken);
+    virtual void emitToken(std::unique_ptr<Token> newToken);
 
     /// The standard method called to automatically emit a token at the
     /// outermost lexical rule.  The token object should point into the
     /// char buffer start..stop.  If there is a text override in 'text',
     /// use that to set the token's text.  Override this method to emit
     /// custom Token objects or provide a new factory.
-    virtual Token* emit();
+    virtual Token *emitToken();
 
     virtual Token* emitEOF();
 

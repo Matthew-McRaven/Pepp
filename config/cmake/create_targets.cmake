@@ -4,17 +4,27 @@ include_guard()
 # dependent on all the tests' libaries. Our test browser must depend on this
 # target.
 qt6_add_library(test-lib-all-int INTERFACE)
-# test-all bundles all the tests into a single executable to prove that there
-# are no linker errors. do not add to ctest, otherwise every test runs twice.
-qt6_add_executable(test-all ${PROJECT_SOURCE_DIR}/config/cmake/main.cpp)
-# Make test-lib-all a library of all of our sources to reduce the number of
+# Make test-lib-all a library of all of our objects to reduce the number of
 # object members we "bubble up" to other targets. Otherwise we can hit LNK1189
-# on Windows
-qt6_add_library(test-lib-all)
+# on Windows.
+qt6_add_library(test-lib-all OBJECT)
 target_link_libraries(test-lib-all PUBLIC test-lib-all-int)
 set_target_properties(test-lib-all PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_target_properties(test-all PROPERTIES FOLDER "qtc_runnable")
+
+# Don't need catch.hpp, because it arrives via an INTERFACE precompiled header
+if(PEPP_PRECOMPILE_HEADERS)
+  # Most expensive headers as profiled so far. Paths resolve relative to this
+  # dir, so use abs paths.
+  pepp_precompile_headers(
+    test-lib-all PRIVATE <QtCore>
+    "${PROJECT_SOURCE_DIR}/lib/sim/debug/debugger.hpp"
+    "${PROJECT_SOURCE_DIR}/core/core/math/geom/interval.hpp")
+endif()
+# test-all bundles all the tests into a single executable to provide a runnable
+# target in the IDE other than pepp-term selftest.
+qt6_add_executable(test-all ${PROJECT_SOURCE_DIR}/config/cmake/main.cpp)
 target_link_libraries(test-all PUBLIC test-lib-all catch)
+set_target_properties(test-all PROPERTIES FOLDER "qtc_runnable")
 # Failure to copy DLLs on Windows causes tests to fail at runtime.
 if(WIN32)
   add_custom_command(
@@ -31,7 +41,7 @@ define_property(GLOBAL PROPERTY ALL_LIBRARIES)
 set_property(GLOBAL PROPERTY ALL_LIBRARIES "")
 
 function(catch_test_count count_name)
-  get_target_property(FILES test-lib-all INTERFACE_SOURCES)
+  get_target_property(FILES test-lib-all SOURCES)
   list(LENGTH FILES count)
   # message("Test count: ${count} with files ${FILES}")
   set(${count_name}

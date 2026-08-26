@@ -15,7 +15,6 @@ qt_add_qml_module(
   ui/ComponentEditor.qml
   ui/BluePrintListView.qml
   SOURCES
-
   ui/blueprintlibrarymodel.hpp
   ui/blueprintlibrarymodel.cpp
   ui/componentpropertymodel.hpp
@@ -64,3 +63,7 @@ target_link_libraries(
           pepp-core)
 
 set_target_properties(CircuitDesign PROPERTIES FOLDER "qtc_runnable")
+
+if(PEPP_PRECOMPILE_HEADERS)
+  target_precompile_headers(CircuitDesign PRIVATE <QtCore>)
+endif()

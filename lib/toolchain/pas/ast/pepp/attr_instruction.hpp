@@ -20,13 +20,13 @@
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/isa/pep9.hpp"
 
+namespace pas::ast::pepp {
 namespace detail {
 template <typename ISA> constexpr uint8_t attr() { return 19; }
 template <> constexpr uint8_t attr<isa::Pep10>() { return 191; };
 template <> constexpr uint8_t attr<isa::Pep9>() { return 190; };
 } // namespace detail
 
-namespace pas::ast::pepp {
 template <typename ISA> struct Instruction {
   static const inline QString attributeName = "pepp:instr";
   static const inline uint8_t attribute = detail::attr<ISA>();

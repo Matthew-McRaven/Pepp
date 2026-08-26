@@ -5,6 +5,10 @@ target_link_libraries(pepp-term PRIVATE cli Qt6::Core catch test-lib-all
                                         pepp-lib catch)
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
+if(PEPP_PRECOMPILE_HEADERS)
+  target_precompile_headers(pepp-term PRIVATE <QtCore>)
+endif()
+
 if(WIN32)
   install(
     TARGETS pepp-term
@@ -74,6 +78,21 @@ file(REMOVE \"\${_dir}/${alias}\")
 file(CREATE_LINK \"${path_prefix}pepp-term\" \"\${_dir}/${alias}\" SYMBOLIC)
 ")
   install(SCRIPT "${_script}" COMPONENT Pepp)
+  # Also place the alias next to pepp-term in the build tree, so it is usable
+  # without installing. Windows symlinks need elevation/developer mode, so
+  # build-tree aliases are POSIX-only.
+  if(NOT
+     (WIN32
+      OR EMSCRIPTEN
+      OR IOS))
+    add_custom_command(
+      TARGET pepp-term
+      POST_BUILD
+      COMMAND
+        ${CMAKE_COMMAND} ARGS -E create_symlink $<TARGET_FILE_NAME:pepp-term>
+        "$<TARGET_FILE_DIR:pepp-term>/${alias}"
+      VERBATIM)
+  endif()
 endfunction()
 add_term_alias(readelf)
 add_term_alias(addr2line)

@@ -10,8 +10,14 @@ qt_add_executable(
   event_scheduler.cpp
   sim_top.cpp
   sim_device.cpp
-  sim_eventhandle.hpp sim_eventhandle.cpp
-  sim_clocktree.hpp sim_clocktree.cpp)
+  sim_eventhandle.hpp
+  sim_eventhandle.cpp
+  sim_clocktree.hpp
+  sim_clocktree.cpp)
 
 target_link_libraries(simexp PRIVATE pepp-core)
 set_target_properties(simexp PROPERTIES FOLDER "qtc_runnable")
+
+if(PEPP_PRECOMPILE_HEADERS)
+  target_precompile_headers(simexp PRIVATE <QtCore>)
+endif()
