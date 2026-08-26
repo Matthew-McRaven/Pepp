@@ -45,6 +45,12 @@ if(PEPP_PRECOMPILE_HEADERS)
     # the cache. See: https://ccache.dev/manual/latest.html#_precompiled_headers
     add_compile_options(-Xclang -fno-pch-timestamp)
   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    # /Yl is on by default with precompiled headers.
+    # CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS exports a marker type and the linker
+    # produces a warning (LNK4022 / LNK4002). /Yl- omits the marker, and is a
+    # no-op wherever /Yc is not used. Do not combine with /Z7, else it produces
+    # LNK1211/LNK4206 instead.
+    # https://learn.microsoft.com/en-us/cpp/build/reference/yl-inject-pch-reference-for-debug-library
     add_compile_options(/Yl-)
   endif()
 endif()
