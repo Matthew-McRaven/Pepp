@@ -22,8 +22,9 @@ if(EMSCRIPTEN OR NOT PEPP_BUILD_GUI)
       OFF
       CACHE BOOL "" FORCE)
 else(PEPP_BUILD_GUI)
+  # Avoid building mockturtle until we start simulating circuits.
   set(MOCKTURTLE_BUILD_TESTS
-      ON
+      OFF
       CACHE BOOL "" FORCE)
 endif()
 add_subdirectory(mockturtle)
