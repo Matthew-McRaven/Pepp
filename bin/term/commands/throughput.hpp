@@ -37,6 +37,7 @@ public:
   std::chrono::high_resolution_clock::time_point do_core(std::span<const u8> prog);
   u64 maxInstr = 100'000'000;
   bool has_bps = false;
+  bool use_sparse = false;
   TestProgram program = TestProgram::SelfBranch;
 
 private:
@@ -48,7 +49,7 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
   static ThroughputTask::WhichVersion version = ThroughputTask::WhichVersion::Core;
   static ThroughputTask::TestProgram program = ThroughputTask::TestProgram::SelfBranch;
   static u64 maxInstr = 100'000'000;
-  static bool has_bps = false;
+  static bool has_bps = false, use_sparse = false;
   auto versionOpt =
       instrThruSC->add_option("-v,--version", version, "Which version to run")
           ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
@@ -62,6 +63,9 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
   static auto hasBpsOpt =
       instrThruSC->add_flag("--bps,!--no-bps", has_bps, "Add spurious breakpoints which will not be hit")
           ->default_val(false);
+  static auto useSparseOpt =
+      instrThruSC->add_flag("--sparse,!--no-sparse", use_sparse, "Use Sparse storage for RAM rather then Dense")
+          ->default_val(false);
   instrThruSC->group("");
   instrThruSC->callback([&]() {
     flags.kind = detail::SharedFlags::Kind::TERM;
@@ -70,6 +74,7 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
       ret->maxInstr = maxInstr;
       ret->has_bps = has_bps;
       ret->program = program;
+      ret->use_sparse = use_sparse;
       return ret;
     };
   });

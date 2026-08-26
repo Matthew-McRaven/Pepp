@@ -22,6 +22,7 @@
 #include "core/sim/cores/cpu/pep_isa.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/ram/dense.hpp"
+#include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/system.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
@@ -49,26 +50,43 @@ auto make_sim3() {
   return std::pair{storage, cpu};
 };
 
-auto make_core() {
+auto make_core(bool use_sparse) {
   static constexpr auto isa = PepISA3CPU::ISA::Pep10;
   using namespace bits;
+
+  System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
+  auto system = std::make_unique<System>(root_cfg);
+
   PepISA3CPU::Configuration cpu_cfg{Device::Configuration{
                                         .basename = "cpu",
                                         .compatible = PepISA3CPU::compatible,
                                     },
                                     isa, "/memory"};
-  System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
-  Dense::Configuration mem_cfg{
-      Device::Configuration{
-          .basename = "memory",
-          .compatible = Dense::compatible,
-      },
-      0x00,
-      AddressSpan(0x0000, 0xffff),
-  };
-  auto system = std::make_unique<System>(root_cfg);
-  auto *mem = system->make_device<Dense>(mem_cfg);
   auto *cpu = system->make_device<PepISA3CPU>(cpu_cfg, system.get());
+
+  Target *mem = nullptr;
+  if (!use_sparse) {
+    Dense::Configuration mem_cfg{
+        Device::Configuration{
+            .basename = "memory",
+            .compatible = Dense::compatible,
+        },
+        0x00,
+        AddressSpan(0x0000, 0xffff),
+    };
+    mem = system->make_device<Dense>(mem_cfg);
+  } else {
+    Sparse::Configuration mem_cfg{
+        Device::Configuration{
+            .basename = "memory",
+            .compatible = Sparse::compatible,
+        },
+        0x00,
+        AddressSpan(0x0000, 0xffff),
+    };
+    mem = system->make_device<Sparse>(mem_cfg);
+  }
+
   system->initialize();
   return std::make_tuple(std::move(system), mem, cpu);
 }
@@ -152,11 +170,11 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3(std::span
 std::chrono::high_resolution_clock::time_point ThroughputTask::do_core(std::span<const u8> program) {
   static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
   fmt::println("Simulator: core");
-  auto [system, mem, cpu] = make_core();
+  auto [system, mem, cpu] = make_core(this->use_sparse);
   cpu->write_register(isa::Pep10::Register::PC, 0x0000);
   mem->write(0x0000, program, rw);
   // We are untraced, provide explicit hints to avoid recording.
-  mem->on_traced_changed(false);
+  dynamic_cast<Traceable *>(mem)->on_traced_changed(false);
   cpu->on_traced_changed(false);
   cpu->csrs()->on_traced_changed(false);
   cpu->registers()->on_traced_changed(false);
