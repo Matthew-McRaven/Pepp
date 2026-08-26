@@ -9,24 +9,26 @@
 
 //	Standard Library
 
-#include <list>
 #include <string>
-#include <utility>
 
 //	private classes
 #include "SvgBasicElement.hpp"
-//#include "utility_p.hpp"
+
+class DocumentImpl;
 
 class SvgBasicElementImpl
 {
 public:
     SvgBasicElementImpl() {}
 
-    /*virtual*/ ~SvgBasicElementImpl() = default;
+    ~SvgBasicElementImpl() = default;
     SvgBasicElementImpl(const SvgBasicElementImpl &) = default;
     SvgBasicElementImpl &operator=(const SvgBasicElementImpl &) = default;
     SvgBasicElementImpl(SvgBasicElementImpl &&) noexcept = default;
     SvgBasicElementImpl &operator=(SvgBasicElementImpl &&) noexcept = default;
+
+    //  Pointer to document for callbacks
+    DocumentImpl *doc{};
 
     //  Standard Xml Data
     SvgInterface::SvgType elementType = SvgInterface::SvgType::SvgUnknownElement;

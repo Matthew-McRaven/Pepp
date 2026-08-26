@@ -6,9 +6,12 @@
 // change without notice.
 
 //	Standard library
-#include "utility_p.hpp"
 #include <memory>
 #include <string>
+
+#include "SvgDocument_p.hpp"
+#include "SvgInterface.h"
+#include "utility_p.hpp"
 
 /*
 From w3.org: https://www.w3.org/TR/SVG2/types.html#InterfaceSVGElement
@@ -24,6 +27,13 @@ SvgBasicElement::SvgBasicElement()
 {
     _impl = std::make_unique<SvgBasicElementImpl>();
     _impl->elementType = SvgInterface::SvgType::SvgBasicElement;
+}
+
+//	Public interface
+SvgBasicElement::SvgBasicElement(DocumentImpl *d)
+    : SvgBasicElement()
+{
+    _impl->doc = d;
 }
 
 SvgBasicElement::SvgBasicElement(const std::string &xmlName, const std::string &value)
@@ -61,15 +71,6 @@ SvgBasicElement &SvgBasicElement::operator=(const SvgBasicElement &rhs)
 }
 
 //  Generic Dom fields
-SvgInterface::SvgType SvgBasicElement::elementType() const
-{
-    return _impl->elementType;
-}
-void SvgBasicElement::setElementType(SvgInterface::SvgType elementType)
-{
-    _impl->elementType = elementType;
-}
-
 std::string &SvgBasicElement::xmlName() const
 {
     return _impl->xmlName;
@@ -111,4 +112,13 @@ void SvgBasicElement::toXml(SvgRope &output) const
 
     //  After child elements, add closing element
     output.push_back("</" + _impl->xmlName + ">");
+}
+
+SvgInterface::SvgType SvgBasicElement::elementType() const
+{
+    return _impl->elementType;
+}
+void SvgBasicElement::setElementType(SvgInterface::SvgType elementType)
+{
+    _impl->elementType = elementType;
 }

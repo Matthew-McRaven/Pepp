@@ -1,6 +1,5 @@
 #pragma once
 
-#include <list>
 #include <memory>
 #include <string>
 
@@ -8,6 +7,7 @@
 
 //	Forward declarations
 class SvgCommentElementImpl;
+class DocumentImpl;
 
 class SvgCommentElement : public SvgInterface
 {
@@ -15,6 +15,7 @@ class SvgCommentElement : public SvgInterface
 
 public:
     SvgCommentElement();
+    explicit SvgCommentElement(DocumentImpl *d);
     explicit SvgCommentElement(const std::string &comment);
     ~SvgCommentElement();
     //Cannot copy, but can move
@@ -25,12 +26,14 @@ public:
 
     //	User access functions
     //  Standard Xml
-    SvgInterface::SvgType elementType() const;
-    void setElementType(SvgInterface::SvgType elementType);
     std::string &comment() const;
     void setComment(std::string comment);
 
     //  Called by base class
     void toXml(SvgRope &output) const override;
+    bool setAttribute(const std::string &key, const std::string &value) override { return true; };
+    SvgInterface::SvgType elementType() const override;
+    void setElementType(SvgInterface::SvgType elementType) override;
+
     std::unique_ptr<SvgInterface> clone() const;
 };

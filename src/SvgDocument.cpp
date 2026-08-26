@@ -16,6 +16,7 @@ namespace fs = std::filesystem;
 using namespace std::string_literals;
 
 //	private classes
+#include "SvgBasicElement.hpp"
 #include "SvgRectElement.hpp"
 #include "Timer.h"
 #include "XmlAttributes_p.hpp"
@@ -73,6 +74,19 @@ SvgElement *DocumentImpl::createElement(const std::string &name)
 
     return children.back().get();
 }
+SvgInterface *Document::createElement2(const std::string &name)
+{
+    return _impl->createElement2(name);
+}
+SvgInterface *DocumentImpl::createElement2(const std::string &name)
+{
+    if (name == "title"s) {
+        children2.push_back(std::make_unique<SvgBasicElement>(this));
+        children2.back()->setElementType(SvgInterface::SvgType::SvgTitleElement);
+    }
+
+    return children2.back().get();
+}
 
 //  File operations
 void Document::saveAs(const std::string &fileName)
@@ -121,7 +135,7 @@ bool Document::open(const std::string &fileName, bool readOnly)
         return false;
     }
 
-    Timer<> t1;
+    Timer t1;
     t1.start();
     if (!_impl->read()) {
         std::cout << "Cannot open file: " << _impl->fileName;
@@ -137,16 +151,16 @@ bool DocumentImpl::parse()
 {
     //  Create on heap to avoid stack warnings from compiler
     std::unique_ptr<SvgParser<DocumentImpl>> parser(new SvgParser<DocumentImpl>(*this));
-    Timer<> t1;
-    t1.start();
+    Timer t;
+    t.start();
     try {
         parser->parse(contents);
     } catch (...) {
         std::cout << "Error parsing file." << std::endl;
         return false;
     }
-    t1.finish();
-    std::cout << "parsing file: " << t1.elapsedTime() << std::endl;
+    t.finish();
+    std::cout << "parsing file: " << t.elapsedTime() << std::endl;
     return true;
 }
 

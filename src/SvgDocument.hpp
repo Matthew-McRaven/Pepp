@@ -11,6 +11,7 @@
 
 //	Forward declarations
 class DocumentImpl;
+class SvgInterface;
 
 class Document
 {
@@ -29,6 +30,7 @@ public:
     //  Document searching
     SvgSvgElement &documentElement() const;
     SvgElement *createElement(const std::string &name = "");
+    SvgInterface *createElement2(const std::string &name = "");
 
     //SvgElement querySelector(const std::string& element);
     //SvgElement getElementById(const std::string& element);

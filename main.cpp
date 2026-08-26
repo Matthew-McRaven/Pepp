@@ -16,10 +16,11 @@ int main()
     Document doc1{};
 
     //  Works anim3.svg, USStates.svg (88k)-though CDATA does not work.
-    /*doc1.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\aa_rect.svg");
+    doc1.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\aa_rect.svg");
     //doc1.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\car.svg"); //  500k file
     //doc1.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\USStates.svg"); // Works!
 
+    //    Document doc1{};
     auto &svg = doc1.documentElement();
     svg.setDesc("Desc from program"s);
     svg.setMetadata("Meta from program"s);
@@ -35,9 +36,18 @@ int main()
     doc2.saveAs("x:\\aa_rect3.svg");
     t.finish();
     std::cout << "Create/copy to second file: " << t.elapsedTime() << std::endl;
-    */
+
+    //Document doc2{};
+
+    /*auto b = doc1.createElement("title"s); //->pointerType();
+    //b->setValue("title value"s);
+    //std::cout << "Size of i: " << sizeof(i) << std::endl;
+    std::cout << "Size of b: " << sizeof(b) << std::endl;
+    std::cout << "B Name: " << b->xmlName() << ". Value: " << b->value() << std::endl;
+    doc1.documentElement().appendChild(b);*/
+
     //SvgInterface i;
-    SvgBasicElement be("name", "value");
+    SvgBasicElement be("title", "title value");
     SvgCommentElement ce("comment");
     //std::cout << "Size of i: " << sizeof(i) << std::endl;
     std::cout << "Size of be: " << sizeof(be) << std::endl;

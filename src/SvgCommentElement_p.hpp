@@ -14,6 +14,8 @@
 //	private classes
 #include "SvgCommentElement.hpp"
 
+class DocumentImpl;
+
 class SvgCommentElementImpl
 {
 public:
@@ -24,6 +26,9 @@ public:
     SvgCommentElementImpl &operator=(const SvgCommentElementImpl &) = default;
     SvgCommentElementImpl(SvgCommentElementImpl &&) noexcept = default;
     SvgCommentElementImpl &operator=(SvgCommentElementImpl &&) noexcept = default;
+
+    //  Pointer to document for callbacks
+    DocumentImpl *doc{};
 
     //  Standard Xml Data
     SvgInterface::SvgType elementType = SvgInterface::SvgType::SvgCommentElement;

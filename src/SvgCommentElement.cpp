@@ -1,5 +1,6 @@
 #include "SvgCommentElement.hpp"
 #include "SvgCommentElement_p.hpp"
+#include "SvgDocument_p.hpp"
 
 // SvgElement uses PIMPL pattern to manage data access. Data and functions
 // in Impl struct are not part of the public interface and may
@@ -10,6 +11,7 @@
 #include <memory> //  std::make_unique
 #include <string>
 
+#include "SvgDocument_p.hpp"
 #include "utility_p.hpp"
 
 /*
@@ -25,6 +27,13 @@ SvgCommentElement::SvgCommentElement()
     : SvgInterface()
 {
     _impl = std::make_unique<SvgCommentElementImpl>();
+    _impl->elementType = SvgInterface::SvgType::SvgCommentElement;
+}
+
+SvgCommentElement::SvgCommentElement(DocumentImpl *d)
+    : SvgCommentElement()
+{
+    _impl->doc = d;
 }
 
 SvgCommentElement::SvgCommentElement(const std::string &comment)
@@ -61,11 +70,6 @@ SvgCommentElement &SvgCommentElement::operator=(const SvgCommentElement &rhs)
 }
 
 //  Generic Dom fields
-SvgInterface::SvgType SvgCommentElement::elementType() const
-{
-    return _impl->elementType;
-}
-
 std::string &SvgCommentElement::comment() const
 {
     return _impl->comment;
@@ -80,4 +84,14 @@ void SvgCommentElement::toXml(SvgRope &output) const
     std::string buffer = std::format("<!--{}-->", _impl->comment);
     output.push_back(std::move(buffer));
     //  Comments cannot have children or attributes
+}
+
+SvgInterface::SvgType SvgCommentElement::elementType() const
+{
+    return _impl->elementType;
+}
+
+void SvgCommentElement::setElementType(SvgInterface::SvgType elementType)
+{
+    _impl->elementType = elementType;
 }

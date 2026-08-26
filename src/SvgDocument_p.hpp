@@ -15,6 +15,7 @@
 
 //	private classes
 #include "SvgElement.hpp"
+#include "SvgInterface.h"
 #include "SvgParser.hpp"
 #include "SvgSvgElement.hpp"
 
@@ -35,6 +36,7 @@ public:
     SvgSvgElement svgDocument;
     std::list<SvgElement *> parents;
     std::list<std::unique_ptr<SvgElement>> children;
+    std::list<std::unique_ptr<SvgInterface>> children2;
 
     //  Temporaries for persisting structure to Xml
     SvgRope rope;
@@ -47,5 +49,6 @@ public:
 
     void addFromParser(const std::string &key, const std::string &value, const XmlNode::Type type);
     SvgElement *createElement(const std::string &name);
+    SvgInterface *createElement2(const std::string &name);
     void toXml();
 };

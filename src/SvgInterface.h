@@ -1,8 +1,7 @@
 #pragma once
 
-#include <memory>
+#include <string>
 
-//#include "utility_p.hpp"
 class SvgRope;
 
 struct SvgInterface
@@ -44,13 +43,25 @@ public:
         SvgTextElement,
     };
 
+    //  Disables EBCO. Cannot call virtual functions without this.
     virtual ~SvgInterface() = default;
+
+    //  These functions call derived classes
     void serialize(this auto &&self, SvgRope &output) { self.toXml(output); }
     SvgType type(this auto &&self) { return self.elementType(); }
+    SvgType setType(this auto &&self, const SvgInterface::SvgType type)
+    {
+        self.setElementType(type);
+    }
+    //auto *pointerType(this auto &&self) { return &self; }
 
     //std::unique_ptr<SvgInterface> clone() const;
 
     //  Call to base class should just return
-    SvgType elementType() { return SvgType::SvgUnknownElement; }
-    virtual void toXml(SvgRope &output) const = 0; //{ return; }
+    //SvgType elementType() { return SvgType::SvgUnknownElement; }
+
+    virtual void toXml(SvgRope &output) const = 0;
+    virtual bool setAttribute(const std::string &key, const std::string &value) = 0;
+    virtual SvgInterface::SvgType elementType() const = 0;
+    virtual void setElementType(SvgInterface::SvgType elementType) = 0;
 };
