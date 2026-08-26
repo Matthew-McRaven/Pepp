@@ -17,9 +17,8 @@ target_link_libraries(
          cnl)
 target_include_directories(pepp-core PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
-# Only precompile standard library headers for now. In the future, this could be
-# extended to include common "internal" headers.
 if(PEPP_PRECOMPILE_HEADERS)
+  # Precompile elements of the standard library.
   pepp_precompile_headers(
     pepp-core
     PRIVATE
@@ -31,4 +30,7 @@ if(PEPP_PRECOMPILE_HEADERS)
     <algorithm>
     <stdexcept>
     <array>)
+  # Precompile most expensive headers from this library.
+  pepp_precompile_headers(
+    pepp-core PRIVATE "${CMAKE_CURRENT_LIST_DIR}/core/math/geom/interval.hpp")
 endif()

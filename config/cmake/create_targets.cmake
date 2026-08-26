@@ -13,7 +13,12 @@ set_target_properties(test-lib-all PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Don't need catch.hpp, because it arrives via an INTERFACE precompiled header
 if(PEPP_PRECOMPILE_HEADERS)
-  pepp_precompile_headers(test-lib-all PRIVATE <QtCore>)
+  # Most expensive headers as profiled so far. Paths resolve relative to this
+  # dir, so use abs paths.
+  pepp_precompile_headers(
+    test-lib-all PRIVATE <QtCore>
+    "${PROJECT_SOURCE_DIR}/lib/sim/debug/debugger.hpp"
+    "${PROJECT_SOURCE_DIR}/core/core/math/geom/interval.hpp")
 endif()
 # test-all bundles all the tests into a single executable to provide a runnable
 # target in the IDE other than pepp-term selftest.
