@@ -74,5 +74,6 @@ private:
   } _counters = {};
   Configuration _config;
   pepp::bts::PagedPool<u8> _pool;
+  pepp::core::IntervalSet<Address> _changes;
   trace::Recorder _trace;
 };

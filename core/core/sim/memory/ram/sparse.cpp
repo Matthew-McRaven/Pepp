@@ -140,6 +140,7 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
   // but we don't pay the cost of reading the data.
   _trace.emit_write(op, address, src, [&](bits::span<u8> prior) { _pool.read(offset, prior); });
   _pool.write(offset, src);
+  _changes.insert(address, address + src.size() - 1);
   if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
 }
@@ -147,15 +148,11 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
 void Sparse::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
   _pool.clear(fill);
+  _changes.clear();
 }
 
 void Sparse::dump(bits::span<u8> dest) const { ::dump(_pool, dest); }
 
-void Sparse::collect_changes(pepp::core::IntervalSet<Address> &changed) const {
-  // TODO: conservatively report all-changed for now
-  changed.insert(_config.span);
-}
+void Sparse::collect_changes(pepp::core::IntervalSet<Address> &changed) const { changed.insert(_changes); }
 
-void Sparse::clear_changes() {
-  // TODO:
-}
+void Sparse::clear_changes() { _changes.clear(); }
