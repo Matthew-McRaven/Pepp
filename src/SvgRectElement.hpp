@@ -10,20 +10,23 @@
 //	Forward declarations
 class SvgRectElementImpl;
 
-class SvgRectElement : public SvgElement
+class SvgRectElement final : public SvgElement
 {
-    SvgRectElementImpl *derivedThis();
-    const SvgRectElementImpl *derivedThis() const;
+    SvgUnitValue _rx;
+    SvgUnitValue _ry;
+
+    //SvgRectElementImpl *derivedThis();
+    //const SvgRectElementImpl *derivedThis() const;
 
 public:
     SvgRectElement();
     explicit SvgRectElement(const std::string &name, const std::string &value = "");
-    ~SvgRectElement();
+    ~SvgRectElement() = default;
     //Cannot copy, but can move
-    SvgRectElement(const SvgRectElement &);
-    SvgRectElement &operator=(const SvgRectElement &);
-    SvgRectElement(SvgRectElement &&) noexcept;
-    SvgRectElement &operator=(SvgRectElement &&) noexcept;
+    SvgRectElement(const SvgRectElement &) = default;
+    SvgRectElement &operator=(const SvgRectElement &) = default;
+    SvgRectElement(SvgRectElement &&) noexcept = default;
+    SvgRectElement &operator=(SvgRectElement &&) noexcept = default;
 
     //	User access functions
     //  Values can be changed, but not units of measure (yet)
@@ -36,4 +39,5 @@ public:
 
     void toXml(SvgRope &output) const override;
     bool setAttribute(const std::string &key, const std::string &value) override;
+    bool attributeXml(SvgRope &output) const override;
 };

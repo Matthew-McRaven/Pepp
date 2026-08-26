@@ -35,7 +35,7 @@ int main()
     doc2.fromXml(doc1.toXml());
     doc2.saveAs("x:\\aa_rect3.svg");
     t.finish();
-    std::cout << "Create/copy to second file: " << t.elapsedTime() << std::endl;
+    std::cout << "Create/copy to second file: " << t.elapsedTime() << std::endl << std::endl;
 
     //Document doc2{};
 

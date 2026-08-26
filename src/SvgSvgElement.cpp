@@ -1,13 +1,6 @@
 #include "SvgSvgElement.hpp"
-#include "SvgElement_p.hpp"
-#include "SvgSvgElement_p.hpp"
-
-// SvgElement uses PIMPL pattern to manage data access. Data and functions
-// in Impl struct are not part of the public interface and may
-// change without notice.
 
 //	Standard library
-#include <memory>
 #include <string>
 using namespace std::string_literals;
 
@@ -21,52 +14,20 @@ factory methods.
 
 //	Public interface
 SvgSvgElement::SvgSvgElement()
-    : SvgElement(false)
+    : SvgElement()
 {
-    //  Override base pimpl structure when overridding interface
-    //  _impl is memory managed
-    _impl.reset(static_cast<SvgElementImpl *>(new SvgSvgElementImpl()));
-
-    _impl->elementType = SvgElement::SvgType::SvgSvgElement;
+    _elementType = SvgElement::SvgType::SvgSvgElement;
 }
 
 SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &value)
     : SvgSvgElement()
 {
-    _impl->xmlName = xmlName;
-    _impl->value = value;
+    _xmlName = xmlName;
+    _value = value;
 }
-
-//	Need to move implementation after Impl structure so unique_ptr will see full
-//	definition. Otherwise, compiler error
-SvgSvgElement::~SvgSvgElement() = default;
-SvgSvgElement::SvgSvgElement(SvgSvgElement &&) noexcept = default;
-SvgSvgElement &SvgSvgElement::operator=(SvgSvgElement &&) noexcept = default;
-
-//	SvgElement appears in containers that require a copy constructor
-//  Add copy logic for contains (e.g., list).
-/*SvgSvgElement::SvgSvgElement(const SvgSvgElement &rhs)
-{
-    _impl.reset();
-
-    if (rhs._impl)
-        _impl = std::make_unique<SvgSvgElementImpl>(*rhs._impl);
-}
-SvgSvgElement &SvgSvgElement::operator=(const SvgSvgElement &rhs)
-{
-    if (!rhs._impl)
-        _impl.reset();
-    else if (!_impl)
-        _impl = std::make_unique<SvgSvgElementImpl>(*rhs._impl);
-    else {
-        *_impl = *rhs._impl;
-    }
-
-    return *this;
-}*/
 
 //  Cast base pointer to derived class. Need for all custom functions in derived class
-SvgSvgElementImpl *SvgSvgElement::derivedThis()
+/*SvgSvgElementImpl *SvgSvgElement::derivedThis()
 {
     static SvgSvgElementImpl *derived{};
     if (derived == nullptr) {
@@ -82,16 +43,16 @@ const SvgSvgElementImpl *SvgSvgElement::derivedThis() const
         derived = static_cast<SvgSvgElementImpl *>(_impl.get());
     }
     return derived;
-}
+}*/
 
 //  Derived class accessors
 SvgRect &SvgSvgElement::viewBox()
 {
-    return derivedThis()->viewBox;
+    return _viewBox;
 }
 const SvgRect &SvgSvgElement::viewBox() const
 {
-    return derivedThis()->viewBox;
+    return _viewBox;
 }
 
 void SvgSvgElement::toXml(SvgRope &output) const
@@ -100,16 +61,16 @@ void SvgSvgElement::toXml(SvgRope &output) const
     output.push_back("<svg");
 
     //  Output changeable headers
-    _impl->attributeXml(output);
+    attributeXml(output);
 
     //  No child elements, and no values, add end tag
-    if (_impl->elements.empty() && _impl->value.empty()) {
+    if (_elements.empty() && _value.empty()) {
         output.push_back(" />");
         return;
     }
     output.push_back(">");
 
-    for (const auto *element : _impl->elements) {
+    for (const auto *element : _elements) {
         element->toXml(output);
     }
     //  When child elements, add closing element
@@ -118,26 +79,21 @@ void SvgSvgElement::toXml(SvgRope &output) const
 
 bool SvgSvgElement::setAttribute(const std::string &key, const std::string &value)
 {
-    return _impl->setAttribute(key, value);
-}
-
-bool SvgSvgElementImpl::setAttribute(const std::string &key, const std::string &value)
-{
     if (key == "viewBox"s) {
-        return viewBox.fromString(value);
+        return _viewBox.fromString(value);
     }
 
     //  Let base class handle remaining elements
-    return SvgElementImpl::setAttribute(key, value);
+    return SvgElement::setAttribute(key, value);
 }
 
-bool SvgSvgElementImpl::attributeXml(SvgRope &output) const
+bool SvgSvgElement::attributeXml(SvgRope &output) const
 {
     //  Get parent attributes first
-    bool hasAttributes = SvgElementImpl::attributeXml(output);
-    if (!viewBox.empty()) {
+    bool hasAttributes = SvgElement::attributeXml(output);
+    if (!_viewBox.empty()) {
         hasAttributes = true;
-        std::string buffer = std::format(" viewBox=\"{}\"", viewBox.toString());
+        std::string buffer = std::format(" viewBox=\"{}\"", _viewBox.toString());
         output.push_back(std::move(buffer));
     }
 

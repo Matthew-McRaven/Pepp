@@ -10,20 +10,19 @@
 //	Forward declarations
 class SvgSvgElementImpl;
 
-class SvgSvgElement : public SvgElement
+class SvgSvgElement final : public SvgElement
 {
-    SvgSvgElementImpl *derivedThis();
-    const SvgSvgElementImpl *derivedThis() const;
+    SvgRect _viewBox;
 
 public:
     SvgSvgElement();
     explicit SvgSvgElement(const std::string &name, const std::string &value = "");
-    ~SvgSvgElement();
+    ~SvgSvgElement() = default;
     //Cannot copy, but can move
-    SvgSvgElement(const SvgSvgElement &);
-    SvgSvgElement &operator=(const SvgSvgElement &);
-    SvgSvgElement(SvgSvgElement &&) noexcept;
-    SvgSvgElement &operator=(SvgSvgElement &&) noexcept;
+    SvgSvgElement(const SvgSvgElement &) = default;
+    SvgSvgElement &operator=(const SvgSvgElement &) = default;
+    SvgSvgElement(SvgSvgElement &&) noexcept = default;
+    SvgSvgElement &operator=(SvgSvgElement &&) noexcept = default;
 
     //	User access functions
     SvgRect &viewBox();
@@ -31,4 +30,5 @@ public:
 
     void toXml(SvgRope &output) const override;
     bool setAttribute(const std::string &key, const std::string &value) override;
+    bool attributeXml(SvgRope &output) const override;
 };

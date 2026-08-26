@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <string>
 
 #include "SvgInterface.h"
@@ -9,27 +8,33 @@
 class SvgBasicElementImpl;
 class DocumentImpl;
 
-class SvgBasicElement : public SvgInterface
+class SvgBasicElement final : public SvgInterface
 {
-    std::unique_ptr<SvgBasicElementImpl> _impl;
+    //  Pointer to document for callbacks
+    DocumentImpl *_doc{};
+
+    //  Standard Xml Data
+    SvgInterface::SvgType _elementType = SvgInterface::SvgType::SvgUnknownElement;
+    std::string _xmlName;
+    std::string _value;
 
 public:
     SvgBasicElement();
     explicit SvgBasicElement(DocumentImpl *d);
 
     explicit SvgBasicElement(const std::string &xmlName, const std::string &value = "");
-    ~SvgBasicElement();
+    ~SvgBasicElement() = default;
     //Cannot copy, but can move
-    SvgBasicElement(const SvgBasicElement &);
-    SvgBasicElement &operator=(const SvgBasicElement &);
-    SvgBasicElement(SvgBasicElement &&) noexcept;
-    SvgBasicElement &operator=(SvgBasicElement &&) noexcept;
+    SvgBasicElement(const SvgBasicElement &) = default;
+    SvgBasicElement &operator=(const SvgBasicElement &) = default;
+    SvgBasicElement(SvgBasicElement &&) noexcept = default;
+    SvgBasicElement &operator=(SvgBasicElement &&) noexcept = default;
 
     //	User access functions
     //  Standard Xml
-    std::string &xmlName() const;
+    const std::string &xmlName() const;
     void setXmlName(std::string xmlName);
-    std::string &value() const;
+    const std::string &value() const;
     void setValue(std::string value);
 
     //  Called by base class
@@ -38,5 +43,5 @@ public:
     SvgInterface::SvgType elementType() const override;
     void setElementType(SvgInterface::SvgType elementType) override;
 
-    std::unique_ptr<SvgInterface> clone() const;
+    //std::unique_ptr<SvgInterface> clone() const;
 };

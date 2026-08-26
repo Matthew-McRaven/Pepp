@@ -1,19 +1,16 @@
 #pragma once
 
 #include <list>
-#include <memory>
 #include <string>
 
+#include "XmlAttributes_p.hpp"
 #include "utility_p.hpp"
 
 //	Forward declarations
-class SvgElementImpl;
 class XmlAttributes;
 
 class SvgElement
 {
-protected:
-    std::unique_ptr<SvgElementImpl> _impl;
 public:
     enum class SvgType {
         SvgUnknownElement = 0,
@@ -42,35 +39,35 @@ public:
         SvgTextElement,
     };
 
-    SvgElement(bool base = true);
+    SvgElement() = default;
     explicit SvgElement(const std::string &name, const std::string &value = "");
-    virtual ~SvgElement();
+    virtual ~SvgElement() = default;
     //Cannot copy, but can move
-    SvgElement(const SvgElement &);
-    SvgElement &operator=(const SvgElement &);
-    SvgElement(SvgElement &&) noexcept;
-    SvgElement &operator=(SvgElement &&) noexcept;
+    SvgElement(const SvgElement &) = default;
+    SvgElement &operator=(const SvgElement &) = default;
+    SvgElement(SvgElement &&) noexcept = default;
+    SvgElement &operator=(SvgElement &&) noexcept = default;
 
     //	User access functions
     //  Standard Xml
     SvgElement::SvgType elementType() const;
     void setElementType(SvgElement::SvgType elementType);
-    std::string &xmlName() const;
-    void setXmlName(std::string xmlName);
-    std::string &value() const;
-    void setValue(std::string value);
+    const std::string &xmlName() const;
+    void setXmlName(const std::string &xmlName);
+    const std::string &value() const;
+    void setValue(const std::string &value);
 
     //  Svg specific functions
-    std::string &id() const;
-    void setId(std::string id);
-    std::string &className() const;
-    void setClassName(std::string className);
-    std::string &title() const;
-    void setTitle(std::string title);
-    std::string &metadata() const;
-    void setMetadata(std::string metadata);
-    std::string &desc() const;
-    void setDesc(std::string desc);
+    const std::string &id() const;
+    void setId(const std::string &id);
+    const std::string &className() const;
+    void setClassName(const std::string &className);
+    const std::string &title() const;
+    void setTitle(const std::string &title);
+    const std::string &metadata() const;
+    void setMetadata(const std::string &metadata);
+    const std::string &desc() const;
+    void setDesc(const std::string &desc);
 
     //	User access functions
     //  Values can be changed, but not units of measure (yet)
@@ -96,4 +93,33 @@ public:
 
     virtual void toXml(SvgRope &output) const;
     virtual bool setAttribute(const std::string &key, const std::string &value);
+    virtual bool attributeXml(SvgRope &output) const;
+
+protected:
+    //  Standard Xml Data
+    SvgElement::SvgType _elementType = SvgElement::SvgType::SvgUnknownElement;
+    std::string _xmlName;
+    std::string _value;
+
+    //  Svg specific data
+    std::string _id;
+    std::string _className;
+
+    //  Stored as Elements in svg
+    SvgElement *_title{};
+    SvgElement *_metadata{};
+    SvgElement *_desc{};
+
+    SvgUnitValue _x;
+    SvgUnitValue _y;
+    SvgUnitValue _width;
+    SvgUnitValue _height;
+
+    //SVGElement ownerSVGElement
+    //  Used to store unprocessed xml elements
+    std::list<SvgElement *> _elements;
+    XmlAttributes _attributes;
+
+    //  Returned by string functions when empy string is needed
+    std::string _empty;
 };

@@ -16,19 +16,14 @@ add_executable(SvgDom
     src/SvgParser.hpp
     src/SvgElement.cpp
     src/SvgElement.hpp
-    src/SvgElement_p.hpp
     src/SvgBasicElement.cpp
     src/SvgBasicElement.hpp
-    src/SvgBasicElement_p.hpp
     src/SvgCommentElement.cpp
     src/SvgCommentElement.hpp
-    src/SvgCommentElement_p.hpp
     src/SvgRectElement.cpp
     src/SvgRectElement.hpp
-    src/SvgRectElement_p.hpp
     src/SvgSvgElement.cpp
     src/SvgSvgElement.hpp
-    src/SvgSvgElement_p.hpp
     src/SvgParser.hpp
     src/XmlElement_p.hpp
     src/XmlAttributes_p.hpp

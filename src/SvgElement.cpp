@@ -1,12 +1,6 @@
 #include "SvgElement.hpp"
-#include "SvgElement_p.hpp"
-
-// SvgElement uses PIMPL pattern to manage data access. Data and functions
-// in Impl struct are not part of the public interface and may
-// change without notice.
 
 //	Standard library
-#include <memory>
 #include <string>
 
 /*
@@ -18,191 +12,158 @@ derive from the SVGElement interface.
 */
 
 //	Public interface
-SvgElement::SvgElement(bool base)
-{
-    if (base)
-        _impl = std::make_unique<SvgElementImpl>();
-}
-
 SvgElement::SvgElement(const std::string &xmlName, const std::string &value)
     : SvgElement()
 {
-    _impl->xmlName = xmlName;
-    _impl->value = value;
-}
-
-//	Need to move implementation after Impl structure so unique_ptr will see full
-//	definition. Otherwise, compiler error
-SvgElement::~SvgElement() = default;
-SvgElement::SvgElement(SvgElement &&) noexcept = default;
-SvgElement &SvgElement::operator=(SvgElement &&) noexcept = default;
-
-//	SvgElement appears in containers that require a copy constructor
-//  Add copy logic for contains (e.g., list).
-SvgElement::SvgElement(const SvgElement &rhs)
-    : _impl(nullptr)
-{
-    if (rhs._impl)
-        _impl = std::make_unique<SvgElementImpl>(*rhs._impl);
-}
-SvgElement &SvgElement::operator=(const SvgElement &rhs)
-{
-    if (!rhs._impl)
-        _impl.reset();
-    else if (!_impl)
-        _impl = std::make_unique<SvgElementImpl>(*rhs._impl);
-    else {
-        *_impl = *rhs._impl;
-    }
-
-    return *this;
+    _xmlName = xmlName;
+    _value = value;
 }
 
 //  Generic Dom fields
 SvgElement::SvgType SvgElement::elementType() const
 {
-    return _impl->elementType;
+    return _elementType;
 }
 void SvgElement::setElementType(SvgElement::SvgType elementType)
 {
-    _impl->elementType = elementType;
+    _elementType = elementType;
 }
 
-std::string &SvgElement::xmlName() const
+const std::string &SvgElement::xmlName() const
 {
-    return _impl->xmlName;
+    return _xmlName;
 }
-void SvgElement::setXmlName(std::string xmlName)
+void SvgElement::setXmlName(const std::string &xmlName)
 {
-    _impl->xmlName = xmlName;
+    _xmlName = xmlName;
 }
-std::string &SvgElement::value() const
+const std::string &SvgElement::value() const
 {
-    return _impl->value;
+    return _value;
 }
-void SvgElement::setValue(std::string value)
+void SvgElement::setValue(const std::string &value)
 {
-    _impl->value = value;
+    _value = value;
 }
 
 //  Svg specific fields
-std::string &SvgElement::id() const
+const std::string &SvgElement::id() const
 {
-    return _impl->id;
+    return _id;
 }
-void SvgElement::setId(std::string id)
+void SvgElement::setId(const std::string &id)
 {
-    _impl->id = id;
+    _id = id;
 }
-std::string &SvgElement::className() const
+const std::string &SvgElement::className() const
 {
-    return _impl->className;
+    return _className;
 }
-void SvgElement::setClassName(std::string className)
+void SvgElement::setClassName(const std::string &className)
 {
-    _impl->className = className;
+    _className = className;
 }
-std::string &SvgElement::title() const
+const std::string &SvgElement::title() const
 {
-    return (_impl->title == nullptr) ? _impl->empty : _impl->title->xmlName();
+    return (_title == nullptr) ? _empty : _title->xmlName();
 }
-void SvgElement::setTitle(std::string title)
+void SvgElement::setTitle(const std::string &title)
 {
     //  Add logic later to create element when missing
-    if (_impl->title != nullptr) {
-        _impl->title->setValue(title);
+    if (_title != nullptr) {
+        _title->setValue(title);
     }
 }
-std::string &SvgElement::metadata() const
+const std::string &SvgElement::metadata() const
 {
-    return (_impl->metadata == nullptr) ? _impl->empty : _impl->metadata->xmlName();
+    return (_metadata == nullptr) ? _empty : _metadata->xmlName();
 }
-void SvgElement::setMetadata(std::string metadata)
+void SvgElement::setMetadata(const std::string &metadata)
 {
     //  Add logic later to create element when missing
-    if (_impl->metadata != nullptr) {
-        _impl->metadata->setValue(metadata);
+    if (_metadata != nullptr) {
+        _metadata->setValue(metadata);
     }
 }
-std::string &SvgElement::desc() const
+const std::string &SvgElement::desc() const
 {
-    return (_impl->desc == nullptr) ? _impl->empty : _impl->desc->xmlName();
+    return (_desc == nullptr) ? _empty : _desc->xmlName();
 }
-void SvgElement::setDesc(std::string desc)
+void SvgElement::setDesc(const std::string &desc)
 {
     //  Add logic later to create element when missing
-    if (_impl->desc != nullptr) {
-        _impl->desc->setValue(desc);
+    if (_desc != nullptr) {
+        _desc->setValue(desc);
     }
 }
 
 //  Dimension accessors
 auto SvgElement::x() const
 {
-    return _impl->x.value;
+    return _x.value;
 }
 void SvgElement::setX(double x)
 {
-    _impl->x.value = x;
+    _x.value = x;
 }
 void SvgElement::setX(const std::string_view sv)
 {
-    _impl->x.fromString(sv);
+    _x.fromString(sv);
 }
 auto SvgElement::y() const
 {
-    return _impl->y.value;
+    return _y.value;
 }
 void SvgElement::setY(double y)
 {
-    _impl->y.value = y;
+    _y.value = y;
 }
 void SvgElement::setY(const std::string_view sv)
 {
-    _impl->y.fromString(sv);
+    _y.fromString(sv);
 }
 auto SvgElement::width() const
 {
-    return _impl->width.value;
+    return _width.value;
 }
 void SvgElement::setWidth(double width)
 {
-    _impl->width.value = std::max(width, 0.0);
+    _width.value = std::max(width, 0.0);
 }
 void SvgElement::setWidth(const std::string_view sv)
 {
-    _impl->width.fromString(sv);
+    _width.fromString(sv);
 }
 auto SvgElement::height() const
 {
-    return _impl->height;
+    return _height;
 }
 void SvgElement::setHeight(double height)
 {
-    _impl->height.value = std::max(height, 0.0);
+    _height.value = std::max(height, 0.0);
 }
 void SvgElement::setHeight(const std::string_view sv)
 {
-    _impl->height.fromString(sv);
+    _height.fromString(sv);
 }
 
 //  Generic elements that capture unprocessed svg data
 const XmlAttributes &SvgElement::attributes() const
 {
-    return _impl->attributes;
+    return _attributes;
 }
 XmlAttributes &SvgElement::attributes()
 {
-    return _impl->attributes;
+    return _attributes;
 }
 
 const std::list<SvgElement *> &SvgElement::children() const
 {
-    return _impl->elements;
+    return _elements;
 }
 std::list<SvgElement *> &SvgElement::children()
 {
-    return _impl->elements;
+    return _elements;
 }
 
 void SvgElement::appendChild(SvgElement *child)
@@ -210,113 +171,109 @@ void SvgElement::appendChild(SvgElement *child)
     //  Certain data is contained in elements. Save
     //  pointer to allow future programitic updates.
     if (child->xmlName() == "desc"s) {
-        _impl->desc = child;
+        _desc = child;
     } else if (child->xmlName() == "metadata"s) {
-        _impl->metadata = child;
+        _metadata = child;
     } else if (child->xmlName() == "title"s) {
-        _impl->title = child;
+        _title = child;
     }
     //  All elements are saved, including special elements above.
     //  Used for persistence to Xml.
-    _impl->elements.push_back(child);
+    _elements.push_back(child);
 }
 
 void SvgElement::toXml(SvgRope &output) const
 {
     //  Id currently has element name. Change when attributes are supported
-    if (_impl->elementType == SvgElement::SvgType::DomComment) {
-        std::string buffer = std::format("<!--{}-->", _impl->value);
+    if (_elementType == SvgElement::SvgType::DomComment) {
+        std::string buffer = std::format("<!--{}-->", _value);
         output.push_back(std::move(buffer));
         //  Comments cannot have children or attributes
         return;
     }
-    output.push_back("<" + _impl->xmlName);
+    output.push_back("<" + _xmlName);
 
-    _impl->attributeXml(output);
+    attributeXml(output);
 
     //  No child elements and no values, add end tag
-    if (_impl->elements.empty() && _impl->value.empty()) {
+    if (_elements.empty() && _value.empty()) {
         output.push_back(" />");
         return;
     }
     output.push_back(">");
 
     //	Save value, if present
-    if (!_impl->value.empty())
-        output.push_back(_impl->value);
+    if (!_value.empty())
+        //  Pass copy
+        output.push_back(std::string(_value));
 
-    for (const auto *element : _impl->elements) {
+    for (const auto *element : _elements) {
         element->toXml(output);
     }
     //  After child elements, add closing element
-    output.push_back("</" + _impl->xmlName + ">");
+    output.push_back("</" + _xmlName + ">");
 }
 
 bool SvgElement::setAttribute(const std::string &key, const std::string &value)
 {
-    return _impl->setAttribute(key, value);
-}
-
-bool SvgElementImpl::setAttribute(const std::string &key, const std::string &value)
-{
     if (key == "id"s) {
-        id = value;
+        _id = value;
         return true;
     }
     if (key == "x"s) {
-        return x.fromString(value);
+        return _x.fromString(value);
     }
     if (key == "y"s) {
-        return y.fromString(value);
+        return _y.fromString(value);
     }
     if (key == "width"s) {
-        return width.fromString(value);
+        return _width.fromString(value);
     }
     if (key == "height"s) {
-        return height.fromString(value);
+        return _height.fromString(value);
     }
 
     //  Cache attributes that are not manipulated above.
-    attributes.add(key, value);
+    _attributes.add(key, value);
     return true;
 }
 
-bool SvgElementImpl::attributeXml(SvgRope &output) const
+bool SvgElement::attributeXml(SvgRope &output) const
 {
     std::string buffer;
     bool hasAttributes = false;
-    if (!id.empty()) {
+    if (!_id.empty()) {
         hasAttributes = true;
-        buffer = std::format(" id=\"{}\"", id);
+        buffer = std::format(" id=\"{}\"", _id);
         output.push_back(std::move(buffer));
     }
-    if (!x.empty()) {
+    if (!_x.empty()) {
         hasAttributes = true;
-        buffer = std::format(" x=\"{}\"", x.toString());
+        buffer = std::format(" x=\"{}\"", _x.toString());
         output.push_back(std::move(buffer));
     }
-    if (!y.empty()) {
+    if (!_y.empty()) {
         hasAttributes = true;
-        buffer = std::format(" y=\"{}\"", y.toString());
+        buffer = std::format(" y=\"{}\"", _y.toString());
         output.push_back(std::move(buffer));
     }
-    if (!width.empty()) {
+    if (!_width.empty()) {
         hasAttributes = true;
-        buffer = std::format(" width=\"{}\"", width.toString());
+        buffer = std::format(" width=\"{}\"", _width.toString());
         output.push_back(std::move(buffer));
     }
-    if (!height.empty()) {
+    if (!_height.empty()) {
         hasAttributes = true;
-        buffer = std::format(" height=\"{}\"", height.toString());
+        buffer = std::format(" height=\"{}\"", _height.toString());
         output.push_back(std::move(buffer));
     }
 
     //  Output remaining attributes
-    if (attributes.size() > 0) {
+    if (_attributes.size() > 0) {
         //  If all attributes become editable, this logic can
         //  be removed.
         hasAttributes = true;
-        buffer = attributes.write();
+        buffer = _attributes.write();
         output.push_back(std::move(buffer));
     }
 

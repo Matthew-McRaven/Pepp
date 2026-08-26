@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <string>
 
 #include "SvgInterface.h"
@@ -9,24 +8,29 @@
 class SvgCommentElementImpl;
 class DocumentImpl;
 
-class SvgCommentElement : public SvgInterface
+class SvgCommentElement final : public SvgInterface
 {
-    std::unique_ptr<SvgCommentElementImpl> _impl;
+    //  Pointer to document for callbacks
+    DocumentImpl *_doc{};
+
+    //  Standard Xml Data
+    SvgInterface::SvgType _elementType = SvgInterface::SvgType::SvgCommentElement;
+    std::string _comment;
 
 public:
     SvgCommentElement();
     explicit SvgCommentElement(DocumentImpl *d);
     explicit SvgCommentElement(const std::string &comment);
-    ~SvgCommentElement();
+    ~SvgCommentElement() = default;
     //Cannot copy, but can move
-    SvgCommentElement(const SvgCommentElement &);
-    SvgCommentElement &operator=(const SvgCommentElement &);
-    SvgCommentElement(SvgCommentElement &&) noexcept;
-    SvgCommentElement &operator=(SvgCommentElement &&) noexcept;
+    SvgCommentElement(const SvgCommentElement &) = default;
+    SvgCommentElement &operator=(const SvgCommentElement &) = default;
+    SvgCommentElement(SvgCommentElement &&) noexcept = default;
+    SvgCommentElement &operator=(SvgCommentElement &&) noexcept = default;
 
     //	User access functions
     //  Standard Xml
-    std::string &comment() const;
+    const std::string &comment() const;
     void setComment(std::string comment);
 
     //  Called by base class
@@ -35,5 +39,5 @@ public:
     SvgInterface::SvgType elementType() const override;
     void setElementType(SvgInterface::SvgType elementType) override;
 
-    std::unique_ptr<SvgInterface> clone() const;
+    //std::unique_ptr<SvgInterface> clone() const;
 };
