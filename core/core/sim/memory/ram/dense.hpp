@@ -82,6 +82,8 @@ private:
   } _counters = {};
   Configuration _config;
   std::vector<u8> _data;
+  // All types of writes will set _dirty for the spanned bytes.
+  std::vector<bool> _dirty;
   trace::Recorder _trace;
   // If false, then we definitely aren't traced and we can skip the overhead of emit via _trace.
   // If true, we either are traced or we don't know. Either way, we need to try to emit via _trace.
