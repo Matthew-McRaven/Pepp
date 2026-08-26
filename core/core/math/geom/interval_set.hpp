@@ -15,6 +15,21 @@ template <std::unsigned_integral T> class IntervalSet {
   std::vector<Interval<T>> _intervals;
 
 public:
+  IntervalSet() = default;
+  explicit IntervalSet(std::span<const Interval<T>> intervals) {
+    for (const auto &i : intervals) insert(i);
+  }
+  explicit IntervalSet(std::span<const T> points) {
+    for (const auto &p : points) insert(p);
+  }
+  explicit IntervalSet(const IntervalSet &other) : _intervals(other._intervals) {}
+  explicit IntervalSet(IntervalSet &&other) noexcept : _intervals(std::move(other._intervals)) {}
+  IntervalSet &operator=(const IntervalSet &) = default;
+  IntervalSet &operator=(IntervalSet &&) noexcept = default;
+
+  void insert(const IntervalSet &other) {
+    for (const auto &i : other._intervals) insert(i);
+  }
   void insert(T lower, T upper) { insert(Interval<T>(lower, upper)); }
   void insert(T point) { insert(Interval<T>(point)); }
   void insert(Interval<T> interval) {
