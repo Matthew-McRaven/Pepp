@@ -242,10 +242,6 @@ std::vector<pepp::core::Interval<uint8_t>> runs_of(const std::bitset<256> &bits)
   return out;
 }
 
-std::vector<pepp::core::Interval<uint8_t>> intervals_of(const pepp::core::IntervalSet<uint8_t> &set) {
-  const auto &intervals = set.intervals();
-  return {intervals.begin(), intervals.end()};
-}
 } // namespace
 
 TEST_CASE("IntervalSet agrees with a bitset oracle", "[scope:core][scope:core.math][kind:unit][arch:*]") {
@@ -261,7 +257,7 @@ TEST_CASE("IntervalSet agrees with a bitset oracle", "[scope:core][scope:core.ma
       int lo = pick(rng), hi = std::min(255, lo + len(rng));
       set.insert(uint8_t(lo), uint8_t(hi));
       for (int v = lo; v <= hi; ++v) oracle.set(v);
-      REQUIRE(intervals_of(set) == runs_of(oracle));
+      REQUIRE(set.intervals() == runs_of(oracle));
     }
     // Check that final result did not add or remove any values.
     std::bitset<256> queried;

@@ -45,7 +45,7 @@ public:
                                    [value](const Interval<T> &e) { return e.upper() < value; });
     return it != _intervals.end() && pepp::core::contains(*it, value);
   }
-  std::span<const Interval<T>> intervals() const { return _intervals; }
+  const auto &intervals() const { return _intervals; }
   // Keeps the allocation, so a set refilled every repaint stops allocating once it reaches its high-water mark.
   void clear() { _intervals.clear(); }
 
