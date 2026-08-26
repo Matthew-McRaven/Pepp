@@ -12,7 +12,6 @@ add_executable(SvgDom
     src/Timer.h
     src/SvgDocument.cpp
     src/SvgDocument.hpp
-    src/SvgDocument_p.hpp
     src/SvgParser.hpp
     src/SvgElement.cpp
     src/SvgElement.hpp

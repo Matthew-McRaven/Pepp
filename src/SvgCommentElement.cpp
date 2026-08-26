@@ -1,11 +1,9 @@
 #include "SvgCommentElement.hpp"
-#include "SvgDocument_p.hpp"
 
 //	Standard library
 #include <format> //  std::format
 #include <string>
 
-#include "SvgDocument_p.hpp"
 #include "utility_p.hpp"
 
 /*
