@@ -91,22 +91,6 @@ TEST_CASE("(new) Dense storage out-of-bounds access", "[scope:core][scope:core.s
   REQUIRE_THROWS_AS(dev.write(0x11, {tmp, 1}, op), Error);
 }
 
-namespace {
-using Changes = std::vector<AddressSpan>;
-Changes changes_of(const Dense &dev) {
-  pepp::core::IntervalSet<Address> set;
-  dev.collect_changes(set);
-  return set.intervals();
-}
-
-// Writes `length` bytes of arbitrary-but-deterministic data at `address`.
-void poke(Dense &dev, Address address, std::size_t length) {
-  static const u8 buf[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-  REQUIRE(length <= sizeof(buf));
-  dev.write(address, {buf, length}, op);
-}
-} // namespace
-
 TEST_CASE("(new) Dense change tracking", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
   // A non-zero lower bound, so that a device offset can never be mistaken for an address.
   static constexpr Address base = 0x10, last = 0xFF;
@@ -130,7 +114,7 @@ TEST_CASE("(new) Dense change tracking", "[scope:core][scope:core.sim][kind:unit
     // 1/2/4/8 cover specialized switch branches, 3/5/16 take the memcpy route.
     auto length = GENERATE(as<std::size_t>{}, 1, 2, 3, 4, 5, 8, 16);
     auto dev = make_dense(span);
-    poke(dev, 0x20, length);
+    poke(dev, 0x20, length, op);
     CHECK(changes_of(dev) == Changes{{0x20, Address(0x20 + length - 1)}});
   }
 
@@ -143,20 +127,20 @@ TEST_CASE("(new) Dense change tracking", "[scope:core][scope:core.sim][kind:unit
   SECTION("handles spans at the extremes") {
     // The run at `last` is terminated by running out of device rather than by a clean byte.
     auto dev = make_dense(span);
-    poke(dev, base, 1);
-    poke(dev, last, 1);
+    poke(dev, base, 1, op);
+    poke(dev, last, 1, op);
     CHECK(changes_of(dev) == Changes{{base, base}, {last, last}});
   }
 
   SECTION("collect_changes does not modify Target") {
     auto dev = make_dense(span);
-    poke(dev, 0x20, 1);
+    poke(dev, 0x20, 1, op);
     CHECK(changes_of(dev) == Changes{{0x20, 0x20}});
     CHECK(changes_of(dev) == Changes{{0x20, 0x20}});
   }
   SECTION("collect_changes does not clear set") {
     auto dev = make_dense(span);
-    poke(dev, 0x20, 1);
+    poke(dev, 0x20, 1, op);
     // Changes are added to whatever the caller already had, so one set can span many devices.
     pepp::core::IntervalSet<Address> set;
     set.insert(0x80, 0x81);
@@ -174,14 +158,14 @@ TEST_CASE("(new) Dense change tracking", "[scope:core][scope:core.sim][kind:unit
 
   SECTION("clear_changes does not affect data") {
     auto dev = make_dense(span);
-    poke(dev, 0x20, 4);
-    poke(dev, 0x40, 1);
+    poke(dev, 0x20, 4, op);
+    poke(dev, 0x40, 1, op);
     dev.clear_changes();
     CHECK(changes_of(dev) == Changes{});
     const u8 truth[4] = {0, 1, 2, 3};
     compare(dev.data().data() + 0x20 - base, truth, 4);
     // Only writes made after the clear are reported.
-    poke(dev, 0x60, 2);
+    poke(dev, 0x60, 2, op);
     CHECK(changes_of(dev) == Changes{{0x60, 0x61}});
   }
 
@@ -192,7 +176,7 @@ TEST_CASE("(new) Dense change tracking", "[scope:core][scope:core.sim][kind:unit
 
   SECTION("clear() discards accumulated changes") {
     auto dev = make_dense(span);
-    poke(dev, 0x20, 4);
+    poke(dev, 0x20, 4, op);
     dev.clear(0x00);
     CHECK(changes_of(dev) == Changes{});
   }
