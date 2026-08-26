@@ -5,13 +5,12 @@
 #include "SvgInterface.h"
 
 //	Forward declarations
-class SvgBasicElementImpl;
-class DocumentImpl;
+class Document;
 
 class SvgBasicElement final : public SvgInterface
 {
     //  Pointer to document for callbacks
-    DocumentImpl *_doc{};
+    Document *_doc{};
 
     //  Standard Xml Data
     SvgInterface::SvgType _elementType = SvgInterface::SvgType::SvgUnknownElement;
@@ -20,7 +19,7 @@ class SvgBasicElement final : public SvgInterface
 
 public:
     SvgBasicElement();
-    explicit SvgBasicElement(DocumentImpl *d);
+    explicit SvgBasicElement(Document *d);
 
     explicit SvgBasicElement(const std::string &xmlName, const std::string &value = "");
     ~SvgBasicElement() = default;

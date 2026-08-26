@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cassert>
-#include <memory>
 #include <string>
 
 //  Library classes
 #include "SvgElement.hpp"
+#include "SvgParser.hpp"
 #include "SvgRectElement.hpp"
 #include "SvgSvgElement.hpp"
 
@@ -15,20 +15,36 @@ class SvgInterface;
 
 class Document
 {
-    std::unique_ptr<DocumentImpl> _impl;
+    bool _readOnly = false;
+    bool _exists = false;
+    std::string _fileName{};
+    SvgSvgElement _svgDocument;
+    std::list<SvgElement *> _parents;
+    std::list<std::unique_ptr<SvgElement>> _children;
+    std::list<std::unique_ptr<SvgInterface>> _children2;
+
+    //  Temporaries from reading xml file
+    std::string _streamInput{};
+    size_t _fileSize{};
+
+    bool read();
+    bool save() const;
+    std::string flattenRope(SvgRope &rope) const;
+    bool parse();
 
 public:
-    Document();
+    Document() = default;
     explicit Document(const std::string &name);
-    ~Document();
+    ~Document() = default;
     //Cannot copy, but can move
     Document(const Document &) = delete;
     Document &operator=(const Document &) = delete;
-    Document(Document &&) noexcept;
-    Document &operator=(Document &&) noexcept;
+    Document(Document &&) noexcept = default;
+    Document &operator=(Document &&) noexcept = default;
 
     //  Document searching
-    SvgSvgElement &documentElement() const;
+    SvgSvgElement &documentElement();
+    const SvgSvgElement &documentElement() const;
     SvgElement *createElement(const std::string &name = "");
     SvgInterface *createElement2(const std::string &name = "");
 
@@ -43,7 +59,9 @@ public:
 
     //	File options
     bool fromXml(const std::string &svgData);
-    const std::string &toXml();
+    const std::string toXml() const;
+
+    void addFromParser(const std::string &key, const std::string &value, const XmlNode::Type type);
 
     bool open(const std::string &fileName, bool readOnly = false);
     bool exists(const std::string &fileName);

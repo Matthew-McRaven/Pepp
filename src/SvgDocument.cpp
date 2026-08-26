@@ -1,9 +1,4 @@
 #include "SvgDocument.hpp"
-#include "SvgDocument_p.hpp"
-
-// SvgDom uses PIMPL pattern to manage data access. Data and functions
-// in Impl struct are not part of the public interface and may
-// change without notice.
 
 //	Standard library
 #include <filesystem>
@@ -39,77 +34,64 @@ and SVG documents implement the XMLDocument interface using MIME type of
 */
 
 //	Public interface
-Document::Document()
-    : _impl(std::make_unique<DocumentImpl>())
-{}
-
 Document::Document(const std::string &name)
     : Document()
 {
     open(name);
 }
 
-//	Need to move implementation after Impl structure so unique_ptr will see full
-//	definition. Otherwise, compiler error
-Document::~Document() = default;
-Document::Document(Document &&) noexcept = default;
-Document &Document::operator=(Document &&) noexcept = default;
-
 //  Accessors
-SvgSvgElement &Document::documentElement() const
+SvgSvgElement &Document::documentElement()
 {
-    return _impl->svgDocument;
+    return _svgDocument;
+}
+const SvgSvgElement &Document::documentElement() const
+{
+    return _svgDocument;
 }
 
 SvgElement *Document::createElement(const std::string &name)
 {
-    return _impl->createElement(name);
-}
-SvgElement *DocumentImpl::createElement(const std::string &name)
-{
     if (name == "rect"s)
-        children.push_back(std::make_unique<SvgRectElement>());
+        _children.push_back(std::make_unique<SvgRectElement>());
     else
-        children.push_back(std::make_unique<SvgElement>(name));
+        _children.push_back(std::make_unique<SvgElement>(name));
 
-    return children.back().get();
+    return _children.back().get();
 }
 SvgInterface *Document::createElement2(const std::string &name)
 {
-    return _impl->createElement2(name);
-}
-SvgInterface *DocumentImpl::createElement2(const std::string &name)
-{
     if (name == "title"s) {
-        children2.push_back(std::make_unique<SvgBasicElement>(this));
-        children2.back()->setElementType(SvgInterface::SvgType::SvgTitleElement);
+        _children2.push_back(std::make_unique<SvgBasicElement>(this));
+        _children2.back()->setElementType(SvgInterface::SvgType::SvgTitleElement);
     }
 
-    return children2.back().get();
+    return _children2.back().get();
 }
 
 //  File operations
 void Document::saveAs(const std::string &fileName)
 {
-    _impl->fileName = fileName;
+    _fileName = fileName;
 
-    Timer<> t1;
+    Timer t1;
     t1.start();
-    bool success = _impl->save();
+    bool success = save();
     t1.finish();
     std::cout << "ofstream::write: " << t1.elapsedTime() << (success ? " Pass" : " Fail")
               << std::endl;
 }
 
-bool DocumentImpl::save()
+bool Document::save() const
 {
     //	Try and open sourcefile
-    std::ofstream svgFile(fileName, std::ios::out | std::ios::binary);
+    std::ofstream svgFile(_fileName, std::ios::out | std::ios::binary);
     if (!svgFile.is_open())
         return false;
 
     //  Rebuild object tree into xml
-    toXml();
+    SvgRope rope;
+    auto contents = std::move(flattenRope(rope));
 
     svgFile.write(contents.data(), contents.size());
     svgFile.close();
@@ -119,42 +101,42 @@ bool DocumentImpl::save()
 
 bool Document::fromXml(const std::string &svgData)
 {
-    _impl->contents = svgData;
-    return _impl->parse();
+    _streamInput = svgData;
+    return parse();
 }
 
 bool Document::open(const std::string &fileName, bool readOnly)
 {
-    _impl->fileName = fileName;
-    _impl->readOnly = readOnly;
+    _fileName = fileName;
+    _readOnly = readOnly;
 
     //  File open
-    if (!fs::exists(_impl->fileName)) {
+    if (!fs::exists(_fileName)) {
         //  File doesn't exist, needs to initialize
-        _impl->exists = false;
+        _exists = false;
         return false;
     }
 
     Timer t1;
     t1.start();
-    if (!_impl->read()) {
-        std::cout << "Cannot open file: " << _impl->fileName;
+    if (!read()) {
+        std::cout << "Cannot open file: " << _fileName;
         return false;
     }
     t1.finish();
     std::cout << "ifstream::read: " << t1.elapsedTime() << std::endl;
 
-    return _impl->parse();
+    return parse();
 }
 
-bool DocumentImpl::parse()
+bool Document::parse()
 {
     //  Create on heap to avoid stack warnings from compiler
-    std::unique_ptr<SvgParser<DocumentImpl>> parser(new SvgParser<DocumentImpl>(*this));
+    std::unique_ptr<SvgParser<Document>> parser(new SvgParser<Document>(*this));
     Timer t;
     t.start();
     try {
-        parser->parse(contents);
+        parser->parse(_streamInput);
     } catch (...) {
         std::cout << "Error parsing file." << std::endl;
         return false;
@@ -164,20 +146,20 @@ bool DocumentImpl::parse()
     return true;
 }
 
-bool DocumentImpl::read()
+bool Document::read()
 {
     //	Try and open sourcefile
-    std::ifstream svgFile(fileName, std::ios::in | std::ios::binary);
-    fileSize = static_cast<size_t>(std::filesystem::file_size(fileName));
+    std::ifstream svgFile(_fileName, std::ios::in | std::ios::binary);
+    _fileSize = static_cast<size_t>(std::filesystem::file_size(_fileName));
 
     //  Size to current file
-    if (fileSize > contents.size())
-        contents.resize(fileSize);
+    if (_fileSize > _streamInput.size())
+        _streamInput.resize(_fileSize);
 
-    exists = true;
+    _exists = true;
 
     //  Copy file contents to string
-    svgFile.read(&contents[0], fileSize);
+    svgFile.read(&_streamInput[0], _fileSize);
 
     return true;
 }
@@ -185,26 +167,26 @@ bool DocumentImpl::read()
 //	When parsing, we want parser to return pointer to data
 //  structure for these items.
 //	This function is a callback from the xml parser
-void DocumentImpl::addFromParser(const std::string &key,
-                                 const std::string &value,
-                                 const XmlNode::Type type)
+void Document::addFromParser(const std::string &key,
+                             const std::string &value,
+                             const XmlNode::Type type)
 {
     switch (type) {
     case XmlNode::Type::RootElement:
         //  Root element is already created since it is required.
-        svgDocument.setXmlName(key);
-        svgDocument.setValue(value);
-        parents.push_back(&svgDocument);
+        _svgDocument.setXmlName(key);
+        _svgDocument.setValue(value);
+        _parents.push_back(&_svgDocument);
         break;
     case XmlNode::Type::RootAttribute:
     case XmlNode::Type::Attribute: //  No current differences in attributes
-        parents.back()->setAttribute(key, value);
+        _parents.back()->setAttribute(key, value);
         break;
     case XmlNode::Type::Element: {
         auto *element = createElement(key);
         element->setValue(value);
-        parents.back()->appendChild(element);
-        parents.push_back(element);
+        _parents.back()->appendChild(element);
+        _parents.push_back(element);
         break;
     }
     case XmlNode::Type::Comment: {
@@ -215,46 +197,41 @@ void DocumentImpl::addFromParser(const std::string &key,
 
         //  A comment can never be a parent. End element is not called
         //  Do not store value on parent stack.
-        parents.back()->appendChild(element);
+        _parents.back()->appendChild(element);
         break;
     }
     case XmlNode::Type::EndElement:
-        parents.pop_back();
+        _parents.pop_back();
         break;
     }
 }
 
-const std::string &Document::toXml()
+const std::string Document::toXml() const
 {
-    _impl->toXml();
-    return _impl->contents;
+    SvgRope rope;
+    return std::move(flattenRope(rope));
 }
 
 //  Loop throug all elements and get a rope of values.
 //  flatten values into a single string that is later
 //  persisted.
-void DocumentImpl::toXml()
+std::string Document::flattenRope(SvgRope &rope) const
 {
-    //  Clear previous result
-    contents.clear();
+    std::string xml;
 
     //  Create in memory rope of Xml structure
-    svgDocument.toXml(rope);
-
-    //std::cout << "capacity.size()=" << contents.capacity() << ", rope.size()=" << rope.size()
-    //          << std::endl;
+    _svgDocument.toXml(rope);
 
     //  Resize string if Xml is longer than current string length
-    if (contents.capacity() < rope.size()) {
-        contents.resize(rope.size() + 1);
-        contents.clear();
+    if (xml.capacity() < rope.size()) {
+        xml.resize(rope.size() + 1);
+        xml.clear();
     }
 
     //  Create single string in memory
     for (auto &fragment : rope.rope()) {
-        contents.append(fragment);
+        xml.append(fragment);
     }
 
-    //  Free up memory
-    rope.clear();
+    return std::move(xml);
 }

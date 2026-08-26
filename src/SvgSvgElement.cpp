@@ -26,25 +26,6 @@ SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &valu
     _value = value;
 }
 
-//  Cast base pointer to derived class. Need for all custom functions in derived class
-/*SvgSvgElementImpl *SvgSvgElement::derivedThis()
-{
-    static SvgSvgElementImpl *derived{};
-    if (derived == nullptr) {
-        derived = static_cast<SvgSvgElementImpl *>(_impl.get());
-    }
-    return derived;
-}
-
-const SvgSvgElementImpl *SvgSvgElement::derivedThis() const
-{
-    static SvgSvgElementImpl *derived{};
-    if (derived == nullptr) {
-        derived = static_cast<SvgSvgElementImpl *>(_impl.get());
-    }
-    return derived;
-}*/
-
 //  Derived class accessors
 SvgRect &SvgSvgElement::viewBox()
 {

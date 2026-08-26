@@ -3,7 +3,7 @@
 //	Standard library
 #include <string>
 
-#include "SvgDocument_p.hpp"
+#include "SvgDocument.hpp"
 #include "SvgInterface.h"
 #include "utility_p.hpp"
 
@@ -24,7 +24,7 @@ SvgBasicElement::SvgBasicElement()
 }
 
 //	Public interface
-SvgBasicElement::SvgBasicElement(DocumentImpl *d)
+SvgBasicElement::SvgBasicElement(Document *d)
     : SvgBasicElement()
 {
     _doc = d;

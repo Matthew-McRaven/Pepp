@@ -15,14 +15,11 @@ class SvgRectElement final : public SvgElement
     SvgUnitValue _rx;
     SvgUnitValue _ry;
 
-    //SvgRectElementImpl *derivedThis();
-    //const SvgRectElementImpl *derivedThis() const;
-
 public:
     SvgRectElement();
     explicit SvgRectElement(const std::string &name, const std::string &value = "");
     ~SvgRectElement() = default;
-    //Cannot copy, but can move
+    //Allo copy and move
     SvgRectElement(const SvgRectElement &) = default;
     SvgRectElement &operator=(const SvgRectElement &) = default;
     SvgRectElement(SvgRectElement &&) noexcept = default;
