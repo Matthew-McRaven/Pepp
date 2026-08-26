@@ -75,6 +75,10 @@ public:
   void collect_changes(pepp::core::IntervalSet<Address> &changed) const override;
   void clear_changes() override;
 
+  // Convenience methods to extract host-order integers.
+  using Target::read;
+  using Target::write;
+
 private:
   mutable struct PerformanceCounters {
     u64 rd_bytes = 0;
