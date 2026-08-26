@@ -13,6 +13,7 @@ option(BUILD_SHARED_LIBS
        "Build using shared libraries. May be ignored on some platforms" ON)
 option(PEPP_BUILD_PYTHON "Build only Python bindings" OFF)
 option(PEPP_BUILD_GUI "Build GUI applications" ON)
+option(PEPP_PRECOMPILE_HEADERS "Enable precompiled headers" ON)
 option(SANITIZE "Enable sanitizers" OFF)
 option(CODECOV "Enable code coverage" OFF)
 option(TIME_TRACE "Enable clang time trace" OFF)
@@ -44,6 +45,7 @@ if(PEPP_PRECOMPILE_HEADERS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 include(config/cmake/inject_defs.cmake)
+include(config/cmake/pch.cmake)
 # Not respected by all generators, but incredibly useful when debugging builds.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
