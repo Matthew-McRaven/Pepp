@@ -83,7 +83,7 @@ if(WIN32)
     COMMAND_EXPAND_LISTS)
   # Must specify antlr, because we can't easily install 3rd-party deps.
   install(
-    TARGETS pepp pepp-lib test-lib-all
+    TARGETS pepp pepp-lib
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
@@ -91,7 +91,7 @@ elseif(APPLE)
   # Install our pepp application antlr4 isn't copied by any target since it is a
   # 3rd-party dependency. we must copy it here in a platform-dependent way.
   install(
-    TARGETS pepp pepp-lib test-lib-all
+    TARGETS pepp pepp-lib
     COMPONENT Pepp
     LIBRARY DESTINATION pepp.app/Contents/Frameworks
     BUNDLE DESTINATION .)
@@ -106,7 +106,7 @@ elseif(APPLE)
   set_target_properties(pepp PROPERTIES OUTPUT_NAME "Pepp")
 elseif(EMSCRIPTEN)
   install(
-    TARGETS pepp pepp-lib test-lib-all
+    TARGETS pepp pepp-lib
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
@@ -119,7 +119,7 @@ elseif(EMSCRIPTEN)
 else()
   # Otherwise use default install logic on Linux for now.
   install(
-    TARGETS pepp pepp-lib test-lib-all
+    TARGETS pepp pepp-lib
     COMPONENT Pepp
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION .)
