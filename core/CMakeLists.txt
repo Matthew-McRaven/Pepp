@@ -16,3 +16,19 @@ target_link_libraries(
          zpp_bits
          cnl)
 target_include_directories(pepp-core PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+
+# Only precompile standard library headers for now. In the future, this could be
+# extended to include common "internal" headers.
+if(PEPP_PRECOMPILE_HEADERS)
+  pepp_precompile_headers(
+    pepp-core
+    PRIVATE
+    <string>
+    <memory>
+    <vector>
+    <map>
+    <optional>
+    <algorithm>
+    <stdexcept>
+    <array>)
+endif()

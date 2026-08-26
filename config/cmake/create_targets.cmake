@@ -10,6 +10,11 @@ qt6_add_library(test-lib-all-int INTERFACE)
 qt6_add_library(test-lib-all OBJECT)
 target_link_libraries(test-lib-all PUBLIC test-lib-all-int)
 set_target_properties(test-lib-all PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Don't need catch.hpp, because it arrives via an INTERFACE precompiled header
+if(PEPP_PRECOMPILE_HEADERS)
+  pepp_precompile_headers(test-lib-all PRIVATE <QtCore>)
+endif()
 # test-all bundles all the tests into a single executable to provide a runnable
 # target in the IDE other than pepp-term selftest.
 qt6_add_executable(test-all ${PROJECT_SOURCE_DIR}/config/cmake/main.cpp)

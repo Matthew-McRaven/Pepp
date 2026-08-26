@@ -37,11 +37,16 @@ if(TIME_TRACE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   message(STATUS "Enabling clang time trace")
   add_compile_options(-ftime-trace)
 endif()
-# Clang stamps the PCH with its sources' times and rejects the PCH when they
-# differ. If using PCH with a compiler cache, this would effectively invalidate
-# the cache. See: https://ccache.dev/manual/latest.html#_precompiled_headers
-if(PEPP_PRECOMPILE_HEADERS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Xclang -fno-pch-timestamp)
+
+if(PEPP_PRECOMPILE_HEADERS)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # Clang stamps the PCH with its sources' times and rejects the PCH when they
+    # differ. If using PCH with a compiler cache, this would effectively invalidate
+    # the cache. See: https://ccache.dev/manual/latest.html#_precompiled_headers
+    add_compile_options(-Xclang -fno-pch-timestamp)
+  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options(/Yl-)
+  endif()
 endif()
 
 include(config/cmake/inject_defs.cmake)
