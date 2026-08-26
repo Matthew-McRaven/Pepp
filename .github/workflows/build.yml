@@ -167,12 +167,18 @@ jobs:
         env:
           DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_TEAM_ID }}
           CCACHE_LOGFILE: ccache.log
+          # ccache needs adjustments for precompiled headers to work.
+          # See: https://ccache.dev/manual/latest.html#_precompiled_headers
+          CCACHE_SLOPPINESS: pch_defines,time_macros
 
 
       - name: Run build
         run: cmake --build build -j6 ${{ contains(inputs.name, 'MSVC') && format('--config {0}', inputs.variant) ||'' }}
         env:
           CCACHE_LOGFILE: ccache.log
+          # ccache needs adjustments for precompiled headers to work.
+          # See: https://ccache.dev/manual/latest.html#_precompiled_headers
+          CCACHE_SLOPPINESS: pch_defines,time_macros
 
       - name: Upload compile_commands.json on failure
         if: failure()

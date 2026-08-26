@@ -160,7 +160,8 @@ jobs:
           - { name: "Ubuntu 24.04; EMSDK 4.1.07", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.18.1", cmake_generator: "Ninja", compiler_launcher: "ccache", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.11.0/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
           # See: https://bugreports.qt.io/browse/QTBUG-118086
           - { name: "MacOS-15 ARM64", cache_name: 'macos-clang-arm', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-arm", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
-          - { name: "MacOS-15 x86-64", cache_name: 'macos-clang-x86', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-x86", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
+          # Also disabled precompiled headers as a canary case. MacOS tends to be the fastest.
+          - { name: "MacOS-15 x86-64", cache_name: 'macos-clang-x86', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-x86", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64 -D PEPP_PRECOMPILE_HEADERS=OFF' }
           - { name: "Windows Latest; MSVC", cache_name: 'windows-msvc', runs-on: "windows-latest" , compiler_launcher: "ccache", artifact_key: "artifact-windows", cmake_generator: "Ninja", debug_variant: 'Release', release_variant: 'Release', cmake_xargs: '-D CMAKE_C_COMPILER=cl -D CMAKE_CXX_COMPILER=cl'}
 
     permissions:

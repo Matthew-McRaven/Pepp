@@ -13,27 +13,35 @@ option(BUILD_SHARED_LIBS
        "Build using shared libraries. May be ignored on some platforms" ON)
 option(PEPP_BUILD_PYTHON "Build only Python bindings" OFF)
 option(PEPP_BUILD_GUI "Build GUI applications" ON)
-# Allow normalized paths (e.g., "toolchain/pas" ) without nesting that directory
-# folder inside a nested "src" hierarchy. May cause linking issues if you do not
-# pay attention.
-include_directories(${CMAKE_CURRENT_LIST_DIR}/lib)
-
 option(SANITIZE "Enable sanitizers" OFF)
 option(CODECOV "Enable code coverage" OFF)
 option(TIME_TRACE "Enable clang time trace" OFF)
-if(SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  add_compile_options(-fsanitize=undefined -fsanitize=address)
-  add_link_options(-fsanitize=undefined -fsanitize=address)
-endif()
-if(TIME_TRACE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  add_compile_options(-ftime-trace)
-endif()
 
 # DO NOT AUTO-FORMAT. CI looks for a line with this format to extract the
 # version.
 # cmake-format: off
 project(Pepp VERSION 0.16.0 LANGUAGES C CXX)
 # cmake-format: on
+
+# Allow normalized paths (e.g., "toolchain/pas" ) without nesting that directory
+# folder inside a nested "src" hierarchy. May cause linking issues if you do not
+# pay attention.
+include_directories(${CMAKE_CURRENT_LIST_DIR}/lib)
+
+if(SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  add_compile_options(-fsanitize=undefined -fsanitize=address)
+  add_link_options(-fsanitize=undefined -fsanitize=address)
+endif()
+if(TIME_TRACE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  message(STATUS "Enabling clang time trace")
+  add_compile_options(-ftime-trace)
+endif()
+# Clang stamps the PCH with its sources' times and rejects the PCH when they
+# differ. If using PCH with a compiler cache, this would effectively invalidate
+# the cache. See: https://ccache.dev/manual/latest.html#_precompiled_headers
+if(PEPP_PRECOMPILE_HEADERS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Xclang -fno-pch-timestamp)
+endif()
 
 include(config/cmake/inject_defs.cmake)
 # Not respected by all generators, but incredibly useful when debugging builds.
