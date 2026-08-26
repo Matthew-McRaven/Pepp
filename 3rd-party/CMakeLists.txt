@@ -90,6 +90,16 @@ if(PEPP_BUILD_GUI)
   set(monaspace_SOURCE_DIR
       "${CMAKE_CURRENT_BINARY_DIR}/monaspace"
       PARENT_SCOPE)
+
+  if(PEPP_PRECOMPILE_HEADERS)
+    pepp_precompile_headers(scintilla_qt PRIVATE <QtCore>)
+    pepp_precompile_headers(lexilla PRIVATE <QtCore>)
+    pepp_precompile_headers(kddockwidgets PRIVATE <QtCore>)
+    pepp_precompile_headers(
+      antlr4_shared PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/antlr4/runtime/src/antlr4-common.h"
+      "${CMAKE_CURRENT_LIST_DIR}/antlr4/runtime/src/Exceptions.h")
+  endif()
 endif()
 
 # CXXGraph has some annoying packaging "stuff" for being a header-only library
