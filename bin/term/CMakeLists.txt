@@ -5,6 +5,10 @@ target_link_libraries(pepp-term PRIVATE cli Qt6::Core catch test-lib-all
                                         pepp-lib catch)
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
+if(PEPP_PRECOMPILE_HEADERS)
+  target_precompile_headers(pepp-term PRIVATE <QtCore>)
+endif()
+
 if(WIN32)
   install(
     TARGETS pepp-term

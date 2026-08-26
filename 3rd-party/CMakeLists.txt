@@ -92,9 +92,16 @@ if(PEPP_BUILD_GUI)
       PARENT_SCOPE)
 
   if(PEPP_PRECOMPILE_HEADERS)
+
     pepp_precompile_headers(scintilla_qt PRIVATE <QtCore>)
     pepp_precompile_headers(lexilla PRIVATE <QtCore>)
     pepp_precompile_headers(kddockwidgets PRIVATE <QtCore>)
+    # The unit-test targets only inherited catch.hpp via catch's INTERFACE PCH.
+    foreach(_t IN ITEMS lexilla_unit scintilla_unit_qt)
+      if(TARGET ${_t})
+        pepp_precompile_headers(${_t} PRIVATE <QtCore>)
+      endif()
+    endforeach()
     pepp_precompile_headers(
       antlr4_shared PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/antlr4/runtime/src/antlr4-common.h"
