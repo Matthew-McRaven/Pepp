@@ -58,7 +58,7 @@ target_link_libraries(
          Qt6::Quick
          Qt6::Sql
          $<$<TARGET_EXISTS:Qt6::Concurrent>:Qt6::Concurrent>
-         antlr4_shared
+         ${PEPP_ANTLR4_TARGET}
          elfio
          lru-cache
          scintilla_qt
@@ -72,7 +72,8 @@ target_link_libraries(
          pepp-changelog)
 # Will fail to find hpp files without this, see
 # https://bugreports.qt.io/browse/QTBUG-101146.
-get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
+get_target_property(ANTLR4_INCLUDE_DIR ${PEPP_ANTLR4_TARGET}
+                    INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
                                            ${ANTLR4_INCLUDE_DIR})
 target_include_directories(

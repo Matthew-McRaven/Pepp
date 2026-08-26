@@ -69,7 +69,7 @@ set_target_properties(
              WIN32_EXECUTABLE TRUE
              FOLDER "qtc_runnable")
 # DLL/dylibs/SO we want to copy without copying over their headers too
-set(pepp_vendored_libs antlr4_shared fmt spdlog catch)
+set(pepp_vendored_libs ${PEPP_ANTLR4_TARGET} fmt spdlog catch)
 if(WIN32)
   # Non-DLL platforms have empty generator expression, so use more generator
   # magic to only copy DLLs if they exist.

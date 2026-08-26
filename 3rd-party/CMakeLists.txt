@@ -43,7 +43,30 @@ if(PEPP_BUILD_GUI)
   # On Windows, we ship with MSVC redistributable. Mismatch on static CRT
   # linkage causes compile errors on Windows.
   set(WITH_STATIC_CRT CACHE INTERNAL FALSE FORCE)
+  # Build only the antlr4 runtime flavor we actually link. Default builds both,
+  # which wastes compile time.
+  if(BUILD_SHARED_LIBS)
+    set(ANTLR_BUILD_SHARED
+        ON
+        CACHE BOOL "" FORCE)
+    set(ANTLR_BUILD_STATIC
+        OFF
+        CACHE BOOL "" FORCE)
+    set(PEPP_ANTLR4_TARGET antlr4_shared)
+  else()
+    set(ANTLR_BUILD_SHARED
+        OFF
+        CACHE BOOL "" FORCE)
+    set(ANTLR_BUILD_STATIC
+        ON
+        CACHE BOOL "" FORCE)
+    set(PEPP_ANTLR4_TARGET antlr4_static)
+  endif()
   add_subdirectory(antlr4)
+  # Consumers link ${PEPP_ANTLR4_TARGET} rather than naming a flavor.
+  set(PEPP_ANTLR4_TARGET
+      ${PEPP_ANTLR4_TARGET}
+      PARENT_SCOPE)
 
   add_subdirectory(scintilla)
 
@@ -103,7 +126,7 @@ if(PEPP_BUILD_GUI)
       endif()
     endforeach()
     pepp_precompile_headers(
-      antlr4_shared PRIVATE
+      ${PEPP_ANTLR4_TARGET} PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/antlr4/runtime/src/antlr4-common.h"
       "${CMAKE_CURRENT_LIST_DIR}/antlr4/runtime/src/Exceptions.h")
   endif()
