@@ -63,6 +63,39 @@ TEST_CASE("Sparse storage in-bounds access", "[scope:core][scope:core.sim][kind:
   compare(truth, tmp, length);
 }
 
+TEST_CASE("Sparse storage out-of-bounds access", "[scope:core][scope:core.sim][kind:int][arch:*][!throws]") {
+  auto span = AddressSpan(0xFE, 0xFE);
+
+  auto cfg = Sparse::Configuration{Device::Configuration{base_desc}};
+  cfg.span = span, cfg.fill = 0xFE, cfg.id = {};
+  // Initialize a memory block to a fixed value
+  Sparse dev(cfg);
+
+  // Create an 8-byte temporary buffer.
+  u64 reg = 0;
+  u8 *tmp = (u8 *)&reg;
+  // In-bound read does not throw, and retrives default value.
+  REQUIRE_NOTHROW(dev.read(0xFE, {tmp, 1}, op));
+
+  // Initialize tmp to be different than dev default value.
+  // Neither OOB read should update temp.
+  *tmp = 0xCA;
+  REQUIRE_THROWS_AS(dev.read(0xFD, {tmp, 1}, op), Error);
+  CHECK(*tmp == 0xCA);
+  REQUIRE_THROWS_AS(dev.read(0xFF, {tmp, 1}, op), Error);
+  CHECK(*tmp == 0xCA);
+  // Cross a page boundary
+  REQUIRE_THROWS_AS(dev.read(0x100, {tmp, 1}, op), Error);
+  CHECK(*tmp == 0xCA);
+
+  // Neither write will stick, so tmp is meaningless
+  *tmp = 0xfe;
+  REQUIRE_THROWS_AS(dev.write(0xFD, {tmp, 1}, op), Error);
+  REQUIRE_THROWS_AS(dev.write(0xFF, {tmp, 1}, op), Error);
+  // Cross a page boundary
+  REQUIRE_THROWS_AS(dev.write(0x100, {tmp, 1}, op), Error);
+}
+
 TEST_CASE("(new) Sparse change tracking", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
   // A non-zero lower bound, so that a device offset can never be mistaken for an address.
   static constexpr Address base = 0x10, last = 0xFF;
