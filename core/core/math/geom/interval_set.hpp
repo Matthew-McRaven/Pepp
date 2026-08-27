@@ -22,8 +22,8 @@ public:
   explicit IntervalSet(std::span<const T> points) {
     for (const auto &p : points) insert(p);
   }
-  explicit IntervalSet(const IntervalSet &other) : _intervals(other._intervals) {}
-  explicit IntervalSet(IntervalSet &&other) noexcept : _intervals(std::move(other._intervals)) {}
+  IntervalSet(const IntervalSet &other) : _intervals(other._intervals) {}
+  IntervalSet(IntervalSet &&other) noexcept : _intervals(std::move(other._intervals)) {}
   IntervalSet &operator=(const IntervalSet &) = default;
   IntervalSet &operator=(IntervalSet &&) noexcept = default;
 
