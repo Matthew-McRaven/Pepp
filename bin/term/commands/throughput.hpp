@@ -25,14 +25,20 @@ class ThroughputTask : public Task {
   Q_OBJECT
 public:
   enum class WhichVersion { Sim3, Core };
+  enum class TestProgram {
+    SelfBranch, // self: BR self
+    RMW,        // Accumulate a meaningless value into A.
+  };
   ThroughputTask(WhichVersion ver, QObject *parent = nullptr);
   ~ThroughputTask() = default;
   void run();
   // Both should return their "start" time
-  std::chrono::high_resolution_clock::time_point do_sim3();
-  std::chrono::high_resolution_clock::time_point do_core();
+  std::chrono::high_resolution_clock::time_point do_sim3(std::span<const u8> prog);
+  std::chrono::high_resolution_clock::time_point do_core(std::span<const u8> prog);
   u64 maxInstr = 100'000'000;
   bool has_bps = false;
+  bool use_sparse = false;
+  TestProgram program = TestProgram::SelfBranch;
 
 private:
   WhichVersion _version;
@@ -40,18 +46,25 @@ private:
 
 void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto instrThruSC = app.add_subcommand("mit", "Measure instruction throughput");
-  static ThroughputTask::WhichVersion version = ThroughputTask::WhichVersion::Sim3;
+  static ThroughputTask::WhichVersion version = ThroughputTask::WhichVersion::Core;
+  static ThroughputTask::TestProgram program = ThroughputTask::TestProgram::SelfBranch;
   static u64 maxInstr = 100'000'000;
-  static bool has_bps = false;
+  static bool has_bps = false, use_sparse = false;
   auto versionOpt =
       instrThruSC->add_option("-v,--version", version, "Which version to run")
           ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
               {"sim3", ThroughputTask::WhichVersion::Sim3}, {"core", ThroughputTask::WhichVersion::Core}}));
-
+  auto programOpt =
+      instrThruSC->add_option("-p,--program", program, "Which test program to run")
+          ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::TestProgram>{
+              {"br", ThroughputTask::TestProgram::SelfBranch}, {"rmw", ThroughputTask::TestProgram::RMW}}));
   static auto maxInstrOpt =
       instrThruSC->add_option("-n,--max-instr", maxInstr, "Maximum number of instructions to run");
   static auto hasBpsOpt =
       instrThruSC->add_flag("--bps,!--no-bps", has_bps, "Add spurious breakpoints which will not be hit")
+          ->default_val(false);
+  static auto useSparseOpt =
+      instrThruSC->add_flag("--sparse,!--no-sparse", use_sparse, "Use Sparse storage for RAM rather then Dense")
           ->default_val(false);
   instrThruSC->group("");
   instrThruSC->callback([&]() {
@@ -60,6 +73,8 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
       auto ret = new ThroughputTask(version, parent);
       ret->maxInstr = maxInstr;
       ret->has_bps = has_bps;
+      ret->program = program;
+      ret->use_sparse = use_sparse;
       return ret;
     };
   });

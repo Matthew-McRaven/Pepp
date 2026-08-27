@@ -87,29 +87,29 @@ public:
   bool traced() const override;
   void on_traced_changed(bool enabled) override;
 
-  // Target interface. The slow, generic path, over the same single byte the Dense covered.
-  using Target::read;
-  using Target::write;
+  // Target interface
   AddressSpan span() const override;
   Result read(Address address, bits::span<u8> dest, Operation op) const override;
   Result write(Address address, bits::span<const u8> src, Operation op) override;
   void clear(u8 fill) override;
   void dump(bits::span<u8> dest) const override;
+  void collect_changes(pepp::core::IntervalSet<Address> &changed) const override;
+  void clear_changes() override;
 
-  // The Operation the typed writers record under. Set once, by the CPU that owns this bank.
+  // ID of the CPU which owns this register bank, which is needed to emit traces to the correct temporary buffer when
+  // not using the Target API.
   void set_initiator(Device::ID cpu);
 
 private:
-  // Record the xor if traced, then store. Always a whole-byte record: a single flag is a field of the packed
-  // register, and SETREGX names the register rather than the field.
+  // Record a trace of the register before storing the new value.
   void store(u8 value, Operation op);
 
   Configuration _config;
   u8 _nzvc = 0;
-  // Filled in by initialize(). SETREGX names its target by scan id, so a write cannot be recorded without it.
+  // Filled in by initialize(), and used to emit traces.
   RegisterScan::RegisterRef _ref{};
   trace::Recorder _trace;
-  // Mirror of the buffer's traced bit, pushed via on_traced_changed(). Read on every write.
+  // Cached value of TraeBuffer::traced(this->id()) to avoid repeated lookups in our hot path.
   bool _traced = false;
   Operation _op = Operation(Operation::Type::Standard, Operation::Kind::data, Device::ID{0});
 };

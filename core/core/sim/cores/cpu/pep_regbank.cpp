@@ -159,3 +159,9 @@ void PepRegisterBank::dump(bits::span<u8> dest) const {
     dest[i] = is_high_byte(static_cast<Address>(i)) ? static_cast<u8>(value >> 8) : static_cast<u8>(value & 0xFF);
   }
 }
+
+void PepRegisterBank::collect_changes(pepp::core::IntervalSet<Address> &changed) const { changed.insert(span()); }
+
+void PepRegisterBank::clear_changes() {
+  // No-op because we always conservatively report that the whole bank changed.
+}

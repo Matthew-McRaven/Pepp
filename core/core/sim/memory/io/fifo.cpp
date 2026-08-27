@@ -204,6 +204,7 @@ AddressSpan FIFORegister::span() const { return _config.span; }
 void FIFORegister::clear(u8) {
   _input.clear(), _output.clear();
   _input_it = _input.begin();
+  _changed = false;
 }
 
 void FIFORegister::reset() { clear(_config.fill); }
@@ -219,6 +220,12 @@ void FIFORegister::dump(bits::span<u8> dest) const {
   }
   bits::memcpy(dest, bits::span<const u8>{&v, sizeof(v)});
 }
+
+void FIFORegister::collect_changes(pepp::core::IntervalSet<Address> &changed) const {
+  if (_changed) changed.insert(_config.span);
+}
+
+void FIFORegister::clear_changes() { _changed = false; }
 
 Target::Result FIFORegister::read(Address address, bits::span<u8> dest, Operation op) const {
   using namespace bits;
@@ -240,6 +247,7 @@ Target::Result FIFORegister::read(Address address, bits::span<u8> dest, Operatio
     } else src = _input_it.value_or(_config.fill);
     // Record that the read consumed values from the input queue
     if (advances_input) {
+      _changed = true;
       _trace.emit_mm_read(op, address, src);
       if (!(_input_it.at_end())) ++_input_it;
     }
@@ -263,6 +271,7 @@ Target::Result FIFORegister::write(Address address, bits::span<const u8> src, Op
   const bool advances_output = !(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal);
   // This is an output reg. Only enqueue value if the operation is not part of an app-internal update.
   if (advances_output && any(_config.direction & FIFORegister::Direction::Output)) {
+    _changed = true;
     _trace.emit_mm_write(op, address, src.front());
     _output.push(src.front());
   }

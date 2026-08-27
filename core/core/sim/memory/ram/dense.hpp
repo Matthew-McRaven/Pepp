@@ -72,6 +72,12 @@ public:
 
   void clear(u8 fill) override;
   void dump(bits::span<u8> dest) const override;
+  void collect_changes(pepp::core::IntervalSet<Address> &changed) const override;
+  void clear_changes() override;
+
+  // Convenience methods to extract host-order integers.
+  using Target::read;
+  using Target::write;
 
 private:
   mutable struct PerformanceCounters {
@@ -80,6 +86,8 @@ private:
   } _counters = {};
   Configuration _config;
   std::vector<u8> _data;
+  // All types of writes will set _dirty for the spanned bytes.
+  std::vector<bool> _dirty;
   trace::Recorder _trace;
   // If false, then we definitely aren't traced and we can skip the overhead of emit via _trace.
   // If true, we either are traced or we don't know. Either way, we need to try to emit via _trace.

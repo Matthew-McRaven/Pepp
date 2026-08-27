@@ -22,6 +22,7 @@
 #include "core/sim/cores/cpu/pep_isa.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/ram/dense.hpp"
+#include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/system.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
 #include "sim3/subsystems/ram/dense.hpp"
@@ -49,26 +50,43 @@ auto make_sim3() {
   return std::pair{storage, cpu};
 };
 
-auto make_core() {
+auto make_core(bool use_sparse) {
   static constexpr auto isa = PepISA3CPU::ISA::Pep10;
   using namespace bits;
+
+  System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
+  auto system = std::make_unique<System>(root_cfg);
+
   PepISA3CPU::Configuration cpu_cfg{Device::Configuration{
                                         .basename = "cpu",
                                         .compatible = PepISA3CPU::compatible,
                                     },
                                     isa, "/memory"};
-  System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
-  Dense::Configuration mem_cfg{
-      Device::Configuration{
-          .basename = "memory",
-          .compatible = Dense::compatible,
-      },
-      0x00,
-      AddressSpan(0x0000, 0xffff),
-  };
-  auto system = std::make_unique<System>(root_cfg);
-  auto *mem = system->make_device<Dense>(mem_cfg);
   auto *cpu = system->make_device<PepISA3CPU>(cpu_cfg, system.get());
+
+  Target *mem = nullptr;
+  if (!use_sparse) {
+    Dense::Configuration mem_cfg{
+        Device::Configuration{
+            .basename = "memory",
+            .compatible = Dense::compatible,
+        },
+        0x00,
+        AddressSpan(0x0000, 0xffff),
+    };
+    mem = system->make_device<Dense>(mem_cfg);
+  } else {
+    Sparse::Configuration mem_cfg{
+        Device::Configuration{
+            .basename = "memory",
+            .compatible = Sparse::compatible,
+        },
+        0x00,
+        AddressSpan(0x0000, 0xffff),
+    };
+    mem = system->make_device<Sparse>(mem_cfg);
+  }
+
   system->initialize();
   return std::make_tuple(std::move(system), mem, cpu);
 }
@@ -78,10 +96,37 @@ ThroughputTask::ThroughputTask(WhichVersion ver, QObject *parent) : Task(parent)
 void ThroughputTask::run() {
   using namespace Qt::StringLiterals;
 
+  // Infinite looping branch to 0.
+  static constexpr std::array<u8, 3> SelfBranch{static_cast<u8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
+  // Program that calculates fib(n/3) in A, truncated to 16 bits of
+  // clang-format off
+  static constexpr std::array<u8, 12> RMW{
+      // Loop preamble
+      static_cast<u8>(isa::Pep10::Mnemonic::LDWA),     0x00, 0x01, // Pre-populate A with 1
+      // Loop body, which uses stores temporary data in LDWA's operand.
+      static_cast<u8>(isa::Pep10::Mnemonic::ADDA) + 1, 0x00, 0x01, // Add A to previous iteration's copy
+      static_cast<u8>(isa::Pep10::Mnemonic::STWA) + 1, 0x00, 0x01, // Store copy of A to 0x0001
+      static_cast<u8>(isa::Pep10::Mnemonic::BR),       0x00, 0x03  // Loop back to the start
+  };
+  // clang-format on
+  std::span<const u8> program = SelfBranch;
+  std::string program_name = "??";
+  switch (this->program) {
+  case TestProgram::SelfBranch:
+    program = SelfBranch;
+    program_name = "self-branch";
+    break;
+  case TestProgram::RMW:
+    program = RMW;
+    program_name = "read-modify-write loop";
+    break;
+  }
+  fmt::println("Selected program: {}", program_name);
+
   std::chrono::high_resolution_clock::time_point start;
   switch (_version) {
-  case WhichVersion::Sim3: start = do_sim3(); break;
-  case WhichVersion::Core: start = do_core(); break;
+  case WhichVersion::Sim3: start = do_sim3(program); break;
+  case WhichVersion::Core: start = do_core(program); break;
   }
   const auto end = std::chrono::high_resolution_clock::now();
   const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -94,12 +139,12 @@ void ThroughputTask::run() {
   emit finished(0);
 }
 
-std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3() {
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3(std::span<const u8> program) {
   static constexpr sim::api2::memory::Operation rw = {
       .type = sim::api2::memory::Operation::Type::Standard,
       .kind = sim::api2::memory::Operation::Kind::data,
   };
-  fmt::println("Selected: sim3");
+  fmt::println("Simulator: sim3");
   auto env = nullptr;
   // Add some spurious breakpoints which will not be hit
   // auto debugger = std::make_shared<pepp::debug::Debugger>(env);
@@ -116,24 +161,20 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3() {
   // cpu->setDebugger(&*debugger);
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
-  // Infinite looping branch to 0.
-  const auto program = std::array<quint8, 3>{static_cast<quint8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
-  mem->write(0, {program.data(), program.size()}, rw);
+  mem->write(0, program, rw);
   const auto start = std::chrono::high_resolution_clock::now();
   for (int it = 0; it < maxInstr; it++) cpu->clock(it);
   return start;
 }
 
-std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_core(std::span<const u8> program) {
   static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
-  fmt::println("Selected: core");
-  auto [system, mem, cpu] = make_core();
+  fmt::println("Simulator: core");
+  auto [system, mem, cpu] = make_core(this->use_sparse);
   cpu->write_register(isa::Pep10::Register::PC, 0x0000);
-  // Infinite looping branch to 0.
-  const auto program = std::array<u8, 3>{static_cast<u8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
-  mem->write(0x0000, {program.data(), program.size()}, rw);
+  mem->write(0x0000, program, rw);
   // We are untraced, provide explicit hints to avoid recording.
-  mem->on_traced_changed(false);
+  dynamic_cast<Traceable *>(mem)->on_traced_changed(false);
   cpu->on_traced_changed(false);
   cpu->csrs()->on_traced_changed(false);
   cpu->registers()->on_traced_changed(false);

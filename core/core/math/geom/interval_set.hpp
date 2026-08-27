@@ -15,6 +15,21 @@ template <std::unsigned_integral T> class IntervalSet {
   std::vector<Interval<T>> _intervals;
 
 public:
+  IntervalSet() = default;
+  explicit IntervalSet(std::span<const Interval<T>> intervals) {
+    for (const auto &i : intervals) insert(i);
+  }
+  explicit IntervalSet(std::span<const T> points) {
+    for (const auto &p : points) insert(p);
+  }
+  IntervalSet(const IntervalSet &other) : _intervals(other._intervals) {}
+  IntervalSet(IntervalSet &&other) noexcept : _intervals(std::move(other._intervals)) {}
+  IntervalSet &operator=(const IntervalSet &) = default;
+  IntervalSet &operator=(IntervalSet &&) noexcept = default;
+
+  void insert(const IntervalSet &other) {
+    for (const auto &i : other._intervals) insert(i);
+  }
   void insert(T lower, T upper) { insert(Interval<T>(lower, upper)); }
   void insert(T point) { insert(Interval<T>(point)); }
   void insert(Interval<T> interval) {
@@ -45,7 +60,7 @@ public:
                                    [value](const Interval<T> &e) { return e.upper() < value; });
     return it != _intervals.end() && pepp::core::contains(*it, value);
   }
-  std::span<const Interval<T>> intervals() const { return _intervals; }
+  const auto &intervals() const { return _intervals; }
   // Keeps the allocation, so a set refilled every repaint stops allocating once it reaches its high-water mark.
   void clear() { _intervals.clear(); }
 

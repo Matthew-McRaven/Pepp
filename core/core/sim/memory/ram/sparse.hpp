@@ -60,6 +60,12 @@ public:
   Result write(Address address, bits::span<const u8> src, Operation op) override;
   void clear(u8 fill) override;
   void dump(bits::span<u8> dest) const override;
+  void collect_changes(pepp::core::IntervalSet<Address> &changed) const override;
+  void clear_changes() override;
+
+  // Convenience methods to extract host-order integers.
+  using Target::read;
+  using Target::write;
 
 private:
   mutable struct PerformanceCounters {
@@ -68,5 +74,6 @@ private:
   } _counters = {};
   Configuration _config;
   pepp::bts::PagedPool<u8> _pool;
+  pepp::core::IntervalSet<Address> _changes;
   trace::Recorder _trace;
 };

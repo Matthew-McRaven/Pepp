@@ -140,16 +140,19 @@ Target::Result Sparse::write(Address address, bits::span<const u8> src, Operatio
   // but we don't pay the cost of reading the data.
   _trace.emit_write(op, address, src, [&](bits::span<u8> prior) { _pool.read(offset, prior); });
   _pool.write(offset, src);
+  _changes.insert(address, address + src.size() - 1);
   if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
 }
 
-// `fill` is the caller's choice for this one operation and deliberately does not become the device's new default:
-// config().fill is the power-on value that reset() reads back, and CLRMEM replaying out of a trace must not be able
-// to redefine it.
 void Sparse::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
   _pool.clear(fill);
+  _changes.clear();
 }
 
 void Sparse::dump(bits::span<u8> dest) const { ::dump(_pool, dest); }
+
+void Sparse::collect_changes(pepp::core::IntervalSet<Address> &changed) const { changed.insert(_changes); }
+
+void Sparse::clear_changes() { _changes.clear(); }

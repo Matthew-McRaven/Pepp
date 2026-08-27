@@ -47,11 +47,9 @@ void PepCSRBank::set_initiator(Device::ID cpu) {
 }
 
 void PepCSRBank::store(u8 value, Operation op) {
-  // Masked here so the invariant lives with the data: every path in, including a debugger writing the raw byte,
-  // lands in the low nibble.
+  // Extract only the low nibble, which contains the only defined bits.
   const auto masked = static_cast<u8>(value & MASK);
-  // Whole-byte record even when one flag moved: SETREGX names a register, and a field write would have to carry the
-  // field id and a mask to say the same thing in more bytes.
+  // Set whole register rather than separate fields to reduce size of trace.
   if (_traced) _trace.emit_write_register(op, _ref, static_cast<u8>(_nzvc ^ masked));
   _nzvc = masked;
 }
@@ -80,7 +78,6 @@ Device::Type PepCSRBank::type() const {
 }
 
 std::unique_ptr<DeviceSerializer> PepCSRBank::serializer() const {
-  // Should never be called: the CPU builds this with skip_serialize = true.
   throw std::logic_error("PepCSRBank is synthetic and has no serialized form");
 }
 
@@ -90,7 +87,6 @@ void PepCSRBank::trace(bool enabled) { _trace.set_traced(enabled); }
 bool PepCSRBank::traced() const { return _traced; }
 void PepCSRBank::on_traced_changed(bool enabled) { _traced = enabled; }
 
-// One byte, the span the Dense covered.
 AddressSpan PepCSRBank::span() const { return AddressSpan(0, 0); }
 
 Target::Result PepCSRBank::read(Address address, bits::span<u8> dest, Operation op) const {
@@ -113,11 +109,16 @@ Target::Result PepCSRBank::write(Address address, bits::span<const u8> src, Oper
 
 void PepCSRBank::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
-  // Masked like every other way in, or clear() would be the one path that can leave bits above the flags set.
   _nzvc = static_cast<u8>(fill & MASK);
 }
 
 void PepCSRBank::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   dest[0] = _nzvc;
+}
+
+void PepCSRBank::collect_changes(pepp::core::IntervalSet<Address> &changed) const { changed.insert(AddressSpan(0, 0)); }
+
+void PepCSRBank::clear_changes() {
+  // No-op because we always conservatively report that the whole bank changed.
 }

@@ -41,7 +41,9 @@ void serialize_dense(nlohmann::json &obj, const System *sys, const Device *self)
 } // namespace
 
 Dense::Dense(Configuration config) : Device(), _config(config) {
-  _data.resize(size_inclusive(_config.span), _config.fill);
+  const auto size = size_inclusive(_config.span);
+  _data.resize(size, _config.fill);
+  _dirty.resize(size, false);
 }
 
 std::span<const u8> Dense::data() const { return std::span<const u8>{_data.data(), std::size_t(_data.size())}; }
@@ -143,11 +145,26 @@ Target::Result Dense::write(Address address, bits::span<const u8> src, Operation
   // Switched on the width so the copy length is a constant the compiler can turn into a register operation for common
   // register sizes rather than a trip through the actual C code of memcpy.
   switch (src.size()) {
-  case 1: dest[0] = src[0]; break;
-  case 2: std::memcpy(dest, src.data(), 2); break;
-  case 4: std::memcpy(dest, src.data(), 4); break;
-  case 8: std::memcpy(dest, src.data(), 8); break;
-  default: std::memcpy(dest, src.data(), src.size()); break;
+  case 1:
+    dest[0] = src[0];
+    _dirty[offset] = true;
+    break;
+  case 2:
+    std::memcpy(dest, src.data(), 2);
+    _dirty[offset] = true, _dirty[offset + 1] = true;
+    break;
+  case 4:
+    std::memcpy(dest, src.data(), 4);
+    for (int i = 0; i < 4; i++) _dirty[offset + i] = true;
+    break;
+  case 8:
+    std::memcpy(dest, src.data(), 8);
+    for (int i = 0; i < 8; i++) _dirty[offset + i] = true;
+    break;
+  default:
+    std::memcpy(dest, src.data(), src.size());
+    std::fill(_dirty.begin() + offset, _dirty.begin() + offset + src.size(), true);
+    break;
   }
   if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
@@ -163,6 +180,7 @@ Target::Result Dense::write_increment(Address address, bits::span<const u8> src,
   auto dest = bits::span<u8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   if (_may_trace) _trace.emit_write_increment(op, address, dest.first(src.size()), src, order);
   bits::memcpy(dest, src);
+  std::fill(_dirty.begin() + offset, _dirty.begin() + offset + src.size(), true);
   if (is_performance_countable(op)) _counters.wr_bytes += src.size();
   return {};
 }
@@ -170,9 +188,28 @@ Target::Result Dense::write_increment(Address address, bits::span<const u8> src,
 void Dense::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
   std::fill(_data.begin(), _data.end(), fill);
+  std::fill(_dirty.begin(), _dirty.end(), false);
 }
 
 void Dense::dump(bits::span<u8> dest) const {
   if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   bits::memcpy(dest, bits::span<const u8>{_data.data(), std::size_t(_data.size())});
 }
+
+void Dense::collect_changes(pepp::core::IntervalSet<Address> &changed) const {
+  // _dirty is indexed by offset, but the API is specified in addresses
+  const auto base = _config.span.lower();
+  const auto size = _dirty.size();
+  for (std::size_t i = 0; i < size;) {
+    if (!_dirty[i]) {
+      ++i;
+      continue;
+    }
+    const std::size_t start = i;
+    while (i < size && _dirty[i]) ++i;
+    // Runs are emitted low-to-high, which is the order IntervalSet prefers.
+    changed.insert(static_cast<Address>(base + start), static_cast<Address>(base + i - 1));
+  }
+}
+
+void Dense::clear_changes() { std::fill(_dirty.begin(), _dirty.end(), false); }
