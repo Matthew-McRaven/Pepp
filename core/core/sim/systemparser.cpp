@@ -1,7 +1,7 @@
 #include "systemparser.hpp"
 #include <nlohmann/json.hpp>
 #include "core/ds/string_compare.hpp"
-#include "core/sim/cores/cpu/pep_isa.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/io/fifo.hpp"
 #include "core/sim/memory/ram/dense.hpp"

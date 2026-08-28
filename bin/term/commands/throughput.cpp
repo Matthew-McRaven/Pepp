@@ -19,7 +19,7 @@
 #include <chrono>
 #include <iostream>
 #include "core/integers.h"
-#include "core/sim/cores/cpu/pep_isa.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/memory/ram/sparse.hpp"

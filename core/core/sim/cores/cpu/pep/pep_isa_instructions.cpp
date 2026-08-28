@@ -1,6 +1,6 @@
 #include "pep_isa_instructions.hpp"
-#include "core/sim/cores/cpu/pep_csrbank.hpp"
-#include "core/sim/cores/cpu/pep_isa.hpp"
+#include "core/sim/cores/cpu/pep/pep_csrbank.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa.hpp"
 
 // The two ISAs declare identical Register enums, so one alias serves both.
 using R = isa::Pep10::Register;

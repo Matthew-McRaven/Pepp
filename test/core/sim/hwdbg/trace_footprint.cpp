@@ -19,7 +19,7 @@
 #include <spdlog/spdlog.h>
 
 #include "core/arch/pep/isa/pep10.hpp"
-#include "core/sim/cores/cpu/pep_isa.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/debugger/trace_device.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"

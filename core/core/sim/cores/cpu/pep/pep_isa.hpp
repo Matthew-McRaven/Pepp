@@ -7,8 +7,8 @@
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
-#include "core/sim/cores/cpu/pep_csrbank.hpp"
-#include "core/sim/cores/cpu/pep_regbank.hpp"
+#include "core/sim/cores/cpu/pep/pep_csrbank.hpp"
+#include "core/sim/cores/cpu/pep/pep_regbank.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
 
