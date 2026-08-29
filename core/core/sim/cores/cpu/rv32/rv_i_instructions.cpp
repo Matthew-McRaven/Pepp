@@ -17,22 +17,13 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include "core/sim/cores/cpu/rv32/rv_i_ops.hpp"
 #include "core/sim/cores/cpu/rv32/rv_isa.hpp"
 using XReg = riscv::XReg;
+using namespace rv32;
 namespace {
 [[noreturn]] void todo(const char *name) { throw std::logic_error(std::string(name) + " is not implemented"); }
 
-u32 op_add(u32 a, u32 b) { return a + b; }
-u32 op_sub(u32 a, u32 b) { return a - b; }
-u32 op_sll(u32 a, u32 b) { return a << (b & 0x1F); }
-u32 op_slt(u32 a, u32 b) { return u32(static_cast<i32>(a) < static_cast<i32>(b)); }
-u32 op_sltu(u32 a, u32 b) { return u32(a < b); }
-u32 op_xor(u32 a, u32 b) { return a ^ b; }
-u32 op_srl(u32 a, u32 b) { return a >> (b & 0x1F); }
-// C++20 onwards defines >> on a negative left operand as an arithmetic shift.
-u32 op_sra(u32 a, u32 b) { return u32(static_cast<i32>(a) >> (b & 0x1F)); }
-u32 op_or(u32 a, u32 b) { return a | b; }
-u32 op_and(u32 a, u32 b) { return a & b; }
 
 // The two families differ only in where the right-hand operand comes from.
 template <u32 (*Op)(u32, u32)> void reg_reg(RV32CPU *self, riscv::InstructionR r) {
