@@ -79,8 +79,9 @@ public:
 
   // While an instruction is in flight this holds the working PC, written back once at the end
   // of clock_tick so a straight-line instruction costs one register update instead of several.
-  u32 read_pc() const { return _pc; }
-  void write_pc(u32 value) { _pc = value; }
+  u32 read_next_pc() const { return _pc; }
+  void write_next_pc(u32 value) { _pc = value; }
+  u32 read_initial_pc() const { return _regbank->read_pc(); }
 
   Operation op_data() const { return _op_data; }
   Operation op_fetch() const { return _op_fetch; }

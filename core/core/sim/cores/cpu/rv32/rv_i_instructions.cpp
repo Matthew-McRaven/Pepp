@@ -38,23 +38,23 @@ template <u32 (*Op)(u32, u32)> void reg_imm(RV32CPU *self, riscv::InstructionI i
 void handle_lui(RV32CPU *self, riscv::InstructionU u) { self->write_register((XReg)u.rd, u32(u.upper_imm())); }
 // Relative to this instruction's own address. Needs PC prior to execution.
 void handle_auipc(RV32CPU *self, riscv::InstructionU u) {
-  self->write_register((XReg)u.rd, self->read_pc() + u32(u.upper_imm()));
+  self->write_register((XReg)u.rd, self->read_initial_pc() + u32(u.upper_imm()));
 }
 
 // Unconditional jumps
 void handle_jal(RV32CPU *self, riscv::InstructionJ j) {
-  const u32 pc = self->read_pc();
+  const u32 pc = self->read_initial_pc();
   self->write_register((XReg)j.rd, pc + 4);
-  self->write_pc(pc + u32(j.jump_offset()));
+  self->write_next_pc(pc + u32(j.jump_offset()));
 }
 void handle_jalr(RV32CPU *self, riscv::InstructionI i) {
-  const u32 pc = self->read_pc();
+  const u32 pc = self->read_initial_pc();
   // The target is formed before rd is written, because rd and rs1 may name the same register.
   // Unlike a branch this is register-relative rather than PC-relative, and the spec requires
   // the low bit of the result to be cleared rather than treated as a misalignment.
   const u32 target = (self->read_register((XReg)i.rs1) + u32(i.signed_imm())) & ~u32(1);
   self->write_register((XReg)i.rd, pc + 4);
-  self->write_pc(target);
+  self->write_next_pc(target);
 }
 
 // Conditional branches
@@ -63,7 +63,7 @@ namespace {
 template <typename T, typename Cmp> void branch(RV32CPU *self, riscv::InstructionB b, Cmp cmp) {
   const auto rs1 = static_cast<T>(self->read_register((XReg)b.rs1));
   const auto rs2 = static_cast<T>(self->read_register((XReg)b.rs2));
-  if (cmp(rs1, rs2)) self->write_pc(self->read_pc() + b.signed_imm());
+  if (cmp(rs1, rs2)) self->write_next_pc(self->read_initial_pc() + b.signed_imm());
 }
 } // namespace
 void handle_beq(RV32CPU *self, riscv::InstructionB b) { branch<i32>(self, b, std::equal_to{}); }
