@@ -148,7 +148,9 @@ void pepp::tc::RISCVObjectVistitor::visit(const STypeIR *line) {
 }
 
 void pepp::tc::RISCVObjectVistitor::visit(const BTypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
+  // The IR holds a byte displacement, but Values::imm wants the encoded bits: bit 0 of a
+  // branch or jump target is implicitly 0 and is not stored.
+  auto imm = line->imm->value_as<u32>() >> 1;
   riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = std::nullopt, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
@@ -168,7 +170,9 @@ void pepp::tc::RISCVObjectVistitor::visit(const UTypeIR *line) {
 }
 
 void pepp::tc::RISCVObjectVistitor::visit(const JTypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
+  // The IR holds a byte displacement, but Values::imm wants the encoded bits: bit 0 of a
+  // branch or jump target is implicitly 0 and is not stored.
+  auto imm = line->imm->value_as<u32>() >> 1;
   riscv::Values vals{.rs1 = std::nullopt, .rs2 = std::nullopt, .rd = line->rd, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
