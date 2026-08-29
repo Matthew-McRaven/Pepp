@@ -93,7 +93,6 @@ public:
   PepRegisterBank *registers() const { return _regbank; }
   PepCSRBank *csrs() const { return _csrs; }
 
-  // No longer static const because it embeds this instance's id.
   Operation op_data() const { return _op_data; }
 
   // While an instruction is in flight, this contains the active PC.
