@@ -66,7 +66,7 @@ RegisterScan::RegisterRef RV32RegisterBank::ref(Register reg) const {
   return index < REGISTER_COUNT ? _refs[index] : RegisterScan::RegisterRef{};
 }
 
-RegisterScan::RegisterRef RV32RegisterBank::pc_ref() const { return _pc_ref; }
+RegisterScan::RegisterRef RV32RegisterBank::ref_pc() const { return _pc_ref; }
 
 const Device::Configuration &RV32RegisterBank::config() const { return _config; }
 const RV32RegisterBank::Configuration &RV32RegisterBank::casted_config() const { return _config; }

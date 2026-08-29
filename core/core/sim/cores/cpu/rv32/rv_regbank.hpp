@@ -62,7 +62,7 @@ public:
 
   // The scan reference for a register, so a CPU can name it when recording something this class does not emit.
   RegisterScan::RegisterRef ref(Register reg) const;
-  RegisterScan::RegisterRef pc_ref() const;
+  RegisterScan::RegisterRef ref_pc() const;
 
   // Device interface
   void initialize(System *) override;

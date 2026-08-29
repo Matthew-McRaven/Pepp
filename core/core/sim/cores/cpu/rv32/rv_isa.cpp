@@ -108,12 +108,33 @@ std::unique_ptr<DeviceSerializer> RV32CPU::make_serializer() {
 }
 
 riscv::rv_instruction2 RV32CPU::fetch() {
-  // TODO
-  return riscv::rv_instruction2{0u};
+  // TODO: determine if misaligned. If so, throw.
+  auto res = _target->read<u32, !bits::host_is_le>(_pc, op_fetch());
+  return riscv::rv_instruction2{res.second};
 }
 
 void RV32CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
-  // TODO
+  // Create a single record for the entire instruction
+  trace::Recorder::Instruction record(_trace, _may_trace);
+  // TODO: when function signature changes, use that tick offset instead of this placeholder.
+  record.tick(1);
+  const u32 init_pc = _regbank->read_pc();
+  const auto instr = fetch();
+  const auto op = riscv::decode(instr);
+  _pc = init_pc + 4; // TODO: increment size determined by instruction length!
+  handle(op, instr);
+  const auto pc_delta = _pc - init_pc;
+  if ((pc_delta & 0b111) == pc_delta) {
+    auto r = _regbank->ref_pc();
+    if (_may_trace) _trace.emit_incr_register(op_data(), r, static_cast<i16>(pc_delta));
+    _regbank->write_pc_untraced(_pc);
+  } else _regbank->write_pc(_pc);
+  // TODO: handle breakpoints, debug info, etc
+  /*if (has_bps && _bp_filter.maybe_contains(_pc)) {
+    // Placeholder action to ensure that the bp check is not optimized out.
+    _filter_hits += 1;
+  }*/
+  record.commit();
   _count.instructions += 1;
 }
 
