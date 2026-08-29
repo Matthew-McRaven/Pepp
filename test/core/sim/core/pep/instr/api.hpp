@@ -6,7 +6,7 @@
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
 
-// First return value is the system (don't drop it!) and the second is a ptr to the CPU.
+// First return value is the system (don't drop it!)
 inline auto make_cpu(PepISA3CPU::ISA isa = PepISA3CPU::ISA::Pep10) {
   using namespace bits;
   PepISA3CPU::Configuration cpu_cfg{Device::Configuration{

@@ -1,37 +1,9 @@
 #include <bit>
 #include <catch.hpp>
 #include <cstdint>
-#include "core/arch/riscv/isa/rvc.hpp"
-#include "core/math/bitmanip/copy.hpp"
-#include "core/sim/cores/cpu/rv32/rv_isa.hpp"
-#include "core/sim/memory/ram/dense.hpp"
-#include "core/sim/system.hpp"
+#include "./api.hpp"
 
-namespace {
-inline static const Operation rw{Operation::Type::Standard, Operation::Kind::data};
-inline auto make_cpu() {
-  using namespace bits;
-  RV32CPU::Configuration cpu_cfg{Device::Configuration{
-                                     .basename = "cpu",
-                                     .compatible = RV32CPU::compatible,
-                                 },
-                                 "/memory"};
-  System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
-  Dense::Configuration mem_cfg{
-      Device::Configuration{
-          .basename = "memory",
-          .compatible = Dense::compatible,
-      },
-      0x00,
-      AddressSpan(0x0000, 0xffff),
-  };
-  auto system = std::make_unique<System>(root_cfg);
-  auto *mem = system->make_device<Dense>(mem_cfg);
-  auto *cpu = system->make_device<RV32CPU>(cpu_cfg, system.get());
-  system->initialize();
-  return std::make_tuple(std::move(system), mem, cpu);
-}
-} // namespace
+using namespace rv32_test;
 
 TEST_CASE("RV32I sanity tests", "[scope:core][scope:core.sim][kind:unit][arch:rv]") {
 
