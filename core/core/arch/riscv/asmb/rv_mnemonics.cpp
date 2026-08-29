@@ -230,14 +230,14 @@ void riscv::MnemonicDescriptor::set_imm(u32 imm) {
   case Type::S:
     _imm_or_funct7 = imm & ((1 << 12) - 1);
     break;
-    // Bits [12:1]
-  case Type::B: _imm_or_funct7 = ((imm >> 1u) & ((1 << 11) - 1)); break;
+    // Bits [12:1]. Stored unshifted
+  case Type::B: _imm_or_funct7 = (imm >> 1u) & ((1u << 12) - 1); break;
   // Upper [31:12] bits
   case Type::U:
     _imm_or_funct7 = (imm >> 12u) & ((1 << 20) - 1);
     break;
     // Bits [20:1]
-  case Type::J: _imm_or_funct7 = (imm >> 1u) & ((1 << 20) - 1); break;
+  case Type::J: _imm_or_funct7 = (imm >> 1u) & ((1u << 20) - 1); break;
   case Type::R: [[fallthrough]];
   case Type::INVALID: [[fallthrough]];
   case Type::Pseudo: [[fallthrough]];
@@ -338,30 +338,32 @@ template <> riscv::InstructionB riscv::MnemonicDescriptor::encode<riscv::Instruc
   const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
   const u8 rs2 = v.rs2.value_or(_rs2) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u16 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1 << 12) - 1);
-  const u8 imm12_12 = (imm >> 12u) & 1;
-  const u8 imm10_5 = (imm >> 5u) & ((1 << 6) - 1);
-  const u8 imm4_1 = (imm >> 1u) & ((1 << 4) - 1);
-  const u8 imm11_11 = (imm >> 11u) & 1;
+  // imm holds imm[12:1] already shifted down; this only distributes it across the fields.
+  const u32 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1u << 12) - 1);
+  const u8 imm4_1 = imm & ((1u << 4) - 1);
+  const u8 imm10_5 = (imm >> 4u) & ((1u << 6) - 1);
+  const u8 imm11_11 = (imm >> 10u) & 1;
+  const u8 imm12_12 = (imm >> 11u) & 1;
   return InstructionB{.opcode = _opcode7,
-                      .imm1 = imm4_1,
-                      .imm2 = imm10_5,
+                      .imm1 = imm11_11,
+                      .imm2 = imm4_1,
                       .funct3 = _funct3,
                       .rs1 = rs1,
                       .rs2 = rs2,
-                      .imm3 = imm11_11,
+                      .imm3 = imm10_5,
                       .imm4 = imm12_12};
 }
 template <> riscv::InstructionJ riscv::MnemonicDescriptor::encode<riscv::InstructionJ>(Values v) const {
   const u8 rd = v.rd.value_or(_rd) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u32 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1 << 20) - 1);
-  const u8 imm20_20 = (imm >> 20u) & 1;
-  const u16 imm10_01 = (imm >> 1u) & ((1 << 10) - 1);
-  const u8 imm11_11 = (imm >> 11u) & 1;
-  const u16 imm19_12 = (imm >> 12u) & ((1 << 8) - 1);
+  // imm holds imm[20:1] already shifted down; this only distributes it across the fields.
+  const u32 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1u << 20) - 1);
+  const u16 imm10_01 = imm & ((1u << 10) - 1);
+  const u8 imm11_11 = (imm >> 10u) & 1;
+  const u16 imm19_12 = (imm >> 11u) & ((1u << 8) - 1);
+  const u8 imm20_20 = (imm >> 19u) & 1;
   return InstructionJ{
-      .opcode = _opcode7, .rd = rd, .imm1 = imm19_12, .imm2 = imm20_20, .imm3 = imm10_01, .imm4 = imm11_11};
+      .opcode = _opcode7, .rd = rd, .imm1 = imm19_12, .imm2 = imm11_11, .imm3 = imm10_01, .imm4 = imm20_20};
 }
 
 static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {
