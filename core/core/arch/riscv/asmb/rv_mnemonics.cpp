@@ -243,6 +243,7 @@ void riscv::MnemonicDescriptor::set_imm(u32 imm) {
   case Type::Pseudo: [[fallthrough]];
   default: throw std::runtime_error("This mnemonic does not allow an immediate");
   }
+  _flags.imm = 1;
 }
 
 std::optional<u32> riscv::MnemonicDescriptor::get_imm() const {
