@@ -24,7 +24,7 @@
 class ThroughputTask : public Task {
   Q_OBJECT
 public:
-  enum class WhichVersion { Sim3, Core };
+  enum class WhichVersion { Sim3, Core, RV };
   enum class TestProgram {
     SelfBranch, // self: BR self
     RMW,        // Accumulate a meaningless value into A.
@@ -54,10 +54,11 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
   static ThroughputTask::TestProgram program = ThroughputTask::TestProgram::SelfBranch;
   static u64 maxInstr = 100'000'000;
   static bool has_bps = false, use_sparse = false;
-  auto versionOpt =
-      instrThruSC->add_option("-v,--version", version, "Which version to run")
-          ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
-              {"sim3", ThroughputTask::WhichVersion::Sim3}, {"core", ThroughputTask::WhichVersion::Core}}));
+  auto versionOpt = instrThruSC->add_option("-v,--version", version, "Which version to run")
+                        ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
+                            {"sim3", ThroughputTask::WhichVersion::Sim3},
+                            {"core", ThroughputTask::WhichVersion::Core},
+                            {"rv", ThroughputTask::WhichVersion::RV}}));
   auto programOpt =
       instrThruSC->add_option("-p,--program", program, "Which test program to run")
           ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::TestProgram>{
