@@ -72,6 +72,8 @@ public:
   // the bank's compile-time form is for the rare site where the ISA fixes the register.
   u32 read_register(Register reg) const;
   void write_register(Register reg, u32 value);
+  u32 read_register(riscv::ABIReg reg) const;
+  void write_register(riscv::ABIReg reg, u32 value);
 
   RV32RegisterBank *registers() const { return _regbank; }
 

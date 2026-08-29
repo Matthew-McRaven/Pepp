@@ -154,6 +154,8 @@ void RV32CPU::trace(bool enabled) {
 
 u32 RV32CPU::read_register(Register reg) const { return _regbank->read(reg); }
 void RV32CPU::write_register(Register reg, u32 value) { _regbank->write(reg, value); }
+u32 RV32CPU::read_register(riscv::ABIReg reg) const { return _regbank->read((Register)reg); }
+void RV32CPU::write_register(riscv::ABIReg reg, u32 value) { _regbank->write((Register)reg, value); }
 
 void RV32CPU::handle(RvOp op, riscv::rv_instruction2 w) {
   // TODO: add body handlers
