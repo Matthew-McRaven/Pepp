@@ -29,6 +29,7 @@
  */
 #include "core/arch/riscv/isa/rv_instruction.hpp"
 #include "core/arch/riscv/isa/rvi.hpp"
+#include "core/arch/riscv/isa/rv_instruction_format.hpp"
 
 namespace riscv {
 namespace {
@@ -150,5 +151,62 @@ RvOp decode(rv_instruction2 w) noexcept {
 
   default: return RvOp::INVALID;
   }
+}
+
+std::string rv_instruction2::to_string() const {
+  switch (decode(*this)) {
+  case RvOp::LUI: return fmt_u_upper("lui", as<InstructionU>());
+  case RvOp::AUIPC: return fmt_u_upper("auipc", as<InstructionU>());
+
+  case RvOp::JAL: return fmt_j_jal("jal", as<InstructionJ>());
+  case RvOp::JALR: return fmt_i_offset("jalr", as<InstructionI>());
+
+  case RvOp::BEQ: return fmt_b_branch("beq", as<InstructionB>());
+  case RvOp::BNE: return fmt_b_branch("bne", as<InstructionB>());
+  case RvOp::BLT: return fmt_b_branch("blt", as<InstructionB>());
+  case RvOp::BGE: return fmt_b_branch("bge", as<InstructionB>());
+  case RvOp::BLTU: return fmt_b_branch("bltu", as<InstructionB>());
+  case RvOp::BGEU: return fmt_b_branch("bgeu", as<InstructionB>());
+
+  case RvOp::LB: return fmt_i_offset("lb", as<InstructionI>());
+  case RvOp::LH: return fmt_i_offset("lh", as<InstructionI>());
+  case RvOp::LW: return fmt_i_offset("lw", as<InstructionI>());
+  case RvOp::LBU: return fmt_i_offset("lbu", as<InstructionI>());
+  case RvOp::LHU: return fmt_i_offset("lhu", as<InstructionI>());
+
+  case RvOp::SB: return fmt_s_store("sb", as<InstructionS>());
+  case RvOp::SH: return fmt_s_store("sh", as<InstructionS>());
+  case RvOp::SW: return fmt_s_store("sw", as<InstructionS>());
+
+  case RvOp::ADDI: return fmt_i_alu("addi", as<InstructionI>());
+  case RvOp::SLTI: return fmt_i_alu("slti", as<InstructionI>());
+  case RvOp::SLTIU: return fmt_i_alu("sltiu", as<InstructionI>());
+  case RvOp::XORI: return fmt_i_alu("xori", as<InstructionI>());
+  case RvOp::ORI: return fmt_i_alu("ori", as<InstructionI>());
+  case RvOp::ANDI: return fmt_i_alu("andi", as<InstructionI>());
+
+  case RvOp::SLLI: return fmt_i_shift("slli", as<InstructionI>());
+  case RvOp::SRLI: return fmt_i_shift("srli", as<InstructionI>());
+  case RvOp::SRAI: return fmt_i_shift("srai", as<InstructionI>());
+
+  case RvOp::ADD: return fmt_r_type("add", as<InstructionR>());
+  case RvOp::SUB: return fmt_r_type("sub", as<InstructionR>());
+  case RvOp::SLL: return fmt_r_type("sll", as<InstructionR>());
+  case RvOp::SLT: return fmt_r_type("slt", as<InstructionR>());
+  case RvOp::SLTU: return fmt_r_type("sltu", as<InstructionR>());
+  case RvOp::XOR: return fmt_r_type("xor", as<InstructionR>());
+  case RvOp::SRL: return fmt_r_type("srl", as<InstructionR>());
+  case RvOp::SRA: return fmt_r_type("sra", as<InstructionR>());
+  case RvOp::OR: return fmt_r_type("or", as<InstructionR>());
+  case RvOp::AND: return fmt_r_type("and", as<InstructionR>());
+
+  case RvOp::FENCE: return fmt_fence("fence", as<InstructionI>());
+  case RvOp::FENCE_TSO: return fmt_no_operands("fence.tso");
+  case RvOp::ECALL: return fmt_no_operands("ecall");
+  case RvOp::EBREAK: return fmt_no_operands("ebreak");
+
+  case RvOp::INVALID: break;
+  }
+  return fmt_unknown(bits(), is_compressed());
 }
 } // namespace riscv

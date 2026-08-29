@@ -1,5 +1,6 @@
 #pragma once
 #include <bit>
+#include <string>
 #include "core/arch/riscv/isa/rv_instruction_list.hpp"
 #include "core/integers.h"
 namespace riscv {
@@ -27,6 +28,8 @@ union rv_instruction2 {
   // Opcode if a compressed instruction.
   inline uint16_t copcode() const noexcept { return static_cast<uint16_t>(low16() & 0b1110000000000011); }
   template <typename T> inline T as() const noexcept { return std::bit_cast<T>(*this); }
+  // Dissassemble by decode()ing and then calling the correct instruction formatting helper.
+  std::string to_string() const;
   // Compressed instructions occupy the low half, and bit_cast requires source, dest to match in size.
   // Therefore we need to select the low half explicitly.
   template <typename T> inline T as_compressed() const noexcept { return std::bit_cast<T>(low16()); }
