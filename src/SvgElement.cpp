@@ -3,6 +3,7 @@
 //	Standard library
 #include <string>
 
+#include "SvgRectElement.hpp"
 /*
 From w3.org: https://www.w3.org/TR/SVG2/types.html#InterfaceSVGElement
     
@@ -69,10 +70,11 @@ const std::string &SvgElement::title() const
 }
 void SvgElement::setTitle(const std::string &title)
 {
-    //  Add logic later to create element when missing
-    if (_title != nullptr) {
-        _title->setValue(title);
+    //  Create element if missing
+    if (_title == nullptr) {
+        createElement("title"s);
     }
+    _title->setValue(title);
 }
 const std::string &SvgElement::metadata() const
 {
@@ -80,10 +82,11 @@ const std::string &SvgElement::metadata() const
 }
 void SvgElement::setMetadata(const std::string &metadata)
 {
-    //  Add logic later to create element when missing
-    if (_metadata != nullptr) {
-        _metadata->setValue(metadata);
+    //  Create element if missing
+    if (_metadata == nullptr) {
+        createElement("metadata"s);
     }
+    _metadata->setValue(metadata);
 }
 const std::string &SvgElement::desc() const
 {
@@ -91,10 +94,11 @@ const std::string &SvgElement::desc() const
 }
 void SvgElement::setDesc(const std::string &desc)
 {
-    //  Add logic later to create element when missing
-    if (_desc != nullptr) {
-        _desc->setValue(desc);
+    //  Create element if missing
+    if (_desc == nullptr) {
+        createElement("desc"s);
     }
+    _desc->setValue(desc);
 }
 
 //  Dimension accessors
@@ -157,16 +161,37 @@ XmlAttributes &SvgElement::attributes()
     return _attributes;
 }
 
-const std::list<SvgElement *> &SvgElement::children() const
+const auto &SvgElement::children() const
 {
-    return _elements;
+    return _children;
 }
-std::list<SvgElement *> &SvgElement::children()
+auto &SvgElement::children()
 {
-    return _elements;
+    return _children;
 }
 
-void SvgElement::appendChild(SvgElement *child)
+SvgElement *SvgElement::createElement(const std::string &name)
+{
+    if (name == "rect"s)
+        _children.push_back(std::make_unique<SvgRectElement>());
+    else
+        _children.push_back(std::make_unique<SvgElement>(name));
+
+    if (name == "desc"s) {
+        _desc = _children.back().get();
+        _desc->setElementType(SvgType::SvgDescElement);
+    } else if (name == "metadata"s) {
+        _metadata = _children.back().get();
+        _metadata->setElementType(SvgType::SvgMetadataElement);
+    } else if (name == "title"s) {
+        _title = _children.back().get();
+        _title->setElementType(SvgType::SvgTitleElement);
+    }
+
+    return _children.back().get();
+}
+
+/*void SvgElement::appendChild(SvgElement *child)
 {
     //  Certain data is contained in elements. Save
     //  pointer to allow future programitic updates.
@@ -179,8 +204,8 @@ void SvgElement::appendChild(SvgElement *child)
     }
     //  All elements are saved, including special elements above.
     //  Used for persistence to Xml.
-    _elements.push_back(child);
-}
+    _children.push_back(child);
+}*/
 
 void SvgElement::toXml(SvgRope &output) const
 {
@@ -196,7 +221,7 @@ void SvgElement::toXml(SvgRope &output) const
     attributeXml(output);
 
     //  No child elements and no values, add end tag
-    if (_elements.empty() && _value.empty()) {
+    if (_children.empty() && _value.empty()) {
         output.push_back(" />");
         return;
     }
@@ -207,7 +232,7 @@ void SvgElement::toXml(SvgRope &output) const
         //  Pass copy
         output.push_back(std::string(_value));
 
-    for (const auto *element : _elements) {
+    for (const auto &element : _children) {
         element->toXml(output);
     }
     //  After child elements, add closing element

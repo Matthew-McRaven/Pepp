@@ -87,10 +87,12 @@ public:
     const XmlAttributes &attributes() const;
     XmlAttributes &attributes();
 
-    const std::list<SvgElement *> &children() const;
-    std::list<SvgElement *> &children();
-    void appendChild(SvgElement *child);
+    const auto &children() const;
+    auto &children();
+    //void appendChild(SvgElement *child);
+    SvgElement *createElement(const std::string &name);
 
+    //  Overrides
     virtual void toXml(SvgRope &output) const;
     virtual bool setAttribute(const std::string &key, const std::string &value);
     virtual bool attributeXml(SvgRope &output) const;
@@ -117,7 +119,8 @@ protected:
 
     //SVGElement ownerSVGElement
     //  Used to store unprocessed xml elements
-    std::list<SvgElement *> _elements;
+    std::list<std::unique_ptr<SvgElement>> _children;
+    //std::list<SvgElement *> _elements;
     XmlAttributes _attributes;
 
     //  Returned by string functions when empy string is needed

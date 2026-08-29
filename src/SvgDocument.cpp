@@ -50,25 +50,6 @@ const SvgSvgElement &Document::documentElement() const
     return _svgDocument;
 }
 
-SvgElement *Document::createElement(const std::string &name)
-{
-    if (name == "rect"s)
-        _children.push_back(std::make_unique<SvgRectElement>());
-    else
-        _children.push_back(std::make_unique<SvgElement>(name));
-
-    return _children.back().get();
-}
-SvgInterface *Document::createElement2(const std::string &name)
-{
-    if (name == "title"s) {
-        _children2.push_back(std::make_unique<SvgBasicElement>(this));
-        _children2.back()->setElementType(SvgInterface::SvgType::SvgTitleElement);
-    }
-
-    return _children2.back().get();
-}
-
 //  File operations
 void Document::saveAs(const std::string &fileName)
 {
@@ -183,21 +164,20 @@ void Document::addFromParser(const std::string &key,
         _parents.back()->setAttribute(key, value);
         break;
     case XmlNode::Type::Element: {
-        auto *element = createElement(key);
+        auto element = _parents.back()->createElement(key);
         element->setValue(value);
-        _parents.back()->appendChild(element);
         _parents.push_back(element);
         break;
     }
     case XmlNode::Type::Comment: {
         //  Comments have blank key. Comment is in value field
-        auto *element = createElement(key);
+        auto element = _parents.back()->createElement(key);
         element->setValue(value);
         element->setElementType(SvgElement::SvgType::DomComment);
 
         //  A comment can never be a parent. End element is not called
         //  Do not store value on parent stack.
-        _parents.back()->appendChild(element);
+        //_parents.back()->appendChild(element);
         break;
     }
     case XmlNode::Type::EndElement:

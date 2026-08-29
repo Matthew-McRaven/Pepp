@@ -20,8 +20,6 @@ class Document
     std::string _fileName{};
     SvgSvgElement _svgDocument;
     std::list<SvgElement *> _parents;
-    std::list<std::unique_ptr<SvgElement>> _children;
-    std::list<std::unique_ptr<SvgInterface>> _children2;
 
     //  Temporaries from reading xml file
     std::string _streamInput{};
@@ -45,8 +43,6 @@ public:
     //  Document searching
     SvgSvgElement &documentElement();
     const SvgSvgElement &documentElement() const;
-    SvgElement *createElement(const std::string &name = "");
-    SvgInterface *createElement2(const std::string &name = "");
 
     //SvgElement querySelector(const std::string& element);
     //SvgElement getElementById(const std::string& element);
