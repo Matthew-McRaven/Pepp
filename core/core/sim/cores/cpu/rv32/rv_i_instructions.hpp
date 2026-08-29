@@ -13,27 +13,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #pragma once
 #include "core/arch/riscv/isa/rvi.hpp"
 
 class RV32CPU;
 
+// One handler per RV32I instruction. Each receives the word already cracked into the format
+// its encoding actually uses, so a handler cannot reach it through the wrong view.
+// Not yet wired into RV32CPU::handle, and no body is implemented.
+
 // Upper immediate
-void handle_lui(RV32CPU *self, riscv::InstructionU i);
-void handle_auipc(RV32CPU *self, riscv::InstructionU i);
+void handle_lui(RV32CPU *self, riscv::InstructionU u);
+void handle_auipc(RV32CPU *self, riscv::InstructionU u);
 
 // Unconditional jumps
-void handle_jal(RV32CPU *self, riscv::InstructionJ i);
+void handle_jal(RV32CPU *self, riscv::InstructionJ j);
 void handle_jalr(RV32CPU *self, riscv::InstructionI i);
 
 // Conditional branches
-void handle_beq(RV32CPU *self, riscv::InstructionB i);
-void handle_bne(RV32CPU *self, riscv::InstructionB i);
-void handle_blt(RV32CPU *self, riscv::InstructionB i);
-void handle_bge(RV32CPU *self, riscv::InstructionB i);
-void handle_bltu(RV32CPU *self, riscv::InstructionB i);
-void handle_bgeu(RV32CPU *self, riscv::InstructionB i);
+void handle_beq(RV32CPU *self, riscv::InstructionB b);
+void handle_bne(RV32CPU *self, riscv::InstructionB b);
+void handle_blt(RV32CPU *self, riscv::InstructionB b);
+void handle_bge(RV32CPU *self, riscv::InstructionB b);
+void handle_bltu(RV32CPU *self, riscv::InstructionB b);
+void handle_bgeu(RV32CPU *self, riscv::InstructionB b);
 
 // Loads
 void handle_lb(RV32CPU *self, riscv::InstructionI i);
@@ -43,9 +46,9 @@ void handle_lbu(RV32CPU *self, riscv::InstructionI i);
 void handle_lhu(RV32CPU *self, riscv::InstructionI i);
 
 // Stores
-void handle_sb(RV32CPU *self, riscv::InstructionS i);
-void handle_sh(RV32CPU *self, riscv::InstructionS i);
-void handle_sw(RV32CPU *self, riscv::InstructionS i);
+void handle_sb(RV32CPU *self, riscv::InstructionS s);
+void handle_sh(RV32CPU *self, riscv::InstructionS s);
+void handle_sw(RV32CPU *self, riscv::InstructionS s);
 
 // Register-immediate ALU
 void handle_addi(RV32CPU *self, riscv::InstructionI i);
@@ -61,16 +64,16 @@ void handle_srli(RV32CPU *self, riscv::InstructionI i);
 void handle_srai(RV32CPU *self, riscv::InstructionI i);
 
 // Register-register ALU
-void handle_add(RV32CPU *self, riscv::InstructionR i);
-void handle_sub(RV32CPU *self, riscv::InstructionR i);
-void handle_sll(RV32CPU *self, riscv::InstructionR i);
-void handle_slt(RV32CPU *self, riscv::InstructionR i);
-void handle_sltu(RV32CPU *self, riscv::InstructionR i);
-void handle_xor(RV32CPU *self, riscv::InstructionR i);
-void handle_srl(RV32CPU *self, riscv::InstructionR i);
-void handle_sra(RV32CPU *self, riscv::InstructionR i);
-void handle_or(RV32CPU *self, riscv::InstructionR i);
-void handle_and(RV32CPU *self, riscv::InstructionR i);
+void handle_add(RV32CPU *self, riscv::InstructionR r);
+void handle_sub(RV32CPU *self, riscv::InstructionR r);
+void handle_sll(RV32CPU *self, riscv::InstructionR r);
+void handle_slt(RV32CPU *self, riscv::InstructionR r);
+void handle_sltu(RV32CPU *self, riscv::InstructionR r);
+void handle_xor(RV32CPU *self, riscv::InstructionR r);
+void handle_srl(RV32CPU *self, riscv::InstructionR r);
+void handle_sra(RV32CPU *self, riscv::InstructionR r);
+void handle_or(RV32CPU *self, riscv::InstructionR r);
+void handle_and(RV32CPU *self, riscv::InstructionR r);
 
 // Memory ordering
 void handle_fence(RV32CPU *self, riscv::InstructionI i);
