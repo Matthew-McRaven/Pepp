@@ -15,6 +15,8 @@
  */
 #include "core/sim/cores/cpu/rv32/rv_isa.hpp"
 #include <nlohmann/json.hpp>
+#include "core/arch/riscv/isa/rvi.hpp"
+#include "core/sim/cores/cpu/rv32/rv_i_instructions.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
@@ -135,59 +137,59 @@ void RV32CPU::write_register(Register reg, u32 value) { _regbank->write(reg, val
 void RV32CPU::handle(RvOp op, riscv::rv_instruction2 w) {
   // TODO: add body handlers
   switch (op) {
-  case RvOp::LUI: break;
-  case RvOp::AUIPC: break;
+  case RvOp::LUI: return handle_lui(this, w.as<riscv::InstructionU>());
+  case RvOp::AUIPC: return handle_auipc(this, w.as<riscv::InstructionU>());
 
-  case RvOp::JAL: break;
-  case RvOp::JALR: break;
+  case RvOp::JAL: return handle_jal(this, w.as<riscv::InstructionJ>());
+  case RvOp::JALR: return handle_jalr(this, w.as<riscv::InstructionI>());
 
-  case RvOp::BEQ: break;
-  case RvOp::BNE: break;
-  case RvOp::BLT: break;
-  case RvOp::BGE: break;
-  case RvOp::BLTU: break;
-  case RvOp::BGEU: break;
+  case RvOp::BEQ: return handle_beq(this, w.as<riscv::InstructionB>());
+  case RvOp::BNE: return handle_bne(this, w.as<riscv::InstructionB>());
+  case RvOp::BLT: return handle_blt(this, w.as<riscv::InstructionB>());
+  case RvOp::BGE: return handle_bge(this, w.as<riscv::InstructionB>());
+  case RvOp::BLTU: return handle_bltu(this, w.as<riscv::InstructionB>());
+  case RvOp::BGEU: return handle_bgeu(this, w.as<riscv::InstructionB>());
 
-  case RvOp::LB: break;
-  case RvOp::LH: break;
-  case RvOp::LW: break;
-  case RvOp::LBU: break;
-  case RvOp::LHU: break;
+  case RvOp::LB: return handle_lb(this, w.as<riscv::InstructionI>());
+  case RvOp::LH: return handle_lh(this, w.as<riscv::InstructionI>());
+  case RvOp::LW: return handle_lw(this, w.as<riscv::InstructionI>());
+  case RvOp::LBU: return handle_lbu(this, w.as<riscv::InstructionI>());
+  case RvOp::LHU: return handle_lhu(this, w.as<riscv::InstructionI>());
 
-  case RvOp::SB: break;
-  case RvOp::SH: break;
-  case RvOp::SW: break;
+  case RvOp::SB: return handle_sb(this, w.as<riscv::InstructionS>());
+  case RvOp::SH: return handle_sh(this, w.as<riscv::InstructionS>());
+  case RvOp::SW: return handle_sw(this, w.as<riscv::InstructionS>());
 
-  case RvOp::ADDI: break;
-  case RvOp::SLTI: break;
-  case RvOp::SLTIU: break;
-  case RvOp::XORI: break;
-  case RvOp::ORI: break;
-  case RvOp::ANDI: break;
+  case RvOp::ADDI: return handle_addi(this, w.as<riscv::InstructionI>());
+  case RvOp::SLTI: return handle_slti(this, w.as<riscv::InstructionI>());
+  case RvOp::SLTIU: return handle_sltiu(this, w.as<riscv::InstructionI>());
+  case RvOp::XORI: return handle_xori(this, w.as<riscv::InstructionI>());
+  case RvOp::ORI: return handle_ori(this, w.as<riscv::InstructionI>());
+  case RvOp::ANDI: return handle_andi(this, w.as<riscv::InstructionI>());
 
-  case RvOp::SLLI: break;
-  case RvOp::SRLI: break;
-  case RvOp::SRAI: break;
+  case RvOp::SLLI: return handle_slli(this, w.as<riscv::InstructionI>());
+  case RvOp::SRLI: return handle_srli(this, w.as<riscv::InstructionI>());
+  case RvOp::SRAI: return handle_srai(this, w.as<riscv::InstructionI>());
 
-  case RvOp::ADD: break;
-  case RvOp::SUB: break;
-  case RvOp::SLL: break;
-  case RvOp::SLT: break;
-  case RvOp::SLTU: break;
-  case RvOp::XOR: break;
-  case RvOp::SRL: break;
-  case RvOp::SRA: break;
-  case RvOp::OR: break;
-  case RvOp::AND: break;
+  case RvOp::ADD: return handle_add(this, w.as<riscv::InstructionR>());
+  case RvOp::SUB: return handle_sub(this, w.as<riscv::InstructionR>());
+  case RvOp::SLL: return handle_sll(this, w.as<riscv::InstructionR>());
+  case RvOp::SLT: return handle_slt(this, w.as<riscv::InstructionR>());
+  case RvOp::SLTU: return handle_sltu(this, w.as<riscv::InstructionR>());
+  case RvOp::XOR: return handle_xor(this, w.as<riscv::InstructionR>());
+  case RvOp::SRL: return handle_srl(this, w.as<riscv::InstructionR>());
+  case RvOp::SRA: return handle_sra(this, w.as<riscv::InstructionR>());
+  case RvOp::OR: return handle_or(this, w.as<riscv::InstructionR>());
+  case RvOp::AND: return handle_and(this, w.as<riscv::InstructionR>());
 
   // Ordering is a no-op on a machine with one core and no store buffer.
-  case RvOp::FENCE: break;
-  case RvOp::FENCE_TSO: break;
+  case RvOp::FENCE: return handle_fence(this, w.as<riscv::InstructionI>());
+  case RvOp::FENCE_TSO: return handle_fence_tso(this, w.as<riscv::InstructionI>());
 
-  case RvOp::ECALL: break;
-  case RvOp::EBREAK: break;
+  case RvOp::ECALL: return handle_ecall(this, w.as<riscv::InstructionI>());
+  case RvOp::EBREAK: return handle_ebreak(this, w.as<riscv::InstructionI>());
 
-  case RvOp::INVALID: break;
+  case RvOp::INVALID: throw std::logic_error("RV32CPU: invalid instruction");
   }
   throw std::logic_error("RV32CPU: instruction not implemented");
 }
