@@ -212,7 +212,8 @@ void RV32CPU::handle(RvOp op, riscv::rv_instruction2 w) {
   case RvOp::ECALL: return handle_ecall(this, w.as<riscv::InstructionI>());
   case RvOp::EBREAK: return handle_ebreak(this, w.as<riscv::InstructionI>());
 
-  case RvOp::INVALID: throw std::logic_error("RV32CPU: invalid instruction");
+  case RvOp::INVALID: [[fallthrough]];
+  default: throw std::logic_error("RV32CPU: invalid instruction");
   }
   throw std::logic_error("RV32CPU: instruction not implemented");
 }

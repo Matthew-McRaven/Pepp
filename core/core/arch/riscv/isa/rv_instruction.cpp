@@ -154,58 +154,19 @@ RvOp decode(rv_instruction2 w) noexcept {
 }
 
 std::string rv_instruction2::to_string() const {
-  switch (decode(*this)) {
-  case RvOp::LUI: return fmt_u_upper("lui", as<InstructionU>());
-  case RvOp::AUIPC: return fmt_u_upper("auipc", as<InstructionU>());
-
-  case RvOp::JAL: return fmt_j_jal("jal", as<InstructionJ>());
-  case RvOp::JALR: return fmt_i_offset("jalr", as<InstructionI>());
-
-  case RvOp::BEQ: return fmt_b_branch("beq", as<InstructionB>());
-  case RvOp::BNE: return fmt_b_branch("bne", as<InstructionB>());
-  case RvOp::BLT: return fmt_b_branch("blt", as<InstructionB>());
-  case RvOp::BGE: return fmt_b_branch("bge", as<InstructionB>());
-  case RvOp::BLTU: return fmt_b_branch("bltu", as<InstructionB>());
-  case RvOp::BGEU: return fmt_b_branch("bgeu", as<InstructionB>());
-
-  case RvOp::LB: return fmt_i_offset("lb", as<InstructionI>());
-  case RvOp::LH: return fmt_i_offset("lh", as<InstructionI>());
-  case RvOp::LW: return fmt_i_offset("lw", as<InstructionI>());
-  case RvOp::LBU: return fmt_i_offset("lbu", as<InstructionI>());
-  case RvOp::LHU: return fmt_i_offset("lhu", as<InstructionI>());
-
-  case RvOp::SB: return fmt_s_store("sb", as<InstructionS>());
-  case RvOp::SH: return fmt_s_store("sh", as<InstructionS>());
-  case RvOp::SW: return fmt_s_store("sw", as<InstructionS>());
-
-  case RvOp::ADDI: return fmt_i_alu("addi", as<InstructionI>());
-  case RvOp::SLTI: return fmt_i_alu("slti", as<InstructionI>());
-  case RvOp::SLTIU: return fmt_i_alu("sltiu", as<InstructionI>());
-  case RvOp::XORI: return fmt_i_alu("xori", as<InstructionI>());
-  case RvOp::ORI: return fmt_i_alu("ori", as<InstructionI>());
-  case RvOp::ANDI: return fmt_i_alu("andi", as<InstructionI>());
-
-  case RvOp::SLLI: return fmt_i_shift("slli", as<InstructionI>());
-  case RvOp::SRLI: return fmt_i_shift("srli", as<InstructionI>());
-  case RvOp::SRAI: return fmt_i_shift("srai", as<InstructionI>());
-
-  case RvOp::ADD: return fmt_r_type("add", as<InstructionR>());
-  case RvOp::SUB: return fmt_r_type("sub", as<InstructionR>());
-  case RvOp::SLL: return fmt_r_type("sll", as<InstructionR>());
-  case RvOp::SLT: return fmt_r_type("slt", as<InstructionR>());
-  case RvOp::SLTU: return fmt_r_type("sltu", as<InstructionR>());
-  case RvOp::XOR: return fmt_r_type("xor", as<InstructionR>());
-  case RvOp::SRL: return fmt_r_type("srl", as<InstructionR>());
-  case RvOp::SRA: return fmt_r_type("sra", as<InstructionR>());
-  case RvOp::OR: return fmt_r_type("or", as<InstructionR>());
-  case RvOp::AND: return fmt_r_type("and", as<InstructionR>());
-
-  case RvOp::FENCE: return fmt_fence("fence", as<InstructionI>());
-  case RvOp::FENCE_TSO: return fmt_no_operands("fence.tso");
-  case RvOp::ECALL: return fmt_no_operands("ecall");
-  case RvOp::EBREAK: return fmt_no_operands("ebreak");
-
-  case RvOp::INVALID: break;
+  const auto &info = op_info(decode(*this));
+  switch (info.syntax) {
+  case RvSyntax::R: return fmt_r_type(info.name, as<InstructionR>());
+  case RvSyntax::I_ALU: return fmt_i_alu(info.name, as<InstructionI>());
+  case RvSyntax::I_Shift: return fmt_i_shift(info.name, as<InstructionI>());
+  case RvSyntax::I_Offset: return fmt_i_offset(info.name, as<InstructionI>());
+  case RvSyntax::S: return fmt_s_store(info.name, as<InstructionS>());
+  case RvSyntax::B: return fmt_b_branch(info.name, as<InstructionB>());
+  case RvSyntax::U: return fmt_u_upper(info.name, as<InstructionU>());
+  case RvSyntax::J: return fmt_j_jal(info.name, as<InstructionJ>());
+  case RvSyntax::I_Fence: return fmt_fence(info.name, as<InstructionI>());
+  case RvSyntax::I_NoOperands: return fmt_no_operands(info.name);
+  case RvSyntax::Unknown: break;
   }
   return fmt_unknown(bits(), is_compressed());
 }

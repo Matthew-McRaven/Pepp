@@ -32,6 +32,9 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
+#include <array>
+#include <cstddef>
+#include <string_view>
 #include "core/integers.h"
 
 #define RV32I_LOAD     0b0000011
@@ -75,7 +78,7 @@
 #define RV32V_OP 0b1010111
 #define RV32_INSTR_STOP 0x7ff00073
 
-// INVALID must stay 0 and COUNT must stay last.
+// INVALID must stay 0, and COUNT must be last.
 enum class RvOp : u8 {
   INVALID = 0,
 
@@ -140,4 +143,125 @@ enum class RvOp : u8 {
   // Environment
   ECALL,
   EBREAK,
+  // Not an opcode and must be last.
+  COUNT
 };
+
+namespace riscv {
+
+// Describe the instruction format, which determines which struct should be used to decode instruction bytes.
+enum class RvFormat : u8 { Unknown = 0, R, I, S, B, U, J };
+
+// One enumerated constant per format of the instruction string. Each name should lead with the letter of the
+// instruction format.
+enum class RvSyntax : u8 {
+  Unknown = 0,  // INVALID only OR an arbitrary bit-pattern.
+  R,            // add rd, rs1, rs2
+  I_ALU,        // addi rd, rs1, imm
+  I_Shift,      // slli rd, rs1, shamt
+  I_Offset,     // lw rd, off(rs1)
+  I_Fence,      // fence pred, succ
+  I_NoOperands, // ecall, ebreak, fence.tso -- no printed operands, still an I-type word
+  S,            // sw rs2, off(rs1)
+  B,            // beq rs1, rs2, off
+  U,            // lui rd, imm
+  J,            // jal rd, off
+};
+
+
+struct RvOpInfo {
+  RvOp op;
+  std::string_view name;
+  RvSyntax syntax;
+};
+
+inline constexpr std::array<RvOpInfo, 42> RV_OP_INFO{{
+    {RvOp::INVALID, "(invalid)", RvSyntax::Unknown},
+
+    {RvOp::LUI, "lui", RvSyntax::U},
+    {RvOp::AUIPC, "auipc", RvSyntax::U},
+
+    {RvOp::JAL, "jal", RvSyntax::J},
+
+    {RvOp::JALR, "jalr", RvSyntax::I_Offset},
+
+    {RvOp::BEQ, "beq", RvSyntax::B},
+    {RvOp::BNE, "bne", RvSyntax::B},
+    {RvOp::BLT, "blt", RvSyntax::B},
+    {RvOp::BGE, "bge", RvSyntax::B},
+    {RvOp::BLTU, "bltu", RvSyntax::B},
+    {RvOp::BGEU, "bgeu", RvSyntax::B},
+
+    {RvOp::LB, "lb", RvSyntax::I_Offset},
+    {RvOp::LH, "lh", RvSyntax::I_Offset},
+    {RvOp::LW, "lw", RvSyntax::I_Offset},
+    {RvOp::LBU, "lbu", RvSyntax::I_Offset},
+    {RvOp::LHU, "lhu", RvSyntax::I_Offset},
+
+    {RvOp::SB, "sb", RvSyntax::S},
+    {RvOp::SH, "sh", RvSyntax::S},
+    {RvOp::SW, "sw", RvSyntax::S},
+
+    {RvOp::ADDI, "addi", RvSyntax::I_ALU},
+    {RvOp::SLTI, "slti", RvSyntax::I_ALU},
+    {RvOp::SLTIU, "sltiu", RvSyntax::I_ALU},
+    {RvOp::XORI, "xori", RvSyntax::I_ALU},
+    {RvOp::ORI, "ori", RvSyntax::I_ALU},
+    {RvOp::ANDI, "andi", RvSyntax::I_ALU},
+
+    {RvOp::SLLI, "slli", RvSyntax::I_Shift},
+    {RvOp::SRLI, "srli", RvSyntax::I_Shift},
+    {RvOp::SRAI, "srai", RvSyntax::I_Shift},
+
+    {RvOp::ADD, "add", RvSyntax::R},
+    {RvOp::SUB, "sub", RvSyntax::R},
+    {RvOp::SLL, "sll", RvSyntax::R},
+    {RvOp::SLT, "slt", RvSyntax::R},
+    {RvOp::SLTU, "sltu", RvSyntax::R},
+    {RvOp::XOR, "xor", RvSyntax::R},
+    {RvOp::SRL, "srl", RvSyntax::R},
+    {RvOp::SRA, "sra", RvSyntax::R},
+    {RvOp::OR, "or", RvSyntax::R},
+    {RvOp::AND, "and", RvSyntax::R},
+
+    {RvOp::FENCE, "fence", RvSyntax::I_Fence},
+
+    {RvOp::FENCE_TSO, "fence.tso", RvSyntax::I_NoOperands},
+    {RvOp::ECALL, "ecall", RvSyntax::I_NoOperands},
+    {RvOp::EBREAK, "ebreak", RvSyntax::I_NoOperands},
+}};
+
+inline constexpr const RvOpInfo &op_info(RvOp op) noexcept {
+  const auto i = static_cast<std::size_t>(op);
+  return riscv::RV_OP_INFO[i < riscv::RV_OP_INFO.size() ? i : 0];
+}
+inline constexpr std::string_view mnemonic(RvOp op) noexcept { return op_info(op).name; }
+inline constexpr RvSyntax syntax(RvOp op) noexcept { return op_info(op).syntax; }
+
+// Determine the instruction format (for as<> cast) for an opcode or syntax class.
+inline constexpr RvFormat format(RvSyntax syn) noexcept {
+  switch (syn) {
+  case RvSyntax::R: return RvFormat::R;
+  case RvSyntax::I_ALU: [[fallthrough]];
+  case RvSyntax::I_Shift: [[fallthrough]];
+  case RvSyntax::I_Offset: [[fallthrough]];
+  case RvSyntax::I_Fence: [[fallthrough]];
+  case RvSyntax::I_NoOperands: return RvFormat::I;
+  case RvSyntax::S: return RvFormat::S;
+  case RvSyntax::B: return RvFormat::B;
+  case RvSyntax::U: return RvFormat::U;
+  case RvSyntax::J: return RvFormat::J;
+  case RvSyntax::Unknown: break;
+  }
+  return RvFormat::Unknown;
+}
+inline constexpr RvFormat format(RvOp op) noexcept { return format(syntax(op)); }
+
+// Reverse lookup, so op/syntax/format are all reachable from a mnemonic too. Linear over 42 rows
+// and constexpr-evaluable; the assembler keeps its own sorted set for lookups that are hot.
+inline constexpr RvOp op_from_name(std::string_view name) noexcept {
+  for (std::size_t i = 1; i < riscv::RV_OP_INFO.size(); ++i)
+    if (riscv::RV_OP_INFO[i].name == name) return riscv::RV_OP_INFO[i].op;
+  return RvOp::INVALID;
+}
+} // namespace riscv

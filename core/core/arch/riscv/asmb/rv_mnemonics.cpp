@@ -368,48 +368,53 @@ template <> riscv::InstructionJ riscv::MnemonicDescriptor::encode<riscv::Instruc
 
 static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {
   using namespace riscv;
-  auto add = [&](const riscv::Mnemonic &mn) { mn_set.insert(mn); };
-  add({"lui", LUI});
-  add({"auipc", AUIPC});
-  add({"jal", JAL});
-  add({"jalr", JALR});
-  add({"beq", BEQ});
-  add({"bne", BNE});
-  add({"blt", BLT});
-  add({"bge", BGE});
-  add({"bltu", BLTU});
-  add({"bgeu", BGEU});
-  add({"lb", LB});
-  add({"lh", LH});
-  add({"lw", LW});
-  add({"lbu", LBU});
-  add({"lhu", LHU});
-  add({"sb", SB});
-  add({"sh", SH});
-  add({"sw", SW});
-  add({"addi", ADDI});
-  add({"slti", SLTI});
-  add({"sltiu", SLTIU});
-  add({"xori", XORI});
-  add({"ori", ORI});
-  add({"andi", ANDI});
-  add({"slli", SLLI});
-  add({"srli", SRLI});
-  add({"srai", SRAI});
-  add({"add", ADD});
-  add({"sub", SUB});
-  add({"sll", SLL});
-  add({"slt", SLT});
-  add({"sltu", SLTU});
-  add({"xor", XOR});
-  add({"srl", SRL});
-  add({"sra", SRA});
-  add({"or", OR});
-  add({"and", AND});
-  add({"fence", FENCE});
-  add({"fence.tso", FENCE_TSO});
-  add({"ecall", ECALL});
-  add({"ebreak", EBREAK});
+  // The spelling comes from RV_OP_INFO, the same table the disassembler formats out of, so the
+  // two can no longer disagree. Each line below pairs an op with the descriptor that encodes it,
+  // which is the link that previously existed only by the two identifiers being spelled alike.
+  auto add = [&](RvOp op, const MnemonicDescriptor &desc) {
+    mn_set.insert(Mnemonic{std::string(mnemonic(op)), desc});
+  };
+  add(RvOp::LUI, LUI);
+  add(RvOp::AUIPC, AUIPC);
+  add(RvOp::JAL, JAL);
+  add(RvOp::JALR, JALR);
+  add(RvOp::BEQ, BEQ);
+  add(RvOp::BNE, BNE);
+  add(RvOp::BLT, BLT);
+  add(RvOp::BGE, BGE);
+  add(RvOp::BLTU, BLTU);
+  add(RvOp::BGEU, BGEU);
+  add(RvOp::LB, LB);
+  add(RvOp::LH, LH);
+  add(RvOp::LW, LW);
+  add(RvOp::LBU, LBU);
+  add(RvOp::LHU, LHU);
+  add(RvOp::SB, SB);
+  add(RvOp::SH, SH);
+  add(RvOp::SW, SW);
+  add(RvOp::ADDI, ADDI);
+  add(RvOp::SLTI, SLTI);
+  add(RvOp::SLTIU, SLTIU);
+  add(RvOp::XORI, XORI);
+  add(RvOp::ORI, ORI);
+  add(RvOp::ANDI, ANDI);
+  add(RvOp::SLLI, SLLI);
+  add(RvOp::SRLI, SRLI);
+  add(RvOp::SRAI, SRAI);
+  add(RvOp::ADD, ADD);
+  add(RvOp::SUB, SUB);
+  add(RvOp::SLL, SLL);
+  add(RvOp::SLT, SLT);
+  add(RvOp::SLTU, SLTU);
+  add(RvOp::XOR, XOR);
+  add(RvOp::SRL, SRL);
+  add(RvOp::SRA, SRA);
+  add(RvOp::OR, OR);
+  add(RvOp::AND, AND);
+  add(RvOp::FENCE, FENCE);
+  add(RvOp::FENCE_TSO, FENCE_TSO);
+  add(RvOp::ECALL, ECALL);
+  add(RvOp::EBREAK, EBREAK);
 }
 
 static void add_rv32i_psueodo_instructions(riscv::MnemonicSet &mn_set) {
