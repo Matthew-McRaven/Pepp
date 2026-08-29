@@ -264,7 +264,7 @@ Memory<address_t>::generate_decoder_cache([[maybe_unused]] const MachineOptions<
 
     // Load unaligned instruction from execute segment
     const auto instruction = read_instruction(exec_segment, dst, end_addr);
-    rv32i_instruction rewritten = instruction;
+    instruction_format rewritten = instruction;
 
     if (!compressed_enabled || was_full_instruction) {
       // Cache the (modified) instruction bits

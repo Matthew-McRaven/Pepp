@@ -182,24 +182,21 @@ PEPP_NOINLINE RISCV_INTERNAL typename CPU<address_t>::format_t CPU<address_t>::r
     trigger_exception(EXECUTION_SPACE_PROTECTION_FAULT, this->pc());
   }
   const auto offset = this->pc() & (Page::size() - 1);
-  format_t instruction;
-
   if (LIKELY(offset <= Page::size() - 4)) {
-    instruction.whole = uint32_t(*(UnderAlign32 *)(page.data() + offset));
-    return instruction;
+    return format_t{uint32_t(*(UnderAlign32 *)(page.data() + offset))};
   }
   // It's not possible to jump to a misaligned address,
   // so there is necessarily 16-bit left of the page now.
-  instruction.whole = *(uint16_t *)(page.data() + offset);
+  const uint16_t low_half = *(uint16_t *)(page.data() + offset);
+  format_t instruction{uint32_t(low_half)};
 
   // If it's a 32-bit instruction at a page border, we need
   // to get the next page, and then read the upper half
   if (UNLIKELY(instruction.is_long())) {
     const auto &slow_page = machine().memory.get_exec_pageno(pageno + 1);
-    // Avoid undefined behavior in union type punning. Compiler *should* optimize memcopy.
-    const auto tmp = instruction.whole;
-    std::memcpy(&instruction.half, &tmp, sizeof(tmp));
-    instruction.half[1] = *(uint16_t *)slow_page.data();
+    // Combine the two halves arithmetically. The old code stored through half[] and read
+    // back through whole, which is the union pun its memcpy was trying to sidestep.
+    instruction = uint32_t(low_half) | (uint32_t(*(uint16_t *)slow_page.data()) << 16);
   }
 
   return instruction;
@@ -219,13 +216,13 @@ template <AddressType address_t> typename CPU<address_t>::format_t CPU<address_t
 }
 
 template <AddressType address_t>
-static inline rv32i_instruction decode_safely(const uint8_t *exec_seg_data, address_t pc) {
+static inline instruction_format decode_safely(const uint8_t *exec_seg_data, address_t pc) {
   // Instructions may be unaligned with C-extension
   // On amd64 we take the cost, because it's faster
 #if !defined(__x86_64__)
-  return rv32i_instruction{*(UnderAlign32 *)&exec_seg_data[pc]};
+  return instruction_format{uint32_t(*(UnderAlign32 *)&exec_seg_data[pc])};
 #else  // aligned/unaligned loads
-  return rv32i_instruction{*(uint32_t *)&exec_seg_data[pc]};
+  return instruction_format{*(uint32_t *)&exec_seg_data[pc]};
 #endif // aligned/unaligned loads
 }
 
@@ -415,13 +412,13 @@ uint32_t CPU<address_t>::install_ebreak_for(DecodedExecuteSegment<address_t> &ex
   const auto old_instruction = cache_entry.instr;
 
   // Install the new ebreak instruction at the breakpoint address
-  rv32i_instruction new_instruction;
-  new_instruction.Itype.opcode = 0b1110011; // SYSTEM
-  new_instruction.Itype.rd = 0;
-  new_instruction.Itype.funct3 = 0b000;
-  new_instruction.Itype.rs1 = 0;
-  new_instruction.Itype.imm = 1; // EBREAK
-  cache_entry.instr = new_instruction.whole;
+  InstructionI new_instruction{};
+  new_instruction.opcode = 0b1110011; // SYSTEM
+  new_instruction.rd = 0;
+  new_instruction.funct3 = 0b000;
+  new_instruction.rs1 = 0;
+  new_instruction.imm = 1; // EBREAK
+  cache_entry.instr = std::bit_cast<uint32_t>(new_instruction);
   cache_entry.set_bytecode(RV32I_BC_SYSTEM);
   cache_entry.idxend = 0;
   cache_entry.icount = 0; // TODO: Implement C-ext icount for breakpoints
@@ -544,10 +541,10 @@ std::string CPU<address_t>::to_string(instruction_format format, const instructi
   int ibuflen = instr.printer(ibuffer, sizeof(ibuffer), *this, format);
   int len = 0;
   if (format.length() == 4) {
-    len = snprintf(buffer, sizeof(buffer), "[%08X] %08X %.*s", this->pc(), format.whole, ibuflen, ibuffer);
+    len = snprintf(buffer, sizeof(buffer), "[%08X] %08X %.*s", this->pc(), format.bits(), ibuflen, ibuffer);
   } else if (format.length() == 2) {
     len =
-        snprintf(buffer, sizeof(buffer), "[%08X]     %04hX %.*s", this->pc(), (uint16_t)format.whole, ibuflen, ibuffer);
+        snprintf(buffer, sizeof(buffer), "[%08X]     %04hX %.*s", this->pc(), (uint16_t)format.bits(), ibuflen, ibuffer);
   } else {
     throw MachineException(UNIMPLEMENTED_INSTRUCTION_LENGTH, "Unimplemented instruction format length",
                            format.length());
@@ -556,27 +553,33 @@ std::string CPU<address_t>::to_string(instruction_format format, const instructi
 }
 
 // decode_bytecodes.cpp
-template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i_instruction instr) noexcept {
+template <AddressType address_t> size_t CPU<address_t>::computed_index_for(instruction_format instr) noexcept {
   if (instr.length() == 2) {
     // RISC-V Compressed Extension
-    const rv32c_instruction ci{instr};
+    const auto ci = instr.as_compressed<InstructionCI>();
+    const auto ci2 = instr.as_compressed<InstructionCI2>();
+    const auto cl = instr.as_compressed<InstructionCL>();
+    const auto cs = instr.as_compressed<InstructionCS>();
+    const auto ca = instr.as_compressed<InstructionCA>();
+    const auto cr = instr.as_compressed<InstructionCR>();
+    const auto css = instr.as_compressed<InstructionCSS>();
 #define CI_CODE(x, y) ((x << 13) | (y))
-    switch (ci.opcode()) {
+    switch (instr.copcode()) {
     case CI_CODE(0b000, 0b00):
       // if all bits are zero, it's an illegal instruction
-      if (ci.whole != 0x0) {
+      if (instr.low16() != 0x0) {
         return RV32C_BC_ADDI; // C.ADDI4SPN
       }
       return RV32I_BC_INVALID;
     case CI_CODE(0b001, 0b00):
     case CI_CODE(0b010, 0b00):
     case CI_CODE(0b011, 0b00): {
-      if (ci.CL.funct3 == 0x2) { // C.LW
+      if (cl.funct3 == 0x2) { // C.LW
         return RV32C_BC_LDW;
       }
-      // C.FLD if         ci.CL.funct3 == 0x1
-      // C.LD  if r64 and ci.CL.funct3 == 0x3
-      // C.FLW if r32 and ci.CL.funct3 == 0x3
+      // C.FLD if         cl.funct3 == 0x1
+      // C.LD  if r64 and cl.funct3 == 0x3
+      // C.FLW if r32 and cl.funct3 == 0x3
       // C.UNIMP otherwise
       return RV32C_BC_FUNCTION;
     }
@@ -584,7 +587,7 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     case CI_CODE(0b101, 0b00):
     case CI_CODE(0b110, 0b00):
     case CI_CODE(0b111, 0b00): {
-      switch (ci.CS.funct3) {
+      switch (cs.funct3) {
       case 4: return RV32C_BC_FUNCTION; // C.UNIMP
       case 5: return RV32C_BC_FUNCTION; // C.FSD
       case 6: return RV32C_BC_STW;      // C.SW
@@ -598,19 +601,19 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
       return RV32C_BC_FUNCTION; // C.UNIMP?
     }
     case CI_CODE(0b000, 0b01):
-      if (ci.CI.rd != 0) {
+      if (ci.rd != 0) {
         return RV32C_BC_ADDI; // C.ADDI
       }
       return RV32C_BC_FUNCTION; // C.NOP
     case CI_CODE(0b010, 0b01):
-      if (ci.CI.rd != 0) {
+      if (ci.rd != 0) {
         return RV32C_BC_LI; // C.LI
       }
       return RV32C_BC_FUNCTION; // C.NOP
     case CI_CODE(0b011, 0b01):
-      if (ci.CI.rd == 2) {
+      if (ci.rd == 2) {
         return RV32C_BC_ADDI; // C.ADDI16SP
-      } else if (ci.CI.rd != 0) {
+      } else if (ci.rd != 0) {
         return RV32C_BC_FUNCTION; // C.LUI
       }
       return RV32C_BC_FUNCTION; // ILLEGAL
@@ -627,32 +630,32 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     case CI_CODE(0b001, 0b10):
     case CI_CODE(0b010, 0b10):
     case CI_CODE(0b011, 0b10): {
-      if (ci.CI.funct3 == 0x0 && ci.CI.rd != 0) {
+      if (ci.funct3 == 0x0 && ci.rd != 0) {
         return RV32C_BC_SLLI; // C.SLLI
-      } else if (ci.CI2.funct3 == 0x1) {
+      } else if (ci2.funct3 == 0x1) {
         return RV32C_BC_FUNCTION; // C.FLDSP
-      } else if (ci.CI2.funct3 == 0x2 && ci.CI2.rd != 0) {
+      } else if (ci2.funct3 == 0x2 && ci2.rd != 0) {
         return RV32C_BC_LDW; // C.LWSP
-      } else if (ci.CI2.funct3 == 0x3) {
+      } else if (ci2.funct3 == 0x3) {
         if constexpr (sizeof(address_t) == 8) {
-          if (ci.CI2.rd != 0) {
+          if (ci2.rd != 0) {
             return RV32C_BC_LDD; // C.LDSP
           }
         } else {
           return RV32C_BC_FUNCTION; // C.FLWSP
         }
-      } else if (ci.CI.rd == 0) {
+      } else if (ci.rd == 0) {
         return RV32C_BC_FUNCTION; // C.HINT
       }
       return RV32C_BC_FUNCTION; // C.UNIMP?
     }
     case CI_CODE(0b100, 0b01): { // C1 ALU OPS
-      switch (ci.CA.funct6 & 0x3) {
+      switch (ca.funct6 & 0x3) {
       case 0x0: return RV32C_BC_SRLI;     // C.SRLI
       case 0x1: return RV32C_BC_FUNCTION; // C.SRAI
       case 0x2: return RV32C_BC_ANDI;     // C.ANDI
       case 0x3:                           // More ALU ops
-        switch (ci.CA.funct2 | (ci.CA.funct6 & 0x4)) {
+        switch (ca.funct2 | (ca.funct6 & 0x4)) {
         case 0x0: return RV32C_BC_FUNCTION; // C.SUB
         case 0x1: return RV32C_BC_XOR;      // C.XOR
         case 0x2: return RV32C_BC_OR;       // C.OR
@@ -663,16 +666,16 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
       }
     }
     case CI_CODE(0b100, 0b10): {
-      const bool topbit = ci.whole & (1 << 12);
-      if (!topbit && ci.CR.rd != 0 && ci.CR.rs2 == 0) {
+      const bool topbit = instr.low16() & (1 << 12);
+      if (!topbit && cr.rd != 0 && cr.rs2 == 0) {
         return RV32C_BC_JR; // C.JR rd
-      } else if (topbit && ci.CR.rd != 0 && ci.CR.rs2 == 0) {
+      } else if (topbit && cr.rd != 0 && cr.rs2 == 0) {
         return RV32C_BC_JALR;                                  // C.JALR ra, rd+0
-      } else if (!topbit && ci.CR.rd != 0 && ci.CR.rs2 != 0) { // MV rd, rs2
+      } else if (!topbit && cr.rd != 0 && cr.rs2 != 0) { // MV rd, rs2
         return RV32C_BC_MV;                                    // C.MV
-      } else if (ci.CR.rd != 0) {                              // ADD rd, rd + rs2
+      } else if (cr.rd != 0) {                              // ADD rd, rd + rs2
         return RV32C_BC_ADD;                                   // C.ADD
-      } else if (topbit && ci.CR.rd == 0 && ci.CR.rs2 == 0) {  // EBREAK
+      } else if (topbit && cr.rd == 0 && cr.rs2 == 0) {  // EBREAK
         return RV32C_BC_FUNCTION;                              // C.EBREAK
       }
       return RV32C_BC_FUNCTION; // C.UNIMP?
@@ -680,11 +683,11 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     case CI_CODE(0b101, 0b10):
     case CI_CODE(0b110, 0b10):
     case CI_CODE(0b111, 0b10): {
-      if (ci.CSS.funct3 == 5) {
+      if (css.funct3 == 5) {
         return RV32C_BC_FUNCTION; // FSDSP
-      } else if (ci.CSS.funct3 == 6) {
+      } else if (css.funct3 == 6) {
         return RV32C_BC_STW; // SWSP
-      } else if (ci.CSS.funct3 == 7) {
+      } else if (css.funct3 == 7) {
         if constexpr (sizeof(address_t) == 8) {
           return RV32C_BC_STD; // SDSP
         } else {
@@ -697,11 +700,16 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     }
   }
 
+  const auto it = instr.as<InstructionI>();
+  const auto rt = instr.as<InstructionR>();
+  const auto st = instr.as<InstructionS>();
+  const auto bt = instr.as<InstructionB>();
+  const auto ut = instr.as<InstructionU>();
   switch (instr.opcode()) {
   case RV32I_LOAD:
     // XXX: Support dummy loads
-    if (instr.Itype.rd == 0) return RV32I_BC_FUNCTION;
-    switch (instr.Itype.funct3) {
+    if (it.rd == 0) return RV32I_BC_FUNCTION;
+    switch (it.funct3) {
     case 0x0: // LD.B
       return RV32I_BC_LDB;
     case 0x1: // LD.H
@@ -725,7 +733,7 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     default: return RV32I_BC_INVALID;
     }
   case RV32I_STORE:
-    switch (instr.Stype.funct3) {
+    switch (st.funct3) {
     case 0x0: // SD.B
       return RV32I_BC_STB;
     case 0x1: // SD.H
@@ -740,7 +748,7 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     default: return RV32I_BC_INVALID;
     }
   case RV32I_BRANCH:
-    switch (instr.Btype.funct3) {
+    switch (bt.funct3) {
     case 0x0: // BEQ
       return RV32I_BC_BEQ;
     case 0x1: // BNE
@@ -756,27 +764,27 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     default: return RV32I_BC_INVALID;
     }
   case RV32I_LUI:
-    if (instr.Utype.rd == 0) return RV32I_BC_FUNCTION;
+    if (ut.rd == 0) return RV32I_BC_FUNCTION;
     return RV32I_BC_LUI;
   case RV32I_AUIPC:
-    if (instr.Utype.rd == 0) return RV32I_BC_FUNCTION;
+    if (ut.rd == 0) return RV32I_BC_FUNCTION;
     return RV32I_BC_AUIPC;
   case RV32I_JAL: return RV32I_BC_JAL;
   case RV32I_JALR: return RV32I_BC_JALR;
   case RV32I_OP_IMM:
-    if (instr.Itype.rd == 0) return RV32I_BC_FUNCTION;
-    switch (instr.Itype.funct3) {
+    if (it.rd == 0) return RV32I_BC_FUNCTION;
+    switch (it.funct3) {
     case 0x0:
-      if (instr.Itype.rs1 == 0) return RV32I_BC_LI;
-      else if (instr.Itype.signed_imm() == 0) return RV32I_BC_MV;
+      if (it.rs1 == 0) return RV32I_BC_LI;
+      else if (it.signed_imm() == 0) return RV32I_BC_MV;
       else return RV32I_BC_ADDI;
     case 0x1: // SLLI, ...
-      if (instr.Itype.high_bits() == 0x0) return RV32I_BC_SLLI;
-      else if (instr.Itype.imm == 0b011000000100) // SEXT.B
+      if (it.high_bits() == 0x0) return RV32I_BC_SLLI;
+      else if (it.imm == 0b011000000100) // SEXT.B
         return RV32I_BC_SEXT_B;
-      else if (instr.Itype.imm == 0b011000000101) // SEXT.H
+      else if (it.imm == 0b011000000101) // SEXT.H
         return RV32I_BC_SEXT_H;
-      else if (instr.Itype.high_bits() == 0x280) // BSETI
+      else if (it.high_bits() == 0x280) // BSETI
         return RV32I_BC_BSETI;
       else return RV32I_BC_FUNCTION;
     case 0x2: // SLTI
@@ -786,9 +794,9 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     case 0x4: // XORI
       return RV32I_BC_XORI;
     case 0x5:
-      if (instr.Itype.high_bits() == 0x0) return RV32I_BC_SRLI;
-      else if (instr.Itype.is_srai()) return RV32I_BC_SRAI;
-      else if (instr.Itype.high_bits() == 0x480) // BEXTI
+      if (it.high_bits() == 0x0) return RV32I_BC_SRLI;
+      else if (it.is_srai()) return RV32I_BC_SRAI;
+      else if (it.high_bits() == 0x480) // BEXTI
         return RV32I_BC_BEXTI;
       else return RV32I_BC_FUNCTION;
     case 0x6: return RV32I_BC_ORI;
@@ -796,8 +804,8 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     default: return RV32I_BC_FUNCTION;
     }
   case RV32I_OP:
-    if (instr.Itype.rd == 0) return RV32I_BC_FUNCTION;
-    switch (instr.Rtype.jumptable_friendly_op()) {
+    if (it.rd == 0) return RV32I_BC_FUNCTION;
+    switch (rt.jumptable_friendly_op()) {
     case 0x0: return RV32I_BC_OP_ADD;
     case 0x200: return RV32I_BC_OP_SUB;
     case 0x1: return RV32I_BC_OP_SLL;
@@ -836,7 +844,7 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
   case RV64I_OP32:
     if constexpr (sizeof(address_t) < 8) return RV32I_BC_INVALID;
 
-    switch (instr.Rtype.jumptable_friendly_op()) {
+    switch (rt.jumptable_friendly_op()) {
     case 0x0: // ADD.W
       return RV64I_BC_OP_ADDW;
     case 0x200: // SUB.W
@@ -852,36 +860,35 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
   case RV64I_OP_IMM32:
     if constexpr (sizeof(address_t) < 8) return RV32I_BC_INVALID;
 
-    if (instr.Itype.rd == 0) return RV32I_BC_FUNCTION;
-    switch (instr.Itype.funct3) {
+    if (it.rd == 0) return RV32I_BC_FUNCTION;
+    switch (it.funct3) {
     case 0x0: return RV64I_BC_ADDIW;
     case 0x1: // SLLIW
-      if (instr.Itype.high_bits() == 0x000) {
+      if (it.high_bits() == 0x000) {
         return RV64I_BC_SLLIW;
       }
       return RV32I_BC_FUNCTION;
     case 0x5: // SRLIW / SRAIW
-      if (instr.Itype.high_bits() == 0x000) {
+      if (it.high_bits() == 0x000) {
         return RV64I_BC_SRLIW;
       }
       return RV32I_BC_FUNCTION;
     }
     return RV32I_BC_FUNCTION;
   case RV32I_SYSTEM:
-    if (LIKELY(instr.Itype.funct3 == 0)) {
-      if (instr.Itype.imm == 0) {
+    if (LIKELY(it.funct3 == 0)) {
+      if (it.imm == 0) {
         return RV32I_BC_SYSCALL;
       }
       // WFI and STOP
-      if (instr.Itype.imm == 0x105 || instr.Itype.imm == 0x7ff) {
+      if (it.imm == 0x105 || it.imm == 0x7ff) {
         return RV32I_BC_STOP;
       }
     }
     return RV32I_BC_SYSTEM;
   case RV32I_FENCE: return RV32I_BC_FUNCTION;
   case RV32F_LOAD: {
-    const rv32f_instruction fi{instr};
-    switch (fi.Itype.funct3) {
+    switch (instr.as<InstructionI>().funct3) {
     case 0x2: // FLW
       return RV32F_BC_FLW;
     case 0x3: // FLD
@@ -892,8 +899,7 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     }
   }
   case RV32F_STORE: {
-    const rv32f_instruction fi{instr};
-    switch (fi.Itype.funct3) {
+    switch (instr.as<InstructionI>().funct3) {
     case 0x2: // FSW
       return RV32F_BC_FSW;
     case 0x3: // FSD
@@ -908,7 +914,7 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
   case RV32F_FNMADD:
   case RV32F_FNMSUB: return RV32I_BC_FUNCTION;
   case RV32F_FPFUNC:
-    if (rv32f_instruction{instr}.R4type.funct2 >= 2) return RV32I_BC_FUNCTION;
+    if (instr.as<InstructionRFP>().fmt >= 2) return RV32I_BC_FUNCTION;
     switch (instr.fpfunc()) {
     case 0b00000: // FADD
       return RV32F_BC_FADD;
@@ -921,16 +927,16 @@ template <AddressType address_t> size_t CPU<address_t>::computed_index_for(rv32i
     default: return RV32I_BC_FUNCTION;
     }
   case RV32V_OP: {
-    const rv32v_instruction vi{instr};
+    const auto opvv = instr.as<InstructionOPVV>();
     switch (instr.vwidth()) {
     case 0x1: // OPF.VV
-      switch (vi.OPVV.funct6) {
+      switch (opvv.funct6) {
       case 0b000000: // VFADD.VV
         return RV32V_BC_VFADD_VV;
       }
       break;
     case 0x5: // OPF.VF
-      switch (vi.OPVV.funct6) {
+      switch (opvv.funct6) {
       case 0b100100: // VFMUL.VF
         return RV32V_BC_VFMUL_VF;
       }

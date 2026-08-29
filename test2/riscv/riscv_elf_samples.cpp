@@ -579,15 +579,16 @@ struct InstructionState {
 
 /** The new custom instruction **/
 static const riscv::Instruction<uint64_t> custom_instruction_handler{
-    [](riscv::CPU<uint64_t> &cpu, riscv::rv32i_instruction instr) {
+    [](riscv::CPU<uint64_t> &cpu, riscv::instruction_format instr) {
       printf("Hello custom instruction World!\n");
       REQUIRE(instr.opcode() == 0b1011011);
 
       auto *state = cpu.machine().get_userdata<InstructionState>();
+      const auto it = instr.as<riscv::InstructionI>();
       // Argument number
-      const unsigned idx = instr.Itype.rd & 7;
+      const unsigned idx = it.rd & 7;
       // Select type and retrieve value from argument registers
-      switch (instr.Itype.funct3) {
+      switch (it.funct3) {
       case 0x0: // Register value (64-bit unsigned)
         state->args[idx] = cpu.reg(riscv::REG_ARG0 + idx);
         break;
@@ -597,8 +598,8 @@ static const riscv::Instruction<uint64_t> custom_instruction_handler{
       default: throw "Implement me";
       }
     },
-    [](char *buffer, size_t len, auto &, riscv::rv32i_instruction instr) {
-      return snprintf(buffer, len, "CUSTOM: 4-byte 0x%X (0x%X)", instr.opcode(), instr.whole);
+    [](char *buffer, size_t len, auto &, riscv::instruction_format instr) {
+      return snprintf(buffer, len, "CUSTOM: 4-byte 0x%X (0x%X)", instr.opcode(), instr.bits());
     }};
 
 TEST_CASE("Custom instruction", "[Custom]") {
@@ -617,7 +618,7 @@ TEST_CASE("Custom instruction", "[Custom]") {
     // Install the handler for unimplemented instructions, allowing us to
     // select our custom instruction for a reserved opcode.
     machine.cpu.on_unimplemented_instruction =
-        [](riscv::rv32i_instruction instr) -> const riscv::Instruction<uint64_t> & {
+        [](riscv::instruction_format instr) -> const riscv::Instruction<uint64_t> & {
       if (instr.opcode() == 0b1011011) {
         return custom_instruction_handler;
       }
@@ -643,7 +644,7 @@ TEST_CASE("Custom instruction", "[Custom]") {
   {
     riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
     machine.cpu.on_unimplemented_instruction =
-        [](riscv::rv32i_instruction instr) -> const riscv::Instruction<uint64_t> & {
+        [](riscv::instruction_format instr) -> const riscv::Instruction<uint64_t> & {
       if (instr.opcode() == 0b1011011) {
         return custom_instruction_handler;
       }

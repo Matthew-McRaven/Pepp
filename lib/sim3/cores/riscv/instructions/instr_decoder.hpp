@@ -60,8 +60,8 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
     switch (instruction.opcode()) {
       // RV32IM
     case RV32I_LOAD:
-      if (LIKELY(instruction.Itype.rd != 0)) {
-        switch (instruction.Itype.funct3) {
+      if (auto i = instruction.as<InstructionI>(); i.rd != 0) [[likely]] {
+        switch (i.funct3) {
         case 0x0:
           if constexpr (sizeof(address_t) == 4) return instr32i_LOAD_I8;
           else return instr64i_LOAD_I8;
@@ -93,9 +93,9 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_LOAD_X_DUMMY;
 
     case RV32I_STORE:
-      switch (instruction.Stype.funct3) {
+      switch (instruction.as<InstructionS>().funct3) {
       case 0x0:
-        if (instruction.Stype.signed_imm() == 0) {
+        if (instruction.as<InstructionS>().signed_imm() == 0) {
           if constexpr (sizeof(address_t) == 4) return instr32i_STORE_I8;
           else return instr64i_STORE_I8;
         }
@@ -118,7 +118,7 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_ILLEGAL;
 
     case RV32I_BRANCH:
-      switch (instruction.Btype.funct3) {
+      switch (instruction.as<InstructionB>().funct3) {
       case 0x0:
         if constexpr (sizeof(address_t) == 4) return instr32i_BRANCH_EQ;
         else return instr64i_BRANCH_EQ;
@@ -148,7 +148,7 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_JALR;
 
     case RV32I_JAL:
-      if (instruction.Jtype.rd != 0) {
+      if (instruction.as<InstructionJ>().rd != 0) {
         if constexpr (sizeof(address_t) == 4) return instr32i_JAL;
         else return instr64i_JAL;
       }
@@ -156,27 +156,27 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_JMPI;
 
     case RV32I_OP_IMM:
-      if (LIKELY(instruction.Itype.rd != 0)) {
-        switch (instruction.Itype.funct3) {
+      if (auto i = instruction.as<InstructionI>(); i.rd != 0) [[likely]] {
+        switch (i.funct3) {
         case 0x0: // ADDI
-          if (instruction.Itype.rs1 == 0) {
+          if (i.rs1 == 0) {
             if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM_LI;
             else return instr64i_OP_IMM_LI;
-          } else if (instruction.Itype.imm == 0) {
+          } else if (i.imm == 0) {
             if constexpr (sizeof(address_t) == 4) return instr32i_OP_MV;
             else return instr64i_OP_MV;
           }
           if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM_ADDI;
           else return instr64i_OP_IMM_ADDI;
         case 0x1: // SLLI
-          if (instruction.Itype.high_bits() == 0x0) {
+          if (i.high_bits() == 0x0) {
             if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM_SLLI;
             else return instr64i_OP_IMM_SLLI;
           }
           if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM;
           else return instr64i_OP_IMM;
         case 0x5: // SRLI / SRAI
-          if (instruction.Itype.high_bits() == 0x0) {
+          if (i.high_bits() == 0x0) {
             if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM_SRLI;
             else return instr64i_OP_IMM_SRLI;
           } else {
@@ -195,8 +195,8 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_NOP;
 
     case RV32I_OP:
-      if (LIKELY(instruction.Rtype.rd != 0)) {
-        switch (instruction.Rtype.jumptable_friendly_op()) {
+      if (auto r = instruction.as<InstructionR>(); r.rd != 0) [[likely]] {
+        switch (r.jumptable_friendly_op()) {
         case 0x0:
           if constexpr (sizeof(address_t) == 4) return instr32i_OP_ADD;
           else return instr64i_OP_ADD;
@@ -212,14 +212,14 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_NOP;
 
     case RV32I_SYSTEM:
-      if (LIKELY(instruction.Itype.funct3 == 0)) {
-        if (instruction.Itype.imm == 0) {
+      if (auto i = instruction.as<InstructionI>(); i.funct3 == 0) [[likely]] {
+        if (i.imm == 0) {
           if constexpr (sizeof(address_t) == 4) return instr32i_SYSCALL;
           else return instr64i_SYSCALL;
-        } else if (instruction.Itype.imm == 0x7FF) { // STOP
+        } else if (i.imm == 0x7FF) { // STOP
           if constexpr (sizeof(address_t) == 4) return instr32i_WFI;
           else return instr64i_WFI;
-        } else if (instruction.Itype.imm == 261) {
+        } else if (i.imm == 261) {
           if constexpr (sizeof(address_t) == 4) return instr32i_WFI;
           else return instr64i_WFI;
         }
@@ -227,7 +227,7 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       if constexpr (sizeof(address_t) == 4) return instr32i_SYSTEM;
       else return instr64i_SYSTEM;
     case RV32I_LUI:
-      if (LIKELY(instruction.Utype.rd != 0)) {
+      if (instruction.as<InstructionU>().rd != 0) [[likely]] {
         if constexpr (sizeof(address_t) == 4) return instr32i_LUI;
         else return instr64i_LUI;
       }
@@ -235,7 +235,7 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_NOP;
 
     case RV32I_AUIPC:
-      if (LIKELY(instruction.Utype.rd != 0)) {
+      if (instruction.as<InstructionU>().rd != 0) [[likely]] {
         if constexpr (sizeof(address_t) == 4) return instr32i_AUIPC;
         else return instr64i_AUIPC;
       }
@@ -243,16 +243,16 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_NOP;
 
     case RV64I_OP_IMM32:
-      if (LIKELY(instruction.Itype.rd != 0)) {
-        switch (instruction.Itype.funct3) {
+      if (auto i = instruction.as<InstructionI>(); i.rd != 0) [[likely]] {
+        switch (i.funct3) {
         case 0x0: // ADDIW
           if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM32_ADDIW;
           else return instr64i_OP_IMM32_ADDIW;
         case 0x1: // SLLIW
-          if (instruction.Itype.high_bits() == 0x000) {
+          if (i.high_bits() == 0x000) {
             if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM32_SLLIW;
             else return instr64i_OP_IMM32_SLLIW;
-          } else if (instruction.Itype.high_bits() == 0x080) {
+          } else if (i.high_bits() == 0x080) {
             if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM32_SLLI_UW;
             else return instr64i_OP_IMM32_SLLI_UW;
           } else {
@@ -260,10 +260,10 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
             else return instr64i_OP_IMM32;
           }
         case 0x5: // SRLIW / SRAIW
-          if (instruction.Itype.high_bits() == 0x000) {
+          if (i.high_bits() == 0x000) {
             if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM32_SRLIW;
             else return instr64i_OP_IMM32_SRLIW;
-          } else if (instruction.Itype.high_bits() == 0x400) {
+          } else if (i.high_bits() == 0x400) {
             if constexpr (sizeof(address_t) == 4) return instr32i_OP_IMM32_SRAIW;
             else return instr64i_OP_IMM32_SRAIW;
           } else {
@@ -278,8 +278,8 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_NOP;
 
     case RV64I_OP32:
-      if (LIKELY(instruction.Rtype.rd != 0)) {
-        switch (instruction.Rtype.jumptable_friendly_op()) {
+      if (auto r = instruction.as<InstructionR>(); r.rd != 0) [[likely]] {
+        switch (r.jumptable_friendly_op()) {
         case 0x0: // ADDW
           if constexpr (sizeof(address_t) == 4) return instr32i_OP32_ADDW;
           else return instr64i_OP32_ADDW;
@@ -297,8 +297,7 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
 
       // RV32F & RV32D - Floating-point instructions
     case RV32F_LOAD: {
-      const riscv::rv32f_instruction fi{instruction};
-      switch (fi.Itype.funct3) {
+      switch (instruction.as<InstructionI>().funct3) {
       case 0x2: // FLW
         if constexpr (sizeof(address_t) == 4) return instr32i_FLW;
         else return instr64i_FLW;
@@ -314,8 +313,7 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       }
     }
     case RV32F_STORE: {
-      const rv32f_instruction fi{instruction};
-      switch (fi.Itype.funct3) {
+      switch (instruction.as<InstructionI>().funct3) {
       case 0x2: // FSW
         if constexpr (sizeof(address_t) == 4) return instr32i_FSW;
         else return instr64i_FSW;
@@ -366,7 +364,7 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
         if constexpr (sizeof(address_t) == 4) return instr32i_FSQRT;
         else return instr64i_FSQRT;
       case 0b10100:
-        if (rv32f_instruction{instruction}.R4type.rd != 0) {
+        if (instruction.as<InstructionRFP>().rd != 0) {
           if constexpr (sizeof(address_t) == 4) return instr32i_FEQ_FLT_FLE;
           else return instr64i_FEQ_FLT_FLE;
         }
@@ -376,7 +374,7 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
         if constexpr (sizeof(address_t) == 4) return instr32i_FCVT_SD_DS;
         else return instr64i_FCVT_SD_DS;
       case 0b11000:
-        if (rv32f_instruction{instruction}.R4type.rd != 0) {
+        if (instruction.as<InstructionRFP>().rd != 0) {
           if constexpr (sizeof(address_t) == 4) return instr32i_FCVT_W_SD;
           else return instr64i_FCVT_W_SD;
         }
@@ -386,8 +384,8 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
         if constexpr (sizeof(address_t) == 4) return instr32i_FCVT_SD_W;
         else return instr64i_FCVT_SD_W;
       case 0b11100:
-        if (rv32f_instruction{instruction}.R4type.rd != 0) {
-          if (rv32f_instruction{instruction}.R4type.funct3 == 0) {
+        if (instruction.as<InstructionRFP>().rd != 0) {
+          if (instruction.as<InstructionRFP>().funct3 == 0) {
             if constexpr (sizeof(address_t) == 4) return instr32i_FMV_X_W;
             else return instr64i_FMV_X_W;
           }
@@ -435,12 +433,13 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       }
       break;
       // RVxA - Atomic instructions
-    case RV32A_ATOMIC:
-      switch (instruction.Atype.funct3) {
+    case RV32A_ATOMIC: {
+      const auto a = instruction.as<InstructionA>();
+      switch (a.funct3) {
       case AMOSIZE_W:
-        switch (instruction.Atype.funct5) {
+        switch (a.funct5) {
         case 0b00010:
-          if (instruction.Atype.rs2 == 0) {
+          if (a.rs2 == 0) {
             if constexpr (sizeof(address_t) == 4) return instr32i_LOAD_RESV;
             else return instr64i_LOAD_RESV;
           }
@@ -480,9 +479,9 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
         break;
       case AMOSIZE_D:
         if constexpr (sizeof(address_t) >= 8) {
-          switch (instruction.Atype.funct5) {
+          switch (a.funct5) {
           case 0b00010:
-            if (instruction.Atype.rs2 == 0) {
+            if (a.rs2 == 0) {
               if constexpr (sizeof(address_t) == 4) return instr32i_LOAD_RESV;
               else return instr64i_LOAD_RESV;
             }
@@ -522,15 +521,15 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
           break;
         }
       }
-    }
+    } break; // RV32A_ATOMIC
+    } // switch (instruction.opcode())
   } else if constexpr (compressed_enabled) {
     // RISC-V Compressed Extension
-    const rv32c_instruction ci{instruction};
-    switch (ci.opcode()) {
+    switch (instruction.copcode()) {
       // Quadrant 0
     case CI_CODE(0b000, 0b00):
       // if all bits are zero, it's an illegal instruction
-      if (ci.whole != 0x0) {
+      if (instruction.low16() != 0x0) {
         if constexpr (sizeof(address_t) == 4) return instr32i_C0_ADDI4SPN;
         else return instr64i_C0_ADDI4SPN;
       }
@@ -538,25 +537,27 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_ILLEGAL;
     case CI_CODE(0b001, 0b00): [[fallthrough]];
     case CI_CODE(0b010, 0b00): [[fallthrough]];
-    case CI_CODE(0b011, 0b00):
-      if (ci.CL.funct3 == 0x1) { // C.FLD
+    case CI_CODE(0b011, 0b00): {
+      const auto cl = instruction.as_compressed<InstructionCL>();
+      if (cl.funct3 == 0x1) { // C.FLD
         if constexpr (sizeof(address_t) == 4) return instr32i_C0_REG_FLD;
         else return instr64i_C0_REG_FLD;
-      } else if (ci.CL.funct3 == 0x2) { // C.LW
+      } else if (cl.funct3 == 0x2) { // C.LW
         if constexpr (sizeof(address_t) == 4) return instr32i_C0_REG_LW;
         else return instr64i_C0_REG_LW;
-      } else if (ci.CL.funct3 == 0x3) {
+      } else if (cl.funct3 == 0x3) {
         // C.LD / // C.FLW
         if constexpr (sizeof(address_t) == 8) return instr64i_C0_REG_LD;
         else return instr32i_C0_REG_FLW;
       }
       if constexpr (sizeof(address_t) == 4) return instr32i_ILLEGAL;
       else return instr64i_ILLEGAL;
+    }
     // RESERVED: 0b100, 0b00
     case CI_CODE(0b101, 0b00): [[fallthrough]];
     case CI_CODE(0b110, 0b00): [[fallthrough]];
     case CI_CODE(0b111, 0b00):
-      switch (ci.CS.funct3) {
+      switch (instruction.as_compressed<InstructionCS>().funct3) {
       case 4:
         if constexpr (sizeof(address_t) == 4) return instr32i_UNIMPLEMENTED;
         else return instr64i_UNIMPLEMENTED;
@@ -574,7 +575,7 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_ILLEGAL;
     // Quadrant 1
     case CI_CODE(0b000, 0b01): // C.ADDI
-      if (ci.CI.rd != 0) {
+      if (instruction.as_compressed<InstructionCI>().rd != 0) {
         if constexpr (sizeof(address_t) == 4) return instr32i_C1_ADDI;
         else return instr64i_C1_ADDI;
       }
@@ -582,27 +583,29 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
       else return instr64i_NOP;
     case CI_CODE(0b001, 0b01): // C.ADDIW / C.JAL
       if constexpr (sizeof(address_t) == 8) {
-        if (ci.CI.rd != 0) return instr64i_C1_ADDIW;
+        if (instruction.as_compressed<InstructionCI>().rd != 0) return instr64i_C1_ADDIW;
         return instr64i_NOP;
       } else return instr32i_C1_JAL;
 
     case CI_CODE(0b010, 0b01):
-      if (ci.CI.rd != 0) {
+      if (instruction.as_compressed<InstructionCI>().rd != 0) {
         if constexpr (sizeof(address_t) == 4) return instr32i_C1_LI;
         else return instr64i_C1_LI;
       }
       if constexpr (sizeof(address_t) == 4) return instr32i_NOP;
       else return instr64i_NOP;
-    case CI_CODE(0b011, 0b01):
-      if (ci.CI.rd == 2) {
+    case CI_CODE(0b011, 0b01): {
+      const auto ci = instruction.as_compressed<InstructionCI>();
+      if (ci.rd == 2) {
         if constexpr (sizeof(address_t) == 4) return instr32i_C1_ADDI16SP;
         else return instr64i_C1_ADDI16SP;
-      } else if (ci.CI.rd != 0) {
+      } else if (ci.rd != 0) {
         if constexpr (sizeof(address_t) == 4) return instr32i_C1_LUI;
         else return instr64i_C1_LUI;
       }
       if constexpr (sizeof(address_t) == 4) return instr32i_ILLEGAL;
       else return instr64i_ILLEGAL;
+    }
     case CI_CODE(0b100, 0b01):
       if constexpr (sizeof(address_t) == 4) return instr32i_C1_ALU_OPS;
       else return instr64i_C1_ALU_OPS;
@@ -619,42 +622,46 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
     case CI_CODE(0b000, 0b10): [[fallthrough]];
     case CI_CODE(0b001, 0b10): [[fallthrough]];
     case CI_CODE(0b010, 0b10): [[fallthrough]];
-    case CI_CODE(0b011, 0b10):
-      if (ci.CI.funct3 == 0x0 && ci.CI.rd != 0) { // C.SLLI
+    case CI_CODE(0b011, 0b10): {
+      const auto ci = instruction.as_compressed<InstructionCI>();
+      const auto ci2 = instruction.as_compressed<InstructionCI2>();
+      if (ci.funct3 == 0x0 && ci.rd != 0) { // C.SLLI
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_SLLI;
         else return instr64i_C2_SLLI;
-      } else if (ci.CI2.funct3 == 0x1) { // C.FLDSP
+      } else if (ci2.funct3 == 0x1) { // C.FLDSP
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_FLDSP;
         else return instr64i_C2_FLDSP;
-      } else if (ci.CI2.funct3 == 0x2 && ci.CI2.rd != 0) { // C.LWSP
+      } else if (ci2.funct3 == 0x2 && ci2.rd != 0) { // C.LWSP
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_LWSP;
         else return instr64i_C2_LWSP;
-      } else if (ci.CI2.funct3 == 0x3) {
+      } else if (ci2.funct3 == 0x3) {
         // // C.LDSP / C.FLWSP
         if constexpr (sizeof(address_t) == 8) {
-          if (ci.CI2.rd != 0) return instr64i_C2_LDSP;
+          if (ci2.rd != 0) return instr64i_C2_LDSP;
         } else return instr32i_C2_FLWSP;
-      } else if (ci.CI.rd == 0) { // C.HINT
+      } else if (ci.rd == 0) { // C.HINT
         if constexpr (sizeof(address_t) == 4) return instr32i_NOP;
         else return instr64i_NOP;
       }
       if constexpr (sizeof(address_t) == 4) return instr32i_UNIMPLEMENTED;
       else return instr64i_UNIMPLEMENTED;
+    }
     case CI_CODE(0b100, 0b10): {
-      const bool topbit = ci.whole & (1 << 12);
-      if (!topbit && ci.CR.rd != 0 && ci.CR.rs2 == 0) { // JR rd
+      const auto cr = instruction.as_compressed<InstructionCR>();
+      const bool topbit = instruction.low16() & (1 << 12);
+      if (!topbit && cr.rd != 0 && cr.rs2 == 0) { // JR rd
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_JR;
         else return instr64i_C2_JR;
-      } else if (topbit && ci.CR.rd != 0 && ci.CR.rs2 == 0) { // JALR ra, rd+0
+      } else if (topbit && cr.rd != 0 && cr.rs2 == 0) { // JALR ra, rd+0
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_JALR;
         else return instr64i_C2_JALR;
-      } else if (!topbit && ci.CR.rd != 0 && ci.CR.rs2 != 0) { // MV rd, rs2
+      } else if (!topbit && cr.rd != 0 && cr.rs2 != 0) { // MV rd, rs2
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_MV;
         else return instr64i_C2_MV;
-      } else if (ci.CR.rd != 0) { // ADD rd, rd + rs2
+      } else if (cr.rd != 0) { // ADD rd, rd + rs2
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_ADD;
         else return instr64i_C2_ADD;
-      } else if (topbit && ci.CR.rd == 0 && ci.CR.rs2 == 0) { // EBREAK
+      } else if (topbit && cr.rd == 0 && cr.rs2 == 0) { // EBREAK
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_EBREAK;
         else return instr64i_C2_EBREAK;
       }
@@ -663,24 +670,26 @@ const riscv::Instruction<address_t> &decode_one(const riscv::instruction_format 
     }
     case CI_CODE(0b101, 0b10): [[fallthrough]];
     case CI_CODE(0b110, 0b10): [[fallthrough]];
-    case CI_CODE(0b111, 0b10):
-      if (ci.CSS.funct3 == 5) { // FSDSP
+    case CI_CODE(0b111, 0b10): {
+      const auto css = instruction.as_compressed<InstructionCSS>();
+      if (css.funct3 == 5) { // FSDSP
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_FSDSP;
         else return instr64i_C2_FSDSP;
-      } else if (ci.CSS.funct3 == 6) { // SWSP
+      } else if (css.funct3 == 6) { // SWSP
         if constexpr (sizeof(address_t) == 4) return instr32i_C2_SWSP;
         else return instr64i_C2_SWSP;
-      } else if (ci.CSS.funct3 == 7) {
+      } else if (css.funct3 == 7) {
         // SDSP / FSWP
         if constexpr (sizeof(address_t) == 8) return instr64i_C2_SDSP;
         else return instr32i_C2_FSWSP;
       }
       if constexpr (sizeof(address_t) == 4) return instr32i_UNIMPLEMENTED;
       else return instr64i_UNIMPLEMENTED;
-    }
+    } // CI_CODE(0b111, 0b10)
+    } // switch (instruction.copcode())
   }
   // all zeroes: illegal instruction
-  if (instruction.whole == 0x0) {
+  if (instruction.bits() == 0x0) {
     if constexpr (sizeof(address_t) == 4) return instr32i_ILLEGAL;
     else return instr64i_ILLEGAL;
   }

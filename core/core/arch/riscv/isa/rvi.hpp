@@ -152,36 +152,4 @@ struct InstructionA {
 };
 static_assert(sizeof(InstructionA) == 4, "A-type instruction must be 32 bits");
 
-union rv32i_instruction {
-  InstructionR Rtype;
-  InstructionI Itype;
-  InstructionS Stype;
-  InstructionU Utype;
-  InstructionB Btype;
-  InstructionJ Jtype;
-  InstructionA Atype;
-
-  uint8_t bytes[4];
-  uint16_t half[2];
-  uint32_t whole;
-
-  constexpr rv32i_instruction() : whole(0) {}
-  constexpr rv32i_instruction(uint32_t another) : whole(another) {}
-
-  uint32_t opcode() const noexcept { return Rtype.opcode; }
-  bool is_illegal() const noexcept { return half[0] == 0x0000; }
-
-  bool is_long() const noexcept { return (whole & 0x3) == 0x3; }
-  bool is_compressed() const noexcept { return (whole & 0x3) != 0x3; }
-  uint32_t length() const noexcept {
-    // return is_long() ? 4 : 2;
-    return 2 + 2 * is_long();
-  }
-
-  inline uint32_t fpfunc() const noexcept { return whole >> (32 - 5); }
-
-  inline uint32_t vwidth() const noexcept { return (whole >> 12) & 0x7; }
-  inline uint32_t vsetfunc() const noexcept { return whole >> 30; }
-};
-static_assert(sizeof(rv32i_instruction) == 4, "Instruction is 4 bytes");
 } // namespace riscv

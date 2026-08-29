@@ -58,7 +58,7 @@ static constexpr bool FUZZING = true;
 static constexpr bool FUZZING = false;
 #endif
 
-#define VIEW_INSTR() auto instr = *(rv32i_instruction *)&decoder->instr;
+#define VIEW_INSTR() auto instr = *(instruction_format *)&decoder->instr;
 #define VIEW_INSTR_AS(name, x) auto &&name = *(x *)&decoder->instr;
 #define NEXT_INSTR()                                                                                                   \
   if constexpr (compressed_enabled) decoder += 2;                                                                      \
@@ -182,14 +182,14 @@ continue_segment:
     case RV32I_BC_FAST_JAL: {
       if constexpr (VERBOSE_JUMPS) {
         VIEW_INSTR();
-        fprintf(stderr, "FAST_JAL PC 0x%lX => 0x%lX\n", long(pc), long(pc + int32_t(instr.whole)));
+        fprintf(stderr, "FAST_JAL PC 0x%lX => 0x%lX\n", long(pc), long(pc + int32_t(instr.bits())));
       }
       NEXT_BLOCK(int32_t((*decoder).instr), true);
     }
     case RV32I_BC_FAST_CALL: {
       if constexpr (VERBOSE_JUMPS) {
         VIEW_INSTR();
-        fprintf(stderr, "FAST_CALL PC 0x%lX => 0x%lX\n", long(pc), long(pc + int32_t(instr.whole)));
+        fprintf(stderr, "FAST_CALL PC 0x%lX => 0x%lX\n", long(pc), long(pc + int32_t(instr.bits())));
       }
       REG(REG_RA) = pc + 4;
       NEXT_BLOCK(int32_t((*decoder).instr), true);
@@ -276,18 +276,18 @@ continue_segment:
     case RV32C_BC_JR: {
       VIEW_INSTR();
       if constexpr (VERBOSE_JUMPS) {
-        fprintf(stderr, "C.JR from 0x%lX to 0x%lX\n", long(pc), long(REG(instr.whole)));
+        fprintf(stderr, "C.JR from 0x%lX to 0x%lX\n", long(pc), long(REG(instr.bits())));
       }
-      pc = REG(instr.whole) & ~addr_t(1);
+      pc = REG(instr.bits()) & ~addr_t(1);
       OVERFLOW_CHECKED_JUMP();
     }
     case RV32C_BC_JALR: {
       VIEW_INSTR();
       if constexpr (VERBOSE_JUMPS) {
-        fprintf(stderr, "C.JALR from 0x%lX to 0x%lX\n", long(pc), long(REG(instr.whole)));
+        fprintf(stderr, "C.JALR from 0x%lX to 0x%lX\n", long(pc), long(REG(instr.bits())));
       }
       REG(REG_RA) = pc + 2;
-      pc = REG(instr.whole) & ~addr_t(1);
+      pc = REG(instr.bits()) & ~addr_t(1);
       OVERFLOW_CHECKED_JUMP();
     }
 
@@ -699,13 +699,13 @@ continue_segment:
       NEXT_INSTR();
     }
     case RV32F_BC_FMADD: {
-      VIEW_INSTR_AS(fi, rv32f_instruction);
-      auto &dst = registers().getfl(fi.R4type.rd);
-      auto &rs1 = registers().getfl(fi.R4type.rs1);
-      auto &rs2 = registers().getfl(fi.R4type.rs2);
-      auto &rs3 = registers().getfl(fi.R4type.rs3);
-      if (fi.R4type.funct2 == 0x0) dst.set_float(rs1.f32[0] * rs2.f32[0] + rs3.f32[0]); // float32
-      else if (fi.R4type.funct2 == 0x1) dst.f64 = rs1.f64 * rs2.f64 + rs3.f64;          // float64
+      VIEW_INSTR_AS(fi, InstructionR4);
+      auto &dst = registers().getfl(fi.rd);
+      auto &rs1 = registers().getfl(fi.rs1);
+      auto &rs2 = registers().getfl(fi.rs2);
+      auto &rs3 = registers().getfl(fi.rs3);
+      if (fi.fmt == 0x0) dst.set_float(rs1.f32[0] * rs2.f32[0] + rs3.f32[0]); // float32
+      else if (fi.fmt == 0x1) dst.f64 = rs1.f64 * rs2.f64 + rs3.f64;          // float64
       NEXT_INSTR();
     }
 
