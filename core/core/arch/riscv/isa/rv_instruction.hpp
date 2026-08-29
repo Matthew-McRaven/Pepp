@@ -1,5 +1,6 @@
 #pragma once
 #include <bit>
+#include "core/arch/riscv/isa/rv_instruction_list.hpp"
 #include "core/integers.h"
 namespace riscv {
 
@@ -39,4 +40,7 @@ union rv_instruction2 {
   inline uint32_t vsetfunc() const noexcept { return bits() >> 30; }
 };
 static_assert(sizeof(rv_instruction2) == 4, "Instruction is 4 bytes");
+
+// Decode one instruction to its abstract opcode. Returns RvOp::INVALID for anything RV32I does not define.
+RvOp decode(rv_instruction2 w) noexcept;
 } // namespace riscv

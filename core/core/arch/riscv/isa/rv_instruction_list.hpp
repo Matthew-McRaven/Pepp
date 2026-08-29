@@ -32,6 +32,7 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
+#include "core/integers.h"
 
 #define RV32I_LOAD     0b0000011
 #define RV32I_STORE    0b0100011
@@ -71,7 +72,72 @@
 #define RV32F__FCVT_SD_W  0b11010
 #define RV32F__FMV_X_W    0b11100
 #define RV32F__FMV_W_X    0b11110
+#define RV32V_OP 0b1010111
+#define RV32_INSTR_STOP 0x7ff00073
 
-#define RV32V_OP        0b1010111
+// INVALID must stay 0 and COUNT must stay last.
+enum class RvOp : u8 {
+  INVALID = 0,
 
-#define RV32_INSTR_STOP       0x7ff00073
+  // Upper immediate
+  LUI,
+  AUIPC,
+
+  // Unconditional jumps
+  JAL,
+  JALR,
+
+  // Conditional branches
+  BEQ,
+  BNE,
+  BLT,
+  BGE,
+  BLTU,
+  BGEU,
+
+  // Loads
+  LB,
+  LH,
+  LW,
+  LBU,
+  LHU,
+
+  // Stores
+  SB,
+  SH,
+  SW,
+
+  // Register-immediate ALU
+  ADDI,
+  SLTI,
+  SLTIU,
+  XORI,
+  ORI,
+  ANDI,
+
+  // Register-immediate shifts. On RV32 shamt is 5 bits, so imm[11:5] must be 0000000 for
+  // SLLI/SRLI and 0100000 for SRAI; imm[5] set means shamt >= 32 and is reserved.
+  SLLI,
+  SRLI,
+  SRAI,
+
+  // Register-register ALU
+  ADD,
+  SUB,
+  SLL,
+  SLT,
+  SLTU,
+  XOR,
+  SRL,
+  SRA,
+  OR,
+  AND,
+
+  // Memory ordering
+  FENCE,
+  FENCE_TSO,
+
+  // Environment
+  ECALL,
+  EBREAK,
+};
