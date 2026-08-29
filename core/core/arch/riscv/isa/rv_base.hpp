@@ -32,7 +32,10 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
+#include <array>
 #include <cstdint>
+#include <optional>
+#include <string_view>
 
 namespace riscv {
 static const uint32_t REG_ZERO = 0;
@@ -177,4 +180,31 @@ struct RISCV {
     return "Invalid vector register";
   }
 	};
-  } // namespace riscv
+
+// Architectural names, x0 through x31.
+inline constexpr std::array<std::string_view, 32> XNAMES{
+    "x0",  "x1",  "x2",  "x3",  "x4",  "x5",  "x6",  "x7",  "x8",  "x9",  "x10",
+    "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21",
+    "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"};
+
+// ABI names. x8 is cannonically "s0", but "fp" will also be accepted for parsing.
+inline constexpr std::array<std::string_view, 32> ABINAMES{
+    "zero", "ra", "sp", "gp", "tp",  "t0",  "t1",  "t2",  "s0", "s1", "a0",
+    "a1",   "a2", "a3", "a4", "a5",  "a6",  "a7",  "s2",  "s3", "s4", "s5",
+    "s6",   "s7", "s8", "s9", "s10", "s11", "t3",  "t4",  "t5", "t6"};
+
+// Alternate spelling of x8 accepted during parsing.
+inline constexpr std::string_view FRAME_POINTER_ALIAS = "fp";
+
+// RISC-V register fields are five bits wide.
+constexpr std::string_view xname(uint8_t reg) noexcept { return XNAMES[reg & 0x1F]; }
+constexpr std::string_view abiname(uint8_t reg) noexcept { return ABINAMES[reg & 0x1F]; }
+
+// Accepts either naming scheme, plus the fp alias. nullopt if the name is not a register.
+constexpr std::optional<uint8_t> parse_register(std::string_view name) noexcept {
+  for (uint8_t i = 0; i < 32; ++i)
+    if (name == XNAMES[i] || name == ABINAMES[i]) return i;
+  if (name == FRAME_POINTER_ALIAS) return 8;
+  return std::nullopt;
+}
+} // namespace riscv
