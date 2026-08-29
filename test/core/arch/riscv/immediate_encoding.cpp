@@ -36,7 +36,7 @@ TEST_CASE("RISC-V branch and jump immediates survive encode then decode",
       const auto &d = descriptor(mnemonic);
       int32_t mismatches = 0, first_bad = 0;
       for (int32_t off = -4096; off <= 4094; off += 2) {
-        riscv::Values v{.rs1 = uint8_t(11), .rs2 = uint8_t(12), .rd = std::nullopt, .imm = uint32_t(off) >> 1};
+        riscv::Values v{.rs1 = uint8_t(11), .rs2 = uint8_t(12), .rd = std::nullopt, .imm = uint32_t(off)};
         const auto w = d.encode(v);
         const auto b = w.as<riscv::InstructionB>();
         // The other fields must survive too: a rotated immediate can bleed into them.
@@ -53,7 +53,7 @@ TEST_CASE("RISC-V branch and jump immediates survive encode then decode",
     const auto &d = descriptor("jal");
     int32_t mismatches = 0, first_bad = 0;
     for (int32_t off = -1048576; off <= 1048574; off += 2) {
-      riscv::Values v{.rs1 = std::nullopt, .rs2 = std::nullopt, .rd = uint8_t(10), .imm = uint32_t(off) >> 1};
+      riscv::Values v{.rs1 = std::nullopt, .rs2 = std::nullopt, .rd = uint8_t(10), .imm = uint32_t(off)};
       const auto w = d.encode(v);
       const auto j = w.as<riscv::InstructionJ>();
       if (j.jump_offset() != off || j.rd != 10 || riscv::decode(w) != RvOp::JAL) {

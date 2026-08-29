@@ -81,7 +81,12 @@ struct MnemonicDescriptor {
   // Is the value of rd a constant specified by the instruction?
   bool has_imm() const noexcept;
   void set_imm(u32 imm);
-  std::optional<u32> get_imm() const;
+  // Convert an immediate value to the encoded bits.
+  u32 encode_imm(u32 imm) const noexcept;
+  // Return the raw bit-pattern
+  std::optional<u32> get_raw_imm() const;
+  // Return the immediate bits after encoding them.
+  std::optional<u32> get_shifted_imm() const;
   u8 width_imm() const noexcept;
   u8 imm_shift() const noexcept;
   MnemonicDescriptor &&with_imm(u32 imm) &&;

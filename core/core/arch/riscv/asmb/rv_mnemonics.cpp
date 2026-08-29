@@ -225,29 +225,26 @@ bool riscv::MnemonicDescriptor::has_imm() const noexcept { return allows_imm() &
 
 void riscv::MnemonicDescriptor::set_imm(u32 imm) {
   switch (_type) {
-  // Bits [11:0]
   case Type::I: [[fallthrough]];
-  case Type::S:
-    _imm_or_funct7 = imm & ((1 << 12) - 1);
-    break;
-    // Bits [12:1]. Stored unshifted
-  case Type::B: _imm_or_funct7 = (imm >> 1u) & ((1u << 12) - 1); break;
-  // Upper [31:12] bits
-  case Type::U:
-    _imm_or_funct7 = (imm >> 12u) & ((1 << 20) - 1);
-    break;
-    // Bits [20:1]
-  case Type::J: _imm_or_funct7 = (imm >> 1u) & ((1u << 20) - 1); break;
+  case Type::S: [[fallthrough]];
+  case Type::B: [[fallthrough]];
+  case Type::U: [[fallthrough]];
+  case Type::J: break;
   case Type::R: [[fallthrough]];
   case Type::INVALID: [[fallthrough]];
   case Type::Pseudo: [[fallthrough]];
   default: throw std::runtime_error("This mnemonic does not allow an immediate");
   }
+  _imm_or_funct7 = imm;
   _flags.imm = 1;
 }
 
-std::optional<u32> riscv::MnemonicDescriptor::get_imm() const {
+std::optional<u32> riscv::MnemonicDescriptor::get_raw_imm() const {
   return has_imm() ? std::optional<u32>(_imm_or_funct7) : std::nullopt;
+}
+
+std::optional<u32> riscv::MnemonicDescriptor::get_shifted_imm() const {
+  return has_imm() ? std::optional<u32>(encode_imm(_imm_or_funct7)) : std::nullopt;
 }
 
 u8 riscv::MnemonicDescriptor::width_imm() const noexcept {
@@ -262,6 +259,30 @@ u8 riscv::MnemonicDescriptor::width_imm() const noexcept {
   case Type::Pseudo: return 0;
   }
   return 0;
+}
+
+// How far an operand's value is shifted down to reach the stored field. Branch and jump targets
+// are always even, so bit 0 is implicit and not encoded. Everything else stores what it is given:
+// `lui rd, 0x65` denotes the field 0x65, not the 0x65000 it eventually produces.
+u8 riscv::MnemonicDescriptor::imm_shift() const noexcept {
+  switch (_type) {
+  case Type::B: [[fallthrough]];
+  case Type::J: return 1;
+  case Type::I: [[fallthrough]];
+  case Type::S: [[fallthrough]];
+  case Type::U: return 0;
+  case Type::R: [[fallthrough]];
+  case Type::INVALID: [[fallthrough]];
+  case Type::Pseudo: return 0;
+  }
+  return 0;
+}
+
+// Convert an operand value to encoded bits
+u32 riscv::MnemonicDescriptor::encode_imm(u32 imm) const noexcept {
+  const auto width = width_imm();
+  if (width == 0) return 0;
+  return (imm >> imm_shift()) & ((u32(1) << width) - 1);
 }
 
 bool riscv::MnemonicDescriptor::operator==(const MnemonicDescriptor &other) const noexcept {
@@ -316,14 +337,14 @@ template <> riscv::InstructionI riscv::MnemonicDescriptor::encode<riscv::Instruc
   const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
   const u8 rd = v.rd.value_or(_rd) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u16 imm = (v.imm.value_or(0) | _imm_or_funct7) & 0xFFF;
+  const u16 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   return InstructionI{.opcode = _opcode7, .rd = rd, .funct3 = _funct3, .rs1 = rs1, .imm = imm};
 }
 template <> riscv::InstructionS riscv::MnemonicDescriptor::encode<riscv::InstructionS>(Values v) const {
   const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
   const u8 rs2 = v.rs2.value_or(_rs2) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u16 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1 << 12) - 1);
+  const u16 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   const u8 imm11_05 = (imm >> 5u) & ((1 << 7) - 1);
   const u8 imm4_0 = imm & ((1 << 5) - 1);
   return InstructionS{.opcode = _opcode7, .imm1 = imm4_0, .funct3 = _funct3, .rs1 = rs1, .rs2 = rs2, .imm2 = imm11_05};
@@ -331,15 +352,14 @@ template <> riscv::InstructionS riscv::MnemonicDescriptor::encode<riscv::Instruc
 template <> riscv::InstructionU riscv::MnemonicDescriptor::encode<riscv::InstructionU>(Values v) const {
   const u8 rd = v.rd.value_or(_rd) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u32 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1 << 20) - 1);
+  const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   return InstructionU{.opcode = _opcode7, .rd = rd, .imm = imm};
 }
 template <> riscv::InstructionB riscv::MnemonicDescriptor::encode<riscv::InstructionB>(Values v) const {
   const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
   const u8 rs2 = v.rs2.value_or(_rs2) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  // imm holds imm[12:1] already shifted down; this only distributes it across the fields.
-  const u32 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1u << 12) - 1);
+  const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   const u8 imm4_1 = imm & ((1u << 4) - 1);
   const u8 imm10_5 = (imm >> 4u) & ((1u << 6) - 1);
   const u8 imm11_11 = (imm >> 10u) & 1;
@@ -356,8 +376,7 @@ template <> riscv::InstructionB riscv::MnemonicDescriptor::encode<riscv::Instruc
 template <> riscv::InstructionJ riscv::MnemonicDescriptor::encode<riscv::InstructionJ>(Values v) const {
   const u8 rd = v.rd.value_or(_rd) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  // imm holds imm[20:1] already shifted down; this only distributes it across the fields.
-  const u32 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1u << 20) - 1);
+  const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   const u16 imm10_01 = imm & ((1u << 10) - 1);
   const u8 imm11_11 = (imm >> 10u) & 1;
   const u16 imm19_12 = (imm >> 11u) & ((1u << 8) - 1);
