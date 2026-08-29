@@ -32,15 +32,19 @@ public:
   ThroughputTask(WhichVersion ver, QObject *parent = nullptr);
   ~ThroughputTask() = default;
   void run();
+
   // Both should return their "start" time
-  std::chrono::high_resolution_clock::time_point do_sim3(std::span<const u8> prog);
-  std::chrono::high_resolution_clock::time_point do_core(std::span<const u8> prog);
+  std::chrono::high_resolution_clock::time_point do_sim3();
+  std::chrono::high_resolution_clock::time_point do_core();
+  std::chrono::high_resolution_clock::time_point do_riscv();
   u64 maxInstr = 100'000'000;
   bool has_bps = false;
   bool use_sparse = false;
   TestProgram program = TestProgram::SelfBranch;
 
 private:
+  std::vector<u8> pep_program(TestProgram prog) const;
+  std::vector<u8> rv_program(TestProgram prog) const;
   WhichVersion _version;
 };
 

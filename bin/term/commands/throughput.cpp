@@ -96,6 +96,23 @@ ThroughputTask::ThroughputTask(WhichVersion ver, QObject *parent) : Task(parent)
 void ThroughputTask::run() {
   using namespace Qt::StringLiterals;
 
+  std::chrono::high_resolution_clock::time_point start;
+  switch (_version) {
+  case WhichVersion::Sim3: start = do_sim3(); break;
+  case WhichVersion::Core: start = do_core(); break;
+  }
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  const auto dt = 1.0 / (ms.count() / 1000.0);
+  const auto locale = std::locale("en_US.UTF-8");
+  fmt::println("Duration: {} ms", ms.count());
+  std::cout << fmt::format(locale, "Instructions: {:L}\n", maxInstr);
+  std::cout << fmt::format(locale, "Throughput: {:L} instructions/second\n", (i32)(dt * maxInstr));
+
+  emit finished(0);
+}
+
+std::vector<u8> ThroughputTask::pep_program(TestProgram prog) const {
   // Infinite looping branch to 0.
   static constexpr std::array<u8, 3> SelfBranch{static_cast<u8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
   // Program that calculates fib(n/3) in A, truncated to 16 bits of
@@ -109,37 +126,25 @@ void ThroughputTask::run() {
       static_cast<u8>(isa::Pep10::Mnemonic::BR),       0x00, 0x03  // Loop back to the start
   };
   // clang-format on
-  std::span<const u8> program = SelfBranch;
+  std::vector<u8> program;
   std::string program_name = "??";
   switch (this->program) {
   case TestProgram::SelfBranch:
-    program = SelfBranch;
+    program.assign(SelfBranch.begin(), SelfBranch.end());
     program_name = "self-branch";
     break;
   case TestProgram::RMW:
-    program = RMW;
+    program.assign(RMW.begin(), RMW.end());
     program_name = "read-modify-write loop";
     break;
   }
   fmt::println("Selected program: {}", program_name);
-
-  std::chrono::high_resolution_clock::time_point start;
-  switch (_version) {
-  case WhichVersion::Sim3: start = do_sim3(program); break;
-  case WhichVersion::Core: start = do_core(program); break;
-  }
-  const auto end = std::chrono::high_resolution_clock::now();
-  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  const auto dt = 1.0 / (ms.count() / 1000.0);
-  const auto locale = std::locale("en_US.UTF-8");
-  fmt::println("Duration: {} ms", ms.count());
-  std::cout << fmt::format(locale, "Instructions: {:L}\n", maxInstr);
-  std::cout << fmt::format(locale, "Throughput: {:L} instructions/second\n", (i32)(dt * maxInstr));
-
-  emit finished(0);
+  return program;
 }
 
-std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3(std::span<const u8> program) {
+std::vector<u8> ThroughputTask::rv_program(TestProgram prog) const { return {}; }
+
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3() {
   static constexpr sim::api2::memory::Operation rw = {
       .type = sim::api2::memory::Operation::Type::Standard,
       .kind = sim::api2::memory::Operation::Kind::data,
@@ -161,18 +166,18 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3(std::span
   // cpu->setDebugger(&*debugger);
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
-  mem->write(0, program, rw);
+  mem->write(0, pep_program(this->program), rw);
   const auto start = std::chrono::high_resolution_clock::now();
   for (int it = 0; it < maxInstr; it++) cpu->clock(it);
   return start;
 }
 
-std::chrono::high_resolution_clock::time_point ThroughputTask::do_core(std::span<const u8> program) {
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
   static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
   fmt::println("Simulator: core");
   auto [system, mem, cpu] = make_core(this->use_sparse);
   cpu->write_register(isa::Pep10::Register::PC, 0x0000);
-  mem->write(0x0000, program, rw);
+  mem->write(0x0000, pep_program(this->program), rw);
   // We are untraced, provide explicit hints to avoid recording.
   dynamic_cast<Traceable *>(mem)->on_traced_changed(false);
   cpu->on_traced_changed(false);
