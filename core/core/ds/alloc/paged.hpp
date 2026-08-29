@@ -346,7 +346,14 @@ template <std::integral I> void PagedPool<I>::read(size_t offset, bits::span<I> 
     if (const auto it = _pages.find(page_addr); it != _pages.end()) {
       const auto &page = it->second;
       const auto src = bits::span<const I>{page.data(), page.capacity()}.subspan(page_offset);
-      ::bits::memcpy(dest.first(len), src.first(len));
+      // Switched on the width so the copy length is a constant the compiler can turn into a register operation for
+      // common register sizes rather than a call to memcpy.
+      switch (len) {
+      case 1: std::memcpy(dest.data(), src.data(), 1); break;
+      case 2: std::memcpy(dest.data(), src.data(), 2); break;
+      case 4: std::memcpy(dest.data(), src.data(), 4); break;
+      default: ::bits::memcpy(dest.first(len), src.first(len)); break;
+      }
     } else {
       std::fill_n(dest.begin(), len, _fill);
     }
@@ -370,7 +377,15 @@ template <std::integral I> void PagedPool<I>::write(size_t offset, bits::span<co
     }
 
     auto dst = bits::span<u8>{dst_page->data(), dst_page->capacity()}.subspan(page_offset);
-    bits::memcpy(dst.first(len), src.first(len));
+    // Switched on the width so the copy length is a constant the compiler can turn into a register operation for
+    // common register sizes rather than a call to memcpy.
+    switch (len) {
+    case 1: std::memcpy(dst.data(), src.data(), 1); break;
+    case 2: std::memcpy(dst.data(), src.data(), 2); break;
+    case 4: std::memcpy(dst.data(), src.data(), 4); break;
+    default: ::bits::memcpy(dst.first(len), src.first(len)); break;
+    }
+
     offset += len;
     src = src.subspan(len);
   }

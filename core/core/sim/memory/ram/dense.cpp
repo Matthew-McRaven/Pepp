@@ -120,8 +120,8 @@ Target::Result Dense::read(Address address, bits::span<u8> dest, Operation op) c
   if (address < span.lower() || max_addr > span.upper()) throw E(E::Type::OOBAccess, address);
   const auto offset = address - span.lower();
   const u8 *src = _data.data() + offset;
-  // Switched on the width so the copy length is a constant the compiler can turn into a register operation for common
-  // register sizes rather than a trip through the actual C code of memcpy.
+  // Switched on the width so the copy length is a constant the compiler can turn into a register operation for
+  // common register sizes rather than a call to C's memcpy
   switch (dest.size()) {
   case 1: dest[0] = src[0]; break;
   case 2: std::memcpy(dest.data(), src, 2); break;
@@ -142,8 +142,8 @@ Target::Result Dense::write(Address address, bits::span<const u8> src, Operation
   const auto offset = address - span.lower();
   u8 *dest = _data.data() + offset;
   if (_may_trace) _trace.emit_write(op, address, bits::span<const u8>{dest, src.size()}, src);
-  // Switched on the width so the copy length is a constant the compiler can turn into a register operation for common
-  // register sizes rather than a trip through the actual C code of memcpy.
+  // Switched on the width so the copy length is a constant the compiler can turn into a register operation for
+  // common register sizes rather than a call to memcpy.
   switch (src.size()) {
   case 1:
     dest[0] = src[0];
