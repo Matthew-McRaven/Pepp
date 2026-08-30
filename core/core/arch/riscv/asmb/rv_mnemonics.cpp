@@ -11,9 +11,8 @@ riscv::MnemonicDescriptor riscv::MnemonicDescriptor::I(u8 opcode7, u8 funct3) {
 riscv::MnemonicDescriptor riscv::MnemonicDescriptor::IShiftByConstant(u8 opcode7, u8 funct3, u8 shift_type) {
   MnemonicDescriptor ret(Type::I, opcode7);
   ret._funct3 = funct3 & 0x7;
-  // For shift instructions, the imm field is used to encode the shift type (logical vs arithmetic) in bit 10.
-  ret._imm_or_funct7 = (shift_type & 0x1) << 10;
-  ret._flags.imm = 1;
+  // Bit 10 of imm field is used to encode shift type.
+  ret.set_imm((shift_type & 0x1) << 10);
   return ret;
 }
 
@@ -21,8 +20,7 @@ riscv::MnemonicDescriptor riscv::MnemonicDescriptor::IFence(u8 fmt) {
   MnemonicDescriptor ret(Type::I, RV32I_FENCE);
   ret._funct3 = 0;
   // fmt is high-order 4 bits of imm
-  ret._imm_or_funct7 = (fmt & 0b1111) << 8;
-  ret._flags.imm = 1;
+  ret.set_imm((fmt & 0b1111) << 8);
   return ret;
 }
 
@@ -30,8 +28,7 @@ riscv::MnemonicDescriptor riscv::MnemonicDescriptor::IFence(u8 fmt, u8 pred, u8 
   MnemonicDescriptor ret(Type::I, RV32I_FENCE);
   ret._funct3 = 0;
   // fmt is high-order 4 bits of imm, pred middle 4 bits, and succ low-order 4 bits.
-  ret._imm_or_funct7 = (fmt & 0b1111) << 8 | (pred & 0b1111) << 4 | (succ & 0b1111);
-  ret._flags.imm = 1;
+  ret.set_imm((fmt & 0b1111) << 8 | (pred & 0b1111) << 4 | (succ & 0b1111));
   return ret;
 }
 
@@ -278,7 +275,9 @@ u8 riscv::MnemonicDescriptor::imm_shift() const noexcept {
   return 0;
 }
 
-// Convert an operand value to encoded bits
+// Narrow the range of imm to the encodable range of the instruction.
+// Masking + shift is lossy for out-of-range value which can map to the opposite sign (beq +4096 encodes as
+// -4096), and the shift drops low-order bits of the immediate for branches.
 u32 riscv::MnemonicDescriptor::encode_imm(u32 imm) const noexcept {
   const auto width = width_imm();
   if (width == 0) return 0;

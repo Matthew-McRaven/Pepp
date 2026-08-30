@@ -12,8 +12,8 @@ namespace riscv {
 
 struct Values {
   std::optional<uint8_t> rs1, rs2, rd;
-  // Holds the immediate's encoded bits, already shifted down. So imm[11:0] for I/S, imm[12:1] for B, imm[20:1] for J,
-  // imm[31:12] for U.
+  // The immediate as written in assembly, unshifted and unmasked. encode() converts it
+  // to field bits via encode_imm().
   std::optional<uint32_t> imm;
 };
 
