@@ -95,7 +95,7 @@ namespace riscv
 		DecodedExecuteSegment(DecodedExecuteSegment&&);
 		~DecodedExecuteSegment();
 
-		size_t threaded_rewrite(size_t bytecode, address_t pc, rv32i_instruction& instr);
+		size_t threaded_rewrite(size_t bytecode, address_t pc, instruction_format& instr);
 
 		uint32_t crc32c_hash() const noexcept { return m_crc32c_hash; }
 		void set_crc32c_hash(uint32_t hash) { m_crc32c_hash = hash; }
@@ -168,7 +168,7 @@ namespace riscv
 
   template <AddressType address_t>
   RISCV_INTERNAL size_t DecodedExecuteSegment<address_t>::threaded_rewrite(size_t bytecode, [[maybe_unused]] address_t pc,
-                                                                   rv32i_instruction &instr) {
+                                                                   instruction_format &instr) {
     static constexpr unsigned PCAL = compressed_enabled ? 2 : 4;
     static constexpr unsigned XLEN = 8 * sizeof(address_t);
     const auto &original = instr;
@@ -185,24 +185,27 @@ namespace riscv
     case RV32I_BC_LUI:
     case RV32I_BC_AUIPC: {
       FasterJtype rewritten;
-      rewritten.rd = original.Utype.rd;
-      rewritten.offset = original.Utype.imm << 4;
+      const auto u = original.as<InstructionU>();
+      rewritten.rd = u.rd;
+      rewritten.offset = u.imm << 4;
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32I_BC_MV: {
       FasterMove rewritten;
-      rewritten.rd = original.Itype.rd;
-      rewritten.rs1 = original.Itype.rs1;
+      const auto i = original.as<InstructionI>();
+      rewritten.rd = i.rd;
+      rewritten.rs1 = i.rs1;
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32I_BC_LI: {
       FasterImmediate rewritten;
-      rewritten.rd = original.Itype.rd;
-      rewritten.imm = original.Itype.signed_imm();
+      const auto i = original.as<InstructionI>();
+      rewritten.rd = i.rd;
+      rewritten.imm = i.signed_imm();
 
       instr.whole = rewritten.whole;
       return bytecode;
@@ -213,9 +216,10 @@ namespace riscv
       if (sizeof(address_t) == 4) return RV32I_BC_INVALID;
 
       FasterItype rewritten;
-      rewritten.rs1 = original.Itype.rd;
-      rewritten.rs2 = original.Itype.rs1;
-      rewritten.imm = original.Itype.imm & 31;
+      const auto i = original.as<InstructionI>();
+      rewritten.rs1 = i.rd;
+      rewritten.rs2 = i.rs1;
+      rewritten.imm = i.imm & 31;
 
       instr.whole = rewritten.whole;
       return bytecode;
@@ -226,9 +230,10 @@ namespace riscv
     case RV32I_BC_BSETI:
     case RV32I_BC_BEXTI: {
       FasterItype rewritten;
-      rewritten.rs1 = original.Itype.rd;
-      rewritten.rs2 = original.Itype.rs1;
-      rewritten.imm = original.Itype.imm & (XLEN - 1);
+      const auto i = original.as<InstructionI>();
+      rewritten.rs1 = i.rd;
+      rewritten.rs2 = i.rs1;
+      rewritten.imm = i.imm & (XLEN - 1);
 
       instr.whole = rewritten.whole;
       return bytecode;
@@ -245,9 +250,10 @@ namespace riscv
     case RV32I_BC_ORI:
     case RV32I_BC_ANDI: {
       FasterItype rewritten;
-      rewritten.rs1 = original.Itype.rd;
-      rewritten.rs2 = original.Itype.rs1;
-      rewritten.imm = original.Itype.signed_imm();
+      const auto i = original.as<InstructionI>();
+      rewritten.rs1 = i.rd;
+      rewritten.rs2 = i.rs1;
+      rewritten.imm = i.signed_imm();
 
       instr.whole = rewritten.whole;
       return bytecode;
@@ -258,7 +264,8 @@ namespace riscv
     case RV32I_BC_BGE:
     case RV32I_BC_BLTU:
     case RV32I_BC_BGEU: {
-      const int32_t imm = original.Btype.signed_imm();
+      const auto b = original.as<InstructionB>();
+      const int32_t imm = b.signed_imm();
       address_t addr = 0;
 #ifdef _MSC_VER
       addr = pc + imm;
@@ -276,9 +283,9 @@ namespace riscv
       }
 
       FasterItype rewritten;
-      rewritten.rs1 = original.Btype.rs1;
-      rewritten.rs2 = original.Btype.rs2;
-      rewritten.imm = original.Btype.signed_imm();
+      rewritten.rs1 = b.rs1;
+      rewritten.rs2 = b.rs2;
+      rewritten.imm = b.signed_imm();
 
       instr.whole = rewritten.whole;
 
@@ -316,9 +323,10 @@ namespace riscv
     case RV32I_BC_OP_SH2ADD:
     case RV32I_BC_OP_SH3ADD: {
       FasterOpType rewritten;
-      rewritten.rd = original.Rtype.rd;
-      rewritten.rs1 = original.Rtype.rs1;
-      rewritten.rs2 = original.Rtype.rs2;
+      const auto rt = original.as<InstructionR>();
+      rewritten.rd = rt.rd;
+      rewritten.rs1 = rt.rs1;
+      rewritten.rs2 = rt.rs2;
 
       instr.whole = rewritten.whole;
       return bytecode;
@@ -333,9 +341,10 @@ namespace riscv
     case RV32I_BC_LDHU:
     case RV32I_BC_LDW: {
       FasterItype rewritten;
-      rewritten.rs1 = original.Itype.rd;
-      rewritten.rs2 = original.Itype.rs1;
-      rewritten.imm = original.Itype.signed_imm();
+      const auto i = original.as<InstructionI>();
+      rewritten.rs1 = i.rd;
+      rewritten.rs2 = i.rs1;
+      rewritten.imm = i.signed_imm();
 
       instr.whole = rewritten.whole;
       return bytecode;
@@ -347,40 +356,42 @@ namespace riscv
     case RV32I_BC_STH:
     case RV32I_BC_STW: {
       FasterItype rewritten;
-      rewritten.rs1 = original.Stype.rs1;
-      rewritten.rs2 = original.Stype.rs2;
-      rewritten.imm = original.Stype.signed_imm();
+      const auto st = original.as<InstructionS>();
+      rewritten.rs1 = st.rs1;
+      rewritten.rs2 = st.rs2;
+      rewritten.imm = st.signed_imm();
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32F_BC_FLW:
     case RV32F_BC_FLD: {
-      const rv32f_instruction fi{original};
+      const auto i = original.as<InstructionI>();
       FasterItype rewritten;
-      rewritten.rs1 = fi.Itype.rd;
-      rewritten.rs2 = fi.Itype.rs1;
-      rewritten.imm = fi.Itype.signed_imm();
+      rewritten.rs1 = i.rd;
+      rewritten.rs2 = i.rs1;
+      rewritten.imm = i.signed_imm();
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32F_BC_FSW:
     case RV32F_BC_FSD: {
-      const rv32f_instruction fi{original};
+      const auto st = original.as<InstructionS>();
       FasterItype rewritten;
-      rewritten.rs1 = fi.Stype.rs1;
-      rewritten.rs2 = fi.Stype.rs2;
-      rewritten.imm = fi.Stype.signed_imm();
+      rewritten.rs1 = st.rs1;
+      rewritten.rs2 = st.rs2;
+      rewritten.imm = st.signed_imm();
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32I_BC_JAL: {
-      const auto addr = pc + original.Jtype.jump_offset();
+      const auto j = original.as<InstructionJ>();
+      const auto addr = pc + j.jump_offset();
       const bool is_aligned = addr % PCAL == 0;
-      const bool store_zero = original.Jtype.rd == 0;
-      const bool store_ra = original.Jtype.rd == REG_RA;
+      const bool store_zero = j.rd == 0;
+      const bool store_ra = j.rd == REG_RA;
 
       // The destination address also needs to be within
       // the current execute segment, as an optimization.
@@ -398,8 +409,8 @@ namespace riscv
         }
 
         FasterJtype rewritten;
-        rewritten.offset = original.Jtype.jump_offset();
-        rewritten.rd = original.Jtype.rd;
+        rewritten.offset = j.jump_offset();
+        rewritten.rd = j.rd;
 
         instr.whole = rewritten.whole;
         return bytecode;
@@ -409,9 +420,10 @@ namespace riscv
     }
     case RV32I_BC_JALR: {
       FasterItype rewritten;
-      rewritten.imm = original.Itype.signed_imm();
-      rewritten.rs1 = original.Itype.rd;
-      rewritten.rs2 = original.Itype.rs1;
+      const auto i = original.as<InstructionI>();
+      rewritten.imm = i.signed_imm();
+      rewritten.rs1 = i.rd;
+      rewritten.rs2 = i.rs1;
 
       instr.whole = rewritten.whole;
       return bytecode;
@@ -421,13 +433,13 @@ namespace riscv
     case RV32F_BC_FSUB:
     case RV32F_BC_FMUL:
     case RV32F_BC_FDIV: {
-      const rv32f_instruction fi{instr};
+      const auto f = instr.as<InstructionRFP>();
 
       FasterFloatType rewritten;
-      rewritten.rd = fi.R4type.rd;
-      rewritten.rs1 = fi.R4type.rs1;
-      rewritten.rs2 = fi.R4type.rs2;
-      rewritten.func = fi.R4type.funct2;
+      rewritten.rd = f.rd;
+      rewritten.rs1 = f.rs1;
+      rewritten.rs2 = f.rs2;
+      rewritten.func = f.fmt;
 
       instr.whole = rewritten.whole;
       return bytecode;
@@ -439,21 +451,21 @@ namespace riscv
     /** Vector instructions **/
     case RV32V_BC_VLE32:
     case RV32V_BC_VSE32: {
-      const rv32v_instruction vi{instr};
+      const auto vls = instr.as<InstructionVLS>();
       FasterMove rewritten;
-      rewritten.rd = vi.VLS.vd;
-      rewritten.rs1 = vi.VLS.rs1;
+      rewritten.rd = vls.vd;
+      rewritten.rs1 = vls.rs1;
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32V_BC_VFADD_VV:
     case RV32V_BC_VFMUL_VF: {
-      const rv32v_instruction vi{instr};
+      const auto opvv = instr.as<InstructionOPVV>();
       FasterOpType rewritten;
-      rewritten.rd = vi.OPVV.vd;
-      rewritten.rs1 = vi.OPVV.vs1;
-      rewritten.rs2 = vi.OPVV.vs2;
+      rewritten.rd = opvv.vd;
+      rewritten.rs1 = opvv.vs1;
+      rewritten.rs2 = opvv.vs2;
 
       instr.whole = rewritten.whole;
       return bytecode;
@@ -464,108 +476,112 @@ namespace riscv
       return bytecode;
     }
     case RV32C_BC_ADDI: {
-      const rv32c_instruction ci{instr};
+      const auto ciw = instr.as_compressed<InstructionCIW>();
+      const auto ci16 = instr.as_compressed<InstructionCI16>();
+      const auto ci = instr.as_compressed<InstructionCI>();
 
       FasterItype rewritten;
-      if (ci.opcode() == RISCV_CI_CODE(0b000, 0b00)) {
+      if (instr.copcode() == ((0b000 << 13) | 0b00)) {
         // C.ADDI4SPN
-        rewritten.rs1 = ci.CIW.srd + 8;
+        rewritten.rs1 = ciw.srd + 8;
         rewritten.rs2 = REG_SP;
-        rewritten.imm = ci.CIW.offset();
-      } else if (ci.opcode() == RISCV_CI_CODE(0b011, 0b01)) {
+        rewritten.imm = ciw.offset();
+      } else if (instr.copcode() == ((0b011 << 13) | 0b01)) {
         // C.ADDI16SP
         rewritten.rs1 = REG_SP;
         rewritten.rs2 = REG_SP;
-        rewritten.imm = ci.CI16.signed_imm();
+        rewritten.imm = ci16.signed_imm();
       } else { // C.ADDI
-        rewritten.rs1 = ci.CI.rd;
-        rewritten.rs2 = ci.CI.rd;
-        rewritten.imm = ci.CI.signed_imm();
+        rewritten.rs1 = ci.rd;
+        rewritten.rs2 = ci.rd;
+        rewritten.imm = ci.signed_imm();
       }
 
       instr.whole = rewritten.whole;
       return RV32C_BC_ADDI;
     }
     case RV32C_BC_LI: {
-      const rv32c_instruction ci{instr};
+      const auto ci = instr.as_compressed<InstructionCI>();
 
       FasterItype rewritten;
-      rewritten.rs1 = ci.CI.rd;
+      rewritten.rs1 = ci.rd;
       rewritten.rs2 = 0;
-      rewritten.imm = ci.CI.signed_imm();
+      rewritten.imm = ci.signed_imm();
 
       instr.whole = rewritten.whole;
       return RV32C_BC_ADDI;
     }
     case RV32C_BC_MV: {
-      const rv32c_instruction ci{instr};
+      const auto cr = instr.as_compressed<InstructionCR>();
 
       FasterMove rewritten;
-      rewritten.rd = ci.CR.rd;
-      rewritten.rs1 = ci.CR.rs2;
+      rewritten.rd = cr.rd;
+      rewritten.rs1 = cr.rs2;
 
       instr.whole = rewritten.whole;
       return RV32C_BC_MV;
     }
     case RV32C_BC_SLLI: {
-      const rv32c_instruction ci{instr};
+      const auto ci = instr.as_compressed<InstructionCI>();
 
       FasterItype rewritten;
-      rewritten.rs1 = ci.CI.rd;
+      rewritten.rs1 = ci.rd;
       rewritten.rs2 = 0;
-      if constexpr (sizeof(address_t) == 8) rewritten.imm = ci.CI.shift64_imm();
-      else rewritten.imm = ci.CI.shift_imm();
+      if constexpr (sizeof(address_t) == 8) rewritten.imm = ci.shift64_imm();
+      else rewritten.imm = ci.shift_imm();
 
       instr.whole = rewritten.whole;
       return RV32C_BC_SLLI;
     }
     case RV32C_BC_SRLI: {
-      const rv32c_instruction ci{instr};
+      const auto ca = instr.as_compressed<InstructionCA>();
+      const auto cab = instr.as_compressed<InstructionCAB>();
 
       FasterItype rewritten;
-      rewritten.rs1 = ci.CA.srd + 8;
-      if constexpr (sizeof(address_t) == 8) rewritten.imm = ci.CAB.shift64_imm();
-      else rewritten.imm = ci.CAB.shift_imm();
+      rewritten.rs1 = ca.srd + 8;
+      if constexpr (sizeof(address_t) == 8) rewritten.imm = cab.shift64_imm();
+      else rewritten.imm = cab.shift_imm();
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32C_BC_ANDI: {
-      const rv32c_instruction ci{instr};
+      const auto ca = instr.as_compressed<InstructionCA>();
+      const auto cab = instr.as_compressed<InstructionCAB>();
 
       FasterItype rewritten;
-      rewritten.rs1 = ci.CA.srd + 8;
-      rewritten.imm = ci.CAB.signed_imm();
+      rewritten.rs1 = ca.srd + 8;
+      rewritten.imm = cab.signed_imm();
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32C_BC_ADD: {
-      const rv32c_instruction ci{instr};
+      const auto cr = instr.as_compressed<InstructionCR>();
 
       FasterItype rewritten;
-      rewritten.rs1 = ci.CR.rd;
-      rewritten.rs2 = ci.CR.rs2;
+      rewritten.rs1 = cr.rd;
+      rewritten.rs2 = cr.rs2;
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32C_BC_XOR:
     case RV32C_BC_OR: {
-      const rv32c_instruction ci{instr};
+      const auto ca = instr.as_compressed<InstructionCA>();
 
       FasterItype rewritten;
-      rewritten.rs1 = ci.CA.srd + 8;
-      rewritten.rs2 = ci.CA.srs2 + 8;
+      rewritten.rs1 = ca.srd + 8;
+      rewritten.rs2 = ca.srs2 + 8;
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32C_BC_BEQZ:
     case RV32C_BC_BNEZ: {
-      const rv32c_instruction ci{instr};
+      const auto cb = instr.as_compressed<InstructionCB>();
 
-      const int32_t imm = ci.CB.signed_imm();
+      const int32_t imm = cb.signed_imm();
       const auto addr = pc + imm;
 
       if (!this->is_within(addr, 2) || (addr % PCAL) != 0) {
@@ -574,7 +590,7 @@ namespace riscv
       }
 
       FasterItype rewritten;
-      rewritten.rs1 = ci.CB.srs1 + 8;
+      rewritten.rs1 = cb.srs1 + 8;
       rewritten.rs2 = 0;
       rewritten.imm = imm;
 
@@ -583,20 +599,21 @@ namespace riscv
     }
     case RV32C_BC_JMP:
     case RV32C_BC_JAL_ADDIW: {
-      const rv32c_instruction ci{instr};
+      const auto ci = instr.as_compressed<InstructionCI>();
+      const auto cj = instr.as_compressed<InstructionCJ>();
 
       if (sizeof(address_t) == 8 && bytecode == RV32C_BC_JAL_ADDIW) {
         // C.ADDIW instead
         FasterItype rewritten;
-        rewritten.rs1 = ci.CI.rd;
-        rewritten.rs2 = ci.CI.rd;
-        rewritten.imm = ci.CI.signed_imm();
+        rewritten.rs1 = ci.rd;
+        rewritten.rs2 = ci.rd;
+        rewritten.imm = ci.signed_imm();
 
         instr.whole = rewritten.whole;
         return bytecode;
       }
 
-      const int32_t imm = ci.CJ.signed_imm();
+      const int32_t imm = cj.signed_imm();
       const auto addr = pc + imm;
 
       if (!this->is_within(addr, 4) || (addr % PCAL) != 0) {
@@ -607,78 +624,82 @@ namespace riscv
       return bytecode;
     }
     case RV32C_BC_JALR: {
-      const rv32c_instruction ci{instr};
-      instr.whole = ci.CR.rd;
+      const auto cr = instr.as_compressed<InstructionCR>();
+      instr.whole = cr.rd;
       return bytecode;
     }
     case RV32C_BC_JR: {
-      const rv32c_instruction ci{instr};
-      instr.whole = ci.CR.rd;
+      const auto cr = instr.as_compressed<InstructionCR>();
+      instr.whole = cr.rd;
       return bytecode;
     }
     case RV32C_BC_LDD: {
-      const rv32c_instruction ci{instr};
+      const auto csd = instr.as_compressed<InstructionCSD>();
+      const auto cifld = instr.as_compressed<InstructionCIFLD>();
 
       FasterItype rewritten;
-      if ((ci.opcode() & 0x3) == 0x0) { // C.LD
-        rewritten.rs1 = ci.CSD.srs1 + 8;
-        rewritten.rs2 = ci.CSD.srs2 + 8;
-        rewritten.imm = ci.CSD.offset8();
+      if ((instr.copcode() & 0x3) == 0x0) { // C.LD
+        rewritten.rs1 = csd.srs1 + 8;
+        rewritten.rs2 = csd.srs2 + 8;
+        rewritten.imm = csd.offset8();
       } else { // C.LDSP
-        rewritten.rs1 = ci.CIFLD.rd;
+        rewritten.rs1 = cifld.rd;
         rewritten.rs2 = REG_SP;
-        rewritten.imm = ci.CIFLD.offset();
+        rewritten.imm = cifld.offset();
       }
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32C_BC_STD: {
-      const rv32c_instruction ci{instr};
+      const auto csd = instr.as_compressed<InstructionCSD>();
+      const auto csfsd = instr.as_compressed<InstructionCSFSD>();
 
       FasterItype rewritten;
-      if ((ci.opcode() & 0x3) == 0x0) { // C.SD
-        rewritten.rs1 = ci.CSD.srs1 + 8;
-        rewritten.rs2 = ci.CSD.srs2 + 8;
-        rewritten.imm = ci.CSD.offset8();
+      if ((instr.copcode() & 0x3) == 0x0) { // C.SD
+        rewritten.rs1 = csd.srs1 + 8;
+        rewritten.rs2 = csd.srs2 + 8;
+        rewritten.imm = csd.offset8();
       } else { // C.SDSP
         rewritten.rs1 = REG_SP;
-        rewritten.rs2 = ci.CSFSD.rs2;
-        rewritten.imm = ci.CSFSD.offset();
+        rewritten.rs2 = csfsd.rs2;
+        rewritten.imm = csfsd.offset();
       }
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32C_BC_LDW: {
-      const rv32c_instruction ci{instr};
+      const auto cl = instr.as_compressed<InstructionCL>();
+      const auto ci2 = instr.as_compressed<InstructionCI2>();
 
       FasterItype rewritten;
-      if ((ci.opcode() & 0x3) == 0x0) { // C.LW
-        rewritten.rs1 = ci.CL.srd + 8;
-        rewritten.rs2 = ci.CL.srs1 + 8;
-        rewritten.imm = ci.CL.offset();
+      if ((instr.copcode() & 0x3) == 0x0) { // C.LW
+        rewritten.rs1 = cl.srd + 8;
+        rewritten.rs2 = cl.srs1 + 8;
+        rewritten.imm = cl.offset();
       } else { // C.LWSP
-        rewritten.rs1 = ci.CI2.rd;
+        rewritten.rs1 = ci2.rd;
         rewritten.rs2 = REG_SP;
-        rewritten.imm = ci.CI2.offset();
+        rewritten.imm = ci2.offset();
       }
 
       instr.whole = rewritten.whole;
       return bytecode;
     }
     case RV32C_BC_STW: {
-      const rv32c_instruction ci{instr};
+      const auto cs = instr.as_compressed<InstructionCS>();
+      const auto css = instr.as_compressed<InstructionCSS>();
 
       FasterItype rewritten;
-      if ((ci.opcode() & 0x3) == 0x0) { // C.SW
-        rewritten.rs1 = ci.CS.srs1 + 8;
-        rewritten.rs2 = ci.CS.srs2 + 8;
-        rewritten.imm = ci.CS.offset4();
+      if ((instr.copcode() & 0x3) == 0x0) { // C.SW
+        rewritten.rs1 = cs.srs1 + 8;
+        rewritten.rs2 = cs.srs2 + 8;
+        rewritten.imm = cs.offset4();
       } else { // C.SWSP
         rewritten.rs1 = REG_SP;
-        rewritten.rs2 = ci.CSS.rs2;
-        rewritten.imm = ci.CSS.offset(4);
+        rewritten.rs2 = css.rs2;
+        rewritten.imm = css.offset(4);
       }
 
       instr.whole = rewritten.whole;

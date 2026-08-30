@@ -55,8 +55,9 @@ namespace riscv
 template <AddressType address_t>
 template <typename Type>
 inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32_t)) {
+  const auto at = instr.as<InstructionA>();
   // 1. load address from rs1
-  const auto addr = this->reg(instr.Atype.rs1);
+  const auto addr = this->reg(at.rs1);
   // 2. verify address alignment vs Type
   if (UNLIKELY(addr % sizeof(Type) != 0)) {
     trigger_exception(INVALID_ALIGNMENT, addr);
@@ -65,21 +66,21 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
   // TODO: Make Type unsigned to match other templates, avoiding spam
   Type &mem = machine().memory.template writable_read<Type>(addr);
   // 4. apply <op>, writing the value to mem and returning old value
-  const Type old_value = op(*this, mem, instr.Atype.rs2);
+  const Type old_value = op(*this, mem, at.rs2);
   // 5. place value into rd
   // NOTE: we have to do it in this order, because we can
   // clobber rs2 when writing to rd, if they are the same!
-  if (instr.Atype.rd != 0) {
+  if (at.rd != 0) {
     // For RV64, 32-bit AMOs always sign-extend the value
     // placed in rd, and ignore the upper 32 bits of the original
     // value of rs2.
     using signed_t = std::make_signed_t<Type>;
-    this->reg(instr.Atype.rd) = (RVSIGNTYPE(*this))signed_t(old_value);
+    this->reg(at.rd) = (RVSIGNTYPE(*this))signed_t(old_value);
   }
 }
 
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOADD_W_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOADD_W_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int32_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).fetch_add(cpu.reg(rs2));
@@ -91,13 +92,14 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVPRINTR_ATTR int AMOADD_W_printer(char *buffer, size_t len, const CPU<address_t> &, rv32i_instruction instr) {
-    return snprintf(buffer, len, "%s.%c [%s] %s, %s", atomic_name2[instr.Atype.funct5 >> 2],
-                    atomic_type[instr.Atype.funct3 & 7], RISCV::regname(instr.Atype.rs1),
-                    RISCV::regname(instr.Atype.rs2), RISCV::regname(instr.Atype.rd));
+  RVPRINTR_ATTR int AMOADD_W_printer(char *buffer, size_t len, const CPU<address_t> &, instruction_format instr) {
+    const auto at = instr.as<InstructionA>();
+    return snprintf(buffer, len, "%s.%c [%s] %s, %s", atomic_name2[at.funct5 >> 2],
+                    atomic_type[at.funct3 & 7], RISCV::regname(at.rs1),
+                    RISCV::regname(at.rs2), RISCV::regname(at.rd));
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOXOR_W_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOXOR_W_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int32_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).fetch_xor(cpu.reg(rs2));
@@ -108,7 +110,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
 #endif
     });
   };
-  template <AddressType address_t> RVINSTR_COLDATTR void AMOOR_W_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  template <AddressType address_t> RVINSTR_COLDATTR void AMOOR_W_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int32_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).fetch_or(cpu.reg(rs2));
@@ -120,7 +122,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOAND_W_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOAND_W_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int32_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).fetch_and(cpu.reg(rs2));
@@ -132,7 +134,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOMAX_W_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOMAX_W_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int32_t>(instr, [](auto &cpu, auto &value, auto rs2) {
       auto old_val = value;
       value = std::max(value, (int32_t)cpu.reg(rs2));
@@ -140,7 +142,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOMIN_W_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOMIN_W_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int32_t>(instr, [](auto &cpu, auto &value, auto rs2) {
       auto old_val = value;
       value = std::min(value, (int32_t)cpu.reg(rs2));
@@ -148,7 +150,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOMAXU_W_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOMAXU_W_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<uint32_t>(instr, [](auto &cpu, auto &value, auto rs2) {
       auto old_val = value;
       value = std::max(value, (uint32_t)cpu.reg(rs2));
@@ -156,7 +158,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOMINU_W_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOMINU_W_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<uint32_t>(instr, [](auto &cpu, auto &value, auto rs2) {
       auto old_val = value;
       value = std::min(value, (uint32_t)cpu.reg(rs2));
@@ -164,7 +166,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOADD_D_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOADD_D_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int64_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).fetch_add(cpu.reg(rs2));
@@ -176,7 +178,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOXOR_D_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOXOR_D_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int64_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).fetch_xor(cpu.reg(rs2));
@@ -187,7 +189,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
 #endif
     });
   };
-  template <AddressType address_t> RVINSTR_COLDATTR void AMOOR_D_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  template <AddressType address_t> RVINSTR_COLDATTR void AMOOR_D_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int64_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).fetch_or(cpu.reg(rs2));
@@ -199,7 +201,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOAND_D_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOAND_D_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int64_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).fetch_and(cpu.reg(rs2));
@@ -211,7 +213,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOMAX_D_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOMAX_D_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int64_t>(instr, [](auto &cpu, auto &value, auto rs2) {
       auto old_val = value;
       value = std::max(value, int64_t(cpu.reg(rs2)));
@@ -219,7 +221,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOMIN_D_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOMIN_D_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int64_t>(instr, [](auto &cpu, auto &value, auto rs2) {
       auto old_val = value;
       value = std::min(value, int64_t(cpu.reg(rs2)));
@@ -227,7 +229,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOMAXU_D_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOMAXU_D_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<uint64_t>(instr, [](auto &cpu, auto &value, auto rs2) {
       auto old_val = value;
       value = std::max(value, (uint64_t)cpu.reg(rs2));
@@ -235,7 +237,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOMINU_D_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOMINU_D_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<uint64_t>(instr, [](auto &cpu, auto &value, auto rs2) {
       auto old_val = value;
       value = std::min(value, (uint64_t)cpu.reg(rs2));
@@ -243,7 +245,7 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOSWAP_W_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOSWAP_W_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int32_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).exchange(cpu.reg(rs2));
@@ -255,12 +257,13 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     });
   };
   template <AddressType address_t>
-  int RVPRINTR_ATTR AMOSWAP_W_printer(char *buffer, size_t len, const CPU<address_t> &, rv32i_instruction instr) {
-    return snprintf(buffer, len, "AMOSWAP.%c [%s] %s, %s", atomic_type[instr.Atype.funct3 & 7],
-                    RISCV::regname(instr.Atype.rs1), RISCV::regname(instr.Atype.rs2), RISCV::regname(instr.Atype.rd));
+  int RVPRINTR_ATTR AMOSWAP_W_printer(char *buffer, size_t len, const CPU<address_t> &, instruction_format instr) {
+    const auto at = instr.as<InstructionA>();
+    return snprintf(buffer, len, "AMOSWAP.%c [%s] %s, %s", atomic_type[at.funct3 & 7],
+                    RISCV::regname(at.rs1), RISCV::regname(at.rs2), RISCV::regname(at.rd));
   };
   template <AddressType address_t>
-  RVINSTR_COLDATTR void AMOSWAP_D_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+  RVINSTR_COLDATTR void AMOSWAP_D_handler(CPU<address_t> &cpu, instruction_format instr) {
     cpu.template amo<int64_t>(instr, [](auto &cpu, auto &value, auto rs2) {
 #if USE_ATOMIC_OPS
 			return std::atomic_ref(value).exchange(cpu.reg(rs2));
@@ -273,19 +276,20 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
   };
 
   template <AddressType address_t>
-  RVINSTR_COLDATTR void LOAD_RESV_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-    const auto addr = cpu.reg(instr.Atype.rs1);
+  RVINSTR_COLDATTR void LOAD_RESV_handler(CPU<address_t> &cpu, instruction_format instr) {
+    const auto at = instr.as<InstructionA>();
+    const auto addr = cpu.reg(at.rs1);
     RVSIGNTYPE(cpu) value;
     // switch on atomic type
-    if (instr.Atype.funct3 == AMOSIZE_W) {
+    if (at.funct3 == AMOSIZE_W) {
       if (!cpu.atomics().load_reserve(4, addr)) cpu.trigger_exception(DEADLOCK_REACHED);
       value = (int32_t)cpu.machine().memory.template read<uint32_t>(addr);
-    } else if (instr.Atype.funct3 == AMOSIZE_D) {
+    } else if (at.funct3 == AMOSIZE_D) {
       if constexpr (RVISGE64BIT(cpu)) {
         if (!cpu.atomics().load_reserve(8, addr)) cpu.trigger_exception(DEADLOCK_REACHED);
         value = (int64_t)cpu.machine().memory.template read<uint64_t>(addr);
       } else cpu.trigger_exception(ILLEGAL_OPCODE);
-    } else if (instr.Atype.funct3 == AMOSIZE_Q) {
+    } else if (at.funct3 == AMOSIZE_Q) {
       if constexpr (RVIS128BIT(cpu)) {
         if (!cpu.atomics().load_reserve(16, addr)) cpu.trigger_exception(DEADLOCK_REACHED);
         value = cpu.machine().memory.template read<RVREGTYPE(cpu)>(addr);
@@ -293,48 +297,51 @@ inline void CPU<address_t>::amo(format_t instr, Type (*op)(CPU &, Type &, uint32
     } else {
       cpu.trigger_exception(ILLEGAL_OPCODE);
     }
-    if (instr.Atype.rd != 0) cpu.reg(instr.Atype.rd) = value;
+    if (at.rd != 0) cpu.reg(at.rd) = value;
   };
   template <AddressType address_t>
-  RVPRINTR_ATTR int LOAD_RESV_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
-    const uint64_t addr = cpu.reg(instr.Atype.rs1);
-    return snprintf(buffer, len, "LR.%c [%s = 0x%" PRIX64 "], %s", atomic_type[instr.Atype.funct3 & 7],
-                    RISCV::regname(instr.Atype.rs1), addr, RISCV::regname(instr.Atype.rd));
+  RVPRINTR_ATTR int LOAD_RESV_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+    const auto at = instr.as<InstructionA>();
+    const uint64_t addr = cpu.reg(at.rs1);
+    return snprintf(buffer, len, "LR.%c [%s = 0x%" PRIX64 "], %s", atomic_type[at.funct3 & 7],
+                    RISCV::regname(at.rs1), addr, RISCV::regname(at.rd));
   };
 
   template <AddressType address_t>
-  RVINSTR_COLDATTR void STORE_COND_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-    const auto addr = cpu.reg(instr.Atype.rs1);
+  RVINSTR_COLDATTR void STORE_COND_handler(CPU<address_t> &cpu, instruction_format instr) {
+    const auto at = instr.as<InstructionA>();
+    const auto addr = cpu.reg(at.rs1);
     bool resv = false;
-    if (instr.Atype.funct3 == AMOSIZE_W) {
+    if (at.funct3 == AMOSIZE_W) {
       resv = cpu.atomics().store_conditional(4, addr);
       if (resv) {
-        cpu.machine().memory.template write<uint32_t>(addr, cpu.reg(instr.Atype.rs2));
+        cpu.machine().memory.template write<uint32_t>(addr, cpu.reg(at.rs2));
       }
-    } else if (instr.Atype.funct3 == AMOSIZE_D) {
+    } else if (at.funct3 == AMOSIZE_D) {
       if constexpr (RVISGE64BIT(cpu)) {
         resv = cpu.atomics().store_conditional(8, addr);
         if (resv) {
-          cpu.machine().memory.template write<uint64_t>(addr, cpu.reg(instr.Atype.rs2));
+          cpu.machine().memory.template write<uint64_t>(addr, cpu.reg(at.rs2));
         }
       } else cpu.trigger_exception(ILLEGAL_OPCODE);
-    } else if (instr.Atype.funct3 == AMOSIZE_Q) {
+    } else if (at.funct3 == AMOSIZE_Q) {
       if constexpr (RVIS128BIT(cpu)) {
         resv = cpu.atomics().store_conditional(16, addr);
         if (resv) {
-          cpu.machine().memory.template write<RVREGTYPE(cpu)>(addr, cpu.reg(instr.Atype.rs2));
+          cpu.machine().memory.template write<RVREGTYPE(cpu)>(addr, cpu.reg(at.rs2));
         }
       } else cpu.trigger_exception(ILLEGAL_OPCODE);
     } else {
       cpu.trigger_exception(ILLEGAL_OPCODE);
     }
     // Write non-zero value to RD on failure
-    if (instr.Atype.rd != 0) cpu.reg(instr.Atype.rd) = !resv;
+    if (at.rd != 0) cpu.reg(at.rd) = !resv;
   };
   template <AddressType address_t>
-  RVPRINTR_ATTR int STORE_COND_printer(char *buffer, size_t len, const CPU<address_t> &, rv32i_instruction instr) {
-    return snprintf(buffer, len, "SC.%c [%s], %s res=%s", atomic_type[instr.Atype.funct3 & 7],
-                    RISCV::regname(instr.Atype.rs1), RISCV::regname(instr.Atype.rs2), RISCV::regname(instr.Atype.rd));
+  RVPRINTR_ATTR int STORE_COND_printer(char *buffer, size_t len, const CPU<address_t> &, instruction_format instr) {
+    const auto at = instr.as<InstructionA>();
+    return snprintf(buffer, len, "SC.%c [%s], %s res=%s", atomic_type[at.funct3 & 7],
+                    RISCV::regname(at.rs1), RISCV::regname(at.rs2), RISCV::regname(at.rd));
   };
 
   } // namespace riscv

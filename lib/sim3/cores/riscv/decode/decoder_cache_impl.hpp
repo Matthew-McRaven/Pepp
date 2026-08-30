@@ -45,9 +45,8 @@ namespace riscv {
 template <AddressType address_t> static SharedExecuteSegments<address_t> shared_execute_segments;
 
 template <AddressType address_t> static bool is_regular_compressed(uint16_t instr) {
-  const rv32c_instruction ci{instr};
 #define CI_CODE(x, y) ((x << 13) | (y))
-  switch (ci.opcode()) {
+  switch (instr & 0b1110000000000011) {
   case CI_CODE(0b001, 0b01):
     if constexpr (sizeof(address_t) == 8) return true; // C.ADDIW
     return false;                      // C.JAL 32-bit
@@ -56,10 +55,11 @@ template <AddressType address_t> static bool is_regular_compressed(uint16_t inst
   case CI_CODE(0b111, 0b01):           // C.BNEZ
     return false;
   case CI_CODE(0b100, 0b10): { // VARIOUS
-    const bool topbit = ci.whole & (1 << 12);
-    if (!topbit && ci.CR.rd != 0 && ci.CR.rs2 == 0) {
+    const auto cr = std::bit_cast<InstructionCR>(instr);
+    const bool topbit = instr & (1 << 12);
+    if (!topbit && cr.rd != 0 && cr.rs2 == 0) {
       return false; // C.JR rd
-    } else if (topbit && ci.CR.rd != 0 && ci.CR.rs2 == 0) {
+    } else if (topbit && cr.rd != 0 && cr.rs2 == 0) {
       return false; // C.JALR ra, rd+0
     } // TODO: Handle C.EBREAK
     return true;
@@ -159,10 +159,10 @@ static void realize_fastsim(address_t base_pc, address_t last_pc, const uint8_t 
           // NOTE: Reinsert original instruction, as long sequences will lead to
           // PC becoming desynched, as it doesn't get increased.
           // We use a new block-ending fallback function handler instead.
-          rv32i_instruction instruction = read_instruction(exec_segment, pc - length, last_pc);
+          instruction_format instruction = read_instruction(exec_segment, pc - length, last_pc);
           entry->set_bytecode(RV32I_BC_FUNCBLOCK);
           entry->set_invalid_handler(); // Resolve lazily
-          entry->instr = instruction.whole;
+          entry->instr = instruction.bits();
           break;
         }
 
@@ -187,7 +187,7 @@ static void realize_fastsim(address_t base_pc, address_t last_pc, const uint8_t 
     address_t pc = last_pc - 4;
     // NOTE: The last check avoids overflow
     while (pc >= base_pc && pc < last_pc) {
-      const rv32i_instruction instruction = read_instruction(exec_segment, pc, last_pc);
+      const instruction_format instruction = read_instruction(exec_segment, pc, last_pc);
       DecoderData<address_t> &entry = exec_decoder[pc / DecoderCache<address_t>::DIVISOR];
       const unsigned opcode = instruction.opcode();
 
@@ -197,7 +197,7 @@ static void realize_fastsim(address_t base_pc, address_t last_pc, const uint8_t 
         // It's a long sequence of instructions, so end block here.
         entry.set_bytecode(RV32I_BC_FUNCBLOCK);
         entry.set_invalid_handler(); // Resolve lazily
-        entry.instr = instruction.whole;
+        entry.instr = instruction.bits();
         idxend = 0;
       }
 

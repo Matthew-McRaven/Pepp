@@ -7,8 +7,8 @@
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
-#include "core/sim/cores/cpu/pep_csrbank.hpp"
-#include "core/sim/cores/cpu/pep_regbank.hpp"
+#include "core/sim/cores/cpu/pep/pep_csrbank.hpp"
+#include "core/sim/cores/cpu/pep/pep_regbank.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
 
@@ -93,7 +93,6 @@ public:
   PepRegisterBank *registers() const { return _regbank; }
   PepCSRBank *csrs() const { return _csrs; }
 
-  // No longer static const because it embeds this instance's id.
   Operation op_data() const { return _op_data; }
 
   // While an instruction is in flight, this contains the active PC.

@@ -32,77 +32,82 @@
  * <https://opensource.org/license/bsd-3-clause>
  */
 #pragma once
+#include <cstdint>
 #include "core/arch/riscv/isa/rvi.hpp"
 
-namespace riscv
-{
-	union rv32f_instruction
-	{
-		struct {
-			uint32_t opcode : 7;
-			uint32_t rd     : 5;
-			uint32_t funct3 : 3;
-			uint32_t rs1    : 5;
-			uint32_t rs2    : 5;
-			uint32_t funct7 : 7;
-		} Rtype;
-		struct {
-			uint32_t opcode : 7;
-			uint32_t rd     : 5;
-			uint32_t funct3 : 3;
-			uint32_t rs1    : 5;
-			uint32_t rs2    : 5;
-			uint32_t funct2 : 2;
-			uint32_t rs3    : 5;
-		} R4type;
-		struct {
-			uint32_t opcode : 7;
-			uint32_t rd     : 5;
-			uint32_t funct3 : 3;
-			uint32_t rs1    : 5;
-			uint32_t imm    : 12;
+namespace riscv {
 
-			bool sign() const noexcept {
-				return imm & 0x800;
-			}
-			int32_t signed_imm() const noexcept {
-				return int32_t(imm << 20) >> 20;
-			}
-		} Itype;
-		struct {
-			uint32_t opcode : 7;
-			uint32_t imm04  : 5;
-			uint32_t funct3 : 3;
-			uint32_t rs1    : 5;
-			uint32_t rs2    : 5;
-			uint32_t imm510 : 6;
-			uint32_t imm11  : 1;
+/*
+ * F/D/Q instruction formats.
+ *
+ * Only two formats here are structurally new. The FP loads (FLW/FLD) and stores (FSW/FSD)
+ * reuse the base integer formats verbatim, so decode them as InstructionI and InstructionS
+ * from rvi.hpp -- those are bit-identical to the copies this header used to carry, down to
+ * the reassembled immediate.
+ */
 
-			bool sign() const noexcept {
-				return imm11;
-			}
-			int32_t signed_imm() const noexcept {
-				const int32_t imm = imm04 | (imm510 << 5) | (imm11 << 11);
-				return (imm << 20) >> 20;
-			}
-		} Stype;
+// Rounding mode, held in funct3 of the arithmetic OP-FP and R4 encodings.
+// Not every OP-FP instruction spends funct3 this way: the comparisons (FEQ/FLT/FLE), FCLASS,
+// and the FMV pair overload it as an operation selector. Read it as a rounding mode only for
+// instructions the spec says carry one, which is why funct3 keeps its raw name below and rm()
+// is an opt-in accessor rather than the field itself.
+enum class FpRm : uint8_t {
+  RNE = 0b000, // Round to nearest, ties to even.
+  RTZ = 0b001, // Round towards zero.
+  RDN = 0b010, // Round down, towards -infinity.
+  RUP = 0b011, // Round up, towards +infinity.
+  RMM = 0b100, // Round to nearest, ties to max magnitude.
+  // 0b101 and 0b110 are reserved.
+  DYN = 0b111, // Defer to fcsr.frm.
+};
 
-		uint16_t half[2];
-		uint32_t whole;
+// Operand width. Occupies funct2 of the R4 format, and the low two bits of funct7 on OP-FP.
+enum class FpFmt : uint8_t {
+  S = 0b00, // 32-bit single.
+  D = 0b01, // 64-bit double.
+  H = 0b10, // 16-bit half.
+  Q = 0b11, // 128-bit quad.
+};
 
-		rv32f_instruction(rv32i_instruction i) : whole(i.whole) {}
+// Fused multiply-add: FMADD, FMSUB, FNMSUB, FNMADD. The only RISC-V format with three source
+// registers, which is why it claims four major opcodes of its own rather than sharing OP-FP.
+struct InstructionR4 {
+  uint32_t opcode : 7;
+  uint32_t rd : 5;
+  uint32_t funct3 : 3;
+  uint32_t rs1 : 5;
+  uint32_t rs2 : 5;
+  uint32_t fmt : 2;
+  uint32_t rs3 : 5;
 
-		uint32_t opcode() const noexcept {
-			return Rtype.opcode;
-		}
-	};
-	static_assert(sizeof(rv32f_instruction) == 4, "Must be 4 bytes");
+  FpRm rm() const noexcept { return static_cast<FpRm>(funct3); }
+  FpFmt format() const noexcept { return static_cast<FpFmt>(fmt); }
+};
+static_assert(sizeof(InstructionR4) == 4, "R4-type instruction must be 32 bits");
 
-	enum fflags {
-		FFLAG_NX = 0x1,
-		FFLAG_UF = 0x2,
-		FFLAG_OF = 0x4,
-		FFLAG_DZ = 0x8,
-		FFLAG_NV = 0x10
-	};
-}
+// Everything under the OP-FP major opcode. Structurally an R-type, but the spec splits funct7
+// into a 5-bit operation selector and the 2-bit operand width, so the two are named separately
+// here rather than making every consumer shift funct7 apart itself.
+struct InstructionRFP {
+  uint32_t opcode : 7;
+  uint32_t rd : 5;
+  uint32_t funct3 : 3;
+  uint32_t rs1 : 5;
+  uint32_t rs2 : 5;
+  uint32_t fmt : 2;
+  uint32_t funct5 : 5;
+
+  FpRm rm() const noexcept { return static_cast<FpRm>(funct3); }
+  FpFmt format() const noexcept { return static_cast<FpFmt>(fmt); }
+};
+static_assert(sizeof(InstructionRFP) == 4, "OP-FP R-type instruction must be 32 bits");
+
+// Accrued exception flags, the low five bits of fcsr.
+enum fflags {
+  FFLAG_NX = 0x1,
+  FFLAG_UF = 0x2,
+  FFLAG_OF = 0x4,
+  FFLAG_DZ = 0x8,
+  FFLAG_NV = 0x10,
+};
+} // namespace riscv

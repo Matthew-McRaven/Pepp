@@ -481,8 +481,8 @@ void DebugMachine<address_t>::simulate(std::function<void(DebugMachine<address_t
 		}
 
 		// Instructions may be unaligned with C-extension
-		const rv32i_instruction instruction =
-			rv32i_instruction { *(UnderAlign32*) &exec_seg_data[pc] };
+		const instruction_format instruction =
+			instruction_format { uint32_t(*(UnderAlign32*) &exec_seg_data[pc]) };
 		if (this->verbose_instructions) {
 			auto it = backtrace_lookup.find(pc);
 			if (it == backtrace_lookup.end()) {

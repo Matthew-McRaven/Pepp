@@ -15,7 +15,7 @@
  */
 #include <catch.hpp>
 #include <nlohmann/json.hpp>
-#include "core/sim/cores/cpu/pep_isa.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"

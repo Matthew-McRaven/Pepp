@@ -1,3 +1,4 @@
+#include <bit>
 #include <catch.hpp>
 #include <cstdint>
 #include "core/arch/riscv/isa/rvc.hpp"
@@ -44,15 +45,17 @@ TEST_CASE("RV32C", "[scope:sim][kind:int][arch:RV]") {
   riscv::Machine<uint32_t> machine{std::string_view{}, {.memory_max = 65536}};
   SECTION("C.SRLI") { // C.SRLI imm = [0, 31] CI_CODE(0b100, 0b01):
     for (int i = 0; i < 32; i++) {
-      riscv::rv32c_instruction ci;
-      ci.CA.opcode = 0b01;     // Quadrant 1
-      ci.CA.funct6 = 0b100000; // ALU OP: SRLI
-      ci.CAB.srd = 0x2;        // A0
-      ci.CAB.imm04 = i;
-      ci.CAB.imm5 = 0;
+      riscv::InstructionCA ca{};
+      ca.opcode = 0b01;     // Quadrant 1
+      ca.funct6 = 0b100000; // ALU OP: SRLI
+      riscv::InstructionCAB cab{};
+      cab.srd = 0x2;        // A0
+      cab.imm04 = i;
+      cab.imm5 = 0;
+      const uint16_t whole = std::bit_cast<uint16_t>(ca) | std::bit_cast<uint16_t>(cab);
 
       const riscv::testable_insn<uint32_t> insn{
-          .name = "C.SRLI", .bits = ci.whole, .reg = riscv::REG_ARG0, .index = i, .initial_value = 0xFFFFFFFF};
+          .name = "C.SRLI", .bits = whole, .reg = riscv::REG_ARG0, .index = i, .initial_value = 0xFFFFFFFF};
       bool b = validate<uint32_t>(machine, insn, [](auto &cpu, const auto &insn) -> bool {
         return cpu.reg(insn.reg) == (insn.initial_value >> insn.index);
       });
@@ -62,15 +65,17 @@ TEST_CASE("RV32C", "[scope:sim][kind:int][arch:RV]") {
   SECTION("C.SRAI") { // C.SRAI imm = [0, 31] CI_CODE(0b100, 0b01):
 
     for (int i = 0; i < 32; i++) {
-      riscv::rv32c_instruction ci;
-      ci.CA.opcode = 0b01;     // Quadrant 1
-      ci.CA.funct6 = 0b100001; // ALU OP: SRAI
-      ci.CAB.srd = 0x2;        // A0
-      ci.CAB.imm04 = i;
-      ci.CAB.imm5 = 0;
+      riscv::InstructionCA ca{};
+      ca.opcode = 0b01;     // Quadrant 1
+      ca.funct6 = 0b100001; // ALU OP: SRAI
+      riscv::InstructionCAB cab{};
+      cab.srd = 0x2;        // A0
+      cab.imm04 = i;
+      cab.imm5 = 0;
+      const uint16_t whole = std::bit_cast<uint16_t>(ca) | std::bit_cast<uint16_t>(cab);
 
       const riscv::testable_insn<uint32_t> insn{
-          .name = "C.SRAI", .bits = ci.whole, .reg = riscv::REG_ARG0, .index = i, .initial_value = 0xFFFFFFFF};
+          .name = "C.SRAI", .bits = whole, .reg = riscv::REG_ARG0, .index = i, .initial_value = 0xFFFFFFFF};
       bool b = validate<uint32_t>(
           machine, insn, [](auto &cpu, const auto &insn) -> bool { return cpu.reg(insn.reg) == insn.initial_value; });
       CHECK(b);
@@ -78,15 +83,17 @@ TEST_CASE("RV32C", "[scope:sim][kind:int][arch:RV]") {
   };
   SECTION("C.ANDI") { // C.ANDI imm = [-32, 31] CI_CODE(0b100, 0b01):
     for (int i = 0; i < 64; i++) {
-      riscv::rv32c_instruction ci;
-      ci.CA.opcode = 0b01;     // Quadrant 1
-      ci.CA.funct6 = 0b100010; // ALU OP: ANDI
-      ci.CAB.srd = 0x2;        // A0
-      ci.CAB.imm04 = i & 31;
-      ci.CAB.imm5 = i >> 5;
+      riscv::InstructionCA ca{};
+      ca.opcode = 0b01;     // Quadrant 1
+      ca.funct6 = 0b100010; // ALU OP: ANDI
+      riscv::InstructionCAB cab{};
+      cab.srd = 0x2;        // A0
+      cab.imm04 = i & 31;
+      cab.imm5 = i >> 5;
+      const uint16_t whole = std::bit_cast<uint16_t>(ca) | std::bit_cast<uint16_t>(cab);
 
       const riscv::testable_insn<uint32_t> insn{
-          .name = "C.ANDI", .bits = ci.whole, .reg = riscv::REG_ARG0, .index = i, .initial_value = 0xFFFFFFFF};
+          .name = "C.ANDI", .bits = whole, .reg = riscv::REG_ARG0, .index = i, .initial_value = 0xFFFFFFFF};
       bool b = validate<uint32_t>(machine, insn, [](auto &cpu, const auto &insn) -> bool {
         if (insn.index < 32) {
           return cpu.reg(insn.reg) == (insn.initial_value & insn.index);
@@ -98,15 +105,16 @@ TEST_CASE("RV32C", "[scope:sim][kind:int][arch:RV]") {
   }
   SECTION("C.SLLI") { // C.SLLI imm = [0, 31] CI_CODE(0b011, 0b10):
     for (int i = 0; i < 32; i++) {
-      riscv::rv32c_instruction ci;
-      ci.CI.opcode = 0b10; // Quadrant 1
-      ci.CI.funct3 = 0x0;  // OP: SLLI
-      ci.CI.rd = 0xA;      // A0
-      ci.CI.imm1 = i;
-      ci.CI.imm2 = 0;
+      riscv::InstructionCI ci{};
+      ci.opcode = 0b10; // Quadrant 1
+      ci.funct3 = 0x0;  // OP: SLLI
+      ci.rd = 0xA;      // A0
+      ci.imm1 = i;
+      ci.imm2 = 0;
+      const uint16_t whole = std::bit_cast<uint16_t>(ci);
 
       const riscv::testable_insn<uint32_t> insn{
-          .name = "C.SLLI", .bits = ci.whole, .reg = riscv::REG_ARG0, .index = i, .initial_value = 0xA};
+          .name = "C.SLLI", .bits = whole, .reg = riscv::REG_ARG0, .index = i, .initial_value = 0xA};
       bool b = validate<uint32_t>(machine, insn, [](auto &cpu, const auto &insn) -> bool {
         return cpu.reg(insn.reg) == (insn.initial_value << insn.index);
       });

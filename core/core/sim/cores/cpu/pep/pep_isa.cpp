@@ -4,7 +4,7 @@
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/isa/pep9.hpp"
 #include "core/ds/string_compare.hpp"
-#include "core/sim/cores/cpu/pep_isa_instructions.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa_instructions.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
@@ -227,7 +227,9 @@ void PepISA3CPU::handle(Op opcode) {
   using R = isa::Pep10::Register;
   using BC = BranchCondition;
   using enum isa::SharedOpBehavior;
-  const auto operand = [&] { return decode_op_addr(this, opcode.addr); };
+  const auto operand_addr = [&] { return decode_op_addr(this, opcode.addr); };
+  const auto operand_value_word = [&] { return decode_op_value_word(this, opcode.addr); };
+  const auto operand_value_byte = [&] { return decode_op_value_byte(this, opcode.addr); };
   // One switch over the whole behavior enum rather than two, which is significantly faster than a monadic/dyadic split.
   // However, we can't preload operand anymore, so we need a small lambda to defer reading it until we've figured out if
   // the insruction is dyadic or not.
@@ -249,29 +251,29 @@ void PepISA3CPU::handle(Op opcode) {
   case ROR: return handle_rorr(this, (R)opcode.target);
   case SCALL: throw std::logic_error("Unimplemented instruction: SCALL");
   case TRAP_CALL: throw std::logic_error("Unimplemented instruction: TRAP_CALL");
-  case BR: return handle_unconditional_branch(this, opcode, operand());
-  case BRLE: return handle_branch(this, opcode, BC::LE, operand());
-  case BRLT: return handle_branch(this, opcode, BC::LT, operand());
-  case BREQ: return handle_branch(this, opcode, BC::EQ, operand());
-  case BRNE: return handle_branch(this, opcode, BC::NE, operand());
-  case BRGE: return handle_branch(this, opcode, BC::GE, operand());
-  case BRGT: return handle_branch(this, opcode, BC::GT, operand());
-  case BRV: return handle_branch(this, opcode, BC::V, operand());
-  case BRC: return handle_branch(this, opcode, BC::C, operand());
-  case CALL: return handle_call(this, opcode, operand());
-  case ADDSP: return handle_addsp(this, opcode, operand());
-  case SUBSP: return handle_subsp(this, opcode, operand());
-  case ADD: return handle_addr(this, opcode, operand());
-  case SUB: return handle_subr(this, opcode, operand());
-  case AND: return handle_bitopr(this, opcode, Bitop::AND, operand());
-  case OR: return handle_bitopr(this, opcode, Bitop::OR, operand());
-  case XOR: return handle_bitopr(this, opcode, Bitop::XOR, operand());
-  case CPW: return handle_cpwr(this, opcode, operand());
-  case CPB: return handle_cpbr(this, opcode, operand());
-  case LDW: return handle_ldwr(this, opcode, operand());
-  case LDB: return handle_ldbr(this, opcode, operand());
-  case STW: return handle_stwr(this, opcode, operand());
-  case STB: return handle_stbr(this, opcode, operand());
+  case BR: return handle_unconditional_branch(this, opcode, operand_value_word());
+  case BRLE: return handle_branch(this, opcode, BC::LE, operand_value_word());
+  case BRLT: return handle_branch(this, opcode, BC::LT, operand_value_word());
+  case BREQ: return handle_branch(this, opcode, BC::EQ, operand_value_word());
+  case BRNE: return handle_branch(this, opcode, BC::NE, operand_value_word());
+  case BRGE: return handle_branch(this, opcode, BC::GE, operand_value_word());
+  case BRGT: return handle_branch(this, opcode, BC::GT, operand_value_word());
+  case BRV: return handle_branch(this, opcode, BC::V, operand_value_word());
+  case BRC: return handle_branch(this, opcode, BC::C, operand_value_word());
+  case CALL: return handle_call(this, opcode, operand_value_word());
+  case ADDSP: return handle_addsp(this, opcode, operand_value_word());
+  case SUBSP: return handle_subsp(this, opcode, operand_value_word());
+  case ADD: return handle_addr(this, opcode, operand_value_word());
+  case SUB: return handle_subr(this, opcode, operand_value_word());
+  case AND: return handle_bitopr(this, opcode, Bitop::AND, operand_value_word());
+  case OR: return handle_bitopr(this, opcode, Bitop::OR, operand_value_word());
+  case XOR: return handle_bitopr(this, opcode, Bitop::XOR, operand_value_word());
+  case CPW: return handle_cpwr(this, opcode, operand_value_word());
+  case CPB: return handle_cpbr(this, opcode, operand_value_byte());
+  case LDW: return handle_ldwr(this, opcode, operand_value_word());
+  case LDB: return handle_ldbr(this, opcode, operand_value_byte());
+  case STW: return handle_stwr(this, opcode, operand_addr());
+  case STB: return handle_stbr(this, opcode, operand_addr());
   default: throw std::logic_error("Unknown opcode behavior");
   }
 }

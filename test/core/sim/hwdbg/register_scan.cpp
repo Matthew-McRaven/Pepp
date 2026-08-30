@@ -16,8 +16,8 @@
 #include <catch.hpp>
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/arch/pep/isa/pep9.hpp"
-#include "core/sim/cores/cpu/pep_isa.hpp"
-#include "core/sim/cores/cpu/pep_isa_instructions.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa_instructions.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
 

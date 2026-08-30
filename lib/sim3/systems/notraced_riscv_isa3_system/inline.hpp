@@ -476,10 +476,11 @@ void Machine<address_t>::setup_linux(const std::vector<std::string> &args, const
   this->cpu.reg(REG_SP) = dst;
 }
 
-template <AddressType address_t> void Machine<address_t>::system(union rv32i_instruction instr) {
-  switch (instr.Itype.funct3) {
+template <AddressType address_t> void Machine<address_t>::system(instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  switch (it.funct3) {
   case 0x0: // SYSTEM functions
-    switch (instr.Itype.imm) {
+    switch (it.imm) {
     case 0: // ECALL
       this->system_call(cpu.reg(REG_ECALL));
       return;
@@ -495,135 +496,135 @@ template <AddressType address_t> void Machine<address_t>::system(union rv32i_ins
     }
     break;
   case 0x1: { // CSRRW: Atomically swap CSR and integer register
-    const bool rd = instr.Itype.rd != 0;
-    switch (instr.Itype.imm) {
+    const bool rd = it.rd != 0;
+    switch (it.imm) {
     case 0x001: // fflags: accrued exceptions
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().fflags;
-      cpu.registers().fcsr().fflags = cpu.reg(instr.Itype.rs1);
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().fflags;
+      cpu.registers().fcsr().fflags = cpu.reg(it.rs1);
       return;
     case 0x002: // frm: rounding-mode
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().frm;
-      cpu.registers().fcsr().frm = cpu.reg(instr.Itype.rs1);
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().frm;
+      cpu.registers().fcsr().frm = cpu.reg(it.rs1);
       return;
     case 0x003: // fcsr: control and status register
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().whole;
-      cpu.registers().fcsr().whole = cpu.reg(instr.Itype.rs1) & 0xFF;
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().whole;
+      cpu.registers().fcsr().whole = cpu.reg(it.rs1) & 0xFF;
       return;
     }
     [[fallthrough]];
   }
   case 0x2: { // CSRRS: Atomically read and set bit mask
     // if destination is x0, then we do not write to rd
-    const bool rd = instr.Itype.rd != 0;
-    switch (instr.Itype.imm) {
+    const bool rd = it.rd != 0;
+    switch (it.imm) {
     case 0x001: // fflags (accrued exceptions)
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().fflags;
-      cpu.registers().fcsr().fflags |= cpu.reg(instr.Itype.rs1);
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().fflags;
+      cpu.registers().fcsr().fflags |= cpu.reg(it.rs1);
       return;
     case 0x002: // frm (rounding-mode)
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().frm;
-      cpu.registers().fcsr().frm |= cpu.reg(instr.Itype.rs1);
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().frm;
+      cpu.registers().fcsr().frm |= cpu.reg(it.rs1);
       return;
     case 0x003: // fcsr (control and status register)
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().whole;
-      cpu.registers().fcsr().whole |= cpu.reg(instr.Itype.rs1) & 0xFF;
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().whole;
+      cpu.registers().fcsr().whole |= cpu.reg(it.rs1) & 0xFF;
       return;
     case 0xC00: // CSR RDCYCLE (lower)
     case 0xC02: // RDINSTRET (lower)
       if (rd) {
-        cpu.reg(instr.Itype.rd) = this->instruction_counter();
+        cpu.reg(it.rd) = this->instruction_counter();
         return;
       } else {
-        if (instr.Itype.rs1 == 0) // UNIMP instruction
-          cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.Itype.imm);
+        if (it.rs1 == 0) // UNIMP instruction
+          cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, it.imm);
         else // CYCLE is not writable
-          cpu.trigger_exception(ILLEGAL_OPERATION, instr.Itype.imm);
+          cpu.trigger_exception(ILLEGAL_OPERATION, it.imm);
       }
     case 0xC80: // CSR RDCYCLE (upper)
     case 0xC82: // RDINSTRET (upper)
-      if (rd) cpu.reg(instr.Itype.rd) = this->instruction_counter() >> 32u;
+      if (rd) cpu.reg(it.rd) = this->instruction_counter() >> 32u;
       return;
     case 0xC01: // CSR RDTIME (lower)
-      if (rd) cpu.reg(instr.Itype.rd) = m_rdtime(*this);
+      if (rd) cpu.reg(it.rd) = m_rdtime(*this);
       return;
     case 0xC81: // CSR RDTIME (upper)
-      if (rd) cpu.reg(instr.Itype.rd) = m_rdtime(*this) >> 32u;
+      if (rd) cpu.reg(it.rd) = m_rdtime(*this) >> 32u;
       return;
     case 0xF11: // CSR marchid
-      if (rd) cpu.reg(instr.Itype.rd) = 0;
+      if (rd) cpu.reg(it.rd) = 0;
       return;
     case 0xF12: // CSR mvendorid
-      if (rd) cpu.reg(instr.Itype.rd) = 0;
+      if (rd) cpu.reg(it.rd) = 0;
       return;
     case 0xF13: // CSR mimpid
-      if (rd) cpu.reg(instr.Itype.rd) = 1;
+      if (rd) cpu.reg(it.rd) = 1;
       return;
     case 0xF14: // CSR mhartid
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.cpu_id();
+      if (rd) cpu.reg(it.rd) = cpu.cpu_id();
       return;
-    default: on_unhandled_csr(*this, instr.Itype.imm, instr.Itype.rd, instr.Itype.rs1); return;
+    default: on_unhandled_csr(*this, it.imm, it.rd, it.rs1); return;
     }
   } break;
   case 0x3: { // CSRRC: Atomically read and clear CSR
-    const bool rd = instr.Itype.rd != 0;
-    switch (instr.Itype.imm) {
+    const bool rd = it.rd != 0;
+    switch (it.imm) {
     case 0x001: // fflags: accrued exceptions
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().fflags;
-      cpu.registers().fcsr().fflags &= ~cpu.reg(instr.Itype.rs1);
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().fflags;
+      cpu.registers().fcsr().fflags &= ~cpu.reg(it.rs1);
       return;
     case 0x002: // frm: rounding-mode
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().frm;
-      cpu.registers().fcsr().frm &= ~cpu.reg(instr.Itype.rs1);
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().frm;
+      cpu.registers().fcsr().frm &= ~cpu.reg(it.rs1);
       return;
     case 0x003: // fcsr: control and status register
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().whole;
-      cpu.registers().fcsr().whole &= ~(cpu.reg(instr.Itype.rs1) & 0xFF);
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().whole;
+      cpu.registers().fcsr().whole &= ~(cpu.reg(it.rs1) & 0xFF);
       return;
     }
     break;
   }
   case 0x5: { // CSRWI: CSRW from uimm[4:0] in RS1
-    const bool rd = instr.Itype.rd != 0;
-    const uint32_t imm = instr.Itype.rs1;
-    switch (instr.Itype.imm) {
+    const bool rd = it.rd != 0;
+    const uint32_t imm = it.rs1;
+    switch (it.imm) {
     case 0x001: // fflags: accrued exceptions
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().fflags;
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().fflags;
       cpu.registers().fcsr().fflags = imm;
       return;
     case 0x002: // frm: rounding-mode
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().frm;
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().frm;
       cpu.registers().fcsr().frm = imm;
       return;
     case 0x003: // fcsr: control and status register
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().whole;
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().whole;
       cpu.registers().fcsr().whole = imm & 0xFF;
       return;
-    default: on_unhandled_csr(*this, instr.Itype.imm, instr.Itype.rd, instr.Itype.rs1); return;
+    default: on_unhandled_csr(*this, it.imm, it.rd, it.rs1); return;
     }
   } // CSRWI
   case 0x7: { // CSRRCI: Atomically read and clear CSR using immediate
-    const bool rd = instr.Itype.rd != 0;
-    const uint32_t imm = instr.Itype.rs1;
-    switch (instr.Itype.imm) {
+    const bool rd = it.rd != 0;
+    const uint32_t imm = it.rs1;
+    switch (it.imm) {
     case 0x001: // fflags: accrued exceptions
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().fflags;
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().fflags;
       cpu.registers().fcsr().fflags &= ~imm;
       return;
     case 0x002: // frm: rounding-mode
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().frm;
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().frm;
       cpu.registers().fcsr().frm &= ~imm;
       return;
     case 0x003: // fcsr: control and status register
-      if (rd) cpu.reg(instr.Itype.rd) = cpu.registers().fcsr().whole;
+      if (rd) cpu.reg(it.rd) = cpu.registers().fcsr().whole;
       cpu.registers().fcsr().whole &= ~(imm & 0xFF);
       return;
-    default: on_unhandled_csr(*this, instr.Itype.imm, instr.Itype.rd, instr.Itype.rs1); return;
+    default: on_unhandled_csr(*this, it.imm, it.rd, it.rs1); return;
     }
     break;
   } // CSRRCI
   }
   // if we got here, its an illegal operation!
-  cpu.trigger_exception(ILLEGAL_OPERATION, instr.Itype.funct3);
+  cpu.trigger_exception(ILLEGAL_OPERATION, it.funct3);
 }
 
 // posix/signals.cpp

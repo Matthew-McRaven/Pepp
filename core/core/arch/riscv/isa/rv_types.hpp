@@ -37,6 +37,7 @@
 #include <exception>
 #include <string>
 #include <type_traits>
+#include "core/arch/riscv/isa/rv_instruction.hpp"
 
 namespace riscv
 {
@@ -91,7 +92,7 @@ enum exceptions {
   UNKNOWN_EXCEPTION
 };
 
-using instruction_format = union rv32i_instruction;
+using instruction_format = ::riscv::rv_instruction2;
 template <AddressType address_type> using instruction_handler = void (*)(CPU<address_type> &, instruction_format);
 template <AddressType address_type>
 using instruction_printer = int (*)(char *, size_t, const CPU<address_type> &, instruction_format);

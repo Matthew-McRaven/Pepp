@@ -11,9 +11,8 @@ riscv::MnemonicDescriptor riscv::MnemonicDescriptor::I(u8 opcode7, u8 funct3) {
 riscv::MnemonicDescriptor riscv::MnemonicDescriptor::IShiftByConstant(u8 opcode7, u8 funct3, u8 shift_type) {
   MnemonicDescriptor ret(Type::I, opcode7);
   ret._funct3 = funct3 & 0x7;
-  // For shift instructions, the imm field is used to encode the shift type (logical vs arithmetic) in bit 10.
-  ret._imm_or_funct7 = (shift_type & 0x1) << 10;
-  ret._flags.imm = 1;
+  // Bit 10 of imm field is used to encode shift type.
+  ret.set_imm((shift_type & 0x1) << 10);
   return ret;
 }
 
@@ -21,8 +20,7 @@ riscv::MnemonicDescriptor riscv::MnemonicDescriptor::IFence(u8 fmt) {
   MnemonicDescriptor ret(Type::I, RV32I_FENCE);
   ret._funct3 = 0;
   // fmt is high-order 4 bits of imm
-  ret._imm_or_funct7 = (fmt & 0b1111) << 8;
-  ret._flags.imm = 1;
+  ret.set_imm((fmt & 0b1111) << 8);
   return ret;
 }
 
@@ -30,8 +28,7 @@ riscv::MnemonicDescriptor riscv::MnemonicDescriptor::IFence(u8 fmt, u8 pred, u8 
   MnemonicDescriptor ret(Type::I, RV32I_FENCE);
   ret._funct3 = 0;
   // fmt is high-order 4 bits of imm, pred middle 4 bits, and succ low-order 4 bits.
-  ret._imm_or_funct7 = (fmt & 0b1111) << 8 | (pred & 0b1111) << 4 | (succ & 0b1111);
-  ret._flags.imm = 1;
+  ret.set_imm((fmt & 0b1111) << 8 | (pred & 0b1111) << 4 | (succ & 0b1111));
   return ret;
 }
 
@@ -225,28 +222,26 @@ bool riscv::MnemonicDescriptor::has_imm() const noexcept { return allows_imm() &
 
 void riscv::MnemonicDescriptor::set_imm(u32 imm) {
   switch (_type) {
-  // Bits [11:0]
   case Type::I: [[fallthrough]];
-  case Type::S:
-    _imm_or_funct7 = imm & ((1 << 12) - 1);
-    break;
-    // Bits [12:1]
-  case Type::B: _imm_or_funct7 = ((imm >> 1u) & ((1 << 11) - 1)); break;
-  // Upper [31:12] bits
-  case Type::U:
-    _imm_or_funct7 = (imm >> 12u) & ((1 << 20) - 1);
-    break;
-    // Bits [20:1]
-  case Type::J: _imm_or_funct7 = (imm >> 1u) & ((1 << 20) - 1); break;
+  case Type::S: [[fallthrough]];
+  case Type::B: [[fallthrough]];
+  case Type::U: [[fallthrough]];
+  case Type::J: break;
   case Type::R: [[fallthrough]];
   case Type::INVALID: [[fallthrough]];
   case Type::Pseudo: [[fallthrough]];
   default: throw std::runtime_error("This mnemonic does not allow an immediate");
   }
+  _imm_or_funct7 = imm;
+  _flags.imm = 1;
 }
 
-std::optional<u32> riscv::MnemonicDescriptor::get_imm() const {
+std::optional<u32> riscv::MnemonicDescriptor::get_raw_imm() const {
   return has_imm() ? std::optional<u32>(_imm_or_funct7) : std::nullopt;
+}
+
+std::optional<u32> riscv::MnemonicDescriptor::get_shifted_imm() const {
+  return has_imm() ? std::optional<u32>(encode_imm(_imm_or_funct7)) : std::nullopt;
 }
 
 u8 riscv::MnemonicDescriptor::width_imm() const noexcept {
@@ -261,6 +256,32 @@ u8 riscv::MnemonicDescriptor::width_imm() const noexcept {
   case Type::Pseudo: return 0;
   }
   return 0;
+}
+
+// How far an operand's value is shifted down to reach the stored field. Branch and jump targets
+// are always even, so bit 0 is implicit and not encoded. Everything else stores what it is given:
+// `lui rd, 0x65` denotes the field 0x65, not the 0x65000 it eventually produces.
+u8 riscv::MnemonicDescriptor::imm_shift() const noexcept {
+  switch (_type) {
+  case Type::B: [[fallthrough]];
+  case Type::J: return 1;
+  case Type::I: [[fallthrough]];
+  case Type::S: [[fallthrough]];
+  case Type::U: return 0;
+  case Type::R: [[fallthrough]];
+  case Type::INVALID: [[fallthrough]];
+  case Type::Pseudo: return 0;
+  }
+  return 0;
+}
+
+// Narrow the range of imm to the encodable range of the instruction.
+// Masking + shift is lossy for out-of-range value which can map to the opposite sign (beq +4096 encodes as
+// -4096), and the shift drops low-order bits of the immediate for branches.
+u32 riscv::MnemonicDescriptor::encode_imm(u32 imm) const noexcept {
+  const auto width = width_imm();
+  if (width == 0) return 0;
+  return (imm >> imm_shift()) & ((u32(1) << width) - 1);
 }
 
 bool riscv::MnemonicDescriptor::operator==(const MnemonicDescriptor &other) const noexcept {
@@ -315,14 +336,14 @@ template <> riscv::InstructionI riscv::MnemonicDescriptor::encode<riscv::Instruc
   const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
   const u8 rd = v.rd.value_or(_rd) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u16 imm = (v.imm.value_or(0) | _imm_or_funct7) & 0xFFF;
+  const u16 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   return InstructionI{.opcode = _opcode7, .rd = rd, .funct3 = _funct3, .rs1 = rs1, .imm = imm};
 }
 template <> riscv::InstructionS riscv::MnemonicDescriptor::encode<riscv::InstructionS>(Values v) const {
   const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
   const u8 rs2 = v.rs2.value_or(_rs2) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u16 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1 << 12) - 1);
+  const u16 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   const u8 imm11_05 = (imm >> 5u) & ((1 << 7) - 1);
   const u8 imm4_0 = imm & ((1 << 5) - 1);
   return InstructionS{.opcode = _opcode7, .imm1 = imm4_0, .funct3 = _funct3, .rs1 = rs1, .rs2 = rs2, .imm2 = imm11_05};
@@ -330,83 +351,88 @@ template <> riscv::InstructionS riscv::MnemonicDescriptor::encode<riscv::Instruc
 template <> riscv::InstructionU riscv::MnemonicDescriptor::encode<riscv::InstructionU>(Values v) const {
   const u8 rd = v.rd.value_or(_rd) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u32 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1 << 20) - 1);
+  const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   return InstructionU{.opcode = _opcode7, .rd = rd, .imm = imm};
 }
 template <> riscv::InstructionB riscv::MnemonicDescriptor::encode<riscv::InstructionB>(Values v) const {
   const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
   const u8 rs2 = v.rs2.value_or(_rs2) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u16 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1 << 12) - 1);
-  const u8 imm12_12 = (imm >> 12u) & 1;
-  const u8 imm10_5 = (imm >> 5u) & ((1 << 6) - 1);
-  const u8 imm4_1 = (imm >> 1u) & ((1 << 4) - 1);
-  const u8 imm11_11 = (imm >> 11u) & 1;
+  const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
+  const u8 imm4_1 = imm & ((1u << 4) - 1);
+  const u8 imm10_5 = (imm >> 4u) & ((1u << 6) - 1);
+  const u8 imm11_11 = (imm >> 10u) & 1;
+  const u8 imm12_12 = (imm >> 11u) & 1;
   return InstructionB{.opcode = _opcode7,
-                      .imm1 = imm4_1,
-                      .imm2 = imm10_5,
+                      .imm1 = imm11_11,
+                      .imm2 = imm4_1,
                       .funct3 = _funct3,
                       .rs1 = rs1,
                       .rs2 = rs2,
-                      .imm3 = imm11_11,
+                      .imm3 = imm10_5,
                       .imm4 = imm12_12};
 }
 template <> riscv::InstructionJ riscv::MnemonicDescriptor::encode<riscv::InstructionJ>(Values v) const {
   const u8 rd = v.rd.value_or(_rd) & 0x1F;
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u32 imm = (v.imm.value_or(0) | _imm_or_funct7) & ((1 << 20) - 1);
-  const u8 imm20_20 = (imm >> 20u) & 1;
-  const u16 imm10_01 = (imm >> 1u) & ((1 << 10) - 1);
-  const u8 imm11_11 = (imm >> 11u) & 1;
-  const u16 imm19_12 = (imm >> 12u) & ((1 << 8) - 1);
+  const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
+  const u16 imm10_01 = imm & ((1u << 10) - 1);
+  const u8 imm11_11 = (imm >> 10u) & 1;
+  const u16 imm19_12 = (imm >> 11u) & ((1u << 8) - 1);
+  const u8 imm20_20 = (imm >> 19u) & 1;
   return InstructionJ{
-      .opcode = _opcode7, .rd = rd, .imm1 = imm19_12, .imm2 = imm20_20, .imm3 = imm10_01, .imm4 = imm11_11};
+      .opcode = _opcode7, .rd = rd, .imm1 = imm19_12, .imm2 = imm11_11, .imm3 = imm10_01, .imm4 = imm20_20};
 }
 
 static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {
   using namespace riscv;
-  auto add = [&](const riscv::Mnemonic &mn) { mn_set.insert(mn); };
-  add({"lui", LUI});
-  add({"auipc", AUIPC});
-  add({"jal", JAL});
-  add({"jalr", JALR});
-  add({"beq", BEQ});
-  add({"bne", BNE});
-  add({"blt", BLT});
-  add({"bge", BGE});
-  add({"bltu", BLTU});
-  add({"bgeu", BGEU});
-  add({"lb", LB});
-  add({"lh", LH});
-  add({"lw", LW});
-  add({"lbu", LBU});
-  add({"lhu", LHU});
-  add({"sb", SB});
-  add({"sh", SH});
-  add({"sw", SW});
-  add({"addi", ADDI});
-  add({"slti", SLTI});
-  add({"sltiu", SLTIU});
-  add({"xori", XORI});
-  add({"ori", ORI});
-  add({"andi", ANDI});
-  add({"slli", SLLI});
-  add({"srli", SRLI});
-  add({"srai", SRAI});
-  add({"add", ADD});
-  add({"sub", SUB});
-  add({"sll", SLL});
-  add({"slt", SLT});
-  add({"sltu", SLTU});
-  add({"xor", XOR});
-  add({"srl", SRL});
-  add({"sra", SRA});
-  add({"or", OR});
-  add({"and", AND});
-  add({"fence", FENCE});
-  add({"fence.tso", FENCE_TSO});
-  add({"ecall", ECALL});
-  add({"ebreak", EBREAK});
+  // The spelling comes from RV_OP_INFO, the same table the disassembler formats out of, so the
+  // two can no longer disagree. Each line below pairs an op with the descriptor that encodes it,
+  // which is the link that previously existed only by the two identifiers being spelled alike.
+  auto add = [&](RvOp op, const MnemonicDescriptor &desc) {
+    mn_set.insert(Mnemonic{std::string(mnemonic(op)), desc});
+  };
+  add(RvOp::LUI, LUI);
+  add(RvOp::AUIPC, AUIPC);
+  add(RvOp::JAL, JAL);
+  add(RvOp::JALR, JALR);
+  add(RvOp::BEQ, BEQ);
+  add(RvOp::BNE, BNE);
+  add(RvOp::BLT, BLT);
+  add(RvOp::BGE, BGE);
+  add(RvOp::BLTU, BLTU);
+  add(RvOp::BGEU, BGEU);
+  add(RvOp::LB, LB);
+  add(RvOp::LH, LH);
+  add(RvOp::LW, LW);
+  add(RvOp::LBU, LBU);
+  add(RvOp::LHU, LHU);
+  add(RvOp::SB, SB);
+  add(RvOp::SH, SH);
+  add(RvOp::SW, SW);
+  add(RvOp::ADDI, ADDI);
+  add(RvOp::SLTI, SLTI);
+  add(RvOp::SLTIU, SLTIU);
+  add(RvOp::XORI, XORI);
+  add(RvOp::ORI, ORI);
+  add(RvOp::ANDI, ANDI);
+  add(RvOp::SLLI, SLLI);
+  add(RvOp::SRLI, SRLI);
+  add(RvOp::SRAI, SRAI);
+  add(RvOp::ADD, ADD);
+  add(RvOp::SUB, SUB);
+  add(RvOp::SLL, SLL);
+  add(RvOp::SLT, SLT);
+  add(RvOp::SLTU, SLTU);
+  add(RvOp::XOR, XOR);
+  add(RvOp::SRL, SRL);
+  add(RvOp::SRA, SRA);
+  add(RvOp::OR, OR);
+  add(RvOp::AND, AND);
+  add(RvOp::FENCE, FENCE);
+  add(RvOp::FENCE_TSO, FENCE_TSO);
+  add(RvOp::ECALL, ECALL);
+  add(RvOp::EBREAK, EBREAK);
 }
 
 static void add_rv32i_psueodo_instructions(riscv::MnemonicSet &mn_set) {
@@ -457,9 +483,3 @@ static auto mnemonics() {
 }
 
 const riscv::MnemonicSet riscv::string_to_mnemonic = mnemonics();
-
-std::optional<u8> riscv::parse_register(const std::string &name) {
-  if (const auto arch = architectural_registers.find(name); arch != architectural_registers.end()) return arch->second;
-  else if (const auto abi = abi_registers.find(name); abi != abi_registers.end()) return abi->second;
-  return std::nullopt;
-}

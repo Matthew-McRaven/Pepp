@@ -19,7 +19,9 @@
 #include <chrono>
 #include <iostream>
 #include "core/integers.h"
-#include "core/sim/cores/cpu/pep_isa.hpp"
+#include "core/math/bitmanip/copy.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa.hpp"
+#include "core/sim/cores/cpu/rv32/rv_isa.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/memory/ram/sparse.hpp"
@@ -91,11 +93,69 @@ auto make_core(bool use_sparse) {
   return std::make_tuple(std::move(system), mem, cpu);
 }
 
+auto make_riscv(bool use_sparse) {
+  using namespace bits;
+
+  System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
+  auto system = std::make_unique<System>(root_cfg);
+
+  RV32CPU::Configuration cpu_cfg{Device::Configuration{
+                                     .basename = "cpu",
+                                     .compatible = RV32CPU::compatible,
+                                 },
+                                 "/memory"};
+  auto *cpu = system->make_device<RV32CPU>(cpu_cfg, system.get());
+
+  Target *mem = nullptr;
+  if (!use_sparse) {
+    Dense::Configuration mem_cfg{
+        Device::Configuration{
+            .basename = "memory",
+            .compatible = Dense::compatible,
+        },
+        0x00,
+        AddressSpan(0x0000, 0xffff),
+    };
+    mem = system->make_device<Dense>(mem_cfg);
+  } else {
+    Sparse::Configuration mem_cfg{
+        Device::Configuration{
+            .basename = "memory",
+            .compatible = Sparse::compatible,
+        },
+        0x00,
+        AddressSpan(0x0000, 0xffff),
+    };
+    mem = system->make_device<Sparse>(mem_cfg);
+  }
+
+  system->initialize();
+  return std::make_tuple(std::move(system), mem, cpu);
+}
+
 ThroughputTask::ThroughputTask(WhichVersion ver, QObject *parent) : Task(parent), _version(ver) {}
 
 void ThroughputTask::run() {
   using namespace Qt::StringLiterals;
 
+  std::chrono::high_resolution_clock::time_point start;
+  switch (_version) {
+  case WhichVersion::Sim3: start = do_sim3(); break;
+  case WhichVersion::Core: start = do_core(); break;
+  case WhichVersion::RV: start = do_riscv(); break;
+  }
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  const auto dt = 1.0 / (ms.count() / 1000.0);
+  const auto locale = std::locale("en_US.UTF-8");
+  fmt::println("Duration: {} ms", ms.count());
+  std::cout << fmt::format(locale, "Instructions: {:L}\n", maxInstr);
+  std::cout << fmt::format(locale, "Throughput: {:L} instructions/second\n", (i32)(dt * maxInstr));
+
+  emit finished(0);
+}
+
+std::vector<u8> ThroughputTask::pep_program(TestProgram prog) const {
   // Infinite looping branch to 0.
   static constexpr std::array<u8, 3> SelfBranch{static_cast<u8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
   // Program that calculates fib(n/3) in A, truncated to 16 bits of
@@ -109,37 +169,59 @@ void ThroughputTask::run() {
       static_cast<u8>(isa::Pep10::Mnemonic::BR),       0x00, 0x03  // Loop back to the start
   };
   // clang-format on
-  std::span<const u8> program = SelfBranch;
+  std::vector<u8> program;
   std::string program_name = "??";
-  switch (this->program) {
+  switch (prog) {
   case TestProgram::SelfBranch:
-    program = SelfBranch;
+    program.assign(SelfBranch.begin(), SelfBranch.end());
     program_name = "self-branch";
     break;
   case TestProgram::RMW:
-    program = RMW;
+    program.assign(RMW.begin(), RMW.end());
     program_name = "read-modify-write loop";
     break;
   }
   fmt::println("Selected program: {}", program_name);
-
-  std::chrono::high_resolution_clock::time_point start;
-  switch (_version) {
-  case WhichVersion::Sim3: start = do_sim3(program); break;
-  case WhichVersion::Core: start = do_core(program); break;
-  }
-  const auto end = std::chrono::high_resolution_clock::now();
-  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  const auto dt = 1.0 / (ms.count() / 1000.0);
-  const auto locale = std::locale("en_US.UTF-8");
-  fmt::println("Duration: {} ms", ms.count());
-  std::cout << fmt::format(locale, "Instructions: {:L}\n", maxInstr);
-  std::cout << fmt::format(locale, "Throughput: {:L} instructions/second\n", (i32)(dt * maxInstr));
-
-  emit finished(0);
+  return program;
 }
 
-std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3(std::span<const u8> program) {
+std::vector<u8> ThroughputTask::rv_program(TestProgram prog) const {
+  static constexpr std::array<u32, 1> SelfBranch{
+      0x0000006Fu, // jal x0, 0
+  };
+  // The scratch word lives past the code rather than inside it; Pep aliases its own
+  // already-executed operand, which has no safe equivalent here.
+  // clang-format off
+  static constexpr std::array<u32, 5> RMW{
+      0x00100513u, // addi x10, x0, 1        pre-populate the accumulator with 1
+      0x10002583u, // lw   x11, 256(x0)      previous iteration's copy
+      0x00B50533u, // add  x10, x10, x11     accumulate
+      0x10A02023u, // sw   x10, 256(x0)      leave a copy for the next iteration
+      0xFF5FF06Fu, // jal  x0, -12           back to the lw
+  };
+  // clang-format on
+  std::span<const u32> words;
+  std::string program_name = "??";
+  switch (prog) {
+  case TestProgram::SelfBranch:
+    words = SelfBranch;
+    program_name = "self-branch";
+    break;
+  case TestProgram::RMW:
+    words = RMW;
+    program_name = "read-modify-write loop";
+    break;
+  }
+  fmt::println("Selected program: {}", program_name);
+  // Guest memory is little-endian. Swap per-word if host is BE.
+  std::vector<u8> program(words.size() * sizeof(u32));
+  for (std::size_t i = 0; i < words.size(); ++i)
+    bits::memcpy_endian(bits::span<u8>{program.data() + i * sizeof(u32), sizeof(u32)},
+                        bits::Order::LittleEndian, words[i]);
+  return program;
+}
+
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3() {
   static constexpr sim::api2::memory::Operation rw = {
       .type = sim::api2::memory::Operation::Type::Standard,
       .kind = sim::api2::memory::Operation::Kind::data,
@@ -161,18 +243,18 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3(std::span
   // cpu->setDebugger(&*debugger);
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
-  mem->write(0, program, rw);
+  mem->write(0, pep_program(this->program), rw);
   const auto start = std::chrono::high_resolution_clock::now();
   for (int it = 0; it < maxInstr; it++) cpu->clock(it);
   return start;
 }
 
-std::chrono::high_resolution_clock::time_point ThroughputTask::do_core(std::span<const u8> program) {
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
   static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
   fmt::println("Simulator: core");
   auto [system, mem, cpu] = make_core(this->use_sparse);
   cpu->write_register(isa::Pep10::Register::PC, 0x0000);
-  mem->write(0x0000, program, rw);
+  mem->write(0x0000, pep_program(this->program), rw);
   // We are untraced, provide explicit hints to avoid recording.
   dynamic_cast<Traceable *>(mem)->on_traced_changed(false);
   cpu->on_traced_changed(false);
@@ -182,5 +264,22 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_core(std::span
   const auto start = std::chrono::high_resolution_clock::now();
   for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseSchedule::PulseIndex{(u64)it}, it);
   fmt::println("Filter hits: {}", cpu->filter_hits());
+  return start;
+}
+
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_riscv() {
+  static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
+  fmt::println("Simulator: riscv");
+  auto [system, mem, cpu] = make_riscv(this->use_sparse);
+  cpu->registers()->write_pc(0x0000);
+  mem->write(0x0000, rv_program(this->program), rw);
+  // We are untraced, provide explicit hints to avoid recording.
+  dynamic_cast<Traceable *>(mem)->on_traced_changed(false);
+  cpu->on_traced_changed(false);
+  cpu->registers()->on_traced_changed(false);
+  // cpu->has_bps = has_bps;
+  const auto start = std::chrono::high_resolution_clock::now();
+  for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseSchedule::PulseIndex{(u64)it}, it);
+  // fmt::println("Filter hits: {}", cpu->filter_hits());
   return start;
 }

@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "core/sim/cores/cpu/pep_csrbank.hpp"
+#include "core/sim/cores/cpu/pep/pep_csrbank.hpp"
 #include "core/sim/memory/errors.hpp"
 #include "core/sim/system.hpp"
 

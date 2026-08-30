@@ -56,14 +56,14 @@ namespace riscv
 			return data;
 		}
 	};
-	inline rv32i_instruction read_instruction(
+	inline instruction_format read_instruction(
 		const uint8_t* exec_segment, uint64_t pc, uint64_t end_pc)
 	{
 		if (pc + 4 <= end_pc)
-			return rv32i_instruction{*(UnalignedLoad32 *)&exec_segment[pc]};
+			return instruction_format{uint32_t(*(UnalignedLoad32 *)&exec_segment[pc])};
 		else if (pc + 2 <= end_pc)
-			return rv32i_instruction{*(AlignedLoad16 *)&exec_segment[pc]};
+			return instruction_format{uint32_t(*(AlignedLoad16 *)&exec_segment[pc])};
 		else
-			return rv32i_instruction{0};
+			return instruction_format{0u};
 	}
 }

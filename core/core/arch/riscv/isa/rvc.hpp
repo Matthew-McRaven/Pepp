@@ -259,32 +259,4 @@ struct InstructionCJ {
 };
 static_assert(sizeof(InstructionCJ) == 2, "CR format must be 16 bits");
 
-union rv32c_instruction {
-  InstructionCR CR;
-  InstructionCI CI;
-  InstructionCI2 CI2;
-  InstructionCIFLD CIFLD;
-  InstructionCI16 CI16;
-  InstructionCSS CSS;
-  InstructionCSFSD CSFSD;
-  InstructionCIW CIW;
-  InstructionCL CL;
-  InstructionCS CS;
-  InstructionCSD CSD;
-  InstructionCA CA;
-  InstructionCAB CAB;
-  InstructionCB CB;
-  InstructionCJ CJ;
-  uint16_t whole;
-  uint8_t bytes[2];
-
-  rv32c_instruction() : whole(0) {}
-  rv32c_instruction(uint16_t another) : whole(another) {}
-  rv32c_instruction(rv32i_instruction i) : whole(i.half[0]) {}
-
-#define RISCV_CI_CODE(x, y) ((x << 13) | (y))
-  uint16_t opcode() const noexcept { return whole & 0b1110000000000011; }
-  uint16_t funct3() const noexcept { return whole >> 13; }
-};
-static_assert(sizeof(rv32c_instruction) == 2, "Instruction is 2 bytes");
 } // namespace riscv

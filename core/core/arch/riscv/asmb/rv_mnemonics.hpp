@@ -3,6 +3,7 @@
 #include <flat/flat_set.hpp>
 #include <optional>
 #include <span>
+#include "core/arch/riscv/isa/rv_base.hpp"
 #include "core/arch/riscv/isa/rv_instruction.hpp"
 #include "core/arch/riscv/isa/rvi.hpp"
 #include "core/integers.h"
@@ -11,22 +12,11 @@ namespace riscv {
 
 struct Values {
   std::optional<uint8_t> rs1, rs2, rd;
+  // The immediate as written in assembly, unshifted and unmasked. encode() converts it
+  // to field bits via encode_imm().
   std::optional<uint32_t> imm;
 };
 
-static const std::unordered_map<std::string, u8> architectural_registers = {
-    {"x0", 0},   {"x1", 1},   {"x2", 2},   {"x3", 3},   {"x4", 4},   {"x5", 5},   {"x6", 6},   {"x7", 7},
-    {"x8", 8},   {"x9", 9},   {"x10", 10}, {"x11", 11}, {"x12", 12}, {"x13", 13}, {"x14", 14}, {"x15", 15},
-    {"x16", 16}, {"x17", 17}, {"x18", 18}, {"x19", 19}, {"x20", 20}, {"x21", 21}, {"x22", 22}, {"x23", 23},
-    {"x24", 24}, {"x25", 25}, {"x26", 26}, {"x27", 27}, {"x28", 28}, {"x29", 29}, {"x30", 30}, {"x31", 31},
-};
-static const std::unordered_map<std::string, u8> abi_registers = {
-    {"zero", 0}, {"ra", 1},   {"sp", 2},  {"gp", 3},  {"tp", 4},  {"t0", 5},  {"t1", 6},  {"t2", 7},  {"s0", 8},
-    {"fp", 8},   {"s1", 9},   {"a0", 10}, {"a1", 11}, {"a2", 12}, {"a3", 13}, {"a4", 14}, {"a5", 15}, {"a6", 16},
-    {"a7", 17},  {"s2", 18},  {"s3", 19}, {"s4", 20}, {"s5", 21}, {"s6", 22}, {"s7", 23}, {"s8", 24}, {"s9", 25},
-    {"s10", 26}, {"s11", 27}, {"t3", 28}, {"t4", 29}, {"t5", 30}, {"t6", 31}};
-
-std::optional<u8> parse_register(const std::string &name);
 
 struct Operand {
   enum class Type : u8 { Invalid = 0, Register, Immediate, Fence, XLEN8, XLEN16 } type;
@@ -91,7 +81,12 @@ struct MnemonicDescriptor {
   // Is the value of rd a constant specified by the instruction?
   bool has_imm() const noexcept;
   void set_imm(u32 imm);
-  std::optional<u32> get_imm() const;
+  // Convert an immediate value to the encoded bits.
+  u32 encode_imm(u32 imm) const noexcept;
+  // Return the raw bit-pattern
+  std::optional<u32> get_raw_imm() const;
+  // Return the immediate bits after encoding them.
+  std::optional<u32> get_shifted_imm() const;
   u8 width_imm() const noexcept;
   u8 imm_shift() const noexcept;
   MnemonicDescriptor &&with_imm(u32 imm) &&;

@@ -167,21 +167,4 @@ struct InstructionOPVI {
 };
 static_assert(sizeof(InstructionOPVI) == 4, "OPVI instruction must be 32 bits");
 
-union rv32v_instruction {
-  InstructionVL VL;
-  InstructionVLS VLS;
-  InstructionVLX VLX;
-  InstructionVS VS;
-  InstructionVSS VSS;
-  InstructionVSX VSX;
-  InstructionVLI VLI;
-  InstructionIVLI IVLI;
-  InstructionVSETVL VSETVL;
-  InstructionOPVV OPVV;
-  InstructionOPVI OPVI;
-  rv32v_instruction(const rv32i_instruction &i) : whole(i.whole) {}
-  uint32_t whole;
-};
-static_assert(sizeof(rv32v_instruction) == 4, "Instructions are 32-bits");
-
 } // namespace riscv

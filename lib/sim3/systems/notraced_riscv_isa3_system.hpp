@@ -422,7 +422,7 @@ template <AddressType address_t> struct alignas(RISCV_MACHINE_ALIGNMENT) Machine
     static inline void (*on_unhandled_syscall)(Machine &, size_t) = default_unknown_syscall_no;
 
     // Execute CSRs and system functions
-    void system(union rv32i_instruction);
+    void system(instruction_format);
     // User callback for unhandled CSRs
     static inline void (*on_unhandled_csr) (Machine&, int, int, int)
 			= [] (Machine<address_t>&, int, int, int) {};

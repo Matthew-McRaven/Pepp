@@ -24,7 +24,7 @@
 class ThroughputTask : public Task {
   Q_OBJECT
 public:
-  enum class WhichVersion { Sim3, Core };
+  enum class WhichVersion { Sim3, Core, RV };
   enum class TestProgram {
     SelfBranch, // self: BR self
     RMW,        // Accumulate a meaningless value into A.
@@ -32,15 +32,19 @@ public:
   ThroughputTask(WhichVersion ver, QObject *parent = nullptr);
   ~ThroughputTask() = default;
   void run();
+
   // Both should return their "start" time
-  std::chrono::high_resolution_clock::time_point do_sim3(std::span<const u8> prog);
-  std::chrono::high_resolution_clock::time_point do_core(std::span<const u8> prog);
+  std::chrono::high_resolution_clock::time_point do_sim3();
+  std::chrono::high_resolution_clock::time_point do_core();
+  std::chrono::high_resolution_clock::time_point do_riscv();
   u64 maxInstr = 100'000'000;
   bool has_bps = false;
   bool use_sparse = false;
   TestProgram program = TestProgram::SelfBranch;
 
 private:
+  std::vector<u8> pep_program(TestProgram prog) const;
+  std::vector<u8> rv_program(TestProgram prog) const;
   WhichVersion _version;
 };
 
@@ -50,10 +54,11 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
   static ThroughputTask::TestProgram program = ThroughputTask::TestProgram::SelfBranch;
   static u64 maxInstr = 100'000'000;
   static bool has_bps = false, use_sparse = false;
-  auto versionOpt =
-      instrThruSC->add_option("-v,--version", version, "Which version to run")
-          ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
-              {"sim3", ThroughputTask::WhichVersion::Sim3}, {"core", ThroughputTask::WhichVersion::Core}}));
+  auto versionOpt = instrThruSC->add_option("-v,--version", version, "Which version to run")
+                        ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
+                            {"sim3", ThroughputTask::WhichVersion::Sim3},
+                            {"core", ThroughputTask::WhichVersion::Core},
+                            {"rv", ThroughputTask::WhichVersion::RV}}));
   auto programOpt =
       instrThruSC->add_option("-p,--program", program, "Which test program to run")
           ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::TestProgram>{

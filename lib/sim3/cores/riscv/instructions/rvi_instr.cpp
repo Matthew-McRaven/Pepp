@@ -95,85 +95,95 @@ static inline uint64_t MUL128(
 #endif // _MSC_VER
 
 template <AddressType address_t>
-RVINSTR_COLDATTR void NOP_handler(CPU<address_t> & /* cpu */, rv32i_instruction /* instr */) {};
+RVINSTR_COLDATTR void NOP_handler(CPU<address_t> & /* cpu */, instruction_format /* instr */) {};
 template <AddressType address_t>
-RVPRINTR_ATTR int NOP_printer(char *buffer, size_t len, const CPU<address_t> &, rv32i_instruction) {
+RVPRINTR_ATTR int NOP_printer(char *buffer, size_t len, const CPU<address_t> &, instruction_format) {
   return snprintf(buffer, len, "NOP");
 };
 
 template <AddressType address_t>
-RVPRINTR_ATTR int UNIMPLEMENTED_printer(char *buffer, size_t len, const CPU<address_t> &, rv32i_instruction instr) {
+RVPRINTR_ATTR int UNIMPLEMENTED_printer(char *buffer, size_t len, const CPU<address_t> &, instruction_format instr) {
   if (instr.length() == 4) {
-    return snprintf(buffer, len, "UNIMPLEMENTED: 4-byte 0x%X (0x%X)", instr.opcode(), instr.whole);
+    return snprintf(buffer, len, "UNIMPLEMENTED: 4-byte 0x%X (0x%X)", instr.opcode(), instr.bits());
   } else {
-    return snprintf(buffer, len, "UNIMPLEMENTED: 2-byte %#hx F%#hx (%#hx)", rv32c_instruction{instr}.opcode(),
-                    rv32c_instruction{instr}.funct3(), instr.half[0]);
+    return snprintf(buffer, len, "UNIMPLEMENTED: 2-byte %#hx F%#hx (%#hx)", instr.copcode(),
+                    (instr.low16() >> 13), instr.low16());
   }
 };
 template <AddressType address_t>
-RVINSTR_COLDATTR void UNIMPLEMENTED_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+RVINSTR_COLDATTR void UNIMPLEMENTED_handler(CPU<address_t> &cpu, instruction_format instr) {
   if (cpu.on_unimplemented_instruction) cpu.on_unimplemented_instruction(instr).handler(cpu, instr);
   else {
-    if (instr.length() == 4) cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.whole);
-    else cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.half[0]);
+    if (instr.length() == 4) cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.bits());
+    else cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.low16());
   }
 };
 template <AddressType address_t>
-RVINSTR_COLDATTR void ILLEGAL_handler(CPU<address_t> &cpu, rv32i_instruction /* instr */) {
+RVINSTR_COLDATTR void ILLEGAL_handler(CPU<address_t> &cpu, instruction_format /* instr */) {
   cpu.trigger_exception(ILLEGAL_OPCODE);
 };
 
 template <AddressType address_t>
-RVPRINTR_ATTR int LOAD_I8_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
+RVPRINTR_ATTR int LOAD_I8_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
   static std::array<const char *, 8> f3 = {"LD.B", "LD.H", "LD.W", "LD.D", "LD.BU", "LD.HU", "LD.WU", "LD.Q"};
-  return snprintf(buffer, len, "%s %s, [%s%+" PRId32 " = 0x%" PRIX64 "]", f3[instr.Itype.funct3],
-                  RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1), instr.Itype.signed_imm(),
-                  uint64_t(cpu.reg(instr.Itype.rs1) + instr.Itype.signed_imm()));
+  return snprintf(buffer, len, "%s %s, [%s%+" PRId32 " = 0x%" PRIX64 "]", f3[it.funct3],
+                  RISCV::regname(it.rd), RISCV::regname(it.rs1), it.signed_imm(),
+                  uint64_t(cpu.reg(it.rs1) + it.signed_imm()));
 };
-template <AddressType address_t> RVINSTR_ATTR void LOAD_I8_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &reg = cpu.reg(instr.Itype.rd);
-  const auto addr = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+template <AddressType address_t> RVINSTR_ATTR void LOAD_I8_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &reg = cpu.reg(it.rd);
+  const auto addr = cpu.reg(it.rs1) + RVIMM(cpu, it);
   reg = (int8_t)cpu.machine().memory.template read<uint8_t>(addr);
 };
-template <AddressType address_t> RVINSTR_ATTR void LOAD_I16_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &reg = cpu.reg(instr.Itype.rd);
-  const auto addr = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+template <AddressType address_t> RVINSTR_ATTR void LOAD_I16_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &reg = cpu.reg(it.rd);
+  const auto addr = cpu.reg(it.rs1) + RVIMM(cpu, it);
   reg = (int16_t)cpu.machine().memory.template read<uint16_t>(addr);
 };
-template <AddressType address_t> RVINSTR_ATTR void LOAD_I32_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &reg = cpu.reg(instr.Itype.rd);
-  const auto addr = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+template <AddressType address_t> RVINSTR_ATTR void LOAD_I32_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &reg = cpu.reg(it.rd);
+  const auto addr = cpu.reg(it.rs1) + RVIMM(cpu, it);
   reg = (int32_t)cpu.machine().memory.template read<uint32_t>(addr);
 };
-template <AddressType address_t> RVINSTR_ATTR void LOAD_I64_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &reg = cpu.reg(instr.Itype.rd);
-  const auto addr = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+template <AddressType address_t> RVINSTR_ATTR void LOAD_I64_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &reg = cpu.reg(it.rd);
+  const auto addr = cpu.reg(it.rs1) + RVIMM(cpu, it);
   reg = (int64_t)cpu.machine().memory.template read<uint64_t>(addr);
 };
-template <AddressType address_t> RVINSTR_ATTR void LOAD_U8_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &reg = cpu.reg(instr.Itype.rd);
-  const auto addr = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+template <AddressType address_t> RVINSTR_ATTR void LOAD_U8_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &reg = cpu.reg(it.rd);
+  const auto addr = cpu.reg(it.rs1) + RVIMM(cpu, it);
   reg = (RVSIGNTYPE(cpu))cpu.machine().memory.template read<uint8_t>(addr);
 };
-template <AddressType address_t> RVINSTR_ATTR void LOAD_U16_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &reg = cpu.reg(instr.Itype.rd);
-  const auto addr = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+template <AddressType address_t> RVINSTR_ATTR void LOAD_U16_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &reg = cpu.reg(it.rd);
+  const auto addr = cpu.reg(it.rs1) + RVIMM(cpu, it);
   reg = (RVSIGNTYPE(cpu))cpu.machine().memory.template read<uint16_t>(addr);
 };
-template <AddressType address_t> RVINSTR_ATTR void LOAD_U32_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &reg = cpu.reg(instr.Itype.rd);
-  const auto addr = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+template <AddressType address_t> RVINSTR_ATTR void LOAD_U32_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &reg = cpu.reg(it.rd);
+  const auto addr = cpu.reg(it.rs1) + RVIMM(cpu, it);
   reg = (RVSIGNTYPE(cpu))cpu.machine().memory.template read<uint32_t>(addr);
 };
-template <AddressType address_t> RVINSTR_ATTR void LOAD_U64_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &reg = cpu.reg(instr.Itype.rd);
-  const auto addr = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+template <AddressType address_t> RVINSTR_ATTR void LOAD_U64_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &reg = cpu.reg(it.rd);
+  const auto addr = cpu.reg(it.rs1) + RVIMM(cpu, it);
   reg = (RVSIGNTYPE(cpu))cpu.machine().memory.template read<uint64_t>(addr);
 };
 template <AddressType address_t>
-RVINSTR_COLDATTR void LOAD_X_DUMMY_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto addr = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
-  switch (instr.Itype.funct3) {
+RVINSTR_COLDATTR void LOAD_X_DUMMY_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto addr = cpu.reg(it.rs1) + RVIMM(cpu, it);
+  switch (it.funct3) {
   case 0x0: cpu.machine().memory.template read<uint8_t>(addr); return;
   case 0x1: cpu.machine().memory.template read<uint16_t>(addr); return;
   case 0x2: cpu.machine().memory.template read<uint32_t>(addr); return;
@@ -189,35 +199,41 @@ RVINSTR_COLDATTR void LOAD_X_DUMMY_handler(CPU<address_t> &cpu, rv32i_instructio
 };
 
 template <AddressType address_t>
-RVPRINTR_ATTR int STORE_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
+RVPRINTR_ATTR int STORE_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto st = instr.as<InstructionS>();
   static std::array<const char *, 8> f3 = {"ST.B", "ST.H", "ST.W", "ST.D", "ST.Q", "???", "???", "???"};
-  return snprintf(buffer, len, "%s %s, [%s%+d] (0x%" PRIX64 ")", f3[instr.Stype.funct3],
-                  RISCV::regname(instr.Stype.rs2), RISCV::regname(instr.Stype.rs1), instr.Stype.signed_imm(),
-                  uint64_t(cpu.reg(instr.Stype.rs1) + instr.Stype.signed_imm()));
+  return snprintf(buffer, len, "%s %s, [%s%+d] (0x%" PRIX64 ")", f3[st.funct3],
+                  RISCV::regname(st.rs2), RISCV::regname(st.rs1), st.signed_imm(),
+                  uint64_t(cpu.reg(st.rs1) + st.signed_imm()));
 };
-template <AddressType address_t> RVINSTR_ATTR void STORE_I8_IMM_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto &value = cpu.reg(instr.Stype.rs2);
-  const auto addr = cpu.reg(instr.Stype.rs1) + RVIMM(cpu, instr.Stype);
+template <AddressType address_t> RVINSTR_ATTR void STORE_I8_IMM_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto st = instr.as<InstructionS>();
+  const auto &value = cpu.reg(st.rs2);
+  const auto addr = cpu.reg(st.rs1) + RVIMM(cpu, st);
   cpu.machine().memory.template write<uint8_t>(addr, value);
 };
-template <AddressType address_t> RVINSTR_ATTR void STORE_I8_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto &addr = cpu.reg(instr.Stype.rs1);
-  const auto &value = cpu.reg(instr.Stype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void STORE_I8_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto st = instr.as<InstructionS>();
+  const auto &addr = cpu.reg(st.rs1);
+  const auto &value = cpu.reg(st.rs2);
   cpu.machine().memory.template write<uint8_t>(addr, value);
 };
-template <AddressType address_t> RVINSTR_ATTR void STORE_I16_IMM_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto &value = cpu.reg(instr.Stype.rs2);
-  const auto addr = cpu.reg(instr.Stype.rs1) + RVIMM(cpu, instr.Stype);
+template <AddressType address_t> RVINSTR_ATTR void STORE_I16_IMM_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto st = instr.as<InstructionS>();
+  const auto &value = cpu.reg(st.rs2);
+  const auto addr = cpu.reg(st.rs1) + RVIMM(cpu, st);
   cpu.machine().memory.template write<uint16_t>(addr, value);
 };
-template <AddressType address_t> RVINSTR_ATTR void STORE_I32_IMM_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto &value = cpu.reg(instr.Stype.rs2);
-  const auto addr = cpu.reg(instr.Stype.rs1) + RVIMM(cpu, instr.Stype);
+template <AddressType address_t> RVINSTR_ATTR void STORE_I32_IMM_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto st = instr.as<InstructionS>();
+  const auto &value = cpu.reg(st.rs2);
+  const auto addr = cpu.reg(st.rs1) + RVIMM(cpu, st);
   cpu.machine().memory.template write<uint32_t>(addr, value);
 };
-template <AddressType address_t> RVINSTR_ATTR void STORE_I64_IMM_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto &value = cpu.reg(instr.Stype.rs2);
-  const auto addr = cpu.reg(instr.Stype.rs1) + RVIMM(cpu, instr.Stype);
+template <AddressType address_t> RVINSTR_ATTR void STORE_I64_IMM_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto st = instr.as<InstructionS>();
+  const auto &value = cpu.reg(st.rs2);
+  const auto addr = cpu.reg(st.rs1) + RVIMM(cpu, st);
   cpu.machine().memory.template write<uint64_t>(addr, value);
 };
 
@@ -227,167 +243,181 @@ template <AddressType address_t> RVINSTR_ATTR void STORE_I64_IMM_handler(CPU<add
   }
 
 template <AddressType address_t>
-RVPRINTR_ATTR int BRANCH_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
+RVPRINTR_ATTR int BRANCH_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto bt = instr.as<InstructionB>();
   // BRANCH compares two registers, BQE = equal taken, BNE = notequal taken
   static std::array<const char *, 8> f3 = {"BEQ", "BNE", "???", "???", "BLT", "BGE", "BLTU", "BGEU"};
   static std::array<const char *, 8> f1z = {"BEQ", "BNE", "???", "???", "BGTZ", "BLEZ", "BLTU", "BGEU"};
   static std::array<const char *, 8> f2z = {"BEQZ", "BNEZ", "???", "???", "BLTZ", "BGEZ", "BLTU", "BGEU"};
-  if (instr.Btype.rs1 != 0 && instr.Btype.rs2) {
+  if (bt.rs1 != 0 && bt.rs2) {
     return snprintf(buffer, len, "%s %s (0x%" PRIX64 "), %s (0x%" PRIX64 ") => PC%+d (0x%" PRIX64 ")",
-                    f3[instr.Btype.funct3], RISCV::regname(instr.Btype.rs1), uint64_t(cpu.reg(instr.Btype.rs1)),
-                    RISCV::regname(instr.Btype.rs2), uint64_t(cpu.reg(instr.Btype.rs2)), instr.Btype.signed_imm(),
-                    uint64_t(cpu.pc() + instr.Btype.signed_imm()));
+                    f3[bt.funct3], RISCV::regname(bt.rs1), uint64_t(cpu.reg(bt.rs1)),
+                    RISCV::regname(bt.rs2), uint64_t(cpu.reg(bt.rs2)), bt.signed_imm(),
+                    uint64_t(cpu.pc() + bt.signed_imm()));
   } else {
-    auto &array = (instr.Btype.rs1) ? f2z : f1z;
-    auto reg = (instr.Btype.rs1) ? instr.Btype.rs1 : instr.Btype.rs2;
-    return snprintf(buffer, len, "%s %s (0x%" PRIX64 ") => PC%+d (0x%" PRIX64 ")", array[instr.Btype.funct3],
-                    RISCV::regname(reg), uint64_t(cpu.reg(reg)), instr.Btype.signed_imm(),
-                    uint64_t(cpu.pc() + instr.Btype.signed_imm()));
+    auto &array = (bt.rs1) ? f2z : f1z;
+    auto reg = (bt.rs1) ? bt.rs1 : bt.rs2;
+    return snprintf(buffer, len, "%s %s (0x%" PRIX64 ") => PC%+d (0x%" PRIX64 ")", array[bt.funct3],
+                    RISCV::regname(reg), uint64_t(cpu.reg(reg)), bt.signed_imm(),
+                    uint64_t(cpu.pc() + bt.signed_imm()));
   }
 };
-template <AddressType address_t> RVINSTR_ATTR void BRANCH_EQ_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto reg1 = cpu.reg(instr.Btype.rs1);
-  const auto reg2 = cpu.reg(instr.Btype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void BRANCH_EQ_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto bt = instr.as<InstructionB>();
+  const auto reg1 = cpu.reg(bt.rs1);
+  const auto reg2 = cpu.reg(bt.rs2);
   if (reg1 == reg2) {
-    cpu.jump(cpu.pc() + RVIMM(cpu, instr.Btype) - 4);
+    cpu.jump(cpu.pc() + RVIMM(cpu, bt) - 4);
     VERBOSE_BRANCH()
   }
 };
-template <AddressType address_t> RVINSTR_ATTR void BRANCH_NE_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto reg1 = cpu.reg(instr.Btype.rs1);
-  const auto reg2 = cpu.reg(instr.Btype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void BRANCH_NE_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto bt = instr.as<InstructionB>();
+  const auto reg1 = cpu.reg(bt.rs1);
+  const auto reg2 = cpu.reg(bt.rs2);
   if (reg1 != reg2) {
-    cpu.jump(cpu.pc() + RVIMM(cpu, instr.Btype) - 4);
+    cpu.jump(cpu.pc() + RVIMM(cpu, bt) - 4);
     VERBOSE_BRANCH()
   }
 };
-template <AddressType address_t> RVINSTR_ATTR void BRANCH_LT_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto reg1 = cpu.reg(instr.Btype.rs1);
-  const auto reg2 = cpu.reg(instr.Btype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void BRANCH_LT_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto bt = instr.as<InstructionB>();
+  const auto reg1 = cpu.reg(bt.rs1);
+  const auto reg2 = cpu.reg(bt.rs2);
   if (RVTOSIGNED(reg1) < RVTOSIGNED(reg2)) {
-    cpu.jump(cpu.pc() + RVIMM(cpu, instr.Btype) - 4);
+    cpu.jump(cpu.pc() + RVIMM(cpu, bt) - 4);
     VERBOSE_BRANCH()
   }
 };
-template <AddressType address_t> RVINSTR_ATTR void BRANCH_GE_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto reg1 = cpu.reg(instr.Btype.rs1);
-  const auto reg2 = cpu.reg(instr.Btype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void BRANCH_GE_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto bt = instr.as<InstructionB>();
+  const auto reg1 = cpu.reg(bt.rs1);
+  const auto reg2 = cpu.reg(bt.rs2);
   if (RVTOSIGNED(reg1) >= RVTOSIGNED(reg2)) {
-    cpu.jump(cpu.pc() + RVIMM(cpu, instr.Btype) - 4);
+    cpu.jump(cpu.pc() + RVIMM(cpu, bt) - 4);
     VERBOSE_BRANCH()
   }
 };
-template <AddressType address_t> RVINSTR_ATTR void BRANCH_LTU_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto &reg1 = cpu.reg(instr.Btype.rs1);
-  const auto &reg2 = cpu.reg(instr.Btype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void BRANCH_LTU_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto bt = instr.as<InstructionB>();
+  const auto &reg1 = cpu.reg(bt.rs1);
+  const auto &reg2 = cpu.reg(bt.rs2);
   if (reg1 < reg2) {
-    cpu.jump(cpu.pc() + RVIMM(cpu, instr.Btype) - 4);
+    cpu.jump(cpu.pc() + RVIMM(cpu, bt) - 4);
     VERBOSE_BRANCH()
   }
 };
-template <AddressType address_t> RVINSTR_ATTR void BRANCH_GEU_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  const auto &reg1 = cpu.reg(instr.Btype.rs1);
-  const auto &reg2 = cpu.reg(instr.Btype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void BRANCH_GEU_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto bt = instr.as<InstructionB>();
+  const auto &reg1 = cpu.reg(bt.rs1);
+  const auto &reg2 = cpu.reg(bt.rs2);
   if (reg1 >= reg2) {
-    cpu.jump(cpu.pc() + RVIMM(cpu, instr.Btype) - 4);
+    cpu.jump(cpu.pc() + RVIMM(cpu, bt) - 4);
     VERBOSE_BRANCH()
   }
 };
 
-template <AddressType address_t> RVINSTR_ATTR void JALR_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+template <AddressType address_t> RVINSTR_ATTR void JALR_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
   // jump to register + immediate
   // NOTE: if rs1 == rd, avoid clobber by storing address first
-  const auto address = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+  const auto address = cpu.reg(it.rs1) + RVIMM(cpu, it);
   // Link *next* instruction (rd = PC + 4)
-  if (LIKELY(instr.Itype.rd != 0)) {
-    cpu.reg(instr.Itype.rd) = cpu.pc() + 4;
+  if (LIKELY(it.rd != 0)) {
+    cpu.reg(it.rd) = cpu.pc() + 4;
   }
   cpu.jump(address - 4);
   if constexpr (verbose_branches_enabled) {
-    printf(">>> JMP 0x%" PRIX64 " <-- %s = 0x%" PRIX64 "%+d\n", uint64_t(address), RISCV::regname(instr.Itype.rs1),
-           uint64_t(cpu.reg(instr.Itype.rs1)), instr.Itype.signed_imm());
+    printf(">>> JMP 0x%" PRIX64 " <-- %s = 0x%" PRIX64 "%+d\n", uint64_t(address), RISCV::regname(it.rs1),
+           uint64_t(cpu.reg(it.rs1)), it.signed_imm());
   }
 };
 template <AddressType address_t>
-RVPRINTR_ATTR int JALR_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
+RVPRINTR_ATTR int JALR_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
   // RISC-V's RET instruction: return to register + immediate
-  const char *variant = (instr.Itype.rs1 == REG_RA) ? "RET" : "JMP";
-  const auto address = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
-  return snprintf(buffer, len, "%s %s%+d (0x%" PRIX64 ")", variant, RISCV::regname(instr.Itype.rs1),
-                  instr.Itype.signed_imm(), uint64_t(address));
+  const char *variant = (it.rs1 == REG_RA) ? "RET" : "JMP";
+  const auto address = cpu.reg(it.rs1) + RVIMM(cpu, it);
+  return snprintf(buffer, len, "%s %s%+d (0x%" PRIX64 ")", variant, RISCV::regname(it.rs1),
+                  it.signed_imm(), uint64_t(address));
 };
 
-template <AddressType address_t> RVINSTR_ATTR void JAL_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+template <AddressType address_t> RVINSTR_ATTR void JAL_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto jt = instr.as<InstructionJ>();
   // Link *next* instruction (rd = PC + 4)
-  cpu.reg(instr.Jtype.rd) = cpu.pc() + 4;
+  cpu.reg(jt.rd) = cpu.pc() + 4;
   // And jump relative
-  cpu.jump(cpu.pc() + instr.Jtype.jump_offset() - 4);
+  cpu.jump(cpu.pc() + jt.jump_offset() - 4);
   if constexpr (verbose_branches_enabled) {
-    printf(">>> CALL 0x%" PRIX64 " <-- %s = 0x%" PRIX64 "\n", uint64_t(cpu.pc()), RISCV::regname(instr.Jtype.rd),
-           uint64_t(cpu.reg(instr.Jtype.rd)));
+    printf(">>> CALL 0x%" PRIX64 " <-- %s = 0x%" PRIX64 "\n", uint64_t(cpu.pc()), RISCV::regname(jt.rd),
+           uint64_t(cpu.reg(jt.rd)));
   }
 };
 
 template <AddressType address_t>
-RVPRINTR_ATTR int JAL_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
-  if (instr.Jtype.rd != 0) {
-    return snprintf(buffer, len, "JAL %s, PC%+d (0x%" PRIX64 ")", RISCV::regname(instr.Jtype.rd),
-                    instr.Jtype.jump_offset(), uint64_t(cpu.pc() + instr.Jtype.jump_offset()));
+RVPRINTR_ATTR int JAL_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto jt = instr.as<InstructionJ>();
+  if (jt.rd != 0) {
+    return snprintf(buffer, len, "JAL %s, PC%+d (0x%" PRIX64 ")", RISCV::regname(jt.rd),
+                    jt.jump_offset(), uint64_t(cpu.pc() + jt.jump_offset()));
   }
-  return snprintf(buffer, len, "JMP PC%+d (0x%" PRIX64 ")", instr.Jtype.jump_offset(),
-                  uint64_t(cpu.pc() + instr.Jtype.jump_offset()));
+  return snprintf(buffer, len, "JMP PC%+d (0x%" PRIX64 ")", jt.jump_offset(),
+                  uint64_t(cpu.pc() + jt.jump_offset()));
 };
-template <AddressType address_t> RVINSTR_ATTR void JMPI_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+template <AddressType address_t> RVINSTR_ATTR void JMPI_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto jt = instr.as<InstructionJ>();
   // Jump relative
-  cpu.jump(cpu.pc() + instr.Jtype.jump_offset() - 4);
+  cpu.jump(cpu.pc() + jt.jump_offset() - 4);
   if constexpr (verbose_branches_enabled) {
-    printf(">>> JMP 0x%" PRIX64 " <-- %s = 0x%" PRIX64 "\n", uint64_t(cpu.pc()), RISCV::regname(instr.Jtype.rd),
-           uint64_t(cpu.reg(instr.Jtype.rd)));
+    printf(">>> JMP 0x%" PRIX64 " <-- %s = 0x%" PRIX64 "\n", uint64_t(cpu.pc()), RISCV::regname(jt.rd),
+           uint64_t(cpu.reg(jt.rd)));
   }
 };
 
 template <AddressType address_t>
-RVPRINTR_ATTR int OP_IMM_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
-  if (instr.Itype.imm == 0) {
+RVPRINTR_ATTR int OP_IMM_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  if (it.imm == 0) {
     // this is the official NOP instruction (ADDI x0, x0, 0)
-    if (instr.Itype.rd == 0 && instr.Itype.rs1 == 0) {
+    if (it.rd == 0 && it.rs1 == 0) {
       return snprintf(buffer, len, "NOP");
     }
     static std::array<const char *, 8> func3 = {"MV", "SLL", "SLT", "SLT", "XOR", "SRL", "OR", "AND"};
-    return snprintf(buffer, len, "%s %s, %s (= 0x%" PRIx64 ")", func3[instr.Itype.funct3],
-                    RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1),
-                    uint64_t(cpu.reg(instr.Itype.rs1)));
-  } else if (instr.Itype.rs1 != 0 && instr.Itype.funct3 == 1) {
+    return snprintf(buffer, len, "%s %s, %s (= 0x%" PRIx64 ")", func3[it.funct3],
+                    RISCV::regname(it.rd), RISCV::regname(it.rs1),
+                    uint64_t(cpu.reg(it.rs1)));
+  } else if (it.rs1 != 0 && it.funct3 == 1) {
 
-    const auto shift = (RVIS64BIT(cpu)) ? instr.Itype.shift64_imm() : instr.Itype.shift_imm();
-    return snprintf(buffer, len, "SLLI %s, %s << %u (0x%" PRIX64 ")", RISCV::regname(instr.Itype.rd),
-                    RISCV::regname(instr.Itype.rs1), shift, uint64_t(cpu.reg(instr.Itype.rs1) << shift));
-  } else if (instr.Itype.rs1 != 0 && instr.Itype.funct3 == 5) {
+    const auto shift = (RVIS64BIT(cpu)) ? it.shift64_imm() : it.shift_imm();
+    return snprintf(buffer, len, "SLLI %s, %s << %u (0x%" PRIX64 ")", RISCV::regname(it.rd),
+                    RISCV::regname(it.rs1), shift, uint64_t(cpu.reg(it.rs1) << shift));
+  } else if (it.rs1 != 0 && it.funct3 == 5) {
 
-    const auto shift = (RVIS64BIT(cpu)) ? instr.Itype.shift64_imm() : instr.Itype.shift_imm();
-    return snprintf(buffer, len, "%s %s, %s >> %u (0x%" PRIX64 ")", (instr.Itype.is_srai() ? "SRAI" : "SRLI"),
-                    RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1), shift,
-                    uint64_t(cpu.reg(instr.Itype.rs1) >> shift));
-  } else if (instr.Itype.rs1 != 0) {
+    const auto shift = (RVIS64BIT(cpu)) ? it.shift64_imm() : it.shift_imm();
+    return snprintf(buffer, len, "%s %s, %s >> %u (0x%" PRIX64 ")", (it.is_srai() ? "SRAI" : "SRLI"),
+                    RISCV::regname(it.rd), RISCV::regname(it.rs1), shift,
+                    uint64_t(cpu.reg(it.rs1) >> shift));
+  } else if (it.rs1 != 0) {
     static std::array<const char *, 8> func3 = {"ADDI", "SLLI", "SLTI", "SLTU", "XORI", "SRLI", "ORI", "ANDI"};
-    if (!(instr.Itype.funct3 == 4 && instr.Itype.signed_imm() == -1)) {
-      return snprintf(buffer, len, "%s %s, %s%+d (0x%" PRIX64 ")", func3[instr.Itype.funct3],
-                      RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1), instr.Itype.signed_imm(),
-                      uint64_t(cpu.reg(instr.Itype.rs1)));
+    if (!(it.funct3 == 4 && it.signed_imm() == -1)) {
+      return snprintf(buffer, len, "%s %s, %s%+d (0x%" PRIX64 ")", func3[it.funct3],
+                      RISCV::regname(it.rd), RISCV::regname(it.rs1), it.signed_imm(),
+                      uint64_t(cpu.reg(it.rs1)));
     } else {
-      return snprintf(buffer, len, "NOT %s, %s", RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1));
+      return snprintf(buffer, len, "NOT %s, %s", RISCV::regname(it.rd), RISCV::regname(it.rs1));
     }
   }
   static std::array<const char *, 8> func3 = {"LI", "SLLI", "SLTI", "SLTU", "XORI", "SRLI", "ORI", "ANDI"};
-  return snprintf(buffer, len, "%s %s, %d (0x%X)", func3[instr.Itype.funct3], RISCV::regname(instr.Itype.rd),
-                  instr.Itype.signed_imm(), instr.Itype.signed_imm());
+  return snprintf(buffer, len, "%s %s, %d (0x%X)", func3[it.funct3], RISCV::regname(it.rd),
+                  it.signed_imm(), it.signed_imm());
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_IMM_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
-  const auto src = cpu.reg(instr.Itype.rs1);
-  switch (instr.Itype.funct3) {
+template <AddressType address_t> RVINSTR_ATTR void OP_IMM_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
+  const auto src = cpu.reg(it.rs1);
+  switch (it.funct3) {
   case 0x1: // *NOT* SLLI, SEXT.B, SEXT.H, CTZ, CLZ, CPOP
-    switch (instr.Itype.imm) {
+    switch (it.imm) {
     case 0b011000000100: // SEXT.B
       dst = RVSIGNTYPE(cpu)(int8_t(src));
       return;
@@ -419,51 +449,51 @@ template <AddressType address_t> RVINSTR_ATTR void OP_IMM_handler(CPU<address_t>
 #endif
       return;
     default:
-      if (instr.Itype.high_bits() == 0x280) {
+      if (it.high_bits() == 0x280) {
         // BSETI: Bit-set immediate
-        dst = src | (RVREGTYPE(cpu)(1) << (instr.Itype.imm & (RVXLEN(cpu) - 1)));
+        dst = src | (RVREGTYPE(cpu)(1) << (it.imm & (RVXLEN(cpu) - 1)));
         return;
-      } else if (instr.Itype.high_bits() == 0x480) {
+      } else if (it.high_bits() == 0x480) {
         // BCLRI: Bit-clear immediate
-        dst = src & ~(RVREGTYPE(cpu)(1) << (instr.Itype.imm & (RVXLEN(cpu) - 1)));
+        dst = src & ~(RVREGTYPE(cpu)(1) << (it.imm & (RVXLEN(cpu) - 1)));
         return;
-      } else if (instr.Itype.high_bits() == 0x680) {
+      } else if (it.high_bits() == 0x680) {
         // BINVI: Bit-invert immediate
-        dst = src ^ (RVREGTYPE(cpu)(1) << (instr.Itype.imm & (RVXLEN(cpu) - 1)));
+        dst = src ^ (RVREGTYPE(cpu)(1) << (it.imm & (RVXLEN(cpu) - 1)));
         return;
       }
     }
     break;
   case 0x2: // SLTI: Set less than immediate
-    dst = (RVTOSIGNED(src) < RVIMM(cpu, instr.Itype));
+    dst = (RVTOSIGNED(src) < RVIMM(cpu, it));
     return;
   case 0x3: // SLTIU: Sign-extend, then treat as unsigned
-    dst = (src < (RVREGTYPE(cpu))RVIMM(cpu, instr.Itype));
+    dst = (src < (RVREGTYPE(cpu))RVIMM(cpu, it));
     return;
   case 0x4: // XORI:
-    dst = src ^ RVIMM(cpu, instr.Itype);
+    dst = src ^ RVIMM(cpu, it);
     return;
   case 0x5: // SRLI / SRAI / RORI / ORC.B
-    if (instr.Itype.is_srai()) {
+    if (it.is_srai()) {
       // SRAI: Preserve the sign bit
-      dst = (RVSIGNTYPE(cpu))src >> (instr.Itype.imm & (RVXLEN(cpu) - 1));
+      dst = (RVSIGNTYPE(cpu))src >> (it.imm & (RVXLEN(cpu) - 1));
       return;
-    } else if (instr.Itype.is_rori()) {
+    } else if (it.is_rori()) {
       // RORI: Rotate right
-      const auto shift = instr.Itype.imm & (RVXLEN(cpu) - 1);
+      const auto shift = it.imm & (RVXLEN(cpu) - 1);
       dst = (src >> shift) | (src << (RVXLEN(cpu) - shift));
       return;
-    } else if (instr.Itype.high_bits() == 0x480) {
+    } else if (it.high_bits() == 0x480) {
       // BEXTI: Single-bit Extract
-      dst = (src >> (instr.Itype.imm & (RVXLEN(cpu) - 1))) & 1;
+      dst = (src >> (it.imm & (RVXLEN(cpu) - 1))) & 1;
       return;
-    } else if (instr.Itype.imm == 0x287) {
+    } else if (it.imm == 0x287) {
       // ORC.B: Bitwise OR-combine
       auto *src_bytes = (char *)&src;
       auto *dst_bytes = (char *)&dst;
       for (size_t i = 0; i < sizeof(src); i++) dst_bytes[i] = src_bytes[i] ? 0xFF : 0x0;
       return;
-    } else if (instr.Itype.is_rev8<address_t>()) {
+    } else if (it.is_rev8<address_t>()) {
       // REV8: Byte-reverse register
       if constexpr (RVIS32BIT(cpu)) dst = bswap32(src);
       else dst = bswap64(src);
@@ -471,46 +501,53 @@ template <AddressType address_t> RVINSTR_ATTR void OP_IMM_handler(CPU<address_t>
     }
     break;
   case 0x6: // ORI: Or sign-extended 12-bit immediate
-    dst = src | RVIMM(cpu, instr.Itype);
+    dst = src | RVIMM(cpu, it);
     return;
   }
-  cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.whole);
+  cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.bits());
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_IMM_ADDI_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+template <AddressType address_t> RVINSTR_ATTR void OP_IMM_ADDI_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
   // ADDI: Add sign-extended 12-bit immediate
-  cpu.reg(instr.Itype.rd) = cpu.reg(instr.Itype.rs1) + RVIMM(cpu, instr.Itype);
+  cpu.reg(it.rd) = cpu.reg(it.rs1) + RVIMM(cpu, it);
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_IMM_LI_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+template <AddressType address_t> RVINSTR_ATTR void OP_IMM_LI_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
   // LI: Load sign-extended 12-bit immediate
-  cpu.reg(instr.Itype.rd) = (RVSIGNTYPE(cpu))RVIMM(cpu, instr.Itype);
+  cpu.reg(it.rd) = (RVSIGNTYPE(cpu))RVIMM(cpu, it);
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_MV_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  cpu.reg(instr.Itype.rd) = cpu.reg(instr.Itype.rs1);
+template <AddressType address_t> RVINSTR_ATTR void OP_MV_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  cpu.reg(it.rd) = cpu.reg(it.rs1);
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_IMM_SLLI_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
-  const auto src = cpu.reg(instr.Itype.rs1);
+template <AddressType address_t> RVINSTR_ATTR void OP_IMM_SLLI_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
+  const auto src = cpu.reg(it.rs1);
   // SLLI: Logical left-shift 5/6/7-bit immediate
-  dst = src << (instr.Itype.imm & (RVXLEN(cpu) - 1));
+  dst = src << (it.imm & (RVXLEN(cpu) - 1));
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_IMM_SRLI_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
-  const auto src = cpu.reg(instr.Itype.rs1);
+template <AddressType address_t> RVINSTR_ATTR void OP_IMM_SRLI_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
+  const auto src = cpu.reg(it.rs1);
   // SRLI: Shift-right logical 5/6/7-bit immediate
-  dst = src >> (instr.Itype.imm & (RVXLEN(cpu) - 1));
+  dst = src >> (it.imm & (RVXLEN(cpu) - 1));
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_IMM_ANDI_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
+template <AddressType address_t> RVINSTR_ATTR void OP_IMM_ANDI_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
   // ANDI: And sign-extended 12-bit immediate
-  dst = cpu.reg(instr.Itype.rs1) & RVIMM(cpu, instr.Itype);
+  dst = cpu.reg(it.rs1) & RVIMM(cpu, it);
 };
 
-template <AddressType address_t> RVINSTR_ATTR void OP_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Rtype.rd);
-  const auto src1 = cpu.reg(instr.Rtype.rs1);
-  const auto src2 = cpu.reg(instr.Rtype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void OP_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto rt = instr.as<InstructionR>();
+  auto &dst = cpu.reg(rt.rd);
+  const auto src1 = cpu.reg(rt.rs1);
+  const auto src2 = cpu.reg(rt.rs2);
 
-  switch (instr.Rtype.jumptable_friendly_op()) {
+  switch (rt.jumptable_friendly_op()) {
   case 0x1: // SLL
     dst = src1 << (src2 & (RVXLEN(cpu) - 1));
     return;
@@ -693,12 +730,13 @@ template <AddressType address_t> RVINSTR_ATTR void OP_handler(CPU<address_t> &cp
     dst = src1 ^ (RVREGTYPE(cpu)(1) << (src2 & (RVXLEN(cpu) - 1)));
     return;
   }
-  cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.whole);
+  cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.bits());
 };
 template <AddressType address_t>
-RVPRINTR_ATTR int OP_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
+RVPRINTR_ATTR int OP_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto rt = instr.as<InstructionR>();
   const char *strop = "";
-  switch (instr.Rtype.jumptable_friendly_op()) {
+  switch (rt.jumptable_friendly_op()) {
   case 0x0: strop = "ADD"; break;
   case 0x1: strop = "SLL"; break;
   case 0x2: strop = "SLT"; break;
@@ -738,149 +776,163 @@ RVPRINTR_ATTR int OP_printer(char *buffer, size_t len, const CPU<address_t> &cpu
   case 0x305: strop = "ROR"; break;
   default: strop = "OP.UNKNOWN"; break;
   }
-  return snprintf(buffer, len, "%s %s <- %s, %s (= 0x%" PRIX64 ")", strop, RISCV::regname(instr.Rtype.rd),
-                  RISCV::regname(instr.Rtype.rs1), RISCV::regname(instr.Rtype.rs2), uint64_t(cpu.reg(instr.Rtype.rd)));
+  return snprintf(buffer, len, "%s %s <- %s, %s (= 0x%" PRIX64 ")", strop, RISCV::regname(rt.rd),
+                  RISCV::regname(rt.rs1), RISCV::regname(rt.rs2), uint64_t(cpu.reg(rt.rd)));
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_ADD_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Rtype.rd);
-  dst = cpu.reg(instr.Rtype.rs1) + cpu.reg(instr.Rtype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void OP_ADD_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto rt = instr.as<InstructionR>();
+  auto &dst = cpu.reg(rt.rd);
+  dst = cpu.reg(rt.rs1) + cpu.reg(rt.rs2);
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_SUB_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Rtype.rd);
-  dst = cpu.reg(instr.Rtype.rs1) - cpu.reg(instr.Rtype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void OP_SUB_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto rt = instr.as<InstructionR>();
+  auto &dst = cpu.reg(rt.rd);
+  dst = cpu.reg(rt.rs1) - cpu.reg(rt.rs2);
 };
 
-template <AddressType address_t> RVINSTR_COLDATTR void SYSTEM_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
+template <AddressType address_t> RVINSTR_COLDATTR void SYSTEM_handler(CPU<address_t> &cpu, instruction_format instr) {
   cpu.machine().system(instr);
 };
 template <AddressType address_t>
-RVPRINTR_ATTR int SYSTEM_printer(char *buffer, size_t len, const CPU<address_t> &, rv32i_instruction instr) {
+RVPRINTR_ATTR int SYSTEM_printer(char *buffer, size_t len, const CPU<address_t> &, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
   // system functions
   static std::array<const char *, 2> etype = {"ECALL", "EBREAK"};
-  if (instr.Itype.imm < 2 && instr.Itype.funct3 == 0) {
-    return snprintf(buffer, len, "SYS %s", etype.at(instr.Itype.imm));
-  } else if (instr.Itype.imm == 0x102 && instr.Itype.funct3 == 0) {
+  if (it.imm < 2 && it.funct3 == 0) {
+    return snprintf(buffer, len, "SYS %s", etype.at(it.imm));
+  } else if (it.imm == 0x102 && it.funct3 == 0) {
     return snprintf(buffer, len, "SYS SRET");
-  } else if (instr.Itype.imm == 0x105 && instr.Itype.funct3 == 0) {
+  } else if (it.imm == 0x105 && it.funct3 == 0) {
     return snprintf(buffer, len, "SYS WFI");
-  } else if (instr.Itype.imm == 0x7FF && instr.Itype.funct3 == 0) {
+  } else if (it.imm == 0x7FF && it.funct3 == 0) {
     return snprintf(buffer, len, "SYS STOP");
-  } else if (instr.Itype.funct3 == 0x1 || instr.Itype.funct3 == 0x2) {
+  } else if (it.funct3 == 0x1 || it.funct3 == 0x2) {
     // CSRRW / CSRRS
-    switch (instr.Itype.imm) {
-    case 0x001: return snprintf(buffer, len, "RDCSR FFLAGS %s", RISCV::regname(instr.Itype.rd));
-    case 0x002: return snprintf(buffer, len, "RDCSR FRM %s", RISCV::regname(instr.Itype.rd));
-    case 0x003: return snprintf(buffer, len, "RDCSR FCSR %s", RISCV::regname(instr.Itype.rd));
+    switch (it.imm) {
+    case 0x001: return snprintf(buffer, len, "RDCSR FFLAGS %s", RISCV::regname(it.rd));
+    case 0x002: return snprintf(buffer, len, "RDCSR FRM %s", RISCV::regname(it.rd));
+    case 0x003: return snprintf(buffer, len, "RDCSR FCSR %s", RISCV::regname(it.rd));
     case 0xC00:
-      if (instr.Itype.rd == 0 && instr.Itype.rs1 == 0) return snprintf(buffer, len, "UNIMP");
-      else return snprintf(buffer, len, "RDCYCLE.L %s", RISCV::regname(instr.Itype.rd));
-    case 0xC01: return snprintf(buffer, len, "RDINSTRET.L %s", RISCV::regname(instr.Itype.rd));
-    case 0xC80: return snprintf(buffer, len, "RDCYCLE.U %s", RISCV::regname(instr.Itype.rd));
-    case 0xC81: return snprintf(buffer, len, "RDINSTRET.U %s", RISCV::regname(instr.Itype.rd));
+      if (it.rd == 0 && it.rs1 == 0) return snprintf(buffer, len, "UNIMP");
+      else return snprintf(buffer, len, "RDCYCLE.L %s", RISCV::regname(it.rd));
+    case 0xC01: return snprintf(buffer, len, "RDINSTRET.L %s", RISCV::regname(it.rd));
+    case 0xC80: return snprintf(buffer, len, "RDCYCLE.U %s", RISCV::regname(it.rd));
+    case 0xC81: return snprintf(buffer, len, "RDINSTRET.U %s", RISCV::regname(it.rd));
     }
-    return snprintf(buffer, len, "CSRRS (unknown), %s", RISCV::regname(instr.Itype.rd));
+    return snprintf(buffer, len, "CSRRS (unknown), %s", RISCV::regname(it.rd));
   } else {
     return snprintf(buffer, len, "SYS ???");
   }
 };
-template <AddressType address_t> RVINSTR_ATTR void SYSCALL_handler(CPU<address_t> &cpu, rv32i_instruction) {
+template <AddressType address_t> RVINSTR_ATTR void SYSCALL_handler(CPU<address_t> &cpu, instruction_format) {
   cpu.machine().system_call(cpu.reg(REG_ECALL));
 };
-template <AddressType address_t> RVINSTR_ATTR void WFI_handler(CPU<address_t> &cpu, rv32i_instruction) {
+template <AddressType address_t> RVINSTR_ATTR void WFI_handler(CPU<address_t> &cpu, instruction_format) {
   cpu.machine().stop();
 };
 
-template <AddressType address_t> RVINSTR_ATTR void LUI_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  cpu.reg(instr.Utype.rd) = instr.Utype.upper_imm();
+template <AddressType address_t> RVINSTR_ATTR void LUI_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto ut = instr.as<InstructionU>();
+  cpu.reg(ut.rd) = ut.upper_imm();
 };
 template <AddressType address_t>
-RVPRINTR_ATTR int LUI_printer(char *buffer, size_t len, const CPU<address_t> &, rv32i_instruction instr) {
-  return snprintf(buffer, len, "LUI %s, 0x%X", RISCV::regname(instr.Utype.rd), instr.Utype.upper_imm());
+RVPRINTR_ATTR int LUI_printer(char *buffer, size_t len, const CPU<address_t> &, instruction_format instr) {
+  const auto ut = instr.as<InstructionU>();
+  return snprintf(buffer, len, "LUI %s, 0x%X", RISCV::regname(ut.rd), ut.upper_imm());
 };
 
-template <AddressType address_t> RVINSTR_ATTR void AUIPC_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  cpu.reg(instr.Utype.rd) = cpu.pc() + instr.Utype.upper_imm();
+template <AddressType address_t> RVINSTR_ATTR void AUIPC_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto ut = instr.as<InstructionU>();
+  cpu.reg(ut.rd) = cpu.pc() + ut.upper_imm();
 };
 template <AddressType address_t>
-RVPRINTR_ATTR int AUIPC_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
-  return snprintf(buffer, len, "AUIPC %s, PC+0x%X (0x%" PRIX64 ")", RISCV::regname(instr.Utype.rd),
-                  instr.Utype.upper_imm(), uint64_t(cpu.pc() + instr.Utype.upper_imm()));
+RVPRINTR_ATTR int AUIPC_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto ut = instr.as<InstructionU>();
+  return snprintf(buffer, len, "AUIPC %s, PC+0x%X (0x%" PRIX64 ")", RISCV::regname(ut.rd),
+                  ut.upper_imm(), uint64_t(cpu.pc() + ut.upper_imm()));
 };
 
 template <AddressType address_t>
-void RVINSTR_ATTR OP_IMM32_ADDIW_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
-  const uint32_t src = cpu.reg(instr.Itype.rs1);
+void RVINSTR_ATTR OP_IMM32_ADDIW_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
+  const uint32_t src = cpu.reg(it.rs1);
   // ADDIW: Add 32-bit sign-extended 12-bit immediate
-  dst = (int32_t)(src + RVIMM(cpu, instr.Itype));
+  dst = (int32_t)(src + RVIMM(cpu, it));
 };
 template <AddressType address_t>
-RVPRINTR_ATTR int OP_IMM32_ADDIW_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
-  if (instr.Itype.imm == 0) {
+RVPRINTR_ATTR int OP_IMM32_ADDIW_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  if (it.imm == 0) {
     // this is the official NOP instruction (ADDI x0, x0, 0)
-    if (instr.Itype.rd == 0 && instr.Itype.rs1 == 0) {
+    if (it.rd == 0 && it.rs1 == 0) {
       return snprintf(buffer, len, "NOP");
     }
     static std::array<const char *, 8> func3 = {"MV", "SLL", "SLT", "SLT", "XOR", "SRL", "OR", "AND"};
-    return snprintf(buffer, len, "%sW %s, %s (0x%X)", func3[instr.Itype.funct3], RISCV::regname(instr.Itype.rd),
-                    RISCV::regname(instr.Itype.rs1), int32_t(cpu.reg(instr.Itype.rs1)));
-  } else if (instr.Itype.rs1 != 0 && instr.Itype.funct3 == 1) {
-    return snprintf(buffer, len, "SLLIW %s, %s << %u (0x%" PRIX64 ")", RISCV::regname(instr.Itype.rd),
-                    RISCV::regname(instr.Itype.rs1), instr.Itype.shift_imm(),
-                    uint64_t(cpu.reg(instr.Itype.rs1) << instr.Itype.shift_imm()));
-  } else if (instr.Itype.rs1 != 0 && instr.Itype.funct3 == 5) {
-    return snprintf(buffer, len, "%sW %s, %s >> %u (0x%" PRIX64 ")", (instr.Itype.is_srai() ? "SRAI" : "SRLI"),
-                    RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1), instr.Itype.shift_imm(),
-                    uint64_t(cpu.reg(instr.Itype.rs1) >> instr.Itype.shift_imm()));
-  } else if (instr.Itype.rs1 != 0) {
+    return snprintf(buffer, len, "%sW %s, %s (0x%X)", func3[it.funct3], RISCV::regname(it.rd),
+                    RISCV::regname(it.rs1), int32_t(cpu.reg(it.rs1)));
+  } else if (it.rs1 != 0 && it.funct3 == 1) {
+    return snprintf(buffer, len, "SLLIW %s, %s << %u (0x%" PRIX64 ")", RISCV::regname(it.rd),
+                    RISCV::regname(it.rs1), it.shift_imm(),
+                    uint64_t(cpu.reg(it.rs1) << it.shift_imm()));
+  } else if (it.rs1 != 0 && it.funct3 == 5) {
+    return snprintf(buffer, len, "%sW %s, %s >> %u (0x%" PRIX64 ")", (it.is_srai() ? "SRAI" : "SRLI"),
+                    RISCV::regname(it.rd), RISCV::regname(it.rs1), it.shift_imm(),
+                    uint64_t(cpu.reg(it.rs1) >> it.shift_imm()));
+  } else if (it.rs1 != 0) {
     static std::array<const char *, 8> func3 = {"ADDI", "SLLI", "SLTI", "SLTU", "XORI", "SRLI", "ORI", "ANDI"};
-    if (!(instr.Itype.funct3 == 4 && instr.Itype.signed_imm() == -1)) {
-      return snprintf(buffer, len, "%sW %s, %s%+d (0x%" PRIX64 ")", func3[instr.Itype.funct3],
-                      RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1), instr.Itype.signed_imm(),
-                      uint64_t(cpu.reg(instr.Itype.rs1) + instr.Itype.signed_imm()));
+    if (!(it.funct3 == 4 && it.signed_imm() == -1)) {
+      return snprintf(buffer, len, "%sW %s, %s%+d (0x%" PRIX64 ")", func3[it.funct3],
+                      RISCV::regname(it.rd), RISCV::regname(it.rs1), it.signed_imm(),
+                      uint64_t(cpu.reg(it.rs1) + it.signed_imm()));
     } else {
-      return snprintf(buffer, len, "NOTW %s, %s", RISCV::regname(instr.Itype.rd), RISCV::regname(instr.Itype.rs1));
+      return snprintf(buffer, len, "NOTW %s, %s", RISCV::regname(it.rd), RISCV::regname(it.rs1));
     }
   }
   static std::array<const char *, 8> func3 = {"LI", "SLLI", "SLTI", "SLTU", "XORI", "SRLI", "ORI", "ANDI"};
-  return snprintf(buffer, len, "%sW %s, %d (0x%X)", func3[instr.Itype.funct3], RISCV::regname(instr.Itype.rd),
-                  instr.Itype.signed_imm(), instr.Itype.signed_imm());
+  return snprintf(buffer, len, "%sW %s, %d (0x%X)", func3[it.funct3], RISCV::regname(it.rd),
+                  it.signed_imm(), it.signed_imm());
 };
 template <AddressType address_t>
-RVINSTR_ATTR void OP_IMM32_SLLIW_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
-  const uint32_t src = cpu.reg(instr.Itype.rs1);
+RVINSTR_ATTR void OP_IMM32_SLLIW_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
+  const uint32_t src = cpu.reg(it.rs1);
   // SLLIW: Shift-Left Logical 0-31 immediate
-  dst = (int32_t)(src << instr.Itype.shift_imm());
+  dst = (int32_t)(src << it.shift_imm());
 };
 template <AddressType address_t>
-RVINSTR_ATTR void OP_IMM32_SRLIW_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
-  const uint32_t src = cpu.reg(instr.Itype.rs1);
+RVINSTR_ATTR void OP_IMM32_SRLIW_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
+  const uint32_t src = cpu.reg(it.rs1);
   // SRLIW: Shift-Right Logical 0-31 immediate
-  dst = (int32_t)(src >> instr.Itype.shift_imm());
+  dst = (int32_t)(src >> it.shift_imm());
 };
 template <AddressType address_t>
-RVINSTR_ATTR void OP_IMM32_SRAIW_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
-  const uint32_t src = cpu.reg(instr.Itype.rs1);
+RVINSTR_ATTR void OP_IMM32_SRAIW_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
+  const uint32_t src = cpu.reg(it.rs1);
   // SRAIW: Arithmetic right shift, preserve the sign bit
-  dst = (int32_t)src >> instr.Itype.shift_imm();
+  dst = (int32_t)src >> it.shift_imm();
 };
 template <AddressType address_t>
-RVINSTR_ATTR void OP_IMM32_SLLI_UW_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
-  const uint32_t src = cpu.reg(instr.Itype.rs1);
+RVINSTR_ATTR void OP_IMM32_SLLI_UW_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
+  const uint32_t src = cpu.reg(it.rs1);
   // SLLI.UW: Shift-left Unsigned Word (Immediate)
-  dst = RVREGTYPE(cpu)(src) << instr.Itype.shift_imm();
+  dst = RVREGTYPE(cpu)(src) << it.shift_imm();
 };
-template <AddressType address_t> RVINSTR_ATTR void OP_IMM32_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Itype.rd);
-  const uint32_t src = cpu.reg(instr.Itype.rs1);
+template <AddressType address_t> RVINSTR_ATTR void OP_IMM32_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto it = instr.as<InstructionI>();
+  auto &dst = cpu.reg(it.rd);
+  const uint32_t src = cpu.reg(it.rs1);
 
-  switch (instr.Itype.funct3) {
+  switch (it.funct3) {
   case 0x1:
-    switch (instr.Itype.imm) {
+    switch (it.imm) {
     case 0b011000000000: // CLZ.W
 #ifdef RISCV_HAS_BITOPS
       dst = std::countl_zero(src);
@@ -905,23 +957,24 @@ template <AddressType address_t> RVINSTR_ATTR void OP_IMM32_handler(CPU<address_
     }
     break;
   case 0x5:
-    if (instr.Itype.high_bits() == 0x600) // RORIW
+    if (it.high_bits() == 0x600) // RORIW
     {
-      const auto shift = instr.Itype.imm & 31;
+      const auto shift = it.imm & 31;
       dst = (int32_t)((src >> shift) | (src << (32 - shift)));
       return;
     }
     break;
   }
-  cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.whole);
+  cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.bits());
 };
 
-template <AddressType address_t> RVINSTR_ATTR void OP32_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Rtype.rd);
-  const uint32_t src1 = cpu.reg(instr.Rtype.rs1);
-  const uint32_t src2 = cpu.reg(instr.Rtype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void OP32_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto rt = instr.as<InstructionR>();
+  auto &dst = cpu.reg(rt.rd);
+  const uint32_t src1 = cpu.reg(rt.rs1);
+  const uint32_t src2 = cpu.reg(rt.rs2);
 
-  switch (instr.Rtype.jumptable_friendly_op()) {
+  switch (rt.jumptable_friendly_op()) {
   case 0x1: // SLLW
     dst = (int32_t)((uint32_t)src1 << (src2 & 31));
     return;
@@ -967,19 +1020,19 @@ template <AddressType address_t> RVINSTR_ATTR void OP32_handler(CPU<address_t> &
     }
     return;
   case 0x40: // ADD.UW
-    dst = cpu.reg(instr.Rtype.rs2) + RVREGTYPE(cpu)(src1);
+    dst = cpu.reg(rt.rs2) + RVREGTYPE(cpu)(src1);
     return;
   case 0x44: // ZEXT.H (imm=0x40):
     dst = uint16_t(src1);
     return;
   case 0x102: // SH1ADD.UW
-    dst = cpu.reg(instr.Rtype.rs2) + (RVREGTYPE(cpu)(src1) << 1);
+    dst = cpu.reg(rt.rs2) + (RVREGTYPE(cpu)(src1) << 1);
     return;
   case 0x104: // SH2ADD.UW
-    dst = cpu.reg(instr.Rtype.rs2) + (RVREGTYPE(cpu)(src1) << 2);
+    dst = cpu.reg(rt.rs2) + (RVREGTYPE(cpu)(src1) << 2);
     return;
   case 0x106: // SH3ADD.UW
-    dst = cpu.reg(instr.Rtype.rs2) + (RVREGTYPE(cpu)(src1) << 3);
+    dst = cpu.reg(rt.rs2) + (RVREGTYPE(cpu)(src1) << 3);
     return;
   case 0x200: // SUBW
     dst = (int32_t)(src1 - src2);
@@ -1000,12 +1053,13 @@ template <AddressType address_t> RVINSTR_ATTR void OP32_handler(CPU<address_t> &
   }
     return;
   }
-  cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.whole);
+  cpu.trigger_exception(UNIMPLEMENTED_INSTRUCTION, instr.bits());
 };
 template <AddressType address_t>
-RVPRINTR_ATTR int OP32_printer(char *buffer, size_t len, const CPU<address_t> &cpu, rv32i_instruction instr) {
+RVPRINTR_ATTR int OP32_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
+  const auto rt = instr.as<InstructionR>();
   const char *strop = "";
-  switch (instr.Rtype.jumptable_friendly_op()) {
+  switch (rt.jumptable_friendly_op()) {
   case 0x0: strop = "ADD.W"; break;
   case 0x1: strop = "SLL.W"; break;
   case 0x5: strop = "SRL.W"; break;
@@ -1015,7 +1069,7 @@ RVPRINTR_ATTR int OP32_printer(char *buffer, size_t len, const CPU<address_t> &c
   case 0x16: strop = "REM.W"; break;
   case 0x17: strop = "REMU.W"; break;
   case 0x40:
-    if (instr.Rtype.rs2 == 0) strop = "ZEXT.W";
+    if (rt.rs2 == 0) strop = "ZEXT.W";
     else strop = "ADD.UW";
     break;
   case 0x44: strop = "ZEXT.H"; break;
@@ -1030,23 +1084,24 @@ RVPRINTR_ATTR int OP32_printer(char *buffer, size_t len, const CPU<address_t> &c
   }
   // Clamp rd to [0,31] when instr is OP.UNKNOWN.W.
   // This was detected by static analysis.
-  auto rd = instr.Rtype.rd < cpu.registers().size() ? instr.Rtype.rd : 0;
+  auto rd = rt.rd < cpu.registers().size() ? rt.rd : 0;
   return snprintf(buffer, len, "%s %s <- %s, %s (= 0x%" PRIX64 ")", strop, RISCV::regname(rd),
-                  RISCV::regname(instr.Rtype.rs1), RISCV::regname(instr.Rtype.rs2), uint64_t(cpu.reg(rd)));
+                  RISCV::regname(rt.rs1), RISCV::regname(rt.rs2), uint64_t(cpu.reg(rd)));
 };
-template <AddressType address_t> RVINSTR_ATTR void OP32_ADDW_handler(CPU<address_t> &cpu, rv32i_instruction instr) {
-  auto &dst = cpu.reg(instr.Rtype.rd);
-  const uint32_t src1 = cpu.reg(instr.Rtype.rs1);
-  const uint32_t src2 = cpu.reg(instr.Rtype.rs2);
+template <AddressType address_t> RVINSTR_ATTR void OP32_ADDW_handler(CPU<address_t> &cpu, instruction_format instr) {
+  const auto rt = instr.as<InstructionR>();
+  auto &dst = cpu.reg(rt.rd);
+  const uint32_t src1 = cpu.reg(rt.rs1);
+  const uint32_t src2 = cpu.reg(rt.rs2);
   dst = (int32_t)(src1 + src2);
 };
 
-template <AddressType address_t> RVINSTR_COLDATTR void FENCE_handler(CPU<address_t> &, rv32i_instruction /* instr */) {
+template <AddressType address_t> RVINSTR_COLDATTR void FENCE_handler(CPU<address_t> &, instruction_format /* instr */) {
   // Do a full barrier, for now
   std::atomic_thread_fence(std::memory_order_seq_cst);
 };
 template <AddressType address_t>
-RVPRINTR_ATTR int FENCE_printer(char *buffer, size_t len, const CPU<address_t> &, rv32i_instruction) {
+RVPRINTR_ATTR int FENCE_printer(char *buffer, size_t len, const CPU<address_t> &, instruction_format) {
   // printer
   return snprintf(buffer, len, "FENCE");
 };
