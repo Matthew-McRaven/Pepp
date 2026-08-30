@@ -80,7 +80,8 @@ std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::RISCVParser::identifier_a
   return std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg);
 }
 
-std::shared_ptr<pepp::tc::RTypeIR> pepp::tc::parser::RISCVParser::r_type(riscv::MnemonicDescriptor desc) {
+std::shared_ptr<pepp::tc::RTypeIR> pepp::tc::parser::RISCVParser::r_type(std::string_view name,
+                                                                         riscv::MnemonicDescriptor desc) {
   if (const auto rd = register_integer(); !rd)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
@@ -91,10 +92,11 @@ std::shared_ptr<pepp::tc::RTypeIR> pepp::tc::parser::RISCVParser::r_type(riscv::
     throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (const auto rs2 = register_integer(); !rs2)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
-  else return std::make_shared<RTypeIR>(desc, rd.value(), rs1.value(), rs2.value());
+  else return std::make_shared<RTypeIR>(name, desc, rd.value(), rs1.value(), rs2.value());
 }
 
-std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_load(riscv::MnemonicDescriptor desc) {
+std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_load(std::string_view name,
+                                                                              riscv::MnemonicDescriptor desc) {
   if (const auto rd = register_integer(); !rd)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
@@ -107,10 +109,11 @@ std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_load(ri
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
   else if (!_buffer->match_literal(")"))
     throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
-  else return std::make_shared<ITypeIR>(desc, rd.value(), rs.value(), arg);
+  else return std::make_shared<ITypeIR>(name, desc, rd.value(), rs.value(), arg);
 }
 
-std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_arith(riscv::MnemonicDescriptor desc) {
+std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_arith(std::string_view name,
+                                                                               riscv::MnemonicDescriptor desc) {
   if (const auto rd = register_integer(); !rd)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
@@ -121,10 +124,11 @@ std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_arith(r
     throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (const auto imm = argument(); !imm)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedImm, _buffer->matched_interval());
-  else return std::make_shared<ITypeIR>(desc, rd.value(), rs1.value(), imm);
+  else return std::make_shared<ITypeIR>(name, desc, rd.value(), rs1.value(), imm);
 }
 
-std::shared_ptr<pepp::tc::STypeIR> pepp::tc::parser::RISCVParser::s_type(riscv::MnemonicDescriptor desc) {
+std::shared_ptr<pepp::tc::STypeIR> pepp::tc::parser::RISCVParser::s_type(std::string_view name,
+                                                                         riscv::MnemonicDescriptor desc) {
   if (const auto rs2 = register_integer(); !rs2)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
@@ -137,10 +141,11 @@ std::shared_ptr<pepp::tc::STypeIR> pepp::tc::parser::RISCVParser::s_type(riscv::
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
   else if (!_buffer->match_literal(")"))
     throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
-  else return std::make_shared<STypeIR>(desc, rs1.value(), rs2.value(), arg);
+  else return std::make_shared<STypeIR>(name, desc, rs1.value(), rs2.value(), arg);
 }
 
-std::shared_ptr<pepp::tc::BTypeIR> pepp::tc::parser::RISCVParser::b_type(riscv::MnemonicDescriptor desc) {
+std::shared_ptr<pepp::tc::BTypeIR> pepp::tc::parser::RISCVParser::b_type(std::string_view name,
+                                                                         riscv::MnemonicDescriptor desc) {
   if (const auto rs1 = register_integer(); !rs1)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS1, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
@@ -151,27 +156,29 @@ std::shared_ptr<pepp::tc::BTypeIR> pepp::tc::parser::RISCVParser::b_type(riscv::
     throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (auto arg = argument(); !arg)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else return std::make_shared<BTypeIR>(desc, rs1.value(), rs2.value(), arg);
+  else return std::make_shared<BTypeIR>(name, desc, rs1.value(), rs2.value(), arg);
 }
 
-std::shared_ptr<pepp::tc::JTypeIR> pepp::tc::parser::RISCVParser::j_type(riscv::MnemonicDescriptor desc) {
+std::shared_ptr<pepp::tc::JTypeIR> pepp::tc::parser::RISCVParser::j_type(std::string_view name,
+                                                                         riscv::MnemonicDescriptor desc) {
   if (const auto rd = register_integer(); !rd)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
     throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (auto arg = argument(); !arg)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else return std::make_shared<JTypeIR>(desc, rd.value(), arg);
+  else return std::make_shared<JTypeIR>(name, desc, rd.value(), arg);
 }
 
-std::shared_ptr<pepp::tc::UTypeIR> pepp::tc::parser::RISCVParser::u_type(riscv::MnemonicDescriptor desc) {
+std::shared_ptr<pepp::tc::UTypeIR> pepp::tc::parser::RISCVParser::u_type(std::string_view name,
+                                                                         riscv::MnemonicDescriptor desc) {
   if (const auto rd = register_integer(); !rd)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
   else if (!_buffer->match_literal(","))
     throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
   else if (auto arg = argument(); !arg)
     throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else return std::make_shared<UTypeIR>(desc, rd.value(), arg);
+  else return std::make_shared<UTypeIR>(name, desc, rd.value(), arg);
 }
 
 std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::instruction() {
@@ -185,14 +192,14 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::ins
   const auto desc = *maybe_desc;
 
   switch (desc.mn.type()) {
-  case riscv::MnemonicDescriptor::Type::R: return r_type(desc.mn);
+  case riscv::MnemonicDescriptor::Type::R: return r_type(maybe_desc->name, desc.mn);
   case riscv::MnemonicDescriptor::Type::I:
-    if (desc.mn.opcode() == RV32I_LOAD) return i_type_load(desc.mn);
-    else return i_type_arith(desc.mn);
-  case riscv::MnemonicDescriptor::Type::S: return s_type(desc.mn);
-  case riscv::MnemonicDescriptor::Type::B: return b_type(desc.mn);
-  case riscv::MnemonicDescriptor::Type::J: return j_type(desc.mn);
-  case riscv::MnemonicDescriptor::Type::U: return u_type(desc.mn);
+    if (desc.mn.opcode() == RV32I_LOAD) return i_type_load(maybe_desc->name, desc.mn);
+    else return i_type_arith(maybe_desc->name, desc.mn);
+  case riscv::MnemonicDescriptor::Type::S: return s_type(maybe_desc->name, desc.mn);
+  case riscv::MnemonicDescriptor::Type::B: return b_type(maybe_desc->name, desc.mn);
+  case riscv::MnemonicDescriptor::Type::J: return j_type(maybe_desc->name, desc.mn);
+  case riscv::MnemonicDescriptor::Type::U: return u_type(maybe_desc->name, desc.mn);
   case riscv::MnemonicDescriptor::Type::Pseudo: break;
   default: break;
   }
