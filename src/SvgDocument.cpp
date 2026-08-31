@@ -53,13 +53,14 @@ const SvgSvgElement &Document::documentElement() const
 void Document::saveAs(const std::string &fileName)
 {
     _fileName = fileName;
+    bool success = false;
 
     Timer t1;
     t1.start();
-    bool success = save();
+    success = save();
     t1.finish();
-    std::cout << "ofstream::write: " << t1.elapsedTime() << (success ? " Pass" : " Fail")
-              << std::endl;
+    std::cout << "ofstream::write (flattened): " << t1.elapsedTime()
+              << (success ? " Pass" : " Fail") << std::endl;
 }
 
 bool Document::save() const
@@ -70,8 +71,7 @@ bool Document::save() const
         return false;
 
     //  Rebuild object tree into xml
-    SvgRope rope;
-    auto contents = std::move(flattenRope(rope));
+    const auto contents = std::move(toXml());
 
     svgFile.write(contents.data(), contents.size());
     svgFile.close();
@@ -198,7 +198,7 @@ const std::string Document::toXml() const
     return std::move(flattenRope(rope));
 }
 
-//  Loop throug all elements and get a rope of values.
+//  Loop through all elements and get a rope of values.
 //  flatten values into a single string that is later
 //  persisted.
 std::string Document::flattenRope(SvgRope &rope) const
