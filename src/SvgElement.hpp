@@ -8,6 +8,7 @@
 
 //	Forward declarations
 class XmlAttributes;
+class Document;
 
 class SvgElement
 {
@@ -58,6 +59,8 @@ public:
     const std::string &value() const;
     void setValue(const std::string &value);
 
+    void setDocument(Document *doc);
+
     //  Svg specific functions
     const std::string &id() const;
     void setId(const std::string &id);
@@ -90,7 +93,6 @@ public:
 
     const auto &children() const;
     auto &children();
-    //void appendChild(SvgElement *child);
     SvgElement *createElement(const std::string &name);
 
     //  Overrides
@@ -117,6 +119,8 @@ protected:
     SvgUnitValue _y;
     SvgUnitValue _width;
     SvgUnitValue _height;
+
+    Document *_doc{};
 
     //SVGElement ownerSVGElement
     //  Used to store unprocessed xml elements

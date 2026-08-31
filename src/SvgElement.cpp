@@ -5,6 +5,7 @@
 
 #include "SvgCDataElement.hpp"
 #include "SvgCommentElement.hpp"
+#include "SvgDocument.hpp"
 #include "SvgRectElement.hpp"
 
 /*
@@ -50,6 +51,11 @@ void SvgElement::setValue(const std::string &value)
     _value = value;
 }
 
+void SvgElement::setDocument(Document *doc)
+{
+    _doc = doc;
+}
+
 //  Svg specific fields
 const std::string &SvgElement::id() const
 {
@@ -57,6 +63,9 @@ const std::string &SvgElement::id() const
 }
 void SvgElement::setId(const std::string &id)
 {
+    //  Make sure pointer is valid
+    if (_doc)
+        _doc->addElementId(id, this);
     _id = id;
 }
 const std::string &SvgElement::className() const
@@ -231,7 +240,7 @@ void SvgElement::toXml(SvgRope &output) const
 bool SvgElement::setAttribute(const std::string &key, const std::string &value)
 {
     if (key == "id"s) {
-        _id = value;
+        setId(value);
         return true;
     }
     if (key == "x"s) {

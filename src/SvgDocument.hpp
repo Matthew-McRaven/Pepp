@@ -2,16 +2,14 @@
 
 #include <cassert>
 #include <string>
+#include <unordered_map>
 
 //  Library classes
 #include "SvgElement.hpp"
 #include "SvgParser.hpp"
-#include "SvgRectElement.hpp"
 #include "SvgSvgElement.hpp"
 
 //	Forward declarations
-class DocumentImpl;
-class SvgInterface;
 
 class Document
 {
@@ -19,11 +17,14 @@ class Document
     bool _exists = false;
     std::string _fileName{};
     SvgSvgElement _svgDocument;
-    std::list<SvgElement *> _parents;
 
     //  Temporaries from reading xml file
+    std::list<SvgElement *> _parents; //  Temporary list for parsing
     std::string _streamInput{};
     size_t _fileSize{};
+
+    //  For lookup by id
+    std::unordered_map<std::string, SvgElement *> _idLookup;
 
     bool read();
     bool save() const;
@@ -45,18 +46,14 @@ public:
     const SvgSvgElement &documentElement() const;
 
     //SvgElement querySelector(const std::string& element);
-    //SvgElement getElementById(const std::string& element);
-    //List children();
-
-    //	User access functions
-
-    //	Document properties.
-    //	accessors
+    SvgElement *getElementById(const std::string &id);
+    void addElementId(const std::string &id, SvgElement *element);
 
     //	File options
     bool fromXml(const std::string &svgData);
     const std::string toXml() const;
 
+    //  Must be public, this is callback from parser template class
     void addFromParser(const std::string &key, const std::string &value, const XmlNode::Type type);
 
     bool open(const std::string &fileName, bool readOnly = false);

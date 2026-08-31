@@ -156,6 +156,7 @@ void Document::addFromParser(const std::string &key,
         //  Root element is already created since it is required.
         _svgDocument.setXmlName(key);
         _svgDocument.setValue(value);
+        _svgDocument.setDocument(this);
         _parents.push_back(&_svgDocument);
         break;
     case XmlNode::Type::RootAttribute:
@@ -165,12 +166,14 @@ void Document::addFromParser(const std::string &key,
     case XmlNode::Type::Element: {
         auto element = _parents.back()->createElement(key);
         element->setValue(value);
+        element->setDocument(this);
         _parents.push_back(element);
         break;
     }
     case XmlNode::Type::Comment: {
         //  Comments have blank key. Comment is in value field
         auto element = _parents.back()->createElement("comment"s);
+        element->setDocument(this);
         element->setValue(value);
 
         //  A comment can never be a parent. End element is not called
@@ -180,6 +183,7 @@ void Document::addFromParser(const std::string &key,
     case XmlNode::Type::CData: {
         //  Comments have blank key. Comment is in value field
         auto element = _parents.back()->createElement("cdata"s);
+        element->setDocument(this);
         element->setValue(value);
 
         //  A CData can never be a parent. End element is not called
@@ -190,6 +194,19 @@ void Document::addFromParser(const std::string &key,
         _parents.pop_back();
         break;
     }
+}
+
+void Document::addElementId(const std::string &id, SvgElement *element)
+{
+    _idLookup.emplace(id, element);
+}
+SvgElement *Document::getElementById(const std::string &id)
+{
+    if (auto search = _idLookup.find(id); search != _idLookup.end())
+        return search->second;
+
+    //  Not in container
+    return nullptr;
 }
 
 const std::string Document::toXml() const
