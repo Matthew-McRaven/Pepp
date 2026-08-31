@@ -175,7 +175,15 @@ void Document::addFromParser(const std::string &key,
 
         //  A comment can never be a parent. End element is not called
         //  Do not store value on parent stack.
-        //_parents.back()->appendChild(element);
+        break;
+    }
+    case XmlNode::Type::CData: {
+        //  Comments have blank key. Comment is in value field
+        auto element = _parents.back()->createElement("cdata"s);
+        element->setValue(value);
+
+        //  A CData can never be a parent. End element is not called
+        //  Do not store value on parent stack.
         break;
     }
     case XmlNode::Type::EndElement:

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <list>
 #include <string>
 #include <vector>
 
@@ -9,7 +8,7 @@
 #include "../3rdParty/rapidxml/rapidxml.hpp"
 
 namespace XmlNode {
-enum class Type { Element = 0, RootElement, RootAttribute, Attribute, EndElement, Comment };
+enum class Type { Element = 0, RootElement, RootAttribute, Attribute, EndElement, Comment, CData };
 }
 
 //	Schema
@@ -52,8 +51,8 @@ public:
         //	Non destructive to original XML
         //  fastest skips comment, pi nodes, and declaration.
         //  Add comments to parsing
-        //  parse_full
-        _doc.parse<rapidxml::parse_fastest | rapidxml::parse_comment_nodes>(&_buffer[0]);
+        //  Add CData by removing parse_no_data_nodes
+        _doc.parse<rapidxml::parse_non_destructive | rapidxml::parse_comment_nodes>(&_buffer[0]);
 
         //	Go through XML starting with root node
         walk(_doc.first_node());
@@ -131,6 +130,23 @@ private:
 
             //	Signal callback that this is an element
             _xml->addFromParser(_key, _value, XmlNode::Type::Comment);
+            break;
+        case rapidxml::node_type::node_cdata:
+
+            //	Convert from character array to string
+            _key.clear();
+            _value.clear();
+
+            //  Key of CData is usually blank
+            key = _key.append(node->name(), node->name_size());
+
+            //	Get Cdata
+            if (node->value_size()) {
+                _value.append(node->value(), node->value_size());
+            }
+
+            //	Signal callback that this is an element
+            _xml->addFromParser(_key, _value, XmlNode::Type::CData);
             break;
         default:
             //	Convert from character array to string

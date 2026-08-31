@@ -16,6 +16,7 @@ public:
         SvgUnknownElement = 0,
         //  Dom elements
         SvgCommentElement,
+        SvgCDataElement,
         //  SvgSpecific elements
         SvgElementParent = 0x0100,
         SvgDescElement,

@@ -3,6 +3,7 @@
 //	Standard library
 #include <string>
 
+#include "SvgCDataElement.hpp"
 #include "SvgCommentElement.hpp"
 #include "SvgRectElement.hpp"
 
@@ -176,50 +177,34 @@ SvgElement *SvgElement::createElement(const std::string &name)
 {
     if (name == "comment"s)
         _children.push_back(std::make_unique<SvgCommentElement>());
+    else if (name == "cdata"s)
+        _children.push_back(std::make_unique<SvgCDataElement>());
     else if (name == "rect"s)
         _children.push_back(std::make_unique<SvgRectElement>());
-    else
+    else {
         _children.push_back(std::make_unique<SvgElement>(name));
 
-    if (name == "desc"s) {
-        _desc = _children.back().get();
-        _desc->setElementType(SvgType::SvgDescElement);
-    } else if (name == "metadata"s) {
-        _metadata = _children.back().get();
-        _metadata->setElementType(SvgType::SvgMetadataElement);
-    } else if (name == "title"s) {
-        _title = _children.back().get();
-        _title->setElementType(SvgType::SvgTitleElement);
+        if (name == "defs"s) {
+            _children.back().get()->setElementType(SvgType::SvgDefsElement);
+        } else if (name == "g"s) {
+            _children.back().get()->setElementType(SvgType::SvgGElement);
+        } else if (name == "desc"s) {
+            _desc = _children.back().get();
+            _desc->setElementType(SvgType::SvgDescElement);
+        } else if (name == "metadata"s) {
+            _metadata = _children.back().get();
+            _metadata->setElementType(SvgType::SvgMetadataElement);
+        } else if (name == "title"s) {
+            _title = _children.back().get();
+            _title->setElementType(SvgType::SvgTitleElement);
+        }
     }
 
     return _children.back().get();
 }
 
-/*void SvgElement::appendChild(SvgElement *child)
-{
-    //  Certain data is contained in elements. Save
-    //  pointer to allow future programitic updates.
-    if (child->xmlName() == "desc"s) {
-        _desc = child;
-    } else if (child->xmlName() == "metadata"s) {
-        _metadata = child;
-    } else if (child->xmlName() == "title"s) {
-        _title = child;
-    }
-    //  All elements are saved, including special elements above.
-    //  Used for persistence to Xml.
-    _children.push_back(child);
-}*/
-
 void SvgElement::toXml(SvgRope &output) const
 {
-    //  Id currently has element name. Change when attributes are supported
-    /*if (_elementType == SvgElement::SvgType::DomComment) {
-        std::string buffer = std::format("<!--{}-->", _value);
-        output.push_back(std::move(buffer));
-        //  Comments cannot have children or attributes
-        return;
-    }*/
     output.push_back("<" + _xmlName);
 
     attributeXml(output);

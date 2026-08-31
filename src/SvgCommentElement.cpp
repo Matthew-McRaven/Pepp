@@ -4,7 +4,7 @@
 #include <format> //  std::format
 #include <string>
 
-#include "utility_p.hpp"
+#include "utility_p.hpp" //  SvgRope
 
 /*
 From w3.org: https://www.w3.org/TR/SVG2/types.html#InterfaceSVGElement
@@ -25,16 +25,6 @@ SvgCommentElement::SvgCommentElement(const std::string &comment)
     : SvgCommentElement()
 {
     _value = comment;
-}
-
-//  Generic Dom fields
-const std::string &SvgCommentElement::comment() const
-{
-    return _value;
-}
-void SvgCommentElement::setComment(std::string value)
-{
-    _value = value;
 }
 
 void SvgCommentElement::toXml(SvgRope &output) const
