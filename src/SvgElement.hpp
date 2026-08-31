@@ -15,7 +15,7 @@ public:
     enum class SvgType {
         SvgUnknownElement = 0,
         //  Dom elements
-        DomComment,
+        SvgCommentElement,
         //  SvgSpecific elements
         SvgElementParent = 0x0100,
         SvgDescElement,
@@ -120,7 +120,6 @@ protected:
     //SVGElement ownerSVGElement
     //  Used to store unprocessed xml elements
     std::list<std::unique_ptr<SvgElement>> _children;
-    //std::list<SvgElement *> _elements;
     XmlAttributes _attributes;
 
     //  Returned by string functions when empy string is needed

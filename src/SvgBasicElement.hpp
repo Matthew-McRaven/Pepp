@@ -31,6 +31,7 @@ public:
 
     //	User access functions
     //  Standard Xml
+    void setParent(Document *d) { _doc = d; }
     const std::string &xmlName() const;
     void setXmlName(std::string xmlName);
     const std::string &value() const;

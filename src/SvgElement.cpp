@@ -3,7 +3,9 @@
 //	Standard library
 #include <string>
 
+#include "SvgCommentElement.hpp"
 #include "SvgRectElement.hpp"
+
 /*
 From w3.org: https://www.w3.org/TR/SVG2/types.html#InterfaceSVGElement
     
@@ -172,7 +174,9 @@ auto &SvgElement::children()
 
 SvgElement *SvgElement::createElement(const std::string &name)
 {
-    if (name == "rect"s)
+    if (name == "comment"s)
+        _children.push_back(std::make_unique<SvgCommentElement>());
+    else if (name == "rect"s)
         _children.push_back(std::make_unique<SvgRectElement>());
     else
         _children.push_back(std::make_unique<SvgElement>(name));
@@ -210,12 +214,12 @@ SvgElement *SvgElement::createElement(const std::string &name)
 void SvgElement::toXml(SvgRope &output) const
 {
     //  Id currently has element name. Change when attributes are supported
-    if (_elementType == SvgElement::SvgType::DomComment) {
+    /*if (_elementType == SvgElement::SvgType::DomComment) {
         std::string buffer = std::format("<!--{}-->", _value);
         output.push_back(std::move(buffer));
         //  Comments cannot have children or attributes
         return;
-    }
+    }*/
     output.push_back("<" + _xmlName);
 
     attributeXml(output);

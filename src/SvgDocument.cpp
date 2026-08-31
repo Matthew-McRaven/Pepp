@@ -171,9 +171,8 @@ void Document::addFromParser(const std::string &key,
     }
     case XmlNode::Type::Comment: {
         //  Comments have blank key. Comment is in value field
-        auto element = _parents.back()->createElement(key);
+        auto element = _parents.back()->createElement("comment"s);
         element->setValue(value);
-        element->setElementType(SvgElement::SvgType::DomComment);
 
         //  A comment can never be a parent. End element is not called
         //  Do not store value on parent stack.

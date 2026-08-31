@@ -16,46 +16,30 @@ derive from the SVGElement interface.
 
 //	Public interface
 SvgCommentElement::SvgCommentElement()
-    : SvgInterface()
+    : SvgElement()
 {
-    _elementType = SvgInterface::SvgType::SvgCommentElement;
-}
-
-SvgCommentElement::SvgCommentElement(DocumentImpl *d)
-    : SvgCommentElement()
-{
-    _doc = d;
+    _elementType = SvgElement::SvgType::SvgCommentElement;
 }
 
 SvgCommentElement::SvgCommentElement(const std::string &comment)
     : SvgCommentElement()
 {
-    _comment = comment;
+    _value = comment;
 }
 
 //  Generic Dom fields
 const std::string &SvgCommentElement::comment() const
 {
-    return _comment;
+    return _value;
 }
 void SvgCommentElement::setComment(std::string value)
 {
-    _comment = value;
+    _value = value;
 }
 
 void SvgCommentElement::toXml(SvgRope &output) const
 {
-    std::string buffer = std::format("<!--{}-->", _comment);
+    std::string buffer = std::format("<!--{}-->", _value);
     output.push_back(std::move(buffer));
     //  Comments cannot have children or attributes
-}
-
-SvgInterface::SvgType SvgCommentElement::elementType() const
-{
-    return _elementType;
-}
-
-void SvgCommentElement::setElementType(SvgInterface::SvgType elementType)
-{
-    _elementType = elementType;
 }
