@@ -11,7 +11,6 @@ namespace fs = std::filesystem;
 using namespace std::string_literals;
 
 //	private classes
-#include "SvgBasicElement.hpp"
 #include "SvgRectElement.hpp"
 #include "Timer.h"
 #include "XmlAttributes_p.hpp"

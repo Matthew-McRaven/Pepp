@@ -15,8 +15,6 @@ add_executable(SvgDom
     src/SvgParser.hpp
     src/SvgElement.cpp
     src/SvgElement.hpp
-    src/SvgBasicElement.cpp
-    src/SvgBasicElement.hpp
     src/SvgCommentElement.cpp
     src/SvgCommentElement.hpp
     src/SvgRectElement.cpp

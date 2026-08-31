@@ -2,7 +2,6 @@
 #include <typeindex>
 #include <typeinfo>
 
-#include "src/SvgBasicElement.hpp"
 #include "src/SvgCommentElement.hpp"
 #include "src/SvgDocument.hpp"
 
@@ -47,7 +46,7 @@ int main()
     doc1.documentElement().appendChild(b);*/
 
     //SvgInterface i;
-    SvgBasicElement be("title", "title value");
+    /*SvgBasicElement be("title", "title value");
     SvgCommentElement ce("comment");
     //std::cout << "Size of i: " << sizeof(i) << std::endl;
     std::cout << "Size of be: " << sizeof(be) << std::endl;
@@ -94,6 +93,6 @@ int main()
         }
         std::cout << std::endl;
     }
-
+*/
     return 0;
 }
