@@ -101,7 +101,7 @@ struct InstructionU {
   uint32_t rd : 5;
   uint32_t imm : 20;
 
-  int32_t upper_imm() const noexcept { return imm << 12u; }
+  uint32_t upper_imm() const noexcept { return (u32)imm << 12u; }
 };
 static_assert(sizeof(InstructionU) == 4, "U-type instruction must be 32 bits");
 
