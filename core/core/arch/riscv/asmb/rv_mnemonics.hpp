@@ -96,6 +96,14 @@ struct MnemonicDescriptor {
   u8 imm_shift() const noexcept;
   MnemonicDescriptor &&with_imm(u32 imm) &&;
 
+  // Does the operand list write a destination.
+  bool sources(Operand::Destination destination) const noexcept;
+  // The value an encoding should use for each register: the source's where the operand list writes
+  // the field, the descriptor's baked value otherwise. Only the descriptor knows which is which.
+  u8 resolve_rd(std::optional<u8> from_source) const noexcept;
+  u8 resolve_rs1(std::optional<u8> from_source) const noexcept;
+  u8 resolve_rs2(std::optional<u8> from_source) const noexcept;
+
   template <typename Instruction> Instruction encode(Values) const;
   rv_instruction2 encode(Values) const;
 
