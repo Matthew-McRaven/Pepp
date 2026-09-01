@@ -44,8 +44,8 @@ public:
     SvgElement() = default;
     explicit SvgElement(const std::string &name, const std::string &value = "");
     virtual ~SvgElement() = default;
-    //Cannot copy, but can move
-    SvgElement(const SvgElement &) = default;
+    //Can copy and move
+    SvgElement(const SvgElement &); // = default;
     SvgElement &operator=(const SvgElement &) = default;
     SvgElement(SvgElement &&) noexcept = default;
     SvgElement &operator=(SvgElement &&) noexcept = default;
@@ -99,6 +99,7 @@ public:
     virtual void toXml(SvgRope &output) const;
     virtual bool setAttribute(const std::string &key, const std::string &value);
     virtual bool attributeXml(SvgRope &output) const;
+    virtual std::unique_ptr<SvgElement> clone() const;
 
 protected:
     //  Standard Xml Data

@@ -1,7 +1,7 @@
 #include "SvgElement.hpp"
 
 //	Standard library
-#include <string>
+#include <memory> //  std::make_unique
 
 #include "SvgCDataElement.hpp"
 #include "SvgCommentElement.hpp"
@@ -22,6 +22,24 @@ SvgElement::SvgElement(const std::string &xmlName, const std::string &value)
 {
     _xmlName = xmlName;
     _value = value;
+}
+
+SvgElement::SvgElement(const SvgElement &orig)
+    : SvgElement()
+{
+    _elementType = orig._elementType;
+    _xmlName = orig._xmlName;
+    _value = orig._value;
+
+    _id = orig._id;
+    _className = orig._className;
+
+    _x = orig._x;
+    _y = orig._y;
+    _width = orig._width;
+    _height = orig._height;
+
+    _attributes = orig._attributes;
 }
 
 //  Generic Dom fields
@@ -301,4 +319,15 @@ bool SvgElement::attributeXml(SvgRope &output) const
     }
 
     return hasAttributes;
+}
+
+std::unique_ptr<SvgElement> SvgElement::clone() const
+{
+    auto copy = std::make_unique<SvgElement>(*this);
+
+    for (const auto &child : _children) {
+        copy->_children.push_back(child->clone());
+    }
+
+    return copy;
 }

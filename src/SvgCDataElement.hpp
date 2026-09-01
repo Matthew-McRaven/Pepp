@@ -10,7 +10,7 @@ public:
     SvgCDataElement();
     explicit SvgCDataElement(const std::string &value);
     ~SvgCDataElement() = default;
-    //Cannot copy, but can move
+    //Copy and move
     SvgCDataElement(const SvgCDataElement &) = default;
     SvgCDataElement &operator=(const SvgCDataElement &) = default;
     SvgCDataElement(SvgCDataElement &&) noexcept = default;
@@ -19,4 +19,5 @@ public:
     //  Called by base class
     void toXml(SvgRope &output) const override;
     bool setAttribute(const std::string &key, const std::string &value) override { return true; };
+    std::unique_ptr<SvgElement> clone() const override;
 };
