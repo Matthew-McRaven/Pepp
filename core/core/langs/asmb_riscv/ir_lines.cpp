@@ -1,4 +1,5 @@
 #include "core/langs/asmb_riscv/ir_lines.hpp"
+#include "core/compile/ir_value/numeric.hpp"
 
 pepp::tc::IntegerInstruction::IntegerInstruction(std::string_view name, riscv::MnemonicDescriptor desc)
     : mnemonic({name, desc}) {}
@@ -83,3 +84,31 @@ void pepp::tc::DotSymbol::insert(std::unique_ptr<AAttribute> attr) {
 }
 
 int pepp::tc::DotSymbol::type() const { return TYPE; }
+
+std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::make_instruction(std::string_view name,
+                                                                        const riscv::MnemonicDescriptor &desc,
+                                                                        const ParsedOperands &operands) {
+  using Type = riscv::MnemonicDescriptor::Type;
+  switch (desc.type()) {
+  case Type::R: return std::make_shared<RTypeIR>(name, desc, operands.rd, operands.rs1, operands.rs2);
+  case Type::I: {
+    // Fence stores orderings inside immediate. Create necessary imm value here.
+    using Dest = riscv::Operand::Destination;
+    if (desc.sources(Dest::PRED) || desc.sources(Dest::SUCC)) {
+      const u32 order = (u32(operands.pred & 0xF) << 4) | u32(operands.succ & 0xF);
+      // fmt bits are pre-set in high-order bits on MnemonicDescriptor
+      const u32 fmt = desc.get_raw_imm().value_or(0) & 0xFF;
+      const auto imm = std::make_shared<pepp::ast::UnsignedDecimal>(fmt | order, 2);
+      return std::make_shared<ITypeIR>(name, desc, operands.rd, operands.rs1, imm);
+    }
+    return std::make_shared<ITypeIR>(name, desc, operands.rd, operands.rs1, operands.imm);
+  }
+  case Type::S: return std::make_shared<STypeIR>(name, desc, operands.rs1, operands.rs2, operands.imm);
+  case Type::B: return std::make_shared<BTypeIR>(name, desc, operands.rs1, operands.rs2, operands.imm);
+  case Type::U: return std::make_shared<UTypeIR>(name, desc, operands.rd, operands.imm);
+  case Type::J: return std::make_shared<JTypeIR>(name, desc, operands.rd, operands.imm);
+  case Type::Pseudo: [[fallthrough]];
+  case Type::INVALID: return nullptr;
+  }
+  return nullptr;
+}

@@ -75,6 +75,19 @@ struct JTypeIR : public IntegerInstruction {
   int type() const override;
 };
 
+// Values of fields as parsed for an instruction. Some duplication w.r.t. riscv::Values, but this representation
+// provides stronger typing for immediates.
+struct ParsedOperands {
+  u8 rd = 0, rs1 = 0, rs2 = 0;
+  // Only used by fence instructions to avoid having to read-modify-write immediate.
+  u8 pred = 0, succ = 0;
+  std::shared_ptr<pepp::ast::IRValue> imm;
+};
+
+// Select the correct subclass based on MnemonicDescriptor.
+std::shared_ptr<IntegerInstruction> make_instruction(std::string_view name, const riscv::MnemonicDescriptor &desc,
+                                                     const ParsedOperands &operands);
+
 struct DotSymbol : public LinearIR {
   static constexpr int TYPE = static_cast<int>(LinearIRType::DotSymbol);
   enum class Which { Global, Local, Weak, Hidden } which;
