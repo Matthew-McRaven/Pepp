@@ -39,9 +39,10 @@ enum class States {
 
 std::string pepp::tc::format_as_columns(const std::string &col0, const std::string &col1, const std::string &col2,
                                         const std::string &col3) {
-  const auto formatted = fmt::format("{:<{}}{:<{}}{:<{}}{}", col0, FormatOptions::col0_width,
-                                     col1.size() >= FormatOptions::col1_width ? col1 + " " : col1,
-                                     FormatOptions::col1_width, col2, FormatOptions::col2_width, col3);
+  using O = FormatOptions;
+  const auto formatted =
+      fmt::format("{:<{}}{:<{}}{:<{}}{}", col0, O::col0_width, col1.size() >= O::col1_width ? col1 + " " : col1,
+                  O::col1_width, col2, O::col2_width, col3);
   return bits::rtrimmed(formatted);
 }
 
