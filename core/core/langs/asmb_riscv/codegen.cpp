@@ -156,7 +156,8 @@ void pepp::tc::RISCVObjectVistitor::visit(const DotLiteral *line) {
       relocations.insert({symbol, StaticRelocation{.section_offset = offset, .section_idx = section_idx}});
     }
   }
-  (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  // RV32 is little-endian.
+  (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::LittleEndian);
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
