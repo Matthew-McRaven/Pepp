@@ -57,6 +57,12 @@ public:
   // Returns a defined symbol in this table, or nullopt if not found in other.
   std::optional<entry_ptr_t> import(symbol::LeafTable &other, std::string_view name);
 
+  // Return the use count on the underlying shared pointer for the symbol entry, or 0 if not found.
+  std::size_t use_count(std::string_view name) const noexcept;
+  // If the symbol exists AND it does not have any uses, remove it and return true. Else the item remains in the table
+  // and return false. Useful when you reference()'ed a symbol speculatively and then later determine it is not needed.
+  // Does not shrink underlying string pool.
+  bool drop(std::string_view name);
   // Either returns an existing symbol entry or creates a new, undefined one.
   entry_ptr_t reference(std::string_view name) noexcept;
   // If name not already defined, creates a new, singly-defined symbol entry.
