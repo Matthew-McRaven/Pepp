@@ -40,7 +40,7 @@ struct InstructionCI {
     const uint32_t ext = 0xFFFFFFE0;
     return imm1 | (sign() ? ext : 0);
   }
-  uint32_t upper_imm() const noexcept {
+  int32_t upper_imm() const noexcept {
     const uint32_t ext = 0xFFFE0000;
     return (imm1 << 12) | (sign() ? ext : 0);
   }

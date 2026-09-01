@@ -848,8 +848,8 @@ template <AddressType address_t> RVINSTR_ATTR void AUIPC_handler(CPU<address_t> 
 template <AddressType address_t>
 RVPRINTR_ATTR int AUIPC_printer(char *buffer, size_t len, const CPU<address_t> &cpu, instruction_format instr) {
   const auto ut = instr.as<InstructionU>();
-  return snprintf(buffer, len, "AUIPC %s, PC+0x%X (0x%" PRIX64 ")", RISCV::regname(ut.rd), (int32_t)ut.upper_imm(),
-                  uint64_t(cpu.pc() + ut.upper_imm()));
+  return snprintf(buffer, len, "AUIPC %s, PC+0x%X (0x%" PRIX64 ")", RISCV::regname(ut.rd),
+                  ut.upper_imm(), uint64_t(cpu.pc() + ut.upper_imm()));
 };
 
 template <AddressType address_t>

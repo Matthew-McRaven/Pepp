@@ -190,7 +190,7 @@ RVPRINTR_ATTR int C1_ADDI16SP_printer(char *buffer, size_t len, const CPU<addres
   const auto ci16 = instr.as_compressed<InstructionCI16>();
   const auto ci = instr.as_compressed<InstructionCI>();
   if (ci.rd != 0 && ci.rd != 2) {
-    return snprintf(buffer, len, "C.LUI %s, 0x%" PRIX32, RISCV::regname(ci.rd), (int32_t)ci.upper_imm());
+    return snprintf(buffer, len, "C.LUI %s, 0x%" PRIX32, RISCV::regname(ci.rd), ci.upper_imm());
   } else if (ci.rd == 2) {
     return snprintf(buffer, len, "C.ADDI16SP %s, %+" PRId32, RISCV::regname(ci.rd), ci16.signed_imm());
   }

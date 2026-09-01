@@ -35,10 +35,10 @@ template <u32 (*Op)(u32, u32)> void reg_imm(RV32CPU *self, riscv::InstructionI i
 } // namespace
 
 // Upper immediate
-void handle_lui(RV32CPU *self, riscv::InstructionU u) { self->write_register((XReg)u.rd, u.upper_imm()); }
+void handle_lui(RV32CPU *self, riscv::InstructionU u) { self->write_register((XReg)u.rd, u32(u.upper_imm())); }
 // Relative to this instruction's own address. Needs PC prior to execution.
 void handle_auipc(RV32CPU *self, riscv::InstructionU u) {
-  self->write_register((XReg)u.rd, self->read_initial_pc() + u.upper_imm());
+  self->write_register((XReg)u.rd, self->read_initial_pc() + u32(u.upper_imm()));
 }
 
 // Unconditional jumps
