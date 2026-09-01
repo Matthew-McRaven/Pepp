@@ -12,5 +12,4 @@ $RECYCLE.BIN/
 *.lnk
 
 # Qtcreator directory
-$.qtcreator/
 .qtcreator
