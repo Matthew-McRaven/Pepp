@@ -83,7 +83,8 @@ QModelIndex ActivationModel::parent(const QModelIndex &child) const {
 }
 
 int ActivationModel::rowCount(const QModelIndex &parent) const {
-  if (!parent.isValid()) return _stackTracer->size();
+  if (!_stackTracer) return 0;
+  else if (!parent.isValid()) return _stackTracer->size();
 
   auto ptr = static_cast<pepp::debug::LayoutNode *>(parent.internalPointer());
   if (auto asStack = dynamic_cast<pepp::debug::Stack *>(ptr); asStack) { // parent is stack
@@ -224,9 +225,10 @@ QModelIndex ScopedActivationModel::index(int row, int column, const QModelIndex 
   if (!sourceModel() || row < 0 || column < 0) {
     ret = {};
   } else if (const QModelIndex si_parent = pi_parent.isValid() ? mapToSource(pi_parent) : QModelIndex(_scopeToIndex);
-             !si_parent.isValid() && _scopeToIndex.isValid()) {
-    // mapToSource is guarenteed to return a valid index if proxy parent is valid, because we must have created it
-    // on a previous call to index(...)
+             pi_parent.isValid() && !si_parent.isValid()) {
+    // We must have created the proxy parent on a previous call to index(...), so mapToSource should have found it.
+    // If it did not, the mapping was dropped (e.g. by a reset) and any index we built from it would carry an internal
+    // pointer the source model no longer owns. Return invalid index to avoid this.
     ret = {};
   } else if (QModelIndex si_idx = sourceModel()->index(row, column, si_parent); !si_idx.isValid()) {
     // Get the original source index; we want its internal pointer.
@@ -264,6 +266,8 @@ QModelIndex ScopedActivationModel::parent(const QModelIndex &pi_child) const {
 int ScopedActivationModel::rowCount(const QModelIndex &pi_parent) const {
   if (!sourceModel()) return 0;
   auto si_parent = mapToSource(pi_parent);
+  // valid proxy index which no longer maps to the source is stale, and has no children.
+  if (pi_parent.isValid() && !si_parent.isValid()) return 0;
   auto rc = sourceModel()->rowCount(si_parent);
   // spdlog::info("rowCount({}, {}, {}) = {}", pi_parent.row(), pi_parent.column(), pi_parent.internalPointer(), rc);
   return rc;
@@ -272,14 +276,26 @@ int ScopedActivationModel::rowCount(const QModelIndex &pi_parent) const {
 int ScopedActivationModel::columnCount(const QModelIndex &pi_parent) const {
   if (!sourceModel()) return 0;
   auto si_parent = mapToSource(pi_parent);
+  if (pi_parent.isValid() && !si_parent.isValid()) return 0;
   return sourceModel()->columnCount(si_parent);
+}
+
+bool ScopedActivationModel::hasChildren(const QModelIndex &pi_parent) const {
+  if (!sourceModel()) return false;
+  auto si_parent = mapToSource(pi_parent);
+  // Keep this consistent with rowCount(...) to avoid stale proxy indices.
+  if (pi_parent.isValid() && !si_parent.isValid()) return false;
+  return sourceModel()->hasChildren(si_parent);
 }
 
 QModelIndex ScopedActivationModel::mapToSource(const QModelIndex &proxyIndex) const {
   QModelIndex ret{};
-  if (!sourceModel() || !proxyIndex.isValid()) ret = _scopeToIndex;
+  // If source model doesn't exist, then _scopeToIndex must be invalid too.
+  if (!sourceModel()) ret = {};
+  else if (!proxyIndex.isValid()) ret = _scopeToIndex;
   else if (auto si = _proxy_to_source.find(proxyIndex); si != _proxy_to_source.end()) ret = si.value();
-  else ret = _scopeToIndex;
+  // Avoid sending back a stale internal pointer if we failed to map back to source.
+  else ret = {};
   /*spdlog::info("mapToSource({}, {}, {}) = ({}, {}, {})", proxyIndex.row(), proxyIndex.column(),
                proxyIndex.internalPointer(), ret.row(), ret.column(), ret.internalPointer());*/
   return ret;

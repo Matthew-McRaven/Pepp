@@ -24,7 +24,7 @@ Rectangle {
         property double lineHeight: tm.height + 4 // Allow space around text
         property double boldBorderWidth: 4
     }
-    ScopedActivationModel {
+    /*ScopedActivationModel {
         id: stackActModel
         sourceModel: RootActivationModel {
             id: allStacksModel
@@ -34,7 +34,7 @@ Rectangle {
             }
         }
         scopeToIndex: allStacksModel.activeStackIndex
-    }
+    }*/
 
     component NonStackRenderer: ColumnLayout {
         id: del
@@ -147,9 +147,13 @@ Rectangle {
                     Layout.preferredHeight: 41
                     Layout.minimumHeight: 41
                 }
-                StackRenderer {
+                NonStackRenderer {
                     name: "Stack"
                 }
+
+                /*StackRenderer {
+                    name: "Stack"
+                }*/
             } // ColumnLayout
 
             ColumnLayout {
