@@ -24,16 +24,26 @@
 // Check exhaustively since offsets are small.
 TEST_CASE("RISC-V branch and jump immediates survive encode then decode",
           "[scope:core][scope:core.arch][kind:unit][arch:riscv]") {
-  auto descriptor = [](const char *m) -> const riscv::MnemonicDescriptor & {
-    auto it = riscv::string_to_mnemonic.find(std::string(m));
-    REQUIRE(it != riscv::string_to_mnemonic.end());
-    return it->mn;
+  // riscv::string_to_mnemonic is a multiset. Use length as a discriminator to pick the right variant.
+  // Check that the match is unique to avoid strange test failures.
+  auto descriptor = [](const char *m, std::size_t operands) -> const riscv::MnemonicDescriptor & {
+    const auto [first, last] = riscv::string_to_mnemonic.equal_range(std::string(m));
+    const riscv::MnemonicDescriptor *found = nullptr;
+    for (auto it = first; it != last; ++it) {
+      if (it->mn.operands().size() != operands) continue;
+      CAPTURE(m, operands);
+      REQUIRE(found == nullptr);
+      found = &it->mn;
+    }
+    CAPTURE(m, operands);
+    REQUIRE(found != nullptr);
+    return *found;
   };
 
   SECTION("B-type in range [-4096, 4094]") {
     for (auto [mnemonic, op] : {std::pair{"beq", RvOp::BEQ}, {"bne", RvOp::BNE}, {"blt", RvOp::BLT},
                                 {"bge", RvOp::BGE}, {"bltu", RvOp::BLTU}, {"bgeu", RvOp::BGEU}}) {
-      const auto &d = descriptor(mnemonic);
+      const auto &d = descriptor(mnemonic, 3);
       int32_t mismatches = 0, first_bad = 0;
       for (int32_t off = -4096; off <= 4094; off += 2) {
         riscv::Values v{.rs1 = uint8_t(11), .rs2 = uint8_t(12), .rd = std::nullopt, .imm = uint32_t(off)};
@@ -50,7 +60,7 @@ TEST_CASE("RISC-V branch and jump immediates survive encode then decode",
   }
 
   SECTION("J-type in range [-1048576, 1048574]") {
-    const auto &d = descriptor("jal");
+    const auto &d = descriptor("jal", 2);
     int32_t mismatches = 0, first_bad = 0;
     for (int32_t off = -1048576; off <= 1048574; off += 2) {
       riscv::Values v{.rs1 = std::nullopt, .rs2 = std::nullopt, .rd = uint8_t(10), .imm = uint32_t(off)};
@@ -67,19 +77,30 @@ TEST_CASE("RISC-V branch and jump immediates survive encode then decode",
 
 TEST_CASE("RISC-V imm_fits accepts exactly the representable immediates",
           "[scope:core][scope:core.arch][kind:unit][arch:riscv]") {
-  auto descriptor = [](const char *m) -> const riscv::MnemonicDescriptor & {
-    auto it = riscv::string_to_mnemonic.find(std::string(m));
-    REQUIRE(it != riscv::string_to_mnemonic.end());
-    return it->mn;
+  // riscv::string_to_mnemonic is a multiset. Use length as a discriminator to pick the right variant.
+  // Check that the match is unique to avoid strange test failures.
+  auto descriptor = [](const char *m, std::size_t operands) -> const riscv::MnemonicDescriptor & {
+    const auto [first, last] = riscv::string_to_mnemonic.equal_range(std::string(m));
+    const riscv::MnemonicDescriptor *found = nullptr;
+    for (auto it = first; it != last; ++it) {
+      if (it->mn.operands().size() != operands) continue;
+      CAPTURE(m, operands);
+      REQUIRE(found == nullptr);
+      found = &it->mn;
+    }
+    CAPTURE(m, operands);
+    REQUIRE(found != nullptr);
+    return *found;
   };
 
   SECTION("signed immediates span their whole range and stop there") {
-    // {mnemonic, low, high, step}. A step of 2 marks the displacements whose low bit is implicitly 0.
-    for (auto [mnemonic, lo, hi, step] : {std::tuple{"addi", -2048, 2047, 1},
-                                          {"sw", -2048, 2047, 1},
-                                          {"beq", -4096, 4094, 2},
-                                          {"jal", -1048576, 1048574, 2}}) {
-      const auto &d = descriptor(mnemonic);
+    // {mnemonic, operand count, low, high, step}. A step of 2 marks the displacements whose low bit
+    // is implicitly 0. operands needed to select correct variant of the mnemonic.
+    for (auto [mnemonic, operands, lo, hi, step] : {std::tuple{"addi", 3, -2048, 2047, 1},
+                                                    {"sw", 3, -2048, 2047, 1},
+                                                    {"beq", 3, -4096, 4094, 2},
+                                                    {"jal", 2, -1048576, 1048574, 2}}) {
+      const auto &d = descriptor(mnemonic, operands);
       CAPTURE(mnemonic, lo, hi, step);
       CHECK(d.imm_fits(lo));
       CHECK(d.imm_fits(hi));
@@ -97,7 +118,7 @@ TEST_CASE("RISC-V imm_fits accepts exactly the representable immediates",
   }
 
   SECTION("a U-type operand is an unsigned field, so its high half is legal") {
-    const auto &d = descriptor("lui");
+    const auto &d = descriptor("lui", 2);
     CHECK(d.imm_fits(0));
     CHECK(d.imm_fits(0x65));
     // Would read as negative under the signed rule the other types use.

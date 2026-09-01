@@ -438,6 +438,7 @@ static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {
   };
   add(RvOp::LUI, LUI);
   add(RvOp::AUIPC, AUIPC);
+  add(RvOp::JAL, JAL_nord);
   add(RvOp::JAL, JAL);
   add(RvOp::JALR, JALR);
   add(RvOp::BEQ, BEQ);

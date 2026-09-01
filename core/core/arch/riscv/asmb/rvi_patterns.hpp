@@ -63,7 +63,8 @@ static const auto SRA = MnemonicDescriptor::R(RV32I_OP, 0b101, 0b010'0000).with_
 
 // Unconditional Control Transfer instructions
 // Allows either JAL rd, offset or JAL offset. If second variant, use default rd.
-static const auto JAL = MnemonicDescriptor::J(RV32I_JAL).with_operand(_RD, _IMM).with_rd(0);
+static const auto JAL_nord = MnemonicDescriptor::J(RV32I_JAL).with_operand(_IMM).with_rd(1);
+static const auto JAL = MnemonicDescriptor::J(RV32I_JAL).with_operand(_RD, _IMM);
 static const auto JALR =
     MnemonicDescriptor::I(RV32I_JALR, 0b000).with_operand(_RD, _IMM, _P_RS1).with_comma_after(1, false);
 

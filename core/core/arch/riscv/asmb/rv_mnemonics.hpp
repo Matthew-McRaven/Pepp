@@ -7,6 +7,7 @@
 #include "core/arch/riscv/isa/rv_instruction.hpp"
 #include "core/arch/riscv/isa/rvi.hpp"
 #include "core/integers.h"
+#include "flat/flat_multiset.hpp"
 
 namespace riscv {
 
@@ -143,7 +144,10 @@ struct MnemonicNameCompare {
   bool operator()(std::string_view a, const Mnemonic &b) const { return a < b.name; }
 };
 
-using MnemonicSet = fc::vector_set<Mnemonic, MnemonicNameCompare>;
+// Multiset because some mnemonics have multiple possible operand orders.
+// For example, `jal offset` and `jal ra, offset` are both valid.
+// Errors while parsing a mnemonic will be reported against the last match.
+using MnemonicSet = fc::vector_multiset<Mnemonic, MnemonicNameCompare>;
 extern const MnemonicSet string_to_mnemonic;
 
 template <> InstructionR MnemonicDescriptor::encode<InstructionR>(Values) const;
