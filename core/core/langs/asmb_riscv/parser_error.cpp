@@ -20,6 +20,7 @@ const std::string pepp::tc::RISCVParserError::to_string(NullaryError err) {
   case NullaryError::Argument_Exceeded1Byte: return "Argument exceeds 1 byte";
   case NullaryError::Argument_Exceeded2Bytes: return "Argument exceeds 2 bytes";
   case NullaryError::Argument_Exceeded4Bytes: return "Argument exceeds 4 bytes";
+  case NullaryError::Argument_ExpectedFenceOrdering: return "Expected fence ordering of 'iorw' or '0'";
   case NullaryError::Section_StringName: return "Expected section name string";
   case NullaryError::Section_TwoArgs: return "Section directive takes exactly two arguments";
   case NullaryError::Section_StringFlags: return "Expected section flags string";

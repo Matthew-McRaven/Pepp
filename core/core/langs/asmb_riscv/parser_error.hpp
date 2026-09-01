@@ -20,6 +20,7 @@ public:
     Argument_Exceeded1Byte,
     Argument_Exceeded2Bytes,
     Argument_Exceeded4Bytes,
+    Argument_ExpectedFenceOrdering,
     Section_StringName,
     Section_TwoArgs,
     Section_StringFlags,
