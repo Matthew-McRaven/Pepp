@@ -74,6 +74,11 @@ u8 riscv::MnemonicDescriptor::opcode() const {
   return _type == Type::Pseudo ? throw std::runtime_error("Pseudo instructions do not have a single opcode") : _opcode7;
 }
 
+bool riscv::MnemonicDescriptor::comma_after(std::size_t index) const noexcept {
+  if (index >= _trailing_comma.size()) return false;
+  return _trailing_comma[index];
+}
+
 void riscv::MnemonicDescriptor::append_operand(Operand operand) {
   for (int it = 0; it < _operands.size(); it++) {
     if (_operands[it].type == Operand::Type::Invalid) {
@@ -82,6 +87,11 @@ void riscv::MnemonicDescriptor::append_operand(Operand operand) {
     }
   }
   throw std::runtime_error("Too many operands for this mnemonic");
+}
+
+riscv::MnemonicDescriptor &&riscv::MnemonicDescriptor::with_comma_after(std::size_t index, bool comma) && {
+  if (index < _trailing_comma.size()) _trailing_comma[index] = comma;
+  return std::move(*this);
 }
 
 bool riscv::MnemonicDescriptor::allows_rs1() const noexcept {
@@ -284,6 +294,40 @@ u32 riscv::MnemonicDescriptor::encode_imm(u32 imm) const noexcept {
   return (imm >> imm_shift()) & ((u32(1) << width) - 1);
 }
 
+// Per ISA spec, sign-extended is required for most immediates.
+// U-type is the exception, which is treated as unsigned.
+bool riscv::MnemonicDescriptor::imm_fits(i32 imm) const noexcept {
+  if (const int width = width_imm(); width == 0) return imm == 0;
+  // Low-order bits are dropped if immediates are shifted.
+  else if (const int shift = imm_shift(); imm & ((1 << shift) - 1)) return false;
+  else if (u32 uimm = imm; _type == Type::U) return uimm <= (i32(1) << width) - 1;
+  else {
+    // Leading 0/1s are ignored when encoding.
+    const int bits = width + shift;
+    return -(i32(1) << (bits - 1)) <= imm && imm <= (i32(1) << (bits - 1)) - 1;
+  }
+}
+
+bool riscv::MnemonicDescriptor::sources(Operand::Destination destination) const noexcept {
+  for (const auto &operand : operands())
+    if (operand.destination == destination) return true;
+  return false;
+}
+
+u8 riscv::MnemonicDescriptor::resolve_rd(std::optional<u8> from_source) const noexcept {
+  return (sources(Operand::Destination::RD) ? from_source.value_or(_rd) : _rd) & 0x1F;
+}
+
+u8 riscv::MnemonicDescriptor::resolve_rs1(std::optional<u8> from_source) const noexcept {
+  // RS is the lone source of a two-operand pseudo and occupies the rs1 position.
+  const bool written = sources(Operand::Destination::RS1) || sources(Operand::Destination::RS);
+  return (written ? from_source.value_or(_rs1) : _rs1) & 0x1F;
+}
+
+u8 riscv::MnemonicDescriptor::resolve_rs2(std::optional<u8> from_source) const noexcept {
+  return (sources(Operand::Destination::RS2) ? from_source.value_or(_rs2) : _rs2) & 0x1F;
+}
+
 bool riscv::MnemonicDescriptor::operator==(const MnemonicDescriptor &other) const noexcept {
   if (_type != other._type) return false;
   else if (_flags != other._flags) return false;
@@ -326,22 +370,22 @@ riscv::MnemonicDescriptor::MnemonicDescriptor(Type type, u8 opcode) : _type(type
 }
 
 template <> riscv::InstructionR riscv::MnemonicDescriptor::encode<riscv::InstructionR>(Values v) const {
-  const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
-  const u8 rs2 = v.rs2.value_or(_rs2) & 0x1F;
-  const u8 rd = v.rd.value_or(_rd) & 0x1F;
+  const u8 rs1 = resolve_rs1(v.rs1);
+  const u8 rs2 = resolve_rs2(v.rs2);
+  const u8 rd = resolve_rd(v.rd);
   const u8 funct7 = _imm_or_funct7 & 0x7F;
   return InstructionR{.opcode = _opcode7, .rd = rd, .funct3 = _funct3, .rs1 = rs1, .rs2 = rs2, .funct7 = funct7};
 }
 template <> riscv::InstructionI riscv::MnemonicDescriptor::encode<riscv::InstructionI>(Values v) const {
-  const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
-  const u8 rd = v.rd.value_or(_rd) & 0x1F;
+  const u8 rs1 = resolve_rs1(v.rs1);
+  const u8 rd = resolve_rd(v.rd);
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
   const u16 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   return InstructionI{.opcode = _opcode7, .rd = rd, .funct3 = _funct3, .rs1 = rs1, .imm = imm};
 }
 template <> riscv::InstructionS riscv::MnemonicDescriptor::encode<riscv::InstructionS>(Values v) const {
-  const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
-  const u8 rs2 = v.rs2.value_or(_rs2) & 0x1F;
+  const u8 rs1 = resolve_rs1(v.rs1);
+  const u8 rs2 = resolve_rs2(v.rs2);
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
   const u16 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   const u8 imm11_05 = (imm >> 5u) & ((1 << 7) - 1);
@@ -349,14 +393,14 @@ template <> riscv::InstructionS riscv::MnemonicDescriptor::encode<riscv::Instruc
   return InstructionS{.opcode = _opcode7, .imm1 = imm4_0, .funct3 = _funct3, .rs1 = rs1, .rs2 = rs2, .imm2 = imm11_05};
 }
 template <> riscv::InstructionU riscv::MnemonicDescriptor::encode<riscv::InstructionU>(Values v) const {
-  const u8 rd = v.rd.value_or(_rd) & 0x1F;
+  const u8 rd = resolve_rd(v.rd);
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
   const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   return InstructionU{.opcode = _opcode7, .rd = rd, .imm = imm};
 }
 template <> riscv::InstructionB riscv::MnemonicDescriptor::encode<riscv::InstructionB>(Values v) const {
-  const u8 rs1 = v.rs1.value_or(_rs1) & 0x1F;
-  const u8 rs2 = v.rs2.value_or(_rs2) & 0x1F;
+  const u8 rs1 = resolve_rs1(v.rs1);
+  const u8 rs2 = resolve_rs2(v.rs2);
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
   const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   const u8 imm4_1 = imm & ((1u << 4) - 1);
@@ -373,7 +417,7 @@ template <> riscv::InstructionB riscv::MnemonicDescriptor::encode<riscv::Instruc
                       .imm4 = imm12_12};
 }
 template <> riscv::InstructionJ riscv::MnemonicDescriptor::encode<riscv::InstructionJ>(Values v) const {
-  const u8 rd = v.rd.value_or(_rd) & 0x1F;
+  const u8 rd = resolve_rd(v.rd);
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
   const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
   const u16 imm10_01 = imm & ((1u << 10) - 1);
@@ -394,6 +438,7 @@ static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {
   };
   add(RvOp::LUI, LUI);
   add(RvOp::AUIPC, AUIPC);
+  add(RvOp::JAL, JAL_nord);
   add(RvOp::JAL, JAL);
   add(RvOp::JALR, JALR);
   add(RvOp::BEQ, BEQ);

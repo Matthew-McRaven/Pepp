@@ -12,7 +12,8 @@ enum class RISCVIRAttr {
 struct RISCVMnemonicAttribute : public AAttribute {
   static constexpr int TYPE = static_cast<int>(RISCVIRAttr::Mnemonic);
   int type() const override;
-  RISCVMnemonicAttribute(riscv::MnemonicDescriptor mn);
+  RISCVMnemonicAttribute(std::string_view name, riscv::MnemonicDescriptor mn);
+  std::string_view name;
   riscv::MnemonicDescriptor mn;
 };
 

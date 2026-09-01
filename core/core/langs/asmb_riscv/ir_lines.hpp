@@ -25,7 +25,7 @@ enum class RISCVDotCommands : int {
 };
 enum class RISCVIRType : int { R = static_cast<int>(LinearIRType::FirstUser), I, S, B, U, J };
 struct IntegerInstruction : public LinearIR {
-  IntegerInstruction(riscv::MnemonicDescriptor desc);
+  IntegerInstruction(std::string_view name, riscv::MnemonicDescriptor desc);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
   std::optional<u64> object_size(u64 base_address) const override;
@@ -37,40 +37,56 @@ struct IntegerInstruction : public LinearIR {
 
 struct RTypeIR : public IntegerInstruction {
   static constexpr int TYPE = static_cast<int>(RISCVIRType::R);
-  RTypeIR(riscv::MnemonicDescriptor desc, u8 rd, u8 rs1, u8 rs2);
+  RTypeIR(std::string_view name, riscv::MnemonicDescriptor desc, u8 rd, u8 rs1, u8 rs2);
   virtual ~RTypeIR() override = default;
   int type() const override;
 };
 
 struct ITypeIR : public IntegerInstruction {
   static constexpr int TYPE = static_cast<int>(RISCVIRType::I);
-  ITypeIR(riscv::MnemonicDescriptor desc, u8 rd, u8 rs1, std::shared_ptr<pepp::ast::IRValue> imm);
+  ITypeIR(std::string_view name, riscv::MnemonicDescriptor desc, u8 rd, u8 rs1,
+          std::shared_ptr<pepp::ast::IRValue> imm);
   int type() const override;
 };
 
 struct STypeIR : public IntegerInstruction {
   static constexpr int TYPE = static_cast<int>(RISCVIRType::S);
-  STypeIR(riscv::MnemonicDescriptor desc, u8 rs1, u8 rs2, std::shared_ptr<pepp::ast::IRValue> imm);
+  STypeIR(std::string_view name, riscv::MnemonicDescriptor desc, u8 rs1, u8 rs2,
+          std::shared_ptr<pepp::ast::IRValue> imm);
   int type() const override;
 };
 
 struct BTypeIR : public IntegerInstruction {
   static constexpr int TYPE = static_cast<int>(RISCVIRType::B);
-  BTypeIR(riscv::MnemonicDescriptor desc, u8 rs1, u8 rs2, std::shared_ptr<pepp::ast::IRValue> imm);
+  BTypeIR(std::string_view name, riscv::MnemonicDescriptor desc, u8 rs1, u8 rs2,
+          std::shared_ptr<pepp::ast::IRValue> imm);
   int type() const override;
 };
 
 struct UTypeIR : public IntegerInstruction {
   static constexpr int TYPE = static_cast<int>(RISCVIRType::U);
-  UTypeIR(riscv::MnemonicDescriptor desc, u8 rd, std::shared_ptr<pepp::ast::IRValue> imm);
+  UTypeIR(std::string_view name, riscv::MnemonicDescriptor desc, u8 rd, std::shared_ptr<pepp::ast::IRValue> imm);
   int type() const override;
 };
 
 struct JTypeIR : public IntegerInstruction {
   static constexpr int TYPE = static_cast<int>(RISCVIRType::J);
-  JTypeIR(riscv::MnemonicDescriptor desc, u8 rd, std::shared_ptr<pepp::ast::IRValue> imm);
+  JTypeIR(std::string_view name, riscv::MnemonicDescriptor desc, u8 rd, std::shared_ptr<pepp::ast::IRValue> imm);
   int type() const override;
 };
+
+// Values of fields as parsed for an instruction. Some duplication w.r.t. riscv::Values, but this representation
+// provides stronger typing for immediates.
+struct ParsedOperands {
+  u8 rd = 0, rs1 = 0, rs2 = 0;
+  // Only used by fence instructions to avoid having to read-modify-write immediate.
+  u8 pred = 0, succ = 0;
+  std::shared_ptr<pepp::ast::IRValue> imm;
+};
+
+// Select the correct subclass based on MnemonicDescriptor.
+std::shared_ptr<IntegerInstruction> make_instruction(std::string_view name, const riscv::MnemonicDescriptor &desc,
+                                                     const ParsedOperands &operands);
 
 struct DotSymbol : public LinearIR {
   static constexpr int TYPE = static_cast<int>(LinearIRType::DotSymbol);

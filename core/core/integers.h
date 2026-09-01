@@ -25,10 +25,12 @@
 
 #pragma once
 
+#include <array>
 #include <bit>
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <span>
 #include <stdexcept>
 #include <type_traits>
 
@@ -64,6 +66,20 @@ public:
     T v;
     memcpy(&v, buf, size);
     return is_native ? v : bswap(v);
+  }
+
+  // Return a view of this integers bytes. Cannot be called on a temporary.
+  constexpr std::span<const uint8_t, static_cast<std::size_t>(size)> bytes_view() const & noexcept {
+    return std::span<const uint8_t, static_cast<std::size_t>(size)>{buf, static_cast<std::size_t>(size)};
+  }
+  // Return a copy of this integer's bytes as an array.
+  constexpr std::array<uint8_t, size> bytes() const noexcept {
+    std::array<uint8_t, size> out{};
+    // memcpy is unavailable during constant evaluation.
+    if (std::is_constant_evaluated())
+      for (int i = 0; i < size; i++) out[i] = buf[i];
+    else memcpy(out.data(), buf, size);
+    return out;
   }
 
   Integer &operator=(T v) {

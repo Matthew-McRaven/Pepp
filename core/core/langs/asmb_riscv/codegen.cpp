@@ -87,6 +87,8 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
   RISCVObjectVistitor(const IRMemoryAddressTable<RISCVAddress> &, const u32 base_address, const u16 section_idx,
                       bits::span<u8>, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &,
                       IR2ObjectCodeMap &);
+  // Integer instructions can delegate to a shared implementation.
+  void emit_line(const IntegerInstruction *line);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const RTypeIR *) override;
@@ -118,8 +120,10 @@ void pepp::tc::RISCVObjectVistitor::visit(const CommentLine *) {
   // Does not generate object code
 }
 
-void pepp::tc::RISCVObjectVistitor::visit(const RTypeIR *line) {
-  riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = line->rd, .imm = std::nullopt};
+void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line) {
+  // Delegate to Mnemonic, which will merge pre-filled fields with provided values.
+  const u32 imm = line->imm ? line->imm->value_as<u32>() : u32(0);
+  riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = line->rd, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
   bits::memcpy_endian(out_bytes.first(4), bits::Order::LittleEndian, span, bits::hostOrder());
@@ -127,55 +131,12 @@ void pepp::tc::RISCVObjectVistitor::visit(const RTypeIR *line) {
   out_bytes = out_bytes.subspan(4);
 }
 
-void pepp::tc::RISCVObjectVistitor::visit(const ITypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
-  riscv::Values vals{.rs1 = line->rs1, .rs2 = std::nullopt, .rd = line->rd, .imm = imm};
-  auto encoded = line->mnemonic.mn.encode(vals).bits();
-  bits::span<const u8> span{(const u8 *)&encoded, 4};
-  bits::memcpy_endian(out_bytes.first(4), bits::Order::LittleEndian, span, bits::hostOrder());
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(4)});
-  out_bytes = out_bytes.subspan(4);
-}
-
-void pepp::tc::RISCVObjectVistitor::visit(const STypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
-  riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = std::nullopt, .imm = imm};
-  auto encoded = line->mnemonic.mn.encode(vals).bits();
-  bits::span<const u8> span{(const u8 *)&encoded, 4};
-  bits::memcpy_endian(out_bytes.first(4), bits::Order::LittleEndian, span, bits::hostOrder());
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(4)});
-  out_bytes = out_bytes.subspan(4);
-}
-
-void pepp::tc::RISCVObjectVistitor::visit(const BTypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
-  riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = std::nullopt, .imm = imm};
-  auto encoded = line->mnemonic.mn.encode(vals).bits();
-  bits::span<const u8> span{(const u8 *)&encoded, 4};
-  bits::memcpy_endian(out_bytes.first(4), bits::Order::LittleEndian, span, bits::hostOrder());
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(4)});
-  out_bytes = out_bytes.subspan(4);
-}
-
-void pepp::tc::RISCVObjectVistitor::visit(const UTypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
-  riscv::Values vals{.rs1 = std::nullopt, .rs2 = std::nullopt, .rd = line->rd, .imm = imm};
-  auto encoded = line->mnemonic.mn.encode(vals).bits();
-  bits::span<const u8> span{(const u8 *)&encoded, 4};
-  bits::memcpy_endian(out_bytes.first(4), bits::Order::LittleEndian, span, bits::hostOrder());
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(4)});
-  out_bytes = out_bytes.subspan(4);
-}
-
-void pepp::tc::RISCVObjectVistitor::visit(const JTypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
-  riscv::Values vals{.rs1 = std::nullopt, .rs2 = std::nullopt, .rd = line->rd, .imm = imm};
-  auto encoded = line->mnemonic.mn.encode(vals).bits();
-  bits::span<const u8> span{(const u8 *)&encoded, 4};
-  bits::memcpy_endian(out_bytes.first(4), bits::Order::LittleEndian, span, bits::hostOrder());
-  ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(4)});
-  out_bytes = out_bytes.subspan(4);
-}
+void pepp::tc::RISCVObjectVistitor::visit(const RTypeIR *line) { emit_line(line); }
+void pepp::tc::RISCVObjectVistitor::visit(const ITypeIR *line) { emit_line(line); }
+void pepp::tc::RISCVObjectVistitor::visit(const STypeIR *line) { emit_line(line); }
+void pepp::tc::RISCVObjectVistitor::visit(const BTypeIR *line) { emit_line(line); }
+void pepp::tc::RISCVObjectVistitor::visit(const UTypeIR *line) { emit_line(line); }
+void pepp::tc::RISCVObjectVistitor::visit(const JTypeIR *line) { emit_line(line); }
 
 void pepp::tc::RISCVObjectVistitor::visit(const DotAlign *line) {
   auto addr_info = ir_to_address.at(line);
@@ -195,7 +156,8 @@ void pepp::tc::RISCVObjectVistitor::visit(const DotLiteral *line) {
       relocations.insert({symbol, StaticRelocation{.section_offset = offset, .section_idx = section_idx}});
     }
   }
-  (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  // RV32 is little-endian.
+  (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::LittleEndian);
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);

@@ -12,7 +12,7 @@ struct LinearIR;
 }
 struct ProgramObjectCodeResult;
 
-// Relative sizes for each "column" in the listing.
+// Relative sizes for each column in the listing.
 struct FormatOptions {
   static constexpr int col0_width = 9;  // Symbol Declaration
   static constexpr int col1_width = 8;  // Mnemonics, dot commands, macro

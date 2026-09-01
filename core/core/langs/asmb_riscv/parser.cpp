@@ -5,6 +5,7 @@
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_value/numeric.hpp"
+#include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/ir_value/text.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
@@ -80,98 +81,129 @@ std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::RISCVParser::identifier_a
   return std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg);
 }
 
-std::shared_ptr<pepp::tc::RTypeIR> pepp::tc::parser::RISCVParser::r_type(riscv::MnemonicDescriptor desc) {
-  if (const auto rd = register_integer(); !rd)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (const auto rs1 = register_integer(); !rs1)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS1, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (const auto rs2 = register_integer(); !rs2)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
-  else return std::make_shared<RTypeIR>(desc, rd.value(), rs1.value(), rs2.value());
+namespace {
+using D = riscv::Operand::Destination;
+using E = pepp::tc::RISCVParserError::NullaryError;
+
+// What error should be returned if a field is expected but not present?
+E expected_error(D destination) {
+  switch (destination) {
+  case D::RD: return E::Argument_ExpectedRD;
+  case D::RS: [[fallthrough]];
+  case D::RS1: return E::Argument_ExpectedRS1;
+  case D::RS2: return E::Argument_ExpectedRS2;
+  case D::IMM: [[fallthrough]];
+  case D::SHAMT: return E::Argument_ExpectedImm;
+  case D::PRED: [[fallthrough]];
+  case D::SUCC: [[fallthrough]];
+  case D::Invalid: break;
+  }
+  return E::Argument_ExpectedIdentNumeric;
 }
 
-std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_load(riscv::MnemonicDescriptor desc) {
-  if (const auto rd = register_integer(); !rd)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (auto arg = argument(); !arg)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else if (!_buffer->match_literal("("))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingLParen, _buffer->matched_interval());
-  else if (const auto rs = register_integer(); !rs)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else if (!_buffer->match_literal(")"))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
-  else return std::make_shared<ITypeIR>(desc, rd.value(), rs.value(), arg);
+// N
+void store_value(pepp::tc::ParsedOperands &values, D destination, u8 v) {
+  switch (destination) {
+  case D::RD: values.rd = v; break;
+  // RS is the lone source of a two-operand pseudo, occupying the RS1 position.
+  case D::RS: [[fallthrough]];
+  case D::RS1: values.rs1 = v; break;
+  case D::RS2: values.rs2 = v; break;
+  case D::PRED: values.pred = v; break;
+  case D::SUCC: values.succ = v; break;
+  case D::IMM: [[fallthrough]];
+  case D::SHAMT: [[fallthrough]];
+  case D::Invalid: throw std::logic_error("Unreachable path on store_value");
+  }
 }
 
-std::shared_ptr<pepp::tc::ITypeIR> pepp::tc::parser::RISCVParser::i_type_arith(riscv::MnemonicDescriptor desc) {
-  if (const auto rd = register_integer(); !rd)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (const auto rs1 = register_integer(); !rs1)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS1, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (const auto imm = argument(); !imm)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedImm, _buffer->matched_interval());
-  else return std::make_shared<ITypeIR>(desc, rd.value(), rs1.value(), imm);
-}
+} // namespace
 
-std::shared_ptr<pepp::tc::STypeIR> pepp::tc::parser::RISCVParser::s_type(riscv::MnemonicDescriptor desc) {
-  if (const auto rs2 = register_integer(); !rs2)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (auto arg = argument(); !arg)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else if (!_buffer->match_literal("("))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingLParen, _buffer->matched_interval());
-  else if (const auto rs1 = register_integer(); !rs1)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else if (!_buffer->match_literal(")"))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingRParen, _buffer->matched_interval());
-  else return std::make_shared<STypeIR>(desc, rs1.value(), rs2.value(), arg);
-}
+// Attempt to parse one alternative of an instruction, returning a node if successful. If it fails, the buffer will be
+// rolled back. An error should only be treated as fatal by instruction() if there are no further alternatives to try.
+std::shared_ptr<pepp::tc::IntegerInstruction>
+pepp::tc::parser::RISCVParser::instruction_alternative(const riscv::Mnemonic &entry) {
+  using OT = riscv::Operand::Type;
+  using RVPE = RISCVParserError;
+  const auto &desc = entry.mn;
 
-std::shared_ptr<pepp::tc::BTypeIR> pepp::tc::parser::RISCVParser::b_type(riscv::MnemonicDescriptor desc) {
-  if (const auto rs1 = register_integer(); !rs1)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS1, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (const auto rs2 = register_integer(); !rs2)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRS2, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (auto arg = argument(); !arg)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else return std::make_shared<BTypeIR>(desc, rs1.value(), rs2.value(), arg);
-}
+  lex::Checkpoint cp(*_buffer);
+  // May contain a pointer to a Symbol via imm. On failed parse, we should undefine that symbol.
+  ParsedOperands values;
+  try {
+    // Parsing is entirely driven by the descriptor, including the operand order and separator after a field.
+    const auto operands = desc.operands();
+    for (std::size_t i = 0; i < operands.size(); ++i) {
+      const auto &operand = operands[i];
+      switch (operand.type) {
+      case OT::Register: {
+        const auto reg = register_integer();
+        if (!reg) throw RVPE(expected_error(operand.destination), _buffer->matched_interval());
+        store_value(values, operand.destination, *reg);
+        break;
+      }
 
-std::shared_ptr<pepp::tc::JTypeIR> pepp::tc::parser::RISCVParser::j_type(riscv::MnemonicDescriptor desc) {
-  if (const auto rd = register_integer(); !rd)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (auto arg = argument(); !arg)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else return std::make_shared<JTypeIR>(desc, rd.value(), arg);
-}
+      // Handle registers surrounded by parens, which are used for loads+stores
+      case OT::ParenthesizedRegister: {
+        if (!_buffer->match_literal("(")) throw RVPE(E::Token_MissingLParen, _buffer->matched_interval());
+        else if (const auto reg = register_integer(); !reg)
+          throw RVPE(expected_error(operand.destination), _buffer->matched_interval());
+        else if (!_buffer->match_literal(")")) throw RVPE(E::Token_MissingRParen, _buffer->matched_interval());
+        else store_value(values, operand.destination, *reg);
+        break;
+      }
+      case OT::Immediate: {
+        if (auto arg = argument(); !arg) throw RVPE(::expected_error(operand.destination), _buffer->matched_interval());
+        else values.imm = arg;
+        break;
+      }
+      // Constants not actually parsed; set automatically by MnemonicDecoder.
+      case OT::XLEN8: [[fallthrough]];
+      case OT::XLEN16: break;
+      // Parse pred,succ into specialized field of ParsedValue to avoid read-modify-write on IRValue.
+      case OT::Fence: {
+        std::optional<u8> ordering = std::nullopt;
+        // Ordering could be identifier iorw or integer 0; need to parse both.
+        if (const auto token = _buffer->match<lex::Identifier>()) {
+          auto text = token->to_string();
+          bits::to_lower_inplace(text);
+          ordering = riscv::parse_fence_ordering(text);
+        } else if (const auto number = _buffer->match<lex::Integer>(); number && number->value == 0) ordering = 0;
+        if (!ordering) throw RVPE(E::Argument_ExpectedFenceOrdering, _buffer->matched_interval());
+        else store_value(values, operand.destination, *ordering);
+        break;
+      }
+      case OT::Invalid: break;
+      }
 
-std::shared_ptr<pepp::tc::UTypeIR> pepp::tc::parser::RISCVParser::u_type(riscv::MnemonicDescriptor desc) {
-  if (const auto rd = register_integer(); !rd)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedRD, _buffer->matched_interval());
-  else if (!_buffer->match_literal(","))
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingComma, _buffer->matched_interval());
-  else if (auto arg = argument(); !arg)
-    throw RISCVParserError(RISCVParserError::NullaryError::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
-  else return std::make_shared<UTypeIR>(desc, rd.value(), arg);
+      // Operands are comma-separated unless the descriptor says otherwise.
+      if (i + 1 < operands.size() && desc.comma_after(i) && !_buffer->match_literal(","))
+        throw RVPE(E::Token_MissingComma, _buffer->matched_interval());
+    }
+
+    // Ensure that this instruction will match one of our line end types, to prevent a matched prefix from failing on
+    // later steps.
+    static constexpr int line_end = lex::InlineComment::TYPE | lex::Empty::TYPE | lex::EoF::TYPE;
+    if (_buffer->input_remains() && !_buffer->peek(line_end))
+      throw RVPE(E::Token_MissingNewline, _buffer->matched_interval());
+
+    // Null for Pseudo and INVALID, which have no single node to build; nothing was really matched.
+    auto built = make_instruction(entry.name, desc, values);
+    if (!built) cp.rollback();
+    return built;
+  } catch (...) {
+    cp.rollback();
+    // If we created a symbolic reference AND this is the only usage of that symbol, drop it from the symbol table.
+    // This precludes ordering issues between the JAL variants `jal ra, off` and `jal off`. If the first is parsed as
+    // the second, `ra` would end up as a declared symbol with no definition.
+    if (auto symbolic = std::dynamic_pointer_cast<pepp::ast::Symbolic>(values.imm); symbolic) {
+      const auto name = symbolic->symbol()->name;
+      values.imm.reset();
+      symbolic.reset();
+      _symtab->drop(name);
+    }
+    throw;
+  }
 }
 
 std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::instruction() {
@@ -180,23 +212,21 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::ins
   if (!maybe_instr) return cp.rollback(), nullptr;
   auto instr_str = maybe_instr->to_string();
   bits::to_lower_inplace(instr_str);
-  const auto maybe_desc = riscv::string_to_mnemonic.find(instr_str);
-  if (maybe_desc == riscv::string_to_mnemonic.end()) return cp.rollback(), nullptr;
-  const auto desc = *maybe_desc;
+  const auto [first, last] = riscv::string_to_mnemonic.equal_range(instr_str);
+  if (first == last) return cp.rollback(), nullptr;
 
-  switch (desc.mn.type()) {
-  case riscv::MnemonicDescriptor::Type::R: return r_type(desc.mn);
-  case riscv::MnemonicDescriptor::Type::I:
-    if (desc.mn.opcode() == RV32I_LOAD) return i_type_load(desc.mn);
-    else return i_type_arith(desc.mn);
-  case riscv::MnemonicDescriptor::Type::S: return s_type(desc.mn);
-  case riscv::MnemonicDescriptor::Type::B: return b_type(desc.mn);
-  case riscv::MnemonicDescriptor::Type::J: return j_type(desc.mn);
-  case riscv::MnemonicDescriptor::Type::U: return u_type(desc.mn);
-  case riscv::MnemonicDescriptor::Type::Pseudo: break;
-  default: break;
+  // A mnemonic may have several possible alternatives, such as `jal rd, offset` and `jal offset`.
+  for (auto candidate = first; candidate != last; ++candidate) {
+    const bool is_last = std::next(candidate) == last;
+    try {
+      if (auto built = instruction_alternative(*candidate); built) return built;
+    } catch (const RISCVParserError &) {
+      // Inner parser's error is only fatal if we have exhausted all possible variants.
+      if (is_last) throw;
+    }
   }
-  return nullptr;
+  // Failed to parse any alternative.
+  return cp.rollback(), nullptr;
 }
 
 namespace {

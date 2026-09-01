@@ -7,6 +7,7 @@
 #include "core/arch/riscv/isa/rv_instruction.hpp"
 #include "core/arch/riscv/isa/rvi.hpp"
 #include "core/integers.h"
+#include "flat/flat_multiset.hpp"
 
 namespace riscv {
 
@@ -19,7 +20,7 @@ struct Values {
 
 
 struct Operand {
-  enum class Type : u8 { Invalid = 0, Register, Immediate, Fence, XLEN8, XLEN16 } type;
+  enum class Type : u8 { Invalid = 0, Register, ParenthesizedRegister, Immediate, Fence, XLEN8, XLEN16 } type;
   enum class Destination : u8 { Invalid = 0, RS, RS1, RS2, RD, IMM, SHAMT, PRED, SUCC } destination;
 };
 
@@ -42,11 +43,14 @@ struct MnemonicDescriptor {
   u8 opcode() const;
 
   std::span<const Operand> operands() const noexcept;
+  bool comma_after(std::size_t index) const noexcept;
+
   Type type() const noexcept;
 
   void append_operand(Operand operand);
   MnemonicDescriptor &&with_operand(Operand first, std::same_as<Operand> auto... ops) &&;
   MnemonicDescriptor replaced_operands(std::same_as<Operand> auto... ops) const noexcept;
+  MnemonicDescriptor &&with_comma_after(std::size_t index, bool comma) &&;
 
   // Does this mnemonic have an rs1 position in its instruction format?
   bool allows_rs1() const noexcept;
@@ -83,6 +87,8 @@ struct MnemonicDescriptor {
   void set_imm(u32 imm);
   // Convert an immediate value to the encoded bits.
   u32 encode_imm(u32 imm) const noexcept;
+  // Does the provided immediate fit losslessly in this instruction format?
+  bool imm_fits(i32 imm) const noexcept;
   // Return the raw bit-pattern
   std::optional<u32> get_raw_imm() const;
   // Return the immediate bits after encoding them.
@@ -90,6 +96,14 @@ struct MnemonicDescriptor {
   u8 width_imm() const noexcept;
   u8 imm_shift() const noexcept;
   MnemonicDescriptor &&with_imm(u32 imm) &&;
+
+  // Does the operand list write a destination.
+  bool sources(Operand::Destination destination) const noexcept;
+  // The value an encoding should use for each register: the source's where the operand list writes
+  // the field, the descriptor's baked value otherwise. Only the descriptor knows which is which.
+  u8 resolve_rd(std::optional<u8> from_source) const noexcept;
+  u8 resolve_rs1(std::optional<u8> from_source) const noexcept;
+  u8 resolve_rs2(std::optional<u8> from_source) const noexcept;
 
   template <typename Instruction> Instruction encode(Values) const;
   rv_instruction2 encode(Values) const;
@@ -113,6 +127,8 @@ protected:
   // immediate requires up to 20 bits, and is multiplexed with funct7.
   uint32_t _imm_or_funct7 = 0;
   std::array<Operand, 3> _operands;
+  // True if operand[i] needs a comma before the next field, defaults to true.
+  std::array<bool, 2> _trailing_comma = {true, true};
 };
 
 struct Mnemonic {
@@ -128,7 +144,10 @@ struct MnemonicNameCompare {
   bool operator()(std::string_view a, const Mnemonic &b) const { return a < b.name; }
 };
 
-using MnemonicSet = fc::vector_set<Mnemonic, MnemonicNameCompare>;
+// Multiset because some mnemonics have multiple possible operand orders.
+// For example, `jal offset` and `jal ra, offset` are both valid.
+// Errors while parsing a mnemonic will be reported against the last match.
+using MnemonicSet = fc::vector_multiset<Mnemonic, MnemonicNameCompare>;
 extern const MnemonicSet string_to_mnemonic;
 
 template <> InstructionR MnemonicDescriptor::encode<InstructionR>(Values) const;

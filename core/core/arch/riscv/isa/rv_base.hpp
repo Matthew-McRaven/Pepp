@@ -35,6 +35,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 #include "core/integers.h"
 
@@ -219,11 +220,36 @@ constexpr std::string_view abiname(ABIReg reg) noexcept { return ABINAMES[static
 constexpr std::string_view xname(uint8_t reg) noexcept { return XNAMES[reg & 0x1F]; }
 constexpr std::string_view abiname(uint8_t reg) noexcept { return ABINAMES[reg & 0x1F]; }
 
-// Accepts either naming scheme, plus the fp alias. nullopt if the name is not a register.
+// Accepts either naming scheme, plus the alias for framepointer. nullopt if the name is not a register.
 constexpr std::optional<uint8_t> parse_register(std::string_view name) noexcept {
   for (uint8_t i = 0; i < 32; ++i)
     if (name == XNAMES[i] || name == ABINAMES[i]) return i;
   if (name == FRAME_POINTER_ALIAS) return 8;
   return std::nullopt;
+}
+
+constexpr std::string_view FENCE_LETTERS = "iorw";
+// Parse the letters of ordering string, setting only the bits that are present. If additional letters beyond iorw are
+// present, return nullopt. Order-agnostic, and duplicates of the same letter are igored for compatiblility to GNU.
+// Returns 0 if the string is empty or "0".
+constexpr std::optional<uint8_t> parse_fence_ordering(std::string_view name) noexcept {
+  if (name.empty()) return std::nullopt;
+  else if (name == "0") return 0;
+  uint8_t bits = 0;
+  for (const char c : name) {
+    const auto at = FENCE_LETTERS.find(c);
+    if (at == std::string_view::npos) return std::nullopt;
+    bits |= uint8_t(0b1000) >> at;
+  }
+  return bits;
+}
+
+// Rebuild ordering string in canonical order, or return 0 if empty.
+inline std::string fence_ordering_name(uint8_t bits) {
+  if ((bits & 0b1111) == 0) return "0";
+  std::string out;
+  for (std::size_t i = 0; i < FENCE_LETTERS.size(); ++i)
+    if (bits & (0b1000 >> i)) out.push_back(FENCE_LETTERS[i]);
+  return out;
 }
 } // namespace riscv
