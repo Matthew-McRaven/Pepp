@@ -13,7 +13,7 @@ int main()
     Timer t;
     t.start();
     Document doc1{};
-    std::string name = "USStates"s;
+    std::string name = "car"s;
     std::string id = "States"s;
 
     doc1.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\"s + name + ".svg"s);
@@ -27,7 +27,7 @@ int main()
     //svg.setDesc("Desc from program"s);
     //svg.setMetadata("Meta from program"s);
     //svg.setTitle("Title from program"s);
-    auto element = doc1.getElementById(id);
+    /*auto element = doc1.getElementById(id);
     if (element) {
         element->setDesc("Desc from program"s);
         element->setMetadata("Meta from program"s);
@@ -35,7 +35,7 @@ int main()
 
     } else {
         std::cout << "Element ID not found: "s << id << std::endl;
-    }
+    }*/
 
     doc1.saveAs("x:\\"s + name + "-2.svg"s);
     t.finish();

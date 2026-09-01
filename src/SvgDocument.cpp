@@ -172,20 +172,24 @@ void Document::addFromParser(const std::string &key,
     }
     case XmlNode::Type::Comment: {
         //  Comments have blank key. Comment is in value field
-        auto element = _parents.back()->createElement("comment"s);
-        element->setDocument(this);
-        element->setValue(value);
-
+        //  If comment is outside svg element, skip it. Otherwise, this throws
+        if (!_parents.empty()) {
+            auto element = _parents.back()->createElement("comment"s);
+            element->setDocument(this);
+            element->setValue(value);
+        }
         //  A comment can never be a parent. End element is not called
         //  Do not store value on parent stack.
         break;
     }
     case XmlNode::Type::CData: {
-        //  Comments have blank key. Comment is in value field
-        auto element = _parents.back()->createElement("cdata"s);
-        element->setDocument(this);
-        element->setValue(value);
-
+        //  CData has blank key. CData is in value field
+        //  If comment is outside svg element, skip it. Otherwise, this throws
+        if (!_parents.empty()) {
+            auto element = _parents.back()->createElement("cdata"s);
+            element->setDocument(this);
+            element->setValue(value);
+        }
         //  A CData can never be a parent. End element is not called
         //  Do not store value on parent stack.
         break;

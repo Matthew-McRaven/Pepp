@@ -54,8 +54,11 @@ public:
         //  Add CData by removing parse_no_data_nodes
         _doc.parse<rapidxml::parse_non_destructive | rapidxml::parse_comment_nodes>(&_buffer[0]);
 
-        //	Go through XML starting with root node
-        walk(_doc.first_node());
+        //	Rapidxml does not return xml header element by default. Inkscape adds comment after
+        //  xml header, and we must traverse all headers to get to svg root element
+        for (const auto *child = _doc.first_node(); child; child = child->next_sibling()) {
+            walk(child);
+        }
 
         return true;
     }
