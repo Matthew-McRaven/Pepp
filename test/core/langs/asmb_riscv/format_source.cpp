@@ -59,7 +59,7 @@ static const std::array<Case, 27> CASES{{
     {"mv x1, x2", "         mv      x1, x2"},                           // rd, rs
     {"seqz x1, x2", "         seqz    x1, x2"},                         // rd, rs1
     {"snez x1, x2", "         snez    x1, x2"},                         // rd, rs2
-    {"fence rw, rw", "         fence   rw, rw"},                        // orderings unpacked from the immediate
+    {"fence rw, wr", "         fence   rw, rw"},                        // orderings unpacked from the immediate
     {"fence w, 0", "         fence   w, 0"},                            // empty ordering prints as 0
     {"ecall", "         ecall"},                                        // no operands
     {"ret", "         ret"},                                            // no operands

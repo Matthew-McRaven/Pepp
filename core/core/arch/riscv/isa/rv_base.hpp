@@ -229,24 +229,22 @@ constexpr std::optional<uint8_t> parse_register(std::string_view name) noexcept 
 }
 
 constexpr std::string_view FENCE_LETTERS = "iorw";
-// Parse the letters of ordering string, setting only the bits that are present.
-// If additional letters beyond iorw are present, return nullopt.
-// Order-agnostic
+// Parse the letters of ordering string, setting only the bits that are present. If additional letters beyond iorw are
+// present, return nullopt. Order-agnostic, and duplicates of the same letter are igored for compatiblility to GNU.
+// Returns 0 if the string is empty or "0".
 constexpr std::optional<uint8_t> parse_fence_ordering(std::string_view name) noexcept {
   if (name.empty()) return std::nullopt;
   else if (name == "0") return 0;
   uint8_t bits = 0;
-  std::size_t next = 0;
   for (const char c : name) {
-    const auto at = FENCE_LETTERS.find(c, next);
+    const auto at = FENCE_LETTERS.find(c);
     if (at == std::string_view::npos) return std::nullopt;
     bits |= uint8_t(0b1000) >> at;
-    next = at + 1;
   }
   return bits;
 }
 
-// Rebuild ordering string, or return 0 if empty.
+// Rebuild ordering string in canonical order, or return 0 if empty.
 inline std::string fence_ordering_name(uint8_t bits) {
   if ((bits & 0b1111) == 0) return "0";
   std::string out;
