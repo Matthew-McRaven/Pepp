@@ -111,7 +111,7 @@ static const auto MOVE = MnemonicDescriptor::I(RV32I_OP_IMM, 0b000).with_operand
 // not: not rd, rs -> xori rd, rs, -1
 static const auto NOT = MnemonicDescriptor::I(RV32I_OP_IMM, 0b100).with_operand(_RD, _RS).with_imm(0xFFFF'FFFF);
 // negate: neg rd, rs -> sub rd, x0, rs
-static const auto NEGATE = MnemonicDescriptor::R(RV32I_OP, 0b000, 0b010'0000).with_operand(_RD, _RS).with_rs2(0);
+static const auto NEGATE = MnemonicDescriptor::R(RV32I_OP, 0b000, 0b010'0000).with_operand(_RD, _RS2).with_rs1(0);
 // sign extend byte: sext.b rd, rs  -> slli rd, rs, XLEN - 8; srai rd, rd, XLEN - 8
 static const auto SEXT_B = MnemonicDescriptor::Pseudo().with_operand(_RD, _RS);
 static const auto SEXT_B_pattern = std::array<MnemonicDescriptor, 2>{SLLI.replaced_operands(_RD, _RS, _XLEN8),
