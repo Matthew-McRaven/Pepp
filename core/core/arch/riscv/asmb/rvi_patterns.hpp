@@ -22,6 +22,8 @@
 namespace riscv {
 static const auto _RD = Operand{.type = Operand::Type::Register, .destination = Operand::Destination::RD};
 static const auto _RS1 = Operand{.type = Operand::Type::Register, .destination = Operand::Destination::RS1};
+static const auto _P_RS1 =
+    Operand{.type = Operand::Type::ParenthesizedRegister, .destination = Operand::Destination::RS1};
 static const auto _RS2 = Operand{.type = Operand::Type::Register, .destination = Operand::Destination::RS2};
 static const auto _RS = Operand{.type = Operand::Type::Register, .destination = Operand::Destination::RS};
 static const auto _IMM = Operand{.type = Operand::Type::Immediate, .destination = Operand::Destination::IMM};
@@ -62,7 +64,8 @@ static const auto SRA = MnemonicDescriptor::R(RV32I_OP, 0b101, 0b010'0000).with_
 // Unconditional Control Transfer instructions
 // Allows either JAL rd, offset or JAL offset. If second variant, use default rd.
 static const auto JAL = MnemonicDescriptor::J(RV32I_JAL).with_operand(_RD, _IMM).with_rd(0);
-static const auto JALR = MnemonicDescriptor::I(RV32I_JALR, 0b000).with_operand(_RD, _RS1, _IMM).with_rs1(1);
+static const auto JALR =
+    MnemonicDescriptor::I(RV32I_JALR, 0b000).with_operand(_RD, _IMM, _P_RS1).with_comma_after(1, false);
 
 // Conditional Control Transfer instructions
 static const auto BEQ = MnemonicDescriptor::B(RV32I_BRANCH, 0b000).with_operand(_RS1, _RS2, _IMM);
@@ -73,14 +76,22 @@ static const auto BGE = MnemonicDescriptor::B(RV32I_BRANCH, 0b101).with_operand(
 static const auto BGEU = MnemonicDescriptor::B(RV32I_BRANCH, 0b111).with_operand(_RS1, _RS2, _IMM);
 
 // Load and Store instructions
-static const auto LB = MnemonicDescriptor::I(RV32I_LOAD, 0b000).with_operand(_RD, _IMM, _RS1);
-static const auto LH = MnemonicDescriptor::I(RV32I_LOAD, 0b001).with_operand(_RD, _IMM, _RS1);
-static const auto LW = MnemonicDescriptor::I(RV32I_LOAD, 0b010).with_operand(_RD, _IMM, _RS1);
-static const auto LBU = MnemonicDescriptor::I(RV32I_LOAD, 0b100).with_operand(_RD, _IMM, _RS1);
-static const auto LHU = MnemonicDescriptor::I(RV32I_LOAD, 0b101).with_operand(_RD, _IMM, _RS1);
-static const auto SB = MnemonicDescriptor::S(RV32I_STORE, 0b000).with_operand(_RS2, _IMM, _RS1);
-static const auto SH = MnemonicDescriptor::S(RV32I_STORE, 0b001).with_operand(_RS2, _IMM, _RS1);
-static const auto SW = MnemonicDescriptor::S(RV32I_STORE, 0b010).with_operand(_RS2, _IMM, _RS1);
+static const auto LB =
+    MnemonicDescriptor::I(RV32I_LOAD, 0b000).with_operand(_RD, _IMM, _P_RS1).with_comma_after(1, false);
+static const auto LH =
+    MnemonicDescriptor::I(RV32I_LOAD, 0b001).with_operand(_RD, _IMM, _P_RS1).with_comma_after(1, false);
+static const auto LW =
+    MnemonicDescriptor::I(RV32I_LOAD, 0b010).with_operand(_RD, _IMM, _P_RS1).with_comma_after(1, false);
+static const auto LBU =
+    MnemonicDescriptor::I(RV32I_LOAD, 0b100).with_operand(_RD, _IMM, _P_RS1).with_comma_after(1, false);
+static const auto LHU =
+    MnemonicDescriptor::I(RV32I_LOAD, 0b101).with_operand(_RD, _IMM, _P_RS1).with_comma_after(1, false);
+static const auto SB =
+    MnemonicDescriptor::S(RV32I_STORE, 0b000).with_operand(_RS2, _IMM, _P_RS1).with_comma_after(1, false);
+static const auto SH =
+    MnemonicDescriptor::S(RV32I_STORE, 0b001).with_operand(_RS2, _IMM, _P_RS1).with_comma_after(1, false);
+static const auto SW =
+    MnemonicDescriptor::S(RV32I_STORE, 0b010).with_operand(_RS2, _IMM, _P_RS1).with_comma_after(1, false);
 
 // Memory Ordering instructions
 static const auto FENCE = MnemonicDescriptor::IFence(0b0000).with_operand(_PRED, _SUCC).with_rs1(0).with_rd(0);
