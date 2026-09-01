@@ -3,7 +3,8 @@
   height="32"
   viewBox="0 0 48 32">
   <!--rect width="48" height="32" fill="red" fill-opacity=".25" /-->
-        <path id="nand"
+  <g id="nand">
+   <path
 	d="
 	M 21 1
 	a 15 15 0 0 1 0 30
@@ -13,4 +14,5 @@
 	style="fill:white;stroke:#000000;stroke-width:1" />
 	<circle cx="40" cy="15" r="3"
 	style="fill:white;stroke:#000000;stroke-width:1" />
+  </g>
 </svg>
