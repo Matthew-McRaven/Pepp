@@ -64,3 +64,47 @@ TEST_CASE("RISC-V branch and jump immediates survive encode then decode",
     CHECK(mismatches == 0);
   }
 }
+
+TEST_CASE("RISC-V imm_fits accepts exactly the representable immediates",
+          "[scope:core][scope:core.arch][kind:unit][arch:riscv]") {
+  auto descriptor = [](const char *m) -> const riscv::MnemonicDescriptor & {
+    auto it = riscv::string_to_mnemonic.find(std::string(m));
+    REQUIRE(it != riscv::string_to_mnemonic.end());
+    return it->mn;
+  };
+
+  SECTION("signed immediates span their whole range and stop there") {
+    // {mnemonic, low, high, step}. A step of 2 marks the displacements whose low bit is implicitly 0.
+    for (auto [mnemonic, lo, hi, step] : {std::tuple{"addi", -2048, 2047, 1},
+                                          {"sw", -2048, 2047, 1},
+                                          {"beq", -4096, 4094, 2},
+                                          {"jal", -1048576, 1048574, 2}}) {
+      const auto &d = descriptor(mnemonic);
+      CAPTURE(mnemonic, lo, hi, step);
+      CHECK(d.imm_fits(lo));
+      CHECK(d.imm_fits(hi));
+      CHECK(d.imm_fits(0));
+      // One step past either end does not wrap or saturate.
+      CHECK_FALSE(d.imm_fits(lo - step));
+      CHECK_FALSE(d.imm_fits(hi + step));
+      // An odd displacement is unrepresentable.
+      if (step == 2) {
+        CHECK_FALSE(d.imm_fits(1));
+        CHECK_FALSE(d.imm_fits(-1));
+        CHECK_FALSE(d.imm_fits(lo + 1));
+      }
+    }
+  }
+
+  SECTION("a U-type operand is an unsigned field, so its high half is legal") {
+    const auto &d = descriptor("lui");
+    CHECK(d.imm_fits(0));
+    CHECK(d.imm_fits(0x65));
+    // Would read as negative under the signed rule the other types use.
+    CHECK(d.imm_fits(0x80000));
+    CHECK(d.imm_fits(0xFFFFF));
+    CHECK_FALSE(d.imm_fits(0x100000));
+    CHECK_FALSE(d.imm_fits(-1));
+  }
+}
+

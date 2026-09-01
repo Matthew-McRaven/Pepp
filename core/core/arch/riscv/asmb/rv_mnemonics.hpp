@@ -19,7 +19,7 @@ struct Values {
 
 
 struct Operand {
-  enum class Type : u8 { Invalid = 0, Register, Immediate, Fence, XLEN8, XLEN16 } type;
+  enum class Type : u8 { Invalid = 0, Register, ParenthesizedRegister, Immediate, Fence, XLEN8, XLEN16 } type;
   enum class Destination : u8 { Invalid = 0, RS, RS1, RS2, RD, IMM, SHAMT, PRED, SUCC } destination;
 };
 
@@ -42,11 +42,14 @@ struct MnemonicDescriptor {
   u8 opcode() const;
 
   std::span<const Operand> operands() const noexcept;
+  bool comma_after(std::size_t index) const noexcept;
+
   Type type() const noexcept;
 
   void append_operand(Operand operand);
   MnemonicDescriptor &&with_operand(Operand first, std::same_as<Operand> auto... ops) &&;
   MnemonicDescriptor replaced_operands(std::same_as<Operand> auto... ops) const noexcept;
+  MnemonicDescriptor &&with_comma_after(std::size_t index, bool comma) &&;
 
   // Does this mnemonic have an rs1 position in its instruction format?
   bool allows_rs1() const noexcept;
@@ -83,6 +86,8 @@ struct MnemonicDescriptor {
   void set_imm(u32 imm);
   // Convert an immediate value to the encoded bits.
   u32 encode_imm(u32 imm) const noexcept;
+  // Does the provided immediate fit losslessly in this instruction format?
+  bool imm_fits(i32 imm) const noexcept;
   // Return the raw bit-pattern
   std::optional<u32> get_raw_imm() const;
   // Return the immediate bits after encoding them.
@@ -113,6 +118,8 @@ protected:
   // immediate requires up to 20 bits, and is multiplexed with funct7.
   uint32_t _imm_or_funct7 = 0;
   std::array<Operand, 3> _operands;
+  // True if operand[i] needs a comma before the next field, defaults to true.
+  std::array<bool, 2> _trailing_comma = {true, true};
 };
 
 struct Mnemonic {

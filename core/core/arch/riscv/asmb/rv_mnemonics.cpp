@@ -74,6 +74,11 @@ u8 riscv::MnemonicDescriptor::opcode() const {
   return _type == Type::Pseudo ? throw std::runtime_error("Pseudo instructions do not have a single opcode") : _opcode7;
 }
 
+bool riscv::MnemonicDescriptor::comma_after(std::size_t index) const noexcept {
+  if (index >= _trailing_comma.size()) return false;
+  return _trailing_comma[index];
+}
+
 void riscv::MnemonicDescriptor::append_operand(Operand operand) {
   for (int it = 0; it < _operands.size(); it++) {
     if (_operands[it].type == Operand::Type::Invalid) {
@@ -82,6 +87,11 @@ void riscv::MnemonicDescriptor::append_operand(Operand operand) {
     }
   }
   throw std::runtime_error("Too many operands for this mnemonic");
+}
+
+riscv::MnemonicDescriptor &&riscv::MnemonicDescriptor::with_comma_after(std::size_t index, bool comma) && {
+  if (index < _trailing_comma.size()) _trailing_comma[index] = comma;
+  return std::move(*this);
 }
 
 bool riscv::MnemonicDescriptor::allows_rs1() const noexcept {
@@ -282,6 +292,20 @@ u32 riscv::MnemonicDescriptor::encode_imm(u32 imm) const noexcept {
   const auto width = width_imm();
   if (width == 0) return 0;
   return (imm >> imm_shift()) & ((u32(1) << width) - 1);
+}
+
+// Per ISA spec, sign-extended is required for most immediates.
+// U-type is the exception, which is treated as unsigned.
+bool riscv::MnemonicDescriptor::imm_fits(i32 imm) const noexcept {
+  if (const int width = width_imm(); width == 0) return imm == 0;
+  // Low-order bits are dropped if immediates are shifted.
+  else if (const int shift = imm_shift(); imm & ((1 << shift) - 1)) return false;
+  else if (u32 uimm = imm; _type == Type::U) return uimm <= (i32(1) << width) - 1;
+  else {
+    // Leading 0/1s are ignored when encoding.
+    const int bits = width + shift;
+    return -(i32(1) << (bits - 1)) <= imm && imm <= (i32(1) << (bits - 1)) - 1;
+  }
 }
 
 bool riscv::MnemonicDescriptor::operator==(const MnemonicDescriptor &other) const noexcept {
