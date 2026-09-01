@@ -3,7 +3,7 @@
   height="32"
   viewBox="0 0 48 32">
   <!--rect width="48" height="32" fill="red" fill-opacity=".25" /-->
-        <path id="and"
+  <path id="and"
 	d="
 	M 28 1
 	a 15 15 0 0 1 0 30
