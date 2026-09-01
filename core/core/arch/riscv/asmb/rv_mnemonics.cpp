@@ -298,6 +298,8 @@ u32 riscv::MnemonicDescriptor::encode_imm(u32 imm) const noexcept {
 // U-type is the exception, which is treated as unsigned.
 bool riscv::MnemonicDescriptor::imm_fits(i32 imm) const noexcept {
   if (const int width = width_imm(); width == 0) return imm == 0;
+  // Shifts have a restricted range wrt normal immediates.
+  else if (sources(Operand::Destination::SHAMT)) return 0 <= imm && imm < 32;
   // Low-order bits are dropped if immediates are shifted.
   else if (const int shift = imm_shift(); imm & ((1 << shift) - 1)) return false;
   else if (u32 uimm = imm; _type == Type::U) return uimm <= (i32(1) << width) - 1;
