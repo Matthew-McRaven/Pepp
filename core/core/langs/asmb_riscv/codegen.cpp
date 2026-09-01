@@ -128,7 +128,7 @@ void pepp::tc::RISCVObjectVistitor::visit(const RTypeIR *line) {
 }
 
 void pepp::tc::RISCVObjectVistitor::visit(const ITypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
+  auto imm = line->imm ? line->imm->value_as<u32>() : u32(0);
   riscv::Values vals{.rs1 = line->rs1, .rs2 = std::nullopt, .rd = line->rd, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
@@ -138,7 +138,7 @@ void pepp::tc::RISCVObjectVistitor::visit(const ITypeIR *line) {
 }
 
 void pepp::tc::RISCVObjectVistitor::visit(const STypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
+  auto imm = line->imm ? line->imm->value_as<u32>() : u32(0);
   riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = std::nullopt, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
@@ -148,7 +148,7 @@ void pepp::tc::RISCVObjectVistitor::visit(const STypeIR *line) {
 }
 
 void pepp::tc::RISCVObjectVistitor::visit(const BTypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
+  auto imm = line->imm ? line->imm->value_as<u32>() : u32(0);
   riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = std::nullopt, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
@@ -158,7 +158,7 @@ void pepp::tc::RISCVObjectVistitor::visit(const BTypeIR *line) {
 }
 
 void pepp::tc::RISCVObjectVistitor::visit(const UTypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
+  auto imm = line->imm ? line->imm->value_as<u32>() : u32(0);
   riscv::Values vals{.rs1 = std::nullopt, .rs2 = std::nullopt, .rd = line->rd, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
@@ -168,7 +168,7 @@ void pepp::tc::RISCVObjectVistitor::visit(const UTypeIR *line) {
 }
 
 void pepp::tc::RISCVObjectVistitor::visit(const JTypeIR *line) {
-  auto imm = line->imm->value_as<u32>();
+  auto imm = line->imm ? line->imm->value_as<u32>() : u32(0);
   riscv::Values vals{.rs1 = std::nullopt, .rs2 = std::nullopt, .rd = line->rd, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
