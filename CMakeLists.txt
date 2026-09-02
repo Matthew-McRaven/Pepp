@@ -41,8 +41,9 @@ endif()
 if(PEPP_PRECOMPILE_HEADERS)
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # Clang stamps the PCH with its sources' times and rejects the PCH when they
-    # differ. If using PCH with a compiler cache, this would effectively invalidate
-    # the cache. See: https://ccache.dev/manual/latest.html#_precompiled_headers
+    # differ. If using PCH with a compiler cache, this would effectively
+    # invalidate the cache. See:
+    # https://ccache.dev/manual/latest.html#_precompiled_headers
     add_compile_options(-Xclang -fno-pch-timestamp)
   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # /Yl is on by default with precompiled headers.
@@ -167,5 +168,12 @@ if(PEPP_BUILD_GUI)
   add_subdirectory(lib)
   add_subdirectory(test)
   add_subdirectory(test2)
+
+  # Must be after all tests have been created.
+  if(NOT (EMSCRIPTEN OR IOS))
+    set(count 2)
+    catch_test_count(count)
+    catch_add_sharded_tests(test-all SHARD_COUNT ${count})
+  endif()
 endif()
 add_subdirectory(bin)

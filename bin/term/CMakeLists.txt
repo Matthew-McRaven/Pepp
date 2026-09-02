@@ -43,13 +43,6 @@ if(ENABLE_TERM_TESTS AND NOT (EMSCRIPTEN OR IOS))
   add_test(NAME test-term COMMAND test-term)
 endif()
 
-# Set pepp/pepp-term as a test target.
-if(NOT (EMSCRIPTEN OR IOS))
-  set(count 2)
-  catch_test_count(count)
-  catch_add_sharded_tests(pepp-term ADDTL_ARGS "selftest" SHARD_COUNT ${count})
-endif()
-
 function(add_term_alias alias)
   if(NOT TARGET pepp-term)
     message(
