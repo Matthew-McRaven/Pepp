@@ -4,7 +4,7 @@
 // So the emitted js file only defines+exports a factory function.
 // We actually need to call into that factory to execute the real program.
 //
-// Additionally, QCoreApplication crashes when run headlessly because it looks for `window`.
+// QCoreApplication crashes when run headlessly because it looks for `window`.
 // Specifically, QWasmTimer::clearTimeout() on application shutdown.
 // We will just mock out `window` so the tests will have a chance to run + actually pass.
 if (typeof globalThis.window === 'undefined')

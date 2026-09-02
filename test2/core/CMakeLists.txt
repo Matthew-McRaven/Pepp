@@ -15,7 +15,8 @@ pepp_precompile_headers(
   <span>
   <cstdint>)
 
-if(NOT (EMSCRIPTEN OR IOS))
+if(NOT IOS)
+  # Not built with Qt, so it does not get MODULARIZE'd, and can run directly.
   add_test(NAME test-core COMMAND test-core ${PEPP_TESTS_SKIP_THROWS_ARGS})
   # See test2/verify-asmb for why the slow entries carry an explicit COST.
   set_tests_properties(test-core PROPERTIES COST 9)

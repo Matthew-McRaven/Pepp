@@ -26,29 +26,16 @@ if(EMSCRIPTEN AND TARGET Qt6::Platform)
   unset(_pepp_qt_platform_copts)
   unset(_pepp_qt_platform_lopts)
 
-  # Belt and suspenders: also catch a build where the flag was added some other
-  # way (manually on the command line, a different Qt version that does not
-  # route through Qt6::Platform, etc). Harmless if Qt6::Platform already found
-  # it.
-  foreach(_flags_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_INIT
-                     CMAKE_EXE_LINKER_FLAGS CMAKE_EXE_LINKER_FLAGS_INIT)
-    if(${_flags_var} MATCHES "-fwasm-exceptions")
-      set(PEPP_HAS_QT_WASM_EXCEPTIONS ON)
-    endif()
-  endforeach()
-
   message(STATUS "PEPP_HAS_QT_WASM_EXCEPTIONS: ${PEPP_HAS_QT_WASM_EXCEPTIONS}")
   if(PEPP_HAS_QT_WASM_EXCEPTIONS)
     add_compile_options(-fwasm-exceptions)
     add_link_options(-fwasm-exceptions)
 
-    # Catch2 attempts to determine ifto decide whether C++ exceptions are
-    # available. Under -fwasm-exceptions, they do not appear to be available, so
-    # Catch concludes exceptions are unavailable and auto-defines
-    # CATCH_CONFIG_DISABLE_EXCEPTIONS. In this specific case, we know that
-    # exceptions work, so we can override Catch's detection with
-    # CATCH_CONFIG_NO_DISABLE_EXCEPTIONS. Must be public, otherwise we will have
-    # to hunt down each TU which links catch.
+    # Catch2 attempts to determine whether C++ exceptions are available. Under
+    # -fwasm-exceptions, they do not appear to be available, so Catch
+    # auto-defines CATCH_CONFIG_DISABLE_EXCEPTIONS. We know that exceptions
+    # work, so we can override Catch's detection. Must be public, otherwise we
+    # will have to hunt down each TU which links catch.
     if(TARGET catch)
       target_compile_definitions(catch
                                  PUBLIC CATCH_CONFIG_NO_DISABLE_EXCEPTIONS)
@@ -66,10 +53,14 @@ if(EMSCRIPTEN)
   endif()
 endif()
 
-# Pre-built COMMAND argument list for add_test() call sites. Splice this in
-# unquoted (${PEPP_TESTS_SKIP_THROWS_ARGS}, no quotes) so it vanishes entirely
-# when empty rather than adding a stray blank argument.
+# Pre-built COMMAND argument list for add_test() call sites. Insert it unquoted
+# unquoted ${PEPP_TESTS_SKIP_THROWS_ARGS} so it vanishes when empty rather than
+# adding a stray blank argument.
 set(PEPP_TESTS_SKIP_THROWS_ARGS "")
 if(PEPP_TESTS_SKIP_THROWS)
-  list(APPEND PEPP_TESTS_SKIP_THROWS_ARGS --nothrow)
+  # Trailing * isn't decorative. Catch's argument parser only checks --nothrow
+  # if there is a positional argument. Since filters are AND'ed together, this
+  # is effectively a no-op. Failure to include this * cause us to run throwing
+  # tests on exceptionless platforms; misery ensues.
+  list(APPEND PEPP_TESTS_SKIP_THROWS_ARGS --nothrow "*")
 endif()
