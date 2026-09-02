@@ -41,6 +41,18 @@ if(EMSCRIPTEN AND TARGET Qt6::Platform)
   if(PEPP_HAS_QT_WASM_EXCEPTIONS)
     add_compile_options(-fwasm-exceptions)
     add_link_options(-fwasm-exceptions)
+
+    # Catch2 attempts to determine ifto decide whether C++ exceptions are
+    # available. Under -fwasm-exceptions, they do not appear to be available, so
+    # Catch concludes exceptions are unavailable and auto-defines
+    # CATCH_CONFIG_DISABLE_EXCEPTIONS. In this specific case, we know that
+    # exceptions work, so we can override Catch's detection with
+    # CATCH_CONFIG_NO_DISABLE_EXCEPTIONS. Must be public, otherwise we will have
+    # to hunt down each TU which links catch.
+    if(TARGET catch)
+      target_compile_definitions(catch
+                                 PUBLIC CATCH_CONFIG_NO_DISABLE_EXCEPTIONS)
+    endif()
   endif()
 endif()
 
