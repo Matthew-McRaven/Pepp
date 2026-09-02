@@ -382,10 +382,6 @@ QtObject {
             text: qsTr("Reload Figures")
             icon.source: "image://icons/blank.svg"
         }
-        readonly property var openSelftest: Action {
-            text: qsTr("Open self-test GUI")
-            icon.source: "image://icons/blank.svg"
-        }
         readonly property var defaultFigures: Action {
             text: qsTr("&Reload Initial Favorites")
             icon.source: "image://icons/blank.svg"

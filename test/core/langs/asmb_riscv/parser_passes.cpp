@@ -26,7 +26,7 @@ namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 } // namespace
 
-TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv]") {
+TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv][!throws]") {
   using Lexer = pepp::langs::RISCVLexer;
   using Parser = pepp::tc::parser::RISCVParser;
   using SymbolTable = pepp::core::symbol::LeafTable;

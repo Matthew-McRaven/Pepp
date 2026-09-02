@@ -38,7 +38,6 @@
 #include "commands/microrun.hpp"
 #include "commands/run.hpp"
 #include "commands/rvemu.hpp"
-#include "commands/selftest.hpp"
 #include "commands/throughput.hpp"
 
 int main(int argc, char **argv) {
@@ -77,7 +76,6 @@ int main(int argc, char **argv) {
 
   registerLicense(app, task, shared_flags);
   registerAbout(app, task, shared_flags);
-  registerSelfTest(app, task, shared_flags);
 
   registerList(app, task, shared_flags);
   registerListQRC(app, task, shared_flags);

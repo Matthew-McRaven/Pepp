@@ -104,7 +104,7 @@ TEST_CASE("Find register by name in HW debugger", "[scope:core][scope:core.dbg][
 }
 
 TEST_CASE("A pointer-backed register must declare its storage's width",
-          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
   auto *scan = sys->register_scan();
   u32 counter = 0;

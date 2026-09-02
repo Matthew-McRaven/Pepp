@@ -1,8 +1,7 @@
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 
 qt6_add_executable(pepp-term ${sources})
-target_link_libraries(pepp-term PRIVATE cli Qt6::Core catch test-lib-all
-                                        pepp-lib catch)
+target_link_libraries(pepp-term PRIVATE cli Qt6::Core catch pepp-lib)
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
 if(PEPP_PRECOMPILE_HEADERS)
@@ -40,14 +39,8 @@ if(ENABLE_TERM_TESTS AND NOT (EMSCRIPTEN OR IOS))
   target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_LIST_DIR}/test)
   target_link_libraries(test-term PRIVATE cli catch Qt6::Core)
   add_dependencies(test-term pepp-lib pepp-libplugin pepp)
-  add_test(NAME test-term COMMAND test-term)
-endif()
-
-# Set pepp/pepp-term as a test target.
-if(NOT (EMSCRIPTEN OR IOS))
-  set(count 2)
-  catch_test_count(count)
-  catch_add_sharded_tests(pepp-term ADDTL_ARGS "selftest" SHARD_COUNT ${count})
+  add_test(NAME test-term COMMAND test-term ${PEPP_TESTS_SKIP_THROWS_ARGS})
+  set_tests_properties(test-term PROPERTIES COST 12)
 endif()
 
 function(add_term_alias alias)

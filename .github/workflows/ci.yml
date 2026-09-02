@@ -112,7 +112,7 @@ jobs:
           lfs: 'false'
       - name: Cross-compile RISC-V samples
         run: |
-          cmake -B /rv_build -S test2/riscv/freestanding -DCMAKE_TOOLCHAIN_FILE="$(pwd)/config/cmake/rv64imafdc_freestanding.cmake" -DCMAKE_INSTALL_PREFIX=/rv_install
+          cmake -B /rv_build -S test/riscv/freestanding -DCMAKE_TOOLCHAIN_FILE="$(pwd)/config/cmake/rv64imafdc_freestanding.cmake" -DCMAKE_INSTALL_PREFIX=/rv_install
           cmake --build /rv_build
           cmake --build /rv_build -- install
           ls -lah /rv_install

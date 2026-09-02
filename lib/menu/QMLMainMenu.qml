@@ -246,9 +246,5 @@ MenuBar {
         ShortcutMenuItem {
             action: actions.appdev.defaultFigures
         }
-        ShortcutMenuItem {
-            text: actions.appdev.openSelftest.text
-            onTriggered: actions.appdev.openSelftest.trigger()
-        }
     }
 }

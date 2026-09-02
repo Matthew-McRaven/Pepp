@@ -161,7 +161,7 @@ TEST_CASE("(new) MemoryMappedReg storage out-of-bounds access",
   }
 }
 
-TEST_CASE("(new) MemoryMappedReg clear and dump", "[scope:core][scope:core.sim][kind:int][arch:*]") {
+TEST_CASE("(new) MemoryMappedReg clear and dump", "[scope:core][scope:core.sim][kind:int][arch:*][!throws]") {
   auto span = AddressSpan(0x17, 0x17);
   auto cfg = FIFORegister::Configuration{Device::Configuration{base_desc}};
   cfg.span = span, cfg.fill = 0xFE, cfg.id = {};

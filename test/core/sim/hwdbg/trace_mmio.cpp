@@ -279,7 +279,7 @@ TEST_CASE("trace::Recorder: MMIO on a bidirectional FIFO", "[scope:core][scope:c
   }
 }
 
-TEST_CASE("trace::Recorder: MMIO on an input-only FIFO", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("trace::Recorder: MMIO on an input-only FIFO", "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   SECTION("A recorded read undoes itself") {
     auto h = make_harness(FIFORegister::Direction::Input);
     h.fifo->input().push(0xAB);

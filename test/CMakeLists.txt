@@ -1,9 +1,6 @@
-file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
-
-get_filename_component(CURRENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
-target_sources(test-lib-all PRIVATE ${tests})
-maybe_append_all_libraries(pepp-lib)
-
-if(MOCKTURTLE_BUILD_TESTS)
-  add_test(NAME all-mockturtle-tests COMMAND run_mockturtle_tests)
-endif()
+add_subdirectory(builtin-data)
+add_subdirectory(core)
+add_subdirectory(riscv)
+add_subdirectory(pepp-lib)
+add_subdirectory(verify-isa3)
+add_subdirectory(verify-asmb)

@@ -73,7 +73,7 @@ static const std::array<Case, 27> CASES{{
 } // namespace
 
 TEST_CASE("RISCV ASM source formatting",
-          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv]") {
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv][!throws]") {
   SECTION("a line formats back to its canonical spelling") {
     // Source on the left, the text it must format to on the right. Columns are 9/8/18 wide, and
     // trailing space is trimmed, so a line with no comment ends at its last operand.

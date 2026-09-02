@@ -145,7 +145,13 @@ std::size_t pepp::bts::MappedFile::page_size() {
 }
 
 void pepp::bts::MappedFile::open_file() const {
-#if defined(_WIN32)
+#if defined(__EMSCRIPTEN__)
+  // Emscripten's mmap() emulation backs MAP_SHARED mappings with a full WASM
+  // linear-memory page and writes the whole page back to the file on
+  // unmap/msync, silently inflating small files to 65536 bytes. Always use
+  // the buffered fallback instead of real mmap on this platform.
+  _use_fallback = true;
+#elif defined(_WIN32)
   if (_readonly)
     _hFile = ::CreateFileA(_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
                            nullptr);
@@ -188,7 +194,12 @@ void pepp::bts::MappedFile::release() noexcept {
 
 void pepp::bts::MappedFile::load_mapped(Slice &slice) const {
   if (slice._loaded) return;
-  else if (ensure_opened(); _use_fallback) load_fallback(slice);
+  ensure_opened();
+  if (_use_fallback) {
+    load_fallback(slice);
+    slice._loaded = true;
+    return;
+  }
 
   const std::size_t ps = page_size(), base = slice._file_offset - (slice._file_offset % ps),
                     delta = slice._file_offset - base;
@@ -238,8 +249,8 @@ void pepp::bts::MappedFile::load_mapped(Slice &slice) const {
 }
 
 void pepp::bts::MappedFile::load_fallback(Slice &slice) const {
+  slice._fallback_buf.resize(slice._file_len, 0);
   if (_readonly) {
-    slice._fallback_buf.resize(slice._file_len);
     std::ifstream f(_path, std::ios::binary);
     if (!f) throw std::runtime_error("open failed");
     else if (f.seekg(static_cast<std::streamoff>(slice._file_offset), std::ios::beg); !f)
@@ -249,7 +260,12 @@ void pepp::bts::MappedFile::load_fallback(Slice &slice) const {
              f.gcount() != static_cast<std::streamsize>(slice._fallback_buf.size()))
       throw std::runtime_error("short read");
   } else {
-    slice._fallback_buf.resize(slice._fallback_buf.size(), 0);
+    // Pre-populate with existing file contents (if any) so a partial-slice
+    // write preserves the rest of the file.
+    std::ifstream f(_path, std::ios::binary);
+    if (f && (f.seekg(static_cast<std::streamoff>(slice._file_offset), std::ios::beg), f))
+      f.read(reinterpret_cast<char *>(slice._fallback_buf.data()),
+             static_cast<std::streamsize>(slice._fallback_buf.size()));
   }
   slice._data_view = {slice._fallback_buf};
 }
@@ -257,13 +273,19 @@ void pepp::bts::MappedFile::load_fallback(Slice &slice) const {
 void pepp::bts::MappedFile::write_fallback(const Slice &slice) {
   if (_readonly || slice._data_view.size() == 0) return;
   else if (slice._map_base != nullptr) return; // Do not use fallback if mmaped.
-  std::ofstream f(_path, std::ios::binary | std::ios::trunc);
-  f.seekp(slice._file_offset);
-  if (!f) throw std::runtime_error("openfailed");
+  // Do not truncat so bytes outside this slice are preserved.
+  // Create the file first if it doesn't exist yet.
+  std::fstream f(_path, std::ios::binary | std::ios::in | std::ios::out);
+  if (!f) {
+    std::ofstream(_path, std::ios::binary | std::ios::out).close();
+    f.open(_path, std::ios::binary | std::ios::in | std::ios::out);
+  }
+  if (!f) throw std::runtime_error("open failed");
+  f.seekp(static_cast<std::streamoff>(slice._file_offset));
+  if (!f) throw std::runtime_error("seek failed");
   f.write(reinterpret_cast<const char *>(slice._data_view.data()),
           static_cast<std::streamsize>(slice._data_view.size()));
   if (!f) throw std::runtime_error("write failed");
-  f.close();
 }
 
 void pepp::bts::MappedFile::flush(const Slice &slice) {
