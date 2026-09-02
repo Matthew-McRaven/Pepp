@@ -41,7 +41,7 @@ bool same_location(tvm::ProgramLocation a, tvm::ProgramLocation b) {
 
 } // namespace
 
-TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   constexpr Device::ID S{1};
 
@@ -152,7 +152,7 @@ TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg]
 }
 
 TEST_CASE("tvm::Interpreter: Throw rather than overwrite old data",
-          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   tvm::TraceBuffer tb(mgr, 1);
   constexpr Device::ID S{1};
@@ -171,7 +171,7 @@ TEST_CASE("tvm::Interpreter: Throw rather than overwrite old data",
   CHECK(tb.instruction_count() == (size_t)ENTRIES_PER_SLOT);
 }
 
-TEST_CASE("tvm::Interpreter: Resume submission after overflow", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("tvm::Interpreter: Resume submission after overflow", "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   tvm::TraceBuffer tb(mgr, 1);
   constexpr Device::ID S{1};

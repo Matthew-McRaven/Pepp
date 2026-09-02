@@ -869,7 +869,7 @@ TEST_CASE("trace::Recorder: repeated writes de-duplicate", "[scope:core][scope:c
 }
 
 TEST_CASE("System::initialize: at most one trace buffer, wherever it sits",
-          "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+          "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   // The device that finds the buffer is not necessarily the last one visited. This used to throw for any device
   // initialized after the buffer, because the duplicate check tested the wrong pointer -- and it went unnoticed
   // because every existing test happens to create its buffer last.

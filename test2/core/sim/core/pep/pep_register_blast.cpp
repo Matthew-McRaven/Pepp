@@ -511,7 +511,7 @@ TEST_CASE("NZVC fields pack independently", "[scope:core][scope:core.dbg][kind:u
   }
 }
 
-TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+TEST_CASE("Clearing registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   using namespace tvm::EncodedOp;
   constexpr Device::ID S{1};
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);

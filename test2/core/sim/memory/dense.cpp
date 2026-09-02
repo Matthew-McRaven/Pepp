@@ -91,7 +91,7 @@ TEST_CASE("(new) Dense storage out-of-bounds access", "[scope:core][scope:core.s
   REQUIRE_THROWS_AS(dev.write(0x11, {tmp, 1}, op), Error);
 }
 
-TEST_CASE("(new) Dense change tracking", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
+TEST_CASE("(new) Dense change tracking", "[scope:core][scope:core.sim][kind:unit][arch:*][!throws]") {
   // A non-zero lower bound, so that a device offset can never be mistaken for an address.
   static constexpr Address base = 0x10, last = 0xFF;
   auto span = AddressSpan(base, last);

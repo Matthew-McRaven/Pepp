@@ -59,7 +59,7 @@ RegisterScan::Selection counters_of(RegisterScan *scan, Device::ID dev) {
 
 } // namespace
 
-TEST_CASE("RegisterScan sampling", "[scope:core][scope:core.dbg][kind:unit][arch:*]") {
+TEST_CASE("RegisterScan sampling", "[scope:core][scope:core.dbg][kind:unit][arch:*][!throws]") {
   auto [sys, mem] = make_system();
   auto *scan = sys->register_scan();
 
