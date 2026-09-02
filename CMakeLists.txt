@@ -169,11 +169,11 @@ if(PEPP_BUILD_GUI)
   add_subdirectory(test)
   add_subdirectory(test2)
 
-  # Must be after all tests have been created.
+  # Must be after all tests have been created. Sharding is disabled for now: the
+  # expensive suites have moved out to their own targets under test2/, so what
+  # remains no longer justifies one process launch per source file.
   if(NOT (EMSCRIPTEN OR IOS))
-    set(count 2)
-    catch_test_count(count)
-    catch_add_sharded_tests(test-all SHARD_COUNT ${count})
+    add_test(NAME test-all COMMAND test-all)
   endif()
 endif()
 add_subdirectory(bin)
