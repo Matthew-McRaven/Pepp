@@ -66,10 +66,6 @@ jobs:
           submodules: recursive
           # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
           lfs: 'false'
-      # Local github runner doesn't have node installed.
-      - if: env.ACT
-        name: Install Node if running locally using `nektos/act`
-        uses: $/.github/actions/install-node
       # Must do a bunch of work to enable signing on MacOS.
       # https://docs.github.com/en/actions/deployment/deploying-xcode-applications/installing-an-apple-certificate-on-macos-runners-for-xcode-development
       # WARNING: If we switch to self-hosted runners, must clean up the certs ourselves.
@@ -91,23 +87,42 @@ jobs:
           MAC_BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_BUILD_CERTIFICATE_BASE64 }}
           MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
           MAC_P12_PASSWORD: ${{ secrets.MAC_P12_PASSWORD }}
-
-      # Install dependencies based on enabled features
-      - name: Install Qt+CMake in non-containerized builds
+      # Windows has an old python which causes aqt to fail at runtime.
+      - name: Force update python
         if: inputs.image  == ''
-        uses: $/.github/actions/install-qt-cmake
+        uses: actions/setup-python@v7
         with:
-          cache-key-prefix: install-qt-${{ inputs.runs-on }}
-
-      - name: Add QTIFW to path
-        if: inputs.runs-on == 'windows-latest'
+          python-version: '3.12'
+      # Must allow breaking system packages on Mac OS runners, else setup fails.
+      # See: https://github.com/jurplel/install-qt-action/issues/252
+      - name: Set up pip config on macOS
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p ~/.config/pip
+          echo "[global]" > ~/.config/pip/pip.conf
+          echo "break-system-packages = true" >> ~/.config/pip/pip.conf
         shell: bash
-        run: echo "$RUNNER_WORKSPACE/Qt/Tools/QtInstallerFramework/4.7/bin" >>$GITHUB_PATH
-      - name: Enable Developer Command Prompt
-        if: inputs.runs-on == 'windows-latest'
-        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
+      # Install build tools, compiler driver, and Qt for non-containerized builds.
+      - name: Install CMake and Ninja
+        if: inputs.image  == ''
+        # Corresponds to v4.4.2
+        uses: lukka/get-cmake@fffaaafeea488556c2c12dad60690008bc1caacb
+        with:
+          cmakeVersion: 4.3.2
+      - name: Install Qt
+        if: inputs.image  == ''
+        # Corresponds to v4.3.1, which is the latest as of 2026-09-02
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
+        with:
+          version: '6.11.0'
+          cache: true
+          tools: 'tools_ifw,qt.tools.ifw.47'
+          modules: 'qtshadertools qtimageformats qtcanvaspainter'
+          setup-python: 'false'
+          cache-key-prefix: install-qt-${{ inputs.runs-on }}
+          # Released aqtinstall does not yet support Qt 6.11; pin to a commit that does.
+          aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e'
       - name: Enable caching object files between builds
-        # Disable ccache when running locally
         if: inputs.compiler_launcher == 'ccache'
         # Corresponds to v1.2.23
         uses: hendrikmuhs/ccache-action@d62db5f07c26379fc4b4e0916f098a92573c3b03
@@ -116,6 +131,15 @@ jobs:
           key: ${{ inputs.cache_name || inputs.name }}
           restore: ${{ inputs.not_default }}
           save: ${{ inputs.save_cache }}
+
+      # Patch path on Windows.
+      - name: Add QTIFW to path
+        if: inputs.runs-on == 'windows-latest'
+        shell: bash
+        run: echo "$RUNNER_WORKSPACE/Qt/Tools/QtInstallerFramework/4.7/bin" >>$GITHUB_PATH
+      - name: Enable Developer Command Prompt
+        if: inputs.runs-on == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
 
       # Initializes the CodeQL tools for scanning. Must occur before code is built.
       - name: Initialize CodeQL
