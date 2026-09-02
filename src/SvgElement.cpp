@@ -191,11 +191,11 @@ XmlAttributes &SvgElement::attributes()
     return _attributes;
 }
 
-const auto &SvgElement::children() const
+const std::list<std::unique_ptr<SvgElement>> &SvgElement::children() const
 {
     return _children;
 }
-auto &SvgElement::children()
+std::list<std::unique_ptr<SvgElement>> &SvgElement::children()
 {
     return _children;
 }

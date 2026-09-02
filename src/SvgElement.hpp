@@ -93,8 +93,8 @@ public:
     const XmlAttributes &attributes() const;
     XmlAttributes &attributes();
 
-    const auto &children() const;
-    auto &children();
+    const std::list<std::unique_ptr<SvgElement>> &children() const;
+    std::list<std::unique_ptr<SvgElement>> &children();
     SvgElement *createElement(const std::string &name);
     SvgElement *createElement(const SvgType type);
 
@@ -104,7 +104,7 @@ public:
     virtual bool attributeXml(SvgRope &output) const;
     //virtual std::unique_ptr<SvgElement> clone() const;
 
-protected:
+private:
     //  Standard Xml Data
     SvgInterface::SvgType _elementType = SvgInterface::SvgType::SvgUnknownElement;
     std::string _xmlName;

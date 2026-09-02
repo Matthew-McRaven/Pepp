@@ -45,13 +45,13 @@ void SvgSvgElement::toXml(SvgRope &output) const
     attributeXml(output);
 
     //  No child elements, and no values, add end tag
-    if (_children.empty() && SvgElement::value().empty()) {
+    if (SvgElement::children().empty() && SvgElement::value().empty()) {
         output.push_back(" />");
         return;
     }
     output.push_back(">");
 
-    for (const auto &element : _children) {
+    for (const auto &element : SvgElement::children()) {
         element->toXml(output);
     }
     //  When child elements, add closing element

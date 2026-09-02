@@ -29,7 +29,7 @@ SvgCDataElement::SvgCDataElement(const std::string &cdata)
 
 void SvgCDataElement::toXml(SvgRope &output) const
 {
-    std::string buffer = std::format("<![CDATA[{}]]>", _value);
+    std::string buffer = std::format("<![CDATA[{}]]>", SvgElement::value());
     output.push_back(std::move(buffer));
     //  CData cannot have children or attributes
 }
