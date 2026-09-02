@@ -6,7 +6,7 @@ qt6_add_executable(test-builtins ${srcs}
 target_link_libraries(test-builtins PRIVATE pepp-lib catch Qt6::Core)
 set_target_properties(test-builtins PROPERTIES FOLDER "qtc_runnable")
 
-# A handful of cheap integration tests -- one ctest entry, no sharding.
 if(NOT (EMSCRIPTEN OR IOS))
-  add_test(NAME test-builtins COMMAND test-builtins ${PEPP_TESTS_SKIP_THROWS_ARGS})
+  add_test(NAME test-builtins COMMAND test-builtins
+                                      ${PEPP_TESTS_SKIP_THROWS_ARGS})
 endif()
