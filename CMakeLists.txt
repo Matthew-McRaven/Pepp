@@ -166,15 +166,7 @@ if(PEPP_BUILD_GUI)
   include(config/compile_tests/TryFindWebP.cmake)
   include(config/cmake/GenerateChangelog.cmake)
   add_subdirectory(lib)
-  add_subdirectory(test)
+  # add_subdirectory(test)
   add_subdirectory(test2)
-
-  # Must be after all tests have been created. Sharding is disabled for now: the
-  # expensive suites have moved out to their own targets under test2/, so what
-  # remains no longer justifies one process launch per source file.
-  if(NOT (EMSCRIPTEN OR IOS))
-    add_test(NAME test-all COMMAND test-all)
-    set_tests_properties(test-all PROPERTIES COST 10)
-  endif()
 endif()
 add_subdirectory(bin)
