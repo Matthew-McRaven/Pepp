@@ -383,9 +383,5 @@ Labs.MenuBar {
             text: actions.appdev.defaultFigures.text
             onTriggered: actions.appdev.defaultFigures.trigger()
         }
-        Labs.MenuItem {
-            text: actions.appdev.openSelftest.text
-            onTriggered: actions.appdev.openSelftest.trigger()
-        }
     }
 }

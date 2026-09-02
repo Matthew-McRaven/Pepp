@@ -39,7 +39,6 @@ endif()
 target_link_libraries(
   pepp
   PRIVATE cli
-          catch
           Qt6::Core
           Qt6::Gui
           Qt::Qml
@@ -49,7 +48,6 @@ target_link_libraries(
           Qt6::Xml
           Qt::Widgets
           ${EXTRA_LIBS_IF_STATIC}
-          test-lib-all
           pepp-lib
           KDAB::kddockwidgets
           kddockwidgetsplugin)

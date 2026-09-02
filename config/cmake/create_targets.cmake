@@ -20,8 +20,7 @@ if(PEPP_PRECOMPILE_HEADERS)
     "${PROJECT_SOURCE_DIR}/lib/sim/debug/debugger.hpp"
     "${PROJECT_SOURCE_DIR}/core/core/math/geom/interval.hpp")
 endif()
-# test-all bundles all the tests into a single executable to provide a runnable
-# target in the IDE other than pepp-term selftest.
+# test-all bundles all the tests into a single executable.
 qt6_add_executable(test-all ${PROJECT_SOURCE_DIR}/config/cmake/main.cpp)
 target_link_libraries(test-all PUBLIC test-lib-all catch)
 set_target_properties(test-all PROPERTIES FOLDER "qtc_runnable")
