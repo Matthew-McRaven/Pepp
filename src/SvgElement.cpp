@@ -361,7 +361,7 @@ bool SvgElement::attributeXml(SvgRope &output) const
     return hasAttributes;
 }
 
-std::unique_ptr<SvgElement> SvgElement::clone() const
+/*std::unique_ptr<SvgElement> SvgElement::clone() const
 {
     auto copy = std::make_unique<SvgElement>(*this);
 
@@ -370,4 +370,4 @@ std::unique_ptr<SvgElement> SvgElement::clone() const
     }
 
     return copy;
-}
+}*/

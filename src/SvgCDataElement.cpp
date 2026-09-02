@@ -2,7 +2,7 @@
 
 //	Standard library
 #include <format> //  std::format
-#include <memory> //  std::make_unique
+//#include <memory> //  std::make_unique
 
 #include "utility_p.hpp" //  SvgRope
 
@@ -16,15 +16,15 @@ and output.
 
 //	Public interface
 SvgCDataElement::SvgCDataElement()
-    : SvgElement()
+//    : SvgElement()
 {
-    _elementType = SvgElement::SvgType::SvgCDataElement;
+    SvgElement::setElementType(SvgInterface::SvgType::SvgCommentElement);
 }
 
 SvgCDataElement::SvgCDataElement(const std::string &cdata)
     : SvgCDataElement()
 {
-    _value = cdata;
+    SvgElement::setValue(cdata);
 }
 
 void SvgCDataElement::toXml(SvgRope &output) const
@@ -32,9 +32,4 @@ void SvgCDataElement::toXml(SvgRope &output) const
     std::string buffer = std::format("<![CDATA[{}]]>", _value);
     output.push_back(std::move(buffer));
     //  CData cannot have children or attributes
-}
-
-std::unique_ptr<SvgElement> SvgCDataElement::clone() const
-{
-    return std::make_unique<SvgCDataElement>(*this);
 }

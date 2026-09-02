@@ -3,6 +3,7 @@
 #include <list>
 #include <string>
 
+#include "SvgInterface.hpp"
 #include "XmlAttributes_p.hpp"
 #include "utility_p.hpp"
 
@@ -10,24 +11,13 @@
 class XmlAttributes;
 class Document;
 
-// CRTP helper class that implements clone() automatically
-template<typename Derived, typename Base>
-class Cloneable : public Base
+class SvgElement : public SvgInterface //Cloneable<SvgElement, SvgInterface>
 {
 public:
-    std::unique_ptr<Base> clone() const override
-    {
-        // Safe downcast to invoke the correct copy constructor
-        return std::make_unique<Derived>(static_cast<const Derived &>(*this));
-    }
-};
-
-class SvgElement
-{
-public:
-    enum class SvgType {
+    /*enum class SvgType {
         SvgUnknownElement = 0,
         //  Dom elements
+        SvgBasicElement,
         SvgCommentElement,
         SvgCDataElement,
         //  SvgSpecific elements
@@ -51,7 +41,7 @@ public:
         SvgPolygonElement,
         SvgRectElement,
         SvgTextElement,
-    };
+    };*/
 
     SvgElement() = default;
     explicit SvgElement(const std::string &name, const std::string &value = "");
@@ -64,8 +54,8 @@ public:
 
     //	User access functions
     //  Standard Xml
-    SvgElement::SvgType elementType() const;
-    void setElementType(SvgElement::SvgType elementType);
+    SvgInterface::SvgType elementType() const;
+    void setElementType(SvgInterface::SvgType elementType);
     const std::string &xmlName() const;
     void setXmlName(const std::string &xmlName);
     const std::string &value() const;
@@ -112,11 +102,11 @@ public:
     virtual void toXml(SvgRope &output) const;
     virtual bool setAttribute(const std::string &key, const std::string &value);
     virtual bool attributeXml(SvgRope &output) const;
-    virtual std::unique_ptr<SvgElement> clone() const;
+    //virtual std::unique_ptr<SvgElement> clone() const;
 
 protected:
     //  Standard Xml Data
-    SvgElement::SvgType _elementType = SvgElement::SvgType::SvgUnknownElement;
+    SvgInterface::SvgType _elementType = SvgInterface::SvgType::SvgUnknownElement;
     std::string _xmlName;
     std::string _value;
 

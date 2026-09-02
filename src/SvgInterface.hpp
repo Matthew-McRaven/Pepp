@@ -1,18 +1,29 @@
 #pragma once
 
+#include <memory>
 #include <string>
+using namespace std::string_literals;
 
 class SvgRope;
 
-struct SvgInterface
+// CRTP helper class that implements clone() automatically
+template<typename Derived, typename Base>
+class Cloneable : public Base
 {
-    //  Base class that implements Empty Base Class Optimization
-    //  Must have no data elements, or v-table will be created.
-    //  See https://en.cppreference.com/cpp/language/crtp for basic
-    //  explanation.
-    //protected:
+public:
+    /*std::unique_ptr<Base> clone() const override
+    {
+        // Safe downcast to invoke the correct copy constructor
+        return std::make_unique<Derived>(static_cast<const Derived &>(*this));
+    }*/
+};
+
+class SvgInterface
+{
+    //  Base class used to enforce enterface used by derived Svg elements
+protected:
     //  Must be inherited
-    SvgInterface() = default;
+    //SvgInterface() = default;
 
 public:
     enum class SvgType {
@@ -20,6 +31,7 @@ public:
         //  Dom elements
         SvgBasicElement,
         SvgCommentElement,
+        SvgCDataElement,
         //  SvgSpecific elements
         SvgElementParent = 0x0100,
         SvgDescElement,
@@ -43,25 +55,13 @@ public:
         SvgTextElement,
     };
 
-    //  Disables EBCO. Cannot call virtual functions without this.
     virtual ~SvgInterface() = default;
-
-    //  These functions call derived classes
-    void serialize(this auto &&self, SvgRope &output) { self.toXml(output); }
-    SvgType type(this auto &&self) { return self.elementType(); }
-    SvgType setType(this auto &&self, const SvgInterface::SvgType type)
-    {
-        self.setElementType(type);
-    }
-    //auto *pointerType(this auto &&self) { return &self; }
-
-    //std::unique_ptr<SvgInterface> clone() const;
-
-    //  Call to base class should just return
-    //SvgType elementType() { return SvgType::SvgUnknownElement; }
 
     virtual void toXml(SvgRope &output) const = 0;
     virtual bool setAttribute(const std::string &key, const std::string &value) = 0;
     virtual SvgInterface::SvgType elementType() const = 0;
     virtual void setElementType(SvgInterface::SvgType elementType) = 0;
+    //  Overrides
+    //virtual bool attributeXml(SvgRope &output) const;
+    //virtual std::unique_ptr<SvgInterface> clone() const = 0;
 };

@@ -16,16 +16,15 @@ factory methods.
 SvgRectElement::SvgRectElement()
     : SvgElement()
 {
-    _elementType = SvgElement::SvgType::SvgRectElement;
+    SvgElement::setElementType(SvgInterface::SvgType::SvgCommentElement);
 }
 
 SvgRectElement::SvgRectElement(const std::string &xmlName, const std::string &value)
     : SvgRectElement()
 {
-    _xmlName = xmlName;
-    _value = value;
+    SvgElement::setXmlName(xmlName);
+    SvgElement::setValue(value);
 }
-
 
 //  Derived class accessors
 //  Dimension accessors

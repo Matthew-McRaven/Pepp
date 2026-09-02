@@ -2,7 +2,6 @@
 
 //	Standard library
 #include <format> //  std::format
-#include <memory> //  std::make_unique
 
 #include "utility_p.hpp" //  SvgRope
 
@@ -16,25 +15,20 @@ derive from the SVGElement interface.
 
 //	Public interface
 SvgCommentElement::SvgCommentElement()
-    : SvgElement()
+//    : SvgElement()
 {
-    _elementType = SvgElement::SvgType::SvgCommentElement;
+    SvgElement::setElementType(SvgInterface::SvgType::SvgCommentElement);
 }
 
 SvgCommentElement::SvgCommentElement(const std::string &comment)
     : SvgCommentElement()
 {
-    _value = comment;
+    SvgElement::setValue(comment);
 }
 
 void SvgCommentElement::toXml(SvgRope &output) const
 {
-    std::string buffer = std::format("<!--{}-->", _value);
+    std::string buffer = std::format("<!--{}-->", SvgElement::value());
     output.push_back(std::move(buffer));
     //  Comments cannot have children or attributes
-}
-
-std::unique_ptr<SvgElement> SvgCommentElement::clone() const
-{
-    return std::make_unique<SvgCommentElement>(*this);
 }

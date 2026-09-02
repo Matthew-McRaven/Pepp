@@ -16,14 +16,14 @@ factory methods.
 SvgSvgElement::SvgSvgElement()
     : SvgElement()
 {
-    _elementType = SvgElement::SvgType::SvgSvgElement;
+    SvgElement::setElementType(SvgInterface::SvgType::SvgSvgElement);
 }
 
 SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &value)
     : SvgSvgElement()
 {
-    _xmlName = xmlName;
-    _value = value;
+    SvgElement::setXmlName(xmlName);
+    SvgElement::setValue(value);
 }
 
 //  Derived class accessors
@@ -45,7 +45,7 @@ void SvgSvgElement::toXml(SvgRope &output) const
     attributeXml(output);
 
     //  No child elements, and no values, add end tag
-    if (_children.empty() && _value.empty()) {
+    if (_children.empty() && SvgElement::value().empty()) {
         output.push_back(" />");
         return;
     }
