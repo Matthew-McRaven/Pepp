@@ -1,5 +1,11 @@
 include_guard()
 
+# Path to the node launcher for Emscripten test binaries. Qt's wasm output is
+# MODULARIZE'd , so `node <target>.js` does nothing and returns 0. This script
+# loads the WASM module, patches the global environment to fool Qt, and executes
+# the tests.
+set(PEPP_WASM_TEST_RUNNER "${CMAKE_CURRENT_LIST_DIR}/wasm_test_runner.js")
+
 # Detects whether the active toolchain has enabled native wasm exception
 # handling (-fwasm-exceptions). Must be places after Qt6 is found.
 #

@@ -42,7 +42,7 @@ TEST_CASE("Execute minimal machine", "[Minimal]") {
 #endif // RISCV_SPAN_AVAILABLE
 }
 
-TEST_CASE("Execution timeout", "[Minimal]") {
+TEST_CASE("Execution timeout", "[Minimal][!throws]") {
   const auto binary = load("://freestanding/basic_c.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
@@ -905,7 +905,7 @@ TEST_CASE("Calculate fib(2560000) on execute page", "[VA]") {
   }
 }
 
-TEST_CASE("Sequential buffer", "[Buffer]") {
+TEST_CASE("Sequential buffer", "[Buffer][!throws]") {
   const auto binary = load("://freestanding/basic_a.elf");
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};

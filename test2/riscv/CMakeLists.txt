@@ -47,4 +47,14 @@ qt6_add_resources(
 
 set_target_properties(riscv_elf_samples PROPERTIES FOLDER "qtc_runnable")
 target_link_libraries(riscv_elf_samples PRIVATE pepp-lib catch Qt6::Core)
-add_test(NAME riscv_elf_samples COMMAND riscv_elf_samples ${PEPP_TESTS_SKIP_THROWS_ARGS})
+
+# WASM execution requires an extra shim script.
+if(EMSCRIPTEN)
+  add_test(
+    NAME riscv_elf_samples
+    COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} "${PEPP_WASM_TEST_RUNNER}"
+            $<TARGET_FILE:riscv_elf_samples> ${PEPP_TESTS_SKIP_THROWS_ARGS})
+else()
+  add_test(NAME riscv_elf_samples COMMAND riscv_elf_samples
+                                          ${PEPP_TESTS_SKIP_THROWS_ARGS})
+endif()
