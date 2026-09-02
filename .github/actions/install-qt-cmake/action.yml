@@ -10,21 +10,23 @@ runs:
   # Selectively install and configure LLVM
   steps:
     - name: Install CMake and Ninja
-      # Corresponds to v3.31.6
-      uses: lukka/get-cmake@56d043d188c3612951d8755da8f4b709ec951ad6
-    - uses: actions/checkout@v4
+      # Corresponds to v4.4.2
+      uses: lukka/get-cmake@fffaaafeea488556c2c12dad60690008bc1caacb
+      with:
+        cmakeVersion: 4.3.2
+    - uses: actions/checkout@v7
       with:
         repository: 'Matthew-McRaven/install-qt-action'
         ref: '0fd226b72bc5b5a74f0baa65de4eae9d32b8f7d6'
         path: 'install-qt-action'
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v7
       with:
-        node-version: 20
+        node-version: 24
         cache: npm
         cache-dependency-path: install-qt-action/action/
     # Windows has an old python which causes aqt to fail at runtime.
     - name: Force update python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
     # Must allow breaking system packages on Mac OS runners, else setup fails.

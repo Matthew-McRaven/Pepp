@@ -15,7 +15,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - name: Checkout source code (shallow)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
       with:
         lfs: 'false'
