@@ -159,6 +159,7 @@ enable_testing()
 
 include(config/compile_tests/TryBuildStdRanges.cmake)
 include(config/cmake/FindRISCVToolchain.cmake)
+include(config/cmake/wasm_exception_support.cmake)
 add_subdirectory(core)
 if(PEPP_BUILD_GUI)
   # Creates special test targets.
