@@ -1,3 +1,4 @@
 add_subdirectory(builtin-data)
 add_subdirectory(riscv)
 add_subdirectory(verify-isa3)
+add_subdirectory(verify-asmb)
