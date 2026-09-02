@@ -53,7 +53,7 @@ jobs:
             echo "VERSION_GIT=$(echo "${tag}" | cut -c3- | xargs)" >> $GITHUB_ENV
           fi
       - name: Clone sources to extract project version
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           lfs: 'false' # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
           sparse-checkout: 'CMakeLists.txt'
@@ -78,7 +78,7 @@ jobs:
     container:
       image: ghcr.io/matthew-mcraven/pepp/image-utils:v0.18.0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         # LFS defaults to disabled, but accidental LFS bandwidth would be expensive.
         with:
           lfs: 'false'
@@ -95,7 +95,7 @@ jobs:
           icnsutil compose -f "icon.icns" "icon.svg.iconset"
           rm -r icon.svg.iconset
         working-directory: ./data/app_icon
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: icons
           path: data
@@ -106,7 +106,7 @@ jobs:
     container:
       image: ghcr.io/matthew-mcraven/pepp/gcc-riscv:v0.18.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         # LFS defaults to disabled, but accidental LFS bandwidth would be expensive.
         with:
           lfs: 'false'
@@ -116,7 +116,7 @@ jobs:
           cmake --build /rv_build
           cmake --build /rv_build -- install
           ls -lah /rv_install
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: riscv_tests
           path: /rv_install
@@ -234,7 +234,7 @@ jobs:
     name: Run WASM UI test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -255,14 +255,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code (shallow)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: 'false'
           lfs: 'false'
       - name: Generate Changelog
         run: cd scripts && python3 changelog_tools.py to_text --begin ${{ github.ref_name }} ../RELEASE.md
       - name: Upload changelog
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
            name: changelog
            path: RELEASE.md
@@ -279,7 +279,7 @@ jobs:
       id-token: write
     steps:
       - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: pyart-*
           path: dist
@@ -300,12 +300,12 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Dowload changelog
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: changelog
           path: .
       - name: Dowload artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: artifact-*
           merge-multiple: true

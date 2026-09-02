@@ -61,7 +61,7 @@ jobs:
       # Perform shallow clone, which may break some other operations
       # Must exectute before any repo-local actions
       - name: Checkout source code (shallow)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
           # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
@@ -109,7 +109,8 @@ jobs:
       - name: Enable caching object files between builds
         # Disable ccache when running locally
         if: inputs.compiler_launcher == 'ccache'
-        uses: hendrikmuhs/ccache-action@5ebbd400eff9e74630f759d94ddd7b6c26299639
+        # Corresponds to v1.2.23
+        uses: hendrikmuhs/ccache-action@d62db5f07c26379fc4b4e0916f098a92573c3b03
         with:
           verbose: 2
           key: ${{ inputs.cache_name || inputs.name }}
@@ -119,19 +120,19 @@ jobs:
       # Initializes the CodeQL tools for scanning. Must occur before code is built.
       - name: Initialize CodeQL
         if: inputs.codeql && !env.ACT
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: "c-cpp"
 
       - name: Download converted images and icons
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         if: inputs.images_artifact
         with:
           name: ${{ inputs.images_artifact }}
           path: data
 
       - name: Download RISC-V sample programs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: riscv_tests
           path: test/riscv/freestanding
@@ -182,7 +183,7 @@ jobs:
 
       - name: Upload compile_commands.json on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: failed_compile_commands
           path: build/compile_commands.json
@@ -203,7 +204,7 @@ jobs:
           mv data/app_icon/icon.ico build/output/favicon.ico
           mv data/app_icon/icon.png build/output/favicon.png
       - name: Gather WASM build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ contains(inputs.name, 'EMSDK') }}
         with:
            name: wasm-artifacts
@@ -289,7 +290,7 @@ jobs:
 
       - name: Upload assets
         if: ${{ inputs.artifact_key }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_key }}
           path: |
@@ -304,8 +305,8 @@ jobs:
         run: python3 scripts/llvm-cov-helper.py build/output && ls -lah && head -n 40 coverage.txt
       - name: SonarQube Scan
         if: inputs.codecov
-        # Corresponds to v7.0.0, which is the latest as of 2026-03-27
-        uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
+        # Corresponds to v8.2.1, which is the latest as of 2026-09-02
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
@@ -316,7 +317,7 @@ jobs:
 
       - name: Upload codecov
         if: inputs.codecov
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: llvm-codecov
           path: |
