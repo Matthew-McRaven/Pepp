@@ -162,7 +162,6 @@ include(config/cmake/FindRISCVToolchain.cmake)
 add_subdirectory(core)
 if(PEPP_BUILD_GUI)
   # Creates special test targets.
-  include(config/cmake/create_targets.cmake)
   include(config/compile_tests/TryFindWebP.cmake)
   include(config/cmake/GenerateChangelog.cmake)
   add_subdirectory(lib)
