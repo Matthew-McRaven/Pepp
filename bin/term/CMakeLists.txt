@@ -40,6 +40,7 @@ if(ENABLE_TERM_TESTS AND NOT (EMSCRIPTEN OR IOS))
   target_link_libraries(test-term PRIVATE cli catch Qt6::Core)
   add_dependencies(test-term pepp-lib pepp-libplugin pepp)
   add_test(NAME test-term COMMAND test-term)
+  set_tests_properties(test-term PROPERTIES COST 12)
 endif()
 
 function(add_term_alias alias)

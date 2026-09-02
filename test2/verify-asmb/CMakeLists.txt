@@ -16,4 +16,11 @@ if(NOT (EMSCRIPTEN OR IOS))
     add_test(NAME verify-asmb-${stem} COMMAND $<TARGET_FILE:verify-asmb>
                                               --filenames-as-tags "[#${stem}]")
   endforeach()
+
+  # Longest running tests in suite. Provide cost data to ctest to encourage it
+  # to start those tests early.
+  set_tests_properties(verify-asmb-pep10-unified PROPERTIES COST 10)
+  set_tests_properties(verify-asmb-pep10-standalone PROPERTIES COST 10)
+  set_tests_properties(verify-asmb-pep9-figs PROPERTIES COST 20)
+  set_tests_properties(verify-asmb-pep10-figs PROPERTIES COST 20)
 endif()

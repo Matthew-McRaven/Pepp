@@ -174,6 +174,7 @@ if(PEPP_BUILD_GUI)
   # remains no longer justifies one process launch per source file.
   if(NOT (EMSCRIPTEN OR IOS))
     add_test(NAME test-all COMMAND test-all)
+    set_tests_properties(test-all PROPERTIES COST 10)
   endif()
 endif()
 add_subdirectory(bin)

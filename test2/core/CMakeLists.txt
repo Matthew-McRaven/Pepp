@@ -25,4 +25,5 @@ pepp_precompile_headers(test-core PRIVATE <QtCore>)
 
 if(NOT (EMSCRIPTEN OR IOS))
   add_test(NAME test-core COMMAND test-core)
+  set_tests_properties(test-core PROPERTIES COST 9)
 endif()
