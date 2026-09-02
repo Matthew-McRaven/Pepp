@@ -4,7 +4,7 @@ file(GLOB instr_srcs CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 qt6_add_executable(verify-pep9-isa3 ${instr_srcs}
                    "${PROJECT_SOURCE_DIR}/config/cmake/main.cpp")
 target_link_libraries(verify-pep9-isa3 PRIVATE pepp-lib catch Qt6::Core)
-# set_target_properties(verify-pep9-isa3 PROPERTIES FOLDER "qtc_runnable")
+set_target_properties(verify-pep9-isa3 PROPERTIES FOLDER "qtc_runnable")
 pepp_precompile_headers(verify-pep9-isa3 PRIVATE <QtCore>)
 
 # One ctest entry per mnemonic. Use the filename stem rather than a shard count
