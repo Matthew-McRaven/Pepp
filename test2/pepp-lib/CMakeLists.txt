@@ -11,6 +11,6 @@ set_target_properties(test-pepplib PROPERTIES FOLDER "qtc_runnable")
 pepp_precompile_headers(test-pepplib PRIVATE <QtCore>)
 
 if(NOT (EMSCRIPTEN OR IOS))
-  add_test(NAME test-pepplib COMMAND test-pepplib)
+  add_test(NAME test-pepplib COMMAND test-pepplib ${PEPP_TESTS_SKIP_THROWS_ARGS})
   set_tests_properties(test-pepplib PROPERTIES COST 9)
 endif()

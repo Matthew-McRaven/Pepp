@@ -37,3 +37,21 @@ if(EMSCRIPTEN AND TARGET Qt6::Platform)
     add_link_options(-fwasm-exceptions)
   endif()
 endif()
+
+# Skip catch tests which throw in ctest. Normal platforms are fine with
+# exceptions. WASM is the odd-one out. Unless built with exception support, we
+# must avoid throwing or tests will fail unexpectedly.
+set(PEPP_TESTS_SKIP_THROWS OFF)
+if(EMSCRIPTEN)
+  if(NOT PEPP_HAS_QT_WASM_EXCEPTIONS)
+    set(PEPP_TESTS_SKIP_THROWS ON)
+  endif()
+endif()
+
+# Pre-built COMMAND argument list for add_test() call sites. Splice this in
+# unquoted (${PEPP_TESTS_SKIP_THROWS_ARGS}, no quotes) so it vanishes entirely
+# when empty rather than adding a stray blank argument.
+set(PEPP_TESTS_SKIP_THROWS_ARGS "")
+if(PEPP_TESTS_SKIP_THROWS)
+  list(APPEND PEPP_TESTS_SKIP_THROWS_ARGS --nothrow)
+endif()

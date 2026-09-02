@@ -39,7 +39,7 @@ if(ENABLE_TERM_TESTS AND NOT (EMSCRIPTEN OR IOS))
   target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_LIST_DIR}/test)
   target_link_libraries(test-term PRIVATE cli catch Qt6::Core)
   add_dependencies(test-term pepp-lib pepp-libplugin pepp)
-  add_test(NAME test-term COMMAND test-term)
+  add_test(NAME test-term COMMAND test-term ${PEPP_TESTS_SKIP_THROWS_ARGS})
   set_tests_properties(test-term PROPERTIES COST 12)
 endif()
 

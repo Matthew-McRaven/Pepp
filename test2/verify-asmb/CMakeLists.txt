@@ -14,7 +14,8 @@ if(NOT (EMSCRIPTEN OR IOS))
   foreach(src IN LISTS srcs)
     get_filename_component(stem "${src}" NAME_WE)
     add_test(NAME verify-asmb-${stem} COMMAND $<TARGET_FILE:verify-asmb>
-                                              --filenames-as-tags "[#${stem}]")
+                                              --filenames-as-tags "[#${stem}]"
+                                              ${PEPP_TESTS_SKIP_THROWS_ARGS})
   endforeach()
 
   # Longest running tests in suite. Provide cost data to ctest to encourage it

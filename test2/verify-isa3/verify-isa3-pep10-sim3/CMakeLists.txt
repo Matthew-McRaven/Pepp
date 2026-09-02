@@ -15,6 +15,6 @@ if(NOT (EMSCRIPTEN OR IOS))
     get_filename_component(stem "${src}" NAME_WE)
     add_test(NAME verify-pep10-isa3-${stem}
              COMMAND $<TARGET_FILE:verify-pep10-isa3> --filenames-as-tags
-                     "[#${stem}]")
+                     "[#${stem}]" ${PEPP_TESTS_SKIP_THROWS_ARGS})
   endforeach()
 endif()
