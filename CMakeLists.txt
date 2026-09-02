@@ -153,13 +153,17 @@ if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8)
   qt_policy(SET QTP0004 NEW)
 endif()
 
+# Must preced 3rd-party, else our dependencies' exceptions will crash us.
+# Qt-dependents would pick this flag up automatically from Qt6::Platform, but
+# the non-qt-linked deps need it too.
+include(config/cmake/wasm_exception_support.cmake)
 add_subdirectory(3rd-party)
 
 enable_testing()
 
 include(config/compile_tests/TryBuildStdRanges.cmake)
 include(config/cmake/FindRISCVToolchain.cmake)
-include(config/cmake/wasm_exception_support.cmake)
+
 add_subdirectory(core)
 if(PEPP_BUILD_GUI)
   # Creates special test targets.

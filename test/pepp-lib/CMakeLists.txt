@@ -10,7 +10,16 @@ target_link_libraries(test-pepplib PRIVATE pepp-lib catch Qt6::Core)
 set_target_properties(test-pepplib PROPERTIES FOLDER "qtc_runnable")
 pepp_precompile_headers(test-pepplib PRIVATE <QtCore>)
 
-if(NOT (EMSCRIPTEN OR IOS))
-  add_test(NAME test-pepplib COMMAND test-pepplib ${PEPP_TESTS_SKIP_THROWS_ARGS})
+if(NOT IOS)
+  # WASM execution requires an extra shim
+  if(EMSCRIPTEN)
+    add_test(
+      NAME test-pepplib
+      COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} "${PEPP_WASM_TEST_RUNNER}"
+              $<TARGET_FILE:test-pepplib> ${PEPP_TESTS_SKIP_THROWS_ARGS})
+  else()
+    add_test(NAME test-pepplib COMMAND test-pepplib
+                                       ${PEPP_TESTS_SKIP_THROWS_ARGS})
+  endif()
   set_tests_properties(test-pepplib PROPERTIES COST 9)
 endif()

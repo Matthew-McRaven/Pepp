@@ -9,11 +9,14 @@ set_target_properties(verify-pep10-new PROPERTIES FOLDER "qtc_runnable")
 # One ctest entry per source file. Use the filename stem rather than a shard
 # count to provide more meaningful output in ctest. A stem matching no tests
 # exits 2 rather than silently passing.
-if(NOT (EMSCRIPTEN OR IOS))
+if(NOT IOS)
+  # Not built with Qt, so it does not get MODULARIZE'd, and can run directly;
+  # the bare target-name form below picks up CMAKE_CROSSCOMPILING_EMULATOR
+  # automatically on WASM.
   foreach(src IN LISTS instr_srcs)
     get_filename_component(stem "${src}" NAME_WE)
     add_test(NAME verify-pep10-new-${stem}
-             COMMAND $<TARGET_FILE:verify-pep10-new> --filenames-as-tags
-                     "[#${stem}]" ${PEPP_TESTS_SKIP_THROWS_ARGS})
+             COMMAND verify-pep10-new --filenames-as-tags "[#${stem}]"
+                     ${PEPP_TESTS_SKIP_THROWS_ARGS})
   endforeach()
 endif()
