@@ -69,7 +69,7 @@ jobs:
       # Local github runner doesn't have node installed.
       - if: env.ACT
         name: Install Node if running locally using `nektos/act`
-        uses: ./.github/actions/install-node
+        uses: $/.github/actions/install-node
       # Must do a bunch of work to enable signing on MacOS.
       # https://docs.github.com/en/actions/deployment/deploying-xcode-applications/installing-an-apple-certificate-on-macos-runners-for-xcode-development
       # WARNING: If we switch to self-hosted runners, must clean up the certs ourselves.
@@ -95,7 +95,7 @@ jobs:
       # Install dependencies based on enabled features
       - name: Install Qt+CMake in non-containerized builds
         if: inputs.image  == ''
-        uses: ./.github/actions/install-qt-cmake
+        uses: $/.github/actions/install-qt-cmake
         with:
           cache-key-prefix: install-qt-${{ inputs.runs-on }}
 
@@ -329,7 +329,7 @@ jobs:
 
       - name: Perform CodeQL analysis
         if: inputs.codeql && !env.ACT
-        uses: ./.github/actions/run-codeql
+        uses: $/.github/actions/run-codeql
 
       - name: Clean up keychain and provisioning profile
         if: ${{ contains(inputs.name, 'MacOS') }}
