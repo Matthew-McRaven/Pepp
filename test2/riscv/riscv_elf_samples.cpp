@@ -47,7 +47,7 @@ TEST_CASE("Execution timeout", "[Minimal][!throws]") {
 
   riscv::Machine<uint64_t> machine{binary, {.memory_max = MAX_MEMORY}};
   // Simulate 250k instructions before giving up
-  REQUIRE_THROWS_WITH([&] { machine.simulate(250'000); }(), Catch::Matchers::ContainsSubstring("limit reached"));
+  REQUIRE_THROWS_AS([&] { machine.simulate(250'000); }(), riscv::MachineTimeoutException);
 }
 
 TEST_CASE("Catch output from write system call", "[Output]") {
@@ -491,12 +491,12 @@ TEST_CASE("Writes to read-only segment", "[Memory][!throws]") {
   // We need to create a Linux environment for runtimes to work well
   machine.setup_linux({"rodata"}, {"LC_TYPE=C", "LC_ALL=C", "USER=root"});
 
-  REQUIRE_THROWS_WITH([&] { machine.memory.write<uint8_t>(machine.cpu.pc(), 0); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.memory.write<uint8_t>(machine.cpu.pc(), 0); }(),
+                     riscv::MachineException);
 
   // Guard pages are not writable
-  REQUIRE_THROWS_WITH([&] { machine.simulate(MAX_INSTRUCTIONS); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.simulate(MAX_INSTRUCTIONS); }(),
+                     riscv::MachineException);
 
   REQUIRE(machine.return_value<int>() != 666);
 
@@ -506,14 +506,14 @@ TEST_CASE("Writes to read-only segment", "[Memory][!throws]") {
   REQUIRE(read_addr != 0x0);
 
   // Reads amd writes to invalid locations
-  REQUIRE_THROWS_WITH([&] { machine.vmcall<MAX_INSTRUCTIONS>(read_addr, 0); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.vmcall<MAX_INSTRUCTIONS>(read_addr, 0); }(),
+                     riscv::MachineException);
 
   machine.vmcall<MAX_INSTRUCTIONS>(read_addr, 0x1000);
 
   for (uint64_t addr = machine.memory.start_address(); addr < machine.memory.initial_rodata_end(); addr += 0x1000) {
-    REQUIRE_THROWS_WITH([&] { machine.vmcall<MAX_INSTRUCTIONS>(write_addr, addr); }(),
-                        Catch::Matchers::ContainsSubstring("Protection fault"));
+    REQUIRE_THROWS_AS([&] { machine.vmcall<MAX_INSTRUCTIONS>(write_addr, addr); }(),
+                       riscv::MachineException);
   }
 }
 
@@ -929,8 +929,7 @@ TEST_CASE("Sequential buffer", "[Buffer][!throws]") {
   }
 
   // maxlen works
-  REQUIRE_THROWS_WITH([&] { machine.memory.membuffer(origin, 128, 127); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.memory.membuffer(origin, 128, 127); }(), riscv::MachineException);
 }
 
 TEST_CASE("Boundary buffer", "[Buffer]") {

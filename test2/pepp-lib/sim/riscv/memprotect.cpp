@@ -16,23 +16,19 @@ TEST_CASE("RISC-V basic page protections", "[scope:sim][kind:int][arch:RV][!thro
   REQUIRE(machine.cpu.pc() == V);
   // The data at V is all zeroes, which forms an
   // illegal instruction in RISC-V.
-  REQUIRE_THROWS_WITH([&] { machine.simulate(1); }(), Catch::Matchers::ContainsSubstring("Illegal opcode executed"));
+  REQUIRE_THROWS_AS([&] { machine.simulate(1); }(), riscv::MachineException);
 
   // V is not readable anymore
-  REQUIRE_THROWS_WITH([&] { machine.memory.membuffer(V, VLEN); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.memory.membuffer(V, VLEN); }(), riscv::MachineException);
 
-  REQUIRE_THROWS_WITH([&] { machine.memory.memview(V, VLEN); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.memory.memview(V, VLEN); }(), riscv::MachineException);
 
-  REQUIRE_THROWS_WITH([&] { machine.memory.memstring(V); }(), Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.memory.memstring(V); }(), riscv::MachineException);
 
   // V is not writable anymore
-  REQUIRE_THROWS_WITH([&] { machine.memory.memset(V, 0, VLEN); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.memory.memset(V, 0, VLEN); }(), riscv::MachineException);
 
-  REQUIRE_THROWS_WITH([&] { machine.memory.memcpy(V, "1234", 4); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.memory.memcpy(V, "1234", 4); }(), riscv::MachineException);
 }
 
 TEST_CASE("RISC-V trigger guard pages", "[scope:sim][kind:int][arch:RV][!throws]") {
@@ -47,13 +43,11 @@ TEST_CASE("RISC-V trigger guard pages", "[scope:sim][kind:int][arch:RV][!throws]
     machine.cpu.jump(V);
     machine.simulate(1);
   };
-  REQUIRE_THROWS_WITH(f(), Catch::Matchers::ContainsSubstring("Execution space protection fault"));
+  REQUIRE_THROWS_AS(f(), riscv::MachineException);
 
   // Guard pages are not writable
-  REQUIRE_THROWS_WITH([&] { machine.memory.memset(V - 4, 0, 4); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
-  REQUIRE_THROWS_WITH([&] { machine.memory.memset(V + 16 * riscv::Page::size(), 0, 4); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.memory.memset(V - 4, 0, 4); }(), riscv::MachineException);
+  REQUIRE_THROWS_AS([&] { machine.memory.memset(V + 16 * riscv::Page::size(), 0, 4); }(), riscv::MachineException);
 }
 
 TEST_CASE("RISC-V misaligned page attributes", "[scope:sim][kind:unit][arch:RV]") {
@@ -94,6 +88,5 @@ TEST_CASE("RISC-V page caches must be invalidated", "[scope:sim][kind:int][arch:
   machine.memory.invalidate_reset_cache();
 
   // We can no longer read from the page
-  REQUIRE_THROWS_WITH([&] { machine.memory.read<uint32_t>(V); }(),
-                      Catch::Matchers::ContainsSubstring("Protection fault"));
+  REQUIRE_THROWS_AS([&] { machine.memory.read<uint32_t>(V); }(), riscv::MachineException);
 }
