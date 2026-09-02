@@ -10,6 +10,18 @@
 class XmlAttributes;
 class Document;
 
+// CRTP helper class that implements clone() automatically
+template<typename Derived, typename Base>
+class Cloneable : public Base
+{
+public:
+    std::unique_ptr<Base> clone() const override
+    {
+        // Safe downcast to invoke the correct copy constructor
+        return std::make_unique<Derived>(static_cast<const Derived &>(*this));
+    }
+};
+
 class SvgElement
 {
 public:
@@ -94,6 +106,7 @@ public:
     const auto &children() const;
     auto &children();
     SvgElement *createElement(const std::string &name);
+    SvgElement *createElement(const SvgType type);
 
     //  Overrides
     virtual void toXml(SvgRope &output) const;

@@ -203,28 +203,68 @@ auto &SvgElement::children()
 SvgElement *SvgElement::createElement(const std::string &name)
 {
     if (name == "comment"s)
-        _children.push_back(std::make_unique<SvgCommentElement>());
+        createElement(SvgType::SvgCommentElement);
     else if (name == "cdata"s)
-        _children.push_back(std::make_unique<SvgCDataElement>());
+        createElement(SvgType::SvgCDataElement);
     else if (name == "rect"s)
-        _children.push_back(std::make_unique<SvgRectElement>());
+        createElement(SvgType::SvgRectElement);
+    else if (name == "defs"s)
+        createElement(SvgType::SvgDefsElement);
+    else if (name == "g"s)
+        createElement(SvgType::SvgGElement);
+    else if (name == "desc"s)
+        createElement(SvgType::SvgDescElement);
+    else if (name == "metadata"s)
+        createElement(SvgType::SvgMetadataElement);
+    else if (name == "title"s)
+        createElement(SvgType::SvgTitleElement);
     else {
-        _children.push_back(std::make_unique<SvgElement>(name));
+        createElement(SvgType::SvgUnknownElement);
+    }
 
-        if (name == "defs"s) {
-            _children.back().get()->setElementType(SvgType::SvgDefsElement);
-        } else if (name == "g"s) {
-            _children.back().get()->setElementType(SvgType::SvgGElement);
-        } else if (name == "desc"s) {
-            _desc = _children.back().get();
-            _desc->setElementType(SvgType::SvgDescElement);
-        } else if (name == "metadata"s) {
-            _metadata = _children.back().get();
-            _metadata->setElementType(SvgType::SvgMetadataElement);
-        } else if (name == "title"s) {
-            _title = _children.back().get();
-            _title->setElementType(SvgType::SvgTitleElement);
-        }
+    auto element = _children.back().get();
+    element->setXmlName(name);
+
+    return element;
+}
+
+SvgElement *SvgElement::createElement(const SvgType type)
+{
+    switch (type) {
+    case SvgType::SvgCommentElement:
+        _children.push_back(std::make_unique<SvgCommentElement>());
+        break;
+    case SvgType::SvgCDataElement:
+        _children.push_back(std::make_unique<SvgCDataElement>());
+        break;
+    case SvgType::SvgRectElement:
+        _children.push_back(std::make_unique<SvgRectElement>());
+        break;
+    case SvgType::SvgDefsElement:
+        _children.push_back(std::make_unique<SvgElement>("defs"s));
+        _children.back().get()->setElementType(type);
+        break;
+    case SvgType::SvgGElement:
+        _children.push_back(std::make_unique<SvgElement>("g"s));
+        _children.back().get()->setElementType(type);
+        break;
+    case SvgType::SvgDescElement:
+        _children.push_back(std::make_unique<SvgElement>("desc"s));
+        _desc = _children.back().get();
+        _desc->setElementType(type);
+        break;
+    case SvgType::SvgMetadataElement:
+        _children.push_back(std::make_unique<SvgElement>("metadata"s));
+        _metadata = _children.back().get();
+        _metadata->setElementType(type);
+        break;
+    case SvgType::SvgTitleElement:
+        _children.push_back(std::make_unique<SvgElement>("title"s));
+        _title = _children.back().get();
+        _title->setElementType(type);
+        break;
+    default:
+        _children.push_back(std::make_unique<SvgElement>());
     }
 
     return _children.back().get();
