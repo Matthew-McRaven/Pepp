@@ -124,7 +124,7 @@ jobs:
 
   build_python_wheels:
     name: Build pypepp wheels ${{ matrix.name }}
-    uses: ./.github/workflows/build_py_wheel.yml
+    uses: $/.github/workflows/build_py_wheel.yml
     strategy:
       fail-fast: true
       matrix:
@@ -136,7 +136,7 @@ jobs:
       artifact_key: 'pyart-${{ matrix.os }}-py${{ matrix.python_version }}'
   build_python_sdist:
     name: Build pypepp sdist
-    uses: ./.github/workflows/build_py_sdist.yml
+    uses: $/.github/workflows/build_py_sdist.yml
     with:
       python_version: "3.12"
       artifact_key: 'pyart-sdist'
@@ -145,7 +145,7 @@ jobs:
   build:
     name: Build Qt IDE ${{ matrix.name }}
     needs: [ branch_info, check_tag, create_icons, riscv_samples ]
-    uses: ./.github/workflows/build.yml
+    uses: $/.github/workflows/build.yml
     strategy:
       fail-fast: true
       # If you want to update images, must replace *ALL* images in the matrix manually.
@@ -205,7 +205,7 @@ jobs:
       pages: write
       id-token: write
     needs: [ build, branch_info ]
-    uses: ./.github/workflows/deploy-prod-pages.yml
+    uses: $/.github/workflows/deploy-prod-pages.yml
 
   deploy_test_pages:
     name: Trigger deployment to test github pages
