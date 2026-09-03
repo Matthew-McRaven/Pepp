@@ -141,6 +141,8 @@ jobs:
         if: inputs.runs-on == 'windows-latest'
         # Pinned to v4.0.0
         uses: TheMrMilchmann/setup-msvc-dev@79dac248aac9d0059f86eae9d8b5bfab4e95e97c
+        with:
+          arch: x64
 
       # Initializes the CodeQL tools for scanning. Must occur before code is built.
       - name: Initialize CodeQL
