@@ -139,7 +139,8 @@ jobs:
         run: echo "$RUNNER_WORKSPACE/Qt/Tools/QtInstallerFramework/4.7/bin" >>$GITHUB_PATH
       - name: Enable Developer Command Prompt
         if: inputs.runs-on == 'windows-latest'
-        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
+        # Pinned to v4.0.0
+        uses: TheMrMilchmann/setup-msvc-dev@79dac248aac9d0059f86eae9d8b5bfab4e95e97c
 
       # Initializes the CodeQL tools for scanning. Must occur before code is built.
       - name: Initialize CodeQL
