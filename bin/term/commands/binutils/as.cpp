@@ -3,6 +3,23 @@
 #include <fstream>
 #include <iostream>
 
+namespace {
+// Writes each line followed by a newline to `path`, or to `default_out` when path == "-".
+void write_lines(const std::string &path, const std::vector<std::string> &lines,
+                  std::ostream &default_out = std::cout) {
+  if (path == "-") {
+    for (const auto &line : lines) default_out << line << "\n";
+    return;
+  }
+  std::ofstream out(path, std::ios::binary);
+  if (!out.is_open()) {
+    std::cerr << "Error: Could not open output file: " << path << "\n";
+    return;
+  }
+  for (const auto &line : lines) out << line << "\n";
+}
+} // namespace
+
 AsTask::AsTask(Options &opts, QObject *parent) : Task(parent), _opts(opts) {}
 
 void AsTask::run() {
@@ -18,13 +35,14 @@ void AsTask::run() {
   }
   pepp::tc::FormattingConfig fmt_cfg;
   if (_opts.listing_enable) {
-    fmt_cfg.listing_format = [&](std::vector<std::string> &&lines) {
-      for (const auto &line : lines) std::cout << line << "\n";
-    };
+    fmt_cfg.listing_format = [&](std::vector<std::string> &&lines) { write_lines(_opts.file_listing, lines); };
     fmt_cfg.listing_config = _opts.listing_config;
   }
+  if (_opts.format_source_enable) {
+    fmt_cfg.source_format = [&](std::vector<std::string> &&lines) { write_lines(_opts.file_fmt_source, lines); };
+  }
 
-  // Extract text for all input files.
+  // Extract text for all input files...
   std::vector<std::string> sources;
   for (const auto &file_source : _opts.file_sources) {
     std::string tmp;
@@ -44,7 +62,8 @@ void AsTask::run() {
     }
     sources.push_back(std::move(tmp));
   }
-  // Concatenate all source files into a newline-delimited string.
+
+  // ... and concatenate those file contents into a single newline-delimited string.
   std::string source_contents = "";
   {
     int total_size = 0;
@@ -60,8 +79,12 @@ void AsTask::run() {
 
   auto result = pepp::tc::assemble(cfg, fmt_cfg, std::move(source_contents));
   if (!result.ok()) {
-    std::cerr << "Assembly failed with " << result.diagnostics.count() << " error(s):\n";
-    for (const auto &diag : result.diagnostics) std::cerr << diag.second << "\n";
+    // Write error messages either to the designated error file, which is cerr by default.
+    std::vector<std::string> diag_lines;
+    diag_lines.reserve(result.diagnostics.count() + 1);
+    diag_lines.push_back("Assembly failed with " + std::to_string(result.diagnostics.count()) + " error(s):");
+    for (const auto &diag : result.diagnostics) diag_lines.push_back(diag.second);
+    write_lines(_opts.file_errs, diag_lines, std::cerr);
     return emit finished(1);
   } else if (result.elf.elf) result.elf.elf->save(_opts.file_elf);
 

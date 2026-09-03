@@ -31,8 +31,9 @@ public:
   struct Options {
     // At least one file_sources entry is required.
     std::vector<std::string> file_sources;
-    std::string file_elf = "a.out", file_listing = "--";
+    std::string file_elf = "a.out", file_listing = "-", file_fmt_source = "", file_errs = "-";
     bool listing_enable = false;
+    bool format_source_enable = false;
     pepp::tc::ListingConfig listing_config = {};
     pepp::Architecture arch = pepp::Architecture::NO_ARCH;
     // The -march part of  after the family prefix, e.g. "imc" for "rv32imc"; empty for Pep
@@ -70,11 +71,19 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
                                  ->default_val("")
                                  ->option_text("[suboption...]");
   as_clone->add_option("files", opts.file_sources, "Source file(s) to assemble")->required();
+  as_clone->add_option("-o", opts.file_elf, "Output ELF file name")->option_text("<file>");
+  static const auto fmt_opts =
+      as_clone->add_option("--format", opts.file_fmt_source, "Output formatted source file name")
+          ->option_text("<file>");
+
+  as_clone->add_option("-e,--errors", opts.file_errs, "Output errors file name. Defaults to cerr")
+      ->option_text("<file>");
 
   as_clone->callback([&]() {
-    // Handle listing options. Use count() rather than a_text.empty(), since a bare "-a" (no
-    // suboptions) and an absent "-a" both leave a_text == "" -- only count() tells them apart.
+    opts.format_source_enable = fmt_opts->count() > 0;
+    // Use count() rather than a_text.empty(), since a bare "-a"  and an absent "-a" both leave a_text == "".
     opts.listing_enable = a_opts->count() > 0;
+    // Handle listing options.
     if (!a_text.empty()) {
       const auto eq_pos = a_text.find('=');
       const std::string sub_flags = a_text.substr(0, eq_pos);

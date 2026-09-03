@@ -31,8 +31,7 @@ struct DriverResult {
   bool ok() const { return diagnostics.count() == 0; }
 };
 
-// Assembles `source` according to `config`, dispatching to the matching per-architecture pipeline
-// (asmb_driver_riscv.cpp / asmb_driver_pep10.cpp).
+// Dispatch to the assembler based on the target architecture.
 DriverResult assemble(const DriverConfig &config, const FormattingConfig &, std::string source);
 
 // Per-architecture entry points, for callers that already know the target.
