@@ -17,27 +17,23 @@
 #pragma once
 #include <CLI11.hpp>
 #include <variant>
+#include <vector>
 #include "../../shared.hpp"
 #include "../../task.hpp"
 #include "core/architectures.hpp"
+#include "core/langs/asmb_driver.hpp"
 namespace ELFIO {
 class elfio;
 }
 
 class AsTask : public Task {
 public:
-  struct ListingOptions {
-    bool enable_listing = false;
-    bool omit_false_conditionals = false;
-    bool omit_debugging_directives = false;
-    bool include_macro_expansions = false;
-    // Empty means the listing is written to stdout.
-    std::string listing_file;
-  };
-
   struct Options {
-    std::string elffile;
-    ListingOptions listopts = {};
+    // At least one file_sources entry is required.
+    std::vector<std::string> file_sources;
+    std::string file_elf = "a.out", file_listing = "--";
+    bool listing_enable = false;
+    pepp::tc::ListingConfig listing_config = {};
     pepp::Architecture arch = pepp::Architecture::NO_ARCH;
     // The -march part of  after the family prefix, e.g. "imc" for "rv32imc"; empty for Pep
     std::string arch_variant = "";
@@ -49,8 +45,8 @@ public:
   void run() override;
 
 private:
-  void assemble_riscv();
-  void assemble_pep();
+  pepp::tc::DriverConfig prepare_riscv();
+  pepp::tc::DriverConfig prepare_pep();
   Options &_opts;
 };
 
@@ -73,18 +69,20 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
                                  ->expected(0, 1)
                                  ->default_val("")
                                  ->option_text("[suboption...]");
+  as_clone->add_option("files", opts.file_sources, "Source file(s) to assemble")->required();
 
   as_clone->callback([&]() {
-    // Handle listing options
+    // Handle listing options. Use count() rather than a_text.empty(), since a bare "-a" (no
+    // suboptions) and an absent "-a" both leave a_text == "" -- only count() tells them apart.
+    opts.listing_enable = a_opts->count() > 0;
     if (!a_text.empty()) {
-      opts.listopts.enable_listing = true;
       const auto eq_pos = a_text.find('=');
       const std::string sub_flags = a_text.substr(0, eq_pos);
-      if (sub_flags.find('c') != std::string::npos) opts.listopts.omit_false_conditionals = true;
-      if (sub_flags.find('d') != std::string::npos) opts.listopts.omit_debugging_directives = true;
-      if (sub_flags.find('m') != std::string::npos) opts.listopts.include_macro_expansions = true;
-      if (eq_pos != std::string::npos) opts.listopts.listing_file = a_text.substr(eq_pos + 1);
-    } else opts.listopts.enable_listing = false;
+      if (sub_flags.find('c') != std::string::npos) opts.listing_config.omit_false_conditionals = true;
+      if (sub_flags.find('d') != std::string::npos) opts.listing_config.omit_debugging_directives = true;
+      if (sub_flags.find('m') != std::string::npos) opts.listing_config.include_macro_expansions = true;
+      if (eq_pos != std::string::npos) opts.file_listing = a_text.substr(eq_pos + 1);
+    }
 
     // Handle -march
     using PA = pepp::Architecture;
