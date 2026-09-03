@@ -44,7 +44,7 @@ jobs:
     steps:
       - name: Check that release tag is well-formatted, and extract the version number
         # Need explity == or the step triggers even if false
-        if: needs.branch_info.outputs.build_release == true
+        if: needs.branch_info.outputs.build_release == 'true'
         shell: bash
         # Use xargs to trim spaces
         run: |
@@ -64,7 +64,7 @@ jobs:
           cat version
           echo "VERSION_CMAKE=$(cat version | xargs)" >> $GITHUB_ENV
       - name: CMake project version == Git tag
-        if: needs.branch_info.outputs.build_release == true
+        if: github.ref_type == 'tag'
         shell: bash
         run: |
           if [[ "$VERSION_CMAKE" != "$VERSION_GIT" ]] ; then
