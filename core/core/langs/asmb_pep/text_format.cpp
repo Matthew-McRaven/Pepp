@@ -477,7 +477,6 @@ void pepp::tc::SourceVisitor::visit(const InlineMacroDefinition *line) {
 }
 
 void pepp::tc::SourceVisitor::visit(const MacroInstantiation *line) {
-
   std::string symbol = "", comment = "";
   if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
   if (auto maybe_symbol = line->typed_attribute<SymbolDeclaration>(); maybe_symbol)
@@ -490,6 +489,17 @@ std::string pepp::tc::format_source(const LinearIR *line) {
   SourceVisitor r;
   accept(r, line);
   return r.text;
+}
+
+std::vector<std::string> pepp::tc::format_source(const IRProgram &program) {
+  std::vector<std::string> ret;
+  ret.reserve(program.size());
+  for (const auto &line : program) {
+    SourceVisitor r;
+    accept(r, line.get());
+    ret.emplace_back(r.text);
+  }
+  return ret;
 }
 
 void format_listing(const pepp::tc::LinearIR *line,

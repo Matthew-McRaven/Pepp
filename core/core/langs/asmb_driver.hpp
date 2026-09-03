@@ -6,6 +6,20 @@
 
 namespace pepp::tc {
 
+struct ListingConfig {
+  bool omit_false_conditionals = false;
+  bool omit_debugging_directives = false;
+  bool include_macro_expansions = false;
+};
+struct FormattingConfig {
+  ListingConfig listing_config;
+  // If non-null, call this function with the corresponding lines of the source / listing.
+  // Signature allows the caller to determine where the text ends up (e.g., in memory, stdout, temporary file).
+  using format_to = std::function<void(std::vector<std::string> &&)>;
+  format_to listing_format = nullptr;
+  format_to source_format = nullptr;
+};
+
 // Per-architecture assembler configuration.
 struct RISCVDriverConfig {};
 struct Pep10DriverConfig {};
@@ -19,10 +33,10 @@ struct DriverResult {
 
 // Assembles `source` according to `config`, dispatching to the matching per-architecture pipeline
 // (asmb_driver_riscv.cpp / asmb_driver_pep10.cpp).
-DriverResult assemble(const DriverConfig &config, std::string source);
+DriverResult assemble(const DriverConfig &config, const FormattingConfig &, std::string source);
 
 // Per-architecture entry points, for callers that already know the target.
-DriverResult assemble_riscv(const RISCVDriverConfig &config, std::string source);
-DriverResult assemble_pep10(const Pep10DriverConfig &config, std::string source);
+DriverResult assemble_riscv(const RISCVDriverConfig &config, const FormattingConfig &, std::string source);
+DriverResult assemble_pep10(const Pep10DriverConfig &config, const FormattingConfig &, std::string source);
 
 } // namespace pepp::tc
