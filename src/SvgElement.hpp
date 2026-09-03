@@ -11,38 +11,9 @@
 class XmlAttributes;
 class Document;
 
-class SvgElement : public SvgInterface //Cloneable<SvgElement, SvgInterface>
+class SvgElement : public Cloneable<SvgElement, SvgInterface>
 {
 public:
-    /*enum class SvgType {
-        SvgUnknownElement = 0,
-        //  Dom elements
-        SvgBasicElement,
-        SvgCommentElement,
-        SvgCDataElement,
-        //  SvgSpecific elements
-        SvgElementParent = 0x0100,
-        SvgDescElement,
-        SvgMetadataElement,
-        SvgStyleElement,
-        SvgTitleElement,
-        SvgGraphicElement = 0x8000,
-        SvgSvgElement,
-        //  Graphic elements
-        SvgGeometry = 0x8100,
-        SvgGElement,
-        SvgDefsElement,
-        SvgSymbolElement,
-        SvgUseElement,
-        SvgSwitchElement,
-        SvgCircleElement,
-        SvgLineElement,
-        SvgPathElement,
-        SvgPolygonElement,
-        SvgRectElement,
-        SvgTextElement,
-    };*/
-
     SvgElement() = default;
     explicit SvgElement(const std::string &name, const std::string &value = "");
     virtual ~SvgElement() = default;
@@ -54,14 +25,13 @@ public:
 
     //	User access functions
     //  Standard Xml
-    SvgInterface::SvgType elementType() const;
-    void setElementType(SvgInterface::SvgType elementType);
+    SvgInterface::SvgType elementType() const override;
+    void setElementType(SvgInterface::SvgType elementType) override;
     const std::string &xmlName() const;
     void setXmlName(const std::string &xmlName);
     const std::string &value() const;
-    void setValue(const std::string &value);
-
-    void setDocument(Document *doc);
+    void setValue(const std::string &value) override;
+    void setDocument(Document *doc) override;
 
     //  Svg specific functions
     const std::string &id() const;
@@ -93,16 +63,15 @@ public:
     const XmlAttributes &attributes() const;
     XmlAttributes &attributes();
 
-    const std::list<std::unique_ptr<SvgElement>> &children() const;
-    std::list<std::unique_ptr<SvgElement>> &children();
-    SvgElement *createElement(const std::string &name);
-    SvgElement *createElement(const SvgType type);
+    const std::list<std::unique_ptr<SvgInterface>> &children() const;
+    std::list<std::unique_ptr<SvgInterface>> &children();
+    SvgInterface *createElement(const std::string &name) override;
+    SvgInterface *createElement(const SvgType type);
 
     //  Overrides
-    virtual void toXml(SvgRope &output) const;
-    virtual bool setAttribute(const std::string &key, const std::string &value);
+    virtual void toXml(SvgRope &output) const override;
+    virtual bool setAttribute(const std::string &key, const std::string &value) override;
     virtual bool attributeXml(SvgRope &output) const;
-    //virtual std::unique_ptr<SvgElement> clone() const;
 
 private:
     //  Standard Xml Data
@@ -127,8 +96,9 @@ private:
     Document *_doc{};
 
     //SVGElement ownerSVGElement
+
     //  Used to store unprocessed xml elements
-    std::list<std::unique_ptr<SvgElement>> _children;
+    std::list<std::unique_ptr<SvgInterface>> _children;
     XmlAttributes _attributes;
 
     //  Returned by string functions when empy string is needed

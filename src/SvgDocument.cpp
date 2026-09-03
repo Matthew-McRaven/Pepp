@@ -33,6 +33,11 @@ and SVG documents implement the XMLDocument interface using MIME type of
 */
 
 //	Public interface
+Document::Document()
+{
+    _svgDocument = std::make_unique<SvgSvgElement>();
+}
+
 Document::Document(const std::string &name)
     : Document()
 {
@@ -42,11 +47,11 @@ Document::Document(const std::string &name)
 //  Accessors
 SvgSvgElement &Document::documentElement()
 {
-    return _svgDocument;
+    return *_svgDocument.get();
 }
 const SvgSvgElement &Document::documentElement() const
 {
-    return _svgDocument;
+    return *_svgDocument.get();
 }
 
 //  File operations
@@ -154,10 +159,10 @@ void Document::addFromParser(const std::string &key,
     switch (type) {
     case XmlNode::Type::RootElement:
         //  Root element is already created since it is required.
-        _svgDocument.setXmlName(key);
-        _svgDocument.setValue(value);
-        _svgDocument.setDocument(this);
-        _parents.push_back(&_svgDocument);
+        _svgDocument->setXmlName(key);
+        _svgDocument->setValue(value);
+        _svgDocument->setDocument(this);
+        _parents.push_back(_svgDocument.get());
         break;
     case XmlNode::Type::RootAttribute:
     case XmlNode::Type::Attribute: //  No current differences in attributes
@@ -200,11 +205,11 @@ void Document::addFromParser(const std::string &key,
     }
 }
 
-void Document::addElementId(const std::string &id, SvgElement *element)
+void Document::addElementId(const std::string &id, SvgInterface *element)
 {
     _idLookup.emplace(id, element);
 }
-SvgElement *Document::getElementById(const std::string &id)
+SvgInterface *Document::getElementById(const std::string &id)
 {
     if (auto search = _idLookup.find(id); search != _idLookup.end())
         return search->second;
@@ -227,7 +232,7 @@ std::string Document::flattenRope(SvgRope &rope) const
     std::string xml;
 
     //  Create in memory rope of Xml structure
-    _svgDocument.toXml(rope);
+    _svgDocument->toXml(rope);
 
     //  Resize string if Xml is longer than current string length
     if (xml.capacity() < rope.size()) {
@@ -241,4 +246,12 @@ std::string Document::flattenRope(SvgRope &rope) const
     }
 
     return std::move(xml);
+}
+
+void Document::copyDocument(const Document &newDoc)
+{
+    //  Don't allow copies of self to self
+    if (&newDoc == this)
+        return;
+    _svgDocument = newDoc.documentElement().clone();
 }

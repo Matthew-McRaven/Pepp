@@ -6,18 +6,15 @@
 #include "SvgElement.hpp"
 #include "utility_p.hpp"
 
-//	Forward declarations
-class SvgSvgElementImpl;
-
-class SvgSvgElement final : public SvgElement
+class SvgSvgElement final : public Cloneable<SvgSvgElement, SvgElement> // SvgElement
 {
     SvgRect _viewBox;
 
 public:
-    SvgSvgElement();
+    SvgSvgElement() = default;
     explicit SvgSvgElement(const std::string &name, const std::string &value = "");
     ~SvgSvgElement() = default;
-    //Cannot copy, but can move
+    //  Can copy and move
     SvgSvgElement(const SvgSvgElement &) = default;
     SvgSvgElement &operator=(const SvgSvgElement &) = default;
     SvgSvgElement(SvgSvgElement &&) noexcept = default;

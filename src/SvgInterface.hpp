@@ -7,22 +7,11 @@ using namespace std::string_literals;
 class SvgRope;
 
 // CRTP helper class that implements clone() automatically
-template<typename Derived, typename Base>
-class Cloneable : public Base
+template<class Derived, class Base>
+struct Cloneable : public Base
 {
-public:
-    std::unique_ptr<Base> clone() const
-    {
-        // Safe downcast to invoke the correct copy constructor
-        return std::make_unique<Derived>(static_cast<const Derived &>(this->cloneImpl()));
-    }
-
-protected:
-    Base *cloneImpl() const override
-    {
-        //const auto& self = return static_cast<const Derived&>(*this);
-        return new Derived(static_cast<const Derived &>(*this));
-    }
+    //friend class SvgInterface;
+    Base *cloneImpl() const override { return new Derived(static_cast<Derived const &>(*this)); }
 };
 
 class Document;
@@ -31,8 +20,6 @@ class SvgInterface
 {
     //  Base class used to enforce enterface used by derived Svg elements
 protected:
-    //  Must be inherited
-    //SvgInterface() = default;
     virtual SvgInterface *cloneImpl() const = 0;
 
 public:
@@ -77,14 +64,10 @@ public:
     virtual SvgInterface::SvgType elementType() const = 0;
     virtual void setElementType(SvgInterface::SvgType elementType) = 0;
 
-    /*template<typename Self>
-    std::unique_ptr<SvgInterface> clone(this const Self &self) // const
+    template<typename Self>
+    std::unique_ptr<Self> clone(this const Self &self)
     {
-        return std::unique_ptr<Self>(cloneImpl());
-    }*/
-    std::unique_ptr<SvgInterface> clone() const
-    {
-        return std::unique_ptr<SvgInterface>(cloneImpl());
+        return std::unique_ptr<Self>(static_cast<Self *>(self.cloneImpl()));
     }
 
     virtual SvgInterface *createElement(const std::string &name) = 0;
