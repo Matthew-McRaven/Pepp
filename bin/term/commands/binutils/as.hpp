@@ -16,30 +16,85 @@
 
 #pragma once
 #include <CLI11.hpp>
+#include <variant>
 #include "../../shared.hpp"
 #include "../../task.hpp"
-
+#include "core/architectures.hpp"
 namespace ELFIO {
 class elfio;
 }
 
 class AsTask : public Task {
 public:
+  struct ListingOptions {
+    bool enable_listing = false;
+    bool omit_false_conditionals = false;
+    bool omit_debugging_directives = false;
+    bool include_macro_expansions = false;
+    // Empty means the listing is written to stdout.
+    std::string listing_file;
+  };
+
   struct Options {
     std::string elffile;
+    ListingOptions listopts = {};
+    pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+    // The -march part of  after the family prefix, e.g. "imc" for "rv32imc"; empty for Pep
+    std::string arch_variant = "";
   };
+  struct RISCVOptions : public Options {};
+  struct PEP10Options : public Options {};
+
   AsTask(Options &opts, QObject *parent = nullptr);
   void run() override;
 
 private:
+  void assemble_riscv();
+  void assemble_pep();
   Options &_opts;
 };
 
 void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static AsTask::Options opts;
+  static std::string a_text;
+  static std::string march_text;
   static auto as_clone = app.add_subcommand("as", "GNU as-compatible assembler");
+  as_clone->allow_non_standard_option_names();
+  static const auto march_opt =
+      as_clone->add_option("-march", march_text, "Specify target architecture, e.g. rv32imc or pep10")
+          ->option_text("<arch>");
+  static const auto a_opts = as_clone
+                                 ->add_option("-a", a_text,
+                                              "Turn on listings, sub-options:\n"
+                                              "c      omit false conditionals\n"
+                                              "d      omit debugging directives\n"
+                                              "m      include macro expansions\n"
+                                              "=file  set listing file name (must be last sub-option)")
+                                 ->expected(0, 1)
+                                 ->default_val("")
+                                 ->option_text("[suboption...]");
 
   as_clone->callback([&]() {
+    // Handle listing options
+    if (!a_text.empty()) {
+      opts.listopts.enable_listing = true;
+      const auto eq_pos = a_text.find('=');
+      const std::string sub_flags = a_text.substr(0, eq_pos);
+      if (sub_flags.find('c') != std::string::npos) opts.listopts.omit_false_conditionals = true;
+      if (sub_flags.find('d') != std::string::npos) opts.listopts.omit_debugging_directives = true;
+      if (sub_flags.find('m') != std::string::npos) opts.listopts.include_macro_expansions = true;
+      if (eq_pos != std::string::npos) opts.listopts.listing_file = a_text.substr(eq_pos + 1);
+    } else opts.listopts.enable_listing = false;
+
+    // Handle -march
+    using PA = pepp::Architecture;
+    if (march_text.rfind("rv32", 0) == 0) {
+      opts.arch = PA::RISCV;
+      opts.arch_variant = march_text.substr(4);
+    } else if (march_text.rfind("pep10", 0) == 0) opts.arch = PA::PEP10;
+    else if (march_text.rfind("pep9", 0) == 0) opts.arch = PA::PEP9;
+    else if (march_text.rfind("pep8", 0) == 0) opts.arch = PA::PEP8;
+
     flags.kind = detail::SharedFlags::Kind::TERM;
     task = [&](QObject *parent) { return new AsTask(opts, parent); };
   });
