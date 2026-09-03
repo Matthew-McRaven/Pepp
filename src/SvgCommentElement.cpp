@@ -15,7 +15,7 @@ derive from the SVGElement interface.
 
 //	Public interface
 SvgCommentElement::SvgCommentElement()
-//    : SvgElement()
+    : Cloneable<SvgCommentElement, SvgElement>()
 {
     SvgElement::setElementType(SvgInterface::SvgType::SvgCommentElement);
 }

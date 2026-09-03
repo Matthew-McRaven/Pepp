@@ -14,7 +14,7 @@ factory methods.
 
 //	Public interface
 SvgRectElement::SvgRectElement()
-    : SvgElement()
+    : Cloneable<SvgRectElement, SvgElement>()
 {
     SvgElement::setElementType(SvgInterface::SvgType::SvgCommentElement);
 }

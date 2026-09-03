@@ -2,7 +2,6 @@
 
 //	Standard library
 #include <format> //  std::format
-//#include <memory> //  std::make_unique
 
 #include "utility_p.hpp" //  SvgRope
 
@@ -16,7 +15,7 @@ and output.
 
 //	Public interface
 SvgCDataElement::SvgCDataElement()
-//    : SvgElement()
+    : Cloneable<SvgCDataElement, SvgElement>()
 {
     SvgElement::setElementType(SvgInterface::SvgType::SvgCommentElement);
 }

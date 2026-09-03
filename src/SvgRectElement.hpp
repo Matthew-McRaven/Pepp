@@ -8,7 +8,7 @@
 //	Forward declarations
 class SvgRectElementImpl;
 
-class SvgRectElement final : public SvgElement
+class SvgRectElement final : public Cloneable<SvgRectElement, SvgElement>
 {
     SvgUnitValue _rx;
     SvgUnitValue _ry;

@@ -13,11 +13,11 @@ factory methods.
 */
 
 //	Public interface
-/*SvgSvgElement::SvgSvgElement()
-//: SvgElement()
+SvgSvgElement::SvgSvgElement()
+    : Cloneable<SvgSvgElement, SvgElement>()
 {
     SvgElement::setElementType(SvgInterface::SvgType::SvgSvgElement);
-}*/
+}
 
 SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &value)
     : SvgSvgElement()

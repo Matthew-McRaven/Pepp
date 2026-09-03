@@ -6,12 +6,12 @@
 #include "SvgElement.hpp"
 #include "utility_p.hpp"
 
-class SvgSvgElement final : public Cloneable<SvgSvgElement, SvgElement> // SvgElement
+class SvgSvgElement final : public Cloneable<SvgSvgElement, SvgElement>
 {
     SvgRect _viewBox;
 
 public:
-    SvgSvgElement() = default;
+    SvgSvgElement(); // = default;
     explicit SvgSvgElement(const std::string &name, const std::string &value = "");
     ~SvgSvgElement() = default;
     //  Can copy and move
