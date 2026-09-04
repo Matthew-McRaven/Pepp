@@ -153,4 +153,4 @@ template <ElfBits B, ElfEndian E> u32 PackedGrowableElfFile<B, E>::add_segment(S
   return add_segment(std::move(phdr));
 }
 
-} // namespace pepp::core
+} // namespace pepp::bts

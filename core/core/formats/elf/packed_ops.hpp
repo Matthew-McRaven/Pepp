@@ -277,4 +277,4 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
   return ret;
 }
 
-} // namespace pepp::core
+} // namespace pepp::bts

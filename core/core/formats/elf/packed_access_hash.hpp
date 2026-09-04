@@ -413,4 +413,4 @@ bits::span<const U32<E>> PackedGNUHashedSymbolAccessor<B, E, Const>::chains() co
   bits::span<const u8> underlying = data_hash->get(offset, data_hash->size() - offset);
   return bits::span<const U32<E>>{(const U32<E> *)underlying.data(), nbuckets()};
 }
-} // namespace pepp::core
+} // namespace pepp::bts

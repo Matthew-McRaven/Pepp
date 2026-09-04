@@ -139,4 +139,4 @@ void PackedDynamicAccessor<B, E, Const>::replace_entry(u32 index, word<B> tag, w
   }
 }
 
-} // namespace pepp::core
+} // namespace pepp::bts

@@ -100,4 +100,4 @@ word<B> PackedStringAccessor<B, E, Const>::add_string(const std::string &str) {
   return add_string(std::span{str});
 }
 
-} // namespace pepp::core
+} // namespace pepp::bts

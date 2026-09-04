@@ -208,4 +208,4 @@ void PackedRelocationAccessor<B, E, Const>::swap_symbols(u32 first, u32 second) 
     }
   }
 }
-} // namespace pepp::core
+} // namespace pepp::bts

@@ -108,4 +108,4 @@ void PackedNoteAccessor<B, E, Const>::add_note(std::span<const char> name, std::
   data->set(desc_start, bits::span<const u8>{(const u8 *)desc.data(), desc.size()});
   shdr.sh_size = data->size();
 }
-} // namespace pepp::core
+} // namespace pepp::bts

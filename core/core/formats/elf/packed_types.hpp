@@ -457,4 +457,4 @@ inline PackedElfPhdr<ElfBits::b64, E>::PackedElfPhdr() noexcept
   static_assert(std::is_standard_layout_v<PackedElfPhdr>);
 }
 
-} // namespace pepp::core
+} // namespace pepp::bts

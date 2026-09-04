@@ -37,4 +37,4 @@ using ConstAnyPackedElfPtr =
 std::shared_ptr<const pepp::bts::AStorage> section_data(ConstAnyPackedElfPtr elf, u16 section_index);
 u32 sh_align(ConstAnyPackedElfPtr elf, u16 section_index);
 
-} // namespace pepp::core
+} // namespace pepp::bts
