@@ -43,11 +43,18 @@ int main()
     }
 
     doc2.saveAs("x:\\"s + name + "-2.svg"s);
+
     //Document doc2;
     //doc2.documentElement().children().push_back(doc1.documentElement().clone());
 
     t.finish();
     std::cout << "Elapsed open/alter file. "s << t.elapsedTime() << std::endl << std::endl;
+
+    /*const SvgInterface *base = &doc2.documentElement();
+    std::cout << "base is " << typeid(*base).name() << std::endl;
+
+    auto derived = doc2.documentElement().derived();
+    std::cout << "derived is " << typeid(derived).name() << std::endl;*/
 
     /*t.start();
     Document doc2{};

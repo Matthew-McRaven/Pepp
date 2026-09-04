@@ -11,6 +11,7 @@ namespace fs = std::filesystem;
 using namespace std::string_literals;
 
 //	private classes
+#include "SvgInterface.hpp"
 #include "SvgRectElement.hpp"
 #include "Timer.h"
 #include "XmlAttributes_p.hpp"
@@ -253,5 +254,7 @@ void Document::copyDocument(const Document &newDoc)
     //  Don't allow copies of self to self
     if (&newDoc == this)
         return;
+    SvgInterface::setCurrentDocument(this);
     _svgDocument = newDoc.documentElement().clone();
+    SvgInterface::setCurrentDocument();
 }

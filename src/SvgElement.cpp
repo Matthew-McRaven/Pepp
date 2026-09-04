@@ -28,11 +28,13 @@ SvgElement::SvgElement(const std::string &xmlName, const std::string &value)
 SvgElement::SvgElement(const SvgElement &original)
     : SvgElement()
 {
+    _doc = SvgInterface::currentDocument();
+
     _elementType = original._elementType;
     _xmlName = original._xmlName;
     _value = original._value;
 
-    _id = original._id;
+    setId(original._id);
     _className = original._className;
 
     _x = original._x;
@@ -40,7 +42,12 @@ SvgElement::SvgElement(const SvgElement &original)
     _width = original._width;
     _height = original._height;
 
+    //  Use class logic for attributes
     _attributes = original._attributes;
+    //  This fixes pointer issues
+    /*for (const auto &[key, value] : original.attributes().attributes()) {
+        setAttribute(key, value);
+    }*/
 
     for (const auto &element : original.children()) {
         _children.push_back(element->clone());
@@ -102,7 +109,7 @@ const std::string &SvgElement::id() const
 void SvgElement::setId(const std::string &id)
 {
     //  Make sure pointer is valid
-    if (_doc)
+    if (_doc && !id.empty())
         _doc->addElementId(id, this);
     _id = id;
 }
@@ -386,14 +393,3 @@ bool SvgElement::attributeXml(SvgRope &output) const
 
     return hasAttributes;
 }
-
-/*std::unique_ptr<SvgElement> SvgElement::clone() const
-{
-    auto copy = std::make_unique<SvgElement>(*this);
-
-    for (const auto &child : _children) {
-        copy->_children.push_back(child->clone());
-    }
-
-    return copy;
-}*/

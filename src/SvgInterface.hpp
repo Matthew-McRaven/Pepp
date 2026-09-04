@@ -5,20 +5,26 @@
 using namespace std::string_literals;
 
 class SvgRope;
+class Document;
 
 // CRTP helper class that implements clone() automatically
 template<class Derived, class Base>
-struct Cloneable : public Base
+class Cloneable : public Base
 {
-    //friend class SvgInterface;
+    friend class SvgInterface;
     Base *cloneImpl() const override { return new Derived(static_cast<Derived const &>(*this)); }
-};
 
-class Document;
+public:
+    //  Get pointer to leaf class
+    //Derived &derived() { return static_cast<Derived &>(*this); }
+    //const Derived &derived() const { return static_cast<const Derived &>(*this); }
+};
 
 class SvgInterface
 {
     //  Base class used to enforce enterface used by derived Svg elements
+    inline static Document *_docs = nullptr;
+
 protected:
     virtual SvgInterface *cloneImpl() const = 0;
 
@@ -58,11 +64,17 @@ public:
     virtual void toXml(SvgRope &output) const = 0;
 
     //  Values in every class
+    virtual SvgInterface::SvgType elementType() const = 0;
+    virtual void setElementType(SvgInterface::SvgType elementType) = 0;
+    virtual const std::string &xmlName() const = 0;
+    virtual void setXmlName(const std::string &xmlName) = 0;
+    virtual const std::string &value() const = 0;
     virtual void setValue(const std::string &key) = 0;
     virtual void setDocument(Document *doc) = 0;
     virtual bool setAttribute(const std::string &key, const std::string &value) = 0;
-    virtual SvgInterface::SvgType elementType() const = 0;
-    virtual void setElementType(SvgInterface::SvgType elementType) = 0;
+
+    static void setCurrentDocument(Document *doc = nullptr) { _docs = doc; }
+    static Document *currentDocument() { return _docs; }
 
     template<typename Self>
     std::unique_ptr<Self> clone(this const Self &self)

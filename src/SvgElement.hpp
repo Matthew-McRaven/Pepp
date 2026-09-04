@@ -27,9 +27,9 @@ public:
     //  Standard Xml
     SvgInterface::SvgType elementType() const override;
     void setElementType(SvgInterface::SvgType elementType) override;
-    const std::string &xmlName() const;
-    void setXmlName(const std::string &xmlName);
-    const std::string &value() const;
+    const std::string &xmlName() const override;
+    void setXmlName(const std::string &xmlName) override;
+    const std::string &value() const override;
     void setValue(const std::string &value) override;
     void setDocument(Document *doc) override;
 
