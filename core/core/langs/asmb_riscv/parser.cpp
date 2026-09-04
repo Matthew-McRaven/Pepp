@@ -267,6 +267,7 @@ static const auto dot_map = std::map<std::string, int>{
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(OptionalSymbol symbol) {
   auto dot = _buffer->match<lex::DotCommand>();
+  if (!dot) return nullptr;
   auto dot_str = bits::to_upper(dot->to_string());
   auto it = dot_map.find(dot_str);
   if (it == dot_map.cend())
