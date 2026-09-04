@@ -57,7 +57,7 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
                              _buffer->matched_interval());
   } else if (auto maybeIdent = _buffer->match<lex::Identifier>(); maybeIdent) {
     auto entry = _symtab->reference(maybeIdent->to_string());
-    return std::make_shared<pepp::ast::Symbolic>(2, entry);
+    return std::make_shared<pepp::ast::Symbolic>(4, entry);
   } else if (auto maybeChar = _buffer->match<lex::CharacterConstant>(); maybeChar) {
     return std::make_shared<pepp::ast::Character>(maybeChar->value[0]);
   } else if (auto maybeStr = _buffer->match<lex::StringConstant>(); maybeStr) {
@@ -267,6 +267,7 @@ static const auto dot_map = std::map<std::string, int>{
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(OptionalSymbol symbol) {
   auto dot = _buffer->match<lex::DotCommand>();
+  if (!dot) return nullptr;
   auto dot_str = bits::to_upper(dot->to_string());
   auto it = dot_map.find(dot_str);
   if (it == dot_map.cend())

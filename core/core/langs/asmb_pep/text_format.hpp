@@ -49,6 +49,7 @@ template <typename T, typename F> std::pair<std::span<T>, std::span<T>> split_ex
 
 // Format a single IR line as if by format_source(<tokens>).
 std::string format_source(const LinearIR *line);
+std::vector<std::string> format_source(const IRProgram &program);
 
 // Format a single line
 std::vector<std::string> format_listing(const LinearIR *line, const IRMemoryAddressTable<PeppAddress> &addresses,

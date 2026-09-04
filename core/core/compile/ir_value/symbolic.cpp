@@ -23,13 +23,13 @@ std::shared_ptr<const pepp::core::symbol::Entry> pepp::ast::Symbolic::symbol() c
 [[nodiscard]]
 u32 pepp::ast::Symbolic::serialize(bits::span<u8> dest, bits::Order destEndian, u32 max_size) const noexcept {
   using size_type = bits::span<const u8>::size_type;
-  const auto size = std::min<size_type>(max_size, serialized_size());
+  const auto size = std::min(std::min<size_type>(max_size, serialized_size()), (size_type)dest.size());
   if (_value == nullptr) {
     auto subspan = dest.subspan(0, size);
     std::fill(subspan.begin(), subspan.end(), 0);
   } else {
-    auto src = _value->value->value();
-    auto srcSpan = bits::span<const u8>{reinterpret_cast<const u8 *>(&src), static_cast<size_type>(size)};
+    const u64 src = _value->value->value()();
+    auto srcSpan = bits::span<const u8>{reinterpret_cast<const u8 *>(&src), sizeof(src)};
     bits::memcpy_endian(dest, destEndian, srcSpan, bits::hostOrder());
   }
   return size;

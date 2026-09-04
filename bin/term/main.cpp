@@ -24,6 +24,7 @@
 #include "commands/about.hpp"
 #include "commands/asm.hpp"
 #include "commands/binutils/addr2line.hpp"
+#include "commands/binutils/as.hpp"
 #include "commands/binutils/readelf.hpp"
 #include "commands/dumpbooks.hpp"
 #include "commands/dumptex.hpp"
@@ -88,8 +89,10 @@ int main(int argc, char **argv) {
   registerRun(app, task, shared_flags);
   registerMicroRun(app, task, shared_flags);
   // binutils-like programs
-  registerReadelf(app, task, shared_flags);
   registerAddr2Line(app, task, shared_flags);
+  registerAs(app, task, shared_flags);
+  registerReadelf(app, task, shared_flags);
+
   // qemu-like programs
   register_rvemu(app, task, shared_flags);
 
