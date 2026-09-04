@@ -28,8 +28,8 @@ u32 pepp::ast::Symbolic::serialize(bits::span<u8> dest, bits::Order destEndian, 
     auto subspan = dest.subspan(0, size);
     std::fill(subspan.begin(), subspan.end(), 0);
   } else {
-    auto src = _value->value->value();
-    auto srcSpan = bits::span<const u8>{reinterpret_cast<const u8 *>(&src), static_cast<size_type>(size)};
+    const u64 src = _value->value->value()();
+    auto srcSpan = bits::span<const u8>{reinterpret_cast<const u8 *>(&src), sizeof(src)};
     bits::memcpy_endian(dest, destEndian, srcSpan, bits::hostOrder());
   }
   return size;
