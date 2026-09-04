@@ -4,6 +4,7 @@
 
 #include "src/SvgCommentElement.hpp"
 #include "src/SvgDocument.hpp"
+#include "src/SvgRectElement.hpp"
 
 //	private classes
 #include "src/Timer.h"
@@ -32,23 +33,28 @@ int main()
     svg.setMetadata("Meta2 from program"s);
     svg.setTitle("Title2 from program"s);
 
-    SvgElement *element = static_cast<SvgElement *>(doc2.getElementById("red"s));
-    if (element) {
-        element->setDesc("Red Desc"s);
-        element->setMetadata("Red Meta"s);
-        element->setTitle("Red Title"s);
+    /*SvgElement*/ auto *derived = static_cast<SvgRectElement *>(doc2.getElementById("red"s));
+    //auto base = doc2.getElementById("red"s);
+    //std::cout << "base is " << typeid(*base).name() << std::endl;
+    //auto *derived = base->derived();
+    std::cout << "derived is " << typeid(*derived).name() << std::endl;
+    if (derived) {
+        derived->setDesc("Red Desc"s);
+        derived->setMetadata("Red Meta"s);
+        derived->setTitle("Red Title"s);
+        derived->setWidth(2); //  From SvgElement
+        derived->setRy(.25);  //  From SvgRectElement
 
     } else {
         std::cout << "Element ID not found: "s << id << std::endl;
     }
 
     doc2.saveAs("x:\\"s + name + "-2.svg"s);
+    t.finish();
+    std::cout << "Elapsed open/alter file. "s << t.elapsedTime() << std::endl << std::endl;
 
     //Document doc2;
     //doc2.documentElement().children().push_back(doc1.documentElement().clone());
-
-    t.finish();
-    std::cout << "Elapsed open/alter file. "s << t.elapsedTime() << std::endl << std::endl;
 
     /*const SvgInterface *base = &doc2.documentElement();
     std::cout << "base is " << typeid(*base).name() << std::endl;

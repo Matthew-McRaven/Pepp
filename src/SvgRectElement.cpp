@@ -32,11 +32,11 @@ auto SvgRectElement::rx() const
 {
     return _rx.value;
 }
-void SvgRectElement::setRX(double x)
+void SvgRectElement::setRx(double x)
 {
     _rx.value = x;
 }
-void SvgRectElement::setRX(const std::string_view sv)
+void SvgRectElement::setRx(const std::string_view sv)
 {
     _rx.fromString(sv);
 }
@@ -44,11 +44,11 @@ auto SvgRectElement::ry() const
 {
     return _ry.value;
 }
-void SvgRectElement::setRY(double y)
+void SvgRectElement::setRy(double y)
 {
     _ry.value = y;
 }
-void SvgRectElement::setRY(const std::string_view sv)
+void SvgRectElement::setRy(const std::string_view sv)
 {
     _ry.fromString(sv);
 }

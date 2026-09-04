@@ -26,11 +26,11 @@ public:
     //	User access functions
     //  Values can be changed, but not units of measure (yet)
     auto rx() const;
-    void setRX(double x = 0);
-    void setRX(const std::string_view sv);
+    void setRx(double x = 0);
+    void setRx(const std::string_view sv);
     auto ry() const;
-    void setRY(double y = 0);
-    void setRY(const std::string_view sv);
+    void setRy(double y = 0);
+    void setRy(const std::string_view sv);
 
     void toXml(SvgRope &output) const override;
     bool setAttribute(const std::string &key, const std::string &value) override;
