@@ -16,20 +16,14 @@
  */
 
 #pragma once
-#include "core/ds/opaque_handle.hpp"
+#include <memory>
+#include <vector>
 #include "core/formats/elf/enums.hpp"
+#include "core/formats/elf/managed_types.hpp"
 
 namespace pepp::bts {
 
-// Big enough to store both a ELF32 word abd ELF64 word.
-// Needs to be masked / truncated when serializing to ELF32.
-using uxword = u64;
-using sxword = i64;
-
-// Opaque handle to a section that is specifically not a section index. As part of the serialization process we
-// construct a mapping of SectionRefs to actual indices.
-struct SectionRefTag;
-using SectionRef = OpaqueHandle<SectionRefTag>;
+class ManagedSection;
 
 /*
  * An ELF file held as a series of in-memory, editable data structures rather than as packed bytes.
@@ -49,6 +43,10 @@ class ManagedElf {
 public:
   ManagedElf(ElfBits bits, ElfEndian endian, ElfFileType type, ElfMachineType machine,
              ElfABI abi = ElfABI::ELFOSABI_NONE);
+  ~ManagedElf();
+  ManagedElf(const ManagedElf &) = delete;
+  ManagedElf(ManagedElf &&) noexcept;
+  ManagedElf &operator=(ManagedElf &&) noexcept;
 
   // Target format for serialization. Read-only to avoid having to swap endianness and size after construction.
   ElfBits bits() const noexcept { return _bits; }
@@ -64,9 +62,21 @@ public:
   // a named value rather than an address.
   uxword entry = 0;
 
+  // Pesudeo-sections that exist to avoid dealing with section indices.
+  static constexpr SectionRef SHN_UNDEF = SectionRef{0}, SHN_ABS = SectionRef{1}, SHN_COMMON = SectionRef{2};
+
+  SectionRef add_section(std::string name, SectionTypes type);
+  // Null for both default-constructed (SHN_UNDEF) and out-of-range handle.
+  ManagedSection *section(SectionRef ref) noexcept;
+  const ManagedSection *section(SectionRef ref) const noexcept;
+  std::size_t section_count() const noexcept { return _sections.size(); }
+
 private:
   ElfBits _bits;
   ElfEndian _endian;
+  // Indexed by SectionRef::value. Once handed out, that SectionRef must be valid for the lifetime of this class.
+  // Must use extra level of indirection via unique_ptr to gaurentee pointer stability.
+  std::vector<std::unique_ptr<ManagedSection>> _sections;
 };
 
 } // namespace pepp::bts
