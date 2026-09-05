@@ -138,6 +138,16 @@ template <std::integral I> struct Slab : public Page<I> {
   // to achieve an integral number of elements.
   // Align bytes should be power-of-two.
   size_t padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept;
+  // As padded_size, but for an allocation placed at `at` rather than at the next free slot. Lets a run
+  // of appends be measured before any of it is written, since each one's alignment depends on where
+  // the previous one left off.
+  size_t padded_size_at(size_t at, size_t count, size_t align_bytes, size_t pad_bytes) const noexcept;
+  // Whether a whole collection of spans fits, given that append() pads and aligns each one individually.
+  template <typename... Spans> bool can_fit_all(size_t byte_align, size_t byte_pad, Spans... spans) const noexcept {
+    size_t at = _used;
+    ((at += padded_size_at(at, spans.size(), byte_align, byte_pad)), ...);
+    return (at - _used) <= remaining_capacity();
+  }
 
 private:
   page_offset_t _used = 0;
@@ -288,6 +298,8 @@ Slab<I>::page_offset_t Slab<I>::append(bits::span<const I> data, size_t align, s
 template <std::integral I>
 template <typename... Spans>
 Slab<I>::page_offset_t Slab<I>::append(size_t byte_align, size_t byte_pad, I fill, Spans... spans) {
+  // Measure the whole run before writing any of it.
+  if (!can_fit_all(byte_align, byte_pad, spans...)) throw std::runtime_error("Page overflow");
   page_offset_t first{};
   bool is_first = true;
   ((is_first ? (first = append(spans, byte_align, byte_pad, fill), is_first = false)
@@ -327,8 +339,13 @@ template <std::integral I> typename Slab<I>::page_offset_t Slab<I>::remaining_ca
 
 template <std::integral I>
 size_t Slab<I>::padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept {
+  return padded_size_at(_used, count, align_bytes, pad_bytes);
+}
+
+template <std::integral I>
+size_t Slab<I>::padded_size_at(size_t at, size_t count, size_t align_bytes, size_t pad_bytes) const noexcept {
   if (align_bytes > alignof(I)) {
-    const std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(this->data() + _used);
+    const std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(this->data() + at);
     const size_t mis = static_cast<size_t>(addr % align_bytes);
     if (mis) count += bits::ceil_div(align_bytes - mis, sizeof(I));
   }

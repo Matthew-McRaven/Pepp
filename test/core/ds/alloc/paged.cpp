@@ -36,6 +36,45 @@ void check_page_bases(const Alloc &alloc) {
 }
 } // namespace
 
+TEST_CASE("Slab variadic append is all-or-nothing", "[kind:unit][arch:*][!throws][tc2][scope:core][scope:core.ds]") {
+  // append(align, pad, fill, spans...) atomically append all spans at the desired alignment or throws.
+  SECTION("A run that does not fit throws and writes nothing") {
+    Page page(Page::MIN_PAGE_SIZE);
+    const std::string filler(Page::MIN_PAGE_SIZE - 8, 'a');
+    page.append_packed(span_of(filler));
+    const auto before = page.used_capacity();
+    REQUIRE(before == Page::MIN_PAGE_SIZE - 8);
+
+    // First span fits the 8 remaining elements, the pair does not.
+    const std::string head(6, 'b'), tail(6, 'c');
+    REQUIRE(page.can_fit(span_of(head)));
+    CHECK_FALSE(page.can_fit_all(0, 0, span_of(head), span_of(tail)));
+    CHECK_THROWS_AS(page.append_packed(span_of(head), span_of(tail)), std::runtime_error);
+    // Nothing was written, so the space is still there for a run that does fit.
+    CHECK(page.used_capacity() == before);
+  }
+  SECTION("A run that fits is written back to back") {
+    Page page(Page::MIN_PAGE_SIZE);
+    const std::string head(6, 'b'), tail(2, 'c');
+    auto at = page.append_packed(span_of(head), span_of(tail));
+    CHECK(at == 0);
+    CHECK(page.used_capacity() == head.size() + tail.size());
+    CHECK(std::string(page.data(), page.used_capacity()) == head + tail);
+  }
+  SECTION("Per-span padding counts toward total size") {
+    // With pad, each span costs more than its size, so a group of spans that seem to fit by summing their sizes will
+    // not actually fit.
+    Page page(Page::MIN_PAGE_SIZE);
+    const std::string filler(Page::MIN_PAGE_SIZE - 4, 'a');
+    page.append_packed(span_of(filler));
+    const std::string a(2, 'b'), b(2, 'c');
+    // 4 elements of data would fit exactly; 4 + one pad byte each does not.
+    CHECK_FALSE(page.can_fit_all(0, 1, span_of(a), span_of(b)));
+    CHECK_THROWS_AS(page.append(size_t{0}, size_t{1}, char{0}, span_of(a), span_of(b)), std::runtime_error);
+    CHECK(page.used_capacity() == Page::MIN_PAGE_SIZE - 4);
+  }
+}
+
 TEST_CASE("PagedAllocator page bases track padded allocations",
           "[kind:unit][arch:*][!throws][tc2][scope:core][scope:core.ds]") {
   SECTION("A padded insert into an earlier page moves later pages by the padded size") {
