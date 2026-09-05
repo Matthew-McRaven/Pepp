@@ -90,7 +90,7 @@ struct PooledString {
   };
 
 private:
-  PooledString(int16_t page, uint16_t offset, uint16_t length);
+  PooledString(uint16_t page, uint16_t offset, uint16_t length);
   friend class StringPool;
   static constexpr uint16_t INVALID_PAGE = -1;
   uint16_t _page = INVALID_PAGE; // If -1/INVALID_PAGE, it is an invalid identifier, otherwise an index into _pages.

@@ -22,7 +22,7 @@
 #include <string>
 #include "core/math/bitmanip/span.hpp"
 
-pepp::bts::PooledString::PooledString(int16_t page, uint16_t offset, uint16_t length)
+pepp::bts::PooledString::PooledString(uint16_t page, uint16_t offset, uint16_t length)
     : _page(page), _offset(offset), _length(length) {}
 
 bool pepp::bts::PooledString::valid() const { return _page != INVALID_PAGE; }
@@ -265,7 +265,7 @@ pepp::bts::PooledString pepp::bts::StringPool::allocate(std::string_view str, bo
                           : _allocator.insert(bits::span<const char>{str.data(), str.size()});
 
   return *_identifiers
-              .insert(PooledString(static_cast<int16_t>(global_index.indices.index),
+              .insert(PooledString(static_cast<uint16_t>(global_index.indices.index),
                                    static_cast<uint16_t>(global_index.indices.offset),
                                    static_cast<uint16_t>(stored_length)))
               .first;
