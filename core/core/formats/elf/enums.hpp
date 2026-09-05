@@ -19,6 +19,9 @@
 #include "../../integers.h"
 namespace pepp::bts {
 
+// Not real enumerated values as specified in the ELF spec, instead used to constrain template parameters.
+enum class ElfBits : u8 { b32, b64 };
+enum class ElfEndian : u8 { le, be };
 
 // ELF file header enumerated constants
 enum class ElfFileType : u16 {
@@ -33,7 +36,7 @@ enum class ElfFileType : u16 {
   ET_HIPROC = 0xFFFF
 };
 
-enum class ElfMachineType {
+enum class ElfMachineType : u16 {
   EM_NONE = 0,                   // No machine
   EM_M32 = 1,                    // AT&T WE 32100
   EM_SPARC = 2,                  // SUN SPARC

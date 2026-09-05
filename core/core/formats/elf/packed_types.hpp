@@ -35,10 +35,6 @@
  */
 namespace pepp::bts {
 
-// Not real enumerated values as specified in the ELF spec, instead used to constrain template parameters.
-enum class ElfBits : u8 { b32, b64 };
-enum class ElfEndian : u8 { le, be };
-
 // Data types which perform conditional byteswapping.
 template <ElfEndian E> using I16 = std::conditional_t<E == ElfEndian::le, il16, ib16>;
 template <ElfEndian E> using I32 = std::conditional_t<E == ElfEndian::le, il32, ib32>;
