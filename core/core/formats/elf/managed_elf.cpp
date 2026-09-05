@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "manged_elf.hpp"
+#include "managed_elf.hpp"
 #include <cassert>
 #include "core/formats/elf/managed_section.hpp"
 
