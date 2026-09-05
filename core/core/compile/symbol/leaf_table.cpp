@@ -57,7 +57,7 @@ std::optional<pepp::core::symbol::LeafTable::entry_ptr_t> pepp::core::symbol::Le
 
 pepp::core::symbol::LeafTable::entry_ptr_t pepp::core::symbol::LeafTable::reference(std::string_view name) noexcept {
   // Create a new entry if one does not already exist
-  auto pooled = _pool->insert(name, bts::StringPool::AddNullTerminator::Never);
+  auto pooled = _pool->insert(name);
   if (auto it = _entries.find(pooled); it == _entries.end()) {
     auto sv = _pool->find(pooled).value();
     return _entries[pooled] = std::make_shared<symbol::Entry>(*this, sv);

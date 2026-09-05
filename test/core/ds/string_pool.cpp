@@ -19,6 +19,12 @@
 
 using Pool = pepp::bts::StringPool;
 using String = pepp::bts::PooledString;
+using Terminated = pepp::bts::NullTerminated;
+
+namespace {
+// A string_view that includes its own terminator.
+std::string_view with_nul(const std::string &str) { return std::string_view(str.data(), str.size() + 1); }
+} // namespace
 
 TEST_CASE("Allocator String Pooling", "[kind:unit][arch:*][!throws][tc2][scope:core][scope:core.ds]") {
   static const std::string hi = "hi", world = "world";
@@ -73,7 +79,7 @@ TEST_CASE("Allocator String Pooling", "[kind:unit][arch:*][!throws][tc2][scope:c
 
     // Null terminator still defeats pooling
     const char *world_null = "world\0";
-    auto handle_world_null = p.insert(std::string_view(world_null, 6), Pool::AddNullTerminator::IfNotPresent);
+    auto handle_world_null = p.insert(std::string_view(world_null, 6));
     CHECK(p.pooled_byte_size() == 13);
     CHECK(p.unpooled_byte_size() == 20);
     CHECK(p.count() == 4);
@@ -130,4 +136,150 @@ TEST_CASE("Allocator String Pooling", "[kind:unit][arch:*][!throws][tc2][scope:c
     // qDebug().noquote().nospace() << as_str;
     // CHECK(0);
   }
+  SECTION("Strings remain findable past the first page") {
+    Pool p;
+    std::vector<std::string> names;
+    std::vector<String> handles;
+    for (int it = 0; it < 4000; it++) names.push_back("symbol_number_" + std::to_string(it));
+    for (const auto &name : names) handles.push_back(p.insert_null_terminated(name));
+    REQUIRE(p.pooled_byte_size() > Pool::DEFAULT_PAGE_SIZE);
+    for (size_t it = 0; it < names.size(); it++) {
+      INFO("index: " << it);
+      auto found = p.find(Terminated{names[it]});
+      REQUIRE(found.has_value());
+      // A handle stays valid, and keeps its offset, across every later insertion.
+      CHECK(*found == handles[it]);
+      CHECK(p.byte_offset(*found) == p.byte_offset(handles[it]));
+      auto str = p.find(handles[it]);
+      REQUIRE(str.has_value());
+      CHECK(str->substr(0, str->size() - 1) == names[it]);
+    }
+  }
 }
+
+TEST_CASE("String pool with null-termination", "[kind:unit][arch:*][!throws][tc2][scope:core][scope:core.ds]") {
+  SECTION("Null terminator included in length") {
+    Pool p;
+    auto handle = p.insert_null_terminated("main");
+    CHECK(handle.length() == 5);
+    CHECK(p.pooled_byte_size() == 5);
+    auto str = p.find(handle);
+    REQUIRE(str.has_value());
+    CHECK(str->size() == 5);
+    CHECK(str->back() == '\0');
+    CHECK(str->substr(0, 4) == "main");
+    CHECK(p.byte_offset(handle) == 0);
+  }
+  SECTION("Inserting the same string twice yields the same handle") {
+    // A previous bug in allocated() would cause all null-terminated inserts to re-allocate on future inserts.
+    Pool p;
+    auto first = p.insert_null_terminated("main");
+    auto second = p.insert_null_terminated("main");
+    CHECK(first == second);
+    CHECK(p.count() == 1);
+    CHECK(p.pooled_byte_size() == 5);
+  }
+  SECTION("Already-included null terminator") {
+    Pool p;
+    static const std::string main = "main";
+    auto bare = p.insert_null_terminated(main);
+    auto carried = p.insert_null_terminated(with_nul(main));
+    CHECK(bare == carried);
+    CHECK(p.count() == 1);
+  }
+  SECTION("Empty string is a single null") {
+    Pool p;
+    auto handle = p.insert_null_terminated("");
+    CHECK(handle.length() == 1);
+    CHECK(p.byte_offset(handle) == 0);
+    auto str = p.find(handle);
+    REQUIRE(str.has_value());
+    CHECK(str->size() == 1);
+    CHECK(str->front() == '\0');
+    // Re-inserting finds it rather than allocating a second terminator.
+    CHECK(p.insert_null_terminated("") == handle);
+    CHECK(p.pooled_byte_size() == 1);
+  }
+}
+
+TEST_CASE("String pool null-terminated sharing", "[kind:unit][arch:*][!throws][tc2][scope:core][scope:core.ds]") {
+  SECTION("A tail shares the container's terminator") {
+    Pool p;
+    auto container = p.insert_null_terminated("mainCln"); // "mainCln\0"
+    CHECK(p.pooled_byte_size() == 8);
+    auto tail = p.insert_null_terminated("Cln");
+    // Shared: no new bytes, and it points four bytes into the container.
+    CHECK(p.pooled_byte_size() == 8);
+    CHECK(p.byte_offset(tail) == p.byte_offset(container) + 4);
+    CHECK(tail.length() == 4);
+    auto str = p.find(tail);
+    REQUIRE(str.has_value());
+    CHECK(str->size() == 4);
+    CHECK(str->back() == '\0');
+    CHECK(str->substr(0, 3) == "Cln");
+  }
+  SECTION("Avoid sharing in the middle of another container") {
+    // "main" is a prefix of "mainCln", but cannot pool because of the missing terminator.
+    Pool p;
+    auto container = p.insert_null_terminated("mainCln");
+    auto prefix = p.insert_null_terminated("main");
+    CHECK(p.byte_offset(prefix) != p.byte_offset(container));
+    CHECK(p.pooled_byte_size() == 8 + 5);
+    CHECK(p.count() == 2);
+    // Read back the same way C would, which is up until first null terminator.
+    auto str = p.find(prefix);
+    REQUIRE(str.has_value());
+    CHECK(str->substr(0, str->find('\0')) == "main");
+  }
+  SECTION("Later writes do not clobber earlier ones") {
+    Pool p;
+    auto tail = p.insert_null_terminated("Cln");
+    auto container = p.insert_null_terminated("mainCln");
+    // "Cln" was allocated first, so the container may not combine the two.
+    CHECK(p.find(tail)->substr(0, 3) == "Cln");
+    CHECK(p.find(container)->substr(0, 7) == "mainCln");
+  }
+  SECTION("Terminated and un-terminated paths do not collide") {
+    // Lengths differ (4 vs 5), so these are distinct keys and neither displaces the other.
+    Pool p;
+    auto bare = p.insert("main");
+    auto terminated = p.insert_null_terminated("main");
+    CHECK(bare != terminated);
+    CHECK(bare.length() == 4);
+    CHECK(terminated.length() == 5);
+    CHECK(p.count() == 2);
+    // Each is reachable by the key that matches it, and only by that key.
+    CHECK(p.find(std::string_view("main")).has_value());
+    CHECK(*p.find(std::string_view("main")) == bare);
+    CHECK(p.find(Terminated{"main"}).has_value());
+    CHECK(*p.find(Terminated{"main"}) == terminated);
+  }
+}
+
+TEST_CASE("String pool NullTerminated ordering", "[kind:unit][arch:*][!throws][tc2][scope:core][scope:core.ds]") {
+  // The comparator gained overloads that treat a trailing '\0' as present without it being stored.
+  // They must order identically to the previous forms.
+  SECTION("A NullTerminated key finds what the materialized form finds") {
+    Pool p;
+    static const std::vector<std::string> names = {"a", "main", "mainCln", "", "zzz", "a_longer_symbol_name"};
+    for (const auto &name : names) p.insert_null_terminated(name);
+    for (const auto &name : names) {
+      INFO("name: " << name);
+      auto by_key = p.find(Terminated{name});
+      auto by_materialized = p.find(with_nul(name));
+      REQUIRE(by_key.has_value());
+      REQUIRE(by_materialized.has_value());
+      CHECK(*by_key == *by_materialized);
+    }
+  }
+  SECTION("Absent strings") {
+    Pool p;
+    p.insert_null_terminated("main");
+    static const std::string absent = "absent";
+    CHECK(!p.find(Terminated{absent}).has_value());
+    CHECK(!p.find(with_nul(absent)).has_value());
+    // A bare key must not match the terminated entry.
+    CHECK(!p.find(std::string_view("main")).has_value());
+  }
+}
+

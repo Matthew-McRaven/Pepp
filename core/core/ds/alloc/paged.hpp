@@ -186,6 +186,8 @@ public:
   Slab<I> &page(page_index_t index);
   const Slab<I> &page(page_index_t index) const;
   bits::span<Slab<I> const> pages() const noexcept;
+  auto pages_cbegin() const noexcept { return _pages.cbegin(); }
+  auto pages_cend() const noexcept { return _pages.cend(); }
   /*======================
    *= Element Creation   =
    *======================*/

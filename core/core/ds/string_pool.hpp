@@ -26,6 +26,13 @@
 namespace pepp::bts {
 
 class StringPool;
+
+// A lookup key standing for `str` followed by a terminator.
+struct NullTerminated {
+  explicit NullTerminated(std::string_view str) : str(str) {}
+  std::string_view str;
+};
+
 // A string contained within a StringPool instance.
 // While it does not have any methods that look obviously string-like, it is effectively a handle into that StringPool.
 // Their primary purpose is to make sorting and comparing pooled strings "cheap". PooledStrings belong to different
@@ -53,6 +60,11 @@ struct PooledString {
     bool operator()(PooledString lhs, std::string_view rhs) const;
     bool operator()(std::string_view lhs, PooledString rhs) const;
     bool operator()(std::string_view lhs, std::string_view rhs) const;
+    // The same ordering, with one operand's terminator implied rather than stored.
+    bool operator()(PooledString lhs, NullTerminated rhs) const;
+    bool operator()(NullTerminated lhs, PooledString rhs) const;
+    bool operator()(std::string_view lhs, NullTerminated rhs) const;
+    bool operator()(NullTerminated lhs, std::string_view rhs) const;
   };
   // Helper for using PooledStrings in unordered_map, providing an equal_to API.
   // Must convert PooledString to string_view, otherwise this becomes O(lgn * m) rather than O(m), where m is the
@@ -102,25 +114,33 @@ public:
   StringPool();
 
   std::optional<PooledString> find(std::string_view str) const;
+  // Find the string str + '\0' without allocating a temporary.
+  std::optional<PooledString> find(NullTerminated str) const;
+  // If id was null-terminated, it is included in the returned view.
   std::optional<std::string_view> find(const PooledString &id) const;
   bool contains(std::string_view str) const;
   bool contains(const PooledString &id) const;
   size_t count() const;
+
+  // If all strings were stored as a contiguous array of bytes, the offset of the string into that array.
+  size_t byte_offset(const PooledString &id) const;
 
   // The number of bytes required to concatenate all the strings together with the current pooling applied.
   size_t pooled_byte_size() const;
   // Number of bytes required to hold all strings without pooling.
   size_t unpooled_byte_size() const;
 
-  enum class AddNullTerminator { Always, Never, IfNotPresent };
-
-  // Find the longest identifier which str is a suffix of.
+  // Find the longest identifier which contains str.
   // Returns an invalid identifier if no such identifier exists.
   PooledString longest_container_of(std::string_view str);
+  // Same as above, but requires null-termination.
+  PooledString longest_container_of(NullTerminated str);
   // If str is already in the pool, returns the existing identifier.
   // Otherwise, it attempts to return a substring of an existing identifier.
   // If no substring exists, it will will allocate space for a new string.
-  PooledString insert(std::string_view str, AddNullTerminator terminator = AddNullTerminator::Never);
+  PooledString insert(std::string_view str);
+  // Like insert(), but guarantees the PooledString ends in a null-terminator.
+  PooledString insert_null_terminated(std::string_view str);
 
   // Helpers to access underlying pages & identifiers, useful for writing debugger algos that "dump" the string pool.
   std::vector<Slab<char>>::const_iterator pages_cbegin() const;
@@ -130,9 +150,8 @@ public:
 
 private:
   PagedAllocator<char> _allocator = {};
-  // Force-allocate space for a new string.
-  // Will enforce
-  PooledString allocate(std::string_view str, AddNullTerminator terminator);
+  // Force-allocate space for a new string. If terminate is set, a null-terminator is appended.
+  PooledString allocate(std::string_view str, bool terminate);
 
   // Sort identifiers by string_view so that we can have cheap heterogenous comparisons with string_view
   PooledStringSet _identifiers = {};
