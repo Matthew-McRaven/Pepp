@@ -479,13 +479,12 @@ PagedAllocator<I>::global_offset_t PagedAllocator<I>::allocate_uninitialized(glo
 template <std::integral I>
 PagedAllocator<I>::InsertResult PagedAllocator<I>::insert(bits::span<const I> data, size_t align, size_t pad, I fill) {
   // Walk the pages until we find one that can fit the data.
-  // Keep _page_base in sync with
   for (size_t it = 0; it < _pages.size(); it++)
     if (auto &page = _pages[it]; page.can_fit(data, align, pad)) {
       auto padded_size = page.padded_size(data.size(), align, pad);
       auto inserted_offset = page.append(data, align, pad, fill);
-      // Insert causes _page_base beyond this page to shift forward by allocation size
-      for (size_t jt = it + 1; jt < _pages.size(); jt++) _page_base[jt] += data.size();
+      // Insert causes _page_base beyond this page to shift forward by the actual allocation size
+      for (size_t jt = it + 1; jt < _pages.size(); jt++) _page_base[jt] += padded_size;
       _size += padded_size;
       return InsertResult{.adjust_above = _page_base[it] + inserted_offset,
                           .adjust_by = padded_size,
