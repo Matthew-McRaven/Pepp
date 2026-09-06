@@ -32,6 +32,16 @@ using PackedElfBE32 = PackedElf<ElfBits::b32, ElfEndian::be>;
 using PackedElfLE64 = PackedElf<ElfBits::b64, ElfEndian::le>;
 using PackedElfBE64 = PackedElf<ElfBits::b64, ElfEndian::be>;
 using AnyPackedElfPtr = std::variant<PackedElfLE32 *, PackedElfBE32 *, PackedElfLE64 *, PackedElfBE64 *>;
+// The growable files, for code that needs to add sections rather than only read them. Separate from
+// AnyPackedElfPtr because that one may hold a memory-mapped input file, which cannot grow.
+template <ElfBits, ElfEndian> class PackedGrowableElfFile;
+using PackedGrowableElfLE32 = PackedGrowableElfFile<ElfBits::b32, ElfEndian::le>;
+using PackedGrowableElfBE32 = PackedGrowableElfFile<ElfBits::b32, ElfEndian::be>;
+using PackedGrowableElfLE64 = PackedGrowableElfFile<ElfBits::b64, ElfEndian::le>;
+using PackedGrowableElfBE64 = PackedGrowableElfFile<ElfBits::b64, ElfEndian::be>;
+using AnyGrowableElfPtr =
+    std::variant<PackedGrowableElfLE32 *, PackedGrowableElfBE32 *, PackedGrowableElfLE64 *, PackedGrowableElfBE64 *>;
+
 using ConstAnyPackedElfPtr =
     std::variant<const PackedElfLE32 *, const PackedElfBE32 *, const PackedElfLE64 *, const PackedElfBE64 *>;
 std::shared_ptr<const pepp::bts::AStorage> section_data(ConstAnyPackedElfPtr elf, u16 section_index);

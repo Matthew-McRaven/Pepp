@@ -26,6 +26,9 @@ namespace pepp::bts {
 // If you intend to create a new ELF file from scratch, use PackedGrowableElfFile.
 template <ElfBits B, ElfEndian E> class PackedElf {
 public:
+  // The template parameters, so code holding an AnyPackedElfPtr can check a file's format at runtime.
+  static constexpr ElfBits elf_bits = B;
+  static constexpr ElfEndian elf_endian = E;
   using Ehdr = PackedElfEhdr<B, E>;
   using Shdr = PackedElfShdr<B, E>;
   using Symbol = PackedElfSymbol<B, E>;
@@ -70,11 +73,6 @@ public:
   u32 add_segment(Phdr &&phdr);
   u32 add_segment(SegmentType type, SegmentFlags flags = SegmentFlags::PF_NONE);
 };
-
-using PackedGrowableElfLE32 = PackedGrowableElfFile<ElfBits::b32, ElfEndian::le>;
-using PackedGrowableElfBE32 = PackedGrowableElfFile<ElfBits::b32, ElfEndian::be>;
-using PackedGrowableElfLE64 = PackedGrowableElfFile<ElfBits::b64, ElfEndian::le>;
-using PackedGrowableElfBE64 = PackedGrowableElfFile<ElfBits::b64, ElfEndian::be>;
 
 template <ElfBits B, ElfEndian E>
 PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) : _file(file) {
