@@ -29,4 +29,7 @@ using sxword = i64;
 using SectionRef = OpaqueHandle<struct SectionRefTag>;
 consteval void allow_opaque_handle_increment(SectionRef);
 
+using SegmentRef = OpaqueHandle<struct SegmentRefTag>;
+consteval void allow_opaque_handle_increment(SegmentRef);
+
 } // namespace pepp::bts

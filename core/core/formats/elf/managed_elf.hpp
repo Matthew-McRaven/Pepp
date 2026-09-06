@@ -24,6 +24,7 @@
 namespace pepp::bts {
 
 class ManagedSection;
+class ManagedSegment;
 
 /*
  * An ELF file held as a series of in-memory, editable data structures rather than as packed bytes.
@@ -63,22 +64,37 @@ public:
   uxword entry = 0;
 
   // Pesudeo-sections that exist to avoid dealing with section indices.
+  // If you change this list, you must also update CTOR and last_magic_section().
   static constexpr SectionRef SHN_UNDEF = SectionRef{0}, SHN_ABS = SectionRef{1}, SHN_COMMON = SectionRef{2};
 
+  std::size_t section_count() const noexcept { return _sections.empty() ? 0 : _sections.size() - 1; }
   SectionRef add_section(std::string name, SectionTypes type);
   // Null for both default-constructed (SHN_UNDEF) and out-of-range handle.
   ManagedSection *section(SectionRef ref) noexcept;
   const ManagedSection *section(SectionRef ref) const noexcept;
-  std::size_t section_count() const noexcept { return _sections.size(); }
   // Highest used SectionRef to aid iteration over sections.
   SectionRef last_section() const noexcept;
+  // Includes initial null section and pseudo-sections.
+  std::span<const std::unique_ptr<ManagedSection>> sections() const noexcept;
+
+  std::size_t segment_count() const noexcept { return _segments.empty() ? 0 : _segments.size() - 1; }
+  SegmentRef add_segment(SegmentType type, SegmentFlags flags = {});
+  ManagedSegment *segment(SegmentRef ref) noexcept;
+  const ManagedSegment *segment(SegmentRef ref) const noexcept;
+  // Highest used SegmentRef to aid iteration over segments.
+  SegmentRef last_segment() const noexcept;
+  // Includes initial null segment.
+  std::span<const std::unique_ptr<ManagedSegment>> segments() const noexcept;
 
 private:
   ElfBits _bits;
   ElfEndian _endian;
+  SectionRef last_magic_section() const noexcept;
   // Indexed by SectionRef::value. Once handed out, that SectionRef must be valid for the lifetime of this class.
   // Must use extra level of indirection via unique_ptr to gaurentee pointer stability.
   std::vector<std::unique_ptr<ManagedSection>> _sections;
+  // as with _sections, 0 is unused so a default-constructed SegmentRef points to a null segment.
+  std::vector<std::unique_ptr<ManagedSegment>> _segments;
 };
 
 } // namespace pepp::bts

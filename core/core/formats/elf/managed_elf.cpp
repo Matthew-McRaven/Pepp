@@ -17,7 +17,9 @@
 
 #include "managed_elf.hpp"
 #include <cassert>
+#include <stdexcept>
 #include "core/formats/elf/managed_section.hpp"
+#include "core/formats/elf/managed_segment.hpp"
 
 pepp::bts::ManagedElf::ManagedElf(ElfBits bits, ElfEndian endian, ElfFileType type, ElfMachineType machine, ElfABI abi)
     : type(type), machine(machine), abi(abi), _bits(bits), _endian(endian) {
@@ -37,13 +39,25 @@ pepp::bts::ManagedElf::ManagedElf(ElfBits bits, ElfEndian endian, ElfFileType ty
   assert(r1 == ManagedElf::SHN_ABS);
   const auto r2 = add_pseudo("SHN_COMMON", SectionIndices::SHN_COMMON);
   assert(r2 == ManagedElf::SHN_COMMON);
+
+  // Ensure that the default/null segment always exists.
+  _segments.emplace_back(nullptr);
 }
 
+// All must be default out-of-line, otherwise the compiler will end up instantiating unique_ptr's destructor in the
+// header, where our Section and Segment are not yet complete.
 pepp::bts::ManagedElf::~ManagedElf() = default;
 pepp::bts::ManagedElf::ManagedElf(ManagedElf &&) noexcept = default;
 pepp::bts::ManagedElf &pepp::bts::ManagedElf::operator=(ManagedElf &&) noexcept = default;
 
+pepp::bts::SectionRef pepp::bts::ManagedElf::last_magic_section() const noexcept { return SHN_COMMON; }
+
+std::span<const std::unique_ptr<pepp::bts::ManagedSection>> pepp::bts::ManagedElf::sections() const noexcept {
+  return std::span{_sections.data(), _sections.size()};
+}
+
 pepp::bts::SectionRef pepp::bts::ManagedElf::last_section() const noexcept {
+  if (_sections.empty()) return SectionRef{}; // Only possible after move
   return SectionRef{static_cast<SectionRef::underlying_type>(_sections.size() - 1)};
 }
 
@@ -60,4 +74,28 @@ pepp::bts::ManagedSection *pepp::bts::ManagedElf::section(SectionRef ref) noexce
 const pepp::bts::ManagedSection *pepp::bts::ManagedElf::section(SectionRef ref) const noexcept {
   if (!ref || ref.value >= _sections.size()) return nullptr;
   return _sections[ref.value].get();
+}
+
+pepp::bts::SegmentRef pepp::bts::ManagedElf::add_segment(SegmentType type, SegmentFlags flags) {
+  _segments.push_back(std::make_unique<ManagedSegment>(type, flags));
+  return SegmentRef{static_cast<SegmentRef::underlying_type>(_segments.size() - 1)};
+}
+
+pepp::bts::ManagedSegment *pepp::bts::ManagedElf::segment(SegmentRef ref) noexcept {
+  if (!ref || ref.value >= _segments.size()) return nullptr;
+  return _segments[ref.value].get();
+}
+
+const pepp::bts::ManagedSegment *pepp::bts::ManagedElf::segment(SegmentRef ref) const noexcept {
+  if (!ref || ref.value >= _segments.size()) return nullptr;
+  return _segments[ref.value].get();
+}
+
+pepp::bts::SegmentRef pepp::bts::ManagedElf::last_segment() const noexcept {
+  if (_segments.empty()) return SegmentRef{}; // Only possible after move
+  return SegmentRef{static_cast<SegmentRef::underlying_type>(_segments.size() - 1)};
+}
+
+std::span<const std::unique_ptr<pepp::bts::ManagedSegment>> pepp::bts::ManagedElf::segments() const noexcept {
+  return std::span{_segments.data(), _segments.size()};
 }

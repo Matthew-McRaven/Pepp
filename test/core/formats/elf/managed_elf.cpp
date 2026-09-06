@@ -18,12 +18,13 @@
 #include <string>
 #include <vector>
 #include "core/formats/elf/managed_section.hpp"
+#include "core/formats/elf/managed_segment.hpp"
 
 TEST_CASE("ManagedElf sanity tests", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
   using namespace pepp::bts;
   ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10);
 
-  SECTION("The pseudo-sections exist and do not serialize") {
+  SECTION("Pseudo-sections exist and do not serialize") {
     auto *abs = elf.section(ManagedElf::SHN_ABS);
     auto *common = elf.section(ManagedElf::SHN_COMMON);
     REQUIRE(abs != nullptr);
@@ -70,5 +71,51 @@ TEST_CASE("ManagedElf sanity tests", "[kind:unit][arch:*][!throws][tc2][scope:el
     for (int it = 0; it < 32; it++) elf.add_section(".filler" + std::to_string(it), SectionTypes::SHT_PROGBITS);
     CHECK(elf.section(strtab) == before);
     CHECK(std::get<ManagedStringTable>(before->content).find("main").has_value());
+  }
+}
+
+TEST_CASE("ManagedElf segments", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
+  using namespace pepp::bts;
+  ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10);
+  auto load = elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_R);
+
+  auto text = elf.add_section(".text", SectionTypes::SHT_PROGBITS);
+  elf.section(text)->content.emplace<RawBytes>().bytes = {1, 2, 3, 4};
+  auto bss = elf.add_section(".bss", SectionTypes::SHT_NOBITS);
+  elf.section(bss)->content.emplace<NoBits>().size = 0x100;
+
+  SECTION("Segments can be constructed") {
+    auto *seg = elf.segment(load);
+    REQUIRE(seg != nullptr);
+    CHECK(seg->type == SegmentType::PT_LOAD);
+    CHECK(seg->flags == SegmentFlags::PF_R);
+    CHECK(seg->sections.empty());
+  }
+
+  SECTION("Segments respect insertion order of sections") {
+    auto *seg = elf.segment(load);
+    seg->sections.push_back(text);
+    seg->sections.push_back(bss);
+    REQUIRE(seg->sections.size() == 2);
+    CHECK(seg->sections[0] == text);
+    CHECK(seg->sections[1] == bss);
+    seg->sections.erase(seg->sections.begin());
+    REQUIRE(seg->sections.size() == 1);
+    CHECK(seg->sections[0] == bss);
+  }
+
+  SECTION("Default constucted SegmentRef maps to nullptr") { CHECK(elf.segment(SegmentRef{}) == nullptr); }
+
+  SECTION("SegmentRefs are stable across insertion") {
+    auto second = elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_W);
+    auto *before = elf.segment(load);
+    before->sections.push_back(text);
+    for (int it = 0; it < 16; it++) elf.add_segment(SegmentType::PT_NOTE);
+    CHECK(elf.segment(load) == before);
+    REQUIRE(elf.segment(load)->sections.size() == 1);
+    std::size_t seen = 0;
+    for (auto it = SegmentRef{1}; it <= elf.last_segment(); ++it) seen++;
+    CHECK(seen == 18);
+    CHECK(second.value == 2);
   }
 }
