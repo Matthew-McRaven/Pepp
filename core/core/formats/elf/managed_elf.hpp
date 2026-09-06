@@ -70,6 +70,8 @@ public:
   ManagedSection *section(SectionRef ref) noexcept;
   const ManagedSection *section(SectionRef ref) const noexcept;
   std::size_t section_count() const noexcept { return _sections.size(); }
+  // Highest used SectionRef to aid iteration over sections.
+  SectionRef last_section() const noexcept;
 
 private:
   ElfBits _bits;

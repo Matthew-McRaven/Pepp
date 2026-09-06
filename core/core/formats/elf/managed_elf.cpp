@@ -43,6 +43,10 @@ pepp::bts::ManagedElf::~ManagedElf() = default;
 pepp::bts::ManagedElf::ManagedElf(ManagedElf &&) noexcept = default;
 pepp::bts::ManagedElf &pepp::bts::ManagedElf::operator=(ManagedElf &&) noexcept = default;
 
+pepp::bts::SectionRef pepp::bts::ManagedElf::last_section() const noexcept {
+  return SectionRef{static_cast<SectionRef::underlying_type>(_sections.size() - 1)};
+}
+
 pepp::bts::SectionRef pepp::bts::ManagedElf::add_section(std::string name, SectionTypes type) {
   _sections.push_back(std::make_unique<ManagedSection>(std::move(name), type));
   return SectionRef{static_cast<SectionRef::underlying_type>(_sections.size() - 1)};

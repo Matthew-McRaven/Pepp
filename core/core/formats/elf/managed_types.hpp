@@ -27,5 +27,6 @@ using sxword = i64;
 
 // Specifically not a section index. During serialization we construct a mapping of SectionRefs to actual indices.
 using SectionRef = OpaqueHandle<struct SectionRefTag>;
+consteval void allow_opaque_handle_increment(SectionRef);
 
 } // namespace pepp::bts
