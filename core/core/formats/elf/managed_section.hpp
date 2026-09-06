@@ -19,10 +19,29 @@
 #include <optional>
 #include <string>
 #include <variant>
+#include <vector>
 #include "core/formats/elf/enums.hpp"
+#include "core/formats/elf/managed_access_strings.hpp"
 #include "core/formats/elf/managed_types.hpp"
 
 namespace pepp::bts {
+
+// A section which occpies no file space but still occupies loaded memory, like .bss
+struct NoBits {
+  uxword size = 0;
+};
+
+// A section whose payload is opaque to the ELF library, like .text or .data
+// Memory size will be assumed to be equal to file size, equal to vector's length.
+struct RawBytes {
+  std::vector<u8> bytes;
+};
+
+/*
+ * Payload data for a section. Monostate can be used for anything with no data + no file size, like SHT_NULL.
+ */
+// TODO: SymbolTable, RelocTable, NoteTable.
+using SectionData = std::variant<std::monostate, NoBits, RawBytes, ManagedStringTable>;
 
 /*
  * A single section of a ManagedElf file. Common fields are stored in this class, while content is stored in a variant.
@@ -46,9 +65,7 @@ public:
   SectionRef link = SectionRef{0};
   std::string name;
 
-  // TODO: variant<StringTable, SymbolTable, RelocTable, NoteTable, RawBytes, NoBits>, one alternative
-  // per section type we support. Use RawBytes for unknown section types.
-  std::variant<std::monostate> content;
+  SectionData content;
 
   // Type of sh_info depends on the section. If it's being interpreted as a section index, please use the SectionRef
   // alternative. Otherwise, use the u32 as the spec requires.
