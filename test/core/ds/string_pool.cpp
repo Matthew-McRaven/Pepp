@@ -16,6 +16,7 @@
 
 #include "core/ds/string_pool.hpp"
 #include <catch/catch.hpp>
+#include <type_traits>
 
 using Pool = pepp::bts::StringPool;
 using String = pepp::bts::PooledString;
@@ -28,6 +29,10 @@ std::string_view with_nul(const std::string &str) { return std::string_view(str.
 
 TEST_CASE("Allocator String Pooling", "[kind:unit][arch:*][!throws][tc2][scope:core][scope:core.ds]") {
   static const std::string hi = "hi", world = "world";
+  SECTION("Disallow copy/move due to potential for dangling pointer in _identifiers") {
+    STATIC_REQUIRE_FALSE(std::is_move_constructible_v<Pool>);
+    STATIC_REQUIRE_FALSE(std::is_move_assignable_v<Pool>);
+  }
   SECTION("Sequential insert/finds without pooling") {
     Pool p;
     auto handle_hi = p.insert(hi);
@@ -298,4 +303,3 @@ TEST_CASE("String pool comparator context", "[kind:unit][arch:*][!throws][tc2][s
     CHECK(p.byte_offset(*p.find(Terminated{""})) == 0);
   }
 }
-

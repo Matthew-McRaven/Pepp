@@ -112,6 +112,8 @@ public:
   using PooledStringSet = std::set<PooledString, PooledString::Less>;
 
   StringPool();
+  StringPool(StringPool &&) = delete;
+  StringPool &operator=(StringPool &&) = delete;
   // A pool whose offset 0 is already a lone terminator, so byte_offset 0 reads back as the empty
   // string. Needed to be compliant with ELF string tables
   static StringPool with_null_entry();
@@ -164,7 +166,8 @@ private:
   // Force-allocate space for a new string. If terminate is set, a null-terminator is appended.
   PooledString allocate(std::string_view str, bool terminate);
 
-  // Sort identifiers by string_view so that we can have cheap heterogenous comparisons with string_view
+  // Sort identifiers by string_view so that we can have cheap heterogenous comparisons with string_view.
+  // Since this comparator uses a pointer to this pool to perform comparisons, we must disable move.
   PooledStringSet _identifiers = {};
 };
 
