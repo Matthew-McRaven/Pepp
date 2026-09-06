@@ -74,6 +74,11 @@ public:
   // If this member is set, then this section must be assigned a specific index in the final ELF file.
   // Mostly used to identify SHN_ABS and SHN_COMMON.
   std::optional<SectionIndices> required_index = std::nullopt;
+  // Bytes this section directly contributes to the final object file, not counting inter-section alignment/padding.
+  uxword file_bytes() const;
+  // Bytes this section occupies when loaded into memory, which only differs from file_bytes() for a NoBits section.
+  uxword memory_bytes() const;
+
   bool is_serialized() const noexcept {
     using SI = SectionIndices;
     if (!required_index.has_value()) return true;

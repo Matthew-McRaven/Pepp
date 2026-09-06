@@ -119,3 +119,39 @@ TEST_CASE("ManagedElf segments", "[kind:unit][arch:*][!throws][tc2][scope:elf]")
     CHECK(second.value == 2);
   }
 }
+
+TEST_CASE("Section sizes", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
+  using namespace pepp::bts;
+  ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10);
+
+  SECTION("Null section neither occupies file nor memory") {
+    auto *sec = elf.section(elf.add_section(".null", SectionTypes::SHT_NULL));
+    CHECK(sec->file_bytes() == 0);
+    CHECK(sec->memory_bytes() == 0);
+  }
+
+  SECTION("Raw bytes file and memory sizes are the same") {
+    auto *sec = elf.section(elf.add_section(".text", SectionTypes::SHT_PROGBITS));
+    sec->content.emplace<RawBytes>().bytes = {1, 2, 3, 4, 5};
+    CHECK(sec->file_bytes() == 5);
+    CHECK(sec->memory_bytes() == 5);
+  }
+
+  SECTION("NoBits occupies memory but not file") {
+    auto *sec = elf.section(elf.add_section(".bss", SectionTypes::SHT_NOBITS));
+    sec->content.emplace<NoBits>().size = 0x1000;
+    CHECK(sec->file_bytes() == 0);
+    CHECK(sec->memory_bytes() == 0x1000);
+  }
+
+  SECTION("String table file size matches serialized size") {
+    auto *sec = elf.section(elf.add_section(".strtab", SectionTypes::SHT_STRTAB));
+    auto &table = sec->content.emplace<ManagedStringTable>();
+    // Currently contains only null terminator
+    CHECK(sec->file_bytes() == table.serialized_size());
+    table.insert("main");
+    CHECK(sec->file_bytes() == table.serialized_size());
+    CHECK(sec->memory_bytes() == sec->file_bytes());
+  }
+}
+
