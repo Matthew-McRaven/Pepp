@@ -283,3 +283,19 @@ TEST_CASE("String pool NullTerminated ordering", "[kind:unit][arch:*][!throws][t
   }
 }
 
+TEST_CASE("String pool comparator context", "[kind:unit][arch:*][!throws][tc2][scope:core][scope:core.ds]") {
+  // Less holds a raw pointer to the pool it resolves handles against.
+  SECTION("A default-constructed pool compares against itself") {
+    Pool p;
+    CHECK(p.comparator_context() == &p);
+  }
+  SECTION("with_null_entry() returns a pool that compares against itself") {
+    // If copy elision fails, this would be a dangling pointer.
+    auto p = Pool::with_null_entry();
+    CHECK(p.comparator_context() == &p);
+    // And the seeded entry is reachable, which it would not be if the comparator were wrong.
+    REQUIRE(p.find(Terminated{""}).has_value());
+    CHECK(p.byte_offset(*p.find(Terminated{""})) == 0);
+  }
+}
+

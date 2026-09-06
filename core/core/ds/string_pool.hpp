@@ -112,6 +112,9 @@ public:
   using PooledStringSet = std::set<PooledString, PooledString::Less>;
 
   StringPool();
+  // A pool whose offset 0 is already a lone terminator, so byte_offset 0 reads back as the empty
+  // string. Needed to be compliant with ELF string tables
+  static StringPool with_null_entry();
 
   std::optional<PooledString> find(std::string_view str) const;
   // Find the string str + '\0' without allocating a temporary.
@@ -142,6 +145,9 @@ public:
   // Like insert(), but guarantees the PooledString ends in a null-terminator.
   PooledString insert_null_terminated(std::string_view str);
 
+  // Exposed to enable unit testing on the context.
+  const StringPool *comparator_context() const noexcept { return _identifiers.key_comp().context; }
+
   // Helpers to access underlying pages & identifiers, useful for writing debugger algos that "dump" the string pool.
   std::vector<Slab<char>>::const_iterator pages_cbegin() const;
   std::vector<Slab<char>>::const_iterator pages_cend() const;
@@ -149,6 +155,11 @@ public:
   PooledStringSet::const_iterator identifiers_cend() const;
 
 private:
+  // Path to allow with_null_entry() to return a prvalue, because a move would create a dnagling pointer via set
+  // comparator.
+  struct null_entry_t {};
+  explicit StringPool(null_entry_t);
+
   PagedAllocator<char> _allocator = {};
   // Force-allocate space for a new string. If terminate is set, a null-terminator is appended.
   PooledString allocate(std::string_view str, bool terminate);

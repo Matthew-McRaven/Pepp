@@ -163,6 +163,13 @@ size_t pepp::bts::PooledString::Hash::operator()(const std::string &str) const {
 
 pepp::bts::StringPool::StringPool() : _identifiers(PooledString::Less{this}) {}
 
+pepp::bts::StringPool::StringPool(null_entry_t) : StringPool() { allocate(std::string_view{}, true); }
+
+pepp::bts::StringPool pepp::bts::StringPool::with_null_entry() {
+  // Must stay a prvalue, otherwise _identifiers holds a dangling pointer. This depends on copy elision.
+  return StringPool(null_entry_t{});
+}
+
 std::optional<pepp::bts::PooledString> pepp::bts::StringPool::find(std::string_view str) const {
   auto item = _identifiers.find(str);
   if (item == _identifiers.end()) return std::nullopt;
