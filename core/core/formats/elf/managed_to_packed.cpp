@@ -64,3 +64,23 @@ pepp::bts::garbage_collect_sections(const ManagedElf &elf, const std::function<b
 std::vector<pepp::bts::SectionRef> pepp::bts::garbage_collect_sections(const ManagedElf &elf) {
   return garbage_collect_sections(elf, [](const ManagedSection &) { return true; });
 }
+
+pepp::bts::SectionRef pepp::bts::build_shstrtab(ManagedElf &elf, std::vector<SectionRef> &live) {
+  auto ref = elf.shstrtab();
+  if (!elf.section(ref)) {
+    ref = elf.add_section(".shstrtab", SectionTypes::SHT_STRTAB);
+    elf.set_shstrtab(ref);
+  }
+  // Live list might predate shstrab being created, so we need to add it if not present.
+  if (std::find(live.begin(), live.end(), ref) == live.end()) live.push_back(ref);
+
+  // Force this section to become a string table.
+  auto *sec = elf.section(ref);
+  if (!std::holds_alternative<ManagedStringTable>(sec->content)) sec->content.emplace<ManagedStringTable>();
+  auto &table = std::get<ManagedStringTable>(sec->content);
+  for (auto member : live)
+    if (const auto *named = elf.section(member); named) table.insert(named->name);
+  // Force clear link and info because they are meaningless for a string table.
+  sec->link = ManagedElf::SHN_UNDEF, sec->info = u32{0};
+  return ref;
+}

@@ -67,6 +67,10 @@ public:
   // If you change this list, you must also update CTOR and last_magic_section().
   static constexpr SectionRef SHN_UNDEF = SectionRef{0}, SHN_ABS = SectionRef{1}, SHN_COMMON = SectionRef{2};
 
+  // The section holding section names, which translates to e_shstrndx.
+  SectionRef shstrtab() const noexcept { return _shstrtab; }
+  void set_shstrtab(SectionRef ref) noexcept { _shstrtab = ref; }
+
   std::size_t section_count() const noexcept { return _sections.empty() ? 0 : _sections.size() - 1; }
   SectionRef add_section(std::string name, SectionTypes type);
   // Null for both default-constructed (SHN_UNDEF) and out-of-range handle.
@@ -90,6 +94,7 @@ private:
   ElfBits _bits;
   ElfEndian _endian;
   SectionRef last_magic_section() const noexcept;
+  SectionRef _shstrtab = SHN_UNDEF;
   // Indexed by SectionRef::value. Once handed out, that SectionRef must be valid for the lifetime of this class.
   // Must use extra level of indirection via unique_ptr to gaurentee pointer stability.
   std::vector<std::unique_ptr<ManagedSection>> _sections;

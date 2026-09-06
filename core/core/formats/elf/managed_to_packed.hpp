@@ -33,4 +33,8 @@ std::vector<SectionRef> garbage_collect_sections(const ManagedElf &elf,
                                                  const std::function<bool(const ManagedSection &)> &keep);
 // Overload of above where keep predicate always returns true.
 std::vector<SectionRef> garbage_collect_sections(const ManagedElf &elf);
+
+// Create (or update) the .shstrtab section, filling it with the names of all live sections.
+// Live list is mutable, because the .shstrab section must be added if not present.
+SectionRef build_shstrtab(ManagedElf &elf, std::vector<SectionRef> &live);
 } // namespace pepp::bts
