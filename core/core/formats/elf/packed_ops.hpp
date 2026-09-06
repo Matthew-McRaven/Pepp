@@ -237,8 +237,10 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
     if (over_align[i] > shdr.sh_addralign) rolling_offset = align_to(rolling_offset, over_align[i]);
     else if (shdr.sh_addralign > 1) rolling_offset = align_to(rolling_offset, shdr.sh_addralign);
 
-    const auto size = elf.section_data[i]->size();
-    shdr.sh_offset = rolling_offset, shdr.sh_size = size;
+    shdr.sh_offset = rolling_offset;
+    // Per TIS ELF 1.2 on sh_size, sh_size is usually filesize, except for NOBITS where it is memory size.
+    if (shdr.sh_type != bits::to_underlying(SectionTypes::SHT_NOBITS))
+      shdr.sh_size = elf.section_data[i]->size();
     rolling_offset = elf.section_data[i]->calculate_layout(ret, shdr.sh_offset);
   }
 
@@ -251,8 +253,10 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
       auto &phdr = elf.program_headers[it];
 
       phdr.p_offset = elf.section_headers[constraint.from_sec].sh_offset;
+      // Do not use sh_size, because it reports memory size for NOBITS. Ask the underlying storage for its actual memory
+      // allocation.
       phdr.p_filesz = elf.section_headers[constraint.to_sec].sh_offset +
-                      elf.section_headers[constraint.to_sec].sh_size -
+                      elf.section_data[constraint.to_sec]->size() -
                       elf.section_headers[constraint.from_sec].sh_offset;
       phdr.p_align = constraint.alignment;
       u64 base_address = align_to(constraint.base_address, constraint.alignment);
