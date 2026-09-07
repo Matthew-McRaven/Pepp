@@ -19,8 +19,12 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
+#include "core/compile/symbol/types.hpp"
 #include "core/formats/elf/managed_section.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
+#include "core/formats/elf/managed_section_symtab.hpp"
 #include "core/formats/elf/managed_segment.hpp"
 
 TEST_CASE("ManagedElf sanity tests", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
@@ -156,5 +160,24 @@ TEST_CASE("Section sizes", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
     table.insert("main");
     CHECK(sec->file_bytes(bits) == table.serialized_size());
     CHECK(sec->memory_bytes(bits) == sec->file_bytes(bits));
+  }
+  SECTION("Symbol table must be frozen") {
+    auto *sec = elf.section(elf.add_section(".symtab", SectionTypes::SHT_SYMTAB));
+    sec->make_content<ManagedSymbolTable>(std::make_shared<pepp::core::symbol::LeafTable>(2));
+    sec->content_as<ManagedSymbolTable>()->symbols().define("main");
+    CHECK_THROWS_AS(sec->file_bytes(ElfBits::b32), std::logic_error);
+  }
+
+  SECTION("Symbol table size depends on elf bitness") {
+    auto symbols = std::make_shared<pepp::core::symbol::LeafTable>(2);
+    symbols->define("main");
+    symbols->define("exit");
+    auto *sec = elf.section(elf.add_section(".symtab", SectionTypes::SHT_SYMTAB));
+    sec->make_content<ManagedSymbolTable>(symbols);
+    freeze_symbols(*sec, elf.bits());
+    // Two symbols plus the reserved null one
+    CHECK(sec->file_bytes(ElfBits::b32) == 3 * 16);
+    CHECK(sec->file_bytes(ElfBits::b64) == 3 * 24);
+    CHECK(sec->memory_bytes(ElfBits::b32) == sec->file_bytes(ElfBits::b32));
   }
 }

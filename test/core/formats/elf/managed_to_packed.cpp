@@ -23,17 +23,22 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+#include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
+#include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/managed_elf.hpp"
 #include "core/formats/elf/managed_section.hpp"
 #include "core/formats/elf/managed_section_gc.hpp"
 #include "core/formats/elf/managed_section_shstrtab.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
+#include "core/formats/elf/managed_section_symtab.hpp"
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 
 namespace {
 using namespace pepp::bts;
 using Packed = PackedGrowableElfBE32;
+using LeafTable = pepp::core::symbol::LeafTable;
 
 // An allocated PROGBITS section carrying `data`.
 SectionRef add(ManagedElf &elf, const char *name, std::vector<u8> data, uxword addr = 0, u32 addralign = 1) {
@@ -225,6 +230,98 @@ TEST_CASE("Convert ManagedElf to PackedElf", "[kind:unit][arch:*][tc2][scope:elf
     CHECK(reader.get_section_name_str_index() == ELFIO::SHN_UNDEF);
     REQUIRE(reader.sections.size() == 3);
     for (const auto &sec : reader.sections) CHECK(sec->get_name().empty());
+  }
+
+  SECTION("A symbol table") {
+    using namespace pepp::core::symbol;
+    auto text = add(elf, ".text", {1, 2, 3, 4});
+    auto symbols = std::make_shared<LeafTable>(2);
+    // One local code symbol, one global, one .EQUATE-like constant, one external the linker must
+    // supply, and one that is garbage collected. Should exercise all meaningful code paths.
+    auto helper = symbols->define("helper");
+    helper->value = std::make_shared<LocationValue>(1, 2, 0, 2, Type::Code);
+    auto entry_point = symbols->define("entry");
+    entry_point->binding = Binding::Global;
+    entry_point->visibility = Visibility::Protected;
+    entry_point->value = std::make_shared<LocationValue>(1, 2, 0, 0, Type::Code);
+    auto limit = symbols->define("limit");
+    limit->value = std::make_shared<ConstantValue>(bits::MaskedBits{2, 0xBEEF, 0xFFFF});
+    auto external = symbols->reference("charin");
+    external->binding = Binding::Global;
+    auto unused = symbols->define("unused");
+
+    auto *symtab = elf.section(elf.add_section(".symtab", SectionTypes::SHT_SYMTAB));
+    auto &table = symtab->make_content<ManagedSymbolTable>(symbols);
+    for (const auto &defined : {helper, entry_point}) table.set_section(defined, text);
+    freeze_symbols(*symtab, elf.bits(), [&](const auto &e) { return e != unused; });
+
+    auto live = garbage_collect_sections(elf);
+    build_strtabs_for_symtabs(elf, live);
+    build_shstrtab(elf, live);
+    auto out = serialize(elf, live);
+    auto reader = read(out.bytes);
+
+    const auto *read_symtab = reader.sections[".symtab"];
+    REQUIRE(read_symtab != nullptr);
+    CHECK(read_symtab->get_link() ==
+          reader.sections[".strtab"]->get_index()); // sh_link names the string table the pass created
+    CHECK(read_symtab->get_info() == 3);            // first global is 4th symbol (1 null, 2 locals)
+    CHECK(read_symtab->get_entry_size() == 16);     // ELFIO agrees on our entry size
+    CHECK(read_symtab->get_addr_align() == 4);
+
+    ELFIO::symbol_section_accessor read_symbols(reader, const_cast<ELFIO::section *>(read_symtab));
+    // The null symbol, two locals, and two globals.
+    REQUIRE(read_symbols.get_symbols_num() == 5);
+
+    // Helper struct to make it easier to work with ELFIOs 8 out param functions.
+    struct Symbol {
+      std::string name;
+      ELFIO::Elf64_Addr value;
+      ELFIO::Elf_Xword size;
+      unsigned char bind, type;
+      ELFIO::Elf_Half section;
+      unsigned char other;
+    };
+    auto at = [&](unsigned index) {
+      Symbol sym;
+      REQUIRE(read_symbols.get_symbol(index, sym.name, sym.value, sym.size, sym.bind, sym.type, sym.section,
+                                      sym.other));
+      return sym;
+    };
+    const auto in_text = reader.sections[".text"]->get_index();
+
+    // Locals first, ordered by name, so .strtab offsets and symbol indices agree on one order.
+    const auto s_null = at(0), s_helper = at(1), s_limit = at(2), s_charin = at(3), s_entry = at(4);
+
+    // Index 0 is the reserved null symbol, and nothing may have been written over it.
+    CHECK(s_null.name.empty());
+    CHECK(s_null.value == 0);
+    CHECK(s_null.section == ELFIO::SHN_UNDEF);
+    CHECK(s_null.type == ELFIO::STT_NOTYPE);
+
+    CHECK(s_helper.name == "helper");
+    CHECK(s_helper.bind == ELFIO::STB_LOCAL);
+    CHECK(s_helper.type == ELFIO::STT_FUNC);
+    CHECK(s_helper.value == 2);
+    CHECK(s_helper.section == in_text);
+
+    // A constant belongs to no section
+    CHECK(s_limit.name == "limit");
+    CHECK(s_limit.section == ELFIO::SHN_ABS);
+    CHECK(s_limit.value == 0xBEEF);
+
+    // An undefined external keeps its binding
+    CHECK(s_charin.name == "charin");
+    CHECK(s_charin.bind == ELFIO::STB_GLOBAL);
+    CHECK(s_charin.section == ELFIO::SHN_UNDEF);
+
+    CHECK(s_entry.name == "entry");
+    CHECK(s_entry.bind == ELFIO::STB_GLOBAL);
+    CHECK(s_entry.other == ELFIO::STV_PROTECTED);
+    CHECK(s_entry.section == in_text);
+
+    // Garbage collected symbol was not written.
+    for (unsigned it = 0; it < read_symbols.get_symbols_num(); ++it) CHECK(at(it).name != "unused");
   }
 
   SECTION("Garbage-collected sections are not serialized") {

@@ -28,6 +28,7 @@ class ManagedElf;
 // Return the sections that are destined for serialization to an output file. Order is irrelevant.
 // Sections for which the `keep` predicate returns true are kept, as are any sections reachable through their sh_link
 // and sh_info fields (where applicable). Pseudo-sections are always stripped. Effectively a mark-sweep GC.
+// If a live symbol table is encountered, all sections referenced by that table are also kept.
 std::vector<SectionRef> garbage_collect_sections(const ManagedElf &elf,
                                                  const std::function<bool(const ManagedSection &)> &keep);
 // Overload of above where keep predicate always returns true.

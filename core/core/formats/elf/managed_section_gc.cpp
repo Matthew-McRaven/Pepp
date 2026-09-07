@@ -17,8 +17,10 @@
 
 #include "core/formats/elf/managed_section_gc.hpp"
 #include <functional>
+#include <stdexcept>
 #include "core/formats/elf/managed_elf.hpp"
 #include "core/formats/elf/managed_section.hpp"
+#include "core/formats/elf/managed_section_symtab.hpp"
 
 std::vector<pepp::bts::SectionRef>
 pepp::bts::garbage_collect_sections(const ManagedElf &elf, const std::function<bool(const ManagedSection &)> &keep) {
@@ -47,6 +49,8 @@ pepp::bts::garbage_collect_sections(const ManagedElf &elf, const std::function<b
     pending.pop_back();
     mark(sec->link);
     if (const auto *target = std::get_if<SectionRef>(&sec->info)) mark(*target);
+    if (const auto *symbols = sec->content_as<ManagedSymbolTable>())
+      for (const auto &entry : symbols->frozen_order()) mark(symbols->section_of(entry));
   }
 
   std::vector<SectionRef> ret;

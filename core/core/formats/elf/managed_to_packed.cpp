@@ -1,7 +1,11 @@
 #include "core/formats/elf/managed_to_packed.hpp"
+#include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/types.hpp"
+#include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/managed_elf.hpp"
 #include "core/formats/elf/managed_section.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
+#include "core/formats/elf/managed_section_symtab.hpp"
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 
@@ -37,6 +41,43 @@ template <ElfBits B> word<B> narrow(uxword value, const char *what) {
   return static_cast<word<B>>(value);
 }
 
+SymbolBinding binding_of(pepp::core::symbol::Binding binding) {
+  switch (binding) {
+  case pepp::core::symbol::Binding::Global: return SymbolBinding::STB_GLOBAL;
+  case pepp::core::symbol::Binding::Weak: return SymbolBinding::STB_WEAK;
+  default: return SymbolBinding::STB_LOCAL;
+  }
+}
+
+using SymbolEntry = ManagedSymbolTable::entry_ptr_t;
+
+bool is_constant(const SymbolEntry &entry) {
+  return entry->value && entry->value->type() == pepp::core::symbol::Type::Constant;
+}
+
+SymbolType type_of(const SymbolEntry &entry) {
+  if (!entry->value) return SymbolType::STT_NOTYPE;
+  switch (entry->value->type()) {
+  case pepp::core::symbol::Type::Code: return SymbolType::STT_FUNC;
+  case pepp::core::symbol::Type::Object: [[fallthrough]];
+  case pepp::core::symbol::Type::Constant: return SymbolType::STT_OBJECT;
+  default: return SymbolType::STT_NOTYPE;
+  }
+}
+
+uxword value_of(const SymbolEntry &entry) { return entry->value ? entry->value->value()() : 0; }
+uxword size_of(const SymbolEntry &entry) { return entry->value ? entry->value->size() : 0; }
+
+SymbolVisibility visibility_of(pepp::core::symbol::Visibility visibility) {
+  switch (visibility) {
+  case pepp::core::symbol::Visibility::Internal: return SymbolVisibility::STV_INTERNAL;
+  case pepp::core::symbol::Visibility::Hidden: return SymbolVisibility::STV_HIDDEN;
+  case pepp::core::symbol::Visibility::Protected: return SymbolVisibility::STV_PROTECTED;
+  default: return SymbolVisibility::STV_DEFAULT;
+  }
+}
+
+// Copy a section's bytes into the storage the packed file allocated for it.
 template <ElfBits B, ElfEndian E> struct CopyContent {
   AStorage &into;
   const ManagedElf &elf;
@@ -51,6 +92,7 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
   void operator()(const std::unique_ptr<ManagedPayload> &payload) const {
     if (!payload) return;
     else if (const auto *table = dynamic_cast<const ManagedStringTable *>(payload.get())) write_strings(*table);
+    else if (const auto *table = dynamic_cast<const ManagedSymbolTable *>(payload.get())) write_symbols(*table);
     else throw std::logic_error("pack: a section holds a payload this does not know how to write");
   }
 
@@ -59,12 +101,42 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
     table.serialize(bits::span<u8>{bytes.data(), bytes.size()});
     into.append(bits::span<const u8>{bytes.data(), bytes.size()});
   }
+
+  void write_symbols(const ManagedSymbolTable &table) const {
+    const auto *maybe_strtab = elf.section(sec.link);
+    const auto *names = maybe_strtab ? maybe_strtab->template content_as<ManagedStringTable>() : nullptr;
+    const auto name_of = [&](std::string_view name) -> u32 {
+      if (!names) return 0;
+      else if (const auto h = names->find(name); !h) throw std::logic_error("pack: symbol name not in strtab");
+      else return names->offset_of(*h);
+    };
+    const auto section_of = [&](const SymbolEntry &entry) -> u16 {
+      if (is_constant(entry)) return static_cast<u16>(SectionIndices::SHN_ABS);
+      else return index_of.at(table.section_of(entry));
+    };
+
+    for (const auto &entry : table.frozen_order()) {
+      PackedElfSymbol<B, E> symbol; // Initialized to all zeros, as per Figure 1-18.
+      if (!entry) { // nullptr will receive a null symbol, which covers the index 0 case.
+        into.append(symbol);
+        continue;
+      }
+      symbol.st_name = name_of(entry->name);
+      symbol.st_value = narrow<B>(value_of(entry), "st_value");
+      symbol.st_size = narrow<B>(size_of(entry), "st_size");
+      symbol.st_shndx = section_of(entry);
+      symbol.set_type(type_of(entry));
+      symbol.set_bind(binding_of(entry->binding));
+      symbol.set_visibility(visibility_of(entry->visibility));
+      into.append(symbol);
+    }
+  }
 };
 
 template <ElfBits B, ElfEndian E> uxword entry_size(const ManagedSection &sec) {
   switch (sec.type) {
   case SectionTypes::SHT_SYMTAB: [[fallthrough]];
-  case SectionTypes::SHT_DYNSYM: return sizeof(PackedElfSymbol<B, E>);
+  case SectionTypes::SHT_DYNSYM: return symbol_bytes(B);
   case SectionTypes::SHT_REL: return sizeof(PackedElfRel<B, E>);
   case SectionTypes::SHT_RELA: return sizeof(PackedElfRelA<B, E>);
   default: return 0;
@@ -103,8 +175,7 @@ std::map<SectionRef, u16> pack_into(const ManagedElf &elf, std::span<const Secti
   const auto *names = shstrtab_section ? shstrtab_section->content_as<ManagedStringTable>() : nullptr;
   const auto offset_of_section_name = [&](std::string_view name) -> u32 {
     if (!names) return 0;
-    else if (const auto h = names->find(name); !h)
-      throw std::logic_error("pack: .shstrtab is missing a section's name");
+    else if (const auto h = names->find(name); !h) throw std::logic_error("pack: .shstrtab missing section's name");
     else return names->offset_of(*h);
   };
 

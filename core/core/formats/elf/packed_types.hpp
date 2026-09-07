@@ -49,6 +49,10 @@ template <ElfBits B, ElfEndian E> using Word = std::conditional_t<B == ElfBits::
 template <ElfBits B, ElfEndian E> using SWord = std::conditional_t<B == ElfBits::b64, I64<E>, I32<E>>;
 template <ElfBits B> using word = std::conditional_t<B == ElfBits::b64, u64, u32>;
 template <ElfBits B> using sword = std::conditional_t<B == ElfBits::b64, i64, i32>;
+// The runtime counterpart to sizeof(word<B>)
+constexpr u8 word_bytes(ElfBits bits) noexcept {
+  return bits == ElfBits::b64 ? sizeof(word<ElfBits::b64>) : sizeof(word<ElfBits::b32>);
+}
 
 template <bool Const, class T> using maybe_const_t = std::conditional_t<Const, T const, T>;
 
@@ -176,6 +180,10 @@ using PackedElfSymbolLE32 = PackedElfSymbol<ElfBits::b32, ElfEndian::le>;
 using PackedElfSymbolLE64 = PackedElfSymbol<ElfBits::b64, ElfEndian::le>;
 using PackedElfSymbolBE32 = PackedElfSymbol<ElfBits::b32, ElfEndian::be>;
 using PackedElfSymbolBE64 = PackedElfSymbol<ElfBits::b64, ElfEndian::be>;
+// Size of a single symbol table entry, which is the value of sh_entsize.
+constexpr u8 symbol_bytes(ElfBits bits) noexcept {
+  return bits == ElfBits::b64 ? sizeof(PackedElfSymbolLE64) : sizeof(PackedElfSymbolLE32);
+}
 
 // Per: sidebar below ELF TIS Figure 1-19
 

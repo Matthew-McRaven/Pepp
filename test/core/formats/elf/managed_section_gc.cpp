@@ -17,9 +17,13 @@
 
 #include "core/formats/elf/managed_section_gc.hpp"
 #include <catch.hpp>
+#include <memory>
+#include <stdexcept>
 #include <vector>
 #include "core/formats/elf/managed_elf.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
 #include "core/formats/elf/managed_section.hpp"
+#include "core/formats/elf/managed_section_symtab.hpp"
 
 TEST_CASE("Garbage collect sections", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
   using namespace pepp::bts;
@@ -75,5 +79,44 @@ TEST_CASE("Garbage collect sections", "[kind:unit][arch:*][!throws][tc2][scope:e
     elf.section(b)->link = a;
     auto live = garbage_collect_sections(elf, [](const ManagedSection &sec) { return sec.name == ".a"; });
     CHECK(live == std::vector<SectionRef>{a, b});
+  }
+}
+
+TEST_CASE("Garbage collection follows symbol references", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
+  using namespace pepp::bts;
+  ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_REL, ElfMachineType::EM_PEP10);
+  auto symbols = std::make_shared<pepp::core::symbol::LeafTable>(2);
+
+  auto text = elf.add_section(".text", SectionTypes::SHT_PROGBITS);
+  auto symtab = elf.add_section(".symtab", SectionTypes::SHT_SYMTAB);
+  auto *sec = elf.section(symtab);
+  auto &table = sec->make_content<ManagedSymbolTable>(symbols);
+  auto keep_symtab_only = [](const ManagedSection &sec) { return sec.name == ".symtab"; };
+
+  SECTION("") {
+    auto dropped = symbols->define("main");
+    table.set_section(dropped, text);
+    freeze_symbols(*sec, elf.bits(), [&](const auto &entry) { return entry != dropped; });
+    CHECK(garbage_collect_sections(elf, keep_symtab_only) == std::vector<SectionRef>{symtab});
+  }
+
+  SECTION("Dropping a section's symbols is what lets the section be dropped") {
+    table.set_section(symbols->define("main"), text);
+    // The symbols have to go with the section, or garbage collection marks the section live again.
+    freeze_symbols(*sec, elf.bits(), [&](const auto &entry) { return table.section_of(entry) != text; });
+    CHECK(garbage_collect_sections(elf, keep_symtab_only) == std::vector<SectionRef>{symtab});
+  }
+
+  SECTION("Live symbols will resurrect a section they point to") {
+    table.set_section(symbols->define("main"), text);
+    freeze_symbols(*sec, elf.bits()); // Keeps all symbols, even though keep_symtab_only would usually drop main.
+    CHECK(garbage_collect_sections(elf, keep_symtab_only) == std::vector<SectionRef>{text, symtab});
+  }
+
+  SECTION("Symbol table must be frozen before garbage_collect_sections") {
+    table.set_section(symbols->define("main"), text);
+    CHECK_THROWS_AS(garbage_collect_sections(elf, keep_symtab_only), std::logic_error);
+    // Only live symbol tables are swept, so a symtab destined for garbage collection does not need to be frozen.
+    CHECK_NOTHROW(garbage_collect_sections(elf, [](const ManagedSection &s) { return s.name == ".text"; }));
   }
 }
