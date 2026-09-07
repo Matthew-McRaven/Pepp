@@ -57,7 +57,21 @@ template <bool Const, class T> using maybe_const_t = std::conditional_t<Const, T
 template <ElfBits B, ElfEndian E> struct PackedElfEhdr {
   // Create mostly-0-initialized ELF header
   PackedElfEhdr() noexcept;
-  PackedElfEhdr(ElfFileType type, ElfMachineType machine, ElfABI abi) noexcept;
+  PackedElfEhdr(ElfFileType type, ElfMachineType machine, ElfABI abi, u8 abi_version = 0) noexcept;
+
+  using enum ElfIdentifierIndices;
+  // Helpers to get speciifc fields within e_ident.
+  constexpr bool has_valid_magic() const noexcept {
+    return e_ident[bits::to_underlying(EI_MAG0)] == bits::to_underlying(ElfMagic::ELFMAG0) &&
+           e_ident[bits::to_underlying(EI_MAG1)] == bits::to_underlying(ElfMagic::ELFMAG1) &&
+           e_ident[bits::to_underlying(EI_MAG2)] == bits::to_underlying(ElfMagic::ELFMAG2) &&
+           e_ident[bits::to_underlying(EI_MAG3)] == bits::to_underlying(ElfMagic::ELFMAG3);
+  }
+  constexpr ElfClass ei_class() const noexcept { return ElfClass(e_ident[bits::to_underlying(EI_CLASS)]); }
+  constexpr ElfEncoding ei_data() const noexcept { return ElfEncoding(e_ident[bits::to_underlying(EI_DATA)]); }
+  constexpr ElfVersion ei_version() const noexcept { return ElfVersion(e_ident[bits::to_underlying(EI_VERSION)]); }
+  constexpr ElfABI ei_osabi() const noexcept { return ElfABI(e_ident[bits::to_underlying(EI_OSABI)]); }
+  constexpr u8 ei_abiversion() const noexcept { return e_ident[bits::to_underlying(EI_ABIVERSION)]; }
 
   u8 e_ident[16];
   U16<E> e_type;    // See: FileType
@@ -404,9 +418,10 @@ template <ElfBits B, ElfEndian E> inline PackedElfEhdr<B, E>::PackedElfEhdr() no
 }
 
 template <ElfBits B, ElfEndian E>
-inline PackedElfEhdr<B, E>::PackedElfEhdr(ElfFileType type, ElfMachineType machine, ElfABI abi) noexcept {
+inline PackedElfEhdr<B, E>::PackedElfEhdr(ElfFileType type, ElfMachineType machine, ElfABI abi,
+                                          u8 abi_version) noexcept {
   static_assert(std::is_standard_layout_v<PackedElfEhdr>);
-  detail::fill_e_ident(e_ident, B, E, abi, 0);
+  detail::fill_e_ident(e_ident, B, E, abi, abi_version);
   e_type = bits::to_underlying(type);
   e_machine = bits::to_underlying(machine);
   e_version = bits::to_underlying(ElfVersion::EV_CURRENT);
