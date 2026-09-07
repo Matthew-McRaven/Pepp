@@ -74,6 +74,11 @@ public:
   u32 add_segment(SegmentType type, SegmentFlags flags = SegmentFlags::PF_NONE);
 };
 
+// An owning counterpart to AnyGrowableElfPtr.
+using AnyGrowableElf =
+    std::variant<std::unique_ptr<PackedGrowableElfLE32>, std::unique_ptr<PackedGrowableElfBE32>,
+                 std::unique_ptr<PackedGrowableElfLE64>, std::unique_ptr<PackedGrowableElfBE64>>;
+
 template <ElfBits B, ElfEndian E>
 PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) : _file(file) {
   // Read in all header data and eagerly copy it to our packed structures
