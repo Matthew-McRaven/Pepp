@@ -53,6 +53,22 @@ int main()
     t.finish();
     std::cout << "Elapsed open/alter file. "s << t.elapsedTime() << std::endl << std::endl;
 
+    std::cout << "Create from addChild: "s << file << std::endl;
+    t.start();
+    Document doc3{};
+    //doc3.documentElement().appendChild(&doc1.documentElement());
+    doc3.documentElement().appendChild(derived);
+    auto *child = doc1.documentElement().createElement(SvgInterface::SvgType::SvgDefsElement);
+    doc3.documentElement().appendChild(child);
+    doc3.documentElement().viewBox().setHeight(5);
+    doc3.documentElement().viewBox().setWidth(6);
+    t.finish();
+
+    doc1.saveAs("x:\\"s + name + "-1.svg"s);
+    doc3.saveAs("x:\\"s + name + "-3.svg"s);
+    t.finish();
+    std::cout << "Add child to new file. "s << t.elapsedTime() << std::endl << std::endl;
+
     //Document doc2;
     //doc2.documentElement().children().push_back(doc1.documentElement().clone());
 

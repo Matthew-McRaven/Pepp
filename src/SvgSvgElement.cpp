@@ -60,6 +60,10 @@ void SvgSvgElement::toXml(SvgRope &output) const
 
 bool SvgSvgElement::setAttribute(const std::string &key, const std::string &value)
 {
+    if (key == "xmlns"s) {
+        _xmlns = value;
+        return true;
+    }
     if (key == "viewBox"s) {
         return _viewBox.fromString(value);
     }
@@ -70,13 +74,24 @@ bool SvgSvgElement::setAttribute(const std::string &key, const std::string &valu
 
 bool SvgSvgElement::attributeXml(SvgRope &output) const
 {
-    //  Get parent attributes first
-    bool hasAttributes = SvgElement::attributeXml(output);
-    if (!_viewBox.empty()) {
-        hasAttributes = true;
+    //  This is required to recognize file as svg
+    {
+        std::string buffer = std::format(" xmlns=\"{}\"", _xmlns);
+        output.push_back(std::move(buffer));
+    }
+
+    //  If there are no dimensions, then svg will not display. Force height and width.
+    if (_viewBox.empty() && height().empty() && width().empty()) {
+        std::string buffer = " viewBox=\"0 0 100% 100%\"";
+        output.push_back(std::move(buffer));
+    } else {
         std::string buffer = std::format(" viewBox=\"{}\"", _viewBox.toString());
         output.push_back(std::move(buffer));
     }
 
-    return hasAttributes;
+    //  Get parent attributes first
+    //bool hasAttributes =
+    SvgElement::attributeXml(output);
+
+    return true; //hasAttributes;
 }

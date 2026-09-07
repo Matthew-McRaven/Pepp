@@ -16,6 +16,7 @@ class Cloneable : public Base
 
 public:
     //  Get pointer to leaf class
+    Derived *derived() { return static_cast<Derived *>(*this); }
     //Derived &derived() { return static_cast<Derived &>(*this); }
     //const Derived &derived() const { return static_cast<const Derived &>(*this); }
 };
@@ -76,11 +77,16 @@ public:
     static void setCurrentDocument(Document *doc = nullptr) { _docs = doc; }
     static Document *currentDocument() { return _docs; }
 
+    virtual SvgInterface *createElement(const std::string &name) = 0;
+
     template<typename Self>
     std::unique_ptr<Self> clone(this const Self &self)
     {
         return std::unique_ptr<Self>(static_cast<Self *>(self.cloneImpl()));
     }
-
-    virtual SvgInterface *createElement(const std::string &name) = 0;
+    /*template<typename Self>
+    Self *derived(this const Self &self)
+    {
+        return static_cast<Self *>(self.cloneImpl());
+    }*/
 };

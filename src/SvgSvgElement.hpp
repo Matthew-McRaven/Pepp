@@ -9,6 +9,7 @@
 class SvgSvgElement final : public Cloneable<SvgSvgElement, SvgElement>
 {
     SvgRect _viewBox;
+    std::string _xmlns = "http://www.w3.org/2000/svg";
 
 public:
     SvgSvgElement(); // = default;

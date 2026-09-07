@@ -141,14 +141,18 @@ public:
     bool empty() const { return _width.value <= 0 || _height.value <= 0; }
 
     //  Values can be changed, but not units of measure (yet)
-    auto x() const { return _x.value; }
+    SvgUnitValue x() const { return _x.value; }
     void setX(double x = 0) { _x.value = x; }
-    auto y() const { return _y.value; }
+    void setX(const std::string_view sv) { _x.fromString(sv); }
+    SvgUnitValue y() const { return _y.value; }
     void setY(double y = 0) { _y.value = y; }
-    auto width() const { return _width.value; }
+    void setY(const std::string_view sv) { _y.fromString(sv); }
+    SvgUnitValue width() const { return _width.value; }
     void setWidth(double width = 0) { _width.value = std::max(width, 0.0); }
-    auto height() const { return _height; }
+    void setWidth(const std::string_view sv) { _width.fromString(sv); }
+    SvgUnitValue height() const { return _height; }
     void setHeight(double height = 0) { _height.value = std::max(height, 0.0); }
+    void setHeight(const std::string_view sv) { _height.fromString(sv); }
 
     bool fromString(const std::string &value)
     {

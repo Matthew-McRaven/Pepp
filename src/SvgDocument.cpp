@@ -37,6 +37,7 @@ and SVG documents implement the XMLDocument interface using MIME type of
 Document::Document()
 {
     _svgDocument = std::make_unique<SvgSvgElement>();
+    _svgDocument->setDocument(this);
 }
 
 Document::Document(const std::string &name)

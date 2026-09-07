@@ -44,10 +44,6 @@ SvgElement::SvgElement(const SvgElement &original)
 
     //  Use class logic for attributes
     _attributes = original._attributes;
-    //  This fixes pointer issues
-    /*for (const auto &[key, value] : original.attributes().attributes()) {
-        setAttribute(key, value);
-    }*/
 
     for (const auto &element : original.children()) {
         _children.push_back(element->clone());
@@ -159,7 +155,7 @@ void SvgElement::setDesc(const std::string &desc)
 }
 
 //  Dimension accessors
-auto SvgElement::x() const
+SvgUnitValue SvgElement::x() const
 {
     return _x.value;
 }
@@ -171,7 +167,7 @@ void SvgElement::setX(const std::string_view sv)
 {
     _x.fromString(sv);
 }
-auto SvgElement::y() const
+SvgUnitValue SvgElement::y() const
 {
     return _y.value;
 }
@@ -183,7 +179,7 @@ void SvgElement::setY(const std::string_view sv)
 {
     _y.fromString(sv);
 }
-auto SvgElement::width() const
+SvgUnitValue SvgElement::width() const
 {
     return _width.value;
 }
@@ -195,7 +191,7 @@ void SvgElement::setWidth(const std::string_view sv)
 {
     _width.fromString(sv);
 }
-auto SvgElement::height() const
+SvgUnitValue SvgElement::height() const
 {
     return _height;
 }
@@ -299,8 +295,18 @@ SvgInterface *SvgElement::createElement(const SvgType type)
     default:
         _children.push_back(std::make_unique<SvgElement>());
     }
-
+    _children.back()->setCurrentDocument(_doc);
     return _children.back().get();
+}
+
+void SvgElement::appendChild(SvgInterface *child)
+{
+    // This is a move operation. Add move logic later.
+    //  Just return now.
+    if (child->currentDocument() == _doc)
+        return;
+
+    _children.emplace_back(child->clone());
 }
 
 void SvgElement::toXml(SvgRope &output) const
