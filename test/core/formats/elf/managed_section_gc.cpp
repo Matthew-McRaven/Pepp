@@ -15,15 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/formats/elf/managed_to_packed.hpp"
-#include <algorithm>
+#include "core/formats/elf/managed_section_gc.hpp"
 #include <catch.hpp>
-#include <stdexcept>
 #include <vector>
-#include "core/formats/elf/managed_access_strings.hpp"
 #include "core/formats/elf/managed_elf.hpp"
 #include "core/formats/elf/managed_section.hpp"
-#include "core/formats/elf/managed_segment.hpp"
 
 TEST_CASE("Garbage collect sections", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
   using namespace pepp::bts;
@@ -79,46 +75,5 @@ TEST_CASE("Garbage collect sections", "[kind:unit][arch:*][!throws][tc2][scope:e
     elf.section(b)->link = a;
     auto live = garbage_collect_sections(elf, [](const ManagedSection &sec) { return sec.name == ".a"; });
     CHECK(live == std::vector<SectionRef>{a, b});
-  }
-}
-
-TEST_CASE("Section header string table creation", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
-  using namespace pepp::bts;
-  ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10);
-
-  SECTION("Creation of section expands live list") {
-    auto text = elf.add_section(".text", SectionTypes::SHT_PROGBITS);
-    CHECK_FALSE(elf.shstrtab());
-    auto live = garbage_collect_sections(elf);
-    auto shstrtab = build_shstrtab(elf, live);
-    CHECK(elf.shstrtab() == shstrtab);
-    REQUIRE(elf.section(shstrtab) != nullptr);
-    CHECK(elf.section(shstrtab)->name == ".shstrtab");
-    CHECK(elf.section(shstrtab)->type == SectionTypes::SHT_STRTAB);
-    // Created after the live set was taken, so it has to be added to it.
-    CHECK(live == std::vector<SectionRef>{text, shstrtab});
-  }
-
-  SECTION("Includes all section names (including itself)") {
-    [[maybe_unused]] auto text = elf.add_section(".text", SectionTypes::SHT_PROGBITS);
-    [[maybe_unused]] auto data = elf.add_section(".data", SectionTypes::SHT_PROGBITS);
-    auto live = garbage_collect_sections(elf);
-    auto shstrtab = build_shstrtab(elf, live);
-    const auto &table = std::get<ManagedStringTable>(elf.section(shstrtab)->content);
-    CHECK(table.find(".text").has_value());
-    CHECK(table.find(".data").has_value());
-    CHECK(table.find(".shstrtab").has_value());
-    CHECK_FALSE(table.find("SHN_ABS").has_value());
-  }
-
-  SECTION("Existing shstrabs are re-used") {
-    auto existing = elf.add_section(".shstrtab", SectionTypes::SHT_STRTAB);
-    elf.set_shstrtab(existing);
-    elf.add_section(".text", SectionTypes::SHT_PROGBITS);
-    auto live = garbage_collect_sections(elf);
-    const auto before = live.size();
-    auto shstrtab = build_shstrtab(elf, live);
-    CHECK(shstrtab == existing);
-    CHECK(live.size() == before);
   }
 }

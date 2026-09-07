@@ -16,8 +16,6 @@
  */
 
 #pragma once
-#include <functional>
-#include <span>
 #include <vector>
 #include "core/formats/elf/managed_types.hpp"
 
@@ -25,14 +23,6 @@ namespace pepp::bts {
 
 class ManagedSection;
 class ManagedElf;
-
-// Return the sections that are destined for serialization to an output file. Order is irrelevant.
-// Sections for which the `keep` predicate returns true are kept, as are any sections reachable through their sh_link
-// and sh_info fields (where applicable). Pseudo-sections are always stripped. Effectively a mark-sweep GC.
-std::vector<SectionRef> garbage_collect_sections(const ManagedElf &elf,
-                                                 const std::function<bool(const ManagedSection &)> &keep);
-// Overload of above where keep predicate always returns true.
-std::vector<SectionRef> garbage_collect_sections(const ManagedElf &elf);
 
 // Create (or update) the .shstrtab section, filling it with the names of all live sections.
 // Live list is mutable, because the .shstrab section must be added if not present.

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/formats/elf/managed_access_strings.hpp"
+#include "core/formats/elf/managed_section_strtab.hpp"
 #include <cstring>
 #include <stdexcept>
 

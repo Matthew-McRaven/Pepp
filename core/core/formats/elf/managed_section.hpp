@@ -21,7 +21,7 @@
 #include <variant>
 #include <vector>
 #include "core/formats/elf/enums.hpp"
-#include "core/formats/elf/managed_access_strings.hpp"
+#include "core/formats/elf/managed_section_strtab.hpp"
 #include "core/formats/elf/managed_types.hpp"
 
 namespace pepp::bts {
