@@ -6,6 +6,7 @@
 #include "core/formats/elf/managed_section.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
 #include "core/formats/elf/managed_section_symtab.hpp"
+#include "core/formats/elf/managed_segment.hpp"
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 
@@ -23,6 +24,58 @@ std::vector<SectionRef> sorted_write_order(const ManagedElf &elf, std::span<cons
     return left < right;
   };
   std::stable_sort(ret.begin(), ret.end(), comp);
+  return ret;
+}
+
+// Whether any segment claims this section. Our implementation requires sections within a segment have consecutive
+// indices (which is not required by ELF), and we need to ensure re-ordering does not break it.
+bool belongs_to_segment(const ManagedElf &elf, SectionRef ref) {
+  for (const auto &segment : elf.segments())
+    if (segment && std::find(segment->sections.begin(), segment->sections.end(), ref) != segment->sections.end())
+      return true;
+  return false;
+}
+
+// Re-order the entries of ordered to obey the topological constraints of section dependencies. Sections can only be
+// delayed (never moved earlier), which greatly simplifies the algorithm at the cost of being unable to solve some
+// dependency graphs. Cyclical depencencies, as well as dependencies within a segment throw errors.
+std::vector<SectionRef> in_dependency_order(const ManagedElf &elf, const std::vector<SectionRef> &ordered) {
+  std::vector<SectionRef> ret, deferred, declared;
+  ret.reserve(ordered.size());
+
+  // Have all dependencies of this section already been written to ret?
+  const auto ready = [&](SectionRef ref) {
+    const auto *payload = elf.section(ref)->content_as<ManagedPayload>();
+    if (!payload) return true;
+    declared.clear();
+    payload->collect_dependencies(declared);
+    if (declared.empty()) return true;
+    else if (belongs_to_segment(elf, ref))
+      throw std::logic_error("pack: a section in a segment cannot be moved to satisfy a dependency");
+    // True if the dependency is already in ret.
+    const auto fulfilled = [&](SectionRef dep) { return std::find(ret.begin(), ret.end(), dep) != ret.end(); };
+    return std::all_of(declared.begin(), declared.end(), fulfilled);
+  };
+
+  // Try to release one deferred section, returning true if one was moved from deferred to ret.
+  // False either if empty or if no deferred sections can be written.
+  const auto release_one = [&] {
+    for (auto it = deferred.begin(); it != deferred.end(); ++it)
+      if (ready(*it)) {
+        ret.push_back(*it);
+        deferred.erase(it);
+        return true;
+      }
+    return false;
+  };
+
+  for (auto ref : ordered) {
+    if (ready(ref)) ret.push_back(ref);
+    else deferred.push_back(ref);
+    // Try to release any deferred sections that are now ready. Simple algorithm is O(N^2) due to linear scan
+    while (release_one()) {}
+  }
+  if (!deferred.empty()) throw std::logic_error("pack: sections missing a dependency. Cycle or using GC'ed section?");
   return ret;
 }
 
@@ -164,7 +217,7 @@ std::map<SectionRef, u16> pack_into(const ManagedElf &elf, std::span<const Secti
   };
   // SHN_UNDEF must point to a null header. Requires out.header to be set first.
   out.add_section(create_null_header<B, E>());
-  const auto ordered = sorted_write_order(elf, live);
+  const auto ordered = in_dependency_order(elf, sorted_write_order(elf, live));
   // Offset by 1 to account for existence of null header.
   for (u32 it = 0; it < ordered.size(); it++) index_of[ordered[it]] = static_cast<u16>(it + 1);
   out.header.e_shstrndx = index_of.at(elf.shstrtab());

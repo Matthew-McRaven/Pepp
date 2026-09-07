@@ -48,6 +48,9 @@ struct ManagedPayload {
   // Bytes this payload contributes to the file. Takes the target's word size because a symbol table's
   // footprint depends on it: an Elf64_Sym is wider than an Elf32_Sym.
   virtual uxword file_bytes(ElfBits bits) const = 0;
+  // Some sections (e.g., hash tables) require other sections be serialized first. These dependencies must be kept alive
+  // during GC as well.
+  virtual void collect_dependencies(std::vector<SectionRef> &out) const {}
 };
 
 /*

@@ -29,6 +29,7 @@ pepp::bts::garbage_collect_sections(const ManagedElf &elf, const std::function<b
   std::vector<bool> live(last.value + 1, false);
   // Sections whose info & link fields need to be analyzed for liveness
   std::vector<SectionRef> pending;
+  std::vector<SectionRef> dependencies; // Re-use scratch space across collect_dependencies.
 
   auto mark = [&](SectionRef ref) {
     if (!ref || ref > last || live[ref.value]) return;
@@ -51,6 +52,12 @@ pepp::bts::garbage_collect_sections(const ManagedElf &elf, const std::function<b
     if (const auto *target = std::get_if<SectionRef>(&sec->info)) mark(*target);
     if (const auto *symbols = sec->content_as<ManagedSymbolTable>())
       for (const auto &entry : symbols->frozen_order()) mark(symbols->section_of(entry));
+    // Sections may have ordering requirements, in which case we need to keep the dependent sections.
+    if (const auto *payload = sec->content_as<ManagedPayload>()) {
+      dependencies.clear();
+      payload->collect_dependencies(dependencies);
+      for (auto dependency : dependencies) mark(dependency);
+    }
   }
 
   std::vector<SectionRef> ret;
