@@ -27,7 +27,7 @@ pepp::core::symbol::LeafTable::LeafTable(u16 pointer_size) noexcept
       _entries(0, bts::PooledString::Hash(_pool.get()), bts::PooledString::Equals(_pool.get())) {}
 
 pepp::core::symbol::LeafTable::LeafTable(u16 pointer_size, std::shared_ptr<bts::StringPool> pool) noexcept
-    : _pointer_size(pointer_size), _pool(std::make_shared<bts::StringPool>()),
+    : _pointer_size(pointer_size), _pool(pool),
       _entries(0, bts::PooledString::Hash(_pool.get()), bts::PooledString::Equals(_pool.get())) {}
 
 std::size_t pepp::core::symbol::LeafTable::use_count(std::string_view name) const noexcept {
