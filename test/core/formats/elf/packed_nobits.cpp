@@ -25,7 +25,7 @@
  * Earlier versions of this library were buggy for NOBITS and set their memory size to 0. These test cases exist to
  * prevent a regression. p_filesz is also impacted by this bugfix.
  */
-TEST_CASE("Sections of type SHT_NOBIT occupy no file bytes", "[scope:elf][kind:unit][arch:*]") {
+TEST_CASE("Sections of type SHT_NOBIT occupy no file bytes", "[scope:elf][kind:unit][arch:*][!throws]") {
   using namespace pepp::bts;
   using Packed = PackedGrowableElfLE32;
   constexpr auto b32 = ElfBits::b32;
@@ -100,5 +100,43 @@ TEST_CASE("Sections of type SHT_NOBIT occupy no file bytes", "[scope:elf][kind:u
     CHECK(loaded_seg->get_memory_size() >= 4 + 0x100);
     // The whole segment has to lie within the file it claims to come from.
     CHECK(loaded_seg->get_offset() + loaded_seg->get_file_size() <= data.size());
+  }
+
+  SECTION("A segment may not store file data after a NOBITS section") {
+    using namespace bits;
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
+    [[maybe_unused]] auto [text, bss, comment] = build(elf);
+    elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_R | SegmentFlags::PF_W);
+    SegmentLayoutConstraint load;
+    load.alignment = 4096;
+    load.from_sec = text;
+    load.to_sec = comment;
+    load.base_address = 0x1000;
+    std::vector<SegmentLayoutConstraint> constraints = {load};
+    CHECK_THROWS_AS(calculate_layout(elf, &constraints), std::logic_error);
+  }
+
+  SECTION("A segment may end with multiple NOBITS sections") {
+    using namespace bits;
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    auto text = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
+    const u8 code[] = {1, 2, 3, 4};
+    elf.section_data[text]->append(bits::span<const u8>{code, 4});
+    auto bss = add_named_section(elf, ".bss", SectionTypes::SHT_NOBITS);
+    elf.section_headers[bss].sh_size = 0x100;
+    auto tbss = add_named_section(elf, ".tbss", SectionTypes::SHT_NOBITS);
+    elf.section_headers[tbss].sh_size = 0x10;
+    elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_R | SegmentFlags::PF_W);
+
+    SegmentLayoutConstraint load;
+    load.alignment = 4096;
+    load.from_sec = text;
+    load.to_sec = tbss;
+    load.base_address = 0x1000;
+    std::vector<SegmentLayoutConstraint> constraints = {load};
+    REQUIRE_NOTHROW(calculate_layout(elf, &constraints));
+    CHECK(elf.program_headers[0].p_filesz == 4);
+    CHECK(elf.program_headers[0].p_memsz >= 4 + 0x100 + 0x10);
   }
 }
