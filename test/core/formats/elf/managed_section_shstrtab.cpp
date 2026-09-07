@@ -45,7 +45,7 @@ TEST_CASE("Section header string table creation", "[kind:unit][arch:*][!throws][
     [[maybe_unused]] auto data = elf.add_section(".data", SectionTypes::SHT_PROGBITS);
     auto live = garbage_collect_sections(elf);
     auto shstrtab = build_shstrtab(elf, live);
-    const auto &table = std::get<ManagedStringTable>(elf.section(shstrtab)->content);
+    const auto &table = *elf.section(shstrtab)->content_as<ManagedStringTable>();
     CHECK(table.find(".text").has_value());
     CHECK(table.find(".data").has_value());
     CHECK(table.find(".shstrtab").has_value());

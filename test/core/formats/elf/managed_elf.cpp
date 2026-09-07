@@ -15,23 +15,26 @@
  */
 #include "core/formats/elf/managed_elf.hpp"
 #include <catch.hpp>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include "core/formats/elf/managed_section.hpp"
+#include "core/formats/elf/managed_section_strtab.hpp"
 #include "core/formats/elf/managed_segment.hpp"
 
 TEST_CASE("ManagedElf sanity tests", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
   using namespace pepp::bts;
   ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10);
 
-  SECTION("Pseudo-sections exist and do not serialize") {
+  SECTION("Pseudo-sections do not serialize") {
     auto *abs = elf.section(ManagedElf::SHN_ABS);
     auto *common = elf.section(ManagedElf::SHN_COMMON);
     REQUIRE(abs != nullptr);
     REQUIRE(common != nullptr);
     CHECK_FALSE(abs->is_serialized());
     CHECK_FALSE(common->is_serialized());
-    // SHN_UNDEF is the null handle, so it names no section of its own.
+    // This one does serialize, but we treat it as a nullptr.
     CHECK(elf.section(ManagedElf::SHN_UNDEF) == nullptr);
   }
 
@@ -43,7 +46,7 @@ TEST_CASE("ManagedElf sanity tests", "[kind:unit][arch:*][!throws][tc2][scope:el
     CHECK(sec->type == SectionTypes::SHT_STRTAB);
     CHECK(sec->is_serialized());
 
-    auto &table = sec->content.emplace<ManagedStringTable>();
+    auto &table = sec->make_content<ManagedStringTable>();
     auto main_cln = table.insert("mainCln");
     auto cln = table.insert("Cln");
     auto main = table.insert("main");
@@ -67,10 +70,10 @@ TEST_CASE("ManagedElf sanity tests", "[kind:unit][arch:*][!throws][tc2][scope:el
   SECTION("SectionRef is stable across inserts") {
     auto strtab = elf.add_section(".strtab", SectionTypes::SHT_STRTAB);
     auto *before = elf.section(strtab);
-    before->content.emplace<ManagedStringTable>().insert("main");
+    before->make_content<ManagedStringTable>().insert("main");
     for (int it = 0; it < 32; it++) elf.add_section(".filler" + std::to_string(it), SectionTypes::SHT_PROGBITS);
     CHECK(elf.section(strtab) == before);
-    CHECK(std::get<ManagedStringTable>(before->content).find("main").has_value());
+    CHECK(before->content_as<ManagedStringTable>()->find("main").has_value());
   }
 }
 
@@ -123,35 +126,35 @@ TEST_CASE("ManagedElf segments", "[kind:unit][arch:*][!throws][tc2][scope:elf]")
 TEST_CASE("Section sizes", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
   using namespace pepp::bts;
   ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10);
+  const auto bits = elf.bits();
 
   SECTION("Null section neither occupies file nor memory") {
     auto *sec = elf.section(elf.add_section(".null", SectionTypes::SHT_NULL));
-    CHECK(sec->file_bytes() == 0);
-    CHECK(sec->memory_bytes() == 0);
+    CHECK(sec->file_bytes(bits) == 0);
+    CHECK(sec->memory_bytes(bits) == 0);
   }
 
   SECTION("Raw bytes file and memory sizes are the same") {
     auto *sec = elf.section(elf.add_section(".text", SectionTypes::SHT_PROGBITS));
     sec->content.emplace<RawBytes>().bytes = {1, 2, 3, 4, 5};
-    CHECK(sec->file_bytes() == 5);
-    CHECK(sec->memory_bytes() == 5);
+    CHECK(sec->file_bytes(bits) == 5);
+    CHECK(sec->memory_bytes(bits) == 5);
   }
 
   SECTION("NoBits occupies memory but not file") {
     auto *sec = elf.section(elf.add_section(".bss", SectionTypes::SHT_NOBITS));
     sec->content.emplace<NoBits>().size = 0x1000;
-    CHECK(sec->file_bytes() == 0);
-    CHECK(sec->memory_bytes() == 0x1000);
+    CHECK(sec->file_bytes(bits) == 0);
+    CHECK(sec->memory_bytes(bits) == 0x1000);
   }
 
   SECTION("String table file size matches serialized size") {
     auto *sec = elf.section(elf.add_section(".strtab", SectionTypes::SHT_STRTAB));
-    auto &table = sec->content.emplace<ManagedStringTable>();
+    auto &table = sec->make_content<ManagedStringTable>();
     // Currently contains only null terminator
-    CHECK(sec->file_bytes() == table.serialized_size());
+    CHECK(sec->file_bytes(bits) == table.serialized_size());
     table.insert("main");
-    CHECK(sec->file_bytes() == table.serialized_size());
-    CHECK(sec->memory_bytes() == sec->file_bytes());
+    CHECK(sec->file_bytes(bits) == table.serialized_size());
+    CHECK(sec->memory_bytes(bits) == sec->file_bytes(bits));
   }
 }
-

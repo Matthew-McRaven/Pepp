@@ -19,12 +19,13 @@
 #include <optional>
 #include <string_view>
 #include "core/ds/string_pool.hpp"
+#include "core/formats/elf/managed_section.hpp"
 
 namespace pepp::bts {
 
 // Represents a SHT_STRTAB section, backed by a StringPool. Uses opaque handles rather than offsets to provide pointer
 // stability on insert. Serialized data may not match insertion order due to pooling.
-class ManagedStringTable {
+class ManagedStringTable : public ManagedPayload {
 public:
   // Reuses an existing entry if possible, otherwise allocates a new entry. The string will be stored with a
   // null-terminator, as required by ELF.
@@ -35,6 +36,8 @@ public:
 
   // Minimum number of contiguous bytes to hold this table
   u32 serialized_size() const noexcept;
+  // A string table's footprint does not depend on the target's word size.
+  uxword file_bytes(ElfBits) const override { return serialized_size(); }
   // dest must be at least serialized_size() bytes.
   void serialize(bits::span<u8> dest) const;
 

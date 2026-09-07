@@ -17,24 +17,32 @@
 
 #include "core/formats/elf/managed_section.hpp"
 
+// Out of line to prevent it from being emitted into multiple TUs.
+pepp::bts::ManagedPayload::~ManagedPayload() = default;
+
 namespace {
 using namespace pepp::bts;
 
 struct FileBytes {
+  ElfBits bits;
   uxword operator()(std::monostate) const { return 0; }
   uxword operator()(const NoBits &) const { return 0; }
   uxword operator()(const RawBytes &raw) const { return raw.bytes.size(); }
-  uxword operator()(const ManagedStringTable &table) const { return table.serialized_size(); }
+  uxword operator()(const std::unique_ptr<ManagedPayload> &payload) const {
+    return payload ? payload->file_bytes(bits) : 0;
+  }
 };
 } // namespace
 
-pepp::bts::uxword pepp::bts::ManagedSection::file_bytes() const { return std::visit(FileBytes{}, content); }
+pepp::bts::uxword pepp::bts::ManagedSection::file_bytes(ElfBits bits) const {
+  return std::visit(FileBytes{bits}, content);
+}
 
-uxword ManagedSection::memory_bytes() const {
+uxword ManagedSection::memory_bytes(ElfBits bits) const {
   if (const auto *nobits = std::get_if<NoBits>(&content)) return nobits->size;
-  return file_bytes();
+  return file_bytes(bits);
 }
 
 // sh_size is usually the same as file_bytes. For NoBits, it's the memory_bytes.
 // To avoid consumers needing to know about this detail, we provide this thin wrapper.
-uxword ManagedSection::sh_size() const { return memory_bytes(); }
+uxword ManagedSection::sh_size(ElfBits bits) const { return memory_bytes(bits); }

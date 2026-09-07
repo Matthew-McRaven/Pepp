@@ -15,10 +15,10 @@ pepp::bts::SectionRef pepp::bts::build_shstrtab(ManagedElf &elf, std::vector<Sec
 
   // Force this section to become a string table.
   auto *sec = elf.section(ref);
-  if (!std::holds_alternative<ManagedStringTable>(sec->content)) sec->content.emplace<ManagedStringTable>();
-  auto &table = std::get<ManagedStringTable>(sec->content);
+  auto *table = sec->content_as<ManagedStringTable>();
+  if (!table) table = &sec->make_content<ManagedStringTable>();
   for (auto member : live)
-    if (const auto *named = elf.section(member); named) table.insert(named->name);
+    if (const auto *named = elf.section(member); named) table->insert(named->name);
   // Force clear link and info because they are meaningless for a string table.
   sec->link = ManagedElf::SHN_UNDEF, sec->info = u32{0};
   return ref;

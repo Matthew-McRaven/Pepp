@@ -163,7 +163,7 @@ TEST_CASE("Convert ManagedElf to PackedElf", "[kind:unit][arch:*][tc2][scope:elf
     add(elf, ".data", {2});
     auto out = serialize(elf);
     auto reader = read(out.bytes);
-    const auto &names = std::get<ManagedStringTable>(elf.section(elf.shstrtab())->content);
+    const auto &names = *elf.section(elf.shstrtab())->content_as<ManagedStringTable>();
     CHECK(out.shdr(text).sh_name == names.offset_of(*names.find(".text")));
     CHECK(out.packed().header.e_shstrndx == out.index_of(elf.shstrtab()));
     for (const char *name : {".text", ".data", ".shstrtab"}) {

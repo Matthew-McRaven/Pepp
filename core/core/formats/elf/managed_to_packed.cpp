@@ -1,6 +1,7 @@
 #include "core/formats/elf/managed_to_packed.hpp"
 #include "core/formats/elf/managed_elf.hpp"
 #include "core/formats/elf/managed_section.hpp"
+#include "core/formats/elf/managed_section_strtab.hpp"
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 
@@ -21,18 +22,6 @@ std::vector<SectionRef> sorted_write_order(const ManagedElf &elf, std::span<cons
   return ret;
 }
 
-// Copy a section's bytes into the storage the packed file allocated for it.
-struct CopyContent {
-  AStorage &into;
-  void operator()(std::monostate) const {}
-  void operator()(const NoBits &) const {}
-  void operator()(const RawBytes &raw) const { into.append(bits::span<const u8>{raw.bytes.data(), raw.bytes.size()}); }
-  void operator()(const ManagedStringTable &table) const {
-    std::vector<u8> bytes(table.serialized_size());
-    table.serialize(bits::span<u8>{bytes.data(), bytes.size()});
-    into.append(bits::span<const u8>{bytes.data(), bytes.size()});
-  }
-};
 // Extract the integer value for sh_info, which includes converting from a SectionRef to the assigned index.
 struct ShInfo {
   const std::map<SectionRef, u16> &index_of;
@@ -47,6 +36,30 @@ template <ElfBits B> word<B> narrow(uxword value, const char *what) {
   }
   return static_cast<word<B>>(value);
 }
+
+template <ElfBits B, ElfEndian E> struct CopyContent {
+  AStorage &into;
+  const ManagedElf &elf;
+  const ManagedSection &sec;
+  const std::map<SectionRef, u16> &index_of;
+
+  void operator()(std::monostate) const {}
+  void operator()(const NoBits &) const {}
+  void operator()(const RawBytes &raw) const { into.append(bits::span<const u8>{raw.bytes.data(), raw.bytes.size()}); }
+  // One boxed alternative means the compiler no longer checks every payload kind is handled, so the
+  // chain ends in a throw rather than falling through and writing nothing.
+  void operator()(const std::unique_ptr<ManagedPayload> &payload) const {
+    if (!payload) return;
+    else if (const auto *table = dynamic_cast<const ManagedStringTable *>(payload.get())) write_strings(*table);
+    else throw std::logic_error("pack: a section holds a payload this does not know how to write");
+  }
+
+  void write_strings(const ManagedStringTable &table) const {
+    std::vector<u8> bytes(table.serialized_size());
+    table.serialize(bits::span<u8>{bytes.data(), bytes.size()});
+    into.append(bits::span<const u8>{bytes.data(), bytes.size()});
+  }
+};
 
 template <ElfBits B, ElfEndian E> uxword entry_size(const ManagedSection &sec) {
   switch (sec.type) {
@@ -87,7 +100,7 @@ std::map<SectionRef, u16> pack_into(const ManagedElf &elf, std::span<const Secti
   // While creating our section headers, we need to resolve the section names into offsets in our section header string
   // table. shstrtab is optional, in which case e_shstrndx is SHN_UNDEF and all sh_name fields are 0.
   const auto *shstrtab_section = elf.section(elf.shstrtab());
-  const auto *names = shstrtab_section ? std::get_if<ManagedStringTable>(&shstrtab_section->content) : nullptr;
+  const auto *names = shstrtab_section ? shstrtab_section->content_as<ManagedStringTable>() : nullptr;
   const auto offset_of_section_name = [&](std::string_view name) -> u32 {
     if (!names) return 0;
     else if (const auto h = names->find(name); !h)
@@ -102,7 +115,7 @@ std::map<SectionRef, u16> pack_into(const ManagedElf &elf, std::span<const Secti
     shdr.sh_type = bits::to_underlying(sec->type);
     shdr.sh_flags = narrow<B>(bits::to_underlying(sec->flags), "sh_flags");
     shdr.sh_addr = narrow<B>(sec->addr, "sh_addr");
-    shdr.sh_size = narrow<B>(sec->sh_size(), "sh_size");
+    shdr.sh_size = narrow<B>(sec->sh_size(B), "sh_size");
     shdr.sh_addralign = sec->addralign;
     shdr.sh_entsize = narrow<B>(entry_size<B, E>(*sec), "sh_entsize");
     shdr.sh_link = index_of.at(sec->link);
@@ -110,7 +123,7 @@ std::map<SectionRef, u16> pack_into(const ManagedElf &elf, std::span<const Secti
 
     if (const auto index = out.add_section(std::move(shdr)); index != index_of.at(section_ref))
       throw std::logic_error("pack: section index drifted from its order");
-    else std::visit(CopyContent{*out.section_data[index]}, sec->content);
+    else std::visit(CopyContent<B, E>{*out.section_data[index], elf, *sec, index_of}, sec->content);
   }
 
   return index_of;

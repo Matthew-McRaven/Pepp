@@ -16,12 +16,13 @@
  */
 
 #pragma once
+#include <memory>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <variant>
 #include <vector>
 #include "core/formats/elf/enums.hpp"
-#include "core/formats/elf/managed_section_strtab.hpp"
 #include "core/formats/elf/managed_types.hpp"
 
 namespace pepp::bts {
@@ -38,10 +39,21 @@ struct RawBytes {
 };
 
 /*
+ * Base for (include-heavy) section payloads, such as string tables, symbol tables, and relocations. Unfortunately,
+ * std::visit over SectionData is no longer exhaustive, but I think this is the less evil than pulling in a large number
+ * of headers.
+ */
+struct ManagedPayload {
+  virtual ~ManagedPayload();
+  // Bytes this payload contributes to the file. Takes the target's word size because a symbol table's
+  // footprint depends on it: an Elf64_Sym is wider than an Elf32_Sym.
+  virtual uxword file_bytes(ElfBits bits) const = 0;
+};
+
+/*
  * Payload data for a section. Monostate can be used for anything with no data + no file size, like SHT_NULL.
  */
-// TODO: SymbolTable, RelocTable, NoteTable.
-using SectionData = std::variant<std::monostate, NoBits, RawBytes, ManagedStringTable>;
+using SectionData = std::variant<std::monostate, NoBits, RawBytes, std::unique_ptr<ManagedPayload>>;
 
 /*
  * A single section of a ManagedElf file. Common fields are stored in this class, while content is stored in a variant.
@@ -75,10 +87,29 @@ public:
   // Mostly used to identify SHN_ABS and SHN_COMMON.
   std::optional<SectionIndices> required_index = std::nullopt;
   // Bytes this section directly contributes to the final object file, not counting inter-section alignment/padding.
-  uxword file_bytes() const;
+  uxword file_bytes(ElfBits bits) const;
   // Bytes this section occupies when loaded into memory, which differs from file_bytes() for a NoBits section.
-  uxword memory_bytes() const;
-  uxword sh_size() const;
+  uxword memory_bytes(ElfBits bits) const;
+  uxword sh_size(ElfBits bits) const;
+
+  // Replace the section's content with a ManagedPayload subclass.
+  template <class T, class... Args> T &make_content(Args &&...args) {
+    static_assert(std::is_base_of_v<ManagedPayload, T>, "must derive from ManagedPayload");
+    auto &held = content.emplace<std::unique_ptr<ManagedPayload>>(std::make_unique<T>(std::forward<Args>(args)...));
+    return static_cast<T &>(*held);
+  }
+  // Try to cast to the correct ManagedPayload subclass.
+  // Would prefer to use deducing this, but as of 2026-09-07, GCC in CI doesn't support it.
+  template <class T> T *content_as() noexcept {
+    static_assert(std::is_base_of_v<ManagedPayload, T>, "must derive from ManagedPayload");
+    auto *held = std::get_if<std::unique_ptr<ManagedPayload>>(&content);
+    return held ? dynamic_cast<T *>(held->get()) : nullptr;
+  }
+  template <class T> const T *content_as() const noexcept {
+    static_assert(std::is_base_of_v<ManagedPayload, T>, "must derive from ManagedPayload");
+    const auto *held = std::get_if<std::unique_ptr<ManagedPayload>>(&content);
+    return held ? dynamic_cast<const T *>(held->get()) : nullptr;
+  }
 
   bool is_serialized() const noexcept {
     using SI = SectionIndices;
