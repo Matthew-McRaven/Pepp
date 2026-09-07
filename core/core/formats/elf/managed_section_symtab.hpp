@@ -61,8 +61,9 @@ public:
   uxword file_bytes(ElfBits bits) const override;
 
 private:
-  friend void freeze_symbols(ManagedSection &sec, ElfBits bits, const std::function<bool(const entry_ptr_t &)> &keep);
-  // Actual implementation which creates & sorts the _frozen vector.
+  friend void freeze_symbols(ManagedElf &elf, SectionRef ref, const std::function<bool(const entry_ptr_t &)> &keep);
+  // Actual implementation which creates & sorts the _frozen vector. Whole-elf changes (populating strtabs, updating
+  // sh_info) belong in free_symbols.
   void freeze(const std::function<bool(const entry_ptr_t &)> &keep);
 
   std::shared_ptr<core::symbol::LeafTable> _symbols;
@@ -71,7 +72,8 @@ private:
 };
 
 /*
- * Combined garbage collection and sorting. ELF requires local symbols be ordered before non-locals, and multiple
+ * Creates secondary sections that depend on this symbol table (stringtable, hashs) and performs a combined garbage
+ * collection and sorting over the symbols. ELF requires local symbols be ordered before non-locals, and multiple
  * compiler flags modify which symbols defined by the assembler are written to the output symtab. The predicate
  * determines which symbols are garbage collected; if nullptr all symbols are retained. The set of retained symbols is
  * cached on the ManagedSymbolTable to avoid re-computing the order on each use. This manual garbage collection step
@@ -80,13 +82,10 @@ private:
  * Index 0 of the frozen list is the always-present null symbol, and the section's sh_info will have the index of the
  * first non-local symbol.
  */
-void freeze_symbols(ManagedSection &sec, ElfBits bits,
+void freeze_symbols(ManagedElf &elf, SectionRef ref,
                     const std::function<bool(const ManagedSymbolTable::entry_ptr_t &)> &keep = nullptr);
 
-/* Search the live sections for symbol tables and build their string tables. If no string table exists for a given
- * symbol table, a string table will be created. Newly-added string tables will be added to the live list.
- * Requires the symbol table be frozen to avoid allocating strings for symbols that will be removed.
- */
-void build_strtabs_for_symtabs(ManagedElf &elf, std::vector<SectionRef> &live);
+// Search through the live sections for symbol tables, filling the string table for each.
+void build_strtabs_for_symtabs(ManagedElf &elf, std::span<const SectionRef> live);
 
 } // namespace pepp::bts

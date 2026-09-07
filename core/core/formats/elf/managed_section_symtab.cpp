@@ -69,14 +69,22 @@ void pepp::bts::ManagedSymbolTable::freeze(const std::function<bool(const entry_
   });
 }
 
-void pepp::bts::freeze_symbols(ManagedSection &sec, ElfBits bits,
+void pepp::bts::freeze_symbols(ManagedElf &elf, SectionRef ref,
                                const std::function<bool(const ManagedSymbolTable::entry_ptr_t &)> &keep) {
-  auto *table = sec.content_as<ManagedSymbolTable>();
+  auto *sec = elf.section(ref);
+  if (!sec) throw std::logic_error("freeze_symbols: no such section");
+  auto *table = sec->content_as<ManagedSymbolTable>();
   if (!table) throw std::logic_error("freeze_symbols: this section holds no symbol table");
   table->freeze(keep);
-  sec.info = u32{table->first_nonlocal()};
-  // GNU as likes to align this to word size so that you can mmap and cast easily.
-  sec.addralign = word_bytes(bits);
+  sec->info = u32{table->first_nonlocal()};
+  // GNU `as` likes to align this section to platform word size so that you can mmap and cast easily.
+  sec->addralign = word_bytes(elf.bits());
+
+  // Create a string table for this symbol table if one does not already exist.
+  if (!sec->link) {
+    const bool dynamic = sec->type == SectionTypes::SHT_DYNSYM;
+    sec->link = elf.add_section(dynamic ? ".dynstr" : ".strtab", SectionTypes::SHT_STRTAB);
+  }
 }
 
 std::span<const pepp::bts::ManagedSymbolTable::entry_ptr_t> pepp::bts::ManagedSymbolTable::frozen_order() const {
@@ -95,19 +103,12 @@ pepp::bts::uxword pepp::bts::ManagedSymbolTable::file_bytes(ElfBits bits) const 
   return frozen_order().size() * symbol_bytes(bits);
 }
 
-void pepp::bts::build_strtabs_for_symtabs(ManagedElf &elf, std::vector<SectionRef> &live) {
-  // While we may be appending to live, we will never add a new symbol table. Iteration will terminate.
-  for (std::size_t it = 0; it < live.size(); ++it) {
-    auto *sec = elf.section(live[it]);
+void pepp::bts::build_strtabs_for_symtabs(ManagedElf &elf, std::span<const SectionRef> live) {
+  for (auto ref : live) {
+    auto *sec = elf.section(ref);
     if (!sec) continue;
     auto *symbols = sec->content_as<ManagedSymbolTable>();
     if (!symbols) continue;
-
-    if (!sec->link) {
-      // A dynamic symbol table's names conventionally live in .dynstr rather than .strtab.
-      const bool dynamic = sec->type == SectionTypes::SHT_DYNSYM;
-      sec->link = elf.add_section(dynamic ? ".dynstr" : ".strtab", SectionTypes::SHT_STRTAB);
-    }
 
     auto *linked = elf.section(sec->link);
     if (!linked) throw std::logic_error("build_strtabs_for_symtabs: a symbol table links to no section");
@@ -120,8 +121,5 @@ void pepp::bts::build_strtabs_for_symtabs(ManagedElf &elf, std::vector<SectionRe
 
     for (const auto &entry : symbols->frozen_order())
       if (entry) names->insert(entry->name);
-
-    // Ensure string table will be serialized
-    if (std::find(live.begin(), live.end(), sec->link) == live.end()) live.push_back(sec->link);
   }
 }

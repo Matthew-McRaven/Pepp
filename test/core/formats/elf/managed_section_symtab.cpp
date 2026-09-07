@@ -58,7 +58,7 @@ TEST_CASE("Freeze symbol tables", "[kind:unit][arch:*][!throws][tc2][scope:elf]"
   SECTION("Sort locals before globals then alphabetically") {
     auto built = add_symtab(elf, {"zeta", "alpha", "beta"});
     built.symbols->get("alpha").value()->binding = pepp::core::symbol::Binding::Global;
-    freeze_symbols(*built.sec, elf.bits());
+    freeze_symbols(elf, built.ref);
     auto ordered = built.table->frozen_order();
     REQUIRE(ordered.size() == 4);
     // Index 0 is the reserved null symbol, which carries no entry.
@@ -73,7 +73,7 @@ TEST_CASE("Freeze symbol tables", "[kind:unit][arch:*][!throws][tc2][scope:elf]"
   SECTION("Predicates determine live symbols") {
     auto built = add_symtab(elf, {"kept", "dropped"});
     auto dropped = built.symbols->get("dropped").value();
-    freeze_symbols(*built.sec, elf.bits(), [&](const auto &entry) { return entry != dropped; });
+    freeze_symbols(elf, built.ref, [&](const auto &entry) { return entry != dropped; });
     auto ordered = built.table->frozen_order();
     REQUIRE(ordered.size() == 2);
     CHECK(ordered[1]->name == "kept");
@@ -82,9 +82,9 @@ TEST_CASE("Freeze symbol tables", "[kind:unit][arch:*][!throws][tc2][scope:elf]"
 
   SECTION("Freeze can be applied multiple times") {
     auto built = add_symtab(elf, {"a", "b"});
-    freeze_symbols(*built.sec, elf.bits());
+    freeze_symbols(elf, built.ref);
     CHECK(built.table->frozen_order().size() == 3);
-    freeze_symbols(*built.sec, elf.bits(), [](const auto &) { return false; });
+    freeze_symbols(elf, built.ref, [](const auto &) { return false; });
     // Only the null symbol survives, and every table has one.
     CHECK(built.table->frozen_order().size() == 1);
   }
@@ -103,10 +103,8 @@ TEST_CASE("Build string tables for symbol tables", "[kind:unit][arch:*][!throws]
 
   SECTION("Symbol table without sh_link will have a strtab added") {
     auto built = add_symtab(elf, {"main", "exit"});
-    freeze_symbols(*built.sec, elf.bits());
-    auto live = garbage_collect_sections(elf);
-    const auto before = live.size();
-    build_strtabs_for_symtabs(elf, live);
+    CHECK_FALSE(elf.section(built.ref)->link);
+    freeze_symbols(elf, built.ref);
 
     auto *symtab = elf.section(built.ref);
     REQUIRE(symtab->link);
@@ -114,9 +112,10 @@ TEST_CASE("Build string tables for symbol tables", "[kind:unit][arch:*][!throws]
     REQUIRE(strtab != nullptr);
     CHECK(strtab->name == ".strtab");
     CHECK(strtab->type == SectionTypes::SHT_STRTAB);
-    // strtab added after initial liveness check, so build_strtabs_for_symtabs added the strtab.
-    CHECK(live.size() == before + 1);
+
+    auto live = garbage_collect_sections(elf);
     CHECK(std::find(live.begin(), live.end(), symtab->link) != live.end());
+    build_strtabs_for_symtabs(elf, live);
 
     const auto *names = strtab->content_as<ManagedStringTable>();
     REQUIRE(names != nullptr);
@@ -126,7 +125,7 @@ TEST_CASE("Build string tables for symbol tables", "[kind:unit][arch:*][!throws]
 
   SECTION("A dynamic symbol table gets .dynstr instead") {
     auto built = add_symtab(elf, {"main"}, SectionTypes::SHT_DYNSYM);
-    freeze_symbols(*built.sec, elf.bits());
+    freeze_symbols(elf, built.ref);
     auto live = garbage_collect_sections(elf);
     build_strtabs_for_symtabs(elf, live);
     CHECK(elf.section(elf.section(built.ref)->link)->name == ".dynstr");
@@ -137,13 +136,13 @@ TEST_CASE("Build string tables for symbol tables", "[kind:unit][arch:*][!throws]
     auto strtab = elf.add_section(".strtab", SectionTypes::SHT_STRTAB);
     elf.section(strtab)->make_content<ManagedStringTable>().insert("already here");
     elf.section(built.ref)->link = strtab;
-    freeze_symbols(*built.sec, elf.bits());
+    const auto before = elf.section_count();
+    freeze_symbols(elf, built.ref);
     auto live = garbage_collect_sections(elf);
-    const auto before = live.size();
     build_strtabs_for_symtabs(elf, live);
 
     CHECK(elf.section(built.ref)->link == strtab);
-    CHECK(live.size() == before); // strtab was already live via sh_link
+    CHECK(elf.section_count() == before);
     const auto *names = elf.section(strtab)->content_as<ManagedStringTable>();
     REQUIRE(names != nullptr);
     CHECK(names->find("already here").has_value());
@@ -153,7 +152,7 @@ TEST_CASE("Build string tables for symbol tables", "[kind:unit][arch:*][!throws]
   SECTION("Only frozen symbols are interned") {
     auto built = add_symtab(elf, {"kept", "dropped"});
     auto dropped = built.symbols->get("dropped").value();
-    freeze_symbols(*built.sec, elf.bits(), [&](const auto &entry) { return entry != dropped; });
+    freeze_symbols(elf, built.ref, [&](const auto &entry) { return entry != dropped; });
     auto live = garbage_collect_sections(elf);
     build_strtabs_for_symtabs(elf, live);
 
@@ -167,10 +166,9 @@ TEST_CASE("Build string tables for symbol tables", "[kind:unit][arch:*][!throws]
     auto built = add_symtab(elf, {"main"});
     auto text = elf.add_section(".text", SectionTypes::SHT_PROGBITS);
     elf.section(text)->content.emplace<RawBytes>().bytes = {1, 2, 3};
-    std::vector<SectionRef> live{text}; // The symbol table is left out of the live set.
+    std::vector<SectionRef> live{text}; // Leave symtab out of live set.
     const auto before = elf.section_count();
     build_strtabs_for_symtabs(elf, live);
-    CHECK(live == std::vector<SectionRef>{text});
     CHECK(elf.section_count() == before);
     CHECK_FALSE(elf.section(built.ref)->link);
     CHECK_FALSE(elf.section(text)->link);
@@ -182,7 +180,7 @@ TEST_CASE("Building string tables refuses a malformed symbol table", "[kind:unit
 
   SECTION("An sh_link pointing to an invalid value") {
     auto built = add_symtab(elf, {"main"});
-    freeze_symbols(*built.sec, elf.bits());
+    freeze_symbols(elf, built.ref);
     elf.section(built.ref)->link = SectionRef{999};
     auto live = garbage_collect_sections(elf);
     CHECK_THROWS_AS(build_strtabs_for_symtabs(elf, live), std::logic_error);
@@ -190,7 +188,7 @@ TEST_CASE("Building string tables refuses a malformed symbol table", "[kind:unit
 
   SECTION("An sh_link pointing to a non-stringtable") {
     auto built = add_symtab(elf, {"main"});
-    freeze_symbols(*built.sec, elf.bits());
+    freeze_symbols(elf, built.ref);
     elf.section(built.ref)->link = elf.add_section(".text", SectionTypes::SHT_PROGBITS);
     auto live = garbage_collect_sections(elf);
     CHECK_THROWS_AS(build_strtabs_for_symtabs(elf, live), std::logic_error);

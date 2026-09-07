@@ -172,9 +172,10 @@ TEST_CASE("Section sizes", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
     auto symbols = std::make_shared<pepp::core::symbol::LeafTable>(2);
     symbols->define("main");
     symbols->define("exit");
-    auto *sec = elf.section(elf.add_section(".symtab", SectionTypes::SHT_SYMTAB));
+    auto symtab = elf.add_section(".symtab", SectionTypes::SHT_SYMTAB);
+    auto *sec = elf.section(symtab);
     sec->make_content<ManagedSymbolTable>(symbols);
-    freeze_symbols(*sec, elf.bits());
+    freeze_symbols(elf, symtab);
     // Two symbols plus the reserved null one
     CHECK(sec->file_bytes(ElfBits::b32) == 3 * 16);
     CHECK(sec->file_bytes(ElfBits::b64) == 3 * 24);

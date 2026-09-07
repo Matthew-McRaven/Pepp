@@ -92,25 +92,26 @@ TEST_CASE("Garbage collection follows symbol references", "[kind:unit][arch:*][!
   auto *sec = elf.section(symtab);
   auto &table = sec->make_content<ManagedSymbolTable>(symbols);
   auto keep_symtab_only = [](const ManagedSection &sec) { return sec.name == ".symtab"; };
+  const auto strtab = [&] { return elf.section(symtab)->link; };
 
   SECTION("") {
     auto dropped = symbols->define("main");
     table.set_section(dropped, text);
-    freeze_symbols(*sec, elf.bits(), [&](const auto &entry) { return entry != dropped; });
-    CHECK(garbage_collect_sections(elf, keep_symtab_only) == std::vector<SectionRef>{symtab});
+    freeze_symbols(elf, symtab, [&](const auto &entry) { return entry != dropped; });
+    CHECK(garbage_collect_sections(elf, keep_symtab_only) == std::vector<SectionRef>{symtab, strtab()});
   }
 
   SECTION("Dropping a section's symbols is what lets the section be dropped") {
     table.set_section(symbols->define("main"), text);
     // The symbols have to go with the section, or garbage collection marks the section live again.
-    freeze_symbols(*sec, elf.bits(), [&](const auto &entry) { return table.section_of(entry) != text; });
-    CHECK(garbage_collect_sections(elf, keep_symtab_only) == std::vector<SectionRef>{symtab});
+    freeze_symbols(elf, symtab, [&](const auto &entry) { return table.section_of(entry) != text; });
+    CHECK(garbage_collect_sections(elf, keep_symtab_only) == std::vector<SectionRef>{symtab, strtab()});
   }
 
   SECTION("Live symbols will resurrect a section they point to") {
     table.set_section(symbols->define("main"), text);
-    freeze_symbols(*sec, elf.bits()); // Keeps all symbols, even though keep_symtab_only would usually drop main.
-    CHECK(garbage_collect_sections(elf, keep_symtab_only) == std::vector<SectionRef>{text, symtab});
+    freeze_symbols(elf, symtab); // Keeps all symbols, even though keep_symtab_only would usually drop main.
+    CHECK(garbage_collect_sections(elf, keep_symtab_only) == std::vector<SectionRef>{text, symtab, strtab()});
   }
 
   SECTION("Symbol table must be frozen before garbage_collect_sections") {

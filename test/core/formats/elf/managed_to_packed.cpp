@@ -250,10 +250,10 @@ TEST_CASE("Convert ManagedElf to PackedElf", "[kind:unit][arch:*][tc2][scope:elf
     external->binding = Binding::Global;
     auto unused = symbols->define("unused");
 
-    auto *symtab = elf.section(elf.add_section(".symtab", SectionTypes::SHT_SYMTAB));
-    auto &table = symtab->make_content<ManagedSymbolTable>(symbols);
+    auto symtab_ref = elf.add_section(".symtab", SectionTypes::SHT_SYMTAB);
+    auto &table = elf.section(symtab_ref)->make_content<ManagedSymbolTable>(symbols);
     for (const auto &defined : {helper, entry_point}) table.set_section(defined, text);
-    freeze_symbols(*symtab, elf.bits(), [&](const auto &e) { return e != unused; });
+    freeze_symbols(elf, symtab_ref, [&](const auto &e) { return e != unused; });
 
     auto live = garbage_collect_sections(elf);
     build_strtabs_for_symtabs(elf, live);
