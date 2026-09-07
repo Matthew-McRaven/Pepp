@@ -76,8 +76,9 @@ public:
   std::optional<SectionIndices> required_index = std::nullopt;
   // Bytes this section directly contributes to the final object file, not counting inter-section alignment/padding.
   uxword file_bytes() const;
-  // Bytes this section occupies when loaded into memory, which only differs from file_bytes() for a NoBits section.
+  // Bytes this section occupies when loaded into memory, which differs from file_bytes() for a NoBits section.
   uxword memory_bytes() const;
+  uxword sh_size() const;
 
   bool is_serialized() const noexcept {
     using SI = SectionIndices;

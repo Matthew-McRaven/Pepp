@@ -34,3 +34,7 @@ uxword ManagedSection::memory_bytes() const {
   if (const auto *nobits = std::get_if<NoBits>(&content)) return nobits->size;
   return file_bytes();
 }
+
+// sh_size is usually the same as file_bytes. For NoBits, it's the memory_bytes.
+// To avoid consumers needing to know about this detail, we provide this thin wrapper.
+uxword ManagedSection::sh_size() const { return memory_bytes(); }
