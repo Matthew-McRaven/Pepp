@@ -63,6 +63,8 @@ public:
   typename symbol::LeafTable &parent;
   // The value taken on by this symbol.
   std::shared_ptr<symbol::AbstractValue> value;
+  // TODO: to be removed. It is often set to a guessed section index frin before the section header table is finalized.
+  // It is computationally expensive to keep this value in sync while modifying section header table.
   u16 section_index = 0;
 
   bool is_singly_defined() const noexcept;

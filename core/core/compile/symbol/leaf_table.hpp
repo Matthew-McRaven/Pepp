@@ -85,7 +85,7 @@ public:
 private:
   u16 _pointer_size;
 
-  // Symbols are often repeated between multiple tables, use a shared
+  // Symbols are often repeated between multiple tables, so allow a shared pool.
   std::shared_ptr<bts::StringPool> _pool;
 
   map_t _entries;
