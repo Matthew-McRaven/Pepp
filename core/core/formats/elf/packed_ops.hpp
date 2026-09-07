@@ -21,6 +21,7 @@
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/elf/packed_types.hpp"
+#include "core/math/bitmanip/log2.hpp"
 
 namespace pepp::bts {
 
@@ -199,12 +200,6 @@ u64 place_header_tables_at(PackedElf<B, E> &elf, std::vector<LayoutItem> &layout
 template <ElfBits B, ElfEndian E>
 std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
                                          const std::vector<SegmentLayoutConstraint> *constraints) {
-  // Align an address to an arbitrary alignment. If alignment is 0 or 1, address is returned unchanged.
-  constexpr static auto align_to = [](u64 addr, u32 align) {
-    if (align < 2) return addr;
-    return ((addr + (align - 1)) / align) * align;
-  };
-
   using PackedElf = PackedElf<B, E>;
   std::vector<LayoutItem> ret;
   // std::vector<bool> poor-mans dynamic bitset
@@ -234,8 +229,8 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
   for (size_t i = 0; i < elf.section_headers.size(); ++i) {
     auto &shdr = elf.section_headers[i];
     // Align rolling offset to the largest of: section alignment or an over-alignment required by a segment constraint
-    if (over_align[i] > shdr.sh_addralign) rolling_offset = align_to(rolling_offset, over_align[i]);
-    else if (shdr.sh_addralign > 1) rolling_offset = align_to(rolling_offset, shdr.sh_addralign);
+    if (over_align[i] > shdr.sh_addralign) rolling_offset = bits::align_up(rolling_offset, over_align[i]);
+    else if (shdr.sh_addralign > 1) rolling_offset = bits::align_up(rolling_offset, shdr.sh_addralign);
 
     shdr.sh_offset = rolling_offset;
     // Per TIS ELF 1.2 on sh_size, sh_size is usually filesize, except for NOBITS where it is memory size.
@@ -259,7 +254,7 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
                       elf.section_data[constraint.to_sec]->size() -
                       elf.section_headers[constraint.from_sec].sh_offset;
       phdr.p_align = constraint.alignment;
-      u64 base_address = align_to(constraint.base_address, constraint.alignment);
+      u64 base_address = bits::align_up(constraint.base_address, constraint.alignment);
       phdr.p_vaddr = phdr.p_paddr = base_address;
 
       for (u16 jt = constraint.from_sec; jt <= constraint.to_sec && jt < elf.section_headers.size(); ++jt) {
@@ -267,14 +262,14 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
         auto &shdr = elf.section_headers[jt];
         // Set section address
         shdr.sh_addr = base_address;
-        base_address += align_to((u64)shdr.sh_size, shdr.sh_addralign);
+        base_address += bits::align_up((u64)shdr.sh_size, shdr.sh_addralign);
         touched_sections[jt] = true;
       }
       // Pad memory size to alignment
       u64 memsz = elf.section_headers[constraint.to_sec].sh_addr +
-                  align_to(elf.section_headers[constraint.to_sec].sh_size, constraint.alignment) - phdr.p_vaddr;
+                  bits::align_up(elf.section_headers[constraint.to_sec].sh_size, constraint.alignment) - phdr.p_vaddr;
       // Not all segment types have memory size. For now, only consider PT_LOAD
-      if (phdr.p_type == bits::to_underlying(SegmentType::PT_LOAD)) phdr.p_memsz = align_to(memsz, phdr.p_align);
+      if (phdr.p_type == bits::to_underlying(SegmentType::PT_LOAD)) phdr.p_memsz = bits::align_up(memsz, phdr.p_align);
     }
   }
 
