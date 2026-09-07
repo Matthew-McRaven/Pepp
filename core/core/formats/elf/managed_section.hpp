@@ -45,8 +45,7 @@ struct RawBytes {
  */
 struct ManagedPayload {
   virtual ~ManagedPayload();
-  // Bytes this payload contributes to the file. Takes the target's word size because a symbol table's
-  // footprint depends on it: an Elf64_Sym is wider than an Elf32_Sym.
+  // Bytes this payload contributes to the file for a given bitness
   virtual uxword file_bytes(ElfBits bits) const = 0;
   // Some sections (e.g., hash tables) require other sections be serialized first. These dependencies must be kept alive
   // during GC as well.
@@ -69,8 +68,7 @@ using SectionData = std::variant<std::monostate, NoBits, RawBytes, std::unique_p
  */
 class ManagedSection {
 public:
-  ManagedSection() = default;
-  ManagedSection(std::string name, SectionTypes type) : name(std::move(name)), type(type) {}
+  ManagedSection(std::string name, SectionTypes type, ElfBits bits) : type(type), name(std::move(name)), _bits(bits) {}
 
   SectionTypes type = SectionTypes::SHT_NULL;
   u32 addralign = 0;
@@ -89,11 +87,13 @@ public:
   // If this member is set, then this section must be assigned a specific index in the final ELF file.
   // Mostly used to identify SHN_ABS and SHN_COMMON.
   std::optional<SectionIndices> required_index = std::nullopt;
+  // The word size of the file this section belongs to.
+  ElfBits bits() const noexcept { return _bits; }
   // Bytes this section directly contributes to the final object file, not counting inter-section alignment/padding.
-  uxword file_bytes(ElfBits bits) const;
+  uxword file_bytes() const;
   // Bytes this section occupies when loaded into memory, which differs from file_bytes() for a NoBits section.
-  uxword memory_bytes(ElfBits bits) const;
-  uxword sh_size(ElfBits bits) const;
+  uxword memory_bytes() const;
+  uxword sh_size() const;
 
   // Replace the section's content with a ManagedPayload subclass.
   template <class T, class... Args> T &make_content(Args &&...args) {
@@ -120,6 +120,9 @@ public:
     else if (auto v = *required_index; v == SI::SHN_ABS || v == SI::SHN_COMMON) return false;
     else return true;
   }
+
+private:
+  ElfBits _bits;
 };
 
 } // namespace pepp::bts

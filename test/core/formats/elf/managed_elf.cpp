@@ -130,55 +130,57 @@ TEST_CASE("ManagedElf segments", "[kind:unit][arch:*][!throws][tc2][scope:elf]")
 TEST_CASE("Section sizes", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
   using namespace pepp::bts;
   ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10);
-  const auto bits = elf.bits();
 
   SECTION("Null section neither occupies file nor memory") {
     auto *sec = elf.section(elf.add_section(".null", SectionTypes::SHT_NULL));
-    CHECK(sec->file_bytes(bits) == 0);
-    CHECK(sec->memory_bytes(bits) == 0);
+    CHECK(sec->file_bytes() == 0);
+    CHECK(sec->memory_bytes() == 0);
   }
 
   SECTION("Raw bytes file and memory sizes are the same") {
     auto *sec = elf.section(elf.add_section(".text", SectionTypes::SHT_PROGBITS));
     sec->content.emplace<RawBytes>().bytes = {1, 2, 3, 4, 5};
-    CHECK(sec->file_bytes(bits) == 5);
-    CHECK(sec->memory_bytes(bits) == 5);
+    CHECK(sec->file_bytes() == 5);
+    CHECK(sec->memory_bytes() == 5);
   }
 
   SECTION("NoBits occupies memory but not file") {
     auto *sec = elf.section(elf.add_section(".bss", SectionTypes::SHT_NOBITS));
     sec->content.emplace<NoBits>().size = 0x1000;
-    CHECK(sec->file_bytes(bits) == 0);
-    CHECK(sec->memory_bytes(bits) == 0x1000);
+    CHECK(sec->file_bytes() == 0);
+    CHECK(sec->memory_bytes() == 0x1000);
   }
 
   SECTION("String table file size matches serialized size") {
     auto *sec = elf.section(elf.add_section(".strtab", SectionTypes::SHT_STRTAB));
     auto &table = sec->make_content<ManagedStringTable>();
     // Currently contains only null terminator
-    CHECK(sec->file_bytes(bits) == table.serialized_size());
+    CHECK(sec->file_bytes() == table.serialized_size());
     table.insert("main");
-    CHECK(sec->file_bytes(bits) == table.serialized_size());
-    CHECK(sec->memory_bytes(bits) == sec->file_bytes(bits));
+    CHECK(sec->file_bytes() == table.serialized_size());
+    CHECK(sec->memory_bytes() == sec->file_bytes());
   }
   SECTION("Symbol table must be frozen") {
     auto *sec = elf.section(elf.add_section(".symtab", SectionTypes::SHT_SYMTAB));
     sec->make_content<ManagedSymbolTable>(std::make_shared<pepp::core::symbol::LeafTable>(2));
     sec->content_as<ManagedSymbolTable>()->symbols().define("main");
-    CHECK_THROWS_AS(sec->file_bytes(ElfBits::b32), std::logic_error);
+    CHECK_THROWS_AS(sec->file_bytes(), std::logic_error);
   }
 
   SECTION("Symbol table size depends on elf bitness") {
-    auto symbols = std::make_shared<pepp::core::symbol::LeafTable>(2);
-    symbols->define("main");
-    symbols->define("exit");
-    auto symtab = elf.add_section(".symtab", SectionTypes::SHT_SYMTAB);
-    auto *sec = elf.section(symtab);
-    sec->make_content<ManagedSymbolTable>(symbols);
-    freeze_symbols(elf, symtab);
-    // Two symbols plus the reserved null one
-    CHECK(sec->file_bytes(ElfBits::b32) == 3 * 16);
-    CHECK(sec->file_bytes(ElfBits::b64) == 3 * 24);
-    CHECK(sec->memory_bytes(ElfBits::b32) == sec->file_bytes(ElfBits::b32));
+    // A section takes its width from the file it belongs to, so comparing widths means comparing two files.
+    const auto sized = [](ElfBits bits) {
+      ManagedElf target(bits, ElfEndian::be, ElfFileType::ET_REL, ElfMachineType::EM_PEP10);
+      auto symbols = std::make_shared<pepp::core::symbol::LeafTable>(2);
+      symbols->define("main");
+      symbols->define("exit");
+      auto symtab = target.add_section(".symtab", SectionTypes::SHT_SYMTAB);
+      target.section(symtab)->make_content<ManagedSymbolTable>(symbols);
+      freeze_symbols(target, symtab);
+      return target.section(symtab)->file_bytes();
+    };
+    // Two symbols plus the reserved null one, at the widths ELF TIS figure 1-15 gives.
+    CHECK(sized(ElfBits::b32) == 3 * 16);
+    CHECK(sized(ElfBits::b64) == 3 * 24);
   }
 }

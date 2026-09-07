@@ -29,15 +29,15 @@ pepp::bts::ManagedElf::ManagedElf(ElfBits bits, ElfEndian endian, ElfFileType ty
   const auto r0 = SectionRef{0};
   assert(r0 == ManagedElf::SHN_UNDEF);
 
-  auto add_pseudo = [this](std::string name, SectionIndices index) {
-    auto sec = std::make_unique<ManagedSection>(std::move(name), SectionTypes::SHT_NULL);
+  auto add_pseudo = [this](std::string name, SectionIndices index, ElfBits b) {
+    auto sec = std::make_unique<ManagedSection>(std::move(name), SectionTypes::SHT_NULL, b);
     sec->required_index = index;
     _sections.push_back(std::move(sec));
     return SectionRef{static_cast<SectionRef::underlying_type>(_sections.size() - 1)};
   };
-  const auto r1 = add_pseudo("SHN_ABS", SectionIndices::SHN_ABS);
+  const auto r1 = add_pseudo("SHN_ABS", SectionIndices::SHN_ABS, bits);
   assert(r1 == ManagedElf::SHN_ABS);
-  const auto r2 = add_pseudo("SHN_COMMON", SectionIndices::SHN_COMMON);
+  const auto r2 = add_pseudo("SHN_COMMON", SectionIndices::SHN_COMMON, bits);
   assert(r2 == ManagedElf::SHN_COMMON);
 
   // Ensure that the default/null segment always exists.
@@ -62,7 +62,7 @@ pepp::bts::SectionRef pepp::bts::ManagedElf::last_section() const noexcept {
 }
 
 pepp::bts::SectionRef pepp::bts::ManagedElf::add_section(std::string name, SectionTypes type) {
-  _sections.push_back(std::make_unique<ManagedSection>(std::move(name), type));
+  _sections.push_back(std::make_unique<ManagedSection>(std::move(name), type, _bits));
   return SectionRef{static_cast<SectionRef::underlying_type>(_sections.size() - 1)};
 }
 

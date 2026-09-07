@@ -34,15 +34,15 @@ struct FileBytes {
 };
 } // namespace
 
-pepp::bts::uxword pepp::bts::ManagedSection::file_bytes(ElfBits bits) const {
-  return std::visit(FileBytes{bits}, content);
+pepp::bts::uxword pepp::bts::ManagedSection::file_bytes() const {
+  return std::visit(FileBytes{_bits}, content);
 }
 
-uxword ManagedSection::memory_bytes(ElfBits bits) const {
+uxword ManagedSection::memory_bytes() const {
   if (const auto *nobits = std::get_if<NoBits>(&content)) return nobits->size;
-  return file_bytes(bits);
+  return file_bytes();
 }
 
 // sh_size is usually the same as file_bytes. For NoBits, it's the memory_bytes.
 // To avoid consumers needing to know about this detail, we provide this thin wrapper.
-uxword ManagedSection::sh_size(ElfBits bits) const { return memory_bytes(bits); }
+uxword ManagedSection::sh_size() const { return memory_bytes(); }

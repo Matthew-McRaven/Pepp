@@ -239,7 +239,7 @@ std::map<SectionRef, u16> pack_into(const ManagedElf &elf, std::span<const Secti
     shdr.sh_type = bits::to_underlying(sec->type);
     shdr.sh_flags = narrow<B>(bits::to_underlying(sec->flags), "sh_flags");
     shdr.sh_addr = narrow<B>(sec->addr, "sh_addr");
-    shdr.sh_size = narrow<B>(sec->sh_size(B), "sh_size");
+    shdr.sh_size = narrow<B>(sec->sh_size(), "sh_size");
     shdr.sh_addralign = sec->addralign;
     shdr.sh_entsize = narrow<B>(entry_size<B, E>(*sec), "sh_entsize");
     shdr.sh_link = index_of.at(sec->link);
