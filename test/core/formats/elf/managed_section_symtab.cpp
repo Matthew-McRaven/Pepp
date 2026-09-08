@@ -27,6 +27,8 @@
 #include "core/formats/elf/managed_elf.hpp"
 #include "core/formats/elf/managed_section.hpp"
 #include "core/formats/elf/managed_section_gc.hpp"
+#include "core/ds/hash/djb.hpp"
+#include "core/formats/elf/managed_section_gnu_hash.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
 
 namespace {
@@ -192,5 +194,88 @@ TEST_CASE("Building string tables refuses a malformed symbol table", "[kind:unit
     elf.section(built.ref)->link = elf.add_section(".text", SectionTypes::SHT_PROGBITS);
     auto live = garbage_collect_sections(elf);
     CHECK_THROWS_AS(build_strtabs_for_symtabs(elf, live), std::logic_error);
+  }
+}
+
+TEST_CASE("Working with .gnu.hash", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
+  using Binding = pepp::core::symbol::Binding;
+  ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_REL, ElfMachineType::EM_PEP10);
+
+  // Four globals and two locals. Insert globals first to ensure that sorting works.
+  const auto build = [&](ManagedElf &into) {
+    auto built = add_symtab(into, {"alpha", "beta", "gamma", "delta", "local_one", "local_two"});
+    for (const char *name : {"alpha", "beta", "gamma", "delta"})
+      built.symbols->get(name).value()->binding = Binding::Global;
+    return built;
+  };
+  const auto hash_section_for = [&](ManagedElf &into, SectionRef symtab_ref) -> ManagedSection * {
+    for (auto it = ManagedElf::SHN_UNDEF; it <= into.last_section(); ++it) {
+      auto *sec = into.section(it);
+      auto *hash = sec ? sec->content_as<ManagedGnuHash>() : nullptr;
+      if (hash && hash->symtab() == symtab_ref) return sec;
+    }
+    return nullptr;
+  };
+
+  SECTION(".gnu.hash is not emitted if no hash policy is set") {
+    auto built = build(elf);
+    freeze_symbols(elf, built.ref);
+    CHECK_FALSE(built.table->hash_parameters().has_value());
+    CHECK(hash_section_for(elf, built.ref) == nullptr);
+    auto ordered = built.table->frozen_order();
+    REQUIRE(ordered.size() == 7);
+    CHECK(ordered[3]->name == "alpha");
+    CHECK(ordered[4]->name == "beta");
+    CHECK(ordered[5]->name == "delta");
+    CHECK(ordered[6]->name == "gamma");
+  }
+
+  SECTION("Inspect hash parameters after freeze") {
+    auto built = build(elf);
+    built.table->set_hash_policy({});
+    freeze_symbols(elf, built.ref);
+    const auto params = built.table->hash_parameters();
+    REQUIRE(params.has_value());
+    // Only globals are hashed, so the range starts where sh_info says the locals end.
+    CHECK(params->symndx == built.table->first_nonlocal());
+    CHECK(params->symndx == 3);
+    CHECK(params->hashed_count == 4);
+    CHECK(params->nbuckets == 2); // Four symbols at the default two per bucket.
+    // 4 symbols * 12 bits/symbol = 48 bits = 2x32-bit words (rouded to power-of-2).
+    CHECK(params->maskwords == 2);
+
+    CHECK(params->shift2 == 5); // log2(32-bits) is 5
+
+    // Ensure hash section declares symtab, strtab as dependencies
+    std::vector<SectionRef> deps;
+    hash_section_for(elf, built.ref)->content_as<ManagedGnuHash>()->collect_dependencies(deps);
+    CHECK(deps == std::vector<SectionRef>{built.ref, elf.section(built.ref)->link});
+  }
+
+  SECTION("Hashed symbols are ordered by bucket, and locals still precede them") {
+    auto built = build(elf);
+    built.table->set_hash_policy({});
+    freeze_symbols(elf, built.ref);
+    const auto params = built.table->hash_parameters().value();
+    auto ordered = built.table->frozen_order();
+
+    // Locals keep name order ahead of the hashed range, which sh_info still marks.
+    CHECK(ordered[1]->name == "local_one");
+    CHECK(ordered[2]->name == "local_two");
+    // The format finds a bucket's chain by position, so buckets may never decrease across the range.
+    for (auto it = params.symndx + 1; it < ordered.size(); ++it) {
+      INFO(ordered[it - 1]->name << " then " << ordered[it]->name);
+      CHECK(pepp::djb(ordered[it - 1]->name) % params.nbuckets <= pepp::djb(ordered[it]->name) % params.nbuckets);
+    }
+  }
+
+  SECTION("Re-freezing updates the section in-place") {
+    auto built = build(elf);
+    built.table->set_hash_policy({});
+    freeze_symbols(elf, built.ref);
+    const auto before = elf.section_count();
+    // Dropping symbols will change the hash parameters and should cause hash section to update.
+    freeze_symbols(elf, built.ref, [](const auto &e) { return e->binding == Binding::Local; });
+    CHECK(elf.section_count() == before);
   }
 }

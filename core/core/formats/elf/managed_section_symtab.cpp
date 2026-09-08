@@ -19,11 +19,14 @@
 #include <algorithm>
 #include <stdexcept>
 #include "core/compile/symbol/entry.hpp"
+#include "core/ds/hash/djb.hpp"
 #include "core/compile/symbol/types.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/managed_elf.hpp"
+#include "core/formats/elf/managed_section_gnu_hash.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
 #include "core/formats/elf/packed_types.hpp"
+#include "core/math/bitmanip/log2.hpp"
 
 pepp::bts::ManagedSymbolTable::ManagedSymbolTable(std::shared_ptr<core::symbol::LeafTable> symbols)
     : _symbols(std::move(symbols)) {
@@ -48,7 +51,24 @@ bool is_tombstone(const pepp::bts::ManagedSymbolTable::entry_ptr_t &entry) {
 }
 } // namespace
 
-void pepp::bts::ManagedSymbolTable::freeze(const std::function<bool(const entry_ptr_t &)> &keep) {
+namespace {
+// Convert our hash policy into the set of actual parameters for use by .gnu.hash.
+// symndx is the index of the first symbol to be hashed, while cnt is the total number of symbols to be hashed.
+pepp::bts::GnuHashParameters resolve_params(pepp::bts::GnuHashPolicy policy, u32 symndx, u32 cnt,
+                                            pepp::bts::ElfBits bits) {
+  const u32 word_bits = word_bytes(bits) * 8u;
+  pepp::bts::GnuHashParameters params;
+  const u32 words = bits::ceil_div(cnt * policy.bloom_bits_per_symbol, word_bits);
+  params.nbuckets = std::max<u32>(1, cnt / std::max<u32>(1, policy.symbols_per_bucket));
+  params.symndx = symndx, params.hashed_count = cnt;
+  // Power-of-two words. Avoid taking lg(0), which will throw
+  params.maskwords = 1u << bits::ceil_log2(std::max<u32>(1, words));
+  params.shift2 = bits::ceil_log2(word_bits);
+  return params;
+}
+} // namespace
+
+void pepp::bts::ManagedSymbolTable::freeze(const std::function<bool(const entry_ptr_t &)> &keep, ElfBits bits) {
   using namespace core::symbol;
   const auto &entries = _symbols->entries();
   auto &ordered = _frozen.emplace();
@@ -67,6 +87,27 @@ void pepp::bts::ManagedSymbolTable::freeze(const std::function<bool(const entry_
     if (left_local != right_local) return left_local;
     return lhs->name < rhs->name;
   });
+
+  // If a hash policy is set, determine the parameters and sort non-local symbols by hash % nbuckets.
+  _hash_parameters.reset();
+  if (!_hash_policy) return;
+  // All locals must come before any non-local, and hash requires symbols be sorted by
+  // hash % nbuckets. Therefore hash can only cover non-locals.
+  const u32 symndx = first_nonlocal(), hashed_cnt = static_cast<u32>(ordered.size()) - symndx;
+  _hash_parameters = resolve_params(*_hash_policy, symndx, hashed_cnt, bits);
+  // .gnu.hash groups together symbols by bucket to make search easier. Within a bucket, names break ties to keep the
+  // result reproducible. Because we already sorted by hash % nbuckets, the writer will not need to swap any symbols.
+  const auto nbuckets = _hash_parameters->nbuckets;
+  std::sort(ordered.begin() + symndx, ordered.end(), [nbuckets](const entry_ptr_t &lhs, const entry_ptr_t &rhs) {
+    const auto left = djb(lhs->name) % nbuckets, right = djb(rhs->name) % nbuckets;
+    if (left != right) return left < right;
+    return lhs->name < rhs->name;
+  });
+}
+
+std::optional<pepp::bts::GnuHashParameters> pepp::bts::ManagedSymbolTable::hash_parameters() const {
+  if (!is_frozen()) throw std::logic_error("ManagedSymbolTable: symbol order was never frozen");
+  return _hash_parameters;
 }
 
 void pepp::bts::freeze_symbols(ManagedElf &elf, SectionRef ref,
@@ -75,7 +116,7 @@ void pepp::bts::freeze_symbols(ManagedElf &elf, SectionRef ref,
   if (!sec) throw std::logic_error("freeze_symbols: no such section");
   auto *table = sec->content_as<ManagedSymbolTable>();
   if (!table) throw std::logic_error("freeze_symbols: this section holds no symbol table");
-  table->freeze(keep);
+  table->freeze(keep, elf.bits());
   sec->info = u32{table->first_nonlocal()};
   // GNU `as` likes to align this section to platform word size so that you can mmap and cast easily.
   sec->addralign = word_bytes(elf.bits());
@@ -85,6 +126,20 @@ void pepp::bts::freeze_symbols(ManagedElf &elf, SectionRef ref,
     const bool dynamic = sec->type == SectionTypes::SHT_DYNSYM;
     sec->link = elf.add_section(dynamic ? ".dynstr" : ".strtab", SectionTypes::SHT_STRTAB);
   }
+
+  const auto params = table->hash_parameters();
+  if (!params) return;
+  // Search for an existing .gnu.hash which points to this symbol table
+  for (auto it = ManagedElf::SHN_UNDEF; it <= elf.last_section(); ++it) {
+    auto *candidate = elf.section(it);
+    auto *existing = candidate ? candidate->content_as<ManagedGnuHash>() : nullptr;
+    if (existing && existing->symtab() == ref) return existing->set_parameters(*params);
+  }
+  // Otherwise create a new .gnu.hash
+  auto *hash = elf.section(elf.add_section(".gnu.hash", SectionTypes::SHT_GNU_HASH));
+  hash->link = ref;
+  hash->addralign = word_bytes(elf.bits());
+  hash->make_content<ManagedGnuHash>(ref, sec->link, *params);
 }
 
 std::span<const pepp::bts::ManagedSymbolTable::entry_ptr_t> pepp::bts::ManagedSymbolTable::frozen_order() const {

@@ -30,6 +30,24 @@ namespace pepp::bts {
 
 class ManagedElf;
 
+/* Request a .gnu.hash over this symbol table. On freeze_symbols(), this will be converted to a GnuHashParameters.
+ * Both knobs control the false positive vs memory tradeoff.
+ */
+struct GnuHashPolicy {
+  // Number of bits in the bloom filter per hashed symbol. Each symbol inserted will set two bits. Expressed in
+  // bits per symbol to avoid needing to know if the table is Elf32 or Elf64.
+  u8 bloom_bits_per_symbol = 12;
+  // Fewer symbols per bucket means shorter chains to walk and a larger bucket array.
+  u8 symbols_per_bucket = 2;
+};
+
+// The actual parameter we would like the .gnu.hash to be constructed with. Filled in at freeze time once we know the
+// number of live symbols.
+struct GnuHashParameters {
+  u32 nbuckets = 0, symndx = 0, maskwords = 0, shift2 = 0;
+  // Not actually a parameter of the section, needed to compute the
+  u32 hashed_count = 0;
+};
 /*
  * Represents a SHT_SYMTAB or SHT_DYNSYM section. It reuses the compiler's symbol table up until serialization, since
  * symbol::Entry already contain most of the fields that we need. The only additional per-symbol data that we need to
@@ -51,6 +69,12 @@ public:
   void set_section(const entry_ptr_t &entry, SectionRef ref);
   SectionRef section_of(const entry_ptr_t &entry) const noexcept;
 
+  // Request a .gnu.hash for this symbol table.
+  void set_hash_policy(GnuHashPolicy policy) { _hash_policy = policy; }
+  // If nullopt, do not emit a .gnu.hash for this symbol table. Otherwise, this is the parameters with which one
+  // constructs a PackedGNUHashedSymbolAccessor.
+  std::optional<GnuHashParameters> hash_parameters() const;
+
   // True if freeze_symbols has been called on this symbol table
   bool is_frozen() const noexcept { return _frozen.has_value(); }
   // The frozen order, with index 0 being the null symbol.
@@ -62,13 +86,15 @@ public:
 
 private:
   friend void freeze_symbols(ManagedElf &elf, SectionRef ref, const std::function<bool(const entry_ptr_t &)> &keep);
-  // Actual implementation which creates & sorts the _frozen vector. Whole-elf changes (populating strtabs, updating
-  // sh_info) belong in free_symbols.
-  void freeze(const std::function<bool(const entry_ptr_t &)> &keep);
+  // Actual implementation which creates & sorts the _frozen vector and compute hash parameters. Whole-elf changes
+  // (populating strtabs, updating sh_info) belong in freeze_symbols.
+  void freeze(const std::function<bool(const entry_ptr_t &)> &keep, ElfBits bits);
 
   std::shared_ptr<core::symbol::LeafTable> _symbols;
   std::unordered_map<entry_ptr_t, SectionRef> _sections;
   std::optional<std::vector<entry_ptr_t>> _frozen;
+  std::optional<GnuHashPolicy> _hash_policy;
+  std::optional<GnuHashParameters> _hash_parameters;
 };
 
 /*

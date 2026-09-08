@@ -31,7 +31,9 @@
 #include "core/formats/elf/managed_section_gc.hpp"
 #include "core/formats/elf/managed_section_shstrtab.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
+#include "core/formats/elf/managed_section_gnu_hash.hpp"
 #include "core/formats/elf/managed_section_symtab.hpp"
+#include "core/formats/elf/packed_access_hash.hpp"
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 
@@ -322,6 +324,58 @@ TEST_CASE("Convert ManagedElf to PackedElf", "[kind:unit][arch:*][tc2][scope:elf
 
     // Garbage collected symbol was not written.
     for (unsigned it = 0; it < read_symbols.get_symbols_num(); ++it) CHECK(at(it).name != "unused");
+  }
+
+  SECTION("A .gnu.hash Table") {
+    using namespace pepp::core::symbol;
+    add(elf, ".text", {1, 2, 3, 4});
+    auto symbols = std::make_shared<LeafTable>(2);
+    for (const char *name : {"alpha", "beta", "gamma", "delta", "epsilon"}) {
+      auto entry = symbols->define(name);
+      entry->binding = Binding::Global;
+      entry->value = std::make_shared<LocationValue>(1, 2, 0, 0, Type::Code);
+    }
+    symbols->define("a_local");
+
+    auto symtab_ref = elf.add_section(".symtab", SectionTypes::SHT_SYMTAB);
+    auto &table = elf.section(symtab_ref)->make_content<ManagedSymbolTable>(symbols);
+    table.set_hash_policy({});
+    freeze_symbols(elf, symtab_ref);
+    const auto params = table.hash_parameters().value();
+
+    auto live = garbage_collect_sections(elf);
+    build_strtabs_for_symtabs(elf, live);
+    build_shstrtab(elf, live);
+    auto out = serialize(elf, live);
+    auto reader = read(out.bytes);
+
+    const auto *hash = reader.sections[".gnu.hash"];
+    REQUIRE(hash != nullptr);
+    CHECK(hash->get_type() == static_cast<ELFIO::Elf_Word>(SectionTypes::SHT_GNU_HASH));
+    CHECK(hash->get_link() == reader.sections[".symtab"]->get_index());
+    CHECK(hash->get_addr_align() == 4);
+
+    // .gnu.hash serialized after noth the strtab/symtab.
+    CHECK(hash->get_index() > reader.sections[".symtab"]->get_index());
+    CHECK(hash->get_index() > reader.sections[".strtab"]->get_index());
+
+    // Find ref of the hash table created in freeze_symbols.
+    SectionRef hash_ref;
+    for (auto it = ManagedElf::SHN_UNDEF; it <= elf.last_section(); ++it)
+      if (auto *sec = elf.section(it); sec && sec->content_as<ManagedGnuHash>()) hash_ref = it;
+    REQUIRE(hash_ref);
+
+    // Check that ELFIO agrees with our hashing parameters.
+    PackedGNUHashedSymbolReader<ElfBits::b32, ElfEndian::be> lookup(out.packed(), out.index_of(hash_ref));
+    CHECK(lookup.nbuckets() == params.nbuckets);
+    CHECK(lookup.maskwords() == params.maskwords);
+    CHECK(lookup.mshift2() == params.shift2);
+    for (const char *name : {"alpha", "beta", "gamma", "delta", "epsilon"}) {
+      INFO(name);
+      CHECK(lookup.find_hashed_symbol(name) != 0);
+    }
+    // Local that was not hashed
+    CHECK(lookup.find_hashed_symbol("a_local") == 0);
   }
 
   SECTION("Garbage-collected sections are not serialized") {

@@ -4,9 +4,11 @@
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/managed_elf.hpp"
 #include "core/formats/elf/managed_section.hpp"
+#include "core/formats/elf/managed_section_gnu_hash.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
 #include "core/formats/elf/managed_section_symtab.hpp"
 #include "core/formats/elf/managed_segment.hpp"
+#include "core/formats/elf/packed_access_hash.hpp"
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 
@@ -151,6 +153,7 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
     if (!payload) return;
     else if (const auto *table = dynamic_cast<const ManagedStringTable *>(payload.get())) write_strings(*table);
     else if (const auto *table = dynamic_cast<const ManagedSymbolTable *>(payload.get())) write_symbols(*table);
+    else if (const auto *hash = dynamic_cast<const ManagedGnuHash *>(payload.get())) write_gnu_hash(*hash);
     else throw std::logic_error("pack: a section holds a payload this does not know how to write");
   }
 
@@ -158,6 +161,15 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
     std::vector<u8> bytes(table.serialized_size());
     table.serialize(bits::span<u8>{bytes.data(), bytes.size()});
     into().append(bits::span<const u8>{bytes.data(), bytes.size()});
+  }
+
+  void write_gnu_hash(const ManagedGnuHash &hash) const {
+    static constexpr auto swap = [](auto, auto) { throw std::logic_error("pack: attemted to reorder frozen table"); };
+    const auto &params = hash.parameters();
+    // The string / section tables have already been serialized to out due to ordering gaurentees from ManagedGnuHash
+    PackedGNUHashedSymbolWriter<B, E> writer(out, index_of.at(self));
+    // This will construct the hash table automatically. Because we sorted symbols on freeze(), swap should not fire.
+    writer.compute_hash_table(params.nbuckets, params.symndx, params.maskwords, params.shift2, swap);
   }
 
   void write_symbols(const ManagedSymbolTable &table) const {
