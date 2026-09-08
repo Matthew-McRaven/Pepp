@@ -132,14 +132,19 @@ SymbolVisibility visibility_of(pepp::core::symbol::Visibility visibility) {
 
 // Copy a section's bytes into the storage the packed file allocated for it.
 template <ElfBits B, ElfEndian E> struct CopyContent {
-  AStorage &into;
+  const SectionRef self; // The current section being serialized
   const ManagedElf &elf;
-  const ManagedSection &sec;
   const std::map<SectionRef, u16> &index_of;
+  PackedGrowableElfFile<B, E> &out; // The elf which we are generating
+
+  // Access the storage for the packed section corresponding to self.
+  AStorage &into() const { return *out.section_data[index_of.at(self)]; }
 
   void operator()(std::monostate) const {}
   void operator()(const NoBits &) const {}
-  void operator()(const RawBytes &raw) const { into.append(bits::span<const u8>{raw.bytes.data(), raw.bytes.size()}); }
+  void operator()(const RawBytes &raw) const {
+    into().append(bits::span<const u8>{raw.bytes.data(), raw.bytes.size()});
+  }
   // One boxed alternative means the compiler no longer checks every payload kind is handled, so the
   // chain ends in a throw rather than falling through and writing nothing.
   void operator()(const std::unique_ptr<ManagedPayload> &payload) const {
@@ -152,11 +157,11 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
   void write_strings(const ManagedStringTable &table) const {
     std::vector<u8> bytes(table.serialized_size());
     table.serialize(bits::span<u8>{bytes.data(), bytes.size()});
-    into.append(bits::span<const u8>{bytes.data(), bytes.size()});
+    into().append(bits::span<const u8>{bytes.data(), bytes.size()});
   }
 
   void write_symbols(const ManagedSymbolTable &table) const {
-    const auto *maybe_strtab = elf.section(sec.link);
+    const auto *maybe_strtab = elf.section(elf.section(self)->link);
     const auto *names = maybe_strtab ? maybe_strtab->template content_as<ManagedStringTable>() : nullptr;
     const auto name_of = [&](std::string_view name) -> u32 {
       if (!names) return 0;
@@ -168,10 +173,11 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
       else return index_of.at(table.section_of(entry));
     };
 
+    auto &data = into();
     for (const auto &entry : table.frozen_order()) {
       PackedElfSymbol<B, E> symbol; // Initialized to all zeros, as per Figure 1-18.
       if (!entry) { // nullptr will receive a null symbol, which covers the index 0 case.
-        into.append(symbol);
+        data.append(symbol);
         continue;
       }
       symbol.st_name = name_of(entry->name);
@@ -181,7 +187,7 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
       symbol.set_type(type_of(entry));
       symbol.set_bind(binding_of(entry->binding));
       symbol.set_visibility(visibility_of(entry->visibility));
-      into.append(symbol);
+      data.append(symbol);
     }
   }
 };
@@ -247,7 +253,7 @@ std::map<SectionRef, u16> pack_into(const ManagedElf &elf, std::span<const Secti
 
     if (const auto index = out.add_section(std::move(shdr)); index != index_of.at(section_ref))
       throw std::logic_error("pack: section index drifted from its order");
-    else std::visit(CopyContent<B, E>{*out.section_data[index], elf, *sec, index_of}, sec->content);
+    else std::visit(CopyContent<B, E>{section_ref, elf, index_of, out}, sec->content);
   }
 
   return index_of;
