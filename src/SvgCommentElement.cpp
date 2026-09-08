@@ -26,6 +26,12 @@ SvgCommentElement::SvgCommentElement(const std::string &comment)
     SvgElement::setValue(comment);
 }
 
+bool SvgCommentElement::setAttribute(const std::string &key, const std::string &value)
+{
+    //  Comments cannot have children or attributes
+    return true;
+}
+
 void SvgCommentElement::toXml(SvgRope &output) const
 {
     std::string buffer = std::format("<!--{}-->", SvgElement::value());
