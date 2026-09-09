@@ -297,6 +297,7 @@ pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescript
     // if (isOS) activeSeg->set_memory_size(activeSeg->get_memory_size() + size);
   }
 
+  // TODO: restore once .debug_line has a ManagedElf equivalent
   // ret.ir_to_listing = write_line_mapping(*ret.elf, prog, addrs, object_code);
 
   /*ELFIO::section *symTab = nullptr;

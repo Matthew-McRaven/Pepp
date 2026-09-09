@@ -130,14 +130,15 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(object_code.relocations.size() == 4);
     elf_result.elf->save("needs_rel.elf");
     auto elf = elf_result.elf.get();
-    REQUIRE(elf->sections.size() == 9);
-    auto symtab = elf->sections[6];
-    CHECK(symtab->get_name() == ".symtab");
+    REQUIRE(elf->sections.size() == 8);
+    // By name rather than by index so that adding or removing a section elsewhere does not move these.
+    auto symtab = elf->sections[".symtab"];
+    REQUIRE(symtab != nullptr);
     auto symtab_ac = ELFIO::symbol_section_accessor(*elf, symtab);
-    auto rel_text = elf->sections[7];
-    CHECK(rel_text->get_name() == ".rel.text");
-    auto rel_data = elf->sections[8];
-    CHECK(rel_data->get_name() == ".rel.data");
+    auto rel_text = elf->sections[".rel.text"];
+    REQUIRE(rel_text != nullptr);
+    auto rel_data = elf->sections[".rel.data"];
+    REQUIRE(rel_data != nullptr);
     auto rel_text_ac = ELFIO::relocation_section_accessor(*elf, rel_text);
     auto rel_data_ac = ELFIO::relocation_section_accessor(*elf, rel_data);
     ELFIO::Elf64_Addr rel_offset;
