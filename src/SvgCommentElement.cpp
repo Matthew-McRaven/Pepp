@@ -17,7 +17,7 @@ derive from the SVGElement interface.
 SvgCommentElement::SvgCommentElement()
     : Cloneable<SvgCommentElement, SvgElement>()
 {
-    SvgElement::setElementType(SvgInterface::SvgType::SvgCommentElement);
+    SvgElement::setElementType(SvgType::Type::SvgCommentElement);
 }
 
 SvgCommentElement::SvgCommentElement(const std::string &comment)

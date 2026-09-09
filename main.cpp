@@ -1,3 +1,4 @@
+#include <array>
 #include <format>
 #include <iostream>
 #include <string>
@@ -11,8 +12,6 @@ using namespace std::string_literals;
 
 //	private classes
 #include "src/Timer.h"
-
-//const std::string path = "E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\{}.svg";
 
 //  Test that file can be opened and saved without error
 int test1(std::string_view path, const std::string &name)
@@ -134,7 +133,7 @@ int test5(std::string_view path, const std::string &name, const std::string &id)
     //  Add elements from doc1
     Document doc2{};
     doc2.documentElement().appendChild(derived);
-    auto *child = doc1.documentElement().createElement(SvgInterface::SvgType::SvgDefsElement);
+    auto *child = doc1.documentElement().createElement(SvgType::Type::SvgDefsElement);
     doc2.documentElement().appendChild(child);
     doc2.documentElement().viewBox().setHeight(5);
     doc2.documentElement().viewBox().setWidth(6);
@@ -147,21 +146,62 @@ int test5(std::string_view path, const std::string &name, const std::string &id)
     return 0;
 }
 
+//  Create libraby file
+int test6(std::string_view path, const std::string &name)
+{
+    std::array<std::string, 6> srcNames{"and", "inverter", "nand", "nor", "or", "xor"};
+    std::vector<std::string> srcFiles;
+    for (auto &srcName : srcNames) {
+        srcFiles.push_back(std::vformat(path, std::make_format_args(srcName)));
+    }
+    std::cout << "Test6: Create library file: "s << name << std::endl;
+    Timer t;
+    t.start();
+    Document doc1{};
+    auto *library = doc1.documentElement().createElement(SvgType::Type::SvgDefsElement);
+    auto *use = doc1.documentElement().createElement(SvgType::Type::SvgGElement);
+
+    for (int i = 0; i < srcFiles.size(); ++i) {
+        Document d(srcFiles.at(i));
+
+        auto *child = d.getElementById(srcNames.at(i));
+        if (child) {
+            library->appendChild(child);
+        } else {
+            std::cout << "Element ID not found: "s << srcNames.at(i) << std::endl;
+        }
+
+        auto *temp = use->createElement(SvgType::Type::SvgUseElement);
+        /*auto *grandchild = static_cast<SvgElement *>(temp);
+        grandchild->setX(i * 60);
+        grandchild->setY(i < 3 ? 0 : 40);*/
+    }
+    doc1.documentElement().viewBox().setHeight(80);
+    doc1.documentElement().viewBox().setWidth(150);
+
+    doc1.saveAs("x:\\"s + name + "-test6.svg"s);
+    t.finish();
+    std::cout << "Test1: Elapsed open/save file. "s << t.elapsedTime() << std::endl << std::endl;
+    return 0;
+}
+
 int main()
 {
     const std::string name = "aa_rect"s;
-    const std::string id = "States"s;
-    const std::string file = "E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\"s + name + ".svg"s;
+    //const std::string id = "States"s;
+    //const std::string file = "E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\"s + name + ".svg"s;
     const std::string path = "E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\{}.svg";
 
     std::cout << "Start testing"s << std::endl;
     Timer t;
     t.start();
-    int failed = test1(path, "USStates");
-    failed += test2(path, name);
-    failed += test3(path, name);
-    failed += test4(path, "aa_rect"s, "red"s);
-    failed += test5(path, "aa_rect"s, "red"s);
+    int failed = 0;
+    //failed += test1(path, "USStates");
+    //failed += test2(path, name);
+    //failed += test3(path, name);
+    //failed += test4(path, "aa_rect"s, "red"s);
+    //failed += test5(path, "aa_rect"s, "red"s);
+    failed += test6(path, "library"s);
 
     //  Works anim3.svg, USStates.svg (88k)
     //doc1.open("E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\aa_rect.svg");

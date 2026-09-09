@@ -16,7 +16,7 @@ factory methods.
 SvgRectElement::SvgRectElement()
     : Cloneable<SvgRectElement, SvgElement>()
 {
-    SvgElement::setElementType(SvgInterface::SvgType::SvgCommentElement);
+    SvgElement::setElementType(SvgType::Type::SvgCommentElement);
 }
 
 SvgRectElement::SvgRectElement(const std::string &xmlName, const std::string &value)

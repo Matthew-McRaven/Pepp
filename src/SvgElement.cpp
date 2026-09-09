@@ -50,13 +50,13 @@ SvgElement::SvgElement(const SvgElement &original)
         auto copy = static_cast<SvgElement *>(_children.back().get());
 
         switch (copy->elementType()) {
-        case SvgType::SvgDescElement:
+        case SvgType::Type::SvgDescElement:
             this->_desc = copy;
             break;
-        case SvgType::SvgMetadataElement:
+        case SvgType::Type::SvgMetadataElement:
             this->_metadata = copy;
             break;
-        case SvgType::SvgTitleElement:
+        case SvgType::Type::SvgTitleElement:
             this->_title = copy;
             break;
         default:
@@ -66,11 +66,11 @@ SvgElement::SvgElement(const SvgElement &original)
 }
 
 //  Generic Dom fields
-SvgElement::SvgType SvgElement::elementType() const
+SvgType::Type SvgElement::elementType() const
 {
     return _elementType;
 }
-void SvgElement::setElementType(SvgElement::SvgType elementType)
+void SvgElement::setElementType(const SvgType::Type elementType)
 {
     _elementType = elementType;
 }
@@ -226,23 +226,23 @@ std::list<std::unique_ptr<SvgInterface>> &SvgElement::children()
 SvgInterface *SvgElement::createElement(const std::string &name)
 {
     if (name == "comment"s)
-        createElement(SvgType::SvgCommentElement);
+        createElement(SvgType::Type::SvgCommentElement);
     else if (name == "cdata"s)
-        createElement(SvgType::SvgCDataElement);
+        createElement(SvgType::Type::SvgCDataElement);
     else if (name == "rect"s)
-        createElement(SvgType::SvgRectElement);
+        createElement(SvgType::Type::SvgRectElement);
     else if (name == "defs"s)
-        createElement(SvgType::SvgDefsElement);
+        createElement(SvgType::Type::SvgDefsElement);
     else if (name == "g"s)
-        createElement(SvgType::SvgGElement);
+        createElement(SvgType::Type::SvgGElement);
     else if (name == "desc"s)
-        createElement(SvgType::SvgDescElement);
+        createElement(SvgType::Type::SvgDescElement);
     else if (name == "metadata"s)
-        createElement(SvgType::SvgMetadataElement);
+        createElement(SvgType::Type::SvgMetadataElement);
     else if (name == "title"s)
-        createElement(SvgType::SvgTitleElement);
+        createElement(SvgType::Type::SvgTitleElement);
     else {
-        createElement(SvgType::SvgUnknownElement);
+        createElement(SvgType::Type::SvgUnknownElement);
     }
 
     SvgElement *element = static_cast<SvgElement *>(_children.back().get());
@@ -251,41 +251,41 @@ SvgInterface *SvgElement::createElement(const std::string &name)
     return _children.back().get();
 }
 
-SvgInterface *SvgElement::createElement(const SvgType type)
+SvgInterface *SvgElement::createElement(const SvgType::Type type)
 {
     switch (type) {
-    case SvgType::SvgCommentElement:
+    case SvgType::Type::SvgCommentElement:
         _children.push_back(std::make_unique<SvgCommentElement>());
         break;
-    case SvgType::SvgCDataElement:
+    case SvgType::Type::SvgCDataElement:
         _children.push_back(std::make_unique<SvgCDataElement>());
         break;
-    case SvgType::SvgRectElement:
+    case SvgType::Type::SvgRectElement:
         _children.push_back(std::make_unique<SvgRectElement>());
         break;
-    case SvgType::SvgDefsElement:
+    case SvgType::Type::SvgDefsElement:
         _children.push_back(std::make_unique<SvgElement>("defs"s));
         _children.back().get()->setElementType(type);
         break;
-    case SvgType::SvgGElement:
+    case SvgType::Type::SvgGElement:
         _children.push_back(std::make_unique<SvgElement>("g"s));
         _children.back().get()->setElementType(type);
         break;
-    case SvgType::SvgDescElement: {
+    case SvgType::Type::SvgDescElement: {
         auto child = std::make_unique<SvgElement>("desc"s);
         _desc = child.get();
         _desc->setElementType(type);
         _children.push_back(std::move(child));
         break;
     }
-    case SvgType::SvgMetadataElement: {
+    case SvgType::Type::SvgMetadataElement: {
         auto child = std::make_unique<SvgElement>("metadata"s);
         _metadata = child.get();
         _metadata->setElementType(type);
         _children.push_back(std::move(child));
         break;
     }
-    case SvgType::SvgTitleElement: {
+    case SvgType::Type::SvgTitleElement: {
         auto child = std::make_unique<SvgElement>("title"s);
         _title = child.get();
         _title->setElementType(type);

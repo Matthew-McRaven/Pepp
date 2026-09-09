@@ -17,7 +17,7 @@ and output.
 SvgCDataElement::SvgCDataElement()
     : Cloneable<SvgCDataElement, SvgElement>()
 {
-    SvgElement::setElementType(SvgInterface::SvgType::SvgCommentElement);
+    SvgElement::setElementType(SvgType::Type::SvgCommentElement);
 }
 
 SvgCDataElement::SvgCDataElement(const std::string &cdata)

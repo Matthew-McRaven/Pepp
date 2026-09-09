@@ -25,8 +25,8 @@ public:
 
     //	User access functions
     //  Standard Xml
-    SvgInterface::SvgType elementType() const override;
-    void setElementType(SvgInterface::SvgType elementType) override;
+    SvgType::Type elementType() const override;
+    void setElementType(const SvgType::Type elementType) override;
     const std::string &xmlName() const override;
     void setXmlName(const std::string &xmlName) override;
     const std::string &value() const override;
@@ -66,8 +66,8 @@ public:
     const std::list<std::unique_ptr<SvgInterface>> &children() const;
     std::list<std::unique_ptr<SvgInterface>> &children();
     SvgInterface *createElement(const std::string &name) override;
-    SvgInterface *createElement(const SvgType type);
-    void appendChild(SvgInterface *child);
+    SvgInterface *createElement(const SvgType::Type type) override;
+    void appendChild(SvgInterface *child) override;
 
     //  Overrides
     virtual void toXml(SvgRope &output) const override;
@@ -76,7 +76,7 @@ public:
 
 private:
     //  Standard Xml Data
-    SvgInterface::SvgType _elementType = SvgInterface::SvgType::SvgUnknownElement;
+    SvgType::Type _elementType = SvgType::Type::SvgUnknownElement;
     std::string _xmlName;
     std::string _value;
 
