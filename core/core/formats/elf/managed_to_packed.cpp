@@ -116,6 +116,7 @@ SymbolType type_of(const SymbolEntry &entry) {
   case pepp::core::symbol::Type::Code: return SymbolType::STT_FUNC;
   case pepp::core::symbol::Type::Object: [[fallthrough]];
   case pepp::core::symbol::Type::Constant: return SymbolType::STT_OBJECT;
+  case pepp::core::symbol::Type::Section: return SymbolType::STT_SECTION;
   default: return SymbolType::STT_NOTYPE;
   }
 }
@@ -175,8 +176,9 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
   void write_symbols(const ManagedSymbolTable &table) const {
     const auto *maybe_strtab = elf.section(elf.section(self)->link);
     const auto *names = maybe_strtab ? maybe_strtab->template content_as<ManagedStringTable>() : nullptr;
+    // Symbol without a name get a 0 offset.
     const auto name_of = [&](std::string_view name) -> u32 {
-      if (!names) return 0;
+      if (!names || name.empty()) return 0;
       else if (const auto h = names->find(name); !h) throw std::logic_error("pack: symbol name not in strtab");
       else return names->offset_of(*h);
     };
