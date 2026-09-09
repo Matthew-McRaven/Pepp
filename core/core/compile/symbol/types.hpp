@@ -49,6 +49,9 @@ enum class Type : u8 {
    * These types arise from symbol declarations like: \code{.asm}hi:.EQUATE
    * 10\endcode Maps to ELF's STT_ABS.*/
   Constant,
+  /*! The associated symbol represents a section, and always has a value of 0. Use to provide relocations when sections
+   * move in memory. Maps to ELF's STT_SECTION, and is always STB_LOCAL*/
+  Section,
   /*! The associated symbol has been marked for deletion.
    * Does not map to any ELF symbol type, as this symbol no longer exists.*/
   Deleted,

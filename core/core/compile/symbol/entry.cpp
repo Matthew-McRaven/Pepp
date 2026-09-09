@@ -19,8 +19,8 @@
 #include "core/compile/symbol/types.hpp"
 #include "core/compile/symbol/value.hpp"
 
-pepp::core::symbol::Entry::Entry(symbol::LeafTable &parent, std::string_view name) noexcept
-    : parent(parent), name(name), state(DefinitionState::Undefined), binding(Binding::Local),
+pepp::core::symbol::Entry::Entry(std::string_view name) noexcept
+    : name(name), state(DefinitionState::Undefined), binding(Binding::Local),
       value(std::make_shared<symbol::EmptyValue>(0)) {}
 
 bool pepp::core::symbol::Entry::is_singly_defined() const noexcept { return state == DefinitionState::Single; }

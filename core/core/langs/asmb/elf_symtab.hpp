@@ -5,6 +5,7 @@
 #include "core/compile/ir_linear/attr_section.hpp"
 #include "core/compile/ir_linear/line_base.hpp"
 #include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
 #include "core/integers.h"
 #include "core/math/bitmanip/leb128.hpp"
 #include "flat/flat_map.hpp"

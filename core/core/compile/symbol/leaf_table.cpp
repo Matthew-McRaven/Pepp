@@ -60,7 +60,7 @@ pepp::core::symbol::LeafTable::entry_ptr_t pepp::core::symbol::LeafTable::refere
   auto pooled = _pool->insert(name);
   if (auto it = _entries.find(pooled); it == _entries.end()) {
     auto sv = _pool->find(pooled).value();
-    return _entries[pooled] = std::make_shared<symbol::Entry>(*this, sv);
+    return _entries[pooled] = std::make_shared<symbol::Entry>(sv);
   } else return it->second;
 }
 

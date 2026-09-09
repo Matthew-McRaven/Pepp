@@ -43,6 +43,16 @@ pepp::core::symbol::Type pepp::core::symbol::EmptyValue::type() const noexcept {
   return pepp::core::symbol::Type::Empty;
 }
 
+u32 pepp::core::symbol::SectionValue::size() const noexcept { return 0; }
+
+bits::MaskedBits pepp::core::symbol::SectionValue::value() const noexcept {
+  return {.byteCount = 0, .bitPattern = 0, .mask = 0x0};
+}
+
+pepp::core::symbol::Type pepp::core::symbol::SectionValue::type() const noexcept {
+  return pepp::core::symbol::Type::Section;
+}
+
 pepp::core::symbol::DeletedValue::DeletedValue() noexcept {}
 
 pepp::core::symbol::DeletedValue::DeletedValue(DeletedValue &&other) noexcept { swap(*this, other); }

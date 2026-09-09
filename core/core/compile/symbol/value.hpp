@@ -64,6 +64,17 @@ private:
   u8 _bytes;
 };
 
+// Dummy value to track a symbol that represents a section. Value and size are always 0.
+class SectionValue : public AbstractValue {
+public:
+  explicit SectionValue() noexcept = default;
+  virtual ~SectionValue() noexcept override = default;
+
+  u32 size() const noexcept override;
+  bits::MaskedBits value() const noexcept override;
+  Type type() const noexcept override;
+};
+
 // Value given to a symbol marked as deleted but not yet destroyed (e.g., still a live reference to the symbol via
 // shared_ptr). Attempts to access a deleted symbol's value should either: succed and issue a warning to CERR, or throw
 // an exception. This type has no equivalent in ELF -- it only exists because of our reference counting scheme.
