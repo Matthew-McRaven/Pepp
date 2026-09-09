@@ -18,6 +18,7 @@
 #include "core/formats/elf/managed_section_symtab.hpp"
 #include <algorithm>
 #include <stdexcept>
+#include <string>
 #include "core/compile/symbol/entry.hpp"
 #include "core/ds/hash/djb.hpp"
 #include "core/compile/symbol/types.hpp"
@@ -36,6 +37,19 @@ pepp::bts::ManagedSymbolTable::ManagedSymbolTable(std::shared_ptr<core::symbol::
 void pepp::bts::ManagedSymbolTable::set_section(const entry_ptr_t &entry, SectionRef ref) {
   if (!entry) throw std::logic_error("ManagedSymbolTable: cannot place a null symbol in a section");
   _sections[entry] = ref;
+}
+
+pepp::bts::ManagedSymbolTable::entry_ptr_t pepp::bts::ManagedSymbolTable::section_symbol(SectionRef section) {
+  using namespace core::symbol;
+  if (auto found = _section_symbols.find(section); found != _section_symbols.end()) return found->second;
+  // Section symbols are nameless, which causes problems for the LeafTable. So we have to store them here.
+  // These symbols must be local.
+  auto entry = std::make_shared<Entry>(std::string_view{});
+  entry->state = DefinitionState::Single;
+  entry->binding = Binding::Local;
+  entry->value = std::make_shared<SectionValue>();
+  set_section(entry, section);
+  return _section_symbols[section] = entry;
 }
 
 pepp::bts::SectionRef pepp::bts::ManagedSymbolTable::section_of(const entry_ptr_t &entry) const noexcept {
@@ -73,19 +87,24 @@ void pepp::bts::ManagedSymbolTable::freeze(const std::function<bool(const entry_
   const auto &entries = _symbols->entries();
   auto &ordered = _frozen.emplace();
   // Over-allocates when keep garbage collects symbols, but prevents allocations during the insert step.
-  ordered.reserve(entries.size() + 1);
+  ordered.reserve(entries.size() + _section_symbols.size() + 1);
   ordered.push_back(nullptr); // Meet ELF requirement that null symbol is first.
-  for (const auto &[_, entry] : entries) {
-    if (!entry || is_tombstone(entry)) continue;
-    else if (keep && !keep(entry)) continue;
+  const auto consider = [&](const entry_ptr_t &entry) {
+    if (!entry || is_tombstone(entry)) return;
+    else if (keep && !keep(entry)) return;
     else ordered.push_back(entry);
-  }
+  };
+  for (const auto &[_, entry] : entries) consider(entry);
+  // Must evaluate section symbols for garbage collection.
+  for (const auto &[_, entry] : _section_symbols) consider(entry);
 
   // Do not sort the null symbol. Ensure all locals precede any non-local.
-  std::sort(ordered.begin() + 1, ordered.end(), [](const entry_ptr_t &lhs, const entry_ptr_t &rhs) {
+  std::sort(ordered.begin() + 1, ordered.end(), [this](const entry_ptr_t &lhs, const entry_ptr_t &rhs) {
     const bool left_local = lhs->binding == Binding::Local, right_local = rhs->binding == Binding::Local;
     if (left_local != right_local) return left_local;
-    return lhs->name < rhs->name;
+    // Section symbols are all nameless, so the section each stands for is what separates them.
+    else if (lhs->name != rhs->name) return lhs->name < rhs->name;
+    return section_of(lhs) < section_of(rhs);
   });
 
   // If a hash policy is set, determine the parameters and sort non-local symbols by hash % nbuckets.
@@ -174,7 +193,8 @@ void pepp::bts::build_strtabs_for_symtabs(ManagedElf &elf, std::span<const Secti
     auto *names = linked->content_as<ManagedStringTable>();
     if (!names) names = &linked->make_content<ManagedStringTable>();
 
+    // Neither the null symbol nor section symbols have names.
     for (const auto &entry : symbols->frozen_order())
-      if (entry) names->insert(entry->name);
+      if (entry && !entry->name.empty()) names->insert(entry->name);
   }
 }

@@ -24,10 +24,11 @@
 #include <vector>
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
+#include "core/compile/symbol/value.hpp"
+#include "core/ds/hash/djb.hpp"
 #include "core/formats/elf/managed_elf.hpp"
 #include "core/formats/elf/managed_section.hpp"
 #include "core/formats/elf/managed_section_gc.hpp"
-#include "core/ds/hash/djb.hpp"
 #include "core/formats/elf/managed_section_gnu_hash.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
 
@@ -97,6 +98,35 @@ TEST_CASE("Freeze symbol tables", "[kind:unit][arch:*][!throws][tc2][scope:elf]"
     CHECK_THROWS_AS(built.table->frozen_order(), std::logic_error);
     CHECK_THROWS_AS(built.table->first_nonlocal(), std::logic_error);
     CHECK_THROWS_AS(built.table->file_bytes(ElfBits::b32), std::logic_error);
+  }
+}
+
+TEST_CASE("Section symbols", "[kind:unit][arch:*][!throws][tc2][scope:elf]") {
+  using namespace pepp::core::symbol;
+  ManagedElf elf(ElfBits::b32, ElfEndian::be, ElfFileType::ET_REL, ElfMachineType::EM_PEP10);
+  auto text = elf.add_section(".text", SectionTypes::SHT_PROGBITS);
+  auto built = add_symtab(elf, {});
+
+  SECTION("Nameless, local, zero-valued, and defined") {
+    auto entry = built.table->section_symbol(text);
+    REQUIRE(entry != nullptr);
+    CHECK(entry->name.empty());
+    CHECK(entry->binding == Binding::Local);
+    CHECK(entry->value->type() == Type::Section);
+    CHECK(entry->value->size() == 0);
+    CHECK(entry->value->value()() == 0);
+    CHECK(built.table->section_of(entry) == text);
+    // Only exists in the ELF symtab, not the compiler's symtab
+    CHECK(built.symbols->entries().empty());
+
+    freeze_symbols(elf, built.ref);
+    CHECK(built.table->frozen_order().size() == 2); // One null symbol plus section symbol
+  }
+
+  SECTION("Does not become multiply defined on sucessive calls to section_symbol") {
+    auto first = built.table->section_symbol(text);
+    CHECK(built.table->section_symbol(text) == first);
+    CHECK(first->is_singly_defined());
   }
 }
 

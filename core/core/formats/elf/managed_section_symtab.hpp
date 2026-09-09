@@ -17,6 +17,7 @@
 
 #pragma once
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <span>
@@ -69,6 +70,10 @@ public:
   void set_section(const entry_ptr_t &entry, SectionRef ref);
   SectionRef section_of(const entry_ptr_t &entry) const noexcept;
 
+  // Create a symbol that represents a section, which will be used for relocations. Creates a symbol if one doesn't
+  // already exist, otherwise return the already-created symbol. The symbol will be nameless and local.
+  entry_ptr_t section_symbol(SectionRef section);
+
   // Request a .gnu.hash for this symbol table.
   void set_hash_policy(GnuHashPolicy policy) { _hash_policy = policy; }
   // If nullopt, do not emit a .gnu.hash for this symbol table. Otherwise, this is the parameters with which one
@@ -92,6 +97,8 @@ private:
 
   std::shared_ptr<core::symbol::LeafTable> _symbols;
   std::unordered_map<entry_ptr_t, SectionRef> _sections;
+  // Symbols added by section_symbol and are not present in the original symbol table.
+  std::map<SectionRef, entry_ptr_t> _section_symbols;
   std::optional<std::vector<entry_ptr_t>> _frozen;
   std::optional<GnuHashPolicy> _hash_policy;
   std::optional<GnuHashParameters> _hash_parameters;
