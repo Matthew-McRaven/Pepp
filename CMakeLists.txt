@@ -9,7 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Set OFF to use ISO C++ without compiler extensio
 
 add_executable(SvgDom
     main.cpp
-    src/Timer.h
+    #Svg elements
     src/SvgDocument.cpp
     src/SvgDocument.hpp
     src/SvgParser.hpp
@@ -23,6 +23,10 @@ add_executable(SvgDom
     src/SvgRectElement.hpp
     src/SvgSvgElement.cpp
     src/SvgSvgElement.hpp
+    src/SvgUseElement.cpp
+    src/SvgUseElement.hpp
+    #special functionality
+    src/Timer.h
     src/SvgType.hpp
     src/SvgParser.hpp
     src/SvgFactory.cpp

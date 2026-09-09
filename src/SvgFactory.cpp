@@ -7,6 +7,7 @@ using namespace std::string_literals;
 #include "SvgCommentElement.hpp"
 #include "SvgRectElement.hpp"
 #include "SvgSvgElement.hpp"
+#include "SvgUseElement.hpp"
 
 bool SvgFactory::registerType(SvgType::Type type, CreatorFunc creator)
 {
@@ -20,6 +21,7 @@ std::unordered_map<SvgType::Type, SvgFactory::CreatorFunc> SvgFactory::_registry
     = {{SvgType::Type::SvgCommentElement, []() { return std::make_unique<SvgCommentElement>(); }},
        {SvgType::Type::SvgCDataElement, []() { return std::make_unique<SvgCDataElement>(); }},
        {SvgType::Type::SvgRectElement, []() { return std::make_unique<SvgRectElement>(); }},
+       {SvgType::Type::SvgUseElement, []() { return std::make_unique<SvgUseElement>(); }},
        {SvgType::Type::SvgDefsElement,
         []() { return createBasicElement(SvgType::Type::SvgDefsElement, "defs"s); }},
        {SvgType::Type::SvgGElement,

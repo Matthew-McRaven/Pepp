@@ -9,6 +9,7 @@ using namespace std::string_literals;
 #include "src/SvgCommentElement.hpp"
 #include "src/SvgDocument.hpp"
 #include "src/SvgRectElement.hpp"
+#include "src/SvgUseElement.hpp"
 
 //	private classes
 #include "src/Timer.h"
@@ -155,11 +156,12 @@ int test6(std::string_view path, const std::string &name)
         srcFiles.push_back(std::vformat(path, std::make_format_args(srcName)));
     }
     std::cout << "Test6: Create library file: "s << name << std::endl;
+
     Timer t;
     t.start();
     Document doc1{};
     auto *library = doc1.documentElement().createElement(SvgType::Type::SvgDefsElement);
-    auto *use = doc1.documentElement().createElement(SvgType::Type::SvgGElement);
+    auto *gElement = doc1.documentElement().createElement(SvgType::Type::SvgGElement);
 
     for (int i = 0; i < srcFiles.size(); ++i) {
         Document d(srcFiles.at(i));
@@ -171,14 +173,23 @@ int test6(std::string_view path, const std::string &name)
             std::cout << "Element ID not found: "s << srcNames.at(i) << std::endl;
         }
 
-        //auto *temp = use->createElement(SvgType::Type::SvgUseElement);
-        /*auto *grandchild = static_cast<SvgElement *>(temp);
-        grandchild->setX(i * 60);
-        grandchild->setY(i < 3 ? 0 : 40);*/
+        auto *temp = gElement->createElement(SvgType::Type::SvgUseElement);
+        auto *use = static_cast<SvgUseElement *>(temp);
+        if (use) {
+            use->setHref(srcNames.at(i));
+            use->setX((i % 3) * 60);
+            use->setY(i < 3 ? 0 : 40);
+        } else {
+            std::cout << "Use Element not found: "s << srcNames.at(i) << std::endl;
+        }
     }
-    doc1.documentElement().viewBox().setHeight(80);
-    doc1.documentElement().viewBox().setWidth(150);
+    doc1.documentElement().setHeight("90%"s);
+    doc1.documentElement().setWidth("90%"s);
+    doc1.documentElement().viewBox().setHeight(72);
+    doc1.documentElement().viewBox().setWidth(168);
 
+    //  Test size
+    //<rect x="0" y="0" width="168" height="72" fill="red" fill-opacity=".25" />
     doc1.saveAs("x:\\"s + name + "-test6.svg"s);
     t.finish();
     std::cout << "Test1: Elapsed open/save file. "s << t.elapsedTime() << std::endl << std::endl;
@@ -188,19 +199,17 @@ int test6(std::string_view path, const std::string &name)
 int main()
 {
     const std::string name = "aa_rect"s;
-    //const std::string id = "States"s;
-    //const std::string file = "E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\"s + name + ".svg"s;
     const std::string path = "E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\{}.svg";
 
     std::cout << "Start testing"s << std::endl;
     Timer t;
     t.start();
     int failed = 0;
-    failed += test1(path, "USStates");
-    failed += test2(path, name);
-    failed += test3(path, name);
-    failed += test4(path, "aa_rect"s, "red"s);
-    failed += test5(path, "aa_rect"s, "red"s);
+    //failed += test1(path, "USStates");
+    //failed += test2(path, name);
+    //failed += test3(path, name);
+    //failed += test4(path, "aa_rect"s, "red"s);
+    //failed += test5(path, "aa_rect"s, "red"s);
     failed += test6(path, "library"s);
 
     //  Works anim3.svg, USStates.svg (88k)

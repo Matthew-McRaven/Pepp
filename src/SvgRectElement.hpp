@@ -5,9 +5,6 @@
 #include "SvgElement.hpp"
 #include "utility_p.hpp"
 
-//	Forward declarations
-class SvgRectElementImpl;
-
 class SvgRectElement final : public Cloneable<SvgRectElement, SvgElement>
 {
     SvgUnitValue _rx;
