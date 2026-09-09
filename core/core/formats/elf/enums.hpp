@@ -468,6 +468,11 @@ enum class Relocations : u32 {
   R_NONE = 0,
 };
 
+enum class RelocationsPep10 : u32 {
+  R_PEP10_NONE = 0,
+  R_PEP10_ADDR16 = 1, // Compute S + A
+};
+
 enum class Relocationsx86_64 : u32 {
   R_X86_64_NONE = 0,
   R_X86_64_64 = 1,

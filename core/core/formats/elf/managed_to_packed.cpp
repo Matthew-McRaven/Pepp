@@ -1,10 +1,12 @@
 #include "core/formats/elf/managed_to_packed.hpp"
+#include <unordered_map>
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/types.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/managed_elf.hpp"
 #include "core/formats/elf/managed_section.hpp"
 #include "core/formats/elf/managed_section_gnu_hash.hpp"
+#include "core/formats/elf/managed_section_reloc.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
 #include "core/formats/elf/managed_section_symtab.hpp"
 #include "core/formats/elf/managed_segment.hpp"
@@ -155,6 +157,7 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
     else if (const auto *table = dynamic_cast<const ManagedStringTable *>(payload.get())) write_strings(*table);
     else if (const auto *table = dynamic_cast<const ManagedSymbolTable *>(payload.get())) write_symbols(*table);
     else if (const auto *hash = dynamic_cast<const ManagedGnuHash *>(payload.get())) write_gnu_hash(*hash);
+    else if (const auto *rela = dynamic_cast<const ManagedRelocTable *>(payload.get())) write_relocations(*rela);
     else throw std::logic_error("pack: a section holds a payload this does not know how to write");
   }
 
@@ -171,6 +174,26 @@ template <ElfBits B, ElfEndian E> struct CopyContent {
     PackedGNUHashedSymbolWriter<B, E> writer(out, index_of.at(self));
     // This will construct the hash table automatically. Because we sorted symbols on freeze(), swap should not fire.
     writer.compute_hash_table(params.nbuckets, params.symndx, params.maskwords, params.shift2, swap);
+  }
+
+  void write_relocations(const ManagedRelocTable &table) const {
+    // Create a mapping of entry->index to avoid O(n^2) search
+    const auto *linked = elf.section(elf.section(self)->link);
+    const auto *symbols = linked ? linked->template content_as<ManagedSymbolTable>() : nullptr;
+    if (!symbols) throw std::logic_error("pack: a relocation table's sh_link is not a symbol table");
+    std::unordered_map<const pepp::core::symbol::Entry *, u32> index_of_symbol;
+    const auto ordered = symbols->frozen_order();
+    for (u32 it = 0; it < ordered.size(); ++it)
+      if (ordered[it]) index_of_symbol[ordered[it].get()] = it;
+
+    auto &data = into();
+    for (const auto &entry : table.entries()) {
+      const auto found = index_of_symbol.find(entry.symbol.get());
+      // Don't allow relocations against nonexistent symbols.
+      if (found == index_of_symbol.end())
+        throw std::logic_error("pack: a relocation names a symbol its table does not contain");
+      data.append(PackedElfRelA<B, E>(narrow<B>(entry.offset, "r_offset"), entry.type, found->second, entry.addend));
+    }
   }
 
   void write_symbols(const ManagedSymbolTable &table) const {
@@ -211,7 +234,7 @@ template <ElfBits B, ElfEndian E> uxword entry_size(const ManagedSection &sec) {
   case SectionTypes::SHT_SYMTAB: [[fallthrough]];
   case SectionTypes::SHT_DYNSYM: return symbol_bytes(B);
   case SectionTypes::SHT_REL: return sizeof(PackedElfRel<B, E>);
-  case SectionTypes::SHT_RELA: return sizeof(PackedElfRelA<B, E>);
+  case SectionTypes::SHT_RELA: return rela_bytes(B);
   default: return 0;
   }
 }

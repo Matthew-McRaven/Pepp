@@ -118,7 +118,7 @@ void pepp::bts::ManagedSymbolTable::freeze(const std::function<bool(const entry_
   // result reproducible. Because we already sorted by hash % nbuckets, the writer will not need to swap any symbols.
   const auto nbuckets = _hash_parameters->nbuckets;
   std::sort(ordered.begin() + symndx, ordered.end(), [nbuckets](const entry_ptr_t &lhs, const entry_ptr_t &rhs) {
-    const auto left = djb(lhs->name) % nbuckets, right = djb(rhs->name) % nbuckets;
+    const auto left = djb32(lhs->name) % nbuckets, right = djb32(rhs->name) % nbuckets;
     if (left != right) return left < right;
     return lhs->name < rhs->name;
   });

@@ -260,6 +260,12 @@ template <ElfEndian E> struct PackedElfRelA<ElfBits::b64, E> {
   SWord<ElfBits::b64, E> r_addend;
 };
 
+// Size of a single relocation entry with addend, which is the value of sh_entsize.
+constexpr u8 rela_bytes(ElfBits bits) noexcept {
+  return bits == ElfBits::b64 ? sizeof(PackedElfRelA<ElfBits::b64, ElfEndian::le>)
+                              : sizeof(PackedElfRelA<ElfBits::b32, ElfEndian::le>);
+}
+
 // Per: ELF TIS Figure 2-1
 template <ElfBits B, ElfEndian E> struct PackedElfPhdr;
 // Phdr layout changes between 32/64 bits for alignment reasons.

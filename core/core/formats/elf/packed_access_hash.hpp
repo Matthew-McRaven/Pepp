@@ -247,7 +247,7 @@ u32 PackedGNUHashedSymbolAccessor<B, E, Const>::find_hashed_symbol(std::string_v
   const u32 bloom_shift = this->mshift2();
   const auto nbuckets = this->nbuckets();
   const auto bloom_filter = this->bloom();
-  u32 hash = djb(name);
+  u32 hash = djb32(name);
   u32 bloom_index = (hash / WordBits) % bloom_size;
   word<B> bloom_bits = ((word<B>)1 << (hash % (WordBits))) | ((word<B>)1 << ((hash >> bloom_shift) % (WordBits)));
   word<B> stored_bits = bloom_filter[bloom_index];
@@ -292,7 +292,7 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
 
   // Pre-compute hashes for all input strings
   std::vector<u32> H(hashed_count);
-  for (u32 i = 0; i < hashed_count; ++i) H[i] = djb(this->get_symbol_name(symndx + i));
+  for (u32 i = 0; i < hashed_count; ++i) H[i] = djb32(this->get_symbol_name(symndx + i));
 
   // Order the hashes by the bucket into which the fall in. i.e., reorder symbols by ascending hash % nbuckets.
   // Compute the desired order ahead-of-time before applying it. After the sort, for all i, perm[i] is the new target

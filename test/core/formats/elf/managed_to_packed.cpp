@@ -21,6 +21,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 #include "core/compile/symbol/entry.hpp"
@@ -32,6 +33,7 @@
 #include "core/formats/elf/managed_section_shstrtab.hpp"
 #include "core/formats/elf/managed_section_strtab.hpp"
 #include "core/formats/elf/managed_section_gnu_hash.hpp"
+#include "core/formats/elf/managed_section_reloc.hpp"
 #include "core/formats/elf/managed_section_symtab.hpp"
 #include "core/formats/elf/packed_access_hash.hpp"
 #include "core/formats/elf/packed_elf.hpp"
@@ -326,9 +328,9 @@ TEST_CASE("Convert ManagedElf to PackedElf", "[kind:unit][arch:*][tc2][scope:elf
     for (unsigned it = 0; it < read_symbols.get_symbols_num(); ++it) CHECK(at(it).name != "unused");
   }
 
-  SECTION("A .gnu.hash Table") {
+  SECTION("A .gnu.hash table, and relocations against the order it imposed") {
     using namespace pepp::core::symbol;
-    add(elf, ".text", {1, 2, 3, 4});
+    auto text = add(elf, ".text", {1, 2, 3, 4, 5, 6});
     auto symbols = std::make_shared<LeafTable>(2);
     for (const char *name : {"alpha", "beta", "gamma", "delta", "epsilon"}) {
       auto entry = symbols->define(name);
@@ -336,26 +338,46 @@ TEST_CASE("Convert ManagedElf to PackedElf", "[kind:unit][arch:*][tc2][scope:elf
       entry->value = std::make_shared<LocationValue>(1, 2, 0, 0, Type::Code);
     }
     symbols->define("a_local");
+    auto external = symbols->reference("charin");
+    external->binding = Binding::Global;
 
     auto symtab_ref = elf.add_section(".symtab", SectionTypes::SHT_SYMTAB);
     auto &table = elf.section(symtab_ref)->make_content<ManagedSymbolTable>(symbols);
     table.set_hash_policy({});
+    // A local label is expressed as its section plus an offset, so S + A covers it and the external alike.
+    auto section_sym = table.section_symbol(text);
+
+    auto &rela = relocations_for(elf, text, symtab_ref);
+    const auto addr16 = static_cast<u32>(RelocationsPep10::R_PEP10_ADDR16);
+    // Offsets are of the operand field, one past each dyadic opcode.
+    rela.add({.offset = 1, .symbol = external, .type = addr16, .addend = 0});
+    rela.add({.offset = 4, .symbol = section_sym, .type = addr16, .addend = 3});
+
     freeze_symbols(elf, symtab_ref);
     const auto params = table.hash_parameters().value();
-
     auto live = garbage_collect_sections(elf);
     build_strtabs_for_symtabs(elf, live);
     build_shstrtab(elf, live);
     auto out = serialize(elf, live);
     auto reader = read(out.bytes);
 
+    ELFIO::symbol_section_accessor read_symbols(reader, const_cast<ELFIO::section *>(reader.sections[".symtab"]));
+    auto symbol_at = [&](ELFIO::Elf_Word index) {
+      std::string name;
+      ELFIO::Elf64_Addr value;
+      ELFIO::Elf_Xword size;
+      unsigned char bind, type, other;
+      ELFIO::Elf_Half section;
+      REQUIRE(read_symbols.get_symbol(index, name, value, size, bind, type, section, other));
+      return std::tuple{name, type, section};
+    };
+
     const auto *hash = reader.sections[".gnu.hash"];
     REQUIRE(hash != nullptr);
     CHECK(hash->get_type() == static_cast<ELFIO::Elf_Word>(SectionTypes::SHT_GNU_HASH));
     CHECK(hash->get_link() == reader.sections[".symtab"]->get_index());
     CHECK(hash->get_addr_align() == 4);
-
-    // .gnu.hash serialized after noth the strtab/symtab.
+    // .gnu.hash is built by reading both back, so it is serialized after them.
     CHECK(hash->get_index() > reader.sections[".symtab"]->get_index());
     CHECK(hash->get_index() > reader.sections[".strtab"]->get_index());
 
@@ -376,6 +398,43 @@ TEST_CASE("Convert ManagedElf to PackedElf", "[kind:unit][arch:*][tc2][scope:elf
     }
     // Local that was not hashed
     CHECK(lookup.find_hashed_symbol("a_local") == 0);
+
+    const auto *read_rela = reader.sections[".rela.text"];
+    REQUIRE(read_rela != nullptr);
+    CHECK(read_rela->get_link() == reader.sections[".symtab"]->get_index());
+    CHECK(read_rela->get_info() == reader.sections[".text"]->get_index());
+    CHECK(read_rela->get_entry_size() == 12);
+
+    ELFIO::relocation_section_accessor read_entries(reader, const_cast<ELFIO::section *>(read_rela));
+    REQUIRE(read_entries.get_entries_num() == 2);
+    struct Entry {
+      ELFIO::Elf64_Addr offset;
+      ELFIO::Elf_Word symbol;
+      unsigned type;
+      ELFIO::Elf_Sxword addend;
+    };
+    auto entry_at = [&](unsigned index) {
+      Entry got;
+      REQUIRE(read_entries.get_entry(index, got.offset, got.symbol, got.type, got.addend));
+      return got;
+    };
+    const auto first = entry_at(0), second = entry_at(1);
+    CHECK(first.offset == 1);
+    CHECK(first.type == addr16);
+    CHECK(first.addend == 0);
+    CHECK(second.offset == 4);
+    CHECK(second.addend == 3);
+
+    // The globals were sorted into bucket order, so these indices are not the order the symbols were added in nor
+    // the order their names sort in. Resolving them anyway is what proves the index survived that reordering.
+    const auto [ext_name, ext_type, ext_section] = symbol_at(first.symbol);
+    CHECK(ext_name == "charin");
+    CHECK(ext_section == ELFIO::SHN_UNDEF);
+    // A section symbol carries no name; what it stands for is st_shndx, which is the section being patched.
+    const auto [sec_name, sec_type, sec_section] = symbol_at(second.symbol);
+    CHECK(sec_name.empty());
+    CHECK(sec_type == ELFIO::STT_SECTION);
+    CHECK(sec_section == reader.sections[".text"]->get_index());
   }
 
   SECTION("Garbage-collected sections are not serialized") {
@@ -406,6 +465,37 @@ TEST_CASE("Convert ManagedElf to PackedElf failures", "[kind:unit][arch:*][!thro
     auto live = garbage_collect_sections(elf);
     build_shstrtab(elf, live);
     live.push_back(add(elf, ".late", {2}));
+    CHECK_THROWS_AS(pack(elf, live), std::logic_error);
+  }
+
+  SECTION("A relocation table's sh_link must be a symbol table") {
+    auto text = add(elf, ".text", {1});
+    auto *rela = elf.section(elf.add_section(".rela.text", SectionTypes::SHT_RELA));
+    rela->link = text; // not a symbol table
+    rela->info = text;
+    auto symbols = std::make_shared<LeafTable>(2);
+    rela->make_content<ManagedRelocTable>().add(
+        {.offset = 0, .symbol = symbols->reference("charin"), .type = 1});
+    auto live = garbage_collect_sections(elf);
+    build_shstrtab(elf, live);
+    CHECK_THROWS_AS(pack(elf, live), std::logic_error);
+  }
+
+  SECTION("Don't GC a symbol table with an existing RELA") {
+    auto text = add(elf, ".text", {1});
+    auto symbols = std::make_shared<LeafTable>(2);
+    auto dropped = symbols->reference("charin");
+    auto symtab_ref = elf.add_section(".symtab", SectionTypes::SHT_SYMTAB);
+    elf.section(symtab_ref)->make_content<ManagedSymbolTable>(symbols);
+
+    auto *rela = elf.section(elf.add_section(".rela.text", SectionTypes::SHT_RELA));
+    rela->link = symtab_ref, rela->info = text;
+    rela->make_content<ManagedRelocTable>().add({.offset = 0, .symbol = dropped, .type = 1});
+
+    freeze_symbols(elf, symtab_ref, [&](const auto &e) { return e != dropped; });
+    auto live = garbage_collect_sections(elf);
+    build_strtabs_for_symtabs(elf, live);
+    build_shstrtab(elf, live);
     CHECK_THROWS_AS(pack(elf, live), std::logic_error);
   }
 }
