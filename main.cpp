@@ -171,7 +171,7 @@ int test6(std::string_view path, const std::string &name)
             std::cout << "Element ID not found: "s << srcNames.at(i) << std::endl;
         }
 
-        auto *temp = use->createElement(SvgType::Type::SvgUseElement);
+        //auto *temp = use->createElement(SvgType::Type::SvgUseElement);
         /*auto *grandchild = static_cast<SvgElement *>(temp);
         grandchild->setX(i * 60);
         grandchild->setY(i < 3 ? 0 : 40);*/
@@ -196,11 +196,11 @@ int main()
     Timer t;
     t.start();
     int failed = 0;
-    //failed += test1(path, "USStates");
-    //failed += test2(path, name);
-    //failed += test3(path, name);
-    //failed += test4(path, "aa_rect"s, "red"s);
-    //failed += test5(path, "aa_rect"s, "red"s);
+    failed += test1(path, "USStates");
+    failed += test2(path, name);
+    failed += test3(path, name);
+    failed += test4(path, "aa_rect"s, "red"s);
+    failed += test5(path, "aa_rect"s, "red"s);
     failed += test6(path, "library"s);
 
     //  Works anim3.svg, USStates.svg (88k)

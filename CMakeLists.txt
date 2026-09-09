@@ -23,7 +23,10 @@ add_executable(SvgDom
     src/SvgRectElement.hpp
     src/SvgSvgElement.cpp
     src/SvgSvgElement.hpp
+    src/SvgType.hpp
     src/SvgParser.hpp
+    src/SvgFactory.cpp
+    src/SvgFactory.hpp
     src/XmlAttributes_p.hpp
     src/utility_p.hpp
 )

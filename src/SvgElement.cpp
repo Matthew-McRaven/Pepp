@@ -7,6 +7,7 @@
 #include "SvgCDataElement.hpp"
 #include "SvgCommentElement.hpp"
 #include "SvgDocument.hpp"
+#include "SvgFactory.hpp"
 #include "SvgRectElement.hpp"
 
 /*
@@ -253,50 +254,30 @@ SvgInterface *SvgElement::createElement(const std::string &name)
 
 SvgInterface *SvgElement::createElement(const SvgType::Type type)
 {
+    _children.push_back(SvgFactory::createElement(type));
+
+    //  Some elements require additional processing
+    auto child = static_cast<SvgElement *>(_children.back().get());
+    if (child->elementType() == SvgType::Type::SvgUnknownElement)
+        child->setElementType(type);
+
+    //  We track certain types, add pointers now
     switch (type) {
-    case SvgType::Type::SvgCommentElement:
-        _children.push_back(std::make_unique<SvgCommentElement>());
+    case SvgType::Type::SvgDescElement:
+        _desc = child;
         break;
-    case SvgType::Type::SvgCDataElement:
-        _children.push_back(std::make_unique<SvgCDataElement>());
+    case SvgType::Type::SvgMetadataElement:
+        _metadata = child;
         break;
-    case SvgType::Type::SvgRectElement:
-        _children.push_back(std::make_unique<SvgRectElement>());
-        break;
-    case SvgType::Type::SvgDefsElement:
-        _children.push_back(std::make_unique<SvgElement>("defs"s));
-        _children.back().get()->setElementType(type);
-        break;
-    case SvgType::Type::SvgGElement:
-        _children.push_back(std::make_unique<SvgElement>("g"s));
-        _children.back().get()->setElementType(type);
-        break;
-    case SvgType::Type::SvgDescElement: {
-        auto child = std::make_unique<SvgElement>("desc"s);
-        _desc = child.get();
-        _desc->setElementType(type);
-        _children.push_back(std::move(child));
-        break;
-    }
-    case SvgType::Type::SvgMetadataElement: {
-        auto child = std::make_unique<SvgElement>("metadata"s);
-        _metadata = child.get();
-        _metadata->setElementType(type);
-        _children.push_back(std::move(child));
-        break;
-    }
     case SvgType::Type::SvgTitleElement: {
-        auto child = std::make_unique<SvgElement>("title"s);
-        _title = child.get();
-        _title->setElementType(type);
-        _children.push_back(std::move(child));
+        _title = child;
         break;
     }
-    default:
-        _children.push_back(std::make_unique<SvgElement>());
     }
-    _children.back()->setCurrentDocument(_doc);
-    return _children.back().get();
+
+    //  All children must refer to this document
+    child->setCurrentDocument(_doc);
+    return child;
 }
 
 void SvgElement::appendChild(SvgInterface *child)

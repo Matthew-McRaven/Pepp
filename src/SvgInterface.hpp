@@ -32,35 +32,6 @@ protected:
     virtual SvgInterface *cloneImpl() const = 0;
 
 public:
-    /*enum class SvgType {
-        SvgUnknownElement = 0,
-        //  Dom elements
-        SvgBasicElement,
-        SvgCommentElement,
-        SvgCDataElement,
-        //  SvgSpecific elements
-        SvgElementParent = 0x0100,
-        SvgDescElement,
-        SvgMetadataElement,
-        SvgStyleElement,
-        SvgTitleElement,
-        SvgGraphicElement = 0x8000,
-        SvgSvgElement,
-        //  Graphic elements
-        SvgGeometry = 0x8100,
-        SvgGElement,
-        SvgDefsElement,
-        SvgSymbolElement,
-        SvgUseElement,
-        SvgSwitchElement,
-        SvgCircleElement,
-        SvgLineElement,
-        SvgPathElement,
-        SvgPolygonElement,
-        SvgRectElement,
-        SvgTextElement,
-    };*/
-
     virtual ~SvgInterface() = default;
 
     //  Overrides
