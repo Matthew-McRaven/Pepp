@@ -316,7 +316,7 @@ void PackedGNUHashedSymbolAccessor<B, E, Const>::compute_hash_table(u32 nbuckets
   }
 
   // Since maskwords is power-of-to, we can replace all % maskwords with & (maskwords -1)
-  static const u32 maskwords_bitmask = maskwords - 1;
+  const u32 maskwords_bitmask = maskwords - 1;
   // Compute bloom filter, per: https://blogs.oracle.com/solaris/gnu-hash-elf-sections-v2
   // Set 2 bits per symbol at the same array index. The array index is a function of the hash.
   // If either bit is 0, the symbol is definitely not present. When both are 1, we need to resort to crawling the chain.
