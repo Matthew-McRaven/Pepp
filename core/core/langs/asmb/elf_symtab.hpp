@@ -28,10 +28,6 @@ using IR2ListingLineMap = fc::flat_map<std::vector<IR2ListingLinePair>, IR2Listi
 
 struct ElfResult {
   std::shared_ptr<ELFIO::elfio> elf;
-  // Some sections in the program are not omitted to to ELF file.
-  // However, we pre-computed section indices in the ELF file in split_to_sections and used these in the symbol table.
-  // [originally computed section index] is the number you need to subtract to get actual index in the output file.
-  std::vector<u16> section_offsets;
   IR2ListingLineMap ir_to_listing;
 };
 

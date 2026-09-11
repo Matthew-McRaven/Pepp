@@ -23,11 +23,29 @@
 pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(DiagnosticTable &diag, IRProgram &prog,
                                                                       SectionDescriptor initial_section) {
   PeppSectionAnalysisResults ret;
-  ret.grouped_ir.emplace_back(std::make_pair(initial_section, pepp::tc::IRProgram{}));
   auto &grouped_ir = ret.grouped_ir;
-  auto *active = &grouped_ir[0];
+  // Only create sections as-needed.
+  decltype(&grouped_ir[0]) active = nullptr;
+  // Blank / comment lines should not force a section to exist but should still be emitted in source order.
+  pepp::tc::IRProgram pending;
+  const auto contributes_nothing = [](const auto &line) {
+    return line->type() == static_cast<int>(LinearIRType::Empty) ||
+           line->type() == static_cast<int>(LinearIRType::Comment);
+  };
+  // Opening a section takes pending lines as its prefix.
+  const auto open_section = [&](const SectionDescriptor &desc) {
+    grouped_ir.emplace_back(std::make_pair(desc, std::move(pending)));
+    pending.clear();
+    active = &grouped_ir.back();
+  };
 
   for (auto &line : prog) {
+    if (!active && contributes_nothing(line)) {
+      pending.emplace_back(line);
+      continue;
+    } else if (line->type() != DotSection::TYPE && !active)
+      open_section(initial_section); // Code-generating lines must belong to a section.
+
     // TODO: Check all symbol usages are not undefined
     // TODO: .BURN for this section.
     using Type = LinearIRType;
@@ -46,8 +64,7 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
         pepp::tc::SectionDescriptor desc{.name = name, .flags = flags};
         // Compute the index in the ELF file which this section will become.
         desc.section_index = desc.section_base_index + ret.grouped_ir.size();
-        grouped_ir.emplace_back(std::make_pair(desc, pepp::tc::IRProgram{}));
-        active = &grouped_ir.back();
+        open_section(desc);
       } else if (existing_sec->first.flags != flags) {
         throw std::logic_error("Modifying flags for an existing section");
       } else active = &*existing_sec;
@@ -90,6 +107,9 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
 
     active->second.emplace_back(line);
   }
+
+  // Whole file was comments, but still create a section to hold our pending lines for the sake of formatting.
+  if (!pending.empty()) open_section(initial_section);
   return ret;
 }
 
@@ -317,7 +337,6 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
   ELFIO::segment *activeSeg = nullptr;
   ElfResult ret;
   ret.elf = create_elf();
-  ret.section_offsets.resize(prog.size(), 0);
 
   auto getOrCreateBSS = [&](SectionFlags &flags) {
     if (activeSeg == nullptr || activeSeg->get_file_size() != 0) {
@@ -352,25 +371,18 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
     return activeSeg;
   };
 
-  u32 skipped_sections = 0;
   std::vector<size_t> section_memory_sizes(prog.size(), 0);
   for (u32 it = 0; it < prog.size(); it++) {
     auto &sec = prog[it].first;
     section_memory_sizes[it] = sec.high_address - sec.low_address;
   }
   for (u32 it = 0; it < prog.size(); it++) {
-    ret.section_offsets[it] = skipped_sections;
-    if (section_memory_sizes[it] == 0) { // 0-sized sections are meaningless, do not emit.
-      skipped_sections++;
-      continue;
-    }
-
     auto &sec_desc = prog[it].first;
 
     SPDLOG_INFO("{} creating", sec_desc.name);
 
     auto sec = ret.elf->sections.add(sec_desc.name);
-    if (sec->get_index() != (sec_desc.section_index - skipped_sections))
+    if (sec->get_index() != sec_desc.section_index)
       throw std::logic_error("Mismatch in pre-computed section index");
     // All sections from AST correspond to bits in Pep/10 memory, so alloc
     auto shFlags = ELFIO::SHF_ALLOC;

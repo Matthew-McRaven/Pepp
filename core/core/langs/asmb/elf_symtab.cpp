@@ -22,26 +22,8 @@ static ELFIO::section *get_or_create_rel(ELFIO::elfio &elf, const std::string &s
   return ret;
 };
 
-static u16 ir_to_elf_section_index(const pepp::tc::ElfResult &elf_wrapper, u16 ir_index) {
-  using namespace pepp::tc;
-  // Some IR sections are not emitted to ELF because they contained no meaningful data.
-  const auto adjustment = elf_wrapper.section_offsets[ir_index];
-  return SectionDescriptor::section_base_index + ir_index - adjustment;
-}
-
-// Our ELF symbols already bake in pepp::tc::SectionDescriptor::section_base_index, which ir_to_elf_section_index adds
-// in again.
-static u16 symbol_to_elf_section_index(const pepp::tc::ElfResult &elf_wrapper, const pepp::core::symbol::Entry *entry) {
-  using namespace pepp::tc;
-  // Our sections inserted into ELF do not start at 0, they start at SectionDescriptor::section_base_index.
-  // section_offsets starts at 0, so we need to convert before indexing or risk an out-of-bounds access.
-  auto probable_elf_idx = entry->section_index;
-  // Entries less than > SHN_ABS and <= SHN_LORESERVE should not be adjusted.
-  if (probable_elf_idx < SectionDescriptor::section_base_index || probable_elf_idx >= ELFIO::SHN_LORESERVE)
-    return probable_elf_idx;
-  // Otherwise we need to convert IR section numbers to actual ELF sections
-  return ir_to_elf_section_index(elf_wrapper, probable_elf_idx - SectionDescriptor::section_base_index);
-};
+// Every IR section is emitted, so its ELF index is its IR index past the plumbing sections at the front.
+static u16 ir_to_elf_section_index(u16 ir_index) { return pepp::tc::SectionDescriptor::section_base_index + ir_index; }
 
 void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, pepp::core::symbol::LeafTable &symbol_table,
                                   const ProgramObjectCodeResult &oc, const std::string name) {
@@ -80,7 +62,8 @@ void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, pepp::core::symbol::Le
       static constexpr u8 info = (ELFIO::STB_LOCAL << 4) + (ELFIO::STT_NOTYPE & 0xf);
       symbol_idx = symAc.add_symbol(nameIdx, 0, 0, info, 0, ELFIO::SHN_UNDEF);
     } else {
-      auto secIdx = symbol_to_elf_section_index(elf_wrapper, entry.get());
+      // Baked in by the splitter as the defining section's ELF index, which is exact now that none are skipped.
+      auto secIdx = entry->section_index;
       auto value = entry->value;
 
       u8 type = ELFIO::STT_NOTYPE;
@@ -114,7 +97,7 @@ void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, pepp::core::symbol::Le
     auto relocs_for = oc.relocations.equal_range(entry);
     for (auto rel = relocs_for.first; rel != relocs_for.second; ++rel) {
       const auto ir_idx = rel->second.section_idx;
-      const auto elf_idx = ir_to_elf_section_index(elf_wrapper, ir_idx);
+      const auto elf_idx = ir_to_elf_section_index(ir_idx);
       auto relocated_sec = elf_wrapper.elf->sections[elf_idx];
       auto relocation_section = get_or_create_rel(*elf_wrapper.elf, relocated_sec->get_name());
       // Freshly created relocation sections are missing various required fields.

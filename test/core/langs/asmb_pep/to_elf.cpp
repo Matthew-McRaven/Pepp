@@ -80,7 +80,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(sections.size() == 3);
     elf_result.elf->save("dummy.elf");
   }
-  SECTION("0-sized section") {
+  SECTION("A leading .SECTION does not create an empty implicit section") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(R"(
       .SECTION ".data","rwx"
@@ -98,8 +98,55 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, result.mmios);
     pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
 
-    CHECK(sections.size() == 2);
-    elf_result.elf->save("dummy2.elf");
+    // The blank first line joins .data instead of forcing an empty .text into existence.
+    REQUIRE(sections.size() == 1);
+    CHECK(sections[0].first.name == ".data");
+    CHECK(elf_result.elf->sections[".data"] != nullptr);
+    CHECK(elf_result.elf->sections[".text"] == nullptr);
+  }
+  SECTION("An explicitly empty section is still emitted") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(
+      main:LDWA 5,i
+      .SECTION "scratch","rw"
+      .SECTION ".data","rw"
+      val:.BLOCK 2)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count() == 0);
+    auto symbol_tab = p.symbol_table();
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, result.mmios);
+    pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
+
+    REQUIRE(sections.size() == 3);
+    auto *elf = elf_result.elf.get();
+    const auto *scratch = elf->sections["scratch"];
+    REQUIRE(scratch != nullptr);
+    CHECK(scratch->get_size() == 0);
+    const auto *data = elf->sections[".data"];
+    REQUIRE(data != nullptr);
+
+    // Skipping empty sections used to shift every later index; val must still point at .data.
+    ELFIO::symbol_section_accessor symbols(*elf, elf->sections[".symtab"]);
+    bool found = false;
+    for (ELFIO::Elf_Xword it = 0; it < symbols.get_symbols_num(); ++it) {
+      std::string name;
+      ELFIO::Elf64_Addr value;
+      ELFIO::Elf_Xword size;
+      unsigned char bind, type, other;
+      ELFIO::Elf_Half shndx;
+      symbols.get_symbol(it, name, value, size, bind, type, shndx, other);
+      if (name != "val") continue;
+      found = true;
+      CHECK(shndx == data->get_index());
+    }
+    CHECK(found);
   }
   SECTION("With undefined symbols") {
     pepp::tc::DiagnosticTable diag;
