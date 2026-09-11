@@ -17,8 +17,14 @@ class Cloneable : public Base
     Base *cloneImpl() const override { return new Derived(static_cast<Derived const &>(*this)); }
 
 public:
+    //  Hides Base::clone() so the result keeps the caller's static type.
+    std::unique_ptr<Derived> clone() const
+    {
+        return std::unique_ptr<Derived>(static_cast<Derived *>(this->cloneImpl()));
+    }
+
     //  Get pointer to leaf class
-    Derived *derived() { return static_cast<Derived *>(*this); }
+    Derived *derived() { return static_cast<Derived *>(this); }
     //Derived &derived() { return static_cast<Derived &>(*this); }
     //const Derived &derived() const { return static_cast<const Derived &>(*this); }
 };
@@ -54,9 +60,6 @@ public:
     virtual SvgInterface *createElement(const std::string &name) = 0;
     virtual SvgInterface *createElement(const SvgType::Type type) = 0;
 
-    template<typename Self>
-    std::unique_ptr<Self> clone(this const Self &self)
-    {
-        return std::unique_ptr<Self>(static_cast<Self *>(self.cloneImpl()));
-    }
+    //  Cloneable hides this with a version returning the derived type.
+    std::unique_ptr<SvgInterface> clone() const { return std::unique_ptr<SvgInterface>(cloneImpl()); }
 };
