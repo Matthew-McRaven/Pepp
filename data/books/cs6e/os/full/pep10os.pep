@@ -454,12 +454,18 @@ num:             .EQUATE 2   ;#2h
 hexPrint:LDWA    num,s
          STWA    wordTemp,d  ;Save oprnd in wordTemp
          LDBA    wordTemp,d  ;Put high-order byte in low-order A
-         @ASRA4              ;Shift right four bits
+         ASRA                ;Shift right four bits
+         ASRA
+         ASRA
+         ASRA
          CALL    hexOut      ;Output first hex character
          LDBA    wordTemp,d  ;Put high-order byte in low-order A
          CALL    hexOut      ;Output second hex character
          LDBA    byteTemp,d  ;Put low-order byte in low order A
-         @ASRA4              ;Shift right four bits
+         ASRA                ;Shift right four bits
+         ASRA
+         ASRA
+         ASRA
          CALL    hexOut      ;Output third hex character
          LDBA    byteTemp,d  ;Put low-order byte in low order A
          CALL    hexOut      ;Output fourth hex character
