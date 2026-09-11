@@ -145,8 +145,14 @@ template <std::integral I> struct Slab : public Page<I> {
   // Whether a whole collection of spans fits, given that append() pads and aligns each one individually.
   template <typename... Spans> bool can_fit_all(size_t byte_align, size_t byte_pad, Spans... spans) const noexcept {
     size_t at = _used;
-    ((at += padded_size_at(at, spans.size(), byte_align, byte_pad)), ...);
-    return (at - _used) <= remaining_capacity();
+    // Stop at the first span that overflows, so padded_size_at never forms a pointer past the page.
+    const auto fits = [&](size_t count) {
+      const size_t size = padded_size_at(at, count, byte_align, byte_pad);
+      if (size > Page<I>::capacity() - at) return false;
+      at += size;
+      return true;
+    };
+    return (fits(spans.size()) && ...);
   }
 
 private:
