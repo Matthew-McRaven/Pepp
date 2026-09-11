@@ -1,9 +1,11 @@
 #include "elf_symtab.hpp"
 #include <algorithm>
+#include <map>
 #include <optional>
 #include <stdexcept>
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
+#include "core/formats/elf/packed_access_relocations.hpp"
 #include "core/formats/elf/packed_access_symbol.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 #include "spdlog/spdlog.h"
@@ -18,11 +20,12 @@ struct Run {
   bool has_nobits;
 };
 
-SymbolBinding binding_of(pepp::core::symbol::Binding binding) {
-  switch (binding) {
+// An undefined symbol must be defined by another object file, so it must be visible to them.
+SymbolBinding binding_of(const pepp::core::symbol::Entry &entry) {
+  switch (entry.binding) {
   case pepp::core::symbol::Binding::Global: return SymbolBinding::STB_GLOBAL;
   case pepp::core::symbol::Binding::Weak: return SymbolBinding::STB_WEAK;
-  default: return SymbolBinding::STB_LOCAL;
+  default: return entry.is_undefined() ? SymbolBinding::STB_GLOBAL : SymbolBinding::STB_LOCAL;
   }
 }
 
@@ -60,9 +63,14 @@ SymbolVisibility visibility_of(pepp::core::symbol::Visibility visibility) {
   }
 }
 
+struct WrittenSymbols {
+  u16 symtab;
+  std::map<const pepp::core::symbol::Entry *, u32> index;
+};
+
 // Must be written after all sections which define symbols to avoid having to update st_shndx values later.
 template <ElfBits B, ElfEndian E>
-void write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::LeafTable &table) {
+WrittenSymbols write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::LeafTable &table) {
   using namespace pepp::core::symbol;
   using Symbol = PackedElfSymbol<B, E>;
   std::vector<LeafTable::entry_ptr_t> symbols;
@@ -70,7 +78,8 @@ void write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::L
   std::erase_if(symbols, [](const auto &entry) { return entry->value && entry->value->type() == Type::Deleted; });
   // ELF requires every local precede any non-local. Within partitions, sort by name to make output deterministic.
   std::sort(symbols.begin(), symbols.end(), [](const auto &lhs, const auto &rhs) {
-    const bool left_local = lhs->binding == Binding::Local, right_local = rhs->binding == Binding::Local;
+    const bool left_local = binding_of(*lhs) == SymbolBinding::STB_LOCAL;
+    const bool right_local = binding_of(*rhs) == SymbolBinding::STB_LOCAL;
     if (left_local != right_local) return left_local;
     return lhs->name < rhs->name;
   });
@@ -79,6 +88,7 @@ void write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::L
   const auto symtab = add_named_symtab(elf, ".symtab", strtab);
   elf.section_headers[symtab].sh_addralign = sizeof(word<B>);
   PackedSymbolWriter<B, E> writer(elf, symtab);
+  WrittenSymbols ret{.symtab = symtab, .index = {}};
   // Create a STT_SECTION symbol for each allocatable section
   for (u16 index = 1; index < elf.section_headers.size(); ++index) {
     const word<B> flags = elf.section_headers[index].sh_flags;
@@ -96,12 +106,34 @@ void write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::L
     symbol.st_size = static_cast<word<B>>(size_of(entry));
     symbol.st_shndx = shndx_of(entry);
     symbol.set_type(type_of(entry));
-    symbol.set_bind(binding_of(entry.binding));
+    symbol.set_bind(binding_of(entry));
     symbol.set_visibility(visibility_of(entry.visibility));
-    writer.add_symbol(std::move(symbol), entry.name);
+    ret.index[&entry] = writer.add_symbol(std::move(symbol), entry.name);
   }
-  // Already sorted, but this will update sh_info to point to the first non-local symbol.
+  // Already sorted (no indices move) but this will update sh_info to point to the first non-local symbol.
   if (writer.symbol_count() > 0) writer.arrange_local_symbols();
+  return ret;
+}
+
+// Must follow write_symbols, since relocations name their symbol by index.
+template <ElfBits B, ElfEndian E>
+void write_relocations(PackedGrowableElfFile<B, E> &elf,
+                       const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>> &prog,
+                       const pepp::tc::ProgramObjectCodeResult &object_code, const WrittenSymbols &symbols) {
+  for (u32 it = 0; it < prog.size(); it++) {
+    const auto &relocs = object_code.relocations[it];
+    if (relocs.empty()) continue;
+    const auto &desc = prog[it].first;
+    const auto rela = add_named_rela(elf, ".rela" + desc.name, symbols.symtab, desc.section_index);
+    elf.section_headers[rela].sh_flags = bits::to_underlying(SectionFlags::SHF_INFO_LINK);
+    elf.section_headers[rela].sh_addralign = sizeof(word<B>);
+    PackedRelocationWriter<B, E> writer(elf, rela);
+    for (const auto &rel : relocs) {
+      // TODO: defined symbols relocate against their section's symbol, with their offset in the addend.
+      if (!rel.symbol->is_undefined()) throw std::logic_error("Only undefined symbols may be relocated");
+      writer.add_rela(rel.section_offset, rel.type, symbols.index.at(rel.symbol.get()), 0);
+    }
+  }
 }
 
 template <ElfBits B, ElfEndian E>
@@ -176,7 +208,8 @@ pepp::tc::ElfResult build(ElfMachineType machine,
     }
   }
 
-  write_symbols(*elf, symbols);
+  const auto written = write_symbols(*elf, symbols);
+  write_relocations(*elf, prog, object_code, written);
   return ret;
 }
 } // namespace

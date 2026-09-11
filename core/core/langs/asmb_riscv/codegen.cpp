@@ -1,6 +1,7 @@
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include <fmt/format.h>
 #include "core/compile/ir_linear/attr_symbol.hpp"
+#include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/codegen.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
 #include "core/math/bitmanip/copy.hpp"
@@ -97,14 +98,13 @@ pepp::tc::riscv_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProg
 namespace pepp::tc {
 struct RISCVObjectVistitor : public RISCVIRVisitor {
   const IRMemoryAddressTable<RISCVAddress> &ir_to_address;
-  const u32 base_address, section_idx;
+  const u32 base_address;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
-  std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocations;
+  std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  RISCVObjectVistitor(const IRMemoryAddressTable<RISCVAddress> &, const u32 base_address, const u16 section_idx,
-                      bits::span<u8>, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &,
-                      IR2ObjectCodeMap &);
+  RISCVObjectVistitor(const IRMemoryAddressTable<RISCVAddress> &, const u32 base_address, bits::span<u8>,
+                      std::vector<Relocation> &, IR2ObjectCodeMap &);
   // Integer instructions can delegate to a shared implementation.
   void emit_line(const IntegerInstruction *line);
   void visit(const EmptyLine *) override;
@@ -124,11 +124,10 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
 };
 
 pepp::tc::RISCVObjectVistitor::RISCVObjectVistitor(
-    const IRMemoryAddressTable<RISCVAddress> &ir_to_address, const u32 base_address, const u16 section_idx,
-    bits::span<u8> out_bytes, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocs,
-    IR2ObjectCodeMap &ir_to_object_code)
-    : ir_to_address(ir_to_address), base_address(base_address), section_idx(section_idx), out_bytes(out_bytes),
-      relocations(relocs), ir_to_object_code(ir_to_object_code) {}
+    const IRMemoryAddressTable<RISCVAddress> &ir_to_address, const u32 base_address, bits::span<u8> out_bytes,
+    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
+      ir_to_object_code(ir_to_object_code) {}
 
 void pepp::tc::RISCVObjectVistitor::visit(const EmptyLine *) {
   // Does not generate object code
@@ -170,8 +169,11 @@ void pepp::tc::RISCVObjectVistitor::visit(const DotLiteral *line) {
   if (as_symbolic_arg != nullptr) {
     auto symbol = as_symbolic_arg->symbol();
     if (symbol->is_undefined()) {
+      // RISC-V don't have a sub-word relocation type for data.
+      if (addr_info.size != 4) throw std::logic_error("Undefined symbols must occupy a full word");
       u16 offset = addr_info.address - base_address;
-      relocations.insert({symbol, StaticRelocation{.section_offset = offset, .section_idx = section_idx}});
+      const auto type = bits::to_underlying(pepp::bts::RelocationsRISCV::R_RISCV_32);
+      relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
     }
   }
   // RV32 is little-endian.

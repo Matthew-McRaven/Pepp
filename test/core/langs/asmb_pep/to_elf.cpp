@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
-#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -76,6 +75,7 @@ pepp::tc::ElfResult from_specs(const std::vector<Spec> &specs) {
   for (const auto &spec : specs)
     if (!spec.z) total += spec.size;
   oc.object_code.assign(total, 0xAA);
+  oc.relocations.resize(specs.size());
   u32 at = 0;
   for (u16 i = 0; i < specs.size(); ++i) {
     const auto &spec = specs[i];
@@ -124,15 +124,28 @@ cruel:BR 0
 World:.BYTE 0
 .BYTE 0
 )";
-struct Result {
-  i16 offset;
-  std::string name;
-  auto operator<=>(const Result &other) const {
-    if (offset != other.offset) return offset <=> other.offset;
-    else return name <=> other.name;
-  };
-  bool operator==(const Result &other) const { return (offset == other.offset) && (name == other.name); }
+struct Rela {
+  ELFIO::Elf64_Addr offset;
+  std::string symbol;
+  unsigned type;
+  ELFIO::Elf_Sxword addend;
+  bool operator==(const Rela &) const = default;
 };
+
+std::vector<Rela> relocations_of(ELFIO::elfio &elf, const std::string &name, const std::vector<Symbol> &symbols) {
+  auto *section = elf.sections[name];
+  REQUIRE(section != nullptr);
+  ELFIO::relocation_section_accessor accessor(elf, section);
+  std::vector<Rela> ret;
+  for (ELFIO::Elf_Xword it = 0; it < accessor.get_entries_num(); ++it) {
+    Rela got;
+    ELFIO::Elf_Word symbol;
+    REQUIRE(accessor.get_entry(it, got.offset, symbol, got.type, got.addend));
+    got.symbol = symbols.at(symbol).name;
+    ret.push_back(std::move(got));
+  }
+  return ret;
+}
 } // namespace
 
 TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
@@ -256,8 +269,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
-    // The null symbol, a section symbol per section, then locals (i and d are referenced but never defined), then a,
-    // which .EXPORT made global.
+    // The null symbol and a section symbol per section are local. a is global via .EXPORT, while d and i are global
+    // because they are undefined.
     REQUIRE(symbols.size() == 6);
     CHECK(symbols[0].name.empty());
     // Every section gets one, in order, so prog section i is symbol [1 + i]
@@ -269,24 +282,31 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
       CHECK(sym.bind == ELFIO::STB_LOCAL);
       CHECK(sym.shndx == elf.sections[sections[it].first.name]->get_index());
     }
-    CHECK(symbols[3].name == "d");
-    CHECK(symbols[3].shndx == ELFIO::SHN_UNDEF);
-    CHECK(symbols[4].name == "i");
+    CHECK(symbols[3].name == "a");
+    CHECK(symbols[3].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[3].shndx == elf.sections[".text"]->get_index());
+    CHECK(symbols[4].name == "d");
+    CHECK(symbols[4].bind == ELFIO::STB_GLOBAL);
     CHECK(symbols[4].shndx == ELFIO::SHN_UNDEF);
-    CHECK(symbols[5].name == "a");
+    CHECK(symbols[5].name == "i");
     CHECK(symbols[5].bind == ELFIO::STB_GLOBAL);
-    CHECK(symbols[5].shndx == elf.sections[".text"]->get_index());
-    CHECK(elf.sections[".symtab"]->get_info() == 5); // One past the last local.
+    CHECK(symbols[5].shndx == ELFIO::SHN_UNDEF);
+    CHECK(elf.sections[".symtab"]->get_info() == 3); // One past the last local.
 
-    // TODO: check these through .rel.text/.rel.data once relocations are written. Until then, check the relocations
-    // codegen records, which is what those sections are built from.
-    REQUIRE(object_code.relocations.size() == 4);
-    std::map<std::string, std::set<Result>> by_section;
-    for (const auto &[entry, rel] : object_code.relocations)
-      by_section[sections.at(rel.section_idx).first.name].insert(
-          Result{(i16)rel.section_offset, std::string(entry->name)});
-    CHECK(by_section[".text"] == std::set<Result>{{2, "i"}, {5, "i"}, {6, "d"}});
-    CHECK(by_section[".data"] == std::set<Result>{{3, "d"}});
+    constexpr unsigned addr16 = 1, addr8 = 2; // R_PEP10_ADDR16, R_PEP10_ADDR8
+    // Offsets are of the patched field, so a dyadic instruction's is one past its opcode.
+    CHECK(relocations_of(elf, ".rela.text", symbols) ==
+          std::vector<Rela>{{3, "i", addr16, 0}, {5, "i", addr8, 0}, {6, "d", addr16, 0}});
+    // TODO: Relocations against defined symbols, like a, are not written yet.
+    CHECK(relocations_of(elf, ".rela.data", symbols) == std::vector<Rela>{{4, "d", addr16, 0}});
+    for (const auto *name : {".rela.text", ".rela.data"}) {
+      INFO(name);
+      const auto *rela = elf.sections[name];
+      CHECK(rela->get_type() == ELFIO::SHT_RELA);
+      CHECK(rela->get_link() == elf.sections[".symtab"]->get_index());
+    }
+    CHECK(elf.sections[".rela.text"]->get_info() == elf.sections[".text"]->get_index());
+    CHECK(elf.sections[".rela.data"]->get_info() == elf.sections[".data"]->get_index());
   }
 }
 

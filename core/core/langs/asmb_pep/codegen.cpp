@@ -11,6 +11,7 @@
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
+#include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/codegen.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
@@ -124,14 +125,13 @@ pepp::tc::pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgr
 namespace pepp::tc {
 struct PeppObjectVistitor : public PepIRVisitor {
   const IRMemoryAddressTable<PeppAddress> &ir_to_address;
-  const u16 base_address, section_idx;
+  const u16 base_address;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
-  std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocations;
+  std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  PeppObjectVistitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, const u16 section_idx,
-                     bits::span<u8>, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &,
-                     IR2ObjectCodeMap &);
+  PeppObjectVistitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, bits::span<u8>,
+                     std::vector<Relocation> &, IR2ObjectCodeMap &);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const MonadicInstruction *) override;
@@ -148,11 +148,10 @@ struct PeppObjectVistitor : public PepIRVisitor {
 };
 
 pepp::tc::PeppObjectVistitor::PeppObjectVistitor(
-    const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address, const u16 section_idx,
-    bits::span<u8> out_bytes, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocs,
-    IR2ObjectCodeMap &ir_to_object_code)
-    : ir_to_address(ir_to_address), base_address(base_address), section_idx(section_idx), out_bytes(out_bytes),
-      relocations(relocs), ir_to_object_code(ir_to_object_code) {}
+    const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address, bits::span<u8> out_bytes,
+    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
+      ir_to_object_code(ir_to_object_code) {}
 
 void pepp::tc::PeppObjectVistitor::visit(const EmptyLine *) {
   // Does not generate object code
@@ -176,8 +175,9 @@ void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   if (as_symbolic_arg != nullptr) {
     auto symbol = as_symbolic_arg->symbol();
     if (symbol->is_undefined()) {
-      u16 offset = addr_info.address - base_address;
-      relocations.insert({symbol, StaticRelocation{.section_offset = offset, .section_idx = section_idx}});
+      u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
+      const auto type = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ADDR16);
+      relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
     }
   }
   (void)line->argument.value->serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
@@ -199,8 +199,10 @@ void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   if (as_symbolic_arg != nullptr) {
     auto symbol = as_symbolic_arg->symbol();
     if (symbol->is_undefined()) {
+      using enum pepp::bts::RelocationsPep;
       u16 offset = addr_info.address - base_address;
-      relocations.insert({symbol, StaticRelocation{.section_offset = offset, .section_idx = section_idx}});
+      const auto type = bits::to_underlying(addr_info.size == 1 ? R_PEP10_ADDR8 : R_PEP10_ADDR16);
+      relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
     }
   }
   (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
