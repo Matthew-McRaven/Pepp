@@ -153,6 +153,15 @@ pepp::tc::PeppObjectVistitor::PeppObjectVistitor(
     : ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
       ir_to_object_code(ir_to_object_code) {}
 
+namespace {
+// The linker fills in undefined symbols, and addresses of code/data may shift. Constants cannot move.
+bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
+  using enum pepp::core::symbol::Type;
+  const auto &value = symbol.value;
+  return symbol.is_undefined() || value == nullptr || value->type() == Object || value->type() == Code;
+}
+} // namespace
+
 void pepp::tc::PeppObjectVistitor::visit(const EmptyLine *) {
   // Does not generate object code
 }
@@ -170,13 +179,12 @@ void pepp::tc::PeppObjectVistitor::visit(const MonadicInstruction *line) {
 void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   auto addr_info = ir_to_address.at(line);
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
-  // Emit relocations for undefined symbolic arguments.
   auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
   if (as_symbolic_arg != nullptr) {
     auto symbol = as_symbolic_arg->symbol();
-    if (symbol->is_undefined()) {
+    if (needs_relocation(*symbol)) {
       u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
-      const auto type = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ADDR16);
+      const auto type = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16);
       relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
     }
   }
@@ -194,14 +202,13 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAlign *line) {
 
 void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
-  // Emit relocations for undefined symbolic arguments.
   auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
   if (as_symbolic_arg != nullptr) {
     auto symbol = as_symbolic_arg->symbol();
-    if (symbol->is_undefined()) {
+    if (needs_relocation(*symbol)) {
       using enum pepp::bts::RelocationsPep;
       u16 offset = addr_info.address - base_address;
-      const auto type = bits::to_underlying(addr_info.size == 1 ? R_PEP10_ADDR8 : R_PEP10_ADDR16);
+      const auto type = bits::to_underlying(addr_info.size == 1 ? R_PEP10_ABS8 : R_PEP10_ABS16);
       relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
     }
   }

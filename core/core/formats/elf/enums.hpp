@@ -470,8 +470,8 @@ enum class Relocations : u32 {
 
 enum class RelocationsPep : u32 {
   R_PEP10_NONE = 0,
-  R_PEP10_ADDR16 = 1, // Compute S + A
-  R_PEP10_ADDR8 = 2,  // Compute S + A, truncated to 8 bits
+  R_PEP10_ABS16 = 1, // Compute S + A
+  R_PEP10_ABS8 = 2,  // Compute S + A, truncated to 8 bits
 };
 
 enum class Relocationsx86_64 : u32 {

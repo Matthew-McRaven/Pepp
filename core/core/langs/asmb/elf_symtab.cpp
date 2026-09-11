@@ -66,6 +66,7 @@ SymbolVisibility visibility_of(pepp::core::symbol::Visibility visibility) {
 struct WrittenSymbols {
   u16 symtab;
   std::map<const pepp::core::symbol::Entry *, u32> index;
+  std::vector<u32> section; // Section symbol index in symtab for each section header index or 0 if non-existent.
 };
 
 // Must be written after all sections which define symbols to avoid having to update st_shndx values later.
@@ -88,16 +89,19 @@ WrittenSymbols write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core:
   const auto symtab = add_named_symtab(elf, ".symtab", strtab);
   elf.section_headers[symtab].sh_addralign = sizeof(word<B>);
   PackedSymbolWriter<B, E> writer(elf, symtab);
-  WrittenSymbols ret{.symtab = symtab, .index = {}};
+  WrittenSymbols ret{.symtab = symtab, .index = {}, .section = std::vector<u32>(elf.section_headers.size(), 0)};
   // Create a STT_SECTION symbol for each allocatable section
   for (u16 index = 1; index < elf.section_headers.size(); ++index) {
     const word<B> flags = elf.section_headers[index].sh_flags;
     if ((flags & bits::to_underlying(SectionFlags::SHF_ALLOC)) == 0) continue;
     Symbol symbol;
+    // Assign the base address of the section as the section symbol's value. This makes it trivial to compute Pep/10
+    // S+A relocations.
+    symbol.st_value = elf.section_headers[index].sh_addr;
     symbol.st_shndx = index;
     symbol.set_type(SymbolType::STT_SECTION);
     symbol.set_bind(SymbolBinding::STB_LOCAL);
-    writer.add_symbol(std::move(symbol));
+    ret.section[index] = writer.add_symbol(std::move(symbol));
   }
   for (const auto &ptr : symbols) {
     const auto &entry = *ptr;
@@ -129,9 +133,19 @@ void write_relocations(PackedGrowableElfFile<B, E> &elf,
     elf.section_headers[rela].sh_addralign = sizeof(word<B>);
     PackedRelocationWriter<B, E> writer(elf, rela);
     for (const auto &rel : relocs) {
-      // TODO: defined symbols relocate against their section's symbol, with their offset in the addend.
-      if (!rel.symbol->is_undefined()) throw std::logic_error("Only undefined symbols may be relocated");
-      writer.add_rela(rel.section_offset, rel.type, symbols.index.at(rel.symbol.get()), 0);
+      const auto &entry = *rel.symbol;
+      // Local symbols (other than section symbols) might be dropped. Give them an addend which is equal to the distance
+      // between the section symbol and the local symbol. In the local case, replace the requested symbol with the
+      // section symbol.
+      const bool local = binding_of(entry) == SymbolBinding::STB_LOCAL;
+      const u32 symbol = local ? symbols.section.at(entry.section_index) : symbols.index.at(&entry);
+      if (symbol == 0) throw std::logic_error("No symbol to relocate against");
+      sword<B> addend = 0;
+      if (local) {
+        const word<B> base = elf.section_headers[entry.section_index].sh_addr;
+        addend = static_cast<sword<B>>(value_of(entry) - base);
+      }
+      writer.add_rela(rel.section_offset, rel.type, symbol, addend);
     }
   }
 }

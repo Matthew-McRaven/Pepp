@@ -22,10 +22,12 @@
 #include <vector>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
+#include "core/math/bitmanip/enums.hpp"
 
 namespace {
 // Read what would actually be written, rather than the in-memory model of it.
@@ -40,6 +42,7 @@ struct Symbol {
   std::string name;
   unsigned char bind, type;
   ELFIO::Elf_Half shndx;
+  ELFIO::Elf64_Addr value;
 };
 
 std::vector<Symbol> symbols_of(ELFIO::elfio &elf) {
@@ -49,10 +52,9 @@ std::vector<Symbol> symbols_of(ELFIO::elfio &elf) {
   std::vector<Symbol> ret;
   for (ELFIO::Elf_Xword it = 0; it < accessor.get_symbols_num(); ++it) {
     Symbol got;
-    ELFIO::Elf64_Addr value;
     ELFIO::Elf_Xword size;
     unsigned char other;
-    REQUIRE(accessor.get_symbol(it, got.name, value, size, got.bind, got.type, got.shndx, other));
+    REQUIRE(accessor.get_symbol(it, got.name, got.value, size, got.bind, got.type, got.shndx, other));
     ret.push_back(std::move(got));
   }
   return ret;
@@ -138,11 +140,13 @@ std::vector<Rela> relocations_of(ELFIO::elfio &elf, const std::string &name, con
   ELFIO::relocation_section_accessor accessor(elf, section);
   std::vector<Rela> ret;
   for (ELFIO::Elf_Xword it = 0; it < accessor.get_entries_num(); ++it) {
-    Rela got;
+    Rela rel;
     ELFIO::Elf_Word symbol;
-    REQUIRE(accessor.get_entry(it, got.offset, symbol, got.type, got.addend));
-    got.symbol = symbols.at(symbol).name;
-    ret.push_back(std::move(got));
+    REQUIRE(accessor.get_entry(it, rel.offset, symbol, rel.type, rel.addend));
+    const auto &sym = symbols.at(symbol);
+    // Like readelf, name a section symbol after its section.
+    rel.symbol = sym.type == ELFIO::STT_SECTION ? elf.sections[sym.shndx]->get_name() : sym.name;
+    ret.push_back(std::move(rel));
   }
   return ret;
 }
@@ -242,7 +246,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     REQUIRE(val != symbols.end());
     CHECK(val->shndx == data->get_index());
   }
-  SECTION("With undefined symbols") {
+  SECTION("relocations with undefined symbols") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(R"(
 			a:.BLOCK 2
@@ -293,12 +297,16 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(symbols[5].shndx == ELFIO::SHN_UNDEF);
     CHECK(elf.sections[".symtab"]->get_info() == 3); // One past the last local.
 
-    constexpr unsigned addr16 = 1, addr8 = 2; // R_PEP10_ADDR16, R_PEP10_ADDR8
-    // Offsets are of the patched field, so a dyadic instruction's is one past its opcode.
+    using enum pepp::bts::RelocationsPep;
+    // Offsets are of the patched operand specifier, not instruction specifier
     CHECK(relocations_of(elf, ".rela.text", symbols) ==
-          std::vector<Rela>{{3, "i", addr16, 0}, {5, "i", addr8, 0}, {6, "d", addr16, 0}});
-    // TODO: Relocations against defined symbols, like a, are not written yet.
-    CHECK(relocations_of(elf, ".rela.data", symbols) == std::vector<Rela>{{4, "d", addr16, 0}});
+          std::vector<Rela>{{3, "i", bits::to_underlying(R_PEP10_ABS16), 0},
+                            {5, "i", bits::to_underlying(R_PEP10_ABS8), 0},
+                            {6, "d", bits::to_underlying(R_PEP10_ABS16), 0}});
+    // a is global, so it is relocated against itself rather than as an offset into .text.
+    CHECK(relocations_of(elf, ".rela.data", symbols) ==
+          std::vector<Rela>{{1, "a", bits::to_underlying(R_PEP10_ABS16), 0},
+                            {4, "d", bits::to_underlying(R_PEP10_ABS16), 0}});
     for (const auto *name : {".rela.text", ".rela.data"}) {
       INFO(name);
       const auto *rela = elf.sections[name];
@@ -307,6 +315,55 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     }
     CHECK(elf.sections[".rela.text"]->get_info() == elf.sections[".text"]->get_index());
     CHECK(elf.sections[".rela.data"]->get_info() == elf.sections[".data"]->get_index());
+  }
+  SECTION("relocations with defined symbols") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(
+			c:.EQUATE 5
+			.BLOCK 1
+			l:.WORD 0
+			LDWA l,d
+			LDWA c,i
+			LDWA m,d
+		  .SECTION ".data","rw"
+			.BLOCK 2
+			m:.WORD 0
+			.WORD l
+			.BYTE l
+			.WORD c
+			.WORD m
+)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    for (auto &d : diag) std::cerr << d.second << "\n";
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count() == 0);
+
+    auto symbol_tab = p.symbol_table();
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf = read_back(elf_result);
+    const auto symbols = symbols_of(elf);
+    // Section symbols hold their section's address
+    for (const auto &sym : symbols) {
+      if (sym.type != ELFIO::STT_SECTION) continue;
+      INFO(elf.sections[sym.shndx]->get_name());
+      CHECK(sym.value == elf.sections[sym.shndx]->get_address());
+    }
+
+    using enum pepp::bts::RelocationsPep;
+    // Locals are offsets from their section's symbol. The constant c never moves.
+    CHECK(relocations_of(elf, ".rela.text", symbols) ==
+          std::vector<Rela>{{4, ".text", bits::to_underlying(R_PEP10_ABS16), 1},
+                            {10, ".data", bits::to_underlying(R_PEP10_ABS16), 2}});
+    CHECK(relocations_of(elf, ".rela.data", symbols) ==
+          std::vector<Rela>{{4, ".text", bits::to_underlying(R_PEP10_ABS16), 1},
+                            {6, ".text", bits::to_underlying(R_PEP10_ABS8), 1},
+                            {9, ".data", bits::to_underlying(R_PEP10_ABS16), 2}});
   }
 }
 
