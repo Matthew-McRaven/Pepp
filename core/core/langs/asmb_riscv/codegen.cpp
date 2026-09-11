@@ -209,10 +209,11 @@ pepp::tc::riscv_to_object_code(const IRMemoryAddressTable<RISCVAddress> &address
 
 pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                            const IRMemoryAddressTable<RISCVAddress> &addrs,
-                                           const ProgramObjectCodeResult &object_code) {
+                                           const ProgramObjectCodeResult &object_code,
+                                           const pepp::core::symbol::LeafTable &symbols) {
   using namespace pepp::bts;
   SPDLOG_INFO("Creating RISC-V ELF");
-  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::le, ElfMachineType::EM_RISCV, prog, object_code);
+  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::le, ElfMachineType::EM_RISCV, prog, object_code, symbols);
 
   // TODO: restore once .debug_line can be written to a packed file
   // ret.ir_to_listing = write_line_mapping(*ret.elf, prog, addrs, object_code);

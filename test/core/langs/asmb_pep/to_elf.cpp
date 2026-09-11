@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
 #include <set>
@@ -36,6 +37,28 @@ ELFIO::elfio read_back(pepp::tc::ElfResult &result) {
   REQUIRE(elf.load(in));
   return elf;
 }
+struct Symbol {
+  std::string name;
+  unsigned char bind, type;
+  ELFIO::Elf_Half shndx;
+};
+
+std::vector<Symbol> symbols_of(ELFIO::elfio &elf) {
+  auto *symtab = elf.sections[".symtab"];
+  REQUIRE(symtab != nullptr);
+  ELFIO::symbol_section_accessor accessor(elf, symtab);
+  std::vector<Symbol> ret;
+  for (ELFIO::Elf_Xword it = 0; it < accessor.get_symbols_num(); ++it) {
+    Symbol got;
+    ELFIO::Elf64_Addr value;
+    ELFIO::Elf_Xword size;
+    unsigned char other;
+    REQUIRE(accessor.get_symbol(it, got.name, value, size, got.bind, got.type, got.shndx, other));
+    ret.push_back(std::move(got));
+  }
+  return ret;
+}
+
 // A section with a known address and size, without going through the assembler's address assignment.
 struct Spec {
   std::string name;
@@ -64,8 +87,9 @@ pepp::tc::ElfResult from_specs(const std::vector<Spec> &specs) {
     if (spec.z) oc.section_spans.push_back({});
     else oc.section_spans.push_back({std::span<u8>(oc.object_code.data() + at, spec.size)}), at += spec.size;
   }
+  const pepp::core::symbol::LeafTable symbols(2);
   return sections_to_elf(pepp::bts::ElfBits::b32, pepp::bts::ElfEndian::be, pepp::bts::ElfMachineType::EM_PEP10,
-                         prog, oc);
+                         prog, oc, symbols);
 }
 
 struct Segment {
@@ -136,7 +160,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
@@ -164,7 +188,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
     // The blank first line joins .data instead of forcing an empty .text into existence.
     REQUIRE(sections.size() == 1);
@@ -190,7 +214,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
@@ -199,8 +223,11 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(scratch->get_size() == 0);
     const auto *data = elf.sections[".data"];
     REQUIRE(data != nullptr);
-    // Skipping empty sections used to shift every later index; the index baked into val must still be .data's.
-    CHECK(symbol_tab->get("val").value()->section_index == data->get_index());
+    // Skipping empty sections used to shift every later index; val must still point at .data.
+    const auto symbols = symbols_of(elf);
+    const auto val = std::find_if(symbols.begin(), symbols.end(), [](const auto &sym) { return sym.name == "val"; });
+    REQUIRE(val != symbols.end());
+    CHECK(val->shndx == data->get_index());
   }
   SECTION("With undefined symbols") {
     pepp::tc::DiagnosticTable diag;
@@ -226,9 +253,23 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, result.mmios);
-    // TODO: check these through .rel.text/.rel.data once the symbol table is written again. Until then, check the
-    // relocations codegen records, which is what those sections were built from.
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf = read_back(elf_result);
+    const auto symbols = symbols_of(elf);
+    // The null symbol, then locals (i and d are referenced but never defined), then a, which .EXPORT made global.
+    REQUIRE(symbols.size() == 4);
+    CHECK(symbols[0].name.empty());
+    CHECK(symbols[1].name == "d");
+    CHECK(symbols[1].shndx == ELFIO::SHN_UNDEF);
+    CHECK(symbols[2].name == "i");
+    CHECK(symbols[2].shndx == ELFIO::SHN_UNDEF);
+    CHECK(symbols[3].name == "a");
+    CHECK(symbols[3].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[3].shndx == elf.sections[".text"]->get_index());
+    CHECK(elf.sections[".symtab"]->get_info() == 3); // One past the last local.
+
+    // TODO: check these through .rel.text/.rel.data once relocations are written. Until then, check the relocations
+    // codegen records, which is what those sections are built from.
     REQUIRE(object_code.relocations.size() == 4);
     std::map<std::string, std::set<Result>> by_section;
     for (const auto &[entry, rel] : object_code.relocations)

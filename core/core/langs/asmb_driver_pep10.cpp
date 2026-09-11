@@ -30,8 +30,7 @@ DriverResult assemble_pep10(const Pep10DriverConfig &, const FormattingConfig &f
     auto listing = format_listing(program, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
-  result.elf = pepp_to_elf(split.grouped_ir, addresses, object_code, split.mmios);
-  // TODO: restore once the symbol table can be written to a packed file.
+  result.elf = pepp_to_elf(split.grouped_ir, addresses, object_code, *pep_parser.symbol_table(), split.mmios);
   return result;
 }
 

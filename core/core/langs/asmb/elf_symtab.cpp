@@ -2,6 +2,9 @@
 #include <algorithm>
 #include <optional>
 #include <stdexcept>
+#include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/value.hpp"
+#include "core/formats/elf/packed_access_symbol.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 #include "spdlog/spdlog.h"
 
@@ -15,10 +18,87 @@ struct Run {
   bool has_nobits;
 };
 
+SymbolBinding binding_of(pepp::core::symbol::Binding binding) {
+  switch (binding) {
+  case pepp::core::symbol::Binding::Global: return SymbolBinding::STB_GLOBAL;
+  case pepp::core::symbol::Binding::Weak: return SymbolBinding::STB_WEAK;
+  default: return SymbolBinding::STB_LOCAL;
+  }
+}
+
+bool is_constant(const pepp::core::symbol::Entry &entry) {
+  return entry.value && entry.value->type() == pepp::core::symbol::Type::Constant;
+}
+
+SymbolType type_of(const pepp::core::symbol::Entry &entry) {
+  if (!entry.value) return SymbolType::STT_NOTYPE;
+  switch (entry.value->type()) {
+  case pepp::core::symbol::Type::Code: return SymbolType::STT_FUNC;
+  case pepp::core::symbol::Type::Object: [[fallthrough]];
+  case pepp::core::symbol::Type::Constant: return SymbolType::STT_OBJECT;
+  case pepp::core::symbol::Type::Section: return SymbolType::STT_SECTION;
+  default: return SymbolType::STT_NOTYPE;
+  }
+}
+
+u64 value_of(const pepp::core::symbol::Entry &entry) { return entry.value ? entry.value->value()() : 0; }
+u64 size_of(const pepp::core::symbol::Entry &entry) { return entry.value ? entry.value->size() : 0; }
+
+// A constant belongs to no section, and an undefined symbol has none to point at.
+u16 shndx_of(const pepp::core::symbol::Entry &entry) {
+  if (entry.is_undefined()) return bits::to_underlying(SectionIndices::SHN_UNDEF);
+  else if (is_constant(entry)) return bits::to_underlying(SectionIndices::SHN_ABS);
+  return entry.section_index;
+}
+
+SymbolVisibility visibility_of(pepp::core::symbol::Visibility visibility) {
+  switch (visibility) {
+  case pepp::core::symbol::Visibility::Internal: return SymbolVisibility::STV_INTERNAL;
+  case pepp::core::symbol::Visibility::Hidden: return SymbolVisibility::STV_HIDDEN;
+  case pepp::core::symbol::Visibility::Protected: return SymbolVisibility::STV_PROTECTED;
+  default: return SymbolVisibility::STV_DEFAULT;
+  }
+}
+
+// Must be written after all sections which define symbols to avoid having to update st_shndx values later.
+template <ElfBits B, ElfEndian E>
+void write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::LeafTable &table) {
+  using namespace pepp::core::symbol;
+  using Symbol = PackedElfSymbol<B, E>;
+  std::vector<LeafTable::entry_ptr_t> symbols;
+  enumerate(table, symbols);
+  std::erase_if(symbols, [](const auto &entry) { return entry->value && entry->value->type() == Type::Deleted; });
+  // ELF requires every local precede any non-local. Within partitions, sort by name to make output deterministic.
+  std::sort(symbols.begin(), symbols.end(), [](const auto &lhs, const auto &rhs) {
+    const bool left_local = lhs->binding == Binding::Local, right_local = rhs->binding == Binding::Local;
+    if (left_local != right_local) return left_local;
+    return lhs->name < rhs->name;
+  });
+
+  const auto strtab = add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB);
+  const auto symtab = add_named_symtab(elf, ".symtab", strtab);
+  elf.section_headers[symtab].sh_addralign = sizeof(word<B>);
+  PackedSymbolWriter<B, E> writer(elf, symtab);
+  for (const auto &ptr : symbols) {
+    const auto &entry = *ptr;
+    Symbol symbol;
+    symbol.st_value = static_cast<word<B>>(value_of(entry));
+    symbol.st_size = static_cast<word<B>>(size_of(entry));
+    symbol.st_shndx = shndx_of(entry);
+    symbol.set_type(type_of(entry));
+    symbol.set_bind(binding_of(entry.binding));
+    symbol.set_visibility(visibility_of(entry.visibility));
+    writer.add_symbol(std::move(symbol), entry.name);
+  }
+  // Already sorted, but this will update sh_info to point to the first non-local symbol.
+  if (!symbols.empty()) writer.arrange_local_symbols();
+}
+
 template <ElfBits B, ElfEndian E>
 pepp::tc::ElfResult build(ElfMachineType machine,
                           const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>> &prog,
-                          const pepp::tc::ProgramObjectCodeResult &object_code) {
+                          const pepp::tc::ProgramObjectCodeResult &object_code,
+                          const pepp::core::symbol::LeafTable &symbols) {
   pepp::tc::ElfResult ret;
   using File = PackedGrowableElfFile<B, E>;
   using enum ElfFileType;
@@ -86,19 +166,21 @@ pepp::tc::ElfResult build(ElfMachineType machine,
     }
   }
 
+  write_symbols(*elf, symbols);
   return ret;
 }
 } // namespace
 
 pepp::tc::ElfResult pepp::tc::sections_to_elf(ElfBits bits, ElfEndian endian, ElfMachineType machine,
                                               const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                                              const ProgramObjectCodeResult &object_code) {
+                                              const ProgramObjectCodeResult &object_code,
+                                              const pepp::core::symbol::LeafTable &symbols) {
   using enum ElfBits;
   using enum ElfEndian;
-  if (bits == b32 && endian == le) return build<b32, le>(machine, prog, object_code);
-  else if (bits == b32) return build<b32, be>(machine, prog, object_code);
-  else if (endian == le) return build<b64, le>(machine, prog, object_code);
-  else return build<b64, be>(machine, prog, object_code);
+  if (bits == b32 && endian == le) return build<b32, le>(machine, prog, object_code, symbols);
+  else if (bits == b32) return build<b32, be>(machine, prog, object_code, symbols);
+  else if (endian == le) return build<b64, le>(machine, prog, object_code, symbols);
+  else return build<b64, be>(machine, prog, object_code, symbols);
 }
 
 std::vector<u8> pepp::tc::elf_bytes(ElfResult &result) {

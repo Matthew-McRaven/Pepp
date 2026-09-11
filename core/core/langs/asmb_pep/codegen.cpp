@@ -316,10 +316,11 @@ write_line_mapping(ELFIO::elfio &elf,
 pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                           const IRMemoryAddressTable<PeppAddress> &addrs,
                                           const ProgramObjectCodeResult &object_code,
+                                          const pepp::core::symbol::LeafTable &symbols,
                                           const std::vector<obj::IO> &mmios) {
   using namespace pepp::bts;
   SPDLOG_INFO("Creating pep/10 ELF");
-  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, prog, object_code);
+  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, prog, object_code, symbols);
 
   // TODO: restore once .debug_line can be written to a packed file.
   // ret.ir_to_listing = write_line_mapping(*ret.elf, prog, addrs, object_code);

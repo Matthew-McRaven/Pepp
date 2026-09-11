@@ -52,7 +52,7 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(addresses.at(&*instr).address == 0xfeed);
     CHECK(addresses.at(&*instr).size == 4);
     auto object_code = pepp::tc::riscv_to_object_code(addresses, sections);
-    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code);
+    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *symbol_tab);
     // Read what would actually be written, rather than the in-memory model of it.
     const auto bytes = pepp::tc::elf_bytes(elf_result);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));

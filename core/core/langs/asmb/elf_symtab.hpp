@@ -26,18 +26,17 @@ using IR2ListingLineMap = fc::flat_map<std::vector<IR2ListingLinePair>, IR2Listi
 
 
 struct ElfResult {
-  // No symbol table for now.
   pepp::bts::AnyGrowableElf elf;
   // Paired with elf's program headers: the [i]th constraint places the [i]th segment.
   std::vector<pepp::bts::SegmentLayoutConstraint> segments;
   IR2ListingLineMap ir_to_listing;
 };
 
-// One section per entry of `prog`, written straight into a packed file. Shared by every architecture, since only the
-// file header differs between them.
+// One section per entry of `prog`, written straight into a packed file, then the symbol table once every section a
+// symbol can name exists. Shared by every architecture, since only the file header differs between them.
 ElfResult sections_to_elf(pepp::bts::ElfBits bits, pepp::bts::ElfEndian endian, pepp::bts::ElfMachineType machine,
                           const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                          const ProgramObjectCodeResult &object_code);
+                          const ProgramObjectCodeResult &object_code, const pepp::core::symbol::LeafTable &symbols);
 
 // Lay the file out and return its bytes. Empty if there is no file.
 std::vector<u8> elf_bytes(ElfResult &result);
