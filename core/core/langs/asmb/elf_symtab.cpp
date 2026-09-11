@@ -1,126 +1,65 @@
 #include "elf_symtab.hpp"
-#include "core/compile/symbol/leaf_table.hpp"
-#include "core/compile/symbol/value.hpp"
-#include "core/langs/asmb/elfio_utils.hpp"
-#include "elfio/elf_types.hpp"
-#include "elfio/elfio.hpp"
+#include <stdexcept>
+#include "core/formats/elf/packed_ops.hpp"
+#include "spdlog/spdlog.h"
 
-#include <list>
+namespace {
+using namespace pepp::bts;
 
-static const std::string rel_name = ".rel";
-static ELFIO::section *get_or_create_rel(ELFIO::elfio &elf, const std::string &suffix) {
+template <ElfBits B, ElfEndian E>
+std::unique_ptr<PackedGrowableElfFile<B, E>>
+build(ElfMachineType machine, const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>> &prog,
+      const pepp::tc::ProgramObjectCodeResult &object_code) {
+  auto elf = std::make_unique<PackedGrowableElfFile<B, E>>(ElfFileType::ET_EXEC, machine, ElfABI::ELFOSABI_NONE);
+  // The null section and .shstrtab come first; SectionDescriptor::section_base_index accounts for them.
+  ensure_section_header_table(*elf);
 
-  // If suffix is empty, just use rel_name. Otherwise, if suffix begins with a full stop, do not insert a full stop.
-  // If the suffix does not begin with a full stop, do not insert it.
-  auto full_name =
-      suffix.empty() ? rel_name : (suffix.starts_with(".") ? rel_name + suffix : (rel_name + ".") + suffix);
-  for (auto &sec : elf.sections)
-    if (sec->get_name() == full_name && sec->get_type() == ELFIO::SHT_REL) return sec.get();
+  for (u32 it = 0; it < prog.size(); it++) {
+    const auto &desc = prog[it].first;
+    SPDLOG_INFO("{} creating", desc.name);
+    const auto type = desc.flags.z ? SectionTypes::SHT_NOBITS : SectionTypes::SHT_PROGBITS;
+    const auto index = add_named_section(*elf, desc.name, type);
+    if (index != desc.section_index) throw std::logic_error("Mismatch in pre-computed section index");
 
-  ELFIO::section *ret = elf.sections.add(full_name);
-  ret->set_type(ELFIO::SHT_REL);
-  return ret;
-};
-
-// Every IR section is emitted, so its ELF index is its IR index past the plumbing sections at the front.
-static u16 ir_to_elf_section_index(u16 ir_index) { return pepp::tc::SectionDescriptor::section_base_index + ir_index; }
-
-void pepp::tc::write_symbol_table(ElfResult &elf_wrapper, pepp::core::symbol::LeafTable &symbol_table,
-                                  const ProgramObjectCodeResult &oc, const std::string name) {
-  auto &elf = *elf_wrapper.elf.get();
-  auto strTab = pepp::tc::addStrTab(elf);
-  auto symTab = elf.sections.add(name);
-  symTab->set_type(ELFIO::SHT_SYMTAB);
-  symTab->set_info(0);
-  symTab->set_addr_align(2);
-  symTab->set_entry_size(elf.get_default_entry_size(ELFIO::SHT_SYMTAB));
-  symTab->set_link(strTab->get_index());
-
-  // Attempt to pool strings when possible, to reduce final binary size.
-  // Probably O(n^2), but n should be small for Pep/N.
-  // TODO: Would like to find a way to reuse my existing StringPool here.
-  ELFIO::string_section_accessor strAc(strTab);
-  auto findOrCreateStr = [&](const std::string &str) {
-    auto tabStart = strTab->get_data();
-    auto tabEnd = tabStart + strTab->get_size();
-    // Must use data/size+1 and not begin/end because we MUST include trailing null.
-    // Otherwise, `main` is pooled with `mainCln`, which is wrong.
-    auto iter = std::search(tabStart, tabEnd, str.data(), str.data() + str.size() + 1);
-    if (iter != tabEnd) return (ELFIO::Elf_Word)(iter - tabStart);
-    return strAc.add_string(str.data());
-  };
-
-  ELFIO::symbol_section_accessor symAc(elf, symTab);
-  const auto pool = symbol_table.pool();
-  for (const auto &[name_idx, entry] : symbol_table.entries()) {
-    const auto name = *pool->find(name_idx);
-    auto nameIdx = findOrCreateStr(std::string{name});
-    // Symbol index of the inserted symbol. Retain to make writing relocations easier.
-    ELFIO::Elf_Word symbol_idx = 0;
-    // Fast path for undefined symbols
-    if (entry->is_undefined()) {
-      static constexpr u8 info = (ELFIO::STB_LOCAL << 4) + (ELFIO::STT_NOTYPE & 0xf);
-      symbol_idx = symAc.add_symbol(nameIdx, 0, 0, info, 0, ELFIO::SHN_UNDEF);
-    } else {
-      // Baked in by the splitter as the defining section's ELF index, which is exact now that none are skipped.
-      auto secIdx = entry->section_index;
-      auto value = entry->value;
-
-      u8 type = ELFIO::STT_NOTYPE;
-      using Type = pepp::core::symbol::Type;
-      if (value->type() == Type::Code) type = ELFIO::STT_FUNC;
-      else if (value->type() == Type::Object) type = ELFIO::STT_OBJECT;
-      else if (value->type() == Type::Constant) {
-        type = ELFIO::STT_OBJECT;
-        secIdx = ELFIO::SHN_ABS;
-      }
-
-      u8 bind = ELFIO::STB_LOCAL;
-      using Binding = pepp::core::symbol::Binding;
-      if (entry->binding == Binding::Global) bind = ELFIO::STB_GLOBAL;
-      else if (entry->binding == Binding::Weak) bind = ELFIO::STB_WEAK;
-
-      u8 info = (bind << 4) + (type & 0xf);
-
-      u8 vis = ELFIO::STV_DEFAULT;
-      switch (entry->visibility) {
-      case pepp::core::symbol::Visibility::Default: vis = ELFIO::STV_DEFAULT; break;
-      case pepp::core::symbol::Visibility::Hidden: vis = ELFIO::STV_HIDDEN; break;
-      case pepp::core::symbol::Visibility::Protected: vis = ELFIO::STV_PROTECTED; break;
-      case core::symbol::Visibility::Internal: vis = ELFIO::STV_INTERNAL; break;
-      }
-
-      symbol_idx = symAc.add_symbol(nameIdx, value->value()(), entry->value->size(), info, vis, secIdx);
-    }
-    // For all sections, for all relocations entries against this symbol
-    // Create a relocation section for the current section if it does not exist, and append a relocation entry.
-    auto relocs_for = oc.relocations.equal_range(entry);
-    for (auto rel = relocs_for.first; rel != relocs_for.second; ++rel) {
-      const auto ir_idx = rel->second.section_idx;
-      const auto elf_idx = ir_to_elf_section_index(ir_idx);
-      auto relocated_sec = elf_wrapper.elf->sections[elf_idx];
-      auto relocation_section = get_or_create_rel(*elf_wrapper.elf, relocated_sec->get_name());
-      // Freshly created relocation sections are missing various required fields.
-      if (relocation_section->get_info() == 0) relocation_section->set_info(relocated_sec->get_index());
-      if (relocation_section->get_link() == 0) relocation_section->set_link(symTab->get_index());
-      // BUG: the library should know the size of REL entries when the section is created. However, this field
-      // is only initialized on save. Given that swap_symbols depends on entry_size, we need to fill it in NOW.
-      // TODO: should not be a magic constant! Should be computed from the size of some struct.
-      if (relocation_section->get_entry_size() == 0) relocation_section->set_entry_size(8);
-      auto reloc_ac = ELFIO::relocation_section_accessor(*elf_wrapper.elf, relocation_section);
-      reloc_ac.add_entry(rel->second.section_offset, symbol_idx, 0);
+    auto &shdr = elf->section_headers[index];
+    // Every section from the AST is bits in memory, so all of them are allocated.
+    auto flags = bits::to_underlying(SectionFlags::SHF_ALLOC);
+    if (desc.flags.x) flags |= bits::to_underlying(SectionFlags::SHF_EXECINSTR);
+    if (desc.flags.w) flags |= bits::to_underlying(SectionFlags::SHF_WRITE);
+    shdr.sh_flags = flags;
+    shdr.sh_addr = desc.low_address;
+    shdr.sh_addralign = desc.alignment;
+    // Layout sizes sections from their data, which NOBITS has none of.
+    if (desc.flags.z) shdr.sh_size = desc.high_address - desc.low_address;
+    else {
+      const auto bytes = object_code.section_spans[it].object_code;
+      elf->section_data[index]->append(bits::span<const u8>{bytes.data(), bytes.size()});
     }
   }
-  // Helper to propogate swapping all symbols in the relocation sections
-  // Create a (temporary) accessor for each REL
-  std::list<ELFIO::relocation_section_accessor> acs;
-  for (auto &sec : elf_wrapper.elf->sections)
-    if (sec->get_type() == ELFIO::SHT_REL)
-      acs.emplace_back(ELFIO::relocation_section_accessor(*elf_wrapper.elf, sec.get()));
+  return elf;
+}
+} // namespace
 
-  auto all_swap = [&acs](ELFIO::Elf_Xword first, ELFIO::Elf_Xword second) {
-    for (auto &ac : acs) ac.swap_symbols(first, second);
+pepp::tc::ElfResult pepp::tc::sections_to_elf(ElfBits bits, ElfEndian endian, ElfMachineType machine,
+                                              const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                              const ProgramObjectCodeResult &object_code) {
+  using enum ElfBits;
+  using enum ElfEndian;
+  ElfResult ret;
+  if (bits == b32 && endian == le) ret.elf = build<b32, le>(machine, prog, object_code);
+  else if (bits == b32) ret.elf = build<b32, be>(machine, prog, object_code);
+  else if (endian == le) ret.elf = build<b64, le>(machine, prog, object_code);
+  else ret.elf = build<b64, be>(machine, prog, object_code);
+  return ret;
+}
+
+std::vector<u8> pepp::tc::elf_bytes(ElfResult &result) {
+  auto visitor = [](auto &file) -> std::vector<u8> {
+    if (!file) return {};
+    auto layout = pepp::bts::calculate_layout(*file);
+    std::vector<u8> ret(pepp::bts::size_for_layout(layout), 0);
+    pepp::bts::write(ret, layout);
+    return ret;
   };
-  // To be elf compliant, local symbols must be before all other kinds.
-  symAc.arrange_local_symbols(all_swap);
+  return std::visit(visitor, result.elf);
 }

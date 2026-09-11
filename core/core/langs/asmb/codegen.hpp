@@ -37,7 +37,7 @@ struct SectionDescriptor {
   // Rather than wait until the elf file has been generated, we can verify (through source code inspection!) the number
   // that will be assigned to the first non-ELF-plumbing section.
   // Then, splitting to sections can increment this counter AND update the symbol declaration's links.
-  static constexpr u16 section_base_index = 3;
+  static constexpr u16 section_base_index = 2; // After the null section and .shstrtab.
   u16 section_index = section_base_index;
 };
 

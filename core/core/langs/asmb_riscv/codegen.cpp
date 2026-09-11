@@ -1,9 +1,7 @@
 #include "core/langs/asmb_riscv/codegen.hpp"
-#include <elfio/elfio.hpp>
 #include <fmt/format.h>
 #include "core/compile/ir_linear/attr_symbol.hpp"
 #include "core/langs/asmb/codegen.hpp"
-#include "core/langs/asmb/elfio_utils.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "ir_visitor.hpp"
@@ -209,107 +207,14 @@ pepp::tc::riscv_to_object_code(const IRMemoryAddressTable<RISCVAddress> &address
   return to_object_code<RISCVAddress, RISCVObjectVistitor>(addresses, prog);
 }
 
-static std::shared_ptr<ELFIO::elfio> create_elf() {
-  SPDLOG_INFO("Creating pep/10 ELF");
-  u16 mac = 243; // EM_RISCV (0xF3)
-  auto ret = std::make_shared<ELFIO::elfio>();
-  ret->create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
-  ret->set_os_abi(ELFIO::ELFOSABI_NONE);
-  ret->set_type(ELFIO::ET_EXEC);
-  ret->set_machine(mac);
-  // Create strtab/notes early, so that it will be before any code sections.
-  pepp::tc::addStrTab(*ret);
-  return ret;
-}
-
 pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                            const IRMemoryAddressTable<RISCVAddress> &addrs,
                                            const ProgramObjectCodeResult &object_code) {
-  ELFIO::segment *activeSeg = nullptr;
-  ElfResult ret;
-  ret.elf = create_elf();
+  using namespace pepp::bts;
+  SPDLOG_INFO("Creating RISC-V ELF");
+  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::le, ElfMachineType::EM_RISCV, prog, object_code);
 
-  auto getOrCreateBSS = [&](SectionFlags &flags) {
-    if (activeSeg == nullptr || activeSeg->get_file_size() != 0) {
-      activeSeg = ret.elf->segments.add();
-      activeSeg->set_type(ELFIO::PT_LOAD);
-      ELFIO::Elf_Word elfFlags = 0;
-      elfFlags |= flags.r ? ELFIO::PF_R : 0;
-      elfFlags |= flags.w ? ELFIO::PF_W : 0;
-      elfFlags |= flags.x ? ELFIO::PF_X : 0;
-      activeSeg->set_flags(elfFlags);
-      activeSeg->set_physical_address(-1);
-      activeSeg->set_virtual_address(-1);
-    }
-    return activeSeg;
-  };
-
-  auto getOrCreateBits = [&](SectionFlags &flags) {
-    if (activeSeg == nullptr || activeSeg->get_file_size() == 0 ||
-        !(((activeSeg->get_flags() & ELFIO::PF_R) > 0 == flags.r) &&
-          ((activeSeg->get_flags() & ELFIO::PF_W) > 0 == flags.w) &&
-          ((activeSeg->get_flags() & ELFIO::PF_X) > 0 == flags.x))) {
-      activeSeg = ret.elf->segments.add();
-      activeSeg->set_type(ELFIO::PT_LOAD);
-      ELFIO::Elf_Word elfFlags = 0;
-      elfFlags |= flags.r ? ELFIO::PF_R : 0;
-      elfFlags |= flags.w ? ELFIO::PF_W : 0;
-      elfFlags |= flags.x ? ELFIO::PF_X : 0;
-      activeSeg->set_flags(elfFlags);
-      activeSeg->set_physical_address(-1);
-      activeSeg->set_virtual_address(-1);
-    }
-    return activeSeg;
-  };
-
-  std::vector<size_t> section_memory_sizes(prog.size(), 0);
-  for (u32 it = 0; it < prog.size(); it++) {
-    auto &sec = prog[it].first;
-    section_memory_sizes[it] = sec.high_address - sec.low_address;
-  }
-  for (u32 it = 0; it < prog.size(); it++) {
-    auto &sec_desc = prog[it].first;
-
-    SPDLOG_INFO("{} creating", sec_desc.name);
-
-    auto sec = ret.elf->sections.add(sec_desc.name);
-    if (sec->get_index() != sec_desc.section_index)
-      throw std::logic_error("Mismatch in pre-computed section index");
-    // All sections from AST correspond to bits in Pep/10 memory, so alloc
-    auto shFlags = ELFIO::SHF_ALLOC;
-    shFlags |= sec_desc.flags.x ? ELFIO::SHF_EXECINSTR : 0;
-    shFlags |= sec_desc.flags.w ? ELFIO::SHF_WRITE : 0;
-    sec->set_flags(shFlags);
-    sec->set_addr_align(sec_desc.alignment);
-    SPDLOG_TRACE("{} sized at {:x}", sec_desc.name, section_memory_sizes[it]);
-
-    if (sec_desc.flags.z) {
-      SPDLOG_TRACE("{} zeroed", sec_desc.name);
-      sec->set_type(ELFIO::SHT_NOBITS);
-      sec->set_size(section_memory_sizes[it]);
-    } else {
-      auto sec_data = object_code.section_spans[it];
-      SPDLOG_TRACE("{} assigned {:x} bytes", sec_desc.name, sec_data.object_code.size());
-      // Cannot convert between quint8 and qint8 without reinterpret cast. Sorry for future linter errors.
-      sec->set_data(reinterpret_cast<char *>(sec_data.object_code.data()), sec_data.object_code.size_bytes());
-      sec->set_type(ELFIO::SHT_PROGBITS);
-    }
-
-    if (sec_desc.flags.z) getOrCreateBSS(sec_desc.flags);
-    else getOrCreateBits(sec_desc.flags);
-
-    activeSeg->add_section(sec, sec_desc.alignment);
-    activeSeg->set_physical_address(
-        std::min<ELFIO::Elf64_Addr>(activeSeg->get_physical_address(), sec_desc.low_address));
-    activeSeg->set_virtual_address(std::min<ELFIO::Elf64_Addr>(activeSeg->get_virtual_address(), sec_desc.low_address));
-    SPDLOG_TRACE("{} base address set to {:x}", sec_desc.name, sec_desc.low_address);
-
-    // Field not re-computed on its own. Failure to compute will cause readelf to crash.
-    // TODO: in the future, handle alignment correctly?
-    // if (isOS) activeSeg->set_memory_size(activeSeg->get_memory_size() + size);
-  }
-
-  // TODO: restore once .debug_line has a ManagedElf equivalent
+  // TODO: restore once .debug_line can be written to a packed file
   // ret.ir_to_listing = write_line_mapping(*ret.elf, prog, addrs, object_code);
 
   /*ELFIO::section *symTab = nullptr;

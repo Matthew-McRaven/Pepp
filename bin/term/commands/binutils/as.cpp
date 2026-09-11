@@ -1,5 +1,4 @@
 #include "as.hpp"
-#include <elfio/elfio.hpp>
 #include <fstream>
 #include <iostream>
 
@@ -86,7 +85,14 @@ void AsTask::run() {
     for (const auto &diag : result.diagnostics) diag_lines.push_back(diag.second);
     write_lines(_opts.file_errs, diag_lines, std::cerr);
     return emit finished(1);
-  } else if (result.elf.elf) result.elf.elf->save(_opts.file_elf);
+  } else if (const auto bytes = pepp::tc::elf_bytes(result.elf); !bytes.empty()) {
+    std::ofstream out(_opts.file_elf, std::ios::binary);
+    if (!out) {
+      write_lines(_opts.file_errs, {"Could not open " + _opts.file_elf + " for writing"}, std::cerr);
+      return emit finished(1);
+    }
+    out.write(reinterpret_cast<const char *>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+  }
 
   return emit finished(0);
 }

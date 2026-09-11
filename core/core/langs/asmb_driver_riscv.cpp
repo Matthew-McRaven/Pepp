@@ -20,7 +20,6 @@ DriverResult assemble_riscv(const RISCVDriverConfig &, const FormattingConfig &f
   auto split = riscv_split_to_sections(result.diagnostics, program);
   if (result.diagnostics.count() > 0) return result;
 
-  auto symbols = rv_parser.symbol_table();
   auto addresses = riscv_assign_addresses(split.grouped_ir);
   auto object_code = riscv_to_object_code(addresses, split.grouped_ir);
   if (fmtcfg.listing_format) {
@@ -28,7 +27,7 @@ DriverResult assemble_riscv(const RISCVDriverConfig &, const FormattingConfig &f
     fmtcfg.listing_format(std::move(listing));
   }
   result.elf = riscv_to_elf(split.grouped_ir, addresses, object_code);
-  write_symbol_table(result.elf, *symbols, object_code);
+  // TODO: restore once the symbol table can be written to a packed file.
   return result;
 }
 
