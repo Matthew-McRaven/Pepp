@@ -256,17 +256,27 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
-    // The null symbol, then locals (i and d are referenced but never defined), then a, which .EXPORT made global.
-    REQUIRE(symbols.size() == 4);
+    // The null symbol, a section symbol per section, then locals (i and d are referenced but never defined), then a,
+    // which .EXPORT made global.
+    REQUIRE(symbols.size() == 6);
     CHECK(symbols[0].name.empty());
-    CHECK(symbols[1].name == "d");
-    CHECK(symbols[1].shndx == ELFIO::SHN_UNDEF);
-    CHECK(symbols[2].name == "i");
-    CHECK(symbols[2].shndx == ELFIO::SHN_UNDEF);
-    CHECK(symbols[3].name == "a");
-    CHECK(symbols[3].bind == ELFIO::STB_GLOBAL);
-    CHECK(symbols[3].shndx == elf.sections[".text"]->get_index());
-    CHECK(elf.sections[".symtab"]->get_info() == 3); // One past the last local.
+    // Every section gets one, in order, so prog section i is symbol [1 + i]
+    for (u32 it = 0; it < sections.size(); ++it) {
+      INFO(sections[it].first.name);
+      const auto &sym = symbols.at(1 + it);
+      CHECK(sym.name.empty());
+      CHECK(sym.type == ELFIO::STT_SECTION);
+      CHECK(sym.bind == ELFIO::STB_LOCAL);
+      CHECK(sym.shndx == elf.sections[sections[it].first.name]->get_index());
+    }
+    CHECK(symbols[3].name == "d");
+    CHECK(symbols[3].shndx == ELFIO::SHN_UNDEF);
+    CHECK(symbols[4].name == "i");
+    CHECK(symbols[4].shndx == ELFIO::SHN_UNDEF);
+    CHECK(symbols[5].name == "a");
+    CHECK(symbols[5].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[5].shndx == elf.sections[".text"]->get_index());
+    CHECK(elf.sections[".symtab"]->get_info() == 5); // One past the last local.
 
     // TODO: check these through .rel.text/.rel.data once relocations are written. Until then, check the relocations
     // codegen records, which is what those sections are built from.

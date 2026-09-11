@@ -79,6 +79,16 @@ void write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::L
   const auto symtab = add_named_symtab(elf, ".symtab", strtab);
   elf.section_headers[symtab].sh_addralign = sizeof(word<B>);
   PackedSymbolWriter<B, E> writer(elf, symtab);
+  // Create a STT_SECTION symbol for each allocatable section
+  for (u16 index = 1; index < elf.section_headers.size(); ++index) {
+    const word<B> flags = elf.section_headers[index].sh_flags;
+    if ((flags & bits::to_underlying(SectionFlags::SHF_ALLOC)) == 0) continue;
+    Symbol symbol;
+    symbol.st_shndx = index;
+    symbol.set_type(SymbolType::STT_SECTION);
+    symbol.set_bind(SymbolBinding::STB_LOCAL);
+    writer.add_symbol(std::move(symbol));
+  }
   for (const auto &ptr : symbols) {
     const auto &entry = *ptr;
     Symbol symbol;
@@ -91,7 +101,7 @@ void write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::L
     writer.add_symbol(std::move(symbol), entry.name);
   }
   // Already sorted, but this will update sh_info to point to the first non-local symbol.
-  if (!symbols.empty()) writer.arrange_local_symbols();
+  if (writer.symbol_count() > 0) writer.arrange_local_symbols();
 }
 
 template <ElfBits B, ElfEndian E>
