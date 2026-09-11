@@ -12,7 +12,6 @@
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/langs/asmb/codegen.hpp"
-#include "core/langs/asmb/elfio_utils.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/math/bitmanip/copy.hpp"
