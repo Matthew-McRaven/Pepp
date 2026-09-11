@@ -14,7 +14,9 @@ target_link_libraries(
          mockturtle
          elfio
          zpp_bits
-         cnl)
+         cnl
+        rapidxml
+)
 target_include_directories(pepp-core PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
 if(PEPP_PRECOMPILE_HEADERS)
@@ -34,3 +36,4 @@ if(PEPP_PRECOMPILE_HEADERS)
   pepp_precompile_headers(
     pepp-core PRIVATE "${CMAKE_CURRENT_LIST_DIR}/core/math/geom/interval.hpp")
 endif()
+add_subdirectory(svgdom)

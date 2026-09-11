@@ -190,16 +190,16 @@ int test6(std::string_view path, const std::string &name)
 
     //  Test size
     //<rect x="0" y="0" width="168" height="72" fill="red" fill-opacity=".25" />
-    doc1.saveAs("x:\\"s + name + "-test6.svg"s);
+    doc1.saveAs(name + "-test6.svg"s);
     t.finish();
-    std::cout << "Test1: Elapsed open/save file. "s << t.elapsedTime() << std::endl << std::endl;
+    std::cout << "Test6: Elapsed open/save file. "s << t.elapsedTime() << std::endl << std::endl;
     return 0;
 }
 
 int main()
 {
     const std::string name = "aa_rect"s;
-    const std::string path = "E:\\Projects\\MSProjects\\CPP\\svgdom\\svg\\{}.svg";
+    const std::string path = "/Users/mmcraven/code/Pepp/bin/circuit/svg/{}.svg";
 
     std::cout << "Start testing"s << std::endl;
     Timer t;

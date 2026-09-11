@@ -1,5 +1,6 @@
 include(ExternalProject)
 
+include(rapidxml.cmake)
 include(Json.cmake)
 include(zpp_bits.cmake)
 include(Flat.cmake)

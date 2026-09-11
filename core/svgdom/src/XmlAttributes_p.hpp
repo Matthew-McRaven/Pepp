@@ -9,6 +9,7 @@
 //	Standard library
 #include <format>
 #include <list>
+#include <ranges>
 #include <string>
 
 using namespace std::string_literals;
@@ -53,7 +54,7 @@ public:
         };
 
         //	Execute search
-        auto it = std::find_if(attrs_.cbegin(), attrs_.cend(), query);
+        auto it = std::ranges::find_if(attrs_.cbegin(), attrs_.cend(), query);
 
         if (it != attrs_.cend())
             return it->second;
@@ -71,7 +72,7 @@ public:
         };
 
         //	Execute search
-        auto it = std::find_if(attrs_.cbegin(), attrs_.cend(), query);
+        auto it = std::ranges::find_if(attrs_.cbegin(), attrs_.cend(), query);
 
         if (it != attrs_.cend())
             return it->second;

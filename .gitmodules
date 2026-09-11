@@ -28,3 +28,6 @@
 [submodule "3rd-party/cnl"]
 	path = 3rd-party/cnl
 	url = https://github.com/johnmcfarlane/cnl.git
+[submodule "3rd-party/rapidxml"]
+	path = 3rd-party/rapidxml
+	url = https://github.com/dwd/rapidxml/
