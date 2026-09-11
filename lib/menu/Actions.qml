@@ -6,7 +6,9 @@ QtObject {
     required property var window
     required property var project
     required property var settings
+    required property string mode
     property bool dark: window.palette.text.hslLightness < 0.5
+    property bool inHelp: mode === "help"
     function updateNativeText(obj) {
         obj.nativeText = Qt.binding(() => SequenceConverter.toNativeText(obj.shortcut));
     }
@@ -40,6 +42,7 @@ QtObject {
             icon.source: `image://icons/file/save${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Save
             onShortcutChanged: updateNativeText(this)
+            enabled: !inHelp
         }
         readonly property var saveAs: Action {
             property string nativeText: ""
@@ -47,22 +50,26 @@ QtObject {
             icon.source: `image://icons/file/save${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.SaveAs
             onShortcutChanged: updateNativeText(this)
+            enabled: !inHelp
         }
         readonly property var print_: Action {
             text: qsTr("&Print")
             onTriggered: console.log(this.text)
             // Use blank icon to force menu items to line up.
             icon.source: "image://icons/blank.svg"
+            enabled: !inHelp
         }
         readonly property var closeAll: Action {
             text: qsTr("Close All")
             onTriggered: window.onCloseAllProjects(false)
             icon.source: "image://icons/blank.svg"
+            enabled: !inHelp
         }
         readonly property var closeAllButCurrent: Action {
             text: qsTr("Close All Except Current")
             onTriggered: window.onCloseAllProjects(true)
             icon.source: "image://icons/blank.svg"
+            enabled: !inHelp
         }
         readonly property var quit: Action {
             property string nativeText: ""
@@ -129,13 +136,13 @@ QtObject {
             text: qsTr("To&ggle Line Comment")
             icon.source: `image://icons/blank.svg`
             onShortcutChanged: updateNativeText(this)
-            enabled: !!activeFocusItem && !!activeFocusItem["toggleComment"] && (!activeFocusItem.readOnly ?? true)
+            enabled: !inHelp && !!activeFocusItem && !!activeFocusItem["toggleComment"] && (!activeFocusItem.readOnly ?? true)
             onTriggered: activeFocusItem.toggleComment()
         }
         readonly property var clearEditorErrors: Action {
             text: qsTr("Clear Editor Errors")
             icon.source: `image://icons/blank.svg`
-            enabled: (project?.onClearEditorErrors ?? undefined) !== undefined
+            enabled: !inHelp && (project?.onClearEditorErrors ?? undefined) !== undefined
             onTriggered: {
                 if (project.onClearEditorErrors)
                     project.onClearEditorErrors();
@@ -145,7 +152,7 @@ QtObject {
 
     readonly property var build: QtObject {
         readonly property var formatObject: Action {
-            enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
+            enabled: !inHelp && project?.allowedDebugging & DebugEnableFlags.LoadObject
             property string nativeText: ""
             onTriggered: {
                 window.syncEditors();
@@ -157,7 +164,7 @@ QtObject {
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var loadObject: Action {
-            enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
+            enabled: !inHelp && project?.allowedDebugging & DebugEnableFlags.LoadObject
             property string nativeText: ""
             onTriggered: {
                 window.syncEditors();
@@ -169,7 +176,7 @@ QtObject {
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var assemble: Action {
-            enabled: project?.onAssemble !== undefined
+            enabled: !inHelp && project?.onAssemble !== undefined
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
@@ -182,7 +189,7 @@ QtObject {
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var assembleThenLoad: Action {
-            enabled: project?.onAssemble !== undefined
+            enabled: !inHelp && project?.onAssemble !== undefined
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
@@ -195,7 +202,7 @@ QtObject {
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var assembleThenFormat: Action {
-            enabled: project?.onAssembleThenFormat !== undefined
+            enabled: !inHelp && project?.onAssembleThenFormat !== undefined
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
@@ -209,7 +216,7 @@ QtObject {
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var microAssemble: Action {
-            enabled: project?.onMicroAssemble !== undefined
+            enabled: !inHelp && project?.onMicroAssemble !== undefined
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
@@ -221,7 +228,7 @@ QtObject {
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var microAssembleThenFormat: Action {
-            enabled: project?.onMicroAssembleThenFormat !== undefined
+            enabled: !inHelp && project?.onMicroAssembleThenFormat !== undefined
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
@@ -234,9 +241,8 @@ QtObject {
             icon.source: "image://icons/blank.svg"
             onShortcutChanged: updateNativeText(this)
         }
-
         readonly property var execute: Action {
-            enabled: project?.allowedDebugging & DebugEnableFlags.Execute
+            enabled: !inHelp && project?.allowedDebugging & DebugEnableFlags.Execute
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
@@ -252,7 +258,7 @@ QtObject {
 
     readonly property var debug: QtObject {
         readonly property var start: Action {
-            enabled: project?.allowedDebugging & DebugEnableFlags.Start
+            enabled: !inHelp && project?.allowedDebugging & DebugEnableFlags.Start
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
@@ -265,13 +271,13 @@ QtObject {
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var continue_: Action {
-            enabled: project?.allowedDebugging & DebugEnableFlags.Continue
+            enabled: !inHelp && project?.allowedDebugging & DebugEnableFlags.Continue
             text: qsTr("&Continue Debugging")
             onTriggered: project.onDebuggingContinue()
             icon.source: `image://icons/debug/continue_debug${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
         }
         readonly property var pause: Action {
-            enabled: project?.allowedDebugging & DebugEnableFlags.Pause
+            enabled: !inHelp && project?.allowedDebugging & DebugEnableFlags.Pause
             property string nativeText: ""
             onTriggered: project.onDebuggingPause()
             text: qsTr("I&nterrupt Debugging")
@@ -280,13 +286,13 @@ QtObject {
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var stop: Action {
-            enabled: project?.allowedDebugging & DebugEnableFlags.Stop
+            enabled: !inHelp && project?.allowedDebugging & DebugEnableFlags.Stop
             text: qsTr("S&top Debugging")
             onTriggered: project.onDebuggingStop()
             icon.source: `image://icons/debug/stop_debug${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
         }
         readonly property var step: Action {
-            enabled: project?.allowedSteps & StepEnableFlags.Step
+            enabled: !inHelp && project?.allowedSteps & StepEnableFlags.Step
             property string nativeText: ""
             onTriggered: {
                 if (project.onISAStep)
@@ -302,24 +308,25 @@ QtObject {
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var stepOver: Action {
-            enabled: project?.allowedSteps & StepEnableFlags.StepOver
+            enabled: !inHelp && project?.allowedSteps & StepEnableFlags.StepOver
             text: qsTr("Step O&ver")
             onTriggered: project.onISAStepOver()
             icon.source: `image://icons/debug/step_over${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
         }
         readonly property var stepInto: Action {
-            enabled: project?.allowedSteps & StepEnableFlags.StepInto
+            enabled: !inHelp && project?.allowedSteps & StepEnableFlags.StepInto
             text: qsTr("Step &Into")
             onTriggered: project.onISAStepInto()
             icon.source: `image://icons/debug/step_into${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
         }
         readonly property var stepOut: Action {
-            enabled: project?.allowedSteps & StepEnableFlags.StepOut
+            enabled: !inHelp && project?.allowedSteps & StepEnableFlags.StepOut
             text: qsTr("Step &Out")
             onTriggered: project.onISAStepOut()
             icon.source: `image://icons/debug/step_out${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
         }
         readonly property var removeAllBreakpoints: Action {
+            enabled: !inHelp
             onTriggered: {
                 if (project.onISARemoveAllBreakpoints)
                     project.onISARemoveAllBreakpoints();
@@ -342,13 +349,13 @@ QtObject {
 
     readonly property var sim: QtObject {
         readonly property var clearCPU: Action {
-            enabled: project?.allowedDebugging & DebugEnableFlags.Start
+            enabled: !inHelp && project?.allowedDebugging & DebugEnableFlags.Start
             text: qsTr("Clear &CPU")
             onTriggered: project.onClearCPU()
             icon.source: "image://icons/blank.svg"
         }
         readonly property var clearMemory: Action {
-            enabled: project?.allowedDebugging & DebugEnableFlags.Start
+            enabled: !inHelp && project?.allowedDebugging & DebugEnableFlags.Start
             text: qsTr("Clear &Memory")
             onTriggered: project.onClearMemory()
             icon.source: "image://icons/blank.svg"
