@@ -41,3 +41,4 @@ Number,GitRef,Date,Blurb
 0.15.2,,2026-03-12,"This version improves the text editing experience for microcode and assembly projects"
 0.15.3,,2026-03-21,"This version fixes a bug in the Pep/10 operating system"
 0.16.0,,2026-09-11,"This version adds a command-line assembler for RISC-V that can assemble most rv32i programs"
+0.16.1,,????-??-??,"I'm still working on this version"

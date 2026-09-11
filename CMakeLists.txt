@@ -21,7 +21,7 @@ option(TIME_TRACE "Enable clang time trace" OFF)
 # DO NOT AUTO-FORMAT. CI looks for a line with this format to extract the
 # version.
 # cmake-format: off
-project(Pepp VERSION 0.16.0 LANGUAGES C CXX)
+project(Pepp VERSION 0.16.1 LANGUAGES C CXX)
 # cmake-format: on
 
 # Allow normalized paths (e.g., "toolchain/pas" ) without nesting that directory
