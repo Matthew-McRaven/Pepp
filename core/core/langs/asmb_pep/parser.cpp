@@ -462,7 +462,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
     // Avoid line() if no input remains (e.g., due to unterminated macro or conditional).
     else if (buf->input_remains()) {
       auto symbol = buf->match<lex::SymbolDeclaration>();
-      if (symbol && symbol->to_string().length() > 7)
+      if (symbol && symbol->to_string().length() > 8)
         throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_TooLong, buf->matched_interval());
 
       auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
