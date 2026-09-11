@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2026 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -14,11 +14,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "help/about/dependencies.hpp"
-#include <catch.hpp>
+#include <charconv>
+#include <string>
 
-TEST_CASE("About Dependencies", "[scope:help.about][kind:unit][arch:*]") {
-  auto deps = about::dependencies();
-  CHECK(deps.length() == 27);
-  for (const auto &dep : deps) CHECK(dep.licenseText.size() != 0);
-};
+int main(int argc, char **argv) {
+  std::string_view v = "123.456";
+  double result;
+  auto [ptr, ec] = std::from_chars(v.data(), v.data() + v.size(), result);
+  return ec != std::errc();
+}

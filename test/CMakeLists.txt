@@ -1,6 +1,7 @@
 add_subdirectory(builtin-data)
 add_subdirectory(core)
 add_subdirectory(riscv)
+add_subdirectory(svgdom)
 add_subdirectory(pepp-lib)
 add_subdirectory(verify-isa3)
 add_subdirectory(verify-asmb)

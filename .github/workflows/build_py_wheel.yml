@@ -33,9 +33,11 @@ jobs:
           CIBW_ENVIRONMENT_LINUX: >
             CMAKE_ARGS=-DCMAKE_BUILD_TYPE=Release
             CMAKE_GENERATOR=Ninja
+          # cibuildwheel defaults x86-64 to 10.13. Apple Silicon starts at 11, so force everyone down the 11+ route.
           CIBW_ENVIRONMENT_MACOS: >
             CMAKE_ARGS=-DCMAKE_BUILD_TYPE=Release
             CMAKE_GENERATOR=Ninja
+            MACOSX_DEPLOYMENT_TARGET=11.0
 
       - uses: actions/upload-artifact@v7
         if: ${{ inputs.artifact_key != '' }}

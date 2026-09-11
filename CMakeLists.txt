@@ -162,6 +162,7 @@ add_subdirectory(3rd-party)
 enable_testing()
 
 include(config/compile_tests/TryBuildStdRanges.cmake)
+include(config/compile_tests/TryFromCharsDouble.cmake)
 include(config/cmake/FindRISCVToolchain.cmake)
 
 add_subdirectory(core)
