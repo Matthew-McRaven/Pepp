@@ -18,6 +18,8 @@
 #include <elfio/elfio.hpp>
 #include <set>
 #include <sstream>
+#include <string>
+#include <vector>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
@@ -33,6 +35,56 @@ ELFIO::elfio read_back(pepp::tc::ElfResult &result) {
   ELFIO::elfio elf;
   REQUIRE(elf.load(in));
   return elf;
+}
+// A section with a known address and size, without going through the assembler's address assignment.
+struct Spec {
+  std::string name;
+  bool r, w, x, z;
+  u32 low, size;
+  u16 align = 1;
+  u32 overstate = 0; // How far the descriptor's address range runs past the data, as .ORG can leave it.
+};
+
+pepp::tc::ElfResult from_specs(const std::vector<Spec> &specs) {
+  using namespace pepp::tc;
+  std::vector<std::pair<SectionDescriptor, IRProgram>> prog;
+  ProgramObjectCodeResult oc;
+  u32 total = 0;
+  for (const auto &spec : specs)
+    if (!spec.z) total += spec.size;
+  oc.object_code.assign(total, 0xAA);
+  u32 at = 0;
+  for (u16 i = 0; i < specs.size(); ++i) {
+    const auto &spec = specs[i];
+    SectionDescriptor desc{
+        .name = spec.name, .flags = SectionFlags(spec.r, spec.w, spec.x, spec.z), .alignment = spec.align};
+    desc.low_address = spec.low, desc.high_address = spec.low + spec.size + spec.overstate;
+    desc.section_index = SectionDescriptor::section_base_index + i;
+    prog.emplace_back(desc, IRProgram{});
+    if (spec.z) oc.section_spans.push_back({});
+    else oc.section_spans.push_back({std::span<u8>(oc.object_code.data() + at, spec.size)}), at += spec.size;
+  }
+  return sections_to_elf(pepp::bts::ElfBits::b32, pepp::bts::ElfEndian::be, pepp::bts::ElfMachineType::EM_PEP10,
+                         prog, oc);
+}
+
+struct Segment {
+  u32 flags;
+  u64 vaddr, filesz, memsz, align, offset;
+};
+
+std::vector<Segment> segments_of(pepp::tc::ElfResult &result) {
+  auto elf = read_back(result);
+  std::vector<Segment> ret;
+  for (const auto &seg : elf.segments) {
+    REQUIRE(seg->get_type() == ELFIO::PT_LOAD);
+    ret.push_back({seg->get_flags(), seg->get_virtual_address(), seg->get_file_size(), seg->get_memory_size(),
+                   seg->get_align(), seg->get_offset()});
+    const auto align = std::max<u64>(ret.back().align, 1);
+    CHECK(ret.back().offset % align == ret.back().vaddr % align);
+    CHECK(ret.back().memsz > 0);
+  }
+  return ret;
 }
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 // First line is empty!!
@@ -88,7 +140,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
-    // Every section carries its own address; there are no segments to take it from.
+    // .text is rwx; .data and memvec are both rw and contiguous, so they share one segment.
+    CHECK(elf.segments.size() == 2);
     for (const auto &[desc, _] : sections) {
       INFO(desc.name);
       const auto *sec = elf.sections[desc.name];
@@ -179,8 +232,87 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     REQUIRE(object_code.relocations.size() == 4);
     std::map<std::string, std::set<Result>> by_section;
     for (const auto &[entry, rel] : object_code.relocations)
-      by_section[sections.at(rel.section_idx).first.name].insert(Result{(i16)rel.section_offset, std::string(entry->name)});
+      by_section[sections.at(rel.section_idx).first.name].insert(
+          Result{(i16)rel.section_offset, std::string(entry->name)});
     CHECK(by_section[".text"] == std::set<Result>{{2, "i"}, {5, "i"}, {6, "d"}});
     CHECK(by_section[".data"] == std::set<Result>{{3, "d"}});
+  }
+}
+
+TEST_CASE("Pepp ASM segments derive from sections",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  constexpr u32 rx = 5, rw = 6; // PF_R | PF_X, PF_R | PF_W
+
+  SECTION("Contiguous sections of same flags combine into one segment") {
+    auto result = from_specs({{"a", true, false, true, false, 0, 3}, {"b", true, false, true, false, 3, 3}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 1);
+    CHECK(segs[0].flags == rx);
+    CHECK(segs[0].vaddr == 0);
+    CHECK(segs[0].filesz == 6);
+    CHECK(segs[0].memsz == 6);
+  }
+
+  SECTION("Sections without matching flags are not combined.") {
+    auto result = from_specs({{"a", true, false, true, false, 0, 3}, {"b", true, true, false, false, 3, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 2);
+    CHECK(segs[0].flags == rx);
+    CHECK(segs[1].flags == rw);
+  }
+
+  SECTION("A trailing NOBITS shares the segment with sections before it") {
+    auto result = from_specs({{"data", true, true, false, false, 0, 2}, {"bss", true, true, false, true, 2, 8}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 1);
+    // The loader zero-fills what p_filesz does not cover.
+    CHECK(segs[0].filesz == 2);
+    CHECK(segs[0].memsz == 10);
+  }
+
+  SECTION("File data after a NOBITS starts a new segment") {
+    auto result = from_specs({{"data", true, true, false, false, 0, 2},
+                              {"bss", true, true, false, true, 2, 4},
+                              {"more", true, true, false, false, 6, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 2);
+    CHECK(segs[1].vaddr == 6);
+  }
+
+  SECTION("An address gap starts a new segment") {
+    auto result = from_specs({{"lo", true, true, false, false, 0x10, 2}, {"hi", true, true, false, false, 0x100, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 2);
+    CHECK(segs[0].filesz == 2);
+    CHECK(segs[1].filesz == 2);
+    CHECK(segs[1].offset - segs[0].offset == 2);
+  }
+
+  SECTION("Alignment/padding does not break contiguity") {
+    auto result = from_specs({{"a", true, false, true, false, 0, 3}, {"b", true, false, true, false, 4, 2, 4}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 1);
+    // The strictest member sets the segment's alignment.
+    CHECK(segs[0].align == 4);
+    CHECK(segs[0].memsz == 6);
+  }
+
+  SECTION("An empty section don't start a segment") {
+    auto result = from_specs({{"text", true, true, true, false, 0, 4},
+                              {"empty", true, true, false, false, 4, 0},
+                              {"data", true, true, false, false, 4, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 2);
+    CHECK(segs[1].vaddr == 4);
+    CHECK(segs[1].memsz == 2);
+  }
+
+  SECTION("An empty section joins a segment it fits in") {
+    auto result = from_specs({{"a", true, true, false, false, 0, 2},
+                              {"empty", true, true, false, false, 2, 0},
+                              {"b", true, true, false, false, 2, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 1);
+    CHECK(segs[0].memsz == 4);
   }
 }

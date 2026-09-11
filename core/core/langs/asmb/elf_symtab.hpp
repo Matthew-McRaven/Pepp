@@ -7,6 +7,7 @@
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/formats/elf/packed_elf.hpp"
+#include "core/formats/elf/packed_ops.hpp"
 #include "core/integers.h"
 #include "core/math/bitmanip/leb128.hpp"
 #include "flat/flat_map.hpp"
@@ -25,8 +26,10 @@ using IR2ListingLineMap = fc::flat_map<std::vector<IR2ListingLinePair>, IR2Listi
 
 
 struct ElfResult {
-  // Sections only for now: no segments, and no symbol table.
+  // No symbol table for now.
   pepp::bts::AnyGrowableElf elf;
+  // Paired with elf's program headers: the [i]th constraint places the [i]th segment.
+  std::vector<pepp::bts::SegmentLayoutConstraint> segments;
   IR2ListingLineMap ir_to_listing;
 };
 
