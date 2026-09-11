@@ -92,6 +92,7 @@ Labs.MenuBar {
             onTriggered: actions.file.save.trigger()
             icon.source: fixSuffix(actions.file.save.icon.source, wrapper.darkMode)
             shortcut: actions.file.save.shortcut
+            enabled: actions.file.save.enabled
         }
         Component {
             id: saveAsComponent
@@ -327,6 +328,7 @@ Labs.MenuBar {
         Labs.MenuItem {
             text: qsTr("&Remove All Breakpoints")
             onTriggered: actions.debug.removeAllBreakpoints.trigger()
+            enabled: actions.debug.removeAllBreakpoints.enabled
         }
     }
     Labs.Menu {

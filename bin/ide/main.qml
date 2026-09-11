@@ -133,6 +133,7 @@ ApplicationWindow {
         project: window.currentProject
         window: window
         settings: settings
+        mode: window.mode
     }
 
     Top.ToolBar {
