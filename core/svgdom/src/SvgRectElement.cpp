@@ -96,12 +96,12 @@ bool SvgRectElement::attributeXml(SvgRope &output) const
     //  Go through derived class elements
     if (!_rx.empty()) {
         hasAttributes = true;
-        std::string buffer = std::format(" rx=\"{}\"", _rx.toString());
+        std::string buffer = fmt::format(" rx=\"{}\"", _rx.toString());
         output.push_back(std::move(buffer));
     }
     if (!_ry.empty()) {
         hasAttributes = true;
-        std::string buffer = std::format(" ry=\"{}\"", _ry.toString());
+        std::string buffer = fmt::format(" ry=\"{}\"", _ry.toString());
         output.push_back(std::move(buffer));
     }
 

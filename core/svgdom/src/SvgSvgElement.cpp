@@ -76,7 +76,7 @@ bool SvgSvgElement::attributeXml(SvgRope &output) const
 {
     //  This is required to recognize file as svg
     {
-        std::string buffer = std::format(" xmlns=\"{}\"", _xmlns);
+        std::string buffer = fmt::format(" xmlns=\"{}\"", _xmlns);
         output.push_back(std::move(buffer));
     }
 
@@ -85,7 +85,7 @@ bool SvgSvgElement::attributeXml(SvgRope &output) const
         std::string buffer = " viewBox=\"0 0 100% 100%\"";
         output.push_back(std::move(buffer));
     } else {
-        std::string buffer = std::format(" viewBox=\"{}\"", _viewBox.toString());
+        std::string buffer = fmt::format(" viewBox=\"{}\"", _viewBox.toString());
         output.push_back(std::move(buffer));
     }
 

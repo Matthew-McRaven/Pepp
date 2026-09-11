@@ -1,7 +1,7 @@
 #include "SvgCDataElement.hpp"
 
 //	Standard library
-#include <format> //  std::format
+#include <fmt/format.h> //  fmt::format
 
 #include "utility_p.hpp" //  SvgRope
 
@@ -34,7 +34,7 @@ bool SvgCDataElement::setAttribute(const std::string &key, const std::string &va
 
 void SvgCDataElement::toXml(SvgRope &output) const
 {
-    std::string buffer = std::format("<![CDATA[{}]]>", SvgElement::value());
+    std::string buffer = fmt::format("<![CDATA[{}]]>", SvgElement::value());
     output.push_back(std::move(buffer));
     //  CData cannot have children or attributes
 }

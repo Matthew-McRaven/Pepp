@@ -1,7 +1,7 @@
 #include "SvgCommentElement.hpp"
 
 //	Standard library
-#include <format> //  std::format
+#include <fmt/format.h> //  fmt::format
 
 #include "utility_p.hpp" //  SvgRope
 
@@ -34,7 +34,7 @@ bool SvgCommentElement::setAttribute(const std::string &key, const std::string &
 
 void SvgCommentElement::toXml(SvgRope &output) const
 {
-    std::string buffer = std::format("<!--{}-->", SvgElement::value());
+    std::string buffer = fmt::format("<!--{}-->", SvgElement::value());
     output.push_back(std::move(buffer));
     //  Comments cannot have children or attributes
 }

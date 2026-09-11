@@ -85,7 +85,7 @@ bool SvgUseElement::attributeXml(SvgRope &output) const
     //  Go through derived class elements
     if (!_href.empty()) {
         hasAttributes = true;
-        std::string buffer = std::format(" href=\"{}\"", _href);
+        std::string buffer = fmt::format(" href=\"{}\"", _href);
         output.push_back(std::move(buffer));
     }
 

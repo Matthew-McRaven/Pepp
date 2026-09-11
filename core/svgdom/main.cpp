@@ -1,5 +1,5 @@
 #include <array>
-#include <format>
+#include <fmt/format.h>
 #include <iostream>
 #include <string>
 #include <typeindex>
@@ -17,7 +17,7 @@ using namespace std::string_literals;
 //  Test that file can be opened and saved without error
 int test1(std::string_view path, const std::string &name)
 {
-    auto file = std::vformat(path, std::make_format_args(name));
+    auto file = fmt::format(fmt::runtime(path), name);
     std::cout << "Test1: Open/save file: "s << file << std::endl;
     Timer t;
     t.start();
@@ -33,7 +33,7 @@ int test1(std::string_view path, const std::string &name)
 //  Test that xml from one file can be copied to another file without error
 int test2(std::string_view path, const std::string &name)
 {
-    auto file = std::vformat(path, std::make_format_args(name));
+    auto file = fmt::format(fmt::runtime(path), name);
     std::cout << "Open file: "s << file << std::endl;
     Timer t;
     t.start();
@@ -51,7 +51,7 @@ int test2(std::string_view path, const std::string &name)
 //  Test that descriptive elements can be added or updated
 int test3(std::string_view path, const std::string &name)
 {
-    auto file = std::vformat(path, std::make_format_args(name));
+    auto file = fmt::format(fmt::runtime(path), name);
     std::cout << "Open file: "s << file << std::endl;
     Timer t;
     t.start();
@@ -74,7 +74,7 @@ int test3(std::string_view path, const std::string &name)
 //  Test that element can be found by Id and updated
 int test4(std::string_view path, const std::string &name, const std::string &id)
 {
-    auto file = std::vformat(path, std::make_format_args(name));
+    auto file = fmt::format(fmt::runtime(path), name);
     std::cout << "Open file: "s << file << std::endl;
     Timer t;
     t.start();
@@ -110,7 +110,7 @@ int test4(std::string_view path, const std::string &name, const std::string &id)
 //  Test that file can be opened and saved without error
 int test5(std::string_view path, const std::string &name, const std::string &id)
 {
-    auto file = std::vformat(path, std::make_format_args(name));
+    auto file = fmt::format(fmt::runtime(path), name);
     std::cout << "Test5: Copy/Add elements to file: "s << file << std::endl;
     Timer t;
     t.start();
@@ -153,7 +153,7 @@ int test6(std::string_view path, const std::string &name)
     std::array<std::string, 6> srcNames{"and", "inverter", "nand", "nor", "or", "xor"};
     std::vector<std::string> srcFiles;
     for (auto &srcName : srcNames) {
-        srcFiles.push_back(std::vformat(path, std::make_format_args(srcName)));
+        srcFiles.push_back(fmt::format(fmt::runtime(path), srcName));
     }
     std::cout << "Test6: Create library file: "s << name << std::endl;
 

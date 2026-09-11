@@ -7,7 +7,7 @@
 // change without notice.
 
 //	Standard library
-#include <format>
+#include <fmt/format.h>
 #include <list>
 #include <ranges>
 #include <string>
@@ -87,7 +87,7 @@ public:
         //	Output atributes as string
         for (const auto &attr : attrs_) {
             //	Output attributes
-            std::string head = std::format(" {0}=\"{1}\"", attr.first, attr.second);
+            std::string head = fmt::format(" {0}=\"{1}\"", attr.first, attr.second);
 
             data.append(head);
         }

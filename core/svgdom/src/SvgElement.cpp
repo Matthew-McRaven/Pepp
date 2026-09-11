@@ -345,27 +345,27 @@ bool SvgElement::attributeXml(SvgRope &output) const
     bool hasAttributes = false;
     if (!_id.empty()) {
         hasAttributes = true;
-        buffer = std::format(" id=\"{}\"", _id);
+        buffer = fmt::format(" id=\"{}\"", _id);
         output.push_back(std::move(buffer));
     }
     if (!_x.empty()) {
         hasAttributes = true;
-        buffer = std::format(" x=\"{}\"", _x.toString());
+        buffer = fmt::format(" x=\"{}\"", _x.toString());
         output.push_back(std::move(buffer));
     }
     if (!_y.empty()) {
         hasAttributes = true;
-        buffer = std::format(" y=\"{}\"", _y.toString());
+        buffer = fmt::format(" y=\"{}\"", _y.toString());
         output.push_back(std::move(buffer));
     }
     if (!_width.empty()) {
         hasAttributes = true;
-        buffer = std::format(" width=\"{}\"", _width.toString());
+        buffer = fmt::format(" width=\"{}\"", _width.toString());
         output.push_back(std::move(buffer));
     }
     if (!_height.empty()) {
         hasAttributes = true;
-        buffer = std::format(" height=\"{}\"", _height.toString());
+        buffer = fmt::format(" height=\"{}\"", _height.toString());
         output.push_back(std::move(buffer));
     }
 

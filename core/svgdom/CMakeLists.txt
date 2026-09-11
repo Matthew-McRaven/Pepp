@@ -27,6 +27,6 @@ add_executable(
   src/SvgFactory.hpp
   src/XmlAttributes_p.hpp
   src/utility_p.hpp)
-target_link_libraries(SvgDom PUBLIC rapidxml)
+target_link_libraries(SvgDom PUBLIC rapidxml fmt)
 
 set_target_properties(SvgDom PROPERTIES FOLDER "qtc_runnable")

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <chrono>
-#include <format>
+#include <fmt/format.h>
 
 using namespace std::chrono;
 using namespace std::string_literals;
@@ -61,7 +61,7 @@ public:
         std::string ss;
 
         //  Apply formatting based on time
-        ss = std::format("{}: {:L} {}/sec: {:L}. Elapsed: {}",
+        ss = fmt::format("{}: {:L} {}/sec: {:L}. Elapsed: {}",
                          label,
                          cnt,
                          item,
@@ -86,27 +86,27 @@ public:
             const auto secs = round<milliseconds>(hms.seconds() + hms.subseconds()).count()
                               / 1000.0;
 
-            ss = std::format("{}:{:02}:{:06.3f}", hms.hours().count(), hms.minutes().count(), secs);
+            ss = fmt::format("{}:{:02}:{:06.3f}", hms.hours().count(), hms.minutes().count(), secs);
         } else if (hms.minutes().count() > 0) {
             //  Convert to milliseconds
             const auto secs = round<milliseconds>(hms.seconds() + hms.subseconds()).count()
                               / 1000.0;
-            ss = std::format("{}:{:06.3f}", hms.minutes().count(), secs);
+            ss = fmt::format("{}:{:06.3f}", hms.minutes().count(), secs);
         } else if (hms.seconds().count() > 0) {
             //  Convert to milliseconds
             const auto secs = round<milliseconds>(hms.seconds() + hms.subseconds()).count()
                               / 1000.0;
-            ss = std::format("{:.3f}", secs);
+            ss = fmt::format("{:.3f}", secs);
         } else if (hms.subseconds() > 1ms) {
             //  Convert to milliseconds
             const auto ticks = round<milliseconds>(hms.subseconds()).count();
-            ss = std::format("{:L}ms", ticks);
+            ss = fmt::format("{:L}ms", ticks);
         } else if (hms.subseconds() > 1us) {
             //  Convert to microseconds
             const auto ticks = round<microseconds>(hms.subseconds()).count();
-            ss = std::format("{:L}\xB5s", ticks);
+            ss = fmt::format("{:L}\xB5s", ticks);
         } else
-            ss = std::format("{:L}ns", hms.subseconds().count());
+            ss = fmt::format("{:L}ns", hms.subseconds().count());
 
         return ss;
     }

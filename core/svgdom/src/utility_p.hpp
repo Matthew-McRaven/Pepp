@@ -2,7 +2,8 @@
 #include <algorithm> //  For std::max
 #include <cassert>   //  For std::assert
 #include <charconv>  //  For std::from_chars
-#include <format>    //  For std::format
+#include <cstdlib>   //  For std::strtod
+#include <fmt/format.h> //  For fmt::format
 #include <limits>    //  For std::numeric_limits
 #include <list>      //  For std::list
 #include <ranges>
@@ -117,7 +118,7 @@ struct SvgUnitValue
 
         //  If value wa never set, do not output value
         if (value != std::numeric_limits<double>::denorm_min())
-            buffer = std::format("{}{}", value, SvgUnits::toString(unit));
+            buffer = fmt::format("{}{}", value, SvgUnits::toString(unit));
         return std::move(buffer);
     }
 };
@@ -184,7 +185,7 @@ public:
 
     const std::string toString() const
     {
-        std::string buffer = std::format("{} {} {} {}",
+        std::string buffer = fmt::format("{} {} {} {}",
                                          _x.toString(),
                                          _y.toString(),
                                          _width.toString(),
