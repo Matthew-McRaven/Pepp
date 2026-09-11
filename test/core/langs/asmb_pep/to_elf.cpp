@@ -14,16 +14,104 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
+#include <sstream>
+#include <string>
+#include <vector>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
+#include "core/math/bitmanip/enums.hpp"
 
 namespace {
+// Read what would actually be written, rather than the in-memory model of it.
+ELFIO::elfio read_back(pepp::tc::ElfResult &result) {
+  const auto bytes = pepp::tc::elf_bytes(result);
+  std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
+  ELFIO::elfio elf;
+  REQUIRE(elf.load(in));
+  return elf;
+}
+struct Symbol {
+  std::string name;
+  unsigned char bind, type;
+  ELFIO::Elf_Half shndx;
+  ELFIO::Elf64_Addr value;
+};
+
+std::vector<Symbol> symbols_of(ELFIO::elfio &elf) {
+  auto *symtab = elf.sections[".symtab"];
+  REQUIRE(symtab != nullptr);
+  ELFIO::symbol_section_accessor accessor(elf, symtab);
+  std::vector<Symbol> ret;
+  for (ELFIO::Elf_Xword it = 0; it < accessor.get_symbols_num(); ++it) {
+    Symbol got;
+    ELFIO::Elf_Xword size;
+    unsigned char other;
+    REQUIRE(accessor.get_symbol(it, got.name, got.value, size, got.bind, got.type, got.shndx, other));
+    ret.push_back(std::move(got));
+  }
+  return ret;
+}
+
+// A section with a known address and size, without going through the assembler's address assignment.
+struct Spec {
+  std::string name;
+  bool r, w, x, z;
+  u32 low, size;
+  u16 align = 1;
+  u32 overstate = 0; // How far the descriptor's address range runs past the data, as .ORG can leave it.
+};
+
+pepp::tc::ElfResult from_specs(const std::vector<Spec> &specs) {
+  using namespace pepp::tc;
+  std::vector<std::pair<SectionDescriptor, IRProgram>> prog;
+  ProgramObjectCodeResult oc;
+  u32 total = 0;
+  for (const auto &spec : specs)
+    if (!spec.z) total += spec.size;
+  oc.object_code.assign(total, 0xAA);
+  oc.relocations.resize(specs.size());
+  u32 at = 0;
+  for (u16 i = 0; i < specs.size(); ++i) {
+    const auto &spec = specs[i];
+    SectionDescriptor desc{
+        .name = spec.name, .flags = SectionFlags(spec.r, spec.w, spec.x, spec.z), .alignment = spec.align};
+    desc.low_address = spec.low, desc.high_address = spec.low + spec.size + spec.overstate;
+    desc.section_index = SectionDescriptor::section_base_index + i;
+    prog.emplace_back(desc, IRProgram{});
+    if (spec.z) oc.section_spans.push_back({});
+    else oc.section_spans.push_back({std::span<u8>(oc.object_code.data() + at, spec.size)}), at += spec.size;
+  }
+  const pepp::core::symbol::LeafTable symbols(2);
+  return sections_to_elf(pepp::bts::ElfBits::b32, pepp::bts::ElfEndian::be, pepp::bts::ElfMachineType::EM_PEP10,
+                         prog, oc, symbols);
+}
+
+struct Segment {
+  u32 flags;
+  u64 vaddr, filesz, memsz, align, offset;
+};
+
+std::vector<Segment> segments_of(pepp::tc::ElfResult &result) {
+  auto elf = read_back(result);
+  std::vector<Segment> ret;
+  for (const auto &seg : elf.segments) {
+    REQUIRE(seg->get_type() == ELFIO::PT_LOAD);
+    ret.push_back({seg->get_flags(), seg->get_virtual_address(), seg->get_file_size(), seg->get_memory_size(),
+                   seg->get_align(), seg->get_offset()});
+    const auto align = std::max<u64>(ret.back().align, 1);
+    CHECK(ret.back().offset % align == ret.back().vaddr % align);
+    CHECK(ret.back().memsz > 0);
+  }
+  return ret;
+}
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
 // First line is empty!!
 static const auto ex1 = R"(
@@ -38,15 +126,30 @@ cruel:BR 0
 World:.BYTE 0
 .BYTE 0
 )";
-struct Result {
-  i16 offset;
-  std::string name;
-  auto operator<=>(const Result &other) const {
-    if (offset != other.offset) return offset <=> other.offset;
-    else return name <=> other.name;
-  };
-  bool operator==(const Result &other) const { return (offset == other.offset) && (name == other.name); }
+struct Rela {
+  ELFIO::Elf64_Addr offset;
+  std::string symbol;
+  unsigned type;
+  ELFIO::Elf_Sxword addend;
+  bool operator==(const Rela &) const = default;
 };
+
+std::vector<Rela> relocations_of(ELFIO::elfio &elf, const std::string &name, const std::vector<Symbol> &symbols) {
+  auto *section = elf.sections[name];
+  REQUIRE(section != nullptr);
+  ELFIO::relocation_section_accessor accessor(elf, section);
+  std::vector<Rela> ret;
+  for (ELFIO::Elf_Xword it = 0; it < accessor.get_entries_num(); ++it) {
+    Rela rel;
+    ELFIO::Elf_Word symbol;
+    REQUIRE(accessor.get_entry(it, rel.offset, symbol, rel.type, rel.addend));
+    const auto &sym = symbols.at(symbol);
+    // Like readelf, name a section symbol after its section.
+    rel.symbol = sym.type == ELFIO::STT_SECTION ? elf.sections[sym.shndx]->get_name() : sym.name;
+    ret.push_back(std::move(rel));
+  }
+  return ret;
+}
 } // namespace
 
 TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
@@ -74,13 +177,20 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, result.mmios);
-    pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
-    CHECK(sections.size() == 3);
-    elf_result.elf->save("dummy.elf");
+    REQUIRE(sections.size() == 3);
+    auto elf = read_back(elf_result);
+    // .text is rwx; .data and memvec are both rw and contiguous, so they share one segment.
+    CHECK(elf.segments.size() == 2);
+    for (const auto &[desc, _] : sections) {
+      INFO(desc.name);
+      const auto *sec = elf.sections[desc.name];
+      REQUIRE(sec != nullptr);
+      CHECK(sec->get_address() == desc.low_address);
+    }
   }
-  SECTION("0-sized section") {
+  SECTION("A leading .SECTION does not create an empty implicit section") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(R"(
       .SECTION ".data","rwx"
@@ -95,13 +205,48 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, result.mmios);
-    pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
-    CHECK(sections.size() == 2);
-    elf_result.elf->save("dummy2.elf");
+    // The blank first line joins .data instead of forcing an empty .text into existence.
+    REQUIRE(sections.size() == 1);
+    CHECK(sections[0].first.name == ".data");
+    auto elf = read_back(elf_result);
+    CHECK(elf.sections[".data"] != nullptr);
+    CHECK(elf.sections[".text"] == nullptr);
   }
-  SECTION("With undefined symbols") {
+  SECTION("An explicitly empty section is still emitted") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(
+      main:LDWA 5,i
+      .SECTION "scratch","rw"
+      .SECTION ".data","rw"
+      val:.BLOCK 2)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count() == 0);
+    auto symbol_tab = p.symbol_table();
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+
+    REQUIRE(sections.size() == 3);
+    auto elf = read_back(elf_result);
+    const auto *scratch = elf.sections["scratch"];
+    REQUIRE(scratch != nullptr);
+    CHECK(scratch->get_size() == 0);
+    const auto *data = elf.sections[".data"];
+    REQUIRE(data != nullptr);
+    // Skipping empty sections used to shift every later index; val must still point at .data.
+    const auto symbols = symbols_of(elf);
+    const auto val = std::find_if(symbols.begin(), symbols.end(), [](const auto &sym) { return sym.name == "val"; });
+    REQUIRE(val != symbols.end());
+    CHECK(val->shndx == data->get_index());
+  }
+  SECTION("relocations with undefined symbols") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(R"(
 			a:.BLOCK 2
@@ -125,52 +270,177 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, result.mmios);
-    pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
-    CHECK(object_code.relocations.size() == 4);
-    elf_result.elf->save("needs_rel.elf");
-    auto elf = elf_result.elf.get();
-    REQUIRE(elf->sections.size() == 9);
-    auto symtab = elf->sections[6];
-    CHECK(symtab->get_name() == ".symtab");
-    auto symtab_ac = ELFIO::symbol_section_accessor(*elf, symtab);
-    auto rel_text = elf->sections[7];
-    CHECK(rel_text->get_name() == ".rel.text");
-    auto rel_data = elf->sections[8];
-    CHECK(rel_data->get_name() == ".rel.data");
-    auto rel_text_ac = ELFIO::relocation_section_accessor(*elf, rel_text);
-    auto rel_data_ac = ELFIO::relocation_section_accessor(*elf, rel_data);
-    ELFIO::Elf64_Addr rel_offset;
-    ELFIO::Elf_Word rel_symbol;
-    unsigned rel_type;
-    ELFIO::Elf_Sxword unused;
-    std::string sym_name;
-    ELFIO::Elf64_Addr sym_value;
-    ELFIO::Elf_Xword sym_size;
-    unsigned char sym_bind, sym_type, sym_other;
-    ELFIO::Elf_Half section_index;
-    CHECK(rel_text_ac.get_entries_num() == 3);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf = read_back(elf_result);
+    const auto symbols = symbols_of(elf);
+    // The null symbol and a section symbol per section are local. a is global via .EXPORT, while d and i are global
+    // because they are undefined.
+    REQUIRE(symbols.size() == 6);
+    CHECK(symbols[0].name.empty());
+    // Every section gets one, in order, so prog section i is symbol [1 + i]
+    for (u32 it = 0; it < sections.size(); ++it) {
+      INFO(sections[it].first.name);
+      const auto &sym = symbols.at(1 + it);
+      CHECK(sym.name.empty());
+      CHECK(sym.type == ELFIO::STT_SECTION);
+      CHECK(sym.bind == ELFIO::STB_LOCAL);
+      CHECK(sym.shndx == elf.sections[sections[it].first.name]->get_index());
+    }
+    CHECK(symbols[3].name == "a");
+    CHECK(symbols[3].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[3].shndx == elf.sections[".text"]->get_index());
+    CHECK(symbols[4].name == "d");
+    CHECK(symbols[4].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[4].shndx == ELFIO::SHN_UNDEF);
+    CHECK(symbols[5].name == "i");
+    CHECK(symbols[5].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[5].shndx == ELFIO::SHN_UNDEF);
+    CHECK(elf.sections[".symtab"]->get_info() == 3); // One past the last local.
 
-    // Avoid depending on order of entries in std::multimap.
-    std::set<Result> expected{
-        {2, "i"},
-        {5, "i"},
-        {6, "d"},
-    };
-    for (size_t i = 0; i < expected.size(); i++) {
-      rel_text_ac.get_entry(i, rel_offset, rel_symbol, rel_type, unused);
-      CHECK(symtab_ac.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
-                                 section_index, sym_other));
-      Result local{(i16)rel_offset, sym_name};
-      CHECK(expected.contains(local));
+    using enum pepp::bts::RelocationsPep;
+    // Offsets are of the patched operand specifier, not instruction specifier
+    CHECK(relocations_of(elf, ".rela.text", symbols) ==
+          std::vector<Rela>{{3, "i", bits::to_underlying(R_PEP10_ABS16), 0},
+                            {5, "i", bits::to_underlying(R_PEP10_ABS8), 0},
+                            {6, "d", bits::to_underlying(R_PEP10_ABS16), 0}});
+    // a is global, so it is relocated against itself rather than as an offset into .text.
+    CHECK(relocations_of(elf, ".rela.data", symbols) ==
+          std::vector<Rela>{{1, "a", bits::to_underlying(R_PEP10_ABS16), 0},
+                            {4, "d", bits::to_underlying(R_PEP10_ABS16), 0}});
+    for (const auto *name : {".rela.text", ".rela.data"}) {
+      INFO(name);
+      const auto *rela = elf.sections[name];
+      CHECK(rela->get_type() == ELFIO::SHT_RELA);
+      CHECK(rela->get_link() == elf.sections[".symtab"]->get_index());
+    }
+    CHECK(elf.sections[".rela.text"]->get_info() == elf.sections[".text"]->get_index());
+    CHECK(elf.sections[".rela.data"]->get_info() == elf.sections[".data"]->get_index());
+  }
+  SECTION("relocations with defined symbols") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(
+			c:.EQUATE 5
+			.BLOCK 1
+			l:.WORD 0
+			LDWA l,d
+			LDWA c,i
+			LDWA m,d
+		  .SECTION ".data","rw"
+			.BLOCK 2
+			m:.WORD 0
+			.WORD l
+			.BYTE l
+			.WORD c
+			.WORD m
+)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    for (auto &d : diag) std::cerr << d.second << "\n";
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count() == 0);
+
+    auto symbol_tab = p.symbol_table();
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf = read_back(elf_result);
+    const auto symbols = symbols_of(elf);
+    // Section symbols hold their section's address
+    for (const auto &sym : symbols) {
+      if (sym.type != ELFIO::STT_SECTION) continue;
+      INFO(elf.sections[sym.shndx]->get_name());
+      CHECK(sym.value == elf.sections[sym.shndx]->get_address());
     }
 
-    CHECK(rel_data_ac.get_entries_num() == 1);
-    // Entry 0
-    rel_data_ac.get_entry(0, rel_offset, rel_symbol, rel_type, unused);
-    CHECK(rel_offset == 3);
-    CHECK(symtab_ac.get_symbol((ELFIO::Elf_Xword)rel_symbol, sym_name, sym_value, sym_size, sym_bind, sym_type,
-                               section_index, sym_other));
-    CHECK(sym_name == "d");
+    using enum pepp::bts::RelocationsPep;
+    // Locals are offsets from their section's symbol. The constant c never moves.
+    CHECK(relocations_of(elf, ".rela.text", symbols) ==
+          std::vector<Rela>{{4, ".text", bits::to_underlying(R_PEP10_ABS16), 1},
+                            {10, ".data", bits::to_underlying(R_PEP10_ABS16), 2}});
+    CHECK(relocations_of(elf, ".rela.data", symbols) ==
+          std::vector<Rela>{{4, ".text", bits::to_underlying(R_PEP10_ABS16), 1},
+                            {6, ".text", bits::to_underlying(R_PEP10_ABS8), 1},
+                            {9, ".data", bits::to_underlying(R_PEP10_ABS16), 2}});
+  }
+}
+
+TEST_CASE("Pepp ASM segments derive from sections",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  constexpr u32 rx = 5, rw = 6; // PF_R | PF_X, PF_R | PF_W
+
+  SECTION("Contiguous sections of same flags combine into one segment") {
+    auto result = from_specs({{"a", true, false, true, false, 0, 3}, {"b", true, false, true, false, 3, 3}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 1);
+    CHECK(segs[0].flags == rx);
+    CHECK(segs[0].vaddr == 0);
+    CHECK(segs[0].filesz == 6);
+    CHECK(segs[0].memsz == 6);
+  }
+
+  SECTION("Sections without matching flags are not combined.") {
+    auto result = from_specs({{"a", true, false, true, false, 0, 3}, {"b", true, true, false, false, 3, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 2);
+    CHECK(segs[0].flags == rx);
+    CHECK(segs[1].flags == rw);
+  }
+
+  SECTION("A trailing NOBITS shares the segment with sections before it") {
+    auto result = from_specs({{"data", true, true, false, false, 0, 2}, {"bss", true, true, false, true, 2, 8}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 1);
+    // The loader zero-fills what p_filesz does not cover.
+    CHECK(segs[0].filesz == 2);
+    CHECK(segs[0].memsz == 10);
+  }
+
+  SECTION("File data after a NOBITS starts a new segment") {
+    auto result = from_specs({{"data", true, true, false, false, 0, 2},
+                              {"bss", true, true, false, true, 2, 4},
+                              {"more", true, true, false, false, 6, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 2);
+    CHECK(segs[1].vaddr == 6);
+  }
+
+  SECTION("An address gap starts a new segment") {
+    auto result = from_specs({{"lo", true, true, false, false, 0x10, 2}, {"hi", true, true, false, false, 0x100, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 2);
+    CHECK(segs[0].filesz == 2);
+    CHECK(segs[1].filesz == 2);
+    CHECK(segs[1].offset - segs[0].offset == 2);
+  }
+
+  SECTION("Alignment/padding does not break contiguity") {
+    auto result = from_specs({{"a", true, false, true, false, 0, 3}, {"b", true, false, true, false, 4, 2, 4}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 1);
+    // The strictest member sets the segment's alignment.
+    CHECK(segs[0].align == 4);
+    CHECK(segs[0].memsz == 6);
+  }
+
+  SECTION("An empty section don't start a segment") {
+    auto result = from_specs({{"text", true, true, true, false, 0, 4},
+                              {"empty", true, true, false, false, 4, 0},
+                              {"data", true, true, false, false, 4, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 2);
+    CHECK(segs[1].vaddr == 4);
+    CHECK(segs[1].memsz == 2);
+  }
+
+  SECTION("An empty section joins a segment it fits in") {
+    auto result = from_specs({{"a", true, true, false, false, 0, 2},
+                              {"empty", true, true, false, false, 2, 0},
+                              {"b", true, true, false, false, 2, 2}});
+    const auto segs = segments_of(result);
+    REQUIRE(segs.size() == 1);
+    CHECK(segs[0].memsz == 4);
   }
 }

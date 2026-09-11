@@ -22,6 +22,7 @@
 #include "core/formats/elf/packed_access_hash.hpp"
 #include "core/formats/elf/packed_access_note.hpp"
 #include "core/formats/elf/packed_access_relocations.hpp"
+#include "core/formats/elf/packed_access_strings.hpp"
 #include "core/formats/elf/packed_access_symbol.hpp"
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_fixup.hpp"
@@ -62,6 +63,19 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     CHECK_NOTHROW(elfio.load(in) == true);
     CHECK(elfio.get_class() == ELFIO::ELFCLASS32);
     CHECK(elfio.sections.size() == 2);
+  }
+  SECTION("Empty strings all map to 0") {
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    const auto strtab = add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB);
+    PackedStringWriter<ElfBits::b32, ElfEndian::le> writer(elf, strtab);
+    // A string_view is actually 0-length, as opposed to C's 1-characted, null-terminate string
+    CHECK(writer.add_string(std::string_view{}) == 0);
+    CHECK(writer.add_string("") == 0);
+    // No redundant nulls inserted.
+    CHECK(elf.section_data[strtab]->size() == 1);
+    CHECK(elf.section_headers[strtab].sh_size == 1);
+    CHECK(writer.add_string(std::string_view{"x"}) == 1);
   }
   SECTION("Create shdr table by hand") {
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);

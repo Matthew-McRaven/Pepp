@@ -37,4 +37,4 @@ struct AbsoluteFixup {
   std::function<void()> update;
 };
 
-} // namespace pepp::core
+} // namespace pepp::bts

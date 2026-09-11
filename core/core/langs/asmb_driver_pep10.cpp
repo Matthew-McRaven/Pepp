@@ -24,15 +24,13 @@ DriverResult assemble_pep10(const Pep10DriverConfig &, const FormattingConfig &f
   auto split = pepp_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count() > 0) return result;
 
-  auto symbols = pep_parser.symbol_table();
   auto addresses = pepp_assign_addresses(split.grouped_ir);
   auto object_code = pepp_to_object_code(addresses, split.grouped_ir);
   if (fmtcfg.listing_format) {
     auto listing = format_listing(program, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
-  result.elf = pepp_to_elf(split.grouped_ir, addresses, object_code, split.mmios);
-  write_symbol_table(result.elf, *symbols, object_code);
+  result.elf = pepp_to_elf(split.grouped_ir, addresses, object_code, *pep_parser.symbol_table(), split.mmios);
   return result;
 }
 

@@ -5,14 +5,14 @@
 #include "core/compile/ir_linear/attr_section.hpp"
 #include "core/compile/ir_linear/line_base.hpp"
 #include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
+#include "core/formats/elf/packed_elf.hpp"
+#include "core/formats/elf/packed_ops.hpp"
 #include "core/integers.h"
 #include "core/math/bitmanip/leb128.hpp"
 #include "flat/flat_map.hpp"
 #include "fmt/format.h"
 
-namespace ELFIO {
-class elfio;
-}
 namespace pepp::tc {
 
 // Create a lookup data structure that converts IR pointers back to their listing line number.
@@ -26,16 +26,18 @@ using IR2ListingLineMap = fc::flat_map<std::vector<IR2ListingLinePair>, IR2Listi
 
 
 struct ElfResult {
-  std::shared_ptr<ELFIO::elfio> elf;
-  // Some sections in the program are not omitted to to ELF file.
-  // However, we pre-computed section indices in the ELF file in split_to_sections and used these in the symbol table.
-  // [originally computed section index] is the number you need to subtract to get actual index in the output file.
-  std::vector<u16> section_offsets;
+  pepp::bts::AnyGrowableElf elf;
+  // Paired with elf's program headers: the [i]th constraint places the [i]th segment.
+  std::vector<pepp::bts::SegmentLayoutConstraint> segments;
   IR2ListingLineMap ir_to_listing;
 };
 
-// Write out the symbol table and relocations at the same time.
-// Otherwise, we would need to convert all of the symbol::Entry* pointers a second time.
-void write_symbol_table(ElfResult &elf, pepp::core::symbol::LeafTable &symbol_table, const ProgramObjectCodeResult &oc,
-                        const std::string name = ".symtab");
+// One section per entry of `prog`, written straight into a packed file, then the symbol table once every section a
+// symbol can name exists. Shared by every architecture, since only the file header differs between them.
+ElfResult sections_to_elf(pepp::bts::ElfBits bits, pepp::bts::ElfEndian endian, pepp::bts::ElfMachineType machine,
+                          const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                          const ProgramObjectCodeResult &object_code, const pepp::core::symbol::LeafTable &symbols);
+
+// Lay the file out and return its bytes. Empty if there is no file.
+std::vector<u8> elf_bytes(ElfResult &result);
 } // namespace pepp::tc

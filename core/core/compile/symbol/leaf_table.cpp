@@ -27,7 +27,7 @@ pepp::core::symbol::LeafTable::LeafTable(u16 pointer_size) noexcept
       _entries(0, bts::PooledString::Hash(_pool.get()), bts::PooledString::Equals(_pool.get())) {}
 
 pepp::core::symbol::LeafTable::LeafTable(u16 pointer_size, std::shared_ptr<bts::StringPool> pool) noexcept
-    : _pointer_size(pointer_size), _pool(std::make_shared<bts::StringPool>()),
+    : _pointer_size(pointer_size), _pool(pool),
       _entries(0, bts::PooledString::Hash(_pool.get()), bts::PooledString::Equals(_pool.get())) {}
 
 std::size_t pepp::core::symbol::LeafTable::use_count(std::string_view name) const noexcept {
@@ -57,10 +57,10 @@ std::optional<pepp::core::symbol::LeafTable::entry_ptr_t> pepp::core::symbol::Le
 
 pepp::core::symbol::LeafTable::entry_ptr_t pepp::core::symbol::LeafTable::reference(std::string_view name) noexcept {
   // Create a new entry if one does not already exist
-  auto pooled = _pool->insert(name, bts::StringPool::AddNullTerminator::Never);
+  auto pooled = _pool->insert(name);
   if (auto it = _entries.find(pooled); it == _entries.end()) {
     auto sv = _pool->find(pooled).value();
-    return _entries[pooled] = std::make_shared<symbol::Entry>(*this, sv);
+    return _entries[pooled] = std::make_shared<symbol::Entry>(sv);
   } else return it->second;
 }
 

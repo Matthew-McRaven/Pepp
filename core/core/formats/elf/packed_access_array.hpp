@@ -66,4 +66,4 @@ template <ElfBits B, ElfEndian E, bool Const> void PackedArrayAccessor<B, E, Con
   shdr.sh_size = data->size();
 }
 
-} // namespace pepp::core
+} // namespace pepp::bts

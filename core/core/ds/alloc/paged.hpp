@@ -138,6 +138,22 @@ template <std::integral I> struct Slab : public Page<I> {
   // to achieve an integral number of elements.
   // Align bytes should be power-of-two.
   size_t padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept;
+  // As padded_size, but for an allocation placed at `at` rather than at the next free slot. Lets a run
+  // of appends be measured before any of it is written, since each one's alignment depends on where
+  // the previous one left off.
+  size_t padded_size_at(size_t at, size_t count, size_t align_bytes, size_t pad_bytes) const noexcept;
+  // Whether a whole collection of spans fits, given that append() pads and aligns each one individually.
+  template <typename... Spans> bool can_fit_all(size_t byte_align, size_t byte_pad, Spans... spans) const noexcept {
+    size_t at = _used;
+    // Stop at the first span that overflows, so padded_size_at never forms a pointer past the page.
+    const auto fits = [&](size_t count) {
+      const size_t size = padded_size_at(at, count, byte_align, byte_pad);
+      if (size > Page<I>::capacity() - at) return false;
+      at += size;
+      return true;
+    };
+    return (fits(spans.size()) && ...);
+  }
 
 private:
   page_offset_t _used = 0;
@@ -186,6 +202,8 @@ public:
   Slab<I> &page(page_index_t index);
   const Slab<I> &page(page_index_t index) const;
   bits::span<Slab<I> const> pages() const noexcept;
+  auto pages_cbegin() const noexcept { return _pages.cbegin(); }
+  auto pages_cend() const noexcept { return _pages.cend(); }
   /*======================
    *= Element Creation   =
    *======================*/
@@ -286,6 +304,8 @@ Slab<I>::page_offset_t Slab<I>::append(bits::span<const I> data, size_t align, s
 template <std::integral I>
 template <typename... Spans>
 Slab<I>::page_offset_t Slab<I>::append(size_t byte_align, size_t byte_pad, I fill, Spans... spans) {
+  // Measure the whole run before writing any of it.
+  if (!can_fit_all(byte_align, byte_pad, spans...)) throw std::runtime_error("Page overflow");
   page_offset_t first{};
   bool is_first = true;
   ((is_first ? (first = append(spans, byte_align, byte_pad, fill), is_first = false)
@@ -325,8 +345,13 @@ template <std::integral I> typename Slab<I>::page_offset_t Slab<I>::remaining_ca
 
 template <std::integral I>
 size_t Slab<I>::padded_size(size_t count, size_t align_bytes, size_t pad_bytes) const noexcept {
+  return padded_size_at(_used, count, align_bytes, pad_bytes);
+}
+
+template <std::integral I>
+size_t Slab<I>::padded_size_at(size_t at, size_t count, size_t align_bytes, size_t pad_bytes) const noexcept {
   if (align_bytes > alignof(I)) {
-    const std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(this->data() + _used);
+    const std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(this->data() + at);
     const size_t mis = static_cast<size_t>(addr % align_bytes);
     if (mis) count += bits::ceil_div(align_bytes - mis, sizeof(I));
   }
@@ -477,13 +502,12 @@ PagedAllocator<I>::global_offset_t PagedAllocator<I>::allocate_uninitialized(glo
 template <std::integral I>
 PagedAllocator<I>::InsertResult PagedAllocator<I>::insert(bits::span<const I> data, size_t align, size_t pad, I fill) {
   // Walk the pages until we find one that can fit the data.
-  // Keep _page_base in sync with
   for (size_t it = 0; it < _pages.size(); it++)
     if (auto &page = _pages[it]; page.can_fit(data, align, pad)) {
       auto padded_size = page.padded_size(data.size(), align, pad);
       auto inserted_offset = page.append(data, align, pad, fill);
-      // Insert causes _page_base beyond this page to shift forward by allocation size
-      for (size_t jt = it + 1; jt < _pages.size(); jt++) _page_base[jt] += data.size();
+      // Insert causes _page_base beyond this page to shift forward by the actual allocation size
+      for (size_t jt = it + 1; jt < _pages.size(); jt++) _page_base[jt] += padded_size;
       _size += padded_size;
       return InsertResult{.adjust_above = _page_base[it] + inserted_offset,
                           .adjust_by = padded_size,

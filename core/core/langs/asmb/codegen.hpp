@@ -18,7 +18,6 @@ struct SectionAddrInfo {
 
 struct SectionOffsets {
   size_t object_code_offset = 0, object_code_size = 0;
-  size_t reloc_offset = 0, reloc_size = 0;
 };
 } // namespace detail
 
@@ -37,7 +36,7 @@ struct SectionDescriptor {
   // Rather than wait until the elf file has been generated, we can verify (through source code inspection!) the number
   // that will be assigned to the first non-ELF-plumbing section.
   // Then, splitting to sections can increment this counter AND update the symbol declaration's links.
-  static constexpr u16 section_base_index = 3;
+  static constexpr u16 section_base_index = 2; // After the null section and .shstrtab.
   u16 section_index = section_base_index;
 };
 
@@ -232,18 +231,17 @@ struct IR2ObjectComparator {
 };
 using IR2ObjectCodeMap = fc::flat_map<std::vector<IR2ObjectPair>, IR2ObjectComparator>;
 
-struct StaticRelocation {
-  // Offset into a section's object code (in bytes) which needs relocation.
-  // Per ELF spec, needs to be offset for relocatable object files rather than an address to simplify linker.
-  u32 section_offset;
-  u32 section_idx; // section index in prog, not ELF.
+struct Relocation {
+  // Equivalent to hi bytes of r_info, which contain the symbol against which relocation is performed.
+  std::shared_ptr<pepp::core::symbol::Entry> symbol;
+  u32 section_offset; // Offset into a section's object code (in bytes) of the field which needs relocation.
+  u32 type; // Architecture specific, e.g., RelocationsPep.
 };
 
 struct ProgramObjectCodeResult {
   IR2ObjectCodeMap ir_to_object_code;
-  // Group relocations by symbol rather than by section so that we can write the symbol table and relocations
-  // simultaneously.
-  std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> relocations;
+  // Indexed like prog, with each sections' relocations kept in insertion order.
+  std::vector<std::vector<Relocation>> relocations;
   // A common arena for all section's object code
   std::vector<u8> object_code;
   struct SectionSpans {
@@ -270,6 +268,7 @@ ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable<Address> &addr
   ret.object_code.resize(object_size, 0);
   ret.ir_to_object_code.container.reserve(ir_count);
   ret.section_spans.reserve(prog.size());
+  ret.relocations.resize(prog.size());
 
   for (u32 it = 0; it < prog.size(); it++) {
     const auto &[sec, ir] = prog[it];
@@ -278,10 +277,8 @@ ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable<Address> &addr
     auto code_end = code_begin + offset.object_code_size;
 
     auto oc_subspan = bits::span<u8>(code_begin, code_end);
-    Visitor visitor(addresses, sec.low_address, it, oc_subspan, ret.relocations, ret.ir_to_object_code);
-    offset.reloc_offset = ret.relocations.size();
+    Visitor visitor(addresses, sec.low_address, oc_subspan, ret.relocations[it], ret.ir_to_object_code);
     for (const auto &line : ir) visitor.accept(line.get());
-    offset.reloc_size = offset.reloc_offset - ret.relocations.size();
   }
 
   // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate

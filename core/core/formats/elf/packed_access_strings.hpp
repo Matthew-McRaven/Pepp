@@ -75,7 +75,12 @@ word<B> PackedStringAccessor<B, E, Const>::find(std::string_view needle) const n
 template <ElfBits B, ElfEndian E, bool Const>
 word<B> PackedStringAccessor<B, E, Const>::add_string(std::span<const char> str) {
   // Ensure the first character is always null
-  if (strtab->size() == 0) strtab->template append<u8>(0);
+  if (strtab->size() == 0) {
+    strtab->template append<u8>(0);
+    shdr.sh_size = strtab->size();
+  }
+  // Short-circuit evaluation to make all null-strings point to byte 0. string_view might have no terminator.
+  if (str.empty() || (str.size() == 1 && str[0] == 0)) return 0;
   const word<B> new_size = str.size() + (str.back() != '\0' ? 1 : 0);
   const word<B> ret = strtab->allocate(new_size);
   strtab->set(ret, std::span<const u8>{(const u8 *)str.data(), str.size()});
@@ -100,4 +105,4 @@ word<B> PackedStringAccessor<B, E, Const>::add_string(const std::string &str) {
   return add_string(std::span{str});
 }
 
-} // namespace pepp::core
+} // namespace pepp::bts

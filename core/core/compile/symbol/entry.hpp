@@ -21,7 +21,6 @@
 #include "core/compile/symbol/types.hpp"
 
 namespace pepp::core::symbol {
-class LeafTable;
 class AbstractValue;
 
 /*!
@@ -48,7 +47,7 @@ class AbstractValue;
 class Entry {
 public:
   // Default constructor, assumes value is symbol::value_empty
-  Entry(symbol::LeafTable &parent, std::string_view name) noexcept;
+  explicit Entry(std::string_view name) noexcept;
   ~Entry() = default;
 
   //! Keep track of how many times this symbol's name has been defined.
@@ -59,10 +58,10 @@ public:
   Visibility visibility = Visibility::Default;
   //! Unique name as appearing in source code.
   std::string_view name;
-  //! Non-owning reference to containing symbol table.
-  typename symbol::LeafTable &parent;
   // The value taken on by this symbol.
   std::shared_ptr<symbol::AbstractValue> value;
+  // TODO: to be removed. It is often set to a guessed section index frin before the section header table is finalized.
+  // It is computationally expensive to keep this value in sync while modifying section header table.
   u16 section_index = 0;
 
   bool is_singly_defined() const noexcept;

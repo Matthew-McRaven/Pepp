@@ -11,8 +11,8 @@
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
+#include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/codegen.hpp"
-#include "core/langs/asmb/elfio_utils.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/math/bitmanip/copy.hpp"
@@ -23,11 +23,29 @@
 pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(DiagnosticTable &diag, IRProgram &prog,
                                                                       SectionDescriptor initial_section) {
   PeppSectionAnalysisResults ret;
-  ret.grouped_ir.emplace_back(std::make_pair(initial_section, pepp::tc::IRProgram{}));
   auto &grouped_ir = ret.grouped_ir;
-  auto *active = &grouped_ir[0];
+  // Only create sections as-needed.
+  decltype(&grouped_ir[0]) active = nullptr;
+  // Blank / comment lines should not force a section to exist but should still be emitted in source order.
+  pepp::tc::IRProgram pending;
+  const auto contributes_nothing = [](const auto &line) {
+    return line->type() == static_cast<int>(LinearIRType::Empty) ||
+           line->type() == static_cast<int>(LinearIRType::Comment);
+  };
+  // Opening a section takes pending lines as its prefix.
+  const auto open_section = [&](const SectionDescriptor &desc) {
+    grouped_ir.emplace_back(std::make_pair(desc, std::move(pending)));
+    pending.clear();
+    active = &grouped_ir.back();
+  };
 
   for (auto &line : prog) {
+    if (!active && contributes_nothing(line)) {
+      pending.emplace_back(line);
+      continue;
+    } else if (line->type() != DotSection::TYPE && !active)
+      open_section(initial_section); // Code-generating lines must belong to a section.
+
     // TODO: Check all symbol usages are not undefined
     // TODO: .BURN for this section.
     using Type = LinearIRType;
@@ -46,8 +64,7 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
         pepp::tc::SectionDescriptor desc{.name = name, .flags = flags};
         // Compute the index in the ELF file which this section will become.
         desc.section_index = desc.section_base_index + ret.grouped_ir.size();
-        grouped_ir.emplace_back(std::make_pair(desc, pepp::tc::IRProgram{}));
-        active = &grouped_ir.back();
+        open_section(desc);
       } else if (existing_sec->first.flags != flags) {
         throw std::logic_error("Modifying flags for an existing section");
       } else active = &*existing_sec;
@@ -90,6 +107,9 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
 
     active->second.emplace_back(line);
   }
+
+  // Whole file was comments, but still create a section to hold our pending lines for the sake of formatting.
+  if (!pending.empty()) open_section(initial_section);
   return ret;
 }
 
@@ -105,14 +125,13 @@ pepp::tc::pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgr
 namespace pepp::tc {
 struct PeppObjectVistitor : public PepIRVisitor {
   const IRMemoryAddressTable<PeppAddress> &ir_to_address;
-  const u16 base_address, section_idx;
+  const u16 base_address;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
-  std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocations;
+  std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  PeppObjectVistitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, const u16 section_idx,
-                     bits::span<u8>, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &,
-                     IR2ObjectCodeMap &);
+  PeppObjectVistitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, bits::span<u8>,
+                     std::vector<Relocation> &, IR2ObjectCodeMap &);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const MonadicInstruction *) override;
@@ -129,11 +148,19 @@ struct PeppObjectVistitor : public PepIRVisitor {
 };
 
 pepp::tc::PeppObjectVistitor::PeppObjectVistitor(
-    const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address, const u16 section_idx,
-    bits::span<u8> out_bytes, std::multimap<std::shared_ptr<pepp::core::symbol::Entry>, StaticRelocation> &relocs,
-    IR2ObjectCodeMap &ir_to_object_code)
-    : ir_to_address(ir_to_address), base_address(base_address), section_idx(section_idx), out_bytes(out_bytes),
-      relocations(relocs), ir_to_object_code(ir_to_object_code) {}
+    const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address, bits::span<u8> out_bytes,
+    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
+      ir_to_object_code(ir_to_object_code) {}
+
+namespace {
+// The linker fills in undefined symbols, and addresses of code/data may shift. Constants cannot move.
+bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
+  using enum pepp::core::symbol::Type;
+  const auto &value = symbol.value;
+  return symbol.is_undefined() || value == nullptr || value->type() == Object || value->type() == Code;
+}
+} // namespace
 
 void pepp::tc::PeppObjectVistitor::visit(const EmptyLine *) {
   // Does not generate object code
@@ -152,13 +179,13 @@ void pepp::tc::PeppObjectVistitor::visit(const MonadicInstruction *line) {
 void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   auto addr_info = ir_to_address.at(line);
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
-  // Emit relocations for undefined symbolic arguments.
   auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
   if (as_symbolic_arg != nullptr) {
     auto symbol = as_symbolic_arg->symbol();
-    if (symbol->is_undefined()) {
-      u16 offset = addr_info.address - base_address;
-      relocations.insert({symbol, StaticRelocation{.section_offset = offset, .section_idx = section_idx}});
+    if (needs_relocation(*symbol)) {
+      u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
+      const auto type = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16);
+      relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
     }
   }
   (void)line->argument.value->serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
@@ -175,13 +202,14 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAlign *line) {
 
 void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
-  // Emit relocations for undefined symbolic arguments.
   auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
   if (as_symbolic_arg != nullptr) {
     auto symbol = as_symbolic_arg->symbol();
-    if (symbol->is_undefined()) {
+    if (needs_relocation(*symbol)) {
+      using enum pepp::bts::RelocationsPep;
       u16 offset = addr_info.address - base_address;
-      relocations.insert({symbol, StaticRelocation{.section_offset = offset, .section_idx = section_idx}});
+      const auto type = bits::to_underlying(addr_info.size == 1 ? R_PEP10_ABS8 : R_PEP10_ABS16);
+      relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
     }
   }
   (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
@@ -238,21 +266,6 @@ ProgramObjectCodeResult pepp_to_object_code(const IRMemoryAddressTable<PeppAddre
 }
 
 } // namespace pepp::tc
-
-static std::shared_ptr<ELFIO::elfio> create_elf() {
-  SPDLOG_INFO("Creating pep/10 ELF");
-  static const char p10mac[2] = {'p', 'x'};
-  u16 mac;
-  bits::memcpy_endian({(u8 *)&mac, 2}, bits::hostOrder(), {(const u8 *)p10mac, 2}, bits::Order::BigEndian);
-  auto ret = std::make_shared<ELFIO::elfio>();
-  ret->create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
-  ret->set_os_abi(ELFIO::ELFOSABI_NONE);
-  ret->set_type(ELFIO::ET_EXEC);
-  ret->set_machine(mac);
-  // Create strtab/notes early, so that it will be before any code sections.
-  pepp::tc::addStrTab(*ret);
-  return ret;
-}
 
 pepp::tc::IR2ListingLineMap
 write_line_mapping(ELFIO::elfio &elf,
@@ -312,101 +325,14 @@ write_line_mapping(ELFIO::elfio &elf,
 pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                           const IRMemoryAddressTable<PeppAddress> &addrs,
                                           const ProgramObjectCodeResult &object_code,
+                                          const pepp::core::symbol::LeafTable &symbols,
                                           const std::vector<obj::IO> &mmios) {
+  using namespace pepp::bts;
+  SPDLOG_INFO("Creating pep/10 ELF");
+  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, prog, object_code, symbols);
 
-  ELFIO::segment *activeSeg = nullptr;
-  ElfResult ret;
-  ret.elf = create_elf();
-  ret.section_offsets.resize(prog.size(), 0);
-
-  auto getOrCreateBSS = [&](SectionFlags &flags) {
-    if (activeSeg == nullptr || activeSeg->get_file_size() != 0) {
-      activeSeg = ret.elf->segments.add();
-      activeSeg->set_type(ELFIO::PT_LOAD);
-      ELFIO::Elf_Word elfFlags = 0;
-      elfFlags |= flags.r ? ELFIO::PF_R : 0;
-      elfFlags |= flags.w ? ELFIO::PF_W : 0;
-      elfFlags |= flags.x ? ELFIO::PF_X : 0;
-      activeSeg->set_flags(elfFlags);
-      activeSeg->set_physical_address(-1);
-      activeSeg->set_virtual_address(-1);
-    }
-    return activeSeg;
-  };
-
-  auto getOrCreateBits = [&](SectionFlags &flags) {
-    if (activeSeg == nullptr || activeSeg->get_file_size() == 0 ||
-        !(((activeSeg->get_flags() & ELFIO::PF_R) > 0 == flags.r) &&
-          ((activeSeg->get_flags() & ELFIO::PF_W) > 0 == flags.w) &&
-          ((activeSeg->get_flags() & ELFIO::PF_X) > 0 == flags.x))) {
-      activeSeg = ret.elf->segments.add();
-      activeSeg->set_type(ELFIO::PT_LOAD);
-      ELFIO::Elf_Word elfFlags = 0;
-      elfFlags |= flags.r ? ELFIO::PF_R : 0;
-      elfFlags |= flags.w ? ELFIO::PF_W : 0;
-      elfFlags |= flags.x ? ELFIO::PF_X : 0;
-      activeSeg->set_flags(elfFlags);
-      activeSeg->set_physical_address(-1);
-      activeSeg->set_virtual_address(-1);
-    }
-    return activeSeg;
-  };
-
-  u32 skipped_sections = 0;
-  std::vector<size_t> section_memory_sizes(prog.size(), 0);
-  for (u32 it = 0; it < prog.size(); it++) {
-    auto &sec = prog[it].first;
-    section_memory_sizes[it] = sec.high_address - sec.low_address;
-  }
-  for (u32 it = 0; it < prog.size(); it++) {
-    ret.section_offsets[it] = skipped_sections;
-    if (section_memory_sizes[it] == 0) { // 0-sized sections are meaningless, do not emit.
-      skipped_sections++;
-      continue;
-    }
-
-    auto &sec_desc = prog[it].first;
-
-    SPDLOG_INFO("{} creating", sec_desc.name);
-
-    auto sec = ret.elf->sections.add(sec_desc.name);
-    if (sec->get_index() != (sec_desc.section_index - skipped_sections))
-      throw std::logic_error("Mismatch in pre-computed section index");
-    // All sections from AST correspond to bits in Pep/10 memory, so alloc
-    auto shFlags = ELFIO::SHF_ALLOC;
-    shFlags |= sec_desc.flags.x ? ELFIO::SHF_EXECINSTR : 0;
-    shFlags |= sec_desc.flags.w ? ELFIO::SHF_WRITE : 0;
-    sec->set_flags(shFlags);
-    sec->set_addr_align(sec_desc.alignment);
-    SPDLOG_TRACE("{} sized at {:x}", sec_desc.name, section_memory_sizes[it]);
-
-    if (sec_desc.flags.z) {
-      SPDLOG_TRACE("{} zeroed", sec_desc.name);
-      sec->set_type(ELFIO::SHT_NOBITS);
-      sec->set_size(section_memory_sizes[it]);
-    } else {
-      auto sec_data = object_code.section_spans[it];
-      SPDLOG_TRACE("{} assigned {:x} bytes", sec_desc.name, sec_data.object_code.size());
-      // Cannot convert between quint8 and qint8 without reinterpret cast. Sorry for future linter errors.
-      sec->set_data(reinterpret_cast<char *>(sec_data.object_code.data()), sec_data.object_code.size_bytes());
-      sec->set_type(ELFIO::SHT_PROGBITS);
-    }
-
-    if (sec_desc.flags.z) getOrCreateBSS(sec_desc.flags);
-    else getOrCreateBits(sec_desc.flags);
-
-    activeSeg->add_section(sec, sec_desc.alignment);
-    activeSeg->set_physical_address(
-        std::min<ELFIO::Elf64_Addr>(activeSeg->get_physical_address(), sec_desc.low_address));
-    activeSeg->set_virtual_address(std::min<ELFIO::Elf64_Addr>(activeSeg->get_virtual_address(), sec_desc.low_address));
-    SPDLOG_TRACE("{} base address set to {:x}", sec_desc.name, sec_desc.low_address);
-
-    // Field not re-computed on its own. Failure to compute will cause readelf to crash.
-    // TODO: in the future, handle alignment correctly?
-    // if (isOS) activeSeg->set_memory_size(activeSeg->get_memory_size() + size);
-  }
-
-  ret.ir_to_listing = write_line_mapping(*ret.elf, prog, addrs, object_code);
+  // TODO: restore once .debug_line can be written to a packed file.
+  // ret.ir_to_listing = write_line_mapping(*ret.elf, prog, addrs, object_code);
 
   /*ELFIO::section *symTab = nullptr;
   for (auto &sec : ret->sections)

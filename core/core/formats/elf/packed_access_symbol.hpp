@@ -385,4 +385,4 @@ void PackedSymbolVersionAccessor<B, E, Const>::set_version(u32 index, u16 versio
   *(data->template get<U16<E>>(index)) = version;
 }
 
-} // namespace pepp::core
+} // namespace pepp::bts

@@ -15,6 +15,7 @@
  */
 
 #include <catch.hpp>
+#include <sstream>
 #include "core/arch/riscv/asmb/rvi_patterns.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/symbol/entry.hpp"
@@ -51,12 +52,16 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(addresses.at(&*instr).address == 0xfeed);
     CHECK(addresses.at(&*instr).size == 4);
     auto object_code = pepp::tc::riscv_to_object_code(addresses, sections);
-    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code);
-    pepp::tc::write_symbol_table(elf_result, *symbol_tab, object_code);
-    elf_result.elf->save("dummy_riscv.elf");
-    CHECK(elf_result.elf->sections[".text"]->get_size() == 4);
+    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *symbol_tab);
+    // Read what would actually be written, rather than the in-memory model of it.
+    const auto bytes = pepp::tc::elf_bytes(elf_result);
+    std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
+    ELFIO::elfio elf;
+    REQUIRE(elf.load(in));
+    REQUIRE(elf.sections[".text"] != nullptr);
+    CHECK(elf.sections[".text"]->get_size() == 4);
     // Per samples directory, bytes should be little-endian b3 00 31 00
-    auto text_section = elf_result.elf->sections[".text"];
+    auto text_section = elf.sections[".text"];
     auto data = text_section->get_data();
     CHECK((u8)data[0] == 0xb3);
     CHECK((u8)data[1] == 0x00);
