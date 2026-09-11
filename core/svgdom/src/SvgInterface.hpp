@@ -59,9 +59,4 @@ public:
     {
         return std::unique_ptr<Self>(static_cast<Self *>(self.cloneImpl()));
     }
-    /*template<typename Self>
-    Self *derived(this const Self &self)
-    {
-        return static_cast<Self *>(self.cloneImpl());
-    }*/
 };

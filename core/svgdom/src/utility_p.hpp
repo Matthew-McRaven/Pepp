@@ -87,23 +87,28 @@ struct SvgUnitValue
     }
 
     bool empty() const { return value == std::numeric_limits<double>::denorm_min(); }
-    bool fromString(const std::string_view sv)
-    {
-        double result{};
-        auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);
+    bool fromString(const std::string_view sv) {
+      double result;
+#if PEPP_HAS_DOUBLE_FROM_CHARS
+      // macOS 10.15 (Catalina) or later
+      auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);
+#else
+      char *endptr;
+      result = std::strtod(sv.data(), &endptr);
+      std::errc ec = (endptr == sv.data()) ? std::errc::invalid_argument : std::errc();
+      const char *ptr = endptr;
+#endif
 
-        //  Check for parsing error, return if error
-        if (ec != std::errc())
-            return false;
+      //  Check for parsing error, return if error
+      if (ec != std::errc()) return false;
 
-        SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None;
-        if (ptr < sv.data() + sv.size())
-            u = SvgUnits::fromString(ptr);
+      SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None;
+      if (ptr < sv.data() + sv.size()) u = SvgUnits::fromString(ptr);
 
-        value = result;
-        unit = u;
+      value = result;
+      unit = u;
 
-        return true;
+      return true;
     }
 
     const std::string toString() const
