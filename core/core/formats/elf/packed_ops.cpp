@@ -16,6 +16,9 @@
  */
 
 #include "core/formats/elf/packed_ops.hpp"
+#include <algorithm>
+#include <array>
+#include <ostream>
 #include "core/math/bitmanip/copy.hpp"
 
 u64 pepp::bts::size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) noexcept {
@@ -31,4 +34,26 @@ void pepp::bts::write(std::span<u8> out, const std::vector<LayoutItem> &layout) 
     std::span<u8> chunk = out.subspan(item.offset, item.data.size());
     bits::memcpy<u8, u8>(chunk, {item.data});
   }
+}
+
+void pepp::bts::write(std::ostream &out, std::vector<LayoutItem> layout) {
+  static constexpr std::array<char, 256> zeros{};
+  const u64 end = size_for_layout(layout);
+  u64 at = 0;
+  const auto pad_to = [&](u64 offset) {
+    while (at < offset) {
+      const auto count = std::min<u64>(offset - at, zeros.size());
+      out.write(zeros.data(), static_cast<std::streamsize>(count));
+      at += count;
+    }
+  };
+  std::ranges::sort(layout, {}, &LayoutItem::offset);
+  for (const auto &item : layout) {
+    if (item.data.empty()) continue;
+    if (item.offset < at) throw std::runtime_error("Elf::write: layout items overlap");
+    pad_to(item.offset);
+    out.write(reinterpret_cast<const char *>(item.data.data()), static_cast<std::streamsize>(item.data.size()));
+    at += item.data.size();
+  }
+  pad_to(end); // An empty trailing item still extends the file, as it does for the span overload.
 }

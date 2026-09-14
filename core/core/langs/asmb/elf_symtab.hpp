@@ -40,4 +40,6 @@ ElfResult sections_to_elf(pepp::bts::ElfBits bits, pepp::bts::ElfEndian endian, 
 
 // Lay the file out and return its bytes. Empty if there is no file.
 std::vector<u8> elf_bytes(ElfResult &result);
+// Write elf output to a stream without an intermediate vector in memory.
+void write_elf(ElfResult &result, std::ostream &out);
 } // namespace pepp::tc
