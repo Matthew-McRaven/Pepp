@@ -126,6 +126,9 @@ struct AStorage {
 
 // Vector-backed storage
 struct BlockStorage : public AStorage {
+  BlockStorage() = default;
+  // Adopts already-serialized bytes without copying them.
+  explicit BlockStorage(std::vector<char> &&storage) noexcept;
   // AStorage interface
   size_t append(bits::span<const u8> data) override;
   size_t allocate(size_t size, u8 fill = 0) override;

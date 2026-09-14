@@ -268,16 +268,10 @@ ProgramObjectCodeResult pepp_to_object_code(const IRMemoryAddressTable<PeppAddre
 } // namespace pepp::tc
 
 pepp::tc::IR2ListingLineMap
-write_line_mapping(ELFIO::elfio &elf,
+write_line_mapping(pepp::tc::ElfResult &result,
                    const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>> &prog,
                    const pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress> &addrs,
                    const pepp::tc::ProgramObjectCodeResult &object_code) {
-  auto line_section = pepp::tc::getLineMappingSection(elf);
-  if (line_section == nullptr) {
-    line_section = elf.sections.add(pepp::tc::lineMapStr);
-    line_section->set_type(ELFIO::SHT_PROGBITS);
-  }
-
   // Compute the the listing line for each IR in the re-arranged source program.
   // Assumes 3 bytes of object code per listing line.
   pepp::tc::IR2ListingLineMap ret;
@@ -297,7 +291,8 @@ write_line_mapping(ELFIO::elfio &elf,
   }
   std::sort(ret.container.begin(), ret.container.end(), pepp::tc::IR2ListingLineComparator{});
 
-  auto [data, in, out] = zpp::bits::data_in_out();
+  std::vector<char> data;
+  zpp::bits::out out(data);
   pepp::tc::BinaryLineMapping prev;
   bool first = true;
   for (const auto &sec : prog) {
@@ -318,7 +313,13 @@ write_line_mapping(ELFIO::elfio &elf,
       prev = current, first = false;
     }
   }
-  line_section->append_data((const char *)data.data(), out.position());
+  data.resize(out.position());
+  const auto visitor = [&](auto &file) {
+    if (!file) return;
+    const auto index = pepp::bts::add_named_section(*file, pepp::tc::lineMapStr, pepp::bts::SectionTypes::SHT_PROGBITS);
+    file->section_data[index] = std::make_shared<pepp::bts::BlockStorage>(std::move(data));
+  };
+  std::visit(visitor, result.elf);
   return ret;
 }
 
@@ -331,8 +332,7 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
   SPDLOG_INFO("Creating pep/10 ELF");
   auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, prog, object_code, symbols);
 
-  // TODO: restore once .debug_line can be written to a packed file.
-  // ret.ir_to_listing = write_line_mapping(*ret.elf, prog, addrs, object_code);
+  ret.ir_to_listing = write_line_mapping(ret, prog, addrs, object_code);
 
   /*ELFIO::section *symTab = nullptr;
   for (auto &sec : ret->sections)
