@@ -43,23 +43,30 @@ public:
     // Symbols defined with --symdef, in command-line order.
     std::vector<std::pair<std::string, u32>> symdefs;
   };
-  struct RISCVOptions : public Options {};
-  struct PEP10Options : public Options {};
+  struct RISCVOptions {};
+  struct PEP10Options {
+    bool default_macros = true, os_macros = false;
+  };
+  using ArchOptions = std::variant<RISCVOptions, PEP10Options>;
 
-  AsTask(Options &opts, QObject *parent = nullptr);
+  AsTask(Options &opts, ArchOptions arch_opts, QObject *parent = nullptr);
   void run() override;
   // Parses <name>=<value>, where value is a 32-bit integer in signed decimal, unsigned decimal, or 0x-prefixed hex.
   // Negative values are kept as their two's complement.
   static std::optional<std::pair<std::string, u32>> parse_symdef(std::string_view arg);
 
 private:
-  pepp::tc::DriverConfig prepare_riscv();
-  pepp::tc::DriverConfig prepare_pep();
+  pepp::tc::DriverConfig prepare(const RISCVOptions &);
+  pepp::tc::DriverConfig prepare(const PEP10Options &);
   Options &_opts;
+  ArchOptions _arch_opts;
 };
 
 void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static AsTask::Options opts;
+  static AsTask::RISCVOptions rv_opts;
+  static AsTask::PEP10Options pep_opts;
+  static AsTask::ArchOptions arch_opts;
   static std::string a_text;
   static std::string march_text;
   static std::vector<std::string> symdef_text;
@@ -88,16 +95,22 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       ->option_text("<file>");
   // One value per occurrence, so a following source file is not taken as a second definition.
   as_clone
-      ->add_option("--symdef", symdef_text,
-                   "Define a symbol, with a signed decimal, unsigned decimal, or 0x hex value. May be repeated.")
+      ->add_option("--defsym", symdef_text,
+                   "Define a symbol, with a signed decimal, unsigned decimal, or 0x-prefixed hex value.")
       ->option_text("<name>=<value>")
       ->allow_extra_args(false)
       ->take_all()
       ->check(CLI::Validator(
           [](std::string &arg) -> std::string {
-            return AsTask::parse_symdef(arg) ? "" : "expected <name>=<value> with a 32-bit integer value";
+            return AsTask::parse_symdef(arg) ? "" : "expected <name>=<integer value>";
           },
           ""));
+  as_clone
+      ->add_flag("--default-macros,!--no-default-macros", pep_opts.default_macros,
+                 "Insert the default macros (Pep/10 only)")
+      ->default_val(true);
+  as_clone->add_flag("--os-macros,!--no-os-macros", pep_opts.os_macros, "Insert system call macros(Pep/10 only)")
+      ->default_val(true);
 
   as_clone->callback([&]() {
     opts.symdefs.clear();
@@ -123,8 +136,10 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
     } else if (march_text.rfind("pep10", 0) == 0) opts.arch = PA::PEP10;
     else if (march_text.rfind("pep9", 0) == 0) opts.arch = PA::PEP9;
     else if (march_text.rfind("pep8", 0) == 0) opts.arch = PA::PEP8;
+    if (opts.arch == PA::RISCV) arch_opts = rv_opts;
+    else arch_opts = pep_opts;
 
     flags.kind = detail::SharedFlags::Kind::TERM;
-    task = [&](QObject *parent) { return new AsTask(opts, parent); };
+    task = [&](QObject *parent) { return new AsTask(opts, arch_opts, parent); };
   });
 }
