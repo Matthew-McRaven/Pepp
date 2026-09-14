@@ -8,6 +8,7 @@
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/value.hpp"
+#include "core/formats/elf/packed_storage.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 
 namespace pepp::tc {
@@ -242,13 +243,11 @@ struct ProgramObjectCodeResult {
   IR2ObjectCodeMap ir_to_object_code;
   // Indexed like prog, with each sections' relocations kept in insertion order.
   std::vector<std::vector<Relocation>> relocations;
-  // A common arena for all section's object code
-  std::vector<u8> object_code;
-  struct SectionSpans {
-    std::span<u8> object_code;
-  };
-  // Use section indicies from original "prog" and provides only the object code for a particular section descriptor.
-  std::vector<SectionSpans> section_spans;
+  // A common arena for all sections' object code.
+  std::shared_ptr<pepp::bts::BlockStorage> object_code;
+  // Use section indicies from original "prog" and provides only the object code for a particular section descriptor.  Z
+  // sections have no bytes, so their slices are empty.
+  std::vector<pepp::bts::BlockStorage::BlockStorageSlice> section_slices;
 };
 
 template <typename Address, typename Visitor>
@@ -265,36 +264,19 @@ ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable<Address> &addr
     object_size += sec.first.byte_count;
     ir_count += sec.second.size();
   }
-  ret.object_code.resize(object_size, 0);
+  ret.object_code = std::make_shared<pepp::bts::BlockStorage>();
+  ret.object_code->allocate(object_size);
   ret.ir_to_object_code.container.reserve(ir_count);
-  ret.section_spans.reserve(prog.size());
+  ret.section_slices.reserve(prog.size());
   ret.relocations.resize(prog.size());
 
   for (u32 it = 0; it < prog.size(); it++) {
     const auto &[sec, ir] = prog[it];
-    auto &offset = offsets[it];
-    auto code_begin = ret.object_code.begin() + offset.object_code_offset;
-    auto code_end = code_begin + offset.object_code_size;
-
-    auto oc_subspan = bits::span<u8>(code_begin, code_end);
-    Visitor visitor(addresses, sec.low_address, oc_subspan, ret.relocations[it], ret.ir_to_object_code);
+    const auto &offset = offsets[it];
+    auto &slice = ret.section_slices.emplace_back(ret.object_code, offset.object_code_offset, offset.object_code_size);
+    Visitor visitor(addresses, sec.low_address, slice.get(0, slice.size()), ret.relocations[it],
+                    ret.ir_to_object_code);
     for (const auto &line : ir) visitor.accept(line.get());
-  }
-
-  // SectionInfo cannot be created until core loop is complete, because relocation might re-allocate and invalidate
-  // relocation info.
-  using SectionSpans = ProgramObjectCodeResult::SectionSpans;
-  for (u32 it = 0; it < prog.size(); it++) {
-    const auto &[desc, ir] = prog[it];
-    auto &offset = offsets[it];
-    // Z sections need entries in section_spans, but those entries should be empty.
-    if (desc.flags.z) {
-      ret.section_spans.emplace_back(SectionSpans{{}});
-    } else {
-      auto code_begin = ret.object_code.begin() + offset.object_code_offset;
-      auto code_end = code_begin + offset.object_code_size;
-      ret.section_spans.emplace_back(SectionSpans{bits::span<u8>(code_begin, code_end)});
-    }
   }
 
   //  Establish flat-map invariant

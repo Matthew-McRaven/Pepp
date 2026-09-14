@@ -188,9 +188,10 @@ pepp::tc::ElfResult build(ElfMachineType machine,
       extent = desc.high_address - desc.low_address;
       shdr.sh_size = extent;
     } else {
-      const auto bytes = object_code.section_spans[it].object_code;
-      elf->section_data[index]->append(bits::span<const u8>{bytes.data(), bytes.size()});
-      extent = static_cast<u32>(bytes.size());
+      // Shares the assembler's object code rather than copying it.
+      const auto &slice = object_code.section_slices[it];
+      elf->section_data[index] = std::make_shared<BlockStorage::BlockStorageSlice>(slice);
+      extent = static_cast<u32>(slice.size());
     }
     const u32 end = desc.low_address + extent;
 

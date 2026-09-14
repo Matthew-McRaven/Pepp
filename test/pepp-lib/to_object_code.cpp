@@ -56,10 +56,14 @@ TEST_CASE("Pepp ASM object code output",
   CHECK(sections.size() == 3);
   auto addresses = pepp::tc::pepp_assign_addresses(sections);
   auto object_code = pepp_to_object_code(addresses, sections);
-  CHECK(object_code.section_spans.size() == 3);
-  auto s0 = object_code.section_spans[0];
-  CHECK(s0.object_code.size() == 6);
-  CHECK(std::vector<u8>(s0.object_code.begin(), s0.object_code.end()) ==
+  CHECK(object_code.section_slices.size() == 3);
+  const auto bytes_of = [&](size_t it) {
+    const auto &slice = object_code.section_slices.at(it);
+    return slice.get(0, slice.size());
+  };
+  auto s0 = bytes_of(0);
+  CHECK(s0.size() == 6);
+  CHECK(std::vector<u8>(s0.begin(), s0.end()) ==
         std::vector<u8>{0xC1, 0x00, 0x0A, 0x24, 0x00, 0x00});
   auto s02 = sections[0].second[2].get();
   auto s03 = sections[0].second[3].get();
@@ -67,12 +71,12 @@ TEST_CASE("Pepp ASM object code output",
   CHECK(object_code.ir_to_object_code.find(s03) != object_code.ir_to_object_code.end());
   CHECK(object_code.ir_to_object_code.at(s02).size() == 3);
   CHECK(object_code.ir_to_object_code.at(s03).size() == 3);
-  auto s1 = object_code.section_spans[1];
-  CHECK(s1.object_code.size() == 30);
-  CHECK(s1.object_code[0] == 0);
+  auto s1 = bytes_of(1);
+  CHECK(s1.size() == 30);
+  CHECK(s1[0] == 0);
   CHECK(object_code.ir_to_object_code.at(sections[1].second[1].get()).size() == 30);
-  CHECK(std::equal(s1.object_code.begin() + 1, s1.object_code.end(), s1.object_code.begin()));
-  auto s2 = object_code.section_spans[2];
-  CHECK(s2.object_code.size() == 4);
-  CHECK(std::vector<u8>(s2.object_code.begin(), s2.object_code.end()) == std::vector<u8>{0x00, 0x0A, 0x00, 0x00});
+  CHECK(std::equal(s1.begin() + 1, s1.end(), s1.begin()));
+  auto s2 = bytes_of(2);
+  CHECK(s2.size() == 4);
+  CHECK(std::vector<u8>(s2.begin(), s2.end()) == std::vector<u8>{0x00, 0x0A, 0x00, 0x00});
 }
