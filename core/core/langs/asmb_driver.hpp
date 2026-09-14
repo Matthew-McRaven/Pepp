@@ -21,8 +21,12 @@ struct FormattingConfig {
 };
 
 // Per-architecture assembler configuration.
-struct RISCVDriverConfig {};
-struct Pep10DriverConfig {};
+struct RISCVDriverConfig {
+  std::vector<std::pair<std::string, u32>> symdefs;
+};
+struct Pep10DriverConfig {
+  std::vector<std::pair<std::string, u32>> symdefs;
+};
 using DriverConfig = std::variant<RISCVDriverConfig, Pep10DriverConfig>;
 
 struct DriverResult {
@@ -37,5 +41,8 @@ DriverResult assemble(const DriverConfig &config, const FormattingConfig &, std:
 // Per-architecture entry points, for callers that already know the target.
 DriverResult assemble_riscv(const RISCVDriverConfig &config, const FormattingConfig &, std::string source);
 DriverResult assemble_pep10(const Pep10DriverConfig &config, const FormattingConfig &, std::string source);
+
+// A helper to copy command-line / external symbol definitions into a symtab as weak constants.
+void inject_symdefs(std::vector<std::pair<std::string, u32>> symdefs, core::symbol::LeafTable &symtab, u8 byte_width);
 
 } // namespace pepp::tc

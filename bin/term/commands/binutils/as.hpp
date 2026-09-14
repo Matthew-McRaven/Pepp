@@ -16,6 +16,8 @@
 
 #pragma once
 #include <CLI11.hpp>
+#include <optional>
+#include <string_view>
 #include <variant>
 #include <vector>
 #include "../../shared.hpp"
@@ -38,12 +40,17 @@ public:
     pepp::Architecture arch = pepp::Architecture::NO_ARCH;
     // The -march part of  after the family prefix, e.g. "imc" for "rv32imc"; empty for Pep
     std::string arch_variant = "";
+    // Symbols defined with --symdef, in command-line order.
+    std::vector<std::pair<std::string, u32>> symdefs;
   };
   struct RISCVOptions : public Options {};
   struct PEP10Options : public Options {};
 
   AsTask(Options &opts, QObject *parent = nullptr);
   void run() override;
+  // Parses <name>=<value>, where value is a 32-bit integer in signed decimal, unsigned decimal, or 0x-prefixed hex.
+  // Negative values are kept as their two's complement.
+  static std::optional<std::pair<std::string, u32>> parse_symdef(std::string_view arg);
 
 private:
   pepp::tc::DriverConfig prepare_riscv();
@@ -55,6 +62,7 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static AsTask::Options opts;
   static std::string a_text;
   static std::string march_text;
+  static std::vector<std::string> symdef_text;
   static auto as_clone = app.add_subcommand("as", "GNU as-compatible assembler");
   as_clone->allow_non_standard_option_names();
   static const auto march_opt =
@@ -78,8 +86,22 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
 
   as_clone->add_option("-e,--errors", opts.file_errs, "Output errors file name. Defaults to cerr")
       ->option_text("<file>");
+  // One value per occurrence, so a following source file is not taken as a second definition.
+  as_clone
+      ->add_option("--symdef", symdef_text,
+                   "Define a symbol, with a signed decimal, unsigned decimal, or 0x hex value. May be repeated.")
+      ->option_text("<name>=<value>")
+      ->allow_extra_args(false)
+      ->take_all()
+      ->check(CLI::Validator(
+          [](std::string &arg) -> std::string {
+            return AsTask::parse_symdef(arg) ? "" : "expected <name>=<value> with a 32-bit integer value";
+          },
+          ""));
 
   as_clone->callback([&]() {
+    opts.symdefs.clear();
+    for (const auto &arg : symdef_text) opts.symdefs.push_back(*AsTask::parse_symdef(arg));
     opts.format_source_enable = fmt_opts->count() > 0;
     // Use count() rather than a_text.empty(), since a bare "-a"  and an absent "-a" both leave a_text == "".
     opts.listing_enable = a_opts->count() > 0;
