@@ -138,6 +138,24 @@ struct BlockStorage : public AStorage {
   size_t find(bits::span<const u8> data) const noexcept override;
   size_t strlen(size_t offset) const noexcept override;
 
+  struct BlockStorageSlice : public AStorage {
+    BlockStorageSlice(std::shared_ptr<BlockStorage> parent, size_t offset, size_t length);
+    size_t append(bits::span<const u8> data) override;
+    size_t allocate(size_t size, u8 fill = 0) override;
+    void set(size_t offset, bits::span<const u8> data) override;
+    bits::span<u8> get(size_t offset, size_t length) noexcept override;
+    bits::span<const u8> get(size_t offset, size_t length) const noexcept override;
+    size_t size() const noexcept override;
+    void clear(size_t reserve = 0) override;
+    size_t calculate_layout(std::vector<LayoutItem> &layout, size_t dst_offset) const override;
+    size_t find(bits::span<const u8> data) const noexcept override;
+    size_t strlen(size_t offset) const noexcept override;
+
+  private:
+    std::shared_ptr<BlockStorage> _parent = nullptr;
+    size_t _offset = 0, _length = 0;
+  };
+
 private:
   std::vector<char> _storage{};
 };

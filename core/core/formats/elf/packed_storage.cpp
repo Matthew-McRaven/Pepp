@@ -71,6 +71,75 @@ size_t pepp::bts::BlockStorage::strlen(size_t offset) const noexcept {
   return end - start;
 }
 
+pepp::bts::BlockStorage::BlockStorageSlice::BlockStorageSlice(std::shared_ptr<BlockStorage> parent, size_t offset,
+                                                              size_t length)
+    : _parent(parent), _offset(offset), _length(length) {
+  if (!_parent || _offset > _parent->size() || _length > _parent->size() - _offset)
+    throw std::invalid_argument("BlockStorageSlice exceeds its parent");
+}
+
+size_t pepp::bts::BlockStorage::BlockStorageSlice::append(bits::span<const u8> data) {
+  throw std::runtime_error("BlockStorageSlice does not support append()");
+}
+
+size_t pepp::bts::BlockStorage::BlockStorageSlice::allocate(size_t size, u8 fill) {
+  throw std::runtime_error("BlockStorageSlice does not support allocate()");
+}
+
+void pepp::bts::BlockStorage::BlockStorageSlice::set(size_t offset, bits::span<const u8> data) {
+  std::span<char> span{_parent->_storage};
+  auto subspan = span.subspan(_offset, _length);
+  if (subspan.size() < offset + data.size()) throw std::out_of_range("BlockStorageSlice::set out of range");
+  else std::memcpy(subspan.data() + offset, data.data(), data.size());
+}
+
+bits::span<u8> pepp::bts::BlockStorage::BlockStorageSlice::get(size_t offset, size_t length) noexcept {
+  std::span<char> span{_parent->_storage};
+  auto subspan = span.subspan(_offset, _length);
+  if (subspan.size() < offset + length) return {};
+  return bits::span<u8>((u8 *)subspan.data() + offset, length);
+}
+
+bits::span<const u8> pepp::bts::BlockStorage::BlockStorageSlice::get(size_t offset, size_t length) const noexcept {
+  std::span<const char> span{_parent->_storage};
+  auto subspan = span.subspan(_offset, _length);
+  if (subspan.size() < offset + length) return {};
+  return bits::span<const u8>((const u8 *)subspan.data() + offset, length);
+}
+
+size_t pepp::bts::BlockStorage::BlockStorageSlice::size() const noexcept { return _length; }
+
+// A slice cannot resize its parent, so clearing zeroes its bytes in place.
+void pepp::bts::BlockStorage::BlockStorageSlice::clear(size_t) {
+  std::span<char> span{_parent->_storage};
+  std::ranges::fill(span.subspan(_offset, _length), 0);
+}
+
+size_t pepp::bts::BlockStorage::BlockStorageSlice::calculate_layout(std::vector<LayoutItem> &layout,
+                                                                    size_t dst_offset) const {
+  std::span<const char> span{_parent->_storage};
+  auto subspan = span.subspan(_offset, _length);
+  if (subspan.empty()) return dst_offset;
+  layout.emplace_back(LayoutItem{dst_offset, bits::span<const u8>{(const u8 *)subspan.data(), subspan.size()}});
+  return dst_offset + subspan.size();
+}
+
+size_t pepp::bts::BlockStorage::BlockStorageSlice::find(bits::span<const u8> data) const noexcept {
+  std::span<const char> span{_parent->_storage};
+  auto subspan = span.subspan(_offset, _length);
+  auto it = std::search(subspan.begin(), subspan.end(), data.begin(), data.end());
+  return (it == subspan.end()) ? 0 : static_cast<std::size_t>(it - subspan.begin());
+}
+
+size_t pepp::bts::BlockStorage::BlockStorageSlice::strlen(size_t offset) const noexcept {
+  std::span<const char> span{_parent->_storage};
+  auto subspan = span.subspan(_offset, _length);
+  if (offset >= subspan.size()) return 0;
+  const char *start = (const char *)subspan.data() + offset, *end = start;
+  while (end < (const char *)subspan.data() + subspan.size() && *end != '\0') ++end;
+  return end - start;
+}
+
 size_t pepp::bts::PagedStorage::append(bits::span<const u8> data) { return _allocator.append(data); }
 
 size_t pepp::bts::PagedStorage::allocate(size_t size, u8 fill) { return _allocator.allocate_initialized(size, fill); }
