@@ -1,5 +1,6 @@
 #include "core/langs/asmb_pep/parser.hpp"
 #include <deque>
+#include <fmt/ranges.h>
 #include <numeric>
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/compile/ir_linear/attr_comment.hpp"
@@ -583,7 +584,7 @@ bool pepp::tc::parser::PepParser::in_false_conditional() const {
                          [](bool acc, const ConditionalStack &cs) { return acc || (!cs.matched_this_stmt); });
 }
 
-pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program) {
+pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program, bool macro_comments) {
   IRProgram ret;
   // While copying the input is annoying,we can prepend to the dequeue easily enough.
   // To handle tree structures
@@ -601,6 +602,10 @@ pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program) {
       auto lines = as_macro->lines;
       // Remove the final trailing \n for nicer listing output.
       bool skip_last = lines.back()->type() == EmptyLine::TYPE;
+      if (macro_comments) {
+        auto end = format_as_columns(";", "End " + as_macro->macro->name, "", "").substr(1);
+        work_queue.push_front(std::make_shared<CommentLine>(Comment{std::move(end)}));
+      }
       work_queue.insert(work_queue.begin(), lines.begin(), lines.end() - (skip_last ? 1 : 0));
 
       // If the macro instantiation has a symbol definition, we need to move it into the body of the macro
@@ -626,6 +631,16 @@ pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program) {
           dot_block->insert(std::make_unique<SymbolDeclaration>(sym_decl->entry));
           work_queue.push_front(dot_block);
         }
+      }
+      if (macro_comments) {
+        std::string symbol = "", comment = "";
+        if (auto maybe_symbol = as_macro->typed_attribute<SymbolDeclaration>(); maybe_symbol)
+          symbol = std::string{maybe_symbol->entry->name} + ":";
+        if (auto maybe_comment = as_macro->typed_attribute<Comment>(); maybe_comment)
+          comment = ";" + maybe_comment->value;
+        const auto args = fmt::format("{}", fmt::join(as_macro->arguments, ", "));
+        auto start = format_as_columns(";" + symbol, as_macro->macro->name, args, comment).substr(1);
+        work_queue.push_front(std::make_shared<CommentLine>(Comment{std::move(start)}));
       }
 
       // Do not insert macro IR into the flattned result. It is only used to group existing lines.

@@ -23,7 +23,7 @@ DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig
     fmtcfg.source_format(std::move(formatted));
   }
 
-  auto flattened = parser::flatten_macros(program);
+  auto flattened = parser::flatten_macros(program, fmtcfg.listing_format != nullptr);
   auto split = pepp_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count() > 0) return result;
 
