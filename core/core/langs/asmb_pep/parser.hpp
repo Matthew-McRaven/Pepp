@@ -84,7 +84,7 @@ private:
   bool in_false_conditional() const;
 };
 
-IRProgram flatten_macros(IRProgram const &program);
+IRProgram flatten_macros(IRProgram const &program, bool macro_comments = false);
 } // namespace parser
 } // namespace tc
 } // namespace pepp
