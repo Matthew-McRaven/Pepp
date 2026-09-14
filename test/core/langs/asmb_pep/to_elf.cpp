@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -195,6 +196,30 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
       REQUIRE(sec != nullptr);
       CHECK(sec->get_address() == desc.low_address);
     }
+
+    // .debug_line maps addresses back to 1-indexed source lines. Decoded as pas::obj::common::getLineMappings does.
+    const auto *lines = elf.sections[pepp::tc::lineMapStr];
+    REQUIRE(lines != nullptr);
+    CHECK(lines->get_type() == ELFIO::SHT_PROGBITS);
+    const auto encoded = std::span<const char>(lines->get_data(), static_cast<size_t>(lines->get_size()));
+    zpp::bits::in in(encoded);
+    std::vector<BinaryLineMapping> mappings;
+    BinaryLineMapping prev;
+    while (in.position() < encoded.size()) {
+      BinaryLineMapping current;
+      (void)current.serialize(in, current, &prev);
+      mappings.push_back(prev = current);
+    }
+    const auto address_of = [&](uint16_t src_line) -> std::optional<u32> {
+      for (const auto &mapping : mappings)
+        if (mapping.srcLine == src_line) return mapping.address;
+      return std::nullopt;
+    };
+    const u32 text = elf.sections[".text"]->get_address();
+    CHECK(address_of(3) == text);     // bye:LDWA 10,d
+    CHECK(address_of(8) == text + 3); // cruel:BR 0, after bye in the same .text
+    CHECK(address_of(10) == elf.sections["memvec"]->get_address()); // World:.BYTE 0
+    CHECK_FALSE(elf_result.ir_to_listing.container.empty());
   }
   SECTION("A leading .SECTION does not create an empty implicit section") {
     pepp::tc::DiagnosticTable diag;

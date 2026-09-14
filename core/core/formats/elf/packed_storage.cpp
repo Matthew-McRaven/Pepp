@@ -20,6 +20,8 @@
 
 pepp::bts::AStorage::~AStorage() = default;
 
+pepp::bts::BlockStorage::BlockStorage(std::vector<char> &&storage) noexcept : _storage(std::move(storage)) {}
+
 size_t pepp::bts::BlockStorage::append(bits::span<const u8> data) {
   auto offset = _storage.size();
   _storage.insert(_storage.end(), data.begin(), data.end());
