@@ -1,0 +1,20 @@
+n DECI dsx
+n DECO idsx
+n HEXo idsx
+
+File: mnemon
+
+File format: File mnemon is used by both asem7.cpp and pep7.cpp. The
+first three lines are input during initialization of both programs. All
+text after the first three lines is ignored. The first three lines contain
+the mnemonics of the unimplemented op-codes and can be changed by the
+user to work the problems from Chapter 8 of "Computer Systems".
+
+Line format: If the first character is not 'u' or 'U' the instruction is
+not a unary instruction. The second character is skipped. The third
+character is the first letter of the mnemonic. Each character is converted
+to uppercase, so that HEXo is stored as HEXO. The mnemonic terminates with
+the space character ' ' and can be no longer than eight characters. The
+last group is a string of up to four lowercase characters with no trailing
+spaces that indicate the allowable addressing modes for the instruction.
+The letters can be in any order.

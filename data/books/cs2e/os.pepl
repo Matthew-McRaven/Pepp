@@ -1,0 +1,586 @@
+-------------------------------------------------------------------------------
+      Object
+Addr  code   Symbol   Mnemon  Operand    Comment
+-------------------------------------------------------------------------------
+             ;
+             ;******* Pep/7 Operating System, 5/2/00
+             ;
+             lineFeed:.EQUATE h#000A     ;ASCII line feed character
+             space:   .EQUATE h#0020     ;ASCII space character
+             TRUE:    .EQUATE d#1        
+             FALSE:   .EQUATE d#0        
+             ;
+             ;******* Operating system RAM
+7BE6         osRAM:   .BLOCK  d#100      ;System stack area
+7C4A         wordBuff:.BLOCK  d#1        ;Input/output buffer
+7C4B         byteBuff:.BLOCK  d#1        ;Least significant byte of wordBuff
+7C4C         wordTemp:.BLOCK  d#1        ;Temporary word storage
+7C4D         byteTemp:.BLOCK  d#1        ;Least significant byte of tempWord
+7C4E         isUnary: .BLOCK  d#2        ;Boolean flag
+             ;
+             ;******* Operating system ROM
+7C50                  .BURN   h#7FFF     ;Version OS/7.0
+             ;
+             ;======= System loader
+             ;Loader format rules
+             ;This loader assumes that all data in the object file to be
+             ;loaded is in the following strict format:  Each hex number
+             ;representing a byte must contain exactly two characters, each
+             ;character must be in 0..9, A..F, or a..f and must be followed
+             ;by exactly one space.  No leading spaces are permitted at the
+             ;beginning of a line.  No trailing spaces are permitted at the
+             ;end of a line.  The last two characters in the file must be
+             ;lowercase zz, which is used as a terminating sentinel.  To
+             ;improve execution speed, this loader does not trap input
+             ;errors, and will not function properly unless the file input
+             ;format is consistent with these restrictions.
+             ;
+7C50  600000 Loader:  LOADB   d#0,i      ;Clear base for memory store
+7C53  0C0000          LOADX   d#0,i      ;Initialize index register
+7C56  157C4A          STOREX  wordBuff,d ;Clear input buffer word
+             ;
+7C59  D97C4B GetChar: CHARI   byteBuff,d ;Get first hex digit
+7C5C  097C4A          LOADA   wordBuff,d ;Put ASCII in low byte of A
+7C5F  B8007A          COMPA   c#/z/,i    ;If end of file sentinel, 'z',
+7C62  887C94          BREQ    StopLoad   ;then exit loader routine
+7C65  B80039          COMPA   c#/9/,i    ;If ASCII <= '9', then assume decimal
+7C68  787C6E          BRLE    Shift      ;and right nybble is correct number
+7C6B  180009          ADDA    d#9,i      ;else convert nybble to correct number
+7C6E  40     Shift:   ASLA               ;Shift left by four bits, sending the
+7C6F  40              ASLA               ;number to the most significant
+7C70  40              ASLA               ;nybble position in the byte
+7C71  40              ASLA               
+7C72  597C4D          STBYTA  byteTemp,d ;Save most significant nybble
+7C75  D97C4B          CHARI   byteBuff,d ;Get second hex digit
+7C78  097C4A          LOADA   wordBuff,d ;Put second ASCII in low byte of A
+7C7B  B80039          COMPA   c#/9/,i    ;If ASCII <= '9', then assume decimal
+7C7E  787C84          BRLE    Combine    ;and right nybble is correct number
+7C81  180009          ADDA    d#9,i      ;else convert nybble to correct number
+7C84  28000F Combine: ANDA    h#000F,i   ;Mask out the unwanted left nybble
+7C87  317C4C          ORA     wordTemp,d ;Combine both hex digits in binary
+7C8A  5B              STBYTA  ,x         ;Store in Mem[B + X]
+7C8B  1C0001          ADDX    d#1,i      ;Increment index register
+7C8E  D97C4B          CHARI   byteBuff,d ;Skip blank or <LF>
+7C91  707C59          BR      GetChar    
+             ;
+7C94  00     StopLoad:STOP               
+             ;
+             ;======= Interrupt service routine
+             oldPC:   .EQUATE d#7        ;Stack address of PC on interrupt
+             oldIR:   .EQUATE d#11       ;Stack address of IR on interrupt
+             ;
+7C95  56000B Intrupt: LDBYTX  oldIR,s    ;X := intrpt IR
+7C98  4C              ASRX               ;Discard addressing mode
+7C99  4C              ASRX               ;Discard addressing mode
+7C9A  4C              ASRX               ;Discard register specifier
+7C9B  2C0003          ANDX    h#0003,i   ;Keep rightmost two bits of op-code
+7C9E  240001          SUBX    d#1,i      ;Adjust X from 1..3 to 0..2
+7CA1  44              ASLX               ;Times 2 since an address occupies
+7CA2  607CB6          LOADB   jTable,i   ;two bytes
+7CA5  C3              JSR     ,x         ;Call Opcode routine
+             ;
+7CA6  097C4E          LOADA   isUnary,d  ;If nonunary then
+7CA9  907CB5          BRNE    Return     ;increment PC by additional two 
+7CAC  0A0007          LOADA   oldPC,s    ;A := intrpt PC
+7CAF  180002          ADDA    d#2,i      ;Increment PC by two
+7CB2  120007          STOREA  oldPC,s    ;Restore PC for return
+7CB5  D0     Return:  RTI                
+             ;
+7CB6  7CBC   jTable:  .ADDRSS Opc11101   
+7CB8  7E29            .ADDRSS Opc11110   
+7CBA  7EB4            .ADDRSS Opc11111   
+             ;
+             ;------- Opcode  11101
+             ;The DECI instruction.
+             ;Input format:  Any number of leading spaces or line feeds are
+             ;allowed, followed by '+', '-' or a digit as the first character,
+             ;after which digits are input until the first nondigit is
+             ;encountered.  The status flags N, Z and V are set appropriately
+             ;by this DECI routine.  The C status flag is not affected.
+             ;
+             oldNZVC: .EQUATE d#14       ;Stack address of NZVC on interrupt
+             ;
+             total:   .EQUATE d#10       ;Cumulative total of DECI number
+             valAscii:.EQUATE d#8        ;Value(asciiCh)
+             isOvfl:  .EQUATE d#6        ;Overflow boolean
+             isNeg:   .EQUATE d#4        ;Negative boolean
+             state:   .EQUATE d#2        ;State variable
+             temp:    .EQUATE d#0        ;Temporary
+             ;
+             init:    .EQUATE d#0        ;Enumerated values for state
+             sign:    .EQUATE d#1        
+             digit:   .EQUATE d#2        
+             ;
+7CBC  68FFF4 Opc11101:ADDSP   d#-12,i    ;Allocate storage for locals
+7CBF  080000          LOADA   FALSE,i    ;isOvfl := FALSE
+7CC2  120006          STOREA  isOvfl,s   
+7CC5  080000          LOADA   init,i     ;state := init
+7CC8  120002          STOREA  state,s    
+7CCB  080000          LOADA   d#0,i      ;wordBuff := 0 for input
+7CCE  117C4A          STOREA  wordBuff,d 
+7CD1  607CE8          LOADB   sTable,i   ;For switch jump table on state
+             ;
+7CD4  D97C4B Do:      CHARI   byteBuff,d ;Get asciiCh
+7CD7  097C4A          LOADA   wordBuff,d ;Set Value(asciiCh)
+7CDA  28000F          ANDA    h#000F,i   
+7CDD  120008          STOREA  valAscii,s 
+7CE0  097C4A          LOADA   wordBuff,d ;A contains asciiCh throughout loop
+7CE3  0E0002          LOADX   state,s    ;switch (state)
+7CE6  44              ASLX               ;An address occupies two bytes
+7CE7  73              BR      ,x         
+             ;
+7CE8  7CEE   sTable:  .ADDRSS SInit      
+7CEA  7D48            .ADDRSS SSign      
+7CEC  7D63            .ADDRSS SDigit     
+             ;
+7CEE  B8002B SInit:   COMPA   c#/+/,i    ;if (asciiCh == '+')
+7CF1  907D03          BRNE    IfMinus    
+7CF4  0C0000          LOADX   FALSE,i    ;isNeg := FALSE
+7CF7  160004          STOREX  isNeg,s    
+7CFA  0C0001          LOADX   sign,i     ;state := sign
+7CFD  160002          STOREX  state,s    
+7D00  707CD4          BR      Do         
+             ;
+7D03  B8002D IfMinus: COMPA   c#/-/,i    ;else if (asciiCh == '-')
+7D06  907D18          BRNE    Ifdigit    
+7D09  0C0001          LOADX   TRUE,i     ;isNeg := TRUE
+7D0C  160004          STOREX  isNeg,s    
+7D0F  0C0001          LOADX   sign,i     ;state := sign
+7D12  160002          STOREX  state,s    
+7D15  707CD4          BR      Do         
+             ;
+7D18  B80030 Ifdigit: COMPA   c#/0/,i    ;else if (asciiCh is a digit)
+7D1B  807D39          BRLT    IfWhite    
+7D1E  B80039          COMPA   c#/9/,i    
+7D21  A07D39          BRGT    IfWhite    
+7D24  0C0000          LOADX   FALSE,i    ;isNeg := FALSE
+7D27  160004          STOREX  isNeg,s    
+7D2A  0E0008          LOADX   valAscii,s ;total := Value(asciiCh)
+7D2D  16000A          STOREX  total,s    
+7D30  0C0002          LOADX   digit,i    ;state := digit
+7D33  160002          STOREX  state,s    
+7D36  707CD4          BR      Do         
+             ;
+7D39  B80020 IfWhite: COMPA   space,i    ;else if (asciiCh is not a space
+7D3C  887CD4          BREQ    Do         
+7D3F  B8000A          COMPA   lineFeed,i ;or line feed)
+7D42  907E01          BRNE    DeciErr    ;exit with DECI error
+7D45  707CD4          BR      Do         
+             ;
+7D48  B80030 SSign:   COMPA   c#/0/,i    ;if asciiCh (is not a digit)
+7D4B  807E01          BRLT    DeciErr    
+7D4E  B80039          COMPA   c#/9/,i    
+7D51  A07E01          BRGT    DeciErr    ;exit with DECI error
+7D54  0E0008          LOADX   valAscii,s ;else total := Value(asciiCh)
+7D57  16000A          STOREX  total,s    
+7D5A  0C0002          LOADX   digit,i    ;state := digit
+7D5D  160002          STOREX  state,s    
+7D60  707CD4          BR      Do         
+             ;
+7D63  B80030 SDigit:  COMPA   c#/0/,i    ;if (asciiCh is not a digit)
+7D66  807DB4          BRLT    DeciNorm   
+7D69  B80039          COMPA   c#/9/,i    
+7D6C  A07DB4          BRGT    DeciNorm   ;exit normally
+7D6F  0C0001          LOADX   TRUE,i     ;else X := TRUE for later assignments
+7D72  0A000A          LOADA   total,s    ;Multiply total by 10 as follows:
+7D75  40              ASLA               ;First, times 2
+7D76  A87D7C          BRV     Ovfl1      ;If overflow then
+7D79  707D7F          BR      L1         
+7D7C  160006 Ovfl1:   STOREX  isOvfl,s   ;isOvfl := TRUE
+7D7F  120000 L1:      STOREA  temp,s     ;Save 2 * total in temp
+7D82  40              ASLA               ;Now, 4 * total
+7D83  A87D89          BRV     Ovfl2      ;If overflow then
+7D86  707D8C          BR      L2         
+7D89  160006 Ovfl2:   STOREX  isOvfl,s   ;isOvfl := TRUE
+7D8C  40     L2:      ASLA               ;Now, 8 * total
+7D8D  A87D93          BRV     Ovfl3      ;If overflow then
+7D90  707D96          BR      L3         
+7D93  160006 Ovfl3:   STOREX  isOvfl,s   ;isOvfl := TRUE
+7D96  1A0000 L3:      ADDA    temp,s     ;Finally, 8 * total + 2 * total
+7D99  A87D9F          BRV     Ovfl4      ;If overflow then
+7D9C  707DA2          BR      L4         
+7D9F  160006 Ovfl4:   STOREX  isOvfl,s   ;isOvfl := TRUE
+7DA2  1A0008 L4:      ADDA    valAscii,s ;A := 10 * total + valAscii
+7DA5  A87DAB          BRV     Ovfl5      ;If overflow then
+7DA8  707DAE          BR      L5         
+7DAB  160006 Ovfl5:   STOREX  isOvfl,s   ;isOvfl := TRUE
+7DAE  12000A L5:      STOREA  total,s    ;Update total
+7DB1  707CD4          BR      Do         
+             ;
+7DB4  0A0004 DeciNorm:LOADA   isNeg,s    ;If isNeg then
+7DB7  887DD3          BREQ    SetNZ      
+7DBA  0A000A          LOADA   total,s    ;If total != h#8000 then
+7DBD  B88000          COMPA   h#8000,i   
+7DC0  887DCD          BREQ    L6         
+7DC3  38              NOTA               ;Negate total by taking two's comp
+7DC4  180001          ADDA    d#1,i      
+7DC7  12000A          STOREA  total,s    
+7DCA  707DD3          BR      SetNZ      
+7DCD  080000 L6:      LOADA   FALSE,i    ;else -32768 is a special case
+7DD0  120006          STOREA  isOvfl,s   ;isOvfl := FALSE
+             ;
+7DD3  56000E SetNZ:   LDBYTX  oldNZVC,s  ;Set NZ according to total result:
+7DD6  2C0001          ANDX    h#0001,i   ;First, initialize NZV to 000 
+7DD9  0A000A          LOADA   total,s    ;If total is negative then
+7DDC  987DE2          BRGE    CheckZ     
+7DDF  340008          ORX     h#0008,i   ;set N to 1
+7DE2  B80000 CheckZ:  COMPA   d#0,i      ;If total is not zero then
+7DE5  907DEB          BRNE    SetV       
+7DE8  340004          ORX     h#0004,i   ;set Z to 1
+7DEB  0A0006 SetV:    LOADA   isOvfl,s   ;If not isOvfl then
+7DEE  887DF4          BREQ    StoreFl    
+7DF1  340002          ORX     h#0002,i   ;set V to 1
+7DF4  5E000E StoreFl: STBYTX  oldNZVC,s  ;Store the NZVC flags
+             ;
+7DF7  68000A ExitDeci:ADDSP   d#10,i     ;Deallocate all locals except total
+7DFA  C07F00          JSR     Put        ;Put total in memory
+7DFD  680002          ADDSP   d#2,i      ;Deallocate total
+7E00  C8              RTS                
+             ;
+7E01  087E0E DeciErr: LOADA   msg1,i     ;Push address of message onto stack
+7E04  12FFFE          STOREA  d#-2,s     
+7E07  68FFFE          ADDSP   d#-2,i     
+7E0A  C07FE0          JSR     PrntMsg    ;and print
+7E0D  00              STOP               ;Fatal error: program terminates
+             ;
+7E0E  455252 msg1:    .ASCII  /ERROR:  Invalid DECI input/ 
+      4F523A 
+      202049 
+      6E7661 
+      6C6964 
+      204445 
+      434920 
+      696E70 
+      7574   
+7E28  00              .BYTE   h#00       
+             ;
+             ;------- Opcode  11110
+             ;The DECO instruction.
+             ;Output format:  If the operand is negative, the algorithm prints
+             ;a single '-' followed by the magnitude.  Otherwise it prints the
+             ;magnitude without a leading '+'.  It suppresses leading zeros.
+             ;
+             number:  .EQUATE d#0        ;Value returned by function Get
+             ;
+             remain:  .EQUATE d#0        ;Remainder of number
+             chOut:   .EQUATE d#2        ;Has a character been output yet?
+             place:   .EQUATE d#4        ;Place value of number for division
+             ;
+7E29  68FFFE Opc11110:ADDSP   d#-2,i     ;Allocate storage for number
+7E2C  C07F84          JSR     Get        ;Get number from memory
+7E2F  0A0000          LOADA   number,s   ;A := number
+7E32  68FFFC          ADDSP   d#-4,i     ;Allocate storage for locals
+7E35  B80000          COMPA   d#0,i      ;If oprnd is negative then
+7E38  987E42          BRGE    PrntMag    
+7E3B  E0002D          CHARO   c#/-/,i    ;Print leading '-'
+7E3E  38              NOTA               ;and negate oprnd
+7E3F  180001          ADDA    d#1,i      
+7E42  120000 PrntMag: STOREA  remain,s   ;remain := abs(oprnd)
+7E45  080000          LOADA   FALSE,i    ;Initialize chOut := FALSE
+7E48  120002          STOREA  chOut,s    
+7E4B  082710          LOADA   d#10000,i  ;place := 10,000
+7E4E  120004          STOREA  place,s    
+7E51  C07E7F          JSR     Divide     ;Write 10,000's place
+7E54  0803E8          LOADA   d#1000,i   ;place := 1000
+7E57  120004          STOREA  place,s    
+7E5A  C07E7F          JSR     Divide     ;Write 1000's place
+7E5D  080064          LOADA   d#100,i    ;place := 100
+7E60  120004          STOREA  place,s    
+7E63  C07E7F          JSR     Divide     ;Write 100's place
+7E66  08000A          LOADA   d#10,i     ;place := 10
+7E69  120004          STOREA  place,s    
+7E6C  C07E7F          JSR     Divide     ;Write 10's place
+7E6F  0A0000          LOADA   remain,s   ;Always write 1's place
+7E72  300030          ORA     h#0030,i   ;Convert decimal to ASCII
+7E75  597C4B          STBYTA  byteBuff,d 
+7E78  E17C4B          CHARO   byteBuff,d 
+7E7B  680006          ADDSP   d#6,i      ;Deallocate storage for locals
+7E7E  C8              RTS                
+             ;
+             ;Subroutine to print the most significant decimal digit of the
+             ;remainder.  It assumes that place (place2 here) contains the
+             ;decimal place value.  It updates the remainder.
+             ;
+             remain2: .EQUATE d#2        ;Stack addresses while executing a
+             chOut2:  .EQUATE d#4        ;subroutine are greater by two because
+             place2:  .EQUATE d#6        ;the ret addr is on the stack
+             ;
+7E7F  0A0002 Divide:  LOADA   remain2,s  ;A := remainder
+7E82  0C0000          LOADX   d#0,i      ;X := 0
+7E85  220006 DivLoop: SUBA    place2,s   ;Division by repeated subtraction
+7E88  807E94          BRLT    WriteNum   ;If remainder is negative, then done
+7E8B  1C0001          ADDX    d#1,i      ;X := X + 1
+7E8E  120002          STOREA  remain2,s  ;Store new remainder
+7E91  707E85          BR      DivLoop    
+             ;
+7E94  BC0000 WriteNum:COMPX   d#0,i      ;If X != 0 then
+7E97  887EA3          BREQ    CheckOut   
+7E9A  080001          LOADA   TRUE,i     ;chOut := TRUE
+7E9D  120004          STOREA  chOut2,s   
+7EA0  707EAA          BR      PrntDgt    ;and branch to print this digit
+7EA3  0A0004 CheckOut:LOADA   chOut2,s   ;else if a previous char was output
+7EA6  907EAA          BRNE    PrntDgt    ;then branch to print this zero
+7EA9  C8              RTS                ;else return to calling routine
+             ;
+7EAA  340030 PrntDgt: ORX     h#0030,i   ;Convert decimal to ASCII
+7EAD  157C4A          STOREX  wordBuff,d ;temporary for output
+7EB0  E17C4B          CHARO   byteBuff,d 
+7EB3  C8              RTS                ;Return to calling routine
+             ;
+             ;------- Opcode  11111
+             ;The HEXO instruction.
+             ;Output format:  Outputs one word as four hex characters.  number
+             ;is defined in the DECO interrupt handler.
+             ;
+7EB4  68FFFE Opc11111:ADDSP   d#-2,i     ;Allocate storage for number
+7EB7  C07F84          JSR     Get        ;Get number from memory
+7EBA  0A0000          LOADA   number,s   ;A := number
+7EBD  680002          ADDSP   d#2,i      ;Deallocate storage for number
+7EC0  117C4C          STOREA  wordTemp,d ;Save oprnd
+7EC3  517C4C          LDBYTA  wordTemp,d ;Put high order byte in low order A
+7EC6  48              ASRA               ;Shift right four bits
+7EC7  48              ASRA               
+7EC8  48              ASRA               
+7EC9  48              ASRA               
+7ECA  C07EE4          JSR     OutputAc   ;Output first hex character
+7ECD  517C4C          LDBYTA  wordTemp,d ;Put high order byte in low order A
+7ED0  C07EE4          JSR     OutputAc   ;Output second hex character
+7ED3  517C4D          LDBYTA  byteTemp,d ;Put low order byte in low order A
+7ED6  48              ASRA               ;Shift right four bits
+7ED7  48              ASRA               
+7ED8  48              ASRA               
+7ED9  48              ASRA               
+7EDA  C07EE4          JSR     OutputAc   ;Output third hex character
+7EDD  517C4D          LDBYTA  byteTemp,d ;Put low order byte in low order A
+7EE0  C07EE4          JSR     OutputAc   ;Output fourth hex character
+7EE3  C8              RTS                
+             ;
+             ;Subroutine to output in hex the least significant nybble of the
+             ;accumulator.
+             ;
+7EE4  28000F OutputAc:ANDA    h#000F,i   ;Isolate digit value
+7EE7  B80009          COMPA   d#9,i      ;If it is not in 0..9 then
+7EEA  787EF6          BRLE    PrepNum    
+7EED  200009          SUBA    d#9,i      ;convert number to ASCII letter
+7EF0  300040          ORA     h#0040,i   ;and prefix ASCII code for letter
+7EF3  707EF9          BR      WriteHex   
+7EF6  300030 PrepNum: ORA     h#0030,i   ;else prefix ASCII code for number
+7EF9  597C4B WriteHex:STBYTA  byteBuff,d ;For output
+7EFC  E17C4B          CHARO   byteBuff,d 
+7EFF  C8              RTS                
+             ;
+             ;======= Put/Addressing mode decoder
+             ;Put is a subroutine that DECI calls at the end of its input
+             ;processing.  It decodes the addressing mode of the interrupted
+             ;instruction, calculates the address of the operand of the
+             ;interrupted instruction and puts the value of oprnd at that
+             ;location in memory.
+             ;
+             oprnd:   .EQUATE d#2        ;Value of formal parameter stored
+             ;
+             oldNZVC6:.EQUATE d#6        ;Stack addresses of the register
+             oldA6:   .EQUATE d#7        ;contents while executing this
+             oldX6:   .EQUATE d#9        ;routine are greater by six because
+             oldB6:   .EQUATE d#11       ;two return addresses and a formal
+             oldPC6:  .EQUATE d#13       ;parameter are on the stack
+             oldSP6:  .EQUATE d#15       
+             oldIR6:  .EQUATE d#17       
+             ;
+7F00  560011 Put:     LDBYTX  oldIR6,s   ;A := intrpt IR
+7F03  2C0003          ANDX    h#0003,i   ;Retain only address mode bits.
+7F06  44              ASLX               ;An address occupies two bytes
+7F07  607F0B          LOADB   jTable2,i  
+7F0A  73              BR      ,x         
+7F0B  7F13   jTable2: .ADDRSS Immed2     
+7F0D  7F20            .ADDRSS Direct2    
+7F0F  7F32            .ADDRSS StkRel2    
+7F11  7F47            .ADDRSS Indexed2   
+             ;
+7F13  087F58 Immed2:  LOADA   msg2,i     ;Push address of message onto stack
+7F16  12FFFE          STOREA  d#-2,s     
+7F19  68FFFE          ADDSP   d#-2,i     
+7F1C  C07FE0          JSR     PrntMsg    ;and print
+7F1F  00              STOP               ;Fatal error: program terminates
+             ;
+7F20  0A0002 Direct2: LOADA   oprnd,s    ;A := oprnd
+7F23  62000D          LOADB   oldPC6,s   ;B := intrpt PC
+7F26  0C0000          LOADX   d#0,i      ;X := 0
+7F29  63              LOADB   ,x         ;B := intrpt oprndSpec
+7F2A  13              STOREA  ,x         ;Store in Mem[oprndSpec]
+7F2B  080000          LOADA   FALSE,i    ;isUnary := FALSE
+7F2E  117C4E          STOREA  isUnary,d  
+7F31  C8              RTS                
+             ;
+7F32  0A0002 StkRel2: LOADA   oprnd,s    ;A := oprnd
+7F35  62000D          LOADB   oldPC6,s   ;B := intrpt PC
+7F38  0C0000          LOADX   d#0,i      ;X := 0
+7F3B  63              LOADB   ,x         ;B := intrpt oprndSpec
+7F3C  0E000F          LOADX   oldSP6,s   ;X := intrpt SP
+7F3F  13              STOREA  ,x         ;Store in Mem[oprndSpec + SP]
+7F40  080000          LOADA   FALSE,i    ;isUnary := FALSE
+7F43  117C4E          STOREA  isUnary,d  
+7F46  C8              RTS                
+             ;
+7F47  0A0002 Indexed2:LOADA   oprnd,s    ;A := oprnd
+7F4A  62000B          LOADB   oldB6,s    ;B := intrpt B
+7F4D  0E0009          LOADX   oldX6,s    ;X := intrpt X
+7F50  13              STOREA  ,x         ;Store in Mem[B + X]
+7F51  080001          LOADA   TRUE,i     ;isUnary := TRUE
+7F54  117C4E          STOREA  isUnary,d  
+7F57  C8              RTS                
+             ;
+7F58  455252 msg2:    .ASCII  /ERROR:  Illegal use of immediate addressing/ 
+      4F523A 
+      202049 
+      6C6C65 
+      67616C 
+      207573 
+      65206F 
+      662069 
+      6D6D65 
+      646961 
+      746520 
+      616464 
+      726573 
+      73696E 
+      67     
+7F83  00              .BYTE   h#00       
+             ;
+             ;======= Get/Addressing mode decoder
+             ;Get is a function called at the beginning of DECO and HEXO.  It
+             ;decodes the addressing mode of the interrupted instruction,
+             ;calculates the operand of the interrupted instruction and returns
+             ;its value in oprnd.  The stack addresses are identical to those
+             ;in the Put addressing mode decoder.
+             ;
+7F84  560011 Get:     LDBYTX  oldIR6,s   ;X := intrpt IR
+7F87  2C0003          ANDX    h#0003,i   ;Retain only address mode bits
+7F8A  44              ASLX               ;An address is two bytes
+7F8B  607F8F          LOADB   jTable3,i  
+7F8E  73              BR      ,x         
+7F8F  7F97   jTable3: .ADDRSS Immed3     
+7F91  7FA8            .ADDRSS Direct3    
+7F93  7FBA            .ADDRSS StkRel3    
+7F95  7FCF            .ADDRSS Indexed3   
+             ;
+7F97  62000D Immed3:  LOADB   oldPC6,s   ;B := intrpt PC
+7F9A  0C0000          LOADX   d#0,i      ;X := 0
+7F9D  0B              LOADA   ,x         ;A := intrpt oprndSpec
+7F9E  120002          STOREA  oprnd,s    
+7FA1  080000          LOADA   FALSE,i    ;isUnary := FALSE
+7FA4  117C4E          STOREA  isUnary,d  
+7FA7  C8              RTS                
+             ;
+7FA8  62000D Direct3: LOADB   oldPC6,s   ;B := intrpt PC
+7FAB  0C0000          LOADX   d#0,i      ;X := 0
+7FAE  63              LOADB   ,x         ;B := intrpt oprndSpec
+7FAF  0B              LOADA   ,x         ;A := Mem[oprndSpec]
+7FB0  120002          STOREA  oprnd,s    
+7FB3  080000          LOADA   FALSE,i    ;isUnary := FALSE
+7FB6  117C4E          STOREA  isUnary,d  
+7FB9  C8              RTS                
+             ;
+7FBA  62000D StkRel3: LOADB   oldPC6,s   ;B := intrpt PC
+7FBD  0C0000          LOADX   d#0,i      ;X := 0
+7FC0  63              LOADB   ,x         ;B := intrpt oprndSpec
+7FC1  0E000F          LOADX   oldSP6,s   ;X := intrpt SP
+7FC4  0B              LOADA   ,x         ;A := Mem[oprndSpec + SP]
+7FC5  120002          STOREA  oprnd,s    
+7FC8  080000          LOADA   FALSE,i    ;isUnary := FALSE
+7FCB  117C4E          STOREA  isUnary,d  
+7FCE  C8              RTS                
+             ;
+7FCF  62000B Indexed3:LOADB   oldB6,s    ;B := intrpt B
+7FD2  0E0009          LOADX   oldX6,s    ;X := intrpt X
+7FD5  0B              LOADA   ,x         ;A := Mem[B + X]
+7FD6  120002          STOREA  oprnd,s    
+7FD9  080001          LOADA   TRUE,i     ;isUnary := TRUE
+7FDC  117C4E          STOREA  isUnary,d  
+7FDF  C8              RTS                
+             ;
+             ;======= Print subroutine
+             ;Prints a line feed character followed by the string of ASCII
+             ;bytes until it encounters a null byte (eight zero bits).  Assumes
+             ;one parameter, which contains the address of the message.
+             ;
+             msgAddr: .EQUATE d#2        ;Address of message to print
+             ;
+7FE0  E0000A PrntMsg: CHARO   lineFeed,i 
+7FE3  620002          LOADB   msgAddr,s  ;B := address of message
+7FE6  0C0000          LOADX   d#0,i      ;X := 0
+7FE9  080000          LOADA   d#0,i      ;A := 0
+7FEC  53     PrntMore:LDBYTA  ,x         ;Test next char from Mem[B + X]
+7FED  887FF7          BREQ    StopPrnt   ;If null then exit
+7FF0  E3              CHARO   ,x         ;else print
+7FF1  1C0001          ADDX    d#1,i      ;X := X + 1 for next character
+7FF4  707FEC          BR      PrntMore   
+             ;
+7FF7  C8     StopPrnt:RTS                
+             ;
+             ;======= Vectors reserved for machine use
+7FF8  7BE6            .ADDRSS osRAM      ;User stack pointer
+7FFA  7C4A            .ADDRSS wordBuff   ;System stack pointer
+7FFC  7C50            .ADDRSS Loader     ;Loader program counter
+7FFE  7C95            .ADDRSS Intrupt    ;Interrupt program counter
+             ;
+8000                  .END               
+-------------------------------------------------------------------------------
+
+
+Symbol table
+--------------------------------------
+Symbol    Value        Symbol    Value
+--------------------------------------
+CheckOut  7EA3         CheckZ    7DE2
+Combine   7C84         DeciErr   7E01
+DeciNorm  7DB4         Direct2   7F20
+Direct3   7FA8         DivLoop   7E85
+Divide    7E7F         Do        7CD4
+ExitDeci  7DF7         FALSE     0000
+Get       7F84         GetChar   7C59
+IfMinus   7D03         IfWhite   7D39
+Ifdigit   7D18         Immed2    7F13
+Immed3    7F97         Indexed2  7F47
+Indexed3  7FCF         Intrupt   7C95
+L1        7D7F         L2        7D8C
+L3        7D96         L4        7DA2
+L5        7DAE         L6        7DCD
+Loader    7C50         Opc11101  7CBC
+Opc11110  7E29         Opc11111  7EB4
+OutputAc  7EE4         Ovfl1     7D7C
+Ovfl2     7D89         Ovfl3     7D93
+Ovfl4     7D9F         Ovfl5     7DAB
+PrepNum   7EF6         PrntDgt   7EAA
+PrntMag   7E42         PrntMore  7FEC
+PrntMsg   7FE0         Put       7F00
+Return    7CB5         SDigit    7D63
+SInit     7CEE         SSign     7D48
+SetNZ     7DD3         SetV      7DEB
+Shift     7C6E         StkRel2   7F32
+StkRel3   7FBA         StopLoad  7C94
+StopPrnt  7FF7         StoreFl   7DF4
+TRUE      0001         WriteHex  7EF9
+WriteNum  7E94         byteBuff  7C4B
+byteTemp  7C4D         chOut     0002
+chOut2    0004         digit     0002
+init      0000         isNeg     0004
+isOvfl    0006         isUnary   7C4E
+jTable    7CB6         jTable2   7F0B
+jTable3   7F8F         lineFeed  000A
+msg1      7E0E         msg2      7F58
+msgAddr   0002         number    0000
+oldA6     0007         oldB6     000B
+oldIR     000B         oldIR6    0011
+oldNZVC   000E         oldNZVC6  0006
+oldPC     0007         oldPC6    000D
+oldSP6    000F         oldX6     0009
+oprnd     0002         osRAM     7BE6
+place     0004         place2    0006
+remain    0000         remain2   0002
+sTable    7CE8         sign      0001
+space     0020         state     0002
+temp      0000         total     000A
+valAscii  0008         wordBuff  7C4A
+wordTemp  7C4C         
+--------------------------------------
+No errors.  Successful assembly.

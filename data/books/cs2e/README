@@ -1,0 +1,151 @@
+README for the UNIX Pep/7 system, version 7.1.
+
+December, 2002
+
+This is a description of how to install a Pep/7 system under UNIX/Linux.
+
+Files
+-----
+The complete system consists of the seven following files.  All of them
+are ascii text files, which you can inspect with your favorite text editor.
+
+1.  Assembler file (one file)
+    asem.cpp - the program source file of the assembler
+       The assembler uses file mnemon for the mnemonics of the 
+       unimplemented op-codes.
+
+2.  Pep/7 simulator file (one file)
+    pep7.cpp - the program source file of the Pep/7 simulator
+       The simulator uses file mnemon for tracing purposes.
+
+3.  Pep/7 operating system (three files)
+    os   - the source listing of the operating system
+    os.l - the assembler listing output of the operating system
+    os.o - the hex assembler output of the operating system.  This
+       file is used as input to the burn-in utility
+
+4.  Mnemonics (one file)
+    mnemon - the four mnemonics for the four unimplemented opcodes
+
+5.  The makefile (one file)
+    makefile - script for the make command to build the project
+
+In addition to these seven files, there is a directory named examples
+that contains the assembly language source code for the programs in
+the book "Computer Systems", second edition, J. Stanley Warford, Jones
+and Bartlett Publishers, 2002, ISBN 0-7637-1633-2.
+
+The book contains the complete listing of os.l in Chapter 8.  It
+explains how the loader and interrupt handler function. You should
+probably be a little familiar with that part of the book, as well as
+with the chapter that introduces assembly language. If you ever damage
+or destroy os.l or os.o, you can always generate them by running the
+assembler on file os.  Hence, it was not strictly necessary to include
+them in this distribution.
+
+The files that end in .cpp are C++ files that compile and run with the
+GNU compiler, gcc.
+
+Building the project
+--------------------
+To install the project, simply execute the make command. By default,
+it uses the script in makefile, which compiles pep7.cpp into an object
+file named pep7, compiles asem7.cpp into an object file named asem7,
+and then assembles os into an object file named os.o.
+
+Using the system
+----------------
+Here is a UNIX session that shows how to assemble and execute Program 5.1
+from the book.
+
+===================
+% ./asem7 ch05/prog.05.01
+% ls examples
+PrntMsg         prog.05.05      prog.05.11      prog.06.05      prog.06.11
+prog.05.01      prog.05.06      prog.05.12      prog.06.06      prog.06.12
+prog.05.01.o    prog.05.07      prog.06.01      prog.06.07      prog.06.13
+prog.05.02      prog.05.08      prog.06.02      prog.06.08      prog.06.14
+prog.05.03      prog.05.09      prog.06.03      prog.06.09      prog.06.15
+prog.05.04      prog.05.10      prog.06.04      prog.06.10      prog.06.16
+% ./pep7
+31824 bytes RAM free.
+
+(l)oad  e(x)ecute  (d)ump  (t)race  (i)nput  (o)utput  (q)uit: l
+Enter object file name (do not include .o): examples/prog.05.01
+
+(l)oad  e(x)ecute  (d)ump  (t)race  (i)nput  (o)utput  (q)uit: x
+Hi
+(l)oad  e(x)ecute  (d)ump  (t)race  (i)nput  (o)utput  (q)uit: q
+% 
+===================
+
+The asem7 command has usage:
+
+asem7 [-v] [[-l] sourceFile]
+
+The -v option prints the version number of the assembler.
+
+If sourceFile is present and contains no syntax errors, an object file
+named sourceFile.o is created. The ls command above shows object file
+prog.05.01.o produced from source file prog.05.01.
+
+If the -l option is present, a listing named sourceFile.l is produced.
+
+The pep7 command has usage:
+
+pep7 [-v]
+
+The -v option prints the version number of the assembler. Otherwise, a
+prompt loop is entered that requests the user to 
+
+(l)oad      Load an object program
+e(x)ecute   Execute a program assumed previously loaded
+(d)ump      Dump the content of a region of main memory
+(t)race     Set the trace options
+(i)nput     Specify file or keyboard input (default keyboard)
+(o)utput    Specify file or terminal output (default terminal)
+(q)uit      Quit the simulator
+
+In general, students use their favorite text editor to create the source
+programs. The object programs are student friendly, in that they are
+hexadecimal text files that can be read or modified or even written
+from scratch, thus bypassing the assembly phase. Chapter 4 introduces
+machine language before assembly language and has a few problems
+to write some simple programs directly in machine language. It is
+instructive for students to experience the programming process in
+machine language as it gives them an appreciation for what an assembler
+must do to translate a source program.
+
+You can even have your students modify the operating system.  Once they
+understand the interrupt handler routines, they can modify the code in the
+HEXO instruction to implement an instruction of your choosing.  To test the
+new instruction, simply change HEXO in file mnemon to whatever mnemonic you
+would like, assemble the new version of os, burn the new version into os.rom
+as described above, and execute the simulator.  All the tracing facilities
+are available with the new instruction.  Several possible problems of this
+type are included in the text in Chapter 8.
+
+Symbolic links
+--------------
+You can make symbolic links to the executables asem7 and pep7, for example
+to put in a bin file. However, the working directory from which you
+execute asem7 requires the mnemon file, and the directory from which you
+execute pep7 requires both mnemon and os.o. It is simple to change the
+source code to reference the absolute path names of where you have
+placed mnemon and os.o. Then, the local copies of these two files are
+not required.
+
+Chapter 8 of Computer Systems provides problems that require students
+to implement interrupt handlers by changing the operating system. In
+those circumstances they can modify their local copies of mnemon and
+os.o to complete their assignments.
+
+Support
+-------
+If you have any problems, questions, or suggestions for improvement about
+the system, plese contact me at
+
+Stan.Warford@pepperdine.edu
+
+Enjoy.
+
