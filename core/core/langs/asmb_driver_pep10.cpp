@@ -9,10 +9,13 @@
 
 namespace pepp::tc {
 
-DriverResult assemble_pep10(const Pep10DriverConfig &, const FormattingConfig &fmtcfg, std::string source) {
+DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
   DriverResult result;
   auto macros = std::make_shared<MacroRegistry>();
   auto pep_parser = parser::PepParser(support::SeekableData{std::move(source)}, macros);
+  auto sy = pep_parser.symbol_table();
+  inject_symdefs(cfg.symdefs, *sy, 2);
+
   auto program = pep_parser.parse(result.diagnostics);
   if (result.diagnostics.count() > 0) return result;
   if (fmtcfg.source_format) {

@@ -7,9 +7,12 @@
 
 namespace pepp::tc {
 
-DriverResult assemble_riscv(const RISCVDriverConfig &, const FormattingConfig &fmtcfg, std::string source) {
+DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
   DriverResult result;
   auto rv_parser = parser::RISCVParser(support::SeekableData{std::move(source)});
+  auto sy = rv_parser.symbol_table();
+  inject_symdefs(cfg.symdefs, *sy, 4);
+
   auto program = rv_parser.parse(result.diagnostics);
   if (result.diagnostics.count() > 0) return result;
   if (fmtcfg.source_format) {
