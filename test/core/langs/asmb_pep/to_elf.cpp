@@ -76,7 +76,8 @@ pepp::tc::ElfResult from_specs(const std::vector<Spec> &specs) {
   u32 total = 0;
   for (const auto &spec : specs)
     if (!spec.z) total += spec.size;
-  oc.object_code.assign(total, 0xAA);
+  oc.object_code = std::make_shared<pepp::bts::BlockStorage>();
+  oc.object_code->allocate(total, 0xAA);
   oc.relocations.resize(specs.size());
   u32 at = 0;
   for (u16 i = 0; i < specs.size(); ++i) {
@@ -86,8 +87,9 @@ pepp::tc::ElfResult from_specs(const std::vector<Spec> &specs) {
     desc.low_address = spec.low, desc.high_address = spec.low + spec.size + spec.overstate;
     desc.section_index = SectionDescriptor::section_base_index + i;
     prog.emplace_back(desc, IRProgram{});
-    if (spec.z) oc.section_spans.push_back({});
-    else oc.section_spans.push_back({std::span<u8>(oc.object_code.data() + at, spec.size)}), at += spec.size;
+    const u32 size = spec.z ? 0 : spec.size;
+    oc.section_slices.emplace_back(oc.object_code, at, size);
+    at += size;
   }
   const pepp::core::symbol::LeafTable symbols(2);
   return sections_to_elf(pepp::bts::ElfBits::b32, pepp::bts::ElfEndian::be, pepp::bts::ElfMachineType::EM_PEP10,
