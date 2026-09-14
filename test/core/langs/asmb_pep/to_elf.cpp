@@ -183,6 +183,10 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
+    std::ostringstream streamed;
+    pepp::tc::write_elf(elf_result, streamed);
+    const auto bytes = pepp::tc::elf_bytes(elf_result);
+    CHECK(streamed.str() == std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
     // .text is rwx; .data and memvec are both rw and contiguous, so they share one segment.
     CHECK(elf.segments.size() == 2);
     for (const auto &[desc, _] : sections) {

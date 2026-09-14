@@ -21,6 +21,7 @@
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/elf/packed_types.hpp"
+#include <iosfwd>
 #include <stdexcept>
 #include "core/math/bitmanip/log2.hpp"
 
@@ -80,6 +81,8 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &, const std::vector<Se
 // Compute the maximum offset+data.size() in a layout.
 u64 size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) noexcept;
 void write(std::span<u8> out, const std::vector<LayoutItem> &layout);
+// As above, but streamed in offset order with gaps zero-filled.
+void write(std::ostream &out, std::vector<LayoutItem> layout);
 
 template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedGrowableElfFile<B, E> &elf) {
   if (!elf.section_headers.empty()) return;

@@ -251,3 +251,10 @@ std::vector<u8> pepp::tc::elf_bytes(ElfResult &result) {
   };
   return std::visit(visitor, result.elf);
 }
+
+void pepp::tc::write_elf(ElfResult &result, std::ostream &out) {
+  auto visitor = [&](auto &file) {
+    if (file) pepp::bts::write(out, pepp::bts::calculate_layout(*file, &result.segments));
+  };
+  std::visit(visitor, result.elf);
+}

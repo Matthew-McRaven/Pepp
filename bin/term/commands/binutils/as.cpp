@@ -85,13 +85,17 @@ void AsTask::run() {
     for (const auto &diag : result.diagnostics) diag_lines.push_back(diag.second);
     write_lines(_opts.file_errs, diag_lines, std::cerr);
     return emit finished(1);
-  } else if (const auto bytes = pepp::tc::elf_bytes(result.elf); !bytes.empty()) {
+  } else {
     std::ofstream out(_opts.file_elf, std::ios::binary);
     if (!out) {
       write_lines(_opts.file_errs, {"Could not open " + _opts.file_elf + " for writing"}, std::cerr);
       return emit finished(1);
     }
-    out.write(reinterpret_cast<const char *>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+    pepp::tc::write_elf(result.elf, out);
+    if (!out.flush()) {
+      write_lines(_opts.file_errs, {"Could not write " + _opts.file_elf}, std::cerr);
+      return emit finished(1);
+    }
   }
 
   return emit finished(0);
