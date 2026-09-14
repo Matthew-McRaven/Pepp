@@ -2,6 +2,9 @@
 #include <charconv>
 #include <fstream>
 #include <iostream>
+#include <regex>
+#include "core/resources/figures/book.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
 
 namespace {
 // Writes each line followed by a newline to `path`, or to `default_out` when path == "-".
@@ -26,6 +29,34 @@ template <typename T> std::optional<T> parse_whole(std::string_view text, int ba
   if (text.empty() || ec != std::errc{} || end != text.data() + text.size()) return std::nullopt;
   return value;
 }
+
+// Book macros still use the old assembler's $N arguments, which we rename to \argN for the new parser.
+void add_book_macros(pepp::tc::MacroRegistry &registry) {
+  static const std::regex positional(R"(\$([0-9]+))");
+  const auto books = helpers::builtins_registry(false);
+  const auto book = helpers::book(6, &*books);
+  if (book == nullptr) return;
+  for (const auto &file : book->macros()) {
+    auto def = std::make_shared<pepp::tc::MacroDefinition>();
+    if (file->name.starts_with("@")) def->name = file->name;
+    else def->name = std::string("@") + file->name;
+    for (int it = 1; it <= file->argcount; it++) def->arguments.push_back({.name = "arg" + std::to_string(it)});
+    def->body = std::regex_replace(file->body, positional, R"(\arg$1)");
+    registry.insert(def);
+  }
+}
+
+// To avoid having to parse the OS, we hardcode the system call macros here.
+// This is a temporary workaround until we have a more general way of extracting macros from a file.
+void add_os_macros(pepp::tc::MacroRegistry &registry) {
+  for (const auto name : {"DECI", "DECO", "STRO", "HEXO", "SNOP"}) {
+    auto def = std::make_shared<pepp::tc::MacroDefinition>();
+    def->name = std::string("@") + name;
+    def->arguments = {{.name = "arg1"}, {.name = "arg2"}};
+    def->body = std::string("LDWA ") + name + ",i\nSCALL \\arg1,\\arg2";
+    registry.insert(def);
+  }
+}
 } // namespace
 
 std::optional<std::pair<std::string, u32>> AsTask::parse_symdef(std::string_view arg) {
@@ -41,19 +72,15 @@ std::optional<std::pair<std::string, u32>> AsTask::parse_symdef(std::string_view
   return std::make_pair(std::string(name), *value);
 }
 
-AsTask::AsTask(Options &opts, QObject *parent) : Task(parent), _opts(opts) {}
+AsTask::AsTask(Options &opts, ArchOptions arch_opts, QObject *parent)
+    : Task(parent), _opts(opts), _arch_opts(std::move(arch_opts)) {}
 
 void AsTask::run() {
-  pepp::tc::DriverConfig cfg;
-  switch (_opts.arch) {
-  case pepp::Architecture::NO_ARCH:
+  if (_opts.arch == pepp::Architecture::NO_ARCH) {
     std::cerr << "Error: No architecture specified. Use -march to specify an architecture.\n";
     return emit finished(1);
-  case pepp::Architecture::PEP8: cfg = prepare_pep(); break;
-  case pepp::Architecture::PEP9: cfg = prepare_pep(); break;
-  case pepp::Architecture::PEP10: cfg = prepare_pep(); break;
-  case pepp::Architecture::RISCV: cfg = prepare_riscv(); break;
   }
+  const auto cfg = std::visit([this](const auto &arch_opts) { return prepare(arch_opts); }, _arch_opts);
   pepp::tc::FormattingConfig fmt_cfg;
   if (_opts.listing_enable) {
     fmt_cfg.listing_format = [&](std::vector<std::string> &&lines) { write_lines(_opts.file_listing, lines); };
@@ -123,6 +150,16 @@ void AsTask::run() {
   return emit finished(0);
 }
 
-pepp::tc::DriverConfig AsTask::prepare_riscv() { return pepp::tc::RISCVDriverConfig{.symdefs = _opts.symdefs}; }
+pepp::tc::DriverConfig AsTask::prepare(const RISCVOptions &) {
+  return pepp::tc::RISCVDriverConfig{.symdefs = _opts.symdefs};
+}
 
-pepp::tc::DriverConfig AsTask::prepare_pep() { return pepp::tc::Pep10DriverConfig{.symdefs = _opts.symdefs}; }
+pepp::tc::DriverConfig AsTask::prepare(const PEP10Options &arch) {
+  std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr;
+  if (arch.default_macros || arch.os_macros) {
+    macros = std::make_shared<pepp::tc::MacroRegistry>();
+    if (arch.default_macros) add_book_macros(*macros);
+    if (arch.os_macros) add_os_macros(*macros);
+  }
+  return pepp::tc::Pep10DriverConfig{.symdefs = _opts.symdefs, .macros = macros};
+}

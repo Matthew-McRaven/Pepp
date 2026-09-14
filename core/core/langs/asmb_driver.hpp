@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <variant>
+#include "core/compile/macro/macro_registry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb/elf_symtab.hpp"
 
@@ -26,6 +27,7 @@ struct RISCVDriverConfig {
 };
 struct Pep10DriverConfig {
   std::vector<std::pair<std::string, u32>> symdefs;
+  std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr;
 };
 using DriverConfig = std::variant<RISCVDriverConfig, Pep10DriverConfig>;
 

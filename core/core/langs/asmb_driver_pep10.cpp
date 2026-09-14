@@ -11,7 +11,7 @@ namespace pepp::tc {
 
 DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
   DriverResult result;
-  auto macros = std::make_shared<MacroRegistry>();
+  auto macros = cfg.macros ? cfg.macros : std::make_shared<MacroRegistry>();
   auto pep_parser = parser::PepParser(support::SeekableData{std::move(source)}, macros);
   auto sy = pep_parser.symbol_table();
   inject_symdefs(cfg.symdefs, *sy, 2);
@@ -30,7 +30,7 @@ DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig
   auto addresses = pepp_assign_addresses(split.grouped_ir);
   auto object_code = pepp_to_object_code(addresses, split.grouped_ir);
   if (fmtcfg.listing_format) {
-    auto listing = format_listing(program, addresses, object_code);
+    auto listing = format_listing(flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
   result.elf = pepp_to_elf(split.grouped_ir, addresses, object_code, *pep_parser.symbol_table(), split.mmios);
