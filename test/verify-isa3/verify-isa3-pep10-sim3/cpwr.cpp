@@ -29,7 +29,7 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
   quint16 tmp;
   auto [init_reg] = GENERATE(table<quint16>({0, 1, 0x7fff, 0x8000, 0x8001, 0x8FFF, 0xFFFF}));
   for (uint16_t opspec = 0; static_cast<uint32_t>(opspec) + 1 < 0x1'00'00; opspec++) {
-    auto endRegVal = static_cast<quint16>(init_reg + (~opspec + 1));
+    u32 endRegVal = 1_u32 + (u32)init_reg + (u32)(~opspec) & 0xFFFF;
 
     // Object code for instruction under test.
     auto program = std::array<quint8, 3>{(quint8)op, static_cast<uint8_t>((opspec >> 8) & 0xff),
@@ -60,11 +60,8 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
     // false.
     bool signed_overflow = input_sign_match ? input_sign_match != output_sign_match : false;
     CHECK(!!csr(cpu, isa::Pep10::CSR::V) == signed_overflow);
-    // Don't use bit twiddling here. This validates that my bit twiddles in
-    // the CPU are logically equivalent to to carrying into bit 17 of a
-    // 32-bit type.
-    auto result = static_cast<uint32_t>(init_reg) + static_cast<uint16_t>(~opspec + 1);
-    CHECK(csr(cpu, isa::Pep10::CSR::C) == (result >= 0x1'0000 ? 1 : 0));
+    const bool set_c = endRegVal & 0x1'0000;
+    CHECK(csr(cpu, isa::Pep10::CSR::C) == set_c);
     CHECK(csr(cpu, isa::Pep10::CSR::N) == (bool(endRegVal & 0x8000) ^ signed_overflow ? 1 : 0));
   }
 }

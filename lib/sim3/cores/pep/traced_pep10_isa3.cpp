@@ -449,6 +449,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(u8 is, u16 os
   u16 operand = 0;
 
   u16 tmp = 0;
+  u32 tmp_ext = 0;
   auto [n, z, v, c] = targets::isa::unpackCSR<ISA>(readPackedCSR());
 
   auto instrDef = ::isa::Pep10::opcodeLUT[is];
@@ -524,7 +525,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(u8 is, u16 os
     break;
 
   case mn::CPWA:
-    tmp = a + ~operand + 1;
+    // Perform bitwise negation at u16, but addition at u32 so that all we have to do is test bit [16].
+    tmp = tmp_ext = 1_u32 + u32(a) + u32(~operand) & 0xFFFF;
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
@@ -534,14 +536,15 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(u8 is, u16 os
     // >> Shifts in 0's (unsigned shorts), so after shift, only high order
     // bit remain.
     v = (~(a ^ (~operand + 1)) & (a ^ tmp)) >> 15;
-    // Carry out iff result is unsigned less than register or operand.
-    c = tmp < a || tmp < static_cast<u16>(1 + ~operand);
+    // Carry out when the result[16] is 1.
+    c = tmp_ext & 0x1'0000;
     // Invert N bit if there was signed overflow.
     n ^= v;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::CPWX:
-    tmp = x + ~operand + 1;
+    // Perform bitwise negation at u16, but addition at u32 so that all we have to do is test bit [16].
+    tmp = tmp_ext = 1_u32 + u32(x) + u32(~operand) & 0xFFFF;
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
@@ -551,8 +554,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(u8 is, u16 os
     // >> Shifts in 0's (unsigned shorts), so after shift, only high order
     // bit remain.
     v = (~(x ^ (~operand + 1)) & (x ^ tmp)) >> 15;
-    // Carry out iff result is unsigned less than register or operand.
-    c = tmp < x || tmp < static_cast<u16>(1 + ~operand);
+    // Carry out when the result[16] is 1.
+    c = tmp_ext & 0x1'0000;
     // Invert N bit if there was signed overflow.
     n ^= v;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
@@ -582,8 +585,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(u8 is, u16 os
     break;
 
   case mn::ADDA:
-    // The result is the decoded operand specifier plus the accumulator
-    tmp = a + operand;
+    // The result is the decoded operand specifier plus the accumulator register.
+    tmp = tmp_ext = u32(a) + u32(operand);
     writeReg(Register::A, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
@@ -594,13 +597,13 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(u8 is, u16 os
     // >> Shifts in 0's (unsigned shorts), so after shift, only high order
     // bit remain.
     v = (~(a ^ operand) & (a ^ tmp)) >> 15;
-    // Carry out iff result is unsigned less than register or operand.
-    c = tmp < a || tmp < operand;
+    // Carry out when the result[16] is 1.
+    c = tmp_ext & 0x1'0000;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::ADDX:
     // The result is the decoded operand specifier plus the index register.
-    tmp = x + operand;
+    tmp = tmp_ext = u32(x) + u32(operand);
     writeReg(Register::X, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
@@ -611,15 +614,14 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(u8 is, u16 os
     // >> Shifts in 0's (unsigned shorts), so after shift, only high order
     // bit remain.
     v = (~(x ^ operand) & (x ^ tmp)) >> 15;
-    // Carry out iff result is unsigned less than register or operand.
-    c = tmp < x || tmp < operand;
+    // Carry out when the result[16] is 1.
+    c = tmp_ext & 0x1'0000;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::SUBA:
-    // The result is the negated decoded operand specifier plus the
-    // accumulator
-    tmp = a + ~operand + 1;
+    // Perform bitwise negation at u16, but addition at u32 so that all we have to do is test bit [16].
+    tmp = tmp_ext = 1_u32 + u32(a) + u16(~operand);
     writeReg(Register::A, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
@@ -630,14 +632,13 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(u8 is, u16 os
     // >> Shifts in 0's (unsigned shorts), so after shift, only high order
     // bit remain.
     v = (~(a ^ (~operand + 1)) & (a ^ tmp)) >> 15;
-    // Carry out iff result is unsigned less than register or operand.
-    c = tmp < a || tmp < static_cast<u16>(1 + ~operand);
+    // Carry out when the result[16] is 1.
+    c = tmp_ext & 0x1'0000;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::SUBX:
-    // The result is the negated decoded operand specifier plus the index
-    // register
-    tmp = x + ~operand + 1;
+    // Perform bitwise negation at u16, but addition at u32 so that all we have to do is test bit [16].
+    tmp = tmp_ext = 1_u32 + u32(x) + u16(~operand);
     writeReg(Register::X, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
@@ -646,8 +647,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(u8 is, u16 os
     // There is a signed overflow iff the high order bits of the register
     // and operand are the same, and one input & the output differ in sign.
     v = (~(x ^ (~operand + 1)) & (x ^ tmp)) >> 15;
-    // Carry out iff result is unsigned less than register or operand.
-    c = tmp < x || tmp < static_cast<u16>(1 + ~operand);
+    // Carry out when the result[16] is 1.
+    c = tmp_ext & 0x1'0000;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 

@@ -25,7 +25,8 @@ void inner_cpw(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
   auto [init_reg] = GENERATE(table<u16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
   DYNAMIC_SECTION("with initial value " << init_reg) {
     for (u16 opspec = 0; static_cast<u32>(opspec) + 1 < 0x1'0000; opspec++) {
-      auto endRegVal = static_cast<u16>(init_reg + (~opspec + 1));
+      u32 result = static_cast<u16>(~opspec) + static_cast<u32>(init_reg) + 1_u32;
+      u16 endRegVal = result;
 
       // Object code for instruction under test.
       auto program =
@@ -54,11 +55,8 @@ void inner_cpw(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
       // false.
       bool signed_overflow = input_sign_match ? input_sign_match != output_sign_match : false;
       CHECK(!!csr(cpu, CSR::V) == signed_overflow);
-      // Don't use bit twiddling here. This validates that my bit twiddles in
-      // the CPU are logically equivalent to to carrying into bit 17 of a
-      // 32-bit type.
-      auto result = static_cast<uint32_t>(init_reg) + static_cast<uint16_t>(~opspec + 1);
-      CHECK(csr(cpu, CSR::C) == (result >= 0x1'0000 ? 1 : 0));
+      bool set_c = result & 0x1'0000;
+      CHECK(csr(cpu, CSR::C) == set_c);
       CHECK(csr(cpu, CSR::N) == (bool(endRegVal & 0x8000) ^ signed_overflow ? 1 : 0));
     }
   }
