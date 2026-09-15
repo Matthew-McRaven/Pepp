@@ -1,4 +1,5 @@
 #include "systemparser.hpp"
+#include <array>
 #include <nlohmann/json.hpp>
 #include "core/ds/string_compare.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
@@ -187,4 +188,43 @@ void serialize_system(const System *sys, nlohmann::json &obj) {
   obj["basename"] = sys->config().basename;
   const auto dt = sys->root();
   serialize_children(dt, sys, obj);
+}
+
+std::unique_ptr<System> create_standard_pep10_system() {
+  using Mapping = SimpleBus::Configuration::Mapping;
+  using Dir = FIFORegister::Direction;
+  struct MMIO {
+    std::string name;
+    Address address;
+    Dir direction;
+  };
+  const auto ram_span = AddressSpan(0x0000, 0xFFFC);
+  const std::array<MMIO, 3> mmios{{{"charIn", 0xFFFD, Dir::Input},
+                                   {"charOut", 0xFFFE, Dir::Output},
+                                   {"pwrOff", 0xFFFF, Dir::Output}}};
+
+  auto sys = std::make_unique<System>();
+  // Devices are identity-mapped so that their addresses match what the CPU sees.
+  SimpleBus::Configuration bus_cfg{
+      {.basename = "bus", .compatible = SimpleBus::compatible}, 0, AddressSpan(0x0000, 0xFFFF)};
+  bus_cfg.mappings.push_back(Mapping{.target = "ram", .source_span = ram_span, .target_offset = ram_span.lower()});
+  for (const auto &mmio : mmios)
+    bus_cfg.mappings.push_back(
+        Mapping{.target = mmio.name, .source_span = AddressSpan(mmio.address, mmio.address), .target_offset = 0});
+  auto bus = sys->make_device<SimpleBus>(bus_cfg);
+
+  sys->make_device<Sparse>(bus,
+                           Sparse::Configuration{{.basename = "ram", .compatible = Sparse::compatible}, 0, ram_span});
+
+  for (const auto &mmio : mmios)
+    sys->make_device<FIFORegister>(
+        bus, FIFORegister::Configuration{{.basename = mmio.name, .compatible = FIFORegister::compatible},
+                                         0,
+                                         mmio.direction,
+                                         AddressSpan(mmio.address, mmio.address)});
+
+  PepISA3CPU::Configuration cpu_cfg{
+      {.basename = "cpu", .compatible = PepISA3CPU::compatible}, PepISA3CPU::ISA::Pep10, "/bus"};
+  sys->make_device<PepISA3CPU>(cpu_cfg, sys.get());
+  return sys;
 }
