@@ -1,5 +1,4 @@
 #include "as.hpp"
-#include <charconv>
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -20,14 +19,6 @@ void write_lines(const std::string &path, const std::vector<std::string> &lines,
     return;
   }
   for (const auto &line : lines) out << line << "\n";
-}
-
-// Parses all of text in the given base, rejecting empty input, trailing characters, and out-of-range values.
-template <typename T> std::optional<T> parse_whole(std::string_view text, int base) {
-  T value{};
-  const auto [end, ec] = std::from_chars(text.data(), text.data() + text.size(), value, base);
-  if (text.empty() || ec != std::errc{} || end != text.data() + text.size()) return std::nullopt;
-  return value;
 }
 
 // Book macros still use the old assembler's $N arguments, which we rename to \argN for the new parser.
@@ -58,19 +49,6 @@ void add_os_macros(pepp::tc::MacroRegistry &registry) {
   }
 }
 } // namespace
-
-std::optional<std::pair<std::string, u32>> AsTask::parse_symdef(std::string_view arg) {
-  const auto eq = arg.find('=');
-  if (eq == 0 || eq == std::string_view::npos) return std::nullopt;
-  const auto name = arg.substr(0, eq), text = arg.substr(eq + 1);
-  std::optional<u32> value;
-  if (text.starts_with("0x") || text.starts_with("0X")) value = parse_whole<u32>(text.substr(2), 16);
-  else if (text.starts_with('-')) {
-    if (const auto negative = parse_whole<i32>(text, 10)) value = static_cast<u32>(*negative);
-  } else value = parse_whole<u32>(text, 10);
-  if (!value) return std::nullopt;
-  return std::make_pair(std::string(name), *value);
-}
 
 AsTask::AsTask(Options &opts, ArchOptions arch_opts, QObject *parent)
     : Task(parent), _opts(opts), _arch_opts(std::move(arch_opts)) {}

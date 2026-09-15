@@ -22,6 +22,7 @@
 #include <vector>
 #include "../../shared.hpp"
 #include "../../task.hpp"
+#include "../name_value.hpp"
 #include "core/architectures.hpp"
 #include "core/langs/asmb_driver.hpp"
 namespace ELFIO {
@@ -51,9 +52,6 @@ public:
 
   AsTask(Options &opts, ArchOptions arch_opts, QObject *parent = nullptr);
   void run() override;
-  // Parses <name>=<value>, where value is a 32-bit integer in signed decimal, unsigned decimal, or 0x-prefixed hex.
-  // Negative values are kept as their two's complement.
-  static std::optional<std::pair<std::string, u32>> parse_symdef(std::string_view arg);
 
 private:
   pepp::tc::DriverConfig prepare(const RISCVOptions &);
@@ -102,7 +100,7 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       ->take_all()
       ->check(CLI::Validator(
           [](std::string &arg) -> std::string {
-            return AsTask::parse_symdef(arg) ? "" : "expected <name>=<integer value>";
+            return parse_name_value<u32>(arg) ? "" : "expected <name>=<integer value>";
           },
           ""));
   as_clone
@@ -114,7 +112,7 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
 
   as_clone->callback([&]() {
     opts.symdefs.clear();
-    for (const auto &arg : symdef_text) opts.symdefs.push_back(*AsTask::parse_symdef(arg));
+    for (const auto &arg : symdef_text) opts.symdefs.push_back(*parse_name_value<u32>(arg));
     opts.format_source_enable = fmt_opts->count() > 0;
     // Use count() rather than a_text.empty(), since a bare "-a"  and an absent "-a" both leave a_text == "".
     opts.listing_enable = a_opts->count() > 0;
