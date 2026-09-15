@@ -48,6 +48,17 @@ void add_os_macros(pepp::tc::MacroRegistry &registry) {
     registry.insert(def);
   }
 }
+
+void add_pep10_os_symbols(std::vector<std::pair<std::string, u32>> &symdefs) {
+  symdefs.push_back({"DECI", 0x0000});
+  symdefs.push_back({"DECO", 0x0001});
+  symdefs.push_back({"HEXO", 0x0002});
+  symdefs.push_back({"STRO", 0x0003});
+  symdefs.push_back({"SNOP", 0x0004});
+  symdefs.push_back({"charIn", 0xFFFD});
+  symdefs.push_back({"charOut", 0xFFFE});
+  symdefs.push_back({"pwrOff", 0xFFFF});
+}
 } // namespace
 
 AsTask::AsTask(Options &opts, ArchOptions arch_opts, QObject *parent)
@@ -138,6 +149,7 @@ pepp::tc::DriverConfig AsTask::prepare(const PEP10Options &arch) {
     macros = std::make_shared<pepp::tc::MacroRegistry>();
     if (arch.default_macros) add_book_macros(*macros);
     if (arch.os_macros) add_os_macros(*macros);
+    if (arch.os_symbols) add_pep10_os_symbols(_opts.symdefs);
   }
   return pepp::tc::Pep10DriverConfig{.symdefs = _opts.symdefs, .macros = macros};
 }

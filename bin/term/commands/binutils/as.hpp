@@ -47,6 +47,8 @@ public:
   struct RISCVOptions {};
   struct PEP10Options {
     bool default_macros = true, os_macros = false;
+    // Define the OS's system call numbers (DECI, DECO, ...) for programs assembled without the OS.
+    bool os_symbols = false;
   };
   using ArchOptions = std::variant<RISCVOptions, PEP10Options>;
 
@@ -109,6 +111,11 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       ->default_val(true);
   as_clone->add_flag("--os-macros,!--no-os-macros", pep_opts.os_macros, "Insert system call macros(Pep/10 only)")
       ->default_val(true);
+  // Off by default, since the OS defines these itself and would otherwise see them as multiply defined.
+  as_clone
+      ->add_flag("--os-symbols,!--no-os-symbols", pep_opts.os_symbols,
+                 "Define the system call numbers DECI, DECO, HEXO, STRO, and SNOP (Pep/10 only)")
+      ->default_val(false);
 
   as_clone->callback([&]() {
     opts.symdefs.clear();
