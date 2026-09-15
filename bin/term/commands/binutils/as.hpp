@@ -70,7 +70,7 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static std::string a_text;
   static std::string march_text;
   static std::vector<std::string> symdef_text;
-  static auto as_clone = app.add_subcommand("as", "GNU as-compatible assembler");
+  static auto as_clone = app.add_subcommand("as", "GNU as-compatible assembler")->alias("pas");
   as_clone->allow_non_standard_option_names();
   static const auto march_opt =
       as_clone->add_option("-march", march_text, "Specify target architecture, e.g. rv32imc or pep10")

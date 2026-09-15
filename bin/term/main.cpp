@@ -25,6 +25,7 @@
 #include "commands/asm.hpp"
 #include "commands/binutils/addr2line.hpp"
 #include "commands/binutils/as.hpp"
+#include "commands/binutils/emu.hpp"
 #include "commands/binutils/readelf.hpp"
 #include "commands/dumpbooks.hpp"
 #include "commands/dumptex.hpp"
@@ -92,6 +93,7 @@ int main(int argc, char **argv) {
   registerAddr2Line(app, task, shared_flags);
   registerAs(app, task, shared_flags);
   registerReadelf(app, task, shared_flags);
+  registerEmu(app, task, shared_flags);
 
   // qemu-like programs
   register_rvemu(app, task, shared_flags);
