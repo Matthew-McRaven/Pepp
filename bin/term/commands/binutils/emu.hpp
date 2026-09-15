@@ -18,8 +18,11 @@
 #include <CLI11.hpp>
 #include <string>
 #include <variant>
+#include <vector>
 #include "../../shared.hpp"
 #include "../../task.hpp"
+#include "../name_value.hpp"
+#include "core/integers.h"
 
 class PeppEmulator : public Task {
 public:
@@ -27,6 +30,10 @@ public:
   struct Options {
     // If a string, treat it as a path to a JSON file which should be parsed to create the system.
     std::variant<SystemEnu, std::string> system = SystemEnu::Pep10OS;
+    // Named registers/fields set initialization and their values. Negative values stored as two's complement.
+    std::vector<std::pair<std::string, u64>> set_registers;
+    // Named registers/fields printed to stdout at the end of execution.
+    std::vector<std::string> print_registers;
   };
   PeppEmulator(Options &opts, QObject *parent = nullptr);
   void run() override;
@@ -49,8 +56,29 @@ void registerEmu(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
                                           CLI::ignore_case));
   static auto system_json_opt =
       system_group->add_option("--system-json", system_json, "Use a custom system")->option_text("<name>");
+  static std::vector<std::string> set_reg_text;
+  // One value per occurrence, so a following positional argument is not taken as a second register.
+  pemu->add_option("--set-reg", set_reg_text,
+                   "Set a register or field after the system is initialized, with a signed decimal, unsigned "
+                   "decimal, or 0x-prefixed hex value. May be repeated.")
+      ->option_text("<name>=<value>")
+      ->allow_extra_args(false)
+      ->take_all()
+      ->check(CLI::Validator(
+          [](std::string &arg) -> std::string {
+            return parse_name_value<u64>(arg) ? "" : "expected <name>=<integer value>";
+          },
+          ""));
+  pemu->add_option(
+          "--print-reg", opts.print_registers,
+          "Print a register or field as <name>=<hex value> after the simulated program terminates. May be repeated.")
+      ->option_text("<name>")
+      ->allow_extra_args(false)
+      ->take_all();
 
   pemu->callback([&]() {
+    opts.set_registers.clear();
+    for (const auto &arg : set_reg_text) opts.set_registers.push_back(*parse_name_value<u64>(arg));
     if (system_json_opt->count() > 0) opts.system = system_json;
     else opts.system = system;
     flags.kind = detail::SharedFlags::Kind::TERM;
