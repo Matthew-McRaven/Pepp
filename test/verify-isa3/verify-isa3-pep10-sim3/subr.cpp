@@ -30,7 +30,8 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
   auto [init_reg] = GENERATE(table<quint16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
   DYNAMIC_SECTION("with initial value " << init_reg) {
     for (uint16_t opspec = 0; static_cast<uint32_t>(opspec) + 1 < 0x1'0000; opspec++) {
-      auto endRegVal = static_cast<quint16>((~opspec + 1) + init_reg);
+      u32 result = static_cast<u16>(~opspec) + static_cast<u32>(init_reg) + 1_u32;
+      u16 endRegVal = result;
 
       // Object code for instruction under test.
       auto program = std::array<quint8, 3>{(quint8)op, static_cast<uint8_t>((opspec >> 8) & 0xff),
@@ -61,11 +62,8 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
       // false.
       bool signed_overflow = input_sign_match ? input_sign_match != output_sign_match : false;
       CHECK(!!csr(cpu, isa::Pep10::CSR::V) == signed_overflow);
-      // Don't use bit twiddling here. This validates that my bit twiddles in
-      // the CPU are logically equivalent to to carrying into bit 17 of a
-      // 32-bit type.
-      auto result = static_cast<uint32_t>(init_reg) + static_cast<uint16_t>(~opspec + 1);
-      CHECK(csr(cpu, isa::Pep10::CSR::C) == (result >= 0x1'0000 ? 1 : 0));
+      const bool set_c = result & 0x1'0000;
+      REQUIRE(csr(cpu, isa::Pep10::CSR::C) == set_c);
     }
   }
 }

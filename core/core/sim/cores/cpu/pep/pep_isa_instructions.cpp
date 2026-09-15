@@ -280,7 +280,9 @@ void handle_subsp(PepISA3CPU *self, Op op, u16 op_val) {
 void handle_addr(PepISA3CPU *self, Op op, u16 op_val) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   const u16 src = self->read_register(reg);
-  const u16 tmp = src + op_val;
+  // Perform arithmetic at u32 so that we can test for carry out directly rather than using multiple < comparisons.
+  const u32 tmp_ext = u32(src) + u32(op_val);
+  const u16 tmp = tmp_ext;
   // Is negative if high order bit is 1.
   bool n = tmp & 0x8000;
   // Is zero if all bits are 0's.
@@ -291,7 +293,7 @@ void handle_addr(PepISA3CPU *self, Op op, u16 op_val) {
   // bit remain.
   bool v = (~(src ^ op_val) & (src ^ tmp)) >> 15;
   // Carry out iff result is unsigned less than register or operand.
-  bool c = tmp < src || tmp < op_val;
+  bool c = tmp_ext & 0x1'0000;
   self->write_register(reg, tmp);
   self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
@@ -299,7 +301,10 @@ void handle_addr(PepISA3CPU *self, Op op, u16 op_val) {
 void handle_subr(PepISA3CPU *self, Op op, u16 op_val) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   const u16 src = self->read_register(reg);
-  const u16 tmp = src + ~op_val + 1;
+  // Perform bitwise negation at u16 to match how the underlying HW adder works.
+  // Perform arithmetic at u32 so that we can test for carry out directly rather than using multiple < comparisons.
+  const u32 tmp_ext = 1_u32 + u32(src) + u16(~op_val);
+  const u16 tmp = tmp_ext;
   // Is negative if high order bit is 1.
   bool n = tmp & 0x8000;
   // Is zero if all bits are 0's.
@@ -309,8 +314,8 @@ void handle_subr(PepISA3CPU *self, Op op, u16 op_val) {
   // >> Shifts in 0's (unsigned shorts), so after shift, only high order
   // bit remain.
   bool v = (~(src ^ (~op_val + 1)) & (src ^ tmp)) >> 15;
-  // Carry out iff result is unsigned less than register or operand.
-  bool c = tmp < src || tmp < static_cast<u16>(1 + ~op_val);
+  // Carry out iff tmp[16] == 1
+  bool c = tmp_ext & 0x1'0000;
   self->write_register(reg, tmp);
   self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
@@ -336,8 +341,11 @@ void handle_bitopr(PepISA3CPU *self, Op op, Bitop bitop, u16 op_val) {
 void handle_cpwr(PepISA3CPU *self, Op op, u16 op_val) {
   const isa::Pep10::Register reg = static_cast<isa::Pep10::Register>(op.target);
   const u16 src = self->read_register(reg);
+  // Perform bitwise negation at u16 to match how the underlying HW adder works.
+  // Perform arithmetic at u32 so that we can test for carry out directly rather than using multiple < comparisons.
+  const u32 tmp_ext = 1_u32 + u32(src) + u16(~op_val);
+  const u16 tmp = tmp_ext;
   const u16 neg = ~op_val + 1;
-  const u16 tmp = src + neg;
   // Is negative if high order bit is 1.
   bool n = tmp & 0x8000;
   // Is zero if all bits are 0's.
@@ -347,8 +355,8 @@ void handle_cpwr(PepISA3CPU *self, Op op, u16 op_val) {
   // >> Shifts in 0's (unsigned shorts), so after shift, only high order
   // bit remain.
   bool v = (~(src ^ neg) & (src ^ tmp)) >> 15;
-  // Carry out iff result is unsigned less than register or operand.
-  bool c = tmp < src || tmp < neg;
+  // Carry out iff tmp[16] == 1
+  bool c = tmp_ext & 0x1'0000;
   // Invert N bit if there was signed overflow.
   n ^= v;
   self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
