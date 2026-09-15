@@ -34,6 +34,8 @@ public:
     std::vector<std::pair<std::string, u64>> set_registers;
     // Named registers/fields printed to stdout at the end of execution.
     std::vector<std::string> print_registers;
+    // ELF files which are all loaded into the system together.
+    std::vector<std::string> elf_files;
   };
   PeppEmulator(Options &opts, QObject *parent = nullptr);
   void run() override;
@@ -75,6 +77,7 @@ void registerEmu(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       ->option_text("<name>")
       ->allow_extra_args(false)
       ->take_all();
+  pemu->add_option("files", opts.elf_files, "ELF file(s) to load together")->required()->check(CLI::ExistingFile);
 
   pemu->callback([&]() {
     opts.set_registers.clear();
