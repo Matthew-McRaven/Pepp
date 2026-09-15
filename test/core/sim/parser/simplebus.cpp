@@ -138,8 +138,8 @@ TEST_CASE("System Parser, SimpleBus, Passes", "[scope:core][scope:core.sim][kind
     CHECK(bus->span().upper() == 1024);
     CHECK(bus->mappings().size() == 1);
     auto first_mapping = bus->mappings().front();
-    CHECK(first_mapping.source_span.lower() == 0);
-    CHECK(first_mapping.source_span.upper() == 20);
+    CHECK(first_mapping.source.span.lower() == 0);
+    CHECK(first_mapping.source.span.upper() == 20);
     CHECK(first_mapping.target_offset == 80);
     CHECK(first_mapping.target == "/memory");
     auto casted = bus->capability<Target>();

@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <span>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
@@ -117,6 +118,12 @@ private:
 class SimpleBus final : public Target, public Device, public Initiator, public Traceable {
 public:
   static const inline std::string compatible = "bus,simple";
+  enum Access : u8 { None = 0, Read = 1 << 0, Write = 1 << 1, Execute = 1 << 2 };
+  // What may be done to a span of bus addresses.
+  struct Permission {
+    AddressSpan span;
+    Access access = (Access)(Access::Read | Access::Write | Access::Execute);
+  };
   struct Configuration : public Device::Configuration {
     u8 fill{0};
     // encoded as min_offset and max_offset
@@ -125,10 +132,9 @@ public:
     FailPolicy fail_policy = FailPolicy::RaiseError;
 
     struct Mapping {
-      enum Access : u8 { None = 0, Read = 1 << 0, Write = 1 << 1, Execute = 1 << 2 };
       std::string target;
-      Access access = (Access)(Access::Read | Access::Write | Access::Execute);
-      AddressSpan source_span;
+      // The bus addresses mapped onto target, and the most access any later apply_permissions may allow.
+      Permission source;
       Address target_offset = 0;
     };
     std::vector<Mapping> mappings;
@@ -142,6 +148,10 @@ public:
   SimpleBus(const SimpleBus &) = delete;
   SimpleBus &operator=(const SimpleBus &) = delete;
   const std::vector<Configuration::Mapping> &mappings() const;
+  // Restrict the effective access of address ranges in the source space. Permissions are &'ed with the configured
+  // devices to prevent a read-only device from becoming writable. Replaces previously applied permissions.
+  // perms may be in any order, but throws std::invalid_argument if any overlap.
+  void apply_permissions(std::span<const Permission> perms);
 
   // Device interface
   void initialize(System *) override;
@@ -172,9 +182,11 @@ private:
   Target *device(Device::ID id) const;
 
   Configuration _config;
-  AddressTranslationMap<Configuration::Mapping::Access> _addrs;
+  // _as_configured holds the mappings as configured during initialize().
+  // _with_permission combines _as_configured with requested permissions from apply_permissions().
+  AddressTranslationMap<Access> _as_configured, _with_permission;
   std::unordered_map<Device::ID, Target *> _devices;
   trace::Recorder _trace;
 };
 
-consteval void is_bitflags(SimpleBus::Configuration::Mapping::Access);
+consteval void is_bitflags(SimpleBus::Access);

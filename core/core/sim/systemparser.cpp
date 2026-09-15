@@ -207,10 +207,10 @@ std::unique_ptr<System> create_standard_pep10_system() {
   // Devices are identity-mapped so that their addresses match what the CPU sees.
   SimpleBus::Configuration bus_cfg{
       {.basename = "bus", .compatible = SimpleBus::compatible}, 0, AddressSpan(0x0000, 0xFFFF)};
-  bus_cfg.mappings.push_back(Mapping{.target = "ram", .source_span = ram_span, .target_offset = ram_span.lower()});
+  bus_cfg.mappings.push_back(Mapping{.target = "ram", .source = {.span = ram_span}, .target_offset = ram_span.lower()});
   for (const auto &mmio : mmios)
-    bus_cfg.mappings.push_back(
-        Mapping{.target = mmio.name, .source_span = AddressSpan(mmio.address, mmio.address), .target_offset = 0});
+    bus_cfg.mappings.push_back(Mapping{
+        .target = mmio.name, .source = {.span = AddressSpan(mmio.address, mmio.address)}, .target_offset = 0});
   auto bus = sys->make_device<SimpleBus>(bus_cfg);
 
   sys->make_device<Sparse>(bus,
