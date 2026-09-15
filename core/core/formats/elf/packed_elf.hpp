@@ -48,7 +48,7 @@ template <ElfBits B, ElfEndian E> class PackedInputElfFile : public PackedElf<B,
 
 public:
   // Create a read-only ELF file from a memory-mapped file.
-  // On construction, will read in ehdr, shdrs, and phdrs.
+  // On construction, will read in ehdr, shdrs, and phdrs, throwing if the file's class or byte order is not B / E.
   // Section data will be loaded lazily.
   PackedInputElfFile(std::shared_ptr<MappedFile> file);
   PackedInputElfFile(std::string file);
@@ -88,6 +88,12 @@ PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) :
     throw std::runtime_error("File too small to contain ELF header");
   auto header_dest = bits::span<u8>((u8 *)&this->header, sizeof(typename PackedElf<B, E>::Ehdr));
   std::memcpy(header_dest.data(), header_data.data(), header_dest.size());
+  // Every later offset is read as a B-sized, E-ordered field, so reject other formats before trusting them.
+  constexpr auto elf_class = B == ElfBits::b32 ? ElfClass::ELFCLASS32 : ElfClass::ELFCLASS64;
+  constexpr auto elf_data = E == ElfEndian::le ? ElfEncoding::ELFDATA2LSB : ElfEncoding::ELFDATA2MSB;
+  if (!this->header.has_valid_magic()) throw std::runtime_error("File is not an ELF file");
+  else if (this->header.ei_class() != elf_class || this->header.ei_data() != elf_data)
+    throw std::runtime_error("ELF file has the wrong class or byte order");
   // Determine base address of section header table and eagerly copy into our shdr vector.
   word<B> shdr_start = this->header.e_shoff, shdr_size = this->header.e_shentsize * this->header.e_shnum;
   if (shdr_size > 0) {

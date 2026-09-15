@@ -17,6 +17,7 @@
 #include <catch.hpp>
 
 #include "core/sim/memory/bus/simplebus.hpp"
+#include "core/sim/memory/errors.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
 
@@ -37,15 +38,15 @@ auto make = []() {
   SimpleBus::Configuration b1{{base_b1}, 0, AddressSpan(0, 5)};
   b1.mappings.push_back(Mapping{
       .target = m1->config().fullname,
-      .source_span = AddressSpan(0, 1),
+      .source = {.span = AddressSpan(0, 1)},
   });
   b1.mappings.push_back(Mapping{
       .target = m2->config().fullname,
-      .source_span = AddressSpan(2, 3),
+      .source = {.span = AddressSpan(2, 3)},
   });
   b1.mappings.push_back(Mapping{
       .target = m3->config().fullname,
-      .source_span = AddressSpan(4, 5),
+      .source = {.span = AddressSpan(4, 5)},
   });
 
   auto bus = system->make_device<SimpleBus>(b1);
@@ -88,5 +89,75 @@ TEST_CASE("(new) SimpleBus group in-bounds access", "[scope:core][scope:core.sim
     REQUIRE_NOTHROW(m->read(0, bufSpan.first(2), rw));
     CHECK(buf[0] == i * 2 + 0);
     CHECK(buf[1] == i * 2 + 1);
+  }
+}
+
+TEST_CASE("(new) SimpleBus permissions", "[scope:core][scope:core.sim][kind:int][arch:*]") {
+  using Access = SimpleBus::Access;
+  using Mapping = SimpleBus::Configuration::Mapping;
+  const auto app = Operation{Operation::Type::Application, Operation::Kind::data};
+  // One permission spanning the boundary between two devices, overlapping part of each.
+  auto system = std::make_shared<System>();
+  Target *lo = system->make_device<Dense>(Dense::Configuration{{.basename = "lo"}, 0, AddressSpan(0, 1000)});
+  Target *hi = system->make_device<Dense>(Dense::Configuration{{.basename = "hi"}, 0, AddressSpan(0, 1499)});
+  SimpleBus::Configuration cfg{{.basename = "bus"}, 0, AddressSpan(0, 3000)};
+  cfg.mappings.push_back(Mapping{.target = "/lo", .source = {.span = AddressSpan(500, 1500)}});
+  cfg.mappings.push_back(Mapping{.target = "/hi", .source = {.span = AddressSpan(1501, 3000)}});
+  auto bus = system->make_device<SimpleBus>(cfg);
+  system->initialize();
+  const SimpleBus::Permission perms[] = {{AddressSpan(1000, 2000), Access::Read}};
+  bus->apply_permissions(perms);
+
+  u8 buf[2] = {0xAB, 0xCD};
+  auto write_to_ro = [&](Address address, std::size_t length, Operation op) {
+    try {
+      bus->write(address, bits::span<const u8>{buf, length}, op);
+    } catch (const Error &e) {
+      return e.type() == Error::Type::WriteToRO;
+    }
+    return false;
+  };
+
+  SECTION("Only addresses inside the permission lose write access") {
+    for (Address address : {500, 999, 2001, 3000}) CHECK_FALSE(write_to_ro(address, 1, rw));
+    for (Address address : {1000, 1500, 1501, 2000}) CHECK(write_to_ro(address, 1, rw));
+    // A write straddling the edge of the permission fails on its read-only byte.
+    CHECK(write_to_ro(999, 2, rw));
+  }
+  SECTION("Split regions still reach the right device and offset") {
+    REQUIRE_FALSE(write_to_ro(1000, 1, app));
+    REQUIRE_FALSE(write_to_ro(2000, 1, app));
+    u8 out[1] = {0};
+    lo->read(500, {out}, rw);
+    CHECK(out[0] == 0xAB);
+    out[0] = 0;
+    hi->read(499, {out}, rw);
+    CHECK(out[0] == 0xAB);
+    // Reads are not restricted.
+    CHECK_NOTHROW(bus->read(1000, {out}, rw));
+  }
+  SECTION("Several unsorted permissions within one region") {
+    const SimpleBus::Permission two[] = {{AddressSpan(800, 899), Access::Read}, {AddressSpan(600, 699), Access::Read}};
+    bus->apply_permissions(two);
+    for (Address address : {599, 700, 799, 900}) CHECK_FALSE(write_to_ro(address, 1, rw));
+    for (Address address : {600, 699, 800, 899}) CHECK(write_to_ro(address, 1, rw));
+  }
+  SECTION("Overlapping permissions are rejected") {
+    const SimpleBus::Permission overlapping[] = {{AddressSpan(600, 700), Access::Read},
+                                                 {AddressSpan(700, 800), Access::Read}};
+    CHECK_THROWS_AS(bus->apply_permissions(overlapping), std::invalid_argument);
+  }
+  SECTION("Permissions over unmapped addresses do not throw") {
+    // [0, 399] is on the bus but has no device, [400, 599] only partly covers lo, and [4000, 5000] is off the bus.
+    const SimpleBus::Permission unmapped[] = {{AddressSpan(0, 399), Access::Read},
+                                              {AddressSpan(400, 599), Access::Read},
+                                              {AddressSpan(4000, 5000), Access::Read}};
+    REQUIRE_NOTHROW(bus->apply_permissions(unmapped));
+    for (Address address : {500, 599}) CHECK(write_to_ro(address, 1, rw));
+    for (Address address : {600, 1000, 3000}) CHECK_FALSE(write_to_ro(address, 1, rw));
+  }
+  SECTION("Applying no permissions restores the configured access") {
+    bus->apply_permissions({});
+    for (Address address : {1000, 1500, 1501, 2000}) CHECK_FALSE(write_to_ro(address, 1, rw));
   }
 }

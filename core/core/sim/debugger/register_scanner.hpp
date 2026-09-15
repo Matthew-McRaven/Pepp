@@ -103,7 +103,7 @@ public:
   // clean/default state or replaying a trace would be Host. The default is Guest, which is the least-permissive.
   enum class Level : u8 {
     Guest, // The system/device tree under test, and anything reaching into it on a user's behalf.
-    Host,  // The simulator's own infrastructure: replaying a trace, resetting a device, restoring a checkpoint.
+    Host,  // The simulator's infrastructure, like replaying a trace, resetting a device, restoring a checkpoint.
   };
 
   enum class Byteswap {
@@ -123,7 +123,8 @@ public:
   template <std::integral I> I read(const RegisterRef &n, Level level = Level::Guest);
   // Helper which writes an integral value to a register.
   template <std::integral I> void write(const RegisterRef &n, I value, Level level = Level::Guest);
-  // A reset rather than a write, so it goes in at Level::Host: a register the guest may not write still resets.
+  // A reset rather than a write, so it goes in at Level::Host. Allows resetting things like retired instruction counter
+  // which is not guest-writable.
   void clear(const RegisterRef &n);
   // Reset every exposed register of the given kind. Host-unwritable registers are skipped.
   std::size_t reset(std::initializer_list<Register::Kind> kinds);

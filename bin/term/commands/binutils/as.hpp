@@ -22,6 +22,7 @@
 #include <vector>
 #include "../../shared.hpp"
 #include "../../task.hpp"
+#include "../name_value.hpp"
 #include "core/architectures.hpp"
 #include "core/langs/asmb_driver.hpp"
 namespace ELFIO {
@@ -46,14 +47,13 @@ public:
   struct RISCVOptions {};
   struct PEP10Options {
     bool default_macros = true, os_macros = false;
+    // Define the OS's system call numbers (DECI, DECO, ...) for programs assembled without the OS.
+    bool os_symbols = false;
   };
   using ArchOptions = std::variant<RISCVOptions, PEP10Options>;
 
   AsTask(Options &opts, ArchOptions arch_opts, QObject *parent = nullptr);
   void run() override;
-  // Parses <name>=<value>, where value is a 32-bit integer in signed decimal, unsigned decimal, or 0x-prefixed hex.
-  // Negative values are kept as their two's complement.
-  static std::optional<std::pair<std::string, u32>> parse_symdef(std::string_view arg);
 
 private:
   pepp::tc::DriverConfig prepare(const RISCVOptions &);
@@ -102,7 +102,7 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       ->take_all()
       ->check(CLI::Validator(
           [](std::string &arg) -> std::string {
-            return AsTask::parse_symdef(arg) ? "" : "expected <name>=<integer value>";
+            return parse_name_value<u32>(arg) ? "" : "expected <name>=<integer value>";
           },
           ""));
   as_clone
@@ -111,10 +111,15 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       ->default_val(true);
   as_clone->add_flag("--os-macros,!--no-os-macros", pep_opts.os_macros, "Insert system call macros(Pep/10 only)")
       ->default_val(true);
+  // Off by default, since the OS defines these itself and would otherwise see them as multiply defined.
+  as_clone
+      ->add_flag("--os-symbols,!--no-os-symbols", pep_opts.os_symbols,
+                 "Define the system call numbers DECI, DECO, HEXO, STRO, and SNOP (Pep/10 only)")
+      ->default_val(false);
 
   as_clone->callback([&]() {
     opts.symdefs.clear();
-    for (const auto &arg : symdef_text) opts.symdefs.push_back(*AsTask::parse_symdef(arg));
+    for (const auto &arg : symdef_text) opts.symdefs.push_back(*parse_name_value<u32>(arg));
     opts.format_source_enable = fmt_opts->count() > 0;
     // Use count() rather than a_text.empty(), since a bare "-a"  and an absent "-a" both leave a_text == "".
     opts.listing_enable = a_opts->count() > 0;
