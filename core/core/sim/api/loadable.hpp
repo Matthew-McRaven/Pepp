@@ -17,9 +17,9 @@
 
 #include "core/formats/elf/enums_eheader.hpp"
 #include "core/integers.h"
-#include "core/math/bitmanip/span.hpp"
 #include "core/sim/api/device.hpp"
 
+struct Target;
 struct Loadable {
   static constexpr Device::Type TypeMask = Device::Type::Loadable;
   virtual ~Loadable() = default;
@@ -27,4 +27,11 @@ struct Loadable {
   virtual pepp::bts::ElfMachineType core_type() const noexcept = 0;
   virtual pepp::bts::ElfBits core_bits() const noexcept = 0;
   virtual pepp::bts::ElfEndian core_endian() const noexcept = 0;
+
+  // The kinds of memory attached to a core that a Loader might be interested in targeting.
+  enum class MemoryKind : u8 { Instruction, Data, MicrocodeROM };
+  // Return the target backing the requested kind of memory, or nullptr if this core has no memory of that kind.
+  // Allows the loader to correctly load code, data, and microcode without needing to understand overall system arch.
+  virtual Target *port(MemoryKind kind) = 0;
+  const Target *port(MemoryKind kind) const { return const_cast<Loadable *>(this)->port(kind); }
 };

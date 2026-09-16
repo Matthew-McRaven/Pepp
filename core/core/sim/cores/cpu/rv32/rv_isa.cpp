@@ -91,6 +91,16 @@ const Device::Configuration &RV32CPU::config() const { return _config; }
 const RV32CPU::Configuration &RV32CPU::casted_config() const { return _config; }
 const Device::ID RV32CPU::id() const { return _config.id; }
 
+Target *RV32CPU::port(MemoryKind kind) {
+  // Memory is currently unified, and no microcode eeprom exists.
+  switch (kind) {
+  case MemoryKind::Instruction: [[fallthrough]];
+  case MemoryKind::Data: return _target;
+  case MemoryKind::MicrocodeROM: return nullptr;
+  }
+  return nullptr;
+}
+
 Device::Type RV32CPU::type() const {
   using namespace bits;
   using T = Device::Type;

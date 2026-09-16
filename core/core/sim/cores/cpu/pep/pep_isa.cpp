@@ -137,6 +137,16 @@ const PepISA3CPU::Configuration &PepISA3CPU::casted_config() const { return _con
 
 const Device::ID PepISA3CPU::id() const { return _config.id; }
 
+Target *PepISA3CPU::port(MemoryKind kind) {
+  // Memory is currently unified, and no microcode eeprom exists.
+  switch (kind) {
+  case MemoryKind::Instruction: [[fallthrough]];
+  case MemoryKind::Data: return _target;
+  case MemoryKind::MicrocodeROM: return nullptr;
+  }
+  return nullptr;
+}
+
 Device::Type PepISA3CPU::type() const {
   using namespace bits;
   using T = Device::Type;
