@@ -103,6 +103,30 @@ TEST_CASE("Find register by name in HW debugger", "[scope:core][scope:core.dbg][
   inner_call<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::CALL);
 }
 
+TEST_CASE("Find register by device-scoped name", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  auto *scan = sys->register_scan();
+  auto same = [](std::optional<RegisterScan::RegisterRef> lhs, std::optional<RegisterScan::RegisterRef> rhs) {
+    return lhs && rhs && lhs->reg == rhs->reg && lhs->field == rhs->field;
+  };
+  const auto a = scan->find("A", Device::ID{0});
+  REQUIRE(a);
+
+  SECTION("A missing or empty scope searches every device") {
+    CHECK(same(scan->find("A"), a));
+    CHECK(same(scan->find(":A"), a));
+  }
+  SECTION("A scope only matches registers exposed by that exact device") {
+    CHECK(same(scan->find("/cpu/regs:A"), a));
+    CHECK(scan->find("/memory:rd_bytes"));
+    CHECK_FALSE(scan->find("/cpu/regs:rd_bytes"));
+    // The CPU's architectural registers are exposed by its register bank, not the CPU itself.
+    CHECK_FALSE(scan->find("/cpu:A"));
+  }
+  SECTION("Fields can be scoped too") { CHECK(same(scan->find("/cpu/csrs:N"), scan->find("N", Device::ID{0}))); }
+  SECTION("A scope naming no device finds nothing") { CHECK_FALSE(scan->find("/nope:A")); }
+}
+
 TEST_CASE("A pointer-backed register must declare its storage's width",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
