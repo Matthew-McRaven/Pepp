@@ -42,3 +42,4 @@ Number,GitRef,Date,Blurb
 0.15.3,,2026-03-21,"This version fixes a bug in the Pep/10 operating system"
 0.16.0,,2026-09-11,"This version adds a command-line assembler for RISC-V that can assemble most rv32i programs"
 0.16.1,,2026-09-15,"This version fixes a bug in Pep/10's SUBr/CPWr instructions and extends the command-line assembler to support macros for Pep/10 and RISC-V programs"
+0.16.2,,????-??-??,"This version extends the command-line assembler and simulator to execute rv32i and pep10 programs"
