@@ -84,8 +84,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("ACCDP: forward overflow crosses buffer boundary") {
     tvm::TraceBuffer tb(mgr);
     constexpr Device::ID S{1};
-    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
-    blaster.set_trace_buffer(&tb);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, nullptr, &tb));
     auto before = tb.cursor();
 
     // Fill the first data buffer completely so the next append spills into a new buffer.
@@ -128,8 +127,7 @@ TEST_CASE("DP update modes", "[scope:core][scope:core.dbg][kind:unit][arch:pep10
   SECTION("INCDP: backward underflow crosses buffer boundary") {
     tvm::TraceBuffer tb(mgr);
     constexpr Device::ID S{1};
-    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
-    blaster.set_trace_buffer(&tb);
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, nullptr, &tb));
     auto before = tb.cursor();
 
     // Fill first data buffer completely so the next append spills into a successor buffer.

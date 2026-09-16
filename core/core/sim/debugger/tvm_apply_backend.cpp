@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/memory.hpp"
+#include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/memory/errors.hpp"
 #include "core/sim/memory/io/fifo.hpp"
 #include "core/sim/system.hpp"
@@ -320,6 +321,38 @@ void ApplyBackend::on_movmem2reg(MachineState &state, const DecodedOp::MovMem2Re
     _scan->write(op.dst, raw, byteswap, RegisterScan::Level::Host);
   });
   state.csrs.F = !ok;
+}
+
+TraceApplyBackend::TraceApplyBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system,
+                                     tvm::TraceBuffer *tb)
+    : ApplyBackend(std::move(mgr), system), _tb(tb) {}
+
+void TraceApplyBackend::on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op) {
+  // Without a buffer there is no chain to follow, so defer to the base class's behavior.
+  if (_tb == nullptr) return ApplyBackend::on_dpincr(state, op);
+
+  auto &regs = state.regs;
+  regs.DS = op.DS;
+
+  // Use signed 32-bit arithmetic so we can detect both overflow and underflow cleanly.
+  int32_t new_lo = static_cast<int32_t>(regs.DP.lo) + static_cast<int16_t>(op.dp_incr);
+  constexpr int32_t BUF_SIZE = static_cast<int32_t>(pepp::bts::Buffer::SIZE);
+
+  if (new_lo >= BUF_SIZE) {
+    // Forward overflow: go to successor buffer.
+    auto succ = _tb->data_successor(pepp::bts::Buffer::ID{regs.DP.hi});
+    if (succ == pepp::bts::Buffer::ID{0}) return state.hard_stop(tvm::StopCause::InvalidDBuffer);
+    regs.DP.hi = succ.value;
+    regs.DP.lo = static_cast<u16>(new_lo - BUF_SIZE);
+  } else if (new_lo < 0) {
+    // Backward underflow: go to predecessor buffer.
+    auto pred = _tb->data_predecessor(pepp::bts::Buffer::ID{regs.DP.hi});
+    if (pred == pepp::bts::Buffer::ID{0}) return state.hard_stop(tvm::StopCause::InvalidDBuffer);
+    regs.DP.hi = pred.value;
+    regs.DP.lo = static_cast<u16>(new_lo + BUF_SIZE);
+  } else {
+    regs.DP.lo = static_cast<u16>(new_lo);
+  }
 }
 
 } // namespace tvm

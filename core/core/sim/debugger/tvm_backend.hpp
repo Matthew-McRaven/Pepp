@@ -4,7 +4,6 @@
 #include "core/sim/debugger/tvm_opcodes.hpp"
 
 namespace tvm {
-class TraceBuffer;
 
 // Which way a trace is being replayed. Not machine state -- no opcode can read or write it, and MachineState::restart
 // must not reset it -- so it lives on the Backend as replay policy.
@@ -31,11 +30,6 @@ enum class AccessMode : u8 {
 class Backend {
 public:
   virtual ~Backend() = default;
-
-  // Used by on_dpincr to walk the data chain when DP crosses a buffer boundary. Without one, DP.lo just wraps in the
-  // current buffer.
-  void set_trace_buffer(tvm::TraceBuffer *tb) { _tb = tb; }
-  tvm::TraceBuffer *trace_buffer() const { return _tb; }
 
   // --- Replay direction ---
   //
@@ -75,6 +69,7 @@ public:
   virtual void on_lmr(MachineState &state, const tvm::DecodedOp::LMR &op);
   virtual void on_br(MachineState &state, const tvm::DecodedOp::BR &op);
   virtual void on_ldp(MachineState &state, const tvm::DecodedOp::LDP &op);
+  // If DP increments past the end of the buffer, hardstops with InvalidDBuffer.
   virtual void on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op);
 
   // Ops that involve the target under test.
@@ -102,7 +97,6 @@ protected:
   // counterpart to negate to.
   u64 directed_delta(i64 delta) const { return is_forward() ? (u64)delta : (u64)0 - (u64)delta; }
 
-  tvm::TraceBuffer *_tb = nullptr;
   AccessMode _access_mode = AccessMode::AsTraced;
   // Count the number of invcalls vs invrets. If negative, direction will be Backwards.
   // Must be signed because we use -1 to represent backwards.

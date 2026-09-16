@@ -103,8 +103,6 @@ public:
   const Backend &backend() const { return *_backend; }
   pepp::bts::BufferManager &mgr() { return *_mgr; }
   const pepp::bts::BufferManager &mgr() const { return *_mgr; }
-  void set_trace_buffer(tvm::TraceBuffer *tb) { _backend->set_trace_buffer(tb); }
-  tvm::TraceBuffer *trace_buffer() const { return _backend->trace_buffer(); }
   bool stopped() const { return _state.stopped(); }
   // Why the machine stopped. Distinguish hard/soft stop with F bit. A normal exit uses StopCause::None && F==0.
   tvm::StopCause stop_cause() const { return _state.stop_cause(); }

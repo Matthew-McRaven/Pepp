@@ -117,7 +117,7 @@ RegisterScan *System::register_scan() { return _hwdbg.get(); }
 const RegisterScan *System::register_scan() const { return _hwdbg.get(); }
 
 std::unique_ptr<tvm::Interpreter> System::make_trace_interpreter() {
-  auto be = std::make_unique<tvm::ApplyBackend>(_buffer_manager, this);
+  auto be = std::make_unique<tvm::TraceApplyBackend>(_buffer_manager, this);
   return std::make_unique<tvm::Interpreter>(_buffer_manager, std::move(be));
 }
 

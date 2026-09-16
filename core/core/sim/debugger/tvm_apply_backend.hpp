@@ -9,15 +9,12 @@
 class System;
 
 namespace tvm {
+class TraceBuffer;
 
-// The backend that actually reprograms the simulated machine: SET* writes targets and registers, CMP* reads them back
-// and sets N/Z, CLR* resets them.
-//
-// Every handler here can fail in two distinguishable ways. A structural problem -- wrong TR mode, no System, an ID that
-// resolves to nothing, a data buffer that does not cover the requested bytes -- hard-stops the machine, because
-// continuing would be meaningless.
-// A *target* access that throws only sets F, because the program is still coherent and a following BRF may well be
-// there to handle it.
+// A backend which allows memory and register access.
+// Handlers that fail due to a structural problem (e.g., wrong TR mode, _system==nullptr) will hardstop the machine.
+// If a target access fails, the F bit is set, but program execution continues, because the program might be able to
+// recover via a BRF.
 class ApplyBackend : public Backend {
 public:
   // System may be null, in which case all ops touching a system fail with a hard-stop.
@@ -35,12 +32,28 @@ public:
   void on_mmio(MachineState &state, const tvm::DecodedOp::MMIO &op) override;
   void on_movmem2reg(MachineState &state, const tvm::DecodedOp::MovMem2Reg &op) override;
 
-private:
+protected:
   std::shared_ptr<pepp::bts::BufferManager> _mgr;
   System *_system = nullptr;
   RegisterScan *_scan = nullptr;
-  // Scratch for read-xor-write and for compare reads. Grows to the widest access seen and is then reused.
+  // Scratch for read-xor-write and for compare reads. Grows with widest access and is reused.
   std::vector<u8> _tmp;
+};
+
+// A backend intend for replaying traces, whose data chains span more than a single buffer.
+class TraceApplyBackend : public ApplyBackend {
+public:
+  TraceApplyBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr,
+                    tvm::TraceBuffer *tb = nullptr);
+
+  // Without a buffer, DP crossing a boundary hard-stops, as it does for any other backend.
+  void set_trace_buffer(tvm::TraceBuffer *tb) { _tb = tb; }
+  tvm::TraceBuffer *trace_buffer() const { return _tb; }
+
+  void on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op) override;
+
+private:
+  tvm::TraceBuffer *_tb = nullptr;
 };
 
 } // namespace tvm
