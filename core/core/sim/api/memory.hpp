@@ -26,6 +26,16 @@ using Tick = u32;
 using Address = u32;
 using AddressSpan = pepp::core::Interval<Address>;
 
+// What may be done with a span of addresses.
+enum class Access : u8 {
+  None = 0,
+  Read = 1 << 0,
+  Write = 1 << 1,
+  Execute = 1 << 2,
+  ReadWriteExecute = Read | Write | Execute,
+};
+consteval void is_bitflags(Access);
+
 // If select memory operations fail (e.g., lack of MMI, unmapped address in
 // bus), specify the behavior of the target.
 enum class FailPolicy {

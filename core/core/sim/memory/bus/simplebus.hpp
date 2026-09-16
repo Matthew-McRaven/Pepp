@@ -118,11 +118,10 @@ private:
 class SimpleBus final : public Target, public Device, public Initiator, public Traceable {
 public:
   static const inline std::string compatible = "bus,simple";
-  enum Access : u8 { None = 0, Read = 1 << 0, Write = 1 << 1, Execute = 1 << 2 };
   // What may be done to a span of bus addresses.
   struct Permission {
     AddressSpan span;
-    Access access = (Access)(Access::Read | Access::Write | Access::Execute);
+    Access access = Access::ReadWriteExecute;
   };
   struct Configuration : public Device::Configuration {
     u8 fill{0};
