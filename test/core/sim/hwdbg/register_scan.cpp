@@ -116,14 +116,38 @@ TEST_CASE("Find register by device-scoped name", "[scope:core][scope:core.dbg][k
     CHECK(same(scan->find("A"), a));
     CHECK(same(scan->find(":A"), a));
   }
-  SECTION("A scope only matches registers exposed by that exact device") {
+  SECTION("A scope matches the named device") {
     CHECK(same(scan->find("/cpu/regs:A"), a));
     CHECK(scan->find("/memory:rd_bytes"));
     CHECK_FALSE(scan->find("/cpu/regs:rd_bytes"));
-    // The CPU's architectural registers are exposed by its register bank, not the CPU itself.
-    CHECK_FALSE(scan->find("/cpu:A"));
+    CHECK_FALSE(scan->find("/memory:A"));
+  }
+  SECTION("A scope also matches the devices below it") {
+    // A and N are exposed by the CPU's register and CSR banks, and call_depth by the CPU itself.
+    CHECK(same(scan->find("/cpu:A"), a));
+    CHECK(same(scan->find("/cpu:N"), scan->find("N", Device::ID{0})));
+    CHECK(scan->find("/cpu:call_depth"));
+    // The root's ID is 0, the same value that means "no scope", so naming it searches every device.
+    CHECK(same(scan->find("/:A"), a));
+    CHECK(scan->find("/:rd_bytes"));
   }
   SECTION("Fields can be scoped too") { CHECK(same(scan->find("/cpu/csrs:N"), scan->find("N", Device::ID{0}))); }
+  SECTION("A device's own registers win over its descendants'") {
+    // Shadow the register bank's A with one belonging to the CPU itself.
+    u16 shadow = 0;
+    RegisterScan::Register r{};
+    r.byte_width = sizeof(shadow);
+    r.order = bits::hostOrder();
+    r.target = cpu->id();
+    r.name = "A";
+    r.loc = &shadow;
+    const auto shadowed = scan->expose(r);
+
+    CHECK(same(scan->find("/cpu:A"), shadowed));
+    CHECK(same(scan->find("/cpu/regs:A"), a));
+    // Two devices expose A, so an unscoped search is ambiguous.
+    CHECK_FALSE(scan->find("A"));
+  }
   SECTION("A scope naming no device finds nothing") { CHECK_FALSE(scan->find("/nope:A")); }
 }
 

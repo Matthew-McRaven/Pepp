@@ -121,7 +121,8 @@ public:
   // colon will be interpreted as the name of the device scope. If empty or not present, the scope will be 0. If
   // present, but no such device exists, it will throw. Delegates to find(std::string_view, Device::ID).
   std::optional<RegisterRef> find(std::string_view name);
-  // If id is non-0, only match against registers which share the same target ID. If ID==0, match against all registers.
+  // If id is non-0, match that device or any of its descendants. The device's own registers take precedence, so a
+  // descendant which exposes the same name cannot hide them. If ID==0, match against all devices.
   std::optional<RegisterRef> find(std::string_view name, Device::ID scope);
   // Helper which returns the value of a register as an integral type
   template <std::integral I> I read(const RegisterRef &n, Level level = Level::Guest);

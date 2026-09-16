@@ -114,6 +114,8 @@ public:
 
   // Given a device ID, return a pointer to the device or nullptr if not found.
   Device *find_by_id(Device::ID id);
+  // Given a device ID, return its node in the device tree or nullptr if not found.
+  DeviceTree *find_tree_by_id(Device::ID id);
 
   DeviceTree *root() { return _root.get(); }
   const DeviceTree *root() const { return _root.get(); }

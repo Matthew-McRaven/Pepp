@@ -106,6 +106,12 @@ Device *System::find_by_id(ID id) {
   return it->second ? it->second->device : nullptr;
 }
 
+DeviceTree *System::find_tree_by_id(ID id) {
+  auto it = _id_to_device.find(id);
+  if (it == _id_to_device.end()) return nullptr;
+  return it->second;
+}
+
 RegisterScan *System::register_scan() { return _hwdbg.get(); }
 
 const RegisterScan *System::register_scan() const { return _hwdbg.get(); }
