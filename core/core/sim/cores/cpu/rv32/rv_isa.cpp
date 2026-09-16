@@ -94,7 +94,7 @@ const Device::ID RV32CPU::id() const { return _config.id; }
 Device::Type RV32CPU::type() const {
   using namespace bits;
   using T = Device::Type;
-  return T::ClockSink | T::Traceable | T::MemoryInitiator;
+  return T::ClockSink | T::Traceable | T::MemoryInitiator | T::Loadable;
 }
 
 std::unique_ptr<DeviceSerializer> RV32CPU::serializer() const { return make_serializer(); }
@@ -151,6 +151,12 @@ void RV32CPU::trace(bool enabled) {
   _trace.set_traced(enabled);
   if (_regbank) _regbank->trace(enabled);
 }
+
+pepp::bts::ElfMachineType RV32CPU::core_type() const noexcept { return pepp::bts::ElfMachineType::EM_RISCV; }
+
+pepp::bts::ElfBits RV32CPU::core_bits() const noexcept { return pepp::bts::ElfBits::b32; }
+
+pepp::bts::ElfEndian RV32CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::le; }
 
 u32 RV32CPU::read_register(Register reg) const { return _regbank->read(reg); }
 void RV32CPU::write_register(Register reg, u32 value) { _regbank->write(reg, value); }

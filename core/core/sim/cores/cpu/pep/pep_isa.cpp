@@ -140,7 +140,7 @@ const Device::ID PepISA3CPU::id() const { return _config.id; }
 Device::Type PepISA3CPU::type() const {
   using namespace bits;
   using T = Device::Type;
-  return T::ClockSink | T::Traceable | T::MemoryInitiator;
+  return T::ClockSink | T::Traceable | T::MemoryInitiator | T::Loadable;
 }
 
 std::unique_ptr<DeviceSerializer> PepISA3CPU::serializer() const { return make_serializer(); }
@@ -207,6 +207,19 @@ void PepISA3CPU::trace(bool enabled) {
   if (_regbank) _regbank->trace(enabled);
   if (_csrs) _csrs->trace(enabled);
 }
+
+pepp::bts::ElfMachineType PepISA3CPU::core_type() const noexcept {
+  // TODO: when configuration gains a p8/p9/p10 distinction, this should be updated.
+  return pepp::bts::ElfMachineType::EM_PEP10;
+}
+
+pepp::bts::ElfBits PepISA3CPU::core_bits() const noexcept {
+  // While this is actually a 16-bit processor, we use 32-bit object code files.
+  // I don't want to be responsible for defining what a 16-bit ELF is.
+  return pepp::bts::ElfBits::b32;
+}
+
+pepp::bts::ElfEndian PepISA3CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::be; }
 
 void PepISA3CPU::increment_call_depth() {
   _count.call_depth += 1;
