@@ -19,7 +19,9 @@
 #include "core/integers.h"
 #include "core/sim/api/device.hpp"
 
+struct Loader;
 struct Target;
+
 struct Loadable {
   static constexpr Device::Type TypeMask = Device::Type::Loadable;
   virtual ~Loadable() = default;
@@ -27,6 +29,7 @@ struct Loadable {
   virtual pepp::bts::ElfMachineType core_type() const noexcept = 0;
   virtual pepp::bts::ElfBits core_bits() const noexcept = 0;
   virtual pepp::bts::ElfEndian core_endian() const noexcept = 0;
+  virtual void register_core_init(Loader &) = 0;
 
   // The kinds of memory attached to a core that a Loader might be interested in targeting.
   enum class MemoryKind : u8 { Instruction, Data, MicrocodeROM };

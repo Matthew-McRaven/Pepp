@@ -168,6 +168,10 @@ pepp::bts::ElfBits RV32CPU::core_bits() const noexcept { return pepp::bts::ElfBi
 
 pepp::bts::ElfEndian RV32CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::le; }
 
+void RV32CPU::register_core_init(Loader &) {
+  // No-op until we decide what our initial PC / SP should be
+}
+
 u32 RV32CPU::read_register(Register reg) const { return _regbank->read(reg); }
 void RV32CPU::write_register(Register reg, u32 value) { _regbank->write(reg, value); }
 u32 RV32CPU::read_register(riscv::ABIReg reg) const { return _regbank->read((Register)reg); }

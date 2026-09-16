@@ -73,6 +73,7 @@ public:
   pepp::bts::ElfMachineType core_type() const noexcept override;
   pepp::bts::ElfBits core_bits() const noexcept override;
   pepp::bts::ElfEndian core_endian() const noexcept override;
+  void register_core_init(Loader &) override;
   Target *port(MemoryKind kind) override;
 
   void increment_call_depth();

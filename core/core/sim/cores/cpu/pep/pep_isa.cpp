@@ -6,6 +6,7 @@
 #include "core/ds/string_compare.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa_instructions.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
+#include "core/sim/loader.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
@@ -230,6 +231,17 @@ pepp::bts::ElfBits PepISA3CPU::core_bits() const noexcept {
 }
 
 pepp::bts::ElfEndian PepISA3CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::be; }
+
+void PepISA3CPU::register_core_init(Loader &loader) {
+  using MV = isa::Pep10::MemoryVectors;
+  auto mem = dynamic_cast<Device *>(_target);
+  if (!mem) throw std::logic_error("PepISA3CPU: target must be a device");
+  auto sp = _regbank->ref(isa::Pep10::Register::SP);
+  auto pc = _regbank->ref(isa::Pep10::Register::PC);
+  // TODO: replace constants depending on the memory size / version of Pep.
+  loader.copy_word(sp, mem->id(), static_cast<u16>(MV::SystemStackPtr), swap);
+  loader.copy_word(pc, mem->id(), static_cast<u16>(MV::Dispatcher), swap);
+}
 
 void PepISA3CPU::increment_call_depth() {
   _count.call_depth += 1;
