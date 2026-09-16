@@ -152,6 +152,10 @@ public:
   // perms may be in any order, but throws std::invalid_argument if any overlap.
   void apply_permissions(std::span<const Permission> perms);
 
+  // Target interface
+  // Delegate loading to the devices behind the bus while updating this bus's access permissions in-place.
+  void load(AddressSpan span, bits::span<const u8> data, Access access) override;
+
   // Device interface
   void initialize(System *) override;
   void reset() override;
@@ -180,12 +184,16 @@ public:
 private:
   Target *device(Device::ID id) const;
 
+  void recompute_permissions();
+
   Configuration _config;
-  // _as_configured holds the mappings as configured during initialize().
-  // _with_permission combines _as_configured with requested permissions from apply_permissions().
-  AddressTranslationMap<Access> _as_configured, _with_permission;
+  // The permissions asked for by loaded images, in address order and non-overlapping.
+  std::vector<Permission> _loaded;
+  // Mappings as configured during initialize().
+  AddressTranslationMap<Access> _as_configured;
+  // Effective access permissions for this bus, e.g. the intersection of _as_configured and _loaded.
+  AddressTranslationMap<Access> _with_permission;
   std::unordered_map<Device::ID, Target *> _devices;
   trace::Recorder _trace;
 };
 
-consteval void is_bitflags(SimpleBus::Access);

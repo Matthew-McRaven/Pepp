@@ -19,7 +19,6 @@ AddressSpan parse_span(const nlohmann::json &obj, const std::string &prefix = ""
 Device *create_simplebus(const nlohmann::json &self, System *sys, Device *par) {
   using namespace bits;
   SimpleBus::Configuration cfg;
-  using Access = SimpleBus::Access;
   try {
     parse_standard_fields(self, cfg);
     if (cfg.basename.empty()) throw ParsingError("SimpleBus must have a basename");
@@ -70,14 +69,15 @@ void prefill_simplebus(nlohmann::json &obj) {
 }
 
 void serialize_mapping(nlohmann::json &obj, const SimpleBus::Configuration::Mapping &mapping) {
+  using namespace bits;
   obj["target"] = mapping.target;
   obj["source_min_offset"] = mapping.source.span.lower();
   obj["source_max_offset"] = mapping.source.span.upper();
   obj["target_offset"] = mapping.target_offset;
   std::string access;
-  if (mapping.source.access & SimpleBus::Access::Read) access += "r";
-  if (mapping.source.access & SimpleBus::Access::Write) access += "w";
-  if (mapping.source.access & SimpleBus::Access::Execute) access += "x";
+  if (any(mapping.source.access & Access::Read)) access += "r";
+  if (any(mapping.source.access & Access::Write)) access += "w";
+  if (any(mapping.source.access & Access::Execute)) access += "x";
   obj["access"] = access;
 }
 
@@ -131,7 +131,13 @@ void SimpleBus::apply_permissions(std::span<const Permission> perms) {
   for (std::size_t it = 1; it < sorted.size(); it++)
     if (sorted[it].span.lower() <= sorted[it - 1].span.upper())
       throw std::invalid_argument("SimpleBus::apply_permissions: permissions must not overlap");
+  _loaded = std::move(sorted);
+  recompute_permissions();
+}
 
+void SimpleBus::recompute_permissions() {
+  using namespace bits;
+  const auto &sorted = _loaded;
   auto place = [&](auto &node, AddressSpan piece, Access access) {
     const AddressSpan to(offset_map(piece.lower(), node.from, node.to), offset_map(piece.upper(), node.from, node.to));
     _with_permission.insert_or_overwrite(piece, to, node.id, access);
@@ -150,7 +156,7 @@ void SimpleBus::apply_permissions(std::span<const Permission> perms) {
       // Handle cases where there is a gap between the last permission and this one or when the first permission starts
       // inside the region. Then emit the overlap between the permission and region.
       if (cursor < overlap.lower()) place(node, AddressSpan(Address(cursor), overlap.lower() - 1), node.data);
-      place(node, overlap, (Access)(node.data & perm->access));
+      place(node, overlap, node.data & perm->access);
       cursor = u64(overlap.upper()) + 1;
     }
     // Handle the case where this region is not fully covered by any provided permission.
@@ -158,7 +164,47 @@ void SimpleBus::apply_permissions(std::span<const Permission> perms) {
   }
 }
 
-void SimpleBus::reset() {}
+void SimpleBus::load(AddressSpan span, bits::span<const u8> data, Access access) {
+  using E = Error;
+  if (!span.valid()) return;
+  else if (span.lower() < _config.span.lower() || span.upper() > _config.span.upper())
+    throw E(E::Type::OOBAccess, span.lower());
+
+  // Keep only the permissions which do not overlap the new span. Split spans which partially overlap.
+  std::vector<Permission> kept;
+  for (const auto &perm : _loaded) {
+    if (!pepp::core::intersects(perm.span, span)) kept.push_back(perm);
+    else {
+      if (perm.span.lower() < span.lower())
+        kept.push_back({AddressSpan(perm.span.lower(), span.lower() - 1), perm.access});
+      if (perm.span.upper() > span.upper())
+        kept.push_back({AddressSpan(span.upper() + 1, perm.span.upper()), perm.access});
+    }
+  }
+  kept.push_back({span, access});
+  std::ranges::sort(kept, {}, [](const Permission &perm) { return perm.span.lower(); });
+  _loaded = std::move(kept);
+  recompute_permissions();
+
+  for (u64 at = span.lower(); at <= span.upper();) {
+    auto region = _with_permission.region_at(static_cast<Address>(at));
+    if (!region) throw E(E::Type::Unmapped, static_cast<Address>(at));
+    const u64 end = std::min<u64>(span.upper(), region->from.upper());
+    const auto piece = AddressSpan(offset_map<Address>(static_cast<Address>(at), region->from, region->to),
+                                   offset_map<Address>(static_cast<Address>(end), region->from, region->to));
+    const u64 offset = at - span.lower();
+    const auto usable_len = offset >= data.size() ? 0 : std::min<u64>(end - at + 1, data.size() - offset);
+    const auto effective_span = data.subspan(offset > data.size() ? data.size() : offset, usable_len);
+    device(region->id)->load(piece, effective_span, access);
+    at = end + 1;
+  }
+}
+
+void SimpleBus::reset() {
+  _loaded.clear();
+  // Loaded permissions not part of power-on state.
+  _with_permission = _as_configured;
+}
 
 const Device::Configuration &SimpleBus::config() const { return _config; }
 
@@ -219,6 +265,7 @@ Target::Result SimpleBus::read(Address address, bits::span<u8> dst, Operation op
 }
 
 Target::Result SimpleBus::write(Address address, bits::span<const u8> src, Operation op) {
+  using namespace bits;
   using E = Error;
   const auto span = _config.span;
   using T = std::tuple<Address, std::size_t>;
@@ -235,7 +282,7 @@ Target::Result SimpleBus::write(Address address, bits::span<const u8> src, Opera
     // Do not overflow this region. Device or permissions might change.
     const auto usable_len = std::min<u64>(length, u64(region->from.upper()) - at + 1);
     // Application and trace-replay writes (loaders, memory editors, step back) must be able to modify read-only memory.
-    if ((region->data & Access::Write) ||
+    if (bits::any(region->data & Access::Write) ||
         (op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal)) {
       // Convert bus address => device address
       auto dst = offset_map<Address>(at, region->from, region->to);

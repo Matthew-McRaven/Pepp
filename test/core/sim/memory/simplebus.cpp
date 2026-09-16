@@ -93,7 +93,6 @@ TEST_CASE("(new) SimpleBus group in-bounds access", "[scope:core][scope:core.sim
 }
 
 TEST_CASE("(new) SimpleBus permissions", "[scope:core][scope:core.sim][kind:int][arch:*]") {
-  using Access = SimpleBus::Access;
   using Mapping = SimpleBus::Configuration::Mapping;
   const auto app = Operation{Operation::Type::Application, Operation::Kind::data};
   // One permission spanning the boundary between two devices, overlapping part of each.
@@ -159,5 +158,86 @@ TEST_CASE("(new) SimpleBus permissions", "[scope:core][scope:core.sim][kind:int]
   SECTION("Applying no permissions restores the configured access") {
     bus->apply_permissions({});
     for (Address address : {1000, 1500, 1501, 2000}) CHECK_FALSE(write_to_ro(address, 1, rw));
+  }
+}
+
+TEST_CASE("(new) Target::load fills a span", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
+  auto system = std::make_shared<System>();
+  Target *mem = system->make_device<Dense>(Dense::Configuration{{.basename = "mem"}, 0xFF, AddressSpan(0, 99)});
+  system->initialize();
+  const u8 data[] = {1, 2, 3};
+
+  SECTION("Bytes beyond the data are zero-filled") {
+    mem->load(AddressSpan(10, 14), {data}, Access::ReadWriteExecute);
+    u8 out[7] = {};
+    mem->read(9, {out}, rw);
+    CHECK(std::vector<u8>(out, out + 7) == std::vector<u8>{0xFF, 1, 2, 3, 0, 0, 0xFF});
+  }
+  SECTION("Data larger than its span is rejected") {
+    CHECK_THROWS_AS(mem->load(AddressSpan(10, 11), {data}, Access::ReadWriteExecute), Error);
+  }
+}
+
+TEST_CASE("(new) SimpleBus load", "[scope:core][scope:core.sim][kind:int][arch:*]") {
+  using Mapping = SimpleBus::Configuration::Mapping;
+  auto system = std::make_shared<System>();
+  Target *lo = system->make_device<Dense>(Dense::Configuration{{.basename = "lo"}, 0, AddressSpan(0, 1000)});
+  Target *hi = system->make_device<Dense>(Dense::Configuration{{.basename = "hi"}, 0, AddressSpan(0, 1499)});
+  SimpleBus::Configuration cfg{{.basename = "bus"}, 0, AddressSpan(0, 3000)};
+  cfg.mappings.push_back(Mapping{.target = "/lo", .source = {.span = AddressSpan(500, 1500)}});
+  cfg.mappings.push_back(Mapping{.target = "/hi", .source = {.span = AddressSpan(1501, 3000)}});
+  auto bus = system->make_device<SimpleBus>(cfg);
+  system->initialize();
+
+  const u8 image[] = {1, 2, 3, 4};
+  auto write_to_ro = [&](Address address) {
+    u8 byte = 0xAB;
+    try {
+      bus->write(address, bits::span<const u8>{&byte, 1}, rw);
+    } catch (const Error &e) {
+      return e.type() == Error::Type::WriteToRO;
+    }
+    return false;
+  };
+  auto peek = [&](Target *dev, Address address) {
+    u8 out[1] = {0};
+    dev->read(address, {out}, rw);
+    return out[0];
+  };
+
+  SECTION("load fills copies data, zero-fills, and updates permissions") {
+    bus->load(AddressSpan(600, 605), {image}, Access::Read);
+    u8 out[6] = {};
+    bus->read(600, {out}, rw);
+    CHECK(std::vector<u8>(out, out + 6) == std::vector<u8>{1, 2, 3, 4, 0, 0});
+    CHECK(write_to_ro(600));
+    CHECK(write_to_ro(605));
+    CHECK_FALSE(write_to_ro(599));
+    CHECK_FALSE(write_to_ro(606));
+  }
+  SECTION("load can cross device boundaries") {
+    bus->load(AddressSpan(1499, 1502), {image}, Access::ReadWriteExecute);
+    CHECK(peek(lo, 999) == 1);
+    CHECK(peek(lo, 1000) == 2);
+    CHECK(peek(hi, 0) == 3);
+    CHECK(peek(hi, 1) == 4);
+  }
+  SECTION("Most recent load wins") {
+    bus->load(AddressSpan(600, 699), bits::span<const u8>{}, Access::Read);
+    REQUIRE(write_to_ro(650));
+    bus->load(AddressSpan(640, 660), bits::span<const u8>{}, Access::ReadWriteExecute);
+    CHECK_FALSE(write_to_ro(650));
+    // The part of the first load the second did not cover keeps its permission.
+    CHECK(write_to_ro(639));
+    CHECK(write_to_ro(661));
+  }
+  SECTION("Permissions are cleared on reset") {
+    bus->load(AddressSpan(600, 699), bits::span<const u8>{}, Access::Read);
+    REQUIRE(write_to_ro(650));
+    bus->reset();
+    CHECK_FALSE(write_to_ro(650));
+  }
+  SECTION("A load outside the bus is rejected") {
+    CHECK_THROWS_AS(bus->load(AddressSpan(3000, 3005), {image}, Access::Read), Error);
   }
 }
