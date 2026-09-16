@@ -64,6 +64,7 @@ void Decoder::decode() {
   case Opcode::ACCDP: _decoded = decode_accdp(ibp, iop); break;
   case Opcode::INCDP: _decoded = decode_incdp(ibp, iop); break;
   case Opcode::MMIO: _decoded = decode_mmio(ibp, iop); break;
+  case Opcode::MOVMREG: _decoded = decode_movmem2reg(ibp, iop); break;
   default: _state.hard_stop(StopCause::IllegalOpcode); break; // Treat unrecognized upcodes as hard failures.
   }
 }
@@ -551,6 +552,33 @@ DecodedOp::MMIO Decoder::decode_mmio(pepp::bts::Buffer::ID ibp, u16 iop) {
   ret.access = Operation(regs.ACCESS);
   ret.target = (Device::ID)regs.ID.lo;
   ret.offset = regs.OFF.as_u32();
+
+  return ret;
+}
+
+DecodedOp::MovMem2Reg Decoder::decode_movmem2reg(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::MovMem2Reg ret;
+  auto &regs = _state.regs;
+  _state.csrs.TR = 1;
+
+  switch (regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 7: regs.MOD1.lo = read(ibp, iop + 12); [[fallthrough]];
+  case 6: regs.MOD1.hi = read(ibp, iop + 10), _state.csrs.M1 = 1; [[fallthrough]];
+  case 5: regs.OFF.lo = read(ibp, iop + 8); [[fallthrough]];
+  case 4: regs.OFF.hi = read(ibp, iop + 6); [[fallthrough]];
+  case 3: regs.ID.lo = read(ibp, iop + 4); [[fallthrough]];
+  case 2: regs.ID.hi = read(ibp, iop + 2); [[fallthrough]];
+  case 1: regs.ACCESS = read(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
+  }
+
+  ret.offset = regs.OFF.as_u32();
+  ret.src = Device::ID{(u8)(_state.csrs.M1 ? regs.MOD1.lo : 0)};
+  ret.dst =
+      RegisterScan::RegisterRef{RegisterScan::Register::ID{regs.ID.hi}, RegisterScan::Register::Field::ID{regs.ID.lo}};
+  ret.byteswap = _state.csrs.M1 ? regs.MOD1.hi : 0;
+  ret.access = Operation(regs.ACCESS);
 
   return ret;
 }

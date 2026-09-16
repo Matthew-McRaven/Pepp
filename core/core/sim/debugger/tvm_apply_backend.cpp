@@ -290,4 +290,36 @@ void ApplyBackend::on_mmio(MachineState &state, const DecodedOp::MMIO &op) {
   }
 }
 
+void ApplyBackend::on_movmem2reg(MachineState &state, const DecodedOp::MovMem2Reg &op) {
+  using StopCause = tvm::StopCause;
+  // Register's old value is not preserved
+  if (!is_forward()) return state.hard_stop(StopCause::NotInvertible);
+  else if (state.csrs.TR == 0) return state.hard_stop(StopCause::WrongTR);
+  else if (_system == nullptr || _scan == nullptr) return state.hard_stop(StopCause::MissingSystem);
+
+  // Attempt to convert our source to a Target
+  auto dev = _system->find_by_id(op.src);
+  if (!dev) return state.hard_stop(StopCause::TargetInvalid);
+  auto target = dev->capability<Target>();
+  if (!target) return state.hard_stop(StopCause::TargetNotMemory);
+  // Attempt to convert our ID registers
+  auto pair = _scan->resolve(op.dst);
+  if (pair.first == nullptr) return state.hard_stop(StopCause::RegisterInvalid);
+  // Manually unpack to make debugging easier.
+  auto reg = pair.first;
+
+  // Size is inferred from the register's width.
+  if (reg->byte_width == 0 || reg->byte_width > sizeof(u64)) return state.hard_stop(StopCause::RegisterWidthIllegal);
+
+  if (_tmp.size() < reg->byte_width) _tmp.resize(reg->byte_width);
+  bits::span<u8> raw(_tmp.data(), reg->byte_width);
+  const bool ok = try_access([&] {
+    const auto byteswap = op.byteswap ? RegisterScan::Byteswap::Always : RegisterScan::Byteswap::Never;
+    target->read(op.offset, raw, effective_access(op.access));
+    // Always perform write at host level, since this is intended to be used during the loading process.
+    _scan->write(op.dst, raw, byteswap, RegisterScan::Level::Host);
+  });
+  state.csrs.F = !ok;
+}
+
 } // namespace tvm

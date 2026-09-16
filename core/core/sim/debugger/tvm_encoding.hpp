@@ -426,6 +426,17 @@ template <> struct MMIO<3> {
   u16 access, dev;
   constexpr auto encode() const { return encode_op<Opcode::MMIO, true>(access, dev, (u8)read_write); }
 };
+
+// Only need the 7-word variant for now, because there is basically no opportunity for re-use with this packet.
+template <std::size_t> struct MOVMREG;
+template <> struct MOVMREG<7> {
+  // false if read, true if write.
+  bool byteswap;
+  u16 access, dst_hi, dst_lo, OFF_hi, OFF_lo, srcid;
+  constexpr auto encode() const {
+    return encode_op<Opcode::MOVMREG, true>(access, dst_hi, dst_lo, OFF_hi, OFF_lo, (u16)byteswap, srcid);
+  }
+};
 } // namespace EncodedOp
 
 // Helpers containing the fully-decoded layout of each opcode.
@@ -536,7 +547,15 @@ struct MMIO {
   u32 offset = 0;
 };
 
+struct MovMem2Reg {
+  bool byteswap = false;
+  Device::ID src{};
+  Operation access{};
+  RegisterScan::RegisterRef dst{};
+  u32 offset = 0;
+};
+
 using OpChoice = std::variant<Halt, Ret, Call, InvCall, InvRet, ASyn, ISyn, LMR, BR, DeltaMem, CmpMem, ClrMem, DeltaReg,
-                              CmpReg, ClrReg, TRADDR, LDP, DPIncr, MMIO>;
+                              CmpReg, ClrReg, TRADDR, LDP, DPIncr, MMIO, MovMem2Reg>;
 } // namespace DecodedOp
 } // namespace tvm

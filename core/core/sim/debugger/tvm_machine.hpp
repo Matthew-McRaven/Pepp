@@ -70,7 +70,7 @@ struct Registers {
   // If in target mode, hi contains the 16-bit offset into the target's address space, and lo contains the 16-bit
   // offset. If in register mode, unused.
   tvm::SegmentPair OFF = {};
-  // Modifiers register, whose meaning depends on the instruction being executed
+  // Modifier register, whose meaning depends on the instruction being executed
   tvm::SegmentPair MOD1 = {}, MOD2 = {};
   /*
    * None of the following registers are accessible vis load-masked-register
