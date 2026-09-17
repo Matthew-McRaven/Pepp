@@ -19,8 +19,11 @@
 #include "core/integers.h"
 #include "core/sim/api/device.hpp"
 
-struct Loader;
+class Loader;
 struct Target;
+
+// A unique identifier for one of the segments amongst all of the files currently in the Loader.
+using SegmentHandle = pepp::OpaqueHandle<struct SegmentTag, u32>;
 
 struct Loadable {
   static constexpr Device::Type TypeMask = Device::Type::Loadable;

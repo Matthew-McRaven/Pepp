@@ -17,6 +17,9 @@
 #include <catch.hpp>
 
 #include "core/arch/pep/isa/pep10.hpp"
+#include "core/formats/elf/packed_input_group.hpp"
+#include "core/formats/elf/packed_io.hpp"
+#include "core/formats/elf/packed_ops.hpp"
 #include "core/sim/api/loadable.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/loader.hpp"
@@ -88,6 +91,28 @@ TEST_CASE("Loader: initial register programming", "[scope:core][scope:core.sim][
     const RegisterScan::RegisterRef nowhere{RegisterScan::Register::ID{0xFFFF}, RegisterScan::Register::Field::ID{0}};
     CHECK_FALSE(loader.set_register(nowhere, 1));
     CHECK_FALSE(loader.copy_word(nowhere, mem->id(), (Address)MV::Dispatcher));
+  }
+  SECTION("Load an ELF segment into memory") {
+    using namespace bits;
+    using namespace pepp::bts;
+    const std::vector<u8> code{0x12, 0x34, 0x56};
+    PackedGrowableElfFile<ElfBits::b32, ElfEndian::be> elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10,
+                                                           ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    const auto text = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
+    elf.section_data[text]->append(bits::span<const u8>{code});
+    elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_R | SegmentFlags::PF_X);
+    const std::vector<SegmentLayoutConstraint> constraints{
+        {.alignment = 1, .from_sec = text, .to_sec = text, .base_address = 0x0200}};
+
+    // The ELF it is serialized directly into memory rather than to the disk.
+    Loader loader(sys.get());
+    loader.add_group(to_input_group(to_input_elf(elf, &constraints)), cpu->id());
+    REQUIRE(loader.run());
+    CHECK(loader.stop_cause() == tvm::StopCause::None);
+    std::array<u8, 3> actual{};
+    mem->read(0x0200, {actual.data(), actual.size()}, app);
+    CHECK(std::vector<u8>(actual.begin(), actual.end()) == code);
   }
   SECTION("Pep/10 initializes SP/PC from memory vectors") {
     Loader loader(sys.get());

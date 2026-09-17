@@ -28,25 +28,14 @@ class Interpreter;
 }
 class System;
 
-// While a duplicate of PackedElfPhdr<B,E> this class has fixed-size members stored in host order.
-// This avoids Loader being templated over the input program type.
-struct SegmentDescriptor {
-
-  u16 file = 0, index = 0;
-  u32 type = 0; // p_type, e.g. SegmentType::PT_LOAD
-  u64 vaddr = 0, memsz = 0, filesz = 0, offset = 0;
-  // What the segment asks to be allowed once it is running, from p_flags.
-  Access access = Access::None;
-
-  template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
-  SegmentDescriptor(const pepp::bts::PackedElfPhdr<B, E> &phdr, u16 file, u16 index);
-
-  bool loadable() const; // Is the segment PT_LOAD and does it occupy memory?
-};
+// Convert all of PackedElfPhdr<B,E> to a single type so that TVM does not need to be aware of our template
+// parameterization.
+template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
+tvm::SegmentDescriptor describe(const pepp::bts::PackedElfPhdr<B, E> &phdr, bits::span<const u8> data);
 
 // Device::ID must refer to a Loadable*. Return true if the given segment should be loaded into that device, and false
 // otherwise. An empty predicate should be equivalent to always returning true.
-using SegmentPredicate = std::function<bool(Device::ID, const SegmentDescriptor &)>;
+using SegmentPredicate = std::function<bool(Device::ID, const tvm::SegmentDescriptor &)>;
 
 // Using the trace virtual machine infrastructure, initialize cores to their expected state after power-on, copy object
 // code into each cores' memory, and update memory access permissions where necessary.
@@ -65,18 +54,32 @@ public:
   // endianness differ. Returns false if the register is not found.
   bool copy_word(RegisterScan::RegisterRef reg, Device::ID src, Address address, bool byteswap = false);
 
+  // Take ownership of a group of ELF files and create a tvm program which copies the PT_LOAD segments into the given
+  // device. The predicate filters PT_LOAD segments which should not be loaded into that device. If the predicate is
+  // empty, all PT_LOAD segments will be loaded. Throws if the device does not exist or is not Loadable, or if the
+  // group's format is incompatible with the loadable target.
+  void add_group(pepp::bts::AnyElfGroup group, Device::ID device, SegmentPredicate predicate = {});
+
   // Reset interpreter's IP to the start of the loader program, and run until the program halts successfully or an error
   // occurs. Returns true if no errors were encountered and false if they were. If false, stop_cause will yield the
   // error.
   bool run();
   tvm::StopCause stop_cause() const;
 
+  // Returns nullptr on invalid or out-of-bound handles, otherwise the segment descriptor for a handle.
+  const tvm::SegmentDescriptor *segment(SegmentHandle handle) const;
+
 private:
-  // Extend the loader's program with more bytes. Throws if the program would exceed the buffer's capacity (usually
-  // 64k).
+  // Extend the loader's program with more bytes. Throws if the program would exceed the buffer's capacity.
   void append(bits::span<const u8> bytes);
+  // Adopt one validated segment and emit the LDSEGM which loads it into the device.
+  void accept_segment(const tvm::SegmentDescriptor &desc, Device::ID dev);
 
   System *_sys = nullptr;
+  // ELF files which have been transfered to this loader via add_group.
+  std::vector<pepp::bts::AnyElfGroup> _groups;
+  // A SegmentHandle's value is an index into this vector.
+  std::vector<tvm::SegmentDescriptor> _segments;
   pepp::bts::Buffer *_program = nullptr;
   pepp::bts::Buffer::Location _start{};
   std::unique_ptr<tvm::Interpreter> _interpreter;
@@ -86,12 +89,12 @@ private:
 };
 
 template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
-SegmentDescriptor::SegmentDescriptor(const pepp::bts::PackedElfPhdr<B, E> &phdr, u16 file, u16 index)
-    : file(file), index(index), type(phdr.p_type), vaddr(phdr.p_vaddr), memsz(phdr.p_memsz), filesz(phdr.p_filesz),
-      offset(phdr.p_offset) {
+tvm::SegmentDescriptor describe(const pepp::bts::PackedElfPhdr<B, E> &phdr, bits::span<const u8> data) {
   using namespace bits;
+  tvm::SegmentDescriptor ret{.type = phdr.p_type, .vaddr = phdr.p_vaddr, .memsz = phdr.p_memsz, .data = data};
   const u32 flags = phdr.p_flags;
-  if (flags & to_underlying(pepp::bts::SegmentFlags::PF_R)) access |= Access::Read;
-  if (flags & to_underlying(pepp::bts::SegmentFlags::PF_W)) access |= Access::Write;
-  if (flags & to_underlying(pepp::bts::SegmentFlags::PF_X)) access |= Access::Execute;
+  if (flags & to_underlying(pepp::bts::SegmentFlags::PF_R)) ret.access |= Access::Read;
+  if (flags & to_underlying(pepp::bts::SegmentFlags::PF_W)) ret.access |= Access::Write;
+  if (flags & to_underlying(pepp::bts::SegmentFlags::PF_X)) ret.access |= Access::Execute;
+  return ret;
 }

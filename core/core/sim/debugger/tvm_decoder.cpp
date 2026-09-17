@@ -599,9 +599,8 @@ DecodedOp::LoadSegment Decoder::decode_loadsegment(pepp::bts::Buffer::ID ibp, u1
   }
 
   ret.kind = (Loadable::MemoryKind)regs.ACCESS;
-  ret.src = Device::ID{(u8)regs.ID.lo};
-  ret.file_index = _state.csrs.M1 ? regs.MOD1.hi : 0;
-  ret.segment_index = _state.csrs.M1 ? regs.MOD1.lo : 0;
+  ret.dst = Device::ID{(u8)regs.ID.lo};
+  if (_state.csrs.M1) ret.src = SegmentHandle((u32(regs.MOD1.hi) << 16) | regs.MOD1.lo);
 
   return ret;
 }

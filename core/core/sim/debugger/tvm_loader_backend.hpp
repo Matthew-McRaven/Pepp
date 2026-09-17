@@ -14,49 +14,45 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <unordered_map>
+#include <optional>
 #include "core/sim/api/memory.hpp"
 #include "core/sim/debugger/tvm_apply_backend.hpp"
 
+class Loader;
+
 namespace tvm {
 
-// One segment of any input file, abstracted away from the ELF library's representation to avoid tvm needing to know the
-// ElfBits/ElfEndian aspect.
-struct SegmentData {
-  // Load address of the segment. If span is large than data, must zero-fill the difference.
-  AddressSpan span{};
-  bits::span<const u8> data{};
-  Access access = Access::None; // Segment's requested access flahs.
+// A single segment of some input file which is not concerned about the original bitness/endianness of the ELF header.
+// Data bytes are unowned, and must outlive the descriptor.
+struct SegmentDescriptor {
+  u32 type = 0;  // p_type.
+  u64 vaddr = 0; // Load (virtual) address for the segment.
+  u64 memsz = 0; // Bytes in [data.size,memsz] must be zero-initialized and are not present in the file.
+  Access access = Access::None;
+  bits::span<const u8> data{}; // Length is p_filesz.
+
+  // Returns true if the segment PT_LOAD with non-0 memory size.
+  bool loadable() const;
+  // Returns the span [vaddr, vaddr+memsz] as long as neither overflows the maximum value of Address. Otherwise, returns
+  // nullopt.
+  std::optional<AddressSpan> span() const;
 };
 
 // The backend powering the loader, capable of programming registers and loading segment data into memory.
 class LoaderBackend : public ApplyBackend {
 public:
-  LoaderBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr);
+  LoaderBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr,
+                const Loader *loader = nullptr);
 
   void on_loadsegment(MachineState &state, const DecodedOp::LoadSegment &op) override;
 
-  // Programs reference a segment with a 32-bit key composed of a file index (from the Loader) and a segment index (from
-  // the ELF file). SegmentData must either outlive this class or be dropped via clear_segments().
-  void register_segment(u16 file, u16 segment, const SegmentData &data);
-  const SegmentData *segment(u16 file, u16 segment) const;
-  void clear_segments();
-
-  // While StopCause indicates a failure to load, it doesn't indicate which file+segment the vm was processing when it
-  // stopped.
-  struct Context {
-    bool valid = false;
-    u16 file = 0, segment = 0;
-  };
-  const Context &context() const { return _context; }
+  // While StopCause indicates a failure to load, it doesn't indicate which segment the vm was processing when it
+  // stopped. Default-constructed if the machine has not reached a LDSEGM.
+  SegmentHandle context() const { return _context; }
 
 protected:
-  // Mark context as valid and update file/segment.
-  void set_context(u16 file, u16 segment);
-
-  static constexpr u32 key_of(u16 file, u16 segment) { return (static_cast<u32>(file) << 16) | segment; }
-  std::unordered_map<u32, SegmentData> _segments;
-  Context _context{};
+  const Loader *_loader = nullptr;
+  SegmentHandle _context{};
 };
 
 } // namespace tvm

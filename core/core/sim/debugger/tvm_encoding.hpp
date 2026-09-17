@@ -442,8 +442,8 @@ template <> struct MOVMREG<7> {
 // Only need the 4-word variant for now, because there is basically no opportunity for re-use with this packet.
 template <std::size_t> struct LDSEGM;
 template <> struct LDSEGM<4> {
-  u16 access, dst_id, file_ndx, seg_ndx;
-  constexpr auto encode() const { return encode_op<Opcode::LDSEGM, true>(access, dst_id, file_ndx, seg_ndx); }
+  u16 access, dst_id, hndl_hi, hndl_lo;
+  constexpr auto encode() const { return encode_op<Opcode::LDSEGM, true>(access, dst_id, hndl_hi, hndl_lo); }
 };
 } // namespace EncodedOp
 
@@ -564,9 +564,9 @@ struct MovMem2Reg {
 };
 
 struct LoadSegment {
-  Loadable::MemoryKind kind = Loadable::MemoryKind::Instruction;
-  Device::ID src{};
-  u16 file_index = 0, segment_index = 0;
+  Loadable::MemoryKind kind = Loadable::MemoryKind::INVALID;
+  Device::ID dst{};
+  SegmentHandle src{};
 };
 
 using OpChoice = std::variant<Halt, Ret, Call, InvCall, InvRet, ASyn, ISyn, LMR, BR, DeltaMem, CmpMem, ClrMem, DeltaReg,

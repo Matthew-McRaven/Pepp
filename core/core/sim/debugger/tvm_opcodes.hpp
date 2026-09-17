@@ -248,9 +248,9 @@ enum class Opcode : u8 {
   // Packet registers: ACCESS, ID.hi, ID.lo,OFF.hi, OFF.lo, MOD1.hi, MOD1.lo
   MOVMREG = 0b10'0011,
   // A non-invertible copy from a ELF segment to a Loadable device.
-  // ID.lo contains the loadable destination device's ID. ACCESS is one of the enumerated values of MemoryKind.
-  // Mod1.hi contains the file index, and Mod1.lo contains the segment index. Memory offsets & sizes are derived from
-  // the segment.
+  // ID.lo contains the loadable destination device's ID. ACCESS is one of the enumerated values of MemoryKind rather
+  // than our typical read/write/execute. Mod1.hi contains the file index, and Mod1.lo contains the segment index.
+  // Memory offsets & sizes are derived from the segment in the backend.
   //
   // Packet registers: ACCESS, ID.lo, MOD1.hi, MOD1.lo
   LDSEGM = 0b10'0100,
