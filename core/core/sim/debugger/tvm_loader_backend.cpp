@@ -20,18 +20,17 @@ namespace tvm {
 LoaderBackend::LoaderBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system)
     : ApplyBackend(std::move(mgr), system) {}
 
-void LoaderBackend::set_file(u16 index, const ElfImage *image) {
-  if (image == nullptr) _files.erase(index);
-  else _files[index] = image;
+void LoaderBackend::register_segment(u16 file, u16 segment, const SegmentData &data) {
+  _segments[key_of(file, segment)] = data;
 }
 
-const ElfImage *LoaderBackend::file(u16 index) const {
-  if (auto it = _files.find(index); it != _files.end()) return it->second;
+const SegmentData *LoaderBackend::segment(u16 file, u16 segment) const {
+  if (auto it = _segments.find(key_of(file, segment)); it != _segments.end()) return &it->second;
   return nullptr;
 }
 
-void LoaderBackend::clear_files() {
-  _files.clear();
+void LoaderBackend::clear_segments() {
+  _segments.clear();
   _context = {};
 }
 

@@ -14,7 +14,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <optional>
 #include <unordered_map>
 #include "core/sim/api/memory.hpp"
 #include "core/sim/debugger/tvm_apply_backend.hpp"
@@ -30,26 +29,19 @@ struct SegmentData {
   Access access = Access::None; // Segment's requested access flahs.
 };
 
-// A file opened by the loader.
-struct ElfImage {
-  virtual ~ElfImage() = default;
-  // The segment at this index, or nothing when the index names no loadable segment of this file.
-  virtual std::optional<SegmentData> segment(u16 index) const = 0;
-};
-
 // The backend powering the loader, capable of programming registers and loading segment data into memory.
 class LoaderBackend : public ApplyBackend {
 public:
   LoaderBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr);
 
-  // Programs name files by index, which the loader assigns when it opens them. Registering the same index twice
-  // replaces the previous file. The image must outlive every run of a program which names it.
-  void set_file(u16 index, const ElfImage *image);
-  const ElfImage *file(u16 index) const;
-  void clear_files();
+  // Programs reference a segment with a 32-bit key composed of a file index (from the Loader) and a segment index (from
+  // the ELF file). SegmentData must either outlive this class or be dropped via clear_segments().
+  void register_segment(u16 file, u16 segment, const SegmentData &data);
+  const SegmentData *segment(u16 file, u16 segment) const;
+  void clear_segments();
 
-  // Which file and segment the machine was working on when it stopped. StopCause says what went wrong, and this says
-  // where, so that the loader can report something more useful than "hard stop".
+  // While StopCause indicates a failure to load, it doesn't indicate which file+segment the vm was processing when it
+  // stopped.
   struct Context {
     bool valid = false;
     u16 file = 0, segment = 0;
@@ -57,10 +49,11 @@ public:
   const Context &context() const { return _context; }
 
 protected:
-  // Note the segment a handler is about to work on, so that a stop can be attributed to it.
+  // Mark context as valid and update file/segment.
   void set_context(u16 file, u16 segment);
 
-  std::unordered_map<u16, const ElfImage *> _files;
+  static constexpr u32 key_of(u16 file, u16 segment) { return (static_cast<u32>(file) << 16) | segment; }
+  std::unordered_map<u32, SegmentData> _segments;
   Context _context{};
 };
 

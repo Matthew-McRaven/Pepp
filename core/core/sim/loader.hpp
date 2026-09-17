@@ -14,8 +14,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
+#include <functional>
 #include <memory>
+#include <vector>
 #include "core/ds/alloc/pagechain.hpp"
+#include "core/formats/elf/packed_input_group.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/tvm_loader_backend.hpp"
@@ -24,6 +27,26 @@ namespace tvm {
 class Interpreter;
 }
 class System;
+
+// While a duplicate of PackedElfPhdr<B,E> this class has fixed-size members stored in host order.
+// This avoids Loader being templated over the input program type.
+struct SegmentDescriptor {
+
+  u16 file = 0, index = 0;
+  u32 type = 0; // p_type, e.g. SegmentType::PT_LOAD
+  u64 vaddr = 0, memsz = 0, filesz = 0, offset = 0;
+  // What the segment asks to be allowed once it is running, from p_flags.
+  Access access = Access::None;
+
+  template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
+  SegmentDescriptor(const pepp::bts::PackedElfPhdr<B, E> &phdr, u16 file, u16 index);
+
+  bool loadable() const; // Is the segment PT_LOAD and does it occupy memory?
+};
+
+// Device::ID must refer to a Loadable*. Return true if the given segment should be loaded into that device, and false
+// otherwise. An empty predicate should be equivalent to always returning true.
+using SegmentPredicate = std::function<bool(Device::ID, const SegmentDescriptor &)>;
 
 // Using the trace virtual machine infrastructure, initialize cores to their expected state after power-on, copy object
 // code into each cores' memory, and update memory access permissions where necessary.
@@ -61,3 +84,14 @@ private:
   tvm::LoaderBackend *_backend = nullptr;
   bool _halted = false;
 };
+
+template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
+SegmentDescriptor::SegmentDescriptor(const pepp::bts::PackedElfPhdr<B, E> &phdr, u16 file, u16 index)
+    : file(file), index(index), type(phdr.p_type), vaddr(phdr.p_vaddr), memsz(phdr.p_memsz), filesz(phdr.p_filesz),
+      offset(phdr.p_offset) {
+  using namespace bits;
+  const u32 flags = phdr.p_flags;
+  if (flags & to_underlying(pepp::bts::SegmentFlags::PF_R)) access |= Access::Read;
+  if (flags & to_underlying(pepp::bts::SegmentFlags::PF_W)) access |= Access::Write;
+  if (flags & to_underlying(pepp::bts::SegmentFlags::PF_X)) access |= Access::Execute;
+}

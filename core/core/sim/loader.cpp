@@ -15,7 +15,9 @@
  */
 #include "core/sim/loader.hpp"
 #include <array>
+#include <limits>
 #include <stdexcept>
+#include "core/sim/api/loadable.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/system.hpp"
@@ -97,6 +99,9 @@ bool Loader::copy_word(RegisterScan::RegisterRef reg, Device::ID src, Address ad
   return true;
 }
 
+bool SegmentDescriptor::loadable() const {
+  return type == bits::to_underlying(pepp::bts::SegmentType::PT_LOAD) && memsz > 0;
+}
 bool Loader::run() {
   using namespace tvm::EncodedOp;
   // A program the machine can run has to end in a HALT, and appending a second one would leave dead code behind.
