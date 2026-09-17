@@ -53,8 +53,13 @@ public:
   PackedInputElfFile(std::shared_ptr<MappedFile> file);
   PackedInputElfFile(std::string file);
 
+  // Since this file is (usually) backed by a memory-mapped file, it's cheap to produce a non-owning slice over a given
+  // segments data. The segment's bytes are loaded on first access, and the return value is cached across valls.
+  std::shared_ptr<const AStorage> segment_data(u16 index) const;
+
 private:
   std::shared_ptr<MappedFile> _file;
+  mutable std::vector<std::shared_ptr<AStorage>> _segment_data;
 };
 
 // A packed ELF file that can be modified and grown (relatively) inexpensively.
@@ -127,6 +132,17 @@ PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) :
 
 template <ElfBits B, ElfEndian E>
 PackedInputElfFile<B, E>::PackedInputElfFile(std::string file) : PackedInputElfFile(MappedFile::open_readonly(file)) {}
+
+template <ElfBits B, ElfEndian E>
+std::shared_ptr<const AStorage> PackedInputElfFile<B, E>::segment_data(u16 index) const {
+  if (index >= this->program_headers.size()) throw std::out_of_range("segment_data: segment index out of range");
+  if (_segment_data.size() != this->program_headers.size()) _segment_data.resize(this->program_headers.size());
+  if (_segment_data[index] != nullptr) return _segment_data[index];
+
+  const auto &phdr = this->program_headers[index];
+  if (phdr.p_filesz == 0) return _segment_data[index] = std::make_shared<NullStorage>();
+  else return _segment_data[index] = std::make_shared<MemoryMapped>(_file->slice(phdr.p_offset, phdr.p_filesz));
+}
 
 template <ElfBits B, ElfEndian E>
 pepp::bts::PackedGrowableElfFile<B, E>::PackedGrowableElfFile(ElfFileType type, ElfMachineType machine, ElfABI abi) {

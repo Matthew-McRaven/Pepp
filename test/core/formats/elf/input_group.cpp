@@ -42,6 +42,28 @@ void write_single_section(const std::string &fname, std::string_view name, std::
   std::ofstream(fname, std::ios::binary).write(reinterpret_cast<const char *>(bytes.data()), bytes.size());
 }
 
+// Write an ELF file whose first PT_LOAD covers a PROGBITS section followed by a NOBITS one, so its memory size
+// exceeds its file size, and whose second PT_LOAD covers the NOBITS section alone, so it has no file bytes at all.
+template <ElfBits B, ElfEndian E>
+void write_text_and_bss(const std::string &fname, std::vector<u8> text, u64 bss_size, u64 base_address) {
+  PackedGrowableElfFile<B, E> elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
+  ensure_section_header_table(elf);
+  const auto text_idx = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
+  elf.section_data[text_idx]->append(bits::span<const u8>{text});
+  const auto bss_idx = add_named_section(elf, ".bss", SectionTypes::SHT_NOBITS);
+  // NOBITS occupies no file space, so its size is the caller's to declare.
+  elf.section_headers[bss_idx].sh_size = bss_size;
+  elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_R);
+  elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_W);
+  const std::vector<SegmentLayoutConstraint> constraints{
+      {.alignment = 1, .from_sec = text_idx, .to_sec = bss_idx, .base_address = base_address},
+      {.alignment = 1, .from_sec = bss_idx, .to_sec = bss_idx, .base_address = base_address}};
+  auto layout = calculate_layout(elf, &constraints);
+  std::vector<u8> bytes(size_for_layout(layout), 0);
+  write(bytes, layout);
+  std::ofstream(fname, std::ios::binary).write(reinterpret_cast<const char *>(bytes.data()), bytes.size());
+}
+
 std::vector<u8> bytes_of(const std::shared_ptr<const AStorage> &data) {
   const auto span = data->get(0, data->size());
   return {span.begin(), span.end()};
@@ -94,7 +116,29 @@ TEST_CASE("PackedInputElfGroup", "[scope:elf][kind:unit][arch:*]") {
     CHECK(loadable[1].first == group.segments(b)[0]);
     CHECK(loadable[1].second == AddressSpan(0x200, 0x201));
   }
+  SECTION("Segment data is mapped on demand and cached") {
+    const auto &file = group.file(a);
+    const auto first = file.segment_data(0);
+    REQUIRE(first != nullptr);
+    CHECK(bytes_of(first) == std::vector<u8>{0x01, 0x02, 0x03});
+    // The same file region reached through the section, i.e. a second mapping overlapping the first.
+    CHECK(bytes_of(group.data(progbits(a))) == bytes_of(first));
+    CHECK(file.segment_data(0) == first);
+  }
+  SECTION("Segment data stops at p_filesz") {
+    write_text_and_bss<ElfBits::b32, ElfEndian::le>("group_bss.elf", {0x06, 0x07}, 4, 0x300);
+    const auto c = group.open("group_bss.elf");
+    const auto segs = group.segments(c);
+    REQUIRE(segs.size() == 2);
+    CHECK(group.header(segs[0]).p_filesz == 2);
+    CHECK(group.header(segs[0]).p_memsz == 6);
+    // The zero-filled tail out to p_memsz is the loader's business, not the storage's.
+    CHECK(bytes_of(group.file(c).segment_data(0)) == std::vector<u8>{0x06, 0x07});
+    CHECK(group.header(segs[1]).p_filesz == 0);
+    CHECK(group.file(c).segment_data(1)->size() == 0);
+  }
   SECTION("Validate out-of-range handles") {
+    CHECK_THROWS_AS(group.file(a).segment_data(1), std::out_of_range);
     CHECK_THROWS_AS(group.file(ElfFileID{}), std::out_of_range);
     CHECK_THROWS_AS(group.file(ElfFileID{3}), std::out_of_range);
     const auto count = static_cast<u16>(group.sections(a).size());
