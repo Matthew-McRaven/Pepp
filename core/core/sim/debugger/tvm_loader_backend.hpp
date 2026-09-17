@@ -34,6 +34,8 @@ class LoaderBackend : public ApplyBackend {
 public:
   LoaderBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr);
 
+  void on_loadsegment(MachineState &state, const DecodedOp::LoadSegment &op) override;
+
   // Programs reference a segment with a 32-bit key composed of a file index (from the Loader) and a segment index (from
   // the ELF file). SegmentData must either outlive this class or be dropped via clear_segments().
   void register_segment(u16 file, u16 segment, const SegmentData &data);

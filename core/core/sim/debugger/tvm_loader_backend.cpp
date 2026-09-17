@@ -20,6 +20,8 @@ namespace tvm {
 LoaderBackend::LoaderBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system)
     : ApplyBackend(std::move(mgr), system) {}
 
+void LoaderBackend::on_loadsegment(MachineState &state, const DecodedOp::LoadSegment &op) {}
+
 void LoaderBackend::register_segment(u16 file, u16 segment, const SegmentData &data) {
   _segments[key_of(file, segment)] = data;
 }

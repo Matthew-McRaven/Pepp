@@ -31,6 +31,7 @@ struct Dispatch {
   void operator()(const tvm::DecodedOp::DPIncr &op) const { self->on_dpincr(*state, op); }
   void operator()(const tvm::DecodedOp::MMIO &op) const { self->on_mmio(*state, op); }
   void operator()(const tvm::DecodedOp::MovMem2Reg &op) const { self->on_movmem2reg(*state, op); }
+  void operator()(const tvm::DecodedOp::LoadSegment &op) const { self->on_loadsegment(*state, op); }
 };
 } // namespace
 

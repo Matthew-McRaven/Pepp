@@ -32,7 +32,7 @@ struct Loadable {
   virtual void register_core_init(Loader &) = 0;
 
   // The kinds of memory attached to a core that a Loader might be interested in targeting.
-  enum class MemoryKind : u8 { Instruction, Data, MicrocodeROM };
+  enum class MemoryKind : u8 { INVALID = 0, Instruction = 1, Data = 2, MicrocodeROM = 3 };
   // Return the target backing the requested kind of memory, or nullptr if this core has no memory of that kind.
   // Allows the loader to correctly load code, data, and microcode without needing to understand overall system arch.
   virtual Target *port(MemoryKind kind) = 0;

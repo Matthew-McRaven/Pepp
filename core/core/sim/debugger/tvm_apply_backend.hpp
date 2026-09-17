@@ -31,6 +31,7 @@ public:
   void on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &op) override;
   void on_mmio(MachineState &state, const tvm::DecodedOp::MMIO &op) override;
   void on_movmem2reg(MachineState &state, const tvm::DecodedOp::MovMem2Reg &op) override;
+  void on_loadsegment(MachineState &state, const tvm::DecodedOp::LoadSegment &op) override;
 
 protected:
   std::shared_ptr<pepp::bts::BufferManager> _mgr;

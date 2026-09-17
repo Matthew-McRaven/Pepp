@@ -323,6 +323,10 @@ void ApplyBackend::on_movmem2reg(MachineState &state, const DecodedOp::MovMem2Re
   state.csrs.F = !ok;
 }
 
+void ApplyBackend::on_loadsegment(MachineState &state, const DecodedOp::LoadSegment &op) {
+  state.hard_stop(StopCause::Unimplemented);
+}
+
 TraceApplyBackend::TraceApplyBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system,
                                      tvm::TraceBuffer *tb)
     : ApplyBackend(std::move(mgr), system), _tb(tb) {}

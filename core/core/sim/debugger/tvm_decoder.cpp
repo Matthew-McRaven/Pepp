@@ -65,6 +65,7 @@ void Decoder::decode() {
   case Opcode::INCDP: _decoded = decode_incdp(ibp, iop); break;
   case Opcode::MMIO: _decoded = decode_mmio(ibp, iop); break;
   case Opcode::MOVMREG: _decoded = decode_movmem2reg(ibp, iop); break;
+  case Opcode::LDSEGM: _decoded = decode_loadsegment(ibp, iop); break;
   default: _state.hard_stop(StopCause::IllegalOpcode); break; // Treat unrecognized upcodes as hard failures.
   }
 }
@@ -579,6 +580,28 @@ DecodedOp::MovMem2Reg Decoder::decode_movmem2reg(pepp::bts::Buffer::ID ibp, u16 
       RegisterScan::RegisterRef{RegisterScan::Register::ID{regs.ID.hi}, RegisterScan::Register::Field::ID{regs.ID.lo}};
   ret.byteswap = _state.csrs.M1 ? regs.MOD1.hi : 0;
   ret.access = Operation(regs.ACCESS);
+
+  return ret;
+}
+
+DecodedOp::LoadSegment Decoder::decode_loadsegment(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::LoadSegment ret;
+  auto &regs = _state.regs;
+  _state.csrs.TR = 0;
+
+  switch (regs.IS.word_len) {
+  default: [[fallthrough]];
+  case 4: regs.MOD1.lo = read(ibp, iop + 6); [[fallthrough]];
+  case 3: regs.MOD1.hi = read(ibp, iop + 4), _state.csrs.M1 = 1; [[fallthrough]];
+  case 2: regs.ID.lo = read(ibp, iop + 2); [[fallthrough]];
+  case 1: regs.ACCESS = read(ibp, iop + 0); [[fallthrough]];
+  case 0: break;
+  }
+
+  ret.kind = (Loadable::MemoryKind)regs.ACCESS;
+  ret.src = Device::ID{(u8)regs.ID.lo};
+  ret.file_index = _state.csrs.M1 ? regs.MOD1.hi : 0;
+  ret.segment_index = _state.csrs.M1 ? regs.MOD1.lo : 0;
 
   return ret;
 }

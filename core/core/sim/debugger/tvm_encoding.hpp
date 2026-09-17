@@ -2,6 +2,7 @@
 #include <span>
 #include <variant>
 #include "core/sim/api/device.hpp"
+#include "core/sim/api/loadable.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/tvm_opcodes.hpp"
 
@@ -437,6 +438,13 @@ template <> struct MOVMREG<7> {
     return encode_op<Opcode::MOVMREG, true>(access, dst_hi, dst_lo, OFF_hi, OFF_lo, (u16)byteswap, srcid);
   }
 };
+
+// Only need the 4-word variant for now, because there is basically no opportunity for re-use with this packet.
+template <std::size_t> struct LDSEGM;
+template <> struct LDSEGM<4> {
+  u16 access, dst_id, file_ndx, seg_ndx;
+  constexpr auto encode() const { return encode_op<Opcode::LDSEGM, true>(access, dst_id, file_ndx, seg_ndx); }
+};
 } // namespace EncodedOp
 
 // Helpers containing the fully-decoded layout of each opcode.
@@ -555,7 +563,13 @@ struct MovMem2Reg {
   u32 offset = 0;
 };
 
+struct LoadSegment {
+  Loadable::MemoryKind kind = Loadable::MemoryKind::Instruction;
+  Device::ID src{};
+  u16 file_index = 0, segment_index = 0;
+};
+
 using OpChoice = std::variant<Halt, Ret, Call, InvCall, InvRet, ASyn, ISyn, LMR, BR, DeltaMem, CmpMem, ClrMem, DeltaReg,
-                              CmpReg, ClrReg, TRADDR, LDP, DPIncr, MMIO, MovMem2Reg>;
+                              CmpReg, ClrReg, TRADDR, LDP, DPIncr, MMIO, MovMem2Reg, LoadSegment>;
 } // namespace DecodedOp
 } // namespace tvm

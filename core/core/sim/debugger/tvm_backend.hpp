@@ -82,6 +82,7 @@ public:
   virtual void on_traddr(MachineState &state, const tvm::DecodedOp::TRADDR &op) = 0;
   virtual void on_mmio(MachineState &state, const tvm::DecodedOp::MMIO &op) = 0;
   virtual void on_movmem2reg(MachineState &state, const tvm::DecodedOp::MovMem2Reg &op) = 0;
+  virtual void on_loadsegment(MachineState &state, const tvm::DecodedOp::LoadSegment &op) = 0;
 
 protected:
   Operation effective_access(const Operation &recorded) const {
