@@ -108,7 +108,7 @@ private:
   mutable int _fd = -1;
 #endif
   inline void ensure_opened() const {
-    if (!_opened || !_use_fallback) open_file();
+    if (!_opened && !_use_fallback) open_file();
   }
   // Paltform specific file opening for future memory-mapping of file offsets.
   void open_file() const;
