@@ -40,14 +40,39 @@ public:
   std::vector<std::shared_ptr<AStorage>> section_data;
 };
 
-// A packed ELF file that is read-only and backed by a memory-mapped file.
-// While its elf header, section headers, and program headers are eagerly loaded into memory,
+// Helper classes to delegate between a lazy MappedFile and eagerly-loaded contiguous buffer.
+struct AElfSource {
+  virtual ~AElfSource() = 0;
+  // Storage covering [offset, offset + length) of the image.
+  virtual std::shared_ptr<AStorage> slice(u64 offset, u64 length) const = 0;
+};
+
+// Reads through a memory-mapped file, mapping each region on first access.
+struct MappedFileSource final : public AElfSource {
+  explicit MappedFileSource(std::shared_ptr<MappedFile> file);
+  std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
+
+private:
+  std::shared_ptr<MappedFile> _file;
+};
+
+// Re-use the serialized bytes of an ELF file that is already in memory.
+struct BufferSource final : public AElfSource {
+  explicit BufferSource(std::vector<char> &&bytes);
+  std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
+
+private:
+  std::shared_ptr<BlockStorage> _bytes;
+};
+// A packed ELF file that is read-only and backed by a lazily memory-mapped file or eager contiguous buffer.
+// While its elf header, section headers, and program headers are always eagerly loaded into memory,
 // section data will be lazily loaded on first use.
 template <ElfBits B, ElfEndian E> class PackedInputElfFile : public PackedElf<B, E> {
   struct private_ctor_tag {};
 
 public:
-  // Create a read-only ELF file from a memory-mapped file.
+  // Overload which allows construction from either a memory-mapped file or contiguous buffer.
+  PackedInputElfFile(std::shared_ptr<const AElfSource> source);
   // On construction, will read in ehdr, shdrs, and phdrs, throwing if the file's class or byte order is not B / E.
   // Section data will be loaded lazily.
   PackedInputElfFile(std::shared_ptr<MappedFile> file);
@@ -58,7 +83,7 @@ public:
   std::shared_ptr<const AStorage> segment_data(u16 index) const;
 
 private:
-  std::shared_ptr<MappedFile> _file;
+  std::shared_ptr<const AElfSource> _source;
   mutable std::vector<std::shared_ptr<AStorage>> _segment_data;
 };
 
@@ -80,10 +105,11 @@ public:
 };
 
 template <ElfBits B, ElfEndian E>
-PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) : _file(file) {
+PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<const AElfSource> source) : _source(std::move(source)) {
+  if (!_source) throw std::invalid_argument("PackedInputElfFile: source must be non-null");
   // Read in all header data and eagerly copy it to our packed structures
-  auto header_slice = file->slice(0, sizeof(typename PackedElf<B, E>::Ehdr));
-  auto header_data = header_slice->get();
+  auto header_slice = _source->slice(0, sizeof(typename PackedElf<B, E>::Ehdr));
+  auto header_data = header_slice->get(0, header_slice->size());
   if (header_data.size() < sizeof(typename PackedElf<B, E>::Ehdr))
     throw std::runtime_error("File too small to contain ELF header");
   auto header_dest = bits::span<u8>((u8 *)&this->header, sizeof(typename PackedElf<B, E>::Ehdr));
@@ -97,8 +123,8 @@ PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) :
   // Determine base address of section header table and eagerly copy into our shdr vector.
   word<B> shdr_start = this->header.e_shoff, shdr_size = this->header.e_shentsize * this->header.e_shnum;
   if (shdr_size > 0) {
-    auto shdr_slice = file->slice(shdr_start, shdr_size);
-    auto shdr_data = shdr_slice->get();
+    auto shdr_slice = _source->slice(shdr_start, shdr_size);
+    auto shdr_data = shdr_slice->get(0, shdr_slice->size());
     if (shdr_data.size() < shdr_size) throw std::runtime_error("File too small to contain section header table");
     this->section_headers.resize(this->header.e_shnum);
     auto shdr_dest = bits::span<u8>(reinterpret_cast<u8 *>(this->section_headers.data()), shdr_size);
@@ -107,8 +133,8 @@ PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) :
   // Determine base address of program header table and eagerly copy into our phdr vector.
   word<B> phdr_start = this->header.e_phoff, phdr_size = this->header.e_phentsize * this->header.e_phnum;
   if (phdr_size > 0) {
-    auto phdr_slice = file->slice(phdr_start, phdr_size);
-    auto phdr_data = phdr_slice->get();
+    auto phdr_slice = _source->slice(phdr_start, phdr_size);
+    auto phdr_data = phdr_slice->get(0, phdr_slice->size());
     if (phdr_data.size() < phdr_size) throw std::runtime_error("File too small to contain program header table");
     this->program_headers.resize(this->header.e_phnum);
     auto phdr_dest = bits::span<u8>(reinterpret_cast<u8 *>(this->program_headers.data()), phdr_size);
@@ -121,9 +147,16 @@ PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file) :
   // Construct an AStorage which will lazily map in each section on demand.
   for (int it = 1; it < this->section_headers.size(); ++it) {
     const auto &shdr = this->section_headers[it];
-    this->section_data[it] = std::make_shared<MemoryMapped>(file->slice(shdr.sh_offset, shdr.sh_size));
+    // NOBITS owns no file bytes; its sh_size is a memory size, and the bytes at its sh_offset belong to someone else.
+    if (shdr.sh_type == bits::to_underlying(SectionTypes::SHT_NOBITS))
+      this->section_data[it] = std::make_shared<NullStorage>();
+    else this->section_data[it] = _source->slice(shdr.sh_offset, shdr.sh_size);
   }
 }
+
+template <ElfBits B, ElfEndian E>
+PackedInputElfFile<B, E>::PackedInputElfFile(std::shared_ptr<MappedFile> file)
+    : PackedInputElfFile(std::make_shared<MappedFileSource>(std::move(file))) {}
 
 template <ElfBits B, ElfEndian E>
 PackedInputElfFile<B, E>::PackedInputElfFile(std::string file) : PackedInputElfFile(MappedFile::open_readonly(file)) {}
@@ -135,8 +168,7 @@ std::shared_ptr<const AStorage> PackedInputElfFile<B, E>::segment_data(u16 index
   if (_segment_data[index] != nullptr) return _segment_data[index];
 
   const auto &phdr = this->program_headers[index];
-  if (phdr.p_filesz == 0) return _segment_data[index] = std::make_shared<NullStorage>();
-  else return _segment_data[index] = std::make_shared<MemoryMapped>(_file->slice(phdr.p_offset, phdr.p_filesz));
+  return _segment_data[index] = _source->slice(phdr.p_offset, phdr.p_filesz);
 }
 
 template <ElfBits B, ElfEndian E>
