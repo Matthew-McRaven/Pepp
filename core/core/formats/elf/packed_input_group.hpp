@@ -21,7 +21,9 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 #include "core/ds/opaque_handle.hpp"
 #include "core/formats/elf/packed_elf.hpp"
@@ -69,10 +71,15 @@ public:
   const Shdr &header(ElfSectionHandle handle) const;
   const Phdr &header(ElfSegmentHandle handle) const;
   std::shared_ptr<const AStorage> data(ElfSectionHandle handle) const;
+  // The contiguous file bytes of a segment. 0-padding from p_filesz to p_memsz is not included.
+  std::shared_ptr<const AStorage> data(ElfSegmentHandle handle) const;
 
 private:
   std::vector<std::unique_ptr<File>> _files;
 };
+
+// Helper to wrap wrap one file in a group of the same type
+AnyElfGroup to_input_group(AnyInputElf elf);
 
 template <ElfBits B, ElfEndian E> ElfFileID PackedInputElfGroup<B, E>::add(std::unique_ptr<File> file) {
   if (!file) throw std::invalid_argument("PackedInputElfGroup::add: file must be non-null");
@@ -127,6 +134,14 @@ std::shared_ptr<const AStorage> PackedInputElfGroup<B, E>::data(ElfSectionHandle
   return f.section_data[index];
 }
 
+template <ElfBits B, ElfEndian E>
+std::shared_ptr<const AStorage> PackedInputElfGroup<B, E>::data(ElfSegmentHandle handle) const {
+  const auto &f = file(elf_file_of(handle));
+  const auto index = elf_index_of(handle);
+  if (index >= f.program_headers.size()) throw std::out_of_range("PackedInputElfGroup: no such segment");
+  return f.segment_data(index);
+}
+
 // Extract the PT_LOAD-able segments from the group, returning their virtual memory address spans and segment handles.
 template <ElfBits B, ElfEndian E>
 std::vector<std::pair<ElfSegmentHandle, pepp::core::Interval<word<B>>>>
@@ -145,8 +160,4 @@ loadable_segments(const PackedInputElfGroup<B, E> &group) {
   return ret;
 }
 
-using PackedInputElfGroupLE32 = PackedInputElfGroup<ElfBits::b32, ElfEndian::le>;
-using PackedInputElfGroupBE32 = PackedInputElfGroup<ElfBits::b32, ElfEndian::be>;
-using PackedInputElfGroupLE64 = PackedInputElfGroup<ElfBits::b64, ElfEndian::le>;
-using PackedInputElfGroupBE64 = PackedInputElfGroup<ElfBits::b64, ElfEndian::be>;
 } // namespace pepp::bts

@@ -54,6 +54,15 @@ using AnyGrowableElfPtr =
 using AnyGrowableElf = std::variant<std::unique_ptr<PackedGrowableElfLE32>, std::unique_ptr<PackedGrowableElfBE32>,
                                     std::unique_ptr<PackedGrowableElfLE64>, std::unique_ptr<PackedGrowableElfBE64>>;
 
+// A collection of read-only ELF files with the same word size and byte order.
+template <ElfBits, ElfEndian> class PackedInputElfGroup;
+using PackedInputElfGroupLE32 = PackedInputElfGroup<ElfBits::b32, ElfEndian::le>;
+using PackedInputElfGroupBE32 = PackedInputElfGroup<ElfBits::b32, ElfEndian::be>;
+using PackedInputElfGroupLE64 = PackedInputElfGroup<ElfBits::b64, ElfEndian::le>;
+using PackedInputElfGroupBE64 = PackedInputElfGroup<ElfBits::b64, ElfEndian::be>;
+
+using AnyElfGroup = std::variant<std::unique_ptr<PackedInputElfGroupLE32>, std::unique_ptr<PackedInputElfGroupBE32>,
+                                 std::unique_ptr<PackedInputElfGroupLE64>, std::unique_ptr<PackedInputElfGroupBE64>>;
 std::shared_ptr<const pepp::bts::AStorage> section_data(ConstAnyPackedElfPtr elf, u16 section_index);
 u32 sh_align(ConstAnyPackedElfPtr elf, u16 section_index);
 

@@ -45,7 +45,7 @@ void write_single_section(const std::string &fname, std::string_view name, std::
 // Write an ELF file whose first PT_LOAD covers a PROGBITS section followed by a NOBITS one, so its memory size
 // exceeds its file size, and whose second PT_LOAD covers the NOBITS section alone, so it has no file bytes at all.
 template <ElfBits B, ElfEndian E>
-void write_text_and_bss(const std::string &fname, std::vector<u8> text, u64 bss_size, u64 base_address) {
+void write_text_and_bss(const std::string &fname, std::vector<u8> text, u32 bss_size, u64 base_address) {
   PackedGrowableElfFile<B, E> elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
   ensure_section_header_table(elf);
   const auto text_idx = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
