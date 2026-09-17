@@ -10,24 +10,6 @@
 
 namespace {
 const Operation rw_cmp(Operation::Type::BufferInternal, Operation::Kind::data);
-
-// Run a target acccess and report if it succeded, used to catch bad access from targets and set the F bit accordingly.
-template <typename Fn> bool try_access(Fn &&fn) {
-  try {
-    fn();
-    return true;
-  } catch (const Error &) {
-    // A Target refused the access: out of range, unmapped, and so on.
-    return false;
-  } catch (const std::runtime_error &) {
-    // RegisterScan reports the same class of refusal -- not readable, not writable, no such device -- by throwing,
-    // and it throws plain std::runtime_error rather than Error. Without this catch a program touching a read-only
-    // register would unwind out of the interpreter entirely instead of setting F, which is the opposite of how
-    // every other refused access behaves. RegisterScan ought to grow a typed exception; until it does, this is
-    // where the two hierarchies are reconciled.
-    return false;
-  }
-}
 } // namespace
 
 namespace tvm {

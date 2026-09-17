@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <stdexcept>
 #include <vector>
 #include "core/ds/alloc/pagechain.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
@@ -10,6 +11,21 @@ class System;
 
 namespace tvm {
 class TraceBuffer;
+
+// Run a target access and report if it succeeded, used to catch bad access from targets and set the F bit accordingly.
+// A Target refuses an access -- out of range, unmapped, and so on -- by throwing Error, which derives from
+// runtime_error. RegisterScan reports the same class of refusal -- not readable, not writable, no such device -- by
+// throwing plain std::runtime_error. Without this, a program touching a read-only register would unwind out of the
+// interpreter entirely instead of setting F, which is the opposite of how every other refused access behaves.
+// RegisterScan ought to grow a typed exception; until it does, this is where the two hierarchies are reconciled.
+template <typename Fn> bool try_access(Fn &&fn) {
+  try {
+    fn();
+    return true;
+  } catch (const std::runtime_error &) {
+    return false;
+  }
+}
 
 // A backend which allows memory and register access.
 // Handlers that fail due to a structural problem (e.g., wrong TR mode, _system==nullptr) will hardstop the machine.
