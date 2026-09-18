@@ -12,7 +12,6 @@
 #include "core/sim/systemparser.hpp"
 
 namespace {
-static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
 
 static const std::unordered_map<std::string, PepISA3CPU::ISA, pepp::bts::ci_hash, pepp::bts::ci_eq> map_str_to_isa = {
     {"pep8", PepISA3CPU::ISA::Pep8}, {"pep9", PepISA3CPU::ISA::Pep9}, {"pep10", PepISA3CPU::ISA::Pep10}};
@@ -239,8 +238,8 @@ void PepISA3CPU::register_core_init(Loader &loader) {
   auto sp = _regbank->ref(isa::Pep10::Register::SP);
   auto pc = _regbank->ref(isa::Pep10::Register::PC);
   // TODO: replace constants depending on the memory size / version of Pep.
-  loader.copy_word(sp, mem->id(), static_cast<u16>(MV::SystemStackPtr), swap);
-  loader.copy_word(pc, mem->id(), static_cast<u16>(MV::Dispatcher), swap);
+  loader.copy_word(sp, mem->id(), static_cast<u16>(MV::SystemStackPtr), bits::Order::BigEndian);
+  loader.copy_word(pc, mem->id(), static_cast<u16>(MV::Dispatcher), bits::Order::BigEndian);
 }
 
 void PepISA3CPU::increment_call_depth() {

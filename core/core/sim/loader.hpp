@@ -50,9 +50,10 @@ public:
   // register's width. Returns false if the register is not found.
   bool set_register(RegisterScan::RegisterRef reg, u64 value);
   // Set a register to a value of a memory location when the loader is run. Used to intialize Pep/10's SP/PC to the
-  // memory vector values, for example. Byteswap reverses byte word on its way in, in case yuor register and memory
-  // endianness differ. Returns false if the register is not found.
-  bool copy_word(RegisterScan::RegisterRef reg, Device::ID src, Address address, bool byteswap = false);
+  // memory vector values, for example. src_order is the order of the bytes as they sit in memory. Returns false if the
+  // register is not found.
+  bool copy_word(RegisterScan::RegisterRef reg, Device::ID src, Address address,
+                 bits::Order src_order = bits::hostOrder());
 
   // Take ownership of a group of ELF files and create a tvm program which copies the PT_LOAD segments into the given
   // device. The predicate filters PT_LOAD segments which should not be loaded into that device. If the predicate is

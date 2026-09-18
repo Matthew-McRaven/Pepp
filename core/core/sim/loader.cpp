@@ -83,11 +83,13 @@ bool Loader::set_register(RegisterScan::RegisterRef reg, u64 value) {
   }
 }
 
-bool Loader::copy_word(RegisterScan::RegisterRef reg, Device::ID src, Address address, bool byteswap) {
+bool Loader::copy_word(RegisterScan::RegisterRef reg, Device::ID src, Address address, bits::Order src_order) {
   using namespace tvm::EncodedOp;
-  if (_sys->register_scan()->resolve(reg).first == nullptr) return false;
+  const auto *resolved = _sys->register_scan()->resolve(reg).first;
+  if (resolved == nullptr) return false;
+  // Only need to perform byteswap when memory order mismatches the register's order.
   const auto enc = MOVMREG<7>{
-      .byteswap = byteswap,
+      .byteswap = src_order != resolved->order,
       .access = load_op.as_u16(),
       .dst_hi = reg.reg.value,
       .dst_lo = reg.field.value,

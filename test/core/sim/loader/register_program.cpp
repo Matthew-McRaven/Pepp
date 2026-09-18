@@ -55,7 +55,6 @@ void poke_be(Target *mem, Address at, u16 v) {
   const std::array<u8, 2> bytes{(u8)(v >> 8), (u8)(v & 0xFF)};
   mem->write(at, {bytes.data(), bytes.size()}, app);
 }
-const bool swap = bits::hostOrder() != bits::Order::BigEndian;
 
 using MV = isa::Pep10::MemoryVectors;
 
@@ -87,7 +86,7 @@ TEST_CASE("Loader: initial register programming", "[scope:core][scope:core.sim][
   SECTION("Load constants and from memory") {
     Loader loader(sys.get());
     REQUIRE(loader.set_register(a, 0x1234));
-    REQUIRE(loader.copy_word(pc, mem->id(), (Address)MV::Dispatcher, swap));
+    REQUIRE(loader.copy_word(pc, mem->id(), (Address)MV::Dispatcher, bits::Order::BigEndian));
     REQUIRE(loader.run());
     CHECK(loader.stop_cause() == tvm::StopCause::None);
     CHECK(scan->read<u16>(a) == 0x1234);
@@ -95,7 +94,7 @@ TEST_CASE("Loader: initial register programming", "[scope:core][scope:core.sim][
   }
   SECTION("Memory read at program execution time") {
     Loader loader(sys.get());
-    REQUIRE(loader.copy_word(pc, mem->id(), (Address)MV::Dispatcher, swap));
+    REQUIRE(loader.copy_word(pc, mem->id(), (Address)MV::Dispatcher, bits::Order::BigEndian));
     // Whatever the memory location held when the program was authored is ignored.
     poke_be(mem, (Address)MV::Dispatcher, 0x0BAD);
     REQUIRE(loader.run());
@@ -119,7 +118,7 @@ TEST_CASE("Loader: initial register programming", "[scope:core][scope:core.sim][
   }
   SECTION("Invalid memory access stops the loader") {
     Loader from_memory(sys.get());
-    REQUIRE(from_memory.copy_word(pc, mem->id(), 0x1'0000, swap));
+    REQUIRE(from_memory.copy_word(pc, mem->id(), 0x1'0000, bits::Order::BigEndian));
     CHECK_FALSE(from_memory.run());
     CHECK(from_memory.stop_cause() == tvm::StopCause::AccessRefused);
 
