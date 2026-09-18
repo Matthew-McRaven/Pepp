@@ -81,56 +81,41 @@ void handle_ret(PepISA3CPU *self) {
 }
 
 void handle_sret(PepISA3CPU *self) {
-  // Long enough to either hold all regs or one ctx switch block.
-  static constexpr u8 registersBytes = 2 * ::isa::Pep10::RegisterCount;
-  u8 ctx[std::max<std::size_t>(registersBytes, 12)];
-  auto ctxSpan = bits::span<u8>{ctx, sizeof(ctx)};
-
+  static constexpr u16 sys_sp_vec = static_cast<u16>(::isa::Pep10::MemoryVectors::SystemStackPtr);
   auto memory = self->target();
-  // Fill ctx with all register's current values.
-  // Then we can do a single write back to _regs and only generate 1 trace
-  // packet.
   auto regs = self->registers();
   u16 sp = self->read_register<R::SP>();
   u16 tmp = size_inclusive(regs->span());
+
+  // Read all existing registers into a temporary buffer, which we will patch with the saved values of the PCB.
+  static constexpr u8 registersBytes = 2 * ::isa::Pep10::RegisterCount;
+  u8 ctx[std::max<std::size_t>(registersBytes, 12)];
   regs->read(0, {ctx, tmp}, self->op_data());
 
-  // Reload NZVC
-  auto csrs = memory->read<u8>(sp, self->op_data()).second;
-  self->write_packed_csr(csrs);
+  // One read for the saved NZVC followed by A, X, PC, and SP.
+  // write() on register bank exposes registers in BE order, so no need to byteswap.
+  u8 bytes[9];
+  auto pcb = bits::span<u8>{bytes, sizeof(bytes)};
+  memory->read(sp, pcb, self->op_data());
+  // Restore NZVC
+  self->write_packed_csr(pcb[0]);
+  // Copy A,X,PC,SP into the preserved registers...
+  std::copy_n(bytes + 1, 4, ctx + 2 * static_cast<u8>(R::A));
+  std::copy_n(bytes + 5, 2, ctx + 2 * static_cast<u8>(R::PC));
+  std::copy_n(bytes + 7, 2, ctx + 2 * static_cast<u8>(R::SP));
 
-  // Load A into ctx. No need for byteswap, _memory is little endian as are
-  // regs.
-  memory->read(sp + 1, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::A), 2}, self->op_data());
-
-  // Load X into ctx
-  memory->read(sp + 3, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::X), 2}, self->op_data());
-
-  // Load PC into ctx
-  memory->read(sp + 5, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::PC), 2}, self->op_data());
-
-  // Load SP into ctx
-  memory->read(sp + 7, {ctx + 2 * static_cast<u8>(isa::Pep10::Register::SP), 2}, self->op_data());
-
-  // Bulk write-back regs, saving a number of bits on trace metadata. Sized from the bank rather than from
-  // RegisterCount, which counts one more than there are registers.
+  // ... and write back the whole register bank in bulk, saving trace metadata size
   regs->write(0, {ctx, tmp}, self->op_data());
-  // That write covered PC, restoring it from the stack. Hand it to the working copy, or clock_tick's single store
-  // would put the pre-instruction value straight back over it. Read it back through the bank rather than picking it
-  // out of ctx so this stays independent of the context block's layout and byte order.
-  self->write_pc(self->read_register<R::PC>());
+  // Update the cached value of PC by reading it directly from the register bank
+  self->write_pc(self->read_register_uncached<R::PC>());
 
-  tmp = sp + 12;
-  // Using "host"'s variables, so byte swap if necessary.
-  if (bits::host_is_le) tmp = bits::byteswap(tmp);
-  memory->write(static_cast<u16>(::isa::Pep10::MemoryVectors::SystemStackPtr), {reinterpret_cast<u8 *>(&tmp), 2}, self->op_data());
+  memory->write<u16, bits::host_is_le>(sys_sp_vec, sp + 12, self->op_data());
 
   self->decrement_call_depth();
   if (false) {
     //_dbg->bps->notifyPCChanged(readReg(Register::PC));
     //_dbg->notifyTrapRet(pc - 1, readReg(Register::SP));
   }
-  // Skip "normal" return path, since we've already written to PC.
 }
 
 void handle_movflga(PepISA3CPU *self) {
@@ -236,6 +221,44 @@ void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg) {
   self->write_packed_csr(PepCSRBank::pack(n, z, v, c));
 }
 
+void handle_scall(PepISA3CPU *self) {
+  static constexpr u16 sys_sp_vec = static_cast<u16>(::isa::Pep10::MemoryVectors::SystemStackPtr);
+  static constexpr u16 trap_pc_vec = static_cast<u16>(::isa::Pep10::MemoryVectors::TrapHandler);
+  using R = isa::Pep10::Register;
+  auto target = self->target();
+  u8 bytes[12];
+  auto ctx = bits::span<u8>{bytes, 12};
+  u16 tmp, pc = self->read_register<R::PC>();
+  // Read operand specifier and increment PC. Should probably be op_instr().
+  u16 os = target->read<u16, bits::host_is_le>(pc, self->op_data()).second;
+  pc += 2;
+  // Must byteswap because we are using "host" variables.
+  ctx[0] = self->read_packed_csr();
+  tmp = self->read_register<R::A>();
+  ctx[1] = tmp >> 8, ctx[2] = tmp;
+  tmp = self->read_register<R::X>();
+  ctx[3] = tmp >> 8, ctx[4] = tmp;
+  ctx[5] = pc >> 8, ctx[6] = pc;
+  tmp = self->read_register<R::SP>();
+  ctx[7] = tmp >> 8, ctx[8] = tmp;
+  ctx[9] = self->read_register<R::IS>();
+  ctx[10] = os >> 8, ctx[11] = os;
+
+  // Read system stack address andallocate ctx frame with -=
+  tmp = target->read<u16, bits::host_is_le>(sys_sp_vec, self->op_data()).second;
+  target->write(tmp -= 12, ctx, self->op_data());
+  self->write_register<R::SP>(tmp);
+
+  // Read trap handler pc
+  tmp = target->read<u16, bits::host_is_le>(trap_pc_vec, self->op_data()).second;
+  self->write_pc(tmp);
+
+  self->increment_call_depth();
+  if (false) {
+    //_dbg->bps->notifyPCChanged(readReg(Register::PC));
+    //_dbg->notifyTrapCall(pc - 1, readReg(Register::SP));
+  }
+}
 void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_val) {
   const auto [n, z, v, c] = PepCSRBank::unpack(self->read_packed_csr());
   bool taken;

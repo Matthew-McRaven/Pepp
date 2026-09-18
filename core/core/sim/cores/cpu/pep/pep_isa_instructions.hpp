@@ -38,6 +38,7 @@ void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg);
 
 enum class BranchCondition { UNCONDITIONAL, LE, LT, EQ, NE, GE, GT, V, C };
 
+void handle_scall(PepISA3CPU *self);
 void handle_branch(PepISA3CPU *self, Op op, BranchCondition cond, u16 op_val);
 // Specialization of handle_branch() which executes more efficiently.
 void handle_unconditional_branch(PepISA3CPU *self, Op op, u16 op_val);

@@ -86,6 +86,7 @@ public:
   // access purely to ask a question the caller usually already knows the answer to. Where the register is fixed by
   // the instruction's encoding, these fold to a member access with no branch at all.
   template <PepRegisterBank::Register R> u16 read_register();
+  template <PepRegisterBank::Register R> u16 read_register_uncached();
   template <PepRegisterBank::Register R> void write_register(u16 value);
   // Same as above, but does not redirect PC access.
   template <typename RegisterType> u16 read_register_uncached(RegisterType reg);
@@ -172,6 +173,8 @@ template <PepRegisterBank::Register R> inline void PepISA3CPU::write_register(u1
 template <typename RegisterType> inline u16 PepISA3CPU::read_register_uncached(RegisterType reg) {
   return _regbank->read(static_cast<PepRegisterBank::Register>(reg));
 }
+
+template <PepRegisterBank::Register R> inline u16 PepISA3CPU::read_register_uncached() { return _regbank->read<R>(); }
 
 // All four flags live in one byte, so a single flag is a bit of it rather than a byte of its own. The enum runs
 // N, Z, V, C and the packing puts N highest, so the flag's index counts down from the top of the nibble.
