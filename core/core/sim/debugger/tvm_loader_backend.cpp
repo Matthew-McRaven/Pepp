@@ -20,6 +20,11 @@
 #include "core/sim/loader.hpp"
 #include "core/sim/system.hpp"
 
+// Force the machine to hard-stop if it has not already.
+static void stop_if_refused(tvm::MachineState &state) {
+  if (!state.stopped() && state.csrs.F) state.hard_stop(tvm::StopCause::AccessRefused);
+}
+
 namespace tvm {
 
 bool SegmentDescriptor::loadable() const {
@@ -27,13 +32,25 @@ bool SegmentDescriptor::loadable() const {
 }
 
 std::optional<AddressSpan> SegmentDescriptor::span() const {
-  // Addresses are what the machine can reach, which is narrower than what a 64-bit file can name.
+  // Our loader works on 32-bit systems, so we must ensure that the VA span is in range.
   if (memsz == 0 || memsz - 1 > std::numeric_limits<Address>::max() - vaddr) return std::nullopt;
   return AddressSpan(static_cast<Address>(vaddr), static_cast<Address>(vaddr + memsz - 1));
 }
 
 LoaderBackend::LoaderBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system, const Loader *loader)
     : ApplyBackend(std::move(mgr), system), _loader(loader) {}
+
+void LoaderBackend::on_deltareg(MachineState &state, const DecodedOp::DeltaReg &op) {
+  ApplyBackend::on_deltareg(state, op);
+  // Loader does not include BRF / error handling, so treat a failed reg write as a hard stop.
+  stop_if_refused(state);
+}
+
+void LoaderBackend::on_movmem2reg(MachineState &state, const DecodedOp::MovMem2Reg &op) {
+  // Loader does not include BRF / error handling, so treat a failed memory-to-reg write as a hard stop.
+  ApplyBackend::on_movmem2reg(state, op);
+  stop_if_refused(state);
+}
 
 void LoaderBackend::on_loadsegment(MachineState &state, const DecodedOp::LoadSegment &op) {
   // Whatever the segment overwrites is gone, so a load cannot be stepped back over.
@@ -64,8 +81,8 @@ void LoaderBackend::on_loadsegment(MachineState &state, const DecodedOp::LoadSeg
   const auto span = segment->span();
   if (!span) return state.hard_stop(StopCause::SegmentUnknown);
 
-  // A refused load sets F like any other memory accesses.
-  state.csrs.F = try_access([&] { target->load(*span, segment->data, segment->access); }) ? 0 : 1;
+  if (!try_access([&] { target->load(*span, segment->data, segment->access); }))
+    state.hard_stop(StopCause::AccessRefused);
 }
 
 } // namespace tvm

@@ -59,6 +59,21 @@ const bool swap = bits::hostOrder() != bits::Order::BigEndian;
 
 using MV = isa::Pep10::MemoryVectors;
 
+// A Pep/10 ELF with one executable PT_LOAD holding code at base, serialized in memory rather than to disk.
+pepp::bts::AnyElfGroup elf_at(Address base, const std::vector<u8> &code) {
+  using namespace bits;
+  using namespace pepp::bts;
+  PackedGrowableElfFile<ElfBits::b32, ElfEndian::be> elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10,
+                                                         ElfABI::ELFOSABI_NONE);
+  ensure_section_header_table(elf);
+  const auto text = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
+  elf.section_data[text]->append(bits::span<const u8>{code});
+  elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_R | SegmentFlags::PF_X);
+  const std::vector<SegmentLayoutConstraint> constraints{
+      {.alignment = 1, .from_sec = text, .to_sec = text, .base_address = base}};
+  return to_input_group(to_input_elf(elf, &constraints));
+}
+
 } // namespace
 
 TEST_CASE("Loader: initial register programming", "[scope:core][scope:core.sim][kind:int][arch:pep10]") {
@@ -93,26 +108,25 @@ TEST_CASE("Loader: initial register programming", "[scope:core][scope:core.sim][
     CHECK_FALSE(loader.copy_word(nowhere, mem->id(), (Address)MV::Dispatcher));
   }
   SECTION("Load an ELF segment into memory") {
-    using namespace bits;
-    using namespace pepp::bts;
     const std::vector<u8> code{0x12, 0x34, 0x56};
-    PackedGrowableElfFile<ElfBits::b32, ElfEndian::be> elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10,
-                                                           ElfABI::ELFOSABI_NONE);
-    ensure_section_header_table(elf);
-    const auto text = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
-    elf.section_data[text]->append(bits::span<const u8>{code});
-    elf.add_segment(SegmentType::PT_LOAD, SegmentFlags::PF_R | SegmentFlags::PF_X);
-    const std::vector<SegmentLayoutConstraint> constraints{
-        {.alignment = 1, .from_sec = text, .to_sec = text, .base_address = 0x0200}};
-
-    // The ELF it is serialized directly into memory rather than to the disk.
     Loader loader(sys.get());
-    loader.add_group(to_input_group(to_input_elf(elf, &constraints)), cpu->id());
+    loader.add_group(elf_at(0x0200, code), cpu->id());
     REQUIRE(loader.run());
     CHECK(loader.stop_cause() == tvm::StopCause::None);
     std::array<u8, 3> actual{};
     mem->read(0x0200, {actual.data(), actual.size()}, app);
     CHECK(std::vector<u8>(actual.begin(), actual.end()) == code);
+  }
+  SECTION("Invalid memory access stops the loader") {
+    Loader from_memory(sys.get());
+    REQUIRE(from_memory.copy_word(pc, mem->id(), 0x1'0000, swap));
+    CHECK_FALSE(from_memory.run());
+    CHECK(from_memory.stop_cause() == tvm::StopCause::AccessRefused);
+
+    Loader segment(sys.get());
+    segment.add_group(elf_at(0xFFFE, {0x12, 0x34, 0x56}), cpu->id());
+    CHECK_FALSE(segment.run());
+    CHECK(segment.stop_cause() == tvm::StopCause::AccessRefused);
   }
   SECTION("Pep/10 initializes SP/PC from memory vectors") {
     Loader loader(sys.get());

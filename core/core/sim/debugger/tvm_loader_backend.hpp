@@ -38,12 +38,15 @@ struct SegmentDescriptor {
   std::optional<AddressSpan> span() const;
 };
 
-// The backend powering the loader, capable of programming registers and loading segment data into memory.
+// The backend powering the loader, capable of programming registers and loading segment data into memory. Failed memory
+// or register accesses will trigger a hard stop rather only setting F bit and depending on in-program error handling.
 class LoaderBackend : public ApplyBackend {
 public:
   LoaderBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr,
                 const Loader *loader = nullptr);
 
+  void on_deltareg(MachineState &state, const DecodedOp::DeltaReg &op) override;
+  void on_movmem2reg(MachineState &state, const DecodedOp::MovMem2Reg &op) override;
   void on_loadsegment(MachineState &state, const DecodedOp::LoadSegment &op) override;
 
   // While StopCause indicates a failure to load, it doesn't indicate which segment the vm was processing when it

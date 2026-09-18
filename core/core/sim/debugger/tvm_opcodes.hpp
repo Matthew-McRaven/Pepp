@@ -39,6 +39,8 @@ enum class StopCause {
   TargetNotLoadable,
   // A load named a (file, segment) pair which was never registered with the backend.
   SegmentUnknown,
+  // An access to target or register failed.
+  AccessRefused,
 };
 
 // How a payload of a SET* operation combines with what is already at the destination.
