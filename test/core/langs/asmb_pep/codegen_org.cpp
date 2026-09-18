@@ -15,6 +15,7 @@
  */
 
 #include <catch.hpp>
+#include "core/arch/pep/isa/pep10.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
@@ -149,4 +150,32 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     CHECK(addresses.find(&*s1[2]) == addresses.end());
     CHECK(addresses.at(&*s1[3]).address == 0xfeed);
   }
+}
+
+TEST_CASE("Pepp ASM codegen character operands",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Parser = pepp::tc::parser::PepParser;
+  using MR = pepp::tc::MacroRegistry;
+  using MN = isa::Pep10::Mnemonic;
+  using AM = isa::Pep10::AddressingMode;
+  // A character in a field wider than a byte is a small integer, so it is right-aligned: 'A' as an operand is 0x0041.
+  static const auto src = R"(LDBA 'A',i
+CPBA '+',i
+)";
+  pepp::tc::DiagnosticTable diag;
+  auto p = Parser(data(src), std::make_shared<MR>());
+  auto results = p.parse(diag);
+  REQUIRE(diag.count() == 0);
+  auto code = pepp::tc::parser::flatten_macros(results);
+  auto result = pepp::tc::pepp_split_to_sections(diag, code);
+  REQUIRE(diag.count() == 0);
+  auto addresses = pepp::tc::pepp_assign_addresses(result.grouped_ir);
+  auto oc = pepp::tc::pepp_to_object_code(addresses, result.grouped_ir);
+  REQUIRE(oc.section_slices.size() == 1);
+
+  const auto &slice = oc.section_slices[0];
+  const auto bytes = slice.get(0, slice.size());
+  const std::vector<u8> expected{isa::Pep10::opcode(MN::LDBA, AM::I), 0x00, 'A', isa::Pep10::opcode(MN::CPBA, AM::I),
+                                 0x00, '+'};
+  CHECK(std::vector<u8>(bytes.begin(), bytes.end()) == expected);
 }
