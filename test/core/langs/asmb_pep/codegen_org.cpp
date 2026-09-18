@@ -109,6 +109,10 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     auto s0 = sections[0].second;
     CHECK(addresses.at(&*s0[0]).address == 0xfeed - 4);
     CHECK(addresses.at(&*s0[1]).address == 0xfeed - 2);
+    // Placed backward from the .ORG, but its bounds must still be [first byte, one past the last) like a forward
+    // section, since the ELF writer uses low_address as the section's address. Pep/10's OS vectors depend on this.
+    CHECK(sections[0].first.low_address == 0xfeed - 4);
+    CHECK(sections[0].first.high_address == 0xfeed);
 
     CHECK(sections[1].first.name == ".text2");
     CHECK(sections[1].second.size() == 3);
@@ -116,6 +120,7 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     CHECK(addresses.find(&*s1[0]) == addresses.end());
     CHECK(addresses.find(&*s1[1]) == addresses.end());
     CHECK(addresses.at(&*s1[2]).address == 0xfeed);
+    CHECK(sections[1].first.low_address == 0xfeed);
   }
   SECTION("Two sections, .ORG in middle of second section") {
     pepp::tc::DiagnosticTable diag;
