@@ -183,7 +183,8 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
       // Find index of first ORG and assign BACKWARD from there, exluding the ORG. Set section's low_address.
       base_address = org_arg - 1, direction = Direction::Backward;
       for_lines(std::views::reverse(std::ranges::subrange(sec.second.begin(), it)), sec.first);
-      sec.first.low_address = base_address;
+      // A backward pass leaves base_address one below the lowest byte it placed. See the Backward branch below.
+      sec.first.low_address = base_address + 1;
 
       // Assign rest of section (including ORG) FORWARD. Set section's high_address.
       base_address = org_arg, direction = Direction::Forward;
@@ -203,7 +204,8 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
       base_address = prog[sec_idx.previous].first.high_address;
     } else {
       direction = Direction::Backward;
-      base_address = prog[sec_idx.previous].first.low_address;
+      // Backward placement counts down from the last free address, which is the byte just below the next section.
+      base_address = prog[sec_idx.previous].first.low_address - 1;
     }
 
     if (direction == Direction::Forward) {
@@ -211,9 +213,11 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
       for_lines(std::views::all(sec.second), sec.first);
       sec.first.high_address = base_address;
     } else {
-      sec.first.high_address = base_address;
+      // Store [low, high) exactly as the forward branch does, since the ELF writer uses low_address as the section's
+      // first byte. The countdown itself runs on an inclusive last address, so it sits one below both bounds.
+      sec.first.high_address = base_address + 1;
       for_lines(std::views::reverse(sec.second), sec.first);
-      sec.first.low_address = base_address;
+      sec.first.low_address = base_address + 1;
     }
   }
 
