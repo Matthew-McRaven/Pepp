@@ -29,6 +29,9 @@ RegisterScan::Register::Reference RegisterScan::expose(const Register &n) {
   auto id = next_id();
   _regs[id] = std::make_unique<Register>(n);
   _exposed[n.target].push_back(id);
+  _by_name.emplace(n.name, RegisterRef{id, Register::Field::ID{0}});
+  for (std::size_t it = 0; it < n.fields.size(); ++it)
+    _by_name.emplace(n.fields[it].name, RegisterRef{id, Register::Field::ID{static_cast<u16>(it + 1)}});
   return Register::Reference{.reg = id};
 }
 
@@ -65,23 +68,13 @@ std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view nam
   // registers. If false, continue to next registers. Allows our three kinds of searches to share the same inner loop.
   auto search = [&](auto &&accept) {
     Match match;
-    // TODO: inefficient linear search
-    for (const auto &it : _regs) {
-      const auto id = it.first;
-      const auto &reg = it.second;
-      if (!accept(reg->target)) continue;
-      // Try to match on the register's full name
-      else if (reg->name == name) {
-        if (match.ref) return Match{std::nullopt, true};
-        else match.ref = RegisterRef{id, Register::Field::ID{0}};
-      }
-      // Otherwise try to match on the register's fields.
-      for (int inner = 0; inner < reg->fields.size(); ++inner) {
-        if (auto f = reg->fields[inner]; f.name == name) {
-          if (match.ref) return Match{std::nullopt, true};
-          else match.ref = RegisterRef{id, Register::Field::ID{static_cast<u16>(inner + 1)}};
-        }
-      }
+    const auto [first, last] = _by_name.equal_range(name);
+    for (auto it = first; it != last; ++it) {
+      const auto ref = it->second;
+      const auto reg = _regs.find(ref.reg);
+      if (reg == _regs.end() || !accept(reg->second->target)) continue;
+      else if (match.ref) return Match{std::nullopt, true};
+      match.ref = ref;
     }
     return match;
   };

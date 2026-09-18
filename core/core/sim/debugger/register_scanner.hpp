@@ -6,8 +6,10 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
+#include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
@@ -225,6 +227,8 @@ private:
   std::unordered_map<Device::ID, std::list<Register::ID>> _exposed;
   // Store Registers in a unique_ptr to avoid invalidating pointers on re-hash.
   std::unordered_map<Register::ID, std::unique_ptr<Register>, pepp::handle_hash<Register::ID>> _regs;
+  // Group all registers by name so that find() can be O(# of registers with that name) which should be roughly O(1).
+  std::unordered_multimap<std::string, RegisterRef, pepp::bts::cs_hash, pepp::bts::cs_eq> _by_name;
 };
 
 template <std::integral I> I RegisterScan::read(const RegisterRef &n, Level level) {
