@@ -16,7 +16,9 @@
  */
 
 #include "core/formats/elf/packed_io.hpp"
+#include <filesystem>
 #include <ostream>
+#include <stdexcept>
 
 std::vector<u8> pepp::bts::elf_bytes(AnyGrowableElf &elf, const std::vector<SegmentLayoutConstraint> *constraints) {
   auto visitor = [&](auto &file) { return file ? elf_bytes(*file, constraints) : std::vector<u8>{}; };
@@ -39,4 +41,29 @@ pepp::bts::AnyInputElf pepp::bts::to_input_elf(AnyGrowableElf &elf,
     return to_input_elf(*file, constraints, std::move(path));
   };
   return std::visit(visitor, elf);
+}
+
+pepp::bts::AnyInputElf pepp::bts::open_input_elf(const std::string &path) {
+  using enum ElfIdentifierIndices;
+  static constexpr auto ident_size = bits::to_underlying(EI_NIDENT);
+  // If the file is smaller than the size of the magic header, it cannot be an ELF file.
+  if (std::filesystem::file_size(path) < ident_size) throw std::runtime_error(path + " is not an ELF file");
+
+  auto file = MappedFile::open_readonly(path);
+  const auto ident_slice = file->slice(0, ident_size);
+  const auto ident = ident_slice->get();
+  const auto at = [&](ElfIdentifierIndices index) { return ident[bits::to_underlying(index)]; };
+  if (at(EI_MAG0) != bits::to_underlying(ElfMagic::ELFMAG0) || at(EI_MAG1) != bits::to_underlying(ElfMagic::ELFMAG1) ||
+      at(EI_MAG2) != bits::to_underlying(ElfMagic::ELFMAG2) || at(EI_MAG3) != bits::to_underlying(ElfMagic::ELFMAG3))
+    throw std::runtime_error(path + " is not an ELF file");
+
+  using enum ElfClass;
+  using enum ElfEncoding;
+  const auto cls = ElfClass(at(EI_CLASS));
+  const auto enc = ElfEncoding(at(EI_DATA));
+  if (cls == ELFCLASS32 && enc == ELFDATA2LSB) return std::make_unique<PackedInputElfLE32>(file);
+  else if (cls == ELFCLASS32 && enc == ELFDATA2MSB) return std::make_unique<PackedInputElfBE32>(file);
+  else if (cls == ELFCLASS64 && enc == ELFDATA2LSB) return std::make_unique<PackedInputElfLE64>(file);
+  else if (cls == ELFCLASS64 && enc == ELFDATA2MSB) return std::make_unique<PackedInputElfBE64>(file);
+  throw std::runtime_error(path + " has an unsupported ELF class or byte order");
 }

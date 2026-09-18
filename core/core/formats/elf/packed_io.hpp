@@ -66,4 +66,7 @@ void write_elf(AnyGrowableElf &elf, std::ostream &out,
                const std::vector<SegmentLayoutConstraint> *constraints = nullptr);
 AnyInputElf to_input_elf(AnyGrowableElf &elf, const std::vector<SegmentLayoutConstraint> *constraints = nullptr,
                          std::optional<std::string> path = std::nullopt);
+// Map the given file into memory, and check to see if it is a valid ELF file. If so, construct the appropriate
+// PackedInputElf. Throws if the input is not an ELF file.
+AnyInputElf open_input_elf(const std::string &path);
 } // namespace pepp::bts

@@ -75,6 +75,17 @@ TEST_CASE("Serialize a growable ELF", "[scope:elf][kind:unit][arch:*]") {
     check_contents(*in);
     CHECK(file_bytes(path) == expected);
   }
+  SECTION("Determine ELF type from file header") {
+    const std::string path = "packed_io_sniffed.elf";
+    std::ofstream(path, std::ios::binary).write(reinterpret_cast<const char *>(expected.data()), expected.size());
+    auto any = open_input_elf(path);
+    REQUIRE(std::holds_alternative<std::unique_ptr<PackedInputElfLE32>>(any));
+    check_contents(*std::get<std::unique_ptr<PackedInputElfLE32>>(any));
+
+    const std::string junk = "packed_io_not_elf.bin";
+    std::ofstream(junk, std::ios::binary) << "Gibberish not matching ELF magic";
+    CHECK_THROWS_AS(open_input_elf(junk), std::runtime_error);
+  }
   SECTION("Result can be used in an InputElfGroup") {
     auto any = to_input_group(to_input_elf(elf, &constraints));
     const auto &group = *std::get<std::unique_ptr<PackedInputElfGroupLE32>>(any);
