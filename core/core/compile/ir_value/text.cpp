@@ -1,4 +1,5 @@
 #include "text.hpp"
+#include <algorithm>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/math/bitmanip/strings.hpp"
 #include "fmt/format.h"
@@ -53,13 +54,14 @@ pepp::ast::Character::Character(const Character &other) : _value(other._value) {
 pepp::ast::Character::Character(Character &&other) noexcept { swap(*this, other); }
 
 [[nodiscard]]
-u32 pepp::ast::Character::serialize(bits::span<u8> dest, bits::Order, u32 max_size) const noexcept {
+u32 pepp::ast::Character::serialize(bits::span<u8> dest, bits::Order destEndian, u32 max_size) const noexcept {
   using size_type = bits::span<const u8>::size_type;
-  const auto size = std::min<size_type>(max_size, 1);
-  std::span<const u8> src((u8 *)&_value, size);
-  // Character data has no byte order
-  bits::memcpy(dest.first(size), src);
-  return size;
+  // Force the character to be in the least significant byte of the output and zero-fill the rest.
+  auto out = dest.first(std::min<size_type>(max_size, dest.size()));
+  std::ranges::fill(out, 0);
+  const auto byte = static_cast<u8>(_value);
+  bits::memcpy_endian(out, destEndian, bits::span<const u8>{&byte, 1}, bits::hostOrder());
+  return static_cast<u32>(out.size());
 }
 
 std::string pepp::ast::Character::string() const { return fmt::format("'{}'", raw_string()); }
