@@ -42,6 +42,8 @@ public:
     std::vector<std::pair<std::string, u64>> set_registers;
     // Named registers/fields printed to stdout at the end of execution.
     std::vector<std::string> print_registers;
+    // Print instructions before the execute.
+    bool echo_instructions = false;
     // Input object code files and the device into which they should be loaded.
     std::vector<DeviceFile> elf_files;
     // Files buffered behind memory-mapped input devices, and the files output devices are written to. File - indicates
@@ -108,6 +110,8 @@ void registerEmu(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       ->option_text("<name>")
       ->allow_extra_args(false)
       ->take_all();
+  pemu->add_flag("--echo-instructions", opts.echo_instructions,
+                 "Print each instruction to stdout as a listing line before it executes.");
   static std::vector<std::string> file_text;
   pemu->add_option("objects", file_text,
                    "Object file(s) to load into the simulation. Prefix a file with <device>= to choose the device it "

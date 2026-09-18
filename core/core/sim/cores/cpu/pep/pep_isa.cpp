@@ -1,4 +1,5 @@
 #include "pep_isa.hpp"
+#include <fmt/format.h>
 #include <array>
 #include <nlohmann/json.hpp>
 #include "core/arch/pep/isa/pep10.hpp"
@@ -230,6 +231,26 @@ pepp::bts::ElfBits PepISA3CPU::core_bits() const noexcept {
 }
 
 pepp::bts::ElfEndian PepISA3CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::be; }
+
+std::string PepISA3CPU::stringize_next_instruction() const {
+  // TODO: only Pep/10's tables are wired up so far.
+  if (_config.isa != ISA::Pep10 || _target == nullptr) return {};
+  using P10 = isa::Pep10;
+  // Access with debugger permissions to avoid mmio side effects.
+  static const Operation peek(Operation::Type::BufferInternal, Operation::Kind::instruction);
+
+  const u16 pc = _regbank->read_pc();
+  const u8 is = _target->read<u8, false>(pc, peek).second;
+  const auto &op = P10::opcodeLUT[is];
+  if (!op.valid) return fmt::format("{:04X}  {:02X}      <illegal>", pc, is);
+
+  const auto mnemonic = P10::string(op.instr.mnemon);
+  if (P10::operandBytes(is) == 0) return fmt::format("{:04X}  {:02X}      {}", pc, is, mnemonic);
+  const u16 os = _target->read<u16, bits::host_is_le>(static_cast<u16>(pc + 1), peek).second;
+  if (op.mode == P10::AddressingMode::NONE)
+    return fmt::format("{:04X}  {:02X}{:04X}  {:<6} 0x{:04X}", pc, is, os, mnemonic, os);
+  return fmt::format("{:04X}  {:02X}{:04X}  {:<6} 0x{:04X},{}", pc, is, os, mnemonic, os, P10::string(op.mode));
+}
 
 void PepISA3CPU::register_core_init(Loader &loader) {
   using MV = isa::Pep10::MemoryVectors;

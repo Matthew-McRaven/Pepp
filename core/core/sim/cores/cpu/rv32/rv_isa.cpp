@@ -168,6 +168,9 @@ pepp::bts::ElfBits RV32CPU::core_bits() const noexcept { return pepp::bts::ElfBi
 
 pepp::bts::ElfEndian RV32CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::le; }
 
+// TODO: disassemble when this actually runs.
+std::string RV32CPU::stringize_next_instruction() const { return {}; }
+
 void RV32CPU::register_core_init(Loader &) {
   // No-op until we decide what our initial PC / SP should be
 }
