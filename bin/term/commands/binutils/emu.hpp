@@ -30,8 +30,9 @@ class System;
 class PeppEmulator : public Task {
 public:
   enum class SystemEnu { RV32I, Pep10 };
-  // An ELF file, and the path of the device it loads into. An empty file target the system's default Loadable
-  struct ObjectInput {
+  // A file, and the path of the device it belongs to. An ELF file with no device targets the system's default
+  // Loadable; the memory-mapped IO options always name theirs.
+  struct DeviceFile {
     std::string device, file;
   };
   struct Options {
@@ -42,7 +43,10 @@ public:
     // Named registers/fields printed to stdout at the end of execution.
     std::vector<std::string> print_registers;
     // Input object code files and the device into which they should be loaded.
-    std::vector<ObjectInput> elf_files;
+    std::vector<DeviceFile> elf_files;
+    // Files buffered behind memory-mapped input devices, and the files output devices are written to. File - indicates
+    // stdin/stdout.
+    std::vector<DeviceFile> mmi, mmo;
   };
   PeppEmulator(Options &opts, QObject *parent = nullptr);
   void run() override;
@@ -51,6 +55,8 @@ private:
   // Create the loader's trace program as a combination of the input object code, each core's reset program, and
   // --set-regs. Non-0 return should terminate this process.
   int do_load(System &system);
+  int do_input(System &system);
+  int do_output(System &system);
   // Execute the system until the maximum number of steps have elapsed or the system is halted.
   // Non-0 return should terminate this process.
   int do_run(System &system);
@@ -61,7 +67,7 @@ private:
 };
 
 // Splits [<device>=]<file> on its first '='.
-inline PeppEmulator::ObjectInput parse_elf_input(std::string_view arg) {
+inline PeppEmulator::DeviceFile parse_device_file(std::string_view arg) {
   const auto eq = arg.find('=');
   if (eq == std::string_view::npos) return {.device = "", .file = std::string(arg)};
   return {.device = std::string(arg.substr(0, eq)), .file = std::string(arg.substr(eq + 1))};
@@ -110,10 +116,39 @@ void registerEmu(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       ->required()
       ->check(CLI::Validator(
           [](std::string &arg) -> std::string {
-            auto input = parse_elf_input(arg);
+            auto input = parse_device_file(arg);
             if (input.file.empty()) return "expected [<device>=]<file>";
             else if (arg.find('=') == 0) return "expected a device name before '='";
             return CLI::ExistingFile(input.file);
+          },
+          ""));
+
+  // Both name a device, since a system can have any number of memory-mapped FIFOs.
+  static std::vector<std::string> mmi_text, mmo_text;
+  pemu->add_option("--mmi", mmi_text,
+                   "Buffer a file behind a memory-mapped input device, which must be a FIFO. The value `-` takes the "
+                   "bytes from stdin. May be repeated.")
+      ->option_text("<device>=<file>")
+      ->allow_extra_args(false)
+      ->take_all()
+      ->check(CLI::Validator(
+          [](std::string &arg) -> std::string {
+            auto input = parse_device_file(arg);
+            if (input.device.empty() || input.file.empty()) return "expected <device>=<file>";
+            else if (input.file == "-") return "";
+            return CLI::ExistingFile(input.file);
+          },
+          ""));
+  pemu->add_option("--mmo", mmo_text,
+                   "Write a memory-mapped output device's bytes to a file once the program stops. The device must be "
+                   "a FIFO, and the value `-` writes to stdout. May be repeated.")
+      ->option_text("<device>=<file>")
+      ->allow_extra_args(false)
+      ->take_all()
+      ->check(CLI::Validator(
+          [](std::string &arg) -> std::string {
+            auto output = parse_device_file(arg);
+            return output.device.empty() || output.file.empty() ? "expected <device>=<file>" : "";
           },
           ""));
 
@@ -121,7 +156,10 @@ void registerEmu(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
     opts.set_registers.clear();
     for (const auto &arg : set_reg_text) opts.set_registers.push_back(*parse_name_value<u64>(arg));
     opts.elf_files.clear();
-    for (const auto &arg : file_text) opts.elf_files.push_back(parse_elf_input(arg));
+    for (const auto &arg : file_text) opts.elf_files.push_back(parse_device_file(arg));
+    opts.mmi.clear(), opts.mmo.clear();
+    for (const auto &arg : mmi_text) opts.mmi.push_back(parse_device_file(arg));
+    for (const auto &arg : mmo_text) opts.mmo.push_back(parse_device_file(arg));
     if (system_json_opt->count() > 0) opts.system = system_json;
     else opts.system = system;
     flags.kind = detail::SharedFlags::Kind::TERM;

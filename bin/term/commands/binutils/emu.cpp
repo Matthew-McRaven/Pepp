@@ -1,6 +1,8 @@
 #include "emu.hpp"
 #include <fmt/format.h>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/formats/elf/packed_io.hpp"
 #include "core/sim/api/loadable.hpp"
@@ -19,6 +21,27 @@ bool fits(u64 value, u8 width) {
   else if (width >= 64 || value >> width == 0) return true;
   const auto as_signed = static_cast<i64>(value);
   return as_signed < 0 && as_signed >= -(i64(1) << (width - 1));
+}
+
+// Resolve a potentially ambiguous device name, returning nullptr if there is not exactly 1 match.
+Device *find_device(System &system, const std::string &name) {
+  const auto matches = system.find_all(name);
+  if (matches.size() == 1) return matches.front();
+  else if (matches.empty()) std::cerr << "Error: No device named " << name << "\n";
+  else {
+    std::cerr << "Error: More than one device is named " << name << ". Choose from:";
+    for (const auto *dev : matches) std::cerr << " " << dev->config().fullname;
+    std::cerr << "\n";
+  }
+  return nullptr;
+}
+
+FIFORegister *find_fifo(System &system, const std::string &name) {
+  auto *dev = find_device(system, name);
+  if (dev == nullptr) return nullptr;
+  auto *fifo = dynamic_cast<FIFORegister *>(dev);
+  if (fifo == nullptr) std::cerr << "Error: " << name << " is not a memory-mapped FIFO\n";
+  return fifo;
 }
 
 // Look up a register or field by name, reporting an error unless there is exactly one match.
@@ -41,10 +64,8 @@ int PeppEmulator::do_load(System &system) {
   for (const auto &[device, file] : _opts.elf_files) {
     Device *dest = nullptr;
     if (!device.empty()) {
-      if (dest = system.find_relative(device, "/"); dest == nullptr) {
-        std::cerr << "Error: No device named " << device << "\n";
-        return 1;
-      } else if (dest->capability<Loadable>() == nullptr) {
+      if (dest = find_device(system, device); dest == nullptr) return 1;
+      else if (dest->capability<Loadable>() == nullptr) {
         std::cerr << "Error: " << device << " cannot be loaded into\n";
         return 1;
       }
@@ -99,8 +120,50 @@ int PeppEmulator::do_load(System &system) {
   return 0;
 }
 
+int PeppEmulator::do_input(System &system) {
+  for (const auto &[device, file] : _opts.mmi) {
+    auto *fifo = find_fifo(system, device);
+    if (fifo == nullptr) return 1;
+    std::ostringstream buffer;
+    if (file == "-") buffer << std::cin.rdbuf();
+    else if (std::ifstream in(file, std::ios::binary); !in) {
+      std::cerr << "Error: Could not open " << file << " for reading\n";
+      return 1;
+    } else if (buffer << in.rdbuf(); in.bad()) {
+      std::cerr << "Error: Could not read " << file << "\n";
+      return 1;
+    }
+    const auto bytes = buffer.str();
+    for (const auto byte : bytes) fifo->input().push(static_cast<u8>(byte));
+  }
+  return 0;
+}
+
+int PeppEmulator::do_output(System &system) {
+  for (const auto &[device, file] : _opts.mmo) {
+    auto *fifo = find_fifo(system, device);
+    if (fifo == nullptr) return 1;
+    std::string bytes;
+    for (auto it = fifo->output().begin(); it != fifo->output().end(); ++it) bytes.push_back(static_cast<char>(*it));
+    if (file == "-") {
+      std::cout << bytes;
+      if (!std::cout.flush()) {
+        std::cerr << "Error: Could not write " << device << " to stdout\n";
+        return 1;
+      }
+    } else if (std::ofstream out(file, std::ios::binary | std::ios::trunc); !out) {
+      std::cerr << "Error: Could not open " << file << " for writing\n";
+      return 1;
+    } else if (out.write(bytes.data(), bytes.size()); !out.flush()) {
+      std::cerr << "Error: Could not write " << device << " to " << file << "\n";
+      return 1;
+    }
+  }
+  return 0;
+}
+
 int PeppEmulator::do_run(System &system) {
-  // Clock the Pep CPU directly until the program powers off. There is no clock source or scheduler yet.
+  // Clock the Pep CPU directly until the program powers off, because I have not implemented the clock tree.
   PepISA3CPU *cpu = nullptr;
   for (auto *dev : *system.root())
     if (auto *as_cpu = dynamic_cast<PepISA3CPU *>(dev); as_cpu != nullptr) cpu = as_cpu;
@@ -152,7 +215,9 @@ void PeppEmulator::run() {
   system->initialize();
 
   if (const auto code = do_load(*system); code != 0) return emit finished(code);
+  else if (const auto code = do_input(*system); code != 0) return emit finished(code);
   else if (const auto code = do_run(*system); code != 0) return emit finished(code);
+  else if (const auto code = do_output(*system); code != 0) return emit finished(code);
   else if (const auto code = do_print(*system); code != 0) return emit finished(code);
 
   return emit finished(0);
