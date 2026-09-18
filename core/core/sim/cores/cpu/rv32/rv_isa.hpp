@@ -75,6 +75,7 @@ public:
   pepp::bts::ElfEndian core_endian() const noexcept override;
   void register_core_init(Loader &) override;
   Target *port(MemoryKind kind) override;
+  std::string stringize_next_instruction() const override;
 
   // Register file. rd/rs1/rs2 come out of the decoded word, so these take a runtime register;
   // the bank's compile-time form is for the rare site where the ISA fixes the register.

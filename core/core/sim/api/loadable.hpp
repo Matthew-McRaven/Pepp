@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include <string>
 #include "core/formats/elf/enums_eheader.hpp"
 #include "core/integers.h"
 #include "core/sim/api/device.hpp"
@@ -39,5 +40,9 @@ struct Loadable {
   // Return the target backing the requested kind of memory, or nullptr if this core has no memory of that kind.
   // Allows the loader to correctly load code, data, and microcode without needing to understand overall system arch.
   virtual Target *port(MemoryKind kind) = 0;
+
+  // Render a listing-style for the instruction at the current PC, displaying the address, object code bytes, mnemonic,
+  // and operands.
+  virtual std::string stringize_next_instruction() const = 0;
   const Target *port(MemoryKind kind) const { return const_cast<Loadable *>(this)->port(kind); }
 };

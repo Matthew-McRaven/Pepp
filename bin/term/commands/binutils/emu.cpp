@@ -176,8 +176,12 @@ int PeppEmulator::do_run(System &system) {
     std::cerr << "Error: The system has no /bus/pwrOff to stop on\n";
     return 1;
   }
+  const bool echo = _opts.echo_instructions;
   try {
-    for (u64 tick = 0; pwr_off->output().empty(); ++tick) cpu->clock_tick(PulseSchedule::PulseIndex{tick}, tick);
+    for (u64 tick = 0; pwr_off->output().empty(); ++tick) {
+      if (echo) std::cout << cpu->stringize_next_instruction() << '\n';
+      cpu->clock_tick(PulseSchedule::PulseIndex{tick}, tick);
+    }
   } catch (const std::exception &e) {
     std::cerr << "Error: Simulation stopped: " << e.what() << "\n";
     return 1;

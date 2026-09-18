@@ -75,6 +75,7 @@ public:
   pepp::bts::ElfEndian core_endian() const noexcept override;
   void register_core_init(Loader &) override;
   Target *port(MemoryKind kind) override;
+  std::string stringize_next_instruction() const override;
 
   void increment_call_depth();
   void decrement_call_depth();
