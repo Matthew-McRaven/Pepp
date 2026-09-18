@@ -111,6 +111,8 @@ public:
   // Combine relative_to and name to form an absolute path and call find_absolute. Names starting with '/' are treated
   // as absolute by default and will not be combined with parent.
   Device *find_relative(std::string_view name, std::string_view parent);
+  // Find all devices matching a name. Absolute path match at most one device; relative paths may match multiple.
+  std::vector<Device *> find_all(std::string_view name);
 
   // Given a device ID, return a pointer to the device or nullptr if not found.
   Device *find_by_id(Device::ID id);

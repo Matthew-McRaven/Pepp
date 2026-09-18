@@ -100,6 +100,19 @@ Device *System::find_relative(std::string_view name, std::string_view parent) {
   else return find_absolute(child_name(parent, name));
 }
 
+// TODO: would prefer if we could avoid dynamic alloc here by returning a stack-allocated iterator of some kind.
+std::vector<Device *> System::find_all(std::string_view name) {
+  std::vector<Device *> ret;
+  if (name.starts_with("/")) {
+    if (auto *dev = find_absolute(name); dev != nullptr) ret.push_back(dev);
+    return ret;
+  }
+  // TODO: search should include aliases and path fragments (e.g.) "cpu/regs"
+  for (auto *dev : *_root)
+    if (dev->config().basename == name) ret.push_back(dev);
+  return ret;
+}
+
 Device *System::find_by_id(ID id) {
   auto it = _id_to_device.find(id);
   if (it == _id_to_device.end()) return nullptr;
