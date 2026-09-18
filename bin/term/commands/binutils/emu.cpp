@@ -1,7 +1,14 @@
 #include "emu.hpp"
 #include <fmt/format.h>
 #include <iostream>
+#include "core/formats/elf/packed_input_group.hpp"
+#include "core/formats/elf/packed_io.hpp"
+#include "core/sim/api/loadable.hpp"
+#include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
+#include "core/sim/devicetree.hpp"
+#include "core/sim/loader.hpp"
+#include "core/sim/memory/io/fifo.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
@@ -13,9 +20,123 @@ bool fits(u64 value, u8 width) {
   const auto as_signed = static_cast<i64>(value);
   return as_signed < 0 && as_signed >= -(i64(1) << (width - 1));
 }
+
+// Look up a register or field by name, reporting an error unless there is exactly one match.
+std::optional<RegisterScan::RegisterRef> lookup(RegisterScan &scan, const std::string &name) {
+  const auto ref = scan.find(name);
+  if (!ref) std::cerr << "Error: No unique register or field named " << name << "\n";
+  return ref;
+}
 } // namespace
 
 PeppEmulator::PeppEmulator(Options &opts, QObject *parent) : Task(parent), _opts(opts) {}
+
+int PeppEmulator::do_load(System &system) {
+  // Which device an unnamed file loads into, and what to suggest when there is more than one candidate.
+  std::vector<Device *> loadables;
+  for (auto *dev : *system.root())
+    if (dev->capability<Loadable>() != nullptr) loadables.push_back(dev);
+
+  Loader loader(&system);
+  for (const auto &[device, file] : _opts.elf_files) {
+    Device *dest = nullptr;
+    if (!device.empty()) {
+      if (dest = system.find_relative(device, "/"); dest == nullptr) {
+        std::cerr << "Error: No device named " << device << "\n";
+        return 1;
+      } else if (dest->capability<Loadable>() == nullptr) {
+        std::cerr << "Error: " << device << " cannot be loaded into\n";
+        return 1;
+      }
+    } else if (loadables.size() == 1) dest = loadables.front();
+    else if (loadables.empty()) {
+      std::cerr << "Error: The system has no loadable device to load " << file << " into\n";
+      return 1;
+    } else {
+      std::cerr << "Error: The system has more than one loadable device, so " << file
+                << " must name one with <device>=. Choose from:";
+      for (const auto *dev : loadables) std::cerr << " " << dev->config().fullname;
+      std::cerr << "\n";
+      return 1;
+    }
+
+    try {
+      loader.add_group(pepp::bts::to_input_group(pepp::bts::open_input_elf(file)), dest->id());
+    } catch (const std::exception &e) {
+      std::cerr << "Error: Could not load " << file << ": " << e.what() << "\n";
+      return 1;
+    }
+  }
+
+  // Cores may depend on memory being initialized (e.g., Pep/10s memory vectors), so perform per-core init after program
+  // load.
+  try {
+    for (auto *dev : *system.root())
+      if (auto *loadable = dev->capability<Loadable>()) loadable->register_core_init(loader);
+  } catch (const std::exception &e) {
+    std::cerr << "Error: Could not initialize cores: " << e.what() << "\n";
+    return 1;
+  }
+
+  // Inject command-line-provided register values. Last so they can override any per-core init.
+  auto *scan = system.register_scan();
+  for (const auto &[name, value] : _opts.set_registers) {
+    const auto ref = lookup(*scan, name);
+    if (!ref) return 1;
+    else if (const auto width = scan->bit_width(*ref); !fits(value, width)) {
+      std::cerr << "Error: Value for " << name << " does not fit in " << int(width) << " bits\n";
+      return 1;
+    } else if (!loader.set_register(*ref, value)) {
+      std::cerr << "Error: Could not set " << name << "\n";
+      return 1;
+    }
+  }
+
+  if (!loader.run()) {
+    std::cerr << "Error: Loading failed with stop cause " << static_cast<int>(loader.stop_cause()) << "\n";
+    return 1;
+  }
+  return 0;
+}
+
+int PeppEmulator::do_run(System &system) {
+  // Clock the Pep CPU directly until the program powers off. There is no clock source or scheduler yet.
+  PepISA3CPU *cpu = nullptr;
+  for (auto *dev : *system.root())
+    if (auto *as_cpu = dynamic_cast<PepISA3CPU *>(dev); as_cpu != nullptr) cpu = as_cpu;
+  if (cpu == nullptr) {
+    std::cerr << "Error: The system has no Pep CPU to run\n";
+    return 1;
+  }
+  auto *pwr_off = dynamic_cast<FIFORegister *>(system.find_absolute("/bus/pwrOff"));
+  if (pwr_off == nullptr) {
+    std::cerr << "Error: The system has no /bus/pwrOff to stop on\n";
+    return 1;
+  }
+  try {
+    for (u64 tick = 0; pwr_off->output().empty(); ++tick) cpu->clock_tick(PulseSchedule::PulseIndex{tick}, tick);
+  } catch (const std::exception &e) {
+    std::cerr << "Error: Simulation stopped: " << e.what() << "\n";
+    return 1;
+  }
+  return 0;
+}
+
+int PeppEmulator::do_print(System &system) {
+  auto *scan = system.register_scan();
+  for (const auto &name : _opts.print_registers) { // Printed in the same format of --set-reg.
+    const auto ref = lookup(*scan, name);
+    if (!ref) return 1;
+    try {
+      const auto value = scan->read<u64>(*ref);
+      std::cout << fmt::format("{}=0x{:0{}X}\n", name, value, (scan->bit_width(*ref) + 3) / 4);
+    } catch (const std::runtime_error &e) {
+      std::cerr << "Error: Could not read " << name << ": " << e.what() << "\n";
+      return 1;
+    }
+  }
+  return 0;
+}
 
 void PeppEmulator::run() {
   std::unique_ptr<System> system;
@@ -24,49 +145,15 @@ void PeppEmulator::run() {
   else {
     switch (std::get<SystemEnu>(_opts.system)) {
     case SystemEnu::RV32I: throw std::runtime_error("RV32I system not yet supported");
-    case SystemEnu::Pep10OS: system = create_standard_pep10_system(); break;
-    case SystemEnu::Pep10BM: system = create_standard_pep10_system(); break;
+    case SystemEnu::Pep10: system = create_standard_pep10_system(); break;
     }
   }
   if (system == nullptr) throw std::runtime_error("Failed to create system");
   system->initialize();
 
-  auto scan = system->register_scan();
-  // Look up a register or field by name, reporting an error unless there is exactly one match.
-  auto lookup = [&](const std::string &name) {
-    const auto ref = scan->find(name);
-    if (!ref) std::cerr << "Error: No unique register or field named " << name << "\n";
-    return ref;
-  };
+  if (const auto code = do_load(*system); code != 0) return emit finished(code);
+  else if (const auto code = do_run(*system); code != 0) return emit finished(code);
+  else if (const auto code = do_print(*system); code != 0) return emit finished(code);
 
-  // Values from --set-reg override whatever the system chose during initialization.
-  for (const auto &[name, value] : _opts.set_registers) {
-    const auto ref = lookup(name);
-    if (!ref) return emit finished(1);
-    else if (const auto width = scan->bit_width(*ref); !fits(value, width)) {
-      std::cerr << "Error: Value for " << name << " does not fit in " << int(width) << " bits\n";
-      return emit finished(1);
-    }
-    try {
-      scan->write<u64>(*ref, value);
-    } catch (const std::runtime_error &e) {
-      std::cerr << "Error: Could not set " << name << ": " << e.what() << "\n";
-      return emit finished(1);
-    }
-  }
-
-  // TODO: actually load the program into the simulator and run it.
-
-  for (const auto &name : _opts.print_registers) { // Printed in the same format accepted by --set-reg.
-    const auto ref = lookup(name);
-    if (!ref) return emit finished(1);
-    try {
-      const auto value = scan->read<u64>(*ref);
-      std::cout << fmt::format("{}=0x{:0{}X}\n", name, value, (scan->bit_width(*ref) + 3) / 4);
-    } catch (const std::runtime_error &e) {
-      std::cerr << "Error: Could not read " << name << ": " << e.what() << "\n";
-      return emit finished(1);
-    }
-  }
   return emit finished(0);
 }
