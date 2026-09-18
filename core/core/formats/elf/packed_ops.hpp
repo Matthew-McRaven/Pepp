@@ -83,6 +83,9 @@ u64 size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) noexcept;
 void write(std::span<u8> out, const std::vector<LayoutItem> &layout);
 // As above, but streamed in offset order with gaps zero-filled.
 void write(std::ostream &out, std::vector<LayoutItem> layout);
+// As above, but perform write via a memory-mapped file rather than standard IO.
+// Returns the memory-mapped object, which will be closed automatically when destroyed.
+std::shared_ptr<pepp::bts::MappedFile> write_mmap(const std::string &path, const std::vector<LayoutItem> &layout);
 
 template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedGrowableElfFile<B, E> &elf) {
   if (!elf.section_headers.empty()) return;

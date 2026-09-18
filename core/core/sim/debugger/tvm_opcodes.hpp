@@ -33,6 +33,14 @@ enum class StopCause {
   // A legal opcode this backend does not implement. Distinct from IllegalOpcode, which means the decoder did not
   // recognise the encoding at all: this one says the program is well-formed but aimed at the wrong backend.
   Unimplemented,
+  // An op with no inverse executed during backwards replay. Undoing it is not possible.
+  NotInvertible,
+  // A load was aimed at a device which exists, but which cannot be loaded into.
+  TargetNotLoadable,
+  // A load named a (file, segment) pair which was never registered with the backend.
+  SegmentUnknown,
+  // An access to target or register failed.
+  AccessRefused,
 };
 
 // How a payload of a SET* operation combines with what is already at the destination.
@@ -233,8 +241,23 @@ enum class Opcode : u8 {
   STEPMEM = 0b10'0000,
   // Packet registers: ACCESS, ID.hi, ID.lo, MOD1.lo
   STEPREG = 0b10'0010,
+  // A non-invertible copy from memory to register.
+  // ACCESS is only used for the read, register write occurs with Host permissions. ID hold the destination (therefore
+  // TR=1). OFF hold the source memory address. DS is inferred from the register's size. MOD1.lo contains the ID of the
+  // source memory device. If MOD1.hi is 1, then the value should be byteswapped before being written to the
+  // destination.
+  //
+  // Packet registers: ACCESS, ID.hi, ID.lo,OFF.hi, OFF.lo, MOD1.hi, MOD1.lo
+  MOVMREG = 0b10'0011,
+  // A non-invertible copy from a ELF segment to a Loadable device.
+  // ID.lo contains the loadable destination device's ID. ACCESS is one of the enumerated values of MemoryKind rather
+  // than our typical read/write/execute. Mod1.hi contains the file index, and Mod1.lo contains the segment index.
+  // Memory offsets & sizes are derived from the segment in the backend.
+  //
+  // Packet registers: ACCESS, ID.lo, MOD1.hi, MOD1.lo
+  LDSEGM = 0b10'0100,
   // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
-  MAX = ((u8)STEPREG) + 1,
+  MAX = ((u8)LDSEGM) + 1,
 };
 
 // (4) OFFSET

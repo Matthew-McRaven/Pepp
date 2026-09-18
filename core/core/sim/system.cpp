@@ -49,7 +49,8 @@ void System::initialize() {
     }
   }
   // With all devices initialized, perform another pass to create recorders for each traceable device.
-  if (found != nullptr) bind_recorders(found->buffer());
+  _trace_buffer = found == nullptr ? nullptr : &found->buffer();
+  if (_trace_buffer != nullptr) bind_recorders(*_trace_buffer);
 }
 
 void System::reset() {
@@ -100,10 +101,29 @@ Device *System::find_relative(std::string_view name, std::string_view parent) {
   else return find_absolute(child_name(parent, name));
 }
 
+// TODO: would prefer if we could avoid dynamic alloc here by returning a stack-allocated iterator of some kind.
+std::vector<Device *> System::find_all(std::string_view name) {
+  std::vector<Device *> ret;
+  if (name.starts_with("/")) {
+    if (auto *dev = find_absolute(name); dev != nullptr) ret.push_back(dev);
+    return ret;
+  }
+  // TODO: search should include aliases and path fragments (e.g.) "cpu/regs"
+  for (auto *dev : *_root)
+    if (dev->config().basename == name) ret.push_back(dev);
+  return ret;
+}
+
 Device *System::find_by_id(ID id) {
   auto it = _id_to_device.find(id);
   if (it == _id_to_device.end()) return nullptr;
   return it->second ? it->second->device : nullptr;
+}
+
+DeviceTree *System::find_tree_by_id(ID id) {
+  auto it = _id_to_device.find(id);
+  if (it == _id_to_device.end()) return nullptr;
+  return it->second;
 }
 
 RegisterScan *System::register_scan() { return _hwdbg.get(); }
@@ -111,7 +131,7 @@ RegisterScan *System::register_scan() { return _hwdbg.get(); }
 const RegisterScan *System::register_scan() const { return _hwdbg.get(); }
 
 std::unique_ptr<tvm::Interpreter> System::make_trace_interpreter() {
-  auto be = std::make_unique<tvm::ApplyBackend>(_buffer_manager, this);
+  auto be = std::make_unique<tvm::TraceApplyBackend>(_buffer_manager, this, _trace_buffer);
   return std::make_unique<tvm::Interpreter>(_buffer_manager, std::move(be));
 }
 

@@ -58,7 +58,7 @@ auto make_bus_system(u8 fill) {
       0,
       AddressSpan(0x00, 0x0f),
   };
-  bus_cfg.mappings.push_back(Mapping{.target = mem->config().fullname, .source_span = AddressSpan(0x00, 0x0f)});
+  bus_cfg.mappings.push_back(Mapping{.target = mem->config().fullname, .source = {.span = AddressSpan(0x00, 0x0f)}});
   auto *bus = sys->make_device<SimpleBus>(bus_cfg);
   sys->initialize();
   return std::make_tuple(std::move(sys), mem, bus);

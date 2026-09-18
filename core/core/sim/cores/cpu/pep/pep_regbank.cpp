@@ -53,10 +53,6 @@ void PepRegisterBank::reset() {
   _is = 0;
 }
 
-void PepRegisterBank::set_initiator(Device::ID cpu) {
-  _op = Operation(Operation::Type::Standard, Operation::Kind::data, cpu);
-}
-
 void PepRegisterBank::write_a(u16 value) { write<Register::A>(value); }
 void PepRegisterBank::write_x(u16 value) { write<Register::X>(value); }
 void PepRegisterBank::write_sp(u16 value) { write<Register::SP>(value); }
@@ -132,18 +128,6 @@ Target::Result PepRegisterBank::write(Address address, bits::span<const u8> src,
   return {};
 }
 
-void PepRegisterBank::write_slot(Register reg, u16 value, Operation op) {
-  switch (reg) {
-  case Register::A: store(reg, _a, value, op); break;
-  case Register::X: store(reg, _x, value, op); break;
-  case Register::SP: store(reg, _sp, value, op); break;
-  case Register::PC: store(reg, _pc, value, op); break;
-  case Register::OS: store(reg, _os, value, op); break;
-  case Register::IS: store(reg, _is, static_cast<u8>(value & 0xFF), op); break;
-  default: break;
-  }
-}
-
 void PepRegisterBank::clear(u8 fill) {
   // TODO: emit a "clear" trace to TB.
   const auto wide = static_cast<u16>((u16(fill) << 8) | fill);
@@ -164,4 +148,20 @@ void PepRegisterBank::collect_changes(pepp::core::IntervalSet<Address> &changed)
 
 void PepRegisterBank::clear_changes() {
   // No-op because we always conservatively report that the whole bank changed.
+}
+
+void PepRegisterBank::set_initiator(Device::ID cpu) {
+  _op = Operation(Operation::Type::Standard, Operation::Kind::data, cpu);
+}
+
+void PepRegisterBank::write_slot(Register reg, u16 value, Operation op) {
+  switch (reg) {
+  case Register::A: store(reg, _a, value, op); break;
+  case Register::X: store(reg, _x, value, op); break;
+  case Register::SP: store(reg, _sp, value, op); break;
+  case Register::PC: store(reg, _pc, value, op); break;
+  case Register::OS: store(reg, _os, value, op); break;
+  case Register::IS: store(reg, _is, static_cast<u8>(value & 0xFF), op); break;
+  default: break;
+  }
 }

@@ -67,6 +67,8 @@ private:
   tvm::DecodedOp::DPIncr decode_accdp(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::DPIncr decode_incdp(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::MMIO decode_mmio(pepp::bts::Buffer::ID ibp, u16 iop);
+  tvm::DecodedOp::MovMem2Reg decode_movmem2reg(pepp::bts::Buffer::ID ibp, u16 iop);
+  tvm::DecodedOp::LoadSegment decode_loadsegment(pepp::bts::Buffer::ID ibp, u16 iop);
 
   u16 read(pepp::bts::Buffer::ID id, u16 offset) { return tvm::read16(*_mgr, _state, id, offset); }
 

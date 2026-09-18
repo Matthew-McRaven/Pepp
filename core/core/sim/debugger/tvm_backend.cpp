@@ -30,6 +30,8 @@ struct Dispatch {
   void operator()(const tvm::DecodedOp::LDP &op) const { self->on_ldp(*state, op); }
   void operator()(const tvm::DecodedOp::DPIncr &op) const { self->on_dpincr(*state, op); }
   void operator()(const tvm::DecodedOp::MMIO &op) const { self->on_mmio(*state, op); }
+  void operator()(const tvm::DecodedOp::MovMem2Reg &op) const { self->on_movmem2reg(*state, op); }
+  void operator()(const tvm::DecodedOp::LoadSegment &op) const { self->on_loadsegment(*state, op); }
 };
 } // namespace
 
@@ -150,32 +152,14 @@ void Backend::on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op) {
   auto &regs = state.regs;
   regs.DS = op.DS;
 
-  // When no tracebuffer is available, just increment DP.lo and hope that wrapping around is good enough
-  if (_tb == nullptr) {
-    regs.DP.lo += op.dp_incr;
-    return;
-  }
-
-  // When we have a trace buffer, we can look up the successor/predecessor buffers rather than wrapping around.
   // Use signed 32-bit arithmetic so we can detect both overflow and underflow cleanly.
   int32_t new_lo = static_cast<int32_t>(regs.DP.lo) + static_cast<int16_t>(op.dp_incr);
   constexpr int32_t BUF_SIZE = static_cast<int32_t>(pepp::bts::Buffer::SIZE);
 
-  if (new_lo >= BUF_SIZE) {
-    // Forward overflow: go to successor buffer.
-    auto succ = _tb->data_successor(pepp::bts::Buffer::ID{regs.DP.hi});
-    if (succ == pepp::bts::Buffer::ID{0}) return state.hard_stop(tvm::StopCause::InvalidDBuffer);
-    regs.DP.hi = succ.value;
-    regs.DP.lo = static_cast<u16>(new_lo - BUF_SIZE);
-  } else if (new_lo < 0) {
-    // Backward underflow: go to predecessor buffer.
-    auto pred = _tb->data_predecessor(pepp::bts::Buffer::ID{regs.DP.hi});
-    if (pred == pepp::bts::Buffer::ID{0}) return state.hard_stop(tvm::StopCause::InvalidDBuffer);
-    regs.DP.hi = pred.value;
-    regs.DP.lo = static_cast<u16>(new_lo + BUF_SIZE);
-  } else {
-    regs.DP.lo = static_cast<u16>(new_lo);
-  }
+  // Leaving this buffer means following a chain this backend cannot see, and wrapping DP.lo would silently read
+  // unrelated bytes. Stop instead.
+  if (new_lo >= BUF_SIZE || new_lo < 0) return state.hard_stop(tvm::StopCause::InvalidDBuffer);
+  regs.DP.lo = static_cast<u16>(new_lo);
 }
 
 } // namespace tvm

@@ -19,6 +19,7 @@
 #include "core/arch/riscv/isa/rv_instruction_list.hpp"
 #include "core/sim/api/clock.hpp"
 #include "core/sim/api/device.hpp"
+#include "core/sim/api/loadable.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
 #include "core/sim/cores/cpu/rv32/rv_regbank.hpp"
@@ -26,7 +27,7 @@
 #include "core/sim/debugger/trace_recorder.hpp"
 
 // RISC-V 32-bit core.
-class RV32CPU final : public Device, public ClockSink, public Traceable, public Initiator {
+class RV32CPU final : public Device, public ClockSink, public Traceable, public Initiator, public Loadable {
 public:
   static const inline std::string compatible = "cpu,riscv,rv32";
   using Register = riscv::XReg;
@@ -67,6 +68,13 @@ public:
   bool traced() const override;
   void on_traced_changed(bool enabled) override;
   void trace(bool enabled) override;
+
+  // Loadable interface
+  pepp::bts::ElfMachineType core_type() const noexcept override;
+  pepp::bts::ElfBits core_bits() const noexcept override;
+  pepp::bts::ElfEndian core_endian() const noexcept override;
+  void register_core_init(Loader &) override;
+  Target *port(MemoryKind kind) override;
 
   // Register file. rd/rs1/rs2 come out of the decoded word, so these take a runtime register;
   // the bank's compile-time form is for the rare site where the ISA fixes the register.

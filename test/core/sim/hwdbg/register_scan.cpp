@@ -103,6 +103,54 @@ TEST_CASE("Find register by name in HW debugger", "[scope:core][scope:core.dbg][
   inner_call<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::CALL);
 }
 
+TEST_CASE("Find register by device-scoped name", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
+  auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
+  auto *scan = sys->register_scan();
+  auto same = [](std::optional<RegisterScan::RegisterRef> lhs, std::optional<RegisterScan::RegisterRef> rhs) {
+    return lhs && rhs && lhs->reg == rhs->reg && lhs->field == rhs->field;
+  };
+  const auto a = scan->find("A", Device::ID{0});
+  REQUIRE(a);
+
+  SECTION("A missing or empty scope searches every device") {
+    CHECK(same(scan->find("A"), a));
+    CHECK(same(scan->find(":A"), a));
+  }
+  SECTION("A scope matches the named device") {
+    CHECK(same(scan->find("/cpu/regs:A"), a));
+    CHECK(scan->find("/memory:rd_bytes"));
+    CHECK_FALSE(scan->find("/cpu/regs:rd_bytes"));
+    CHECK_FALSE(scan->find("/memory:A"));
+  }
+  SECTION("A scope also matches the devices below it") {
+    // A and N are exposed by the CPU's register and CSR banks, and call_depth by the CPU itself.
+    CHECK(same(scan->find("/cpu:A"), a));
+    CHECK(same(scan->find("/cpu:N"), scan->find("N", Device::ID{0})));
+    CHECK(scan->find("/cpu:call_depth"));
+    // The root's ID is 0, the same value that means "no scope", so naming it searches every device.
+    CHECK(same(scan->find("/:A"), a));
+    CHECK(scan->find("/:rd_bytes"));
+  }
+  SECTION("Fields can be scoped too") { CHECK(same(scan->find("/cpu/csrs:N"), scan->find("N", Device::ID{0}))); }
+  SECTION("A device's own registers win over its descendants'") {
+    // Shadow the register bank's A with one belonging to the CPU itself.
+    u16 shadow = 0;
+    RegisterScan::Register r{};
+    r.byte_width = sizeof(shadow);
+    r.order = bits::hostOrder();
+    r.target = cpu->id();
+    r.name = "A";
+    r.loc = &shadow;
+    const auto shadowed = scan->expose(r);
+
+    CHECK(same(scan->find("/cpu:A"), shadowed));
+    CHECK(same(scan->find("/cpu/regs:A"), a));
+    // Two devices expose A, so an unscoped search is ambiguous.
+    CHECK_FALSE(scan->find("A"));
+  }
+  SECTION("A scope naming no device finds nothing") { CHECK_FALSE(scan->find("/nope:A")); }
+}
+
 TEST_CASE("A pointer-backed register must declare its storage's width",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);

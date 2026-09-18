@@ -6,8 +6,10 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
+#include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
@@ -103,7 +105,7 @@ public:
   // clean/default state or replaying a trace would be Host. The default is Guest, which is the least-permissive.
   enum class Level : u8 {
     Guest, // The system/device tree under test, and anything reaching into it on a user's behalf.
-    Host,  // The simulator's own infrastructure: replaying a trace, resetting a device, restoring a checkpoint.
+    Host,  // The simulator's infrastructure, like replaying a trace, resetting a device, restoring a checkpoint.
   };
 
   enum class Byteswap {
@@ -117,13 +119,19 @@ public:
   bits::Order read(const RegisterRef &n, bits::span<u8> dest, Byteswap bswap = Byteswap::Never,
                    Level level = Level::Guest);
 
-  // If id is non-0, only match against registers which share the same target ID. If ID==0, match against all registers.
-  std::optional<RegisterRef> find(std::string_view name, Device::ID scope = Device::ID{0});
+  // Accept a name of the form "/device/name:register_name", ":register_name", or "registername". The part before the
+  // colon will be interpreted as the name of the device scope. If empty or not present, the scope will be 0. If
+  // present, but no such device exists, it will throw. Delegates to find(std::string_view, Device::ID).
+  std::optional<RegisterRef> find(std::string_view name);
+  // If id is non-0, match that device or any of its descendants. The device's own registers take precedence, so a
+  // descendant which exposes the same name cannot hide them. If ID==0, match against all devices.
+  std::optional<RegisterRef> find(std::string_view name, Device::ID scope);
   // Helper which returns the value of a register as an integral type
   template <std::integral I> I read(const RegisterRef &n, Level level = Level::Guest);
   // Helper which writes an integral value to a register.
   template <std::integral I> void write(const RegisterRef &n, I value, Level level = Level::Guest);
-  // A reset rather than a write, so it goes in at Level::Host: a register the guest may not write still resets.
+  // A reset rather than a write, so it goes in at Level::Host. Allows resetting things like retired instruction counter
+  // which is not guest-writable.
   void clear(const RegisterRef &n);
   // Reset every exposed register of the given kind. Host-unwritable registers are skipped.
   std::size_t reset(std::initializer_list<Register::Kind> kinds);
@@ -219,6 +227,8 @@ private:
   std::unordered_map<Device::ID, std::list<Register::ID>> _exposed;
   // Store Registers in a unique_ptr to avoid invalidating pointers on re-hash.
   std::unordered_map<Register::ID, std::unique_ptr<Register>, pepp::handle_hash<Register::ID>> _regs;
+  // Group all registers by name so that find() can be O(# of registers with that name) which should be roughly O(1).
+  std::unordered_multimap<std::string, RegisterRef, pepp::bts::cs_hash, pepp::bts::cs_eq> _by_name;
 };
 
 template <std::integral I> I RegisterScan::read(const RegisterRef &n, Level level) {

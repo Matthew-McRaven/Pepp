@@ -7,6 +7,7 @@
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/formats/elf/packed_elf.hpp"
+#include "core/formats/elf/packed_io.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 #include "core/integers.h"
 #include "core/math/bitmanip/leb128.hpp"
@@ -42,4 +43,7 @@ ElfResult sections_to_elf(pepp::bts::ElfBits bits, pepp::bts::ElfEndian endian, 
 std::vector<u8> elf_bytes(ElfResult &result);
 // Write elf output to a stream without an intermediate vector in memory.
 void write_elf(ElfResult &result, std::ostream &out);
+// Lay the file out and hand back a read-only view of it, so a just-assembled program can be loaded without a trip
+// through the file system. With a path, the image is also left on disk there.
+pepp::bts::AnyInputElf to_input_elf(ElfResult &result, std::optional<std::string> path = std::nullopt);
 } // namespace pepp::tc

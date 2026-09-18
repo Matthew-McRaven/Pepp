@@ -1,5 +1,6 @@
 #include "register_scanner.hpp"
 #include <stdexcept>
+#include <unordered_set>
 #include "core/ds/hash/fnv.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "core/math/bitmanip/mask.hpp"
@@ -28,6 +29,9 @@ RegisterScan::Register::Reference RegisterScan::expose(const Register &n) {
   auto id = next_id();
   _regs[id] = std::make_unique<Register>(n);
   _exposed[n.target].push_back(id);
+  _by_name.emplace(n.name, RegisterRef{id, Register::Field::ID{0}});
+  for (std::size_t it = 0; it < n.fields.size(); ++it)
+    _by_name.emplace(n.fields[it].name, RegisterRef{id, Register::Field::ID{static_cast<u16>(it + 1)}});
   return Register::Reference{.reg = id};
 }
 
@@ -40,6 +44,56 @@ void RegisterScan::write(const RegisterRef &ref, bits::span<const u8> src, Bytes
 bits::Order RegisterScan::read(const RegisterRef &ref, bits::span<u8> dest, Byteswap bswap, Level level) {
   auto [reg, field] = resolve(ref);
   return read(reg, field, dest, bswap, level);
+}
+
+std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view name) {
+  const auto colon = name.rfind(':');
+  // No scope, so search all registers. This retains the old behavior of find with a defaulted Device::ID{0}.
+  if (colon == std::string_view::npos) return find(name, Device::ID{0});
+  const auto device = name.substr(0, colon), reg = name.substr(colon + 1);
+  if (device.empty()) return find(reg, Device::ID{0});
+  else if (_sys == nullptr) return std::nullopt;
+  else if (auto dev = _sys->find_absolute(device); dev == nullptr) return std::nullopt;
+  else return find(reg, dev->id());
+}
+
+std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view name, Device::ID scope) {
+  struct Match {
+    // If nullopt, either 0 or 2+ matches were found. If set, it is the unique match.
+    std::optional<RegisterRef> ref = std::nullopt;
+    // If true, multiple registers matched the name. Ref is meaningless and set to nullopt.
+    bool ambiguous = false;
+  };
+  // Accept is a predicate acting on device IDs. If it returns true, then you should compare against that device's
+  // registers. If false, continue to next registers. Allows our three kinds of searches to share the same inner loop.
+  auto search = [&](auto &&accept) {
+    Match match;
+    const auto [first, last] = _by_name.equal_range(name);
+    for (auto it = first; it != last; ++it) {
+      const auto ref = it->second;
+      const auto reg = _regs.find(ref.reg);
+      if (reg == _regs.end() || !accept(reg->second->target)) continue;
+      else if (match.ref) return Match{std::nullopt, true};
+      match.ref = ref;
+    }
+    return match;
+  };
+
+  // ID==0 is the parent of all devices, so search everything without building an explicit set.
+  if (scope.value == 0) return search([](Device::ID) { return true; }).ref;
+  auto node = _sys == nullptr ? nullptr : _sys->find_tree_by_id(scope);
+  if (node == nullptr) return std::nullopt;
+
+  // Prefer a register in the scope itself, in case both parent and child define a name.
+  if (auto own = search([scope](Device::ID target) { return target == scope; }); own.ref || own.ambiguous)
+    return own.ref;
+
+  // The set of all devices below scope. Collected once rather than walking the tree for every register.
+  std::unordered_set<Device::ID, pepp::handle_hash<Device::ID>> in_scope;
+  for (const auto dev : *node)
+    if (dev->id() != scope) in_scope.insert(dev->id());
+  // Otherwise try to find a match amongst the device's children.
+  return search([&](Device::ID target) { return in_scope.contains(target); }).ref;
 }
 
 void RegisterScan::clear(const RegisterRef &r) {
@@ -64,27 +118,6 @@ RegisterScan::resolve(RegisterRef r) const {
   else if (auto field_idx = static_cast<u16>(r.field.value) - 1; field_idx >= reg->fields.size())
     return {nullptr, nullptr};
   else return {reg.get(), &reg->fields[field_idx]};
-}
-
-std::optional<RegisterScan::RegisterRef> RegisterScan::find(std::string_view name, Device::ID scope) {
-  std::optional<RegisterScan::RegisterRef> ret = std::nullopt;
-  for (const auto &it : _regs) {
-    const auto id = it.first;
-    const auto &reg = it.second;
-    // If scope is 0, match all registers. If non-0, only match that exact target.
-    if (!(scope.value == 0 || reg->target == scope)) continue;
-    else if (reg->name == name) {
-      if (ret) return std::nullopt;
-      else ret = RegisterRef{id, Register::Field::ID{0}};
-    }
-    for (int inner = 0; inner < reg->fields.size(); ++inner) {
-      if (auto f = reg->fields[inner]; f.name == name) {
-        if (ret) return std::nullopt;
-        else ret = RegisterRef{id, Register::Field::ID{static_cast<u16>(inner + 1)}};
-      }
-    }
-  }
-  return ret;
 }
 
 std::size_t RegisterScan::reset(std::initializer_list<Register::Kind> kinds) {

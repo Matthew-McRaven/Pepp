@@ -91,10 +91,20 @@ const Device::Configuration &RV32CPU::config() const { return _config; }
 const RV32CPU::Configuration &RV32CPU::casted_config() const { return _config; }
 const Device::ID RV32CPU::id() const { return _config.id; }
 
+Target *RV32CPU::port(MemoryKind kind) {
+  // Memory is currently unified, and no microcode eeprom exists.
+  switch (kind) {
+  case MemoryKind::Instruction: [[fallthrough]];
+  case MemoryKind::Data: return _target;
+  case MemoryKind::MicrocodeROM: return nullptr;
+  }
+  return nullptr;
+}
+
 Device::Type RV32CPU::type() const {
   using namespace bits;
   using T = Device::Type;
-  return T::ClockSink | T::Traceable | T::MemoryInitiator;
+  return T::ClockSink | T::Traceable | T::MemoryInitiator | T::Loadable;
 }
 
 std::unique_ptr<DeviceSerializer> RV32CPU::serializer() const { return make_serializer(); }
@@ -150,6 +160,16 @@ void RV32CPU::trace(bool enabled) {
   // The CPU holds no addressable state of its own, so delegate to the child bank.
   _trace.set_traced(enabled);
   if (_regbank) _regbank->trace(enabled);
+}
+
+pepp::bts::ElfMachineType RV32CPU::core_type() const noexcept { return pepp::bts::ElfMachineType::EM_RISCV; }
+
+pepp::bts::ElfBits RV32CPU::core_bits() const noexcept { return pepp::bts::ElfBits::b32; }
+
+pepp::bts::ElfEndian RV32CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::le; }
+
+void RV32CPU::register_core_init(Loader &) {
+  // No-op until we decide what our initial PC / SP should be
 }
 
 u32 RV32CPU::read_register(Register reg) const { return _regbank->read(reg); }

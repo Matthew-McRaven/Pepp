@@ -18,6 +18,7 @@
 #include "core/formats/elf/packed_ops.hpp"
 #include <algorithm>
 #include <array>
+#include <fstream>
 #include <ostream>
 #include "core/math/bitmanip/copy.hpp"
 
@@ -56,4 +57,22 @@ void pepp::bts::write(std::ostream &out, std::vector<LayoutItem> layout) {
     at += item.data.size();
   }
   pad_to(end); // An empty trailing item still extends the file, as it does for the span overload.
+}
+
+std::shared_ptr<pepp::bts::MappedFile> pepp::bts::write_mmap(const std::string &path,
+                                                             const std::vector<LayoutItem> &layout) {
+  // Truncate first: a mapping only ever grows its file, so a longer previous image would leave a stale tail behind.
+  if (std::ofstream create(path, std::ios::binary | std::ios::trunc); !create)
+    throw std::runtime_error("Elf::write_image: could not open " + path);
+  const u64 size = size_for_layout(layout);
+  auto file = MappedFile::open_readwrite(path);
+  if (size == 0) return file;
+
+  auto slice = file->slice(0, size);
+  auto span = slice->get();
+  if (span.size() < size) throw std::runtime_error("Elf::write_image: could not map " + path);
+  std::ranges::fill(span, u8(0)); // The gaps a layout leaves between its items.
+  write(span, layout);
+  slice->flush();
+  return file;
 }

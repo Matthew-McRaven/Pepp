@@ -410,7 +410,8 @@ template <ElfBits B, ElfEndian E, bool Const>
 bits::span<const U32<E>> PackedGNUHashedSymbolAccessor<B, E, Const>::chains() const noexcept {
   const auto offset = 4 * sizeof(u32) + maskwords() * sizeof(Word<B, E>) + nbuckets() * sizeof(u32);
   if (data_hash->size() < offset) return {};
-  bits::span<const u8> underlying = data_hash->get(offset, data_hash->size() - offset);
-  return bits::span<const U32<E>>{(const U32<E> *)underlying.data(), nbuckets()};
+  const auto count = (data_hash->size() - offset) / sizeof(u32);
+  bits::span<const u8> underlying = data_hash->get(offset, count * sizeof(u32));
+  return bits::span<const U32<E>>{(const U32<E> *)underlying.data(), count};
 }
 } // namespace pepp::bts

@@ -241,20 +241,12 @@ pepp::tc::ElfResult pepp::tc::sections_to_elf(ElfBits bits, ElfEndian endian, El
   else return build<b64, be>(machine, prog, object_code, symbols);
 }
 
-std::vector<u8> pepp::tc::elf_bytes(ElfResult &result) {
-  auto visitor = [&result](auto &file) -> std::vector<u8> {
-    if (!file) return {};
-    auto layout = pepp::bts::calculate_layout(*file, &result.segments);
-    std::vector<u8> ret(pepp::bts::size_for_layout(layout), 0);
-    pepp::bts::write(ret, layout);
-    return ret;
-  };
-  return std::visit(visitor, result.elf);
-}
+std::vector<u8> pepp::tc::elf_bytes(ElfResult &result) { return pepp::bts::elf_bytes(result.elf, &result.segments); }
 
 void pepp::tc::write_elf(ElfResult &result, std::ostream &out) {
-  auto visitor = [&](auto &file) {
-    if (file) pepp::bts::write(out, pepp::bts::calculate_layout(*file, &result.segments));
-  };
-  std::visit(visitor, result.elf);
+  pepp::bts::write_elf(result.elf, out, &result.segments);
+}
+
+pepp::bts::AnyInputElf pepp::tc::to_input_elf(ElfResult &result, std::optional<std::string> path) {
+  return pepp::bts::to_input_elf(result.elf, &result.segments, std::move(path));
 }

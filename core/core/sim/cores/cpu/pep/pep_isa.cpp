@@ -6,12 +6,12 @@
 #include "core/ds/string_compare.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa_instructions.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
+#include "core/sim/loader.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
 namespace {
-static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
 
 static const std::unordered_map<std::string, PepISA3CPU::ISA, pepp::bts::ci_hash, pepp::bts::ci_eq> map_str_to_isa = {
     {"pep8", PepISA3CPU::ISA::Pep8}, {"pep9", PepISA3CPU::ISA::Pep9}, {"pep10", PepISA3CPU::ISA::Pep10}};
@@ -137,10 +137,20 @@ const PepISA3CPU::Configuration &PepISA3CPU::casted_config() const { return _con
 
 const Device::ID PepISA3CPU::id() const { return _config.id; }
 
+Target *PepISA3CPU::port(MemoryKind kind) {
+  // Memory is currently unified, and no microcode eeprom exists.
+  switch (kind) {
+  case MemoryKind::Instruction: [[fallthrough]];
+  case MemoryKind::Data: return _target;
+  case MemoryKind::MicrocodeROM: return nullptr;
+  }
+  return nullptr;
+}
+
 Device::Type PepISA3CPU::type() const {
   using namespace bits;
   using T = Device::Type;
-  return T::ClockSink | T::Traceable | T::MemoryInitiator;
+  return T::ClockSink | T::Traceable | T::MemoryInitiator | T::Loadable;
 }
 
 std::unique_ptr<DeviceSerializer> PepISA3CPU::serializer() const { return make_serializer(); }
@@ -206,6 +216,30 @@ void PepISA3CPU::trace(bool enabled) {
   _trace.set_traced(enabled);
   if (_regbank) _regbank->trace(enabled);
   if (_csrs) _csrs->trace(enabled);
+}
+
+pepp::bts::ElfMachineType PepISA3CPU::core_type() const noexcept {
+  // TODO: when configuration gains a p8/p9/p10 distinction, this should be updated.
+  return pepp::bts::ElfMachineType::EM_PEP10;
+}
+
+pepp::bts::ElfBits PepISA3CPU::core_bits() const noexcept {
+  // While this is actually a 16-bit processor, we use 32-bit object code files.
+  // I don't want to be responsible for defining what a 16-bit ELF is.
+  return pepp::bts::ElfBits::b32;
+}
+
+pepp::bts::ElfEndian PepISA3CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::be; }
+
+void PepISA3CPU::register_core_init(Loader &loader) {
+  using MV = isa::Pep10::MemoryVectors;
+  auto mem = dynamic_cast<Device *>(_target);
+  if (!mem) throw std::logic_error("PepISA3CPU: target must be a device");
+  auto sp = _regbank->ref(isa::Pep10::Register::SP);
+  auto pc = _regbank->ref(isa::Pep10::Register::PC);
+  // TODO: replace constants depending on the memory size / version of Pep.
+  loader.copy_word(sp, mem->id(), static_cast<u16>(MV::SystemStackPtr), bits::Order::BigEndian);
+  loader.copy_word(pc, mem->id(), static_cast<u16>(MV::Dispatcher), bits::Order::BigEndian);
 }
 
 void PepISA3CPU::increment_call_depth() {

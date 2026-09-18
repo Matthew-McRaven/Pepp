@@ -55,9 +55,10 @@ struct Device {
     MemoryInitiator = MemoryTarget << 1,
     ClockSource = MemoryInitiator << 1,
     ClockSink = ClockSource << 1,
+    Loadable = ClockSink << 1,
     // Synthetic devices, which are not part of the original device tree but are created by the simulator to allow
     // access to portions of the simulation
-    TraceBuffer = ClockSink << 1,
+    TraceBuffer = Loadable << 1,
     Traceable = TraceBuffer << 1,
     // Keep the synthetic system root at the end of the list by convention.
     SystemRoot = Traceable << 1,

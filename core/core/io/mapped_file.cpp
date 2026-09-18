@@ -16,6 +16,8 @@
 
 #include "mapped_file.hpp"
 #include <spdlog/spdlog.h>
+#include <algorithm>
+#include <system_error>
 #include "core/math/bitmanip/log2.hpp"
 #if defined(_WIN32)
 #define NOMINMAX
@@ -205,23 +207,31 @@ void pepp::bts::MappedFile::load_mapped(Slice &slice) const {
                     delta = slice._file_offset - base;
   slice._map_len = delta + static_cast<std::size_t>(slice._file_len);
 #if defined(_WIN32)
+  // A zero maximum size to CreateFileMappingA means "the file's current size", but Windows will refuses to map an empty
+  // file. For a writable mappings, ensure the file is at least as large as the slice before calling CreateFileMappingA
+  // Otherwise a newly created file will be empty, and we hit the error path.
+  ULARGE_INTEGER max_size{};
+  if (!_readonly) {
+    LARGE_INTEGER current{};
+    if (!::GetFileSizeEx(_hFile, &current)) throw std::system_error(::GetLastError(), std::system_category(), "size");
+    max_size.QuadPart = std::max<u64>(current.QuadPart, slice._file_offset + slice._file_len);
+  }
   const DWORD protect = _readonly ? PAGE_READONLY : PAGE_READWRITE;
-  slice._hMap = ::CreateFileMappingA(_hFile, nullptr, protect, 0, 0, nullptr);
-  if (!slice._hMap) {
-    spdlog::warn("Failed to CreateFileMapping for file '{}' with {}", _path, ::GetLastError());
-    _use_fallback = true;
-    slice.release(), load_fallback(slice);
+  slice._hMap = ::CreateFileMappingA(_hFile, nullptr, protect, max_size.HighPart, max_size.LowPart, nullptr);
+  if (slice._hMap) {
+    ULARGE_INTEGER ubase{};
+    ubase.QuadPart = static_cast<unsigned long long>(base);
+    const DWORD map_access = _readonly ? FILE_MAP_READ : (FILE_MAP_READ | FILE_MAP_WRITE);
+    slice._map_base = ::MapViewOfFile(slice._hMap, map_access, ubase.HighPart, ubase.LowPart, slice._map_len);
   }
 
-  ULARGE_INTEGER ubase{};
-  ubase.QuadPart = static_cast<unsigned long long>(base);
-
-  const DWORD map_access = _readonly ? FILE_MAP_READ : (FILE_MAP_READ | FILE_MAP_WRITE);
-  slice._map_base = ::MapViewOfFile(slice._hMap, map_access, ubase.HighPart, ubase.LowPart, slice._map_len);
-
   if (!slice._map_base) {
-    _use_fallback = true;
-    slice.release(), load_fallback(slice);
+    spdlog::warn("Failed to map file '{}' with {}", _path, ::GetLastError());
+    slice.release();
+    // Since mapping failed, we need to close the file handle to avoid blocking the fallback path.
+    ::CloseHandle(_hFile);
+    _hFile = INVALID_HANDLE_VALUE, _use_fallback = true;
+    load_fallback(slice);
   } else slice._data_view = {static_cast<u8 *>(slice._map_base) + delta, static_cast<std::size_t>(slice._file_len)};
 
 #elif defined(__unix__) || defined(__APPLE__)
@@ -239,7 +249,8 @@ void pepp::bts::MappedFile::load_mapped(Slice &slice) const {
   if (slice._map_base == MAP_FAILED) {
     spdlog::warn("Failed to mmap file '{}' with errno {}", _path, errno);
     if (::close(_fd) != 0) throw std::system_error(errno, std::generic_category(), "close after mmap failure");
-    _fd = -1, slice._map_base = nullptr, slice._map_len = 0; // Unset mmap fields.
+    // Later slices must not try to map through the fd we just closed.
+    _fd = -1, _use_fallback = true, slice._map_base = nullptr, slice._map_len = 0;
     load_fallback(slice);
   } else slice._data_view = {static_cast<u8 *>(slice._map_base) + delta, slice._file_len};
 #else

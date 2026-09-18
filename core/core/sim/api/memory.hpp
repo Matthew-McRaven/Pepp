@@ -26,6 +26,16 @@ using Tick = u32;
 using Address = u32;
 using AddressSpan = pepp::core::Interval<Address>;
 
+// What may be done with a span of addresses.
+enum class Access : u8 {
+  None = 0,
+  Read = 1 << 0,
+  Write = 1 << 1,
+  Execute = 1 << 2,
+  ReadWriteExecute = Read | Write | Execute,
+};
+consteval void is_bitflags(Access);
+
 // If select memory operations fail (e.g., lack of MMI, unmapped address in
 // bus), specify the behavior of the target.
 enum class FailPolicy {
@@ -111,6 +121,11 @@ struct Target {
   virtual AddressSpan span() const = 0;
   virtual Result read(Address address, bits::span<u8> dest, Operation op) const = 0;
   virtual Result write(Address address, bits::span<const u8> src, Operation op) = 0;
+  // Write the bytes to this target. If data is smaller than the adress span, then the remainder of the span wil be
+  // 0-filled. If the target supports memory access permissions, combine (bitwise &) with the target's existing
+  // permissions; otherwise ignored. Most recent data / permissions take precedence. Default implementation in
+  // sim/memory/target.cpp
+  virtual void load(AddressSpan span, bits::span<const u8> data, Access access);
   // If the device is composed of many devices (e.g., a SimpleBus), this method should clear all connected targets.
   virtual void clear(u8 fill) = 0;
   // If dest is larger than maxOffset-minOffset+1, copy bytes from this target to the span.
@@ -157,6 +172,7 @@ std::pair<Target::Result, I> Target::read(Address address, Operation op) const {
   if constexpr (byteswap) dest = bits::byteswap(dest);
   return {r, dest};
 }
+
 template <std::integral I, bool byteswap> Target::Result Target::write(Address address, I src, Operation op) {
   if constexpr (byteswap) src = bits::byteswap(src);
   return write(address, bits::span<const u8>(reinterpret_cast<const u8 *>(&src), sizeof(I)), op);

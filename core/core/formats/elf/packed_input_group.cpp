@@ -15,7 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-#include "./enums_eheader.hpp"
-#include "./enums_sections.hpp"
-#include "./enums_segments.hpp"
+#include "packed_input_group.hpp"
+
+pepp::bts::AnyElfGroup pepp::bts::to_input_group(AnyInputElf elf) {
+  auto visitor = [](auto &file) -> AnyElfGroup {
+    using File = typename std::remove_reference_t<decltype(file)>::element_type;
+    auto group = std::make_unique<PackedInputElfGroup<File::elf_bits, File::elf_endian>>();
+    group->add(std::move(file));
+    return group;
+  };
+  return std::visit(visitor, elf);
+}

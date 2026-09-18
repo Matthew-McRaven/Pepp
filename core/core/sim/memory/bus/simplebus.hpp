@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <span>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
@@ -117,6 +118,11 @@ private:
 class SimpleBus final : public Target, public Device, public Initiator, public Traceable {
 public:
   static const inline std::string compatible = "bus,simple";
+  // What may be done to a span of bus addresses.
+  struct Permission {
+    AddressSpan span;
+    Access access = Access::ReadWriteExecute;
+  };
   struct Configuration : public Device::Configuration {
     u8 fill{0};
     // encoded as min_offset and max_offset
@@ -125,10 +131,9 @@ public:
     FailPolicy fail_policy = FailPolicy::RaiseError;
 
     struct Mapping {
-      enum Access : u8 { None = 0, Read = 1 << 0, Write = 1 << 1, Execute = 1 << 2 };
       std::string target;
-      Access access = (Access)(Access::Read | Access::Write | Access::Execute);
-      AddressSpan source_span;
+      // The bus addresses mapped onto target, and the most access any later apply_permissions may allow.
+      Permission source;
       Address target_offset = 0;
     };
     std::vector<Mapping> mappings;
@@ -142,6 +147,14 @@ public:
   SimpleBus(const SimpleBus &) = delete;
   SimpleBus &operator=(const SimpleBus &) = delete;
   const std::vector<Configuration::Mapping> &mappings() const;
+  // Restrict the effective access of address ranges in the source space. Permissions are &'ed with the configured
+  // devices to prevent a read-only device from becoming writable. Replaces previously applied permissions.
+  // perms may be in any order, but throws std::invalid_argument if any overlap.
+  void apply_permissions(std::span<const Permission> perms);
+
+  // Target interface
+  // Delegate loading to the devices behind the bus while updating this bus's access permissions in-place.
+  void load(AddressSpan span, bits::span<const u8> data, Access access) override;
 
   // Device interface
   void initialize(System *) override;
@@ -171,10 +184,16 @@ public:
 private:
   Target *device(Device::ID id) const;
 
+  void recompute_permissions();
+
   Configuration _config;
-  AddressTranslationMap<Configuration::Mapping::Access> _addrs;
+  // The permissions asked for by loaded images, in address order and non-overlapping.
+  std::vector<Permission> _loaded;
+  // Mappings as configured during initialize().
+  AddressTranslationMap<Access> _as_configured;
+  // Effective access permissions for this bus, e.g. the intersection of _as_configured and _loaded.
+  AddressTranslationMap<Access> _with_permission;
   std::unordered_map<Device::ID, Target *> _devices;
   trace::Recorder _trace;
 };
 
-consteval void is_bitflags(SimpleBus::Configuration::Mapping::Access);

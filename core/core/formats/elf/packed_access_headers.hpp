@@ -32,6 +32,16 @@ using PackedElfBE32 = PackedElf<ElfBits::b32, ElfEndian::be>;
 using PackedElfLE64 = PackedElf<ElfBits::b64, ElfEndian::le>;
 using PackedElfBE64 = PackedElf<ElfBits::b64, ElfEndian::be>;
 using AnyPackedElfPtr = std::variant<PackedElfLE32 *, PackedElfBE32 *, PackedElfLE64 *, PackedElfBE64 *>;
+using ConstAnyPackedElfPtr =
+    std::variant<const PackedElfLE32 *, const PackedElfBE32 *, const PackedElfLE64 *, const PackedElfBE64 *>;
+// The read-only ELF files, which are a view over lazily-loaded contiguous bytes.
+template <ElfBits, ElfEndian> class PackedInputElfFile;
+using PackedInputElfLE32 = PackedInputElfFile<ElfBits::b32, ElfEndian::le>;
+using PackedInputElfBE32 = PackedInputElfFile<ElfBits::b32, ElfEndian::be>;
+using PackedInputElfLE64 = PackedInputElfFile<ElfBits::b64, ElfEndian::le>;
+using PackedInputElfBE64 = PackedInputElfFile<ElfBits::b64, ElfEndian::be>;
+using AnyInputElf = std::variant<std::unique_ptr<PackedInputElfLE32>, std::unique_ptr<PackedInputElfBE32>,
+                                 std::unique_ptr<PackedInputElfLE64>, std::unique_ptr<PackedInputElfBE64>>;
 // The growable files, for code that needs to add sections rather than only read them. Separate from
 // AnyPackedElfPtr because that one may hold a memory-mapped input file, which cannot grow.
 template <ElfBits, ElfEndian> class PackedGrowableElfFile;
@@ -41,9 +51,18 @@ using PackedGrowableElfLE64 = PackedGrowableElfFile<ElfBits::b64, ElfEndian::le>
 using PackedGrowableElfBE64 = PackedGrowableElfFile<ElfBits::b64, ElfEndian::be>;
 using AnyGrowableElfPtr =
     std::variant<PackedGrowableElfLE32 *, PackedGrowableElfBE32 *, PackedGrowableElfLE64 *, PackedGrowableElfBE64 *>;
+using AnyGrowableElf = std::variant<std::unique_ptr<PackedGrowableElfLE32>, std::unique_ptr<PackedGrowableElfBE32>,
+                                    std::unique_ptr<PackedGrowableElfLE64>, std::unique_ptr<PackedGrowableElfBE64>>;
 
-using ConstAnyPackedElfPtr =
-    std::variant<const PackedElfLE32 *, const PackedElfBE32 *, const PackedElfLE64 *, const PackedElfBE64 *>;
+// A collection of read-only ELF files with the same word size and byte order.
+template <ElfBits, ElfEndian> class PackedInputElfGroup;
+using PackedInputElfGroupLE32 = PackedInputElfGroup<ElfBits::b32, ElfEndian::le>;
+using PackedInputElfGroupBE32 = PackedInputElfGroup<ElfBits::b32, ElfEndian::be>;
+using PackedInputElfGroupLE64 = PackedInputElfGroup<ElfBits::b64, ElfEndian::le>;
+using PackedInputElfGroupBE64 = PackedInputElfGroup<ElfBits::b64, ElfEndian::be>;
+
+using AnyElfGroup = std::variant<std::unique_ptr<PackedInputElfGroupLE32>, std::unique_ptr<PackedInputElfGroupBE32>,
+                                 std::unique_ptr<PackedInputElfGroupLE64>, std::unique_ptr<PackedInputElfGroupBE64>>;
 std::shared_ptr<const pepp::bts::AStorage> section_data(ConstAnyPackedElfPtr elf, u16 section_index);
 u32 sh_align(ConstAnyPackedElfPtr elf, u16 section_index);
 

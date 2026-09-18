@@ -3,30 +3,13 @@
 #include <stdexcept>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/api/memory.hpp"
+#include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/memory/errors.hpp"
 #include "core/sim/memory/io/fifo.hpp"
 #include "core/sim/system.hpp"
 
 namespace {
 const Operation rw_cmp(Operation::Type::BufferInternal, Operation::Kind::data);
-
-// Run a target acccess and report if it succeded, used to catch bad access from targets and set the F bit accordingly.
-template <typename Fn> bool try_access(Fn &&fn) {
-  try {
-    fn();
-    return true;
-  } catch (const Error &) {
-    // A Target refused the access: out of range, unmapped, and so on.
-    return false;
-  } catch (const std::runtime_error &) {
-    // RegisterScan reports the same class of refusal -- not readable, not writable, no such device -- by throwing,
-    // and it throws plain std::runtime_error rather than Error. Without this catch a program touching a read-only
-    // register would unwind out of the interpreter entirely instead of setting F, which is the opposite of how
-    // every other refused access behaves. RegisterScan ought to grow a typed exception; until it does, this is
-    // where the two hierarchies are reconciled.
-    return false;
-  }
-}
 } // namespace
 
 namespace tvm {
@@ -287,6 +270,74 @@ void ApplyBackend::on_mmio(MachineState &state, const DecodedOp::MMIO &op) {
   } else {
     if (op.write) fifo->output().pop_back();
     else fifo->rewind_input();
+  }
+}
+
+void ApplyBackend::on_movmem2reg(MachineState &state, const DecodedOp::MovMem2Reg &op) {
+  using StopCause = tvm::StopCause;
+  // Register's old value is not preserved
+  if (!is_forward()) return state.hard_stop(StopCause::NotInvertible);
+  else if (state.csrs.TR == 0) return state.hard_stop(StopCause::WrongTR);
+  else if (_system == nullptr || _scan == nullptr) return state.hard_stop(StopCause::MissingSystem);
+
+  // Attempt to convert our source to a Target
+  auto dev = _system->find_by_id(op.src);
+  if (!dev) return state.hard_stop(StopCause::TargetInvalid);
+  auto target = dev->capability<Target>();
+  if (!target) return state.hard_stop(StopCause::TargetNotMemory);
+  // Attempt to convert our ID registers
+  auto pair = _scan->resolve(op.dst);
+  if (pair.first == nullptr) return state.hard_stop(StopCause::RegisterInvalid);
+  // Manually unpack to make debugging easier.
+  auto reg = pair.first;
+
+  // Size is inferred from the register's width.
+  if (reg->byte_width == 0 || reg->byte_width > sizeof(u64)) return state.hard_stop(StopCause::RegisterWidthIllegal);
+
+  if (_tmp.size() < reg->byte_width) _tmp.resize(reg->byte_width);
+  bits::span<u8> raw(_tmp.data(), reg->byte_width);
+  const bool ok = try_access([&] {
+    const auto byteswap = op.byteswap ? RegisterScan::Byteswap::Always : RegisterScan::Byteswap::Never;
+    target->read(op.offset, raw, effective_access(op.access));
+    // Always perform write at host level, since this is intended to be used during the loading process.
+    _scan->write(op.dst, raw, byteswap, RegisterScan::Level::Host);
+  });
+  state.csrs.F = !ok;
+}
+
+void ApplyBackend::on_loadsegment(MachineState &state, const DecodedOp::LoadSegment &op) {
+  state.hard_stop(StopCause::Unimplemented);
+}
+
+TraceApplyBackend::TraceApplyBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system,
+                                     tvm::TraceBuffer *tb)
+    : ApplyBackend(std::move(mgr), system), _tb(tb) {}
+
+void TraceApplyBackend::on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op) {
+  // Without a buffer there is no chain to follow, so defer to the base class's behavior.
+  if (_tb == nullptr) return ApplyBackend::on_dpincr(state, op);
+
+  auto &regs = state.regs;
+  regs.DS = op.DS;
+
+  // Use signed 32-bit arithmetic so we can detect both overflow and underflow cleanly.
+  int32_t new_lo = static_cast<int32_t>(regs.DP.lo) + static_cast<int16_t>(op.dp_incr);
+  constexpr int32_t BUF_SIZE = static_cast<int32_t>(pepp::bts::Buffer::SIZE);
+
+  if (new_lo >= BUF_SIZE) {
+    // Forward overflow: go to successor buffer.
+    auto succ = _tb->data_successor(pepp::bts::Buffer::ID{regs.DP.hi});
+    if (succ == pepp::bts::Buffer::ID{0}) return state.hard_stop(tvm::StopCause::InvalidDBuffer);
+    regs.DP.hi = succ.value;
+    regs.DP.lo = static_cast<u16>(new_lo - BUF_SIZE);
+  } else if (new_lo < 0) {
+    // Backward underflow: go to predecessor buffer.
+    auto pred = _tb->data_predecessor(pepp::bts::Buffer::ID{regs.DP.hi});
+    if (pred == pepp::bts::Buffer::ID{0}) return state.hard_stop(tvm::StopCause::InvalidDBuffer);
+    regs.DP.hi = pred.value;
+    regs.DP.lo = static_cast<u16>(new_lo + BUF_SIZE);
+  } else {
+    regs.DP.lo = static_cast<u16>(new_lo);
   }
 }
 
