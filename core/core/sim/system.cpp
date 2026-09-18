@@ -49,7 +49,8 @@ void System::initialize() {
     }
   }
   // With all devices initialized, perform another pass to create recorders for each traceable device.
-  if (found != nullptr) bind_recorders(found->buffer());
+  _trace_buffer = found == nullptr ? nullptr : &found->buffer();
+  if (_trace_buffer != nullptr) bind_recorders(*_trace_buffer);
 }
 
 void System::reset() {
@@ -130,7 +131,7 @@ RegisterScan *System::register_scan() { return _hwdbg.get(); }
 const RegisterScan *System::register_scan() const { return _hwdbg.get(); }
 
 std::unique_ptr<tvm::Interpreter> System::make_trace_interpreter() {
-  auto be = std::make_unique<tvm::TraceApplyBackend>(_buffer_manager, this);
+  auto be = std::make_unique<tvm::TraceApplyBackend>(_buffer_manager, this, _trace_buffer);
   return std::make_unique<tvm::Interpreter>(_buffer_manager, std::move(be));
 }
 

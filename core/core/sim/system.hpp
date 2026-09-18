@@ -138,6 +138,8 @@ private:
   std::map<Device::ID, DeviceTree *> _id_to_device;
   // A class which owns various debug & trace buffers.
   std::shared_ptr<pepp::bts::BufferManager> _buffer_manager;
+  // The system's single trace buffer, owned by its device and found during initialize(). Null if there is none.
+  tvm::TraceBuffer *_trace_buffer = nullptr;
   // Prevent infinite recursion on make_device while doing deferred initialization.
   // The top level call to make_device sets this flag to true, and that top level call will pull all of the work out of
   // the ctor list. While ctors may themselves enqueue more deferred ctors, they will be processed within the top-level
