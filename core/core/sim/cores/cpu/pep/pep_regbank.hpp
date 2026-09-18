@@ -24,7 +24,7 @@
 
 // The Pep register file, held as C++ membner variables rather than offsets into an array.
 // It replaces the previous Dense* Target. With some optimization, the compiler is better able to elide useless calls to
-// memcpy. Registers are stored in host order for the direct RegisterBank API, but exposed in LE order via Target.
+// memcpy. Registers are stored in host order for the direct RegisterBank API, but exposed in BE order via Target.
 // From the Target API, register N occupies bytes [N*2, N*2+1]
 //
 // Pep8, Pep9, amd Pep10 declare identical Register enums, so one bank serves all ISAs.
