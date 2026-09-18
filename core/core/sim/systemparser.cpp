@@ -209,8 +209,8 @@ std::unique_ptr<System> create_standard_pep10_system() {
       {.basename = "bus", .compatible = SimpleBus::compatible}, 0, AddressSpan(0x0000, 0xFFFF)};
   bus_cfg.mappings.push_back(Mapping{.target = "ram", .source = {.span = ram_span}, .target_offset = ram_span.lower()});
   for (const auto &mmio : mmios)
-    bus_cfg.mappings.push_back(Mapping{
-        .target = mmio.name, .source = {.span = AddressSpan(mmio.address, mmio.address)}, .target_offset = 0});
+    bus_cfg.mappings.push_back(
+        Mapping{.target = mmio.name, .source = {.span = AddressSpan(mmio.address, mmio.address)}, .target_offset = 0});
   auto bus = sys->make_device<SimpleBus>(bus_cfg);
 
   sys->make_device<Sparse>(bus,
@@ -218,10 +218,9 @@ std::unique_ptr<System> create_standard_pep10_system() {
 
   for (const auto &mmio : mmios)
     sys->make_device<FIFORegister>(
-        bus, FIFORegister::Configuration{{.basename = mmio.name, .compatible = FIFORegister::compatible},
-                                         0,
-                                         mmio.direction,
-                                         AddressSpan(mmio.address, mmio.address)});
+        bus,
+        FIFORegister::Configuration{
+            {.basename = mmio.name, .compatible = FIFORegister::compatible}, 0, mmio.direction, AddressSpan(0, 0)});
 
   PepISA3CPU::Configuration cpu_cfg{
       {.basename = "cpu", .compatible = PepISA3CPU::compatible}, PepISA3CPU::ISA::Pep10, "/bus"};
