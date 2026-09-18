@@ -77,6 +77,21 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     CHECK(elf.section_headers[strtab].sh_size == 1);
     CHECK(writer.add_string(std::string_view{"x"}) == 1);
   }
+  SECTION("Symbol table containing only symbols wil empty strings") {
+    Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    const auto strtab = add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB);
+    const auto symtab = add_named_symtab(elf, ".symtab", strtab);
+    PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, symtab);
+    Packed::Symbol section;
+    section.st_shndx = 1;
+    section.set_type(SymbolType::STT_SECTION);
+    writer.add_symbol(std::move(section));
+    // Both symbols have st_name 0, which must index the table's leading NUL.
+    CHECK(writer.symbol_count() == 2);
+    CHECK(elf.section_data[strtab]->size() == 1);
+    CHECK(elf.section_headers[strtab].sh_size == 1);
+  }
   SECTION("Create shdr table by hand") {
     Packed elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP8, ElfABI::ELFOSABI_NONE);
     elf.add_section(create_null_header<ElfBits::b32, ElfEndian::le>());

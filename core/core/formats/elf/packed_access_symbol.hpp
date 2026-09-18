@@ -272,7 +272,11 @@ u32 PackedSymbolAccessor<B, E, Const>::find_symbol(Word<B, E> address) const noe
 
 template <ElfBits B, ElfEndian E, bool Const>
 u32 PackedSymbolAccessor<B, E, Const>::add_symbol(PackedElfSymbol<B, E> &&symbol) {
-  if (shdr_symtab.sh_size == 0) copy_to_symtab(create_null_symbol<B, E>());
+  if (shdr_symtab.sh_size == 0) {
+    // If null already exists, add_string will not insert another NUL.
+    strtab.add_string(std::string_view{});
+    copy_to_symtab(create_null_symbol<B, E>());
+  }
   copy_to_symtab(std::move(symbol));
   return symbol_count() - 1;
 }
