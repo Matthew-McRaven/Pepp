@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 #include <iterator>
+#include <tuple>
 #include <fmt/format.h>
 #include "core/ds/hash/fnv.hpp"
 #include "core/sim/api/trace.hpp"
@@ -435,36 +436,27 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution r
   // HALT.
   // All parts of a subroutine must land in the same buffer — we must not split code across a buffer boundary.
 
-  // Pre-encode CALL so we can measure its size before committing.
-  auto call_enc = EncodedOp::Call<2>{
-      .next_ip = SegmentPair{.hi = resolution.location.id.value, .lo = resolution.location.offset}}
-                      .encode();
+  using CallEncoding = decltype(EncodedOp::Call<2>{}.encode());
+  static constexpr std::size_t call_size = std::tuple_size_v<CallEncoding>;
+  const std::size_t middle = resolution.is_stencil ? call_size : rec.body.size();
+  const std::size_t total = rec.prefix.size() + middle + rec.postfix.size();
 
-  // Compute total size so we can ensure all parts land in one buffer.
-  size_t total = rec.prefix.size() + rec.postfix.size();
-  if (resolution.is_stencil) total += call_enc.size();
-  else total += rec.body.size();
-
-  node.code->ensure_capacity(total);
-
-  pepp::bts::Buffer::Location subroutine_start{};
-  bool have_start = false;
-
-  auto append = [&](bits::span<const u8> bytes) {
-    auto loc = node.code->append(bytes);
-    if (!have_start) {
-      subroutine_start = loc;
-      have_start = true;
-    }
-  };
-
-  if (!rec.prefix.empty()) append({rec.prefix.data(), rec.prefix.size()});
-
+  // One reservation for the whole program, which also keeps it within a single buffer. Appending the three parts
+  // separately generated multiple out-of-line copy operations.
+  const auto reservation = node.code->reserve(total);
+  u8 *out = reservation.bytes.data();
+  // memcpy from an empty vector's data() may be passing null, which is undefined even for a zero length.
+  if (!rec.prefix.empty()) std::memcpy(out, rec.prefix.data(), rec.prefix.size());
+  out += rec.prefix.size();
   if (resolution.is_stencil) {
-    append({call_enc.data(), call_enc.size()});
-  } else if (!rec.body.empty()) append({rec.body.data(), rec.body.size()});
-
-  append({rec.postfix.data(), rec.postfix.size()});
+    const CallEncoding call = EncodedOp::Call<2>{
+        .next_ip = SegmentPair{.hi = resolution.location.id.value, .lo = resolution.location.offset}}
+                                  .encode();
+    std::memcpy(out, call.data(), call.size());
+  } else if (!rec.body.empty()) std::memcpy(out, rec.body.data(), rec.body.size());
+  out += middle;
+  if (!rec.postfix.empty()) std::memcpy(out, rec.postfix.data(), rec.postfix.size());
+  const pepp::bts::Buffer::Location subroutine_start = reservation.loc;
 
   // The number of bytes actually written to the code chain vs the bytes.
   _footprint.code += total;
