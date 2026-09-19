@@ -142,8 +142,8 @@ tvm::ProgramLocation TraceBuffer::commit(Device::ID initiator) {
   node.open--;
   rec->active = false;
 
-  auto resolution = resolve_body({rec->body.data(), rec->body.size()});
-  auto ret = flush_to_ring(*rec, resolution);
+  const auto *stencil = resolve_body({rec->body.data(), rec->body.size()});
+  auto ret = flush_to_ring(*rec, stencil);
   _footprint.programs++;
 
   // Advance once the slot is full and no recordings are open. Must be after flush_to_ring: advance_slot() runs
@@ -256,7 +256,7 @@ void TraceBuffer::clear() {
   // Reset all performance / footprint counters.
   _footprint = {};
   // All tables for stencil promotion must be cleared.
-  _stencil_map.clear(), _pending_hashes.clear(), _stencils->clear();
+  _stencil_map.clear(), _pending_hashes.clear(), _stencil_locations.clear(), _stencils->clear();
   // Create a tombstone entry in the stencil chain so reserved-but-unwritten location entries can point to a valid
   // program. Not counted in _footprint.stencils. It's only two bytes, and they are a functional requirement of the
   // reservation system. Is a target for target for CALLHALT.
@@ -368,9 +368,9 @@ bool TraceBuffer::stencil_matches(const StencilEntry &entry, bits::span<const u8
   return std::ranges::equal(entry.body, body);
 }
 
-TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body) {
+const TraceBuffer::StencilEntry *TraceBuffer::resolve_body(bits::span<const u8> body) {
   // If the program is too short, the overhead of the call would be more than we save by promoting it.
-  if (body.size() < PROMOTION_THRESHOLD) return {false, {}};
+  if (body.size() < PROMOTION_THRESHOLD) return nullptr;
 
   u32 hash = static_cast<u32>(pepp::fnv_1a(body));
 
@@ -379,15 +379,17 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
   // program's, which is silent and unrecoverable, so confirm the bytes before trusting the entry.
   if (auto it = _stencil_map.find(hash); it != _stencil_map.end() && stencil_matches(it->second, body)) {
     it->second.hit_count++;
-    return {true, it->second.location};
+    return &it->second;
   } else if (it != _stencil_map.end()) {
     // Collision: this body is not the promoted one. Inline it rather than calling the wrong stencil. It can never be
     // promoted itself, since the hash slot is taken, but correctness beats footprint here.
-    return {false, {}};
+    return nullptr;
   }
 
   // Seen once before?
   if (_pending_hashes.contains(hash)) {
+    // STCALL's operand has no room for another index.
+    if (_stencil_locations.size() >= MAX_STENCILS) return nullptr;
     if (body.size() >= PROMOTION_THRESHOLD) {
       // Promote: copy body to stencil chain.
       // Must append RET to ensure that the caller has an opportunity to run its own postifx.
@@ -406,36 +408,39 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
       _footprint.stencils += body.size() + ret.size();
 
       StencilEntry entry{};
-      entry.location = res.loc;
+      entry.index = static_cast<u16>(_stencil_locations.size());
       entry.body = res.bytes;
       entry.hit_count = 2;
-      _stencil_map[hash] = entry;
+      _stencil_locations.push_back(res.loc);
       _pending_hashes.erase(hash);
-      return {true, res.loc};
+      auto &promoted = _stencil_map[hash];
+      promoted = entry;
+      return &promoted;
     }
     // Below threshold — inline every time, don't re-add to pending.
-    return {false, {}};
+    return nullptr;
   }
 
   // Maybe first occurrence? Cap the size of pending so that it doesn't grow unboundedly.
   if (_pending_hashes.size() >= MAX_PENDING_HASHES) _pending_hashes.clear();
   _pending_hashes.insert(hash);
-  return {false, {}};
+  return nullptr;
 }
 
-tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution resolution) {
+tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, const StencilEntry *stencil) {
   auto &node = node_at(rec.slot);
 
   // The subroutine is: [prefix][body or CALL][postfix][HALT]
   // There are no separators or terminators between these sections. Postfix holds only caller-injected instructions;
   // the HALT every location-buffer program must end with is written here rather than stored with them.
-  // A promoted body with no postfix is just [prefix][CALLHALT] targeting a halt at a fixed location in the TraceBuffer.
-  using CallEncoding = decltype(EncodedOp::Call<2>{}.encode());
-  static_assert(std::is_same_v<CallEncoding, decltype(EncodedOp::CallHalt{}.encode())>);
+  // A promoted body is called by index. With no postfix, it is just [prefix][STCALLHALT], which returns to a HALT at
+  // a fixed location in the TraceBuffer.
+  using CallEncoding = decltype(EncodedOp::STCALL{}.encode());
+  static_assert(std::is_same_v<CallEncoding, decltype(EncodedOp::STCALLHalt{}.encode())>);
   static constexpr std::size_t call_size = std::tuple_size_v<CallEncoding>;
   static constexpr auto halt = EncodedOp::Halt<0>{}.encode();
-  const bool callhalt = resolution.is_stencil && rec.postfix.empty();
-  const std::size_t middle = resolution.is_stencil ? call_size : rec.body.size();
+  const bool callhalt = stencil != nullptr && rec.postfix.empty();
+  const std::size_t middle = stencil != nullptr ? call_size : rec.body.size();
   const std::size_t total = rec.prefix.size() + middle + rec.postfix.size() + (callhalt ? 0 : halt.size());
 
   // One reservation for the whole program, which also keeps it within a single buffer. Appending the three parts
@@ -445,9 +450,9 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution r
   // memcpy from an empty vector's data() may be passing null, which is undefined even for a zero length.
   if (!rec.prefix.empty()) std::memcpy(out, rec.prefix.data(), rec.prefix.size());
   out += rec.prefix.size();
-  if (resolution.is_stencil) {
-    const SegmentPair target{.hi = resolution.location.id.value, .lo = resolution.location.offset};
-    const CallEncoding call = callhalt ? EncodedOp::CallHalt{target}.encode() : EncodedOp::Call<2>{target}.encode();
+  if (stencil != nullptr) {
+    const CallEncoding call =
+        callhalt ? EncodedOp::STCALLHalt{stencil->index}.encode() : EncodedOp::STCALL{stencil->index}.encode();
     std::memcpy(out, call.data(), call.size());
   } else if (!rec.body.empty()) std::memcpy(out, rec.body.data(), rec.body.size());
   out += middle;

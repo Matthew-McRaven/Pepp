@@ -136,6 +136,8 @@ public:
   // Ceiling on hashes awaiting a second sighting. Bodies that never repeat would otherwise accumulate one entry per
   // program forever, which at tens of millions of instructions is hundreds of MB and a steadily slower lookup.
   static constexpr std::size_t MAX_PENDING_HASHES = 1u << 16;
+  // Maximum number of stencils that can be stored, limited by STCALL's u16 index can name.
+  static constexpr std::size_t MAX_STENCILS = std::size_t{1} << 16;
   // Maximum entries per location buffer (64KB / sizeof(ProgramLocation)).
   static constexpr u16 MAX_LOCATION_ENTRIES = pepp::bts::Buffer::SIZE / sizeof(tvm::ProgramLocation);
 
@@ -330,8 +332,12 @@ public:
 
   // --- Accessors ---
   std::size_t ring_size() const { return _ring.size(); }
-  // A HALT that lives as long as the buffer to which CALLHALT returns.
+  // A HALT that lives as long as the buffer to which CALLHALT and STCALLHALT return.
   pepp::bts::Buffer::Location halt_location() const { return _tombstone.code; }
+  // Where STCALL's index points. Buffer::ID{0} for an invalid index.
+  pepp::bts::Buffer::Location stencil_location(u16 index) const {
+    return index < _stencil_locations.size() ? _stencil_locations[index] : pepp::bts::Buffer::Location{};
+  }
   // Number of distinct initiators that have ever recorded. Entries persist after commit() so their scratch capacity
   // is reused, so this counts devices seen, not devices currently recording.
   std::size_t recording_count() const { return _recordings.size(); }
@@ -443,29 +449,24 @@ private:
 
   // --- Stencil dedup ---
   struct StencilEntry {
-    // Where a CALL to this stencil should aim.
-    pepp::bts::Buffer::Location location;
+    u16 index = 0; // A subscript into _stencil_locations.
     u32 hit_count = 0;
     // The bytes of the promoted body. On a hash hit, we want to compare the actual bytes to avoid collisions.
-    // This span pre-resolves location back to its buffer, avoiding a walk of the stencil chain on hit.
-    // While our size is really only a u16, it gets promoted to size_t on account of being a span. Always downcast size
-    // to 16 bits before use.
+    // This span avoids walking of the stencil chain on hit. While our size is really only a u16, it gets promoted to
+    // size_t on account of being a span. Always downcast size to 16 bits before use.
     //
     // The pointer is safe to hold as long as the stencil chain is not cleared, and as long as a Buffer's data is not
     // moved out of.
     bits::span<const u8> body{};
   };
 
-  struct BodyResolution {
-    bool is_stencil;
-    // If is_stencil: location in stencil chain (target of CALL).
-    pepp::bts::Buffer::Location location;
-  };
-  BodyResolution resolve_body(bits::span<const u8> body);
+  // The stencil to which this body corresponds or a nullptr if the body must be written to the ring directly. The
+  // pointer is only valid until the next promotion or call to resolve_body.
+  const StencilEntry *resolve_body(bits::span<const u8> body);
   // True when the stencil recorded in `entry` holds exactly `body`. resolve_body keys stencils on a truncated
   // 32-bit hash, so a map hit alone does not prove the bodies match; this is what makes a collision safe.
   static bool stencil_matches(const StencilEntry &entry, bits::span<const u8> body);
-  tvm::ProgramLocation flush_to_ring(Recording &rec, BodyResolution resolution);
+  tvm::ProgramLocation flush_to_ring(Recording &rec, const StencilEntry *stencil);
 
   // This recording's data chain in the ringbuffer's head slot, creating the chain on first use.
   pepp::bts::BufferChain &data_chain(Recording &rec);
@@ -517,9 +518,11 @@ private:
   // Buffer::ID{0} hard-stops the interpreter with InvalidIBuffer, which causes run_each to break. A single aborted
   // instruction halts the entire replay. To prevent ID==0 from appearing in reserved slots, point to a valid program
   // which contains only HALT. This program is always the first entry of the stencil chain, written by clear(), and
-  // doubles as CALLHALT's return address.
+  // doubles as *CALLHALT's return address.
   tvm::ProgramLocation _tombstone{};
   std::unordered_map<u32, StencilEntry> _stencil_map;
+  // A reverse lookup from StencilEntry::index to its body's bytes. Stencils are stored densely in promotion order.
+  std::vector<pepp::bts::Buffer::Location> _stencil_locations;
   // Hashes seen once but not yet promoted. On second occurrence with
   // body.size() >= PROMOTION_THRESHOLD, the body is promoted to _stencils.
   std::unordered_set<u32> _pending_hashes;

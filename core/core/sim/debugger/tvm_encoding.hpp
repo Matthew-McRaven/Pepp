@@ -107,6 +107,15 @@ struct CallHalt {
   constexpr auto encode() const { return encode_op<Opcode::CALLHALT, true>(next_ip.lo, next_ip.hi); }
 };
 
+struct STCALL {
+  u16 index;
+  constexpr auto encode() const { return encode_op<Opcode::STCALL, true>(index); }
+};
+struct STCALLHalt {
+  u16 index;
+  constexpr auto encode() const { return encode_op<Opcode::STCALLHALT, true>(index); }
+};
+
 // on_forward is called when stepping forward, on_backward when stepping backward.
 // <2> is INVCALLN, whose targets are both in the current buffer.
 template <std::size_t> struct InvCall;
@@ -386,6 +395,11 @@ struct Call {
 struct CallHalt {
   SegmentPair next_ip{};
 };
+// The backend resolves the index to a target location, modifying the return address if returns_to_halt is true.
+struct STCALL {
+  u16 index = 0;
+  bool returns_to_halt = false;
+};
 // Both targets are always resolved, even when the packet was short enough that one (or both) fell back to the
 // fall-through address. execute picks between them on the F bit; nothing else distinguishes the two.
 struct InvCall {
@@ -495,7 +509,8 @@ struct LoadSegment {
   SegmentHandle src{};
 };
 
-using OpChoice = std::variant<Halt, Ret, Call, CallHalt, InvCall, InvRet, ASyn, ISyn, LMR, BR, DeltaMem, CmpMem, ClrMem,
-                              DeltaReg, CmpReg, ClrReg, TRADDR, LDP, DPIncr, MMIO, MovMem2Reg, LoadSegment>;
+using OpChoice = std::variant<Halt, Ret, Call, CallHalt, STCALL, InvCall, InvRet, ASyn, ISyn, LMR, BR, DeltaMem,
+                              CmpMem, ClrMem, DeltaReg, CmpReg, ClrReg, TRADDR, LDP, DPIncr, MMIO, MovMem2Reg,
+                              LoadSegment>;
 } // namespace DecodedOp
 } // namespace tvm

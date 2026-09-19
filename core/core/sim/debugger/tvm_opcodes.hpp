@@ -41,6 +41,8 @@ enum class StopCause {
   SegmentUnknown,
   // An access to target or register failed.
   AccessRefused,
+  // A STCALL with an invalid index.
+  StencilUnknown,
 };
 
 // How a payload of a SET* operation combines with what is already at the destination.
@@ -92,6 +94,11 @@ enum class Opcode : u16 {
   // needs no HALT of its own. Where that HALT lives is up to the backend, which refuses the op if it has none.
   // Packet registers: MOD2.lo, MOD2.hi
   CALLHALT = 0x0003,
+  // Call a stencil by its index rather than its address. The backend resolves the index and updates IP accordingly.
+  // This saves 2B per instruction that uses a stencil. STCALLHALT is a variant whci returns to a HALT, like CALLHALT.
+  // Packet registers: (stencil index)
+  STCALL = 0x0202,
+  STCALLHALT = 0x0203,
   // Synchronize absolute and synchronize incremental, which both take a timestamp / clock tick.
   // ASYN reports the full timestamp, whereas ISYN reports a signed delta to be added to the previous timestamp.
   // The two differ only in LSB, which is set for the incremental variant.
@@ -312,6 +319,8 @@ constexpr int fixed_words(Opcode op) {
   case Opcode::ISYN: return 0;
   case Opcode::HALTC: [[fallthrough]];
   case Opcode::CALLN: [[fallthrough]];
+  case Opcode::STCALL: [[fallthrough]];
+  case Opcode::STCALLHALT: [[fallthrough]];
   case Opcode::BRFN: [[fallthrough]];
   case Opcode::NOPN: [[fallthrough]];
   case Opcode::BREQN: [[fallthrough]];
