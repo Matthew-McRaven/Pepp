@@ -330,6 +330,8 @@ public:
 
   // --- Accessors ---
   std::size_t ring_size() const { return _ring.size(); }
+  // A HALT that lives as long as the buffer to which CALLHALT returns.
+  pepp::bts::Buffer::Location halt_location() const { return _tombstone.code; }
   // Number of distinct initiators that have ever recorded. Entries persist after commit() so their scratch capacity
   // is reused, so this counts devices seen, not devices currently recording.
   std::size_t recording_count() const { return _recordings.size(); }
@@ -514,8 +516,8 @@ private:
   std::unique_ptr<pepp::bts::BufferChain> _stencils;
   // Buffer::ID{0} hard-stops the interpreter with InvalidIBuffer, which causes run_each to break. A single aborted
   // instruction halts the entire replay. To prevent ID==0 from appearing in reserved slots, point to a valid program
-  // which contains only HALT. This program is allocated on the stencil chain in the ctor, and the location is stored
-  // here.
+  // which contains only HALT. This program is always the first entry of the stencil chain, written by clear(), and
+  // doubles as CALLHALT's return address.
   tvm::ProgramLocation _tombstone{};
   std::unordered_map<u32, StencilEntry> _stencil_map;
   // Hashes seen once but not yet promoted. On second occurrence with

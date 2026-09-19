@@ -38,6 +38,7 @@ void Decoder::decode() {
   case Opcode::RET: _decoded = decode_ret(ibp, iop); break;
   case Opcode::CALL: [[fallthrough]];
   case Opcode::CALLN: _decoded = decode_call(ibp, iop); break;
+  case Opcode::CALLHALT: _decoded = decode_callhalt(ibp, iop); break;
   case Opcode::INVCALL: [[fallthrough]];
   case Opcode::INVCALLN: _decoded = decode_invcall(ibp, iop); break;
   case Opcode::INVRET: _decoded = decode_invret(ibp, iop); break;
@@ -110,6 +111,13 @@ tvm::DecodedOp::Call Decoder::decode_call(pepp::bts::Buffer::ID ibp, u16 iop) {
   ret.next_ip.lo = read(ibp, iop + 0);
   // A near call stays in this buffer.
   ret.next_ip.hi = _state.regs.IS.opcode == tvm::Opcode::CALLN ? _state.regs.IP.hi : read(ibp, iop + 2);
+  return ret;
+}
+
+tvm::DecodedOp::CallHalt Decoder::decode_callhalt(pepp::bts::Buffer::ID ibp, u16 iop) {
+  tvm::DecodedOp::CallHalt ret;
+  ret.next_ip.lo = read(ibp, iop + 0);
+  ret.next_ip.hi = read(ibp, iop + 2);
   return ret;
 }
 

@@ -88,15 +88,10 @@ enum class Opcode : u16 {
   // Near form of CALL, whose target is in the current buffer.
   // Packet registers: MOD2.lo
   CALLN = 0x0102,
-  // Load masked register.
-  // First word is a bitmask which indicates which registers to load.
-  // The mask is defined in RegMask.
-  // We iterate bits right to left (0..14). If the bit is set, we read the next word into the target register.
-  // The process continues until we run out of bits or we run out of words.
-  // Originally, I had a different load instruction per register. This wasted a ton of opcode space & program encoding
-  // space when setting more than one register at once. Take advantage of the varadicity man.
-  // Packet registers: RegMask, <varies>
-  LMR = 0x4000,
+  // A far CALL whose return address is a HALT rather than the next instruction, so that a program ending in a call
+  // needs no HALT of its own. Where that HALT lives is up to the backend, which refuses the op if it has none.
+  // Packet registers: MOD2.lo, MOD2.hi
+  CALLHALT = 0x0003,
   // Synchronize absolute and synchronize incremental, which both take a timestamp / clock tick.
   // ASYN reports the full timestamp, whereas ISYN reports a signed delta to be added to the previous timestamp.
   // The two differ only in LSB, which is set for the incremental variant.
@@ -278,6 +273,15 @@ enum class Opcode : u16 {
   //
   // Packet registers: ACCESS, ID.lo, MOD1.hi, MOD1.lo
   LDSEGM = 0x0024,
+  // Load masked register.
+  // First word is a bitmask which indicates which registers to load.
+  // The mask is defined in RegMask.
+  // We iterate bits right to left (0..14). If the bit is set, we read the next word into the target register.
+  // The process continues until we run out of bits or we run out of words.
+  // Originally, I had a different load instruction per register. This wasted a ton of opcode space & program encoding
+  // space when setting more than one register at once. Take advantage of the varadicity man.
+  // Packet registers: RegMask, <varies>
+  LMR = 0x4000,
   // Immediate forms of SET*, STEP*, CMP* and *SYN, which decode to the same operations as their DP-relative
   // counterparts. The payload travels in the packet instead of at DP, leaving DP and DS untouched. The packet is the
   // base opcode's full packet, followed by a size word in MOD1.lo, followed by the payload bytes. MOD2 is set to point
@@ -319,6 +323,7 @@ constexpr int fixed_words(Opcode op) {
   case Opcode::BRN: [[fallthrough]];
   case Opcode::ACCDP: return 1;
   case Opcode::CALL: [[fallthrough]];
+  case Opcode::CALLHALT: [[fallthrough]];
   case Opcode::INVCALLN: [[fallthrough]];
   case Opcode::BRF: [[fallthrough]];
   case Opcode::NOP: [[fallthrough]];

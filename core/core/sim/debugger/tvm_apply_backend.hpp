@@ -68,6 +68,8 @@ public:
   tvm::TraceBuffer *trace_buffer() const { return _tb; }
 
   void on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op) override;
+  // Returns to the trace buffer's HALT.
+  void on_callhalt(MachineState &state, const tvm::DecodedOp::CallHalt &op) override;
 
 private:
   tvm::TraceBuffer *_tb = nullptr;

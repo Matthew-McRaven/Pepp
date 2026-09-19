@@ -259,7 +259,7 @@ void TraceBuffer::clear() {
   _stencil_map.clear(), _pending_hashes.clear(), _stencils->clear();
   // Create a tombstone entry in the stencil chain so reserved-but-unwritten location entries can point to a valid
   // program. Not counted in _footprint.stencils. It's only two bytes, and they are a functional requirement of the
-  // reservation system.
+  // reservation system. Is a target for target for CALLHALT.
   const auto halt = EncodedOp::Halt<0>{}.encode();
   _tombstone = {};
   _tombstone.code = _stencils->append({halt.data(), halt.size()});
@@ -429,13 +429,14 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution r
   // The subroutine is: [prefix][body or CALL][postfix][HALT]
   // There are no separators or terminators between these sections. Postfix holds only caller-injected instructions;
   // the HALT every location-buffer program must end with is written here rather than stored with them.
-  // All parts of a subroutine must land in the same buffer — we must not split code across a buffer boundary.
-
+  // A promoted body with no postfix is just [prefix][CALLHALT] targeting a halt at a fixed location in the TraceBuffer.
   using CallEncoding = decltype(EncodedOp::Call<2>{}.encode());
+  static_assert(std::is_same_v<CallEncoding, decltype(EncodedOp::CallHalt{}.encode())>);
   static constexpr std::size_t call_size = std::tuple_size_v<CallEncoding>;
   static constexpr auto halt = EncodedOp::Halt<0>{}.encode();
+  const bool callhalt = resolution.is_stencil && rec.postfix.empty();
   const std::size_t middle = resolution.is_stencil ? call_size : rec.body.size();
-  const std::size_t total = rec.prefix.size() + middle + rec.postfix.size() + halt.size();
+  const std::size_t total = rec.prefix.size() + middle + rec.postfix.size() + (callhalt ? 0 : halt.size());
 
   // One reservation for the whole program, which also keeps it within a single buffer. Appending the three parts
   // separately generated multiple out-of-line copy operations.
@@ -445,15 +446,14 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution r
   if (!rec.prefix.empty()) std::memcpy(out, rec.prefix.data(), rec.prefix.size());
   out += rec.prefix.size();
   if (resolution.is_stencil) {
-    const CallEncoding call = EncodedOp::Call<2>{
-        .next_ip = SegmentPair{.hi = resolution.location.id.value, .lo = resolution.location.offset}}
-                                  .encode();
+    const SegmentPair target{.hi = resolution.location.id.value, .lo = resolution.location.offset};
+    const CallEncoding call = callhalt ? EncodedOp::CallHalt{target}.encode() : EncodedOp::Call<2>{target}.encode();
     std::memcpy(out, call.data(), call.size());
   } else if (!rec.body.empty()) std::memcpy(out, rec.body.data(), rec.body.size());
   out += middle;
   if (!rec.postfix.empty()) std::memcpy(out, rec.postfix.data(), rec.postfix.size());
   out += rec.postfix.size();
-  std::memcpy(out, halt.data(), halt.size());
+  if (!callhalt) std::memcpy(out, halt.data(), halt.size());
   const pepp::bts::Buffer::Location subroutine_start = reservation.loc;
 
   // The number of bytes actually written to the code chain vs the bytes.
