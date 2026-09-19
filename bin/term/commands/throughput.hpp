@@ -40,6 +40,8 @@ public:
   u64 maxInstr = 100'000'000;
   bool has_bps = false;
   bool use_sparse = false;
+  // Record every instruction into a trace buffer, reclaiming old history as it goes. Core and RV only.
+  bool record_traces = false;
   TestProgram program = TestProgram::SelfBranch;
 
 private:
@@ -53,7 +55,7 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
   static ThroughputTask::WhichVersion version = ThroughputTask::WhichVersion::Core;
   static ThroughputTask::TestProgram program = ThroughputTask::TestProgram::SelfBranch;
   static u64 maxInstr = 100'000'000;
-  static bool has_bps = false, use_sparse = false;
+  static bool has_bps = false, use_sparse = false, record_traces = false;
   auto versionOpt = instrThruSC->add_option("-v,--version", version, "Which version to run")
                         ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
                             {"sim3", ThroughputTask::WhichVersion::Sim3},
@@ -71,6 +73,12 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
   static auto useSparseOpt =
       instrThruSC->add_flag("--sparse,!--no-sparse", use_sparse, "Use Sparse storage for RAM rather then Dense")
           ->default_val(false);
+  static auto recordTracesOpt =
+      instrThruSC
+          ->add_flag("--trace,!--no-trace", record_traces,
+                     "Record a trace of every instruction, dropping the oldest history whenever the trace ring passes "
+                     "75% full. Core and RV only.")
+          ->default_val(false);
   instrThruSC->group("");
   instrThruSC->callback([&]() {
     flags.kind = detail::SharedFlags::Kind::TERM;
@@ -80,6 +88,7 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
       ret->has_bps = has_bps;
       ret->program = program;
       ret->use_sparse = use_sparse;
+      ret->record_traces = record_traces;
       return ret;
     };
   });
