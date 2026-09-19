@@ -98,7 +98,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     auto ref = *scan->find("A");
 
     tb.begin(S);
-    body(CmpReg<3>(ref.reg.value, ref.field.value).encode(0xFEED));
+    body(CmpRegI(ref.reg.value, ref.field.value).encode(0xFEED));
     auto loc = tb.commit(S);
 
     CHECK(blaster->csrs().L == 1);
@@ -197,6 +197,22 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
     CHECK(blaster->csrs().L == 0);
     CHECK(blaster->csrs().F == 0);
     CHECK(((Target *)mem)->read<u16, bits::host_is_le>(offset, rw).second == 0x0000);
+  }
+
+  SECTION("Set and xor memory from immediates") {
+    auto blaster = sys->make_trace_interpreter();
+    const auto off = SP{.hi = 0, .lo = 0xFEED};
+
+    tb.begin(S);
+    const auto dev = mem->id().value;
+    body(SetMemI<false>{.access = rw.as_u16(), .dev = dev, .off = off}.encode(std::array<u8, 2>{0xBE, 0xEF}));
+    body(SetMemI<true>{.access = rw.as_u16(), .dev = dev, .off = off}.encode(std::array<u8, 2>{0xFF, 0x00}));
+    auto loc = tb.commit(S);
+
+    blaster->run(loc);
+    CHECK(blaster->csrs().L == 0);
+    CHECK(blaster->csrs().F == 0);
+    CHECK(((Target *)mem)->read<u16, bits::host_is_le>(off.lo, rw).second == 0x41EF);
   }
 }
 
@@ -323,7 +339,7 @@ TEST_CASE("CMPREG compares a 4-byte register little-endian", "[scope:core][scope
   tvm::TraceBuffer tb(sys->buffer_manager());
 
   // Expected value supplied little-endian. Under the current assembly order this reads as 0x33441122 instead.
-  auto enc = CmpReg<3>(ref.reg.value, ref.field.value).encode(WIDE_LE);
+  auto enc = CmpRegI(ref.reg.value, ref.field.value).encode(WIDE_LE);
   tb.begin(S);
   tb.emit_body(S, {enc.data(), enc.size()});
   auto loc = tb.commit(S);
@@ -720,7 +736,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
       const u64 v = value_for(s.byte_width);
 
       auto blaster = run([&](tvm::TraceBuffer &tb) {
-        auto imm = SetReg<false, 4>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0};
+        auto imm = SetRegI<false>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0};
         // Immediate payload is sized by the size word the encoder emits, so match the register's width exactly.
         switch (s.byte_width) {
         case 1: {
@@ -777,7 +793,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
     scan->write<u8>(whole, 0);
 
     auto blaster = run([&](tvm::TraceBuffer &tb) {
-      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = v.reg.value, .field = v.field.value}.encode(
+      auto enc = SetRegI<false>{.access = rw.as_u16(), .reg = v.reg.value, .field = v.field.value}.encode(
           std::array<u8, 1>{0x01});
       tb.emit_body(S, {enc.data(), enc.size()});
     });
@@ -791,7 +807,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
     auto ref = *scan->find("be4");
     auto blaster = run([&](tvm::TraceBuffer &tb) {
       // Two bytes of data for a four-byte register.
-      auto enc = SetReg<false, 4>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0}.encode(
+      auto enc = SetRegI<false>{.access = rw.as_u16(), .reg = ref.reg.value, .field = 0}.encode(
           std::array<u8, 2>{0xAA, 0xBB});
       tb.emit_body(S, {enc.data(), enc.size()});
     });
@@ -804,7 +820,7 @@ TEST_CASE("Setting registers", "[scope:core][scope:core.dbg][kind:unit][arch:pep
   SECTION("An unknown register id hard stops") {
     auto blaster = run([&](tvm::TraceBuffer &tb) {
       auto enc =
-          SetReg<false, 4>{.access = rw.as_u16(), .reg = 0xBEEF, .field = 0}.encode(std::array<u8, 2>{0xAA, 0xBB});
+          SetRegI<false>{.access = rw.as_u16(), .reg = 0xBEEF, .field = 0}.encode(std::array<u8, 2>{0xAA, 0xBB});
       tb.emit_body(S, {enc.data(), enc.size()});
     });
 
@@ -835,7 +851,7 @@ TEST_CASE("Comparing register fields", "[scope:core][scope:core.dbg][kind:unit][
     auto blaster = sys->make_trace_interpreter();
     tvm::TraceBuffer tb(sys->buffer_manager());
     tb.begin(S);
-    auto enc = CmpReg<3>(ref.reg.value, ref.field.value).encode(data);
+    auto enc = CmpRegI(ref.reg.value, ref.field.value).encode(data);
     tb.emit_body(S, {enc.data(), enc.size()});
     auto loc = tb.commit(S);
     blaster->run(loc);

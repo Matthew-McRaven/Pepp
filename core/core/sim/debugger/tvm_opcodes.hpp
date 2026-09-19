@@ -83,15 +83,11 @@ enum class Opcode : u8 {
   // Synchronize absolute and synchronize incremental, which both take a timestamp / clock tick.
   // ASYN reports the full timestamp, whereas ISYN reports a signed delta to be added to the previous timestamp.
   // The two differ only in LSB, which is set for the incremental variant.
-  // Both accept immediate or DP-relative data.
-  // If MOD1.lo is set, is is treated as the size in bytes of the immeidate data, and MOD2 is set to point to the word
-  // following MOD1.lo in the instruction stream. All remaining words in the packet are treated as data.
-  // If MOD1.lo is not provided, data is located at DP.
-  // This is the same immediate-vs-DP split used by SET*/CMP*.
+  // Data is located at DP/DS; see ASYNI/ISYNI for the immediate forms.
   // The data is a little-endian integer. A timestamp can't exceed 64 bits, so the resulting size will be clipped to 8
   // bytes, regardless of data source. The blaster does not retain a timestamp, so this value is purely for higher-level
   // analysis code.
-  // Packet registers: MOD1.lo
+  // No packet registers.
   ASYN = 0b00'0100,
   ISYN = 0b00'0101,
   // An invertible call, which is the escape hatch that lets an one-way operation participate in reverse replay.
@@ -138,28 +134,26 @@ enum class Opcode : u8 {
   // Set copies data from DP into the target address and the X variant performs a read-XOR-write with the data. The x
   // variant is very helpful for encoding traces, whereas the base version is more useful for register blasting.
   // Both are programmed the same way. While not mandatory, there is no convenient way to set ACCESS,ID,OFF registers.
-  // If MOD1 is provided, it is used as a temporary override for size. In this case MOD2.hi is set to IP.hi,
-  // and MOD2.lo is set to the location 6. Passing IP-relative data via MOD1/MOD2 is the "immediate" variant.
-  // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo, MOD1.lo
+  // Data always comes from DP/DS; see SETMEMI for the immediate form.
+  // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo
   // Successfully accesses must set F to 0. Failed acceses must set F to 1.
   SETMEM = 0b01'0000,
   SETMEMX = 0b01'0010,
   // Almost identical to mem variants, except that the ID register is 2 words rather than 1 and is not present.
   // Registers can't exceed 64-bits / DS==8. Sets F on memory access failure.
-  // If MOD1 is provided, it is used as a temporary override for size. In this case MOD2.hi is set to IP.hi,
-  // and MOD2.lo is set to the location 5. Passing IP-relative data via MOD1/MOD2 is the "immediate" variant.
-  // Packet registers: ACCESS, ID.hi, ID.lo, MOD1.lo
+  // Data always comes from DP/DS; see SETREGI for the immediate form.
+  // Packet registers: ACCESS, ID.hi, ID.lo
   SETREG = 0b01'0001,
   SETREGX = 0b01'0011,
   // Compare memory at DP with the target at offset, setting status bits accordingly
-  // If MOD1.lo is provided, it uses the same immediate data semantics as SETMEM.
-  // Packet registers: ID.lo, OFF.hi, OFF.lo, MOD1.lo
+  // Data always comes from DP/DS; see CMPMEMI for the immediate form.
+  // Packet registers: ID.lo, OFF.hi, OFF.lo
   // Same deal on F.
   CMPMEM = 0b01'0100,
   // Same as CMPMEM, except that the ID register is 2 words and there is no offset into register.
-  // If MOD1.lo is provided, it uses the same immediate data semantics as SETMEM.
+  // Data always comes from DP/DS; see CMPREGI for the immediate form.
   // If data size != register size, hard stops.
-  // Packet registers:  ID.hi, ID.lo, MOD1.lo
+  // Packet registers:  ID.hi, ID.lo
   // Same deal on F.
   CMPREG = 0b01'0101,
   // Clear the memory module of a target
@@ -233,13 +227,13 @@ enum class Opcode : u8 {
   MMIO = 0b01'1111,
   // STEP* are similar to SET*X in that they perform a read-modify-write of a memory location. The difference is that
   // the modification operation is signed addition rather than XOR. This is useful for (program) counters.
-  // It share the same immediate semantics with SETMEM.
+  // Data always comes from DP/DS; see STEPMEMI for the immediate form.
   // If MOD1.hi is 0, then the target location should be interpreted as a LE number; if 1, BE.
   // read-modify-written. Packet registers should remain LE.
   //
-  // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo, MOD1.hi, MOD1.lo
+  // Packet registers: ACCESS, ID.lo, OFF.hi, OFF.lo, MOD1.hi
   STEPMEM = 0b10'0000,
-  // Packet registers: ACCESS, ID.hi, ID.lo, MOD1.lo
+  // Packet registers: ACCESS, ID.hi, ID.lo
   STEPREG = 0b10'0010,
   // A non-invertible copy from memory to register.
   // ACCESS is only used for the read, register write occurs with Host permissions. ID hold the destination (therefore
@@ -256,8 +250,24 @@ enum class Opcode : u8 {
   //
   // Packet registers: ACCESS, ID.lo, MOD1.hi, MOD1.lo
   LDSEGM = 0b10'0100,
+  // Immediate forms of SET*, STEP*, CMP* and *SYN, which decode to the same operations as their DP-relative
+  // counterparts. The payload travels in the packet instead of at DP, leaving DP and DS untouched. The packet is the
+  // base opcode's full packet, followed by a size word in MOD1.lo, followed by the payload bytes. MOD2 is set to point
+  // at the payload.
+  // Packet registers: <base packet>, MOD1.lo, <payload>
+  SETMEMI = 0b10'1000,
+  SETREGI = 0b10'1001,
+  SETMEMXI = 0b10'1010,
+  SETREGXI = 0b10'1011,
+  STEPMEMI = 0b10'1100,
+  STEPREGI = 0b10'1110,
+  CMPMEMI = 0b11'0100,
+  CMPREGI = 0b11'0101,
+  // The sync ops have no base packet, so the size word comes first. MOD1.lo is clipped to 8 bytes, like the timestamp.
+  ASYNI = 0b11'1000,
+  ISYNI = 0b11'1001,
   // Must always be 1 greater than the last opcode. Used to size the decoder table at compile-time.
-  MAX = ((u8)LDSEGM) + 1,
+  MAX = ((u8)ISYNI) + 1,
 };
 
 // (4) OFFSET

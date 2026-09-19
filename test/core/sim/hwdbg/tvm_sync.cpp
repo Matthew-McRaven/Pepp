@@ -39,7 +39,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
   };
 
   SECTION("An 8-byte immediate is a full 64-bit timestamp") {
-    constexpr auto program = ASyn<1>{}.encode(std::array<u8, 8>{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
+    constexpr auto program = ASynI{}.encode(std::array<u8, 8>{0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
     static_assert(program.size() == 12, "opcode word + size word + four payload words");
 
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
@@ -51,7 +51,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
   }
 
   SECTION("A narrow unsigned immediate zero-extends") {
-    constexpr auto program = ASyn<1>{}.encode(u16(0xFFFF));
+    constexpr auto program = ASynI{}.encode(u16(0xFFFF));
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     load(blaster, program);
     blaster.step();
@@ -61,7 +61,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
     CHECK(timestamp(blaster) == 0x0000'0000'0000'FFFFULL);
   }
  SECTION("A narrow signed immediate sign-extends") {
-    constexpr auto program = ISyn<1>{}.encode(u16(0xFFFF));
+    constexpr auto program = ISynI{}.encode(u16(0xFFFF));
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     load(blaster, program);
     blaster.step();
@@ -73,7 +73,7 @@ TEST_CASE("tvm::Interpreter: ASYN timestamp decoding", "[scope:core][scope:core.
 
   SECTION("An immediate wider than 8 bytes is clipped") {
     constexpr auto program =
-        ASyn<1>{}.encode(std::array<u8, 12>{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C});
+        ASynI{}.encode(std::array<u8, 12>{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C});
     // Size of the instruction is still 12 bytes
     CHECK(program[2] == 12);
 

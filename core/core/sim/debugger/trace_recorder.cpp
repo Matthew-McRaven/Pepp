@@ -35,7 +35,7 @@ void Recorder::Instruction::tick_slow(i16 delta) {
   // This runs before any wrote(), so the tick lands at the head of the body, ahead of the DP steps.
   // The same instruction executing at different clock rates will now produce different deltas -- something we can
   // optimize for in the future.
-  const auto isyn = tvm::EncodedOp::ISyn<1>{}.encode(static_cast<u16>(delta));
+  const auto isyn = tvm::EncodedOp::ISynI{}.encode(static_cast<u16>(delta));
   _tb->emit_body(*rec, {isyn.data(), isyn.size()});
 }
 
@@ -85,7 +85,7 @@ void Recorder::emit_write_increment(const Operation &op, Address address, bits::
     std::array<u8, N> payload{};
     bits::memcpy_endian(bits::span<u8>{payload.data(), N}, bits::Order::LittleEndian, delta);
     const auto step =
-        tvm::EncodedOp::StepMem<6>(op.as_u16(), _emitter.value, off, tvm::encode_order(order)).encode(payload);
+        tvm::EncodedOp::StepMemI(op.as_u16(), _emitter.value, off, tvm::encode_order(order)).encode(payload);
     _tb->emit_body(*rec, {step.data(), step.size()});
   };
   switch (len) {
@@ -163,7 +163,7 @@ void Recorder::emit_incr_register(const Operation &op, RegisterScan::RegisterRef
   // The register's width and byte order stay STEPREG's business, since the scan reports both -- which is why the
   // delta may be narrower than the counter it steps.
   const auto emit = [&](auto payload) {
-    const auto step = tvm::EncodedOp::StepReg<4>(op.as_u16(), ref.reg.value, ref.field.value).encode(payload);
+    const auto step = tvm::EncodedOp::StepRegI(op.as_u16(), ref.reg.value, ref.field.value).encode(payload);
     _tb->emit_body(*rec, {step.data(), step.size()});
   };
   // Payloads are little-endian and signed. One byte covers the +-1 steps this exists for; the rest take two.

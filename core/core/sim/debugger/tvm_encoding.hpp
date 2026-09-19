@@ -139,17 +139,18 @@ template <Opcode SYNT, std::size_t> struct Syn;
 template <Opcode SYNT> struct Syn<SYNT, 0> {
   constexpr auto encode() const { return encode_op<SYNT, true>(); }
 };
-// Immediate: size word followed by the little-endian timestamp bytes. Carries no prefix words, since the sync ops have
-// no target/offset registers to program.
-template <Opcode SYNT> struct Syn<SYNT, 1> : ImmediateEncoder<SYNT, Syn<SYNT, 1>> {
+// Immediate, size word followed by the little-endian timestamp bytes.
+template <Opcode SYNT> struct SynI : ImmediateEncoder<SYNT, SynI<SYNT>> {
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(); }
 };
 } // namespace detail
 
 // Absolute timestamp. Data is treated as an unsigned little-endian integer.
 template <std::size_t N> using ASyn = detail::Syn<Opcode::ASYN, N>;
+using ASynI = detail::SynI<Opcode::ASYNI>;
 // Incremental timestamp. Data is treated as a signed little-endian delta added to the previous timestamp.
 template <std::size_t N> using ISyn = detail::Syn<Opcode::ISYN, N>;
+using ISynI = detail::SynI<Opcode::ISYNI>;
 
 // Use lmr/lmr_of if you want to emit LMR instructions. They're variadic. I won't help you with a struct because that
 // struct will be way too fat or it will incur dynamic memory alloc.
@@ -230,7 +231,8 @@ template <> struct CmpMem<3> {
   SegmentPair off;
   constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev, off.hi, off.lo); }
 };
-template <> struct CmpMem<4> : ImmediateEncoder<Opcode::CMPMEM, CmpMem<4>> {
+// Immediate form of CmpMem<3>.
+struct CmpMemI : ImmediateEncoder<Opcode::CMPMEMI, CmpMemI> {
   u16 dev;
   SegmentPair off;
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(dev, off.hi, off.lo); }
@@ -257,7 +259,10 @@ template <bool X> struct SetMem<X, 4> {
   SegmentPair off;
   constexpr auto encode() const { return encode_op<SetMemOp<X>, true>(access, dev, off.hi, off.lo); }
 };
-template <bool X> struct SetMem<X, 5> : ImmediateEncoder<SetMemOp<X>, SetMem<X, 5>> {
+
+template <bool X> inline constexpr Opcode SetMemIOp = X ? Opcode::SETMEMXI : Opcode::SETMEMI;
+// Immediate form of SetMem<X, 4>.
+template <bool X> struct SetMemI : ImmediateEncoder<SetMemIOp<X>, SetMemI<X>> {
   u16 access, dev;
   SegmentPair off;
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, dev, off.hi, off.lo); }
@@ -266,7 +271,7 @@ template <bool X> struct SetMem<X, 5> : ImmediateEncoder<SetMemOp<X>, SetMem<X, 
 template <bool X> inline constexpr Opcode SetRegOp = X ? Opcode::SETREGX : Opcode::SETREG;
 
 // Same shape as SetMem, except the ID is two words (register, field) and there is no offset. A field of 0 addresses
-// the whole register. The <4> form carries immediate data; the shorter ones take it from DP/DS.
+// the whole register. These take their data from DP/DS; SetRegI carries it in the packet.
 template <bool X, std::size_t> struct SetReg;
 
 template <bool X> struct SetReg<X, 1> {
@@ -281,7 +286,10 @@ template <bool X> struct SetReg<X, 3> {
   u16 access, reg, field;
   constexpr auto encode() const { return encode_op<SetRegOp<X>, true>(access, reg, field); }
 };
-template <bool X> struct SetReg<X, 4> : ImmediateEncoder<SetRegOp<X>, SetReg<X, 4>> {
+
+template <bool X> inline constexpr Opcode SetRegIOp = X ? Opcode::SETREGXI : Opcode::SETREGI;
+// Immediate form of SetReg<X, 3>.
+template <bool X> struct SetRegI : ImmediateEncoder<SetRegIOp<X>, SetRegI<X>> {
   u16 access, reg, field;
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, reg, field); }
 };
@@ -311,10 +319,11 @@ template <> struct StepMem<5> {
   constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access, dev, off.hi, off.lo, order); }
 };
 
-// Deriving from ImmediateEncoder prevents designated initializers, so it spells out a constructor like CmpReg<3>
+// Immediate form of StepMem<5>.
+// Deriving from ImmediateEncoder prevents designated initializers, so it spells out a constructor like CmpRegI
 // The size word is not a member: ImmediateEncoder emits it from the payload it is handed.
-template <> struct StepMem<6> : ImmediateEncoder<Opcode::STEPMEM, StepMem<6>> {
-  constexpr StepMem<6>(u16 access, u16 dev, SegmentPair off, u16 order)
+struct StepMemI : ImmediateEncoder<Opcode::STEPMEMI, StepMemI> {
+  constexpr StepMemI(u16 access, u16 dev, SegmentPair off, u16 order)
       : access(access), dev(dev), off(off), order(order) {}
   u16 access, dev;
   SegmentPair off;
@@ -337,8 +346,9 @@ template <> struct StepReg<3> {
   u16 access, reg, field;
   constexpr auto encode() const { return encode_op<Opcode::STEPREG, true>(access, reg, field); }
 };
-template <> struct StepReg<4> : ImmediateEncoder<Opcode::STEPREG, StepReg<4>> {
-  constexpr StepReg<4>(u16 access, u16 reg, u16 field) : access(access), reg(reg), field(field) {}
+// Immediate form of StepReg<3>.
+struct StepRegI : ImmediateEncoder<Opcode::STEPREGI, StepRegI> {
+  constexpr StepRegI(u16 access, u16 reg, u16 field) : access(access), reg(reg), field(field) {}
   u16 access, reg, field;
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(access, reg, field); }
 };
@@ -375,8 +385,9 @@ template <> struct CmpReg<2> {
   u16 reg, field;
   constexpr auto encode() const { return encode_op<Opcode::CMPREG, true>(reg, field); }
 };
-template <> struct CmpReg<3> : ImmediateEncoder<Opcode::CMPREG, CmpReg<3>> {
-  constexpr CmpReg<3>(u16 reg, u16 field) : reg(reg), field(field) {}
+// Immediate form of CmpReg<2>.
+struct CmpRegI : ImmediateEncoder<Opcode::CMPREGI, CmpRegI> {
+  constexpr CmpRegI(u16 reg, u16 field) : reg(reg), field(field) {}
   u16 reg, field;
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(reg, field); }
 };

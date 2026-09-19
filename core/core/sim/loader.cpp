@@ -54,7 +54,7 @@ bool Loader::set_register(RegisterScan::RegisterRef reg, u64 value) {
   // destination.
   std::array<u8, sizeof(u64)> payload{};
   for (std::size_t it = 0; it < payload.size(); ++it) payload[it] = static_cast<u8>(value >> (8 * it));
-  const auto op = SetReg<false, 4>{.access = load_op.as_u16(), .reg = reg.reg.value, .field = reg.field.value};
+  const auto op = SetRegI<false>{.access = load_op.as_u16(), .reg = reg.reg.value, .field = reg.field.value};
 
   // The encoder takes the payload's width as a template argument, so the register's width picks the form.
   switch (resolved->byte_width) {
