@@ -291,6 +291,14 @@ template <std::integral I> void Slab<I>::fill_clear(I value) noexcept {
 template <std::integral I>
 Slab<I>::page_offset_t Slab<I>::append(bits::span<const I> data, size_t align, size_t pad, I fill) {
   static_assert(std::is_trivially_copyable_v<I>);
+  // Optimize for the common case where we have no additional alignment or padding requirements.
+  if (align <= alignof(I) && pad == 0) {
+    if (data.size() > remaining_capacity()) throw std::runtime_error("Page overflow");
+    const auto base = _used;
+    std::copy(data.begin(), data.end(), this->data() + base);
+    _used += static_cast<page_offset_t>(data.size());
+    return base;
+  }
   const auto total_size = this->padded_size(data.size(), align, pad);
   const auto padded_base = this->padded_size(_used, align, 0);
   if (total_size > remaining_capacity()) throw std::runtime_error("Page overflow");

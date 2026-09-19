@@ -54,12 +54,11 @@ StencilProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffer
     }
   }
 
-  // With no prefix emitted, the promoted submission's program is [CALL][HALT], so the CALL is at the start.
+  // With no prefix or postfix emitted, the promoted submission's program is just [CALLHALT].
   auto *code = mgr.find(loc.code.id);
   REQUIRE(code != nullptr);
   const auto *p = code->data() + loc.code.offset;
-  REQUIRE(p[0] == 2);                              // word_len
-  REQUIRE(p[1] == (0x40 | (u8)tvm::Opcode::CALL)); // clrmod | opcode
+  REQUIRE(tvm::OpWord((u16)(p[0] | (p[1] << 8))).opcode == tvm::Opcode::CALLHALT);
   probe.offset = (u16)p[2] | ((u16)p[3] << 8);     // next_ip.lo
   probe.id = pepp::bts::Buffer::ID{(u16)((u16)p[4] | ((u16)p[5] << 8))}; // next_ip.hi
   return probe;
@@ -84,17 +83,17 @@ TEST_CASE("tvm::Interpreter:  Stencil promotion", "[scope:core][scope:core.dbg][
     CHECK(tb.stencil_count() == 0);
     CHECK(tb.pending_count() == 0);
 
-    // First submission: body enters pending set.
+    // Too short to promote, so it does not become ppending.
     tb.begin(S);
     body(short_body);
     tb.commit(S);
 
-    CHECK(tb.pending_count() == 1);
-    CHECK(tb.is_pending(h));
+    CHECK(tb.pending_count() == 0);
+    CHECK(!tb.is_pending(h));
     CHECK(!tb.is_stencil(h));
     CHECK(tb.stencil_count() == 0);
 
-    // Second submission: body is too short to promote; stays not-promoted.
+    // Re-subitted, still not pending.
     tb.begin(S);
     body(short_body);
     tb.commit(S);
@@ -202,7 +201,7 @@ TEST_CASE("tvm::Interpreter:  Stencil promotion", "[scope:core][scope:core.dbg][
     CHECK(tb.stencil_hits(h_b) == 2);
   }
 
-  SECTION("Promoted stencil executes correctly via CALL/RET") {
+  SECTION("Promoted stencil executes correctly via CALLHALT/RET") {
     // Use non-MOD registers so values survive the CALL-to-RET CLRMOD clearing.
     auto long_body = LMR_of<false>(std::pair{M::DP_LO, u16(0xAAAA)}, std::pair{M::ID_HI, u16(0xBBBB)},
                                    std::pair{M::OFF_LO, u16(0xCCCC)});
@@ -217,17 +216,52 @@ TEST_CASE("tvm::Interpreter:  Stencil promotion", "[scope:core][scope:core.dbg][
     tb.commit(S);
     REQUIRE(tb.is_stencil(h));
 
-    // 3rd submission uses CALL into the promoted stencil.
+    // 3rd submission uses CALLHALT into the promoted stencil, which needs the trace buffer's HALT to return to.
     tb.begin(S);
     body(long_body);
     auto loc = tb.commit(S);
 
-    tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, nullptr, &tb));
     blaster.run(loc);
     CHECK(blaster.stopped());
     CHECK(blaster.regs().DP.lo == 0xAAAA);
     CHECK(blaster.regs().ID.hi == 0xBBBB);
     CHECK(blaster.regs().OFF.lo == 0xCCCC);
+  }
+
+  SECTION("CALLHALT returns to the buffer's HALT rather than falling through") {
+    auto long_body = LMR_of<false>(std::pair{M::DP_LO, u16(0xAAAA)}, std::pair{M::ID_HI, u16(0xBBBB)},
+                                   std::pair{M::OFF_LO, u16(0xCCCC)});
+    for (int i = 0; i < 2; ++i) {
+      tb.begin(S);
+      body(long_body);
+      tb.commit(S);
+    }
+    // Borrow the stencil's address from the CALLHALT that a third submission is given.
+    tb.begin(S);
+    body(long_body);
+    auto called = tb.commit(S);
+    const auto *p = mgr->find(called.code.id)->data() + called.code.offset;
+    const tvm::SegmentPair stencil{.hi = (u16)(p[4] | (p[5] << 8)), .lo = (u16)(p[2] | (p[3] << 8))};
+
+    // A call that returned to the next instruction would run this postfix.
+    tb.begin(S);
+    auto call = CallHalt{stencil}.encode();
+    tb.emit_prefix(S, {call.data(), call.size()});
+    auto marker = LMR_of<false>(std::pair{M::ACCESS, u16(0xBEEF)});
+    tb.emit_postfix(S, {marker.data(), marker.size()});
+    auto loc = tb.commit(S);
+
+    tvm::Interpreter traced(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, nullptr, &tb));
+    traced.run(loc);
+    CHECK(traced.stop_cause() == tvm::StopCause::None);
+    CHECK(traced.regs().DP.lo == 0xAAAA);
+    CHECK(traced.regs().ACCESS == 0);
+
+    // Without a trace buffer there is no HALT to return to.
+    tvm::Interpreter plain(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+    plain.run(loc);
+    CHECK(plain.stop_cause() == tvm::StopCause::Unimplemented);
   }
 
   SECTION("Postfix is per-submission, not baked into stencil") {
@@ -249,7 +283,7 @@ TEST_CASE("tvm::Interpreter:  Stencil promotion", "[scope:core][scope:core.dbg][
     tb.commit(S);
     REQUIRE(tb.is_stencil(h));
 
-    // Submission 3: same body, NO custom postfix, CALL + HALT only.
+    // Submission 3: same body, NO custom postfix, so just a CALLHALT.
     // The ACCESS-setting instruction is deliberately dropped.
     tb.begin(S);
     body(long_body);
@@ -264,9 +298,9 @@ TEST_CASE("tvm::Interpreter:  Stencil promotion", "[scope:core][scope:core.dbg][
       CHECK(b.regs().ACCESS == 0xBEEF); // postfix executed
     }
 
-    // Execute submission 3 (stencil CALL, postfix dropped).
+    // Execute submission 3 (stencil CALLHALT, postfix dropped), which needs the trace buffer's HALT to return to.
     {
-      tvm::Interpreter b(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
+      tvm::Interpreter b(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, nullptr, &tb));
       b.run(loc3);
       CHECK(b.stopped());
       CHECK(b.regs().DP.lo == 0xAAAA);  // body via stencil

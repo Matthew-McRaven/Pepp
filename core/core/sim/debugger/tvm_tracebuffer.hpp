@@ -5,6 +5,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include "core/ds/alloc/pagechain.hpp"
@@ -193,8 +194,8 @@ public:
   void emit_body(Recording &rec, bits::span<const u8> encoded);
 
   // Append encoded bytes to the postfix section.
-  // Not hashed. Always inlined after the body (or CALL). commit() appends HALT
-  // here automatically; use this to inject instructions before the HALT.
+  // Not hashed. Always inlined after the body (or CALL). commit() ends every program with a HALT after the postfix;
+  // use this to inject instructions before it.
   // Prefer Recording& variant outside of tests.
   void emit_postfix(Device::ID initiator, bits::span<const u8> encoded);
   void emit_postfix(Recording &rec, bits::span<const u8> encoded);
@@ -329,6 +330,8 @@ public:
 
   // --- Accessors ---
   std::size_t ring_size() const { return _ring.size(); }
+  // A HALT that lives as long as the buffer to which CALLHALT returns.
+  pepp::bts::Buffer::Location halt_location() const { return _tombstone.code; }
   // Number of distinct initiators that have ever recorded. Entries persist after commit() so their scratch capacity
   // is reused, so this counts devices seen, not devices currently recording.
   std::size_t recording_count() const { return _recordings.size(); }
@@ -373,6 +376,9 @@ public:
   };
   // A snapshot, by value: callers routinely take one before a run and another after, and compare them.
   Footprint footprint() const;
+  // One string describing the buffer's footprint with a prefixed label.
+  std::string describe(std::string_view label, const Footprint &f) const;
+  std::string describe(std::string_view label) const { return describe(label, footprint()); }
 
   // Reset all footprint /counters/ to 0 while retaining all other state inside the class.
   // Cost comparisons involving stencils will be incorrect because existing stencils' cost will no longer accounted
@@ -510,8 +516,8 @@ private:
   std::unique_ptr<pepp::bts::BufferChain> _stencils;
   // Buffer::ID{0} hard-stops the interpreter with InvalidIBuffer, which causes run_each to break. A single aborted
   // instruction halts the entire replay. To prevent ID==0 from appearing in reserved slots, point to a valid program
-  // which contains only HALT. This program is allocated on the stencil chain in the ctor, and the location is stored
-  // here.
+  // which contains only HALT. This program is always the first entry of the stencil chain, written by clear(), and
+  // doubles as CALLHALT's return address.
   tvm::ProgramLocation _tombstone{};
   std::unordered_map<u32, StencilEntry> _stencil_map;
   // Hashes seen once but not yet promoted. On second occurrence with

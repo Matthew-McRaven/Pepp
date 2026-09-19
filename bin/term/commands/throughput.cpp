@@ -22,6 +22,8 @@
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/cores/cpu/rv32/rv_isa.hpp"
+#include "core/sim/debugger/trace_device.hpp"
+#include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/memory/ram/sparse.hpp"
@@ -52,7 +54,24 @@ auto make_sim3() {
   return std::pair{storage, cpu};
 };
 
-auto make_core(bool use_sparse) {
+// Sixteen slots, so that reclaiming half the ring at a time (75% down to 25%) is not constant churn.
+trace::BufferDevice *add_trace_buffer(System &system) {
+  trace::BufferDevice::Configuration cfg{Device::Configuration{.basename = "trace"}, 32};
+  return system.make_device<trace::BufferDevice>(cfg);
+}
+
+// Keep a recording ring from ever filling: once it passes 75% occupancy, drop the oldest slots until 25% remains.
+// Nothing reads the trace back, so this measures recording's steady-state cost, as in a long debugging session.
+void reclaim_at_watermark(tvm::TraceBuffer &tb) {
+  tb.on_watermark(0.75f, [&tb] {
+    const auto keep = tb.ring_size() / 4;
+    const auto head = tb.cursor().slot;
+    // acknowledge() will not free a slot an open recording is still writing, so this is safe mid-instruction.
+    tb.acknowledge(tvm::Cursor{.slot = head > keep ? head - keep : 0});
+  });
+}
+
+auto make_core(bool use_sparse, bool traced) {
   static constexpr auto isa = PepISA3CPU::ISA::Pep10;
   using namespace bits;
 
@@ -89,11 +108,13 @@ auto make_core(bool use_sparse) {
     mem = system->make_device<Sparse>(mem_cfg);
   }
 
+  // Must exist before initialize(), which is when the system binds a recorder to every traceable device.
+  auto *tbdev = traced ? add_trace_buffer(*system) : nullptr;
   system->initialize();
-  return std::make_tuple(std::move(system), mem, cpu);
+  return std::make_tuple(std::move(system), mem, cpu, tbdev);
 }
 
-auto make_riscv(bool use_sparse) {
+auto make_riscv(bool use_sparse, bool traced) {
   using namespace bits;
 
   System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
@@ -129,8 +150,10 @@ auto make_riscv(bool use_sparse) {
     mem = system->make_device<Sparse>(mem_cfg);
   }
 
+  // Must exist before initialize(), which is when the system binds a recorder to every traceable device.
+  auto *tbdev = traced ? add_trace_buffer(*system) : nullptr;
   system->initialize();
-  return std::make_tuple(std::move(system), mem, cpu);
+  return std::make_tuple(std::move(system), mem, cpu, tbdev);
 }
 
 ThroughputTask::ThroughputTask(WhichVersion ver, QObject *parent) : Task(parent), _version(ver) {}
@@ -227,6 +250,7 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3() {
       .kind = sim::api2::memory::Operation::Kind::data,
   };
   fmt::println("Simulator: sim3");
+  if (record_traces) fmt::println("sim3 has no trace buffer; running untraced.");
   auto env = nullptr;
   // Add some spurious breakpoints which will not be hit
   // auto debugger = std::make_shared<pepp::debug::Debugger>(env);
@@ -252,34 +276,51 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3() {
 std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
   static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
   fmt::println("Simulator: core");
-  auto [system, mem, cpu] = make_core(this->use_sparse);
+  auto [system, mem, cpu, tbdev] = make_core(this->use_sparse, this->record_traces);
   cpu->write_register(isa::Pep10::Register::PC, 0x0000);
   mem->write(0x0000, pep_program(this->program), rw);
-  // We are untraced, provide explicit hints to avoid recording.
-  dynamic_cast<Traceable *>(mem)->on_traced_changed(false);
-  cpu->on_traced_changed(false);
-  cpu->csrs()->on_traced_changed(false);
-  cpu->registers()->on_traced_changed(false);
+  if (tbdev == nullptr) {
+    // We are untraced, provide explicit hints to avoid recording.
+    dynamic_cast<Traceable *>(mem)->on_traced_changed(false);
+    cpu->on_traced_changed(false);
+    cpu->csrs()->on_traced_changed(false);
+    cpu->registers()->on_traced_changed(false);
+  } else {
+    // Switched on only after the program is written, so that write is not recorded.
+    tbdev->trace(dynamic_cast<Device *>(mem)->id(), true);
+    // Reaches the CPU's own initiator bit plus its register bank and CSRs.
+    cpu->trace(true);
+    reclaim_at_watermark(tbdev->buffer());
+  }
   cpu->has_bps = has_bps;
   const auto start = std::chrono::high_resolution_clock::now();
   for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseSchedule::PulseIndex{(u64)it}, it);
   fmt::println("Filter hits: {}", cpu->filter_hits());
+  if (tbdev != nullptr) fmt::println("{}", tbdev->buffer().describe("trace"));
   return start;
 }
 
 std::chrono::high_resolution_clock::time_point ThroughputTask::do_riscv() {
   static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
   fmt::println("Simulator: riscv");
-  auto [system, mem, cpu] = make_riscv(this->use_sparse);
+  auto [system, mem, cpu, tbdev] = make_riscv(this->use_sparse, this->record_traces);
   cpu->registers()->write_pc(0x0000);
   mem->write(0x0000, rv_program(this->program), rw);
-  // We are untraced, provide explicit hints to avoid recording.
-  dynamic_cast<Traceable *>(mem)->on_traced_changed(false);
-  cpu->on_traced_changed(false);
-  cpu->registers()->on_traced_changed(false);
+  if (tbdev == nullptr) {
+    // We are untraced, provide explicit hints to avoid recording.
+    dynamic_cast<Traceable *>(mem)->on_traced_changed(false);
+    cpu->on_traced_changed(false);
+    cpu->registers()->on_traced_changed(false);
+  } else {
+    // Switched on only after the program is written, so that write is not recorded.
+    tbdev->trace(dynamic_cast<Device *>(mem)->id(), true);
+    cpu->trace(true);
+    reclaim_at_watermark(tbdev->buffer());
+  }
   // cpu->has_bps = has_bps;
   const auto start = std::chrono::high_resolution_clock::now();
   for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseSchedule::PulseIndex{(u64)it}, it);
+  if (tbdev != nullptr) fmt::println("{}", tbdev->buffer().describe("trace"));
   // fmt::println("Filter hits: {}", cpu->filter_hits());
   return start;
 }

@@ -18,6 +18,7 @@
 #include <catch.hpp>
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/trace_device.hpp"
+#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/memory/ram/dense.hpp"
@@ -363,14 +364,15 @@ TEST_CASE("trace::Recorder: emit_write_increment()", "[scope:core][scope:core.db
     const auto loc = tb.commit(CPU);
     CHECK(tb.stencil_count() == 1);
 
-    // Counting the tables only shows they were emptied. This program is the one whose body became a CALL, so
+    // Counting the tables only shows they were emptied. This program is the one whose body became a CALLHALT, so
     // replaying it is what proves the stencil it targets is a live program in the rebuilt chain rather than a freed
     // one -- the failure the two REQUIREs above cannot see.
     constexpr u16 THIRD = 0x0106;
     poke(mem, ADDR, SECOND);
-    auto blaster = sys->make_trace_interpreter();
-    blaster->run(loc);
-    CHECK(blaster->stop_cause() == tvm::StopCause::None);
+    // This buffer is not the system's, so the backend has to be told where CALLHALT returns to.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, sys.get(), &tb));
+    blaster.run(loc);
+    CHECK(blaster.stop_cause() == tvm::StopCause::None);
     CHECK(peek(mem, ADDR) == THIRD);
   }
 

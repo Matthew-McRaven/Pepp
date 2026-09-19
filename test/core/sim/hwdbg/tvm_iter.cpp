@@ -272,7 +272,7 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
     tb.begin(S);
     set_access(0xBB);
     // CLRMEM without a system causes hard_stop(MissingSystem).
-    auto clr = ClrMem<1>{0}.encode();
+    auto clr = ClrMem<2>{.dev = 0, .reset = 0}.encode();
     tb.emit_postfix(S, {clr.data(), clr.size()});
     tb.commit(S);
 

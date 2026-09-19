@@ -14,6 +14,7 @@ struct Dispatch {
   void operator()(const tvm::DecodedOp::Halt &op) const { self->on_halt(*state, op); }
   void operator()(const tvm::DecodedOp::Ret &op) const { self->on_ret(*state, op); }
   void operator()(const tvm::DecodedOp::Call &op) const { self->on_call(*state, op); }
+  void operator()(const tvm::DecodedOp::CallHalt &op) const { self->on_callhalt(*state, op); }
   void operator()(const tvm::DecodedOp::InvCall &op) const { self->on_invcall(*state, op); }
   void operator()(const tvm::DecodedOp::InvRet &op) const { self->on_invret(*state, op); }
   void operator()(const tvm::DecodedOp::ASyn &op) const { self->on_asyn(*state, op); }
@@ -67,6 +68,10 @@ void Backend::on_ret(MachineState &state, const tvm::DecodedOp::Ret &) { state.r
 void Backend::on_call(MachineState &state, const tvm::DecodedOp::Call &op) {
   state.push(state.regs.IP);
   state.regs.IP = op.next_ip;
+}
+
+void Backend::on_callhalt(MachineState &state, const tvm::DecodedOp::CallHalt &) {
+  state.hard_stop(StopCause::Unimplemented);
 }
 
 void Backend::on_invcall(MachineState &state, const tvm::DecodedOp::InvCall &op) {
