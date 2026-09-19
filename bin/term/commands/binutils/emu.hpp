@@ -44,6 +44,8 @@ public:
     std::vector<std::string> print_registers;
     // Print instructions before the execute.
     bool echo_instructions = false;
+    // Record the run into a trace buffer and report its footprint afterwards.
+    bool trace_stats = false;
     // Input object code files and the device into which they should be loaded.
     std::vector<DeviceFile> elf_files;
     // Files buffered behind memory-mapped input devices, and the files output devices are written to. File - indicates
@@ -112,6 +114,9 @@ void registerEmu(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       ->take_all();
   pemu->add_flag("--echo-instructions", opts.echo_instructions,
                  "Print each instruction to stdout as a listing line before it executes.");
+  pemu->add_flag("--trace-stats", opts.trace_stats,
+                 "Record the program into a trace buffer while it runs, then report the trace's size per "
+                 "instruction to stderr. Tracing slows the simulation so it is off by default.");
   static std::vector<std::string> file_text;
   pemu->add_option("objects", file_text,
                    "Object file(s) to load into the simulation. Prefix a file with <device>= to choose the device it "

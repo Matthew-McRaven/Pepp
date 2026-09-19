@@ -75,11 +75,7 @@ tvm::TraceBuffer::Footprint run(Harness &h, bits::span<const u8> program, int ti
 }
 
 void report(const char *label, const tvm::TraceBuffer &tb, const tvm::TraceBuffer::Footprint &f) {
-  SPDLOG_WARN("{}: {:.1f} B/instr over {} instrs (inlined: {:.1f}) | ratio {:.3f} | code {} stencils {} data {} "
-              "locations {} | {} stencils promoted, {} hashes pending | {} KiB reserved",
-              label, f.bytes_per_program(), f.programs, f.bytes_per_program_if_inlined(), f.compression_ratio(),
-              f.code, f.stencils, f.data, f.locations(), tb.stencil_count(), tb.pending_count(),
-              tb.buffer_footprint() / 1024);
+  SPDLOG_WARN("{}", tb.describe(label, f));
 }
 } // namespace
 

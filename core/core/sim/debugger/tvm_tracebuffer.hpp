@@ -5,6 +5,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include "core/ds/alloc/pagechain.hpp"
@@ -373,6 +374,9 @@ public:
   };
   // A snapshot, by value: callers routinely take one before a run and another after, and compare them.
   Footprint footprint() const;
+  // One string describing the buffer's footprint with a prefixed label.
+  std::string describe(std::string_view label, const Footprint &f) const;
+  std::string describe(std::string_view label) const { return describe(label, footprint()); }
 
   // Reset all footprint /counters/ to 0 while retaining all other state inside the class.
   // Cost comparisons involving stencils will be incorrect because existing stencils' cost will no longer accounted

@@ -1,5 +1,6 @@
 #include "emu.hpp"
 #include <fmt/format.h>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -8,6 +9,8 @@
 #include "core/sim/api/loadable.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
+#include "core/sim/debugger/trace_device.hpp"
+#include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/devicetree.hpp"
 #include "core/sim/loader.hpp"
 #include "core/sim/memory/io/fifo.hpp"
@@ -216,13 +219,29 @@ void PeppEmulator::run() {
     }
   }
   if (system == nullptr) throw std::runtime_error("Failed to create system");
+
+  // Only create (and enable) trace buffer if requested,
+  trace::BufferDevice *trace_buffer = nullptr;
+  if (_opts.trace_stats) {
+    // Each slot holds up to 16k instructions, so 64-slots should cover ~1m instructions without overflow
+    // TODO: size with the number of max steps.
+    trace::BufferDevice::Configuration cfg{Device::Configuration{.basename = "trace"}, 64};
+    trace_buffer = system->make_device<trace::BufferDevice>(cfg);
+  }
   system->initialize();
 
   if (const auto code = do_load(*system); code != 0) return emit finished(code);
-  else if (const auto code = do_input(*system); code != 0) return emit finished(code);
+
+  // If tracing is enabled, wait to enable tracing until after initialization + loading.
+  if (trace_buffer != nullptr)
+    for (auto *dev : *system->root()) trace_buffer->trace(dev->id(), true);
+
+  if (const auto code = do_input(*system); code != 0) return emit finished(code);
   else if (const auto code = do_run(*system); code != 0) return emit finished(code);
   else if (const auto code = do_output(*system); code != 0) return emit finished(code);
   else if (const auto code = do_print(*system); code != 0) return emit finished(code);
+
+  if (trace_buffer != nullptr) std::cerr << trace_buffer->buffer().describe("pemu") << '\n';
 
   return emit finished(0);
 }

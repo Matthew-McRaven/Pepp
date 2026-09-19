@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 #include <iterator>
+#include <fmt/format.h>
 #include "core/ds/hash/fnv.hpp"
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
@@ -600,3 +601,11 @@ TraceBuffer::Iterator TraceBuffer::Iterator::operator--(int) {
 bool TraceBuffer::Iterator::operator==(const Iterator &other) const { return _cursor == other._cursor; }
 
 } // namespace tvm
+
+std::string tvm::TraceBuffer::describe(std::string_view label, const Footprint &f) const {
+  return fmt::format("{}: {:.1f} B/instr over {} instrs (inlined: {:.1f}) | ratio {:.3f} | code {} stencils {} data {} "
+                     "locations {} | {} stencils promoted, {} hashes pending | {} KiB reserved",
+                     label, f.bytes_per_program(), f.programs, f.bytes_per_program_if_inlined(), f.compression_ratio(),
+                     f.code, f.stencils, f.data, f.locations(), stencil_count(), pending_count(),
+                     buffer_footprint() / 1024);
+}
