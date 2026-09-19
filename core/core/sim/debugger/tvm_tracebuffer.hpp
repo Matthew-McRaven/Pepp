@@ -194,8 +194,8 @@ public:
   void emit_body(Recording &rec, bits::span<const u8> encoded);
 
   // Append encoded bytes to the postfix section.
-  // Not hashed. Always inlined after the body (or CALL). commit() appends HALT
-  // here automatically; use this to inject instructions before the HALT.
+  // Not hashed. Always inlined after the body (or CALL). commit() ends every program with a HALT after the postfix;
+  // use this to inject instructions before it.
   // Prefer Recording& variant outside of tests.
   void emit_postfix(Device::ID initiator, bits::span<const u8> encoded);
   void emit_postfix(Recording &rec, bits::span<const u8> encoded);

@@ -135,9 +135,6 @@ tvm::ProgramLocation TraceBuffer::commit(Device::ID initiator) {
   assert((rec == nullptr || rec->active) && "commit() called without a matching begin()");
   if (rec == nullptr || !rec->active) return {};
 
-  auto halt = EncodedOp::Halt<0>{}.encode();
-  rec->postfix.insert(rec->postfix.end(), halt.begin(), halt.end());
-
   // Release the reservation before anything that can throw. If resolve_body or flush_to_ring fails, the entry keeps
   // its tombstone and replays as a halt.
   auto &node = node_at(rec->slot);
@@ -429,17 +426,16 @@ TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body)
 tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution resolution) {
   auto &node = node_at(rec.slot);
 
-  // The subroutine is: [prefix][body or CALL][postfix]
-  // There are no separators or terminators between these sections.
-  // Postfix contains caller-injected instructions (if any) followed by HALT.
-  // Location buffer programs must be complete (e.g., terminate), so the caller must ensure postfix terminates with a
-  // HALT.
+  // The subroutine is: [prefix][body or CALL][postfix][HALT]
+  // There are no separators or terminators between these sections. Postfix holds only caller-injected instructions;
+  // the HALT every location-buffer program must end with is written here rather than stored with them.
   // All parts of a subroutine must land in the same buffer — we must not split code across a buffer boundary.
 
   using CallEncoding = decltype(EncodedOp::Call<2>{}.encode());
   static constexpr std::size_t call_size = std::tuple_size_v<CallEncoding>;
+  static constexpr auto halt = EncodedOp::Halt<0>{}.encode();
   const std::size_t middle = resolution.is_stencil ? call_size : rec.body.size();
-  const std::size_t total = rec.prefix.size() + middle + rec.postfix.size();
+  const std::size_t total = rec.prefix.size() + middle + rec.postfix.size() + halt.size();
 
   // One reservation for the whole program, which also keeps it within a single buffer. Appending the three parts
   // separately generated multiple out-of-line copy operations.
@@ -456,13 +452,15 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, BodyResolution r
   } else if (!rec.body.empty()) std::memcpy(out, rec.body.data(), rec.body.size());
   out += middle;
   if (!rec.postfix.empty()) std::memcpy(out, rec.postfix.data(), rec.postfix.size());
+  out += rec.postfix.size();
+  std::memcpy(out, halt.data(), halt.size());
   const pepp::bts::Buffer::Location subroutine_start = reservation.loc;
 
   // The number of bytes actually written to the code chain vs the bytes.
   _footprint.code += total;
   // What if this body was inlined instead of promoted? Provides a metric for how much stencil promotion is saving us
   // rather than making promotion an optional feature.
-  _footprint.code_if_inlined += rec.prefix.size() + rec.body.size() + rec.postfix.size();
+  _footprint.code_if_inlined += rec.prefix.size() + rec.body.size() + rec.postfix.size() + halt.size();
 
   // Record where this program starts and where its data starts.
   const tvm::ProgramLocation program{subroutine_start, rec.data_start};
