@@ -15,6 +15,7 @@
  */
 #include "core/sim/debugger/trace_recorder.hpp"
 #include <array>
+#include <vector>
 #include <catch.hpp>
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/trace_device.hpp"
@@ -85,6 +86,60 @@ TEST_CASE("trace::Recorder: emit_write()", "[scope:core][scope:core.dbg][kind:un
 
     blaster->run(loc);
     CHECK(peek(mem, ADDR) == OLD); // and back again, from the same bytes
+  }
+
+  SECTION("Prefer INCDP when crossing buffer boundaries") {
+    constexpr Address SECOND = ADDR + 4;
+    poke(mem, ADDR, OLD);
+    poke(mem, SECOND, OLD);
+
+    // An earlier record fills all but three bytes of the data buffer, so the record under test starts near its end.
+    tb.begin(CPU);
+    std::vector<u8> filler(pepp::bts::Buffer::SIZE - 3, 0xAA);
+    tb.append_data(CPU, {filler.data(), filler.size()});
+    tb.commit(CPU);
+
+    // The first fits in the current page, the second is bumped to the next page.
+    tb.begin(CPU);
+    rec.emit_write(emit_write_op, ADDR, old_bytes, new_bytes);
+    rec.emit_write(emit_write_op, SECOND, old_bytes, new_bytes);
+    auto loc = tb.commit(CPU);
+
+    // Walking to the successor needs the buffer, which the system here does not hold.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, sys.get(), &tb));
+    blaster.run(loc);
+    CHECK(blaster.stop_cause() == tvm::StopCause::None);
+    CHECK(peek(mem, ADDR) == NEW);
+    CHECK(peek(mem, SECOND) == NEW);
+    // Re-running it takes us back to the beginning state
+    blaster.run(loc);
+    CHECK(peek(mem, ADDR) == OLD);
+    CHECK(peek(mem, SECOND) == OLD);
+  }
+
+  SECTION("Fall back to LDP if the chain's tail is not the current buffer's successor") {
+
+    constexpr Address SECOND = ADDR + 4;
+    poke(mem, ADDR, OLD);
+    poke(mem, SECOND, OLD);
+
+    // Emit data to page #1
+    tb.begin(CPU);
+    rec.emit_write(emit_write_op, ADDR, old_bytes, new_bytes);
+    // Does not fit on page #1, spills to page #2. page #2 is the successor of #1
+    std::vector<u8> filler(pepp::bts::Buffer::SIZE, 0xAA);
+    tb.append_data(CPU, {filler.data(), filler.size()});
+    // Does not fit on page #2, spills to page #3, page #3 is the successor to #2.
+    // The previous write from the CPU's perspective was on page #1, but we are now on #3.
+    // Must use LDP to bring DP from page #1 to page #3.
+    rec.emit_write(emit_write_op, SECOND, old_bytes, new_bytes);
+    auto loc = tb.commit(CPU);
+
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, sys.get(), &tb));
+    blaster.run(loc);
+    CHECK(blaster.stop_cause() == tvm::StopCause::None);
+    CHECK(peek(mem, ADDR) == NEW);
+    CHECK(peek(mem, SECOND) == NEW);
   }
 
   SECTION("Only the recorded address moves") {

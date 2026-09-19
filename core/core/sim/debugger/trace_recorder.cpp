@@ -1,6 +1,7 @@
 #include "core/sim/debugger/trace_recorder.hpp"
 #include <algorithm>
 #include <array>
+#include <limits>
 #include <utility>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
@@ -228,10 +229,25 @@ void Recorder::emit_dp_update(const tvm::DataSlot &slot, tvm::Recording &rec, u1
     const auto set_ds = tvm::EncodedOp::LDR<tvm::RegMask::DS>{(u16)len}.encode();
     _tb->emit_body(rec, {set_ds.data(), set_ds.size()});
   } else if (anchor.at.id != slot.loc.id) {
-    // The data chain rolled onto a new buffer mid-recording, which means mid-body update to DP.
-    const auto ldp =
-        tvm::EncodedOp::LDP<3>{tvm::SegmentPair{.hi = slot.loc.id.value, .lo = slot.loc.offset}, (u16)len}.encode();
-    _tb->emit_body(rec, {ldp.data(), ldp.size()});
+    // We rolled onto a new buffer mid-recording, and so we need update to DP.hi too. When DP.lo is near the end of
+    // this buffer, we can use the fact that the trace interpreter will "wrap" to the next buffer when DP.LO overflows.
+    // So, as long as we are within an i16 distance of our next portion of data, we can still use an INCDP.
+    const i32 step = (i32)pepp::bts::Buffer::SIZE - (i32)anchor.at.offset + (i32)slot.loc.offset;
+    // While the common cases is wrapping onto the next buffer, verify that both locations are adjacent on the chain.
+    // If some other traced client wrote a full 64k of data, the size check might pass, but incdp would pick the wrong
+    // successor page.
+    const bool adjacent = rec.chain != nullptr && rec.chain->successor(anchor.at.id) == slot.loc.id;
+    if (adjacent && step <= std::numeric_limits<i16>::max()) {
+      const auto incdp = tvm::EncodedOp::INCDP{(u16)step, (u16)len}.encode();
+      _tb->emit_body(rec, {incdp.data(), incdp.size()});
+    } else {
+      // In the case where there are multiple successive buffers between our current DP.hi and our new DP.hi or we can't
+      // fit the offset in an i16, we fall back to LDP. An LDP is effectively guaranteed to prevent stencilization, so
+      // it is avoided whenever possible.
+      const auto ldp =
+          tvm::EncodedOp::LDP<3>{tvm::SegmentPair{.hi = slot.loc.id.value, .lo = slot.loc.offset}, (u16)len}.encode();
+      _tb->emit_body(rec, {ldp.data(), ldp.size()});
+    }
   } else if (anchor.stride == anchor.size && slot.loc.offset == (u16)(anchor.at.offset + anchor.stride)) {
     // Packed directly after the previous record, which is what happens when one initiator writes several times in a
     // row. ACCDP advances DP by the *previous* DS, so this encodes in 4 bytes and carries no absolute address --
