@@ -175,7 +175,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
 
     // Program 2: clear memory.
     tb.begin(S);
-    body(ClrMem<1>{.dev = mem->id().value}.encode());
+    body(ClrMem<2>{.dev = mem->id().value, .reset = 0}.encode());
     tb.commit(S);
 
     CHECK(blaster->csrs().L == 1);

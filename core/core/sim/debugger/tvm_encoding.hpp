@@ -217,15 +217,6 @@ template <std::size_t N> using BR = detail::BR<Opcode::BR, N>;
 template <std::size_t N> using BRF = detail::BR<Opcode::BRF, N>;
 
 template <std::size_t> struct CmpMem;
-template <> struct CmpMem<1> {
-  u16 dev;
-  constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev); }
-};
-template <> struct CmpMem<2> {
-  u16 dev;
-  u16 off_hi;
-  constexpr auto encode() const { return encode_op<Opcode::CMPMEM, true>(dev, off_hi); }
-};
 template <> struct CmpMem<3> {
   u16 dev;
   SegmentPair off;
@@ -242,18 +233,6 @@ template <bool X> inline constexpr Opcode SetMemOp = X ? Opcode::SETMEMX : Opcod
 
 template <bool X, std::size_t> struct SetMem;
 
-template <bool X> struct SetMem<X, 1> {
-  u16 access;
-  constexpr auto encode() const { return encode_op<SetMemOp<X>, true>(access); }
-};
-template <bool X> struct SetMem<X, 2> {
-  u16 access, dev;
-  constexpr auto encode() const { return encode_op<SetMemOp<X>, true>(access, dev); }
-};
-template <bool X> struct SetMem<X, 3> {
-  u16 access, dev, off_hi;
-  constexpr auto encode() const { return encode_op<SetMemOp<X>, true>(access, dev, off_hi); }
-};
 template <bool X> struct SetMem<X, 4> {
   u16 access, dev;
   SegmentPair off;
@@ -274,14 +253,6 @@ template <bool X> inline constexpr Opcode SetRegOp = X ? Opcode::SETREGX : Opcod
 // the whole register. These take their data from DP/DS; SetRegI carries it in the packet.
 template <bool X, std::size_t> struct SetReg;
 
-template <bool X> struct SetReg<X, 1> {
-  u16 access;
-  constexpr auto encode() const { return encode_op<SetRegOp<X>, true>(access); }
-};
-template <bool X> struct SetReg<X, 2> {
-  u16 access, reg;
-  constexpr auto encode() const { return encode_op<SetRegOp<X>, true>(access, reg); }
-};
 template <bool X> struct SetReg<X, 3> {
   u16 access, reg, field;
   constexpr auto encode() const { return encode_op<SetRegOp<X>, true>(access, reg, field); }
@@ -295,23 +266,6 @@ template <bool X> struct SetRegI : ImmediateEncoder<SetRegIOp<X>, SetRegI<X>> {
 };
 
 template <std::size_t> struct StepMem;
-template <> struct StepMem<1> {
-  u16 access;
-  constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access); }
-};
-template <> struct StepMem<2> {
-  u16 access, dev;
-  constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access, dev); }
-};
-template <> struct StepMem<3> {
-  u16 access, dev, off_hi;
-  constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access, dev, off_hi); }
-};
-template <> struct StepMem<4> {
-  u16 access, dev;
-  SegmentPair off;
-  constexpr auto encode() const { return encode_op<Opcode::STEPMEM, true>(access, dev, off.hi, off.lo); }
-};
 template <> struct StepMem<5> {
   u16 access, dev;
   SegmentPair off;
@@ -334,14 +288,6 @@ struct StepMemI : ImmediateEncoder<Opcode::STEPMEMI, StepMemI> {
 // Same packet as SetReg, minus the X variant: a register reports its own width and byte order, so there is nothing
 // for the instruction to say about the destination.
 template <std::size_t> struct StepReg;
-template <> struct StepReg<1> {
-  u16 access;
-  constexpr auto encode() const { return encode_op<Opcode::STEPREG, true>(access); }
-};
-template <> struct StepReg<2> {
-  u16 access, reg;
-  constexpr auto encode() const { return encode_op<Opcode::STEPREG, true>(access, reg); }
-};
 template <> struct StepReg<3> {
   u16 access, reg, field;
   constexpr auto encode() const { return encode_op<Opcode::STEPREG, true>(access, reg, field); }
@@ -356,20 +302,12 @@ struct StepRegI : ImmediateEncoder<Opcode::STEPREGI, StepRegI> {
 // SETMEMX with the offset carried in the payload rather than the packet, so a body that stores to a different
 // address every time still encodes identically. See Opcode::SETMEMDX for the data layout.
 template <std::size_t> struct SetMemDX;
-template <> struct SetMemDX<1> {
-  u16 access;
-  constexpr auto encode() const { return encode_op<Opcode::SETMEMDX, true>(access); }
-};
 template <> struct SetMemDX<2> {
   u16 access, dev;
   constexpr auto encode() const { return encode_op<Opcode::SETMEMDX, true>(access, dev); }
 };
 
 template <std::size_t> struct ClrMem;
-template <> struct ClrMem<1> {
-  u16 dev;
-  constexpr auto encode() const { return encode_op<Opcode::CLRMEM, true>(dev); }
-};
 template <> struct ClrMem<2> {
   u16 dev;
   u8 reset;
@@ -377,10 +315,6 @@ template <> struct ClrMem<2> {
 };
 
 template <std::size_t> struct CmpReg;
-template <> struct CmpReg<1> {
-  u16 reg;
-  constexpr auto encode() const { return encode_op<Opcode::CMPREG, true>(reg); }
-};
 template <> struct CmpReg<2> {
   u16 reg, field;
   constexpr auto encode() const { return encode_op<Opcode::CMPREG, true>(reg, field); }
@@ -392,26 +326,14 @@ struct CmpRegI : ImmediateEncoder<Opcode::CMPREGI, CmpRegI> {
   template <typename F> constexpr auto apply_prefix(F &&f) const { return f(reg, field); }
 };
 
-// Same ID packet as CMPREG. No field clears whole reg.
+// Same ID packet as CMPREG. A field of 0 clears the whole reg.
 template <std::size_t> struct ClrReg;
-template <> struct ClrReg<1> {
-  u16 reg;
-  constexpr auto encode() const { return encode_op<Opcode::CLRREG, true>(reg); }
-};
 template <> struct ClrReg<2> {
   u16 reg, field;
   constexpr auto encode() const { return encode_op<Opcode::CLRREG, true>(reg, field); }
 };
 
 template <std::size_t> struct LDP;
-template <> struct LDP<1> {
-  u16 DP_lo;
-  constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP_lo); }
-};
-template <> struct LDP<2> {
-  u16 DP_lo, DS;
-  constexpr auto encode() const { return encode_op<Opcode::LDP, true>(DP_lo, DS); }
-};
 template <> struct LDP<3> {
   SegmentPair DP;
   u16 DS;
