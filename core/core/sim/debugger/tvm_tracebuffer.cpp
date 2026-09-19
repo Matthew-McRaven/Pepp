@@ -371,8 +371,8 @@ bool TraceBuffer::stencil_matches(const StencilEntry &entry, bits::span<const u8
 }
 
 TraceBuffer::BodyResolution TraceBuffer::resolve_body(bits::span<const u8> body) {
-  if (body.empty())
-    return {false, {}};
+  // If the program is too short, the overhead of the call would be more than we save by promoting it.
+  if (body.size() < PROMOTION_THRESHOLD) return {false, {}};
 
   u32 hash = static_cast<u32>(pepp::fnv_1a(body));
 

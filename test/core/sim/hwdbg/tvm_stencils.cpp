@@ -84,17 +84,17 @@ TEST_CASE("tvm::Interpreter:  Stencil promotion", "[scope:core][scope:core.dbg][
     CHECK(tb.stencil_count() == 0);
     CHECK(tb.pending_count() == 0);
 
-    // First submission: body enters pending set.
+    // Too short to promote, so it does not become ppending.
     tb.begin(S);
     body(short_body);
     tb.commit(S);
 
-    CHECK(tb.pending_count() == 1);
-    CHECK(tb.is_pending(h));
+    CHECK(tb.pending_count() == 0);
+    CHECK(!tb.is_pending(h));
     CHECK(!tb.is_stencil(h));
     CHECK(tb.stencil_count() == 0);
 
-    // Second submission: body is too short to promote; stays not-promoted.
+    // Re-subitted, still not pending.
     tb.begin(S);
     body(short_body);
     tb.commit(S);
