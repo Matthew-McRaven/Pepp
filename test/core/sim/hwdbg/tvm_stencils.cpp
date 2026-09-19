@@ -58,8 +58,7 @@ StencilProbe promote_to_boundary(pepp::bts::BufferManager &mgr, tvm::TraceBuffer
   auto *code = mgr.find(loc.code.id);
   REQUIRE(code != nullptr);
   const auto *p = code->data() + loc.code.offset;
-  REQUIRE(p[0] == 2);                              // word_len
-  REQUIRE(p[1] == (0x40 | (u8)tvm::Opcode::CALL)); // clrmod | opcode
+  REQUIRE(tvm::OpWord((u16)(p[0] | (p[1] << 8))).opcode == tvm::Opcode::CALL);
   probe.offset = (u16)p[2] | ((u16)p[3] << 8);     // next_ip.lo
   probe.id = pepp::bts::Buffer::ID{(u16)((u16)p[4] | ((u16)p[5] << 8))}; // next_ip.hi
   return probe;

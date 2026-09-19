@@ -182,22 +182,6 @@ TEST_CASE("tvm::Interpreter: STEPMEM", "[scope:core][scope:core.dbg][kind:unit][
     CHECK(peek_be(target, ADDR) == 0x0015);
   }
 
-  SECTION("Trailing words do not make the base opcode immediate") {
-    poke_be(target, ADDR, 0x0010);
-
-    tb.begin(S);
-    tb.append_data(S, std::array<u8, 2>{0x05, 0x00});
-    body(LDR<tvm::RegMask::DS>{2}.encode());
-    // What used to be a size word and a +1 payload. Only STEPMEMI reads those, so the delta still comes from DP.
-    body(encode_op<tvm::Opcode::STEPMEM, true>(access, mem->id().value, off.hi, off.lo, BE, u16(2), u16(0x0001)));
-    auto loc = tb.commit(S);
-
-    auto blaster = sys->make_trace_interpreter();
-    blaster->run(loc);
-    CHECK(blaster->stop_cause() == tvm::StopCause::None);
-    CHECK(peek_be(target, ADDR) == 0x0015);
-  }
-
   SECTION("An immediate packet without a size word is illegal") {
     tb.begin(S);
     body(encode_op<tvm::Opcode::STEPMEMI, true>(access, mem->id().value, off.hi, off.lo, BE));

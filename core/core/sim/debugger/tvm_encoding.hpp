@@ -16,6 +16,8 @@ using SegmentPair = SegmentPair;
 
 template <Opcode Op, bool clrmod, typename... M> constexpr std::array<u8, 2 * (1 + sizeof...(M))> encode_op(M... mods) {
   static_assert((std::is_convertible_v<M, u16> && ...), "mod words must be u16");
+  static_assert(is_variable(Op) ? sizeof...(M) <= 0xFF : fixed_words(Op) == (int)sizeof...(M),
+                "packet length does not match the opcode");
   const std::array<u16, 1 + sizeof...(M)> words = {OpWord(Op, clrmod, sizeof...(M)).as_u16(),
                                                    static_cast<u16>(mods)...};
   std::array<u8, 2 * (1 + sizeof...(M))> bytes{};
@@ -75,7 +77,7 @@ template <> struct Halt<0> {
 };
 template <> struct Halt<1> {
   StopCause cause;
-  constexpr auto encode() const { return encode_op<Opcode::HALT, true>(static_cast<u16>(cause)); };
+  constexpr auto encode() const { return encode_op<Opcode::HALTC, true>(static_cast<u16>(cause)); };
 };
 
 template <std::size_t> struct Ret;
@@ -89,40 +91,23 @@ template <> struct InvRet<0> {
   constexpr auto encode() const { return encode_op<Opcode::INVRET, true>(); };
 };
 
+// <1> is CALLN, whose target is in the current buffer.
 template <std::size_t> struct Call;
-template <> struct Call<0> {
-  constexpr auto encode() const { return encode_op<Opcode::CALL, true>(); }
-};
 template <> struct Call<1> {
   u16 next_ip_lo;
-  constexpr auto encode() const { return encode_op<Opcode::CALL, true>(next_ip_lo); }
+  constexpr auto encode() const { return encode_op<Opcode::CALLN, true>(next_ip_lo); }
 };
 template <> struct Call<2> {
   SegmentPair next_ip;
   constexpr auto encode() const { return encode_op<Opcode::CALL, true>(next_ip.lo, next_ip.hi); }
 };
 
-// Targets are interleaved lo-first, so the 2-word form reaches both targets within the current buffer.
-// on_forward is called when stepping forward, on_backward when stepping backward. Anything not supplied falls through
-// to the next instruction.
+// on_forward is called when stepping forward, on_backward when stepping backward.
+// <2> is INVCALLN, whose targets are both in the current buffer.
 template <std::size_t> struct InvCall;
-template <> struct InvCall<0> {
-  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(); }
-};
-template <> struct InvCall<1> {
-  u16 on_forward_lo;
-  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_forward_lo); }
-};
 template <> struct InvCall<2> {
   u16 on_forward_lo, on_backward_lo;
-  constexpr auto encode() const { return encode_op<Opcode::INVCALL, true>(on_forward_lo, on_backward_lo); }
-};
-template <> struct InvCall<3> {
-  SegmentPair on_forward;
-  u16 on_backward_lo;
-  constexpr auto encode() const {
-    return encode_op<Opcode::INVCALL, true>(on_forward.lo, on_backward_lo, on_forward.hi);
-  }
+  constexpr auto encode() const { return encode_op<Opcode::INVCALLN, true>(on_forward_lo, on_backward_lo); }
 };
 template <> struct InvCall<4> {
   SegmentPair on_forward, on_backward;
@@ -191,14 +176,14 @@ using LDMOD2Hi = LDR<RegMask::MOD2_HI>;
 using LDMOD2Lo = LDR<RegMask::MOD2_LO>;
 
 namespace detail {
+// <1> is the near form, which stays in the current buffer.
 template <Opcode BRT, std::size_t> struct BR;
 
-template <Opcode BRT> struct BR<BRT, 0> {
-  constexpr auto encode() const { return encode_op<BRT, true>(); }
-};
 template <Opcode BRT> struct BR<BRT, 1> {
   u16 displacement_lo;
-  constexpr auto encode() const { return encode_op<BRT, true>(displacement_lo); }
+  constexpr auto encode() const {
+    return encode_op<static_cast<Opcode>(static_cast<u16>(BRT) | NEAR_MASK), true>(displacement_lo);
+  }
 };
 template <Opcode BRT> struct BR<BRT, 2> {
   SegmentPair displacement;
