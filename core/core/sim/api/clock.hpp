@@ -59,6 +59,10 @@ struct PulseSchedule {
   // Produce a uniformly random value in [-jitter, -jitter] with no internal state updates.
   constexpr i64 uniform_jitter(PulseIndex n) const noexcept;
   constexpr u64 next_clock_tick(u64 tick, u8 delay_cycles = 1) const noexcept;
+  constexpr std::tuple<u64, PulseIndex> next_clock(u64 tick, u8 delay_cycles = 1) const noexcept {
+    const auto next_tick = next_clock_tick(tick, delay_cycles);
+    return {next_tick, index_of(next_tick)};
+  }
   bool operator==(const PulseSchedule &rhs) const noexcept = default;
 };
 
