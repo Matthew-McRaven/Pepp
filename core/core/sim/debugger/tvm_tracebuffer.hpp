@@ -76,7 +76,6 @@ struct Recording {
   // payload. Null when the record wrote nothing.
   pepp::bts::Buffer::Location data_start{};
   // The ring slot and location-buffer index this recording claimed at begin().
-  // Reserving these values at begin() allows safe interleaving of initiators.
   std::size_t slot = 0;
   u16 entry = 0;
   // Memoize the result of data_chain to avoid a map lookup on every traced write. Resolved once per recording now
@@ -123,7 +122,7 @@ struct Recording {
 //   body:    setmem/setreg paired with DP updated (ACCDP/INCDP/LDP)
 //   postfix: termination — always inlined, not hashed (HALT appended by commit())
 //
-// The only register this class memoizes is DP, which is required because several devices may record concurrently.
+// The only register this class memoizes is DP, which several devices contribute to within one instruction.
 // Each program must set all the registers it needs other than DP/SP.
 // Register programming does not survive across commit() boundaries due to run_each's RegisterRetention mode.
 // This decision simplifies the TraceBuffer implementation and should increase stencil hit-rates by reducing
@@ -151,11 +150,10 @@ public:
   Traceable *find_traceable(Device::ID initiator) const;
 
   // --- Recording ---
-  // True between begin() and commit() for this initiator. Since UI accesses may trigger traces, we need to be able to
+  // True between begin() and commit() for this initiator.
   bool is_recording(Device::ID initiator) const;
-  // Look up an initiator's *open* recording. Returns nullptr when it never called begin(), and equally when its last
-  // recording has already been committed or aborted -- scratch state outlives a recording, so a hit in the table is
-  // not evidence that one is in progress. Agrees with is_recording() by construction.
+  // The open recording, when it belongs to this initiator. Returns nullptr when nothing is recording, or when what
+  // is recording belongs to someone else.
   Recording *find_recording(Device::ID initiator);
 
   // Begin a new recording for the given initiator, creating its scratch state on first use and retaining scratch space
@@ -315,11 +313,7 @@ public:
   // when you want everything the buffer knows about, including the instruction currently executing.
   Cursor cursor() const;
 
-  // Cursor past the last entry that is guaranteed final — it stops at the earliest reservation still open anywhere
-  // in the ring. Everything before this will never change, so a range taken against it is stable and safe to
-  // acknowledge once read.
-  //
-  // Equal to cursor() when nothing is recording, which is every instruction boundary in a single-initiator system.
+  // Equal to cursor() when nothing is recording, otherwise equal to the open recording's entry.
   Cursor committed_cursor() const;
 
   // --- Data chain navigation ---
@@ -435,13 +429,13 @@ private:
     // payloads. Created on first write and then kept across reset() -- a cleared chain owns no buffers, so a retained
     // entry costs one map node and saves rebuilding the chain for an initiator that records here again.
     std::unordered_map<Device::ID, std::unique_ptr<pepp::bts::BufferChain>, pepp::handle_hash<Device::ID>> data;
-    // Number of times begin() has been called on this slot, which is also the number of location-buffer entries in
-    // use. Never decremented. An entry that has not yet been committed holds a tombstone (a program that immediately
-    // halts).
+    // Location-buffer entries claimed in this slot, including the one an open recording holds. Never decremented. An
+    // entry that has not been committed holds a tombstone (a program that immediately halts), which is also what an
+    // aborted recording leaves behind.
     u16 count = 0;
-    // Number of recordings currently open in this slot (incremented by begin(), decremented by commit()/abort()).
-    // acknowledge() will not reclaim a slot while open > 0, because an open recording is still appending to its
-    // chains.
+    // Recordings open in this slot: 0 or 1, since the buffer takes one at a time. acknowledge() will not reclaim a
+    // slot while one is open, because that recording is still appending to its chains, and slot_full() counts it
+    // because it will take an entry here when it commits.
     u16 open = 0;
 
     void reset(pepp::bts::BufferManager &mgr);
@@ -474,6 +468,8 @@ private:
   // Advance _head to the next ring slot. Fires watermark callbacks as needed.
   void advance_slot();
 
+  // True when every entry of the slot has been claimed, so the next begin() advances the ring.
+  static bool slot_full(const Node &node);
   // Write a ProgramLocation into a slot's location buffer at position `entry`.
   void write_location(Node &node, u16 entry, tvm::ProgramLocation program);
   // Read back the ProgramLocation stored at an index in the location buffer.
@@ -512,13 +508,14 @@ private:
   // are actual initiators. Entries are created on first begin() and then kept, so a device's scratch buffers
   // keep their capacity across programs instead of reallocating on every instruction.
   std::unordered_map<Device::ID, Recording, pepp::handle_hash<Device::ID>> _recordings;
+  // If non-nullptr, a cached pointer from _recordings for the open recording.
+  Recording *_open = nullptr;
 
   // Stencils are only freed on TraceBuffer destruction to avoid lifetime management issues.
   std::unique_ptr<pepp::bts::BufferChain> _stencils;
-  // Buffer::ID{0} hard-stops the interpreter with InvalidIBuffer, which causes run_each to break. A single aborted
-  // instruction halts the entire replay. To prevent ID==0 from appearing in reserved slots, point to a valid program
-  // which contains only HALT. This program is always the first entry of the stencil chain, written by clear(), and
-  // doubles as *CALLHALT's return address.
+  // Buffer::ID{0} hard-stops the interpreter with InvalidIBuffer. Claimed-but-unwritten entries point here instead, at
+  // a program that contains only HALT. Always the first entry of the stencil chain, written by clear(), and doubles as
+  // *CALLHALT's return address.
   tvm::ProgramLocation _tombstone{};
   std::unordered_map<u32, StencilEntry> _stencil_map;
   // A reverse lookup from StencilEntry::index to its body's bytes. Stencils are stored densely in promotion order.
