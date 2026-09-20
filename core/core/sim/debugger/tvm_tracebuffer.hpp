@@ -142,6 +142,7 @@ public:
   // The number of consumed bytes is written to size. If size is 0, there were insufficient bytes in the input buffer.
   static tvm::ProgramLocation decode_location(bits::span<const u8> in, tvm::ProgramLocation anchor, u8 &size);
 
+  // ring_size must be a power of two and throws if it is not.
   TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t ring_size = 4);
   ~TraceBuffer() noexcept;
 
@@ -522,10 +523,11 @@ private:
   // The group holding ordinal.
   static u16 group_of(const Node &node, u16 ordinal);
 
-  Node &current_node() { return _ring[_head % _ring.size()]; }
-  const Node &current_node() const { return _ring[_head % _ring.size()]; }
-  const Node &node_at(size_t absolute_slot) const { return _ring[absolute_slot % _ring.size()]; }
-  Node &node_at(size_t absolute_slot) { return _ring[absolute_slot % _ring.size()]; }
+  // Every record looks up its node several times, so these mask rather than divide. See the constructor.
+  Node &current_node() { return _ring[_head & _ring_mask]; }
+  const Node &current_node() const { return _ring[_head & _ring_mask]; }
+  const Node &node_at(size_t absolute_slot) const { return _ring[absolute_slot & _ring_mask]; }
+  Node &node_at(size_t absolute_slot) { return _ring[absolute_slot & _ring_mask]; }
 
   // The node holding `absolute_slot`, or nullptr once the ring has moved on and a later slot took over that node --
   // i.e. non-null exactly when a Cursor naming that slot still refers to the entries it named when it was taken.
@@ -545,8 +547,9 @@ private:
   std::shared_ptr<pepp::bts::BufferManager> _mgr;
 
   std::vector<Node> _ring;
-  // _head and _tail may exceed the size of _ring.
-  // they must always be taken % _ring.size().
+  // _ring.size() - 1, which reduces an absolute slot to its node since the size is a power of two.
+  std::size_t _ring_mask = 0;
+  // _head and _tail may exceed the size of _ring, so always reduce them through node_at() / current_node().
   std::size_t _head = 0; // Next slot to write
   std::size_t _tail = 0; // Oldest unconsumed slot
 

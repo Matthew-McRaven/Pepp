@@ -1,5 +1,6 @@
 #include "tvm_tracebuffer.hpp"
 #include <algorithm>
+#include <bit>
 #include <array>
 #include <cassert>
 #include <cstring>
@@ -45,10 +46,11 @@ void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
 // --- Construction / Destruction ---
 
 TraceBuffer::TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t ring_size) : _mgr(std::move(mgr)) {
-  // Every slot lookup is `absolute_slot % _ring.size()`, so an empty ring is a division by zero on first use rather
-  // than a buffer that simply holds nothing. Refuse it here, where the cause is still visible.
-  if (ring_size == 0) throw std::invalid_argument("TraceBuffer: ring_size must be at least 1");
+  // Slot lookups mask with ring_size - 1, which only works for a power of two, and an empty ring would have no node to
+  // find at all. Refuse either here, where the cause is still visible, rather than index out of bounds on first use.
+  if (!std::has_single_bit(ring_size)) throw std::invalid_argument("TraceBuffer: ring_size must be a power of two");
   _ring.resize(ring_size);
+  _ring_mask = ring_size - 1;
   // Eagerly allocate chains, and defer to clear() to populate initial data
   for (auto &node : _ring) {
     node.code = _mgr->alloc_chain();
@@ -278,7 +280,7 @@ void TraceBuffer::acknowledge(Cursor up_to) {
   // ring moved, or one taken from a different buffer, is an easy way to arrive here.
   const size_t limit = std::min(up_to.slot, _head);
   while (_tail < limit) {
-    auto &node = _ring[_tail % _ring.size()];
+    auto &node = node_at(_tail);
     // A recording that reserved an entry here has not closed yet, and is still appending to this node's chains.
     // reset() would hand those buffers back underneath it. Stop rather than skip: _tail has to stay contiguous, and
     // the caller can acknowledge the rest once the recording closes.

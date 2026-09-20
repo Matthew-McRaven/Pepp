@@ -1,4 +1,6 @@
 #include "core/sim/debugger/trace_device.hpp"
+#include <algorithm>
+#include <bit>
 #include <stdexcept>
 #include "core/sim/system.hpp"
 
@@ -11,7 +13,9 @@ BufferDevice::BufferDevice(Configuration cfg) : _config(std::move(cfg)) {
 }
 
 void BufferDevice::initialize(System *sys) {
-  _tb = std::make_unique<tvm::TraceBuffer>(sys->buffer_manager(), _config.ring_size);
+  // Round up to next greatest power-of-two.
+  const auto ring_size = std::bit_ceil(std::max<size_t>(_config.ring_size, 1));
+  _tb = std::make_unique<tvm::TraceBuffer>(sys->buffer_manager(), ring_size);
 }
 
 void BufferDevice::reset() {
