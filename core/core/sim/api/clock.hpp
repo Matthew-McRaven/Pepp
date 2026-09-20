@@ -46,13 +46,13 @@ consteval void allow_opaque_handle_add(PulseIndex);
  * with respect to each other, which cannot be represented by this deterministic schedule.
  */
 struct PulseSchedule {
-
+  static constexpr u64 DEFAULT_SEED = 0xfeeddeadbeefcafe;
   // Period in ns
   u64 period = 0;
   // must be < 1/2 period
   u64 jitter = 0;
   // Bits that are XOR'ed in when computing jitter from index. Useful to prevent two clocks with the same
-  u64 seed = 0xfeeddeadbeefcafe;
+  u64 seed = DEFAULT_SEED;
 
   constexpr PulseIndex index_of(u64 tick) const;
   constexpr u64 edge_time(PulseIndex n) const noexcept;

@@ -49,6 +49,7 @@ i16 as_i16(const nlohmann::json &node);
 u16 as_u16(const nlohmann::json &node);
 i32 as_i32(const nlohmann::json &node);
 u32 as_u32(const nlohmann::json &node);
+u64 as_u64(const nlohmann::json &node);
 
 // Temporary helpers to create a Pep/10 system without needing to parse a JSON file. When the new simulator replaces the
 // old one, the help system will contain the relevant JSON definitions and this function can be removed.

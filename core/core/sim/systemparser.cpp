@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include "core/ds/string_compare.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
+#include "core/sim/clocktree.hpp"
 #include "core/sim/cores/cpu/rv32/rv_isa.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/io/fifo.hpp"
@@ -66,6 +67,8 @@ i32 as_i32(const nlohmann::json &node) { return as_int<i32>(node); }
 
 u32 as_u32(const nlohmann::json &node) { return as_int<u32>(node); }
 
+u64 as_u64(const nlohmann::json &node) { return as_int<u64>(node); }
+
 void parse_standard_fields(const nlohmann::json &node, Device::Configuration &cfg) {
   if (node.contains("compatible") && !node["compatible"].is_null())
     cfg.compatible = node["compatible"].get<std::string>();
@@ -98,6 +101,9 @@ static const std::unordered_map<std::string, std::unique_ptr<DeviceSerializer>, 
       m.emplace(FIFORegister::compatible, FIFORegister::make_serializer());
       m.emplace(PepISA3CPU::compatible, PepISA3CPU::make_serializer());
       m.emplace(RV32CPU::compatible, RV32CPU::make_serializer());
+      m.emplace(pepp::IdealClock::compatible, pepp::IdealClock::make_serializer());
+      m.emplace(pepp::ScaledClock::compatible, pepp::ScaledClock::make_serializer());
+      m.emplace(pepp::MuxClock::compatible, pepp::MuxClock::make_serializer());
       return m;
     }();
 
