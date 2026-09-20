@@ -24,17 +24,3 @@ unsigned bits::getULEB128Size(uint64_t Value) {
   return Size;
 }
 
-/// Utility function to get the size of the SLEB128-encoded value.
-unsigned bits::getSLEB128Size(int64_t Value) {
-  unsigned Size = 0;
-  int Sign = Value >> (8 * sizeof(Value) - 1);
-  bool IsMore;
-
-  do {
-    unsigned Byte = Value & 0x7f;
-    Value >>= 7;
-    IsMore = Value != Sign || ((Byte ^ Sign) & 0x40) != 0;
-    Size += sizeof(int8_t);
-  } while (IsMore);
-  return Size;
-}

@@ -31,18 +31,19 @@ fixed-address store  : 33.5 B/instr (inlined: 112.0) | ratio 3.344 | code 66236 
                        3 templates,   0 pending | 512 KiB reserved
 walking-address store: 49.2 B/instr (inlined: 122.0) | ratio 2.480 | code 111292 templates 316 data 36004
                        3 templates, 750 pending | 512 KiB reserved
-
+ 
 with-DP-relative-addressing:
 fixed-address store  : 28.8 B/instr (inlined:  98.0) | ratio 3.401 | code 48208  templates 232 data 38004
                        3 templates,   0 pending | 256 KiB reserved
 walking-address store: 29.2 B/instr (inlined: 101.0) | ratio 3.459 | code 48288  templates 320 data 39004
                        4 templates,   0 pending | 256 KiB reserved
-
+ 
 with-PC-coalescing:
 fixed-address store  : 26.1 B/instr over 3000 (inlined: 83.3) | ratio 3.190
                        code 24172  templates 196  data 30006  locations 24000 | 3 templates, 0 pending
 walking-address store: 26.7 B/instr over 3000 (inlined: 87.5) | ratio 3.281
                        code 24244  templates 276  data 31506  locations 24000 | 4 templates, 0 pending
+                        
 STEPMEM-for-PC
 fixed-address store :  24.8 B/instr over 3000 instrs (inlined: 82.7) | ratio 3.335 
                        code 24174 stencils 198 data 26004 locations 24000 | 3 stencils promoted, 0 hashes pending | 256 KiB reserved
@@ -53,43 +54,43 @@ fixed-address store :  23.8 B/instr over 3000 instrs (inlined: 81.7) | ratio 3.4
                        code 24174 stencils 198 data 23001 locations 24000 | 3 stencils promoted, 0 hashes pending | 256 KiB reserved
 walking-address store: 23.7 B/instr over 3000 instrs (inlined: 85.5) | ratio 3.612 
                        code 24248 stencils 280 data 22501 locations 24000 | 4 stencils promoted, 0 hashes pending | 256 KiB reserved
+                        
+Remove redundant HALTs
+fixed-address store :  22.4 B/instr over 3000 instrs (inlined: 67.7) | ratio 3.015
+                       code 24174 stencils 160 data 18998 locations 24000 | 3 stencils promoted, 1 hashes pending | 256 KiB reserved
+walking-address store: 22.2 B/instr over 3000 instrs (inlined: 68.5) | ratio 3.090 
+                       code 24286 stencils 218 data 17998 locations 24000 | 4 stencils promoted, 2 hashes pending | 256 KiB reserved
+                        
+Fused opcode CALLHALT
+fixed-address store :  20.4 B/instr over 3000 instrs (inlined: 67.7) | ratio 3.309
+                       code 18182 stencils 160 data 18998 locations 24000 | 3 stencils promoted, 1 hashes pending | 256 KiB reserved
+walking-address store: 20.2 B/instr over 3000 instrs (inlined: 68.5) | ratio 3.396      
+                       code 18298 stencils 218 data 17998 locations 24000 | 4 stencils promoted, 2 hashes pending | 256 KiB reserved
+ 
+Stencil-indexed CALL (STCALL)
+fixed-address store :  18.4 B/instr over 3000 instrs (inlined: 67.7) | ratio 3.668
+                       code 12190 stencils 160 data 18998 locations 24000 | 3 stencils promoted, 1 hashes pending | 256 KiB reserved
+walking-address store: 18.2 B/instr over 3000 instrs (inlined: 68.5) | ratio 3.769
+                       code 12310 stencils 218 data 17998 locations 24000 | 4 stencils promoted, 2 hashes pending | 256 KiB reserved 
+ 
+Compress location buffer (v1)
+fixed-address store :  13.7 B/instr over 3000 instrs (inlined: 63.0) | ratio 4.582
+                       code 12190 stencils 160 data 18998 locations 9874 | 3 stencils promoted, 1 hashes pending | 256 KiB reserved
+walking-address store: 13.5 B/instr over 3000 instrs (inlined: 63.8) | ratio 4.737
+                       code 12310 stencils 218 data 17998 locations 9875 | 4 stencils promoted, 2 hashes pending | 256 KiB reserved
+
+Compress location buffer (as committed, v2)
+fixed-address store :  12.8 B/instr over 3000 instrs (inlined: 62.0) | ratio 4.846 
+                       code 12190 stencils 160 data 18998 locations 7040 | 3 stencils promoted, 1 hashes pending | 256 KiB reserved
+walking-address store: 12.5 B/instr over 3000 instrs (inlined: 62.9) | ratio 5.019 
+                       code 12310 stencils 218 data 17998 locations 7041 | 4 stencils promoted, 2 hashes pending | 256 KiB reserved
 ```
 
-Progress on the fixed loop.
-Note the `locations` is a per-instruction cost from the beginning that was incorrectly counted on the first two rows.
-STEPMEM-for-PC uses a more efficient encoding for non-branch PC updates.
-PACK-NZVC adjusts the layout of the CSRs in host memory to fit in 1 byte rather than 4.
+Note the `locations` is a per-instruction cost incorrectly accounted for in the first 2 rows.
 
 
-### Allocation breakdown
 
-| component | B/instr | share | shareable? |
-|---|---:|---:|---|
-| data payload | 10.00 | 38% | no |
-| location buffer | 8.00 | 31% | no — one `ProgramLocation` per program |
-| `CALL` + `HALT` | 8.06 | 31% | — |
-| templates, amortized | 0.07 | 0.3% | — |
-
-
-There is nothing shareable left in the code stream.
-Every byte of it is either the per-program data anchor, the call into the shared body, or the terminator.
-Bodies averaged 85.3 B/instr inlined and collapsed to a 6-byte `CALL`, with all templates costing 232 bytes total — a **14x reduction** on the shareable portion.
-
-The walking loop promotes 4 templates against the fixed loop's 3, because it has four distinct instruction shapes
-rather than three.
-Every shape templatized in both.
-
-The `data` term decomposes as (fetch/decode bookkeeping in **bold**):
-
-| instruction | payload bytes |
-|---|---|
-| `ADDA` | **IS 2, OS 2, PC 2**, A 2, NZVC 4 = 12 |
-| `STWA` | **IS 2, OS 2, PC 2**, mem 2 + 4 address = 12 |
-| `BR` | **IS 2, OS 2, PC 2** = 6 |
-| average | **6.0 bookkeeping**, 4.0 architectural state = 10.0 |
-
-
-## Derived: sim3 packets
+## Deriving the size of sim3 packets
 
 Fragment sizes, from `lib/sim3/api/traced/`:
 
@@ -103,17 +104,12 @@ Fragment sizes, from `lib/sim3/api/traced/`:
 
 So a 2-byte register write costs 9, a 4-byte CSR write 11, a 2-byte memory write 10.
 
-**sim3's cost depends on the CPU's write pattern, and that pattern changed underneath it.** Two of the optimizations
-below removed writes rather than shrinking encodings, and sim3 would have collected those savings too. Both
-generations are therefore derived:
+The PC- and NZVC-write-coalescing could have benefitted the sim3 as well, so I will subtract it out for fairness.
 
 | | writes/instr | sim3 fixed (bytes)| sim3 walking (bytes) |
 |---|---:|---:|---:|
 | original CPU (4 separate CSR writes, PC written 2.33x) | 6.33 | 60.0 | 65.2 |
-| current CPU (one CSR write, PC written once) | 4.00 | **41.0** | **43.5** |
-
-The fixed loop averages 6.33 writes and 11.33 payload bytes per instruction. 
-That matched the measured `data` term of 11.33 B/instr, which is what validates this model.
+| assuming coalesed writes (one CSR write, PC written once) | 4.00 | **41.0** | **43.5** |
 
 ### sim3 cost
 
@@ -125,88 +121,52 @@ Fixed loop:
 
 Walking loop: `ADDA`(77) + `STWA`(46) + `ADDX`(77) + `BR`(45) = 245 / 4 = 61.25, plus frame = **65.3 B/instr**.
 
-Note sim3's cost barely moves between the two loops (60.0 vs 65.3). It pays per write regardless of whether anything repeats.
 
 ## Comparing the formats
 
-| | sim3 | new, templated | new, if nothing templated |
+| | sim3 | new, with stencils | new, without stencils |
 |---|---:|---:|---:|
-| fixed loop | 41.0 | **26.1** (1.57x better) | 83.3 (2.03x **worse**) |
-| walking loop | 43.5 | **26.7** (1.63x better) | 87.5 (2.01x **worse**) |
+| fixed loop (B/instr)| 41.0 | 13.7  | 63.0  |
+| walking loop (B/instr)| 43.5 | 13.5  | 63.8  |
 
-sim3 also records no timestamps at all, which the new format does — so like-for-like the gap is slightly wider than
-1.57x, though `ISYN` is absorbed into templates and no longer has a separable cost to subtract.
-
-### Reusing bodies is required
-
-Per individual write the new encoding is *more* verbose than sim3:
-
-| | bytes |
-|---|---:|
-| sim3, 2-byte register write | 9 (5 header + 4 payload) |
-| TVM, same write | 16 (`SETMEMX<4>` 10 + `ACCDP` 4 + 2 payload) |
-This is a 1.78x increase per individual write. The new format is only smaller on average because of compression via calls.
-So, we need to support compression on every common sequence if we want comparable memory usage.
-
-### Improvements
-
-| | sim3 | new |
-|---|---|---|
-| seek to instruction N | O(N) walk, cached backlinks | O(1) via location buffer |
-| reverse step | O(frame) worst case | O(1) |
-| memory bound | none (`InfiniteBuffer`) | ring + `acknowledge()` + watermarks |
+sim3 also records no timestamps so this comparison likely underestimates the true savings.
 
 
-### Regressions
-| | sim3 | new |
-|---|---|---|
-| serializable to disk | yes (zpp_bits) | no |
-| reverse address translation | working (`AddressBiMap`) | `TRADDR` unimplemented |
-| MMIO / impure reads | `ImpureRead` packets | not yet encoded |
-| external deps in trace core | Qt, spdlog, zpp_bits | none |
-
-## What changed, and what each delivered
+## Previous format improvements
 
 Projections were made before each change; measured values are what landed.
 1. **Constant `ISYN` moved from prefix to body.** The prefix is inlined into every program and never hashed, so a
-   constant tick cost its full six bytes forever. *Projected −6.0 B/instr of code; measured **−6.01**.*
-2. **Location buffers allocated lazily and returned on `acknowledge()`.** *Measured **512 → 256 KiB** reserved.*
-3. **`write_packed_csr` coalesced** from four 1-byte writes to one 4-byte write. Four `SETMEMX`+`ACCDP` pairs for
-   four bits of state, and four trips through the recorder. *Measured **−15.3 B/instr** of inlined code.*
-4. **`SETMEMDX`** — target offset carried in the payload, selected per device. *Walking loop **49.2 → 29.2**,
-   pending hashes **750 → 0**.* Must not be applied unconditionally: the offset costs 4 bytes per *write*, so
+   constant tick cost its full six bytes forever.
+2. **Location buffers allocated lazily and returned on `acknowledge()`**. Reduced reservation from 512 → 256 KiB.
+3. **`write_packed_csr` coalesced** from four 1-byte writes to one 4-byte write.
+4. **`SETMEMDX`** — target offset carried in the payload, selected per device. Must not be applied unconditionally: the offset costs 4 bytes per *write*, so
    turning it on everywhere would have made the fixed loop ~60% worse.
 5. **Data pointer moved into the location buffer.** The absolute `LDP` at the head of every program named a buffer
    that differed every execution, so it could never join a template. Trading 8 code bytes for 4 more location bytes
-   left the code stream as pure `CALL` + `HALT`. *Measured **32.8 → 28.8**.*
-6. **PC coalesced to one write per instruction.** PC moved two or three times inside one instruction — past the
-   opcode, past the operand specifier, and again on a jump — and only the last value means anything to a replay.
-   *Projected −2.67 B/instr of data; measured **12.67 → 10.002**, total **28.8 → 26.1**.*
+   left the code stream as pure `CALL` + `HALT`. 
+6. **PC coalesced to one write per instruction.** PC updates two or three times inside one instruction but only the last value is visible at the ISA level.
+7. **CALLHALT** removed a 2-byte HALT instruction in the common case where the postfix is empty.
+8. **STCALL** compresses a 6-byte call into a 4-byte call with extra assistance from the trace buffer
+9. Rather than using fixed 8-byte `Location` values, use compressed, variable-size integer offsets.
+   Insert a checkpoint ever *N* bytes to make random seeking easier.
 
-## What is left
+## Future Work
 
-The code stream is finished; 8 B/instr of `CALL` + `HALT` is the floor for a randomly-seekable, bidirectionally
-replayable record, and no further de-duplication can touch it. Remaining ideas, none yet done:
-1. **Fetch/decode bookkeeping is 60% of payload.** `IS`, `OS` and `PC` are 6 of the 10 payload bytes, and all three
-   are derivable from the program image plus the previous record's PC. Not recording them would take data 10 → 4 and
-   the total to roughly **20 B/instr**. The cost is that replay stops
-   being ISA-agnostic, and that a self-modifying program would re-derive the wrong instruction. 
-2. **`CALL` is 6 bytes** — a buffer id plus an offset. An indexed reference into the template chain would fit in one
-   word. −2 B/instr.
-3. **The location entry is 8 bytes.** The data half is almost always in the same buffer as the previous entry's, so
-   a "same buffer, small delta" encoding could reach 5–6. Fiddly, and it would complicate random access.
-
-Two costs the harness still cannot see:
-
-- **Throughput.** Six changes optimized bytes while *adding* per-instruction work — an FNV hash over every body on
-  every commit. That trade has never been measured.
-- **Realistic template counts.** These loops promote 3–4 templates; a real program has ~200 instruction shapes.
-  Template lookup is now O(1), but nothing has been run at that scale.
+1. **Create architecture-specific fetch/decode instruction(s)**.
+   Fetch/decode bookkeeping is 60% of data payload.
+   `IS`, `OS` and `PC` are 6 of the 10 payload bytes, and all three are derivable from the program image plus the previous record's PC.
+   Not recording them would take data 10 → 4 at the cost of having to issue target memory reads on decode.
+   These changes would need to be implemented per-architecture
+2. With independent per-inititiator data chains, we could actually combine the initiator's code + data.
+   This would reduce trace overhead by ~25% in the average case by reducing internal fragmentation.
+   Data would still be eagerly committed to the chain, with the program append after that data.
+   Compressed locations would be able to have the two members be relative to each other.
+   With most traces being <20B/instr, this would likely allow most trace locations to be encoded with 2B.
 
 ## Reproducing
 
 ```
-ctest -R "Trace footprint"
+./test-core 
 ```
 
 The harness reports through `SPDLOG_WARN`, so the numbers appear in the test log on a passing run.

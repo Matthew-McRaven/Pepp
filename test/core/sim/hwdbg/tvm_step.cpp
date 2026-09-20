@@ -99,7 +99,7 @@ TEST_CASE("tvm::Interpreter: STEPMEM", "[scope:core][scope:core.dbg][kind:unit][
     poke_be(target, ADDR, 0x00FF);
 
     tb.begin(S);
-    body(StepMem<6>(access, mem->id().value, off, BE).encode(std::array<u8, 2>{0x01, 0x00}));
+    body(StepMemI(access, mem->id().value, off, BE).encode(std::array<u8, 2>{0x01, 0x00}));
     auto loc = tb.commit(S);
 
     auto blaster = sys->make_trace_interpreter();
@@ -121,7 +121,7 @@ TEST_CASE("tvm::Interpreter: STEPMEM", "[scope:core][scope:core.dbg][kind:unit][
     poke_be(target, ADDR, 0x0100);
 
     tb.begin(S);
-    body(StepMem<6>(access, mem->id().value, off, BE).encode(std::array<u8, 2>{0xFF, 0xFF}));
+    body(StepMemI(access, mem->id().value, off, BE).encode(std::array<u8, 2>{0xFF, 0xFF}));
     auto loc = tb.commit(S);
 
     sys->make_trace_interpreter()->run(loc);
@@ -133,7 +133,7 @@ TEST_CASE("tvm::Interpreter: STEPMEM", "[scope:core][scope:core.dbg][kind:unit][
 
     tb.begin(S);
     // the payload's width is the destination's width.
-    body(StepMem<6>(access, mem->id().value, off, BE).encode(std::array<u8, 1>{0x01}));
+    body(StepMemI(access, mem->id().value, off, BE).encode(std::array<u8, 1>{0x01}));
     auto loc = tb.commit(S);
 
     sys->make_trace_interpreter()->run(loc);
@@ -146,7 +146,7 @@ TEST_CASE("tvm::Interpreter: STEPMEM", "[scope:core][scope:core.dbg][kind:unit][
     poke_be(target, ADDR + 2, 0x9999); // a neighbour a carry must not reach
 
     tb.begin(S);
-    body(StepMem<6>(access, mem->id().value, off, BE).encode(std::array<u8, 2>{0x01, 0x00}));
+    body(StepMemI(access, mem->id().value, off, BE).encode(std::array<u8, 2>{0x01, 0x00}));
     auto loc = tb.commit(S);
 
     sys->make_trace_interpreter()->run(loc);
@@ -158,7 +158,7 @@ TEST_CASE("tvm::Interpreter: STEPMEM", "[scope:core][scope:core.dbg][kind:unit][
     poke_le(target, ADDR, 0x00FF);
 
     tb.begin(S);
-    body(StepMem<6>(access, mem->id().value, off, LE).encode(std::array<u8, 2>{0x01, 0x00}));
+    body(StepMemI(access, mem->id().value, off, LE).encode(std::array<u8, 2>{0x01, 0x00}));
     auto loc = tb.commit(S);
 
     sys->make_trace_interpreter()->run(loc);
@@ -182,10 +182,20 @@ TEST_CASE("tvm::Interpreter: STEPMEM", "[scope:core][scope:core.dbg][kind:unit][
     CHECK(peek_be(target, ADDR) == 0x0015);
   }
 
+  SECTION("An immediate packet without a size word is illegal") {
+    tb.begin(S);
+    body(encode_op<tvm::Opcode::STEPMEMI, true>(access, mem->id().value, off.hi, off.lo, BE));
+    auto loc = tb.commit(S);
+
+    auto blaster = sys->make_trace_interpreter();
+    blaster->run(loc);
+    CHECK(blaster->stop_cause() == tvm::StopCause::IllegalOpcode);
+  }
+
   SECTION("A delta too wide for the arithmetic is refused") {
     tb.begin(S);
     // The addition runs in a u64, so nine bytes of payload have nowhere to go.
-    body(StepMem<6>(access, mem->id().value, off, BE).encode(std::array<u8, 9>{0x01, 0, 0, 0, 0, 0, 0, 0, 0}));
+    body(StepMemI(access, mem->id().value, off, BE).encode(std::array<u8, 9>{0x01, 0, 0, 0, 0, 0, 0, 0, 0}));
     auto loc = tb.commit(S);
 
     auto blaster = sys->make_trace_interpreter();
@@ -209,7 +219,7 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
     scan->write<u32>(ref, 0x0000'FFFF);
 
     tb.begin(S);
-    body(StepReg<4>(access, ref.reg.value, ref.field.value).encode(std::array<u8, 1>{0x01}));
+    body(StepRegI(access, ref.reg.value, ref.field.value).encode(std::array<u8, 1>{0x01}));
     auto loc = tb.commit(S);
 
     auto blaster = sys->make_trace_interpreter();
@@ -228,7 +238,7 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
     scan->write<u16>(ref, 0x0100);
 
     tb.begin(S);
-    body(StepReg<4>(access, ref.reg.value, ref.field.value).encode(std::array<u8, 1>{0xFF}));
+    body(StepRegI(access, ref.reg.value, ref.field.value).encode(std::array<u8, 1>{0xFF}));
     auto loc = tb.commit(S);
 
     sys->make_trace_interpreter()->run(loc);
@@ -240,7 +250,7 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
     scan->write<u16>(ref, 0x00FF);
 
     tb.begin(S);
-    body(StepReg<4>(access, ref.reg.value, ref.field.value).encode(std::array<u8, 1>{0x01}));
+    body(StepRegI(access, ref.reg.value, ref.field.value).encode(std::array<u8, 1>{0x01}));
     auto loc = tb.commit(S);
 
     sys->make_trace_interpreter()->run(loc);
@@ -266,7 +276,7 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
     scan->write<u8>(hi, 0x3);
 
     tb.begin(S);
-    body(StepReg<4>(access, lo.reg.value, lo.field.value).encode(std::array<u8, 1>{0x01}));
+    body(StepRegI(access, lo.reg.value, lo.field.value).encode(std::array<u8, 1>{0x01}));
     auto loc = tb.commit(S);
 
     auto blaster = sys->make_trace_interpreter();
@@ -292,7 +302,7 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
     auto ref = *scan->find("ro");
 
     tb.begin(S);
-    body(StepReg<4>(access, ref.reg.value, ref.field.value).encode(std::array<u8, 1>{0x01}));
+    body(StepRegI(access, ref.reg.value, ref.field.value).encode(std::array<u8, 1>{0x01}));
     auto loc = tb.commit(S);
 
     // A refused register is an F for a following BRF rather than a halt -- but reaching HALT soft-stops, and that
@@ -310,7 +320,7 @@ TEST_CASE("tvm::Interpreter: STEPREG", "[scope:core][scope:core.dbg][kind:unit][
 
   SECTION("An unknown register is refused") {
     tb.begin(S);
-    body(StepReg<4>(access, 0xFFFF, 0).encode(std::array<u8, 1>{0x01}));
+    body(StepRegI(access, 0xFFFF, 0).encode(std::array<u8, 1>{0x01}));
     auto loc = tb.commit(S);
 
     auto blaster = sys->make_trace_interpreter();

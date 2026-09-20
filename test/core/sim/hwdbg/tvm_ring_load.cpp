@@ -27,14 +27,12 @@
 #include "core/sim/system.hpp"
 
 // The ring is the part of this design that the other suites never actually drive. tvm_capacity covers the mechanics
-// in isolation -- watermarks fire, overflow throws, a slot can be resumed -- but nothing there wraps the ring
-// repeatedly while recording, and nothing reclaims a slot and then keeps going. That combination is where buffer
-// recycling, generation-tagged ids, and lazily acquired location buffers all have to hold together, so it is where
-// the remaining bugs would live.
+// in isolation but nothing there wraps the ring repeatedly while recording, and nothing reclaims a slot and then keeps
+// going. That combination is where buffer recycling, generation-tagged ids, and lazily acquired location buffers all
+// interact.
 
 namespace {
 constexpr Device::ID S{1};
-constexpr u16 PER_SLOT = tvm::TraceBuffer::MAX_LOCATION_ENTRIES;
 
 // One record carrying a small payload, so the data chains are exercised alongside the code chains.
 tvm::ProgramLocation record_one(tvm::TraceBuffer &tb, u16 tag) {
@@ -44,6 +42,15 @@ tvm::ProgramLocation record_one(tvm::TraceBuffer &tb, u16 tag) {
   const auto set = tvm::EncodedOp::LDR<tvm::RegMask::DS>{4}.encode();
   tb.emit_body(S, {set.data(), set.size()});
   return tb.commit(S);
+}
+
+// Record until the ring leaves the slot it is currently on, reporting how many entries where written.
+// Variable-width location entries mean that the number of records depends on the quality of the encoding.
+std::size_t fill_slot(tvm::TraceBuffer &tb, u16 tag = 0) {
+  const auto slot = tb.cursor().slot;
+  std::size_t count = 0;
+  while (tb.cursor().slot == slot) record_one(tb, u16(tag + count++));
+  return count;
 }
 
 // Release every slot before the one currently being written, so at most one slot is ever outstanding. That keeps the
@@ -59,28 +66,18 @@ TEST_CASE("tvm::TraceBuffer: ring under sustained load", "[scope:core][scope:cor
 
   SECTION("Wrapping the ring repeatedly neither throws nor leaks buffers") {
     tvm::TraceBuffer tb(mgr, 2);
-    // Two full passes over a two-slot ring, so every slot is reclaimed and reused more than once. Each pass costs
-    // MAX_LOCATION_ENTRIES commits, so this is deliberately not larger than it needs to be to prove the point.
-    const std::size_t total = std::size_t(PER_SLOT) * 4 + 17;
-
+    // Two full passes over a two-slot ring, so every slot is reclaimed and reused more than once.
     u16 peak_allocated = 0;
-    for (std::size_t i = 0; i < total; ++i) {
-      record_one(tb, u16(i));
+    std::size_t total = 0;
+    while (tb.cursor().slot < 4) {
+      record_one(tb, u16(total++));
       drain_behind(tb);
       peak_allocated = std::max(peak_allocated, mgr->allocated_buffers());
     }
 
+    // Ring buffer has a bounded allocation size, and that buffers are being recycled in the buffer manager.
     CHECK(tb.instruction_count() == total);
-    // The whole point of the ring: live buffers are bounded by what is outstanding, not by how much was recorded.
     CHECK(peak_allocated < 16);
-
-    // The actual recycling claim, and the one worth asserting: free + allocated is every buffer slot the manager has
-    // ever created, pooled or live. Without reuse that would be one slot per few records -- tens of thousands -- and
-    // the manager would have run out of indices (there are 4095) long before this loop finished.
-    //
-    // Note this is the right question to ask, where "is anything sitting in the pool" is not. The free list is
-    // legitimately empty much of the time, because a reclaimed buffer is handed straight back out to the slot being
-    // written next; an empty pool means recycling is keeping up, not that it failed.
     CHECK(mgr->free_buffers() + mgr->allocated_buffers() < 16);
   }
 
@@ -94,7 +91,7 @@ TEST_CASE("tvm::TraceBuffer: ring under sustained load", "[scope:core][scope:cor
     REQUIRE(mgr->find(stale.code.id) != nullptr);
 
     // Fill the rest of this slot so the ring moves on, then reclaim it.
-    for (u16 i = 1; i < PER_SLOT; ++i) record_one(tb, i);
+    fill_slot(tb, 1);
     REQUIRE(tb.cursor().slot == 1);
     tb.acknowledge({1, 0});
 
@@ -114,13 +111,17 @@ TEST_CASE("tvm::TraceBuffer: ring under sustained load", "[scope:core][scope:cor
 
   SECTION("Records in the live slot still replay after the ring has turned") {
     tvm::TraceBuffer tb(mgr, 2);
-    for (std::size_t i = 0; i < std::size_t(PER_SLOT) * 2 + 5; ++i) {
-      record_one(tb, u16(i));
+    // Two slots' worth plus change.
+    while (tb.cursor().slot < 2) {
+      record_one(tb, 0x55);
+      drain_behind(tb);
+    }
+    for (int i = 0; i < 5; ++i) {
+      record_one(tb, 0x55);
       drain_behind(tb);
     }
 
-    // Whatever is still outstanding has to be runnable -- reclaiming everything behind it must not have disturbed
-    // the buffers it points at.
+    // Whatever is still outstanding has to be runnable.
     const auto live = record_one(tb, 0x1234);
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     blaster.run(live);
@@ -141,7 +142,7 @@ TEST_CASE("tvm::TraceBuffer: ring under sustained load", "[scope:core][scope:cor
     const auto recording = mgr->allocated_buffers();
     CHECK(recording > idle); // a location buffer and a data buffer had to come from somewhere
 
-    for (u16 i = 1; i < PER_SLOT; ++i) record_one(tb, i);
+    fill_slot(tb, 1);
     REQUIRE(tb.cursor().slot == 1);
     tb.acknowledge({1, 0});
 
@@ -177,10 +178,10 @@ TEST_CASE("tvm::TraceBuffer: sustained load through the recorder",
   auto peek = [&](Address at) { return ((Target *)mem)->read<u16, bits::host_is_le>(at, app).second; };
 
   // Two slots' worth plus change, reclaiming behind us the whole way.
-  const std::size_t total = std::size_t(PER_SLOT) * 2 + 32;
-  for (std::size_t i = 0; i < total; ++i) {
+  std::size_t total = 0;
+  while (tb.cursor().slot < 2 || total % 32 != 0) {
     tb.begin(CPU);
-    ((Target *)mem)->write<u16, bits::host_is_le>(0x1000, u16(i), wrote_op);
+    ((Target *)mem)->write<u16, bits::host_is_le>(0x1000, u16(total++), wrote_op);
     tb.commit(CPU);
     drain_behind(tb);
   }

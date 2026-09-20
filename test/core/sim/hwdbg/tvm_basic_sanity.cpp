@@ -608,9 +608,8 @@ TEST_CASE("tvm::Interpreter: stop causes", "[scope:core][scope:core.dbg][kind:un
   }
 
   SECTION("An unassigned opcode hard-stops with IllegalOpcode") {
-    // Opcodes are 6 bits and MAX is well under 63, so anything above it decodes to nothing.
-    static_assert((u8)tvm::Opcode::MAX < 63, "pick an encoding above MAX");
-    const u16 word = tvm::OpWord((tvm::Opcode)((u8)tvm::Opcode::MAX + 1), true, 0).as_u16();
+    // An unassigned fixed opcode, an unassigned variable one, and one word from each reserved class.
+    const u16 word = GENERATE(u16(0x1FFF), u16(0x5F00), u16(0x2000), u16(0x6000));
     const std::array<u8, 2> program{(u8)(word & 0xFF), (u8)(word >> 8)};
 
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));

@@ -20,8 +20,6 @@
 
 namespace {
 
-// A one-slot ring laps after a single slot's worth of entries, which makes the wrap cheap to reach.
-constexpr u16 ENTRIES_PER_SLOT = tvm::TraceBuffer::MAX_LOCATION_ENTRIES;
 
 // Submit `count` empty programs -- end() still appends a HALT -- and report the first and last locations.
 std::pair<tvm::ProgramLocation, tvm::ProgramLocation> submit_empty(tvm::TraceBuffer &tb, size_t count) {
@@ -35,6 +33,20 @@ std::pair<tvm::ProgramLocation, tvm::ProgramLocation> submit_empty(tvm::TraceBuf
   return {first, last};
 }
 
+// Record until the ring leaves the slot it is currently on, reporting how many entries where written.
+// Variable-width location entries mean that the number of records depends on the quality of the encoding.
+size_t fill_slot(tvm::TraceBuffer &tb) {
+  constexpr Device::ID S{1};
+  const auto slot = tb.cursor().slot;
+  size_t count = 0;
+  while (tb.cursor().slot == slot) {
+    tb.begin(S);
+    tb.commit(S);
+    ++count;
+  }
+  return count;
+}
+
 bool same_location(tvm::ProgramLocation a, tvm::ProgramLocation b) {
   return a.code.id.value == b.code.id.value && a.code.offset == b.code.offset;
 }
@@ -44,14 +56,6 @@ bool same_location(tvm::ProgramLocation a, tvm::ProgramLocation b) {
 TEST_CASE("tvm::Interpreter: Watermark callbacks", "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
   auto mgr = std::make_shared<pepp::bts::BufferManager>();
   constexpr Device::ID S{1};
-
-  // Fill the current slot completely, triggering advance_slot.
-  auto fill_slot = [&](tvm::TraceBuffer &tb) {
-    for (u16 i = 0; i < tvm::TraceBuffer::MAX_LOCATION_ENTRIES; ++i) {
-      tb.begin(S);
-      tb.commit(S);
-    }
-  };
 
   // Filling a slot never throws on its own. The slot advances at the end of the commit that filled it -- firing
   // watermarks and taking occupancy up -- and the refusal happens on the way *into* the next instruction, which is
@@ -161,14 +165,14 @@ TEST_CASE("tvm::Interpreter: Throw rather than overwrite old data",
   auto first = tb.commit(S);
 
   // Filling the rest of the single slot leaves the ring nowhere to advance to, because nothing has been
-  // acknowledged. Rather than lapping onto trace no one has read, the instruction after the last one that fit
-  // refuses -- so this asks for one more than the slot holds, and the final begin() is the one that throws.
-  CHECK_THROWS_AS(submit_empty(tb, (size_t)ENTRIES_PER_SLOT), tvm::RingOverflow);
+  // acknowledged. Attempting another submission throws rather than silently losing data.
+  const size_t fit = 1 + fill_slot(tb);
+  CHECK_THROWS_AS(submit_empty(tb, 1), tvm::RingOverflow);
 
-  // Everything accepted before the refusal is intact -- in particular the oldest entry, which a lap would clobber.
-  auto entry0 = *tb.range(tvm::Cursor{.slot = 0, .entry = 0}, tb.cursor()).begin();
+  // Everything accepted before the refusal is intact.
+  auto entry0 = *tb.range(tvm::Cursor{.slot = 0, .ordinal = 0}, tb.cursor()).begin();
   CHECK(same_location(entry0, first));
-  CHECK(tb.instruction_count() == (size_t)ENTRIES_PER_SLOT);
+  CHECK(tb.instruction_count() == fit);
 }
 
 TEST_CASE("tvm::Interpreter: Resume submission after overflow", "[scope:core][scope:core.dbg][kind:unit][arch:pep10][!throws]") {
@@ -176,8 +180,9 @@ TEST_CASE("tvm::Interpreter: Resume submission after overflow", "[scope:core][sc
   tvm::TraceBuffer tb(mgr, 1);
   constexpr Device::ID S{1};
 
-  // One past what the single slot holds: the last begin() finds the ring lapped and refuses.
-  REQUIRE_THROWS_AS(submit_empty(tb, (size_t)ENTRIES_PER_SLOT + 1), tvm::RingOverflow);
+  // One past what the single slot holds
+  fill_slot(tb);
+  REQUIRE_THROWS_AS(submit_empty(tb, 1), tvm::RingOverflow);
 
   // Consuming the slot is what unblocks the ring: acknowledge() resets it, and the next submission lands in a clean
   // slot rather than on top of the old trace.
@@ -197,8 +202,9 @@ TEST_CASE("tvm::Interpreter: Just-in-time emptying of ring", "[scope:core][scope
   // pending range first -- acknowledge() frees the slot's chains, so any Location handed out for it dies here.
   tb.on_watermark(1.0f, [&]() { tb.acknowledge(tb.cursor()); });
 
-  CHECK_NOTHROW(submit_empty(tb, (size_t)ENTRIES_PER_SLOT));
-  CHECK(tb.instruction_count() == (size_t)ENTRIES_PER_SLOT);
+  size_t fit = 0;
+  CHECK_NOTHROW(fit = fill_slot(tb));
+  CHECK(tb.instruction_count() == fit);
 }
 
 TEST_CASE("tvm::TraceBuffer: clear()", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
@@ -260,13 +266,13 @@ TEST_CASE("tvm::TraceBuffer: clear()", "[scope:core][scope:core.dbg][kind:unit][
   SECTION("keeps watermark registrations and re-arms them") {
     int fires = 0;
     tb.on_watermark(0.5f, [&]() { fires++; });
-    submit_empty(tb, tvm::TraceBuffer::MAX_LOCATION_ENTRIES);
+    fill_slot(tb);
     REQUIRE(fires == 1);
 
     tb.clear();
     // The callback belongs to the UI and outlives any one run but should be re-armed so it can fire again.
     CHECK(tb.ring_occupancy() == Catch::Approx(0.0f));
-    submit_empty(tb, tvm::TraceBuffer::MAX_LOCATION_ENTRIES);
+    fill_slot(tb);
     CHECK(fires == 2);
   }
 }

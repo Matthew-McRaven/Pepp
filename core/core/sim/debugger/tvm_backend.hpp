@@ -62,6 +62,10 @@ public:
   virtual void on_halt(MachineState &state, const tvm::DecodedOp::Halt &op);
   virtual void on_ret(MachineState &state, const tvm::DecodedOp::Ret &op);
   virtual void on_call(MachineState &state, const tvm::DecodedOp::Call &op);
+  // Hard-stops with Unimplemented as it requires a TraceBuffer.
+  virtual void on_callhalt(MachineState &state, const tvm::DecodedOp::CallHalt &op);
+  // Hard-stops with Unimplemented as it requires a TraceBuffer.
+  virtual void on_stcall(MachineState &state, const tvm::DecodedOp::STCALL &op);
   virtual void on_invcall(MachineState &state, const tvm::DecodedOp::InvCall &op);
   virtual void on_invret(MachineState &state, const tvm::DecodedOp::InvRet &op);
   virtual void on_asyn(MachineState &state, const tvm::DecodedOp::ASyn &op);

@@ -1,10 +1,13 @@
 #pragma once
+#include <array>
 #include <bitset>
+#include <cstring>
 #include <functional>
 #include <iterator>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include "core/ds/alloc/pagechain.hpp"
@@ -36,7 +39,7 @@ private:
 // A position within the trace buffer, identifying a specific entry in a specific ring slot.
 struct Cursor {
   size_t slot = 0; // must be taken % ring size.
-  u16 entry = 0;   // an index within that slot's location buffer.
+  u16 ordinal = 0; // which entry within that slot's location buffer.
   auto operator<=>(const Cursor &) const = default;
   bool operator==(const Cursor &) const = default;
 };
@@ -74,12 +77,11 @@ struct Recording {
   // driver can point DP at it before entering the program. Distinct from DpAnchor::at, which tracks the most recent
   // payload. Null when the record wrote nothing.
   pepp::bts::Buffer::Location data_start{};
-  // The ring slot and location-buffer index this recording claimed at begin().
-  // Reserving these values at begin() allows safe interleaving of initiators.
+  // The ring slot and location-buffer ordinal this recording claimed at begin().
   std::size_t slot = 0;
-  u16 entry = 0;
-  // Memoize the result of data_chain to avoid a map lookup on every traced write. Resolved once per recording now
-  // that the slot cannot move underneath it; begin() clears it.
+  u16 ordinal = 0;
+  // Memoize the result of data_chain to avoid a map lookup on every traced write. Kept across recordings for as long as
+  // they land in the same ring slot; begin() clears it only when the slot changes, while clear/abort always clear it.
   pepp::bts::BufferChain *chain = nullptr;
 };
 
@@ -87,7 +89,7 @@ struct Recording {
 // The class manages the lifetimes of buffers used by a tvm::Interpreter, and provides a circular-queue
 // abstraction. Commit()'ed programs go to a ring, whose size provides an upper limit of the length of a trace histroy.
 //
-// Each ring entry can hold ~8k programs, which is limited by the size of the location buffer.
+// Each ring entry can hold 8-30k programs, which is limited by the size of the location buffer.
 // The elements of location buffers match the shape of the Interpreter's run_each API.
 // This means each location must point to executable code, and each program must terminate with a HALT.
 // That location buffer provides an extra level of indirection to make random access in the ring O(1) instead of O(N).
@@ -98,17 +100,17 @@ struct Recording {
 // lifetime mangamenet. As soon as a ring slot is freed, its pages can be released to the BufferManager.
 //
 // Programs are built incrementally in a per-initiator temporary buffer in 3 parts: a prefix, a body,
-// and a postfix. begin() claims the ring slot and the location-buffer index the program will occupy; the bytes are
-// only copied into the ring when commit() is called, which overwrites the reserved entry. Splitting it that way is
-// what orders entries by when a recording *started* rather than when it finished, and what keeps a recording that
-// outlives a slot advance writing into the slot it began in. The body of a program is hashed to
+// and a postfix. begin() claims the ring slot and the ordinal the program will occupy but writes nothing for it;
+// commit() copies the bytes into the ring and only then writes the location entry, because an entry is encoded
+// against the one in front of it. At most one recording is open at a time, so claim order is commit order, and a
+// recording that outlives a slot advance still writes into the slot it began in. The body of a program is hashed to
 // determine if it has been seen before. If so, the program body is replaced with a call. The body is copied into a
 // stencil buffer if it has not yet been. The stencil buffer is never freed to avoid dealing with the possibility of
 // use-after-free bugs. The prefix and postfix are always inlined and not considered for hashing/replacement.
 // Grouping recordings by initiating device provide an atomic way to undo a single instruction even when multiple
 // initiating devices are in the system.
 //
-// CALLs compile down to ~6 bytes, which should provide footprint reduction for programs which are executed
+// CALLs compile down to 4-6 bytes, which should provide footprint reduction for programs which are executed
 // frequently. There are only a limited number of meaningful memory access patterns in Pep/10, so I expect a high
 // stencil hit rate over time.
 //
@@ -129,15 +131,19 @@ struct Recording {
 // unnecessary implicit state.
 class TraceBuffer {
 public:
-  // Minimum body size (in bytes) to be eligible for stencil promotion.
-  // If a call is 6 bytes, then the body needs to exceed 6 bytes (+ 2 for a ret)
-  static constexpr u16 PROMOTION_THRESHOLD = 8;
   // Ceiling on hashes awaiting a second sighting. Bodies that never repeat would otherwise accumulate one entry per
   // program forever, which at tens of millions of instructions is hundreds of MB and a steadily slower lookup.
   static constexpr std::size_t MAX_PENDING_HASHES = 1u << 16;
-  // Maximum entries per location buffer (64KB / sizeof(ProgramLocation)).
-  static constexpr u16 MAX_LOCATION_ENTRIES = pepp::bts::Buffer::SIZE / sizeof(tvm::ProgramLocation);
+  // Maximum number of bytes occupied by a single location buffer entry.
+  static constexpr u8 MAX_LOCATION_ENTRY_BYTES = 10;
+  // Compute the offset element-wise of value-anchor, and encode each element using SLEB128. Returns the number of
+  // bytes written. Throws when out is shorter than MAX_LOCATION_ENTRY_BYTES.
+  static u8 encode_location(bits::span<u8> out, tvm::ProgramLocation anchor, tvm::ProgramLocation value);
+  // Inverse of encode_location. Given an anchor and a pair of SLEB128-encoding integers, recompute the original value.
+  // The number of consumed bytes is written to size. If size is 0, there were insufficient bytes in the input buffer.
+  static tvm::ProgramLocation decode_location(bits::span<const u8> in, tvm::ProgramLocation anchor, u8 &size);
 
+  // ring_size must be a power of two and throws if it is not.
   TraceBuffer(std::shared_ptr<pepp::bts::BufferManager> mgr, size_t ring_size = 4);
   ~TraceBuffer() noexcept;
 
@@ -148,18 +154,17 @@ public:
   Traceable *find_traceable(Device::ID initiator) const;
 
   // --- Recording ---
-  // True between begin() and commit() for this initiator. Since UI accesses may trigger traces, we need to be able to
+  // True between begin() and commit() for this initiator.
   bool is_recording(Device::ID initiator) const;
-  // Look up an initiator's *open* recording. Returns nullptr when it never called begin(), and equally when its last
-  // recording has already been committed or aborted -- scratch state outlives a recording, so a hit in the table is
-  // not evidence that one is in progress. Agrees with is_recording() by construction.
+  // The open recording, when it belongs to this initiator. Returns nullptr when nothing is recording, or when what
+  // is recording belongs to someone else.
   Recording *find_recording(Device::ID initiator);
 
   // Begin a new recording for the given initiator, creating its scratch state on first use and retaining scratch space
-  // across usages to reduce dynamic allocation frequency. This method claims a slot in the ring (and location buffer!)
-  // which is held until until either commit() or abort(). This sorts instruction on begin() order rather than commit()
-  // order. The choice of ordering is arbitrary since systems with true multiprocessing don't execute round-robin. Begin
-  // ordering reduces complexity of error handling. Reserved slots point to a valid program which immediately halts.
+  // across usages to reduce dynamic allocation frequency. This method claims a ring slot and an ordinal in its
+  // location buffer, held until either commit() or abort(). At most one recording is open at a time, so claim order
+  // is commit order; abort() gives the ordinal back, and until commit() writes it, it reads as a program which
+  // immediately halts.
   //
   // Throws RingOverflow if this call would destroy data (i.e., this advances to a new slot, and that slot is in use).
   // This is the only place that refusal is raised, so an instruction that gets past begin() is guaranteed somewhere to
@@ -167,14 +172,16 @@ public:
   void begin(Device::ID initiator);
 
   // Finalize the current recording. Appends HALT to the postfix, hashes the body, checks for stencil promotion,
-  // flushes prefix + (body or CALL) + postfix into the code chain, and overwrites its reserved location entry. If this
+  // flushes prefix + (body or CALL) + postfix into the code chain, and writes its location entry. If this
   // ring slot is full and no other recordings are open, advances to the next slot, which can fire watermark callbacks.
   //
   // Can throw if the buffer manager runs out of buffers.
   tvm::ProgramLocation commit(Device::ID initiator);
 
   // Discard an in-progress recording without writing anything to the ring, which occurs when a caller unwinding out of
-  // a partially executed instruction due to an exception. Unlike e commit(), a no-op when nothing is recording rather
+  // a partially executed instruction due to an exception. The ordinal it claimed is given back, so an aborted
+  // instruction leaves no entry behind; any payload it wrote is stranded in the data chain until the slot is
+  // reclaimed. Unlike e commit(), a no-op when nothing is recording rather
   // than an assert, since this is typically called from destructors.
   // TODO: we probably need to expose a callback BEFORE the state is cleaned up. Writes have already been applied to
   // registers, and we probably need to undo them.
@@ -191,10 +198,16 @@ public:
   // Prefer Recording& variant outside of tests.
   void emit_body(Device::ID initiator, bits::span<const u8> encoded);
   void emit_body(Recording &rec, bits::span<const u8> encoded);
+  // Fixed-size copy inlines to a few stores, unlike the generic range insert.
+  template <std::size_t N> void emit_body(Recording &rec, const std::array<u8, N> &encoded) {
+    const auto at = rec.body.size();
+    rec.body.resize(at + N);
+    std::memcpy(rec.body.data() + at, encoded.data(), N);
+  }
 
   // Append encoded bytes to the postfix section.
-  // Not hashed. Always inlined after the body (or CALL). commit() appends HALT
-  // here automatically; use this to inject instructions before the HALT.
+  // Not hashed. Always inlined after the body (or CALL). commit() ends every program with a HALT after the postfix;
+  // use this to inject instructions before it.
   // Prefer Recording& variant outside of tests.
   void emit_postfix(Device::ID initiator, bits::span<const u8> encoded);
   void emit_postfix(Recording &rec, bits::span<const u8> encoded);
@@ -308,15 +321,11 @@ public:
   // recording replays a no-op rather than reading a half-written entry.
   //
   // The content of such an entry changes when that recording commits, so a range taken against this end is not
-  // stable: iterate it twice across a commit and the same position yields a halt and then the real program. Use it
+  // stable. Iterate it twice across a commit and the same position yields a halt and then the real program. Use it
   // when you want everything the buffer knows about, including the instruction currently executing.
   Cursor cursor() const;
 
-  // Cursor past the last entry that is guaranteed final — it stops at the earliest reservation still open anywhere
-  // in the ring. Everything before this will never change, so a range taken against it is stable and safe to
-  // acknowledge once read.
-  //
-  // Equal to cursor() when nothing is recording, which is every instruction boundary in a single-initiator system.
+  // Equal to cursor() when nothing is recording, otherwise equal to the open recording's entry.
   Cursor committed_cursor() const;
 
   // --- Data chain navigation ---
@@ -329,6 +338,14 @@ public:
 
   // --- Accessors ---
   std::size_t ring_size() const { return _ring.size(); }
+  // True when the head slot cannot take another entry, so the next begin() advances the ring.
+  bool head_slot_full() const { return slot_full(current_node()); }
+  // A HALT that lives as long as the buffer to which CALLHALT and STCALLHALT return.
+  pepp::bts::Buffer::Location halt_location() const { return _tombstone.code; }
+  // Where STCALL's index points. Buffer::ID{0} for an invalid index.
+  pepp::bts::Buffer::Location stencil_location(u16 index) const {
+    return index < _stencil_locations.size() ? _stencil_locations[index] : pepp::bts::Buffer::Location{};
+  }
   // Number of distinct initiators that have ever recorded. Entries persist after commit() so their scratch capacity
   // is reused, so this counts devices seen, not devices currently recording.
   std::size_t recording_count() const { return _recordings.size(); }
@@ -355,9 +372,12 @@ public:
     // Programs committed.
     std::size_t programs = 0;
 
-    // Bytes written to location buffers. Worth accounting for at all because location buffers are plain Buffers
-    // rather than chains, so nothing else here sees them, and omitting them understates the total by 8 per program.
-    std::size_t locations() const { return programs * sizeof(tvm::ProgramLocation); }
+    // Total number of bytes written to the location buffer
+    std::size_t location_bytes = 0;
+    // Additional out-of-buffer bytes required for bookkeeping. Only charge for the used bytes rather than the static
+    // allocations.
+    std::size_t location_aux_bytes = 0;
+    std::size_t locations() const { return location_bytes + location_aux_bytes; }
 
     // Retained bytes with promotion on, and what the same trace would have cost with it off. Location bytes sit on
     // both sides: promotion does not change how many programs there are.
@@ -373,6 +393,9 @@ public:
   };
   // A snapshot, by value: callers routinely take one before a run and another after, and compare them.
   Footprint footprint() const;
+  // One string describing the buffer's footprint with a prefixed label.
+  std::string describe(std::string_view label, const Footprint &f) const;
+  std::string describe(std::string_view label) const { return describe(label, footprint()); }
 
   // Reset all footprint /counters/ to 0 while retaining all other state inside the class.
   // Cost comparisons involving stencils will be incorrect because existing stencils' cost will no longer accounted
@@ -401,6 +424,28 @@ public:
   u16 stencil_size(u32 h) const;
 
 private:
+  // Minimum body size (in bytes) to be eligible for stencil promotion. Sized to CALL+RET (6+2) bytes.
+  static constexpr u16 PROMOTION_THRESHOLD = 8;
+  // Maximum number of stencils that can be stored, limited by STCALL's u16 index.
+  static constexpr std::size_t MAX_STENCILS = std::size_t{1} << 16;
+
+  // Uncompressed ProgramLocations are 8-bytes each, and are a limiting factor on how many programs we can fit per ring
+  // slot. By compressing ProgramLocations into a variable-width delta from the previous entry, we can reduce the number
+  // of bytes needed to store a ProgramLocation. However, we then lose random-access to the location buffer.
+  // Every LOCATION_GROUP_STRIDE bytes we inserte a full, uncompressed ProgramLocation, which we cann an anchor.
+  // A group is all of the program locations from an anchor up to (but not including) the next anchor. All locations
+  // within a group besides the anchor are encoded as a delta from the previous location.
+  // These parameters control the distance between anchors. After a search of all power-of-2 anchors, I determined that
+  // a stride of 8 produced good savings while keeping random access O(small constant).
+  static constexpr u16 LOCATION_GROUP_STRIDE = 8 * sizeof(tvm::ProgramLocation);
+  // Groups per location buffer.
+  static constexpr std::size_t LOCATION_GROUPS = pepp::bts::Buffer::SIZE / LOCATION_GROUP_STRIDE;
+  // Maximum entries per location buffer limited by index size (u16).
+  static constexpr u16 MAX_LOCATION_ENTRIES = std::numeric_limits<u16>::max();
+  static_assert(pepp::bts::Buffer::SIZE % LOCATION_GROUP_STRIDE == 0, "groups must divide a buffer evenly");
+  static_assert(LOCATION_GROUP_STRIDE >= sizeof(tvm::ProgramLocation) + MAX_LOCATION_ENTRY_BYTES,
+                "a group must fit at least two entries");
+
   // --- Ring node ---
   // Absolute slot index meaning "this node holds nothing". _head never approaches it.
   static constexpr std::size_t NO_SLOT = SIZE_MAX;
@@ -411,7 +456,7 @@ private:
     // A Cursor names an *absolute* slot, but a node is found by absolute_slot % ring_size -- so slot 1 and slot 5 of a
     // four-slot ring are the same node. Without this stamp an iterator into a slot the ring had since reused would
     // silently read the newer slot's entries and hand back a real-looking program from the wrong point in history.
-    // Comparing against it turns that into a null location, which fails loudly on replay instead.
+    // Comparing against it turns that into a null location, which is easier to gaurd against.
     //
     // It doubles as the "this slot holds unacknowledged trace" flag begin() refuses to write over.
     std::size_t slot = NO_SLOT;
@@ -423,13 +468,22 @@ private:
     // payloads. Created on first write and then kept across reset() -- a cleared chain owns no buffers, so a retained
     // entry costs one map node and saves rebuilding the chain for an initiator that records here again.
     std::unordered_map<Device::ID, std::unique_ptr<pepp::bts::BufferChain>, pepp::handle_hash<Device::ID>> data;
-    // Number of times begin() has been called on this slot, which is also the number of location-buffer entries in
-    // use. Never decremented. An entry that has not yet been committed holds a tombstone (a program that immediately
-    // halts).
+    // Ordinals handed out in this slot, which is also the number of location-buffer entries in use. Decremented by
+    // abort() to allowe reuse of that aborted slot. An ordinal whose recording has not committed yet reads back as a
+    // tombstone (a program that immediately halts).
     u16 count = 0;
-    // Number of recordings currently open in this slot (incremented by begin(), decremented by commit()/abort()).
-    // acknowledge() will not reclaim a slot while open > 0, because an open recording is still appending to its
-    // chains.
+
+    // For each group, the ordinal of the first entry in that group (which is a full ProgramLocation).
+    std::array<u16, LOCATION_GROUPS> group_first_ordinal{};
+    // Bytes used by each group, which is where its next entry is appended.
+    std::array<u16, LOCATION_GROUPS> group_used{};
+    // Number of groups in use. Only the latest group can be appended to.
+    u16 groups = 0;
+    // The last entry written to the page, which is what the next one encodes against. A group's first entry is stored
+    // whole, so this restarts from that entry whenever a group opens.
+    tvm::ProgramLocation last_emitted{};
+    // Recordings open in this slot, either 0 or 1. acknowledge() will not reclaim a slot while one is open to avoid a
+    // UAF by the recorder.
     u16 open = 0;
 
     void reset(pepp::bts::BufferManager &mgr);
@@ -437,29 +491,24 @@ private:
 
   // --- Stencil dedup ---
   struct StencilEntry {
-    // Where a CALL to this stencil should aim.
-    pepp::bts::Buffer::Location location;
+    u16 index = 0; // A subscript into _stencil_locations.
     u32 hit_count = 0;
     // The bytes of the promoted body. On a hash hit, we want to compare the actual bytes to avoid collisions.
-    // This span pre-resolves location back to its buffer, avoiding a walk of the stencil chain on hit.
-    // While our size is really only a u16, it gets promoted to size_t on account of being a span. Always downcast size
-    // to 16 bits before use.
+    // This span avoids walking of the stencil chain on hit. While our size is really only a u16, it gets promoted to
+    // size_t on account of being a span. Always downcast size to 16 bits before use.
     //
     // The pointer is safe to hold as long as the stencil chain is not cleared, and as long as a Buffer's data is not
     // moved out of.
     bits::span<const u8> body{};
   };
 
-  struct BodyResolution {
-    bool is_stencil;
-    // If is_stencil: location in stencil chain (target of CALL).
-    pepp::bts::Buffer::Location location;
-  };
-  BodyResolution resolve_body(bits::span<const u8> body);
+  // The stencil to which this body corresponds or a nullptr if the body must be written to the ring directly. The
+  // pointer is only valid until the next promotion or call to resolve_body.
+  const StencilEntry *resolve_body(bits::span<const u8> body);
   // True when the stencil recorded in `entry` holds exactly `body`. resolve_body keys stencils on a truncated
   // 32-bit hash, so a map hit alone does not prove the bodies match; this is what makes a collision safe.
   static bool stencil_matches(const StencilEntry &entry, bits::span<const u8> body);
-  tvm::ProgramLocation flush_to_ring(Recording &rec, BodyResolution resolution);
+  tvm::ProgramLocation flush_to_ring(Recording &rec, const StencilEntry *stencil);
 
   // This recording's data chain in the ringbuffer's head slot, creating the chain on first use.
   pepp::bts::BufferChain &data_chain(Recording &rec);
@@ -467,15 +516,25 @@ private:
   // Advance _head to the next ring slot. Fires watermark callbacks as needed.
   void advance_slot();
 
-  // Write a ProgramLocation into a slot's location buffer at position `entry`.
-  void write_location(Node &node, u16 entry, tvm::ProgramLocation program);
-  // Read back the ProgramLocation stored at an index in the location buffer.
-  tvm::ProgramLocation read_location(const Node &node, u16 entry) const;
+  // Append one entry to the newest group, opening a new group as necessary.
+  void emit_location(Node &node, tvm::ProgramLocation program);
+  // True when the current group is full and no new groups can be allocated. Please advance to the next slot.
+  bool slot_full(const Node &node) const;
+  // Bytes still available for entries across this slot's remaining groups.
+  static std::size_t room_left(const Node &node);
+  // The bytes of `group` within the slot's location buffer.
+  static u8 *group_base(Node &node, u16 group);
 
-  Node &current_node() { return _ring[_head % _ring.size()]; }
-  const Node &current_node() const { return _ring[_head % _ring.size()]; }
-  const Node &node_at(size_t absolute_slot) const { return _ring[absolute_slot % _ring.size()]; }
-  Node &node_at(size_t absolute_slot) { return _ring[absolute_slot % _ring.size()]; }
+  // Read back the ProgramLocation stored at an ordinal in the location buffer.
+  tvm::ProgramLocation read_location(const Node &node, u16 ordinal) const;
+  // The group holding ordinal.
+  static u16 group_of(const Node &node, u16 ordinal);
+
+  // Every record looks up its node several times, so these mask rather than divide. See the constructor.
+  Node &current_node() { return _ring[_head & _ring_mask]; }
+  const Node &current_node() const { return _ring[_head & _ring_mask]; }
+  const Node &node_at(size_t absolute_slot) const { return _ring[absolute_slot & _ring_mask]; }
+  Node &node_at(size_t absolute_slot) { return _ring[absolute_slot & _ring_mask]; }
 
   // The node holding `absolute_slot`, or nullptr once the ring has moved on and a later slot took over that node --
   // i.e. non-null exactly when a Cursor naming that slot still refers to the entries it named when it was taken.
@@ -495,8 +554,9 @@ private:
   std::shared_ptr<pepp::bts::BufferManager> _mgr;
 
   std::vector<Node> _ring;
-  // _head and _tail may exceed the size of _ring.
-  // they must always be taken % _ring.size().
+  // _ring.size() - 1, which reduces an absolute slot to its node since the size is a power of two.
+  std::size_t _ring_mask = 0;
+  // _head and _tail may exceed the size of _ring, so always reduce them through node_at() / current_node().
   std::size_t _head = 0; // Next slot to write
   std::size_t _tail = 0; // Oldest unconsumed slot
 
@@ -505,15 +565,18 @@ private:
   // are actual initiators. Entries are created on first begin() and then kept, so a device's scratch buffers
   // keep their capacity across programs instead of reallocating on every instruction.
   std::unordered_map<Device::ID, Recording, pepp::handle_hash<Device::ID>> _recordings;
+  // If non-nullptr, a cached pointer from _recordings for the open recording.
+  Recording *_open = nullptr;
 
   // Stencils are only freed on TraceBuffer destruction to avoid lifetime management issues.
   std::unique_ptr<pepp::bts::BufferChain> _stencils;
-  // Buffer::ID{0} hard-stops the interpreter with InvalidIBuffer, which causes run_each to break. A single aborted
-  // instruction halts the entire replay. To prevent ID==0 from appearing in reserved slots, point to a valid program
-  // which contains only HALT. This program is allocated on the stencil chain in the ctor, and the location is stored
-  // here.
+  // Buffer::ID{0} hard-stops the interpreter with InvalidIBuffer. Claimed-but-unwritten entries point here instead, at
+  // a program that contains only HALT. Always the first entry of the stencil chain, written by clear(), and doubles as
+  // *CALLHALT's return address.
   tvm::ProgramLocation _tombstone{};
   std::unordered_map<u32, StencilEntry> _stencil_map;
+  // A reverse lookup from StencilEntry::index to its body's bytes. Stencils are stored densely in promotion order.
+  std::vector<pepp::bts::Buffer::Location> _stencil_locations;
   // Hashes seen once but not yet promoted. On second occurrence with
   // body.size() >= PROMOTION_THRESHOLD, the body is promoted to _stencils.
   std::unordered_set<u32> _pending_hashes;

@@ -17,7 +17,8 @@ public:
   static constexpr Device::Type TypeMask = Device::Type::TraceBuffer;
   static const inline std::string compatible = "debug,trace-buffer";
   struct Configuration : public Device::Configuration {
-    // Upper bound on retained history: the ring holds this many slots, each up to ~16k programs.
+    // Upper bound on retained history: the ring holds this many slots, each up to ~16k programs. Rounded up to a power
+    // of two.
     size_t ring_size = 4;
   };
 

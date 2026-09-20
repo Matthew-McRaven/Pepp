@@ -313,6 +313,26 @@ TraceApplyBackend::TraceApplyBackend(std::shared_ptr<pepp::bts::BufferManager> m
                                      tvm::TraceBuffer *tb)
     : ApplyBackend(std::move(mgr), system), _tb(tb) {}
 
+void TraceApplyBackend::on_stcall(MachineState &state, const tvm::DecodedOp::STCALL &op) {
+  if (_tb == nullptr) return ApplyBackend::on_stcall(state, op);
+  const auto target = _tb->stencil_location(op.index);
+  if (target.id == pepp::bts::Buffer::ID{0}) return state.hard_stop(tvm::StopCause::StencilUnknown);
+
+  if (op.returns_to_halt) {
+    const auto halt = _tb->halt_location();
+    state.push(tvm::SegmentPair{.hi = halt.id.value, .lo = halt.offset});
+  } else state.push(state.regs.IP);
+
+  state.regs.IP = tvm::SegmentPair{.hi = target.id.value, .lo = target.offset};
+}
+
+void TraceApplyBackend::on_callhalt(MachineState &state, const tvm::DecodedOp::CallHalt &op) {
+  if (_tb == nullptr) return ApplyBackend::on_callhalt(state, op);
+  const auto halt = _tb->halt_location();
+  state.push(tvm::SegmentPair{.hi = halt.id.value, .lo = halt.offset});
+  state.regs.IP = op.next_ip;
+}
+
 void TraceApplyBackend::on_dpincr(MachineState &state, const tvm::DecodedOp::DPIncr &op) {
   // Without a buffer there is no chain to follow, so defer to the base class's behavior.
   if (_tb == nullptr) return ApplyBackend::on_dpincr(state, op);

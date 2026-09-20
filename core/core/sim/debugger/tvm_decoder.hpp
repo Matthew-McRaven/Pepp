@@ -35,30 +35,35 @@ private:
   tvm::DecodedOp::Ret decode_ret(pepp::bts::Buffer::ID ibp, u16 iop);
   // Register write depends on a preceding stack op, which is not allowed in decode stage.
   tvm::DecodedOp::Call decode_call(pepp::bts::Buffer::ID ibp, u16 iop);
+  tvm::DecodedOp::CallHalt decode_callhalt(pepp::bts::Buffer::ID ibp, u16 iop);
+  tvm::DecodedOp::STCALL decode_stcall(pepp::bts::Buffer::ID ibp, u16 iop); // STCALL and STCALLHALT.
   tvm::DecodedOp::InvCall decode_invcall(pepp::bts::Buffer::ID ibp, u16 iop);
   // Operand-free, like RET. Kept separate so dispatch routes it to on_invret rather than on_ret.
   tvm::DecodedOp::InvRet decode_invret(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ASyn decode_asyn(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ISyn decode_isyn(pepp::bts::Buffer::ID ibp, u16 iop);
-  // Shared operand decoding for ASYN/ISYN. Programs the MOD registers for the immediate form, then reads the
-  // little-endian timestamp bytes. `width` receives the number of bytes actually consumed so that the caller can
-  // sign-extend a delta; the returned value itself is only zero-extended.
+  // Shared operand decoding for ASYN/ISYN and their immediate forms. Programs the MOD registers for ASYNI/ISYNI, then
+  // reads the little-endian timestamp bytes. `width` receives the number of bytes actually consumed so that the caller
+  // can sign-extend a delta; the returned value itself is only zero-extended.
   u64 decode_syn_data(pepp::bts::Buffer::ID ibp, u16 iop, u8 &width);
   // Unlike other decode functions, this one does not update registers!
   // This is because the shift/extract logic is somewhat complex -- and really belongs in the execute stage.
   tvm::DecodedOp::LMR decode_lmr(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::BR decode_br(pepp::bts::Buffer::ID ibp, u16 iop);
-  // SETMEM and SETMEMX, which differ only in the Delta they resolve to.
+  // Shared by every immediate form. Reads the size word after the base opcode's full packet into MOD1.lo and
+  // points MOD2 at the payload that follows it. Returns false after hard-stopping when the packet has no size word.
+  bool decode_immediate(pepp::bts::Buffer::ID ibp, u16 iop, u8 packet_words, tvm::SegmentPair &data, u16 &size);
+  // SETMEM and SETMEMX, plus their immediate forms, which differ only in the Delta they resolve to.
   tvm::DecodedOp::DeltaMem decode_setmem(pepp::bts::Buffer::ID ibp, u16 iop);
   // Resolves to the same DecodedOp::DeltaMem as decode_setmem. The only difference is where the offset came from,
   // and by the time a backend sees it that distinction has already been resolved away.
   tvm::DecodedOp::DeltaMem decode_setmemdx(pepp::bts::Buffer::ID ibp, u16 iop);
-  // STEPMEM has to carry a endianness bit.
+  // STEPMEM and STEPMEMI have to carry a endianness bit.
   tvm::DecodedOp::DeltaMem decode_stepmem(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::CmpMem decode_cmpmem(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ClrMem decode_clrmem(pepp::bts::Buffer::ID ibp, u16 iop);
-  // SETREG, SETREGX and STEPREG all at once: unlike their memory counterparts the three share a packet layout
-  // exactly.
+  // SETREG, SETREGX and STEPREG, plus their immediate forms, all at once: unlike their memory counterparts the three
+  // share a packet layout exactly.
   tvm::DecodedOp::DeltaReg decode_deltareg(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::CmpReg decode_cmpreg(pepp::bts::Buffer::ID ibp, u16 iop);
   tvm::DecodedOp::ClrReg decode_clrreg(pepp::bts::Buffer::ID ibp, u16 iop);

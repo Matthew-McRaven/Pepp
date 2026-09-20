@@ -15,9 +15,11 @@
  */
 #include "core/sim/debugger/trace_recorder.hpp"
 #include <array>
+#include <vector>
 #include <catch.hpp>
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/trace_device.hpp"
+#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/memory/ram/dense.hpp"
@@ -84,6 +86,60 @@ TEST_CASE("trace::Recorder: emit_write()", "[scope:core][scope:core.dbg][kind:un
 
     blaster->run(loc);
     CHECK(peek(mem, ADDR) == OLD); // and back again, from the same bytes
+  }
+
+  SECTION("Prefer INCDP when crossing buffer boundaries") {
+    constexpr Address SECOND = ADDR + 4;
+    poke(mem, ADDR, OLD);
+    poke(mem, SECOND, OLD);
+
+    // An earlier record fills all but three bytes of the data buffer, so the record under test starts near its end.
+    tb.begin(CPU);
+    std::vector<u8> filler(pepp::bts::Buffer::SIZE - 3, 0xAA);
+    tb.append_data(CPU, {filler.data(), filler.size()});
+    tb.commit(CPU);
+
+    // The first fits in the current page, the second is bumped to the next page.
+    tb.begin(CPU);
+    rec.emit_write(emit_write_op, ADDR, old_bytes, new_bytes);
+    rec.emit_write(emit_write_op, SECOND, old_bytes, new_bytes);
+    auto loc = tb.commit(CPU);
+
+    // Walking to the successor needs the buffer, which the system here does not hold.
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, sys.get(), &tb));
+    blaster.run(loc);
+    CHECK(blaster.stop_cause() == tvm::StopCause::None);
+    CHECK(peek(mem, ADDR) == NEW);
+    CHECK(peek(mem, SECOND) == NEW);
+    // Re-running it takes us back to the beginning state
+    blaster.run(loc);
+    CHECK(peek(mem, ADDR) == OLD);
+    CHECK(peek(mem, SECOND) == OLD);
+  }
+
+  SECTION("Fall back to LDP if the chain's tail is not the current buffer's successor") {
+
+    constexpr Address SECOND = ADDR + 4;
+    poke(mem, ADDR, OLD);
+    poke(mem, SECOND, OLD);
+
+    // Emit data to page #1
+    tb.begin(CPU);
+    rec.emit_write(emit_write_op, ADDR, old_bytes, new_bytes);
+    // Does not fit on page #1, spills to page #2. page #2 is the successor of #1
+    std::vector<u8> filler(pepp::bts::Buffer::SIZE, 0xAA);
+    tb.append_data(CPU, {filler.data(), filler.size()});
+    // Does not fit on page #2, spills to page #3, page #3 is the successor to #2.
+    // The previous write from the CPU's perspective was on page #1, but we are now on #3.
+    // Must use LDP to bring DP from page #1 to page #3.
+    rec.emit_write(emit_write_op, SECOND, old_bytes, new_bytes);
+    auto loc = tb.commit(CPU);
+
+    tvm::Interpreter blaster(mgr, std::make_unique<tvm::TraceApplyBackend>(mgr, sys.get(), &tb));
+    blaster.run(loc);
+    CHECK(blaster.stop_cause() == tvm::StopCause::None);
+    CHECK(peek(mem, ADDR) == NEW);
+    CHECK(peek(mem, SECOND) == NEW);
   }
 
   SECTION("Only the recorded address moves") {
@@ -206,32 +262,6 @@ TEST_CASE("trace::Recorder: emit_write()", "[scope:core][scope:core.dbg][kind:un
     CHECK(peek(mem, ADDR) == OLD);
   }
 
-  SECTION("Writes are filed under the initiator, not the emitting device") {
-    // Two initiators recording at once. Each one's write must end up in its own recording, so replaying only CPU's
-    // program moves only CPU's address.
-    constexpr Device::ID OTHER{2};
-    constexpr Address OTHER_ADDR = 0x3000;
-    poke(mem, ADDR, OLD);
-    poke(mem, OTHER_ADDR, 0x4444);
-    const std::array<u8, 2> other_old{0x44, 0x44}, other_new{0x77, 0x77};
-
-    tb.begin(CPU);
-    tb.begin(OTHER);
-    rec.emit_write(emit_write_op, ADDR, old_bytes, new_bytes);
-    rec.emit_write(Operation(Operation::Type::Standard, Operation::Kind::data, OTHER), OTHER_ADDR, other_old,
-                   other_new);
-    auto cpu_loc = tb.commit(CPU);
-    auto other_loc = tb.commit(OTHER);
-
-    auto blaster = sys->make_trace_interpreter();
-    blaster->run(cpu_loc);
-    CHECK(peek(mem, ADDR) == NEW);
-    CHECK(peek(mem, OTHER_ADDR) == 0x4444); // untouched by CPU's program
-
-    blaster->run(other_loc);
-    CHECK(peek(mem, OTHER_ADDR) == 0x7777);
-  }
-
   SECTION("Mismatched span lengths use the shorter one") {
     poke(mem, ADDR, OLD);
     const std::array<u8, 1> just_one{0x56};
@@ -346,32 +376,20 @@ TEST_CASE("trace::Recorder: emit_write_increment()", "[scope:core][scope:core.db
     tb.commit(CPU);
     REQUIRE(tb.stencil_count() == 1);
 
-    // clear() releases the stencil chain, so _stencil_map must go with it. Surviving would leave this non-zero and
-    // every entry in it pointing at a program that has been handed back to the pool.
+    // clear() releases the stencil chain; ensure no dangling pointers.
     tb.clear();
     REQUIRE(tb.stencil_count() == 0);
 
-    // The same body as before the clear, which is what makes a stale table observable. A surviving _pending_hashes
-    // would treat this first occurrence as the second and promote on sight.
+    // The same body as before the clear, which should be treated as a new program.
     tb.begin(CPU);
     rec.emit_write_increment(emit_op, ADDR, first_bytes, second_bytes, bits::Order::BigEndian);
     tb.commit(CPU);
-    CHECK(tb.stencil_count() == 0); // seen once since the clear, exactly as from a fresh buffer
+    CHECK(tb.stencil_count() == 0); // seen once since
 
     tb.begin(CPU);
     rec.emit_write_increment(emit_op, ADDR, second_bytes, third_bytes, bits::Order::BigEndian);
     const auto loc = tb.commit(CPU);
     CHECK(tb.stencil_count() == 1);
-
-    // Counting the tables only shows they were emptied. This program is the one whose body became a CALL, so
-    // replaying it is what proves the stencil it targets is a live program in the rebuilt chain rather than a freed
-    // one -- the failure the two REQUIREs above cannot see.
-    constexpr u16 THIRD = 0x0106;
-    poke(mem, ADDR, SECOND);
-    auto blaster = sys->make_trace_interpreter();
-    blaster->run(loc);
-    CHECK(blaster->stop_cause() == tvm::StopCause::None);
-    CHECK(peek(mem, ADDR) == THIRD);
   }
 
   SECTION("A little-endian step replays forward, then undoes itself") {

@@ -116,6 +116,14 @@ inline int64_t decodeSLEB128(const uint8_t *p, unsigned *n = nullptr, const uint
 extern unsigned getULEB128Size(uint64_t Value);
 
 /// Utility function to get the size of the SLEB128-encoded value.
-extern unsigned getSLEB128Size(int64_t Value);
+constexpr unsigned getSLEB128Size(int64_t Value) {
+  // n bytes carry 7n bits, the topmost of which is the sign, so they cover [-2^(7n-1), 2^(7n-1)). The loop stops
+  // before the shift would overflow; anything wider than that takes the full ten.
+  for (unsigned n = 1; n < 10; ++n) {
+    const int64_t limit = int64_t{1} << (7 * n - 1);
+    if (Value >= -limit && Value < limit) return n;
+  }
+  return 10;
+}
 
 } // namespace bits
