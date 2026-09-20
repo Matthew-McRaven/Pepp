@@ -35,6 +35,8 @@ public:
   struct Configuration : public Device::Configuration {
     // Name of device to use as the target for memory access. Resolved to Target* during initialize().
     std::string target;
+    // Name of the clock driving this CPU. Resolved to ClockSource* during initialize().
+    std::string clock;
   };
   RV32CPU(Configuration cfg, System *sys);
   ~RV32CPU() = default;

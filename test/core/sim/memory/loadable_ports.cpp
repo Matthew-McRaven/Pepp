@@ -20,6 +20,7 @@
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/cores/cpu/rv32/rv_isa.hpp"
 #include "core/sim/memory/ram/dense.hpp"
+#include "core/sim/clocktree.hpp"
 #include "core/sim/system.hpp"
 
 namespace {
@@ -56,9 +57,13 @@ TEST_CASE("Loadable ports", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
         Device::Configuration{.basename = "cpu", .compatible = PepISA3CPU::compatible},
         PepISA3CPU::ISA::Pep10,
         "/memory",
+        "/clk",
     };
     auto sys = std::make_unique<System>(root_cfg);
     auto *mem = sys->make_device<Dense>(mem_cfg());
+    pepp::IdealClock::Configuration clk_cfg{
+        Device::Configuration{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000};
+    sys->make_device<pepp::IdealClock>(clk_cfg);
     auto *cpu = sys->make_device<PepISA3CPU>(cpu_cfg, sys.get());
     sys->initialize();
     check_unified(cpu, mem);
@@ -67,9 +72,13 @@ TEST_CASE("Loadable ports", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
     RV32CPU::Configuration cpu_cfg{
         Device::Configuration{.basename = "cpu", .compatible = RV32CPU::compatible},
         "/memory",
+        "/clk",
     };
     auto sys = std::make_unique<System>(root_cfg);
     auto *mem = sys->make_device<Dense>(mem_cfg());
+    pepp::IdealClock::Configuration clk_cfg{
+        Device::Configuration{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000};
+    sys->make_device<pepp::IdealClock>(clk_cfg);
     auto *cpu = sys->make_device<RV32CPU>(cpu_cfg, sys.get());
     sys->initialize();
     check_unified(cpu, mem);

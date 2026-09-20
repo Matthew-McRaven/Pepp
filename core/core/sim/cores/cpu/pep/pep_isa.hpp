@@ -34,6 +34,8 @@ public:
     ISA isa = ISA::Pep10;
     // Name of device to use as the target for memory access. Resolved to Target* during initialize().
     std::string target;
+    // Name of the clock driving this CPU. Resolved to ClockSource* during initialize().
+    std::string clock;
   };
   PepISA3CPU(Configuration cfg, System *sys);
   ~PepISA3CPU() = default;

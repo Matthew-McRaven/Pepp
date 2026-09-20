@@ -20,6 +20,7 @@
 #include <iostream>
 #include "core/integers.h"
 #include "core/math/bitmanip/copy.hpp"
+#include "core/sim/clocktree.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/cores/cpu/rv32/rv_isa.hpp"
 #include "core/sim/debugger/trace_device.hpp"
@@ -82,7 +83,10 @@ auto make_core(bool use_sparse, bool traced) {
                                         .basename = "cpu",
                                         .compatible = PepISA3CPU::compatible,
                                     },
-                                    isa, "/memory"};
+                                    isa, "/memory", "/clk"};
+  pepp::IdealClock::Configuration clk_cfg{
+      Device::Configuration{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000};
+  system->make_device<pepp::IdealClock>(clk_cfg);
   auto *cpu = system->make_device<PepISA3CPU>(cpu_cfg, system.get());
 
   Target *mem = nullptr;
@@ -124,7 +128,10 @@ auto make_riscv(bool use_sparse, bool traced) {
                                      .basename = "cpu",
                                      .compatible = RV32CPU::compatible,
                                  },
-                                 "/memory"};
+                                 "/memory", "/clk"};
+  pepp::IdealClock::Configuration clk_cfg{
+      Device::Configuration{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000};
+  system->make_device<pepp::IdealClock>(clk_cfg);
   auto *cpu = system->make_device<RV32CPU>(cpu_cfg, system.get());
 
   Target *mem = nullptr;

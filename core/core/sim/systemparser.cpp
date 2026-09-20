@@ -228,8 +228,11 @@ std::unique_ptr<System> create_standard_pep10_system() {
         FIFORegister::Configuration{
             {.basename = mmio.name, .compatible = FIFORegister::compatible}, 0, mmio.direction, AddressSpan(0, 0)});
 
+  sys->make_device<pepp::IdealClock>(
+      pepp::IdealClock::Configuration{{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000});
+
   PepISA3CPU::Configuration cpu_cfg{
-      {.basename = "cpu", .compatible = PepISA3CPU::compatible}, PepISA3CPU::ISA::Pep10, "/bus"};
+      {.basename = "cpu", .compatible = PepISA3CPU::compatible}, PepISA3CPU::ISA::Pep10, "/bus", "/clk"};
   sys->make_device<PepISA3CPU>(cpu_cfg, sys.get());
   return sys;
 }

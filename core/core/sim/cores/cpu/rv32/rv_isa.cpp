@@ -28,6 +28,8 @@ Device *create_rv32cpu(const nlohmann::json &self, System *sys, Device *par) {
     if (cfg.basename.empty()) throw ParsingError("RV32CPU must have a basename");
     if (!self.contains("target") || self["target"].is_null()) throw ParsingError("RV32CPU must have a target");
     cfg.target = self["target"].get<std::string>();
+    if (!self.contains("clock") || self["clock"].is_null()) throw ParsingError("RV32CPU must have a clock");
+    cfg.clock = self["clock"].get<std::string>();
   } catch (const nlohmann::json::type_error &e) {
     throw ParsingError("Failed to parse RV32CPU: " + std::string(e.what()));
   }
@@ -38,6 +40,7 @@ void prefill_rv32cpu(nlohmann::json &obj) {
   obj["compatible"] = RV32CPU::compatible;
   obj["basename"];
   obj["target"];
+  obj["clock"];
 }
 
 void serialize_rv32cpu(nlohmann::json &obj, const System *sys, const Device *self) {
@@ -46,6 +49,7 @@ void serialize_rv32cpu(nlohmann::json &obj, const System *sys, const Device *sel
   obj["compatible"] = RV32CPU::compatible;
   obj["basename"] = casted->config().basename;
   obj["target"] = casted->casted_config().target;
+  obj["clock"] = casted->casted_config().clock;
 }
 } // namespace
 
@@ -68,6 +72,11 @@ void RV32CPU::initialize(System *sys) {
   if (!dev) throw std::runtime_error("RV32CPU: could not find target device " + _config.target);
   _target = dev->capability<Target>();
   if (!_target) throw std::runtime_error("RV32CPU: device " + _config.target + " is not a memory target");
+  auto clk_dev = sys->find_relative(_config.clock, _config.fullname);
+  if (!clk_dev) throw std::runtime_error("RV32CPU: could not find clock device " + _config.clock);
+  auto *clk = clk_dev->capability<ClockSource>();
+  if (!clk) throw std::runtime_error("RV32CPU: device " + _config.clock + " is not a clock source");
+  set_clock_source(clk);
   _regbank->set_initiator(id());
 
   using SR = RegisterScan::Register;
