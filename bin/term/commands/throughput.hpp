@@ -24,7 +24,9 @@
 class ThroughputTask : public Task {
   Q_OBJECT
 public:
-  enum class WhichVersion { Sim3, Core, RV };
+  // The *System variants drive the core through System::tick_while instead of calling clock_tick on it,
+  // so the clock tree and scheduler are part of what gets measured.
+  enum class WhichVersion { Sim3, Core, RV, CoreSystem, RVSystem };
   enum class TestProgram {
     SelfBranch, // self: BR self
     RMW,        // Accumulate a meaningless value into A.
@@ -33,10 +35,10 @@ public:
   ~ThroughputTask() = default;
   void run();
 
-  // Both should return their "start" time
+  // All should return their "start" time
   std::chrono::high_resolution_clock::time_point do_sim3();
-  std::chrono::high_resolution_clock::time_point do_core();
-  std::chrono::high_resolution_clock::time_point do_riscv();
+  std::chrono::high_resolution_clock::time_point do_core(bool via_system);
+  std::chrono::high_resolution_clock::time_point do_riscv(bool via_system);
   u64 maxInstr = 100'000'000;
   bool has_bps = false;
   bool use_sparse = false;
@@ -60,7 +62,9 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
                         ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::WhichVersion>{
                             {"sim3", ThroughputTask::WhichVersion::Sim3},
                             {"core", ThroughputTask::WhichVersion::Core},
-                            {"rv", ThroughputTask::WhichVersion::RV}}));
+                            {"rv", ThroughputTask::WhichVersion::RV},
+                            {"core-sys", ThroughputTask::WhichVersion::CoreSystem},
+                            {"rv-sys", ThroughputTask::WhichVersion::RVSystem}}));
   auto programOpt =
       instrThruSC->add_option("-p,--program", program, "Which test program to run")
           ->transform(CLI::CheckedTransformer(std::map<std::string, ThroughputTask::TestProgram>{
@@ -77,7 +81,7 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
       instrThruSC
           ->add_flag("--trace,!--no-trace", record_traces,
                      "Record a trace of every instruction, dropping the oldest history whenever the trace ring passes "
-                     "75% full. Core and RV only.")
+                     "75% full. Not available for sim3.")
           ->default_val(false);
   instrThruSC->group("");
   instrThruSC->callback([&]() {

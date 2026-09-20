@@ -27,6 +27,7 @@
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/ram/dense.hpp"
+#include "core/sim/clocktree.hpp"
 #include "core/sim/memory/ram/sparse.hpp"
 #include "core/sim/system.hpp"
 #include "sim3/cores/pep/traced_pep10_isa3.hpp"
@@ -171,8 +172,10 @@ void ThroughputTask::run() {
   std::chrono::high_resolution_clock::time_point start;
   switch (_version) {
   case WhichVersion::Sim3: start = do_sim3(); break;
-  case WhichVersion::Core: start = do_core(); break;
-  case WhichVersion::RV: start = do_riscv(); break;
+  case WhichVersion::Core: start = do_core(false); break;
+  case WhichVersion::RV: start = do_riscv(false); break;
+  case WhichVersion::CoreSystem: start = do_core(true); break;
+  case WhichVersion::RVSystem: start = do_riscv(true); break;
   }
   const auto end = std::chrono::high_resolution_clock::now();
   const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -280,9 +283,9 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_sim3() {
   return start;
 }
 
-std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_core(bool via_system) {
   static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
-  fmt::println("Simulator: core");
+  fmt::println("Simulator: core{}", via_system ? " (via system)" : "");
   auto [system, mem, cpu, tbdev] = make_core(this->use_sparse, this->record_traces);
   cpu->write_register(isa::Pep10::Register::PC, 0x0000);
   mem->write(0x0000, pep_program(this->program), rw);
@@ -301,15 +304,20 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
   }
   cpu->has_bps = has_bps;
   const auto start = std::chrono::high_resolution_clock::now();
-  for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseIndex{(u64)it}, it);
+  if (via_system) {
+    u64 executed = 0;
+    system->tick_while([&](Device::ID, u64) { return ++executed < maxInstr; });
+  } else {
+    for (u64 it = 0; it < maxInstr; it++) cpu->clock_tick(PulseIndex{it}, it);
+  }
   fmt::println("Filter hits: {}", cpu->filter_hits());
   if (tbdev != nullptr) fmt::println("{}", tbdev->buffer().describe("trace"));
   return start;
 }
 
-std::chrono::high_resolution_clock::time_point ThroughputTask::do_riscv() {
+std::chrono::high_resolution_clock::time_point ThroughputTask::do_riscv(bool via_system) {
   static constexpr auto rw = Operation{Operation::Type::Standard, Operation::Kind::data};
-  fmt::println("Simulator: riscv");
+  fmt::println("Simulator: riscv{}", via_system ? " (via system)" : "");
   auto [system, mem, cpu, tbdev] = make_riscv(this->use_sparse, this->record_traces);
   cpu->registers()->write_pc(0x0000);
   mem->write(0x0000, rv_program(this->program), rw);
@@ -326,7 +334,12 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_riscv() {
   }
   // cpu->has_bps = has_bps;
   const auto start = std::chrono::high_resolution_clock::now();
-  for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseIndex{(u64)it}, it);
+  if (via_system) {
+    u64 executed = 0;
+    system->tick_while([&](Device::ID, u64) { return ++executed < maxInstr; });
+  } else {
+    for (u64 it = 0; it < maxInstr; it++) cpu->clock_tick(PulseIndex{it}, it);
+  }
   if (tbdev != nullptr) fmt::println("{}", tbdev->buffer().describe("trace"));
   // fmt::println("Filter hits: {}", cpu->filter_hits());
   return start;
