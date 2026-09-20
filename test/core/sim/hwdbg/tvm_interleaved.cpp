@@ -74,7 +74,7 @@ TEST_CASE("tvm::Interpreter:  Initiators taking turns", "[scope:core][scope:core
     CHECK(b0.regs().MOD1.lo == 0xAAAA);
   }
 
-  SECTION("An aborted recording leaves a runnable no-op in the entry it claimed") {
+  SECTION("An aborted recording gives its entry back") {
     const auto before = tb.cursor();
 
     tb.begin(S0);
@@ -83,26 +83,20 @@ TEST_CASE("tvm::Interpreter:  Initiators taking turns", "[scope:core][scope:core
 
     tb.begin(S1);
     body_s1(LMR_of<false>(std::pair{M::MOD1_LO, u16(0xBEEF)}));
-    tb.commit(S1);
+    const auto kept = tb.commit(S1);
 
-    // The abandoned entry is still an entry -- begin() claimed it, so it is inside the cursor range either way.
-    auto it = tb.range(before, tb.cursor()).begin();
-    const auto aborted = *it;
-    ++it;
-    const auto kept = *it;
+    // Nothing was written for the abandoned ordinal, and it was the newest one, so abort() hands it back and the
+    // range holds only the recording that committed.
+    auto r = tb.range(before, tb.cursor());
+    int entries = 0;
+    for ([[maybe_unused]] auto program : r) entries++;
+    CHECK(entries == 1);
+    CHECK((*r.begin()).code.offset == kept.code.offset);
 
     tvm::Interpreter b(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
-    // A zeroed entry would hard-stop on Buffer::ID{0}, and run_each breaks on a hard stop -- so one aborted
-    // instruction would end the whole replay. Pointing it at a bare HALT makes it a no-op instead.
-    b.run(aborted);
+    b.run(*r.begin());
     CHECK(b.stopped());
-    CHECK(b.csrs().F == 0);
     CHECK(b.stop_cause() == tvm::StopCause::None);
-    // The aborted body never ran.
-    CHECK(b.regs().MOD1.lo == 0);
-
-    b.run(kept);
-    CHECK(b.stopped());
     CHECK(b.regs().MOD1.lo == 0xBEEF);
   }
 }

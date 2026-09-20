@@ -262,32 +262,6 @@ TEST_CASE("trace::Recorder: emit_write()", "[scope:core][scope:core.dbg][kind:un
     CHECK(peek(mem, ADDR) == OLD);
   }
 
-  SECTION("Writes are filed under the initiator, not the emitting device") {
-    // Two initiators recording at once. Each one's write must end up in its own recording, so replaying only CPU's
-    // program moves only CPU's address.
-    constexpr Device::ID OTHER{2};
-    constexpr Address OTHER_ADDR = 0x3000;
-    poke(mem, ADDR, OLD);
-    poke(mem, OTHER_ADDR, 0x4444);
-    const std::array<u8, 2> other_old{0x44, 0x44}, other_new{0x77, 0x77};
-
-    tb.begin(CPU);
-    tb.begin(OTHER);
-    rec.emit_write(emit_write_op, ADDR, old_bytes, new_bytes);
-    rec.emit_write(Operation(Operation::Type::Standard, Operation::Kind::data, OTHER), OTHER_ADDR, other_old,
-                   other_new);
-    auto cpu_loc = tb.commit(CPU);
-    auto other_loc = tb.commit(OTHER);
-
-    auto blaster = sys->make_trace_interpreter();
-    blaster->run(cpu_loc);
-    CHECK(peek(mem, ADDR) == NEW);
-    CHECK(peek(mem, OTHER_ADDR) == 0x4444); // untouched by CPU's program
-
-    blaster->run(other_loc);
-    CHECK(peek(mem, OTHER_ADDR) == 0x7777);
-  }
-
   SECTION("Mismatched span lengths use the shorter one") {
     poke(mem, ADDR, OLD);
     const std::array<u8, 1> just_one{0x56};

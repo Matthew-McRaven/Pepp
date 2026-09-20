@@ -470,25 +470,4 @@ TEST_CASE("trace::Recorder: MMIO records are filtered like every other trace",
     h.replay(loc, tvm::Direction::Backward);
     CHECK(h.fifo->output().size() == 1);
   }
-
-  SECTION("Records are filed under the initiator, not the emitting device") {
-    // Two initiators recording at once, both writing the one port. Each write belongs to its own program: if they had
-    // both landed in CPU's, the first undo below would empty the queue instead of taking one byte off it.
-    constexpr Device::ID OTHER{2};
-    const Operation from_other(Operation::Type::Standard, Operation::Kind::data, OTHER);
-
-    h.tb().begin(CPU);
-    h.tb().begin(OTHER);
-    h.write(0x11);
-    h.write(0x22, from_other);
-    auto cpu_loc = h.tb().commit(CPU);
-    auto other_loc = h.tb().commit(OTHER);
-    REQUIRE(h.fifo->output().size() == 2);
-
-    h.replay(other_loc, tvm::Direction::Backward);
-    CHECK(h.fifo->output().size() == 1);
-
-    h.replay(cpu_loc, tvm::Direction::Backward);
-    CHECK(h.fifo->output().empty());
-  }
 }

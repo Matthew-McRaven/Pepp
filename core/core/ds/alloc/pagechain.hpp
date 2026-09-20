@@ -39,6 +39,10 @@ public:
   struct Location {
     Buffer::ID id;
     Buffer::page_offset_t offset;
+    // TraceBuffer frequently wants to pack/unpack these values. Users should generally respect the opaque nature of a
+    // Location, here's the convenience methods for when you can't.
+    static constexpr Location from_u32(u32 v) { return Location{Buffer::ID{(u16)(v >> 16)}, (u16)v}; }
+    constexpr u32 as_u32() const { return ((u32)id.value << 16) | offset; }
   };
   // Returns a Location which points to the next free by in the buffer.
   // Useful when appending data to the buffer.

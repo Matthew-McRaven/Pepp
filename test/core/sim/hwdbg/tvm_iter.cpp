@@ -13,9 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <algorithm>
+#include <array>
 #include <catch.hpp>
+#include <stdexcept>
 #include <vector>
 
+#include "core/math/bitmanip/leb128.hpp"
 #include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
@@ -90,8 +94,8 @@ TEST_CASE("tvm::Interpreter: Location buffer iteration", "[scope:core][scope:cor
 
   SECTION("Sub-range iteration") {
     // Iterate only entries [1, 4) — should see programs 1, 2, 3.
-    tvm::Cursor from{before.slot, static_cast<u16>(before.entry + 1)};
-    tvm::Cursor to{before.slot, static_cast<u16>(before.entry + 4)};
+    tvm::Cursor from{before.slot, static_cast<u16>(before.ordinal + 1)};
+    tvm::Cursor to{before.slot, static_cast<u16>(before.ordinal + 4)};
     auto r = tb.range(from, to);
 
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
@@ -117,25 +121,22 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
   using namespace tvm::EncodedOp;
   tvm::TraceBuffer tb(mgr);
   constexpr Device::ID S{1};
-  constexpr u16 MAX = tvm::TraceBuffer::MAX_LOCATION_ENTRIES;
-
   auto body = [&](auto enc) { tb.emit_body(S, {enc.data(), enc.size()}); };
 
-  // Fill slot 0 with MAX-2 empty submissions, then 2 tagged ones at the tail.
-  for (u16 i = 0; i < MAX - 2; ++i) {
+  // Fill slot 0, tagging every submission, until the commit that fills it advances the ring. How many entries a slot
+  // holds depends on how well they encoded, so the last two are found by filling rather than by counting.
+  tvm::Cursor boundary_start{}, last_cursor{};
+  u16 tag = 0, second_last_tag = 0, last_tag = 0;
+  while (tb.cursor().slot == 0) {
+    boundary_start = last_cursor;
+    last_cursor = tb.cursor();
+    second_last_tag = last_tag;
+    last_tag = (u16)(0xAA00 + tag++);
     tb.begin(S);
+    body(LDMOD1Lo{last_tag}.encode());
     tb.commit(S);
   }
-  auto boundary_start = tb.cursor(); // {0, MAX-2}
-
-  // Last 2 entries of slot 0.
-  tb.begin(S);
-  body(LDMOD1Lo{0xAA00}.encode());
-  tb.commit(S);
-  tb.begin(S);
-  body(LDMOD1Lo{0xAA01}.encode());
-  tb.commit(S);
-  // Slot 0 is now full,  advance_slot fired, _head=1.
+  // boundary_start now names the second-to-last entry of slot 0, and advance_slot has fired, so _head=1.
 
   // First 2 entries of slot 1.
   tb.begin(S);
@@ -153,7 +154,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
       blaster.run(loc);
       values.push_back(blaster.regs().MOD1.lo);
     }
-    CHECK(values == std::vector<u16>{0xAA00, 0xAA01, 0xBB00, 0xBB01});
+    CHECK(values == std::vector<u16>{second_last_tag, last_tag, 0xBB00, 0xBB01});
   }
 
   SECTION("Reverse iteration crosses slot boundary") {
@@ -164,7 +165,7 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
       blaster.run(*it);
       values.push_back(blaster.regs().MOD1.lo);
     }
-    CHECK(values == std::vector<u16>{0xBB01, 0xBB00, 0xAA01, 0xAA00});
+    CHECK(values == std::vector<u16>{0xBB01, 0xBB00, last_tag, second_last_tag});
   }
 
   SECTION("Forward-backward round-trip across boundary") {
@@ -173,15 +174,15 @@ TEST_CASE("Cross-slot iteration", "[scope:core][scope:core.dbg][kind:unit][arch:
     auto it = r.begin();
 
     // Forward past boundary into slot 1.
-    ++it; // 0xAA01 (slot 0)
+    ++it; // last of slot 0
     ++it; // 0xBB00 (slot 1)
     blaster.run(*it);
     CHECK(blaster.regs().MOD1.lo == 0xBB00);
 
     // Step back across boundary into slot 0.
-    --it; // 0xAA01 (slot 0)
+    --it; // last of slot 0
     blaster.run(*it);
-    CHECK(blaster.regs().MOD1.lo == 0xAA01);
+    CHECK(blaster.regs().MOD1.lo == last_tag);
 
     // Forward again to the end.
     ++it; // 0xBB00
@@ -244,8 +245,8 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
   }
 
   SECTION("Sub-range iteration executes only selected programs") {
-    tvm::Cursor from{before.slot, static_cast<u16>(before.entry + 1)};
-    tvm::Cursor to{before.slot, static_cast<u16>(before.entry + 4)};
+    tvm::Cursor from{before.slot, static_cast<u16>(before.ordinal + 1)};
+    tvm::Cursor to{before.slot, static_cast<u16>(before.ordinal + 4)};
     auto r = tb.range(from, to);
 
     tvm::Interpreter blaster(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
@@ -301,5 +302,87 @@ TEST_CASE("tvm::Interpreter:  run_each with iterator pair", "[scope:core][scope:
     REQUIRE(locs.size() == 3);
     tvm::Interpreter counted(mgr, std::make_unique<tvm::ApplyBackend>(mgr));
     CHECK(counted.run_each(locs) == 2);
+  }
+}
+
+TEST_CASE("tvm::TraceBuffer: location entry codec", "[scope:core][scope:core.dbg][kind:unit][arch:*][!throws]") {
+  using L = pepp::bts::Buffer::Location;
+  auto loc = [](u16 id, u16 off) { return L{pepp::bts::Buffer::ID{id}, off}; };
+  auto program = [&](u16 cid, u16 coff, u16 did, u16 doff) {
+    return tvm::ProgramLocation{loc(cid, coff), loc(did, doff)};
+  };
+  std::array<u8, tvm::TraceBuffer::MAX_LOCATION_ENTRY_BYTES> buf{};
+
+  // Every pair here round-trips against the same anchor, and each says what it costs to encode.
+  const auto anchor = program(4, 0x1000, 7, 0x2000);
+  struct Case {
+    const char *why;
+    tvm::ProgramLocation value;
+    u8 bytes;
+  };
+  const Case cases[] = {
+      {"the anchor itself is two zero deltas", anchor, 2},
+      {"a program a few bytes along", program(4, 0x1006, 7, 0x2004), 2},
+      {"data that moved backwards costs no more than forwards", program(4, 0x1006, 7, 0x1FF0), 2},
+      {"a record that wrote no payload", program(4, 0x1006, 0, 0), 4},
+      {"both chains rolled to another buffer", program(9, 0x0004, 3, 0x0010), 6},
+  };
+  for (const auto &c : cases) {
+    INFO(c.why);
+    const u8 wrote = tvm::TraceBuffer::encode_location(buf, anchor, c.value);
+    CHECK(wrote == c.bytes);
+    u8 read = 0;
+    const auto back = tvm::TraceBuffer::decode_location({buf.data(), wrote}, anchor, read);
+    CHECK(read == wrote);
+    CHECK(back.code.id == c.value.code.id);
+    CHECK(back.code.offset == c.value.code.offset);
+    CHECK(back.data.id == c.value.data.id);
+    CHECK(back.data.offset == c.value.data.offset);
+  }
+
+  SECTION("The size helper agrees with the encoder") {
+    // emit_location() sizes an entry to decide whether it still fits in the group, then encodes it. The two have to
+    // agree exactly, or it accounts for one length and writes another.
+    for (const auto &c : cases) {
+      INFO(c.why);
+      const auto code = (i64)c.value.code.as_u32() - (i64)anchor.code.as_u32();
+      const auto data = (i64)c.value.data.as_u32() - (i64)anchor.data.as_u32();
+      CHECK(bits::getSLEB128Size(code) + bits::getSLEB128Size(data) ==
+            tvm::TraceBuffer::encode_location(buf, anchor, c.value));
+    }
+  }
+
+  SECTION("An entry never exceeds its worst case") {
+    // The widest possible pair: both fields jump the full 32-bit range. Nothing bounds-checks the encoder, so this
+    // is what says a MAX_LOCATION_ENTRY_BYTES buffer is always enough for it.
+    const auto far = program(0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF);
+    CHECK(tvm::TraceBuffer::encode_location(buf, tvm::ProgramLocation{}, far) <=
+          tvm::TraceBuffer::MAX_LOCATION_ENTRY_BYTES);
+  }
+
+  SECTION("A buffer too small for the entry is refused") {
+    // An entry near the end of a group has only the bytes left in that group, so what matters is whether this pair
+    // fits, not whether a worst-case one would.
+    const auto value = program(9, 0x0004, 3, 0x0010);
+    std::array<u8, tvm::TraceBuffer::MAX_LOCATION_ENTRY_BYTES> narrow{};
+    const u8 needs = tvm::TraceBuffer::encode_location(narrow, anchor, value);
+    REQUIRE(needs > 2);
+    narrow.fill(0);
+    CHECK_THROWS_AS(tvm::TraceBuffer::encode_location({narrow.data(), std::size_t(needs - 1)}, anchor, value),
+                    std::out_of_range);
+    CHECK(std::ranges::all_of(narrow, [](u8 b) { return b == 0; }));
+    // A buffer that fits this pair is enough, even though a worst-case entry would not fit in it.
+    CHECK(tvm::TraceBuffer::encode_location({narrow.data(), std::size_t(needs)}, anchor, value) == needs);
+  }
+
+  SECTION("A truncated entry decodes as nothing rather than reading past its span") {
+    const auto value = program(9, 0x0004, 3, 0x0010);
+    const u8 wrote = tvm::TraceBuffer::encode_location(buf, anchor, value);
+    for (u8 len = 0; len < wrote; ++len) {
+      INFO("truncated to " << (int)len << " of " << (int)wrote);
+      u8 read = 0xFF;
+      tvm::TraceBuffer::decode_location({buf.data(), len}, anchor, read);
+      CHECK(read == 0);
+    }
   }
 }

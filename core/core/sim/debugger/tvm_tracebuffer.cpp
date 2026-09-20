@@ -1,11 +1,14 @@
 #include "tvm_tracebuffer.hpp"
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstring>
+#include <stdexcept>
 #include <iterator>
 #include <tuple>
 #include <fmt/format.h>
 #include "core/ds/hash/fnv.hpp"
+#include "core/math/bitmanip/leb128.hpp"
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/tvm_encoding.hpp"
 
@@ -27,12 +30,14 @@ void TraceBuffer::Node::reset(pepp::bts::BufferManager &mgr) {
     if (chain) chain->clear();
   // Return location buffer to pool rather than retaining it. After being reset, it's UB to access this node anyway,
   // and allowing the buffer to re-use this data should lower total occupancy of the ring.
-  // Re-acquired on write_location().
+  // Re-acquired on the next reservation.
   if (locations) {
     mgr.free_buffer(locations->id());
     locations = nullptr;
   }
   count = 0;
+  groups = 0;
+  last_emitted = {};
   // Cursors can no longer point to this node, and this node can be used by begin().
   slot = NO_SLOT;
 }
@@ -100,7 +105,7 @@ void TraceBuffer::begin(Device::ID initiator) {
   auto &node = current_node();
   if (node.slot != NO_SLOT && node.slot != _head) throw RingOverflow(_head);
 
-  // Allocate the location buffer now, so that neither commit() nor abort() will allocate it.
+  // Allocate the location buffer now, so that commit() will not have to.
   if (node.locations == nullptr) node.locations = _mgr->alloc_buffer();
 
   // clear() keeps the capacity earned by previous programs.
@@ -113,19 +118,18 @@ void TraceBuffer::begin(Device::ID initiator) {
   rec.postfix.clear();
   rec.active = true;
   rec.data_start = {};
-  // By only allowing a single open recording, we can claim the slot+entry eagerly after completing the other (throwing)
-  // operations.
+
+  // By only allowing a single open recording, we eagerly claim the slot+entry after completing the other (throwing)
+  // operations. Data chain lazily allocated.
   node.slot = _head;
   rec.slot = _head;
-  rec.entry = node.count++;
   rec.chain = nullptr;
-  node.open++;
   rec.dp = {};
-  _open = &rec;
 
-  // The claimed entry holds a tombstone until commit() writes over it, so reading one dereferences to a program that
-  // immediately halts rather than to stale data from a previous occupant. abort() leaves it in place.
-  write_location(node, rec.entry, _tombstone);
+  // The ordinal is claimed but nothing is written to it.
+  rec.ordinal = node.count++;
+  node.open++;
+  _open = &rec;
 }
 
 tvm::ProgramLocation TraceBuffer::commit(Device::ID initiator) {
@@ -134,8 +138,7 @@ tvm::ProgramLocation TraceBuffer::commit(Device::ID initiator) {
   assert((rec == nullptr || rec->active) && "commit() called without a matching begin()");
   if (rec == nullptr || !rec->active) return {};
 
-  // Release the reservation before anything that can throw. If resolve_body or flush_to_ring fails, the entry keeps
-  // its tombstone and replays as a halt.
+  // Release the reservation before anything that can throw.
   auto &node = node_at(rec->slot);
   assert(node.open > 0 && "commit() without a matching begin() reservation");
   node.open--;
@@ -159,16 +162,15 @@ void TraceBuffer::emit_prefix(Recording &rec, bits::span<const u8> encoded) {
 void TraceBuffer::abort(Device::ID initiator) {
   auto *rec = find_recording(initiator);
   if (rec == nullptr || !rec->active) return;
-  // Release the reservation, but leave the entry itself alone. begin() wrote a tombstone there, so the entry of an
-  // aborted recording is a no-op rather than requiring special iteration behavior. It is allocation-free because we
-  // want to avoid throwing. This executes inside Recorder::Instruction's destructor, where a throw would
-  // std::terminate. We still throw because of asserts, but if you hit this assert, fix your buggy program.
+  // Release the reservation, and revert the claimed ordinal. This executes inside Recorder::Instruction's destructor,
+  // where a throw would std::terminate. We still throw because of asserts, but if you hit this assert, fix your buggy
+  // program.
   auto &node = node_at(rec->slot);
   assert(node.open > 0 && "abort() without a matching begin() reservation");
+  assert(rec->ordinal + 1 == node.count && "Can only abort most recent recording");
   node.open--;
-  // Whatever payload this record wrote stays in the data chain, unreferenced, until the slot is reclaimed. Reclaiming
-  // it would need a chain rewind, which does not exist. Keep the same clear-but-keep-capacity treatment as begin(), so
-  // that aborting costs does not incur additional memory allocations.
+  node.count--;
+  // TODO: data chain may have "dead" data on it. With no concurrent recorders, we should be able to reclaim that data.
   rec->prefix.clear();
   rec->body.clear();
   rec->postfix.clear();
@@ -257,9 +259,7 @@ void TraceBuffer::clear() {
   _footprint = {};
   // All tables for stencil promotion must be cleared.
   _stencil_map.clear(), _pending_hashes.clear(), _stencil_locations.clear(), _stencils->clear();
-  // Create a tombstone entry in the stencil chain so claimed-but-unwritten location entries can point to a valid
-  // program, and so *CALLHALT has somewhere to return to. Not counted in _footprint.stencils: it is two bytes, and a
-  // functional requirement rather than trace data.
+  // Ensure there is a globally-available HALT opcode at a fixed location in memory. Not counted in _footprint.stencils.
   const auto halt = EncodedOp::Halt<0>{}.encode();
   _tombstone = {};
   _tombstone.code = _stencils->append({halt.data(), halt.size()});
@@ -390,35 +390,27 @@ const TraceBuffer::StencilEntry *TraceBuffer::resolve_body(bits::span<const u8> 
   if (_pending_hashes.contains(hash)) {
     // STCALL's operand has no room for another index.
     if (_stencil_locations.size() >= MAX_STENCILS) return nullptr;
-    if (body.size() >= PROMOTION_THRESHOLD) {
-      // Promote: copy body to stencil chain.
-      // Must append RET to ensure that the caller has an opportunity to run its own postifx.
-      // The RET is reached by falling out of the body, so the two must land in the same buffer. A chain append that
-      // does not fit rolls over to a fresh buffer, which would strand the RET and leave the stencil running off the
-      // end -- so reserve both up front, exactly as flush_to_ring does for a subroutine.
-      auto ret = EncodedOp::Ret<0>{}.encode();
-      _stencils->ensure_capacity(body.size() + ret.size());
-      // reserve() rather than append() so the copy hands back a pointer to where the body landed. Resolving that
-      // afterwards would mean walking the chain, and doing it here -- once per promotion -- keeps it off the hit
-      // path entirely.
-      const auto res = _stencils->reserve(body.size());
-      bits::memcpy(res.bytes, body);
-      _stencils->append({ret.data(), ret.size()});
-      // The fixed cost of promotion is the unbounded lifetime of the stencil chain, which is amortized over re-uses.
-      _footprint.stencils += body.size() + ret.size();
+    // Promote by copying body to stencil chain.
+    // Must append RET to ensure that the caller has an opportunity to run its own postifx.
+    // The RET is reached by falling out of the body, so the two must land in the same buffer.
+    auto ret = EncodedOp::Ret<0>{}.encode();
+    _stencils->ensure_capacity(body.size() + ret.size());
+    // reserve() rather than append() to avoid walking data chain multiple times.
+    const auto res = _stencils->reserve(body.size());
+    bits::memcpy(res.bytes, body);
+    _stencils->append({ret.data(), ret.size()});
+    // The fixed cost of promotion is the unbounded lifetime of the stencil chain, which is amortized over re-uses.
+    _footprint.stencils += body.size() + ret.size();
 
-      StencilEntry entry{};
-      entry.index = static_cast<u16>(_stencil_locations.size());
-      entry.body = res.bytes;
-      entry.hit_count = 2;
-      _stencil_locations.push_back(res.loc);
-      _pending_hashes.erase(hash);
-      auto &promoted = _stencil_map[hash];
-      promoted = entry;
-      return &promoted;
-    }
-    // Below threshold — inline every time, don't re-add to pending.
-    return nullptr;
+    StencilEntry entry{};
+    entry.index = static_cast<u16>(_stencil_locations.size());
+    entry.body = res.bytes;
+    entry.hit_count = 2;
+    _stencil_locations.push_back(res.loc);
+    _pending_hashes.erase(hash);
+    auto &promoted = _stencil_map[hash];
+    promoted = entry;
+    return &promoted;
   }
 
   // Maybe first occurrence? Cap the size of pending so that it doesn't grow unboundedly.
@@ -469,9 +461,7 @@ tvm::ProgramLocation TraceBuffer::flush_to_ring(Recording &rec, const StencilEnt
 
   // Record where this program starts and where its data starts.
   const tvm::ProgramLocation program{subroutine_start, rec.data_start};
-  // Overwrites the tombstone begin() put at this index.
-  // Overwrites the tombstone begin() put at this entry.
-  write_location(node, rec.entry, program);
+  emit_location(node, program);
   return program;
 }
 
@@ -490,35 +480,114 @@ void TraceBuffer::advance_slot() {
 
 // --- Location buffer I/O ---
 
-bool TraceBuffer::slot_full(const Node &node) {
-  // An open recording has already claimed its entry, so this counts it without any allowance of its own.
-  return node.count >= MAX_LOCATION_ENTRIES;
+namespace {
+// Signed, because both code and data can jump randomly rather than being monotonically increasing.
+i64 delta_of(pepp::bts::Buffer::Location from, pepp::bts::Buffer::Location to) {
+  return (i64)to.as_u32() - (i64)from.as_u32();
+}
+} // namespace
+
+u8 TraceBuffer::encode_location(bits::span<u8> out, tvm::ProgramLocation anchor, tvm::ProgramLocation value) {
+  // Sized before anything is written, because a half-written entry is indistinguishable from a shorter one. Sizing is
+  // a few comparisons, and an entry near the end of a group has less room left than a worst-case one needs.
+  const i64 code = delta_of(anchor.code, value.code), data = delta_of(anchor.data, value.data);
+  const unsigned size = bits::getSLEB128Size(code) + bits::getSLEB128Size(data);
+  if (out.size() < size) throw std::out_of_range("encode_location: buffer is smaller than the entry it must hold");
+  u8 *at = out.data();
+  at += bits::encodeSLEB128(code, at);
+  at += bits::encodeSLEB128(data, at);
+  return (u8)size;
 }
 
-void TraceBuffer::write_location(Node &node, u16 entry, tvm::ProgramLocation program) {
-  static_assert(sizeof(tvm::ProgramLocation) == 8, "ProgramLocation must be 8 bytes for location packing");
-  // begin() advances the slot before a recording could take an index that would overflow, so every entry fits.
-  assert(entry < MAX_LOCATION_ENTRIES && "location buffer overflow: entry written without a matching begin() reservation");
-  // begin() allocates the location buffer when it reserves an index, so the buffer is always present here.
-  assert(node.locations != nullptr && "write_location() into a slot with no location buffer");
-  u16 offset = entry * sizeof(tvm::ProgramLocation);
-  auto *dst = node.locations->data() + offset;
-  std::memcpy(dst, &program, sizeof(program));
-  // One recording at a time means entries are written in the order they were claimed, so this one is always the
-  // high-water mark; extend used_capacity to cover it.
-  size_t required = offset + sizeof(tvm::ProgramLocation);
-  if (node.locations->used_capacity() < required)
-    node.locations->allocate_uninitialized(required - node.locations->used_capacity());
+tvm::ProgramLocation TraceBuffer::decode_location(bits::span<const u8> in, tvm::ProgramLocation anchor, u8 &size) {
+  using Location = pepp::bts::Buffer::Location;
+  size = 0;
+  const u8 *at = in.data(), *end = in.data() + in.size();
+  const char *error = nullptr;
+  unsigned code_bytes = 0, data_bytes = 0;
+  const i64 code = bits::decodeSLEB128(at, &code_bytes, end, &error);
+  if (error != nullptr) return {};
+  const i64 data = bits::decodeSLEB128(at + code_bytes, &data_bytes, end, &error);
+  if (error != nullptr) return {};
+  size = (u8)(code_bytes + data_bytes);
+  // A corrupt delta wraps rather than saturating, which mirrors how the encoder measured it.
+  const auto dest_code = Location::from_u32((u32)((i64)anchor.code.as_u32() + code));
+  const auto dest_data = Location::from_u32((u32)((i64)anchor.data.as_u32() + data));
+  return tvm::ProgramLocation{dest_code, dest_data};
 }
 
-tvm::ProgramLocation TraceBuffer::read_location(const Node &node, u16 entry) const {
-  // A slot that was never written, or one acknowledge() has reclaimed, holds no buffer. Reading from it yields the
-  // null location rather than dereferencing nothing.
-  if (node.locations == nullptr) return {};
-  u16 offset = entry * sizeof(tvm::ProgramLocation);
+u16 TraceBuffer::group_of(const Node &node, u16 ordinal) {
+  // Find the last group which starts with an ordinal less than this one (e.g., greatest lower bound).
+  if (node.groups == 0) throw std::out_of_range("group_of() called on a slot with no groups");
+  const auto first = node.group_first_ordinal.begin();
+  const auto at = std::upper_bound(first, first + node.groups, ordinal);
+  return (u16)((at - first) - 1);
+}
+
+std::size_t TraceBuffer::room_left(const Node &node) {
+  const std::size_t whole = (LOCATION_GROUPS - node.groups) * (std::size_t)LOCATION_GROUP_STRIDE;
+  const std::size_t partial = node.groups == 0 ? 0 : LOCATION_GROUP_STRIDE - node.group_used[node.groups - 1];
+  return whole + partial;
+}
+
+bool TraceBuffer::slot_full(const Node &node) const {
+  if (node.count >= MAX_LOCATION_ENTRIES) return true;
+  // Unwritten ordinal could encode to a full 2*5B delta. +1 because you usually call this as you're wanting to emit the
+  // next location.
+  else return room_left(node) < (node.open + 1) * MAX_LOCATION_ENTRY_BYTES;
+}
+
+u8 *TraceBuffer::group_base(Node &node, u16 group) {
+  return node.locations->data() + (std::size_t)group * LOCATION_GROUP_STRIDE;
+}
+
+void TraceBuffer::emit_location(Node &node, tvm::ProgramLocation program) {
+  assert(node.locations != nullptr && "emit_location() in a slot with no location buffer");
+  const u8 delta_size = (u8)(bits::getSLEB128Size(delta_of(node.last_emitted.code, program.code)) +
+                             bits::getSLEB128Size(delta_of(node.last_emitted.data, program.data)));
+  // If this would be this slot's first ProgramLocation or if this delta overflows the current group, start a new group.
+  if (node.groups == 0 || node.group_used[node.groups - 1] + delta_size > LOCATION_GROUP_STRIDE) {
+    if (node.groups == LOCATION_GROUPS) throw RingOverflow(node.slot);
+    const u16 group = node.groups++;
+    node.group_first_ordinal[group] = (u16)(node.count - 1);
+    std::memcpy(group_base(node, group), &program, sizeof(program));
+    node.group_used[group] = sizeof(program);
+    _footprint.location_bytes += sizeof(program);
+    // An extra u16 in both group_first_ordinal and group_used
+    _footprint.location_aux_bytes += 2 * sizeof(u16);
+    const std::size_t used = (std::size_t)(group + 1) * LOCATION_GROUP_STRIDE;
+    if (node.locations->used_capacity() < used)
+      node.locations->allocate_uninitialized(used - node.locations->used_capacity());
+  } else {
+    const u16 group = (u16)(node.groups - 1);
+    u8 *at = group_base(node, group) + node.group_used[group];
+    const std::size_t room = LOCATION_GROUP_STRIDE - node.group_used[group];
+    const u8 wrote = encode_location({at, room}, node.last_emitted, program);
+    if (wrote != delta_size) throw std::out_of_range("getSLEB128Size disagreed with decodeSLEB128");
+    node.group_used[group] = (u16)(node.group_used[group] + delta_size);
+    _footprint.location_bytes += delta_size;
+  }
+  node.last_emitted = program;
+}
+
+tvm::ProgramLocation TraceBuffer::read_location(const Node &node, u16 ordinal) const {
+  // A slot that was never written or reclaimed by acknowledge() has no buffer.
+  if (node.locations == nullptr || ordinal >= node.count) return {};
+  // This recording is open. Return a program which immediately halts rather than returning a partially-written program.
+  else if (ordinal >= node.count - node.open) return _tombstone;
+
+  const u16 group = group_of(node, ordinal);
+  const u8 *base = node.locations->data() + (std::size_t)group * LOCATION_GROUP_STRIDE;
+  // Copy the anchor out of the buffer, then scan forward to the requested ordinal.
   tvm::ProgramLocation program{};
-  auto *src = node.locations->data() + offset;
-  std::memcpy(&program, src, sizeof(program));
+  std::memcpy(&program, base, sizeof(program));
+  u16 offset = sizeof(program);
+  for (u16 i = node.group_first_ordinal[group]; i < ordinal; ++i) {
+    u8 size = 0;
+    program = decode_location({base + offset, (std::size_t)(node.group_used[group] - offset)}, program, size);
+    if (size == 0) return {}; // SLEB-encoded offset was corrupt. Return a null program.
+    offset += size;
+  }
   return program;
 }
 
@@ -527,10 +596,8 @@ tvm::ProgramLocation TraceBuffer::read_location(const Node &node, u16 entry) con
 Cursor TraceBuffer::cursor() const { return {_head, current_node().count}; }
 
 Cursor TraceBuffer::committed_cursor() const {
-  // The open recording's entry still holds a tombstone and will change when it commits, so the settled part of the
-  // buffer stops there. One recording at a time makes that a lookup rather than a search.
   if (_open == nullptr) return cursor();
-  return Cursor{_open->slot, _open->entry};
+  return Cursor{_open->slot, _open->ordinal};
 }
 
 TraceBuffer::CursorRange TraceBuffer::range(Cursor from, Cursor to) const {
@@ -548,19 +615,19 @@ TraceBuffer::Iterator::reference TraceBuffer::Iterator::operator*() const {
   // If not resident, returns nullptr rather than returning a pointer to an overwritten location.
   const Node *node = _tb->resident_node(_cursor.slot);
   if (node == nullptr) return {};
-  return _tb->read_location(*node, _cursor.entry);
+  return _tb->read_location(*node, _cursor.ordinal);
 }
 
 TraceBuffer::Iterator &TraceBuffer::Iterator::operator++() {
-  _cursor.entry++;
+  _cursor.ordinal++;
   // A slot that is no longer resident reports no entries, so iteration goes to the next one.
   const u16 count = _tb->count_at(_cursor.slot);
   // Advance to the next slot only if we've exhausted this one AND we're
   // behind _head. At the head slot, entry == count is the past-the-end
   // sentinel that cursor() returns — don't normalize past it.
-  if (_cursor.entry >= count && _cursor.slot < _tb->_head) {
+  if (_cursor.ordinal >= count && _cursor.slot < _tb->_head) {
     _cursor.slot++;
-    _cursor.entry = 0;
+    _cursor.ordinal = 0;
   }
   return *this;
 }
@@ -572,8 +639,8 @@ TraceBuffer::Iterator TraceBuffer::Iterator::operator++(int) {
 }
 
 TraceBuffer::Iterator &TraceBuffer::Iterator::operator--() {
-  if (_cursor.entry > 0) {
-    _cursor.entry--;
+  if (_cursor.ordinal > 0) {
+    _cursor.ordinal--;
     return *this;
   }
   // Step back into the previous slot's last entry.
@@ -584,7 +651,7 @@ TraceBuffer::Iterator &TraceBuffer::Iterator::operator--() {
   assert(count > 0 && "decrement into a slot that is empty or no longer resident");
   if (count == 0) return *this; // Don't over-decrement, else loop might run infinitely.
   _cursor.slot--;
-  _cursor.entry = count - 1;
+  _cursor.ordinal = count - 1;
   return *this;
 }
 
