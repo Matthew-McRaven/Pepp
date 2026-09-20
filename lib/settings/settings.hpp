@@ -139,6 +139,8 @@ public:
   Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture arch, pepp::Abstraction level,
                                   pepp::Features features);
   Q_INVOKABLE void clearRecentFiles();
+  // If the given fileName is in the recent files list, remove it. If not, do nothing.
+  Q_INVOKABLE void removeRecentFile(const QString &fileName);
   // Really should be in a seperate class, but I only use it when touching recent files.
   Q_INVOKABLE QString fileNameFor(const QString &fullPath);
   QList<RecentFile> recentFiles() const;

@@ -98,7 +98,6 @@ ApplicationWindow {
 
         //  Open existing file
         welcome.openFile.connect(window.onOpenFile);
-        welcome.openFile.connect(() => sidebar.switchToMode("Editor"));
 
         actions.edit.prefs.triggered.connect(preferencesDialog.open);
         actions.help.about.triggered.connect(aboutDialog.open);
@@ -489,6 +488,18 @@ ApplicationWindow {
         }
         standardButtons: Dialog.Close
     }
+    MessageDialog {
+        id: fopenFailDialog
+        title: qsTr("Failed to open file")
+        buttons: MessageDialog.Ok
+
+        // Custom function to open the dialog with a dynamic message
+        function show(fname) {
+            var errorMessage = qsTr("Failed to open file: ") + fname + "\n\n";
+            text = errorMessage;
+            open();
+        }
+    }
 
     FileIO {
         id: fileio
@@ -535,7 +546,12 @@ ApplicationWindow {
     }
     // must be named onOpenFile, or `gui.cpp` must be updated!
     function onOpenFile(filename, arch, abs, feats) {
-        fileio.loadCodeFromFile(filename, arch, abs, feats);
+        if (!fileio.loadCodeFromFile(filename, arch, abs, feats)) {
+            settings.general.removeRecentFile(filename);
+            fopenFailDialog.show(filename);
+        } else {
+            sidebar.switchToMode("Editor");
+        }
     }
     function onSaveAs(extension) {
         pm.onSaveAs(currentProjectRow, extension);
