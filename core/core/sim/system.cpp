@@ -1,12 +1,13 @@
 #include "system.hpp"
+#include <algorithm>
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include "core/ds/string_compare.hpp"
 #include "core/math/bitmanip/enums.hpp"
-#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/api/trace.hpp"
 #include "core/sim/debugger/trace_device.hpp"
 #include "core/sim/debugger/trace_recorder.hpp"
+#include "core/sim/debugger/tvm_apply_backend.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/devicetree.hpp"
@@ -50,11 +51,15 @@ void System::initialize() {
   // With all devices initialized, perform another pass to create recorders for each traceable device.
   _trace_buffer = found == nullptr ? nullptr : &found->buffer();
   if (_trace_buffer != nullptr) bind_recorders(*_trace_buffer);
+
+  populate_scheduler();
 }
 
 void System::reset() {
   for (auto dev : *_root)
     if (dev != this) dev->reset();
+
+  populate_scheduler();
 }
 
 std::unique_ptr<DeviceSerializer> System::serializer() const { return make_serializer(); }
@@ -136,8 +141,6 @@ std::unique_ptr<tvm::Interpreter> System::make_trace_interpreter() {
 
 std::shared_ptr<pepp::bts::BufferManager> System::buffer_manager() { return _buffer_manager; }
 
-std::tuple<Device::ID, PulseIndex> System::tick() { throw std::logic_error("System::tick() not implemented yet"); }
-
 Device *System::find_absolute(std::string_view name) {
   DeviceTree *root = _root.get();
   auto ptr = (*root) | std::views::filter([&name](Device *dt) { return dt->config().fullname == name; });
@@ -147,4 +150,49 @@ Device *System::find_absolute(std::string_view name) {
     return nullptr;
   } else if (count == 0) return nullptr;
   else return *ptr.begin();
+}
+
+std::tuple<Device::ID, u64> System::tick() {
+  auto &s = _scheduler;
+  const size_t n = s.due_tick.size();
+  if (n == 0) return {Device::ID{}, Scheduler::MAX_TICK};
+
+  auto lowest_item = std::min_element(s.due_tick.begin(), s.due_tick.end());
+  auto lowest_index = std::distance(s.due_tick.begin(), lowest_item);
+  auto lowest_tick = *lowest_item;
+  if (lowest_tick == Scheduler::MAX_TICK) return {Device::ID{}, lowest_tick};
+
+  s.now = lowest_tick;
+  // TODO: need the devices to return a delay.
+  u32 delay = 1;
+  s.devices[lowest_index].dev->clock_tick(s.due_index[lowest_index], lowest_tick);
+
+  // Re-index after the call because a device may have changed schedule.
+  auto [t, idx] = s.devices[lowest_index].schedule.next_clock(lowest_tick, delay);
+  s.due_tick[lowest_index] = t;
+  s.due_index[lowest_index] = idx;
+  return {s.devices[lowest_index].id, lowest_tick};
+}
+
+void System::populate_scheduler() {
+  auto &s = _scheduler;
+  s.now = 0;
+  s.due_tick.clear();
+  s.due_index.clear();
+  s.devices.clear();
+
+  for (auto *dev : *_root) {
+    auto *sink = dev->capability<ClockSink>();
+    if (sink == nullptr) continue;
+    const auto *src = sink->clock_source();
+    if (src == nullptr) throw std::logic_error("System: clock sink " + dev->config().fullname + " has no clock source");
+    const auto schedule = src->schedule();
+    // index_of divides by period, so a zero-period clock would trap inside tick() rather than here.
+    if (schedule.period == 0)
+      throw std::logic_error("System: clock driving " + dev->config().fullname + " has a period of zero");
+    auto [due, index] = schedule.next_clock(s.now);
+    s.due_tick.push_back(due);
+    s.due_index.push_back(index);
+    s.devices.push_back(Scheduler::DeviceInfo{.id = dev->id(), .dev = sink, .schedule = schedule});
+  }
 }

@@ -17,6 +17,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
+#include <limits>
 #include <map>
 #include <memory>
 #include <vector>
@@ -131,12 +132,12 @@ public:
 
   // Picks the next device to tick apply call clock_tick() on it. Returns the device ID and the PulseIndex sent to that
   // device. If the Device::ID is equal to Device::ID{}, then no devices are able to be ticked.
-  std::tuple<Device::ID, PulseIndex> tick();
+  std::tuple<Device::ID, u64> tick();
 
   // call tick() in a loop as long as device != Device::ID{} and the callback returns true.
   template <typename F>
-    requires std::predicate<F &, Device::ID, PulseIndex>
-  PulseIndex tick_while(F &&callback);
+    requires std::predicate<F &, Device::ID, u64>
+  u64 tick_while(F &&callback);
 
 private:
   Configuration _config{{.basename{"/"}, .fullname{"/"}}};
@@ -156,6 +157,28 @@ private:
   // call in a FIFO order.
   bool _doing_deferred = false;
   std::deque<DeferredDevice> _deferred_constructors;
+  struct Scheduler {
+    // Highest tick value used as a sentinel for "unscheduled".
+    // If you somehow saturated a u64 counter, please stop.
+    static constexpr u64 MAX_TICK = std::numeric_limits<u64>::max();
+    struct DeviceInfo {
+      Device::ID id;
+      ClockSink *dev;
+      PulseSchedule schedule;
+    };
+    // The time of the currently executing tick
+    u64 now = 0;
+    // Prefer struct of arrays over AoS to improve cache locality for these two critical arrays which are touched every
+    // tick(). All share the same indices.
+    std::vector<u64> due_tick = {};
+    std::vector<PulseIndex> due_index = {};
+    // Colder, only the active device's entry is touched each loop.
+    std::vector<DeviceInfo> devices = {};
+  };
+
+  Scheduler _scheduler;
+  // Rebuild the scheduler from scratch. Resets current tick index to 0, and collects the set of ClockSink devices.
+  void populate_scheduler();
 };
 
 template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>
@@ -210,8 +233,8 @@ ConcreteDevice *System::make_device(ConcreteConfig &&cfg, Args &&...args) {
 }
 
 template <typename F>
-  requires std::predicate<F &, Device::ID, PulseIndex>
-PulseIndex System::tick_while(F &&callback) {
+  requires std::predicate<F &, Device::ID, u64>
+u64 System::tick_while(F &&callback) {
   for (;;) {
     auto [id, idx] = tick();
     if (id == Device::ID{}) return idx;
