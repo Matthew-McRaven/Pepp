@@ -258,6 +258,18 @@ void pepp::settings::GeneralCategory::clearRecentFiles() {
   emit recentFilesChanges();
 }
 
+void pepp::settings::GeneralCategory::removeRecentFile(const QString &fileName) {
+  if (_recentFileCache.empty()) refreshRecentFileCache();
+  auto from = std::remove_if(_recentFileCache.begin(), _recentFileCache.end(),
+                             [&fileName](auto &i) { return i.path() == fileName; });
+  if (from == _recentFileCache.end()) return;
+  _recentFileCache.erase(from, _recentFileCache.end());
+  QVariantList out;
+  for (const auto &item : std::as_const(_recentFileCache)) out.emplaceBack(QVariant::fromValue(item));
+  _settings.setValue(recentFilesKey, out);
+  emit recentFilesChanges();
+}
+
 QString pepp::settings::GeneralCategory::fileNameFor(const QString &fullPath) { return QFileInfo(fullPath).fileName(); }
 
 QList<pepp::settings::RecentFile> pepp::settings::GeneralCategory::recentFiles() const {

@@ -27,7 +27,7 @@ public:
   Q_INVOKABLE void save(const QString &filename, const QString &data);
   Q_INVOKABLE void loadCodeViaDialog(const QString &filters);
 #ifndef __EMSCRIPTEN__
-  Q_INVOKABLE void loadCodeFromFile(const QString &name, int arch, int abs, int feats);
+  Q_INVOKABLE bool loadCodeFromFile(const QString &name, int arch, int abs, int feats);
 
 private:
   QByteArray load(const QString &fileName);

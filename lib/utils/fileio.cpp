@@ -82,11 +82,13 @@ void FileIO::loadCodeViaDialog(const QString &filters) {
 }
 
 #ifndef __EMSCRIPTEN__
-void FileIO::loadCodeFromFile(const QString &name, int arch, int abs, int feats) {
+bool FileIO::loadCodeFromFile(const QString &name, int arch, int abs, int feats) {
   auto ret = load(name);
-  if (ret.isEmpty()) return;
+  if (ret.isEmpty()) return false;
   emit codeLoaded(name, ret, arch, abs, feats);
+  return true;
 }
+
 QByteArray FileIO::load(const QString &fileName) {
   QFile file(fileName);
   QByteArray ret;
