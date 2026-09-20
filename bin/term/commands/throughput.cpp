@@ -294,7 +294,7 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_core() {
   }
   cpu->has_bps = has_bps;
   const auto start = std::chrono::high_resolution_clock::now();
-  for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseSchedule::PulseIndex{(u64)it}, it);
+  for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseIndex{(u64)it}, it);
   fmt::println("Filter hits: {}", cpu->filter_hits());
   if (tbdev != nullptr) fmt::println("{}", tbdev->buffer().describe("trace"));
   return start;
@@ -319,7 +319,7 @@ std::chrono::high_resolution_clock::time_point ThroughputTask::do_riscv() {
   }
   // cpu->has_bps = has_bps;
   const auto start = std::chrono::high_resolution_clock::now();
-  for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseSchedule::PulseIndex{(u64)it}, it);
+  for (int it = 0; it < maxInstr; it++) cpu->clock_tick(PulseIndex{(u64)it}, it);
   if (tbdev != nullptr) fmt::println("{}", tbdev->buffer().describe("trace"));
   // fmt::println("Filter hits: {}", cpu->filter_hits());
   return start;

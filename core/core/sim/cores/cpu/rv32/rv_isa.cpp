@@ -123,7 +123,7 @@ riscv::rv_instruction2 RV32CPU::fetch() {
   return riscv::rv_instruction2{res.second};
 }
 
-void RV32CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
+void RV32CPU::clock_tick(PulseIndex idx, u64 tick) {
   // Create a single record for the entire instruction
   trace::Recorder::Instruction record(_trace, _may_trace);
   // TODO: when function signature changes, use that tick offset instead of this placeholder.

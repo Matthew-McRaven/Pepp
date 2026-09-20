@@ -27,7 +27,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner(PepISA3
   cpu->registers()->clear(0);
   cpu->csrs()->clear(0);
 
-  REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+  REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
   CHECK(reg(cpu, Register::PC) == 0x1);
   CHECK(reg(cpu, Register::IS) == (u8)op);

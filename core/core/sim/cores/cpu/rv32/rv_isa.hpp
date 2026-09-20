@@ -58,7 +58,7 @@ public:
   static std::unique_ptr<DeviceSerializer> make_serializer();
 
   // ClockSink interface
-  void clock_tick(PulseSchedule::PulseIndex idx, u64 tick) override;
+  void clock_tick(PulseIndex idx, u64 tick) override;
   void set_clock_source(const ClockSource *src) override;
   const ClockSource *clock_source() const override;
 

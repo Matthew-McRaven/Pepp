@@ -70,7 +70,7 @@ Harness make_traced_cpu() {
 // Load `program` at address 0, run `ticks` instructions, and report what the trace cost.
 tvm::TraceBuffer::Footprint run(Harness &h, bits::span<const u8> program, int ticks) {
   h.mem->write(0, program, app);
-  for (int i = 0; i < ticks; ++i) h.cpu->clock_tick(PulseSchedule::PulseIndex{0}, static_cast<u64>(i));
+  for (int i = 0; i < ticks; ++i) h.cpu->clock_tick(PulseIndex{0}, static_cast<u64>(i));
   return h.tbdev->buffer().footprint();
 }
 
@@ -195,7 +195,7 @@ TEST_CASE("A recorded loop reverses back to the state it started from",
   const auto initial = capture();
   const auto before = h.tbdev->buffer().cursor();
 
-  for (int i = 0; i < TICKS; ++i) h.cpu->clock_tick(PulseSchedule::PulseIndex{0}, static_cast<u64>(i));
+  for (int i = 0; i < TICKS; ++i) h.cpu->clock_tick(PulseIndex{0}, static_cast<u64>(i));
 
   const auto after = capture();
   const auto end = h.tbdev->buffer().cursor();

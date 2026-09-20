@@ -34,7 +34,7 @@ void inner_st(PepISA3CPU::ISA isa, Register target_reg, Mnemonic op, u8 length) 
     cpu->write_register(target_reg, 0xfeed);
 
     REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
-    REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+    REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
     CHECK(reg(cpu, Register::SP) == 0);
     CHECK(reg(cpu, Register::PC) == 0x3);

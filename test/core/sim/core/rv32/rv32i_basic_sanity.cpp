@@ -22,18 +22,18 @@ TEST_CASE("RV32I sanity tests", "[scope:core][scope:core.sim][kind:unit][arch:rv
   const uint32_t current_sp = cpu->read_register(riscv::ABIReg::sp);
 
   // execute LUI a2, 0x65000
-  cpu->clock_tick(PulseSchedule::PulseIndex{(u64)0}, 0);
+  cpu->clock_tick(PulseIndex{(u64)0}, 0);
   CHECK(cpu->read_register(riscv::ABIReg::a2) == 0x65000);
   // execute LUI a1, 0x65000
-  cpu->clock_tick(PulseSchedule::PulseIndex{(u64)1}, 1);
+  cpu->clock_tick(PulseIndex{(u64)1}, 1);
   CHECK(cpu->read_register(riscv::ABIReg::a1) == 0x65000);
   // execute SW  s6, [SP + 256]
   cpu->write_register(riscv::ABIReg::s6, 0x12345678);
-  cpu->clock_tick(PulseSchedule::PulseIndex{(u64)2}, 2);
+  cpu->clock_tick(PulseIndex{(u64)2}, 2);
   const u32 val = mem->read<u32, !bits::host_is_le>(current_sp + 256, rw).second;
   CHECK(val == cpu->read_register(riscv::ABIReg::s6));
   // execute ADDI s6, [SP + 180]
   cpu->write_register(riscv::ABIReg::s6, 0x0);
-  cpu->clock_tick(PulseSchedule::PulseIndex{(u64)3}, 3);
+  cpu->clock_tick(PulseIndex{(u64)3}, 3);
   CHECK(cpu->read_register(riscv::ABIReg::s6) == current_sp + 180);
 }

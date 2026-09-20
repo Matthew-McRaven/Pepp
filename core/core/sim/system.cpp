@@ -137,6 +137,8 @@ std::unique_ptr<tvm::Interpreter> System::make_trace_interpreter() {
 
 std::shared_ptr<pepp::bts::BufferManager> System::buffer_manager() { return _buffer_manager; }
 
+std::tuple<Device::ID, PulseIndex> System::tick() { throw std::logic_error("System::tick() not implemented yet"); }
+
 Device *System::find_absolute(std::string_view name) {
   DeviceTree *root = _root.get();
   auto ptr = (*root) | std::views::filter([&name](Device *dt) { return dt->config().fullname == name; });

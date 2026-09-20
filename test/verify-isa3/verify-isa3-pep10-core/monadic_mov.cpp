@@ -33,7 +33,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_movflg(
     if (op == Mnemonic::MOVAFLG) cpu->write_register(Register::A, flg);
     else cpu->write_packed_csr(flg);
 
-    REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+    REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
     CHECK(reg(cpu, Register::PC) == 0x1);
     CHECK(reg(cpu, Register::IS) == (u8)op);
@@ -64,7 +64,7 @@ void inner_movr(PepISA3CPU::ISA isa, Register src_reg, Register dest_reg, Mnemon
     cpu->write_register(src_reg, init_reg);
 
     REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
-    REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+    REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
     CHECK(reg(cpu, src_reg) == init_reg);
     CHECK(reg(cpu, Register::PC) == 0x1);

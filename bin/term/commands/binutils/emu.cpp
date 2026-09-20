@@ -183,7 +183,7 @@ int PeppEmulator::do_run(System &system) {
   try {
     for (u64 tick = 0; pwr_off->output().empty(); ++tick) {
       if (echo) std::cout << cpu->stringize_next_instruction() << '\n';
-      cpu->clock_tick(PulseSchedule::PulseIndex{tick}, tick);
+      cpu->clock_tick(PulseIndex{tick}, tick);
     }
   } catch (const std::exception &e) {
     std::cerr << "Error: Simulation stopped: " << e.what() << "\n";

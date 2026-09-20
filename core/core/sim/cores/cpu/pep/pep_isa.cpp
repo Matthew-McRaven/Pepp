@@ -164,7 +164,7 @@ std::unique_ptr<DeviceSerializer> PepISA3CPU::make_serializer() {
   return std::make_unique<DeviceSerializer>(std::move(s));
 }
 
-void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
+void PepISA3CPU::clock_tick(PulseIndex idx, u64 tick) {
   // Create a single record for the entire instruction
   trace::Recorder::Instruction record(_trace, _may_trace);
   // TODO: when function signature changes, use that tick offset instead of this placeholder.

@@ -1,5 +1,6 @@
 
 #include <queue>
+#include "core/sim/api/clock.hpp"
 /*
  * /Copyright (c) 2024-2025. Stanley Warford, Matthew McRaven
  *  This program is free software: you can redistribute it and/or modify
@@ -128,6 +129,15 @@ public:
   std::unique_ptr<tvm::Interpreter> make_trace_interpreter();
   std::shared_ptr<pepp::bts::BufferManager> buffer_manager();
 
+  // Picks the next device to tick apply call clock_tick() on it. Returns the device ID and the PulseIndex sent to that
+  // device. If the Device::ID is equal to Device::ID{}, then no devices are able to be ticked.
+  std::tuple<Device::ID, PulseIndex> tick();
+
+  // call tick() in a loop as long as device != Device::ID{} and the callback returns true.
+  template <typename F>
+    requires std::predicate<F &, Device::ID, PulseIndex>
+  PulseIndex tick_while(F &&callback);
+
 private:
   Configuration _config{{.basename{"/"}, .fullname{"/"}}};
   Device::ID _next_ID = Device::ID(1);
@@ -197,4 +207,14 @@ ConcreteDevice *System::make_device(ConcreteConfig &&cfg, Args &&...args) {
   static_assert(std::is_base_of_v<Device, ConcreteDevice>, "Device must be derived from Device");
   // Avoid looking up this device ID, when we already have it stored in _config.
   return make_device<ConcreteDevice>(_config.id, cfg, std::forward<Args>(args)...);
+}
+
+template <typename F>
+  requires std::predicate<F &, Device::ID, PulseIndex>
+PulseIndex System::tick_while(F &&callback) {
+  for (;;) {
+    auto [id, idx] = tick();
+    if (id == Device::ID{}) return idx;
+    if (!callback(id, idx)) return idx;
+  }
 }

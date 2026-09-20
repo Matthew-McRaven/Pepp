@@ -22,6 +22,9 @@
 #include "core/math/bitmanip/umulh.hpp"
 #include "core/sim/api/device.hpp"
 
+using PulseIndex = pepp::OpaqueHandle<struct ClockPulseTag, u64>;
+consteval void allow_opaque_handle_increment(PulseIndex);
+consteval void allow_opaque_handle_add(PulseIndex);
 /*
  * Essential a POD class which encodes the information from the clock-tree in a way that is fast and deterministic to
  * schedule.
@@ -44,8 +47,6 @@
  */
 struct PulseSchedule {
 
-  using PulseIndex = pepp::OpaqueHandle<struct ClockPulseTag, u64>;
-
   // Period in ns
   u64 period = 0;
   // must be < 1/2 period
@@ -60,8 +61,6 @@ struct PulseSchedule {
   constexpr u64 next_clock_tick(u64 tick, u8 delay_cycles = 1) const noexcept;
   bool operator==(const PulseSchedule &rhs) const noexcept = default;
 };
-consteval void allow_opaque_handle_increment(PulseSchedule::PulseIndex);
-consteval void allow_opaque_handle_add(PulseSchedule::PulseIndex);
 
 struct ClockSource {
   static constexpr Device::Type TypeMask = Device::Type::ClockSource;
@@ -72,14 +71,12 @@ struct ClockSource {
 struct ClockSink {
   static constexpr Device::Type TypeMask = Device::Type::ClockSink;
   virtual ~ClockSink() = default;
-  virtual void clock_tick(PulseSchedule::PulseIndex idx, u64 tick) = 0;
+  virtual void clock_tick(PulseIndex idx, u64 tick) = 0;
   virtual void set_clock_source(const ClockSource *src) = 0;
   virtual const ClockSource *clock_source() const = 0;
 };
 
-inline constexpr PulseSchedule::PulseIndex PulseSchedule::index_of(u64 tick) const {
-  return PulseIndex{(tick + period / 2) / period};
-}
+inline constexpr PulseIndex PulseSchedule::index_of(u64 tick) const { return PulseIndex{(tick + period / 2) / period}; }
 
 inline constexpr u64 PulseSchedule::edge_time(PulseIndex n) const noexcept {
   return n.value * period + uniform_jitter(n);

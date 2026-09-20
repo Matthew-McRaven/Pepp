@@ -76,7 +76,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_call(Pe
   cpu->write_register(Register::SP, init_sp);
   cpu->write_packed_csr(PepCSRBank::pack(true, false, true, false)); // NZVC = 1010
 
-  REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+  REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
 
   CHECK(dbg->read<u16>(*dbg->find("PC")) == end_pc);
