@@ -220,7 +220,7 @@ void PeppEmulator::run() {
     throw std::runtime_error("Custom system JSON not yet supported");
   else {
     switch (std::get<SystemEnu>(_opts.system)) {
-    case SystemEnu::RV32I: throw std::runtime_error("RV32I system not yet supported");
+    case SystemEnu::RV32I: system = create_standard_rv32_system(); break;
     case SystemEnu::Pep10: system = create_standard_pep10_system(); break;
     }
   }

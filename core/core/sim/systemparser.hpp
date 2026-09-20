@@ -54,3 +54,5 @@ u64 as_u64(const nlohmann::json &node);
 // Temporary helpers to create a Pep/10 system without needing to parse a JSON file. When the new simulator replaces the
 // old one, the help system will contain the relevant JSON definitions and this function can be removed.
 std::unique_ptr<System> create_standard_pep10_system();
+// The rv32i counterpart used in Computer Systems, 6th edition figures.
+std::unique_ptr<System> create_standard_rv32_system();

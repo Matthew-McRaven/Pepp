@@ -236,3 +236,53 @@ std::unique_ptr<System> create_standard_pep10_system() {
   sys->make_device<PepISA3CPU>(cpu_cfg, sys.get());
   return sys;
 }
+
+std::unique_ptr<System> create_standard_rv32_system() {
+  using Mapping = SimpleBus::Configuration::Mapping;
+  using Dir = FIFORegister::Direction;
+  struct MMIO {
+    std::string name;
+    Address address;
+    Dir direction;
+  };
+
+  // One-byte registers plaed with 4-byte alignment.
+  static constexpr Address MMIO_BASE = 0x80860000;
+  const auto ram_span = AddressSpan(0x00000000, 0xFFFFFFFF);
+  const std::array<MMIO, 3> mmios{{{"charIn", MMIO_BASE + 0, Dir::Input},
+                                   {"charOut", MMIO_BASE + 4, Dir::Output},
+                                   {"pwrOff", MMIO_BASE + 8, Dir::Output}}};
+
+  auto sys = std::make_unique<System>();
+  SimpleBus::Configuration bus_cfg{{.basename = "bus", .compatible = SimpleBus::compatible}, 0, ram_span};
+  // RAM covers everything the MMIO registers do not.
+  auto map_ram = [&](AddressSpan span) {
+    bus_cfg.mappings.push_back(Mapping{.target = "ram", .source = {.span = span}, .target_offset = span.lower()});
+  };
+  Address cursor = ram_span.lower();
+  for (const auto &mmio : mmios) {
+    if (mmio.address > cursor) map_ram(AddressSpan(cursor, mmio.address - 1));
+    bus_cfg.mappings.push_back(
+        Mapping{.target = mmio.name, .source = {.span = AddressSpan(mmio.address, mmio.address)}, .target_offset = 0});
+    cursor = mmio.address + 1;
+  }
+  map_ram(AddressSpan(cursor, ram_span.upper()));
+  auto bus = sys->make_device<SimpleBus>(bus_cfg);
+
+  auto sc = Sparse::Configuration{{.basename = "ram", .compatible = Sparse::compatible}, 0, ram_span};
+  sys->make_device<Sparse>(bus, std::move(sc));
+
+  for (const auto &mmio : mmios) {
+    using FR = FIFORegister;
+    auto cfg = FIFORegister::Configuration{
+        {.basename = mmio.name, .compatible = FIFORegister::compatible}, 0, mmio.direction, AddressSpan(0, 0)};
+    sys->make_device<FIFORegister>(bus, std::move(cfg));
+  }
+
+  sys->make_device<pepp::IdealClock>(
+      pepp::IdealClock::Configuration{{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000});
+
+  RV32CPU::Configuration cpu_cfg{{.basename = "cpu", .compatible = RV32CPU::compatible}, "/bus", "/clk"};
+  sys->make_device<RV32CPU>(cpu_cfg, sys.get());
+  return sys;
+}
