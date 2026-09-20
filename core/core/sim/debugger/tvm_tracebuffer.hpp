@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <bitset>
+#include <cstring>
 #include <functional>
 #include <iterator>
 #include <memory>
@@ -197,6 +198,12 @@ public:
   // Prefer Recording& variant outside of tests.
   void emit_body(Device::ID initiator, bits::span<const u8> encoded);
   void emit_body(Recording &rec, bits::span<const u8> encoded);
+  // Fixed-size copy inlines to a few stores, unlike the generic range insert.
+  template <std::size_t N> void emit_body(Recording &rec, const std::array<u8, N> &encoded) {
+    const auto at = rec.body.size();
+    rec.body.resize(at + N);
+    std::memcpy(rec.body.data() + at, encoded.data(), N);
+  }
 
   // Append encoded bytes to the postfix section.
   // Not hashed. Always inlined after the body (or CALL). commit() ends every program with a HALT after the postfix;

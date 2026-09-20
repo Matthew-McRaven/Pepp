@@ -37,7 +37,7 @@ void Recorder::Instruction::tick_slow(i16 delta) {
   // The same instruction executing at different clock rates will now produce different deltas -- something we can
   // optimize for in the future.
   const auto isyn = tvm::EncodedOp::ISynI{}.encode(static_cast<u16>(delta));
-  _tb->emit_body(*rec, {isyn.data(), isyn.size()});
+  _tb->emit_body(*rec, isyn);
 }
 
 void Recorder::Instruction::commit_slow() {
@@ -132,11 +132,11 @@ void Recorder::emit_write(const Operation &op, Address address, bits::span<const
   if (address_in_payload) {
     // No address or data in instruction, which increases opportunities for stencil dedup.
     const auto set = tvm::EncodedOp::SetMemDX<2>{.access = op.as_u16(), .dev = _emitter.value}.encode();
-    _tb->emit_body(*rec, {set.data(), set.size()});
+    _tb->emit_body(*rec, set);
   } else {
     const auto off = tvm::SegmentPair{.hi = (u16)(address >> 16), .lo = (u16)(address & 0xFFFF)};
     const auto set = tvm::EncodedOp::SetMem<true, 4>{.access = op.as_u16(), .dev = _emitter.value, .off = off}.encode();
-    _tb->emit_body(*rec, {set.data(), set.size()});
+    _tb->emit_body(*rec, set);
   }
 }
 
@@ -165,7 +165,7 @@ void Recorder::emit_incr_register(const Operation &op, RegisterScan::RegisterRef
   // delta may be narrower than the counter it steps.
   const auto emit = [&](auto payload) {
     const auto step = tvm::EncodedOp::StepRegI(op.as_u16(), ref.reg.value, ref.field.value).encode(payload);
-    _tb->emit_body(*rec, {step.data(), step.size()});
+    _tb->emit_body(*rec, step);
   };
   // Payloads are little-endian and signed. One byte covers the +-1 steps this exists for; the rest take two.
   if (value >= -128 && value <= 127) emit(std::array<u8, 1>{(u8)value});
@@ -194,7 +194,7 @@ void Recorder::emit_register_xor(const Operation &op, RegisterScan::RegisterRef 
 
   const auto set =
       tvm::EncodedOp::SetReg<true, 3>{.access = op.as_u16(), .reg = ref.reg.value, .field = ref.field.value}.encode();
-  _tb->emit_body(*rec, {set.data(), set.size()});
+  _tb->emit_body(*rec, set);
 }
 
 void Recorder::emit_mm(const Operation &op, Address address, u8 pushed, bool read_write) {
@@ -217,7 +217,7 @@ void Recorder::emit_mm(const Operation &op, Address address, u8 pushed, bool rea
   // Emit the actual MMIO instruction after the DP update instruction.
   const auto mmio =
       tvm::EncodedOp::MMIO<3>{.read_write = read_write, .access = op.as_u16(), .dev = _emitter.value}.encode();
-  _tb->emit_body(*rec, {mmio.data(), mmio.size()});
+  _tb->emit_body(*rec, mmio);
 }
 
 void Recorder::emit_dp_update(const tvm::DataSlot &slot, tvm::Recording &rec, u16 len, u16 prologue) {
@@ -227,7 +227,7 @@ void Recorder::emit_dp_update(const tvm::DataSlot &slot, tvm::Recording &rec, u1
     // This is the first data payload of this instruction. DP will be preloaded from the location buffer via
     // run_each, but DS is left unset/0. So set DS to this payload's size
     const auto set_ds = tvm::EncodedOp::LDR<tvm::RegMask::DS>{(u16)len}.encode();
-    _tb->emit_body(rec, {set_ds.data(), set_ds.size()});
+    _tb->emit_body(rec, set_ds);
   } else if (anchor.at.id != slot.loc.id) {
     // We rolled onto a new buffer mid-recording, and so we need update to DP.hi too. When DP.lo is near the end of
     // this buffer, we can use the fact that the trace interpreter will "wrap" to the next buffer when DP.LO overflows.
@@ -239,14 +239,14 @@ void Recorder::emit_dp_update(const tvm::DataSlot &slot, tvm::Recording &rec, u1
     const bool adjacent = rec.chain != nullptr && rec.chain->successor(anchor.at.id) == slot.loc.id;
     if (adjacent && step <= std::numeric_limits<i16>::max()) {
       const auto incdp = tvm::EncodedOp::INCDP{(u16)step, (u16)len}.encode();
-      _tb->emit_body(rec, {incdp.data(), incdp.size()});
+      _tb->emit_body(rec, incdp);
     } else {
       // In the case where there are multiple successive buffers between our current DP.hi and our new DP.hi or we can't
       // fit the offset in an i16, we fall back to LDP. An LDP is effectively guaranteed to prevent stencilization, so
       // it is avoided whenever possible.
       const auto ldp =
           tvm::EncodedOp::LDP<3>{tvm::SegmentPair{.hi = slot.loc.id.value, .lo = slot.loc.offset}, (u16)len}.encode();
-      _tb->emit_body(rec, {ldp.data(), ldp.size()});
+      _tb->emit_body(rec, ldp);
     }
   } else if (anchor.stride == anchor.size && slot.loc.offset == (u16)(anchor.at.offset + anchor.stride)) {
     // Packed directly after the previous record, which is what happens when one initiator writes several times in a
@@ -256,12 +256,12 @@ void Recorder::emit_dp_update(const tvm::DataSlot &slot, tvm::Recording &rec, u1
     // Only valid when that previous record was exactly its payload. If the allocation != DS, we have to choose INCDP
     // with the explicit DP increment.
     const auto accdp = tvm::EncodedOp::ACCDP{(u16)len}.encode();
-    _tb->emit_body(rec, {accdp.data(), accdp.size()});
+    _tb->emit_body(rec, accdp);
   } else {
     // The step is explicit: either the previous record carried a prologue, or something sits between the two. Still
     // a constant for a given instruction shape, so it does not by itself spoil de-duplication.
     const auto incdp = tvm::EncodedOp::INCDP{(u16)(slot.loc.offset - anchor.at.offset), (u16)len}.encode();
-    _tb->emit_body(rec, {incdp.data(), incdp.size()});
+    _tb->emit_body(rec, incdp);
   }
   _tb->set_dp_anchor(rec, slot.loc, (u16)len, (u16)(prologue + len));
 }
