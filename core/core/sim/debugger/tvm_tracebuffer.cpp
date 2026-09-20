@@ -125,7 +125,8 @@ void TraceBuffer::begin(Device::ID initiator) {
   // operations. Data chain lazily allocated.
   node.slot = _head;
   rec.slot = _head;
-  rec.chain = nullptr;
+  // Switched to a new slot, so we need to re-resolve the data chain if used.
+  if (rec.slot != _head) rec.chain = nullptr;
   rec.dp = {};
 
   // The ordinal is claimed but nothing is written to it.

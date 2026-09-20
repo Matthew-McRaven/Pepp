@@ -79,8 +79,8 @@ struct Recording {
   // The ring slot and location-buffer ordinal this recording claimed at begin().
   std::size_t slot = 0;
   u16 ordinal = 0;
-  // Memoize the result of data_chain to avoid a map lookup on every traced write. Resolved once per recording now
-  // that the slot cannot move underneath it; begin() clears it.
+  // Memoize the result of data_chain to avoid a map lookup on every traced write. Kept across recordings for as long as
+  // they land in the same ring slot; begin() clears it only when the slot changes, while clear/abort always clear it.
   pepp::bts::BufferChain *chain = nullptr;
 };
 
