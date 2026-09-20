@@ -13,7 +13,6 @@
 #include "core/sim/systemparser.hpp"
 
 using namespace bits;
-consteval void allow_opaque_handle_increment(Device::ID);
 
 System::System(Configuration config)
     : Device(), _config(config), _gen_next_ID([this]() { return next_ID(); }),
