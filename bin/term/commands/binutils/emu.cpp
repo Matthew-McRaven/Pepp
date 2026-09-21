@@ -7,7 +7,6 @@
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/formats/elf/packed_io.hpp"
 #include "core/sim/api/loadable.hpp"
-#include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/debugger/trace_device.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
@@ -166,25 +165,32 @@ int PeppEmulator::do_output(System &system) {
 }
 
 int PeppEmulator::do_run(System &system) {
-  // Clock the Pep CPU directly until the program powers off, because I have not implemented the clock tree.
-  PepISA3CPU *cpu = nullptr;
-  for (auto *dev : *system.root())
-    if (auto *as_cpu = dynamic_cast<PepISA3CPU *>(dev); as_cpu != nullptr) cpu = as_cpu;
-  if (cpu == nullptr) {
-    std::cerr << "Error: The system has no Pep CPU to run\n";
-    return 1;
-  }
   auto *pwr_off = dynamic_cast<FIFORegister *>(system.find_absolute("/bus/pwrOff"));
   if (pwr_off == nullptr) {
     std::cerr << "Error: The system has no /bus/pwrOff to stop on\n";
     return 1;
   }
-  const bool echo = _opts.echo_instructions;
-  try {
-    for (u64 tick = 0; pwr_off->output().empty(); ++tick) {
-      if (echo) std::cout << cpu->stringize_next_instruction() << '\n';
-      cpu->clock_tick(PulseSchedule::PulseIndex{tick}, tick);
+  // Only needed to render listing lines. The clock tree decides what actually gets ticked.
+  Loadable *echo_from = nullptr;
+  if (_opts.echo_instructions) {
+    for (auto *dev : *system.root())
+      if (auto *as_core = dev->capability<Loadable>(); as_core != nullptr) echo_from = as_core;
+    if (echo_from == nullptr) {
+      std::cerr << "Error: The system has no core to echo instructions from\n";
+      return 1;
     }
+  }
+  if (!pwr_off->output().empty()) return 0;
+  try {
+    // tick_while only hands us control after an instruction has run, so each listing line is printed by the
+    // iteration before the one that executes it.
+    if (echo_from != nullptr) std::cout << echo_from->stringize_next_instruction() << '\n';
+    system.tick_while([&](Device::ID, u64) {
+      if (!pwr_off->output().empty()) return false;
+      // TODO: should output stringized content from the core that just steppd, not out "loadable"
+      if (echo_from != nullptr) std::cout << echo_from->stringize_next_instruction() << '\n';
+      return true;
+    });
   } catch (const std::exception &e) {
     std::cerr << "Error: Simulation stopped: " << e.what() << "\n";
     return 1;
@@ -214,7 +220,7 @@ void PeppEmulator::run() {
     throw std::runtime_error("Custom system JSON not yet supported");
   else {
     switch (std::get<SystemEnu>(_opts.system)) {
-    case SystemEnu::RV32I: throw std::runtime_error("RV32I system not yet supported");
+    case SystemEnu::RV32I: system = create_standard_rv32_system(); break;
     case SystemEnu::Pep10: system = create_standard_pep10_system(); break;
     }
   }

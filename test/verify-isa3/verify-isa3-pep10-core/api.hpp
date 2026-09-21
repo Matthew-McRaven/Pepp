@@ -3,6 +3,7 @@
 #include "core/arch/pep/isa/pep9.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa_instructions.hpp"
+#include "core/sim/clocktree.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
 
@@ -13,7 +14,7 @@ inline auto make_cpu(PepISA3CPU::ISA isa = PepISA3CPU::ISA::Pep10) {
                                         .basename = "cpu",
                                         .compatible = PepISA3CPU::compatible,
                                     },
-                                    isa, "/memory"};
+                                    isa, "/memory", "/clk"};
   System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
   Dense::Configuration mem_cfg{
       Device::Configuration{
@@ -25,6 +26,9 @@ inline auto make_cpu(PepISA3CPU::ISA isa = PepISA3CPU::ISA::Pep10) {
   };
   auto system = std::make_unique<System>(root_cfg);
   auto *mem = system->make_device<Dense>(mem_cfg);
+  pepp::IdealClock::Configuration clk_cfg{
+      Device::Configuration{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000};
+  system->make_device<pepp::IdealClock>(clk_cfg);
   auto *cpu = system->make_device<PepISA3CPU>(cpu_cfg, system.get());
   system->initialize();
   return std::make_tuple(std::move(system), mem, cpu);

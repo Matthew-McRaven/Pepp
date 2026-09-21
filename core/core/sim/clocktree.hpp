@@ -9,8 +9,9 @@ namespace pepp {
 
 // Describe a jitter-free clock that operates at a fixed frequency
 struct IdealClock final : public Device, public ClockSource {
+  static const inline std::string compatible = "clock,ideal";
   struct Configuration : public Device::Configuration {
-    u64 period;
+    u64 period = 0;
   };
   IdealClock(Configuration config) : Device(), ClockSource(), _config(config), _sched({.period = config.period}) {}
 
@@ -18,7 +19,10 @@ struct IdealClock final : public Device, public ClockSource {
   void reset() override { _sched = {.period = _config.period}; }
   const Device::Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
+  Device::Type type() const override { return Device::Type::ClockSource; }
+  const Configuration &casted_config() const { return _config; }
   std::unique_ptr<DeviceSerializer> serializer() const override;
+  static std::unique_ptr<DeviceSerializer> make_serializer();
 
 private:
   PulseSchedule _sched;
@@ -26,8 +30,9 @@ private:
 };
 
 struct ScaledClock final : public Device, public ClockSource {
+  static const inline std::string compatible = "clock,scaled";
   struct Configuration : public Device::Configuration {
-    float period_scale;
+    float period_scale = 1.0f;
     // If not-a-number, configured devices will copy the value from period_scale
     float jitter_scale = std::numeric_limits<float>::quiet_NaN();
     std::string parent_name;
@@ -40,7 +45,10 @@ struct ScaledClock final : public Device, public ClockSource {
   PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
+  Device::Type type() const override { return Device::Type::ClockSource; }
+  const Configuration &casted_config() const { return _config; }
   std::unique_ptr<DeviceSerializer> serializer() const override;
+  static std::unique_ptr<DeviceSerializer> make_serializer();
 
 private:
   Configuration _config;
@@ -49,8 +57,9 @@ private:
 
 // A clock node which can choose between multiple parent clocks.
 struct MuxClock final : public Device, public ClockSource {
+  static const inline std::string compatible = "clock,mux";
   struct Configuration : public Device::Configuration {
-    u16 selected;
+    u16 selected = 0;
     std::vector<std::string> names;
   };
 
@@ -71,7 +80,10 @@ struct MuxClock final : public Device, public ClockSource {
   PulseSchedule schedule() const override;
   const Device::Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
+  Device::Type type() const override { return Device::Type::ClockSource; }
+  const Configuration &casted_config() const { return _config; }
   std::unique_ptr<DeviceSerializer> serializer() const override;
+  static std::unique_ptr<DeviceSerializer> make_serializer();
 
 private:
   const ClockSource *selected_clock() const;

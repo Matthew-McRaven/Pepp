@@ -24,6 +24,7 @@
 #include "core/sim/debugger/tvm_interpreter.hpp"
 #include "core/sim/debugger/tvm_tracebuffer.hpp"
 #include "core/sim/memory/ram/dense.hpp"
+#include "core/sim/clocktree.hpp"
 #include "core/sim/system.hpp"
 
 namespace {
@@ -47,7 +48,7 @@ struct Harness {
 Harness make_traced_cpu() {
   PepISA3CPU::Configuration cpu_cfg{
       Device::Configuration{.basename = "cpu", .compatible = PepISA3CPU::compatible}, PepISA3CPU::ISA::Pep10,
-      "/memory"};
+      "/memory", "/clk"};
   System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
   Dense::Configuration mem_cfg{Device::Configuration{.basename = "memory", .compatible = Dense::compatible}, 0x00,
                                AddressSpan(0x0000, 0xffff)};
@@ -56,6 +57,9 @@ Harness make_traced_cpu() {
   Harness h;
   h.sys = std::make_unique<System>(root_cfg);
   h.mem = h.sys->make_device<Dense>(mem_cfg);
+  pepp::IdealClock::Configuration clk_cfg{
+      Device::Configuration{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000};
+  h.sys->make_device<pepp::IdealClock>(clk_cfg);
   h.cpu = h.sys->make_device<PepISA3CPU>(cpu_cfg, h.sys.get());
   h.tbdev = h.sys->make_device<trace::BufferDevice>(tb_cfg);
   // Binds a Recorder to every Traceable, including the register bank and CSRs the CPU builds for itself.
@@ -70,7 +74,7 @@ Harness make_traced_cpu() {
 // Load `program` at address 0, run `ticks` instructions, and report what the trace cost.
 tvm::TraceBuffer::Footprint run(Harness &h, bits::span<const u8> program, int ticks) {
   h.mem->write(0, program, app);
-  for (int i = 0; i < ticks; ++i) h.cpu->clock_tick(PulseSchedule::PulseIndex{0}, static_cast<u64>(i));
+  for (int i = 0; i < ticks; ++i) h.cpu->clock_tick(PulseIndex{0}, static_cast<u64>(i));
   return h.tbdev->buffer().footprint();
 }
 
@@ -195,7 +199,7 @@ TEST_CASE("A recorded loop reverses back to the state it started from",
   const auto initial = capture();
   const auto before = h.tbdev->buffer().cursor();
 
-  for (int i = 0; i < TICKS; ++i) h.cpu->clock_tick(PulseSchedule::PulseIndex{0}, static_cast<u64>(i));
+  for (int i = 0; i < TICKS; ++i) h.cpu->clock_tick(PulseIndex{0}, static_cast<u64>(i));
 
   const auto after = capture();
   const auto end = h.tbdev->buffer().cursor();

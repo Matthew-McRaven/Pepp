@@ -35,7 +35,7 @@ void inner_and(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
       cpu->write_register(target_reg, init_reg);
 
       REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
-      REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+      REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
       CHECK(reg(cpu, Register::SP) == 0);
       CHECK(reg(cpu, other_reg) == 0);
@@ -72,7 +72,7 @@ void inner_or(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mnem
       cpu->write_register(target_reg, init_reg);
 
       REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
-      REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+      REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
       CHECK(reg(cpu, Register::SP) == 0);
       CHECK(reg(cpu, other_reg) == 0);
@@ -107,7 +107,7 @@ void inner_xor(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
       cpu->write_register(target_reg, init_reg);
 
       REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
-      REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+      REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
       CHECK(reg(cpu, Register::SP) == 0);
       CHECK(reg(cpu, other_reg) == 0);

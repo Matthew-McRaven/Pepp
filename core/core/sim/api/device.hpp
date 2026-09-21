@@ -30,7 +30,7 @@ class System;
 
 std::string child_name(std::string_view parent_fullname, std::string_view child_basename);
 struct Device {
-  using ID = pepp::OpaqueHandle<struct DeviceID, u8>;
+  using ID = pepp::OpaqueHandle<struct DeviceIDTag, u8>;
   using IDGenerator = std::function<Device::ID()>;
   // Do not parse or serialize: id, fullname, or skip_serialize.
   // They are inferred at device creation time
@@ -96,6 +96,7 @@ protected:
   virtual Device *capability(Device::Type t);
 };
 consteval void is_bitflags(Device::Type);
+consteval void allow_opaque_handle_increment(Device::ID);
 
 template <> struct std::hash<Device::ID> {
   std::size_t operator()(const Device::ID &v) const noexcept {

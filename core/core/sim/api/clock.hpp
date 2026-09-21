@@ -22,6 +22,9 @@
 #include "core/math/bitmanip/umulh.hpp"
 #include "core/sim/api/device.hpp"
 
+using PulseIndex = pepp::OpaqueHandle<struct ClockPulseTag, u64>;
+consteval void allow_opaque_handle_increment(PulseIndex);
+consteval void allow_opaque_handle_add(PulseIndex);
 /*
  * Essential a POD class which encodes the information from the clock-tree in a way that is fast and deterministic to
  * schedule.
@@ -43,25 +46,25 @@
  * with respect to each other, which cannot be represented by this deterministic schedule.
  */
 struct PulseSchedule {
-
-  using PulseIndex = pepp::OpaqueHandle<struct ClockPulseTag, u64>;
-
+  static constexpr u64 DEFAULT_SEED = 0xfeeddeadbeefcafe;
   // Period in ns
   u64 period = 0;
   // must be < 1/2 period
   u64 jitter = 0;
   // Bits that are XOR'ed in when computing jitter from index. Useful to prevent two clocks with the same
-  u64 seed = 0xfeeddeadbeefcafe;
+  u64 seed = DEFAULT_SEED;
 
   constexpr PulseIndex index_of(u64 tick) const;
   constexpr u64 edge_time(PulseIndex n) const noexcept;
   // Produce a uniformly random value in [-jitter, -jitter] with no internal state updates.
   constexpr i64 uniform_jitter(PulseIndex n) const noexcept;
   constexpr u64 next_clock_tick(u64 tick, u8 delay_cycles = 1) const noexcept;
+  constexpr std::tuple<u64, PulseIndex> next_clock(u64 tick, u8 delay_cycles = 1) const noexcept {
+    const auto next_tick = next_clock_tick(tick, delay_cycles);
+    return {next_tick, index_of(next_tick)};
+  }
   bool operator==(const PulseSchedule &rhs) const noexcept = default;
 };
-consteval void allow_opaque_handle_increment(PulseSchedule::PulseIndex);
-consteval void allow_opaque_handle_add(PulseSchedule::PulseIndex);
 
 struct ClockSource {
   static constexpr Device::Type TypeMask = Device::Type::ClockSource;
@@ -72,14 +75,12 @@ struct ClockSource {
 struct ClockSink {
   static constexpr Device::Type TypeMask = Device::Type::ClockSink;
   virtual ~ClockSink() = default;
-  virtual void clock_tick(PulseSchedule::PulseIndex idx, u64 tick) = 0;
+  virtual void clock_tick(PulseIndex idx, u64 tick) = 0;
   virtual void set_clock_source(const ClockSource *src) = 0;
   virtual const ClockSource *clock_source() const = 0;
 };
 
-inline constexpr PulseSchedule::PulseIndex PulseSchedule::index_of(u64 tick) const {
-  return PulseIndex{(tick + period / 2) / period};
-}
+inline constexpr PulseIndex PulseSchedule::index_of(u64 tick) const { return PulseIndex{(tick + period / 2) / period}; }
 
 inline constexpr u64 PulseSchedule::edge_time(PulseIndex n) const noexcept {
   return n.value * period + uniform_jitter(n);

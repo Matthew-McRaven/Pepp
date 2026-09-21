@@ -19,6 +19,7 @@
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa_instructions.hpp"
 #include "core/sim/memory/ram/dense.hpp"
+#include "core/sim/clocktree.hpp"
 #include "core/sim/system.hpp"
 
 namespace {
@@ -30,7 +31,7 @@ inline auto make_cpu(PepISA3CPU::ISA isa = PepISA3CPU::ISA::Pep10) {
                                         .basename = "cpu",
                                         .compatible = PepISA3CPU::compatible,
                                     },
-                                    isa, "/memory"};
+                                    isa, "/memory", "/clk"};
   System::Configuration root_cfg{{.basename = "/", .compatible = System::compatible}};
   Dense::Configuration mem_cfg{
       Device::Configuration{
@@ -42,6 +43,9 @@ inline auto make_cpu(PepISA3CPU::ISA isa = PepISA3CPU::ISA::Pep10) {
   };
   auto system = std::make_unique<System>(root_cfg);
   auto *mem = system->make_device<Dense>(mem_cfg);
+  pepp::IdealClock::Configuration clk_cfg{
+      Device::Configuration{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000};
+  system->make_device<pepp::IdealClock>(clk_cfg);
   auto *cpu = system->make_device<PepISA3CPU>(cpu_cfg, system.get());
   system->initialize();
   return std::make_tuple(std::move(system), mem, cpu);
@@ -76,7 +80,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_call(Pe
   cpu->write_register(Register::SP, init_sp);
   cpu->write_packed_csr(PepCSRBank::pack(true, false, true, false)); // NZVC = 1010
 
-  REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+  REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
 
   CHECK(dbg->read<u16>(*dbg->find("PC")) == end_pc);

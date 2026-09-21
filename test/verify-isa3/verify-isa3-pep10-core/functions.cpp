@@ -31,7 +31,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_ret(Pep
   cpu->write_register(Register::SP, init_sp);
   ((Target *)mem)->write<u16, bits::host_is_le>(init_sp, end_pc, rw);
 
-  REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+  REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
   CHECK(reg(cpu, Register::PC) == end_pc);
   CHECK(reg(cpu, Register::SP) == init_sp + 2);
@@ -53,7 +53,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_call(Pe
   cpu->csrs()->clear(0);
   cpu->write_register(Register::SP, init_sp);
 
-  REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+  REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
   CHECK(reg(cpu, Register::PC) == end_pc);
   CHECK(reg(cpu, Register::SP) == init_sp - 2);

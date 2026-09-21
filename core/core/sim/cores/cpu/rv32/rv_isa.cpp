@@ -17,8 +17,10 @@
 #include <nlohmann/json.hpp>
 #include "core/arch/riscv/isa/rvi.hpp"
 #include "core/sim/cores/cpu/rv32/rv_i_instructions.hpp"
+#include "core/sim/loader.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
+#include "fmt/format.h"
 
 namespace {
 Device *create_rv32cpu(const nlohmann::json &self, System *sys, Device *par) {
@@ -28,6 +30,8 @@ Device *create_rv32cpu(const nlohmann::json &self, System *sys, Device *par) {
     if (cfg.basename.empty()) throw ParsingError("RV32CPU must have a basename");
     if (!self.contains("target") || self["target"].is_null()) throw ParsingError("RV32CPU must have a target");
     cfg.target = self["target"].get<std::string>();
+    if (!self.contains("clock") || self["clock"].is_null()) throw ParsingError("RV32CPU must have a clock");
+    cfg.clock = self["clock"].get<std::string>();
   } catch (const nlohmann::json::type_error &e) {
     throw ParsingError("Failed to parse RV32CPU: " + std::string(e.what()));
   }
@@ -38,6 +42,7 @@ void prefill_rv32cpu(nlohmann::json &obj) {
   obj["compatible"] = RV32CPU::compatible;
   obj["basename"];
   obj["target"];
+  obj["clock"];
 }
 
 void serialize_rv32cpu(nlohmann::json &obj, const System *sys, const Device *self) {
@@ -46,6 +51,7 @@ void serialize_rv32cpu(nlohmann::json &obj, const System *sys, const Device *sel
   obj["compatible"] = RV32CPU::compatible;
   obj["basename"] = casted->config().basename;
   obj["target"] = casted->casted_config().target;
+  obj["clock"] = casted->casted_config().clock;
 }
 } // namespace
 
@@ -68,6 +74,11 @@ void RV32CPU::initialize(System *sys) {
   if (!dev) throw std::runtime_error("RV32CPU: could not find target device " + _config.target);
   _target = dev->capability<Target>();
   if (!_target) throw std::runtime_error("RV32CPU: device " + _config.target + " is not a memory target");
+  auto clk_dev = sys->find_relative(_config.clock, _config.fullname);
+  if (!clk_dev) throw std::runtime_error("RV32CPU: could not find clock device " + _config.clock);
+  auto *clk = clk_dev->capability<ClockSource>();
+  if (!clk) throw std::runtime_error("RV32CPU: device " + _config.clock + " is not a clock source");
+  set_clock_source(clk);
   _regbank->set_initiator(id());
 
   using SR = RegisterScan::Register;
@@ -123,7 +134,7 @@ riscv::rv_instruction2 RV32CPU::fetch() {
   return riscv::rv_instruction2{res.second};
 }
 
-void RV32CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
+void RV32CPU::clock_tick(PulseIndex idx, u64 tick) {
   // Create a single record for the entire instruction
   trace::Recorder::Instruction record(_trace, _may_trace);
   // TODO: when function signature changes, use that tick offset instead of this placeholder.
@@ -168,11 +179,20 @@ pepp::bts::ElfBits RV32CPU::core_bits() const noexcept { return pepp::bts::ElfBi
 
 pepp::bts::ElfEndian RV32CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::le; }
 
-// TODO: disassemble when this actually runs.
-std::string RV32CPU::stringize_next_instruction() const { return {}; }
+std::string RV32CPU::stringize_next_instruction() const {
+  static const Operation peek(Operation::Type::BufferInternal, Operation::Kind::instruction);
+  const u32 init_pc = _regbank->read_pc();
+  auto mem_value = _target->read<u32, !bits::host_is_le>(_pc, peek);
+  auto op = riscv::rv_instruction2{mem_value.second};
+  return fmt::format("{:08X}  {:08X}  {}", init_pc, op.bits(), op.to_string());
+}
 
-void RV32CPU::register_core_init(Loader &) {
-  // No-op until we decide what our initial PC / SP should be
+void RV32CPU::register_core_init(Loader &loader) {
+  // TODO: determine preferred reset values
+  auto io = _regbank->ref(riscv::xreg(31));
+  auto pc = _regbank->ref_pc();
+  loader.set_register(io, 0x8086'0000);
+  loader.set_register(pc, 0x0000'0000);
 }
 
 u32 RV32CPU::read_register(Register reg) const { return _regbank->read(reg); }

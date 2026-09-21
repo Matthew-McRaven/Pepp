@@ -38,7 +38,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner(PepISA3
       cpu->write_register(Register::SP, init_reg);
 
       REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
-      REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+      REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
       CHECK(reg(cpu, Register::A) == 0);
       CHECK(reg(cpu, Register::X) == 0);

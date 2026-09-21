@@ -32,7 +32,7 @@ TEST_CASE("(new) Pep/10, SCALL", "[scope:core][scope:core.sim][kind:instr][arch:
   cpu->write_register(Register::X, 0xBAAD);
   cpu->write_register(Register::SP, 0xFEED);
 
-  REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+  REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
   const auto frame = std::array<u8, 12>{/*NZVC*/ 0b1101,
                                         /*A*/ 0x11,           0x22,
@@ -68,7 +68,7 @@ TEST_CASE("(new) Pep/10, SRET", "[scope:core][scope:core.sim][kind:instr][arch:p
   cpu->csrs()->clear(0);
   cpu->write_register(Register::SP, frame_at);
 
-  REQUIRE_NOTHROW(cpu->clock_tick(PulseSchedule::PulseIndex{0}, 0));
+  REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
 
   CHECK(cpu->read_packed_csr() == frame[0]);
   CHECK(reg(cpu, Register::A) == 0x1122);

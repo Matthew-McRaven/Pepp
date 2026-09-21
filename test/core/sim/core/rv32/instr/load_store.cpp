@@ -33,7 +33,7 @@ TEST_CASE("RV32I loads and stores", "[scope:core][scope:core.sim][kind:unit][arc
   auto [sys, mem, cpu] = make_cpu();
   u64 tick = 0;
   auto step = [&, cpu = cpu](std::size_t count) {
-    for (std::size_t i = 0; i < count; ++i, ++tick) cpu->clock_tick(PulseSchedule::PulseIndex{tick}, tick);
+    for (std::size_t i = 0; i < count; ++i, ++tick) cpu->clock_tick(PulseIndex{tick}, tick);
   };
   cpu->write_register(riscv::ABIReg::sp, SCRATCH);
 

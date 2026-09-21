@@ -35,6 +35,8 @@ public:
   struct Configuration : public Device::Configuration {
     // Name of device to use as the target for memory access. Resolved to Target* during initialize().
     std::string target;
+    // Name of the clock driving this CPU. Resolved to ClockSource* during initialize().
+    std::string clock;
   };
   RV32CPU(Configuration cfg, System *sys);
   ~RV32CPU() = default;
@@ -58,7 +60,7 @@ public:
   static std::unique_ptr<DeviceSerializer> make_serializer();
 
   // ClockSink interface
-  void clock_tick(PulseSchedule::PulseIndex idx, u64 tick) override;
+  void clock_tick(PulseIndex idx, u64 tick) override;
   void set_clock_source(const ClockSource *src) override;
   const ClockSource *clock_source() const override;
 

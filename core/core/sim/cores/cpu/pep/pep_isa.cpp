@@ -34,6 +34,8 @@ Device *create_pepisacpu(const nlohmann::json &self, System *sys, Device *par) {
     if (cfg.basename.empty()) throw ParsingError("PepISA3CPU must have a basename");
     if (!self.contains("target") || self["target"].is_null()) throw ParsingError("PepISA3CPU must have a target");
     cfg.target = self["target"].get<std::string>();
+    if (!self.contains("clock") || self["clock"].is_null()) throw ParsingError("PepISA3CPU must have a clock");
+    cfg.clock = self["clock"].get<std::string>();
     if (self.contains("isa") && !self["isa"].is_null()) {
       auto isa_str = self["isa"].get<std::string>();
       auto isa_opt = string_to_isa(isa_str);
@@ -50,6 +52,7 @@ void prefill_pepisacpu(nlohmann::json &obj) {
   obj["compatible"] = PepISA3CPU::compatible;
   obj["basename"];
   obj["target"];
+  obj["clock"];
   obj["isa"] = isa_to_string(PepISA3CPU::ISA::Pep10);
 }
 
@@ -59,6 +62,7 @@ void serialize_pepisacpu(nlohmann::json &obj, const System *sys, const Device *s
   obj["compatible"] = PepISA3CPU::compatible;
   obj["basename"] = casted->config().basename;
   obj["target"] = casted->casted_config().target;
+  obj["clock"] = casted->casted_config().clock;
   obj["isa"] = isa_to_string(casted->casted_config().isa);
 }
 } // namespace
@@ -92,6 +96,11 @@ void PepISA3CPU::initialize(System *sys) {
   if (!dev) throw std::runtime_error("PepISA3CPU: could not find target device " + _config.target);
   _target = dev->capability<Target>();
   if (!_target) throw std::runtime_error("PepISA3CPU: device " + _config.target + " is not a memory target");
+  auto clk_dev = sys->find_relative(_config.clock, _config.fullname);
+  if (!clk_dev) throw std::runtime_error("PepISA3CPU: could not find clock device " + _config.clock);
+  auto *clk = clk_dev->capability<ClockSource>();
+  if (!clk) throw std::runtime_error("PepISA3CPU: device " + _config.clock + " is not a clock source");
+  set_clock_source(clk);
   switch (_config.isa) {
   case ISA::Pep8: throw std::logic_error("PepISA3CPU: ISA " + isa_to_string(_config.isa) + " not implemented");
   case ISA::Pep9: _opcodes = isa::Pep9::opcode_plane; break;
@@ -164,7 +173,7 @@ std::unique_ptr<DeviceSerializer> PepISA3CPU::make_serializer() {
   return std::make_unique<DeviceSerializer>(std::move(s));
 }
 
-void PepISA3CPU::clock_tick(PulseSchedule::PulseIndex idx, u64 tick) {
+void PepISA3CPU::clock_tick(PulseIndex idx, u64 tick) {
   // Create a single record for the entire instruction
   trace::Recorder::Instruction record(_trace, _may_trace);
   // TODO: when function signature changes, use that tick offset instead of this placeholder.
