@@ -17,8 +17,10 @@
 #include <nlohmann/json.hpp>
 #include "core/arch/riscv/isa/rvi.hpp"
 #include "core/sim/cores/cpu/rv32/rv_i_instructions.hpp"
+#include "core/sim/loader.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
+#include "fmt/format.h"
 
 namespace {
 Device *create_rv32cpu(const nlohmann::json &self, System *sys, Device *par) {
@@ -177,11 +179,20 @@ pepp::bts::ElfBits RV32CPU::core_bits() const noexcept { return pepp::bts::ElfBi
 
 pepp::bts::ElfEndian RV32CPU::core_endian() const noexcept { return pepp::bts::ElfEndian::le; }
 
-// TODO: disassemble when this actually runs.
-std::string RV32CPU::stringize_next_instruction() const { return {}; }
+std::string RV32CPU::stringize_next_instruction() const {
+  static const Operation peek(Operation::Type::BufferInternal, Operation::Kind::instruction);
+  const u32 init_pc = _regbank->read_pc();
+  auto mem_value = _target->read<u32, !bits::host_is_le>(_pc, peek);
+  auto op = riscv::rv_instruction2{mem_value.second};
+  return fmt::format("{:08X}  {:08X}  {}", init_pc, op.bits(), op.to_string());
+}
 
-void RV32CPU::register_core_init(Loader &) {
-  // No-op until we decide what our initial PC / SP should be
+void RV32CPU::register_core_init(Loader &loader) {
+  // TODO: determine preferred reset values
+  auto io = _regbank->ref(riscv::xreg(31));
+  auto pc = _regbank->ref_pc();
+  loader.set_register(io, 0x8086'0000);
+  loader.set_register(pc, 0x0000'0000);
 }
 
 u32 RV32CPU::read_register(Register reg) const { return _regbank->read(reg); }
