@@ -218,6 +218,14 @@ void make_mmio(System *sys, Device *bus, const std::string &name, std::optional<
         bus, StateRegister::Configuration{
                  {.basename = name, .compatible = StateRegister::compatible}, 0, AddressSpan(0, 0)});
 }
+
+// Writing pwrOff stops the clock.
+pepp::IdealClock::Configuration make_standard_clock() {
+  using E = pepp::ClockEnable;
+  return pepp::IdealClock::Configuration{{.basename = "clk", .compatible = pepp::IdealClock::compatible},
+                                         1000,
+                                         E::Configuration{.source = "/bus/pwrOff", .mode = E::DisableOnWrite{}}};
+}
 } // namespace
 
 std::unique_ptr<System> create_standard_pep10_system() {
@@ -243,8 +251,7 @@ std::unique_ptr<System> create_standard_pep10_system() {
 
   for (const auto &mmio : mmios) make_mmio(sys.get(), bus, mmio.name, mmio.direction);
 
-  sys->make_device<pepp::IdealClock>(
-      pepp::IdealClock::Configuration{{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000});
+  sys->make_device<pepp::IdealClock>(make_standard_clock());
 
   PepISA3CPU::Configuration cpu_cfg{
       {.basename = "cpu", .compatible = PepISA3CPU::compatible}, PepISA3CPU::ISA::Pep10, "/bus", "/clk"};
@@ -283,8 +290,7 @@ std::unique_ptr<System> create_standard_rv32_system() {
 
   for (const auto &mmio : mmios) make_mmio(sys.get(), bus, mmio.name, mmio.direction);
 
-  sys->make_device<pepp::IdealClock>(
-      pepp::IdealClock::Configuration{{.basename = "clk", .compatible = pepp::IdealClock::compatible}, 1000});
+  sys->make_device<pepp::IdealClock>(make_standard_clock());
 
   RV32CPU::Configuration cpu_cfg{{.basename = "cpu", .compatible = RV32CPU::compatible}, "/bus", "/clk"};
   sys->make_device<RV32CPU>(cpu_cfg, sys.get());

@@ -16,6 +16,7 @@
 #include <catch.hpp>
 #include <vector>
 #include "core/sim/clocktree.hpp"
+#include "core/sim/memory/io/state.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
@@ -68,57 +69,76 @@ auto make_system() { return std::make_unique<System>(System::Configuration{{.bas
 
 } // namespace
 
-TEST_CASE("Populate schedule from System's devices", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
-  SECTION("Clocks with different rates interleave") {
-    auto sys = make_system();
+TEST_CASE("System scheduler", "[scope:core][scope:core.sim][kind:unit][arch:*][!throws]") {
+  auto sys = make_system();
+  using V = std::vector<std::tuple<Device::ID, u64>>;
+  auto next = [&](int count) {
+    V ret;
+    for (int i = 0; i < count; i++) ret.push_back(sys->tick());
+    return ret;
+  };
+
+  SECTION("Clocks with different rates interleave, and reset() restarts them") {
     sys->make_device<pepp::IdealClock>(clock_cfg("slow", 30));
     sys->make_device<pepp::IdealClock>(clock_cfg("fast", 10));
     auto *slow = sys->make_device<TestTicker>(ticker_cfg("slow_ticker", "/slow"));
     auto *fast = sys->make_device<TestTicker>(ticker_cfg("fast_ticker", "/fast"));
     sys->initialize();
 
-    std::vector<u64> ticks;
-    sys->tick_while([&](Device::ID, u64 tick) {
-      ticks.push_back(tick);
-      return ticks.size() < 4;
-    });
-    CHECK(ticks == std::vector<u64>{10, 20, 30, 30});
-    CHECK(fast->edges.size() == 3);
-    CHECK(slow->edges.size() == 1);
-  }
-  SECTION("reset() re-initializes clocks to 0") {
-    auto sys = make_system();
-    sys->make_device<pepp::IdealClock>(clock_cfg("clk", 10));
-    auto *ticker = sys->make_device<TestTicker>(ticker_cfg("ticker", "/clk"));
-    sys->initialize();
-
-    for (int i = 0; i < 3; ++i) sys->tick();
+    CHECK(next(4) == V{{fast->id(), 10}, {fast->id(), 20}, {slow->id(), 30}, {fast->id(), 30}});
     sys->reset();
-    CHECK(ticker->edges.empty());
-    auto [id, tick] = sys->tick();
-    CHECK(id == ticker->id());
-    CHECK(tick == 10);
+    CHECK(fast->edges.empty());
+    CHECK(next(1) == V{{fast->id(), 10}});
   }
-  SECTION("Schedule cannot tick empty system") {
-    auto sys = make_system();
+  SECTION("Sink-less system does not tick") {
     sys->make_device<pepp::IdealClock>(clock_cfg("clk", 10));
     sys->initialize();
-    auto [id, tick] = sys->tick();
-    CHECK(id == Device::ID{});
-    CHECK(tick == -1);
+    CHECK(sys->tick() == std::tuple<Device::ID, u64>{Device::ID{}, ~u64{0}});
   }
-}
-
-TEST_CASE("Scheduler rejects unusable clocks", "[scope:core][scope:core.sim][kind:unit][arch:*][!throws]") {
-  SECTION("a sink with no clock source") {
-    auto sys = make_system();
+  SECTION("All sinks must have a clock") {
     sys->make_device<TestTicker>(ticker_cfg("ticker", ""));
     CHECK_THROWS_AS(sys->initialize(), std::logic_error);
+    auto zero = make_system();
+    zero->make_device<pepp::IdealClock>(clock_cfg("clk", 0));
+    zero->make_device<TestTicker>(ticker_cfg("ticker", "/clk"));
+    CHECK_THROWS_AS(zero->initialize(), std::logic_error);
   }
-  SECTION("a clock with a zero period") {
-    auto sys = make_system();
-    sys->make_device<pepp::IdealClock>(clock_cfg("clk", 0));
-    sys->make_device<TestTicker>(ticker_cfg("ticker", "/clk"));
-    CHECK_THROWS_AS(sys->initialize(), std::logic_error);
+  SECTION("Schedule responds to enabled clocks") {
+    // /gated runs while /ctl is non-zero. /latched runs until /ctl is first written.
+    using E = pepp::ClockEnable;
+    auto *ctl = sys->make_device<StateRegister>(StateRegister::Configuration{
+        {.basename = "ctl", .compatible = StateRegister::compatible}, 0, AddressSpan(0, 0)});
+    auto gated_cfg = clock_cfg("gated", 10), latched_cfg = clock_cfg("latched", 35);
+    gated_cfg.enable = E::Configuration{.source = "/ctl", .mode = E::EnableWhenAny{}};
+    latched_cfg.enable = E::Configuration{.source = "/ctl", .mode = E::DisableOnWrite{}};
+    sys->make_device<pepp::IdealClock>(gated_cfg);
+    sys->make_device<pepp::IdealClock>(latched_cfg);
+    auto *gated = sys->make_device<TestTicker>(ticker_cfg("gated_ticker", "/gated"));
+    auto *latched = sys->make_device<TestTicker>(ticker_cfg("latched_ticker", "/latched"));
+    auto set_ctl = [&](u8 v) { ctl->write<u8>(0, v, Operation{Operation::Type::Standard, Operation::Kind::data}); };
+    sys->initialize();
+
+    // Disabled at initialize.
+    CHECK(next(2) == V{{latched->id(), 35}, {latched->id(), 70}});
+    // Enabled on the next edge after now, while /latched stops.
+    set_ctl(1);
+    CHECK(next(3) == V{{gated->id(), 80}, {gated->id(), 90}, {gated->id(), 100}});
+    // Nothing left to run.
+    set_ctl(0);
+    CHECK(std::get<0>(sys->tick()) == Device::ID{});
+    sys->reset();
+    CHECK(next(1) == V{{latched->id(), 35}});
+  }
+  SECTION("Update a MuxClock mid-simulation") {
+    sys->make_device<pepp::IdealClock>(clock_cfg("a", 10));
+    sys->make_device<pepp::IdealClock>(clock_cfg("b", 30));
+    auto *mux = sys->make_device<pepp::MuxClock>(pepp::MuxClock::Configuration{
+        {.basename = "mux", .compatible = pepp::MuxClock::compatible}, 0, {"/a", "/b"}});
+    auto *ticker = sys->make_device<TestTicker>(ticker_cfg("ticker", "/mux"));
+    sys->initialize();
+
+    CHECK(next(1) == V{{ticker->id(), 10}});
+    mux->select_clock(1);
+    CHECK(next(2) == V{{ticker->id(), 30}, {ticker->id(), 60}});
   }
 }

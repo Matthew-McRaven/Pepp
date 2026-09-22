@@ -22,6 +22,8 @@
 #include <memory>
 #include <vector>
 #include "core/sim/api/device.hpp"
+#include "core/sim/api/clock.hpp"
+#include "core/sim/api/event.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/devicetree.hpp"
 
@@ -54,7 +56,7 @@ struct DeferredDevice {
   void operator()(System *sys) { ctor(sys, parent); }
 };
 
-class System : public Device {
+class System : public Device, public EventSink {
 public:
   struct Configuration : public Device::Configuration {
     // No additional configuration for now.
@@ -80,6 +82,11 @@ public:
 
   const Configuration &config() const override { return _config; }
   const Device::ID id() const override { return _config.id; }
+  Device::Type type() const override;
+  // Clocks raise UpdateSchedule when their schedule changes.
+  void on_event(Device::ID from, const Event &event) override;
+  // Recompute every sink's schedule at the start of the next tick().
+  void invalidate_schedules();
 
   Device::ID next_ID();
   Device::IDGenerator gen_next_ID();
@@ -166,8 +173,12 @@ private:
       ClockSink *dev;
       PulseSchedule schedule;
     };
+    // Next rising edge of sched, or MAX_TICK if sched is disabled.
+    static std::tuple<u64, PulseIndex> next_due(const PulseSchedule &sched, u64 after);
     // The time of the currently executing tick
     u64 now = 0;
+    // Set when a clock's schedule may have changed. Cleared by refresh_schedules().
+    bool dirty = false;
     // Prefer struct of arrays over AoS to improve cache locality for these two critical arrays which are touched every
     // tick(). All share the same indices.
     std::vector<u64> due_tick = {};
@@ -179,6 +190,8 @@ private:
   Scheduler _scheduler;
   // Rebuild the scheduler from scratch. Resets current tick index to 0, and collects the set of ClockSink devices.
   void populate_scheduler();
+  // Re-read each sink's schedule, rescheduling from now only those which changed.
+  void refresh_schedules();
 };
 
 template <typename ConcreteDevice, typename ConcreteConfig, typename... Args>

@@ -57,6 +57,16 @@ TEST_CASE("Standard RV32 system", "[scope:core][scope:core.sim][kind:unit][arch:
     // Writing the power register must not have reached the neighbour four bytes below it.
     CHECK(char_out->output().size() == 1);
   }
+  SECTION("Program writes to pwrOff stop the clock") {
+    auto *clk = sys->find_absolute("/clk")->capability<ClockSource>();
+    const u8 off = 1;
+    // simulate a loader writing to pwrOff
+    bus->write(MMIO_BASE + 8, {&off, 1}, Operation(Operation::Type::Application, Operation::Kind::data));
+    CHECK(clk->schedule().enabled);
+    bus->write(MMIO_BASE + 8, {&off, 1}, rw);
+    CHECK(!clk->schedule().enabled);
+    CHECK(std::get<0>(sys->tick()) == Device::ID{});
+  }
   SECTION("reads from charIn reach FIFO") {
     auto *char_in = dynamic_cast<FIFORegister *>(sys->find_absolute("/bus/charIn"));
     REQUIRE(char_in != nullptr);
