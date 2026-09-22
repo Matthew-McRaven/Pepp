@@ -101,8 +101,10 @@ Target::Result StateRegister::write(Address address, bits::span<const u8> src, O
   const auto dest = bits::span<u8>{_data}.subspan(address - span.lower(), src.size());
   _trace.emit_write(op, address, dest, src);
   bits::memcpy(dest, src);
+  // Loader, debugger, and trace replay writes change the value without acting as memory-mapped IO.
+  if (op.type != Operation::Type::Standard) return {};
   _changed = true;
-  if (op.type == Operation::Type::Standard) raise(id(), MemoryWritten(this, AddressSpan{address, max_addr}, src));
+  raise(id(), MemoryWritten(this, AddressSpan{address, max_addr}, src));
   return {};
 }
 

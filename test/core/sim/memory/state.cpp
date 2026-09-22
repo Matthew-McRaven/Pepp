@@ -80,10 +80,16 @@ TEST_CASE("StateRegister storage", "[scope:core][scope:core.sim][kind:unit][arch
     dev.write<u8>(4, 0, std_op);
     CHECK(sink.seen.size() == 2);
   }
-  SECTION("Other write types are silent") {
+  SECTION("Non-standard writes do not trigger events") {
     for (auto type : {Operation::Type::Application, Operation::Type::BufferInternal, Operation::Type::Speculative})
       dev.write<u8>(4, 1, Operation{type, Operation::Kind::data});
     CHECK(sink.seen.empty());
+    CHECK(!dev.changed());
+    CHECK(dev.read<u8>(4, std_op).second == 1);
+  }
+  SECTION("Standard writes mark the register changed") {
+    dev.write<u8>(4, 1, std_op);
+    CHECK(dev.changed());
   }
   SECTION("Reads do not trigger events") {
     (void)dev.read<u16>(4, std_op);
