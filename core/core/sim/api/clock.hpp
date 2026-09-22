@@ -21,6 +21,7 @@
 #include "core/integers.h"
 #include "core/math/bitmanip/umulh.hpp"
 #include "core/sim/api/device.hpp"
+#include "core/sim/api/event.hpp"
 
 using PulseIndex = pepp::OpaqueHandle<struct ClockPulseTag, u64>;
 consteval void allow_opaque_handle_increment(PulseIndex);
@@ -79,6 +80,9 @@ struct ClockSink {
   virtual void set_clock_source(const ClockSource *src) = 0;
   virtual const ClockSource *clock_source() const = 0;
 };
+
+// A clock's schedule changed, so the simulator needs to re-compute the cores' schedules.
+struct UpdateSchedule final : public Event {};
 
 inline constexpr PulseIndex PulseSchedule::index_of(u64 tick) const { return PulseIndex{(tick + period / 2) / period}; }
 
