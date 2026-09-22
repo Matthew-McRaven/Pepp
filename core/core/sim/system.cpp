@@ -58,6 +58,8 @@ void System::initialize() {
 void System::reset() {
   for (auto dev : *_root)
     if (dev != this) dev->reset();
+  for (auto dev : *_root)
+    if (dev != this) dev->settle();
 
   populate_scheduler();
 }

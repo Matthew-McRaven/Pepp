@@ -73,8 +73,13 @@ struct Device {
   // As part of this initialize step, you should expose all registers to the Systems RegisterScan.
   virtual void initialize(System *) {}
   // Return this device's own state to what it held immediately after initialization. This includes clearing performance
-  // counters in addition to a Target's memory. Does not recurse into child devices.
+  // counters in addition to a Target's memory. Does not recurse into child devices and do not access other devices.
+  // The System handles recursing into children, while settle() is the only safe time to access other devices.
   virtual void reset() = 0;
+  // Some device's state (like clock enables) depend on the state of other devices. Without a gaurenteed reset() order,
+  // it would be unsafe to compute such values from reset(). I anticipiate that you only need to use this method if you
+  // derive state from Events another settle() computes.
+  virtual void settle() {}
   virtual const Configuration &config() const = 0;
   virtual const Device::ID id() const = 0;
   // Helper to test if this device implements a particular interface type.

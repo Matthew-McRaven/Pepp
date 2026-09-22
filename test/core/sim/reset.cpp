@@ -15,11 +15,14 @@
  */
 #include <array>
 #include <catch.hpp>
+#include <string>
+#include <vector>
 #include "core/sim/api/memory.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
 #include "core/sim/memory/bus/simplebus.hpp"
 #include "core/sim/memory/ram/dense.hpp"
 #include "core/sim/system.hpp"
+#include "core/sim/systemparser.hpp"
 
 namespace {
 
@@ -64,6 +67,21 @@ auto make_bus_system(u8 fill) {
   return std::make_tuple(std::move(sys), mem, bus);
 }
 
+// Logs its reset() and settle() calls, so a test can check the order in which the System makes them.
+struct Logger final : public Device {
+  struct Configuration : public Device::Configuration {};
+  Logger(Configuration config, std::vector<std::string> *log) : _config(config), _log(log) {}
+  void reset() override { _log->push_back("reset"); }
+  void settle() override { _log->push_back("settle"); }
+  const Device::Configuration &config() const override { return _config; }
+  const Device::ID id() const override { return _config.id; }
+  std::unique_ptr<DeviceSerializer> serializer() const override { return nullptr; }
+
+private:
+  Configuration _config;
+  std::vector<std::string> *_log;
+};
+
 u8 byte_at(Target *mem, Address at) {
   u8 v = 0;
   mem->read(at, {&v, 1}, std_op);
@@ -101,6 +119,14 @@ TEST_CASE("Device::reset", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
   SECTION("is reached for every device by the system walk") {
     sys->reset();
     CHECK(byte_at(mem, 0x10) == 0xCD);
+  }
+
+  SECTION("settles every device only after every device is reset") {
+    std::vector<std::string> log;
+    sys->make_device<Logger>(Logger::Configuration{{.basename = "a"}}, &log);
+    sys->make_device<Logger>(Logger::Configuration{{.basename = "b"}}, &log);
+    sys->reset();
+    CHECK(log == std::vector<std::string>{"reset", "reset", "settle", "settle"});
   }
 
   SECTION("reads back a fill that clear() cannot redefine") {
