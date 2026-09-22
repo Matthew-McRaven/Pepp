@@ -58,10 +58,15 @@ void System::initialize() {
 void System::reset() {
   for (auto dev : *_root)
     if (dev != this) dev->reset();
-  for (auto dev : *_root)
-    if (dev != this) dev->settle();
+  settle();
 
   populate_scheduler();
+}
+
+void System::settle() {
+  for (auto dev : *_root)
+    if (dev != this) dev->settle();
+  _scheduler.dirty = true;
 }
 
 std::unique_ptr<DeviceSerializer> System::serializer() const { return make_serializer(); }
@@ -73,10 +78,9 @@ std::unique_ptr<DeviceSerializer> System::make_serializer() { return nullptr; }
 Device::Type System::type() const { return Device::Type::SystemRoot | Device::Type::EventSink; }
 
 void System::on_event(Device::ID, const Event &event) {
-  if (dynamic_cast<const UpdateSchedule *>(&event) != nullptr) invalidate_schedules();
+  if (dynamic_cast<const UpdateSchedule *>(&event) != nullptr) _scheduler.dirty = true;
 }
 
-void System::invalidate_schedules() { _scheduler.dirty = true; }
 
 Device::ID System::next_ID() { return _next_ID++; }
 

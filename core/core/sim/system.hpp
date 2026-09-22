@@ -77,6 +77,9 @@ public:
   // children, then settle() on all of them. I don't guarentee a visitation order, so reset cannot depend on other
   // device's state.
   void reset() override;
+  // Also an exception to the does-not-recurse rule: settle() every child and recompute every schedule. Call after
+  // anything changes device state without raising events, e.g., a loader or trace replay.
+  void settle() override;
   // Return a ptr to a type which can convert this object to/from JSON.
   std::unique_ptr<DeviceSerializer> serializer() const override;
   static std::unique_ptr<DeviceSerializer> make_serializer();
@@ -86,8 +89,6 @@ public:
   Device::Type type() const override;
   // Clocks raise UpdateSchedule when their schedule changes.
   void on_event(Device::ID from, const Event &event) override;
-  // Recompute every sink's schedule at the start of the next tick().
-  void invalidate_schedules();
 
   Device::ID next_ID();
   Device::IDGenerator gen_next_ID();

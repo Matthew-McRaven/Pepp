@@ -125,6 +125,10 @@ void ApplyBackend::on_clrmem(MachineState &state, const tvm::DecodedOp::ClrMem &
   state.csrs.F = try_access([&] { target->clear(op.data); }) ? 0 : 1;
 }
 
+void ApplyBackend::after_run() {
+  if (_system != nullptr) _system->settle();
+}
+
 void ApplyBackend::on_deltareg(MachineState &state, const tvm::DecodedOp::DeltaReg &op) {
   using StopCause = tvm::StopCause;
   // Not in register mode or there is no system. Either way, comparsion will fail.

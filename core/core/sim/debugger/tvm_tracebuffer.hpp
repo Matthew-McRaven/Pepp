@@ -159,6 +159,8 @@ public:
   // The open recording, when it belongs to this initiator. Returns nullptr when nothing is recording, or when what
   // is recording belongs to someone else.
   Recording *find_recording(Device::ID initiator);
+  // The open recording, whichever initiator it belongs to. Returns nullptr when nothing is recording.
+  Recording *open_recording() { return _open; }
 
   // Begin a new recording for the given initiator, creating its scratch state on first use and retaining scratch space
   // across usages to reduce dynamic allocation frequency. This method claims a ring slot and an ordinal in its
