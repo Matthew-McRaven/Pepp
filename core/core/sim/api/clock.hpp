@@ -43,8 +43,8 @@ consteval void allow_opaque_handle_add(PulseIndex);
  * is expected for that PulseIndex.
  *
  * This means the actual scheduling computation has no state (unlike an approach based on accumulating jitter) and we
- * can fast-forward indefinitely. That being said, jitter is not uniformly distributed, and over time clocks will drift
- * with respect to each other, which cannot be represented by this deterministic schedule.
+ * can fast-forward indefinitely. That being said, jitter is not uniformly distributed, and in reality clocks will drift
+ * with respect to each other over time, which cannot be represented by this deterministic schedule.
  */
 struct PulseSchedule {
   static constexpr u64 DEFAULT_SEED = 0xfeeddeadbeefcafe;
@@ -52,8 +52,11 @@ struct PulseSchedule {
   u64 period = 0;
   // must be < 1/2 period
   u64 jitter = 0;
-  // Bits that are XOR'ed in when computing jitter from index. Useful to prevent two clocks with the same
+  // Bits that are XOR'ed in when computing jitter from index. Useful to prevent two clocks with the same period from
+  // always co-inciding.
   u64 seed = DEFAULT_SEED;
+  // A disabled clock produces no edges. Derived clocks are disabled whenever their parent is.
+  bool enabled = true;
 
   constexpr PulseIndex index_of(u64 tick) const;
   constexpr u64 edge_time(PulseIndex n) const noexcept;
