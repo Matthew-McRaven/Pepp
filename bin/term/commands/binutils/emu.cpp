@@ -13,6 +13,7 @@
 #include "core/sim/devicetree.hpp"
 #include "core/sim/loader.hpp"
 #include "core/sim/memory/io/fifo.hpp"
+#include "core/sim/memory/io/state.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
@@ -165,7 +166,7 @@ int PeppEmulator::do_output(System &system) {
 }
 
 int PeppEmulator::do_run(System &system) {
-  auto *pwr_off = dynamic_cast<FIFORegister *>(system.find_absolute("/bus/pwrOff"));
+  auto *pwr_off = dynamic_cast<StateRegister *>(system.find_absolute("/bus/pwrOff"));
   if (pwr_off == nullptr) {
     std::cerr << "Error: The system has no /bus/pwrOff to stop on\n";
     return 1;
@@ -180,13 +181,13 @@ int PeppEmulator::do_run(System &system) {
       return 1;
     }
   }
-  if (!pwr_off->output().empty()) return 0;
+  if (pwr_off->changed()) return 0;
   try {
     // tick_while only hands us control after an instruction has run, so each listing line is printed by the
     // iteration before the one that executes it.
     if (echo_from != nullptr) std::cout << echo_from->stringize_next_instruction() << '\n';
     system.tick_while([&](Device::ID, u64) {
-      if (!pwr_off->output().empty()) return false;
+      if (pwr_off->changed()) return false;
       // TODO: should output stringized content from the core that just steppd, not out "loadable"
       if (echo_from != nullptr) std::cout << echo_from->stringize_next_instruction() << '\n';
       return true;
