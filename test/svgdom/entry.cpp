@@ -1,3 +1,4 @@
+#include <QDirIterator>
 #include <array>
 #include <catch.hpp>
 #include <fmt/format.h>
@@ -16,6 +17,12 @@ using namespace std::string_literals;
 
 // Dummy test case to ensure that build doesn't fail due to lack of test cases.
 TEST_CASE("Integration tests for svgdom", "[scope:core][scope:core.svgdom][kind:unit]") {
+  // You should see a list of files ending with .svg in console output.
+  // You should be able to read them into a QString, then convert it to an std::string.
+  for (QDirIterator i(":/", QDirIterator::Subdirectories); i.hasNext();)
+    if (auto f = QFileInfo(i.next()); f.isFile())
+      std::cout << "File: "s << f.absoluteFilePath().toStdString() << std::endl;
+
   CHECK(true); // Don't let TEST_CASE braces collapse onto one line or Mac CI fails.
 }
 

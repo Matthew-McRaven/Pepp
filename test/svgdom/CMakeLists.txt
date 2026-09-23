@@ -3,8 +3,22 @@ file(GLOB srcs CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 # Uses Qt's resources system for access to the test data.
 qt6_add_executable(test-svgdom ${srcs}
                    "${PROJECT_SOURCE_DIR}/config/cmake/main.cpp")
-target_link_libraries(test-svgdom PRIVATE pepp-lib catch Qt6::Core)
+target_link_libraries(test-svgdom PRIVATE pepp-core catch Qt6::Core)
 set_target_properties(test-svgdom PROPERTIES FOLDER "qtc_runnable")
+
+# Include SVG test data in application
+file(GLOB_RECURSE svg_test_data CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_LIST_DIR}/test_data/*")
+
+qt_add_resources(
+  test-svgdom
+  "test_svgs"
+  PREFIX
+  "/svgs"
+  BASE
+  "${CMAKE_CURRENT_LIST_DIR}/test_data"
+  FILES
+  ${svg_test_data})
 
 if(NOT IOS)
   # WASM execution requires an extra shim script
@@ -15,6 +29,6 @@ if(NOT IOS)
               $<TARGET_FILE:test-svgdom> ${PEPP_TESTS_SKIP_THROWS_ARGS})
   else()
     add_test(NAME test-svgdom COMMAND test-svgdom
-                                        ${PEPP_TESTS_SKIP_THROWS_ARGS})
+                                      ${PEPP_TESTS_SKIP_THROWS_ARGS})
   endif()
 endif()
