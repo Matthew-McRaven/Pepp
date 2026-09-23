@@ -30,6 +30,8 @@ enum class AccessMode : u8 {
 class Backend {
 public:
   virtual ~Backend() = default;
+  // Called once each time Interpreter::run() or run_each() returns, however the machine stopped.
+  virtual void after_run() {}
 
   // --- Replay direction ---
   //

@@ -21,6 +21,7 @@
 #include "core/math/geom/interval.hpp"
 #include "core/math/geom/interval_set.hpp"
 #include "core/sim/api/device.hpp"
+#include "core/sim/api/event.hpp"
 
 using Tick = u32;
 using Address = u32;
@@ -160,6 +161,20 @@ struct Initiator {
   // virtual void bind_port(Target *target, std::string_view port_name = {}) = 0;
   // virtual const std::span<const std::string> list_ports() const = 0;
   // virtual Target *get_port(std::string_view port_name = {}) const = 0;
+};
+
+// Event triggered by a change to a StateRegister.
+struct MemoryWritten final : public Event {
+  MemoryWritten(const Target *target, AddressSpan span, bits::span<const u8> data, Operation op)
+      : target(target), span(span), data(data), op(op) {}
+
+  const Target *target;
+  // Address range in target's space which changed.
+  AddressSpan span;
+  // Only valid for the duration of on_event.
+  bits::span<const u8> data;
+  // The write which raised this event.
+  Operation op;
 };
 
 /*

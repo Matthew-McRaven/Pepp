@@ -165,11 +165,6 @@ int PeppEmulator::do_output(System &system) {
 }
 
 int PeppEmulator::do_run(System &system) {
-  auto *pwr_off = dynamic_cast<FIFORegister *>(system.find_absolute("/bus/pwrOff"));
-  if (pwr_off == nullptr) {
-    std::cerr << "Error: The system has no /bus/pwrOff to stop on\n";
-    return 1;
-  }
   // Only needed to render listing lines. The clock tree decides what actually gets ticked.
   Loadable *echo_from = nullptr;
   if (_opts.echo_instructions) {
@@ -180,17 +175,15 @@ int PeppEmulator::do_run(System &system) {
       return 1;
     }
   }
-  if (!pwr_off->output().empty()) return 0;
   try {
-    // tick_while only hands us control after an instruction has run, so each listing line is printed by the
-    // iteration before the one that executes it.
-    if (echo_from != nullptr) std::cout << echo_from->stringize_next_instruction() << '\n';
-    system.tick_while([&](Device::ID, u64) {
-      if (!pwr_off->output().empty()) return false;
+    // Runs until every clock is disabled, e.g., by writing pwrOff. Each listing line is captured before its tick so
+    // that nothing is printed for an instruction which never runs.
+    for (;;) {
+      const auto line = echo_from != nullptr ? echo_from->stringize_next_instruction() : std::string{};
+      if (std::get<0>(system.tick()) == Device::ID{}) break;
       // TODO: should output stringized content from the core that just steppd, not out "loadable"
-      if (echo_from != nullptr) std::cout << echo_from->stringize_next_instruction() << '\n';
-      return true;
-    });
+      if (echo_from != nullptr) std::cout << line << '\n';
+    }
   } catch (const std::exception &e) {
     std::cerr << "Error: Simulation stopped: " << e.what() << "\n";
     return 1;

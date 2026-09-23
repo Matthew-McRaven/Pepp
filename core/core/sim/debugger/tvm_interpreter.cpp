@@ -14,12 +14,22 @@ void Interpreter::step() {
 }
 
 void Interpreter::run(pepp::bts::Buffer::Location loc, RegisterRetention retain) {
+  execute(loc, retain);
+  _backend->after_run();
+}
+
+void Interpreter::run(ProgramLocation loc, RegisterRetention retain) {
+  execute(loc, retain);
+  _backend->after_run();
+}
+
+void Interpreter::execute(pepp::bts::Buffer::Location loc, RegisterRetention retain) {
   _state.restart(retain);
   _state.update_ip(loc);
   while (_state.csrs.L) step();
 }
 
-void Interpreter::run(ProgramLocation loc, RegisterRetention retain) {
+void Interpreter::execute(ProgramLocation loc, RegisterRetention retain) {
   _state.restart(retain);
   // Seed DP before IP so the body starts with its payload already addressed. Skipped for a record that carries no
   // payload. Clobbering DP would break a program that steps relative to the one before it.
@@ -33,10 +43,11 @@ std::size_t Interpreter::run_each(std::span<const ProgramLocation> locs, Registe
   // On a normal/soft stop, resume execution of the next program.
   std::size_t count = 0;
   for (const auto &loc : locs) {
-    run(loc, retain);
+    execute(loc, retain);
     ++count;
     if (_state.csrs.F == 1) break;
   }
+  _backend->after_run();
   return count;
 }
 

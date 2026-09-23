@@ -37,6 +37,9 @@ public:
   ApplyBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system = nullptr);
 
   System *system() const { return _system; }
+  // Replayed writes raise no events. After running the system, call settle() to ensure all clock schedules
+  // are computed correctly.
+  void after_run() override;
 
   void on_deltamem(MachineState &state, const tvm::DecodedOp::DeltaMem &op) override;
   void on_cmpmem(MachineState &state, const tvm::DecodedOp::CmpMem &op) override;

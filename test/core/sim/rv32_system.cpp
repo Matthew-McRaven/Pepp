@@ -16,6 +16,7 @@
 #include <catch.hpp>
 #include "core/sim/api/memory.hpp"
 #include "core/sim/memory/io/fifo.hpp"
+#include "core/sim/memory/io/state.hpp"
 #include "core/sim/system.hpp"
 #include "core/sim/systemparser.hpp"
 
@@ -40,7 +41,7 @@ TEST_CASE("Standard RV32 system", "[scope:core][scope:core.sim][kind:unit][arch:
 
   SECTION("MMIO registers are 4-byte aligned") {
     auto *char_out = dynamic_cast<FIFORegister *>(sys->find_absolute("/bus/charOut"));
-    auto *pwr_off = dynamic_cast<FIFORegister *>(sys->find_absolute("/bus/pwrOff"));
+    auto *pwr_off = dynamic_cast<StateRegister *>(sys->find_absolute("/bus/pwrOff"));
     REQUIRE(char_out != nullptr);
     REQUIRE(pwr_off != nullptr);
 
@@ -48,13 +49,23 @@ TEST_CASE("Standard RV32 system", "[scope:core][scope:core.sim][kind:unit][arch:
     bus->write(MMIO_BASE + 4, {&out, 1}, rw);
     REQUIRE(char_out->output().size() == 1);
     CHECK(char_out->output().at(0) == 'A');
-    CHECK(pwr_off->output().empty());
+    CHECK(!pwr_off->changed());
 
     const u8 off = 1;
     bus->write(MMIO_BASE + 8, {&off, 1}, rw);
-    CHECK(pwr_off->output().size() == 1);
+    CHECK(pwr_off->changed());
     // Writing the power register must not have reached the neighbour four bytes below it.
     CHECK(char_out->output().size() == 1);
+  }
+  SECTION("Program writes to pwrOff stop the clock") {
+    auto *clk = sys->find_absolute("/clk")->capability<ClockSource>();
+    const u8 off = 1;
+    // simulate a loader writing to pwrOff
+    bus->write(MMIO_BASE + 8, {&off, 1}, Operation(Operation::Type::Application, Operation::Kind::data));
+    CHECK(clk->schedule().enabled);
+    bus->write(MMIO_BASE + 8, {&off, 1}, rw);
+    CHECK(!clk->schedule().enabled);
+    CHECK(std::get<0>(sys->tick()) == Device::ID{});
   }
   SECTION("reads from charIn reach FIFO") {
     auto *char_in = dynamic_cast<FIFORegister *>(sys->find_absolute("/bus/charIn"));

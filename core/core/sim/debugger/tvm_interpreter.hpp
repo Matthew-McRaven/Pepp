@@ -73,7 +73,7 @@ public:
   void step();
   // Update IP to point to loc, then call step() in a loop while L==1.
   // Each program executed this way must terminate with a HALT.
-  // At the end of a call to run, L is always 0.
+  // At the end of a call to run, L is always 0. Every run and run_each ends by calling Backend::after_run() once.
   void run(pepp::bts::Buffer::Location loc, RegisterRetention retain = RegisterRetention::All);
   // Identical to above, except the resulting DP will be overwritten by the ProgramLocation's data field.
   // If that field is null (Buffer::ID == 0), DP is left alone, allowing this to mirror the Buffer::Location overload.
@@ -85,11 +85,13 @@ public:
   // Iterator-pair variant. While slower to execute, it can consume iterators from TraceBuffer without needing to
   // re-arrange them in spans first. Declared as a template to avoid include'ing TraceBuffer in this header
   template <typename It> auto run_each(It begin, It end, RegisterRetention retain = RegisterRetention::None) {
-    for (auto it = begin; it != end; ++it) {
-      run(*it, retain);
-      if (_state.csrs.F == 1) return it;
+    auto it = begin;
+    for (; it != end; ++it) {
+      execute(*it, retain);
+      if (_state.csrs.F == 1) break;
     }
-    return end;
+    _backend->after_run();
+    return it;
   }
   auto &csrs() { return _state.csrs; }
   const auto &csrs() const { return _state.csrs; }
@@ -110,6 +112,10 @@ public:
   const tvm::DecodedOp::OpChoice &decoded() const { return _decoder.decoded(); }
 
 private:
+  // run() without the call to Backend::after_run()
+  void execute(pepp::bts::Buffer::Location loc, RegisterRetention retain);
+  void execute(ProgramLocation loc, RegisterRetention retain);
+
   std::shared_ptr<pepp::bts::BufferManager> _mgr;
   // Declared before the decoder, which binds a reference to it.
   MachineState _state{};

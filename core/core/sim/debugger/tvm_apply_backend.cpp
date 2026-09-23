@@ -125,6 +125,10 @@ void ApplyBackend::on_clrmem(MachineState &state, const tvm::DecodedOp::ClrMem &
   state.csrs.F = try_access([&] { target->clear(op.data); }) ? 0 : 1;
 }
 
+void ApplyBackend::after_run() {
+  if (_system != nullptr) _system->settle();
+}
+
 void ApplyBackend::on_deltareg(MachineState &state, const tvm::DecodedOp::DeltaReg &op) {
   using StopCause = tvm::StopCause;
   // Not in register mode or there is no system. Either way, comparsion will fail.
@@ -311,7 +315,10 @@ void ApplyBackend::on_loadsegment(MachineState &state, const DecodedOp::LoadSegm
 
 TraceApplyBackend::TraceApplyBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system,
                                      tvm::TraceBuffer *tb)
-    : ApplyBackend(std::move(mgr), system), _tb(tb) {}
+    : ApplyBackend(std::move(mgr), system), _tb(tb) {
+  // Restoring state must not re-trigger memory-mapped IO, whose effects the trace already records separately.
+  set_access_mode(AccessMode::ReplaceWithInternal);
+}
 
 void TraceApplyBackend::on_stcall(MachineState &state, const tvm::DecodedOp::STCALL &op) {
   if (_tb == nullptr) return ApplyBackend::on_stcall(state, op);

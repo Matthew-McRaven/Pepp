@@ -58,8 +58,15 @@ void System::initialize() {
 void System::reset() {
   for (auto dev : *_root)
     if (dev != this) dev->reset();
+  settle();
 
   populate_scheduler();
+}
+
+void System::settle() {
+  for (auto dev : *_root)
+    if (dev != this) dev->settle();
+  _scheduler.dirty = true;
 }
 
 std::unique_ptr<DeviceSerializer> System::serializer() const { return make_serializer(); }
@@ -67,6 +74,13 @@ std::unique_ptr<DeviceSerializer> System::serializer() const { return make_seria
 // Serialization is handled inline in systemparser. Serializer does not transfer ownership of allocated object to
 // caller, which is required when initializing a System ex nihilo.
 std::unique_ptr<DeviceSerializer> System::make_serializer() { return nullptr; }
+
+Device::Type System::type() const { return Device::Type::SystemRoot | Device::Type::EventSink; }
+
+void System::on_event(Device::ID, const Event &event) {
+  if (dynamic_cast<const UpdateSchedule *>(&event) != nullptr) _scheduler.dirty = true;
+}
+
 
 Device::ID System::next_ID() { return _next_ID++; }
 
@@ -156,6 +170,7 @@ std::tuple<Device::ID, u64> System::tick() {
   auto &s = _scheduler;
   const size_t n = s.due_tick.size();
   if (n == 0) return {Device::ID{}, Scheduler::MAX_TICK};
+  if (s.dirty) refresh_schedules();
 
   auto lowest_item = std::min_element(s.due_tick.begin(), s.due_tick.end());
   auto lowest_index = std::distance(s.due_tick.begin(), lowest_item);
@@ -167,7 +182,7 @@ std::tuple<Device::ID, u64> System::tick() {
   u32 delay = 1;
   s.devices[lowest_index].dev->clock_tick(s.due_index[lowest_index], lowest_tick);
 
-  // Re-index after the call because a device may have changed schedule.
+  // If clock_tick changed any schedule, the next tick()'s refresh_schedules() corrects this.
   auto [t, idx] = s.devices[lowest_index].schedule.next_clock(lowest_tick, delay);
   s.due_tick[lowest_index] = t;
   s.due_index[lowest_index] = idx;
@@ -177,6 +192,7 @@ std::tuple<Device::ID, u64> System::tick() {
 void System::populate_scheduler() {
   auto &s = _scheduler;
   s.now = 0;
+  s.dirty = false;
   s.due_tick.clear();
   s.due_index.clear();
   s.devices.clear();
@@ -188,11 +204,31 @@ void System::populate_scheduler() {
     if (src == nullptr) throw std::logic_error("System: clock sink " + dev->config().fullname + " has no clock source");
     const auto schedule = src->schedule();
     // index_of divides by period, so a zero-period clock would trap inside tick() rather than here.
-    if (schedule.period == 0)
+    if (schedule.enabled && schedule.period == 0)
       throw std::logic_error("System: clock driving " + dev->config().fullname + " has a period of zero");
-    auto [due, index] = schedule.next_clock(s.now);
+    auto [due, index] = Scheduler::next_due(schedule, s.now);
     s.due_tick.push_back(due);
     s.due_index.push_back(index);
     s.devices.push_back(Scheduler::DeviceInfo{.id = dev->id(), .dev = sink, .schedule = schedule});
   }
+}
+
+void System::refresh_schedules() {
+  auto &s = _scheduler;
+  s.dirty = false;
+  for (size_t i = 0; i < s.devices.size(); i++) {
+    auto &info = s.devices[i];
+    const auto schedule = info.dev->clock_source()->schedule();
+    // Keep the pending edge asrecomputing it from now could incorrectly skip due to jitter.
+    if (schedule == info.schedule) continue;
+    if (schedule.enabled && schedule.period == 0)
+      throw std::logic_error("System: clock driving device " + std::to_string(info.id.value) + " has a period of zero");
+    info.schedule = schedule;
+    std::tie(s.due_tick[i], s.due_index[i]) = Scheduler::next_due(schedule, s.now);
+  }
+}
+
+std::tuple<u64, PulseIndex> System::Scheduler::next_due(const PulseSchedule &sched, u64 after) {
+  if (!sched.enabled) return {MAX_TICK, PulseIndex{}};
+  return sched.next_clock(after);
 }

@@ -197,6 +197,31 @@ void Recorder::emit_register_xor(const Operation &op, RegisterScan::RegisterRef 
   _tb->emit_body(*rec, set);
 }
 
+void Recorder::emit_register_xor_open(const Operation &op, RegisterScan::RegisterRef ref, u64 combined, u8 size) {
+  if (combined == 0) return;
+  else if (!traced()) return;
+  else if (op.type == Operation::Type::BufferInternal) return;
+  else if (ref.reg.value == 0) return;
+  auto *rec = _tb->open_recording();
+  if (rec == nullptr) return;
+
+  // Immediate rather than DP-relative to avoid modifying the body's DP.
+  const auto set = tvm::EncodedOp::SetRegI<true>{.access = op.as_u16(), .reg = ref.reg.value, .field = ref.field.value};
+  const auto place = [&]<std::size_t N>() {
+    std::array<u8, N> payload{};
+    bits::memcpy_endian(bits::span<u8>{payload}, bits::Order::LittleEndian, combined);
+    const auto enc = set.encode(payload);
+    _tb->emit_prefix(*rec, {enc.data(), enc.size()});
+  };
+  switch (size) {
+  case 1: place.operator()<1>(); break;
+  case 2: place.operator()<2>(); break;
+  case 4: place.operator()<4>(); break;
+  case 8: place.operator()<8>(); break;
+  default: break; // emit_write_register_open only instantiates widths for integral types.
+  }
+}
+
 void Recorder::emit_mm(const Operation &op, Address address, u8 pushed, bool read_write) {
   static constexpr u16 len = 1; // MMIO data payload is one byte.
   if (!traced()) return;        // Don't record for untraced.
