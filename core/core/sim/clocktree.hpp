@@ -9,6 +9,9 @@
 #include "core/sim/api/clock.hpp"
 #include "core/sim/api/event.hpp"
 #include "core/sim/api/memory.hpp"
+#include "core/sim/api/trace.hpp"
+#include "core/sim/debugger/register_scanner.hpp"
+#include "core/sim/debugger/trace_recorder.hpp"
 
 namespace pepp {
 
@@ -41,31 +44,45 @@ struct ClockEnable {
 
 // A common base class for clocks which provides utilities for handling enable/disable and notifying the System of a
 // schedule change.
-class ClockNode : public Device, public ClockSource, public EventSource, public EventSink {
+class ClockNode : public Device, public ClockSource, public EventSource, public EventSink, public Traceable {
 public:
   Device::Type type() const override;
   void on_event(Device::ID from, const Event &event) override;
-  // Whether this clock's own enable is asserted, ignoring any parent clock.
-  bool self_enabled() const;
+  // Whether this clock's own enable is asserted, ignoring any parent clock. Exposed as the "enabled" register.
+  bool self_enabled() const { return _enabled != 0; }
+  // Re-read the source of an enable_when. Does not record the change.
+  void settle() override;
+
+  // Traceable interface
+  void set_recorder(const trace::Recorder &recorder) override { _trace = recorder; }
+  bool can_generate_traces() const override { return true; }
+  void trace(bool enabled) override { _trace.set_traced(enabled); }
+  bool traced() const override { return _trace.traced(); }
 
 protected:
   explicit ClockNode(std::optional<ClockEnable::Configuration> enable) : _enable(std::move(enable)) {}
   // Must be called by derived classes!
   void initialize(System *sys) override;
-  void reset_enable() { _latched_off = false; }
+  void reset_enable() { _enabled = 1; }
   PulseSchedule apply_enable(PulseSchedule sched) const;
   void schedule_changed() { raise(id(), UpdateSchedule{}); }
+  // Expose a register which allows you to enable or disable the clock. After modifying the register, you must call
+  // settle() on the system.
+  RegisterScan::RegisterRef expose_register(System *sys, std::string name, RegisterScan::Register::StorageLocation loc,
+                                            u8 byte_width);
+  trace::Recorder _trace;
 
 private:
-  // Forward-declaration of a visitor to implement self_enabled().
-  struct SelfEnabled;
+  // Forward-declaration of a visitor which computes the next value of the enabled register.
+  struct NextEnabled;
   // Current value of the watched range, as an integer in the given byte order.
   u64 read_watched(bits::Order order) const;
   std::optional<ClockEnable::Configuration> _enable;
   const Target *_source = nullptr;
   AddressSpan _watched{};
-  // Only used by DisableOnWrite. The other modes read source each time they are asked, so they hold no state.
-  bool _latched_off = false;
+  // Computed eagerly for every mode, so that undoing any change is a register write.
+  u8 _enabled = 1;
+  RegisterScan::RegisterRef _enabled_ref{};
 };
 
 // Describe a jitter-free clock that operates at a fixed frequency
@@ -139,7 +156,8 @@ struct MuxClock final : public ClockNode {
   explicit MuxClock(Configuration config);
   void initialize(System *) override;
 
-  // Raises UpdateSchedule when the selection changes.
+  // Raises UpdateSchedule when the selection changes, and records the change into the open recording. Exposed as the
+  // "selected" register.
   void select_clock(u16 index);
   // TODO: selected is ignored at construction time, so it is also ignored here.
   void reset() override {
@@ -157,6 +175,7 @@ struct MuxClock final : public ClockNode {
 private:
   const ClockSource *selected_clock() const;
   u16 _index = -1;
+  RegisterScan::RegisterRef _selected_ref{};
   Configuration _config;
   std::vector<ClockSource *> _choices;
 };

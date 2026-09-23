@@ -315,7 +315,10 @@ void ApplyBackend::on_loadsegment(MachineState &state, const DecodedOp::LoadSegm
 
 TraceApplyBackend::TraceApplyBackend(std::shared_ptr<pepp::bts::BufferManager> mgr, System *system,
                                      tvm::TraceBuffer *tb)
-    : ApplyBackend(std::move(mgr), system), _tb(tb) {}
+    : ApplyBackend(std::move(mgr), system), _tb(tb) {
+  // Restoring state must not re-trigger memory-mapped IO, whose effects the trace already records separately.
+  set_access_mode(AccessMode::ReplaceWithInternal);
+}
 
 void TraceApplyBackend::on_stcall(MachineState &state, const tvm::DecodedOp::STCALL &op) {
   if (_tb == nullptr) return ApplyBackend::on_stcall(state, op);

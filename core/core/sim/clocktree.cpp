@@ -192,7 +192,7 @@ void serialize_mux_clock(nlohmann::json &obj, const System *sys, const Device *s
 Device::Type pepp::ClockNode::type() const {
   using namespace bits;
   using T = Device::Type;
-  return T::ClockSource | T::EventSource | T::EventSink;
+  return T::ClockSource | T::EventSource | T::EventSink | T::Traceable;
 }
 
 void pepp::ClockNode::initialize(System *sys) {
@@ -213,6 +213,20 @@ void pepp::ClockNode::initialize(System *sys) {
     throw std::runtime_error("Clock enable: enable_when may watch at most 8 bytes of " + name);
   _source = target;
   events->subscribe(this);
+  settle();
+  _enabled_ref = expose_register(sys, "enabled", &_enabled, sizeof(_enabled));
+}
+
+RegisterScan::RegisterRef pepp::ClockNode::expose_register(System *sys, std::string name,
+                                                                    RegisterScan::Register::StorageLocation loc,
+                                                                    u8 byte_width) {
+  using SR = RegisterScan::Register;
+  return sys->register_scan()->expose(SR{.byte_width = byte_width,
+                                         .visibility = SR::Visibility::Microarchitectural,
+                                         .target = id(),
+                                         .order = bits::hostOrder(),
+                                         .name = std::move(name),
+                                         .loc = loc});
 }
 
 u64 pepp::ClockNode::read_watched(bits::Order order) const {
@@ -222,18 +236,24 @@ u64 pepp::ClockNode::read_watched(bits::Order order) const {
   return bits::memcpy_endian<u64>(bits::span<const u8>{used}, order);
 }
 
-struct pepp::ClockNode::SelfEnabled {
+// Visitor computing the enabled register's value after the watched range changed.
+struct pepp::ClockNode::NextEnabled {
   const ClockNode &node;
-  bool operator()(const ClockEnable::DisableOnWrite &) const { return !node._latched_off; }
+  bool operator()(const ClockEnable::DisableOnWrite &) const { return false; }
   bool operator()(const ClockEnable::EnableWhenAny &m) const { return (node.read_watched(m.order) & m.mask) != 0; }
   bool operator()(const ClockEnable::EnableWhenEqual &m) const {
     return (node.read_watched(m.order) & m.mask) == m.match;
   }
 };
 
-bool pepp::ClockNode::self_enabled() const {
-  if (!_enable || !_source) return true;
-  return std::visit(SelfEnabled{*this}, _enable->mode);
+void pepp::ClockNode::settle() {
+  // A latch only changes on a write or a reset, never because its source's value changed.
+  // Early return on DisableOnWrite to avoid unconditionally setting _enabled to false.
+  if (!_enable || !_source || std::holds_alternative<ClockEnable::DisableOnWrite>(_enable->mode)) return;
+  const u8 next = std::visit(NextEnabled{*this}, _enable->mode);
+  if (next == _enabled) return;
+  _enabled = next;
+  schedule_changed();
 }
 
 void pepp::ClockNode::on_event(Device::ID, const Event &event) {
@@ -241,12 +261,10 @@ void pepp::ClockNode::on_event(Device::ID, const Event &event) {
   // Ignore other events and ignore writes to the wrong locations/targets
   if (!written || !_enable || written->target != _source) return;
   else if (!pepp::core::intersects(written->span, _watched)) return;
-  if (std::holds_alternative<ClockEnable::DisableOnWrite>(_enable->mode)) {
-    if (_latched_off) return;
-    _latched_off = true;
-  }
-  // Inform the simulator to recompure the schedule for this clock, even if there may have been no change.
-  // While potentially expensive, this should be incredibly rare.
+  const u8 next = std::visit(NextEnabled{*this}, _enable->mode);
+  if (next == _enabled) return;
+  _trace.emit_write_register<u8>(written->op, _enabled_ref, _enabled ^ next);
+  _enabled = next;
   schedule_changed();
 }
 
@@ -300,11 +318,14 @@ void pepp::MuxClock::initialize(System *sys) {
   }
   select_clock(_config.selected);
   ClockNode::initialize(sys);
+  _selected_ref = expose_register(sys, "selected", &_index, sizeof(_index));
 }
 
 void pepp::MuxClock::select_clock(u16 index) {
   if (index >= _choices.size()) throw std::runtime_error("MuxClockNode: index out of range");
   else if (index == _index) return; // No change
+  const auto op = Operation{Operation::Type::Standard, Operation::Kind::data};
+  _trace.emit_write_register_open<u16>(op, _selected_ref, _index ^ index);
   _index = index;
   schedule_changed();
 }

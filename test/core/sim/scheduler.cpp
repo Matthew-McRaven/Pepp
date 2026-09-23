@@ -140,5 +140,10 @@ TEST_CASE("System scheduler", "[scope:core][scope:core.sim][kind:unit][arch:*][!
     CHECK(next(1) == V{{ticker->id(), 10}});
     mux->select_clock(1);
     CHECK(next(2) == V{{ticker->id(), 30}, {ticker->id(), 60}});
+    // A write behind the clock's back, e.g., trace replay, applies once the system settles.
+    auto *scan = sys->register_scan();
+    scan->write<u16>(*scan->find("/mux:selected"), 0, RegisterScan::Level::Host);
+    sys->settle();
+    CHECK(next(1) == V{{ticker->id(), 70}});
   }
 }

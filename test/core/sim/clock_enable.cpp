@@ -93,6 +93,21 @@ TEST_CASE("Clock enable", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
     write(0, 0);
     CHECK(!enabled("/child"));
   }
+  SECTION("settle() synchronizes clock state to memory") {
+    build(R"({"source": "/ctl", "mode": "enable_when", "offset": 0})",
+          R"({"source": "/ctl", "mode": "disable_on_write", "offset": 1})");
+    write(0, 1, Operation::Type::Application);
+    CHECK(!enabled("/clk"));
+    sys->settle();
+    CHECK(enabled("/clk"));
+    CHECK(counter.count == 1);
+    write(1, 1);
+    CHECK(!enabled("/child"));
+    sys->settle();
+    CHECK(!enabled("/child"));
+    sys->reset();
+    CHECK(dynamic_cast<pepp::ClockNode *>(sys->find_absolute("/child"))->self_enabled());
+  }
   SECTION("MuxClock with a selection change") {
     build("null");
     auto *mux = dynamic_cast<pepp::MuxClock *>(sys->find_absolute("/mux"));

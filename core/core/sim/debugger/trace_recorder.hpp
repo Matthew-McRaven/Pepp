@@ -120,6 +120,13 @@ public:
     emit_register_xor(op, ref, static_cast<u64>(static_cast<std::make_unsigned_t<I>>(combined)), sizeof(I));
   }
 
+  // Same, but records into whichever recording is open, regardless of op's initiator. For changes no initiator
+  // caused directly, e.g., a clock selection. Placed in the prefix as SETREGXI.
+  template <std::integral I>
+  void emit_write_register_open(const Operation &op, RegisterScan::RegisterRef ref, I combined) {
+    emit_register_xor_open(op, ref, static_cast<u64>(static_cast<std::make_unsigned_t<I>>(combined)), sizeof(I));
+  }
+
   // A helper class which helps open & close a recording for a single instruction.
   // Multiple methods are partially inlined. Allowing every TU to see the guard condition causes the compiler to
   // generate better code.
@@ -174,6 +181,7 @@ private:
   // Width-erased body of emit_write_register. Out of line because it needs the TraceBuffer, which this header only
   // forward declares.
   void emit_register_xor(const Operation &op, RegisterScan::RegisterRef ref, u64 combined, u8 size);
+  void emit_register_xor_open(const Operation &op, RegisterScan::RegisterRef ref, u64 combined, u8 size);
   void emit_dp_update(const tvm::DataSlot &slot, tvm::Recording &rec, u16 size, u16 prologue);
   // Null means this device was never bound to a buffer.
   tvm::TraceBuffer *_tb = nullptr;
