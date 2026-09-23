@@ -1,5 +1,6 @@
 #include "./clocktree.hpp"
 #include <array>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include "core/math/bitmanip/copy.hpp"
 #include "core/math/bitmanip/enums.hpp"
@@ -108,6 +109,45 @@ void serialize_ideal_clock(nlohmann::json &obj, const System *sys, const Device 
   obj["compatible"] = IdealClock::compatible;
   obj["basename"] = casted->config().basename;
   obj["period"] = casted->casted_config().period;
+  serialize_enable(obj, casted->casted_config().enable);
+}
+
+Device *create_jittery_clock(const nlohmann::json &self, System *sys, Device *par) {
+  JitteryClock::Configuration cfg;
+  try {
+    parse_standard_fields(self, cfg);
+    if (cfg.basename.empty()) throw ParsingError("JitteryClock must have a basename");
+    if (!self.contains("period") || self["period"].is_null()) throw ParsingError("JitteryClock must have a period");
+    cfg.period = as_u64(self["period"]);
+    if (self.contains("jitter") && !self["jitter"].is_null()) cfg.jitter = as_u64(self["jitter"]);
+    if (self.contains("seed") && !self["seed"].is_null()) cfg.seed = as_u64(self["seed"]);
+    cfg.enable = parse_enable(self);
+  } catch (const nlohmann::json::type_error &e) {
+    throw ParsingError("Failed to parse JitteryClock: " + std::string(e.what()));
+  }
+  if (cfg.period == 0) throw ParsingError("JitteryClock must have a non-zero period");
+  if (2 * cfg.jitter >= cfg.period) throw ParsingError("JitteryClock jitter must be less than half of period");
+  return sys->make_device<JitteryClock>(par, cfg);
+}
+
+void prefill_jittery_clock(nlohmann::json &obj) {
+  obj["compatible"] = JitteryClock::compatible;
+  obj["basename"];
+  obj["period"];
+  obj["jitter"] = 0;
+  obj["seed"] = fmt::format("0x{:016X}", PulseSchedule::DEFAULT_SEED);
+  obj["enable"] = nullptr;
+}
+
+void serialize_jittery_clock(nlohmann::json &obj, const System *sys, const Device *self) {
+  auto casted = dynamic_cast<const JitteryClock *>(self);
+  if (!casted) throw std::logic_error("serialize_jittery_clock called on non-JitteryClock device");
+  obj["compatible"] = JitteryClock::compatible;
+  obj["basename"] = casted->config().basename;
+  obj["period"] = casted->casted_config().period;
+  obj["jitter"] = casted->casted_config().jitter;
+  // A seed is a bit pattern, not a quantity, so hex is more intelligible than decimal.
+  obj["seed"] = fmt::format("0x{:016X}", casted->casted_config().seed);
   serialize_enable(obj, casted->casted_config().enable);
 }
 
@@ -357,5 +397,15 @@ std::unique_ptr<DeviceSerializer> pepp::IdealClock::make_serializer() {
                      .prefill = prefill_ideal_clock,
                      .serialize = serialize_ideal_clock,
                      .compatible = IdealClock::compatible};
+  return std::make_unique<DeviceSerializer>(std::move(s));
+}
+
+std::unique_ptr<DeviceSerializer> pepp::JitteryClock::serializer() const { return make_serializer(); }
+
+std::unique_ptr<DeviceSerializer> pepp::JitteryClock::make_serializer() {
+  DeviceSerializer s{.parser = create_jittery_clock,
+                     .prefill = prefill_jittery_clock,
+                     .serialize = serialize_jittery_clock,
+                     .compatible = JitteryClock::compatible};
   return std::make_unique<DeviceSerializer>(std::move(s));
 }

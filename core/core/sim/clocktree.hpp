@@ -111,6 +111,36 @@ private:
   Configuration _config;
 };
 
+// Describe a clock at a fixed frequency whose edges are perturbed by deterministic jitter.
+struct JitteryClock final : public ClockNode {
+  static const inline std::string compatible = "clock,jittery";
+  struct Configuration : public Device::Configuration {
+    u64 period = 0;
+    u64 jitter = 0;
+    u64 seed = PulseSchedule::DEFAULT_SEED;
+    std::optional<ClockEnable::Configuration> enable;
+  };
+  JitteryClock(Configuration config)
+      : ClockNode(config.enable), _sched({.period = config.period, .jitter = config.jitter, .seed = config.seed}),
+        _config(config) {}
+
+  void initialize(System *sys) override { ClockNode::initialize(sys); }
+  PulseSchedule schedule() const override { return apply_enable(_sched); }
+  void reset() override {
+    _sched = {.period = _config.period, .jitter = _config.jitter, .seed = _config.seed};
+    reset_enable();
+  }
+  const Device::Configuration &config() const override { return _config; }
+  const Device::ID id() const override { return _config.id; }
+  const Configuration &casted_config() const { return _config; }
+  std::unique_ptr<DeviceSerializer> serializer() const override;
+  static std::unique_ptr<DeviceSerializer> make_serializer();
+
+private:
+  PulseSchedule _sched;
+  Configuration _config;
+};
+
 struct ScaledClock final : public ClockNode {
   static const inline std::string compatible = "clock,scaled";
   struct Configuration : public Device::Configuration {

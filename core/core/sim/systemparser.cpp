@@ -105,6 +105,7 @@ static const std::unordered_map<std::string, std::unique_ptr<DeviceSerializer>, 
       m.emplace(PepISA3CPU::compatible, PepISA3CPU::make_serializer());
       m.emplace(RV32CPU::compatible, RV32CPU::make_serializer());
       m.emplace(pepp::IdealClock::compatible, pepp::IdealClock::make_serializer());
+      m.emplace(pepp::JitteryClock::compatible, pepp::JitteryClock::make_serializer());
       m.emplace(pepp::ScaledClock::compatible, pepp::ScaledClock::make_serializer());
       m.emplace(pepp::MuxClock::compatible, pepp::MuxClock::make_serializer());
       return m;
