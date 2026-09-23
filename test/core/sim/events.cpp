@@ -42,7 +42,8 @@ TEST_CASE("Event delivery", "[scope:core][scope:core.sim][kind:unit][arch:*]") {
   TestSink a, b;
   const Device::ID from{3};
   const u8 bytes[] = {0xAB, 0xCD};
-  const MemoryWritten written(nullptr, AddressSpan(1, 2), bytes);
+  const auto op = Operation{Operation::Type::Standard, Operation::Kind::data};
+  const MemoryWritten written(nullptr, AddressSpan(1, 2), bytes, op);
 
   SECTION("No-op without subscribers") { src.fire(from, written); }
   SECTION("Subscribing twice delivers once") {

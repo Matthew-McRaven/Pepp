@@ -165,14 +165,16 @@ struct Initiator {
 
 // Event triggered by a change to a StateRegister.
 struct MemoryWritten final : public Event {
-  MemoryWritten(const Target *target, AddressSpan span, bits::span<const u8> data)
-      : target(target), span(span), data(data) {}
+  MemoryWritten(const Target *target, AddressSpan span, bits::span<const u8> data, Operation op)
+      : target(target), span(span), data(data), op(op) {}
 
   const Target *target;
   // Address range in target's space which changed.
   AddressSpan span;
   // Only valid for the duration of on_event.
   bits::span<const u8> data;
+  // The write which raised this event.
+  Operation op;
 };
 
 /*

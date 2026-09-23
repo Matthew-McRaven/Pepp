@@ -104,7 +104,7 @@ Target::Result StateRegister::write(Address address, bits::span<const u8> src, O
   // Loader, debugger, and trace replay writes change the value without acting as memory-mapped IO.
   if (op.type != Operation::Type::Standard) return {};
   _changed = true;
-  raise(id(), MemoryWritten(this, AddressSpan{address, max_addr}, src));
+  raise(id(), MemoryWritten(this, AddressSpan{address, max_addr}, src, op));
   return {};
 }
 
