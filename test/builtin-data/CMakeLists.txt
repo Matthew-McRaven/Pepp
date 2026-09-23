@@ -6,7 +6,7 @@ qt6_add_executable(test-builtins ${srcs}
 target_link_libraries(test-builtins PRIVATE pepp-lib catch Qt6::Core)
 set_target_properties(test-builtins PROPERTIES FOLDER "qtc_runnable")
 
-if(NOT IOS)
+if(NOT IOS AND Python_FOUND)
   # WASM execution requires an extra shim script
   if(EMSCRIPTEN)
     add_test(
