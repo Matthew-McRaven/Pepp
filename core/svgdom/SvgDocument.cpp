@@ -56,6 +56,8 @@ const SvgSvgElement &Document::documentElement() const
     return *_svgDocument.get();
 }
 
+size_t Document::fileSize() const { return _fileSize; }
+
 //  File operations
 void Document::saveAs(const std::string &fileName)
 {
@@ -74,8 +76,10 @@ bool Document::save() const
 {
     //	Try and open sourcefile
     std::ofstream svgFile(_fileName, std::ios::out | std::ios::binary);
-    if (!svgFile.is_open())
-        return false;
+    if (!svgFile) {
+      std::cerr << "Error saving " << _fileName << ". Error=" << svgFile.rdstate() << std::endl;
+      return false;
+    }
 
     //  Rebuild object tree into xml
     const auto contents = std::move(toXml());
@@ -89,6 +93,7 @@ bool Document::save() const
 bool Document::fromXml(const std::string &svgData)
 {
     _streamInput = svgData;
+    _fileSize = svgData.size();
     return parse();
 }
 
@@ -246,6 +251,9 @@ std::string Document::flattenRope(SvgRope &rope) const
     for (auto &fragment : rope.rope()) {
         xml.append(fragment);
     }
+
+    //  File size may change during reconstruction
+    _fileSize = xml.size();
 
     return std::move(xml);
 }

@@ -23,7 +23,7 @@ class Document
     //  Temporaries from reading xml file
     std::list<SvgInterface *> _parents; //  Temporary list for parsing
     std::string _streamInput{};
-    size_t _fileSize{};
+    mutable size_t _fileSize{};
 
     //  For lookup by id
     std::unordered_map<std::string, SvgInterface *> _idLookup;
@@ -62,4 +62,6 @@ public:
     bool open(const std::string &fileName, bool readOnly = false);
     bool exists(const std::string &fileName);
     void saveAs(const std::string &fileName);
+
+    size_t fileSize() const;
 };

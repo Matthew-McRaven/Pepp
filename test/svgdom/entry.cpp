@@ -1,4 +1,7 @@
 #include <QDirIterator>
+#include <QFile>
+#include <QTemporaryDir>
+
 #include <array>
 #include <catch.hpp>
 #include <fmt/format.h>
@@ -16,7 +19,7 @@ using namespace std::string_literals;
 #include "svgdom/Timer.h"
 
 // Dummy test case to ensure that build doesn't fail due to lack of test cases.
-TEST_CASE("Integration tests for svgdom", "[scope:core][scope:core.svgdom][kind:unit]") {
+/*TEST_CASE("Integration tests for svgdom", "[scope:core][scope:core.svgdom][kind:unit]") {
   // You should see a list of files ending with .svg in console output.
   // You should be able to read them into a QString, then convert it to an std::string.
   for (QDirIterator i(":/", QDirIterator::Subdirectories); i.hasNext();)
@@ -24,6 +27,38 @@ TEST_CASE("Integration tests for svgdom", "[scope:core][scope:core.svgdom][kind:
       std::cout << "File: "s << f.absoluteFilePath().toStdString() << std::endl;
 
   CHECK(true); // Don't let TEST_CASE braces collapse onto one line or Mac CI fails.
+}*/
+
+// Dummy test case to ensure that build doesn't fail due to lack of test cases.
+TEST_CASE("Test opened and copy file", "[scope:core][scope:core.svgdom][kind:unit]") {
+  // Open sample file, copy and test results
+
+  QTemporaryDir dir;
+  REQUIRE(QDir(dir.path()).mkdir("svgs"));
+  auto path = dir.path().toStdString();
+
+  auto temp = dir.filePath("svgs/sample.svg");
+  auto fileName = temp.toStdString();
+  std::string output = path + "/svgs/output.svg";
+  //  Remove old file, if it exists
+  if (QFile::exists(temp)) QFile::remove(temp);
+
+  REQUIRE(QFile::copy(":/svgs/sample.svg", temp));
+
+  Timer t;
+  t.start();
+  Document doc1{};
+  doc1.open(fileName);
+  REQUIRE(doc1.fileSize() > 0);
+
+  Document doc2{};
+  doc2.fromXml(doc1.toXml());
+  doc2.saveAs(output);
+  t.finish();
+  std::cout << "Create/copy to second file: " << t.elapsedTime() << std::endl;
+  std::cout << "Doc1 size: " << doc1.fileSize() << ". Doc2 size: " << doc2.fileSize() << std::endl;
+
+  CHECK(doc1.fileSize() == doc2.fileSize());
 }
 
 //  Test that file can be opened and saved without error

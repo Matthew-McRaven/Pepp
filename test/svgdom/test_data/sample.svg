@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 5 4"
+     width="50%"
+     height="50%"
+     version="1.1"
+	 id="root">
+	<title>Title for rectangles</title>
+	<desc>Four separate rectangles</desc>
+	<!-- Comment for parsing -->
+	<rect id="red"
+	      x="0.5"
+	      y="0.5"
+	      width="2"
+	      height="1"
+	      fill="red"/>
+	<rect id="oval1"
+	      x="0.5"
+	      y="2"
+	      rx=".5"
+	      width="1"
+	      height="1.5"/>
+	<rect id="blue"
+	      x="3"
+	      y="0.5"
+	      width="1.5"
+	      height="2"
+	      stroke="blue"
+	      stroke-width=".2"/>
+	<rect id="oval2"
+	      x="3.5"
+	      y="3"
+	      ry=".25"
+	      width="1"
+	      height="0.5"/>
+	<!-- Show outline of viewport using 'rect' element -->
+	<rect id="outline"
+	      x="0.01"
+	      y="0.01"
+	      width="4.98"
+	      height="3.98"
+	      rx=".2"
+	      ry=".5"
+	      fill="none"
+	      stroke="blue"
+	      stroke-width=".02"/>
+</svg>
