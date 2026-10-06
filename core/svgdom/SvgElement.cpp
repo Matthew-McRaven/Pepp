@@ -118,10 +118,7 @@ void SvgElement::setClassName(const std::string &className)
 {
     _className = className;
 }
-const std::string &SvgElement::title() const
-{
-    return (_title == nullptr) ? _empty : _title->xmlName();
-}
+const std::string &SvgElement::title() const { return (_title == nullptr) ? _empty : _title->value(); }
 void SvgElement::setTitle(const std::string &title)
 {
     //  Create element if missing
@@ -130,10 +127,7 @@ void SvgElement::setTitle(const std::string &title)
     }
     _title->setValue(title);
 }
-const std::string &SvgElement::metadata() const
-{
-    return (_metadata == nullptr) ? _empty : _metadata->xmlName();
-}
+const std::string &SvgElement::metadata() const { return (_metadata == nullptr) ? _empty : _metadata->value(); }
 void SvgElement::setMetadata(const std::string &metadata)
 {
     //  Create element if missing
@@ -142,10 +136,7 @@ void SvgElement::setMetadata(const std::string &metadata)
     }
     _metadata->setValue(metadata);
 }
-const std::string &SvgElement::desc() const
-{
-    return (_desc == nullptr) ? _empty : _desc->xmlName();
-}
+const std::string &SvgElement::desc() const { return (_desc == nullptr) ? _empty : _desc->value(); }
 void SvgElement::setDesc(const std::string &desc)
 {
     //  Create element if missing
