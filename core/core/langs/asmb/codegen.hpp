@@ -6,7 +6,9 @@
 #include <ranges>
 #include <vector>
 #include "core/compile/ir_linear/line_dot.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
+#include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/langs/asmb/ir_program.hpp"
@@ -21,6 +23,35 @@ struct SectionOffsets {
   size_t object_code_offset = 0, object_code_size = 0;
 };
 } // namespace detail
+
+// For all symbol-only lines, find the next line which generates object code and assign it to the SymbolLine's target
+// pointer. If the target declares a symbol, the symbol-only lines will prefer to alias the symbol directly. If the line
+// does not declare a symbol, then mirror the target's properties (size, type, value). If there is no "next line" before
+// the next .SECTION, .ORG, or end of the program then the target will be nullptr and we will need special handling in
+// assign_addresses.
+inline void link_symbol_lines(IRProgram &section) {
+  // Symbol-only lines since the last line which generated object code.
+  std::vector<SymbolLine *> waiting;
+  const auto resolve = [&](const LinearIR *target) {
+    // Does the target declare a symbol?
+    const auto declared = target ? target->typed_attribute<SymbolDeclaration>() : nullptr;
+    for (auto *line : waiting) {
+      if (declared) {
+        line->symbol.entry->value = std::make_shared<pepp::core::symbol::AliasValue>(sizeof(u32), declared->entry);
+        line->target = nullptr;
+      } else line->target = target;
+    }
+    waiting.clear();
+  };
+  for (const auto &line : section) {
+    using enum LinearIRType;
+    if (line->type() == static_cast<int>(Symbol)) waiting.push_back(static_cast<SymbolLine *>(line.get()));
+    // Do not target across sections or .ORGs
+    else if (line->type() == static_cast<int>(DotSection) || line->type() == static_cast<int>(DotOrg)) resolve(nullptr);
+    else if (line->object_size(0).has_value()) resolve(line.get());
+  }
+  resolve(nullptr);
+}
 
 using LineToSymbolType = pepp::core::symbol::Type(const pepp::tc::LinearIR *);
 
@@ -53,12 +84,14 @@ struct SectionDescriptor {
 // When a .BURN <num> is present, grouping occurs as-if an extra section was append to prog which contains a .ORG <num>.
 template <typename Address>
 IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                                               LineToSymbolType line_to_Symbol,
+                                               LineToSymbolType line_to_symbol,
                                                typename Address::Type initial_base_address = 0) {
   enum class Direction { Forward, Backward } direction = Direction::Forward;
   using addr_t = typename Address::Type;
   static const auto max_address = std::numeric_limits<addr_t>::max();
   static const u64 MODULUS = static_cast<u64>(max_address) + 1;
+
+  for (auto &[desc, ir] : prog) link_symbol_lines(ir);
 
   // Pre-allocate vector according to the total size of the IR lines in all sections.
   // This overrserves storage---not all IR lines generate object code---but is a stable upper bound and avoid
@@ -161,7 +194,9 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
       sec_desc.byte_count += size;
 
       if (auto line_symbol = line->template typed_attribute<SymbolDeclaration>(); line_symbol) {
-        const pepp::core::symbol::Type type = line_to_Symbol(line.get());
+        // Do not update the value of a symbol which aliases another.
+        if (dynamic_cast<const pepp::core::symbol::AliasValue *>(line_symbol->entry->value.get())) continue;
+        const pepp::core::symbol::Type type = line_to_symbol(line.get());
         line_symbol->entry->value =
             std::make_shared<pepp::core::symbol::LocationValue>(size, sizeof(addr_t), symbol_base, 0, type);
       }
@@ -223,6 +258,34 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
 
   // Establish flat_map invariant, which is that the container is sorted.
   std::sort(ret.container.begin(), ret.container.end(), detail::IRComparator<Address>{});
+
+  // Resolve all values of symbol-only lines.
+  for (const auto &[desc, ir] : prog) {
+    using VL = pepp::core::symbol::LocationValue;
+    // Track the most recently seen address to handle the case where a symbol-only line is the last line in a section.
+    auto end = desc.low_address;
+    for (const auto &line : ir) {
+      if (line->type() == static_cast<int>(LinearIRType::Symbol)) {
+        auto *as_symbol = static_cast<SymbolLine *>(line.get());
+        auto &value = as_symbol->symbol.entry->value;
+        // If this symbol aliases another, do not overwrite its value.
+        if (dynamic_cast<const pepp::core::symbol::AliasValue *>(value.get())) continue;
+        // When this line is not at the end of the section (target!=nullptr), use the target line's properties.
+        else if (as_symbol->target && ret.count(as_symbol->target) != 0) {
+          const auto &t = ret.at(as_symbol->target);
+          value = std::make_shared<VL>(t.size, sizeof(addr_t), t.address, 0, line_to_symbol(as_symbol->target));
+        }
+        // Lines at the current section should use the most recently seen address. Arbitrarily decide that the size==0.
+        else
+          value = std::make_shared<VL>(0, sizeof(addr_t), end, 0, line_to_symbol(as_symbol));
+      }
+      // Not a symbol line; update the end address
+      else if (ret.count(line.get()) != 0) {
+        const auto &placed = ret.at(line.get());
+        end = placed.address + placed.size;
+      }
+    }
+  }
   return ret;
 }
 

@@ -54,6 +54,7 @@ struct LinearIR {
 enum class LinearIRType : int {
   Empty,
   Comment,
+  Symbol,
   DotAlign,
   DotSymbol,
   DotBlock,

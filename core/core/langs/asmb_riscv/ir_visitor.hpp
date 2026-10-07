@@ -4,6 +4,7 @@ namespace pepp::tc {
 struct LinearIR;
 struct EmptyLine;
 struct CommentLine;
+struct SymbolLine;
 struct RTypeIR;
 struct ITypeIR;
 struct STypeIR;
@@ -18,6 +19,7 @@ struct DotSection;
 struct DotOrg;
 struct RISCVIRVisitor {
   virtual void visit(const EmptyLine *) = 0;
+  virtual void visit(const SymbolLine *) = 0;
   virtual void visit(const CommentLine *) = 0;
   virtual void visit(const RTypeIR *) = 0;
   virtual void visit(const ITypeIR *) = 0;

@@ -4,6 +4,7 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/ir_value/text.hpp"
@@ -463,7 +464,14 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement() {
   } else {
     auto symbol = _buffer->match<lex::SymbolDeclaration>();
     auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
-    ret = line(symbol_decl);
+    // Lookahead for a comment or newline, which would indicate that this is a symbol-only line.
+    // Symbol-only lines share a prefix with "normal" lines with symbols
+    if (auto maybe_comment = _buffer->match<tc::lex::InlineComment>();
+        symbol_decl && (_buffer->peek<tc::lex::Empty>() || maybe_comment)) {
+      ret = std::make_shared<SymbolLine>(SymbolDeclaration{symbol_decl.value()});
+      if (maybe_comment) ret->insert(std::make_unique<Comment>(*maybe_comment->value));
+    } else ret = line(symbol_decl);
+
     if (!ret) {
       auto next = _buffer->peek();
       throw RISCVParserError(RISCVParserError::UnaryError::Token_Invalid, next->repr(), _buffer->matched_interval());

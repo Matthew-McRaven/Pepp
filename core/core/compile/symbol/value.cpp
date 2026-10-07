@@ -154,11 +154,20 @@ pepp::core::symbol::AliasValue &pepp::core::symbol::AliasValue::operator=(AliasV
   return *this;
 }
 
-u32 pepp::core::symbol::AliasValue::size() const noexcept { return _ptr_size; }
+u32 pepp::core::symbol::AliasValue::size() const noexcept {
+  // Prefer to "forward" to the pointed-to value when possible.
+  if (symbol_pointer == nullptr || symbol_pointer->value == nullptr) return _ptr_size;
+  return symbol_pointer->value->size();
+}
 
 bits::MaskedBits pepp::core::symbol::AliasValue::value() const noexcept {
+  // Prefer to "forward" to the pointed-to value when possible.
   if (symbol_pointer == nullptr) return {.byteCount = 0, .bitPattern = 0, .mask = 0};
   return symbol_pointer->value->value();
 }
 
-pepp::core::symbol::Type pepp::core::symbol::AliasValue::type() const noexcept { return Type::Alias; }
+pepp::core::symbol::Type pepp::core::symbol::AliasValue::type() const noexcept {
+  // Prefer to "forward" to the pointed-to value when possible.
+  if (symbol_pointer == nullptr || symbol_pointer->value == nullptr) return Type::Alias;
+  return symbol_pointer->value->type();
+}

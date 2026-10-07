@@ -36,6 +36,21 @@ std::string parse_format(const std::string &source) {
   return pepp::tc::riscv_format_source(lines[0].get());
 }
 
+// Parse a multi-line program and format every line, joined by '\n'.
+std::string parse_format_all(const std::string &source) {
+  pepp::tc::DiagnosticTable diag;
+  auto parser = pepp::tc::parser::RISCVParser(data(source));
+  auto lines = parser.parse(diag);
+  CAPTURE(source);
+  REQUIRE(diag.count() == 0);
+  std::string ret;
+  for (size_t it = 0; it < lines.size(); it++) {
+    if (it != 0) ret += '\n';
+    ret += pepp::tc::riscv_format_source(lines[it].get());
+  }
+  return ret;
+}
+
 struct Case {
   const char *source;
   const char *expected;
@@ -85,5 +100,39 @@ TEST_CASE("RISCV ASM source formatting",
       CHECK(actual == c.expected);
       CHECK(reformatted == c.expected);
     }
+  }
+}
+
+TEST_CASE("RISCV ASM source formatting of symbol-only lines",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv][!throws]") {
+  // The comment starts in column 35 (9 + 8 + 18 wide columns)
+  const std::string comment_pad(31, ' ');
+  SECTION("lone symbol") {
+    CHECK(parse_format("foo:") == "foo:");
+    CHECK(parse_format("foo:       ") == "foo:");
+  }
+  SECTION("symbol with trailing comment") {
+    const auto expected = "foo:" + comment_pad + "# hi";
+    auto actual = parse_format("foo: # hi");
+    CHECK(actual == expected);
+    CHECK(parse_format(actual) == expected);
+  }
+  SECTION("symbol-only line precedes a normal line") {
+    const std::string expected = "foo:\n         add     x1, x2, x3";
+    auto actual = parse_format_all("foo:\nadd x1, x2, x3");
+    CHECK(actual == expected);
+    CHECK(parse_format_all(actual) == expected);
+  }
+  SECTION("chained symbol-only lines") {
+    const std::string expected = "a:\nb:\nc:\n         add     x1, x2, x3";
+    auto actual = parse_format_all("a:\nb:\nc:\nadd x1, x2, x3");
+    CHECK(actual == expected);
+    CHECK(parse_format_all(actual) == expected);
+  }
+  SECTION("chained symbol-only lines with comments") {
+    const std::string expected = "a:" + std::string(33, ' ') + "# one\nb:\n         ret";
+    auto actual = parse_format_all("a: # one\nb:\nret");
+    CHECK(actual == expected);
+    CHECK(parse_format_all(actual) == expected);
   }
 }

@@ -89,4 +89,15 @@ TEST_CASE("RISCV ASM listing", "[scope:core][scope:core.langs][level:asmb3][leve
     CHECK(rows[1] == "         65666768");
     CHECK(rows[2] == "         69");
   }
+
+  SECTION("supress addresses and object code") {
+    const auto word = riscv::ADD.encode(riscv::Values{.rs1 = 2, .rs2 = 3, .rd = 1}).bits();
+    const auto rows = listing_of("a: # hi\nb:\nadd x1, x2, x3\nend:", 0x1000);
+    const auto bare = [](const std::string &source) { return fmt::format("{:18}{}", "", source); };
+    REQUIRE(rows.size() == 4);
+    CHECK(rows[0] == bare("a:" + std::string(33, ' ') + "# hi"));
+    CHECK(rows[1] == bare("b:"));
+    CHECK(rows[2] == row(0x1000, word, "         add     x1, x2, x3"));
+    CHECK(rows[3] == bare("end:"));
+  }
 }
