@@ -26,9 +26,10 @@ struct SectionOffsets {
 
 // For all symbol-only lines, find the next line which generates object code and assign it to the SymbolLine's target
 // pointer. If the target declares a symbol, the symbol-only lines will prefer to alias the symbol directly. If the line
-// does not declare a symbol, then mirror the target's properties (size, type, value). If there is no "next line" before
-// the next .SECTION, .ORG, or end of the program then the target will be nullptr and we will need special handling in
-// assign_addresses.
+// does not declare a symbol, then it mirrors the target's properties (size, type, value). If there is no "next line"
+// before the next .ORG or the end of the section then the target will be nullptr and we will need special handling in
+// assign_addresses. If a label is placed at the end of a section that is re-opened later, the symbol-only line should
+// target lines in the re-opened section.
 inline void link_symbol_lines(IRProgram &section) {
   // Symbol-only lines since the last line which generated object code.
   std::vector<SymbolLine *> waiting;
@@ -46,8 +47,8 @@ inline void link_symbol_lines(IRProgram &section) {
   for (const auto &line : section) {
     using enum LinearIRType;
     if (line->type() == static_cast<int>(Symbol)) waiting.push_back(static_cast<SymbolLine *>(line.get()));
-    // Do not target across sections or .ORGs
-    else if (line->type() == static_cast<int>(DotSection) || line->type() == static_cast<int>(DotOrg)) resolve(nullptr);
+    // Do not target across .ORGs
+    else if (line->type() == static_cast<int>(DotOrg)) resolve(nullptr);
     else if (line->object_size(0).has_value()) resolve(line.get());
   }
   resolve(nullptr);

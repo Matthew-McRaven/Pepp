@@ -125,7 +125,7 @@ TEST_CASE("RISCV ASM code generator symbol-only lines",
                             "sub x1, x2, x3\n"      // 0x104
                             "c:\n"                  // alias of d
                             "d: add x1, x2, x3\n"   // 0x108
-                            "f:\ng:\n"              // tail of A; must not be moved to the end of A
+                            "f:\ng:\n"              // Points to the trailing sub in re-opened section
                             ".SECTION \".data\", \"rw\"\n"
                             "e:\n"      // target is data, not code
                             ".WORD 5\n" // 0x110
@@ -137,11 +137,11 @@ TEST_CASE("RISCV ASM code generator symbol-only lines",
                     {"b", 0x104, 4, Type::Code},
                     {"c", 0x108, 4, Type::Code},
                     {"d", 0x108, 4, Type::Code},
-                    {"f", 0x10c, 0, Type::Object},
-                    {"g", 0x10c, 0, Type::Object},
+                    {"f", 0x10c, 4, Type::Code},
+                    {"g", 0x10c, 4, Type::Code},
                     {"e", 0x110, 4, Type::Object},
                     {"h", 0x114, 0, Type::Object}});
-    // Labels share a location but remain distinct symbols; one before a labeled line aliases it.
+    // Labels share a location but remain distinct symbols.
     CHECK(symbols.at("a") != symbols.at("b"));
     CHECK(dynamic_cast<pepp::core::symbol::AliasValue *>(symbols.at("c")->value.get()));
     CHECK(!dynamic_cast<pepp::core::symbol::AliasValue *>(symbols.at("d")->value.get()));
