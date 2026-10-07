@@ -162,7 +162,8 @@ u32 pepp::core::symbol::AliasValue::size() const noexcept {
 
 bits::MaskedBits pepp::core::symbol::AliasValue::value() const noexcept {
   // Prefer to "forward" to the pointed-to value when possible.
-  if (symbol_pointer == nullptr) return {.byteCount = 0, .bitPattern = 0, .mask = 0};
+  if (symbol_pointer == nullptr || symbol_pointer->value == nullptr)
+    return {.byteCount = 0, .bitPattern = 0, .mask = 0};
   return symbol_pointer->value->value();
 }
 
