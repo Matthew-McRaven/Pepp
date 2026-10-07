@@ -51,4 +51,13 @@ static constexpr std::uintptr_t align_up(std::uintptr_t x, std::size_t a) {
   if (a <= 1) return x;
   else return (x + (a - 1)) & ~(std::uintptr_t(a) - 1);
 }
+
+constexpr u64 unsigned_bitcount(u64 value) noexcept { return std::bit_width(value); }
+constexpr u64 unsigned_bytecount(u64 value) noexcept { return (unsigned_bitcount(value) + 7) / 8; }
+constexpr u64 signed_bitcount(i64 value) noexcept {
+  // If negative, computes ~value, otherwise returns value unchanged. Find the leading 1 in the result, which is
+  // bit_width. Lastly, add 1 to account for sign bit.
+  return std::bit_width(static_cast<u64>(value ^ (value >> 63))) + 1;
+};
+constexpr u64 signed_bytecount(i64 value) noexcept { return (signed_bitcount(value) + 7) / 8; }
 } // namespace bits

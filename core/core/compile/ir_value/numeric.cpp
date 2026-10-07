@@ -14,7 +14,7 @@ pepp::ast::Numeric::Numeric(u64 value, u8 size) noexcept : IRValue(), _size(size
   }
 }
 
-u64 pepp::ast::Numeric::minimum_size() const noexcept { return ceil(log2(_value + 1) / 8); }
+u64 pepp::ast::Numeric::minimum_size() const noexcept { return bits::unsigned_bytecount(_value); }
 
 [[nodiscard]]
 u32 pepp::ast::Numeric::serialize(bits::span<u8> dest, bits::Order destEndian, u32 max_size) const noexcept {
@@ -46,6 +46,8 @@ std::string pepp::ast::SignedDecimal::string() const { return fmt::format("{:d}"
 
 std::string pepp::ast::SignedDecimal::raw_string() const { return string(); }
 
+u64 pepp::ast::SignedDecimal::minimum_size() const noexcept { return bits::signed_bytecount(_value); }
+
 pepp::ast::UnsignedDecimal::UnsignedDecimal() noexcept : Numeric() {}
 
 pepp::ast::UnsignedDecimal::UnsignedDecimal(u64 value, u8 size) noexcept : Numeric(value, size) {}
@@ -69,9 +71,3 @@ pepp::ast::Hexadecimal::Hexadecimal(Hexadecimal &&other) noexcept { swap(*this, 
 std::string pepp::ast::Hexadecimal::string() const { return fmt::format("0x{:0{}X}", _value, 2 * _size); }
 
 std::string pepp::ast::Hexadecimal::raw_string() const { return fmt::format("{:0{}X}", _value, 2 * _size); }
-u64 pepp::ast::SignedDecimal::minimum_size() const noexcept {
-  // Handle _value = 0b1000...0, otherwise we take log of negative number.
-  if (_value * -1 == _value) return sizeof(_value);
-  // Must subtract 1 bit (log2(n)+1), because the top order bit holds sign, not data.
-  return ceil((log2(-1 * _value) + 1) / 8);
-}
