@@ -109,8 +109,8 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
     redRect->setDesc("Red Desc"s);
     redRect->setMetadata("Red Meta"s);
     redRect->setTitle("Red Title"s);
-    redRect->setWidth(2);  //  From SvgElement
     redRect->setHeight(1); //  From SvgElement
+    redRect->setWidth(2);  //  From SvgElement
     redRect->setRx(.2);    //  From SvgRectElement
     redRect->setRy(.3);    //  From SvgRectElement
     redRect->setX(.5);
@@ -128,7 +128,7 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
   doc2.open(file);
   SvgUnitValue tempValue;
 
-  auto &svg2 = doc1.documentElement();
+  auto &svg2 = doc2.documentElement();
   CHECK(svg2.viewBox().height().toString() == SvgUnitValue(4).toString());
   CHECK(svg2.viewBox().width().toString() == SvgUnitValue(5).toString());
   CHECK(svg2.viewBox().x().toString() == SvgUnitValue(-.1).toString());
@@ -138,14 +138,32 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
   tempValue.fromString("50.02%"s);
   CHECK(svg2.width().toString() == tempValue.toString());
 
-  std::cout << "Title: "s << svg2.title() << " vs Title1 for document"s << std::endl;
-  std::string tempLabel = svg2.title();
   CHECK(svg2.title() == "Title1 for document"s);
   CHECK(svg2.desc() == "Description1 for document"s);
   CHECK(svg2.metadata() == "Metadata1 for document"s);
 
+  //  Reuse rectangle pointer without data
+  redRect = nullptr;
+  redRect = static_cast<SvgRectElement *>(doc2.getElementById("red"s));
+  REQUIRE(redRect != nullptr);
+  if (redRect) {
+    CHECK(redRect->id() == "red"s);
+    CHECK(redRect->desc() == "Red Desc"s);
+    CHECK(redRect->metadata() == "Red Meta"s);
+    CHECK(redRect->title() == "Red Title"s);
+    CHECK(redRect->height().toString() == SvgUnitValue(1).toString());
+    CHECK(redRect->width().toString() == SvgUnitValue(2).toString());
+    CHECK(redRect->rx().toString() == SvgUnitValue(.2).toString());
+    CHECK(redRect->ry().toString() == SvgUnitValue(.3).toString());
+    CHECK(redRect->x().toString() == SvgUnitValue(.5).toString());
+    CHECK(redRect->y().toString() == SvgUnitValue(.6).toString());
+
+  } else {
+    std::cout << "Cannot find red rectangle: "s << std::endl;
+  }
+
   t.finish();
-  std::cout << "Doc1 size: " << doc1.fileSize() << std::endl;
+  std::cout << "Save/testing time: " << t.elapsedTime() << std::endl;
 }
 
 //  Test that element can be found by Id and updated

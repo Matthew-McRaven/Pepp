@@ -28,10 +28,7 @@ SvgRectElement::SvgRectElement(const std::string &xmlName, const std::string &va
 
 //  Derived class accessors
 //  Dimension accessors
-auto SvgRectElement::rx() const
-{
-    return _rx.value;
-}
+SvgUnitValue SvgRectElement::rx() const { return _rx; }
 void SvgRectElement::setRx(double x)
 {
     _rx.value = x;
@@ -40,10 +37,7 @@ void SvgRectElement::setRx(const std::string_view sv)
 {
     _rx.fromString(sv);
 }
-auto SvgRectElement::ry() const
-{
-    return _ry.value;
-}
+SvgUnitValue SvgRectElement::ry() const { return _ry; }
 void SvgRectElement::setRy(double y)
 {
     _ry.value = y;
