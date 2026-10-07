@@ -82,7 +82,7 @@ private:
 
     //  Svg specific data
     std::string _id;
-    std::string _className;
+    // std::string _className;
 
     //  Stored as Elements in svg
     SvgElement *_title{};
