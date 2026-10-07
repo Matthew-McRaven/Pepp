@@ -59,17 +59,10 @@ const SvgSvgElement &Document::documentElement() const
 size_t Document::fileSize() const { return _fileSize; }
 
 //  File operations
-void Document::saveAs(const std::string &fileName)
-{
-    _fileName = fileName;
-    bool success = false;
+bool Document::saveAs(const std::string &fileName) {
+  _fileName = fileName;
 
-    Timer t1;
-    t1.start();
-    success = save();
-    t1.finish();
-    std::cout << "ofstream::write (flattened): " << t1.elapsedTime()
-              << (success ? " Pass" : " Fail") << std::endl;
+  return save();
 }
 
 bool Document::save() const
@@ -109,14 +102,14 @@ bool Document::open(const std::string &fileName, bool readOnly)
         return false;
     }
 
-    Timer t1;
-    t1.start();
+    // Timer t1;
+    // t1.start();
     if (!read()) {
         std::cout << "Cannot open file: " << _fileName;
         return false;
     }
-    t1.finish();
-    std::cout << "ifstream::read: " << t1.elapsedTime() << std::endl;
+    // t1.finish();
+    // std::cout << "ifstream::read: " << t1.elapsedTime() << std::endl;
 
     return parse();
 }
@@ -125,16 +118,16 @@ bool Document::parse()
 {
     //  Create on heap to avoid stack warnings from compiler
     std::unique_ptr<SvgParser<Document>> parser(new SvgParser<Document>(*this));
-    Timer t;
-    t.start();
+    // Timer t;
+    // t.start();
     try {
         parser->parse(_streamInput);
     } catch (...) {
         std::cout << "Error parsing file." << std::endl;
         return false;
     }
-    t.finish();
-    std::cout << "parsing file: " << t.elapsedTime() << std::endl;
+    // t.finish();
+    // std::cout << "parsing file: " << t.elapsedTime() << std::endl;
     return true;
 }
 

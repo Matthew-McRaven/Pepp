@@ -61,7 +61,7 @@ public:
 
     bool open(const std::string &fileName, bool readOnly = false);
     bool exists(const std::string &fileName);
-    void saveAs(const std::string &fileName);
+    bool saveAs(const std::string &fileName);
 
     size_t fileSize() const;
 };
