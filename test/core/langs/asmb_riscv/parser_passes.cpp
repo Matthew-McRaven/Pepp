@@ -16,8 +16,10 @@
 
 #include <catch.hpp>
 #include "core/arch/riscv/asmb/rvi_patterns.hpp"
+#include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
@@ -405,4 +407,40 @@ TEST_CASE("RISCV ASM parser dot commands",
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
   }
+}
+
+TEST_CASE("RISCV ASM parser symbol-only lines",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv][!throws]") {
+  using Parser = pepp::tc::parser::RISCVParser;
+  using namespace pepp::tc;
+  pepp::tc::DiagnosticTable diag;
+  // Symbol-only lines (with and without comments) interleaved with other line types.
+  auto p = Parser(data("a: # first\n"
+                       "b:\n"
+                       "# note\n"
+                       "\n"
+                       "c: add x1, x2, x3\n"
+                       "d:\n"
+                       ".WORD 0xFEEDBEEF\n"
+                       "e:"));
+  auto results = p.parse(diag);
+  CHECK(diag.count() == 0);
+  REQUIRE(results.size() == 8);
+  const auto symbol_line = [&](size_t index, const char *name) {
+    auto line = std::dynamic_pointer_cast<SymbolLine>(results[index]);
+    REQUIRE(line);
+    CHECK(line->symbol.entry->name == name);
+    return line;
+  };
+  CHECK(symbol_line(0, "a")->typed_attribute<Comment>());
+  CHECK(!symbol_line(1, "b")->typed_attribute<Comment>());
+  CHECK(std::dynamic_pointer_cast<CommentLine>(results[2]));
+  CHECK(std::dynamic_pointer_cast<EmptyLine>(results[3]));
+  REQUIRE(std::dynamic_pointer_cast<RTypeIR>(results[4]));
+  CHECK(results[4]->typed_attribute<SymbolDeclaration>()->entry->name == "c");
+  symbol_line(5, "d");
+  REQUIRE(std::dynamic_pointer_cast<DotLiteral>(results[6]));
+  // A symbol-only line's symbol does not belong to the following line.
+  CHECK(!results[6]->typed_attribute<SymbolDeclaration>());
+  symbol_line(7, "e");
 }

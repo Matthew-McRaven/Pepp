@@ -27,7 +27,7 @@
  *      pseudo:        (<operand> (COMMA <operand>)*)?
  *   4. <directive>   → DOT_CMD (<operand> (COMMA <operand>)*)?
  *   5. <line>        → (<instruction> | <directive>) [COMMENT]
- *   6. <statement>   → [COMMENT | [SYMBOL_DECL] <line>] EMPTY
+ *   6. <statement>   → [COMMENT | SYMBOL_DECL <line> | SYMBOL_DECL [COMMENT]] EMPTY
  * S= <statement>
  */
 namespace pepp {

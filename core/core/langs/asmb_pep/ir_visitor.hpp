@@ -4,6 +4,7 @@ namespace pepp::tc {
 struct LinearIR;
 struct EmptyLine;
 struct CommentLine;
+struct SymbolLine;
 struct MonadicInstruction;
 struct DyadicInstruction;
 struct DotAlign;
@@ -18,6 +19,7 @@ struct MacroInstantiation;
 struct PepIRVisitor {
   virtual void visit(const EmptyLine *) = 0;
   virtual void visit(const CommentLine *) = 0;
+  virtual void visit(const SymbolLine *) = 0;
   virtual void visit(const MonadicInstruction *) = 0;
   virtual void visit(const DyadicInstruction *) = 0;
   virtual void visit(const DotAlign *) = 0;

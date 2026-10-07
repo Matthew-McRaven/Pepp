@@ -16,6 +16,7 @@
  */
 
 #include <catch.hpp>
+#include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/math/bitmanip/mask.hpp"
 
@@ -59,5 +60,25 @@ TEST_CASE("pepp::core symbol values", "[scope:core][scope:core.compile][kind:uni
     CHECK_NOTHROW(value.set_offset(end_offset));
     CHECK(value.value()() == base + end_offset);
     CHECK(value.effective_address() == value.value().bitPattern);
+  }
+  // Aliases report the properties of their target symbols.
+  SECTION("Alias") {
+    using namespace pepp::core::symbol;
+    auto target = std::make_shared<Entry>("target");
+    auto alias = AliasValue(4, target);
+    // Unresolved target is still empty.
+    CHECK(alias.type() == target->value->type());
+    target->value = std::make_shared<LocationValue>(8, 2, 0x10, 0, Type::Code);
+    CHECK(alias.value()() == 0x10);
+    CHECK(alias.size() == 8);
+    CHECK(alias.type() == Type::Code);
+    target->value = std::make_shared<LocationValue>(3, 2, 0x20, 0, Type::Object);
+    CHECK(alias.value()() == 0x20);
+    CHECK(alias.size() == 3);
+    CHECK(alias.type() == Type::Object);
+    // Without a target, fall back to the pointer size and the Alias type.
+    auto dangling = AliasValue(4);
+    CHECK(dangling.size() == 4);
+    CHECK(dangling.type() == Type::Alias);
   }
 }

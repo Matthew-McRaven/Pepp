@@ -15,9 +15,11 @@
  */
 
 #include <catch.hpp>
+#include <map>
 #include <sstream>
 #include "core/arch/riscv/asmb/rvi_patterns.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
@@ -67,5 +69,87 @@ TEST_CASE("RISCV ASM code generator",
     CHECK((u8)data[1] == 0x00);
     CHECK((u8)data[2] == 0x31);
     CHECK((u8)data[3] == 0x00);
+  }
+}
+
+namespace {
+struct Expect {
+  const char *name;
+  u64 address, size;
+  pepp::core::symbol::Type type;
+};
+} // namespace
+TEST_CASE("RISCV ASM code generator symbol-only lines",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv]") {
+  using Parser = pepp::tc::parser::RISCVParser;
+  using Type = pepp::core::symbol::Type;
+  using namespace pepp::tc;
+  using Symbols = std::map<std::string, std::shared_ptr<pepp::core::symbol::Entry>>;
+  // Assemble, assign addresses, and convert to object code, returning all symbol declarations.
+  auto assemble = [](const char *source, u32 &total_size) {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(source));
+    auto results = p.parse(diag);
+    REQUIRE(diag.count() == 0);
+    auto split = pepp::tc::riscv_split_to_sections(diag, results);
+    REQUIRE(diag.count() == 0);
+    auto &sections = split.grouped_ir;
+    auto addresses = pepp::tc::riscv_assign_addresses(sections, 0x100);
+    total_size = 0;
+    for (const auto &pair : addresses.container) total_size += pair.second.size;
+    (void)pepp::tc::riscv_to_object_code(addresses, sections);
+    Symbols ret;
+    for (const auto &line : results)
+      if (auto sym = line->typed_attribute<SymbolDeclaration>(); sym) ret[std::string(sym->entry->name)] = sym->entry;
+    return ret;
+  };
+
+  const auto check = [](const Symbols &symbols, const std::vector<Expect> &expected) {
+    REQUIRE(symbols.size() == expected.size());
+    for (const auto &e : expected) {
+      CAPTURE(e.name);
+      REQUIRE(symbols.count(e.name) == 1);
+      const auto &value = *symbols.at(e.name)->value;
+      CHECK(value.value()() == e.address);
+      CHECK(value.size() == e.size);
+      CHECK(value.type() == e.type);
+    }
+  };
+
+  SECTION("symbols inherit their target's location") {
+    u32 size = 0;
+    // Sections run A B A, with labels at the tail of the first A and code after them in the second A.
+    auto symbols = assemble(".SECTION \".text\", \"rwx\"\n"
+                            "add x1, x2, x3\n"      // 0x100
+                            "a:\nb:\n# comment\n\n" // a, b: target the sub, across comments and blanks
+                            "sub x1, x2, x3\n"      // 0x104
+                            "c:\n"                  // alias of d
+                            "d: add x1, x2, x3\n"   // 0x108
+                            "f:\ng:\n"              // Points to the trailing sub in re-opened section
+                            ".SECTION \".data\", \"rw\"\n"
+                            "e:\n"      // target is data, not code
+                            ".WORD 5\n" // 0x110
+                            "h:\n"      // tail of B
+                            ".SECTION \".text\", \"rwx\"\n"
+                            "sub x1, x2, x3\n", // 0x10c, after the tail labels
+                            size);
+    check(symbols, {{"a", 0x104, 4, Type::Code},
+                    {"b", 0x104, 4, Type::Code},
+                    {"c", 0x108, 4, Type::Code},
+                    {"d", 0x108, 4, Type::Code},
+                    {"f", 0x10c, 4, Type::Code},
+                    {"g", 0x10c, 4, Type::Code},
+                    {"e", 0x110, 4, Type::Object},
+                    {"h", 0x114, 0, Type::Object}});
+    // Labels share a location but remain distinct symbols.
+    CHECK(symbols.at("a") != symbols.at("b"));
+    CHECK(dynamic_cast<pepp::core::symbol::AliasValue *>(symbols.at("c")->value.get()));
+    CHECK(!dynamic_cast<pepp::core::symbol::AliasValue *>(symbols.at("d")->value.get()));
+    CHECK(size == 20); // Symbol-only lines occupy no space.
+  }
+  SECTION("symbols before .ORG") {
+    u32 size = 0;
+    auto symbols = assemble("add x1, x2, x3\n.ORG 0x200\nsub x1, x2, x3\nfoo:\n.ORG 0x400\nadd x1, x2, x3", size);
+    check(symbols, {{"foo", 0x204, 0, Type::Object}});
   }
 }

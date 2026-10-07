@@ -3,6 +3,7 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 
 void pepp::tc::accept(PepIRVisitor &visitor, const LinearIR *line) {
@@ -10,6 +11,7 @@ void pepp::tc::accept(PepIRVisitor &visitor, const LinearIR *line) {
   switch (line->type()) {
   case EmptyLine::TYPE: visitor.visit(static_cast<const EmptyLine *>(line)); break;
   case CommentLine::TYPE: visitor.visit(static_cast<const CommentLine *>(line)); break;
+  case SymbolLine::TYPE: visitor.visit(static_cast<const SymbolLine *>(line)); break;
   case MonadicInstruction::TYPE: visitor.visit(static_cast<const MonadicInstruction *>(line)); break;
   case DyadicInstruction::TYPE: visitor.visit(static_cast<const DyadicInstruction *>(line)); break;
   case DotAlign::TYPE: visitor.visit(static_cast<const DotAlign *>(line)); break;

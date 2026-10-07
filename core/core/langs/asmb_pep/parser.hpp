@@ -21,7 +21,7 @@
  *   3. <pseudo> -> DOT <argument>
  *   4. <macro> - > MACRO <argument> (COMMA ARGUMENT)*
  *   5. <line> -> (<pseudo> | <instruction> | <macro>) [COMMENT]
- *   6. <statement> →[COMMENT | [SYMBOL] <line>] EMPTY
+ *   6. <statement> → [SYMBOL] [COMMENT | <line>] EMPTY
  * S= <statement>
  */
 namespace pepp {

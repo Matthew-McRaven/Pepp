@@ -134,6 +134,7 @@ struct PeppObjectVistitor : public PepIRVisitor {
                      std::vector<Relocation> &, IR2ObjectCodeMap &);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
+  void visit(const SymbolLine *) override;
   void visit(const MonadicInstruction *) override;
   void visit(const DyadicInstruction *) override;
   void visit(const DotAlign *) override;
@@ -167,6 +168,10 @@ void pepp::tc::PeppObjectVistitor::visit(const EmptyLine *) {
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const CommentLine *) {
+  // Does not generate object code
+}
+
+void pepp::tc::PeppObjectVistitor::visit(const SymbolLine *) {
   // Does not generate object code
 }
 

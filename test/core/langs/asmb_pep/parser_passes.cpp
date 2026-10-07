@@ -15,12 +15,16 @@
  */
 
 #include <catch.hpp>
+#include <map>
+#include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
 #include "spdlog/spdlog.h"
@@ -578,4 +582,84 @@ TEST_CASE("Pepp ASM parser with macros definitions",
     REQUIRE(ptr2);
     CHECK(ptr2->argument.value->value_as<u16>() == 1);
   }
+}
+
+namespace {
+struct Expect {
+  const char *name;
+  u64 address, size;
+  pepp::core::symbol::Type type;
+};
+} // namespace
+TEST_CASE("Pepp ASM symbol-only lines", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Parser = pepp::tc::parser::PepParser;
+  using Type = pepp::core::symbol::Type;
+  using MR = pepp::tc::MacroRegistry;
+  using namespace pepp::tc;
+  const auto source = ".SECTION \".text\", \"rwx\"\n"
+                      "LDWA 10,d\n" // 0x0
+                      "a: ;first\n" // a, b: target the SUBA, across a comment and a blank
+                      "b:\n"
+                      ";note\n"
+                      "\n"
+                      "SUBA 10,d\n"    // 0x3
+                      "c:\n"           // alias of symbol d
+                      "d: LDWA 10,d\n" // 0x6
+                      "f:\n"           // Target suba at 0x9
+                      "g:\n"
+                      ".SECTION \".data\", \"rw\"\n"
+                      "e:\n"
+                      ".WORD 5\n" // 0xc
+                      "h:\n"      // 0-sized at the end of B
+                      ".SECTION \".text\", \"rwx\"\n"
+                      "SUBA 10,d"; // 0x9, after g/f labels
+  pepp::tc::DiagnosticTable diag;
+  auto p = Parser(data(source), std::make_shared<MR>());
+  auto lines = p.parse(diag);
+  CHECK(diag.count() == 0);
+  REQUIRE(lines.size() == 17);
+
+  const auto symbol_line = [&](size_t index, const char *name) {
+    auto line = std::dynamic_pointer_cast<SymbolLine>(lines[index]);
+    REQUIRE(line);
+    CHECK(line->symbol.entry->name == name);
+    return line;
+  };
+  CHECK(symbol_line(2, "a")->typed_attribute<Comment>());
+  CHECK(!symbol_line(3, "b")->typed_attribute<Comment>());
+  CHECK(std::dynamic_pointer_cast<CommentLine>(lines[4]));
+  CHECK(std::dynamic_pointer_cast<EmptyLine>(lines[5]));
+  symbol_line(7, "c");
+  CHECK(std::dynamic_pointer_cast<DyadicInstruction>(lines[8]));
+  CHECK(lines[8]->typed_attribute<SymbolDeclaration>()->entry->name == "d");
+  symbol_line(9, "f");
+  symbol_line(10, "g");
+  symbol_line(12, "e");
+  CHECK(!lines[13]->typed_attribute<SymbolDeclaration>());
+  symbol_line(14, "h");
+
+  // Each label takes its target's location. Sections are laid out [A=0..12) B=[12..14).
+  auto flat = pepp::tc::parser::flatten_macros(lines);
+  auto split = pepp_split_to_sections(diag, flat);
+  CHECK(diag.count() == 0);
+  auto &sections = split.grouped_ir;
+  auto addresses = pepp_assign_addresses(sections);
+  (void)pepp_to_object_code(addresses, sections);
+  const std::vector<Expect> expected = {{"a", 3, 3, Type::Code},   {"b", 3, 3, Type::Code},
+                                        {"c", 6, 3, Type::Code},   {"d", 6, 3, Type::Code},
+                                        {"f", 9, 3, Type::Code},   {"g", 9, 3, Type::Code},
+                                        {"e", 12, 2, Type::Object}, {"h", 14, 0, Type::Object}};
+  std::map<std::string, std::shared_ptr<pepp::core::symbol::Entry>> symbols;
+  for (const auto &line : lines)
+    if (auto sym = line->typed_attribute<SymbolDeclaration>(); sym) symbols[std::string(sym->entry->name)] = sym->entry;
+  REQUIRE(symbols.size() == expected.size());
+  for (const auto &e : expected) {
+    CAPTURE(e.name);
+    const auto &value = *symbols.at(e.name)->value;
+    CHECK(value.value()() == e.address);
+    CHECK(value.size() == e.size);
+    CHECK(value.type() == e.type);
+  }
+  CHECK(dynamic_cast<pepp::core::symbol::AliasValue *>(symbols.at("c")->value.get()));
+  CHECK(!dynamic_cast<pepp::core::symbol::AliasValue *>(symbols.at("d")->value.get()));
 }

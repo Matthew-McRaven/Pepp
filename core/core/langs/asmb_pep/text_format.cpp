@@ -5,6 +5,7 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/base.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/symbol/entry.hpp"
@@ -341,6 +342,7 @@ struct SourceVisitor : public PepIRVisitor {
   std::string text;
   void visit(const EmptyLine *);
   void visit(const CommentLine *);
+  void visit(const SymbolLine *);
   void visit(const MonadicInstruction *);
   void visit(const DyadicInstruction *);
   void visit(const DotAlign *);
@@ -360,6 +362,12 @@ void pepp::tc::SourceVisitor::visit(const EmptyLine *) { text = ""; }
 void pepp::tc::SourceVisitor::visit(const CommentLine *line) {
   auto comment = ";" + line->comment.value;
   text = format_as_columns(comment, "", "", "");
+}
+
+void pepp::tc::SourceVisitor::visit(const SymbolLine *line) {
+  std::string comment = "";
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
+  text = format_as_columns(std::string{line->symbol.entry->name} + ":", "", "", comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const MonadicInstruction *line) {

@@ -9,6 +9,7 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
 #include "core/langs/asmb_riscv/ir_visitor.hpp"
 #include "core/math/bitmanip/strings.hpp"
@@ -83,6 +84,7 @@ struct RISCVSourceVisitor : public RISCVIRVisitor {
   std::string text;
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
+  void visit(const SymbolLine *) override;
   void visit(const RTypeIR *) override;
   void visit(const ITypeIR *) override;
   void visit(const STypeIR *) override;
@@ -102,6 +104,10 @@ void pepp::tc::RISCVSourceVisitor::visit(const EmptyLine *) { text = ""; }
 
 void pepp::tc::RISCVSourceVisitor::visit(const CommentLine *line) {
   text = riscv_format_as_columns("#" + line->comment.value, "", "", "");
+}
+
+void pepp::tc::RISCVSourceVisitor::visit(const SymbolLine *line) {
+  text = riscv_format_as_columns(std::string{line->symbol.entry->name} + ":", "", "", ::comment_of(line));
 }
 
 // Delegate to the MnemonicDescriptor-based formatting.

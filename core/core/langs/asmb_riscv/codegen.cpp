@@ -109,6 +109,7 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
   void emit_line(const IntegerInstruction *line);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
+  void visit(const SymbolLine *) override;
   void visit(const RTypeIR *) override;
   void visit(const ITypeIR *) override;
   void visit(const STypeIR *) override;
@@ -134,6 +135,10 @@ void pepp::tc::RISCVObjectVistitor::visit(const EmptyLine *) {
 }
 
 void pepp::tc::RISCVObjectVistitor::visit(const CommentLine *) {
+  // Does not generate object code
+}
+
+void pepp::tc::RISCVObjectVistitor::visit(const SymbolLine *) {
   // Does not generate object code
 }
 

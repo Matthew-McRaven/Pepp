@@ -3,6 +3,7 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
 
 void pepp::tc::accept(RISCVIRVisitor &visitor, const LinearIR *line) {
@@ -10,6 +11,7 @@ void pepp::tc::accept(RISCVIRVisitor &visitor, const LinearIR *line) {
   switch (line->type()) {
   case EmptyLine::TYPE: visitor.visit(static_cast<const EmptyLine *>(line)); break;
   case CommentLine::TYPE: visitor.visit(static_cast<const CommentLine *>(line)); break;
+  case SymbolLine::TYPE: visitor.visit(static_cast<const SymbolLine *>(line)); break;
   case RTypeIR::TYPE: visitor.visit(static_cast<const RTypeIR *>(line)); break;
   case ITypeIR::TYPE: visitor.visit(static_cast<const ITypeIR *>(line)); break;
   case STypeIR::TYPE: visitor.visit(static_cast<const STypeIR *>(line)); break;
