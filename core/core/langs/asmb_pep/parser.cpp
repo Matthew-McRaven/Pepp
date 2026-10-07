@@ -38,18 +38,42 @@ std::shared_ptr<pepp::core::symbol::LeafTable> pepp::tc::parser::PepParser::symb
 
 void pepp::tc::parser::PepParser::debug_print_tokens(bool debug) { _root_lexer->print_tokens = debug; }
 
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument_integer_helper() {
+  auto buf = active_buffer();
+  using Format = lex::Integer::Format;
+  int sign = 0;
+  // Commas separate arguments; any other operator must be a sign.
+  if (auto op = buf->peek<lex::Literal>(); op && op->literal != ",") {
+    if (op->literal != "+" && op->literal != "-")
+      throw PepParserError(PepParserError::NullaryError::Argument_InvalidOperator, buf->matched_interval());
+    sign = op->literal == "-" ? -1 : 1;
+    (void)buf->match<lex::Literal>();
+  }
+  auto integer = buf->match<lex::Integer>();
+  if (!integer) {
+    if (sign != 0)
+      throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
+    return nullptr;
+  }
+  if (sign != 0) {
+    // Only decimals may be signed.
+    if (integer->format != Format::UnsignedDec)
+      throw PepParserError(PepParserError::NullaryError::Argument_InvalidIntegerFormat, buf->matched_interval());
+    else if (sign < 0) return std::make_shared<pepp::ast::SignedDecimal>(-static_cast<i64>(integer->value), 2);
+    else return std::make_shared<pepp::ast::UnsignedDecimal>(integer->value, 2);
+  }
+  switch (integer->format) {
+  case Format::Hex: return std::make_shared<pepp::ast::Hexadecimal>(integer->value, 2);
+  case Format::UnsignedDec: return std::make_shared<pepp::ast::UnsignedDecimal>(integer->value, 2);
+  default: throw PepParserError(PepParserError::NullaryError::Argument_InvalidIntegerFormat, buf->matched_interval());
+  }
+}
+
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
   auto buf = active_buffer();
   lex::Checkpoint cp(*buf);
-  if (auto maybeInteger = buf->match<lex::Integer>(); maybeInteger) {
-    if (maybeInteger->format == lex::Integer::Format::SignedDec)
-      return std::make_shared<pepp::ast::SignedDecimal>(maybeInteger->value, 2);
-    else if (maybeInteger->format == lex::Integer::Format::Hex)
-      return std::make_shared<pepp::ast::Hexadecimal>(maybeInteger->value, 2);
-    else if (maybeInteger->format == lex::Integer::Format::UnsignedDec)
-      return std::make_shared<pepp::ast::UnsignedDecimal>(maybeInteger->value, 2);
-    else throw PepParserError(PepParserError::NullaryError::Argument_InvalidIntegerFormat, buf->matched_interval());
-  } else if (auto maybeIdent = buf->match<lex::Identifier>(); maybeIdent) {
+  if (auto integer = argument_integer_helper(); integer) return integer;
+  else if (auto maybeIdent = buf->match<lex::Identifier>(); maybeIdent) {
     auto entry = _symtab->reference(maybeIdent->to_string());
     return std::make_shared<pepp::ast::Symbolic>(2, entry);
   } else if (auto maybeChar = buf->match<lex::CharacterConstant>(); maybeChar) {

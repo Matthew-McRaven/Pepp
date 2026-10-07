@@ -10,6 +10,7 @@ pepp::tc::PepRecursionError::PepRecursionError(pepp::tc::support::LocationInterv
 const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   switch (err) {
   case NullaryError::Argument_InvalidIntegerFormat: return "Unrecognized integer format";
+  case NullaryError::Argument_InvalidOperator: return "Only + and - may prefix an integer";
   case NullaryError::Argument_Exceeded2Bytes: return "Argument must fit in two bytes";
   case NullaryError::Argument_Exceeded1Byte: return "Argument must fit in one byte";
   case NullaryError::Argument_Missing: return "Expected an argument";
