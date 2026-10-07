@@ -14,37 +14,32 @@ class Timer
     Clock::time_point _endTime;
 
 public:
-    Timer()
-    {
-        //	Set local to US for messaging and number formatting
-        std::locale::global(std::locale("en_US.UTF-8"));
+  Timer() {}
+
+  ~Timer() = default;
+
+  //	No copying
+  Timer(const Timer &) = delete;
+  Timer &operator=(const Timer &) = delete;
+  //	Moving OK
+  Timer(Timer &&) noexcept = default;
+  Timer &operator=(Timer &&) = default;
+
+  void start() { _startTime = steady_clock::now(); }
+  void finish() { _endTime = steady_clock::now(); }
+
+  Time duration() const {
+    //  Initialize with end value
+    auto temp{_endTime};
+
+    //	Calls during timing run get temporary end date
+    if (_isRunning) {
+      //	When running, use current time
+      temp = Clock::now();
     }
 
-    ~Timer() = default;
-
-    //	No copying
-    Timer(const Timer &) = delete;
-    Timer &operator=(const Timer &) = delete;
-    //	Moving OK
-    Timer(Timer &&) noexcept = default;
-    Timer &operator=(Timer &&) = default;
-
-    void start() { _startTime = steady_clock::now(); }
-    void finish() { _endTime = steady_clock::now(); }
-
-    Time duration() const
-    {
-        //  Initialize with end value
-        auto temp{_endTime};
-
-        //	Calls during timing run get temporary end date
-        if (_isRunning) {
-            //	When running, use current time
-            temp = Clock::now();
-        }
-
-        return duration_cast<Time>(temp - _startTime);
-    }
+    return duration_cast<Time>(temp - _startTime);
+  }
     //	Compute records per second
     double countPerSec(uint64_t rcds) const
     {
