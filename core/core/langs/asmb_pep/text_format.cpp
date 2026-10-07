@@ -365,8 +365,9 @@ void pepp::tc::SourceVisitor::visit(const CommentLine *line) {
 }
 
 void pepp::tc::SourceVisitor::visit(const SymbolLine *line) {
-  auto symbol = std::string{line->symbol.entry->name} + ":";
-  text = format_as_columns(symbol, "", "", "");
+  std::string comment = "";
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
+  text = format_as_columns(std::string{line->symbol.entry->name} + ":", "", "", comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const MonadicInstruction *line) {

@@ -17,6 +17,7 @@
 
 #include "core/langs/asmb_pep/text_format.hpp"
 #include <catch.hpp>
+#include <fmt/format.h>
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
@@ -523,4 +524,33 @@ ADDA 15,d ;hi)";
     CHECK(listing[1] == "     000000");
     CHECK(listing[2] == "     00");
   }
+}
+
+TEST_CASE("Pepp ASM symbol-only line formatting",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Parser = pepp::tc::parser::PepParser;
+  using MR = pepp::tc::MacroRegistry;
+  // Symbol-only lines (with and without a comment) before code with a trailing label.
+  static const auto txt = "a: ;hi\nb:\nLDWA 10,d\nend:";
+  pepp::tc::DiagnosticTable diag;
+  auto p = Parser(data(txt), std::make_shared<MR>());
+  auto r = p.parse(diag);
+  CHECK(diag.count() == 0);
+  REQUIRE(r.size() == 4);
+
+  const auto source = pepp::tc::format_source(r);
+  const std::vector<std::string> expected_source = {"a:" + std::string(27, ' ') + ";hi", "b:", "         LDWA    10,d",
+                                                    "end:"};
+  CHECK(source == expected_source);
+
+  auto code = pepp::tc::parser::flatten_macros(r);
+  auto result = pepp::tc::pepp_split_to_sections(diag, code);
+  CHECK(diag.count() == 0);
+  auto &sections = result.grouped_ir;
+  auto addresses = pepp::tc::pepp_assign_addresses(sections);
+  auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+  const auto bare = [](const std::string &text) { return fmt::format("{:12}{}", "", text); };
+  const std::vector<std::string> expected_listing = {bare(expected_source[0]), bare(expected_source[1]),
+                                                     "0000 C1000A " + expected_source[2], bare(expected_source[3])};
+  CHECK(pepp::tc::format_listing(sections[0].second, addresses, object_code) == expected_listing);
 }

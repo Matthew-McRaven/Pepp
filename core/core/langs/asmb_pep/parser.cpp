@@ -8,6 +8,7 @@
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/ir_value/text.hpp"
@@ -467,7 +468,13 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
         throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_TooLong, buf->matched_interval());
 
       auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
-      ret = line(diag, symbol_decl);
+      // Lookahead for a comment or newline, which would indicate that this is a symbol-only line.
+      // Symbol-only lines share a prefix with "normal" lines with symbols
+      if (auto maybe_comment = buf->match<tc::lex::InlineComment>();
+          symbol_decl && (buf->peek<tc::lex::Empty>() || maybe_comment)) {
+        ret = std::make_shared<SymbolLine>(SymbolDeclaration{symbol_decl.value()});
+        if (maybe_comment) ret->insert(std::make_unique<Comment>(*maybe_comment->value));
+      } else ret = line(diag, symbol_decl);
       if (!ret) {
         auto next = buf->peek();
         throw PepParserError(PepParserError::UnaryError::Token_Invalid, next->repr(), buf->matched_interval());
