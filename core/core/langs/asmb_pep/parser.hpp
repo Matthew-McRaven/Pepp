@@ -13,15 +13,18 @@
 #include "core/langs/asmb/ir_program.hpp"
 
 /*
- * N= { <argument>, <instruction>, <line>, <pseudo>, <statement> }
- * T= { HEX, DECICMAL, COMMA, EMPTY, IDENTIFIER, SYMBOL, DOT}
+ * N= { <argument>, <expr_arg>, <expression>, <instruction>, <line>, <pseudo>, <statement> }
+ * T= { HEX, DECICMAL, COMMA, EMPTY, IDENTIFIER, SYMBOL, DOT, PLUS, MINUS}
  * P= the productions
- *   1. <argument> -> HEX | DECICMAL | IDENTIFIER | STRING | CHAR
- *   2. <instruction> -> IDENTIFIER [<argument> [COMMA IDENTIFIER]]
- *   3. <pseudo> -> DOT <argument>
- *   4. <macro> - > MACRO <argument> (COMMA ARGUMENT)*
- *   5. <line> -> (<pseudo> | <instruction> | <macro>) [COMMENT]
- *   6. <statement> → [SYMBOL] [COMMENT | <line>] EMPTY
+ *   1. <argument> -> <integer> | IDENTIFIER | STRING | CHAR
+ *   2  <expr_arg> -> <integer> | IDENTIFIER
+ *      <integer> -> HEX | DECIMAL | (PLUS | MINUS) DECIMAL
+ *   3. <expression> -> <expr_arg> (PLUS | MINUS) expr_arg
+ *   4. <instruction> -> IDENTIFIER [(<expression> | <argument>) [COMMA IDENTIFIER]]
+ *   5. <pseudo> -> DOT <argument>
+ *   6. <macro> - > MACRO <argument> (COMMA ARGUMENT)*
+ *   7. <line> -> (<pseudo> | <instruction> | <macro>) [COMMENT]
+ *   8. <statement> -> [SYMBOL] [COMMENT | <line>] EMPTY
  * S= <statement>
  */
 namespace pepp {
@@ -50,6 +53,9 @@ private:
   // type does not match.
   std::shared_ptr<pepp::ast::IRValue> argument_integer_helper();
   std::shared_ptr<pepp::ast::IRValue> argument();
+  std::shared_ptr<pepp::ast::IRValue> expr_argument();
+  std::shared_ptr<pepp::ast::IRValue> expression();
+  std::shared_ptr<pepp::ast::IRValue> expression_or_argument();
   std::shared_ptr<pepp::ast::IRValue> numeric_argument();
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();

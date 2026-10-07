@@ -554,3 +554,43 @@ TEST_CASE("Pepp ASM symbol-only line formatting",
                                                      "0000 C1000A " + expected_source[2], bare(expected_source[3])};
   CHECK(pepp::tc::format_listing(sections[0].second, addresses, object_code) == expected_listing);
 }
+
+TEST_CASE("Pepp ASM symbol + value operands", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
+  using Parser = pepp::tc::parser::PepParser;
+  using MR = pepp::tc::MacroRegistry;
+  static const auto txt = "LDWA msg+2,d\n"      // 0x0000, forward reference to a label, unspaced
+                          "ADDA 0x0F + 1,i\n"   // 0x0003, hex + decimal, spaced
+                          "BR end\n"            // 0x0006, plain symbol operands still work
+                          "msg: .BLOCK 4\n"     // 0x0009
+                          "end: NOTA\n"         // 0x000D
+                          "val: .EQUATE 10 + 5\n"
+                          "LDWA val+1,i";        // 0x000E, constant symbol + value
+  pepp::tc::DiagnosticTable diag;
+  auto p = Parser(data(txt), std::make_shared<MR>());
+  auto r = p.parse(diag);
+  CHECK(diag.count() == 0);
+  REQUIRE(r.size() == 7);
+  auto code = pepp::tc::parser::flatten_macros(r);
+  auto result = pepp::tc::pepp_split_to_sections(diag, code);
+  CHECK(diag.count() == 0);
+  auto &sections = result.grouped_ir;
+  auto addresses = pepp::tc::pepp_assign_addresses(sections);
+  auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+
+  // Expressions format with spaces around the operator, and each row shows the bytes that were generated.
+  const auto row = [](u16 address, const char *bytes, const char *source) {
+    return fmt::format("{:04X} {:<6} {}", address, bytes, source);
+  };
+  const std::vector<std::string> expected = {
+      row(0x0, "C1000B", "         LDWA    msg + 2,d"),
+      row(0x3, "500010", "         ADDA    0x000F + 1,i"),
+      row(0x6, "24000D", "         BR      end"),
+      row(0x9, "000000", "msg:     .BLOCK  4"),
+      "     00",
+      row(0xD, "1E", "end:     NOTA"),
+      fmt::format("{:12}{}", "", "val:     .EQUATE 10 + 5"), // Generates no bytes and has no address.
+      row(0xE, "C00010", "         LDWA    val + 1,i"),
+  };
+  CHECK(pepp::tc::format_listing(sections[0].second, addresses, object_code) == expected);
+}
+
