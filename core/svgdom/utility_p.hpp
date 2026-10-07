@@ -76,10 +76,7 @@ struct SvgUnitValue
     SvgUnits::SvgUnit unit = SvgUnits::SvgUnit::None;
 
     SvgUnitValue() {}
-    SvgUnitValue(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None)
-        : value(v)
-        , unit(u)
-    {}
+    explicit SvgUnitValue(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None) : value(v), unit(u) {}
 
     void set(const double v, const SvgUnits::SvgUnit u)
     {
@@ -147,13 +144,13 @@ public:
     bool empty() const { return _width.value <= 0 || _height.value <= 0; }
 
     //  Values can be changed, but not units of measure (yet)
-    SvgUnitValue x() const { return _x.value; }
+    SvgUnitValue x() const { return _x; }
     void setX(double x = 0) { _x.value = x; }
     void setX(const std::string_view sv) { _x.fromString(sv); }
-    SvgUnitValue y() const { return _y.value; }
+    SvgUnitValue y() const { return _y; }
     void setY(double y = 0) { _y.value = y; }
     void setY(const std::string_view sv) { _y.fromString(sv); }
-    SvgUnitValue width() const { return _width.value; }
+    SvgUnitValue width() const { return _width; }
     void setWidth(double width = 0) { _width.value = std::max(width, 0.0); }
     void setWidth(const std::string_view sv) { _width.fromString(sv); }
     SvgUnitValue height() const { return _height; }

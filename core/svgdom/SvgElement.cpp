@@ -147,10 +147,7 @@ void SvgElement::setDesc(const std::string &desc)
 }
 
 //  Dimension accessors
-SvgUnitValue SvgElement::x() const
-{
-    return _x.value;
-}
+SvgUnitValue SvgElement::x() const { return _x; }
 void SvgElement::setX(double x)
 {
     _x.value = x;
@@ -159,10 +156,7 @@ void SvgElement::setX(const std::string_view sv)
 {
     _x.fromString(sv);
 }
-SvgUnitValue SvgElement::y() const
-{
-    return _y.value;
-}
+SvgUnitValue SvgElement::y() const { return _y; }
 void SvgElement::setY(double y)
 {
     _y.value = y;
@@ -171,10 +165,7 @@ void SvgElement::setY(const std::string_view sv)
 {
     _y.fromString(sv);
 }
-SvgUnitValue SvgElement::width() const
-{
-    return _width.value;
-}
+SvgUnitValue SvgElement::width() const { return _width; }
 void SvgElement::setWidth(double width)
 {
     _width.value = std::max(width, 0.0);
