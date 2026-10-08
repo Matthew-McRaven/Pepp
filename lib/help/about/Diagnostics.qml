@@ -18,6 +18,7 @@ ColumnLayout {
     }
     TextArea {
         id: area
+        Layout.fillWidth: true
         textFormat: TextEdit.RichText
         onLinkActivated: link => {
             Qt.openUrlExternally(link);
