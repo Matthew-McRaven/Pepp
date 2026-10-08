@@ -26,14 +26,14 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
-ARG QT_MINOR="11"
+ARG QT_MINOR="12"
 ARG QT_PATCH="0"
 # major/minor
 ARG QT_RELEASE="6.${QT_MINOR}"
 # major/minor/patch
 ARG QT_VERSION="6.${QT_MINOR}.${QT_PATCH}"
 # Depends on major/minor
-ARG EMSDK_VERSION="4.0.7"
+ARG EMSDK_VERSION="5.0.5"
 # Don't cache pip internal files, reduce image size.
 ENV PIP_NO_CACHE_DIR=1
 SHELL ["/bin/bash", "-c"]
@@ -43,7 +43,7 @@ LABEL org.opencontainers.image.source="https://github.com/Matthew-McRaven/Pepp"
 FROM base-gcc AS build-gcc-riscv
 ENV RISCV=/opt/riscv
 ENV PATH=$PATH:$RISCV/bin
-ARG TOOLCHAIN_VERSION=2026.01.23
+ARG TOOLCHAIN_VERSION=2026.08.27
 RUN apt update \
     && apt-get install -y --no-install-recommends autoconf automake autotools-dev \
         curl python3 python3-pip python3-tomli libmpc-dev libmpfr-dev \
@@ -149,7 +149,7 @@ ENV QT_PLUGIN_PATH=/qt/${QT_VERSION}/gcc_64/plugins
 ENV QML2_IMPORT_PATH=/qt/${QT_VERSION}/gcc_64/qml
 ENV PATH=/qt/${QT_VERSION}/gcc_64/bin/:$PATH
 # Install mold, so that we can reduce link times
-ARG MOLD_VERSION="2.40.4"
+ARG MOLD_VERSION="2.42.1"
 RUN --mount=type=tmpfs,target=/mold,size=2G \
     cd mold \
     && wget -q -O mold.tar.gz "https://github.com/rui314/mold/releases/download/v$MOLD_VERSION/mold-$MOLD_VERSION-$(arch)-linux.tar.gz" \
