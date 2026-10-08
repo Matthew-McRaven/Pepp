@@ -35,6 +35,12 @@ ColumnLayout {
             tgt.push(`Machine ABI: ${Version.target_abi}`);
             tgt.push(`Machine Graphics API: ${Version.target_graphics_api}`);
             tgt.push(`Machine Qt Platform: ${Version.target_qt_platform}`);
+            tgt.push(`Machine Pixel Ratio: ${Version.target_pixel_ratio}`);
+            tgt.push(`Machine Screen Size: ${Version.target_screen_size}`);
+            if (PlatformDetector.isWASM) {
+                tgt.push(`Browser User Agent: ${Version.target_user_agent}`);
+                tgt.push(`Browser Cross-Origin Isolated: ${Version.target_cross_origin_isolated}`);
+            }
 
             // Details of the machine on which this application was built
             const build_1 = `Build date: ${Version.build_timestamp}`;

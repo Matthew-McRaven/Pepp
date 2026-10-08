@@ -15,10 +15,14 @@
  */
 
 #include "./version.hpp"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
+#include <QScreen>
 #include <QStringLiteral>
 
 about::Version::Version(QObject *parent) : QObject(parent) {}
@@ -104,3 +108,31 @@ QString about::Version::target_graphics_api() {
 }
 
 QString about::Version::target_qt_platform() { return QGuiApplication::platformName(); }
+
+QString about::Version::target_user_agent() {
+#ifdef __EMSCRIPTEN__
+  return QString::fromUtf8(emscripten_run_script_string("navigator.userAgent"));
+#else
+  return QStringLiteral("Unknown");
+#endif
+}
+
+QString about::Version::target_cross_origin_isolated() {
+#ifdef __EMSCRIPTEN__
+  return emscripten_run_script_int("self.crossOriginIsolated ? 1 : 0") ? "true" : "false";
+#else
+  return QStringLiteral("Unknown");
+#endif
+}
+
+QString about::Version::target_pixel_ratio() {
+  const auto *screen = QGuiApplication::primaryScreen();
+  return screen ? QString::number(screen->devicePixelRatio()) : QStringLiteral("Unknown");
+}
+
+QString about::Version::target_screen_size() {
+  const auto *screen = QGuiApplication::primaryScreen();
+  if (!screen) return QStringLiteral("Unknown");
+  const auto size = screen->size();
+  return QStringLiteral("%1x%2").arg(size.width()).arg(size.height());
+}

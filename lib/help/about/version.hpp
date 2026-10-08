@@ -53,6 +53,10 @@ class Version : public QObject {
   Q_PROPERTY(QString target_abi READ target_abi CONSTANT)
   Q_PROPERTY(QString target_graphics_api READ target_graphics_api CONSTANT)
   Q_PROPERTY(QString target_qt_platform READ target_qt_platform CONSTANT)
+  Q_PROPERTY(QString target_user_agent READ target_user_agent CONSTANT)
+  Q_PROPERTY(QString target_cross_origin_isolated READ target_cross_origin_isolated CONSTANT)
+  Q_PROPERTY(QString target_pixel_ratio READ target_pixel_ratio CONSTANT)
+  Q_PROPERTY(QString target_screen_size READ target_screen_size CONSTANT)
   // Properties of our dependencies
   Q_PROPERTY(QString qt_version READ qt_version CONSTANT)
   Q_PROPERTY(QString qt_debug READ qt_debug CONSTANT)
@@ -82,6 +86,11 @@ public:
   static QString target_abi();
   static QString target_graphics_api();
   static QString target_qt_platform();
+  // Browser-only; "Unknown" elsewhere.
+  static QString target_user_agent();
+  static QString target_cross_origin_isolated();
+  static QString target_pixel_ratio();
+  static QString target_screen_size();
 
   static QString qt_version();
   static QString qt_debug();
