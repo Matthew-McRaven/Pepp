@@ -145,6 +145,7 @@ void write_relocations(PackedGrowableElfFile<B, E> &elf,
         const word<B> base = elf.section_headers[entry.section_index].sh_addr;
         addend = static_cast<sword<B>>(value_of(entry) - base);
       }
+      addend += static_cast<sword<B>>(rel.addend); // From `symbol + constant`.
       writer.add_rela(rel.section_offset, rel.type, symbol, addend);
     }
   }

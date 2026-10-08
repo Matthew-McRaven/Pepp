@@ -35,6 +35,10 @@ public:
     swap(first._rhs, second._rhs);
   }
 
+  Op op() const noexcept { return _op; }
+  const std::shared_ptr<IRValue> &lhs() const noexcept { return _lhs; }
+  const std::shared_ptr<IRValue> &rhs() const noexcept { return _rhs; }
+
   u64 serialized_size() const noexcept override;
   u64 minimum_size() const noexcept override;
   [[nodiscard]] u32 serialize(bits::span<u8> dest, bits::Order destEndian = bits::Order::BigEndian,

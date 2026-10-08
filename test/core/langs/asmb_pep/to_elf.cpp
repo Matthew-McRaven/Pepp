@@ -396,6 +396,57 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
                             {6, ".text", bits::to_underlying(R_PEP10_ABS8), 1},
                             {9, ".data", bits::to_underlying(R_PEP10_ABS16), 2}});
   }
+  SECTION("relocations with symbol + constant") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(
+			c:.EQUATE 5
+			.BLOCK 1
+			l:.WORD 0
+			LDWA l+3,d
+			LDWA 2 + u,d
+			LDWA c+1,i
+			LDWA u + -2,d
+)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count() == 0);
+
+    auto symbol_tab = p.symbol_table();
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf = read_back(elf_result);
+    const auto symbols = symbols_of(elf);
+
+    using enum pepp::bts::RelocationsPep;
+    // The constant is added to the addend ELF derives for the symbol: l is 1 past its section symbol. The constant c
+    // never moves, so c+1 is not relocated; its sum is simply stored.
+    CHECK(relocations_of(elf, ".rela.text", symbols) ==
+          std::vector<Rela>{{4, ".text", bits::to_underlying(R_PEP10_ABS16), 1 + 3},
+                            {7, "u", bits::to_underlying(R_PEP10_ABS16), 2},
+                            {13, "u", bits::to_underlying(R_PEP10_ABS16), -2}});
+    const auto *text = elf.sections[".text"]->get_data();
+    CHECK(static_cast<u8>(text[9]) == 0xC0); // LDWA c+1,i
+    CHECK(static_cast<u8>(text[10]) == 0x00);
+    CHECK(static_cast<u8>(text[11]) == 0x06);
+  }
+  SECTION("operands referencing symbols must be symbol [+ constant]") {
+    const auto diagnostics = [&](const char *source) {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(source), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      REQUIRE(diag.count() == 0);
+      auto code = pepp::tc::parser::flatten_macros(results);
+      (void)pepp::tc::pepp_split_to_sections(diag, code);
+      return diag.count();
+    };
+    CHECK(diagnostics("a:.BLOCK 1\nLDWA a,d\nLDWA a + 1,d\nLDWA 1 + a,d\nLDWA 1 + 2,d") == 0);
+    CHECK(diagnostics("a:.BLOCK 1\nb:.BLOCK 1\nLDWA a + b,d") == 1);
+  }
 }
 
 TEST_CASE("Pepp ASM segments derive from sections",
