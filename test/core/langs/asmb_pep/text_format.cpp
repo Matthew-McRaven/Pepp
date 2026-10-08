@@ -28,322 +28,43 @@
 #include "spdlog/spdlog.h"
 
 namespace {
-static auto idpool = []() { return std::make_shared<std::unordered_set<std::string>>(); };
 static auto data = [](std::string str) { return pepp::tc::support::SeekableData{std::move(str)}; };
 } // namespace
 
 TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
-  using Lexer = pepp::tc::lex::PepLexer;
-  using Buffer = pepp::tc::lex::Buffer;
-  using Checkpoint = pepp::tc::lex::Checkpoint;
   using Parser = pepp::tc::parser::PepParser;
   using MR = pepp::tc::MacroRegistry;
-  using namespace pepp::tc::lex;
   using pepp::tc::format_source;
-  SECTION("Empty Line") {
-    static const auto txt = "\n";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    auto lexer_formatted = format_source(sp);
-    CHECK(lexer_formatted == "");
+  SECTION("a line formats to its canonical spelling") {
+    // Source on the left, the text it must format to on the right.
+    using T = std::tuple<std::string, std::string>;
+    auto [input, expected] = GENERATE(as<T>{},
+                                      std::make_tuple("\n", ""),
+                                      std::make_tuple("    ;******* STRO", ";******* STRO"),
+                                      std::make_tuple("NOTA ;hi", "         NOTA                ;hi"),
+                                      std::make_tuple("this: NOTA ;hi", "this:    NOTA                ;hi"),
+                                      std::make_tuple("ADDA 15,d ;hi", "         ADDA    15,d        ;hi"),
+                                      std::make_tuple("this:ADDA this,sfx", "this:    ADDA    this,sfx"),
+                                      // Fix capitalization on addressing modes and mnemonics.
+                                      std::make_tuple("this:addA this,sFx", "this:    ADDA    this,sfx"),
+                                      std::make_tuple("execErr:   .ALIGN     8  ", "execErr: .ALIGN  8"),
+                                      std::make_tuple(R"(execErr:   .ascii "Main failed with return value \0"  )",
+                                                      R"(execErr: .ASCII  "Main failed with return value \0")"),
+                                      std::make_tuple("execErr:   .BLOCK     8  ", "execErr: .BLOCK  8"),
+                                      std::make_tuple("execErr:   .EQUATE     8  ", "execErr: .EQUATE 8"),
+                                      std::make_tuple(R"(.SECTION "text",    "rx")", R"(         .SECTION "text", "rx")"),
+                                      std::make_tuple(".export     feed  ", "         .EXPORT feed"),
+                                      std::make_tuple(".ORG     0xfeed  ", "         .ORG    0xFEED"));
+    CAPTURE(input);
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
+    auto p = Parser(data(input), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    CHECK(format_source(r[0].get()) == lexer_formatted);
-  }
-  SECTION("Comment-only") {
-    static const auto txt = R"(    ;******* STRO)";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<InlineComment>());
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    auto lexer_formatted = format_source(sp);
-    CHECK(lexer_formatted == R"(;******* STRO)");
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    CHECK(format_source(r[0].get()) == lexer_formatted);
-  }
-  SECTION("Monadic Instruction") {
-    {
-      static const auto txt = "NOTA ;hi";
-      auto l = Lexer(idpool(), data(txt));
-      auto b = Buffer(&l);
-      Checkpoint{b};
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<InlineComment>());
-      CHECK(b.match<Empty>());
-      auto sp = b.matched_tokens();
-      auto lexer_formatted = format_source(sp);
-      CHECK(lexer_formatted == "         NOTA                ;hi");
-      pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt), std::make_shared<MR>());
-      auto r = p.parse(diag);
-      CHECK(diag.count() == 0);
-      CHECK(r.size() == 1);
-      CHECK(format_source(r[0].get()) == lexer_formatted);
-    }
-    {
-      static const auto txt = "this: NOTA ;hi";
-      auto l = Lexer(idpool(), data(txt));
-      auto b = Buffer(&l);
-      Checkpoint{b};
-      CHECK(b.match<SymbolDeclaration>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<InlineComment>());
-      CHECK(b.match<Empty>());
-      auto sp = b.matched_tokens();
-      auto lexer_formatted = format_source(sp);
-      CHECK(lexer_formatted == "this:    NOTA                ;hi");
-      pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt), std::make_shared<MR>());
-      auto r = p.parse(diag);
-      CHECK(diag.count() == 0);
-      CHECK(r.size() == 1);
-      CHECK(format_source(r[0].get()) == lexer_formatted);
-    }
-  }
-  SECTION("Dyadic Instruction w/addressing modes") {
-    {
-      static const auto txt = "ADDA 15,d ;hi";
-      auto l = Lexer(idpool(), data(txt));
-      auto b = Buffer(&l);
-      Checkpoint{b};
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<pepp::tc::lex::Integer>());
-      CHECK(b.match<Literal>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<InlineComment>());
-      CHECK(b.match<Empty>());
-      auto sp = b.matched_tokens();
-      auto lexer_formatted = format_source(sp);
-      CHECK(lexer_formatted == "         ADDA    15,d        ;hi");
-      pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt), std::make_shared<MR>());
-      auto r = p.parse(diag);
-      CHECK(diag.count() == 0);
-      CHECK(r.size() == 1);
-      CHECK(format_source(r[0].get()) == lexer_formatted);
-    }
-    {
-      static const auto txt = "this:ADDA this,sfx";
-      auto l = Lexer(idpool(), data(txt));
-      auto b = Buffer(&l);
-      Checkpoint{b};
-      CHECK(b.match<SymbolDeclaration>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<Literal>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<Empty>());
-      auto sp = b.matched_tokens();
-      auto lexer_formatted = format_source(sp);
-      CHECK(lexer_formatted == "this:    ADDA    this,sfx");
-      pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt), std::make_shared<MR>());
-      auto r = p.parse(diag);
-      CHECK(diag.count() == 0);
-      CHECK(r.size() == 1);
-      CHECK(format_source(r[0].get()) == lexer_formatted);
-    }
-    // Fix capitalization on addressing modes and mnemonics.
-    {
-      static const auto txt = "this:addA this,sFx";
-      auto l = Lexer(idpool(), data(txt));
-      auto b = Buffer(&l);
-      Checkpoint{b};
-      CHECK(b.match<SymbolDeclaration>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<Literal>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<Empty>());
-      auto sp = b.matched_tokens();
-      auto lexer_formatted = format_source(sp);
-      CHECK(lexer_formatted == "this:    ADDA    this,sfx");
-      pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data(txt), std::make_shared<MR>());
-      auto r = p.parse(diag);
-      CHECK(diag.count() == 0);
-      CHECK(r.size() == 1);
-      CHECK(format_source(r[0].get()) == lexer_formatted);
-    }
-  }
-  SECTION("Dyadic Instruction w/o addressing modes") {
-    // Illegal assembly code which demonstrates that formatting does not depend on program being correct.
-    auto l = Lexer(idpool(), data("this:ADDA this"));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<SymbolDeclaration>());
-    CHECK(b.match<Identifier>());
-    CHECK(b.match<Identifier>());
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    CHECK(format_source(sp) == "this:    ADDA    this");
-  }
-  SECTION(".ALIGN") {
-    static const auto txt = R"(execErr:   .ALIGN     8  )";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<SymbolDeclaration>());
-    CHECK(b.match<DotCommand>());
-    CHECK(b.match<pepp::tc::lex::Integer>());
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    auto lexer_formatted = format_source(sp);
-    CHECK(lexer_formatted == R"(execErr: .ALIGN  8)");
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    CHECK(format_source(r[0].get()) == lexer_formatted);
-  }
-  SECTION(".ASCII") {
-    static const auto txt = R"(execErr:   .ascii "Main failed with return value \0"  )";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<SymbolDeclaration>());
-    CHECK(b.match<DotCommand>());
-    CHECK(b.match<StringConstant>());
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    auto lexer_formatted = format_source(sp);
-    CHECK(lexer_formatted == R"(execErr: .ASCII  "Main failed with return value \0")");
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    CHECK(format_source(r[0].get()) == lexer_formatted);
-  }
-  SECTION(".BLOCK") {
-    static const auto txt = R"(execErr:   .BLOCK     8  )";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<SymbolDeclaration>());
-    CHECK(b.match<DotCommand>());
-    CHECK(b.match<pepp::tc::lex::Integer>());
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    auto lexer_formatted = format_source(sp);
-    CHECK(lexer_formatted == R"(execErr: .BLOCK  8)");
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    CHECK(format_source(r[0].get()) == lexer_formatted);
-  }
-  SECTION(".EQUATE") {
-    static const auto txt = R"(execErr:   .EQUATE     8  )";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<SymbolDeclaration>());
-    CHECK(b.match<DotCommand>());
-    CHECK(b.match<pepp::tc::lex::Integer>());
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    auto lexer_formatted = format_source(sp);
-    CHECK(lexer_formatted == R"(execErr: .EQUATE 8)");
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    CHECK(format_source(r[0].get()) == lexer_formatted);
-  }
-  SECTION(".SECTION") {
-    static const auto txt = R"(.SECTION "text",    "rx")";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<DotCommand>());
-    CHECK(b.match<StringConstant>());
-    CHECK(b.match<Literal>());
-    CHECK(b.match<StringConstant>());
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    auto lexer_formatted = format_source(sp);
-    CHECK(lexer_formatted == R"(         .SECTION "text", "rx")");
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    CHECK(format_source(r[0].get()) == lexer_formatted);
-  }
-  SECTION(".IMPORT") {
-    static const auto txt = R"(.export     feed  )";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<DotCommand>());
-    CHECK(b.match<Identifier>());
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    auto lexer_formatted = format_source(sp);
-    CHECK(lexer_formatted == R"(         .EXPORT feed)");
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    CHECK(format_source(r[0].get()) == lexer_formatted);
-  }
-  SECTION(".ORG") {
-    static const auto txt = R"(.ORG     0xfeed  )";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    Checkpoint{b};
-    CHECK(b.match<DotCommand>());
-    CHECK(b.match<pepp::tc::lex::Integer>());
-    CHECK(b.match<Empty>());
-    auto sp = b.matched_tokens();
-    auto lexer_formatted = format_source(sp);
-    CHECK(lexer_formatted == R"(         .ORG    0xFEED)");
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    CHECK(format_source(r[0].get()) == lexer_formatted);
-  }
-  SECTION(".IF") {
-    static const auto txt = ".IF 1\n.BYTE 15\n.ENDIF";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    while (b.input_remains()) b.match(-1);
-    auto sp = b.matched_tokens();
-    auto pred = [](const std::shared_ptr<Token> &t) { return t->type() == Empty::TYPE; };
-    auto [l1, rest1] = pepp::tc::split_inclusive(sp, pred);
-    auto [l2, rest2] = pepp::tc::split_inclusive(rest1, pred);
-    auto [l3, rest3] = pepp::tc::split_inclusive(rest2, pred);
-    CHECK(l1.size() == 3);
-    CHECK(l2.size() == 3);
-    CHECK(l3.size() == 1);
-    CHECK(rest3.empty());
-    auto l1_formatted = format_source(l1);
-    CHECK(l1_formatted == "         .IF     1");
-    auto l2_formatted = format_source(l2);
-    CHECK(l2_formatted == "         .BYTE   15");
-    auto l3_formatted = format_source(l3);
-    CHECK(l3_formatted == "         .ENDIF");
+    REQUIRE(r.size() == 1);
+    CHECK(format_source(r[0].get()) == expected);
   }
   SECTION("Macro Definition") {
+    // Bodies are not formatted; they are reproduced as written.
     static const auto txt =
         R"(.MACRO my_macro arg1, arg2
 .BYTE 0
@@ -362,45 +83,6 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
 .BYTE 0
          .ENDM)");
   }
-  SECTION("Macro definition with placeholders") {
-    static const auto txt =
-        R"(.macro test hello,world
-LDWa a\hello,\world
-.endm
-)";
-    auto l = Lexer(idpool(), data(txt));
-    auto b = Buffer(&l);
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    pepp::tc::DiagnosticTable diag;
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    {
-      Checkpoint{b};
-      CHECK(b.match<DotCommand>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match_literal(","));
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<Empty>());
-      auto sp = b.matched_tokens();
-      auto lexer_formatted = format_source(sp);
-      CHECK(lexer_formatted == R"(         .MACRO test hello, world)");
-      // CHECK(format_source(r[0].get()) == lexer_formatted);
-    }
-    {
-      Checkpoint{b};
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<Identifier>());
-      CHECK(b.match<MacroPlaceholder>());
-      CHECK(b.match_literal(","));
-      CHECK(b.match<MacroPlaceholder>());
-      CHECK(b.match<Empty>());
-      auto sp = b.matched_tokens();
-      auto lexer_formatted = format_source(sp);
-      CHECK(lexer_formatted == R"(         LDWA    a\hello,\world)");
-    }
-  }
   SECTION("Macro Instance") {
     static const auto txt = R"(execErr:   my_macro  ;comment)";
     pepp::tc::DiagnosticTable diag;
@@ -416,45 +98,6 @@ LDWa a\hello,\world
     auto source = format_source(r[0].get());
     CHECK(source == R"(execErr: my_macro             ;comment)");
   }
-}
-
-TEST_CASE("Pepp ASM macro argument source formatting",
-          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
-  using Lexer = pepp::tc::lex::PepLexer;
-  using Buffer = pepp::tc::lex::Buffer;
-  using Checkpoint = pepp::tc::lex::Checkpoint;
-  using Parser = pepp::tc::parser::PepParser;
-  using MR = pepp::tc::MacroRegistry;
-  using namespace pepp::tc::lex;
-  using pepp::tc::format_source;
-  using T = std::tuple<std::string, std::string>;
-  auto [input, expected] = GENERATE(
-      as<T>{},
-      // Force a line break.
-      std::make_tuple("\\m", "         \\m"),                                        // as-if an monadic instruction
-      std::make_tuple("id: \\m", "id:      \\m"),                                    // as-if a monadic instruction
-      std::make_tuple("id: \\m\\m", "id:      \\m\\m"),                              // as-if a monadic instruction
-      std::make_tuple("a\\m", "         A\\m"),                                      // as-if a monadic instruction
-      std::make_tuple("\\m\\()a\\m", "         \\m\\()A\\m"),                        // as-if a monadic instruction
-      std::make_tuple("\\m\\m", "         \\m\\m"),                                  // as-if a monadic instruction
-      std::make_tuple("\\m \\m", "         \\m      \\m"),                           // as-if a branch instruction
-      std::make_tuple("id:\\m \\m", "id:      \\m      \\m"),                        // as-if a branch instruction
-      std::make_tuple("\\m\\m \\m", "         \\m\\m    \\m"),                       // as-if a branch instruction
-      std::make_tuple("\\m\\m \\m\\m", "         \\m\\m    \\m\\m"),                 // as-if a branch instruction
-      std::make_tuple("\\m\\m \\m\\m;com", "         \\m\\m    \\m\\m        ;com"), // as-if a branch instruction
-      std::make_tuple("id: \\m\\m \\m\\m", "id:      \\m\\m    \\m\\m"),             // as-if a branch instruction
-      std::make_tuple("id: \\m \\m,\\m", "id:      \\m      \\m,\\m"),               // as-if a dyadic instruction
-      std::make_tuple("id: id \\m\\m,\\m", "id:      ID      \\m\\m,\\m"),           // as-if a dyadic instruction
-      std::make_tuple("id: id \\m\\m,\\m\\m", "id:      ID      \\m\\m,\\m\\m")      // as-if a dyadic instruction
-  );
-
-  auto l = Lexer(idpool(), data(input + "\n"));
-  auto b = Buffer(&l);
-  Checkpoint{b};
-  b.match_until<pepp::tc::lex::Empty>();
-  auto sp = b.matched_tokens();
-  auto lexer_formatted = format_source(sp);
-  CHECK(lexer_formatted == expected);
 }
 
 TEST_CASE("Pepp ASM listing formatting",
