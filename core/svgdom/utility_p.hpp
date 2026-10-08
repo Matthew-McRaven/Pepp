@@ -13,38 +13,29 @@ using namespace std::string_literals;
 
 struct SvgUnits
 {
-    enum class SvgUnit {
-        None = 0,
-        cm = 1, // Centimeters
-        mm,     // Millimeters
-        Q,      // Quarter-Millimeters
-        in,     // Inches
-        pc,     // Pica
-        pt,     // Points
-        pct,    // %
-        px,     // Pixels
-    };
-    static SvgUnit fromString(const std::string &value)
-    {
-        if (value == "cm"s)
-            return SvgUnit::cm;
-        if (value == "mm"s)
-            return SvgUnit::mm;
-        if (value == "Q"s)
-            return SvgUnit::Q;
-        if (value == "in"s)
-            return SvgUnit::in;
-        if (value == "pc"s)
-            return SvgUnit::pc;
-        if (value == "%"s)
-            return SvgUnit::pct;
-        if (value == "pt"s)
-            return SvgUnit::pt;
-        if (value == "px"s)
-            return SvgUnit::px;
+  enum class SvgUnit {
+    None = 0,
+    cm,  // Centimeters
+    mm,  // Millimeters
+    Q,   // Quarter-Millimeters
+    in,  // Inches
+    pc,  // Pica
+    pt,  // Points
+    pct, // %
+    px,  // Pixels
+  };
+  static SvgUnit fromString(const std::string &value) {
+    if (value == "cm"s) return SvgUnit::cm;
+    if (value == "mm"s) return SvgUnit::mm;
+    if (value == "Q"s) return SvgUnit::Q;
+    if (value == "in"s) return SvgUnit::in;
+    if (value == "pc"s) return SvgUnit::pc;
+    if (value == "%"s) return SvgUnit::pct;
+    if (value == "pt"s) return SvgUnit::pt;
+    if (value == "px"s) return SvgUnit::px;
 
-        return SvgUnit::None;
-    }
+    return SvgUnit::None;
+  }
 
     static const std::string toString(SvgUnit v)
     {
@@ -65,6 +56,7 @@ struct SvgUnits
             return "pt"s;
         case SvgUnit::px:
             return "px"s;
+        default: return ""s;
         }
         return "";
     }
@@ -214,4 +206,50 @@ public:
         _rope.push_back(value);
         _size += value.size();
     }
+};
+
+class SvgList {
+  std::list<std::string> _classes;
+
+public:
+  size_t size() const noexcept { return _classes.size(); }
+  bool empty() const { return _classes.empty(); }
+
+  void add(const std::string &value) {
+    //  Duplicates not allowed
+    if (!contains(value)) _classes.push_back(value);
+  }
+
+  void remove(const std::string &value) {
+    std::erase_if(_classes, [value](std::string &v) { return v == value; });
+  }
+
+  bool contains(const std::string &value) {
+    auto it = std::find(_classes.begin(), _classes.end(), value);
+    return (it != _classes.end());
+  }
+
+  bool toggle(const std::string &value) {
+    auto it = std::find(_classes.begin(), _classes.end(), value);
+
+    if (contains(value)) {
+      remove(value);
+      return false;
+    } else add(value);
+
+    return true;
+  }
+  const std::string toString() const {
+    std::string buffer;
+
+    bool first = true;
+
+    for (const auto &name : _classes) {
+      if (first) first = false;
+      else buffer += " "s;
+
+      buffer += name;
+    }
+    return std::move(buffer);
+  }
 };
