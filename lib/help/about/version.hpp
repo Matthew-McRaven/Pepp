@@ -34,12 +34,8 @@ int g_MINOR_VERSION();
 int g_PATCH_VERSION();
 bool g_GIT_LOCAL_CHANGES();
 
-QStringList diagnostics();
-
 class Version : public QObject {
   Q_OBJECT
-  // Full diagnostic string, meant for ease of copying.
-  Q_PROPERTY(QString diagnostic_str READ diagnostic_str CONSTANT)
   // Properties of pepp
   Q_PROPERTY(QString git_sha READ git_sha CONSTANT)
   Q_PROPERTY(QString git_tag READ git_tag CONSTANT)
@@ -70,8 +66,7 @@ class Version : public QObject {
 public:
   explicit Version(QObject *parent = nullptr);
   ~Version() override = default;
-  static QString diagnostic_str();
-  Q_INVOKABLE static void copy_diagnostics_to_clipboard();
+  Q_INVOKABLE static void copy_diagnostics_to_clipboard(const QString &text);
 
   static QString git_sha();
   static QString git_tag();

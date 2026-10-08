@@ -8,6 +8,14 @@ import edu.pepp 1.0
 
 ColumnLayout {
 
+    Label {
+        textFormat: Text.RichText
+        onLinkActivated: link => Qt.openUrlExternally(link)
+        text: {
+            const url = "https://github.com/Matthew-McRaven/Pepp/issues";
+            return `Report any issues to our <a href="${url}">issue tracker</a><br/>` + "Please include a copy of the diagnostic information on this page.";
+        }
+    }
     TextArea {
         id: area
         textFormat: TextEdit.RichText
@@ -15,15 +23,10 @@ ColumnLayout {
             Qt.openUrlExternally(link);
         }
         Component.onCompleted: {
-            // Overall header
-            const hd1_url = "https://github.com/Matthew-McRaven/Pepp/issues";
-            const hd1_l1 = `Report any issues to our <a href=\"${hd1_url}\">issue tracker</a>`;
-            const hd1_l2 = "Please include a copy of the diagnostic information on this page.";
-            const hd1 = `${hd1_l1}<br/>${hd1_l2}<br/>`;
             const hd2_url = "https://github.com/Matthew-McRaven/Pepp/commit/" + Version.git_sha;
             const hd2 = `Pepp build: <a href=\"${hd2_url}\">${Version.git_describe_short}</a>`;
             const hd3 = `Qt Version: ${Version.qt_version},debug=${Version.qt_debug},shared=${Version.qt_shared}`;
-            const app_ver = [hd1, hd2, hd3];
+            const app_ver = [hd2, hd3];
 
             // Details of the target machine on which this applicaiton is running
             const tgt = [];
@@ -46,7 +49,8 @@ ColumnLayout {
     Button {
         text: "Copy to Clipboard"
         onClicked: {
-            Version.copy_diagnostics_to_clipboard();
+            // Rich text encodes <br/> as U+2028 in plain text.
+            Version.copy_diagnostics_to_clipboard(area.getText(0, area.length).replace(/\u2028/g, "\n"));
         }
     }
     Item {

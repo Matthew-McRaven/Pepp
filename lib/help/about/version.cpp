@@ -54,25 +54,11 @@ QString _target_abi() {
   static const auto ret = QStringLiteral("%1").arg(QSysInfo::buildAbi());
   return ret;
 }
-QStringList about::diagnostics() {
-  using namespace Qt::StringLiterals;
-  static const QString l1 = u"Based on commit %1 using Qt %2"_s.arg(g_GIT_SHA1(), QLibraryInfo::version().toString());
-  static const QString l2 = u"Built on %1"_s.arg(g_BUILD_TIMESTAMP());
-  static const QString l3 = u"Built by %1 using %2"_s.arg(_build_system(), _cxx_compiler());
-  static const QString l4 = u"Running on %1 under %2"_s.arg(_target_platform(), _target_abi());
-  static const auto ret = QStringList{l1, l2, l3, l4};
-  return ret;
-}
 
-QString about::Version::diagnostic_str() {
-  using namespace Qt::StringLiterals;
-  return diagnostics().join("\n");
-}
-
-void about::Version::copy_diagnostics_to_clipboard() {
+void about::Version::copy_diagnostics_to_clipboard(const QString &text) {
   // Only attempt clipboard access if the application has a clipboard.
   QClipboard *clipboard = QGuiApplication::clipboard();
-  if (clipboard) clipboard->setText(diagnostic_str());
+  if (clipboard) clipboard->setText(text);
 }
 
 QString about::Version::version_str_full() {
