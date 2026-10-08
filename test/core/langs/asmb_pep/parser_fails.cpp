@@ -180,6 +180,20 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(start->second == PE::to_string(c.error));
     }
   }
+  SECTION(".EQUATE rejects symbols") {
+    // Rather than deal with the possibility of loops / forward declarations on symbol values, forbid symbols used as an
+    // argument.
+    for (const char *source : {"\nx: .EQUATE y", "\nx: .EQUATE y + 1", "\nx: .EQUATE 1 - y"}) {
+      CAPTURE(source);
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(source), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      CHECK(diag.count() == 1);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      REQUIRE(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Argument_SymbolicEquate));
+    }
+  }
   SECTION(".EQUATE expectes symbol declaration") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("\n .EQUATE 10,"), std::make_shared<MR>());

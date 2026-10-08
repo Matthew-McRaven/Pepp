@@ -104,8 +104,8 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expression() {
   ast::InfixExpression::Op op = ast::InfixExpression::Op::Nil;
   // Match literal + or -
   if (auto plus = active_buffer()->match_literal("+"); plus) op = ast::InfixExpression::Op::Addition;
+  else if (auto minus = active_buffer()->match_literal("-"); minus) op = ast::InfixExpression::Op::Subtraction;
   else return cp.rollback(), nullptr;
-  // else if (auto minus = active_buffer()->match_literal("-"); minus) op = ast::InfixExpression::Op::Subtraction;
 
   rhs = expr_argument();
   // TODO, is a non-specific error.
@@ -330,6 +330,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
   case (int)DC::EQUATE: {
     auto arg = expression_or_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
+    // A symbol's value may not be known yet (e.g., a label defined later), so an equate cannot be computed from one.
+    else if (pepp::ast::contains_symbol(*arg))
+      throw PepParserError(PepParserError::NullaryError::Argument_SymbolicEquate, buf->matched_interval());
     else if (arg->minimum_size() > 2)
       throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
     else if (!symbol)

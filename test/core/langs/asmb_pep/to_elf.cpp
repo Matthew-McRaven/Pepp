@@ -406,6 +406,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
 			LDWA 2 + u,d
 			LDWA c+1,i
 			LDWA u + -2,d
+			LDWA l - 1,d
+			LDWA u - 2,d
 )"),
                     std::make_shared<MR>());
     auto results = p.parse(diag);
@@ -428,7 +430,9 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(relocations_of(elf, ".rela.text", symbols) ==
           std::vector<Rela>{{4, ".text", bits::to_underlying(R_PEP10_ABS16), 1 + 3},
                             {7, "u", bits::to_underlying(R_PEP10_ABS16), 2},
-                            {13, "u", bits::to_underlying(R_PEP10_ABS16), -2}});
+                            {13, "u", bits::to_underlying(R_PEP10_ABS16), -2},
+                            {16, ".text", bits::to_underlying(R_PEP10_ABS16), 1 - 1},
+                            {19, "u", bits::to_underlying(R_PEP10_ABS16), -2}});
     const auto *text = elf.sections[".text"]->get_data();
     CHECK(static_cast<u8>(text[9]) == 0xC0); // LDWA c+1,i
     CHECK(static_cast<u8>(text[10]) == 0x00);
@@ -445,7 +449,10 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
       return diag.count();
     };
     CHECK(diagnostics("a:.BLOCK 1\nLDWA a,d\nLDWA a + 1,d\nLDWA 1 + a,d\nLDWA 1 + 2,d") == 0);
+    CHECK(diagnostics("a:.BLOCK 1\nLDWA a - 1,d\nm:.EQUATE 1 + 2") == 0);
     CHECK(diagnostics("a:.BLOCK 1\nb:.BLOCK 1\nLDWA a + b,d") == 1);
+    CHECK(diagnostics("a:.BLOCK 1\nb:.BLOCK 1\nLDWA a - b,d") == 1);
+    CHECK(diagnostics("a:.BLOCK 1\nLDWA 1 - a,d") == 1); // A - S is not a valid relocation type.
   }
 }
 

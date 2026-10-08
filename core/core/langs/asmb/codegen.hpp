@@ -320,12 +320,7 @@ struct SymbolOperand {
   i64 addend = 0;
 };
 
-inline bool contains_symbol(const pepp::ast::IRValue &value) {
-  if (dynamic_cast<const pepp::ast::Symbolic *>(&value)) return true;
-  if (auto *infix = dynamic_cast<const pepp::ast::InfixExpression *>(&value))
-    return (infix->lhs() && contains_symbol(*infix->lhs())) || (infix->rhs() && contains_symbol(*infix->rhs()));
-  return false;
-}
+using pepp::ast::contains_symbol;
 
 inline SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value) {
   using Kind = SymbolOperand::Kind;
@@ -333,11 +328,14 @@ inline SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value) {
   if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) return {Kind::Offset, symbolic->symbol(), 0};
   if (!contains_symbol(value)) return {};
   auto *infix = dynamic_cast<pepp::ast::InfixExpression *>(&value);
-  if (infix && infix->op() == Op::Addition && infix->lhs() && infix->rhs()) {
+  const bool add = infix && infix->op() == Op::Addition, sub = infix && infix->op() == Op::Subtraction;
+  if ((add || sub) && infix->lhs() && infix->rhs()) {
     auto &lhs = *infix->lhs(), &rhs = *infix->rhs();
+    // If LHS is a symbol, rhs must be a constant. Handles symbol - value and symbol + value
     if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&lhs); symbolic && !contains_symbol(rhs))
-      return {Kind::Offset, symbolic->symbol(), rhs.value_as<i64>()};
-    if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&rhs); symbolic && !contains_symbol(lhs))
+      return {Kind::Offset, symbolic->symbol(), sub ? -rhs.value_as<i64>() : rhs.value_as<i64>()};
+    // If RHS is a symbol, lhs must be a constant. Handles value + symbol. value - symbol is forbidden.
+    if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&rhs); add && symbolic && !contains_symbol(lhs))
       return {Kind::Offset, symbolic->symbol(), lhs.value_as<i64>()};
   }
   return {Kind::Invalid};

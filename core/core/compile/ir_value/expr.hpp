@@ -25,11 +25,13 @@ public:
   enum class Op : u8 {
     Nil, // Do not evaluate lhs or rhs; return 0.
     Addition,
+    Subtraction,
   };
   explicit InfixExpression() noexcept = default;
   InfixExpression(Op op, std::shared_ptr<IRValue> lhs, std::shared_ptr<IRValue> rhs, u8 size);
   friend void swap(InfixExpression &first, InfixExpression &second) noexcept {
     using std::swap;
+    swap(first._op, second._op);
     swap(first._size, second._size);
     swap(first._lhs, second._lhs);
     swap(first._rhs, second._rhs);
@@ -48,10 +50,11 @@ public:
 
 protected:
   u64 evaluate() const noexcept;
-  u64 serialized_size_for(u64 value) const noexcept;
   Op _op = Op::Nil;
   u8 _size = 0;
   std::shared_ptr<IRValue> _lhs = nullptr, _rhs = nullptr;
 };
 
+// True if value is, or an infix expression containing, a Symbolic.
+bool contains_symbol(const IRValue &value) noexcept;
 } // namespace pepp::ast

@@ -112,3 +112,32 @@ TEST_CASE("pepp nested infix expressions", "[scope:core][scope:core.compile][kin
     CHECK(kept.value_as<u16>() == 0x105);
   }
 }
+
+TEST_CASE("pepp infix expression edge cases", "[scope:core][scope:core.compile][kind:unit][arch:*]") {
+  SECTION("Subtraction wraps to the declared size, and nests") {
+    auto diff = Expr(Op::Subtraction, dec(10, 1), dec(3, 1), 1);
+    CHECK(diff.value_as<u8>() == 7);
+    CHECK(diff.string() == "10 - 3");
+    CHECK(Expr(Op::Subtraction, dec(3, 1), dec(10, 1), 1).value_as<u8>() == 0xF9);
+    CHECK(Expr(Op::Subtraction, dec(0, 2), dec(1, 2), 2).value_as<u16>() == 0xFFFF);
+    // (10 - 3) - (2 - 1)
+    auto nested = Expr(Op::Subtraction, std::make_shared<Expr>(diff), std::make_shared<Expr>(Op::Subtraction, dec(2, 1), dec(1, 1), 1), 1);
+    CHECK(nested.value_as<u8>() == 6);
+  }
+  SECTION("Eight-byte results use the full width instead of an undefined shift") {
+    const u64 max = ~0ULL;
+    CHECK(Expr(Op::Addition, dec(max, 8), dec(1, 8), 8).value_as<u64>() == 0);
+    CHECK(Expr(Op::Addition, dec(max, 8), dec(2, 8), 8).value_as<u64>() == 1);
+    CHECK(Expr(Op::Subtraction, dec(0, 8), dec(1, 8), 8).value_as<u64>() == max);
+    CHECK(Expr(Op::Addition, dec(1, 8), dec(2, 8), 8).value_as<u64>() == 3);
+  }
+  SECTION("Byte count reflects the value, as either signed or unsigned") {
+    CHECK(Expr(Op::Addition, dec(0, 2), dec(0, 2), 2).minimum_size() == 0);
+    CHECK(Expr(Op::Addition, dec(100, 2), dec(100, 2), 2).minimum_size() == 1);        // 200 fits unsigned
+    CHECK(Expr(Op::Addition, dec(0x80, 2), dec(0x80, 2), 2).minimum_size() == 2);      // 0x100
+    CHECK(Expr(Op::Subtraction, dec(0, 2), dec(2, 2), 2).minimum_size() == 1);         // 0xFFFE is -2 signed
+    CHECK(Expr(Op::Addition, dec(0x9000, 2), dec(0x0C40, 2), 2).minimum_size() == 2);  // 0x9C40
+    // serialized_size is the declared width, regardless of value.
+    CHECK(Expr(Op::Addition, dec(1, 2), dec(1, 2), 2).serialized_size() == 2);
+  }
+}
