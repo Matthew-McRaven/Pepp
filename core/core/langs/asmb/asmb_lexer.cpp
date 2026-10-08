@@ -221,7 +221,6 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
   // End must have been all whitespace, treat as empty token.
   if (current_token == nullptr)
     current_token = std::make_shared<Empty>(LocationInterval{loc_start, _cursor.location()});
-  notify_listeners(current_token);
   if (print_tokens && current_token) SPDLOG_TRACE("Token: {}", current_token->repr());
   _cursor.skip(0);
   return current_token;
