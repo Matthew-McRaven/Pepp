@@ -7,6 +7,7 @@
 #include <vector>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
+#include "core/compile/ir_value/expr.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -305,7 +306,40 @@ struct Relocation {
   std::shared_ptr<pepp::core::symbol::Entry> symbol;
   u32 section_offset; // Offset into a section's object code (in bytes) of the field which needs relocation.
   u32 type; // Architecture specific, e.g., RelocationsPep.
+  i64 addend = 0; // Constant from `symbol + constant`; added to the addend the ELF writer derives for the symbol.
 };
+
+// How a line refers to a symbol for the purpose of generating relocations.
+struct SymbolOperand {
+  enum class Kind {
+    None,    // References no symbols; it is evaluated as written.
+    Offset,  // Either `symbol` or `symbol + constant` (either order)
+    Invalid, // References symbols in some other way (e.g., `a + b`), which a relocation cannot express.
+  } kind = Kind::None;
+  std::shared_ptr<pepp::core::symbol::Entry> symbol = nullptr;
+  i64 addend = 0;
+};
+
+using pepp::ast::contains_symbol;
+
+inline SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value) {
+  using Kind = SymbolOperand::Kind;
+  using Op = pepp::ast::InfixExpression::Op;
+  if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) return {Kind::Offset, symbolic->symbol(), 0};
+  if (!contains_symbol(value)) return {};
+  auto *infix = dynamic_cast<pepp::ast::InfixExpression *>(&value);
+  const bool add = infix && infix->op() == Op::Addition, sub = infix && infix->op() == Op::Subtraction;
+  if ((add || sub) && infix->lhs() && infix->rhs()) {
+    auto &lhs = *infix->lhs(), &rhs = *infix->rhs();
+    // If LHS is a symbol, rhs must be a constant. Handles symbol - value and symbol + value
+    if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&lhs); symbolic && !contains_symbol(rhs))
+      return {Kind::Offset, symbolic->symbol(), sub ? -rhs.value_as<i64>() : rhs.value_as<i64>()};
+    // If RHS is a symbol, lhs must be a constant. Handles value + symbol. value - symbol is forbidden.
+    if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&rhs); add && symbolic && !contains_symbol(lhs))
+      return {Kind::Offset, symbolic->symbol(), lhs.value_as<i64>()};
+  }
+  return {Kind::Invalid};
+}
 
 struct ProgramObjectCodeResult {
   IR2ObjectCodeMap ir_to_object_code;

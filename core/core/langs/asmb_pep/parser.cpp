@@ -9,6 +9,7 @@
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
+#include "core/compile/ir_value/expr.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/ir_value/text.hpp"
@@ -38,18 +39,42 @@ std::shared_ptr<pepp::core::symbol::LeafTable> pepp::tc::parser::PepParser::symb
 
 void pepp::tc::parser::PepParser::debug_print_tokens(bool debug) { _root_lexer->print_tokens = debug; }
 
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument_integer_helper() {
+  auto buf = active_buffer();
+  using Format = lex::Integer::Format;
+  int sign = 0;
+  // Commas separate arguments; any other operator must be a sign.
+  if (auto op = buf->peek<lex::Literal>(); op && op->literal != ",") {
+    if (op->literal != "+" && op->literal != "-")
+      throw PepParserError(PepParserError::NullaryError::Argument_InvalidOperator, buf->matched_interval());
+    sign = op->literal == "-" ? -1 : 1;
+    (void)buf->match<lex::Literal>();
+  }
+  auto integer = buf->match<lex::Integer>();
+  if (!integer) {
+    if (sign != 0)
+      throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
+    return nullptr;
+  }
+  if (sign != 0) {
+    // Only decimals may be signed.
+    if (integer->format != Format::UnsignedDec)
+      throw PepParserError(PepParserError::NullaryError::Argument_InvalidIntegerFormat, buf->matched_interval());
+    else if (sign < 0) return std::make_shared<pepp::ast::SignedDecimal>(-static_cast<i64>(integer->value), 2);
+    else return std::make_shared<pepp::ast::UnsignedDecimal>(integer->value, 2);
+  }
+  switch (integer->format) {
+  case Format::Hex: return std::make_shared<pepp::ast::Hexadecimal>(integer->value, 2);
+  case Format::UnsignedDec: return std::make_shared<pepp::ast::UnsignedDecimal>(integer->value, 2);
+  default: throw PepParserError(PepParserError::NullaryError::Argument_InvalidIntegerFormat, buf->matched_interval());
+  }
+}
+
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
   auto buf = active_buffer();
   lex::Checkpoint cp(*buf);
-  if (auto maybeInteger = buf->match<lex::Integer>(); maybeInteger) {
-    if (maybeInteger->format == lex::Integer::Format::SignedDec)
-      return std::make_shared<pepp::ast::SignedDecimal>(maybeInteger->value, 2);
-    else if (maybeInteger->format == lex::Integer::Format::Hex)
-      return std::make_shared<pepp::ast::Hexadecimal>(maybeInteger->value, 2);
-    else if (maybeInteger->format == lex::Integer::Format::UnsignedDec)
-      return std::make_shared<pepp::ast::UnsignedDecimal>(maybeInteger->value, 2);
-    else throw PepParserError(PepParserError::NullaryError::Argument_InvalidIntegerFormat, buf->matched_interval());
-  } else if (auto maybeIdent = buf->match<lex::Identifier>(); maybeIdent) {
+  if (auto integer = argument_integer_helper(); integer) return integer;
+  else if (auto maybeIdent = buf->match<lex::Identifier>(); maybeIdent) {
     auto entry = _symtab->reference(maybeIdent->to_string());
     return std::make_shared<pepp::ast::Symbolic>(2, entry);
   } else if (auto maybeChar = buf->match<lex::CharacterConstant>(); maybeChar) {
@@ -58,6 +83,40 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
     auto asStr = std::string{maybeStr->view()};
     return std::make_shared<pepp::ast::String>(asStr);
   } else return nullptr;
+}
+
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expr_argument() {
+  auto buf = active_buffer();
+  lex::Checkpoint cp(*buf);
+  if (auto integer = argument_integer_helper(); integer) return integer;
+  else if (auto maybeIdent = buf->match<lex::Identifier>(); maybeIdent) {
+    auto entry = _symtab->reference(maybeIdent->to_string());
+    return std::make_shared<pepp::ast::Symbolic>(2, entry);
+  } else return nullptr;
+}
+
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expression() {
+  auto buf = active_buffer();
+  lex::Checkpoint cp(*buf);
+  std::shared_ptr<pepp::ast::IRValue> lhs = nullptr, rhs = nullptr;
+  if (lhs = expr_argument(); !lhs) return nullptr;
+
+  ast::InfixExpression::Op op = ast::InfixExpression::Op::Nil;
+  // Match literal + or -
+  if (auto plus = active_buffer()->match_literal("+"); plus) op = ast::InfixExpression::Op::Addition;
+  else if (auto minus = active_buffer()->match_literal("-"); minus) op = ast::InfixExpression::Op::Subtraction;
+  else return cp.rollback(), nullptr;
+
+  rhs = expr_argument();
+  // TODO, is a non-specific error.
+  if (!rhs) throw PepParserError(PepParserError::NullaryError::Argument_Missing, buf->matched_interval());
+  return std::make_shared<ast::InfixExpression>(op, lhs, rhs, 2);
+}
+
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expression_or_argument() {
+  auto arg = expression();
+  if (!arg) arg = argument();
+  return arg;
 }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::numeric_argument() {
@@ -182,7 +241,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::instruction() {
     ret = std::make_shared<MonadicInstruction>(Pep10Mnemonic(instr));
   } else { // Dyadic instruction
     ISA::AddressingMode am = ISA::AddressingMode::INVALID;
-    auto arg = argument();
+    auto arg = expression_or_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_Missing, buf->matched_interval());
     else if (arg->minimum_size() > 2)
       throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
@@ -257,7 +316,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     return std::make_shared<DotBlock>(Argument{arg});
   }
   case (int)DC::BYTE: {
-    auto arg = argument();
+    auto arg = expression_or_argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 1)
         throw PepParserError(PepParserError::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
@@ -269,8 +328,11 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
   }
   case (int)DC::EQUATE: {
-    auto arg = argument();
+    auto arg = expression_or_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
+    // A symbol's value may not be known yet (e.g., a label defined later), so an equate cannot be computed from one.
+    else if (pepp::ast::contains_symbol(*arg))
+      throw PepParserError(PepParserError::NullaryError::Argument_SymbolicEquate, buf->matched_interval());
     else if (arg->minimum_size() > 2)
       throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
     else if (!symbol)
@@ -338,7 +400,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     }
   }
   case (int)DC::WORD: {
-    auto arg = argument();
+    auto arg = expression_or_argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 2)
         throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());

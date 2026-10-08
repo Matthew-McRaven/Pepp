@@ -13,6 +13,7 @@
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/codegen.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/math/bitmanip/copy.hpp"
@@ -31,6 +32,11 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
   const auto contributes_nothing = [](const auto &line) {
     return line->type() == static_cast<int>(LinearIRType::Empty) ||
            line->type() == static_cast<int>(LinearIRType::Comment);
+  };
+  // Relocations can only express `symbol [+ constant]`. Other forms are errors.
+  const auto check_operand = [&diag](const LinearIR &line, pepp::ast::IRValue &arg) {
+    if (classify_symbol_operand(arg).kind == SymbolOperand::Kind::Invalid)
+      diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]");
   };
   // Opening a section takes pending lines as its prefix.
   const auto open_section = [&](const SectionDescriptor &desc) {
@@ -90,6 +96,8 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       active->first.org_count++;
       break;
     }
+    case DyadicInstruction::TYPE: check_operand(*line, *static_cast<DyadicInstruction *>(line.get())->argument.value); break;
+    case DotLiteral::TYPE: check_operand(*line, *static_cast<DotLiteral *>(line.get())->argument.value); break;
     case InlineMacroDefinition::TYPE: [[fallthrough]];
     case MacroInstantiation::TYPE: throw std::logic_error("Cannot perform code generation on macros");
 
@@ -132,6 +140,8 @@ struct PeppObjectVistitor : public PepIRVisitor {
   IR2ObjectCodeMap &ir_to_object_code;
   PeppObjectVistitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, bits::span<u8>,
                      std::vector<Relocation> &, IR2ObjectCodeMap &);
+  // Emit a relocation for the argument's symbol.
+  void relocate(pepp::ast::IRValue &arg, u16 offset, u32 type);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const SymbolLine *) override;
@@ -163,6 +173,17 @@ bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
 }
 } // namespace
 
+void pepp::tc::PeppObjectVistitor::relocate(pepp::ast::IRValue &arg, u16 offset, u32 type) {
+  const auto operand = classify_symbol_operand(arg);
+  using Kind = SymbolOperand::Kind;
+  // pepp_split_to_sections reports this to the user, so reaching it here is a bug.
+  if (operand.kind == Kind::Invalid)
+    throw std::logic_error("Operands referencing symbols must be of the form symbol [+ constant]");
+  else if (operand.kind == Kind::None || !needs_relocation(*operand.symbol)) return;
+  relocations.push_back(
+      Relocation{.symbol = operand.symbol, .section_offset = offset, .type = type, .addend = operand.addend});
+}
+
 void pepp::tc::PeppObjectVistitor::visit(const EmptyLine *) {
   // Does not generate object code
 }
@@ -184,15 +205,8 @@ void pepp::tc::PeppObjectVistitor::visit(const MonadicInstruction *line) {
 void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   auto addr_info = ir_to_address.at(line);
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
-  auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
-  if (as_symbolic_arg != nullptr) {
-    auto symbol = as_symbolic_arg->symbol();
-    if (needs_relocation(*symbol)) {
-      u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
-      const auto type = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16);
-      relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
-    }
-  }
+  const u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
+  relocate(*line->argument.value, offset, bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16));
   (void)line->argument.value->serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
   out_bytes = out_bytes.subspan(3);
@@ -207,16 +221,9 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAlign *line) {
 
 void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
-  auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
-  if (as_symbolic_arg != nullptr) {
-    auto symbol = as_symbolic_arg->symbol();
-    if (needs_relocation(*symbol)) {
-      using enum pepp::bts::RelocationsPep;
-      u16 offset = addr_info.address - base_address;
-      const auto type = bits::to_underlying(addr_info.size == 1 ? R_PEP10_ABS8 : R_PEP10_ABS16);
-      relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
-    }
-  }
+  using enum pepp::bts::RelocationsPep;
+  relocate(*line->argument.value, addr_info.address - base_address,
+           bits::to_underlying(addr_info.size == 1 ? R_PEP10_ABS8 : R_PEP10_ABS16));
   (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
