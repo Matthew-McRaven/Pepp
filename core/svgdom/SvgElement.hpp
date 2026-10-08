@@ -36,8 +36,8 @@ public:
     //  Svg specific functions
     const std::string &id() const;
     void setId(const std::string &id);
-    const std::string &className() const;
-    void setClassName(const std::string &className);
+    SvgList &classList();
+    const SvgList &classList() const;
     const std::string &title() const;
     void setTitle(const std::string &title);
     const std::string &metadata() const;
@@ -82,7 +82,7 @@ private:
 
     //  Svg specific data
     std::string _id;
-    // std::string _className;
+    SvgList _classList;
 
     //  Stored as Elements in svg
     SvgElement *_title{};

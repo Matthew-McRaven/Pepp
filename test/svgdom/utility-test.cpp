@@ -21,6 +21,14 @@ TEST_CASE("Utility file-SvgList tests", "[scope:core][scope:core.svgdom][kind:un
   list.add("first"s);
   CHECK(list.size() == 4);
 
+  {
+    //  Test toString/fromString
+    auto xml = list.toString();
+    SvgList list2;
+    CHECK(list2.fromString(xml));
+    CHECK(list2.size() == 4);
+  }
+
   list.remove("third"s);
   CHECK(list.size() == 3);
 

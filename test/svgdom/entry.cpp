@@ -100,7 +100,7 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
   svg1.setTitle("Title1 for document"s);
   svg1.setDesc("Description1 for document"s);
   svg1.setMetadata("Metadata1 for document"s);
-  // svg1.setClassName("className1");
+  svg1.classList().add("className1");
 
   auto *redRect = static_cast<SvgRectElement *>(svg1.createElement(SvgType::Type::SvgRectElement));
   REQUIRE(redRect != nullptr);
@@ -143,7 +143,7 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
   CHECK(svg2.title() == "Title1 for document"s);
   CHECK(svg2.desc() == "Description1 for document"s);
   CHECK(svg2.metadata() == "Metadata1 for document"s);
-  // CHECK(svg2.className() == "className1"s);
+  CHECK(svg2.classList().contains("className1"s));
 
   //  Reuse rectangle pointer without data
   redRect = nullptr;

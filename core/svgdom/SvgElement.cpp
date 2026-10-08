@@ -36,7 +36,7 @@ SvgElement::SvgElement(const SvgElement &original)
     _value = original._value;
 
     setId(original._id);
-    //_className = original._className;
+    _classList = original._classList;
 
     _x = original._x;
     _y = original._y;
@@ -110,14 +110,8 @@ void SvgElement::setId(const std::string &id)
         _doc->addElementId(id, this);
     _id = id;
 }
-/*const std::string &SvgElement::className() const
-{
-    return _className;
-}
-void SvgElement::setClassName(const std::string &className)
-{
-    _className = className;
-}*/
+SvgList &SvgElement::classList() { return _classList; }
+const SvgList &SvgElement::classList() const { return _classList; }
 const std::string &SvgElement::title() const { return (_title == nullptr) ? _empty : _title->value(); }
 void SvgElement::setTitle(const std::string &title)
 {
@@ -315,6 +309,9 @@ bool SvgElement::setAttribute(const std::string &key, const std::string &value)
     if (key == "height"s) {
         return _height.fromString(value);
     }
+    if (key == "class"s) {
+      return _classList.fromString(value);
+    }
 
     //  Cache attributes that are not manipulated above.
     _attributes.add(key, value);
@@ -349,6 +346,11 @@ bool SvgElement::attributeXml(SvgRope &output) const
         hasAttributes = true;
         buffer = fmt::format(" height=\"{}\"", _height.toString());
         output.push_back(std::move(buffer));
+    }
+    if (!_classList.empty()) {
+      hasAttributes = true;
+      buffer = fmt::format(" class=\"{}\"", _classList.toString());
+      output.push_back(std::move(buffer));
     }
 
     //  Output remaining attributes

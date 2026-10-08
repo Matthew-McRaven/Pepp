@@ -252,4 +252,14 @@ public:
     }
     return std::move(buffer);
   }
+  bool fromString(const std::string &v) {
+
+    //_classes.assign(std::views::split(v, ' '));
+    auto view = std::views::split(v, ' ');
+
+    for (auto &&ref : view) {
+      _classes.emplace_back(ref.begin(), ref.end());
+    }
+    return !_classes.empty();
+  }
 };
