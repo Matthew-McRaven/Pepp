@@ -90,6 +90,10 @@ if(EMSCRIPTEN)
       150MB
       CACHE INTERNAL "" FORCE)
   set(BUILD_SHARED_LIBS FALSE)
+  # Qt 6.12's QLocale calls stringToNewUTF8, which is not exported by default.
+  set(QT_WASM_EXTRA_EXPORTED_METHODS
+      stringToNewUTF8
+      CACHE INTERNAL "" FORCE)
 endif()
 
 # Use to all output object files (applications, libraries, etc) in a single
