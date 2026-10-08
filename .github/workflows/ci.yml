@@ -147,7 +147,7 @@ jobs:
     needs: [ branch_info, check_tag, create_icons, riscv_samples ]
     uses: $/.github/workflows/build.yml
     strategy:
-      fail-fast: true
+      #fail-fast: true
       # If you want to update images, must replace *ALL* images in the matrix manually.
       # Trying to use `env` or inputs will fail in this context.
       matrix:
