@@ -20,6 +20,7 @@
 
 namespace about {
 const char *g_GIT_SHA1();
+bool g_GIT_HAS_TAG();
 const char *g_GIT_TAG();
 const char *g_CXX_COMPILER_ID();
 const char *g_CXX_COMPILER_VERSION();
@@ -42,6 +43,8 @@ class Version : public QObject {
   // Properties of pepp
   Q_PROPERTY(QString git_sha READ git_sha CONSTANT)
   Q_PROPERTY(QString git_tag READ git_tag CONSTANT)
+  // Return the 8 characater SHA or full tag. If a dirty working tree, append "-dirty" to the end of the string.
+  Q_PROPERTY(QString git_describe_short READ git_describe_short CONSTANT)
   Q_PROPERTY(bool git_dirty READ git_dirty CONSTANT)
   Q_PROPERTY(int version_major READ version_major CONSTANT)
   Q_PROPERTY(int version_minor READ version_minor CONSTANT)
@@ -52,6 +55,8 @@ class Version : public QObject {
   // Properties of the machine running the application
   Q_PROPERTY(QString target_platform READ target_platform CONSTANT)
   Q_PROPERTY(QString target_abi READ target_abi CONSTANT)
+  Q_PROPERTY(QString target_graphics_api READ target_graphics_api CONSTANT)
+  Q_PROPERTY(QString target_qt_platform READ target_qt_platform CONSTANT)
   // Properties of our dependencies
   Q_PROPERTY(QString qt_version READ qt_version CONSTANT)
   Q_PROPERTY(QString qt_debug READ qt_debug CONSTANT)
@@ -71,6 +76,7 @@ public:
   static QString git_sha();
   static QString git_tag();
   static bool git_dirty();
+  static QString git_describe_short();
   static int version_major();
   static int version_minor();
   static int version_patch();
@@ -79,6 +85,8 @@ public:
   static QString build_year();
   static QString target_platform();
   static QString target_abi();
+  static QString target_graphics_api();
+  static QString target_qt_platform();
 
   static QString qt_version();
   static QString qt_debug();

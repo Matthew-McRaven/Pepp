@@ -17,11 +17,20 @@
 #include "./version.hpp"
 #include <QClipboard>
 #include <QGuiApplication>
+#include <QQuickWindow>
+#include <QSGRendererInterface>
+#include <QStringLiteral>
 
 about::Version::Version(QObject *parent) : QObject(parent) {}
 QString about::Version::git_sha() { return about::g_GIT_SHA1(); }
 QString about::Version::git_tag() { return about::g_GIT_TAG(); }
 bool about::Version::git_dirty() { return about::g_GIT_LOCAL_CHANGES(); }
+
+QString about::Version::git_describe_short() {
+  if (git_dirty()) return QStringLiteral("%1-dirty").arg(git_sha().first(8));
+  else if (g_GIT_HAS_TAG()) return git_tag();
+  else return git_sha().first(8);
+}
 int about::Version::version_major() { return about::g_MAJOR_VERSION(); }
 int about::Version::version_minor() { return about::g_MINOR_VERSION(); }
 int about::Version::version_patch() { return about::g_PATCH_VERSION(); }
@@ -92,3 +101,20 @@ QString about::Version::build_system() { return _build_system(); }
 QString about::Version::target_platform() { return _target_platform(); }
 
 QString about::Version::target_abi() { return _target_abi(); }
+
+QString about::Version::target_graphics_api() {
+  switch (QQuickWindow::graphicsApi()) {
+  case QSGRendererInterface::Unknown: return QStringLiteral("Unknown");
+  case QSGRendererInterface::Software: return QStringLiteral("Software");
+  case QSGRendererInterface::OpenVG: return QStringLiteral("OpenVG");
+  case QSGRendererInterface::OpenGL: return QStringLiteral("OpenGL");
+  case QSGRendererInterface::Direct3D11: return QStringLiteral("Direct3D 11");
+  case QSGRendererInterface::Vulkan: return QStringLiteral("Vulkan");
+  case QSGRendererInterface::Metal: return QStringLiteral("Metal");
+  case QSGRendererInterface::Null: return QStringLiteral("Null");
+  case QSGRendererInterface::Direct3D12: return QStringLiteral("Direct3D 12");
+  }
+  return QStringLiteral("Unknown");
+}
+
+QString about::Version::target_qt_platform() { return QGuiApplication::platformName(); }
