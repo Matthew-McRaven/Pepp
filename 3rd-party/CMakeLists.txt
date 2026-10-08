@@ -14,6 +14,8 @@ add_subdirectory(fmt)
 add_subdirectory(elfio)
 add_subdirectory(cli)
 add_subdirectory(lru)
+set(SPDLOG_FMT_EXTERNAL ON
+CACHE BOOL "" FORCE)
 add_subdirectory(spdlog)
 
 # Do not build tests while building python bindings. Huge slow down. If you
