@@ -1,0 +1,193 @@
+/*
+ * Copyright (c) 2026. Stanley Warford, Matthew McRaven
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+#pragma once
+#include <algorithm>
+#include <span>
+#include <string>
+#include <string_view>
+#include <variant>
+#include <vector>
+#include "core/compile/source/location.hpp"
+#include "core/integers.h"
+#include "core/math/bitmanip/enums.hpp"
+
+// Syntax of expressions shared by the assemblers and the debugger.
+namespace pepp::tc::expr {
+
+// Index of a node within its Tree.
+using NodeId = u32;
+
+enum class UnaryOp : u8 {
+  Plus,
+  Minus,
+  BitNot,
+  LogicalNot,
+};
+
+enum class BinaryOp : u8 {
+  Multiply,
+  Divide,
+  Modulo,
+  Add,
+  Subtract,
+  ShiftLeft,
+  ShiftRight,
+  Less,
+  LessEqual,
+  Greater,
+  GreaterEqual,
+  Equal,
+  NotEqual,
+  BitAnd,
+  BitXor,
+  BitOr,
+  LogicalAnd,
+  LogicalOr,
+};
+
+// Bit masks (with one kind per leaf node and operation). Used to quickly compare the structure of trees, especially
+// in the assembler while generating relocations. May need to widen to u64 if more operators are added.
+enum class Kind : u32 {
+  None = 0,
+  Integer = 1u,
+  Character = Integer << 1,
+  Identifier = Character << 1,
+  // UnaryOp in declaration order.
+  UnaryStart = Identifier << 1,
+  Plus = UnaryStart,
+  Minus = Plus << 1,
+  BitNot = Minus << 1,
+  LogicalNot = BitNot << 1,
+  UnaryLast = LogicalNot,
+  // BinaryOp in declaration order.
+  BinaryStart = UnaryLast << 1,
+  Multiply = BinaryStart,
+  Divide = Multiply << 1,
+  Modulo = Divide << 1,
+  Add = Modulo << 1,
+  Subtract = Add << 1,
+  ShiftLeft = Subtract << 1,
+  ShiftRight = ShiftLeft << 1,
+  Less = ShiftRight << 1,
+  LessEqual = Less << 1,
+  Greater = LessEqual << 1,
+  GreaterEqual = Greater << 1,
+  Equal = GreaterEqual << 1,
+  NotEqual = Equal << 1,
+  BitAnd = NotEqual << 1,
+  BitXor = BitAnd << 1,
+  BitOr = BitXor << 1,
+  LogicalAnd = BitOr << 1,
+  LogicalOr = LogicalAnd << 1,
+  BinaryLast = LogicalOr,
+  End = BinaryLast,
+  // Convenient aliases for common types. A range [Start, Last] of single bits is (Last << 1) - Start.
+  Constant = Integer | Character,
+  AnyUnary = (UnaryLast << 1) - UnaryStart,
+  AnyBinary = (BinaryLast << 1) - BinaryStart,
+  Any = (End << 1) - 1,
+};
+consteval void is_bitflags(Kind);
+
+constexpr Kind kind(UnaryOp op) {
+  return static_cast<Kind>(bits::to_underlying(Kind::UnaryStart) << static_cast<u32>(op));
+}
+constexpr Kind kind(BinaryOp op) {
+  return static_cast<Kind>(bits::to_underlying(Kind::BinaryStart) << static_cast<u32>(op));
+}
+static_assert(kind(UnaryOp::Plus) == Kind::Plus && kind(UnaryOp::LogicalNot) == Kind::LogicalNot,
+              "Kind must mirror UnaryOp");
+static_assert(kind(BinaryOp::Multiply) == Kind::Multiply && kind(BinaryOp::LogicalOr) == Kind::LogicalOr,
+              "Kind must mirror BinaryOp");
+static_assert(bits::to_underlying(Kind::Any) ==
+                  (bits::to_underlying(Kind::Integer) | bits::to_underlying(Kind::Character) |
+                   bits::to_underlying(Kind::Identifier) | bits::to_underlying(Kind::AnyUnary) |
+                   bits::to_underlying(Kind::AnyBinary)),
+              "Kind's masks must cover every kind exactly");
+
+struct Integer {
+  static constexpr Kind KIND = Kind::Integer;
+  enum class Format : u8 { Decimal, Hexadecimal };
+  u64 value = 0;
+  Format format = Format::Decimal;
+};
+
+// A character constant is treated as an integer, but retains the original text to  preserve escape sequences vs
+// literals.
+struct Character {
+  static constexpr Kind KIND = Kind::Character;
+  u8 value = 0;
+  std::string text;
+};
+
+// Does not store identifier via lexer's string pool so that the tree may outlive parser
+struct Identifier {
+  static constexpr Kind KIND = Kind::Identifier;
+  std::string name;
+};
+
+struct Unary {
+  static constexpr Kind KIND = Kind::AnyUnary;
+  UnaryOp op;
+  NodeId operand;
+};
+
+struct Binary {
+  static constexpr Kind KIND = Kind::AnyBinary;
+  BinaryOp op;
+  NodeId lhs, rhs;
+};
+
+using Node = std::variant<Integer, Character, Identifier, Unary, Binary>;
+Kind kind(const Node &node);
+
+// A syntax tree of nodes stored in a postordered, flat vector. Nodes refer to each other by index. By definition,
+// children precede parents implying that the root is the most recently inserted item.
+class Tree {
+public:
+  // Append a node whose operands are already in the tree. This node becomes the new root.
+  NodeId add(Node node, support::LocationInterval location);
+
+  bool empty() const { return _nodes.empty(); }
+  NodeId root() const { return static_cast<NodeId>(_nodes.size() - 1); }
+  const Node &operator[](NodeId id) const { return _nodes[id]; }
+  const std::vector<Node> &nodes() const { return _nodes; }
+  // Source span of each node. An operator's span covers its whole subexpression, excluding enclosing parentheses.
+  const std::vector<support::LocationInterval> &locations() const { return _locations; }
+  // Describes the strrcuture of the tree's nodes
+  const std::vector<Kind> &kinds() const { return _kinds; }
+
+private:
+  // SoA layout for cache efficiency.
+  std::vector<Node> _nodes;
+  std::vector<support::LocationInterval> _locations;
+  std::vector<Kind> _kinds;
+};
+
+std::string_view to_string(UnaryOp op);
+std::string_view to_string(BinaryOp op);
+// Return the relative precendence of the operator, with higher numbers binding more tightly. Matches C precendence, and
+// assumes left-associativity.
+int precedence(BinaryOp op);
+
+// Returns true if the two sequences &'ed together are non-zero for each position.
+constexpr bool matches(std::span<const Kind> kinds, std::span<const Kind> pattern) {
+  using namespace bits;
+  // Compares sizes first, then stops at the first position whose AND is zero.
+  return std::ranges::equal(kinds, pattern, [](Kind k, Kind p) { return any(k & p); });
+}
+
+} // namespace pepp::tc::expr
