@@ -15,6 +15,7 @@
  */
 #include "core/langs/expr/evaluator.hpp"
 #include <algorithm>
+#include <array>
 #include <utility>
 #include "core/langs/expr/traversal.hpp"
 #include "core/math/bitmanip/mask.hpp"
@@ -257,6 +258,56 @@ std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, c
   return types;
 }
 
+pepp::tc::expr::Tree pepp::tc::expr::reassociate_constants(const Tree &tree, const Options &options,
+                                                           const TypeOf &type_of, const ConstantOf &constant_of) {
+  using namespace bits;
+  using enum BinaryOp;
+  // && and || are associative too, but moving a constant ahead of them would change what short-circuiting evaluates.
+  static constexpr std::array<Group, 5> groups{{
+      {Add, Subtract, 0},
+      {Multiply, std::nullopt, 1},
+      {BitAnd, std::nullopt, ~u64{0}},
+      {BitOr, std::nullopt, 0},
+      {BitXor, std::nullopt, 0},
+  }};
+  const auto types = node_types(tree, options, type_of, constant_of);
+  const auto values = constant_values(tree, options, constant_of);
+
+  // Rebuild from the root, left to right so that the output stays in postorder.
+  Tree ret;
+  const auto rebuild = [&](const auto &self, NodeId id) -> NodeId {
+    const auto copy = [&](NodeId operand) { return self(self, operand); };
+    // Does the current tree node match any of the groups that we know how to re-associate?
+    const auto group = std::ranges::find_if(groups, [&](const Group &g) { return any(tree.kinds()[id] & g.kinds()); });
+    // If not, then just emit the sub-tree to the output
+    if (group == groups.end() || values[id]) return ret.add(map_operands(tree[id], copy));
+
+    // Recurse through our children to extract all of the sub-expressions which share our operator (or it's inverse)
+    auto terms = flatten(tree, id, *group);
+    // Don't attempt to re-associate if the operands are of different sizes, since that could change the final result.
+    const auto same_width = [&](const ChainOperand &term) { return types[term.id].bits == types[id].bits; };
+    if (!std::ranges::all_of(terms, same_width)) return ret.add(map_operands(tree[id], copy));
+
+    // Emit constants, then inverted constants, then everything else, each in source order.
+    const auto rank = [&](const ChainOperand &term) { return values[term.id] ? (term.inverted ? 1 : 0) : 2; };
+    std::ranges::stable_sort(terms, {}, rank);
+    std::optional<NodeId> acc;
+    // Prefer to emit an identity constant if the chain would otherwise start with an inverted term, which can be
+    // eliminated by constant folding.
+    if (terms.front().inverted) acc = ret.add(FoldedConstant{make(group->identity, types[id])});
+    for (const auto &term : terms) {
+      // Apply rebuild to our operands (from left to right)
+      const auto operand = copy(term.id);
+      // Join existing values into a tree combined via the group's operator.
+      acc = acc ? ret.add(Binary{term.inverted ? *group->inverse : group->op, *acc, operand}) : operand;
+    }
+    // Return the fully re-associated tree to the caller.
+    return *acc;
+  };
+  if (!tree.empty()) rebuild(rebuild, tree.root());
+  return ret;
+}
+
 pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Options &options,
                                                     const ConstantOf &constant_of) {
   const auto values = constant_values(tree, options, constant_of);
@@ -272,4 +323,9 @@ pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Opti
   };
   if (!tree.empty()) rebuild(rebuild, tree.root());
   return ret;
+}
+
+pepp::tc::expr::Tree pepp::tc::expr::simplify(const Tree &tree, const Options &options, const TypeOf &type_of,
+                                              const ConstantOf &constant_of) {
+  return fold_constants(reassociate_constants(tree, options, type_of, constant_of), options, constant_of);
 }

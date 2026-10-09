@@ -180,4 +180,39 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     CHECK(node_types(tree_of("sym + 0x10000"), pep, type_of) == Types{{16, Unsigned}, {32, Bits}, {32, Unsigned}});
     CHECK(node_types(tree_of("-k"), pep, type_of, constant_of) == Types{{16, Bits}, {16, Signed}});
   }
+  SECTION("Reassociation") {
+    // k stands in for the symbol declared on an .EQUATE, and every other symbol for a 16-bit program location.
+    const ConstantOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
+      if (id.name == "k") return Value{5, {16, Bits}};
+      return std::nullopt;
+    };
+    const TypeOf type_of = [](const Identifier &) { return Type{16, Unsigned}; };
+    struct Case {
+      const char *source, *reassociated, *folded;
+    };
+    const std::vector<Case> cases = {
+        {"sym + 1 + 2", "1 2 + sym +", "3 sym +"},
+        {"1 + sym", "1 sym +", "1 sym +"},
+        {"4 * 6 + sym - 5", "4 6 * 5 - sym +", "19 sym +"},
+        {"sym - 1 - 2", "0 1 - 2 - sym +", "65533 sym +"}, // Leads with a zero, and wraps modulo 2^16.
+        {"5 - sym + 1", "5 1 + sym -", "6 sym -"},
+        {"a - b + 1", "1 a + b -", "1 a + b -"}, // Other terms keep their order.
+        {"k + sym + 1", "k 1 + sym +", "6 sym +"},
+        {"sym * 2 + 1", "1 2 sym * +", "1 2 sym * +"}, // Each chain is reassociated within its own group.
+        {"(1 + sym + 2) * 3", "3 1 2 + sym + *", "3 3 sym + *"},
+        {"2 * sym * 3", "2 3 * sym *", "6 sym *"},
+        {"sym & 0xFF & 0xF", "0xFF 0xF & sym &", "15 sym &"},
+        {"sym && 1 && 2", "sym 1 && 2 &&", "sym 1 && 2 &&"}, // Short-circuiting operators keep their order.
+        {"1 + 2", "1 2 +", "3"},
+        // 0x10000 widens the chain, so sym + 1 must wrap before it is added.
+        {"sym + 1 + 0x10000", "1 sym + 0x10000 +", "1 sym + 0x10000 +"},
+    };
+    for (const auto &c : cases) {
+      CAPTURE(c.source);
+      const auto reassociated = reassociate_constants(tree_of(c.source), pep, type_of, constant_of);
+      CHECK(to_postfix(reassociated) == c.reassociated);
+      CHECK(to_postfix(fold_constants(reassociated, pep, constant_of)) == c.folded);
+      CHECK(to_postfix(simplify(tree_of(c.source), pep, type_of, constant_of)) == c.folded);
+    }
+  }
 }

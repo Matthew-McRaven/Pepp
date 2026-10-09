@@ -70,9 +70,20 @@ std::vector<std::optional<Value>> constant_values(const Tree &tree, const Option
 // The type of each node, indexed by NodeId. Constant symbols have their value's type, and other symbols type_of's.
 std::vector<Type> node_types(const Tree &tree, const Options &options, const TypeOf &type_of,
                              const ConstantOf &constant_of = {});
+
+// Return a copy of the tree where each chain of +/-, *, &, |, or ^ has its constant operands moved before its other
+// operands, so that fold_constants can compute them. For example, 4 * 6 + symbol - 5 becomes 4 * 6 - 5 + symbol. A chain
+// is only reordered when all of its nodes have the same width.
+Tree reassociate_constants(const Tree &tree, const Options &options, const TypeOf &type_of,
+                           const ConstantOf &constant_of = {});
 // Return a copy of the tree where all expressions involving constants have been pre-computed. For example, 4 * 6 +
 // symbol - 5 would become 24 + symbol - 5. Newly created constants are of type FoldedConstant which record their
 // computed type in addition to their bit pattern.
 Tree fold_constants(const Tree &tree, const Options &options, const ConstantOf &constant_of = {});
+
+// Reassociate before constant folding so that each chain collapses its constants into one operand. For example,
+// 4 * 6 + symbol - 5 becomes 19 + symbol.  This method is useful for the assembler to prove equivalence between
+// expressions and patterns which can be relocated.
+Tree simplify(const Tree &tree, const Options &options, const TypeOf &type_of, const ConstantOf &constant_of = {});
 
 } // namespace pepp::tc::expr
