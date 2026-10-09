@@ -116,4 +116,40 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     CHECK(result.error().location.lower() == pepp::tc::support::Location(0, 4));
     CHECK(result.error().location.upper() == pepp::tc::support::Location(0, 9));
   }
+  SECTION("Constant folding") {
+    // k stands in for the symbol declared on an .EQUATE and sym for non-constant program location.
+    const ConstantOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
+      if (id.name == "k") return Value{5, {16, Bits}};
+      return std::nullopt;
+    };
+    struct Case {
+      const char *source, *folded;
+    };
+    const std::vector<Case> cases = {
+        {"1 + 2", "3"},
+        {"0x10", "0x10"},
+        {"-4 / 2", "-2"},
+        {"0xFFFF + 1", "0"},
+        {"sym + (1 + 2)", "sym 3 +"},
+        // TODO: will work once we improve our constnat folding algorith with reassociation.
+        {"sym + 1 + 2", "sym 1 + 2 +"},
+        {"1 + sym", "1 sym +"},
+        {"k * 2 + sym", "10 sym +"},
+        // Logical operators do not short-circuit while folding unless both are constants.
+        {"0 && sym", "0 sym &&"},
+        {"1 || sym", "1 sym ||"},
+        {"0 && 1", "0"},
+        {"0 && 1 / 0", "0 1 0 / &&"},
+        {"1 / 0 + sym", "1 0 / sym +"}, // Fails at runtime rather than when constant folding.
+    };
+    for (const auto &c : cases) {
+      CAPTURE(c.source);
+      CHECK(to_postfix(fold_constants(tree_of(c.source), pep, constant_of)) == c.folded);
+    }
+
+    const auto folded = fold_constants(tree_of("0xFFFF / 2"), pep);
+    REQUIRE(std::holds_alternative<FoldedConstant>(folded[folded.root()]));
+    CHECK(std::get<FoldedConstant>(folded[folded.root()]).value == Value{0x7FFF, {16, Unsigned}});
+    CHECK(evaluate_constant(folded, pep).value() == Value{0x7FFF, {16, Unsigned}});
+  }
 }

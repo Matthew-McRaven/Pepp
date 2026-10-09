@@ -212,3 +212,49 @@ std::expected<pepp::tc::expr::Value, pepp::tc::expr::Error> pepp::tc::expr::eval
   if (tree.empty()) return std::unexpected(Error{{}, "Empty expression"});
   return evaluate(tree, tree.root(), options);
 }
+
+pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Options &options,
+                                                    const ConstantOf &constant_of) {
+  // First, the value of each node which has one. Nodes are in postorder, so operands are always computed first.
+  std::vector<std::optional<Value>> values(tree.nodes().size());
+  const auto known = [](const std::expected<Value, std::string> &v) {
+    return v ? std::optional<Value>(*v) : std::nullopt;
+  };
+  // Evaluate a node to a value if it is constant or a nullopt if it is a symbol (or an expression containing a symbol).
+  const auto f = [&](const auto &n) -> std::optional<Value> {
+    using T = std::decay_t<decltype(n)>;
+    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, options);
+    else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value;
+    else if constexpr (std::is_same_v<T, Identifier>) return constant_of ? constant_of(n) : std::nullopt;
+    else if constexpr (std::is_same_v<T, Unary>) {
+      if (!values[n.operand]) return std::nullopt;
+      return known(apply(n.op, *values[n.operand], options));
+    } else {
+      if (const auto &lhs = values[n.lhs], &rhs = values[n.rhs]; !lhs || !rhs) return std::nullopt;
+      else return known(apply(n.op, *lhs, *rhs, options));
+    }
+  };
+  for (NodeId id = 0; id < values.size(); id++) values[id] = std::visit(f, tree[id]);
+
+  // Construct a new tree with constant sub-expressions pre-computed.
+  Tree ret;
+  const auto rebuild = [&](const auto &self, NodeId id) -> NodeId {
+    const auto &node = tree[id];
+    const auto &location = tree.locations()[id];
+    // If the expression was successfully evaluated, replace it with a FoldedConstantNode. Otherwise
+    if (values[id]) {
+      // Do not rewrite a single literal as a folded constant.
+      if (std::holds_alternative<Integer>(node) || std::holds_alternative<Character>(node)) return ret.add(node, location);
+      return ret.add(FoldedConstant{*values[id]}, location);
+    }
+    // Recurse into non-constant subtrees, adding most nested children before parents.
+    else if (const auto *unary = std::get_if<Unary>(&node))
+      return ret.add(Unary{unary->op, self(self, unary->operand)}, location);
+    else if (const auto *binary = std::get_if<Binary>(&node))
+      return ret.add(Binary{binary->op, self(self, binary->lhs), self(self, binary->rhs)}, location);
+    else return ret.add(node, location);
+  };
+  // Walk from the root, attempting to use pre-computed values as FoldedConstants where possible.
+  if (!tree.empty()) rebuild(rebuild, tree.root());
+  return ret;
+}
