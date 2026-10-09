@@ -131,6 +131,7 @@ pepp::tc::expr::Kind pepp::tc::expr::kind(const Node &node) {
 
 namespace {
 using pepp::tc::expr::Character;
+using pepp::tc::expr::FoldedConstant;
 using pepp::tc::expr::Identifier;
 using pepp::tc::expr::Integer;
 
@@ -140,6 +141,12 @@ void append(std::string &out, const Integer &n) {
 }
 void append(std::string &out, const Character &n) { fmt::format_to(std::back_inserter(out), "'{}'", n.text); }
 void append(std::string &out, const Identifier &n) { out += n.name; }
+// Treat folded constants like a conditionally signed integer for serialization purposes.
+void append(std::string &out, const FoldedConstant &n) {
+  if (n.value.type.sign == pepp::tc::expr::Signedness::Signed)
+    fmt::format_to(std::back_inserter(out), "{}", n.value.as_signed());
+  else fmt::format_to(std::back_inserter(out), "{}", n.value.bits);
+}
 
 void append_infix(std::string &out, const pepp::tc::expr::Tree &tree, pepp::tc::expr::NodeId id);
 

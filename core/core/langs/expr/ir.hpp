@@ -23,6 +23,7 @@
 #include <vector>
 #include "core/compile/source/location.hpp"
 #include "core/integers.h"
+#include "core/langs/expr/value.hpp"
 #include "core/math/bitmanip/enums.hpp"
 
 // Syntax of expressions shared by the assemblers and the debugger.
@@ -66,8 +67,9 @@ enum class Kind : u32 {
   Integer = 1u,
   Character = Integer << 1,
   Identifier = Character << 1,
+  FoldedConstant = Identifier << 1,
   // UnaryOp in declaration order.
-  UnaryStart = Identifier << 1,
+  UnaryStart = FoldedConstant << 1,
   Plus = UnaryStart,
   Minus = Plus << 1,
   BitNot = Minus << 1,
@@ -96,7 +98,7 @@ enum class Kind : u32 {
   BinaryLast = LogicalOr,
   End = BinaryLast,
   // Convenient aliases for common types. A range [Start, Last] of single bits is (Last << 1) - Start.
-  Constant = Integer | Character,
+  Constant = Integer | Character | FoldedConstant,
   AnyUnary = (UnaryLast << 1) - UnaryStart,
   AnyBinary = (BinaryLast << 1) - BinaryStart,
   Any = (End << 1) - 1,
@@ -115,8 +117,8 @@ static_assert(kind(BinaryOp::Multiply) == Kind::Multiply && kind(BinaryOp::Logic
               "Kind must mirror BinaryOp");
 static_assert(bits::to_underlying(Kind::Any) ==
                   (bits::to_underlying(Kind::Integer) | bits::to_underlying(Kind::Character) |
-                   bits::to_underlying(Kind::Identifier) | bits::to_underlying(Kind::AnyUnary) |
-                   bits::to_underlying(Kind::AnyBinary)),
+                   bits::to_underlying(Kind::Identifier) | bits::to_underlying(Kind::FoldedConstant) |
+                   bits::to_underlying(Kind::AnyUnary) | bits::to_underlying(Kind::AnyBinary)),
               "Kind's masks must cover every kind exactly");
 
 struct Integer {
@@ -140,6 +142,13 @@ struct Identifier {
   std::string name;
 };
 
+// A value computed during constant folding. Unlike other constants, it must record its type because it may have been
+// widened or narrowed during compuation.
+struct FoldedConstant {
+  static constexpr Kind KIND = Kind::FoldedConstant;
+  Value value;
+};
+
 struct Unary {
   static constexpr Kind KIND = Kind::AnyUnary;
   UnaryOp op;
@@ -152,7 +161,7 @@ struct Binary {
   NodeId lhs, rhs;
 };
 
-using Node = std::variant<Integer, Character, Identifier, Unary, Binary>;
+using Node = std::variant<Integer, Character, Identifier, FoldedConstant, Unary, Binary>;
 Kind kind(const Node &node);
 
 // A syntax tree of nodes stored in a postordered, flat vector. Nodes refer to each other by index. By definition,
