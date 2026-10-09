@@ -14,7 +14,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "core/langs/expr/ir.hpp"
+#include <iterator>
 #include <stdexcept>
+#include "fmt/format.h"
 
 pepp::tc::expr::NodeId pepp::tc::expr::Tree::add(Node node, support::LocationInterval location) {
   // Operands must already be present, or the nodes would no longer be in postorder.
@@ -94,4 +96,26 @@ pepp::tc::expr::Kind pepp::tc::expr::kind(const Node &node) {
     else return T::KIND;
   };
   return std::visit(f, node);
+}
+
+std::string pepp::tc::expr::to_postfix(const Tree &tree) {
+  std::string ret;
+  auto f = [&](const auto &n) {
+    using T = std::decay_t<decltype(n)>;
+    if constexpr (std::is_same_v<T, Integer>) {
+      if (n.format == Integer::Format::Hexadecimal) fmt::format_to(std::back_inserter(ret), "0x{:X}", n.value);
+      else fmt::format_to(std::back_inserter(ret), "{}", n.value);
+    } else if constexpr (std::is_same_v<T, Character>) fmt::format_to(std::back_inserter(ret), "'{}'", n.text);
+    else if constexpr (std::is_same_v<T, Identifier>) ret += n.name;
+    else if constexpr (std::is_same_v<T, Unary>) {
+      if (n.op == UnaryOp::Plus) ret += "u+";
+      else if (n.op == UnaryOp::Minus) ret += "u-";
+      else ret += to_string(n.op);
+    } else ret += to_string(n.op);
+  };
+  for (const auto &node : tree.nodes()) {
+    if (!ret.empty()) ret += ' ';
+    std::visit(f, node);
+  }
+  return ret;
 }
