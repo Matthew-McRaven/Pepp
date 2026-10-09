@@ -21,7 +21,7 @@
 
 pepp::tc::expr::ExpressionLexer::ExpressionLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
                                                  support::SeekableData &&data)
-    : ALexer(identifier_pool, std::move(data)) {}
+    : ALexer(std::move(identifier_pool), std::move(data)) {}
 
 bool pepp::tc::expr::ExpressionLexer::input_remains() const { return _cursor.input_remains(); }
 
@@ -52,11 +52,12 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
   // Integer literals must fit in 64 bits as either signed or unsigned bit patterns.
   const auto integer = [&](std::string_view digits, int base, Integer::Format format) -> std::shared_ptr<Token> {
     u64 value = 0;
-    const auto [ptr, ec] = std::from_chars(digits.data(), digits.data() + digits.size(), value, base);
-    if (ec != std::errc{} || ptr != digits.data() + digits.size()) return invalid();
+    // The regex has already checked the digits, so only overflow can fail.
+    if (std::from_chars(digits.data(), digits.data() + digits.size(), value, base).ec != std::errc{}) return invalid();
     return std::make_shared<Integer>(here(), value, format);
   };
 
+  // On a match, advance over it. _cursor.select() is then whole the token's text.
   std::shared_ptr<Token> current_token;
   if (!input_remains()) current_token = std::make_shared<EoF>(here());
   else if (_cursor.peek() == '\n') {
@@ -64,30 +65,26 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
     _cursor.newline();
     current_token = std::make_shared<Empty>(here());
   } else if (auto maybeHex = _cursor.matchView(hexadecimal); !maybeHex.empty()) {
-    auto match = maybeHex.str(0);
-    _cursor.advance(match.size());
-    current_token = integer(std::string_view(match).substr(2), 16, Integer::Format::Hex);
+    _cursor.advance(maybeHex.length(0));
+    current_token = integer(_cursor.select().substr(2), 16, Integer::Format::Hex);
   } else if (auto maybeBadHex = _cursor.matchView(badHex); !maybeBadHex.empty()) {
-    _cursor.advance(maybeBadHex.str(0).size());
+    _cursor.advance(maybeBadHex.length(0));
     current_token = invalid();
   } else if (auto maybeDec = _cursor.matchView(decimal); !maybeDec.empty()) {
-    auto match = maybeDec.str(0);
-    _cursor.advance(match.size());
-    current_token = integer(match, 10, Integer::Format::UnsignedDec);
+    _cursor.advance(maybeDec.length(0));
+    current_token = integer(_cursor.select(), 10, Integer::Format::UnsignedDec);
   } else if (auto maybeChar = _cursor.matchView(charConstant); !maybeChar.empty()) {
-    auto match = maybeChar.str(0);
-    _cursor.advance(match.size());
+    _cursor.advance(maybeChar.length(0));
+    const auto text = _cursor.select();
     // Omit open and close quotes.
-    current_token = std::make_shared<CharacterConstant>(here(), match.substr(1, match.size() - 2));
+    current_token = std::make_shared<CharacterConstant>(here(), std::string{text.substr(1, text.size() - 2)});
   } else if (auto maybeIdent = _cursor.matchView(identifier); !maybeIdent.empty()) {
-    auto match = maybeIdent.str(0);
-    _cursor.advance(match.size());
-    auto const *id = &*_pool->emplace(match).first;
+    _cursor.advance(maybeIdent.length(0));
+    auto const *id = &*_pool->emplace(_cursor.select()).first;
     current_token = std::make_shared<Identifier>(here(), id);
   } else if (auto maybeOp = _cursor.matchView(op); !maybeOp.empty()) {
-    auto match = maybeOp.str(0);
-    _cursor.advance(match.size());
-    current_token = std::make_shared<Literal>(here(), match);
+    _cursor.advance(maybeOp.length(0));
+    current_token = std::make_shared<Literal>(here(), std::string{_cursor.select()});
   } else {
     _cursor.advance(1);
     current_token = invalid();
