@@ -191,6 +191,8 @@ int precedence(BinaryOp op);
 // Serialize the tree in postfix notation, e.g. 1 + 2 * -x is "1 2 x u- * +". Unary plus and minus are written u+ and u-
 // to tell them from their binary forms.
 std::string to_postfix(const Tree &tree);
+// Serialize the tree in infix notation, inserting parentheses only as required for correctness.
+std::string to_infix(const Tree &tree);
 
 // Returns true if the two sequences &'ed together are non-zero for each position.
 constexpr bool matches(std::span<const Kind> kinds, std::span<const Kind> pattern) {

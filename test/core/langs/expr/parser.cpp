@@ -32,30 +32,34 @@ Parsed parsed(const ParseResult &result) {
 TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*]") {
   SECTION("left associative C operator precedence") {
     struct Case {
-      const char *source, *formatted;
+      const char *source, *postfix, *infix;
     };
     const std::vector<Case> cases = {
-        {"5-3-1", "5 3 - 1 -"},
-        {"8/4/2", "8 4 / 2 /"},
-        {"1+2*3", "1 2 3 * +"},
-        {"(1+2)*3", "1 2 + 3 *"},
-        {"1+2<<3", "1 2 + 3 <<"},
-        {"x>>1<=y", "x 1 >> y <="},
-        {"1 < 2 == 3 >= 4", "1 2 < 3 4 >= =="},
-        {"a&b==c", "a b c == &"},
-        {"a|b^c&d", "a b c d & ^ |"},
-        {"a||b&&c", "a b c && ||"},
-        {"-a*b", "a u- b *"},
-        {"!~-x", "x u- ~ !"},
-        {"a - -b", "a b u- -"},
-        {"+a % (b - c)", "a u+ b c - %"},
-        {"0x1f * '\\n'", "0x1F '\\n' *"}, // Literals print in their own format.
+        {"5-3-1", "5 3 - 1 -", "5 - 3 - 1"},
+        {"5-(3-1)", "5 3 1 - -", "5 - (3 - 1)"},
+        {"8/4/2", "8 4 / 2 /", "8 / 4 / 2"},
+        {"1+2*3", "1 2 3 * +", "1 + 2 * 3"},
+        {"(1+2)*3", "1 2 + 3 *", "(1 + 2) * 3"},
+        {"1+2<<3", "1 2 + 3 <<", "1 + 2 << 3"},
+        {"x>>1<=y", "x 1 >> y <=", "x >> 1 <= y"},
+        {"1 < 2 == 3 >= 4", "1 2 < 3 4 >= ==", "1 < 2 == 3 >= 4"},
+        {"a&b==c", "a b c == &", "a & b == c"},
+        {"a|b^c&d", "a b c d & ^ |", "a | b ^ c & d"},
+        {"a||b&&c", "a b c && ||", "a || b && c"},
+        {"-a*b", "a u- b *", "-a * b"},
+        {"-(a+b)", "a b + u-", "-(a + b)"},
+        {"!~-x", "x u- ~ !", "!~-x"},
+        {"a - -b", "a b u- -", "a - -b"},
+        {"+a % (b - c)", "a u+ b c - %", "+a % (b - c)"},
+        {"((a))", "a", "a"},
+        {"0x1f * '\\n'", "0x1F '\\n' *", "0x1F * '\\n'"}, // Literals print in their own format.
     };
     for (const auto &c : cases) {
       CAPTURE(c.source);
       const auto parse_result = parse(c.source);
       const auto &result = parsed(parse_result);
-      CHECK(to_postfix(result.tree) == c.formatted);
+      CHECK(to_postfix(result.tree) == c.postfix);
+      CHECK(to_infix(result.tree) == c.infix);
       CHECK(result.length == std::string_view(c.source).size());
     }
   }
@@ -91,8 +95,8 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     };
     // Check that escape sequences are preserved, even if there is an equivalent ASCII character.
     const std::vector<CharacterCase> characters = {
-        {"'a'", 'a', "a"},     {"'\\n'", '\n', "\\n"},       {"'\\x41'", 0x41, "\\x41"},
-        {"'\\''", '\'', "\\'"}, {"'\\0'", 0, "\\0"}, {"'\\\\'", '\\', "\\\\"},
+        {"'a'", 'a', "a"},      {"'\\n'", '\n', "\\n"}, {"'\\x41'", 0x41, "\\x41"},
+        {"'\\''", '\'', "\\'"}, {"'\\0'", 0, "\\0"},    {"'\\\\'", '\\', "\\\\"},
     };
     for (const auto &c : characters) {
       CAPTURE(c.source);
@@ -146,14 +150,10 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
       const char *message;
     };
     const std::vector<Case> cases = {
-        {"a + ,d", 4, 5, "Expected an operand"},
-        {"a +", 3, 3, "Expected an operand"},
-        {"a + * b", 4, 5, "Expected an operand"},
-        {"-", 1, 1, "Expected an operand"},
-        {"(a + 1", 6, 6, "Expected ')'"},
-        {"(1 + 2 ,", 7, 8, "Expected ')'"},
-        {"1 + 0x", 4, 6, "Expected an operand"},
-        {"1 + 99999999999999999999", 4, 24, "Expected an operand"},
+        {"a + ,d", 4, 5, "Expected an operand"},  {"a +", 3, 3, "Expected an operand"},
+        {"a + * b", 4, 5, "Expected an operand"}, {"-", 1, 1, "Expected an operand"},
+        {"(a + 1", 6, 6, "Expected ')'"},         {"(1 + 2 ,", 7, 8, "Expected ')'"},
+        {"1 + 0x", 4, 6, "Expected an operand"},  {"1 + 99999999999999999999", 4, 24, "Expected an operand"},
     };
     for (const auto &c : cases) {
       CAPTURE(c.source);

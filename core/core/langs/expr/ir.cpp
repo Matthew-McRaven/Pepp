@@ -15,6 +15,7 @@
  */
 #include "core/langs/expr/ir.hpp"
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 #include "fmt/format.h"
 
@@ -128,24 +129,70 @@ pepp::tc::expr::Kind pepp::tc::expr::kind(const Node &node) {
   return std::visit(f, node);
 }
 
+namespace {
+using pepp::tc::expr::Character;
+using pepp::tc::expr::Identifier;
+using pepp::tc::expr::Integer;
+
+void append(std::string &out, const Integer &n) {
+  if (n.format == Integer::Format::Hexadecimal) fmt::format_to(std::back_inserter(out), "0x{:X}", n.value);
+  else fmt::format_to(std::back_inserter(out), "{}", n.value);
+}
+void append(std::string &out, const Character &n) { fmt::format_to(std::back_inserter(out), "'{}'", n.text); }
+void append(std::string &out, const Identifier &n) { out += n.name; }
+
+void append_infix(std::string &out, const pepp::tc::expr::Tree &tree, pepp::tc::expr::NodeId id);
+
+// Parenthesize operand only when the result would otherwise be ambiguous. Binary operators are left associative, so a
+// right operand of equal precedence needs parentheses (a - (b - c)), but a left one does not ((a - b) - c).
+void append_operand(std::string &out, const pepp::tc::expr::Tree &tree, pepp::tc::expr::NodeId id, int min_precedence) {
+  using namespace pepp::tc::expr;
+  const auto *binary = std::get_if<Binary>(&tree[id]);
+  const bool parens = binary && precedence(binary->op) < min_precedence;
+  if (parens) out += '(';
+  append_infix(out, tree, id);
+  if (parens) out += ')';
+}
+
+void append_infix(std::string &out, const pepp::tc::expr::Tree &tree, pepp::tc::expr::NodeId id) {
+  using namespace pepp::tc::expr;
+  std::visit(
+      [&](const auto &n) {
+        using T = std::decay_t<decltype(n)>;
+        if constexpr (std::is_same_v<T, Unary>) {
+          out += to_string(n.op);
+          // Unary operators bind tighter than every binary operator.
+          append_operand(out, tree, n.operand, std::numeric_limits<int>::max());
+        } else if constexpr (std::is_same_v<T, Binary>) {
+          append_operand(out, tree, n.lhs, precedence(n.op));
+          fmt::format_to(std::back_inserter(out), " {} ", to_string(n.op));
+          append_operand(out, tree, n.rhs, precedence(n.op) + 1);
+        } else append(out, n);
+      },
+      tree[id]);
+}
+} // namespace
+
 std::string pepp::tc::expr::to_postfix(const Tree &tree) {
   std::string ret;
   auto f = [&](const auto &n) {
     using T = std::decay_t<decltype(n)>;
-    if constexpr (std::is_same_v<T, Integer>) {
-      if (n.format == Integer::Format::Hexadecimal) fmt::format_to(std::back_inserter(ret), "0x{:X}", n.value);
-      else fmt::format_to(std::back_inserter(ret), "{}", n.value);
-    } else if constexpr (std::is_same_v<T, Character>) fmt::format_to(std::back_inserter(ret), "'{}'", n.text);
-    else if constexpr (std::is_same_v<T, Identifier>) ret += n.name;
-    else if constexpr (std::is_same_v<T, Unary>) {
+    if constexpr (std::is_same_v<T, Unary>) {
       if (n.op == UnaryOp::Plus) ret += "u+";
       else if (n.op == UnaryOp::Minus) ret += "u-";
       else ret += to_string(n.op);
-    } else ret += to_string(n.op);
+    } else if constexpr (std::is_same_v<T, Binary>) ret += to_string(n.op);
+    else append(ret, n);
   };
   for (const auto &node : tree.nodes()) {
     if (!ret.empty()) ret += ' ';
     std::visit(f, node);
   }
+  return ret;
+}
+
+std::string pepp::tc::expr::to_infix(const Tree &tree) {
+  std::string ret;
+  if (!tree.empty()) append_infix(ret, tree, tree.root());
   return ret;
 }
