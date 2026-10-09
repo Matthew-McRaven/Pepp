@@ -106,7 +106,7 @@ Value convert(Value v, Type to) {
 
 Value make(u64 value, Type type) { return {value & bits::mask(type.bits / 8), type}; }
 
-using Result = std::expected<Value, Error>;
+using Result = std::expected<Value, EvaluationError>;
 
 // If this returns true, do not evaluate the RHS.
 bool short_circuits(BinaryOp op, Value lhs) {
@@ -114,7 +114,7 @@ bool short_circuits(BinaryOp op, Value lhs) {
 }
 
 Result evaluate(const Tree &tree, NodeId id, const Options &options) {
-  const auto fail = [&](std::string message) { return std::unexpected(Error{tree.locations()[id], std::move(message)}); };
+  const auto fail = [&](std::string message) { return std::unexpected(EvaluationError{id, std::move(message)}); };
   const auto f = [&](const auto &n) -> Result {
     using T = std::decay_t<decltype(n)>;
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, options);
@@ -207,9 +207,9 @@ std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(BinaryOp
   return std::unexpected("Unknown binary operator");
 }
 
-std::expected<pepp::tc::expr::Value, pepp::tc::expr::Error> pepp::tc::expr::evaluate_constant(const Tree &tree,
-                                                                                               const Options &options) {
-  if (tree.empty()) return std::unexpected(Error{{}, "Empty expression"});
+std::expected<pepp::tc::expr::Value, pepp::tc::expr::EvaluationError>
+pepp::tc::expr::evaluate_constant(const Tree &tree, const Options &options) {
+  if (tree.empty()) return std::unexpected(EvaluationError{std::nullopt, "Empty expression"});
   return evaluate(tree, tree.root(), options);
 }
 
@@ -240,19 +240,18 @@ pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Opti
   Tree ret;
   const auto rebuild = [&](const auto &self, NodeId id) -> NodeId {
     const auto &node = tree[id];
-    const auto &location = tree.locations()[id];
     // If the expression was successfully evaluated, replace it with a FoldedConstantNode. Otherwise
     if (values[id]) {
       // Do not rewrite a single literal as a folded constant.
-      if (std::holds_alternative<Integer>(node) || std::holds_alternative<Character>(node)) return ret.add(node, location);
-      return ret.add(FoldedConstant{*values[id]}, location);
+      if (std::holds_alternative<Integer>(node) || std::holds_alternative<Character>(node)) return ret.add(node);
+      return ret.add(FoldedConstant{*values[id]});
     }
     // Recurse into non-constant subtrees, adding most nested children before parents.
     else if (const auto *unary = std::get_if<Unary>(&node))
-      return ret.add(Unary{unary->op, self(self, unary->operand)}, location);
+      return ret.add(Unary{unary->op, self(self, unary->operand)});
     else if (const auto *binary = std::get_if<Binary>(&node))
-      return ret.add(Binary{binary->op, self(self, binary->lhs), self(self, binary->rhs)}, location);
-    else return ret.add(node, location);
+      return ret.add(Binary{binary->op, self(self, binary->lhs), self(self, binary->rhs)});
+    else return ret.add(node);
   };
   // Walk from the root, attempting to use pre-computed values as FoldedConstants where possible.
   if (!tree.empty()) rebuild(rebuild, tree.root());

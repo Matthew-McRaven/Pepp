@@ -14,14 +14,22 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
+#include <optional>
 #include <string>
 #include "core/compile/source/location.hpp"
+#include "core/langs/expr/ir.hpp"
 
 namespace pepp::tc::expr {
 
-// A problem found while parsing or evaluating an expression and the location in the lexer's buffer where it occured.
+// A problem found while parsing an expression and the location in the lexer's buffer where it occured.
 struct Error {
   support::LocationInterval location;
+  std::string message;
+};
+
+// An operation which failed during evaluation. Callers should map the node to a source location.
+struct EvaluationError {
+  std::optional<NodeId> node; // nullopt if the tree is empty.
   std::string message;
 };
 

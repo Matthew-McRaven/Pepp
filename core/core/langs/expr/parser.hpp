@@ -19,6 +19,7 @@
 #include <string_view>
 #include <unordered_set>
 #include <variant>
+#include <vector>
 #include "core/compile/source/location.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/expr/error.hpp"
@@ -38,6 +39,8 @@ struct NoExpression {};
 // The longest valid match up to `after`.
 struct Parsed {
   Tree tree;
+  // Source span of each node, indexed by NodeId. An operator's span covers its whole subexpression, excluding parens.
+  std::vector<support::LocationInterval> locations;
   size_t length = 0;
   support::SeekableData after;
 };

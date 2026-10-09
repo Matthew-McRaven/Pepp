@@ -21,7 +21,6 @@
 #include <string_view>
 #include <variant>
 #include <vector>
-#include "core/compile/source/location.hpp"
 #include "core/integers.h"
 #include "core/langs/expr/value.hpp"
 #include "core/math/bitmanip/enums.hpp"
@@ -169,21 +168,18 @@ Kind kind(const Node &node);
 class Tree {
 public:
   // Append a node whose operands are already in the tree. This node becomes the new root.
-  NodeId add(Node node, support::LocationInterval location);
+  NodeId add(Node node);
 
   bool empty() const { return _nodes.empty(); }
   NodeId root() const { return static_cast<NodeId>(_nodes.size() - 1); }
   const Node &operator[](NodeId id) const { return _nodes[id]; }
   const std::vector<Node> &nodes() const { return _nodes; }
-  // Source span of each node. An operator's span covers its whole subexpression, excluding enclosing parentheses.
-  const std::vector<support::LocationInterval> &locations() const { return _locations; }
   // Each position has 1 bit set indicating the concrete type of each node.
   const std::vector<Kind> &kinds() const { return _kinds; }
 
 private:
   // SoA layout for cache efficiency.
   std::vector<Node> _nodes;
-  std::vector<support::LocationInterval> _locations;
   std::vector<Kind> _kinds;
 };
 

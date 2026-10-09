@@ -19,7 +19,7 @@
 #include <stdexcept>
 #include "fmt/format.h"
 
-pepp::tc::expr::NodeId pepp::tc::expr::Tree::add(Node node, support::LocationInterval location) {
+pepp::tc::expr::NodeId pepp::tc::expr::Tree::add(Node node) {
   // Operands must already be present, or the nodes would no longer be in postorder.
   const auto present = [&](NodeId id) { return id < _nodes.size(); };
   if (const auto *unary = std::get_if<Unary>(&node); unary && !present(unary->operand))
@@ -28,7 +28,6 @@ pepp::tc::expr::NodeId pepp::tc::expr::Tree::add(Node node, support::LocationInt
     throw std::logic_error("Binary operand is not in the tree");
   _kinds.emplace_back(kind(node));
   _nodes.emplace_back(std::move(node));
-  _locations.emplace_back(location);
   return static_cast<NodeId>(_nodes.size() - 1);
 }
 

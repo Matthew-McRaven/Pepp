@@ -51,18 +51,17 @@ Type result_type(BinaryOp op, Type lhs, Type rhs, const Options &options);
 std::expected<Value, std::string> apply(UnaryOp op, Value operand, const Options &options);
 std::expected<Value, std::string> apply(BinaryOp op, Value lhs, Value rhs, const Options &options);
 
+
 // Evaluate a tree containing no identifiers with short-circuiting for && and ||.
 // A tree containing an identifier will raise an error.
-std::expected<Value, Error> evaluate_constant(const Tree &tree, const Options &options);
+std::expected<Value, EvaluationError> evaluate_constant(const Tree &tree, const Options &options);
 
 // The value of a symbol which is a constant (e.g., an .EQUATE in the assembler), or nullopt if the symbol is not a
 // constant.
 using ConstantOf = std::function<std::optional<Value>(const Identifier &)>;
 // Return a copy of the tree where all expressions involving constants have been pre-computed. For example, 4 * 6 +
-// symbol - 5 would become 24 + symbol - 5; reaching symbol + 19 needs reassociation. The constant will be recorded as a
-// FoldedConstant node which remembers its computed type. This method is incredibly useful for the assembler to prove
-// equivalence between expressions and patterns which can be relocated. constant_of can be used to treat certain identifiers as constants. If not provided,
-// no identifiers are treated as constants.
+// symbol - 5 would become 24 + symbol - 5. Newly created constants are of type FoldedConstant which record their
+// computed type in addition to their bit pattern.
 Tree fold_constants(const Tree &tree, const Options &options, const ConstantOf &constant_of = {});
 
 } // namespace pepp::tc::expr

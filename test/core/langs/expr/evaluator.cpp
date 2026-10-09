@@ -29,7 +29,7 @@ Tree tree_of(const char *source) {
   return std::get<Parsed>(std::move(result)).tree;
 }
 
-std::expected<Value, Error> evaluate(const char *source, const Options &options) {
+std::expected<Value, EvaluationError> evaluate(const char *source, const Options &options) {
   return evaluate_constant(tree_of(source), options);
 }
 } // namespace
@@ -110,11 +110,22 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
       REQUIRE(!result.has_value());
       CHECK(result.error().message == c.message);
     }
-    // Errors are located at the operation which failed.
-    const auto result = evaluate("2 + 1 / 0", pep);
+
+    // Check that errors are localized to the failing text of the expression.
+    const auto parse_result = parse("2 + 1 / 0");
+    REQUIRE(std::holds_alternative<Parsed>(parse_result));
+    const auto &parsed = std::get<Parsed>(parse_result);
+    const auto result = evaluate_constant(parsed.tree, pep);
     REQUIRE(!result.has_value());
-    CHECK(result.error().location.lower() == pepp::tc::support::Location(0, 4));
-    CHECK(result.error().location.upper() == pepp::tc::support::Location(0, 9));
+    const auto division = std::get<Binary>(parsed.tree[parsed.tree.root()]).rhs;
+    CHECK(result.error().node == division);
+    CHECK(parsed.locations[division].lower() == pepp::tc::support::Location(0, 4));
+    CHECK(parsed.locations[division].upper() == pepp::tc::support::Location(0, 9));
+
+    const auto empty = evaluate_constant(Tree{}, pep);
+    REQUIRE(!empty.has_value());
+    CHECK(!empty.error().node.has_value());
+    CHECK(empty.error().message == "Empty expression");
   }
   SECTION("Constant folding") {
     // k stands in for the symbol declared on an .EQUATE and sym for non-constant program location.

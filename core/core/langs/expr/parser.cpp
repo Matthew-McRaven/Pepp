@@ -55,7 +55,7 @@ public:
       // One level higher makes operators of equal precedence group to the left.
       const auto rhs = expression(precedence(*op) + 1);
       if (!rhs) expected_operand();
-      lhs = tree.add(Binary{*op, *lhs, *rhs}, LocationInterval(tree.locations()[*lhs].lower(), tree.locations()[*rhs].upper()));
+      lhs = add(Binary{*op, *lhs, *rhs}, LocationInterval(locations[*lhs].lower(), locations[*rhs].upper()));
     }
     return lhs;
   }
@@ -64,15 +64,21 @@ public:
   size_t length() const { return static_cast<size_t>(_end.column - _origin.column); }
 
   Tree tree;
+  std::vector<LocationInterval> locations;
 
 private:
+  NodeId add(Node node, LocationInterval location) {
+    locations.emplace_back(location);
+    return tree.add(std::move(node));
+  }
+
   std::optional<NodeId> unary() {
     if (auto literal = _buf.peek<lex::Literal>(); literal) {
       if (const auto op = unary_op(literal->literal); op) {
         consume(_buf.match<lex::Literal>());
         const auto operand = unary();
         if (!operand) expected_operand();
-        return tree.add(Unary{*op, *operand}, LocationInterval(literal->location().lower(), tree.locations()[*operand].upper()));
+        return add(Unary{*op, *operand}, LocationInterval(literal->location().lower(), locations[*operand].upper()));
       }
     }
     return primary();
@@ -82,15 +88,15 @@ private:
     if (auto integer = _buf.match<lex::Integer>(); integer) {
       consume(integer);
       const auto format = integer->format == lex::Integer::Format::Hex ? Integer::Format::Hexadecimal : Integer::Format::Decimal;
-      return tree.add(Integer{integer->value, format}, integer->location());
+      return add(Integer{integer->value, format}, integer->location());
     } else if (auto character = _buf.match<lex::CharacterConstant>(); character) {
       consume(character);
       const auto value = bits::escapedToByte(character->value);
       if (!value) throw Failure{character->location(), "Invalid character constant"};
-      return tree.add(Character{*value, character->value}, character->location());
+      return add(Character{*value, character->value}, character->location());
     } else if (auto identifier = _buf.match<lex::Identifier>(); identifier) {
       consume(identifier);
-      return tree.add(Identifier{std::string(identifier->view())}, identifier->location());
+      return add(Identifier{std::string(identifier->view())}, identifier->location());
     } else if (_buf.peek_literal("(")) {
       consume(_buf.match_literal("("));
       const auto inner = expression(0);
@@ -126,7 +132,7 @@ pepp::tc::expr::ParseResult pepp::tc::expr::parse(support::SeekableData cursor, 
     if (!root) return NoExpression{};
     // Parser does not consume newlines meaning it only advances the column.
     after.skip(parser.length());
-    return Parsed{std::move(parser.tree), parser.length(), std::move(after)};
+    return Parsed{std::move(parser.tree), std::move(parser.locations), parser.length(), std::move(after)};
   } catch (const Failure &failure) {
     return Error{failure.location, failure.message};
   }

@@ -169,11 +169,13 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     const auto parse_result = parse("(a) + bb", Location(3, 10));
     const auto &result = parsed(parse_result);
     const auto &tree = result.tree;
+    const auto &locations = result.locations;
+    REQUIRE(locations.size() == tree.nodes().size());
     // Parentheses are not part of a node's span.
-    CHECK(tree.locations()[tree.root()].lower() == Location(3, 11));
-    CHECK(tree.locations()[tree.root()].upper() == Location(3, 18));
+    CHECK(locations[tree.root()].lower() == Location(3, 11));
+    CHECK(locations[tree.root()].upper() == Location(3, 18));
     const auto &sum = std::get<Binary>(tree[tree.root()]);
-    CHECK(tree.locations()[sum.rhs].lower() == Location(3, 16));
-    CHECK(tree.locations()[sum.rhs].upper() == Location(3, 18));
+    CHECK(locations[sum.rhs].lower() == Location(3, 16));
+    CHECK(locations[sum.rhs].upper() == Location(3, 18));
   }
 }
