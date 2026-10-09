@@ -21,6 +21,7 @@
 #include <variant>
 #include "core/compile/source/location.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/langs/expr/error.hpp"
 #include "core/langs/expr/ir.hpp"
 
 /*
@@ -39,12 +40,6 @@ struct Parsed {
   Tree tree;
   size_t length = 0;
   support::SeekableData after;
-};
-
-// An binary operator (or open paren) was found, but the next token did not continue the expression.
-struct Error {
-  support::LocationInterval location;
-  std::string message;
 };
 
 using ParseResult = std::variant<NoExpression, Parsed, Error>;
