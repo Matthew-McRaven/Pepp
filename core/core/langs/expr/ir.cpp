@@ -41,6 +41,14 @@ std::string_view pepp::tc::expr::to_string(UnaryOp op) {
   return "?";
 }
 
+std::optional<pepp::tc::expr::UnaryOp> pepp::tc::expr::unary_op(std::string_view text) {
+  if (text == "+") return UnaryOp::Plus;
+  else if (text == "-") return UnaryOp::Minus;
+  else if (text == "~") return UnaryOp::BitNot;
+  else if (text == "!") return UnaryOp::LogicalNot;
+  return std::nullopt;
+}
+
 std::string_view pepp::tc::expr::to_string(BinaryOp op) {
   switch (op) {
   case BinaryOp::Multiply: return "*";
@@ -63,6 +71,28 @@ std::string_view pepp::tc::expr::to_string(BinaryOp op) {
   case BinaryOp::LogicalOr: return "||";
   }
   return "?";
+}
+std::optional<pepp::tc::expr::BinaryOp> pepp::tc::expr::binary_op(std::string_view text) {
+  using enum BinaryOp;
+  if (text == "*") return Multiply;
+  else if (text == "/") return Divide;
+  else if (text == "%") return Modulo;
+  else if (text == "+") return Add;
+  else if (text == "-") return Subtract;
+  else if (text == "<<") return ShiftLeft;
+  else if (text == ">>") return ShiftRight;
+  else if (text == "<") return Less;
+  else if (text == "<=") return LessEqual;
+  else if (text == ">") return Greater;
+  else if (text == ">=") return GreaterEqual;
+  else if (text == "==") return Equal;
+  else if (text == "!=") return NotEqual;
+  else if (text == "&") return BitAnd;
+  else if (text == "^") return BitXor;
+  else if (text == "|") return BitOr;
+  else if (text == "&&") return LogicalAnd;
+  else if (text == "||") return LogicalOr;
+  return std::nullopt;
 }
 
 int pepp::tc::expr::precedence(BinaryOp op) {

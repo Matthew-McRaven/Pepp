@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <algorithm>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -179,6 +180,10 @@ private:
 
 std::string_view to_string(UnaryOp op);
 std::string_view to_string(BinaryOp op);
+// std::nullopt if text is not a valid operator
+std::optional<UnaryOp> unary_op(std::string_view text);
+std::optional<BinaryOp> binary_op(std::string_view text);
+
 // Return the relative precendence of the operator, with higher numbers binding more tightly. Matches C precendence, and
 // assumes left-associativity.
 int precedence(BinaryOp op);
