@@ -163,4 +163,21 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     CHECK(std::get<FoldedConstant>(folded[folded.root()]).value == Value{0x7FFF, {16, Unsigned}});
     CHECK(evaluate_constant(folded, pep).value() == Value{0x7FFF, {16, Unsigned}});
   }
+  SECTION("Node-level constant evaluation and typind") {
+    const ConstantOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
+      if (id.name == "k") return Value{5, {16, Bits}};
+      return std::nullopt;
+    };
+    const TypeOf type_of = [](const Identifier &) { return Type{16, Unsigned}; };
+    using Values = std::vector<std::optional<Value>>;
+    CHECK(constant_values(tree_of("sym + 2 * k"), pep, constant_of) ==
+          Values{std::nullopt, Value{2, {16, Bits}}, Value{5, {16, Bits}}, Value{10, {16, Bits}}, std::nullopt});
+    // No short-circuiting, so the division fails and so does everything above it.
+    CHECK(constant_values(tree_of("0 && 1 / 0"), pep) ==
+          Values{Value{0, {16, Bits}}, Value{1, {16, Bits}}, Value{0, {16, Bits}}, std::nullopt, std::nullopt});
+
+    using Types = std::vector<Type>;
+    CHECK(node_types(tree_of("sym + 0x10000"), pep, type_of) == Types{{16, Unsigned}, {32, Bits}, {32, Unsigned}});
+    CHECK(node_types(tree_of("-k"), pep, type_of, constant_of) == Types{{16, Bits}, {16, Signed}});
+  }
 }

@@ -16,6 +16,7 @@
 #include "core/langs/expr/evaluator.hpp"
 #include <algorithm>
 #include <utility>
+#include "core/langs/expr/traversal.hpp"
 #include "core/math/bitmanip/mask.hpp"
 
 namespace {
@@ -213,9 +214,9 @@ pepp::tc::expr::evaluate_constant(const Tree &tree, const Options &options) {
   return evaluate(tree, tree.root(), options);
 }
 
-pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Options &options,
-                                                    const ConstantOf &constant_of) {
-  // First, the value of each node which has one. Nodes are in postorder, so operands are always computed first.
+std::vector<std::optional<pepp::tc::expr::Value>>
+pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const ConstantOf &constant_of) {
+  // Nodes are in postorder, so operands are always computed first.
   std::vector<std::optional<Value>> values(tree.nodes().size());
   const auto known = [](const std::expected<Value, std::string> &v) {
     return v ? std::optional<Value>(*v) : std::nullopt;
@@ -235,25 +236,40 @@ pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Opti
     }
   };
   for (NodeId id = 0; id < values.size(); id++) values[id] = std::visit(f, tree[id]);
+  return values;
+}
 
-  // Construct a new tree with constant sub-expressions pre-computed.
+std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, const Options &options,
+                                                             const TypeOf &type_of, const ConstantOf &constant_of) {
+  // Nodes are in postorder, so operands are always typed first.
+  std::vector<Type> types(tree.nodes().size());
+  const auto f = [&](const auto &n) -> Type {
+    using T = std::decay_t<decltype(n)>;
+    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, options).type;
+    else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value.type;
+    else if constexpr (std::is_same_v<T, Identifier>) {
+      if (const auto value = constant_of ? constant_of(n) : std::nullopt) return value->type;
+      return type_of(n);
+    } else if constexpr (std::is_same_v<T, Unary>) return result_type(n.op, types[n.operand], options);
+    else return result_type(n.op, types[n.lhs], types[n.rhs], options);
+  };
+  for (NodeId id = 0; id < types.size(); id++) types[id] = std::visit(f, tree[id]);
+  return types;
+}
+
+pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Options &options,
+                                                    const ConstantOf &constant_of) {
+  const auto values = constant_values(tree, options, constant_of);
+
+  // Rebuild from the root, replacing each subtree which has a value with a single constant.
   Tree ret;
   const auto rebuild = [&](const auto &self, NodeId id) -> NodeId {
     const auto &node = tree[id];
-    // If the expression was successfully evaluated, replace it with a FoldedConstantNode. Otherwise
-    if (values[id]) {
-      // Do not rewrite a single literal as a folded constant.
-      if (std::holds_alternative<Integer>(node) || std::holds_alternative<Character>(node)) return ret.add(node);
-      return ret.add(FoldedConstant{*values[id]});
-    }
-    // Recurse into non-constant subtrees, adding most nested children before parents.
-    else if (const auto *unary = std::get_if<Unary>(&node))
-      return ret.add(Unary{unary->op, self(self, unary->operand)});
-    else if (const auto *binary = std::get_if<Binary>(&node))
-      return ret.add(Binary{binary->op, self(self, binary->lhs), self(self, binary->rhs)});
-    else return ret.add(node);
+    if (!values[id]) return ret.add(map_operands(node, [&](NodeId operand) { return self(self, operand); }));
+    // Do not rewrite a single literal as a folded constant.
+    if (std::holds_alternative<Integer>(node) || std::holds_alternative<Character>(node)) return ret.add(node);
+    return ret.add(FoldedConstant{*values[id]});
   };
-  // Walk from the root, attempting to use pre-computed values as FoldedConstants where possible.
   if (!tree.empty()) rebuild(rebuild, tree.root());
   return ret;
 }

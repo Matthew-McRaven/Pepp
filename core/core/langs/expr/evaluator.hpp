@@ -18,6 +18,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <vector>
 #include "core/integers.h"
 #include "core/langs/expr/error.hpp"
 #include "core/langs/expr/ir.hpp"
@@ -59,6 +60,16 @@ std::expected<Value, EvaluationError> evaluate_constant(const Tree &tree, const 
 // The value of a symbol which is a constant (e.g., an .EQUATE in the assembler), or nullopt if the symbol is not a
 // constant.
 using ConstantOf = std::function<std::optional<Value>(const Identifier &)>;
+// The type of a symbol which is not a constant.
+using TypeOf = std::function<Type(const Identifier &)>;
+
+// The value of each node, indexed by NodeId, or nullopt if the node depends on a non-constant symbol or its operation
+// failed. Unlike evaluate_constant, && and || do not short-circuit.
+std::vector<std::optional<Value>> constant_values(const Tree &tree, const Options &options,
+                                                  const ConstantOf &constant_of = {});
+// The type of each node, indexed by NodeId. Constant symbols have their value's type, and other symbols type_of's.
+std::vector<Type> node_types(const Tree &tree, const Options &options, const TypeOf &type_of,
+                             const ConstantOf &constant_of = {});
 // Return a copy of the tree where all expressions involving constants have been pre-computed. For example, 4 * 6 +
 // symbol - 5 would become 24 + symbol - 5. Newly created constants are of type FoldedConstant which record their
 // computed type in addition to their bit pattern.
