@@ -221,7 +221,7 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     };
     for (const auto &c : cases) {
       CAPTURE(c.source);
-      const auto reassociated = reassociate_constants(tree_of(c.source), pep, type_of, constant_of);
+      const auto reassociated = reassociate_constants(strip_parens(tree_of(c.source)), pep, type_of, constant_of);
       CHECK(to_postfix(reassociated) == c.reassociated);
       CHECK(to_postfix(fold_constants(reassociated, pep, constant_of)) == c.folded);
       CHECK(to_postfix(simplify(tree_of(c.source), pep, type_of, constant_of)) == c.folded);

@@ -98,12 +98,14 @@ private:
       consume(identifier);
       return add(Identifier{std::string(identifier->view())}, identifier->location());
     } else if (_buf.peek_literal("(")) {
-      consume(_buf.match_literal("("));
+      const auto open = _buf.match_literal("(");
+      consume(open);
       const auto inner = expression(0);
       if (!inner) expected_operand();
       if (!_buf.peek_literal(")")) throw Failure{_buf.peek()->location(), "Expected ')'"};
-      consume(_buf.match_literal(")"));
-      return inner;
+      const auto close = _buf.match_literal(")");
+      consume(close);
+      return add(Parens{*inner}, LocationInterval(open->location().lower(), close->location().upper()));
     }
     return std::nullopt;
   }

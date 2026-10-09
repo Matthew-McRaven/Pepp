@@ -29,7 +29,7 @@ TEST_CASE("Expression tree traversal", "[scope:core][scope:core.langs][kind:unit
   SECTION("Flattening chains") {
     // Stops at any node outside the group, and the right of each inverse flips inversion.
     const auto operands = [&](const char *source, const Group &group) {
-      const auto t = tree(source);
+      const auto t = strip_parens(tree(source));
       std::vector<std::string> ret;
       for (const auto &[id, inverted] : flatten(t, t.root(), group)) {
         const auto *identifier = std::get_if<Identifier>(&t[id]);
@@ -42,5 +42,8 @@ TEST_CASE("Expression tree traversal", "[scope:core][scope:core.langs][kind:unit
     CHECK(operands("a * (b * c) * (d + e)", multiply) == std::vector<std::string>{"a", "b", "c", "?"});
     // A node outside the group is a single operand.
     CHECK(operands("a * b", add) == std::vector<std::string>{"?"});
+    // Parens are outside every group, so they end a chain unless stripped.
+    const auto t = tree("a - (b - c)");
+    CHECK(flatten(t, t.root(), add).size() == 2);
   }
 }

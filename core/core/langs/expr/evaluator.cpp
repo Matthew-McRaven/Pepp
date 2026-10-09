@@ -125,6 +125,7 @@ Result evaluate(const Tree &tree, NodeId id, const Options &options, const Value
       if (auto value = value_of ? value_of(n) : std::nullopt) return *value;
       return fail("Symbol has no value: " + n.name);
     }
+    else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, options, value_of);
     else if constexpr (std::is_same_v<T, Unary>) {
       if (const auto operand = evaluate(tree, n.operand, options, value_of); !operand) return operand;
       else if (auto ret = apply(n.op, *operand, options); ret) return *ret;
@@ -231,6 +232,7 @@ pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const 
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, options);
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value;
     else if constexpr (std::is_same_v<T, Identifier>) return constant_of ? constant_of(n) : std::nullopt;
+    else if constexpr (std::is_same_v<T, Parens>) return values[n.inner];
     else if constexpr (std::is_same_v<T, Unary>) {
       if (!values[n.operand]) return std::nullopt;
       return known(apply(n.op, *values[n.operand], options));
@@ -254,7 +256,8 @@ std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, c
     else if constexpr (std::is_same_v<T, Identifier>) {
       if (const auto value = constant_of ? constant_of(n) : std::nullopt) return value->type;
       return type_of(n);
-    } else if constexpr (std::is_same_v<T, Unary>) return result_type(n.op, types[n.operand], options);
+    } else if constexpr (std::is_same_v<T, Parens>) return types[n.inner];
+    else if constexpr (std::is_same_v<T, Unary>) return result_type(n.op, types[n.operand], options);
     else return result_type(n.op, types[n.lhs], types[n.rhs], options);
   };
   for (NodeId id = 0; id < types.size(); id++) types[id] = std::visit(f, tree[id]);
@@ -330,5 +333,5 @@ pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Opti
 
 pepp::tc::expr::Tree pepp::tc::expr::simplify(const Tree &tree, const Options &options, const TypeOf &type_of,
                                               const ValueOf &constant_of) {
-  return fold_constants(reassociate_constants(tree, options, type_of, constant_of), options, constant_of);
+  return fold_constants(reassociate_constants(strip_parens(tree), options, type_of, constant_of), options, constant_of);
 }

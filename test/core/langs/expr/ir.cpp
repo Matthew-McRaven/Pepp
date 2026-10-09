@@ -37,7 +37,13 @@ TEST_CASE("Expression parser IR", "[scope:core][scope:core.langs][kind:unit][arc
     // Postorder: operands before their operator, which is how the nodes are stored.
     CHECK(tree("sym + 1").kinds() == std::vector<K>{K::Identifier, K::Integer, K::Add});
     CHECK(tree("-(a - 'b') * 2").kinds() ==
-          std::vector<K>{K::Identifier, K::Character, K::Subtract, K::Minus, K::Integer, K::Multiply});
+          std::vector<K>{K::Identifier, K::Character, K::Subtract, K::Parens, K::Minus, K::Integer, K::Multiply});
+  }
+  SECTION("Stripping parentheses") {
+    const auto stripped = strip_parens(tree("((a + b)) * -(c)"));
+    CHECK(to_postfix(stripped) == "a b + c u- *");
+    // Fprmatting ass infix re-insert parens needs to eliminate ambiguity.
+    CHECK(to_infix(stripped) == "(a + b) * -c");
   }
   SECTION("Pattern matching") {
     // symbol + constant, which is a common pattern for relocations.

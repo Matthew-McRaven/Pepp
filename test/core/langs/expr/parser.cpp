@@ -51,7 +51,8 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
         {"!~-x", "x u- ~ !", "!~-x"},
         {"a - -b", "a b u- -", "a - -b"},
         {"+a % (b - c)", "a u+ b c - %", "+a % (b - c)"},
-        {"((a))", "a", "a"},
+        {"((a))", "a", "((a))"}, // Parentheses are kept as written, even when redundant.
+        {"(5+6)", "5 6 +", "(5 + 6)"},
         {"0x1f * '\\n'", "0x1F '\\n' *", "0x1F * '\\n'"}, // Literals print in their own format.
     };
     for (const auto &c : cases) {
@@ -171,11 +172,16 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     const auto &tree = result.tree;
     const auto &locations = result.locations;
     REQUIRE(locations.size() == tree.nodes().size());
-    // Parentheses are not part of a node's span.
-    CHECK(locations[tree.root()].lower() == Location(3, 11));
+    CHECK(locations[tree.root()].lower() == Location(3, 10));
     CHECK(locations[tree.root()].upper() == Location(3, 18));
     const auto &sum = std::get<Binary>(tree[tree.root()]);
     CHECK(locations[sum.rhs].lower() == Location(3, 16));
     CHECK(locations[sum.rhs].upper() == Location(3, 18));
+    // A Parens node's span includes its parentheses, but its operand's does not.
+    CHECK(locations[sum.lhs].lower() == Location(3, 10));
+    CHECK(locations[sum.lhs].upper() == Location(3, 13));
+    const auto inner = std::get<Parens>(tree[sum.lhs]).inner;
+    CHECK(locations[inner].lower() == Location(3, 11));
+    CHECK(locations[inner].upper() == Location(3, 12));
   }
 }

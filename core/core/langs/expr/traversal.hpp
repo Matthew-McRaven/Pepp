@@ -26,6 +26,7 @@ namespace pepp::tc::expr {
 template <typename F> Node map_operands(const Node &node, F &&f) {
   if (const auto *unary = std::get_if<Unary>(&node)) return Unary{unary->op, f(unary->operand)};
   else if (const auto *binary = std::get_if<Binary>(&node)) return Binary{binary->op, f(binary->lhs), f(binary->rhs)};
+  else if (const auto *parens = std::get_if<Parens>(&node)) return Parens{f(parens->inner)};
   return node;
 }
 

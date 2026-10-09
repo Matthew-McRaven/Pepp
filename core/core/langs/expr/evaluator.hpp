@@ -73,7 +73,8 @@ std::vector<Type> node_types(const Tree &tree, const Options &options, const Typ
 
 // Return a copy of the tree where each chain of +/-, *, &, |, or ^ has its constant operands moved before its other
 // operands, so that fold_constants can compute them. For example, 4 * 6 + symbol - 5 becomes 4 * 6 - 5 + symbol. A chain
-// is only reordered when all of its nodes have the same width.
+// is only reordered when all of its nodes have the same width. Parens end a chain, so strip_parens first to reassociate
+// across them.
 Tree reassociate_constants(const Tree &tree, const Options &options, const TypeOf &type_of,
                            const ValueOf &constant_of = {});
 // Return a copy of the tree where all expressions involving constants have been pre-computed. For example, 4 * 6 +
@@ -81,9 +82,8 @@ Tree reassociate_constants(const Tree &tree, const Options &options, const TypeO
 // computed type in addition to their bit pattern.
 Tree fold_constants(const Tree &tree, const Options &options, const ValueOf &constant_of = {});
 
-// Reassociate before constant folding so that each chain collapses its constants into one operand. For example,
-// 4 * 6 + symbol - 5 becomes 19 + symbol.  This method is useful for the assembler to prove equivalence between
-// expressions and patterns which can be relocated.
+// Strip parentheses, reassociate and fold constants.. For example, (4 * 6) + symbol - 5 becomes 19 + symbol.  This
+// method is useful for the assembler to prove equivalence between expressions and patterns which can be relocated.
 Tree simplify(const Tree &tree, const Options &options, const TypeOf &type_of, const ValueOf &constant_of = {});
 
 } // namespace pepp::tc::expr

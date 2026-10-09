@@ -59,7 +59,7 @@ enum class BinaryOp : u8 {
   LogicalOr,
 };
 
-// Bit masks (with one kind per leaf node and operation). Used to quickly compare the structure of trees, especially
+// Bit masks (with one kind per leaf node, parentheses, and operation). Used to quickly compare the structure of trees, especially
 // in the assembler while generating relocations. May need to widen to u64 if more operators are added.
 enum class Kind : u32 {
   None = 0,
@@ -67,8 +67,9 @@ enum class Kind : u32 {
   Character = Integer << 1,
   Identifier = Character << 1,
   FoldedConstant = Identifier << 1,
+  Parens = FoldedConstant << 1,
   // UnaryOp in declaration order.
-  UnaryStart = FoldedConstant << 1,
+  UnaryStart = Parens << 1,
   Plus = UnaryStart,
   Minus = Plus << 1,
   BitNot = Minus << 1,
@@ -117,7 +118,7 @@ static_assert(kind(BinaryOp::Multiply) == Kind::Multiply && kind(BinaryOp::Logic
 static_assert(bits::to_underlying(Kind::Any) ==
                   (bits::to_underlying(Kind::Integer) | bits::to_underlying(Kind::Character) |
                    bits::to_underlying(Kind::Identifier) | bits::to_underlying(Kind::FoldedConstant) |
-                   bits::to_underlying(Kind::AnyUnary) | bits::to_underlying(Kind::AnyBinary)),
+                   bits::to_underlying(Kind::Parens) | bits::to_underlying(Kind::AnyUnary) | bits::to_underlying(Kind::AnyBinary)),
               "Kind's masks must cover every kind exactly");
 
 struct Integer {
@@ -148,6 +149,12 @@ struct FoldedConstant {
   Value value;
 };
 
+// While the tree already encodes grouping, parentheses nodes are used to preserve the formatting of the input.
+struct Parens {
+  static constexpr Kind KIND = Kind::Parens;
+  NodeId inner;
+};
+
 struct Unary {
   static constexpr Kind KIND = Kind::AnyUnary;
   UnaryOp op;
@@ -160,7 +167,7 @@ struct Binary {
   NodeId lhs, rhs;
 };
 
-using Node = std::variant<Integer, Character, Identifier, FoldedConstant, Unary, Binary>;
+using Node = std::variant<Integer, Character, Identifier, FoldedConstant, Parens, Unary, Binary>;
 Kind kind(const Node &node);
 
 // A syntax tree of nodes stored in a postordered, flat vector. Nodes refer to each other by index. By definition,
@@ -194,10 +201,14 @@ std::optional<BinaryOp> binary_op(std::string_view text);
 int precedence(BinaryOp op);
 
 // Serialize the tree in postfix notation, e.g. 1 + 2 * -x is "1 2 x u- * +". Unary plus and minus are written u+ and u-
-// to tell them from their binary forms.
+// to tell them from their binary forms. Parens are omitted.
 std::string to_postfix(const Tree &tree);
-// Serialize the tree in infix notation, inserting parentheses only as required for correctness.
+// Serialize the tree in infix notation, keeping Parens and otherwise inserting parentheses only as required for
+// correctness.
 std::string to_infix(const Tree &tree);
+
+// A copy of the tree without explicit Parens nodes.
+Tree strip_parens(const Tree &tree);
 
 // Returns true if the two sequences &'ed together are non-zero for each position.
 constexpr bool matches(std::span<const Kind> kinds, std::span<const Kind> pattern) {

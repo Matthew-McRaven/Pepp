@@ -17,6 +17,7 @@
 #include <iterator>
 #include <limits>
 #include <stdexcept>
+#include "core/langs/expr/traversal.hpp"
 #include "fmt/format.h"
 
 pepp::tc::expr::NodeId pepp::tc::expr::Tree::add(Node node) {
@@ -26,6 +27,8 @@ pepp::tc::expr::NodeId pepp::tc::expr::Tree::add(Node node) {
     throw std::logic_error("Unary operand is not in the tree");
   else if (const auto *binary = std::get_if<Binary>(&node); binary && !(present(binary->lhs) && present(binary->rhs)))
     throw std::logic_error("Binary operand is not in the tree");
+  else if (const auto *parens = std::get_if<Parens>(&node); parens && !present(parens->inner))
+    throw std::logic_error("Parenthesized operand is not in the tree");
   _kinds.emplace_back(kind(node));
   _nodes.emplace_back(std::move(node));
   return static_cast<NodeId>(_nodes.size() - 1);
@@ -173,6 +176,10 @@ void append_infix(std::string &out, const pepp::tc::expr::Tree &tree, pepp::tc::
           append_operand(out, tree, n.lhs, precedence(n.op));
           fmt::format_to(std::back_inserter(out), " {} ", to_string(n.op));
           append_operand(out, tree, n.rhs, precedence(n.op) + 1);
+        } else if constexpr (std::is_same_v<T, Parens>) {
+          out += '(';
+          append_infix(out, tree, n.inner);
+          out += ')';
         } else append(out, n);
       },
       tree[id]);
@@ -183,22 +190,33 @@ std::string pepp::tc::expr::to_postfix(const Tree &tree) {
   std::string ret;
   auto f = [&](const auto &n) {
     using T = std::decay_t<decltype(n)>;
-    if constexpr (std::is_same_v<T, Unary>) {
-      if (n.op == UnaryOp::Plus) ret += "u+";
-      else if (n.op == UnaryOp::Minus) ret += "u-";
-      else ret += to_string(n.op);
-    } else if constexpr (std::is_same_v<T, Binary>) ret += to_string(n.op);
-    else append(ret, n);
+    if constexpr (std::is_same_v<T, Parens>) return; // Postfix needs no grouping.
+    else {
+      if (!ret.empty()) ret += ' ';
+      if constexpr (std::is_same_v<T, Unary>) {
+        if (n.op == UnaryOp::Plus) ret += "u+";
+        else if (n.op == UnaryOp::Minus) ret += "u-";
+        else ret += to_string(n.op);
+      } else if constexpr (std::is_same_v<T, Binary>) ret += to_string(n.op);
+      else append(ret, n);
+    }
   };
-  for (const auto &node : tree.nodes()) {
-    if (!ret.empty()) ret += ' ';
-    std::visit(f, node);
-  }
+  for (const auto &node : tree.nodes()) std::visit(f, node);
   return ret;
 }
 
 std::string pepp::tc::expr::to_infix(const Tree &tree) {
   std::string ret;
   if (!tree.empty()) append_infix(ret, tree, tree.root());
+  return ret;
+}
+
+pepp::tc::expr::Tree pepp::tc::expr::strip_parens(const Tree &tree) {
+  Tree ret;
+  const auto rebuild = [&](const auto &self, NodeId id) -> NodeId {
+    if (const auto *parens = std::get_if<Parens>(&tree[id])) return self(self, parens->inner);
+    return ret.add(map_operands(tree[id], [&](NodeId operand) { return self(self, operand); }));
+  };
+  if (!tree.empty()) rebuild(rebuild, tree.root());
   return ret;
 }
