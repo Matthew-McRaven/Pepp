@@ -70,10 +70,9 @@ struct SvgUnitValue
     SvgUnitValue() {}
     explicit SvgUnitValue(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None) : value(v), unit(u) {}
 
-    void set(const double v, const SvgUnits::SvgUnit u)
-    {
-        value = v;
-        unit = u;
+    void set(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None) {
+      value = v;
+      unit = u;
     }
 
     bool empty() const { return value == std::numeric_limits<double>::denorm_min(); }
@@ -93,7 +92,14 @@ struct SvgUnitValue
       if (ec != std::errc()) return false;
 
       SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None;
-      if (ptr < sv.data() + sv.size()) u = SvgUnits::fromString(ptr);
+      if (ptr < sv.data() + sv.size()) {
+        // ptr not a pointer to a terminated string. If std::string_view is
+        // middle of string (e.g., value 2 of 3), ptr will show remainder of
+        // string. Eg "30% 40in" should just be "%". Ptr shows "% 40in"
+        auto offset = sv.size() - (ptr - sv.data());
+        std::string remainder(sv.substr(sv.size() - offset));
+        u = SvgUnits::fromString(remainder);
+      }
 
       value = result;
       unit = u;
@@ -105,7 +111,7 @@ struct SvgUnitValue
     {
         std::string buffer;
 
-        //  If value wa never set, do not output value
+        //  If value was never set, do not output value
         if (value != std::numeric_limits<double>::denorm_min())
             buffer = fmt::format("{}{}", value, SvgUnits::toString(unit));
         return std::move(buffer);
@@ -155,21 +161,18 @@ public:
         auto view = value | std::views::split(delimit);
         auto it = view.begin();
 
+        if (it == view.end()) return false;
         std::string_view sv = std::string_view(*it++);
-        if (!_x.fromString(sv))
-            return false;
-        assert(it != view.end());
-        if (!_y.fromString(std::string_view{*it++}))
-            return false;
-        assert(it != view.end());
-        if (!_width.fromString(std::string_view{*it++}))
-            return false;
-        assert(it != view.end());
-        if (!_height.fromString(std::string_view{*it}))
-            return false;
-        assert(it != view.end());
-
-        return true;
+        if (it == view.end() || !_x.fromString(sv)) return false;
+        // assert(it != view.end());
+        if (it == view.end() || !_y.fromString(std::string_view{*it++})) return false;
+        // assert(it != view.end());
+        if (it == view.end() || !_width.fromString(std::string_view{*it++})) return false;
+        // assert(it != view.end());
+        if (it == view.end() || !_height.fromString(std::string_view{*it})) return false;
+        // assert(it != view.end());
+        ++it;
+        return (it == view.end());
     }
 
     const std::string toString() const

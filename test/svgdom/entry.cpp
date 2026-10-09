@@ -30,7 +30,7 @@ TEST_CASE("Test opened and copy file", "[scope:core][scope:core.svgdom][kind:uni
   REQUIRE(QDir(dir.path()).mkdir("svgs"));
   auto source = ":/svgs/sample.svg";
   auto target = dir.filePath("svgs/sample.svg");
-  std::cout << "Source: "s << source << " Target: "s << target.toStdString() << std::endl;
+  // std::cout << "Source: "s << source << " Target: "s << target.toStdString() << std::endl;
   REQUIRE(QFile::copy(source, target));
   REQUIRE(fs::exists(target.toStdString()));
 
@@ -61,8 +61,8 @@ TEST_CASE("Test opened and copy file", "[scope:core][scope:core.svgdom][kind:uni
   doc2.fromXml(doc1.toXml());
   doc2.saveAs(output);
   t.finish();
-  std::cout << "Create/copy to second file: " << t.elapsedTime() << std::endl;
-  std::cout << "Doc1 size: " << doc1.fileSize() << ". Doc2 size: " << doc2.fileSize() << std::endl;
+  // std::cout << "Create/copy to second file: " << t.elapsedTime() << std::endl;
+  // std::cout << "Doc1 size: " << doc1.fileSize() << ". Doc2 size: " << doc2.fileSize() << std::endl;
 
   REQUIRE(fs::exists(output));
   CHECK(doc1.fileSize() == doc2.fileSize());
@@ -72,8 +72,8 @@ TEST_CASE("Test opened and copy file", "[scope:core][scope:core.svgdom][kind:uni
   doc3.copyDocument(doc1);
   doc3.saveAs(copy2);
   t.finish();
-  std::cout << "Save copy to third file: " << t.elapsedTime() << std::endl;
-  std::cout << "Doc1 size: " << doc1.fileSize() << ". Doc3 size: " << doc3.fileSize() << std::endl;
+  // std::cout << "Save copy to third file: " << t.elapsedTime() << std::endl;
+  // std::cout << "Doc1 size: " << doc1.fileSize() << ". Doc3 size: " << doc3.fileSize() << std::endl;
 
   REQUIRE(fs::exists(copy2));
   CHECK(doc1.fileSize() == doc3.fileSize());
@@ -102,6 +102,7 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
   svg1.setMetadata("Metadata1 for document"s);
   svg1.classList().add("className1");
 
+  // auto *redRect = svg1.createElement(SvgType::Type::SvgRectElement).derived();
   auto *redRect = static_cast<SvgRectElement *>(svg1.createElement(SvgType::Type::SvgRectElement));
   REQUIRE(redRect != nullptr);
   if (redRect) {
@@ -167,7 +168,7 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
   }
 
   t.finish();
-  std::cout << "Save/testing time: " << t.elapsedTime() << std::endl;
+  // std::cout << "Save/testing time: " << t.elapsedTime() << std::endl;
 }
 
 TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
@@ -231,5 +232,5 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
   t.finish();
   REQUIRE(fs::exists(file));
 
-  std::cout << "Create library file: "s << t.elapsedTime() << std::endl;
+  // std::cout << "Create library file: "s << t.elapsedTime() << std::endl;
 }

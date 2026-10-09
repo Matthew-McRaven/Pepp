@@ -66,3 +66,140 @@ TEST_CASE("Utility file-SvgUnits tests", "[scope:core][scope:core.svgdom][kind:u
 
   CHECK(SvgUnits::fromString("invalid value") == SvgUnits::SvgUnit::None);
 }
+
+TEST_CASE("Utility file-SvgUnitValue tests", "[scope:core][scope:core.svgdom][kind:unit]") {
+  //  Test that utility classes perform correctly
+  //  Test SvgUnitValue class
+
+  //  Constructor tests
+  {
+    SvgUnitValue t(1);
+    CHECK(t.toString() == "1"s);
+  }
+  {
+    SvgUnitValue t(-0.5);
+    CHECK(t.toString() == "-0.5"s);
+  }
+  {
+    SvgUnitValue t(50, SvgUnits::SvgUnit::in);
+    CHECK(t.toString() == "50in"s);
+  }
+
+  SvgUnitValue t1;
+  CHECK(t1.empty());
+  CHECK(t1.toString() == ""s);
+
+  t1.set(1);
+  CHECK(t1.toString() == "1"s);
+
+  t1.set(-0.5);
+  CHECK(t1.toString() == "-0.5"s);
+
+  t1.set(50, SvgUnits::SvgUnit::pct);
+  CHECK(t1.toString() == "50%"s);
+
+  //  Parsing tests
+  CHECK(t1.fromString("1"s));
+  CHECK(t1.toString() == "1"s);
+
+  CHECK(t1.fromString("-0.5"s));
+  CHECK(t1.toString() == "-0.5"s);
+
+  CHECK(t1.fromString("-50mm"));
+  CHECK(t1.toString() == "-50mm"s);
+
+  CHECK(!t1.fromString("bad value"));
+}
+
+TEST_CASE("Utility file-SvgRect tests", "[scope:core][scope:core.svgdom][kind:unit]") {
+  //  Test that utility classes perform correctly
+  //  Test SvgRect class
+
+  //  Constructor tests
+  {
+    SvgRect r1;
+    CHECK(r1.empty());
+  }
+
+  SvgRect r(1, 2, 3, 4);
+  CHECK(!r.empty());
+  CHECK(r.x().toString() == "1"s);
+  CHECK(r.y().toString() == "2"s);
+  CHECK(r.width().toString() == "3"s);
+  CHECK(r.height().toString() == "4"s);
+
+  //  Test getter/setter
+  r.setX(-100);
+  CHECK(r.x().toString() == "-100"s);
+  r.setY(20.1);
+  CHECK(r.y().toString() == "20.1"s);
+  r.setWidth(30.1);
+  CHECK(r.width().toString() == "30.1"s);
+  r.setHeight(400);
+  CHECK(r.height().toString() == "400"s);
+
+  //  Test negative
+  r.setWidth(-30.1);
+  CHECK(r.width().toString() == "0"s);
+  r.setHeight(-400);
+  CHECK(r.height().toString() == "0"s);
+
+  //  Test parsing
+  r.setX("-100");
+  CHECK(r.x().toString() == "-100"s);
+  r.setY("20.1");
+  CHECK(r.y().toString() == "20.1"s);
+  r.setWidth("30.1%");
+  CHECK(r.width().toString() == "30.1%"s);
+  r.setHeight("400mm");
+  CHECK(r.height().toString() == "400mm"s);
+
+  //  String functions
+  const std::string input = "0.1 2mm 30% 40in";
+  CHECK(r.fromString(input));
+  CHECK(r.x().toString() == "0.1"s);
+  CHECK(r.y().toString() == "2mm"s);
+  CHECK(r.width().toString() == "30%"s);
+  CHECK(r.height().toString() == "40in"s);
+
+  CHECK(r.toString() == input);
+
+  //  Too few parameters
+  {
+    const std::string badInput1 = "0.1 2mm 30%";
+    CHECK(!r.fromString(badInput1));
+  }
+  //  Amounts missing parameter
+  {
+    const std::string badInput2 = "0.1 mm % in";
+    CHECK(!r.fromString(badInput2));
+  }
+  {
+    //  Missing input
+    const std::string badInput3 = "";
+    CHECK(!r.fromString(""s));
+    CHECK(!r.fromString(" "s));
+  }
+  {
+    //  Too many parameters
+    const std::string badInput4 = "0.1 2mm 30% 40in 50";
+    CHECK(!r.fromString(badInput4));
+  }
+}
+
+TEST_CASE("Utility file-SvgRope tests", "[scope:core][scope:core.svgdom][kind:unit]") {
+  //  Test that utility classes perform correctly
+  //  Test SvgRope class
+
+  SvgRope rope;
+  CHECK(rope.size() == 0);
+
+  std::string temp = "1234"s;
+  rope.push_back(temp);
+  rope.push_back("5678"s);
+  rope.push_back("90"s);
+  CHECK(rope.size() == 10);
+
+  rope.clear();
+  CHECK(rope.size() == 0);
+}
